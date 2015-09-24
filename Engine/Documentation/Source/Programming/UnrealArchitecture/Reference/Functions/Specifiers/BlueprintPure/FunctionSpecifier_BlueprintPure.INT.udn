@@ -4,4 +4,4 @@ Description:
 Availability:Public
 Version: 4.9
 
-The function does not affect the owning object in any way and can be executed in a Blueprint or Level Blueprint graph. 
+The function does not affect the owning object in any way and can be executed in a **Blueprint** or **Level Blueprint** graph. 
