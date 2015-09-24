@@ -192,6 +192,8 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 		return false;
 	}
 
+	Channel->ActorNetGUID = NetGUID;
+
 	Actor = Cast<AActor>(NewObj);
 
 	// When we return an actor, we don't necessarily always spawn it (we might have found it already in memory)
@@ -1347,6 +1349,11 @@ UObject* UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, c
 	return GuidCache->GetObjectFromNetGUID( NetGUID, bIgnoreMustBeMapped );
 }
 
+FNetworkGUID UPackageMapClient::GetNetGUIDFromObject(const UObject* InObject) const
+{
+	return GuidCache->GetNetGUID(InObject);
+}
+
 //----------------------------------------------------------------------------------------
 //	FNetGUIDCache
 //----------------------------------------------------------------------------------------
@@ -1518,6 +1525,18 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object )
 	}
 
 	return AssignNewNetGUID_Server( Object );
+}
+
+FNetworkGUID FNetGUIDCache::GetNetGUID(const UObject* Object) const
+{
+	if ( !Object || !SupportsObject( Object ) )
+	{
+		// Null of unsupported object, leave as default NetGUID and just return mapped=true
+		return FNetworkGUID();
+	}
+
+	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( Object );
+	return NetGUID;
 }
 
 /**

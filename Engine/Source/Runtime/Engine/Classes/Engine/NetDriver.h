@@ -553,6 +553,12 @@ public:
 	/** Returns true if actor channels with InGUID should queue up bunches, even if they wouldn't otherwise be queued. */
 	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const { return false; }
 
+	/** Returns the existing FNetworkGUID of InActor, if it has one. */
+	virtual FNetworkGUID GetGUIDForActor(const AActor* InActor) const { return FNetworkGUID(); }
+
+	/** Returns the actor that corresponds to InGUID, if one can be found. */
+	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const { return nullptr; }
+
 protected:
 
 	/** Adds (fully initialized, ready to go) client connection to the ClientConnections list + any other game related setup */

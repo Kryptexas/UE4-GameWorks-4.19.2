@@ -150,9 +150,10 @@ class COREUOBJECT_API UPackageMap : public UObject
 	void							ResetTrackedUnmappedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
 	const TArray< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
 
-	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
-	virtual UObject*	GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
-	virtual bool		IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const { return false; }
+	virtual void			LogDebugInfo( FOutputDevice & Ar) { }
+	virtual UObject*		GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
+	virtual FNetworkGUID	GetNetGUIDFromObject( const UObject* InObject) const { return FNetworkGUID(); }
+	virtual bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const { return false; }
 
 protected:
 

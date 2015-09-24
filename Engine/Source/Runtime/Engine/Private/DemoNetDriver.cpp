@@ -1031,12 +1031,14 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 		//  1. We're recording a replay on a client that's connected to a live server, and
 		//  2. the actor isn't bTearOff, and
 		//  3. the actor isn't the replay spectator controller.
+		//  3. the actor isn't the replay spectator controller or its PlayerState.
 		// This is to ensure the roles appear correct when playing back this demo.
 		UWorld* ActorWorld = Actor->GetWorld();
 		bool bShouldSwapRoles =
 			ActorWorld != nullptr && ActorWorld->IsRecordingClientReplay() &&
 			!Actor->bTearOff &&
-			Actor != SpectatorController;
+			Actor != SpectatorController &&
+			Actor != SpectatorController->PlayerState;
 
 		FScopedActorRoleSwap RoleSwap(bShouldSwapRoles ? Actor : nullptr);
 
@@ -1131,6 +1133,8 @@ static void SerializeGuidCache( TSharedPtr< class FNetGUIDCache > GuidCache, FAr
 
 void UDemoNetDriver::SaveCheckpoint()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("SaveCheckpoint time"), STAT_ReplayCheckpointSaveTime, STATGROUP_Net);
+
 	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
 
 	if ( CheckpointArchive == nullptr )
@@ -1698,6 +1702,9 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 		}
 	}
 
+	// Reset the never-queue GUID list, we'll rebuild it
+	NonQueuedGUIDsForScrubbing.Reset();
+
 	const auto FastForwardTotalSeconds = FPlatformTime::Seconds() - StartTime;
 
 	OnGotoTimeDelegate.ExecuteIfBound( true );
@@ -1746,6 +1753,17 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 		return;
 	}
 
+	// Make sure SpectatorController->GetNetDriver returns this driver. Ensures functions that depend on it,
+	// such as IsLocalController, work as expected.
+	SpectatorController->NetDriverName = NetDriverName;
+
+	// If the controller doesn't have a player state, we are probably recording on a client.
+	// Spawn one manually.
+	if ( SpectatorController->PlayerState == nullptr && GetWorld() != nullptr && GetWorld()->IsRecordingClientReplay())
+	{
+		SpectatorController->InitPlayerState();
+	}
+
 	for ( FActorIterator It( World ); It; ++It)
 	{
 		if ( It->IsA( APlayerStart::StaticClass() ) )
@@ -1754,10 +1772,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 			break;
 		}
 	}
-
-	// Make sure SpectatorController->GetNetDriver returns this driver. Ensures functions that depend on it,
-	// such as IsLocalController, work as expected.
-	SpectatorController->NetDriverName = NetDriverName;
+	
 	SpectatorController->SetReplicates( true );
 	SpectatorController->SetAutonomousProxy( true );
 
@@ -1823,9 +1838,6 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	check( GotoCheckpointArchive != NULL );
 	check( !bIsFastForwardingForCheckpoint );
 	check( !bIsFastForwarding );
-
-	// Reset the never-queue GUID list, we'll rebuild it
-	NonQueuedGUIDsForScrubbing.Empty();
 
 	// Save off the current spectator position
 	// Check for NULL, which can be the case if we haven't played any of the demo yet but want to fast forward (joining live game for example)
@@ -2034,6 +2046,43 @@ bool UDemoNetDriver::ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const
 	return false;
 }
 
+FNetworkGUID UDemoNetDriver::GetGUIDForActor(const AActor* InActor) const
+{
+	UNetConnection* Connection = ServerConnection;
+	
+	if ( ClientConnections.Num() > 0)
+	{
+		Connection = ClientConnections[0];
+	}
+
+	if ( !Connection )
+	{
+		return FNetworkGUID();
+	}
+
+	FNetworkGUID Guid = Connection->PackageMap->GetNetGUIDFromObject(InActor);
+	return Guid;
+}
+
+AActor* UDemoNetDriver::GetActorForGUID(FNetworkGUID InGUID) const
+{
+	UNetConnection* Connection = ServerConnection;
+	
+	if ( ClientConnections.Num() > 0)
+	{
+		Connection = ClientConnections[0];
+	}
+
+	if ( !Connection )
+	{
+		return nullptr;
+	}
+
+	UObject* FoundObject = Connection->PackageMap->GetObjectFromNetGUID(InGUID, true);
+	return Cast<AActor>(FoundObject);
+
+}
+
 void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor* Actor)
 {
 	auto FoundChannel = ServerConnection->ActorChannels.Find(Actor);
@@ -2041,6 +2090,14 @@ void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor* Actor)
 	{
 		FNetworkGUID ActorGUID = (*FoundChannel)->ActorNetGUID;
 		NonQueuedGUIDsForScrubbing.Add(ActorGUID);
+	}
+}
+
+void UDemoNetDriver::AddNonQueuedGUIDForScrubbing(FNetworkGUID InGUID)
+{
+	if (InGUID.IsValid())
+	{
+		NonQueuedGUIDsForScrubbing.Add(InGUID);
 	}
 }
 

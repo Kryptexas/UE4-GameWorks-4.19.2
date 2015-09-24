@@ -11,6 +11,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/GameMode.h"
+#include "GameFramework/GameState.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "MessageLog.h"
 
@@ -438,7 +439,17 @@ void AController::InitPlayerState()
 	if ( GetNetMode() != NM_Client )
 	{
 		UWorld* const World = GetWorld();
-		AGameMode* const GameMode = World ? World->GetAuthGameMode() : NULL;
+		const AGameMode* GameMode = World ? World->GetAuthGameMode() : NULL;
+
+		// If the GameMode is null, this might be a network client that's trying to
+		// record a replay. Try to use the default game mode in this case so that
+		// we can still spawn a PlayerState.
+		if (GameMode == NULL)
+		{
+			const AGameState* const GameState = World ? World->GetGameState() : NULL;
+			GameMode = GameState ? GameState->GetDefaultGameMode() : NULL;
+		}
+
 		if (GameMode != NULL)
 		{
 			FActorSpawnParameters SpawnInfo;

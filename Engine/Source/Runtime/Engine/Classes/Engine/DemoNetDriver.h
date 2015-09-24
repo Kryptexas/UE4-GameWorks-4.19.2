@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "NetDriver.h"
 #include "Runtime/Online/HTTP/Public/Interfaces/IHttpRequest.h"
 #include "Runtime/NetworkReplayStreaming/NetworkReplayStreaming/Public/NetworkReplayStreaming.h"
 #include "DemoNetDriver.generated.h"
@@ -124,6 +125,8 @@ public:
 	virtual bool ShouldClientDestroyTearOffActors() const override;
 	virtual bool ShouldSkipRepNotifies() const override;
 	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const override;
+	virtual FNetworkGUID GetGUIDForActor(const AActor* InActor) const override;
+	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const override;
 
 	void GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate = FOnGotoTimeDelegate());
 
@@ -177,4 +180,6 @@ public:
 	void ClearReplayTasks();
 	bool ProcessReplayTasks();
 	bool IsNamedTaskInQueue( const FString& Name );
+
+	void AddNonQueuedGUIDForScrubbing(FNetworkGUID InGUID);
 };
