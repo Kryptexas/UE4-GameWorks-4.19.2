@@ -262,8 +262,8 @@ public class PhysX : ModuleRules
 				"SimulationController{0}",
 			};
 
-			// shipping libs do not need this
-            if (LibraryMode != PhysXLibraryMode.Shipping)
+			// the "shipping" don't need the nvTools library
+			if (LibraryMode != PhysXLibraryMode.Shipping || !bShippingBuildsActuallyUseShippingPhysXLibraries)
 			{
 				// use for profiling, but crash handler won't work
 //				PublicAdditionalLibraries.Add("nvToolsExt");
