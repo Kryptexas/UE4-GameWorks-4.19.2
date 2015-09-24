@@ -1700,8 +1700,25 @@ void UEditorEngine::PlayUsingLauncher()
 		if ((bBuildType == EPlayOnBuildMode::PlayOnBuild_Always) || (bBuildType == PlayOnBuild_Default && (bPlayUsingLauncherHasCode) && bPlayUsingLauncherHasCompiler))
 		{
 			LauncherProfile->SetBuildGame(true);
+		}
 
-			// set the build configuration to be the same as the running editor
+		// set the build/launch configuration 
+		switch (PlayInSettings->LaunchConfiguration)
+		{
+		case LaunchConfig_Debug:
+			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Debug);
+			break;
+		case LaunchConfig_Development:
+			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Development);
+			break;
+		case LaunchConfig_Test:
+			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Test);
+			break;
+		case LaunchConfig_Shipping:
+			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Shipping);
+			break;
+		default:
+			// same as the running editor
 			FString ExeName = FUnrealEdMisc::Get().GetExecutableForCommandlets();
 			if (ExeName.Contains(TEXT("Debug")))
 			{
@@ -1711,8 +1728,9 @@ void UEditorEngine::PlayUsingLauncher()
 			{
 				LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Development);
 			}
+			break;
 		}
-
+		
 		// select the quickest cook mode based on which in editor cook mode is enabled
 		bool bIncrimentalCooking = true;
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));

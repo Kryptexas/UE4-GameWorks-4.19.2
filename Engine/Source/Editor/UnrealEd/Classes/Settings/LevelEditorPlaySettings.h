@@ -91,6 +91,21 @@ enum EPlayOnBuildMode
 	PlayOnBuild_Default UMETA(DisplayName="Only Build Code Projects"),
 };
 
+/* Configuration to use when launching on device. */
+UENUM()
+enum EPlayOnLaunchConfiguration
+{
+	/** Launch on device with the same build configuration as the editor. */
+	LaunchConfig_Default UMETA(DisplayName = "Same as Editor"),
+	/** Launch on device with a Debug build configuration. */
+	LaunchConfig_Debug UMETA(DisplayName = "Debug"),
+	/** Launch on device with a Development build configuration. */
+	LaunchConfig_Development UMETA(DisplayName = "Development"),
+	/** Launch on device with a Test build configuration. */
+	LaunchConfig_Test UMETA(DisplayName = "Test"),
+	/** Launch on device with a Shipping build configuration. */
+	LaunchConfig_Shipping UMETA(DisplayName = "Shipping"),
+};
 
 /**
  * Holds information about a screen resolution to be used for playing.
@@ -118,7 +133,6 @@ public:
 	UPROPERTY(config)
 	FString AspectRatio;
 };
-
 
 /**
  * Implements the Editor's play settings.
@@ -174,7 +188,7 @@ public:
 
 public:
 
-	/** The width of the new view port window in pixels (0 = use the desktop's screen resolution). */
+	/** Whether to always have the PIE window on top of the parent windows. */
 	UPROPERTY(config, EditAnywhere, Category = PlayInNewWindow, meta = (ToolTip="Always have the PIE window on top of the parent windows."))
 	bool PIEAlwaysOnTop;
 
@@ -222,9 +236,13 @@ public:
 
 public:
 
-	/** The width of the new view port window in pixels (0 = use the desktop's screen resolution). */
+	/** Whether to build the game before launching on device. */
 	UPROPERTY(config, EditAnywhere, Category = PlayOnDevice)
 	TEnumAsByte<EPlayOnBuildMode> BuildGameBeforeLaunch;
+
+	/* Which build configuration to use when launching on device. */
+	UPROPERTY(config, EditAnywhere, Category = PlayOnDevice)
+	TEnumAsByte<EPlayOnLaunchConfiguration> LaunchConfiguration;
 
 	/** Whether to automatically recompile dirty Blueprints before launching */
 	UPROPERTY(config, EditAnywhere, Category=PlayOnDevice)
