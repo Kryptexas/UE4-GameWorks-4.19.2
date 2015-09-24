@@ -213,6 +213,10 @@ public class MacPlatform : Platform
 				}
 			}
 		}
+
+		// Copy the ShaderCache files, if they exist
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content"), "ShaderCache.ushadercache", false, null, null, true);
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content"), "ShaderCodeCache.ushadercode", false, null, null, true);
 	}
 
 	string GetValueFromInfoPlist(string InfoPlist, string Key, string DefaultValue = "")
