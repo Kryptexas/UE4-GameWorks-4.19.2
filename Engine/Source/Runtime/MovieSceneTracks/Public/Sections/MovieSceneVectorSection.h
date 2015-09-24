@@ -3,16 +3,18 @@
 #pragma once
 
 #include "MovieSceneSection.h"
-
 #include "MovieSceneVectorSection.generated.h"
+
 
 /**
  * A vector section
  */
 UCLASS(MinimalAPI )
-class UMovieSceneVectorSection : public UMovieSceneSection
+class UMovieSceneVectorSection
+	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
+
 public:
 	
 	/**

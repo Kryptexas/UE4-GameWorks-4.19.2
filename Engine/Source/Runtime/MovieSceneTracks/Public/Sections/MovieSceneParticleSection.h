@@ -5,8 +5,9 @@
 #include "MovieSceneSection.h"
 #include "MovieSceneParticleSection.generated.h"
 
+
 /**
- * The kind of key this particle section is
+ * The kind of key this particle section is.
  */
 UENUM()
 namespace EParticleKey
@@ -18,14 +19,18 @@ namespace EParticleKey
 	};
 }
 
+
 /**
- * Particle section, for particle toggling and triggering
+ * Particle section, for particle toggling and triggering.
  */
-UCLASS( MinimalAPI )
-class UMovieSceneParticleSection : public UMovieSceneSection
+UCLASS(MinimalAPI)
+class UMovieSceneParticleSection
+	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
+
 public:
+
 	/** Sets this section's key type*/
 	void SetKeyType(EParticleKey::Type InKeyType) {KeyType = InKeyType;}
 
@@ -33,7 +38,8 @@ public:
 	EParticleKey::Type GetKeyType() {return KeyType;}
 	
 private:
+
 	/** The way this particle key will operate */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Particles")
 	TEnumAsByte<EParticleKey::Type> KeyType;
 };

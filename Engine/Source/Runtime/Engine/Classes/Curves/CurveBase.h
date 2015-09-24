@@ -86,7 +86,6 @@ struct TStructOpsTypeTraits< FKeyHandleMap > : public TStructOpsTypeTraitsBase
 	};
 };
 
-
 // @todo Some heavy refactoring can be done here. Much more stuff can go in this base class.
 /** A curve base class which enables key handles to index lookups */
 USTRUCT()
@@ -189,11 +188,11 @@ struct ENGINE_API FRichCurveKey
 	TEnumAsByte<ERichCurveTangentWeightMode>	TangentWeightMode;
 
 	/** Time at this key */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Key")
 	float Time;
 
 	/** Value at this key */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Key")
 	float Value;
 
 	/** If RCIM_Cubic, the arriving tangent at this key */
@@ -412,11 +411,11 @@ public:
 	TEnumAsByte<ERichCurveExtrapolation> PostInfinityExtrap;
 
 	/** Sorted array of keys */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, EditFixedSize, Category="Curve")
 	TArray<FRichCurveKey> Keys;
 
 	/** Default value */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Curve")
 	float DefaultValue;
 };
 
@@ -663,10 +662,10 @@ public:
 
 private:
 	/** The keys, ordered by time */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Curve")
 	TArray<FIntegralKey> Keys;
 
 	/** Default value */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Curve")
 	int32 DefaultValue;
 };
