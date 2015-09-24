@@ -37,10 +37,6 @@ partial class GUBP
         {
             return "";
         }
-        public virtual string RootIfAnyForTempStorage()
-        {
-            return "";
-        }
 		public virtual BuildNodeTemplate GetTemplate(GUBP bp)
 		{
 			return new LegacyNodeTemplate(bp, this);
@@ -1679,11 +1675,6 @@ partial class GUBP
         {
             return bIsMassive ? 240 : base.TimeoutInMinutes();
         }
-
-        public override string RootIfAnyForTempStorage()
-        {
-            return CombinePaths(Path.GetDirectoryName(GameProj.FilePath), "Saved", "Cooked", CookPlatform);
-        }
         public override void DoBuild(GUBP bp)
         {
             if (HostPlatform == UnrealTargetPlatform.Mac)
@@ -1694,7 +1685,7 @@ partial class GUBP
 			{
 				CommandUtils.CookCommandlet(GameProj.FilePath, "UE4Editor-Cmd.exe", null, null, null, null, CookPlatform);
 			}
-            var CookedPath = RootIfAnyForTempStorage();
+            var CookedPath = CombinePaths(Path.GetDirectoryName(GameProj.FilePath), "Saved", "Cooked", CookPlatform);
             var CookedFiles = CommandUtils.FindFiles("*", true, CookedPath);
             if (CookedFiles.GetLength(0) < 1)
             {

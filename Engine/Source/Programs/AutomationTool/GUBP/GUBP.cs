@@ -1273,22 +1273,11 @@ public partial class GUBP : BuildCommand
 
             var TempStorageNodeInfo = new TempStorageNodeInfo(JobInfo, NodeToDo.Name);
             
-			string StorageRootIfAny = NodeToDo.RootIfAnyForTempStorage;
-
-			if (bFake)
-			{
-				StorageRootIfAny = ""; // we don't rebase fake runs since those are entirely "records of success", which are always in the logs folder
-			}
-			if (string.IsNullOrEmpty(StorageRootIfAny))
-			{
-				StorageRootIfAny = CmdEnv.LocalRoot;
-			}
-
             if (NodeToDo.IsComplete)
             {
 				// Just fetch the build products from temp storage
 				Log("***** Retrieving GUBP Node {0} -> {1} : {2}", NodeToDo.Name, JobInfo.RootNameForTempStorage, TempStorageNodeInfo.GetRelativeDirectory());
-				NodeToDo.RetrieveBuildProducts(StorageRootIfAny, TempStorageNodeInfo);
+				NodeToDo.RetrieveBuildProducts(TempStorageNodeInfo);
             }
             else
             {
@@ -1310,7 +1299,7 @@ public partial class GUBP : BuildCommand
 				// Archive the build products if the node succeeded
 				if(bResult)
 				{
-					NodeToDo.ArchiveBuildProducts(StorageRootIfAny, TempStorageNodeInfo, !bSaveSharedTempStorage);
+					NodeToDo.ArchiveBuildProducts(TempStorageNodeInfo, !bSaveSharedTempStorage);
 				}
 
 				// Record that the node has finished

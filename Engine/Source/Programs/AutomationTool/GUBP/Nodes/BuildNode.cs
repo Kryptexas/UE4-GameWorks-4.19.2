@@ -28,7 +28,6 @@ namespace AutomationTool
 		public bool IsTest;
 		public string DisplayGroupName;
         public string GameNameIfAnyForFullGameAggregateNode;
-		public string RootIfAnyForTempStorage;
 
 		public abstract BuildNode Instantiate();
 	}
@@ -57,7 +56,6 @@ namespace AutomationTool
 		public bool IsTest;
 		public string DisplayGroupName;
         public string GameNameIfAnyForFullGameAggregateNode;
-		public string RootIfAnyForTempStorage;
 
 		public List<string> BuildProducts;
 
@@ -79,20 +77,19 @@ namespace AutomationTool
 			IsTest = Template.IsTest;
 			DisplayGroupName = Template.DisplayGroupName;
             GameNameIfAnyForFullGameAggregateNode = Template.GameNameIfAnyForFullGameAggregateNode;
-			RootIfAnyForTempStorage = Template.RootIfAnyForTempStorage;
 		}
 
-		public virtual void ArchiveBuildProducts(string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
+		public virtual void ArchiveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
 		{
-			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, StorageRootIfAny);
+			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, CommandUtils.CmdEnv.LocalRoot);
 		}
 
-		public virtual void RetrieveBuildProducts(string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
+		public virtual void RetrieveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo)
 		{
 			CommandUtils.Log("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
 			try
 			{
-				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, StorageRootIfAny);
+				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, CommandUtils.CmdEnv.LocalRoot);
 			}
 			catch (Exception Ex)
 			{

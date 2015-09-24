@@ -35,7 +35,6 @@ namespace AutomationTool
 			Definition.IsTest = Node.IsTest();
 			Definition.DisplayGroupName = Node.GetDisplayGroupName();
             Definition.GameNameIfAnyForFullGameAggregateNode = Node.GameNameIfAnyForFullGameAggregateNode();
-			Definition.RootIfAnyForTempStorage = Node.RootIfAnyForTempStorage();
 		}
 
 		public override BuildNode Instantiate()
@@ -56,9 +55,9 @@ namespace AutomationTool
 			Node = Template.Node;
 		}
 
-		public override void RetrieveBuildProducts(string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
+		public override void RetrieveBuildProducts(TempStorageNodeInfo TempStorageNodeInfo)
 		{
-			base.RetrieveBuildProducts(StorageRootIfAny, TempStorageNodeInfo);
+			base.RetrieveBuildProducts(TempStorageNodeInfo);
 
 			Node.BuildProducts = BuildProducts;
 		}
