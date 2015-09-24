@@ -2618,9 +2618,9 @@ partial class GUBP
         }
     }
 
-	public class BuildLocalization : HostPlatformNode
+	public class BuildEngineLocalization : HostPlatformNode
 	{
-		public BuildLocalization(string InLocalizationBranchSuffix)
+		public BuildEngineLocalization(string InLocalizationBranchSuffix)
 			: base(UnrealTargetPlatform.Win64)
 		{
 			//LocalizationBranchSuffix = InLocalizationBranchSuffix;
