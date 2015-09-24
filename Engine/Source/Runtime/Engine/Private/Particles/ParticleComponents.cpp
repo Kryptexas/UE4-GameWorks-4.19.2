@@ -4370,6 +4370,8 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		bool bResetInstances = false;
 		if (NewTemplate != Template)
 		{
+			bIsElligibleForAsyncTick = false;
+			bIsElligibleForAsyncTickComputed = false;
 			bResetInstances = true;
 		}
 		if (bIsTemplate == false)
