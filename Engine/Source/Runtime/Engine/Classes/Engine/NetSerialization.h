@@ -677,6 +677,12 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 
 		UE_LOG( LogNetSerialization, Verbose, TEXT( "Read NumChanged: %d NumDeletes: %d." ), NumChanged, NumDeletes );
 
+		// Increment keys so that a client can re-serialize the array if needed, such as for client replay recording
+		if ( NumDeletes > 0 || NumChanged > 0 )
+		{
+			++ArraySerializer.ArrayReplicationKey;
+		}
+
 		TArray<int32> DeleteIndices;
 
 		//---------------
@@ -741,6 +747,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				UE_LOG(LogNetSerialization, Log, TEXT("   Changed. ID: %d -> Idx: %d"), ElementID, *ElementIndexPtr);
 				ElementIndex = *ElementIndexPtr;
 				ThisElement = &Items[ElementIndex];
+				++Items[ElementIndex].ReplicationKey;
 			}
 
 			// Let package map know we want to track and know about any guids that are unmapped during the serialize call
