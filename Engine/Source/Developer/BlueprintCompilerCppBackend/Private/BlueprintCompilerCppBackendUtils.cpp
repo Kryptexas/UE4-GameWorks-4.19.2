@@ -25,6 +25,7 @@ FString FEmitterLocalContext::GenerateUniqueLocalName()
 
 FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound)
 {
+	UClass* ActualClass = Cast<UClass>(Dependencies.GetOriginalStruct());
 	if (ActualClass && Object && Object->IsIn(ActualClass))
 	{
 		if (const FString* NamePtr = (CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass) ? ClassSubobjectsMap.Find(Object) : nullptr)
@@ -117,6 +118,117 @@ FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLo
 	}
 
 	return FString{};
+}
+
+FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const void* PropertyValue) const
+{
+	if (auto ArrayProperty = Cast<const UArrayProperty>(Property))
+	{
+		const uint32 LocalExportCPPFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
+			| EPropertyExportCPPFlags::CPPF_NoConst
+			| EPropertyExportCPPFlags::CPPF_NoRef
+			| EPropertyExportCPPFlags::CPPF_NoStaticArray
+			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
+		const FString TypeText = ExportCppDeclaration(ArrayProperty, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
+		return FString::Printf(TEXT("%s()"), *TypeText);
+	}
+
+	auto ObjectPropertyBase = Cast<const UObjectPropertyBase>(Property);
+	if (ObjectPropertyBase && Property->IsA<UAssetObjectProperty>())
+	{
+		if (UObject* Object = ObjectPropertyBase->GetObjectPropertyValue(PropertyValue))
+		{
+			UClass* ActualClass = ObjectPropertyBase->PropertyClass;
+			auto BPGC = Cast<UBlueprintGeneratedClass>(ActualClass);
+			const bool bConverted = BPGC && Dependencies.WillClassBeConverted(BPGC);
+			if (BPGC && !bConverted)
+			{
+				ActualClass = GetFirstNativeParent(BPGC);
+			}
+			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))")
+				, *FEmitHelper::GetCppName(ActualClass)
+				, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
+		}
+		return TEXT("nullptr");
+	}
+
+	FString ValueStr;
+	Property->ExportTextItem(ValueStr, PropertyValue, PropertyValue, nullptr, EPropertyPortFlags::PPF_ExportCpp);
+	return ValueStr;
+}
+
+FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 InExportCPPFlags, bool bSkipParameterName) const
+{
+	FString ActualCppType;
+	FString* ActualCppTypePtr = nullptr;
+	FString ActualExtendedType;
+	FString* ActualExtendedTypePtr = nullptr;
+	uint32 ExportCPPFlags = InExportCPPFlags;
+
+	auto GetActualNameCPP = [&](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass)
+	{
+		auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
+		const bool bConverted = BPGC && Dependencies.WillClassBeConverted(BPGC);
+		if (BPGC && !bConverted)
+		{
+			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
+			const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+			UClass* NativeType = GetFirstNativeParent(BPGC);
+			ActualCppType = ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, NativeType);
+			ActualCppTypePtr = &ActualCppType;
+			if (!ActualExtendedType.IsEmpty())
+			{
+				ActualExtendedTypePtr = &ActualExtendedType;
+			}
+		}
+	};
+
+	auto ArrayProperty = Cast<const UArrayProperty>(Property);
+	if (ArrayProperty)
+	{
+		Property = ArrayProperty->Inner;
+		ExportCPPFlags = (ExportCPPFlags & ~CPPF_ArgumentOrReturnValue);
+	}
+
+	if (auto ClassProperty = Cast<const UClassProperty>(Property))
+	{
+		GetActualNameCPP(ClassProperty, ClassProperty->MetaClass);
+	}
+	else if (auto AssetClassProperty = Cast<const UAssetClassProperty>(Property))
+	{
+		GetActualNameCPP(AssetClassProperty, AssetClassProperty->MetaClass);
+	}
+	else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
+	{
+		GetActualNameCPP(ObjectProperty, ObjectProperty->PropertyClass);
+	}
+
+	if (ArrayProperty)
+	{
+		Property = ArrayProperty;
+		if (ActualCppTypePtr)
+		{
+			const FString LocalActualCppType = ActualCppType;
+			ActualCppType.Empty();
+			const FString LocalActualExtendedType = ActualExtendedType;
+			ActualExtendedType.Empty();
+			ActualExtendedTypePtr = nullptr;
+
+			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
+			const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+
+			ActualCppType = ArrayProperty->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, LocalActualCppType, LocalActualExtendedType);
+			if (!ActualExtendedType.IsEmpty())
+			{
+				ActualExtendedTypePtr = &ActualExtendedType;
+			}
+		}
+	}
+
+	FStringOutputDevice Out;
+	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, InExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedTypePtr);
+	return FString(Out);
+
 }
 
 FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
@@ -438,14 +550,14 @@ FString FEmitHelper::EmitUFuntion(UFunction* Function, TArray<FString>* Additina
 	return FString::Printf(TEXT("UFUNCTION(%s)"), *AllTags);
 }
 
-int32 FEmitHelper::ParseDelegateDetails(UFunction* Signature, FString& OutParametersMacro, FString& OutParamNumberStr)
+int32 FEmitHelper::ParseDelegateDetails(FEmitterLocalContext& EmitterContext, UFunction* Signature, FString& OutParametersMacro, FString& OutParamNumberStr)
 {
 	int32 ParameterNum = 0;
 	FStringOutputDevice Parameters;
 	for (TFieldIterator<UProperty> PropIt(Signature); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
 		Parameters += ", ";
-		PropIt->ExportCppDeclaration(Parameters, EExportedDeclaration::MacroParameter, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName);
+		Parameters += EmitterContext.ExportCppDeclaration(*PropIt, EExportedDeclaration::MacroParameter, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
 		++ParameterNum;
 	}
 
@@ -469,7 +581,7 @@ int32 FEmitHelper::ParseDelegateDetails(UFunction* Signature, FString& OutParame
 	return ParameterNum;
 }
 
-TArray<FString> FEmitHelper::EmitSinglecastDelegateDeclarations(const TArray<UDelegateProperty*>& Delegates)
+TArray<FString> FEmitHelper::EmitSinglecastDelegateDeclarations(FEmitterLocalContext& EmitterContext, const TArray<UDelegateProperty*>& Delegates)
 {
 	TArray<FString> Results;
 	for (auto It : Delegates)
@@ -479,15 +591,21 @@ TArray<FString> FEmitHelper::EmitSinglecastDelegateDeclarations(const TArray<UDe
 		check(Signature);
 
 		FString ParamNumberStr, Parameters;
-		ParseDelegateDetails(Signature, Parameters, ParamNumberStr);
+		ParseDelegateDetails(EmitterContext, Signature, Parameters, ParamNumberStr);
 
-		Results.Add(*FString::Printf(TEXT("DECLARE_DYNAMIC_DELEGATE%s(%s%s)"),
-			*ParamNumberStr, *It->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName), *Parameters));
+		const uint32 LocalExportCPPFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
+			| EPropertyExportCPPFlags::CPPF_NoConst
+			| EPropertyExportCPPFlags::CPPF_NoRef
+			| EPropertyExportCPPFlags::CPPF_NoStaticArray
+			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
+		const FString TypeName = EmitterContext.ExportCppDeclaration(It, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
+
+		Results.Add(*FString::Printf(TEXT("DECLARE_DYNAMIC_DELEGATE%s(%s%s)"), *ParamNumberStr, *TypeName, *Parameters));
 	}
 	return Results;
 }
 
-TArray<FString> FEmitHelper::EmitMulticastDelegateDeclarations(UClass* SourceClass)
+TArray<FString> FEmitHelper::EmitMulticastDelegateDeclarations(FEmitterLocalContext& EmitterContext, UClass* SourceClass)
 {
 	TArray<FString> Results;
 	for (TFieldIterator<UMulticastDelegateProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
@@ -496,10 +614,16 @@ TArray<FString> FEmitHelper::EmitMulticastDelegateDeclarations(UClass* SourceCla
 		check(Signature);
 
 		FString ParamNumberStr, Parameters;
-		ParseDelegateDetails(Signature, Parameters, ParamNumberStr);
+		ParseDelegateDetails(EmitterContext, Signature, Parameters, ParamNumberStr);
 
-		Results.Add(*FString::Printf(TEXT("\tDECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s)"),
-			*ParamNumberStr, *It->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName), *Parameters));
+		const uint32 LocalExportCPPFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
+			| EPropertyExportCPPFlags::CPPF_NoConst
+			| EPropertyExportCPPFlags::CPPF_NoRef
+			| EPropertyExportCPPFlags::CPPF_NoStaticArray
+			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
+		const FString TypeName = EmitterContext.ExportCppDeclaration(*It, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
+
+		Results.Add(*FString::Printf(TEXT("\tDECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s)"), *ParamNumberStr, *TypeName, *Parameters));
 	}
 
 	return Results;
@@ -668,7 +792,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			{
 				return MappedObject;
 			}
-			return FString::Printf(TEXT("LoadClass<UObject>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr "), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+			return FString::Printf(TEXT("LoadClass<UObject>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr)"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		return FString(TEXT("nullptr"));
 	}

@@ -452,7 +452,8 @@ FString UProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("PROPERTY");
 }
 
-void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags, bool bSkipParameterName) const
+void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags
+	, bool bSkipParameterName, const FString* ActualCppType, const FString* ActualExtendedType) const
 {
 	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 	const bool bIsInterfaceProp = dynamic_cast<const UInterfaceProperty*>(this) != nullptr;
@@ -460,7 +461,20 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 	// export the property type text (e.g. FString; int32; TArray, etc.)
 	FString ExtendedTypeText;
 	const uint32 ExportCPPFlags = AdditionalExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-	FString TypeText = GetCPPType(&ExtendedTypeText, ExportCPPFlags);
+	FString TypeText;
+	if (ActualCppType)
+	{
+		TypeText = *ActualCppType;
+	}
+	else
+	{
+		TypeText = GetCPPType(&ExtendedTypeText, ExportCPPFlags);
+	}
+
+	if (ActualExtendedType)
+	{
+		ExtendedTypeText = *ActualExtendedType;
+	}
 
 	const bool bCanHaveConst = 0 == (AdditionalExportCPPFlags & CPPF_NoConst);
 	if (!dynamic_cast<const UBoolProperty*>(this) && bCanHaveConst) // can't have const bitfields because then we cannot determine their offset and mask from the compiler

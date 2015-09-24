@@ -154,10 +154,22 @@ void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext
 {
 	UClass* ClassPtr = CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral);
 	check(ClassPtr != nullptr);
-	FString TargetClass = FEmitHelper::GetCppName(ClassPtr);
-	FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
-	FString CastedValue = TermToText(EmitterContext, Statement.LHS);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"),*CastedValue, *TargetClass, *ObjectValue));
+	
+	const FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
+	const FString CastedValue = TermToText(EmitterContext, Statement.LHS);
+
+	auto BPGC = Cast<UBlueprintGeneratedClass>(ClassPtr);
+	if (BPGC && !EmitterContext.Dependencies.WillClassBeConverted(BPGC))
+	{
+		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeParent(ClassPtr));
+		const FString TargetClass = EmitterContext.FindGloballyMappedObject(ClassPtr, true);
+		EmitterContext.AddLine(FString::Printf(TEXT("%s = NoNativeCast<%s>(%s, %s);"), *CastedValue, *NativeClass, *TargetClass, *ObjectValue));
+	}
+	else
+	{
+		const FString TargetClass = FEmitHelper::GetCppName(ClassPtr);
+		EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"), *CastedValue, *TargetClass, *ObjectValue));
+	}
 }
 
 void FBlueprintCompilerCppBackend::EmitMetaCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -313,13 +325,11 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 
-	FStringOutputDevice IndexDeclaration;
 	check(IndexTerm && IndexTerm->AssociatedVarProperty);
-	IndexTerm->AssociatedVarProperty->ExportCppDeclaration(IndexDeclaration, EExportedDeclaration::Parameter, nullptr, CppTemplateTypeFlags, true);
+	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
 
 	check(DefaultValueTerm && DefaultValueTerm->AssociatedVarProperty);
-	FStringOutputDevice ValueDeclaration;
-	DefaultValueTerm->AssociatedVarProperty->ExportCppDeclaration(ValueDeclaration, EExportedDeclaration::Parameter, nullptr, CppTemplateTypeFlags, true);
+	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
 
 	for (int32 TermIndex = TermsBeforeCases; TermIndex < (NumCases * TermsPerCase); TermIndex += TermsPerCase)
 	{

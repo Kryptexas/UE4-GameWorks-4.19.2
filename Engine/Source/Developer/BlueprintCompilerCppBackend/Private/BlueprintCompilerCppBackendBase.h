@@ -74,10 +74,10 @@ protected:
 	*/
 	virtual FString InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState) PURE_VIRTUAL(FBlueprintCompilerCppBackendBase::InnerFunctionImplementation, return FString(););
 
-	void EmitStructProperties(FStringOutputDevice& Target, UStruct* SourceClass);
+	void EmitStructProperties(FEmitterLocalContext EmitterContext, UStruct* SourceClass);
 
 	/** Emits local variable declarations for a function */
-	void DeclareLocalVariables(FKismetFunctionContext& FunctionContext, TArray<UProperty*>& LocalVariables);
+	void DeclareLocalVariables(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables);
 	
 	/** Builds both the header declaration and body implementation of a function */
 	void ConstructFunction(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bGenerateStubOnly);
@@ -92,5 +92,5 @@ protected:
 
 	void EmitReplaceConvertedMetaData(UObject* Obj);
 
-	void DeclareDelegates(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions);
+	void DeclareDelegates(FEmitterLocalContext EmitterContext, UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions);
 };

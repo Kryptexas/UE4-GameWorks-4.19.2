@@ -121,7 +121,7 @@ void FGatherConvertedClassDependencies::HandleObjectReference(UObject*& InObject
 			ConvertedEnum.Add(CastChecked<UUserDefinedEnum>(InObject));
 		}
 	}
-	else if (InObject->IsAsset() && !InObject->IsIn(OriginalStruct))
+	else if ((InObject->IsAsset() || ObjAsBPGC) && !InObject->IsIn(OriginalStruct))
 	{
 		Assets.Add(InObject);
 		return;

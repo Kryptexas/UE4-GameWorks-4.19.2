@@ -17,6 +17,13 @@
 // Special libraries
 #include "Kismet/DataTableFunctionLibrary.h"
 
+template<class NativeType>
+inline NativeType* NoNativeCast(UClass* NoNativeClass, UObject* Object)
+{
+	check(NoNativeClass);
+	check(!Object || (nullptr != Cast<NativeType>(Object)));
+	return (Object && Object->IsA(NoNativeClass)) ? ((NativeType*)Object) : nullptr;
+}
 
 inline UClass* DynamicMetaCast(const UClass* DesiredClass, UClass* SourceClass)
 {

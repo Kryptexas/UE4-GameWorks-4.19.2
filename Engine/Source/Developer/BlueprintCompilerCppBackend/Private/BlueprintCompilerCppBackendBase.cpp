@@ -5,7 +5,7 @@
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
 
-void FBlueprintCompilerCppBackendBase::EmitStructProperties(FStringOutputDevice& Target, UStruct* SourceClass)
+void FBlueprintCompilerCppBackendBase::EmitStructProperties(FEmitterLocalContext EmitterContext, UStruct* SourceClass)
 {
 	// Emit class variables
 	for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
@@ -26,16 +26,17 @@ void FBlueprintCompilerCppBackendBase::EmitStructProperties(FStringOutputDevice&
 		}
 		Emit(Header, TEXT(")\n"));
 		Emit(Header, TEXT("\t"));
-		Property->ExportCppDeclaration(Target, EExportedDeclaration::Member, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		const FString CppDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Member, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		Emit(Header, *CppDeclaration);
 		Emit(Header, TEXT(";\n"));
 	}
 }
 
-void FBlueprintCompilerCppBackendBase::DeclareDelegates(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions)
+void FBlueprintCompilerCppBackendBase::DeclareDelegates(FEmitterLocalContext EmitterContext, UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions)
 {
 	// MC DELEGATE DECLARATION
 	{
-		auto DelegateDeclarations = FEmitHelper::EmitMulticastDelegateDeclarations(SourceClass);
+		auto DelegateDeclarations = FEmitHelper::EmitMulticastDelegateDeclarations(EmitterContext, SourceClass);
 		FString AllDeclarations;
 		FEmitHelper::ArrayToString(DelegateDeclarations, AllDeclarations, TEXT(";\n"));
 		if (DelegateDeclarations.Num())
@@ -76,7 +77,7 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(UClass* SourceClass, TIn
 			}
 		}
 
-		auto DelegateDeclarations = FEmitHelper::EmitSinglecastDelegateDeclarations(Delegates);
+		auto DelegateDeclarations = FEmitHelper::EmitSinglecastDelegateDeclarations(EmitterContext, Delegates);
 		FString AllDeclarations;
 		FEmitHelper::ArrayToString(DelegateDeclarations, AllDeclarations, TEXT(";\n"));
 		if (DelegateDeclarations.Num())
@@ -95,6 +96,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	CppClassName = FEmitHelper::GetCppName(SourceClass);
 	
 	FGatherConvertedClassDependencies Dependencies(SourceClass);
+	FEmitterLocalContext EmitterContext(Dependencies);
 	EmitFileBeginning(CleanCppClassName, &Dependencies);
 
 	// Class declaration
@@ -103,8 +105,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	{
 		Emit(Header, TEXT("UINTERFACE(Blueprintable"));
 		EmitReplaceConvertedMetaData(SourceClass);
-		Emit(Header, *FString::Printf(TEXT(")\nclass U%s : public UInterface\n{\n\tGENERATED_BODY()\n};\n"), *CleanCppClassName));
-		Emit(Header, *FString::Printf(TEXT("\nclass I%s"), *CleanCppClassName));
+		Emit(Header, *FString::Printf(TEXT(")\nclass %s : public UInterface\n{\n\tGENERATED_BODY()\n};\n"), *FEmitHelper::GetCppName(SourceClass, true)));
+		Emit(Header, *FString::Printf(TEXT("\nclass %s"), *CppClassName));
 	}
 	else
 	{
@@ -131,9 +133,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	// Begin scope
 	Emit(Header,TEXT("\n{\npublic:\n\tGENERATED_BODY()\n"));
 
-	DeclareDelegates(SourceClass, Functions);
+	DeclareDelegates(EmitterContext, SourceClass, Functions);
 
-	EmitStructProperties(Header, SourceClass);
+	EmitStructProperties(EmitterContext, SourceClass);
 
 	// Create the state map
 	for (int32 i = 0; i < Functions.Num(); ++i)
@@ -147,8 +149,6 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	{
 		Emit(Header, TEXT("\n"));
 	}
-
-	FEmitterLocalContext EmitterContext(SourceClass, Dependencies);
 
 	if (!bIsInterface)
 	{
@@ -174,14 +174,15 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	Emit(Body, *FEmitHelper::EmitLifetimeReplicatedPropsImpl(SourceClass, CppClassName, TEXT("")));
 }
 
-void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FKismetFunctionContext& FunctionContext, TArray<UProperty*>& LocalVariables)
+void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables)
 {
 	for (int32 i = 0; i < LocalVariables.Num(); ++i)
 	{
 		UProperty* LocalVariable = LocalVariables[i];
 
 		Emit(Body, TEXT("\t"));
-		LocalVariable->ExportCppDeclaration(Body, EExportedDeclaration::Local, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		Emit(Body, *CppDeclaration);
 		Emit(Body, TEXT("{};\n"));
 	}
 
@@ -252,7 +253,20 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 		}
 
 		// Emit the declaration
-		const FString ReturnType = ReturnValue ? ReturnValue->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName) : TEXT("void");
+		FString ReturnType;
+		if (ReturnValue)
+		{
+			const uint32 LocalExportCPPFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
+				| EPropertyExportCPPFlags::CPPF_NoConst 
+				| EPropertyExportCPPFlags::CPPF_NoRef 
+				| EPropertyExportCPPFlags::CPPF_NoStaticArray 
+				| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
+			ReturnType = EmitterContext.ExportCppDeclaration(ReturnValue, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
+		}
+		else
+		{
+			ReturnType = TEXT("void");
+		}
 
 		//@TODO: Make the header+body export more uniform
 		{
@@ -299,8 +313,9 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 					Emit(Body, TEXT("/*out*/ "));
 				}
 
-				ArgProperty->ExportCppDeclaration(Header, EExportedDeclaration::Parameter, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
-				ArgProperty->ExportCppDeclaration(Body, EExportedDeclaration::Parameter, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+				const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(ArgProperty, EExportedDeclaration::Parameter, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+				Emit(Header, *TypeDeclaration);
+				Emit(Body, *TypeDeclaration);
 			}
 
 			Emit(Header, TEXT(")"));
@@ -319,7 +334,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 	if (!bGenerateStubOnly)
 	{
 		// Emit local variables
-		DeclareLocalVariables(FunctionContext, LocalVariables);
+		DeclareLocalVariables(FunctionContext, EmitterContext, LocalVariables);
 
 		const bool bUseSwitchState = FunctionContext.MustUseSwitchState(nullptr);
 
@@ -395,6 +410,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 	check(SourceStruct);
 
 	FGatherConvertedClassDependencies Dependencies(SourceStruct);
+	FEmitterLocalContext EmitterContext(Dependencies);
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
 	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceStruct), &Dependencies);
 
@@ -404,7 +420,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 	Emit(Header, TEXT(")\n"));
 
 	Emit(Header, *FString::Printf(TEXT("struct %s\n{\npublic:\n\tGENERATED_BODY()\n"), *NewName));
-	EmitStructProperties(Header, SourceStruct);
+	EmitStructProperties(EmitterContext, SourceStruct);
 	Emit(Header, *FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, Dependencies));
 	Emit(Header, TEXT("};\n"));
 }

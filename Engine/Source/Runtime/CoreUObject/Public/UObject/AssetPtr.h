@@ -297,6 +297,9 @@ template <class T> struct TIsWeakPointerType<TAssetPtr<T> > { enum { Value = TIs
 template<class TClass>
 class TAssetSubclassOf
 {
+	template <class U>
+	friend class TAssetSubclassOf;
+
 public:
 	/** NULL constructor **/
 	FORCEINLINE TAssetSubclassOf()
