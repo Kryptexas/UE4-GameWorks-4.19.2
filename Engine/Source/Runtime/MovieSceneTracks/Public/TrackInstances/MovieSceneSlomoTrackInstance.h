@@ -21,7 +21,7 @@ public:
 	 *
 	 * @param InSlomoTrack The event track to create an instance for.
 	 */
-	FMovieSceneSlomoTrackInstance(UMovieSceneSlomoTrack& InSlomoTrack );
+	FMovieSceneSlomoTrackInstance(UMovieSceneSlomoTrack& InSlomoTrack);
 
 	/** Virtual destructor. */
 	virtual ~FMovieSceneSlomoTrackInstance() { }

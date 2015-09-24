@@ -9,6 +9,12 @@
 /* UMovieSceneEventTrack interface
  *****************************************************************************/
 
+TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSlomoTrack::CreateInstance()
+{
+	return MakeShareable(new FMovieSceneSlomoTrackInstance(*this)); 
+}
+
+
 UMovieSceneSection* UMovieSceneSlomoTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneSlomoSection::StaticClass(), NAME_None, RF_Transactional);

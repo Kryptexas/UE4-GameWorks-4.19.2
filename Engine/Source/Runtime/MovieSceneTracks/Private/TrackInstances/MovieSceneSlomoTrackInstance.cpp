@@ -5,6 +5,14 @@
 #include "MovieSceneSlomoTrackInstance.h"
 
 
+/* FMovieSceneSlomoTrackInstance structors
+ *****************************************************************************/
+
+FMovieSceneSlomoTrackInstance::FMovieSceneSlomoTrackInstance(UMovieSceneSlomoTrack& InSlomoTrack)
+	: SlomoTrack(&InSlomoTrack)
+{ }
+
+
 /* IMovieSceneTrackInstance interface
  *****************************************************************************/
 
