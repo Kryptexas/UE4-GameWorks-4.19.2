@@ -365,7 +365,12 @@ FName UK2Node_MacroInstance::GetPaletteIcon(FLinearColor& OutColor) const
 
 FText UK2Node_MacroInstance::GetCompactNodeTitle() const
 {
-	return GetAssociatedGraphMetadata(GetMacroGraph())->CompactNodeTitle;	
+	FText ResultText;
+	if (FKismetUserDeclaredFunctionMetadata* MacroGraphMetadata = GetAssociatedGraphMetadata(GetMacroGraph()))
+	{
+		ResultText = MacroGraphMetadata->CompactNodeTitle;
+	}
+	return ResultText;	
 }
 
 bool UK2Node_MacroInstance::ShouldDrawCompact() const
