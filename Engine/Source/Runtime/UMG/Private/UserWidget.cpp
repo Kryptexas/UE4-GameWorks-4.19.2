@@ -609,7 +609,7 @@ void UUserWidget::SetOwningLocalPlayer(ULocalPlayer* LocalPlayer)
 {
 	if ( LocalPlayer )
 	{
-		PlayerContext = FLocalPlayerContext(LocalPlayer);
+		PlayerContext = FLocalPlayerContext(LocalPlayer, GetWorld());
 	}
 }
 

@@ -3640,8 +3640,9 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 {
 	check(InPlayer!=NULL);
 
-	// Detach old player.
-	if (InPlayer->PlayerController)
+	const bool bIsSameWorld = InPlayer->PlayerController && (InPlayer->PlayerController->GetWorld() == GetWorld());
+	// Detach old player if same world.
+	if (bIsSameWorld)
 	{
 		InPlayer->PlayerController->Player = NULL;
 	}

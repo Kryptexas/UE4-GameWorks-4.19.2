@@ -194,7 +194,7 @@ void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 			FString URL;
 			if (SessionInt->GetResolvedConnectString(SessionName, URL))
 			{
-				APlayerController* PC = GetGameInstance()->GetFirstLocalPlayerController();;
+				APlayerController* PC = GetGameInstance()->GetFirstLocalPlayerController(GetWorld());
 				if (PC)
 				{
 					if (bIsFromInvite)

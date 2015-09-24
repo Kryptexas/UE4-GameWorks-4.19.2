@@ -580,6 +580,41 @@ void UGameEngine::FinishDestroy()
 	Super::FinishDestroy();
 }
 
+bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading /*= true*/)
+{
+	// If the game has created multiple worlds, some of them may have prefixed package names,
+	// so we need to remap the world package and streaming levels for replay playback to work correctly.
+	FWorldContext& Context = GetWorldContextFromWorldChecked(InWorld);
+	if (Context.PIEInstance == INDEX_NONE || !bReading)
+	{
+		return false;
+	}
+
+	// If the prefixed path matches the world package name or the name of a streaming level,
+	// return the prefixed name.
+	const FString PrefixedName = UWorld::ConvertToPIEPackageName(Str, Context.PIEInstance);
+	const FString WorldPackageName = InWorld->GetOutermost()->GetName();
+	if (WorldPackageName == PrefixedName)
+	{
+		Str = PrefixedName;
+		return true;
+	}
+
+	for( ULevelStreaming* StreamingLevel : InWorld->StreamingLevels)
+	{
+		if (StreamingLevel != nullptr)
+		{
+			const FString StreamingLevelName = StreamingLevel->WorldAsset.GetLongPackageName();
+			if (StreamingLevelName == PrefixedName)
+			{
+				Str = PrefixedName;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 void UGameEngine::LoadRuntimeEngineStartupModules()
 {
@@ -896,6 +931,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Begin ticking worlds
 	// -----------------------------------------------------
 
+	bool bIsAnyNonPreviewWorldUnpaused = false;
+
 	FName OriginalGWorldContext = NAME_None;
 	for (int32 i=0; i < WorldList.Num(); ++i)
 	{
@@ -959,38 +996,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 			Context.World()->bTriggerPostLoadMap = true;
 		}
-
-		// Tick the viewports.
-		if ( GameViewport != NULL && !bIdleMode )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
-			GameViewport->Tick(DeltaSeconds);
-		}
 	
 		UpdateTransitionType(Context.World());
-	
-		// fixme: this will only happen once due to the static bool, but still need to figure out how to handle this for multiple worlds
-		if (FPlatformProperties::SupportsWindowedMode())
-		{
-			// Hide the splashscreen and show the game window
-			static bool bFirstTime = true;
-			if ( bFirstTime )
-			{
-				bFirstTime = false;
-				FPlatformSplash::Hide();
-				if ( GameViewportWindow.IsValid() )
-				{
-					GameViewportWindow.Pin()->ShowWindow();
-					FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
-				}
-			}
-		}
-
-		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
-		{
-			// Render everything.
-			RedrawViewports();
-		}
 
 		// Block on async loading if requested.
 		if (Context.World()->bRequestedBlockOnAsyncLoading)
@@ -1006,42 +1013,17 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			Context.World()->UpdateLevelStreaming();
 		}
 
-		if (Context.WorldType != EWorldType::Preview)
-		{
-		// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-		if (FAudioDevice* AudioDevice = Context.World()->GetAudioDevice())
-		{
-			AudioDevice->Update(!Context.World()->IsPaused());
-		}
-		}
-
-		if( GIsClient )
-		{
-			// IStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
-			// Will need to take another look when trying to support multiple worlds.
-
-			// Update resource streaming after viewports have had a chance to update view information. Normal update.
-			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-				IStreamingManager::Get().Tick( DeltaSeconds );
-			}
-
-			if ( Context.World()->bTriggerPostLoadMap )
-			{
-				Context.World()->bTriggerPostLoadMap = false;
-
-				// Turns off the loading movie (if it was turned on by LoadMap) and other post-load cleanup.
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-				PostLoadMap();
-			}
-		}
-
 		UNCLOCK_CYCLES(LocalTickCycles);
 		TickCycles=LocalTickCycles;
 
 		// See whether any map changes are pending and we requested them to be committed.
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_ConditionalCommitMapChange);
 		ConditionalCommitMapChange(Context);
+
+		if (Context.WorldType != EWorldType::Preview && !Context.World()->IsPaused())
+		{
+			bIsAnyNonPreviewWorldUnpaused = true;
+		}
 	}
 
 	// ----------------------------
@@ -1053,6 +1035,49 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_GetWorldContextFromHandleChecked);
 		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
+	}
+
+	// Tick the viewport
+	if ( GameViewport != NULL && !bIdleMode )
+	{
+		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
+		GameViewport->Tick(DeltaSeconds);
+	}
+
+	if (FPlatformProperties::SupportsWindowedMode())
+	{
+		// Hide the splashscreen and show the game window
+		static bool bFirstTime = true;
+		if ( bFirstTime )
+		{
+			bFirstTime = false;
+			FPlatformSplash::Hide();
+			if ( GameViewportWindow.IsValid() )
+			{
+				GameViewportWindow.Pin()->ShowWindow();
+				FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
+			}
+		}
+	}
+
+	if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
+	{
+		// Render everything.
+		RedrawViewports();
+	}
+
+	if( GIsClient )
+	{
+		// Update resource streaming after viewports have had a chance to update view information. Normal update.
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
+		IStreamingManager::Get().Tick( DeltaSeconds );
+	}
+
+	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (AudioDeviceManager)
+	{
+		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 
 	// rendering thread commands

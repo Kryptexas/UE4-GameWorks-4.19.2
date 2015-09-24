@@ -416,6 +416,11 @@ void FTimerManager::Tick(float DeltaTime)
 
 	INC_DWORD_STAT_BY(STAT_NumHeapEntries, ActiveTimerHeap.Num());
 
+	if (HasBeenTickedThisFrame())
+	{
+		return;
+	}
+
 	InternalTime += DeltaTime;
 
 	while (ActiveTimerHeap.Num() > 0)

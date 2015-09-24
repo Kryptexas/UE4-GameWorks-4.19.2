@@ -55,7 +55,8 @@ FLocalPlayerContext::FLocalPlayerContext()
 
 }
 
-FLocalPlayerContext::FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer )
+FLocalPlayerContext::FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer, UWorld* InWorld )
+	: World(InWorld)
 {
 	SetLocalPlayer( InLocalPlayer );
 }
@@ -66,6 +67,7 @@ FLocalPlayerContext::FLocalPlayerContext( const class APlayerController* InPlaye
 }
 
 FLocalPlayerContext::FLocalPlayerContext( const FLocalPlayerContext& InPlayerContext )
+	: World(InPlayerContext.World)
 {
 	check(InPlayerContext.GetLocalPlayer());
 	SetLocalPlayer(InPlayerContext.GetLocalPlayer());
@@ -83,6 +85,12 @@ bool FLocalPlayerContext::IsInitialized() const
 
 UWorld* FLocalPlayerContext::GetWorld() const
 {
+	UWorld* WorldPtr = World.Get();
+	if (WorldPtr != nullptr)
+	{
+		return WorldPtr;	
+	}
+
 	check( LocalPlayer.IsValid() );
 	return LocalPlayer->GetWorld();	
 }
@@ -96,34 +104,38 @@ ULocalPlayer* FLocalPlayerContext::GetLocalPlayer() const
 APlayerController* FLocalPlayerContext::GetPlayerController() const
 {
 	check( LocalPlayer.IsValid() );
-	return LocalPlayer->PlayerController;
+	UWorld* WorldPtr = World.Get();
+	return WorldPtr != nullptr ? LocalPlayer->GetPlayerController(WorldPtr) : LocalPlayer->PlayerController;
 }
 
 AGameState* FLocalPlayerContext::GetGameState() const
 {
+	UWorld* WorldPtr = World.Get();
+	if (WorldPtr != nullptr)
+	{
+		return WorldPtr->GameState;
+	}
+	
 	check(LocalPlayer.IsValid());
-	UWorld* World = LocalPlayer->GetWorld();
-	return World ? World->GameState : NULL;
+	UWorld* LocalPlayerWorld = LocalPlayer->GetWorld();
+	return LocalPlayerWorld ? LocalPlayerWorld->GameState : NULL;
 }
 
 APlayerState* FLocalPlayerContext::GetPlayerState() const
 {
-	check(LocalPlayer.IsValid());
-	APlayerController* PC = LocalPlayer->PlayerController;
+	APlayerController* PC = GetPlayerController();
 	return PC ? PC->PlayerState : NULL;
 }
 
 AHUD* FLocalPlayerContext::GetHUD() const
 {
-	check(LocalPlayer.IsValid())
-	APlayerController* PC = LocalPlayer->PlayerController;
+	APlayerController* PC = GetPlayerController();
 	return PC ? PC->MyHUD : NULL;
 }
 
 class APawn* FLocalPlayerContext::GetPawn() const
 {
-	check(LocalPlayer.IsValid())
-	APlayerController* PC = LocalPlayer->PlayerController;
+	APlayerController* PC = GetPlayerController();
 	return PC ? PC->GetPawn() : NULL;
 }
 
@@ -136,6 +148,7 @@ void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayer
 {
 	check( InPlayerController->IsLocalPlayerController() );
 	LocalPlayer = CastChecked<ULocalPlayer>(InPlayerController->Player);
+	World = InPlayerController->GetWorld();
 }
 
 bool FLocalPlayerContext::IsFromLocalPlayer(const AActor* ActorToTest) const

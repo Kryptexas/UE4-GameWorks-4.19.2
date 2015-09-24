@@ -1913,7 +1913,8 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		{
 			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
-				if (It->PlayerController != NULL)
+				APlayerController* LocalPlayerController = It->GetPlayerController(this);
+				if (LocalPlayerController != NULL)
 				{
 					// Remap packagename for PIE networking before sending out to server
 					FName PackageName = Level->GetOutermost()->GetFName();
@@ -1923,7 +1924,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 						PackageName = FName(*PackageNameStr);
 					}
 
-					It->PlayerController->ServerUpdateLevelVisibility(PackageName, true);
+					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, true);
 				}
 			}
 		}
@@ -2029,7 +2030,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		{
 			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
-				if (It->PlayerController != NULL)
+				APlayerController* LocalPlayerController = It->GetPlayerController(this);
+				if (LocalPlayerController != NULL)
 				{
 					// Remap packagename for PIE networking before sending out to server
 					FName PackageName = Level->GetOutermost()->GetFName();
@@ -2039,7 +2041,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 						PackageName = FName(*PackageNameStr);
 					}
 
-					It->PlayerController->ServerUpdateLevelVisibility(PackageName, false);
+					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, false);
 				}
 			}
 		}

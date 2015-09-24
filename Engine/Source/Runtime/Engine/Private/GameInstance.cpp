@@ -577,14 +577,29 @@ ULocalPlayer* UGameInstance::GetLocalPlayerByIndex(const int32 Index) const
 	return LocalPlayers[Index];
 }
 
-APlayerController* UGameInstance::GetFirstLocalPlayerController() const
+APlayerController* UGameInstance::GetFirstLocalPlayerController(UWorld* World) const
 {
-	for (ULocalPlayer* Player : LocalPlayers)
+	if (World == nullptr)
 	{
-		if (Player && Player->PlayerController)
+		for (ULocalPlayer* Player : LocalPlayers)
 		{
-			// return first non-null entry
-			return Player->PlayerController;
+			// Returns the first non-null UPlayer::PlayerController without filtering by UWorld.
+			if (Player && Player->PlayerController)
+			{
+				// return first non-null entry
+				return Player->PlayerController;
+			}
+		}
+	}
+	else
+	{
+		// Only return a local PlayerController from the given World.
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			if (*Iterator != nullptr && (*Iterator)->IsLocalController())
+			{
+				return *Iterator;
+			}
 		}
 	}
 
@@ -820,9 +835,9 @@ void UGameInstance::StopRecordingReplay()
 	CurrentWorld->DestroyDemoNetDriver();
 }
 
-void UGameInstance::PlayReplay(const FString& Name)
+void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)
 {
-	UWorld* CurrentWorld = GetWorld();
+	UWorld* CurrentWorld = WorldOverride != nullptr ? WorldOverride : GetWorld();
 
 	if ( CurrentWorld == nullptr )
 	{
@@ -836,6 +851,11 @@ void UGameInstance::PlayReplay(const FString& Name)
 	UE_LOG( LogDemo, Log, TEXT( "PlayReplay: Attempting to play demo %s" ), *Name );
 
 	DemoURL.Map = Name;
+	
+	for (const FString& Option : AdditionalOptions)
+	{
+		DemoURL.AddOption(*Option);
+	}
 
 	const FName NAME_DemoNetDriver( TEXT( "DemoNetDriver" ) );
 

@@ -851,7 +851,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 								
 								bAddedToScreen = true;
 								
-								Widget->SetPlayerContext(TargetPlayer);
+								Widget->SetPlayerContext(FLocalPlayerContext(TargetPlayer, GetWorld()));
 								ScreenLayer->AddComponent(this);
 							}
 						}

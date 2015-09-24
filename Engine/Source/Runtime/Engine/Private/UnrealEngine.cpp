@@ -485,6 +485,59 @@ namespace
 			}
 		}
 	}
+
+	UWorld* CreatePIEWorldByLoadingFromPackage(const FWorldContext& WorldContext, const FString& SourceWorldPackage, UPackage*& OutPackage)
+	{
+		// Load map from the disk in case editor does not have it
+		const FString PIEPackageName = UWorld::ConvertToPIEPackageName(SourceWorldPackage, WorldContext.PIEInstance);
+
+		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
+		const FName PIEPackageFName = FName(*PIEPackageName);
+		UWorld::WorldTypePreLoadMap.FindOrAdd( PIEPackageFName ) = WorldContext.WorldType;
+
+		uint32 LoadFlags = LOAD_None;
+		UPackage* NewPackage = CreatePackage(NULL, *PIEPackageName);
+		if (NewPackage != nullptr && WorldContext.WorldType == EWorldType::PIE)
+		{
+			NewPackage->PackageFlags |= PKG_PlayInEditor;
+			LoadFlags |= LOAD_PackageForPIE;
+		}
+		OutPackage = LoadPackage(NewPackage, *SourceWorldPackage, LoadFlags);
+
+		// Clean up the world type list now that PostLoad has occurred
+		UWorld::WorldTypePreLoadMap.Remove( PIEPackageFName );
+
+		if (OutPackage == nullptr)
+		{
+			return nullptr;
+		}
+
+		UWorld* NewWorld = UWorld::FindWorldInPackage(OutPackage);
+
+		// If the world was not found, follow a redirector if there is one.
+		if ( !NewWorld )
+		{
+			NewWorld = UWorld::FollowWorldRedirectorInPackage(OutPackage);
+			if ( NewWorld )
+			{
+				OutPackage = NewWorld->GetOutermost();
+			}
+		}
+
+		check(NewWorld);
+
+#if WITH_EDITOR
+		OutPackage->PIEInstanceID = WorldContext.PIEInstance;
+#endif
+
+		// Rename streaming levels to PIE
+		for (ULevelStreaming* StreamingLevel : NewWorld->StreamingLevels)
+		{
+			StreamingLevel->RenameForPIE(WorldContext.PIEInstance);
+		}
+
+		return NewWorld;
+	}
 }
 /*-----------------------------------------------------------------------------
 	Object class implementation.
@@ -1964,7 +2017,7 @@ APlayerController* UEngine::GetFirstLocalPlayerController(UWorld *InWorld)
 {
 	const FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
 	
-	return ( Context.OwningGameInstance != NULL ) ? Context.OwningGameInstance->GetFirstLocalPlayerController() : NULL;
+	return ( Context.OwningGameInstance != NULL ) ? Context.OwningGameInstance->GetFirstLocalPlayerController(InWorld) : NULL;
 }
 
 void UEngine::GetAllLocalPlayerControllers(TArray<APlayerController*> & PlayerList)
@@ -9193,13 +9246,13 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		// without a call to RemoveFromWorld for each)
 		FWorldDelegates::LevelRemovedFromWorld.Broadcast(NULL, WorldContext.World());
 
-		// Disassociate the players from their PlayerControllers.
+		// Disassociate the players from their PlayerControllers in this world.
 		if (WorldContext.OwningGameInstance != NULL)
 		{
 			for(auto It = WorldContext.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 			{
 				ULocalPlayer *Player = *It;
-				if(Player->PlayerController)
+				if(Player->PlayerController && Player->PlayerController->GetWorld() == WorldContext.World())
 				{
 					if(Player->PlayerController->GetPawn())
 					{
@@ -9355,51 +9408,11 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			NewWorld = UWorld::DuplicateWorldForPIE(SourceWorldPackage, NULL);
 			if (NewWorld == nullptr) 
 			{
-				// Load map from the disk in case editor does not have it
-				const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(SourceWorldPackage, WorldContext.PIEInstance);
-
-				// Set the world type in the static map, so that UWorld::PostLoad can set the world type
-				const FName PIEPackageFName = FName(*PIEPackageName);
-				UWorld::WorldTypePreLoadMap.FindOrAdd( PIEPackageFName ) = WorldContext.WorldType;
-
-				uint32 LoadFlags = LOAD_None;
-				auto NewPackage = CreatePackage(NULL, *PIEPackageName);
-				if (NewPackage != nullptr && WorldContext.WorldType == EWorldType::PIE)
-				{
-					NewPackage->PackageFlags |= PKG_PlayInEditor;
-					LoadFlags |= LOAD_PackageForPIE;
-				}
-				WorldPackage = LoadPackage(NewPackage, *SourceWorldPackage, LoadFlags);
-
-				// Clean up the world type list now that PostLoad has occurred
-				UWorld::WorldTypePreLoadMap.Remove( PIEPackageFName );
-
-				if (WorldPackage == nullptr)
+				NewWorld = CreatePIEWorldByLoadingFromPackage(WorldContext, SourceWorldPackage, WorldPackage);
+				if (NewWorld == nullptr)
 				{
 					Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
 					return false;
-				}
-
-				NewWorld = UWorld::FindWorldInPackage(WorldPackage);
-
-				// If the world was not found, follow a redirector if there is one.
-				if ( !NewWorld )
-				{
-					NewWorld = UWorld::FollowWorldRedirectorInPackage(WorldPackage);
-					if ( NewWorld )
-					{
-						WorldPackage = NewWorld->GetOutermost();
-					}
-				}
-
-				check(NewWorld);
-#if WITH_EDITOR
-				WorldPackage->PIEInstanceID = WorldContext.PIEInstance;
-#endif			
-				// Rename streaming levels to PIE
-				for (auto StreamingLevel : NewWorld->StreamingLevels)
-				{
-					StreamingLevel->RenameForPIE(WorldContext.PIEInstance);
 				}
 			}
 			else
@@ -9475,6 +9488,23 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			else if (Pending == NULL)
 			{
 				NewWorld->RenameToPIEWorld(WorldContext.PIEInstance);
+			}
+		}
+		else if (WorldContext.WorldType == EWorldType::Game)
+		{
+			// If we are a game world and the world we just found is already initialized, then we're probably trying to load
+			// an independent fresh copy of the world into a different context. Create a package with a prefixed name
+			// and load the world from disk to keep the instances independent. If this is the case, assume the creator
+			// of the FWorldContext was aware and set WorldContext.PIEInstance to a valid value.
+			if (NewWorld->bIsWorldInitialized && WorldContext.PIEInstance != -1)
+			{
+				NewWorld = CreatePIEWorldByLoadingFromPackage(WorldContext, URL.Map, WorldPackage);
+
+				if (NewWorld == nullptr)
+				{
+					Error = FString::Printf(TEXT("Failed to load package '%s' into a new game world."), *URL.Map);
+					return false;
+				}
 			}
 		}
 	}
@@ -10175,21 +10205,25 @@ bool UEngine::WorldHasValidContext(UWorld *InWorld)
 
 void UEngine::VerifyLoadMapWorldCleanup()
 {
-	// All worlds at this point should be the CurrentWorld of some context or preview worlds.
+	// All worlds at this point should be the CurrentWorld of some context, preview worlds, or streaming level
+	// worlds that are owned by the CurrentWorld of some context.
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* World = *It;
 		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::Preview);
 		if (!bIsPersistantWorldType && !WorldHasValidContext(World))
 		{
-			// Print some debug information...
-			UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());
-			StaticExec(World, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *World->GetPathName()));
-			TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( World, true, GARBAGE_COLLECTION_KEEPFLAGS );
-			FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
-			UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
-			// before asserting.
-			UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
+			if (World->PersistentLevel != nullptr && !WorldHasValidContext(World->PersistentLevel->OwningWorld))
+			{
+				// Print some debug information...
+				UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());
+				StaticExec(World, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *World->GetPathName()));
+				TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( World, true, GARBAGE_COLLECTION_KEEPFLAGS );
+				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
+				UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
+				// before asserting.
+				UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
+			}
 		}
 	}
 }

@@ -156,7 +156,7 @@ public:
 
 	int32					GetNumLocalPlayers() const;
 	ULocalPlayer*			GetLocalPlayerByIndex(const int32 Index) const;
-	APlayerController*		GetFirstLocalPlayerController() const;
+	APlayerController*		GetFirstLocalPlayerController(UWorld* World = nullptr) const;
 	ULocalPlayer*			FindLocalPlayerFromControllerId(const int32 ControllerId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr<const FUniqueNetId> UniqueNetId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
@@ -207,7 +207,7 @@ public:
 	virtual void StopRecordingReplay();
 
 	/** Start playing back a previously recorded replay. */
-	virtual void PlayReplay(const FString& InName);
+	virtual void PlayReplay(const FString& InName, UWorld* WorldOverride = nullptr, const TArray<FString>& AdditionalOptions = TArray<FString>());
 
 	/**
 	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)

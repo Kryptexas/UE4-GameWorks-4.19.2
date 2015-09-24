@@ -1522,9 +1522,9 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 		break;
 	}
 
-	// Detach old player.
+	// Detach old player if same world.
 	check(LocalPlayer);
-	if( LocalPlayer->PlayerController )
+	if( LocalPlayer->PlayerController && LocalPlayer->PlayerController->GetWorld() == PC->GetWorld() )
 	{
 		if (LocalPlayer->PlayerController->Role == ROLE_Authority)
 		{

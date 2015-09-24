@@ -48,4 +48,13 @@ public:
 	 * @param bWriteToLog write out to the log
 	 */
 	ENGINE_API FString ConsoleCommand(const FString& Cmd, bool bWriteToLog = true);
+
+	/**
+	 * Gets the player controller in the given world for this player.
+	 *
+	 * @param InWorld The world in which to search for player controllers.
+	 *
+	 * @return The controller associated with this player in InWorld, if one exists.
+	 */
+	ENGINE_API APlayerController* GetPlayerController(UWorld* InWorld) const;
 };
