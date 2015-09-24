@@ -995,3 +995,96 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 	}
 }
 
+void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
+{
+	// do we need to render the distortion pass?
+	bool bRender=false;
+	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+		if( View.DistortionPrimSet.NumPrims() > 0)
+		{
+			bRender=true;
+			break;
+		}
+	}
+			
+	if (bRender)
+	{
+		// Apply distortion
+		SCOPED_DRAW_EVENT(RHICmdList, Distortion);
+		
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	
+		TRefCountPtr<IPooledRenderTarget> SceneColorDistorted;
+		GRenderTargetPool.FindFreeElement(RHICmdList, SceneContext.GetSceneColor()->GetDesc(), SceneColorDistorted, TEXT("SceneColorDistorted"));
+		const FSceneRenderTargetItem& DistortedRenderTarget = SceneColorDistorted->GetRenderTargetItem();
+
+		SetRenderTarget(RHICmdList, DistortedRenderTarget.TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
+
+		// Copy scene color to a new render target
+		for(int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ++ViewIndex)
+		{
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+			FViewInfo& View = Views[ViewIndex];
+
+			// useful when we move this into the compositing graph
+			FRenderingCompositePassContext Context(RHICmdList, View);
+
+			// Set the view family's render target/viewport.
+			Context.SetViewportAndCallRHI(View.ViewRect);				
+
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+					
+			static FGlobalBoundShaderState BoundShaderState;
+				
+			TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+			TShaderMapRef<FDistortionMergePS> PixelShader(View.ShaderMap);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+			VertexShader->SetParameters(Context);
+			PixelShader->SetParameters(Context, SceneContext.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture);
+
+			DrawRectangle(
+				RHICmdList,
+				0, 0,
+				View.ViewRect.Width(), View.ViewRect.Height(),
+				View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+				View.ViewRect.Width(), View.ViewRect.Height(),
+				View.ViewRect.Size(),
+				SceneContext.GetBufferSizeXY(),
+				*VertexShader,
+				EDRF_UseTriangleOptimization);
+		}
+	
+		// Distort scene color in place
+		for(int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ++ViewIndex)
+		{
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+			FViewInfo& View = Views[ViewIndex];
+
+			// useful when we move this into the compositing graph
+			FRenderingCompositePassContext Context(RHICmdList, View);
+
+			// Set the view family's render target/viewport.
+			Context.SetViewportAndCallRHI(View.ViewRect);
+
+			// test against depth
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+
+			// draw only distortion meshes
+			View.DistortionPrimSet.DrawAccumulatedOffsets(RHICmdList, View, false);
+		}
+	
+		// Set distorted scene color as main
+		SceneContext.SetSceneColor(SceneColorDistorted);
+	}
+}

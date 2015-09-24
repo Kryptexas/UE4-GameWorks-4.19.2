@@ -1953,14 +1953,16 @@ const FTexture2DRHIRef* FSceneRenderTargets::GetActualDepthTexture() const
 	}
 	else if (IsMobilePlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
 	{
-		bool bSceneDepthInAlpha = (GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
-		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
-		
-		if (bOnChipDepthFetch)
-		{
-			DepthTexture = (const FTexture2DRHIRef*)(&GSystemTextures.DepthDummy->GetRenderTargetItem().ShaderResourceTexture);
-		}
-		else
+		// TODO: avoid depth texture fetch when shader needs fragment previous depth and device supports framebuffer fetch
+
+		//bool bSceneDepthInAlpha = (GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
+		//bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
+		//
+		//if (bOnChipDepthFetch)
+		//{
+		//	DepthTexture = (const FTexture2DRHIRef*)(&GSystemTextures.DepthDummy->GetRenderTargetItem().ShaderResourceTexture);
+		//}
+		//else
 		{
 			DepthTexture = &GetSceneDepthTexture();
 		}

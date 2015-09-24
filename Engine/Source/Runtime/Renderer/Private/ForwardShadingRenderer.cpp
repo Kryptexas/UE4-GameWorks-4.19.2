@@ -172,10 +172,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Having the distortion applied between two different translucency passes would make it consistent with the deferred pass.
 		// This is not done yet.
 
-		if(GetRefractionQuality(ViewFamily) > 0)
+		if (GetRefractionQuality(ViewFamily) > 0)
 		{
 			// to apply refraction effect by distorting the scene color
-			RenderDistortion(RHICmdList);
+			RenderDistortionES2(RHICmdList);
 		}
 		RenderTranslucency(RHICmdList);
 	}
