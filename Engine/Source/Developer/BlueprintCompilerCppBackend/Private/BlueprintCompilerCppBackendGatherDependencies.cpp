@@ -123,7 +123,7 @@ void FGatherConvertedClassDependencies::HandleObjectReference(UObject*& InObject
 	}
 	else if ((InObject->IsAsset() || ObjAsBPGC) && !InObject->IsIn(OriginalStruct))
 	{
-		Assets.Add(InObject);
+		Assets.AddUnique(InObject);
 		return;
 	}
 	else if (auto ObjAsClass = Cast<UClass>(InObject))

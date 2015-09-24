@@ -182,7 +182,8 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 		if (Object)
 		{
 			{
-				const FString MappedObject = Context.FindGloballyMappedObject(Object);
+				UClass* ObjectClassToUse = Context.GetNativeOrConvertedClass(ObjectProperty->PropertyClass);
+				const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
 				if (!MappedObject.IsEmpty())
 				{
 					return MappedObject;
@@ -299,7 +300,7 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 				}
 				else if (USceneComponent* ParentComponentTemplate = Node->GetParentComponentTemplate(CastChecked<UBlueprint>(BPGC->ClassGeneratedBy)))
 				{
-					ParentVariableName = Context.FindGloballyMappedObject(ParentComponentTemplate);
+					ParentVariableName = Context.FindGloballyMappedObject(ParentComponentTemplate, USceneComponent::StaticClass());
 				}
 
 				if (!ParentVariableName.IsEmpty())
@@ -357,7 +358,7 @@ struct FDependenciesHelper
 		}
 		for (auto LocAsset : Context.Dependencies.Assets)
 		{
-			const FString AssetStr = Context.FindGloballyMappedObject(LocAsset, true);
+			const FString AssetStr = Context.FindGloballyMappedObject(LocAsset, nullptr, true, false);
 			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->UsedAssets.Add(%s);"), *AssetStr));
 		}
 	}

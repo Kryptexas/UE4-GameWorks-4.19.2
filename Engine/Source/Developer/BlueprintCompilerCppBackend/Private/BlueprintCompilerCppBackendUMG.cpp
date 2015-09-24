@@ -77,7 +77,7 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 			Context.AddLine(TEXT("{"));
 			Context.IncreaseIndent();
 
-			const FString WidgetTreeStr = Context.FindGloballyMappedObject(WidgetClass->WidgetTree, true);
+			const FString WidgetTreeStr = Context.FindGloballyMappedObject(WidgetClass->WidgetTree, UWidgetTree::StaticClass(), true);
 			ensure(!WidgetTreeStr.IsEmpty());
 			const FString AnimationsArrayNativeName = GenerateLocalProperty(Context, FindFieldChecked<UArrayProperty>(UWidgetBlueprintGeneratedClass::StaticClass(), TEXT("Animations")), reinterpret_cast<const uint8*>(&WidgetClass->Animations));
 			const FString BindingsArrayNativeName = GenerateLocalProperty(Context, FindFieldChecked<UArrayProperty>(UWidgetBlueprintGeneratedClass::StaticClass(), TEXT("Bindings")), reinterpret_cast<const uint8*>(&WidgetClass->Bindings));

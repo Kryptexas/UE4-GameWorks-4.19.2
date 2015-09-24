@@ -162,7 +162,7 @@ void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext
 	if (BPGC && !EmitterContext.Dependencies.WillClassBeConverted(BPGC))
 	{
 		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeParent(ClassPtr));
-		const FString TargetClass = EmitterContext.FindGloballyMappedObject(ClassPtr, true);
+		const FString TargetClass = EmitterContext.FindGloballyMappedObject(ClassPtr, UClass::StaticClass(), true);
 		EmitterContext.AddLine(FString::Printf(TEXT("%s = NoNativeCast<%s>(%s, %s);"), *CastedValue, *NativeClass, *TargetClass, *ObjectValue));
 	}
 	else

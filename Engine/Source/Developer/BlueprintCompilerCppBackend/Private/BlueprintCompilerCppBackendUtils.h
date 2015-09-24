@@ -118,6 +118,21 @@ public:
 		return nullptr;
 	}
 
+	UClass* GetNativeOrConvertedClass(UClass* InClass) const
+	{
+		check(InClass);
+		if (InClass->HasAnyClassFlags(CLASS_Native))
+		{
+			return InClass;
+		}
+		auto BPGC = CastChecked<UBlueprintGeneratedClass>(InClass);
+		if (Dependencies.WillClassBeConverted(BPGC))
+		{
+			return InClass;
+		}
+		return GetFirstNativeParent(InClass);
+	}
+
 	FString GenerateGetProperty(const UProperty* Property) const;
 
 	FString GenerateUniqueLocalName();
@@ -129,7 +144,7 @@ public:
 
 	/** All objects (that can be referenced from other package) that will have a different path in cooked build
 	(due to the native code generation), should be handled by this function */
-	FString FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound = false);
+	FString FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass = nullptr, bool bLoadIfNotFound = false, bool bTryUsedAssetsList = true);
 
 	// TEXT FUNCTIONS
 

@@ -15,7 +15,9 @@ protected:
 
 public:
 	// Dependencies:
-	TSet<UObject*> Assets;
+
+	TArray<UObject*> Assets; 
+
 	TSet<UBlueprintGeneratedClass*> ConvertedClasses;
 	TSet<UUserDefinedStruct*> ConvertedStructs;
 	TSet<UUserDefinedEnum*> ConvertedEnum;

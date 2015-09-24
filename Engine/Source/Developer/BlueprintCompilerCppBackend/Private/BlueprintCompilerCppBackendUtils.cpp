@@ -23,7 +23,7 @@ FString FEmitterLocalContext::GenerateUniqueLocalName()
 	return UniqueName;
 }
 
-FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound)
+FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass, bool bLoadIfNotFound, bool bTryUsedAssetsList)
 {
 	UClass* ActualClass = Cast<UClass>(Dependencies.GetOriginalStruct());
 	if (ActualClass && Object && Object->IsIn(ActualClass))
@@ -38,34 +38,35 @@ FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLo
 			return *NamePtr;
 		}
 
-		int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
-		if (MiscConvertedSubobjects.Find(Object, ObjectsCreatedPerClassIdx))
+		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetNativeOrConvertedClass(Object->GetClass());
+		const FString ClassString = FEmitHelper::GetCppName(ObjectClassToUse);
+
+		int32 ObjectsCreatedPerClassIdx = MiscConvertedSubobjects.IndexOfByKey(Object);
+		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
 			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->MiscConvertedSubobjects[%d])")
-				, *FEmitHelper::GetCppName(Object->GetClass())
-				, *FEmitHelper::GetCppName(ActualClass)
-				, ObjectsCreatedPerClassIdx);
+				, *ClassString, *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
 		}
-		if (DynamicBindingObjects.Find(Object, ObjectsCreatedPerClassIdx))
+
+		ObjectsCreatedPerClassIdx = ObjectsCreatedPerClassIdx = DynamicBindingObjects.IndexOfByKey(Object);
+		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
 			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->DynamicBindingObjects[%d])")
-				, *FEmitHelper::GetCppName(Object->GetClass())
-				, *FEmitHelper::GetCppName(ActualClass)
-				, ObjectsCreatedPerClassIdx);
+				, *ClassString, *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
 		}
-		if (ComponentTemplates.Find(Object, ObjectsCreatedPerClassIdx))
+
+		ObjectsCreatedPerClassIdx = ComponentTemplates.IndexOfByKey(Object);
+		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
 			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->ComponentTemplates[%d])")
-				, *FEmitHelper::GetCppName(Object->GetClass())
-				, *FEmitHelper::GetCppName(ActualClass)
-				, ObjectsCreatedPerClassIdx);
+				, *ClassString, *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
 		}
-		if (Timelines.Find(Object, ObjectsCreatedPerClassIdx))
+
+		ObjectsCreatedPerClassIdx = Timelines.IndexOfByKey(Object);
+		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
 			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->Timelines[%d])")
-				, *FEmitHelper::GetCppName(Object->GetClass())
-				, *FEmitHelper::GetCppName(ActualClass)
-				, ObjectsCreatedPerClassIdx);
+				, *ClassString, *FEmitHelper::GetCppName(ActualClass), ObjectsCreatedPerClassIdx);
 		}
 
 		if ((CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass) || (CurrentCodeType == EGeneratedCodeType::CommonConstructor))
@@ -109,12 +110,30 @@ FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLo
 	}
 
 	// TODO: handle subobjects
-
-	if (bLoadIfNotFound && ensure(Object))
+	ensure(!bLoadIfNotFound || Object);
+	if (Object && (bLoadIfNotFound || bTryUsedAssetsList))
 	{
-		UClass* FoundClass = Object->GetClass();
-		const FString ClassString = FEmitHelper::GetCppName(FoundClass);
-		return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))"), *ClassString, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
+		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetNativeOrConvertedClass(Object->GetClass());
+		const FString ClassString = FEmitHelper::GetCppName(ObjectClassToUse);
+
+		if (bTryUsedAssetsList)
+		{
+			const int32 AssetIndex = Dependencies.Assets.IndexOfByKey(Object);
+			if (INDEX_NONE != AssetIndex)
+			{
+				return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->UsedAssets[%d])")
+					, *ClassString
+					, *FEmitHelper::GetCppName(ActualClass)
+					, AssetIndex);
+			}
+		}
+
+		if (bLoadIfNotFound)
+		{
+			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))")
+				, *ClassString
+				, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
+		}
 	}
 
 	return FString{};
@@ -138,13 +157,7 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 	{
 		if (UObject* Object = ObjectPropertyBase->GetObjectPropertyValue(PropertyValue))
 		{
-			UClass* ActualClass = ObjectPropertyBase->PropertyClass;
-			auto BPGC = Cast<UBlueprintGeneratedClass>(ActualClass);
-			const bool bConverted = BPGC && Dependencies.WillClassBeConverted(BPGC);
-			if (BPGC && !bConverted)
-			{
-				ActualClass = GetFirstNativeParent(BPGC);
-			}
+			const UClass* ActualClass = GetNativeOrConvertedClass(ObjectPropertyBase->PropertyClass);
 			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))")
 				, *FEmitHelper::GetCppName(ActualClass)
 				, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
@@ -813,14 +826,14 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		if (LiteralObject)
 		{
-			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject);
+			UClass* FoundClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
+			UClass* ObjectClassToUse = FoundClass ? EmitterContext.GetNativeOrConvertedClass(FoundClass) : UObject::StaticClass();
+			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject, ObjectClassToUse, true);
 			if (!MappedObject.IsEmpty())
 			{
 				return MappedObject;
 			}
-			UClass* FoundClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
-			FString ClassString = FoundClass ? FEmitHelper::GetCppName(FoundClass) : TEXT("UObject");
-			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))"), *ClassString, *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+			return FString(TEXT("nullptr"));
 		}
 		else
 		{
