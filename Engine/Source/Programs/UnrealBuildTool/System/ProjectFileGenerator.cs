@@ -1341,12 +1341,15 @@ namespace UnrealBuildTool
         /// </summary>
         private void AddPS4Projects(MasterProjectFolder Folder)
         {
-            string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "PS4");
-            DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
-            if (ProjectFolderInfo.Exists)
-            {
-                Folder.ChildProjects.Add(AddSimpleCSharpProject("PS4/PS4DevKitUtil"));
-            }
+			if (UEBuildPlatform.BuildPlatformDictionary.ContainsKey(UnrealTargetPlatform.PS4))
+			{
+				string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "PS4");
+				DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
+				if (ProjectFolderInfo.Exists)
+				{
+					Folder.ChildProjects.Add(AddSimpleCSharpProject("PS4/PS4DevKitUtil"));
+				}
+			}
         }
 
 		/// <summary>
