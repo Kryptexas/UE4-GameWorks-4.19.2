@@ -21,7 +21,7 @@
 static bool GUseShadowIndexBuffer = true;
 
 /** If true, reversed index buffer are used for mesh with negative transform determinants. */
-static bool GUseReversedIndexBuffer = true;
+static bool GUseReversedIndexBuffer = false;
 
 static void ToggleShadowIndexBuffers()
 {
