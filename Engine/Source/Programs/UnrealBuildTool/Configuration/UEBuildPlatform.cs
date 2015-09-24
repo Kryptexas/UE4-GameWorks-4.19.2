@@ -16,238 +16,211 @@ namespace UnrealBuildTool
 
 	public interface IUEBuildPlatform
 	{
-		/**
-		 * Whether the required external SDKs are installed for this platform
-		 */
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform
+		/// </summary>
 		SDKStatus HasRequiredSDKsInstalled();
 
-		/**
-		 * If this platform can be compiled with XGE
-		 */
+		/// <summary>
+		/// If this platform can be compiled with XGE
+		/// </summary>
 		bool CanUseXGE();
 
-		/**
-		 * If this platform can be compiled with DMUCS/Distcc
-		 */
+		/// <summary>
+		/// If this platform can be compiled with DMUCS/Distcc
+		/// </summary>
 		bool CanUseDistcc();
 
-		/**
-		 * If this platform can be compiled with SN-DBS
-		 */
+		/// <summary>
+		/// If this platform can be compiled with SN-DBS
+		/// </summary>
 		bool CanUseSNDBS();
 
-		/**
-		 * Register the platform with the UEBuildPlatform class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
 		void RegisterBuildPlatform();
 
-		/**
-		 * Attempt to set up AutoSDK for this platform
-		 */
+		/// <summary>
+		/// Attempt to set up AutoSDK for this platform
+		/// </summary>
 		void ManageAndValidateSDK();
 
-		/**
-		 * Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		 *
-		 * @param InUnrealTargetPlatform The UnrealTargetPlatform being build
-		 * 
-		 * @return CPPTargetPlatform The CPPTargetPlatform to compile for
-		 */
+		/// <summary>
+		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
+		/// </summary>
+		/// <param name="InUnrealTargetPlatform">The UnrealTargetPlatform being build</param>
+		/// <returns>CPPTargetPlatform The CPPTargetPlatform to compile for</returns>
 		CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform);
 
-		/**
-		 * Get the extension to use for the given binary type
-		 * 
-		 * @param InBinaryType The binary type being built
-		 * 
-		 * @return string The binary extension (i.e. 'exe' or 'dll')
-		 */
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType">The binary type being built</param>
+		/// <returns>string The binary extension (i.e. 'exe' or 'dll')</returns>
 		string GetBinaryExtension(UEBuildBinaryType InBinaryType);
 
-		/**
-		 * Get the extension to use for debug info for the given binary type
-		 * 
-		 * @param InBinaryType The binary type being built
-		 * 
-		 * @return string The debug info extension (i.e. 'pdb')
-		 */
+		/// <summary>
+		/// Get the extension to use for debug info for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType">The binary type being built</param>
+		/// <returns>string The debug info extension (i.e. 'pdb')</returns>
 		string GetDebugInfoExtension(UEBuildBinaryType InBinaryType);
 
-		/**
-		 * Whether incremental linking should be used
-		 * 
-		 * @param InPlatform The CPPTargetPlatform being built
-		 * @param InConfiguration The CPPTargetConfiguration being built
-		 * 
-		 * @return bool true if incremental linking should be used, false if not
-		 */
+		/// <summary>
+		/// Whether incremental linking should be used
+		/// </summary>
+		/// <param name="InPlatform">The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration">The CPPTargetConfiguration being built</param>
+		/// <returns>bool true if incremental linking should be used, false if not</returns>
 		bool ShouldUseIncrementalLinking(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration);
 
-		/**
-		 * Whether PDB files should be used
-		 * 
-		 * @param InPlatform The CPPTargetPlatform being built
-		 * @param InConfiguration The CPPTargetConfiguration being built
-		 * @param bInCreateDebugInfo true if debug info is getting create, false if not
-		 * 
-		 * @return bool true if PDB files should be used, false if not
-		 */
+		/// <summary>
+		/// Whether PDB files should be used
+		/// </summary>
+		/// <param name="InPlatform">The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration">The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
+		/// <returns>bool true if PDB files should be used, false if not</returns>
 		bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo);
 
-		/**
-		 * Whether PCH files should be used
-		 * 
-		 * @param InPlatform The CPPTargetPlatform being built
-		 * @param InConfiguration The CPPTargetConfiguration being built
-		 * 
-		 * @return bool true if PCH files should be used, false if not
-		 */
+		/// <summary>
+		/// Whether PCH files should be used
+		/// </summary>
+		/// <param name="InPlatform">The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration">The CPPTargetConfiguration being built</param>
+		/// <returns>bool true if PCH files should be used, false if not</returns>
 		bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration);
 
-		/**
-		 * Whether the editor should be built for this platform or not
-		 * 
-		 * @param InPlatform The UnrealTargetPlatform being built
-		 * @param InConfiguration The UnrealTargetConfiguration being built
-		 * @return bool true if the editor should be built, false if not
-		 */
+		/// <summary>
+		/// Whether the editor should be built for this platform or not
+		/// </summary>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool true if the editor should be built, false if not</returns>
 		bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration);
 
-		/**
-		 * Whether this build should support ONLY cooked data or not
-		 * 
-		 * @param InPlatform The UnrealTargetPlatform being built
-		 * @param InConfiguration The UnrealTargetConfiguration being built
-		 * @return bool true if the editor should be built, false if not
-		 */
+		/// <summary>
+		/// Whether this build should support ONLY cooked data or not
+		/// </summary>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool true if the editor should be built, false if not</returns>
 		bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration);
 
-		/**
-		 * Whether the platform requires the extra UnityCPPWriter
-		 * This is used to add an extra file for UBT to get the #include dependencies from
-		 * 
-		 * @return bool true if it is required, false if not
-		 */
+		/// <summary>
+		/// Whether the platform requires the extra UnityCPPWriter
+		/// This is used to add an extra file for UBT to get the #include dependencies from
+		/// </summary>
+		/// <returns>bool true if it is required, false if not</returns>
 		bool RequiresExtraUnityCPPWriter();
 
-		/**
-		 * Whether this platform should build a monolithic binary
-		 */
+		/// <summary>
+		/// Whether this platform should build a monolithic binary
+		/// </summary>
 		bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform);
 
-		/**
-		 * Get a list of extra modules the platform requires.
-		 * This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
-		 * 
-		 * @param Target The target being build
-		 * @param BuildTarget The UEBuildTarget getting build
-		 * @param PlatformExtraModules OUTPUT the list of extra modules the platform needs to add to the target
-		 */
+		/// <summary>
+		/// Get a list of extra modules the platform requires.
+		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
+		/// </summary>
+		/// <param name="Target">The target being build</param>
+		/// <param name="BuildTarget">The UEBuildTarget getting build</param>
+		/// <param name="PlatformExtraModules">OUTPUT the list of extra modules the platform needs to add to the target</param>
 		void GetExtraModules(TargetInfo Target, UEBuildTarget BuildTarget, ref List<string> PlatformExtraModules);
 
-		/**
-		 * Modify the newly created module passed in for this platform.
-		 * This is not required - but allows for hiding details of a
-		 * particular platform.
-		 * 
-		 *  @param  ModuleName		The name of the module
-		 *	@param	Rules			The module rules
-		 *	@param	Target			The target being build
-		 */
+		/// <summary>
+		/// Modify the newly created module passed in for this platform.
+		/// This is not required - but allows for hiding details of a
+		/// particular platform.
+		/// </summary>
+		/// <param name="">ModuleName  The name of the module</param>
+		/// <param name="Rules">  The module rules</param>
+		/// <param name="Target">  The target being build</param>
 		void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target);
 
-		/**
-		 * Setup the target environment for building
-		 * 
-		 * @param InBuildTarget The target being built
-		 */
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget">The target being built</param>
 		void SetUpEnvironment(UEBuildTarget InBuildTarget);
 
-		/**
-		 * Allow the platform to set an optional architecture
-		 */
+		/// <summary>
+		/// Allow the platform to set an optional architecture
+		/// </summary>
 		string GetActiveArchitecture();
 
-		/**
-		 * Allow the platform to apply architecture-specific name according to its rules
-		 * 
-		 * @param BinaryName name of the binary, not specific to any architecture
-		 *
-		 * @return Possibly architecture-specific name
-		 */
+		/// <summary>
+		/// Allow the platform to apply architecture-specific name according to its rules
+		/// </summary>
+		/// <param name="BinaryName">name of the binary, not specific to any architecture</param>
+		/// <returns>Possibly architecture-specific name</returns>
 		string ApplyArchitectureName(string BinaryName);
 
-		/**
-		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
-		 * this will emit multiple paths. By default, it simply makes an array from the input
-		 */
+		/// <summary>
+		/// For platforms that need to output multiple files per binary (ie Android "fat" binaries)
+		/// this will emit multiple paths. By default, it simply makes an array from the input
+		/// </summary>
 		List<FileReference> FinalizeBinaryPaths(FileReference BinaryName);
 
-		/**
-		 * Setup the configuration environment for building
-		 * 
-		 * @param InBuildTarget The target being built
-		 */
+		/// <summary>
+		/// Setup the configuration environment for building
+		/// </summary>
+		/// <param name="InBuildTarget">The target being built</param>
 		void SetUpConfigurationEnvironment(UEBuildTarget InBuildTarget);
 
-		/**
-		 * Setup the project environment for building
-		 * 
-		 * @param InBuildTarget The target being built
-		 */
+		/// <summary>
+		/// Setup the project environment for building
+		/// </summary>
+		/// <param name="InBuildTarget">The target being built</param>
 		void SetUpProjectEnvironment(UnrealTargetPlatform InPlatform);
 
-		/**
-		 * Whether this platform should create debug information or not
-		 * 
-		 * @param InPlatform The UnrealTargetPlatform being built
-		 * @param InConfiguration The UnrealTargetConfiguration being built
-		 * 
-		 * @return bool true if debug info should be generated, false if not
-		 */
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool true if debug info should be generated, false if not</returns>
 		bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration);
 
-		/**
-		 * Gives the platform a chance to 'override' the configuration settings 
-		 * that are overridden on calls to RunUBT.
-		 * 
-		 * @param InPlatform The UnrealTargetPlatform being built
-		 * @param InConfiguration The UnrealTargetConfiguration being built
-		 * 
-		 * @return bool true if debug info should be generated, false if not
-		 */
+		/// <summary>
+		/// Gives the platform a chance to 'override' the configuration settings
+		/// that are overridden on calls to RunUBT.
+		/// </summary>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool true if debug info should be generated, false if not</returns>
 		void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration);
 
-		/**
-		 * Validate the UEBuildConfiguration for this platform
-		 * This is called BEFORE calling UEBuildConfiguration to allow setting 
-		 * various fields used in that function such as CompileLeanAndMean...
-		 */
+		/// <summary>
+		/// Validate the UEBuildConfiguration for this platform
+		/// This is called BEFORE calling UEBuildConfiguration to allow setting
+		/// various fields used in that function such as CompileLeanAndMean...
+		/// </summary>
 		void ValidateUEBuildConfiguration();
 
-		/**
-		 * Validate configuration for this platform
-		 * NOTE: This function can/will modify BuildConfiguration!
-		 * 
-		 * @param InPlatform The CPPTargetPlatform being built
-		 * @param InConfiguration The CPPTargetConfiguration being built
-		 * @param bInCreateDebugInfo true if debug info is getting create, false if not
-		 */
+		/// <summary>
+		/// Validate configuration for this platform
+		/// NOTE: This function can/will modify BuildConfiguration!
+		/// </summary>
+		/// <param name="InPlatform">The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration">The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
 		void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo);
 
-		/**
-		 * Return whether this platform has uniquely named binaries across multiple games
-		 */
+		/// <summary>
+		/// Return whether this platform has uniquely named binaries across multiple games
+		/// </summary>
 		bool HasUniqueBinaries();
 
-		/**
-		 * Return whether we wish to have this platform's binaries in our builds
-		 */
+		/// <summary>
+		/// Return whether we wish to have this platform's binaries in our builds
+		/// </summary>
 		bool IsBuildRequired();
 
-		/**
-		 * Return whether we wish to have this platform's binaries in our CIS tests
-		 */
+		/// <summary>
+		/// Return whether we wish to have this platform's binaries in our CIS tests
+		/// </summary>
 		bool IsCISRequired();
 
 		/// <summary>
@@ -256,25 +229,22 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		bool RequiresDeployPrepAfterCompile();
 
-		/**
-		 * Return all valid configurations for this platform
-		 * 
-		 *  Typically, this is always Debug, Development, and Shipping - but Test is a likely future addition for some platforms
-		 */
+		/// <summary>
+		/// Return all valid configurations for this platform
+		/// Typically, this is always Debug, Development, and Shipping - but Test is a likely future addition for some platforms
+		/// </summary>
 		List<UnrealTargetConfiguration> GetConfigurations(UnrealTargetPlatform InUnrealTargetPlatform, bool bIncludeDebug);
 
-		/**
-		 * Setup the binaries for this specific platform.
-		 * 
-		 * @param InBuildTarget The target being built
-		 */
+		/// <summary>
+		/// Setup the binaries for this specific platform.
+		/// </summary>
+		/// <param name="InBuildTarget">The target being built</param>
 		void SetupBinaries(UEBuildTarget InBuildTarget);
 
-		/**
-		 * Check for the default configuration
-		 *
-		 * return true if the project uses the default build config
-		 */
+		/// <summary>
+		/// Check for the default configuration
+		/// return true if the project uses the default build config
+		/// </summary>
 		bool HasDefaultBuildConfig(UnrealTargetPlatform InPlatform, DirectoryReference InProjectPath);
 	}
 
@@ -287,11 +257,10 @@ namespace UnrealBuildTool
 
 		private bool bInitializedProject = false;
 
-		/**
-		 * Attempt to convert a string to an UnrealTargetPlatform enum entry
-		 * 
-		 * @return UnrealTargetPlatform.Unknown on failure (the platform didn't match the enum)
-		 */
+		/// <summary>
+		/// Attempt to convert a string to an UnrealTargetPlatform enum entry
+		/// </summary>
+		/// <returns>UnrealTargetPlatform.Unknown on failure (the platform didn't match the enum)</returns>
 		public static UnrealTargetPlatform ConvertStringToPlatform(string InPlatformName)
 		{
 			// special case x64, to not break anything
@@ -314,12 +283,11 @@ namespace UnrealBuildTool
 			return UnrealTargetPlatform.Unknown;
 		}
 
-		/**
-		 *	Register the given platforms UEBuildPlatform instance
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform to register with
-		 *	@param	InBuildPlatform		The UEBuildPlatform instance to use for the InPlatform
-		 */
+		/// <summary>
+		/// Register the given platforms UEBuildPlatform instance
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform to register with</param>
+		/// <param name="InBuildPlatform"> The UEBuildPlatform instance to use for the InPlatform</param>
 		public static void RegisterBuildPlatform(UnrealTargetPlatform InPlatform, UEBuildPlatform InBuildPlatform)
 		{
 			if (BuildPlatformDictionary.ContainsKey(InPlatform) == true)
@@ -334,9 +302,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Unregister the given platform
-		 */
+		/// <summary>
+		/// Unregister the given platform
+		/// </summary>
 		public static void UnregisterBuildPlatform(UnrealTargetPlatform InPlatform)
 		{
 			if (BuildPlatformDictionary.ContainsKey(InPlatform) == true)
@@ -345,18 +313,18 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Assign a platform as a member of the given group
-		 */
+		/// <summary>
+		/// Assign a platform as a member of the given group
+		/// </summary>
 		public static void RegisterPlatformWithGroup(UnrealTargetPlatform InPlatform, UnrealPlatformGroup InGroup)
 		{
 			// find or add the list of groups for this platform
 			PlatformGroupDictionary.GetOrAddNew(InGroup).Add(InPlatform);
 		}
 
-		/**
-		 * Retrieve the list of platforms in this group (if any)
-		 */
+		/// <summary>
+		/// Retrieve the list of platforms in this group (if any)
+		/// </summary>
 		public static List<UnrealTargetPlatform> GetPlatformsInGroup(UnrealPlatformGroup InGroup)
 		{
 			List<UnrealTargetPlatform> PlatformList;
@@ -364,14 +332,12 @@ namespace UnrealBuildTool
 			return PlatformList;
 		}
 
-		/**
-		 *	Retrieve the IUEBuildPlatform instance for the given TargetPlatform
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	bInAllowFailure		If true, do not throw an exception and return null
-		 *	
-		 *	@return	UEBuildPlatform		The instance of the build platform
-		 */
+		/// <summary>
+		/// Retrieve the IUEBuildPlatform instance for the given TargetPlatform
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="bInAllowFailure"> If true, do not throw an exception and return null</param>
+		/// <returns>UEBuildPlatform  The instance of the build platform</returns>
 		public static IUEBuildPlatform GetBuildPlatform(UnrealTargetPlatform InPlatform, bool bInAllowFailure = false)
 		{
 			if (BuildPlatformDictionary.ContainsKey(InPlatform) == true)
@@ -385,14 +351,12 @@ namespace UnrealBuildTool
 			throw new BuildException("GetBuildPlatform: No BuildPlatform found for {0}", InPlatform.ToString());
 		}
 
-		/**
-		 *	Retrieve the IUEBuildPlatform instance for the given CPPTargetPlatform
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	bInAllowFailure		If true, do not throw an exception and return null
-		 *	
-		 *	@return	UEBuildPlatform		The instance of the build platform
-		 */
+		/// <summary>
+		/// Retrieve the IUEBuildPlatform instance for the given CPPTargetPlatform
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="bInAllowFailure"> If true, do not throw an exception and return null</param>
+		/// <returns>UEBuildPlatform  The instance of the build platform</returns>
 		public static IUEBuildPlatform GetBuildPlatformForCPPTargetPlatform(CPPTargetPlatform InPlatform, bool bInAllowFailure = false)
 		{
 			UnrealTargetPlatform UTPlatform = UEBuildTarget.CPPTargetPlatformToUnrealTargetPlatform(InPlatform);
@@ -407,16 +371,15 @@ namespace UnrealBuildTool
 			throw new BuildException("UEBuildPlatform::GetBuildPlatformForCPPTargetPlatform: No BuildPlatform found for {0}", InPlatform.ToString());
 		}
 
-		/**
-		 *	Allow all registered build platforms to modify the newly created module 
-		 *	passed in for the given platform.
-		 *	This is not required - but allows for hiding details of a particular platform.
-		 *	
-		 *  @param  Name			The name of the module
-		 *	@param	Module			The module rules
-		 *	@param	Target			The target being build
-		 *	@param	Only			If this is not unknown, then only run that platform
-		 */
+		/// <summary>
+		/// Allow all registered build platforms to modify the newly created module
+		/// passed in for the given platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="">Name   The name of the module</param>
+		/// <param name="Module">  The module rules</param>
+		/// <param name="Target">  The target being build</param>
+		/// <param name="Only">  If this is not unknown, then only run that platform</param>
 		public static void PlatformModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
 		{
 			foreach (var PlatformEntry in BuildPlatformDictionary)
@@ -428,9 +391,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Returns the delimiter used to separate paths in the PATH environment variable for the platform we are executing on.
-		 */
+		/// <summary>
+		/// Returns the delimiter used to separate paths in the PATH environment variable for the platform we are executing on.
+		/// </summary>
 		public String GetPathVarDelimiter()
 		{
 			switch (BuildHostPlatform.Current.Platform)
@@ -450,33 +413,33 @@ namespace UnrealBuildTool
 
 
 
-		/**
-		 *	If this platform can be compiled with XGE
-		 */
+		/// <summary>
+		/// If this platform can be compiled with XGE
+		/// </summary>
 		public virtual bool CanUseXGE()
 		{
 			return true;
 		}
 
-		/**
-		 *	If this platform can be compiled with DMUCS/Distcc
-		 */
+		/// <summary>
+		/// If this platform can be compiled with DMUCS/Distcc
+		/// </summary>
 		public virtual bool CanUseDistcc()
 		{
 			return false;
 		}
 
-		/**
-		 *	If this platform can be compiled with SN-DBS
-		 */
+		/// <summary>
+		/// If this platform can be compiled with SN-DBS
+		/// </summary>
 		public virtual bool CanUseSNDBS()
 		{
 			return false;
 		}
 
-		/**
-		 *	Register the platform with the UEBuildPlatform class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
 		public void RegisterBuildPlatform()
 		{
 			ManageAndValidateSDK();
@@ -485,13 +448,11 @@ namespace UnrealBuildTool
 
 		protected abstract void RegisterBuildPlatformInternal();
 
-		/**
-		 *	Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		 *
-		 *	@param	InUnrealTargetPlatform		The UnrealTargetPlatform being build
-		 *	
-		 *	@return	CPPTargetPlatform			The CPPTargetPlatform to compile for
-		 */
+		/// <summary>
+		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
+		/// </summary>
+		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
+		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
 		public abstract CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform);
 
 		/// <summary>
@@ -513,191 +474,172 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		 *	Get the extension to use for the given binary type
-		 *	
-		 *	@param	InBinaryType		The binary type being built
-		 *	
-		 *	@return	string				The binary extension (i.e. 'exe' or 'dll')
-		 */
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The binary extension (i.e. 'exe' or 'dll')</returns>
 		public virtual string GetBinaryExtension(UEBuildBinaryType InBinaryType)
 		{
 			throw new BuildException("GetBinaryExtensiton for {0} not handled in {1}", InBinaryType.ToString(), this.ToString());
 		}
 
-		/**
-		 *	Get the extension to use for debug info for the given binary type
-		 *	
-		 *	@param	InBinaryType		The binary type being built
-		 *	
-		 *	@return	string				The debug info extension (i.e. 'pdb')
-		 */
+		/// <summary>
+		/// Get the extension to use for debug info for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
 		public virtual string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			throw new BuildException("GetDebugInfoExtension for {0} not handled in {1}", InBinaryType.ToString(), this.ToString());
 		}
 
-		/**
-		 *	Whether incremental linking should be used
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	InConfiguration		The CPPTargetConfiguration being built
-		 *	
-		 *	@return	bool	true if incremental linking should be used, false if not
-		 */
+		/// <summary>
+		/// Whether incremental linking should be used
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <returns>bool true if incremental linking should be used, false if not</returns>
 		public virtual bool ShouldUseIncrementalLinking(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
 		{
 			return false;
 		}
 
-		/**
-		 *	Whether PDB files should be used
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	InConfiguration		The CPPTargetConfiguration being built
-		 *	@param	bInCreateDebugInfo	true if debug info is getting create, false if not
-		 *	
-		 *	@return	bool	true if PDB files should be used, false if not
-		 */
+		/// <summary>
+		/// Whether PDB files should be used
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
+		/// <returns>bool true if PDB files should be used, false if not</returns>
 		public virtual bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
 		{
 			return false;
 		}
 
-		/**
-		 *	Whether PCH files should be used
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	InConfiguration		The CPPTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if PCH files should be used, false if not
-		 */
+		/// <summary>
+		/// Whether PCH files should be used
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <returns>bool    true if PCH files should be used, false if not</returns>
 		public virtual bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
 		{
 			return BuildConfiguration.bUsePCHFiles;
 		}
 
-		/**
-		 *	Whether the editor should be built for this platform or not
-		 *	
-		 *	@param	InPlatform		The UnrealTargetPlatform being built
-		 *	@param	InConfiguration	The UnrealTargetConfiguration being built
-		 *	@return	bool			true if the editor should be built, false if not
-		 */
+		/// <summary>
+		/// Whether the editor should be built for this platform or not
+		/// </summary>
+		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool   true if the editor should be built, false if not</returns>
 		public virtual bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return false;
 		}
 
-		/**
-		 *	Whether this build should support ONLY cooked data or not
-		 *	
-		 *	@param	InPlatform		The UnrealTargetPlatform being built
-		 *	@param	InConfiguration	The UnrealTargetConfiguration being built
-		 *	@return	bool			true if the editor should be built, false if not
-		 */
+		/// <summary>
+		/// Whether this build should support ONLY cooked data or not
+		/// </summary>
+		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool   true if the editor should be built, false if not</returns>
 		public virtual bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return false;
 		}
 
-		/**
-		 *	Whether the platform requires the extra UnityCPPWriter
-		 *	This is used to add an extra file for UBT to get the #include dependencies from
-		 *	
-		 *	@return	bool	true if it is required, false if not
-		 */
+		/// <summary>
+		/// Whether the platform requires the extra UnityCPPWriter
+		/// This is used to add an extra file for UBT to get the #include dependencies from
+		/// </summary>
+		/// <returns>bool true if it is required, false if not</returns>
 		public virtual bool RequiresExtraUnityCPPWriter()
 		{
 			return false;
 		}
 
-		/**
-		 * Whether this platform should build a monolithic binary
-		 */
+		/// <summary>
+		/// Whether this platform should build a monolithic binary
+		/// </summary>
 		public virtual bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
 		{
 			return false;
 		}
 
-		/**
-		 *	Get a list of extra modules the platform requires.
-		 *	This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
-		 *	
-		 *	@param	Target						The target being build
-		 *	@param	BuildTarget					The UEBuildTarget getting build
-		 *	@param	PlatformExtraModules		OUTPUT the list of extra modules the platform needs to add to the target
-		 */
+		/// <summary>
+		/// Get a list of extra modules the platform requires.
+		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
+		/// </summary>
+		/// <param name="Target">     The target being build</param>
+		/// <param name="BuildTarget">    The UEBuildTarget getting build</param>
+		/// <param name="PlatformExtraModules"> OUTPUT the list of extra modules the platform needs to add to the target</param>
 		public virtual void GetExtraModules(TargetInfo Target, UEBuildTarget BuildTarget, ref List<string> PlatformExtraModules)
 		{
 		}
 
-		/**
-		 *	Modify the newly created module passed in for this platform.
-		 *	This is not required - but allows for hiding details of a
-		 *	particular platform.
-		 *	
-		 *  @param  ModuleName		The name of the module
-		 *	@param	Rules			The module rules
-		 *	@param	Target			The target being build
-		 */
+		/// <summary>
+		/// Modify the newly created module passed in for this platform.
+		/// This is not required - but allows for hiding details of a
+		/// particular platform.
+		/// </summary>
+		/// <param name="">ModuleName  The name of the module</param>
+		/// <param name="Rules">  The module rules</param>
+		/// <param name="Target">  The target being build</param>
 		public virtual void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 		}
 
-		/**
-		 *	Setup the target environment for building
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public abstract void SetUpEnvironment(UEBuildTarget InBuildTarget);
 
-		/**
-		 * Allow the platform to set an optional architecture
-		 */
+		/// <summary>
+		/// Allow the platform to set an optional architecture
+		/// </summary>
 		public virtual string GetActiveArchitecture()
 		{
 			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
 			return "";
 		}
 
-		/**
-		 * Allow the platform to override the NMake output name
-		 */
+		/// <summary>
+		/// Allow the platform to override the NMake output name
+		/// </summary>
 		public virtual FileReference ModifyNMakeOutput(FileReference ExeName)
 		{
 			// by default, use original
 			return ExeName;
 		}
 
-		/**
-		 * Allow the platform to apply architecture-specific name according to its rules
-		 * 
-		 * @param BinaryName name of the binary, not specific to any architecture
-		 *
-		 * @return Possibly architecture-specific name
-		 */
+		/// <summary>
+		/// Allow the platform to apply architecture-specific name according to its rules
+		/// </summary>
+		/// <param name="BinaryName">name of the binary, not specific to any architecture</param>
+		/// <returns>Possibly architecture-specific name</returns>
 		public virtual string ApplyArchitectureName(string BinaryName)
 		{
 			// by default, use logic that assumes architectures to start with "-"
 			return BinaryName + GetActiveArchitecture();
 		}
 
-		/**
-		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
-		 * this will emit multiple paths. By default, it simply makes an array from the input
-		 */
+		/// <summary>
+		/// For platforms that need to output multiple files per binary (ie Android "fat" binaries)
+		/// this will emit multiple paths. By default, it simply makes an array from the input
+		/// </summary>
 		public virtual List<FileReference> FinalizeBinaryPaths(FileReference BinaryName)
 		{
 			List<FileReference> TempList = new List<FileReference>() { BinaryName };
 			return TempList;
 		}
 
-		/**
-		 *	Setup the configuration environment for building
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+		/// <summary>
+		/// Setup the configuration environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public virtual void SetUpConfigurationEnvironment(UEBuildTarget InBuildTarget)
 		{
 			// Determine the C++ compile/link configuration based on the Unreal configuration.
@@ -748,11 +690,10 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.bCreateDebugInfo = InBuildTarget.GlobalCompileEnvironment.Config.bCreateDebugInfo;
 		}
 
-		/**
-		 *	Setup the project environment for building
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+		/// <summary>
+		/// Setup the project environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public virtual void SetUpProjectEnvironment(UnrealTargetPlatform InPlatform)
 		{
 			if (!bInitializedProject)
@@ -840,69 +781,64 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Whether this platform should create debug information or not
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if debug info should be generated, false if not
-		 */
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
 		public abstract bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration);
 
-		/**
-		 *	Gives the platform a chance to 'override' the configuration settings 
-		 *	that are overridden on calls to RunUBT.
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if debug info should be generated, false if not
-		 */
+		/// <summary>
+		/// Gives the platform a chance to 'override' the configuration settings
+		/// that are overridden on calls to RunUBT.
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
 		public virtual void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 		}
 
-		/**
-		 *	Validate the UEBuildConfiguration for this platform
-		 *	This is called BEFORE calling UEBuildConfiguration to allow setting 
-		 *	various fields used in that function such as CompileLeanAndMean...
-		 */
+		/// <summary>
+		/// Validate the UEBuildConfiguration for this platform
+		/// This is called BEFORE calling UEBuildConfiguration to allow setting
+		/// various fields used in that function such as CompileLeanAndMean...
+		/// </summary>
 		public virtual void ValidateUEBuildConfiguration()
 		{
 		}
 
-		/**
-		 *	Validate configuration for this platform
-		 *	NOTE: This function can/will modify BuildConfiguration!
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	InConfiguration		The CPPTargetConfiguration being built
-		 *	@param	bInCreateDebugInfo	true if debug info is getting create, false if not
-		 */
+		/// <summary>
+		/// Validate configuration for this platform
+		/// NOTE: This function can/will modify BuildConfiguration!
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
 		public virtual void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
 		{
 		}
 
-		/**
-		 *	Return whether this platform has uniquely named binaries across multiple games
-		 */
+		/// <summary>
+		/// Return whether this platform has uniquely named binaries across multiple games
+		/// </summary>
 		public virtual bool HasUniqueBinaries()
 		{
 			return true;
 		}
 
-		/**
-		 *	Return whether we wish to have this platform's binaries in our builds
-		 */
+		/// <summary>
+		/// Return whether we wish to have this platform's binaries in our builds
+		/// </summary>
 		public virtual bool IsBuildRequired()
 		{
 			return true;
 		}
 
-		/**
-		 *	Return whether we wish to have this platform's binaries in our CIS tests
-		 */
+		/// <summary>
+		/// Return whether we wish to have this platform's binaries in our CIS tests
+		/// </summary>
 		public virtual bool IsCISRequired()
 		{
 			return true;
@@ -917,11 +853,10 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		 *	Return all valid configurations for this platform
-		 *	
-		 *  Typically, this is always Debug, Development, and Shipping - but Test is a likely future addition for some platforms
-		 */
+		/// <summary>
+		/// Return all valid configurations for this platform
+		/// Typically, this is always Debug, Development, and Shipping - but Test is a likely future addition for some platforms
+		/// </summary>
 		public virtual List<UnrealTargetConfiguration> GetConfigurations(UnrealTargetPlatform InUnrealTargetPlatform, bool bIncludeDebug)
 		{
 			List<UnrealTargetConfiguration> Configurations = new List<UnrealTargetConfiguration>()
@@ -937,11 +872,10 @@ namespace UnrealBuildTool
 			return Configurations;
 		}
 
-		/**
-		 *	Setup the binaries for this specific platform.
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+		/// <summary>
+		/// Setup the binaries for this specific platform.
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public virtual void SetupBinaries(UEBuildTarget InBuildTarget)
 		{
 		}
@@ -994,11 +928,10 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		/**
-		 * Check for the default configuration
-		 *
-		 * return true if the project uses the default build config
-		 */
+		/// <summary>
+		/// Check for the default configuration
+		/// return true if the project uses the default build config
+		/// </summary>
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
 			string[] BoolKeys = new string[] {
@@ -1019,13 +952,19 @@ namespace UnrealBuildTool
 
 		#region protected AutoSDKs Utility
 
-		/** Name of the file that holds currently install SDK version string */
+		/// <summary>
+		/// Name of the file that holds currently install SDK version string
+		/// </summary>
 		protected static string CurrentlyInstalledSDKStringManifest = "CurrentlyInstalled.txt";
 
-		/** name of the file that holds the last succesfully run SDK setup script version */
+		/// <summary>
+		/// name of the file that holds the last succesfully run SDK setup script version
+		/// </summary>
 		protected static string LastRunScriptVersionManifest = "CurrentlyInstalled.Version.txt";
 
-		/** Name of the file that holds environment variables of current SDK */
+		/// <summary>
+		/// Name of the file that holds environment variables of current SDK
+		/// </summary>
 		protected static string SDKEnvironmentVarsFile = "OutputEnvVars.txt";
 
 		protected static readonly string SDKRootEnvVar = "UE_SDKS_ROOT";
@@ -1034,11 +973,10 @@ namespace UnrealBuildTool
 
 		public static bool bShouldLogInfo = false;
 
-		/** 
-		 * Whether platform supports switching SDKs during runtime
-		 * 
-		 * @return true if supports
-		 */
+		/// <summary>
+		/// Whether platform supports switching SDKs during runtime
+		/// </summary>
+		/// <returns>true if supports</returns>
 		protected virtual bool PlatformSupportsAutoSDKs()
 		{
 			return false;
@@ -1066,31 +1004,29 @@ namespace UnrealBuildTool
 			return !IsAutoSDKDestructive() || !HasAnyManualInstall();
 		}
 
-		/** 
-		 * Returns SDK string as required by the platform 
-		 * 
-		 * @return Valid SDK string
-		 */
+		/// <summary>
+		/// Returns SDK string as required by the platform
+		/// </summary>
+		/// <returns>Valid SDK string</returns>
 		protected virtual string GetRequiredSDKString()
 		{
 			return "";
 		}
 
-		/**
-		* Gets the version number of the SDK setup script itself.  The version in the base should ALWAYS be the master revision from the last refactor.  
-		* If you need to force a rebuild for a given platform, override this for the given platform.
-		* @return Setup script version
-		*/
+		/// <summary>
+		/// Gets the version number of the SDK setup script itself.  The version in the base should ALWAYS be the master revision from the last refactor.
+		/// If you need to force a rebuild for a given platform, override this for the given platform.
+		/// </summary>
+		/// <returns>Setup script version</returns>
 		protected virtual String GetRequiredScriptVersionString()
 		{
 			return "3.0";
 		}
 
-		/** 
-		 * Returns path to platform SDKs
-		 * 
-		 * @return Valid SDK string
-		 */
+		/// <summary>
+		/// Returns path to platform SDKs
+		/// </summary>
+		/// <returns>Valid SDK string</returns>
 		protected string GetPathToPlatformAutoSDKs()
 		{
 			string SDKPath = "";
@@ -1105,25 +1041,23 @@ namespace UnrealBuildTool
 			return SDKPath;
 		}
 
-		/**
-		 * Because most ManualSDK determination depends on reading env vars, if this process is spawned by a process that ALREADY set up
-		 * AutoSDKs then all the SDK env vars will exist, and we will spuriously detect a Manual SDK. (children inherit the environment of the parent process).
-		 * Therefore we write out an env var to set in the command file (OutputEnvVars.txt) such that child processes can determine if their manual SDK detection
-		 * is bogus.  Make it platform specific so that platforms can be in different states.
-		 */
+		/// <summary>
+		/// Because most ManualSDK determination depends on reading env vars, if this process is spawned by a process that ALREADY set up
+		/// AutoSDKs then all the SDK env vars will exist, and we will spuriously detect a Manual SDK. (children inherit the environment of the parent process).
+		/// Therefore we write out an env var to set in the command file (OutputEnvVars.txt) such that child processes can determine if their manual SDK detection
+		/// is bogus.  Make it platform specific so that platforms can be in different states.
+		/// </summary>
 		protected string GetPlatformAutoSDKSetupEnvVar()
 		{
 			return GetSDKTargetPlatformName() + AutoSetupEnvVar;
 		}
 
-		/**
-		 * Gets currently installed version
-		 * 
-		 * @param PlatformSDKRoot absolute path to platform SDK root
-		 * @param OutInstalledSDKVersionString version string as currently installed
-		 * 
-		 * @return true if was able to read it
-		 */
+		/// <summary>
+		/// Gets currently installed version
+		/// </summary>
+		/// <param name="PlatformSDKRoot">absolute path to platform SDK root</param>
+		/// <param name="OutInstalledSDKVersionString">version string as currently installed</param>
+		/// <returns>true if was able to read it</returns>
 		protected bool GetCurrentlyInstalledSDKString(string PlatformSDKRoot, out string OutInstalledSDKVersionString)
 		{
 			if (Directory.Exists(PlatformSDKRoot))
@@ -1153,14 +1087,12 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		 * Gets the version of the last successfully run setup script.
-		 * 
-		 * @param PlatformSDKRoot absolute path to platform SDK root
-		 * @param OutLastRunScriptVersion version string
-		 * 
-		 * @return true if was able to read it
-		 */
+		/// <summary>
+		/// Gets the version of the last successfully run setup script.
+		/// </summary>
+		/// <param name="PlatformSDKRoot">absolute path to platform SDK root</param>
+		/// <param name="OutLastRunScriptVersion">version string</param>
+		/// <returns>true if was able to read it</returns>
 		protected bool GetLastRunScriptVersionString(string PlatformSDKRoot, out string OutLastRunScriptVersion)
 		{
 			if (Directory.Exists(PlatformSDKRoot))
@@ -1184,14 +1116,12 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		 * Sets currently installed version
-		 * 
-		 * @param PlatformSDKRoot absolute path to platform SDK root
-		 * @param InstalledSDKVersionString SDK version string to set
-		 * 
-		 * @return true if was able to set it
-		 */
+		/// <summary>
+		/// Sets currently installed version
+		/// </summary>
+		/// <param name="PlatformSDKRoot">absolute path to platform SDK root</param>
+		/// <param name="InstalledSDKVersionString">SDK version string to set</param>
+		/// <returns>true if was able to set it</returns>
 		protected bool SetCurrentlyInstalledAutoSDKString(String InstalledSDKVersionString)
 		{
 			String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
@@ -1263,12 +1193,11 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		* Returns Hook names as needed by the platform
-		* (e.g. can be overridden with custom executables or scripts)
-		*
-		* @param Hook Hook type
-		*/
+		/// <summary>
+		/// Returns Hook names as needed by the platform
+		/// (e.g. can be overridden with custom executables or scripts)
+		/// </summary>
+		/// <param name="Hook">Hook type</param>
 		protected virtual string GetHookExecutableName(SDKHookType Hook)
 		{
 			if (Hook == SDKHookType.Uninstall)
@@ -1279,16 +1208,14 @@ namespace UnrealBuildTool
 			return "setup.bat";
 		}
 
-		/**
-		 * Runs install/uninstall hooks for SDK
-		 * 
-		 * @param PlatformSDKRoot absolute path to platform SDK root
-		 * @param SDKVersionString version string to run for (can be empty!)
-		 * @param Hook which one of hooks to run
-		 * @param bHookCanBeNonExistent whether a non-existing hook means failure
-		 * 
-		 * @return true if succeeded
-		 */
+		/// <summary>
+		/// Runs install/uninstall hooks for SDK
+		/// </summary>
+		/// <param name="PlatformSDKRoot">absolute path to platform SDK root</param>
+		/// <param name="SDKVersionString">version string to run for (can be empty!)</param>
+		/// <param name="Hook">which one of hooks to run</param>
+		/// <param name="bHookCanBeNonExistent">whether a non-existing hook means failure</param>
+		/// <returns>true if succeeded</returns>
 		protected virtual bool RunAutoSDKHooks(string PlatformSDKRoot, string SDKVersionString, SDKHookType Hook, bool bHookCanBeNonExistent = true)
 		{
 			if (!IsAutoSDKSafe())
@@ -1351,15 +1278,13 @@ namespace UnrealBuildTool
 			return bHookCanBeNonExistent;
 		}
 
-		/**
-		 * Loads environment variables from SDK
-		 * If any commands are added or removed the handling needs to be duplicated in
-		 * TargetPlatformManagerModule.cpp
-		 * 
-		 * @param PlatformSDKRoot absolute path to platform SDK         
-		 * 
-		 * @return true if succeeded
-		 */
+		/// <summary>
+		/// Loads environment variables from SDK
+		/// If any commands are added or removed the handling needs to be duplicated in
+		/// TargetPlatformManagerModule.cpp
+		/// </summary>
+		/// <param name="PlatformSDKRoot">absolute path to platform SDK</param>
+		/// <returns>true if succeeded</returns>
 		protected bool SetupEnvironmentFromAutoSDK(string PlatformSDKRoot)
 		{
 			string EnvVarFile = Path.Combine(PlatformSDKRoot, SDKEnvironmentVarsFile);
@@ -1527,10 +1452,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** 
-		 * Currently installed AutoSDK is written out to a text file in a known location.  
-		 * This function just compares the file's contents with the current requirements.
-		 */
+		/// <summary>
+		/// Currently installed AutoSDK is written out to a text file in a known location.
+		/// This function just compares the file's contents with the current requirements.
+		/// </summary>
 		protected SDKStatus HasRequiredAutoSDKInstalled()
 		{
 			if (PlatformSupportsAutoSDKs() && HasAutoSDKSystemEnabled())
@@ -1624,11 +1549,11 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		* Runs batch files if necessary to set up required AutoSDK.
-		* AutoSDKs are SDKs that have not been setup through a formal installer, but rather come from
-		* a source control directory, or other local copy.
-		*/
+		/// <summary>
+		/// Runs batch files if necessary to set up required AutoSDK.
+		/// AutoSDKs are SDKs that have not been setup through a formal installer, but rather come from
+		/// a source control directory, or other local copy.
+		/// </summary>
 		private void SetupAutoSDK()
 		{
 			if (IsAutoSDKSafe() && PlatformSupportsAutoSDKs() && HasAutoSDKSystemEnabled())
@@ -1681,18 +1606,19 @@ namespace UnrealBuildTool
 
 		#region public AutoSDKs Utility
 
-		/** Enum describing types of hooks a platform SDK can have */
+		/// <summary>
+		/// Enum describing types of hooks a platform SDK can have
+		/// </summary>
 		public enum SDKHookType
 		{
 			Install,
 			Uninstall
 		};
 
-		/** 
-		 * Returns platform-specific name used in SDK repository
-		 * 
-		 * @return path to SDK Repository
-		 */
+		/// <summary>
+		/// Returns platform-specific name used in SDK repository
+		/// </summary>
+		/// <returns>path to SDK Repository</returns>
 		public virtual string GetSDKTargetPlatformName()
 		{
 			return "";
@@ -1715,10 +1641,10 @@ namespace UnrealBuildTool
 			return SDKStatus.Valid;
 		}
 
-		/**
-		 *	Whether the required external SDKs are installed for this platform.  
-		 *	Could be either a manual install or an AutoSDK.
-		 */
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform.
+		/// Could be either a manual install or an AutoSDK.
+		/// </summary>
 		public SDKStatus HasRequiredSDKsInstalled()
 		{
 			// avoid redundant potentially expensive SDK checks.

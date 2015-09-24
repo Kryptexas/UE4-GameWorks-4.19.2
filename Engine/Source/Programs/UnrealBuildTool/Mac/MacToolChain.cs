@@ -24,37 +24,57 @@ namespace UnrealBuildTool
 		 *  Do NOT change the defaults to set your values, instead you should set the environment variables
 		 *  properly in your system, as other tools make use of them to work properly!
 		 *  The defaults are there simply for examples so you know what to put in your env vars...
-		 ***********************************************************************
+		 ***********************************************************************/
 
-		/** Which version of the Mac OS SDK to target at build time */
+		/// <summary>
+		/// Which version of the Mac OS SDK to target at build time
+		/// </summary>
 		public static string MacOSSDKVersion = "latest";
 		public static float MacOSSDKVersionFloat = 0.0f;
 
-		/** Which version of the Mac OS X to allow at run time */
+		/// <summary>
+		/// Which version of the Mac OS X to allow at run time
+		/// </summary>
 		public static string MacOSVersion = "10.9";
 
-		/** Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit. */
+		/// <summary>
+		/// Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
+		/// </summary>
 		public static string MinMacOSVersion = "10.9.2";
 
-		/** Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode */
+		/// <summary>
+		/// Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode
+		/// </summary>
 		private static string XcodeDeveloperDir = "xcode-select";
 
-		/** Directory for the developer binaries */
+		/// <summary>
+		/// Directory for the developer binaries
+		/// </summary>
 		private static string ToolchainDir = "";
 
-		/** Location of the SDKs */
+		/// <summary>
+		/// Location of the SDKs
+		/// </summary>
 		private static string BaseSDKDir;
 
-		/** Which compiler frontend to use */
+		/// <summary>
+		/// Which compiler frontend to use
+		/// </summary>
 		private static string MacCompiler = "clang++";
 
-		/** Which linker frontend to use */
+		/// <summary>
+		/// Which linker frontend to use
+		/// </summary>
 		private static string MacLinker = "clang++";
 
-		/** Which archiver to use */
+		/// <summary>
+		/// Which archiver to use
+		/// </summary>
 		private static string MacArchiver = "libtool";
 
-		/** Track which scripts need to be deleted before appending to */
+		/// <summary>
+		/// Track which scripts need to be deleted before appending to
+		/// </summary>
 		private bool bHasWipedCopyDylibScript = false;
 		private bool bHasWipedFixDylibScript = false;
 
@@ -1127,11 +1147,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Generates debug info for a given executable
-		 * 
-		 * @param MachOBinary FileItem describing the executable or dylib to generate debug info for
-		 */
+		/// <summary>
+		/// Generates debug info for a given executable
+		/// </summary>
+		/// <param name="MachOBinary">FileItem describing the executable or dylib to generate debug info for</param>
 		public FileItem GenerateDebugInfo(FileItem MachOBinary)
 		{
 			// Make a file item for the source and destination files
@@ -1171,11 +1190,10 @@ namespace UnrealBuildTool
 			return DestFile;
 		}
 
-		/**
-		 * Creates app bundle for a given executable
-		 *
-		 * @param Executable FileItem describing the executable to generate app bundle for
-		 */
+		/// <summary>
+		/// Creates app bundle for a given executable
+		/// </summary>
+		/// <param name="Executable">FileItem describing the executable to generate app bundle for</param>
 		FileItem FinalizeAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
 		{
 			// Make a file item for the source and destination files

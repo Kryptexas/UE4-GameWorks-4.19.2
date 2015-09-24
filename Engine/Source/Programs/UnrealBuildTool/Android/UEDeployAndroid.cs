@@ -13,9 +13,9 @@ namespace UnrealBuildTool.Android
 {
 	public class UEDeployAndroid : UEBuildDeploy
 	{
-		/**
-		 *	Register the platform with the UEBuildDeploy class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildDeploy class
+		/// </summary>
 		public override void RegisterBuildDeploy()
 		{
 			string NDKPath = Environment.GetEnvironmentVariable("ANDROID_HOME");
@@ -31,10 +31,14 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		/** Internal usage for GetApiLevel */
+		/// <summary>
+		/// Internal usage for GetApiLevel
+		/// </summary>
 		private static List<string> PossibleApiLevels = null;
 
-		/** Simple function to pipe output asynchronously */
+		/// <summary>
+		/// Simple function to pipe output asynchronously
+		/// </summary>
 		private static void ParseApiLevel(object Sender, DataReceivedEventArgs Event)
 		{
 			// DataReceivedEventHandler is fired with a null string when the output stream is closed.  We don't want to

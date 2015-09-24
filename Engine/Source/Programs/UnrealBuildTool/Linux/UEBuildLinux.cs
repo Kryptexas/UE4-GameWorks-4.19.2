@@ -10,61 +10,66 @@ namespace UnrealBuildTool
 {
 	class LinuxPlatform : UEBuildPlatform
 	{
-		/** This is the SDK version we support */
+		/// <summary>
+		/// This is the SDK version we support
+		/// </summary>
 		static private Dictionary<string, string> ExpectedSDKVersions = new Dictionary<string, string>()
 		{
 			{ "x86_64-unknown-linux-gnu", "v6_clang-3.6.0_ld-2.24_glibc-2.12.2" },
 			{ "arm-unknown-linux-gnueabihf", "arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13" },
 		};
 
-		/** Platform name (embeds architecture for now) */
+		/// <summary>
+		/// Platform name (embeds architecture for now)
+		/// </summary>
 		static private string TargetPlatformName = "Linux_x64";
 
-		/** Linux architecture (compiler target triplet) */
+		/// <summary>
+		/// Linux architecture (compiler target triplet)
+		/// </summary>
 		// FIXME: for now switching between architectures is hard-coded
 		static private string DefaultArchitecture = "x86_64-unknown-linux-gnu";
 		//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
 
-		/** The current architecture */
+		/// <summary>
+		/// The current architecture
+		/// </summary>
 		public override string GetActiveArchitecture()
 		{
 			return DefaultArchitecture;
 		}
 
-		/**
-		 * Allow the platform to apply architecture-specific name according to its rules
-		 */
+		/// <summary>
+		/// Allow the platform to apply architecture-specific name according to its rules
+		/// </summary>
 		public override string ApplyArchitectureName(string BinaryName)
 		{
 			// Linux ignores architecture-specific names, although it might be worth it to prepend architecture
 			return BinaryName;
 		}
 
-		/** 
-		 * Whether platform supports switching SDKs during runtime
-		 * 
-		 * @return true if supports
-		 */
+		/// <summary>
+		/// Whether platform supports switching SDKs during runtime
+		/// </summary>
+		/// <returns>true if supports</returns>
 		protected override bool PlatformSupportsAutoSDKs()
 		{
 			return true;
 		}
 
-		/** 
-		 * Returns platform-specific name used in SDK repository
-		 * 
-		 * @return path to SDK Repository
-		 */
+		/// <summary>
+		/// Returns platform-specific name used in SDK repository
+		/// </summary>
+		/// <returns>path to SDK Repository</returns>
 		public override string GetSDKTargetPlatformName()
 		{
 			return TargetPlatformName;
 		}
 
-		/** 
-		 * Returns SDK string as required by the platform 
-		 * 
-		 * @return Valid SDK string
-		 */
+		/// <summary>
+		/// Returns SDK string as required by the platform
+		/// </summary>
+		/// <returns>Valid SDK string</returns>
 		protected override string GetRequiredSDKString()
 		{
 			string SDKString;
@@ -87,9 +92,9 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		/**
-		 *	Whether the required external SDKs are installed for this platform
-		 */
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform
+		/// </summary>
 		protected override SDKStatus HasRequiredManualSDKInternal()
 		{
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
@@ -119,9 +124,9 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		 *	Register the platform with the UEBuildPlatform class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
 		protected override void RegisterBuildPlatformInternal()
 		{
 			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
@@ -149,13 +154,11 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		 *
-		 *	@param	InUnrealTargetPlatform		The UnrealTargetPlatform being build
-		 *	
-		 *	@return	CPPTargetPlatform			The CPPTargetPlatform to compile for
-		 */
+		/// <summary>
+		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
+		/// </summary>
+		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
+		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
 		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
 		{
 			switch (InUnrealTargetPlatform)
@@ -166,13 +169,11 @@ namespace UnrealBuildTool
 			throw new BuildException("LinuxPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
 		}
 
-		/**
-		 *	Get the extension to use for the given binary type
-		 *	
-		 *	@param	InBinaryType		The binary type being built
-		 *	
-		 *	@return	string				The binary extension (i.e. 'exe' or 'dll')
-		 */
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The binary extension (i.e. 'exe' or 'dll')</returns>
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
 		{
 			switch (InBinaryType)
@@ -191,48 +192,44 @@ namespace UnrealBuildTool
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
-		/**
-		 *	Get the extension to use for debug info for the given binary type
-		 *	
-		 *	@param	InBinaryType		The binary type being built
-		 *	
-		 *	@return	string				The debug info extension (i.e. 'pdb')
-		 */
+		/// <summary>
+		/// Get the extension to use for debug info for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			return "";
 		}
 
-		/**
-		 *	Gives the platform a chance to 'override' the configuration settings 
-		 *	that are overridden on calls to RunUBT.
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 */
+		/// <summary>
+		/// Gives the platform a chance to 'override' the configuration settings
+		/// that are overridden on calls to RunUBT.
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
 		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			ValidateUEBuildConfiguration();
 		}
 
-		/**
-		 *	Validate configuration for this platform
-		 *	NOTE: This function can/will modify BuildConfiguration!
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	InConfiguration		The CPPTargetConfiguration being built
-		 *	@param	bInCreateDebugInfo	true if debug info is getting create, false if not
-		 */
+		/// <summary>
+		/// Validate configuration for this platform
+		/// NOTE: This function can/will modify BuildConfiguration!
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
 		}
 
-		/**
-		 *	Validate the UEBuildConfiguration for this platform
-		 *	This is called BEFORE calling UEBuildConfiguration to allow setting 
-		 *	various fields used in that function such as CompileLeanAndMean...
-		 */
+		/// <summary>
+		/// Validate the UEBuildConfiguration for this platform
+		/// This is called BEFORE calling UEBuildConfiguration to allow setting
+		/// various fields used in that function such as CompileLeanAndMean...
+		/// </summary>
 		public override void ValidateUEBuildConfiguration()
 		{
 			if (ProjectFileGenerator.bGenerateProjectFiles && !ProjectFileGenerator.bGeneratingRocketProjectFiles)
@@ -250,41 +247,37 @@ namespace UnrealBuildTool
 			BuildConfiguration.bUseSharedPCHs = false;
 		}
 
-		/**
-		 *	Whether PDB files should be used
-		 *	
-		 *	@param	InPlatform			The CPPTargetPlatform being built
-		 *	@param	InConfiguration		The CPPTargetConfiguration being built
-		 *	@param	bInCreateDebugInfo	true if debug info is getting create, false if not
-		 *	
-		 *	@return	bool	true if PDB files should be used, false if not
-		 */
+		/// <summary>
+		/// Whether PDB files should be used
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
+		/// <returns>bool true if PDB files should be used, false if not</returns>
 		public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
 		{
 			return true;
 		}
 
-		/**
-		 *	Get a list of extra modules the platform requires.
-		 *	This is to allow undisclosed platforms to add modules they need without exposing information about the platfomr.
-		 *	
-		 *	@param	Target						The target being build
-		 *	@param	BuildTarget					The UEBuildTarget getting build
-		 *	@param	PlatformExtraModules		OUTPUT the list of extra modules the platform needs to add to the target
-		 */
+		/// <summary>
+		/// Get a list of extra modules the platform requires.
+		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platfomr.
+		/// </summary>
+		/// <param name="Target">     The target being build</param>
+		/// <param name="BuildTarget">    The UEBuildTarget getting build</param>
+		/// <param name="PlatformExtraModules"> OUTPUT the list of extra modules the platform needs to add to the target</param>
 		public override void GetExtraModules(TargetInfo Target, UEBuildTarget BuildTarget, ref List<string> PlatformExtraModules)
 		{
 		}
 
-		/**
-		 *	Modify the newly created module passed in for this platform.
-		 *	This is not required - but allows for hiding details of a
-		 *	particular platform.
-		 *	
-		 *  @param  Name			The name of the module
-		 *	@param	Rules			The module rules
-		 *	@param	Target			The target being build
-		 */
+		/// <summary>
+		/// Modify the newly created module passed in for this platform.
+		/// This is not required - but allows for hiding details of a
+		/// particular platform.
+		/// </summary>
+		/// <param name="">Name   The name of the module</param>
+		/// <param name="Rules">  The module rules</param>
+		/// <param name="Target">  The target being build</param>
 		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
@@ -342,11 +335,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Setup the target environment for building
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
@@ -375,14 +367,12 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Whether this platform should create debug information or not
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if debug info should be generated, false if not
-		 */
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
 		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
 		{
 			switch (Configuration)
@@ -396,11 +386,10 @@ namespace UnrealBuildTool
 			};
 		}
 
-		/**
-		 *	Setup the binaries for this specific platform.
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+		/// <summary>
+		/// Setup the binaries for this specific platform.
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public override void SetupBinaries(UEBuildTarget InBuildTarget)
 		{
 		}

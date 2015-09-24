@@ -18,7 +18,9 @@ namespace UnrealBuildTool
 		static private int MaxActionsToExecuteInParallel;
 		static private int JobNumber;
 
-		/** The possible result of executing tasks with SN-DBS. */
+		/// <summary>
+		/// The possible result of executing tasks with SN-DBS.
+		/// </summary>
 		public enum ExecutionResult
 		{
 			Unavailable,
@@ -26,12 +28,11 @@ namespace UnrealBuildTool
 			TasksSucceeded,
 		}
 
-		/**
-		 * Used when debugging Actions outputs all action return values to debug out
-		 * 
-		 * @param	sender		Sending object
-		 * @param	e			Event arguments (In this case, the line of string output)
-		 */
+		/// <summary>
+		/// Used when debugging Actions outputs all action return values to debug out
+		/// </summary>
+		/// <param name="sender"> Sending object</param>
+		/// <param name="e">  Event arguments (In this case, the line of string output)</param>
 		static protected void ActionDebugOutput(object sender, DataReceivedEventArgs e)
 		{
 			var Output = e.Data;

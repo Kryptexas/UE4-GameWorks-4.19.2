@@ -162,7 +162,9 @@ namespace UnrealBuildTool
 			return EventArgs;
 		}
 
-		/** Writes a XGE task file containing the specified actions to the specified file path. */
+		/// <summary>
+		/// Writes a XGE task file containing the specified actions to the specified file path.
+		/// </summary>
 		public static void WriteTaskFile(List<Action> InActions, string TaskFilePath, bool bProgressMarkup)
 		{
 			Dictionary<string, string> ExportEnv = new Dictionary<string, string>();
@@ -407,7 +409,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** The possible result of executing tasks with XGE. */
+		/// <summary>
+		/// The possible result of executing tasks with XGE.
+		/// </summary>
 		public enum ExecutionResult
 		{
 			Unavailable,
@@ -415,11 +419,11 @@ namespace UnrealBuildTool
 			TasksSucceeded,
 		}
 
-		/**
-		 * Executes the tasks in the specified file.
-		 * @param TaskFilePath - The path to the file containing the tasks to execute in XGE XML format.
-		 * @return Indicates whether the tasks were successfully executed.
-		 */
+		/// <summary>
+		/// Executes the tasks in the specified file.
+		/// </summary>
+		/// <param name="TaskFilePath">- The path to the file containing the tasks to execute in XGE XML format.</param>
+		/// <returns>Indicates whether the tasks were successfully executed.</returns>
 		public static ExecutionResult ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler)
 		{
 			bool bSilentCompileOutput = false;
@@ -477,9 +481,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Executes the tasks in the specified file, parsing progress markup as part of the output.
-		 */
+		/// <summary>
+		/// Executes the tasks in the specified file, parsing progress markup as part of the output.
+		/// </summary>
 		public static ExecutionResult ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
 		{
 			using (ProgressWriter Writer = new ProgressWriter("Compiling C++ source files...", false))

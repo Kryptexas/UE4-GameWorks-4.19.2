@@ -8,18 +8,18 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	/**
-	 *	Base class for platform-specific project generators 
-	 */
+	/// <summary>
+	/// Base class for platform-specific project generators
+	/// </summary>
 	class AndroidProjectGenerator : UEPlatformProjectGenerator
 	{
 		static bool CheckedForNsight = false;		// whether we have checked for a recent enough version of Nsight yet
 		static bool NsightInstalled = false;		// true if a recent enough version of Nsight is installed
 		static int NsightVersionCode = 0;			// version code matching detected Nsight
 
-		/**
-		 *	Check to see if a recent enough version of Nsight is installed.
-		 */
+		/// <summary>
+		/// Check to see if a recent enough version of Nsight is installed.
+		/// </summary>
 		bool IsNsightInstalled()
 		{
 			// cache the results since this gets called a number of times
@@ -93,37 +93,33 @@ namespace UnrealBuildTool
 			return NsightInstalled;
 		}
 
-		/**
-		 *	Register the platform with the UEPlatformProjectGenerator class
-		 */
+		/// <summary>
+		/// Register the platform with the UEPlatformProjectGenerator class
+		/// </summary>
 		public override void RegisterPlatformProjectGenerator()
 		{
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Android.ToString());
 			UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.Android, this);
 		}
 
-		/**
-		 *	Whether this build platform has native support for VisualStudio
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if native VisualStudio support (or custom VSI) is available
-		 */
+		/// <summary>
+		/// Whether this build platform has native support for VisualStudio
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			// Debugging, etc. are dependent on the TADP being installed
 			return IsNsightInstalled();
 		}
 
-		/**
-		 *	Return the VisualStudio platform name for this build platform
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	string				The name of the platform that VisualStudio recognizes
-		 */
+		/// <summary>
+		/// Return the VisualStudio platform name for this build platform
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>string    The name of the platform that VisualStudio recognizes</returns>
 		public override string GetVisualStudioPlatformName(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			if (InPlatform == UnrealTargetPlatform.Android)
@@ -134,13 +130,11 @@ namespace UnrealBuildTool
 			return InPlatform.ToString();
 		}
 
-		/**
-		 * Return any custom property group lines
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	
-		 *	@return	string				The custom property import lines for the project file; Empty string if it doesn't require one
-		 */
+		/// <summary>
+		/// Return any custom property group lines
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetAdditionalVisualStudioPropertyGroups(UnrealTargetPlatform InPlatform)
 		{
 			if (!IsNsightInstalled())
@@ -153,13 +147,11 @@ namespace UnrealBuildTool
 					"	</PropertyGroup>" + ProjectFileGenerator.NewLine;
 		}
 
-		/**
-		 * Return any custom property group lines
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	
-		 *	@return	string				The custom property import lines for the project file; Empty string if it doesn't require one
-		 */
+		/// <summary>
+		/// Return any custom property group lines
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPlatformConfigurationType(UnrealTargetPlatform InPlatform)
 		{
 			if (!IsNsightInstalled())
@@ -170,14 +162,12 @@ namespace UnrealBuildTool
 			return "ExternalBuildSystem";
 		}
 
-		/**
-		 *	Return the platform toolset string to write into the project configuration
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	string				The custom configuration section for the project file; Empty string if it doesn't require one
-		 */
+		/// <summary>
+		/// Return the platform toolset string to write into the project configuration
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>string    The custom configuration section for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPlatformToolsetString(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFile InProjectFile)
 		{
 			if (!IsNsightInstalled())
@@ -189,15 +179,13 @@ namespace UnrealBuildTool
 				+ "\t\t<AndroidNativeAPI>UseTarget</AndroidNativeAPI>" + ProjectFileGenerator.NewLine;
 		}
 
-		/**
-		 * Return any custom paths for VisualStudio this platform requires
-		 * This include ReferencePath, LibraryPath, LibraryWPath, IncludePath and ExecutablePath.
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	TargetType			The type of target (game or program)
-		 *	
-		 *	@return	string				The custom path lines for the project file; Empty string if it doesn't require one
-		 */
+		/// <summary>
+		/// Return any custom paths for VisualStudio this platform requires
+		/// This include ReferencePath, LibraryPath, LibraryWPath, IncludePath and ExecutablePath.
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="TargetType">  The type of target (game or program)</param>
+		/// <returns>string    The custom path lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath)
 		{
 			if (!IsNsightInstalled())

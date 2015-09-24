@@ -25,7 +25,9 @@ namespace UnrealBuildTool
 		Link,
 	}
 
-	/** A build action. */
+	/// <summary>
+	/// A build action.
+	/// </summary>
 	[Serializable]
 	public class Action : ISerializable
 	{
@@ -33,58 +35,90 @@ namespace UnrealBuildTool
 		/// Preparation and Assembly (serialized)
 		/// 
 
-		/** The type of this action (for debugging purposes). */
+		/// <summary>
+		/// The type of this action (for debugging purposes).
+		/// </summary>
 		public ActionType ActionType;
 
-		/** Every file this action depends on.  These files need to exist and be up to date in order for this action to even be considered */
+		/// <summary>
+		/// Every file this action depends on.  These files need to exist and be up to date in order for this action to even be considered
+		/// </summary>
 		public List<FileItem> PrerequisiteItems = new List<FileItem>();
 
-		/** The files that this action produces after completing */
+		/// <summary>
+		/// The files that this action produces after completing
+		/// </summary>
 		public List<FileItem> ProducedItems = new List<FileItem>();
 
-		/** Directory from which to execute the program to create produced items */
+		/// <summary>
+		/// Directory from which to execute the program to create produced items
+		/// </summary>
 		public string WorkingDirectory = null;
 
-		/** True if we should log extra information when we run a program to create produced items */
+		/// <summary>
+		/// True if we should log extra information when we run a program to create produced items
+		/// </summary>
 		public bool bPrintDebugInfo = false;
 
-		/** The command to run to create produced items */
+		/// <summary>
+		/// The command to run to create produced items
+		/// </summary>
 		public string CommandPath = null;
 
-		/** Command-line parameters to pass to the program */
+		/// <summary>
+		/// Command-line parameters to pass to the program
+		/// </summary>
 		public string CommandArguments = null;
 
-		/** Optional friendly description of the type of command being performed, for example "Compile" or "Link".  Displayed by some executors. */
+		/// <summary>
+		/// Optional friendly description of the type of command being performed, for example "Compile" or "Link".  Displayed by some executors.
+		/// </summary>
 		public string CommandDescription = null;
 
-		/** Human-readable description of this action that may be displayed as status while invoking the action.  This is often the name of the file being compiled, or an executable file name being linked.  Displayed by some executors. */
+		/// <summary>
+		/// Human-readable description of this action that may be displayed as status while invoking the action.  This is often the name of the file being compiled, or an executable file name being linked.  Displayed by some executors.
+		/// </summary>
 		public string StatusDescription = "...";
 
-		/** True if this action is allowed to be run on a remote machine when a distributed build system is being used, such as XGE */
+		/// <summary>
+		/// True if this action is allowed to be run on a remote machine when a distributed build system is being used, such as XGE
+		/// </summary>
 		public bool bCanExecuteRemotely = false;
 
-		/** True if this action is using the GCC compiler.  Some build systems may be able to optimize for this case. */
+		/// <summary>
+		/// True if this action is using the GCC compiler.  Some build systems may be able to optimize for this case.
+		/// </summary>
 		public bool bIsGCCCompiler = false;
 
-		/** Whether the action is using a pre-compiled header to speed it up. */
+		/// <summary>
+		/// Whether the action is using a pre-compiled header to speed it up.
+		/// </summary>
 		public bool bIsUsingPCH = false;
 
-		/** Whether the files in ProducedItems should be deleted before executing this action, when the action is outdated */
+		/// <summary>
+		/// Whether the files in ProducedItems should be deleted before executing this action, when the action is outdated
+		/// </summary>
 		public bool bShouldDeleteProducedItems = false;
 
-		/**
-		 * Whether we should log this action, whether executed locally or remotely.  This is useful for actions that take time
-		 * but invoke tools without any console output.
-		 */
+		/// <summary>
+		/// Whether we should log this action, whether executed locally or remotely.  This is useful for actions that take time
+		/// but invoke tools without any console output.
+		/// </summary>
 		public bool bShouldOutputStatusDescription = true;
 
-		/** True if any libraries produced by this action should be considered 'import libraries' */
+		/// <summary>
+		/// True if any libraries produced by this action should be considered 'import libraries'
+		/// </summary>
 		public bool bProducesImportLibrary = false;
 
-		/** Optional custom event handler for standard output. */
+		/// <summary>
+		/// Optional custom event handler for standard output.
+		/// </summary>
 		public DataReceivedEventHandler OutputEventHandler = null;	// @todo ubtmake urgent: Delegate variables are not saved, but we are comparing against this in ExecuteActions() for XGE!
 
-		/** Callback used to perform a special action instead of a generic command line */
+		/// <summary>
+		/// Callback used to perform a special action instead of a generic command line
+		/// </summary>
 		public delegate void BlockingActionHandler(Action Action, out int ExitCode, out string Output);
 		public BlockingActionHandler ActionHandler = null;		// @todo ubtmake urgent: Delegate variables are not saved, but we are comparing against this in ExecuteActions() for XGE!
 
@@ -94,16 +128,24 @@ namespace UnrealBuildTool
 		/// Preparation only (not serialized)
 		///
 
-		/** Unique action identifier.  Used for displaying helpful info about detected cycles in the graph. */
+		/// <summary>
+		/// Unique action identifier.  Used for displaying helpful info about detected cycles in the graph.
+		/// </summary>
 		public int UniqueId;
 
-		/** Always-incremented unique id */
+		/// <summary>
+		/// Always-incremented unique id
+		/// </summary>
 		private static int NextUniqueId = 0;
 
-		/** Total number of actions depending on this one. */
+		/// <summary>
+		/// Total number of actions depending on this one.
+		/// </summary>
 		public int NumTotalDependentActions = 0;
 
-		/** Relative cost of producing items for this action. */
+		/// <summary>
+		/// Relative cost of producing items for this action.
+		/// </summary>
 		public long RelativeCost = 0;
 
 
@@ -111,10 +153,14 @@ namespace UnrealBuildTool
 		/// Assembly only (not serialized)
 		///
 
-		/** Start time of action, optionally set by executor. */
+		/// <summary>
+		/// Start time of action, optionally set by executor.
+		/// </summary>
 		public DateTimeOffset StartTime = DateTimeOffset.MinValue;
 
-		/** End time of action, optionally set by executor. */
+		/// <summary>
+		/// End time of action, optionally set by executor.
+		/// </summary>
 		public DateTimeOffset EndTime = DateTimeOffset.MinValue;
 
 
@@ -146,7 +192,9 @@ namespace UnrealBuildTool
 			ProducedItems = (List<FileItem>)SerializationInfo.GetValue("pd", typeof(List<FileItem>));
 		}
 
-		/** ISerializable: Called when serialized to report additional properties that should be saved */
+		/// <summary>
+		/// ISerializable: Called when serialized to report additional properties that should be saved
+		/// </summary>
 		public void GetObjectData(SerializationInfo SerializationInfo, StreamingContext StreamingContext)
 		{
 			SerializationInfo.AddValue("at", (byte)ActionType);
@@ -166,12 +214,11 @@ namespace UnrealBuildTool
 			SerializationInfo.AddValue("pd", ProducedItems);
 		}
 
-		/**
-		 * Compares two actions based on total number of dependent items, descending.
-		 * 
-		 * @param	A	Action to compare
-		 * @param	B	Action to compare
-		 */
+		/// <summary>
+		/// Compares two actions based on total number of dependent items, descending.
+		/// </summary>
+		/// <param name="A">Action to compare</param>
+		/// <param name="B">Action to compare</param>
 		public static int Compare(Action A, Action B)
 		{
 			// Primary sort criteria is total number of dependent files, up to max depth.
@@ -243,7 +290,9 @@ namespace UnrealBuildTool
 			SortActionList();
 		}
 
-		/** Builds a list of actions that need to be executed to produce the specified output items. */
+		/// <summary>
+		/// Builds a list of actions that need to be executed to produce the specified output items.
+		/// </summary>
 		public static List<Action> GetActionsToExecute(Action[] PrerequisiteActions, List<UEBuildTarget> Targets, out Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
 		{
 			var CheckOutdatednessStartTime = DateTime.UtcNow;
@@ -316,7 +365,9 @@ namespace UnrealBuildTool
 			return ActionsToExecute;
 		}
 
-		/** Executes a list of actions. */
+		/// <summary>
+		/// Executes a list of actions.
+		/// </summary>
 		public static bool ExecuteActions(List<Action> ActionsToExecute, out string ExecutorName)
 		{
 			bool Result = true;
@@ -436,7 +487,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/** Links actions with their prerequisite and produced items into an action graph. */
+		/// <summary>
+		/// Links actions with their prerequisite and produced items into an action graph.
+		/// </summary>
 		static void LinkActionsAndItems()
 		{
 			foreach (Action Action in AllActions)
@@ -487,7 +540,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/** Finds and deletes stale hot reload DLLs. */
+		/// <summary>
+		/// Finds and deletes stale hot reload DLLs.
+		/// </summary>
 		public static void DeleteStaleHotReloadDLLs()
 		{
 			var DeleteStartTime = DateTime.UtcNow;
@@ -560,9 +615,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Sorts the action list for improved parallelism with local execution.
-		 */
+		/// <summary>
+		/// Sorts the action list for improved parallelism with local execution.
+		/// </summary>
 		public static void SortActionList()
 		{
 			// Mapping from action to a list of actions that directly or indirectly depend on it (up to a certain depth).
@@ -609,7 +664,9 @@ namespace UnrealBuildTool
 			AllActions.Sort(Action.Compare);
 		}
 
-		/** Checks for cycles in the action graph. */
+		/// <summary>
+		/// Checks for cycles in the action graph.
+		/// </summary>
 		static void DetectActionGraphCycles()
 		{
 			// Starting with actions that only depend on non-produced items, iteratively expand a set of actions that are only dependent on
@@ -715,11 +772,11 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Determines the full set of actions that must be built to produce an item.
-		 * @param OutputItem - The item to be built.
-		 * @param PrerequisiteActions - The actions that must be built and the root action are 
-		 */
+		/// <summary>
+		/// Determines the full set of actions that must be built to produce an item.
+		/// </summary>
+		/// <param name="OutputItem">- The item to be built.</param>
+		/// <param name="PrerequisiteActions">- The actions that must be built and the root action are</param>
 		public static void GatherPrerequisiteActions(
 			FileItem OutputItem,
 			ref HashSet<Action> PrerequisiteActions
@@ -738,13 +795,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Determines whether an action is outdated based on the modification times for its prerequisite
-		 * and produced items.
-		 * @param RootAction - The action being considered.
-		 * @param OutdatedActionDictionary - 
-		 * @return true if outdated
-		 */
+		/// <summary>
+		/// Determines whether an action is outdated based on the modification times for its prerequisite
+		/// and produced items.
+		/// </summary>
+		/// <param name="RootAction">- The action being considered.</param>
+		/// <param name="OutdatedActionDictionary">-</param>
+		/// <returns>true if outdated</returns>
 		static public bool IsActionOutdated(UEBuildTarget Target, Action RootAction, ref Dictionary<Action, bool> OutdatedActionDictionary, ActionHistory ActionHistory, Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
 		{
 			// Only compute the outdated-ness for actions that don't aren't cached in the outdated action dictionary.
@@ -1006,10 +1063,10 @@ namespace UnrealBuildTool
 		}
 
 
-		/**
-		 * Builds a dictionary containing the actions from AllActions that are outdated by calling
-		 * IsActionOutdated.
-		 */
+		/// <summary>
+		/// Builds a dictionary containing the actions from AllActions that are outdated by calling
+		/// IsActionOutdated.
+		/// </summary>
 		static void GatherAllOutdatedActions(UEBuildTarget Target, ActionHistory ActionHistory, ref Dictionary<Action, bool> OutdatedActions, Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
 		{
 			var CheckOutdatednessStartTime = DateTime.UtcNow;
@@ -1026,12 +1083,11 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Deletes all the items produced by actions in the provided outdated action dictionary. 
-		 * 
-		 * @param	OutdatedActionDictionary	Dictionary of outdated actions
-		 * @param	bShouldDeleteAllFiles		Whether to delete all files associated with outdated items or just ones required
-		 */
+		/// <summary>
+		/// Deletes all the items produced by actions in the provided outdated action dictionary.
+		/// </summary>
+		/// <param name="OutdatedActionDictionary">Dictionary of outdated actions</param>
+		/// <param name="bShouldDeleteAllFiles"> Whether to delete all files associated with outdated items or just ones required</param>
 		static void DeleteOutdatedProducedItems(Dictionary<Action, bool> OutdatedActionDictionary, bool bShouldDeleteAllFiles)
 		{
 			foreach (KeyValuePair<Action, bool> OutdatedActionInfo in OutdatedActionDictionary)
@@ -1055,10 +1111,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Creates directories for all the items produced by actions in the provided outdated action
-		 * dictionary.
-		 */
+		/// <summary>
+		/// Creates directories for all the items produced by actions in the provided outdated action
+		/// dictionary.
+		/// </summary>
 		static void CreateDirectoriesForProducedItems(Dictionary<Action, bool> OutdatedActionDictionary)
 		{
 			foreach (KeyValuePair<Action, bool> OutdatedActionInfo in OutdatedActionDictionary)

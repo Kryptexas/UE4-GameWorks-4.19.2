@@ -15,9 +15,9 @@ namespace UnrealBuildTool
 {
 	public abstract class RemoteToolChain : UEToolChain
 	{
-		/**
-		 * Common error codes reported by Remote Tool Chain and its actions.
-		 */
+		/// <summary>
+		/// Common error codes reported by Remote Tool Chain and its actions.
+		/// </summary>
 		public enum RemoteToolChainErrorCode
 		{
 			NoError = 0,
@@ -38,54 +38,78 @@ namespace UnrealBuildTool
 			UEToolChain.RegisterPlatformToolChain(CPPPlatform, this);
 		}
 
-		/** These two variables will be loaded from XML config file in XmlConfigLoader.Init() */
+		/// <summary>
+		/// These two variables will be loaded from XML config file in XmlConfigLoader.Init()
+		/// </summary>
 		[XmlConfig]
 		public static string RemoteServerName = "";
 		[XmlConfig]
 		public static string[] PotentialServerNames = new string[] { };
 
-		/** Keep a list of remote files that are potentially copied from local to remote */
+		/// <summary>
+		/// Keep a list of remote files that are potentially copied from local to remote
+		/// </summary>
 		private static Dictionary<FileItem, FileItem> CachedRemoteFileItems = new Dictionary<FileItem, FileItem>();
 
-		/** The base path (on the Mac) to the your particular development directory, where files will be copied to from the PC */
+		/// <summary>
+		/// The base path (on the Mac) to the your particular development directory, where files will be copied to from the PC
+		/// </summary>
 		public static string UserDevRootMacBase = "/UE4/Builds/";
 
-		/** The final path (on the Mac) to your particular development directory, where files will be copied to from the PC */
+		/// <summary>
+		/// The final path (on the Mac) to your particular development directory, where files will be copied to from the PC
+		/// </summary>
 		public static string UserDevRootMac = "/UE4/Builds";
 
-		/** Whether or not to connect to UnrealRemoteTool using RPCUtility */
+		/// <summary>
+		/// Whether or not to connect to UnrealRemoteTool using RPCUtility
+		/// </summary>
 		[XmlConfig]
 		public static bool bUseRPCUtil = true;
 
-		/** The user has specified a deltacopy install path */
+		/// <summary>
+		/// The user has specified a deltacopy install path
+		/// </summary>
 		private static string OverrideDeltaCopyInstallPath = null;
 
-		/** Path to rsync executable and parameters for your rsync utility */
+		/// <summary>
+		/// Path to rsync executable and parameters for your rsync utility
+		/// </summary>
 		[XmlConfig]
 		public static string RSyncExe = "${PROGRAM_FILES}\\DeltaCopy\\rsync.exe";
 		public static string ResolvedRSyncExe = null;
 
-		/** Path to rsync executable and parameters for your rsync utility */
+		/// <summary>
+		/// Path to rsync executable and parameters for your rsync utility
+		/// </summary>
 		[XmlConfig]
 		public static string SSHExe = "${PROGRAM_FILES}\\DeltaCopy\\ssh.exe";
 		public static string ResolvedSSHExe = null;
 
-		/** Instead of looking for RemoteToolChainPrivate.key in the usual places (Documents/Unreal Engine/UnrealBuildTool/SSHKeys, Engine/Build/SSHKeys), this private key will be used if set */
+		/// <summary>
+		/// Instead of looking for RemoteToolChainPrivate.key in the usual places (Documents/Unreal Engine/UnrealBuildTool/SSHKeys, Engine/Build/SSHKeys), this private key will be used if set
+		/// </summary>
 		[XmlConfig]
 		public static string SSHPrivateKeyOverridePath = "";
 		public static string ResolvedSSHPrivateKey = null;
 
-		/** The authentication used for Rsync (for the -e rsync flag) */
+		/// <summary>
+		/// The authentication used for Rsync (for the -e rsync flag)
+		/// </summary>
 		[XmlConfig]
 		public static string RsyncAuthentication = "ssh -i '${CYGWIN_SSH_PRIVATE_KEY}'";
 		public static string ResolvedRsyncAuthentication = null;
 
-		/** The authentication used for SSH (probably similar to RsyncAuthentication) */
+		/// <summary>
+		/// The authentication used for SSH (probably similar to RsyncAuthentication)
+		/// </summary>
 		[XmlConfig]
 		public static string SSHAuthentication = "-i '${CYGWIN_SSH_PRIVATE_KEY}'";
 		public static string ResolvedSSHAuthentication = null;
 
-		/** Username on the remote machine to connect to with RSync */
+		/// <summary>
+		/// Username on the remote machine to connect to with RSync
+		/// </summary>
 		[XmlConfig]
 		public static string RSyncUsername = "${CURRENT_USER}";
 		public static string ResolvedRSyncUsername = null;
@@ -93,17 +117,25 @@ namespace UnrealBuildTool
 		// has the toolchain initialized remote execution yet? no need to do it multiple times
 		private static bool bHasBeenInitialized = false;
 
-		/** The directory that this local branch is in, without drive information (strip off X:\ from X:\UE4\iOS) */
+		/// <summary>
+		/// The directory that this local branch is in, without drive information (strip off X:\ from X:\UE4\iOS)
+		/// </summary>
 		public static string BranchDirectory = Path.GetFullPath(".\\");
 
 
-		/** Substrings that indicate a line contains an error */
+		/// <summary>
+		/// Substrings that indicate a line contains an error
+		/// </summary>
 		protected static List<string> ErrorMessageTokens;
 
-		/** The platform this toolchain is compiling for */
+		/// <summary>
+		/// The platform this toolchain is compiling for
+		/// </summary>
 		protected UnrealTargetPlatform RemoteToolChainPlatform;
 
-		/** The average amound of memory a compile takes, used so that we don't compile too many things at once */
+		/// <summary>
+		/// The average amound of memory a compile takes, used so that we don't compile too many things at once
+		/// </summary>
 		public static int MemoryPerCompileMB = 1000;
 
 		static RemoteToolChain()
@@ -473,7 +505,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Converts the passed in path from UBT host to compiler native format. */
+		/// <summary>
+		/// Converts the passed in path from UBT host to compiler native format.
+		/// </summary>
 		public override string ConvertPath(string OriginalPath)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
@@ -560,9 +594,9 @@ namespace UnrealBuildTool
 			return RemoteFileItem;
 		}
 
-		/**
-		 * Helper function to sync source files to and from the local system and a remote Mac
-		 */
+		/// <summary>
+		/// Helper function to sync source files to and from the local system and a remote Mac
+		/// </summary>
 		//This chunk looks to be required to pipe output to VS giving information on the status of a remote build.
 		public static bool OutputReceivedDataEventHandlerEncounteredError = false;
 		public static string OutputReceivedDataEventHandlerEncounteredErrorMessage = "";
@@ -950,12 +984,11 @@ namespace UnrealBuildTool
 			return RemoteAvailableCommandSlotCount;
 		}
 
-		/**
-		 * Translates clang output warning/error messages into vs-clickable messages
-		 * 
-		 * @param	sender		Sending object
-		 * @param	e			Event arguments (In this case, the line of string output)
-		 */
+		/// <summary>
+		/// Translates clang output warning/error messages into vs-clickable messages
+		/// </summary>
+		/// <param name="sender"> Sending object</param>
+		/// <param name="e">  Event arguments (In this case, the line of string output)</param>
 		protected void RemoteOutputReceivedEventHandler(object sender, DataReceivedEventArgs e)
 		{
 			var Output = e.Data;
@@ -1005,10 +1038,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Queries the remote compile server for CPU information
-		 * and computes the proper ProcessorCountMultiplier.
-		 */
+		/// <summary>
+		/// Queries the remote compile server for CPU information
+		/// and computes the proper ProcessorCountMultiplier.
+		/// </summary>
 		static private Int32 QueryResult = 0;
 		static public void OutputReceivedForQuery(Object Sender, DataReceivedEventArgs Line)
 		{

@@ -352,10 +352,10 @@ namespace UnrealBuildTool
 			return FileReference.Combine(BinaryPath.Directory, BinaryPath.GetFileNameWithoutExtension() + "-Cmd" + BinaryPath.GetExtension());
 		}
 
-		/**
-		 * Checks whether the binary output paths are appropriate for the distribution
-		 * level of its direct module dependencies
-		 */
+		/// <summary>
+		/// Checks whether the binary output paths are appropriate for the distribution
+		/// level of its direct module dependencies
+		/// </summary>
 		public void CheckOutputDistributionLevelAgainstDependencies(Dictionary<UEBuildModule, UEBuildModuleDistribution> ModuleDistributionCache)
 		{
 			// Find maximum distribution level of its direct dependencies

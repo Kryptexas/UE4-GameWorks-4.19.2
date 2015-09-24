@@ -44,9 +44,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Initializes environment variables required by toolchain. Different for 32 and 64 bit.
-		 */
+		/// <summary>
+		/// Initializes environment variables required by toolchain. Different for 32 and 64 bit.
+		/// </summary>
 		public static VCEnvironment SetEnvironment(CPPTargetPlatform Platform)
 		{
 			if (EnvVars != null && EnvVars.Platform == Platform)
@@ -141,7 +141,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Check that an environment variable is the same as one derived from keys in the registry, and send a telemetry event if it's not */
+		/// <summary>
+		/// Check that an environment variable is the same as one derived from keys in the registry, and send a telemetry event if it's not
+		/// </summary>
 		private void CompareEnvironmentVariable(string VariableName, string RegistryValue)
 		{
 			string EnvironmentValue = Environment.GetEnvironmentVariable(VariableName);
@@ -214,7 +216,9 @@ namespace UnrealBuildTool
 			return FinalResult;
 		}
 
-		/** Gets the version of the Windows SDK libraries to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last. */
+		/// <summary>
+		/// Gets the version of the Windows SDK libraries to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last.
+		/// </summary>
 		static string FindWindowsSDKLibVersion(string WindowsSDKDir)
 		{
 			string WindowsSDKLibVersion;
@@ -339,13 +343,17 @@ namespace UnrealBuildTool
 			return LatestVersion;
 		}
 
-		/** Gets the path to the 32bit tool binaries. */
+		/// <summary>
+		/// Gets the path to the 32bit tool binaries.
+		/// </summary>
 		static string GetVSToolPath32Bit(string BaseVSToolPath)
 		{
 			return Path.Combine(BaseVSToolPath, "../../VC/bin");
 		}
 
-		/** Gets the path to the 64bit tool binaries. */
+		/// <summary>
+		/// Gets the path to the 64bit tool binaries.
+		/// </summary>
 		static string GetVSToolPath64Bit(string BaseVSToolPath)
 		{
 			// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
@@ -358,7 +366,9 @@ namespace UnrealBuildTool
 			return Path.Combine(BaseVSToolPath, "../../VC/bin/x86_amd64");
 		}
 
-		/** Gets the path to the compiler. */
+		/// <summary>
+		/// Gets the path to the compiler.
+		/// </summary>
 		static string GetCompilerToolPath(string PlatformVSToolPath)
 		{
 			// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
@@ -406,7 +416,9 @@ namespace UnrealBuildTool
 			return new Version(ExeVersionInfo.FileMajorPart, ExeVersionInfo.FileMinorPart, ExeVersionInfo.FileBuildPart, ExeVersionInfo.FilePrivatePart);
 		}
 
-		/** Gets the path to the linker. */
+		/// <summary>
+		/// Gets the path to the linker.
+		/// </summary>
 		static string GetLinkerToolPath(string PlatformVSToolPath)
 		{
 			// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
@@ -428,7 +440,9 @@ namespace UnrealBuildTool
 			return Path.Combine(PlatformVSToolPath, "link.exe");
 		}
 
-		/** Gets the path to the library linker. */
+		/// <summary>
+		/// Gets the path to the library linker.
+		/// </summary>
 		static string GetLibraryLinkerToolPath(string PlatformVSToolPath)
 		{
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker)
@@ -436,7 +450,9 @@ namespace UnrealBuildTool
 			return Path.Combine(PlatformVSToolPath, "lib.exe");
 		}
 
-		/** Gets the path to the resource compiler's rc.exe for the specified platform. */
+		/// <summary>
+		/// Gets the path to the resource compiler's rc.exe for the specified platform.
+		/// </summary>
 		string GetResourceCompilerToolPath(CPPTargetPlatform Platform)
 		{
 			// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
@@ -467,7 +483,9 @@ namespace UnrealBuildTool
 			return Path.Combine(WindowsSDKDir, "bin/rc.exe");
 		}
 
-		/** Gets the path to MSBuild. */
+		/// <summary>
+		/// Gets the path to MSBuild.
+		/// </summary>
 		static string GetMSBuildToolPath()
 		{
 			string FrameworkDirectory = Environment.GetEnvironmentVariable("FrameworkDir");
@@ -480,7 +498,9 @@ namespace UnrealBuildTool
 			return Path.Combine(FrameworkDirectory, FrameworkVersion, "MSBuild.exe");
 		}
 
-		/** Gets the Visual C++ installation folder from the registry */
+		/// <summary>
+		/// Gets the Visual C++ installation folder from the registry
+		/// </summary>
 		static string FindVisualCppInstallationFolder(WindowsCompiler Version)
 		{
 			// Get the version string
@@ -515,7 +535,9 @@ namespace UnrealBuildTool
 			return InstallDir;
 		}
 
-		/** Finds the directory containing the Universal CRT installation. Returns null for Visual Studio versions before 2015 */
+		/// <summary>
+		/// Finds the directory containing the Universal CRT installation. Returns null for Visual Studio versions before 2015
+		/// </summary>
 		static string FindUniversalCRTInstallationFolder()
 		{
 			if (WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2015)
@@ -532,7 +554,9 @@ namespace UnrealBuildTool
 			return (Value as string);
 		}
 
-		/** Gets the version of the Universal CRT to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last. */
+		/// <summary>
+		/// Gets the version of the Universal CRT to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last.
+		/// </summary>
 		static string FindUniversalCRTVersion(string UniversalCRTDir)
 		{
 			string UniversalCRTVersion = null;
@@ -551,7 +575,9 @@ namespace UnrealBuildTool
 			return UniversalCRTVersion;
 		}
 
-		/** Sets the Visual C++ INCLUDE environment variable */
+		/// <summary>
+		/// Sets the Visual C++ INCLUDE environment variable
+		/// </summary>
 		static List<string> GetVisualCppIncludePaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion)
 		{
 			List<string> IncludePaths = new List<string>();
@@ -605,7 +631,9 @@ namespace UnrealBuildTool
 			return IncludePaths;
 		}
 
-		/** Sets the Visual C++ LIB environment variable */
+		/// <summary>
+		/// Sets the Visual C++ LIB environment variable
+		/// </summary>
 		static List<string> GetVisualCppLibraryPaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform)
 		{
 			List<string> LibraryPaths = new List<string>();

@@ -10,10 +10,10 @@ using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
-	/**
-	 * Represents a file on disk that is used as an input or output of a build action.
-	 * FileItems are created by calling FileItem.GetItemByFileReference, which creates a single FileItem for each unique file path.
-	 */
+	/// <summary>
+	/// Represents a file on disk that is used as an input or output of a build action.
+	/// FileItems are created by calling FileItem.GetItemByFileReference, which creates a single FileItem for each unique file path.
+	/// </summary>
 	[Serializable]
 	public class FileItem : ISerializable
 	{
@@ -21,25 +21,37 @@ namespace UnrealBuildTool
 		/// Preparation and Assembly (serialized)
 		/// 
 
-		/** The action that produces the file. */
+		/// <summary>
+		/// The action that produces the file.
+		/// </summary>
 		public Action ProducingAction = null;
 
-		/** The file reference */
+		/// <summary>
+		/// The file reference
+		/// </summary>
 		public FileReference Reference;
 
-		/** True if any DLLs produced by this  */
+		/// <summary>
+		/// True if any DLLs produced by this
+		/// </summary>
 		public bool bNeedsHotReloadNumbersDLLCleanUp = false;
 
-		/** Whether or not this is a remote file, in which case we can't access it directly */
+		/// <summary>
+		/// Whether or not this is a remote file, in which case we can't access it directly
+		/// </summary>
 		public bool bIsRemoteFile = false;
 
-		/** Accessor for the absolute path to the file */
+		/// <summary>
+		/// Accessor for the absolute path to the file
+		/// </summary>
 		public string AbsolutePath
 		{
 			get { return Reference.FullName; }
 		}
 
-		/** For C++ file items, this stores cached information about the include paths needed in order to include header files from these C++ files.  This is part of UBT's dependency caching optimizations. */
+		/// <summary>
+		/// For C++ file items, this stores cached information about the include paths needed in order to include header files from these C++ files.  This is part of UBT's dependency caching optimizations.
+		/// </summary>
 		public CPPIncludeInfo CachedCPPIncludeInfo
 		{
 			get
@@ -98,11 +110,15 @@ namespace UnrealBuildTool
 		/// Preparation only (not serialized)
 		/// 
 
-		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
-		    This is needed by some compilers to use PCH features. */
+		/// <summary>
+		/// PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
+		/// This is needed by some compilers to use PCH features.
+		/// </summary>
 		public string PCHHeaderNameInCode;
 
-		/** The PCH file that this file will use */
+		/// <summary>
+		/// The PCH file that this file will use
+		/// </summary>
 		public FileReference PrecompiledHeaderIncludeFilename;
 
 
@@ -110,16 +126,24 @@ namespace UnrealBuildTool
 		/// Transients (not serialized)
 		///
 
-		/** The information about the file. */
+		/// <summary>
+		/// The information about the file.
+		/// </summary>
 		public FileInfo Info;
 
-		/** This is true if this item is actually a directory. Consideration for Mac application bundles. Note that Info will be null if true! */
+		/// <summary>
+		/// This is true if this item is actually a directory. Consideration for Mac application bundles. Note that Info will be null if true!
+		/// </summary>
 		public bool IsDirectory;
 
-		/** Relative cost of action associated with producing this file. */
+		/// <summary>
+		/// Relative cost of action associated with producing this file.
+		/// </summary>
 		public long RelativeCost = 0;
 
-		/** The last write time of the file. */
+		/// <summary>
+		/// The last write time of the file.
+		/// </summary>
 		public DateTimeOffset _LastWriteTime;
 		public DateTimeOffset LastWriteTime
 		{
@@ -134,7 +158,9 @@ namespace UnrealBuildTool
 			set { _LastWriteTime = value; }
 		}
 
-		/** Whether the file exists. */
+		/// <summary>
+		/// Whether the file exists.
+		/// </summary>
 		public bool _bExists = false;
 		public bool bExists
 		{
@@ -149,7 +175,9 @@ namespace UnrealBuildTool
 			set { _bExists = value; }
 		}
 
-		/** Size of the file if it exists, otherwise -1 */
+		/// <summary>
+		/// Size of the file if it exists, otherwise -1
+		/// </summary>
 		public long _Length = -1;
 		public long Length
 		{
@@ -169,28 +197,34 @@ namespace UnrealBuildTool
 		/// Statics
 		///
 
-		/** Used for performance debugging */
+		/// <summary>
+		/// Used for performance debugging
+		/// </summary>
 		public static long TotalFileItemCount = 0;
 		public static long MissingFileItemCount = 0;
 
-		/** A case-insensitive dictionary that's used to map each unique file name to a single FileItem object. */
+		/// <summary>
+		/// A case-insensitive dictionary that's used to map each unique file name to a single FileItem object.
+		/// </summary>
 		static Dictionary<FileReference, FileItem> UniqueSourceFileMap = new Dictionary<FileReference, FileItem>();
 
-		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
+		/// <summary>
+		/// A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request
+		/// </summary>
 		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
 
-		/**
-		 * Clears the FileItem caches.
-		 */
+		/// <summary>
+		/// Clears the FileItem caches.
+		/// </summary>
 		public static void ClearCaches()
 		{
 			UniqueSourceFileMap.Clear();
 			DelayedRemoteLookupFiles.Clear();
 		}
 
-		/**
-		 * Resolve any outstanding remote file info lookups
-		 */
+		/// <summary>
+		/// Resolve any outstanding remote file info lookups
+		/// </summary>
 		private void LookupOutstandingFiles()
 		{
 			// for remote files, look up any outstanding files
@@ -214,13 +248,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** @return The FileItem that represents the given file path. */
+		/// <returns>The FileItem that represents the given file path.</returns>
 		public static FileItem GetItemByPath(string FilePath)
 		{
 			return GetItemByFileReference(new FileReference(FilePath));
 		}
 
-		/** @return The FileItem that represents the given a full file path. */
+		/// <returns>The FileItem that represents the given a full file path.</returns>
 		public static FileItem GetItemByFileReference(FileReference Reference)
 		{
 			FileItem Result = null;
@@ -234,7 +268,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** @return The remote FileItem that represents the given file path. */
+		/// <returns>The remote FileItem that represents the given file path.</returns>
 		public static FileItem GetRemoteItemByPath(string AbsoluteRemotePath, UnrealTargetPlatform Platform)
 		{
 			if (AbsoluteRemotePath.StartsWith("."))
@@ -255,13 +289,17 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** If the given file path identifies a file that already exists, returns the FileItem that represents it. */
+		/// <summary>
+		/// If the given file path identifies a file that already exists, returns the FileItem that represents it.
+		/// </summary>
 		public static FileItem GetExistingItemByPath(string FileName)
 		{
 			return GetExistingItemByFileReference(new FileReference(FileName));
 		}
 
-		/** If the given file path identifies a file that already exists, returns the FileItem that represents it. */
+		/// <summary>
+		/// If the given file path identifies a file that already exists, returns the FileItem that represents it.
+		/// </summary>
 		public static FileItem GetExistingItemByFileReference(FileReference FileRef)
 		{
 			FileItem Result = GetItemByFileReference(FileRef);
@@ -287,10 +325,10 @@ namespace UnrealBuildTool
 			return (Encoding.UTF8.GetByteCount(Str) == Str.Length) ? Encoding.ASCII : new UTF8Encoding(false);
 		}
 
-		/**
-		 * Creates a text file with the given contents.  If the contents of the text file aren't changed, it won't write the new contents to
-		 * the file to avoid causing an action to be considered outdated.
-		 */
+		/// <summary>
+		/// Creates a text file with the given contents.  If the contents of the text file aren't changed, it won't write the new contents to
+		/// the file to avoid causing an action to be considered outdated.
+		/// </summary>
 		public static FileItem CreateIntermediateTextFile(FileReference AbsolutePath, string Contents)
 		{
 			// Create the directory if it doesn't exist.
@@ -305,7 +343,9 @@ namespace UnrealBuildTool
 			return GetItemByFileReference(AbsolutePath);
 		}
 
-		/** Deletes the file. */
+		/// <summary>
+		/// Deletes the file.
+		/// </summary>
 		public void Delete()
 		{
 			Debug.Assert(_bExists);
@@ -351,7 +391,9 @@ namespace UnrealBuildTool
 			while (!bFileDeletedSuccessfully && (DeleteTryCount < MaxRetryCount));
 		}
 
-		/** Initialization constructor. */
+		/// <summary>
+		/// Initialization constructor.
+		/// </summary>
 		protected FileItem(FileReference InFile)
 		{
 			Reference = InFile;
@@ -369,7 +411,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/** ISerializable: Constructor called when this object is deserialized */
+		/// <summary>
+		/// ISerializable: Constructor called when this object is deserialized
+		/// </summary>
 		protected FileItem(SerializationInfo SerializationInfo, StreamingContext StreamingContext)
 		{
 			ProducingAction = (Action)SerializationInfo.GetValue("pa", typeof(Action));
@@ -404,7 +448,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/** ISerializable: Called when serialized to report additional properties that should be saved */
+		/// <summary>
+		/// ISerializable: Called when serialized to report additional properties that should be saved
+		/// </summary>
 		public void GetObjectData(SerializationInfo SerializationInfo, StreamingContext StreamingContext)
 		{
 			SerializationInfo.AddValue("pa", ProducingAction);
@@ -453,7 +499,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Initialization constructor for optionally remote files. */
+		/// <summary>
+		/// Initialization constructor for optionally remote files.
+		/// </summary>
 		protected FileItem(FileReference InReference, bool InIsRemoteFile, UnrealTargetPlatform Platform)
 		{
 			bIsRemoteFile = InIsRemoteFile;

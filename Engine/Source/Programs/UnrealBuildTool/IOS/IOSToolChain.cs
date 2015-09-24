@@ -32,41 +32,61 @@ namespace UnrealBuildTool
 
 		// If you are looking for where to change the remote compile server name, look in RemoteToolChain.cs
 
-		/** If this is set, then we don't do any post-compile steps except moving the executable into the proper spot on the Mac */
+		/// <summary>
+		/// If this is set, then we don't do any post-compile steps except moving the executable into the proper spot on the Mac
+		/// </summary>
 		[XmlConfig]
 		public static bool bUseDangerouslyFastMode = false;
 
-		/** Which version of the iOS SDK to target at build time */
+		/// <summary>
+		/// Which version of the iOS SDK to target at build time
+		/// </summary>
 		[XmlConfig]
 		public static string IOSSDKVersion = "latest";
 		public static float IOSSDKVersionFloat = 0.0f;
 
-		/** Which version of the iOS to allow at build time */
+		/// <summary>
+		/// Which version of the iOS to allow at build time
+		/// </summary>
 		[XmlConfig]
 		public static string BuildIOSVersion = "7.0";
 
-		/** Which developer directory to root from */
+		/// <summary>
+		/// Which developer directory to root from
+		/// </summary>
 		private static string XcodeDeveloperDir = "xcode-select";
 
-		/** Directory for the developer binaries */
+		/// <summary>
+		/// Directory for the developer binaries
+		/// </summary>
 		private static string ToolchainDir = "";
 
-		/** Location of the SDKs */
+		/// <summary>
+		/// Location of the SDKs
+		/// </summary>
 		private static string BaseSDKDir;
 		private static string BaseSDKDirSim;
 
-		/** Which compiler frontend to use */
+		/// <summary>
+		/// Which compiler frontend to use
+		/// </summary>
 		private static string IOSCompiler = "clang++";
 
-		/** Which linker frontend to use */
+		/// <summary>
+		/// Which linker frontend to use
+		/// </summary>
 		private static string IOSLinker = "clang++";
 
-		/** Which library archiver to use */
+		/// <summary>
+		/// Which library archiver to use
+		/// </summary>
 		private static string IOSArchiver = "libtool";
 
 		public List<FileReference> BuiltBinaries = new List<FileReference>();
 
-		/** Additional frameworks stored locally so we have access without LinkEnvironment */
+		/// <summary>
+		/// Additional frameworks stored locally so we have access without LinkEnvironment
+		/// </summary>
 		public List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
 		private static void SetupXcodePaths(bool bVerbose)
@@ -86,7 +106,9 @@ namespace UnrealBuildTool
 			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
 		}
 
-		/** Hunt down the latest IOS sdk if desired */
+		/// <summary>
+		/// Hunt down the latest IOS sdk if desired
+		/// </summary>
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
@@ -727,11 +749,10 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-		/**
-		 * Generates debug info for a given executable
-		 * 
-		 * @param Executable FileItem describing the executable to generate debug info for
-		 */
+		/// <summary>
+		/// Generates debug info for a given executable
+		/// </summary>
+		/// <param name="Executable">FileItem describing the executable to generate debug info for</param>
 		public FileItem GenerateDebugInfo(FileItem Executable)
 		{
 			// Make a file item for the source and destination files

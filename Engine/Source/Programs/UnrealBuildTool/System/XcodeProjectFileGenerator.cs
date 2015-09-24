@@ -197,9 +197,9 @@ namespace UnrealBuildTool
 		{
 		}
 
-		/**
-		 * Make a random Guid string usable by Xcode (24 characters exactly)
-		 */
+		/// <summary>
+		/// Make a random Guid string usable by Xcode (24 characters exactly)
+		/// </summary>
 		public static string MakeXcodeGuid()
 		{
 			string Guid = "";

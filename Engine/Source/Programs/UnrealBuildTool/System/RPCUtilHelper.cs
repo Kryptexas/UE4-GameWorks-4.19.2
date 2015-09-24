@@ -20,16 +20,24 @@ namespace UnrealBuildTool
 {
 	public class RPCUtilHelper
 	{
-		/** The Mac we are compiling on */
+		/// <summary>
+		/// The Mac we are compiling on
+		/// </summary>
 		private static string MacName;
 
-		/** A socket per command thread */
+		/// <summary>
+		/// A socket per command thread
+		/// </summary>
 		private static Hashtable CommandThreadSockets = new Hashtable();
 
-		/** Time difference between remote and local idea's of UTC time */
+		/// <summary>
+		/// Time difference between remote and local idea's of UTC time
+		/// </summary>
 		private static TimeSpan TimeDifferenceFromRemote = new TimeSpan(0);
 
-		/** The number of commands the remote side should be able to run at once */
+		/// <summary>
+		/// The number of commands the remote side should be able to run at once
+		/// </summary>
 		private static int MaxRemoteCommandsAllowed = 0;
 
 		private static DateTime RemoteToLocalTime(string RemoteTime)
@@ -129,9 +137,9 @@ namespace UnrealBuildTool
 			return RemoteToolChain.RemoteToolChainErrorCode.NoError;
 		}
 
-		/**
-		 * Handle a thread ending
-		 */
+		/// <summary>
+		/// Handle a thread ending
+		/// </summary>
 		public static void OnThreadComplete()
 		{
 			lock (CommandThreadSockets)
@@ -171,10 +179,10 @@ namespace UnrealBuildTool
 			return ThreadSocket;
 		}
 
-		/**
-		 * This function should be used as the ActionHandler delegate method for Actions that
-		 * need to run over RPCUtility. It will block until the remote command completes
-		 */
+		/// <summary>
+		/// This function should be used as the ActionHandler delegate method for Actions that
+		/// need to run over RPCUtility. It will block until the remote command completes
+		/// </summary>
 		static public void RPCActionHandler(Action Action, out int ExitCode, out string Output)
 		{
 			Hashtable Results = RPCUtilHelper.Command(Action.WorkingDirectory, Action.CommandPath, Action.CommandArguments,
@@ -202,9 +210,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** 
-		 * @return the modification time on the remote machine, accounting for rough difference in time between the two machines
-		 */
+		/// <returns>the modification time on the remote machine, accounting for rough difference in time between the two machines</returns>
 		public static bool GetRemoteFileInfo(string RemotePath, out DateTime ModificationTime, out long Length)
 		{
 			if (RemoteToolChain.bUseRPCUtil)

@@ -110,7 +110,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static readonly bool IsRunningOnMono = Type.GetType("Mono.Runtime") != null;
 
-		/** Searches for a flag in a set of command-line arguments. */
+		/// <summary>
+		/// Searches for a flag in a set of command-line arguments.
+		/// </summary>
 		public static bool ParseCommandLineFlag(string[] Arguments, string FlagName, out int ArgumentIndex)
 		{
 			// Find an argument with the given name.
@@ -125,15 +127,16 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/** Regular expression to match $(ENV) and/ or %ENV% environment variables. */
+		/// <summary>
+		/// Regular expression to match $(ENV) and/ or %ENV% environment variables.
+		/// </summary>
 		static Regex EnvironmentVariableRegex = new Regex(@"\$\((.*?)\)|\%(.*?)\%", RegexOptions.None);
 
-		/**
-		 * Resolves $(ENV) and/ or %ENV% to the value of the environment variable in the passed in string.
-		 * 
-		 * @param	InString	String to resolve environment variable in.
-		 * @return	String with environment variable expanded/ resolved.
-		 */
+		/// <summary>
+		/// Resolves $(ENV) and/ or %ENV% to the value of the environment variable in the passed in string.
+		/// </summary>
+		/// <param name="InString">String to resolve environment variable in.</param>
+		/// <returns>String with environment variable expanded/ resolved.</returns>
 		public static string ResolveEnvironmentVariable(string InString)
 		{
 			string Result = InString;
@@ -206,15 +209,13 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/**
-		 * This is a faster replacement of File.ReadAllText. Code snippet based on code 
-		 * and analysis by Sam Allen
-		 * 
-		 * http://dotnetperls.com/Content/File-Handling.aspx
-		 * 
-		 * @param	SourceFile		Source file to fully read and convert to string
-		 * @return	Textual representation of file.
-		 */
+		/// <summary>
+		/// This is a faster replacement of File.ReadAllText. Code snippet based on code
+		/// and analysis by Sam Allen
+		/// http://dotnetperls.com/Content/File-Handling.aspx
+		/// </summary>
+		/// <param name="SourceFile"> Source file to fully read and convert to string</param>
+		/// <returns>Textual representation of file.</returns>
 		public static string ReadAllText(string SourceFile)
 		{
 			using (StreamReader Reader = new StreamReader(SourceFile, System.Text.Encoding.UTF8))
@@ -223,13 +224,12 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Reads the specified environment variable
-		 *
-		 * @param	VarName		the environment variable to read
-		 * @param	bDefault	the default value to use if missing
-		 * @return	the value of the environment variable if found and the default value if missing
-		 */
+		/// <summary>
+		/// Reads the specified environment variable
+		/// </summary>
+		/// <param name="VarName"> the environment variable to read</param>
+		/// <param name="bDefault">the default value to use if missing</param>
+		/// <returns>the value of the environment variable if found and the default value if missing</returns>
 		public static bool GetEnvironmentVariable(string VarName, bool bDefault)
 		{
 			string Value = Environment.GetEnvironmentVariable(VarName);
@@ -241,13 +241,12 @@ namespace UnrealBuildTool
 			return bDefault;
 		}
 
-		/**
-		 * Reads the specified environment variable
-		 *
-		 * @param	VarName		the environment variable to read
-		 * @param	Default	the default value to use if missing
-		 * @return	the value of the environment variable if found and the default value if missing
-		 */
+		/// <summary>
+		/// Reads the specified environment variable
+		/// </summary>
+		/// <param name="VarName"> the environment variable to read</param>
+		/// <param name="Default">the default value to use if missing</param>
+		/// <returns>the value of the environment variable if found and the default value if missing</returns>
 		public static string GetStringEnvironmentVariable(string VarName, string Default)
 		{
 			string Value = Environment.GetEnvironmentVariable(VarName);
@@ -258,13 +257,12 @@ namespace UnrealBuildTool
 			return Default;
 		}
 
-		/**
-		 * Reads the specified environment variable
-		 *
-		 * @param	VarName		the environment variable to read
-		 * @param	Default	the default value to use if missing
-		 * @return	the value of the environment variable if found and the default value if missing
-		 */
+		/// <summary>
+		/// Reads the specified environment variable
+		/// </summary>
+		/// <param name="VarName"> the environment variable to read</param>
+		/// <param name="Default">the default value to use if missing</param>
+		/// <returns>the value of the environment variable if found and the default value if missing</returns>
 		public static double GetEnvironmentVariable(string VarName, double Default)
 		{
 			string Value = Environment.GetEnvironmentVariable(VarName);
@@ -275,13 +273,12 @@ namespace UnrealBuildTool
 			return Default;
 		}
 
-		/**
-		 * Reads the specified environment variable
-		 *
-		 * @param	VarName		the environment variable to read
-		 * @param	Default	the default value to use if missing
-		 * @return	the value of the environment variable if found and the default value if missing
-		 */
+		/// <summary>
+		/// Reads the specified environment variable
+		/// </summary>
+		/// <param name="VarName"> the environment variable to read</param>
+		/// <param name="Default">the default value to use if missing</param>
+		/// <returns>the value of the environment variable if found and the default value if missing</returns>
 		public static string GetEnvironmentVariable(string VarName, string Default)
 		{
 			string Value = Environment.GetEnvironmentVariable(VarName);
@@ -292,12 +289,11 @@ namespace UnrealBuildTool
 			return Default;
 		}
 
-		/**
-		 * Sets the environment variables from the passed in batch file
-		 * 
-		 * @param	BatchFileName	Name of the batch file to parse
-		 * @param	Parameters		Optional command-line parameters to pass to the batch file when running it
-		 */
+		/// <summary>
+		/// Sets the environment variables from the passed in batch file
+		/// </summary>
+		/// <param name="BatchFileName">Name of the batch file to parse</param>
+		/// <param name="Parameters"> Optional command-line parameters to pass to the batch file when running it</param>
 		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName, string Parameters = "")
 		{
 			// @todo ubtmake: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
@@ -318,9 +314,10 @@ namespace UnrealBuildTool
 		}
 
 
-		/**
-		/* Try to launch a local process, and produce a friendly error message if it fails.
-		/*/
+		/// <summary>
+		/// Try to launch a local process, and produce a friendly error message if it fails.
+		/// /
+		/// </summary>
 		public static int RunLocalProcess(Process LocalProcess)
 		{
 			int ExitCode = -1;
@@ -350,9 +347,9 @@ namespace UnrealBuildTool
 			return ExitCode;
 		}
 
-		/**
-		 * Runs a local process and pipes the output to the log
-		 */
+		/// <summary>
+		/// Runs a local process and pipes the output to the log
+		/// </summary>
 		public static int RunLocalProcessAndLogOutput(ProcessStartInfo StartInfo)
 		{
 			Process LocalProcess = new Process();
@@ -907,13 +904,17 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Helper function to get the minimum of two comparable objects */
+		/// <summary>
+		/// Helper function to get the minimum of two comparable objects
+		/// </summary>
 		public static T Min<T>(T a, T b) where T : IComparable
 		{
 			return a.CompareTo(b) < 0 ? a : b;
 		}
 
-		/** Helper function to get the maximum of two comparable objects */
+		/// <summary>
+		/// Helper function to get the maximum of two comparable objects
+		/// </summary>
 		public static T Max<T>(T a, T b) where T : IComparable
 		{
 			return a.CompareTo(b) > 0 ? a : b;

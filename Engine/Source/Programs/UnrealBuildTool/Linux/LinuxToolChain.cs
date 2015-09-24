@@ -44,7 +44,9 @@ namespace UnrealBuildTool
 			return null;
 		}
 
-		/** Splits compiler version string into numerical components, leaving unchanged if not known */
+		/// <summary>
+		/// Splits compiler version string into numerical components, leaving unchanged if not known
+		/// </summary>
 		private void DetermineCompilerMajMinPatchFromVersionString()
 		{
 			string[] Parts = CompilerVersionString.Split('.');
@@ -62,7 +64,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Queries compiler for the version */
+		/// <summary>
+		/// Queries compiler for the version
+		/// </summary>
 		private bool DetermineCompilerVersion()
 		{
 			CompilerVersionString = null;
@@ -202,7 +206,9 @@ namespace UnrealBuildTool
 			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Linux, this);
 		}
 
-		/** Checks if compiler version matches the requirements */
+		/// <summary>
+		/// Checks if compiler version matches the requirements
+		/// </summary>
 		private static bool CompilerVersionGreaterOrEqual(int Major, int Minor, int Patch)
 		{
 			return CompilerVersionMajor > Major ||
@@ -210,7 +216,9 @@ namespace UnrealBuildTool
 				(CompilerVersionMajor == Major && CompilerVersionMinor == Minor && CompilerVersionPatch >= Patch);
 		}
 
-		/** Architecture-specific compiler switches */
+		/// <summary>
+		/// Architecture-specific compiler switches
+		/// </summary>
 		static string ArchitectureSpecificSwitches(string Architecture)
 		{
 			string Result = "";
@@ -238,7 +246,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/** Gets architecture-specific ar paths */
+		/// <summary>
+		/// Gets architecture-specific ar paths
+		/// </summary>
 		private static string GetArPath(string Architecture)
 		{
 			if (CrossCompiling())
@@ -249,7 +259,9 @@ namespace UnrealBuildTool
 			return ArPath;
 		}
 
-		/** Gets architecture-specific ranlib paths */
+		/// <summary>
+		/// Gets architecture-specific ranlib paths
+		/// </summary>
 		private static string GetRanlibPath(string Architecture)
 		{
 			if (CrossCompiling())
@@ -260,7 +272,9 @@ namespace UnrealBuildTool
 			return RanlibPath;
 		}
 
-		/** Gets architecture-specific strip path */
+		/// <summary>
+		/// Gets architecture-specific strip path
+		/// </summary>
 		private static string GetStripPath(string Architecture)
 		{
 			if (CrossCompiling())
@@ -572,16 +586,26 @@ namespace UnrealBuildTool
 		static string RanlibPath;
 		static string StripPath;
 
-		/** Version string of the current compiler, whether clang or gcc or whatever */
+		/// <summary>
+		/// Version string of the current compiler, whether clang or gcc or whatever
+		/// </summary>
 		static string CompilerVersionString;
-		/** Major version of the current compiler, whether clang or gcc or whatever */
+		/// <summary>
+		/// Major version of the current compiler, whether clang or gcc or whatever
+		/// </summary>
 		static int CompilerVersionMajor = -1;
-		/** Minor version of the current compiler, whether clang or gcc or whatever */
+		/// <summary>
+		/// Minor version of the current compiler, whether clang or gcc or whatever
+		/// </summary>
 		static int CompilerVersionMinor = -1;
-		/** Patch version of the current compiler, whether clang or gcc or whatever */
+		/// <summary>
+		/// Patch version of the current compiler, whether clang or gcc or whatever
+		/// </summary>
 		static int CompilerVersionPatch = -1;
 
-		/** Track which scripts need to be deleted before appending to */
+		/// <summary>
+		/// Track which scripts need to be deleted before appending to
+		/// </summary>
 		private bool bHasWipedFixDepsScript = false;
 
 		private static List<FileItem> BundleDependencies = new List<FileItem>();
@@ -728,7 +752,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/** Creates an action to archive all the .o files into single .a file */
+		/// <summary>
+		/// Creates an action to archive all the .o files into single .a file
+		/// </summary>
 		public FileItem CreateArchiveAndIndex(LinkEnvironment LinkEnvironment)
 		{
 			// Create an archive action
@@ -1100,7 +1126,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Converts the passed in path from UBT host to compiler native format. */
+		/// <summary>
+		/// Converts the passed in path from UBT host to compiler native format.
+		/// </summary>
 		public override string ConvertPath(string OriginalPath)
 		{
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)

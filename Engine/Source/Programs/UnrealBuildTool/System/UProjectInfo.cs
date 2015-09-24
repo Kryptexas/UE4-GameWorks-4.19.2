@@ -29,11 +29,19 @@ namespace UnrealBuildTool
 			bIsCodeProject = bInIsCodeProject;
 		}
 
-		/** Map of relative or complete project file names to the project info */
+		/// <summary>
+		/// Map of relative or complete project file names to the project info
+		/// </summary>
 		static Dictionary<FileReference, UProjectInfo> ProjectInfoDictionary = new Dictionary<FileReference, UProjectInfo>();
-		/** Map of short project file names to the relative or complete project file name */
+
+		/// <summary>
+		/// Map of short project file names to the relative or complete project file name
+		/// </summary>
 		static Dictionary<string, FileReference> ShortProjectNameDictionary = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
-		/** Map of target names to the relative or complete project file name */
+
+		/// <summary>
+		/// Map of target names to the relative or complete project file name
+		/// </summary>
 		static Dictionary<string, FileReference> TargetToProjectDictionary = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
 
 		public static bool FindTargetFilesInFolder(DirectoryReference InTargetFolder)

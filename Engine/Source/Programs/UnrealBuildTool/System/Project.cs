@@ -399,7 +399,9 @@ namespace UnrealBuildTool
 			return new SourceFile(InitFilePath, InitProjectSubFolder);
 		}
 
-		/** Takes the given path and tries to rebase it relative to the project or solution directory variables. */
+		/// <summary>
+		/// Takes the given path and tries to rebase it relative to the project or solution directory variables.
+		/// </summary>
 		public string NormalizeProjectPath(string InputPath)
 		{
 			// If the path is rooted in an environment variable, leave it be.
@@ -413,7 +415,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Takes the given path and tries to rebase it relative to the project. */
+		/// <summary>
+		/// Takes the given path and tries to rebase it relative to the project.
+		/// </summary>
 		public string NormalizeProjectPath(FileReference InputPath)
 		{
 			// Try to make it relative to the solution directory.
@@ -427,7 +431,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Takes the given path, normalizes it, and quotes it if necessary. */
+		/// <summary>
+		/// Takes the given path, normalizes it, and quotes it if necessary.
+		/// </summary>
 		public string EscapePath(string InputPath)
 		{
 			string Result = InputPath;
@@ -438,7 +444,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/** Visualizer for the debugger */
+		/// <summary>
+		/// Visualizer for the debugger
+		/// </summary>
 		public override string ToString()
 		{
 			return ProjectFilePath.ToString();

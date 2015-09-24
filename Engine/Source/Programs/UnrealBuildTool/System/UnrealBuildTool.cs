@@ -16,75 +16,117 @@ namespace UnrealBuildTool
 {
 	public partial class UnrealBuildTool
 	{
-		/** Time at which control fist passes to UBT. */
+		/// <summary>
+		/// Time at which control fist passes to UBT.
+		/// </summary>
 		static public DateTime StartTime;
 
 		static public string BuildGuid = Guid.NewGuid().ToString();
 
-		/** Total time spent building projects. */
+		/// <summary>
+		/// Total time spent building projects.
+		/// </summary>
 		static public double TotalBuildProjectTime = 0;
 
-		/** Total time spent compiling. */
+		/// <summary>
+		/// Total time spent compiling.
+		/// </summary>
 		static public double TotalCompileTime = 0;
 
-		/** Total time spent creating app bundles. */
+		/// <summary>
+		/// Total time spent creating app bundles.
+		/// </summary>
 		static public double TotalCreateAppBundleTime = 0;
 
-		/** Total time spent generating debug information. */
+		/// <summary>
+		/// Total time spent generating debug information.
+		/// </summary>
 		static public double TotalGenerateDebugInfoTime = 0;
 
-		/** Total time spent linking. */
+		/// <summary>
+		/// Total time spent linking.
+		/// </summary>
 		static public double TotalLinkTime = 0;
 
-		/** Total time spent on other actions. */
+		/// <summary>
+		/// Total time spent on other actions.
+		/// </summary>
 		static public double TotalOtherActionsTime = 0;
 
 		/// How much time was spent scanning for include dependencies for outdated C++ files
 		public static double TotalDeepIncludeScanTime = 0.0;
 
-		/** The command line */
+		/// <summary>
+		/// The command line
+		/// </summary>
 		static public List<string> CmdLine = new List<string>();
 
-		/** The environment at boot time. */
+		/// <summary>
+		/// The environment at boot time.
+		/// </summary>
 		static public System.Collections.IDictionary InitialEnvironment;
 
-		/** Should we skip all extra modules for platforms? */
+		/// <summary>
+		/// Should we skip all extra modules for platforms?
+		/// </summary>
 		static bool bSkipNonHostPlatforms = false;
 
 		static UnrealTargetPlatform OnlyPlatformSpecificFor = UnrealTargetPlatform.Unknown;
 
-		/** Are we running for Rocket */
+		/// <summary>
+		/// Are we running for Rocket
+		/// </summary>
 		static public bool bRunningRocket = false;
 
-		/** The project file */
+		/// <summary>
+		/// The project file
+		/// </summary>
 		static FileReference UProjectFile;
 
-		/** The Unreal project file path.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set. */
+		/// <summary>
+		/// The Unreal project file path.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set.
+		/// </summary>
 		static bool bHasUProjectFile = false;
 
-		/** The Unreal project directory.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set. */
+		/// <summary>
+		/// The Unreal project directory.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set.
+		/// </summary>
 		static DirectoryReference UProjectPath;
 
-		/** The full name of the Root UE4 directory */
+		/// <summary>
+		/// The full name of the Root UE4 directory
+		/// </summary>
 		public static readonly DirectoryReference RootDirectory = new DirectoryReference(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", ".."));
 
-		/** The full name of the Engine directory */
+		/// <summary>
+		/// The full name of the Engine directory
+		/// </summary>
 		public static readonly DirectoryReference EngineDirectory = DirectoryReference.Combine(RootDirectory, "Engine");
 
-		/** The full name of the Engine/Source directory */
+		/// <summary>
+		/// The full name of the Engine/Source directory
+		/// </summary>
 		public static readonly DirectoryReference EngineSourceDirectory = DirectoryReference.Combine(EngineDirectory, "Source");
 
-		/** This is set to true during UBT startup, after it is safe to be accessing the IsGatheringBuild and IsAssemblingBuild properties.  Never access this directly. */
+		/// <summary>
+		/// This is set to true during UBT startup, after it is safe to be accessing the IsGatheringBuild and IsAssemblingBuild properties.  Never access this directly.
+		/// </summary>
 		private static bool bIsSafeToCheckIfGatheringOrAssemblingBuild = false;
 
-		/** True if this run of UBT should only invalidate Makefile. */
+		/// <summary>
+		/// True if this run of UBT should only invalidate Makefile.
+		/// </summary>
 		static public bool bIsInvalidatingMakefilesOnly = false;
 
-		/** Cached array of all the supported target platforms */
+		/// <summary>
+		/// Cached array of all the supported target platforms
+		/// </summary>
 		static public UnrealTargetPlatform[] AllPlatforms = (UnrealTargetPlatform[])Enum.GetValues(typeof(UnrealTargetPlatform));
 
-		/** True if we should gather module dependencies for building in this run.  If this is false, then we'll expect to be loading information from disk about
-			the target's modules before we'll be able to build anything.  One or both of IsGatheringBuild or IsAssemblingBuild must be true. */
+		/// <summary>
+		/// True if we should gather module dependencies for building in this run.  If this is false, then we'll expect to be loading information from disk about
+		/// the target's modules before we'll be able to build anything.  One or both of IsGatheringBuild or IsAssemblingBuild must be true.
+		/// </summary>
 		static public bool IsGatheringBuild
 		{
 			get
@@ -101,8 +143,10 @@ namespace UnrealBuildTool
 		}
 		static private bool bIsGatheringBuild_Unsafe = true;
 
-		/** True if we should go ahead and actually compile and link in this run.  If this is false, no actions will be executed and we'll stop after gathering
-			and saving information about dependencies.  One or both of IsGatheringBuild or IsAssemblingBuild must be true. */
+		/// <summary>
+		/// True if we should go ahead and actually compile and link in this run.  If this is false, no actions will be executed and we'll stop after gathering
+		/// and saving information about dependencies.  One or both of IsGatheringBuild or IsAssemblingBuild must be true.
+		/// </summary>
 		static public bool IsAssemblingBuild
 		{
 			get
@@ -119,9 +163,11 @@ namespace UnrealBuildTool
 		}
 		static private bool bIsAssemblingBuild_Unsafe = true;
 
-		/** Used when BuildConfiguration.bUseUBTMakefiles is enabled.  If true, it means that our cached includes may not longer be
-			valid (or never were), and we need to recover by forcibly scanning included headers for all build prerequisites to make sure that our
-			cached set of includes is actually correct, before determining which files are outdated. */
+		/// <summary>
+		/// Used when BuildConfiguration.bUseUBTMakefiles is enabled.  If true, it means that our cached includes may not longer be
+		/// valid (or never were), and we need to recover by forcibly scanning included headers for all build prerequisites to make sure that our
+		/// cached set of includes is actually correct, before determining which files are outdated.
+		/// </summary>
 		static public bool bNeedsFullCPPIncludeRescan = false;
 
 
@@ -2206,12 +2252,11 @@ namespace UnrealBuildTool
 			return bIsRunning;
 		}
 
-		/**
-		 * Parses the passed in command line for build configuration overrides.
-		 * 
-		 * @param	Arguments	List of arguments to parse
-		 * @return	List of build target settings
-		 */
+		/// <summary>
+		/// Parses the passed in command line for build configuration overrides.
+		/// </summary>
+		/// <param name="Arguments">List of arguments to parse</param>
+		/// <returns>List of build target settings</returns>
 		private static List<string[]> ParseCommandLineFlags(string[] Arguments)
 		{
 			var TargetSettings = new List<string[]>();
@@ -2283,24 +2328,36 @@ namespace UnrealBuildTool
 
 			public int Version;
 
-			/** Every action in the action graph */
+			/// <summary>
+			/// Every action in the action graph
+			/// </summary>
 			public List<Action> AllActions;
 
-			/** List of the actions that need to be run in order to build the targets' final output items */
+			/// <summary>
+			/// List of the actions that need to be run in order to build the targets' final output items
+			/// </summary>
 			public Action[] PrerequisiteActions;
 
-			/** Environment variables that we'll need in order to invoke the platform's compiler and linker */
+			/// <summary>
+			/// Environment variables that we'll need in order to invoke the platform's compiler and linker
+			/// </summary>
 			// @todo ubtmake: Really we want to allow a different set of environment variables for every Action.  This would allow for targets on multiple platforms to be built in a single assembling phase.  We'd only have unique variables for each platform that has actions, so we'd want to make sure we only store the minimum set.
 			public readonly List<Tuple<string, string>> EnvironmentVariables = new List<Tuple<string, string>>();
 
-			/** Maps each target to a list of UObject module info structures */
+			/// <summary>
+			/// Maps each target to a list of UObject module info structures
+			/// </summary>
 			public Dictionary<string, List<UHTModuleInfo>> TargetNameToUObjectModules;
 
-			/** List of targets being built */
+			/// <summary>
+			/// List of targets being built
+			/// </summary>
 			public List<UEBuildTarget> Targets;
 
 
-			/** Current working set of source files, for when bUseAdaptiveUnityBuild is enabled */
+			/// <summary>
+			/// Current working set of source files, for when bUseAdaptiveUnityBuild is enabled
+			/// </summary>
 			public HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
 
 			public UBTMakefile()
@@ -2337,7 +2394,7 @@ namespace UnrealBuildTool
 			}
 
 
-			/** @return	 True if this makefile's contents look valid.  Called after loading the file to make sure it is legit. */
+			/// <returns> True if this makefile's contents look valid.  Called after loading the file to make sure it is legit.</returns>
 			public bool IsValidMakefile()
 			{
 				return

@@ -1022,7 +1022,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/** Gets the default include paths for the given platform. */
+		/// <summary>
+		/// Gets the default include paths for the given platform.
+		/// </summary>
 		public static string GetVCIncludePaths(CPPTargetPlatform Platform)
 		{
 			Debug.Assert(Platform == CPPTargetPlatform.UWP);

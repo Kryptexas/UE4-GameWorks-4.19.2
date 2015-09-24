@@ -10,23 +10,21 @@ namespace UnrealBuildTool
 {
 	public interface IUEBuildDeploy
 	{
-		/**
-		 * Register the platform with the UEBuildDeploy class.
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildDeploy class.
+		/// </summary>
 		void RegisterBuildDeploy();
 
-		/**
-		 * Prepare the target for deployment.
-		 *	
-		 * @param InTarget The target for deployment.
-		 *	
-		 * @return bool True if successful, false if not.
-		 */
+		/// <summary>
+		/// Prepare the target for deployment.
+		/// </summary>
+		/// <param name="InTarget">The target for deployment.</param>
+		/// <returns>bool True if successful, false if not.</returns>
 		bool PrepTargetForDeployment(UEBuildTarget InTarget);
 
-		/**
-		 * Prepare the target for deployment.
-		 */
+		/// <summary>
+		/// Prepare the target for deployment.
+		/// </summary>
 		bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy);
 	}
 
@@ -37,12 +35,11 @@ namespace UnrealBuildTool
 	{
 		static Dictionary<UnrealTargetPlatform, IUEBuildDeploy> BuildDeployDictionary = new Dictionary<UnrealTargetPlatform, IUEBuildDeploy>();
 
-		/**
-		 *	Register the given platforms UEBuildDeploy instance
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform to register with
-		 *	@param	InBuildDeploy		The UEBuildDeploy instance to use for the InPlatform
-		 */
+		/// <summary>
+		/// Register the given platforms UEBuildDeploy instance
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform to register with</param>
+		/// <param name="InBuildDeploy"> The UEBuildDeploy instance to use for the InPlatform</param>
 		public static void RegisterBuildDeploy(UnrealTargetPlatform InPlatform, IUEBuildDeploy InBuildDeploy)
 		{
 			if (BuildDeployDictionary.ContainsKey(InPlatform) == true)
@@ -57,13 +54,11 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Retrieve the UEBuildDeploy instance for the given TargetPlatform
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	
-		 *	@return	UEBuildDeploy		The instance of the build deploy
-		 */
+		/// <summary>
+		/// Retrieve the UEBuildDeploy instance for the given TargetPlatform
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>UEBuildDeploy  The instance of the build deploy</returns>
 		public static IUEBuildDeploy GetBuildDeploy(UnrealTargetPlatform InPlatform)
 		{
 			if (BuildDeployDictionary.ContainsKey(InPlatform) == true)
@@ -74,26 +69,24 @@ namespace UnrealBuildTool
 			return null;
 		}
 
-		/**
-		 *	Register the platform with the UEBuildDeploy class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildDeploy class
+		/// </summary>
 		public abstract void RegisterBuildDeploy();
 
-		/**
-		 *	Prepare the target for deployment
-		 *	
-		 *	@param	InTarget		The target for deployment
-		 *	
-		 *	@return	bool			true if successful, false if not
-		 */
+		/// <summary>
+		/// Prepare the target for deployment
+		/// </summary>
+		/// <param name="InTarget"> The target for deployment</param>
+		/// <returns>bool   true if successful, false if not</returns>
 		public virtual bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
 			return true;
 		}
 
-		/**
-		 * Prepare the target for deployment
-		 */
+		/// <summary>
+		/// Prepare the target for deployment
+		/// </summary>
 		public virtual bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
 			return true;

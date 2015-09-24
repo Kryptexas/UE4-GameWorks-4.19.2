@@ -13,9 +13,9 @@ namespace UnrealBuildTool.IOS
 {
 	class UEDeployMac : UEBuildDeploy
 	{
-		/**
-		 *	Register the platform with the UEBuildDeploy class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildDeploy class
+		/// </summary>
 		public override void RegisterBuildDeploy()
 		{
 			// TODO: print debug info and handle any cases that would keep this from registering

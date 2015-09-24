@@ -15,25 +15,37 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string IOSArchitecture = "";
 
-		/** Which version of the iOS to allow at run time */
+		/// <summary>
+		/// Which version of the iOS to allow at run time
+		/// </summary>
 		public static string RunTimeIOSVersion = "7.0";
 
-		/** which devices the game is allowed to run on */
+		/// <summary>
+		/// which devices the game is allowed to run on
+		/// </summary>
 		public static string RunTimeIOSDevices = "1,2";
 
-		/** The architecture(s) to compile */
+		/// <summary>
+		/// The architecture(s) to compile
+		/// </summary>
 		[XmlConfig]
 		public static string NonShippingArchitectures = "armv7";
 		[XmlConfig]
 		public static string ShippingArchitectures = "armv7,arm64";
 
-		/** additional linker flags for shipping */
+		/// <summary>
+		/// additional linker flags for shipping
+		/// </summary>
 		public static string AdditionalShippingLinkerFlags = "";
 
-		/** additional linker flags for non-shipping */
+		/// <summary>
+		/// additional linker flags for non-shipping
+		/// </summary>
 		public static string AdditionalLinkerFlags = "";
 
-		/** mobile provision to use for code signing */
+		/// <summary>
+		/// mobile provision to use for code signing
+		/// </summary>
 		public static string MobileProvision = "";
 
 		private bool bInitializedProject = false;
@@ -84,9 +96,9 @@ namespace UnrealBuildTool
 			return SDKStatus.Valid;
 		}
 
-		/**
-		 *	Register the platform with the UEBuildPlatform class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
 		protected override void RegisterBuildPlatformInternal()
 		{
 			// Register this build platform for IOS
@@ -105,13 +117,11 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		 *
-		 *	@param	InUnrealTargetPlatform		The UnrealTargetPlatform being build
-		 *	
-		 *	@return	CPPTargetPlatform			The CPPTargetPlatform to compile for
-		 */
+		/// <summary>
+		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
+		/// </summary>
+		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
+		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
 		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
 		{
 			switch (InUnrealTargetPlatform)
@@ -122,13 +132,11 @@ namespace UnrealBuildTool
 			throw new BuildException("IOSPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
 		}
 
-		/**
-		 *	Get the extension to use for the given binary type
-		 *	
-		 *	@param	InBinaryType		The binary type being built
-		 *	
-		 *	@return	string				The binary extenstion (ie 'exe' or 'dll')
-		 */
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The binary extenstion (ie 'exe' or 'dll')</returns>
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
 		{
 			switch (InBinaryType)
@@ -269,11 +277,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Check for the default configuration
-		 *
-		 * return true if the project uses the default build config
-		 */
+		/// <summary>
+		/// Check for the default configuration
+		/// return true if the project uses the default build config
+		/// </summary>
 		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
 			string[] BoolKeys = new string[] {
@@ -297,11 +304,10 @@ namespace UnrealBuildTool
 			return base.HasDefaultBuildConfig(Platform, ProjectDirectoryName);
 		}
 
-		/**
-         *	Setup the target environment for building
-         *	
-         *	@param	InBuildTarget		The target being built
-         */
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_IOS=1");
@@ -334,13 +340,12 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add(new UEBuildFramework("StoreKit"));
 		}
 
-		/**
-		*	Whether the editor should be built for this platform or not
-		*	
-		*	@param	InPlatform		The UnrealTargetPlatform being built
-		*	@param	InConfiguration	The UnrealTargetConfiguration being built
-		*	@return	bool			true if the editor should be built, false if not
-		*/
+		/// <summary>
+		/// Whether the editor should be built for this platform or not
+		/// </summary>
+		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool   true if the editor should be built, false if not</returns>
 		public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return true;
@@ -351,14 +356,12 @@ namespace UnrealBuildTool
 			return true; // for iOS can only run cooked. this is mostly for testing console code paths.
 		}
 
-		/**
-		 *	Whether this platform should create debug information or not
-		 *	
-		 *	@param	InPlatform			The UnrealTargetPlatform being built
-		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
-		 *	
-		 *	@return	bool				true if debug info should be generated, false if not
-		 */
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
 		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
 		{
 			return true;
@@ -400,26 +403,24 @@ namespace UnrealBuildTool
 			BuildConfiguration.bDeployAfterCompile = true;
 		}
 
-		/**
-		 *	Whether the platform requires the extra UnityCPPWriter
-		 *	This is used to add an extra file for UBT to get the #include dependencies from
-		 *	
-		 *	@return	bool	true if it is required, false if not
-		 */
+		/// <summary>
+		/// Whether the platform requires the extra UnityCPPWriter
+		/// This is used to add an extra file for UBT to get the #include dependencies from
+		/// </summary>
+		/// <returns>bool true if it is required, false if not</returns>
 		public override bool RequiresExtraUnityCPPWriter()
 		{
 			return true;
 		}
 
-		/**
-		 *     Modify the newly created module passed in for this platform.
-		 *     This is not required - but allows for hiding details of a
-		 *     particular platform.
-		 *     
-		 *  @param  Name			The name of the module
-		 *	@param	Rules			The module rules
-		 *	@param	Target			The target being build
-		 */
+		/// <summary>
+		/// Modify the newly created module passed in for this platform.
+		/// This is not required - but allows for hiding details of a
+		/// particular platform.
+		/// </summary>
+		/// <param name="">Name   The name of the module</param>
+		/// <param name="Rules">  The module rules</param>
+		/// <param name="Target">  The target being build</param>
 		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))

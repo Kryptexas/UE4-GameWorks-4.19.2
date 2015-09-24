@@ -21,7 +21,9 @@ namespace UnrealBuildTool
 
 		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile);
 
-		/** Converts the passed in path from UBT host to compiler native format. */
+		/// <summary>
+		/// Converts the passed in path from UBT host to compiler native format.
+		/// </summary>
 		String ConvertPath(String OriginalPath);
 
 		/// <summary>
@@ -116,7 +118,9 @@ namespace UnrealBuildTool
 			return FileReference.Combine(LinkEnvironment.Config.IntermediateDirectory, OutputFile.Reference.GetFileName() + ".response");
 		}
 
-		/** Converts the passed in path from UBT host to compiler native format. */
+		/// <summary>
+		/// Converts the passed in path from UBT host to compiler native format.
+		/// </summary>
 		public virtual String ConvertPath(String OriginalPath)
 		{
 			return OriginalPath;

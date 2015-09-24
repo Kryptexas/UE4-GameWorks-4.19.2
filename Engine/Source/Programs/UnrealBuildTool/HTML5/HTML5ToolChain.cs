@@ -397,12 +397,11 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/**
-		 * Translates clang output warning/error messages into vs-clickable messages
-		 * 
-		 * @param	sender		Sending object
-		 * @param	e			Event arguments (In this case, the line of string output)
-		 */
+		/// <summary>
+		/// Translates clang output warning/error messages into vs-clickable messages
+		/// </summary>
+		/// <param name="sender"> Sending object</param>
+		/// <param name="e">  Event arguments (In this case, the line of string output)</param>
 		protected void RemoteOutputReceivedEventHandler(object sender, DataReceivedEventArgs e)
 		{
 			var Output = e.Data;

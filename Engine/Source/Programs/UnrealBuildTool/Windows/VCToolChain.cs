@@ -1754,7 +1754,9 @@ namespace UnrealBuildTool
 			BuildProjectAction.ProducedItems.Add(PDBFile);
 		}
 
-		/** Gets the default include paths for the given platform. */
+		/// <summary>
+		/// Gets the default include paths for the given platform.
+		/// </summary>
 		public static string GetVCIncludePaths(CPPTargetPlatform Platform)
 		{
 			Debug.Assert(Platform == CPPTargetPlatform.Win32 || Platform == CPPTargetPlatform.Win64);
@@ -1784,7 +1786,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/** Formats compiler output from Clang so that it is clickable in Visual Studio */
+		/// <summary>
+		/// Formats compiler output from Clang so that it is clickable in Visual Studio
+		/// </summary>
 		protected static void ClangCompilerOutputFormatter(object sender, DataReceivedEventArgs e)
 		{
 			var Output = e.Data;

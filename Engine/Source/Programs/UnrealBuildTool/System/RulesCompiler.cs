@@ -194,99 +194,159 @@ namespace UnrealBuildTool
 		/// Precompiled header usage for this module
 		public PCHUsageMode PCHUsage = PCHUsageMode.Default;
 
-		/** Use run time type information */
+		/// <summary>
+		/// Use run time type information
+		/// </summary>
 		public bool bUseRTTI = false;
 
-		/** Use AVX instructions */
+		/// <summary>
+		/// Use AVX instructions
+		/// </summary>
 		public bool bUseAVX = false;
 
-		/** Enable buffer security checks.  This should usually be enabled as it prevents severe security risks. */
+		/// <summary>
+		/// Enable buffer security checks.  This should usually be enabled as it prevents severe security risks.
+		/// </summary>
 		public bool bEnableBufferSecurityChecks = true;
 
-		/** Enable exception handling */
+		/// <summary>
+		/// Enable exception handling
+		/// </summary>
 		public bool bEnableExceptions = false;
 
-		/** Enable warnings for shadowed variables */
+		/// <summary>
+		/// Enable warnings for shadowed variables
+		/// </summary>
 		public bool bEnableShadowVariableWarnings = true;
 
-		/** If true and unity builds are enabled, this module will build without unity. */
+		/// <summary>
+		/// If true and unity builds are enabled, this module will build without unity.
+		/// </summary>
 		public bool bFasterWithoutUnity = false;
 
-		/** The number of source files in this module before unity build will be activated for that module.  If set to
-		    anything besides -1, will override the default setting which is controlled by MinGameModuleSourceFilesForUnityBuild */
+		/// <summary>
+		/// The number of source files in this module before unity build will be activated for that module.  If set to
+		/// anything besides -1, will override the default setting which is controlled by MinGameModuleSourceFilesForUnityBuild
+		/// </summary>
 		public int MinSourceFilesForUnityBuildOverride = 0;
 
-		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
+		/// <summary>
+		/// Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero.
+		/// </summary>
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
-		/**  Module uses a #import so must be built locally when compiling with SN-DBS */
+		/// <summary>
+		/// Module uses a #import so must be built locally when compiling with SN-DBS
+		/// </summary>
 		public bool bBuildLocallyWithSNDBS = false;
 
+		/// <summary>
 		/// List of modules with header files that our module's public headers needs access to, but we don't need to "import" or link against.
+		/// </summary>
 		public List<string> PublicIncludePathModuleNames = new List<string>();
 
+		/// <summary>
 		/// List of public dependency module names.  These are modules that are required by our public source files.
+		/// </summary>
 		public List<string> PublicDependencyModuleNames = new List<string>();
 
+		/// <summary>
 		/// List of modules with header files that our module's private code files needs access to, but we don't need to "import" or link against.
+		/// </summary>
 		public List<string> PrivateIncludePathModuleNames = new List<string>();
 
+		/// <summary>
 		/// List of private dependency module names.  These are modules that our private code depends on but nothing in our public
 		/// include files depend on.
+		/// </summary>
 		public List<string> PrivateDependencyModuleNames = new List<string>();
 
+		/// <summary>
 		/// List of module dependencies that should be treated as circular references.  This modules must have already been added to
 		/// either the public or private dependent module list.
+		/// </summary>
 		public List<string> CircularlyReferencedDependentModules = new List<string>();
 
+		/// <summary>
 		/// System include paths.  These are public stable header file directories that are not checked when resolving header dependencies.
+		/// </summary>
 		public List<string> PublicSystemIncludePaths = new List<string>();
 
+		/// <summary>
 		/// List of all paths to include files that are exposed to other modules
+		/// </summary>
 		public List<string> PublicIncludePaths = new List<string>();
 
+		/// <summary>
 		/// List of all paths to this module's internal include files, not exposed to other modules
+		/// </summary>
 		public List<string> PrivateIncludePaths = new List<string>();
 
+		/// <summary>
 		/// List of library paths - typically used for External (third party) modules
+		/// </summary>
 		public List<string> PublicLibraryPaths = new List<string>();
 
+		/// <summary>
 		/// List of addition libraries - typically used for External (third party) modules
+		/// </summary>
 		public List<string> PublicAdditionalLibraries = new List<string>();
 
+		/// <summary>
 		// List of frameworks
+		/// </summary>
 		public List<string> PublicFrameworks = new List<string>();
 
+		/// <summary>
 		// List of weak frameworks (for OS version transitions)
+		/// </summary>
 		public List<string> PublicWeakFrameworks = new List<string>();
 
+		/// <summary>
 		/// List of addition frameworks - typically used for External (third party) modules on Mac and iOS
+		/// </summary>
 		public List<UEBuildFramework> PublicAdditionalFrameworks = new List<UEBuildFramework>();
 
+		/// <summary>
 		/// List of addition resources that should be copied to the app bundle for Mac or iOS
+		/// </summary>
 		public List<UEBuildBundleResource> AdditionalBundleResources = new List<UEBuildBundleResource>();
 
+		/// <summary>
 		/// For builds that execute on a remote machine (e.g. iOS), this list contains additional files that
 		/// need to be copied over in order for the app to link successfully.  Source/header files and PCHs are
 		/// automatically copied.  Usually this is simply a list of precompiled third party library dependencies.
+		/// </summary>
 		public List<string> PublicAdditionalShadowFiles = new List<string>();
 
+		/// <summary>
 		/// List of delay load DLLs - typically used for External (third party) modules
+		/// </summary>
 		public List<string> PublicDelayLoadDLLs = new List<string>();
 
+		/// <summary>
 		/// Additional compiler definitions for this module
+		/// </summary>
 		public List<string> Definitions = new List<string>();
 
-		/** CLR modules only: The assemblies referenced by the module's private implementation. */
+		/// <summary>
+		/// CLR modules only: The assemblies referenced by the module's private implementation.
+		/// </summary>
 		public List<string> PrivateAssemblyReferences = new List<string>();
 
+		/// <summary>
 		/// Addition modules this module may require at run-time 
+		/// </summary>
 		public List<string> DynamicallyLoadedModuleNames = new List<string>();
 
+		/// <summary>
 		/// Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like)
+		/// </summary>
 		public List<string> PlatformSpecificDynamicallyLoadedModuleNames = new List<string>();
 
+		/// <summary>
 		/// List of files which this module depends on at runtime. These files will be staged along with the target.
+		/// </summary>
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
 
 		/// <summary>
@@ -385,7 +445,9 @@ namespace UnrealBuildTool
 			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
 		}
 
-		/** Redistribution override flag for this module. */
+		/// <summary>
+		/// Redistribution override flag for this module.
+		/// </summary>
 		public bool? IsRedistributableOverride { get; set; }
 	}
 

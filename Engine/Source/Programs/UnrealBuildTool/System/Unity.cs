@@ -11,8 +11,10 @@ namespace UnrealBuildTool
 {
 	public class Unity
 	{
-		/** The set of source files that UnrealBuildTool determined to be part of the programmer's "working set".
-		    This feature is only used when bUseAdaptiveUnityBuild is enabled */
+		/// <summary>
+		/// The set of source files that UnrealBuildTool determined to be part of the programmer's "working set".
+		/// This feature is only used when bUseAdaptiveUnityBuild is enabled
+		/// </summary>
 		public static HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
 
 

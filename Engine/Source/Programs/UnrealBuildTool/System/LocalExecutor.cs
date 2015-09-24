@@ -14,20 +14,35 @@ namespace UnrealBuildTool
 {
 	class ActionThread
 	{
-		/** Cache the exit code from the command so that the executor can report errors */
+		/// <summary>
+		/// Cache the exit code from the command so that the executor can report errors
+		/// </summary>
 		public int ExitCode = 0;
-		/** Set to true only when the local or RPC action is complete */
+
+		/// <summary>
+		/// Set to true only when the local or RPC action is complete
+		/// </summary>
 		public bool bComplete = false;
-		/** Cache the action that this thread is managing */
+
+		/// <summary>
+		/// Cache the action that this thread is managing
+		/// </summary>
 		Action Action;
-		/** For reporting status to the user */
+
+		/// <summary>
+		/// For reporting status to the user
+		/// </summary>
 		int JobNumber;
 		int TotalJobs;
 
-		/** Regex that matches environment variables in $(Variable) format. */
+		/// <summary>
+		/// Regex that matches environment variables in $(Variable) format.
+		/// </summary>
 		static Regex EnvironmentVariableRegex = new Regex("\\$\\(([\\d\\w]+)\\)");
 
-		/** Replaces the environment variables references in a string with their values. */
+		/// <summary>
+		/// Replaces the environment variables references in a string with their values.
+		/// </summary>
 		public static string ExpandEnvironmentVariables(string Text)
 		{
 			foreach (Match EnvironmentVariableMatch in EnvironmentVariableRegex.Matches(Text))
@@ -38,9 +53,9 @@ namespace UnrealBuildTool
 			return Text;
 		}
 
-		/**
-		 * Constructor, takes the action to process
-		 */
+		/// <summary>
+		/// Constructor, takes the action to process
+		/// </summary>
 		public ActionThread(Action InAction, int InJobNumber, int InTotalJobs)
 		{
 			Action = InAction;
@@ -48,9 +63,9 @@ namespace UnrealBuildTool
 			TotalJobs = InTotalJobs;
 		}
 
-		/**
-		 * Sends a string to an action's OutputEventHandler
-		 */
+		/// <summary>
+		/// Sends a string to an action's OutputEventHandler
+		/// </summary>
 		private static void SendOutputToEventHandler(Action Action, string Output)
 		{
 			// pass the output to any handler requested
@@ -85,12 +100,11 @@ namespace UnrealBuildTool
 		}
 
 
-		/**
-		 * Used when debuging Actions outputs all action return values to debug out
-		 * 
-		 * @param	sender		Sending object
-		 * @param	e			Event arguments (In this case, the line of string output)
-		 */
+		/// <summary>
+		/// Used when debuging Actions outputs all action return values to debug out
+		/// </summary>
+		/// <param name="sender"> Sending object</param>
+		/// <param name="e">  Event arguments (In this case, the line of string output)</param>
 		protected void ActionDebugOutput(object sender, DataReceivedEventArgs e)
 		{
 			var Output = e.Data;
@@ -103,9 +117,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/**
-		 * The actual function to run in a thread. This is potentially long and blocking
-		 */
+		/// <summary>
+		/// The actual function to run in a thread. This is potentially long and blocking
+		/// </summary>
 		private void ThreadFunc()
 		{
 			// thread start time
@@ -312,9 +326,9 @@ namespace UnrealBuildTool
 			bComplete = true;
 		}
 
-		/**
-		 * Starts a thread and runs the action in that thread
-		 */
+		/// <summary>
+		/// Starts a thread and runs the action in that thread
+		/// </summary>
 		public void Run()
 		{
 			Thread T = new Thread(ThreadFunc);
@@ -324,10 +338,10 @@ namespace UnrealBuildTool
 
 	public class LocalExecutor
 	{
-		/**
-		 * Executes the specified actions locally.
-		 * @return True if all the tasks successfully executed, or false if any of them failed.
-		 */
+		/// <summary>
+		/// Executes the specified actions locally.
+		/// </summary>
+		/// <returns>True if all the tasks successfully executed, or false if any of them failed.</returns>
 		public static bool ExecuteActions(List<Action> Actions)
 		{
 			// Time to sleep after each iteration of the loop in order to not busy wait.

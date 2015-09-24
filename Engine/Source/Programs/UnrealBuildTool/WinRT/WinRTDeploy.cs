@@ -13,9 +13,9 @@ namespace UnrealBuildTool
 	/// </summary>
 	class WinRTDeploy : UEBuildDeploy
 	{
-		/**
-		 *	Register the platform with the UEBuildDeploy class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildDeploy class
+		/// </summary>
 		public override void RegisterBuildDeploy()
 		{
 			// Register this deployment handle for WinRT
@@ -23,9 +23,9 @@ namespace UnrealBuildTool
 			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.WinRT, this);
 		}
 
-		/**
-		 *  Utility function to delete a file
-		 */
+		/// <summary>
+		/// Utility function to delete a file
+		/// </summary>
 		void DeployHelper_DeleteFile(string InFileToDelete)
 		{
 			if (File.Exists(InFileToDelete) == true)
@@ -40,10 +40,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Copy the contents of the given source directory to the given destination directory
-		 *	
-		 */
+		/// <summary>
+		/// Copy the contents of the given source directory to the given destination directory
+		/// </summary>
 		bool CopySourceToDestDir(string InSourceDirectory, string InDestinationDirectory, string InWildCard,
 			bool bInIncludeSubDirectories, bool bInRemoveDestinationOrphans)
 		{
@@ -121,16 +120,14 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		/**
-		 *	Copy the game contents via reading in the <GAME>\Saved\DeployList\ContentList.txt file.
-		 *	If the file doesn't exist, simply mirror ALL content to the deployment directory.
-		 *	
-		 *	@param	InAppName			The name of the target app - could be the GameName
-		 *	@param	InPlatform			UnrealTargetPlatform of the target
-		 *	@param	InConfiguration		UnrealTargetConfiguration of the target
-		 *	
-		 *	@return	bool				true if successful
-		 */
+		/// <summary>
+		/// Copy the game contents via reading in the <GAME>\Saved\DeployList\ContentList.txt file.
+		/// If the file doesn't exist, simply mirror ALL content to the deployment directory.
+		/// </summary>
+		/// <param name="InAppName">  The name of the target app - could be the GameName</param>
+		/// <param name="InPlatform">  UnrealTargetPlatform of the target</param>
+		/// <param name="InConfiguration"> UnrealTargetConfiguration of the target</param>
+		/// <returns>bool    true if successful</returns>
 		bool CopyGameContent(string InAppName, UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			string DeployDirectory = "../../" + InAppName + "/Binaries/WinRT/Image/Loose/";
@@ -206,9 +203,9 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		/**
-		 *	Helper function for copying files
-		 */
+		/// <summary>
+		/// Helper function for copying files
+		/// </summary>
 		void CopyFile(string InSource, string InDest, bool bForce)
 		{
 			if (File.Exists(InSource) == true)

@@ -850,7 +850,9 @@ namespace UnrealBuildTool
 			return OutputFile;
 		}
 
-		/** Accesses the bin directory for the VC toolchain for the specified platform. */
+		/// <summary>
+		/// Accesses the bin directory for the VC toolchain for the specified platform.
+		/// </summary>
 		static string GetVCToolPath(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, string ToolName)
 		{
 			// Initialize environment variables required for spawned tools.
@@ -903,7 +905,9 @@ namespace UnrealBuildTool
 			return VCToolPath;
 		}
 
-		/** Accesses the directory for .NET Framework binaries such as MSBuild */
+		/// <summary>
+		/// Accesses the directory for .NET Framework binaries such as MSBuild
+		/// </summary>
 		static string GetDotNetFrameworkToolPath(CPPTargetPlatform Platform, string ToolName)
 		{
 			// Initialize environment variables required for spawned tools.
@@ -920,15 +924,19 @@ namespace UnrealBuildTool
 			return ToolPath;
 		}
 
-		/** Helper to only initialize environment variables once. */
+		/// <summary>
+		/// Helper to only initialize environment variables once.
+		/// </summary>
 		static bool bAreEnvironmentVariablesAlreadyInitialized = false;
 
-		/** Installation folder of the Windows SDK, e.g. C:\Program Files\Microsoft SDKs\Windows\v6.0A\ */
+		/// <summary>
+		/// Installation folder of the Windows SDK, e.g. C:\Program Files\Microsoft SDKs\Windows\v6.0A\
+		/// </summary>
 		static string WindowsSDKDir = "";
 
-		/**
-		 * Initializes environment variables required by toolchain. Different for 32 and 64 bit.
-		 */
+		/// <summary>
+		/// Initializes environment variables required by toolchain. Different for 32 and 64 bit.
+		/// </summary>
 		static void InitializeEnvironmentVariables(CPPTargetPlatform Platform)
 		{
 			if (!bAreEnvironmentVariablesAlreadyInitialized)

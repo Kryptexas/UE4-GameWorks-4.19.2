@@ -31,10 +31,14 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class FlatCPPIncludeDependencyCache
 	{
-		/** The version number for binary serialization */
+		/// <summary>
+		/// The version number for binary serialization
+		/// </summary>
 		const int FileVersion = 1;
 
-		/** The file signature for binary serialization */
+		/// <summary>
+		/// The file signature for binary serialization
+		/// </summary>
 		const int FileSignature = ('F' << 24) | ('C' << 16) | FileVersion;
 
 		/// File name of this cache, should be unique for every includes context (e.g. target)

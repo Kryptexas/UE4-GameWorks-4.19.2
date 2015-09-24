@@ -15,9 +15,9 @@ namespace UnrealBuildTool
 	/// </summary>
 	class UWPDeploy : UEBuildDeploy
 	{
-		/**
-		 *	Register the platform with the UEBuildDeploy class
-		 */
+		/// <summary>
+		/// Register the platform with the UEBuildDeploy class
+		/// </summary>
 		public override void RegisterBuildDeploy()
 		{
 			// Register this deployment handle for UWP
@@ -25,9 +25,9 @@ namespace UnrealBuildTool
 			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.UWP, this);
 		}
 
-		/**
-		 *  Utility function to delete a file
-		 */
+		/// <summary>
+		/// Utility function to delete a file
+		/// </summary>
 		void DeployHelper_DeleteFile(string InFileToDelete)
 		{
 			Log.TraceInformation("UWPDeploy.DeployHelper_DeleteFile({0})", InFileToDelete);
@@ -43,10 +43,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Copy the contents of the given source directory to the given destination directory
-		 *	
-		 */
+		/// <summary>
+		/// Copy the contents of the given source directory to the given destination directory
+		/// </summary>
 		bool CopySourceToDestDir(string InSourceDirectory, string InDestinationDirectory, string InWildCard,
 			bool bInIncludeSubDirectories, bool bInRemoveDestinationOrphans)
 		{
@@ -127,9 +126,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/**
-		 *	Helper function for copying files
-		 */
+		/// <summary>
+		/// Helper function for copying files
+		/// </summary>
 		void CopyFile(string InSource, string InDest, bool bForce)
 		{
 			Log.TraceInformation("UWPDeploy.CopyFile({0}, {1}, {2},...)", InSource, InDest, bForce);
@@ -150,9 +149,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 *	Helper function for copying a tree files
-		 */
+		/// <summary>
+		/// Helper function for copying a tree files
+		/// </summary>
 		//void CopyDirectory(string InSource, string InDest, bool bForce, bool bRecurse)
 		//{
 		//    if (Directory.Exists(InSource))

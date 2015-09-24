@@ -12,20 +12,26 @@ using Tools.DotNETCommon.FileContentsCacheType;
 
 namespace UnrealBuildTool
 {
-	/** For C++ source file items, this structure is used to cache data that will be used for include dependency scanning */
+	/// <summary>
+	/// For C++ source file items, this structure is used to cache data that will be used for include dependency scanning
+	/// </summary>
 	[Serializable]
 	public class CPPIncludeInfo : ISerializable
 	{
-		/** Ordered list of include paths for the module  */
+		/// <summary>
+		/// Ordered list of include paths for the module
+		/// </summary>
 		public HashSet<string> IncludePaths = new HashSet<string>();
 
-		/**
-		 * The include paths where changes to contained files won't cause dependent C++ source files to
-		 * be recompiled, unless BuildConfiguration.bCheckSystemHeadersForModification==true.
-		 */
+		/// <summary>
+		/// The include paths where changes to contained files won't cause dependent C++ source files to
+		/// be recompiled, unless BuildConfiguration.bCheckSystemHeadersForModification==true.
+		/// </summary>
 		public HashSet<string> SystemIncludePaths = new HashSet<string>();
 
-		/** Contains a mapping from filename to the full path of the header in this environment.  This is used to optimized include path lookups at runtime for any given single module. */
+		/// <summary>
+		/// Contains a mapping from filename to the full path of the header in this environment.  This is used to optimized include path lookups at runtime for any given single module.
+		/// </summary>
 		public Dictionary<string, FileItem> IncludeFileSearchDictionary = new Dictionary<string, FileItem>();
 
 		public CPPIncludeInfo()
@@ -78,20 +84,28 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class IncludedFilesSet : HashSet<FileItem>
 	{
-		/** Whether this file list has been fully initialized or not. */
+		/// <summary>
+		/// Whether this file list has been fully initialized or not.
+		/// </summary>
 		public bool bIsInitialized;
 
-		/** List of files which include this file in one of its includes. */
+		/// <summary>
+		/// List of files which include this file in one of its includes.
+		/// </summary>
 		public List<FileItem> CircularDependencies = new List<FileItem>();
 	}
 
 
 	public partial class CPPEnvironment
 	{
-		/** Contains a cache of include dependencies (direct and indirect), one for each target we're building. */
+		/// <summary>
+		/// Contains a cache of include dependencies (direct and indirect), one for each target we're building.
+		/// </summary>
 		public static readonly Dictionary<UEBuildTarget, DependencyCache> IncludeDependencyCache = new Dictionary<UEBuildTarget, DependencyCache>();
 
-		/** Contains a cache of include dependencies (direct and indirect), one for each target we're building. */
+		/// <summary>
+		/// Contains a cache of include dependencies (direct and indirect), one for each target we're building.
+		/// </summary>
 		public static readonly Dictionary<UEBuildTarget, FlatCPPIncludeDependencyCache> FlatCPPIncludeDependencyCache = new Dictionary<UEBuildTarget, FlatCPPIncludeDependencyCache>();
 
 		public static int TotalFindIncludedFileCalls = 0;
@@ -99,12 +113,12 @@ namespace UnrealBuildTool
 		public static int IncludePathSearchAttempts = 0;
 
 
-		/** 
-		 * Finds the header file that is referred to by a partial include filename. 
-		 * @param RelativeIncludePath path relative to the project
-		 * @param bSkipExternalHeader true to skip processing of headers in external path
-		 * @param SourceFilesDirectory - The folder containing the source files we're generating a PCH for
-		 */
+		/// <summary>
+		/// Finds the header file that is referred to by a partial include filename.
+		/// </summary>
+		/// <param name="RelativeIncludePath">path relative to the project</param>
+		/// <param name="bSkipExternalHeader">true to skip processing of headers in external path</param>
+		/// <param name="SourceFilesDirectory">- The folder containing the source files we're generating a PCH for</param>
 		public static FileItem FindIncludedFile(string RelativeIncludePath, bool bSkipExternalHeader, List<string> IncludePathsToSearch, Dictionary<string, FileItem> IncludeFileSearchDictionary)
 		{
 			FileItem Result = null;
@@ -192,10 +206,14 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		/** A cache of the list of other files that are directly or indirectly included by a C++ file. */
+		/// <summary>
+		/// A cache of the list of other files that are directly or indirectly included by a C++ file.
+		/// </summary>
 		static Dictionary<FileItem, IncludedFilesSet> ExhaustiveIncludedFilesMap = new Dictionary<FileItem, IncludedFilesSet>();
 
-		/** A cache of all files included by a C++ file, but only has files that we knew about from a previous session, loaded from a cache at startup */
+		/// <summary>
+		/// A cache of all files included by a C++ file, but only has files that we knew about from a previous session, loaded from a cache at startup
+		/// </summary>
 		static Dictionary<FileItem, IncludedFilesSet> OnlyCachedIncludedFilesMap = new Dictionary<FileItem, IncludedFilesSet>();
 
 
@@ -381,14 +399,18 @@ namespace UnrealBuildTool
 		public static int TotalDirectIncludeResolves = 0;
 
 
-		/** Regex that matches #include statements. */
+		/// <summary>
+		/// Regex that matches #include statements.
+		/// </summary>
 		static readonly Regex CPPHeaderRegex = new Regex("(([ \t]*#[ \t]*include[ \t]*[<\"](?<HeaderFile>[^\">]*)[\">][^\n]*\n*)|([^\n]*\n*))*",
 													RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture);
 
 		static readonly Regex MMHeaderRegex = new Regex("(([ \t]*#[ \t]*import[ \t]*[<\"](?<HeaderFile>[^\">]*)[\">][^\n]*\n*)|([^\n]*\n*))*",
 													RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture);
 
-		/** Regex that matches C++ code with UObject declarations which we will need to generated code for. */
+		/// <summary>
+		/// Regex that matches C++ code with UObject declarations which we will need to generated code for.
+		/// </summary>
 		static readonly Regex UObjectRegex = new Regex("^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Compiled | RegexOptions.Multiline);
 
 		// Maintains a cache of file contents
@@ -401,7 +423,9 @@ namespace UnrealBuildTool
 			return UObjectRegex.IsMatch(Contents);
 		}
 
-		/** Finds the names of files directly included by the given C++ file, and also whether the file contains any UObjects */
+		/// <summary>
+		/// Finds the names of files directly included by the given C++ file, and also whether the file contains any UObjects
+		/// </summary>
 		public static List<DependencyInclude> GetDirectIncludeDependencies(UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies)
 		{
 			// Try to fulfill request from cache first.

@@ -12,7 +12,9 @@ using Tools.DotNETCommon.CaselessDictionary;
 
 namespace UnrealBuildTool
 {
-	/** Type of module. Mirrored in UHT as EBuildModuleType */
+	/// <summary>
+	/// Type of module. Mirrored in UHT as EBuildModuleType
+	/// </summary>
 	public enum UEBuildModuleType
 	{
 		Unknown,
@@ -30,10 +32,10 @@ namespace UnrealBuildTool
 			return ModuleType != UEBuildModuleType.Game;
 		}
 	}
-	/**
-	 * Distribution level of module.
-	 * Note: The name of each entry is used to search for/create folders
-	 */
+	/// <summary>
+	/// Distribution level of module.
+	/// Note: The name of each entry is used to search for/create folders
+	/// </summary>
 	public enum UEBuildModuleDistribution
 	{
 		/// Binaries can be distributed to everyone
@@ -50,10 +52,14 @@ namespace UnrealBuildTool
 	}
 
 
-	/** A unit of code compilation and linking. */
+	/// <summary>
+	/// A unit of code compilation and linking.
+	/// </summary>
 	public abstract class UEBuildModule
 	{
-		/** Known module folders */
+		/// <summary>
+		/// Known module folders
+		/// </summary>
 		public static readonly string RuntimeFolder = String.Format("{0}Runtime{0}", Path.DirectorySeparatorChar);
 		public static readonly string DeveloperFolder = String.Format("{0}Developer{0}", Path.DirectorySeparatorChar);
 		public static readonly string EditorFolder = String.Format("{0}Editor{0}", Path.DirectorySeparatorChar);
@@ -100,9 +106,9 @@ namespace UnrealBuildTool
 			return ModuleType;
 		}
 
-		/**
-		 * Checks what distribution level a particular path should have by checking for key folders anywhere in it
-		 */
+		/// <summary>
+		/// Checks what distribution level a particular path should have by checking for key folders anywhere in it
+		/// </summary>
 		public static UEBuildModuleDistribution GetModuleDistributionLevelBasedOnLocation(string FilePath)
 		{
 			// Get full path to ensure all folder separators are the same
@@ -133,9 +139,9 @@ namespace UnrealBuildTool
 			return UEBuildModuleDistribution.Public;
 		}
 
-		/**
-		 * Determines the distribution level of a module based on its directory and includes.
-		 */
+		/// <summary>
+		/// Determines the distribution level of a module based on its directory and includes.
+		/// </summary>
 		public UEBuildModuleDistribution DetermineDistributionLevel()
 		{
 			List<string> PathsToCheck = new List<string>();
@@ -157,38 +163,52 @@ namespace UnrealBuildTool
 			return DistributionLevel;
 		}
 
-		/** Converts an optional string list parameter to a well-defined hash set. */
+		/// <summary>
+		/// Converts an optional string list parameter to a well-defined hash set.
+		/// </summary>
 		protected static HashSet<string> HashSetFromOptionalEnumerableStringParameter(IEnumerable<string> InEnumerableStrings)
 		{
 			return InEnumerableStrings == null ? new HashSet<string>() : new HashSet<string>(InEnumerableStrings);
 		}
 
-		/** The target which owns this module. */
+		/// <summary>
+		/// The target which owns this module.
+		/// </summary>
 		public readonly UEBuildTarget Target;
 
-		/** The name that uniquely identifies the module. */
+		/// <summary>
+		/// The name that uniquely identifies the module.
+		/// </summary>
 		public readonly string Name;
 
-		/** The type of module being built. Used to switch between debug/development and precompiled/source configurations. */
+		/// <summary>
+		/// The type of module being built. Used to switch between debug/development and precompiled/source configurations.
+		/// </summary>
 		public UEBuildModuleType Type;
 
-		/** The rules for this module */
+		/// <summary>
+		/// The rules for this module
+		/// </summary>
 		public ModuleRules Rules;
 
-		/** Path to the module directory */
+		/// <summary>
+		/// Path to the module directory
+		/// </summary>
 		public readonly DirectoryReference ModuleDirectory;
 
-		/** Is this module allowed to be redistributed. */
+		/// <summary>
+		/// Is this module allowed to be redistributed.
+		/// </summary>
 		private readonly bool? IsRedistributableOverride;
 
-		/** The name of the .Build.cs file this module was created from, if any */
+		/// <summary>
+		/// The name of the .Build.cs file this module was created from, if any
+		/// </summary>
 		public FileReference RulesFile;
 
-		/**
-		 * Tells if this module can be redistributed.
-		 * 
-		 * @returns True if this module can be redistributed. False otherwise.
-		 */
+		/// <summary>
+		/// Tells if this module can be redistributed.
+		/// </summary>
 		public bool IsRedistributable()
 		{
 			return IsRedistributableOverride.HasValue
@@ -196,16 +216,24 @@ namespace UnrealBuildTool
 				: (Type != UEBuildModuleType.Developer && Type != UEBuildModuleType.Editor);
 		}
 
-		/** The binary the module will be linked into for the current target.  Only set after UEBuildBinary.BindModules is called. */
+		/// <summary>
+		/// The binary the module will be linked into for the current target.  Only set after UEBuildBinary.BindModules is called.
+		/// </summary>
 		public UEBuildBinary Binary = null;
 
-		/** Whether this module is included in the current target.  Only set after UEBuildBinary.BindModules is called. */
+		/// <summary>
+		/// Whether this module is included in the current target.  Only set after UEBuildBinary.BindModules is called.
+		/// </summary>
 		public bool bIncludedInTarget = false;
 
-		/** Include path for this module's base directory, relative to the Engine/Source directory */
+		/// <summary>
+		/// Include path for this module's base directory, relative to the Engine/Source directory
+		/// </summary>
 		protected string NormalizedModuleIncludePath;
 
-		/** The name of the _API define for this module */
+		/// <summary>
+		/// The name of the _API define for this module
+		/// </summary>
 		protected readonly string ModuleApiDefine;
 
 		protected readonly HashSet<string> PublicDefinitions;
@@ -220,28 +248,44 @@ namespace UnrealBuildTool
 		protected readonly HashSet<string> PublicAdditionalShadowFiles;
 		protected readonly HashSet<UEBuildBundleResource> PublicAdditionalBundleResources;
 
-		/** Names of modules with header files that this module's public interface needs access to. */
+		/// <summary>
+		/// Names of modules with header files that this module's public interface needs access to.
+		/// </summary>
 		protected List<UEBuildModule> PublicIncludePathModules;
 
-		/** Names of modules that this module's public interface depends on. */
+		/// <summary>
+		/// Names of modules that this module's public interface depends on.
+		/// </summary>
 		protected List<UEBuildModule> PublicDependencyModules;
 
-		/** Names of DLLs that this module should delay load */
+		/// <summary>
+		/// Names of DLLs that this module should delay load
+		/// </summary>
 		protected HashSet<string> PublicDelayLoadDLLs;
 
-		/** Names of modules with header files that this module's private implementation needs access to. */
+		/// <summary>
+		/// Names of modules with header files that this module's private implementation needs access to.
+		/// </summary>
 		protected List<UEBuildModule> PrivateIncludePathModules;
 
-		/** Names of modules that this module's private implementation depends on. */
+		/// <summary>
+		/// Names of modules that this module's private implementation depends on.
+		/// </summary>
 		protected List<UEBuildModule> PrivateDependencyModules;
 
-		/** Extra modules this module may require at run time */
+		/// <summary>
+		/// Extra modules this module may require at run time
+		/// </summary>
 		protected List<UEBuildModule> DynamicallyLoadedModules;
 
-		/** Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like) */
+		/// <summary>
+		/// Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like)
+		/// </summary>
 		protected List<UEBuildModule> PlatformSpecificDynamicallyLoadedModules;
 
-		/** Files which this module depends on at runtime. */
+		/// <summary>
+		/// Files which this module depends on at runtime.
+		/// </summary>
 		public List<RuntimeDependency> RuntimeDependencies;
 
 		public UEBuildModule(
@@ -281,13 +325,17 @@ namespace UnrealBuildTool
 			Target.RegisterModule(this);
 		}
 
-		/** Determines whether this module has a circular dependency on the given module */
+		/// <summary>
+		/// Determines whether this module has a circular dependency on the given module
+		/// </summary>
 		public bool HasCircularDependencyOn(string ModuleName)
 		{
 			return Rules.CircularlyReferencedDependentModules.Contains(ModuleName);
 		}
 
-		/** Sets up the environment for compiling any module that includes the public interface of this module. */
+		/// <summary>
+		/// Sets up the environment for compiling any module that includes the public interface of this module.
+		/// </summary>
 		protected virtual void SetupPublicCompileEnvironment(
 			UEBuildBinary SourceBinary,
 			bool bIncludePathsOnly,
@@ -397,13 +445,17 @@ namespace UnrealBuildTool
 
 		static Regex VCMacroRegex = new Regex(@"\$\([A-Za-z0-9_]+\)");
 
-		/** Checks if path contains a VC macro */
+		/// <summary>
+		/// Checks if path contains a VC macro
+		/// </summary>
 		protected bool DoesPathContainVCMacro(string Path)
 		{
 			return VCMacroRegex.IsMatch(Path);
 		}
 
-		/** Adds PathsToAdd to IncludePaths, performing path normalization and ignoring duplicates. */
+		/// <summary>
+		/// Adds PathsToAdd to IncludePaths, performing path normalization and ignoring duplicates.
+		/// </summary>
 		protected void AddIncludePathsWithChecks(HashSet<string> IncludePaths, HashSet<string> PathsToAdd)
 		{
 			if (ProjectFileGenerator.bGenerateProjectFiles)
@@ -426,7 +478,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Sets up the environment for compiling this module. */
+		/// <summary>
+		/// Sets up the environment for compiling this module.
+		/// </summary>
 		protected virtual void SetupPrivateCompileEnvironment(
 			HashSet<string> IncludePaths,
 			HashSet<string> SystemIncludePaths,
@@ -462,7 +516,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Sets up the environment for linking any module that includes the public interface of this module. */
+		/// <summary>
+		/// Sets up the environment for linking any module that includes the public interface of this module.
+		/// </summary>
 		protected virtual void SetupPublicLinkEnvironment(
 			UEBuildBinary SourceBinary,
 			List<string> LibraryPaths,
@@ -533,7 +589,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Sets up the environment for linking this module. */
+		/// <summary>
+		/// Sets up the environment for linking this module.
+		/// </summary>
 		public virtual void SetupPrivateLinkEnvironment(
 			UEBuildBinary SourceBinary,
 			LinkEnvironment LinkEnvironment,
@@ -557,7 +615,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Compiles the module, and returns a list of files output by the compiler. */
+		/// <summary>
+		/// Compiles the module, and returns a list of files output by the compiler.
+		/// </summary>
 		public abstract List<FileItem> Compile(IUEToolChain ToolChain, CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment);
 
 		// Object interface.
@@ -573,37 +633,35 @@ namespace UnrealBuildTool
 			public int Index;
 		}
 
-		/**
-		 * Gets all of the modules referenced by this module
-		 * 
-		 * @param	ReferencedModules	Hash of all referenced modules with their addition index.
-		 * @param	bIncludeDynamicallyLoaded	True if dynamically loaded modules (and all of their dependent modules) should be included.
-		 * @param	bForceCircular	True if circular dependencies should be processed
-		 * @param	bOnlyDirectDependencies	True to return only this module's direct dependencies
-		 */
+		/// <summary>
+		/// Gets all of the modules referenced by this module
+		/// </summary>
+		/// <param name="ReferencedModules">Hash of all referenced modules with their addition index.</param>
+		/// <param name="bIncludeDynamicallyLoaded">True if dynamically loaded modules (and all of their dependent modules) should be included.</param>
+		/// <param name="bForceCircular">True if circular dependencies should be processed</param>
+		/// <param name="bOnlyDirectDependencies">True to return only this module's direct dependencies</param>
 		public virtual void GetAllDependencyModules(CaselessDictionary<ModuleIndexPair> ReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
 		{
 		}
 
-		/**
-		 * Gets all of the modules precompiled along with this module
-		 * 
-		 * @param	Modules	Set of all the precompiled modules
-		 */
+		/// <summary>
+		/// Gets all of the modules precompiled along with this module
+		/// </summary>
+		/// <param name="Modules">Set of all the precompiled modules</param>
 		public virtual void RecursivelyAddPrecompiledModules(List<UEBuildModule> Modules)
 		{
 		}
 
-		/**
-		 * Gathers and binds binaries for this module and all of it's dependent modules
-		 */
+		/// <summary>
+		/// Gathers and binds binaries for this module and all of it's dependent modules
+		/// </summary>
 		public virtual void RecursivelyProcessUnboundModules()
 		{
 		}
 
-		/**
-		 * Creates all the modules required for this target
-		 */
+		/// <summary>
+		/// Creates all the modules required for this target
+		/// </summary>
 		public void RecursivelyCreateModules()
 		{
 			// Create all the include path modules. These modules may not be added to the target (and we don't process their dependencies), but they need 
@@ -652,7 +710,9 @@ namespace UnrealBuildTool
 		}
 	};
 
-	/** A module that is never compiled by us, and is only used to group include paths and libraries into a dependency unit. */
+	/// <summary>
+	/// A module that is never compiled by us, and is only used to group include paths and libraries into a dependency unit.
+	/// </summary>
 	class UEBuildExternalModule : UEBuildModule
 	{
 		public UEBuildExternalModule(
@@ -682,14 +742,18 @@ namespace UnrealBuildTool
 		}
 	};
 
-	/** A module that is compiled from C++ code. */
+	/// <summary>
+	/// A module that is compiled from C++ code.
+	/// </summary>
 	public class UEBuildModuleCPP : UEBuildModule
 	{
 		public class AutoGenerateCppInfoClass
 		{
 			public class BuildInfoClass
 			{
-				/** The wildcard of the *.generated.cpp file which was generated for the module */
+				/// <summary>
+				/// The wildcard of the *.generated.cpp file which was generated for the module
+				/// </summary>
 				public readonly string FileWildcard;
 
 				public BuildInfoClass(string InWildcard)
@@ -700,7 +764,9 @@ namespace UnrealBuildTool
 				}
 			}
 
-			/** Information about how to build the .generated.cpp files. If this is null, then we're not building .generated.cpp files for this module. */
+			/// <summary>
+			/// Information about how to build the .generated.cpp files. If this is null, then we're not building .generated.cpp files for this module.
+			/// </summary>
 			public BuildInfoClass BuildInfo;
 
 			public AutoGenerateCppInfoClass(BuildInfoClass InBuildInfo)
@@ -709,7 +775,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Information about the .generated.cpp file.  If this is null then this module doesn't have any UHT-produced code. */
+		/// <summary>
+		/// Information about the .generated.cpp file.  If this is null then this module doesn't have any UHT-produced code.
+		/// </summary>
 		public AutoGenerateCppInfoClass AutoGenerateCppInfo = null;
 
 		public class SourceFilesClass
@@ -763,26 +831,33 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Adds additional source cpp files for this module.
-		 *
-		 * @param Files Files to add.
-		 */
+		/// <summary>
+		/// Adds additional source cpp files for this module.
+		/// </summary>
+		/// <param name="Files">Files to add.</param>
 		public void AddAdditionalCPPFiles(IEnumerable<FileItem> Files)
 		{
 			SourceFilesToBuild.CPPFiles.AddRange(Files);
 		}
 
-		/** A list of the absolute paths of source files to be built in this module. */
+		/// <summary>
+		/// A list of the absolute paths of source files to be built in this module.
+		/// </summary>
 		public readonly SourceFilesClass SourceFilesToBuild = new SourceFilesClass();
 
-		/** A list of the source files that were found for the module. */
+		/// <summary>
+		/// A list of the source files that were found for the module.
+		/// </summary>
 		public readonly SourceFilesClass SourceFilesFound = new SourceFilesClass();
 
-		/** The directory for this module's generated code */
+		/// <summary>
+		/// The directory for this module's generated code
+		/// </summary>
 		public readonly DirectoryReference GeneratedCodeDirectory;
 
-		/** The preprocessor definitions used to compile this module's private implementation. */
+		/// <summary>
+		/// The preprocessor definitions used to compile this module's private implementation.
+		/// </summary>
 		HashSet<string> Definitions;
 
 		/// When set, allows this module to report compiler definitions and include paths for Intellisense
@@ -792,17 +867,25 @@ namespace UnrealBuildTool
 
 		public class ProcessedDependenciesClass
 		{
-			/** The file, if any, which is used as the unique PCH for this module */
+			/// <summary>
+			/// The file, if any, which is used as the unique PCH for this module
+			/// </summary>
 			public FileItem UniquePCHHeaderFile = null;
 		}
 
-		/** The processed dependencies for the class */
+		/// <summary>
+		/// The processed dependencies for the class
+		/// </summary>
 		public ProcessedDependenciesClass ProcessedDependencies = null;
 
-		/** @hack to skip adding definitions to compile environment. They will be baked into source code by external code. */
+		/// <summary>
+		/// Hack to skip adding definitions to compile environment. They will be baked into source code by external code.
+		/// </summary>
 		public bool bSkipDefinitionsForCompileEnvironment = false;
 
-		/** Categorizes source files into per-extension buckets */
+		/// <summary>
+		/// Categorizes source files into per-extension buckets
+		/// </summary>
 		private static void CategorizeSourceFiles(IEnumerable<FileItem> InSourceFiles, SourceFilesClass OutSourceFiles)
 		{
 			foreach (var SourceFile in InSourceFiles)
@@ -1755,10 +1838,14 @@ namespace UnrealBuildTool
 		}
 	}
 
-	/** A module that is compiled from C++ CLR code. */
+	/// <summary>
+	/// A module that is compiled from C++ CLR code.
+	/// </summary>
 	class UEBuildModuleCPPCLR : UEBuildModuleCPP
 	{
-		/** The assemblies referenced by the module's private implementation. */
+		/// <summary>
+		/// The assemblies referenced by the module's private implementation.
+		/// </summary>
 		HashSet<string> PrivateAssemblyReferences;
 
 		public UEBuildModuleCPPCLR(
@@ -1854,27 +1941,41 @@ namespace UnrealBuildTool
 
 	public class PrecompileHeaderEnvironment
 	{
-		/** The name of the module this PCH header is a member of */
+		/// <summary>
+		/// The name of the module this PCH header is a member of
+		/// </summary>
 		public readonly string ModuleName;
 
-		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
-			This is needed by some compilers to use PCH features. */
+		/// <summary>
+		/// PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
+		/// This is needed by some compilers to use PCH features.
+		/// </summary>
 		public string PCHHeaderNameInCode;
 
-		/** The source header file that this precompiled header will be generated for */
+		/// <summary>
+		/// The source header file that this precompiled header will be generated for
+		/// </summary>
 		public readonly FileItem PrecompiledHeaderIncludeFilename;
 
-		/** Whether this precompiled header will be built with CLR features enabled.  We won't mix and match CLR PCHs with non-CLR PCHs */
+		/// <summary>
+		/// Whether this precompiled header will be built with CLR features enabled.  We won't mix and match CLR PCHs with non-CLR PCHs
+		/// </summary>
 		public readonly CPPCLRMode CLRMode;
 
-		/** Whether this precompiled header will be built with code optimization enabled. */
+		/// <summary>
+		/// Whether this precompiled header will be built with code optimization enabled.
+		/// </summary>
 		public readonly ModuleRules.CodeOptimization OptimizeCode;
 
-		/** The PCH file we're generating */
+		/// <summary>
+		/// The PCH file we're generating
+		/// </summary>
 		public FileItem PrecompiledHeaderFile = null;
 
-		/** Object files emitted from the compiler when generating this precompiled header.  These will be linked into modules that
-			include this PCH */
+		/// <summary>
+		/// Object files emitted from the compiler when generating this precompiled header.  These will be linked into modules that
+		/// include this PCH
+		/// </summary>
 		public readonly List<FileItem> OutputObjectFiles = new List<FileItem>();
 
 		public PrecompileHeaderEnvironment(string InitModuleName, string InitPCHHeaderNameInCode, FileItem InitPrecompiledHeaderIncludeFilename, CPPCLRMode InitCLRMode, ModuleRules.CodeOptimization InitOptimizeCode)

@@ -131,7 +131,9 @@ namespace UnrealBuildTool
 		{
 		}
 
-		/** Gets Xcode file category based on its extension */
+		/// <summary>
+		/// Gets Xcode file category based on its extension
+		/// </summary>
 		private string GetFileCategory(string Extension)
 		{
 			// @todo Mac: Handle more categories
@@ -144,7 +146,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Gets Xcode file type based on its extension */
+		/// <summary>
+		/// Gets Xcode file type based on its extension
+		/// </summary>
 		private string GetFileType(string Extension)
 		{
 			// @todo Mac: Handle more file types
@@ -168,7 +172,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Returns true if Extension is a known extension for files containing source code */
+		/// <summary>
+		/// Returns true if Extension is a known extension for files containing source code
+		/// </summary>
 		private bool IsSourceCode(string Extension)
 		{
 			return Extension == ".c" || Extension == ".cc" || Extension == ".cpp" || Extension == ".m" || Extension == ".mm";
@@ -205,10 +211,10 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		/**
-		 * Returns a project navigator group to which the file should belong based on its path.
-		 * Creates a group tree if it doesn't exist yet.
-		 */
+		/// <summary>
+		/// Returns a project navigator group to which the file should belong based on its path.
+		/// Creates a group tree if it doesn't exist yet.
+		/// </summary>
 		public XcodeFileGroup FindGroupByFullPath(ref Dictionary<string, XcodeFileGroup> Groups, DirectoryReference FullPath)
 		{
 			string RelativePath = (FullPath == XcodeProjectFileGenerator.MasterProjectPath) ? "" : FullPath.MakeRelativeTo(XcodeProjectFileGenerator.MasterProjectPath);
@@ -269,9 +275,9 @@ namespace UnrealBuildTool
 			return new XcodeSourceFile(InitFilePath, InitProjectSubFolder);
 		}
 
-		/**
-		 * Generates bodies of all sections that contain a list of source files plus a dictionary of project navigator groups.
-		 */
+		/// <summary>
+		/// Generates bodies of all sections that contain a list of source files plus a dictionary of project navigator groups.
+		/// </summary>
 		public void GenerateSectionsContents(ref string PBXBuildFileSection, ref string PBXFileReferenceSection,
 											 ref string PBXSourcesBuildPhaseSection, ref Dictionary<string, XcodeFileGroup> Groups)
 		{

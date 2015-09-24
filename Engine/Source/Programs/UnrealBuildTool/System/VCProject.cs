@@ -1144,7 +1144,9 @@ namespace UnrealBuildTool
 	}
 
 
-	/** A Visual C# project. */
+	/// <summary>
+	/// A Visual C# project.
+	/// </summary>
 	public class VCSharpProjectFile : MSBuildProjectFile
 	{
 		// This is the GUID that Visual Studio uses to identify a C# project file in the solution
@@ -1163,7 +1165,9 @@ namespace UnrealBuildTool
 		}
 
 
-		/** Reads the list of dependencies from the specified project file. */
+		/// <summary>
+		/// Reads the list of dependencies from the specified project file.
+		/// </summary>
 		public List<string> GetCSharpDependencies()
 		{
 			var RelativeFilePaths = new List<string>();
@@ -1183,11 +1187,10 @@ namespace UnrealBuildTool
 			return RelativeFilePaths;
 		}
 
-		/**
-		 * Adds a C# dot net (system) assembly reference to this project
-		 *
-		 * @param	AssemblyReference	The full path to the assembly file on disk
-		 */
+		/// <summary>
+		/// Adds a C# dot net (system) assembly reference to this project
+		/// </summary>
+		/// <param name="AssemblyReference">The full path to the assembly file on disk</param>
 		public void AddDotNetAssemblyReference(string AssemblyReference)
 		{
 			if (!DotNetAssemblyReferences.Contains(AssemblyReference))
@@ -1196,11 +1199,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/**
-		 * Adds a C# assembly reference to this project, such as a third party assembly needed for this project to compile
-		 *
-		 * @param	AssemblyReference	The full path to the assembly file on disk
-		 */
+		/// <summary>
+		/// Adds a C# assembly reference to this project, such as a third party assembly needed for this project to compile
+		/// </summary>
+		/// <param name="AssemblyReference">The full path to the assembly file on disk</param>
 		public void AddAssemblyReference(FileReference AssemblyReference)
 		{
 			AssemblyReferences.Add(AssemblyReference);
