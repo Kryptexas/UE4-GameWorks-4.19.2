@@ -4,7 +4,7 @@ Description:
 Availability:Public
 Version: 4.9
 
-This function can only be called on 'this' in a blueprint. It cannot be called on another instance.
+This function can only be called on 'this' in a **Blueprint**. It cannot be called on another instance.
 
 ## Usage
 
