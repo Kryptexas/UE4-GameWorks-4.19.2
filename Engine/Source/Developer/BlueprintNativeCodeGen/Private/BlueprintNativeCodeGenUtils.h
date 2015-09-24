@@ -17,10 +17,10 @@ public:
 	/**
 	 * 
 	 * 
-	 * @param  Coordinator    
+	 * @param  CommandParams    
 	 * @return 
 	 */
-	static bool GenerateCodeModule(const FNativeCodeGenCommandlineParams& CommandParams);
+	static bool GeneratePlugin(const FNativeCodeGenCommandlineParams& CommandParams);
 
 	/**
 	 * Recompiles the bytecode of a blueprint only. Should only be run for

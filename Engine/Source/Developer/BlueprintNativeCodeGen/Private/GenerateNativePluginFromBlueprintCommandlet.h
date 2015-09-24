@@ -3,11 +3,11 @@
 #pragma once
 
 #include "Commandlets/Commandlet.h"
-#include "GenerateBlueprintCodeModuleCommandlet.generated.h"
+#include "GenerateNativePluginFromBlueprintCommandlet.generated.h"
 
 /**  */
 UCLASS()
-class UGenerateBlueprintCodeModuleCommandlet : public UCommandlet
+class UGenerateNativePluginFromBlueprintCommandlet : public UCommandlet
 {
 	GENERATED_UCLASS_BODY()
 

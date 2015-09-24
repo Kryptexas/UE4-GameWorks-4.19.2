@@ -15,8 +15,8 @@ public:
 	bool            bHelpRequested : 1;
 	TArray<FString> WhiteListedAssetPaths;
 	TArray<FString> BlackListedAssetPaths;
-	FString         ModuleOutputDir;
-	FString			ModuleName;
+	FString         OutputDir;
+	FString			PluginName;
 	FString			ManifestFilePath;
 	bool            bWipeRequested : 1;
 	bool            bPreviewRequested : 1;

@@ -1,5 +1,4 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintNativeCodeGenPCH.h"
 #include "NativeCodeGenCommandlineParams.h"
@@ -11,14 +10,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenCommandline, Log, All);
 const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
 \n\
 -------------------------------------------------------------------------------\n\
-::  GenerateBlueprintCodeModule    ::    Converts Blueprint assets into C++    \n\
+::  GenerateNativePluginFromBlueprint :: Converts Blueprint assets into C++    \n\
 -------------------------------------------------------------------------------\n\
 \n\
 ::                                                                             \n\
 :: Usage                                                                       \n\
 ::                                                                             \n\
 \n\
-    UE4Editor.exe <project> -run=GenerateBlueprintCodeModule [parameters]      \n\
+    UE4Editor.exe <project> -run=GenerateNativePluginFromBlueprint [parameters]\n\
 \n\
 ::                                                                             \n\
 :: Parameters                                                                  \n\
@@ -30,34 +29,38 @@ const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
                         the form: /Game/MyContentDir,/Engine/EngineAssetName.  \n\
 \n\
     -blacklist=<Assets> Explicitly specifies assets that you don't want        \n\
-                        converted (listed in the same manner as -whitelist).   \n\
-                        This takes priority over the whitelist (even if it     \n\
-                        results in uncompilable code).                         \n\
+                        converted (listed in the same manner as the -whitelist \n\
+                        param). This takes priority over the whitelist (even if\n\
+                        it results in uncompilable code).                      \n\
 \n\
-    -output=<ModuleDir> Specifies the path where you want converted assets     \n\
+    -output=<TargetDir> Specifies the path where you want converted assets     \n\
                         saved to. If left unset, this will default to the      \n\
                         project's intermeadiate folder (within a sub-folder of \n\
                         its own). If specified as a relative path, it will be  \n\
-                        relative to the target project's root directory.       \n\
+                        interpreted as relative to the project directory.      \n\
 \n\
-    -moduleName=<Name>  Defines the output module's name. If left unset, then  \n\
-                        the module will default to... \n\
+    -pluginName=<Name>  Defines the generated plugin's name. If the output     \n\
+                        directory doesn't match this in name, then a sub-folder\n\
+                        will be created there to house the plugin.             \n\
 \n\
-    -wipe               Will clear out the target directory when specified.    \n\
-                        Normally, without this switch, if the target directory \n\
-                        contains source from a previous run, it builds atop the\n\
-                        existing module and appends to its existing manifest.  \n\
+    -noWipe             By default, we'll clear out the target directory from  \n\
+                        previous conversions. However, with this, if the       \n\
+						target directory contains source from a previous run,  \n\
+                        we'll build atop the existing module and appends to its\n\
+						existing manifest.                                     \n\
 \n\
-    -manifest=<Path>    Specifies where to save the conversion's manifest file.\n\
-                        If <Path> is not an existing directory or file, then it\n\
-                        is assumed that it is a file path. If a manifest       \n\
-                        already exists here, then we can use this in place of  \n\
-                        the -output command (and the target module directory   \n\
-                        will be determined by the old manifest file). If left  \n\
-                        unset, then it will default to the module's target     \n\
-                        directory.                                             \n\
+    -manifest=<Path>    Specifies where to save the resultant manifest file. If\n\
+                        <Path> is not an existing directory or file, then it is\n\
+                        assumed that this is a file path. If a manifest already\n\
+                        exists here, then it'll be used to define the target   \n\
+                        output directory (which will be read from the existing \n\
+                        manifest file). If left unset then the manifest will   \n\
+                        default to the plugin's directory.                     \n\
 \n\
-    -preview            \n\
+    -preview            When specified, the process will NOT wipe any existing \n\
+                        files, and the target assets will NOT be compiled and  \n\
+						converted. Instead, just a manifest file will be       \n\
+						generated, detailing the command's predicted output.   \n\
 \n\
     -help, -h, -?       Display this message and then exit.                    \n\
 \n");
@@ -68,10 +71,27 @@ const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
 
 namespace NativeCodeGenCommandlineParamsImpl
 {
-	static const FString DefaultModuleName(TEXT("BpCodeGen"));
+	static const FString DefaultPluginName(TEXT("GeneratedBpCode"));
 	static const FString ParamListDelim(TEXT(","));
+
+	/**
+	 * Cleans up  the passed in path from the commandline (removes quotes, 
+	 * corrects slashes, etc.), so that it is ready to be utilized by the 
+	 * conversion process.
+	 * 
+	 * @param  PathInOut    The path you want standardized.
+	 */
+	static void SanitizePathParam(FString& PathInOut);
 }
  
+//------------------------------------------------------------------------------
+static void NativeCodeGenCommandlineParamsImpl::SanitizePathParam(FString& PathInOut)
+{
+	PathInOut.RemoveFromStart(TEXT("\""));
+	PathInOut.RemoveFromEnd(TEXT("\""));
+	FPaths::NormalizeDirectoryName(PathInOut);
+}
+
 /*******************************************************************************
  * FNativeCodeGenCommandlineParams
  ******************************************************************************/
@@ -79,11 +99,12 @@ namespace NativeCodeGenCommandlineParamsImpl
 //------------------------------------------------------------------------------
 FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FString>& CommandlineSwitches)
 	: bHelpRequested(false)
-	, bWipeRequested(false)
+	, bWipeRequested(true)
 	, bPreviewRequested(false)
 {
+	using namespace NativeCodeGenCommandlineParamsImpl;
+
 	IFileManager& FileManager = IFileManager::Get();
-	const FString DefaultModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), *NativeCodeGenCommandlineParamsImpl::DefaultModuleName);
 
 	for (const FString& Param : CommandlineSwitches)
 	{
@@ -106,7 +127,7 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 		}
 		else if (!Switch.Compare(TEXT("output"), ESearchCase::IgnoreCase))
 		{
-			FPaths::NormalizeDirectoryName(Value);
+			SanitizePathParam(Value);
 			// if it's a relative path, let's have it relative to the game 
 			// directory (not the UE executable)
 			if (FPaths::IsRelative(Value))
@@ -116,20 +137,20 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 
 			if (FileManager.DirectoryExists(*Value) || FileManager.MakeDirectory(*Value))
 			{
-				ModuleOutputDir = Value;
+				OutputDir = Value;
 			}
 			else
 			{
-				UE_LOG(LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid output directory, defaulting to: '%s'"), *Value, *DefaultModulePath);
+				UE_LOG(LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid output directory, reverting to the default."), *Value);
 			}
 		}
-		else if (!Switch.Compare(TEXT("moduleName"), ESearchCase::IgnoreCase))
+		else if (!Switch.Compare(TEXT("pluginName"), ESearchCase::IgnoreCase))
 		{
-			ModuleName = Value;
+			PluginName = Value;
 		}
-		else if (!Switch.Compare(TEXT("wipe"), ESearchCase::IgnoreCase))
+		else if (!Switch.Compare(TEXT("noWipe"), ESearchCase::IgnoreCase))
 		{
-			bWipeRequested = true;
+			bWipeRequested = false;
 		}
 		else if (!Switch.Compare(TEXT("preview"), ESearchCase::IgnoreCase))
 		{
@@ -137,7 +158,7 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 		}
 		else if (!Switch.Compare(TEXT("manifest"), ESearchCase::IgnoreCase))
 		{
-			FPaths::NormalizeDirectoryName(Value);
+			SanitizePathParam(Value);
 
 			if (FileManager.FileExists(*Value))
 			{
@@ -162,8 +183,8 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 					{
 						Value = FPaths::ConvertRelativePathToFull(Value);
 					}
-					UE_LOG( LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid manifest file path, defaulting to: '%s'."), *Value,
-						*FPaths::Combine(*DefaultModulePath, *FBlueprintNativeCodeGenManifest::GetDefaultFilename()) );
+					UE_LOG( LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid manifest file name/path, defaulting to: '%s'."), 
+						*Value,	*FBlueprintNativeCodeGenManifest::GetDefaultFilename() );
 				}
 			}
 		}
@@ -174,16 +195,22 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 	}
 
 	bool const bUtilizeExistingManifest = !ManifestFilePath.IsEmpty() && !bWipeRequested && FileManager.FileExists(*ManifestFilePath);
-	// an existing manifest would specify where to put the module
+	// an existing manifest would specify where to put the plugin
 	if (!bUtilizeExistingManifest)
 	{
-		if (ModuleName.IsEmpty())
+		if (PluginName.IsEmpty())
 		{
-			ModuleName = NativeCodeGenCommandlineParamsImpl::DefaultModuleName;
+			PluginName = NativeCodeGenCommandlineParamsImpl::DefaultPluginName;
 		}
-		if (ModuleOutputDir.IsEmpty())
+		if (OutputDir.IsEmpty())
 		{
-			ModuleOutputDir = DefaultModulePath;
+			const FString DefaultOutputPath = FPaths::Combine(*FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("Plugins")), *PluginName);
+			OutputDir = DefaultOutputPath;
+		}
+
+		if ( PluginName.Compare(FPaths::GetBaseFilename(OutputDir)) )
+		{
+			OutputDir = FPaths::Combine(*OutputDir, *PluginName);
 		}
 	}	
 }

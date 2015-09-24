@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintNativeCodeGenPCH.h"
-#include "GenerateBlueprintCodeModuleCommandlet.h"
+#include "GenerateNativePluginFromBlueprintCommandlet.h"
 #include "NativeCodeGenCommandlineParams.h"
 #include "BlueprintNativeCodeGenCoordinator.h"
 #include "BlueprintNativeCodeGenUtils.h"
@@ -9,25 +9,17 @@
 #include "FileManager.h"
 
 /*******************************************************************************
- * GenerateBlueprintCodeModuleImpl
-*******************************************************************************/
-
-namespace GenerateBlueprintCodeModuleImpl
-{
-}
-
-/*******************************************************************************
- * UGenerateBlueprintCodeModuleCommandlet
+ * UGenerateNativePluginFromBlueprintCommandlet
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-UGenerateBlueprintCodeModuleCommandlet::UGenerateBlueprintCodeModuleCommandlet(FObjectInitializer const& ObjectInitializer)
+UGenerateNativePluginFromBlueprintCommandlet::UGenerateNativePluginFromBlueprintCommandlet(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }
 
 //------------------------------------------------------------------------------
-int32 UGenerateBlueprintCodeModuleCommandlet::Main(FString const& Params)
+int32 UGenerateNativePluginFromBlueprintCommandlet::Main(FString const& Params)
 {
 	TArray<FString> Tokens, Switches;
 	ParseCommandLine(*Params, Tokens, Switches);
@@ -41,9 +33,8 @@ int32 UGenerateBlueprintCodeModuleCommandlet::Main(FString const& Params)
 	}
 
 	FBlueprintNativeCodeGenUtils::FScopedFeedbackContext ScopedErrorTracker;
-	{
-		FBlueprintNativeCodeGenUtils::GenerateCodeModule(CommandlineParams);
-	}
-	return ScopedErrorTracker.HasErrors();
+	const bool bSuccess = FBlueprintNativeCodeGenUtils::GeneratePlugin(CommandlineParams);
+
+	return bSuccess && ScopedErrorTracker.HasErrors();
 }
 

@@ -24,8 +24,30 @@ DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
 namespace BlueprintNativeCodeGenUtilsImpl
 {
+	/**
+	 * Deletes the files/directories in the supplied array.
+	 * 
+	 * @param  TargetPaths    The set of directory and file paths that you want deleted.
+	 * @return True if all the files/directories were successfully deleted, other wise false.
+	 */
 	static bool WipeTargetPaths(const TArray<FString>& TargetPaths);
-	static bool GenerateModuleBuildFile(const FString& ModuleName, const FBlueprintNativeCodeGenManifest& Manifest);
+	
+	/**
+	 * Creates and fills out a new .uplugin file for the converted assets.
+	 * 
+	 * @param  PluginName	The name of the plugin you're generating.
+	 * @param  Manifest		Defines where the plugin file should be saved.
+	 * @return True if the file was successfully saved, otherwise false.
+	 */
+	static bool GeneratePluginDescFile(const FString& PluginName, const FBlueprintNativeCodeGenManifest& Manifest);
+
+	/**
+	 * Creates and fills out a new .Build.cs file for the target module.
+	 * 
+	 * @param  Manifest    Defines where the module file should be saved, what it should be named, etc..
+	 * @return True if the file was successfully saved, otherwise false.
+	 */
+	static bool GenerateModuleBuildFile(const FBlueprintNativeCodeGenManifest& Manifest);
 }
 
 //------------------------------------------------------------------------------
@@ -50,7 +72,40 @@ static bool BlueprintNativeCodeGenUtilsImpl::WipeTargetPaths(const TArray<FStrin
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FString& ModuleName, const FBlueprintNativeCodeGenManifest& Manifest)
+static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FString& PluginName, const FBlueprintNativeCodeGenManifest& Manifest)
+{
+	FPluginDescriptor PluginDesc;
+	PluginDesc.FriendlyName = PluginName;
+	PluginDesc.CreatedBy    = TEXT("Epic Games, Inc.");
+	PluginDesc.CreatedByURL = TEXT("http://epicgames.com");
+	PluginDesc.Description  = TEXT("A programatically generated plugin which contains source files produced from Blueprint assets. The aim of this is to help performance by eliminating script overhead for the converted assets (using the source files in place of thier coresponding assets).");
+	PluginDesc.DocsURL      = TEXT("@TODO");
+	PluginDesc.SupportURL   = TEXT("https://answers.unrealengine.com/");
+	PluginDesc.Category     = TEXT("Intermediate");
+	PluginDesc.bEnabledByDefault  = true;
+	PluginDesc.bCanContainContent = false;
+	PluginDesc.bIsBetaVersion     = true; // @TODO: change once we're confident in the feature
+
+	FModuleDescriptor ModuleDesc;
+	ModuleDesc.Name = *PluginName;
+	ModuleDesc.Type = EHostType::Runtime;
+	// load at startup (during engine init), after game modules have been loaded 
+	ModuleDesc.LoadingPhase = ELoadingPhase::Default; 
+
+	PluginDesc.Modules.Add(ModuleDesc);
+
+	FText ErrorMessage;
+	bool bSuccess = PluginDesc.Save(Manifest.GetPluginFilePath(), ErrorMessage);
+
+	if (!bSuccess)
+	{
+		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate the plugin description file: %s"), *ErrorMessage.ToString());
+	}
+	return bSuccess;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlueprintNativeCodeGenManifest& Manifest)
 {
 	FModuleManager& ModuleManager = FModuleManager::Get();
 	
@@ -82,15 +137,21 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FStri
 		}
 	}
 
-	const FString BuildFilePath = Manifest.GetBuildFilePath();
-	FText ErrorMessage;
-	GameProjectUtils::GenerateGameModuleBuildFile(BuildFilePath, ModuleName, PublicDependencies, PrivateDependencies, ErrorMessage);
+	const FString BuildFilePath = Manifest.GetModuleFilePath();
 
-	if (!ErrorMessage.IsEmpty())
+	FString ModuleName = FPaths::GetCleanFilename(BuildFilePath);
+	int32 ExtIndex = INDEX_NONE;
+	ModuleName.FindChar('.', ExtIndex);
+	ModuleName = ModuleName.Left(ExtIndex);
+
+	FText ErrorMessage;
+	bool bSuccess = GameProjectUtils::GenerateGameModuleBuildFile(BuildFilePath, ModuleName, PublicDependencies, PrivateDependencies, ErrorMessage);
+
+	if (!bSuccess)
 	{
 		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate module build file: %s"), *ErrorMessage.ToString());
 	}
-	return !ErrorMessage.IsEmpty();
+	return bSuccess;
 }
 
 /*******************************************************************************
@@ -98,7 +159,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FStri
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenCommandlineParams& CommandParams)
+bool FBlueprintNativeCodeGenUtils::GeneratePlugin(const FNativeCodeGenCommandlineParams& CommandParams)
 {
 	FScopedFeedbackContext ScopedErrorTracker;
 	FBlueprintNativeCodeGenCoordinator Coordinator(CommandParams);
@@ -112,7 +173,7 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 
 	if (CommandParams.bWipeRequested && !CommandParams.bPreviewRequested)
 	{
-		TArray<FString> TargetPaths = Manifest.GetTargetPaths();
+		TArray<FString> TargetPaths = Manifest.GetDestinationPaths();
 		if (!BlueprintNativeCodeGenUtilsImpl::WipeTargetPaths(TargetPaths))
 		{
 			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Failed to wipe target files/directories."));
@@ -171,13 +232,18 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 		ConversionDelegate.BindLambda([](FConvertedAssetRecord& ConversionRecord){ return true; });
 	}
 
-	const bool bSuccess = Coordinator.ProcessConversionQueue(ConversionDelegate);
+	bool bSuccess = Coordinator.ProcessConversionQueue(ConversionDelegate);
+
 	if (bSuccess && !CommandParams.bPreviewRequested)
 	{
-		BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(CommandParams.ModuleName, Manifest);
+		bSuccess &= BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(Manifest);
+		if (bSuccess)
+		{
+			bSuccess &= BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(CommandParams.PluginName, Manifest);
+		}
 	}
 
-	// save the manifest regardless of success (so we can get an idea of how successful it was)
+	// save the manifest regardless of success (so we can get an idea of where failures broke down)
 	Manifest.Save();
 	return bSuccess & !ScopedErrorTracker.HasErrors();
 }
