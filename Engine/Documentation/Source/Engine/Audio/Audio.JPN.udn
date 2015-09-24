@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2674546
 Availability:Public
 Title:オーディオとサウンド
 Crumbs: %ROOT%, Engine
 Description:ノードベースの SoundCue オーディオ アセットの使用を含めたゲーム内のサウンド再生のためのシステム
 Navigation:topic
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
