@@ -55,27 +55,8 @@ FFoliageMeshUIInfo::FFoliageMeshUIInfo(UFoliageType* InSettings)
 FText FFoliageMeshUIInfo::GetNameText() const
 {
 	//@todo: this is redundant with FFoliagePaletteItem::DisplayFName, should probably move sorting implementation over to SFoliagePalette
-	const UFoliageType* FoliageType = Settings;
-	if (FoliageType->IsAsset())
-	{
-		return FText::FromName(FoliageType->GetFName());
-	}
-	else if (UBlueprint* Blueprint = Cast<UBlueprint>(FoliageType->GetClass()->ClassGeneratedBy))
-	{
-		return FText::FromName(Blueprint->GetFName());
-	}
-	else
-	{
-		UStaticMesh* Mesh = FoliageType->GetStaticMesh();
-		if (Mesh)
-		{
-			return FText::FromName(Mesh->GetFName());
-		}
-		else
-		{
-			return LOCTEXT("EmptyMeshName", "[Empty Mesh]");
-		}
-	}
+	FName DisplayFName = Settings->GetDisplayFName();
+	return FText::FromName(DisplayFName);
 }
 
 //

@@ -156,6 +156,14 @@ private:
 	 */
 	static void FillShowLayersMenu( class FMenuBuilder& MenuBuilder, TWeakPtr<class SLevelViewport> Viewport );
 
+	/**
+	 * Generates 'show foliage types' menu content for a viewport
+	 *
+	 * @param MenuBuilder	menu builder
+	 * @param Viewport		target vieport
+	 */
+	static void FillShowFoliageTypesMenu(class FMenuBuilder& MenuBuilder, TWeakPtr<class SLevelViewport> Viewport);
+
 	/** Generates the layout sub-menu content */
 	void GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilder) const;
 

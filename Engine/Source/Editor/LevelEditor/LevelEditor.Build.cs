@@ -59,7 +59,8 @@ public class LevelEditor : ModuleRules
                 "Persona",
                 "Kismet",
 				"KismetWidgets",
-				"Sequencer"
+				"Sequencer",
+                "Foliage"
 			}
 		);
 
