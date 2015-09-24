@@ -794,8 +794,6 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleDetailsView );
 		}
 
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
-				
 		if (Sequencer.Pin()->IsLevelEditorSequencer())
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().FindInContentBrowser );
@@ -815,9 +813,10 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 
 	MenuBuilder.BeginSection("FramesRanges", LOCTEXT("SnappingMenuFrameRangesHeader", "Frame Ranges") );
 	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowFrameNumbers );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowRangeSlider );
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLockInOutToStartEndRange );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLockInOutToStartEndRange );				
 	}
 	MenuBuilder.EndSection();
 
