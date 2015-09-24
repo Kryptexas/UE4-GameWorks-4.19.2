@@ -54,6 +54,16 @@ static TAutoConsoleVariable<int32> CVarForwardLighting(
 	TEXT("1: on (some CPU setup cost on GPU and extra per pixel cost)"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarRefractionQuality(
+	TEXT("r.RefractionQuality"),
+	2,
+	TEXT("Defines the distorion/refraction quality which allows to adjust for quality or performance.\n")
+	TEXT("<=0: off (fastest)\n")
+	TEXT("  1: low quality (not yet implemented)\n")
+	TEXT("  2: normal quality (default)\n")
+	TEXT("  3: high quality (e.g. color fringe, not yet implemented)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
 	TEXT("r.GeneralPurposeTweak"),
