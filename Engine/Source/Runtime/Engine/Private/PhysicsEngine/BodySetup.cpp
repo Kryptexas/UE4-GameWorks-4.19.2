@@ -73,17 +73,17 @@ void UBodySetup::CopyBodyPropertiesFrom(const UBodySetup* FromSetup)
 	bDoubleSidedGeometry = FromSetup->bDoubleSidedGeometry;
 }
 
-void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
+void UBodySetup::AddCollisionFrom(const FKAggregateGeom& FromAggGeom)
 {
 	// Add shapes from static mesh
-	AggGeom.SphereElems.Append(FromSetup->AggGeom.SphereElems);
-	AggGeom.BoxElems.Append(FromSetup->AggGeom.BoxElems);
-	AggGeom.SphylElems.Append(FromSetup->AggGeom.SphylElems);
+	AggGeom.SphereElems.Append(FromAggGeom.SphereElems);
+	AggGeom.BoxElems.Append(FromAggGeom.BoxElems);
+	AggGeom.SphylElems.Append(FromAggGeom.SphylElems);
 
 	// Remember how many convex we already have
 	int32 FirstNewConvexIdx = AggGeom.ConvexElems.Num();
 	// copy convex
-	AggGeom.ConvexElems.Append(FromSetup->AggGeom.ConvexElems);
+	AggGeom.ConvexElems.Append(FromAggGeom.ConvexElems);
 	// clear pointers on convex elements
 	for (int32 i = FirstNewConvexIdx; i < AggGeom.ConvexElems.Num(); i++)
 	{
@@ -91,6 +91,11 @@ void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
 		ConvexElem.ConvexMesh = NULL;
 		ConvexElem.ConvexMeshNegX = NULL;
 	}
+}
+
+void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
+{
+	AddCollisionFrom(FromSetup->AggGeom);
 }
 
 DECLARE_CYCLE_STAT(TEXT("Create Physics Meshes"), STAT_CreatePhysicsMeshes, STATGROUP_Physics);

@@ -152,8 +152,8 @@ public:
 
 	/** Add collision shapes from another body setup to this one */
 	ENGINE_API void AddCollisionFrom(class UBodySetup* FromSetup);
-
-
+	ENGINE_API void AddCollisionFrom(const FKAggregateGeom& FromAggGeom);
+	
 	/** Create Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX) from cooked data */
 	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX). Must be called before the BodySetup is destroyed */
 	ENGINE_API virtual void CreatePhysicsMeshes();
