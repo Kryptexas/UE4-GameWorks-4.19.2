@@ -307,10 +307,10 @@ FString GetCookingOptionalParams()
 		}
 	}
 
-	if (PackagingSettings->bSkipEditorContent)
+	/*if (PackagingSettings->bSkipEditorContent)
 	{
 		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
-	}
+	}*/
 	return OptionalParams;
 }
 
