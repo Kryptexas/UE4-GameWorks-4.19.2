@@ -1487,7 +1487,26 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteSelectionToFunction );
 						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteSelectionToMacro );
 					}
+
+					MenuBuilder->AddSubMenu(LOCTEXT("AlignmentHeader", "Alignment"), FText(), FNewMenuDelegate::CreateLambda([](FMenuBuilder& MenuBuilder){
+						
+						MenuBuilder.BeginSection("EdGraphSchemaAlignment", LOCTEXT("AlignHeader", "Align"));
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesTop );
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesMiddle );
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesBottom );
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesLeft );
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesCenter );
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesRight );
+						MenuBuilder.EndSection();
+
+						MenuBuilder.BeginSection("EdGraphSchemaDistribution", LOCTEXT("DistributionHeader", "Distribution"));
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().DistributeNodesHorizontally );
+						MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().DistributeNodesVertically );
+						MenuBuilder.EndSection();
+						
+					}));
 				}
+				
 				MenuBuilder->EndSection();
 			}
 

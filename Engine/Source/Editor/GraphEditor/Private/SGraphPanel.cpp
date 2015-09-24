@@ -1081,6 +1081,11 @@ void SGraphPanel::AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode)
 	CreatedSubNode->SetTextCommittedEvent(OnTextCommitted);
 }
 
+bool SGraphPanel::GetBoundsForNode(const UObject* InNode, FVector2D& MinCorner, FVector2D& MaxCorner, float Padding) const
+{
+	return SNodePanel::GetBoundsForNode(InNode, MinCorner, MaxCorner, Padding);
+}
+
 const TSharedRef<SGraphNode> SGraphPanel::GetChild(int32 ChildIndex)
 {
 	return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);
