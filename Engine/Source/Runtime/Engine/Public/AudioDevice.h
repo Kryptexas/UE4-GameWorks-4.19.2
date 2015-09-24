@@ -818,6 +818,8 @@ private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
 
+	TMap<UPTRINT, struct FActiveSound*> AudioComponentToActiveSoundMap;
+
 	/** List of passive SoundMixes active last frame */
 	TArray<class USoundMix*> PrevPassiveSoundMixModifiers;
 };

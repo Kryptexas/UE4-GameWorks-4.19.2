@@ -494,10 +494,11 @@ void UDialogueSoundWaveProxy::Parse( class FAudioDevice* AudioDevice, const UPTR
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 	{
 		// TODO - Audio Threading. This would need to be a call back to the main thread.
-		if (ActiveSound.AudioComponent.IsValid() && ActiveSound.AudioComponent->OnQueueSubtitles.IsBound())
+		UAudioComponent* AudioComponent = ActiveSound.GetAudioComponent();
+		if (AudioComponent && AudioComponent->OnQueueSubtitles.IsBound())
 		{
 			// intercept the subtitles if the delegate is set
-			ActiveSound.AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, GetDuration() );
+			AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, GetDuration() );
 		}
 		else
 		{
