@@ -32,8 +32,8 @@
 static const FName HeightmapLayerName = FName("__Heightmap__");
 
 
-FWorldTileCollectionModel::FWorldTileCollectionModel(UEditorEngine* InEditor)
-	: FLevelCollectionModel(InEditor)
+FWorldTileCollectionModel::FWorldTileCollectionModel()
+	: FLevelCollectionModel()
 	, PreviewLocation(0.0f,0.0f,0.0f)
 	, bIsSavingLevel(false)
 	, bMeshProxyAvailable(false)
@@ -47,7 +47,7 @@ FWorldTileCollectionModel::~FWorldTileCollectionModel()
 	
 	CurrentWorld = NULL;
 
-	Editor->UnregisterForUndo(this);
+	GEditor->UnregisterForUndo(this);
 	FCoreDelegates::PreWorldOriginOffset.RemoveAll(this);
 	FCoreDelegates::PostWorldOriginOffset.RemoveAll(this);
 	FEditorDelegates::PreSaveWorld.RemoveAll(this);
@@ -62,7 +62,7 @@ void FWorldTileCollectionModel::Initialize(UWorld* InWorld)
 	ManagedLayers.Empty();
 	ManagedLayers.Add(Layer);
 
-	Editor->RegisterForUndo(this);
+	GEditor->RegisterForUndo(this);
 	FCoreDelegates::PreWorldOriginOffset.AddSP(this, &FWorldTileCollectionModel::PreWorldOriginOffset);
 	FCoreDelegates::PostWorldOriginOffset.AddSP(this, &FWorldTileCollectionModel::PostWorldOriginOffset);
 	FEditorDelegates::PreSaveWorld.AddSP(this, &FWorldTileCollectionModel::OnPreSaveWorld);
@@ -595,10 +595,8 @@ bool FWorldTileCollectionModel::GetPlayerView(FVector& Location, FRotator& Rotat
 
 bool FWorldTileCollectionModel::GetObserverView(FVector& Location, FRotator& Rotation) const
 {
-	const UEditorEngine* EditorEngine = Editor.Get();
-
 	// We are in the SIE
-	if (EditorEngine->bIsSimulatingInEditor && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
+	if (GEditor->bIsSimulatingInEditor && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
 	{
 		Rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
 		Location = GCurrentLevelEditingViewportClient->GetViewLocation();
@@ -606,9 +604,9 @@ bool FWorldTileCollectionModel::GetObserverView(FVector& Location, FRotator& Rot
 	}
 
 	// We are in the editor world
-	if (EditorEngine->PlayWorld == nullptr)
+	if (GEditor->PlayWorld == nullptr)
 	{
-		for (const FLevelEditorViewportClient* ViewportClient : EditorEngine->LevelViewportClients)
+		for (const FLevelEditorViewportClient* ViewportClient : GEditor->LevelViewportClients)
 		{
 			if (ViewportClient && ViewportClient->IsPerspective())
 			{
@@ -788,7 +786,7 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 
 TSharedPtr<FWorldTileModel> FWorldTileCollectionModel::AddLevelFromTile(int32 TileIdx)
 {
-	TSharedPtr<FWorldTileModel> LevelModel = MakeShareable(new FWorldTileModel(Editor, *this, TileIdx));
+	TSharedPtr<FWorldTileModel> LevelModel = MakeShareable(new FWorldTileModel(*this, TileIdx));
 	AllLevelsList.Add(LevelModel);
 	AllLevelsMap.Add(LevelModel->TileDetails->PackageName, LevelModel);
 	
@@ -1542,7 +1540,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 	ImportWidnow->SetContent(ImportDialog);
 
 	/** Show the dialog window as a modal window */
-	Editor->EditorAddModalWindow(ImportWidnow);
+	GEditor->EditorAddModalWindow(ImportWidnow);
 		
 	if (ImportDialog->ShouldImport() && ImportDialog->GetImportSettings().HeightmapFileList.Num())
 	{
@@ -2132,7 +2130,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				for (UObject* Asset : GeneratedAssets)
 				{
 					FAssetRegistryModule::AssetCreated(Asset);
-					Editor->BroadcastObjectReimported(Asset);
+					GEditor->BroadcastObjectReimported(Asset);
 					PackagesToSave.Add(Asset->GetOutermost());
 				}
 								

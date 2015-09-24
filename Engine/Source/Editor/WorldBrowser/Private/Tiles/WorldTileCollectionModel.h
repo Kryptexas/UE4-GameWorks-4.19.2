@@ -19,9 +19,9 @@ public:
 	 *
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	static TSharedRef<FWorldTileCollectionModel> Create(UEditorEngine* InEditor, UWorld* InWorld)
+	static TSharedRef<FWorldTileCollectionModel> Create(UWorld* InWorld)
 	{
-		TSharedRef<FWorldTileCollectionModel> LevelCollectionModel(new FWorldTileCollectionModel(InEditor));
+		TSharedRef<FWorldTileCollectionModel> LevelCollectionModel(new FWorldTileCollectionModel());
 		LevelCollectionModel->Initialize(InWorld);
 		return LevelCollectionModel;
 	}
@@ -145,7 +145,7 @@ public:
 	void BuildWorldCompositionMenu(FMenuBuilder& InMenuBuilder) const;
 
 private:
-	FWorldTileCollectionModel(UEditorEngine* InEditor);
+	FWorldTileCollectionModel();
 	
 	/** Setups parent->child links between tiles */
 	void SetupParentChildLinks();

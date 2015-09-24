@@ -9,20 +9,18 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FStreamingLevelModel::FStreamingLevelModel(const TWeakObjectPtr<UEditorEngine>& InEditor, 
-											FStreamingLevelCollectionModel& InWorldData, 
-											class ULevelStreaming* InLevelStreaming)
+FStreamingLevelModel::FStreamingLevelModel(FStreamingLevelCollectionModel& InWorldData, ULevelStreaming* InLevelStreaming)
 
-	: FLevelModel(InWorldData, InEditor)
+	: FLevelModel(InWorldData)
 	, LevelStreaming(InLevelStreaming)
 	, bHasValidPackageName(false)
 {
-	Editor->RegisterForUndo( this );
+	GEditor->RegisterForUndo( this );
 }
 
 FStreamingLevelModel::~FStreamingLevelModel()
 {
-	Editor->UnregisterForUndo( this );
+	GEditor->UnregisterForUndo( this );
 }
 
 bool FStreamingLevelModel::HasValidPackage() const
