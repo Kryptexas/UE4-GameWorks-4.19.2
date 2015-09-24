@@ -243,17 +243,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 			.Padding( FMargin(4, 4+16, 4, 4) )
 			[
 				SNew(SHorizontalBox)
-
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.Padding(0)
-				[			
-					SNew(SSpacer)
-				]
-
-				
+	
 				+ SHorizontalBox::Slot()
 				.HAlign( HAlign_Center )
 				.VAlign( VAlign_Center )
@@ -267,6 +257,15 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 				]
 
 				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.Padding(0)
+				[			
+					SNew(SSpacer)
+				]
+
+				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
 				.AutoWidth()
@@ -274,8 +273,8 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 				[
 					SNew(SButton)
 					.ContentPadding( FMargin(8,2) )
-					.Text(LOCTEXT("SendAndRestartEditor", "Send and Restart"))
-					.OnClicked(Client, &FCrashReportClient::SubmitAndRestart)
+					.Text(LOCTEXT("Send", "Send and Close"))
+					.OnClicked(Client, &FCrashReportClient::Submit)
 				]
 
 				+SHorizontalBox::Slot()
@@ -286,9 +285,9 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 				[
 					SNew(SButton)
 					.ContentPadding( FMargin(8,2) )
-					.Text(LOCTEXT("Send", "Send"))
-					.OnClicked(Client, &FCrashReportClient::Submit)
-				]
+					.Text(LOCTEXT("SendAndRestartEditor", "Send and Restart"))
+					.OnClicked(Client, &FCrashReportClient::SubmitAndRestart)
+				]			
 			]
 		]
 	];
