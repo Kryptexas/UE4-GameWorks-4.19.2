@@ -909,6 +909,12 @@ public:
 	/** Get menu for jumping to specific pin links */
 	void GetJumpToConnectionSubMenuActions(class FMenuBuilder& MenuBuilder, class UEdGraphPin* InGraphPin);
 
+	/** Get menu for straightening links to specific nodes*/
+	void GetStraightenConnectionToSubMenuActions( class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin ) const;
+
+	/** Get the destination pin for a straighten operation */
+	static UEdGraphPin* GetAndResetStraightenDestinationPin();
+
 	/** Create menu for variable get/set nodes which refer to a variable which does not exist. */
 	void GetNonExistentVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* OwnerBlueprint, FMenuBuilder* MenuBuilder) const;
 

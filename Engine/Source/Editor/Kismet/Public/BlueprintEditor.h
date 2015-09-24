@@ -721,6 +721,8 @@ protected:
 	void OnAlignCenter();
 	void OnAlignRight();
 	
+	void OnStraightenConnections();
+
 	void OnDistributeNodesH();
 	void OnDistributeNodesV();
 
