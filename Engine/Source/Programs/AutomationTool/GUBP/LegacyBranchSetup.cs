@@ -1121,7 +1121,7 @@ partial class GUBP
 
 		if (HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)) && BranchOptions.bShouldBuildLocalization)
 		{
-			BranchConfig.AddNode(new BuildEngineLocalization(BranchOptions.LocalizationBranchSuffix));
+			BranchConfig.AddNode(new BuildEngineLocalizationNode(BranchOptions.LocalizationBranchSuffix));
 		}
 
         BranchConfig.AddNode(new WaitForTestShared(this));
