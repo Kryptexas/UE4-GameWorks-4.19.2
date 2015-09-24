@@ -25,7 +25,7 @@
 #include "Animation/AnimInstance.h"
 /** Anim stats */
 
-DEFINE_STAT(STAT_UpdateSkelMeshBounds);
+DEFINE_STAT(STAT_CalcSkelMeshBounds);
 DEFINE_STAT(STAT_MeshObjectUpdate);
 DEFINE_STAT(STAT_BlendInPhysics);
 DEFINE_STAT(STAT_SkelCompUpdateTransform);

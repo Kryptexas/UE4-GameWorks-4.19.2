@@ -39,6 +39,8 @@
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
+DECLARE_CYCLE_STAT(TEXT("Swap Anim Buffers"), STAT_CompleteAnimSwapBuffers, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("Update SkelMesh Bounds"), STAT_UpdateSkelMeshBounds, STATGROUP_Anim);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimSpawnTime);
 DEFINE_STAT(STAT_PostAnimEvaluation);
@@ -101,10 +103,13 @@ public:
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
+
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
+			FScopeCycleCounterUObject ComponentScope(Comp);
+			FScopeCycleCounterUObject MeshScope(Comp->SkeletalMesh);
+
 			const bool bPerformPostAnimEvaluation = true;
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_CompleteParallelAnimationEvaluation);
 			Comp->CompleteParallelAnimationEvaluation(bPerformPostAnimEvaluation);
 		}
 	}
@@ -1314,6 +1319,8 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 void USkeletalMeshComponent::UpdateBounds()
 {
+	SCOPE_CYCLE_COUNTER(STAT_UpdateSkelMeshBounds);
+
 #if WITH_EDITOR
 	FBoxSphereBounds OriginalBounds = Bounds; // Save old bounds
 #endif
@@ -1355,6 +1362,8 @@ void USkeletalMeshComponent::UpdateBounds()
 
 FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_CalcSkelMeshBounds);
+
 	FVector RootBoneOffset = RootBoneTranslation;
 
 	// if to use MasterPoseComponent's fixed skel bounds, 
@@ -2199,6 +2208,31 @@ void USkeletalMeshComponent::RefreshActiveVertexAnims()
 	{
 		ActiveVertexAnims.Empty();
 	}
+}
+
+void USkeletalMeshComponent::ParallelAnimationEvaluation() 
+{ 
+	PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation, AnimEvaluationContext.Curve); 
+}
+
+void USkeletalMeshComponent::CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
+{
+	ParallelAnimationEvaluationTask.SafeRelease(); //We are done with this task now, clean up!
+
+	if (bDoPostAnimEvaluation && (AnimEvaluationContext.AnimInstance == AnimScriptInstance) && (AnimEvaluationContext.SkeletalMesh == SkeletalMesh) && (AnimEvaluationContext.SpaceBases.Num() == GetNumSpaceBases()))
+	{
+		{
+			SCOPE_CYCLE_COUNTER(STAT_CompleteAnimSwapBuffers);
+
+			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : GetEditableSpaceBases());
+			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
+			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
+			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
+		}
+
+		PostAnimEvaluation(AnimEvaluationContext);
+	}
+	AnimEvaluationContext.Clear();
 }
 
 bool USkeletalMeshComponent::HandleExistingParallelEvaluationTask(bool bBlockOnTask, bool bPerformPostAnimEvaluation)

@@ -1248,22 +1248,9 @@ private:
 
 public:
 	// Parallel evaluation wrappers
-	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation, AnimEvaluationContext.Curve); }
-	void CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
-	{
-		ParallelAnimationEvaluationTask.SafeRelease(); //We are done with this task now, clean up!
+	void ParallelAnimationEvaluation();
+	void CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation);
 
-		if (bDoPostAnimEvaluation && (AnimEvaluationContext.AnimInstance == AnimScriptInstance) && (AnimEvaluationContext.SkeletalMesh == SkeletalMesh) && (AnimEvaluationContext.SpaceBases.Num() == GetNumSpaceBases()))
-		{
-			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : GetEditableSpaceBases() );
-			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
-			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
-			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
-
-			PostAnimEvaluation(AnimEvaluationContext);
-		}
-		AnimEvaluationContext.Clear();
-	}
 
 	// Returns whether we are currently trying to run a parallel animation evaluation task
 	bool IsRunningParallelEvaluation() const { return IsValidRef(ParallelAnimationEvaluationTask); }

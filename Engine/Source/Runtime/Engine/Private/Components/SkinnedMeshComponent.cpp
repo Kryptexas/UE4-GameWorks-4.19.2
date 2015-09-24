@@ -615,6 +615,8 @@ void USkinnedMeshComponent::RebuildVisibilityArray()
 
 FBoxSphereBounds USkinnedMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_CalcSkelMeshBounds);
+
 	return CalcMeshBound( FVector::ZeroVector, false, LocalToWorld );
 }
 
@@ -636,8 +638,6 @@ class UPhysicsAsset* USkinnedMeshComponent::GetPhysicsAsset() const
 
 FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset, bool UsePhysicsAsset, const FTransform& LocalToWorld) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_UpdateSkelMeshBounds);
-
 	FBoxSphereBounds NewBounds;
 
 	// If physics are asleep, and actor is using physics to move, skip updating the bounds.

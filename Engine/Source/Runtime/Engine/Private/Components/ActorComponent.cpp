@@ -11,10 +11,21 @@
 #include "ComponentReregisterContext.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "ComponentUtils.h"
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
 DEFINE_LOG_CATEGORY(LogActorComponent);
+
+
+DECLARE_CYCLE_STAT(TEXT("Component OnRegister"), STAT_ComponentOnRegister, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Component OnUnregister"), STAT_ComponentOnUnregister, STATGROUP_Component);
+
+DECLARE_CYCLE_STAT(TEXT("Component CreateRenderState"), STAT_ComponentCreateRenderState, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Component DestroyRenderState"), STAT_ComponentDestroyRenderState, STATGROUP_Component);
+
+DECLARE_CYCLE_STAT(TEXT("Component CreatePhysicsState"), STAT_ComponentCreatePhysicsState, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Component DestroyPhysicsState"), STAT_ComponentDestroyPhysicsState, STATGROUP_Component);
 
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
@@ -1053,18 +1064,21 @@ void UActorComponent::ExecuteRegisterEvents()
 {
 	if(!bRegistered)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ComponentOnRegister);
 		OnRegister();
 		checkf(bRegistered, TEXT("Failed to route OnRegister (%s)"), *GetFullName());
 	}
 
 	if(FApp::CanEverRender() && !bRenderStateCreated && World->Scene && ShouldCreateRenderState())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ComponentCreateRenderState);
 		CreateRenderState_Concurrent();
 		checkf(bRenderStateCreated, TEXT("Failed to route CreateRenderState_Concurrent (%s)"), *GetFullName());
 	}
 
 	if(!bPhysicsStateCreated && World->GetPhysicsScene() && ShouldCreatePhysicsState())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ComponentCreatePhysicsState);
 		CreatePhysicsState();
 		checkf(bPhysicsStateCreated, TEXT("Failed to route CreatePhysicsState (%s)"), *GetFullName());
 	}
@@ -1075,6 +1089,7 @@ void UActorComponent::ExecuteUnregisterEvents()
 {
 	if(bPhysicsStateCreated)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ComponentDestroyPhysicsState);
 		check(bRegistered); // should not have physics state unless we are registered
 		DestroyPhysicsState();
 		checkf(!bPhysicsStateCreated, TEXT("Failed to route DestroyPhysicsState (%s)"), *GetFullName());
@@ -1083,6 +1098,7 @@ void UActorComponent::ExecuteUnregisterEvents()
 
 	if(bRenderStateCreated)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ComponentDestroyRenderState);
 		check(bRegistered);
 		DestroyRenderState_Concurrent();
 		checkf(!bRenderStateCreated, TEXT("Failed to route DestroyRenderState_Concurrent (%s)"), *GetFullName());
@@ -1090,6 +1106,7 @@ void UActorComponent::ExecuteUnregisterEvents()
 
 	if(bRegistered)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ComponentOnUnregister);
 		OnUnregister();
 		checkf(!bRegistered, TEXT("Failed to route OnUnregister (%s)"), *GetFullName());
 	}

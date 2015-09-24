@@ -29,6 +29,10 @@ namespace SceneComponentStatics
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 
+DECLARE_CYCLE_STAT(TEXT("UpdateComponentToWorld"), STAT_UpdateComponentToWorld, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Update Child Transforms"), STAT_UpdateChildTransforms, STATGROUP_Component);
+
+
 FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 	: bFromSweep(false)
 {
@@ -333,7 +337,9 @@ void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Tel
 
 void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,FName SocketName, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, ETeleportType Teleport)
 {
-	//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent);
+	SCOPE_CYCLE_COUNTER(STAT_UpdateComponentToWorld);
+	FScopeCycleCounterUObject ComponentScope(this);
+
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
 	if (Parent && !Parent->bWorldToComponentUpdated)
 	{
@@ -1553,6 +1559,8 @@ FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 
 void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
+	SCOPE_CYCLE_COUNTER(STAT_UpdateChildTransforms);
+
 	for(int32 i=0; i<AttachChildren.Num(); i++)
 	{
 		USceneComponent* ChildComp = AttachChildren[i];
