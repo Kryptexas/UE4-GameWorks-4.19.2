@@ -53,7 +53,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		static public double TotalOtherActionsTime = 0;
 
+		/// <summary>
 		/// How much time was spent scanning for include dependencies for outdated C++ files
+		/// </summary>
 		public static double TotalDeepIncludeScanTime = 0.0;
 
 		/// <summary>
@@ -379,8 +381,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Is this a valid configuration
-		/// Used primarily for Rocket vs non-Rocket
+		/// Is this a valid configuration. Used primarily for Rocket vs non-Rocket.
 		/// </summary>
 		/// <param name="InConfiguration"></param>
 		/// <returns>true if valid, false if not</returns>
@@ -401,8 +402,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Is this a valid platform
-		/// Used primarily for Rocket vs non-Rocket
+		/// Is this a valid platform. Used primarily for Rocket vs non-Rocket.
 		/// </summary>
 		/// <param name="InPlatform"></param>
 		/// <returns>true if valid, false if not</returns>
@@ -430,8 +430,7 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// Is this a valid platform
-		/// Used primarily for Rocket vs non-Rocket
+		/// Is this a valid platform. Used primarily for Rocket vs non-Rocket.
 		/// </summary>
 		/// <param name="InPlatform"></param>
 		/// <returns>true if valid, false if not</returns>
@@ -2059,7 +2058,8 @@ namespace UnrealBuildTool
 							}
 
 							// Execute the actions.
-							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName);
+							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
+							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry);
 
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)

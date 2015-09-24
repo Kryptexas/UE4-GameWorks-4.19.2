@@ -368,13 +368,15 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Executes a list of actions.
 		/// </summary>
-		public static bool ExecuteActions(List<Action> ActionsToExecute, out string ExecutorName)
+		public static bool ExecuteActions(List<Action> ActionsToExecute, out string ExecutorName, string TargetInfoForTelemetry)
 		{
 			bool Result = true;
 			bool bUsedXGE = false;
 			ExecutorName = "";
 			if (ActionsToExecute.Count > 0)
 			{
+				DateTime StartTime = DateTime.UtcNow;
+
 				if (BuildConfiguration.bAllowXGE || BuildConfiguration.bXGEExport)
 				{
 					Log.TraceInformation("{0} {1} action{2} to XGE",
@@ -441,6 +443,22 @@ namespace UnrealBuildTool
 				{
 					ExecutorName = "Local";
 					Result = LocalExecutor.ExecuteActions(ActionsToExecute);
+				}
+
+				if(Telemetry.IsAvailable() && !BuildConfiguration.bXGEExport)
+				{
+					Telemetry.SendEvent("BuildTime",
+						"ExecutorType", ExecutorName,
+						"OS", Environment.OSVersion.ToString(),
+						"MachineName", Environment.MachineName,
+						"NumLogicalCores", Environment.ProcessorCount.ToString(),
+						"NumPhysicalCores", Utils.GetPhysicalProcessorCount().ToString(),
+						"Targets", TargetInfoForTelemetry,
+						"NumActions", ActionsToExecute.Count.ToString(),
+						"NumCompileActions", ActionsToExecute.Count(x => x.ActionType == ActionType.Compile).ToString(),
+						"NumPchCompileActions", ActionsToExecute.Count(x => x.ActionType == ActionType.Compile && x.ProducedItems.Any(y => y.Reference.HasExtension(".pch") || y.Reference.HasExtension(".gch"))).ToString(),
+						"NumLinkActions", ActionsToExecute.Count(x => x.ActionType == ActionType.Link).ToString(),
+						"ElapsedTime", (DateTime.UtcNow - StartTime).TotalSeconds.ToString());
 				}
 
 				if (bUsedXGE && BuildConfiguration.bXGEExport)

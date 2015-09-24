@@ -919,6 +919,41 @@ namespace UnrealBuildTool
 		{
 			return a.CompareTo(b) > 0 ? a : b;
 		}
+
+		/// <summary>
+		/// Gets the number of physical cores, excluding hyper threading.
+		/// </summary>
+		/// <param name="NumCores">The number of physical cores, excluding hyper threading</param>
+		/// <returns>The number of physical cores, or -1 if it could not be obtained</returns>
+		public static int GetPhysicalProcessorCount()
+		{
+			// Can't use WMI queries on Mono; just fail.
+			if (Utils.IsRunningOnMono)
+			{
+				return -1;
+			}
+
+			// On some systems this requires a hot fix to work so catch any exceptions
+			try
+			{
+				int NumCores = 0;
+				using (var Mos = new System.Management.ManagementObjectSearcher("Select * from Win32_Processor"))
+				{
+					var MosCollection = Mos.Get();
+					foreach (var Item in MosCollection)
+					{
+						NumCores += int.Parse(Item["NumberOfCores"].ToString());
+					}
+				}
+				return NumCores;
+			}
+			catch (Exception Ex)
+			{
+				Log.TraceWarning("Unable to get the number of Cores: {0}", Ex.ToString());
+				Log.TraceWarning("Falling back to processor count.");
+				return -1;
+			}
+		}
 	}
 
 	/// <summary>
