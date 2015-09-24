@@ -617,26 +617,33 @@ struct ENGINE_API FURL
 {
 	GENERATED_USTRUCT_BODY()
 
+	// Protocol, i.e. "unreal" or "http".
 	UPROPERTY()
-	FString Protocol;    // Protocol, i.e. "unreal" or "http".
+	FString Protocol;
 
+	// Optional hostname, i.e. "204.157.115.40" or "unreal.epicgames.com", blank if local.
 	UPROPERTY()
-	FString Host;    // Optional hostname, i.e. "204.157.115.40" or "unreal.epicgames.com", blank if local.
+	FString Host;
 
+	// Optional host port.
 	UPROPERTY()
-	int32 Port;    // Optional host port.
+	int32 Port;
 
+	// Map name, i.e. "SkyCity", default is "Entry".
 	UPROPERTY()
-	FString Map;    // Map name, i.e. "SkyCity", default is "Entry".
+	FString Map;
 
+	// Optional place to download Map if client does not possess it
 	UPROPERTY()
-	FString RedirectURL;    // Optional place to download Map if client does not possess it
+	FString RedirectURL;
 
+	// Options.
 	UPROPERTY()
-	TArray<FString> Op;    // Options.
+	TArray<FString> Op;
 
+	// Portal to enter through, default is "".
 	UPROPERTY()
-	FString Portal;    // Portal to enter through, default is "".
+	FString Portal;
 
 	UPROPERTY()
 	int32 Valid;
@@ -645,11 +652,21 @@ struct ENGINE_API FURL
 	static FUrlConfig UrlConfig;
 	static bool bDefaultsInitialized;
 
-	// Constructors.
-	/* FURL() prevent default from being generated */
+	/**
+	 * Prevent default from being generated.
+	 */
 	explicit FURL( ENoInit ) { }
+
+	/**
+	 * Construct a purely default, local URL from an optional filename.
+	 */
 	FURL( const TCHAR* Filename=nullptr );
+
+	/**
+	 * Construct a URL from text and an optional relative base.
+	 */
 	FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type );
+
 	static void StaticInit();
 	static void StaticExit();
 
@@ -660,19 +677,68 @@ struct ENGINE_API FURL
 	 */
 	static void FilterURLString( FString& Str );
 
-	// Functions.
+	/**
+	 * Returns whether this URL corresponds to an internal object, i.e. an Unreal
+	 * level which this app can try to connect to locally or on the net. If this
+	 * is false, the URL refers to an object that a remote application like Internet
+	 * Explorer can execute.
+	 */
 	bool IsInternal() const;
+
+	/**
+	 * Returns whether this URL corresponds to an internal object on this local 
+	 * process. In this case, no Internet use is necessary.
+	 */
 	bool IsLocalInternal() const;
+
+	/**
+	 * Tests if the URL contains an option string.
+	 */
 	bool HasOption( const TCHAR* Test ) const;
+
+	/**
+	 * Returns the value associated with an option.
+	 *
+	 * @param Match The name of the option to get.
+	 * @param Default The value to return if the option wasn't found.
+	 *
+	 * @return The value of the named option, or Default if the option wasn't found.
+	 */
 	const TCHAR* GetOption( const TCHAR* Match, const TCHAR* Default ) const;
+
+	/**
+	 * Load URL from config.
+	 */
 	void LoadURLConfig( const TCHAR* Section, const FString& Filename=GGameIni );
+
+	/**
+	 * Save URL to config.
+	 */
 	void SaveURLConfig( const TCHAR* Section, const TCHAR* Item, const FString& Filename=GGameIni ) const;
+
+	/**
+	 * Add a unique option to the URL, replacing any existing one.
+	 */
 	void AddOption( const TCHAR* Str );
+
+	/**
+	 * Remove an option from the URL
+	 */
 	void RemoveOption( const TCHAR* Key, const TCHAR* Section = nullptr, const FString& Filename = GGameIni);
+
+	/**
+	 * Convert this URL to text.
+	 */
 	FString ToString( bool FullyQualified=0 ) const;
+
+	/**
+	 * Serializes a FURL to or from an archive.
+	 */
 	ENGINE_API friend FArchive& operator<<( FArchive& Ar, FURL& U );
 
-	// Operators.
+	/**
+	 * Compare two URLs to see if they refer to the same exact thing.
+	 */
 	bool operator==( const FURL& Other ) const;
 };
 

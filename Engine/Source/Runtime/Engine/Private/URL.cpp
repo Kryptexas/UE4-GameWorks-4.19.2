@@ -63,9 +63,6 @@ static bool ValidNetChar( const TCHAR* c )
 	Constructors.
 -----------------------------------------------------------------------------*/
 
-//
-// Constuct a purely default, local URL from an optional filename.
-//
 FURL::FURL( const TCHAR* LocalFilename )
 :	Protocol	( UrlConfig.DefaultProtocol )
 ,	Host		( UrlConfig.DefaultHost )
@@ -120,9 +117,6 @@ void FURL::FilterURLString( FString& Str )
 
 
 
-//
-// Construct a URL from text and an optional relative base.
-//
 FURL::FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type )
 :	Protocol	( UrlConfig.DefaultProtocol )
 ,	Host		( UrlConfig.DefaultHost )
@@ -469,29 +463,16 @@ FString FURL::ToString (bool FullyQualified) const
 	Informational.
 -----------------------------------------------------------------------------*/
 
-//
-// Return whether this URL corresponds to an internal object, i.e. an Unreal
-// level which this app can try to connect to locally or on the net. If this
-// is false, the URL refers to an object that a remote application like Internet
-// Explorer can execute.
-//
 bool FURL::IsInternal() const
 {
 	return Protocol == UrlConfig.DefaultProtocol;
 }
 
-//
-// Return whether this URL corresponds to an internal object on this local 
-// process. In this case, no Internet use is necessary.
-//
 bool FURL::IsLocalInternal() const
 {
 	return IsInternal() && Host.Len()==0;
 }
 
-//
-// Add a unique option to the URL, replacing any existing one.
-//
 void FURL::AddOption( const TCHAR* Str )
 {
 	int32 Match = FCString::Strchr(Str, '=') ? (FCString::Strchr(Str, '=') - Str) : FCString::Strlen(Str);
@@ -516,9 +497,6 @@ void FURL::AddOption( const TCHAR* Str )
 }
 
 
-//
-// Remove an option from the URL
-//
 void FURL::RemoveOption( const TCHAR* Key, const TCHAR* Section, const FString& Filename )
 {
 	if ( !Key )
@@ -540,9 +518,6 @@ void FURL::RemoveOption( const TCHAR* Key, const TCHAR* Section, const FString& 
 	}
 }
 
-//
-// Load URL from config.
-//
 void FURL::LoadURLConfig( const TCHAR* Section, const FString& Filename )
 {
 	TArray<FString> Options;
@@ -553,9 +528,6 @@ void FURL::LoadURLConfig( const TCHAR* Section, const FString& Filename )
 	}
 }
 
-//
-// Save URL to config.
-//
 void FURL::SaveURLConfig( const TCHAR* Section, const TCHAR* Item, const FString& Filename ) const
 {
 	for( int32 i=0; i<Op.Num(); i++ )
@@ -572,9 +544,6 @@ void FURL::SaveURLConfig( const TCHAR* Section, const TCHAR* Item, const FString
 	}
 }
 
-//
-// See if the URL contains an option string.
-//
 bool FURL::HasOption( const TCHAR* Test ) const
 {
 	return GetOption( Test, NULL ) != NULL;
@@ -606,9 +575,6 @@ const TCHAR* FURL::GetOption( const TCHAR* Match, const TCHAR* Default ) const
 	Comparing.
 -----------------------------------------------------------------------------*/
 
-//
-// Compare two URL's to see if they refer to the same exact thing.
-//
 bool FURL::operator==( const FURL& Other ) const
 {
 	if
