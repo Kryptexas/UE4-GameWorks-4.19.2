@@ -30,12 +30,7 @@ public:
 
 		// tab icons
 		Set("ActorAnimationEditor.Tabs.Sequencer", new IMAGE_BRUSH("icon_tab_sequencer_16x", Icon16x16));
-
-		// track icons
-		Set("ActorAnimationEditor.Tracks.Event", new IMAGE_BRUSH("icon_Sequencer_Event_16x", Icon16x16));
-		Set("ActorAnimationEditor.Tracks.Shot", new IMAGE_BRUSH("icon_Sequencer_Shot_16x", Icon16x16));
-		Set("ActorAnimationEditor.Tracks.Slomo", new IMAGE_BRUSH("icon_Sequencer_Slomo_16x", Icon16x16));
-		
+	
 		FSlateStyleRegistry::RegisterSlateStyle(*this);
 	 }
 
