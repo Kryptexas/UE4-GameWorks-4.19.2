@@ -50,7 +50,7 @@ namespace UnrealBuildTool
 		static Dictionary<string, List<Command>> FileCache = new Dictionary<string,List<Command>>();
 		static Dictionary<string, ConfigCacheIni> IniCache = new Dictionary<string, ConfigCacheIni>();
 		static Dictionary<string, ConfigCacheIni> BaseIniCache = new Dictionary<string, ConfigCacheIni>();
-		static List<string> RequiredSections = new List<string>(){"AppxManifest", "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "/Script/AndroidPlatformEditor.AndroidSDKSettings",
+		static List<string> RequiredSections = new List<string>(){"AppxManifest", "CommonSettings", "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "/Script/AndroidPlatformEditor.AndroidSDKSettings",
 																	"/Script/BuildSettings.BuildSettings", "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "/Script/WindowsTargetPlatform.WindowsTargetSettings",
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOneTargetPlatform.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings"};
@@ -105,9 +105,23 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// True if we are loading a hierarchy of config files that should be merged together
+		/// </summary>
+		bool bIsMergingConfigs;
+
+		/// <summary>
 		/// All sections parsed from ini file
 		/// </summary>
 		Dictionary<string, IniSection> Sections;
+
+		/// <summary>
+		/// Constructor. Parses a single ini file. No Platform settings, no engine hierarchy. Do not use this with ini files that have hierarchy!
+		/// </summary>
+		/// <param name="Filename">The ini file to load</param>
+		public ConfigCacheIni(FileReference Filename)
+		{
+			Init(Filename);
+		}
 
 		/// <summary>
 		/// Constructor. Parses ini hierarchy for the specified project.  No Platform settings.
@@ -153,9 +167,22 @@ namespace UnrealBuildTool
 			Init(Platform, BaseIniName, ProjectDirectory, EngineDirectory, EngineOnly, BaseCache);
 		}
 
-		private void Init(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory, bool EngineOnly = false, ConfigCacheIni BaseCache = null)
+		private void InitCommon()
 		{
 			Sections = new Dictionary<string, IniSection>(StringComparer.InvariantCultureIgnoreCase);
+		}
+
+		private void Init(FileReference IniFileName)
+		{
+			InitCommon();
+			bIsMergingConfigs = false;
+			ParseIniFile(IniFileName);
+		}
+
+		private void Init(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory, bool EngineOnly = false, ConfigCacheIni BaseCache = null)
+		{
+			InitCommon();
+			bIsMergingConfigs = true;
 			if (EngineDirectory == null)
 			{
 				EngineDirectory = UnrealBuildTool.EngineDirectory;
@@ -464,7 +491,9 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return ParseAction.New;
+				// We use Add rather than New when we're not merging config files together in order 
+				// to mimic the behavior of the C++ config cache when loading a single file
+				return (bIsMergingConfigs) ? ParseAction.New : ParseAction.Add;
 			}
 		}
 
