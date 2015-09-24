@@ -2,6 +2,9 @@ Availability: Public
 TItle:Layers Panel User Guide
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Tool for organizing Actors in the level into layers for quick selection and controlling visibility.
+Version: 4.9
+SkillLevel: Beginner
+
 
 [TOC(start:2)]
 
