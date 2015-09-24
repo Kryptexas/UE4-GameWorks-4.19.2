@@ -95,6 +95,15 @@ protected:
 
 	const TArray<FTransform>& GetViewpoints() const { return Viewpoints; }
 
+	// Whether the significance manager should be created on a client
+	uint32 bCreateOnClient:1;
+
+	// Whether the significance manager should be created on the server
+	uint32 bCreateOnServer:1;
+
+	// Whether the significance sort should sort high values to the end of the list
+	uint32 bSortSignificanceAscending:1;
+
 private:
 
 	// The cached viewpoints for significance for calculating when a new object is registered
