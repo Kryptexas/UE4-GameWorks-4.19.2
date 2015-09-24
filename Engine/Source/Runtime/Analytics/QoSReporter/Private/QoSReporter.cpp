@@ -39,6 +39,14 @@ void FQoSReporter::Initialize()
 {
 	checkf(!bIsInitialized, TEXT("FQoSReporter::Initialize called more than once."));
 
+	// allow overriding from configs
+	bool bEnabled = true;
+	if (GConfig->GetBool(TEXT("QoSReporter"), TEXT("bEnabled"), bEnabled, GEngineIni) && !bEnabled)
+	{
+		UE_LOG(LogQoSReporter, Verbose, TEXT("QoSReporter disabled by config setting"));
+		return;
+	}
+
 	// Setup some default engine analytics if there is nothing custom bound
 	FAnalytics::FProviderConfigurationDelegate DefaultEngineAnalyticsConfig;
 	DefaultEngineAnalyticsConfig.BindLambda(
@@ -70,6 +78,15 @@ void FQoSReporter::Initialize()
 		FName(*DefaultEngineAnalyticsConfig.Execute(TEXT("ProviderModuleName"), true)),
 		DefaultEngineAnalyticsConfig);
 
+	// check if Configs override the heartbeat interval
+	
+	float ConfigHeartbeatInterval = 0.0;
+	if (GConfig->GetFloat(TEXT("QoSReporter"), TEXT("HeartbeatInterval"), ConfigHeartbeatInterval, GEngineIni))
+	{
+		HeartbeatInterval = ConfigHeartbeatInterval;
+		UE_LOG(LogQoSReporter, Verbose, TEXT("HeartbeatInterval configured to %f from config."), HeartbeatInterval);
+	}
+
 	bIsInitialized = true;
 }
 
@@ -97,4 +114,32 @@ void FQoSReporter::ReportStartupCompleteEvent()
 	Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::StartupTime), ParamArray);
 
 	bStartupEventReported = true;
+}
+
+double FQoSReporter::HeartbeatInterval = 300;
+double FQoSReporter::LastHeartbeatTimestamp = FPlatformTime::Seconds();
+
+void FQoSReporter::Tick()
+{
+	if (!Analytics.IsValid())
+	{
+		return;
+	}
+
+	double CurrentTime = FPlatformTime::Seconds();
+	if (HeartbeatInterval > 0 && CurrentTime - LastHeartbeatTimestamp > HeartbeatInterval)
+	{
+		SendHeartbeat();
+		LastHeartbeatTimestamp = CurrentTime;
+	}
+}
+
+void FQoSReporter::SendHeartbeat()
+{
+	checkf(Analytics.IsValid(), TEXT("SendHeartbeat() should not be called if Analytics provider was not configured"));
+
+	extern ENGINE_API float GAverageFPS;
+	TArray<FAnalyticsEventAttribute> ParamArray;
+	ParamArray.Add(FAnalyticsEventAttribute(TEXT("AverageFPS"), GAverageFPS));
+	Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::Heartbeat), ParamArray);
 }

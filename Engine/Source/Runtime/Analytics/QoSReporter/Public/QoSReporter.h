@@ -12,6 +12,9 @@ enum class EQoSEventParam : uint32
 	/** Time from initializing the QoS reporter module to the "ready" state of the game/program (e.g. login screen) */
 	StartupTime,
 
+	/** Sent regularly, includes a number of attributes */
+	Heartbeat,
+
 	MAX
 };
 
@@ -23,6 +26,8 @@ namespace EQoSEvents
 		{
 			case EQoSEventParam::StartupTime: 
 				return TEXT("StartupTime");
+			case EQoSEventParam::Heartbeat:
+				return TEXT("Heartbeat");
 			default:
 				break;
 		}
@@ -142,7 +147,17 @@ public:
 	 */
 	static void QOSREPORTER_API ReportStartupCompleteEvent();
 
+	/**
+	 * This function is expected to be called periodically to update ongoing tasks.
+	 */
+	static void Tick();
+
 private:
+
+	/**
+	 * Sends heartbeat stats.
+	 */
+	static void SendHeartbeat();
 
 	/** Whether the module has been initialized. */
 	static bool bIsInitialized;
@@ -150,7 +165,13 @@ private:
 	/** Chosen analytics provider. */
 	static TSharedPtr<IAnalyticsProvider> Analytics;
 
-	/** 
+	/** Heartbeat interval in seconds */
+	static double HeartbeatInterval;
+
+	/** Timestamp when we sent the last heartbeat */
+	static double LastHeartbeatTimestamp;
+
+	/**
 	 * Event-specific variables
 	 */
 	/** Used for startup event */

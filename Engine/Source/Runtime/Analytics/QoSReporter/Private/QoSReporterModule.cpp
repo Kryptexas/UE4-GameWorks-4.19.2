@@ -9,7 +9,7 @@
 #include "EngineVersion.h"
 #include "QoSReporter.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogQoSReporter, Display, All);
+DEFINE_LOG_CATEGORY(LogQoSReporter);
 
 IMPLEMENT_MODULE(FQoSReporterModule, QoSReporter);
 

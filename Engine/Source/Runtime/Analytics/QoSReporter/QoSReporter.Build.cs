@@ -14,6 +14,7 @@ namespace UnrealBuildTool.Rules
 					"Analytics",
 					"HTTP",
 					"Json",
+					"Engine",	// for GAverageFPS
 				}
 			);
 
