@@ -606,7 +606,7 @@ namespace UnrealBuildTool
 		 * Builds and runs the header tool and touches the header directories.
 		 * Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
 		 */
-		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, FileReference ModuleInfoFileName, ref ECompilationResult UHTResult )
+		public static bool ExecuteHeaderToolIfNecessary( IUEToolChain ToolChain, UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, FileReference ModuleInfoFileName, ref ECompilationResult UHTResult )
 		{
 			if(ProgressWriter.bWriteMarkup)
 			{
@@ -617,9 +617,6 @@ namespace UnrealBuildTool
 				// We never want to try to execute the header tool when we're already trying to build it!
 				var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
 
-				var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-				var CppPlatform = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
-				var ToolChain = UEToolChain.GetPlatformToolChain(CppPlatform);
 				var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
 
 				// check if UHT is out of date

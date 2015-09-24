@@ -148,6 +148,7 @@ namespace UnrealBuildTool
 		/// <param name="BaseName">Base name to use for the Unity files</param>
 		/// <returns>The "unity" C++ files.</returns>
 		public static List<FileItem> GenerateUnityCPPs(
+			IUEToolChain ToolChain,
 			UEBuildTarget Target,
 			List<FileItem> CPPFiles, 
 			CPPEnvironment CompileEnvironment,
@@ -155,8 +156,6 @@ namespace UnrealBuildTool
 			)
 		{
 			var NewCPPFiles = new List<FileItem>();
-
-			var ToolChain = UEToolChain.GetPlatformToolChain(CompileEnvironment.Config.Target.Platform);
 
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 

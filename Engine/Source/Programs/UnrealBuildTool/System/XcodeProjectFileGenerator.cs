@@ -736,24 +736,23 @@ namespace UnrealBuildTool
 			bool bIsUE4Client = Target.TargetName.Equals("UE4Client", StringComparison.InvariantCultureIgnoreCase);
 			string EngineRelative = "";
 
-			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
 			foreach (string GameFolder in GameFolders.Select(x => x.FullName))
 			{
 				if (File.Exists(Path.Combine(GameFolder, Target.TargetName+".uproject")))
 				{
 					IsAGame = true;
-					GamePath = Toolchain.ConvertPath(GameFolder);
+					GamePath = ConvertPath(GameFolder);
 					break;
 				}
 				else if (!string.IsNullOrEmpty(GameNameFromClientName) && GameFolder.EndsWith(GameNameFromClientName))
 				{
-					GamePath = Toolchain.ConvertPath(GameFolder);
+					GamePath = ConvertPath(GameFolder);
 					break;
 				}
 			}
 
 			EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
-			EngineRelative = Toolchain.ConvertPath(EngineRelative);
+			EngineRelative = ConvertPath(EngineRelative);
 
 			if (!bGeneratingRocketProjectFiles)
 			{
@@ -765,6 +764,16 @@ namespace UnrealBuildTool
 			AppendSingleConfig(ref Contents, Target, "Shipping", Target.ShippingConfigGuid, PreprocessorDefinitions, HeaderSearchPaths, EngineRelative, GamePath, bIsUE4Game, IsAGame, bIsUE4Client);
 		}
 
+		/// <summary>
+		/// Convert all paths to Apple/Unix format (with forward slashes)
+		/// </summary>
+		/// <param name="InPath">The path to convert</param>
+		/// <returns>The normalized path</returns>
+		private static string ConvertPath(string InPath)
+		{
+			return InPath.Replace("\\", "/");
+		}
+		
 		/// <summary>
 		/// Appends a build configuration list section for specific target.
 		/// </summary>

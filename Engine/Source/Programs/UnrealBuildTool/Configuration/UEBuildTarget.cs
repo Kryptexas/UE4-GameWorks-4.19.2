@@ -2026,7 +2026,7 @@ namespace UnrealBuildTool
 					// Execute the header tool
 					FileReference ModuleInfoFileName = FileReference.Combine( ProjectIntermediateDirectory, "UnrealHeaderTool.manifest" );
 					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
-					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
+					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(TargetToolChain, this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
 						Log.TraceInformation("UnrealHeaderTool failed for target '" + GetTargetName() + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
 						return UHTResult;
@@ -2109,7 +2109,7 @@ namespace UnrealBuildTool
 		public void PreBuildSetup(IUEToolChain TargetToolChain)
 		{
 			// Set up the global compile and link environment in GlobalCompileEnvironment and GlobalLinkEnvironment.
-			SetupGlobalEnvironment();
+			SetupGlobalEnvironment(TargetToolChain);
 
 			// Setup the target's modules.
 			SetupModules();
@@ -3081,11 +3081,10 @@ namespace UnrealBuildTool
 		}
 
 		/** Sets up the global compile and link environment for the target. */
-		public virtual void SetupGlobalEnvironment()
+		public virtual void SetupGlobalEnvironment(IUEToolChain ToolChain)
 		{
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
-			var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(Platform));
 			ToolChain.SetUpGlobalEnvironment();
 
 			// Allow each target type (Game/Editor/Server) to set a default global environment state

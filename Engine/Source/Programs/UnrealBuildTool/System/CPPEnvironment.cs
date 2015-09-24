@@ -360,27 +360,6 @@ namespace UnrealBuildTool
 		}
 
 		/**
-		 * Creates actions to compile a set of C++ source files.
-		 * @param CPPFiles - The C++ source files to compile.
-		 * @param ModuleName - Name of the module these files are associated with
-		 * @return The object files produced by the actions.
-		 */
-		public CPPOutput CompileFiles(UEBuildTarget Target, List<FileItem> CPPFiles, string ModuleName)
-		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileCPPFiles(Target, this, CPPFiles, ModuleName);
-		}
-
-		/**
-		 * Creates actions to compile a set of Windows resource script files.
-		 * @param RCFiles - The resource script files to compile.
-		 * @return The compiled resource (.res) files produced by the actions.
-		 */
-		public CPPOutput CompileRCFiles(UEBuildTarget Target, List<FileItem> RCFiles)
-		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileRCFiles(Target, this, RCFiles);
-		}
-
-		/**
 		 * Whether to use PCH files with the current target
 		 * 
 		 * @return	true if PCH files should be used, false otherwise

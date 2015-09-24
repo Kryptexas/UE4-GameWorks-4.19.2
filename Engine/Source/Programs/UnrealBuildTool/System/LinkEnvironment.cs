@@ -171,12 +171,6 @@ namespace UnrealBuildTool
 			Config = new LinkEnvironmentConfiguration(InCopyEnvironment.Config);
 		}
 
-		/** Links the input files into an executable. */
-		public FileItem[] LinkExecutable( bool bBuildImportLibraryOnly )
-		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).LinkAllFiles(this, bBuildImportLibraryOnly);
-		}
-
 		/// <summary>
 		/// Performs a deep copy of this LinkEnvironment object.
 		/// </summary>

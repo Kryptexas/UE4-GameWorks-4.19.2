@@ -701,44 +701,6 @@ namespace UnrealBuildTool.IOS
 			}
 			else
 			{
-				// If it is requested, send the app bundle back to the platform executing these commands.
-				if (BuildConfiguration.bCopyAppBundleBackToDevice)
-				{
-					Log.TraceInformation("Copying binaries back to this device...");
-
-					IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
-
-					try
-					{
-						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath.FullName) + "\\";
-						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.TargetType != TargetRules.TargetType.Game)
-						{
-							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
-						}
-
-						// Get the app bundle's name
-						string AppFullName = InTarget.AppName;
-						if (InTarget.Configuration != UnrealTargetConfiguration.Development)
-						{
-							AppFullName += "-" + InTarget.Platform.ToString();
-							AppFullName += "-" + InTarget.Configuration.ToString();
-						}
-
-						foreach (string BinaryPath in Toolchain.BuiltBinaries.Select(x => x.FullName))
-						{
-							if (!BinaryPath.Contains("Dummy"))
-							{
-								RPCUtilHelper.CopyFile(Toolchain.ConvertPath(BinaryPath), BinaryPath, false);
-							}
-						}
-						Log.TraceInformation("Copied binaries successfully.");
-					}
-					catch (Exception)
-					{
-						Log.TraceInformation("Copying binaries back to this device failed.");
-					}
-				}
-
 				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, UnrealBuildTool.GetUProjectFile() == null ? "" : Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile().FullName), "../../Engine", "");
 			}
 			return true;

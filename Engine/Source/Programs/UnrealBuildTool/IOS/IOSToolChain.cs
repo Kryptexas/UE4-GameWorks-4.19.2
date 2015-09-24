@@ -732,7 +732,7 @@ namespace UnrealBuildTool
 		 * 
 		 * @param Executable FileItem describing the executable to generate debug info for
 		 */
-		static public FileItem GenerateDebugInfo(FileItem Executable)
+		public FileItem GenerateDebugInfo(FileItem Executable)
 		{
 			// Make a file item for the source and destination files
 			string FullDestPathRoot = Executable.AbsolutePath + ".dSYM";
@@ -755,8 +755,7 @@ namespace UnrealBuildTool
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
 			
-			IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
-			GenDebugAction.WorkingDirectory = Toolchain.GetMacDevSrcRoot();
+			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
 
 			// note that the source and dest are switched from a copy command
@@ -1280,6 +1279,42 @@ namespace UnrealBuildTool
 
 						// Copy the bundled resource from the remote mac to the local dest
 						RPCUtilHelper.CopyDirectory( RemoteDest, LocalDest, RPCUtilHelper.ECopyOptions.None );
+					}
+				}
+
+				// If it is requested, send the app bundle back to the platform executing these commands.
+				if (BuildConfiguration.bCopyAppBundleBackToDevice)
+				{
+					Log.TraceInformation("Copying binaries back to this device...");
+
+					try
+					{
+						string BinaryDir = Path.GetDirectoryName(Target.OutputPath.FullName) + "\\";
+						if (BinaryDir.EndsWith(Target.AppName + "\\Binaries\\IOS\\") && Target.TargetType != TargetRules.TargetType.Game)
+						{
+							BinaryDir = BinaryDir.Replace(Target.TargetType.ToString(), "Game");
+						}
+
+						// Get the app bundle's name
+						string AppFullName = Target.AppName;
+						if (Target.Configuration != UnrealTargetConfiguration.Development)
+						{
+							AppFullName += "-" + Target.Platform.ToString();
+							AppFullName += "-" + Target.Configuration.ToString();
+						}
+
+						foreach (string BinaryPath in BuiltBinaries.Select(x => x.FullName))
+						{
+							if (!BinaryPath.Contains("Dummy"))
+							{
+								RPCUtilHelper.CopyFile(ConvertPath(BinaryPath), BinaryPath, false);
+							}
+						}
+						Log.TraceInformation("Copied binaries successfully.");
+					}
+					catch (Exception)
+					{
+						Log.TraceInformation("Copying binaries back to this device failed.");
 					}
 				}
 			}

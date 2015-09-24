@@ -549,7 +549,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(IUEToolChain TargetToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			// UnrealCodeAnalyzer produces output files only for a specific module.
 			if (BuildConfiguration.bRunUnrealCodeAnalyzer && !(Modules.Any(x => x.Name == BuildConfiguration.UCAModuleToAnalyze)))
@@ -558,10 +558,10 @@ namespace UnrealBuildTool
 			}
 
 			// Setup linking environment.
-			var BinaryLinkEnvironment = SetupBinaryLinkEnvironment(LinkEnvironment, CompileEnvironment);
+			var BinaryLinkEnvironment = SetupBinaryLinkEnvironment(ToolChain, LinkEnvironment, CompileEnvironment);
 
 			// Return linked files.
-			return SetupOutputFiles(TargetToolChain, ref BinaryLinkEnvironment);
+			return SetupOutputFiles(ToolChain, ref BinaryLinkEnvironment);
 		}
 
 		/// <summary>
@@ -660,7 +660,7 @@ namespace UnrealBuildTool
 			return Config.OutputFilePath.FullName;
 		}
 
-		private LinkEnvironment SetupBinaryLinkEnvironment(LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
+		private LinkEnvironment SetupBinaryLinkEnvironment(IUEToolChain ToolChain, LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
 		{
 			var BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
 			var LinkEnvironmentVisitedModules = new HashSet<UEBuildModule>();
@@ -688,7 +688,7 @@ namespace UnrealBuildTool
 				{
 					// Compile each module.
 					Log.TraceVerbose("Compile module: " + Module.Name);
-					LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment);
+					LinkInputFiles = Module.Compile(ToolChain, CompileEnvironment, BinaryCompileEnvironment);
 
 					// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
 					// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
@@ -745,7 +745,7 @@ namespace UnrealBuildTool
 			return BinaryLinkEnvironment;
 		}
 
-		private List<FileItem> SetupOutputFiles(IUEToolChain TargetToolChain, ref LinkEnvironment BinaryLinkEnvironment)
+		private List<FileItem> SetupOutputFiles(IUEToolChain ToolChain, ref LinkEnvironment BinaryLinkEnvironment)
 		{
 			// Early exits first
 			if (ProjectFileGenerator.bGenerateProjectFiles)
@@ -782,14 +782,14 @@ namespace UnrealBuildTool
 				if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac && BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Linux)
 				{
 					// Create the import library.
-					OutputFiles.AddRange(BinaryLinkEnvironment.LinkExecutable(true));
+					OutputFiles.AddRange(ToolChain.LinkAllFiles(BinaryLinkEnvironment, true));
 				}
 			}
 
 			BinaryLinkEnvironment.Config.bIncludeDependentLibrariesInLibrary = bIncludeDependentLibrariesInLibrary;
 
 			// Link the binary.
-			FileItem[] Executables = BinaryLinkEnvironment.LinkExecutable(false);
+			FileItem[] Executables = ToolChain.LinkAllFiles(BinaryLinkEnvironment, false);
 			OutputFiles.AddRange(Executables);
 
 			// Produce additional console app if requested
@@ -802,12 +802,12 @@ namespace UnrealBuildTool
 				ConsoleAppLinkEvironment.Config.OutputFilePaths = ConsoleAppLinkEvironment.Config.OutputFilePaths.Select(Path => GetAdditionalConsoleAppPath(Path)).ToList();
 
 				// Link the console app executable
-				OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));
+				OutputFiles.AddRange(ToolChain.LinkAllFiles(ConsoleAppLinkEvironment, false));
 			}
 
 			foreach (var Executable in Executables)
 			{
-				OutputFiles.AddRange(TargetToolChain.PostBuild(Executable, BinaryLinkEnvironment));
+				OutputFiles.AddRange(ToolChain.PostBuild(Executable, BinaryLinkEnvironment));
 			}
 
 			return OutputFiles;
@@ -875,9 +875,7 @@ namespace UnrealBuildTool
 			}
 			ProjectCSharpEnviroment.EnvironmentTargetPlatform = LinkEnvironment.Config.Target.Platform;
 
-			// Currently only supported by windows...
-			UEToolChain.GetPlatformToolChain(CPPTargetPlatform.Win64).CompileCSharpProject(
-				ProjectCSharpEnviroment, Config.ProjectFilePath, Config.OutputFilePath);
+			ToolChain.CompileCSharpProject(ProjectCSharpEnviroment, Config.ProjectFilePath, Config.OutputFilePath);
 
 			return new FileItem[] { FileItem.GetItemByFileReference(Config.OutputFilePath) };
 		}

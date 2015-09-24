@@ -1355,7 +1355,9 @@ namespace UnrealBuildTool
                                     BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
 									var TargetDescs = UEBuildTarget.ParseTargetCommandLine( Arguments, GetUProjectFile() );
 			                        UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget( TargetDescs[0] );	// @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
-                                    CheckTarget.SetupGlobalEnvironment();
+	                                IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(TargetDescs[0].Platform);
+									IUEToolChain ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(TargetDescs[0].Platform);
+                                    CheckTarget.SetupGlobalEnvironment(ToolChain));
                                     if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
                                         (CheckTarget.TargetType == TargetRules.TargetType.Server) ||
                                         (CheckTarget.TargetType == TargetRules.TargetType.Client))
@@ -1962,7 +1964,7 @@ namespace UnrealBuildTool
                                         // Execute the header tool
                                         FileReference ModuleInfoFileName = FileReference.Combine(Target.ProjectIntermediateDirectory, "UnrealHeaderTool.manifest");
                                         ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
-                                        if (!ExternalExecution.ExecuteHeaderToolIfNecessary(Target, GlobalCompileEnvironment:null, UObjectModules:TargetUObjectModules, ModuleInfoFileName:ModuleInfoFileName, UHTResult:ref UHTResult))
+                                        if (!ExternalExecution.ExecuteHeaderToolIfNecessary(ToolChain, Target, GlobalCompileEnvironment:null, UObjectModules:TargetUObjectModules, ModuleInfoFileName:ModuleInfoFileName, UHTResult:ref UHTResult))
                                         {
                                             Log.TraceInformation("UnrealHeaderTool failed for target '" + Target.GetTargetName() + "' (platform: " + Target.Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
                                             BuildResult = UHTResult;
