@@ -712,55 +712,65 @@ bool GCollisionAnalyzerIsRecording = false;
 
 bool bSkipCapture = false;
 
+/** Util to convert from PhysX shape and rotation to unreal shape enum, dimension vector and rotation */
+static void P2UGeomAndRot(const PxGeometry& PGeom, const PxQuat& PRot, ECAQueryShape::Type& OutQueryShape, FVector& OutDims, FQuat& OutQuat)
+{
+	OutQueryShape = ECAQueryShape::Capsule;
+	OutDims = FVector(0, 0, 0);
+	OutQuat = FQuat::Identity;
+
+	switch (PGeom.getType())
+	{
+	case PxGeometryType::eCAPSULE:
+	{
+		OutQueryShape = ECAQueryShape::Capsule;
+		PxCapsuleGeometry* PCapsuleGeom = (PxCapsuleGeometry*)&PGeom;
+		OutDims = FVector(PCapsuleGeom->radius, PCapsuleGeom->radius, PCapsuleGeom->halfHeight + PCapsuleGeom->radius);
+		OutQuat = ConvertToUECapsuleRot(PRot);
+		break;
+	}
+
+	case PxGeometryType::eSPHERE:
+	{
+		OutQueryShape = ECAQueryShape::Sphere;
+		PxSphereGeometry* PSphereGeom = (PxSphereGeometry*)&PGeom;
+		OutDims = FVector(PSphereGeom->radius);
+		break;
+	}
+
+	case PxGeometryType::eBOX:
+	{
+		OutQueryShape = ECAQueryShape::Box;
+		PxBoxGeometry* PBoxGeom = (PxBoxGeometry*)&PGeom;
+		OutDims = P2UVector(PBoxGeom->halfExtents);
+		OutQuat = P2UQuat(PRot);
+		break;
+	}
+
+	case PxGeometryType::eCONVEXMESH:
+	{
+		OutQueryShape = ECAQueryShape::Convex;
+		break;
+	}
+
+	default:
+		UE_LOG(LogCollision, Warning, TEXT("CaptureGeomSweep: Unknown geom type."));
+	}
+}
+
 /** Util to extract type and dimensions from physx geom being swept, and pass info to CollisionAnalyzer, if its recording */
-void CaptureGeomSweep(const UWorld* World, const FVector& Start, const FVector& End, const PxQuat& PRot, ECAQueryType::Type QueryType, const PxGeometry& PGeom, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams, const TArray<FHitResult>& Results, double CPUTime)
+void CaptureGeomSweep(const UWorld* World, const FVector& Start, const FVector& End, const PxQuat& PRot, ECAQueryMode::Type QueryMode, const PxGeometry& PGeom, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams, const TArray<FHitResult>& Results, double CPUTime)
 {
 	if(bSkipCapture || !GCollisionAnalyzerIsRecording || !IsInGameThread())
 	{
 		return;
 	}
 
-	ECAQueryShape::Type QueryShape = ECAQueryShape::Raycast;
+	// Convert from PhysX to Unreal types
+	ECAQueryShape::Type QueryShape = ECAQueryShape::Sphere;
 	FVector Dims(0,0,0);
 	FQuat Rot = FQuat::Identity;
-
-	switch(PGeom.getType())
-	{
-	case PxGeometryType::eCAPSULE:
-		{
-			QueryShape = ECAQueryShape::CapsuleSweep;
-			PxCapsuleGeometry* PCapsuleGeom = (PxCapsuleGeometry*)&PGeom;
-			Dims = FVector(PCapsuleGeom->radius, PCapsuleGeom->radius, PCapsuleGeom->halfHeight + PCapsuleGeom->radius);
-			Rot = ConvertToUECapsuleRot(PRot);
-			break;
-		}
-
-	case PxGeometryType::eSPHERE:
-		{
-			QueryShape = ECAQueryShape::SphereSweep;
-			PxSphereGeometry* PSphereGeom = (PxSphereGeometry*)&PGeom;
-			Dims = FVector(PSphereGeom->radius);
-			break;
-		}
-
-	case PxGeometryType::eBOX:
-		{
-			QueryShape = ECAQueryShape::BoxSweep;
-			PxBoxGeometry* PBoxGeom = (PxBoxGeometry*)&PGeom;
-			Dims = P2UVector(PBoxGeom->halfExtents);
-			Rot = P2UQuat(PRot);
-			break;
-		}
-
-	case PxGeometryType::eCONVEXMESH:
-		{
-			QueryShape = ECAQueryShape::ConvexSweep;
-			break;
-		}
-
-	default:
-		UE_LOG(LogCollision, Warning, TEXT("CaptureGeomSweep: Unknown geom type."));
-	}
+	P2UGeomAndRot(PGeom, PRot, QueryShape, Dims, Rot);
 
 	// Do a touch all query to find things we _didn't_ hit
 	bSkipCapture = true;
@@ -769,11 +779,11 @@ void CaptureGeomSweep(const UWorld* World, const FVector& Start, const FVector& 
 	bSkipCapture = false;
 
 	// Now tell analyzer
-	FCollisionAnalyzerModule::Get()->CaptureQuery(Start, End, Rot, QueryType, QueryShape, Dims, TraceChannel, Params, ResponseParams, ObjectParams, Results, TouchAllResults, CPUTime);
+	FCollisionAnalyzerModule::Get()->CaptureQuery(Start, End, Rot, ECAQueryType::GeomSweep, QueryShape, QueryMode, Dims, TraceChannel, Params, ResponseParams, ObjectParams, Results, TouchAllResults, CPUTime);
 }
 
 /** Util to capture a raycast with the CollisionAnalyzer if recording */
-void CaptureRaycast(const UWorld* World, const FVector& Start, const FVector& End, ECAQueryType::Type QueryType, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams, const TArray<FHitResult>& Results, double CPUTime)
+void CaptureRaycast(const UWorld* World, const FVector& Start, const FVector& End, ECAQueryMode::Type QueryMode, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams, const TArray<FHitResult>& Results, double CPUTime)
 {
 	if(bSkipCapture || !GCollisionAnalyzerIsRecording || !IsInGameThread())
 	{
@@ -786,18 +796,50 @@ void CaptureRaycast(const UWorld* World, const FVector& Start, const FVector& En
 	RaycastMulti(World, TouchAllResults, Start, End, DefaultCollisionChannel, Params, ResponseParams, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects));
 	bSkipCapture = false;
 
-	FCollisionAnalyzerModule::Get()->CaptureQuery(Start, End, FQuat::Identity, QueryType, ECAQueryShape::Raycast, FVector(0,0,0), TraceChannel, Params, ResponseParams, ObjectParams, Results, TouchAllResults, CPUTime);
+	FCollisionAnalyzerModule::Get()->CaptureQuery(Start, End, FQuat::Identity, ECAQueryType::Raycast, ECAQueryShape::Sphere, QueryMode, FVector(0,0,0), TraceChannel, Params, ResponseParams, ObjectParams, Results, TouchAllResults, CPUTime);
+}
+
+void CaptureOverlap(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, ECAQueryMode::Type QueryMode, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams, TArray<FOverlapResult>& Results, double CPUTime)
+{
+	if (bSkipCapture || !GCollisionAnalyzerIsRecording || !IsInGameThread())
+	{
+		return;
+	}
+
+	ECAQueryShape::Type QueryShape = ECAQueryShape::Sphere;
+	FVector Dims(0, 0, 0);
+	FQuat Rot = FQuat::Identity;
+	P2UGeomAndRot(PGeom, PGeomPose.q, QueryShape, Dims, Rot);
+
+	TArray<FHitResult> HitResults;
+	for(const FOverlapResult& OverlapResult : Results)
+	{
+		FHitResult NewResult = FHitResult(0.f);
+		NewResult.bBlockingHit = OverlapResult.bBlockingHit;
+		NewResult.Actor = OverlapResult.Actor;
+		NewResult.Component = OverlapResult.Component;
+		NewResult.Item = OverlapResult.ItemIndex;
+		HitResults.Add(NewResult);
+	}
+
+	TArray<FHitResult> TouchAllResults;
+	// TODO: Fill in 'all results' for overlaps
+
+	FCollisionAnalyzerModule::Get()->CaptureQuery(P2UVector(PGeomPose.p), FVector(0,0,0), Rot, ECAQueryType::GeomOverlap, QueryShape, QueryMode, Dims, TraceChannel, Params, ResponseParams, ObjectParams, HitResults, TouchAllResults, CPUTime);
 }
 
 #define STARTQUERYTIMER() double StartTime = FPlatformTime::Seconds()
-#define CAPTUREGEOMSWEEP(World, Start, End, Rot, QueryType, PGeom, TraceChannel, Params, ResponseParam, ObjectParam, Results) if (GCollisionAnalyzerIsRecording) { CaptureGeomSweep(World, Start, End, Rot, QueryType, PGeom, TraceChannel, Params, ResponseParam, ObjectParam, Results, FPlatformTime::Seconds() - StartTime); }
-#define CAPTURERAYCAST(World, Start, End, QueryType, TraceChannel, Params, ResponseParam, ObjectParam, Results)	if (GCollisionAnalyzerIsRecording) { CaptureRaycast(World, Start, End, QueryType, TraceChannel, Params, ResponseParam, ObjectParam, Results, FPlatformTime::Seconds() - StartTime); }
+#define CAPTUREGEOMSWEEP(World, Start, End, Rot, QueryMode, PGeom, TraceChannel, Params, ResponseParam, ObjectParam, Results) if (GCollisionAnalyzerIsRecording) { CaptureGeomSweep(World, Start, End, Rot, QueryMode, PGeom, TraceChannel, Params, ResponseParam, ObjectParam, Results, FPlatformTime::Seconds() - StartTime); }
+#define CAPTURERAYCAST(World, Start, End, QueryMode, TraceChannel, Params, ResponseParam, ObjectParam, Results)	if (GCollisionAnalyzerIsRecording) { CaptureRaycast(World, Start, End, QueryMode, TraceChannel, Params, ResponseParam, ObjectParam, Results, FPlatformTime::Seconds() - StartTime); }
+#define CAPTUREGEOMOVERLAP(World, PGeom, PGeomPose, QueryMode, TraceChannel, Params, ResponseParams, ObjectParams, Results)	if (GCollisionAnalyzerIsRecording) { CaptureOverlap(World, PGeom, PGeomPose, QueryMode, TraceChannel, Params, ResponseParams, ObjectParams, Results, FPlatformTime::Seconds() - StartTime); }
+
 
 #else
 
 #define STARTQUERYTIMER() 
 #define CAPTUREGEOMSWEEP(...)
 #define CAPTURERAYCAST(...)
+#define CAPTUREGEOMOVERLAP(...)
 
 #endif // ENABLE_COLLISION_ANALYZER
 
@@ -871,7 +913,7 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 		DrawLineTraces(World, Start, End, Hits, DebugLineLifetime);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	CAPTURERAYCAST(World, Start, End, ECAQueryType::Test, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+	CAPTURERAYCAST(World, Start, End, ECAQueryMode::Test, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 
 	return bHaveBlockingHit;
 }
@@ -988,7 +1030,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 		{
 			Hits.Add(OutHit);
 		}
-		CAPTURERAYCAST(World, Start, End, ECAQueryType::Single, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+		CAPTURERAYCAST(World, Start, End, ECAQueryMode::Single, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 	}
 #endif
 
@@ -1157,7 +1199,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	CAPTURERAYCAST(World, Start, End, ECAQueryType::Multi, TraceChannel, Params, ResponseParams, ObjectParams, OutHits);
+	CAPTURERAYCAST(World, Start, End, ECAQueryMode::Multi, TraceChannel, Params, ResponseParams, ObjectParams, OutHits);
 
 	return bHaveBlockingHit;
 }
@@ -1228,7 +1270,7 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 	if (GCollisionAnalyzerIsRecording)
 	{
 		TArray<FHitResult> Hits;
-		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Test, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryMode::Test, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 	}
 #endif // ENABLE_COLLISION_ANALYZER
 
@@ -1343,7 +1385,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		{
 			Hits.Add(OutHit);
 		}
-		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Single, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryMode::Single, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 	}
 #endif
 
@@ -1469,7 +1511,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 	{
 		TArray<FHitResult> OnlyMyHits(OutHits);
 		OnlyMyHits.RemoveAt(0, InitialHitCount, false); // Remove whatever was there initially.
-		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Multi, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, OnlyMyHits);
+		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryMode::Multi, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, OnlyMyHits);
 	}
 #endif // ENABLE_COLLISION_ANALYZER
 
@@ -1524,6 +1566,8 @@ template <EQueryInfo::Type InfoType>
 bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
+	STARTQUERYTIMER();
+
 	bool bHaveBlockingHit = false;
 
 	// overlapMultiple only supports sphere/capsule/box 
@@ -1636,6 +1680,16 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 			}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		}
+
+#if ENABLE_COLLISION_ANALYZER
+		if (GCollisionAnalyzerIsRecording)
+		{
+			// Determine query mode ('single' doesn't really exist for overlaps)
+			ECAQueryMode::Type QueryMode = (InfoType == EQueryInfo::GatherAll)  ? ECAQueryMode::Multi : ECAQueryMode::Test;
+
+			CAPTUREGEOMOVERLAP(World, PGeom, PGeomPose, QueryMode, TraceChannel, Params, ResponseParams, ObjectParams, OutOverlaps);
+		}
+#endif // ENABLE_COLLISION_ANALYZER
 	}
 	else
 	{

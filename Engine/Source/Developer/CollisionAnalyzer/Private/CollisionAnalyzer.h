@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /** Stores information about one collision query */
 struct FCAQuery
 {
@@ -10,6 +11,7 @@ struct FCAQuery
 	FQuat						Rot;
 	ECAQueryType::Type			Type;
 	ECAQueryShape::Type			Shape;
+	ECAQueryMode::Type			Mode;
 	FVector						Dims;
 	ECollisionChannel			Channel;
 	FCollisionQueryParams		Params;
@@ -20,6 +22,8 @@ struct FCAQuery
 	int32						FrameNum;
 	float						CPUTime; /** In ms */
 	int32						ID;
+
+	friend FArchive& operator << ( FArchive& Ar, FCAQuery& Query );
 };
 
 /** Actual implementation of CollisionAnalyzer, private inside module */
@@ -32,7 +36,8 @@ public:
 		const FVector& End, 
 		const FQuat& Rot, 
 		ECAQueryType::Type QueryType, 
-		ECAQueryShape::Type QueryShape, 
+		ECAQueryShape::Type QueryShape,
+		ECAQueryMode::Type QueryMode,
 		const FVector& Dims, 
 		ECollisionChannel TraceChannel, 
 		const struct FCollisionQueryParams& Params, 
@@ -75,6 +80,11 @@ public:
 	DECLARE_EVENT( FCollisionAnalyzer, FQueriesChangedEvent );
 	FQueriesChangedEvent& OnQueriesChanged() { return QueriesChangedEvent; }
 	FQueriesChangedEvent& OnQueryAdded() { return QueryAddedEvent; }
+
+	/** Save current data to a file */
+	void SaveCollisionProfileData(FString ProfileFileName);
+	/** Load data from file */
+	void LoadCollisionProfileData(FString ProfileFileName);
 
 private:
 	/** The current frame number we are on while recording */
