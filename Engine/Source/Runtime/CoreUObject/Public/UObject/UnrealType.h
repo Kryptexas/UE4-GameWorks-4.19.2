@@ -1860,7 +1860,7 @@ public:
 
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override
 	{
-		return GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, UObjectPropertyBase::PropertyClass);
+		return UObjectPropertyBase::GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, UObjectPropertyBase::PropertyClass);
 	}
 };
 
