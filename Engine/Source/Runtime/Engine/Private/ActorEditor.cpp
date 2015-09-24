@@ -166,16 +166,16 @@ void AActor::PostEditMove(bool bFinished)
 		// update actor and all its components in navigation system after finishing move
 		// USceneComponent::UpdateNavigationData works only in game world
 		UNavigationSystem::UpdateNavOctreeBounds(this);
-		UNavigationSystem::UpdateNavOctreeAll(this);
 
 		TArray<AActor*> ParentedActors;
 		GetAttachedActors(ParentedActors);
-
 		for (int32 Idx = 0; Idx < ParentedActors.Num(); Idx++)
 		{
 			UNavigationSystem::UpdateNavOctreeBounds(ParentedActors[Idx]);
-			UNavigationSystem::UpdateNavOctreeAll(ParentedActors[Idx]);
 		}
+
+		// not doing manual update of all attached actors since UpdateNavOctreeAll should take care of it
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
