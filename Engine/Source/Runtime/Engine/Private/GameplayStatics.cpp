@@ -1075,7 +1075,7 @@ void UGameplayStatics::ClearSoundMixModifiers(UObject* WorldContextObject)
 
 void UGameplayStatics::ActivateReverbEffect(UObject* WorldContextObject, class UReverbEffect* ReverbEffect, FName TagName, float Priority, float Volume, float FadeTime)
 {
-	if (ReverbEffect || !GEngine || !GEngine->UseSound())
+	if (ReverbEffect == nullptr || !GEngine || !GEngine->UseSound())
 	{
 		return;
 	}
