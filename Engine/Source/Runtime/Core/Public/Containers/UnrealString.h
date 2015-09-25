@@ -240,10 +240,10 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend       TCHAR* begin(      FString& Str) { return begin(Str.Data); }
-	FORCEINLINE friend const TCHAR* begin(const FString& Str) { return begin(Str.Data); }
-	FORCEINLINE friend       TCHAR* end  (      FString& Str) {       TCHAR* Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
-	FORCEINLINE friend const TCHAR* end  (const FString& Str) { const TCHAR* Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
+	FORCEINLINE friend TIterator      begin(      FString& Str) { return begin(Str.Data); }
+	FORCEINLINE friend TConstIterator begin(const FString& Str) { return begin(Str.Data); }
+	FORCEINLINE friend TIterator      end  (      FString& Str) { TIterator      Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
+	FORCEINLINE friend TConstIterator end  (const FString& Str) { TConstIterator Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
 
 public:
 	FORCEINLINE uint32 GetAllocatedSize() const
