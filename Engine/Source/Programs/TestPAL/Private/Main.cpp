@@ -246,6 +246,8 @@ int32 SysInfoTest(const TCHAR* CommandLine)
 	FString OSInstanceGuid = FPlatformMisc::GetOperatingSystemId();
 	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::GetOperatingSystemId() = %s"), *OSInstanceGuid);
 
+	FPlatformMemory::DumpStats(*GLog);
+
 	FEngineLoop::AppPreExit();
 	FEngineLoop::AppExit();
 	return 0;
