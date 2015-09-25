@@ -14,6 +14,13 @@ DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num BSS Cached"),STATGROUP_NumBSSCached,STATGROUP_ShaderCache);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num New Draw-States Cached"),STATGROUP_NumDrawsCached,STATGROUP_ShaderCache);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Shaders Precompiled"),STATGROUP_NumPrecompiled,STATGROUP_ShaderCache);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Shaders Predrawn"),STATGROUP_NumPredrawn,STATGROUP_ShaderCache);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Draw States Predrawn"),STATGROUP_NumStatesPredrawn,STATGROUP_ShaderCache);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Shaders Precompiled"),STATGROUP_TotalPrecompiled,STATGROUP_ShaderCache);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Shaders Predrawn"),STATGROUP_TotalPredrawn,STATGROUP_ShaderCache);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Draw States Predrawn"),STATGROUP_TotalStatesPredrawn,STATGROUP_ShaderCache);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num To Precompile Per Frame"),STATGROUP_NumToPrecompile,STATGROUP_ShaderCache);
 
 const FGuid FShaderCacheCustomVersion::Key(0xB954F018, 0xC9624DD6, 0xA74E79B1, 0x8EA113C2);
 const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE41, 0x5C6CC993);
@@ -70,6 +77,40 @@ FAutoConsoleVariableRef FShaderCache::CVarUseShaderBinaryCache(
 	bUseShaderBinaryCache,
 	TEXT("If true generates & uses a separate cache of used shader binaries for even earlier submission - may be platform or even device specific. Defaults to false."),
 	ECVF_ReadOnly|ECVF_RenderThreadSafe
+	);
+
+// Whether to try and perform shader precompilation asynchronously.
+int32 FShaderCache::bUseAsyncShaderPrecompilation = 0;
+FAutoConsoleVariableRef FShaderCache::CVarUseAsyncShaderPrecompilation(
+	TEXT("r.UseAsyncShaderPrecompilation"),
+	bUseAsyncShaderPrecompilation,
+	TEXT("If true tries to perform inital shader precompilation asynchronously on a background thread. Defaults to false."),
+	ECVF_ReadOnly|ECVF_RenderThreadSafe
+	);
+
+// As async precompile can take significant time specify a desired max. frame time that the cache will try to remain below while precompiling. We can't specify the time to spend directly as under GL compile operations are deferred and take no time on the user thread.
+int32 FShaderCache::TargetPrecompileFrameTime = -1;
+FAutoConsoleVariableRef FShaderCache::CVarTargetPrecompileFrameTime(
+	TEXT("r.TargetPrecompileFrameTime"),
+	TargetPrecompileFrameTime,
+	TEXT("Upper limit in ms for total frame time while precompiling, allowing the shader cache to adjust how many shaders to precompile each frame. Defaults to -1 which will precompile all shaders immediately."),
+	ECVF_RenderThreadSafe
+	);
+
+int32 FShaderCache::AccelPredrawBatchTime = 0;
+FAutoConsoleVariableRef FShaderCache::CVarAccelPredrawBatchTime(
+	TEXT("r.AccelPredrawBatchTime"),
+	AccelPredrawBatchTime,
+	TEXT("Override value for r.PredrawBatchTime when showing a loading-screen or similar to do more work while the player won't notice, or 0 to use r.PredrawBatchTime. Defaults to 0."),
+	ECVF_RenderThreadSafe
+	);
+
+int32 FShaderCache::AccelTargetPrecompileFrameTime = 0;
+FAutoConsoleVariableRef FShaderCache::CVarAccelTargetPrecompileFrameTime(
+	TEXT("r.AccelTargetPrecompileFrameTime"),
+	AccelTargetPrecompileFrameTime,
+	TEXT("Override value for r.TargetPrecompileFrameTime when showing a loading-screen or similar to do more work while the player won't notice, or 0 to use r.TargetPrecompileFrameTime. Defaults to 0."),
+	ECVF_RenderThreadSafe
 	);
 
 FShaderCache* FShaderCache::Cache = nullptr;
@@ -161,13 +202,46 @@ void FShaderCache::LoadBinaryCache()
 			}
 		}
 		
-		if(bLoadedCache)
+		if ( bLoadedCache )
 		{
-			for(auto Entry : Cache->CodeCache.Shaders)
+			if ( !bUseAsyncShaderPrecompilation || FParse::Param(FCommandLine::Get(), TEXT("DisableAsyncShaderPrecompilation")) )
 			{
-				if(Entry.Key.Platform == GMaxRHIShaderPlatform)
+				for ( auto Entry : Cache->CodeCache.Shaders )
 				{
-					Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, Entry.Value);
+					if ( Entry.Key.Platform == GMaxRHIShaderPlatform )
+					{
+						Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, Entry.Value);
+					}
+				}
+			}
+			else
+			{
+				for ( auto Entry : Cache->CodeCache.Shaders )
+				{
+					bool bUsable = FShaderResource::ArePlatformsCompatible(GMaxRHIShaderPlatform, Entry.Key.Platform);
+					switch (Entry.Key.Frequency)
+					{
+						case SF_Geometry:
+							bUsable &= RHISupportsGeometryShaders(GMaxRHIShaderPlatform);
+							break;
+							
+						case SF_Hull:
+						case SF_Domain:
+							bUsable &= RHISupportsTessellation(GMaxRHIShaderPlatform);
+							break;
+							
+						case SF_Compute:
+							bUsable &= RHISupportsComputeShaders(GMaxRHIShaderPlatform);
+							break;
+							
+						default:
+							break;
+					}
+					
+					if ( bUsable )
+					{
+						Cache->ShadersToPrecompile.Emplace(Entry.Key);
+					}
 				}
 			}
 		}
@@ -228,6 +302,8 @@ FShaderCache::FShaderCache()
 , CurrentShaderState(nullptr)
 , bIsPreDraw(false)
 , Options(SCO_Default)
+, OverridePrecompileTime(0)
+, OverridePredrawBatchTime(0)
 {
 	Viewport[0] = Viewport[1] = Viewport[2] = Viewport[3] = 0;
 	DepthRange[0] = DepthRange[1] = 0.0f;
@@ -481,18 +557,19 @@ void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency 
 		Key.Platform = Platform;
 		Key.Frequency = Frequency;
 		Key.bActive = true;
-		
-		if(bUseShaderBinaryCache && !CodeCache.Shaders.Contains(Key))
-		{
-			CodeCache.Shaders.Add(Key, Code);
-		}
-		
-		if(!(Options & SCO_NoShaderPreload))
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(LogShader, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
-				FShaderCache::GetShaderCache()->SubmitShader(Key, Code);
-			});
-		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(LogShader, FShaderCache*,ShaderCache,this, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
+			bool bSubmit = !ShaderCache->bUseShaderBinaryCache || !ShaderCache->bUseAsyncShaderPrecompilation;
+			if(ShaderCache->bUseShaderBinaryCache && !ShaderCache->CodeCache.Shaders.Contains(Key))
+			{
+				ShaderCache->CodeCache.Shaders.Add(Key, Code);
+				bSubmit |= true;
+			}
+			if(!(ShaderCache->Options & SCO_NoShaderPreload) && bSubmit)
+			{
+				ShaderCache->SubmitShader(Key, Code);
+			}
+		});
 	}
 }
 
@@ -897,7 +974,8 @@ void FShaderCache::InternalLogDraw(uint8 IndexType)
 			Id = PlatformCache.DrawStates.Add(CurrentDrawKey);
 		}
 		
-		TSet<int32>& ShaderDrawSet = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey).ShaderDrawStates.FindOrAdd(BoundShaderState);
+		FShaderStreamingCache& StreamCache = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey);
+		TSet<int32>& ShaderDrawSet = StreamCache.ShaderDrawStates.FindOrAdd(BoundShaderState);
 		if( !ShaderDrawSet.Contains(Id.AsInteger()) )
 		{
 			INC_DWORD_STAT(STATGROUP_NumDrawsCached);
@@ -907,86 +985,206 @@ void FShaderCache::InternalLogDraw(uint8 IndexType)
 		// No need to predraw this shader draw key - we've already done it
 		for(auto StreamingMap : ShadersToDraw)
 		{
-			StreamingMap.Value.ShaderDrawStates.FindRef(BoundShaderState).Remove(Id.AsInteger());
+			TSet<int32>* Set = StreamingMap.Value.ShaderDrawStates.Find(BoundShaderState);
+			if ( Set )
+			{
+				Set->Remove(Id.AsInteger());
+			}
 		}
 	}
 }
 
-void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList)
+void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList, float DeltaTime)
 {
-	if ( bUseShaderPredraw && ShadersToDraw.FindRef(StreamingKey).ShaderDrawStates.Num() > 0 )
+	static bool FirstCall = true;
+	static uint32 NumShadersToCompile = 1;
+	
+	static uint32 FrameNum = 0;
+	
+	if(FrameNum != GFrameNumberRenderThread || OverridePrecompileTime != 0 || OverridePredrawBatchTime != 0)
 	{
-		bIsPreDraw = true;
-		
-		if ( !IsValidRef(IndexBufferUInt16) )
-		{
-			FRHIResourceCreateInfo Info;
-			uint32 Stride = sizeof(uint16);
-			uint32 Size = sizeof(uint16) * 3;
-			void* Data = nullptr;
-			IndexBufferUInt16 = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, Info, Data);			
-			if ( Data )
-			{
-				FMemory::Memzero(Data, Size);
-			}
-			RHIUnlockIndexBuffer(IndexBufferUInt16);
-		}
-		if ( !IsValidRef(IndexBufferUInt32) )
-		{
-			FRHIResourceCreateInfo Info;
-			uint32 Stride = sizeof(uint32);
-			uint32 Size = sizeof(uint32) * 3;
-			void* Data = nullptr;
-			IndexBufferUInt32 = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, Info, Data);			
-			if ( Data )
-			{
-				FMemory::Memzero(Data, Size);
-			}
-			RHIUnlockIndexBuffer(IndexBufferUInt32);
-		}
-		
-		RHICmdList.SetViewport(0, 0, FLT_MIN, 3, 3, FLT_MAX);
-		
+		FrameNum = GFrameNumberRenderThread;
+		uint32 NumCompiled = 0;
 		int64 TimeForPredrawing = 0;
-		TMap<FShaderCacheBoundState, TSet<int32>>& ShaderDrawStates = ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates;
-		for ( auto It = ShaderDrawStates.CreateIterator(); (PredrawBatchTime == -1 || TimeForPredrawing < PredrawBatchTime) && It; ++It )
+		if ( bUseShaderBinaryCache && bUseAsyncShaderPrecompilation && ShadersToPrecompile.Num() > 0 )
 		{
-			uint32 Start = FPlatformTime::Cycles();
+			SET_DWORD_STAT(STATGROUP_NumToPrecompile, NumShadersToCompile);
 			
-			auto Shader = *It;
-			TSet<int32>& ShaderDrawSet = Shader.Value;
-			PreDrawShader(RHICmdList, Shader.Key, ShaderDrawSet);
-			It.RemoveCurrent();
+			for( uint32 Index = 0; (GetTargetPrecompileFrameTime() == -1 || NumCompiled < NumShadersToCompile) && Index < ShadersToPrecompile.Num(); ++Index )
+			{
+				FShaderCacheKey& Key = ShadersToPrecompile[Index];
+				TArray<uint8>& Code = CodeCache.Shaders[Key];
+				SubmitShader(Key, Code);
+				INC_DWORD_STAT(STATGROUP_NumPrecompiled);
+				INC_DWORD_STAT(STATGROUP_TotalPrecompiled);
+				
+				uint32 OldIndex = Index;
+				--Index;
+				ShadersToPrecompile.RemoveAt(OldIndex);
+				
+				++NumCompiled;
+			}
 			
-			uint32 End = FPlatformTime::Cycles();
-			TimeForPredrawing += FPlatformTime::ToMilliseconds(End - Start);
+			if(GetTargetPrecompileFrameTime() != -1)
+			{
+				int64 MSec = DeltaTime * 1000.0;
+				if( MSec < GetTargetPrecompileFrameTime() )
+				{
+					NumShadersToCompile++;
+				}
+				else
+				{
+					NumShadersToCompile = FMath::Max(1u, NumShadersToCompile / 2u);
+				}
+				
+				if(GetPredrawBatchTime() != -1)
+				{
+					TimeForPredrawing += FMath::Max((MSec - (int64)GetTargetPrecompileFrameTime()), (int64)0);
+				}
+			}
 		}
 		
-		// This is a bit dirty/naughty but it forces the draw commands to be flushed through on OS X
-		// which means we can delete the resources without crashing MTGL.
-		RHIFlushResources();
-		
-		RHICmdList.SetBoundShaderState(CurrentShaderState);
-		
-		FBlendStateRHIRef BlendState = RHICreateBlendState(CurrentDrawKey.BlendState);
-		FDepthStencilStateRHIRef DepthStencil = RHICreateDepthStencilState(CurrentDrawKey.DepthStencilState);
-		FRasterizerStateRHIRef Rasterizer = RHICreateRasterizerState(CurrentDrawKey.RasterizerState);
-		
-		RHICmdList.SetBlendState(BlendState);
-		RHICmdList.SetDepthStencilState(DepthStencil);
-		RHICmdList.SetRasterizerState(Rasterizer);
+		if ( bUseShaderPredraw && !FirstCall && (GetPredrawBatchTime() == -1 || TimeForPredrawing < GetPredrawBatchTime()) && ShadersToDraw.FindRef(StreamingKey).ShaderDrawStates.Num() > 0 )
+		{
+			bIsPreDraw = true;
+			
+			if ( !IsValidRef(IndexBufferUInt16) )
+			{
+				FRHIResourceCreateInfo Info;
+				uint32 Stride = sizeof(uint16);
+				uint32 Size = sizeof(uint16) * 3;
+				void* Data = nullptr;
+				IndexBufferUInt16 = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, Info, Data);			
+				if ( Data )
+				{
+					FMemory::Memzero(Data, Size);
+				}
+				RHIUnlockIndexBuffer(IndexBufferUInt16);
+			}
+			if ( !IsValidRef(IndexBufferUInt32) )
+			{
+				FRHIResourceCreateInfo Info;
+				uint32 Stride = sizeof(uint32);
+				uint32 Size = sizeof(uint32) * 3;
+				void* Data = nullptr;
+				IndexBufferUInt32 = RHICreateAndLockIndexBuffer(Stride, Size, BUF_Static, Info, Data);			
+				if ( Data )
+				{
+					FMemory::Memzero(Data, Size);
+				}
+				RHIUnlockIndexBuffer(IndexBufferUInt32);
+			}
+			
+			RHICmdList.SetViewport(0, 0, FLT_MIN, 3, 3, FLT_MAX);
+			
+			TMap<FShaderCacheBoundState, TSet<int32>>& ShaderDrawStates = ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates;
+			for ( auto It = ShaderDrawStates.CreateIterator(); (GetPredrawBatchTime() == -1 || TimeForPredrawing < GetPredrawBatchTime()) && It; ++It )
+			{
+				uint32 Start = FPlatformTime::Cycles();
+				
+				auto Shader = *It;
+				TSet<int32>& ShaderDrawSet = Shader.Value;
+				PreDrawShader(RHICmdList, Shader.Key, ShaderDrawSet);
+				It.RemoveCurrent();
+				
+				uint32 End = FPlatformTime::Cycles();
+				TimeForPredrawing += FPlatformTime::ToMilliseconds(End - Start);
+			}
+			
+			// This is a bit dirty/naughty but it forces the draw commands to be flushed through on OS X
+			// which means we can delete the resources without crashing MTGL.
+			RHIFlushResources();
+			
+			RHICmdList.SetBoundShaderState(CurrentShaderState);
+			
+			FBlendStateRHIRef BlendState = RHICreateBlendState(CurrentDrawKey.BlendState);
+			FDepthStencilStateRHIRef DepthStencil = RHICreateDepthStencilState(CurrentDrawKey.DepthStencilState);
+			FRasterizerStateRHIRef Rasterizer = RHICreateRasterizerState(CurrentDrawKey.RasterizerState);
+			
+			RHICmdList.SetBlendState(BlendState);
+			RHICmdList.SetDepthStencilState(DepthStencil);
+			RHICmdList.SetRasterizerState(Rasterizer);
 
-		RHICmdList.SetViewport(Viewport[0], Viewport[1], DepthRange[0], Viewport[2], Viewport[3], DepthRange[1]);
-		
-		if ( ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Num() == 0 )
-		{
-			PredrawRTs.Empty();
-			PredrawBindings.Empty();
-			PredrawVBs.Empty();
+			RHICmdList.SetViewport(Viewport[0], Viewport[1], DepthRange[0], Viewport[2], Viewport[3], DepthRange[1]);
+			
+			if ( ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Num() == 0 )
+			{
+				PredrawRTs.Empty();
+				PredrawBindings.Empty();
+				PredrawVBs.Empty();
+			}
+			
+			bIsPreDraw = false;
 		}
 		
-		bIsPreDraw = false;
+		if(OverridePrecompileTime == -1)
+		{
+			OverridePrecompileTime = 0;
+		}
+		
+		if(OverridePredrawBatchTime == -1)
+		{
+			OverridePredrawBatchTime = 0;
+		}
+		
+		FirstCall = false;
 	}
+}
+
+void FShaderCache::BeginAcceleratedBatching()
+{
+	if ( Cache )
+	{
+		if(AccelTargetPrecompileFrameTime)
+		{
+			Cache->OverridePrecompileTime = AccelTargetPrecompileFrameTime;
+		}
+		if(AccelPredrawBatchTime)
+		{
+			Cache->OverridePredrawBatchTime = AccelPredrawBatchTime;
+		}
+	}
+}
+
+void FShaderCache::EndAcceleratedBatching()
+{
+	if ( Cache )
+	{
+		Cache->OverridePrecompileTime = 0;
+		Cache->OverridePredrawBatchTime = 0;
+	}
+}
+
+void FShaderCache::FlushOutstandingBatches()
+{
+	if ( Cache )
+	{
+		Cache->OverridePrecompileTime = -1;
+		Cache->OverridePredrawBatchTime = -1;
+	}
+}
+
+void FShaderCache::Tick( float DeltaTime )
+{
+	if ( Cache )
+	{
+		Cache->InternalPreDrawShaders(GRHICommandList.GetImmediateCommandList(), DeltaTime);
+	}
+}
+
+bool FShaderCache::IsTickable() const
+{
+	return ( bUseShaderBinaryCache && bUseAsyncShaderPrecompilation && ShadersToPrecompile.Num() > 0 ) || ( bUseShaderPredraw && ShadersToDraw.FindRef(StreamingKey).ShaderDrawStates.Num() > 0 );
+}
+
+bool FShaderCache::NeedsRenderingResumedForRenderingThreadTick() const
+{
+	return true;
+}
+
+TStatId FShaderCache::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FShaderCache, STATGROUP_Tickables);
 }
 
 void FShaderCache::PrebindShader(FShaderCacheKey const& Key)
@@ -1502,6 +1700,8 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 					break;
 				}
 			}
+			INC_DWORD_STAT(STATGROUP_NumStatesPredrawn);
+			INC_DWORD_STAT(STATGROUP_TotalStatesPredrawn);
 		}
 		
 		if( IsValidRef( ShaderBoundState ) && DrawStates.Num() )
@@ -1532,6 +1732,9 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 		{
 			RHICmdList.SetStreamSource(VertexDec.StreamIndex, nullptr, 0, 0);
 		}
+		
+		INC_DWORD_STAT(STATGROUP_NumPredrawn);
+		INC_DWORD_STAT(STATGROUP_TotalPredrawn);
 	}
 }
 
@@ -1557,4 +1760,14 @@ bool FShaderCache::FSamplerStateInitializerRHIKeyFuncs::Matches(KeyInitType A,Ke
 uint32 FShaderCache::FSamplerStateInitializerRHIKeyFuncs::GetKeyHash(KeyInitType Key)
 {
 	return FCrc::MemCrc_DEPRECATED(&Key, CalculateSizeOfSamplerStateInitializer());
+}
+
+int32 FShaderCache::GetPredrawBatchTime() const
+{
+	return OverridePrecompileTime == 0 ? PredrawBatchTime : OverridePrecompileTime;
+}
+
+int32 FShaderCache::GetTargetPrecompileFrameTime() const
+{
+	return OverridePredrawBatchTime == 0 ? TargetPrecompileFrameTime : OverridePredrawBatchTime;
 }

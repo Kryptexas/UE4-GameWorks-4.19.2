@@ -9,6 +9,7 @@
 #include "ShaderCore.h"
 #include "RHI.h"
 #include "BoundShaderStateCache.h"
+#include "TickableObjectRenderThread.h"
 
 /** Custom serialization version for FShaderCache */
 struct SHADERCORE_API FShaderCacheCustomVersion
@@ -205,8 +206,10 @@ struct SHADERCORE_API FShaderRenderTargetKey
  * Supported RHIs:
  * - OpenGLDrv
  */
-class SHADERCORE_API FShaderCache
+class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
 {
+	friend class FShaderCacheLoadBinaryCodeTask;
+	
 	struct SHADERCORE_API FShaderCacheKey
 	{
 		FShaderCacheKey() : Platform(SP_NumPlatforms), Frequency(SF_NumFrequencies), Hash(0), bActive(false) {}
@@ -416,7 +419,7 @@ class SHADERCORE_API FShaderCache
 	
 public:
 	FShaderCache();
-	~FShaderCache();
+	virtual ~FShaderCache();
 	
 	/** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. */
 	static void SetGameVersion(int32 InGameVersion);
@@ -663,15 +666,7 @@ public:
 		}
 	}
 	
-	/** Called by the RHI. Predraws a batch of shaders if and only if there are any outstanding from the current shader cache and r.UseShaderCaching & r.UseShaderPredraw are enabled. */
-	static FORCEINLINE void PreDrawShaders(FRHICommandList& RHICmdList)
-	{
-		if ( Cache )
-		{
-			Cache->InternalPreDrawShaders(RHICmdList);
-		}
-	}
-	
+	/** Called by the RHI. Returns whether the current draw call is a predraw call for shader variant submission in the underlying driver rather than a real UE4 draw call. */
 	static FORCEINLINE bool IsPredrawCall()
 	{
 		FShaderCache* ShaderCache = GetShaderCache();
@@ -681,6 +676,15 @@ public:
 		}
 		return false;
 	}
+	
+	/** Use the accelerated target precompile frame time (in ms) and predraw batch time (in ms) during a loading screen or other scenario where frame time can be much slower than normal. */
+	static void BeginAcceleratedBatching();
+	
+	/** Stops applying the overrides applied with BeginAcceleratedBatching but doesn't flush outstanding work. */
+	static void EndAcceleratedBatching();
+	
+	/** Flushes all outstanding precompilation/predraw work & then ends accelerated batching as per EndAcceleratedBatching. */
+	static void FlushOutstandingBatches();
 
 	/** Archive serialisation of the cache data. */
 	friend FArchive& operator<<( FArchive& Ar, FShaderCache& Info );
@@ -691,6 +695,15 @@ public:
 		
 		TMap<FShaderCacheKey, TArray<uint8>> Shaders;
 	};
+	
+public: // From FTickableObjectRenderThread
+	virtual void Tick( float DeltaTime ) final override;
+	
+	virtual bool IsTickable() const final override;
+	
+	virtual bool NeedsRenderingResumedForRenderingThreadTick() const final override;
+	
+	virtual TStatId GetStatId() const final override;
 	
 private:
 	struct FShaderCacheBoundState
@@ -881,7 +894,7 @@ private:
 	void InternalSetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
 	
 	void InternalLogDraw(uint8 IndexType);
-	void InternalPreDrawShaders(FRHICommandList& RHICmdList);
+	void InternalPreDrawShaders(FRHICommandList& RHICmdList, float DeltaTime);
 	
 	void PrebindShader(FShaderCacheKey const& Key);
 	void SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const& Code);
@@ -891,6 +904,9 @@ private:
 	FTextureRHIRef CreateTexture(FShaderTextureKey const& TextureKey, bool const bCached);
 	FShaderTextureBinding CreateSRV(FShaderResourceKey const& ResourceKey);
 	FTextureRHIRef CreateRenderTarget(FShaderRenderTargetKey const& TargetKey);
+	
+	int32 GetPredrawBatchTime() const;
+	int32 GetTargetPrecompileFrameTime() const;
 	
 private:
 	// Serialised
@@ -924,6 +940,9 @@ private:
 	// Current combination of streaming keys that define the current streaming environment.
 	// Logged draws will only be predrawn when this key becomes active.
 	uint32 StreamingKey;
+	
+	// Shaders to precompile
+	TArray<FShaderCacheKey> ShadersToPrecompile;
 	
 	// Shaders we need to predraw
 	TMap<uint32, FShaderStreamingCache> ShadersToDraw;
@@ -960,6 +979,10 @@ private:
 	EShaderCacheOptions Options;
 	uint8 MaxResources;
 	
+	// Overrides for shader warmup times to use when loading or to force a flush.
+	int32 OverridePrecompileTime;
+	int32 OverridePredrawBatchTime;
+	
 	static FShaderCache* Cache;
 	static int32 GameVersion;
 	static int32 bUseShaderCaching;
@@ -967,9 +990,17 @@ private:
 	static int32 bUseShaderDrawLog;
 	static int32 PredrawBatchTime;
 	static int32 bUseShaderBinaryCache;
+	static int32 bUseAsyncShaderPrecompilation;
+	static int32 TargetPrecompileFrameTime;
+	static int32 AccelPredrawBatchTime;
+	static int32 AccelTargetPrecompileFrameTime;
 	static FAutoConsoleVariableRef CVarUseShaderCaching;
 	static FAutoConsoleVariableRef CVarUseShaderPredraw;
 	static FAutoConsoleVariableRef CVarUseShaderDrawLog;
 	static FAutoConsoleVariableRef CVarPredrawBatchTime;
 	static FAutoConsoleVariableRef CVarUseShaderBinaryCache;
+	static FAutoConsoleVariableRef CVarUseAsyncShaderPrecompilation;
+	static FAutoConsoleVariableRef CVarTargetPrecompileFrameTime;
+	static FAutoConsoleVariableRef CVarAccelPredrawBatchTime;
+	static FAutoConsoleVariableRef CVarAccelTargetPrecompileFrameTime;
 };
