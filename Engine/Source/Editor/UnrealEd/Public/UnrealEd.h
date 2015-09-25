@@ -165,6 +165,7 @@
 #include "Classes/Factories/SlateBrushAssetFactory.h"
 #include "Classes/Factories/SlateWidgetStyleAssetFactory.h"
 #include "Classes/Factories/SoundAttenuationFactory.h"
+#include "Classes/Factories/SoundConcurrencyFactory.h"
 #include "Classes/Factories/SoundClassFactory.h"
 #include "Classes/Factories/SoundCueFactoryNew.h"
 #include "Classes/Factories/SoundFactory.h"

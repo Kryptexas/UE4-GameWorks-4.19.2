@@ -36,6 +36,9 @@ void FDynamicParameter::Set(float Value, float InDuration)
 	}
 	else
 	{
+		StartValue = Value;
+		DeltaValue = 0.0f;
+		DurationSec = 0.0f;
 		CurrValue = Value;
 	}
 }
@@ -95,6 +98,7 @@ FAudioDevice::FAudioDevice()
 	, bHRTFEnabledForAll(false)
 	, bIsDeviceMuted(false)
 	, bIsInitialized(false)
+	, ConcurrencyManager(this)
 {
 }
 
@@ -1779,49 +1783,61 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 			continue;
 		}
 		
-		if( !ActiveSound->Sound )
+		if (!ActiveSound->Sound)
 		{
 			// No sound - cleanup and remove
-			ActiveSound->Stop(this);
+			ActiveSound->Stop();
 		}
 		// If the world scene allows audio - tick wave instances.
-		else if( ActiveSound->World == NULL || ActiveSound->World->AllowAudioPlayback() )
+		else 
 		{
+			UWorld* ActiveSoundWorldPtr = ActiveSound->World.Get();
+			if (ActiveSoundWorldPtr == nullptr || ActiveSoundWorldPtr->AllowAudioPlayback())
+			{
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if ( !ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
-				 ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetPathName() : TEXT("NO COMPONENT"),
-				 *ActiveSound->DebugOriginalSoundName.ToString() ))
-			{
-				// Sound was not valid, stop playing it.
-				ActiveSound->Stop(this);
-			}
-			else
-#endif
-			{
-				const float Duration = ActiveSound->Sound->GetDuration();
-				// Divide by minimum pitch for longest possible duration
-				if( Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH )
+				if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
+					 ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetPathName() : TEXT("NO COMPONENT"),
+					 *ActiveSound->DebugOriginalSoundName.ToString()))
 				{
-					UE_LOG(LogAudio, Log, TEXT( "Sound stopped due to duration: %g > %g : %s %s" ), 
-						ActiveSound->PlaybackTime, 
-						Duration, 
-						*ActiveSound->Sound->GetName(), 
-						(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
-					ActiveSound->Stop(this);
+					// Sound was not valid, stop playing it.
+					ActiveSound->Stop();
 				}
 				else
+#endif
 				{
-					// If not in game, do not advance sounds unless they are UI sounds.
-					float UsedDeltaTime = FApp::GetDeltaTime();
-					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
-					{
-						UsedDeltaTime = 0.0f;
-					}
+					const float Duration = ActiveSound->Sound->GetDuration();
 
-					ActiveSound->UpdateWaveInstances( this, WaveInstances, UsedDeltaTime );
+					// Divide by minimum pitch for longest possible duration
+					if (Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH)
+					{
+						UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
+							ActiveSound->PlaybackTime,
+							Duration,
+							*ActiveSound->Sound->GetName(),
+							(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
+						ActiveSound->Stop();
+					}
+					else
+					{
+						// If not in game, do not advance sounds unless they are UI sounds.
+						float UsedDeltaTime = FApp::GetDeltaTime();
+						if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
+						{
+							UsedDeltaTime = 0.0f;
+						}
+
+						ActiveSound->UpdateWaveInstances(this, WaveInstances, UsedDeltaTime);
+					}
 				}
 			}
 		}
+	}
+
+	// Now stop any sounds that are active that are in concurrency resolution groups that resolve by stopping quietest
+	{
+		SCOPE_CYCLE_COUNTER(STAT_AudioEvaluateConcurrency);
+		ConcurrencyManager.StopQuietSoundsDueToMaxConcurrency();
 	}
 
 	// Helper function for "Sort" (higher priority sorts last).
@@ -2014,6 +2030,13 @@ void FAudioDevice::Update( bool bGameTicking )
 		Listener.UpdateCurrentInteriorSettings();
 	}
 
+	// Stop any pending active sounds that need to be stopped
+	while (PendingSoundsToStop.Num() > 0)
+	{
+		FActiveSound* SoundToStop = PendingSoundsToStop.Pop();
+		SoundToStop->Stop();
+	}
+
 	if (Sources.Num())
 	{
 		// Kill any sources that have finished
@@ -2072,7 +2095,7 @@ void FAudioDevice::StopAllSounds( bool bShouldStopUISounds )
 
 		if (bShouldStopUISounds)
 		{
-			ActiveSound->Stop(this);
+			ActiveSound->Stop();
 		}
 		// If we're allowing UI sounds to continue then first filter on the active sounds state
 		else if (!ActiveSound->bIsUISound)
@@ -2085,7 +2108,7 @@ void FAudioDevice::StopAllSounds( bool bShouldStopUISounds )
 				FWaveInstance* WaveInstance = WaveInstanceIt.Value();
 				if (WaveInstance && !WaveInstance->bIsUISound)
 				{
-					ActiveSound->Stop(this);
+					ActiveSound->Stop();
 					break;
 				}
 			}
@@ -2093,84 +2116,23 @@ void FAudioDevice::StopAllSounds( bool bShouldStopUISounds )
 	}
 }
 
-void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
+void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 {
 	check(NewActiveSound.Sound);
 
-	// if we have gone over the MaxConcurrentPlay
-	// TODO: Consider if we should handle the bShouldRemainActiveIfDropped case
-	if( ( NewActiveSound.Sound->MaxConcurrentPlayCount != 0 ) && ( NewActiveSound.Sound->CurrentPlayCount >= NewActiveSound.Sound->MaxConcurrentPlayCount ) )
+	// Evaluate concurrency. This will create an ActiveSound ptr which is a copy of NewActiveSound if the sound can play.
+	FActiveSound* ActiveSound = nullptr;
+
 	{
-		FActiveSound* SoundToStop = NULL;
+		SCOPE_CYCLE_COUNTER(STAT_AudioEvaluateConcurrency);
 
-		switch (NewActiveSound.Sound->MaxConcurrentResolutionRule)
-		{
-		case EMaxConcurrentResolutionRule::StopOldest:
+		// Try to create a new active sound. This returns nullptr if too many sounds are playing with this sound's concurrency setting
+		ActiveSound = ConcurrencyManager.CreateNewActiveSound(NewActiveSound);
+	}
 
-			for (int32 SoundIndex = 0; SoundIndex < ActiveSounds.Num(); ++SoundIndex)
-			{
-				FActiveSound* ActiveSound = ActiveSounds[SoundIndex];
-				if (ActiveSound->Sound == NewActiveSound.Sound && (SoundToStop == NULL || ActiveSound->PlaybackTime > SoundToStop->PlaybackTime))
-				{
-					SoundToStop = ActiveSound;
-				}
-			}
-			break;
-
-		case EMaxConcurrentResolutionRule::StopFarthestThenOldest:
-		case EMaxConcurrentResolutionRule::StopFarthestThenPreventNew:
-		{
-			int32 ClosestListenerIndex = NewActiveSound.FindClosestListener(Listeners);
-			float DistanceToStopSoundSq = FVector::DistSquared(Listeners[ClosestListenerIndex].Transform.GetTranslation(), NewActiveSound.Transform.GetTranslation());
-
-			for (int32 SoundIndex = 0; SoundIndex < ActiveSounds.Num(); ++SoundIndex)
-			{
-				FActiveSound* ActiveSound = ActiveSounds[SoundIndex];
-				if (ActiveSound->Sound == NewActiveSound.Sound)
-				{
-					ClosestListenerIndex = ActiveSound->FindClosestListener(Listeners);
-					const float DistanceToActiveSoundSq = FVector::DistSquared(Listeners[ClosestListenerIndex].Transform.GetTranslation(), ActiveSound->Transform.GetTranslation());
-
-					if (DistanceToActiveSoundSq > DistanceToStopSoundSq)
-					{
-						SoundToStop = ActiveSound;
-						DistanceToStopSoundSq = DistanceToActiveSoundSq;
-					}
-					else if (   NewActiveSound.Sound->MaxConcurrentResolutionRule == EMaxConcurrentResolutionRule::StopFarthestThenOldest 
-							 && DistanceToActiveSoundSq == DistanceToStopSoundSq
-							 && (SoundToStop == NULL || ActiveSound->PlaybackTime > SoundToStop->PlaybackTime))
-					{
-						SoundToStop = ActiveSound;
-						DistanceToStopSoundSq = DistanceToActiveSoundSq;
-					}
-				}
-			}
-			break;
-		}
-
-		case EMaxConcurrentResolutionRule::PreventNew:
-		default:
-			break;
-
-		}
-
-		// If we found a sound to stop, then stop it and allow the new sound to play.  
-		// Otherwise inform the system that the sound failed to start.
-		if (SoundToStop)
-		{
-			SoundToStop->Stop(this);
-		}
-		else
-		{
-			// TODO - Audio Threading. This call would be a task back to game thread
-			if (UAudioComponent* AudioComponent = NewActiveSound.GetAudioComponent())
-			{
-				AudioComponent->PlaybackCompleted(true);
-			}
-			//UE_LOG(LogAudio, Verbose, TEXT( "   %g: MaxConcurrentPlayCount AudioComponent : '%s' with Sound: '%s' Max: %d   Curr: %d " ), NewActiveSound.World ? NewActiveSound.World->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "NULL" ), Sound->MaxConcurrentPlayCount, Sound->CurrentPlayCount );
-			return;
-
-		}
+	if (!ActiveSound)
+	{
+		return;
 	}
 
 	++NewActiveSound.Sound->CurrentPlayCount;
@@ -2181,7 +2143,8 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 	UE_LOG(LogAudio, VeryVerbose, TEXT("New ActiveSound %s Comp: %s Loc: %s"), *NewActiveSound.Sound->GetName(), (AudioComponent ? *AudioComponent->GetFullName() : TEXT("No AudioComponent")), *NewActiveSound.Transform.GetTranslation().ToString() );
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	FActiveSound* ActiveSound = new FActiveSound(NewActiveSound);
+	check(ActiveSound);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (ActiveSound->Sound)
 	{
@@ -2206,11 +2169,18 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 		}
 	}
 #endif
+
 	ActiveSounds.Add(ActiveSound);
 	if (AudioComponent)
 	{
 		AudioComponentToActiveSoundMap.Add((UPTRINT)AudioComponent, ActiveSound);
 	}
+
+}
+
+void FAudioDevice::AddSoundToStop(FActiveSound* SoundToStop)
+{
+	PendingSoundsToStop.Add(SoundToStop);
 }
 
 void FAudioDevice::StopActiveSound( UAudioComponent* AudioComponent )
@@ -2220,7 +2190,7 @@ void FAudioDevice::StopActiveSound( UAudioComponent* AudioComponent )
 	FActiveSound* ActiveSound = FindActiveSound(AudioComponent);
 	if (ActiveSound)
 	{
-		ActiveSound->Stop(this);
+		ActiveSound->Stop();
 	}
 }
 
@@ -2237,20 +2207,23 @@ FActiveSound* FAudioDevice::FindActiveSound( UAudioComponent* AudioComponent )
 
 void FAudioDevice::RemoveActiveSound(FActiveSound* ActiveSound)
 {
-	for( int32 Index = 0; Index < ActiveSounds.Num(); ++Index )
+	ConcurrencyManager.RemoveActiveSound(ActiveSound);
+
+	// Perform the notification
+	if (UAudioComponent* AudioComponent = ActiveSound->GetAudioComponent())
 	{
-		if (ActiveSound == ActiveSounds[Index])
-		{
-			const UPTRINT AudioComponentIndex = ActiveSound->GetAudioComponentIndex();
-			ActiveSounds.RemoveAt(Index);
-			if (AudioComponentIndex > 0)
-			{
-				AudioComponentToActiveSoundMap.Remove(AudioComponentIndex);
-			}
-			delete ActiveSound;
-			break;
-		}
+		AudioComponent->PlaybackCompleted(false);
 	}
+
+	int32 NumRemoved = ActiveSounds.Remove(ActiveSound);
+	check(NumRemoved == 1);
+
+	const UPTRINT AudioComponentIndex = ActiveSound->GetAudioComponentIndex();
+	if (AudioComponentIndex > 0)
+	{
+		AudioComponentToActiveSoundMap.Remove(AudioComponentIndex);
+	}
+
 }
 
 bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )
@@ -2272,7 +2245,7 @@ bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )
 	return( false );
 }
 
-UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings)
+UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings)
 {
 	UAudioComponent* AudioComponent = NULL;
 
@@ -2327,6 +2300,8 @@ UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World,
 			AudioComponent->bVisualizeComponent	= false;
 #endif
 			AudioComponent->AttenuationSettings = AttenuationSettings;
+			AudioComponent->ConcurrencySettings = ConcurrencySettings;
+
 			if (Location)
 			{
 				AudioComponent->SetWorldLocation(*Location);
@@ -2366,14 +2341,14 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 		{
 			if (WorldToFlush == nullptr)
 			{
-				ActiveSound->Stop(this);
+				ActiveSound->Stop();
 			}
 			else
 			{
 				UWorld* ActiveSoundWorld = ActiveSound->World.Get();
 				if (ActiveSoundWorld == nullptr || ActiveSoundWorld == WorldToFlush)
 				{
-					ActiveSound->Stop(this);
+					ActiveSound->Stop();
 				}
 			}
 		}
@@ -2662,7 +2637,7 @@ void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioC
 				{
 					StoppedComponents.Add(AudioComponent);
 				}
-				ActiveSound->Stop(this);
+				ActiveSound->Stop();
 				bStoppedSounds = true;
 				break;
 			}

@@ -143,6 +143,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.World = GetWorld();
 			NewActiveSound.Sound = Sound;
 			NewActiveSound.SoundClassOverride = SoundClassOverride;
+			NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 
 			NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ((VolumeModulationMin - VolumeModulationMax) * FMath::SRand())) * VolumeMultiplier;
 			NewActiveSound.VolumeWeightedPriorityScale = VolumeWeightedPriorityScale;
@@ -190,6 +191,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			{
 				NewActiveSound.CurrentAdjustVolumeMultiplier = FadeVolumeLevel;
 			}
+
+			FName SoundName = NewActiveSound.Sound->GetFName();
+			UE_LOG(LogTemp, Log, TEXT("Playing ActiveSound: %s"), *SoundName.GetPlainNameString());
 
 			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
 			AudioDevice->AddNewActiveSound(NewActiveSound);

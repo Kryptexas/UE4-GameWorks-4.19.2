@@ -44,6 +44,7 @@ DEFINE_STAT(STAT_AudioPrepareDecompressionTime);
 DEFINE_STAT(STAT_OpusDecompressTime);
 
 DEFINE_STAT(STAT_AudioUpdateEffects);
+DEFINE_STAT(STAT_AudioEvaluateConcurrency);
 DEFINE_STAT(STAT_AudioUpdateSources);
 DEFINE_STAT(STAT_AudioResourceCreationTime);
 DEFINE_STAT(STAT_AudioSourceInitTime);
@@ -464,7 +465,10 @@ float FWaveInstance::GetActualVolume() const
 
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
-	return GetActualVolume() * VolumeWeightedPriorityScale;
+	check(ActiveSound);
+	// If this wave instance's active sound should stop due to max concurrency, return a large negative weighted priority so 
+	// that it will always be sorted to the bottom of the WaveInstance list and stopped.
+	return ActiveSound->bShouldStopDueToMaxConcurrency ? -100.0f : GetActualVolume() * VolumeWeightedPriorityScale;
 }
 
 bool FWaveInstance::IsStreaming() const

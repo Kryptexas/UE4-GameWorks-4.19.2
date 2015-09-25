@@ -87,6 +87,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateBrush) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateWidgetStyle) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundAttenuation) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundConcurrency));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundBase) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundClass) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundCue) );

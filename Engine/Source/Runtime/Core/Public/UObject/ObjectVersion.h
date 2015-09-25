@@ -572,6 +572,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MAKE_ROT_RENAME_AND_REORDER,
 	// K2Node_Variable will properly have the VariableReference Guid set if available
 	VER_UE4_K2NODE_VAR_REFERENCEGUIDS,
+	// Added support for sound concurrency settings structure and overrides
+	VER_UE4_SOUND_CONCURRENCY_PACKAGE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

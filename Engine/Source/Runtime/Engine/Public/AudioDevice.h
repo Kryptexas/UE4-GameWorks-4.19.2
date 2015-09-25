@@ -361,7 +361,7 @@ public:
 	/**
 	 * Creates an audio component to handle playing a sound cue
 	 */
-	static class UAudioComponent* CreateComponent( class USoundBase* Sound, class UWorld* World, AActor*  AActor  = NULL, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = NULL, USoundAttenuation* AttenuationSettings = NULL );
+	static class UAudioComponent* CreateComponent(class USoundBase* Sound, class UWorld* World, AActor*  AActor = nullptr, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = nullptr, USoundAttenuation* AttenuationSettings = nullptr, USoundConcurrency* ConcurrencySettings = nullptr);
 
 	/**
 	 * Adds an active sound to the audio device
@@ -744,6 +744,8 @@ protected:
 		return bSpatializationExtensionEnabled;
 	}
 
+	void AddSoundToStop(struct FActiveSound* SoundToStop);
+
 public:
 
 	/** The maximum number of concurrent audible sounds */
@@ -847,11 +849,15 @@ public:
 private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
+	TArray<struct FActiveSound*> PendingSoundsToStop;
 
 	TMap<UPTRINT, struct FActiveSound*> AudioComponentToActiveSoundMap;
 
 	/** List of passive SoundMixes active last frame */
 	TArray<class USoundMix*> PrevPassiveSoundMixModifiers;
+
+	friend class FSoundConcurrencyManager;
+	FSoundConcurrencyManager ConcurrencyManager;
 };
 
 

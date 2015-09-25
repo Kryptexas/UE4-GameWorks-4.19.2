@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Sound/AudioVolume.h"
+#include "Sound/SoundConcurrency.h"
 #include "Sound/SoundAttenuation.h"
 #include "Components/AudioComponent.h"
 
@@ -91,6 +92,19 @@ public:
 		AudioComponentIndex = (UPTRINT)Component;
 	}
 
+	void SetAudioDevice(FAudioDevice* InAudioDevice)
+	{
+		AudioDevice = InAudioDevice;
+	}
+
+	FAudioDevice* AudioDevice;
+
+	/** The group of active concurrent sounds that this sound is playing in. */
+	FConcurrencyGroupID ConcurrencyGroupID;
+
+	/** Optional USoundConcurrency to override sound */
+	USoundConcurrency* ConcurrencySettings;
+
 	/** Optional SoundClass to override Sound */
 	USoundClass* SoundClassOverride;
 
@@ -111,6 +125,9 @@ public:
 
 	/** Whether the current component has finished playing */
 	uint32 bFinished:1;
+
+	/** Whether or not to stop this active sound due to max concurrency */
+	uint32 bShouldStopDueToMaxConcurrency:1;
 
 	/** If true, the decision on whether to apply the radio filter has been made. */
 	uint32 bRadioFilterSelected:1;
@@ -166,8 +183,14 @@ public:
 	float PitchMultiplier;
 	float HighFrequencyGainMultiplier;
 
+	/** A volume scale to apply to a sound based on the concurrency count of the active sound when it started */
+	float ConcurrencyVolumeScale;
+
 	float SubtitlePriority;
 	float VolumeWeightedPriorityScale;
+
+	// The volume used to determine concurrency resolution for "quietest" active sound
+	float VolumeConcurrency;
 
 	/** Frequency with which to check for occlusion from its closest listener */
 	float OcclusionCheckInterval;
@@ -208,7 +231,7 @@ public:
 	// Updates the wave instances to be played.
 	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &OutWaveInstances, const float DeltaTime );
 
-	void Stop(FAudioDevice* AudioDevice);
+	void Stop();
 
 	/** 
 	 * Find an existing waveinstance attached to this audio component (if any)
@@ -272,6 +295,15 @@ public:
 
 	/* Determines which listener is the closest to the sound */
 	int32 FindClosestListener( const TArray<struct FListener>& InListeners ) const;
+	
+	/** Returns the unique ID of the active sound's owner if it exists. Returns 0 if the sound doesn't have an owner. */
+	uint32 TryGetOwnerID() const;
+
+	/** Gets the sound concurrency to apply on this active sound instance */
+	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply() const;
+
+	/** Returns the sound concurrency object ID if it exists. If it doesn't exist, returns 0. */
+	uint32 GetSoundConcurrencyObjectID() const;
 
 private:
 	void UpdateAdjustVolumeMultiplier(const float DeltaTime);
