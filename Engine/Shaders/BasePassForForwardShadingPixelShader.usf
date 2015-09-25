@@ -23,8 +23,11 @@ float4 LightPositionAndInvRadius[MAX_DYNAMIC_POINT_LIGHTS];
 float4 LightColorAndFalloffExponent[MAX_DYNAMIC_POINT_LIGHTS];
 #endif
 
+#define FULLY_ROUGH (MATERIAL_FULLY_ROUGH || FORWARD_QL_FORCE_FULLY_ROUGH)
+#define NONMETAL (MATERIAL_NONMETAL || FORWARD_QL_FORCE_NONMETAL)
+
 /** Prenormalized capture of the scene that's closest to the object being rendered. */
-#if !MATERIAL_FULLY_ROUGH
+#if !FULLY_ROUGH
 TextureCube ReflectionCubemap;
 SamplerState ReflectionCubemapSampler;
 #endif
@@ -44,7 +47,7 @@ half PhongApprox( half Roughness, half RoL )
 	// Total 7 instr
 }
 
-#if !MATERIAL_FULLY_ROUGH
+#if !FULLY_ROUGH
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness)
 {
 	half3 ProjectedCaptureVector = MaterialParameters.ReflectionVector;	
@@ -160,7 +163,7 @@ void Main(
 	half  Metallic = GetMaterialMetallic( MaterialParameters );
 	half  Specular = GetMaterialSpecular( MaterialParameters );
 
-#if MATERIAL_NONMETAL
+#if NONMETAL
 	half3 DiffuseColor = BaseColor;
 	half SpecularColor = 0.04;
 #else
@@ -171,14 +174,14 @@ void Main(
 
 	half Roughness = GetMaterialRoughness(MaterialParameters);
 
-#if MATERIAL_FULLY_ROUGH
+#if FULLY_ROUGH
 	// Factors derived from EnvBRDFApprox( SpecularColor, 1, 1 ) == SpecularColor * 0.4524 - 0.0024
 	DiffuseColor += SpecularColor * 0.45;
 	SpecularColor = 0;
 #else
 	half NoV = max( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ), 0 );
 
-#if MATERIAL_NONMETAL
+#if NONMETAL
 	// If nothing is hooked up to Metalic and Specular,
 	// then defaults are the same as a non-metal,
 	// so this define is safe.
@@ -276,7 +279,7 @@ void Main(
 		float NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
 		float RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
 
-		#if MATERIAL_FULLY_ROUGH
+		#if FULLY_ROUGH
 			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * DiffuseColor;
 		#else
 			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
@@ -332,7 +335,7 @@ void Main(
 					Attenuation = RadialAttenuation(ToLight * LightPositionAndInvRadius[i].w, LightColorAndFalloffExponent[i].w);		
 				}
 
-				#if !MATERIAL_FULLY_ROUGH
+				#if !FULLY_ROUGH
 					Color += (Attenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, PointRoL));
 				#else
 					Color += (Attenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * DiffuseColor;

@@ -1297,12 +1297,13 @@ void UMaterialInstance::UpdatePermutationAllocations()
 	{
 		UMaterial* BaseMaterial = GetMaterial();
 
-		TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
-		BaseMaterial->GetQualityLevelNodeUsage(QualityLevelsUsed);
-
-		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+		for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 		{
-			for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
+			EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevelIndex];
+			TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
+			BaseMaterial->GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
+
+			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 			{
 				FMaterialResource*& CurrentResource = StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
 
@@ -1362,7 +1363,7 @@ void UMaterialInstance::CacheResourceShadersForCooking(EShaderPlatform ShaderPla
 		UMaterial* BaseMaterial = GetMaterial();
 
 		TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
-		BaseMaterial->GetQualityLevelNodeUsage(QualityLevelsUsed);
+		BaseMaterial->GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
 
 		TArray<FMaterialResource*> ResourcesToCache;
 		ERHIFeatureLevel::Type TargetFeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);

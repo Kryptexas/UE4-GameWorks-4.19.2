@@ -62,7 +62,8 @@ public class LevelEditor : ModuleRules
 				"KismetWidgets",
 				"Sequencer",
                 "Foliage",
-                "HierarchicalLODOutliner"
+                "HierarchicalLODOutliner",
+				"MaterialShaderQualitySettings",
 			}
 		);
 
