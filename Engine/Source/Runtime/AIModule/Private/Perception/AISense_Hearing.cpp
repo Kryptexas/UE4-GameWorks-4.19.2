@@ -104,7 +104,7 @@ void UAISense_Hearing::OnListenerUpdateImpl(const FPerceptionListener& UpdatedLi
 	}
 	else
 	{
-		DigestedProperties.FindAndRemoveChecked(ListenerID);
+		DigestedProperties.Remove(ListenerID);
 	}
 }
 
