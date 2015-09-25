@@ -3040,9 +3040,16 @@ public:
 				TArray<uint32> InversedIndices;
 				const int32 IndexCount = CombinedIndices.Num();
 				InversedIndices.AddUninitialized(IndexCount);
-				for (int32 i = 0; i < IndexCount; ++i)
+
+				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
 				{
-					InversedIndices[i] = CombinedIndices[IndexCount - 1 - i];
+					const FStaticMeshSection& SectionInfo = LODModel.Sections[SectionIndex];
+					const int32 SectionIndexCount = SectionInfo.NumTriangles * 3;
+
+					for (int32 i = 0; i < SectionIndexCount; ++i)
+					{
+						InversedIndices[SectionInfo.FirstIndex + i] = CombinedIndices[SectionInfo.FirstIndex + SectionIndexCount - 1 - i];
+					}
 				}
 				LODModel.ReversedIndexBuffer.SetIndices(InversedIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
 			}
