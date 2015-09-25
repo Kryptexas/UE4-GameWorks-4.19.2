@@ -85,6 +85,12 @@ private:
 	/** Callback for the track menu extender. */
 	void HandleTrackMenuExtensionAddTrack(FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects);
 
+	/** Menu extension callback for the add menu */
+	void AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder);
+
+	/** Add the specified actors to the sequencer */
+	void AddActorsToSequencer(AActor*const* InActors, int32 NumActors);
+
 private:
 
 	/** The sequencer used by this editor. */

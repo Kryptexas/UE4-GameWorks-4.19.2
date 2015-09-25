@@ -114,7 +114,8 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
 			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged )
 			.OnClampRangeChanged( this, &FSequencer::OnClampRangeChanged )
-			.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent);
+			.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent)
+			.AddMenuExtender(InitParams.ViewParams.AddMenuExtender);
 
 		// When undo occurs, get a notification so we can make sure our view is up to date
 		GEditor->RegisterForUndo(this);

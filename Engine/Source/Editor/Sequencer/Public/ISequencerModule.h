@@ -40,6 +40,9 @@ struct FSequencerViewParams
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 
+	/** A menu extender for the add menu */
+	TSharedPtr<FExtender> AddMenuExtender;
+
 	/** Unique name for the sequencer. */
 	FString UniqueName;
 

@@ -9,6 +9,7 @@ public class ActorAnimationEditor : ModuleRules
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
 				"AssetTools",
+				"SceneOutliner",
 			}
         );
         
@@ -33,6 +34,7 @@ public class ActorAnimationEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
+				"SceneOutliner",
 			}
 		);
 

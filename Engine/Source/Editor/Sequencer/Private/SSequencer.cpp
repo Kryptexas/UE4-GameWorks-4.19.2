@@ -205,6 +205,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	TSharedRef<ITimeSlider> BottomTimeRange = SequencerWidgets.CreateTimeRange( TimeSliderController, TAttribute<EVisibility>(this, &SSequencer::GetTimeRangeVisibility), TAttribute<bool>(this, &SSequencer::ShowFrameNumbers), TAttribute<float>(this, &SSequencer::OnGetTimeSnapInterval));
 
 	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
+	AddMenuExtender = InArgs._AddMenuExtender;
 
 	ColumnFillCoefficients[0] = .25f;
 	ColumnFillCoefficients[1] = .75f;
@@ -642,13 +643,6 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 
 		if( Sequencer.Pin()->IsLevelEditorSequencer() )
 		{
-			ToolBarBuilder.AddToolBarButton(
-				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnAddObjectClicked))
-				, NAME_None
-				, LOCTEXT("AddObject", "Add Object")
-				, LOCTEXT("AddObjectTooltip", "Add selected objects")
-				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.AddObject"));
-
 			TAttribute<FSlateIcon> KeyAllIcon;
 			KeyAllIcon.Bind(TAttribute<FSlateIcon>::FGetter::CreateLambda([&]{
 				static FSlateIcon KeyAllEnabledIcon(FEditorStyle::GetStyleSetName(), "Sequencer.KeyAllEnabled");
@@ -766,18 +760,24 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 
 TSharedRef<SWidget> SSequencer::MakeAddMenu()
 {
-	FMenuBuilder MenuBuilder(true, nullptr);
+	FMenuBuilder MenuBuilder(true, nullptr, AddMenuExtender);
 	{
+
 		// let toolkits populate the menu
+		MenuBuilder.BeginSection("MainMenu");
 		OnGetAddMenuContent.ExecuteIfBound(MenuBuilder, Sequencer.Pin().ToSharedRef());
+		MenuBuilder.EndSection();
 
 		// let track editors populate the menu
 		TSharedPtr<FSequencer> PinnedSequencer = Sequencer.Pin();
 
+		// Always create the section so that we afford extension
+		MenuBuilder.BeginSection("AddTracks");
 		if (PinnedSequencer.IsValid())
 		{
 			PinnedSequencer->BuildAddTrackMenu(MenuBuilder);
 		}
+		MenuBuilder.EndSection();
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -1291,6 +1291,16 @@ void SSequencer::OnActorSelectionChanged(UObject*)
 			}
 		}
 	}
+
+	const TSet<TSharedRef<FSequencerDisplayNode>>& OutlinerSelection = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
+	if (OutlinerSelection.Num() == 1)
+	{
+		for (auto& Node : OutlinerSelection)
+		{
+			TreeView->RequestScrollIntoView(Node);
+			break;
+		}
+	}
 }
 
 void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
@@ -1353,11 +1363,6 @@ TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<U
 void SSequencer::OnSaveMovieSceneClicked()
 {
 	Sequencer.Pin()->SaveCurrentMovieScene();
-}
-
-void SSequencer::OnAddObjectClicked()
-{
-	Sequencer.Pin()->AddSelectedObjects();
 }
 
 void SSequencer::StepToNextKey()

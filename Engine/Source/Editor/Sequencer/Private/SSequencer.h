@@ -83,6 +83,8 @@ public:
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
 		/** Called to populate the add combo button in the toolbar. */
 		SLATE_EVENT( FOnGetAddMenuContent, OnGetAddMenuContent )
+		/** Extender to use for the add menu. */
+		SLATE_ARGUMENT( TSharedPtr<FExtender>, AddMenuExtender )
 	SLATE_END_ARGS()
 
 
@@ -126,9 +128,6 @@ public:
 
 	/** Called when the save button is clicked */
 	void OnSaveMovieSceneClicked();
-
-	/** Called when the add object button is clicked */
-	void OnAddObjectClicked();
 
 	/** Access the tree view for this sequencer */
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
@@ -330,6 +329,8 @@ private:
 	bool bUserIsSelecting;
 	/** The current edit tool */
 	TUniquePtr<ISequencerEditTool> EditTool;
+	/** Extender to use for the 'add' menu */
+	TSharedPtr<FExtender> AddMenuExtender;
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 

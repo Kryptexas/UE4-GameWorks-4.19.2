@@ -13,6 +13,10 @@
 #include "MovieScene.h"
 #include "MovieSceneMaterialTrack.h"
 #include "ScopedTransaction.h"
+#include "ClassIconFinder.h"
+
+#include "SceneOutlinerModule.h"
+#include "SceneOutlinerPublicTypes.h"
 
 
 #define LOCTEXT_NAMESPACE "ActorAnimationEditor"
@@ -28,9 +32,6 @@ namespace SequencerDefs
 	static const FName SequencerAppIdentifier(TEXT("SequencerApp"));
 }
 
-
-/* FActorAnimationEditorToolkit structors
- *****************************************************************************/
 
 FActorAnimationEditorToolkit::FActorAnimationEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
 	: Style(InStyle)
@@ -93,6 +94,24 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 		SequencerInitParams.RootSequence = ActorAnimationInstance;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
+
+		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
+
+		AddMenuExtender->AddMenuExtension("AddTracks", EExtensionHook::Before, nullptr,
+			FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder){
+
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("AddActor_Label", "Add Actor To Sequencer"),
+					LOCTEXT("AddActor_ToolTip", "Allow sequencer to possess an actor that already exists in the current level"),
+					FNewMenuDelegate::CreateRaw(this, &FActorAnimationEditorToolkit::AddPosessActorMenuExtensions),
+					false /*bInOpenSubMenuOnClick*/,
+					FSlateIcon("ActorAnimationEditorStyle", "ActorAnimationEditor.PossessNewActor")
+					);
+
+			})
+		);
+
+		SequencerInitParams.ViewParams.AddMenuExtender = AddMenuExtender;
 	}
 
 	Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
@@ -208,6 +227,112 @@ void FActorAnimationEditorToolkit::HandleAddComponentMaterialActionExecute( UPri
 			}
 		}
 	}
+}
+
+void FActorAnimationEditorToolkit::AddActorsToSequencer(AActor*const* InActors, int32 NumActors)
+{
+	const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object(s) with Sequencer"));
+
+	UMovieSceneSequence* FocussedSequence = Sequencer->GetFocusedMovieSceneSequence();
+	UMovieScene* FocussedMovieScene = FocussedSequence->GetMovieScene();
+
+	FocussedSequence->Modify();
+
+	GEditor->SelectNone(true, true);
+	while (NumActors--)
+	{
+		AActor* ThisActor = *InActors;
+
+		FGuid ObjectGuid = FocussedSequence->FindObjectId(*ThisActor);
+
+		// Add this object if it hasn't already been possessed
+		if (!ObjectGuid.IsValid() || !FocussedMovieScene->FindPossessable(ObjectGuid))
+		{
+			ObjectGuid = FocussedMovieScene->AddPossessable(ThisActor->GetName(), ThisActor->GetClass());
+			FocussedSequence->BindPossessableObject(ObjectGuid, *ThisActor);
+		}
+
+		GEditor->SelectActor(ThisActor, true, true);
+
+		InActors++;
+	}
+
+	Sequencer->NotifyMovieSceneDataChanged();
+}
+
+void FActorAnimationEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder)
+{
+	auto IsActorValidForPossession = [=](const AActor* Actor){
+		bool bCreateHandleIfMissing = false;
+		return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
+	};
+
+	// Set up a menu entry to add the selected actor(s) to the sequencer
+	TArray<AActor*> ActorsValidForPossession;
+	GEditor->GetSelectedActors()->GetSelectedObjects(ActorsValidForPossession);
+	ActorsValidForPossession.RemoveAll([&](AActor* In){ return !IsActorValidForPossession(In); });
+
+	FText SelectedLabel;
+	FSlateIcon ActorIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(AActor::StaticClass()));
+	if (ActorsValidForPossession.Num() == 1)
+	{
+		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
+		FName IconName = FClassIconFinder::FindIconNameForActor(ActorsValidForPossession[0]);
+		ActorIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ActorsValidForPossession[0]->GetClass()));
+	}
+	else if (ActorsValidForPossession.Num() > 1)
+	{
+		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add Current Selection ({0} actors)"), FText::AsNumber(ActorsValidForPossession.Num()));
+	}
+
+	if (!SelectedLabel.IsEmpty())
+	{
+		// Copy the array into the lambda - probably not that big a deal
+		MenuBuilder.AddMenuEntry(SelectedLabel, FText(), ActorIcon, FExecuteAction::CreateLambda([=]{
+			FSlateApplication::Get().DismissAllMenus();
+			AddActorsToSequencer(ActorsValidForPossession.GetData(), ActorsValidForPossession.Num());
+		}));
+	}
+	
+	MenuBuilder.BeginSection("ChooseActorSection", LOCTEXT("ChooseActor", "Choose Actor:"));
+
+	using namespace SceneOutliner;
+
+	// Set up a menu entry to add any arbitrary actor to the sequencer
+	FInitializationOptions InitOptions;
+	{
+		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
+
+		// We hide the header row to keep the UI compact.
+		InitOptions.bShowHeaderRow = false;
+		InitOptions.bShowSearchBox = true;
+		InitOptions.bShowCreateNewFolder = false;
+		// Only want the actor label column
+		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
+
+		// Only display actors that are not possessed already
+		InitOptions.Filters->AddFilterPredicate( FActorFilterPredicate::CreateLambda( IsActorValidForPossession ) );
+	}
+
+	// actor selector to allow the user to choose an actor
+	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
+	TSharedRef< SWidget > MiniSceneOutliner =
+		SNew( SVerticalBox )
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.MaxHeight(400.0f)
+		[
+			SceneOutlinerModule.CreateSceneOutliner(
+				InitOptions,
+				FOnActorPicked::CreateLambda([=](AActor* Actor){
+					// Create a new binding for this actor
+					FSlateApplication::Get().DismissAllMenus();
+					AddActorsToSequencer(&Actor, 1);
+				})
+			)
+		];
+	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
+	MenuBuilder.EndSection();
 }
 
 
