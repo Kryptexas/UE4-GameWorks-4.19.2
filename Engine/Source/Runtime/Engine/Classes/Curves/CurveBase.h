@@ -244,6 +244,14 @@ public:
 	void DeleteKey(FKeyHandle KeyHandle);
 
 	/**
+	 * Finds a key a the specified time.
+	 *
+	 * @param KeyTime The time at which to find the key.
+	 * @return A handle to the key, or invalid key handle if not found.
+	 */
+	FKeyHandle FindKey(float KeyTime) const;
+
+	/**
 	 * Get a key.
 	 *
 	 * @param KeyHandle The handle of the key to get.
