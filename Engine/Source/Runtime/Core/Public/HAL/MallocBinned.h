@@ -624,7 +624,7 @@ private:
 
 		UPTRINT BasePtr;
 		FPoolInfo* Pool = FindPoolInfo((UPTRINT)Ptr, BasePtr);
-#if PLATFORM_IOS
+#if PLATFORM_IOS || PLATFORM_MAC
         if (Pool == NULL)
         {
             UE_LOG(LogMemory, Warning, TEXT("Attempting to free a pointer we didn't allocate!"));
