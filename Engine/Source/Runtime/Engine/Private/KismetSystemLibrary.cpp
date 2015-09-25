@@ -3148,6 +3148,21 @@ bool UKismetSystemLibrary::GetVolumeButtonsHandledBySystem()
 	return FPlatformMisc::GetVolumeButtonsHandledBySystem();
 }
 
+void UKismetSystemLibrary::ResetGamepadAssignments()
+{
+	FPlatformMisc::ResetGamepadAssignments();
+}
+
+void UKismetSystemLibrary::ResetGamepadAssignmentToController(int32 ControllerId)
+{
+	FPlatformMisc::ResetGamepadAssignmentToController(ControllerId);
+}
+
+bool UKismetSystemLibrary::IsControllerAssignedToGamepad(int32 ControllerId)
+{
+	return FPlatformMisc::IsControllerAssignedToGamepad(ControllerId);
+}
+
 void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
