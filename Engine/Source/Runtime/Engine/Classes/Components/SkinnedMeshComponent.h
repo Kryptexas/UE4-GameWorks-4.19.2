@@ -656,8 +656,12 @@ protected:
 	UPROPERTY(Transient)
 	mutable bool bCachedLocalBoundsUpToDate;
 
+public:
+
 	/** Invalidate Cached Bounds, when Mesh Component has been updated. */
 	void InvalidateCachedBounds();
+
+protected:
 
 	/** Update Mesh Bound information based on input
 	 * 
