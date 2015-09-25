@@ -6,6 +6,7 @@
 #include "ISequencerSection.h"
 #include "IKeyArea.h"
 
+
 /**
  * A key area for float keys
  */
@@ -131,7 +132,6 @@ private:
 };
 
 
-
 /** A key area for integral keys */
 class MOVIESCENETOOLS_API FIntegralKeyArea : public IKeyArea
 {
@@ -219,6 +219,7 @@ protected:
 	UMovieSceneSection* OwningSection;
 };
 
+
 /** A key area for displaying and editing intragral curves representing enums. */
 class FEnumKeyArea : public FIntegralKeyArea
 {
@@ -240,6 +241,7 @@ private:
 	UEnum* Enum;
 };
 
+
 /** A key area for displaying and editing integral curves representing bools. */
 class FBoolKeyArea : public FIntegralKeyArea
 {
@@ -255,6 +257,124 @@ public:
 
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 };
+
+
+/**
+ * A key area for FName curves.
+ */
+class MOVIESCENETOOLS_API FNameCurveKeyArea
+	: public IKeyArea
+{
+public:
+
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InCurve The curve to assign to this key area.
+	 * @param InOwningSection The section that owns this key area.
+	 */
+	FNameCurveKeyArea(FNameCurve& InCurve, UMovieSceneSection* InOwningSection)
+		: Curve(InCurve)
+		, OwningSection(InOwningSection)
+	{ }
+
+public:
+
+	// IKeyArea interface
+
+	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override
+	{
+		TArray<FKeyHandle> OutKeyHandles;
+
+		for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
+		{
+			OutKeyHandles.Add(It.Key());
+		}
+
+		return OutKeyHandles;
+	}
+
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override
+	{
+		Curve.SetKeyTime(KeyHandle, NewKeyTime);
+	}
+
+	virtual float GetKeyTime(FKeyHandle KeyHandle) const override
+	{
+		return Curve.GetKeyTime(KeyHandle);
+	}
+
+	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) override
+	{
+		return Curve.SetKeyTime(KeyHandle, Curve.GetKeyTime(KeyHandle) + DeltaPosition);
+	}
+	
+	virtual void DeleteKey(FKeyHandle KeyHandle) override
+	{
+		Curve.DeleteKey(KeyHandle);
+	}
+
+	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override
+	{
+		// do nothing
+	}
+
+	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle Keyhandle) const override
+	{
+		return RCIM_None;
+	}
+
+	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override
+	{
+		// do nothing
+	}
+
+	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override
+	{
+		return RCTM_None;
+	}
+
+	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override
+	{
+		// do nothing
+	}
+
+	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override
+	{
+		return RCCE_None;
+	}
+
+	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) override;
+
+	virtual FRichCurve* GetRichCurve() override
+	{
+		return nullptr;
+	}
+
+	virtual UMovieSceneSection* GetOwningSection() override
+	{
+		return OwningSection.Get();
+	}
+
+	virtual bool CanCreateKeyEditor() override
+	{
+		return false;
+	}
+
+	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override
+	{
+		return SNullWidget::NullWidget;
+	}
+
+protected:
+
+	/** The curve managed by this area. */
+	FNameCurve& Curve;
+
+	/** The section that owns this area. */
+	TWeakObjectPtr<UMovieSceneSection> OwningSection;
+};
+
 
 class MOVIESCENETOOLS_API MovieSceneToolHelpers
 {
@@ -276,5 +396,3 @@ public:
 	*/
 	static void SplitSection(const TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections, float Time);
 };
-
-

@@ -3,7 +3,7 @@
 #pragma once
 
 
-class UMovieSceneSection;
+class UMovieSceneEventSection;
 
 
 /**
@@ -44,7 +44,7 @@ public:
 private:
 
 	/** The section being visualized. */
-	UMovieSceneSection* Section;
+	UMovieSceneEventSection* Section;
 
 	/** The parent sequencer we are a part of. */
 	TWeakPtr<ISequencer> Sequencer;

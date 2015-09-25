@@ -12,7 +12,7 @@
  *****************************************************************************/
 
 FEventTrackSection::FEventTrackSection(UMovieSceneSection& InSection, TSharedPtr<ISequencer> InSequencer)
-	: Section(&InSection)
+	: Section(Cast<UMovieSceneEventSection>(&InSection))
 	, Sequencer(InSequencer)
 { }
 
@@ -46,7 +46,7 @@ FText FEventTrackSection::GetSectionTitle() const
 
 void FEventTrackSection::GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const
 {
-
+	LayoutBuilder.SetSectionAsKeyArea(MakeShareable(new FNameCurveKeyArea(Section->GetEventCurve(), Section)));
 }
 
 

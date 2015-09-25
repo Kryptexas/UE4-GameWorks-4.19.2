@@ -16,6 +16,7 @@
 #include "SEnumCurveKeyEditor.h"
 #include "SBoolCurveKeyEditor.h"
 
+
 TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
 {
 	TArray<FKeyHandle> AddedKeyHandles;
@@ -89,6 +90,7 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 	return AddedKeyHandles;
 }
 
+
 TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
 	return SNew(SFloatCurveKeyEditor)
@@ -96,6 +98,32 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(Curve);
 };
+
+
+TArray<FKeyHandle> FNameCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
+{
+	TArray<FKeyHandle> AddedKeyHandles;
+	FKeyHandle CurrentKey = Curve.FindKey(Time);
+
+	if (Curve.IsKeyHandleValid(CurrentKey) == false)
+	{
+		if (OwningSection->GetStartTime() > Time)
+		{
+			OwningSection->SetStartTime(Time);
+		}
+
+		if (OwningSection->GetEndTime() < Time)
+		{
+			OwningSection->SetEndTime(Time);
+		}
+
+		Curve.AddKey(Time, NAME_None, CurrentKey);
+		AddedKeyHandles.Add(CurrentKey);
+	}
+
+	return AddedKeyHandles;
+}
+
 
 TArray<FKeyHandle> FIntegralKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
 {
@@ -126,6 +154,7 @@ TArray<FKeyHandle> FIntegralKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInte
 	return AddedKeyHandles;
 }
 
+
 TSharedRef<SWidget> FIntegralKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
 	return SNew(SIntegralCurveKeyEditor)
@@ -133,6 +162,7 @@ TSharedRef<SWidget> FIntegralKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(&Curve);
 };
+
 
 TSharedRef<SWidget> FEnumKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
@@ -143,6 +173,7 @@ TSharedRef<SWidget> FEnumKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Enum(Enum);
 };
 
+
 TSharedRef<SWidget> FBoolKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
 	return SNew(SBoolCurveKeyEditor)
@@ -150,6 +181,7 @@ TSharedRef<SWidget> FBoolKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(&Curve);
 };
+
 
 void MovieSceneToolHelpers::TrimSection(const TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections, float Time, bool bTrimLeft)
 {
@@ -170,6 +202,7 @@ void MovieSceneToolHelpers::TrimSection(const TSet<TWeakObjectPtr<UMovieSceneSec
 		}
 	}
 }
+
 
 void MovieSceneToolHelpers::SplitSection(const TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections, float Time)
 {

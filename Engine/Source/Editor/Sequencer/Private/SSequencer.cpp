@@ -259,10 +259,8 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 		DetailsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSequencer::HandleDetailsViewVisibility)));
 	}
 
-	const int32 				Column0	= 0,	Column1	= 1;
-	const int32 Row0	= 0,
-				Row1	= 1,
-				Row2	= 2;
+	const int32 Column0 = 0, Column1 = 1;
+	const int32 Row0 = 0, Row1 = 1, Row2 = 2;
 
 	ChildSlot
 	[
@@ -447,25 +445,25 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 					]
 
 				+ SOverlay::Slot()
-				[
-					SNew( SSequencerSplitterOverlay )
-					.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
-					.Visibility(EVisibility::SelfHitTestInvisible)
-
-					+ SSplitter::Slot()
-					.Value( FillCoefficient_0 )
-					.OnSlotResized( SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnColumnFillCoefficientChanged, 0) )
 					[
-						SNew(SSpacer)
-					]
+						SNew( SSequencerSplitterOverlay )
+							.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+							.Visibility(EVisibility::SelfHitTestInvisible)
 
-					+ SSplitter::Slot()
-					.Value( FillCoefficient_1 )
-					.OnSlotResized( SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnColumnFillCoefficientChanged, 1) )
-					[
-						SNew(SSpacer)
+						+ SSplitter::Slot()
+							.Value( FillCoefficient_0 )
+							.OnSlotResized( SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnColumnFillCoefficientChanged, 0) )
+							[
+								SNew(SSpacer)
+							]
+
+						+ SSplitter::Slot()
+							.Value( FillCoefficient_1 )
+							.OnSlotResized( SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnColumnFillCoefficientChanged, 1) )
+							[
+								SNew(SSpacer)
+							]
 					]
-				]
 			]
 		]
 	];
@@ -538,7 +536,17 @@ EVisibility SSequencer::HandleDetailsViewVisibility() const
 
 void SSequencer::HandleKeySelectionChanged()
 {
+	TSharedPtr<FStructOnScope> Struct;
+	const TArray<FSelectedKey> SelectedKeys = Sequencer.Pin()->GetSelection().GetSelectedKeys().Array();
 
+	if (SelectedKeys.Num() > 0)
+	{
+		// @todo sequencer: highlight selected keys in details view
+	}
+	else
+	{
+		// @todo sequencer: remove key highlights in details view
+	}
 }
 
 
