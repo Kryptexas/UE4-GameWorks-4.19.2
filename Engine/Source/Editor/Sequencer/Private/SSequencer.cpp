@@ -626,6 +626,8 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				, LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current movie scene")
 				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save"));
 
+			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
+
 			ToolBarBuilder.AddSeparator();
 		}
 
@@ -758,16 +760,6 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleShowCurveEditor );
 	}
 	ToolBarBuilder.EndSection();
-
-	if( Sequencer.Pin()->IsLevelEditorSequencer() )
-	{
-		ToolBarBuilder.BeginSection("Render Movie");
-
-		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
-
-		ToolBarBuilder.EndSection();
-	}
-	
 
 	return ToolBarBuilder.MakeWidget();
 }
