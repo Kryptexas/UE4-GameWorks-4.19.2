@@ -46,9 +46,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 
 	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
-
-	static FName CollisionProfileName(TEXT("Pawn"));
-	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
+	CapsuleComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;

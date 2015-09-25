@@ -27,9 +27,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(ADefaultPawn::CollisionComponentName);
 	CollisionComponent->InitSphereRadius(35.0f);
-
-	static FName CollisionProfileName(TEXT("Pawn"));
-	CollisionComponent->SetCollisionProfileName(CollisionProfileName);
+	CollisionComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 
 	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
@@ -62,7 +60,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 		MeshComponent->bAffectDynamicIndirectLighting = false;
 		MeshComponent->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 		MeshComponent->AttachParent = RootComponent;
-		MeshComponent->SetCollisionProfileName(CollisionProfileName);
+		MeshComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 		const float Scale = CollisionComponent->GetUnscaledSphereRadius() / 160.f; // @TODO: hardcoding known size of EngineMeshes.Sphere. Should use a unit sphere instead.
 		MeshComponent->SetRelativeScale3D(FVector(Scale));
 		MeshComponent->bGenerateOverlapEvents = false;
