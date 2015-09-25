@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600494
+﻿INTSourceChangelist:2692002
 Availability:Public
 Title:ドアを開ける
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description:典型的な近接ドアの開け方を設定したタイムラインの使用例。
+version:4.9
 
 %Description%
 
@@ -23,9 +24,9 @@ Description:典型的な近接ドアの開け方を設定したタイムライ�
 プレイヤーがボリュームから立ち去ると、2 秒間待機後にタイムラインを逆再生し、ドアを元に戻します。 
 
 **クリックしてフルサイズで表示**
-
+[REGION:lightbox]
 [![DoorNetwork.png](DoorNetwork.png)(w:800)](DoorNetwork.png)
-
+[/REGION]
 この設定では、サウンド エフェクトは考慮していないことにご注意ください。
 
 ## タイムラインの設定
