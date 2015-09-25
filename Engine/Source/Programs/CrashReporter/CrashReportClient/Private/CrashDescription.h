@@ -320,7 +320,6 @@ protected:
 	/** Default constructor. */
 	FPrimaryCrashProperties();
 
-
 	/** Destructor. */
 	~FPrimaryCrashProperties()
 	{
@@ -340,6 +339,14 @@ public:
 	static FPrimaryCrashProperties* Get()
 	{
 		return Singleton;
+	}
+
+	/**
+	* @return false, if there is no crash
+	*/
+	static bool IsValid()
+	{
+		return Singleton != nullptr;
 	}
 
 	/** Shutdowns the global instance. */
