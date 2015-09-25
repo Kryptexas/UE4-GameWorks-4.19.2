@@ -650,11 +650,11 @@ protected:
 
 	/** LocalBounds cached, so they're computed just once. */
 	UPROPERTY(Transient)
-	FBoxSphereBounds CachedLocalBounds;
+	mutable FBoxSphereBounds CachedLocalBounds;
 
 	/** true when CachedLocalBounds is up to date. */
 	UPROPERTY(Transient)
-	bool bCachedLocalBoundsUpToDate;
+	mutable bool bCachedLocalBoundsUpToDate;
 
 	/** Invalidate Cached Bounds, when Mesh Component has been updated. */
 	void InvalidateCachedBounds();

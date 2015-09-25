@@ -858,7 +858,7 @@ public:
 	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const;
 
 	/** Update the Bounds of the component.*/
-	virtual void UpdateBounds();
+	void UpdateBounds();
 
 	/** If true, bounds should be used when placing component/actor in level. Does not affect spawning. */
 	virtual bool ShouldCollideWhenPlacing() const

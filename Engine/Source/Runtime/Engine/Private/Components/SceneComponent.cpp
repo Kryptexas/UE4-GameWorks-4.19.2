@@ -30,7 +30,10 @@ namespace SceneComponentStatics
 DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 
 DECLARE_CYCLE_STAT(TEXT("UpdateComponentToWorld"), STAT_UpdateComponentToWorld, STATGROUP_Component);
-DECLARE_CYCLE_STAT(TEXT("Update Child Transforms"), STAT_UpdateChildTransforms, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("UpdateChildTransforms"), STAT_UpdateChildTransforms, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Component UpdateBounds"), STAT_ComponentUpdateBounds, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Component UpdateNavData"), STAT_ComponentUpdateNavData, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("Component PostUpdateNavData"), STAT_ComponentPostUpdateNavData, STATGROUP_Component);
 
 
 FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
@@ -725,6 +728,8 @@ void USceneComponent::CalcBoundingCylinder(float& CylinderRadius, float& Cylinde
 
 void USceneComponent::UpdateBounds()
 {
+	SCOPE_CYCLE_COUNTER(STAT_ComponentUpdateBounds);
+
 #if WITH_EDITOR
 	FBoxSphereBounds OriginalBounds = Bounds; // Save old bounds
 #endif
@@ -2587,6 +2592,8 @@ const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
 
 void USceneComponent::UpdateNavigationData()
 {
+	SCOPE_CYCLE_COUNTER(STAT_ComponentUpdateNavData);
+
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
 		IsRegistered() && World && World->IsGameWorld() &&
 		World->GetNetMode() < ENetMode::NM_Client)
@@ -2597,6 +2604,8 @@ void USceneComponent::UpdateNavigationData()
 
 void USceneComponent::PostUpdateNavigationData()
 {
+	SCOPE_CYCLE_COUNTER(STAT_ComponentPostUpdateNavData);
+
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
 		IsRegistered() && World && World->IsGameWorld() &&
 		World->GetNetMode() < ENetMode::NM_Client)

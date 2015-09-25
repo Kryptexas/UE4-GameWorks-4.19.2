@@ -836,7 +836,6 @@ public:
 	//~ End UActorComponent Interface.
 
 	//~ Begin USceneComponent Interface.
-	virtual void UpdateBounds() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;

@@ -40,7 +40,6 @@
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
 DECLARE_CYCLE_STAT(TEXT("Swap Anim Buffers"), STAT_CompleteAnimSwapBuffers, STATGROUP_Anim);
-DECLARE_CYCLE_STAT(TEXT("Update SkelMesh Bounds"), STAT_UpdateSkelMeshBounds, STATGROUP_Anim);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimSpawnTime);
 DEFINE_STAT(STAT_PostAnimEvaluation);
@@ -1313,79 +1312,48 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	PrepareCloth();
 }
 
-//
-//	USkeletalMeshComponent::UpdateBounds
-//
-
-void USkeletalMeshComponent::UpdateBounds()
-{
-	SCOPE_CYCLE_COUNTER(STAT_UpdateSkelMeshBounds);
-
-#if WITH_EDITOR
-	FBoxSphereBounds OriginalBounds = Bounds; // Save old bounds
-#endif
-
-	// if use parent bound if attach parent exists, and the flag is set
-	// since parents tick first before child, this should work correctly
-	if ( bUseAttachParentBound && AttachParent != NULL )
-	{
-		Bounds = AttachParent->Bounds;
-	}
-	else
-	{
-		// fixme laurent - extend concept of LocalBounds to all SceneComponent
-		// as rendered calls CalcBounds*() directly in FScene::UpdatePrimitiveTransform, which is pretty expensive for SkelMeshes.
-		// No need to calculated that again, just use cached local bounds.
-		if( bCachedLocalBoundsUpToDate )
-		{
-			Bounds = CachedLocalBounds.TransformBy(ComponentToWorld);
-		}
-		else
-		{
-			// Calculate new bounds
-			Bounds = CalcBounds(ComponentToWorld);
-
-			bCachedLocalBoundsUpToDate = true;
-			CachedLocalBounds = Bounds.TransformBy(ComponentToWorld.Inverse());
-		}
-	}
-
-#if WITH_EDITOR
-	// If bounds have changed (in editor), trigger data rebuild
-	if ( IsRegistered() && (World != NULL) && !GetWorld()->IsGameWorld() && 
-		(OriginalBounds.Origin.Equals(Bounds.Origin) == false || OriginalBounds.BoxExtent.Equals(Bounds.BoxExtent) == false) )
-	{
-		GEngine->TriggerStreamingDataRebuild();
-	}
-#endif
-}
-
 FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_CalcSkelMeshBounds);
 
-	FVector RootBoneOffset = RootBoneTranslation;
-
-	// if to use MasterPoseComponent's fixed skel bounds, 
-	// send MasterPoseComponent's Root Bone Translation
-	if (MasterPoseComponent.IsValid())
+	// fixme laurent - extend concept of LocalBounds to all SceneComponent
+	// as rendered calls CalcBounds*() directly in FScene::UpdatePrimitiveTransform, which is pretty expensive for SkelMeshes.
+	// No need to calculated that again, just use cached local bounds.
+	if (bCachedLocalBoundsUpToDate)
 	{
-		const USkinnedMeshComponent* const MasterPoseComponentInst = MasterPoseComponent.Get();
-		check(MasterPoseComponentInst);
-		if (MasterPoseComponentInst->SkeletalMesh &&
-			MasterPoseComponentInst->bComponentUseFixedSkelBounds &&
-			MasterPoseComponentInst->IsA((USkeletalMeshComponent::StaticClass())))
-		{
-			const USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponentInst);
-			RootBoneOffset = BaseComponent->RootBoneTranslation; // Adjust bounds by root bone translation
-		}
+		return CachedLocalBounds.TransformBy(LocalToWorld);
 	}
+	// Calculate new bounds
+	else
+	{
+		FVector RootBoneOffset = RootBoneTranslation;
 
-	FBoxSphereBounds NewBounds = CalcMeshBound( RootBoneOffset, bHasValidBodies, LocalToWorld );
+		// if to use MasterPoseComponent's fixed skel bounds, 
+		// send MasterPoseComponent's Root Bone Translation
+		if (MasterPoseComponent.IsValid())
+		{
+			const USkinnedMeshComponent* const MasterPoseComponentInst = MasterPoseComponent.Get();
+			check(MasterPoseComponentInst);
+			if (MasterPoseComponentInst->SkeletalMesh &&
+				MasterPoseComponentInst->bComponentUseFixedSkelBounds &&
+				MasterPoseComponentInst->IsA((USkeletalMeshComponent::StaticClass())))
+			{
+				const USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponentInst);
+				RootBoneOffset = BaseComponent->RootBoneTranslation; // Adjust bounds by root bone translation
+			}
+		}
+
+		FBoxSphereBounds NewBounds = CalcMeshBound( RootBoneOffset, bHasValidBodies, LocalToWorld );
+
 #if WITH_APEX_CLOTHING
-	AddClothingBounds(NewBounds);
+		AddClothingBounds(NewBounds);
 #endif// #if WITH_APEX_CLOTHING
-	return NewBounds;
+
+		bCachedLocalBoundsUpToDate = true;
+		CachedLocalBounds = NewBounds.TransformBy(LocalToWorld.Inverse());
+
+		return NewBounds;
+	}
 }
 
 void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
