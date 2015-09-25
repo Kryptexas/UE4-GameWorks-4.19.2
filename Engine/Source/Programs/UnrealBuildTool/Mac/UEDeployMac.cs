@@ -9,19 +9,10 @@ using System.Xml;
 using System.IO;
 using Ionic.Zip;
 
-namespace UnrealBuildTool.IOS
+namespace UnrealBuildTool
 {
 	class UEDeployMac : UEBuildDeploy
 	{
-		/// <summary>
-		/// Register the platform with the UEBuildDeploy class
-		/// </summary>
-		public override void RegisterBuildDeploy()
-		{
-			// TODO: print debug info and handle any cases that would keep this from registering
-			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.Mac, this);
-		}
-
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
 			Log.TraceInformation("Deploying now!");

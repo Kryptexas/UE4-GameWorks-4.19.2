@@ -628,7 +628,7 @@ namespace UnrealBuildTool
 						GameName = "UE4Game";
 					}
 					Directory.CreateDirectory(Path.GetDirectoryName(InfoPlistPath));
-					IOS.UEDeployIOS.GeneratePList(ProjectPath, bIsUE4Game, GameName, TargetName, EngineRelative + "Engine", ProjectPath + "/Binaries/IOS/Payload");
+					UEDeployIOS.GeneratePList(ProjectPath, bIsUE4Game, GameName, TargetName, EngineRelative + "Engine", ProjectPath + "/Binaries/IOS/Payload");
 				}
 			}
 		}

@@ -506,12 +506,6 @@ namespace UnrealBuildTool
 							var TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.RegisterToolChain();
 						}
-						else if (Utils.ImplementsInterface<IUEBuildDeploy>(CheckType))
-						{
-							Log.TraceVerbose("    Registering build deploy  : {0}", CheckType.ToString());
-							var TempInst = (UEBuildDeploy)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-							TempInst.RegisterBuildDeploy();
-						}
 						else if (CheckType.IsSubclassOf(typeof(UEPlatformProjectGenerator)))
 						{
 							ProjectGeneratorList.Add(CheckType);
@@ -1393,14 +1387,15 @@ namespace UnrealBuildTool
 							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) &&
 								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false))
 							{
-								var DeployHandler = UEBuildDeploy.GetBuildDeploy(CheckPlatform);
-								if (DeployHandler != null)
+								IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform);
+
+								UEBuildDeploy DeploymentHandler;
+								if (BuildPlatform.TryCreateDeploymentHandler(UnrealBuildTool.GetUProjectFile(), out DeploymentHandler))
 								{
 									// We need to be able to identify the Target.Type we can derive it from the Arguments.
 									BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
 									var TargetDescs = UEBuildTarget.ParseTargetCommandLine(Arguments, GetUProjectFile());
 									UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(TargetDescs[0]);	// @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
-									IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(TargetDescs[0].Platform);
 									IUEToolChain ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(TargetDescs[0].Platform));
 									CheckTarget.SetupGlobalEnvironment(ToolChain);
 									if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
@@ -1409,7 +1404,7 @@ namespace UnrealBuildTool
 									{
 										CheckTarget.AppName = CheckTarget.TargetName;
 									}
-									DeployHandler.PrepTargetForDeployment(CheckTarget);
+									DeploymentHandler.PrepTargetForDeployment(CheckTarget);
 								}
 							}
 						}

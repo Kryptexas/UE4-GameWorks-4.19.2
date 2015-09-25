@@ -16,16 +16,6 @@ namespace UnrealBuildTool
 	class UWPDeploy : UEBuildDeploy
 	{
 		/// <summary>
-		/// Register the platform with the UEBuildDeploy class
-		/// </summary>
-		public override void RegisterBuildDeploy()
-		{
-			// Register this deployment handle for UWP
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
-			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.UWP, this);
-		}
-
-		/// <summary>
 		/// Utility function to delete a file
 		/// </summary>
 		void DeployHelper_DeleteFile(string InFileToDelete)

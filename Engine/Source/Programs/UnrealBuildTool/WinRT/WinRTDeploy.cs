@@ -14,16 +14,6 @@ namespace UnrealBuildTool
 	class WinRTDeploy : UEBuildDeploy
 	{
 		/// <summary>
-		/// Register the platform with the UEBuildDeploy class
-		/// </summary>
-		public override void RegisterBuildDeploy()
-		{
-			// Register this deployment handle for WinRT
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT.ToString());
-			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.WinRT, this);
-		}
-
-		/// <summary>
 		/// Utility function to delete a file
 		/// </summary>
 		void DeployHelper_DeleteFile(string InFileToDelete)

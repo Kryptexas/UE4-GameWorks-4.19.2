@@ -8,19 +8,10 @@ using System.Xml;
 using System.IO;
 using System.Diagnostics;
 
-namespace UnrealBuildTool.IOS
+namespace UnrealBuildTool
 {
 	public class UEDeployIOS : UEBuildDeploy
 	{
-		/// <summary>
-		/// Register the platform with the UEBuildDeploy class
-		/// </summary>
-		public override void RegisterBuildDeploy()
-		{
-			// TODO: print debug info and handle any cases that would keep this from registering
-			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.IOS, this);
-		}
-
 		class VersionUtilities
 		{
 			public static string BuildDirectory

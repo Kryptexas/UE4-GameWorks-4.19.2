@@ -114,10 +114,10 @@ public class AndroidPlatform : Platform
 	{
 		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
 		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk(false);
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 
-		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		var Deploy = new UEDeployAndroid();
+		bool bPackageDataInsideApk = Deploy.PackageDataInsideApk(false);
 
 		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
 		Log("BaseApkName = {0}", BaseApkName);
@@ -319,8 +319,8 @@ public class AndroidPlatform : Platform
 
 		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
 		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk(false);
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bPackageDataInsideApk = new UnrealBuildTool.UEDeployAndroid().PackageDataInsideApk(false);
 
 		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
@@ -510,7 +510,7 @@ public class AndroidPlatform : Platform
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
 		// make sure APK is up to date (this is fast if so)
-		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		var Deploy = new UEDeployAndroid();
 		if (!Params.Prebuilt)
 		{
 			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
@@ -969,7 +969,7 @@ public class AndroidPlatform : Platform
 
 	private string GetBestDeviceArchitecture(ProjectParams Params)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
@@ -982,7 +982,7 @@ public class AndroidPlatform : Platform
 		ProcessResult ABIResult = RunAdbCommand(Params, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
 
 		// the output is just the architecture
-		string DeviceArch = UnrealBuildTool.Android.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
+		string DeviceArch = UnrealBuildTool.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
 
 		// if the architecture wasn't built, look for a backup
 		if (!AppArchitectures.Contains(DeviceArch))
@@ -1034,7 +1034,7 @@ public class AndroidPlatform : Platform
 
 	private string GetBestGPUArchitecture(ProjectParams Params)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{

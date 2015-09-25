@@ -476,5 +476,11 @@ namespace UnrealBuildTool
 
 			return AllBinaries;
 		}
+
+		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
+		{
+			DeploymentHandler = new UEDeployAndroid();
+			return true;
+		}
 	}
 }

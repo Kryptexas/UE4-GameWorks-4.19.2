@@ -9,37 +9,19 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 
-namespace UnrealBuildTool.Android
+namespace UnrealBuildTool
 {
 	public class UEDeployAndroid : UEBuildDeploy
 	{
 		/// <summary>
-		/// Register the platform with the UEBuildDeploy class
-		/// </summary>
-		public override void RegisterBuildDeploy()
-		{
-			string NDKPath = Environment.GetEnvironmentVariable("ANDROID_HOME");
-
-			// we don't have an NDKROOT specified
-			if (String.IsNullOrEmpty(NDKPath))
-			{
-				Log.TraceVerbose("        Unable to register Android deployment class because the ANDROID_HOME environment variable isn't set or points to something that doesn't exist");
-			}
-			else
-			{
-				UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.Android, this);
-			}
-		}
-
-		/// <summary>
 		/// Internal usage for GetApiLevel
 		/// </summary>
-		private static List<string> PossibleApiLevels = null;
+		private List<string> PossibleApiLevels = null;
 
 		/// <summary>
 		/// Simple function to pipe output asynchronously
 		/// </summary>
-		private static void ParseApiLevel(object Sender, DataReceivedEventArgs Event)
+		private void ParseApiLevel(object Sender, DataReceivedEventArgs Event)
 		{
 			// DataReceivedEventHandler is fired with a null string when the output stream is closed.  We don't want to
 			// print anything for that event.
@@ -58,9 +40,9 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		static private Dictionary<string, ConfigCacheIni> ConfigCache = null;
+		private Dictionary<string, ConfigCacheIni> ConfigCache = null;
 
-		private static ConfigCacheIni GetConfigCacheIni(string baseIniName)
+		private ConfigCacheIni GetConfigCacheIni(string baseIniName)
 		{
 			if (ConfigCache == null)
 			{
@@ -77,8 +59,8 @@ namespace UnrealBuildTool.Android
 			return config;
 		}
 
-		static private string CachedSDKLevel = null;
-		private static string GetSdkApiLevel()
+		private string CachedSDKLevel = null;
+		private string GetSdkApiLevel()
 		{
 			if (CachedSDKLevel == null)
 			{
@@ -133,7 +115,7 @@ namespace UnrealBuildTool.Android
 			return VersionString;
 		}
 
-		public static bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigCacheIni Ini = null)
+		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigCacheIni Ini = null)
 		{
 			if (bDisallowPackagingDataInApk)
 			{
@@ -153,7 +135,7 @@ namespace UnrealBuildTool.Android
 			return bPackageDataInsideApk;
 		}
 
-		public static bool DisableVerifyOBBOnStartUp(ConfigCacheIni Ini = null)
+		public bool DisableVerifyOBBOnStartUp(ConfigCacheIni Ini = null)
 		{
 			// make a new one if one wasn't passed in
 			if (Ini == null)
@@ -1835,7 +1817,7 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
-		private static void CopyPluginLibs(string EngineDirectory, string UE4BuildPath, string UE4Arch)
+		private void CopyPluginLibs(string EngineDirectory, string UE4BuildPath, string UE4Arch)
 		{
 			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
 			string Arch = GetNDKArch(UE4Arch);

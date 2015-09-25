@@ -1013,11 +1013,8 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
 						// ensure the plist, entitlements, and provision files are properly copied
-						var DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
-						if (DeployHandler != null)
-						{
-							DeployHandler.PrepTargetForDeployment(Target);
-						}
+						var DeployHandler = new UEDeployIOS();
+						DeployHandler.PrepTargetForDeployment(Target);
 
 						// code sign the project
 						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
@@ -1141,11 +1138,8 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
-					var DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
-					if (DeployHandler != null)
-					{
-						DeployHandler.PrepTargetForDeployment(Target);
-					}
+					var DeployHandler = new UEDeployIOS();
+					DeployHandler.PrepTargetForDeployment(Target);
 
 					if (!bUseDangerouslyFastMode)
 					{
