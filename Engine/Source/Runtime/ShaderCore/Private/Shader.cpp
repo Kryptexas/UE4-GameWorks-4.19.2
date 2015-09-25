@@ -313,7 +313,9 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 	
 {
 	Target = Output.Target;
-	Code = Output.Code;
+	// todo: can we avoid the memcpy?
+	Code = Output.ShaderCode.GetReadAccess();
+
 	check(Code.Num() > 0);
 
 	OutputHash = Output.OutputHash;

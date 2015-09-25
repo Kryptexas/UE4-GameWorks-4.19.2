@@ -1265,7 +1265,23 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 		FD3D11UniformBuffer* Buffer = (FD3D11UniformBuffer*)BoundUniformBuffers[ShaderType::StaticFrequency][BufferIndex].GetReference();
 		check(Buffer);
 		check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num());
-		check(Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// to track down OR-7159 CRASH: Client crashed at start of match in D3D11Commands.cpp
+		{
+			if (Buffer->GetLayout().GetHash() != Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex])
+			{
+				FString DebugName = Buffer->GetLayout().GetDebugName().GetPlainNameString();
+				const FString& ShaderName = Shader->ShaderName;
+				
+				UE_LOG(LogD3D11RHI, Error, TEXT("SetResourcesFromTables upcoming check() info Layout='%s' Shader='%s'"), *DebugName, *ShaderName);
+
+				// this might mean you are accessing a data you haven't bound e.g. GBuffer
+				check(Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
+			}
+		}
+#endif
+
 		Buffer->CacheResources(ResourceTableFrameCounter);
 
 		// todo: could make this two pass: gather then set

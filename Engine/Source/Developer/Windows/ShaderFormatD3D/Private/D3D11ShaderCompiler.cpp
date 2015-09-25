@@ -689,16 +689,19 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 			}
 
-			FMemoryWriter Ar( Output.Code, true );
+			FMemoryWriter Ar(Output.ShaderCode.GetWriteAccess(), true);
 			Ar << SRT;
-			Ar.Serialize( CompressedData->GetBufferPointer(), CompressedData->GetBufferSize() );
+			Ar.Serialize(CompressedData->GetBufferPointer(), CompressedData->GetBufferSize());
 
-			// Pack bGlobalUniformBufferUsed and resource counts in the last few bytes
-			Output.Code.Add(bGlobalUniformBufferUsed);
-			Output.Code.Add(NumSamplers);
-			Output.Code.Add(NumSRVs);
-			Output.Code.Add(NumCBs);
-			Output.Code.Add(NumUAVs);
+			// append data that is generate from the shader code and assist the usage, mostly needed for DX12 
+			{
+				FShaderCodePackedResourceCounts PackedResourceCounts = { bGlobalUniformBufferUsed, NumSamplers, NumSRVs, NumCBs, NumUAVs };
+
+				Output.ShaderCode.AddOptionalData(PackedResourceCounts);
+			}
+
+			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+			Output.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*Input.GenerateShaderName()));
 
 			// Set the number of instructions.
 			Output.NumInstructions = ShaderDesc.InstructionCount;

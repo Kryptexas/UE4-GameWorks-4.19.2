@@ -49,10 +49,12 @@ static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 
 /** Initialization constructor. */
 template<typename BaseResourceType, int32 ShaderType>
-TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<uint8>& InCode)
+TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<uint8>& InShaderCode)
 	: DirtyUniformBuffers(0)
 {
-	FMemoryReader Ar(InCode, true);
+	FMemoryReader Ar(InShaderCode, true);
+	
+	Ar.SetLimitSize(FShaderCodeReader(InShaderCode).GetActualShaderCodeSize());
 
 	// was the shader already compiled offline?
 	uint8 OfflineCompiledFlag;

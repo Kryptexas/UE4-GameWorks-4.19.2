@@ -193,7 +193,7 @@ void FD3D12CommandContext::RHIDispatchComputeShader(uint32 ThreadGroupCountX, ui
 
 	OwningRHI.RegisterGPUWork(1);
 
-	if (ComputeShader->bShaderNeedsGlobalConstantBuffer)
+	if (ComputeShader->ResourceCounts.bGlobalUniformBufferUsed)
 	{
 		CommitComputeShaderConstants();
 	}
@@ -220,7 +220,7 @@ void FD3D12CommandContext::RHIDispatchIndirectComputeShader(FVertexBufferRHIPara
 
 	StateCache.SetComputeShader(ComputeShader);
 
-	if (ComputeShader->bShaderNeedsGlobalConstantBuffer)
+	if (ComputeShader->ResourceCounts.bGlobalUniformBufferUsed)
 	{
 		CommitComputeShaderConstants();
 	}

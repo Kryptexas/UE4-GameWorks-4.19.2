@@ -311,12 +311,15 @@ static void BuildMetalShaderOutput(
 	else if(ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Debug))
 	{
 		// Write out the header and shader source code.
-		FMemoryWriter Ar(ShaderOutput.Code, true);
+		FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
 		uint8 PrecompiledFlag = 0;
 		Ar << PrecompiledFlag;
 		Ar << Header;
 		Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 		
+		// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+		ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+
 		ShaderOutput.NumInstructions = 0;
 		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 		ShaderOutput.bSucceeded = true;
@@ -407,7 +410,7 @@ static void BuildMetalShaderOutput(
 						bCompileAtRuntime = false;
 						
 						// Write out the header and compiled shader code
-						FMemoryWriter Ar(ShaderOutput.Code, true);
+						FMemoryWriter Ar(ShaderOutput.Code.ShaderCode.GetWriteAccess(), true);
 						uint8 PrecompiledFlag = 1;
 						Ar << PrecompiledFlag;
 						Ar << Header;
@@ -419,6 +422,9 @@ static void BuildMetalShaderOutput(
 						// jam it into the output bytes
 						Ar.Serialize(CompiledShader.GetData(), CompiledShader.Num());
 						
+						// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+						ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+
 						ShaderOutput.NumInstructions = 0;
 						ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 						ShaderOutput.bSucceeded = true;
@@ -435,11 +441,14 @@ static void BuildMetalShaderOutput(
 		if (bCompileAtRuntime)
 		{
 			// Write out the header and shader source code.
-			FMemoryWriter Ar(ShaderOutput.Code, true);
+			FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
 			uint8 PrecompiledFlag = 0;
 			Ar << PrecompiledFlag;
 			Ar << Header;
 			Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
+			
+			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+			ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
 			
 			ShaderOutput.NumInstructions = 0;
 			ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;

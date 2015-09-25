@@ -163,12 +163,12 @@ public:
 
 	int64 TotalSize()
 	{
-		return Bytes.Num();
+		return FMath::Min((int64)Bytes.Num(), LimitSize);
 	}
 
 	void Seek(int64 InPos )
 	{
-		check(InPos<=Bytes.Num());
+		check(InPos <= TotalSize());
 		FMemoryArchive::Seek(InPos);
 	}
 
@@ -177,7 +177,7 @@ public:
 		if (Num && !ArIsError)
 		{
 			// Only serialize if we have the requested amount of data
-			if (Offset + Num <= Bytes.Num())
+			if (Offset + Num <= TotalSize())
 			{
 				FMemory::Memcpy( Data, &Bytes[Offset], Num );
 				Offset += Num;
@@ -188,17 +188,26 @@ public:
 			}
 		}
 	}
+
 	FMemoryReader( const TArray<uint8>& InBytes, bool bIsPersistent = false )
 	: FMemoryArchive()
 	, Bytes(InBytes)
+	, LimitSize(INT64_MAX)
 	{
 		ArIsLoading		= true;
 		ArIsPersistent	= bIsPersistent;
 	}
 
+	// with this method it's possible to attach data behind some serialized data 
+	void SetLimitSize(int64 NewLimitSize)
+	{
+		LimitSize = NewLimitSize;
+	}
+
 protected:
 
 	const TArray<uint8>& Bytes;
+	int64 LimitSize;
 };
 
 /**

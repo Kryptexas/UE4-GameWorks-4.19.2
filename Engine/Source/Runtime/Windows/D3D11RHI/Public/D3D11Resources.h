@@ -43,7 +43,7 @@ public:
 
 	FD3D11ShaderResourceTable ShaderResourceTable;
 
-	/** The vertex shader's bytecode, with custom data in the last byte. */
+	/** The vertex shader's bytecode, with custom data attached. */
 	TArray<uint8> Code;
 
 	// TEMP remove with removal of bound shader state

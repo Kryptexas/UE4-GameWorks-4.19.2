@@ -179,7 +179,13 @@ void FShaderParameterMap::RemoveParameterAllocation(const TCHAR* ParameterName)
 void FShaderCompilerOutput::GenerateOutputHash()
 {
 	FSHA1 HashState;
-	HashState.Update(Code.GetData(), Code.Num() * Code.GetTypeSize());
+	
+	const TArray<uint8>& Code = ShaderCode.GetReadAccess();
+
+	// we don't hash the optional attachments as they would prevent sharing (e.g. many material share the save VS)
+	uint32 ShaderCodeSize = ShaderCode.GetShaderCodeSize();
+
+	HashState.Update(Code.GetData(), ShaderCodeSize * Code.GetTypeSize());
 	ParameterMap.UpdateHash(HashState);
 	HashState.Final();
 	HashState.GetHash(&OutputHash.Hash[0]);

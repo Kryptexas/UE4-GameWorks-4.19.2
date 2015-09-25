@@ -162,7 +162,7 @@ static inline void GetFormatVersionMap(TMap<FString, uint16>& OutFormatVersionMa
 // Serialize Queued Job information
 static bool DoWriteTasks(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
-	int32 ShaderCompileWorkerInputVersion = 3;
+	int32 ShaderCompileWorkerInputVersion = 4;
 	TransferFile << ShaderCompileWorkerInputVersion;
 
 	static TMap<FString, uint16> FormatVersionMap;
@@ -185,7 +185,7 @@ static bool DoWriteTasks(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive&
 // Process results from Worker Process
 static void DoReadTaskResults(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive& OutputFile)
 {
-	const int32 OutputVersion = 1;
+	const int32 OutputVersion = 2;
 	int32 ShaderCompileWorkerOutputVersion;
 	OutputFile << ShaderCompileWorkerOutputVersion;
 
@@ -1159,7 +1159,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 
 				if (CurrentJob.bSucceeded)
 				{
-					check(CurrentJob.Output.Code.Num() > 0);
+					check(CurrentJob.Output.ShaderCode.GetShaderCodeSize() > 0);
 				}
 				else 
 				{
@@ -1793,6 +1793,8 @@ void GlobalBeginCompileShader(
 	Input.SourceFilename = SourceFilename;
 	Input.EntryPointName = FunctionName;
 	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
+	// asset material name or "Global"
+	Input.DebugGroupName = DebugGroupName;
 
 	if (GDumpShaderDebugInfo != 0)
 	{

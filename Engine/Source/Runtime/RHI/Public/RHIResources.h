@@ -112,6 +112,11 @@ public:
 	void SetHash(FSHAHash InHash) { Hash = InHash; }
 	FSHAHash GetHash() const { return Hash; }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	// for debugging only e.g. MaterialName:ShaderFile.usf or ShaderFile.usf/EntryFunc
+	FString ShaderName;
+#endif
+
 private:
 	FSHAHash Hash;
 };
@@ -162,15 +167,20 @@ struct FRHIUniformBufferLayout
 		return Hash;
 	}
 
-	FRHIUniformBufferLayout() :
+	FRHIUniformBufferLayout(FName InName) :
 		ConstantBufferSize(0),
 		ResourceOffset(0),
+		Name(InName),
 		Hash(0),
 		bComputedHash(false)
 	{
 	}
 
+	const FName GetDebugName() const { return Name; }
+
 private:
+	// for debugging / error message
+	const FName Name;
 	mutable uint32 Hash;
 	mutable bool bComputedHash;
 };

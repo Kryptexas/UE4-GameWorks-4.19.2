@@ -294,8 +294,10 @@ void FUniformExpressionSet::CreateBufferStruct()
 	new(Members) FUniformBufferStruct::FMember(TEXT("Clamp_WorldGroupSettings"),TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
 	NextMemberOffset += 8;
 
+	static FName LayoutName(TEXT("MaterialUniforms"));
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 	UniformBufferStruct = new FUniformBufferStruct(
+		LayoutName,
 		TEXT("MaterialUniforms"),
 		TEXT("Material"),
 		ConstructMaterialUniformBufferParameter,

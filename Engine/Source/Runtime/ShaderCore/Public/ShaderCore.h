@@ -416,12 +416,35 @@ struct FShaderCompilerInput
 	FShaderTarget Target;
 	FName ShaderFormat;
 	FString SourceFilePrefix;
+	// e.g. BasePassPixelShader, ReflectionEnvironmentShaders, SlateElementPixelShader, PostProcessCombineLUTs
 	FString SourceFilename;
 	FString EntryPointName;
-	FString DumpDebugInfoRootPath;	// Dump debug path (up to platform)
-	FString DumpDebugInfoPath;		// Dump debug path (platform/groupname)
+	// Dump debug path (up to platform) e.g. "D:/MMittring-Z3941-A/UE4-Orion/OrionGame/Saved/ShaderDebugInfo/PCD3D_SM5"
+	FString DumpDebugInfoRootPath;
+	// only used if enabled by r.DumpShaderDebugInfo (platform/groupname) e.g. ""
+	FString DumpDebugInfoPath;
+	// materialname or "Global" "for debugging and better error messages
+	FString DebugGroupName;
 	FShaderCompilerEnvironment Environment;
 	TRefCountPtr<FShaderCompilerEnvironment> SharedEnvironment;
+
+	// generate human readable name for debugging
+	FString GenerateShaderName() const
+	{
+		FString Name;
+
+		if(DebugGroupName == TEXT("Global"))
+		{
+			Name = SourceFilename + TEXT(".usf|") + EntryPointName;
+		}
+		else
+		{
+			// we skip EntryPointName as it's usually not useful
+			Name = DebugGroupName + TEXT(":") + SourceFilename + TEXT(".usf");
+		}
+
+		return Name;
+	}
 
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerInput& Input)
 	{
@@ -438,6 +461,7 @@ struct FShaderCompilerInput
 		Ar << Input.EntryPointName;
 		Ar << Input.DumpDebugInfoRootPath;
 		Ar << Input.DumpDebugInfoPath;
+		Ar << Input.DebugGroupName;
 		Ar << Input.Environment;
 
 		bool bHasSharedEnvironment = IsValidRef(Input.SharedEnvironment);
@@ -487,6 +511,239 @@ struct FShaderCompilerError
 	}
 };
 
+// if this changes you need to make sure all D3D11 shaders get invalidated
+struct FShaderCodePackedResourceCounts
+{
+	// for FindOptionalData() and AddOptionalData()
+	static const uint8 Key = 'p';
+
+	bool bGlobalUniformBufferUsed;
+	uint8 NumSamplers;
+	uint8 NumSRVs;
+	uint8 NumCBs;
+	uint8 NumUAVs;
+};
+
+// later we can transform that to the actual class passed around at the RHI level
+class FShaderCodeReader
+{
+	const TArray<uint8>& ShaderCode;
+
+public:
+	FShaderCodeReader(const TArray<uint8>& InShaderCode)
+		: ShaderCode(InShaderCode)
+	{
+		check(ShaderCode.Num());
+	}
+
+	uint32 GetActualShaderCodeSize() const
+	{
+		return ShaderCode.Num() - GetOptionalDataSize();
+	}
+
+	// for convenience
+	template <class T>
+	const T* FindOptionalData() const
+	{
+		return (const T*)FindOptionalData(T::Key, sizeof(T));
+	}
+
+
+	// @param InKey e.g. FShaderCodePackedResourceCounts::Key
+	// @return 0 if not found
+	const uint8* FindOptionalData(uint8 InKey, uint8 ValueSize) const
+	{
+		check(ValueSize);
+
+		const uint8* End = &ShaderCode[0] + ShaderCode.Num();
+
+		int32 LocalOptionalDataSize = GetOptionalDataSize();
+
+		const uint8* Start = End - LocalOptionalDataSize;
+		const uint8* Current = Start;
+
+		while(Current < End)
+		{
+			uint8 Key = *Current++;
+			uint8 Size = *Current++;
+
+			if(Key == InKey)
+			{
+				return Current;
+			}
+
+			Current += Size;
+		}
+
+		return 0;
+	}
+
+	const ANSICHAR* FindOptionalData(uint8 InKey) const
+	{
+		check(ShaderCode.Num() >= 4);
+
+		const uint8* End = &ShaderCode[0] + ShaderCode.Num();
+
+		int32 LocalOptionalDataSize = GetOptionalDataSize();
+
+		const uint8* Start = End - LocalOptionalDataSize;
+		const uint8* Current = Start;
+
+		while(Current < End)
+		{
+			uint8 Key = *Current++;
+			uint8 Size = *Current++;
+
+			if(Key == InKey)
+			{
+				return (ANSICHAR*)Current;
+			}
+
+			Current += Size;
+		}
+
+		return 0;
+	}
+
+	int32 GetOptionalDataSize() const
+	{
+		if(ShaderCode.Num() < 2)
+		{
+			return 0;
+		}
+
+		const uint8* End = &ShaderCode[0] + ShaderCode.Num();
+
+		int32 LocalOptionalDataSize = (((uint32)End[-2]) << 8 ) + ((uint32)End[-1]);
+
+		check(LocalOptionalDataSize >= 0);
+		check(ShaderCode.Num() >= LocalOptionalDataSize);
+
+		return LocalOptionalDataSize;
+	}
+
+	int32 GetShaderCodeSize() const
+	{
+		return ShaderCode.Num() - GetOptionalDataSize();
+	}
+};
+
+class FShaderCode
+{
+	// -1 if ShaderData was finalized 
+	mutable int32 OptionalDataSize;
+	// access through class methods
+	mutable TArray<uint8> ShaderCodeWithOptionalData;
+
+public:
+
+	FShaderCode()
+	: OptionalDataSize(0)
+	{
+	}
+
+	// adds CustomData or does nothing if that was already done before
+	void FinalizeShaderCode() const
+	{
+		if(OptionalDataSize != -1)
+		{
+			OptionalDataSize += sizeof(uint8) + sizeof(uint8);
+
+			check(OptionalDataSize <= 0xffff);
+
+			ShaderCodeWithOptionalData.Add(OptionalDataSize >> 8);
+			ShaderCodeWithOptionalData.Add(OptionalDataSize);
+			OptionalDataSize = -1;
+		}
+	}
+
+	// for write access
+	TArray<uint8>& GetWriteAccess()
+	{
+		return ShaderCodeWithOptionalData;
+	}
+
+	int32 GetShaderCodeSize() const
+	{
+		FinalizeShaderCode();
+
+		FShaderCodeReader Wrapper(ShaderCodeWithOptionalData);
+
+		return Wrapper.GetShaderCodeSize();
+	}
+
+	// inefficient, will/should be replaced by GetShaderCodeToRead()
+	void GetShaderCodeLegacy(TArray<uint8>& Out) const
+	{
+		Out.Empty();
+
+		Out.AddUninitialized(GetShaderCodeSize());
+		FMemory::Memcpy(Out.GetData(), GetReadAccess().GetData(), ShaderCodeWithOptionalData.Num());
+	}
+
+	// for read access, can have additional data attached to the end
+	const TArray<uint8>& GetReadAccess() const
+	{
+		FinalizeShaderCode();
+
+		return ShaderCodeWithOptionalData;
+	}
+
+	// for convenience
+	template <class T>
+	void AddOptionalData(const T &In)
+	{
+		AddOptionalData(T::Key, (uint8*)&In, sizeof(T));
+	}
+	
+	// Note: we don't hash the optional attachments in GenerateOutputHash() as they would prevent sharing (e.g. many material share the save VS)
+	// can be called after the non optional data was stored in ShaderData
+	// @param Key uint8 to save memory so max 255, e.g. FShaderCodePackedResourceCounts::Key
+	// @param Size max 255, >0, check if too large
+	void AddOptionalData(uint8 Key, const uint8* ValuePtr, uint32 ValueSize)
+	{
+		check(ValueSize <= 255);
+		check(ValuePtr);
+
+		// don't add after Finalize happened
+		check(OptionalDataSize >= 0);
+
+		ShaderCodeWithOptionalData.Add(Key);
+		ShaderCodeWithOptionalData.Add(ValueSize);
+		ShaderCodeWithOptionalData.Append(ValuePtr, ValueSize);
+		OptionalDataSize += sizeof(uint8) + sizeof(uint8) + (uint32)ValueSize;
+	}
+
+	// Note: we don't hash the optional attachments in GenerateOutputHash() as they would prevent sharing (e.g. many material share the save VS)
+	// convenience, silently drops the data if string is too long 
+	// @param e.g. 'n' for the ShaderSourceFileName
+	void AddOptionalData(uint8 Key, const ANSICHAR* InString)
+	{
+		uint32 Size = FCStringAnsi::Strlen(InString) + 1;
+
+		if(Size < 255)
+		{
+			AddOptionalData(Key, (uint8*)InString, Size);
+		}
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FShaderCode& Output)
+	{
+		if(Ar.IsLoading())
+		{
+			Output.OptionalDataSize = -1;
+		}
+		else
+		{
+			Output.FinalizeShaderCode();
+		}
+
+		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
+		Ar << Output.ShaderCodeWithOptionalData;
+		return Ar;
+	}
+};
+
 /** The output of the shader compiler. */
 struct FShaderCompilerOutput
 {
@@ -500,7 +757,7 @@ struct FShaderCompilerOutput
 	FShaderParameterMap ParameterMap;
 	TArray<FShaderCompilerError> Errors;
 	FShaderTarget Target;
-	TArray<uint8> Code;
+	FShaderCode ShaderCode;
 	FSHAHash OutputHash;
 	uint32 NumInstructions;
 	uint32 NumTextureSamplers;
@@ -512,7 +769,7 @@ struct FShaderCompilerOutput
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerOutput& Output)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-		return Ar << Output.ParameterMap << Output.Errors << Output.Target << Output.Code << Output.NumInstructions << Output.NumTextureSamplers << Output.bSucceeded;
+		return Ar << Output.ParameterMap << Output.Errors << Output.Target << Output.ShaderCode << Output.NumInstructions << Output.NumTextureSamplers << Output.bSucceeded;
 	}
 };
 

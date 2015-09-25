@@ -832,10 +832,13 @@ static void BuildShaderOutput(
 	else
 	{
 		// Write out the header and shader source code.
-		FMemoryWriter Ar(ShaderOutput.Code, true);
+		FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
 		Ar << Header;
 		Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 		
+		// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+		ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+
 		ShaderOutput.NumInstructions = 0;
 		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 		ShaderOutput.bSucceeded = true;

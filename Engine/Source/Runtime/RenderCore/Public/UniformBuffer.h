@@ -192,11 +192,12 @@ public:
 	typedef class FShaderUniformBufferParameter* (*ConstructUniformBufferParameterType)();
 
 	/** Initialization constructor. */
-	FUniformBufferStruct(const TCHAR* InStructTypeName, const TCHAR* InShaderVariableName, ConstructUniformBufferParameterType InConstructRef, uint32 InSize, const TArray<FMember>& InMembers, bool bRegisterForAutoBinding)
+	FUniformBufferStruct(const FName& InLayoutName, const TCHAR* InStructTypeName, const TCHAR* InShaderVariableName, ConstructUniformBufferParameterType InConstructRef, uint32 InSize, const TArray<FMember>& InMembers, bool bRegisterForAutoBinding)
 	:	StructTypeName(InStructTypeName)
 	,	ShaderVariableName(InShaderVariableName)
 	,	ConstructUniformBufferParameterRef(InConstructRef)
 	,	Size(InSize)
+	,	Layout(InLayoutName)
 	,	Members(InMembers)
 	,	GlobalListLink(this)
 	{
@@ -581,6 +582,7 @@ private:
 
 #define IMPLEMENT_UNIFORM_BUFFER_STRUCT(StructTypeName,ShaderVariableName) \
 	FUniformBufferStruct StructTypeName::StaticStruct( \
+	FName(TEXT(#StructTypeName)), \
 	TEXT(#StructTypeName), \
 	ShaderVariableName, \
 	StructTypeName::ConstructUniformBufferParameter, \

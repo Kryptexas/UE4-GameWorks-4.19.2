@@ -472,7 +472,7 @@ public:
 			):
 			Type(InType),
 			Target(CompilerOutput.Target),
-			Code(CompilerOutput.Code),
+			Code(CompilerOutput.ShaderCode.GetReadAccess()),
 			ParameterMap(CompilerOutput.ParameterMap),
 			OutputHash(CompilerOutput.OutputHash),
 			Resource(InResource),

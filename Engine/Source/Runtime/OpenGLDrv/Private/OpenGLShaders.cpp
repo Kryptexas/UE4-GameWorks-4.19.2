@@ -448,14 +448,19 @@ static void BindShaderLocations(GLenum TypeEnum, GLuint Resource, uint16 InOutMa
  * @returns the compiled shader upon success.
  */
 template <typename ShaderType>
-ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
+ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderCompileTime);
 	VERIFY_GL_SCOPE();
 
+	FShaderCodeReader ShaderCode(InShaderCode);
+
 	ShaderType* Shader = nullptr;
 	const GLenum TypeEnum = ShaderType::TypeEnum;
-	FMemoryReader Ar(Code, true);
+	FMemoryReader Ar(InShaderCode, true);
+
+	Ar.SetLimitSize(ShaderCode.GetActualShaderCodeSize());
+
 	FOpenGLCodeHeader Header = { 0 };
 
 	Ar << Header;
@@ -482,7 +487,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 
 	// The code as given to us.
 	FAnsiCharArray GlslCodeOriginal;
-	AppendCString(GlslCodeOriginal, (ANSICHAR*)Code.GetData() + CodeOffset);
+	AppendCString(GlslCodeOriginal, (ANSICHAR*)InShaderCode.GetData() + CodeOffset);
 	uint32 GlslCodeOriginalCRC = FCrc::MemCrc_DEPRECATED(GlslCodeOriginal.GetData(), GlslCodeOriginal.Num());
 
 	// The amended code we actually compile.
