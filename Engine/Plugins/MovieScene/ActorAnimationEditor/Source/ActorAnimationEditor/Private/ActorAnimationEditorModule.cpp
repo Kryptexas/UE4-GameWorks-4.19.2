@@ -104,7 +104,7 @@ protected:
 		// Create and register the level editor toolbar menu extension
 		CinematicsMenuExtender = MakeShareable(new FExtender);
 		CinematicsMenuExtender->AddMenuExtension("LevelEditorNewMatinee", EExtensionHook::First, CommandList, FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder){
-			MenuBuilder.AddMenuEntry(FActorAnimationExtensionCommands::Get().CreateNewActorAnimationInLevel, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.ActorAnimation") );
+			MenuBuilder.AddMenuEntry(FActorAnimationExtensionCommands::Get().CreateNewActorAnimationInLevel);
 		}));
 
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
