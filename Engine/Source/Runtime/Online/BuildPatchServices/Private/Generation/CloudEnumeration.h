@@ -20,7 +20,7 @@ namespace BuildPatchServices
 	class FCloudEnumerationFactory
 	{
 	public:
-		static FCloudEnumerationRef Create(const FString& CloudDirectory);
+		static FCloudEnumerationRef Create(const FString& CloudDirectory, const FDateTime& ManifestAgeThreshold);
 	};
 }
 
