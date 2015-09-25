@@ -98,19 +98,11 @@ protected:
 		);
 
 		// region & language
-		ISettingsSectionPtr RegionAndLanguageSettingsSection = SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
+		ISettingsSectionPtr RegionAndLanguageSettings = SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
 			LOCTEXT("InternationalizationSettingsModelName", "Region & Language"),
 			LOCTEXT("InternationalizationSettingsModelDescription", "Configure the editor's behavior to use a language and fit a region's culture."),
 			GetMutableDefault<UInternationalizationSettingsModel>()
 		);
-
-		if (RegionAndLanguageSettingsSection.IsValid())
-		{
-			RegionAndLanguageSettingsSection->OnExport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
-			RegionAndLanguageSettingsSection->OnImport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
-			RegionAndLanguageSettingsSection->OnSaveDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
-			RegionAndLanguageSettingsSection->OnResetDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
-		}
 
 		// input bindings
 		TWeakPtr<SWidget> InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
@@ -365,39 +357,6 @@ private:
 	{
 		FInputBindingManager::Get().RemoveUserDefinedChords();
 		GConfig->Flush(false, GEditorKeyBindingsIni);
-		return true;
-	}
-
-	bool HandleRegionAndLanguageExport(const FString& FileName)
-	{
-		UInternationalizationSettingsModel* Model = GetMutableDefault<UInternationalizationSettingsModel>();
-		GConfig->Flush(false, Model->GetDefaultConfigFilename());
-		return BackupFile(Model->GetDefaultConfigFilename(), FileName);
-	}
-
-	bool HandleRegionAndLanguageImport(const FString& FileName)
-	{
-		UInternationalizationSettingsModel* Model = GetMutableDefault<UInternationalizationSettingsModel>();
-		if( EAppReturnType::Ok == ShowRestartWarning(LOCTEXT("ImportRegionAndLanguage_Title", "Import Region & Language")))
-		{
-			FUnrealEdMisc::Get().SetConfigRestoreFilename(FileName, Model->GetDefaultConfigFilename());
-			FUnrealEdMisc::Get().RestartEditor(false);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	bool HandleRegionAndLanguageSaveDefaults()
-	{
-		GetMutableDefault<UInternationalizationSettingsModel>()->SaveDefaults();
-		return true;
-	}
-
-	bool HandleRegionAndLanguageResetToDefault()
-	{
-		GetMutableDefault<UInternationalizationSettingsModel>()->ResetToDefault();
 		return true;
 	}
 

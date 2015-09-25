@@ -17,6 +17,7 @@ namespace UnrealBuildTool.Rules
 				    "EditorStyle",
 				    "PropertyEditor",
 				    "SharedSettingsWidgets",
+                    "Localization",
                 }
             );
 

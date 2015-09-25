@@ -662,6 +662,13 @@ void FTextLocalizationManager::UpdateFromLocalizationResource(const FString& Loc
 	UpdateFromLocalizations(LocalizationEntryTrackers);
 }
 
+void FTextLocalizationManager::RefreshResources()
+{
+	const bool ShouldLoadEditor = WITH_EDITOR;
+	const bool ShouldLoadGame = FApp::IsGame();
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+}
+
 void FTextLocalizationManager::OnCultureChanged()
 {
 	const bool ShouldLoadEditor = bIsInitialized && WITH_EDITOR;

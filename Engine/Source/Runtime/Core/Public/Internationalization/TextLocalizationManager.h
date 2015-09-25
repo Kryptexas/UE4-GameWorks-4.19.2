@@ -179,6 +179,9 @@ public:
 	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
 	void UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath);
 
+	/** Reloads resources for the current culture. */
+	void RefreshResources();
+
 	/**	Returns the current text revision number. This value can be cached when caching information from the text localization manager.
 	 *	If the revision does not match, cached information may be invalid and should be recached. */
 	int32 GetTextRevision() const { return TextRevisionCounter; }

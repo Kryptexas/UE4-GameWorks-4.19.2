@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "LocalizationDashboardPrivatePCH.h"
+#include "LocalizationPrivatePCH.h"
 #include "SCulturePicker.h"
 #include "STableRow.h"
 #include "SSearchBox.h"
@@ -11,6 +11,8 @@ void SCulturePicker::Construct( const FArguments& InArgs )
 {
 	OnCultureSelectionChanged = InArgs._OnSelectionChanged;
 	IsCulturePickable = InArgs._IsCulturePickable;
+	UseNativeDisplayNames = InArgs._UseNativeDisplayNames;
+	CanSelectNone = InArgs._CanSelectNone;
 
 	TArray<FString> AllCultureNames;
 	FInternationalization::Get().GetCultureNames(AllCultureNames);
@@ -64,6 +66,7 @@ void SCulturePicker::Construct( const FArguments& InArgs )
 	const TSharedPtr<FCultureEntry>* InitialSelection = RootEntries.FindByPredicate(IsInitialSelection);
 	if (InitialSelection)
 	{
+		TGuardValue<bool> SupressSelectionGuard(SupressSelectionCallback, true);
 		TreeView->SetSelection(*InitialSelection);
 	}
 }
@@ -173,9 +176,12 @@ void SCulturePicker::BuildStockEntries()
 	}
 
 	// Sort entries.
-	auto CultureEntryComparator = [](const TSharedPtr<FCultureEntry>& LHS, const TSharedPtr<FCultureEntry>& RHS) -> bool
+	const auto& CultureEntryComparator = [this](const TSharedPtr<FCultureEntry>& LHS, const TSharedPtr<FCultureEntry>& RHS) -> bool
 	{
-		return LHS->Culture->GetDisplayName() < RHS->Culture->GetDisplayName();
+		return UseNativeDisplayNames ?
+			LHS->Culture->GetNativeName() < RHS->Culture->GetNativeName()
+			:
+			LHS->Culture->GetDisplayName() < RHS->Culture->GetDisplayName();
 	};
 	StockEntries.Sort(CultureEntryComparator);
 }
@@ -184,6 +190,11 @@ void SCulturePicker::RebuildEntries()
 {
 	RootEntries.Reset();
 
+	if (CanSelectNone)
+	{
+		RootEntries.Add(MakeShareable(new FCultureEntry(nullptr, true)));
+	}
+	
 	TFunctionRef<void (const TArray< TSharedPtr<FCultureEntry> >&, TArray< TSharedPtr<FCultureEntry> >&)> DeepCopyAndFilter
 		= [&](const TArray< TSharedPtr<FCultureEntry> >& InEntries, TArray< TSharedPtr<FCultureEntry> >& OutEntries)
 	{
@@ -205,7 +216,7 @@ void SCulturePicker::RebuildEntries()
 			if (!FilterString.IsEmpty())
 			{
 				const FString Name = OutEntry->Culture->GetName();
-				const FString DisplayName = OutEntry->Culture->GetDisplayName();
+				const FString DisplayName = UseNativeDisplayNames ? OutEntry->Culture->GetNativeName() : OutEntry->Culture->GetDisplayName();
 				IsFilteredOut = !Name.Contains(FilterString) && !DisplayName.Contains(FilterString);
 			}
 
@@ -230,20 +241,18 @@ TSharedRef<ITableRow> SCulturePicker::OnGenerateRow(TSharedPtr<FCultureEntry> En
 	return	SNew(STableRow< TSharedPtr<FCultureEntry> >, Table)
 			[
 				SNew(STextBlock)
-				.Text( FText::FromString(Entry->Culture->GetDisplayName()) )
+				.Text(Entry->Culture.IsValid() ? FText::FromString(UseNativeDisplayNames ? Entry->Culture->GetNativeName() : Entry->Culture->GetDisplayName()) : LOCTEXT("None", "None"))
 				.ToolTip(
 						SNew(SToolTip)
 						.Content()
 						[
 							SNew(STextBlock)
-							.Text( FText::FromString(Entry->Culture->GetName()) )
+							.Text(Entry->Culture.IsValid() ? FText::FromString(Entry->Culture->GetName()) : LOCTEXT("None", "None"))
 							.HighlightText( FText::FromString(FilterString) )
 						]
 						)
 				.HighlightText( FText::FromString(FilterString) )
-				
 				.ColorAndOpacity( Entry->IsSelectable ? FSlateColor::UseForeground() : FSlateColor::UseSubduedForeground() )
-				// TODO: Appear differently if not selectable but present because it's part of the hierarchy.
 			];
 }
 
@@ -255,9 +264,12 @@ void SCulturePicker::OnGetChildren(TSharedPtr<FCultureEntry> Entry, TArray< TSha
 		Children.Add(Child);
 
 		// Sort entries.
-		auto CultureEntryComparator = [](const TSharedPtr<FCultureEntry>& LHS, const TSharedPtr<FCultureEntry>& RHS) -> bool
+		const auto& CultureEntryComparator = [this](const TSharedPtr<FCultureEntry>& LHS, const TSharedPtr<FCultureEntry>& RHS) -> bool
 		{
-			return LHS->Culture->GetDisplayName() < RHS->Culture->GetDisplayName();
+			return UseNativeDisplayNames ? 
+				LHS->Culture->GetNativeName() < RHS->Culture->GetNativeName()
+				:
+				LHS->Culture->GetDisplayName() < RHS->Culture->GetDisplayName();
 		};
 		Children.Sort(CultureEntryComparator);
 	}
@@ -265,6 +277,11 @@ void SCulturePicker::OnGetChildren(TSharedPtr<FCultureEntry> Entry, TArray< TSha
 
 void SCulturePicker::OnSelectionChanged(TSharedPtr<FCultureEntry> Entry, ESelectInfo::Type SelectInfo)
 {
+	if (SupressSelectionCallback)
+	{
+		return;
+	}
+
 	// Don't count as selection if the entry isn't actually selectable but is part of the hierarchy.
 	if (Entry.IsValid() && Entry->IsSelectable)
 	{

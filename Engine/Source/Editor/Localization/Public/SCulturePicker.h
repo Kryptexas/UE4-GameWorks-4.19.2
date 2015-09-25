@@ -29,7 +29,7 @@ struct FCultureEntry
 	}
 };
 
-class SCulturePicker : public SCompoundWidget
+class LOCALIZATION_API SCulturePicker : public SCompoundWidget
 {
 public:
 	/** A delegate type invoked when a selection changes somewhere. */
@@ -37,11 +37,22 @@ public:
 	typedef TSlateDelegates< FCulturePtr >::FOnSelectionChanged FOnSelectionChanged;
 
 public:
-	SLATE_BEGIN_ARGS( SCulturePicker ){}
+	SLATE_BEGIN_ARGS( SCulturePicker )
+		: _UseNativeDisplayNames(false)
+		, _CanSelectNone(false)
+	{}
 		SLATE_EVENT( FOnSelectionChanged, OnSelectionChanged )
 		SLATE_EVENT( FIsCulturePickable, IsCulturePickable )
 		SLATE_ARGUMENT( FCulturePtr, InitialSelection )
+		SLATE_ARGUMENT(bool, UseNativeDisplayNames)
+		SLATE_ARGUMENT(bool, CanSelectNone)
 	SLATE_END_ARGS()
+
+	SCulturePicker()
+	: UseNativeDisplayNames(false)
+	, CanSelectNone(false)
+	, SupressSelectionCallback(false)
+	{}
 
 	void Construct( const FArguments& InArgs );
 	void RequestTreeRefresh();
@@ -75,4 +86,13 @@ private:
 
 	/** Delegate to invoke to set whether a culture is "pickable". */
 	FIsCulturePickable IsCulturePickable;
+
+	/* Should the cultures use their display names displayed as localized in their own (IE: native) culture? */
+	bool UseNativeDisplayNames;
+
+	/** Should a null culture option be available? */
+	bool CanSelectNone;
+
+	/* Flags that the selection callback shouldn't be called when selecting - useful for initial selection, for instance. */
+	bool SupressSelectionCallback;
 };
