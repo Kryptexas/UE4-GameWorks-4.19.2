@@ -129,8 +129,7 @@ void CircleDilatePS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_T
 }
 
 
-// pixel shader entry point
-void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
+void Circle4Samples(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0, float InRand)
 {
 	float2 UV = UVAndScreenPos.xy;
 
@@ -143,18 +142,20 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	// Higher than 8 is too noizy for 4 samples.
 	float Coc = 8.0 * CircleDofParams.w;
 
+	float LocalRand = RandomOffset.x + InRand;
+
 	// Get base semi-random direction and dither along radius.
 	// Reused throughout the rest of the algorithm.
 	float TwoPi = 2.0 * 3.14159;
-	float RadianBase = NoizSnorm(UVAndScreenPos.xy, 0.010 * RandomOffset.x) * TwoPi;
-	float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * RandomOffset.x);
+	float RadianBase = NoizSnorm(UVAndScreenPos.xy, 0.010 * LocalRand) * TwoPi;
+	float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * LocalRand);
 
 	// Radius 
 	float RadiusBase2 = RadiusBase * (1.0/4.0);
 	float R1 = sqrt(RadiusBase2 + 3.0/4.0) * Coc;
 	float R2 = sqrt(RadiusBase2 + 2.0/4.0) * Coc;
 	float R3 = sqrt(RadiusBase2 + 1.0/4.0) * Coc;
-	float R4 = sqrt(RadiusBase2 + 0.0/4.0) * Coc;
+	float R4 = sqrt(RadiusBase2 + 0.6/4.0) * Coc;
 
 	float2 UV1 = RotVec(R1, RadianBase + TwoPi * 0.0/4.0);
 	float2 UV2 = RotVec(R2, RadianBase + TwoPi * 2.0/4.0);
@@ -407,7 +408,28 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	Weight += W1+W2+W3+W4;
 
 	OutColor0.rgb *= (1.0/Weight);
+}
 
+// pixel shader entry point
+void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
+{
+#if QUALITY
+	// 2 or higher, gets slower but less noisy
+	const uint Count = 4;
+#else
+	const uint Count = 1;
+#endif
+
+	OutColor0 = 0;
+	for(uint i = 0; i < Count; ++i)
+	{
+		float4 Color;
+		Circle4Samples(UVAndScreenPos, Color, i);
+
+		OutColor0 += Color;
+	}
+
+	OutColor0 /= Count;
 }
 
 
@@ -531,5 +553,3 @@ void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 	float4 OutLimited = min(max(OutColor,HMin),HMax);
 	OutColor = lerp(OutColor, OutLimited, saturate(PixCoc*PixCoc*4.0));
 }
-
-

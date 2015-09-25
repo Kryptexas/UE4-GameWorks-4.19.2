@@ -1722,7 +1722,8 @@ static TAutoConsoleVariable<int32> CVarDepthOfFieldQuality(
 	TEXT("Allows to adjust the depth of field quality. Currently only fully affects BokehDOF. GaussianDOF is either 0 for off, otherwise on.\n")
 	TEXT(" 0: Off\n")
 	TEXT(" 1: Low\n")
-	TEXT(" 2: high quality (default, adaptive, can be 4x slower)"),
+	TEXT(" 2: high quality (default, adaptive, can be 4x slower)\n")
+	TEXT(" 3: Special mode only affecting CircleDOF for very high quality but slow rendering"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarScreenPercentage(

@@ -66,6 +66,9 @@ public:
 private:
 
 	bool bNearBlurEnabled;
+
+	template <uint32 NearBlurEnable, uint32 Quality>
+	FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 

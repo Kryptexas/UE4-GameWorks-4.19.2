@@ -479,7 +479,7 @@ static void TemporalRandom2(FVector2D* RESTRICT const Constant, uint32 FrameNumb
 	Constant->Y = TemporalHalton2(FrameNumber & 1023, 3);
 }
 
-template <uint32 NearBlurEnable>
+template <uint32 NearBlurEnable, uint32 Quality>
 class FPostProcessCircleDOFPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessCircleDOFPS, Global);
@@ -493,6 +493,7 @@ class FPostProcessCircleDOFPS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
+		OutEnvironment.SetDefine(TEXT("QUALITY"), Quality);
 	}
 
 	/** Default constructor. */
@@ -548,10 +549,43 @@ public:
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context.View));
 	}
+	
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessCircleDOF");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("CirclePS");
+	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFPS<0>,TEXT("PostProcessCircleDOF"),TEXT("CirclePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFPS<1>,TEXT("PostProcessCircleDOF"),TEXT("CirclePS"),SF_Pixel);
+
+// #define avoids a lot of code duplication
+#define VARIATION1(A, B) typedef FPostProcessCircleDOFPS<A, B> FPostProcessCircleDOFPS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFPS##A##B, SF_Pixel);
+
+	VARIATION1(0,0)			VARIATION1(1,0)
+	VARIATION1(0,1)			VARIATION1(1,1)
+
+#undef VARIATION1
+
+template <uint32 NearBlurEnable, uint32 Quality>
+FShader* FRCPassPostProcessCircleDOF::SetShaderTempl(const FRenderingCompositePassContext& Context)
+{
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessCircleDOFPS<NearBlurEnable, Quality> > PixelShader(Context.GetShaderMap());
+
+	static FGlobalBoundShaderState BoundShaderState;
+
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(Context);
+	
+	return *VertexShader;
+}
 
 void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Context)
 {
@@ -607,30 +641,26 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
+	check(CVar);
+	int32 DOFQualityCVarValue = CVar->GetValueOnRenderThread();
+	
+	// 0:normal / 1:slow but very high quality
+	uint32 Quality = DOFQualityCVarValue >= 3;
 
-	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+	FShader* VertexShader = 0;
 
 	if (bNearBlurEnabled)
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-
-
-		TShaderMapRef< FPostProcessCircleDOFPS<1> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-		PixelShader->SetParameters(Context);
+		if(Quality) VertexShader = SetShaderTempl<1, 1>(Context);
+		  else		VertexShader = SetShaderTempl<1, 0>(Context);
 	}
 	else
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-
-		TShaderMapRef< FPostProcessCircleDOFPS<0> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-		PixelShader->SetParameters(Context);
+		if(Quality)	VertexShader = SetShaderTempl<0, 1>(Context);
+		  else		VertexShader = SetShaderTempl<0, 0>(Context);
 	}
-
-	VertexShader->SetParameters(Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -640,7 +670,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 		SrcRect.Width() + 1, SrcRect.Height() + 1,
 		DestSize,
 		SrcSize,
-		*VertexShader,
+		VertexShader,
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
