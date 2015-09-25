@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590871
+﻿INTSourceChangelist:2690714
 Availability:Public
 Title:Math Expression ノード
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Math expression ノードにより、数学式に入力し、その表現式を作成するために適切なサブグラフをビルドすることが可能になります。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +46,6 @@ Description:Math expression ノードにより、数学式に入力し、その�
 
 [TOC (start:2 end:2)]
 
-## 概要
 
 Math Expression ノードを作成するには、グラフを **右クリック** して、コンテキスト メニューで **[Add Math Expression... (数学式を追加...)]** を選択します。 
 
@@ -134,9 +134,9 @@ Vectors 、 transforms の他にも、計算で頻繁に使用する基本的な
 
 ある関数に対してエイリアスがあるように、 vector と rotator エイリアスがあります。
 * Vector エイリアス 
-		(vector, vec, vect など)
+		vector, vec, vect
 * Rotator エイリアス 
-		(rotator, rot など)
+		rotator, rot
 
 ## サポートされている演算子
 
