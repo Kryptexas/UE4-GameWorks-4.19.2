@@ -89,11 +89,11 @@ bool FHTML5TargetPlatform::IsRunningPlatform( ) const
 
 #if WITH_ENGINE
 
-static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
+static FName NAME_GLSL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 
 void FHTML5TargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
-	OutFormats.AddUnique(NAME_OPENGL_ES2_WEBGL);
+	OutFormats.AddUnique(NAME_GLSL_ES2_WEBGL);
 }
 
 

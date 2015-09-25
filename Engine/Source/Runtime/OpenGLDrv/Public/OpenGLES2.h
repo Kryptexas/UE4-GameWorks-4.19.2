@@ -296,11 +296,6 @@ struct FOpenGLES2 : public FOpenGLBase
 		return ERHIFeatureLevel::ES2;
 	}
 
-	static FORCEINLINE EShaderPlatform GetShaderPlatform()
-	{
-		return SP_OPENGL_ES2;
-	}
-
 	static FORCEINLINE FString GetAdapterName()
 	{
 		return (TCHAR*)ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER));

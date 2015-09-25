@@ -361,13 +361,13 @@ bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) cons
 
 void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
-	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
+	static FName NAME_GLSL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 
 	if (SupportsES2())
 	{
-		OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
+		OutFormats.AddUnique(NAME_GLSL_ES2_IOS);
 	}
 
 	if (SupportsMetal())

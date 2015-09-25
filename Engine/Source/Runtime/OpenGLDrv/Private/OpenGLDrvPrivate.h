@@ -510,7 +510,7 @@ inline bool OpenGLShaderPlatformNeedsBindLocation(const EShaderPlatform InShader
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_SM4_MAC:
 		case SP_OPENGL_PCES2:
-		case SP_OPENGL_ES2:
+		case SP_OPENGL_ES2_ANDROID:
 		case SP_OPENGL_ES2_WEBGL:
 		case SP_OPENGL_ES2_IOS:
 			return true;
@@ -533,7 +533,7 @@ inline bool OpenGLShaderPlatformSeparable(const EShaderPlatform InShaderPlatform
 			return true;
 
 		case SP_OPENGL_ES31_EXT:
-		case SP_OPENGL_ES2:
+		case SP_OPENGL_ES2_ANDROID:
 		case SP_OPENGL_ES2_WEBGL:
 		case SP_OPENGL_ES2_IOS:
 			return false;

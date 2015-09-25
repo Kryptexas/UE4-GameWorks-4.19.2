@@ -804,12 +804,6 @@ struct FOpenGLES31 : public FOpenGLBase
 		return bES2Fallback ? ERHIFeatureLevel::ES2 : ERHIFeatureLevel::SM5;
 	}
 
-	static FORCEINLINE EShaderPlatform GetShaderPlatform()
-	{
-		// Should this support a commandline forced ES2?
-		return bES2Fallback ? SP_OPENGL_ES2 : SP_OPENGL_ES31_EXT;
-	}
-
 	static FORCEINLINE FString GetAdapterName()
 	{
 		return ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER));
