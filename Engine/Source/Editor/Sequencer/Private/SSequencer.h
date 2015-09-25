@@ -147,6 +147,11 @@ public:
 
 	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged);
 
+protected:
+
+	/** Update the details view from the currently selected keys and sections. */
+	void UpdateDetailsView();
+
 private:
 	
 	/** Handles checking whether the details view is enabled. */
