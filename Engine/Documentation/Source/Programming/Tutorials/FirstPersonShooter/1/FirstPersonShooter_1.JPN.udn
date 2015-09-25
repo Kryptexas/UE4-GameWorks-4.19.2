@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2666894
+﻿INTSourceChangelist:2672918
 Availability:Docs
 Title:1 - プロジェクトを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
@@ -8,7 +8,7 @@ prereq:Programming/Tutorials/FirstPersonShooter
 バージョン：4.9
 
 ![](SectionResult.png)
-_このセクションの最後まで終了すると、上の画面のようになります。_
+ _このセクションの最後まで終了すると、上の画面のようになります。_
 
 ## 目標
 
