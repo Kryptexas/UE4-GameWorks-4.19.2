@@ -290,6 +290,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=Delay)
 	uint32 bUseDelayRange:1;
 
+	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Auto-deactivate system if all emitters are determined to not spawn particles again, regardless of lifetime."))
+	bool bAutoDeactivate;
+
 	/** Local space position that UVs generated with the ParticleMacroUV material node will be centered on. */
 	UPROPERTY(EditAnywhere, Category=MacroUV)
 	FVector MacroUVPosition;

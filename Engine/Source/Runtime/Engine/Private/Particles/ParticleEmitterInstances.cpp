@@ -600,6 +600,8 @@ void FParticleEmitterInstance::Init()
 
 	// Tag it as dirty w.r.t. the renderer
 	IsRenderDataDirty	= 1;
+
+	bEmitterIsDone = false;
 }
 
 UWorld* FParticleEmitterInstance::GetWorld() const
@@ -768,6 +770,9 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 	Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
 
+
+	CheckEmitterFinished();
+
 	// Invalidate the contents of the vertex/index buffer.
 	IsRenderDataDirty = 1;
 
@@ -782,6 +787,49 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 	INC_DWORD_STAT_BY(STAT_SpriteParticles, ActiveParticles);
 }
+
+
+/**
+*	Called from Tick to determine whether the emitter will no longer spawn particles
+*   checks for emitters with 0 loops, infinite lifetime, and no continuous spawning (only bursts)
+*	and sets bEmitterIsDone if the last burst lies in the past and there are no active particles
+*	bEmitterIsDone is checked for all emitters by ParticleSystemComponent tick, and the particle
+*	system is deactivated if it's true for all emitters, and if bAutoDeactivate is set on the ParticleSystem
+*/
+void FParticleEmitterInstance::CheckEmitterFinished()
+{
+	// Grab the current LOD level
+	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+
+	// figure out if this emitter will no longer spawn particles
+	//
+	if (this->ActiveParticles == 0)
+	{
+		UParticleModuleSpawn *SpawnModule = LODLevel->SpawnModule;
+		check(SpawnModule);
+
+		FParticleBurst *LastBurst = nullptr;
+		if (SpawnModule->BurstList.Num())
+		{
+			LastBurst = &SpawnModule->BurstList.Last();
+		}
+
+		if (!LastBurst || LastBurst->Time < this->EmitterTime)
+		{
+			const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
+			check(RequiredModule);
+
+			if (SpawnModule->GetMaximumSpawnRate() == 0
+				&& RequiredModule->EmitterDuration == 0
+				&& RequiredModule->EmitterLoops == 0
+				)
+			{
+				bEmitterIsDone = true;
+			}
+		}
+	}
+}
+
 
 /**
  *	Tick sub-function that handle EmitterTime setup, looping, etc.
@@ -978,6 +1026,7 @@ void FParticleEmitterInstance::Tick_ModuleFinalUpdate(float DeltaTime, UParticle
 			CurrentModule->FinalUpdate(this, Offset ? *Offset : 0, DeltaTime);
 		}
 	}
+
 
 	if (InCurrentLODLevel->TypeDataModule && InCurrentLODLevel->TypeDataModule->bEnabled && InCurrentLODLevel->TypeDataModule->bFinalUpdateModule)
 	{

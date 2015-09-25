@@ -2089,6 +2089,7 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 
 	// Run thru the emitters and see if any will loop forever
 	bool bAnyEmitterLoopsForever = false;
+	bool bEmitterIsDangerous = false;
 	for (int32 EmitterIndex = 0; (EmitterIndex < Emitters.Num()) && !bAnyEmitterLoopsForever; ++EmitterIndex)
 	{
 		if (const UParticleEmitter* Emitter = Emitters[EmitterIndex])
@@ -2105,11 +2106,25 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 						bAnyEmitterLoopsForever = true;
 						break;
 					}
+
+					UParticleModuleSpawn *SpawnModule = LODLevel->SpawnModule;
+					check(SpawnModule);
+
+					if (SpawnModule->GetMaximumSpawnRate() == 0 
+						&& RequiredModule->EmitterDuration == 0
+						&& RequiredModule->EmitterLoops == 0 
+						)
+					{
+						bEmitterIsDangerous = true;
+					}
+
 				}
 			}
 		}
 	}
+
 	OutTags.Add(FAssetRegistryTag("Looping", bAnyEmitterLoopsForever ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("Immortal", bEmitterIsDangerous ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 
 	Super::GetAssetRegistryTags(OutTags);
 }
@@ -3915,6 +3930,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 	FScopeCycleCounterUObject AdditionalScope(AdditionalStatObject(), GET_STATID(STAT_ParticleComputeTickTime));
 	// Tick Subemitters.
 	int32 EmitterIndex;
+	bool bAllEmittersFinished = true;
 	for (EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 	{
 		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
@@ -3933,6 +3949,10 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 			if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 			{
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
+				if (!Instance->bEmitterIsDone == true)
+				{
+					bAllEmittersFinished = false;
+				}
 
 				if (!Instance->Tick_MaterialOverrides())
 				{
@@ -3947,6 +3967,11 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 				TotalActiveParticles += Instance->ActiveParticles;
 			}
 		}
+	}
+	
+	if (bAllEmittersFinished == true && Template->bAutoDeactivate==true)
+	{
+		this->DeactivateSystem();
 	}
 }
 

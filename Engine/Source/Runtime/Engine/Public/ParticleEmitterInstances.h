@@ -284,7 +284,8 @@ public:
 	TArray<float> EmitterDurations;
 	/** The emitter's delay for the current loop		*/
 	float CurrentDelay;
-
+	/** true if the emitter has no active particles and will no longer spawn any in the future */
+	bool bEmitterIsDone;
 
 	/** The number of triangles to render								*/
 	int32	TrianglesToRender;
@@ -331,6 +332,8 @@ public:
 	virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true);
 
 	virtual void Tick(float DeltaTime, bool bSuppressSpawning);
+	void CheckEmitterFinished();
+
 	/**
 	 *	Tick sub-function that handles EmitterTime setup, looping, etc.
 	 *
