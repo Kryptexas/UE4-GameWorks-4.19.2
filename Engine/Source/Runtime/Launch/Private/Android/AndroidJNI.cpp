@@ -6,6 +6,7 @@
 
 #include "AndroidJNI.h"
 #include "AndroidApplication.h"
+#include "AndroidInputInterface.h"
 #include <Android/asset_manager.h>
 #include <Android/asset_manager_jni.h>
 
@@ -40,7 +41,9 @@ if (Id == 0) \
 void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 {
 	bool bIsOptional = false;
-	GameActivityClassID = FindClass(Env, "com/epicgames/ue4/GameActivity", bIsOptional);
+	jclass localGameActivityClass = FindClass(Env, "com/epicgames/ue4/GameActivity", bIsOptional);
+	GameActivityClassID = (jclass)Env->NewGlobalRef(localGameActivityClass);
+	Env->DeleteLocalRef(localGameActivityClass);
 	AndroidThunkJava_ShowConsoleWindow = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V", bIsOptional);
 	AndroidThunkJava_ShowVirtualKeyboardInput = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowVirtualKeyboardInput", "(ILjava/lang/String;Ljava/lang/String;)V", bIsOptional);
 	AndroidThunkJava_LaunchURL = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V", bIsOptional);
@@ -54,6 +57,17 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_InitHMDs = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_InitHMDs", "()V", bIsOptional);
 	AndroidThunkJava_IsGearVRApplication = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", bIsOptional);
 	AndroidThunkJava_DismissSplashScreen = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_DismissSplashScreen", "()V", bIsOptional);
+	AndroidThunkJava_GetInputDeviceInfo = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetInputDeviceInfo", "(I)Lcom/epicgames/ue4/GameActivity$InputDeviceInfo;", bIsOptional);
+
+	// get field IDs for InputDeviceInfo class members
+	jclass localInputDeviceInfoClass = FindClass(Env, "com/epicgames/ue4/GameActivity$InputDeviceInfo", bIsOptional);
+	InputDeviceInfoClass = (jclass)Env->NewGlobalRef(localInputDeviceInfoClass);
+	Env->DeleteLocalRef(localInputDeviceInfoClass);
+	InputDeviceInfo_VendorId = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "vendorId", "I", bIsOptional);
+	InputDeviceInfo_ProductId = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "productId", "I", bIsOptional);
+	InputDeviceInfo_ControllerId = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "controllerId", "I", bIsOptional);
+	InputDeviceInfo_Name = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "name", "Ljava/lang/String;", bIsOptional);
+	InputDeviceInfo_Descriptor = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "descriptor", "Ljava/lang/String;", bIsOptional);
 
 	// the rest are optional
 	bIsOptional = true;
@@ -66,6 +80,9 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_CloseAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_CloseAdBanner", "()V", bIsOptional);
 
 	// In app purchase functionality
+	jclass localStringClass = Env->FindClass("java/lang/String");
+	JavaStringClass = (jclass)Env->NewGlobalRef(localStringClass);
+	Env->DeleteLocalRef(localStringClass);
 	AndroidThunkJava_IapSetupService = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapSetupService", "(Ljava/lang/String;)V", bIsOptional);
 	AndroidThunkJava_IapQueryInAppPurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapQueryInAppPurchases", "([Ljava/lang/String;[Z)Z", bIsOptional);
 	AndroidThunkJava_IapBeginPurchase = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapBeginPurchase", "(Ljava/lang/String;Z)Z", bIsOptional);
@@ -129,6 +146,21 @@ jobject FJavaWrapper::CallObjectMethod(JNIEnv* Env, jobject Object, jmethodID Me
 	return Return;
 }
 
+int32 FJavaWrapper::CallIntMethod(JNIEnv* Env, jobject Object, jmethodID Method, ...)
+{
+	if (Method == NULL || Object == NULL)
+	{
+		return false;
+	}
+
+	va_list Args;
+	va_start(Args, Method);
+	jint Return = Env->CallIntMethodV(Object, Method, Args);
+	va_end(Args);
+
+	return (int32)Return;
+}
+
 bool FJavaWrapper::CallBooleanMethod(JNIEnv* Env, jobject Object, jmethodID Method, ...)
 {
 	if (Method == NULL || Object == NULL)
@@ -160,6 +192,14 @@ jmethodID FJavaWrapper::AndroidThunkJava_KeepScreenOn;
 jmethodID FJavaWrapper::AndroidThunkJava_InitHMDs;
 jmethodID FJavaWrapper::AndroidThunkJava_IsGearVRApplication;
 jmethodID FJavaWrapper::AndroidThunkJava_DismissSplashScreen;
+jmethodID FJavaWrapper::AndroidThunkJava_GetInputDeviceInfo;
+
+jclass FJavaWrapper::InputDeviceInfoClass;
+jfieldID FJavaWrapper::InputDeviceInfo_VendorId;
+jfieldID FJavaWrapper::InputDeviceInfo_ProductId;
+jfieldID FJavaWrapper::InputDeviceInfo_ControllerId;
+jfieldID FJavaWrapper::InputDeviceInfo_Name;
+jfieldID FJavaWrapper::InputDeviceInfo_Descriptor;
 
 jclass FJavaWrapper::GoogleServicesClassID;
 jobject FJavaWrapper::GoogleServicesThis;
@@ -167,6 +207,8 @@ jmethodID FJavaWrapper::AndroidThunkJava_ResetAchievements;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowAdBanner;
 jmethodID FJavaWrapper::AndroidThunkJava_HideAdBanner;
 jmethodID FJavaWrapper::AndroidThunkJava_CloseAdBanner;
+
+jclass FJavaWrapper::JavaStringClass;
 jmethodID FJavaWrapper::AndroidThunkJava_IapSetupService;
 jmethodID FJavaWrapper::AndroidThunkJava_IapQueryInAppPurchases;
 jmethodID FJavaWrapper::AndroidThunkJava_IapBeginPurchase;
@@ -246,6 +288,47 @@ void AndroidThunkCpp_DismissSplashScreen()
 	{
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_DismissSplashScreen);
 	}
+}
+
+bool AndroidThunkCpp_GetInputDeviceInfo(int32 deviceId, FAndroidInputDeviceInfo &results)
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		jobject deviceInfo = (jobject)Env->CallObjectMethod(FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_GetInputDeviceInfo, deviceId);
+		bool bIsOptional = false;
+		results.DeviceId = deviceId;
+		results.VendorId = (int32)Env->GetIntField(deviceInfo, FJavaWrapper::InputDeviceInfo_VendorId);
+		results.ProductId = (int32)Env->GetIntField(deviceInfo, FJavaWrapper::InputDeviceInfo_ProductId);
+		results.ControllerId = (int32)Env->GetIntField(deviceInfo, FJavaWrapper::InputDeviceInfo_ControllerId);
+
+		jstring jsName = (jstring)Env->GetObjectField(deviceInfo, FJavaWrapper::InputDeviceInfo_Name);
+		CHECK_JNI_RESULT(jsName);
+		const char * nativeName = Env->GetStringUTFChars(jsName, 0);
+		results.Name = FString(nativeName);
+		Env->ReleaseStringUTFChars(jsName, nativeName);
+		Env->DeleteLocalRef(jsName);
+
+		jstring jsDescriptor = (jstring)Env->GetObjectField(deviceInfo, FJavaWrapper::InputDeviceInfo_Descriptor);
+		CHECK_JNI_RESULT(jsDescriptor);
+		const char * nativeDescriptor = Env->GetStringUTFChars(jsDescriptor, 0);
+		results.Descriptor = FString(nativeDescriptor);
+		Env->ReleaseStringUTFChars(jsDescriptor, nativeDescriptor);
+		Env->DeleteLocalRef(jsDescriptor);
+		
+		// release references
+		Env->DeleteLocalRef(deviceInfo);
+
+		return true;
+	}
+
+	// failed
+	results.DeviceId = deviceId;
+	results.VendorId = 0;
+	results.ProductId = 0;
+	results.ControllerId = -1;
+	results.Name = FString("Unknown");
+	results.Descriptor = FString("Unknown");
+	return false;
 }
 
 void AndroidThunkCpp_ShowConsoleWindow()
@@ -381,8 +464,9 @@ jobject AndroidJNI_GetJavaAssetManager()
 	{
 		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 		{
-			GJavaAssetManager = FJavaWrapper::CallObjectMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_GetAssetManager);
-			Env->NewGlobalRef(GJavaAssetManager);
+			jobject local = FJavaWrapper::CallObjectMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_GetAssetManager);
+			GJavaAssetManager = (jobject)Env->NewGlobalRef(local);
+			Env->DeleteLocalRef(local);
 		}
 	}
 	return GJavaAssetManager;
@@ -446,10 +530,8 @@ bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs, 
 
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		static jclass StringClass = Env->FindClass("java/lang/String");
-
 		// Populate some java types with the provided product information
-		jobjectArray ProductIDArray = (jobjectArray)Env->NewObjectArray(ProductIDs.Num(), StringClass, NULL);
+		jobjectArray ProductIDArray = (jobjectArray)Env->NewObjectArray(ProductIDs.Num(), FJavaWrapper::JavaStringClass, NULL);
 		jbooleanArray ConsumeArray = (jbooleanArray)Env->NewBooleanArray(ProductIDs.Num());
 
 		jboolean* ConsumeArrayValues = Env->GetBooleanArrayElements(ConsumeArray, 0);
@@ -543,6 +625,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 
 	// then release...
 	Env->ReleaseStringUTFChars(pathString, nativePathString);
+	Env->DeleteLocalRef(pathString);
+	Env->DeleteLocalRef(externalStoragePath);
+	Env->DeleteLocalRef(EnvClass);
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Path found as '%s'\n"), *GFilePathBase);
 
 	// Get the system font directory
@@ -550,6 +635,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	const char * nativeFontPathString = Env->GetStringUTFChars(fontPath, 0);
 	GFontPathBase = FString(nativeFontPathString);
 	Env->ReleaseStringUTFChars(fontPath, nativeFontPathString);
+	Env->DeleteLocalRef(fontPath);
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Font Path found as '%s'\n"), *GFontPathBase);
 
 	// Wire up to core delegates, so core code can call out to Java
@@ -571,19 +657,18 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 	if (!FJavaWrapper::GameActivityThis)
 	{
 		FJavaWrapper::GameActivityThis = jenv->NewGlobalRef(thiz);
-		FAndroidApplication::InitializeJavaEnv(GJavaVM, JNI_CURRENT_VERSION, FJavaWrapper::GameActivityThis);
 		if (!FJavaWrapper::GameActivityThis)
 		{
 			FPlatformMisc::LowLevelOutputDebugString(L"Error setting the global GameActivity activity");
 			check(false);
 		}
 
+		// This call is only to set the correct GameActivityThis
+		FAndroidApplication::InitializeJavaEnv(GJavaVM, JNI_CURRENT_VERSION, FJavaWrapper::GameActivityThis);
+
 		// @todo split GooglePlay, this needs to be passed in to this function
 		FJavaWrapper::GoogleServicesThis = FJavaWrapper::GameActivityThis;
 		// FJavaWrapper::GoogleServicesThis = jenv->NewGlobalRef(googleServices);
-
-		bool bIsOptional = false;
-		FJavaWrapper::GameActivityClassID = FJavaWrapper::FindClass(jenv, "com/epicgames/ue4/GameActivity", bIsOptional);
 
 		// Next we check to see if the OBB file is in the APK
 		jmethodID isOBBInAPKMethod = jenv->GetStaticMethodID(FJavaWrapper::GameActivityClassID, "isOBBInAPK", "()Z");
@@ -601,6 +686,9 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 
 		// then release...
 		jenv->ReleaseStringUTFChars(externalFilesPathString, nativeExternalFilesPathString);
+		jenv->DeleteLocalRef(externalFilesPathString);
+		jenv->DeleteLocalRef(externalFilesDirPath);
+		jenv->DeleteLocalRef(ContextClass);
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("ExternalFilePath found as '%s'\n"), *GExternalFilePath);
 	}
 }

@@ -4,6 +4,7 @@
 #include "AndroidApplication.h"
 #include "AndroidInputInterface.h"
 #include "AndroidWindow.h"
+#include "IInputDeviceModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAndroidApplication, Log, All);
 
@@ -17,6 +18,7 @@ FAndroidApplication* FAndroidApplication::CreateAndroidApplication()
 FAndroidApplication::FAndroidApplication()
 	: GenericApplication( NULL )
 	, InputInterface( FAndroidInputInterface::Create( MessageHandler ) )
+	, bHasLoadedInputPlugins(false)
 {
 }
 
@@ -26,8 +28,29 @@ void FAndroidApplication::SetMessageHandler( const TSharedRef< FGenericApplicati
 	InputInterface->SetMessageHandler( MessageHandler );
 }
 
+void FAndroidApplication::AddExternalInputDevice(TSharedPtr<IInputDevice> InputDevice)
+{
+	if (InputDevice.IsValid())
+	{
+		InputInterface->AddExternalInputDevice(InputDevice);
+	}
+}
+
 void FAndroidApplication::PollGameDeviceState( const float TimeDelta )
 {
+	// initialize any externally-implemented input devices (we delay load initialize the array so any plugins have had time to load)
+	if (!bHasLoadedInputPlugins)
+	{
+		TArray<IInputDeviceModule*> PluginImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IInputDeviceModule>(IInputDeviceModule::GetModularFeatureName());
+		for (auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt)
+		{
+			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
+			AddExternalInputDevice(Device);
+		}
+
+		bHasLoadedInputPlugins = true;
+	}
+
 	// Poll game device state and send new events
 	InputInterface->Tick( TimeDelta );
 	InputInterface->SendControllerEvents();

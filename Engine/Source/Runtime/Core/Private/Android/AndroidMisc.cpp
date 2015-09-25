@@ -774,6 +774,20 @@ void FAndroidMisc::SetVolumeButtonsHandledBySystem(bool enabled)
 	VolumeButtonsHandledBySystem = enabled;
 }
 
+void FAndroidMisc::ResetGamepadAssignments()
+{
+	FAndroidInputInterface::ResetGamepadAssignments();
+}
+
+void FAndroidMisc::ResetGamepadAssignmentToController(int32 ControllerId)
+{
+	FAndroidInputInterface::ResetGamepadAssignmentToController(ControllerId);
+}
+
+bool FAndroidMisc::IsControllerAssignedToGamepad(int32 ControllerId)
+{
+	return FAndroidInputInterface::IsControllerAssignedToGamepad(ControllerId);
+}
 
 int32 FAndroidMisc::GetAndroidBuildVersion()
 {

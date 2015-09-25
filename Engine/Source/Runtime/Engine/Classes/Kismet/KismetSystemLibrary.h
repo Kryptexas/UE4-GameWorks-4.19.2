@@ -1435,6 +1435,24 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static bool GetVolumeButtonsHandledBySystem();
 
 	/**
+	 * Resets the gamepad to player controller id assignments (Android only)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void ResetGamepadAssignments();
+
+	/*
+	 * Resets the gamepad assignment to player controller id (Android only)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void ResetGamepadAssignmentToController(int32 ControllerId);
+
+	/**
+	 * Returns true if controller id assigned to a gamepad (Android only)
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static bool IsControllerAssignedToGamepad(int32 ControllerId);
+
+	/**
 	 * Sets the state of the transition message rendered by the viewport. (The blue text displayed when the game is paused and so forth.)
 	 *
 	 * @param WorldContextObject	World context

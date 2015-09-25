@@ -31,6 +31,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.media.AudioManager;
 import android.util.DisplayMetrics;
 
+import android.view.InputDevice;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -270,6 +271,27 @@ public class GameActivity extends NativeActivity
 			android.app.KeyguardManager keyman = (android.app.KeyguardManager)getSystemService(KEYGUARD_SERVICE);
 			android.app.KeyguardManager.KeyguardLock keylock = keyman.newKeyguardLock("Unlock");
 			keylock.disableKeyguard();
+		}
+*/
+
+/*
+		// log a list of input devices for debugging
+		{
+			int[] deviceIds = InputDevice.getDeviceIds();
+			for (int deviceIndex=0; deviceIndex < deviceIds.length; deviceIndex++)
+			{
+				InputDevice inputDevice = InputDevice.getDevice(deviceIds[deviceIndex]);
+				Log.debug("Device index " + deviceIndex + ": (deviceId=" + inputDevice.getId() + 
+				", controllerNumber=" + inputDevice.getControllerNumber() + ", sources=" + String.format("%08x", inputDevice.getSources()) +
+				", vendorId=" + String.format("%04x", inputDevice.getVendorId()) + ", productId=" + String.format("%04x", inputDevice.getProductId()) + 
+				", descriptor=" + inputDevice.getDescriptor() +	", deviceName=" + inputDevice.getName() + ")");
+
+				// is it a joystick?
+				if ((inputDevice.getSources() & InputDevice.SOURCE_JOYSTICK) != 0)
+				{
+					Log.debug("Gamepad detected: (deviceIndex=" + deviceIndex + ", deviceId=" + inputDevice.getId() + ", deviceName=" + inputDevice.getName() + ")");
+				}
+			}
 		}
 */
 
@@ -1234,6 +1256,78 @@ public class GameActivity extends NativeActivity
 			mSplashDialog.dismiss();
 			mSplashDialog = null;
 		}
+	}
+
+	private static class DeviceInfoData {
+		public final int vendorId;
+		public final int productId;
+		public final String name;
+
+		DeviceInfoData(int vid, int pid, String inName)
+		{
+			vendorId = vid;
+			productId = pid;
+			name = inName;
+		}
+
+		boolean IsMatch(int vid, int pid)
+		{
+			return (vendorId == vid && productId == pid);
+		}
+	}
+
+	// List of vendor/product ids
+	private static final DeviceInfoData[] DeviceInfoList = {
+		new DeviceInfoData(0x04e8, 0xa000, "Samsung Game Pad EI-GP20"),
+		new DeviceInfoData(0x0955, 0x7203, "NVIDIA Corporation NVIDIA Controller v01.01"),
+		new DeviceInfoData(0x0955, 0x7210, "NVIDIA Corporation NVIDIA Controller v01.03"),
+		new DeviceInfoData(0x1949, 0x0404, "Amazon Fire TV Remote"),
+		new DeviceInfoData(0x1949, 0x0406, "Amazon Fire Game Controller")
+	};
+
+	public class InputDeviceInfo {
+		public int deviceId;
+		public int vendorId;
+		public int productId;
+		public int controllerId;
+		public String name;
+		public String descriptor;
+
+		InputDeviceInfo(int did, int vid, int pid, int cid, String inName, String inDescriptor)
+		{
+			deviceId = did;
+			vendorId = vid;
+			productId = pid;
+			controllerId = cid;
+			name = inName;
+			descriptor = inDescriptor;
+		}
+	}
+
+	public InputDeviceInfo AndroidThunkJava_GetInputDeviceInfo(int deviceId)
+	{
+		int[] deviceIds = InputDevice.getDeviceIds();
+		for (int deviceIndex=0; deviceIndex < deviceIds.length; deviceIndex++)
+		{
+			InputDevice inputDevice = InputDevice.getDevice(deviceIds[deviceIndex]);
+			if (inputDevice.getId() == deviceId)
+			{
+				// note: inputDevice.getName may not return a proper name so check vendor and product id first
+				int vendorId = inputDevice.getVendorId();
+				int productId = inputDevice.getProductId();
+				for (DeviceInfoData deviceInfo : DeviceInfoList)
+				{
+					if (deviceInfo.IsMatch(vendorId, productId))
+					{
+						return new InputDeviceInfo(deviceId, vendorId, productId, inputDevice.getControllerNumber(), deviceInfo.name, inputDevice.getDescriptor());
+					}
+				}
+
+				// use device name as fallback (may be generic like "Bluetooth HID" so not always useful)
+				return new InputDeviceInfo(deviceId, vendorId, productId, inputDevice.getControllerNumber(), inputDevice.getName(), inputDevice.getDescriptor());
+			}
+		}
+		return new InputDeviceInfo(deviceId, 0, 0, -1, "Unknown", "Unknown");
 	}
 
 	public native boolean nativeIsShippingBuild();
