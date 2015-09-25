@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2666891
+﻿INTSourceChangelist:2672558
 Availability:Docs
 Title:1.1 - プロジェクトの設定
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -36,6 +36,7 @@ Description:First Person Shooter プロジェクトの設定方法を学びま�
 1.	**Blank (ブランク)** プロジェクトを選択します。
 
 1.	プロジェクトに 「_FPSProject_」 と名前を付けます。**No Starter Content** を設定するようにしてください。
+
 	![](UnrealPrjBrowser.png)
 
 	[REGION:warning]
