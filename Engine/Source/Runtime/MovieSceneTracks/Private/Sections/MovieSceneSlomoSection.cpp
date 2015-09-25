@@ -11,4 +11,5 @@ UMovieSceneSlomoSection::UMovieSceneSlomoSection()
 	: UMovieSceneFloatSection()
 {
 	SetIsInfinite(true);
+	GetFloatCurve().SetDefaultValue(1.0f);
 }
