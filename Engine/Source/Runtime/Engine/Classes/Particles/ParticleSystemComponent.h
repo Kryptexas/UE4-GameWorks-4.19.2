@@ -794,6 +794,10 @@ private:
 	int32 TotalActiveParticles;
 	/** If true, it means the ASync work is done and the finalize is not */
 	bool bNeedsFinalize;
+	/** If true, it means the Async work is in process and not yet completed */
+	bool bAsyncWorkOutstanding;
+	/** This flag is only valid during finalize. It is sent back from the potentially async task to indicate that all emitters are finished */
+	bool bAllEmittersFinished;
 public:
 
 	//~ Begin UActorComponent Interface.
