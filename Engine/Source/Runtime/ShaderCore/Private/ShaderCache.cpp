@@ -73,7 +73,7 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_PCES2:
 		case SP_OPENGL_SM5:
-		case SP_OPENGL_ES2:
+		case SP_OPENGL_ES2_ANDROID:
 		case SP_OPENGL_ES2_WEBGL:
 		case SP_OPENGL_ES2_IOS:
 		case SP_OPENGL_ES31_EXT:

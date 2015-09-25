@@ -577,6 +577,11 @@ struct FWindowsOpenGL : public FOpenGL4
 
 struct FWindowsOpenGL : public FOpenGLES31
 {
+	static FORCEINLINE EShaderPlatform GetShaderPlatform()
+	{
+		return bES2Fallback ? SP_OPENGL_PCES2 : SP_OPENGL_PCES3_1;
+	}
+
 	static FORCEINLINE void InitDebugContext()
 	{
 		bDebugContext = glIsEnabled( GL_DEBUG_OUTPUT) != GL_FALSE;

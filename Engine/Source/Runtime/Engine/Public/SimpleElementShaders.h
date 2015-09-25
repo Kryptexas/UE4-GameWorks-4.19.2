@@ -346,7 +346,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return ((IsES2Platform(Platform) && IsPCPlatform(Platform)) || Platform == SP_OPENGL_ES2) && TSimpleElementBase::ShouldCache(Platform);
+		return ((IsES2Platform(Platform) && IsPCPlatform(Platform)) || Platform == SP_OPENGL_ES2_ANDROID) && TSimpleElementBase::ShouldCache(Platform);
 	}
 };
 

@@ -36,22 +36,22 @@ static_assert(SF_NumFrequencies <= (1 << SF_NumBits), "SF_NumFrequencies will no
 /** @warning: update *LegacyShaderPlatform* when the below changes */
 enum EShaderPlatform
 {
-	SP_PCD3D_SM5			= 0,
+	SP_PCD3D_SM5		= 0,
 	SP_OPENGL_SM4		= 1,
 	SP_PS4				= 2,
 	/** Used when running in Feature Level ES2 in OpenGL. */
 	SP_OPENGL_PCES2		= 3,
 	SP_XBOXONE			= 4,
-	SP_PCD3D_SM4			= 5,
+	SP_PCD3D_SM4		= 5,
 	SP_OPENGL_SM5		= 6,
 	/** Used when running in Feature Level ES2 in D3D11. */
-	SP_PCD3D_ES2			= 7,
-	SP_OPENGL_ES2		= 8,
+	SP_PCD3D_ES2		= 7,
+	SP_OPENGL_ES2_ANDROID = 8,
 	SP_OPENGL_ES2_WEBGL = 9, 
 	SP_OPENGL_ES2_IOS	= 10,
-	SP_METAL				= 11,
+	SP_METAL			= 11,
 	SP_OPENGL_SM4_MAC	= 12,
-	SP_METAL_MRT			= 13,
+	SP_METAL_MRT		= 13,
 	SP_OPENGL_ES31_EXT	= 14,
 	/** Used when running in Feature Level ES3_1 in D3D11. */
 	SP_PCD3D_ES3_1		= 15,
@@ -604,7 +604,7 @@ inline bool IsPCPlatform(const EShaderPlatform Platform)
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsES2Platform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL || Platform == SP_VULKAN_ES2; 
+	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL || Platform == SP_VULKAN_ES2;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -616,7 +616,7 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2
-		|| Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT || Platform == SP_VULKAN_ES2;
+		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT || Platform == SP_VULKAN_ES2;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -642,7 +642,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 	case SP_OPENGL_PCES2:
-	case SP_OPENGL_ES2:
+	case SP_OPENGL_ES2_ANDROID:
 	case SP_OPENGL_ES2_WEBGL:
 	case SP_OPENGL_ES2_IOS:
 	case SP_VULKAN_ES2:
@@ -674,7 +674,7 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_PCES3_1:
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	case SP_OPENGL_ES2:
+	case SP_OPENGL_ES2_ANDROID:
 	case SP_VULKAN_ES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_ES2_WEBGL: 
@@ -748,7 +748,7 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return (PLATFORM_IOS && Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2;
+return (PLATFORM_IOS && Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)

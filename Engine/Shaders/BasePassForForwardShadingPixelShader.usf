@@ -143,9 +143,9 @@ void Main(
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, BasePassInterpolants.PixelPosition);
 
 	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, BasePassInterpolants.PixelPosition
-#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		, BasePassInterpolants.PixelPositionExcludingWPO
-#endif
+	#endif
 	);
 	  
 	//Clip if the blend mode requires it.
@@ -366,12 +366,16 @@ void Main(
 		OutColor = half4(FoggedColor, Opacity);
 	#else
 		OutColor.rgb = Color * VertexFog.a + VertexFog.rgb;
-		#if USE_32BPP_HDR || OUTPUT_GAMMA_SPACE 
-			// Scene color alpha is not used yet so we set it to 0
-			OutColor.a = 0.0;
-		#else
-			// Place Z in FP16 alpha value.
-			OutColor.a = BasePassInterpolants.PixelPosition.w;
+
+		// Scene color alpha is not used yet so we set it to 0
+		OutColor.a = 0.0;
+
+		#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE 
+			if(GetHDR32bppEncodeMode() == HDR_ENCODE_NONE)
+			{
+				// FP16 HDR stores Z in framebuffer alpha
+				OutColor.a = BasePassInterpolants.PixelPosition.w;
+			}
 		#endif
 	#endif
 
@@ -385,14 +389,16 @@ void Main(
 		OutColor.rgb = sqrt( OutColor.rgb );
 	#endif
 
-	#if (ES2_PROFILE || ES3_1_PROFILE) && (!OUTPUT_GAMMA_SPACE)
-		#if (COMPILER_GLSL_ES2 && USE_32BPP_HDR) || (MOBILE_EMULATION)
-			if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
+	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE
+		float Mode = GetHDR32bppEncodeMode();
+		if (Mode != HDR_ENCODE_NONE)
+		{
+			if (Mode == HDR_ENCODE_RGBA)
 			{
 				OutColor.rgb = FrameBufferBlendOp(OutColor);
 			}
 			OutColor = Encode32BPPHDR(OutColor, SvPosition.xy);
-		#endif
+		}
 	#endif
 
 	// Editor primitive depth testing

@@ -292,12 +292,12 @@ static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
 static FName NAME_SF_XBOXONE(TEXT("SF_XBOXONE"));
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
-static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
-static FName NAME_OPENGL_150_ES2_NOUB(TEXT("GLSL_150_ES2_NOUB"));
-static FName NAME_OPENGL_150_ES3_1(TEXT("GLSL_150_ES31"));
-static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
-static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
-static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
+static FName NAME_GLSL_150_ES2(TEXT("GLSL_150_ES2"));
+static FName NAME_GLSL_150_ES2_NOUB(TEXT("GLSL_150_ES2_NOUB"));
+static FName NAME_GLSL_150_ES31(TEXT("GLSL_150_ES31"));
+static FName NAME_GLSL_ES2(TEXT("GLSL_ES2"));
+static FName NAME_GLSL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
+static FName NAME_GLSL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
@@ -329,16 +329,16 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	case SP_OPENGL_PCES2:
 	{
 		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("OpenGL.UseEmulatedUBs"));
-		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_OPENGL_150_ES2_NOUB : NAME_OPENGL_150_ES2;
+		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_GLSL_150_ES2_NOUB : NAME_GLSL_150_ES2;
 	}
 	case SP_OPENGL_PCES3_1:
-		return NAME_OPENGL_150_ES3_1;
-	case SP_OPENGL_ES2:
-		return NAME_OPENGL_ES2;
+		return NAME_GLSL_150_ES31;
+	case SP_OPENGL_ES2_ANDROID:
+		return NAME_GLSL_ES2;
 	case SP_OPENGL_ES2_WEBGL:
-		return NAME_OPENGL_ES2_WEBGL;
+		return NAME_GLSL_ES2_WEBGL;
 	case SP_OPENGL_ES2_IOS:
-		return NAME_OPENGL_ES2_IOS;
+		return NAME_GLSL_ES2_IOS;
 	case SP_METAL:
 		return NAME_SF_METAL;
 	case SP_METAL_MRT:
@@ -367,12 +367,12 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
-	if (ShaderFormat == NAME_OPENGL_150_ES2 || ShaderFormat == NAME_OPENGL_150_ES2_NOUB)
+	if (ShaderFormat == NAME_GLSL_150_ES2 || ShaderFormat == NAME_GLSL_150_ES2_NOUB)
 												return SP_OPENGL_PCES2;
-	if (ShaderFormat == NAME_OPENGL_150_ES3_1)	return SP_OPENGL_PCES3_1;
-	if (ShaderFormat == NAME_OPENGL_ES2)			return SP_OPENGL_ES2;
-	if (ShaderFormat == NAME_OPENGL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
-	if (ShaderFormat == NAME_OPENGL_ES2_IOS)		return SP_OPENGL_ES2_IOS;
+	if (ShaderFormat == NAME_GLSL_150_ES31)		return SP_OPENGL_PCES3_1;
+	if (ShaderFormat == NAME_GLSL_ES2)			return SP_OPENGL_ES2_ANDROID;
+	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
+	if (ShaderFormat == NAME_GLSL_ES2_IOS)		return SP_OPENGL_ES2_IOS;
 	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
 	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
