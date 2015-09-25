@@ -202,7 +202,7 @@ public:
 		
 		// If we're able to discard the current data, do so right away
 		// If we can then we should orphan the buffer name & reallocate the backing store only once as calls to glBufferData may do so even when the size is the same.
-		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize) ? 0 : RealSize;
+		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
 		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
 		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
@@ -262,7 +262,7 @@ public:
 		
 		// If we're able to discard the current data, do so right away
 		// If we can then we should orphan the buffer name & reallocate the backing store only once as calls to glBufferData may do so even when the size is the same.
-		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize) ? 0 : RealSize;
+		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
 		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
 		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
