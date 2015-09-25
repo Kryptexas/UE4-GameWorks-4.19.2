@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2666895
+﻿INTSourceChangelist:2672918
 Availability:Docs
 Title:1.4 - プロジェクトをコンパイルする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -28,7 +28,7 @@ Description:初めての C++ クラスをコンパイルする方法を学びま
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
 
 	![](CompileProject.png)
 
