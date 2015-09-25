@@ -4036,7 +4036,7 @@ void FFXSystem::InitGPUSimulation()
 
 void FFXSystem::DestroyGPUSimulation()
 {
-	UE_LOG(LogParticles,Log,
+	UE_LOG(LogParticles,Verbose,
 		TEXT("Destroying %d GPU particle simulations for FXSystem 0x%p"),
 		GPUSimulations.Num(),
 		this
