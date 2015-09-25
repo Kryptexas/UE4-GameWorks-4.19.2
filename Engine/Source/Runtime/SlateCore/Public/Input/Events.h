@@ -704,7 +704,7 @@ public:
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
 		, CursorDelta(InScreenSpacePosition - InLastScreenSpacePosition)
 		, PressedButtons(bPressLeftMouseButton ? FTouchKeySet::StandardSet : FTouchKeySet::EmptySet)
-		, EffectingButton()
+		, EffectingButton(EKeys::LeftMouseButton)
 		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(InTouchpadIndex)
 		, bIsTouchEvent(true)
