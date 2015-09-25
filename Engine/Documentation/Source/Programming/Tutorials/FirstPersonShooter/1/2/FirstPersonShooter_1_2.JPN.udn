@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2666892
+﻿INTSourceChangelist:2672558
 Availability:Docs
 Title:1.2 - C++ Class Wizard を使用する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -24,7 +24,7 @@ Description:C++ Wizard を使用して初めての C++ クラスを作成する�
 
 %Steps%
 
-このステップでは、Game Mode (ゲーム モード) を作成します。ゲームモードでは、ゲームのルールと勝敗条件を定義します。ゲームモードでは、デフォルト クラスも設定します。これは、ポーン、プレイヤー コントローラー、HUD を含む一部の基本的なゲームプレイ フレームワークのタイプに使用されます。最後に、FPS キャラクターをセットアップする前に、ゲームモードを作成する必要があります。
+このステップでは、Game Mode (ゲーム モード) を作成します。ゲームモードでは、ゲームのルールと勝敗条件を定義します。また、デフォルト クラスも設定します。これは、ポーン、プレイヤー コントローラー、HUD を含む一部の基本的なゲームプレイ フレームワークのタイプに使用されます。最後に、FPS キャラクターをセットアップする前に、ゲームモードを作成する必要があります。
 
 1.	ファイル メニューで **[New C++ Class... (新規 C++ クラス)]** を選択して、新しい Parent (親) クラスを選択します。
 
