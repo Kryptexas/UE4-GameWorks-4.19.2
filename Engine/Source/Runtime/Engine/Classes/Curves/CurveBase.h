@@ -261,6 +261,16 @@ public:
 	FNameCurveKey GetKey(FKeyHandle KeyHandle) const;
 
 	/**
+	 * Read-only access to the key collection.
+	 *
+	 * @return Collection of keys.
+	 */
+	const TArray<FNameCurveKey>& GetKeys() const
+	{
+		return Keys;
+	}
+
+	/**
 	 * Get the time for the Key with the specified index.
 	 *
 	 * @param KeyHandle Handle to the key whose time to get.

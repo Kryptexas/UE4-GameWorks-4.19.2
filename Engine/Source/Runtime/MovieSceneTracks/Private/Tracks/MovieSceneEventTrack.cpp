@@ -35,47 +35,64 @@ bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName, FKeyPar
 }
 
 
-void UMovieSceneEventTrack::TriggerEvents(TRange<float> TimeRange, bool Backwards)
+void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition)
 {
+	if ((Sections.Num() == 0) || (Position == LastPosition))
+	{
+		return;
+	}
+
+	bool Backwards = Position < LastPosition;
+
 	if ((!Backwards && !bFireEventsWhenForwards) ||
 		(Backwards && !bFireEventsWhenBackwards))
 	{
 		return;
 	}
 
-	// @todo sequencer: gmp: implement event track triggering
-	/*
-	ULevel* Level = GetLevel();
-	ALevelScriptActor* LevelScriptActor = Level->LevelScriptActor;
+	// get the level script actor
+	if ((GEngine == nullptr) || (GEngine->GameViewport == nullptr))
+	{
+		return;
+	}
+
+	UWorld* World = GEngine->GameViewport->GetWorld();
+
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	ALevelScriptActor* LevelScriptActor = World->GetLevelScriptActor();
 
 	if (LevelScriptActor == nullptr)
 	{
 		return;
 	}
 
-	// for each key...
-	for ()
-	{
-		UFunction* EventFunction = LevelScriptActor->FindFunction(EventName);
+	// get the traversed sections
+	TArray<UMovieSceneSection*> TraversedSections = MovieSceneHelpers::GetTraversedSections(Sections, Position, LastPosition);
+	int32 EndIndex = TraversedSections.Num() - 1;
 
-		if (EventFunction != nullptr)
-		{
-			if(EventFunction->NumParms == 0)
-			{
-				LevelScriptActor->ProcessEvent(EventFunction, nullptr);
-			}
-			else
-			{
-				// @todo sequencer: gmp: add external log category for MovieScene
-				//UE_LOG(LogMovieScene, Log, TEXT("NotifyEventTriggered: Function '%s' does not have zero parameters."), *EventFuncName.ToString());
-			}
-		}
-		else
-		{
-			// @todo sequencer: gmp: add external log category for MovieScene
-			//UE_LOG(LogMovieScene, Log, TEXT("NotifyEventTriggered: Unable to find function '%s'"), *EventFuncName.ToString());
-		}
-	}*/
+	if (EndIndex < 0)
+	{
+		return;
+	}
+
+	int32 StartIndex = 0;
+	int32 Increment = 1;
+
+	if (Backwards)
+	{
+		Swap(StartIndex, EndIndex);
+		Increment = -1;
+	}
+
+	// traverse sections
+	for (int32 SectionIndex = StartIndex; SectionIndex <= EndIndex; SectionIndex += Increment)
+	{
+		CastChecked<UMovieSceneEventSection>(TraversedSections[SectionIndex])->TriggerEvents(LevelScriptActor, Position, LastPosition);
+	}
 }
 
 

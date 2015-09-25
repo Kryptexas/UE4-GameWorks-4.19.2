@@ -19,12 +19,5 @@ FMovieSceneEventTrackInstance::FMovieSceneEventTrackInstance(UMovieSceneEventTra
 
 void FMovieSceneEventTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
-	if (Position > LastPosition)
-	{
-		EventTrack->TriggerEvents(TRange<float>(LastPosition, Position), false);	
-	}
-	else if (Position < LastPosition)
-	{
-		EventTrack->TriggerEvents(TRange<float>(Position, LastPosition), true);
-	}
+	EventTrack->TriggerEvents(Position, LastPosition);
 }
