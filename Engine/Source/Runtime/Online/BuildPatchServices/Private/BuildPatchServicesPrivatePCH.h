@@ -53,5 +53,3 @@
 #include "BuildPatchGeneration.h"
 #include "BuildPatchUtil.h"
 #include "BuildPatchAnalytics.h"
-
-DECLARE_LOG_CATEGORY_EXTERN(LogBuildPatchServices, Log, All);
