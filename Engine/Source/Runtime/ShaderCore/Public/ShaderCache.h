@@ -253,8 +253,8 @@ class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
 		{
 			MaxNumSamplers = 16,
 			MaxNumResources = 128,
-			NullState = ~0u,
-			InvalidState = NullState - 1u
+			NullState = ~(0u),
+			InvalidState = ~(1u)
 		};
 		
 		FShaderDrawKey()
