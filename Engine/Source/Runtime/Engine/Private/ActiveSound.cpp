@@ -170,9 +170,9 @@ uint32 FActiveSound::GetSoundConcurrencyObjectID() const
 }
 
 
-void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &InWaveInstances, const float DeltaTime )
+void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances, const float DeltaTime )
 {
-	check( AudioDevice );
+	check(AudioDevice);
 
 	// Early outs.
 	if( Sound == NULL || !Sound->IsPlayable() )
@@ -279,8 +279,8 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 	else if (ThisSoundsWaveInstances.Num() > 0)
 	{
 		// If this active sound is told to limit concurrency by the quietest sound
-		const FSoundConcurrencySettings* ConcurrencySettings = GetSoundConcurrencySettingsToApply();
-		if (ConcurrencySettings && ConcurrencySettings->ResolutionRule == EMaxConcurrentResolutionRule::StopQuietist)
+		const FSoundConcurrencySettings* ConcurrencySettingsToApply = GetSoundConcurrencySettingsToApply();
+		if (ConcurrencySettingsToApply && ConcurrencySettingsToApply->ResolutionRule == EMaxConcurrentResolutionRule::StopQuietist)
 		{
 			check(ConcurrencyGroupID != 0);
 			// Now that we have this sound's active wave instances, lets find the loudest active wave instance to represent the "volume" of this active sound
@@ -456,8 +456,9 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 	}
 }
 
-void FActiveSound::ApplyRadioFilter( FAudioDevice* AudioDevice, const FSoundParseParameters& ParseParams )
+void FActiveSound::ApplyRadioFilter(const FSoundParseParameters& ParseParams )
 {
+	check(AudioDevice);
 	if( AudioDevice->GetMixDebugState() != DEBUGSTATE_DisableRadio )
 	{
 		// Make sure the radio filter is requested

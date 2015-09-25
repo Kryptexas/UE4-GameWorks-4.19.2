@@ -576,7 +576,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 	{
 		if( !ActiveSound.bRadioFilterSelected )
 		{
-			ActiveSound.ApplyRadioFilter( AudioDevice, ParseParams );
+			ActiveSound.ApplyRadioFilter(ParseParams);
 		}
 
 		WaveInstance = HandleStart( ActiveSound, NodeWaveInstanceHash);

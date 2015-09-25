@@ -229,7 +229,7 @@ public:
 #endif
 
 	// Updates the wave instances to be played.
-	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &OutWaveInstances, const float DeltaTime );
+	void UpdateWaveInstances( TArray<FWaveInstance*> &OutWaveInstances, const float DeltaTime );
 
 	void Stop();
 
@@ -241,7 +241,7 @@ public:
 	/** 
 	 * Check whether to apply the radio filter
 	 */
-	void ApplyRadioFilter( FAudioDevice* AudioDevice, const struct FSoundParseParameters& ParseParams );
+	void ApplyRadioFilter(const struct FSoundParseParameters& ParseParams );
 
 	/** Sets a float instance parameter for the ActiveSound */
 	void SetFloatParameter(const FName InName, const float InFloat);
