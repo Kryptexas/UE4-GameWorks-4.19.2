@@ -8,11 +8,12 @@ class SSequencerTrackLane;
 
 class FSequencerTimeSliderController;
 class FSequencer;
+class FTrackAreaSlot;
 
 /**
  * The area where tracks( rows of sections ) are displayed
  */
-class SSequencerTrackArea : public SOverlay
+class SSequencerTrackArea : public SPanel
 {
 public:
 	SLATE_BEGIN_ARGS( SSequencerTrackArea )
@@ -42,10 +43,18 @@ public:
 	virtual void OnMouseCaptureLost() override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	virtual FChildren* GetChildren() override;
 
 	/** Access the cached geometry for this track area */
 	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
-	
+
+private:
+
+	/** The track area's children */
+	TPanelChildren<FTrackAreaSlot> Children;
+
 private:
 
 	/** Cached geometry */
