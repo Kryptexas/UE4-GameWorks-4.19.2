@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2666896
+﻿INTSourceChangelist:2672918
 Availability:Docs
 Title:1.5 -  デフォルトのゲームモードを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -17,7 +17,7 @@ Description:First Person Shooter プロジェクトのデフォルトのゲー�
 		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/1)
 	[/PARAM]
 	[PARAM:next]
-		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/2)
+		[次のセクション](Programming/Tutorials/FirstPersonShooter/2)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -50,6 +50,6 @@ Description:First Person Shooter プロジェクトのデフォルトのゲー�
 &#x2713; 初めての C++ Class のコンパイル  
 &#x2713; デフォルトのゲーム モードの設定
 
-これでキャラクターの実装について学ぶ準備が整いました。
+これで次のセクションでキャラクターを実装する方法について学ぶ準備が整いました。
 
 %Steps%
