@@ -4094,6 +4094,8 @@ template bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const 
 
 bool FBodyInstance::OverlapTest(const FVector& Position, const FQuat& Rotation, const struct FCollisionShape& CollisionShape, FMTDResult* OutMTD) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_FBodyInstance_OverlapTest);
+
 	bool bHasOverlap = false;
 
 #if WITH_PHYSX
@@ -4133,13 +4135,14 @@ FTransform RootSpaceToWeldedSpace(const FBodyInstance* BI, const FTransform& Roo
 
 bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FQuat& Quat, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_FBodyInstance_OverlapMulti);
+
 	if ( !IsValidBodyInstance()  && (!WeldParent || !WeldParent->IsValidBodyInstance()))
 	{
 		UE_LOG(LogCollision, Log, TEXT("FBodyInstance::OverlapMulti : (%s) No physics data"), *GetBodyDebugName());
 		return false;
 	}
 
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
 	bool bHaveBlockingHit = false;
 
 	// Determine how to convert the local space of this body instance to the test space

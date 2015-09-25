@@ -1709,7 +1709,6 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 template <EQueryInfo::Type InfoType>
 bool GeomOverlapMultiImp(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
 	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
 	{
 		return false;

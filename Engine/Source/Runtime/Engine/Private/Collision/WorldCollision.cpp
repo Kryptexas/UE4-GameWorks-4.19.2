@@ -36,7 +36,8 @@ DEFINE_STAT(STAT_Collision_GeomSweepMultiple);
 DEFINE_STAT(STAT_Collision_GeomOverlapAny);
 DEFINE_STAT(STAT_Collision_GeomOverlapSingle);
 DEFINE_STAT(STAT_Collision_GeomOverlapMultiple);
-DEFINE_STAT(STAT_Collision_GeomComputePenetration);
+DEFINE_STAT(STAT_Collision_FBodyInstance_OverlapMulti);
+DEFINE_STAT(STAT_Collision_FBodyInstance_OverlapTest);
 DEFINE_STAT(STAT_Collision_PreFilter);
 DEFINE_STAT(STAT_Collision_PostFilter);
 
