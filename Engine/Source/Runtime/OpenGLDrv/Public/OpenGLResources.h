@@ -33,6 +33,8 @@ namespace OpenGLConsoleVariables
 
 #if PLATFORM_WINDOWS || PLATFORM_ANDROIDES31
 #define RESTRICT_SUBDATA_SIZE 1
+#else 
+#define RESTRICT_SUBDATA_SIZE 0
 #endif
 
 void IncrementBufferMemory(GLenum Type, bool bStructuredBuffer, uint32 NumBytes);
