@@ -361,6 +361,28 @@ FString FSequencerDisplayNode::GetPathName() const
 	return PathName;
 }
 
+TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// @todo sequencer replace with UI Commands instead of faking it
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
+
+	BuildContextMenu(MenuBuilder);
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
+{
+	TSharedRef<FSequencerDisplayNode> NodeToBeDeleted = SharedThis(this);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("DeleteNode", "Delete"),
+		LOCTEXT("DeleteNodeTooltip", "Delete this or selected nodes"),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, NodeToBeDeleted)));
+}
+
 void FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<FSectionKeyAreaNode> >& OutNodes) const
 {
 	for (int32 i = 0; i < ChildNodes.Num(); ++i)
@@ -656,17 +678,25 @@ TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 	return EditBox.ToSharedRef();
 }
 
-TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+void FObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
-	const UClass* ObjectClass = GetClassForObjectBinding();
+	if (GetSequencer().IsLevelEditorSequencer())
+	{
+		const UClass* ObjectClass = GetClassForObjectBinding();
+		
+		if (ObjectClass->IsChildOf(AActor::StaticClass()))
+		{
+			FFormatNamedArguments Args;
+			MenuBuilder.AddMenuEntry(
+				FText::Format( LOCTEXT("Assign Actor ", "Assign Actor"), Args),
+				FText::Format( LOCTEXT("AssignActorTooltip", "Assign the selected actor to this track"), Args ),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::AssignActor, ObjectBinding, this),
+							FCanExecuteAction::CreateSP(&GetSequencer(), &FSequencer::CanAssignActor, ObjectBinding)) );
+		}
+	}
 
-	// @todo sequencer replace with UI Commands instead of faking it
-	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
-
-	GetSequencer().BuildObjectBindingContextMenu(MenuBuilder, ObjectBinding, ObjectClass, this);
-
-	return MenuBuilder.MakeWidget();
+	FSequencerDisplayNode::BuildContextMenu(MenuBuilder);
 }
 
 void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UProperty*>& PropertyPath, FSequencer& Sequencer, TArray<TArray<UProperty*>>& KeyablePropertyPaths)

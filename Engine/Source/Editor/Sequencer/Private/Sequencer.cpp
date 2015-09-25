@@ -1445,7 +1445,7 @@ void GetParentTrackNodeAndNamePath(TSharedRef<const FSequencerDisplayNode> Displ
 	}
 }
 
-void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& NodeToBeDeleted )
+void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted )
 {
 	bool bAnySpawnablesRemoved = false;
 	bool bAnythingRemoved = false;
@@ -1874,7 +1874,7 @@ void FSequencer::DeleteSelectedItems()
 	}
 	else if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
 	{
-		SequencerWidget->DeleteSelectedNodes();
+		DeleteSelectedNodes();
 	}
 }
 
@@ -1959,6 +1959,41 @@ void FSequencer::AssignActor(FGuid InObjectBinding, FObjectBindingNode* ObjectBi
 bool FSequencer::CanAssignActor(FGuid ObjectBinding) const
 {
 	return GEditor->GetSelectedActors()->Num() > 0;
+}
+
+void FSequencer::DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted)
+{
+	// If this node is selected, delete all selected nodes
+	if (GetSelection().IsSelected(NodeToBeDeleted))
+	{
+		DeleteSelectedNodes();
+	}
+	else
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("Sequencer", "UndoDeletingObject", "Delete Node") );
+
+		OnRequestNodeDeleted(NodeToBeDeleted);
+	}
+}
+
+void FSequencer::DeleteSelectedNodes()
+{
+	TSet< TSharedRef<FSequencerDisplayNode> > SelectedNodesCopy = GetSelection().GetSelectedOutlinerNodes();
+
+	if( SelectedNodesCopy.Num() > 0 )
+	{
+		const FScopedTransaction Transaction( NSLOCTEXT("Sequencer", "UndoDeletingObject", "Delete Node") );
+
+		for( const TSharedRef<FSequencerDisplayNode>& SelectedNode : SelectedNodesCopy )
+		{
+			if( !SelectedNode->IsHidden() )
+			{
+				// Delete everything in the entire node
+				TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted = StaticCastSharedRef<const FSequencerDisplayNode>(SelectedNode);
+				OnRequestNodeDeleted( NodeToBeDeleted );
+			}
+		}
+	}
 }
 
 void FSequencer::TogglePlay()
@@ -2308,28 +2343,6 @@ void FSequencer::BuildAddTrackMenu(class FMenuBuilder& MenuBuilder)
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)
 	{
 		TrackEditors[i]->BuildAddTrackMenu(MenuBuilder);
-	}
-}
-
-void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass, FObjectBindingNode* ObjectBindingNode)
-{
-	if (IsLevelEditorSequencer())
-	{
-		if (ObjectClass->IsChildOf(AActor::StaticClass()))
-		{
-			FFormatNamedArguments Args;
-			MenuBuilder.AddMenuEntry(
-				FText::Format( NSLOCTEXT("Sequencer", "Assign Actor ", "Assign Actor"), Args),
-				FText::Format( NSLOCTEXT("Sequencer", "AssignActorTooltip", "Assign the selected actor to this track"), Args ),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &FSequencer::AssignActor, ObjectBinding, ObjectBindingNode),
-							FCanExecuteAction::CreateSP(this, &FSequencer::CanAssignActor, ObjectBinding)) );
-		}
-	}
-
-	for (int32 i = 0; i < TrackEditors.Num(); ++i)
-	{
-		TrackEditors[i]->BuildObjectBindingContextMenu(MenuBuilder, ObjectBinding, ObjectClass);
 	}
 }
 

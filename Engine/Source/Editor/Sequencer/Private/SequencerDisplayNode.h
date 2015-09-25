@@ -142,8 +142,11 @@ public:
 	 */
 	FString GetPathName() const;
 
+	/** Summon context menu */
+	TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 	/** What sort of context menu this node summons */
-	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) {return TSharedPtr<SWidget>();}
+	virtual void BuildContextMenu(FMenuBuilder& MenuBuilder);
 
 	/**
 	 * @return The name of the node (for identification purposes)
@@ -436,7 +439,7 @@ public:
 	const FGuid& GetObjectBinding() const { return ObjectBinding; }
 	
 	/** What sort of context menu this node summons */
-	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void BuildContextMenu(FMenuBuilder& MenuBuilder) override;
 
 private:
 	TSharedRef<SWidget> OnGetAddTrackMenuContent();

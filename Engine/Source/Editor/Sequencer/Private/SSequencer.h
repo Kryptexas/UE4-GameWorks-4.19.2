@@ -113,9 +113,6 @@ public:
 	void UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& FilteringShots);
 	void ResetBreadcrumbs();
 
-	/** Deletes selected nodes out of the sequencer node tree */
-	void DeleteSelectedNodes();
-
 	/** Step to next and previous keyframes */
 	void StepToNextKey();
 	void StepToPreviousKey();

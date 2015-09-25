@@ -177,7 +177,7 @@ public:
 	 *
 	 * @param NodeToBeDeleted	Node with data that should be deleted
 	 */
-	virtual void OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& NodeToBeDeleted );
+	virtual void OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted );
 
 	/**
 	 * Copies properties from one actor to another.  Only properties that are different are copied.  This is used
@@ -207,15 +207,6 @@ public:
 	 * @param MenuBuilder The menu builder to add things to.
 	 */
 	void BuildAddTrackMenu(class FMenuBuilder& MenuBuilder);
-
-	/**
-	 * Builds up the context menu for object binding nodes in the outliner
-	 * 
-	 * @param MenuBuilder	The context menu builder to add things to
-	 * @param ObjectBinding	The object binding of the selected node
-	 * @param ObjectClass	The class of the selected object
-	 */
-	void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass, FObjectBindingNode* ObjectBindingNode);
 
 	/**
 	 * Builds up the track menu for object binding nodes in the outliner
@@ -273,6 +264,14 @@ public:
 
 	/** Called to add selected objects to the movie scene */
 	void AddSelectedObjects();
+
+	/** Called when a user executes the assign actor to track menu item */
+	void AssignActor(FGuid ObjectBinding, FObjectBindingNode* ObjectBindingNode);
+	bool CanAssignActor(FGuid ObjectBinding) const;
+
+	/** Called when a user executes the delete node menu item */
+	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
+	void DeleteSelectedNodes();
 
 public:
 
@@ -393,10 +392,6 @@ protected:
 	void DeleteSelectedItems();
 	bool CanDeleteSelectedItems() const;
 	
-	/** Called when a user executes the assign actor to track menu item */
-	void AssignActor(FGuid ObjectBinding, FObjectBindingNode* ObjectBindingNode);
-	bool CanAssignActor(FGuid ObjectBinding) const;
-
 	/** Transport controls */
 	void TogglePlay();
 	void PlayForward();

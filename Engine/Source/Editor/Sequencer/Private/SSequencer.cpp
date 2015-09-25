@@ -1331,28 +1331,6 @@ TSharedPtr<SSequencerTreeView> SSequencer::GetTreeView() const
 	return TreeView;
 }
 
-void SSequencer::DeleteSelectedNodes()
-{
-	TSet< TSharedRef<FSequencerDisplayNode> > SelectedNodesCopy = Sequencer.Pin()->GetSelection().GetSelectedOutlinerNodes();
-
-	if( SelectedNodesCopy.Num() > 0 )
-	{
-		const FScopedTransaction Transaction( LOCTEXT("UndoDeletingObject", "Delete Object from MovieScene") );
-
-		FSequencer& SequencerRef = *Sequencer.Pin();
-
-		for( const TSharedRef<FSequencerDisplayNode>& SelectedNode : SelectedNodesCopy )
-		{
-			if( !SelectedNode->IsHidden() )
-			{
-				// Delete everything in the entire node
-				TSharedRef<const FSequencerDisplayNode> NodeToBeDeleted = StaticCastSharedRef<const FSequencerDisplayNode>(SelectedNode);
-				SequencerRef.OnRequestNodeDeleted( NodeToBeDeleted );
-			}
-		}
-	}
-}
-
 TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const
 {
 	TArray<FSectionHandle> SectionHandles;
