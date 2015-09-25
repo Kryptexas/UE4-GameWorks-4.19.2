@@ -373,6 +373,8 @@ void UActorAnimationInstance::UnbindPossessableObjects(const FGuid& ObjectId)
 	{
 		ActorAnimation->DefaultObjectReferences.RemoveBinding(ObjectId);
 	}
+
+	CachedObjectBindings.Remove(ObjectId);
 }
 
 void UActorAnimationInstance::DeselectAllActors()
