@@ -1342,6 +1342,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * Get the clamped state of r.MaterialQualityLevel, see console variable help (allows for scalability, cannot be used in construction scripts)
 	 * 0: low
 	 * 1: high
+	 * 2: medium
 	 */
 	UFUNCTION(BlueprintPure, Category="Rendering|Material", meta=(UnsafeDuringActorConstruction = "true"))
 	static int32 GetRenderingMaterialQualityLevel();

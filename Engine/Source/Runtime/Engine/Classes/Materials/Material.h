@@ -1036,9 +1036,17 @@ public:
 		}
 	}
 
-	/** Determines whether each quality level has different nodes by inspecting the material's expressions. */
-	void GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& QualityLevelsUsed);
+	/** Determines whether each quality level has different nodes by inspecting the material's expressions. 
+	* Or is required by the material quality setting overrides.
+	* @param	QualityLevelsUsed	output array of used quality levels.
+	* @param	ShaderPlatform	The shader platform to use for the quality settings.
+	*/
+	void GetQualityLevelUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& QualityLevelsUsed, EShaderPlatform ShaderPlatform);
 
+	/** Determines whether each quality level has different nodes by inspecting the material's expressions.
+	* @param	QualityLevelsUsed	output array of used quality levels.
+	*/
+	void GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& OutQualityLevelsUsed);
 
 	/**
 	 * Cache the expression texture references for this UMaterial 
@@ -1271,7 +1279,7 @@ public:
 	ENGINE_API static FMaterialCompilationFinished& OnMaterialCompilationFinished();
 
 	// For all materials, UMaterial::CacheResourceShadersForRendering
-	static void AllMaterialsCacheResourceShadersForRendering();
+	ENGINE_API static void AllMaterialsCacheResourceShadersForRendering();
 
 #if WITH_EDITORONLY_DATA
 	/**

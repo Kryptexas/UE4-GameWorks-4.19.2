@@ -60,7 +60,8 @@ public class LevelEditor : ModuleRules
                 "Kismet",
 				"KismetWidgets",
 				"Sequencer",
-                "Foliage"
+                "Foliage",
+				"MaterialShaderQualitySettings"
 			}
 		);
 

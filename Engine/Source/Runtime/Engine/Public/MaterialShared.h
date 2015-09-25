@@ -870,7 +870,7 @@ public:
 		RenderingThreadShaderMap(NULL),
 		Id_DEPRECATED(0,0,0,0),
 		QualityLevel(EMaterialQualityLevel::High),
-		bQualityLevelHasDifferentNodes(false),
+		bHasQualityLevelUsage(false),
 		FeatureLevel(ERHIFeatureLevel::SM4),
 		bContainsInlineShaders(false)
 	{}
@@ -1152,10 +1152,10 @@ protected:
 	/** Useful for debugging. */
 	virtual FString GetBaseMaterialPathName() const { return TEXT(""); }
 
-	void SetQualityLevelProperties(EMaterialQualityLevel::Type InQualityLevel, bool bInQualityLevelHasDifferentNodes, ERHIFeatureLevel::Type InFeatureLevel)
+	void SetQualityLevelProperties(EMaterialQualityLevel::Type InQualityLevel, bool bInHasQualityLevelUsage, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		QualityLevel = InQualityLevel;
-		bQualityLevelHasDifferentNodes = bInQualityLevelHasDifferentNodes;
+		bHasQualityLevelUsage = bInHasQualityLevelUsage;
 		FeatureLevel = InFeatureLevel;
 	}
 
@@ -1216,7 +1216,7 @@ private:
 	EMaterialQualityLevel::Type QualityLevel;
 
 	/** Whether this material has quality level specific nodes. */
-	bool bQualityLevelHasDifferentNodes;
+	bool bHasQualityLevelUsage;
 
 	/** Feature level that this material is representing. */
 	ERHIFeatureLevel::Type FeatureLevel;
@@ -1248,11 +1248,11 @@ private:
 	 */
 	ENGINE_API FShader* GetShader(class FMeshMaterialShaderType* ShaderType, FVertexFactoryType* VertexFactoryType) const;
 
-	void GetReferencedTexturesHash(FSHAHash& OutHash) const;
+	void GetReferencedTexturesHash(EShaderPlatform Platform, FSHAHash& OutHash) const;
 
 	EMaterialQualityLevel::Type GetQualityLevelForShaderMapId() const 
 	{
-		return bQualityLevelHasDifferentNodes ? QualityLevel : EMaterialQualityLevel::Num;
+		return bHasQualityLevelUsage ? QualityLevel : EMaterialQualityLevel::Num;
 	}
 
 	friend class FMaterialShaderMap;

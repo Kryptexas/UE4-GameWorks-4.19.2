@@ -116,6 +116,7 @@ namespace EMaterialQualityLevel
 	{
 		Low,
 		High,
+		Medium,
 		Num
 	};
 }

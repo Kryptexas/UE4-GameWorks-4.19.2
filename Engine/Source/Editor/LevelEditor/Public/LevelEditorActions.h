@@ -550,10 +550,15 @@ public:
 	TSharedPtr< FUICommandInfo > AddMatinee;
 
 	TSharedPtr< FUICommandInfo > MaterialQualityLevel_Low;
+	TSharedPtr< FUICommandInfo > MaterialQualityLevel_Medium;
 	TSharedPtr< FUICommandInfo > MaterialQualityLevel_High;
 
 	TSharedPtr< FUICommandInfo > FeatureLevelPreview[ERHIFeatureLevel::Num];
 	
+	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_DefaultES2;
+	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_AndroidES2;
+	TSharedPtr< FUICommandInfo > PreviewPlatformOverride_IOSES2;
+
 	///**
 	// * Mode Commands                   
 	// */
@@ -736,6 +741,8 @@ public:
 	static void AttachToSocketSelection(FName SocketName, AActor* ParentActorPtr);
 	static void SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel );
 	static bool IsMaterialQualityLevelChecked( EMaterialQualityLevel::Type TestQualityLevel );
+	static void SetPreviewPlatform(FName MaterialQualityPlatform);
+	static bool IsPreviewPlatformChecked(FName MaterialQualityPlatform);
 	static void SetFeatureLevelPreview(ERHIFeatureLevel::Type InFeatureLevel);
 	static bool IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InFeatureLevel);
 	
