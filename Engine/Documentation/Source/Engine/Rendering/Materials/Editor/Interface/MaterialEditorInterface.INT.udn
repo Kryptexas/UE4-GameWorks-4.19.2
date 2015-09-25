@@ -23,38 +23,38 @@ The Material Editor UI consists of a menu bar, a toolbar, and, by default, four 
 There is also an HLSL Code panel, but by default, it is not visible. To display it, on the **Window** menu, click **HLSL Code**. For more information, see [HLSL Code](#hlslcodepanel).
 [/REGION]
 
-[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+%Shared/Editors/Common/EditorMenuItems:UITabTips%
 
 ## Menu Bar
 
 ### File
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+%Shared/Editors/Common/EditorMenuItems:MenuFileSave%
+%Shared/Editors/Common/EditorMenuItems:MenuFileSaveOptions%
 
 ### Edit
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+%Shared/Editors/Common/EditorMenuItems:MenuEditUndo%
+%Shared/Editors/Common/EditorMenuItems:MenuEditSettings%
 
 ### Assets
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+%Shared/Editors/Common/EditorMenuItems:MenuAssetContentBrowser%
 
 ### Window
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+%Shared/Editors/Common/EditorMenuItems:MenuWindowToolbar%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowViewport%
 * **Graph** - Toggles the display of the **Graph** panel.
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+%Shared/Editors/Common/EditorMenuItems:MenuWindowDetails%
 * **Palette** - Toggles the display of the **Palette** panel.
 * **Stats** - Toggles the display of the **Stats** panel.
 * **HLSL Code** - Toggles the display of the **HLSL Code** panel (which is closed by default).
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+%Shared/Editors/Common/EditorMenuItems:MenuWindow%
 
 ### Help
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+%Shared/Editors/Common/EditorMenuItems:MenuHelp%
 
 
 ## Toolbar
