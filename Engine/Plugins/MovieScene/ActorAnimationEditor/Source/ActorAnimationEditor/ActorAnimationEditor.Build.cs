@@ -20,6 +20,7 @@ public class ActorAnimationEditor : ModuleRules
 				"CoreUObject",
                 "EditorStyle",
                 "Engine",
+				"LevelEditor",
 				"MovieScene",
 				"MovieSceneTracks",
 				"Sequencer",

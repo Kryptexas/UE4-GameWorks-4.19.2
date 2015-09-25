@@ -30,7 +30,9 @@ public:
 
 		// tab icons
 		Set("ActorAnimationEditor.Tabs.Sequencer", new IMAGE_BRUSH("icon_tab_sequencer_16x", Icon16x16));
-	
+		Set("ActorAnimationEditor.CreateNewActorAnimationInLevel", new IMAGE_BRUSH("CreateNewActorAnimationInLevel_16x", Icon16x16));
+		Set("ActorAnimationEditor.CreateNewActorAnimationInLevel.Small", new IMAGE_BRUSH("CreateNewActorAnimationInLevel_16x", Icon16x16));
+
 		FSlateStyleRegistry::RegisterSlateStyle(*this);
 	 }
 

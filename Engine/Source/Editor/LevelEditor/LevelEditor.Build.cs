@@ -31,6 +31,7 @@ public class LevelEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"ActorAnimation",
 				"Analytics",
 				"Core",
 				"CoreUObject",
