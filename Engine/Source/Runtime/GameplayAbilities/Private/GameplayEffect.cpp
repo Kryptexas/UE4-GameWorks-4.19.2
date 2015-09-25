@@ -1675,6 +1675,12 @@ void FActiveGameplayEffectsContainer::UpdateAggregatorModMagnitudes(const TSet<F
 	const FGameplayEffectSpec& Spec = ActiveEffect.Spec;
 	for (const FGameplayAttribute& Attribute : AttributesToUpdate)
 	{
+		// skip over any modifiers for attributes that we don't have
+		if (!Owner || Owner->HasAttributeSetForAttribute(Attribute) == false)
+		{
+			continue;
+		}
+
 		FAggregator* Aggregator = FindOrCreateAttributeAggregator(Attribute).Get();
 		check(Aggregator);
 
@@ -2322,9 +2328,15 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 		{
 			const FGameplayModifierInfo &ModInfo = Effect.Spec.Def->Modifiers[ModIdx];
 
+			// skip over any modifiers for attributes that we don't have
+			if (!Owner || Owner->HasAttributeSetForAttribute(ModInfo.Attribute) == false)
+			{
+				continue;
+			}
+
 			// Note we assume the EvaluatedMagnitude is up to do. There is no case currently where we should recalculate magnitude based on
 			// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
-					
+
 			FAggregator* Aggregator = FindOrCreateAttributeAggregator(Effect.Spec.Def->Modifiers[ModIdx].Attribute).Get();
 			Aggregator->AddAggregatorMod(Effect.Spec.GetModifierMagnitude(ModIdx, true), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
 		}

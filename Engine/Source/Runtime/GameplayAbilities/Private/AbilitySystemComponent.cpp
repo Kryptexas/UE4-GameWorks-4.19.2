@@ -617,7 +617,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		return FActiveGameplayEffectHandle();
 	}
 
-	// Check AttributeSet requirements: do we have everything this GameplayEffectSpec expects?
+	// Check AttributeSet requirements: make sure all attributes are valid
 	// We may want to cache this off in some way to make the runtime check quicker.
 	// We also need to handle things in the execution list
 	for (const FGameplayModifierInfo& Mod : Spec.Def->Modifiers)
@@ -625,11 +625,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		if (!Mod.Attribute.IsValid())
 		{
 			ABILITY_LOG(Warning, TEXT("%s has a null modifier attribute."), *Spec.Def->GetPathName());
-			return FActiveGameplayEffectHandle();
-		}
-
-		if (HasAttributeSetForAttribute(Mod.Attribute) == false)
-		{
 			return FActiveGameplayEffectHandle();
 		}
 	}
