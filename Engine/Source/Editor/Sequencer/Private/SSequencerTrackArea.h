@@ -8,7 +8,24 @@ class SSequencerTrackLane;
 
 class FSequencerTimeSliderController;
 class FSequencer;
-class FTrackAreaSlot;
+
+/** Structure representing a slot in the track area */
+class FTrackAreaSlot : public TSlotBase<FTrackAreaSlot>
+{
+public:
+	/** Construction from a track lane */
+	FTrackAreaSlot(const TSharedPtr<SSequencerTrackLane>& InSlotContent);
+
+	/** Get the vertical position of this slot inside its parent */
+	float GetVerticalOffset() const;
+
+	/** Horizontal/Vertical alignment for the slot */
+	EHorizontalAlignment HAlignment;
+	EVerticalAlignment VAlignment;
+
+	/** The track lane that we represent */
+	TWeakPtr<SSequencerTrackLane> TrackLane;
+};
 
 /**
  * The area where tracks( rows of sections ) are displayed
