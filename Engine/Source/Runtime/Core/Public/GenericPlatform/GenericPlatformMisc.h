@@ -777,7 +777,7 @@ public:
 	 */
 	static bool IsControllerAssignedToGamepad(int32 ControllerId)
 	{
-		return true;
+		return (ControllerId == 0);
 	}
 
 	/*
