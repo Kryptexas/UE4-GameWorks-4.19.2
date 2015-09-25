@@ -918,7 +918,7 @@ FCursorReply SSection::OnCursorQuery( const FGeometry& MyGeometry, const FPointe
 		return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight );
 	}
 
-	return FCursorReply::Cursor( EMouseCursor::Default );
+	return FCursorReply::Unhandled();
 }
 
 
