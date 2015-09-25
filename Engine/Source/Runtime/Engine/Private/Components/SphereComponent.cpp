@@ -51,13 +51,13 @@ void USphereComponent::UpdateBodySetup()
 void USphereComponent::SetSphereRadius( float InSphereRadius, bool bUpdateOverlaps )
 {
 	SphereRadius = InSphereRadius;
+	UpdateBodySetup();
 	MarkRenderStateDirty();
 
 	if (bPhysicsStateCreated)
 	{
-		DestroyPhysicsState();
-		UpdateBodySetup();
-		CreatePhysicsState();
+		// Update physics engine collision shapes
+		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{

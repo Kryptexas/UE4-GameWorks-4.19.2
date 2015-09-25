@@ -146,15 +146,15 @@ void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, boo
 {
 	CapsuleHalfHeight = FMath::Max3(0.f, NewHalfHeight, NewRadius);
 	CapsuleRadius = FMath::Max(0.f, NewRadius);
+	UpdateBodySetup();
 	MarkRenderStateDirty();
 
 	// do this if already created
 	// otherwise, it hasn't been really created yet
 	if (bPhysicsStateCreated)
 	{
-		DestroyPhysicsState();
-		UpdateBodySetup();
-		CreatePhysicsState();
+		// Update physics engine collision shapes
+		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{

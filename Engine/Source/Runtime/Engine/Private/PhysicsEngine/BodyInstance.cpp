@@ -2070,7 +2070,7 @@ EScaleMode::Type ComputeScaleMode(const TArray<PxShape*>& PShapes)
 	return ScaleMode;
 }
 
-bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
+bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 {
 	if (!IsValidBodyInstance())
 	{
@@ -2078,8 +2078,8 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 		return false;
 	}
 
-	// if same, return
-	if (Scale3D.Equals(InScale3D))
+	// if scale is already correct, and not forcing an update, do nothing
+	if (Scale3D.Equals(InScale3D) && !bForceUpdate)
 	{
 		return false;
 	}

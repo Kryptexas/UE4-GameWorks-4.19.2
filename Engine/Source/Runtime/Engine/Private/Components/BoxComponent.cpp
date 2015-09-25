@@ -17,14 +17,14 @@ void UBoxComponent::SetBoxExtent(FVector NewBoxExtent, bool bUpdateOverlaps)
 {
 	BoxExtent = NewBoxExtent;
 	MarkRenderStateDirty();
+	UpdateBodySetup();
 
 	// do this if already created
 	// otherwise, it hasn't been really created yet
 	if (bPhysicsStateCreated)
 	{
-		DestroyPhysicsState();
-		UpdateBodySetup();
-		CreatePhysicsState();
+		// Update physics engine collision shapes
+		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{

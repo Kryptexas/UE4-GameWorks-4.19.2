@@ -611,10 +611,11 @@ public:
 
 	/**
 	 * Update Body Scale
-	 * @param inScale3D - new Scale3D. If that's different from previous Scale3D, it will update Body scale
+	 * @param	InScale3D		New Scale3D. If that's different from previous Scale3D, it will update Body scale.
+	 * @param	bForceUpdate	Will refresh shape dimensions from BodySetup, even if scale has not changed.
 	 * @return true if succeed
 	 */
-	bool UpdateBodyScale(const FVector& InScale3D);
+	bool UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate = false);
 
 	/** Dynamically update the vertices of per-poly collision for this body. */
 	void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
