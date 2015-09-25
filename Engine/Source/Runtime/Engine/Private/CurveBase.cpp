@@ -191,9 +191,7 @@ FKeyHandle FNameCurve::AddKey(float InTime, const FName& InValue, FKeyHandle Key
 	// update key indices
 	for ( auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		const FKeyHandle& KeyHandle = It.Key();
 		int32& KeyIndex = It.Value();
-
 		if (KeyIndex >= Index) {++KeyIndex;}
 	}
 
@@ -212,9 +210,7 @@ void FNameCurve::DeleteKey(FKeyHandle KeyHandle)
 	// update key indices
 	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		const FKeyHandle& KeyHandle = It.Key();
 		int32& KeyIndex = It.Value();
-
 		if (KeyIndex >= Index)
 		{
 			--KeyIndex;
