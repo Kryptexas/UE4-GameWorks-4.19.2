@@ -253,7 +253,8 @@ class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
 		{
 			MaxNumSamplers = 16,
 			MaxNumResources = 128,
-			NullState = ~0u
+			NullState = ~0u,
+			InvalidState = NullState - 1u
 		};
 		
 		FShaderDrawKey()
@@ -978,6 +979,10 @@ private:
 	bool bIsPreDraw;
 	EShaderCacheOptions Options;
 	uint8 MaxResources;
+	
+	// When the invalid resource count is greater than 0 no draw keys will be stored to prevent corrupting the shader cache.
+	// Warnings are emitted to indicate that the shader cache has encountered a resource lifetime error.
+	uint32 InvalidResourceCount;
 	
 	// Overrides for shader warmup times to use when loading or to force a flush.
 	int32 OverridePrecompileTime;
