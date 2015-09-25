@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2661745
+﻿INTSourceChangelist:2672552
 Availability:Docs
 Title:C++ FPS チュートリアル
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
@@ -7,6 +7,7 @@ Description:ファーストパーソン シューティング ゲームの開発
 バージョン：4.9
 
 ![](FPS_CoverImage.png)
+_このチュートリアルの最後まで終了すると、この画面のようになります。_
 
 ## 目標
 
