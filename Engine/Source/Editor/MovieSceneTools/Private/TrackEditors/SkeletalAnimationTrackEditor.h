@@ -42,14 +42,14 @@ private:
 	/** Animation sub menu */
 	void BuildAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton);
 
+	/** Animation asset selected */
+	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding);
+
 	/** Delegate for AnimatablePropertyChanged in AddKey */
 	void AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, class UAnimSequence* AnimSequence);
 
 	/** Gets a skeleton from an object guid in the movie scene */
 	class USkeleton* AcquireSkeletonFromObjectGuid(const FGuid& Guid);
-
-	/** Callback for executing the "Add Animation Sequence" menu entry. */
-	void HandleAddAnimSequencerMenuEntryExecute(FGuid ObjectGuid, UAnimSequence* AnimSequence);
 };
 
 

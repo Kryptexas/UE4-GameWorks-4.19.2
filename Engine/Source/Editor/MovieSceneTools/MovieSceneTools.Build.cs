@@ -32,6 +32,7 @@ public class MovieSceneTools : ModuleRules
 				"MovieScene",
 				"MovieSceneTracks",
 				"BlueprintGraph",
+                "ContentBrowser",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
