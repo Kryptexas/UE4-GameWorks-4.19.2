@@ -275,7 +275,7 @@ public partial class Project : CommandUtils
     private static void DiffCookedContent( ProjectParams Params)
     {
         List<UnrealTargetPlatform> PlatformsToCook = Params.ClientTargetPlatforms;
-        string ProjectPath = Path.GetFullPath(Params.RawProjectPath);
+        string ProjectPath = Params.RawProjectPath.FullName;
 
         var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Cooked");
 
@@ -395,7 +395,7 @@ public partial class Project : CommandUtils
 
 	private static void CleanupCookedData(List<string> PlatformsToCook, ProjectParams Params)
 	{
-		var ProjectPath = Path.GetFullPath(Params.RawProjectPath);
+		var ProjectPath = Params.RawProjectPath.FullName;
 		var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Cooked");
 		var CleanDirs = new string[PlatformsToCook.Count];
 		for (int DirIndex = 0; DirIndex < CleanDirs.Length; ++DirIndex)

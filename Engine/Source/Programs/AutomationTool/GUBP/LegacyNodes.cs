@@ -972,8 +972,8 @@ partial class GUBP
 
 		public static bool IsFeaturePack(BranchInfo.BranchUProject InGameProj)
 		{
-			bool bHasContents = CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath), "contents.txt"));
-			bool bHasManifest = CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath), "manifest.json"));
+			bool bHasContents = CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath.FullName), "contents.txt"));
+			bool bHasManifest = CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath.FullName), "manifest.json"));
 			return bHasContents && bHasManifest;
 		}
 
@@ -1017,7 +1017,7 @@ partial class GUBP
 			BuildProducts = new List<string>();
 			foreach(BranchInfo.BranchUProject Project in Projects)
 			{
-				string ContentsFileName = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(Project.FilePath), "contents.txt");
+				string ContentsFileName = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(Project.FilePath.FullName), "contents.txt");
 
 				// Make sure we delete the output file. It may be read-only.
 				string OutputFileName = GetOutputFile(Project);
@@ -1114,7 +1114,7 @@ partial class GUBP
 
 		public static bool IsSample(GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject GameProj)
 		{
-			return (GameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && (GameProj.FilePath.Contains("Samples") || GameProj.FilePath.Contains("Templates")));
+			return (GameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && (GameProj.FilePath.FullName.Contains("Samples") || GameProj.FilePath.FullName.Contains("Templates")));
 		}
 
 		public override string GetDisplayGroupName()
@@ -1685,7 +1685,7 @@ partial class GUBP
 			{
 				CommandUtils.CookCommandlet(GameProj.FilePath, "UE4Editor-Cmd.exe", null, null, null, null, CookPlatform);
 			}
-            var CookedPath = CombinePaths(Path.GetDirectoryName(GameProj.FilePath), "Saved", "Cooked", CookPlatform);
+            var CookedPath = CombinePaths(Path.GetDirectoryName(GameProj.FilePath.FullName), "Saved", "Cooked", CookPlatform);
             var CookedFiles = CommandUtils.FindFiles("*", true, CookedPath);
             if (CookedFiles.GetLength(0) < 1)
             {
@@ -1992,9 +1992,9 @@ partial class GUBP
         {
             BuildProducts = new List<string>();
             string ProjectArg = "";
-            if (!String.IsNullOrEmpty(GameProj.FilePath))
+            if (GameProj.FilePath != null)
             {
-                ProjectArg = " -project=\"" + GameProj.FilePath + "\"";
+                ProjectArg = " -project=\"" + GameProj.FilePath.FullName + "\"";
             }
             string Args = String.Format("BuildCookRun{0} -SkipBuild -SkipCook -Stage -Pak -Package -NoSubmit", ProjectArg);
 
@@ -2229,7 +2229,7 @@ partial class GUBP
         public override void DoTest(GUBP bp)
         {
             string ProjectArg = "";
-            if (!String.IsNullOrEmpty(GameProj.FilePath))
+            if (GameProj.FilePath != null)
             {
                 ProjectArg = " -project=\"" + GameProj.FilePath + "\"";
             }
@@ -2595,9 +2595,9 @@ partial class GUBP
         public override void DoTest(GUBP bp)
         {
             string ProjectArg = "";
-            if (!String.IsNullOrEmpty(GameProj.FilePath) && UATCommandLine.IndexOf("-project=", StringComparison.InvariantCultureIgnoreCase) < 0)
+            if (GameProj.FilePath != null && UATCommandLine.IndexOf("-project=", StringComparison.InvariantCultureIgnoreCase) < 0)
             {
-                ProjectArg = " -project=\"" + GameProj.FilePath + "\"";
+                ProjectArg = " -project=\"" + GameProj.FilePath.FullName + "\"";
             }
             string WorkingCommandline = UATCommandLine + ProjectArg + " -NoSubmit -addcmdline=\"-DisablePS4TMAPI\"";
             if (WorkingCommandline.Contains("-project=\"\""))

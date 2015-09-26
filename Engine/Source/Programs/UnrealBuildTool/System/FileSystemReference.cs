@@ -496,6 +496,16 @@ namespace UnrealBuildTool
 		{
 			return new DirectoryReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
 		}
+
+		/// <summary>
+		/// Gets the parent directory for a file, or returns null if it's null.
+		/// </summary>
+		/// <param name="File">The file to create a directory reference for</param>
+		/// <returns>The directory containing the file  </returns>
+		public static DirectoryReference FromFile(FileReference File)
+		{
+			return (File == null)? null : File.Directory;
+		}
 	}
 
 	/// <summary>

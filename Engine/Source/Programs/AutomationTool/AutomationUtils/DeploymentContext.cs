@@ -23,9 +23,9 @@ public struct StageTarget
 public class DeploymentContext //: ProjectParams
 {
 	/// <summary>
-	/// Full path where the project exists (For uprojects this should include the uproj filename, otherwise just project folder)
+	/// Full path to the .uproject file
 	/// </summary>
-	public string RawProjectPath;
+	public FileReference RawProjectPath;
 
 	/// <summary>
 	///  true if we should stage crash reporter
@@ -232,7 +232,7 @@ public class DeploymentContext //: ProjectParams
 	public bool bIsCombiningMultiplePlatforms = false;
 
 	public DeploymentContext(
-		string RawProjectPathOrName,
+		FileReference RawProjectPathOrName,
 		string InLocalRoot,
 		string BaseStageDirectory,
 		string BaseArchiveDirectory,
@@ -299,12 +299,12 @@ public class DeploymentContext //: ProjectParams
         StageDirectory = CommandUtils.CombinePaths(BaseStageDirectory, FinalCookPlatform);
         ArchiveDirectory = CommandUtils.CombinePaths(BaseArchiveDirectory, FinalCookPlatform);
 
-		if (!CommandUtils.FileExists(RawProjectPath))
+		if (!CommandUtils.FileExists(RawProjectPath.FullName))
 		{
 			throw new AutomationException("Can't find uproject file {0}.", RawProjectPathOrName);
 		}
 
-		ProjectRoot = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(Path.GetFullPath(RawProjectPath)));
+		ProjectRoot = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath.FullName));
 
 		if (!CommandUtils.DirectoryExists(ProjectRoot))
 		{
@@ -313,7 +313,7 @@ public class DeploymentContext //: ProjectParams
 
         RelativeProjectRootForStage = ShortProjectName;
 
-		ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(RawProjectPath);
+		ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(RawProjectPath.FullName);
 		CookSourceRuntimeRootDir = RuntimeRootDir = LocalRoot;
 		RuntimeProjectRootDir = ProjectRoot;
 

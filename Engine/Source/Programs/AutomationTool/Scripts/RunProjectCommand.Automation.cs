@@ -1006,11 +1006,11 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	private static ProcessResult RunCookOnTheFlyServer(string ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
+	private static ProcessResult RunCookOnTheFlyServer(FileReference ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
 	{
 		var ServerApp = HostPlatform.Current.GetUE4ExePath("UE4Editor.exe");
 		var Args = String.Format("{0} -run=cook -cookonthefly -unattended -CrashForUAT -FORCELOGFLUSH -log",
-			CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName));
+			CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName.FullName));
 		if (!String.IsNullOrEmpty(ServerLogFile))
 		{
 			Args += " -abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile);
@@ -1055,7 +1055,7 @@ public partial class Project : CommandUtils
 
 		Log("Running UnrealFileServer *******");
 		var Args = String.Format("{0} -abslog={1} -unattended -CrashForUAT -FORCELOGFLUSH -log {2}",
-						CommandUtils.MakePathSafeToUseWithCommandLine(Params.RawProjectPath),
+						CommandUtils.MakePathSafeToUseWithCommandLine(Params.RawProjectPath.FullName),
 						CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile),
 						AdditionalCommandLine);
 		if (IsBuildMachine)

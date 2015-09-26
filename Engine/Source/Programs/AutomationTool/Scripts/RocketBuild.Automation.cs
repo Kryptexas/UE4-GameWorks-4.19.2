@@ -877,7 +877,7 @@ namespace Rocket
 			foreach (string Template in CurrentTemplates)
 			{
 				BranchInfo.BranchUProject Project = BranchConfig.Branch.FindGameChecked(Template);
-				Filter.Include("/" + Utils.StripBaseDirectory(Path.GetDirectoryName(Project.FilePath), CommandUtils.CmdEnv.LocalRoot).Replace('\\', '/') + "/...");
+				Filter.Include("/" + Utils.StripBaseDirectory(Path.GetDirectoryName(Project.FilePath.FullName), CommandUtils.CmdEnv.LocalRoot).Replace('\\', '/') + "/...");
 			}
 
 			// Include all the standard rules

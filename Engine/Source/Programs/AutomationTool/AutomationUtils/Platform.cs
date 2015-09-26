@@ -482,7 +482,7 @@ namespace AutomationTool
 
 		}
 
-		public virtual void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)
+		public virtual void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
 		{
 
 		}

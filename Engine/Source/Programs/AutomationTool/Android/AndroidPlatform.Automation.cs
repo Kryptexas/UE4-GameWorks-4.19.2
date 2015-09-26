@@ -29,7 +29,7 @@ public class AndroidPlatform : Platform
 
 	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture, string GPUArchitecture)
 	{
-		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath)), "Binaries/Android");
+		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath.FullName)), "Binaries/Android");
 
 		if (Params.Prebuilt)
 		{
@@ -1200,19 +1200,19 @@ public class AndroidPlatform : Platform
     
 	#region Hooks
 
-	public override void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)
+	public override void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
 	{
 		// Run UBT w/ the prep for deployment only option
 		// This is required as UBT will 'fake' success when building via UAT and run
 		// the deployment prep step before all the required parts are present.
-		if (ProjectName.Length > 0)
+		if (!String.IsNullOrEmpty(TargetName) && TargetName.Length > 0)
 		{
-			string ProjectToBuild = ProjectName;
-			if (ProjectToBuild != "UE4Game" && !string.IsNullOrEmpty(UProjectPath))
+			string ProjectArg = "";
+			if(UProjectPath != null)
 			{
-				ProjectToBuild = UProjectPath;
+				ProjectArg = string.Format(" -project=\"{0}\"", UProjectPath);
 			}
-			string UBTCommand = string.Format("\"{0}\" Android {1} -prepfordeploy", ProjectToBuild, Config);
+			string UBTCommand = string.Format("{0} Android {1} -prepfordeploy{2}", TargetName, Config, ProjectArg);
 			CommandUtils.RunUBT(UE4Build.CmdEnv, Build.UBTExecutable, UBTCommand);
 		}
 	}

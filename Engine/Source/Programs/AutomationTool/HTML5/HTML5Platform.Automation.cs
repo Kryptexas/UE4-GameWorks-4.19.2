@@ -31,14 +31,14 @@ public class HTML5Platform : Platform
 		HTML5SDKInfo.SetupEmscriptenTemp();
 		HTML5SDKInfo.SetUpEmscriptenConfigFile();
 
-		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5");
 		if (!Directory.Exists(PackagePath))
 		{
 			Directory.CreateDirectory(PackagePath);
 		}
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -353,7 +353,7 @@ public class HTML5Platform : Platform
 			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5");
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
 		// copy the "Executable" to the archive directory
@@ -417,7 +417,7 @@ public class HTML5Platform : Platform
 		// open the webpage
 		Int32 ServerPort = 8000;
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CombinePaths(CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CombinePaths(CmdEnv.LocalRoot, "Engine"));
 		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort);
 		string WorkingDirectory = Path.GetDirectoryName(ClientApp);
 		string url = Path.GetFileName(ClientApp) +".html";
@@ -533,7 +533,7 @@ public class HTML5Platform : Platform
 #region AMAZON S3 
 	public void UploadToS3(DeploymentContext SC)
 	{
-		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", new DirectoryReference(Path.GetDirectoryName(SC.RawProjectPath)));
+		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));
 		bool Upload = false;
 
 		string KeyId = "";

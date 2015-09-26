@@ -308,7 +308,7 @@ public partial class Project : CommandUtils
 		}
 		SC.StageFiles(StagedFileType.NonUFS, GetIntermediateCommandlineDir(SC), CommandLineFile, false, null, "", true, false);
 
-        ConfigCacheIni PlatformGameConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Game", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath)));
+        ConfigCacheIni PlatformGameConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Game", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
         var ProjectContentRoot = CombinePaths(SC.ProjectRoot, "Content");
         var StageContentRoot = CombinePaths(SC.RelativeProjectRootForStage, "Content");
         
@@ -389,10 +389,10 @@ public partial class Project : CommandUtils
             }
 			
 			// Engine & Game Plugins. Push the Engine/Source working directory so UBT code has a correct RelativeEnginePath in ReadAvailablePlugins
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath);
+			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath.FullName);
 			LogLog("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
 			LogLog("Searching for plugins in: " + SC.RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), new FileReference(SC.RawProjectPath));
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), SC.RawProjectPath);
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
 				LogLog("Considering Plugin for Stage: " + Plugin.File.FullName);
@@ -1096,7 +1096,7 @@ public partial class Project : CommandUtils
 
 	private static string GetTmpPackagingPath(ProjectParams Params, DeploymentContext SC)
 	{
-		return CombinePaths(Path.GetDirectoryName(Params.RawProjectPath), "Saved", "TmpPackaging", SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, Params.CookFlavor));
+		return CombinePaths(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Saved", "TmpPackaging", SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, Params.CookFlavor));
 	}
 
 	private static bool ShouldCreatePak(ProjectParams Params, DeploymentContext SC)
@@ -1626,7 +1626,7 @@ public partial class Project : CommandUtils
 			{
 				foreach(UnrealTargetConfiguration Config in ConfigsToProcess)
 				{
-					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath) : EngineDir;
+					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath.FullName) : EngineDir;
 
 					Platform PlatformInstance = Platform.Platforms[StagePlatform];
 					UnrealTargetPlatform[] SubPlatformsToStage = PlatformInstance.GetStagePlatforms();
@@ -1670,7 +1670,7 @@ public partial class Project : CommandUtils
 						}
 
 						// Convert the paths to absolute
-						Receipt.ExpandPathVariables(new DirectoryReference(EngineDir), new DirectoryReference(Path.GetDirectoryName(Params.RawProjectPath)));
+						Receipt.ExpandPathVariables(new DirectoryReference(EngineDir), Params.RawProjectPath.Directory);
 						TargetsToStage.Add(new StageTarget{ Receipt = Receipt, RequireFilesExist = bRequireStagedFilesToExist });
 					}
 				}

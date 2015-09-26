@@ -21,7 +21,7 @@ public class UE4BuildUtils : CommandUtils
 	{
 		BuildProduct(Command, new UE4Build.BuildTarget()
 			{
-				ProjectName = "",
+				UprojectPath = null,
 				TargetName = "BuildPatchTool",
 				Platform = InPlatform,
 				Config = UnrealBuildTool.UnrealTargetConfiguration.Development,
@@ -37,7 +37,7 @@ public class UE4BuildUtils : CommandUtils
 	{
 		BuildProduct(Command, new UE4Build.BuildTarget()
 		{
-			ProjectName = "",
+			UprojectPath = null,
 			TargetName = "UnrealHeaderTool",
 			Platform = InPlatform,
 			Config = UnrealBuildTool.UnrealTargetConfiguration.Development,

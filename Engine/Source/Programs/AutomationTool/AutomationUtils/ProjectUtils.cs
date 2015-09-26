@@ -27,7 +27,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Full Project path. Must be a .uproject file
 		/// </summary>
-		public string RawProjectPath;
+		public FileReference RawProjectPath;
 
 		/// <summary>
 		/// True if the uproject contains source code.
@@ -107,9 +107,9 @@ namespace AutomationTool
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <param name="bIsUProjectFile">True if a uproject.</param>
 		/// <returns>Short project name</returns>
-		public static string GetShortProjectName(string RawProjectPath)
+		public static string GetShortProjectName(FileReference RawProjectPath)
 		{
-			return CommandUtils.GetFilenameWithoutAnyExtensions(RawProjectPath);
+			return CommandUtils.GetFilenameWithoutAnyExtensions(RawProjectPath.FullName);
 		}
 
 		/// <summary>
@@ -117,12 +117,12 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>Properties of the project.</returns>
-		public static ProjectProperties GetProjectProperties(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms = null)
+		public static ProjectProperties GetProjectProperties(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms = null)
 		{
 			string ProjectKey = "UE4";
-			if (!String.IsNullOrEmpty(RawProjectPath))
+			if (RawProjectPath != null)
 			{
-				ProjectKey = CommandUtils.ConvertSeparators(PathSeparator.Slash, Path.GetFullPath(RawProjectPath));
+				ProjectKey = CommandUtils.ConvertSeparators(PathSeparator.Slash, RawProjectPath.FullName);
 			}
 			ProjectProperties Properties;
 			if (PropertiesCache.TryGetValue(ProjectKey, out Properties) == false)
@@ -138,7 +138,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>True if the project is a UProject file with source code.</returns>
-		public static bool IsCodeBasedUProjectFile(string RawProjectPath)
+		public static bool IsCodeBasedUProjectFile(FileReference RawProjectPath)
 		{
 			return GetProjectProperties(RawProjectPath, null).bIsCodeBasedProject;
 		}
@@ -158,18 +158,18 @@ namespace AutomationTool
 			return ProjectClientBinariesPath;
 		}
 
-		private static bool RequiresTempTarget(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
+		private static bool RequiresTempTarget(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
 		{
 			// check to see if we already have a Target.cs file
-			if (File.Exists (Path.Combine (Path.GetDirectoryName (RawProjectPath), "Source", Path.GetFileNameWithoutExtension (RawProjectPath) + ".Target.cs")))
+			if (File.Exists (Path.Combine (Path.GetDirectoryName (RawProjectPath.FullName), "Source", RawProjectPath.GetFileNameWithoutExtension() + ".Target.cs")))
 			{
 				return false;
 			}
-			else if (Directory.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Source")))
+			else if (Directory.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath.FullName), "Source")))
 			{
 				// wasn't one in the main Source directory, let's check all sub-directories
 				//@todo: may want to read each target.cs to see if it has a target corresponding to the project name as a final check
-				FileInfo[] Files = (new DirectoryInfo( Path.Combine (Path.GetDirectoryName (RawProjectPath), "Source")).GetFiles ("*.Target.cs", SearchOption.AllDirectories));
+				FileInfo[] Files = (new DirectoryInfo( Path.Combine (Path.GetDirectoryName (RawProjectPath.FullName), "Source")).GetFiles ("*.Target.cs", SearchOption.AllDirectories));
 				if (Files.Length > 0)
 				{
 					return false;
@@ -204,15 +204,15 @@ namespace AutomationTool
 			}
 
 			// Read the project descriptor, and find all the plugins available to this project
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(BuildConfiguration.RelativeEnginePath), new FileReference(RawProjectPath));
+			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath.FullName);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(BuildConfiguration.RelativeEnginePath), RawProjectPath);
 
 			// check the target platforms for any differences in build settings or additional plugins
 			bool RetVal = false;
 			foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
 			{
 				IUEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
-				if (!GlobalCommandLine.Rocket && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, new DirectoryReference(Path.GetDirectoryName(RawProjectPath))))
+				if (!GlobalCommandLine.Rocket && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, RawProjectPath.Directory))
 				{
 					RetVal = true;
 					break;
@@ -238,17 +238,17 @@ namespace AutomationTool
 			return RetVal;
 		}
 
-		private static void GenerateTempTarget(string RawProjectPath)
+		private static void GenerateTempTarget(FileReference RawProjectPath)
 		{
 			// read in the template target cs file
 			var TempCSFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "Target.cs.template");
 			string TargetCSFile = File.ReadAllText(TempCSFile);
 
 			// replace {GAME_NAME} with the game name
-			TargetCSFile = TargetCSFile.Replace("{GAME_NAME}", Path.GetFileNameWithoutExtension(RawProjectPath));
+			TargetCSFile = TargetCSFile.Replace("{GAME_NAME}", Path.GetFileNameWithoutExtension(RawProjectPath.FullName));
 
 			// write out the file in a new Source directory
-			string FileName = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs");
+			string FileName = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath.FullName) + ".Target.cs");
 			if (!Directory.Exists(Path.GetDirectoryName(FileName)))
 			{
 				Directory.CreateDirectory(Path.GetDirectoryName(FileName));
@@ -262,25 +262,25 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>Project properties.</returns>
-		private static ProjectProperties DetectProjectProperties(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
+		private static ProjectProperties DetectProjectProperties(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
 		{
 			var Properties = new ProjectProperties();
 			Properties.RawProjectPath = RawProjectPath;
 
 			// detect if the project is content only, but has non-default build settings
 			List<string> ExtraSearchPaths = null;
-			if (!string.IsNullOrEmpty(RawProjectPath))
+			if (RawProjectPath != null)
 			{
 				if (RequiresTempTarget(RawProjectPath, ClientTargetPlatforms))
 				{
 					GenerateTempTarget(RawProjectPath);
 					Properties.bWasGenerated = true;
 					ExtraSearchPaths = new List<string>();
-					ExtraSearchPaths.Add(CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source"));
+					ExtraSearchPaths.Add(CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source"));
 				}
-				else if (File.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs")))
+				else if (File.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath.FullName) + ".Target.cs")))
 				{
-					File.Delete(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs"));
+					File.Delete(Path.Combine(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath.FullName) + ".Target.cs"));
 				}
 			}
 
@@ -292,14 +292,14 @@ namespace AutomationTool
 			else
 			{
 				// should never ask for engine targets if we can't compile
-				if (String.IsNullOrEmpty(RawProjectPath))
+				if (RawProjectPath == null)
 				{
 					throw new AutomationException("Cannot determine engine targets if we can't compile.");
 				}
 
 				Properties.bIsCodeBasedProject = Properties.bWasGenerated;
 				// if there's a Source directory with source code in it, then mark us as having source code
-				string SourceDir = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Source");
+				string SourceDir = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath.FullName), "Source");
 				if (Directory.Exists(SourceDir))
 				{
 					string[] CppFiles = Directory.GetFiles(SourceDir, "*.cpp", SearchOption.AllDirectories);
@@ -309,14 +309,14 @@ namespace AutomationTool
 			}
 
 			// check to see if the uproject loads modules, only if we haven't already determined it is a code based project
-			if (!Properties.bIsCodeBasedProject)
+			if (!Properties.bIsCodeBasedProject && RawProjectPath != null)
 			{
-				string uprojectStr = File.ReadAllText(RawProjectPath);
+				string uprojectStr = File.ReadAllText(RawProjectPath.FullName);
 				Properties.bIsCodeBasedProject = uprojectStr.Contains("\"Modules\"");
 			}
 
 			// Get all ini files
-			if (!String.IsNullOrWhiteSpace(RawProjectPath))
+			if (RawProjectPath != null)
 			{
 				CommandUtils.LogVerbose("Loading ini files for {0}", RawProjectPath);
 
@@ -325,7 +325,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Engine", new DirectoryReference(Path.GetDirectoryName(RawProjectPath)), new DirectoryReference(EngineDirectory));
+						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Engine", RawProjectPath.Directory, new DirectoryReference(EngineDirectory));
 						Properties.EngineConfigs.Add(TargetPlatformType, Config);
 					}
 				}
@@ -334,7 +334,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Game", new DirectoryReference(Path.GetDirectoryName(RawProjectPath)));
+						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Game", RawProjectPath.Directory);
 						Properties.GameConfigs.Add(TargetPlatformType, Config);
 					}
 				}
@@ -351,7 +351,7 @@ namespace AutomationTool
 		/// <param name="TargetType">Target type.</param>
 		/// <param name="bIsUProjectFile">True if uproject file.</param>
 		/// <returns>Binaries path.</returns>
-		public static string GetClientProjectBinariesRootPath(string RawProjectPath, TargetRules.TargetType TargetType, bool bIsCodeBasedProject)
+		public static string GetClientProjectBinariesRootPath(FileReference RawProjectPath, TargetRules.TargetType TargetType, bool bIsCodeBasedProject)
 		{
 			var BinPath = String.Empty;
 			switch (TargetType)
@@ -367,7 +367,7 @@ namespace AutomationTool
 					}
 					else
 					{
-						BinPath = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath), "Binaries");
+						BinPath = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath.FullName), "Binaries");
 					}
 					break;
 			}
@@ -404,13 +404,13 @@ namespace AutomationTool
 
 			var GameFolders = new List<DirectoryReference>();
 			var RulesFolder = new DirectoryReference(GetRulesAssemblyFolder());
-			if (!String.IsNullOrEmpty(Properties.RawProjectPath))
+			if (Properties.RawProjectPath != null)
 			{
 				CommandUtils.LogVerbose("Looking for targets for project {0}", Properties.RawProjectPath);
 
 				TargetsDllFilename = FileReference.Combine(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
 
-				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath);
+				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath.FullName);
 				GameFolders.Add(new DirectoryReference(FullProjectPath));
 				CommandUtils.LogVerbose("Searching for target rule files in {0}", FullProjectPath);
 			}
@@ -602,7 +602,7 @@ namespace AutomationTool
         public class BranchUProject
         {
             public string GameName;
-            public string FilePath;
+            public FileReference FilePath;
             public ProjectProperties Properties;
 
             public BranchUProject(UnrealBuildTool.UProjectInfo InfoEntry)
@@ -610,14 +610,14 @@ namespace AutomationTool
                 GameName = InfoEntry.GameName;
 
                 //not sure what the heck this path is relative to
-                FilePath = InfoEntry.FilePath.FullName;
+                FilePath = InfoEntry.FilePath;
 
-                if (!CommandUtils.FileExists_NoExceptions(FilePath))
+                if (!CommandUtils.FileExists_NoExceptions(FilePath.FullName))
                 {
                     throw new AutomationException("Could not resolve relative path corrctly {0} -> {1} which doesn't exist.", InfoEntry.FilePath, FilePath);
                 }
 
-                Properties = ProjectUtils.GetProjectProperties(Path.GetFullPath(FilePath));
+                Properties = ProjectUtils.GetProjectProperties(FilePath);
 
 
 
@@ -625,7 +625,7 @@ namespace AutomationTool
             public BranchUProject()
             {
                 GameName = "UE4";
-                Properties = ProjectUtils.GetProjectProperties("");
+                Properties = ProjectUtils.GetProjectProperties(null);
                 if (!Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
                 {
                     throw new AutomationException("Base UE4 project did not contain an editor target.");
@@ -732,7 +732,7 @@ namespace AutomationTool
 					{
 						NonCodeProjects.Add(UProject);
 						// the base project uses BlankProject if it really needs a .uproject file
-						if (String.IsNullOrEmpty(BaseEngineProject.FilePath) && UProject.GameName == "BlankProject")
+						if (BaseEngineProject.FilePath == null && UProject.GameName == "BlankProject")
 						{
 							BaseEngineProject.FilePath = UProject.FilePath;
 						}

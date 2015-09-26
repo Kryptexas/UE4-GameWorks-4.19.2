@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using UnrealBuildTool;
 
 
 namespace AutomationTool
@@ -21,7 +22,7 @@ namespace AutomationTool
 		/// <param name="Dirs">List of directories to cook, can be null</param>
 		/// <param name="TargetPlatform">Target platform.</param>
 		/// <param name="Parameters">List of additional parameters.</param>
-		public static void CookCommandlet(string ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string[] Dirs = null, string InternationalizationPreset = "", string[] Cultures = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "-Unversioned")
+		public static void CookCommandlet(FileReference ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string[] Dirs = null, string InternationalizationPreset = "", string[] Cultures = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "-Unversioned")
 		{
 			string MapsToCook = "";
 			if (IsNullOrEmpty(Maps))
@@ -59,7 +60,7 @@ namespace AutomationTool
         /// <param name="Maps">List of maps to cook, can be null in which case -MapIniSection=AllMaps is used.</param>
         /// <param name="TargetPlatform">Target platform.</param>
         /// <param name="Parameters">List of additional parameters.</param>
-        public static void DDCCommandlet(string ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "")
+        public static void DDCCommandlet(FileReference ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "")
         {
             string MapsToCook = "";
             if (!IsNullOrEmpty(Maps))
@@ -79,7 +80,7 @@ namespace AutomationTool
         /// <param name="Maps">List of maps to cook, can be null in which case -MapIniSection=AllMaps is used.</param>
         /// <param name="TargetPlatform">Target platform.</param>
         /// <param name="Parameters">List of additional parameters.</param>
-        public static List<string> GenerateDistillFileSetsCommandlet(string ProjectName, string ManifestFile, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string Parameters = "")
+        public static List<string> GenerateDistillFileSetsCommandlet(FileReference ProjectName, string ManifestFile, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string Parameters = "")
         {
             string MapsToCook = "";
             if (!IsNullOrEmpty(Maps))
@@ -136,7 +137,7 @@ namespace AutomationTool
         /// <param name="ProjectName">Project name.</param>
         /// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
         /// <param name="Parameters">List of additional parameters.</param>
-        public static void UpdateGameProjectCommandlet(string ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string Parameters = "")
+        public static void UpdateGameProjectCommandlet(FileReference ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string Parameters = "")
         {
             RunCommandlet(ProjectName, UE4Exe, "UpdateGameProject", Parameters);
         }
@@ -148,7 +149,7 @@ namespace AutomationTool
 		/// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
 		/// <param name="Commandlet">Commandlet name.</param>
 		/// <param name="Parameters">Command line parameters (without -run=)</param>
-		public static void RunCommandlet(string ProjectName, string UE4Exe, string Commandlet, string Parameters = null)
+		public static void RunCommandlet(FileReference ProjectName, string UE4Exe, string Commandlet, string Parameters = null)
 		{
 			Log("Running UE4Editor {0} for project {1}", Commandlet, ProjectName);
 
@@ -168,7 +169,7 @@ namespace AutomationTool
 			Log("Commandlet log file is {0}", LocalLogFile);
 			string Args = String.Format(
 				"{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended {5}{4}",
-				(ProjectName == null) ? "" : CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName),
+				(ProjectName == null) ? "" : CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName.FullName),
 				Commandlet,
 				String.IsNullOrEmpty(Parameters) ? "" : Parameters,
 				CommandUtils.MakePathSafeToUseWithCommandLine(LocalLogFile),
@@ -211,7 +212,7 @@ namespace AutomationTool
 				CommandUtils.LogWarning("Commandlet {0} failed to copy the local log file from {1} to {2}. The log file will be lost.", Commandlet, LocalDDCLogFile, DestDDCLogFile);
 			}
 
-            string ProjectStatsDirectory = CombinePaths(Path.GetDirectoryName(ProjectName), "Saved", "Stats");
+            string ProjectStatsDirectory = CombinePaths(Path.GetDirectoryName(ProjectName.FullName), "Saved", "Stats");
             if (Directory.Exists(ProjectStatsDirectory))
             {
                 string DestCookerStats = CmdEnv.LogFolder;

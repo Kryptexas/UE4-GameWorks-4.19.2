@@ -86,7 +86,7 @@ public class IOSPlatform : Platform
 
 	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
 	{
-		string ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName);
+		string ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName);
 		if (TargetConfiguration != UnrealTargetConfiguration.Development)
 		{
 			ProjectIPA += "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString();
@@ -149,7 +149,7 @@ public class IOSPlatform : Platform
 			var DeployHandler = new UEDeployIOS();
 
 			DeployHandler.PrepForUATPackageOrDeploy(Params.ShortProjectName,
-				Path.GetDirectoryName(Params.RawProjectPath),
+				Path.GetDirectoryName(Params.RawProjectPath.FullName),
 				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
 				CombinePaths(SC.LocalRoot, "Engine"),
 				Params.Distribution, 
@@ -240,7 +240,7 @@ public class IOSPlatform : Platform
 
 				if (RemoteToolChain.bUseRPCUtil)
 				{
-					string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
+					string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath.FullName : "Engine") + "\"";
 					IPPArguments += " -config " + TargetConfiguration.ToString();
 
 					if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
@@ -285,7 +285,7 @@ public class IOSPlatform : Platform
 				{
 					List<string> IPPArguments = new List<string>();
 					IPPArguments.Add("RepackageFromStage");
-					IPPArguments.Add(Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
+					IPPArguments.Add(Params.IsCodeBasedProject ? Params.RawProjectPath.FullName : "Engine");
 					IPPArguments.Add("-config");
 					IPPArguments.Add(TargetConfiguration.ToString());
 
@@ -317,7 +317,7 @@ public class IOSPlatform : Platform
 					IPPArguments.Add(" -stagedir");
 					IPPArguments.Add(CombinePaths(Params.BaseStageDirectory, "IOS"));
 					IPPArguments.Add(" -project");
-					IPPArguments.Add(Params.RawProjectPath);
+					IPPArguments.Add(Params.RawProjectPath.FullName);
 					if (Params.IterativeDeploy)
 					{
 						IPPArguments.Add(" -iterate");
@@ -359,28 +359,28 @@ public class IOSPlatform : Platform
 		else
 		{
 			// create the ipa
-			string IPAName = CombinePaths(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + (SC.StageTargetConfigurations[0] != UnrealTargetConfiguration.Development ? ("-IOS-" + SC.StageTargetConfigurations[0].ToString()) : "") + ".ipa");
+			string IPAName = CombinePaths(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + (SC.StageTargetConfigurations[0] != UnrealTargetConfiguration.Development ? ("-IOS-" + SC.StageTargetConfigurations[0].ToString()) : "") + ".ipa");
 
 			if (!Params.IterativeDeploy || !File.Exists(IPAName) || bNeedsIPA)
 			{
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution, Params.Provision);
+				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision);
 
 				// now generate the ipa
-				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.StageTargetConfigurations[0], Params.Distribution);
+				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
 			}
 		}
 
 		PrintRunTime();
 	}
 
-	private string EnsureXcodeProjectExists(string RawProjectPath, string LocalRoot, string ShortProjectName, string ProjectRoot, bool IsCodeBasedProject, out bool bWasGenerated)
+	private string EnsureXcodeProjectExists(FileReference RawProjectPath, string LocalRoot, string ShortProjectName, string ProjectRoot, bool IsCodeBasedProject, out bool bWasGenerated)
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
-		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcodeproj");
+		string XcodeProj = RawProjectPath.FullName.Replace(".uproject", "_IOS.xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
 		//		if (!Directory.Exists (XcodeProj))
 		{
@@ -408,7 +408,7 @@ public class IOSPlatform : Platform
 		return XcodeProj;
 	}
 
-	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null)
+	private void CodeSign(string BaseDirectory, string GameName, FileReference RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null)
 	{
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
