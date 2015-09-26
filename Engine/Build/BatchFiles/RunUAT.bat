@@ -108,7 +108,6 @@ echo copying UAT log files...
 if not "%uebp_LogFolder%" == "" copy log*.txt %uebp_LogFolder%\UAT_*.*
 rem if "%uebp_LogFolder%" == "" copy log*.txt c:\LocalBuildLogs\UAT_*.*
 popd
-echo RunUAT.bat ERROR: AutomationTool was unable to run successfully.
 goto Exit_Failure
 
 :Exit_Failure
