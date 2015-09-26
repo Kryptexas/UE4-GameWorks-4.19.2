@@ -485,7 +485,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		ResolveBufferMax,
 	};
 
-	bool TargetsToTransitionWritable[ResolveBufferMax] = { true };
+	bool TargetsToTransitionWritable[ResolveBufferMax] = { true, true, true, true, true, true, true };
 	FTextureRHIParamRef TargetsToResolve[ResolveBufferMax] = { nullptr };
 
 	if(CurrentStage == DRS_BeforeBasePass)
