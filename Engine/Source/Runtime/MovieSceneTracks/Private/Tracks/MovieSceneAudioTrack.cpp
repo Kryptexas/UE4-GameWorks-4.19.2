@@ -6,6 +6,7 @@
 #include "IMovieScenePlayer.h"
 #include "SoundDefinitions.h"
 #include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundCue.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Runtime/Engine/Public/AudioDecompress.h"
 #include "MovieSceneAudioTrackInstance.h"
