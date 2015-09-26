@@ -189,6 +189,8 @@ void MovieSceneToolHelpers::TrimSection(const TSet<TWeakObjectPtr<UMovieSceneSec
 	{
 		if (Section.IsValid() && Section->IsTimeWithinSection(Time))
 		{
+			Section->SetFlags( RF_Transactional );
+
 			Section->Modify();
 
 			if (bTrimLeft)
@@ -210,6 +212,8 @@ void MovieSceneToolHelpers::SplitSection(const TSet<TWeakObjectPtr<UMovieSceneSe
 	{
 		if (Section.IsValid() && Section->IsTimeWithinSection(Time))
 		{
+			Section->SetFlags( RF_Transactional );
+
 			Section->Modify();
 
 			float SectionEndTime = Section->GetEndTime();
