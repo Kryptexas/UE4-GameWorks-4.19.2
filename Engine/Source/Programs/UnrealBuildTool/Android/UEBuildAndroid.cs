@@ -292,7 +292,7 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		public override void GetExtraModules(TargetInfo Target, UEBuildTarget BuildTarget, ref List<string> PlatformExtraModules)
+		public override void GetExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
 		{
 		}
 

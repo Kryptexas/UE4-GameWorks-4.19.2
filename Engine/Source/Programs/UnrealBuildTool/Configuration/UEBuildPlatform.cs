@@ -125,9 +125,8 @@ namespace UnrealBuildTool
 		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
 		/// </summary>
 		/// <param name="Target">The target being build</param>
-		/// <param name="BuildTarget">The UEBuildTarget getting build</param>
 		/// <param name="PlatformExtraModules">OUTPUT the list of extra modules the platform needs to add to the target</param>
-		void GetExtraModules(TargetInfo Target, UEBuildTarget BuildTarget, ref List<string> PlatformExtraModules);
+		void GetExtraModules(TargetInfo Target, List<string> PlatformExtraModules);
 
 		/// <summary>
 		/// Modify the newly created module passed in for this platform.
@@ -591,7 +590,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">     The target being build</param>
 		/// <param name="BuildTarget">    The UEBuildTarget getting build</param>
 		/// <param name="PlatformExtraModules"> OUTPUT the list of extra modules the platform needs to add to the target</param>
-		public virtual void GetExtraModules(TargetInfo Target, UEBuildTarget BuildTarget, ref List<string> PlatformExtraModules)
+		public virtual void GetExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
 		{
 		}
 
