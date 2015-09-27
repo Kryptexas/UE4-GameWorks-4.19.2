@@ -217,7 +217,7 @@ namespace UnrealBuildTool
 		static Dictionary<FileItem, IncludedFilesSet> OnlyCachedIncludedFilesMap = new Dictionary<FileItem, IncludedFilesSet>();
 
 
-		public static List<FileItem> FindAndCacheAllIncludedFiles(UEBuildTarget Target, FileItem SourceFile, IUEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, bool bOnlyCachedDependencies)
+		public static List<FileItem> FindAndCacheAllIncludedFiles(UEBuildTarget Target, FileItem SourceFile, UEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, bool bOnlyCachedDependencies)
 		{
 			List<FileItem> Result = null;
 
@@ -280,7 +280,7 @@ namespace UnrealBuildTool
 		/// <param name="CPPFile">C++ file to get the dependencies for.</param>
 		/// <param name="Result">List of CPPFile dependencies.</param>
 		/// <returns>false if CPPFile is still being processed further down the callstack, true otherwise.</returns>
-		public static bool FindAndCacheAllIncludedFiles(UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, ref IncludedFilesSet Result, bool bOnlyCachedDependencies)
+		public static bool FindAndCacheAllIncludedFiles(UEBuildTarget Target, FileItem CPPFile, UEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, ref IncludedFilesSet Result, bool bOnlyCachedDependencies)
 		{
 			IncludedFilesSet IncludedFileList;
 			var IncludedFilesMap = bOnlyCachedDependencies ? OnlyCachedIncludedFilesMap : ExhaustiveIncludedFilesMap;
@@ -426,7 +426,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Finds the names of files directly included by the given C++ file, and also whether the file contains any UObjects
 		/// </summary>
-		public static List<DependencyInclude> GetDirectIncludeDependencies(UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies)
+		public static List<DependencyInclude> GetDirectIncludeDependencies(UEBuildTarget Target, FileItem CPPFile, UEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies)
 		{
 			// Try to fulfill request from cache first.
 			List<DependencyInclude> Info = IncludeDependencyCache[Target].GetCachedDependencyInfo(CPPFile);

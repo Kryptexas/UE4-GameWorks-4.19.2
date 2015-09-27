@@ -106,7 +106,7 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		protected void AddPrerequisiteSourceFile(UEBuildTarget Target, IUEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems)
+		protected void AddPrerequisiteSourceFile(UEBuildTarget Target, UEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems)
 		{
 			PrerequisiteItems.Add(SourceFile);
 

@@ -426,7 +426,7 @@ namespace Rocket
 
 		public static void StripSymbols(UnrealTargetPlatform TargetPlatform, string[] SourceFileNames, string[] TargetFileNames)
 		{
-			IUEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(TargetPlatform);
+			UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(TargetPlatform);
 			UEToolChain ToolChain = Platform.CreateToolChain(Platform.GetCPPTargetPlatform(TargetPlatform), null);
 			for (int Idx = 0; Idx < SourceFileNames.Length; Idx++)
 			{

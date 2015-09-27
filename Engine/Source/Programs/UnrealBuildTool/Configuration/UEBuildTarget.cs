@@ -1306,7 +1306,7 @@ namespace UnrealBuildTool
 		protected void CleanTarget(BuildManifest Manifest)
 		{
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 			TargetReceipt ReceiptWithFullPaths;
 			if (!TargetReceipt.TryRead(ReceiptFileName, out ReceiptWithFullPaths))
@@ -1569,7 +1569,7 @@ namespace UnrealBuildTool
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 			TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
 			ReceiptWithFullPaths.ExpandPathVariables(UnrealBuildTool.EngineDirectory, ProjectDirectory);
-			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 			TargetReceipt BuiltReceiptWithFullPaths;
 			if (!TargetReceipt.TryRead(ReceiptFileName, out BuiltReceiptWithFullPaths))
@@ -1658,7 +1658,7 @@ namespace UnrealBuildTool
 			HashSet<string> FileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
 
 			// Get the platform we're building for
-			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
 			// Add all their include paths
 			foreach (string ModuleName in ModuleNames)
@@ -1802,7 +1802,7 @@ namespace UnrealBuildTool
 				Manifest.AddBuildProduct(BuildProduct.Path);
 			}
 
-			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			if (OnlyModules.Count == 0)
 			{
 				Manifest.AddBuildProduct(ReceiptFileName);
@@ -1916,7 +1916,7 @@ namespace UnrealBuildTool
 		{
 			if (Receipt != null)
 			{
-				IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 				if (OnlyModules == null || OnlyModules.Count == 0)
 				{
 					Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
@@ -2996,7 +2996,7 @@ namespace UnrealBuildTool
 				Result.AppendFormat("-{0}-{1}", Platform.ToString(), Configuration.ToString());
 			}
 
-			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			Result.Append(BuildPlatform.ApplyArchitectureName(""));
 
 			if (BuildConfiguration.bRunUnrealCodeAnalyzer)

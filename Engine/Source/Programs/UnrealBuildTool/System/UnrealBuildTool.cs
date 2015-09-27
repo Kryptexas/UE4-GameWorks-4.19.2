@@ -486,7 +486,7 @@ namespace UnrealBuildTool
 					{
 						if (CheckType.IsClass && !CheckType.IsAbstract)
 						{
-							if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
+							if (CheckType.IsSubclassOf(typeof(UEBuildPlatform)))
 							{
 								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
 								var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
@@ -1381,7 +1381,7 @@ namespace UnrealBuildTool
 							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) &&
 								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false))
 							{
-								IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform);
+								UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform);
 
 								UEBuildDeploy DeploymentHandler;
 								if (BuildPlatform.TryCreateDeploymentHandler(UnrealBuildTool.GetUProjectFile(), out DeploymentHandler))
@@ -2683,10 +2683,12 @@ namespace UnrealBuildTool
 				// configurations and platforms, and save it into the base intermediate folder
 				var TargetCollectionName = MakeTargetCollectionName(TargetDescs);
 
+				TargetDescriptor DescriptorWithProject = TargetDescs.FirstOrDefault(x => x.ProjectFile != null);
+
 				DirectoryReference ProjectIntermediatePath;
-				if (UnrealBuildTool.HasUProjectFile())
+				if (DescriptorWithProject != null)
 				{
-					ProjectIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder);
+					ProjectIntermediatePath = DirectoryReference.Combine(DescriptorWithProject.ProjectFile.Directory, BuildConfiguration.BaseIntermediateFolder);
 				}
 				else
 				{
