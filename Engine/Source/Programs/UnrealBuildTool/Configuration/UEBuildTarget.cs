@@ -3432,7 +3432,7 @@ namespace UnrealBuildTool
 
 		void SetUpConfigurationEnvironment()
 		{
-			UEBuildPlatform.GetBuildPlatform(Platform).SetUpConfigurationEnvironment(this);
+			UEBuildPlatform.GetBuildPlatform(Platform).SetUpConfigurationEnvironment(TargetInfo, GlobalCompileEnvironment, GlobalLinkEnvironment);
 
 			// Check to see if we're compiling a library or not
 			bool bIsBuildingDLL = OutputPaths[0].HasExtension(".dll");

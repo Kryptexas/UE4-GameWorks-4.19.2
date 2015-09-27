@@ -406,11 +406,11 @@ namespace UnrealBuildTool
 		/// Setup the configuration environment for building
 		/// </summary>
 		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetUpConfigurationEnvironment(UEBuildTarget InBuildTarget)
+		public virtual void SetUpConfigurationEnvironment(TargetInfo Target, CPPEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
 		{
 			// Determine the C++ compile/link configuration based on the Unreal configuration.
 			CPPTargetConfiguration CompileConfiguration;
-			UnrealTargetConfiguration CheckConfig = InBuildTarget.Configuration;
+			UnrealTargetConfiguration CheckConfig = Target.Configuration;
 
 			switch (CheckConfig)
 			{
@@ -419,41 +419,41 @@ namespace UnrealBuildTool
 					CompileConfiguration = CPPTargetConfiguration.Debug;
 					if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+						GlobalCompileEnvironment.Config.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
 					}
 					else
 					{
-						InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+						GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
 					}
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEBUG=1");
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEBUG=1");
 					break;
 				case UnrealTargetConfiguration.DebugGame:
 				// Individual game modules can be switched to be compiled in debug as necessary. By default, everything is compiled in development.
 				case UnrealTargetConfiguration.Development:
 					CompileConfiguration = CPPTargetConfiguration.Development;
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEVELOPMENT=1");
+					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEVELOPMENT=1");
 					break;
 				case UnrealTargetConfiguration.Shipping:
 					CompileConfiguration = CPPTargetConfiguration.Shipping;
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_SHIPPING=1");
+					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_SHIPPING=1");
 					break;
 				case UnrealTargetConfiguration.Test:
 					CompileConfiguration = CPPTargetConfiguration.Shipping;
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_TEST=1");
+					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_TEST=1");
 					break;
 			}
 
 			// Set up the global C++ compilation and link environment.
-			InBuildTarget.GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			InBuildTarget.GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
-			InBuildTarget.GlobalCompileEnvironment.Config.bCreateDebugInfo =
-				!BuildConfiguration.bDisableDebugInfo && ShouldCreateDebugInfo(InBuildTarget.Platform, CheckConfig);
-			InBuildTarget.GlobalLinkEnvironment.Config.bCreateDebugInfo = InBuildTarget.GlobalCompileEnvironment.Config.bCreateDebugInfo;
+			GlobalCompileEnvironment.Config.bCreateDebugInfo =
+				!BuildConfiguration.bDisableDebugInfo && ShouldCreateDebugInfo(Target.Platform, CheckConfig);
+			GlobalLinkEnvironment.Config.bCreateDebugInfo = GlobalCompileEnvironment.Config.bCreateDebugInfo;
 		}
 
 		/// <summary>
