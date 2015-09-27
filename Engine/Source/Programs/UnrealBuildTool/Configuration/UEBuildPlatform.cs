@@ -338,10 +338,9 @@ namespace UnrealBuildTool
 		/// Get a list of extra modules the platform requires.
 		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
 		/// </summary>
-		/// <param name="Target">     The target being build</param>
-		/// <param name="BuildTarget">    The UEBuildTarget getting build</param>
-		/// <param name="PlatformExtraModules"> OUTPUT the list of extra modules the platform needs to add to the target</param>
-		public virtual void GetExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
+		/// <param name="Target">The target being build</param>
+		/// <param name="ExtraModuleNames">List of extra modules the platform needs to add to the target</param>
+		public virtual void AddExtraModules(TargetInfo Target, List<string> ExtraModuleNames)
 		{
 		}
 
@@ -636,14 +635,6 @@ namespace UnrealBuildTool
 			}
 
 			return Configurations;
-		}
-
-		/// <summary>
-		/// Setup the binaries for this specific platform.
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetupBinaries(UEBuildTarget InBuildTarget)
-		{
 		}
 
 		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)

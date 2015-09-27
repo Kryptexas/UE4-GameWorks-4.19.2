@@ -361,15 +361,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Setup the binaries for this specific platform.
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public override void SetupBinaries(UEBuildTarget InBuildTarget)
-		{
-			// 			InBuildTarget.ExtraModuleNames.Add("ES2RHI");
-		}
-
-		/// <summary>
 		/// Creates a toolchain instance for the given platform.
 		/// </summary>
 		/// <param name="Platform">The platform to create a toolchain for</param>

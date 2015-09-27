@@ -56,9 +56,6 @@ namespace UnrealBuildTool
 				// Modules should properly identify the 'extra modules' they need now.
 				// There should be nothing here!
 			}
-
-			// Allow the platform to setup binaries
-			UEBuildPlatform.GetBuildPlatform(Platform).SetupBinaries(this);
 		}
 
 		public override void SetupDefaultGlobalEnvironment(

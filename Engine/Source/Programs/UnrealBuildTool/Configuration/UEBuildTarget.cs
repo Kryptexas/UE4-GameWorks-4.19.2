@@ -2242,9 +2242,6 @@ namespace UnrealBuildTool
 				AddPlugin(BuildPlugin);
 			}
 
-			// Allow the platform to setup binaries/plugins/modules
-			UEBuildPlatform.GetBuildPlatform(Platform).SetupBinaries(this);
-
 			// Describe what's being built.
 			Log.TraceVerbose("Building {0} - {1} - {2} - {3}", AppName, TargetName, Platform, Configuration);
 
@@ -3050,7 +3047,7 @@ namespace UnrealBuildTool
 		{
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			List<string> PlatformExtraModules = new List<string>();
-			BuildPlatform.GetExtraModules(TargetInfo, PlatformExtraModules);
+			BuildPlatform.AddExtraModules(TargetInfo, PlatformExtraModules);
 			ExtraModuleNames.AddRange(PlatformExtraModules);
 		}
 

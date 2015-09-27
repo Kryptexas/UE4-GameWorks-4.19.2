@@ -217,13 +217,14 @@ namespace UnrealBuildTool
 		/// Get a list of extra modules the platform requires.
 		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platfomr.
 		/// </summary>
-		/// <param name="Target">     The target being build</param>
-		/// <param name="PlatformExtraModules"> OUTPUT the list of extra modules the platform needs to add to the target</param>
-		public override void GetExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
+		/// <param name="Target">The target being build</param>
+		/// <param name="PlatformExtraModules">List of extra modules the platform needs to add to the target</param>
+		public override void AddExtraModules(TargetInfo Target, List<string> ExtraModuleNames)
 		{
+			ExtraModuleNames.Add("XInput");
 			if (Target.Platform == UnrealTargetPlatform.WinRT)
 			{
-				PlatformExtraModules.Add("XAudio2");
+				ExtraModuleNames.Add("XAudio2");
 			}
 		}
 
@@ -612,15 +613,6 @@ namespace UnrealBuildTool
 				default:
 					return true;
 			};
-		}
-
-		/// <summary>
-		/// Setup the binaries for this specific platform.
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public override void SetupBinaries(UEBuildTarget InBuildTarget)
-		{
-			InBuildTarget.ExtraModuleNames.Add("XInput");
 		}
 
 		//
