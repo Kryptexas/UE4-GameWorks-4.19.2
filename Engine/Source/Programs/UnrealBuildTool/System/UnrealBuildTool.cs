@@ -857,6 +857,10 @@ namespace UnrealBuildTool
 				{
 					UEBuildConfiguration.bCompileCEF3 = false;
 				}
+				else if (LowercaseArg == "-winxp")
+				{
+					UEBuildConfiguration.PreferredSubPlatform = "WindowsXP";
+				}
 				else if (LowercaseArg == "-rununrealcodeanalyzer")
 				{
 					BuildConfiguration.bRunUnrealCodeAnalyzer = true;

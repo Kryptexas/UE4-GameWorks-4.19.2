@@ -415,22 +415,18 @@ namespace UnrealBuildTool
 			string[] CmdLine = Environment.GetCommandLineArgs();
 
 			bool SupportWindowsXPIfAvailable = false;
-			SupportWindowsXPIfAvailable = CmdLine.Contains("-winxp", StringComparer.InvariantCultureIgnoreCase);
 
 			// ...check if it was supported from a config.
-			if (!SupportWindowsXPIfAvailable)
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", UnrealBuildTool.GetUProjectPath());
+			string MinimumOS;
+			if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
 			{
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", UnrealBuildTool.GetUProjectPath());
-				string MinimumOS;
-				if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
+				if (string.IsNullOrEmpty(MinimumOS) == false)
 				{
-					if (string.IsNullOrEmpty(MinimumOS) == false)
-					{
-						SupportWindowsXPIfAvailable = MinimumOS == "MSOS_XP";
-					}
+					SupportWindowsXPIfAvailable = MinimumOS == "MSOS_XP";
 				}
 			}
-
+	
 			SupportWindowsXP = SupportWindowsXPIfAvailable;
 		}
 
@@ -535,13 +531,9 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
 
 			// Should we enable Windows XP support
-			if ((InBuildTarget.TargetType == TargetRules.TargetType.Program) && (GetCPPTargetPlatform(InBuildTarget.Platform) == CPPTargetPlatform.Win32))
+			if(UEBuildConfiguration.PreferredSubPlatform.Equals("WindowsXP", StringComparison.InvariantCultureIgnoreCase))
 			{
-				// Check if the target has requested XP support.
-				if (String.Equals(InBuildTarget.Rules.PreferredSubPlatform, "WindowsXP", StringComparison.InvariantCultureIgnoreCase))
-				{
-					SupportWindowsXP = true;
-				}
+				SupportWindowsXP = true;
 			}
 
 			if (WindowsPlatform.bUseWindowsSDK10 && WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)

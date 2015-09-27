@@ -285,6 +285,11 @@ namespace UnrealBuildTool
 		public static bool bCompileCEF3;
 
 		/// <summary>
+		/// Allow a target to specify a preferred sub-platform. Can be used to target a build using sub platform specifics.
+		/// </summary>
+		public static string PreferredSubPlatform = "";
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -324,6 +329,7 @@ namespace UnrealBuildTool
 			bAllowHotReloadFromIDE = true;
 			bSkipLinkingWhenNothingToCompile = false;
 			bCompileCEF3 = true;
+			PreferredSubPlatform = "";
 		}
 
 		/// <summary>
