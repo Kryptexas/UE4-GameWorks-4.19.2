@@ -464,6 +464,16 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
+		{
+			return new IOSToolChain(ProjectFile);
+		}
+
+		/// <summary>
 		/// Create a build deployment handler
 		/// </summary>
 		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>

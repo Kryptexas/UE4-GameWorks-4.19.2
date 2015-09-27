@@ -366,8 +366,10 @@ namespace UnrealBuildTool
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 			NDKPath = NDKPath.Replace("\"", "");
 
+			AndroidToolChain ToolChain = new AndroidToolChain(InBuildTarget.ProjectFile);
+
 			string GccVersion = "4.6";
-			int NDKVersionInt = AndroidToolChain.GetNdkApiLevelInt();
+			int NDKVersionInt = ToolChain.GetNdkApiLevelInt();
 			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
 			{
 				GccVersion = "4.8";
@@ -459,10 +461,12 @@ namespace UnrealBuildTool
 			};
 		}
 
-		public override List<FileReference> FinalizeBinaryPaths(FileReference BinaryName)
+		public override List<FileReference> FinalizeBinaryPaths(FileReference BinaryName, FileReference ProjectFile)
 		{
-			var Architectures = AndroidToolChain.GetAllArchitectures();
-			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			AndroidToolChain ToolChain = new AndroidToolChain(ProjectFile);
+
+			var Architectures = ToolChain.GetAllArchitectures();
+			var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 
 			// make multiple output binaries
 			List<FileReference> AllBinaries = new List<FileReference>();
@@ -477,9 +481,14 @@ namespace UnrealBuildTool
 			return AllBinaries;
 		}
 
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
+		{
+			return new AndroidToolChain(ProjectFile);
+		}
+
 		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
 		{
-			DeploymentHandler = new UEDeployAndroid();
+			DeploymentHandler = new UEDeployAndroid(ProjectFile);
 			return true;
 		}
 	}

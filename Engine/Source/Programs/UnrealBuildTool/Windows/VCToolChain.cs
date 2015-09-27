@@ -12,15 +12,10 @@ namespace UnrealBuildTool
 {
 	public class VCToolChain : UEToolChain
 	{
-		public override void RegisterToolChain()
+		public VCToolChain(CPPTargetPlatform CppPlatform)
+			: base(CppPlatform)
 		{
-			// Register this tool chain for both Win64 and Win32
-			Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.Win64.ToString());
-			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Win64, this);
-			Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.Win32.ToString());
-			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Win32, this);
 		}
-
 
 		static void AddDefinition(StringBuilder String, string Definition)
 		{

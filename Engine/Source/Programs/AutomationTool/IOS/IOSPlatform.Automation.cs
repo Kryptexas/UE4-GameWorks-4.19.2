@@ -148,7 +148,8 @@ public class IOSPlatform : Platform
 			// copy in all of the artwork and plist
 			var DeployHandler = new UEDeployIOS();
 
-			DeployHandler.PrepForUATPackageOrDeploy(Params.ShortProjectName,
+			DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
+				Params.ShortProjectName,
 				Path.GetDirectoryName(Params.RawProjectPath.FullName),
 				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
 				CombinePaths(SC.LocalRoot, "Engine"),

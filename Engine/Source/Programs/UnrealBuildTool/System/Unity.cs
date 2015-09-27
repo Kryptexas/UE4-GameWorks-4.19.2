@@ -150,7 +150,7 @@ namespace UnrealBuildTool
 		/// <param name="BaseName">Base name to use for the Unity files</param>
 		/// <returns>The "unity" C++ files.</returns>
 		public static List<FileItem> GenerateUnityCPPs(
-			IUEToolChain ToolChain,
+			UEToolChain ToolChain,
 			UEBuildTarget Target,
 			List<FileItem> CPPFiles,
 			CPPEnvironment CompileEnvironment,

@@ -15,18 +15,18 @@ namespace UnrealBuildTool
 		static bool bEnableTracing = false;
 
 		// cache the location of SDK tools
-		public override void RegisterToolChain()
+		public HTML5ToolChain()
+			: base(CPPTargetPlatform.HTML5)
 		{
-			if (HTML5SDKInfo.IsSDKInstalled())
+			if (!HTML5SDKInfo.IsSDKInstalled())
 			{
-				// set some environment variable we'll need
-				//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
-				Environment.SetEnvironmentVariable("EMCC_CORES", "8");
-				Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
-				// finally register the toolchain that is now ready to go
-				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
-				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
+				throw new BuildException("HTML5 SDK is not installed; cannot use toolchain.");
 			}
+
+			// set some environment variable we'll need
+			//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
+			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
+			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 		}
 
 		public override void PreBuildSync()
@@ -543,11 +543,6 @@ namespace UnrealBuildTool
 				BuildProducts.Add(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
 				BuildProducts.Add(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
 			}
-		}
-
-		public override UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.HTML5;
 		}
 	};
 }

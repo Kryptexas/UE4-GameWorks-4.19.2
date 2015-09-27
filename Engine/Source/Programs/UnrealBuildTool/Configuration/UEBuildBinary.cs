@@ -212,7 +212,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public abstract IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment);
+		public abstract IEnumerable<FileItem> Build(UEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment);
 
 		/// <summary>
 		/// Called to allow the binary to modify the link environment of a different binary containing 
@@ -289,7 +289,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ToolChain">The platform toolchain</param>
 		/// <param name="BuildProducts">Mapping of produced build product to type</param>
-		public virtual void GetBuildProducts(IUEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
+		public virtual void GetBuildProducts(UEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			// Get the type of build products we're creating
 			BuildProductType Type = BuildProductType.RequiredResource;
@@ -332,7 +332,7 @@ namespace UnrealBuildTool
 		/// <param name="OutputFile">Build product to add</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
 		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, Dictionary<FileReference, BuildProductType> BuildProducts, IUEToolChain ToolChain)
+		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, Dictionary<FileReference, BuildProductType> BuildProducts, UEToolChain ToolChain)
 		{
 			BuildProducts.Add(OutputFile, OutputType);
 
@@ -549,7 +549,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(UEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			// UnrealCodeAnalyzer produces output files only for a specific module.
 			if (BuildConfiguration.bRunUnrealCodeAnalyzer && !(Modules.Any(x => x.Name == BuildConfiguration.UCAModuleToAnalyze)))
@@ -637,7 +637,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ToolChain">The platform toolchain</param>
 		/// <param name="BuildProducts">Mapping of produced build product to type</param>
-		public override void GetBuildProducts(IUEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
+		public override void GetBuildProducts(UEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			base.GetBuildProducts(ToolChain, BuildProducts);
 
@@ -660,7 +660,7 @@ namespace UnrealBuildTool
 			return Config.OutputFilePath.FullName;
 		}
 
-		private LinkEnvironment SetupBinaryLinkEnvironment(IUEToolChain ToolChain, LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
+		private LinkEnvironment SetupBinaryLinkEnvironment(UEToolChain ToolChain, LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
 		{
 			var BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
 			var LinkEnvironmentVisitedModules = new HashSet<UEBuildModule>();
@@ -745,7 +745,7 @@ namespace UnrealBuildTool
 			return BinaryLinkEnvironment;
 		}
 
-		private List<FileItem> SetupOutputFiles(IUEToolChain ToolChain, ref LinkEnvironment BinaryLinkEnvironment)
+		private List<FileItem> SetupOutputFiles(UEToolChain ToolChain, ref LinkEnvironment BinaryLinkEnvironment)
 		{
 			// Early exits first
 			if (ProjectFileGenerator.bGenerateProjectFiles)
@@ -862,7 +862,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(UEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			var ProjectCSharpEnviroment = new CSharpEnvironment();
 			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)

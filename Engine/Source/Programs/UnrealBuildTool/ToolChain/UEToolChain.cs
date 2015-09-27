@@ -9,83 +9,14 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	public interface IUEToolChain
+	public abstract class UEToolChain
 	{
-		void RegisterToolChain();
+		public readonly CPPTargetPlatform CppPlatform;
 
-		CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
-
-		CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles);
-
-		FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
-
-		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile);
-
-		/// <summary>
-		/// Converts the passed in path from UBT host to compiler native format.
-		/// </summary>
-		String ConvertPath(String OriginalPath);
-
-		/// <summary>
-		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
-		/// </summary>
-		/// <param name="Manifest">List of UObject modules we generated code for.</param>
-		void PostCodeGeneration(UHTManifest Manifest);
-
-		void PreBuildSync();
-
-		void PostBuildSync(UEBuildTarget Target);
-
-		ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment);
-
-		void SetUpGlobalEnvironment();
-
-		void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts);
-
-		bool ShouldAddDebugFileToReceipt(FileReference OutputFile, BuildProductType OutputType);
-
-		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
-
-		void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries);
-
-		UnrealTargetPlatform GetPlatform();
-
-		void StripSymbols(string SourceFileName, string TargetFileName);
-	}
-
-	public abstract class UEToolChain : IUEToolChain
-	{
-		static Dictionary<CPPTargetPlatform, IUEToolChain> CPPToolChainDictionary = new Dictionary<CPPTargetPlatform, IUEToolChain>();
-
-		public static void RegisterPlatformToolChain(CPPTargetPlatform InPlatform, IUEToolChain InToolChain)
+		public UEToolChain(CPPTargetPlatform InCppPlatform)
 		{
-			if (CPPToolChainDictionary.ContainsKey(InPlatform) == true)
-			{
-				Log.TraceInformation("RegisterPlatformToolChain Warning: Registering tool chain {0} for {1} when it is already set to {2}",
-					InToolChain.ToString(), InPlatform.ToString(), CPPToolChainDictionary[InPlatform].ToString());
-				CPPToolChainDictionary[InPlatform] = InToolChain;
-			}
-			else
-			{
-				CPPToolChainDictionary.Add(InPlatform, InToolChain);
-			}
+			CppPlatform = InCppPlatform;
 		}
-
-		public static void UnregisterPlatformToolChain(CPPTargetPlatform InPlatform)
-		{
-			CPPToolChainDictionary.Remove(InPlatform);
-		}
-
-		public static IUEToolChain GetPlatformToolChain(CPPTargetPlatform InPlatform)
-		{
-			if (CPPToolChainDictionary.ContainsKey(InPlatform) == true)
-			{
-				return CPPToolChainDictionary[InPlatform];
-			}
-			throw new BuildException("GetPlatformToolChain: No tool chain found for {0}", InPlatform.ToString());
-		}
-
-		public abstract void RegisterToolChain();
 
 		public abstract CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
 
@@ -219,14 +150,9 @@ namespace UnrealBuildTool
 
 		}
 
-		public virtual UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.Unknown;
-		}
-
 		public virtual void StripSymbols(string SourceFileName, string TargetFileName)
 		{
-			Log.TraceWarning("StripSymbols() has not been implemented for {0}; copying files", GetPlatform().ToString());
+			Log.TraceWarning("StripSymbols() has not been implemented for {0}; copying files", CppPlatform.ToString());
 			File.Copy(SourceFileName, TargetFileName, true);
 		}
 	};

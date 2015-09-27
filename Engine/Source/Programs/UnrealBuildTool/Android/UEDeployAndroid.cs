@@ -18,6 +18,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		private List<string> PossibleApiLevels = null;
 
+		private FileReference ProjectFile;
+
+		public UEDeployAndroid(FileReference InProjectFile)
+		{
+			ProjectFile = InProjectFile;
+		}
+
 		/// <summary>
 		/// Simple function to pipe output asynchronously
 		/// </summary>
@@ -52,7 +59,7 @@ namespace UnrealBuildTool
 			ConfigCacheIni config = null;
 			if (!ConfigCache.TryGetValue(baseIniName, out config))
 			{
-				config = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+				config = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
 				ConfigCache.Add(baseIniName, config);
 			}
 
@@ -60,7 +67,7 @@ namespace UnrealBuildTool
 		}
 
 		private string CachedSDKLevel = null;
-		private string GetSdkApiLevel()
+		private string GetSdkApiLevel(AndroidToolChain ToolChain)
 		{
 			if (CachedSDKLevel == null)
 			{
@@ -72,7 +79,7 @@ namespace UnrealBuildTool
 				// if we want to use whatever version the ndk uses, then use that
 				if (SDKLevel == "matchndk")
 				{
-					SDKLevel = AndroidToolChain.GetNdkApiLevel();
+					SDKLevel = ToolChain.GetNdkApiLevel();
 				}
 
 				// run a command and capture output
@@ -94,7 +101,7 @@ namespace UnrealBuildTool
 
 					if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
 					{
-						SDKLevel = AndroidToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+						SDKLevel = ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
 					}
 					else
 					{
@@ -529,7 +536,7 @@ namespace UnrealBuildTool
 			Utils.RunLocalProcessAndLogOutput(StartInfo);
 		}
 
-		private static void CopySTL(string UE4BuildPath, string UE4Arch, bool bForDistribution)
+		private static void CopySTL(AndroidToolChain ToolChain, string UE4BuildPath, string UE4Arch, bool bForDistribution)
 		{
 			string Arch = GetNDKArch(UE4Arch);
 
@@ -539,7 +546,7 @@ namespace UnrealBuildTool
 				GccVersion = "4.8";
 			}
 			// only use 4.9 if NDK version > 19
-			if (AndroidToolChain.GetNdkApiLevelInt() > 19 && Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.9")))
+			if (ToolChain.GetNdkApiLevelInt() > 19 && Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.9")))
 			{
 				GccVersion = "4.9";
 			}
@@ -668,7 +675,7 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		private void UpdateProjectProperties(string UE4BuildPath, string ProjectName)
+		private void UpdateProjectProperties(AndroidToolChain ToolChain, string UE4BuildPath, string ProjectName)
 		{
 			Log.TraceInformation("\n===={0}====UPDATING BUILD CONFIGURATION FILES====================================================", DateTime.Now.ToString());
 
@@ -742,7 +749,7 @@ namespace UnrealBuildTool
 
 			// now update the project for each library
 			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
-			string UpdateCommandLine = "--silent update project --subprojects --name " + ProjectName + " --path . --target " + GetSdkApiLevel();
+			string UpdateCommandLine = "--silent update project --subprojects --name " + ProjectName + " --path . --target " + GetSdkApiLevel(ToolChain);
 			foreach (string Lib in LibsToBeAdded)
 			{
 				string LocalUpdateCommandLine = UpdateCommandLine + " --library " + Lib;
@@ -751,7 +758,7 @@ namespace UnrealBuildTool
 				// and later code needs each lib to have a build.xml
 				if (!File.Exists(Path.Combine(Lib, "build.xml")))
 				{
-					RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(), "");
+					RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(ToolChain), "");
 				}
 				RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, LocalUpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
 			}
@@ -759,7 +766,7 @@ namespace UnrealBuildTool
 		}
 
 
-		private string GetAllBuildSettings(string BuildPath, bool bForDistribution, bool bMakeSeparateApks, bool bPackageDataInsideApk, bool bDisableVerifyOBBOnStartUp)
+		private string GetAllBuildSettings(AndroidToolChain ToolChain, string BuildPath, bool bForDistribution, bool bMakeSeparateApks, bool bPackageDataInsideApk, bool bDisableVerifyOBBOnStartUp)
 		{
 			// make the settings string - this will be char by char compared against last time
 			StringBuilder CurrentSettings = new StringBuilder();
@@ -767,7 +774,7 @@ namespace UnrealBuildTool
 			CurrentSettings.AppendLine(string.Format("ANDROID_HOME={0}", Environment.GetEnvironmentVariable("ANDROID_HOME")));
 			CurrentSettings.AppendLine(string.Format("ANT_HOME={0}", Environment.GetEnvironmentVariable("ANT_HOME")));
 			CurrentSettings.AppendLine(string.Format("JAVA_HOME={0}", Environment.GetEnvironmentVariable("JAVA_HOME")));
-			CurrentSettings.AppendLine(string.Format("SDKVersion={0}", GetSdkApiLevel()));
+			CurrentSettings.AppendLine(string.Format("SDKVersion={0}", GetSdkApiLevel(ToolChain)));
 			CurrentSettings.AppendLine(string.Format("bForDistribution={0}", bForDistribution));
 			CurrentSettings.AppendLine(string.Format("bMakeSeparateApks={0}", bMakeSeparateApks));
 			CurrentSettings.AppendLine(string.Format("bPackageDataInsideApk={0}", bPackageDataInsideApk));
@@ -801,13 +808,13 @@ namespace UnrealBuildTool
 				}
 			}
 
-			var Arches = AndroidToolChain.GetAllArchitectures();
+			var Arches = ToolChain.GetAllArchitectures();
 			foreach (string Arch in Arches)
 			{
 				CurrentSettings.AppendFormat("Arch={0}{1}", Arch, Environment.NewLine);
 			}
 
-			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 			foreach (string GPUArch in GPUArchitectures)
 			{
 				CurrentSettings.AppendFormat("GPUArch={0}{1}", GPUArch, Environment.NewLine);
@@ -816,11 +823,11 @@ namespace UnrealBuildTool
 			return CurrentSettings.ToString();
 		}
 
-		private bool CheckDependencies(string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, List<string> SettingsFiles,
+		private bool CheckDependencies(AndroidToolChain ToolChain, string ProjectName, string ProjectDirectory, string UE4BuildFilesPath, string GameBuildFilesPath, string EngineDirectory, List<string> SettingsFiles,
 			string CookFlavor, string OutputPath, string UE4BuildPath, bool bMakeSeparateApks, bool bPackageDataInsideApk)
 		{
-			var Arches = AndroidToolChain.GetAllArchitectures();
-			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			var Arches = ToolChain.GetAllArchitectures();
+			var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 
 			// check all input files (.so, java files, .ini files, etc)
 			bool bAllInputsCurrent = true;
@@ -1368,7 +1375,7 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk)
+		private void MakeApk(AndroidToolChain ToolChain, string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk)
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
@@ -1460,7 +1467,7 @@ namespace UnrealBuildTool
 			bool bDisableVerifyOBBOnStartUp = DisableVerifyOBBOnStartUp();
 
 			// check to see if any "meta information" is newer than last time we build
-			string CurrentBuildSettings = GetAllBuildSettings(UE4BuildPath, bForDistribution, bMakeSeparateApks, bPackageDataInsideApk, bDisableVerifyOBBOnStartUp);
+			string CurrentBuildSettings = GetAllBuildSettings(ToolChain, UE4BuildPath, bForDistribution, bMakeSeparateApks, bPackageDataInsideApk, bDisableVerifyOBBOnStartUp);
 			string BuildSettingsCacheFile = Path.Combine(UE4BuildPath, "UEBuildSettings.txt");
 
 			// do we match previous build settings?
@@ -1500,13 +1507,13 @@ namespace UnrealBuildTool
 				JavaFiles.AddRange(from t in templates select t.SourceFile);
 				JavaFiles.AddRange(from t in templates select t.DestinationFile);
 
-				bBuildSettingsMatch = CheckDependencies(ProjectName, ProjectDirectory, UE4BuildFilesPath, GameBuildFilesPath,
+				bBuildSettingsMatch = CheckDependencies(ToolChain, ProjectName, ProjectDirectory, UE4BuildFilesPath, GameBuildFilesPath,
 					EngineDirectory, JavaFiles, CookFlavor, OutputPath, UE4BuildPath, bMakeSeparateApks, bPackageDataInsideApk);
 
 			}
 
-			var Arches = AndroidToolChain.GetAllArchitectures();
-			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			var Arches = ToolChain.GetAllArchitectures();
+			var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 
 			IEnumerable<Tuple<string, string, string>> BuildList = null;
 
@@ -1629,7 +1636,7 @@ namespace UnrealBuildTool
 				File.WriteAllText(ManifestFile, Manifest);
 
 				// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
-				UpdateProjectProperties(UE4BuildPath, ProjectName);
+				UpdateProjectProperties(ToolChain, UE4BuildPath, ProjectName);
 
 				// Copy the generated .so file from the binaries directory to the jni folder
 				if (!File.Exists(SourceSOName))
@@ -1704,7 +1711,7 @@ namespace UnrealBuildTool
 
 				// after ndk-build is called, we can now copy in the stl .so (ndk-build deletes old files)
 				// copy libgnustl_shared.so to library (use 4.8 if possible, otherwise 4.6)
-				CopySTL(UE4BuildPath, Arch, bForDistribution);
+				CopySTL(ToolChain, UE4BuildPath, Arch, bForDistribution);
 				CopyGfxDebugger(UE4BuildPath, Arch);
 				CopyPluginLibs(EngineDirectory, UE4BuildPath, Arch);
 
@@ -1767,11 +1774,13 @@ namespace UnrealBuildTool
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
+			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile); 
+
 			// we need to strip architecture from any of the output paths
-			string BaseSoName = AndroidToolChain.RemoveArchName(InTarget.OutputPaths[0].FullName);
+			string BaseSoName = ToolChain.RemoveArchName(InTarget.OutputPaths[0].FullName);
 
 			// make an apk at the end of compiling, so that we can run without packaging (debugger, cook on the fly, etc)
-			MakeApk(InTarget.AppName, InTarget.ProjectDirectory.FullName, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "",
+			MakeApk(ToolChain, InTarget.AppName, InTarget.ProjectDirectory.FullName, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "",
 				bMakeSeparateApks: ShouldMakeSeparateApks(), bIncrementalPackage: true, bDisallowPackagingDataInApk: false);
 
 			// if we made any non-standard .apk files, the generated debugger settings may be wrong
@@ -1800,11 +1809,12 @@ namespace UnrealBuildTool
 			// 			return bSeparateApks;
 		}
 
-		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+		public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
 			// note that we cannot allow the data packaged into the APK if we are doing something like Launch On that will not make an obb
 			// file and instead pushes files directly via deploy
-			MakeApk(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution: bForDistribution, CookFlavor: CookFlavor,
+			AndroidToolChain ToolChain = new AndroidToolChain(ProjectFile);
+			MakeApk(ToolChain, ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution: bForDistribution, CookFlavor: CookFlavor,
 				bMakeSeparateApks: ShouldMakeSeparateApks(), bIncrementalPackage: false, bDisallowPackagingDataInApk: bIsDataDeploy);
 			return true;
 		}

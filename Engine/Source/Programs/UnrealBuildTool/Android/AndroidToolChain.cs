@@ -12,15 +12,17 @@ namespace UnrealBuildTool
 {
 	public class AndroidToolChain : UEToolChain
 	{
+		private FileReference ProjectFile;
+
 		// the number of the clang version being used to compile 
-		static private float ClangVersionFloat = 0;
+		private float ClangVersionFloat = 0;
 
 		// the list of architectures we will compile for
-		static private List<string> Arches = null;
+		private List<string> Arches = null;
 		// the list of GPU architectures we will compile for
-		static private List<string> GPUArchitectures = null;
+		private List<string> GPUArchitectures = null;
 		// a list of all architecture+GPUArchitecture names (-armv7-es2, etc)
-		static private List<string> AllComboNames = null;
+		private List<string> AllComboNames = null;
 
 		static private Dictionary<string, string[]> AllArchNames = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { "armv7", "armeabi-v7a", } }, 
@@ -43,10 +45,107 @@ namespace UnrealBuildTool
 			{ "-x64",   new string[] { "OnlineSubsystemGooglePlay", } }, 
 		};
 
-		public static void ParseArchitectures()
+		public AndroidToolChain(FileReference InProjectFile) 
+			: base(CPPTargetPlatform.Android)
+		{
+			ProjectFile = InProjectFile;
+
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+
+			// don't register if we don't have an NDKROOT specified
+			if (String.IsNullOrEmpty(NDKPath))
+			{
+				throw new BuildException("NDKROOT is not specified; cannot use Android toolchain.");
+			}
+
+			NDKPath = NDKPath.Replace("\"", "");
+
+			string ClangVersion = "";
+			string GccVersion = "";
+
+			// prefer clang 3.6, but fall back if needed for now
+			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")))
+			{
+				ClangVersion = "3.6";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")))
+			{
+				ClangVersion = "3.5";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")))
+			{
+				ClangVersion = "3.3";
+				GccVersion = "4.8";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
+			{
+				ClangVersion = "3.1";
+				GccVersion = "4.6";
+			}
+			else
+			{
+				throw new BuildException("Cannot find supported Android toolchain");
+			}
+
+			ClangVersionFloat = float.Parse(ClangVersion, System.Globalization.CultureInfo.InvariantCulture);
+			// Console.WriteLine("Compiling with clang {0}", ClangVersionFloat);
+
+			string ArchitecturePath = "";
+			string ArchitecturePathWindows32 = @"prebuilt/windows";
+			string ArchitecturePathWindows64 = @"prebuilt/windows-x86_64";
+			string ArchitecturePathMac = @"prebuilt/darwin-x86_64";
+			string ExeExtension = ".exe";
+
+			if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows64)))
+			{
+				Log.TraceVerbose("        Found Windows 64 bit versions of toolchain");
+				ArchitecturePath = ArchitecturePathWindows64;
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows32)))
+			{
+				Log.TraceVerbose("        Found Windows 32 bit versions of toolchain");
+				ArchitecturePath = ArchitecturePathWindows32;
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathMac)))
+			{
+				Log.TraceVerbose("        Found Mac versions of toolchain");
+				ArchitecturePath = ArchitecturePathMac;
+				ExeExtension = "";
+			}
+			else
+			{
+				throw new BuildException("Couldn't find 32-bit or 64-bit versions of the Android toolchain");
+			}
+
+			// set up the path to our toolchains
+			ClangPath = Path.Combine(NDKPath, @"toolchains/llvm-" + ClangVersion, ArchitecturePath, @"bin/clang++" + ExeExtension);
+			ArPathArm = Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath, @"bin/arm-linux-androideabi-ar" + ExeExtension);		//@todo android: use llvm-ar.exe instead?
+			ArPathArm64 = Path.Combine(NDKPath, @"toolchains/aarch64-linux-android-" + GccVersion, ArchitecturePath, @"bin/aarch64-linux-android-ar" + ExeExtension);	//@todo android: use llvm-ar.exe instead?
+			ArPathx86 = Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath, @"bin/i686-linux-android-ar" + ExeExtension);							//@todo android: verify x86 toolchain
+			ArPathx64 = Path.Combine(NDKPath, @"toolchains/x86_64-" + GccVersion, ArchitecturePath, @"bin/x86_64-linux-android-ar" + ExeExtension);						//@todo android: verify x64 toolchain
+
+
+			// toolchain params
+			ToolchainParamsArm = " -target armv7-none-linux-androideabi" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm") + "\"" +
+								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath) + "\"";
+			ToolchainParamsArm64 = " -target aarch64-none-linux-android" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm64") + "\"" +
+								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/aarch64-linux-android-" + GccVersion, ArchitecturePath) + "\"";
+			ToolchainParamsx86 = " -target i686-none-linux-android" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86") + "\"" +
+								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath) + "\"";
+			ToolchainParamsx64 = " -target x86_64-none-linux-android" +
+								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86_64") + "\"" +
+								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains\x86_64-" + GccVersion, ArchitecturePath) + "\"";
+		}
+
+		public void ParseArchitectures()
 		{
 			// look in ini settings for what platforms to compile for
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
 			Arches = new List<string>();
 			bool bBuild = true;
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild)
@@ -123,7 +222,7 @@ namespace UnrealBuildTool
 			ParseArchitectures();
 		}
 
-		static public List<string> GetAllArchitectures()
+		public List<string> GetAllArchitectures()
 		{
 			if (Arches == null)
 			{
@@ -133,7 +232,7 @@ namespace UnrealBuildTool
 			return Arches;
 		}
 
-		static public List<string> GetAllGPUArchitectures()
+		public List<string> GetAllGPUArchitectures()
 		{
 			if (GPUArchitectures == null)
 			{
@@ -143,9 +242,9 @@ namespace UnrealBuildTool
 			return GPUArchitectures;
 		}
 
-		static public int GetNdkApiLevelInt(int MinNdk = 19)
+		public int GetNdkApiLevelInt(int MinNdk = 19)
 		{
-			string NDKVersion = AndroidToolChain.GetNdkApiLevel();
+			string NDKVersion = GetNdkApiLevel();
 			int NDKVersionInt = MinNdk;
 			if (NDKVersion.Contains("-"))
 			{
@@ -159,10 +258,10 @@ namespace UnrealBuildTool
 			return NDKVersionInt;
 		}
 
-		static public string GetNdkApiLevel()
+		public string GetNdkApiLevel()
 		{
 			// ask the .ini system for what version to use
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
 			string NDKLevel;
 			Ini.GetString("/Script/AndroidPlatformEditor.AndroidSDKSettings", "NDKAPILevel", out NDKLevel);
 
@@ -182,7 +281,7 @@ namespace UnrealBuildTool
 			return NDKLevel;
 		}
 
-		static public string GetLargestApiLevel(string[] ApiLevels)
+		public string GetLargestApiLevel(string[] ApiLevels)
 		{
 			int LargestLevel = 0;
 			string LargestString = null;
@@ -214,106 +313,7 @@ namespace UnrealBuildTool
 			return LargestString;
 		}
 
-		public override void RegisterToolChain()
-		{
-			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-
-			// don't register if we don't have an NDKROOT specified
-			if (String.IsNullOrEmpty(NDKPath))
-			{
-				return;
-			}
-
-			NDKPath = NDKPath.Replace("\"", "");
-
-			string ClangVersion = "";
-			string GccVersion = "";
-
-			// prefer clang 3.6, but fall back if needed for now
-			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")))
-			{
-				ClangVersion = "3.6";
-				GccVersion = "4.9";
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")))
-			{
-				ClangVersion = "3.5";
-				GccVersion = "4.9";
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")))
-			{
-				ClangVersion = "3.3";
-				GccVersion = "4.8";
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
-			{
-				ClangVersion = "3.1";
-				GccVersion = "4.6";
-			}
-			else
-			{
-				return;
-			}
-
-			ClangVersionFloat = float.Parse(ClangVersion, System.Globalization.CultureInfo.InvariantCulture);
-			// Console.WriteLine("Compiling with clang {0}", ClangVersionFloat);
-
-			string ArchitecturePath = "";
-			string ArchitecturePathWindows32 = @"prebuilt/windows";
-			string ArchitecturePathWindows64 = @"prebuilt/windows-x86_64";
-			string ArchitecturePathMac = @"prebuilt/darwin-x86_64";
-			string ExeExtension = ".exe";
-
-			if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows64)))
-			{
-				Log.TraceVerbose("        Found Windows 64 bit versions of toolchain");
-				ArchitecturePath = ArchitecturePathWindows64;
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows32)))
-			{
-				Log.TraceVerbose("        Found Windows 32 bit versions of toolchain");
-				ArchitecturePath = ArchitecturePathWindows32;
-			}
-			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathMac)))
-			{
-				Log.TraceVerbose("        Found Mac versions of toolchain");
-				ArchitecturePath = ArchitecturePathMac;
-				ExeExtension = "";
-			}
-			else
-			{
-				Log.TraceVerbose("        Did not find 32 bit or 64 bit versions of toolchain");
-				return;
-			}
-
-			// set up the path to our toolchains
-			ClangPath = Path.Combine(NDKPath, @"toolchains/llvm-" + ClangVersion, ArchitecturePath, @"bin/clang++" + ExeExtension);
-			ArPathArm = Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath, @"bin/arm-linux-androideabi-ar" + ExeExtension);		//@todo android: use llvm-ar.exe instead?
-			ArPathArm64 = Path.Combine(NDKPath, @"toolchains/aarch64-linux-android-" + GccVersion, ArchitecturePath, @"bin/aarch64-linux-android-ar" + ExeExtension);	//@todo android: use llvm-ar.exe instead?
-			ArPathx86 = Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath, @"bin/i686-linux-android-ar" + ExeExtension);							//@todo android: verify x86 toolchain
-			ArPathx64 = Path.Combine(NDKPath, @"toolchains/x86_64-" + GccVersion, ArchitecturePath, @"bin/x86_64-linux-android-ar" + ExeExtension);						//@todo android: verify x64 toolchain
-
-
-			// toolchain params
-			ToolchainParamsArm = " -target armv7-none-linux-androideabi" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm") + "\"" +
-								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/arm-linux-androideabi-" + GccVersion, ArchitecturePath) + "\"";
-			ToolchainParamsArm64 = " -target aarch64-none-linux-android" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-arm64") + "\"" +
-								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/aarch64-linux-android-" + GccVersion, ArchitecturePath) + "\"";
-			ToolchainParamsx86 = " -target i686-none-linux-android" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86") + "\"" +
-								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains/x86-" + GccVersion, ArchitecturePath) + "\"";
-			ToolchainParamsx64 = " -target x86_64-none-linux-android" +
-								   " --sysroot=\"" + Path.Combine(NDKPath, "platforms", GetNdkApiLevel(), "arch-x86_64") + "\"" +
-								   " -gcc-toolchain \"" + Path.Combine(NDKPath, @"toolchains\x86_64-" + GccVersion, ArchitecturePath) + "\"";
-
-			// Register this tool chain
-			Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.Android.ToString());
-			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Android, this);
-		}
-
-		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment, string Architecture)
+		string GetCLArguments_Global(CPPEnvironment CompileEnvironment, string Architecture)
 		{
 			string Result = "";
 
@@ -536,7 +536,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetLinkArguments(LinkEnvironment LinkEnvironment, string Architecture)
+		string GetLinkArguments(LinkEnvironment LinkEnvironment, string Architecture)
 		{
 			string Result = "";
 
@@ -674,7 +674,7 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		static bool ShouldSkipLib(string Lib, string Arch, string GPUArchitecture)
+		bool ShouldSkipLib(string Lib, string Arch, string GPUArchitecture)
 		{
 			// reject any libs we outright don't want to link with
 			foreach (var LibName in LibrariesToSkip[Arch])
@@ -788,7 +788,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static void GenerateEmptyLinkFunctionsForRemovedModules(List<FileItem> SourceFiles, string ModuleName, DirectoryReference OutputDirectory)
+		void GenerateEmptyLinkFunctionsForRemovedModules(List<FileItem> SourceFiles, string ModuleName, DirectoryReference OutputDirectory)
 		{
 			// Only add to UELinkerFixups module
 			if (!ModuleName.Equals("Launch"))
@@ -1107,12 +1107,12 @@ namespace UnrealBuildTool
 			return Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileNameWithoutExtension(Pathname) + Arch + GPUArchitecture + Path.GetExtension(Pathname));
 		}
 
-		static public string RemoveArchName(string Pathname)
+		public string RemoveArchName(string Pathname)
 		{
 			// remove all architecture names
-			foreach (string Arch in Arches)
+			foreach (string Arch in GetAllArchitectures())
 			{
-				foreach (string GPUArchitecture in GPUArchitectures)
+				foreach (string GPUArchitecture in GetAllGPUArchitectures())
 				{
 					Pathname = Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileName(Pathname).Replace(Arch + GPUArchitecture, ""));
 				}
@@ -1281,11 +1281,6 @@ namespace UnrealBuildTool
 			{
 				Log.TraceInformation(Line.Data);
 			}
-		}
-
-		public override UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.Android;
 		}
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)

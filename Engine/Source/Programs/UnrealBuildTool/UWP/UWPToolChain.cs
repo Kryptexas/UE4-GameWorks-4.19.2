@@ -13,14 +13,9 @@ namespace UnrealBuildTool
 {
 	public class UWPToolChain : UEToolChain
 	{
-		public override void RegisterToolChain()
+		public UWPToolChain() 
+			: base(CPPTargetPlatform.UWP)
 		{
-			if (UWPPlatform.bEnableUWPSupport)
-			{
-				// Register this tool chain for UWP
-				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.UWP.ToString());
-				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.UWP, this);
-			}
 		}
 
 		static void AppendCLArguments_Global(CPPEnvironment CompileEnvironment, VCEnvironment EnvVars, StringBuilder Arguments)

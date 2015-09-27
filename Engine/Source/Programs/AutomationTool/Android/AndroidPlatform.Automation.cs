@@ -112,11 +112,12 @@ public class AndroidPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
-		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
+		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		var Architectures = ToolChain.GetAllArchitectures();
+		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 
-		var Deploy = new UEDeployAndroid();
+		var Deploy = new UEDeployAndroid(Params.RawProjectPath);
 		bool bPackageDataInsideApk = Deploy.PackageDataInsideApk(false);
 
 		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
@@ -176,7 +177,7 @@ public class AndroidPlatform : Platform
 				{
 					string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
 					string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-					Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
+					Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
 				}
 
 			    // Create APK specific OBB in case we have a detached OBB.
@@ -317,10 +318,11 @@ public class AndroidPlatform : Platform
 			throw new AutomationException(ExitCode.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
-		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
+		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		var Architectures = ToolChain.GetAllArchitectures();
+		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = new UnrealBuildTool.UEDeployAndroid().PackageDataInsideApk(false);
+		bool bPackageDataInsideApk = new UnrealBuildTool.UEDeployAndroid(Params.RawProjectPath).PackageDataInsideApk(false);
 
 		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
@@ -510,12 +512,12 @@ public class AndroidPlatform : Platform
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
 		// make sure APK is up to date (this is fast if so)
-		var Deploy = new UEDeployAndroid();
+		var Deploy = new UEDeployAndroid(Params.RawProjectPath);
 		if (!Params.Prebuilt)
 		{
 			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
 			string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);
+			Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);
 		}
 
 		// now we can use the apk to get more info
@@ -976,7 +978,7 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		var AppArchitectures = AndroidToolChain.GetAllArchitectures();
+		var AppArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllArchitectures();
 
 		// ask the device
 		ProcessResult ABIResult = RunAdbCommand(Params, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
@@ -1041,7 +1043,7 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		var AppGPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+		var AppGPUArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
 
 		// get the device extensions
 		ProcessResult ExtensionsResult = RunAdbCommand(Params, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);

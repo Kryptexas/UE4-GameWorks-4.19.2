@@ -161,7 +161,7 @@ namespace UnrealBuildTool
 		/// For platforms that need to output multiple files per binary (ie Android "fat" binaries)
 		/// this will emit multiple paths. By default, it simply makes an array from the input
 		/// </summary>
-		List<FileReference> FinalizeBinaryPaths(FileReference BinaryName);
+		List<FileReference> FinalizeBinaryPaths(FileReference BinaryName, FileReference ProjectFile);
 
 		/// <summary>
 		/// Setup the configuration environment for building
@@ -246,6 +246,14 @@ namespace UnrealBuildTool
 		/// return true if the project uses the default build config
 		/// </summary>
 		bool HasDefaultBuildConfig(UnrealTargetPlatform InPlatform, DirectoryReference InProjectPath);
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform. There should be a single toolchain instance per-target, as their may be
+		/// state data and configuration cached between calls.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile);
 
 		/// <summary>
 		/// Create a build deployment handler
@@ -638,7 +646,7 @@ namespace UnrealBuildTool
 		/// For platforms that need to output multiple files per binary (ie Android "fat" binaries)
 		/// this will emit multiple paths. By default, it simply makes an array from the input
 		/// </summary>
-		public virtual List<FileReference> FinalizeBinaryPaths(FileReference BinaryName)
+		public virtual List<FileReference> FinalizeBinaryPaths(FileReference BinaryName, FileReference ProjectFile)
 		{
 			List<FileReference> TempList = new List<FileReference>() { BinaryName };
 			return TempList;
@@ -952,6 +960,15 @@ namespace UnrealBuildTool
 			return DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/BuildSettings.BuildSettings",
 				BoolKeys, null, null);
 		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform. There should be a single toolchain instance per-target, as their may be
+		/// state data and configuration cached between calls.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <param name="ProjectFile">The path to the project file for this target</param>
+		/// <returns>New toolchain instance.</returns>
+		public abstract UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile);
 
 		/// <summary>
 		/// Create a build deployment handler

@@ -17,11 +17,10 @@ namespace UnrealBuildTool
 {
 	class IOSToolChain : AppleToolChain
 	{
-		public override void RegisterToolChain()
+		public IOSToolChain(FileReference InProjectFile)
+			: base(CPPTargetPlatform.IOS, UnrealTargetPlatform.Mac, InProjectFile)
 		{
-			RegisterRemoteToolChain(UnrealTargetPlatform.Mac, CPPTargetPlatform.IOS);
 		}
-
 
 		/***********************************************************************
 		 * NOTE:
@@ -715,7 +714,7 @@ namespace UnrealBuildTool
 			else
 			{
 				bool bIsUE4Game = LinkEnvironment.Config.OutputFilePath.FullName.Contains("UE4Game");
-				FileReference ResponsePath = FileReference.Combine((!bIsUE4Game && UnrealBuildTool.HasUProjectFile()) ? UnrealBuildTool.GetUProjectPath() : UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder, "LinkFileList_" + LinkEnvironment.Config.OutputFilePath.GetFileNameWithoutExtension() + ".tmp");
+				FileReference ResponsePath = FileReference.Combine((!bIsUE4Game && ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder, "LinkFileList_" + LinkEnvironment.Config.OutputFilePath.GetFileNameWithoutExtension() + ".tmp");
 				if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					ResponseFile.Create(ResponsePath, InputFileNames);
@@ -1002,7 +1001,7 @@ namespace UnrealBuildTool
 					// generate the dummy project so signing works
 					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(UnrealBuildTool.GetUProjectFile()), new string[] { "-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk" });
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk" });
 						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcodeproj";
 					}
 					else
@@ -1144,7 +1143,7 @@ namespace UnrealBuildTool
 					if (!bUseDangerouslyFastMode)
 					{
 						// generate the dummy project so signing works
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(UnrealBuildTool.GetUProjectFile()), new string[] { "-NoIntellisense", "-iosdeployonly", (UnrealBuildTool.HasUProjectFile() ? "-game" : "") });
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-NoIntellisense", "-iosdeployonly", ((Target.ProjectFile != null) ? "-game" : "") });
 					}
 
 					// now that 
@@ -1333,11 +1332,6 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-		}
-
-		public override UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.IOS;
 		}
 
 		public static int RunExecutableAndWait(string ExeName, string ArgumentList, out string StdOutResults)

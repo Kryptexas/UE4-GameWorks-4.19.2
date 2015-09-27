@@ -14,9 +14,9 @@ namespace UnrealBuildTool
 {
 	class MacToolChain : AppleToolChain
 	{
-		public override void RegisterToolChain()
+		public MacToolChain(FileReference InProjectFile) 
+			: base(CPPTargetPlatform.Mac, UnrealTargetPlatform.Mac, InProjectFile)
 		{
-			RegisterRemoteToolChain(UnrealTargetPlatform.Mac, CPPTargetPlatform.Mac);
 		}
 
 		/***********************************************************************
@@ -1638,11 +1638,6 @@ namespace UnrealBuildTool
 			}
 
 			return OutputFiles;
-		}
-
-		public override UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.Mac;
 		}
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)

@@ -29,13 +29,13 @@ namespace UnrealBuildTool
 			SSHCommandFailed = 6,
 		};
 
-		protected void RegisterRemoteToolChain(UnrealTargetPlatform InPlatform, CPPTargetPlatform CPPPlatform)
-		{
-			RemoteToolChainPlatform = InPlatform;
+		protected readonly FileReference ProjectFile;
 
-			// Register this tool chain for the given platform
-			Log.TraceVerbose("        Registered for {0}", CPPPlatform.ToString());
-			UEToolChain.RegisterPlatformToolChain(CPPPlatform, this);
+		public RemoteToolChain(CPPTargetPlatform InCppPlatform, UnrealTargetPlatform InRemoteToolChainPlatform, FileReference InProjectFile)
+			: base(InCppPlatform)
+		{
+			RemoteToolChainPlatform = InRemoteToolChainPlatform;
+			ProjectFile = InProjectFile;
 		}
 
 		/// <summary>
@@ -151,7 +151,7 @@ namespace UnrealBuildTool
 			BranchDirectory = BranchDirectory.Replace("Engine\\Source\\", "");
 		}
 
-		private static string ResolveString(string Input, bool bIsPath)
+		private string ResolveString(string Input, bool bIsPath)
 		{
 			string Result = Input;
 
@@ -187,12 +187,12 @@ namespace UnrealBuildTool
 
 				if (Result.Contains("${PROJECT_ROOT}"))
 				{
-					if (!UnrealBuildTool.HasUProjectFile())
+					if (ProjectFile == null)
 					{
 						throw new BuildException("Configuration setting was using ${PROJECT_ROOT}, but there was no project specified");
 					}
 
-					string Temp = Result.Replace("${PROJECT_ROOT}", Path.GetFullPath(UnrealBuildTool.GetUProjectPath().FullName));
+					string Temp = Result.Replace("${PROJECT_ROOT}", ProjectFile.Directory.FullName);
 
 					// get the best version
 					Result = LookForSpecialFile(Temp);
@@ -243,7 +243,7 @@ namespace UnrealBuildTool
 		{
 			base.ParseProjectSettings();
 
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirectoryReference.FromFile(ProjectFile));
 			string ServerName = RemoteServerName;
 			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RemoteServerName", out ServerName) && !String.IsNullOrEmpty(ServerName))
 			{
@@ -309,7 +309,7 @@ namespace UnrealBuildTool
 
 		// Do any one-time, global initialization for the tool chain
 		static RemoteToolChainErrorCode InitializationErrorCode = RemoteToolChainErrorCode.NoError;
-		private static RemoteToolChainErrorCode InitializeRemoteExecution()
+		private RemoteToolChainErrorCode InitializeRemoteExecution()
 		{
 			if (bHasBeenInitialized)
 			{
@@ -422,11 +422,11 @@ namespace UnrealBuildTool
 						List<string> Locations = new List<string>();
 						Locations.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"));
 						Locations.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"));
-						if (UnrealBuildTool.HasUProjectFile())
+						if (ProjectFile != null)
 						{
-							Locations.Add(Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, "Build", "NotForLicensees"));
-							Locations.Add(Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, "Build", "NoRedist"));
-							Locations.Add(Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, "Build"));
+							Locations.Add(Path.Combine(ProjectFile.Directory.FullName, "Build", "NotForLicensees"));
+							Locations.Add(Path.Combine(ProjectFile.Directory.FullName, "Build", "NoRedist"));
+							Locations.Add(Path.Combine(ProjectFile.Directory.FullName, "Build"));
 						}
 						Locations.Add(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"));
 						Locations.Add(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"));

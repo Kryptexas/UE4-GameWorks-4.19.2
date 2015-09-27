@@ -11,6 +11,11 @@ namespace UnrealBuildTool
 {
 	public abstract class AppleToolChain : RemoteToolChain
 	{
+		public AppleToolChain(CPPTargetPlatform InCppPlatform, UnrealTargetPlatform InRemoteToolChainPlatform, FileReference InProjectFile)
+			: base(InCppPlatform, InRemoteToolChainPlatform, InProjectFile)
+		{
+		}
+
 		protected static void SelectXcode(ref string DeveloperDir, bool bVerbose)
 		{
 			string Reason = "hardcoded";

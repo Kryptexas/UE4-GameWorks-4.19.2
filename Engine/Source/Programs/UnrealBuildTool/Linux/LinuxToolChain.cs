@@ -11,6 +11,69 @@ namespace UnrealBuildTool
 {
 	class LinuxToolChain : UEToolChain
 	{
+		public LinuxToolChain() 
+			: base(CPPTargetPlatform.Linux)
+		{
+			if (!CrossCompiling())
+			{
+				// use native linux toolchain
+				string[] ClangNames = { "clang++", "clang++-3.5", "clang++-3.3" };
+				foreach (var ClangName in ClangNames)
+				{
+					ClangPath = Which(ClangName);
+					if (!String.IsNullOrEmpty(ClangPath))
+					{
+						break;
+					}
+				}
+				GCCPath = Which("g++");
+				ArPath = Which("ar");
+				RanlibPath = Which("ranlib");
+				StripPath = Which("strip");
+
+				// if clang is available, zero out gcc (@todo: support runtime switching?)
+				if (!String.IsNullOrEmpty(ClangPath))
+				{
+					GCCPath = null;
+				}
+			}
+			else
+			{
+				// use cross linux toolchain if LINUX_ROOT is specified
+				BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+
+				// don't register if we don't have an LINUX_ROOT specified
+				if (String.IsNullOrEmpty(BaseLinuxPath))
+					throw new BuildException("LINUX_ROOT environment variable is not set; cannot instantiate Linux toolchain");
+
+				BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
+
+				// set up the path to our toolchains
+				GCCPath = "";
+				ClangPath = Path.Combine(BaseLinuxPath, @"bin\clang++.exe");
+				// ar and ranlib will be switched later to match the architecture
+				ArPath = "ar.exe";
+				RanlibPath = "ranlib.exe";
+				StripPath = "strip.exe";
+			}
+
+			if (!DetermineCompilerVersion())
+			{
+				throw new BuildException("Could not determine version of the compiler, not registering Linux toolchain.");
+			}
+
+			// refuse to use compilers that we know won't work
+			// disable that only if you are a dev and you know what you are doing
+			if (!UsingClang())
+			{
+				throw new BuildException("This version of the engine can only be compiled by clang - refusing to register the Linux toolchain.");
+			}
+			else if (CompilerVersionMajor == 3 && CompilerVersionMinor == 4)
+			{
+				throw new BuildException("clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.");
+			}
+		}
+
 		protected static bool CrossCompiling()
 		{
 			return BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux;
@@ -132,78 +195,6 @@ namespace UnrealBuildTool
 					CompilerVersionString, CompilerVersionMajor, CompilerVersionMinor, CompilerVersionPatch);
 			}
 			return !String.IsNullOrEmpty(CompilerVersionString);
-		}
-
-		public override void RegisterToolChain()
-		{
-			if (!CrossCompiling())
-			{
-				// use native linux toolchain
-				string[] ClangNames = { "clang++", "clang++-3.5", "clang++-3.3" };
-				foreach (var ClangName in ClangNames)
-				{
-					ClangPath = Which(ClangName);
-					if (!String.IsNullOrEmpty(ClangPath))
-					{
-						break;
-					}
-				}
-				GCCPath = Which("g++");
-				ArPath = Which("ar");
-				RanlibPath = Which("ranlib");
-				StripPath = Which("strip");
-
-				// if clang is available, zero out gcc (@todo: support runtime switching?)
-				if (!String.IsNullOrEmpty(ClangPath))
-				{
-					GCCPath = null;
-				}
-			}
-			else
-			{
-				// use cross linux toolchain if LINUX_ROOT is specified
-				BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
-
-				// don't register if we don't have an LINUX_ROOT specified
-				if (String.IsNullOrEmpty(BaseLinuxPath))
-					return;
-
-				BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
-
-				// set up the path to our toolchains
-				GCCPath = "";
-				ClangPath = Path.Combine(BaseLinuxPath, @"bin\clang++.exe");
-				// ar and ranlib will be switched later to match the architecture
-				ArPath = "ar.exe";
-				RanlibPath = "ranlib.exe";
-				StripPath = "strip.exe";
-			}
-
-			if (!DetermineCompilerVersion())
-			{
-				Console.WriteLine("\n*** Could not determine version of the compiler, not registering Linux toolchain.\n");
-				return;
-			}
-
-			// refuse to use compilers that we know won't work
-			// disable that only if you are a dev and you know what you are doing
-			if (!UsingClang())
-			{
-				Console.WriteLine("\n*** This version of the engine can only be compiled by clang - refusing to register the Linux toolchain.\n");
-				return;
-			}
-			else if (CompilerVersionMajor == 3 && CompilerVersionMinor == 4)
-			{
-				Console.WriteLine("\n*** clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.\n");
-				return;
-			}
-
-			// Register this tool chain for both Linux
-			if (BuildConfiguration.bPrintDebugInfo)
-			{
-				Console.WriteLine("        Registered for {0}", CPPTargetPlatform.Linux.ToString());
-			}
-			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Linux, this);
 		}
 
 		/// <summary>
@@ -1157,11 +1148,6 @@ namespace UnrealBuildTool
 			}
 
 			return OutputFiles;
-		}
-
-		public override UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.Linux;
 		}
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)

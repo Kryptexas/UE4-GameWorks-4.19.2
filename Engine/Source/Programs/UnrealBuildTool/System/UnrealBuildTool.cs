@@ -500,13 +500,7 @@ namespace UnrealBuildTool
 				{
 					if (CheckType.IsClass && !CheckType.IsAbstract)
 					{
-						if (Utils.ImplementsInterface<IUEToolChain>(CheckType))
-						{
-							Log.TraceVerbose("    Registering tool chain    : {0}", CheckType.ToString());
-							var TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-							TempInst.RegisterToolChain();
-						}
-						else if (CheckType.IsSubclassOf(typeof(UEPlatformProjectGenerator)))
+						if (CheckType.IsSubclassOf(typeof(UEPlatformProjectGenerator)))
 						{
 							ProjectGeneratorList.Add(CheckType);
 						}
@@ -1396,7 +1390,7 @@ namespace UnrealBuildTool
 									BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
 									var TargetDescs = UEBuildTarget.ParseTargetCommandLine(Arguments, GetUProjectFile());
 									UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(TargetDescs[0]);	// @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
-									IUEToolChain ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(TargetDescs[0].Platform));
+									UEToolChain ToolChain = BuildPlatform.CreateToolChain(BuildPlatform.GetCPPTargetPlatform(TargetDescs[0].Platform), UnrealBuildTool.GetUProjectFile());
 									CheckTarget.SetupGlobalEnvironment(ToolChain);
 									if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
 										(CheckTarget.TargetType == TargetRules.TargetType.Server) ||
@@ -1624,7 +1618,7 @@ namespace UnrealBuildTool
 			string ExecutorName = "Unknown";
 			ECompilationResult BuildResult = ECompilationResult.Succeeded;
 
-			var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
+			var ToolChain = BuildPlatform.CreateToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform), UnrealBuildTool.GetUProjectFile());
 
 			string EULAViolationWarning = null;
 			Thread CPPIncludesThread = null;
@@ -2212,7 +2206,7 @@ namespace UnrealBuildTool
 
 			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && bIsEditorTarget)
 			{
-				var EditorProcessFilenames = UEBuildTarget.MakeExecutablePaths(UnrealBuildTool.EngineDirectory, "UE4Editor", TargetDesc.Platform, TargetDesc.Configuration, UnrealTargetConfiguration.Development, false, null);
+				var EditorProcessFilenames = UEBuildTarget.MakeExecutablePaths(UnrealBuildTool.EngineDirectory, "UE4Editor", TargetDesc.Platform, TargetDesc.Configuration, UnrealTargetConfiguration.Development, false, null, null);
 				if (EditorProcessFilenames.Count != 1)
 				{
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeExecutablePaths");

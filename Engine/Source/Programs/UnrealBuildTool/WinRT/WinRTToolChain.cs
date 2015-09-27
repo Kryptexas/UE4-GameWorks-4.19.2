@@ -11,13 +11,9 @@ namespace UnrealBuildTool
 {
 	class WinRTToolChain : UEToolChain
 	{
-		public override void RegisterToolChain()
+		public WinRTToolChain(CPPTargetPlatform InCppPlatform)
+			: base(InCppPlatform)
 		{
-			// Register this tool chain for WinRT
-			Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.WinRT.ToString());
-			Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.WinRT_ARM.ToString());
-			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.WinRT, this);
-			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.WinRT_ARM, this);
 		}
 
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
@@ -975,11 +971,6 @@ namespace UnrealBuildTool
 
 				bAreEnvironmentVariablesAlreadyInitialized = true;
 			}
-		}
-
-		public override UnrealTargetPlatform GetPlatform()
-		{
-			return UnrealTargetPlatform.WinRT;
 		}
 	};
 }
