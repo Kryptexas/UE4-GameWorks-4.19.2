@@ -90,7 +90,7 @@ Time to get our hands dirty and script the functionality of our Main Menu. At th
 
 1.	Open the **First Person Character** Blueprint inside the **Content/FirstPersonBP/Blueprints** folder. 
 
-1.	Following the **Event Begin Play** script, add a **Get Player Controller** then **Set Input Mode Game Only** node. 
+1.	Following the **Event Begin Play** script, add a **Get Player Controller** then add a **Set Input Mode Game Only** node. 
 
 	![](PlayerCharacterBlueprint.png)(w:820)
 
