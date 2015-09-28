@@ -12,6 +12,7 @@
 UInvalidationBox::UInvalidationBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bCanCache = true;
 	Visibility = ESlateVisibility::SelfHitTestInvisible;
 }
 
@@ -31,6 +32,10 @@ TSharedRef<SWidget> UInvalidationBox::RebuildWidget()
 	if ( IsDesignTime() )
 	{
 		MyInvalidationPanel->SetCanCache(false);
+	}
+	else
+	{
+		MyInvalidationPanel->SetCanCache(bCanCache);
 	}
 
 	if ( GetChildrenCount() > 0 )
@@ -64,6 +69,25 @@ void UInvalidationBox::InvalidateCache()
 	if ( MyInvalidationPanel.IsValid() )
 	{
 		return MyInvalidationPanel->InvalidateCache();
+	}
+}
+
+bool UInvalidationBox::GetCanCache() const
+{
+	if ( MyInvalidationPanel.IsValid() )
+	{
+		return MyInvalidationPanel->GetCanCache();
+	}
+
+	return bCanCache;
+}
+
+void UInvalidationBox::SetCanCache(bool CanCache)
+{
+	bCanCache = CanCache;
+	if ( MyInvalidationPanel.IsValid() )
+	{
+		return MyInvalidationPanel->SetCanCache(bCanCache);
 	}
 }
 
