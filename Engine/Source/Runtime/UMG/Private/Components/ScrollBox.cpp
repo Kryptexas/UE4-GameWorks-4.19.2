@@ -130,10 +130,13 @@ void UScrollBox::ScrollToEnd()
 
 void UScrollBox::ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll)
 {
-	TSharedPtr<SWidget> SlateWidgetToFind = WidgetToFind->GetCachedWidget();
-	if ( MyScrollBox.IsValid() )
+	if ( WidgetToFind )
 	{
-		MyScrollBox->ScrollDescendantIntoView(SlateWidgetToFind, AnimateScroll);
+		TSharedPtr<SWidget> SlateWidgetToFind = WidgetToFind->GetCachedWidget();
+		if ( MyScrollBox.IsValid() )
+		{
+			MyScrollBox->ScrollDescendantIntoView(SlateWidgetToFind, AnimateScroll);
+		}
 	}
 }
 
