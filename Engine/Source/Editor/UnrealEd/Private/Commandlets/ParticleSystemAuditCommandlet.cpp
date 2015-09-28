@@ -112,6 +112,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			bool bMissingMaterial = false;
 			bool bHasHighSpawnRateOrBurst = false;
 			bool bHasRibbonTrailOrBeam = false;
+			bool bHasOnlyBeamsOrHasNoEmitters = true;
 			bool bHasSpawnPerUnit = false;
 			for (int32 EmitterIdx = 0; EmitterIdx < PSys->Emitters.Num(); EmitterIdx++)
 			{
@@ -145,6 +146,11 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 								Cast<UParticleModuleTypeDataAnimTrail>(LODLevel->TypeDataModule))
 							{
 								bHasRibbonTrailOrBeam = true;
+							}
+
+							if (!Cast<UParticleModuleTypeDataBeam2>(LODLevel->TypeDataModule))
+							{
+								bHasOnlyBeamsOrHasNoEmitters = false;
 							}
 
 							for (int32 ModuleIdx = 0; ModuleIdx < LODLevel->Modules.Num(); ModuleIdx++)
@@ -216,7 +222,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 				ParticleSystemsWithNoLODs.Add(PSys->GetPathName());
 			}
 			// Note all single LOD case PSystems...
-			if (bSingleLOD == true)
+			if (bSingleLOD == true && !bHasOnlyBeamsOrHasNoEmitters)
 			{
 				ParticleSystemsWithSingleLOD.Add(PSys->GetPathName());
 			}
