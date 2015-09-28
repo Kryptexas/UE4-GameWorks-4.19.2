@@ -104,6 +104,9 @@ struct FAndroidGamepadDeviceMapping
 	// Device supports hat as dpad
 	bool bSupportsHat;
 
+	// Map L1 and R1 to LTRIGGER and RTRIGGER
+	bool bMapL1R1ToTriggers;
+
 	// Right stick on Z/RZ
 	bool bRightStickZRZ;
 
