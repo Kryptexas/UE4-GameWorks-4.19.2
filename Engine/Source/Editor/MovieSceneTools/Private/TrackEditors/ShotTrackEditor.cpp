@@ -568,7 +568,7 @@ void FShotTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 	}
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AddShotTrack", "Add Shot Track"),
+		LOCTEXT("AddShotTrack", "Shot Track"),
 		LOCTEXT("AddShotTooltip", "Adds a shot track, as well as a new shot at the current scrubber location if a camera is selected."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Tracks.Shot"),
 		FUIAction(
@@ -585,7 +585,7 @@ void FShotTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, co
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("AddShot", "Add New Shot"),
+			LOCTEXT("AddShot", "New Shot"),
 			LOCTEXT("AddShotTooltip", "Adds a new shot using this camera at the scrubber location."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateRaw(this, &FShotTrackEditor::HandleAddShotMenuEntryExecute, ObjectBinding))

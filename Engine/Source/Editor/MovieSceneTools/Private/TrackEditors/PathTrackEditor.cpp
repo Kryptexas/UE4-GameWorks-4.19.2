@@ -204,7 +204,7 @@ void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, 
 		if (SelectedActors.Num()+UnselectedActors.Num() > 0)
 		{
 			MenuBuilder.AddSubMenu(
-				NSLOCTEXT("Sequencer", "AddPath", "Add Path"), NSLOCTEXT("Sequencer", "AddPathTooltip", "Adds a path track."),
+				NSLOCTEXT("Sequencer", "AddPath", "Path"), NSLOCTEXT("Sequencer", "AddPathTooltip", "Adds a path track."),
 				FNewMenuDelegate::CreateRaw(this, &F3DPathTrackEditor::AddPathSubMenu, ObjectBinding));
 		}
 		else
@@ -212,7 +212,7 @@ void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, 
 			AActor* ActorWithSplineComponent = nullptr;
 			FFormatNamedArguments Args;
 			MenuBuilder.AddMenuEntry(
-				FText::Format( NSLOCTEXT("Sequencer", "AddPath", "Add Path"), Args),
+				FText::Format( NSLOCTEXT("Sequencer", "AddPath", "Path"), Args),
 				FText::Format( NSLOCTEXT("Sequencer", "AddPathTooltip", "Adds a path track."), Args ),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &F3DPathTrackEditor::AddPath, ObjectBinding, (UObject*)ActorWithSplineComponent),

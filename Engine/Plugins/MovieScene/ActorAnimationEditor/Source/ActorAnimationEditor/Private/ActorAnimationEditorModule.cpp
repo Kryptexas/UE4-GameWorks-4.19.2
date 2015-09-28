@@ -20,7 +20,7 @@ public:
 	/** Initialize commands */
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND(CreateNewActorAnimationInLevel, "Add New Actor Animation", "Create a new actor animation asset, and place an instance of it in this level", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND(CreateNewActorAnimationInLevel, "Add Actor Animation", "Create a new actor animation asset, and place an instance of it in this level", EUserInterfaceActionType::Button, FInputChord());
 	}
 };
 

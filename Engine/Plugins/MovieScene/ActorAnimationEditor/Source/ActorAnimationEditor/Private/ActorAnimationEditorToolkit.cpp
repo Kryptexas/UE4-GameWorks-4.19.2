@@ -101,7 +101,7 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 			FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder){
 
 				MenuBuilder.AddSubMenu(
-					LOCTEXT("AddActor_Label", "Add Actor To Sequencer"),
+					LOCTEXT("AddActor_Label", "Actor To Sequencer"),
 					LOCTEXT("AddActor_ToolTip", "Allow sequencer to possess an actor that already exists in the current level"),
 					FNewMenuDelegate::CreateRaw(this, &FActorAnimationEditorToolkit::AddPosessActorMenuExtensions),
 					false /*bInOpenSubMenuOnClick*/,

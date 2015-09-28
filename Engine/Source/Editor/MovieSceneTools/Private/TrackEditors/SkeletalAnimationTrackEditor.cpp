@@ -225,7 +225,7 @@ void FSkeletalAnimationTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& Me
 			if (AssetDataList.Num())
 			{
 				MenuBuilder.AddSubMenu(
-					NSLOCTEXT("Sequencer", "AddAnimation", "Add Animation"), NSLOCTEXT("Sequencer", "AddAnimationTooltip", "Adds an animation track."),
+					NSLOCTEXT("Sequencer", "AddAnimation", "Animation"), NSLOCTEXT("Sequencer", "AddAnimationTooltip", "Adds an animation track."),
 					FNewMenuDelegate::CreateRaw(this, &FSkeletalAnimationTrackEditor::BuildAnimationSubMenu, ObjectBinding, Skeleton));
 			}
 		}

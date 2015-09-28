@@ -45,7 +45,7 @@ void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 	}
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AddEventTrack", "Add Event Track"),
+		LOCTEXT("AddEventTrack", "Event Track"),
 		LOCTEXT("AddEventTooltip", "Adds a new event track that can trigger events on the timeline."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Tracks.Event"),
 		FUIAction(

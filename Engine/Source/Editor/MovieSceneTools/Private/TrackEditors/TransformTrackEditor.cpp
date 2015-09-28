@@ -476,7 +476,7 @@ void F3DTransformTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuil
 	{
 		FFormatNamedArguments Args;
 		MenuBuilder.AddMenuEntry(
-			FText::Format( NSLOCTEXT("Sequencer", "AddTransform", "Add Transform"), Args),
+			FText::Format( NSLOCTEXT("Sequencer", "AddTransform", "Transform"), Args),
 			FText::Format( NSLOCTEXT("Sequencer", "AddPTransformTooltip", "Adds a transform track."), Args ),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &F3DTransformTrackEditor::AddTransform, ObjectBinding),

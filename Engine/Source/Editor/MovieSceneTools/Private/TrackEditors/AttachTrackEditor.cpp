@@ -220,7 +220,7 @@ void F3DAttachTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 		if (SelectedActors.Num()+UnselectedActors.Num() > 0)
 		{
 			MenuBuilder.AddSubMenu(
-				NSLOCTEXT("Sequencer", "AddAttach", "Add Attach"), NSLOCTEXT("Sequencer", "AddAttachTooltip", "Adds an attach track."),
+				NSLOCTEXT("Sequencer", "AddAttach", "Attach"), NSLOCTEXT("Sequencer", "AddAttachTooltip", "Adds an attach track."),
 				FNewMenuDelegate::CreateRaw(this, &F3DAttachTrackEditor::AddAttachSubMenu, ObjectBinding));
 		}
 		else
@@ -228,7 +228,7 @@ void F3DAttachTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 			AActor* Actor = nullptr;
 			FFormatNamedArguments Args;
 			MenuBuilder.AddMenuEntry(
-				FText::Format( NSLOCTEXT("Sequencer", "AddAttach", "Add Attach"), Args),
+				FText::Format( NSLOCTEXT("Sequencer", "AddAttach", "Attach"), Args),
 				FText::Format( NSLOCTEXT("Sequencer", "AddAttachTooltip", "Adds an attach track."), Args ),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &F3DAttachTrackEditor::AddAttach, ObjectBinding, (UObject*)Actor),
