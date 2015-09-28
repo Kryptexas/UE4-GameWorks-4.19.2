@@ -612,7 +612,7 @@ public:
 
 private:
 	/** A pointer to the text data for the FText that we took a snapshot of (used for an efficient pointer compare) */
-	TWeakPtr<ITextData, ESPMode::ThreadSafe> TextDataPtr;
+	TSharedPtr<ITextData, ESPMode::ThreadSafe> TextDataPtr;
 
 	/** Revision index of the history of the FText we took a snapshot of, or INDEX_NONE if there was no history */
 	int32 HistoryRevision;

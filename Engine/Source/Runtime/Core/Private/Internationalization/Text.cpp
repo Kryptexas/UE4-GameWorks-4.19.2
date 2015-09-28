@@ -1292,8 +1292,7 @@ bool FTextSnapshot::IdenticalTo(const FText& InText) const
 	// (this usually happens when ToString() is called)
 	InText.Rebuild();
 
-	TSharedPtr<ITextData, ESPMode::ThreadSafe> TextDataPin = TextDataPtr.Pin();
-	return TextDataPin == InText.TextData 
+	return TextDataPtr == InText.TextData 
 		&& HistoryRevision == InText.TextData->GetTextHistory().Revision
 		&& Flags == InText.Flags;;
 }
@@ -1306,9 +1305,8 @@ bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
 
 	// We have to assume that the display string has changed if the history of the text has changed
 	// (due to a culture change), as we no longer have the old display string to compare against
-	TSharedPtr<ITextData, ESPMode::ThreadSafe> TextDataPin = TextDataPtr.Pin();
 	return HistoryRevision == InText.TextData->GetTextHistory().Revision 
-		&& TextDataPin.IsValid() && TextDataPin->GetDisplayString().Equals(InText.ToString(), ESearchCase::CaseSensitive);
+		&& TextDataPtr.IsValid() && TextDataPtr->GetDisplayString().Equals(InText.ToString(), ESearchCase::CaseSensitive);
 }
 
 FScopedTextIdentityPreserver::FScopedTextIdentityPreserver(FText& InTextToPersist)
