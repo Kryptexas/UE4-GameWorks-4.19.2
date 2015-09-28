@@ -715,7 +715,7 @@ void UEngine::DumpFPSChartToStatsLog( float TotalTime, float DeltaTime, int32 Nu
 
 	if( OutputFile )
 	{
-		OutputFile->Logf(TEXT("Dumping FPS chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), *FEngineVersion::Current().ToString(), GetChangeListNumberForPerfTesting() );
+		OutputFile->Logf(TEXT("Dumping FPS chart at %s using build %s in config %s built from changelist %i"), *FDateTime::Now().ToString(), *FEngineVersion::Current().ToString(), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), GetChangeListNumberForPerfTesting());
 
 		// Get OS info
 		FString OSMajor;
