@@ -540,6 +540,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOut
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("MotionBlur");
+	Ret.AutoWritable = false;
 
 	return Ret;
 }
@@ -1422,6 +1423,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlurNew::ComputeOutputDesc(EPass
 	// we don't need the alpha channel and 32bit is faster and costs less memory
 	Ret.Format = PF_FloatRGB;
 	Ret.DebugName = TEXT("MotionBlur");
+	Ret.AutoWritable = false;
 
 	return Ret;
 }
@@ -1579,6 +1581,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVisualizeMotionBlur::ComputeOutputDesc
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("MotionBlur");
+	Ret.AutoWritable = false;
 
 	return Ret;
 }

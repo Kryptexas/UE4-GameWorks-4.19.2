@@ -976,6 +976,7 @@ enum class EResourceTransitionAccess
 	EWritable, //transition from read -> write	
 	ERWBarrier, // Mostly for UAVs.  Transition to read/write state and always insert a resource barrier.
 	ERWNoBarrier, //Mostly UAVs.  Indicates we want R/W access and do not require synchronization for the duration of the RW state.  The initial transition from writable->RWNoBarrier and readable->RWNoBarrier still requires a sync
+	ERWSubResBarrier, //For special cases where read/write happens to different subresources of the same resource in the same call.  Inserts a barrier, but read validation will pass.  Temporary until we pass full subresource info to all transition calls.
 	EMaxAccess,
 };
 

@@ -170,17 +170,12 @@ public:
 		, bDirty(false)
 	{}
 
-	void SetCurrentGPUAccess(EResourceTransitionAccess Access, uint32 CurrentFrame)
+	void SetCurrentGPUAccess(EResourceTransitionAccess Access)
 	{
 		if (Access == EResourceTransitionAccess::EReadable)
 		{
 			bDirty = false;
 		}
-		else
-		{
-			LastFrameWritten = CurrentFrame;
-			bDirty = true;
-		}		
 		CurrentGPUAccess = Access;
 	}
 
@@ -194,9 +189,14 @@ public:
 		return LastFrameWritten;
 	}
 
-	void SetDirty()
+	void SetDirty(bool bInDirty, uint32 CurrentFrame)
 	{
-		bDirty = true;
+		bDirty = bInDirty;
+		if (bDirty)
+		{
+			LastFrameWritten = CurrentFrame;
+		}
+		ensureMsgf(!(CurrentGPUAccess == EResourceTransitionAccess::EReadable && bDirty), TEXT("UAV is dirty, but set to Readable."));
 	}
 
 	bool IsDirty() const
@@ -751,7 +751,7 @@ public:
 	: FRHIStructuredBuffer(InStride,InSize,InUsage)
 	, Resource(InResource)
 	{
-		SetCurrentGPUAccess(EResourceTransitionAccess::ERWBarrier, -1);
+		SetCurrentGPUAccess(EResourceTransitionAccess::ERWBarrier);
 	}
 
 	virtual ~FD3D11StructuredBuffer()

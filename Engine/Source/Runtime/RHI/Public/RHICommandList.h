@@ -1879,6 +1879,29 @@ public:
 		new (AllocCommand<FRHICommandTransitionTexturesArray>()) FRHICommandTransitionTexturesArray(TransitionType, InTextures);
 	}
 
+	FORCEINLINE_DEBUGGABLE void TransitionResource(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef InUAV)
+	{
+		FUnorderedAccessViewRHIParamRef UAV = InUAV;
+		if (Bypass())
+		{
+			CMD_CONTEXT(TransitionResources)(TransitionType, TransitionPipeline, &UAV, 1);
+			return;
+		}
+		new (AllocCommand<FRHICommandTransitionUAVs>()) FRHICommandTransitionUAVs(TransitionType, TransitionPipeline, &UAV, 1);
+	}
+
+	FORCEINLINE_DEBUGGABLE void TransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(TransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs);
+			return;
+		}
+		new (AllocCommand<FRHICommandTransitionUAVs>()) FRHICommandTransitionUAVs(TransitionType, TransitionPipeline, InUAVs, NumUAVs);
+	}
+
+	
+
 // These 6 are special in that they must be called on the immediate command list and they force a flush only when we are not doing RHI thread
 	void BeginScene();
 	void EndScene();

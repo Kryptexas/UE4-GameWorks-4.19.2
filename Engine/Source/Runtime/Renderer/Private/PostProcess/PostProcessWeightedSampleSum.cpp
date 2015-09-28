@@ -656,6 +656,7 @@ FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(E
 
 	Ret.Reset();
 	Ret.DebugName = DebugName;
+	Ret.AutoWritable = false;
 
 	return Ret;
 }

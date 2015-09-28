@@ -365,7 +365,14 @@ void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 	if(UAV)
 	{
 		ConditionalClearShaderResource(UAV->Resource);		
-		UAV->Resource->SetDirty();
+
+		//check it's safe for r/w for this UAV
+		const EResourceTransitionAccess CurrentUAVAccess = UAV->Resource->GetCurrentGPUAccess();
+		const bool UAVDirty = UAV->Resource->IsDirty();
+		ensureMsgf(!UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
+
+		//UAVs always dirty themselves. If a shader wanted to just read, it should use an SRV.
+		UAV->Resource->SetDirty(true, PresentCounter);
 	}
 
 	ID3D11UnorderedAccessView* D3D11UAV = UAV ? UAV->View : NULL;
@@ -383,7 +390,14 @@ void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 	if(UAV)
 	{
 		ConditionalClearShaderResource(UAV->Resource);
-		UAV->Resource->SetDirty();
+
+		//check it's safe for r/w for this UAV
+		const EResourceTransitionAccess CurrentUAVAccess = UAV->Resource->GetCurrentGPUAccess();
+		const bool UAVDirty = UAV->Resource->IsDirty();
+		ensureMsgf(!UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
+
+		//UAVs always dirty themselves. If a shader wanted to just read, it should use an SRV.
+		UAV->Resource->SetDirty(true, PresentCounter);
 	}
 
 	ID3D11UnorderedAccessView* D3D11UAV = UAV ? UAV->View : NULL;
@@ -875,7 +889,12 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		//switch to writable state if this is the first render of the frame.  Don't switch if it's a later render and this is a depth test only situation
 		if (!bAccessValid || (bReadable && bDepthWrite))
 		{
-			NewDepthStencilTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable, CurrentFrame);			
+			NewDepthStencilTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
+		}
+
+		if (bDepthWrite)
+		{
+			NewDepthStencilTarget->SetDirty(true, CurrentFrame);
 		}
 	}
 
@@ -902,8 +921,9 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 								
 				if (!bAccessValid || bReadable)
 				{
-					NewRenderTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable, CurrentFrame);
+					NewRenderTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
 				}
+				NewRenderTarget->SetDirty(true, CurrentFrame);
 			}
 
 			ensureMsgf(RenderTargetView, TEXT("Texture being set as render target has no RTV"));
@@ -971,6 +991,18 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		{
 			FD3D11UnorderedAccessView* RHIUAV = (FD3D11UnorderedAccessView*)UAVs[UAVIndex];
 			UAV = RHIUAV->View;
+
+			if (UAV)
+			{
+				//check it's safe for r/w for this UAV
+				const EResourceTransitionAccess CurrentUAVAccess = RHIUAV->Resource->GetCurrentGPUAccess();
+				const bool UAVDirty = RHIUAV->Resource->IsDirty();
+				const bool bAccessPass = (CurrentUAVAccess == EResourceTransitionAccess::ERWBarrier && !UAVDirty) || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier);
+				ensureMsgf(bAccessPass, TEXT("UAV: %i is in unsafe state for GPU R/W: %s"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess]);
+
+				//UAVs get set to dirty.  If the shader just wanted to read it should have used an SRV.
+				RHIUAV->Resource->SetDirty(true, PresentCounter);
+			}
 
 			// Unbind any shader views of the UAV's resource.
 			ConditionalClearShaderResource(RHIUAV->Resource);
@@ -2136,7 +2168,7 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 				Resource = SourceTexture3D;
 			}
 
-			Resource->SetCurrentGPUAccess(TransitionType, PresentCounter);
+			Resource->SetCurrentGPUAccess(TransitionType);
 		}
 	}
 }
@@ -2145,10 +2177,17 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 {
 	for (int32 i = 0; i < NumUAVs; ++i)
 	{
-		FD3D11UnorderedAccessView* UAV = ResourceCast(InUAVs[i]);
-		if (UAV->Resource)
+		if (InUAVs[i])
 		{
-			UAV->Resource->SetCurrentGPUAccess(TransitionType, PresentCounter);
-		}		
+			FD3D11UnorderedAccessView* UAV = ResourceCast(InUAVs[i]);
+			if (UAV && UAV->Resource)
+			{
+				UAV->Resource->SetCurrentGPUAccess(TransitionType);
+				if (TransitionType != EResourceTransitionAccess::ERWNoBarrier)
+				{
+					UAV->Resource->SetDirty(false, PresentCounter);
+				}
+			}
+		}
 	}	
 }

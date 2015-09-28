@@ -845,7 +845,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 
 	if (Flags & TexCreate_RenderTargetable)
 	{
-		Texture2D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable, -1);		
+		Texture2D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
 	}
 
 	D3D11TextureAllocated(*Texture2D);
@@ -972,7 +972,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	if (Flags & TexCreate_RenderTargetable)
 	{
-		Texture3D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable, -1);		
+		Texture3D->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
 	}
 
 	D3D11TextureAllocated(*Texture3D);

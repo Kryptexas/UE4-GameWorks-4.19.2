@@ -207,7 +207,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBloomSetup::ComputeOutputDesc(EPassOut
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("BloomSetup");
-
+	Ret.AutoWritable = false;
 	return Ret;
 }
 

@@ -115,6 +115,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			false));
+		Desc5.AutoWritable = false;
 
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc5, Lighting, TEXT("HeightfieldLightingAtlas"));
 	}
@@ -541,6 +542,8 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 							RHICmdList.DrawPrimitive(PT_TriangleList, 0, 2, NumQuads);
 						}
 					}
+
+					RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, ARRAY_COUNT(RenderTargets));
 				}
 			}
 		}
@@ -1273,8 +1276,15 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 
-		OccluderRadius.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->OccluderRadius);
-		RecordConeVisibility.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources.ConeVisibility);
+		const FRWBuffer& OccluderRadiusOut = SurfaceCacheResources.Level[DepthLevel]->OccluderRadius;
+		const FRWBuffer& ConeVisibiliyOut = TemporaryIrradianceCacheResources.ConeVisibility;
+		FUnorderedAccessViewRHIParamRef UAVs[2];
+		UAVs[0] = OccluderRadiusOut.UAV;
+		UAVs[1] = ConeVisibiliyOut.UAV;
+
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs, ARRAY_COUNT(UAVs));
+		OccluderRadius.SetBuffer(RHICmdList, ShaderRHI, OccluderRadiusOut);
+		RecordConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ConeVisibiliyOut);
 
 		FAOSampleData2 AOSampleData;
 
@@ -1294,10 +1304,21 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, RecordRadiusScale, GAORecordRadiusScale);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel, const FTemporaryIrradianceCacheResources& TemporaryIrradianceCacheResources)
 	{
 		OccluderRadius.UnsetUAV(RHICmdList, GetComputeShader());
 		RecordConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
+
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
+
+		const FRWBuffer& OccluderRadiusOut = SurfaceCacheResources.Level[DepthLevel]->OccluderRadius;
+		const FRWBuffer& ConeVisibiliyOut = TemporaryIrradianceCacheResources.ConeVisibility;
+		FUnorderedAccessViewRHIParamRef UAVs[2];
+		UAVs[0] = OccluderRadiusOut.UAV;
+		UAVs[1] = ConeVisibiliyOut.UAV;
+
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, UAVs, ARRAY_COUNT(UAVs));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1353,7 +1374,7 @@ void FHeightfieldLightingViewInfo::ComputeOcclusionForSamples(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 
 		SCOPED_DRAW_EVENT(RHICmdList, HeightfieldOcclusion);
@@ -1379,7 +1400,7 @@ void FHeightfieldLightingViewInfo::ComputeOcclusionForSamples(
 						FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 						DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-						ComputeShader->UnsetParameters(RHICmdList);
+						ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
 					}
 				}
 			}
@@ -1455,6 +1476,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeVisibility, TemporaryIrradianceCacheResources.ConeVisibility.SRV);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources.HeightfieldIrradiance.UAV);
 		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources.HeightfieldIrradiance);
 
 		{
@@ -1493,9 +1515,10 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, OuterLightTransferDistanceScale, GHeightfieldOuterBounceDistanceScale);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FTemporaryIrradianceCacheResources& TemporaryIrradianceCacheResources)
 	{
 		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources.HeightfieldIrradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1562,7 +1585,7 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForSamples(
 			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList);
+			ComputeShader->UnsetParameters(RHICmdList, View);
 		}
 
 		SCOPED_DRAW_EVENT(RHICmdList, HeightfieldIrradiance);
@@ -1595,7 +1618,7 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForSamples(
 					FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 					DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
 
-					ComputeShader->UnsetParameters(RHICmdList);
+					ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
 				}
 			}
 		}
@@ -1658,6 +1681,7 @@ public:
 		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, NumHeightfieldsValue);
 		HeightfieldTextureParameters.Set(RHICmdList, ShaderRHI, HeightfieldTextureValue, NULL);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.ScreenGridConeVisibility.UAV);
 		ScreenGridConeVisibility.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources.ScreenGridConeVisibility);
 
 		FAOSampleData2 AOSampleData;
@@ -1676,9 +1700,10 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, TanConeHalfAngle, FMath::Tan(GAOConeHalfAngle));
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FAOScreenGridResources& ScreenGridResources)
 	{
 		ScreenGridConeVisibility.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.ScreenGridConeVisibility.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1739,7 +1764,7 @@ void FHeightfieldLightingViewInfo::ComputeOcclusionForScreenGrid(
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 					ComputeShader->SetParameters(RHICmdList, View, HeightfieldTexture, HeightfieldDescriptions.Num(), DistanceFieldNormal, ScreenGridResources, Parameters);
 					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-					ComputeShader->UnsetParameters(RHICmdList);
+					ComputeShader->UnsetParameters(RHICmdList, ScreenGridResources);
 				}
 			}
 		}
@@ -1806,6 +1831,7 @@ public:
 		ScreenGridParameters.Set(RHICmdList, ShaderRHI, View, DistanceFieldNormal);
 		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, NumHeightfieldsValue);
 
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.HeightfieldIrradiance.UAV);
 		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, ScreenGridResources.HeightfieldIrradiance);
 
 		extern float GAOConeHalfAngle;
@@ -1846,9 +1872,10 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeVisibility, ScreenGridResources.ConeDepthVisibilityFunction.SRV);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FAOScreenGridResources& ScreenGridResources)
 	{
 		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ScreenGridResources.HeightfieldIrradiance.UAV);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -1933,7 +1960,7 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForScreenGrid(
 
 					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-					ComputeShader->UnsetParameters(RHICmdList);
+					ComputeShader->UnsetParameters(RHICmdList, ScreenGridResources);
 				}
 			}
 		}

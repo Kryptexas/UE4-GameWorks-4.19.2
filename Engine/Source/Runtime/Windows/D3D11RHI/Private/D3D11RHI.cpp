@@ -183,8 +183,10 @@ void FD3D11DynamicRHI::InternalSetShaderResourceView(FD3D11BaseShaderResource* R
 	CheckIfSRVIsResolved(SRV);
 
 	if (Resource)
-	{
-		ensureMsgf(Resource->GetCurrentGPUAccess() == EResourceTransitionAccess::EReadable || Resource->GetCurrentGPUAccess() == EResourceTransitionAccess::ERWBarrier || Resource->GetLastFrameWritten() != PresentCounter, TEXT("Shader resource %s is not GPU readable.  Missing a call to RHITransitionResources()"), *SRVName.ToString());
+	{		
+		const EResourceTransitionAccess CurrentAccess = Resource->GetCurrentGPUAccess();
+		const bool bAccessPass = CurrentAccess == EResourceTransitionAccess::EReadable || (CurrentAccess == EResourceTransitionAccess::ERWBarrier && !Resource->IsDirty()) || CurrentAccess == EResourceTransitionAccess::ERWSubResBarrier;
+		ensureMsgf(bAccessPass || Resource->GetLastFrameWritten() != PresentCounter, TEXT("Shader resource %s is not GPU readable.  Missing a call to RHITransitionResources()"), *SRVName.ToString());
 	}
 
 	FD3D11BaseShaderResource*& ResourceSlot = CurrentResourcesBoundAsSRVs[ShaderFrequency][ResourceIndex];
