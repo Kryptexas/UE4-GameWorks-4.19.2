@@ -47,6 +47,11 @@ FString UKismetSystemLibrary::GetObjectName(const UObject* Object)
 	return GetNameSafe(Object);
 }
 
+FString UKismetSystemLibrary::GetPathName(const UObject* Object)
+{
+	return GetPathNameSafe(Object);
+}
+
 FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
 {
 #if WITH_EDITOR
