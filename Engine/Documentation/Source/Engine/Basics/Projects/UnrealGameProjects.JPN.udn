@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2677246
 Availability:Public
 Title:アンリアル ゲーム プロジェクト
 Crumbs: %ROOT%, Engine
 Description:ゲーム プロジェクトおよび取り扱い作業に関する概要
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -88,7 +89,7 @@ Description:ゲーム プロジェクトおよび取り扱い作業に関する�
 <!--
 プロジェクトは以下の 2 タイプのどちらかになります。
 
-* **Content-Only** - マップ、アートアセット、 _ブループリント_ などのコンテンツアセットを用いて、エディタで全ての開発を行うプロジェクトです。
+* **Content-Only (コンテンツ専用)** - マップ、アートアセット、 _ブループリント_ などのコンテンツ アセットを用いて、エディタで全ての開発を行うプロジェクトです。
 * **Code** - _コンテンツ専用_ プロジェクトで可能な通常のコンテンツ開発に加え、コード開発が行えるプロジェクトです 
 
 [REGION:tip]
