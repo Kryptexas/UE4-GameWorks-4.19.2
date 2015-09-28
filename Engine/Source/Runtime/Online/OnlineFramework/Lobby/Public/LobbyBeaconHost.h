@@ -29,14 +29,14 @@ class LOBBY_API ALobbyBeaconHost : public AOnlineBeaconHostObject
 	 *
 	 * @param InSessionName name of session the beacon is associated with
 	 */
-	bool Init(FName InSessionName);
+	virtual bool Init(FName InSessionName);
 
 	/**
 	 * Create the lobby game state and associate it with the game
 	 *
 	 * @param InMaxPlayers max number of players allowed in the lobby
 	 */
-	void SetupLobbyState(int32 InMaxPlayers);
+	virtual void SetupLobbyState(int32 InMaxPlayers);
 
 	/**
 	 * Update the party leader for a given player

@@ -1175,8 +1175,11 @@ void FOnlineSessionNull::OnLANSearchTimeout()
 
 	if (CurrentSessionSearch.IsValid())
 	{
-		// Allow game code to sort the servers
-		CurrentSessionSearch->SortSearchResults();
+		if (CurrentSessionSearch->SearchResults.Num() > 0)
+		{
+			// Allow game code to sort the servers
+			CurrentSessionSearch->SortSearchResults();
+		}
 		CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Done;
 
 		CurrentSessionSearch = NULL;

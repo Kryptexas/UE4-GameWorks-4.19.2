@@ -184,7 +184,7 @@ class LOBBY_API ALobbyBeaconState : public AInfo
 	/**
 	 * Start the waiting for other players (first player logged in success)
 	 */
-	void StartWaiting();
+	virtual void StartWaiting();
 
 	/**
 	 * Determines whether the beacon state requires a full game before allowing a lobby to start; False by default

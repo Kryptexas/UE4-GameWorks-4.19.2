@@ -447,7 +447,7 @@ public:
 
 public:
 	/** Removes all tiles at specified grid location */
-	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY);
+	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY, TMap<int32, dtPolyRef>* OldLayerTileIdMap = nullptr);
 
 	void RemoveTiles(const TArray<FIntPoint>& Tiles);
 	void ReAddTiles(const TArray<FIntPoint>& Tiles);

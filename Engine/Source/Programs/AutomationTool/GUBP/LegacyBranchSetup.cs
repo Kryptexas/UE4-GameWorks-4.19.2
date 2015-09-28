@@ -157,7 +157,13 @@ partial class GUBP
 			public bool bMakeFormalBuildWithoutLabelPromotable = false;
 			public bool bNoMonolithicDependenciesForCooks = false;
 			public bool bNoEditorDependenciesForTools = false;
+            /// <summary>
+            /// cap the frequency of each of the member nodes to the specified frequency (given as a sbyte).
+            /// </summary>
 			public Dictionary<string, sbyte> FrequencyBarriers = new Dictionary<string,sbyte>();
+            /// <summary>
+            /// Allows overriding the base frequency at which GUBP runs CIS, in minutes.
+            /// </summary>
 			public int QuantumOverride = 0;
             /// <summary>
             /// Allows a branch to override the build share it uses for temp storage for all nodes. This will override the default value for <see cref="JobInfo.RootNameForTempStorage"/>.
@@ -384,13 +390,10 @@ partial class GUBP
         if (IsBuildMachine || ParseParam("AllPlatforms"))
         {
             ActivePlatforms = new List<UnrealTargetPlatform>();
-            
-			List<BranchInfo.BranchUProject> BranchCodeProjects = new List<BranchInfo.BranchUProject>();
-			BranchCodeProjects.Add(Branch.BaseEngineProject);
-			BranchCodeProjects.AddRange(Branch.CodeProjects);
-			BranchCodeProjects.RemoveAll(Project => BranchOptions.ExcludeNodes.Contains(Project.GameName));
 
-			foreach (var GameProj in BranchCodeProjects)
+            Branch.CodeProjects.RemoveAll(Project => BranchOptions.ExcludeNodes.Contains(Project.GameName));
+
+            foreach (var GameProj in new[] { Branch.BaseEngineProject }.Concat(Branch.CodeProjects))
             {
                 foreach (var Kind in BranchInfo.MonolithicKinds)
                 {

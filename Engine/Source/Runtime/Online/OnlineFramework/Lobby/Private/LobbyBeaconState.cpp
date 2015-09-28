@@ -201,6 +201,8 @@ void ALobbyBeaconState::StartLobby()
 		WaitForPlayersTimeRemaining = 0.0f;
 		OnRep_WaitForPlayersTimeRemaining();
 
+		LastTickTime = FPlatformTime::Seconds();
+
 		bLobbyStarted = true;
 		OnRep_LobbyStarted();
 	}

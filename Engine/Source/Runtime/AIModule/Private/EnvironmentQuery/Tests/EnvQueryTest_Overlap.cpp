@@ -61,7 +61,7 @@ void UEnvQueryTest_Overlap::RunTest(FEnvQueryInstance& QueryInstance) const
 		const FVector ItemLocation = GetItemLocation(QueryInstance, It.GetIndex());
 		AActor* ItemActor = GetItemActor(QueryInstance, It.GetIndex());
 		
-		const bool bHit = OverlapFunc.Execute(ItemLocation, CollisionShape, ItemActor, QueryInstance.World, OverlapCollisionChannel, OverlapParams);
+		const bool bHit = OverlapFunc.Execute(ItemLocation + OverlapData.ShapeOffset, CollisionShape, ItemActor, QueryInstance.World, OverlapCollisionChannel, OverlapParams);
 		It.SetScore(TestPurpose, FilterType, bHit, bWantsHit);
 	}
 }

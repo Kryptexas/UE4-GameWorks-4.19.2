@@ -10,13 +10,13 @@
 
 int32 GMacDisableMouseCoalescing = 1;
 static FAutoConsoleVariableRef CVarMacDisableMouseCoalescing(
-	TEXT("r.Mac.HighPrecisionDisablesMouseCoalescing"),
+	TEXT("io.Mac.HighPrecisionDisablesMouseCoalescing"),
 	GMacDisableMouseCoalescing,
 	TEXT("If set to true then OS X mouse event coalescing will be disabled while using high-precision mouse mode, to send all mouse events to UE4's event handling routines to reduce apparent mouse lag. (Default: True)"));
 
 int32 GMacDisableMouseAcceleration = 0;
 static FAutoConsoleVariableRef CVarMacDisableMouseAcceleration(
-	TEXT("r.Mac.HighPrecisionDisablesMouseAcceleration"),
+	TEXT("io.Mac.HighPrecisionDisablesMouseAcceleration"),
 	GMacDisableMouseAcceleration,
 	TEXT("If set to true then OS X's mouse acceleration curve will be disabled while using high-precision mouse mode (typically used when games capture the mouse) resulting in a linear relationship between mouse movement & on-screen cursor movement. For some pointing devices this will make the cursor very slow. (Default: False)"));
 

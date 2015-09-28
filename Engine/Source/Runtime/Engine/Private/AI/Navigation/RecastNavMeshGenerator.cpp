@@ -3561,10 +3561,28 @@ void FRecastNavMeshGenerator::ReAddTiles(const TArray<FIntPoint>& Tiles)
 	MarkDirtyTiles(DirtyAreasContainer);*/
 }
 
-TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, const int32 TileY)
+namespace RecastTileVersionHelper
 {
-	TArray<uint32> ResultTileIndices;
+	inline uint32 GetUpdatedTileId(dtPolyRef& TileRef, dtNavMesh* DetourMesh)
+	{
+		uint32 DecodedTileId = 0, DecodedPolyId = 0, DecodedSaltId = 0;
+		DetourMesh->decodePolyId(TileRef, DecodedSaltId, DecodedTileId, DecodedPolyId);
+
+		DecodedSaltId = (DecodedSaltId + 1) & ((1 << DetourMesh->getSaltBits()) - 1);
+		if (DecodedSaltId == 0)
+		{
+			DecodedSaltId++;
+		}
+
+		TileRef = DetourMesh->encodePolyId(DecodedSaltId, DecodedTileId, DecodedPolyId);
+		return DecodedTileId;
+	}
+}
+
+TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, const int32 TileY, TMap<int32, dtPolyRef>* OldLayerTileIdMap)
+{
 	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
+	TArray<uint32> UpdatedIndices;
 	
 	if (DetourMesh != nullptr && DetourMesh->isEmpty() == false)
 	{
@@ -3579,7 +3597,7 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 			for (int32 i = 0; i < NumLayers; i++)
 			{
 				const int32 LayerIndex = Tiles[i]->header->layer;
-				const dtTileRef TileRef = DetourMesh->getTileRef(Tiles[i]);
+				dtPolyRef TileRef = DetourMesh->getTileRef(Tiles[i]);
 
 				NumActiveTiles--;
 				UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
@@ -3587,7 +3605,13 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 
 				DetourMesh->removeTile(TileRef, nullptr, nullptr);
 
-				ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(TileRef));
+				uint32 TileId = RecastTileVersionHelper::GetUpdatedTileId(TileRef, DetourMesh);
+				UpdatedIndices.AddUnique(TileId);
+
+				if (OldLayerTileIdMap)
+				{
+					OldLayerTileIdMap->Add(LayerIndex, TileRef);
+				}
 			}
 		}
 
@@ -3595,13 +3619,14 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 		DestNavMesh->RemoveTileCacheLayers(TileX, TileY);
 	}
 
-	return ResultTileIndices;
+	return UpdatedIndices;
 }
 
 TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(FRecastTileGenerator& TileGenerator)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_AddGeneratedTiles);
 	
+	TMap<int32, dtPolyRef> OldLayerTileIdMap;
 	TArray<uint32> ResultTileIndices;
 	const int32 TileX = TileGenerator.GetTileX();
 	const int32 TileY = TileGenerator.GetTileY();
@@ -3610,10 +3635,9 @@ TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(FRecastTileGenerator& 
 	if (TileGenerator.IsFullyRegenerated())
 	{
 		// remove all layers
-		ResultTileIndices = RemoveTileLayers(TileX, TileY);
+		ResultTileIndices = RemoveTileLayers(TileX, TileY, &OldLayerTileIdMap);
 	}
 
-	
 	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
 	if (DetourMesh != nullptr && IsInActiveSet(FIntPoint(TileX, TileY)))
 	{
@@ -3629,8 +3653,7 @@ TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(FRecastTileGenerator& 
 				continue;
 			}
 				
-			const dtTileRef OldTileRef = DetourMesh->getTileRefAt(TileX, TileY, LayerIndex);
-
+			dtTileRef OldTileRef = DetourMesh->getTileRefAt(TileX, TileY, LayerIndex);
 			if (OldTileRef)
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_NavMesh_RemoveOldTIle);
@@ -3640,8 +3663,13 @@ TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(FRecastTileGenerator& 
 					*DestNavMesh->GetName(), TileX, TileY, LayerIndex, OldTileRef, NumActiveTiles);
 
 				DetourMesh->removeTile(OldTileRef, nullptr, nullptr);
-			
-				ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(OldTileRef));
+
+				const uint32 TileId = RecastTileVersionHelper::GetUpdatedTileId(OldTileRef, DetourMesh);
+				ResultTileIndices.AddUnique(TileId);
+			}
+			else
+			{
+				OldTileRef = OldLayerTileIdMap.FindRef(LayerIndex);
 			}
 
 			if (TileLayers[i].IsValid()) 

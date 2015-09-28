@@ -32,8 +32,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	//		Attribute
 	// -------------------------------------------------------------------------------
 
+	/** Returns the value of Attribute from the ability system component belonging to Actor. */
 	UFUNCTION(BlueprintPure, Category = "Ability|Attribute")
 	static float GetFloatAttribute(const class AActor* Actor, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute);
+
+	/** Returns the value of Attribute from the ability system component AbilitySystem. */
+	UFUNCTION(BlueprintPure, Category = "Ability|Attribute")
+	static float GetFloatAttributeFromAbilitySystemComponent(const class UAbilitySystemComponent* AbilitySystem, FGameplayAttribute Attribute, bool& bSuccessfullyFoundAttribute);
 
 	// -------------------------------------------------------------------------------
 	//		TargetData

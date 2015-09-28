@@ -164,3 +164,6 @@ struct ENGINE_API FCurveTableRowHandle
 
 /** Macro to call GetCurve with a correct error info. Assumed to be called within a UObject */
 #define GETCURVE_REPORTERROR(Handle) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *GetPathName(), TEXT(#Handle)))
+
+/** Macro to call GetCurve with a correct error info. */
+#define GETCURVE_REPORTERROR_WITHPATHNAME(Handle, PathNameString) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *PathNameString, TEXT(#Handle)))

@@ -256,3 +256,9 @@ void APartyBeaconClient::ClientSendReservationUpdates_Implementation(int32 NumRe
 	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon reservations remaining %d"), NumRemainingReservations);
 	ReservationCountUpdate.ExecuteIfBound(NumRemainingReservations);
 }
+
+void APartyBeaconClient::ClientSendReservationFull_Implementation()
+{
+	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon reservations full"));
+	ReservationFull.ExecuteIfBound();
+}

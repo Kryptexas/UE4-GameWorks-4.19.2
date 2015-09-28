@@ -1697,17 +1697,23 @@ void UAbilitySystemComponent::NotifyAbilityFailed(const FGameplayAbilitySpecHand
 int32 UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
 {
 	int32 TriggeredCount = 0;
-	if (GameplayEventTriggeredAbilities.Contains(EventTag))
-	{		
-		TArray<FGameplayAbilitySpecHandle> TriggeredAbilityHandles = GameplayEventTriggeredAbilities[EventTag];
-
-		for (auto AbilityHandle : TriggeredAbilityHandles)
+	FGameplayTag CurrentTag = EventTag;
+	while (CurrentTag.IsValid())
+	{
+		if (GameplayEventTriggeredAbilities.Contains(CurrentTag))
 		{
-			if (TriggerAbilityFromGameplayEvent(AbilityHandle, AbilityActorInfo.Get(), EventTag, Payload, *this))
+			TArray<FGameplayAbilitySpecHandle> TriggeredAbilityHandles = GameplayEventTriggeredAbilities[CurrentTag];
+
+			for (auto AbilityHandle : TriggeredAbilityHandles)
 			{
-				TriggeredCount++;
+				if (TriggerAbilityFromGameplayEvent(AbilityHandle, AbilityActorInfo.Get(), EventTag, Payload, *this))
+				{
+					TriggeredCount++;
+				}
 			}
 		}
+
+		CurrentTag = CurrentTag.RequestDirectParent();
 	}
 
 	if (FGameplayEventMulticastDelegate* Delegate = GenericGameplayEventCallbacks.Find(EventTag))

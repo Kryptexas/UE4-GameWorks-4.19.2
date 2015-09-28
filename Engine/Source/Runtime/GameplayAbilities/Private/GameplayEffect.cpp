@@ -77,6 +77,10 @@ void UGameplayEffect::PostLoad()
 			CurModInfo.ModifierMagnitude.ScalableFloatMagnitude = CurModInfo.Magnitude;
 			CurModInfo.Magnitude = FScalableFloat();
 		}
+
+#if WITH_EDITOR
+		CurModInfo.ModifierMagnitude.ReportErrors(GetPathName());
+#endif // WITH_EDITOR
 	}
 
 	// We need to update when we first load to override values coming in from the superclass
@@ -101,6 +105,12 @@ void UGameplayEffect::PostLoad()
 			Def.Level = INDEX_NONE;
 		}
 	}
+
+#if WITH_EDITOR
+	GETCURVE_REPORTERROR(Period.Curve);
+	GETCURVE_REPORTERROR(ChanceToApplyToTarget.Curve);
+	DurationMagnitude.ReportErrors(GetPathName());
+#endif // WITH_EDITOR
 }
 
 void UGameplayEffect::PostInitProperties()
@@ -363,6 +373,19 @@ FText FGameplayEffectModifierMagnitude::GetValueForEditorDisplay() const
 	}
 
 	return NSLOCTEXT("GameplayEffect", "UnknownModifierMagnitude", "Unknown");
+}
+
+void FGameplayEffectModifierMagnitude::ReportErrors(const FString& PathName) const
+{
+	GETCURVE_REPORTERROR_WITHPATHNAME(ScalableFloatMagnitude.Curve, PathName);
+
+	GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.Coefficient.Curve, PathName);
+	GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.PreMultiplyAdditiveValue.Curve, PathName);
+	GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.PostMultiplyAdditiveValue.Curve, PathName);
+
+	GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.Coefficient.Curve, PathName);
+	GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.PreMultiplyAdditiveValue.Curve, PathName);
+	GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.PostMultiplyAdditiveValue.Curve, PathName);
 }
 #endif // WITH_EDITOR
 

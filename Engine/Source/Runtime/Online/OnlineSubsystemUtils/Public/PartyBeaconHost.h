@@ -99,10 +99,25 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 
 	/**
 	 * Get the current reservation count inside the beacon
+	 * NOTE: This is *NOT* the same as the number of consumed reservations across all parties, just the total number of reservations!
 	 *
-	 * @return number of consumed reservations
+	 * @return number of reservations inside the beacon (*NOT* number of consumed reservations)
 	 */
 	virtual int32 GetReservationCount() const { return State->GetReservationCount(); }
+
+	/**
+	 * Get the number of reservations actually used/consumed across all parties inside the beacon
+	 * 
+	 * @return the number of actually used reservations across all parties inside the beacon
+	 */
+	virtual int32 GetNumConsumedReservations() const { return State->GetNumConsumedReservations(); }
+
+	/**
+	 * Get the maximum number of reservations allowed inside the beacon
+	 * 
+	 * @return The maximum number of reservations allowed inside the beacon
+	 */
+	virtual int32 GetMaxReservations() const { return State->GetMaxReservations(); }
 
 	/**
 	 * Get the number of players on a team across all existing reservations

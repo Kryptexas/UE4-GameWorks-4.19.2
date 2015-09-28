@@ -246,6 +246,7 @@ public:
 
 #if WITH_EDITOR
 	FText GetValueForEditorDisplay() const;
+	void ReportErrors(const FString& PathName) const;
 #endif
 
 protected:

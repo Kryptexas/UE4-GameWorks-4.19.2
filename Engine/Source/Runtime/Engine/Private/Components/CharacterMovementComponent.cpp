@@ -4012,12 +4012,45 @@ FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSecon
 			// influence navmesh generation
 			FCollisionQueryParams Params(CharacterMovementComponentStatics::ProjectLocationName, false);
 			FCollisionResponseParams ResponseParams(ECR_Ignore); // ignore everything
-			ResponseParams.CollisionResponse.SetResponse(ECC_WorldStatic, ECR_Block); // get blocked only by WorldStatic
-			GetWorld()->LineTraceSingleByChannel(CachedProjectedNavMeshHitResult, TraceStart, TraceEnd, ECC_WorldStatic, Params, ResponseParams);
+			ResponseParams.CollisionResponse.SetResponse(ECC_WorldStatic, ECR_Overlap); // pretend to get blocked by WorldStatic using an Overlap
+			TArray<FHitResult> MultiTraceHits;
+			GetWorld()->LineTraceMultiByChannel(MultiTraceHits, TraceStart, TraceEnd, ECC_WorldStatic, Params, ResponseParams);
 
-			// discard result if we were already inside something
-			if (CachedProjectedNavMeshHitResult.bStartPenetrating)
+			struct FCompareFHitResultNavMeshTrace
 			{
+				explicit FCompareFHitResultNavMeshTrace(const FVector& inSourceLocation) : SourceLocation(inSourceLocation)
+				{
+				}
+
+				FORCEINLINE bool operator()(const FHitResult& A, const FHitResult& B) const
+				{
+					const float ADistSqr = (SourceLocation - A.ImpactPoint).SizeSquared();
+					const float BDistSqr = (SourceLocation - B.ImpactPoint).SizeSquared();
+
+					return (ADistSqr < BDistSqr);
+				}
+
+				const FVector& SourceLocation;
+			};
+
+			if (MultiTraceHits.Num() > 0)
+			{
+				// Sort the hits by the closest to our origin.
+				MultiTraceHits.Sort(FCompareFHitResultNavMeshTrace(TargetNavLocation));
+
+				// Cache the closest hit and treat it as a blocking hit (we used an overlap to get all the world static hits so we could sort them ourselves)
+				CachedProjectedNavMeshHitResult = MultiTraceHits[0];
+				CachedProjectedNavMeshHitResult.bBlockingHit = true;
+
+				// discard result if we were already inside something			
+				if (CachedProjectedNavMeshHitResult.bStartPenetrating)
+				{
+					CachedProjectedNavMeshHitResult.Reset();
+				}
+			}
+			else
+			{
+				// Didn't hit anything.
 				CachedProjectedNavMeshHitResult.Reset();
 			}
 		}

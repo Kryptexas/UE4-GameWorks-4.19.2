@@ -28,6 +28,7 @@ DECLARE_STATS_GROUP(TEXT("Environment Query"), STATGROUP_AI_EQS, STATCAT_Advance
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_EQS_Tick,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - EQS work"), STAT_AI_EQS_TickWork, STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - OnFinished delegates"), STAT_AI_EQS_TickNotifies, STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - Removal of completed queries"), STAT_AI_EQS_TickQueryRemovals, STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EQS_LoadTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Execute One Step Time"),STAT_AI_EQS_ExecuteOneStep,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EQS_GeneratorTime,STATGROUP_AI_EQS, );
@@ -384,7 +385,12 @@ struct AIMODULE_API FEnvOverlapData
 	GENERATED_USTRUCT_BODY()
 
 	FEnvOverlapData() :
-	ExtentX(10.0f), ExtentY(10.0f), ExtentZ(10.0f), bOnlyBlockingHits(true), bOverlapComplex(false)
+		ExtentX(10.0f),
+		ExtentY(10.0f),
+		ExtentZ(10.0f),
+		ShapeOffset(FVector::ZeroVector),
+		bOnlyBlockingHits(true),
+		bOverlapComplex(false)
 	{
 	}
 
@@ -399,6 +405,10 @@ struct AIMODULE_API FEnvOverlapData
 	/** shape parameter for overlap */
 	UPROPERTY(EditDefaultsOnly, Category = Trace, meta = (UIMin = 0, ClampMin = 0))
 	float ExtentZ;
+
+	UPROPERTY(EditDefaultsOnly, Category = Trace, AdvancedDisplay, Meta =
+		(Tooltip="Offset from the item location at which to test the overlap.  For example, you may need to offset vertically to avoid overlaps with flat ground."))
+	FVector ShapeOffset;
 
 	/** geometry trace channel used for overlap */
 	UPROPERTY(EditDefaultsOnly, Category = Overlap)

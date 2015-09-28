@@ -1129,7 +1129,11 @@ void FOnlineAsyncTaskSteamFindServerBase::Finalize()
 	SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
 	if (bWasSuccessful)
 	{
-		SearchSettings->SortSearchResults();
+		if (SearchSettings->SearchResults.Num() > 0)
+		{
+			// Allow game code to sort the servers
+			SearchSettings->SortSearchResults();
+		}
 	}
 
 	if (SessionInt->CurrentSessionSearch.IsValid() && SearchSettings == SessionInt->CurrentSessionSearch)

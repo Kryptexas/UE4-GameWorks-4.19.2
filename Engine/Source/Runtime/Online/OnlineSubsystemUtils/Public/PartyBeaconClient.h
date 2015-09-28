@@ -71,6 +71,9 @@ DECLARE_DELEGATE_OneParam(FOnReservationRequestComplete, EPartyReservationResult
  */
 DECLARE_DELEGATE_OneParam(FOnReservationCountUpdate, int32 /** NumRemaining */);
 
+/** Delegate triggered when the host indicated the reservation is full */
+DECLARE_DELEGATE(FOnReservationFull);
+
 /**
  * A beacon client used for making reservations with an existing game session
  */
@@ -169,6 +172,10 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	UFUNCTION(client, reliable)
 	virtual void ClientSendReservationUpdates(int32 NumRemainingReservations);
 
+	/** Response from the host session that the reservation is full */
+	UFUNCTION(client, reliable)
+	virtual void ClientSendReservationFull();
+
 	/**
 	 * Delegate triggered when a response from the party beacon host has been received
 	 *
@@ -183,6 +190,9 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	 */
 	FOnReservationCountUpdate& OnReservationCountUpdate() { return ReservationCountUpdate; }
 
+	/** Delegate triggered when the host indicated the reservation is full */
+	FOnReservationFull& OnReservationFull() { return ReservationFull; }
+
 	/**
 	* @return the pending reservation associated with this beacon client
 	*/
@@ -194,6 +204,9 @@ protected:
 	FOnReservationRequestComplete ReservationRequestComplete;
 	/** Delegate for reservation count updates */
 	FOnReservationCountUpdate ReservationCountUpdate;
+
+	/** Delegate for reservation full */
+	FOnReservationFull ReservationFull;
 
 	/** Session Id of the destination host */
 	UPROPERTY()

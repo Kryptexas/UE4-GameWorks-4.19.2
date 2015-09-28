@@ -255,13 +255,28 @@ void APartyBeaconHost::SendReservationUpdates()
 		int32 MaxReservations = State->GetMaxReservations();
 		if (NumRemaining < MaxReservations)
 		{
-			UE_LOG(LogBeacon, Verbose, TEXT("Sending reservation update %d"), NumRemaining);
-			for (AOnlineBeaconClient* ClientActor : ClientActors)
+			if (NumRemaining > 0)
 			{
-				APartyBeaconClient* PartyBeaconClient = Cast<APartyBeaconClient>(ClientActor);
-				if (PartyBeaconClient)
+				UE_LOG(LogBeacon, Verbose, TEXT("Sending reservation update %d"), NumRemaining);
+				for (AOnlineBeaconClient* ClientActor : ClientActors)
 				{
-					PartyBeaconClient->ClientSendReservationUpdates(NumRemaining);
+					APartyBeaconClient* PartyBeaconClient = Cast<APartyBeaconClient>(ClientActor);
+					if (PartyBeaconClient)
+					{
+						PartyBeaconClient->ClientSendReservationUpdates(NumRemaining);
+					}
+				}
+			}
+			else
+			{
+				UE_LOG(LogBeacon, Verbose, TEXT("Sending reservation full"));
+				for (AOnlineBeaconClient* ClientActor : ClientActors)
+				{
+					APartyBeaconClient* PartyBeaconClient = Cast<APartyBeaconClient>(ClientActor);
+					if (PartyBeaconClient)
+					{
+						PartyBeaconClient->ClientSendReservationFull();
+					}
 				}
 			}
 		}
