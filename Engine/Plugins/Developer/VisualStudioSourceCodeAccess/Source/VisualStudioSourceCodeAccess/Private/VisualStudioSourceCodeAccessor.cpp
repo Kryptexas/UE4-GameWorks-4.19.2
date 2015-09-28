@@ -81,6 +81,7 @@ void FVisualStudioSourceCodeAccessor::Startup()
 
 	// Preferential order of VS versions
 	AddVisualStudioVersion(14); // Visual Studio 2015
+	AddVisualStudioVersion(12); // Visual Studio 2013
 }
 
 void FVisualStudioSourceCodeAccessor::Shutdown()
