@@ -4,8 +4,10 @@
 
 #include "SWorldWidgetScreenLayer.h"
 
-void SWorldWidgetScreenLayer::Construct(const FArguments& InArgs)
+void SWorldWidgetScreenLayer::Construct(const FArguments& InArgs, const FLocalPlayerContext& InPlayerContext)
 {
+	PlayerContext = InPlayerContext;
+
 	bCanSupportFocus = false;
 	DrawSize = FVector2D(0, 0);
 	Pivot = FVector2D(0.5f, 0.5f);
@@ -14,11 +16,6 @@ void SWorldWidgetScreenLayer::Construct(const FArguments& InArgs)
 	[
 		SAssignNew(Canvas, SConstraintCanvas)
 	];
-}
-
-void SWorldWidgetScreenLayer::SetOwningPlayer(APlayerController* Controller)
-{
-	PlayerController = Controller;
 }
 
 void SWorldWidgetScreenLayer::SetWidgetDrawSize(FVector2D InDrawSize)
@@ -71,7 +68,7 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 {
 	TArray<USceneComponent*, TInlineAllocator<1>> DeadComponents;
 
-	if ( APlayerController* Player = PlayerController.Get() )
+	if ( APlayerController* PlayerController = PlayerContext.GetPlayerController() )
 	{
 		for ( auto It = ComponentMap.CreateIterator(); It; ++It )
 		{
@@ -82,7 +79,7 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 				FVector WorldLocation = SceneComponent->GetComponentLocation();
 
 				FVector ScreenPosition;
-				const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(Player, WorldLocation, ScreenPosition);
+				const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(PlayerController, WorldLocation, ScreenPosition);
 
 				if ( bProjected )
 				{

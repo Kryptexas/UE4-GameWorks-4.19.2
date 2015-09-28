@@ -22,9 +22,9 @@ static const FName SharedLayerName(TEXT("WidgetComponentScreenLayer"));
 class FWorldWidgetScreenLayer : public IGameLayer
 {
 public:
-	FWorldWidgetScreenLayer(APlayerController* InOwningPlayer)
+	FWorldWidgetScreenLayer(const FLocalPlayerContext& PlayerContext)
 	{
-		OwningPlayer = InOwningPlayer;
+		OwningPlayer = PlayerContext;
 	}
 
 	virtual ~FWorldWidgetScreenLayer()
@@ -67,8 +67,7 @@ public:
 			return ScreenLayer.Pin().ToSharedRef();
 		}
 
-		TSharedRef<SWorldWidgetScreenLayer> NewScreenLayer = SNew(SWorldWidgetScreenLayer);
-		NewScreenLayer->SetOwningPlayer(OwningPlayer.Get());
+		TSharedRef<SWorldWidgetScreenLayer> NewScreenLayer = SNew(SWorldWidgetScreenLayer, OwningPlayer);
 		ScreenLayer = NewScreenLayer;
 
 		// Add all the pending user widgets to the surface
@@ -87,7 +86,7 @@ public:
 	}
 
 private:
-	TWeakObjectPtr<APlayerController> OwningPlayer;
+	FLocalPlayerContext OwningPlayer;
 	TWeakPtr<SWorldWidgetScreenLayer> ScreenLayer;
 	TArray<TWeakObjectPtr<UWidgetComponent>> Components;
 };
@@ -688,10 +687,12 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 							{
 								TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer;
 
+								FLocalPlayerContext PlayerContext(TargetPlayer, GetWorld());
+
 								TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
 								if ( !Layer.IsValid() )
 								{
-									TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer(PlayerController));
+									TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer(PlayerContext));
 									LayerManager->AddLayerForPlayer(TargetPlayer, SharedLayerName, NewScreenLayer, LayerZOrder);
 									ScreenLayer = NewScreenLayer;
 								}
@@ -702,7 +703,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 								
 								bAddedToScreen = true;
 								
-								Widget->SetPlayerContext(FLocalPlayerContext(TargetPlayer, GetWorld()));
+								Widget->SetPlayerContext(PlayerContext);
 								ScreenLayer->AddComponent(this);
 							}
 						}

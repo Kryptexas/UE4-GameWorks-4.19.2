@@ -11,7 +11,7 @@ class SWorldWidgetScreenLayer : public SCompoundWidget
 	SLATE_END_ARGS()
 
 public:
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const FLocalPlayerContext& InPlayerContext);
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
@@ -19,14 +19,12 @@ public:
 
 	void SetWidgetPivot(FVector2D Pivot);
 
-	void SetOwningPlayer(APlayerController* Controller);
-
 	void AddComponent(USceneComponent* Component, TSharedPtr<SWidget> Widget);
 
 	void RemoveComponent(USceneComponent* Component);
 
 private:
-	TWeakObjectPtr<APlayerController> PlayerController;
+	FLocalPlayerContext PlayerContext;
 
 	FVector2D DrawSize;
 	FVector2D Pivot;
