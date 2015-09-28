@@ -128,6 +128,7 @@ namespace UnrealBuildTool
 			catch (Exception Ex)
 			{
 				Console.Error.WriteLine("Failed to read FlatCPPIncludeDependencyCache: {0}", Ex.Message);
+				BackingFile.Delete();
 			}
 			return Result;
 		}

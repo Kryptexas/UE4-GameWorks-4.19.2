@@ -150,6 +150,7 @@ namespace UnrealBuildTool
 			catch (Exception Ex)
 			{
 				Console.Error.WriteLine("Failed to read dependency cache: {0}", Ex.Message);
+				CacheFile.Delete();
 			}
 			return Result;
 		}
