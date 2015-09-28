@@ -35,6 +35,7 @@ namespace CCT
 		bool bGroupFlattenUBs;
 		bool bCSE;
 		bool bExpandExpressions;
+		bool bFixAtomics;
 		bool bSeparateShaders;
 
 		FRunInfo();

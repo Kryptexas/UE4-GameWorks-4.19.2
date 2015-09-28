@@ -24,6 +24,7 @@ namespace CCT
 		bGroupFlattenUBs(false),
 		bCSE(false),
 		bExpandExpressions(false),
+		bFixAtomics(false),
 		bSeparateShaders(false)
 	{
 	}
@@ -31,7 +32,7 @@ namespace CCT
 	void PrintUsage()
 	{
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("Usage:"));
-		UE_LOG(LogCrossCompilerTool, Display, TEXT("\tCrossCompilerTool.exe input.hlsl {options}"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\tCrossCompilerTool.exe input.[usf|hlsl] {options}"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tOptions:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-o=file\tOutput filename"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-entry=function\tMain entry point (defaults to Main())"));
@@ -47,11 +48,12 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-xpxpr\tExpand expressions"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-separateshaders\tUse the separate shaders flags"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-packintoubs\tMove packed global uniform arrays into a uniform buffer"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-fixatomics\tConvert accesses to atomic variable into intrinsics"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tProfiles:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-vs\tCompile as a Vertex Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-ps\tCompile as a Pixel Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cs\tCompile as a Compute Shader"));
-		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gs\tCompile as a Geomtry Shader"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gs\tCompile as a Geometry Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-hs\tCompile as a Hull Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-ds\tCompile as a Domain Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tTargets:"));
@@ -60,7 +62,6 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-es31ext\tCompile for OpenGL ES 3.1 with AEP"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl3\tCompile for OpenGL 3.2"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl4\tCompile for OpenGL 4.3"));
-		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-packglobalsintoub"));
 	}
 
 	EHlslShaderFrequency FRunInfo::ParseFrequency(TArray<FString>& InOutSwitches)
@@ -330,6 +331,10 @@ namespace CCT
 			else if (Switch.StartsWith(TEXT("packintoubs")))
 			{
 				bPackIntoUBs = true;
+			}
+			else if (Switch.StartsWith(TEXT("fixatomics")))
+			{
+				bFixAtomics = true;
 			}
 			else if (Switch.StartsWith(TEXT("cse")))
 			{
