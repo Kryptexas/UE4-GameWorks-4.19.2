@@ -927,29 +927,11 @@ float ConvertToDeviceZ(float SceneDepth)
 	return 1.0f / ((SceneDepth + View.InvDeviceZToWorldZTransform[3]) * View.InvDeviceZToWorldZTransform[2]);
 }
 
-/** Returns clip space W, which is world space distance along the View Z axis. */
-float LookupDeviceZ( float2 ScreenUV )
-{
-#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
-	return Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r;
-#else
-	#if COMPILER_GLSL_ES2
-		// not yet supported
-		return 0;
-	#elif METAL_PROFILE
-		// not yet supported
-		return 0;
-	#else
-		return Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r;
-	#endif
-#endif
-}
-
-/** Returns clip space W, which is world space distance along the View Z axis. */
+/** Returns clip space W, which is world space distance along the View Z axis. Note if you need DeviceZ LookupDeviceZ() is the faster option */
 float CalcSceneDepth( float2 ScreenUV )
 {
 #if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
-	return ConvertFromDeviceZ(LookupDeviceZ(ScreenUV));
+	return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
 #else
 	#if COMPILER_GLSL_ES2
 		#if IOS
@@ -964,7 +946,27 @@ float CalcSceneDepth( float2 ScreenUV )
 	#elif METAL_PROFILE
 			return FramebufferFetchES2().w;
 	#else
-		return ConvertFromDeviceZ(LookupDeviceZ(ScreenUV));
+		return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+	#endif
+#endif
+}
+
+/** Returns DeviceZ which is the z value storesd in the depth buffer. Perfer this over CalcSceneDepth() on most hardware. */
+float LookupDeviceZ( float2 ScreenUV )
+{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	// native Depth buffer lookup
+	return Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r;
+#else
+	#if COMPILER_GLSL_ES2
+		// todo: can be optimized
+		return ConvertToDeviceZ(CalcSceneDepth(ScreenUV));
+	#elif METAL_PROFILE
+		// todo: can be optimized
+		return ConvertToDeviceZ(CalcSceneDepth(ScreenUV));
+	#else
+		// native Depth buffer lookup
+		return Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r;
 	#endif
 #endif
 }

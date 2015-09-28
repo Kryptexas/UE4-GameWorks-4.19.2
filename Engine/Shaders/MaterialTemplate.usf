@@ -365,10 +365,13 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	 * mesh of the same group of pixel, then one of the delta might be very big, leading to choosing a low mipmap level for this
 	 * group of 4 pixels, causing the artefacts.
 	 */
-	float2 ComputeDecalUVFromScreenPosition(float4 ScreenPosition)
+	float2 ComputeDecalUVFromSvPosition(float4 SvPosition)
 	{
-		half SceneW = CalcSceneDepth(ScreenPositionToBufferUV(ScreenPosition));
-		float4 DecalVector = mul(float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1), ScreenToDecal);
+		half DeviceZ = LookupDeviceZ(SvPositionToBufferUV(SvPosition));
+
+		SvPosition.z = DeviceZ;
+
+		float4 DecalVector = mul(float4(SvPosition.xyz,1), SvPositionToDecal);
 		DecalVector.xyz /= DecalVector.w;
 		DecalVector = DecalVector * 0.5f + 0.5f;
 		DecalVector.xyz = DecalVector.zyx;
@@ -381,9 +384,9 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 		 * Assuming where in a pixel shader invocation, then we compute manualy compute two d(uv)/d(x)
 		 * with the pixels's left and right neighbours.
 		 */
-		float4 ScreenDeltaX = ddx(Parameters.ScreenPosition);
-		float2 UvDiffX0 = Parameters.TexCoords[0] - ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition - ScreenDeltaX);
-		float2 UvDiffX1 = ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition + ScreenDeltaX) - Parameters.TexCoords[0];
+		float4 ScreenDeltaX = float4(1, 0, 0, 0);
+		float2 UvDiffX0 = Parameters.TexCoords[0] - ComputeDecalUVFromSvPosition(Parameters.SvPosition - ScreenDeltaX);
+		float2 UvDiffX1 = ComputeDecalUVFromSvPosition(Parameters.SvPosition + ScreenDeltaX) - Parameters.TexCoords[0];
 
 		/*
 		 * So we have two diff on the X axis, we want the one that has the smallest length
@@ -395,9 +398,9 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	float2 ComputeDecalDDY(FMaterialPixelParameters Parameters)
 	{
 		// do same for the Y axis
-		float4 ScreenDeltaY = ddy(Parameters.ScreenPosition);
-		float2 UvDiffY0 = Parameters.TexCoords[0] - ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition - ScreenDeltaY);
-		float2 UvDiffY1 = ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition + ScreenDeltaY) - Parameters.TexCoords[0];
+		float4 ScreenDeltaY = float4(0, 1, 0, 0);
+		float2 UvDiffY0 = Parameters.TexCoords[0] - ComputeDecalUVFromSvPosition(Parameters.SvPosition - ScreenDeltaY);
+		float2 UvDiffY1 = ComputeDecalUVFromSvPosition(Parameters.SvPosition + ScreenDeltaY) - Parameters.TexCoords[0];
 
 		return dot(UvDiffY0, UvDiffY0) < dot(UvDiffY1, UvDiffY1) ? UvDiffY0 : UvDiffY1;
 	}

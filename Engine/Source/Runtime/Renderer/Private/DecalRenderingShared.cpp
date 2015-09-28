@@ -149,7 +149,7 @@ public:
 	FDeferredDecalPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FMaterialShader(Initializer)
 	{
-		ScreenToDecal.Bind(Initializer.ParameterMap,TEXT("ScreenToDecal"));
+		SvPositionToDecal.Bind(Initializer.ParameterMap,TEXT("SvPositionToDecal"));
 		DecalToWorld.Bind(Initializer.ParameterMap,TEXT("DecalToWorld"));
 		FadeAlpha.Bind(Initializer.ParameterMap, TEXT("FadeAlpha"));
 		WorldToDecal.Bind(Initializer.ParameterMap,TEXT("WorldToDecal"));
@@ -166,17 +166,31 @@ public:
 		FMatrix WorldToComponent = ComponentTrans.ToInverseMatrixWithScale();
 
 		// Set the transform from screen space to light space.
-		if(ScreenToDecal.IsBound())
+		if(SvPositionToDecal.IsBound())
 		{
-			const FMatrix ScreenToDecalValue = 
+			FVector2D InvViewSize = FVector2D(1.0f / View.ViewRect.Width(), 1.0f / View.ViewRect.Height());
+
+			// setup a matrix to transform float4(SVPosition.xyz,1) directly to Decal (quality, performance as we don't need to convert or use interpolator)
+
+			//	new_xy = (xy - ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
+
+			//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
+
+			float Mx = 2.0f * InvViewSize.X;
+			float My = -2.0f * InvViewSize.Y;
+			float Ax = -1.0f - 2.0f * View.ViewRect.Min.X * InvViewSize.X;
+			float Ay = 1.0f + 2.0f * View.ViewRect.Min.Y * InvViewSize.Y;
+
+			// todo: we could use InvTranslatedViewProjectionMatrix and TranslatedWorldToComponent for better quality
+			const FMatrix SvPositionToDecalValue = 
 				FMatrix(
-					FPlane(1,0,0,0),
-					FPlane(0,1,0,0),
-					FPlane(0,0,View.ViewMatrices.ProjMatrix.M[2][2],1),
-					FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)
+					FPlane(Mx,  0,   0,  0),
+					FPlane( 0, My,   0,  0),
+					FPlane( 0,  0,   1,  0),
+					FPlane(Ax, Ay,   0,  1)
 				) * View.InvViewProjectionMatrix * WorldToComponent;
 
-			SetShaderValue(RHICmdList, ShaderRHI, ScreenToDecal, ScreenToDecalValue);
+			SetShaderValue(RHICmdList, ShaderRHI, SvPositionToDecal, SvPositionToDecalValue);
 		}
 
 		// Set the transform from light space to world space
@@ -194,12 +208,12 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
-		Ar << ScreenToDecal << DecalToWorld << WorldToDecal << FadeAlpha;
+		Ar << SvPositionToDecal << DecalToWorld << WorldToDecal << FadeAlpha;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
-	FShaderParameter ScreenToDecal;
+	FShaderParameter SvPositionToDecal;
 	FShaderParameter DecalToWorld;
 	FShaderParameter FadeAlpha;
 	FShaderParameter WorldToDecal;
