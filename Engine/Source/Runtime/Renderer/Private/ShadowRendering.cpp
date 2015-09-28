@@ -2548,23 +2548,41 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 		);
 }
 
-FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) const
+FMatrix FProjectedShadowInfo::GetSvPositionToShadowMatrix(const FSceneView& View) const
 {
 	const FIntPoint ShadowBufferResolution = GetShadowBufferResolution();
 	const float InvBufferResolutionX = 1.0f / (float)ShadowBufferResolution.X;
 	const float ShadowResolutionFractionX = 0.5f * (float)ResolutionX * InvBufferResolutionX;
 	const float InvBufferResolutionY = 1.0f / (float)ShadowBufferResolution.Y;
 	const float ShadowResolutionFractionY = 0.5f * (float)ResolutionY * InvBufferResolutionY;
+
+	FMatrix SvPositionToClip;
+	{
+		FVector2D InvViewSize = FVector2D(1.0f / View.ViewRect.Width(), 1.0f / View.ViewRect.Height());
+
+		// setup a matrix to transform float4(SvPosition.xyz,1) directly to Shadow (quality, performance as we don't need to convert or use interpolator)
+
+		//	new_xy = (xy - ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
+
+		//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
+
+		float Mx = 2.0f * InvViewSize.X;
+		float My = -2.0f * InvViewSize.Y;
+		float Ax = -1.0f - 2.0f * View.ViewRect.Min.X * InvViewSize.X;
+		float Ay = 1.0f + 2.0f * View.ViewRect.Min.Y * InvViewSize.Y;
+
+		SvPositionToClip = FMatrix(
+			FPlane(Mx,  0,  0,  0),
+			FPlane(0,  My,  0,  0),
+			FPlane(0,   0,  1,  0),
+			FPlane(Ax, Ay,  0,  1)
+			);
+	}
+
+
 	// Calculate the matrix to transform a screenspace position into shadow map space
-	FMatrix ScreenToShadow = 
-		// Z of the position being transformed is actually view space Z, 
-		// Transform it into post projection space by applying the projection matrix,
-		// Which is the required space before applying View.InvTranslatedViewProjectionMatrix
-		FMatrix(
-			FPlane(1,0,0,0),
-			FPlane(0,1,0,0),
-			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[2][2],1),
-			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)) * 
+	FMatrix SvPositionToShadowValue = 
+		SvPositionToClip * 
 		// Transform the post projection space position into translated world space
 		// Translated world space is normal world space translated to the view's origin, 
 		// Which prevents floating point imprecision far from the world origin.
@@ -2587,7 +2605,7 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 				1
 			)
 		);
-	return ScreenToShadow;
+	return SvPositionToShadowValue;
 }
 
 FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride, bool bHasShadowBorder ) const

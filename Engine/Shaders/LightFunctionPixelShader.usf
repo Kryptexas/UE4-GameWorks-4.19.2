@@ -8,6 +8,7 @@
 #include "Material.usf"
 #include "LightFunctionCommon.usf"
 
+// used like this: mul(float4(SvPosition.xyz, 1), SvPositionToLight);
 float4x4 SvPositionToLight;
 
 /** Fade distance in x, disabled brightness in y, output for preview shadows mask in z. */

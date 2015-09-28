@@ -526,7 +526,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();
 
 	{
-		// setup a matrix to transform float4(SVPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
+		// setup a matrix to transform float4(SvPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
 
 		//	new_xy = (xy - ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
 
@@ -540,10 +540,10 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
 
 		ViewUniformShaderParameters.SVPositionToTranslatedWorld = 
-			FMatrix(FPlane(Mx,  0,  0,   0),
-					FPlane(0,  My,  0,   0),
-					FPlane(0,   0,  1,   0),
-					FPlane(Ax, Ay,  0,   1)) * ViewMatrices.InvTranslatedViewProjectionMatrix;
+			FMatrix(FPlane(Mx,   0,  0,   0),
+					FPlane( 0,  My,  0,   0),
+					FPlane( 0,   0,  1,   0),
+					FPlane(Ax,  Ay,  0,   1)) * ViewMatrices.InvTranslatedViewProjectionMatrix;
 	}
 
 	ViewUniformShaderParameters.ScreenToWorld = FMatrix(
@@ -613,13 +613,13 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 				for (int32 i = 0; i < NumShadowsToCopy; ++i)
 				{
 					const FProjectedShadowInfo& ShadowInfo = *(*DirectionalLightShadowInfo)[i];
-					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i] = ShadowInfo.GetScreenToShadowMatrix(*this);
+					ViewUniformShaderParameters.DirectionalLightSvPositionToShadow[i] = ShadowInfo.GetSvPositionToShadowMatrix(*this);
 					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
 				}
 
 				for (int32 i = NumShadowsToCopy; i < MAX_FORWARD_SHADOWCASCADES; ++i)
 				{
-					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightSvPositionToShadow[i].SetIdentity();
 					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
 				}
 			}
@@ -629,7 +629,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 				ViewUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
 				for (int32 i = 0; i < MAX_FORWARD_SHADOWCASCADES; ++i)
 				{
-					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightSvPositionToShadow[i].SetIdentity();
 					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
 				}			
 			}			 

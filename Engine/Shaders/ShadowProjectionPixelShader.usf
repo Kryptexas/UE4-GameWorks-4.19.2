@@ -28,7 +28,8 @@
 
 float ShadowFadeFraction;
 float ShadowSharpen;
-float4x4 ScreenToShadowMatrix;
+// used like this: mul(float4(SvPosition.xyz, 1), SvPositionToShadow);
+float4x4 SvPositionToShadow;
 // .x:DepthBias, y: MaxSubjectZ - MinSubjectZ
 float2 ProjectionDepthBiasParameters;
 
@@ -44,21 +45,28 @@ float4 ModulatedShadowColor;
 */
 EARLYDEPTHSTENCIL
 void Main(
-	in float4 SVPos : SV_POSITION,
+	in float4 SvPosition : SV_POSITION,
 	out float4 OutColor : SV_Target0
 	)
 {
-	float2 ScreenUV = float2( SVPos.xy * View.BufferSizeAndInvSize.zw );
-	float SceneW = CalcSceneDepth( ScreenUV );
-	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
-	float4 ShadowPosition = mul(float4(ScreenPosition.xy * SceneW,SceneW,1), ScreenToShadowMatrix);
+	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
 
-	ShadowPosition.xy /= ShadowPosition.w;
+	// make SvPosition appear to be rasterized with the depth from the depth buffer
+	SvPosition.z = LookupDeviceZ(ScreenUV);
+
+	float3 ShadowPosition;
+	{
+		float4 Hom = mul(float4(SvPosition.xyz, 1), SvPositionToShadow);
+
+		ShadowPosition = Hom.xyz / Hom.w;
+	}
+
 	// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
 	// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
 	float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
 	// Must not clamp for SSS shadowing, the subsurface gradient must continue past the far plane
 	float LightSpacePixelDepthForSSS = ShadowPosition.z;
+
 
 	float Shadow = 1;
 	float SSSTransmission = 1;
@@ -172,16 +180,16 @@ float2 PointLightDepthBiasParameters;
 
 /** Pixel shader for projecting a one pass point light shadow from a cube map. */
 void MainOnePassPointLightPS(
-	in float4 SVPos : SV_POSITION,
+	in float4 SvPosition : SV_POSITION,
 	out float4 OutColor : SV_Target0
 	)
 {
+	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
 
-	float2 ScreenUV = float2( SVPos.xy * View.BufferSizeAndInvSize.zw );
-	float SceneW = CalcSceneDepth( ScreenUV );
-	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
- 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+	// make SvPosition appear to be rasterized with the depth from the depth buffer
+	SvPosition.z = LookupDeviceZ(ScreenUV);
+	
+ 	float3 WorldPosition = SvPositionToWorld(SvPosition);
 
  	float Shadow = CubemapHardwarePCF(WorldPosition, LightPositionAndInvRadius.xyz, LightPositionAndInvRadius.w, PointLightDepthBiasParameters.x);
 

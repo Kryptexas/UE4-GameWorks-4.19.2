@@ -257,7 +257,7 @@ void Main(
 				if (i == (MAX_FORWARD_SHADOWCASCADES - 1) // ignore test for last shadow map.
 					|| MaterialParameters.ScreenPosition.w < View.DirectionalLightShadowDistances[i])
 				{
-					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[i]);
+					ShadowPosition = mul(float4(MaterialParameters.SvPosition.xyz, 1), View.DirectionalLightSvPositionToShadow[i]);
 					break; // position found.
 				}
 			}

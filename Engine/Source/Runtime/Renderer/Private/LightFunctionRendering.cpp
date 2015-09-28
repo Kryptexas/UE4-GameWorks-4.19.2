@@ -110,7 +110,7 @@ public:
 
 			FVector2D InvViewSize = FVector2D(1.0f / View.ViewRect.Width(), 1.0f / View.ViewRect.Height());
 
-			// setup a matrix to transform float4(SVPosition.xyz,1) directly to Light (quality, performance as we don't need to convert or use interpolator)
+			// setup a matrix to transform float4(SvPosition.xyz,1) directly to Light (quality, performance as we don't need to convert or use interpolator)
 
 			//	new_xy = (xy - ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
 
