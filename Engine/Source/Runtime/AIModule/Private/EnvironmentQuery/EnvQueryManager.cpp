@@ -667,7 +667,7 @@ float UEnvQueryManager::FindNamedParam(int32 QueryId, FName ParamName) const
 //----------------------------------------------------------------------//
 UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass)
 { 
-	if (QueryTemplate == nullptr)
+	if (QueryTemplate == nullptr || Querier == nullptr)
 	{
 		return nullptr;
 	}
