@@ -686,12 +686,19 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			const int32 NumMaterials = GetNumMaterials();
 			for (int32 MaterialIndex = 0; (MaterialIndex < NumMaterials) && !bHasAnyLitMaterials; ++MaterialIndex)
 			{
-				if (UMaterialInterface* Material = GetMaterial(MaterialIndex))
+				UMaterialInterface* Material = GetMaterial(MaterialIndex);
+
+				if (Material)
 				{
 					if (Material->GetShadingModel() != MSM_Unlit)
 					{
 						bHasAnyLitMaterials = true;
 					}
+				}
+				else
+				{
+					// Default material is lit
+					bHasAnyLitMaterials = true;
 				}
 			}
 
