@@ -1,5 +1,5 @@
 ﻿Availability:Public
-Title:虚幻引擎4.9版本信息
+Title:虚幻引擎 4.9 发布信息
 Crumbs:%ROOT%, Engine
 Description:
 
@@ -2841,7 +2841,7 @@ Actor类有一个新的暴露给蓝图的成员SpawnCollisionHandlingMethod，�
 * 修复在处理关键帧时的Steam游戏匹配代码中的可能的字符串缓冲溢出问题。
 * 在没有连接客户端的情况下，游戏组信标不再尝试发送预留更新。
 
-#### 其它
+### 其它
 
 * 新增内容：用户现在可以提供网页浏览器控件的功能以处理弹出窗口的创建。
 * 用户现在可以提供网页浏览器控件的功能以处理由浏览器所创建的弹出窗口的关闭。
@@ -3064,11 +3064,11 @@ Actor类有一个新的暴露给蓝图的成员SpawnCollisionHandlingMethod，�
 
 #### 其它更新说明
 
-##### AI
+#### AI
 
 * 如果您的游戏特定AI控制器类已经衍生于IGenericTeamAgentInterface，您很可能应该从控制器的父类中删除它
 
-##### 动画
+#### 动画
 
 * 在DefaultEngine.ini中具有重复的陈旧的ActiveClassRedirect条目可能会有破损的动画图表，知道删除重复的陈旧重定向程序
 * 开始把移动动画节点从Engine中移出，移动到新的AnimGraphRuntime模块
@@ -3077,7 +3077,7 @@ Actor类有一个新的暴露给蓝图的成员SpawnCollisionHandlingMethod，�
 * 在DefaultEngine.ini中具有重复的陈旧的ActiveClassRedirect条目可能会有破损的动画图表，知道删除重复的陈旧重定向程序
 * 更新说明：包含了自定义动画节点的模块需要具有对添加到其Build.cs文件的新&quot;AnimGraphRuntime&quot;模块的依赖项
 
-##### 核心模块
+#### 核心模块
 
 * 在重定向ini部分中添加源名称碰撞的信息日志错误信息
 
@@ -3090,27 +3090,27 @@ Actor类有一个新的暴露给蓝图的成员SpawnCollisionHandlingMethod，�
 * 应分别使用ensure() 和 ensureMsgf()来替换ensureOnce() 和 ensureOnceMsgf()。
 * 模块必须被列于DynamicallyLoadedModuleNames或Public/PrivateDependencyModuleNames中，而不是同时列于两者中。 如有疑问，删除来自于DynamicallyLoadedModuleNames的复制内容。
 
-##### 编辑器和工具
+#### 编辑器和工具
 
 * 如果在您的游戏中使用这些内容，您需要通过编辑器模块类型或查看IsRunningGame()来保护仅在编辑器使用的代码
 
-##### 本地化
+#### 本地化
 
 * 确认对编辑器偏好设置的 区域&amp;语言 页面的游戏原声语言进行设置，这样资源会载入语言的本地化文件以供显示。
 
-##### Paper2D
+#### Paper2D
 
 * 需要更新对Paper2D组件的颜色进行程序化修改的蓝图或C++代码，否则应用的颜色可能会比预期的要暗。
 * 修复Paper2D资源和静态网格物体的顶点颜色间不一致的问题
 
 * 需要更新对Paper2D组件的颜色进行程序化修改的蓝图或C++代码，否则应用的颜色可能会比预期的要暗。
 
-##### 物理
+#### 物理
 
 * 注意这个值可能会略微变更已存布娃娃的行为。 一般来说，我们可以看到更好的稳定性，因为可以使用它来配合PhysX中的项目修复内容
 * 这个可以对之前以最大速度旋转的已存模拟对象产生轻微的冲击（每秒400度） 您可以使用物理项目设置来将其变更回原有的行为方式
 
-##### 平台
+#### 平台
 
 ##### Playstation 4
 
@@ -3131,22 +3131,22 @@ Actor类有一个新的暴露给蓝图的成员SpawnCollisionHandlingMethod，�
 * &quot;Connect to Service（连接到服务）&quot;蓝图代码现在已被废弃。 现在应该转而使用&quot;Show External Login UI（显示外部登录界面）&quot;。
 * 您现在必须通过调用C++的&quot;IOnlineExternalUI::ShowLoginUI&quot;或蓝图的&quot;Show External Login UI（显示外部登录界面）&quot;来明确调用系统登录界面。
 
-##### 编程
+#### 编程
 
 * 现在可以删除之前所需的样板文件代码，但仍应和之前一样可用。
 
-##### 渲染
+#### 渲染
 
 * 最好能使用它而非自定义材质表达式，因为材质可能会在将来破损
 * 有问题的内容应该在材质上使用新属性
 * 添加的新的cvar r.Filter.SizeScale使得增减样本数量能够调整性能表现/质量
 * 需要变更对SetRenderTargetsAndClear的自定义调用，并且修改了自定义rendertargets以在创建时绑定所需值。
 
-##### 后期处理
+#### 后期处理
 
 * 您可能需要变更一些代码来使用GetInput()，而无需直接访问成员函数
 
-##### UMG
+#### UMG
 
 * 在此变更前由编辑器版本保存的资源将会复制废弃的属性值到载入属性值时对其进行替换的风格属性中。
 
