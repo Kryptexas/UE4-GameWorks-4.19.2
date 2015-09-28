@@ -118,6 +118,7 @@
 #include "MovieSceneCaptureModule.h"
 #include "GameFramework/OnlineSession.h"
 #include "ABTesting.h"
+#include "Performance/EnginePerformanceTargets.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
@@ -171,22 +172,6 @@ static FAutoConsoleVariableRef GHitchThresholdCVar(
 	GHitchThreshold,
 	TEXT("Time in seconds that is considered a hitch by \"stat dumphitches\"")
 	);
-
-// The maximum threshold for an 'OK' frame time in miliseconds (*cosmetic only* and used for fps/stat display, should not be used in scalability code)
-// Values above this will be red, values between this and the acceptable limit will be yellow, and values below will be green.
-static TAutoConsoleVariable<float> GUnacceptableFrameTimeThresholdCVar(
-	TEXT("t.UnacceptableFrameTimeThreshold"),
-	50.0f,
-	TEXT("The frame time theshold for what is considered completely unacceptable; values above this will be drawn as red\n")
-	TEXT(" default: 50.0 ms"));
-
-// The target threshold for frame time in miliseconds (*cosmetic only* and used for fps/stat display, should not be used in scalability code)
-// Values below this will be green, values between this and the unacceptable threshold will be yellow, and values above that will be red
-TAutoConsoleVariable<float> GTargetFrameTimeThresholdCVar(
-	TEXT("t.TargetFrameTimeThreshold"),
-	33.9f,
-	TEXT("The target frame time; values below this will be drawn in green, values above will be yellow or red depending on the severity\n")
-	TEXT(" default: 33.9 ms"));
 
 TAutoConsoleVariable<int32> CVarAllowOneFrameThreadLag(
 	TEXT("r.OneFrameThreadLag"),
@@ -7222,8 +7207,8 @@ void UEngine::SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float
 
 FColor UEngine::GetFrameTimeDisplayColor(float FrameTimeMS) const
 {
-	const float UnacceptableTime = GUnacceptableFrameTimeThresholdCVar.GetValueOnGameThread();
-	const float TargetTime = GTargetFrameTimeThresholdCVar.GetValueOnGameThread();
+	const float UnacceptableTime = FEnginePerformanceTargets::GetUnacceptableFrameTimeThresholdMS();
+	const float TargetTime = FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS();
 
 	return (FrameTimeMS > UnacceptableTime) ? FColor::Red : ((FrameTimeMS > TargetTime) ? FColor::Yellow : FColor::Green);
 }

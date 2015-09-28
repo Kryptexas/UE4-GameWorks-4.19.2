@@ -10,6 +10,7 @@
 #include "RenderCore.h"
 #include "Scalability.h"
 #include "GameFramework/GameUserSettings.h"
+#include "Performance/EnginePerformanceTargets.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChartCreation, Log, All);
 
@@ -40,7 +41,7 @@ FHitchChartEntry GHitchChart[ STAT_FPSChart_LastHitchBucketStat - STAT_FPSChart_
 
 /** Time thresholds for the various hitch buckets in milliseconds */
 const int32 GHitchThresholds[ STAT_FPSChart_LastHitchBucketStat - STAT_FPSChart_FirstHitchStat ] =
-	{ 5000, 2500, 2000, 1500, 1000, 750, 500, 300, 200, 150, 100, 60 };
+	{ 5000, 2500, 2000, 1500, 1000, 750, 500, 300, 200, 150, 100, 60, 30 };
 
 /** Number of frames for each time of <boundtype> **/
 uint32 GNumFramesBound_GameThread = 0;
@@ -116,6 +117,8 @@ static FString CreateOutputDirectory()
 */
 void UEngine::TickFPSChart( float DeltaSeconds )
 {
+	const float MSToSeconds = 1.0f / 1000.0f;
+
 	// We can't trust delta seconds if frame time clamping is enabled or if we're benchmarking so we simply
 	// calculate it ourselves.
 	static double LastTime = 0;
@@ -144,15 +147,16 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	const uint32 LocalRenderThreadTime = GRenderThreadTime;
 	const uint32 LocalGPUFrameTime = GGPUFrameTime;
 
-	// determine which Time is the greatest and less than 33.33 (as if we are above 30 fps we are happy and thus not "bounded" )
-	const float Epsilon = 0.250f;
+	// determine which pipeline time is the greatest (between game thread, render thread, and GPU)
+	const float EpsilonCycles = 0.250f;
 	uint32 MaxThreadTimeValue = FMath::Max3<uint32>( LocalRenderThreadTime, GGameThreadTime, LocalGPUFrameTime );
 	const float FrameTime = FPlatformTime::ToSeconds(MaxThreadTimeValue);
 
-	// so we want to try and guess when we are bound by the GPU even when on the xenon we do not get that info
-	// If the frametime is bigger than 35 ms we can take DeltaSeconds into account as we're not VSYNCing in that case.
+	const float EngineTargetMS = FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS();
+
+	// Try to estimate a GPU time even if the current platform does not support GPU timing
 	uint32 PossibleGPUTime = LocalGPUFrameTime;
-	if( PossibleGPUTime == 0 )
+	if (PossibleGPUTime == 0)
 	{
 		// if we are over
 		PossibleGPUTime = static_cast<uint32>(FMath::Max( FrameTime, DeltaSeconds ) / FPlatformTime::GetSecondsPerCycle() );
@@ -160,109 +164,108 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	}
 
 	// Disregard frames that took longer than one second when accumulating data.
-	if( DeltaSeconds < 1.f )
+	if (DeltaSeconds < 1.0f)
 	{
-		const float CurrentFPS = 1 / DeltaSeconds;
+		const float CurrentFPS = 1.0f / DeltaSeconds;
 
-		if( CurrentFPS < 5 )
+		if (CurrentFPS < 5.0f)
 		{
-			GFPSChart[ STAT_FPSChart_0_5 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_0_5 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_0_5 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_0_5 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 10 )
+		else if (CurrentFPS < 10.0f)
 		{
-			GFPSChart[ STAT_FPSChart_5_10 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_5_10 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_5_10 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_5_10 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 15 )
+		else if (CurrentFPS < 15.0f)
 		{
-			GFPSChart[ STAT_FPSChart_10_15 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_10_15 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[ STAT_FPSChart_10_15 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[ STAT_FPSChart_10_15 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 20 )
+		else if (CurrentFPS < 20.0f)
 		{
-			GFPSChart[ STAT_FPSChart_15_20 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_15_20 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_15_20 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_15_20 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 25 )
+		else if (CurrentFPS < 25.0f)
 		{
-			GFPSChart[ STAT_FPSChart_20_25 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_20_25 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_20_25 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_20_25 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 30 )
+		else if (CurrentFPS < 30.0f)
 		{
-			GFPSChart[ STAT_FPSChart_25_30 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_25_30 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_25_30 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_25_30 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 40 )
+		else if (CurrentFPS < 40.0f)
 		{
-			GFPSChart[ STAT_FPSChart_30_40 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_30_40 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_30_40 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_30_40 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 50 )
+		else if (CurrentFPS < 50.0f)
 		{
-			GFPSChart[ STAT_FPSChart_40_50 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_40_50 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_40_50 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_40_50 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if( CurrentFPS < 60 )
+		else if (CurrentFPS < 60.0f)
 		{
-			GFPSChart[ STAT_FPSChart_50_60 - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_50_60 - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_50_60 - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_50_60 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if (CurrentFPS < 70)
+		else if (CurrentFPS < 70.0f)
 		{
 			GFPSChart[STAT_FPSChart_60_70 - STAT_FPSChartFirstStat].Count++;
 			GFPSChart[STAT_FPSChart_60_70 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if (CurrentFPS < 80)
+		else if (CurrentFPS < 80.0f)
 		{
 			GFPSChart[STAT_FPSChart_70_80 - STAT_FPSChartFirstStat].Count++;
 			GFPSChart[STAT_FPSChart_70_80 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if (CurrentFPS < 90)
+		else if (CurrentFPS < 90.0f)
 		{
 			GFPSChart[STAT_FPSChart_80_90 - STAT_FPSChartFirstStat].Count++;
 			GFPSChart[STAT_FPSChart_80_90 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if (CurrentFPS < 100)
+		else if (CurrentFPS < 100.0f)
 		{
 			GFPSChart[STAT_FPSChart_90_100 - STAT_FPSChartFirstStat].Count++;
 			GFPSChart[STAT_FPSChart_90_100 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if (CurrentFPS < 110)
+		else if (CurrentFPS < 110.0f)
 		{
 			GFPSChart[STAT_FPSChart_100_110 - STAT_FPSChartFirstStat].Count++;
 			GFPSChart[STAT_FPSChart_100_110 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
-		else if (CurrentFPS < 120)
+		else if (CurrentFPS < 120.0f)
 		{
 			GFPSChart[STAT_FPSChart_110_120 - STAT_FPSChartFirstStat].Count++;
 			GFPSChart[STAT_FPSChart_110_120 - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
 		else
 		{
-			GFPSChart[ STAT_FPSChart_120_INF - STAT_FPSChartFirstStat ].Count++;
-			GFPSChart[ STAT_FPSChart_120_INF - STAT_FPSChartFirstStat ].CummulativeTime += DeltaSeconds;
+			GFPSChart[STAT_FPSChart_120_INF - STAT_FPSChartFirstStat].Count++;
+			GFPSChart[STAT_FPSChart_120_INF - STAT_FPSChartFirstStat].CummulativeTime += DeltaSeconds;
 		}
 
 		GTotalGPUTime += FPlatformTime::ToSeconds(LocalGPUFrameTime);
 
-		// if Frametime is > 33 ms then we are bounded by something
-		if( CurrentFPS < 30 )
+		// if frame time is greater than our target then we are bounded by something
+		const float TargetThreadTimeSeconds = EngineTargetMS * MSToSeconds;
+		if (DeltaSeconds > TargetThreadTimeSeconds)
 		{
-			// If GPU time is inferred we can only determine GPU > 33 ms if we are GPU bound.
+			// If GPU time is inferred we can only determine GPU > threshold if we are GPU bound.
 			bool bAreWeGPUBoundIfInferred = true;
-			// 33.333ms
-			const float TargetThreadTimeSeconds = .0333333f;
 
-			if( FPlatformTime::ToSeconds(GGameThreadTime) >= TargetThreadTimeSeconds )
+			if (FPlatformTime::ToSeconds(GGameThreadTime) >= TargetThreadTimeSeconds)
 			{
 				GNumFramesBound_GameThread++;
 				GTotalFramesBoundTime_GameThread += DeltaSeconds;
 				bAreWeGPUBoundIfInferred = false;
 			}
 
-			if( FPlatformTime::ToSeconds(LocalRenderThreadTime) >= TargetThreadTimeSeconds )
+			if (FPlatformTime::ToSeconds(LocalRenderThreadTime) >= TargetThreadTimeSeconds)
 			{
 				GNumFramesBound_RenderThread++;
 				GTotalFramesBoundTime_RenderThread += DeltaSeconds;
@@ -270,9 +273,9 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 			}			
 
 			// Consider this frame GPU bound if we have an actual measurement which is over the limit,
-			if( (LocalGPUFrameTime != 0 && FPlatformTime::ToSeconds(LocalGPUFrameTime) >= TargetThreadTimeSeconds) ||
+			if (((LocalGPUFrameTime != 0) && (FPlatformTime::ToSeconds(LocalGPUFrameTime) >= TargetThreadTimeSeconds)) ||
 				// Or if we don't have a measurement but neither of the other threads were the slowest
-				(LocalGPUFrameTime == 0 && bAreWeGPUBoundIfInferred && PossibleGPUTime == MaxThreadTimeValue) )
+				((LocalGPUFrameTime == 0) && bAreWeGPUBoundIfInferred && (PossibleGPUTime == MaxThreadTimeValue)) )
 			{
 				GTotalFramesBoundTime_GPU += DeltaSeconds;
 				GNumFramesBound_GPU++;
@@ -293,47 +296,47 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	// Check for hitches
 	{
 		// Minimum time quantum before we'll even consider this a hitch
-		const float MinFrameTimeToConsiderAsHitch = 0.06f;
-
-		// Minimum time passed before we'll record a new hitch
-		const float MinTimeBetweenHitches = 0.2f;
-
-		// For the current frame to be considered a hitch, it must have run at least this many times slower than
-		// the previous frame
-		const float HitchMultiplierAmount = 1.5f;
+		const float MinFrameTimeToConsiderAsHitch = FEnginePerformanceTargets::GetHitchFrameTimeThresholdMS() * MSToSeconds;
 
 		// Ignore frames faster than our threshold
-		if( DeltaSeconds >= MinFrameTimeToConsiderAsHitch )
+		if (DeltaSeconds >= MinFrameTimeToConsiderAsHitch)
 		{
 			// How long has it been since the last hitch we detected?
 			const float TimeSinceLastHitch = ( float )( CurrentTime - LastHitchTime );
 
+			// Minimum time passed before we'll record a new hitch
+			const float MinTimeBetweenHitches = FEnginePerformanceTargets::GetMinTimeBetweenHitchesMS() * MSToSeconds;
+
 			// Make sure at least a little time has passed since the last hitch we reported
-			if( TimeSinceLastHitch >= MinTimeBetweenHitches )
+			if (TimeSinceLastHitch >= MinTimeBetweenHitches)
 			{
+				// For the current frame to be considered a hitch, it must have run at least this many times slower than
+				// the previous frame
+				const float HitchMultiplierAmount = FEnginePerformanceTargets::GetHitchToNonHitchRatio();
+
 				// If our frame time is much larger than our last frame time, we'll count this as a hitch!
-				if( DeltaSeconds > LastDeltaSeconds * HitchMultiplierAmount )
+				if (DeltaSeconds > (LastDeltaSeconds * HitchMultiplierAmount))
 				{
 					// We have a hitch!
 					
 					// Track the hitch by bucketing it based on time severity
 					const int32 HitchBucketCount = STAT_FPSChart_LastHitchBucketStat - STAT_FPSChart_FirstHitchStat;
-					for( int32 CurBucketIndex = 0; CurBucketIndex < HitchBucketCount; ++CurBucketIndex )
+					for (int32 CurBucketIndex = 0; CurBucketIndex < HitchBucketCount; ++CurBucketIndex)
 					{
-						float HitchThresholdInSeconds = ( float )GHitchThresholds[ CurBucketIndex ] * 0.001f;
-						if( DeltaSeconds >= HitchThresholdInSeconds )
+						const float HitchThresholdInSeconds = ( float )GHitchThresholds[ CurBucketIndex ] * MSToSeconds;
+						if (DeltaSeconds >= HitchThresholdInSeconds)
 						{
 							// Increment the hitch count for this bucket
 							++GHitchChart[ CurBucketIndex ].HitchCount;
 
 						
 							// Check to see what we were limited by this frame
-							if( GGameThreadTime >= (MaxThreadTimeValue - Epsilon) )
+							if (GGameThreadTime >= (MaxThreadTimeValue - EpsilonCycles))
 							{
 								// Bound by game thread
 								++GHitchChart[ CurBucketIndex ].GameThreadBoundHitchCount;
 							}
-							else if( LocalRenderThreadTime >= (MaxThreadTimeValue - Epsilon) )
+							else if (LocalRenderThreadTime >= (MaxThreadTimeValue - EpsilonCycles))
 							{
 								// Bound by render thread
 								++GHitchChart[ CurBucketIndex ].RenderThreadBoundHitchCount;
