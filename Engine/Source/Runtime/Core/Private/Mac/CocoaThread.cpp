@@ -356,6 +356,11 @@ FCocoaRunLoopSource* FCocoaRunLoopSource::GameRunLoopSource = nullptr;
 	// Register game run loop source
 	FCocoaRunLoopSource::RegisterGameRunLoop([GameRunLoop getCFRunLoop]);
 	
+	if (GLog)
+	{
+		GLog->SetCurrentThreadAsMasterThread();
+	}
+
 	[super main];
 	
 	// We have exited the game thread, so any UE4 code running now should treat the Main thread
