@@ -262,9 +262,6 @@ protected:
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;
-
-	/** The slate 3D renderer used to render the user slate widget */
-	TSharedPtr<class ISlate3DRenderer> Renderer;
 	
 	/** The slate window that contains the user widget content */
 	TSharedPtr<class SVirtualWindow> SlateWidget;
@@ -274,4 +271,7 @@ protected:
 
 	/** The hit tester to use for this component */
 	static TSharedPtr<class FWidget3DHitTester> WidgetHitTester;
+
+	/** Helper class for drawing widgets to a render target. */
+	TSharedPtr<class FWidgetRenderer> WidgetRenderer;
 };
