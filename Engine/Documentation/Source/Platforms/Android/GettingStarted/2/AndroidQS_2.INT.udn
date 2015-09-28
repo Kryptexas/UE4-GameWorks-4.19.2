@@ -65,7 +65,12 @@ Now that Android Works has been installed it is now time to setup your Android d
 
 1.	Open the **Settings** application on your Android device.
 
-1.	Look for the **Developer Options** menu. If it is not available, you need to enable Developer Options on your device. For more about developer options, visit [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) page.
+1.	Tap **Developer Options** to open the Developer Options menu. 
+
+	[REGION:note]
+	If you do not see this item, you need to enable Developer Options on your device. 
+	For more about developer options, visit [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) page.
+	[/REGION]
 
 1.	Scroll down and select **About Phone**. Depending on your Android device, you may have an **About Device**, **About Tablet**, or **About Shield** option instead.
 	[REGION: note]
@@ -131,8 +136,12 @@ Now that Android Works has been installed it is now time to setup your Android d
 
 1. Open the **Settings** application on your Android device.
 
-1. Look for the **Developer Options** menu. If it is not available, you need to enable Developer Options on your device. 
+1. Tap **Developer Options** to open the Developer Options menu. 
+	
+	[REGION:note]
+	If you do not see this item, you need to enable Developer Options on your device. 
 	For more about developer options, visit [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) page.
+	[/REGION]
 
 1. Scroll down and select **About Phone**. Depending on your Android device, you may have an **About Device**, **About Tablet**, or **About Shield** option instead.
 

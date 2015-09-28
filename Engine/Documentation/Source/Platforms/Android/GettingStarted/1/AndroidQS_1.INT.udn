@@ -24,9 +24,9 @@ Skilllevel:Intermediate
 %Steps%
 
 
-Before we can start developing for Android we first need to install Android Works. 
-Android Works will help to ensure that you have all the required programs and code that is needed for you to be able to deploy to Android devices.
-In the following section we will cover how you can get Android Works installed on your development PC.
+The first thing we need to do to start developing for Android is install Android Works, which will 
+ensure that you have all the required programs and code needed to deploy to Android devices.
+In the following section, we will cover how you can get Android Works installed on your development PC.
 
 
 %Globals:OSSelect%
