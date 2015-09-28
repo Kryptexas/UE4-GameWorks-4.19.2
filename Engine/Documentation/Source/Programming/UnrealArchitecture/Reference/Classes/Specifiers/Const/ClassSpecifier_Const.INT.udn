@@ -4,4 +4,4 @@ Description:
 Availability:Public
 Version: 4.9
 
-All properties and functions in this class are const and should be exported as const. This flag is inherited by subclasses.
+All properties and functions in this class are `const` and should be exported as `const`. This flag is inherited by subclasses.
