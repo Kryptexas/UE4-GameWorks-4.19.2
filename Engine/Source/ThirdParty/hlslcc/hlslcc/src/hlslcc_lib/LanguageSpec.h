@@ -22,6 +22,9 @@ struct ILanguageSpec
 	// Some platforms don't allow implicit math/conversion between float & half types
 	virtual bool CanConvertBetweenHalfAndFloat() const { return true; }
 
+	// Some platforms have/need atomic_load/atomic_store intrinsics
+	virtual bool NeedsAtomicLoadStore() const { return false; }
+
 	// Experimental!
 	virtual bool UseSamplerInnerType() const { return false; }
 };

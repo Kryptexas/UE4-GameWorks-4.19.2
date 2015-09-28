@@ -9,28 +9,30 @@
 class FMetalLanguageSpec : public ILanguageSpec
 {
 public:
-	virtual bool SupportsDeterminantIntrinsic() const
+	virtual bool SupportsDeterminantIntrinsic() const override
 	{
 		//@todo-rco: Temp workaround for Seed 2 & 3
 		return false;// true;
 	}
 
-	virtual bool SupportsTransposeIntrinsic() const
+	virtual bool SupportsTransposeIntrinsic() const override
 	{
 		//@todo-rco: Temp workaround for Seed 2 & 3
 		return false;// true;
 	}
-	virtual bool SupportsIntegerModulo() const { return true; }
+	virtual bool SupportsIntegerModulo() const override { return true; }
 
-	virtual bool SupportsMatrixConversions() const { return false; }
+	virtual bool SupportsMatrixConversions() const override { return false; }
 
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir) override;
 
 	virtual bool AllowsSharingSamplers() const override { return true; }
 
-	virtual bool UseSamplerInnerType() const { return true; }
+	virtual bool UseSamplerInnerType() const override { return true; }
 
-	virtual bool CanConvertBetweenHalfAndFloat() const { return false; }
+	virtual bool CanConvertBetweenHalfAndFloat() const override { return false; }
+
+	virtual bool NeedsAtomicLoadStore() const override { return true; }
 };
 
 struct FBuffers;

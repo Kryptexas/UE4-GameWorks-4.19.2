@@ -1705,14 +1705,25 @@ struct FFixAtomicVariables : public ir_rvalue_visitor
 			if ((Var->mode == ir_var_shared || Var->mode == ir_var_uniform) && AtomicVariables.find(Var) != AtomicVariables.end())
 			{
 				check(!in_assignee);
-				auto* DummyVar = new(State) ir_variable(Var->type, nullptr, ir_var_temporary);
-				auto* NewVar = new(State) ir_variable(Var->type, nullptr, ir_var_temporary);
-				//#todo-rco: Atomic Load instead of swap
-				auto* NewAtomic = new(State) ir_atomic(ir_atomic_swap, new(State) ir_dereference_variable(DummyVar), DeRefVar, new(State) ir_dereference_variable(NewVar), nullptr);
-				base_ir->insert_before(DummyVar);
-				base_ir->insert_before(NewVar);
-				base_ir->insert_before(NewAtomic);
-				*RValuePtr = new(State) ir_dereference_variable(NewVar);
+				if (State->LanguageSpec->NeedsAtomicLoadStore())
+				{
+					auto* NewVar = new(State)ir_variable(Var->type, nullptr, ir_var_temporary);
+					auto* NewAtomic = new(State)ir_atomic(ir_atomic_load, new(State) ir_dereference_variable(NewVar), DeRefVar, nullptr, nullptr);
+					base_ir->insert_before(NewVar);
+					base_ir->insert_before(NewAtomic);
+					*RValuePtr = new(State)ir_dereference_variable(NewVar);
+				}
+				else
+				{
+					//#todo-rco: This code path is broken!
+					auto* DummyVar = new(State)ir_variable(Var->type, nullptr, ir_var_temporary);
+					auto* NewVar = new(State)ir_variable(Var->type, nullptr, ir_var_temporary);
+					auto* NewAtomic = new(State)ir_atomic(ir_atomic_swap, new(State)ir_dereference_variable(DummyVar), DeRefVar, new(State)ir_dereference_variable(NewVar), nullptr);
+					base_ir->insert_before(DummyVar);
+					base_ir->insert_before(NewVar);
+					base_ir->insert_before(NewAtomic);
+					*RValuePtr = new(State)ir_dereference_variable(NewVar);
+				}
 			}
 		}
 		else if (DeRefArray)
@@ -1721,14 +1732,25 @@ struct FFixAtomicVariables : public ir_rvalue_visitor
 			if ((Var->mode == ir_var_shared || Var->mode == ir_var_uniform) && AtomicVariables.find(Var) != AtomicVariables.end())
 			{
 				check(!in_assignee);
-				auto* DummyVar = new(State) ir_variable(DeRefArray->type, nullptr, ir_var_temporary);
-				auto* NewVar = new(State) ir_variable(DeRefArray->type, nullptr, ir_var_temporary);
-				//#todo-rco: Atomic Load instead of swap
-				auto* NewAtomic = new(State) ir_atomic(ir_atomic_swap, new(State) ir_dereference_variable(DummyVar), DeRefArray, new(State) ir_dereference_variable(NewVar), nullptr);
-				base_ir->insert_before(DummyVar);
-				base_ir->insert_before(NewVar);
-				base_ir->insert_before(NewAtomic);
-				*RValuePtr = new(State) ir_dereference_variable(NewVar);
+				if (State->LanguageSpec->NeedsAtomicLoadStore())
+				{
+					auto* NewVar = new(State) ir_variable(DeRefArray->type, nullptr, ir_var_temporary);
+					auto* NewAtomic = new(State)ir_atomic(ir_atomic_load, new(State)ir_dereference_variable(NewVar), DeRefArray, nullptr, nullptr);
+					base_ir->insert_before(NewVar);
+					base_ir->insert_before(NewAtomic);
+					*RValuePtr = new(State)ir_dereference_variable(NewVar);
+				}
+				else
+				{
+					//#todo-rco: This code path is broken!
+					auto* DummyVar = new(State)ir_variable(DeRefArray->type, nullptr, ir_var_temporary);
+					auto* NewVar = new(State)ir_variable(DeRefArray->type, nullptr, ir_var_temporary);
+					auto* NewAtomic = new(State)ir_atomic(ir_atomic_swap, new(State)ir_dereference_variable(DummyVar), DeRefArray, new(State)ir_dereference_variable(NewVar), nullptr);
+					base_ir->insert_before(DummyVar);
+					base_ir->insert_before(NewVar);
+					base_ir->insert_before(NewAtomic);
+					*RValuePtr = new(State)ir_dereference_variable(NewVar);
+				}
 			}
 		}
 	}
@@ -1788,19 +1810,36 @@ struct FFixAtomicVariables : public ir_rvalue_visitor
 			else if (DeRefArray)
 			{
 				check(ir == base_ir);
-				auto* DummyVar = new(State) ir_variable(LHSVar->type->element_type(), nullptr, ir_var_temporary);
-				auto* NewAtomic = new(State) ir_atomic(ir_atomic_swap, new(State) ir_dereference_variable(DummyVar), DeRefArray, ir->rhs, nullptr);
-				base_ir->insert_before(DummyVar);
-				base_ir->insert_before(NewAtomic);
+				if (State->LanguageSpec->NeedsAtomicLoadStore())
+				{
+					auto* NewAtomic = new(State)ir_atomic(ir_atomic_store, nullptr, DeRefArray, ir->rhs, nullptr);
+					base_ir->insert_before(NewAtomic);
+				}
+				else
+				{
+					auto* DummyVar = new(State) ir_variable(LHSVar->type->element_type(), nullptr, ir_var_temporary);
+					auto* NewAtomic = new(State) ir_atomic(ir_atomic_swap, new(State) ir_dereference_variable(DummyVar), DeRefArray, ir->rhs, nullptr);
+					base_ir->insert_before(DummyVar);
+					base_ir->insert_before(NewAtomic);
+				}
 				ir->remove();
 			}
 			else if (DeRefVar)
 			{
 				check(ir == base_ir);
-				auto* DummyVar = new(State) ir_variable(LHSVar->type, nullptr, ir_var_temporary);
-				auto* NewAtomic = new(State) ir_atomic(ir_atomic_swap, new(State) ir_dereference_variable(DummyVar), DeRefVar, ir->rhs, nullptr);
-				base_ir->insert_before(DummyVar);
-				base_ir->insert_before(NewAtomic);
+				if (State->LanguageSpec->NeedsAtomicLoadStore())
+				{
+					auto* NewAtomic = new(State) ir_atomic(ir_atomic_store, nullptr, DeRefVar, ir->rhs, nullptr);
+					base_ir->insert_before(NewAtomic);
+				}
+				else
+				{
+					//#todo-rco: This code path is probably broken!
+					auto* DummyVar = new(State)ir_variable(LHSVar->type, nullptr, ir_var_temporary);
+					auto* NewAtomic = new(State)ir_atomic(ir_atomic_swap, new(State)ir_dereference_variable(DummyVar), DeRefVar, ir->rhs, nullptr);
+					base_ir->insert_before(DummyVar);
+					base_ir->insert_before(NewAtomic);
+				}
 				ir->remove();
 			}
 		}

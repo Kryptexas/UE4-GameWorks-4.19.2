@@ -2049,6 +2049,8 @@ enum ir_atomic_op
 	ir_atomic_xor,
 	ir_atomic_swap,
 	ir_atomic_cmp_swap,
+	ir_atomic_load,
+	ir_atomic_store,
 	ir_atomic_count
 };
 

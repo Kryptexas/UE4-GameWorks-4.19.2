@@ -1,5 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
@@ -2056,7 +2056,7 @@ protected:
 
 	virtual void visit(ir_atomic *ir) override
 	{
-		const char *sharedAtomicFunctions[] = 
+		const char* SharedAtomicFunctions[ir_atomic_count] = 
 		{
 			"atomic_fetch_add_explicit",
 			"atomic_fetch_and_explicit",
@@ -2065,8 +2065,11 @@ protected:
 			"atomic_fetch_or_explicit",
 			"atomic_fetch_xor_explicit",
 			"atomic_exchange_explicit",
-			"atomic_compare_exchange_weak_explicit"
+			"atomic_compare_exchange_weak_explicit",
+			"atomic_load_explicit",
+			"atomic_store_explicit",
 		};
+		static_assert(sizeof(SharedAtomicFunctions) / sizeof(SharedAtomicFunctions[0]) == ir_atomic_count, "Mismatched entries!");
 /*
 		const char *imageAtomicFunctions[] =
 		{
@@ -2083,14 +2086,20 @@ protected:
 		check(scope_depth > 0);
 		const bool is_image = ir->memory_ref->as_dereference_image() != NULL;
 
-		ir->lhs->accept(this);
+		if (ir->lhs)
+		{
+			ir->lhs->accept(this);
+			ralloc_asprintf_append(buffer, " = ");
+		}
 		//if (!is_image)
 		{
-			ralloc_asprintf_append(buffer, " = %s(&",
-				sharedAtomicFunctions[ir->operation]);
+			ralloc_asprintf_append(buffer, "%s(&", SharedAtomicFunctions[ir->operation]);
 			ir->memory_ref->accept(this);
-			ralloc_asprintf_append(buffer, ", ");
-			ir->operands[0]->accept(this);
+			if (ir->operands[0])
+			{
+				ralloc_asprintf_append(buffer, ", ");
+				ir->operands[0]->accept(this);
+			}
 			if (ir->operands[1])
 			{
 				ralloc_asprintf_append(buffer, ", ");

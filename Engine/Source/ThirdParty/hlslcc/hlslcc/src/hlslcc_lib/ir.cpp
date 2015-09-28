@@ -2036,7 +2036,9 @@ ir_atomic::operator_string()
 		"atomic_or",
 		"atomic_xor",
 		"atomic_swap",
-		"atomic_cmp_swap"
+		"atomic_cmp_swap",
+		"atomic_load",
+		"atomic_store"
 	};
 	static_assert(Elements(str) == ir_atomic_count, "Mismatched atomic count");
 	return str[this->operation];
