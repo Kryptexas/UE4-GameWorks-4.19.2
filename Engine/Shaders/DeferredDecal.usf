@@ -10,7 +10,7 @@
 
 #include "Common.usf"
 
-// from SvPosition to decal space (for position)
+// from SvPosition to decal space (for position), used like this: mul(float4(SvPosition.xyz, 1), SvPositionToDecal);
 float4x4 SvPositionToDecal;
 // to transform position from decal space to world space, for normals use transpose of inverse
 float4x4 DecalToWorld;
@@ -36,7 +36,7 @@ half3 FrameBufferDecalBlendOp(half4 Source)
 #else
 	half4 Dest = half4(0, 0, 0, 0);
 #endif
-
+    
 #if DECAL_BLEND_MODE == DECALBLENDMODEID_STAIN
 	return (Source.rgb*Dest.rgb) + (Dest.rgb*(1.0 - Source.a));
 #elif DECAL_BLEND_MODE == DECALBLENDMODEID_TRANSLUCENT
@@ -57,7 +57,7 @@ void MainVS(
 	OutPosition = mul(InPosition, FrustumComponentToClip);
 }
 
-float DistanceFunction(float4 ScreenPosition, float3 Pos)
+float DistanceFunction(float4 SvPosition, float3 Pos)
 {
 	float3 SwizzlePos = Pos.zyx;
 
@@ -72,7 +72,8 @@ float DistanceFunction(float4 ScreenPosition, float3 Pos)
 #endif
 
 	MaterialParameters.VertexColor = 1;
-	MaterialParameters.ScreenPosition = ScreenPosition;
+	MaterialParameters.SvPosition = SvPosition;
+	MaterialParameters.ScreenPosition = SvPositionToScreenPosition(SvPosition);
 	MaterialParameters.LightVector = SwizzlePos * 0.5f + 0.5f;		// to be compatible with decals but *0.5+0.5 seems wrong
 	MaterialParameters.AbsoluteWorldPosition = 
 	MaterialParameters.WorldPosition_CamRelative = 
@@ -92,7 +93,7 @@ float DistanceFunction(float4 ScreenPosition, float3 Pos)
 const static float coneSpread = 0.00002f;
 
 // @return t=0..1, -1: no hit
-float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
+float Raycast(float4 SvPosition, float3 StartPos, float3 EndPos)
 {
 	const uint steps = 300; 
 
@@ -103,7 +104,7 @@ float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
 
 	LOOP for(uint i = 0; i < steps; ++i)
 	{
-		float Distance = DistanceFunction(ScreenPosition, StartPos + t * Direction);
+		float Distance = DistanceFunction(SvPosition, StartPos + t * Direction);
 
 		if(Distance <= t * coneSpread)
 		{
@@ -122,15 +123,15 @@ float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
 }
 
 // like explained here http://iquilezles.org/www/articles/derivative/derivative.htm
-float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos, float t)
+float3 GradientNotNormalized(float4 SvPosition, float3 OSPos, float t)
 {
 	float eps = t * coneSpread;
 
 	float2 e = float2(eps, 0);
 
-    return float3(DistanceFunction(ScreenPosition, OSPos + e.xyy) - DistanceFunction(ScreenPosition, OSPos - e.xyy),
-                  DistanceFunction(ScreenPosition, OSPos + e.yxy) - DistanceFunction(ScreenPosition, OSPos - e.yxy),
-                  DistanceFunction(ScreenPosition, OSPos + e.yyx) - DistanceFunction(ScreenPosition, OSPos - e.yyx));
+    return float3(DistanceFunction(SvPosition, OSPos + e.xyy) - DistanceFunction(SvPosition, OSPos - e.xyy),
+                  DistanceFunction(SvPosition, OSPos + e.yxy) - DistanceFunction(SvPosition, OSPos - e.yxy),
+                  DistanceFunction(SvPosition, OSPos + e.yyx) - DistanceFunction(SvPosition, OSPos - e.yyx));
 }
 
 
@@ -191,8 +192,6 @@ void MainPS(
 	// make SvPosition appear to be rasterized with the depth from the depth buffer
 	SvPosition.z = LookupDeviceZ(ScreenUV);
 
-	float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-
 #if DECAL_RENDERTARGET_COUNT > 4
 	// default to no shadows, good for volumetric decals
 	OutTarget4 = 1;
@@ -210,12 +209,8 @@ void MainPS(
 		float SceneW = 100000000;
 
 		float4 SvPositionInDistance = float4(SvPosition.xy, ConvertToDeviceZ(SceneW), 1);
-//		float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);		// is ProjectedClipPosition
-//		ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);
-//		float4 WorldPosHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
 
 		float3 WSStartRay = View.WorldCameraOrigin;
-//		float3 WSEndRay = WorldPosHom.xyz;
 		float3 WSEndRay = SvPositionToWorld(SvPositionInDistance);
 
 		// in object/decal space
@@ -230,7 +225,7 @@ void MainPS(
 		float3 OSBoxStartRay = OSStartRay + OSBoxMinMax.x * (OSEndRay - OSStartRay);
 		float3 OSBoxEndRay = OSStartRay + OSBoxMinMax.y * (OSEndRay - OSStartRay);
 
-		HitT = Raycast(ScreenPosition, OSBoxStartRay, OSBoxEndRay);
+		HitT = Raycast(SvPosition, OSBoxStartRay, OSBoxEndRay);
 
 		clip(HitT);
 
@@ -252,9 +247,8 @@ void MainPS(
 		clip(OSPosition.xyz + 1.0f);
 		clip(1.0f - OSPosition.xyz);
 
-		float4 Hom = mul(float4(SvPosition.xyz, 1), View.SVPositionToTranslatedWorld);
-		
-		WSPosition = Hom.xyz / Hom.w - View.PreViewTranslation;
+		// todo: TranslatedWorld would be better for quality
+		WSPosition = SvPositionToWorld(SvPosition);
 	}
 
 	float3 CameraVector = normalize(View.WorldCameraOrigin - WSPosition);
@@ -278,7 +272,7 @@ void MainPS(
 	MaterialParameters.VertexColor = 1;
 	MaterialParameters.CameraVector = CameraVector;
 	MaterialParameters.SvPosition = SvPosition;
-	MaterialParameters.ScreenPosition = ScreenPosition;
+	MaterialParameters.ScreenPosition = SvPositionToScreenPosition(SvPosition);
 	MaterialParameters.LightVector = SwizzlePos;
 	MaterialParameters.AbsoluteWorldPosition = 
 		MaterialParameters.WorldPosition_CamRelative = 
@@ -289,7 +283,7 @@ void MainPS(
 		if(bVolumetric)
 		{
 			// not normalized
-			float3 OSNormal = GradientNotNormalized(ScreenPosition, OSPosition, HitT);
+			float3 OSNormal = GradientNotNormalized(SvPosition, OSPosition, HitT);
 			
 			// not normalized
 			float3 WSNormal = mul(float4(OSNormal, 0), transpose(WorldToDecal)).xyz;
