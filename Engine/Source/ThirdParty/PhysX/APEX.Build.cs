@@ -23,9 +23,13 @@ public class APEX : ModuleRules
 				{ 
 					return APEXLibraryMode.Debug;
 				}
+				else if(BuildConfiguration.bUseCheckedPhysXLibraries)
+                {
+   	                return APEXLibraryMode.Checked;
+       	        }
 				else
 				{
-					return APEXLibraryMode.Profile;
+                	return APEXLibraryMode.Profile;
 				}
 			case UnrealTargetConfiguration.Shipping:
 			case UnrealTargetConfiguration.Test:
@@ -36,6 +40,10 @@ public class APEX : ModuleRules
                 if(BuildConfiguration.bUseShippingPhysXLibraries)
                 {
                     return APEXLibraryMode.Shipping;
+                }
+                else if(BuildConfiguration.bUseCheckedPhysXLibraries)
+                {
+                    return APEXLibraryMode.Checked;
                 }
                 else
                 {

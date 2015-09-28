@@ -406,6 +406,12 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseShippingPhysXLibraries;
 
+        /// <summary>
+        /// True if Development and Release builds should use the checked configuration of PhysX/APEX. if bUseShippingPhysXLibraries is true this is ignored
+        /// </summary>
+        [XmlConfig]
+        public static bool bUseCheckedPhysXLibraries;
+
 		/// <summary>
 		/// Tells the UBT to check if module currently being built is violating EULA.
 		/// </summary>
@@ -624,6 +630,10 @@ namespace UnrealBuildTool
 			// By default we use the Profile PhysX/APEX binaries.
 			// We do this in order to keep all configurations the same for behavior consistency. Profile gives some nice debug tools and warnings so we use it instead of Release
 			bUseShippingPhysXLibraries = false;
+
+            // By default we use the Profile PhysX/APEX binaries.
+            // We do this in order to keep all configurations the same for behavior consistency.
+            bUseCheckedPhysXLibraries = false;
 
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";

@@ -19,7 +19,19 @@ public class PhysX : ModuleRules
 		switch (Config)
 		{
 			case UnrealTargetConfiguration.Debug:
-				return PhysXLibraryMode.Debug;
+                {
+                    if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                    {
+                        return PhysXLibraryMode.Debug;
+                    }else if(BuildConfiguration.bUseCheckedPhysXLibraries)
+					{
+						return PhysXLibraryMode.Checked;
+					}
+					else
+                    {
+                        return PhysXLibraryMode.Profile;
+                    }
+                }
 
 			case UnrealTargetConfiguration.Development:
 			case UnrealTargetConfiguration.DebugGame:
@@ -30,6 +42,10 @@ public class PhysX : ModuleRules
             if(BuildConfiguration.bUseShippingPhysXLibraries)
             {
                 return PhysXLibraryMode.Shipping;
+            }
+            else if(BuildConfiguration.bUseCheckedPhysXLibraries)
+            {
+                return PhysXLibraryMode.Checked;
             }
             else
             {
@@ -43,16 +59,7 @@ public class PhysX : ModuleRules
 		switch (Mode)
 		{
 			case PhysXLibraryMode.Debug:
-				{ 
-					if( BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
-					{ 
-						return "DEBUG";
-					}
-					else
-					{
-						return "PROFILE";
-					}
-				}
+                return "DEBUG";
 			case PhysXLibraryMode.Checked:
 				return "CHECKED";
 			case PhysXLibraryMode.Profile:
@@ -88,10 +95,20 @@ public class PhysX : ModuleRules
         if (LibraryMode == PhysXLibraryMode.Shipping)
         {
             Definitions.Add("WITH_PHYSX_RELEASE=1");
-        }else
+        }
+        else
 		{
 		    Definitions.Add("WITH_PHYSX_RELEASE=0");
 		}
+
+        if (LibraryMode == PhysXLibraryMode.Checked)
+        {
+            Definitions.Add("WITH_PHYSX_CHECKED=1");
+        }
+        else
+        {
+            Definitions.Add("WITH_PHYSX_CHECKED=0");
+        }
         
 
 		string PhysXVersion = "PhysX-3.3";

@@ -84,6 +84,23 @@ void LoadPhysXModules()
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
 
+		#elif WITH_PHYSX_CHECKED
+
+					PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonCHECKED_x64.dll"));
+					nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
+					PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3CHECKED_x64.dll"));
+		#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+					PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingCHECKED_x64.dll"));
+		#endif
+		#if WITH_APEX
+					APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkCHECKED_x64.dll"));
+					APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleCHECKED_x64.dll"));
+					APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyCHECKED_x64.dll"));
+		#if WITH_APEX_CLOTHING
+					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingCHECKED_x64.dll"));
+		#endif //WITH_APEX_CLOTHING
+		#endif	//WITH_APEX
+
 		#else	//UE_BUILD_DEBUG
 		
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonPROFILE_x64.dll"));
@@ -148,6 +165,23 @@ void LoadPhysXModules()
 					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Clothing_x86.dll"));
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
+
+		#elif WITH_PHYSX_CHECKED
+
+					PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonCHECKED_x86.dll"));
+					nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
+					PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3CHECKED_x86.dll"));
+		#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+					PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingCHECKED_x86.dll"));
+		#endif
+		#if WITH_APEX
+					APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkCHECKED_x86.dll"));
+					APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleCHECKED_x86.dll"));
+					APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyCHECKED_x86.dll"));
+		#if WITH_APEX_CLOTHING
+					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingCHECKED_x86.dll"));
+		#endif //WITH_APEX_CLOTHING
+		#endif	//WITH_APEX
 
 		#else	//UE_BUILD_DEBUG
 
