@@ -21,7 +21,7 @@ const float GDefaultDFAOMaxOcclusionDistance = 600.0f;
 
 inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE;
 }
 
 extern FIntPoint GetBufferSizeForAO();
