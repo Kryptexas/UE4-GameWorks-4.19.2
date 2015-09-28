@@ -195,13 +195,19 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			}
 
 			// Note all PSystems w/ a far LOD distance...
+			bool bAtLeastOneLODUnderFarDistanceThresholdOrEmpty = (PSys->LODDistances.Num() == 0);
 			for ( float LODDistance : PSys->LODDistances )
 			{
-				if (LODDistance > FarLODDistanceTheshold)
+				if (LODDistance <= FarLODDistanceTheshold)
 				{
-					ParticleSystemsWithFarLODDistance.Add(PSys->GetPathName());
+					bAtLeastOneLODUnderFarDistanceThresholdOrEmpty = true;
 					break;
 				}
+			}
+
+			if (!bAtLeastOneLODUnderFarDistanceThresholdOrEmpty)
+			{
+				ParticleSystemsWithFarLODDistance.Add(PSys->GetPathName());
 			}
 
 			// Note all PSystems w/ no emitters...
