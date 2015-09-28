@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2692110
 Availability:Public
 Title:Timeline ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description:ブループリント タイムラインの特定の機能処理に使用するノード
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -85,7 +86,7 @@ Description:ブループリント タイムラインの特定の機能処理に�
 
 ## Is Looping
 
-**Is Looping** ノードは、入力 Timeline がループ中の場合は _True_ 、そうでない場合は _False_ の Boolean 値を返します。
+**Is Looping** ノードは、入力 Timeline がループ中の場合は True、そうでない場合は False の Boolean 値を返します。
 
 ![](Is_Looping.png)
 
@@ -98,7 +99,7 @@ Description:ブループリント タイムラインの特定の機能処理に�
 
 ## Is Playing
 
-**Is Playing** ノードは、入力 Timeline が現在再生中の場合は _True_ 、そうでない場合は _False_ の Boolean 値を返します。
+**Is Playing** ノードは、入力 Timeline が現在再生中の場合は True、そうでない場合は False の Boolean 値を返します。
 
 ![](Is_Playing.png)
 
@@ -111,7 +112,7 @@ Description:ブループリント タイムラインの特定の機能処理に�
 
 ## Is Reversing
 
-**Is Reversing** ノードは、入力 Timeline が現在リバース中の場合 (つまり逆再生中) は _True_ 、そうでない場合は _False_ の Boolean 値を返します。
+**Is Reversing** ノードは、入力 Timeline が現在リバース中の場合 (つまり逆再生中) は True、そうでない場合は False の Boolean 値を返します。
 
 ![](Is_Reversing.png)
 
@@ -207,14 +208,14 @@ Description:ブループリント タイムラインの特定の機能処理に�
 
 ![](Set_Playback_Position.png)
 
-**Set Playback Position** ノードは、入力 Timeline 、小数浮動値、そして Boolean 値を受け取ります。このノードは、 Timeline の Playback Position プロパティを小数浮動値へジャンプさせます。Timeline 内に 1 つでもイベントトラックがある場合、 Boolean 値を使用してイベントが発行されるかどうかを判断します。
+**Set Playback Position** ノードは、入力 Timeline 、小数浮動値、そして Boolean 値を受け取ります。このノードは、 Timeline の Playback Position プロパティを小数浮動値へジャンプさせます。Timeline 内に 1 つでもイベントトラックがある場合、 Boolean 値を使用してイベント発行の有無を判断します。
 
 | **名前** | **種類** | **説明** |
 | --- | --- |---|
 | [REGION:tablesection]**入力**[/REGION] |||
 | **Target** | Timeline コンポーネント | Timeline 変数を受け取ります。 |
 | **New Position** | 浮動小数値 | 新規の再生位置へのジャンプに使用します。 |
-| **Fire Events** | Boolean値 | ジャンプしたイベント (いずれかのイベントトラックから) の発行を制御する際に使用します。 |
+| **Fire Events** | Boolean値 | ジャンプしたイベント (いずれかのイベントトラックから) の発行の制御に使用します。 |
 
 ## Set Timeline Length
 
