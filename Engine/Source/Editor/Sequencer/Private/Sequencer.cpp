@@ -866,6 +866,56 @@ void FSequencer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCu
 	}
 }
 
+void FSequencer::SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap)
+{
+	if(!IsPerspectiveViewportPosessionEnabled())
+	{
+		return;
+	}
+
+	for(FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
+	{
+		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
+		{
+			if (ViewportParamsMap.Contains(LevelVC))
+			{
+				const EMovieSceneViewportParams* ViewportParams = ViewportParamsMap.Find(LevelVC);
+				if (ViewportParams->SetWhichViewportParam & EMovieSceneViewportParams::SVP_FadeAmount)
+				{
+					LevelVC->FadeAmount = ViewportParams->FadeAmount;
+					LevelVC->bEnableFading = true;
+				}
+				if (ViewportParams->SetWhichViewportParam & EMovieSceneViewportParams::SVP_FadeColor)
+				{
+					LevelVC->FadeColor = ViewportParams->FadeColor.ToRGBE();
+					LevelVC->bEnableFading = true;
+				}
+				if (ViewportParams->SetWhichViewportParam & EMovieSceneViewportParams::SVP_ColorScaling)
+				{
+					LevelVC->bEnableColorScaling = ViewportParams->bEnableColorScaling;
+					LevelVC->ColorScale = ViewportParams->ColorScale;
+				}
+			}
+		}
+	}
+}
+
+void FSequencer::GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const
+{
+	for(FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
+	{
+		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
+		{
+			EMovieSceneViewportParams ViewportParams;
+			ViewportParams.FadeAmount = LevelVC->FadeAmount;
+			ViewportParams.FadeColor = FLinearColor(LevelVC->FadeColor);
+			ViewportParams.ColorScale = LevelVC->ColorScale;
+
+			ViewportParamsMap.Add(LevelVC, ViewportParams);
+		}
+	}
+}
+
 EMovieScenePlayerStatus::Type FSequencer::GetPlaybackStatus() const
 {
 	return PlaybackState;
@@ -1672,22 +1722,11 @@ void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorView
 		InViewportClient.SetViewLocation(Cam->GetActorLocation());
 		InViewportClient.SetViewRotation(Cam->GetActorRotation());
 
-		// @todo Sequencer previewing
-		/*InViewportClient.FadeAmount = InFadeAmount;
-		InViewportClient.bEnableFading = true;*/
-
-		/*InViewportClient.bEnableColorScaling = bInEnableColorScaling;
-		InViewportClient.ColorScale = InColorScale;*/
-
 		InViewportClient.bEditorCameraCut = bNewCameraCut;
 	}
 	else
 	{
 		InViewportClient.ViewFOV = InViewportClient.FOVAngle;
-
-		// @todo Sequencer previewing
-		/*InViewportClient.>FadeAmount = InFadeAmount;
-		InViewportClient.bEnableFading = true;*/
 
 		InViewportClient.bEditorCameraCut = false;
 	}

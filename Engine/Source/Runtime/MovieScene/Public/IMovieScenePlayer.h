@@ -14,6 +14,31 @@ namespace EMovieScenePlayerStatus
 	};
 }
 
+struct EMovieSceneViewportParams
+{
+	EMovieSceneViewportParams()
+	{
+		FadeAmount = 0.f;
+		FadeColor = FLinearColor::Black;
+		bEnableColorScaling = false;
+	}
+
+	enum SetViewportParam
+	{
+		SVP_FadeAmount   = 0x00000001,
+		SVP_FadeColor    = 0x00000002,
+		SVP_ColorScaling = 0x00000004,
+		SVP_All          = SVP_FadeAmount | SVP_FadeColor | SVP_ColorScaling
+	};
+
+	SetViewportParam SetWhichViewportParam;
+
+	float FadeAmount;
+	FLinearColor FadeColor;
+	FVector ColorScale; 
+	bool bEnableColorScaling;
+};
+
 class FMovieSceneSequenceInstance;
 
 /**
@@ -40,6 +65,20 @@ public:
 	 * @param bNewCameraCut			If true this is a new camera cut
 	 */
 	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const = 0;
+
+	/*
+	 * Set the perspective viewport settings
+	 *
+	 * @param ViewportParamMap A map from the viewport client to its settings
+	 */
+	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) = 0;
+
+	/*
+	 * Get the current perspective viewport settings
+	 *
+	 * @param ViewportParamMap A map from the viewport client to its settings
+	 */
+	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const = 0;
 
 	/**
 	 * Adds a MovieScene instance to the player.  MovieScene players need to know about each instance for actor spawning
