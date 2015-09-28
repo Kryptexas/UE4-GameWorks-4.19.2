@@ -1368,17 +1368,10 @@ void UMaterialInstance::CacheResourceShadersForCooking(EShaderPlatform ShaderPla
 		TArray<FMaterialResource*> ResourcesToCache;
 		ERHIFeatureLevel::Type TargetFeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
 
-		bool bAnyQualityLevelUsed = false;
-
-		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
-		{
-			bAnyQualityLevelUsed = bAnyQualityLevelUsed || QualityLevelsUsed[QualityLevelIndex];
-		}
-
 		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 		{
 			// Cache all quality levels, unless they are all the same (due to using the same nodes), then just cache the high quality
-			if (bAnyQualityLevelUsed || QualityLevelIndex == EMaterialQualityLevel::High)
+			if (QualityLevelsUsed[QualityLevelIndex] || QualityLevelIndex == EMaterialQualityLevel::High)
 			{
 				FMaterialResource* NewResource = new FMaterialResource();
 				NewResource->SetMaterial(BaseMaterial, (EMaterialQualityLevel::Type)QualityLevelIndex, QualityLevelsUsed[QualityLevelIndex], (ERHIFeatureLevel::Type)TargetFeatureLevel, this);
