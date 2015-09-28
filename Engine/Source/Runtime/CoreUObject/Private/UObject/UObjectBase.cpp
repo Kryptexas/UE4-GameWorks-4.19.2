@@ -690,7 +690,7 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 		FClassConstructFunctions ClassFunctions;
 		ClassFunctions.ZConstructFn = InRegister;
 		ClassFunctions.StaticClassFn = InStaticClass;
-		GetDynamicClassMap().Add(FName(Name + 1), ClassFunctions);
+		GetDynamicClassMap().Add(FName(Name), ClassFunctions);
 	}
 }
 

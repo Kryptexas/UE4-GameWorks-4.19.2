@@ -324,4 +324,17 @@ private:
 	bool bOldGAllowScriptExecutionInEditor;
 };
 
+/** @return True if the char can be used in an identifier in c++ */
+COREUOBJECT_API bool IsValidCPPIdentifierChar(TCHAR Char);
+
+/** @return A string that contains only Char if Char IsValidCPPIdentifierChar, otherwise returns a corresponding sequence of valid c++ chars */
+COREUOBJECT_API FString ToValidCPPIdentifierChars(TCHAR Char);
+
+/** 
+	@param InName The string to transform
+	@param bDeprecated whether the name has been deprecated
+	@Param Prefix The prefix to be prepended to the return value, accepts nullptr or empty string
+	@return A corresponding string that contains only valid c++ characters and is prefixed with Prefix
+*/
 COREUOBJECT_API FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TCHAR* Prefix);
+

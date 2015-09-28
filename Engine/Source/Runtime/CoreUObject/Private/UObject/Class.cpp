@@ -69,6 +69,10 @@ void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSIC
 	Class->AddNativeFunction(InName, InPointer);
 }
 
+void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const WIDECHAR* InName, Native InPointer)
+{
+	Class->AddNativeFunction(InName, InPointer);
+}
 
 /*-----------------------------------------------------------------------------
 	UField implementation.
@@ -3970,6 +3974,27 @@ void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 	}
 #endif
 	new(NativeFunctionLookupTable) FNativeFunctionLookup(InFName,InPointer);
+}
+
+void UClass::AddNativeFunction(const WIDECHAR* InName, Native InPointer)
+{
+	FName InFName(InName);
+#if WITH_HOT_RELOAD
+	if (GIsHotReload)
+	{
+		// Find the function in the class's native function lookup table.
+		if (ReplaceNativeFunction(InFName, InPointer, true))
+		{
+			return;
+		}
+		else
+		{
+			// function was not found, so it's new
+			UE_LOG(LogClass, Log, TEXT("Function %s is new."), *InFName.ToString());
+		}
+	}
+#endif
+	new(NativeFunctionLookupTable)FNativeFunctionLookup(InFName, InPointer);
 }
 
 UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper) const

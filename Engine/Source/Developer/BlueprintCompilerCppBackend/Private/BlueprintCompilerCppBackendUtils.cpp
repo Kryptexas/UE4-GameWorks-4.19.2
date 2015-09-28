@@ -182,16 +182,24 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 	{
 		auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
 		const bool bConverted = BPGC && Dependencies.WillClassBeConverted(BPGC);
-		if (BPGC && !bConverted)
+		if (BPGC )
 		{
-			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
-			const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-			UClass* NativeType = GetFirstNativeParent(BPGC);
-			ActualCppType = ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, NativeType);
-			ActualCppTypePtr = &ActualCppType;
-			if (!ActualExtendedType.IsEmpty())
+			if (!bConverted)
 			{
-				ActualExtendedTypePtr = &ActualExtendedType;
+				const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
+				const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+				UClass* NativeType = GetFirstNativeParent(BPGC);
+				ActualCppType = ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, NativeType);
+				ActualCppTypePtr = &ActualCppType;
+				if (!ActualExtendedType.IsEmpty())
+				{
+					ActualExtendedTypePtr = &ActualExtendedType;
+				}
+			}
+			else
+			{
+				ActualCppType = FEmitHelper::GetCppName(ObjectPropertyBase->PropertyClass, false) + TEXT("*");
+				ActualCppTypePtr = &ActualCppType;
 			}
 		}
 	};
@@ -214,6 +222,11 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 	else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 	{
 		GetActualNameCPP(ObjectProperty, ObjectProperty->PropertyClass);
+	}
+	else if (auto StructProperty = Cast<const UStructProperty>(Property))
+	{
+		ActualCppType = FEmitHelper::GetCppName(StructProperty->Struct, false);
+		ActualCppTypePtr = &ActualCppType;
 	}
 
 	if (ArrayProperty)
@@ -259,7 +272,14 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 				, *AsClass->GetName());
 		}
 		auto AsStruct = CastChecked<UStruct>(Field);
-		return FString::Printf(TEXT("%s%s"), AsStruct->GetPrefixCPP(), *AsStruct->GetName());
+		if (AsStruct->HasAnyFlags(RF_Native))
+		{
+			return FString::Printf(TEXT("%s%s"), AsStruct->GetPrefixCPP(), *AsStruct->GetName());
+		}
+		else
+		{
+			return ::UnicodeToCPPIdentifier(*AsStruct->GetName(), false, AsStruct->GetPrefixCPP());
+		}
 	}
 	else if (auto AsProperty = Cast<UProperty>(Field))
 	{
@@ -531,6 +551,11 @@ FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj)
 		// TODO: It would be better to load all redirectors before compiling. Than checking here AssetRegistry.
 
 		Result += TEXT("\"");
+
+		// 4. Add overridden name:
+		Result += TEXT(", OverrideNativeName=\"");
+		Result += Obj->GetName();
+		Result += TEXT("\"");
 	}
 
 	return Result;
@@ -538,9 +563,28 @@ FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj)
 
 FString FEmitHelper::GetBaseFilename(const UObject* AssetObj)
 {
-	// @TODO: See DanO about properly handling special asset names (w/ unicode, conflicts, etc.)
 	FString PackagePath = AssetObj->GetOutermost()->GetPathName();
-	return FPackageName::GetLongPackageAssetName(PackagePath);
+	// We have to sanitize the package path because UHT is going to generate header guards (preprocessor symbols)
+	// based on the filename. I'm also not interested in exploring the depth of unicode filename support in UHT,
+	// UBT, and our various c++ toolchains, so this logic is pretty aggressive:
+	FString Postfix = TEXT("__pf");
+	for (auto& Char : PackagePath)
+	{
+		if (Char == '/' || Char == '\\')
+		{
+			continue;
+		}
+
+		if (!IsValidCPPIdentifierChar(Char))
+		{
+			// deterministically map char to a valid ascii character, we have 63 characters available (aA-zZ, 0-9, and _)
+			// so the optimal encoding would be base 63:
+			Postfix.Append(ToValidCPPIdentifierChars(Char));
+			Char = TCHAR('x');
+		}
+	}
+
+	return FPackageName::GetLongPackageAssetName(PackagePath+Postfix);
 }
 
 FString FEmitHelper::EmitUFuntion(UFunction* Function, TArray<FString>* AdditinalMetaData)

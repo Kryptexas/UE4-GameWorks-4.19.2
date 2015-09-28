@@ -192,6 +192,11 @@ private:
 	 * This function returns the original name of the field (rather than the native, symbol name).
 	 */
 	FString GetOverriddenName(const UField* Item);
+	
+	/** 
+	 * Returns the name (overridden if marked up) with TEXT("") or "" wrappers for use in a string literal.
+	 */
+	FString GetOverriddenNameForLiteral(const UField* Item);
 
 	/** 
 	 * Export functions used to find and call C++ or script implementation of a script function in the interface 

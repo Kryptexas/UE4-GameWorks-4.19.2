@@ -2045,6 +2045,14 @@ public:
 	 **/
 	void AddNativeFunction(const ANSICHAR* InName, Native InPointer);
 
+	/**
+	 * Add a native function to the internal native function table, but with a unicode name. Used when generating code from blueprints, 
+	 * which can have unicode identifiers for functions and properties.
+	 * @param	InName							name of the function
+	 * @param	InPointer						pointer to the function
+	 **/
+	void AddNativeFunction(const WIDECHAR* InName, Native InPointer);
+
 	// Add a function to the function map
 	void AddFunctionToFunctionMap(UFunction* NewFunction)
 	{

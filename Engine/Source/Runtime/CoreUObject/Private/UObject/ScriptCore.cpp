@@ -142,41 +142,55 @@ FEditorScriptExecutionGuard::~FEditorScriptExecutionGuard()
 	GAllowActorScriptExecutionInEditor = bOldGAllowScriptExecutionInEditor;
 }
 
+bool IsValidCPPIdentifierChar(TCHAR Char)
+{
+	return Char == TCHAR('_')
+		|| (Char >= TCHAR('a') && Char <= TCHAR('z'))
+		|| (Char >= TCHAR('A') && Char <= TCHAR('Z'))
+		|| (Char >= TCHAR('0') && Char <= TCHAR('9'));
+}
+
+FString ToValidCPPIdentifierChars(TCHAR Char)
+{
+	FString Ret;
+	int32 RawValue = Char;
+	int32 Counter = 0;
+	while (RawValue != 0)
+	{
+		int32 Digit = RawValue % 63;
+		RawValue = (RawValue - Digit) / 63;
+
+		TCHAR SafeChar;
+		if (Digit < 26)
+		{
+			SafeChar = TCHAR(TCHAR('a') + (26 - Digit));
+		}
+		else if (Digit < 52)
+		{
+			SafeChar = TCHAR(TCHAR('A') + (52 - Digit));
+		}
+		else if (Digit < 62)
+		{
+			SafeChar = TCHAR(TCHAR('0') + (62 - Digit));
+		}
+		else
+		{
+			check(Digit == 62);
+			SafeChar = TCHAR('_');
+		}
+
+		Ret.AppendChar(SafeChar);
+	}
+	return Ret;
+}
+
 FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TCHAR* Prefix)
 {
 	// FName's can contain unicode characters or collide with other CPP identifiers or keywords. This function 
 	// returns a string that will have a prefix which is unlikely to collide with existing identifiers and
 	// converts unicode characters in place to valid ascii characters. Strictly speaking a C++ compiler *could*
 	// support unicode identifiers in source files, but I am not comfortable relying on this behavior.
-	
-	auto IsValidIdentifierChar = [](TCHAR Char)
-	{
-		return Char == TCHAR('_')
-			|| (Char >= TCHAR('a') && Char <= TCHAR('z'))
-			|| (Char >= TCHAR('A') && Char <= TCHAR('Z'))
-			|| (Char >= TCHAR('0') && Char <= TCHAR('9'));
-	};
 
-	auto ToValidIdentifier = [](int32 Val) -> TCHAR
-	{
-		if (Val < 26)
-		{
-			return TCHAR(TCHAR('a') + (26 - Val));
-		}
-		else if (Val < 52)
-		{
-			return TCHAR(TCHAR('A') + (52 - Val));
-		}
-		else if (Val < 62)
-		{
-			return TCHAR(TCHAR('0') + (62 - Val));
-		}
-		else
-		{
-			check(Val == 62);
-			return TCHAR('_');
-		}
-	};
 
 	FString Ret = InName;
 	// Initialize postfix with a unique identifier. This prevents potential collisions between names that have unicode
@@ -185,18 +199,11 @@ FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TC
 	for (auto& Char : Ret)
 	{
 		// if the character is not a valid character for a c++ identifier, then we need to encode it using valid characters:
-		if (!IsValidIdentifierChar(Char))
+		if (!IsValidCPPIdentifierChar(Char))
 		{
 			// deterministically map char to a valid ascii character, we have 63 characters available (aA-zZ, 0-9, and _)
 			// so the optimal encoding would be base 63:
-			int32 RawValue = Char;
-			int32 Counter = 0;
-			while (RawValue != 0)
-			{
-				int32 Digit = RawValue % 63;
-				RawValue = (RawValue - Digit) / 63;
-				Postfix.AppendChar(ToValidIdentifier(Digit));
-			}
+			Postfix.Append(ToValidCPPIdentifierChars(Char));
 			Char = TCHAR('x');
 		}
 	}
