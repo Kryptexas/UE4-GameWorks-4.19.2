@@ -63,7 +63,7 @@ const FString FCrashReportClientConfig::GetFullCrashDumpLocationForBranch( const
 		{
 			return It.Location;
 		}
-		else if( BranchName.Contains( It.BranchName ) )
+		else if (!bExactMatch && BranchName.Contains( It.BranchName ))
 		{
 			return It.Location;
 		}
