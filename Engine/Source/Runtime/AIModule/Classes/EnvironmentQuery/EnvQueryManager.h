@@ -129,6 +129,10 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	int32 RunQuery(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode, FQueryFinishedSignature const& FinishDelegate);
 	int32 RunQuery(TSharedPtr<FEnvQueryInstance> QueryInstance, FQueryFinishedSignature const& FinishDelegate);
 
+	/** Removed all active queries asked by Querier. No "on finished" notifications are being sent, call this function when
+	 *	you no longer care about Querier's queries, like when he's "dead" */
+	void SilentlyRemoveAllQueriesByQuerier(const UObject& Querier);
+
 	/** alternative way to run queries. Do not use for anything other then testing! (worse performance) */
 	TSharedPtr<FEnvQueryResult> RunInstantQuery(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode);
 
