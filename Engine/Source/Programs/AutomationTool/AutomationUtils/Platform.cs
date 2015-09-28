@@ -186,7 +186,7 @@ namespace AutomationTool
 
 		public virtual void UploadSymbols(ProjectParams Params, DeploymentContext SC)
 		{
-			LogWarning("{0} does not implement UploadSymbols...", PlatformType);
+			Log("{0} does not implement UploadSymbols...", PlatformType);
 		}
 
 		/// <summary>
