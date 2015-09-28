@@ -71,7 +71,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 *
 	 * @return string representing the type of beacon 
 	 */
-	FString GetBeaconType() const;
+	virtual FString GetBeaconType() const;
 	
 	/**
 	 * A connection has been made and RPC/replication can begin
