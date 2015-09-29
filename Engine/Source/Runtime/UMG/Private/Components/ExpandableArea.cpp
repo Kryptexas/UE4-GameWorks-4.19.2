@@ -17,6 +17,11 @@ UExpandableArea::UExpandableArea(const FObjectInitializer& ObjectInitializer)
 	, bIsExpanded(false)
 {
 	bIsVariable = false;
+
+	SExpandableArea::FArguments ExpandableDefaults;
+	Style       = *ExpandableDefaults._Style;
+	BorderColor = ExpandableDefaults._BorderBackgroundColor.Get( FLinearColor::White );
+	BorderBrush = *ExpandableDefaults._BorderImage;
 }
 
 bool UExpandableArea::GetIsExpanded() const
@@ -83,6 +88,9 @@ TSharedRef<SWidget> UExpandableArea::RebuildWidget()
 	TSharedRef<SWidget> BodyWidget = BodyContent ? BodyContent->TakeWidget() : SNullWidget::NullWidget;
 
 	MyExpandableArea = SNew(SExpandableArea)
+		.Style(&Style)
+		.BorderImage(&BorderBrush)
+		.BorderBackgroundColor(BorderColor)
 		.MaxHeight(MaxHeight)
 		.Padding(AreaPadding)
 		.OnAreaExpansionChanged(BIND_UOBJECT_DELEGATE(FOnBooleanValueChanged, SlateExpansionChanged))
@@ -111,7 +119,7 @@ void UExpandableArea::SlateExpansionChanged(bool NewState)
 
 	if ( OnExpansionChanged.IsBound() )
 	{
-		OnExpansionChanged.Broadcast(NewState);
+		OnExpansionChanged.Broadcast(this, NewState);
 	}
 }
 
