@@ -371,6 +371,7 @@ namespace UnrealBuildTool
 			Result += " -dead_strip";
 			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
 			Result += " -Wl,-no_pie";
+			Result += " -stdlib=libc++";
 			//			Result += " -v";
 
 			// link in the frameworks
