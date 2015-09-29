@@ -74,6 +74,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				[
 					// @todo Sequencer - Remove this box and width override.
 					SNew(SBox)
+					.HAlign(HAlign_Left)
 					.WidthOverride(100)
 					[
 						DisplayNode->GenerateEditWidgetForOutliner()

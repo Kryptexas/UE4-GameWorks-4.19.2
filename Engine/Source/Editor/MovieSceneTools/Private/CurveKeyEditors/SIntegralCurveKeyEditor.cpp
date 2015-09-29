@@ -13,19 +13,19 @@ void SIntegralCurveKeyEditor::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SSpinBox<int32>)
-		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.AnimationOutliner.KeyEditorSpinBoxStyle"))
+		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 		.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
 		.MinValue(TOptional<int32>())
 		.MaxValue(TOptional<int32>())
 		.MaxSliderValue(TOptional<int32>())
 		.MinSliderValue(TOptional<int32>())
 		.Delta(1)
-		.MinDesiredWidth(60.0f)
 		.Value(this, &SIntegralCurveKeyEditor::OnGetKeyValue)
 		.OnValueChanged(this, &SIntegralCurveKeyEditor::OnValueChanged)
 		.OnValueCommitted(this, &SIntegralCurveKeyEditor::OnValueCommitted)
 		.OnBeginSliderMovement(this, &SIntegralCurveKeyEditor::OnBeginSliderMovement)
 		.OnEndSliderMovement(this, &SIntegralCurveKeyEditor::OnEndSliderMovement)
+		.ClearKeyboardFocusOnCommit(true)
 	];
 }
 

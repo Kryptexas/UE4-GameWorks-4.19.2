@@ -8,7 +8,7 @@ class STimeRangeSlider;
 
 DECLARE_DELEGATE_RetVal( bool, STimeRangeGetter );
 
-class STimeRange : public ITimeSlider
+class STimeRange : public ITimeSlider, public TDefaultNumericTypeInterface<float>
 {
 public:
 	SLATE_BEGIN_ARGS(STimeRange)
@@ -29,20 +29,36 @@ public:
 	float GetTimeSnapInterval() const;
 
 protected:
-	FText InTime() const;
-	FText OutTime() const;
-	FText StartTime() const;
-	FText EndTime() const;
+	float InTime() const;
+	float OutTime() const;
+	float StartTime() const;
+	float EndTime() const;
 
-	void OnStartTimeCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
-	void OnEndTimeCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
-	void OnInTimeCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
-	void OnOutTimeCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
+	TOptional<float> MinInTime() const;
+	TOptional<float> MaxInTime() const;
+	TOptional<float> MinOutTime() const;
+	TOptional<float> MaxOutTime() const;
+	TOptional<float> MaxStartTime() const;
+	TOptional<float> MinEndTime() const;
+	
+	void OnStartTimeCommitted(float NewValue, ETextCommit::Type InTextCommit);
+	void OnEndTimeCommitted(float NewValue, ETextCommit::Type InTextCommit);
+	void OnInTimeCommitted(float NewValue, ETextCommit::Type InTextCommit);
+	void OnOutTimeCommitted(float NewValue, ETextCommit::Type InTextCommit);
+
+	void OnStartTimeChanged(float NewValue);
+	void OnEndTimeChanged(float NewValue);
+	void OnInTimeChanged(float NewValue);
+	void OnOutTimeChanged(float NewValue);
 
 	FText InTimeTooltip() const;
 	FText OutTimeTooltip() const;
 	FText StartTimeTooltip() const;
 	FText EndTimeTooltip() const;
+
+	/** Convert the type to/from a string */
+	virtual FString ToString(const float& Value) const override;
+	virtual TOptional<float> FromString(const FString& InString) override;
 
 private:
 	TSharedPtr<ITimeSliderController> TimeSliderController;
