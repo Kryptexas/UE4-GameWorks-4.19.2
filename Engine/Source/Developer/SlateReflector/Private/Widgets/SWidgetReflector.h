@@ -4,6 +4,8 @@
 
 #include "IWidgetReflector.h"
 
+class FWidgetSnapshotService;
+
 /**
  * Widget reflector implementation.
  * User widget to enable iteration without recompilation.
@@ -18,6 +20,7 @@ public:
 	{ }
 		
 		SLATE_ARGUMENT(TSharedPtr<SDockTab>, ParentTab)
+		SLATE_ARGUMENT(TSharedPtr<FWidgetSnapshotService>, WidgetSnapshotService)
 
 	SLATE_END_ARGS()
 

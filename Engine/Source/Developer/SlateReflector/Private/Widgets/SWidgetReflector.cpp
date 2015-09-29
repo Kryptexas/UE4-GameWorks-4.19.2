@@ -5,11 +5,21 @@
 #include "SlateStats.h"
 #include "SInvalidationPanel.h"
 #include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #include "SWidgetSnapshotVisualizer.h"
+#include "WidgetSnapshotService.h"
 
 #if SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM
 #include "DesktopPlatformModule.h"
 #endif // SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM
+
+#if SLATE_REFLECTOR_HAS_SESSION_SERVICES
+#include "ISessionInfo.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionManager.h"
+#include "ISessionServicesModule.h"
+#endif // SLATE_REFLECTOR_HAS_SESSION_SERVICES
 
 #define LOCTEXT_NAMESPACE "SWidgetReflector"
 #define WITH_EVENT_LOGGING 0
@@ -52,6 +62,16 @@ struct FLoggedEvent
 
 namespace WidgetReflectorImpl
 {
+
+/** Information about a potential widget snapshot target */
+struct FWidgetSnapshotTarget
+{
+	/** Display name of the target (used in the UI) */
+	FText DisplayName;
+
+	/** Instance ID of the target */
+	FGuid InstanceId;
+};
 
 /** Different UI modes the widget reflector can be in */
 enum class EWidgetReflectorUIMode : uint8
@@ -233,13 +253,43 @@ private:
 	/** Callback for getting the text of the pick button. */
 	FText HandlePickButtonText() const;
 
+	/** Callback to see whether the "Snapshot Target" combo should be enabled */
+	bool IsSnapshotTargetComboEnabled() const;
+
+	/** Callback to see whether the "Take Snapshot" button should be enabled */
+	bool IsTakeSnapshotButtonEnabled() const;
+
 	/** Callback for clicking the "Take Snapshot" button. */
 	FReply HandleTakeSnapshotButtonClicked();
+
+	/** Used as a callback for the "snapshot pending" notification item buttons, called when we should give up on a snapshot request */
+	void OnCancelPendingRemoteSnapshot();
+
+	/** Callback for when a remote widget snapshot is available */
+	void HandleRemoteSnapshotReceived(const TArray<uint8>& InSnapshotData);
 
 #if SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM
 	/** Callback for clicking the "Load Snapshot" button. */
 	FReply HandleLoadSnapshotButtonClicked();
 #endif // SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM
+
+	/** Called to update the list of available snapshot targets */
+	void UpdateAvailableSnapshotTargets();
+
+	/** Called to update the currently selected snapshot target (after the list has been refreshed) */
+	void UpdateSelectedSnapshotTarget();
+
+	/** Called when the list of available snapshot targets changes */
+	void OnAvailableSnapshotTargetsChanged();
+
+	/** Get the display name of the currently selected snapshot target */
+	FText GetSelectedSnapshotTargetDisplayName() const;
+
+	/** Generate a row widget for the available targets combo box */
+	TSharedRef<SWidget> HandleGenerateAvailableSnapshotComboItemWidget(TSharedPtr<FWidgetSnapshotTarget> InItem) const;
+	
+	/** Update the selected target when the combo box selection is changed */
+	void HandleAvailableSnapshotComboSelectionChanged(TSharedPtr<FWidgetSnapshotTarget> InItem, ESelectInfo::Type InSeletionInfo);
 
 	/** Callback for generating a row in the reflector tree view. */
 	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( TSharedRef<FWidgetReflectorNodeBase> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
@@ -271,6 +321,14 @@ private:
 	/** When working with a snapshotted tree, this will contain the snapshot hierarchy and screenshot info */
 	FWidgetSnapshotData SnapshotData;
 	TSharedPtr<SWidgetSnapshotVisualizer> WidgetSnapshotVisualizer;
+
+	/** List of available snapshot targets, as well as the one we currently have selected */
+	TSharedPtr<SComboBox<TSharedPtr<FWidgetSnapshotTarget>>> AvailableSnapshotTargetsComboBox;
+	TArray<TSharedPtr<FWidgetSnapshotTarget>> AvailableSnapshotTargets;
+	FGuid SelectedSnapshotTargetInstanceId;
+	TSharedPtr<FWidgetSnapshotService> WidgetSnapshotService;
+	TWeakPtr<SNotificationItem> WidgetSnapshotNotificationPtr;
+	FGuid RemoteSnapshotRequestId;
 
 	SSplitter::FSlot* WidgetInfoLocation;
 
@@ -318,6 +376,17 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 	bEnableDemoMode = false;
 	LastMouseClickTime = -1;
 	CursorPingPosition = FVector2D::ZeroVector;
+
+	WidgetSnapshotService = InArgs._WidgetSnapshotService;
+
+#if SLATE_REFLECTOR_HAS_SESSION_SERVICES
+	{
+		ISessionManagerRef SessionManager = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
+		SessionManager->OnSessionsUpdated().AddSP(this, &SWidgetReflector::OnAvailableSnapshotTargetsChanged);
+	}
+#endif // SLATE_REFLECTOR_HAS_SESSION_SERVICES
+	SelectedSnapshotTargetInstanceId = FApp::GetInstanceId();
+	UpdateAvailableSnapshotTargets();
 
 #if SLATE_STATS
 	const FName TabLayoutName = "WidgetReflector_Layout_v1";
@@ -618,7 +687,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 
 TSharedRef<SDockTab> SWidgetReflector::SpawnWidgetHierarchyTab(const FSpawnTabArgs& Args)
 {
-	return SNew(SDockTab)
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 		.Label(LOCTEXT("WidgetHierarchyTab", "Widget Hierarchy"))
 		//.OnCanCloseTab_Lambda([]() { return false; }) // Can't prevent this as it stops the editor from being able to close while the widget reflector is open
 		[
@@ -659,15 +728,43 @@ TSharedRef<SDockTab> SWidgetReflector::SpawnWidgetHierarchyTab(const FSpawnTabAr
 				]
 
 				+SHorizontalBox::Slot()
+				[
+					SNew(SSpacer)
+				]
+
+				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(FMargin(5.0f, 0.0f))
 				[
-					// Button that controls taking a snapshot of the current window(s)
-					SNew(SButton)
-					.OnClicked(this, &SWidgetReflector::HandleTakeSnapshotButtonClicked)
+					SNew(SHorizontalBox)
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
 					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("TakeSnapshotButtonText", "Take Snapshot"))
+						// Button that controls taking a snapshot of the current window(s)
+						SNew(SButton)
+						.IsEnabled(this, &SWidgetReflector::IsTakeSnapshotButtonEnabled)
+						.OnClicked(this, &SWidgetReflector::HandleTakeSnapshotButtonClicked)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("TakeSnapshotButtonText", "Take Snapshot"))
+						]
+					]
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						// Button that controls the target for the snapshot operation
+						SAssignNew(AvailableSnapshotTargetsComboBox, SComboBox<TSharedPtr<FWidgetSnapshotTarget>>)
+						.IsEnabled(this, &SWidgetReflector::IsSnapshotTargetComboEnabled)
+						.ToolTipText(LOCTEXT("ChooseSnapshotTargetToolTipText", "Choose Snapshot Target"))
+						.OptionsSource(&AvailableSnapshotTargets)
+						.OnGenerateWidget(this, &SWidgetReflector::HandleGenerateAvailableSnapshotComboItemWidget)
+						.OnSelectionChanged(this, &SWidgetReflector::HandleAvailableSnapshotComboSelectionChanged)
+						[
+							SNew(STextBlock)
+							.Text(this, &SWidgetReflector::GetSelectedSnapshotTargetDisplayName)
+						]
 					]
 				]
 
@@ -734,6 +831,10 @@ TSharedRef<SDockTab> SWidgetReflector::SpawnWidgetHierarchyTab(const FSpawnTabAr
 				]
 			]
 		];
+
+	UpdateSelectedSnapshotTarget();
+
+	return SpawnedTab;
 }
 
 
@@ -1246,20 +1347,123 @@ FText SWidgetReflector::HandlePickButtonText() const
 }
 
 
+bool SWidgetReflector::IsSnapshotTargetComboEnabled() const
+{
+	return SLATE_REFLECTOR_HAS_SESSION_SERVICES != 0 && !RemoteSnapshotRequestId.IsValid();
+}
+
+
+bool SWidgetReflector::IsTakeSnapshotButtonEnabled() const
+{
+	return SelectedSnapshotTargetInstanceId.IsValid() && !RemoteSnapshotRequestId.IsValid();
+}
+
+
 FReply SWidgetReflector::HandleTakeSnapshotButtonClicked()
 {
+	// Local snapshot?
+	if (SelectedSnapshotTargetInstanceId == FApp::GetInstanceId())
+	{
+		SetUIMode(EWidgetReflectorUIMode::Snapshot);
+
+		// Take a snapshot of any window(s) that are currently open
+		SnapshotData.TakeSnapshot();
+
+		// Rebuild the reflector tree from the snapshot data
+		ReflectorTreeRoot = SnapshotData.GetWindowsRef();
+		ReflectorTree->RequestTreeRefresh();
+
+		WidgetSnapshotVisualizer->SnapshotDataUpdated();
+	}
+	else
+	{
+		// Remote snapshot - these can take a while, show a progress message
+		FNotificationInfo Info(LOCTEXT("RemoteWidgetSnapshotPendingNotificationText", "Waiting for Remote Widget Snapshot Data"));
+
+		// Add the buttons with text, tooltip and callback
+		Info.ButtonDetails.Add(FNotificationButtonInfo(
+			LOCTEXT("CancelPendingSnapshotButtonText", "Cancel"), 
+			LOCTEXT("CancelPendingSnapshotButtonToolTipText", "Cancel the pending widget snapshot request."), 
+			FSimpleDelegate::CreateSP(this, &SWidgetReflector::OnCancelPendingRemoteSnapshot)
+			));
+
+		// We will be keeping track of this ourselves
+		Info.bFireAndForget = false;
+
+		// Launch notification
+		WidgetSnapshotNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+
+		if (WidgetSnapshotNotificationPtr.IsValid())
+		{
+			WidgetSnapshotNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+		}
+
+		RemoteSnapshotRequestId = WidgetSnapshotService->RequestSnapshot(SelectedSnapshotTargetInstanceId, FWidgetSnapshotService::FOnWidgetSnapshotResponse::CreateSP(this, &SWidgetReflector::HandleRemoteSnapshotReceived));
+
+		if (!RemoteSnapshotRequestId.IsValid())
+		{
+			TSharedPtr<SNotificationItem> WidgetSnapshotNotificationPin = WidgetSnapshotNotificationPtr.Pin();
+
+			if (WidgetSnapshotNotificationPin.IsValid())
+			{
+				WidgetSnapshotNotificationPin->SetText(LOCTEXT("RemoteWidgetSnapshotFailedNotificationText", "Remote Widget Snapshot Failed"));
+				WidgetSnapshotNotificationPin->SetCompletionState(SNotificationItem::CS_Fail);
+				WidgetSnapshotNotificationPin->ExpireAndFadeout();
+
+				WidgetSnapshotNotificationPtr.Reset();
+			}
+		}
+	}
+
+	return FReply::Handled();
+}
+
+
+void SWidgetReflector::OnCancelPendingRemoteSnapshot()
+{
+	TSharedPtr<SNotificationItem> WidgetSnapshotNotificationPin = WidgetSnapshotNotificationPtr.Pin();
+
+	if (WidgetSnapshotNotificationPin.IsValid())
+	{
+		WidgetSnapshotNotificationPin->SetText(LOCTEXT("RemoteWidgetSnapshotAbortedNotificationText", "Aborted Remote Widget Snapshot"));
+		WidgetSnapshotNotificationPin->SetCompletionState(SNotificationItem::CS_Fail);
+		WidgetSnapshotNotificationPin->ExpireAndFadeout();
+
+		WidgetSnapshotNotificationPtr.Reset();
+	}
+
+	WidgetSnapshotService->AbortSnapshotRequest(RemoteSnapshotRequestId);
+	RemoteSnapshotRequestId = FGuid();
+}
+
+
+void SWidgetReflector::HandleRemoteSnapshotReceived(const TArray<uint8>& InSnapshotData)
+{
+	{
+		TSharedPtr<SNotificationItem> WidgetSnapshotNotificationPin = WidgetSnapshotNotificationPtr.Pin();
+
+		if (WidgetSnapshotNotificationPin.IsValid())
+		{
+			WidgetSnapshotNotificationPin->SetText(LOCTEXT("RemoteWidgetSnapshotReceivedNotificationText", "Remote Widget Snapshot Data Received"));
+			WidgetSnapshotNotificationPin->SetCompletionState(SNotificationItem::CS_Success);
+			WidgetSnapshotNotificationPin->ExpireAndFadeout();
+
+			WidgetSnapshotNotificationPtr.Reset();
+		}
+	}
+
+	RemoteSnapshotRequestId = FGuid();
+
 	SetUIMode(EWidgetReflectorUIMode::Snapshot);
 
-	// Take a snapshot of any window(s) that are currently open
-	SnapshotData.TakeSnapshot();
+	// Load up the remote data
+	SnapshotData.LoadSnapshotFromBuffer(InSnapshotData);
 
 	// Rebuild the reflector tree from the snapshot data
 	ReflectorTreeRoot = SnapshotData.GetWindowsRef();
 	ReflectorTree->RequestTreeRefresh();
 
 	WidgetSnapshotVisualizer->SnapshotDataUpdated();
-
-	return FReply::Handled();
 }
 
 
@@ -1300,6 +1504,120 @@ FReply SWidgetReflector::HandleLoadSnapshotButtonClicked()
 }
 
 #endif // SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM
+
+
+void SWidgetReflector::UpdateAvailableSnapshotTargets()
+{
+	AvailableSnapshotTargets.Reset();
+
+#if SLATE_REFLECTOR_HAS_SESSION_SERVICES
+	{
+		ISessionManagerRef SessionManager = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
+
+		TArray<TSharedPtr<ISessionInfo>> AvailableSessions;
+		SessionManager->GetSessions(AvailableSessions);
+
+		for (const auto& AvailableSession : AvailableSessions)
+		{
+			// Only allow sessions belonging to the current user
+			if (AvailableSession->GetSessionOwner() != FApp::GetSessionOwner())
+			{
+				continue;
+			}
+
+			TArray<TSharedPtr<ISessionInstanceInfo>> AvailableInstances;
+			AvailableSession->GetInstances(AvailableInstances);
+
+			for (const auto& AvailableInstance : AvailableInstances)
+			{
+				FWidgetSnapshotTarget SnapshotTarget;
+				SnapshotTarget.DisplayName = FText::Format(LOCTEXT("SnapshotTargetDisplayNameFmt", "{0} ({1})"), FText::FromString(AvailableInstance->GetInstanceName()), FText::FromString(AvailableInstance->GetPlatformName()));
+				SnapshotTarget.InstanceId = AvailableInstance->GetInstanceId();
+
+				AvailableSnapshotTargets.Add(MakeShareable(new FWidgetSnapshotTarget(SnapshotTarget)));
+			}
+		}
+	}
+#else
+	{
+		// No session services, just add an entry that lets us snapshot ourself
+		FWidgetSnapshotTarget SnapshotTarget;
+		SnapshotTarget.DisplayName = FText::FromString(FApp::GetInstanceName());
+		SnapshotTarget.InstanceId = FApp::GetInstanceId();
+
+		AvailableSnapshotTargets.Add(MakeShareable(new FWidgetSnapshotTarget(SnapshotTarget)));
+	}
+#endif
+}
+
+
+void SWidgetReflector::UpdateSelectedSnapshotTarget()
+{
+	if (AvailableSnapshotTargetsComboBox.IsValid())
+	{
+		const TSharedPtr<FWidgetSnapshotTarget>* FoundSnapshotTarget = AvailableSnapshotTargets.FindByPredicate([this](const TSharedPtr<FWidgetSnapshotTarget>& InAvailableSnapshotTarget) -> bool
+		{
+			return InAvailableSnapshotTarget->InstanceId == SelectedSnapshotTargetInstanceId;
+		});
+
+		if (FoundSnapshotTarget)
+		{
+			AvailableSnapshotTargetsComboBox->SetSelectedItem(*FoundSnapshotTarget);
+		}
+		else if (AvailableSnapshotTargets.Num() > 0)
+		{
+			SelectedSnapshotTargetInstanceId = AvailableSnapshotTargets[0]->InstanceId;
+			AvailableSnapshotTargetsComboBox->SetSelectedItem(AvailableSnapshotTargets[0]);
+		}
+		else
+		{
+			SelectedSnapshotTargetInstanceId = FGuid();
+			AvailableSnapshotTargetsComboBox->SetSelectedItem(nullptr);
+		}
+	}
+}
+
+
+void SWidgetReflector::OnAvailableSnapshotTargetsChanged()
+{
+	UpdateAvailableSnapshotTargets();
+	UpdateSelectedSnapshotTarget();
+}
+
+
+FText SWidgetReflector::GetSelectedSnapshotTargetDisplayName() const
+{
+	if (AvailableSnapshotTargetsComboBox.IsValid())
+	{
+		TSharedPtr<FWidgetSnapshotTarget> SelectedSnapshotTarget = AvailableSnapshotTargetsComboBox->GetSelectedItem();
+		if (SelectedSnapshotTarget.IsValid())
+		{
+			return SelectedSnapshotTarget->DisplayName;
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
+
+TSharedRef<SWidget> SWidgetReflector::HandleGenerateAvailableSnapshotComboItemWidget(TSharedPtr<FWidgetSnapshotTarget> InItem) const
+{
+	return SNew(STextBlock)
+		.Text(InItem->DisplayName);
+}
+
+
+void SWidgetReflector::HandleAvailableSnapshotComboSelectionChanged(TSharedPtr<FWidgetSnapshotTarget> InItem, ESelectInfo::Type InSeletionInfo)
+{
+	if (InItem.IsValid())
+	{
+		SelectedSnapshotTargetInstanceId = InItem->InstanceId;
+	}
+	else
+	{
+		SelectedSnapshotTargetInstanceId = FGuid();
+	}
+}
 
 
 TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( TSharedRef<FWidgetReflectorNodeBase> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable )

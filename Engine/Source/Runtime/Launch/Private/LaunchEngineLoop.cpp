@@ -1939,6 +1939,11 @@ bool FEngineLoop::LoadStartupCoreModules()
 	if ( !IsRunningDedicatedServer() )
 	{
 		FModuleManager::Get().LoadModule("Slate");
+
+#if !UE_BUILD_SHIPPING
+		// Need to load up the SlateReflector module to initialize the WidgetSnapshotService
+		FModuleManager::Get().LoadModule("SlateReflector");
+#endif // !UE_BUILD_SHIPPING
 	}
 
 #if WITH_EDITOR

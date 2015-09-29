@@ -5,6 +5,7 @@
 #include "SDockTab.h"
 #include "ModuleManager.h"
 #include "SAtlasVisualizer.h"
+#include "WidgetSnapshotService.h"
 
 
 #define LOCTEXT_NAMESPACE "FSlateReflectorModule"
@@ -27,7 +28,8 @@ public:
 		if (!WidgetReflector.IsValid())
 		{
 			WidgetReflector = SNew(SWidgetReflector)
-				.ParentTab(InParentTab);
+				.ParentTab(InParentTab)
+				.WidgetSnapshotService(WidgetSnapshotService);
 			WidgetReflectorPtr = WidgetReflector;
 			FSlateApplication::Get().SetWidgetReflector(WidgetReflector.ToSharedRef());
 		}
@@ -160,6 +162,8 @@ public:
 
 	virtual void StartupModule() override
 	{
+		WidgetSnapshotService = MakeShareable(new FWidgetSnapshotService());
+
 		bHasRegisteredTabSpawners = false;
 		RegisterTabSpawner(nullptr);
 	}
@@ -167,6 +171,8 @@ public:
 	virtual void ShutdownModule() override
 	{
 		UnregisterTabSpawner();
+
+		WidgetSnapshotService.Reset();
 	}
 
 private:
@@ -204,6 +210,9 @@ private:
 
 	/** Holds the widget reflector singleton. */
 	TWeakPtr<SWidgetReflector> WidgetReflectorPtr;
+
+	/** The service for handling remote widget snapshots */
+	TSharedPtr<FWidgetSnapshotService> WidgetSnapshotService;
 };
 
 
