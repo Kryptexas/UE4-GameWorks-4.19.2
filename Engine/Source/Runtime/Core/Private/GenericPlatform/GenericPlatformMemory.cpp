@@ -121,19 +121,25 @@ uint32 FGenericPlatformMemory::GetPhysicalGBRam()
 
 void FGenericPlatformMemory::UpdateStats()
 {
-	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+	// avoid getting OS data (costly on Linux, Windows - see CL 2460429) if we aren't collecting stats
+#if STATS
+	if (FThreadStats::IsCollectingData(GET_STATID(STAT_TotalPhysical)))
+	{
+		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
 
-	SET_MEMORY_STAT(STAT_TotalPhysical,MemoryStats.TotalPhysical);
-	SET_MEMORY_STAT(STAT_TotalVirtual,MemoryStats.TotalVirtual);
-	SET_MEMORY_STAT(STAT_PageSize,MemoryStats.PageSize);
-	SET_MEMORY_STAT(STAT_TotalPhysicalGB,MemoryStats.TotalPhysicalGB);
+		SET_MEMORY_STAT(STAT_TotalPhysical,MemoryStats.TotalPhysical);
+		SET_MEMORY_STAT(STAT_TotalVirtual,MemoryStats.TotalVirtual);
+		SET_MEMORY_STAT(STAT_PageSize,MemoryStats.PageSize);
+		SET_MEMORY_STAT(STAT_TotalPhysicalGB,MemoryStats.TotalPhysicalGB);
 
-	SET_MEMORY_STAT(STAT_AvailablePhysical,MemoryStats.AvailablePhysical);
-	SET_MEMORY_STAT(STAT_AvailableVirtual,MemoryStats.AvailableVirtual);
-	SET_MEMORY_STAT(STAT_UsedPhysical,MemoryStats.UsedPhysical);
-	SET_MEMORY_STAT(STAT_PeakUsedPhysical,MemoryStats.PeakUsedPhysical);
-	SET_MEMORY_STAT(STAT_UsedVirtual,MemoryStats.UsedVirtual);
-	SET_MEMORY_STAT(STAT_PeakUsedVirtual,MemoryStats.PeakUsedVirtual);
+		SET_MEMORY_STAT(STAT_AvailablePhysical,MemoryStats.AvailablePhysical);
+		SET_MEMORY_STAT(STAT_AvailableVirtual,MemoryStats.AvailableVirtual);
+		SET_MEMORY_STAT(STAT_UsedPhysical,MemoryStats.UsedPhysical);
+		SET_MEMORY_STAT(STAT_PeakUsedPhysical,MemoryStats.PeakUsedPhysical);
+		SET_MEMORY_STAT(STAT_UsedVirtual,MemoryStats.UsedVirtual);
+		SET_MEMORY_STAT(STAT_PeakUsedVirtual,MemoryStats.PeakUsedVirtual);
+	}
+#endif	// STATS
 }
 
 void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
