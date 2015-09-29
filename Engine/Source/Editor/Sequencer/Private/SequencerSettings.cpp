@@ -341,7 +341,7 @@ ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectIniti
 	: Super( ObjectInitializer )
 {
 	bKeyInterpPropertiesOnly = true;
-	TimeSnapInterval = 0.041667f;
+	TimeSnapInterval = 0.033334f;
 	bShowRangeSlider = true;
 	bLockInOutToStartEndRange = true;
 }
