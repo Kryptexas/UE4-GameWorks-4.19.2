@@ -62,6 +62,7 @@ void AActor::InitializeDefaults()
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+	PrimaryActorTick.SetTickFunctionEnable(false); 
 
 	CustomTimeDilation = 1.0f;
 
@@ -636,7 +637,7 @@ void AActor::RegisterActorTickFunctions(bool bRegister)
 		if(PrimaryActorTick.bCanEverTick)
 		{
 			PrimaryActorTick.Target = this;
-			PrimaryActorTick.SetTickFunctionEnable(PrimaryActorTick.bStartWithTickEnabled);
+			PrimaryActorTick.SetTickFunctionEnable(PrimaryActorTick.bStartWithTickEnabled || PrimaryActorTick.IsTickFunctionEnabled());
 			PrimaryActorTick.RegisterTickFunction(GetLevel());
 		}
 	}

@@ -361,6 +361,7 @@ AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	bPlayOnLevelLoad = false;
 #if WITH_EDITORONLY_DATA
@@ -471,6 +472,7 @@ void AMatineeActor::Play()
 	bReversePlayback = false;
 	bIsPlaying = true;
 	bPaused = false;
+	SetActorTickEnabled(true);
 }
 
 void AMatineeActor::Reverse()
@@ -484,6 +486,7 @@ void AMatineeActor::Reverse()
 	bReversePlayback = true;
 	bIsPlaying = true;
 	bPaused = false;
+	SetActorTickEnabled(true);
 }
 
 void AMatineeActor::Stop()
@@ -493,6 +496,7 @@ void AMatineeActor::Stop()
 
 	bIsPlaying = false;
 	bPaused = false;
+	SetActorTickEnabled(false);
 
 	if (GetWorld()->IsGameWorld())
 	{
@@ -507,6 +511,7 @@ void AMatineeActor::Pause()
 	{
 		EnableRadioFilter();
 		bPaused = !bPaused;
+		SetActorTickEnabled(!bPaused);
 	}
 }
 
@@ -515,6 +520,7 @@ void AMatineeActor::ChangePlaybackDirection()
 	bReversePlayback = !bReversePlayback;
 	bIsPlaying = true;
 	bPaused = false;
+	SetActorTickEnabled(true);
 }
 
 void AMatineeActor::SetLoopingState(bool bNewLooping)

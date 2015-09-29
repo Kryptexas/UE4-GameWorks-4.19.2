@@ -116,6 +116,7 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*=
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	CreationMethod = EComponentCreationMethod::Native;
 
@@ -703,7 +704,7 @@ bool UActorComponent::SetupActorComponentTickFunction(struct FTickFunction* Tick
 		if (!MyOwner || !MyOwner->IsTemplate())
 		{
 			ULevel* ComponentLevel = (MyOwner ? MyOwner->GetLevel() : GetWorld()->PersistentLevel);
-			TickFunction->SetTickFunctionEnable(TickFunction->bStartWithTickEnabled);
+			TickFunction->SetTickFunctionEnable(TickFunction->bStartWithTickEnabled || TickFunction->IsTickFunctionEnabled());
 			TickFunction->RegisterTickFunction(ComponentLevel);
 			return true;
 		}
