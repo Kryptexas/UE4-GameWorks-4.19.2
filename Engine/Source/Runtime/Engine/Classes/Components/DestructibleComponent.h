@@ -240,13 +240,12 @@ private:
 
 	void SetCollisionResponseForShape(physx::PxShape* Shape, int32 ChunkIdx);
 	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx, const FCollisionResponseContainer* ResponseOverride = NULL);
-	void SetCollisionResponseForAllActors(const FCollisionResponseContainer& ResponseOverride);
 
 
 public:
 	/** User data wrapper for the chunks passed to physx */
 	TArray<FPhysxUserData> PhysxChunkUserData;
-	bool IsChunkLarge(int32 ChunkIdx) const;
+	bool IsChunkLarge(physx::PxRigidActor* ChunkActor) const;
 #endif
 };
 
