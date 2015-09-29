@@ -289,11 +289,11 @@
 	}
 	else
 #endif
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
 	{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
 		[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
-	}
 #endif
+	}
 }
 @end
 
