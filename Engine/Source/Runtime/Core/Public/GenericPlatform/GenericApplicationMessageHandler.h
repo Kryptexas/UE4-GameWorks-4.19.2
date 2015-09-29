@@ -114,11 +114,15 @@ struct CORE_API FGamepadKeyNames
 	static const FName MotionController_Left_Thumbstick_X;
 	static const FName MotionController_Left_Thumbstick_Y;
 	static const FName MotionController_Left_TriggerAxis;
+	static const FName MotionController_Left_Grip1Axis;
+	static const FName MotionController_Left_Grip2Axis;
 
 	//		Right Controller
 	static const FName MotionController_Right_Thumbstick_X;
 	static const FName MotionController_Right_Thumbstick_Y;
 	static const FName MotionController_Right_TriggerAxis;
+	static const FName MotionController_Right_Grip1Axis;
+	static const FName MotionController_Right_Grip2Axis;
 };
 
 namespace EWindowActivation
