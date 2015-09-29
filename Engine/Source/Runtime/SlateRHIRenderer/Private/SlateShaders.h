@@ -28,6 +28,18 @@ public:
 	virtual void ReleaseRHI() override;
 };
 
+/**
+ * The vertex declaration for the slate instanced vertex shader
+ */
+class FSlateInstancedVertexDeclaration : public FSlateVertexDeclaration
+{
+public:
+	virtual ~FSlateInstancedVertexDeclaration() {}
+	
+	/** Initializes the vertex declaration RHI resource */
+	virtual void InitRHI() override;
+};
+
 /** The slate Vertex shader representation */
 class FSlateElementVS : public FGlobalShader
 {
@@ -231,3 +243,6 @@ private:
 
 /** The simple element vertex declaration. */
 extern TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;
+
+/** The instanced simple element vertex declaration. */
+extern TGlobalResource<FSlateInstancedVertexDeclaration> GSlateInstancedVertexDeclaration;

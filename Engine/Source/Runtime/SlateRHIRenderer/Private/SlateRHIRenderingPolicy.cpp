@@ -625,6 +625,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			{
 				FSlateElementPS* PixelShader = GetTexturePixelShader(ShaderType, DrawEffects);
 
+				const bool bUseInstancing = RenderBatch.InstanceCount > 1 && RenderBatch.InstanceData != nullptr;
+				check(bUseInstancing == false);
+				
 				RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 					GSlateVertexDeclaration.VertexDeclarationRHI,
 					GlobalVertexShader->GetVertexShader(),
@@ -706,16 +709,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				}
 				else
 				{
-					if( RenderBatch.InstanceCount > 1 && RenderBatch.InstanceData != nullptr )
-					{
-						FSlateUpdatableInstanceBuffer* InstanceBuffer = (FSlateUpdatableInstanceBuffer*)RenderBatch.InstanceData;
-						InstanceBuffer->BindStreamSource( RHICmdList, 1 );
-					}
-					else
-					{
-						RHICmdList.SetStreamSource(1, nullptr, 0, 0);
-					}
-
 					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
 
@@ -735,13 +728,13 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				FSlateMaterialShaderPS* PixelShader = GetMaterialPixelShader( Material, ShaderType, DrawEffects );
 
-				const bool bUseInstancing = RenderBatch.InstanceCount > 1;
+				const bool bUseInstancing = RenderBatch.InstanceCount > 1 && RenderBatch.InstanceData != nullptr;
 				FSlateMaterialShaderVS* VertexShader = GetMaterialVertexShader( Material, bUseInstancing );
 
 				if( VertexShader && PixelShader )
 				{
 					RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
-						GSlateVertexDeclaration.VertexDeclarationRHI,
+						bUseInstancing ? GSlateInstancedVertexDeclaration.VertexDeclarationRHI : GSlateVertexDeclaration.VertexDeclarationRHI,
 						VertexShader->GetVertexShader(),
 						nullptr,
 						nullptr,
@@ -771,12 +764,22 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 					if (!GRHISupportsBaseVertexIndex)
 					{
+						if( bUseInstancing )
+						{
+							FSlateUpdatableInstanceBuffer* InstanceBuffer = (FSlateUpdatableInstanceBuffer*)RenderBatch.InstanceData;
+							InstanceBuffer->BindStreamSource( RHICmdList, 1 );
+						}
+						else
+						{
+							RHICmdList.SetStreamSource(1, nullptr, 0, 0);
+						}
+						
 						RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
 						RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 					}
 					else
 					{
-						if( bUseInstancing && RenderBatch.InstanceData != nullptr )
+						if( bUseInstancing )
 						{
 							FSlateUpdatableInstanceBuffer* InstanceBuffer = (FSlateUpdatableInstanceBuffer*)RenderBatch.InstanceData;
 							InstanceBuffer->BindStreamSource( RHICmdList, 1 );
