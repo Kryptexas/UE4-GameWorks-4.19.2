@@ -237,7 +237,8 @@ void FSequencer::Tick(float InDeltaTime)
 		SetGlobalTimeDirectly(GetGlobalTime() + Offset);
 	}
 
-	float NewTime = GetGlobalTime() + InDeltaTime;
+	float NewTime = GetGlobalTime() + InDeltaTime * GWorld->GetWorldSettings()->MatineeTimeDilation;
+
 	if (PlaybackState == EMovieScenePlayerStatus::Playing ||
 		PlaybackState == EMovieScenePlayerStatus::Recording)
 	{
