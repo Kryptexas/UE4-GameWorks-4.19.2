@@ -619,6 +619,11 @@ public:
 	 */
 	ENGINE_API bool TrackLogsPerSecond();
 
+	/**
+	* Return current timeout value that should be used
+	*/
+	float GetTimeoutValue();
+
 protected:
 
 	void CleanupDormantActorState();

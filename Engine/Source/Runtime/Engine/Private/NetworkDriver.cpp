@@ -116,6 +116,7 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,   World(nullptr)
 ,   Notify(nullptr)
 ,	Time( 0.f )
+,	LastTickDispatchRealtime( 0.f )
 ,   bIsPeer(false)
 ,	InBytes(0)
 ,	OutBytes(0)
@@ -601,6 +602,7 @@ bool UNetDriver::InitConnectionClass(void)
 
 bool UNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error)
 {
+	LastTickDispatchRealtime = FPlatformTime::Seconds();
 	bool bSuccess = InitConnectionClass();
 	Notify = InNotify;
 	return bSuccess;
@@ -695,6 +697,21 @@ bool UNetDriver::IsServer() const
 void UNetDriver::TickDispatch( float DeltaTime )
 {
 	SendCycles=RecvCycles=0;
+
+	const double CurrentRealtime = FPlatformTime::Seconds();
+
+	const float DeltaRealtime = CurrentRealtime - LastTickDispatchRealtime;
+
+	LastTickDispatchRealtime = CurrentRealtime;
+
+	// Check to see if too much time is passing between ticks
+	// Setting this to somewhat large value for now, but small enough to catch blocking calls that are causing timeouts
+	const float TickWarnThreshold = 5.0f;
+
+	if ( DeltaTime > TickWarnThreshold || DeltaRealtime > TickWarnThreshold )
+	{
+		UE_LOG( LogNet, Warning, TEXT( "UNetDriver::TickDispatch: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f. %s" ), DeltaTime, DeltaRealtime, *GetName() );
+	}
 
 	// Get new time.
 	Time += DeltaTime;

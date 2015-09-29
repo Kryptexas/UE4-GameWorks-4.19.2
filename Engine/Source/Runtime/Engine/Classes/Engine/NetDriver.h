@@ -200,7 +200,11 @@ public:
 	/** Accumulated time for the net driver, updated by Tick */
 	UPROPERTY()
 	float						Time;
-	/** If true then client connections are to other client peers */ 
+
+	/** Last realtime a tick dispatch occurred. Used currently to try and diagnose timeout issues */
+	double						LastTickDispatchRealtime;
+
+	/** If true then client connections are to other client peers */
 	bool						bIsPeer;
 	/** @todo document */
 	bool						ProfileStats;
