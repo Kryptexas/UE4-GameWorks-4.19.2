@@ -62,7 +62,7 @@ We will do that by working with the Other Actor output from the **OnComponentBeg
 1. Type "Branch" in the search, then select **Branch** from the context menu.
 
 	![](BranchAdded.png)
-1. Connect the output pin of the **Equals** node to the input Boolean pin on the **Branch** node.
+1. Connect the output pin of the **Equals** node to the input Boolean pin on the **Condition** node.
 
 	![](BranchComplete.png)
 

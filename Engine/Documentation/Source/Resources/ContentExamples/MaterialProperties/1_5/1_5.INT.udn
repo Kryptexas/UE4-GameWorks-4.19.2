@@ -82,4 +82,5 @@ Related: Engine/Rendering/Materials/MaterialProperties
 | **Deferred Decals** | If the material is to be used by **Decal Actor**, it needs to be set to this or it will not work. |
 | **Light Function**  | Used by materials applied to lights as **LightFunctions**. |
 | **PostProcess**     | If the material is used as **Blendable Material** in a **PostProcessing** chain. |
+| **User Interface**     | This material will be used for **UMG** or **Slate UI** |
 
