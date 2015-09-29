@@ -11,7 +11,7 @@
 class ISequencerObjectBindingManager;
 class ISequencerTrackEditor;
 class IToolkitHost;
-class UActorAnimation;
+class ULevelSequence;
 
 
 namespace SequencerMenuExtensionPoints

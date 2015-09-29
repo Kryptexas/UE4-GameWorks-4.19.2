@@ -67,7 +67,7 @@ ActorFactory.cpp:
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Components/BillboardComponent.h"
 
-#include "ActorAnimation.h"
+#include "LevelSequence.h"
 #include "MovieSceneActor.h"
 #include "ActorFactoryMovieScene.h"
 
@@ -1960,9 +1960,9 @@ bool UActorFactoryMovieScene::CanCreateActorFrom( const FAssetData& AssetData, F
 		return true;
 	}
 
-	if ( AssetData.IsValid() && !AssetData.GetClass()->IsChildOf( UActorAnimation::StaticClass() ) )
+	if ( AssetData.IsValid() && !AssetData.GetClass()->IsChildOf( ULevelSequence::StaticClass() ) )
 	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoActorAnimationAsset", "A valid actor animation asset must be specified.");
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoLevelSequenceAsset", "A valid sequencer asset must be specified.");
 		return false;
 	}
 
@@ -1975,9 +1975,9 @@ AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, co
 
 	if (NewActor)
 	{
-		if (UActorAnimation* ActorAnimation = Cast<UActorAnimation>(Asset))
+		if (ULevelSequence* LevelSequence = Cast<ULevelSequence>(Asset))
 		{
-			NewActor->SetAnimation(ActorAnimation);
+			NewActor->SetAnimation(LevelSequence);
 		}
 	}
 
@@ -1988,7 +1988,7 @@ UObject* UActorFactoryMovieScene::GetAssetFromActorInstance(AActor* Instance)
 {
 	if (AMovieSceneActor* MovieSceneActor = Cast<AMovieSceneActor>(Instance))
 	{
-		return MovieSceneActor->ActorAnimation.TryLoad();
+		return MovieSceneActor->LevelSequence.TryLoad();
 	}
 
 	return nullptr;

@@ -120,7 +120,7 @@ public:
 	/** Toggles whether or not to snap curve values to the interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapCurveValueToInterval;
 
-	/** Finds the viewed actor animation in the content browser. */
+	/** Finds the viewed sequence asset in the content browser. */
 	TSharedPtr< FUICommandInfo > FindInContentBrowser;
 
 	/** Toggles whether the details view is enabled in the level editor. */

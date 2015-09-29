@@ -43,7 +43,7 @@
 #include "IMenu.h"
 
 #include "MovieSceneCaptureModule.h"
-#include "AutomatedActorAnimationCapture.h"
+#include "AutomatedLevelSequenceCapture.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -2350,12 +2350,12 @@ void FSequencer::BindSequencerCommands()
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 			IMovieSceneCaptureModule& MovieSceneCaptureModule = IMovieSceneCaptureModule::Get();
 
-			// Create a new movie scene capture object for an automated actor animation, and open the tab
-			UAutomatedActorAnimationCapture* MovieSceneCapture = NewObject<UAutomatedActorAnimationCapture>(GetTransientPackage(), UAutomatedActorAnimationCapture::StaticClass(), NAME_None, RF_Transient);
+			// Create a new movie scene capture object for an automated level sequence, and open the tab
+			UAutomatedLevelSequenceCapture* MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
 			MovieSceneCapture->LoadConfig();
 
-			// Set the actor animation asset we want to render
-			MovieSceneCapture->ActorAnimation = GetCurrentAsset()->GetPathName();
+			// Set the level sequence asset we want to render
+			MovieSceneCapture->LevelSequence = GetCurrentAsset()->GetPathName();
 
 			// Set the level we want to render
 			for (const FWorldContext& Context : GEngine->GetWorldContexts())
@@ -2366,6 +2366,7 @@ void FSequencer::BindSequencerCommands()
 					break;
 				}
 			}
+
 			MovieSceneCaptureModule.OpenCaptureSettings(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
 		})
 	);

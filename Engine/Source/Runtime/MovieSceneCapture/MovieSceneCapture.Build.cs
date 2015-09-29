@@ -26,7 +26,7 @@ public class MovieSceneCapture : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
-				"ActorAnimation",
+				"LevelSequence",
 			}
 		);
 

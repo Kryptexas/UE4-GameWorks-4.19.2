@@ -5286,7 +5286,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 
 			TEXT("Actor"),
 			TEXT("ActorComponent"),
-			TEXT("ActorAnimation"),
+			TEXT("LevelSequence"),
 			TEXT("AIController"),
 			TEXT("AimOffsetBlendSpace"),
 			TEXT("AimOffsetBlendSpace1D"),

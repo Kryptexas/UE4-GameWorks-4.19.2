@@ -376,7 +376,7 @@ protected:
 	}
 
 	/** 
-	 * Find the viewed actor animation asset in the content browser
+	 * Find the viewed sequence asset in the content browser
 	 */
 	void FindInContentBrowser();
 

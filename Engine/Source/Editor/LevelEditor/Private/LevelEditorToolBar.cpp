@@ -1233,7 +1233,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 			FUIAction(),
 			FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateCinematicsMenuContent, InCommandList, TWeakPtr<SLevelEditor>( InLevelEditor ) ),
 			LOCTEXT( "EditCinematics_Label", "Cinematics" ),
-			LOCTEXT( "EditCinematics_Tooltip", "Displays a list of Matinee and Actor Animation objects to open in their respective editors"),
+			LOCTEXT( "EditCinematics_Tooltip", "Displays a list of Matinee and Level Sequence objects to open in their respective editors"),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.EditMatinee") 
 			);
 	}
@@ -2123,17 +2123,18 @@ void FLevelEditorToolBar::OnCinematicsActorPicked( AActor* Actor )
 	FSlateApplication::Get().DismissAllMenus();
 
 	// Make sure we dismiss the menus before we open this
-	if(AMatineeActor* MatineeActor = Cast<AMatineeActor>(Actor))
+	if (AMatineeActor* MatineeActor = Cast<AMatineeActor>(Actor))
 	{
 		// Open Matinee for editing!
 		GEditor->OpenMatinee( MatineeActor );
 	}
 	else if (AMovieSceneActor* MovieSceneActor = Cast<AMovieSceneActor>(Actor))
 	{
-		UObject* Animation = MovieSceneActor->ActorAnimation.TryLoad();
-		if (Animation)
+		UObject* Asset = MovieSceneActor->LevelSequence.TryLoad();
+
+		if (Asset != nullptr)
 		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Animation);
+			FAssetEditorManager::Get().OpenEditorForAsset(Asset);
 		}
 	}
 }

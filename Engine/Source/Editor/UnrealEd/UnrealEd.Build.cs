@@ -93,7 +93,7 @@ public class UnrealEd : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 
 			{ 
-                "ActorAnimation",
+                "LevelSequence",
 				"AnimGraph",
                 "AppFramework",
 				"BlueprintGraph",
