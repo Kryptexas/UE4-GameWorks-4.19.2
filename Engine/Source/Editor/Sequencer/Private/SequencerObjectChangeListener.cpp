@@ -215,6 +215,29 @@ bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKey
 		bFound = FindPropertySetter(*CanKeyPropertyParams.ObjectClass, CanKeyPropertyParams.PropertyPath.Last()->GetClass()->GetFName(), CanKeyPropertyParams.PropertyPath.Last()->GetName());
 	}
 
+	if ( !bFound )
+	{
+		bool bFoundValidInterp = false;
+		bool bFoundEditDefaultsOnly = false;
+		bool bFoundEdit = false;
+		UProperty* Property = CanKeyPropertyParams.PropertyPath.Last();
+		if (Property->HasAnyPropertyFlags(CPF_Interp))
+		{
+			bFoundValidInterp = true;
+		}
+		if (Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+		{
+			bFoundEditDefaultsOnly = true;
+		}
+		if (Property->HasAnyPropertyFlags(CPF_Edit))
+		{
+			bFoundEdit = true;
+		}
+
+		// Valid Interp keyword is found. The property also needs to be editable.
+		bFound = bFoundValidInterp && bFoundEdit && !bFoundEditDefaultsOnly;
+	}
+
 	return bFound;
 }
 
