@@ -784,7 +784,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 			{
 				// This will go ahead and clean up lighting on all dirty levels (not just this one)
 				UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build automatically rebuilding geometry.") );
-				GUnrealEd->Exec( World, TEXT("MAP REBUILD ALLDIRTYFORLIGHTING") );
+				GEditor->Exec(World, TEXT("MAP REBUILD ALLDIRTYFORLIGHTING"));
 			}
 		}
 
@@ -1861,20 +1861,24 @@ bool FStaticLightingSystem::InitiateLightmassProcessor()
 			bSuccessful = true;
 			CurrentBuildStage = FStaticLightingSystem::AmortizedExport;
 
-			// Crash tracker interferes with performance during export only.
-			// Disable it only for export, for everything else it shouldn't matter.
-			// This is a very special case, and doing this sort of thing
-			// is almost never recommended, especially without profiling heavily.
-			// The reason it works here is because amortized export flushes the render
-			// commands every tick, which is highly detrimental to the crash tracker's operation.
-			// ALSO NOTE: The reason this is set here rather than be a common API in the crashtracker
-			// module is to discourage people from doing this sort of thing all over the place.
-			ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>("CrashTracker");
-			if (CrashTracker)
+			if (!IsRunningCommandlet())
 			{
-				bCrashTrackerOriginallyEnabled = CrashTracker->IsCurrentlyCapturing();
-				CrashTracker->SetCrashTrackingEnabled(false);
+				// Crash tracker interferes with performance during export only.
+				// Disable it only for export, for everything else it shouldn't matter.
+				// This is a very special case, and doing this sort of thing
+				// is almost never recommended, especially without profiling heavily.
+				// The reason it works here is because amortized export flushes the render
+				// commands every tick, which is highly detrimental to the crash tracker's operation.
+				// ALSO NOTE: The reason this is set here rather than be a common API in the crashtracker
+				// module is to discourage people from doing this sort of thing all over the place.
+				ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>("CrashTracker");
+				if (CrashTracker)
+				{
+					bCrashTrackerOriginallyEnabled = CrashTracker->IsCurrentlyCapturing();
+					CrashTracker->SetCrashTrackingEnabled(false);
+				}
 			}
+
 		}
 	}
 	
@@ -2085,9 +2089,9 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
 	const bool bAutoApplyEnabled = GetDefault<ULevelEditorMiscSettings>()->bAutoApplyLightingEnable;
 	const bool bSlowTask = GIsSlowTask;
 	const bool bInterpEditMode = GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
-	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
-	const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
-	//const bool bIsInteratcting = false;// FSlateApplication::Get().GetMouseCaptor().IsValid() || GUnrealEd->IsUserInteracting();
+	const bool bPlayWorldValid = GEditor->PlayWorld != nullptr;
+	const bool bAnyMenusVisible = (FSlateApplication::IsInitialized() && FSlateApplication::Get().AnyMenusVisible());
+	//const bool bIsInteratcting = false;// FSlateApplication::Get().GetMouseCaptor().IsValid() || GEditor->IsUserInteracting();
 	const bool bHasGameOrProjectLoaded = FApp::HasGameName();
 
 	return ( bAutoApplyEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible/* && !bIsInteratcting */&& !GIsDemoMode && bHasGameOrProjectLoaded );

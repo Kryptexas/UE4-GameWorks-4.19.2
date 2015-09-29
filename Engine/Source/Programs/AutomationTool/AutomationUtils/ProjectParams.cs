@@ -404,7 +404,8 @@ namespace AutomationTool
 			bool? IgnoreCookErrors = null,
 			bool? CodeSign = null,
 			bool? UploadSymbols = null,
-			string Provision = null
+			string Provision = null,
+			ParamList<string> InMapsToRebuildLightMaps = null
 			)
 		{
 			//
@@ -704,6 +705,28 @@ namespace AutomationTool
             {
                 this.MapsToCook.Add(this.MapToRun);
             }
+
+			if (InMapsToRebuildLightMaps == null)
+			{
+				if (Command != null)
+				{
+					this.MapsToRebuildLightMaps = new ParamList<string>();
+
+					var MapsString = Command.ParseParamValue("MapsToRebuildLightMaps");
+					if (String.IsNullOrEmpty(MapsString) == false)
+					{
+						var MapNames = new ParamList<string>(MapsString.Split('+'));
+						foreach (var M in MapNames)
+						{
+							this.MapsToRebuildLightMaps.Add(M);
+						}
+					}
+				}
+			}
+			else
+			{
+				this.MapsToRebuildLightMaps = InMapsToRebuildLightMaps;
+			}
             
 			if (ServerConfigsToBuild == null)
 			{
@@ -1470,6 +1493,16 @@ namespace AutomationTool
 
 		[Help("deploy", "deploy the project for the target platform")]
 		public bool Deploy { get; set; }
+
+		#endregion
+
+		#region Misc
+		
+		[Help("MapsToRebuildLightMaps", "List of maps that need light maps rebuilding")]
+		public ParamList<string> MapsToRebuildLightMaps = new ParamList<string>();
+
+		[Help("IgnoreLightMapErrors", "Whether Light Map errors should be treated as critical")]
+		public bool IgnoreLightMapErrors { get; set; }
 
 		#endregion
 
