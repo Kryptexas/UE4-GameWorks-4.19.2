@@ -259,18 +259,36 @@ namespace UnrealBuildTool
 					// Don't worry about platforms that we're missing SDKs for
 					if (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid)
 					{
-						// Make sure Visual Studio 2013 project files will work...
-						if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2013)
+						// ...but only if the user didn't override this via the command-line.
+						if (!UnrealBuildTool.CommandLineContains("-2015") && !UnrealBuildTool.CommandLineContains("-2013") && !UnrealBuildTool.CommandLineContains("-2012"))
 						{
-							// ...but only if the user didn't override this via the command-line.
-							if (!UnrealBuildTool.CommandLineContains("-2013"))
+							VCProjectFileFormat ProposedFormat = ProjectFileFormat;
+
+							// Visual Studio 2015 is not supported by PS4 VSI
+							if( SupportedPlatform == UnrealTargetPlatform.PS4 )
 							{
-								// Visual Studio 2013 is not supported by Xbox One debugger add-in yet
-								if (SupportedPlatform == UnrealTargetPlatform.XboxOne)
-								{
-									Log.TraceInformation("Forcing Visual Studio 2012 projects for Xbox One compatibility (use '-2013' to override.)");
-									ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
-								}
+								Log.TraceInformation("Forcing Visual Studio max version to 2013 projects for PS4 compatibility (use '-2015' to override.)");
+								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
+							}
+
+							// Visual Studio 2015 is not supported by the Android debugger we currently furnish
+							if (SupportedPlatform == UnrealTargetPlatform.Android)
+							{
+								Log.TraceInformation("Forcing Visual Studio max version to 2013 projects for Android compatibility (use '-2015' to override.)");
+								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
+							}
+
+							// Visual Studio 2015 is not supported by Xbox One debugger add-in yet
+							if (SupportedPlatform == UnrealTargetPlatform.XboxOne)
+							{
+								Log.TraceInformation("Forcing Visual Studio max version to 2012 projects for Xbox One compatibility (use '-2015' to override.)");
+								ProposedFormat = VCProjectFileFormat.VisualStudio2012;
+							}
+
+							// Reduce the Visual Studio version to the max supported by each platform we plan to include.
+							if (ProposedFormat < ProjectFileFormat)
+							{
+								ProjectFileFormat = ProposedFormat;
 							}
 						}
 					}

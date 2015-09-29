@@ -29,7 +29,19 @@ if not exist Source\Programs\AutomationToolLauncher\AutomationToolLauncher.cspro
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
+rem ## Check for Visual Studio 2015
+
+pushd %~dp0
+call GetVSComnToolsPath 14
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+
 rem ## Check for Visual Studio 2013
+:NoVisualStudio2015Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 12
@@ -87,7 +99,7 @@ set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 :Error_NoVisualStudioEnvironment
-echo RunUAT.bat ERROR: A valid version of Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
+echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 or Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
 set RUNUAT_EXITCODE=1
 goto Exit_Failure
 

@@ -731,10 +731,10 @@ namespace UnrealBuildTool
 							UBTArguments.Append(" -noxge");
 						}
 
-						// Propagate command-line option to enable the newer compiler on Windows platform
-						if (UnrealBuildTool.CommandLineContains("-2015"))
+						// Propagate command-line option to switch back to old 2013 toolchain
+						if (UnrealBuildTool.CommandLineContains("-2013"))
 						{
-							UBTArguments.Append(" -2015");
+							UBTArguments.Append(" -2013");
 						}
 
 						if (RunExternalExecutable(UnrealBuildTool.GetUBTPath(), UBTArguments.ToString()) != 0)

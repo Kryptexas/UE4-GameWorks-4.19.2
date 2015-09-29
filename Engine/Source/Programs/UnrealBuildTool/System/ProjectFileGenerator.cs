@@ -2016,7 +2016,7 @@ namespace UnrealBuildTool
                 var AutomationToolDir = DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Programs", "AutomationTool");
                 new XDocument(
                     new XElement(NS + "Project",
-                        new XAttribute("ToolsVersion", "4.0"),
+                        new XAttribute("ToolsVersion", VCProjectFileGenerator.ProjectFileToolVersionString),
                         new XAttribute("DefaultTargets", "Build"),
                         new XElement(NS + "ItemGroup",
                             from AutomationProject in AutomationProjectFiles

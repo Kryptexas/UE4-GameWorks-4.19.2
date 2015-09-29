@@ -507,9 +507,6 @@ namespace UnrealBuildTool
 					"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
 			}
 
-			VCProjectFileContent.Append(
-				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" + ProjectFileGenerator.NewLine);
-
 			// Write each project configuration PreDefaultProps section
 			foreach (var ConfigurationTuple in ProjectConfigurationNameAndConfigurations)
 			{
@@ -522,6 +519,9 @@ namespace UnrealBuildTool
 					WritePreDefaultPropsConfiguration(TargetPlatform, TargetConfiguration, ProjectPlatformName, ProjectConfigurationName, VCProjectFileContent);
 				}
 			}
+
+			VCProjectFileContent.Append(
+				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" + ProjectFileGenerator.NewLine);
 
 
 			VCProjectFileContent.Append(

@@ -46,7 +46,17 @@ namespace AutomationTool
 			WindowsSDKDir = "";
 			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
 
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.1" );
+
+				if (string.IsNullOrEmpty(BaseVSToolPath))
+				{
+					Log.TraceError("Visual Studio 2015 must be installed in order to build this target.");
+					return false;
+				}
+			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.1" );
 
