@@ -188,7 +188,7 @@ namespace UnrealBuildTool
 				// icl?
 			}
 
-			if (!CrossCompiling())
+			if (!CrossCompiling() && !ProjectFileGenerator.bGenerateProjectFiles)
 			{
 				Console.WriteLine("Using {0} version '{1}' (string), {2} (major), {3} (minor), {4} (patch)",
 					String.IsNullOrEmpty(ClangPath) ? "gcc" : "clang",
