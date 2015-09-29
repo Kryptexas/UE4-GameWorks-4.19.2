@@ -81,39 +81,54 @@ namespace UnrealBuildTool
 			return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
 		}
 
-		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
-			if (Target.Platform == UnrealTargetPlatform.Mac)
+			bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+
+			if (!UEBuildConfiguration.bBuildRequiresCookedData)
 			{
-				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-
-				if (!UEBuildConfiguration.bBuildRequiresCookedData)
-				{
-					if (ModuleName == "TargetPlatform")
-					{
-						bBuildShaderFormats = true;
-					}
-				}
-
-				// allow standalone tools to use target platform modules, without needing Engine
 				if (ModuleName == "TargetPlatform")
 				{
-					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-					{
-						Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-					}
-
-					if (bBuildShaderFormats)
-					{
-						// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-						Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-					}
+					bBuildShaderFormats = true;
 				}
 			}
+
+			// allow standalone tools to use target platform modules, without needing Engine
+			if (ModuleName == "TargetPlatform")
+			{
+				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				}
+
+				if (bBuildShaderFormats)
+				{
+					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+				}
+			}
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
 		}
 
 		/// <summary>

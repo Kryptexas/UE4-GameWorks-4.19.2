@@ -258,53 +258,68 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileICU = true;
 		}
 
-		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.UWP))
+			if (ModuleName == "Core")
 			{
-				if (ModuleName == "Core")
-				{
-					Rules.PrivateDependencyModuleNames.Add("UWPSDK");
-				}
-				else if (ModuleName == "Engine")
-				{
-					Rules.PrivateDependencyModuleNames.Add("zlib");
-					Rules.PrivateDependencyModuleNames.Add("UElibPNG");
-					Rules.PublicDependencyModuleNames.Add("UEOgg");
-					Rules.PublicDependencyModuleNames.Add("Vorbis");
-				}
-				else if (ModuleName == "D3D11RHI")
-				{
-					Rules.Definitions.Add("D3D11_WITH_DWMAPI=0");
-					Rules.Definitions.Add("WITH_DX_PERF=0");
-				}
-				else if (ModuleName == "DX11")
-				{
-					// Clear out all the Windows include paths and libraries...
-					// The UWPSDK module handles proper paths and libs for UWP.
-					// However, the D3D11RHI module will include the DX11 module.
-					Rules.PublicIncludePaths.Clear();
-					Rules.PublicLibraryPaths.Clear();
-					Rules.PublicAdditionalLibraries.Clear();
-					Rules.Definitions.Remove("WITH_D3DX_LIBS=1");
-					Rules.Definitions.Add("WITH_D3DX_LIBS=0");
-					Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
-					Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
-				}
-				else if (ModuleName == "XAudio2")
-				{
-					Rules.Definitions.Add("XAUDIO_SUPPORTS_XMA2WAVEFORMATEX=0");
-					Rules.Definitions.Add("XAUDIO_SUPPORTS_DEVICE_DETAILS=0");
-					Rules.Definitions.Add("XAUDIO2_SUPPORTS_MUSIC=0");
-					Rules.Definitions.Add("XAUDIO2_SUPPORTS_SENDLIST=0");
-					Rules.PublicAdditionalLibraries.Add("XAudio2.lib");
-				}
-				else if (ModuleName == "DX11Audio")
-				{
-					Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
-					Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
-				}
+				Rules.PrivateDependencyModuleNames.Add("UWPSDK");
 			}
+			else if (ModuleName == "Engine")
+			{
+				Rules.PrivateDependencyModuleNames.Add("zlib");
+				Rules.PrivateDependencyModuleNames.Add("UElibPNG");
+				Rules.PublicDependencyModuleNames.Add("UEOgg");
+				Rules.PublicDependencyModuleNames.Add("Vorbis");
+			}
+			else if (ModuleName == "D3D11RHI")
+			{
+				Rules.Definitions.Add("D3D11_WITH_DWMAPI=0");
+				Rules.Definitions.Add("WITH_DX_PERF=0");
+			}
+			else if (ModuleName == "DX11")
+			{
+				// Clear out all the Windows include paths and libraries...
+				// The UWPSDK module handles proper paths and libs for UWP.
+				// However, the D3D11RHI module will include the DX11 module.
+				Rules.PublicIncludePaths.Clear();
+				Rules.PublicLibraryPaths.Clear();
+				Rules.PublicAdditionalLibraries.Clear();
+				Rules.Definitions.Remove("WITH_D3DX_LIBS=1");
+				Rules.Definitions.Add("WITH_D3DX_LIBS=0");
+				Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
+				Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
+			}
+			else if (ModuleName == "XAudio2")
+			{
+				Rules.Definitions.Add("XAUDIO_SUPPORTS_XMA2WAVEFORMATEX=0");
+				Rules.Definitions.Add("XAUDIO_SUPPORTS_DEVICE_DETAILS=0");
+				Rules.Definitions.Add("XAUDIO2_SUPPORTS_MUSIC=0");
+				Rules.Definitions.Add("XAUDIO2_SUPPORTS_SENDLIST=0");
+				Rules.PublicAdditionalLibraries.Add("XAudio2.lib");
+			}
+			else if (ModuleName == "DX11Audio")
+			{
+				Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
+				Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
+			}
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
 		}
 
 		/// <summary>

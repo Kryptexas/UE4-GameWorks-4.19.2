@@ -463,60 +463,75 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileICU = true;
 		}
 
-		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+
+			if (!UEBuildConfiguration.bBuildRequiresCookedData)
 			{
-				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-
-				if (!UEBuildConfiguration.bBuildRequiresCookedData)
-				{
-					if (ModuleName == "TargetPlatform")
-					{
-						bBuildShaderFormats = true;
-					}
-				}
-
-				// allow standalone tools to use target platform modules, without needing Engine
 				if (ModuleName == "TargetPlatform")
 				{
-					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-					{
-						Rules.DynamicallyLoadedModuleNames.Add("WindowsTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("WindowsNoEditorTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("WindowsServerTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("WindowsClientTargetPlatform");
-						Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-					}
+					bBuildShaderFormats = true;
+				}
+			}
 
-					if (bBuildShaderFormats)
-					{
-						Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-						Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+			// allow standalone tools to use target platform modules, without needing Engine
+			if (ModuleName == "TargetPlatform")
+			{
+				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsNoEditorTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsServerTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("WindowsClientTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				}
 
-						//#todo-rco: Remove when public
-						string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+				if (bBuildShaderFormats)
+				{
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+
+					//#todo-rco: Remove when public
+					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+					{
+						if (!String.IsNullOrEmpty(VulkanSDKPath))
 						{
-							if (!String.IsNullOrEmpty(VulkanSDKPath))
-							{
-								Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-							}
+							Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 						}
 					}
 				}
-
-				if (ModuleName == "D3D11RHI")
-				{
-					// To enable platform specific D3D11 RHI Types
-					Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D11RHI/Private/Windows");
-				}
-
-				if (ModuleName == "D3D12RHI")
-				{
-					// To enable platform specific D3D12 RHI Types
-					Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
-				}
 			}
+
+			if (ModuleName == "D3D11RHI")
+			{
+				// To enable platform specific D3D11 RHI Types
+				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D11RHI/Private/Windows");
+			}
+
+			if (ModuleName == "D3D12RHI")
+			{
+				// To enable platform specific D3D12 RHI Types
+				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
+			}
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
 		}
 
 		/// <summary>

@@ -174,9 +174,13 @@ namespace UnrealBuildTool
 		{
 			foreach (var PlatformEntry in BuildPlatformDictionary)
 			{
-				if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only || PlatformEntry.Key == Target.Platform)
+				if(PlatformEntry.Key == Target.Platform)
 				{
-					PlatformEntry.Value.ModifyModuleRules(ModuleName, Rules, Target);
+					PlatformEntry.Value.ModifyModuleRulesForActivePlatform(ModuleName, Rules, Target);
+				}
+				else if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only)
+				{
+					PlatformEntry.Value.ModifyModuleRulesForOtherPlatform(ModuleName, Rules, Target);
 				}
 			}
 		}
@@ -358,14 +362,24 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Modify the newly created module passed in for this platform.
-		/// This is not required - but allows for hiding details of a
-		/// particular platform.
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
 		/// </summary>
-		/// <param name="">ModuleName  The name of the module</param>
-		/// <param name="Rules">  The module rules</param>
-		/// <param name="Target">  The target being build</param>
-		public virtual void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public virtual void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public virtual void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 		}
 
