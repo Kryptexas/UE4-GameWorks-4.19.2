@@ -493,7 +493,8 @@ void FMetalContext::ResetRenderCommandEncoder()
 	SubmitCommandsHint();
 	
 	ConditionalSwitchToGraphics();
-	CommandEncoder.RestoreRenderCommandEncoding();
+	StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer.GetCurrentQueryBuffer()->Buffer);
+	CommandEncoder.RestoreRenderCommandEncodingState();
 }
 
 void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
@@ -520,7 +521,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 #if PLATFORM_MAC // Disable this to get a soft error that can be debugged further in a GPU trace. // @todo zebra ios
 					if(!FShaderCache::IsPredrawCall())
 					{
-						UE_LOG(LogMetal, Fatal, TEXT("%s"), *Report);
+						UE_LOG(LogMetal, Warning, TEXT("%s"), *Report);
 					}
 					else
 					{

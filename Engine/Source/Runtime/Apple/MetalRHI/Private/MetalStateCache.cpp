@@ -25,6 +25,7 @@ static MTLCullMode TranslateCullMode(ERasterizerCullMode CullMode)
 
 FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 : CommandEncoder(InCommandEncoder)
+, VisibilityResults(nil)
 , BlendState(nullptr)
 , DepthStencilState(nullptr)
 , RasterizerState(nullptr)
@@ -163,7 +164,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	ConditionalSwitchToRender();
 
 	// see if our new Info matches our previous Info
-	if (NeedsToSetRenderTarget(InRenderTargets))
+	if (NeedsToSetRenderTarget(InRenderTargets) || QueryBuffer != VisibilityResults)
 	{
 		// back this up for next frame
 		RenderTargetsInfo = InRenderTargets;
@@ -172,6 +173,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
 	
 		// if we need to do queries, write to the supplied query buffer
+		VisibilityResults = QueryBuffer;
 		RenderPass.visibilityResultBuffer = QueryBuffer;
 	
 		// default to non-msaa

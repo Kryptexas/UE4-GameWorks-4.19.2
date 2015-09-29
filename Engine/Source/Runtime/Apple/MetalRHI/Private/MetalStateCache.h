@@ -74,6 +74,8 @@ private:
 	id<MTLBuffer> VertexBuffers[MaxMetalStreams];
 	uint32 VertexStrides[MaxMetalStreams];
 
+	id<MTLBuffer> VisibilityResults;
+	
 	TRefCountPtr<FMetalBlendState> BlendState;
 	TRefCountPtr<FMetalDepthStencilState> DepthStencilState;
 	TRefCountPtr<FMetalRasterizerState> RasterizerState;
