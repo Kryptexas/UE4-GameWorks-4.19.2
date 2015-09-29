@@ -411,11 +411,15 @@ struct INPUTCORE_API EKeys
 	static const FKey MotionController_Left_Thumbstick_X;
 	static const FKey MotionController_Left_Thumbstick_Y;
 	static const FKey MotionController_Left_TriggerAxis;
+	static const FKey MotionController_Left_Grip1Axis;
+	static const FKey MotionController_Left_Grip2Axis;
 
 	//		Right Controller
 	static const FKey MotionController_Right_Thumbstick_X;
 	static const FKey MotionController_Right_Thumbstick_Y;
 	static const FKey MotionController_Right_TriggerAxis;
+	static const FKey MotionController_Right_Grip1Axis;
+	static const FKey MotionController_Right_Grip2Axis;
 
 	// PS4-specific
 	static const FKey PS4_Special;

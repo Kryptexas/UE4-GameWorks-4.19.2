@@ -109,10 +109,15 @@ public:
      */
     virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
 
-    /**
-     * Get the ISceneViewExtension for this HMD, or none.
-     */
-    virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() = 0;
+	/**
+	 * Rebase the input position and orientation to that of the HMD's base
+	 */
+	virtual void RebaseObjectOrientationAndPosition(FVector& Position, FQuat& Orientation) const = 0;
+
+	/**
+	 * Get the ISceneViewExtension for this HMD, or none.
+	 */
+	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() = 0;
 
 	/**
      * Apply the orientation of the headset to the PC's rotation.
