@@ -163,6 +163,16 @@ bool RayHitSphere(float3 RayOrigin, float3 UnitRayDirection, float RayLength, fl
 RWBuffer<uint> RWShadowTileHeadDataUnpacked;
 RWBuffer<uint> RWShadowTileArrayData;
 
+[numthreads(1, 1, 1)]
+void WorkaroundAMDBugCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	RWShadowTileHeadDataUnpacked[0] = 0;
+	RWShadowTileArrayData[0] = 0;
+}
+
 float2 NumGroups;
 
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
