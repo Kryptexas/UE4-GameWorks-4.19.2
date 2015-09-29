@@ -53,7 +53,7 @@ public:
 	virtual void ShutdownModule() override
 	{
 		UnregisterAssetTools();
-		UnregisterCustomizations();
+		//UnregisterCustomizations();
 		UnregisterMenuExtensions();
 		UnregisterThumbnailRenderers();
 	}
