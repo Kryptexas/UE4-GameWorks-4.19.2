@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "WidgetRenderer.h"
+#include "HittestGrid.h"
 
 #if !UE_SERVER
 #include "ISlateRHIRendererModule.h"
@@ -46,7 +47,7 @@ UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(TSharedRef<SWidget>& Widget,
 void FWidgetRenderer::DrawWidget(UTextureRenderTarget2D* RenderTarget, TSharedRef<SWidget>& Widget, FVector2D DrawSize, float DeltaTime)
 {
 	TSharedRef<SVirtualWindow> Window = SNew(SVirtualWindow).Size(DrawSize);
-	TSharedRef<FHittestGrid> HitTestGrid = MakeShareable(new FHittestGrid);
+	TSharedRef<FHittestGrid> HitTestGrid = MakeShareable(new FHittestGrid());
 
 	Window->SetContent(Widget);
 	Window->Resize(DrawSize);

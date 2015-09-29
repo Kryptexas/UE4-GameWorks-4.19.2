@@ -2,6 +2,9 @@
 
 #include "UMGPrivatePCH.h"
 
+#include "WidgetComponent.h"
+#include "WidgetLayoutLibrary.h"
+
 #include "SWorldWidgetScreenLayer.h"
 
 void SWorldWidgetScreenLayer::Construct(const FArguments& InArgs, const FLocalPlayerContext& InPlayerContext)
