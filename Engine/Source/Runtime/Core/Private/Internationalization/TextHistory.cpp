@@ -29,7 +29,7 @@ FTextHistory& FTextHistory::operator=(FTextHistory&& Other)
 	return *this;
 }
 
-bool FTextHistory::IsOutOfDate()
+bool FTextHistory::IsOutOfDate() const
 {
 	return Revision < FTextLocalizationManager::Get().GetTextRevision();
 }
@@ -62,12 +62,13 @@ void FTextHistory::SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr
 void FTextHistory::Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString)
 {
 	const bool bIsOutOfDate = IsOutOfDate();
+	const bool bCanRebuildText = CanRebuildText();
 
 	// FTextHistory_Base will never report being out-of-date, but we need to keep the history revision in sync
 	// with the head culture regardless so that FTextSnapshot::IdenticalTo still works correctly
 	Revision = FTextLocalizationManager::Get().GetTextRevision();
 
-	if(bIsOutOfDate)
+	if(bIsOutOfDate && bCanRebuildText)
 	{
 		InDisplayString.Get() = FTextInspector::GetDisplayString(ToText(false));
 	}

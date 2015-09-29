@@ -41,7 +41,7 @@ public:
 	virtual void SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr& InOutDisplayString);
 
 	/** Returns TRUE if the Revision is out of date */
-	virtual bool IsOutOfDate();
+	virtual bool IsOutOfDate() const;
 
 	/** Returns the source string managed by the history (if any). */
 	virtual const FString* GetSourceString() const;
@@ -53,6 +53,9 @@ public:
 	void Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString);
 
 protected:
+	/** Returns true if this kind of text history is able to rebuild its text */
+	virtual bool CanRebuildText() { return true; }
+
 	/** Revision index of this history, rebuilds when it is out of sync with the FTextLocalizationManager */
 	int32 Revision;
 
@@ -77,8 +80,12 @@ public:
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr& InOutDisplayString) override;
-	virtual bool IsOutOfDate() override { return false; }
 	virtual const FString* GetSourceString() const override;
+	//~ End FTextHistory Interface
+
+protected:
+	//~ Begin FTextHistory Interface
+	virtual bool CanRebuildText() { return false; }
 	//~ End FTextHistory Interface
 
 private:
