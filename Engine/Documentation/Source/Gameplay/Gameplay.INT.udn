@@ -2,6 +2,7 @@ Title: Gameplay Guide
 Crumbs:%ROOT%
 Description:Overviews and examples of gameplay functionality for programmers and visual scripters.
 Availability:Public
+version: 4.9
 
 [VAR:Params]
 [PARAM:image]
