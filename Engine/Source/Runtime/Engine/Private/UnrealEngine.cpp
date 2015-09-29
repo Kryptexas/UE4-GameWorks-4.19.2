@@ -995,10 +995,16 @@ void UEngine::PreExit()
 	{
 		auto SavedStereo = StereoRenderingDevice;
 		auto SavedHMD = HMDDevice;
+		auto SavedViewExtentions = ViewExtensions;
 		{
 			FSuspendRenderingThread Suspend(false);
 			StereoRenderingDevice.Reset();
 			HMDDevice.Reset();
+			for (auto& ViewExt : ViewExtensions)
+			{
+				ViewExt.Reset();
+			}
+			ViewExtensions.Empty();
 		}
 		// shutdown will occur here.
 	}

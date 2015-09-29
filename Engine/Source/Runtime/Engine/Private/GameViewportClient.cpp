@@ -826,6 +826,11 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
+	if (GEngine->ViewExtensions.Num())
+	{
+		ViewFamily.ViewExtensions.Append(GEngine->ViewExtensions.GetData(), GEngine->ViewExtensions.Num());
+	}
+
 	// Allow HMD to modify the view later, just before rendering
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
