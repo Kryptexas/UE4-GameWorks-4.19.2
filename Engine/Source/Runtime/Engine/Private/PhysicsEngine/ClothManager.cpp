@@ -18,11 +18,12 @@ void FClothManagerData::PrepareCloth(float DeltaTime, FTickFunction& TickFunctio
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FClothManager_PrepareCloth);
 	if (SkeletalMeshComponents.Num())
 	{
-		IsPreparingCloth.AtomicSet(true);
+		const bool bParallelCloth = !!CVarParallelCloth.GetValueOnAnyThread();
+		IsPreparingClothInParallel.AtomicSet(bParallelCloth);
 		for (USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
 		{
 			FClothSimulationContext& ClothSimulationContext = SkeletalMeshComponent->InternalClothSimulationContext;
-			if(CVarParallelCloth.GetValueOnAnyThread())
+			if (bParallelCloth)
 			{
 				SkeletalMeshComponent->ParallelTickClothing(DeltaTime, ClothSimulationContext);
 			}else
@@ -33,7 +34,7 @@ void FClothManagerData::PrepareCloth(float DeltaTime, FTickFunction& TickFunctio
 			
 		}
 
-		IsPreparingCloth.AtomicSet(false);
+		IsPreparingClothInParallel.AtomicSet(false);
 	}
 #endif
 }

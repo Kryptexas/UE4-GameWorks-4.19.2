@@ -23,7 +23,7 @@ class FClothManagerData
 {
 public:
 	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
-	FThreadSafeBool IsPreparingCloth;
+	FThreadSafeBool IsPreparingClothInParallel;
 	FGraphEventRef PrepareCompletion;
 
 	/** Go through all SkeletalMeshComponents registered for work this frame and call the solver as needed*/
@@ -76,7 +76,7 @@ public:
 		bool bIsPreparingCloth = false;
 		for(const FClothManagerData& PrepareCloth : PrepareClothDataArray)
 		{
-			return bIsPreparingCloth |= PrepareCloth.IsPreparingCloth;
+			return bIsPreparingCloth |= PrepareCloth.IsPreparingClothInParallel;
 		}
 
 		return bIsPreparingCloth;
