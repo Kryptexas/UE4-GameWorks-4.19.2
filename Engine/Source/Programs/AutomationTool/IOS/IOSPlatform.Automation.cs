@@ -207,6 +207,19 @@ public class IOSPlatform : Platform
 			}
 		}
 
+		if (String.IsNullOrEmpty(Params.Provision))
+		{
+			UnrealBuildTool.IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as UnrealBuildTool.IOSPlatform;
+			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+			Params.Provision = UnrealBuildTool.IOSPlatform.MobileProvision;
+		}
+		if (String.IsNullOrEmpty(Params.Certificate))
+		{
+			UnrealBuildTool.IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as UnrealBuildTool.IOSPlatform;
+			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+			Params.Certificate = UnrealBuildTool.IOSPlatform.SigningCertificate;
+		}
+
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
@@ -267,6 +280,14 @@ public class IOSPlatform : Platform
 					{
 						IPPArguments += " -iterate";
 					}
+					if (Params.Provision != null)
+					{
+						IPPArguments += " -provision \"" + Params.Provision + "\""; 
+					}
+					if (Params.Certificate != null)
+					{
+						IPPArguments += " -certificate \"" + Params.Certificate + "\"";
+					}
 
 					RunAndLog(CmdEnv, IPPExe, IPPArguments);
 				}
@@ -311,6 +332,16 @@ public class IOSPlatform : Platform
 					{
 						IPPArguments.Add(" -iterate");
 					}
+					if (Params.Provision != null)
+					{
+						IPPArguments.Add(" -provision");
+						IPPArguments.Add(Params.Provision);
+					}
+					if (Params.Certificate != null)
+					{
+						IPPArguments.Add(" -certificate");
+						IPPArguments.Add(Params.Certificate);
+					}
 
 					if (RunIPP(IPPArguments.ToArray()) != 0)
 					{
@@ -350,7 +381,7 @@ public class IOSPlatform : Platform
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution);
+				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate);
 
 				// now generate the ipa
 				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.StageTargetConfigurations[0], Params.Distribution);
@@ -392,7 +423,7 @@ public class IOSPlatform : Platform
 		return XcodeProj;
 	}
 
-	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false)
+	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null, string Certificate = null)
 	{
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
@@ -405,7 +436,34 @@ public class IOSPlatform : Platform
 		Arguments += " - iOS'";
 		Arguments += " -configuration " + TargetConfig.ToString();
 		Arguments += " -sdk iphoneos";
-		Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+		if (Certificate != null)
+		{
+			Arguments += " CODE_SIGN_IDENTITY=" + Certificate;
+		}
+		else
+		{
+			Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+		}
+		if (Provision != null)
+		{
+			// read the provision to get the UUID
+			if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Provision))
+			{
+				string UUID = "";
+				string AllText = File.ReadAllText(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Provision);
+				int idx = AllText.IndexOf("<key>UUID</key>");
+				if (idx > 0)
+				{
+					idx = AllText.IndexOf("<string>", idx);
+					if (idx > 0)
+					{
+						idx += "<string>".Length;
+						UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+						Arguments += " PROVISIONING_PROFILE=" + UUID;
+					}
+				}
+			}
+		}
 		ProcessResult Result = Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
 		if (bWasGenerated)
 		{

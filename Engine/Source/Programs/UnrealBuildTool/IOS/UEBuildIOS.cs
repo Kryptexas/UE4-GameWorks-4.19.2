@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-    class IOSPlatform : UEBuildPlatform
+    public class IOSPlatform : UEBuildPlatform
     {
         // by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
         [XmlConfig]
@@ -26,6 +26,12 @@ namespace UnrealBuildTool
 		public static string NonShippingArchitectures = "armv7";
 		[XmlConfig]
 		public static string ShippingArchitectures = "armv7,arm64";
+
+		/** mobile provision to use for code signing */
+		public static string MobileProvision = "";
+
+		/** signing certificate to use for code signing */
+		public static string SigningCertificate = "";
 
 		private bool bInitializedProject = false;
 
@@ -238,6 +244,9 @@ namespace UnrealBuildTool
 
 				// determine if we need to generate the dsym
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision", out MobileProvision);
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate", out SigningCertificate);
 
 				bInitializedProject = true;
 			}
