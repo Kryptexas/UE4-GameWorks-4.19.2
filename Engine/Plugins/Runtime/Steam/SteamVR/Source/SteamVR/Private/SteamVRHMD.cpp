@@ -1157,6 +1157,8 @@ void FSteamVRHMD::SetupOcclusionMeshes()
 		HiddenAreaMeshes[1].BuildMesh(RightEyePositions, VertexCount, FHMDViewMesh::MT_HiddenArea);
 
 		// If the hidden area mesh from the SteamVR runtime matches the mesh used to generate the Vive's visible area mesh, initialize it.
+		// The visible area mesh is a hand crafted inverse of the hidden area mesh we are getting from the steamvr runtime. Since the runtime data
+		// may change, we need to sanity check it matches our hand crafted mesh before using it.
 		if (HiddenAreaMeshCrc == ViveHiddenAreaMeshCrc)
 		{
 			VisibleAreaMeshes[0].BuildMesh(Vive_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);

@@ -949,18 +949,14 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
-	bool bDepthWasCleared = false;
+	bool bDepthWasCleared = RenderPrePassHMD(RHICmdList);;
 	const bool bNeedsPrePass = NeedsPrePass(this);
 	if (bNeedsPrePass)
 	{
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
-		RenderPrePass(RHICmdList);
+		RenderPrePass(RHICmdList, bDepthWasCleared);
 		// at this point, the depth was cleared
 		bDepthWasCleared = true;
-	}
-	else if (HasHiddenAreaMask())
-	{
-		bDepthWasCleared = RenderPrePassHMD(RHICmdList);
 	}
 
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
@@ -1443,12 +1439,6 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 
 	SetupPrePassView(RHICmdList, View.ViewRect);
 
-	if (HasHiddenAreaMask() && View.StereoPass != eSSP_FULL)
-	{
-		RenderHiddenAreaMaskView(RHICmdList, View);
-		bDirty = true;
-	}
-	
 	// Draw the static occluder primitives using a depth drawing policy.
 	{
 		// Draw opaque occluders which support a separate position-only
@@ -1530,11 +1520,6 @@ public:
 	{
 		FSceneRenderTargets::Get(CmdList).BeginRenderingPrePass(CmdList, false);
 		SetupPrePassView(CmdList, View.ViewRect);
-
-		if (HasHiddenAreaMask() && View.StereoPass != eSSP_FULL)
-		{
-			RenderHiddenAreaMaskView(CmdList, View);
-		}
 	}
 };
 
@@ -1595,7 +1580,7 @@ void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 }
 
 /** Renders the scene's prepass and occlusion queries */
-bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList)
+bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDepthWasCleared)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, PrePass);
 	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
@@ -1603,7 +1588,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	bool bDirty = false;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	SceneContext.BeginRenderingPrePass(RHICmdList, true);
+	SceneContext.BeginRenderingPrePass(RHICmdList, !bDepthWasCleared);
 
 	// Draw a depth pass to avoid overdraw in the other passes.
 	if(EarlyZPassMode != DDM_None)
