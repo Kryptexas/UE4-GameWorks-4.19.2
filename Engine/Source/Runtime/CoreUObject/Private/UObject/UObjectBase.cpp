@@ -686,7 +686,6 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 	}
 	else
 	{
-		// Name is with the CPP prefix, skip it when adding to the map
 		FClassConstructFunctions ClassFunctions;
 		ClassFunctions.ZConstructFn = InRegister;
 		ClassFunctions.StaticClassFn = InStaticClass;
