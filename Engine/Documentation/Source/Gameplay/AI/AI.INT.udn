@@ -2,6 +2,7 @@ Availability:Public
 Title: AI and Behavior Trees
 Crumbs:%ROOT%, Engine, Gameplay
 Description:Information over Artificial Intelligence including the use of Behavior Trees and Navmesh.
+version: 4.9
 
 <!-- Q:\Daniel.Broder\BT Docs -->
 
