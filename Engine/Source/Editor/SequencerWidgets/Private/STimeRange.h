@@ -28,6 +28,8 @@ public:
 
 	float GetTimeSnapInterval() const;
 
+	using ITimeSlider::ToString;
+	
 protected:
 	float InTime() const;
 	float OutTime() const;
