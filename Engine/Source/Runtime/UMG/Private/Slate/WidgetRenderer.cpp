@@ -56,6 +56,7 @@ void FWidgetRenderer::DrawWidget(UTextureRenderTarget2D* RenderTarget, TSharedRe
 
 void FWidgetRenderer::DrawWindow(UTextureRenderTarget2D* RenderTarget, TSharedRef<FHittestGrid> HitTestGrid, TSharedRef<SWindow> Window, FVector2D DrawSize, float DeltaTime)
 {
+#if !UE_SERVER
 	FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize, FSlateLayoutTransform());
 
 	if ( !bFoldTick )
@@ -95,4 +96,5 @@ void FWidgetRenderer::DrawWindow(UTextureRenderTarget2D* RenderTarget, TSharedRe
 		{
 			InRenderer->DrawWindowToTarget_RenderThread(RHICmdList, InRenderTarget, InDrawBuffer);
 		});
+#endif // !UE_SERVER
 }
