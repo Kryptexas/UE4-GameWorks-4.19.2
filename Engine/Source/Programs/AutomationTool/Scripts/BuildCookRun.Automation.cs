@@ -205,7 +205,8 @@ public class BuildCookRun : BuildCommand
 			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("{0} build from changelist {1}", Params.ShortProjectName, P4Env.Changelist));
 		}
 
-		Project.Build(this, Params, WorkingCL);
+        Project.NativizeScriptAssets(this, Params);
+        Project.Build(this, Params, WorkingCL);
 		Project.Cook(Params);
 		Project.CopyBuildToStagingDirectory(Params);
 		Project.Package(Params, WorkingCL);

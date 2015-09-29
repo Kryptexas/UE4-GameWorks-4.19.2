@@ -990,6 +990,16 @@ namespace AutomationTool
 		[Help("createappbundle", "When archiving for Mac, set this to true to package it in a .app bundle instead of normal loose files")]
 		public bool CreateAppBundle;
 
+        /// <summary>
+        /// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
+        /// </summary>
+        public FileReference GeneratedPluginDescFile;
+
+        /// <summary>
+        /// Shared: Ref to a manifest file, detailing the asset files that were converted into native source
+        /// </summary>
+        public FileReference GeneratedPluginManifest;
+
 		#endregion
 
 		#region Build

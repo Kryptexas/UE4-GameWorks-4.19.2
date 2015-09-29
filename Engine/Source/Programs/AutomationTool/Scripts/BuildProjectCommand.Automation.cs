@@ -73,7 +73,16 @@ public partial class Project : CommandUtils
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
 				{
 					CrashReportPlatforms.Add(ClientPlatform);
-					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath);
+
+                    string ExtraUBTArgs = "";
+                    // if we're utilizing an auto-generated code plugin/module 
+                    // (a product of the BuildCookeRun process), make sure to 
+                    // compile it into the project
+                    if (Params.GeneratedPluginDescFile != null && Params.GeneratedPluginDescFile.Exists())
+                    {
+                        ExtraUBTArgs += "-PLUGIN \"" + Params.GeneratedPluginDescFile + "\"";
+                    }
+					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath, ExtraUBTArgs);
 				}
 			}
 		}
