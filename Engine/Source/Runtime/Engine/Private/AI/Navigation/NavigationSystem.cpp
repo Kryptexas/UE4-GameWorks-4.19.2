@@ -2573,7 +2573,7 @@ void UNavigationSystem::UpdateNavOctree(UActorComponent* Comp)
 	}
 }
 
-void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
+void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors)
 {
 	if (Actor)
 	{
@@ -2587,15 +2587,9 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 			UpdateNavOctree(Components[ComponentIndex]);
 		}
 
-		if (Actor->GetRootComponent())
+		if (bUpdateAttachedActors)
 		{
-			for (int32 RootChildIndex = 0; RootChildIndex < Actor->GetRootComponent()->AttachChildren.Num(); RootChildIndex++)
-			{
-				if (Actor->GetRootComponent()->AttachChildren[RootChildIndex] && Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter() != Actor)
-				{
-					UpdateNavOctreeAll(Cast<AActor>(Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter()));
-				}
-			}
+			UpdateAttachedActorsInNavOctree(*Actor);
 		}
 	}
 }
@@ -2619,13 +2613,33 @@ void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
 			}
 		}
 
-		for (int32 RootChildIndex = 0; RootChildIndex < Comp->AttachChildren.Num(); RootChildIndex++)
+		UpdateAttachedActorsInNavOctree(*OwnerActor);
+	}
+}
+
+void UNavigationSystem::UpdateAttachedActorsInNavOctree(AActor& RootActor)
+{
+	TArray<AActor*> UniqueAttachedActors;
+	UniqueAttachedActors.Add(&RootActor);
+
+	TArray<AActor*> TempAttachedActors;
+	for (int32 ActorIndex = 0; ActorIndex < UniqueAttachedActors.Num(); ++ActorIndex)
+	{
+		check(UniqueAttachedActors[ActorIndex]);
+		// find all attached actors
+		UniqueAttachedActors[ActorIndex]->GetAttachedActors(TempAttachedActors);
+		
+		for (int32 AttachmentIndex = 0; AttachmentIndex < TempAttachedActors.Num(); ++AttachmentIndex)
 		{
-			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
-			{
-				UpdateNavOctreeAll(Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter()));
-			}
+			// and store the ones we don't know about yet
+			UniqueAttachedActors.AddUnique(TempAttachedActors[AttachmentIndex]);
 		}
+	}
+	
+	// skipping the first item since that's the root, and we just care about the attached actors
+	for (int32 ActorIndex = 1; ActorIndex < UniqueAttachedActors.Num(); ++ActorIndex)
+	{
+		UpdateNavOctreeAll(UniqueAttachedActors[ActorIndex], /*bUpdateAttachedActors = */false);
 	}
 }
 
