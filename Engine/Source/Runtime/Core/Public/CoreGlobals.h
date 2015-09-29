@@ -309,9 +309,6 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 /** Total blueprint compile time. */
 extern CORE_API double GBlueprintCompileTime;
 
-/** Stack names from the VM to be unrolled when we assert */
-extern CORE_API TArray<FScriptTraceStackNode> GScriptStack;
-
 #if WITH_HOT_RELOAD_CTORS
 /**
  * Ensures that current thread is during retrieval of vtable ptr of some

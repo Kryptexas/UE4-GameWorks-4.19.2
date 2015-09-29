@@ -186,14 +186,15 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 //
 void VARARGS FDebug::LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ...)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if DO_BLUEPRINT_GUARD
 	// Walk the script stack, if any
-	if( IsInGameThread() && GScriptStack.Num() > 0 )
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
 	{
 		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
-		while( GScriptStack.Num() )
+		while( BlueprintExceptionTracker.ScriptStack.Num() )
 		{
-			ScriptStack += GScriptStack.Pop().GetStackDescription() + TEXT( "\n" );
+			ScriptStack += BlueprintExceptionTracker.ScriptStack.Pop().GetStackDescription() + TEXT( "\n" );
 		}
 
 		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );

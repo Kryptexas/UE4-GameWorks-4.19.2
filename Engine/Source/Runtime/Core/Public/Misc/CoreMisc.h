@@ -3,7 +3,8 @@
 #pragma once
 
 #include "IntPoint.h"
-
+#include "Map.h"
+#include "ThreadingBase.h"
 
 /**
  * Exec handler that registers itself and is being routed via StaticExec.
@@ -387,3 +388,40 @@ public:
 		return bValue;
 	}
 };
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	#define DO_BLUEPRINT_GUARD 1
+#endif
+
+#if DO_BLUEPRINT_GUARD
+/** 
+ * Helper struct for dealing with Blueprint exceptions 
+ */
+struct CORE_API FBlueprintExceptionTracker : TThreadSingleton<FBlueprintExceptionTracker>
+{
+	FBlueprintExceptionTracker()
+		: Runaway(0)
+		, Recurse(0)
+		, bRanaway(false)
+		, ScriptEntryTag(0)
+	{}
+
+	void ResetRunaway();
+
+public:
+	// map of currently displayed warnings in exception handler
+	TMap<FName, int32> DisplayedWarningsMap;
+
+	// runaway tracking
+	int32 Runaway;
+	int32 Recurse;
+	bool bRanaway;
+
+	// Script entry point tracking
+	int32 ScriptEntryTag;
+
+	// Stack names from the VM to be unrolled when we assert
+	TArray<FScriptTraceStackNode> ScriptStack;
+};
+
+#endif // DO_BLUEPRINT_GUARD

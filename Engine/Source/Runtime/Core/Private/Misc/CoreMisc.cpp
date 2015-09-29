@@ -988,6 +988,18 @@ FBoolConfigValueHelper::FBoolConfigValueHelper(const TCHAR* Section, const TCHAR
 	GConfig->GetBool(Section, Key, bValue, Filename);
 }
 
+/*----------------------------------------------------------------------------
+FBlueprintExceptionTracker
+----------------------------------------------------------------------------*/
+#if DO_BLUEPRINT_GUARD
+void FBlueprintExceptionTracker::ResetRunaway()
+{
+	Runaway = 0;
+	Recurse = 0;
+	bRanaway = false;
+}
+#endif // DO_BLUEPRINT_GUARD
+
 #if WITH_HOT_RELOAD_CTORS
 bool GIsRetrievingVTablePtr = false;
 
