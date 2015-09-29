@@ -550,6 +550,45 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 	}
 }
 
+void FHeightfieldLightingViewInfo::SetupHeightfieldsForScene(const FScene& Scene, FRHICommandListImmediate& RHICmdList)
+{
+	const int32 NumPrimitives = Scene.DistanceFieldSceneData.HeightfieldPrimitives.Num();
+
+	if (NumPrimitives > 0
+		&& SupportsHeightfieldLighting(Scene.GetFeatureLevel(), Scene.GetShaderPlatform()))
+	{
+		const float MaxDistanceSquared = FMath::Square(GetMaxAOViewDistance() + GetGHeightfieldBounceDistance());
+		float LocalToWorldScale = 1;
+
+		for (int32 HeightfieldPrimitiveIndex = 0; HeightfieldPrimitiveIndex < NumPrimitives; HeightfieldPrimitiveIndex++)
+		{
+			const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene.DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
+
+			UTexture2D* HeightfieldTexture = NULL;
+			UTexture2D* DiffuseColorTexture = NULL;
+			FHeightfieldComponentDescription NewComponentDescription(HeightfieldPrimitive->Proxy->GetLocalToWorld());
+			HeightfieldPrimitive->Proxy->GetHeightfieldRepresentation(HeightfieldTexture, DiffuseColorTexture, NewComponentDescription);
+
+			if (HeightfieldTexture && HeightfieldTexture->Resource->TextureRHI)
+			{
+				const FIntPoint HeightfieldSize = NewComponentDescription.HeightfieldRect.Size();
+
+				if (Heightfield.Rect.Area() == 0)
+				{
+					Heightfield.Rect = NewComponentDescription.HeightfieldRect;
+					LocalToWorldScale = NewComponentDescription.LocalToWorld.GetScaleVector().X;
+				}
+				else
+				{
+					Heightfield.Rect.Union(NewComponentDescription.HeightfieldRect);
+				}
+
+				TArray<FHeightfieldComponentDescription>& ComponentDescriptions = Heightfield.ComponentDescriptions.FindOrAdd(FHeightfieldComponentTextures(HeightfieldTexture, DiffuseColorTexture));
+				ComponentDescriptions.Add(NewComponentDescription);
+			}
+		}
+	}
+}
 
 class FHeightfieldDescriptionsResource : public FRenderResource
 {
@@ -1961,6 +2000,148 @@ void FHeightfieldLightingViewInfo::ComputeIrradianceForScreenGrid(
 					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
 					ComputeShader->UnsetParameters(RHICmdList, ScreenGridResources);
+				}
+			}
+		}
+	}
+}
+
+
+const int32 GPreCullTrianglesToHeightfieldsGroupSize = 64;
+
+class FPreCullTrianglesToHeightfields : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPreCullTrianglesToHeightfields,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+
+		OutEnvironment.SetDefine(TEXT("PRECULL_TRIANGLES_TO_HEIGHTFIELDS_GROUP_SIZE"), GPreCullTrianglesToHeightfieldsGroupSize);
+
+		// To reduce shader compile time of compute shaders with shared memory, doesn't have an impact on generated code with current compiler (June 2010 DX SDK)
+		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
+	}
+
+	FPreCullTrianglesToHeightfields(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		HeightfieldDescriptionParameters.Bind(Initializer.ParameterMap);
+		HeightfieldTextureParameters.Bind(Initializer.ParameterMap);
+		TriangleVisibleMask.Bind(Initializer.ParameterMap, TEXT("TriangleVisibleMask"));
+		StartIndex.Bind(Initializer.ParameterMap, TEXT("StartIndex"));
+		NumTriangles.Bind(Initializer.ParameterMap, TEXT("NumTriangles"));
+		TriangleVertexData.Bind(Initializer.ParameterMap, TEXT("TriangleVertexData"));
+		PreCullMaxDistance.Bind(Initializer.ParameterMap, TEXT("PreCullMaxDistance"));
+	}
+
+	FPreCullTrianglesToHeightfields()
+	{
+	}
+
+	void SetParameters(
+		FRHICommandList& RHICmdList, 
+		const FViewInfo& View, 
+		UTexture2D* HeightfieldTextureValue, 
+		int32 NumHeightfieldsValue,
+		FPreCulledTriangleBuffers& PreCulledTriangleBuffers,
+		int32 StartIndexValue,
+		int32 NumTrianglesValue,
+		const FUniformMeshBuffers& UniformMeshBuffers)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+
+		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, NumHeightfieldsValue);
+		HeightfieldTextureParameters.Set(RHICmdList, ShaderRHI, HeightfieldTextureValue, NULL);
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, PreCulledTriangleBuffers.TriangleVisibleMask.UAV);
+		TriangleVisibleMask.SetBuffer(RHICmdList, ShaderRHI, PreCulledTriangleBuffers.TriangleVisibleMask);
+
+		SetShaderValue(RHICmdList, ShaderRHI, StartIndex, StartIndexValue);
+		SetShaderValue(RHICmdList, ShaderRHI, NumTriangles, NumTrianglesValue);
+		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, UniformMeshBuffers.TriangleDataSRV);
+		extern float GPreCullMaxDistance;
+		SetShaderValue(RHICmdList, ShaderRHI, PreCullMaxDistance, GPreCullMaxDistance);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList, FPreCulledTriangleBuffers& PreCulledTriangleBuffers)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		TriangleVisibleMask.UnsetUAV(RHICmdList, ShaderRHI);
+		// RHISetStreamOutTargets doesn't unbind existing uses like render targets do 
+		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, NULL);
+
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, PreCulledTriangleBuffers.TriangleVisibleMask.UAV);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << HeightfieldDescriptionParameters;
+		Ar << HeightfieldTextureParameters;
+		Ar << TriangleVisibleMask;
+		Ar << StartIndex;
+		Ar << NumTriangles;
+		Ar << TriangleVertexData;
+		Ar << PreCullMaxDistance;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FHeightfieldDescriptionParameters HeightfieldDescriptionParameters;
+	FHeightfieldTextureParameters HeightfieldTextureParameters;
+	FRWShaderParameter TriangleVisibleMask;
+	FShaderParameter StartIndex;
+	FShaderParameter NumTriangles;
+	FShaderResourceParameter TriangleVertexData;
+	FShaderParameter PreCullMaxDistance;
+};
+
+IMPLEMENT_SHADER_TYPE(,FPreCullTrianglesToHeightfields,TEXT("HeightfieldLighting"),TEXT("PreCullTrianglesToHeightfieldsCS"),SF_Compute);
+
+
+void FHeightfieldLightingViewInfo::PreCullTriangles(
+	const FViewInfo& View, 
+	FRHICommandListImmediate& RHICmdList,
+	FPreCulledTriangleBuffers& PreCulledTriangleBuffers,
+	int32 StartIndexValue,
+	int32 NumTrianglesValue,
+	const FUniformMeshBuffers& UniformMeshBuffers) const
+{
+	const FScene* Scene = (const FScene*)View.Family->Scene;
+
+	if (Heightfield.ComponentDescriptions.Num() > 0)
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, PreCullTrianglesToHeightfields);
+
+		FSceneViewState* ViewState = (FSceneViewState*)View.State;
+
+		{
+			for (TMap<FHeightfieldComponentTextures, TArray<FHeightfieldComponentDescription>>::TConstIterator It(Heightfield.ComponentDescriptions); It; ++It)
+			{
+				const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions = It.Value();
+
+				if (HeightfieldDescriptions.Num() > 0)
+				{
+					UploadHeightfieldDescriptions(HeightfieldDescriptions, FVector2D(1, 1), 1.0f / Heightfield.DownsampleFactor);
+
+					UTexture2D* HeightfieldTexture = It.Key().HeightAndNormal;
+
+					const uint32 GroupSize = FMath::DivideAndRoundUp(NumTrianglesValue, GPreCullTrianglesToHeightfieldsGroupSize);
+
+					TShaderMapRef<FPreCullTrianglesToHeightfields> ComputeShader(View.ShaderMap);
+					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+					ComputeShader->SetParameters(RHICmdList, View, HeightfieldTexture, HeightfieldDescriptions.Num(), PreCulledTriangleBuffers, StartIndexValue, NumTrianglesValue, UniformMeshBuffers);
+					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSize, 1, 1);
+					ComputeShader->UnsetParameters(RHICmdList, PreCulledTriangleBuffers);
 				}
 			}
 		}

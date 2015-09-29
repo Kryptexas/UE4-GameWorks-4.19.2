@@ -24,6 +24,7 @@
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh VxColor Inst Mem" ), STAT_InstVertexColorMemory, STATGROUP_MemoryStaticMesh );
+DECLARE_MEMORY_STAT( TEXT( "StaticMesh PreCulled Index Memory" ), STAT_StaticMeshPreCulledIndexMemory, STATGROUP_MemoryStaticMesh );
 
 class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
@@ -950,13 +951,71 @@ void UStaticMeshComponent::InitResources()
 	}
 }
 
+float GKeepPreCulledIndicesThreshold = .95f;
 
+FAutoConsoleVariableRef CKeepPreCulledIndicesThreshold(
+	TEXT("r.KeepPreCulledIndicesThreshold"),
+	GKeepPreCulledIndicesThreshold,
+	TEXT(""),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+void UStaticMeshComponent::UpdatePreCulledData(int32 LODIndex, const TArray<uint32>& PreCulledData, const TArray<int32>& NumTrianglesPerSection)
+{
+	const FStaticMeshLODResources& StaticMeshLODResources = StaticMesh->RenderData->LODResources[LODIndex];
+
+	int32 NumOriginalTriangles = 0;
+	int32 NumVisibleTriangles = 0;
+
+	for (int32 SectionIndex = 0; SectionIndex < StaticMeshLODResources.Sections.Num(); SectionIndex++)
+	{
+		const FStaticMeshSection& Section = StaticMeshLODResources.Sections[SectionIndex];
+		NumOriginalTriangles += Section.NumTriangles;
+		NumVisibleTriangles += NumTrianglesPerSection[SectionIndex];
+	}
+
+	if (NumVisibleTriangles / (float)NumOriginalTriangles < GKeepPreCulledIndicesThreshold)
+	{
+		SetLODDataCount(LODIndex + 1, LODData.Num());
+
+		DEC_DWORD_STAT_BY(STAT_StaticMeshPreCulledIndexMemory, LODData[LODIndex].PreCulledIndexBuffer.GetAllocatedSize());
+		//@todo - game thread
+		check(IsInRenderingThread());
+		LODData[LODIndex].PreCulledIndexBuffer.ReleaseResource();
+		LODData[LODIndex].PreCulledIndexBuffer.SetIndices(PreCulledData, EIndexBufferStride::AutoDetect);
+		LODData[LODIndex].PreCulledIndexBuffer.InitResource();
+
+		INC_DWORD_STAT_BY(STAT_StaticMeshPreCulledIndexMemory, LODData[LODIndex].PreCulledIndexBuffer.GetAllocatedSize());
+		LODData[LODIndex].PreCulledSections.Empty(StaticMeshLODResources.Sections.Num());
+
+		int32 FirstIndex = 0;
+
+		for (int32 SectionIndex = 0; SectionIndex < StaticMeshLODResources.Sections.Num(); SectionIndex++)
+		{
+			const FStaticMeshSection& Section = StaticMeshLODResources.Sections[SectionIndex];
+			FPreCulledStaticMeshSection PreCulledSection;
+			PreCulledSection.FirstIndex = FirstIndex;
+			PreCulledSection.NumTriangles = NumTrianglesPerSection[SectionIndex];
+			FirstIndex += PreCulledSection.NumTriangles * 3;
+			LODData[LODIndex].PreCulledSections.Add(PreCulledSection);
+		}
+	}
+	else if (LODIndex < LODData.Num())
+	{
+		LODData[LODIndex].PreCulledIndexBuffer.ReleaseResource();
+		TArray<uint32> EmptyIndices;
+		LODData[LODIndex].PreCulledIndexBuffer.SetIndices(EmptyIndices, EIndexBufferStride::AutoDetect);
+		LODData[LODIndex].PreCulledSections.Empty(StaticMeshLODResources.Sections.Num());
+	}
+}
 
 void UStaticMeshComponent::ReleaseResources()
 {
 	for(int32 LODIndex = 0;LODIndex < LODData.Num();LODIndex++)
 	{
 		LODData[LODIndex].BeginReleaseOverrideVertexColors();
+		DEC_DWORD_STAT_BY(STAT_StaticMeshPreCulledIndexMemory, LODData[LODIndex].PreCulledIndexBuffer.GetAllocatedSize());
+		BeginReleaseResource(&LODData[LODIndex].PreCulledIndexBuffer);
 	}
 
 	DetachFence.BeginFence();

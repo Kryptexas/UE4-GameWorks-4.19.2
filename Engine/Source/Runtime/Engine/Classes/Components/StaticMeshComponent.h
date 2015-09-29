@@ -5,7 +5,7 @@
 #include "SceneTypes.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
-
+#include "RawIndexBuffer.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
@@ -48,6 +48,13 @@ struct FPaintedVertex
 	
 };
 
+struct FPreCulledStaticMeshSection
+{
+	/** Range of vertices and indices used when rendering this section. */
+	uint32 FirstIndex;
+	uint32 NumTriangles;
+};
+
 USTRUCT()
 struct FStaticMeshComponentLODInfo
 {
@@ -63,6 +70,11 @@ struct FStaticMeshComponentLODInfo
 
 	/** Vertex colors to use for this mesh LOD */
 	FColorVertexBuffer* OverrideVertexColors;
+
+	/** Information for each section about what range of PreCulledIndexBuffer to use.  If no preculled index data is available, PreCulledSections will be empty. */
+	TArray<FPreCulledStaticMeshSection> PreCulledSections;
+
+	FRawStaticIndexBuffer PreCulledIndexBuffer;
 
 #if WITH_EDITORONLY_DATA
 	/** Owner of this FStaticMeshComponentLODInfo */
@@ -412,12 +424,13 @@ public:
 	 */
 	void RemoveInstanceVertexColors();
 
+	void UpdatePreCulledData(int32 LODIndex, const TArray<uint32>& PreCulledData, const TArray<int32>& NumTrianglesPerSection);
+
 	/**
 	*	Sets the value of the SectionIndexPreview flag and reattaches the component as necessary.
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
-
 
 private:
 	/** Initializes the resources used by the static mesh component. */

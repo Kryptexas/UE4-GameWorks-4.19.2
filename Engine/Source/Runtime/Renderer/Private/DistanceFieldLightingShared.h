@@ -522,6 +522,7 @@ public:
 		FSceneRenderer& Renderer,
 		FViewInfo& View, 
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo, 
+		int32 LODIndex,
 		FUniformMeshBuffers*& OutUniformMeshBuffers,
 		const FMaterialRenderProxy*& OutMaterialRenderProxy,
 		FUniformBufferRHIParamRef& OutPrimitiveUniformBuffer);
@@ -535,6 +536,38 @@ public:
 		const FMatrix& Instance0Transform,
 		int32 SurfelOffset,
 		int32 NumSurfels);
+};
+
+class FPreCulledTriangleBuffers
+{
+public:
+
+	int32 MaxIndices;
+
+	FRWBuffer TriangleVisibleMask;
+
+	FPreCulledTriangleBuffers()
+	{
+		MaxIndices = 0;
+	}
+
+	void Initialize()
+	{
+		if (MaxIndices > 0)
+		{
+			TriangleVisibleMask.Initialize(sizeof(uint32), MaxIndices / 3, PF_R32_UINT);
+		}
+	}
+
+	void Release()
+	{
+		TriangleVisibleMask.Release();
+	}
+
+	size_t GetSizeBytes() const
+	{
+		return TriangleVisibleMask.NumBytes;
+	}
 };
 
 extern TGlobalResource<FDistanceFieldObjectBufferResource> GAOCulledObjectBuffers;

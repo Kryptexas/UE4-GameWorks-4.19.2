@@ -106,6 +106,9 @@ public:
 	 */
 	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap) {}
 
+	/** Runs a slow preculling operation on static meshes, removing triangles that are invisible or inside a precull volume. */
+	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) {}
+
 	/** 
 	* Updates the contents of the given scene capture by rendering the scene. 
 	* This must be called on the game thread.

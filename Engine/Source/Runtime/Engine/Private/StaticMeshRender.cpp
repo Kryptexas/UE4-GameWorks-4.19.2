@@ -16,6 +16,7 @@
 #include "ComponentReregisterContext.h"
 #include "Components/BrushComponent.h"
 #include "AI/Navigation/NavCollision.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;
@@ -44,6 +45,20 @@ static FAutoConsoleCommand GToggleShadowIndexBuffersCmd(
 	TEXT("Render static meshes with an optimized shadow index buffer that minimizes unique vertices."),
 	FConsoleCommandDelegate::CreateStatic(ToggleShadowIndexBuffers)
 	);
+
+static bool GUsePreCulledIndexBuffer = true;
+
+void TogglePreCulledIndexBuffers( UWorld* InWorld )
+{
+	FGlobalComponentRecreateRenderStateContext Context;
+	FlushRenderingCommands();
+	GUsePreCulledIndexBuffer = !GUsePreCulledIndexBuffer;
+}
+
+FAutoConsoleCommandWithWorld GToggleUsePreCulledIndexBuffersCmd(
+	TEXT("r.TogglePreCulledIndexBuffers"),
+	TEXT("Toggles use of preculled index buffers from the command 'PreCullIndexBuffers'"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(TogglePreCulledIndexBuffers));
 
 static FAutoConsoleCommand GToggleReversedIndexBuffersCmd(
 	TEXT("ToggleReversedIndexBuffers"),
@@ -239,7 +254,15 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchInde
 }
 
 /** Sets up a FMeshBatch for a specific LOD and element. */
-bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 SectionIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const
+bool FStaticMeshSceneProxy::GetMeshElement(
+	int32 LODIndex, 
+	int32 BatchIndex, 
+	int32 SectionIndex, 
+	uint8 InDepthPriorityGroup, 
+	bool bUseSelectedMaterial, 
+	bool bUseHoveredMaterial, 
+	bool bAllowPreCulledIndices, 
+	FMeshBatch& OutMeshBatch) const
 {
 	const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
 	const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
@@ -277,7 +300,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 	// Two sided material use bIsFrontFace which is wrong with Reversed Indices. AdjacencyInformation use another index buffer.
 	const bool bUseReversedIndices = GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndices && !bWireframe && !bRequiresAdjacencyInformation && !Material->IsTwoSided();
 
-	SetIndexSource(LODIndex, SectionIndex, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices);
+	SetIndexSource(LODIndex, SectionIndex, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices, bAllowPreCulledIndices);
 
 	FMeshBatchElement& OutBatchElement = OutMeshBatch.Elements[0];
 
@@ -323,7 +346,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 }
 
 /** Sets up a wireframe FMeshBatch for a specific LOD. */
-bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const
+bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const
 {
 	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
 	
@@ -356,7 +379,7 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 	const bool bRequiresAdjacencyInformation = false;
 	const bool bUseReversedIndices = false;
 
-	SetIndexSource(LODIndex, 0, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices);
+	SetIndexSource(LODIndex, 0, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices, bAllowPreCulledIndices);
 
 	return OutBatchElement.NumPrimitives > 0;
 }
@@ -364,7 +387,7 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 /**
  * Sets IndexBuffer, FirstIndex and NumPrimitives of OutMeshElement.
  */
-void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation, bool bUseReversedIndices) const
+void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation, bool bUseReversedIndices, bool bAllowPreCulledIndices) const
 {
 	FMeshBatchElement& OutElement = OutMeshElement.Elements[0];
 	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
@@ -382,9 +405,22 @@ void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, F
 		else
 		{
 			OutMeshElement.Type = PT_TriangleList;
-			OutElement.FirstIndex = 0;
-			OutElement.IndexBuffer = &LODModel.IndexBuffer;
-			OutElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
+
+			if (bAllowPreCulledIndices
+				&& GUsePreCulledIndexBuffer 
+				&& LODs[LODIndex].Sections[SectionIndex].NumPreCulledTriangles >= 0)
+			{
+				OutElement.IndexBuffer = LODs[LODIndex].PreCulledIndexBuffer;
+				OutElement.FirstIndex = 0;
+				OutElement.NumPrimitives = LODs[LODIndex].PreCulledIndexBuffer->GetNumIndices() / 3;
+			}
+			else
+			{
+				OutElement.FirstIndex = 0;
+				OutElement.IndexBuffer = &LODModel.IndexBuffer;
+				OutElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
+			}
+
 			OutMeshElement.bWireframe = true;
 			OutMeshElement.bDisableBackfaceCulling = true;
 		}
@@ -393,9 +429,21 @@ void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, F
 	{
 		const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 		OutMeshElement.Type = PT_TriangleList;
-		OutElement.IndexBuffer = bUseReversedIndices ? &LODModel.ReversedIndexBuffer : &LODModel.IndexBuffer;
-		OutElement.FirstIndex = Section.FirstIndex;
-		OutElement.NumPrimitives = Section.NumTriangles;
+
+		if (bAllowPreCulledIndices
+			&& GUsePreCulledIndexBuffer 
+			&& LODs[LODIndex].Sections[SectionIndex].NumPreCulledTriangles >= 0)
+		{
+			OutElement.IndexBuffer = LODs[LODIndex].PreCulledIndexBuffer;
+			OutElement.FirstIndex = LODs[LODIndex].Sections[SectionIndex].FirstPreCulledIndex;
+			OutElement.NumPrimitives = LODs[LODIndex].Sections[SectionIndex].NumPreCulledTriangles;
+		}
+		else
+		{
+			OutElement.IndexBuffer = bUseReversedIndices ? &LODModel.ReversedIndexBuffer : &LODModel.IndexBuffer;
+			OutElement.FirstIndex = Section.FirstIndex;
+			OutElement.NumPrimitives = Section.NumTriangles;
+		}
 	}
 
 	if ( bRequiresAdjacencyInformation )
@@ -513,7 +561,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 				{
 					FMeshBatch MeshBatch;
 
-					if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, PrimitiveDPG, bUseSelectedMaterial, bUseHoveredMaterial, MeshBatch))
+					if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, PrimitiveDPG, bUseSelectedMaterial, bUseHoveredMaterial, true, MeshBatch))
 					{
 						PDI->DrawMesh(MeshBatch, FLT_MAX);
 					}
@@ -611,7 +659,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 					{
 						FMeshBatch MeshBatch;
 
-						if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, PrimitiveDPG, bUseSelectedMaterial, bUseHoveredMaterial, MeshBatch))
+						if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, PrimitiveDPG, bUseSelectedMaterial, bUseHoveredMaterial, true, MeshBatch))
 						{
 							// If we have submitted an optimized shadow-only mesh, remaining mesh elements must not cast shadows.
 							MeshBatch.CastShadow &= !bUseUnifiedMeshForShadow;
@@ -649,6 +697,27 @@ bool FStaticMeshSceneProxy::IsCollisionView(const FEngineShowFlags& EngineShowFl
 	}
 
 	return bInCollisionView;
+}
+
+void FStaticMeshSceneProxy::GetMeshDescription(int32 LODIndex, TArray<FMeshBatch>& OutMeshElements) const
+{
+	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
+	const FLODInfo& ProxyLODInfo = LODs[LODIndex];
+
+	for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+	{
+		const int32 NumBatches = GetNumMeshBatches();
+
+		for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
+		{
+			FMeshBatch MeshElement; 
+
+			if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, false, false, false, MeshElement))
+			{
+				OutMeshElements.Add(MeshElement);
+			}
+		}
+	}
 }
 
 void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
@@ -721,7 +790,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 							{
 								FMeshBatch& Mesh = Collector.AllocateMesh();
 
-								if (GetWireframeMeshElement(LODIndex, BatchIndex, WireframeMaterialInstance, SDPG_World, Mesh))
+								if (GetWireframeMeshElement(LODIndex, BatchIndex, WireframeMaterialInstance, SDPG_World, true, Mesh))
 								{
 									// We implemented our own wireframe
 									Mesh.bCanApplyViewModeOverrides = false;
@@ -754,7 +823,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 									}
 	#endif // WITH_EDITOR
 								
-									if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, IsHovered(), MeshElement))
+									if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, IsHovered(), true, MeshElement))
 									{
 										bool bAddMesh = true;
 
@@ -815,7 +884,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 													if (bDrawComplexWireframeCollision)
 													{
 														FMeshBatch& CollisionElement = Collector.AllocateMesh();
-														GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, IsHovered(), CollisionElement);
+														GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, IsHovered(), true, CollisionElement);
 														CollisionElement.MaterialRenderProxy = CollisionMaterialInstance;
 														Collector.AddMesh(ViewIndex, CollisionElement);
 														INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, CollisionElement.GetNumPrimitives());
@@ -1101,6 +1170,7 @@ bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex):
 	OverrideColorVertexBuffer(0),
+	PreCulledIndexBuffer(NULL),
 	LightMap(NULL),
 	ShadowMap(NULL),
 	bUsesMeshModifyingMaterials(false)
@@ -1116,6 +1186,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		LightMap = ComponentLODInfo.LightMap;
 		ShadowMap = ComponentLODInfo.ShadowMap;
 		IrrelevantLights = InComponent->IrrelevantLights;
+		PreCulledIndexBuffer = &ComponentLODInfo.PreCulledIndexBuffer;
 
 		// Initialize this LOD's overridden vertex colors, if it has any
 		if( ComponentLODInfo.OverrideVertexColors )
@@ -1181,6 +1252,17 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 			SectionInfo.bSelected = (InComponent->SelectedEditorSection == SectionIndex);
 		}
 #endif
+
+		if (LODIndex < InComponent->LODData.Num())
+		{
+			const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[LODIndex];
+
+			if (SectionIndex < ComponentLODInfo.PreCulledSections.Num())
+			{
+				SectionInfo.FirstPreCulledIndex = ComponentLODInfo.PreCulledSections[SectionIndex].FirstIndex;
+				SectionInfo.NumPreCulledTriangles = ComponentLODInfo.PreCulledSections[SectionIndex].NumTriangles;
+			}
+		}
 
 		// Store the element info.
 		Sections.Add(SectionInfo);
