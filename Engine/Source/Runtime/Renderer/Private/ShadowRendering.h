@@ -710,7 +710,7 @@ public:
 	}
 
 	/** Returns a matrix that transforms a screen space position into shadow space. */
-	FMatrix GetSvPositionToShadowMatrix(const FSceneView& View) const;
+	FMatrix GetScreenToShadowMatrix(const FSceneView& View) const;
 
 	/** Returns a matrix that transforms a world space position into shadow space. */
 	FMatrix GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride = nullptr, bool bHasShadowBorder = true ) const;
@@ -1066,7 +1066,7 @@ public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
 		DeferredParameters.Bind(ParameterMap);
-		SvPositionToShadow.Bind(ParameterMap,TEXT("SvPositionToShadow"));
+		ScreenToShadowMatrix.Bind(ParameterMap,TEXT("ScreenToShadowMatrix"));
 		SoftTransitionScale.Bind(ParameterMap,TEXT("SoftTransitionScale"));
 		ShadowBufferSize.Bind(ParameterMap,TEXT("ShadowBufferSize"));
 		ShadowDepthTexture.Bind(ParameterMap,TEXT("ShadowDepthTexture"));
@@ -1083,9 +1083,8 @@ public:
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		// Set the transform from screen coordinates to shadow depth texture coordinates.
-		const FMatrix SvPositionToShadowValue = ShadowInfo->GetSvPositionToShadowMatrix(View);
-
-		SetShaderValue(RHICmdList, ShaderRHI, SvPositionToShadow, SvPositionToShadowValue);
+		const FMatrix ScreenToShadow = ShadowInfo->GetScreenToShadowMatrix(View);
+		SetShaderValue(RHICmdList, ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
 
 		const FIntPoint ShadowBufferResolution = ShadowInfo->GetShadowBufferResolution();
 
@@ -1132,7 +1131,7 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FShadowProjectionShaderParameters& P)
 	{
 		Ar << P.DeferredParameters;
-		Ar << P.SvPositionToShadow;
+		Ar << P.ScreenToShadowMatrix;
 		Ar << P.SoftTransitionScale;
 		Ar << P.ShadowBufferSize;
 		Ar << P.ShadowDepthTexture;
@@ -1146,7 +1145,7 @@ public:
 private:
 
 	FDeferredPixelShaderParameters DeferredParameters;
-	FShaderParameter SvPositionToShadow;
+	FShaderParameter ScreenToShadowMatrix;
 	FShaderParameter SoftTransitionScale;
 	FShaderParameter ShadowBufferSize;
 	FShaderResourceParameter ShadowDepthTexture;

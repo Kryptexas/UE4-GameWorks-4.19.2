@@ -613,13 +613,13 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 				for (int32 i = 0; i < NumShadowsToCopy; ++i)
 				{
 					const FProjectedShadowInfo& ShadowInfo = *(*DirectionalLightShadowInfo)[i];
-					ViewUniformShaderParameters.DirectionalLightSvPositionToShadow[i] = ShadowInfo.GetSvPositionToShadowMatrix(*this);
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i] = ShadowInfo.GetScreenToShadowMatrix(*this);
 					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
 				}
 
 				for (int32 i = NumShadowsToCopy; i < MAX_FORWARD_SHADOWCASCADES; ++i)
 				{
-					ViewUniformShaderParameters.DirectionalLightSvPositionToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
 					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
 				}
 			}
@@ -629,7 +629,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 				ViewUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
 				for (int32 i = 0; i < MAX_FORWARD_SHADOWCASCADES; ++i)
 				{
-					ViewUniformShaderParameters.DirectionalLightSvPositionToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
 					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
 				}			
 			}			 
