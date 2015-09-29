@@ -2209,7 +2209,7 @@ void UMaterial::GetQualityLevelUsage(TArray<bool, TInlineAllocator<EMaterialQual
 		const UShaderPlatformQualitySettings* MaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(ShaderPlatform);
 		OutQualityLevelsUsed[EMaterialQualityLevel::Low] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::Low).bEnableOverride;
 		OutQualityLevelsUsed[EMaterialQualityLevel::Medium] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::Medium).bEnableOverride;
-		OutQualityLevelsUsed[EMaterialQualityLevel::High] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::High).bEnableOverride;
+		// No need for EMaterialQualityLevel::High as this is always available
 	}
 }
 
