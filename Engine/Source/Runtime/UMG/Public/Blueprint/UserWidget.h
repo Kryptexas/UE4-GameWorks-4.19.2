@@ -705,6 +705,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Appearance")
 	void SetForegroundColor(FSlateColor InForegroundColor);
 
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Appearance")
+	void SetPadding(FMargin InPadding);
+
 	/**
 	 * Plays an animation in this widget a specified number of times
 	 * 
@@ -803,9 +806,16 @@ public:
 	UPROPERTY()
 	FGetSlateColor ForegroundColorDelegate;
 
+	/** The padding area around the content. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Appearance")
+	FMargin Padding;
+
+	UPROPERTY()
+	bool bSupportsKeyboardFocus_DEPRECATED;
+
 	/** Setting this flag to true, allows this widget to accept focus when clicked, or when navigated to. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction", meta=(DisplayName="Is Focusable"))
-	bool bSupportsKeyboardFocus;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
+	bool bIsFocusable;
 
 	/** The widget tree contained inside this user widget initialized by the blueprint */
 	UPROPERTY(Transient)

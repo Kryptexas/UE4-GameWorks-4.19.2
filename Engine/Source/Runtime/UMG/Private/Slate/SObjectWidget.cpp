@@ -51,6 +51,11 @@ void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(WidgetObject);
 }
 
+void SObjectWidget::SetPadding(const TAttribute<FMargin>& InMargin)
+{
+	ChildSlot.Padding(InMargin);
+}
+
 void SObjectWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if ( CanRouteEvent() )

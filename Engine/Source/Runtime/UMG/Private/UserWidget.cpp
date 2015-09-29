@@ -23,7 +23,8 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	Visiblity_DEPRECATED = Visibility = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
-	bSupportsKeyboardFocus = true;
+	bSupportsKeyboardFocus_DEPRECATED = true;
+	bIsFocusable = false;
 	ColorAndOpacity = FLinearColor::White;
 	ForegroundColor = FSlateColor::UseForeground();
 
@@ -138,6 +139,7 @@ void UUserWidget::SynchronizeProperties()
 
 		SafeGCWidget->SetColorAndOpacity(ColorBinding);
 		SafeGCWidget->SetForegroundColor(ForegroundColorBinding);
+		SafeGCWidget->SetPadding(Padding);
 	}
 }
 
@@ -160,6 +162,17 @@ void UUserWidget::SetForegroundColor(FSlateColor InForegroundColor)
 	if ( SafeGCWidget.IsValid() )
 	{
 		SafeGCWidget->SetForegroundColor(ForegroundColor);
+	}
+}
+
+void UUserWidget::SetPadding(FMargin InPadding)
+{
+	Padding = InPadding;
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->SetPadding(Padding);
 	}
 }
 
@@ -928,7 +941,7 @@ bool UUserWidget::NativeIsInteractable() const
 
 bool UUserWidget::NativeSupportsKeyboardFocus() const
 {
-	return bSupportsKeyboardFocus;
+	return bIsFocusable;
 }
 
 FReply UUserWidget::NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent )
@@ -1069,6 +1082,11 @@ FCursorReply UUserWidget::NativeOnCursorQuery( const FGeometry& InGeometry, cons
 void UUserWidget::PostLoad()
 {
 	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_USERWIDGET_DEFAULT_FOCUSABLE_FALSE )
+	{
+		bIsFocusable = bSupportsKeyboardFocus_DEPRECATED;
+	}
 
 #if WITH_EDITORONLY_DATA
 
