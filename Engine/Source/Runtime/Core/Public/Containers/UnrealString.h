@@ -1762,7 +1762,7 @@ inline int32 HexToBytes( const FString& HexString, uint8* OutBytes )
 		OutBytes[ NumBytes ] += TCharToNibble( *CharPos++ );
 		++NumBytes;
 	}
-	return NumBytes - 1;
+	return NumBytes;
 }
 
 /** Namespace that houses lexical conversion for various types. User defined conversions can be implemented externally */
