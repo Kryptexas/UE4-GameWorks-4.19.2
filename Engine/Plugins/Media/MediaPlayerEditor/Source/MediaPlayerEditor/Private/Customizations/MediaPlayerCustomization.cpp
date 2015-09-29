@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
+#include "MediaPlayerEditorPrivatePCH.h"
 #include "IMediaModule.h"
 #include "IMediaPlayer.h"
 #include "IMediaPlayerFactory.h"

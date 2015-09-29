@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
+#include "MediaPlayerEditorPrivatePCH.h"
 #include "IMediaPlayer.h"
 #include "IMediaStream.h"
 #include "IMediaAudioTrack.h"
@@ -8,6 +8,7 @@
 #include "IMediaVideoTrack.h"
 #include "MediaPlayer.h"
 #include "MediaTextureCustomization.h"
+#include "PropertyHandle.h"
 
 
 #define LOCTEXT_NAMESPACE "FMediaTextureCustomization"

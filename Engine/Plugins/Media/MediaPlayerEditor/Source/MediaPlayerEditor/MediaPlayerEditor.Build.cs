@@ -19,6 +19,7 @@ public class MediaPlayerEditor : ModuleRules
 			new string[] {
 				"MediaPlayerEditor/Private",
 				"MediaPlayerEditor/Private/AssetTools",
+                "MediaPlayerEditor/Private/Customizations",
 				"MediaPlayerEditor/Private/Factories",
 				"MediaPlayerEditor/Private/Models",
 				"MediaPlayerEditor/Private/Styles",
@@ -31,6 +32,7 @@ public class MediaPlayerEditor : ModuleRules
 				"ContentBrowser",
 				"Core",
 				"CoreUObject",
+                "DesktopWidgets",
 				"EditorStyle",
 				"Engine",
 				"InputCore",
