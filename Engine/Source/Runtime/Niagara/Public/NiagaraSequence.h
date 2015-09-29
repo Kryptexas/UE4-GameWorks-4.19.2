@@ -3,20 +3,21 @@
 #pragma once
 
 #include "MovieSceneSequence.h"
-#include "NiagaraAnimation.generated.h"
+#include "NiagaraSequence.generated.h"
 
 
 /**
- * Movie scene animation used by Niagara.
+ * Movie scene sequence used by Niagara.
  */
 UCLASS(BlueprintType, MinimalAPI)
-class UNiagaraAnimation
+class UNiagaraSequence
 	: public UMovieSceneSequence
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	// UMovieSceneAnimation overrides
+
+	// UMovieSceneSequence overrides
 
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
@@ -33,7 +34,7 @@ public:
 	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const override;
 #endif
 
-	/** Pointer to the movie scene that controls this animation. */
+	/** Pointer to the movie scene that controls this sequence. */
 	UPROPERTY()
 	UMovieScene* MovieScene;
 };

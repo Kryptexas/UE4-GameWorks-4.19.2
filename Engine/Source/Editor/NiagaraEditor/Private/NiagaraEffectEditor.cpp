@@ -2,7 +2,7 @@
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraEffect.h"
-#include "NiagaraAnimation.h"
+#include "NiagaraSequence.h"
 
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -86,7 +86,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 	if (!Sequencer.IsValid())
 	{
 		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"), RF_RootSet);
-		auto NewAnimation = NewObject<UNiagaraAnimation>(MovieScene);
+		auto NewAnimation = NewObject<UNiagaraSequence>(MovieScene);
 		MovieScene->StartTime = InTime;
 		MovieScene->InTime = InTime;
 		MovieScene->OutTime = OutTime;
