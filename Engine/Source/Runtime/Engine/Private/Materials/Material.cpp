@@ -1853,10 +1853,17 @@ void UMaterial::CacheResourceShadersForCooking(EShaderPlatform ShaderPlatform, T
 	TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
 	GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
 
+	bool bAnyQualityLevelUsed = false;
+
+	for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+	{
+		bAnyQualityLevelUsed = bAnyQualityLevelUsed || QualityLevelsUsed[QualityLevelIndex];
+	}
+
 	for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 	{
 		// Add all quality levels if multiple are needed (due to different node graphs), otherwise just add the high quality entry
-		if (QualityLevelsUsed[QualityLevelIndex] || QualityLevelIndex == EMaterialQualityLevel::High)
+		if (bAnyQualityLevelUsed || QualityLevelIndex == EMaterialQualityLevel::High)
 		{
 			FMaterialResource* NewResource = AllocateResource();
 			NewResource->SetMaterial(this, (EMaterialQualityLevel::Type)QualityLevelIndex, QualityLevelsUsed[QualityLevelIndex], (ERHIFeatureLevel::Type)TargetFeatureLevel);
@@ -2193,7 +2200,7 @@ void UMaterial::GetQualityLevelUsage(TArray<bool, TInlineAllocator<EMaterialQual
 		const UShaderPlatformQualitySettings* MaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(ShaderPlatform);
 		OutQualityLevelsUsed[EMaterialQualityLevel::Low] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::Low).bEnableOverride;
 		OutQualityLevelsUsed[EMaterialQualityLevel::Medium] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::Medium).bEnableOverride;
-		// ignore EMaterialQualityLevel::High as this is always available
+		// No need for EMaterialQualityLevel::High as this is always available
 	}
 }
 
