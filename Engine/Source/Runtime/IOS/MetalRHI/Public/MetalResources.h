@@ -387,6 +387,8 @@ public:
 	/** This offset is used when passing to setVertexBuffer, etc */
 	uint32 Offset;
 
+	/** Cached buffer content size to avoid relying on Layout access during destruction */
+	uint32 Size;
 
 	/** Resource table containing RHI references. */
 	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
