@@ -200,6 +200,14 @@ void ShadowObjectCullVS(
 	float EffectiveRadius = (ObjectPositionAndRadius.w + MinRadius) * ConservativeRadiusScale;
 	float3 WorldPosition = InPosition.xyz * EffectiveRadius + ObjectPositionAndRadius.xyz;
 	OutPosition = mul(float4(WorldPosition, 1), WorldToShadow);
+
+	// Clamp the vertex to the near plane if it is in front of the near plane
+	if (OutPosition.z < 0)
+	{
+		OutPosition.z = 0.000001f;
+		OutPosition.w = 1.0f;
+	}
+
 	Output.PositionAndRadius = ObjectPositionAndRadius;
 	Output.ObjectIndex = ObjectIndex;
 } 
@@ -226,7 +234,8 @@ void ShadowObjectCullPS(
 	float TileExpand = 1;
 	ShadowTileMin.xy = (TilePositionForCulling - TileExpand) / (float2)NumGroups * 2 - 1;
 	ShadowTileMax.xy = (TilePositionForCulling + 1 + TileExpand) / (float2)NumGroups * 2 - 1;
-	ShadowTileMin.z = 0;
+	// Extrude toward light to avoid culling objects between the light and the shadow frustum
+	ShadowTileMin.z = -1000;
 	ShadowTileMax.z = 1;
 
 	float3 ObjectViewSpaceMin;
@@ -235,7 +244,8 @@ void ShadowObjectCullPS(
 
 	BRANCH
 	// Separating axis test on the AABB
-	if (all(ObjectViewSpaceMax > ShadowTileMin) && all(ObjectViewSpaceMin < ShadowTileMax))
+	// Note: don't clip by near plane, objects closer to the light can still cast into the frustum
+	if (all(ObjectViewSpaceMax.xy > ShadowTileMin.xy) && all(ObjectViewSpaceMin < ShadowTileMax))
 	{
 		float3 ObjectCenter = .5f * (ObjectViewSpaceMin + ObjectViewSpaceMax);
 		float3 MinProjections = 500000;
@@ -303,7 +313,7 @@ float3 LightDirection;
 float4 LightPositionAndInvRadius;
 float LightSourceRadius;
 float RayStartOffsetDepthScale;
-float2 TanLightAngleAndNormalThreshold;
+float3 TanLightAngleAndNormalThreshold;
 int4 ScissorRectMinAndSize;
 
 /** Min and Max depth for this tile. */
@@ -489,7 +499,7 @@ void DistanceFieldShadowingCS(
 	float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
 	// Distance for directional lights to trace
-	float TraceDistance = 10000;
+	float TraceDistance = TanLightAngleAndNormalThreshold.z;
 
 	//@todo - take advantage of CSM covering near pixels
 	//@todo - handle invalid tile depth ranges due to MinDepth

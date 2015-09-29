@@ -93,6 +93,9 @@ public:
 	/** Light source angle in degrees. */
 	float LightSourceAngle;
 
+	/** Determines how far shadows can be cast, in world units.  Larger values increase the shadowing cost. */
+	float TraceDistance;
+
 	/** Initialization constructor. */
 	FDirectionalLightSceneProxy(const UDirectionalLightComponent* Component):
 		FLightSceneProxy(Component),
@@ -106,7 +109,8 @@ public:
 		ShadowDistanceFadeoutFraction(Component->ShadowDistanceFadeoutFraction),
 		bUseInsetShadowsForMovableObjects(Component->bUseInsetShadowsForMovableObjects),
 		DistanceFieldShadowDistance(Component->bUseRayTracedDistanceFieldShadows ? Component->DistanceFieldShadowDistance : 0),
-		LightSourceAngle(Component->LightSourceAngle)
+		LightSourceAngle(Component->LightSourceAngle),
+		TraceDistance(FMath::Clamp(Component->TraceDistance, 1000.0f, 1000000.0f))
 	{
 		LightShaftOverrideDirection.Normalize();
 
@@ -167,6 +171,11 @@ public:
 	virtual float GetLightSourceAngle() const override
 	{
 		return LightSourceAngle;
+	}
+
+	virtual float GetTraceDistance() const override
+	{
+		return TraceDistance;
 	}
 
 	virtual bool GetLightShaftOcclusionParameters(float& OutOcclusionMaskDarkness, float& OutOcclusionDepthRange) const override
@@ -673,6 +682,7 @@ UDirectionalLightComponent::UDirectionalLightComponent(const FObjectInitializer&
 	DynamicShadowDistanceStationaryLight = 0.f;
 
 	DistanceFieldShadowDistance = 30000.0f;
+	TraceDistance = 10000.0f;
 	FarShadowDistance = 300000.0f;
 	LightSourceAngle = 1;
 
@@ -749,6 +759,7 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, DistanceFieldShadowDistance)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, TraceDistance)
 			|| (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, LightSourceAngle)
 				// Make sure we don't accidentally affect the LightSourceAngle property in LightmassSettings
 				&& InProperty && InProperty->GetOuter() && InProperty->GetOuter()->GetName() == TEXT("DirectionalLightComponent")))

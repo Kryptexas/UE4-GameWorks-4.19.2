@@ -694,6 +694,7 @@ public:
 	virtual float GetSourceRadius() const { return 0.0f; }
 	virtual bool IsInverseSquared() const { return false; }
 	virtual float GetLightSourceAngle() const { return 0.0f; }
+	virtual float GetTraceDistance() const { return 0.0f; }
 
 	virtual FVector2D GetLightShaftConeParams() const
 	{
