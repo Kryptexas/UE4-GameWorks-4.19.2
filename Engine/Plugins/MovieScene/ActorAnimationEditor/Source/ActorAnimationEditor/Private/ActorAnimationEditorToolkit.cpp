@@ -112,6 +112,7 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 		);
 
 		SequencerInitParams.ViewParams.AddMenuExtender = AddMenuExtender;
+		SequencerInitParams.ViewParams.UniqueName = "ActorAnimationEditor";
 	}
 
 	Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
