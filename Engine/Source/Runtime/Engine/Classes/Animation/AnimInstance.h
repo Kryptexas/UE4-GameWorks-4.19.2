@@ -842,6 +842,8 @@ public:
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
 	// Native Post Evaluate override point
 	virtual void NativePostEvaluateAnimation();
+	// Native Uninitialize override point
+	virtual void NativeUninitializeAnimation();
 
 	// Sets up a native transition delegate between states with PrevStateName and NextStateName, in the state machine with name MachineName.
 	// Note that a transition already has to exist for this to succeed

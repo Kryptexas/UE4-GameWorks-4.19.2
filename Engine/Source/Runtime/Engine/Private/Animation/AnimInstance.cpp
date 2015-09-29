@@ -290,6 +290,8 @@ void UAnimInstance::InitializeAnimation()
 
 void UAnimInstance::UninitializeAnimation()
 {
+	NativeUninitializeAnimation();
+
 	StopAllMontages(0.f);
 
 	for(int32 Index = 0; Index < MontageInstances.Num(); ++Index)
@@ -613,6 +615,10 @@ bool UAnimInstance::NativeEvaluateAnimation(FPoseContext& Output)
 }
 
 void UAnimInstance::NativePostEvaluateAnimation()
+{
+}
+
+void UAnimInstance::NativeUninitializeAnimation()
 {
 }
 
