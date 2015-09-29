@@ -21,9 +21,11 @@ public class LevelSequenceEditor : ModuleRules
 				"CoreUObject",
                 "EditorStyle",
                 "Engine",
+                "InputCore",
 				"LevelEditor",
 				"MovieScene",
 				"MovieSceneTracks",
+                "PropertyEditor",
 				"Sequencer",
                 "Slate",
                 "SlateCore",
@@ -42,6 +44,7 @@ public class LevelSequenceEditor : ModuleRules
             new string[] {
 				"LevelSequenceEditor/Private",
 				"LevelSequenceEditor/Private/AssetTools",
+                "LevelSequenceEditor/Private/Customizations",
 				"LevelSequenceEditor/Private/Factories",
 				"LevelSequenceEditor/Private/Styles",
 			}

@@ -3,6 +3,9 @@
 #pragma once
 
 
+/**
+ * Details view customization for the FLevelSequencePlaybackSettings struct.
+ */
 class FLevelSequencePlaybackSettingsCustomization
 	: public IPropertyTypeCustomization
 {

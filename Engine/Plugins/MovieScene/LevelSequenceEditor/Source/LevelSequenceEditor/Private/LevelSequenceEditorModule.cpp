@@ -1,10 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorPCH.h"
+#include "LevelEditor.h"
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
-#include "LevelEditor.h"
 #include "MovieSceneActor.h"
+#include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -44,12 +45,14 @@ public:
 		Style = MakeShareable(new FLevelSequenceEditorStyle());
 
 		RegisterAssetTools();
+		RegisterCustomizations();
 		RegisterMenuExtensions();
 	}
 	
 	virtual void ShutdownModule() override
 	{
 		UnregisterAssetTools();
+		UnregisterCustomizations();
 		UnregisterMenuExtensions();
 	}
 
@@ -89,6 +92,22 @@ protected:
 				AssetTools.UnregisterAssetTypeActions(Action);
 			}
 		}
+	}
+
+protected:
+
+	/** Register details view customizations. */
+	void RegisterCustomizations()
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomPropertyTypeLayout(FLevelSequencePlaybackSettings::StaticStruct()->GetFName(), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequencePlaybackSettingsCustomization::MakeInstance));
+	}
+
+	/** Unregister details view customizations. */
+	void UnregisterCustomizations()
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomPropertyTypeLayout(FLevelSequencePlaybackSettings::StaticStruct()->GetFName());
 	}
 
 protected:
