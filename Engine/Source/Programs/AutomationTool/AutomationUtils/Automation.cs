@@ -332,7 +332,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Disable AutoSDKs if specified on the command line
 			if (GlobalCommandLine.NoAutoSDK)
 			{
-				UEBuildPlatform.bAllowAutoSDKSwitching = false;
+				UEBuildPlatformSDK.bAllowAutoSDKSwitching = false;
 			}
 
 			// Setup environment

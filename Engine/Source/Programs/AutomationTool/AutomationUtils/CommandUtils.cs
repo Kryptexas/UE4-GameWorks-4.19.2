@@ -1841,12 +1841,7 @@ namespace AutomationTool
 			{
 				if (UBTTargetPlatforms == null || UBTTargetPlatforms.Length == 0)
 				{
-					UBTTargetPlatforms = new UnrealBuildTool.UnrealTargetPlatform[UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary.Count];
-					int Index = 0;
-					foreach (var Platform in UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary)
-					{
-						UBTTargetPlatforms[Index++] = Platform.Key;
-					}
+					UBTTargetPlatforms = UnrealBuildTool.UEBuildPlatform.GetRegisteredPlatforms().ToArray();
 				}
 				return UBTTargetPlatforms;
 			}

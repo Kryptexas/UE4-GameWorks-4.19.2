@@ -66,23 +66,21 @@ namespace UnrealBuildTool
 			}
 		}
 
+		UWPPlatformSDK SDK;
+
+		public UWPPlatform(UWPPlatformSDK InSDK) : base(UnrealTargetPlatform.UWP)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
 		public override bool RequiresDeployPrepAfterCompile()
 		{
 			return true;
-		}
-
-		protected override SDKStatus HasRequiredManualSDKInternal()
-		{
-			try
-			{
-				// @todo UWP: wire this up once the rest of cleanup has been resolved. right now, just leaving this to always return valid, like VC does.
-				//WinUWPToolChain.FindBaseVSToolPath();
-				return SDKStatus.Valid;
-			}
-			catch (BuildException)
-			{
-				return SDKStatus.Invalid;
-			}
 		}
 
 		/// <summary>
@@ -139,17 +137,6 @@ namespace UnrealBuildTool
 			return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
 		}
 
-
-		/// <summary>
-		/// Register the platform with the UEBuildPlatform class
-		/// </summary>
-		protected override void RegisterBuildPlatformInternal()
-		{
-			// Register this build platform for UWP
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
-			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.UWP, this);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.UWP, UnrealPlatformGroup.Microsoft);
-		}
 
 		/// <summary>
 		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
@@ -497,5 +484,40 @@ namespace UnrealBuildTool
 			DeploymentHandler = new UWPDeploy();
 			return true;
 		}
+	}
+
+	public class UWPPlatformSDK : UEBuildPlatformSDK
+	{
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
+			try
+			{
+				// @todo UWP: wire this up once the rest of cleanup has been resolved. right now, just leaving this to always return valid, like VC does.
+				//WinUWPToolChain.FindBaseVSToolPath();
+				return SDKStatus.Valid;
+			}
+			catch (BuildException)
+			{
+				return SDKStatus.Invalid;
+			}
+		}
+	}
+
+	class UWPPlatformFactory : UEBuildPlatformFactory
+	{
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
+		public override void RegisterBuildPlatforms()
+		{
+			UWPPlatformSDK SDK = new UWPPlatformSDK();
+			SDK.ManageAndValidateSDK();
+
+			// Register this build platform for UWP
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
+			UEBuildPlatform.RegisterBuildPlatform(new UWPPlatform(SDK));
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.UWP, UnrealPlatformGroup.Microsoft);
+		}
+
 	}
 }

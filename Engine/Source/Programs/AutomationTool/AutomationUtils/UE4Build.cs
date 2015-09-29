@@ -1175,7 +1175,7 @@ namespace AutomationTool
 
 		public bool CanUseXGE(UnrealBuildTool.UnrealTargetPlatform Platform)
 		{
-			if (!UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary.ContainsKey(Platform))
+			if (!UnrealBuildTool.UEBuildPlatform.IsPlatformAvailable(Platform))
 			{
 				return false;
 			}

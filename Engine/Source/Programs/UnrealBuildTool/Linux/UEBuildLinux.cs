@@ -11,25 +11,29 @@ namespace UnrealBuildTool
 	class LinuxPlatform : UEBuildPlatform
 	{
 		/// <summary>
-		/// This is the SDK version we support
-		/// </summary>
-		static private Dictionary<string, string> ExpectedSDKVersions = new Dictionary<string, string>()
-		{
-			{ "x86_64-unknown-linux-gnu", "v6_clang-3.6.0_ld-2.24_glibc-2.12.2" },
-			{ "arm-unknown-linux-gnueabihf", "arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13" },
-		};
-
-		/// <summary>
-		/// Platform name (embeds architecture for now)
-		/// </summary>
-		static private string TargetPlatformName = "Linux_x64";
-
-		/// <summary>
 		/// Linux architecture (compiler target triplet)
 		/// </summary>
 		// FIXME: for now switching between architectures is hard-coded
-		static private string DefaultArchitecture = "x86_64-unknown-linux-gnu";
+		public const string DefaultArchitecture = "x86_64-unknown-linux-gnu";
 		//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+
+		LinuxPlatformSDK SDK;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		public LinuxPlatform(LinuxPlatformSDK InSDK) : base(UnrealTargetPlatform.Linux)
+		{
+			SDK = InSDK;
+		}
+
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform. Could be either a manual install or an AutoSDK.
+		/// </summary>
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
 
 		/// <summary>
 		/// The current architecture
@@ -48,110 +52,10 @@ namespace UnrealBuildTool
 			return BinaryName;
 		}
 
-		/// <summary>
-		/// Whether platform supports switching SDKs during runtime
-		/// </summary>
-		/// <returns>true if supports</returns>
-		protected override bool PlatformSupportsAutoSDKs()
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Returns platform-specific name used in SDK repository
-		/// </summary>
-		/// <returns>path to SDK Repository</returns>
-		public override string GetSDKTargetPlatformName()
-		{
-			return TargetPlatformName;
-		}
-
-		/// <summary>
-		/// Returns SDK string as required by the platform
-		/// </summary>
-		/// <returns>Valid SDK string</returns>
-		protected override string GetRequiredSDKString()
-		{
-			string SDKString;
-			if (!ExpectedSDKVersions.TryGetValue(GetActiveArchitecture(), out SDKString))
-			{
-				throw new BuildException("LinuxPlatform::GetRequiredSDKString: no toolchain set up for architecture '{0}'", GetActiveArchitecture());
-			}
-
-			return SDKString;
-		}
-
-		protected override String GetRequiredScriptVersionString()
-		{
-			return "3.0";
-		}
-
-		protected override bool PreferAutoSDK()
-		{
-			// having LINUX_ROOT set (for legacy reasons or for convenience of cross-compiling certain third party libs) should not make UBT skip AutoSDKs
-			return true;
-		}
-
-		/// <summary>
-		/// Whether the required external SDKs are installed for this platform
-		/// </summary>
-		protected override SDKStatus HasRequiredManualSDKInternal()
-		{
-			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
-			{
-				return SDKStatus.Valid;
-			}
-
-			string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
-
-			// we don't have an LINUX_ROOT specified
-			if (String.IsNullOrEmpty(BaseLinuxPath))
-				return SDKStatus.Invalid;
-
-			// paths to our toolchains
-			BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
-			string ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
-
-			if (File.Exists(ClangPath))
-				return SDKStatus.Valid;
-
-			return SDKStatus.Invalid;
-		}
-
 		public override bool CanUseXGE()
 		{
 			// [RCL] 2015-08-04 FIXME: modular (cross-)builds (e.g. editor, UT server) fail with XGE as FixDeps step apparently depends on artifacts (object files) which aren't listed among its prerequisites.
 			return false;
-		}
-
-		/// <summary>
-		/// Register the platform with the UEBuildPlatform class
-		/// </summary>
-		protected override void RegisterBuildPlatformInternal()
-		{
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
-			{
-				bool bRegisterBuildPlatform = true;
-
-				string EngineSourcePath = Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine", "Source");
-				string LinuxTargetPlatformFile = Path.Combine(EngineSourcePath, "Developer", "Linux", "LinuxTargetPlatform", "LinuxTargetPlatform.Build.cs");
-
-				if (File.Exists(LinuxTargetPlatformFile) == false)
-				{
-					bRegisterBuildPlatform = false;
-				}
-
-				if (bRegisterBuildPlatform == true)
-				{
-					// Register this build platform for Linux
-					if (BuildConfiguration.bPrintDebugInfo)
-					{
-						Console.WriteLine("        Registering for {0}", UnrealTargetPlatform.Linux.ToString());
-					}
-					UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.Linux, this);
-					UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Linux, UnrealPlatformGroup.Unix);
-				}
-			}
 		}
 
 		/// <summary>
@@ -395,6 +299,129 @@ namespace UnrealBuildTool
 		{
 			DeploymentHandler = null;
 			return false;
+		}
+	}
+
+	class LinuxPlatformSDK : UEBuildPlatformSDK
+	{
+		/// <summary>
+		/// This is the SDK version we support
+		/// </summary>
+		static private Dictionary<string, string> ExpectedSDKVersions = new Dictionary<string, string>()
+		{
+			{ "x86_64-unknown-linux-gnu", "v6_clang-3.6.0_ld-2.24_glibc-2.12.2" },
+			{ "arm-unknown-linux-gnueabihf", "arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13" },
+		};
+
+		/// <summary>
+		/// Platform name (embeds architecture for now)
+		/// </summary>
+		static private string TargetPlatformName = "Linux_x64";
+
+		/// <summary>
+		/// Whether platform supports switching SDKs during runtime
+		/// </summary>
+		/// <returns>true if supports</returns>
+		protected override bool PlatformSupportsAutoSDKs()
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Returns platform-specific name used in SDK repository
+		/// </summary>
+		/// <returns>path to SDK Repository</returns>
+		public override string GetSDKTargetPlatformName()
+		{
+			return TargetPlatformName;
+		}
+
+		/// <summary>
+		/// Returns SDK string as required by the platform
+		/// </summary>
+		/// <returns>Valid SDK string</returns>
+		protected override string GetRequiredSDKString()
+		{
+			string SDKString;
+			if (!ExpectedSDKVersions.TryGetValue(LinuxPlatform.DefaultArchitecture, out SDKString))
+			{
+				throw new BuildException("LinuxPlatform::GetRequiredSDKString: no toolchain set up for architecture '{0}'", LinuxPlatform.DefaultArchitecture);
+			}
+
+			return SDKString;
+		}
+
+		protected override String GetRequiredScriptVersionString()
+		{
+			return "3.0";
+		}
+
+		protected override bool PreferAutoSDK()
+		{
+			// having LINUX_ROOT set (for legacy reasons or for convenience of cross-compiling certain third party libs) should not make UBT skip AutoSDKs
+			return true;
+		}
+
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform
+		/// </summary>
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
+			{
+				return SDKStatus.Valid;
+			}
+
+			string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+
+			// we don't have an LINUX_ROOT specified
+			if (String.IsNullOrEmpty(BaseLinuxPath))
+				return SDKStatus.Invalid;
+
+			// paths to our toolchains
+			BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
+			string ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
+
+			if (File.Exists(ClangPath))
+				return SDKStatus.Valid;
+
+			return SDKStatus.Invalid;
+		}
+	}
+
+	class LinuxPlatformFactory : UEBuildPlatformFactory
+	{
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
+		public override void RegisterBuildPlatforms()
+		{
+			LinuxPlatformSDK SDK = new LinuxPlatformSDK();
+			SDK.ManageAndValidateSDK();
+
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (SDK.HasRequiredSDKsInstalled() == SDKStatus.Valid))
+			{
+				bool bRegisterBuildPlatform = true;
+
+				string EngineSourcePath = Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine", "Source");
+				string LinuxTargetPlatformFile = Path.Combine(EngineSourcePath, "Developer", "Linux", "LinuxTargetPlatform", "LinuxTargetPlatform.Build.cs");
+
+				if (File.Exists(LinuxTargetPlatformFile) == false)
+				{
+					bRegisterBuildPlatform = false;
+				}
+
+				if (bRegisterBuildPlatform == true)
+				{
+					// Register this build platform for Linux
+					if (BuildConfiguration.bPrintDebugInfo)
+					{
+						Console.WriteLine("        Registering for {0}", UnrealTargetPlatform.Linux.ToString());
+					}
+					UEBuildPlatform.RegisterBuildPlatform(new LinuxPlatform(SDK));
+					UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Linux, UnrealPlatformGroup.Unix);
+				}
+			}
 		}
 	}
 }

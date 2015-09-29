@@ -11,6 +11,18 @@ namespace UnrealBuildTool
 {
 	class MacPlatform : UEBuildPlatform
 	{
+		MacPlatformSDK SDK;
+
+		public MacPlatform(MacPlatformSDK InSDK) : base(UnrealTargetPlatform.Mac)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
 		public override bool CanUseXGE()
 		{
 			return false;
@@ -19,23 +31,6 @@ namespace UnrealBuildTool
 		public override bool CanUseDistcc()
 		{
 			return true;
-		}
-
-		protected override SDKStatus HasRequiredManualSDKInternal()
-		{
-			return SDKStatus.Valid;
-		}
-
-		/// <summary>
-		/// Register the platform with the UEBuildPlatform class
-		/// </summary>
-		protected override void RegisterBuildPlatformInternal()
-		{
-			// Register this build platform for Mac
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Mac.ToString());
-			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.Mac, this);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Mac, UnrealPlatformGroup.Unix);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Mac, UnrealPlatformGroup.Apple);
 		}
 
 		/// <summary>
@@ -239,6 +234,32 @@ namespace UnrealBuildTool
 		{
 			DeploymentHandler = new UEDeployMac();
 			return true;
+		}
+	}
+
+	class MacPlatformSDK : UEBuildPlatformSDK
+	{
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
+			return SDKStatus.Valid;
+		}
+	}
+
+	class MacPlatformFactory : UEBuildPlatformFactory
+	{
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
+		public override void RegisterBuildPlatforms()
+		{
+			MacPlatformSDK SDK = new MacPlatformSDK();
+			SDK.ManageAndValidateSDK();
+
+			// Register this build platform for Mac
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Mac.ToString());
+			UEBuildPlatform.RegisterBuildPlatform(new MacPlatform(SDK));
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Mac, UnrealPlatformGroup.Unix);
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Mac, UnrealPlatformGroup.Apple);
 		}
 	}
 }

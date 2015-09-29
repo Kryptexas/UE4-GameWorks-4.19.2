@@ -16,6 +16,18 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileWinRT = false;
 
+		WinRTPlatformSDK SDK;
+
+		public WinRTPlatform(UnrealTargetPlatform InPlatform, WinRTPlatformSDK InSDK) : base(InPlatform)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
 		public static bool IsVisualStudioInstalled()
 		{
 			string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
@@ -35,60 +47,10 @@ namespace UnrealBuildTool
 			}
 			return false;
 		}
+
 		public override bool CanUseXGE()
 		{
 			return false;
-		}
-
-		/// <summary>
-		/// Whether the required external SDKs are installed for this platform
-		/// </summary>
-		protected override SDKStatus HasRequiredManualSDKInternal()
-		{
-			return !Utils.IsRunningOnMono && IsVisualStudioInstalled() ? SDKStatus.Valid : SDKStatus.Invalid;
-		}
-
-		/// <summary>
-		/// Register the platform with the UEBuildPlatform class
-		/// </summary>
-		protected override void RegisterBuildPlatformInternal()
-		{
-			//@todo.Rocket: Add platform support
-			if (UnrealBuildTool.RunningRocket() || Utils.IsRunningOnMono)
-			{
-				return;
-			}
-
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (IsVisualStudioInstalled() == true))
-			{
-				bool bRegisterBuildPlatform = true;
-
-				// We also need to check for the generated projects... to handle the case where someone generates projects w/out WinRT.
-				// Hardcoding this for now - but ideally it would be dynamically discovered.
-				string EngineSourcePath = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Source");
-				string WinRTRHIFile = Path.Combine(EngineSourcePath, "Runtime", "Windows", "D3D11RHI", "D3D11RHI.build.cs");
-				if (File.Exists(WinRTRHIFile) == false)
-				{
-					bRegisterBuildPlatform = false;
-				}
-
-				if (bRegisterBuildPlatform == true)
-				{
-					// Register this build platform for WinRT
-					Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT.ToString());
-					UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.WinRT, this);
-					UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinRT, UnrealPlatformGroup.Microsoft);
-
-					// For now only register WinRT_ARM is truly a Windows 8 machine.
-					// This will prevent people who do all platform builds from running into the compiler issue.
-					if (WinRTPlatform.IsWindows8() == true)
-					{
-						Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT_ARM.ToString());
-						UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.WinRT_ARM, this);
-						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinRT_ARM, UnrealPlatformGroup.Microsoft);
-					}
-				}
-			}
 		}
 
 		/// <summary>
@@ -646,6 +608,66 @@ namespace UnrealBuildTool
 		{
 			DeploymentHandler = new WinRTDeploy();
 			return true;
+		}
+	}
+
+	public class WinRTPlatformSDK : UEBuildPlatformSDK
+	{
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform
+		/// </summary>
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
+			return !Utils.IsRunningOnMono && WinRTPlatform.IsVisualStudioInstalled() ? SDKStatus.Valid : SDKStatus.Invalid;
+		}
+	}
+
+	public class WinRTPlatformFactory : UEBuildPlatformFactory
+	{
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
+		public override void RegisterBuildPlatforms()
+		{
+			//@todo.Rocket: Add platform support
+			if (UnrealBuildTool.RunningRocket() || Utils.IsRunningOnMono)
+			{
+				return;
+			}
+
+			WinRTPlatformSDK SDK = new WinRTPlatformSDK();
+			SDK.ManageAndValidateSDK();
+
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (WinRTPlatform.IsVisualStudioInstalled() == true))
+			{
+				bool bRegisterBuildPlatform = true;
+
+				// We also need to check for the generated projects... to handle the case where someone generates projects w/out WinRT.
+				// Hardcoding this for now - but ideally it would be dynamically discovered.
+				string EngineSourcePath = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Source");
+				string WinRTRHIFile = Path.Combine(EngineSourcePath, "Runtime", "Windows", "D3D11RHI", "D3D11RHI.build.cs");
+				if (File.Exists(WinRTRHIFile) == false)
+				{
+					bRegisterBuildPlatform = false;
+				}
+
+				if (bRegisterBuildPlatform == true)
+				{
+					// Register this build platform for WinRT
+					Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT.ToString());
+					UEBuildPlatform.RegisterBuildPlatform(new WinRTPlatform(UnrealTargetPlatform.WinRT, SDK));
+					UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinRT, UnrealPlatformGroup.Microsoft);
+
+					// For now only register WinRT_ARM is truly a Windows 8 machine.
+					// This will prevent people who do all platform builds from running into the compiler issue.
+					if (WinRTPlatform.IsWindows8() == true)
+					{
+						Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT_ARM.ToString());
+						UEBuildPlatform.RegisterBuildPlatform(new WinRTPlatform(UnrealTargetPlatform.WinRT_ARM, SDK));
+						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinRT_ARM, UnrealPlatformGroup.Microsoft);
+					}
+				}
+			}
 		}
 	}
 }

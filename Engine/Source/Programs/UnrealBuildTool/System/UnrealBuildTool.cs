@@ -486,11 +486,11 @@ namespace UnrealBuildTool
 					{
 						if (CheckType.IsClass && !CheckType.IsAbstract)
 						{
-							if (CheckType.IsSubclassOf(typeof(UEBuildPlatform)))
+							if (CheckType.IsSubclassOf(typeof(UEBuildPlatformFactory)))
 							{
 								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-								var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-								TempInst.RegisterBuildPlatform();
+								var TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+								TempInst.RegisterBuildPlatforms();
 							}
 						}
 					}

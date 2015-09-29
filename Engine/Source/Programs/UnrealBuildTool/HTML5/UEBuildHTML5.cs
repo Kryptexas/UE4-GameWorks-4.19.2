@@ -14,32 +14,19 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string HTML5Architecture = "";
 
-		/// <summary>
-		/// Whether platform supports switching SDKs during runtime
-		/// </summary>
-		/// <returns>true if supports</returns>
-		protected override bool PlatformSupportsAutoSDKs()
-		{
-			return false;
-		}
+		HTML5PlatformSDK SDK;
 
-		public override string GetSDKTargetPlatformName()
+		public HTML5Platform(HTML5PlatformSDK InSDK) : base(UnrealTargetPlatform.HTML5)
 		{
-			return "HTML5";
+			SDK = InSDK;
 		}
 
 		/// <summary>
-		/// Returns SDK string as required by the platform
+		/// Whether the required external SDKs are installed for this platform. Could be either a manual install or an AutoSDK.
 		/// </summary>
-		/// <returns>Valid SDK string</returns>
-		protected override string GetRequiredSDKString()
+		public override SDKStatus HasRequiredSDKsInstalled()
 		{
-			return HTML5SDKInfo.EmscriptenVersion();
-		}
-
-		protected override String GetRequiredScriptVersionString()
-		{
-			return "3.0";
+			return SDK.HasRequiredSDKsInstalled();
 		}
 
 		// The current architecture - affects everything about how UBT operates on HTML5
@@ -56,59 +43,11 @@ namespace UnrealBuildTool
 			return (ExeName + "-win32").ChangeExtension(".exe");
 		}
 
-		/// <summary>
-		/// Whether the required external SDKs are installed for this platform
-		/// </summary>
-		protected override SDKStatus HasRequiredManualSDKInternal()
-		{
-			if (!HTML5SDKInfo.IsSDKInstalled())
-			{
-				return SDKStatus.Invalid;
-			}
-			return SDKStatus.Valid;
-		}
-
 		public override bool CanUseXGE()
 		{
 			return (GetActiveArchitecture() == "-win32");
 		}
 
-		/// <summary>
-		/// Register the platform with the UEBuildPlatform class
-		/// </summary>
-		protected override void RegisterBuildPlatformInternal()
-		{
-			// Make sure the SDK is installed
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
-			{
-				bool bRegisterBuildPlatform = true;
-
-				// make sure we have the HTML5 files; if not, then this user doesn't really have HTML5 access/files, no need to compile HTML5!
-				string EngineSourcePath = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Source");
-				string HTML5TargetPlatformFile = Path.Combine(EngineSourcePath, "Developer", "HTML5", "HTML5TargetPlatform", "HTML5TargetPlatform.Build.cs");
-				if ((File.Exists(HTML5TargetPlatformFile) == false))
-				{
-					bRegisterBuildPlatform = false;
-					Log.TraceWarning("Missing required components (.... HTML5TargetPlatformFile, others here...). Check source control filtering, or try resyncing.");
-				}
-
-				if (bRegisterBuildPlatform == true)
-				{
-					// Register this build platform for HTML5
-					Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.HTML5.ToString());
-					UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.HTML5, this);
-					if (GetActiveArchitecture() == "-win32")
-					{
-						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Simulator);
-					}
-					else
-					{
-						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Device);
-					}
-				}
-			}
-
-		}
 
 		/// <summary>
 		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
@@ -380,6 +319,92 @@ namespace UnrealBuildTool
 		{
 			DeploymentHandler = null;
 			return false;
+		}
+	}
+	
+	class HTML5PlatformSDK : UEBuildPlatformSDK
+	{
+		/// <summary>
+		/// Whether platform supports switching SDKs during runtime
+		/// </summary>
+		/// <returns>true if supports</returns>
+		protected override bool PlatformSupportsAutoSDKs()
+		{
+			return false;
+		}
+
+		public override string GetSDKTargetPlatformName()
+		{
+			return "HTML5";
+		}
+
+		/// <summary>
+		/// Returns SDK string as required by the platform
+		/// </summary>
+		/// <returns>Valid SDK string</returns>
+		protected override string GetRequiredSDKString()
+		{
+			return HTML5SDKInfo.EmscriptenVersion();
+		}
+
+		protected override String GetRequiredScriptVersionString()
+		{
+			return "3.0";
+		}
+
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform
+		/// </summary>
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
+			if (!HTML5SDKInfo.IsSDKInstalled())
+			{
+				return SDKStatus.Invalid;
+			}
+			return SDKStatus.Valid;
+		}
+	}
+
+	class HTML5PlatformFactory : UEBuildPlatformFactory
+	{
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
+		public override void RegisterBuildPlatforms()
+		{
+			HTML5PlatformSDK SDK = new HTML5PlatformSDK();
+			SDK.ManageAndValidateSDK();
+
+			// Make sure the SDK is installed
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (SDK.HasRequiredSDKsInstalled() == SDKStatus.Valid))
+			{
+				bool bRegisterBuildPlatform = true;
+
+				// make sure we have the HTML5 files; if not, then this user doesn't really have HTML5 access/files, no need to compile HTML5!
+				string EngineSourcePath = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Source");
+				string HTML5TargetPlatformFile = Path.Combine(EngineSourcePath, "Developer", "HTML5", "HTML5TargetPlatform", "HTML5TargetPlatform.Build.cs");
+				if ((File.Exists(HTML5TargetPlatformFile) == false))
+				{
+					bRegisterBuildPlatform = false;
+					Log.TraceWarning("Missing required components (.... HTML5TargetPlatformFile, others here...). Check source control filtering, or try resyncing.");
+				}
+
+				if (bRegisterBuildPlatform == true)
+				{
+					// Register this build platform for HTML5
+					Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.HTML5.ToString());
+					UEBuildPlatform.RegisterBuildPlatform(new HTML5Platform(SDK));
+					if (HTML5Platform.HTML5Architecture == "-win32")
+					{
+						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Simulator);
+					}
+					else
+					{
+						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Device);
+					}
+				}
+			}
+
 		}
 	}
 }

@@ -149,17 +149,31 @@ namespace UnrealBuildTool
 			}
 		}
 
+		WindowsPlatformSDK SDK;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="InPlatform">Creates a windows platform with the given enum value</param>
+		public WindowsPlatform(UnrealTargetPlatform InPlatform, WindowsPlatformSDK InSDK) : base(InPlatform)
+		{
+			SDK = InSDK;
+		}
+
+		/// <summary>
+		/// Whether the required external SDKs are installed for this platform. Could be either a manual install or an AutoSDK.
+		/// </summary>
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
 		/// <summary>
 		/// The current architecture
 		/// </summary>
 		public override string GetActiveArchitecture()
 		{
 			return IsWindowsXPSupported() ? "_XP" : base.GetActiveArchitecture();
-		}
-
-		protected override SDKStatus HasRequiredManualSDKInternal()
-		{
-			return SDKStatus.Valid;
 		}
 
 		/// <summary>
@@ -239,23 +253,6 @@ namespace UnrealBuildTool
 			{
 				return false;
 			}
-		}
-
-		/// <summary>
-		/// Register the platform with the UEBuildPlatform class
-		/// </summary>
-		protected override void RegisterBuildPlatformInternal()
-		{
-			// Register this build platform for both Win64 and Win32
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Win64.ToString());
-			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.Win64, this);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win64, UnrealPlatformGroup.Windows);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win64, UnrealPlatformGroup.Microsoft);
-
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Win32.ToString());
-			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.Win32, this);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win32, UnrealPlatformGroup.Windows);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win32, UnrealPlatformGroup.Microsoft);
 		}
 
 		/// <summary>
@@ -801,6 +798,37 @@ namespace UnrealBuildTool
 		{
 			DeploymentHandler = null;
 			return false;
+		}
+	}
+
+	public class WindowsPlatformSDK : UEBuildPlatformSDK
+	{
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
+			return SDKStatus.Valid;
+		}
+	}
+
+	class WindowsPlatformFactory : UEBuildPlatformFactory
+	{
+		/// <summary>
+		/// Register the platform with the UEBuildPlatform class
+		/// </summary>
+		public override void RegisterBuildPlatforms()
+		{
+			WindowsPlatformSDK SDK = new WindowsPlatformSDK();
+			SDK.ManageAndValidateSDK();
+
+			// Register this build platform for both Win64 and Win32
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Win64.ToString());
+			UEBuildPlatform.RegisterBuildPlatform(new WindowsPlatform(UnrealTargetPlatform.Win64, SDK));
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win64, UnrealPlatformGroup.Windows);
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win64, UnrealPlatformGroup.Microsoft);
+
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Win32.ToString());
+			UEBuildPlatform.RegisterBuildPlatform(new WindowsPlatform(UnrealTargetPlatform.Win32, SDK));
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win32, UnrealPlatformGroup.Windows);
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.Win32, UnrealPlatformGroup.Microsoft);
 		}
 	}
 }

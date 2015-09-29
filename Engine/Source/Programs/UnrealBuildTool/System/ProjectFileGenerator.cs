@@ -1309,7 +1309,7 @@ namespace UnrealBuildTool
         /// </summary>
         private void AddPS4Projects(MasterProjectFolder Folder)
         {
-			if (UEBuildPlatform.BuildPlatformDictionary.ContainsKey(UnrealTargetPlatform.PS4))
+			if (UEBuildPlatform.IsPlatformAvailable(UnrealTargetPlatform.PS4))
 			{
 				string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "PS4");
 				DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
@@ -1467,13 +1467,6 @@ namespace UnrealBuildTool
 							SupportedPlatformsString.Append(Platform.ToString());
 						}
 					}
-				}
-				else
-				{
-					// We have to unregister any build platforms we aren't supporting.
-					// Otherwise, they can add modules that can cause issues when doing tasks
-					// like generating IntelliSense.
-					UEBuildPlatform.UnregisterBuildPlatform(Platform);
 				}
 			}
 
