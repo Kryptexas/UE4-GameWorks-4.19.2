@@ -21,7 +21,9 @@ void SVirtualWindow::Construct(const FArguments& InArgs)
 
 FWidgetRenderer::FWidgetRenderer()
 {
+#if !UE_SERVER
 	Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
+#endif
 }
 
 FWidgetRenderer::~FWidgetRenderer()
