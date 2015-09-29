@@ -12,6 +12,9 @@ public:
 	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) = 0;
 	virtual void GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) = 0;
 
+	// Generate a wrapper class, that helps accessing non-native properties and calling non-native functions
+	virtual void GenerateWrapperForClass(UClass* SourceClass) = 0;
+
 	virtual const FString& GetBody() const = 0;
 	virtual const FString& GetHeader() const = 0;
 

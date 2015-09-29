@@ -318,3 +318,20 @@ ValueType& TSwitchValue(const IndexType& CurrentIndex, ValueType& DefaultValue, 
 	return SelectedValuePtr ? *SelectedValuePtr : DefaultValue;
 }
 #endif //PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+
+// Base class for wrappers for unconverted BlueprintGeneratedClasses
+template<class NativeType>
+struct FUnconvertedWrapper
+{
+	NativeType* __Object;
+
+	FUnconvertedWrapper(const UObject* InObject) : __Object(CastChecked<NativeType>(const_cast<UObject*>(InObject))) {}
+
+	operator NativeType*() const { return __Object; }
+
+	UClass* GetClass() const
+	{
+		check(__Object);
+		return __Object->GetClass();
+	}
+};

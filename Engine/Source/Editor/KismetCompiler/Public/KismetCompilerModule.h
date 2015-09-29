@@ -87,6 +87,8 @@ public:
 
 	virtual FString GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum) = 0;
 	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) = 0;
+	// Generate a wrapper class, that helps accessing non-native properties and calling non-native functions
+	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC) = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -107,6 +109,7 @@ public:
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
 	virtual FString GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum) override;
 	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) override;
+	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC) override;
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded);

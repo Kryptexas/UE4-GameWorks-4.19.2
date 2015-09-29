@@ -34,7 +34,10 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		{
 			if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 			{
-				DeclareInHeader.Add(ObjectProperty->PropertyClass);
+				if (ShouldIncludeHeaderFor(ObjectProperty->PropertyClass))
+				{
+					DeclareInHeader.Add(ObjectProperty->PropertyClass);
+				}
 			}
 			else if (auto InterfaceProperty = Cast<const UInterfaceProperty>(Property))
 			{
@@ -94,7 +97,7 @@ void FGatherConvertedClassDependencies::HandleObjectReference(UObject*& InObject
 	}
 
 	auto ObjAsField = Cast<UField>(InObject);
-	if (ObjAsField && ShouldIncludeHeaderFor(ObjAsField) && !IncludeInHeader.Contains(ObjAsField))
+	if (ObjAsField && !IncludeInHeader.Contains(ObjAsField))
 	{
 		IncludeInBody.Add(ObjAsField);
 	}
@@ -102,7 +105,6 @@ void FGatherConvertedClassDependencies::HandleObjectReference(UObject*& InObject
 	//TODO: What About Delegates?
 	auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(InObject);
 	const bool bWillBeConvetedAsBPGC = ObjAsBPGC && WillClassBeConverted(ObjAsBPGC);
-	const bool bRemainAsUnconvertedBPGC = ObjAsBPGC && !bWillBeConvetedAsBPGC;
 	if (bWillBeConvetedAsBPGC)
 	{
 		ConvertedClasses.Add(ObjAsBPGC);
@@ -123,6 +125,14 @@ void FGatherConvertedClassDependencies::HandleObjectReference(UObject*& InObject
 	}
 	else if ((InObject->IsAsset() || ObjAsBPGC) && !InObject->IsIn(OriginalStruct))
 	{
+		// include all not converted super classes
+		for (auto SuperBPGC = ObjAsBPGC ? Cast<UBlueprintGeneratedClass>(ObjAsBPGC->GetSuperClass()) : nullptr; 
+			SuperBPGC && !WillClassBeConverted(SuperBPGC);
+			SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
+		{
+			Assets.AddUnique(SuperBPGC);
+		}
+
 		Assets.AddUnique(InObject);
 		return;
 	}

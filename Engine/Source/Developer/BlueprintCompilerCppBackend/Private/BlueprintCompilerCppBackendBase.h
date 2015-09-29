@@ -45,6 +45,7 @@ public:
 	virtual void GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
 	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) override;
 	virtual void GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) override;
+	virtual void GenerateWrapperForClass(UClass* SourceClass) override;
 
 	virtual const FString& GetBody()	const override { return Body; }
 	virtual const FString& GetHeader()	const override { return Header; }
@@ -82,7 +83,7 @@ protected:
 	/** Builds both the header declaration and body implementation of a function */
 	void ConstructFunction(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bGenerateStubOnly);
 
-	void EmitFileBeginning(const FString& CleanName, FGatherConvertedClassDependencies* Dependencies);
+	void EmitFileBeginning(const FString& CleanName, FGatherConvertedClassDependencies* Dependencies, bool bIncludeGeneratedH = true, bool bIncludeCodeHelpersInHeader = false);
 
 	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
 	{

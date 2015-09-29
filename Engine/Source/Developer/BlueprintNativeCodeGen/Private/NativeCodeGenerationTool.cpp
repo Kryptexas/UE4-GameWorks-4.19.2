@@ -14,6 +14,7 @@
 //#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
 #include "Developer/BlueprintCompilerCppBackend/Public/BlueprintCompilerCppBackendGatherDependencies.h"
 #include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
+#include "KismetCompilerModule.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 
@@ -41,6 +42,7 @@ struct FGeneratedCodeData
 	FString BaseFilename;
 	TWeakObjectPtr<UBlueprint> Blueprint;
 	TSet<UField*> DependentObjects;
+	TSet<UBlueprintGeneratedClass*> UnconvertedNeededClasses;
 
 	void GatherUserDefinedDependencies(UBlueprint& InBlueprint)
 	{
@@ -58,16 +60,34 @@ struct FGeneratedCodeData
 			DependentObjects.Add(Iter);
 		}
 
-		TypeDependencies.Empty();
+		if (DependentObjects.Num())
+		{
+			TypeDependencies = LOCTEXT("ConvertedDependencies", "Converted Dependencies:\n").ToString();
+		}
+		else
+		{
+			TypeDependencies = LOCTEXT("NoConvertedAssets", "No Converted Dependencies was found.\n").ToString();
+		}
+
 		for (auto Obj : DependentObjects)
 		{
 			TypeDependencies += FString::Printf(TEXT("%s \t%s\n"), *Obj->GetClass()->GetName(), *Obj->GetPathName());
 		}
 		DependentObjects.Add(InBlueprint.GeneratedClass);
 
-		if (TypeDependencies.IsEmpty())
+		bool bUnconvertedHeader = false;
+		for (auto Asset : ClassDependencies.Assets)
 		{
-			TypeDependencies += LOCTEXT("NoNonNativeDependencies", "No non-native dependencies.").ToString();
+			if (auto BPGC = Cast<UBlueprintGeneratedClass>(Asset))
+			{
+				UnconvertedNeededClasses.Add(BPGC);
+				if (!bUnconvertedHeader)
+				{
+					bUnconvertedHeader = true;
+					TypeDependencies += LOCTEXT("NoConvertedAssets", "\nUnconverted Dependencies, that require a warpper struct:\n").ToString();
+				}
+				TypeDependencies += FString::Printf(TEXT("%s \t%s\n"), *BPGC->GetClass()->GetName(), *BPGC->GetPathName());
+			}
 		}
 	}
 
@@ -101,14 +121,15 @@ struct FGeneratedCodeData
 			return false;
 		}
 
-		const int WorkParts = 4 + 2 * DependentObjects.Num();
+		const int WorkParts = 3 + (4 * DependentObjects.Num()) + (2 * UnconvertedNeededClasses.Num());
 		FScopedSlowTask SlowTask(WorkParts, LOCTEXT("GeneratingCppFiles", "Generating C++ files.."));
 		SlowTask.MakeDialog();
-		SlowTask.EnterProgressFrame();
 
 		TArray<FString> CreatedFiles;
 		for(auto Obj : DependentObjects)
 		{
+			SlowTask.EnterProgressFrame();
+
 			TSharedPtr<FString> HeaderSource(new FString());
 			TSharedPtr<FString> CppSource(new FString());
 			FBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource);
@@ -140,6 +161,29 @@ struct FGeneratedCodeData
 				{
 					CreatedFiles.Add(NewCppFilename);
 				}
+			}
+		}
+
+		for (auto BPGC : UnconvertedNeededClasses)
+		{
+			SlowTask.EnterProgressFrame();
+
+			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
+			const FString HeaderSource = Compiler.GenerateCppWrapper(BPGC);
+
+			SlowTask.EnterProgressFrame();
+
+			const FString BackendBaseFilename = IBlueprintCompilerCppBackendModule::GetBaseFilename(BPGC);
+
+			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(BackendBaseFilename + TEXT(".h")));
+			const bool bHeaderSaved = FFileHelper::SaveStringToFile(HeaderSource, *FullHeaderFilename);
+			if (!bHeaderSaved)
+			{
+				ErrorString += FString::Printf(*LOCTEXT("HeaderNotSaved", "Header file wasn't saved. Check log for details. %s\n").ToString(), *BPGC->GetPathName());
+			}
+			else
+			{
+				CreatedFiles.Add(FullHeaderFilename);
 			}
 		}
 

@@ -450,7 +450,19 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 	else
 	{
-		if (bStaticCall)
+		auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
+		auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
+		const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
+		if (bUnconvertedClass)
+		{
+			ensure(!Statement.bIsParentContext); //unsupported yet
+			ensure(!bStaticCall); //unsupported yet
+			ensure(bCallOnDifferentObject); //unexpected
+			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
+			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, false) : TEXT("this");
+			Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
+		}
+		else if (bStaticCall)
 		{
 			const bool bIsCustomThunk = Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk")) 
 				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) 
@@ -513,18 +525,20 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 	}
 	else
 	{
-		FString ResultPath(TEXT(""));
+		FString ContextStr;
 		if ((Term->Context != nullptr) && (Term->Context->Name != PSC_Self))
 		{
+			ensure(Term->AssociatedVarProperty);
 			const bool bFromDefaultValue = Term->Context->IsClassContextType();
 			if (bFromDefaultValue)
 			{
-				const UClass* MinimalClass = ensure(Term->AssociatedVarProperty)
+				UClass* MinimalClass = Term->AssociatedVarProperty 
 					? Term->AssociatedVarProperty->GetOwnerClass()
 					: Cast<UClass>(Term->Context->Type.PinSubCategoryObject.Get());
 				if (MinimalClass)
 				{
-					ResultPath += FString::Printf(TEXT("GetDefaultValueSafe<%s>(")
+					MinimalClass = EmitterContext.GetFirstNativeParent(MinimalClass);
+					ContextStr += FString::Printf(TEXT("GetDefaultValueSafe<%s>(")
 						, *FEmitHelper::GetCppName(MinimalClass));
 				}
 				else
@@ -533,16 +547,47 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 				}
 			}
 
-			ResultPath += TermToText(EmitterContext, Term->Context, false);
-			ResultPath += bFromDefaultValue ? TEXT(")") : TEXT("");
-			if (Term->Context->IsStructContextType())
+			ContextStr += TermToText(EmitterContext, Term->Context, false);
+			ContextStr += bFromDefaultValue ? TEXT(")") : TEXT("");
+		}
+
+		FString ResultPath;
+
+		if (Term->Context && Term->Context->IsStructContextType())
+		{
+			check(Term->AssociatedVarProperty);
+			ResultPath = ContextStr + TEXT(".") + FEmitHelper::GetCppName(Term->AssociatedVarProperty);
+		}
+		else if (Term->AssociatedVarProperty)
+		{
+			auto MinimalClass = Term->AssociatedVarProperty->GetOwnerClass();
+			auto MinimalBPGC = Cast<UBlueprintGeneratedClass>(MinimalClass);
+			if (MinimalBPGC && !EmitterContext.Dependencies.WillClassBeConverted(MinimalBPGC))
 			{
-				ResultPath += TEXT(".");
+				if ((!Term->Context) || (Term->Context->Name == PSC_Self))
+				{
+					ensure(ContextStr.IsEmpty());
+					ContextStr = TEXT("this");
+				}
+
+				ResultPath = FString::Printf(TEXT("FUnconvertedWrapper__%s(%s).GetRef__%s()")
+					, *FEmitHelper::GetCppName(MinimalBPGC)
+					, *ContextStr
+					, *UnicodeToCPPIdentifier(Term->AssociatedVarProperty->GetName(), false, nullptr));
 			}
 			else
 			{
-				ResultPath += TEXT("->");
+				if ((Term->Context != nullptr) && (Term->Context->Name != PSC_Self))
+				{
+					ResultPath = ContextStr + TEXT("->");
+				}
+				ResultPath += FEmitHelper::GetCppName(Term->AssociatedVarProperty);
 			}
+		}
+		else
+		{
+			ensure(ContextStr.IsEmpty());
+			ResultPath += Term->Name;
 		}
 
 		FString Conditions;
@@ -551,7 +596,6 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			Conditions = FSafeContextScopedEmmitter::ValidationChain(EmitterContext, Term->Context, *this);
 		}
 
-		ResultPath += Term->AssociatedVarProperty ? FEmitHelper::GetCppName(Term->AssociatedVarProperty) : Term->Name;
 		return Conditions.IsEmpty()
 			? ResultPath
 			: FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *FEmitHelper::DefaultValue(EmitterContext, Term->Type));

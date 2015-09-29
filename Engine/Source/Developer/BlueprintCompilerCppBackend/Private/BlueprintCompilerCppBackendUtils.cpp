@@ -657,7 +657,7 @@ TArray<FString> FEmitHelper::EmitSinglecastDelegateDeclarations(FEmitterLocalCon
 			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 		const FString TypeName = EmitterContext.ExportCppDeclaration(It, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
 
-		Results.Add(*FString::Printf(TEXT("DECLARE_DYNAMIC_DELEGATE%s(%s%s)"), *ParamNumberStr, *TypeName, *Parameters));
+		Results.Add(*FString::Printf(TEXT("\tDECLARE_DYNAMIC_DELEGATE%s(%s%s)"), *ParamNumberStr, *TypeName, *Parameters));
 	}
 	return Results;
 }

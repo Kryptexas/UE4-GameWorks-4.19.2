@@ -143,6 +143,13 @@ FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDS
 	return Backend_CPP->GetHeader();
 }
 
+FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC)
+{
+	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
+	Backend_CPP->GenerateWrapperForClass(BPGC);
+	return Backend_CPP->GetHeader();
+}
+
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
 
 // Compiles a blueprint.
