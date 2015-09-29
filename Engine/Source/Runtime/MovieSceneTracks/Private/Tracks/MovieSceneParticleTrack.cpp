@@ -73,18 +73,28 @@ TRange<float> UMovieSceneParticleTrack::GetSectionBoundaries() const
 	return TRange<float>::Hull(Bounds);
 }
 
-
-void UMovieSceneParticleTrack::AddNewParticleSystem(float KeyTime, bool bTrigger)
+void UMovieSceneParticleTrack::AddNewKey( float KeyTime )
 {
-	EParticleKey::Type KeyType = bTrigger ? EParticleKey::Trigger : EParticleKey::Toggle;
-	// @todo Instead of a 0.1 second event, this should be 0 seconds, requires handling 0 size sections
-	float Duration = KeyType == EParticleKey::Trigger ? 0.1f : 1.f;
-
-	UMovieSceneParticleSection* NewSection = NewObject<UMovieSceneParticleSection>(this);
-	NewSection->InitialPlacement(ParticleSections, KeyTime, KeyTime + Duration, SupportsMultipleRows());
-	NewSection->SetKeyType(KeyType);
-
-	ParticleSections.Add(NewSection);
+	UMovieSceneParticleSection* NearestSection = Cast<UMovieSceneParticleSection>( MovieSceneHelpers::FindNearestSectionAtTime( ParticleSections, KeyTime ) );
+	if ( NearestSection == nullptr )
+	{
+		NearestSection = NewObject<UMovieSceneParticleSection>( this );
+		NearestSection->SetStartTime( KeyTime );
+		NearestSection->SetEndTime( KeyTime );
+		ParticleSections.Add(NearestSection);
+	}
+	else
+	{
+		if ( NearestSection->GetStartTime() > KeyTime )
+		{
+			NearestSection->SetStartTime( KeyTime );
+		}
+		if ( NearestSection->GetEndTime() < KeyTime )
+		{
+			NearestSection->SetEndTime( KeyTime );
+		}
+	}
+	NearestSection->AddKey( KeyTime, EParticleKey::Active );
 }
 
 

@@ -57,6 +57,13 @@ public:
 	 */
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const = 0;
 
+	/** Allows a section to override the brush to use for a key by handle.
+	 *
+	 * @param KeyHandle the handle of the key to get a brush for.
+	 * @return A const pointer to a slate brush if the brush should be overridden, otherwise null.
+	 */
+	virtual const FSlateBrush* GetKeyBrush(FKeyHandle KeyHandle) const { return nullptr; }
+
 	/**
 	 * Called when the section is double clicked
 	 *

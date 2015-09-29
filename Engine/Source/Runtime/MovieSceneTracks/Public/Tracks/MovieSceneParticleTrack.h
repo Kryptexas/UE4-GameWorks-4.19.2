@@ -6,7 +6,6 @@
 #include "MovieSceneTrack.h"
 #include "MovieSceneParticleTrack.generated.h"
 
-
 /**
  * Handles triggering of particle emitters
  */
@@ -25,10 +24,9 @@ public:
 	virtual void RemoveSection( UMovieSceneSection* Section ) override;
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
-	virtual bool SupportsMultipleRows() const override { return false; }
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	
-	virtual void AddNewParticleSystem(float KeyTime, bool bTrigger);
+	virtual void AddNewKey( float KeyTime );
 
 	virtual TArray<UMovieSceneSection*> GetAllParticleSections() const {return ParticleSections;}
 

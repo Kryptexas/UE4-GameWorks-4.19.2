@@ -1646,9 +1646,9 @@ int32 FIntegralCurve::Evaluate(float Time, int32 InDefaultValue) const
 	// If the default value hasn't been initialized, use the incoming default value
 	int32 ReturnVal = DefaultValue == MAX_int32 ? InDefaultValue : DefaultValue;
 
-	if( Keys.Num() == 0 )
+	if( Keys.Num() == 0 || (bUseDefaultValueBeforeFirstKey && Time < Keys[0].Time) )
 	{
-		// If no keys in curve, return the Default value.
+		// If no keys in curve, or bUseDefaultValueBeforeFirstKey is set and the time is before the first key, return the Default value.
 	}
 	else if( Keys.Num() < 2 || Time < Keys[0].Time )
 	{
@@ -1871,4 +1871,46 @@ FKeyHandle FIntegralCurve::FindKey(float KeyTime) const
 	}
 
 	return FKeyHandle();
+}
+
+FKeyHandle FIntegralCurve::FindKeyBeforeOrAt( float KeyTime ) const
+{
+	// If there are no keys or the time is before the first key return an invalid handle.
+	if ( Keys.Num() == 0 || KeyTime < Keys[0].Time )
+	{
+		return FKeyHandle();
+	}
+
+	// If the time is after or at the last key return the last key.
+	if ( KeyTime >= Keys[Keys.Num() - 1].Time )
+	{
+		return GetKeyHandle(Keys.Num() - 1);
+	}
+
+	// Otherwise binary search to find the handle of the nearest key at or before the time.
+	int32 Start = 0;
+	int32 End = Keys.Num() - 1;
+	int32 FoundIndex = -1;
+	while ( FoundIndex < 0 )
+	{
+		int32 TestPos = (Start + End) / 2;
+		float TestKeyTime = Keys[TestPos].Time;
+		float NextTestKeyTime = Keys[TestPos + 1].Time;
+		if ( TestKeyTime <= KeyTime )
+		{
+			if( NextTestKeyTime > KeyTime )
+			{
+				FoundIndex = TestPos;
+			}
+			else
+			{
+				Start = TestPos + 1;
+			}
+		}
+		else
+		{
+			End = TestPos;
+		}
+	}
+	return GetKeyHandle(FoundIndex);
 }

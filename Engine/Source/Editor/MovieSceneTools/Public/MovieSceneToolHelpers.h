@@ -224,7 +224,7 @@ protected:
 class FEnumKeyArea : public FIntegralKeyArea
 {
 public:
-	FEnumKeyArea(FIntegralCurve& InCurve, UMovieSceneSection* InOwningSection, UEnum* InEnum)
+	FEnumKeyArea(FIntegralCurve& InCurve, UMovieSceneSection* InOwningSection, const UEnum* InEnum)
 		: FIntegralKeyArea(InCurve, InOwningSection)
 		, Enum(InEnum)
 	{}
@@ -238,7 +238,7 @@ public:
 
 private:
 	/** The enum which provides available integral values for this key area. */
-	UEnum* Enum;
+	const UEnum* Enum;
 };
 
 

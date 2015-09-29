@@ -844,9 +844,11 @@ public:
 
 	/** Default constructor. */
 	FIntegralCurve() 
-		: FIndexedCurve()
-		, DefaultValue(MAX_int32)
-	{ }
+	: FIndexedCurve()
+	, DefaultValue(MAX_int32)
+	, bUseDefaultValueBeforeFirstKey(false)
+	{
+	}
 
 	/** Virtual destructor. */
 	virtual ~FIntegralCurve() { }
@@ -889,6 +891,12 @@ public:
 	/** Get the default value for the curve */
 	int32 GetDefaultValue() const { return DefaultValue; }
 
+	/** Sets whether or not the default value should be used for evaluation for time values before the first key. */
+	void SetUseDefaultValueBeforeFirstKey(bool InbUseDefaultValueBeforeFirstKey) { bUseDefaultValueBeforeFirstKey = InbUseDefaultValueBeforeFirstKey; }
+	
+	/** Gets whether or not the default value should be used for evaluation for time values before the first key. */
+	bool GetUseDefaultValueBeforeFirstKey() const { return bUseDefaultValueBeforeFirstKey; }
+
 	/** Shifts all keys forwards or backwards in time by an even amount, preserving order */
 	void ShiftCurve(float DeltaTime);
 	void ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles);
@@ -903,6 +911,9 @@ public:
 
 	FKeyHandle FindKey(float KeyTime) const;
 
+	/** Gets the handle for the last key which is at or before the time requested.  If there are no keys at or before the requested time, an invalid handle is returned. */
+	FKeyHandle FindKeyBeforeOrAt(float KeyTime) const;
+
 private:
 
 	/** The keys, ordered by time */
@@ -912,4 +923,7 @@ private:
 	/** Default value */
 	UPROPERTY(EditAnywhere, Category="Curve")
 	int32 DefaultValue;
+
+	UPROPERTY()
+	bool bUseDefaultValueBeforeFirstKey;
 };

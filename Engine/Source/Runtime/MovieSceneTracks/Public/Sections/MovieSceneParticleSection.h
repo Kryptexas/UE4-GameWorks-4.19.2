@@ -7,15 +7,15 @@
 
 
 /**
- * The kind of key this particle section is.
- */
+* Defines the types of particle keys.
+*/
 UENUM()
 namespace EParticleKey
 {
 	enum Type
 	{
-		Toggle,
-		Trigger
+		Active = 0,
+		Inactive = 1,
 	};
 }
 
@@ -29,17 +29,19 @@ class UMovieSceneParticleSection
 {
 	GENERATED_UCLASS_BODY()
 
-public:
+	void AddKey(float Time, EParticleKey::Type KeyType);
 
-	/** Sets this section's key type*/
-	void SetKeyType(EParticleKey::Type InKeyType) {KeyType = InKeyType;}
+	MOVIESCENETRACKS_API FIntegralCurve& GetParticleCurve();
 
-	/** Gets the key type for this section */
-	EParticleKey::Type GetKeyType() {return KeyType;}
-	
+	/**
+	* UMovieSceneSection interface
+	*/
+	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
+	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles ) override;
+	virtual void GetKeyHandles( TSet<FKeyHandle>& KeyHandles ) const override;
+
 private:
-
-	/** The way this particle key will operate */
+	/** Curve containing the particle keys. */
 	UPROPERTY(EditAnywhere, Category="Particles")
-	TEnumAsByte<EParticleKey::Type> KeyType;
+	FIntegralCurve ParticleKeys;
 };

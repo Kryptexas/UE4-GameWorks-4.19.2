@@ -20,51 +20,45 @@ void FMovieSceneParticleTrackInstance::Update( float Position, float LastPositio
 
 	if (Position > LastPosition && Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
-		bool bTrigger = false, bOn = false, bOff = false;
-
+		
 		const TArray<UMovieSceneSection*> Sections = ParticleTrack->GetAllParticleSections();
+		EParticleKey::Type ParticleKey = EParticleKey::Active;
+		bool bKeyFound = false;
 		for (int32 i = 0; i < Sections.Num(); ++i)
 		{
-			UMovieSceneParticleSection* Section = Cast<UMovieSceneParticleSection>(Sections[i]);
+			UMovieSceneParticleSection* Section = Cast<UMovieSceneParticleSection>( Sections[i] );
 			if (Section->IsActive())
 			{
-				if (Section->GetKeyType() == EParticleKey::Trigger)
+				FIntegralCurve& ParticleKeyCurve = Section->GetParticleCurve();
+				FKeyHandle PreviousHandle = ParticleKeyCurve.FindKeyBeforeOrAt( Position );
+				if ( ParticleKeyCurve.IsKeyHandleValid( PreviousHandle ) )
 				{
-					if (Position > Section->GetStartTime() && LastPosition < Section->GetStartTime())
+					FIntegralKey& PreviousKey = ParticleKeyCurve.GetKey( PreviousHandle );
+					if ( PreviousKey.Time > LastPosition )
 					{
-						bTrigger = true;
-					}
-				}
-				else if (Section->GetKeyType() == EParticleKey::Toggle)
-				{
-					if (Position >= Section->GetStartTime() && Position <= Section->GetEndTime())
-					{
-						bOn = true;
-					}
-					else if (Position >= Section->GetEndTime() && LastPosition < Section->GetEndTime())
-					{
-						bOff = true;
+						ParticleKey = (EParticleKey::Type)PreviousKey.Value;
+						bKeyFound = true;
 					}
 				}
 			}
 		}
 		
-		if (bTrigger || bOn || bOff)
+		if ( bKeyFound )
 		{
 			for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 			{
 				AEmitter* Emitter = Cast<AEmitter>(RuntimeObjects[i]);
 				if (Emitter)
 				{
-					if (bTrigger)
+					if ( ParticleKey == EParticleKey::Active )
 					{
-						Emitter->ToggleActive();
-					}
-					else if (bOn)
-					{
+						if ( Emitter->IsActive() )
+						{
+							Emitter->Deactivate();
+						}
 						Emitter->Activate();
 					}
-					else if (bOff)
+					else if( ParticleKey == EParticleKey::Inactive )
 					{
 						Emitter->Deactivate();
 					}

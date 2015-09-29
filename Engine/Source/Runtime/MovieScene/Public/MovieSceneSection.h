@@ -58,8 +58,12 @@ public:
 	 */
 	TRange<float> GetRange() const 
 	{
-		// Uses an inclusive range so that sections that start and end on the same value aren't considered empty ranges.
-		return TRange<float>( TRange<float>::BoundsType::Inclusive( StartTime ), TRange<float>::BoundsType::Inclusive( EndTime ) );
+		// Use the single value constructor for zero sized ranges because it creates a range that is inclusive on both upper and lower
+		// bounds which isn't considered "empty".  Use the standard constructor for non-zero sized ranges so that they work well when
+		// calculating overlap with other non-zero sized ranges.
+		return StartTime == EndTime 
+			? TRange<float>(StartTime) 
+			: TRange<float>(StartTime, EndTime);
 	}
 	
 	/**

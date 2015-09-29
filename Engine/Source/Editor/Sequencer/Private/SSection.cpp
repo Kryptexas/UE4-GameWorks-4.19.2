@@ -304,7 +304,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 
 	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush(BackgroundBrushName);
 
-	const FSlateBrush* KeyBrush = FEditorStyle::GetBrush(KeyBrushName);
+	const FSlateBrush* DefaultKeyBrush = FEditorStyle::GetBrush(KeyBrushName);
 
 	static const FName SelectionColorName("SelectionColor");
 	static const FName SelectionInactiveColorName("SelectionColorInactive");
@@ -355,7 +355,11 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 			// Omit keys which would not be visible
 			if( SectionObject.IsTimeWithinSection( KeyTime ) )
 			{
-				const FSlateBrush* BrushToUse = KeyBrush;
+				const FSlateBrush* BrushToUse = SectionInterface->GetKeyBrush(KeyHandle);
+				if(BrushToUse == nullptr)
+				{
+					BrushToUse = DefaultKeyBrush;
+				}
 				FLinearColor KeyColor( 1.0f, 1.0f, 1.0f, 1.0f );
 				FLinearColor KeyTint(1.f, 1.f, 1.f, 1.f);
 
