@@ -3,6 +3,9 @@
 
 #include "CoreUObjectPrivate.h"
 #include "TargetPlatform.h"
+#if WITH_EDITOR
+#include "DebugSerializationFlags.h"
+#endif
 
 /*-----------------------------------------------------------------------------
 	Constructors and operators
@@ -778,8 +781,12 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		FThreadSafeBulkDataToObjectMap::Get().Add( this, Owner );
 #endif
 		// Offset where the bulkdata flags are stored
-		int64 SavedBulkDataFlagsPos	= Ar.Tell();
-		Ar << BulkDataFlags;
+		int64 SavedBulkDataFlagsPos = Ar.Tell();
+		{
+			FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+			Ar << BulkDataFlags;
+		}
+
 
 		// Number of elements in array.
 		Ar << ElementCount;
@@ -919,14 +926,19 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			// Keep track of position we are going to serialize placeholder BulkDataSizeOnDisk.
 			SavedBulkDataSizeOnDiskPos = Ar.Tell();
 			BulkDataSizeOnDisk = INDEX_NONE;
-			// And serialize the placeholder which is going to be overwritten later.
-			Ar << BulkDataSizeOnDisk;
 
-			// Keep track of position we are going to serialize placeholder BulkDataOffsetInFile.
-			SavedBulkDataOffsetInFilePos = Ar.Tell();
-			BulkDataOffsetInFile = INDEX_NONE;
-			// And serialize the placeholder which is going to be overwritten later.
-			Ar << BulkDataOffsetInFile;
+			{
+				FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+
+				// And serialize the placeholder which is going to be overwritten later.
+				Ar << BulkDataSizeOnDisk;
+				// Keep track of position we are going to serialize placeholder BulkDataOffsetInFile.
+				SavedBulkDataOffsetInFilePos = Ar.Tell();
+				BulkDataOffsetInFile = INDEX_NONE;
+				// And serialize the placeholder which is going to be overwritten later.
+				Ar << BulkDataOffsetInFile;
+
+			}
 
 				// try to get the linkersave object
 			FLinkerSave* LinkerSave = Cast<FLinkerSave>(Ar.GetLinker());
@@ -977,17 +989,21 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			// store current file offset before seeking back
 			int64 CurrentFileOffset = Ar.Tell();
 
-			// Seek back and overwrite the flags 
-			Ar.Seek(SavedBulkDataFlagsPos);
-			Ar << BulkDataFlags;
+			{
+				FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
 
-			// Seek back and overwrite placeholder for BulkDataSizeOnDisk
-			Ar.Seek( SavedBulkDataSizeOnDiskPos );
-			Ar << BulkDataSizeOnDisk;
+				// Seek back and overwrite the flags 
+				Ar.Seek(SavedBulkDataFlagsPos);
+				Ar << BulkDataFlags;
 
-			// Seek back and overwrite placeholder for BulkDataOffsetInFile
-			Ar.Seek( SavedBulkDataOffsetInFilePos );
-			Ar << BulkDataOffsetInFile;
+				// Seek back and overwrite placeholder for BulkDataSizeOnDisk
+				Ar.Seek(SavedBulkDataSizeOnDiskPos);
+				Ar << BulkDataSizeOnDisk;
+
+				// Seek back and overwrite placeholder for BulkDataOffsetInFile
+				Ar.Seek(SavedBulkDataOffsetInFilePos);
+				Ar << BulkDataOffsetInFile;
+			}
 
 			// Seek to the end of written data so we don't clobber any data in subsequent write 
 			// operations

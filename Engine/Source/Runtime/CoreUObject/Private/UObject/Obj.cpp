@@ -984,6 +984,11 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 #else 
 		const bool bBreakSerializationRecursion = false;
 #endif
+#if WITH_EDITOR
+		static const FName NAME_SerializeScriptProperties = FName(TEXT("SerializeScriptProperties"));
+		FArchive::FScopeAddDebugData P(Ar, NAME_SerializeScriptProperties);
+		FArchive::FScopeAddDebugData S(Ar, ObjClass->GetFName());
+#endif
 		ObjClass->SerializeTaggedProperties(Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? ObjClass->GetSuperClass() : ObjClass, (uint8*)DiffObject, bBreakSerializationRecursion ? this : NULL);
 	}
 	else if ( Ar.GetPortFlags() != 0 )

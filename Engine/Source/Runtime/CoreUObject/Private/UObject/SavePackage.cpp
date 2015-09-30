@@ -6,6 +6,7 @@
 #include "TargetPlatform.h"
 #include "UObject/UObjectThreadContext.h"
 #include "BlueprintSupport.h"
+#include "DebugSerializationFlags.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -3158,6 +3159,78 @@ struct FImportReplacementsHelper
 
 #endif
 
+#if WITH_EDITOR
+
+class FDiffSerializeArchive : public FBufferArchive
+{
+private:
+	FArchive *TestArchive;
+	TArray<FName> DebugDataStack;
+	bool bDisable;
+public:
+
+
+	FDiffSerializeArchive(const FName& InFilename, FArchive *InTestArchive) : FBufferArchive(true, InFilename), TestArchive(InTestArchive)
+	{ 
+		ArDebugSerializationFlags = DSF_IgnoreDiff;
+		bDisable = false;
+	}
+
+	virtual void Serialize(void* Data, int64 Num) override
+	{
+		TArray<int8> TestMemory;
+
+		if (TestArchive)
+		{
+			int64 Pos = FMath::Min(FBufferArchive::Tell(), TestArchive->TotalSize());
+			TestArchive->Seek(Pos);
+			TestMemory.AddZeroed(Num);
+			int64 ReadSize = FMath::Min(Num, TestArchive->TotalSize() - Pos);
+			TestArchive->Serialize((void*)TestMemory.GetData(), ReadSize);
+
+			if (!(ArDebugSerializationFlags&DSF_IgnoreDiff) && (!bDisable))
+			{
+				if (FMemory::Memcmp((void*)TestMemory.GetData(), Data, Num) != 0)
+				{
+					// get the calls debug callstack and 
+					FString DebugStackString;
+					for (const auto& DebugData : DebugDataStack)
+					{
+						DebugStackString += DebugData.ToString();
+						DebugStackString += TEXT("->");
+					}
+
+					UE_LOG(LogSavePackage, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *ArchiveName.ToString(), *DebugStackString);
+
+					// only log one message per archive, from this point the entire package is probably messed up
+					bDisable = true;
+
+					static int i = 0;
+					i++;
+				}
+			}
+		}
+		FBufferArchive::Serialize(Data, Num);
+	}
+
+	virtual void PushDebugDataString(const FName& DebugData) override
+	{
+		DebugDataStack.Add(DebugData);
+	}
+	virtual void PopDebugDataString() override
+	{
+		DebugDataStack.Pop();
+	}
+
+	virtual FString GetArchiveName() const override
+	{
+		return TestArchive->GetArchiveName();
+	}
+};
+
+#endif
+
+
 ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
 	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
@@ -3448,6 +3521,25 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 				FLinkerSave* Linker = nullptr;
 				
+#if WITH_EDITOR
+				FString DiffCookedPackagesPath;
+				// if we are cooking and we have diff cooked packages on the commandline then do some special stuff
+
+				if ((!!TargetPlatform) && FParse::Value(FCommandLine::Get(), TEXT("DiffCookedPackages="), DiffCookedPackagesPath))
+				{
+					FString TestArchiveFilename = Filename;
+					// TestArchiveFilename.ReplaceInline(TEXT("Cooked"), TEXT("CookedDiff"));
+					DiffCookedPackagesPath.ReplaceInline(TEXT("\\"), TEXT("/"));
+					FString CookedPath = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() + TEXT("Cooked/"));
+					CookedPath.ReplaceInline(TEXT("\\"), TEXT("/"));
+					TestArchiveFilename.ReplaceInline(*CookedPath, *DiffCookedPackagesPath);
+					
+					FArchive* TestArchive = IFileManager::Get().CreateFileReader(*TestArchiveFilename); 
+					FArchive* Saver = new FDiffSerializeArchive(InOuter->FileName, TestArchive);
+					Linker = new FLinkerSave(InOuter, Saver, bForceByteSwapping);
+				}
+				else 
+#endif
 				if (bCompressFromMemory || bSaveAsync)
 				{
 					// Allocate the linker with a memory writer, forcing byte swapping if wanted.
@@ -3458,6 +3550,14 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					// Allocate the linker, forcing byte swapping if wanted.
 					Linker = new FLinkerSave(InOuter, *TempFilename, bForceByteSwapping, bSaveUnversioned);
 				}
+
+
+#if WITH_EDITOR
+				if (!!TargetPlatform)
+				{
+					Linker->SetDebugSerializationFlags(DSF_EnableCookerWarnings | Linker->GetDebugSerializationFlags());
+				}
+#endif
 
 				// Use the custom versions we had previously gleaned from the export tag pass
 				Linker->Summary.SetCustomVersionContainer(ExportTaggerArchive.GetCustomVersions());
@@ -4320,6 +4420,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				UE_LOG_COOK_TIME(TEXT("SaveThumbNailsAssetRegistryDataWorldLevelInfo"));
 				
 				{
+#if WITH_EDITOR
+					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+#endif
 					FScopedSlowTask ExportScope(Linker->ExportMap.Num());
 
 					// Save exports.

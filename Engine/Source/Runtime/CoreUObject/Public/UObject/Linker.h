@@ -2183,6 +2183,8 @@ public:
 	FLinkerSave(UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	/** Constructor for memory writer */
 	FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
+	/** Constructor for custom savers */
+	FLinkerSave(UPackage* InParent, FArchive *InSaver, bool bForceByteSwapping, bool bInSaveUnversioned = false);
 
 	/** Returns the appropriate name index for the source name, or 0 if not found in NameIndices */
 	int32 MapName(const FName& Name) const;
@@ -2195,6 +2197,15 @@ public:
 	FArchive& operator<<( UObject*& Obj );
 	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
 	FArchive& operator<<( FAssetPtr& AssetPtr );
+
+#if WITH_EDITOR
+	// proxy for debugdata
+	virtual void PushDebugDataString(const FName& DebugData) override { Saver->PushDebugDataString(DebugData); }
+	virtual void PopDebugDataString() override { Saver->PopDebugDataString(); }
+#endif
+
+
+	virtual FString GetArchiveName() const override;
 
 	/**
 	 * If this archive is a FLinkerLoad or FLinkerSave, returns a pointer to the FLinker portion.

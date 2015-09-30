@@ -9,6 +9,8 @@
 #include "VertexFactory.h"
 #include "RHICommandList.h"
 
+#include "DebugSerializationFlags.h"
+
 uint32 FVertexFactoryType::NextHashIndex = 0;
 bool FVertexFactoryType::bInitializedSerializationHistory = false;
 
@@ -347,8 +349,12 @@ bool operator<<(FArchive& Ar,FVertexFactoryParameterRef& Ref)
 
 	// Need to be able to skip over parameters for no longer existing vertex factories.
 	int32 SkipOffset = Ar.Tell();
-	// Write placeholder.
-	Ar << SkipOffset;
+	{
+		FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+		// Write placeholder.
+		Ar << SkipOffset;
+	}
+
 
 	if(Ref.Parameters)
 	{

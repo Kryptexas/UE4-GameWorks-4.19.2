@@ -24,6 +24,8 @@ enum
 #include "ImageCore.h"
 #include "Engine/TextureCube.h"
 
+#include "DebugSerializationFlags.h"
+
 /*------------------------------------------------------------------------------
 	Versioning for texture derived data.
 ------------------------------------------------------------------------------*/
@@ -1901,7 +1903,12 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 				Ar << PixelFormatName;
 				int32 SkipOffsetLoc = Ar.Tell();
 				int32 SkipOffset = 0;
-				Ar << SkipOffset;
+
+				{
+					FArchive::FScopeSetDebugSerializationFlags S(Ar,DSF_IgnoreDiff);
+					Ar << SkipOffset;
+				}
+
 				// Pass streamable flag for inlining mips
 				PlatformDataToSave->SerializeCooked(Ar, this, BuildSettings.bStreamable);
 				SkipOffset = Ar.Tell();

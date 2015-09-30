@@ -13,6 +13,10 @@
 // For FShaderUniformBufferParameter
 #include "ShaderParameters.h"
 
+#if WITH_EDITOR
+#include "DebugSerializationFlags.h"
+#endif
+
 class FShaderType;
 class FVertexFactoryParameterRef;
 
@@ -1133,10 +1137,15 @@ public:
 				checkSlow(FName(Type->GetName()) != NAME_None);
 
 				Ar << Type;
-
 				int32 SkipOffset = Ar.Tell();
-				// Serialize a placeholder value, we will overwrite this with an offset to the end of the shader
-				Ar << SkipOffset;
+
+				{
+#if WITH_EDITOR
+					FArchive::FScopeSetDebugSerializationFlags S(Ar,DSF_IgnoreDiff);
+#endif
+					// Serialize a placeholder value, we will overwrite this with an offset to the end of the shader
+					Ar << SkipOffset;
+				}
 
 				if (bHandleShaderKeyChanges)
 				{

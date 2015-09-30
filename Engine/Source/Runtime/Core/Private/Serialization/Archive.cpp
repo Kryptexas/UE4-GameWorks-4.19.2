@@ -95,6 +95,9 @@ void FArchive::Reset()
 #if WITH_EDITORONLY_DATA
 	EditorOnlyPropertyStack = 0;
 #endif
+#if WITH_EDITOR
+	ArDebugSerializationFlags			= 0;
+#endif
 	// Reset all custom versions to the current registered versions.
 	ResetCustomVersions();
 }
@@ -148,6 +151,17 @@ FString FArchive::GetArchiveName() const
 {
 	return TEXT("FArchive");
 }
+
+#if WITH_EDITOR
+FArchive::FScopeAddDebugData::FScopeAddDebugData(FArchive& InAr, const FName& DebugData) : Ar(InAr)
+{
+	Ar.PushDebugDataString(DebugData);
+}
+
+void FArchive::PushDebugDataString(const FName& DebugData)
+{
+}
+#endif
 
 FArchive& FArchive::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 {

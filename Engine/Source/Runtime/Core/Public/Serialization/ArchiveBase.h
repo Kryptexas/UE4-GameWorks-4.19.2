@@ -700,6 +700,15 @@ public:
 		return ((ArPortFlags & Flags) == Flags);
 	}
 
+	FORCEINLINE uint32 GetDebugSerializationFlags() const
+	{
+#if WITH_EDITOR
+		return ArDebugSerializationFlags;
+#else
+		return 0;
+#endif
+	}
+
 	FORCEINLINE bool ShouldSkipBulkData() const
 	{
 		return ArShouldSkipBulkData;
@@ -798,6 +807,18 @@ public:
 	void SetPortFlags(uint32 InPortFlags)
 	{
 		ArPortFlags = InPortFlags;
+	}
+
+	/**
+	 * Sets the archives custom serialization modifier flags (nothing to do with PortFlags or Custom versions)
+	 * 
+	 * @param InCustomFlags the new flags to use for custom serialization
+	 */
+	void SetDebugSerializationFlags(uint32 InCustomFlags)
+	{
+#if WITH_EDITOR
+		ArDebugSerializationFlags = InCustomFlags;
+#endif
 	}
 
 	/**
@@ -1044,9 +1065,72 @@ public:
 			
 	/** Max size of data that this archive is allowed to serialize. */
 	int64 ArMaxSerializeSize;
-	
-private:
 
+	class FScopeSetDebugSerializationFlags
+	{
+	private:
+#if WITH_EDITOR
+		uint32 PreviousFlags;
+		FArchive& Ar;
+#endif
+	public:
+		/**
+		 * Initializes an object which will set flags for the scope of this code
+		 * 
+		 * @param NewFlags new flags to set 
+		 * @param Remove should we add these flags or remove them default is to add
+		 */
+#if WITH_EDITOR
+		FScopeSetDebugSerializationFlags(FArchive& InAr, uint32 NewFlags, bool Remove = false)
+			: Ar(InAr)
+		{
+
+			PreviousFlags = Ar.GetDebugSerializationFlags();
+			if (Remove)
+			{
+				Ar.SetDebugSerializationFlags( PreviousFlags & ~NewFlags);
+			}
+			else
+			{
+				Ar.SetDebugSerializationFlags( PreviousFlags | NewFlags);
+			}
+
+		}
+		~FScopeSetDebugSerializationFlags()
+		{
+
+			Ar.SetDebugSerializationFlags( PreviousFlags);
+		}
+#else
+		FScopeSetDebugSerializationFlags(FArchive& InAr, uint32 NewFlags, bool Remove = false)
+		{}
+		~FScopeSetDebugSerializationFlags()
+		{}
+#endif
+	};
+
+#if WITH_EDITOR
+	/** Custom serialization modifier flags can be used for anything */
+	uint32 ArDebugSerializationFlags;
+	/** Debug stack storage if you want to add data to the archive for usage further down the serialization stack this should be used in conjunction with the FScopeAddDebugData struct */
+	
+	virtual void PushDebugDataString(const FName& DebugData);
+	virtual void PopDebugDataString() { }
+
+	class FScopeAddDebugData
+	{
+	private:
+		FArchive& Ar;
+	public:
+		CORE_API FScopeAddDebugData(FArchive& InAr, const FName& DebugData);
+
+		~FScopeAddDebugData()
+		{
+			Ar.PopDebugDataString();
+		}
+	};
+#endif	
+private:
 	/** Holds the cooking target platform. */
 	const ITargetPlatform* CookingTargetPlatform;
 
@@ -1209,7 +1293,16 @@ public:
 	{
 		return InnerArchive.IsCloseComplete(bHasError);
 	}
-
+#if WITH_EDITOR
+	virtual void PushDebugDataString(const FName& DebugData) override
+	{
+		InnerArchive.PushDebugDataString(DebugData);
+	}
+	virtual void PopDebugDataString() override
+	{
+		InnerArchive.PopDebugDataString();
+	}
+#endif
 protected:
 
 	/** Holds the archive that this archive is a proxy to. */

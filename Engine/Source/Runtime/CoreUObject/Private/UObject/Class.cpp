@@ -1030,6 +1030,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				FName Name;  
 				Ar << Name;
 				FText Text = FText::FromName(Name);
+				Text.Flags |= ETextFlag::ConvertedProperty;
 				CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
 				AdvanceProperty = true;
 				continue; 
@@ -1375,6 +1376,11 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						{
 							DefaultValue = NULL;
 						}
+#if WITH_EDITOR
+						static const FName NAME_PropertySerialize = FName(TEXT("PropertySerialize"));
+						FArchive::FScopeAddDebugData P(Ar, NAME_PropertySerialize);
+						FArchive::FScopeAddDebugData S(Ar, Property->GetFName());
+#endif
 						FPropertyTag Tag( Ar, Property, Idx, DataPtr, DefaultValue );
 						Ar << Tag;
 
@@ -1445,6 +1451,8 @@ void UStruct::Serialize( FArchive& Ar )
 
 		if (Ar.IsSaving())
 		{
+			FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+
 			Ar << ScriptBytecodeSize;
 
 			int32 ScriptStorageSize = 0;
@@ -1471,8 +1479,8 @@ void UStruct::Serialize( FArchive& Ar )
 
 				// force writing to a buffer
 				TArray<uint8> TempScript;
-				FMemoryWriter MemWriter(TempScript, Ar.IsPersistent());
-				LinkerSave->Saver = &MemWriter;
+					FMemoryWriter MemWriter(TempScript, Ar.IsPersistent());
+					LinkerSave->Saver = &MemWriter;
 
 				// now, use the linker to save the byte code, but writing to memory
 				while (iCode < ScriptBytecodeSize)
@@ -1480,11 +1488,11 @@ void UStruct::Serialize( FArchive& Ar )
 					SerializeExpr(iCode, Ar);
 				}
 
-				// restore the saver
-				LinkerSave->Saver = SavedSaver;
+					// restore the saver
+					LinkerSave->Saver = SavedSaver;
 
-				// now write out the memory bytes
-				Ar.Serialize(TempScript.GetData(), TempScript.Num());
+					// now write out the memory bytes
+					Ar.Serialize(TempScript.GetData(), TempScript.Num());
 
 				// and update the SHA (does nothing if not currently calculating SHA)
 				LinkerSave->UpdateScriptSHAKey(TempScript);
@@ -1504,6 +1512,8 @@ void UStruct::Serialize( FArchive& Ar )
 
 			if (Ar.IsSaving())
 			{
+				FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+
 				int32 const BytecodeEndOffset = Ar.Tell();
 
 				// go back and write on-disk size
