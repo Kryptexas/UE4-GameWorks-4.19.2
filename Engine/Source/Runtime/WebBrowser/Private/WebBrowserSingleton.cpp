@@ -113,6 +113,7 @@ namespace {
 }
 
 FWebBrowserSingleton::FWebBrowserSingleton()
+	: bDevToolsShortcutEnabled(UE_BUILD_DEBUG)
 {
 #if WITH_CEF3
 	// The FWebBrowserSingleton must be initialized on the game thread
@@ -337,6 +338,60 @@ FString FWebBrowserSingleton::GetCurrentLocaleCode()
 	}
 	return LocaleCode;
 }
+
+#if WITH_CEF3
+namespace
+{
+	// Task for executing a callback on a given thread.
+	class FDeleteCookiesNotificationTask
+		: public CefTask
+	{
+		TFunction<void (int)> Callback;
+		int Value;
+	public:
+		FDeleteCookiesNotificationTask(const TFunction<void (int)>& InCallback, int InValue)
+			: Callback(InCallback)
+			, Value(InValue)
+		{}
+
+		virtual void Execute() override
+		{
+			Callback(Value);
+		}
+
+		IMPLEMENT_REFCOUNTING(FDeleteCookiesNotificationTask);
+
+	};
+
+	// Callback that will invoke the callback with the result on the UI thread.
+	class FDeleteCookiesFunctionCallback
+		: public CefDeleteCookiesCallback
+	{
+		TFunction<void (int)> Callback;
+	public:
+		FDeleteCookiesFunctionCallback(const TFunction<void (int)>& InCallback)
+			: Callback(InCallback)
+		{}
+
+		virtual void OnComplete(int NumDeleted) override
+		{
+			// We're on the IO thread, so we'll have to schedule the callback on the main thread
+			CefPostTask(TID_UI, new FDeleteCookiesNotificationTask(Callback, NumDeleted));
+		}
+
+		IMPLEMENT_REFCOUNTING(FDeleteCookiesFunctionCallback);
+	};
+}
+#endif
+
+void FWebBrowserSingleton::DeleteBrowserCookies(FString URL, FString CookieName, TFunction<void (int)> Completed)
+{
+#if WITH_CEF3
+	CefRefPtr<FDeleteCookiesFunctionCallback> Callback = Completed ? new FDeleteCookiesFunctionCallback(Completed) : nullptr;
+	CefCookieManager::GetGlobalManager(nullptr)->DeleteCookies(*URL, *CookieName, Callback);
+#endif
+}
+
 
 // Cleanup macros to avoid having them leak outside this source file
 #undef CEF3_BIN_DIR

@@ -50,4 +50,37 @@ public:
 		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
 		bool ShowErrorMessage = true,
 		FColor BackgroundColor = FColor(255, 255, 255, 255)) = 0;
+
+	/**
+	 * Delete all browser cookies.
+	 *
+	 * Removes all matching cookies. Leave both URL and CookieName blank to delete the entire cookie database.
+	 * The actual deletion will be scheduled on the browser IO thread, so the operation may not have completed when the function returns.
+	 *
+	 * @param URL The base URL to match when searching for cookies to remove. Use blank to match all URLs.
+	 * @param CookieName The name of the cookie to delete. If left unspecified, all cookies will be removed.
+	 * @param Completed A callback function that will be invoked asynchronously on the game thread when the deletion is complete passing in the number of deleted objects.
+	 */
+	virtual void DeleteBrowserCookies(FString URL = TEXT(""), FString CookieName = TEXT(""), TFunction<void (int)> Completed = nullptr) = 0;
+
+	/**
+	 * Enable or disable CTRL/CMD-SHIFT-I shortcut to show the Chromium Dev tools window.
+	 * The value defaults to true on debug builds, otherwise false.
+	 *
+	 * The relevant handlers for spawning new browser windows have to be set up correctly in addition to this flag being true before anything is shown.
+	 *
+	 * @param Value a boolean value to enable or disable the keyboard shortcut.
+	 */
+	virtual void SetDevToolsShortcutEnabled(bool Value) = 0;
+
+
+	/**
+	 * Returns wether the CTRL/CMD-SHIFT-I shortcut to show the Chromium Dev tools window is enabled.
+	 *
+	 * The relevant handlers for spawning new browser windows have to be set up correctly in addition to this flag being true before anything is shown.
+	 *
+	 * @return a boolean value indicating whether the keyboard shortcut is enabled or not.
+	 */
+	virtual bool IsDevToolsShortcutEnabled() = 0;
+
 };

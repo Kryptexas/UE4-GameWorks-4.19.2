@@ -64,6 +64,17 @@ public:
 		bool ShowErrorMessage = true,
 		FColor BackgroundColor = FColor(255, 255, 255, 255)) override;
 
+	virtual void DeleteBrowserCookies(FString URL = TEXT(""), FString CookieName = TEXT(""), TFunction<void (int)> Completed = nullptr) override;
+
+	virtual bool IsDevToolsShortcutEnabled() override
+	{
+		return bDevToolsShortcutEnabled;
+	}
+
+	virtual void SetDevToolsShortcutEnabled(bool Value) override
+	{
+		bDevToolsShortcutEnabled = Value;
+	}
 
 public:
 
@@ -80,4 +91,5 @@ private:
 	/** List of currently existing browser windows */
 	TArray<TWeakPtr<FWebBrowserWindow>>	WindowInterfaces;
 #endif
+	bool bDevToolsShortcutEnabled;
 };

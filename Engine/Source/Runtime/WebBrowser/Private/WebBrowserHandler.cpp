@@ -2,7 +2,9 @@
 
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserHandler.h"
+#include "WebBrowserModule.h"
 #include "WebBrowserWindow.h"
+#include "IWebBrowserSingleton.h"
 #include "WebBrowserSingleton.h"
 #include "WebBrowserPopupFeatures.h"
 #include "SlateApplication.h"
@@ -11,8 +13,7 @@
 
 #if WITH_CEF3
 FWebBrowserHandler::FWebBrowserHandler()
-{
-}
+{ }
 
 void FWebBrowserHandler::OnTitleChange(CefRefPtr<CefBrowser> Browser, const CefString& Title)
 {
@@ -396,20 +397,19 @@ bool FWebBrowserHandler::OnKeyEvent(CefRefPtr<CefBrowser> Browser,
 	const CefKeyEvent& Event,
 	CefEventHandle OsEvent)
 {
-#if UE_BUILD_DEBUG
-	// Show dev tools on CMD/CTRL+ALT+I
+	// Show dev tools on CMD/CTRL+SHIFT+I
 	if( (Event.type == KEYEVENT_RAWKEYDOWN || Event.type == KEYEVENT_KEYDOWN) &&
 #if PLATFORM_MAC
 		(Event.modifiers == (EVENTFLAG_COMMAND_DOWN | EVENTFLAG_SHIFT_DOWN)) &&
 #else
 		(Event.modifiers == (EVENTFLAG_CONTROL_DOWN | EVENTFLAG_SHIFT_DOWN)) &&
 #endif
-		(Event.unmodified_character == 'i' || Event.unmodified_character == 'I')
+		(Event.unmodified_character == 'i' || Event.unmodified_character == 'I') &&
+		IWebBrowserModule::Get().GetSingleton()->IsDevToolsShortcutEnabled()
 	  )
 	{
 		return ShowDevTools(Browser);
 	}
-#endif
 
 #if PLATFORM_MAC
 	// We need to handle standard Copy/Paste/etc... shortcuts on OS X

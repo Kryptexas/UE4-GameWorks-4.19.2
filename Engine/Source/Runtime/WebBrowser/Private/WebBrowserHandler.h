@@ -66,7 +66,6 @@ public:
 		BrowserPopupFeatures = InPopupFeatures;
 	}
 
-
 public:
 
 	// CefClient Interface
