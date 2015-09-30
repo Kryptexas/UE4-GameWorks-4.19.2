@@ -682,7 +682,7 @@ bool FQueuedHttpRequestAddEvent::PreProcess( const FString& ServerURL, const FSt
 	}
 
 	// Now that we have the session name, we can set the URL
-	Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *Meta ) );
+	Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
 
 	return true;
 }
