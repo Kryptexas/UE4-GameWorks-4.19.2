@@ -23,19 +23,24 @@ namespace ICUUtilities
 
 	void FStringConverter::ConvertString(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate)
 	{
-		if (Source.Len() > 0)
+		ConvertString(*Source, 0, Source.Len(), Destination, ShouldNullTerminate);
+	}
+
+	void FStringConverter::ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, icu::UnicodeString& Destination, const bool ShouldNullTerminate)
+	{
+		if (SourceLen > 0)
 		{
 			UErrorCode ICUStatus = U_ZERO_ERROR;
 
 			ucnv_reset(ICUConverter);
 
 			// Get the internal buffer of the string, we're going to use it as scratch space
-			const int32_t DestinationCapacityUChars = Source.Len() * 2;
+			const int32_t DestinationCapacityUChars = SourceLen * 2;
 			UChar* InternalStringBuffer = Destination.getBuffer(DestinationCapacityUChars);
 
 			// Perform the conversion into the string buffer
-			const int32_t SourceSizeBytes = Source.Len() * sizeof(TCHAR);
-			const int32_t DestinationLength = ucnv_toUChars(ICUConverter, InternalStringBuffer, DestinationCapacityUChars, reinterpret_cast<const char*>(*Source), SourceSizeBytes, &ICUStatus);
+			const int32_t SourceSizeBytes = SourceLen * sizeof(TCHAR);
+			const int32_t DestinationLength = ucnv_toUChars(ICUConverter, InternalStringBuffer, DestinationCapacityUChars, reinterpret_cast<const char*>(Source + SourceStartIndex), SourceSizeBytes, &ICUStatus);
 
 			// Optionally null terminate the string
 			if (ShouldNullTerminate)
@@ -58,6 +63,13 @@ namespace ICUUtilities
 	{
 		icu::UnicodeString Destination;
 		ConvertString(Source, Destination, ShouldNullTerminate);
+		return Destination;
+	}
+
+	icu::UnicodeString FStringConverter::ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, const bool ShouldNullTerminate)
+	{
+		icu::UnicodeString Destination;
+		ConvertString(Source, SourceStartIndex, SourceLen, Destination, ShouldNullTerminate);
 		return Destination;
 	}
 
@@ -111,10 +123,30 @@ namespace ICUUtilities
 		}
 	}
 
+	void ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, icu::UnicodeString& Destination, const bool ShouldNullTerminate)
+	{
+		if (SourceLen > 0)
+		{
+			FStringConverter StringConverter;
+			StringConverter.ConvertString(Source, SourceStartIndex, SourceLen, Destination, ShouldNullTerminate);
+		}
+		else
+		{
+			Destination.remove();
+		}
+	}
+
 	icu::UnicodeString ConvertString(const FString& Source, const bool ShouldNullTerminate)
 	{
 		icu::UnicodeString Destination;
 		ConvertString(Source, Destination, ShouldNullTerminate);
+		return Destination;
+	}
+
+	icu::UnicodeString ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, const bool ShouldNullTerminate)
+	{
+		icu::UnicodeString Destination;
+		ConvertString(Source, SourceStartIndex, SourceLen, Destination, ShouldNullTerminate);
 		return Destination;
 	}
 

@@ -19,7 +19,9 @@ namespace ICUUtilities
 
 		/** Convert FString -> icu::UnicodeString */
 		void ConvertString(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate = true);
+		void ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, icu::UnicodeString& Destination, const bool ShouldNullTerminate = true);
 		icu::UnicodeString ConvertString(const FString& Source, const bool ShouldNullTerminate = true);
+		icu::UnicodeString ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, const bool ShouldNullTerminate = true);
 
 		/** Convert icu::UnicodeString -> FString */
 		void ConvertString(const icu::UnicodeString& Source, FString& Destination);
@@ -35,7 +37,9 @@ namespace ICUUtilities
 
 	/** Convert FString -> icu::UnicodeString */
 	void ConvertString(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate = true);
+	void ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, icu::UnicodeString& Destination, const bool ShouldNullTerminate = true);
 	icu::UnicodeString ConvertString(const FString& Source, const bool ShouldNullTerminate = true);
+	icu::UnicodeString ConvertString(const TCHAR* Source, const int32 SourceStartIndex, const int32 SourceLen, const bool ShouldNullTerminate = true);
 
 	/** Convert icu::UnicodeString -> FString */
 	void ConvertString(const icu::UnicodeString& Source, FString& Destination);
