@@ -868,6 +868,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			return FString(TEXT("nullptr"));
 		}
 	}
+	else if (UEdGraphSchema_K2::PC_Interface == Type.PinCategory)
+	{
+		if (!LiteralObject && CustomValue.IsEmpty())
+		{
+			return FString(TEXT("nullptr"));
+		}
+	}
 	/*
 	else if (CoerceProperty->IsA(UInterfaceProperty::StaticClass()))
 	{
