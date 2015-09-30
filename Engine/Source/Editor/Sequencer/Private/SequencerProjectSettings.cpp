@@ -7,7 +7,7 @@
 // USequencerProjectSettings
 
 USequencerProjectSettings::USequencerProjectSettings()
-	: InFrame(101)
-	, OutFrame(200)
+	: InFrame(1)
+	, Duration(5.f)
 {
 }

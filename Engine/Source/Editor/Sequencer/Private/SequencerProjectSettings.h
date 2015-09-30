@@ -13,12 +13,12 @@ class USequencerProjectSettings : public UObject
 public:
 	USequencerProjectSettings();
 
-	/** The in frame. */
+	/** The default in frame. */
 	UPROPERTY(config, EditAnywhere, Category=Timeline)
 	int32 InFrame;
 
-	/** The out frame. */
+	/** The default duration in seconds. */
 	UPROPERTY(config, EditAnywhere, Category=Timeline)
-	int32 OutFrame;
+	float Duration;
 
 };
