@@ -99,7 +99,7 @@ void FBlueprintCompilerCppBackend::EmitAssignmentStatment(FEmitterLocalContext& 
 
 	FString BeginCast;
 	FString EndCast;
-	FEmitHelper::GenerateAutomaticCast(Statement.LHS->Type, Statement.RHS[0]->Type, BeginCast, EndCast);
+	FEmitHelper::GenerateAutomaticCast(EmitterContext, Statement.LHS->Type, Statement.RHS[0]->Type, BeginCast, EndCast);
 	EmitterContext.AddLine(FString::Printf(TEXT("%s = %s%s%s;"), *DestinationExpression, *BeginCast, *SourceExpression, *EndCast));
 }
 
@@ -391,7 +391,7 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 				check(Schema);
 				if (Schema->ConvertPropertyToPinType(FuncParamProperty, LType))
 				{
-					FEmitHelper::GenerateAutomaticCast(LType, Term->Type, BeginCast, CloseCast);
+					FEmitHelper::GenerateAutomaticCast(EmitterContext, LType, Term->Type, BeginCast, CloseCast);
 				}
 				VarName += BeginCast;
 				VarName += TermToText(EmitterContext, Term);
@@ -432,7 +432,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			check(Schema);
 			if (Schema->ConvertPropertyToPinType(FuncToCallReturnProperty, RType))
 			{
-				FEmitHelper::GenerateAutomaticCast(Statement.LHS->Type, RType, BeginCast, CloseCast);
+				FEmitHelper::GenerateAutomaticCast(EmitterContext, Statement.LHS->Type, RType, BeginCast, CloseCast);
 			}
 			Result += FString::Printf(TEXT("%s = %s"), *TermToText(EmitterContext, Statement.LHS), *BeginCast);
 		}

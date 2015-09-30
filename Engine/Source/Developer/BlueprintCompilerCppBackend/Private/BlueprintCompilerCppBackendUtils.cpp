@@ -955,7 +955,7 @@ bool FEmitHelper::ShouldHandleAsImplementableEvent(UFunction* Function)
 	return false;
 }
 
-bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd)
+bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd)
 {
 	// BYTE to ENUM cast
 	// ENUM to BYTE cast
@@ -983,6 +983,7 @@ bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdG
 	if (LType.PinCategory == UEdGraphSchema_K2::PC_Object)
 	{
 		UClass* LClass = Cast<UClass>(LType.PinSubCategoryObject.Get());
+		LClass = LClass ? EmitterContext.GetFirstNativeOrConvertedClass(LClass) : nullptr;
 		UClass* RClass = Cast<UClass>(RType.PinSubCategoryObject.Get());
 		if (LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 		{
