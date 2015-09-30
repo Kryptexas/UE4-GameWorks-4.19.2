@@ -639,7 +639,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneClicked))
 				, NAME_None
 				, LOCTEXT("SaveDirtyPackages", "Save")
-				, LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current movie scene")
+				, LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current level sequence")
 				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save"));
 
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
