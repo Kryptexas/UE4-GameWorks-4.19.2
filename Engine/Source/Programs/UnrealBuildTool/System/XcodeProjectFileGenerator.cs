@@ -546,7 +546,6 @@ namespace UnrealBuildTool
 			{
 				InfoPlistPath = EngineRelative + "Engine/Intermediate/IOS/" + TargetName + "-Info.plist";
 				Contents.Append(
-					"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tINFOPLIST_FILE = \"" + InfoPlistPath + "\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
@@ -556,7 +555,6 @@ namespace UnrealBuildTool
 			{
 				InfoPlistPath = EngineRelative + "Engine/Intermediate/IOS/UE4Game-Info.plist";
 				Contents.Append(
-					"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tINFOPLIST_FILE = \"" + InfoPlistPath + "\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
@@ -566,7 +564,6 @@ namespace UnrealBuildTool
 			{
 				InfoPlistPath = GamePath + "/Intermediate/IOS/" + TargetName + "-Info.plist";
 				Contents.Append(
-					"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tINFOPLIST_FILE = \"" + InfoPlistPath + "\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
@@ -583,7 +580,6 @@ namespace UnrealBuildTool
 					InfoPlistPath = GamePath + "/Intermediate/IOS/" + TargetName + "-Info.plist";
 				}
 				Contents.Append(
-					"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tINFOPLIST_FILE = \"" + InfoPlistPath + "\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
@@ -640,7 +636,6 @@ namespace UnrealBuildTool
 				"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
 				"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +

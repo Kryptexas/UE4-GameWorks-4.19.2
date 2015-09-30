@@ -528,31 +528,14 @@ namespace iPhonePackager
 
 		protected virtual byte[] CreateCodeResourcesDirectory(string CFBundleExecutable)
 		{
-			// Verify that there is a rules plist
-			string CFBundleResourceSpecification;
-			if (!Info.GetString("CFBundleResourceSpecification", out CFBundleResourceSpecification))
-			{
-				throw new InvalidDataException("Info.plist must contain the key CFBundleResourceSpecification");
-			}
-
 			// Create a rules dict that includes (by wildcard) everything but Info.plist and the rules file
 			Dictionary<string, object> Rules = new Dictionary<string, object>();
 			Rules.Add(".*", true);
 			Rules.Add("^Info.plist", CreateOmittedResource(10));
-			Rules.Add(CFBundleResourceSpecification, CreateOmittedResource(100));
-
-			// Write the rules file out 
-			{
-				Utilities.PListHelper RulesPList = new Utilities.PListHelper();
-				RulesPList.AddKeyValuePair("rules", Rules);
-				string PListString = RulesPList.SaveToString();
-				FileSystem.WriteAllBytes(CFBundleResourceSpecification, Encoding.UTF8.GetBytes(PListString));
-			}
 
 			// Create the full list of files to exclude (some files get excluded by 'magic' even though they aren't listed as special by rules)
 			Dictionary<string, object> TrueExclusionList = new Dictionary<string, object>();
 			TrueExclusionList.Add("Info.plist", null);
-			TrueExclusionList.Add(CFBundleResourceSpecification, null);
 			TrueExclusionList.Add(CFBundleExecutable, null);
 			TrueExclusionList.Add("CodeResources", null);
 			TrueExclusionList.Add("_CodeSignature/CodeResources", null);
@@ -693,17 +676,6 @@ namespace iPhonePackager
 			if (!Info.GetString("CFBundleIdentifier", out CFBundleIdentifier))
 			{
 				throw new InvalidDataException("Info.plist must contain the key CFBundleIdentifier");
-			}
-
-			// Verify there is a resource rules file and make a dummy one if needed.
-			// If it's missing, CreateCodeResourceDirectory can't proceed (the Info.plist is already written to disk at that point)
-			if (!Info.HasKey("CFBundleResourceSpecification"))
-			{
-				// Couldn't find the key, create a dummy one
-				string CFBundleResourceSpecification = "CustomResourceRules.plist";
-				Info.SetString("CFBundleResourceSpecification", CFBundleResourceSpecification);
-
-				Program.Warning("Info.plist was missing the key CFBundleResourceSpecification, creating a new resource rules file '{0}'.", CFBundleResourceSpecification);
 			}
 
 			// Save the Info.plist out

@@ -77,10 +77,6 @@ namespace iPhonePackager
 					" -sdk " + ((Program.Architecture == "-simulator") ? "iphonesimulator" : "iphoneos");
 
 			// sign with the Distribution identity when packaging for distribution
-			if (!Config.bForDistribution)
-			{
-				CmdLine += String.Format(" CODE_SIGN_RESOURCE_RULES_PATH='{0}/CustomResourceRules.plist'", MacStagingRootDir);
-			}
 			if (Config.bUseRPCUtil)
 			{
 				CmdLine += String.Format(" CODE_SIGN_IDENTITY=\\\"{0}\\\"", Config.CodeSigningIdentity);
@@ -239,13 +235,6 @@ namespace iPhonePackager
 					Config.bForDistribution ? "false" : "true"));
 			}
 			
-			
-			// Copy the no sign resource rules file over
-			if (!Config.bForDistribution)
-			{
-				FileOperations.CopyRequiredFile(@"..\..\..\Build\IOS\XcodeSupportFiles\CustomResourceRules.plist", Path.Combine(Config.PCStagingRootDir, "CustomResourceRules.plist"));
-			}
-
 			// Copy the mobile provision file over
 			string CFBundleIdentifier = null;
 			Info.GetString("CFBundleIdentifier", out CFBundleIdentifier);
@@ -408,7 +397,7 @@ namespace iPhonePackager
 
 			case "strip":
 				Program.Log( " ... stripping" );
-				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/strip '" + RemoteExecutablePath + "'";
+				DisplayCommandLine = "/usr/bin/xcrun strip '" + RemoteExecutablePath + "'";
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
