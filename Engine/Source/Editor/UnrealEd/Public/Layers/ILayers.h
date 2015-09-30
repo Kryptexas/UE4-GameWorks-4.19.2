@@ -3,6 +3,8 @@
 
 #include "IFilter.h"
 
+class FLevelEditorViewportClient;
+
 namespace ELayersAction
 {
 	enum Type

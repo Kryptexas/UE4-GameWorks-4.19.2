@@ -11,8 +11,6 @@
 #include "KismetEditorUtilities.h"
 #endif
 
-#include "KismetEditorUtilities.h"
-
 DEFINE_LOG_CATEGORY(LogHotReload);
 
 #define LOCTEXT_NAMESPACE "HotReload"
