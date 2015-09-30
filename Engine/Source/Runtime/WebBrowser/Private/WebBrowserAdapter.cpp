@@ -3,8 +3,8 @@
 #include "WebBrowserPrivatePCH.h"
 #include "IWebBrowserAdapter.h"
 #include "IWebBrowserWindow.h"
+#include "CoreUObject.h"
 #include "GCObject.h"
-#include "UObjectGlobals.h"
 
 class FDefaultWebBrowserAdapter
 	: public IWebBrowserAdapter
