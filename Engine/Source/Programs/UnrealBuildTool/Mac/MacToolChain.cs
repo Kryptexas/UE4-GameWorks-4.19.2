@@ -149,6 +149,12 @@ namespace UnrealBuildTool
 				Result += " -gdwarf-2";
 			}
 
+			string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+			if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+			{
+				Result += " --analyze";
+			}
+
 			return Result;
 		}
 
@@ -435,7 +441,7 @@ namespace UnrealBuildTool
 			return 0;
 		}
 
-		private string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
+		public static string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
 		{
 			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string EngineVersionMajor = "4";

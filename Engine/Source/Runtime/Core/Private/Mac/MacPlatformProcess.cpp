@@ -865,7 +865,7 @@ void FMacPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* F
 	UE_LOG(LogMac, Log,  TEXT("LaunchFileInExternalEditor %s %s"), FileName, Parms ? Parms : TEXT("") );
 	CFStringRef CFFileName = FPlatformString::TCHARToCFString( FileName );
 	NSString* FileToOpen = ( NSString* )CFFileName;
-	if( [[FileToOpen lastPathComponent] isEqualToString: @"project.pbxproj"] )
+	if( [[FileToOpen lastPathComponent] isEqualToString: @"project.pbxproj"] || [[FileToOpen lastPathComponent] isEqualToString: @"contents.xcworkspacedata"] )
 	{
 		// Xcode project is a special case where we don't open the project file itself, but the .xcodeproj folder containing it
 		FileToOpen = [FileToOpen stringByDeletingLastPathComponent];

@@ -1002,7 +1002,7 @@ namespace UnrealBuildTool
 						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
 						                " -project \"" + Project + "\"" +
 						                " -configuration " + Target.Configuration +
-						                " -scheme '" + AppName + " - iOS'" +
+						                " -scheme '" + AppName + "'" +
 						                " -sdk iphoneos" +
 						                " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 
