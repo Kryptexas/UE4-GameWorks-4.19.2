@@ -963,8 +963,8 @@ FORCEINLINE void VectorQuaternionMultiply( void* RESTRICT Result, const void* RE
 // Returns true if the vector contains a component that is either NAN or +/-infinite.
 inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 {
-	bool IsNotNAN = _mm_movemask_ps(_mm_cmpeq_ps(Vec, Vec)) != 0; // Test for the fact that NAN != NAN
-
+	bool IsNotNAN = _mm_movemask_ps(_mm_cmpneq_ps(Vec, Vec)) == 0; // Test for the fact that NAN != NAN
+	
 	// Test for infinity, technique "stolen" from DirectXMathVector.inl
 
 	// Mask off signs
