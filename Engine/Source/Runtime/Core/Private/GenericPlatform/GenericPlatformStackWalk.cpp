@@ -133,13 +133,5 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 		FCStringAnsi::Strcat( HumanReadableString, HumanReadableStringSize, LINE_TERMINATOR_ANSI );
 		CurrentDepth++;
 	}
-	if (FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")) && FParse::Param(FCommandLine::Get(), TEXT("stdout")))
-	{
-		FPlatformMisc::LowLevelOutputDebugString(ANSI_TO_TCHAR(HumanReadableString));
-		wprintf(TEXT("\nbegin: stack for UAT"));
-		wprintf(TEXT("\n%s"), ANSI_TO_TCHAR(HumanReadableString));
-		wprintf(TEXT("\nend: stack for UAT"));
-		fflush(stdout);
-	}
 }
 
