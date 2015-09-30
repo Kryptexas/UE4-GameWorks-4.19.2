@@ -7265,6 +7265,20 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				MessageY += 20;
 			}
 			
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
+			{
+				auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
+				if (MemOver > 0)
+				{
+					SmallTextItem.SetColor(FLinearColor::Red);
+					SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
+					Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+					MessageY += 20;
+				}
+			}
+#endif
+
 			// check navmesh
 #if WITH_EDITOR
 			const bool bIsNavigationAutoUpdateEnabled = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
