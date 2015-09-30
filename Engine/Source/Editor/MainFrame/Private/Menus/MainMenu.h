@@ -120,4 +120,14 @@ private:
 	{
 		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("MergeActors")));
 	}
+	
+	
+	/**
+	* Opens the 'Device Output Log' tab.
+	* Remove this when it is no longer experimental.
+	*/
+	static void OpenDeviceOutputLog()
+	{
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("DeviceOutputLog")));
+	}
 };
