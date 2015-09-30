@@ -201,11 +201,6 @@ struct FObjectExport : public FObjectResource
 	EObjectFlags	ObjectFlags;
 
 	/**
-	 * Force this export to not load, it failed because the outer didn't exist.
-	 */
-	bool         	bExportLoadFailed;
-
-	/**
 	 * The number of bytes to serialize when saving/loading this export's UObject.
 	 * Serialized
 	 */
@@ -262,6 +257,24 @@ struct FObjectExport : public FObjectResource
 	 */
 	bool			bNotForServer;
 
+	/**
+	* whether the export should be always loaded in editor game
+	* False means that the object is necessary for editor game,
+	* True doesn't means, that the object won't be loaded.
+	* Serialized
+	*/
+	bool			bNotForEditorGame;
+
+	/**
+	* True if this export is an asset object.
+	*/
+	bool			bIsAsset;
+
+	/**
+	* Force this export to not load, it failed because the outer didn't exist.
+	*/
+	bool			bExportLoadFailed;
+
 	/** If this object is a top level package (which must have been forced into the export table via OBJECTMARK_ForceTagExp)
 	 * this is the GUID for the original package file
 	 * Serialized
@@ -273,14 +286,6 @@ struct FObjectExport : public FObjectResource
 	 * Serialized
 	 */
 	uint32			PackageFlags;
-
-	/**
-	 * whether the export should be always loaded in editor game
-	 * False means that the object is necessary for editor game,
-	 * True doesn't means, that the object won't be loaded.
-	 * Serialized
-	 */
-	bool			bNotForEditorGame;
 
 	/**
 	 * Constructors
@@ -790,7 +795,8 @@ public:
 		{
 			return Exp(Index);
 		}
-	}	/**
+	}	
+	/**
 	 * Return an import or export for this index
 	 * @param	Index	Package index to get
 	 * @return	the resource corresponding to this index, or NULL if the package index is null
