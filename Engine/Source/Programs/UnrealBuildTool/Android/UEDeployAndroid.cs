@@ -1238,6 +1238,9 @@ namespace UnrealBuildTool.Android
 					Text.AppendLine("\t\t\t" + Line);
 				}
 			}
+
+			// add plugin Activity additions HERE
+	
 			Text.AppendLine("\t\t</activity>");
 
             // For OBB download support
@@ -1285,6 +1288,8 @@ namespace UnrealBuildTool.Android
 					Text.AppendLine("\t\t" + Line);
 				}
 			}
+
+			// add plugin Application additions HERE
 
             // Required for OBB download support
             Text.AppendLine("\t\t<service android:name=\"OBBDownloaderService\" />");
@@ -1345,7 +1350,40 @@ namespace UnrealBuildTool.Android
 					}
 				}
 			}
+
+			// add plugin Requirements additions HERE
+
 			Text.AppendLine("</manifest>");
+
+			// allow plugins to modify final manifest HERE
+
+			return Text.ToString();
+		}
+
+		private string GenerateProguard(string EngineSourcePath, string GameBuildFilesPath)
+		{
+			StringBuilder Text = new StringBuilder();
+
+			string ProguardFile = Path.Combine(EngineSourcePath, "proguard-project.txt");
+			if (File.Exists(ProguardFile))
+			{
+				foreach (string Line in File.ReadAllLines(ProguardFile))
+				{
+					Text.AppendLine(Line);
+				}
+			}
+
+			string ProguardAdditionsFile = Path.Combine(GameBuildFilesPath, "ProguardAdditions.txt");
+			if (File.Exists(ProguardAdditionsFile))
+			{
+				foreach (string Line in File.ReadAllLines(ProguardAdditionsFile))
+				{
+					Text.AppendLine(Line);
+				}
+			}
+
+			// add plugin additions HERE
+
 			return Text.ToString();
 		}
 
@@ -1420,6 +1458,14 @@ namespace UnrealBuildTool.Android
             {
                 WriteJavaOBBDataFile(UE4OBBDataFileName, PackageName, new List<string> { ObbFileLocation });
             }
+
+			// Make sure any existing proguard file in project is NOT used (back it up)
+			string ProjectBuildProguardFile = Path.Combine(GameBuildFilesPath, "proguard-project.txt");
+			if (File.Exists(ProjectBuildProguardFile))
+			{
+				string ProjectBackupProguardFile = Path.Combine(GameBuildFilesPath, "proguard-project.backup");
+				File.Move(ProjectBuildProguardFile, ProjectBackupProguardFile);
+			}
 
             WriteJavaDownloadSupportFiles(UE4DownloadShimFileName, templates, new Dictionary<string, string>{
                 { "$$GameName$$", ProjectName },
@@ -1607,6 +1653,15 @@ namespace UnrealBuildTool.Android
 			CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);	
+
+			// Generate the Proguard file contents and write it
+			string ProguardContents = GenerateProguard(UE4BuildFilesPath, GameBuildFilesPath);
+			string ProguardFilename = UE4BuildPath + "/proguard-project.txt";
+			if (File.Exists(ProguardFilename))
+			{
+				File.Delete(ProguardFilename);
+			}
+			File.WriteAllText(ProguardFilename, ProguardContents);
 
 			//Now keep the splash screen images matching orientation requested
 			PickSplashScreenOrientation(UE4BuildPath);

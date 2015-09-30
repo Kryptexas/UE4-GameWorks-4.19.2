@@ -378,7 +378,7 @@ void FAndroidTargetSettingsCustomization::CopySetupFilesIntoProject()
 		}
 
 		// and copy the other files (aren't required)
-		SourceControlHelpers::CopyFileUnderSourceControl(GameProguardPath, EngineProguardPath, LOCTEXT("Proguard", "Proguard Settings"), /*out*/ ErrorMessage);
+		//SourceControlHelpers::CopyFileUnderSourceControl(GameProguardPath, EngineProguardPath, LOCTEXT("Proguard", "Proguard Settings"), /*out*/ ErrorMessage);
 	}
 
 	SavedLayoutBuilder->ForceRefreshDetails();
