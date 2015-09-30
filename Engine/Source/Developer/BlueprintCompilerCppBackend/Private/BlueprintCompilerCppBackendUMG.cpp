@@ -6,37 +6,37 @@
 #include "WidgetAnimation.h"
 #include "WidgetTree.h"
 
-FString FBackendHelperUMG::WidgetFunctionsInHeader(UClass* SourceClass)
+void FBackendHelperUMG::WidgetFunctionsInHeader(FEmitterLocalContext& Context)
 {
-	if (Cast<UWidgetBlueprintGeneratedClass>(SourceClass))
+	if (Cast<UWidgetBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
 	{
-		return FString(TEXT("public:\n\tvirtual void GetSlotNames(TArray<FName>& SlotNames) const override;\n\tvirtual void PreSave() override;\n\tvirtual void CustomNativeInitilize() override;\n"));
+		Context.Header.AddLine(TEXT("virtual void GetSlotNames(TArray<FName>& SlotNames) const override;"));
+		Context.Header.AddLine(TEXT("virtual void PreSave() override;"));
+		Context.Header.AddLine(TEXT("virtual void CustomNativeInitilize() override;"));
 	}
-	return FString();
 }
 
-FString FBackendHelperUMG::AdditionalHeaderIncludeForWidget(UClass* SourceClass)
+void FBackendHelperUMG::AdditionalHeaderIncludeForWidget(FEmitterLocalContext& Context)
 {
-	if (Cast<UWidgetBlueprintGeneratedClass>(SourceClass))
+	if (Cast<UWidgetBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
 	{
-		return FString(TEXT("\n#include \"Runtime/UMG/Public/UMG.h\"\n"));
+		Context.Header.AddLine(TEXT("#include \"Runtime/UMG/Public/UMG.h\""));
 	}
-	return FString();
 }
 
-void FBackendHelperUMG::CreateClassSubobjects(FEmitterLocalContext& Context)
+void FBackendHelperUMG::CreateClassSubobjects(FEmitterLocalContext& Context, bool bCreate, bool bInitialize)
 {
 	if (auto WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
 	{
 		if (WidgetClass->WidgetTree)
 		{
 			ensure(WidgetClass->WidgetTree->GetOuter() == Context.GetCurrentlyGeneratedClass());
-			FEmitDefaultValueHelper::HandleClassSubobject(Context, WidgetClass->WidgetTree, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects);
+			FEmitDefaultValueHelper::HandleClassSubobject(Context, WidgetClass->WidgetTree, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, bCreate, bInitialize);
 		}
 		for (auto Anim : WidgetClass->Animations)
 		{
 			ensure(Anim->GetOuter() == Context.GetCurrentlyGeneratedClass());
-			FEmitDefaultValueHelper::HandleClassSubobject(Context, Anim, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects);
+			FEmitDefaultValueHelper::HandleClassSubobject(Context, Anim, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, bCreate, bInitialize);
 		}
 	}
 }

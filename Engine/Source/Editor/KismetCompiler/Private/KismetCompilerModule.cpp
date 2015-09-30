@@ -132,22 +132,19 @@ void FKismet2CompilerModule::CompileStructure(UUserDefinedStruct* Struct, FCompi
 FString FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	Backend_CPP->GenerateCodeFromEnum(UDEnum);
-	return Backend_CPP->GetHeader();
+	return Backend_CPP->GenerateCodeFromEnum(UDEnum);
 }
 
 FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	Backend_CPP->GenerateCodeFromStruct(UDStruct);
-	return Backend_CPP->GetHeader();
+	return Backend_CPP->GenerateCodeFromStruct(UDStruct);
 }
 
 FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	Backend_CPP->GenerateWrapperForClass(BPGC);
-	return Backend_CPP->GetHeader();
+	return Backend_CPP->GenerateWrapperForClass(BPGC);
 }
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;

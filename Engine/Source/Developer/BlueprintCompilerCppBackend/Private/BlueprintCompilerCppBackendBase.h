@@ -34,29 +34,16 @@ protected:
 
 	TArray<FFunctionLabelInfo> StateMapPerFunction;
 	TMap<FKismetFunctionContext*, int32> FunctionIndexMap;
-
-	FString CppClassName;
-
-	FStringOutputDevice Header;
-	FStringOutputDevice Body;
 public:
 
 	// IBlueprintCompilerCppBackend implementation
-	virtual void GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
-	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) override;
-	virtual void GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) override;
-	virtual void GenerateWrapperForClass(UClass* SourceClass) override;
-
-	virtual const FString& GetBody()	const override { return Body; }
-	virtual const FString& GetHeader()	const override { return Header; }
+	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FString& OutCppBody) override;
+	virtual FString GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) override;
+	virtual FString GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) override;
+	virtual FString GenerateWrapperForClass(UClass* SourceClass) override;
 	// end of IBlueprintCompilerCppBackend implementation
 
 	virtual ~FBlueprintCompilerCppBackendBase() {}
-private:
-	void Emit(FStringOutputDevice& Target, const TCHAR* Message)
-	{
-		Target += Message;
-	}
 
 protected:
 	/*
@@ -73,25 +60,26 @@ protected:
 			}
 
 	*/
-	virtual FString InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState) PURE_VIRTUAL(FBlueprintCompilerCppBackendBase::InnerFunctionImplementation, return FString(););
-
-	void EmitStructProperties(FEmitterLocalContext EmitterContext, UStruct* SourceClass);
-
-	/** Emits local variable declarations for a function */
-	void DeclareLocalVariables(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables);
+	virtual void InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState) PURE_VIRTUAL(FBlueprintCompilerCppBackendBase::InnerFunctionImplementation,);
 	
-	/** Builds both the header declaration and body implementation of a function */
-	void ConstructFunction(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bGenerateStubOnly);
-
-	void EmitFileBeginning(const FString& CleanName, FGatherConvertedClassDependencies* Dependencies, bool bIncludeGeneratedH = true, bool bIncludeCodeHelpersInHeader = false);
-
 	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
 	{
 		int32 Index = FunctionIndexMap.FindChecked(&FunctionContext);
 		return StateMapPerFunction[Index].StatementToStateIndex(Statement);
 	}
 
-	void EmitReplaceConvertedMetaData(UObject* Obj);
+private:
+	/** Builds both the header declaration and body implementation of a function */
+	void ConstructFunction(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bGenerateStubOnly);
 
-	void DeclareDelegates(FEmitterLocalContext EmitterContext, UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions);
+	void CleanBackend();
+
+	static void EmitFileBeginning(const FString& CleanName, FEmitterLocalContext& EmitterContext, bool bIncludeGeneratedH = true, bool bIncludeCodeHelpersInHeader = false);
+
+	static void EmitStructProperties(FEmitterLocalContext& EmitterContext, UStruct* SourceClass);
+
+	/** Emits local variable declarations for a function */
+	static void DeclareLocalVariables(FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables);
+
+	static void DeclareDelegates(FEmitterLocalContext& EmitterContext, TIndirectArray<FKismetFunctionContext>& Functions);
 };

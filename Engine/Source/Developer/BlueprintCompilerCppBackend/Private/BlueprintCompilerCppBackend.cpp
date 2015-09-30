@@ -161,7 +161,7 @@ void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext
 	auto BPGC = Cast<UBlueprintGeneratedClass>(ClassPtr);
 	if (BPGC && !EmitterContext.Dependencies.WillClassBeConverted(BPGC))
 	{
-		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeParent(ClassPtr));
+		const FString NativeClass = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeOrConvertedClass(ClassPtr));
 		const FString TargetClass = EmitterContext.FindGloballyMappedObject(ClassPtr, UClass::StaticClass(), true);
 		EmitterContext.AddLine(FString::Printf(TEXT("%s = NoNativeCast<%s>(%s, %s);"), *CastedValue, *NativeClass, *TargetClass, *ObjectValue));
 	}
@@ -537,7 +537,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 					: Cast<UClass>(Term->Context->Type.PinSubCategoryObject.Get());
 				if (MinimalClass)
 				{
-					MinimalClass = EmitterContext.GetFirstNativeParent(MinimalClass);
+					MinimalClass = EmitterContext.GetFirstNativeOrConvertedClass(MinimalClass);
 					ContextStr += FString::Printf(TEXT("GetDefaultValueSafe<%s>(")
 						, *FEmitHelper::GetCppName(MinimalClass));
 				}
@@ -631,9 +631,8 @@ FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FEmitterLocal
 	return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, StructValues, nullptr);
 }
 
-FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState)
+void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState)
 {
-	EmitterContext.IncreaseIndent();
 	if (bUseSwitchState)
 	{
 		if (FunctionContext.bUseFlowStack)
@@ -786,10 +785,4 @@ FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctio
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(TEXT("} while( CurrentState != -1 );"));
 	}
-
-
-	const FString Result = EmitterContext.GetResult();
-	EmitterContext.ClearResult();
-	EmitterContext.DecreaseIndent();
-	return Result;
 }

@@ -3409,25 +3409,28 @@ void FKismetCompilerContext::Compile()
 		// Generate code thru the backend(s)
 		if ((bDisplayCpp && bIsFullCompile) || CompileOptions.DoesRequireCppCodeGeneration())
 		{
-			TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
+			FString CppSourceCode;
+			FString HeaderSourceCode;
 
-			// The C++ backend is currently only for debugging, so it's only run if the output will be visible
-			Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile);
+			{
+				TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
+				HeaderSourceCode = Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile, CppSourceCode);
+			}
 
 			if (CompileOptions.OutHeaderSourceCode.IsValid())
 			{
-				*CompileOptions.OutHeaderSourceCode = Backend_CPP->GetHeader();
+				*CompileOptions.OutHeaderSourceCode = HeaderSourceCode;
 			}
 
 			if (CompileOptions.OutCppSourceCode.IsValid())
 			{
-				*CompileOptions.OutCppSourceCode = Backend_CPP->GetBody();
+				*CompileOptions.OutCppSourceCode = CppSourceCode;
 			}
 
 			if (bDisplayCpp)
 			{
-				UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *Backend_CPP->GetHeader());
-				UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *Backend_CPP->GetBody());
+				UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *HeaderSourceCode);
+				UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *CppSourceCode);
 			}
 		}
 

@@ -4,17 +4,6 @@
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "EdGraphSchema_K2.h"
 
-FString FEmitterLocalContext::GenerateGetProperty(const UProperty* Property) const
-{
-	check(Property);
-	const UStruct* OwnerStruct = Property->GetOwnerStruct();
-	const FString OwnerName = FEmitHelper::GetCppName(OwnerStruct);
-	const FString OwnerPath = OwnerName + (OwnerStruct->IsA<UClass>() ? TEXT("::StaticClass()") : TEXT("::StaticStruct()"));
-	//return FString::Printf(TEXT("%s->FindPropertyByName(GET_MEMBER_NAME_CHECKED(%s, %s))"), *OwnerPath, *OwnerName, *Property->GetNameCPP());
-
-	return FString::Printf(TEXT("%s->FindPropertyByName(FName(TEXT(\"%s\")))"), *OwnerPath, *FEmitHelper::GetCppName(Property));
-}
-
 FString FEmitterLocalContext::GenerateUniqueLocalName()
 {
 	const FString UniqueNameBase = TEXT("__Local__");
@@ -38,7 +27,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 			return *NamePtr;
 		}
 
-		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetNativeOrConvertedClass(Object->GetClass());
+		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetFirstNativeOrConvertedClass(Object->GetClass());
 		const FString ClassString = FEmitHelper::GetCppName(ObjectClassToUse);
 
 		int32 ObjectsCreatedPerClassIdx = MiscConvertedSubobjects.IndexOfByKey(Object);
@@ -113,7 +102,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 	ensure(!bLoadIfNotFound || Object);
 	if (Object && (bLoadIfNotFound || bTryUsedAssetsList))
 	{
-		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetNativeOrConvertedClass(Object->GetClass());
+		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetFirstNativeOrConvertedClass(Object->GetClass());
 		const FString ClassString = FEmitHelper::GetCppName(ObjectClassToUse);
 
 		if (bTryUsedAssetsList)
@@ -157,7 +146,7 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 	{
 		if (UObject* Object = ObjectPropertyBase->GetObjectPropertyValue(PropertyValue))
 		{
-			const UClass* ActualClass = GetNativeOrConvertedClass(ObjectPropertyBase->PropertyClass);
+			const UClass* ActualClass = GetFirstNativeOrConvertedClass(ObjectPropertyBase->PropertyClass);
 			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))")
 				, *FEmitHelper::GetCppName(ActualClass)
 				, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
@@ -188,7 +177,7 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 			{
 				const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 				const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-				UClass* NativeType = GetFirstNativeParent(BPGC);
+				UClass* NativeType = GetFirstNativeOrConvertedClass(BPGC);
 				ActualCppType = ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, NativeType);
 				ActualCppTypePtr = &ActualCppType;
 				if (!ActualExtendedType.IsEmpty())
@@ -638,9 +627,8 @@ int32 FEmitHelper::ParseDelegateDetails(FEmitterLocalContext& EmitterContext, UF
 	return ParameterNum;
 }
 
-TArray<FString> FEmitHelper::EmitSinglecastDelegateDeclarations(FEmitterLocalContext& EmitterContext, const TArray<UDelegateProperty*>& Delegates)
+void FEmitHelper::EmitSinglecastDelegateDeclarations(FEmitterLocalContext& EmitterContext, const TArray<UDelegateProperty*>& Delegates)
 {
-	TArray<FString> Results;
 	for (auto It : Delegates)
 	{
 		check(It);
@@ -656,16 +644,13 @@ TArray<FString> FEmitHelper::EmitSinglecastDelegateDeclarations(FEmitterLocalCon
 			| EPropertyExportCPPFlags::CPPF_NoStaticArray
 			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 		const FString TypeName = EmitterContext.ExportCppDeclaration(It, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
-
-		Results.Add(*FString::Printf(TEXT("\tDECLARE_DYNAMIC_DELEGATE%s(%s%s)"), *ParamNumberStr, *TypeName, *Parameters));
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("DECLARE_DYNAMIC_DELEGATE%s(%s%s);"), *ParamNumberStr, *TypeName, *Parameters));
 	}
-	return Results;
 }
 
-TArray<FString> FEmitHelper::EmitMulticastDelegateDeclarations(FEmitterLocalContext& EmitterContext, UClass* SourceClass)
+void FEmitHelper::EmitMulticastDelegateDeclarations(FEmitterLocalContext& EmitterContext)
 {
-	TArray<FString> Results;
-	for (TFieldIterator<UMulticastDelegateProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	for (TFieldIterator<UMulticastDelegateProperty> It(EmitterContext.GetCurrentlyGeneratedClass(), EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
 		auto Signature = It->SignatureFunction;
 		check(Signature);
@@ -679,16 +664,14 @@ TArray<FString> FEmitHelper::EmitMulticastDelegateDeclarations(FEmitterLocalCont
 			| EPropertyExportCPPFlags::CPPF_NoStaticArray
 			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 		const FString TypeName = EmitterContext.ExportCppDeclaration(*It, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
-
-		Results.Add(*FString::Printf(TEXT("\tDECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s)"), *ParamNumberStr, *TypeName, *Parameters));
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("DECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s);"), *ParamNumberStr, *TypeName, *Parameters));
 	}
-
-	return Results;
 }
 
-FString FEmitHelper::EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const FString& CppClassName, const TCHAR* InCurrentIndent)
+void FEmitHelper::EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterContext)
 {
-	FString Result;
+	auto SourceClass = EmitterContext.GetCurrentlyGeneratedClass();
+	auto CppClassName = FEmitHelper::GetCppName(SourceClass);
 	bool bFunctionInitilzed = false;
 	for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
@@ -696,19 +679,20 @@ FString FEmitHelper::EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const 
 		{
 			if (!bFunctionInitilzed)
 			{
-				Result += FString::Printf(TEXT("%svoid %s::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const\n"), InCurrentIndent, *CppClassName);
-				Result += FString::Printf(TEXT("%s{\n"), InCurrentIndent);
-				Result += FString::Printf(TEXT("%s\tSuper::GetLifetimeReplicatedProps(OutLifetimeProps);\n"), InCurrentIndent);
+				EmitterContext.AddLine(FString::Printf(TEXT("void %s::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const"), *CppClassName));
+				EmitterContext.AddLine(TEXT("{"));
+				EmitterContext.IncreaseIndent();
+				EmitterContext.AddLine(TEXT("Super::GetLifetimeReplicatedProps(OutLifetimeProps);"));
 				bFunctionInitilzed = true;
 			}
-			Result += FString::Printf(TEXT("%s\tDOREPLIFETIME( %s, %s);\n"), InCurrentIndent, *CppClassName, *FEmitHelper::GetCppName(*It));
+			EmitterContext.AddLine(FString::Printf(TEXT("DOREPLIFETIME(%s, %s);"), *CppClassName, *FEmitHelper::GetCppName(*It)));
 		}
 	}
 	if (bFunctionInitilzed)
 	{
-		Result += FString::Printf(TEXT("%s}\n"), InCurrentIndent);
+		EmitterContext.DecreaseIndent();
+		EmitterContext.AddLine(TEXT("}"));
 	}
-	return Result;
 }
 
 FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject)
@@ -871,7 +855,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		if (LiteralObject)
 		{
 			UClass* FoundClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
-			UClass* ObjectClassToUse = FoundClass ? EmitterContext.GetNativeOrConvertedClass(FoundClass) : UObject::StaticClass();
+			UClass* ObjectClassToUse = FoundClass ? EmitterContext.GetFirstNativeOrConvertedClass(FoundClass) : UObject::StaticClass();
 			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject, ObjectClassToUse, true);
 			if (!MappedObject.IsEmpty())
 			{
@@ -1002,4 +986,18 @@ bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdG
 	}
 
 	return false;
+}
+
+FString FEmitHelper::ReplaceConvertedMetaData(UObject* Obj)
+{
+	FString Result;
+	const FString ReplaceConvertedMD = FEmitHelper::GenerateReplaceConvertedMD(Obj);
+	if (!ReplaceConvertedMD.IsEmpty())
+	{
+		TArray<FString> AdditionalMD;
+		AdditionalMD.Add(ReplaceConvertedMD);
+		Result += TEXT(",");
+		Result += FEmitHelper::HandleMetaData(nullptr, false, &AdditionalMD);
+	}
+	return Result;
 }

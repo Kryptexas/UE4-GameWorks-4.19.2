@@ -3,6 +3,27 @@
 
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
 
+struct FCodeText
+{
+	FString Indent;
+	FString Result;
+
+	void IncreaseIndent()
+	{
+		Indent += TEXT("\t");
+	}
+
+	void DecreaseIndent()
+	{
+		Indent.RemoveFromEnd(TEXT("\t"));
+	}
+
+	void AddLine(const FString& Line)
+	{
+		Result += FString::Printf(TEXT("%s%s\n"), *Indent, *Line);
+	}
+};
+
 struct FEmitterLocalContext
 {
 	enum class EClassSubobjectList
@@ -23,18 +44,14 @@ struct FEmitterLocalContext
 	EGeneratedCodeType CurrentCodeType;
 
 private:
-	// TEXT
-	FString Indent;
-	FString Result;
 	int32 LocalNameIndexMax;
-	TArray<FString> HighPriorityLines;
-	TArray<FString> LowPriorityLines;
 
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> ClassSubobjectsMap;
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> CommonSubobjectsMap;
 
+	// Class subobjects
 	TArray<UObject*> MiscConvertedSubobjects;
 	TArray<UObject*> DynamicBindingObjects;
 	TArray<UObject*> ComponentTemplates;
@@ -42,18 +59,23 @@ private:
 
 public:
 
+	FCodeText Header;
+	FCodeText Body;
+	FCodeText* DefaultTarget;
+
 	const FGatherConvertedClassDependencies& Dependencies;
 
 	FEmitterLocalContext(const FGatherConvertedClassDependencies& InDependencies)
 		: CurrentCodeType(EGeneratedCodeType::Regular)
 		, LocalNameIndexMax(0)
+		, DefaultTarget(&Body)
 		, Dependencies(InDependencies)
 	{}
 
 	// CONSTRUCTOR FUNCTIONS
 
-	const TCHAR* ClassSubobjectListName(EClassSubobjectList ListType)
-		{
+	static const TCHAR* ClassSubobjectListName(EClassSubobjectList ListType)
+	{
 		if (ListType == EClassSubobjectList::ComponentTemplates)
 		{
 			return TEXT("ComponentTemplates");
@@ -67,49 +89,52 @@ public:
 			return TEXT("DynamicBindingObjects");
 		}
 		return TEXT("MiscConvertedSubobjects");
-		}
+	}
 
 	void RegisterClassSubobject(UObject* Object, EClassSubobjectList ListType)
 	{
+		ensure(CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
 		if (ListType == EClassSubobjectList::ComponentTemplates)
 		{
 			ComponentTemplates.Add(Object);
-	}
+		}
 		else if (ListType == EClassSubobjectList::Timelines)
-	{
+		{
 			Timelines.Add(Object);
-	}
+		}
 		else if(ListType == EClassSubobjectList::DynamicBindingObjects)
-	{
+		{
 			DynamicBindingObjects.Add(Object);
 		}
 		else
 		{
 			MiscConvertedSubobjects.Add(Object);
 		}
-		}
+	}
 
 	void AddClassSubObject_InConstructor(UObject* Object, const FString& NativeName)
 	{
 		ensure(CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass);
+		ensure(!ClassSubobjectsMap.Contains(Object));
 		ClassSubobjectsMap.Add(Object, NativeName);
 	}
 
 	void AddCommonSubObject_InConstructor(UObject* Object, const FString& NativeName)
 	{
 		ensure(CurrentCodeType == EGeneratedCodeType::CommonConstructor);
-		ClassSubobjectsMap.Add(Object, NativeName);
+		ensure(!CommonSubobjectsMap.Contains(Object));
+		CommonSubobjectsMap.Add(Object, NativeName);
 	}
 
 	// UNIVERSAL FUNCTIONS
 
-	UClass* GetFirstNativeParent(UClass* InClass) const
+	UClass* GetFirstNativeOrConvertedClass(UClass* InClass) const
 	{
 		check(InClass);
 		for (UClass* ItClass = InClass; ItClass; ItClass = ItClass->GetSuperClass())
 		{
 			auto BPGC = Cast<UBlueprintGeneratedClass>(ItClass);
-			if (ItClass->HasAnyClassFlags(CLASS_Native) || (BPGC && Dependencies.WillClassBeConverted(BPGC)))
+			if (ItClass->HasAnyClassFlags(CLASS_Native) || (ensure(BPGC) && Dependencies.WillClassBeConverted(BPGC)))
 			{
 				return ItClass;
 			}
@@ -117,23 +142,6 @@ public:
 		check(false);
 		return nullptr;
 	}
-
-	UClass* GetNativeOrConvertedClass(UClass* InClass) const
-	{
-		check(InClass);
-		if (InClass->HasAnyClassFlags(CLASS_Native))
-		{
-			return InClass;
-		}
-		auto BPGC = CastChecked<UBlueprintGeneratedClass>(InClass);
-		if (Dependencies.WillClassBeConverted(BPGC))
-		{
-			return InClass;
-		}
-		return GetFirstNativeParent(InClass);
-	}
-
-	FString GenerateGetProperty(const UProperty* Property) const;
 
 	FString GenerateUniqueLocalName();
 
@@ -146,59 +154,28 @@ public:
 	(due to the native code generation), should be handled by this function */
 	FString FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass = nullptr, bool bLoadIfNotFound = false, bool bTryUsedAssetsList = true);
 
-	// TEXT FUNCTIONS
-
-	void IncreaseIndent()
-	{
-		Indent += TEXT("\t");
-	}
-
-	void DecreaseIndent()
-	{
-		Indent.RemoveFromEnd(TEXT("\t"));
-	}
-
-	void AddHighPriorityLine(const FString& Line)
-	{
-		HighPriorityLines.Emplace(FString::Printf(TEXT("%s%s\n"), *Indent, *Line));
-	}
-
-	void AddLine(const FString& Line)
-	{
-		LowPriorityLines.Emplace(FString::Printf(TEXT("%s%s\n"), *Indent, *Line));
-	}
-
-	void FlushLines()
-	{
-		for (auto& Line : HighPriorityLines)
-		{
-			Result += Line;
-		}
-		HighPriorityLines.Reset();
-
-		for (auto& Line : LowPriorityLines)
-		{
-			Result += Line;
-		}
-		LowPriorityLines.Reset();
-	}
-
-	FString GetResult()
-	{
-		FlushLines();
-		return Result;
-	}
-
-	void ClearResult()
-	{
-		FlushLines();
-		Result.Reset();
-	}
-
 	// Functions needed for Unconverted classes
 	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, bool bSkipParameterName = false) const;
 	FString ExportTextItem(const UProperty* Property, const void* PropertyValue) const;
 
+	// AS FCodeText
+	void IncreaseIndent()
+	{
+		DefaultTarget->IncreaseIndent();
+	}
+
+	void DecreaseIndent()
+	{
+		DefaultTarget->DecreaseIndent();
+	}
+
+	void AddLine(const FString& Line)
+	{
+		DefaultTarget->AddLine(Line);
+	}
+
+private:
+	FEmitterLocalContext(const FEmitterLocalContext&);
 };
 
 struct FEmitHelper
@@ -228,11 +205,11 @@ struct FEmitHelper
 
 	static int32 ParseDelegateDetails(FEmitterLocalContext& EmitterContext, UFunction* Signature, FString& OutParametersMacro, FString& OutParamNumberStr);
 
-	static TArray<FString> EmitSinglecastDelegateDeclarations(FEmitterLocalContext& EmitterContext, const TArray<UDelegateProperty*>& Delegates);
+	static void EmitSinglecastDelegateDeclarations(FEmitterLocalContext& EmitterContext, const TArray<UDelegateProperty*>& Delegates);
 
-	static TArray<FString> EmitMulticastDelegateDeclarations(FEmitterLocalContext& EmitterContext, UClass* SourceClass);
+	static void EmitMulticastDelegateDeclarations(FEmitterLocalContext& EmitterContext);
 
-	static FString EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const FString& CppClassName, const TCHAR* InCurrentIndent);
+	static void EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterContext);
 
 	static FString LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject);
 
@@ -249,13 +226,17 @@ struct FEmitHelper
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
 
 	static FString GetBaseFilename(const UObject* AssetObj);
+
+	static FString ReplaceConvertedMetaData(UObject* Obj);
 };
+
+struct FNonativeComponentData;
 
 struct FEmitDefaultValueHelper
 {
-	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct, const FGatherConvertedClassDependencies& Dependencies);
+	static void GenerateGetDefaultValue(const UUserDefinedStruct* Struct, FEmitterLocalContext& EmitterContext);
 
-	static FString GenerateConstructor(FEmitterLocalContext& Context);
+	static void GenerateConstructor(FEmitterLocalContext& Context);
 
 	enum class EPropertyAccessOperator
 	{
@@ -273,26 +254,27 @@ struct FEmitDefaultValueHelper
 
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitilize);
 
 private:
 	// Returns native term, 
 	// returns empty string if cannot handle
 	static FString HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr);
 
-	static FString HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode = nullptr);
+	static FString HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties
+		, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponentsToInit);
 
 	static FString HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object, bool bCreateInstance = true, bool bSkipEditorOnlyCheck = false);
 };
 
 struct FBackendHelperUMG
 {
-	static FString WidgetFunctionsInHeader(UClass* SourceClass);
+	static void WidgetFunctionsInHeader(FEmitterLocalContext& Context);
 
-	static FString AdditionalHeaderIncludeForWidget(UClass* SourceClass);
+	static void AdditionalHeaderIncludeForWidget(FEmitterLocalContext& EmitterContext);
 
 	// these function should use the same context as Constructor
-	static void CreateClassSubobjects(FEmitterLocalContext& Context);
+	static void CreateClassSubobjects(FEmitterLocalContext& Context, bool bCreate, bool bInitialize);
 	static void EmitWidgetInitializationFunctions(FEmitterLocalContext& Context);
 
 };
