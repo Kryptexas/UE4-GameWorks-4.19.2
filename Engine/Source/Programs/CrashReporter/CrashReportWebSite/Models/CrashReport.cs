@@ -125,7 +125,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		string ToJiraSummary = "";
 
 		/// <summary>Branches in JIRA</summary>
-		List<object> ToJiraBranches = null;
+		HashSet<string> ToJiraBranches = null;
 
 		/// <summary>Versions in JIRA</summary>
 		List<object> ToJiraVersions = null;
@@ -268,26 +268,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			// ToJiraBranches
-			this.ToJiraBranches = new List<object>();
-			foreach( var Platform in this.BranchesFoundIn )
+			this.ToJiraBranches = new HashSet<string>();
+			foreach( var BranchName in this.BranchesFoundIn )
 			{
-				string CleanedBranch = Platform.Contains( "UE4-Releases" ) ? "UE4-Releases" : Platform;
-				Dictionary<string, object> JiraBranch = null;
-				JC.GetNameToBranchFoundIn().TryGetValue( CleanedBranch, out JiraBranch );
-				if( JiraBranch != null && !this.ToJiraBranches.Contains( JiraBranch ) )
+				if( !string.IsNullOrEmpty(BranchName) )
 				{
-					this.ToJiraBranches.Add( JiraBranch );
+					this.ToJiraBranches.Add( CrashReporterConstants.P4_DEPOT_PREFIX + BranchName );
 				}
 			}
 
 			// ToJiraPlatforms
 			this.ToJiraPlatforms = new List<object>();
-			foreach( var Platform in this.AffectedPlatforms )
+			foreach( var BranchName in this.AffectedPlatforms )
 			{
-				bool bValid = JC.GetNameToPlatform().ContainsKey( Platform );
+				bool bValid = JC.GetNameToPlatform().ContainsKey( BranchName );
 				if( bValid )
 				{
-					this.ToJiraPlatforms.Add( JC.GetNameToPlatform()[Platform] );
+					this.ToJiraPlatforms.Add( JC.GetNameToPlatform()[BranchName] );
 				}
 			}
 		}
@@ -317,13 +314,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Fields.Add( "versions", ToJiraVersions );
 
 				// ToJiraBranches
-				Fields.Add( "customfield_11201", ToJiraBranches );
+				Fields.Add( "customfield_12402", ToJiraBranches.ToList() );						// NewBranchFoundIn
 
 				// ToJiraPlatforms
 				Fields.Add( "customfield_11203", ToJiraPlatforms );
 
 				// Callstack customfield_11807
-				string JiraCallstack = string.Join( "\r\n", ToJiraFunctionCalls );
+				string JiraCallstack = "{noformat}" + string.Join( "\r\n", ToJiraFunctionCalls ) + "{noformat}";
 				Fields.Add( "customfield_11807", JiraCallstack );								// Callstack
 
 				string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
@@ -359,7 +356,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			Tooltip += "JiraVersions: " + JiraVersions + NL;
 
 			// "value"
-			string JiraBranches = GetFieldsFrom( ToJiraBranches, "value" );
+			string JiraBranches = "";
+			foreach (var Branch in ToJiraBranches)
+			{
+				JiraBranches += Branch + ", ";
+			}
 			Tooltip += "JiraBranches: " + JiraBranches + NL;
 
 			// "value"

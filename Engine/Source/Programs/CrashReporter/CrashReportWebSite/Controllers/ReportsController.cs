@@ -238,6 +238,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 					using( FAutoScopedLogTimer JiraResultsTimer = new FAutoScopedLogTimer( "JiraResults" ) )
 					{
+						bool bInvalid = false;
 						var JiraResults = new Dictionary<string, Dictionary<string, object>>();
 						try
 						{
@@ -255,9 +256,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						}
 						catch (System.Exception)
 						{
-
+							bInvalid = true;
 						}
 
+						// Invalid records have been found, find the broken using the slow path.
+						if( bInvalid )
+						{
+							foreach (var Query in FoundJiras)
+							{
+								try
+								{
+									var TempResult = JC.SearchJiraTickets(
+									Query,
+									new string[] 
+									{ 
+										"key",				// string
+										"summary",			// string
+										"components",		// System.Collections.ArrayList, Dictionary<string,object>, name
+										"resolution",		// System.Collections.Generic.Dictionary`2[System.String,System.Object], name
+										"fixVersions",		// System.Collections.ArrayList, Dictionary<string,object>, name
+										"customfield_11200" // string
+									} );
+
+									foreach(var Temp in TempResult)
+									{
+										JiraResults.Add( Temp.Key, Temp.Value );
+									}
+								}
+								catch (System.Exception)
+								{
+
+								}
+							}
+						}
 
 						// Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
 						foreach( var Jira in JiraResults )
