@@ -171,7 +171,7 @@ public:
 	 * 
 	 * @param World	The new world
 	 */
-	virtual void BroadcastMapChanged( UWorld* World, EMapChangeType::Type MapChangeType );
+	virtual void BroadcastMapChanged( UWorld* World, EMapChangeType MapChangeType );
 
 	/** Called when an edit command is executed on one or more components in the world */
 	virtual void BroadcastComponentsEdited();
@@ -185,7 +185,7 @@ public:
 	virtual FRedrawLevelEditingViewportsEvent& OnRedrawLevelEditingViewports() { return RedrawLevelEditingViewportsEvent; }
 
 	/** Called when a new map is loaded */
-	DECLARE_EVENT_TwoParams( FLevelEditorModule, FMapChangedEvent, UWorld*, EMapChangeType::Type );
+	DECLARE_EVENT_TwoParams( FLevelEditorModule, FMapChangedEvent, UWorld*, EMapChangeType );
 	virtual FMapChangedEvent& OnMapChanged() { return MapChangedEvent; }
 
 	/** Called when an edit command is executed on components in the world */
@@ -204,6 +204,7 @@ public:
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarCompileMenuExtenders() {return LevelEditorToolbarCompileMenuExtenders;}
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarSourceControlMenuExtenders() { return LevelEditorToolbarSourceControlMenuExtenders; }
 	virtual TArray<FLevelEditorMenuExtender>& GetAllLevelEditorToolbarCreateMenuExtenders() { return LevelEditorToolbarCreateMenuExtenders; }
+	virtual TArray<TSharedPtr<FExtender>>& GetAllLevelEditorToolbarCinematicsMenuExtenders() {return LevelEditorToolbarCinematicsMenuExtenders;}
 	
 	/** Gets the extensibility managers for outside entities to extend static mesh editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override {return MenuExtensibilityManager;}
@@ -279,6 +280,7 @@ private:
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarCompileMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarSourceControlMenuExtenders;
 	TArray<FLevelEditorMenuExtender> LevelEditorToolbarCreateMenuExtenders;
+	TArray<TSharedPtr<FExtender>> LevelEditorToolbarCinematicsMenuExtenders;
 
 	/* Pointer to the current level Editor instance */
 	TWeakPtr<class SLevelEditor> LevelEditorInstancePtr;

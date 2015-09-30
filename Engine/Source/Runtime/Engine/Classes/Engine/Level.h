@@ -489,16 +489,6 @@ private:
 	FLevelBoundsActorUpdatedEvent LevelBoundsActorUpdatedEvent; 
 
 protected:
-	/** Array of all MovieSceneBindings that are used in this level.  These store the relationship between
-	    a MovieScene asset and possessed actors in this level. */
-	UPROPERTY()
-	TArray< class UObject* > MovieSceneBindingsArray;
-
-	/** List of RuntimeMovieScenePlayers that are currently active in this level.  We'll keep references to these to keep
-	    them around until they're no longer needed.  Also, we'll tick them every frame! */
-	// @todo sequencer uobjects: Ideally this is using URuntimeMovieScenePlayer* and not UObject*, but there are DLL/interface issues with that
-	UPROPERTY( transient )
-	TArray< UObject* > ActiveRuntimeMovieScenePlayers;
 
 	/** Array of user data stored with the asset */
 	UPROPERTY()
@@ -541,21 +531,7 @@ public:
 	virtual void PreSave() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
-
-	/**
-	 * Adds a newly-created RuntimeMovieScenePlayer to this level.  The level assumes ownership of this object.
-	 *
-	 * @param	RuntimeMovieScenePlayer	The RuntimeMovieScenePlayer instance to add
-	 */
-	ENGINE_API void AddActiveRuntimeMovieScenePlayer( class UObject* RuntimeMovieScenePlayer );
-
-	/**
-	 * Called by the engine every frame to tick all actively-playing RuntimeMovieScenePlayers
-	 *
-	 * @param	DeltaSeconds	Time elapsed since last tick
-	 */
-	void TickRuntimeMovieScenePlayers( const float DeltaSeconds );
+	// End UObject Interface.
 
 	/**
 	 * Clears all components of actors associated with this level (aka in Actors array) and 
@@ -756,21 +732,6 @@ public:
 #if WITH_EDITOR
 	/** meant to be called only from editor, calculating and storing static geometry to be used with off-line and/or on-line navigation building */
 	ENGINE_API void RebuildStaticNavigableGeometry();
-
-
-	/**
-	 * Adds a new MovieSceneBindings object to the level script actor.  This actor takes full ownership of
-	 * the MovieSceneBindings
-	 *
-	 * @param	MovieSceneBindings	The MovieSceneBindings object to take ownership of
-	 */
-	virtual void AddMovieSceneBindings( class UMovieSceneBindings* MovieSceneBindings );
-
-	/**
-	 * Clears all existing MovieSceneBindings off of the level.  Only meant to be called by the level script compiler.
-	 */
-	virtual void ClearMovieSceneBindings();
-
 
 #endif
 

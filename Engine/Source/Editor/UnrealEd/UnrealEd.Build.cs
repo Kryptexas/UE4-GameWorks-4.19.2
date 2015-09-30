@@ -42,6 +42,7 @@ public class UnrealEd : ModuleRules
                 "MergeActors",
 				"MeshUtilities",
 				"Messaging",
+				"MovieSceneCapture",
 				"NiagaraEditor",
 				"PlacementMode",
 				"Settings",
@@ -89,6 +90,7 @@ public class UnrealEd : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 
 			{ 
+                "LevelSequence",
 				"AnimGraph",
                 "AppFramework",
 				"BlueprintGraph",

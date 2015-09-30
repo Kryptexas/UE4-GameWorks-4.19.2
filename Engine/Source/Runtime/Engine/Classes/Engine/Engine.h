@@ -450,19 +450,6 @@ struct FScreenMessageString
 };
 
 
-UENUM()
-namespace EMatineeCaptureType
-{
-	enum Type
-	{
-		AVI		UMETA(DisplayName="AVI Movie"),
-		BMP		UMETA(DisplayName="BMP Image Sequence"),
-		PNG		UMETA(DisplayName="PNG Image Sequence"),
-		JPEG	UMETA(DisplayName="JPEG Image Sequence")
-	};
-}
-
-
 USTRUCT()
 struct FGameNameRedirect
 {
@@ -532,42 +519,6 @@ class IAnalyticsProvider;
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
 DECLARE_DELEGATE(FEndStreamingPauseDelegate);
 
-USTRUCT()
-struct FMatineeScreenshotOptions
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** determines if we should start the matinee capture as soon as the game loads */
-	UPROPERTY(transient)
-	uint32 bStartWithMatineeCapture:1;
-
-	/** should we compress the capture */
-	UPROPERTY(transient)
-	uint32 bCompressMatineeCapture:1;
-
-	/** the name of the matine that we want to record */
-	UPROPERTY(transient)
-	FString MatineeCaptureName;
-
-	/** The package name where the matinee belongs to */
-	UPROPERTY(transient)
-	FString MatineePackageCaptureName;
-
-	/** the fps of the matine that we want to record */
-	UPROPERTY(transient)
-	int32 MatineeCaptureFPS;
-
-	/** The capture type, e.g. AVI or Screen Shots */
-	UPROPERTY(transient)
-	TEnumAsByte<EMatineeCaptureType::Type> MatineeCaptureType;
-
-	/** Whether or not to disable texture streaming during matinee movie capture */
-	UPROPERTY(transient)
-	bool bNoTextureStreaming;
-
-	UPROPERTY(transient)
-	bool bHideHud;
-};
 
 /**
  * Abstract base class of all Engine classes, responsible for management of systems critical to editor or game systems.
@@ -1390,8 +1341,6 @@ private:
 	int32 ScreenSaverInhibitorSemaphore;
 
 public:
-	UPROPERTY(transient)
-	FMatineeScreenshotOptions MatineeScreenshotOptions;
 
 	/** true if the the user cannot modify levels that are read only. */
 	UPROPERTY(transient)
@@ -2633,9 +2582,6 @@ public:
 	 */
 	const UGameUserSettings* GetGameUserSettings() const;
 	UGameUserSettings* GetGameUserSettings();
-
-	/** Delegate handler for screenshots */
-	void HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors);
 
 private:
 	void CreateGameUserSettings();

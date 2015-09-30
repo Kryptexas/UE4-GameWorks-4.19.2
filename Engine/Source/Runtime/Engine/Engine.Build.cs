@@ -29,7 +29,8 @@ public class Engine : ModuleRules
 				"ImageWrapper",
 				"HeadMountedDisplay",
 				"Advertising",
-				"NetworkReplayStreaming"
+				"NetworkReplayStreaming",
+				"MovieSceneCapture"
 			}
 		);
 
@@ -90,6 +91,7 @@ public class Engine : ModuleRules
 			new string[]
 			{
 				"MovieScene",
+				"MovieSceneCapture",
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",

@@ -314,7 +314,7 @@ public:
 	 *	@return	bool			true if we should turn on cinematic mode, 
 	 *							false if if we should not.
 	 */
-	bool ShouldStartInCinematicMode(bool& OutHidePlayer, bool& OutHideHud, bool& OutDisableMovement, bool& OutDisableTurning);
+	bool ShouldStartInCinematicMode(APlayerController* Player, bool& OutHidePlayer, bool& OutHideHud, bool& OutDisableMovement, bool& OutDisableTurning);
 
 	/**
 	 * Initialize the game.

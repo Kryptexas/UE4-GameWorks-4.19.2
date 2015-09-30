@@ -1228,21 +1228,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			}
 		}
 	}
-
-	// Tick any RuntimeMovieScenePlayers that our levels know about
-	{
-		// Don't bother ticking RuntimeMovieScenePlayers when paused
-		if( TickType != LEVELTICK_TimeOnly && !bIsPaused )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_RuntimeMovieSceneTickTime);
-			for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); ++LevelIndex )
-			{
-				ULevel* Level = Levels[ LevelIndex ];
-				Level->TickRuntimeMovieScenePlayers( DeltaSeconds );
-			}
-		}
-	}
-
+	
 	// Update cameras and streaming volumes
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UpdateCameraTime);

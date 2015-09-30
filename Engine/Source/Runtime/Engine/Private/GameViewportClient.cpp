@@ -32,6 +32,8 @@
 #include "GameFramework/GameUserSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "SGameLayerManager.h"
+#include "IMovieSceneCapture.h"
+#include "MovieSceneCaptureSettings.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -1238,15 +1240,12 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 {
 	if (GIsDumpingMovie || FScreenshotRequest::IsScreenshotRequested() || GIsHighResScreenshot)
 	{
+	
 		TArray<FColor> Bitmap;
 
 		bool bShowUI = false;
 		TSharedPtr<SWindow> WindowPtr = GetWindow();
 		if (!GIsDumpingMovie && (FScreenshotRequest::ShouldShowUI() && WindowPtr.IsValid()))
-		{
-			bShowUI = true;
-		}
-		else if( GIsDumpingMovie && WindowPtr.IsValid() && !GEngine->MatineeScreenshotOptions.bHideHud )
 		{
 			bShowUI = true;
 		}

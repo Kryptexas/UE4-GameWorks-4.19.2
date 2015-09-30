@@ -338,8 +338,17 @@ public:
 	 */
 	static bool UseFixedTimeStep()
 	{
-		static bool bUseFixedTimeStep = FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep"));
 		return bUseFixedTimeStep;
+	}
+
+	/**
+	 * Enables or disabled usage of fixed time step.
+	 *
+	 * @param whether to use fixed time step or not
+	 */
+	static void SetUseFixedTimeStep(bool bVal)
+	{
+		bUseFixedTimeStep = bVal;
 	}
 
 	/**
@@ -444,6 +453,9 @@ private:
 
 	/** Holds a flag Whether we are in benchmark mode or not. */
 	static bool bIsBenchmarking;
+
+	/** Holds a flag whether we want to use a fixed time step or not. */
+	static bool bUseFixedTimeStep;
 
 	/** Holds time step if a fixed delta time is wanted. */
 	static double FixedDeltaTime;

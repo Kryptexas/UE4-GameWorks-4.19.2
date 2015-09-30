@@ -331,12 +331,9 @@ void FLevelEditorModule::SummonWorldBrowserComposition()
 // @todo remove when world-centric mode is added
 void FLevelEditorModule::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> SequencerAssetEditor )
 {
-	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
-	{
-		TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
 
-		LevelEditorInstance->AttachSequencer( SequencerWidget, SequencerAssetEditor );
-	}
+	LevelEditorInstance->AttachSequencer( SequencerWidget, SequencerAssetEditor );
 }
 
 TSharedPtr<ILevelViewport> FLevelEditorModule::GetFirstActiveViewport()
@@ -384,7 +381,7 @@ void FLevelEditorModule::BroadcastTakeHighResScreenShots( )
 	TakeHighResScreenShotsEvent.Broadcast();
 }
 
-void FLevelEditorModule::BroadcastMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )
+void FLevelEditorModule::BroadcastMapChanged( UWorld* World, EMapChangeType MapChangeType )
 {
 	MapChangedEvent.Broadcast( World, MapChangeType );
 }

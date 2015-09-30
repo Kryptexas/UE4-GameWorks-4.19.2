@@ -39,7 +39,7 @@ public:
 
 	virtual UNiagaraEffect *GetEffect() const	override { return Effect; }	
 
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 	{
 		return MakeShareable(new FNiagaraTrackEditor(InSequencer) );
 	}
@@ -78,7 +78,6 @@ private:
 
 	/* stuff needed by the Sequencer */
 	UMovieScene *MovieScene;
-	TSharedPtr<ISequencerObjectBindingManager> SequencerBindingManager;
 	TSharedPtr<ISequencer> Sequencer;
 
 

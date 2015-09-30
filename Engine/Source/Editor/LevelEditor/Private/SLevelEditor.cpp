@@ -733,16 +733,19 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 				WorldBrowserModule.CreateWorldBrowserComposition()
 			];
 	}
-	else if( TabIdentifier == TEXT("Sequencer") && FParse::Param(FCommandLine::Get(), TEXT("sequencer")) )
+	else if( TabIdentifier == TEXT("Sequencer") )
 	{
-		// @todo remove when world-centric mode is added
-		SequencerTab = SNew(SDockTab)
-			.Icon( FEditorStyle::GetBrush("Sequencer.Tabs.SequencerMain") )
-			.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
-			[
-				SNullWidget::NullWidget
-			];
-		return SequencerTab.ToSharedRef();
+		if (FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle"))
+		{
+			// @todo sequencer: remove when world-centric mode is added
+			SequencerTab = SNew(SDockTab)
+				.Icon( FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle")->GetBrush("LevelSequenceEditor.Tabs.Sequencer") )
+				.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
+				[
+					SNullWidget::NullWidget
+				];
+			return SequencerTab.ToSharedRef();
+		}
 	}
 	else if( TabIdentifier == LevelEditorStatsViewerTab )
 	{
@@ -1065,12 +1068,13 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 				.SetIcon( StatsViewerIcon );
 		}
 
-		// @todo remove when world-centric mode is added
-		if (FParse::Param(FCommandLine::Get(), TEXT("sequencer")))
 		{
+			// @todo remove when world-centric mode is added
+			const FSlateIcon SequencerIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.Tabs.Sequencer" );
 			LevelEditorTabManager->RegisterTabSpawner( "Sequencer", FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, FName("Sequencer"), FString()) )
 				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "Sequencer", "Sequencer"))
-				.SetGroup( MenuStructure.GetLevelEditorCategory() );
+				.SetGroup( MenuStructure.GetLevelEditorCategory() )
+				.SetIcon( SequencerIcon );
 		}
 
 		{

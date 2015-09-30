@@ -82,8 +82,6 @@ public:
 	 */
 	virtual bool IsPropertyReadOnly( const struct FPropertyAndParent& PropertyAndParent ) const = 0;
 
-	virtual TSharedPtr<IDetailKeyframeHandler> GetKeyframeHandler() = 0;
-
 	virtual TSharedPtr<IDetailPropertyExtensionHandler> GetExtensionHandler() = 0;
 
 	/**

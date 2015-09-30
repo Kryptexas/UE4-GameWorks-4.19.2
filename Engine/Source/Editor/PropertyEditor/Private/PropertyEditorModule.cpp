@@ -391,7 +391,7 @@ void FPropertyEditorModule::RegisterCustomClassLayout( FName ClassName, FOnGetDe
 
 void FPropertyEditorModule::UnregisterCustomClassLayout( FName ClassName )
 {
-	if (ClassName != NAME_None)
+	if (ClassName.IsValid() && (ClassName != NAME_None))
 	{
 		ClassNameToDetailLayoutNameMap.Remove(ClassName);
 	}
@@ -400,41 +400,32 @@ void FPropertyEditorModule::UnregisterCustomClassLayout( FName ClassName )
 
 void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance )
 {
-	if( PropertyTypeName != NAME_None )
+	if (!PropertyTypeName.IsValid() || (PropertyTypeName == NAME_None))
 	{
-		FPropertyTypeLayoutCallback Callback;
-		Callback.PropertyTypeLayoutDelegate = PropertyTypeLayoutDelegate;
-		Callback.PropertyTypeIdentifier = Identifier;
+		return;
+	}
 
-		if( ForSpecificInstance.IsValid() )
-		{
-			FCustomPropertyTypeLayoutMap& PropertyTypeToLayoutMap = InstancePropertyTypeLayoutMap.FindOrAdd( ForSpecificInstance );
+	if (ForSpecificInstance.IsValid())
+	{
+		FCustomPropertyTypeLayoutMap* PropertyTypeToLayoutMap = InstancePropertyTypeLayoutMap.Find(ForSpecificInstance);
 			
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find( PropertyTypeName );
-			if( LayoutCallbacks )
+		if (PropertyTypeToLayoutMap)
+		{
+			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap->Find(PropertyTypeName);
+			
+			if (LayoutCallbacks)
 			{
-				LayoutCallbacks->Add( Callback );
-			}
-			else
-			{
-				FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
-				NewLayoutCallbacks.Add( Callback );
-				PropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
+				LayoutCallbacks->Remove(Identifier);
 			}
 		}
-		else
+	}
+	else
+	{
+		FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
+
+		if (LayoutCallbacks)
 		{
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find( PropertyTypeName );
-			if( LayoutCallbacks )
-			{
-				LayoutCallbacks->Add( Callback );
-			}
-			else
-			{
-				FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
-				NewLayoutCallbacks.Add( Callback );
-				GlobalPropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
-			}
+			LayoutCallbacks->Remove(Identifier);
 		}
 	}
 }

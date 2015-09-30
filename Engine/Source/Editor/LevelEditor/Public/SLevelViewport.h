@@ -567,7 +567,7 @@ private:
 	/**
 	 * Called when a map is changed (loaded,saved,new map, etc)
 	 */
-	void OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType );
+	void OnMapChanged( UWorld* World, EMapChangeType MapChangeType );
 
 	/** Called in response to an actor being deleted in the level */
 	void OnLevelActorsRemoved(AActor* InActor);

@@ -12,6 +12,7 @@
 #include "Misc/CString.h"
 #include "Templates/MemoryOps.h"
 
+struct FStringFormatArg;
 
 /** Determines case sensitivity options for string comparisons. */
 namespace ESearchCase
@@ -1308,6 +1309,22 @@ public:
 	 */
 	VARARG_DECL( static FString, static FString, return, Printf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE );
 
+	/**
+	 * Format the specified string using the specified arguments. Replaces instances of { Argument } with keys in the map matching 'Argument'
+	 * @param InFormatString		A string representing the format expression
+	 * @param InNamedArguments		A map of named arguments that match the tokens specified in InExpression
+	 * @return A string containing the formatted text
+	 */
+	static FString Format(const TCHAR* InFormatString, const TMap<FString, FStringFormatArg>& InNamedArguments);
+
+	/**
+	 * Format the specified string using the specified arguments. Replaces instances of {0} with indices from the given array matching the index specified in the token
+	 * @param InFormatString		A string representing the format expression
+	 * @param InOrderedArguments	An array of ordered arguments that match the tokens specified in InExpression
+	 * @return A string containing the formatted text
+	 */
+	static FString Format(const TCHAR* InFormatString, const TArray<FStringFormatArg>& InOrderedArguments);
+
 	// @return string with Ch character
 	static FString Chr( TCHAR Ch );
 
@@ -2019,3 +2036,5 @@ public:
 		return *this;
 	}
 };
+
+#include "Misc/StringFormatArg.h"

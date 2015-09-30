@@ -40,6 +40,7 @@ public class Matinee : ModuleRules
 				"RenderCore",
 				"AssetRegistry",
 				"ContentBrowser",
+				"MovieSceneCapture",
 				"BlueprintGraph"
 			}
 			);

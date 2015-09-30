@@ -15,6 +15,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "EngineBuildSettings.h"
 #include "Matinee/MatineeActor.h"
+#include "MovieSceneActor.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "ISettingsCategory.h"
 #include "ISettingsContainer.h"
@@ -1230,9 +1231,9 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 
 		ToolbarBuilder.AddComboButton(
 			FUIAction(),
-			FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateMatineeMenuContent, InCommandList, TWeakPtr<SLevelEditor>( InLevelEditor ) ),
-			LOCTEXT( "EditMatinee_Label", "Matinee" ),
-			LOCTEXT( "EditMatinee_Tooltip", "Displays a list of Matinee objects to open in the Matinee Editor"),
+			FOnGetContent::CreateStatic( &FLevelEditorToolBar::GenerateCinematicsMenuContent, InCommandList, TWeakPtr<SLevelEditor>( InLevelEditor ) ),
+			LOCTEXT( "EditCinematics_Label", "Cinematics" ),
+			LOCTEXT( "EditCinematics_Tooltip", "Displays a list of Matinee and Level Sequence objects to open in their respective editors"),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.EditMatinee") 
 			);
 	}
@@ -2021,14 +2022,17 @@ void FLevelEditorToolBar::OnOpenSubLevelBlueprint( ULevel* InLevel )
 	}
 }
 
-TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRef<FUICommandList> InCommandList, TWeakPtr<SLevelEditor> LevelEditorWeakPtr )
+TSharedRef< SWidget > FLevelEditorToolBar::GenerateCinematicsMenuContent( TSharedRef<FUICommandList> InCommandList, TWeakPtr<SLevelEditor> LevelEditorWeakPtr )
 {
-#define LOCTEXT_NAMESPACE "LevelToolBarMatineeMenu"
+#define LOCTEXT_NAMESPACE "LevelToolBarCinematicsMenu"
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	TSharedPtr<FExtender> Extender = FExtender::Combine(LevelEditorModule.GetAllLevelEditorToolbarCinematicsMenuExtenders());
 
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList );
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList, Extender );
 
-	// We can't build a list of Matinees while the current World is a PIE world.
+	// We can't build a list of Matinees and MovieSceneActors while the current World is a PIE world.
 	SceneOutliner::FInitializationOptions InitOptions;
 	{
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
@@ -2038,19 +2042,15 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 		InitOptions.bShowHeaderRow = false;
 		InitOptions.bShowSearchBox = false;
 		InitOptions.bShowCreateNewFolder = false;
-		struct Local
-		{
-			static bool IsMatineeActor( const AActor* const Actor )
-			{
-				return Actor->IsA( AMatineeActor::StaticClass() );
-			}
-		};
 
-		// Only display Matinee actors
-		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &Local::IsMatineeActor ) );
+		// Only display Matinee and MovieScene actors
+		auto ActorFilter = [](const AActor* Actor){
+			return Actor->IsA( AMatineeActor::StaticClass() ) || Actor->IsA( AMovieSceneActor::StaticClass() );
+		};
+		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateLambda( ActorFilter ) );
 	}
 
-	// actor selector to allow the user to choose a Matinee actor
+	// actor selector to allow the user to choose an actor
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
 	TSharedRef< SWidget > MiniSceneOutliner =
 		SNew( SVerticalBox )
@@ -2060,7 +2060,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 				InitOptions,
-				FOnActorPicked::CreateStatic( &FLevelEditorToolBar::OnMatineeActorPicked ) )
+				FOnActorPicked::CreateStatic( &FLevelEditorToolBar::OnCinematicsActorPicked ) )
 		];
 
 	static const FName DefaultForegroundName("DefaultForeground");
@@ -2082,7 +2082,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 			.HAlign( HAlign_Center )
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT( "SelectMatineeActorToEdit", "Select a Matinee actor" ) )
+				.Text( LOCTEXT( "SelectCinematicsActorToEdit", "Select an actor" ) )
 			]
 
 			+SVerticalBox::Slot()
@@ -2100,10 +2100,8 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 	}
 	MenuBuilder.EndSection();
 
-	bool bHasAnyMatineeActors = false;
-	TActorIterator<AMatineeActor> MatineeIt( LevelEditorWeakPtr.Pin()->GetWorld() );
-
-	bHasAnyMatineeActors = !!MatineeIt;
+	UWorld* World = LevelEditorWeakPtr.Pin()->GetWorld();
+	const bool bHasAnyMatineeActors = !!TActorIterator<AMatineeActor>(World) || !!TActorIterator<AMovieSceneActor>(World);
 
 	//Add a heading to separate the existing matinees from the 'Add New Matinee Actor' button
 	MenuBuilder.BeginSection("LevelEditorExistingMatinee", LOCTEXT( "MatineeMenuCombo_ExistingHeading", "Edit Existing Matinee" ) );
@@ -2119,17 +2117,25 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 	return MenuBuilder.MakeWidget();
 }
 
-void FLevelEditorToolBar::OnMatineeActorPicked( AActor* Actor )
+void FLevelEditorToolBar::OnCinematicsActorPicked( AActor* Actor )
 {
 	//The matinee editor will not tick unless the editor viewport is in realtime mode.
 	//the scene outliner eats input, so we must close any popups manually.
 	FSlateApplication::Get().DismissAllMenus();
 
 	// Make sure we dismiss the menus before we open this
-	AMatineeActor* MatineeActor = Cast<AMatineeActor>( Actor );
-	if( MatineeActor != NULL )
+	if (AMatineeActor* MatineeActor = Cast<AMatineeActor>(Actor))
 	{
 		// Open Matinee for editing!
 		GEditor->OpenMatinee( MatineeActor );
+	}
+	else if (AMovieSceneActor* MovieSceneActor = Cast<AMovieSceneActor>(Actor))
+	{
+		UObject* Asset = MovieSceneActor->LevelSequence.TryLoad();
+
+		if (Asset != nullptr)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(Asset);
+		}
 	}
 }
