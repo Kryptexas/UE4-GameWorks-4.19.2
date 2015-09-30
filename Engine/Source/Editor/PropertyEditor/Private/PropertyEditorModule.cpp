@@ -400,6 +400,47 @@ void FPropertyEditorModule::UnregisterCustomClassLayout( FName ClassName )
 
 void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance )
 {
+	if( PropertyTypeName != NAME_None )
+	{
+		FPropertyTypeLayoutCallback Callback;
+		Callback.PropertyTypeLayoutDelegate = PropertyTypeLayoutDelegate;
+		Callback.PropertyTypeIdentifier = Identifier;
+
+		if( ForSpecificInstance.IsValid() )
+		{
+			FCustomPropertyTypeLayoutMap& PropertyTypeToLayoutMap = InstancePropertyTypeLayoutMap.FindOrAdd( ForSpecificInstance );
+			
+			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find( PropertyTypeName );
+			if( LayoutCallbacks )
+			{
+				LayoutCallbacks->Add( Callback );
+			}
+			else
+			{
+				FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
+				NewLayoutCallbacks.Add( Callback );
+				PropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
+			}
+		}
+		else
+		{
+			FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find( PropertyTypeName );
+			if( LayoutCallbacks )
+			{
+				LayoutCallbacks->Add( Callback );
+			}
+			else
+			{
+				FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
+				NewLayoutCallbacks.Add( Callback );
+				GlobalPropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
+			}
+		}
+	}
+}
+
+void FPropertyEditorModule::UnregisterCustomPropertyTypeLayout( FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance )
+{
 	if (!PropertyTypeName.IsValid() || (PropertyTypeName == NAME_None))
 	{
 		return;
@@ -426,36 +467,6 @@ void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyType
 		if (LayoutCallbacks)
 		{
 			LayoutCallbacks->Remove(Identifier);
-		}
-	}
-}
-
-void FPropertyEditorModule::UnregisterCustomPropertyTypeLayout( FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance )
-{
-	if( PropertyTypeName != NAME_None )
-	{
-		if( ForSpecificInstance.IsValid() )
-		{
-			FCustomPropertyTypeLayoutMap* PropertyTypeToLayoutMap = InstancePropertyTypeLayoutMap.Find( ForSpecificInstance );
-			
-			if( PropertyTypeToLayoutMap )
-			{
-				FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap->Find( PropertyTypeName );
-			
-				if( LayoutCallbacks )
-				{
-					LayoutCallbacks->Remove( Identifier );
-				}
-			}
-		}
-		else
-		{
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find( PropertyTypeName );
-
-			if( LayoutCallbacks )
-			{
-				LayoutCallbacks->Remove( Identifier );
-			}
 		}
 	}
 }
