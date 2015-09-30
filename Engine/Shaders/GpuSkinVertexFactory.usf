@@ -583,7 +583,8 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 #if GPUSKIN_APEX_CLOTH
 	if( IsSimulatedVertex(Input) )
 	{
-		float3 BlendedPrevPos = lerp(PrevSkinPosInWorld.xyz, Intermediates.SimulatedPosition + View.PrevPreViewTranslation, ClothBlendWeight);		 
+		float3 PrevSimulatedPos = mul(mul(float4(Intermediates.SimulatedPosition.xyz, 1), Primitive.WorldToLocal), PreviousLocalToWorld).xyz;
+		float3 BlendedPrevPos = lerp(PrevSkinPosInWorld.xyz, PrevSimulatedPos.xyz, ClothBlendWeight);
 		return float4(BlendedPrevPos, 1);
 	}
 #endif // GPUSKIN_APEX_CLOTH
