@@ -10,6 +10,7 @@ class IWebBrowserWindow;
 class FWebBrowserViewport;
 class UObject;
 class IWebBrowserPopupFeatures;
+class IWebBrowserAdapter;
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&, const TWeakPtr<IWebBrowserPopupFeatures>&);
@@ -190,6 +191,10 @@ public:
 	 */
 	void UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true);
 
+	void BindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter);
+
+	void UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter);
+
 private:
 
 	/** Returns true if the browser can navigate backwards. */
@@ -297,6 +302,8 @@ private:
 
 	/** The actual viewport widget. Required to update its tool tip property. */
 	TSharedPtr<SViewport> ViewportWidget;
+
+	TArray<TSharedRef<IWebBrowserAdapter>> Adapters;
 
 	/**
 	 * An interface pointer to a menu object presenting a popup.

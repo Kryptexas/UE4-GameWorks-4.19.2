@@ -7,6 +7,7 @@
 #include "IWebBrowserSingleton.h"
 #include "IWebBrowserWindow.h"
 #include "WebBrowserViewport.h"
+#include "IWebBrowserAdapter.h"
 
 #define LOCTEXT_NAMESPACE "WebBrowser"
 
@@ -384,7 +385,17 @@ void SWebBrowser::HandleBrowserWindowDocumentStateChanged(EWebBrowserDocumentSta
 	switch (NewState)
 	{
 	case EWebBrowserDocumentState::Completed:
-		OnLoadCompleted.ExecuteIfBound();
+		{
+			if (BrowserWindow.IsValid())
+			{
+				for (auto Adapter : Adapters)
+				{
+					Adapter->ConnectTo(BrowserWindow.ToSharedRef());
+				}
+			}
+
+			OnLoadCompleted.ExecuteIfBound();
+		}
 		break;
 
 	case EWebBrowserDocumentState::Error:
@@ -514,6 +525,24 @@ void SWebBrowser::UnbindUObject(const FString& Name, UObject* Object, bool bIsPe
 	if (BrowserWindow.IsValid())
 	{
 		BrowserWindow->UnbindUObject(Name, Object, bIsPermanent);
+	}
+}
+
+void SWebBrowser::BindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter)
+{
+	Adapters.Add(Adapter);
+	if (BrowserWindow.IsValid())
+	{
+		Adapter->ConnectTo(BrowserWindow.ToSharedRef());
+	}
+}
+
+void SWebBrowser::UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter)
+{
+	Adapters.Remove(Adapter);
+	if (BrowserWindow.IsValid())
+	{
+		Adapter->DisconnectFrom(BrowserWindow.ToSharedRef());
 	}
 }
 
