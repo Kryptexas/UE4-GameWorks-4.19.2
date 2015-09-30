@@ -264,6 +264,22 @@ int32 CrashTest(const TCHAR* CommandLine)
 	GEngineLoop.PreInit(CommandLine);
 	UE_LOG(LogTestPAL, Display, TEXT("Running crash test (this should not exit)."));
 
+	// try ensures first (each ensure fires just once)
+	{
+		for (int IdxEnsure = 0; IdxEnsure < 5; ++IdxEnsure)
+		{
+			FScopeLogTime EnsureLogTime(*FString::Printf(TEXT("Handled FIRST ensure() #%d times"), IdxEnsure), nullptr, FScopeLogTime::ScopeLog_Seconds);
+			ensure(false);
+		}
+	}
+	{
+		for (int IdxEnsure = 0; IdxEnsure < 5; ++IdxEnsure)
+		{
+			FScopeLogTime EnsureLogTime(*FString::Printf(TEXT("Handled SECOND ensure() #%d times"), IdxEnsure), nullptr, FScopeLogTime::ScopeLog_Seconds);
+			ensure(false);
+		}
+	}
+
 	if (FParse::Param(CommandLine, TEXT("logfatal")))
 	{
 		UE_LOG(LogTestPAL, Fatal, TEXT("  Opa!"));
