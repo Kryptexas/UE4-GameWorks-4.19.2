@@ -183,7 +183,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Temporarily suspend the undo buffer; we don't need to record the duplicated CDO until it is fully resolved
  		ITransaction* CurrentTransaction = GUndo;
  		GUndo = NULL;
-		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance, DuplicatedClass->GetDefaultObjectName());
+		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance->GetDefaultObject(), DuplicatedClass->GetDefaultObjectName());
 
 		// Restore the undo buffer
 		GUndo = CurrentTransaction;
@@ -1492,16 +1492,16 @@ void FBlueprintCompileReinstancer::ReparentChild(UClass* ChildClass)
 	ChildClass->StaticLink(true);
 }
 
-UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UClass* Class, FName Name)
+UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UObject* CDO, FName Name)
 {
 	UObject* DupCDO = nullptr;
 
 	FCDODuplicatesProvider& CDODupProvider = GetCDODuplicatesProviderDelegate();
 
-	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(Class, Name)) == nullptr)
+	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(CDO, Name)) == nullptr)
 	{
 		GIsDuplicatingClassForReinstancing = true;
-		DupCDO = (UObject*)StaticDuplicateObject(Class->GetDefaultObject(), GetTransientPackage(), *Name.ToString());
+		DupCDO = (UObject*)StaticDuplicateObject(CDO, GetTransientPackage(), *Name.ToString());
 		GIsDuplicatingClassForReinstancing = false;
 	}
 

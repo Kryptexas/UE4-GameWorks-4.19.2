@@ -407,8 +407,9 @@ public:
 	 *
 	 * @param	PotentialReferencer		the object to serialize which may contain references to our target objects
 	 * @param	InTargetObjects			array of objects to search for references to
+	 * @param	bFindAlsoWeakReferences should we also look into weak references?
 	 */
-	COREUOBJECT_API FFindReferencersArchive( class UObject* PotentialReferencer, TArray<class UObject*> InTargetObjects );
+	COREUOBJECT_API FFindReferencersArchive(class UObject* PotentialReferencer, TArray<class UObject*> InTargetObjects, bool bFindAlsoWeakReferences = false);
 
 	/**
 	 * Retrieves the number of references from PotentialReferencer to the object specified.
@@ -491,14 +492,15 @@ public:
 	 * @param	PackageToCheck	if specified, only objects contained in this package will be searched
 	 *							for references to 
 	 * @param	bIgnoreTemplates If true, do not record template objects
+	 * @param	bFindAlsoWeakReferences If true, also look into weak references
 	 */
-	TFindObjectReferencers( TArray< T* > TargetObjects, UPackage* PackageToCheck=NULL, bool bIgnoreTemplates = true )
+	TFindObjectReferencers( TArray< T* > TargetObjects, UPackage* PackageToCheck=NULL, bool bIgnoreTemplates = true, bool bFindAlsoWeakReferences = false)
 	: TMultiMap< T*, UObject* >()
 	{
 		TArray<UObject*> ReferencedObjects;
 		TMap<UObject*, int32> ReferenceCounts;
 
-		FFindReferencersArchive FindReferencerAr(nullptr, ( TArray<UObject*>& )TargetObjects);
+		FFindReferencersArchive FindReferencerAr(nullptr, (TArray<UObject*>&)TargetObjects, bFindAlsoWeakReferences);
 
 		// Loop over every object to find any reference that may exist for the target objects
 		for (FObjectIterator It; It; ++It)

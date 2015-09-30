@@ -186,16 +186,22 @@ UEdGraphPin* UK2Node_DynamicCast::GetInvalidCastPin() const
 
 UEdGraphPin* UK2Node_DynamicCast::GetCastResultPin() const
 {
-	UEdGraphPin* Pin = NULL;
-
-	if(TargetType != NULL)
+	if(TargetType != nullptr)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FString PinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
-		Pin = FindPin(PinName);
+
+		for (int32 PinIdx = 0; PinIdx < Pins.Num(); PinIdx++)
+		{
+			if (Pins[PinIdx]->PinType.PinSubCategoryObject == *TargetType
+				&& Pins[PinIdx]->Direction == EGPD_Output
+				&& Pins[PinIdx]->PinName.StartsWith(K2Schema->PN_CastedValuePrefix))
+			{
+				return Pins[PinIdx];
+			}
+		}
 	}
 		
-	return Pin;
+	return nullptr;
 }
 
 UEdGraphPin* UK2Node_DynamicCast::GetCastSourcePin() const
