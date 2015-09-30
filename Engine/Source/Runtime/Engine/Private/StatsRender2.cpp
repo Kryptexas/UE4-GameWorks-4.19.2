@@ -10,6 +10,7 @@
 #if STATS
 
 #include "StatsData.h"
+#include "Performance/EnginePerformanceTargets.h"
 
 /** Stats rendering constants. */
 enum class EStatRenderConsts
@@ -296,7 +297,9 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 		CounterName.RemoveFromStart(TEXT("STAT_"), ESearchCase::CaseSensitive);
 		GEngine->GetStatValueColoration(CounterName, InMs, Color);
 
-		const float MaxMeter = 33.3f; // the time of a "full bar" in ms
+		// the time of a "full bar" in ms
+		const float MaxMeter = FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS();
+
 		const int32 MeterWidth = Globals.AfterNameColumnOffset;
 
 		int32 BarWidth = int32((InMs / MaxMeter) * MeterWidth);
