@@ -2,9 +2,9 @@
 
 #include "LevelSequenceEditorPCH.h"
 #include "LevelEditor.h"
+#include "LevelSequenceActor.h"
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
-#include "MovieSceneActor.h"
 #include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
@@ -175,13 +175,13 @@ protected:
 		}
 
 		// Spawn a  actor at the origin, and either move infront of the camera or focus camera on it (depending on the viewport) and open for edit
-		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( AMovieSceneActor::StaticClass() );
+		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( ALevelSequenceActor::StaticClass() );
 		if (!ensure(ActorFactory))
 		{
 			return;
 		}
 
-		AMovieSceneActor* NewActor = CastChecked<AMovieSceneActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
+		ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
 		if( GCurrentLevelEditingViewportClient->IsPerspective() )
 		{
 			GEditor->MoveActorInFrontOfCamera( *NewActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector() );

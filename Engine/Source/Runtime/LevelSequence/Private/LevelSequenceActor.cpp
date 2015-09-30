@@ -1,10 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequencePCH.h"
-#include "MovieSceneActor.h"
+#include "LevelSequenceActor.h"
 
 
-AMovieSceneActor::AMovieSceneActor(const FObjectInitializer& Init)
+ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 	: Super(Init)
 {
 #if WITH_EDITORONLY_DATA
@@ -37,13 +37,13 @@ AMovieSceneActor::AMovieSceneActor(const FObjectInitializer& Init)
 	bAutoPlay = false;
 }
 
-void AMovieSceneActor::BeginPlay()
+void ALevelSequenceActor::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializePlayer();
 }
 
-void AMovieSceneActor::PostInitProperties()
+void ALevelSequenceActor::PostInitProperties()
 {
 	Super::PostInitProperties();
 
@@ -54,7 +54,7 @@ void AMovieSceneActor::PostInitProperties()
 	}
 }
 
-void AMovieSceneActor::PostLoad()
+void ALevelSequenceActor::PostLoad()
 {
 	Super::PostLoad();
 	
@@ -62,11 +62,11 @@ void AMovieSceneActor::PostLoad()
 }
 
 #if WITH_EDITOR
-void AMovieSceneActor::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
+void ALevelSequenceActor::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(AMovieSceneActor, LevelSequence))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ALevelSequenceActor, LevelSequence))
 	{
 		UpdateAnimationInstance();
 	}
@@ -74,7 +74,7 @@ void AMovieSceneActor::PostEditChangeProperty( struct FPropertyChangedEvent& Pro
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-bool AMovieSceneActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+bool ALevelSequenceActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	if (UObject* Asset = SequenceInstance ? SequenceInstance->GetLevelSequence() : nullptr)
 	{
@@ -89,40 +89,40 @@ bool AMovieSceneActor::GetReferencedContentObjects(TArray<UObject*>& Objects) co
 
 #endif // WITH_EDITOR
 
-void AMovieSceneActor::Tick(float DeltaSeconds)
+void ALevelSequenceActor::Tick(float DeltaSeconds)
 {
-	if (AnimationPlayer)
+	if (SequencePlayer)
 	{
-		AnimationPlayer->Update(DeltaSeconds);
+		SequencePlayer->Update(DeltaSeconds);
 	}
 }
 
-void AMovieSceneActor::SetAnimation(ULevelSequence* InAnimation)
+void ALevelSequenceActor::SetSequence(ULevelSequence* InSequence)
 {
-	if (!AnimationPlayer || !AnimationPlayer->IsPlaying())
+	if (!SequencePlayer || !SequencePlayer->IsPlaying())
 	{
-		LevelSequence = InAnimation;
+		LevelSequence = InSequence;
 		InitializePlayer();
 	}
 }
 
-void AMovieSceneActor::InitializePlayer()
+void ALevelSequenceActor::InitializePlayer()
 {
 	UpdateAnimationInstance();
 
 	if (GetWorld()->IsGameWorld())
 	{
-		AnimationPlayer = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");
-		AnimationPlayer->Initialize(SequenceInstance, GetWorld(), PlaybackSettings);
+		SequencePlayer = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");
+		SequencePlayer->Initialize(SequenceInstance, GetWorld(), PlaybackSettings);
 
 		if (bAutoPlay)
 		{
-			AnimationPlayer->Play();
+			SequencePlayer->Play();
 		}
 	}
 }
 
-void AMovieSceneActor::UpdateAnimationInstance()
+void ALevelSequenceActor::UpdateAnimationInstance()
 {
 	ULevelSequence* LevelSequenceAsset = Cast<ULevelSequence>(LevelSequence.TryLoad());
 	SequenceInstance->Initialize(LevelSequenceAsset, GetWorld(), true);

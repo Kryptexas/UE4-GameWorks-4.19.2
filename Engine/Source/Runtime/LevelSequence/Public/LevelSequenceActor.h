@@ -3,20 +3,24 @@
 #pragma once
 
 #include "LevelSequencePlayer.h"
-#include "MovieSceneActor.generated.h"
+#include "LevelSequenceActor.generated.h"
 
 
 /**
- * Actor responsible for controlling a specific movie scene sequence in the world
+ * Actor responsible for controlling a specific level sequence in the world.
  */
 UCLASS(Experimental, hideCategories=(Rendering, Physics, LOD, Activation))
-class LEVELSEQUENCE_API AMovieSceneActor
+class LEVELSEQUENCE_API ALevelSequenceActor
 	: public AActor
 {
 public:
-	AMovieSceneActor(const FObjectInitializer& Init);
 
 	GENERATED_BODY()
+
+	/** Create and initialize a new instance. */
+	ALevelSequenceActor(const FObjectInitializer& Init);
+
+public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Playback")
 	bool bAutoPlay;
@@ -25,7 +29,7 @@ public:
 	FLevelSequencePlaybackSettings PlaybackSettings;
 
 	UPROPERTY(transient, BlueprintReadOnly, Category="Playback")
-	ULevelSequencePlayer* AnimationPlayer;
+	ULevelSequencePlayer* SequencePlayer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="General", meta=(AllowedClasses="LevelSequence"))
 	FStringAssetReference LevelSequence;
@@ -33,7 +37,7 @@ public:
 public:
 
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
-	void SetAnimation(ULevelSequence* Animation);
+	void SetSequence(ULevelSequence* InSequence);
 
 public:
 
