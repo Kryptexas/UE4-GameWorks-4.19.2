@@ -506,6 +506,14 @@ void FSequencer::SnapToFrame()
 		UpdateRuntimeInstances();
 	}
 }
+
+bool FSequencer::CanSnapToFrame() const
+{
+	const bool bKeysSelected = Selection.GetSelectedKeys().Num() > 0;
+
+	return bKeysSelected && CanShowFrameNumbers();
+}
+
 void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance )
 {
 	UMovieSceneSequence* Sequence = MovieSceneInstance->GetSequence();

@@ -568,7 +568,9 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 				NSLOCTEXT("Sequencer", "SnapToFrame", "Snap to Frame"),
 				NSLOCTEXT("Sequencer", "SnapToFrameToolTip", "Snap selected keys to frame"),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::SnapToFrame))
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SnapToFrame),
+					FCanExecuteAction::CreateSP(&Sequencer, &FSequencer::CanSnapToFrame))
 			);
 
 			MenuBuilder.AddMenuEntry(
@@ -592,35 +594,15 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 				NSLOCTEXT("Sequencer", "SelectAllKeys", "Select All Keys"),
 				NSLOCTEXT("Sequencer", "SelectAllKeysTooltip", "Select all keys in section"),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &SSection::SelectAllKeys))
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SSection::SelectAllKeys),
+					FCanExecuteAction::CreateSP(this, &SSection::CanSelectAllKeys))
 			);
 
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "TrimSectionLeft", "Trim Left"),
-				NSLOCTEXT("Sequencer", "TrimSectionLeftTooltip", "Trim section at current time to the left"),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP(this, &SSection::TrimSection, true),
-					FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
-			);
-
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "TrimSectionRight", "Trim Right"),
-				NSLOCTEXT("Sequencer", "TrimSectionRightTooltip", "Trim section at current time to the right"),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP(this, &SSection::TrimSection, false),
-					FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
-			);
-
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "SplitSection", "Split"),
-				NSLOCTEXT("Sequencer", "SplitSectionTooltip", "Split section at current time"),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP(this, &SSection::SplitSection),
-					FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
-			);
+			MenuBuilder.AddSubMenu(
+				NSLOCTEXT("Sequencer", "EditSection", "Edit"),
+				NSLOCTEXT("Sequencer", "EditSectionTooltip", "Edit section"),
+				FNewMenuDelegate::CreateRaw(this, &SSection::AddEditMenu));
 
 			MenuBuilder.AddSubMenu(
 				NSLOCTEXT("Sequencer", "SetPreInfinityExtrap", "Pre-Infinity"), 
@@ -664,6 +646,36 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 	}
 
 	return TSharedPtr<SWidget>();
+}
+
+void SSection::AddEditMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "TrimSectionLeft", "Trim Left"),
+		NSLOCTEXT("Sequencer", "TrimSectionLeftTooltip", "Trim section at current time to the left"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::TrimSection, true),
+			FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "TrimSectionRight", "Trim Right"),
+		NSLOCTEXT("Sequencer", "TrimSectionRightTooltip", "Trim section at current time to the right"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::TrimSection, false),
+			FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "SplitSection", "Split"),
+		NSLOCTEXT("Sequencer", "SplitSectionTooltip", "Split section at current time"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::SplitSection),
+			FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
+	);
 }
 
 void SSection::AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool bPreInfinity)
@@ -1030,6 +1042,25 @@ void SSection::SelectAllKeys()
 			GetSequencer().GetSelection().AddToSelection(SelectKey);
 		}
 	}
+}
+
+bool SSection::CanSelectAllKeys() const
+{
+	// @todo Sequencer should operate on selected sections
+	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	{
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+
+		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
+		if (KeyHandles.Num() > 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void SSection::TrimSection(bool bTrimLeft)

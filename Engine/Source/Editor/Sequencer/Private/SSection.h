@@ -93,6 +93,9 @@ private:
 	/** Summons a context menu over the associated section */
 	TSharedPtr<SWidget> OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
+	/** Add edit menu for trim and split */
+	void AddEditMenu(FMenuBuilder& MenuBuilder);
+
 	/** Add extrapolation menu for pre and post infinity */
 	void AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool bPreInfinity);
 
@@ -153,17 +156,22 @@ private:
 	 */
 	void SelectAllKeys();
 
-	/*
+	/**
+	 * Are there keys to select? 
+	 */
+	bool CanSelectAllKeys() const;
+
+	/**
 	 * Trim section 
 	 */
 	void TrimSection(bool bTrimLeft);
 
-	/*
+	/**
 	 * Split section
 	 */
 	void SplitSection();
 
-	/*
+	/**
 	 * Is there a trimmable section?
 	 */
 	bool IsTrimmable() const;

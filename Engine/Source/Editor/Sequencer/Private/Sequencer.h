@@ -145,6 +145,11 @@ public:
 	void SnapToFrame();
 
 	/**
+ 	 * Are there keys to snap? 
+	 */
+	bool CanSnapToFrame() const;
+
+	/**
 	 * @return Movie scene tools used by the sequencer
 	 */
 	const TArray<TSharedPtr<ISequencerTrackEditor>>& GetTrackEditors() const
