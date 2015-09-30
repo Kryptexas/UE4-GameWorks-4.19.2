@@ -151,6 +151,9 @@ public:
 	/* Default initialization of data */
 	HandlerComponent();
 
+	/** Base destructor */
+	virtual ~HandlerComponent() {}
+
 	/* Returns whether this handler is currently active */
 	virtual bool IsActive() const;
 
