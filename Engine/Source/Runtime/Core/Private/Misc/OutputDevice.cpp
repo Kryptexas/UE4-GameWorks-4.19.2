@@ -155,6 +155,29 @@ CORE_API FOutputDeviceError* GError = NULL;
 /** Lock used to synchronize the fail debug calls. */
 static FCriticalSection	FailDebugCriticalSection;
 
+void PrintScriptCallstack(bool bEmptyWhenDone)
+{
+#if DO_BLUEPRINT_GUARD
+	// Walk the script stack, if any
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
+	{
+		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
+		for (int32 FrameIdx = BlueprintExceptionTracker.ScriptStack.Num() - 1; FrameIdx >= 0; --FrameIdx)
+		{
+			ScriptStack += BlueprintExceptionTracker.ScriptStack[FrameIdx].GetStackDescription() + TEXT( "\n" );
+		}
+
+		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );
+
+		if (bEmptyWhenDone)
+		{
+			BlueprintExceptionTracker.ScriptStack.Empty();
+		}
+	}
+#endif
+}
+
 /**
  *	Prints error to the debug output, 
  *	prompts for the remote debugging if there is not debugger, breaks into the debugger 
@@ -204,20 +227,8 @@ void FDebug::ConditionallyEmitEndCrashUATMarker()
 //
 void VARARGS FDebug::LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ...)
 {
-#if DO_BLUEPRINT_GUARD
-	// Walk the script stack, if any
-	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
-	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
-	{
-		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
-		while( BlueprintExceptionTracker.ScriptStack.Num() )
-		{
-			ScriptStack += BlueprintExceptionTracker.ScriptStack.Pop().GetStackDescription() + TEXT( "\n" );
-		}
-
-		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );
-	}
-#endif
+	// Print out the blueprint callstack
+	PrintScriptCallstack(true);
 
 	// Ignore this assert if we're already forcibly shutting down because of a critical error.
 	if( !GIsCriticalError )
@@ -262,6 +273,9 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 		FDebug::LogAssertFailedMessage( Expr, File, Line, Msg );
 		return;
 	}
+
+	// Print out the blueprint callstack
+	PrintScriptCallstack(false);
 
 	// Print initial debug message for this error
 	TCHAR ErrorString[MAX_SPRINTF];
