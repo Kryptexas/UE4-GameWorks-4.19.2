@@ -2855,7 +2855,7 @@ void FSlateApplication::ProcessCursorReply(const FCursorReply& CursorReply)
 		{
 			CursorReply.GetCursorWidget()->SetVisibility(EVisibility::HitTestInvisible);
 			CursorWindowPtr = CursorReply.GetCursorWindow();
-			PlatformApplication->Cursor->SetType(EMouseCursor::None);
+			PlatformApplication->Cursor->SetType(EMouseCursor::Custom);
 		}
 		else
 		{
