@@ -1046,7 +1046,7 @@ namespace Rocket
 
 			AddDependency(FilterRocketNode.StaticGetFullName(HostPlatform));
 			AddDependency(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
-			AddDependency(WaitToMakeRocketBuild.StaticGetFullName());
+			AddPseudodependency(WaitToMakeRocketBuild.StaticGetFullName());
 
 			AgentSharingGroup = "RocketGroup" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
