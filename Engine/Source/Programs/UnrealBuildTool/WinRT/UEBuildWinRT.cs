@@ -8,171 +8,10 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	class WinRTPlatform : UEBuildPlatform
+	class WinRTPlatformContext : UEBuildPlatformContext
 	{
-		/// <summary>
-		/// Should the app be compiled as WinRT
-		/// </summary>
-		[XmlConfig]
-		public static bool bCompileWinRT = false;
-
-		WinRTPlatformSDK SDK;
-
-		public WinRTPlatform(UnrealTargetPlatform InPlatform, WinRTPlatformSDK InSDK) : base(InPlatform)
+		public WinRTPlatformContext(UnrealTargetPlatform InPlatform, FileReference InProjectFile) : base(InPlatform, InProjectFile)
 		{
-			SDK = InSDK;
-		}
-
-		public override SDKStatus HasRequiredSDKsInstalled()
-		{
-			return SDK.HasRequiredSDKsInstalled();
-		}
-
-		public static bool IsVisualStudioInstalled()
-		{
-			string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
-			if (string.IsNullOrEmpty(BaseVSToolPath) == false)
-			{
-				return true;
-			}
-			return false;
-		}
-
-		public static bool IsWindows8()
-		{
-			// Are we a Windows8 machine?
-			if ((Environment.OSVersion.Version.Major == 6) && (Environment.OSVersion.Version.Minor == 2))
-			{
-				return true;
-			}
-			return false;
-		}
-
-		public override bool CanUseXGE()
-		{
-			return false;
-		}
-
-		/// <summary>
-		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		/// </summary>
-		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
-		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
-		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
-		{
-			switch (InUnrealTargetPlatform)
-			{
-				case UnrealTargetPlatform.WinRT:
-					return CPPTargetPlatform.WinRT;
-				case UnrealTargetPlatform.WinRT_ARM:
-					return CPPTargetPlatform.WinRT_ARM;
-			}
-			throw new BuildException("WinRTPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
-		}
-
-		/// <summary>
-		/// Get the extension to use for the given binary type
-		/// </summary>
-		/// <param name="InBinaryType"> The binary type being built</param>
-		/// <returns>string    The binary extension (i.e. 'exe' or 'dll')</returns>
-		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
-		{
-			switch (InBinaryType)
-			{
-				case UEBuildBinaryType.DynamicLinkLibrary:
-					return ".dll";
-				case UEBuildBinaryType.Executable:
-					return ".exe";
-				case UEBuildBinaryType.StaticLibrary:
-					return ".lib";
-				case UEBuildBinaryType.Object:
-					return ".obj";
-				case UEBuildBinaryType.PrecompiledHeader:
-					return ".pch";
-			}
-			return base.GetBinaryExtension(InBinaryType);
-		}
-
-		/// <summary>
-		/// Get the extension to use for debug info for the given binary type
-		/// </summary>
-		/// <param name="InBinaryType"> The binary type being built</param>
-		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
-		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
-		{
-			return ".pdb";
-		}
-
-		/// <summary>
-		/// Gives the platform a chance to 'override' the configuration settings
-		/// that are overridden on calls to RunUBT.
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			ValidateUEBuildConfiguration();
-		}
-
-		/// <summary>
-		/// Validate the UEBuildConfiguration for this platform
-		/// This is called BEFORE calling UEBuildConfiguration to allow setting
-		/// various fields used in that function such as CompileLeanAndMean...
-		/// </summary>
-		public override void ValidateUEBuildConfiguration()
-		{
-			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-			UEBuildConfiguration.bCompilePhysX = false;
-			UEBuildConfiguration.bCompileAPEX = false;
-			UEBuildConfiguration.bRuntimePhysicsCooking = false;
-
-			BuildConfiguration.bUseUnityBuild = false;
-
-			// Don't stop compilation at first error...
-			BuildConfiguration.bStopXGECompilationAfterErrors = false;
-		}
-
-		/// <summary>
-		/// Whether this platform should build a monolithic binary
-		/// </summary>
-		public override bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Whether PDB files should be used
-		/// </summary>
-		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
-		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
-		/// <returns>bool true if PDB files should be used, false if not</returns>
-		public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Whether the editor should be built for this platform or not
-		/// </summary>
-		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
-		/// <returns>bool   true if the editor should be built, false if not</returns>
-		public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Whether the platform requires cooked data
-		/// </summary>
-		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
-		/// <returns>bool   true if the platform requires cooked data, false if not</returns>
-		public override bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			return true;
 		}
 
 		/// <summary>
@@ -427,43 +266,32 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Modify the rules for a newly created module, where the target is a different host platform.
-		/// This is not required - but allows for hiding details of a particular platform.
+		/// Gives the platform a chance to 'override' the configuration settings
+		/// that are overridden on calls to RunUBT.
 		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		/// <param name="Configuration">The UnrealTargetConfiguration being built</param>
+		/// <returns>true if debug info should be generated, false if not</returns>
+		public override void ResetBuildConfiguration(UnrealTargetConfiguration InConfiguration)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
-			{
-				//              bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-				// 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
-				// 				{
-				// 					if (ModuleName == "Engine")
-				// 					{
-				// 						if (UEBuildConfiguration.bBuildDeveloperTools)
-				// 						{
-				// 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("WinRTTargetPlatform");
-				// 						}
-				// 					}
-				// 					else if (ModuleName == "TargetPlatform")
-				// 					{
-				// 		                bBuildShaderFormats = true;
-				// 					}
-				// 				}
+			ValidateUEBuildConfiguration();
+		}
 
-				// 				// allow standalone tools to use targetplatform modules, without needing Engine
-				// 				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-				// 				{
-				// 					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("WinRTTargetPlatform");
-				// 				}
+		/// <summary>
+		/// Validate the UEBuildConfiguration for this platform
+		/// This is called BEFORE calling UEBuildConfiguration to allow setting
+		/// various fields used in that function such as CompileLeanAndMean...
+		/// </summary>
+		public override void ValidateUEBuildConfiguration()
+		{
+			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+			UEBuildConfiguration.bCompilePhysX = false;
+			UEBuildConfiguration.bCompileAPEX = false;
+			UEBuildConfiguration.bRuntimePhysicsCooking = false;
 
-				//              if (bBuildShaderFormats)
-				//              {
-				//                  Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("ShaderFormatWinRT");
-				//              }
-			}
+			BuildConfiguration.bUseUnityBuild = false;
+
+			// Don't stop compilation at first error...
+			BuildConfiguration.bStopXGECompilationAfterErrors = false;
 		}
 
 		/// <summary>
@@ -567,10 +395,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether this platform should create debug information or not
 		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
 		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
+		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
 		{
 			switch (Configuration)
 			{
@@ -581,6 +408,186 @@ namespace UnrealBuildTool
 				default:
 					return true;
 			};
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		{
+			return new WinRTToolChain(Platform);
+		}
+
+		/// <summary>
+		/// Create a build deployment handler
+		/// </summary>
+		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
+		public override UEBuildDeploy CreateDeploymentHandler()
+		{
+			return new WinRTDeploy();
+		}
+	}
+
+	class WinRTPlatform : UEBuildPlatform
+	{
+		/// <summary>
+		/// Should the app be compiled as WinRT
+		/// </summary>
+		[XmlConfig]
+		public static bool bCompileWinRT = false;
+
+		WinRTPlatformSDK SDK;
+
+		public WinRTPlatform(UnrealTargetPlatform InPlatform, CPPTargetPlatform InDefaultCPPPlatform, WinRTPlatformSDK InSDK) : base(InPlatform, InDefaultCPPPlatform)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
+		public static bool IsVisualStudioInstalled()
+		{
+			string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
+			if (string.IsNullOrEmpty(BaseVSToolPath) == false)
+			{
+				return true;
+			}
+			return false;
+		}
+
+		public static bool IsWindows8()
+		{
+			// Are we a Windows8 machine?
+			if ((Environment.OSVersion.Version.Major == 6) && (Environment.OSVersion.Version.Minor == 2))
+			{
+				return true;
+			}
+			return false;
+		}
+
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
+
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The binary extension (i.e. 'exe' or 'dll')</returns>
+		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
+		{
+			switch (InBinaryType)
+			{
+				case UEBuildBinaryType.DynamicLinkLibrary:
+					return ".dll";
+				case UEBuildBinaryType.Executable:
+					return ".exe";
+				case UEBuildBinaryType.StaticLibrary:
+					return ".lib";
+				case UEBuildBinaryType.Object:
+					return ".obj";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".pch";
+			}
+			return base.GetBinaryExtension(InBinaryType);
+		}
+
+		/// <summary>
+		/// Get the extension to use for debug info for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
+		{
+			return ".pdb";
+		}
+
+		/// <summary>
+		/// Whether this platform should build a monolithic binary
+		/// </summary>
+		public override bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Whether PDB files should be used
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
+		/// <returns>bool true if PDB files should be used, false if not</returns>
+		public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Whether the editor should be built for this platform or not
+		/// </summary>
+		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool   true if the editor should be built, false if not</returns>
+		public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Whether the platform requires cooked data
+		/// </summary>
+		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool   true if the platform requires cooked data, false if not</returns>
+		public override bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			{
+				//              bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+				// 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
+				// 				{
+				// 					if (ModuleName == "Engine")
+				// 					{
+				// 						if (UEBuildConfiguration.bBuildDeveloperTools)
+				// 						{
+				// 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("WinRTTargetPlatform");
+				// 						}
+				// 					}
+				// 					else if (ModuleName == "TargetPlatform")
+				// 					{
+				// 		                bBuildShaderFormats = true;
+				// 					}
+				// 				}
+
+				// 				// allow standalone tools to use targetplatform modules, without needing Engine
+				// 				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				// 				{
+				// 					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("WinRTTargetPlatform");
+				// 				}
+
+				//              if (bBuildShaderFormats)
+				//              {
+				//                  Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("ShaderFormatWinRT");
+				//              }
+			}
 		}
 
 		//
@@ -595,25 +602,13 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a toolchain instance for the given platform.
+		/// Creates a context for the given project on the current platform.
 		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
+		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <returns>New platform context object</returns>
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
-			return new WinRTToolChain(Platform);
-		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
-		{
-			DeploymentHandler = new WinRTDeploy();
-			return true;
+			return new WinRTPlatformContext(Platform, ProjectFile);
 		}
 	}
 
@@ -661,7 +656,7 @@ namespace UnrealBuildTool
 				{
 					// Register this build platform for WinRT
 					Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT.ToString());
-					UEBuildPlatform.RegisterBuildPlatform(new WinRTPlatform(UnrealTargetPlatform.WinRT, SDK));
+					UEBuildPlatform.RegisterBuildPlatform(new WinRTPlatform(UnrealTargetPlatform.WinRT, CPPTargetPlatform.WinRT, SDK));
 					UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinRT, UnrealPlatformGroup.Microsoft);
 
 					// For now only register WinRT_ARM is truly a Windows 8 machine.
@@ -669,7 +664,7 @@ namespace UnrealBuildTool
 					if (WinRTPlatform.IsWindows8() == true)
 					{
 						Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinRT_ARM.ToString());
-						UEBuildPlatform.RegisterBuildPlatform(new WinRTPlatform(UnrealTargetPlatform.WinRT_ARM, SDK));
+						UEBuildPlatform.RegisterBuildPlatform(new WinRTPlatform(UnrealTargetPlatform.WinRT_ARM, CPPTargetPlatform.WinRT_ARM, SDK));
 						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinRT_ARM, UnrealPlatformGroup.Microsoft);
 					}
 				}

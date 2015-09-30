@@ -105,11 +105,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Find all third party and private header includes in public engine headers.
 		/// </summary>
-		public static void FindThirdPartyIncludes(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
+		public static void FindThirdPartyIncludes(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture)
 		{
 			Log.TraceInformation("Looking for third party header includes in public engine header files (this may take a few minutes)...");
 
-			TargetInfo Target = new TargetInfo(Platform, Configuration);
+			TargetInfo Target = new TargetInfo(Platform, Configuration, Architecture);
 			List<string> UncheckedModules = new List<string>();
 			EngineHeaders = new List<Header>();
 			ThirdPartyHeaders = new List<Header>();

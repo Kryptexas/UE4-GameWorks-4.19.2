@@ -37,6 +37,9 @@ namespace UnrealBuildTool
 		/// The target rules file path on disk, if we have one
 		public FileReference TargetFilePath;
 
+		/// The project file path on disk
+		public FileReference ProjectFilePath;
+
 		/// Optional target rules for this target.  If the target came from a *.Target.cs file on disk, then it will have one of these.
 		/// For targets that are synthetic (like UnrealBuildTool or other manually added project files) we won't have a rules object for those.
 		public TargetRules TargetRules;

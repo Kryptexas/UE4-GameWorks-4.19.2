@@ -10,18 +10,10 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
-	class AndroidPlatform : UEBuildPlatform
+	class AndroidPlatformContext : UEBuildPlatformContext
 	{
-		AndroidPlatformSDK SDK;
-
-		public AndroidPlatform(AndroidPlatformSDK InSDK) : base(UnrealTargetPlatform.Android)
+		public AndroidPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Android, InProjectFile)
 		{
-			SDK = InSDK;
-		}
-
-		public override SDKStatus HasRequiredSDKsInstalled()
-		{
-			return SDK.HasRequiredSDKsInstalled();
 		}
 
 		// The current architecture - affects everything about how UBT operates on Android
@@ -31,50 +23,22 @@ namespace UnrealBuildTool
 			return base.GetActiveArchitecture();
 		}
 
-		public override bool CanUseXGE()
+		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
 		{
-			return false;
 		}
 
-		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
-			switch (InUnrealTargetPlatform)
-			{
-				case UnrealTargetPlatform.Android:
-					return CPPTargetPlatform.Android;
-			}
-			throw new BuildException("AndroidPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
 		}
 
-		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
-		{
-			switch (InBinaryType)
-			{
-				case UEBuildBinaryType.DynamicLinkLibrary:
-					return ".so";
-				case UEBuildBinaryType.Executable:
-					return ".so";
-				case UEBuildBinaryType.StaticLibrary:
-					return ".a";
-				case UEBuildBinaryType.Object:
-					return ".o";
-				case UEBuildBinaryType.PrecompiledHeader:
-					return ".gch";
-			}
-			return base.GetBinaryExtension(InBinaryType);
-		}
-
-		public override bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
-		{
-			return true;
-		}
-
-		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
-		{
-			return "";
-		}
-
-		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
 		{
 			ValidateUEBuildConfiguration();
 			//BuildConfiguration.bDeployAfterCompile = true;
@@ -101,136 +65,6 @@ namespace UnrealBuildTool
 			BuildConfiguration.bStopXGECompilationAfterErrors = true;
 
 			BuildConfiguration.bUseSharedPCHs = false;
-		}
-
-		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectPath)
-		{
-			string[] BoolKeys = new string[] {
-				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
-				"bBuildForES2", "bBuildForES31",
-			};
-
-			// look up iOS specific settings
-			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
-				BoolKeys, null, null))
-			{
-				return false;
-			}
-
-			// check the base settings
-			return base.HasDefaultBuildConfig(Platform, ProjectPath);
-		}
-
-		public override bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
-		{
-			// This platform currently always compiles monolithic
-			return true;
-		}
-
-		public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
-		{
-			return true;
-		}
-
-		public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			return true;
-		}
-
-		public override bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			return true;
-		}
-
-		public override bool RequiresDeployPrepAfterCompile()
-		{
-			return true;
-		}
-
-		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
-		{
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, where the target is a different host platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
-			{
-				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-				if (!UEBuildConfiguration.bBuildRequiresCookedData)
-				{
-					if (ModuleName == "Engine")
-					{
-						if (UEBuildConfiguration.bBuildDeveloperTools)
-						{
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
-							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
-						}
-					}
-					else if (ModuleName == "TargetPlatform")
-					{
-						bBuildShaderFormats = true;
-						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
-						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
-						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
-						if (UEBuildConfiguration.bBuildDeveloperTools)
-						{
-							//Rules.DynamicallyLoadedModuleNames.Add("AudioFormatADPCM");	//@todo android: android audio
-						}
-					}
-				}
-
-				// allow standalone tools to use targetplatform modules, without needing Engine
-				if (ModuleName == "TargetPlatform")
-				{
-					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-					{
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
-						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
-					}
-
-					if (bBuildShaderFormats)
-					{
-						//Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatAndroid");		//@todo android: ShaderFormatAndroid
-					}
-				}
-			}
-		}
-
-		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
-		{
-			// Disable for now
-			return false;
 		}
 
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
@@ -321,7 +155,13 @@ namespace UnrealBuildTool
 			BuildConfiguration.bDeployAfterCompile = true;
 		}
 
-		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
+		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
+		{
+			// Disable for now
+			return false;
+		}
+
+		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
 		{
 			switch (Configuration)
 			{
@@ -332,6 +172,173 @@ namespace UnrealBuildTool
 				default:
 					return true;
 			};
+		}
+
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		{
+			return new AndroidToolChain(ProjectFile);
+		}
+
+		public override UEBuildDeploy CreateDeploymentHandler()
+		{
+			return new UEDeployAndroid(ProjectFile);
+		}
+	}
+
+	class AndroidPlatform : UEBuildPlatform
+	{
+		AndroidPlatformSDK SDK;
+
+		public AndroidPlatform(AndroidPlatformSDK InSDK) : base(UnrealTargetPlatform.Android, CPPTargetPlatform.Android)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
+
+		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
+		{
+			switch (InBinaryType)
+			{
+				case UEBuildBinaryType.DynamicLinkLibrary:
+					return ".so";
+				case UEBuildBinaryType.Executable:
+					return ".so";
+				case UEBuildBinaryType.StaticLibrary:
+					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
+			}
+			return base.GetBinaryExtension(InBinaryType);
+		}
+
+		public override bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
+		{
+			return true;
+		}
+
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
+		{
+			return "";
+		}
+
+		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectPath)
+		{
+			string[] BoolKeys = new string[] {
+				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
+				"bBuildForES2", "bBuildForES31",
+			};
+
+			// look up iOS specific settings
+			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
+				BoolKeys, null, null))
+			{
+				return false;
+			}
+
+			// check the base settings
+			return base.HasDefaultBuildConfig(Platform, ProjectPath);
+		}
+
+		public override bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
+		{
+			// This platform currently always compiles monolithic
+			return true;
+		}
+
+		public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
+		{
+			return true;
+		}
+
+		public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		{
+			return true;
+		}
+
+		public override bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		{
+			return true;
+		}
+
+		public override bool RequiresDeployPrepAfterCompile()
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
+			{
+				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+				if (!UEBuildConfiguration.bBuildRequiresCookedData)
+				{
+					if (ModuleName == "Engine")
+					{
+						if (UEBuildConfiguration.bBuildDeveloperTools)
+						{
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
+						}
+					}
+					else if (ModuleName == "TargetPlatform")
+					{
+						bBuildShaderFormats = true;
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
+						if (UEBuildConfiguration.bBuildDeveloperTools)
+						{
+							//Rules.DynamicallyLoadedModuleNames.Add("AudioFormatADPCM");	//@todo android: android audio
+						}
+					}
+				}
+
+				// allow standalone tools to use targetplatform modules, without needing Engine
+				if (ModuleName == "TargetPlatform")
+				{
+					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+					{
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
+					}
+
+					if (bBuildShaderFormats)
+					{
+						//Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatAndroid");		//@todo android: ShaderFormatAndroid
+					}
+				}
+			}
 		}
 
 		public override List<FileReference> FinalizeBinaryPaths(FileReference BinaryName, FileReference ProjectFile)
@@ -354,15 +361,14 @@ namespace UnrealBuildTool
 			return AllBinaries;
 		}
 
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
+		/// <summary>
+		/// Creates a context for the given project on the current platform.
+		/// </summary>
+		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <returns>New platform context object</returns>
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
-			return new AndroidToolChain(ProjectFile);
-		}
-
-		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
-		{
-			DeploymentHandler = new UEDeployAndroid(ProjectFile);
-			return true;
+			return new AndroidPlatformContext(ProjectFile);
 		}
 	}
 

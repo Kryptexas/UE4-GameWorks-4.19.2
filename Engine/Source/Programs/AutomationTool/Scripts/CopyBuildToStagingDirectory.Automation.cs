@@ -1652,7 +1652,7 @@ public partial class Project : CommandUtils
                             var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ReceiptPlatform, true);
                             if (BuildPlatform != null)
                             {
-                                Architecture = BuildPlatform.GetActiveArchitecture();
+                                Architecture = BuildPlatform.CreateContext(Params.RawProjectPath).GetActiveArchitecture();
                             }
                         }
 						string ReceiptFileName = TargetReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);

@@ -47,18 +47,18 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Initializes environment variables required by toolchain. Different for 32 and 64 bit.
 		/// </summary>
-		public static VCEnvironment SetEnvironment(CPPTargetPlatform Platform)
+		public static VCEnvironment SetEnvironment(CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			if (EnvVars != null && EnvVars.Platform == Platform)
 			{
 				return EnvVars;
 			}
 
-			EnvVars = new VCEnvironment(Platform);
+			EnvVars = new VCEnvironment(Platform, bSupportWindowsXP);
 			return EnvVars;
 		}
 
-		private VCEnvironment(CPPTargetPlatform InPlatform)
+		private VCEnvironment(CPPTargetPlatform InPlatform, bool bSupportWindowsXP)
 		{
 			Platform = InPlatform;
 
@@ -70,7 +70,7 @@ namespace UnrealBuildTool
 				throw new BuildException("Visual Studio 2012, 2013 or 2015 must be installed in order to build this target.");
 			}
 
-			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform);
+			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, bSupportWindowsXP);
 			WindowsSDKLibVersion = FindWindowsSDKLibVersion(WindowsSDKDir);
 			WindowsSDKExtensionDir = FindWindowsSDKExtensionInstallationFolder();
 			NetFxSDKExtensionDir = FindNetFxSDKExtensionInstallationFolder();
@@ -92,7 +92,7 @@ namespace UnrealBuildTool
 			CLExeVersion = FindCLExeVersion(CompilerPath);
 			LinkerPath = GetLinkerToolPath(LinkerVSToolPath);
 			LibraryLinkerPath = GetLibraryLinkerToolPath(LinkerVSToolPath);
-			ResourceCompilerPath = GetResourceCompilerToolPath(Platform);
+			ResourceCompilerPath = GetResourceCompilerToolPath(Platform, bSupportWindowsXP);
 
 			// Manually determine the compile environment
 			List<string> IncludePaths = GetVisualCppIncludePaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion);
@@ -118,7 +118,7 @@ namespace UnrealBuildTool
 
 			// When targeting Windows XP on Visual Studio 2012+, we need to override the Windows SDK include and lib path set
 			// by the batch file environment (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-			if (WindowsPlatform.IsWindowsXPSupported())
+			if (bSupportWindowsXP)
 			{
 				// Lib and bin folders have a x64 subfolder for 64 bit development.
 				var ConfigSuffix = (Platform == CPPTargetPlatform.Win64) ? "\\x64" : "";
@@ -131,20 +131,20 @@ namespace UnrealBuildTool
 			// Check the environment matches up with the environment variables set by the batch files. For now, this is academic, but once we've established this as reliable, 
 			// start using them in preference. 
 			// NOTE: We skip this step for Windows XP, because the batch file actually initializes them incorrectly (and we override them above).
-			if (!WindowsPlatform.IsWindowsXPSupported())
+			if (!bSupportWindowsXP)
 			{
 				string IncludePathsString = String.Join(";", IncludePaths) + ";";
-				CompareEnvironmentVariable("INCLUDE", IncludePathsString);
+				CompareEnvironmentVariable("INCLUDE", IncludePathsString, bSupportWindowsXP);
 
 				string LibraryPathsString = String.Join(";", LibraryPaths) + ";";
-				CompareEnvironmentVariable("LIB", LibraryPathsString);
+				CompareEnvironmentVariable("LIB", LibraryPathsString, bSupportWindowsXP);
 			}
 		}
 
 		/// <summary>
 		/// Check that an environment variable is the same as one derived from keys in the registry, and send a telemetry event if it's not
 		/// </summary>
-		private void CompareEnvironmentVariable(string VariableName, string RegistryValue)
+		private void CompareEnvironmentVariable(string VariableName, string RegistryValue, bool bSupportWindowsXP)
 		{
 			string EnvironmentValue = Environment.GetEnvironmentVariable(VariableName);
 			Telemetry.SendEvent("CompareEnvironmentVariable",
@@ -154,18 +154,18 @@ namespace UnrealBuildTool
 				"RegistryValue", RegistryValue,
 				"Platform", Platform.ToString(),
 				"UWPBuildForStore", UWPPlatform.bBuildForStore.ToString(),
-				"WinXP", WindowsPlatform.IsWindowsXPSupported().ToString(),
+				"WinXP", bSupportWindowsXP.ToString(),
 				"Compiler", WindowsPlatform.Compiler.ToString(),
 				"UseWindowsSDK10", WindowsPlatform.bUseWindowsSDK10.ToString());
 		}
 
 		/// <returns>The path to Windows SDK directory for the specified version.</returns>
-		private static string FindWindowsSDKInstallationFolder(CPPTargetPlatform InPlatform)
+		private static string FindWindowsSDKInstallationFolder(CPPTargetPlatform InPlatform, bool bSupportWindowsXP)
 		{
 			// When targeting Windows XP on Visual Studio 2012+, we need to point at the older Windows SDK 7.1A that comes
 			// installed with Visual Studio 2012 Update 1. (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
 			string Version;
-			if (WindowsPlatform.IsWindowsXPSupported())
+			if (bSupportWindowsXP)
 			{
 				Version = "v7.1A";
 			}
@@ -453,7 +453,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the path to the resource compiler's rc.exe for the specified platform.
 		/// </summary>
-		string GetResourceCompilerToolPath(CPPTargetPlatform Platform)
+		string GetResourceCompilerToolPath(CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
 			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP)
@@ -469,7 +469,7 @@ namespace UnrealBuildTool
 			}
 
 			// @todo UWP: Verify that Windows XP will compile using VS 2015 (it should be supported)
-			if (!WindowsPlatform.IsWindowsXPSupported())	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
+			if (!bSupportWindowsXP)	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
 			{
 				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 				{

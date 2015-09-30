@@ -17,9 +17,12 @@ namespace UnrealBuildTool
 {
 	class IOSToolChain : AppleToolChain
 	{
-		public IOSToolChain(FileReference InProjectFile)
+		IOSPlatformContext PlatformContext;
+
+		public IOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext)
 			: base(CPPTargetPlatform.IOS, UnrealTargetPlatform.Mac, InProjectFile)
 		{
+			PlatformContext = InPlatformContext;
 		}
 
 		/***********************************************************************
@@ -135,15 +138,14 @@ namespace UnrealBuildTool
 		}
 
 		static bool bHasPrinted = false;
-		static string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
+		string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
 		{
-			IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
-			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+			PlatformContext.SetUpProjectEnvironment();
 
 			// get the list of architectures to compile
 			string Archs =
 				UBTArchitecture == "-simulator" ? "i386" :
-				(Configuration == CPPTargetConfiguration.Shipping) ? IOSPlatform.ShippingArchitectures : IOSPlatform.NonShippingArchitectures;
+				(Configuration == CPPTargetConfiguration.Shipping) ? PlatformContext.ShippingArchitectures : PlatformContext.NonShippingArchitectures;
 
 			if (!bHasPrinted)
 			{
@@ -165,8 +167,7 @@ namespace UnrealBuildTool
 
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
-			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+			PlatformContext.SetUpProjectEnvironment();
 
 			string Result = "";
 
@@ -222,9 +223,9 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + BaseSDKDir + "/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 
-			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
+			Result += " -miphoneos-version-min=" + PlatformContext.GetRunTimeVersion();
 
-			Result += " " + BuildPlat.GetAdditionalLinkerFlags(CompileEnvironment.Config.Target.Configuration);
+			Result += " " + PlatformContext.GetAdditionalLinkerFlags(CompileEnvironment.Config.Target.Configuration);
 
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
@@ -377,8 +378,7 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
-			IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
-			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+			PlatformContext.SetUpProjectEnvironment();
 
 			string Result = "";
 			if (LinkEnvironment.Config.Target.Architecture == "-simulator")
@@ -392,7 +392,7 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 			Result += " -dead_strip";
-			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
+			Result += " -miphoneos-version-min=" + PlatformContext.GetRunTimeVersion();
 			Result += " -Wl,-no_pie";
 			//			Result += " -v";
 
@@ -1200,8 +1200,7 @@ namespace UnrealBuildTool
 					}
 					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
 
-					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-					string Architecture = BuildPlatform.GetActiveArchitecture();
+					string Architecture = PlatformContext.GetActiveArchitecture();
 					if (Architecture != "")
 					{
 						// pass along the architecture if we need, skipping the initial -, so we have "-architecture simulator"

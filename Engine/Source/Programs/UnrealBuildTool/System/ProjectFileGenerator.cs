@@ -793,20 +793,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (UnrealBuildTool.HasUProjectFile())
-			{
-				bGeneratingRocketProjectFiles = UnrealBuildTool.RunningRocket();
-			}
+			bGeneratingRocketProjectFiles = UnrealBuildTool.RunningRocket();
 
 
 			if( bGeneratingRocketProjectFiles )
 			{
-				// We expected a project path to be passed in
-				if (!UnrealBuildTool.HasUProjectFile())
-				{
-					throw new BuildException( "When -Rocket is used, you must also specify a path to the Rocket project file on the command-line" );
-				}
-
 				// Make sure we can get a valid game name out of this project
 				var GameName = OnlyGameProject.GetFileNameWithoutExtension();
 				if( String.IsNullOrEmpty( GameName ) )
@@ -1395,26 +1386,23 @@ namespace UnrealBuildTool
 						ArgumentsCopy[ 0 ] = TargetName;
 						Array.Copy(Arguments, 0, ArgumentsCopy, 1, Arguments.Length);
 
-						// CreateTarget mutates the current project setting file if it isn't already set, which prevents other 
-						// projects from being able to do the same. Capture the state beforehand, and reset if after running UBT. 
-						bool bHasProjectFile = UnrealBuildTool.HasUProjectFile();
-
 						// We only want to update definitions and include paths for modules that are part of this target's project file.
 						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = TargetProjectFile;
 
+						FileReference ProjectFile;
+						if(!UProjectInfo.TryGetProjectForTarget(TargetName, out ProjectFile))
+						{
+							ProjectFile = null;
+						}
+
 						// Run UnrealBuildTool, pretending to build this target but instead only gathering data for IntelliSense (include paths and definitions).
 						// No actual compiling or linking will happen because we early out using the ProjectFileGenerator.bGenerateProjectFiles global
-						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy ) == ECompilationResult.Succeeded;
+						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy, ProjectFile ) == ECompilationResult.Succeeded;
 						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = null;
 
 						if( !bSuccess )
 						{
 							break;
-						}
-
-						if(!bHasProjectFile)
-						{
-							UnrealBuildTool.ResetProjectFile();
 						}
 
 						// Display progress
@@ -1681,7 +1669,7 @@ namespace UnrealBuildTool
 
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
-					var TargetRulesObject = RulesAssembly.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development), false);
+					var TargetRulesObject = RulesAssembly.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, ""), false);
 
 					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
 					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))
@@ -1798,7 +1786,8 @@ namespace UnrealBuildTool
 						var ProjectTarget = new ProjectTarget()
 							{
 								TargetRules = TargetRulesObject,
-								TargetFilePath = TargetFilePath
+								TargetFilePath = TargetFilePath,
+								ProjectFilePath = ProjectFilePath
 							};
 
 						if (TargetName == "ShaderCompileWorker")		// @todo projectfiles: Ideally, the target rules file should set this

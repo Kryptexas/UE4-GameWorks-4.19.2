@@ -25,7 +25,7 @@ public class BuildCookRun : BuildCommand
 	public override void ExecuteBuild()
 	{
 		// allow BCR functions to call UBT functions (especially .ini parsing)
-		UnrealBuildTool.UnrealBuildTool.SetupUBTFromUAT(ProjectPath);
+		UnrealBuildTool.UnrealBuildTool.SetupUBTFromUAT();
 
 		// these need to be done first
 		var bForeign = ParseParam("foreign");

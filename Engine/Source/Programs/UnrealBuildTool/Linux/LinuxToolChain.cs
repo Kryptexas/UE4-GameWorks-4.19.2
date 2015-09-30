@@ -11,9 +11,12 @@ namespace UnrealBuildTool
 {
 	class LinuxToolChain : UEToolChain
 	{
-		public LinuxToolChain() 
+		LinuxPlatformContext PlatformContext;
+
+		public LinuxToolChain(LinuxPlatformContext InPlatformContext) 
 			: base(CPPTargetPlatform.Linux)
 		{
+			PlatformContext = InPlatformContext;
 			if (!CrossCompiling())
 			{
 				// use native linux toolchain
@@ -1155,7 +1158,7 @@ namespace UnrealBuildTool
 			File.Copy(SourceFileName, TargetFileName, true);
 
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
-			StartInfo.FileName = GetStripPath(UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Linux).GetActiveArchitecture());
+			StartInfo.FileName = GetStripPath(PlatformContext.GetActiveArchitecture());
 			StartInfo.Arguments = "--strip-debug \"" + TargetFileName + "\"";
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;

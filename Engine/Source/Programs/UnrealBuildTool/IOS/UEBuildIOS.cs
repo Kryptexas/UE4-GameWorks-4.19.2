@@ -9,57 +9,49 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-	public class IOSPlatform : UEBuildPlatform
+	public class IOSPlatformContext : UEBuildPlatformContext
 	{
-		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-		[XmlConfig]
-		public static string IOSArchitecture = "";
+		private bool bInitializedProject = false;
 
 		/// <summary>
 		/// Which version of the iOS to allow at run time
 		/// </summary>
-		public static string RunTimeIOSVersion = "7.0";
+		public string RunTimeIOSVersion = "7.0";
 
 		/// <summary>
 		/// which devices the game is allowed to run on
 		/// </summary>
-		public static string RunTimeIOSDevices = "1,2";
+		public string RunTimeIOSDevices = "1,2";
 
 		/// <summary>
 		/// The architecture(s) to compile
 		/// </summary>
-		[XmlConfig]
-		public static string NonShippingArchitectures = "armv7";
-		[XmlConfig]
-		public static string ShippingArchitectures = "armv7,arm64";
+		public string NonShippingArchitectures = "armv7";
+		public string ShippingArchitectures = "armv7,arm64";
 
 		/// <summary>
 		/// additional linker flags for shipping
 		/// </summary>
-		public static string AdditionalShippingLinkerFlags = "";
+		public string AdditionalShippingLinkerFlags = "";
 
 		/// <summary>
 		/// additional linker flags for non-shipping
 		/// </summary>
-		public static string AdditionalLinkerFlags = "";
+		public string AdditionalLinkerFlags = "";
 
 		/// <summary>
 		/// mobile provision to use for code signing
 		/// </summary>
-		public static string MobileProvision = "";
+		public string MobileProvision = "";
 
-		private bool bInitializedProject = false;
-
-		IOSPlatformSDK SDK;
-
-		public IOSPlatform(IOSPlatformSDK InSDK) : base(UnrealTargetPlatform.IOS)
+		public IOSPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.IOS, InProjectFile)
 		{
-			SDK = InSDK;
 		}
 
-		public override SDKStatus HasRequiredSDKsInstalled()
+		// The current architecture - affects everything about how UBT operates on IOS
+		public override string GetActiveArchitecture()
 		{
-			return SDK.HasRequiredSDKsInstalled();
+			return IOSPlatform.IOSArchitecture;
 		}
 
 		public string GetRunTimeVersion()
@@ -84,74 +76,16 @@ namespace UnrealBuildTool
 			}
 
 		}
-		// The current architecture - affects everything about how UBT operates on IOS
-		public override string GetActiveArchitecture()
-		{
-			return IOSArchitecture;
-		}
 
-		/// <summary>
-		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		/// </summary>
-		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
-		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
-		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
-		{
-			switch (InUnrealTargetPlatform)
-			{
-				case UnrealTargetPlatform.IOS:
-					return CPPTargetPlatform.IOS;
-			}
-			throw new BuildException("IOSPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
-		}
-
-		/// <summary>
-		/// Get the extension to use for the given binary type
-		/// </summary>
-		/// <param name="InBinaryType"> The binary type being built</param>
-		/// <returns>string    The binary extenstion (ie 'exe' or 'dll')</returns>
-		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
-		{
-			switch (InBinaryType)
-			{
-				case UEBuildBinaryType.DynamicLinkLibrary:
-					return ".dylib";
-				case UEBuildBinaryType.Executable:
-					return "";
-				case UEBuildBinaryType.StaticLibrary:
-					return ".a";
-				case UEBuildBinaryType.Object:
-					return ".o";
-				case UEBuildBinaryType.PrecompiledHeader:
-					return ".gch";
-			}
-			return base.GetBinaryExtension(InBinaryType);
-		}
-
-		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
-		{
-			return BuildConfiguration.bGeneratedSYMFile ? ".dSYM" : "";
-		}
-
-		public override bool CanUseXGE()
-		{
-			return false;
-		}
-
-		public override bool CanUseDistcc()
-		{
-			return true;
-		}
-
-		public override void SetUpProjectEnvironment(UnrealTargetPlatform InPlatform)
+		public override void SetUpProjectEnvironment()
 		{
 			if (!bInitializedProject)
 			{
-				base.SetUpProjectEnvironment(InPlatform);
+				base.SetUpProjectEnvironment();
 
 				// update the configuration based on the project file
 				// look in ini settings for what platforms to compile for
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
 				string MinVersion = "IOS_6";
 				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
 				{
@@ -251,30 +185,43 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Check for the default configuration
-		/// return true if the project uses the default build config
+		/// Whether this platform should create debug information or not
 		/// </summary>
-		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
+		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
 		{
-			string[] BoolKeys = new string[] {
-				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
-				"bShipForArm64", "bShipForArmV7S", "bGeneratedSYMFile",
-			};
-			string[] StringKeys = new string[] {
-				"MinimumiOSVersion", 
-				"AdditionalLinkerFlags",
-				"AdditionalShippingLinkerFlags"
-			};
+			return true;
+		}
 
-			// look up iOS specific settings
-			if (!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
-					BoolKeys, null, StringKeys))
+		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
+		{
+			UEBuildConfiguration.bBuildEditor = false;
+			UEBuildConfiguration.bBuildDeveloperTools = false;
+			UEBuildConfiguration.bCompileAPEX = false;
+			UEBuildConfiguration.bRuntimePhysicsCooking = false;
+			UEBuildConfiguration.bCompileSimplygon = false;
+			UEBuildConfiguration.bBuildDeveloperTools = false;
+			UEBuildConfiguration.bCompileICU = true;
+
+			// we currently don't have any simulator libs for PhysX
+			if (GetActiveArchitecture() == "-simulator")
 			{
-				return false;
+				UEBuildConfiguration.bCompilePhysX = false;
 			}
+		}
 
-			// check the base settings
-			return base.HasDefaultBuildConfig(Platform, ProjectDirectoryName);
+		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
+		{
+			// check the base first
+			base.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
+
+			BuildConfiguration.bUsePCHFiles = false;
+			BuildConfiguration.bUseSharedPCHs = false;
+			BuildConfiguration.bCheckExternalHeadersForModification = false;
+			BuildConfiguration.bCheckSystemHeadersForModification = false;
+			BuildConfiguration.ProcessorCountMultiplier = IOSToolChain.GetAdjustedProcessorCountMultiplier();
+			BuildConfiguration.bDeployAfterCompile = true;
 		}
 
 		/// <summary>
@@ -314,6 +261,123 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		{
+			return new IOSToolChain(ProjectFile, this);
+		}
+
+		/// <summary>
+		/// Create a build deployment handler
+		/// </summary>
+		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
+		/// <param name="DeploymentHandler">The output deployment handler</param>
+		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
+		public override UEBuildDeploy CreateDeploymentHandler()
+		{
+			return new UEDeployIOS();
+		}
+	}
+
+	public class IOSPlatform : UEBuildPlatform
+	{
+		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		[XmlConfig]
+		public static string IOSArchitecture = "";
+
+		IOSPlatformSDK SDK;
+
+		public IOSPlatform(IOSPlatformSDK InSDK) : base(UnrealTargetPlatform.IOS, CPPTargetPlatform.IOS)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The binary extenstion (ie 'exe' or 'dll')</returns>
+		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
+		{
+			switch (InBinaryType)
+			{
+				case UEBuildBinaryType.DynamicLinkLibrary:
+					return ".dylib";
+				case UEBuildBinaryType.Executable:
+					return "";
+				case UEBuildBinaryType.StaticLibrary:
+					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
+			}
+			return base.GetBinaryExtension(InBinaryType);
+		}
+
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
+		{
+			return BuildConfiguration.bGeneratedSYMFile ? ".dSYM" : "";
+		}
+
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
+
+		public override bool CanUseDistcc()
+		{
+			return true;
+		}
+
+
+		/// <summary>
+		/// Check for the default configuration
+		/// return true if the project uses the default build config
+		/// </summary>
+		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
+		{
+			string[] BoolKeys = new string[] {
+				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
+				"bShipForArm64", "bShipForArmV7S", "bGeneratedSYMFile",
+			};
+			string[] StringKeys = new string[] {
+				"MinimumiOSVersion", 
+				"AdditionalLinkerFlags",
+				"AdditionalShippingLinkerFlags"
+			};
+
+			// look up iOS specific settings
+			if (!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
+					BoolKeys, null, StringKeys))
+			{
+				return false;
+			}
+
+			// check the base settings
+			return base.HasDefaultBuildConfig(Platform, ProjectDirectoryName);
+		}
+
+		/// <summary>
 		/// Whether the editor should be built for this platform or not
 		/// </summary>
 		/// <param name="InPlatform"> The UnrealTargetPlatform being built</param>
@@ -329,51 +393,10 @@ namespace UnrealBuildTool
 			return true; // for iOS can only run cooked. this is mostly for testing console code paths.
 		}
 
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
-		{
-			return true;
-		}
-
-		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			UEBuildConfiguration.bBuildEditor = false;
-			UEBuildConfiguration.bBuildDeveloperTools = false;
-			UEBuildConfiguration.bCompileAPEX = false;
-			UEBuildConfiguration.bRuntimePhysicsCooking = false;
-			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bBuildDeveloperTools = false;
-			UEBuildConfiguration.bCompileICU = true;
-
-			// we currently don't have any simulator libs for PhysX
-			if (GetActiveArchitecture() == "-simulator")
-			{
-				UEBuildConfiguration.bCompilePhysX = false;
-			}
-		}
-
 		public override bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
 		{
 			// This platform currently always compiles monolithic
 			return true;
-		}
-
-		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
-		{
-			// check the base first
-			base.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
-
-			BuildConfiguration.bUsePCHFiles = false;
-			BuildConfiguration.bUseSharedPCHs = false;
-			BuildConfiguration.bCheckExternalHeadersForModification = false;
-			BuildConfiguration.bCheckSystemHeadersForModification = false;
-			BuildConfiguration.ProcessorCountMultiplier = IOSToolChain.GetAdjustedProcessorCountMultiplier();
-			BuildConfiguration.bDeployAfterCompile = true;
 		}
 
 		/// <summary>
@@ -384,17 +407,6 @@ namespace UnrealBuildTool
 		public override bool RequiresExtraUnityCPPWriter()
 		{
 			return true;
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
 		}
 
 		/// <summary>
@@ -447,25 +459,13 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a toolchain instance for the given platform.
+		/// Creates a context for the given project on the current platform.
 		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
+		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <returns>New platform context object</returns>
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
-			return new IOSToolChain(ProjectFile);
-		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
-		{
-			DeploymentHandler = new UEDeployIOS();
-			return true;
+			return new IOSPlatformContext(ProjectFile);
 		}
 	}
 

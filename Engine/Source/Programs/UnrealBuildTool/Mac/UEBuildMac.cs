@@ -9,76 +9,10 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	class MacPlatform : UEBuildPlatform
+	class MacPlatformContext : UEBuildPlatformContext
 	{
-		MacPlatformSDK SDK;
-
-		public MacPlatform(MacPlatformSDK InSDK) : base(UnrealTargetPlatform.Mac)
+		public MacPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.Mac, InProjectFile)
 		{
-			SDK = InSDK;
-		}
-
-		public override SDKStatus HasRequiredSDKsInstalled()
-		{
-			return SDK.HasRequiredSDKsInstalled();
-		}
-
-		public override bool CanUseXGE()
-		{
-			return false;
-		}
-
-		public override bool CanUseDistcc()
-		{
-			return true;
-		}
-
-		/// <summary>
-		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		/// </summary>
-		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
-		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
-		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
-		{
-			switch (InUnrealTargetPlatform)
-			{
-				case UnrealTargetPlatform.Mac:
-					return CPPTargetPlatform.Mac;
-			}
-			throw new BuildException("MacPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
-		}
-
-		/// <summary>
-		/// Get the extension to use for the given binary type
-		/// </summary>
-		/// <param name="InBinaryType"> The binrary type being built</param>
-		/// <returns>string    The binary extenstion (ie 'exe' or 'dll')</returns>
-		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
-		{
-			switch (InBinaryType)
-			{
-				case UEBuildBinaryType.DynamicLinkLibrary:
-					return ".dylib";
-				case UEBuildBinaryType.Executable:
-					return "";
-				case UEBuildBinaryType.StaticLibrary:
-					return ".a";
-				case UEBuildBinaryType.Object:
-					return ".o";
-				case UEBuildBinaryType.PrecompiledHeader:
-					return ".gch";
-			}
-			return base.GetBinaryExtension(InBinaryType);
-		}
-
-		/// <summary>
-		/// Get the extension to use for debug info for the given binary type
-		/// </summary>
-		/// <param name="InBinaryType"> The binary type being built</param>
-		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
-		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
-		{
-			return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
 		}
 
 		/// <summary>
@@ -120,57 +54,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Modify the rules for a newly created module, where the target is a different host platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
-		{
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_MAC=1");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_APPLE=1");
-
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_TTS=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
-			if (!InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
-			}
-			// Needs OS X 10.11 for Metal
-			if (MacToolChain.MacOSSDKVersionFloat >= 10.11f && UEBuildConfiguration.bCompileAgainstEngine)
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
-				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
-			}
-
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
-		{
-			return true;
-		}
-
-		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
 			UEBuildConfiguration.bCompileICU = true;
@@ -204,6 +88,134 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
+		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
+		{
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_MAC=1");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_APPLE=1");
+
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_TTS=0");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
+			if (!InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
+			}
+			// Needs OS X 10.11 for Metal
+			if (MacToolChain.MacOSSDKVersionFloat >= 10.11f && UEBuildConfiguration.bCompileAgainstEngine)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
+				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
+			}
+
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		{
+			return new MacToolChain(ProjectFile);
+		}
+
+		/// <summary>
+		/// Create a build deployment handler
+		/// </summary>
+		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
+		/// <param name="DeploymentHandler">The output deployment handler</param>
+		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
+		public override UEBuildDeploy CreateDeploymentHandler()
+		{
+			return new UEDeployMac();
+		}
+	}
+
+	class MacPlatform : UEBuildPlatform
+	{
+		MacPlatformSDK SDK;
+
+		public MacPlatform(MacPlatformSDK InSDK) : base(UnrealTargetPlatform.Mac, CPPTargetPlatform.Mac)
+		{
+			SDK = InSDK;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDK.HasRequiredSDKsInstalled();
+		}
+
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
+
+		public override bool CanUseDistcc()
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Get the extension to use for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binrary type being built</param>
+		/// <returns>string    The binary extenstion (ie 'exe' or 'dll')</returns>
+		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
+		{
+			switch (InBinaryType)
+			{
+				case UEBuildBinaryType.DynamicLinkLibrary:
+					return ".dylib";
+				case UEBuildBinaryType.Executable:
+					return "";
+				case UEBuildBinaryType.StaticLibrary:
+					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
+			}
+			return base.GetBinaryExtension(InBinaryType);
+		}
+
+		/// <summary>
+		/// Get the extension to use for debug info for the given binary type
+		/// </summary>
+		/// <param name="InBinaryType"> The binary type being built</param>
+		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
+		{
+			return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, where the target is a different host platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+		}
+
+		/// <summary>
 		/// Whether the platform requires the extra UnityCPPWriter
 		/// This is used to add an extra file for UBT to get the #include dependencies from
 		/// </summary>
@@ -230,25 +242,13 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a toolchain instance for the given platform.
+		/// Creates a context for the given project on the current platform.
 		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
+		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <returns>New platform context object</returns>
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
-			return new MacToolChain(ProjectFile);
-		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
-		{
-			DeploymentHandler = new UEDeployMac();
-			return true;
+			return new MacPlatformContext(ProjectFile);
 		}
 	}
 

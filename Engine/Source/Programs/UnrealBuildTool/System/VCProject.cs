@@ -339,11 +339,11 @@ namespace UnrealBuildTool
 				}
 				else if (InPlatforms.Contains(UnrealTargetPlatform.Win64))
 				{
-					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win64) + ";");
+					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win64, false) + ";");
 				}
 				else if (InPlatforms.Contains(UnrealTargetPlatform.Win32))
 				{
-					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win32) + ";");
+					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win32, false) + ";");
 				}
 			}
 
@@ -954,6 +954,7 @@ namespace UnrealBuildTool
 
 					// Setup output path
 					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+					var BuildPlatformContext = BuildPlatform.CreateContext(Combination.ProjectTarget.ProjectFilePath);
 
 					// Figure out if this is a monolithic build
 					bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
@@ -1007,7 +1008,7 @@ namespace UnrealBuildTool
 					{
 						NMakePath += "-" + UBTPlatformName + "-" + UBTConfigurationName;
 					}
-					NMakePath += BuildPlatform.GetActiveArchitecture();
+					NMakePath += BuildPlatformContext.GetActiveArchitecture();
 					NMakePath += BuildPlatform.GetBinaryExtension(UEBuildBinaryType.Executable);
 					NMakePath = (BuildPlatform as UEBuildPlatform).ModifyNMakeOutput(NMakePath);
 

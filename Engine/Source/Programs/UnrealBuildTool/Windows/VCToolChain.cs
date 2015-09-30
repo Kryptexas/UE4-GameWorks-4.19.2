@@ -12,9 +12,12 @@ namespace UnrealBuildTool
 {
 	public class VCToolChain : UEToolChain
 	{
-		public VCToolChain(CPPTargetPlatform CppPlatform)
+		bool bSupportWindowsXP;
+
+		public VCToolChain(CPPTargetPlatform CppPlatform, bool bInSupportWindowsXP)
 			: base(CppPlatform)
 		{
+			bSupportWindowsXP = bInSupportWindowsXP;
 		}
 
 		static void AddDefinition(StringBuilder String, string Definition)
@@ -84,7 +87,7 @@ namespace UnrealBuildTool
 		}
 
 
-		static void AppendCLArguments_Global(CPPEnvironment CompileEnvironment, VCEnvironment EnvVars, StringBuilder Arguments)
+		void AppendCLArguments_Global(CPPEnvironment CompileEnvironment, VCEnvironment EnvVars, StringBuilder Arguments)
 		{
 			// @todo UWP: Why do we ever need WinRT headers when building regular Win32?  Is this just needed for the Windows 10 SDK?
 			// @todo UWP: These include paths should be added in SetUpEnvironment(), not here.  Do they need to be the last includes or something?
@@ -253,7 +256,7 @@ namespace UnrealBuildTool
 
 			// When targeting Windows XP with Visual Studio 2012+, we need to tell the compiler to use the older Windows SDK that works
 			// with Windows XP (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-			if (WindowsPlatform.IsWindowsXPSupported())
+			if (bSupportWindowsXP)
 			{
 				AddDefinition(Arguments, "_USING_V110_SDK71_");
 			}
@@ -744,7 +747,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static void AppendLinkArguments(LinkEnvironment LinkEnvironment, StringBuilder Arguments)
+		void AppendLinkArguments(LinkEnvironment LinkEnvironment, StringBuilder Arguments)
 		{
 			if (WindowsPlatform.bCompileWithClang && WindowsPlatform.bAllowClangLinker)
 			{
@@ -807,7 +810,7 @@ namespace UnrealBuildTool
 
 					// When targeting Windows XP in Visual Studio 2012+, we need to tell the linker we are going to support execution
 					// on that older platform.  The compiler defaults to version 6.0+.  We'll modify the SUBSYSTEM parameter here.
-					if (WindowsPlatform.IsWindowsXPSupported())
+					if (bSupportWindowsXP)
 					{
 						Arguments.Append(LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01");
 					}
@@ -932,7 +935,7 @@ namespace UnrealBuildTool
 			Arguments.Append(" /ignore:4099");		// warning LNK4099: PDB '<file>' was not found with '<file>'
 		}
 
-		static void AppendLibArguments(LinkEnvironment LinkEnvironment, StringBuilder Arguments)
+		void AppendLibArguments(LinkEnvironment LinkEnvironment, StringBuilder Arguments)
 		{
 			// Prevents the linker from displaying its logo for each invocation.
 			Arguments.Append(" /NOLOGO");
@@ -968,7 +971,7 @@ namespace UnrealBuildTool
 
 					// When targeting Windows XP in Visual Studio 2012+, we need to tell the linker we are going to support execution
 					// on that older platform.  The compiler defaults to version 6.0+.  We'll modify the SUBSYSTEM parameter here.
-					if (WindowsPlatform.IsWindowsXPSupported())
+					if (bSupportWindowsXP)
 					{
 						Arguments.Append(LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64 ? ",5.02" : ",5.01");
 					}
@@ -987,7 +990,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform);
+			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform, bSupportWindowsXP);
 
 			StringBuilder SharedArguments = new StringBuilder();
 			AppendCLArguments_Global(CompileEnvironment, EnvVars, SharedArguments);
@@ -1370,7 +1373,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform);
+			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform, bSupportWindowsXP);
 
 			CPPOutput Result = new CPPOutput();
 
@@ -1406,7 +1409,7 @@ namespace UnrealBuildTool
 
 				// When targeting Windows XP with Visual Studio 2012+, we need to tell the compiler to use the older Windows SDK that works
 				// with Windows XP (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-				if (WindowsPlatform.IsWindowsXPSupported())
+				if (bSupportWindowsXP)
 				{
 					AddDefinition(Arguments, "_USING_V110_SDK71_");
 				}
@@ -1457,7 +1460,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform);
+			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform, bSupportWindowsXP);
 
 			// @todo UWP: These paths should be added in SetUpEnvironment(), not here.  Also is this actually needed for classic desktop targets or only UWP?
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
@@ -1693,7 +1696,7 @@ namespace UnrealBuildTool
 		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)
 		{
 			// Initialize environment variables required for spawned tools.
-			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.EnvironmentTargetPlatform);
+			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.EnvironmentTargetPlatform, bSupportWindowsXP);
 
 			var BuildProjectAction = new Action(ActionType.BuildProject);
 
@@ -1752,12 +1755,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the default include paths for the given platform.
 		/// </summary>
-		public static string GetVCIncludePaths(CPPTargetPlatform Platform)
+		public static string GetVCIncludePaths(CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			Debug.Assert(Platform == CPPTargetPlatform.Win32 || Platform == CPPTargetPlatform.Win64);
 
 			// Make sure we've got the environment variables set up for this target
-			VCEnvironment.SetEnvironment(Platform);
+			VCEnvironment.SetEnvironment(Platform, bSupportWindowsXP);
 
 			// Also add any include paths from the INCLUDE environment variable.  MSVC is not necessarily running with an environment that
 			// matches what UBT extracted from the vcvars*.bat using SetEnvironmentVariablesFromBatchFile().  We'll use the variables we

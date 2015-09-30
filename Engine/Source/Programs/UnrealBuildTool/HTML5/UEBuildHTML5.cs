@@ -8,6 +8,142 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
+	class HTML5PlatformContext : UEBuildPlatformContext
+	{
+		public HTML5PlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.HTML5, InProjectFile)
+		{
+		}
+
+		// The current architecture - affects everything about how UBT operates on HTML5
+		public override string GetActiveArchitecture()
+		{
+			// by default, use an empty architecture (which is really just a modifier to the platform for some paths/names)
+			return HTML5Platform.HTML5Architecture;
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+			if (ModuleName == "Core")
+			{
+				Rules.PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
+				Rules.PublicDependencyModuleNames.Add("zlib");
+			}
+			else if (ModuleName == "Engine")
+			{
+				Rules.PrivateDependencyModuleNames.Add("zlib");
+				Rules.PrivateDependencyModuleNames.Add("UElibPNG");
+				Rules.PublicDependencyModuleNames.Add("UEOgg");
+				Rules.PublicDependencyModuleNames.Add("Vorbis");
+			}
+		}
+
+		/// <summary>
+		/// Gives the platform a chance to 'override' the configuration settings
+		/// that are overridden on calls to RunUBT.
+		/// </summary>
+		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
+		{
+			ValidateUEBuildConfiguration();
+		}
+
+		/// <summary>
+		/// Validate the UEBuildConfiguration for this platform
+		/// This is called BEFORE calling UEBuildConfiguration to allow setting
+		/// various fields used in that function such as CompileLeanAndMean...
+		/// </summary>
+		public override void ValidateUEBuildConfiguration()
+		{
+			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+			UEBuildConfiguration.bCompileAPEX = false;
+			UEBuildConfiguration.bCompilePhysX = true;
+			UEBuildConfiguration.bRuntimePhysicsCooking = false;
+			UEBuildConfiguration.bCompileSimplygon = false;
+			UEBuildConfiguration.bCompileICU = true;
+			UEBuildConfiguration.bCompileForSize = true;
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
+		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
+		{
+			if (GetActiveArchitecture() == "-win32")
+				InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
+
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5=1");
+			if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-win32")
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_WIN32=1");
+				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("delayimp.lib");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_BROWSER=1");
+			}
+
+			// @todo needed?
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UNICODE");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_UNICODE");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_AUTOMATION_WORKER=0");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_OGGVORBIS=1");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_SCENE_LOCK=0");
+			BuildConfiguration.bDeployAfterCompile = true;
+
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Configuration">The UnrealTargetConfiguration being built</param>
+		/// <returns>true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
+		{
+			switch (Configuration)
+			{
+				case UnrealTargetConfiguration.Development:
+				case UnrealTargetConfiguration.Shipping:
+				case UnrealTargetConfiguration.Test:
+					return !BuildConfiguration.bOmitPCDebugInfoInDevelopment;
+				case UnrealTargetConfiguration.Debug:
+				default:
+					// We don't need debug info for Emscripten, and it causes a bunch of issues with linking
+					return true;
+			};
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
+		{
+			return new HTML5ToolChain();
+		}
+
+		/// <summary>
+		/// Create a build deployment handler
+		/// </summary>
+		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
+		/// <param name="DeploymentHandler">The output deployment handler</param>
+		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
+		public override UEBuildDeploy CreateDeploymentHandler()
+		{
+			return null;
+		}
+	}
+
 	class HTML5Platform : UEBuildPlatform
 	{
 		// use -win32 for win32 builds. ( build html5 platform as a win32 binary for debugging )
@@ -16,7 +152,7 @@ namespace UnrealBuildTool
 
 		HTML5PlatformSDK SDK;
 
-		public HTML5Platform(HTML5PlatformSDK InSDK) : base(UnrealTargetPlatform.HTML5)
+		public HTML5Platform(HTML5PlatformSDK InSDK) : base(UnrealTargetPlatform.HTML5, CPPTargetPlatform.HTML5)
 		{
 			SDK = InSDK;
 		}
@@ -29,13 +165,6 @@ namespace UnrealBuildTool
 			return SDK.HasRequiredSDKsInstalled();
 		}
 
-		// The current architecture - affects everything about how UBT operates on HTML5
-		public override string GetActiveArchitecture()
-		{
-			// by default, use an empty architecture (which is really just a modifier to the platform for some paths/names)
-			return HTML5Architecture;
-		}
-
 		// F5 should always try to run the Win32 version
 		public override FileReference ModifyNMakeOutput(FileReference ExeName)
 		{
@@ -45,23 +174,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			return (GetActiveArchitecture() == "-win32");
-		}
-
-
-		/// <summary>
-		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		/// </summary>
-		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
-		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
-		public override CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform)
-		{
-			switch (InUnrealTargetPlatform)
-			{
-				case UnrealTargetPlatform.HTML5:
-					return CPPTargetPlatform.HTML5;
-			}
-			throw new BuildException("HTML5Platform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
+			return (HTML5Architecture == "-win32");
 		}
 
 		/// <summary>
@@ -71,7 +184,7 @@ namespace UnrealBuildTool
 		/// <returns>string    The binary extension (ie 'exe' or 'dll')</returns>
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
 		{
-			if (GetActiveArchitecture() == "-win32")
+			if (HTML5Architecture == "-win32")
 			{
 				switch (InBinaryType)
 				{
@@ -115,7 +228,7 @@ namespace UnrealBuildTool
 		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
-			if (GetActiveArchitecture() == "-win32")
+			if (HTML5Architecture == "-win32")
 			{
 				switch (InBinaryType)
 				{
@@ -130,34 +243,6 @@ namespace UnrealBuildTool
 			{
 				return "";
 			}
-		}
-
-		/// <summary>
-		/// Gives the platform a chance to 'override' the configuration settings
-		/// that are overridden on calls to RunUBT.
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-			ValidateUEBuildConfiguration();
-		}
-
-		/// <summary>
-		/// Validate the UEBuildConfiguration for this platform
-		/// This is called BEFORE calling UEBuildConfiguration to allow setting
-		/// various fields used in that function such as CompileLeanAndMean...
-		/// </summary>
-		public override void ValidateUEBuildConfiguration()
-		{
-			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-			UEBuildConfiguration.bCompileAPEX = false;
-			UEBuildConfiguration.bCompilePhysX = true;
-			UEBuildConfiguration.bRuntimePhysicsCooking = false;
-			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bCompileICU = true;
-			UEBuildConfiguration.bCompileForSize = true;
 		}
 
 		/// <summary>
@@ -209,29 +294,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
-			if (ModuleName == "Core")
-			{
-				Rules.PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
-				Rules.PublicDependencyModuleNames.Add("zlib");
-			}
-			else if (ModuleName == "Engine")
-			{
-				Rules.PrivateDependencyModuleNames.Add("zlib");
-				Rules.PrivateDependencyModuleNames.Add("UElibPNG");
-				Rules.PublicDependencyModuleNames.Add("UEOgg");
-				Rules.PublicDependencyModuleNames.Add("Vorbis");
-			}
-		}
-
-		/// <summary>
 		/// Modify the rules for a newly created module, where the target is a different host platform.
 		/// This is not required - but allows for hiding details of a particular platform.
 		/// </summary>
@@ -255,77 +317,13 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// Setup the target environment for building
+		/// Creates a context for the given project on the current platform.
 		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
+		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <returns>New platform context object</returns>
+		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
-			if (GetActiveArchitecture() == "-win32")
-				InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
-
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5=1");
-			if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-win32")
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_WIN32=1");
-				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("delayimp.lib");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_BROWSER=1");
-			}
-
-			// @todo needed?
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UNICODE");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_UNICODE");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_AUTOMATION_WORKER=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_OGGVORBIS=1");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_SCENE_LOCK=0");
-			BuildConfiguration.bDeployAfterCompile = true;
-
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
-		{
-			switch (Configuration)
-			{
-				case UnrealTargetConfiguration.Development:
-				case UnrealTargetConfiguration.Shipping:
-				case UnrealTargetConfiguration.Test:
-					return !BuildConfiguration.bOmitPCDebugInfoInDevelopment;
-				case UnrealTargetConfiguration.Debug:
-				default:
-					// We don't need debug info for Emscripten, and it causes a bunch of issues with linking
-					return true;
-			};
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile)
-		{
-			return new HTML5ToolChain();
-		}
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public override bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler)
-		{
-			DeploymentHandler = null;
-			return false;
+			return new HTML5PlatformContext(ProjectFile);
 		}
 	}
 	

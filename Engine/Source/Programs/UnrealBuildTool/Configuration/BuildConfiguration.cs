@@ -714,7 +714,7 @@ namespace UnrealBuildTool
 		/// <param name="Configuration">Current configuration (e.g. development, debug, ...)</param>
 		/// <param name="Platform">Current platform (e.g. Win32, PS3, ...)</param>
 		/// <param name="bCreateDebugInfo">True if debug info should be created</param>
-		public static void ValidateConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
+		public static void ValidateConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo, UEBuildPlatformContext PlatformContext)
 		{
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
 
@@ -753,7 +753,7 @@ namespace UnrealBuildTool
 
 			// Allow for the build platform to perform custom validation here...
 			// NOTE: This CAN modify the static BuildConfiguration settings!!!!
-			BuildPlatform.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
+			PlatformContext.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
 
 			if (!BuildPlatform.CanUseXGE())
 			{

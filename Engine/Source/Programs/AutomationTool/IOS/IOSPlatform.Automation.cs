@@ -211,8 +211,9 @@ public class IOSPlatform : Platform
 		if (String.IsNullOrEmpty(Params.Provision))
 		{
 			UnrealBuildTool.IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as UnrealBuildTool.IOSPlatform;
-			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
-			Params.Provision = UnrealBuildTool.IOSPlatform.MobileProvision;
+			UnrealBuildTool.IOSPlatformContext BuildPlatContext = (IOSPlatformContext)BuildPlat.CreateContext(Params.RawProjectPath);
+			BuildPlatContext.SetUpProjectEnvironment();
+			Params.Provision = BuildPlatContext.MobileProvision;
 		}
 
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)

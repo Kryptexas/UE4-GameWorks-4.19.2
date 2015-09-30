@@ -14,24 +14,299 @@ namespace UnrealBuildTool
 		Invalid,		// Could not find the desired SDK, SDK setup failed, etc.		
 	};
 
-	public abstract partial class UEBuildPlatform
+	public abstract class UEBuildPlatformContext
+	{
+		private bool bInitializedProject = false;
+
+		/// <summary>
+		/// The specific platform that this context is for
+		/// </summary>
+		public readonly UnrealTargetPlatform Platform;
+
+		/// <summary>
+		/// The project file for the target being compiled
+		/// </summary>
+		public readonly FileReference ProjectFile;
+
+		/// <summary>
+		/// Constructor.
+		/// </summary>
+		/// <param name="InPlatform">The platform that this context is for</param>
+		/// <param name="InProjectFile">The project to read settings from, if any</param>
+		public UEBuildPlatformContext(UnrealTargetPlatform InPlatform, FileReference InProjectFile)
+		{
+			Platform = InPlatform;
+			ProjectFile = InProjectFile;
+		}
+
+		/// <summary>
+		/// Get a list of extra modules the platform requires.
+		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
+		/// </summary>
+		/// <param name="Target">The target being build</param>
+		/// <param name="ExtraModuleNames">List of extra modules the platform needs to add to the target</param>
+		public virtual void AddExtraModules(TargetInfo Target, List<string> ExtraModuleNames)
+		{
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public virtual void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		{
+		}
+
+		/// <summary>
+		/// Gives the platform a chance to 'override' the configuration settings that are overridden on calls to RunUBT.
+		/// </summary>
+		/// <param name="InConfiguration">The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public virtual void ResetBuildConfiguration(UnrealTargetConfiguration InConfiguration)
+		{
+		}
+
+		/// <summary>
+		/// Validate the UEBuildConfiguration for this platform
+		/// This is called BEFORE calling UEBuildConfiguration to allow setting
+		/// various fields used in that function such as CompileLeanAndMean...
+		/// </summary>
+		public virtual void ValidateUEBuildConfiguration()
+		{
+		}
+
+		/// <summary>
+		/// Validate configuration for this platform
+		/// NOTE: This function can/will modify BuildConfiguration!
+		/// </summary>
+		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
+		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
+		public virtual void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
+		{
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
+		public abstract void SetUpEnvironment(UEBuildTarget InBuildTarget);
+
+		/// <summary>
+		/// Allow the platform to set an optional architecture
+		/// </summary>
+		public virtual string GetActiveArchitecture()
+		{
+			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+			return "";
+		}
+
+		/// <summary>
+		/// Setup the configuration environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
+		public virtual void SetUpConfigurationEnvironment(TargetInfo Target, CPPEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
+		{
+			// Determine the C++ compile/link configuration based on the Unreal configuration.
+			CPPTargetConfiguration CompileConfiguration;
+			UnrealTargetConfiguration CheckConfig = Target.Configuration;
+
+			switch (CheckConfig)
+			{
+				default:
+				case UnrealTargetConfiguration.Debug:
+					CompileConfiguration = CPPTargetConfiguration.Debug;
+					if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+					{
+						GlobalCompileEnvironment.Config.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					}
+					else
+					{
+						GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					}
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEBUG=1");
+					break;
+				case UnrealTargetConfiguration.DebugGame:
+				// Individual game modules can be switched to be compiled in debug as necessary. By default, everything is compiled in development.
+				case UnrealTargetConfiguration.Development:
+					CompileConfiguration = CPPTargetConfiguration.Development;
+					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEVELOPMENT=1");
+					break;
+				case UnrealTargetConfiguration.Shipping:
+					CompileConfiguration = CPPTargetConfiguration.Shipping;
+					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_SHIPPING=1");
+					break;
+				case UnrealTargetConfiguration.Test:
+					CompileConfiguration = CPPTargetConfiguration.Shipping;
+					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
+					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_TEST=1");
+					break;
+			}
+
+			// Set up the global C++ compilation and link environment.
+			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
+
+			// Create debug info based on the heuristics specified by the user.
+			GlobalCompileEnvironment.Config.bCreateDebugInfo =
+				!BuildConfiguration.bDisableDebugInfo && ShouldCreateDebugInfo(CheckConfig);
+			GlobalLinkEnvironment.Config.bCreateDebugInfo = GlobalCompileEnvironment.Config.bCreateDebugInfo;
+		}
+
+		/// <summary>
+		/// Setup the project environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
+		public virtual void SetUpProjectEnvironment()
+		{
+			if (!bInitializedProject)
+			{
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
+				bool bValue = UEBuildConfiguration.bCompileAPEX;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
+				{
+					UEBuildConfiguration.bCompileAPEX = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileBox2D;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileBox2D", out bValue))
+				{
+					UEBuildConfiguration.bCompileBox2D = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileICU;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileICU", out bValue))
+				{
+					UEBuildConfiguration.bCompileICU = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileSimplygon;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSimplygon", out bValue))
+				{
+					UEBuildConfiguration.bCompileSimplygon = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileLeanAndMeanUE;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE", out bValue))
+				{
+					UEBuildConfiguration.bCompileLeanAndMeanUE = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bIncludeADO;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bIncludeADO", out bValue))
+				{
+					UEBuildConfiguration.bIncludeADO = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileRecast;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileRecast", out bValue))
+				{
+					UEBuildConfiguration.bCompileRecast = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileSpeedTree;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSpeedTree", out bValue))
+				{
+					UEBuildConfiguration.bCompileSpeedTree = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileWithPluginSupport;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport", out bValue))
+				{
+					UEBuildConfiguration.bCompileWithPluginSupport = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompilePhysXVehicle;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bValue))
+				{
+					UEBuildConfiguration.bCompilePhysXVehicle = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileFreeType;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileFreeType", out bValue))
+				{
+					UEBuildConfiguration.bCompileFreeType = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileForSize;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileForSize", out bValue))
+				{
+					UEBuildConfiguration.bCompileForSize = bValue;
+				}
+
+				bValue = UEBuildConfiguration.bCompileCEF3;
+				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileCEF3", out bValue))
+				{
+					UEBuildConfiguration.bCompileCEF3 = bValue;
+				}
+
+				bInitializedProject = true;
+			}
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public abstract bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration);
+
+		/// <summary>
+		/// Creates a toolchain instance for the default C++ platform.
+		/// </summary>
+		/// <returns>New toolchain instance.</returns>
+		public UEToolChain CreateToolChainForDefaultCppPlatform()
+		{
+			return CreateToolChain(UEBuildPlatform.GetBuildPlatform(Platform).DefaultCppPlatform);
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform. There should be a single toolchain instance per-target, as their may be
+		/// state data and configuration cached between calls.
+		/// </summary>
+		/// <param name="Platform">The platform to create a toolchain for</param>
+		/// <returns>New toolchain instance.</returns>
+		public abstract UEToolChain CreateToolChain(CPPTargetPlatform Platform);
+
+		/// <summary>
+		/// Create a build deployment handler
+		/// </summary>
+		/// <param name="DeploymentHandler">The output deployment handler</param>
+		/// <returns>Deployment handler for this platform, or null if not required</returns>
+		public abstract UEBuildDeploy CreateDeploymentHandler();
+	}
+
+	public abstract class UEBuildPlatform
 	{
 		private static Dictionary<UnrealTargetPlatform, UEBuildPlatform> BuildPlatformDictionary = new Dictionary<UnrealTargetPlatform, UEBuildPlatform>();
 
 		// a mapping of a group to the platforms in the group (ie, Microsoft contains Win32 and Win64)
 		static Dictionary<UnrealPlatformGroup, List<UnrealTargetPlatform>> PlatformGroupDictionary = new Dictionary<UnrealPlatformGroup, List<UnrealTargetPlatform>>();
 
-		private bool bInitializedProject = false;
-
+		/// <summary>
+		/// The corresponding target platform enum
+		/// </summary>
 		public readonly UnrealTargetPlatform Platform;
+
+		/// <summary>
+		/// The default C++ target platform to use
+		/// </summary>
+		public readonly CPPTargetPlatform DefaultCppPlatform;
 
 		/// <summary>
 		/// Constructor.
 		/// </summary>
 		/// <param name="InPlatform">The enum value for this platform</param>
-		public UEBuildPlatform(UnrealTargetPlatform InPlatform)
+		public UEBuildPlatform(UnrealTargetPlatform InPlatform, CPPTargetPlatform InDefaultCPPPlatform)
 		{
 			Platform = InPlatform;
+			DefaultCppPlatform = InDefaultCPPPlatform;
 		}
 
 		/// <summary>
@@ -170,15 +445,11 @@ namespace UnrealBuildTool
 		/// <param name="Module">  The module rules</param>
 		/// <param name="Target">  The target being build</param>
 		/// <param name="Only">  If this is not unknown, then only run that platform</param>
-		public static void PlatformModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
+		public static void PlatformModifyHostModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
 		{
 			foreach (var PlatformEntry in BuildPlatformDictionary)
 			{
-				if(PlatformEntry.Key == Target.Platform)
-				{
-					PlatformEntry.Value.ModifyModuleRulesForActivePlatform(ModuleName, Rules, Target);
-				}
-				else if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only)
+				if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only)
 				{
 					PlatformEntry.Value.ModifyModuleRulesForOtherPlatform(ModuleName, Rules, Target);
 				}
@@ -230,13 +501,6 @@ namespace UnrealBuildTool
 		{
 			return false;
 		}
-
-		/// <summary>
-		/// Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
-		/// </summary>
-		/// <param name="InUnrealTargetPlatform"> The UnrealTargetPlatform being build</param>
-		/// <returns>CPPTargetPlatform   The CPPTargetPlatform to compile for</returns>
-		public abstract CPPTargetPlatform GetCPPTargetPlatform(UnrealTargetPlatform InUnrealTargetPlatform);
 
 		/// <summary>
 		/// Return whether the given platform requires a monolithic build
@@ -352,27 +616,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Get a list of extra modules the platform requires.
-		/// This is to allow undisclosed platforms to add modules they need without exposing information about the platform.
-		/// </summary>
-		/// <param name="Target">The target being build</param>
-		/// <param name="ExtraModuleNames">List of extra modules the platform needs to add to the target</param>
-		public virtual void AddExtraModules(TargetInfo Target, List<string> ExtraModuleNames)
-		{
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public virtual void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
-		}
-
-		/// <summary>
 		/// Modify the rules for a newly created module, where the target is a different host platform.
 		/// This is not required - but allows for hiding details of a particular platform.
 		/// </summary>
@@ -381,21 +624,6 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target being build</param>
 		public virtual void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public abstract void SetUpEnvironment(UEBuildTarget InBuildTarget);
-
-		/// <summary>
-		/// Allow the platform to set an optional architecture
-		/// </summary>
-		public virtual string GetActiveArchitecture()
-		{
-			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return "";
 		}
 
 		/// <summary>
@@ -408,14 +636,12 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Allow the platform to apply architecture-specific name according to its rules
+		/// Allows the platform to override whether the architecture name should be appended to the name of binaries.
 		/// </summary>
-		/// <param name="BinaryName">name of the binary, not specific to any architecture</param>
-		/// <returns>Possibly architecture-specific name</returns>
-		public virtual string ApplyArchitectureName(string BinaryName)
+		/// <returns>True if the architecture name should be appended to the binary</returns>
+		public virtual bool RequiresArchitectureSuffix()
 		{
-			// by default, use logic that assumes architectures to start with "-"
-			return BinaryName + GetActiveArchitecture();
+			return true;
 		}
 
 		/// <summary>
@@ -426,190 +652,6 @@ namespace UnrealBuildTool
 		{
 			List<FileReference> TempList = new List<FileReference>() { BinaryName };
 			return TempList;
-		}
-
-		/// <summary>
-		/// Setup the configuration environment for building
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetUpConfigurationEnvironment(TargetInfo Target, CPPEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
-		{
-			// Determine the C++ compile/link configuration based on the Unreal configuration.
-			CPPTargetConfiguration CompileConfiguration;
-			UnrealTargetConfiguration CheckConfig = Target.Configuration;
-
-			switch (CheckConfig)
-			{
-				default:
-				case UnrealTargetConfiguration.Debug:
-					CompileConfiguration = CPPTargetConfiguration.Debug;
-					if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-					{
-						GlobalCompileEnvironment.Config.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					}
-					else
-					{
-						GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					}
-					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEBUG=1");
-					break;
-				case UnrealTargetConfiguration.DebugGame:
-				// Individual game modules can be switched to be compiled in debug as necessary. By default, everything is compiled in development.
-				case UnrealTargetConfiguration.Development:
-					CompileConfiguration = CPPTargetConfiguration.Development;
-					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEVELOPMENT=1");
-					break;
-				case UnrealTargetConfiguration.Shipping:
-					CompileConfiguration = CPPTargetConfiguration.Shipping;
-					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_SHIPPING=1");
-					break;
-				case UnrealTargetConfiguration.Test:
-					CompileConfiguration = CPPTargetConfiguration.Shipping;
-					GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
-					GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_TEST=1");
-					break;
-			}
-
-			// Set up the global C++ compilation and link environment.
-			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
-
-			// Create debug info based on the heuristics specified by the user.
-			GlobalCompileEnvironment.Config.bCreateDebugInfo =
-				!BuildConfiguration.bDisableDebugInfo && ShouldCreateDebugInfo(Target.Platform, CheckConfig);
-			GlobalLinkEnvironment.Config.bCreateDebugInfo = GlobalCompileEnvironment.Config.bCreateDebugInfo;
-		}
-
-		/// <summary>
-		/// Setup the project environment for building
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetUpProjectEnvironment(UnrealTargetPlatform InPlatform)
-		{
-			if (!bInitializedProject)
-			{
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
-				bool bValue = UEBuildConfiguration.bCompileAPEX;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
-				{
-					UEBuildConfiguration.bCompileAPEX = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileBox2D;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileBox2D", out bValue))
-				{
-					UEBuildConfiguration.bCompileBox2D = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileICU;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileICU", out bValue))
-				{
-					UEBuildConfiguration.bCompileICU = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileSimplygon;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSimplygon", out bValue))
-				{
-					UEBuildConfiguration.bCompileSimplygon = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileLeanAndMeanUE;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE", out bValue))
-				{
-					UEBuildConfiguration.bCompileLeanAndMeanUE = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bIncludeADO;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bIncludeADO", out bValue))
-				{
-					UEBuildConfiguration.bIncludeADO = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileRecast;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileRecast", out bValue))
-				{
-					UEBuildConfiguration.bCompileRecast = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileSpeedTree;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSpeedTree", out bValue))
-				{
-					UEBuildConfiguration.bCompileSpeedTree = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileWithPluginSupport;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport", out bValue))
-				{
-					UEBuildConfiguration.bCompileWithPluginSupport = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompilePhysXVehicle;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bValue))
-				{
-					UEBuildConfiguration.bCompilePhysXVehicle = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileFreeType;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileFreeType", out bValue))
-				{
-					UEBuildConfiguration.bCompileFreeType = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileForSize;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileForSize", out bValue))
-				{
-					UEBuildConfiguration.bCompileForSize = bValue;
-				}
-
-				bValue = UEBuildConfiguration.bCompileCEF3;
-				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileCEF3", out bValue))
-				{
-					UEBuildConfiguration.bCompileCEF3 = bValue;
-				}
-
-				bInitializedProject = true;
-			}
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public abstract bool ShouldCreateDebugInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration);
-
-		/// <summary>
-		/// Gives the platform a chance to 'override' the configuration settings
-		/// that are overridden on calls to RunUBT.
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public virtual void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-		{
-		}
-
-		/// <summary>
-		/// Validate the UEBuildConfiguration for this platform
-		/// This is called BEFORE calling UEBuildConfiguration to allow setting
-		/// various fields used in that function such as CompileLeanAndMean...
-		/// </summary>
-		public virtual void ValidateUEBuildConfiguration()
-		{
-		}
-
-		/// <summary>
-		/// Validate configuration for this platform
-		/// NOTE: This function can/will modify BuildConfiguration!
-		/// </summary>
-		/// <param name="InPlatform">  The CPPTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The CPPTargetConfiguration being built</param>
-		/// <param name="bInCreateDebugInfo">true if debug info is getting create, false if not</param>
-		public virtual void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
-		{
 		}
 
 		/// <summary>
@@ -730,21 +772,11 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a toolchain instance for the given platform. There should be a single toolchain instance per-target, as their may be
-		/// state data and configuration cached between calls.
+		/// Creates a context for the given project on the current platform.
 		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
-		/// <param name="ProjectFile">The path to the project file for this target</param>
-		/// <returns>New toolchain instance.</returns>
-		public abstract UEToolChain CreateToolChain(CPPTargetPlatform Platform, FileReference ProjectFile);
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="ProjectFile">The project file of the target being deployed. Used to find any deployment specific settings.</param>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
-		public abstract bool TryCreateDeploymentHandler(FileReference ProjectFile, out UEBuildDeploy DeploymentHandler);
+		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <returns>New platform context object</returns>
+		public abstract UEBuildPlatformContext CreateContext(FileReference ProjectFile);
 	}
 
 	public abstract class UEBuildPlatformSDK

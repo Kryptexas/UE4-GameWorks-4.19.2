@@ -68,14 +68,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitPlatform">Target platform</param>
 		/// <param name="InitConfiguration">Target build configuration</param>
-		public TargetInfo(UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration)
+		public TargetInfo(UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, string InitArchitecture)
 		{
 			Platform = InitPlatform;
 			Configuration = InitConfiguration;
-
-			// get the platform's architecture
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-			Architecture = BuildPlatform.GetActiveArchitecture();
+			Architecture = InitArchitecture;
 		}
 
 		/// <summary>
@@ -85,8 +82,8 @@ namespace UnrealBuildTool
 		/// <param name="InitConfiguration">Target build configuration</param>
 		/// <param name="InitType">Target type</param>
 		/// <param name="bInitIsMonolithic">Whether the target is monolithic</param>
-		public TargetInfo(UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, TargetRules.TargetType InitType, bool bInitIsMonolithic)
-			: this(InitPlatform, InitConfiguration)
+		public TargetInfo(UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, string InitArchitecture, TargetRules.TargetType InitType, bool bInitIsMonolithic)
+			: this(InitPlatform, InitConfiguration, InitArchitecture)
 		{
 			Type = InitType;
 			bIsMonolithic = bInitIsMonolithic;
@@ -1276,7 +1273,7 @@ namespace UnrealBuildTool
 
 			UnrealTargetPlatform LocalPlatform = Target.Platform;
 			UnrealTargetConfiguration LocalConfiguration = Target.Configuration;
-			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Type.Value, Target.bIsMonolithic.Value);
+			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Architecture, Target.Type.Value, Target.bIsMonolithic.Value);
 
 			// The build module must define a type named 'Rules' that derives from our 'ModuleRules' type.  
 			var RulesObjectType = CompiledAssembly.GetType(ModuleName);

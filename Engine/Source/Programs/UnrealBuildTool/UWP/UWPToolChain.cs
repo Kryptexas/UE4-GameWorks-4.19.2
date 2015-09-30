@@ -485,7 +485,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform);
+			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform, false);
 
 			StringBuilder Arguments = new StringBuilder();
 			AppendCLArguments_Global(CompileEnvironment, EnvVars, Arguments);
@@ -748,7 +748,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform);
+			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform, false);
 
 			CPPOutput Result = new CPPOutput();
 
@@ -813,7 +813,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform);
+			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform, false);
 
 			if (LinkEnvironment.Config.bIsBuildingDotNetAssembly)
 			{
@@ -1025,7 +1025,7 @@ namespace UnrealBuildTool
 			Debug.Assert(Platform == CPPTargetPlatform.UWP);
 
 			// Make sure we've got the environment variables set up for this target
-			VCEnvironment.SetEnvironment(Platform);
+			VCEnvironment.SetEnvironment(Platform, false);
 
 			// Also add any include paths from the INCLUDE environment variable.  MSVC is not necessarily running with an environment that
 			// matches what UBT extracted from the vcvars*.bat using SetEnvironmentVariablesFromBatchFile().  We'll use the variables we

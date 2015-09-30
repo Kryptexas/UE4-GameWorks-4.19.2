@@ -16,7 +16,7 @@ namespace UnrealBuildTool
 
 		// cache the location of SDK tools
 		public HTML5ToolChain()
-			: base(CPPTargetPlatform.HTML5)
+			: base(CPPTargetPlatform.HTML5, false)
 		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
 			{

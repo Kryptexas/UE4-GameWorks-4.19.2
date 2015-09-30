@@ -495,7 +495,7 @@ namespace AutomationTool
 						typeof(UnrealBuildTool.UnrealBuildTool).Assembly.Location
 					};
 			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, null, DoNotCompile);
-			var DummyTargetInfo = new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development);
+			var DummyTargetInfo = new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "");
 			var AllCompiledTypes = TargetsDLL.GetTypes();
 			foreach (Type TargetType in AllCompiledTypes)
 			{
