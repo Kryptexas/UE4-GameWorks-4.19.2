@@ -96,6 +96,7 @@ private:
 	uint32 Spikes;
 
 	double TotalScopeTimeInFrame;
+	uint64 LastGCFrame;
 
 };
 

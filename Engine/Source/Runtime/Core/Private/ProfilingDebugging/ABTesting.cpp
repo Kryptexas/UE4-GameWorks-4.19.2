@@ -56,6 +56,7 @@ FABTest::FABTest()
 		, MinFramesPerTrial(0)
 		, NumResamples(0)
 		, TotalScopeTimeInFrame(0)
+		, LastGCFrame(0)
 	{
 	}
 
@@ -93,6 +94,10 @@ const TCHAR* FABTest::TickAndGetCommand()
 	if (bABTestActive && RemainingCoolDown)
 	{
 		RemainingCoolDown--;
+	}
+	else if (LastGCFrame != GLastGCFrame && !bABScopeTestActive) // reject GC frames for whole game tests
+	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Rejecting abtest frame because of GC."));
 	}
 	else if (bABTestActive)
 	{
@@ -203,11 +208,11 @@ const TCHAR* FABTest::TickAndGetCommand()
 					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("      B is %7.4fms faster than A;  %3.0f%% chance this is noise.\n"), Diff, fConf * 100.0f);
 				}
 
-				UE_LOG(LogConsoleResponse, Display, TEXT("----------------"));
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("----------------"));
 			}
 			else
 			{
-				UE_LOG(LogConsoleResponse, Display, TEXT("No Samples?"));
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("No Samples?"));
 			}
 			RemainingPrint = ReportNum;
 		}
@@ -224,6 +229,7 @@ const TCHAR* FABTest::TickAndGetCommand()
 	LastTime = FPlatformTime::Seconds();
 
 	TotalScopeTimeInFrame = 0.0;
+	LastGCFrame = GLastGCFrame;
 	return OutCommand;
 }
 

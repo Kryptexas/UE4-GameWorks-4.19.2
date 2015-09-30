@@ -204,6 +204,7 @@ FString					GSystemStartTime;
 bool					GIsInitialLoad					= true;
 /** Steadily increasing frame counter.																		*/
 uint64					GFrameCounter					= 0;
+uint64					GLastGCFrame					= 0;
 /** Incremented once per frame before the scene is being rendered. In split screen mode this is incremented once for all views (not for each view). */
 uint32					GFrameNumber					= 1;
 /** Render Thread copy of the frame number. */

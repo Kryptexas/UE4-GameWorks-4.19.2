@@ -1370,6 +1370,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Route callbacks so we can ensure that we are e.g. not in the middle of loading something by flushing
 	// the async loading, etc...
 	FCoreUObjectDelegates::PreGarbageCollect.Broadcast();
+	GLastGCFrame = GFrameCounter;
 
 	// Set 'I'm garbage collecting' flag - might be checked inside various functions.
 	FGCScopeLock GCLock;
