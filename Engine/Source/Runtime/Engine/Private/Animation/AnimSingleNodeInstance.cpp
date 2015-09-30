@@ -58,6 +58,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	bLooping = bIsLooping;
 	PlayRate = InPlayRate;
 	CurrentTime = 0.f;
+	BlendSpaceInput = FVector::ZeroVector;
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
 #endif
@@ -77,6 +78,12 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	{
 		// otherwise stop all montages
 		StopAllMontages(0.25f);
+
+		UBlendSpaceBase * BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset);
+		if(BlendSpace)
+		{
+			BlendSpace->InitializeFilter(&BlendFilter);
+		}
 	}
 }
 
@@ -205,16 +212,8 @@ void UAnimSingleNodeInstance::NativeInitializeAnimation()
 	CurrentTime = 0.f;
 	USkeletalMeshComponent* SkelComp = GetSkelMeshComponent();
 	SkelComp->AnimationData.Initialize(this);
-
-	if ( CurrentAsset!=NULL )
-	{
-		UBlendSpace * BlendSpace = Cast<UBlendSpace>(CurrentAsset);
-		if (BlendSpace)
-		{
-			BlendSpace->InitializeFilter(&BlendFilter);
-		}
-	}
 }
+
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 {
