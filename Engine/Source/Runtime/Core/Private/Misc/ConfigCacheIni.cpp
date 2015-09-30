@@ -1739,6 +1739,18 @@ FConfigSection* FConfigCacheIni::GetSectionPrivate( const TCHAR* Section, bool F
 	return Sec;
 }
 
+bool FConfigCacheIni::DoesSectionExist(const TCHAR* Section, const FString& Filename)
+{
+	bool bReturnVal = false;
+
+	FRemoteConfig::Get()->FinishRead(*Filename); // Ensure the remote file has been loaded and processed
+	FConfigFile* File = Find(Filename, false);
+
+	bReturnVal = File != NULL && File->Find(Section) != NULL;
+
+	return bReturnVal;
+}
+
 void FConfigCacheIni::SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value, const FString& Filename )
 {
 	FConfigFile* File = Find( Filename, 1 );
