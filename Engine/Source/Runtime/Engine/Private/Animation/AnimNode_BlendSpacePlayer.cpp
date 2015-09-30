@@ -20,8 +20,6 @@ FAnimNode_BlendSpacePlayer::FAnimNode_BlendSpacePlayer()
 
 void FAnimNode_BlendSpacePlayer::Initialize(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_AssetPlayerBase::Initialize(Context);
-
 	BlendSampleDataCache.Empty();
 	
 	EvaluateGraphExposedInputs.Execute(Context);
