@@ -68,7 +68,7 @@ ActorFactory.cpp:
 #include "Components/BillboardComponent.h"
 
 #include "LevelSequence.h"
-#include "MovieSceneActor.h"
+#include "LevelSequenceActor.h"
 #include "ActorFactoryMovieScene.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
@@ -1950,7 +1950,7 @@ UActorFactoryMovieScene::UActorFactoryMovieScene(const FObjectInitializer& Objec
 	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("MovieSceneDisplayName", "MovieScene");
-	NewActorClass = AMovieSceneActor::StaticClass();
+	NewActorClass = ALevelSequenceActor::StaticClass();
 }
 
 bool UActorFactoryMovieScene::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
@@ -1971,13 +1971,13 @@ bool UActorFactoryMovieScene::CanCreateActorFrom( const FAssetData& AssetData, F
 
 AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
 {
-	AMovieSceneActor* NewActor = Cast<AMovieSceneActor>(Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name));
+	ALevelSequenceActor* NewActor = Cast<ALevelSequenceActor>(Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name));
 
 	if (NewActor)
 	{
 		if (ULevelSequence* LevelSequence = Cast<ULevelSequence>(Asset))
 		{
-			NewActor->SetAnimation(LevelSequence);
+			NewActor->SetSequence(LevelSequence);
 		}
 	}
 
@@ -1986,9 +1986,9 @@ AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, co
 
 UObject* UActorFactoryMovieScene::GetAssetFromActorInstance(AActor* Instance)
 {
-	if (AMovieSceneActor* MovieSceneActor = Cast<AMovieSceneActor>(Instance))
+	if (ALevelSequenceActor* LevelSequenceActor = Cast<ALevelSequenceActor>(Instance))
 	{
-		return MovieSceneActor->LevelSequence.TryLoad();
+		return LevelSequenceActor->LevelSequence.TryLoad();
 	}
 
 	return nullptr;

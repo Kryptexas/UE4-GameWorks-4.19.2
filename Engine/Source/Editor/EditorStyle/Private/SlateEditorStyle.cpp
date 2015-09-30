@@ -5349,7 +5349,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("MediaPlayer"),
 			TEXT("MediaSoundWave"),
 			TEXT("MediaTexture"),
-			TEXT("MovieSceneActor"),
+			TEXT("LevelSequenceActor"),
 			TEXT("MultiFont"),
 			TEXT("NavLinkProxy"),
 			TEXT("NavMeshBoundsVolume"),
