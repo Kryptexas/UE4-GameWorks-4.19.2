@@ -786,10 +786,12 @@ namespace TextBiDi
 		/** See TextBiDi::ComputeTextDirection */
 		virtual ETextDirection ComputeTextDirection(const FText& InText) = 0;
 		virtual ETextDirection ComputeTextDirection(const FString& InString) = 0;
+		virtual ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen) = 0;
 
 		/** See TextBiDi::ComputeTextDirection */
 		virtual ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
 		virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
+		virtual ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
 	};
 
 	/**
@@ -805,6 +807,7 @@ namespace TextBiDi
 	 */
 	CORE_API ETextDirection ComputeTextDirection(const FText& InText);
 	CORE_API ETextDirection ComputeTextDirection(const FString& InString);
+	CORE_API ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen);
 
 	/**
 	 * Utility function which will compute the reading direction of the given text, as well as populate any advanced layout data for the text.
@@ -812,6 +815,7 @@ namespace TextBiDi
 	 */
 	CORE_API ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
 	CORE_API ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
+	CORE_API ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
 } // namespace TextBiDi
 
 Expose_TNameOf(FText)

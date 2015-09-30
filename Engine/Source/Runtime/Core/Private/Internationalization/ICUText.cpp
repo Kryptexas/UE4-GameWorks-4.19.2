@@ -265,7 +265,7 @@ ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& 
 	return ETextDirection::LeftToRight;
 }
 
-ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& InICUString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& InICUString, const int32 InStringOffset, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 
@@ -281,6 +281,7 @@ ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& 
 		{
 			FTextDirectionInfo& CurTextDirectionInfo = OutTextDirectionInfo[RunIndex];
 			CurTextDirectionInfo.TextDirection = Internal::ICUToUE(ubidi_getVisualRun(InICUBiDi, RunIndex, &CurTextDirectionInfo.StartIndex, &CurTextDirectionInfo.Length));
+			CurTextDirectionInfo.StartIndex += InStringOffset;
 		}
 
 		return ReturnDirection;
@@ -314,12 +315,17 @@ public:
 
 	virtual ETextDirection ComputeTextDirection(const FString& InString) override
 	{
-		if (InString.IsEmpty())
+		return FICUTextBiDi::ComputeTextDirection(*InString, 0, InString.Len());
+	}
+
+	virtual ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen) override
+	{
+		if (InStringLen == 0)
 		{
 			return ETextDirection::LeftToRight;
 		}
 
-		StringConverter.ConvertString(InString, ICUString);
+		StringConverter.ConvertString(InString, InStringStartIndex, InStringLen, ICUString);
 
 		return Internal::ComputeTextDirection(ICUBiDi, ICUString);
 	}
@@ -331,16 +337,21 @@ public:
 
 	virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
 	{
+		return FICUTextBiDi::ComputeTextDirection(*InString, 0, InString.Len(), OutTextDirectionInfo);
+	}
+
+	virtual ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	{
 		OutTextDirectionInfo.Reset();
 
-		if (InString.IsEmpty())
+		if (InStringLen == 0)
 		{
 			return ETextDirection::LeftToRight;
 		}
 
-		StringConverter.ConvertString(InString, ICUString);
+		StringConverter.ConvertString(InString, InStringStartIndex, InStringLen, ICUString);
 
-		return Internal::ComputeTextDirection(ICUBiDi, ICUString, OutTextDirectionInfo);
+		return Internal::ComputeTextDirection(ICUBiDi, ICUString, InStringStartIndex, OutTextDirectionInfo);
 	}
 
 private:
@@ -367,12 +378,17 @@ ETextDirection ComputeTextDirection(const FText& InText)
 
 ETextDirection ComputeTextDirection(const FString& InString)
 {
-	if (InString.IsEmpty())
+	return ComputeTextDirection(*InString, 0, InString.Len());
+}
+
+ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen)
+{
+	if (InStringLen == 0)
 	{
 		return ETextDirection::LeftToRight;
 	}
 
-	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString);
+	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString, InStringStartIndex, InStringLen);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	UBiDi* ICUBiDi = ubidi_openSized(ICUString.length(), 0, &ICUStatus);
@@ -400,20 +416,25 @@ ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionIn
 
 ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
 {
+	return ComputeTextDirection(*InString, 0, InString.Len(), OutTextDirectionInfo);
+}
+
+ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
 	OutTextDirectionInfo.Reset();
 
-	if (InString.IsEmpty())
+	if (InStringLen == 0)
 	{
 		return ETextDirection::LeftToRight;
 	}
 
-	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString);
+	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString, InStringStartIndex, InStringLen);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	UBiDi* ICUBiDi = ubidi_openSized(ICUString.length(), 0, &ICUStatus);
 	if (ICUBiDi && U_SUCCESS(ICUStatus))
 	{
-		const ETextDirection ReturnDirection = Internal::ComputeTextDirection(ICUBiDi, ICUString, OutTextDirectionInfo);
+		const ETextDirection ReturnDirection = Internal::ComputeTextDirection(ICUBiDi, ICUString, InStringStartIndex, OutTextDirectionInfo);
 
 		ubidi_close(ICUBiDi);
 		ICUBiDi = nullptr;

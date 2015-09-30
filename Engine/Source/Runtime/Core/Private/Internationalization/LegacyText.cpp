@@ -113,6 +113,11 @@ public:
 
 	virtual ETextDirection ComputeTextDirection(const FString& InString) override
 	{
+		return FLegacyTextBiDi::ComputeTextDirection(*InString, 0, InString.Len());
+	}
+
+	virtual ETextDirection ComputeTextDirection(const TCHAR*, const int32 InStringStartIndex, const int32 InStringLen) override
+	{
 		return ETextDirection::LeftToRight;
 	}
 
@@ -123,13 +128,18 @@ public:
 
 	virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
 	{
+		return FLegacyTextBiDi::ComputeTextDirection(*InString, 0, InString.Len(), OutTextDirectionInfo);
+	}
+
+	virtual ETextDirection ComputeTextDirection(const TCHAR*, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	{
 		OutTextDirectionInfo.Reset();
 
-		if (!InString.IsEmpty())
+		if (InStringLen > 0)
 		{
 			FTextDirectionInfo TextDirectionInfo;
-			TextDirectionInfo.StartIndex = 0;
-			TextDirectionInfo.Length = InString.Len();
+			TextDirectionInfo.StartIndex = InStringStartIndex;
+			TextDirectionInfo.Length = InStringLen;
 			TextDirectionInfo.TextDirection = ETextDirection::LeftToRight;
 			OutTextDirectionInfo.Add(MoveTemp(TextDirectionInfo));
 		}
@@ -152,6 +162,11 @@ ETextDirection ComputeTextDirection(const FText& InText)
 
 ETextDirection ComputeTextDirection(const FString& InString)
 {
+	return ComputeTextDirection(*InString, 0, InString.Len());
+}
+
+ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen)
+{
 	return ETextDirection::LeftToRight;
 }
 
@@ -162,13 +177,18 @@ ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionIn
 
 ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
 {
+	return ComputeTextDirection(*InString, 0, InString.Len(), OutTextDirectionInfo);
+}
+
+ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
 	OutTextDirectionInfo.Reset();
 
-	if (!InString.IsEmpty())
+	if (InStringLen > 0)
 	{
 		FTextDirectionInfo TextDirectionInfo;
-		TextDirectionInfo.StartIndex = 0;
-		TextDirectionInfo.Length = InString.Len();
+		TextDirectionInfo.StartIndex = InStringStartIndex;
+		TextDirectionInfo.Length = InStringLen;
 		TextDirectionInfo.TextDirection = ETextDirection::LeftToRight;
 		OutTextDirectionInfo.Add(MoveTemp(TextDirectionInfo));
 	}
