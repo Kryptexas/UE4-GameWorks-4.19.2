@@ -378,9 +378,13 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		// get major revision number
 		int Major = [DeviceIDString characterAtIndex:4] - '0';
 
-		if (Major >= 5)
+		if (Major == 5)
 		{
 			DeviceType = IOS_IPodTouch5;
+		}
+		else if (Major >= 7)
+		{
+			DeviceType = IOS_IPodTouch6;
 		}
 	}
 	// iPads
@@ -428,10 +432,17 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPadAir;
 			}
 		}
-		// iPad Air 2
+		// iPad Air 2 and iPadMini 4
 		else if (Major == 5)
 		{
-			DeviceType = IOS_IPadAir2;
+			if (Minor == 1 || Minor == 2)
+			{
+				DeviceType = IOS_IPadMini4;
+			}
+			else
+			{
+				DeviceType = IOS_IPadAir2;
+			}
 		}
 		// Default to highest settings currently available for any future device
 		else if (Major > 5)
@@ -443,6 +454,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	else if ([DeviceIDString hasPrefix:@"iPhone"])
 	{
 		int Major = [DeviceIDString characterAtIndex:6] - '0';
+		int Minor = [DeviceIDString characterAtIndex:8] - '0';
 
 		if (Major == 3)
 		{
@@ -460,17 +472,40 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		{
 			DeviceType = IOS_IPhone5S;
 		}
-		else if (Major >= 7)
+		else if (Major == 7)
 		{
-			// this could just check the minor where 1 == 6Plus, and 2 == 6, but that won't help going forward (7/7+?)
-			// so treat devices with a scale > 2.5 to be 6Plus type devices, < 2.5 to be 6 type devices
+			if (Minor == 1)
+			{
+				DeviceType == IOS_IPhone6Plus;
+			}
+			else if (Minor == 2)
+			{
+				DeviceType == IOS_IPhone6;
+			}
+		}
+		else if (Major == 8)
+		{
+			// note that Apple switched the minor order around between 6 and 6S (gotta keep us on our toes!)
+			if (Minor == 1)
+			{
+				DeviceType == IOS_IPhone6;
+			}
+			else if (Minor == 2)
+			{
+				DeviceType == IOS_IPhone6Plus;
+			}
+		}
+		else if (Major >= 9)
+		{
+			// for going forward into unknown devices (like 7/7+?), we can't use Minor,
+			// so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
 			if ([UIScreen mainScreen].scale > 2.5f)
 			{
-				DeviceType = IOS_IPhone6Plus;
+				DeviceType = IOS_IPhone6SPlus;
 			}
 			else
 			{
-				DeviceType = IOS_IPhone6;
+				DeviceType = IOS_IPhone6S;
 			}
 		}
 	}
