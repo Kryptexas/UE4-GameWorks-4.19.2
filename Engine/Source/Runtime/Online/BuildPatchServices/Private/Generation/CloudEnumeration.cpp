@@ -12,7 +12,7 @@ namespace BuildPatchServices
 		: public FCloudEnumeration
 	{
 	public:
-		FCloudEnumerationImpl(const FString& CloudDirectory, const FDateTime& ManifestAgeThreshold);
+		FCloudEnumerationImpl(const FString& CloudDirectory);
 		virtual ~FCloudEnumerationImpl();
 
 		virtual TSet<FGuid> GetChunkSet(uint64 ChunkHash) const override;
@@ -25,7 +25,6 @@ namespace BuildPatchServices
 
 	private:
 		const FString CloudDirectory;
-		const FDateTime ManifestAgeThreshold;
 		mutable FCriticalSection InventoryCS;
 		TMap<uint64, TSet<FGuid>> ChunkInventory;
 		TMap<FGuid, int64> ChunkFileSizes;
@@ -36,9 +35,8 @@ namespace BuildPatchServices
 		TFuture<void> Future;
 	};
 
-	FCloudEnumerationImpl::FCloudEnumerationImpl(const FString& InCloudDirectory, const FDateTime& InManifestAgeThreshold)
+	FCloudEnumerationImpl::FCloudEnumerationImpl(const FString& InCloudDirectory)
 		: CloudDirectory(InCloudDirectory)
-		, ManifestAgeThreshold(InManifestAgeThreshold)
 		, NumChunksFound(0)
 		, NumFilesFound(0)
 	{
@@ -105,7 +103,6 @@ namespace BuildPatchServices
 			FileManager.FindFiles(AllManifests, *(CloudDirectory / TEXT("*.manifest")), true, false);
 			const double EnumerateTime = FPlatformTime::Seconds() - StartEnumerate;
 			GLog->Logf(TEXT("FCloudEnumeration: Found %d manifests in %.1f seconds"), AllManifests.Num(), EnumerateTime);
-			int NumSkipped = 0;
 
 			// Load all manifest files
 			const double StartLoadAllManifest = FPlatformTime::Seconds();
@@ -113,12 +110,6 @@ namespace BuildPatchServices
 			{
 				// Determine chunks from manifest file
 				const FString ManifestFilename = CloudDirectory / ManifestFile;
-				if (IFileManager::Get().GetTimeStamp(*ManifestFilename) < ManifestAgeThreshold)
-				{
-					++NumSkipped;
-					GLog->Logf(TEXT("FCloudEnumeration: Skipping %s as it is too old to reuse"), *ManifestFile);
-					continue;
-				}
 				FBuildPatchAppManifestRef BuildManifest = MakeShareable(new FBuildPatchAppManifest());
 				const double StartLoadManifest = FPlatformTime::Seconds();
 				if (BuildManifest->LoadFromFile(ManifestFilename))
@@ -133,7 +124,7 @@ namespace BuildPatchServices
 				}
 			}
 			const double LoadAllManifestTime = FPlatformTime::Seconds() - StartLoadAllManifest;
-			GLog->Logf(TEXT("FCloudEnumeration: Used %d manifests to enumerate %llu chunks in %.1f seconds"), AllManifests.Num() - NumSkipped, NumChunksFound, LoadAllManifestTime);
+			GLog->Logf(TEXT("FCloudEnumeration: Used %d manifests to enumerate %llu chunks in %.1f seconds"), AllManifests.Num(), NumChunksFound, LoadAllManifestTime);
 		}
 		else
 		{
@@ -185,9 +176,9 @@ namespace BuildPatchServices
 		}
 	}
 
-	FCloudEnumerationRef FCloudEnumerationFactory::Create(const FString& CloudDirectory, const FDateTime& ManifestAgeThreshold)
+	FCloudEnumerationRef FCloudEnumerationFactory::Create(const FString& CloudDirectory)
 	{
-		return MakeShareable(new FCloudEnumerationImpl(CloudDirectory, ManifestAgeThreshold));
+		return MakeShareable(new FCloudEnumerationImpl(CloudDirectory));
 	}
 }
 

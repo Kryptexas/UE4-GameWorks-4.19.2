@@ -9,13 +9,10 @@ public:
 
 	virtual ~FBuildPatchVerificationImpl(){}
 
-	virtual void SetRequiredFiles(TArray<FString> RequiredFiles) override;
-
 	virtual bool VerifyAgainstDirectory(TArray<FString>& OutDatedFiles, double& TimeSpentPaused) override;
 
 private:
 	FBuildPatchAppManifestRef Manifest;
-	TArray<FString> RequiredFiles;
 	FBuildPatchFloatDelegate ProgressDelegate;
 	FBuildPatchBoolRetDelegate ShouldPauseDelegate;
 	const FString VerifyDirectory;
@@ -39,28 +36,21 @@ FBuildPatchVerificationImpl::FBuildPatchVerificationImpl(const FBuildPatchAppMan
 	, CurrentFileWeight(0)
 {}
 
-void FBuildPatchVerificationImpl::SetRequiredFiles(TArray<FString> InRequiredFiles)
-{
-	RequiredFiles = MoveTemp(InRequiredFiles);
-}
-
 bool FBuildPatchVerificationImpl::VerifyAgainstDirectory(TArray<FString>& OutDatedFiles, double& TimeSpentPaused)
 {
 	bool bAllCorrect = true;
 	OutDatedFiles.Empty();
 	TimeSpentPaused = 0;
-	if (RequiredFiles.Num() == 0)
-	{
-		Manifest->GetFileList(RequiredFiles);
-	}
 
 	// Setup progress tracking
-	double TotalBuildSizeDouble = Manifest->GetFileSize(RequiredFiles);
+	double TotalBuildSizeDouble = Manifest->GetBuildSize();
 	double ProcessedBytes = 0;
 	CurrentBuildPercentage = 0;
 
 	// For all files in the manifest, check that they produce the correct SHA1 hash, adding any that don't to the list
-	for (const FString& BuildFile : RequiredFiles)
+	TArray<FString> BuildFiles;
+	Manifest->GetFileList(BuildFiles);
+	for (const FString& BuildFile : BuildFiles)
 	{
 		// Break if quitting
 		if (FBuildPatchInstallError::HasFatalError())

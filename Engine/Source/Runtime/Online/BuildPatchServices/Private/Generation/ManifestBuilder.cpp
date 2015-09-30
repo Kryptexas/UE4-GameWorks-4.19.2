@@ -260,7 +260,6 @@ namespace BuildPatchServices
 						FileBuilder.FileManifest->SymlinkTarget = FileSpan.SymlinkTarget;
 						FileBuilder.FileManifest->bIsReadOnly = Attributes.bReadOnly;
 						FileBuilder.FileManifest->bIsCompressed = Attributes.bCompressed;
-						FileBuilder.FileManifest->InstallTags = Attributes.InstallTags.Array();
 						FileBuilder.FileManifest->Init();
 						check(FileBuilder.FileManifest->GetFileSize() == FileBuilder.FileSpan.Size);
 						FileBuilder.FileManifest = nullptr;

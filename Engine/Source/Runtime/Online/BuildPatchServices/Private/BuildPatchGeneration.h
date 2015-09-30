@@ -120,14 +120,18 @@ public:
 		// How many bytes we have read out of this chunk, used to calculate when we need more data from file
 		uint32 MemoryBytesRead;
 
+		// The validity period of chunk data. Anything older than this will be considered to be invalid
+		FDateTime DataAgeThreshold;
+
 	public:
 		/**
 		 * Constructs the reader from required data
 		 * @param	InChunkFilePath		The file path of the source file for the chunk
 		 * @param	InChunkFile			The data structure for this chunk
 		 * @param	InBytesRead			Pointer to an unsigned int to keep track of how much data is read from file
+		 * @param	InDataAgeThreshold	The validity period of chunk data. Anything older than this will be considered to be invalid
 		 */
-		FChunkReader(const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead);
+		FChunkReader( const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead, const FDateTime& InDataAgeThreshold );
 
 		/**
 		 * Destructor. Cleans up and releases data locks.
@@ -171,12 +175,15 @@ public:
 private:
 	/**
 	* Constructor
+	* @param	DataAgeThreshold		The cutoff point before which data chunks should be regarded as isvalid
 	*/
-	FBuildGenerationChunkCache();
+	FBuildGenerationChunkCache(const FDateTime& DataAgeThreshold);
 
 private:
 	// The number of chunks to cache in memory
 	const static int32 NumChunksToCache = 1024;
+
+	FDateTime DataAgeThreshold;
 
 	// The map of chunks we have cached
 	TMap< FString, TSharedRef< FChunkFile > > ChunkCache;
@@ -209,8 +216,9 @@ public:
 
 	/**
 	 * Call to initialise static singleton so that the cache system can be used
+	 * @param DataAgeThreshold		Any chunks older than this date will be classed as invalid
 	 */
-	static void Init();
+	static void Init(const FDateTime& DataAgeThreshold);
 
 	/**
 	 * Get a reference to the chunk system. Only call between Init and Shutdown calls.
@@ -347,7 +355,6 @@ struct FFileAttributes
 	bool bReadOnly;
 	bool bCompressed;
 	bool bUnixExecutable;
-	TSet<FString> InstallTags;
 	FFileAttributes();
 };
 
