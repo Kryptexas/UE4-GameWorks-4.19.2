@@ -1490,6 +1490,12 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 							Position = bPlayingForward ? LatestNextSectionStartTime : (LatestNextSectionEndTime - EndOffset);
 						}
 					}
+
+					if (!bHaveMoved)
+					{
+						// If it hasn't moved, there is nothing much to do but weight update
+						break;
+					}
 				}
 				else
 				{
