@@ -16,7 +16,6 @@ class FMovieSceneColorTrackInstance
 	: public IMovieSceneTrackInstance
 {
 public:
-
 	FMovieSceneColorTrackInstance( UMovieSceneColorTrack& InColorTrack );
 
 	/** IMovieSceneTrackInstance interface */
@@ -27,6 +26,15 @@ public:
 	virtual void ClearInstance( IMovieScenePlayer& Player ) override {}
 
 private:
+	enum class EColorType : uint8
+	{
+		/** FSlateColor */
+		Slate, 
+		/** FLinearColor */
+		Linear,
+		/** FColor */
+		RegularColor,
+	};
 
 	/** The track being instanced */
 	UMovieSceneColorTrack* ColorTrack;
@@ -35,6 +43,10 @@ private:
 	TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
 
 	/** Map from object to initial state */
+	/** @todo Sequencer: This may be editor only data */
 	TMap< TWeakObjectPtr<UObject>, FSlateColor > InitSlateColorMap;
 	TMap< TWeakObjectPtr<UObject>, FLinearColor > InitLinearColorMap;
+
+	/** The type of color primitive being animated */
+	EColorType ColorType;
 };

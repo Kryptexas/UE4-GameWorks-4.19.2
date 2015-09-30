@@ -10,24 +10,24 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
-	for (int32 i = 0; i < InArgs._Enum->NumEnums(); i++)
+	Enum = InArgs._Enum;
+
+	for (int32 i = 0; i < InArgs._Enum->NumEnums() - 1; i++)
 	{
-		FString EnumDisplayValue = InArgs._Enum->GetDisplayNameText(i).ToString();
-		if (EnumDisplayValue.Len() > 0)
+		if (Enum->HasMetaData( TEXT("Hidden"), i ) == false)
 		{
-			EnumDisplayValue = InArgs._Enum->GetEnumName(i);
+			VisibleEnumNameIndices.Add(MakeShareable(new int32(i)));
 		}
-		EnumValues.Add(MakeShareable(new FString(EnumDisplayValue)));
 	}
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+
 	ChildSlot
 	[
-		SNew(SComboBox<TSharedPtr<FString>>)
+		SAssignNew(EnumValuesCombo, SComboBox<TSharedPtr<int32>>)
 		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
-		.OptionsSource(&EnumValues)
-		.InitiallySelectedItem(EnumValues[Curve->Evaluate(CurrentTime)])
+		.OptionsSource(&VisibleEnumNameIndices)
 		.OnGenerateWidget(this, &SEnumCurveKeyEditor::OnGenerateWidget)
 		.OnSelectionChanged(this, &SEnumCurveKeyEditor::OnComboSelectionChanged)
+		.OnComboBoxOpening(this, &SEnumCurveKeyEditor::OnComboMenuOpening)
 		.ContentPadding(FMargin(2, 0))
 		[
 			SNew(STextBlock)
@@ -35,45 +35,77 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 			.Text(this, &SEnumCurveKeyEditor::GetCurrentValue)
 		]
 	];
+	bUpdatingSelectionInternally = false;
 }
 
 FText SEnumCurveKeyEditor::GetCurrentValue() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
-	return FText::FromString(*EnumValues[Curve->Evaluate(CurrentTime)]);
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	int32 CurrentNameIndex = Enum->GetIndexByValue(Curve->Evaluate(CurrentTime));
+	return Enum->GetDisplayNameText(CurrentNameIndex);
 }
 
-TSharedRef<SWidget> SEnumCurveKeyEditor::OnGenerateWidget(TSharedPtr<FString> InItem)
+TSharedRef<SWidget> SEnumCurveKeyEditor::OnGenerateWidget(TSharedPtr<int32> InItem)
 {
 	return SNew(STextBlock)
-		.Text(FText::FromString(*InItem));
+		.Text(Enum->GetDisplayNameText(*InItem));
 }
 
-void SEnumCurveKeyEditor::OnComboSelectionChanged(TSharedPtr<FString> InSelectedItem, ESelectInfo::Type SelectInfo)
+void SEnumCurveKeyEditor::OnComboSelectionChanged(TSharedPtr<int32> InSelectedItem, ESelectInfo::Type SelectInfo)
 {
-	FScopedTransaction Transaction(LOCTEXT("SetEnumKey", "Set enum key value"));
-	OwningSection->SetFlags(RF_Transactional);
-	OwningSection->Modify();
-
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
-
-	bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
-	if (bKeyWillBeAdded)
+	if (bUpdatingSelectionInternally == false)
 	{
-		if (OwningSection->GetStartTime() > CurrentTime)
+		FScopedTransaction Transaction(LOCTEXT("SetEnumKey", "Set Enum Key Value"));
+		OwningSection->SetFlags(RF_Transactional);
+		OwningSection->Modify();
+
+		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+
+		bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
+		if (bKeyWillBeAdded)
 		{
-			OwningSection->SetStartTime(CurrentTime);
+			if (OwningSection->GetStartTime() > CurrentTime)
+			{
+				OwningSection->SetStartTime(CurrentTime);
+			}
+			if (OwningSection->GetEndTime() < CurrentTime)
+			{
+				OwningSection->SetEndTime(CurrentTime);
+			}
 		}
-		if (OwningSection->GetEndTime() < CurrentTime)
+
+		int32 SelectedValue = Enum->GetValueByIndex(*InSelectedItem);
+		if (Curve->GetNumKeys() == 0)
 		{
-			OwningSection->SetEndTime(CurrentTime);
+			Curve->SetDefaultValue(SelectedValue);
+		}
+		else
+		{
+			Curve->UpdateOrAddKey(CurrentTime, SelectedValue);
+		}
+		Sequencer->UpdateRuntimeInstances();
+	}
+}
+
+void SEnumCurveKeyEditor::OnComboMenuOpening()
+{
+	float CurrentTime = Sequencer->GetCurrentLocalTime( *Sequencer->GetFocusedMovieSceneSequence() );
+	int32 CurrentNameIndex = Enum->GetIndexByValue( Curve->Evaluate( CurrentTime ) );
+	TSharedPtr<int32> FoundNameIndexItem;
+	for ( int32 i = 0; i < VisibleEnumNameIndices.Num(); i++ )
+	{
+		if ( *VisibleEnumNameIndices[i] == CurrentNameIndex )
+		{
+			FoundNameIndexItem = VisibleEnumNameIndices[i];
+			break;
 		}
 	}
-
-	int32 SelectedIndex;
-	EnumValues.Find(InSelectedItem, SelectedIndex);
-	Curve->UpdateOrAddKey(CurrentTime, SelectedIndex);
-	Sequencer->UpdateRuntimeInstances();
+	if ( FoundNameIndexItem.IsValid() )
+	{
+		bUpdatingSelectionInternally = true;
+		EnumValuesCombo->SetSelectedItem(FoundNameIndexItem);
+		bUpdatingSelectionInternally = false;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

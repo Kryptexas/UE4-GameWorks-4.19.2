@@ -6,16 +6,17 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneColorTrackInstance.h"
 
+
 UMovieSceneColorTrack::UMovieSceneColorTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-	, bIsSlateColor( false )
-{
-}
+{ }
+
 
 UMovieSceneSection* UMovieSceneColorTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneColorSection::StaticClass(), NAME_None, RF_Transactional);
 }
+
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 {
@@ -23,32 +24,47 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 }
 
 
-bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key )
+bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key, FKeyParams KeyParams )
 {
-	bIsSlateColor = Key.bIsSlateColor;
-
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || Key.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value))
+	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value, KeyParams))
 	{
 		Modify();
-		UMovieSceneColorSection* NewSection = CastChecked<UMovieSceneColorSection>( FindOrAddSection( Time ) );
 
-		NewSection->AddKey( Time, Key );
+		UMovieSceneColorSection* NewSection = CastChecked<UMovieSceneColorSection>( FindOrAddSection( Time ) );
+		NewSection->AddKey( Time, Key, KeyParams );
 
 		return true;
 	}
+
 	return false;
 }
 
 
 bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearColor& OutColor ) const
 {
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
+
 		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, OutColor );
 	}
 
-	return Section != NULL;
+	return Section != nullptr;
 }
+
+bool UMovieSceneColorTrack::CanKeyTrack(float Time, const FColorKey& Key, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}
+

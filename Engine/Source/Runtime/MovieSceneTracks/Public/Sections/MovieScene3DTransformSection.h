@@ -27,27 +27,24 @@ public:
 	 *
 	 * @param Time				The position in time within the movie scene
 	 * @param OutTranslation	The evaluated translation.  Note: will remain unchanged if there were no keys to evaluate
-	 * @param OutHasTranslationKeys True if the out has translation keys.
 	 */
-	void EvalTranslation( float Time, FVector& OutTranslation, TArray<bool>& OutHasTranslationKeys ) const;
+	void EvalTranslation( float Time, FVector& OutTranslation ) const;
 
 	/**
 	 * Evaluates the rotation component of the transform
 	 *
 	 * @param Time				The position in time within the movie scene
 	 * @param OutRotation		The evaluated rotation.  Note: will remain unchanged if there were no keys to evaluate
-	 * @param OutHasRotationKeys True if the out has rotation keys.
 	 */
-	void EvalRotation( float Time, FRotator& OutRotation, TArray<bool>& OutHasRotationKeys ) const;
+	void EvalRotation( float Time, FRotator& OutRotation ) const;
 
 	/**
 	 * Evaluates the scale component of the transform
 	 *
 	 * @param Time				The position in time within the movie scene
 	 * @param OutScale			The evaluated scale.  Note: will remain unchanged if there were no keys to evaluate
-	 * @param OutHasScaleKeys   True if the out has scale keys.
 	 */
-	void EvalScale( float Time, FVector& OutScale, TArray<bool>& OutHasScaleKeys ) const;
+	void EvalScale( float Time, FVector& OutScale ) const;
 
 	/** 
 	 * Returns the translation curve for a specific axis
@@ -98,10 +95,11 @@ public:
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
 	 *
-	 * @param TransformKey The new key that would be added
+	 * @param TransformKey	Information about the transform that should be keyed
 	 * @return True if the new key would be new data, false if duplicate
 	 */
-	bool NewKeyIsNewData(const class FTransformKey& TransformKey) const;
+	bool NewKeyIsNewData(const FTransformKey& TransformKey ) const;
+
 private:
 	/** Translation curves */
 	UPROPERTY()

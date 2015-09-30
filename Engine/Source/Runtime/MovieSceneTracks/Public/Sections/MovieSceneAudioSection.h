@@ -56,22 +56,26 @@ public:
 		return Position >= AudioRange.GetLowerBoundValue() && Position <= AudioRange.GetUpperBoundValue();
 	}
 
-	/** MovieSceneSection interface */
+public:
+
+	// MovieSceneSection interface
+
 	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
 	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
 
 private:
+
 	/** The sound cue or wave that this section plays */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	USoundBase* Sound;
 
 	/** The absolute time that the sound starts playing at */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	float AudioStartTime;
 	
 	/** The amount which this audio is time dilated by */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	float AudioDilationFactor;
 };

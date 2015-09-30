@@ -128,23 +128,31 @@ FWidgetTransform UMovieScene2DTransformSection::Eval( float Position, const FWid
 }
 
 
-bool UMovieScene2DTransformSection::NewKeyIsNewData( float Time, const FWidgetTransform& Transform ) const
+bool UMovieScene2DTransformSection::NewKeyIsNewData( float Time, const FWidgetTransform& Transform, FKeyParams KeyParams ) const
 {
-	bool bIsNewData = false;
+	bool bHasEmptyKeys = false;
 	for(int32 Axis = 0; Axis < 2; ++Axis)
 	{
-		bIsNewData |= Translation[Axis].GetNumKeys() == 0;
-		bIsNewData |= Scale[Axis].GetNumKeys() == 0;
-		bIsNewData |= Shear[Axis].GetNumKeys() == 0;
+		bHasEmptyKeys = bHasEmptyKeys ||
+			Translation[Axis].GetNumKeys() == 0 ||
+			Scale[Axis].GetNumKeys() == 0 ||
+			Shear[Axis].GetNumKeys() == 0;
 	}
 
-	bIsNewData |= Rotation.GetNumKeys() == 0;
+	bHasEmptyKeys |= Rotation.GetNumKeys() == 0;
 
-	return bIsNewData || Eval(Time,Transform) != Transform;
+	if (bHasEmptyKeys || (KeyParams.bAutoKeying && Eval(Time, Transform) != Transform))
+	{
+		return true;
+	}
+
+	return false;
 }
 
-void UMovieScene2DTransformSection::AddKeyToNamedCurve(float Time, const F2DTransformKey& TransformKey)
+void UMovieScene2DTransformSection::AddKey( float Time, const struct F2DTransformKey& TransformKey, FKeyParams KeyParams )
 {
+	Modify();
+
 	static FName TranslationName("Translation");
 	static FName ScaleName("Scale");
 	static FName ShearName("Shear");
@@ -152,45 +160,56 @@ void UMovieScene2DTransformSection::AddKeyToNamedCurve(float Time, const F2DTran
 
 	FName CurveName = TransformKey.CurveName;
 
-	if(CurveName == TranslationName)
-	{
-		AddKeyToCurve(Translation[0], Time, TransformKey.Value.Translation.X);
-		AddKeyToCurve(Translation[1], Time, TransformKey.Value.Translation.Y);
-	}
-	else if(CurveName == ScaleName)
-	{
-		AddKeyToCurve(Scale[0], Time, TransformKey.Value.Scale.X);
-		AddKeyToCurve(Scale[1], Time, TransformKey.Value.Scale.Y);
-	}
-	else if(CurveName == ShearName)
-	{
-		AddKeyToCurve(Shear[0], Time, TransformKey.Value.Shear.X);
-		AddKeyToCurve(Shear[1], Time, TransformKey.Value.Shear.Y);
-	}
-	else if(CurveName == AngleName)
-	{
-		AddKeyToCurve(Rotation, Time, TransformKey.Value.Angle);
-	}
-}
+	bool bTxKeyExists = Translation[0].IsKeyHandleValid(Translation[0].FindKey(Time));
+	bool bTyKeyExists = Translation[1].IsKeyHandleValid(Translation[1].FindKey(Time));
 
+	bool bRKeyExists = Rotation.IsKeyHandleValid(Rotation.FindKey(Time));
 
+	bool bHxKeyExists = Shear[0].IsKeyHandleValid(Shear[0].FindKey(Time));
+	bool bHyKeyExists = Shear[1].IsKeyHandleValid(Shear[1].FindKey(Time));
 
-void UMovieScene2DTransformSection::AddKey( float Time, const struct F2DTransformKey& TransformKey )
-{
-	Modify();
+	bool bSxKeyExists = Scale[0].IsKeyHandleValid(Scale[0].FindKey(Time));
+	bool bSyKeyExists = Scale[1].IsKeyHandleValid(Scale[1].FindKey(Time));
 
-	if(TransformKey.CurveName == NAME_None)
+	if ( (CurveName == NAME_None || CurveName == TranslationName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTxKeyExists && !KeyParams.bAutoKeying && Translation[0].GetNumKeys() > 0) ) )
 	{
-		AddKeyToCurve(Translation[0], Time, TransformKey.Value.Translation.X);
-		AddKeyToCurve(Translation[1], Time, TransformKey.Value.Translation.Y);
-		AddKeyToCurve(Scale[0], Time, TransformKey.Value.Scale.X);
-		AddKeyToCurve(Scale[1], Time, TransformKey.Value.Scale.Y);
-		AddKeyToCurve(Shear[0], Time, TransformKey.Value.Shear.X);
-		AddKeyToCurve(Shear[1], Time, TransformKey.Value.Shear.Y);
-		AddKeyToCurve(Rotation, Time, TransformKey.Value.Angle);
+		AddKeyToCurve(Translation[0], Time, TransformKey.Value.Translation.X, KeyParams);
 	}
-	else
+
+	if ( (CurveName == NAME_None || CurveName == TranslationName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTyKeyExists && !KeyParams.bAutoKeying && Translation[1].GetNumKeys() > 0) ) )
 	{
-		AddKeyToNamedCurve(Time, TransformKey);
+		AddKeyToCurve(Translation[1], Time, TransformKey.Value.Translation.Y, KeyParams);
+	}
+
+	if ( (CurveName == NAME_None || CurveName == ScaleName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bSxKeyExists && !KeyParams.bAutoKeying && Scale[0].GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(Scale[0], Time, TransformKey.Value.Scale.X, KeyParams);
+	}
+
+	if ( (CurveName == NAME_None || CurveName == ScaleName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bSyKeyExists && !KeyParams.bAutoKeying && Scale[1].GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(Scale[1], Time, TransformKey.Value.Scale.Y, KeyParams);
+	}
+		
+	if ( (CurveName == NAME_None || CurveName == ShearName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bHxKeyExists && !KeyParams.bAutoKeying && Shear[0].GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(Shear[0], Time, TransformKey.Value.Shear.X, KeyParams);
+	}
+
+	if ( (CurveName == NAME_None || CurveName == ShearName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bHyKeyExists && !KeyParams.bAutoKeying && Shear[1].GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(Shear[1], Time, TransformKey.Value.Shear.Y, KeyParams);
+	}
+
+	if ( (CurveName == NAME_None || CurveName == AngleName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bRKeyExists && !KeyParams.bAutoKeying && Rotation.GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(Rotation, Time, TransformKey.Value.Angle, KeyParams);
 	}
 }

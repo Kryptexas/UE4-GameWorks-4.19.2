@@ -33,9 +33,9 @@ void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 		}
 
 		uint8 *ByteValue = InitByteMap.Find(Object);
-		if (ByteValue != NULL)
+		if (ByteValue != nullptr)
 		{
-			PropertyBindings->CallFunction(Object, ByteValue);
+			PropertyBindings->CallFunction<uint8>(Object, ByteValue);
 		}
 	}
 
@@ -50,7 +50,7 @@ void FMovieSceneByteTrackInstance::Update( float Position, float LastPosition, c
 	{
 		for( UObject* Object : RuntimeObjects )
 		{
-			PropertyBindings->CallFunction( Object, &ByteValue );
+			PropertyBindings->CallFunction<uint8>( Object, &ByteValue );
 		}
 	}
 }

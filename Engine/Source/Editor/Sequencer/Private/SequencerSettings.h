@@ -12,7 +12,27 @@ public:
 	GENERATED_BODY()
 
 	/** Get or create a settings object for the specified name */
-	static USequencerSettings* GetOrCreate(const TCHAR* InName);
+	template<class T> 
+	static T* GetOrCreate(const TCHAR* InName)
+	{
+		static const TCHAR* SettingsContainerName = TEXT("SequencerSettingsContainer");
+
+		auto* Outer = FindObject<USequencerSettingsContainer>(GetTransientPackage(), SettingsContainerName);
+		if (!Outer)
+		{
+			Outer = NewObject<USequencerSettingsContainer>(GetTransientPackage(), USequencerSettingsContainer::StaticClass(), SettingsContainerName);
+			Outer->AddToRoot();
+		}
+	
+		T* Inst = FindObject<T>( Outer, InName );
+		if (!Inst)
+		{
+			Inst = NewObject<T>( Outer, T::StaticClass(), InName );
+			Inst->LoadConfig();
+		}
+
+		return Inst;
+	}
 };
 
 /** Serializable options for sequencer. */
@@ -28,6 +48,36 @@ public:
 	bool GetAutoKeyEnabled() const;
 	/** Sets whether or not auto key is enabled. */
 	void SetAutoKeyEnabled(bool InbAutoKeyEnabled);
+
+	/** Gets whether or not key all is enabled. */
+	bool GetKeyAllEnabled() const;
+	/** Sets whether or not key all is enabled. */
+	void SetKeyAllEnabled(bool InbKeyAllEnabled);
+
+	/** Gets whether or not to key interp properties only. */
+	bool GetKeyInterpPropertiesOnly() const;
+	/** Sets whether or not to key interp properties only. */
+	void SetKeyInterpPropertiesOnly(bool InbKeyInterpPropertiesOnly); 
+
+	/** Gets default key interpolation. */
+	EMovieSceneKeyInterpolation GetKeyInterpolation() const;
+	/** Sets default key interpolation */
+	void SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation);
+
+	/** Gets whether or not to show frame numbers. */
+	bool GetShowFrameNumbers() const;
+	/** Sets whether or not to show frame numbers. */
+	void SetShowFrameNumbers(bool InbShowFrameNumbers);
+
+	/** Gets whether or not to show the time range slider. */
+	bool GetShowRangeSlider() const;
+	/** Sets whether or not to show frame numbers. */
+	void SetShowRangeSlider(bool InbShowRangeSlider);
+
+	/** Gets whether or not the in and out are bounded by start and end when scrolling. */
+	bool GetLockInOutToStartEndRange() const;
+	/** Sets whether or not the in and out are bounded by start and end when scrolling. */
+	void SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange);
 
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
@@ -79,10 +129,10 @@ public:
 	/** Sets whether or not to snap curve values to the interval. */
 	void SetSnapCurveValueToInterval(bool InbSnapCurveValueToInterval);
 
-	/** Gets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
-	bool GetIsUsingCleanView() const;
-	/** Sets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
-	void SetIsUsingCleanView(bool InbIsUsingCleanView);
+	/** Gets whether or not the details view is visible. */
+	bool GetDetailsViewVisible() const;
+	/** Sets whether or not the details view is visible. */
+	void SetDetailsViewVisible(bool InbDetailsViewVisible);
 
 	/** Gets whether or not auto-scroll is enabled. */
 	bool GetAutoScrollEnabled() const;
@@ -108,6 +158,24 @@ public:
 protected:
 	UPROPERTY( config )
 	bool bAutoKeyEnabled;
+
+	UPROPERTY( config )
+	bool bKeyAllEnabled;
+
+	UPROPERTY( config )
+	bool bKeyInterpPropertiesOnly;
+
+	UPROPERTY( config )
+	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
+
+	UPROPERTY( config )
+	bool bShowFrameNumbers;
+
+	UPROPERTY( config )
+	bool bShowRangeSlider;
+
+	UPROPERTY( config )
+	bool bLockInOutToStartEndRange;
 
 	UPROPERTY( config )
 	bool bIsSnapEnabled;
@@ -140,7 +208,7 @@ protected:
 	bool bSnapCurveValueToInterval;
 
 	UPROPERTY( config )
-	bool bIsUsingCleanView;
+	bool bDetailsViewVisible;
 
 	UPROPERTY( config )
 	bool bAutoScrollEnabled;
@@ -152,4 +220,12 @@ protected:
 	bool bShowCurveEditorCurveToolTips;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
+};
+
+/** Level editor specific sequencer settings */
+UCLASS(config=EditorPerProjectUserSettings, PerObjectConfig)
+class ULevelEditorSequencerSettings : public USequencerSettings
+{
+public:
+	GENERATED_UCLASS_BODY()
 };

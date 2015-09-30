@@ -43,11 +43,6 @@ public:
 	 * @return Whether or not this track has any data in it
 	 */
 	virtual bool IsEmpty() const PURE_VIRTUAL( UMovieSceneTrack::IsEmpty, return true; );
-	
-	/**
-	 * @return True if the data of this track show generate display nodes by default
-	 */
-	virtual bool HasShowableData() const {return true;}
 
 	/**
 	 * @return Whether or not this track supports multiple row indices
@@ -68,6 +63,13 @@ public:
 	 * @return			True if the section is in this track
 	 */
 	virtual bool HasSection( UMovieSceneSection* Section ) const PURE_VIRTUAL( UMovieSceneSection::HasSection, return false; );
+
+	/**
+	 * Add a section to this track
+	 *
+	 * @param Section	The section to add
+	 */
+	virtual void AddSection( UMovieSceneSection* Section ) PURE_VIRTUAL( UMovieSceneSection::AddSection, );
 
 	/**
 	 * Removes a section from this track

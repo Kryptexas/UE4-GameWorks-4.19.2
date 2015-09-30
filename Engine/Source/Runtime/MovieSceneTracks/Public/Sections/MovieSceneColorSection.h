@@ -31,17 +31,19 @@ public:
 	 *
 	 * @param Time	The location in time where the key should be added
 	 * @param Value	The value of the key
+     * @param KeyParams The keying parameters
 	 */
-	void AddKey( float Time, const FColorKey& Key );
+	void AddKey( float Time, const FColorKey& Key, FKeyParams KeyParams );
 	
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
 	 *
 	 * @param Time	The location in time where the key would be added
 	 * @param Value	The value of the new key
+     * @param KeyParams The keying parameters
 	 * @return True if the new key would be new data, false if duplicate
 	 */
-	bool NewKeyIsNewData(float Time, FLinearColor Value) const;
+	bool NewKeyIsNewData(float Time, FLinearColor Value, FKeyParams KeyParams) const;
 
 	/**
 	 * Gets the red color curve
@@ -73,9 +75,6 @@ public:
 	 */
 	FRichCurve& GetAlphaCurve() { return AlphaCurve; }
 	const FRichCurve& GetAlphaCurve() const { return AlphaCurve; }
-
-private:
-	void AddKeyToNamedCurve(float Time, const FColorKey& Key);
 
 private:
 	/** Red curve data */

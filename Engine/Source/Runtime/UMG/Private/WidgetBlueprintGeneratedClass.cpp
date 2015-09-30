@@ -39,10 +39,10 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 		{
 			UWidgetAnimation* Anim = DuplicateObject<UWidgetAnimation>( Animation, UserWidget );
 
-			if( Anim->MovieScene )
+			if( Anim->GetMovieScene() )
 			{
 				// Find property with the same name as the template and assign the new widget to it.
-				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, Anim->MovieScene->GetFName());
+				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, Anim->GetMovieScene()->GetFName());
 				if(Prop)
 				{
 					Prop->SetObjectPropertyValue_InContainer(UserWidget, Anim);

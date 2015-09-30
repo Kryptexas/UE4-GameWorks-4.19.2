@@ -176,7 +176,7 @@ private:
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
 
 	/** Populates the sequencer add menu. */
-	TSharedRef<SWidget> OnGetAnimationAddMenuContent(TSharedRef<ISequencer> Sequencer);
+	void OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer);
 
 	/** Adds the supplied UObject to the current animation. */
 	void AddObjectToAnimation(UObject* ObjectToAnimate);
@@ -202,9 +202,6 @@ private:
 
 	/** A text block which is displayed in the overlay when no animation is selected. */
 	TWeakPtr<STextBlock> NoAnimationTextBlock;
-
-	/** Manager for handling bindings to sequence animations */
-	TSharedPtr<class FUMGSequencerObjectBindingManager> SequencerObjectBindingManager;
 
 	/** The Blueprint associated with the current preview */
 	UWidgetBlueprint* PreviewBlueprint;
@@ -243,6 +240,9 @@ private:
 	bool bIsRealTime;
 
 	TArray< TFunction<void()> > QueuedDesignerActions;
+
+	/** The currently viewed animation, if any. */
+	TWeakObjectPtr<UWidgetAnimation> CurrentAnimation;
 
 	FDelegateHandle SequencerExtenderHandle;
 };

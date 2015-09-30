@@ -24,17 +24,19 @@ public:
 	 *
 	 * @param Time	The location in time where the key should be added
 	 * @param Value	The value of the key
+	 * @param KeyParams The keying parameters
 	 */
-	void AddKey( float Time, float Value );
+	void AddKey( float Time, float Value, FKeyParams KeyParams );
 	
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
 	 *
 	 * @param Time	The location in time where the key would be added
 	 * @param Value	The value of the new key
+	 * @param KeyParams The keying parameters
 	 * @return True if the new key would be new data, false if duplicate
 	 */
-	bool NewKeyIsNewData(float Time, float Value) const;
+	bool NewKeyIsNewData(float Time, float Value, FKeyParams KeyParams) const;
 
 	/**
 	 * UMovieSceneSection interface 
@@ -49,6 +51,6 @@ public:
 	FRichCurve& GetFloatCurve() { return FloatCurve; }
 private:
 	/** Curve data */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Curve")
 	FRichCurve FloatCurve;
 };

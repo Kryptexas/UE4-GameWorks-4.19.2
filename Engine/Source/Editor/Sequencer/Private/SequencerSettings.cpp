@@ -2,31 +2,16 @@
 
 #include "SequencerPrivatePCH.h"
 
-USequencerSettings* USequencerSettingsContainer::GetOrCreate(const TCHAR* InName)
-{
-	static const TCHAR* SettingsContainerName = TEXT("SequencerSettingsContainer");
-
-	auto* Outer = FindObject<USequencerSettingsContainer>(GetTransientPackage(), SettingsContainerName);
-	if (!Outer)
-	{
-		Outer = NewObject<USequencerSettingsContainer>(GetTransientPackage(), USequencerSettingsContainer::StaticClass(), SettingsContainerName);
-		Outer->AddToRoot();
-	}
-	
-	USequencerSettings* Inst = FindObject<USequencerSettings>( Outer, InName );
-	if (!Inst)
-	{
-		Inst = NewObject<USequencerSettings>( Outer, USequencerSettings::StaticClass(), InName );
-		Inst->LoadConfig();
-	}
-
-	return Inst;
-}
-
 USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
 	bAutoKeyEnabled = false;
+	bKeyAllEnabled = false;
+	bKeyInterpPropertiesOnly = false;
+	KeyInterpolation = MSKI_Auto;
+	bShowFrameNumbers = true;
+	bShowRangeSlider = false;
+	bLockInOutToStartEndRange = false;
 	bIsSnapEnabled = true;
 	TimeSnapInterval = .05f;
 	bSnapKeyTimesToInterval = true;
@@ -37,8 +22,8 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapPlayTimeToDraggedKey = false;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
-	bIsUsingCleanView = false;
-	bAutoScrollEnabled = true;
+	bDetailsViewVisible = false;
+	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
 }
@@ -53,6 +38,90 @@ void USequencerSettings::SetAutoKeyEnabled(bool InbAutoKeyEnabled)
 	if ( bAutoKeyEnabled != InbAutoKeyEnabled )
 	{
 		bAutoKeyEnabled = InbAutoKeyEnabled;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetKeyAllEnabled() const
+{
+	return bKeyAllEnabled;
+}
+
+void USequencerSettings::SetKeyAllEnabled(bool InbKeyAllEnabled)
+{
+	if ( bKeyAllEnabled != InbKeyAllEnabled )
+	{
+		bKeyAllEnabled = InbKeyAllEnabled;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetKeyInterpPropertiesOnly() const
+{
+	return bKeyInterpPropertiesOnly;
+}
+
+void USequencerSettings::SetKeyInterpPropertiesOnly(bool InbKeyInterpPropertiesOnly)
+{
+	if ( bKeyInterpPropertiesOnly != InbKeyInterpPropertiesOnly )
+	{
+		bKeyInterpPropertiesOnly = InbKeyInterpPropertiesOnly;
+		SaveConfig();
+	}
+}
+
+EMovieSceneKeyInterpolation USequencerSettings::GetKeyInterpolation() const
+{
+	return KeyInterpolation;
+}
+
+void USequencerSettings::SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation)
+{
+	if ( KeyInterpolation != InKeyInterpolation)
+	{
+		KeyInterpolation = InKeyInterpolation;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetShowFrameNumbers() const
+{
+	return bShowFrameNumbers;
+}
+
+void USequencerSettings::SetShowFrameNumbers(bool InbShowFrameNumbers)
+{
+	if ( bShowFrameNumbers != InbShowFrameNumbers )
+	{
+		bShowFrameNumbers = InbShowFrameNumbers;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetShowRangeSlider() const
+{
+	return bShowRangeSlider;
+}
+
+void USequencerSettings::SetShowRangeSlider(bool InbShowRangeSlider)
+{
+	if ( bShowRangeSlider != InbShowRangeSlider )
+	{
+		bShowRangeSlider = InbShowRangeSlider;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetLockInOutToStartEndRange() const
+{
+	return bLockInOutToStartEndRange;
+}
+
+void USequencerSettings::SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange)
+{
+	if ( bLockInOutToStartEndRange != InbLockInOutToStartEndRange )
+	{
+		bLockInOutToStartEndRange = InbLockInOutToStartEndRange;
 		SaveConfig();
 	}
 }
@@ -197,16 +266,16 @@ void USequencerSettings::SetSnapCurveValueToInterval( bool InbSnapCurveValueToIn
 	}
 }
 
-bool USequencerSettings::GetIsUsingCleanView() const
+bool USequencerSettings::GetDetailsViewVisible() const
 {
-	return bIsUsingCleanView;
+	return bDetailsViewVisible;
 }
 
-void USequencerSettings::SetIsUsingCleanView(bool InbIsUsingCleanView )
+void USequencerSettings::SetDetailsViewVisible(bool InbDetailsViewVisible )
 {
-	if (bIsUsingCleanView != InbIsUsingCleanView)
+	if (bDetailsViewVisible != InbDetailsViewVisible)
 	{
-		bIsUsingCleanView = InbIsUsingCleanView;
+		bDetailsViewVisible = InbDetailsViewVisible;
 		SaveConfig();
 	}
 }
@@ -267,3 +336,12 @@ USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurv
 	return OnShowCurveEditorChanged;
 }
 
+/** Level editor specific sequencer settings */
+ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
+{
+	bKeyInterpPropertiesOnly = true;
+	TimeSnapInterval = 0.033334f;
+	bShowRangeSlider = true;
+	bLockInOutToStartEndRange = true;
+}

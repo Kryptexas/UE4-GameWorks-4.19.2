@@ -53,3 +53,14 @@ void SequencerHelpers::GetDescendantNodes(TSharedRef<FSequencerDisplayNode> Disp
 	}
 }
 
+int32 SequencerHelpers::TimeToFrame(float Time, float FrameRate)
+{
+	float Frame = Time * FrameRate;
+	return FMath::RoundToInt(Frame);
+}
+
+float SequencerHelpers::FrameToTime(int32 Frame, float FrameRate)
+{
+	return Frame / FrameRate;
+}
+

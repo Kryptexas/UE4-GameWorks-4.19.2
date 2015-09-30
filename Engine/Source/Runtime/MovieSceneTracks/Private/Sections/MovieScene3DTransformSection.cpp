@@ -4,11 +4,11 @@
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 
+
 UMovieScene3DTransformSection::UMovieScene3DTransformSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
+{ }
 
-}
 
 void UMovieScene3DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -23,6 +23,7 @@ void UMovieScene3DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandl
 	}
 }
 
+
 void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
@@ -34,6 +35,7 @@ void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float O
 		Scale[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
 	}
 }
+
 
 void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -47,6 +49,7 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 				KeyHandles.Add(It.Key());
 			}
 		}
+
 		for (auto It(Rotation[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Rotation[Axis].GetKeyTime(It.Key());
@@ -55,6 +58,7 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 				KeyHandles.Add(It.Key());
 			}
 		}
+
 		for (auto It(Scale[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Scale[Axis].GetKeyTime(It.Key());
@@ -66,71 +70,30 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 	}
 }	
 
-void UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation, TArray<bool>& OutHasTranslationKeys ) const
+
+void UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
 {
-	OutHasTranslationKeys.Add(Translation[0].GetNumKeys() > 0);
-	OutHasTranslationKeys.Add(Translation[1].GetNumKeys() > 0);
-	OutHasTranslationKeys.Add(Translation[2].GetNumKeys() > 0);
-
-	// Evaluate each component of translation if there are any keys
-
-	if (OutHasTranslationKeys[0])
-	{
-		OutTranslation.X = Translation[0].Eval( Time );
-	}
-	if (OutHasTranslationKeys[1])
-	{
-		OutTranslation.Y = Translation[1].Eval( Time );
-	}
-	if (OutHasTranslationKeys[2])
-	{
-		OutTranslation.Z = Translation[2].Eval( Time );
-	}
+	OutTranslation.X = Translation[0].Eval( Time );
+	OutTranslation.Y = Translation[1].Eval( Time );
+	OutTranslation.Z = Translation[2].Eval( Time );
 }
 
-void UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotation, TArray<bool>& OutHasRotationKeys ) const
+
+void UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotation ) const
 {
-	OutHasRotationKeys.Add(Rotation[0].GetNumKeys() > 0);
-	OutHasRotationKeys.Add(Rotation[1].GetNumKeys() > 0);
-	OutHasRotationKeys.Add(Rotation[2].GetNumKeys() > 0);
-
-	// Evaluate each component of rotation if there are any keys
-
-	if (OutHasRotationKeys[0])
-	{
-		OutRotation.Roll = Rotation[0].Eval( Time );
-	}
-	if (OutHasRotationKeys[1])
-	{
-		OutRotation.Pitch = Rotation[1].Eval( Time );
-	}
-	if (OutHasRotationKeys[2])
-	{
-		OutRotation.Yaw = Rotation[2].Eval( Time );
-	}
+	OutRotation.Roll = Rotation[0].Eval( Time );
+	OutRotation.Pitch = Rotation[1].Eval( Time );
+	OutRotation.Yaw = Rotation[2].Eval( Time );
 }
 
-void UMovieScene3DTransformSection::EvalScale( float Time, FVector& OutScale, TArray<bool>& OutHasScaleKeys ) const
+
+void UMovieScene3DTransformSection::EvalScale( float Time, FVector& OutScale ) const
 {
-	OutHasScaleKeys.Add(Scale[0].GetNumKeys() > 0);
-	OutHasScaleKeys.Add(Scale[1].GetNumKeys() > 0);
-	OutHasScaleKeys.Add(Scale[2].GetNumKeys() > 0);
-
-	// Evaluate each component of scale if there are any keys
-
-	if (OutHasScaleKeys[0])
-	{
-		OutScale.X = Scale[0].Eval( Time );
-	}
-	if (OutHasScaleKeys[1])
-	{
-		OutScale.Y = Scale[1].Eval( Time );
-	}
-	if (OutHasScaleKeys[2])
-	{
-		OutScale.Z = Scale[2].Eval( Time );
-	}
+	OutScale.X = Scale[0].Eval( Time );
+	OutScale.Y = Scale[1].Eval( Time );
+	OutScale.Z = Scale[2].Eval( Time );
 }
+
 
 /**
  * Chooses an appropriate curve from an axis and a set of curves
@@ -155,15 +118,18 @@ static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
 	}
 }
 
+
 FRichCurve& UMovieScene3DTransformSection::GetTranslationCurve( EAxis::Type Axis ) 
 {
 	return *ChooseCurve( Axis, Translation );
 }
 
+
 FRichCurve& UMovieScene3DTransformSection::GetRotationCurve( EAxis::Type Axis )
 {
 	return *ChooseCurve( Axis, Rotation );
 }
+
 
 FRichCurve& UMovieScene3DTransformSection::GetScaleCurve( EAxis::Type Axis )
 {
@@ -171,73 +137,68 @@ FRichCurve& UMovieScene3DTransformSection::GetScaleCurve( EAxis::Type Axis )
 }
 
 
-
 void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& TransformKey )
 {
 	const float Time = TransformKey.GetKeyTime();
 
-	const bool bUnwindRotation = false; // Not needed for translation
-
-	// Key each component.  Note: we always key each component if no key exists
-	if( Translation[0].GetNumKeys() == 0 || TransformKey.ShouldKeyTranslation( EAxis::X ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyTranslation( EAxis::X ) || Translation[0].GetNumKeys() == 0 )
 	{
-		AddKeyToCurve( Translation[0], Time, TransformKey.GetTranslationValue().X );
+		AddKeyToCurve( Translation[0], Time, TransformKey.GetTranslationValue().X, TransformKey.KeyParams );
 	}
 
-	if( Translation[1].GetNumKeys() == 0 || TransformKey.ShouldKeyTranslation( EAxis::Y ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyTranslation( EAxis::Y ) || Translation[1].GetNumKeys() == 0 )
 	{ 
-		AddKeyToCurve( Translation[1], Time, TransformKey.GetTranslationValue().Y );
+		AddKeyToCurve( Translation[1], Time, TransformKey.GetTranslationValue().Y, TransformKey.KeyParams );
 	}
 
-	if( Translation[2].GetNumKeys() == 0 || TransformKey.ShouldKeyTranslation( EAxis::Z ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyTranslation( EAxis::Z ) || Translation[2].GetNumKeys() == 0 )
 	{ 
-		AddKeyToCurve( Translation[2], Time, TransformKey.GetTranslationValue().Z );
+		AddKeyToCurve( Translation[2], Time, TransformKey.GetTranslationValue().Z, TransformKey.KeyParams );
 	}
 }
+
 
 void UMovieScene3DTransformSection::AddRotationKeys( const FTransformKey& TransformKey, const bool bUnwindRotation )
 {
 	const float Time = TransformKey.GetKeyTime();
 
-	// Key each component.  Note: we always key each component if no key exists
-	if( Rotation[0].GetNumKeys() == 0 || TransformKey.ShouldKeyRotation( EAxis::X ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyRotation( EAxis::X ) || Rotation[0].GetNumKeys() == 0 )
 	{
-		AddKeyToCurve( Rotation[0], Time, TransformKey.GetRotationValue().Roll );
+		AddKeyToCurve( Rotation[0], Time, TransformKey.GetRotationValue().Roll, TransformKey.KeyParams, bUnwindRotation );
 	}
 
-	if( Rotation[1].GetNumKeys() == 0 || TransformKey.ShouldKeyRotation( EAxis::Y ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyRotation( EAxis::Y ) || Rotation[1].GetNumKeys() == 0 )
 	{ 
-		AddKeyToCurve( Rotation[1], Time, TransformKey.GetRotationValue().Pitch );
+		AddKeyToCurve( Rotation[1], Time, TransformKey.GetRotationValue().Pitch, TransformKey.KeyParams, bUnwindRotation );
 	}
 
-	if( Rotation[2].GetNumKeys() == 0 || TransformKey.ShouldKeyRotation( EAxis::Z ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyRotation( EAxis::Z ) || Rotation[2].GetNumKeys() == 0 )
 	{ 
-		AddKeyToCurve( Rotation[2], Time, TransformKey.GetRotationValue().Yaw );
+		AddKeyToCurve( Rotation[2], Time, TransformKey.GetRotationValue().Yaw, TransformKey.KeyParams, bUnwindRotation );
 	}
 }
+
 
 void UMovieScene3DTransformSection::AddScaleKeys( const FTransformKey& TransformKey )
 {
 	const float Time = TransformKey.GetKeyTime();
 
-	const bool bUnwindRotation = false; // Not needed for scale
-
-	// Key each component.  Note: we always key each component if no key exists
-	if( Scale[0].GetNumKeys() == 0 || TransformKey.ShouldKeyScale( EAxis::X ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyScale( EAxis::X ) || Scale[0].GetNumKeys() == 0 )
 	{
-		AddKeyToCurve( Scale[0], Time, TransformKey.GetScaleValue().X );
+		AddKeyToCurve( Scale[0], Time, TransformKey.GetScaleValue().X, TransformKey.KeyParams );
 	}
 
-	if( Scale[1].GetNumKeys() == 0 || TransformKey.ShouldKeyScale( EAxis::Y ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyScale( EAxis::Y ) || Scale[1].GetNumKeys() == 0 )
 	{ 
-		AddKeyToCurve( Scale[1], Time, TransformKey.GetScaleValue().Y );
+		AddKeyToCurve( Scale[1], Time, TransformKey.GetScaleValue().Y, TransformKey.KeyParams );
 	}
 
-	if( Scale[2].GetNumKeys() == 0 || TransformKey.ShouldKeyScale( EAxis::Z ) )
+	if( TransformKey.KeyParams.bAddKeyEvenIfUnchanged || TransformKey.ShouldKeyScale( EAxis::Z ) || Scale[2].GetNumKeys() == 0 )
 	{ 
-		AddKeyToCurve( Scale[2], Time, TransformKey.GetScaleValue().Z );
+		AddKeyToCurve( Scale[2], Time, TransformKey.GetScaleValue().Z, TransformKey.KeyParams );
 	}
 }
+
 
 bool UMovieScene3DTransformSection::NewKeyIsNewData(const FTransformKey& TransformKey) const
 {
@@ -249,5 +210,11 @@ bool UMovieScene3DTransformSection::NewKeyIsNewData(const FTransformKey& Transfo
 			Rotation[i].GetNumKeys() == 0 ||
 			Scale[i].GetNumKeys() == 0;
 	}
-	return bHasEmptyKeys || TransformKey.ShouldKeyAny();
+
+	if ( bHasEmptyKeys || (TransformKey.KeyParams.bAutoKeying && TransformKey.ShouldKeyAny() ) )
+	{
+		return true;
+	}
+
+	return false;
 }

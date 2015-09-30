@@ -68,7 +68,7 @@ public:
 	 * @param PreviousTransform	The previous transform values (for comparing against new values).  If this is set only changed values will be keyed
 	 * 
 	 */
-	FTransformKey( float InKeyTime, const FTransformData& InNewTransform, const FTransformData& InPreviousTransform = FTransformData() )
+	FTransformKey( float InKeyTime, const FTransformData& InNewTransform, const FTransformData& InPreviousTransform = FTransformData())
 		: NewTransform( InNewTransform )
 		, PreviousTransform( InPreviousTransform )
 		, KeyTime( InKeyTime )
@@ -117,6 +117,10 @@ public:
 	 * @return Whether or not we should key on the given axis
 	 */
 	bool ShouldKeyAny() const;
+
+	/** Keying params */
+	FKeyParams KeyParams;
+
 private:
 	/**
 	 * Determines whether or not a vector component is different on the given axis
@@ -152,6 +156,7 @@ public:
 	 * @param ObjectHandle		Handle to the object(s) being changed
 	 * @param InKey				The transform key to add
 	 * @param bUnwindRotation	When true, the value will be treated like a rotation value in degrees, and will automatically be unwound to prevent flipping 360 degrees from the previous key 	 
+	 * @param bAddKeyEvenIfUnchanged Add a key even if its value is the same as the evaluated curve
 	 * @param KeyType           Key type (trans, rot, scale)
 	 * @return True if the key was successfully added.
 	 */
@@ -165,10 +170,15 @@ public:
 	 * @param OutTranslation	The evalulated translation component of the transform
 	 * @param OutRotation		The evalulated rotation component of the transform
 	 * @param OutScale		The evalulated scale component of the transform
-	 * @param OutHasTranslationKeys true if a translation key was evaluated 
-	 * @param OutHasRotationKeys 	true if a rotation key was evaluated
-	 * @param OutHasScaleKeys 	true if a scale key was evaluated
 	 * @return true if anything was evaluated. Note: if false is returned OutBool remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, TArray<bool>& OutHasTranslationKeys, TArray<bool>& OutHasRotationKeys, TArray<bool>& OutHasScaleKeys ) const;
+	virtual bool Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale ) const;
+
+	/*
+	* Get whether the track can be keyed at a particular time.
+	*
+    * @param InKey The transform key to add
+	* @return Whether the track can be keyed
+	*/
+	virtual bool CanKeyTrack(const FTransformKey& InKey) const;
 };

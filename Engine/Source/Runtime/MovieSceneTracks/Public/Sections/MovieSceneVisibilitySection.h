@@ -23,15 +23,17 @@ public:
 	 *
 	 * @param Time	The location in time where the key should be added
 	 * @param Value	The value of the key
+	 * @param KeyParams The keying parameters
 	 */
-	void AddKey( float Time, bool Value );
+	void AddKey( float Time, bool Value, FKeyParams KeyParams );
 
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
 	 *
 	 * @param Time	The location in time where the key would be added
 	 * @param Value	The value of the new key
+	 * @param KeyParams The keying parameters
 	 * @return True if the new key would be new data, false if duplicate
 	 */
-	bool NewKeyIsNewData(float Time, bool Value) const;
+	bool NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const;
 };

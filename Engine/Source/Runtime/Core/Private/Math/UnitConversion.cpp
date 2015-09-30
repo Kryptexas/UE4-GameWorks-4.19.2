@@ -71,6 +71,8 @@ FParseCandidate ParseCandidates[] = {
 	{ TEXT("Days"),					EUnit::Days },					{ TEXT("dy"),		EUnit::Days },
 	{ TEXT("Months"),				EUnit::Months },				{ TEXT("mth"),		EUnit::Months },
 	{ TEXT("Years"),				EUnit::Years },					{ TEXT("yr"),		EUnit::Years },
+
+	{ TEXT("times"),				EUnit::Multiplier },			{ TEXT("x"),	EUnit::Multiplier },			{ TEXT("multiplier"),		EUnit::Multiplier },
 };
 
 /** Static array of display strings that directly map to EUnit enumerations */
@@ -97,6 +99,8 @@ const TCHAR* const DisplayStrings[] = {
 	TEXT("lm"),
 
 	TEXT("ms"), TEXT("s"), TEXT("min"), TEXT("hr"), TEXT("dy"), TEXT("mth"), TEXT("yr"),
+
+	TEXT("x"),
 };
 
 const EUnitType UnitTypes[] = {
@@ -122,6 +126,8 @@ const EUnitType UnitTypes[] = {
 	EUnitType::LuminousFlux,
 
 	EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,
+
+	EUnitType::Arbitrary,
 };
 
 

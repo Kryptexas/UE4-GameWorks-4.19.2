@@ -24,6 +24,7 @@ private:
 	float OnGetKeyValue() const;
 
 	void OnValueChanged(float Value);
+	void OnValueCommitted(float Value, ETextCommit::Type CommitInfo);
 
 	ISequencer* Sequencer;
 	UMovieSceneSection* OwningSection;

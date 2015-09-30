@@ -138,10 +138,10 @@ private:
 			{
 				const FScopedTransaction Transaction(TransactionName);
 				WidgetAnimation->Modify();
-				WidgetAnimation->MovieScene->Modify();
+				WidgetAnimation->GetMovieScene()->Modify();
 
 				WidgetAnimation->Rename(*InText.ToString());
-				WidgetAnimation->MovieScene->Rename(*InText.ToString());
+				WidgetAnimation->GetMovieScene()->Rename(*InText.ToString());
 
 				if(bNewAnimation)
 				{
@@ -297,9 +297,12 @@ private:
 
 		if(ViewedAnim)
 		{
-			TSharedPtr<FWidgetAnimationListItem> FoundListItem = *Animations.FindByPredicate( [&](const TSharedPtr<FWidgetAnimationListItem>& ListItem ) { return ListItem->Animation == ViewedAnim; } );
-			
-			AnimationListView->SetSelection(FoundListItem);
+			const TSharedPtr<FWidgetAnimationListItem>* FoundListItemPtr = Animations.FindByPredicate( [&](const TSharedPtr<FWidgetAnimationListItem>& ListItem ) { return ListItem->Animation == ViewedAnim; } );
+
+			if (FoundListItemPtr != nullptr)
+			{
+				AnimationListView->SetSelection(*FoundListItemPtr);
+			}
 		}
 
 	}
@@ -315,10 +318,17 @@ private:
 
 	FReply OnNewAnimationClicked()
 	{
+		const float InTime = 0.f;
+		const float OutTime = 5.0f;
+
 		UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 
 		UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(WidgetBlueprint, MakeUniqueObjectName(WidgetBlueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
 		NewAnimation->MovieScene = NewObject<UMovieScene>(NewAnimation, NewAnimation->GetFName(), RF_Transactional);
+		NewAnimation->MovieScene->StartTime = InTime;
+		NewAnimation->MovieScene->InTime = InTime;
+		NewAnimation->MovieScene->OutTime = OutTime;
+		NewAnimation->MovieScene->EndTime = OutTime;
 
 		bool bRequestRename = true;
 		bool bNewAnimation = true;

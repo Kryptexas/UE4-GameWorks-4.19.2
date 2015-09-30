@@ -7,20 +7,22 @@
 class FPerformanceAnalyticsStats;
 class FTickableEditorObject;
 
-namespace EMapChangeType
+
+enum class EMapChangeType : uint8
 {
-	enum Type
-	{
-		/** Map has just been loaded*/
-		LoadMap,
-		/** Map is about to be saved*/
-		SaveMap,
-		/** A new map is loaded*/
-		NewMap,
-		/** The world is about to be torn down */
-		TearDownWorld,
-	};
-}
+	/** Map has just been loaded*/
+	LoadMap,
+
+	/** Map is about to be saved*/
+	SaveMap,
+
+	/** A new map is loaded*/
+	NewMap,
+
+	/** The world is about to be torn down */
+	TearDownWorld,
+};
+
 
 /** The public interface for the unreal editor misc singleton. */
 class UNREALED_API FUnrealEdMisc
@@ -247,7 +249,7 @@ private:
 	/**
 	 * Called when a map is changed (loaded,saved,new map, etc)
 	 */
-	void OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType );
+	void OnMapChanged( UWorld* World, EMapChangeType MapChangeType );
 
 	/** Called when the input manager records a user-defined chord */
 	void OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo);

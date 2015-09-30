@@ -6,7 +6,7 @@
 #include "SubMovieSceneTrack.generated.h"
 
 /**
- * Handles manipulation of float properties in a movie scene
+ * A track that holds a sub-sequence within a larger sequence
  */
 UCLASS( MinimalAPI )
 class USubMovieSceneTrack : public UMovieSceneTrack
@@ -18,6 +18,7 @@ public:
 	virtual FName GetTrackName() const override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
+	virtual void AddSection( UMovieSceneSection* Section ) override;
 	virtual void RemoveSection( UMovieSceneSection* Section ) override;
 	virtual void RemoveAllAnimationData() override;
 	virtual bool IsEmpty() const override;
@@ -30,7 +31,7 @@ public:
 	 * @param SubMovieScene	The movie scene to add
 	 * @param Time	The time to add the section at
 	 */
-	virtual void AddMovieSceneSection( UMovieScene* SubMovieScene, float Time );
+	virtual void AddMovieSceneSection( class UMovieSceneSequence* SubMovieSceneSequence, float Time );
 protected:
 	/** All movie scene sections.  */
 	UPROPERTY()

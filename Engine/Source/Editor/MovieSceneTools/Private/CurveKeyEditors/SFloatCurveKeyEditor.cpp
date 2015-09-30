@@ -13,24 +13,25 @@ void SFloatCurveKeyEditor::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SSpinBox<float>)
-		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.AnimationOutliner.KeyEditorSpinBoxStyle"))
+		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 		.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
 		.MinValue(TOptional<float>())
 		.MaxValue(TOptional<float>())
 		.MaxSliderValue(TOptional<float>())
 		.MinSliderValue(TOptional<float>())
 		.Delta(0.001f)
-		.MinDesiredWidth(60.0f)
 		.Value(this, &SFloatCurveKeyEditor::OnGetKeyValue)
 		.OnValueChanged(this, &SFloatCurveKeyEditor::OnValueChanged)
+		.OnValueCommitted(this, &SFloatCurveKeyEditor::OnValueCommitted)
 		.OnBeginSliderMovement(this, &SFloatCurveKeyEditor::OnBeginSliderMovement)
 		.OnEndSliderMovement(this, &SFloatCurveKeyEditor::OnEndSliderMovement)
+		.ClearKeyboardFocusOnCommit(true)
 	];
 }
 
 void SFloatCurveKeyEditor::OnBeginSliderMovement()
 {
-	GEditor->BeginTransaction(LOCTEXT("SetFloatKey", "Set float key value"));
+	GEditor->BeginTransaction(LOCTEXT("SetFloatKey", "Set Float Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 }
@@ -45,7 +46,7 @@ void SFloatCurveKeyEditor::OnEndSliderMovement(float Value)
 
 float SFloatCurveKeyEditor::OnGetKeyValue() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Eval(CurrentTime);
 }
 
@@ -53,7 +54,7 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 {
 	OwningSection->Modify();
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
 	if (Curve->IsKeyHandleValid(CurrentKeyHandle))
 	{
@@ -61,7 +62,15 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 	}
 	else
 	{
-		Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
+		if (Curve->GetNumKeys() == 0)
+		{
+			Curve->SetDefaultValue(Value);
+		}
+		else
+		{
+			Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
+		}
+
 		if (OwningSection->GetStartTime() > CurrentTime)
 		{
 			OwningSection->SetStartTime(CurrentTime);
@@ -72,6 +81,16 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 		}
 	}
 	Sequencer->UpdateRuntimeInstances();
+}
+
+void SFloatCurveKeyEditor::OnValueCommitted(float Value, ETextCommit::Type CommitInfo)
+{
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		const FScopedTransaction Transaction( LOCTEXT("SetFloatKey", "Set Float Key Value") );
+
+		OnValueChanged(Value);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

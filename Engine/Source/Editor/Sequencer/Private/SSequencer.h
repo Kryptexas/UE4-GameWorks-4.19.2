@@ -2,14 +2,20 @@
 
 #pragma once
 
+#include "UniquePtr.h"
+#include "ISequencerEditTool.h"
+#include "SequencerCommonHelpers.h"
+
+
+class IDetailsView;
+class SSequencerTreeView;
+struct FSectionHandle;
+
+
 namespace SequencerLayoutConstants
 {
 	/** The amount to indent child nodes of the layout tree */
-	const float IndentAmount = 25.0f;
-	/** Padding between each node */
-	const float NodePadding = 3.0f;
-	/** Padding between each node */
-	const float ObjectNodePadding = 5.0f;
+	const float IndentAmount = 8.0f;
 	/** Height of each object node */
 	const float ObjectNodeHeight = 20.0f;
 	/** Height of each section area if there are no sections (note: section areas may be larger than this if they have children. This is the height of a section area with no children or all children hidden) */
@@ -19,6 +25,7 @@ namespace SequencerLayoutConstants
 	/** Height of each category node */
 	const float CategoryNodeHeight = 15.0f;
 }
+
 
 /**
  * The kind of breadcrumbs that sequencer uses
@@ -34,9 +41,9 @@ struct FSequencerBreadcrumb
 	/** The type of breadcrumb this is */
 	FSequencerBreadcrumb::Type BreadcrumbType;
 	/** The movie scene this may point to */
-	class TWeakPtr<FMovieSceneInstance> MovieSceneInstance;
+	class TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
 
-	FSequencerBreadcrumb( TSharedRef<class FMovieSceneInstance> InMovieSceneInstance )
+	FSequencerBreadcrumb( TSharedRef<class FMovieSceneSequenceInstance> InMovieSceneInstance )
 		: BreadcrumbType(FSequencerBreadcrumb::MovieSceneType)
 		, MovieSceneInstance(InMovieSceneInstance) {}
 
@@ -44,10 +51,14 @@ struct FSequencerBreadcrumb
 		: BreadcrumbType(FSequencerBreadcrumb::ShotType) {}
 };
 
+
 /**
  * Main sequencer UI widget
  */
-class SSequencer : public SCompoundWidget, public FGCObject
+class SSequencer
+	: public SCompoundWidget
+	, public FGCObject
+	, public FNotifyHook
 {
 public:
 	DECLARE_DELEGATE_OneParam( FOnToggleBoolOption, bool )
@@ -56,10 +67,14 @@ public:
 	{}
 		/** The current view range (seconds) */
 		SLATE_ATTRIBUTE( FAnimatedRange, ViewRange )
+		/** The current clamp range (seconds) */
+		SLATE_ATTRIBUTE( FAnimatedRange, ClampRange )
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 		/** Called when the user changes the view range */
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
+		/** Called when the user changes the clamp range */
+		SLATE_EVENT( FOnClampRangeChanged, OnClampRangeChanged )
 		/** Called when the user has begun scrubbing */
 		SLATE_EVENT( FSimpleDelegate, OnBeginScrubbing )
 		/** Called when the user has finished scrubbing */
@@ -68,11 +83,15 @@ public:
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
 		/** Called to populate the add combo button in the toolbar. */
 		SLATE_EVENT( FOnGetAddMenuContent, OnGetAddMenuContent )
+		/** Extender to use for the add menu. */
+		SLATE_ARGUMENT( TSharedPtr<FExtender>, AddMenuExtender )
 	SLATE_END_ARGS()
 
 
 	void Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer );
 
+	void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings);
+	
 	~SSequencer();
 	
 	virtual void AddReferencedObjects( FReferenceCollector& Collector )
@@ -96,9 +115,6 @@ public:
 	void UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& FilteringShots);
 	void ResetBreadcrumbs();
 
-	/** Deletes selected nodes out of the sequencer node tree */
-	void DeleteSelectedNodes();
-
 	/** Step to next and previous keyframes */
 	void StepToNextKey();
 	void StepToPreviousKey();
@@ -106,17 +122,53 @@ public:
 	void StepToPreviousCameraKey();
 	void StepToKey(bool bStepToNextKey, bool bCameraOnly);
 
-	/** Expand or collapse selected nodes out of the sequencer node tree */
-	void ToggleExpandCollapseSelectedNodes(bool bDescendants = false);
-	void ExpandCollapseNode(TSharedRef<FSequencerDisplayNode> SelectedNode, bool bDescendants, bool bExpand);
-
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
 	void SetUserIsSelecting(bool bUserIsSelectingIn) { bUserIsSelecting = bUserIsSelectingIn; }
 	bool UserIsSelecting() { return bUserIsSelecting; }
 
 	/** Called when the save button is clicked */
-	FReply OnSaveMovieSceneClicked();
+	void OnSaveMovieSceneClicked();
+
+	/** Access the tree view for this sequencer */
+	TSharedPtr<SSequencerTreeView> GetTreeView() const;
+
+	/** Access the currently active edit tool */
+	ISequencerEditTool& GetEditTool() const { return *EditTool; }
+
+	/** Generate a helper structure that can be used to transform between phsyical space and virtual space in the track area */
+	FVirtualTrackArea GetVirtualTrackArea() const;
+
+	/** Get an array of section handles for the given set of movie scene sections */
+	TArray<FSectionHandle> GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const;
+
+public:
+
+	// FNotifyHook overrides
+
+	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged);
+
+protected:
+
+	/** Update the details view from the currently selected keys and sections. */
+	void UpdateDetailsView();
+
 private:
+	
+	/** Handles checking whether the details view is enabled. */
+	bool HandleDetailsViewEnabled() const;
+
+	/** Handles determining the visibility of the details view. */
+	EVisibility HandleDetailsViewVisibility() const;
+
+	/** Handles key selection changes. */
+	void HandleKeySelectionChanged();
+
+	/** Handles section selection changes. */
+	void HandleSectionSelectionChanged();
+
+	/** Check whether the specified edit tool is enabled */
+	bool IsEditToolEnabled(FName InIdentifier);
+
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
 
@@ -125,6 +177,9 @@ private:
 
 	/** Makes the add menu for the toolbar. */
 	TSharedRef<SWidget> MakeAddMenu();
+
+	/** Makes the general menu for the toolbar. */
+	TSharedRef<SWidget> MakeGeneralMenu();
 
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
@@ -175,6 +230,9 @@ private:
 	/** Get the visibility of the track area */
 	EVisibility GetTrackAreaVisibility() const;
 
+	/** Get the lock in/out to start/end range value */
+	bool GetLockInOutToStartEndRange() const;
+
 	/** SWidget interface */
 	/** @todo Sequencer Basic drag and drop support.  Doesn't belong here most likely */
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -221,7 +279,7 @@ private:
 	void OnCrumbClicked(const FSequencerBreadcrumb& Item);
 
 	/** Gets the root movie scene name */
-	FText GetRootMovieSceneName() const;
+	FText GetRootAnimationName() const;
 
 	/** Gets the title of the passed in shot section */
 	FText GetShotSectionTitle(UMovieSceneSection* ShotSection) const;
@@ -229,8 +287,17 @@ private:
 	/** Gets whether or not the breadcrumb trail should be visible. */
 	EVisibility GetBreadcrumbTrailVisibility() const;
 
-	/** Gets whether or not the curve editor toolbar should be visibe. */
+	/** Gets whether or not the curve editor toolbar should be visible. */
 	EVisibility GetCurveEditorToolBarVisibility() const;
+
+	/** Gets whether or not the bottom time slider should be visible. */
+	EVisibility GetBottomTimeSliderVisibility() const;
+
+	/** Gets whether or not the time range should be visible. */
+	EVisibility GetTimeRangeVisibility() const;
+
+	/** Gets whether or not to show frame numbers. */
+	bool ShowFrameNumbers() const;
 
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
@@ -239,6 +306,9 @@ private:
 	void OnCurveEditorVisibilityChanged();
 
 private:
+
+	/** Holds the details view. */
+	TSharedPtr<IDetailsView> DetailsView;
 
 	/** Section area widget */
 	TSharedPtr<class SSequencerTrackArea> TrackArea;
@@ -250,6 +320,8 @@ private:
 	TSharedPtr<class FSequencerNodeTree> SequencerNodeTree;
 	/** The breadcrumb trail widget for this sequencer */
 	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
+	/** The sequencer tree view responsible for the outliner and track areas */
+	TSharedPtr<SSequencerTreeView> TreeView;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
 	/** Cached settings provided to the sequencer itself on creation */
@@ -260,6 +332,11 @@ private:
 	bool bIsActiveTimerRegistered;
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
 	bool bUserIsSelecting;
+	/** The current edit tool */
+	TUniquePtr<ISequencerEditTool> EditTool;
+	/** Extender to use for the 'add' menu */
+	TSharedPtr<FExtender> AddMenuExtender;
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
+
 };

@@ -6,12 +6,14 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneParticleTrackInstance.h"
 
+
 #define LOCTEXT_NAMESPACE "MovieSceneParticleTrack"
+
 
 UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 FName UMovieSceneParticleTrack::GetTrackName() const
 {
@@ -24,29 +26,42 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneParticleTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneParticleTrackInstance( *this ) ); 
 }
 
+
 const TArray<UMovieSceneSection*>& UMovieSceneParticleTrack::GetAllSections() const
 {
 	return ParticleSections;
 }
 
+
 void UMovieSceneParticleTrack::RemoveAllAnimationData()
 {
+	// do nothing
 }
+
 
 bool UMovieSceneParticleTrack::HasSection( UMovieSceneSection* Section ) const
 {
 	return ParticleSections.Find( Section ) != INDEX_NONE;
 }
 
+
+void UMovieSceneParticleTrack::AddSection( UMovieSceneSection* Section )
+{
+	ParticleSections.Add( Section );
+}
+
+
 void UMovieSceneParticleTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	ParticleSections.Remove( Section );
 }
 
+
 bool UMovieSceneParticleTrack::IsEmpty() const
 {
 	return ParticleSections.Num() == 0;
 }
+
 
 TRange<float> UMovieSceneParticleTrack::GetSectionBoundaries() const
 {
@@ -58,17 +73,29 @@ TRange<float> UMovieSceneParticleTrack::GetSectionBoundaries() const
 	return TRange<float>::Hull(Bounds);
 }
 
-void UMovieSceneParticleTrack::AddNewParticleSystem(float KeyTime, bool bTrigger)
+void UMovieSceneParticleTrack::AddNewKey( float KeyTime )
 {
-	EParticleKey::Type KeyType = bTrigger ? EParticleKey::Trigger : EParticleKey::Toggle;
-	// @todo Instead of a 0.1 second event, this should be 0 seconds, requires handling 0 size sections
-	float Duration = KeyType == EParticleKey::Trigger ? 0.1f : 1.f;
-
-	UMovieSceneParticleSection* NewSection = NewObject<UMovieSceneParticleSection>(this);
-	NewSection->InitialPlacement(ParticleSections, KeyTime, KeyTime + Duration, SupportsMultipleRows());
-	NewSection->SetKeyType(KeyType);
-
-	ParticleSections.Add(NewSection);
+	UMovieSceneParticleSection* NearestSection = Cast<UMovieSceneParticleSection>( MovieSceneHelpers::FindNearestSectionAtTime( ParticleSections, KeyTime ) );
+	if ( NearestSection == nullptr )
+	{
+		NearestSection = NewObject<UMovieSceneParticleSection>( this );
+		NearestSection->SetStartTime( KeyTime );
+		NearestSection->SetEndTime( KeyTime );
+		ParticleSections.Add(NearestSection);
+	}
+	else
+	{
+		if ( NearestSection->GetStartTime() > KeyTime )
+		{
+			NearestSection->SetStartTime( KeyTime );
+		}
+		if ( NearestSection->GetEndTime() < KeyTime )
+		{
+			NearestSection->SetEndTime( KeyTime );
+		}
+	}
+	NearestSection->AddKey( KeyTime, EParticleKey::Active );
 }
+
 
 #undef LOCTEXT_NAMESPACE
