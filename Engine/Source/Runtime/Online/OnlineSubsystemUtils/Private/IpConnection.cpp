@@ -42,14 +42,6 @@ void UIpConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, cons
 
 	Socket = InSocket;
 	ResolveInfo = NULL;
-
-	// Reset Handler
-	Handler.Reset(nullptr);
-	if(Handler.IsValid())
-	{
-		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
-		Handler->Initialize(Mode);
-	}
 }
 
 void UIpConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)

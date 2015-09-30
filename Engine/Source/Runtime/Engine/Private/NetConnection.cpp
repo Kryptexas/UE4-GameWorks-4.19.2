@@ -83,6 +83,17 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Owning net driver
 	Driver = InDriver;
 
+	// Reset Handler
+	Handler.Reset(NULL);
+
+	Handler = MakeUnique<PacketHandler>();
+
+	if(Handler.IsValid())
+	{
+		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
+		Handler->Initialize(Mode);
+	}
+
 	// Stats
 	StatUpdateTime			= Driver->Time;
 	LastReceiveTime			= Driver->Time;
@@ -141,6 +152,12 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Driver = InDriver;
+
+	if (!Handler.IsValid())
+	{
+		Handler = MakeUnique<PacketHandler>();
+	}
+
 	// We won't be sending any packets, so use a default size
 	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;
 	PacketOverhead = 0;
@@ -302,6 +319,8 @@ void UNetConnection::CleanUp()
 	}
 
 	CleanupDormantActorState();
+
+	Handler.Reset(NULL);
 
 	Driver = NULL;
 }

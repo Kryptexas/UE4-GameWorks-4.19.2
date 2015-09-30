@@ -84,7 +84,7 @@ public:
 	virtual void Tick(float DeltaTime);
 
 	/* For adding handler components */
-	virtual void Add(HandlerComponent* NewHandler);
+	virtual void Add(TSharedPtr<HandlerComponent> NewHandler);
 
 	/* Handles any incoming packets */
 	virtual const ProcessedPacket Incoming(uint8* Packet, int32 Count);
@@ -121,7 +121,7 @@ private:
 	FBitReader IncomingPacket;
 
 	/* Array of Handler components */
-	TArray<HandlerComponent*> HandlerComponents;
+	TArray<TSharedPtr<HandlerComponent>> HandlerComponents;
 
 	/* State of the handler */
 	Handler::State State;
@@ -138,7 +138,7 @@ private:
 	TQueue<BufferedPacket*> QueuedPackets;
 
 	/* Reliability Handler Component */
-	ReliabilityHandlerComponent* ReliabilityComponent;
+	TSharedPtr<ReliabilityHandlerComponent> ReliabilityComponent;
 };
 
 /*
@@ -211,7 +211,6 @@ class FPacketHandlerComponentModuleInterface : public IModuleInterface
 {
 public:
 	/* Creates an instance of this component */
-	virtual HandlerComponent* CreateComponentInstance() PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
-	/* Creates an instance of this component with an FString of options */
-	virtual HandlerComponent* CreateComponentInstance(FString& Options) PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance,return nullptr;);
+	virtual TSharedPtr<HandlerComponent> CreateComponentInstance(FString& Options)
+		PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance, return TSharedPtr<HandlerComponent>(NULL););
 };

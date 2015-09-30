@@ -141,14 +141,26 @@ void StreamEncryptionHandlerComponent::DecryptStream(FBitReader& Packet)
 }
 
 // MODULE INTERFACE
-HandlerComponent* FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
+TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
 {
-	return new StreamEncryptionHandlerComponent;
+	return MakeShareable(new StreamEncryptionHandlerComponent);
 }
 
-HandlerComponent* FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
+TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
-	TSharedPtr<FStreamEncryptorModuleInterface> StreamEncryptorInterface(static_cast<FStreamEncryptorModuleInterface*>(&(*Interface)));
-	return new StreamEncryptionHandlerComponent(StreamEncryptorInterface->CreateStreamEncryptorInstance());
+	TSharedPtr<HandlerComponent> ReturnVal = NULL;
+
+	if (!Options.IsEmpty())
+	{
+		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
+		TSharedPtr<FStreamEncryptorModuleInterface> StreamEncryptorInterface(static_cast<FStreamEncryptorModuleInterface*>(&(*Interface)));
+
+		ReturnVal = MakeShareable(new StreamEncryptionHandlerComponent(StreamEncryptorInterface->CreateStreamEncryptorInstance()));
+	}
+	else
+	{
+		ReturnVal = MakeShareable(new StreamEncryptionHandlerComponent);
+	}
+
+	return ReturnVal;
 }

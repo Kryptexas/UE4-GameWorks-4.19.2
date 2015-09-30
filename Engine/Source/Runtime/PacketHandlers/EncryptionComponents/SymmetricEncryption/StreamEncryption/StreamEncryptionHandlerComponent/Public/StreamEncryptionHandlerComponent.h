@@ -71,7 +71,5 @@ class FStreamEncryptionHandlerComponentModuleInterface : public FPacketHandlerCo
 {
 public:
 	/* Creates an instance of this component */
-	virtual HandlerComponent* CreateComponentInstance() override;
-	/* Creates an instance of this component with an FString of options */
-	virtual HandlerComponent* CreateComponentInstance(FString& Options) override;
+	virtual TSharedPtr<HandlerComponent> CreateComponentInstance(FString& Options) override;
 };

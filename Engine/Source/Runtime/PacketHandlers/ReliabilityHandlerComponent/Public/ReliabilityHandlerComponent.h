@@ -55,5 +55,5 @@ protected:
 class FReliabilityHandlerComponentModuleInterface : public FPacketHandlerComponentModuleInterface
 {
 public:
-	virtual HandlerComponent* CreateComponentInstance() override;
+	virtual TSharedPtr<HandlerComponent> CreateComponentInstance(FString& Options) override;
 };

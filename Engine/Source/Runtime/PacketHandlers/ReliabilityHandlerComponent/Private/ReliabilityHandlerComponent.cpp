@@ -179,7 +179,7 @@ void ReliabilityHandlerComponent::QueuePacketForResending(uint8* Packet, int32 C
 }
 
 // MODULE INTERFACE
-HandlerComponent* FReliabilityHandlerComponentModuleInterface::CreateComponentInstance()
+TSharedPtr<HandlerComponent> FReliabilityHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	return new ReliabilityHandlerComponent;
+	return MakeShareable(new ReliabilityHandlerComponent);
 }

@@ -140,12 +140,7 @@ void EncryptionHandlerComponent::Outgoing(FBitWriter& Packet)
 }
 
 //MODULE INTERFACE
-HandlerComponent* FEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
+TSharedPtr<HandlerComponent> FEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	return new EncryptionHandlerComponent;
-}
-
-HandlerComponent* FEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
-{
-	return new EncryptionHandlerComponent;
+	return MakeShareable(new EncryptionHandlerComponent);
 }
