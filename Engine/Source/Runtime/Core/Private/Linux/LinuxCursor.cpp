@@ -217,9 +217,12 @@ void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
 {	
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor );
 	CurrentType = InNewCursor;
-	if(CursorHandles[InNewCursor] == NULL)
+	if(CursorHandles[InNewCursor] == nullptr)
 	{
-		bHidden = true;
+		if (InNewCursor != EMouseCursor::Custom)
+		{
+			bHidden = true;
+		}
 		SDL_ShowCursor(SDL_DISABLE);
 		SDL_SetCursor(CursorHandles[0]);
 	}
