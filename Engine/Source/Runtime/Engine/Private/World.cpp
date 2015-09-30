@@ -111,6 +111,25 @@ FActorSpawnParameters::FActorSpawnParameters()
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
+FActorSpawnParameters& FActorSpawnParameters::operator=(const FActorSpawnParameters& Other)
+{
+	Name = Other.Name;
+	Template = Other.Template;
+	Owner = Other.Owner;
+	Instigator = Other.Instigator;
+	OverrideLevel = Other.OverrideLevel;
+	SpawnCollisionHandlingOverride = Other.SpawnCollisionHandlingOverride;
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	bNoCollisionFail = Other.bNoCollisionFail;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	bRemoteOwned = Other.bRemoteOwned;
+	bNoFail = Other.bNoFail;
+	bDeferConstruction = Other.bDeferConstruction;
+	bAllowDuringConstructionScript = Other.bAllowDuringConstructionScript;
+	ObjectFlags = Other.ObjectFlags;
+	return *this;
+}
+
 /*-----------------------------------------------------------------------------
 	UWorld implementation.
 -----------------------------------------------------------------------------*/
