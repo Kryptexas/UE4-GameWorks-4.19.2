@@ -129,8 +129,15 @@ void UAnimSequence::PostInitProperties()
 
 SIZE_T UAnimSequence::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	const int32 ResourceSize = CompressedTrackOffsets.Num() == 0 ? GetApproxRawSize() : GetApproxCompressedSize();
-	return ResourceSize;
+	if (Mode == EResourceSizeMode::Exclusive)
+	{
+		// All of the sequence data is serialized and will be counted as part of the direct object size rather than as a resource
+		return 0;
+	}
+	else
+	{
+		return (CompressedTrackOffsets.Num() == 0) ? GetApproxRawSize() : GetApproxCompressedSize();
+	}
 }
 
 void UAnimSequence::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
