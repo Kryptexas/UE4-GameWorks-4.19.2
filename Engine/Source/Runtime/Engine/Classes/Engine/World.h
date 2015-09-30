@@ -435,6 +435,9 @@ struct ENGINE_API FActorSpawnParameters
 	{
 	}
 
+	// Assignment operator overriden to allow disabling of deprecation warning when copying bNoCollisionFail
+	FActorSpawnParameters& operator=(const FActorSpawnParameters& Other);
+
 	/* A name to assign as the Name of the Actor being spawned. If no value is specified, the name of the spawned Actor will be automatically generated using the form [Class]_[Number]. */
 	FName Name;
 
