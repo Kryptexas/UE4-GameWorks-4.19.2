@@ -9,13 +9,26 @@ public class OodleHandlerComponent : ModuleRules
     {
 		BinariesSubFolder = "NotForLicensees";
 		
-		PublicDependencyModuleNames.AddRange( new string[] { "PacketHandler", "Core" } );
+		PrivateIncludePaths.Add("OodleHandlerComponent/Private");
+
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"PacketHandler",
+				"Core",
+				"CoreUObject",
+				"Engine"
+			});
+
 
 		bool bHaveOodleSDK = false;
 
 		if ( ( Target.Platform == UnrealTargetPlatform.Win64 ) || ( Target.Platform == UnrealTargetPlatform.Win32 ) )
         {
-			string OodleNotForLicenseesLibDir = System.IO.Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..", "Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees", "Oodle", "win", "lib" );   // Check the NotForLicensees folder first
+			// Check the NotForLicensees folder first
+			string OodleNotForLicenseesLibDir = System.IO.Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..",
+				"Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees",
+				"Oodle", "win", "lib" );
 
 			try
 			{
