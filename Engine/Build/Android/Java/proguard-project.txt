@@ -27,6 +27,9 @@
 }
 
 # Needed...
+-keep class com.epicgames.ue4.GameActivity$InputDeviceInfo {
+   public *;
+}
 -keep class com.epicgames.ue4.GameActivity$JavaAchievement {
    public *;
 }
