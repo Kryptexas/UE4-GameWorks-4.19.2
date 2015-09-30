@@ -14,5 +14,5 @@ enum EDebugSerializationFlags
 	DSF_None =					0x00000000,
 
 	DSF_IgnoreDiff =			0x00000001,
-	DSF_IsTagExportsArchive =	0x00000002,
+	DSF_EnableCookerWarnings =	0x00000002,
 };
