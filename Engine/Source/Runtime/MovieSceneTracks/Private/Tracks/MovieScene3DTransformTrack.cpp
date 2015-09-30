@@ -114,7 +114,10 @@ bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVec
 	{
 		const UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>( Section );
 
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		// Evaluate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
 		TransformSection->EvalTranslation( Position, OutTranslation );

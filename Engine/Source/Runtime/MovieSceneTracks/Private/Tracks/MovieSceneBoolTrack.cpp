@@ -44,7 +44,10 @@ bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBoo
 
 	if( Section )
 	{
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		OutBool = CastChecked<UMovieSceneBoolSection>( Section )->Eval( Position );
 	}

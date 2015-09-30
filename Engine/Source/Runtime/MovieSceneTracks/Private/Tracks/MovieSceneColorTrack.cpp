@@ -47,7 +47,11 @@ bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearCol
 
 	if( Section )
 	{
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
+
 		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, OutColor );
 	}
 

@@ -91,7 +91,10 @@ bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4&
 
 	if( Section )
 	{
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		InOutVector = CastChecked<UMovieSceneVectorSection>( Section )->Eval( Position, InOutVector );
 	}

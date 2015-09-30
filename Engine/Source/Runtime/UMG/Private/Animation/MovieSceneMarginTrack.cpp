@@ -48,7 +48,10 @@ bool UMovieSceneMarginTrack::Eval( float Position, float LastPosition, FMargin& 
 	{
 		const UMovieSceneMarginSection* MarginSection = CastChecked<UMovieSceneMarginSection>( Section );
 
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		InOutMargin = MarginSection->Eval( Position, InOutMargin );
 	}

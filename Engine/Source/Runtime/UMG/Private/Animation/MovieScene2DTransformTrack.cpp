@@ -30,7 +30,10 @@ bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidg
 	{
 		const UMovieScene2DTransformSection* TransformSection = CastChecked<UMovieScene2DTransformSection>(Section);
 
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		InOutTransform = TransformSection->Eval(Position, InOutTransform);
 	}

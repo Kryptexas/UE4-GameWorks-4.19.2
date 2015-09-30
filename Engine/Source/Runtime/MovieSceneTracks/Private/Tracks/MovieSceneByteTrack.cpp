@@ -47,7 +47,10 @@ bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& OutBy
 
 	if( Section )
 	{
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		OutByte = CastChecked<UMovieSceneByteSection>( Section )->Eval( Position );
 	}

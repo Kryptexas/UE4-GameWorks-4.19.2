@@ -47,7 +47,10 @@ bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& Out
 
 	if( Section )
 	{
-		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
 
 		OutFloat = CastChecked<UMovieSceneFloatSection>( Section )->Eval( Position );
 	}
