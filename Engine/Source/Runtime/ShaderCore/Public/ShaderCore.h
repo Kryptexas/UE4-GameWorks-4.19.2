@@ -567,7 +567,7 @@ public:
 			uint8 Key = *Current++;
 			uint8 Size = *Current++;
 
-			if(Key == InKey)
+			if(Key == InKey && Size == ValueSize)
 			{
 				return Current;
 			}

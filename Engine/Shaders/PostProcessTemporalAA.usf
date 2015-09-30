@@ -297,7 +297,7 @@ void LightShaftTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, fl
 }
 
 void MainTemporalAAPS(
-	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	in noperspective float2 UV : TEXCOORD0,
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
 	// Note: these are needed to match up with the vertex shader outputs which is FPostProcessTonemapVS, otherwise a d3d debug error is issued
 	in noperspective float4 Unused1 : TEXCOORD2,
@@ -305,6 +305,8 @@ void MainTemporalAAPS(
 	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
+	float4 UVAndScreenPos = float4(UV, SvPositionToScreenPosition(SvPosition).xy);
+
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
 	#define AA_FILTERED 1

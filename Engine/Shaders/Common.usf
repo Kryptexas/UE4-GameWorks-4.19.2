@@ -1056,6 +1056,14 @@ float4 SvPositionToScreenPosition(float4 SvPosition)
 	return float4(NDCPos.xyz, 1) * SvPosition.w;
 }
 
+float2 SvPositionToViewportUV(float4 SvPosition)
+{
+	// can be optimized from 2SUB+2MUL to 2MAD
+	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
+
+	return PixelPos.xy * View.ViewSizeAndInvSize.zw;
+}
+
 // ----------------------------
 
 /** 

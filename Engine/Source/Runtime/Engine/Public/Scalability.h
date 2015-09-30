@@ -38,7 +38,7 @@ namespace Scalability
 		}
 
 		// Sets all other settings based on an overall value
-		// @param Value 0:low, 1:medium, 2:high, 3:epic
+		// @param Value 0:low, 1:medium, 2:high, 3:epic (gets clamped if needed)
 		void SetFromSingleQualityLevel(int32 Value);
 
 		// Returns the overall value if all settings are set to the same thing

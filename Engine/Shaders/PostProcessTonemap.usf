@@ -94,15 +94,14 @@ float4 FringeUVParams;
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
 	in float2 InTexCoord : ATTRIBUTE1,
-	out float4 OutTexCoord : TEXCOORD0,
+	out float2 OutTexCoord : TEXCOORD0,
 	out float3 OutExposureScaleVignette : TEXCOORD1,
 	out float4 OutGrainUV : TEXCOORD2,
 	out float4 OutFringe : TEXCOORD3,
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord.xy);
-	OutTexCoord = float4(OutTexCoord.xy, OutPosition.xy);
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
@@ -113,14 +112,14 @@ void MainVS(
 #endif
 
 	// Scale vignette to always be a circle with consistent corner intensity.
-	OutExposureScaleVignette.yz = VignetteSpace(OutTexCoord.zw);
+	OutExposureScaleVignette.yz = VignetteSpace(OutPosition.xy);
 
 	// Grain
-	OutGrainUV.xy = OutTexCoord.xy + PostprocessInput0Size.zw * float2(-0.5,0.5);
-	OutGrainUV.zw = OutTexCoord.xy + GrainRandomFull.xy;
+	OutGrainUV.xy = OutTexCoord + PostprocessInput0Size.zw * float2(-0.5,0.5);
+	OutGrainUV.zw = OutTexCoord + GrainRandomFull.xy;
 
 	// Fringe
-	float2 ScreenPos = UVToScreenPos(OutTexCoord.xy);
+	float2 ScreenPos = UVToScreenPos(OutTexCoord);
 	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
 	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
 }
@@ -171,17 +170,15 @@ float3 Graph( float2 ScreenSpacePos )
 
 // pixel shader entry point
 void MainPS(
-	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	in noperspective float2 UV : TEXCOORD0,
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
 	in noperspective float4 GrainUV : TEXCOORD2,
 	in noperspective float4 FringeUV : TEXCOORD3,
+	float4 SvPosition : SV_POSITION,		// after all interpolators
 	out float4 OutColor : SV_Target0
 	)
 {
 	OutColor = 0;
-
-	float2 UV = UVAndScreenPos.xy;
-	float2 ScreenSpacePos = UVAndScreenPos.zw;
 
 	#if USE_GRAIN_JITTER || USE_GRAIN_INTENSITY || USE_GRAIN_QUANTIZATION
 		half Grain = GrainFromUV(GrainUV.zw);
@@ -216,7 +213,7 @@ void MainPS(
 
 		#if USE_BLOOM
 			float4 CombinedBloom = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
-			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, ScreenSpacePos * float2(0.5, -0.5f) + 0.5f).rgb * BloomDirtMask.Tint.rgb; 
+			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, SvPositionToViewportUV(SvPosition)).rgb * BloomDirtMask.Tint.rgb; 
 			LinearColor += CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor); 
 		#endif
 
@@ -240,7 +237,7 @@ void MainPS(
 
 		half3 OutDeviceColor = ColorLookupTable( LinearColor );
 
-		//OutDeviceColor = Graph( ScreenSpacePos );
+		//OutDeviceColor = Graph(SvPositionToScreenPosition(SvPosition).xy);
 	
 		half LuminanceForPostProcessAA  = dot(OutDeviceColor, half3(0.299f, 0.587f, 0.114f));
 

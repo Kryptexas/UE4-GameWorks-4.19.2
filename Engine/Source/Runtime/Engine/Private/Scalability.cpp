@@ -425,6 +425,9 @@ void FQualityLevels::SetDefaults()
 
 void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 {
+	// clamp in the range "low" to "epic"
+	Value = FMath::Clamp(Value, 0, 3);
+
 	ResolutionQuality = GetRenderScaleLevelFromQualityLevel(Value);
 	ViewDistanceQuality = Value;
 	AntiAliasingQuality = Value;
