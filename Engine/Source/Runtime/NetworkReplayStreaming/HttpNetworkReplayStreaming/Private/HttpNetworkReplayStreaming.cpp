@@ -662,12 +662,13 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 	AddRequestToQueue( EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest );
 }
 
-FQueuedHttpRequestAddEvent::FQueuedHttpRequestAddEvent( const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest ) : FQueuedHttpRequest( EQueuedHttpRequestType::UploadingCustomEvent, InHttpRequest )
+FQueuedHttpRequestAddEvent::FQueuedHttpRequestAddEvent( const FString& InName, const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest ) : FQueuedHttpRequest( EQueuedHttpRequestType::UploadingCustomEvent, InHttpRequest )
 {
 	Request->SetVerb( TEXT( "POST" ) );
 	Request->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	Request->SetContent( InData );
 
+	Name		= InName;
 	TimeInMS	= InTimeInMS;
 	Group		= InGroup;
 	Meta		= InMeta;
@@ -681,10 +682,41 @@ bool FQueuedHttpRequestAddEvent::PreProcess( const FString& ServerURL, const FSt
 		return false;
 	}
 
+	//
 	// Now that we have the session name, we can set the URL
-	Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
+	//
+
+	if ( !Name.IsEmpty() )
+	{
+		// Update existing event
+		Request->SetURL( FString::Printf( TEXT( "%sevent/%s" ), *ServerURL, *Name ) );
+	}
+	else
+	{
+		Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
+	}
 
 	return true;
+}
+
+void FHttpNetworkReplayStreamer::AddOrUpdateEvent( const FString& Name, const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data )
+{
+	if ( StreamerState != EStreamerState::StreamingUp && StreamerState != EStreamerState::StreamingDown )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::AddOrUpdateEvent. Not streaming." ) );
+		return;
+	}
+
+	// Upload a custom event to replay server
+	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddEvent. Size: %i, StreamChunkIndex: %i" ), Data.Num(), StreamChunkIndex );
+
+	// Create the Http request and add to pending request list
+	TSharedRef< class IHttpRequest > HttpRequest = FHttpModule::Get().CreateRequest();
+
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished );
+
+	// Add it as a custom event so we can snag the session name at the time of send (which we should have by then)
+	AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequestAddEvent( Name, TimeInMS, Group, Meta, Data, HttpRequest ) ) );
 }
 
 void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data )
@@ -695,16 +727,7 @@ void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString&
 		return;
 	}
 
-	// Upload a custom event to replay server
-	UE_LOG(LogHttpReplay, Verbose, TEXT("FHttpNetworkReplayStreamer::AddEvent. Size: %i, StreamChunkIndex: %i"), Data.Num(), StreamChunkIndex);
-
-	// Create the Http request and add to pending request list
-	TSharedRef< class IHttpRequest > HttpRequest = FHttpModule::Get().CreateRequest();
-
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished );
-
-	// Add it as a custom event so we can snag the session name at the time of send (which we should have by then)
-	AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequestAddEvent( TimeInMS, Group, Meta, Data, HttpRequest ) ) );
+	AddOrUpdateEvent( TEXT( "" ), TimeInMS, Group, Meta, Data );
 }
 
 void FHttpNetworkReplayStreamer::DownloadHeader()

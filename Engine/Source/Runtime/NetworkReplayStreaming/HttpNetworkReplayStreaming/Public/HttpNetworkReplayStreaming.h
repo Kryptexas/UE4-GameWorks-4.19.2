@@ -125,7 +125,7 @@ public:
 class FQueuedHttpRequestAddEvent : public FQueuedHttpRequest
 {
 public:
-	FQueuedHttpRequestAddEvent( const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest );
+	FQueuedHttpRequestAddEvent( const FString& InName, const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest );
 
 	virtual ~FQueuedHttpRequestAddEvent()
 	{
@@ -133,6 +133,7 @@ public:
 
 	virtual bool PreProcess( const FString& ServerURL, const FString& SessionName ) override;
 
+	FString		Name;
 	uint32		TimeInMS;
 	FString		Group;
 	FString		Meta;
@@ -186,7 +187,8 @@ public:
 	void SetLastError( const ENetworkReplayError::Type InLastError );
 	void CancelStreamingRequests();
 	void FlushCheckpointInternal( uint32 TimeInMS );
-	void AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data );
+	virtual void AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data ) override;
+	virtual void AddOrUpdateEvent( const FString& Name, const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data ) override;
 	void AddRequestToQueue( const EQueuedHttpRequestType::Type Type, TSharedPtr< class IHttpRequest >	Request );
 	void AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request );
 	void EnumerateCheckpoints();
