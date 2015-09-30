@@ -28,4 +28,6 @@ class UMG_API INamedSlotInterface
 
 	/**  */
 	bool ContainsContent(UWidget* Content) const;
+
+	virtual void ModifySlots() = 0;
 };

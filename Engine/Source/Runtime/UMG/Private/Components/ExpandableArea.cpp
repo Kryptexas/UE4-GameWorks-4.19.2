@@ -82,6 +82,12 @@ void UExpandableArea::SetContentForSlot(FName SlotName, UWidget* Content)
 	}
 }
 
+void UExpandableArea::ModifySlots()
+{
+	SetFlags(RF_Transactional);
+	Modify();
+}
+
 TSharedRef<SWidget> UExpandableArea::RebuildWidget()
 {
 	TSharedRef<SWidget> HeaderWidget = HeaderContent ? HeaderContent->TakeWidget() : SNullWidget::NullWidget;

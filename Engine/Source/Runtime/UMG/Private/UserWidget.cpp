@@ -466,6 +466,12 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 	}
 }
 
+void UUserWidget::ModifySlots()
+{
+	SetFlags(RF_Transactional);
+	Modify();
+}
+
 TSharedRef<SWidget> UUserWidget::MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget)
 {
 	UserSlateWidget = TakeWidget();

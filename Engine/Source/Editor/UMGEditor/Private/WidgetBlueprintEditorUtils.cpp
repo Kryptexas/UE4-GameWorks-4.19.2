@@ -350,37 +350,67 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 	}
 }
 
-bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+INamedSlotInterface* FWidgetBlueprintEditorUtils::FindNamedSlotHostForContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
 {
-	bool bSuccess = false;
+	INamedSlotInterface* Host = nullptr;
 
-	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+	WidgetTree->ForEachWidget([&](UWidget* Widget) {
 
-		if ( bSuccess )
+		if (Host != nullptr)
 		{
 			return;
 		}
 
-		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
+		if (INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget))
 		{
 			TArray<FName> SlotNames;
 			NamedSlotHost->GetSlotNames(SlotNames);
 
-			for ( FName SlotName : SlotNames )
+			for (FName SlotName : SlotNames)
 			{
-				if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+				if (UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName))
 				{
-					if ( SlotContent == WidgetTemplate )
+					if (SlotContent == WidgetTemplate)
 					{
-						NamedSlotHost->SetContentForSlot(SlotName, nullptr);
-						bSuccess = true;
+						Host = NamedSlotHost;
 					}
 				}
 			}
 		}
 	});
 
-	return bSuccess;
+	return Host;
+}
+
+bool FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(UWidget* WidgetTemplate, INamedSlotInterface* NamedSlotHost)
+{
+	TArray<FName> SlotNames;
+	NamedSlotHost->GetSlotNames(SlotNames);
+
+	for (FName SlotName : SlotNames)
+	{
+		if (UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName))
+		{
+			if (SlotContent == WidgetTemplate)
+			{
+				NamedSlotHost->SetContentForSlot(SlotName, nullptr);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+{
+	INamedSlotInterface* NamedSlotHost = FindNamedSlotHostForContent(WidgetTemplate, WidgetTree);
+	if (NamedSlotHost != nullptr)
+	{
+		return RemoveNamedSlotHostContent(WidgetTemplate, NamedSlotHost);
+	}
+
+	return false;
 }
 
 void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)

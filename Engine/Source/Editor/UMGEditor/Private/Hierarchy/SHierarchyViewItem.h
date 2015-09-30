@@ -143,6 +143,8 @@ protected:
 	virtual void UpdateSelection() override;
 	virtual FWidgetReference AsDraggedWidgetReference() const;
 
+	void DoDrop(UWidget* NamedSlotHostWidget, UWidget* DroppingWidget);
+
 private:
 
 	FWidgetReference Item;
