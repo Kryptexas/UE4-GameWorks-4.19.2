@@ -1933,7 +1933,8 @@ public:
 
 	/** Default constructor. */
 	FAnimUpdateRateParameters()
-		: UpdateRate(1)
+		: OptimizeMode(TrailMode)
+		, UpdateRate(1)
 		, EvaluationRate(1)
 		, bInterpolateSkippedFrames(false)
 		, bSkipUpdate(false)
