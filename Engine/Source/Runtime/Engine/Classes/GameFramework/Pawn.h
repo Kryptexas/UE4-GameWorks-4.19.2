@@ -276,9 +276,13 @@ public:
 	void ReceiveUnpossessed(AController* OldController);
 
 	/** @return true if controlled by a local (not network) Controller.	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintPure, Category="Pawn")
 	virtual bool IsLocallyControlled() const;
-
+  
+	/** @return true if controlled by a human player (possessed by a PlayerController).	 */
+	UFUNCTION(BlueprintPure, Category="Pawn")
+	virtual bool IsPlayerControlled() const;
+	
 	/**
 	 * Get the view rotation of the Pawn (direction they are looking, normally Controller->ControlRotation).
 	 * @return The view rotation of the Pawn.

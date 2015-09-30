@@ -204,6 +204,10 @@ bool APawn::IsLocallyControlled() const
 {
 	return ( Controller && Controller->IsLocalController() );
 }
+bool APawn::IsPlayerControlled() const
+{
+	return PlayerState && !PlayerState->bIsABot;
+}
 
 bool APawn::ReachedDesiredRotation()
 {
