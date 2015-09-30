@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2651797
-Availability:Public
+﻿Availability:Public
 Title:ランドスケープのブラシ
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:ランドスケープの修正に利用可能なブラシのガイド
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -27,9 +27,9 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 
 [TOC(start:2 end:2)]
 
-ランドスケープ ツールのブラシによって、スカルプティングまたはペインティングの影響を受けるランドスケープ領域のサイズや形状が決まります。ブラシには様々な形状、サイズ、フォールオフがあります。Photoshop や同種の画像編集ソフトを利用したことがあれば、ブラシは馴染みのあるコンセプトのはずです。 
+**Landscape** ツールのブラシは、スカルプティングかペインティングのどちらかから影響を受けるランドスケープ領域のサイズや形状を特徴づけます。ブラシには様々な形状、サイズ、フォールオフがあります。Photoshop や同種の画像編集ソフトを利用したことがあれば、ブラシは馴染みのあるコンセプトです。 
 
-ブラシのタイプとフォールオフは、 **[Sculpt] **か **[Paint]** モードのどちらかで設定します。
+ブラシのタイプとフォールオフは、 **Sculpt** または **Paint** モードのどちらかで設定します。
 
 ![Brush Settings](Landscape_BrushSettings.png)
 
@@ -40,16 +40,20 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 | **Use Clay Brush** | このプロパティを選択すると、クレイ (Clay) ブラシを使用します。 |
 
 
-現行ブラシのサイズおよびフォールオフは、点滅、薄紫色の円、または一対の同心円としてビューポートに表示されます。
+現在のブラシ サイズおよびフォールオフは、点滅、薄紫色の円、または一対の同心円としてビューポートに表示されます。
 
-![Landscape_Brush_Viewport.jpg](Landscape_Brush_Viewport.jpg)(w:900 h:184)
+[REGION:imagetable]
+| ![](Falloff00.jpg) | ![](Falloff05.jpg) | ![](Falloff10.jpg) |
+| -------- | ----------- | ------ |
+| Falloff:0.0 | Falloff:0.5 | Falloff:1.0 |
+[/REGION]
 
 
-## 円形ブラシ
+## Circle (円形ブラシ)
 
 ![Circle Brush](Landscape_CircleBrush.png)
 
-フォールオフを数値とタイプの両方で定義した円形ブラシは、円形領域に現行ツールを適用します。
+フォールオフを数値とタイプの両方で定義した **Circle** ブラシは、円形領域に現在のツールを適用します。
 
 ![circle.jpg](circle.jpg)(w:486 h:486)
 
@@ -64,14 +68,17 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 
 以下はハイトマップで操作時のそれぞれのフォールオフの例を示したものです。同じ半径とフォールオフを使用しています。
 
-![landscape_brush_falloff.png](landscape_brush_falloff.png)(w:789 h:416)
+[REGION:imagetable]
+| ![](Smooth.jpg)(w:200 h:300) | ![](Linear.jpg)(w:200 h:300) | ![](Sphere.jpg)(w:200 h:300) | ![](Tip.jpg)(w:200 h:300) |
+| -------- | ----------- | ------ | ----- |
+| ** Smooth **| ** Linear ** | ** Spherical** | ** Tip ** | 
+[/REGION]
 
-
-##アルファ ブラシ
+## Alpha (アルファ) ブラシ
 
 ![Alpha Brush](Landscape_AlphaBrush.png)
 
-アルファ ブラシはパターン ブラシと似ていますが、ペイント時にランドスケープ全体にテクスチャをタイリングする代わりに、ブラシ テクスチャをペイント方向に合わせるとともに、カーソルを移動するにつれて形状をドラッグします。
+**Alpha** ブラシはパターンブラシと似ていますが、ペイント時にランドスケープ全体にテクスチャをタイリングする代わりに、ブラシ テクスチャをペイント方向に合わせるとともに、カーソルを移動するにつれて形状をドラッグします。
 
 ![brush_alpha_drag.jpg](brush_alpha_drag.jpg)(w:273 h:475)
 
@@ -80,7 +87,7 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 
 ![Alpha Brush Settings](Landscape_AlphaSettings.png)
 
-| 設定 | 説明 |
+| **設定** | **説明** |
 | --- | --- |
 | **Texture** | **コンテンツ ブラウザ** から割り当てて、使用するテクスチャを設定します。|
 | **Texture Channel** | 現在割り当てられているテクスチャの対応チャンネルからのデータに、アルファ ブラシのコンテンツを設定します。 |
@@ -88,11 +95,11 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 | **Use Clay Brush** | このプロパティを選択すると、クレイ (Clay) ブラシを使用します。 |
 
 
-## パターンブラシ
+## Pattern (パターン) ブラシ
 
 ![Pattern Brush](Landscape_PatternBrush.png)
 
-パターン ブラシでは、ブラシのアルファとして使用するために、テクスチャから単一カラーチャンネルをサンプリングして、ブラシで任意の形状を使用することができます。ブラシがペイントされるとテクスチャ パターンがタイリングされます。
+**Pattern** ブラシは、ブラシのアルファとして使用するために、テクスチャから単一カラーチャンネルをサンプリングして、ブラシで任意の形状を使用することができます。ブラシがペイントされるとテクスチャ パターンがタイリングされます。
 
 例えば、以下のテクスチャをアルファとして使用することができます。
 
@@ -108,24 +115,24 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 
 ![Pattern Brush Settings](Landscape_PatternSettings.png)
 
-| 設定 | 説明 |
+| **設定** | **説明** |
 | --- | --- |
 | **Texture** | **コンテンツ ブラウザ** から割り当てて、使用するテクスチャを設定します。|
 | **Texture Channel** | パターンブラシのコンテンツを、現在割り当てられているテクスチャの対応チャンネルのデータに設定します。 |
-| **Brush Size ** | ブラシのサイズを設定します。 |
+| **Brush Size** | ブラシのサイズを設定します。 |
 | **Brush Falloff** | ブラシのフォールオフを設定します。|
 | **Use Clay Brush** | このプロパティを選択すると、クレイ (Clay) ブラシを使用することができます。 |
 | **Texture Scale** | ランドスケープのサーフェスに関するサンプリングされたテクスチャのサイズを設定します。 <br/>![alpha_default.jpg](alpha_default.jpg)(w:128 h:128) ![alpha_texscale.jpg](alpha_texscale.jpg)(w:128 h:128) |
-|  **Texture Rotation**  | ランドスケープのサーフェスに関するサンプリングされたテクスチャの回転を設定します。 <br/>![alpha_texrot_default.jpg](alpha_texrot_default.jpg)(w:128 h:128) ![alpha_texrotation.jpg](alpha_texrotation.jpg)(w:128 h:128) |
+| **Texture Rotation** | ランドスケープのサーフェスに関するサンプリングされたテクスチャの回転を設定します。 <br/>![alpha_texrot_default.jpg](alpha_texrot_default.jpg)(w:128 h:128) ![alpha_texrotation.jpg](alpha_texrotation.jpg)(w:128 h:128) |
 | **Texture Pan [U/V]** | ランドスケープのサーフェス上にサンプリングされたテクスチャのオフセットを設定します。 <br/>![alpha_default.jpg](alpha_default.jpg)(w:128 h:128) ![alpha_texpan.jpg](alpha_texpan.jpg)(w:128 h:128) |
 
 
 
-## コンポーネント
+## Component (コンポーネント) ブラシ
 
 ![Component Brush](Landscape_ComponentBrush.png)
 
-コンポーネント ブラシは個々のコンポーネントの操作に使用するブラシです。カーソルは、一回にひとつのコンポーネントに制限されます。
+**Component** ブラシは個々のコンポーネントの操作に使用するブラシです。カーソルは、一回にひとつのコンポーネントに制限されます。
 
 ![selection_cursor.jpg](selection_cursor.jpg)(w:900 h:453)
 
@@ -133,14 +140,14 @@ Description:ランドスケープの修正に利用可能なブラシのガイ�
 コンポーネント ブラシは、各コンポーネント レベルで操作するツールの使用時に利用可能な唯一のブラシです。
 [/REGION]
 
-## ギズモ
+## Gizmo (ギズモ) ブラシ
 
 ![Gizmo Brush](Landscape_GizmoBrush.png)
 
-ギズモ ブラシは、Landscape Gizmo (ランドスケープ ギズモ) でランドスケープを修正する際に使用します。ランドスケープ ギズモはランドスケープの局所にアクションを実行するために使用するツールです。
+**Gizmo** ブラシは、Landscape Gizmo (ランドスケープ ギズモ) でランドスケープを修正する際に使用します。ランドスケープ ギズモはランドスケープの局所にアクションを実行するために使用するツールです。
 
 [REGION:note]
-ギズモ ブラシは、[Sculpt] モードでコピー / ペーストツールを使用時のみ利用可能です。
+ギズモ ブラシは、[Sculpt] モードでコピー/ペーストツールを使用時のみ利用可能です。
 [/REGION]
 
 ギズモに関する詳細は、 [](Engine/Landscape/Editing/Gizmos/) をご覧ください。
