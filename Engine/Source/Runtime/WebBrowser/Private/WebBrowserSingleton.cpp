@@ -23,6 +23,10 @@
 #endif
 #endif
 
+#if PLATFORM_ANDROID
+#	include <Android/AndroidPlatformWebBrowser.h>
+#endif
+
 FWebBrowserSingleton::FWebBrowserSingleton()
 {
 #if WITH_CEF3
@@ -180,38 +184,48 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	FColor BackgroundColor)
 {
 #if WITH_CEF3
-	// Create new window
-	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
-
-	// WebBrowserHandler implements browser-level callbacks.
-	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
-	NewWindow->SetHandler(NewHandler);
-
-	// Information used when creating the native window.
-	CefWindowHandle WindowHandle = (CefWindowHandle)OSWindowHandle; // TODO: check this is correct for all platforms
-	CefWindowInfo WindowInfo;
-
-	// Always use off screen rendering so we can integrate with our windows
-	WindowInfo.SetAsWindowless(WindowHandle, bUseTransparency);
-
-	// Specify CEF browser settings here.
-	CefBrowserSettings BrowserSettings;
-	
-	// Set max framerate to maximum supported.
-	BrowserSettings.windowless_frame_rate = 60;
-	BrowserSettings.background_color = CefColorSetARGB(BackgroundColor.A, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B);
-
-	// Disable plugins
-	BrowserSettings.plugins = STATE_DISABLED;
-
-	CefString URL = *InitialURL;
-
-	// Create the CEF browser window.
-	if (CefBrowserHost::CreateBrowser(WindowInfo, NewHandler.get(), URL, BrowserSettings, NULL))
+	static bool AllowCEF = !FParse::Param(FCommandLine::Get(), TEXT("nocef"));
+	if (AllowCEF)
 	{
-		WindowInterfaces.Add(NewWindow);
-		return NewWindow;
+		// Create new window
+		TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+
+		// WebBrowserHandler implements browser-level callbacks.
+		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
+		NewWindow->SetHandler(NewHandler);
+
+		// Information used when creating the native window.
+		CefWindowHandle WindowHandle = (CefWindowHandle)OSWindowHandle; // TODO: check this is correct for all platforms
+		CefWindowInfo WindowInfo;
+
+		// Always use off screen rendering so we can integrate with our windows
+		WindowInfo.SetAsWindowless(WindowHandle, bUseTransparency);
+
+		// Specify CEF browser settings here.
+		CefBrowserSettings BrowserSettings;
+
+		// Set max framerate to maximum supported.
+		BrowserSettings.windowless_frame_rate = 60;
+		BrowserSettings.background_color = CefColorSetARGB(BackgroundColor.A, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B);
+
+		// Disable plugins
+		BrowserSettings.plugins = STATE_DISABLED;
+
+		CefString URL = *InitialURL;
+
+		// Create the CEF browser window.
+		if (CefBrowserHost::CreateBrowser(WindowInfo, NewHandler.get(), URL, BrowserSettings, NULL))
+		{
+			WindowInterfaces.Add(NewWindow);
+			return NewWindow;
+		}
 	}
+#elif PLATFORM_ANDROID
+	// Create new window
+	TSharedPtr<FWebBrowserWindow> NewBrowserWindow = MakeShareable(new FWebBrowserWindow(InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+
+	//WindowInterfaces.Add(NewBrowserWindow);
+	return NewBrowserWindow;
 #endif
 	return NULL;
 }

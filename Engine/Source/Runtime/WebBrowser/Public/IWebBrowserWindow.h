@@ -11,6 +11,7 @@ class FReply;
 class FCursorReply;
 class FSlateShaderResource;
 class IWebBrowserPopupFeatures;
+class SWidget;
 
 enum class EWebBrowserDocumentState
 {
@@ -41,6 +42,13 @@ public:
 	 * @param DummyURL Dummy URL for the page
 	 */
 	virtual void LoadString(FString Contents, FString DummyURL) = 0;
+
+	/**
+	 * Create the SWidget for this WebBrowser
+	 *
+	 * @param ViewportSize Size of viewport for CEF implementation on PC
+	 */
+	virtual TSharedRef<SWidget> CreateWidget(TAttribute<FVector2D> ViewportSize) = 0;
 
 	/**
 	 * Set the desired size of the web browser viewport
@@ -250,10 +258,6 @@ public:
 	/** A delegate to allow callbacks when a frame url changes. */
 	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnUrlChanged, FString /*NewUrl*/);
 	virtual FOnUrlChanged& OnUrlChanged() = 0;
-
-	/** A delegate to allow callbacks when a frame url changes. */
-	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnToolTip, FString /*ToolTipText*/);
-	virtual FOnToolTip& OnToolTip() = 0;
 
 	/** A delegate that is invoked when the off-screen window has been repainted and requires an update. */
 	DECLARE_EVENT(IWebBrowserWindow, FOnNeedsRedraw)

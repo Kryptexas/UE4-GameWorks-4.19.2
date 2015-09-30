@@ -24,11 +24,11 @@ public:
 
 	~FJavaClassObject();
 
-	FJavaClassMethod GetClassMethod(const char* MethodName, const char* FuncSig);
+	FJavaClassMethod GetClassMethod(const char* MethodName, const char* FuncSig) const;
 
 	// TODO: Define this for extra cases
 	template<typename ReturnType>
-	ReturnType CallMethod(FJavaClassMethod Method, ...);
+	ReturnType CallMethod(FJavaClassMethod Method, ...) const;
 
 	FORCEINLINE jobject GetJObject() const
 	{
@@ -37,7 +37,7 @@ public:
 
 	static jstring GetJString(const FString& String);
 
-	void VerifyException();
+	void VerifyException() const;
 
 protected:
 
@@ -50,19 +50,19 @@ private:
 };
 
 template<>
-void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...);
+void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...) const;
 
 template<>
-bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...);
+bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...) const;
 
 template<>
-int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...);
+int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...) const;
 
 template<>
-jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...);
+jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...) const;
 
 template<>
-int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...);
+int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...) const;
 
 template<>
-FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...);
+FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...) const;

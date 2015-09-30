@@ -127,8 +127,10 @@ public class GameActivity extends NativeActivity
 	private AdView adView;
 	private boolean adInit = false;
 	private LinearLayout adLayout;
-	private LinearLayout activityLayout;
 	private int adGravity = Gravity.TOP;
+
+	// layout required by popups, e.g ads, native controls
+	LinearLayout activityLayout;
 
 	/** true when the application has requested that an ad be displayed */
 	private boolean adWantsToBeShown = false;
@@ -254,7 +256,13 @@ public class GameActivity extends NativeActivity
 		}
 
 		_activity = this;
-		
+
+		// layout required by popups, e.g ads, native controls
+		MarginLayoutParams params = new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+		params.setMargins(0, 0, 0, 0);
+		activityLayout = new LinearLayout(_activity);
+		_activity.setContentView(activityLayout, params);
+
 /*
 		// Turn on and unlock screen.. Assumption is that this
 		// will only really have an effect when for debug launching
@@ -934,7 +942,6 @@ public class GameActivity extends NativeActivity
 					adPopupWindow.setClippingEnabled(false);
 
 					adLayout = new LinearLayout(_activity);
-					activityLayout = new LinearLayout(_activity);
 
 					final int padding = (int)(-5*scale);
 					adLayout.setPadding(padding,padding,padding,padding);
@@ -946,8 +953,6 @@ public class GameActivity extends NativeActivity
 					adLayout.setOrientation(LinearLayout.VERTICAL);
 					adLayout.addView(adView, params);
 					adPopupWindow.setContentView(adLayout);
-
-					_activity.setContentView(activityLayout, params);
 
 					// set up our ad callbacks
 					_activity.adView.setAdListener(new AdListener()
