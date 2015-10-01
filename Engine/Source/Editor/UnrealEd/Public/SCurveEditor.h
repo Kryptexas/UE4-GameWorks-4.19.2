@@ -240,6 +240,14 @@ public:
 	UNREALED_API bool GetAllowAutoFrame() { return bAllowAutoFrame; }
 	UNREALED_API void SetAllowAutoFrame(bool bInAllowAutoFrame) { bAllowAutoFrame = bInAllowAutoFrame; }
 
+	/* Get the curves to will be used during a fit operation */
+	UNREALED_API virtual TArray<FRichCurve*> GetCurvesToFit()const;
+
+	/** Zoom to fit */
+	UNREALED_API void ZoomToFitHorizontal();
+	UNREALED_API void ZoomToFitVertical();
+	UNREALED_API void ZoomToFit();
+
 private:
 	/** Used to track a key and the curve that owns it */
 	struct FSelectedCurveKey
@@ -371,13 +379,6 @@ private:
 
 	/** Function to check whether the current track is editable */
 	bool IsEditingEnabled() const;
-
-	/* Get the curves to will be used during a fit operation */
-	TArray<FRichCurve*> GetCurvesToFit()const;
-
-	void ZoomToFitHorizontal();
-	void ZoomToFitVertical();
-	void ZoomToFit();
 
 	FReply ZoomToFitHorizontalClicked();
 	FReply ZoomToFitVerticalClicked();
