@@ -879,6 +879,9 @@ public:
 	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
 	bool GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const;
 
+	/** Finds all polys connected with specified one, results expressed as array of NavNodeRefs */
+	bool GetPolyNeighbors(NavNodeRef PolyID, TArray<NavNodeRef>& Neighbors) const;
+
 	/** Finds closest point constrained to given poly */
 	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;
 
