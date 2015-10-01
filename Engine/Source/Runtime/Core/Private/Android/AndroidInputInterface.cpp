@@ -763,19 +763,21 @@ void FAndroidInputInterface::SendControllerEvents()
 	for(int i = 0; i < FAndroidInputInterface::TouchInputStack.Num(); ++i)
 	{
 		TouchInput Touch = FAndroidInputInterface::TouchInputStack[i];
+		int32 ControllerId = FindExistingDevice(Touch.DeviceId);
+		ControllerId = (ControllerId == -1) ? 0 : ControllerId;
 
 		// send input to handler
 		if (Touch.Type == TouchBegan)
 		{
-			MessageHandler->OnTouchStarted( NULL, Touch.Position, Touch.Handle, 0);
+			MessageHandler->OnTouchStarted(NULL, Touch.Position, Touch.Handle, ControllerId);
 		}
 		else if (Touch.Type == TouchEnded)
 		{
-			MessageHandler->OnTouchEnded(Touch.Position, Touch.Handle, 0);
+			MessageHandler->OnTouchEnded(Touch.Position, Touch.Handle, ControllerId);
 		}
 		else
 		{
-			MessageHandler->OnTouchMoved(Touch.Position, Touch.Handle, 0);
+			MessageHandler->OnTouchMoved(Touch.Position, Touch.Handle, ControllerId);
 		}
 	}
 
@@ -921,6 +923,24 @@ void FAndroidInputInterface::QueueTouchInput(TArray<TouchInput> InTouchEvents)
 	FScopeLock Lock(&TouchInputCriticalSection);
 
 	FAndroidInputInterface::TouchInputStack.Append(InTouchEvents);
+}
+
+int32 FAndroidInputInterface::FindExistingDevice(int32 deviceId)
+{
+	// Treat non-positive devices ids special
+	if (deviceId < 1)
+		return -1;
+
+	for (int32 ControllerIndex = 0; ControllerIndex < MAX_NUM_CONTROLLERS; ControllerIndex++)
+	{
+		if (DeviceMapping[ControllerIndex].DeviceInfo.DeviceId == deviceId && DeviceMapping[ControllerIndex].DeviceState == MappingState::Valid)
+		{
+			return ControllerIndex;
+		}
+	}
+
+	// Did not find it
+	return -1;
 }
 
 int32 FAndroidInputInterface::GetControllerIndex(int32 deviceId)

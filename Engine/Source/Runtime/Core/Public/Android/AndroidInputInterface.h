@@ -116,7 +116,8 @@ struct FAndroidGamepadDeviceMapping
 
 struct TouchInput
 {
-	int Handle;
+	int32 DeviceId;
+	int32 Handle;
 	TouchType Type;
 	FVector2D LastPosition;
 	FVector2D Position;
@@ -224,6 +225,9 @@ private:
 
 	/** Get controller index corresponding to deviceId (assigns and queries type if new) */
 	static int32 GetControllerIndex(int32 deviceId);
+
+	/** Find controller index corresponding to validated deviceId (returns -1 if not found) */
+	static int32 FindExistingDevice(int32 deviceId);
 
 	/** Push Vibration changes to the controllers */
 	void UpdateVibeMotors();

@@ -442,6 +442,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 		int actionType = action & AMOTION_EVENT_ACTION_MASK;
 		size_t actionPointer = (size_t)((action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
 		bool isActionTargeted = (actionType == AMOTION_EVENT_ACTION_POINTER_DOWN || actionType == AMOTION_EVENT_ACTION_POINTER_UP);
+		int32 device = AInputEvent_getDeviceId(event);
 
 		// trap Joystick events first, with fallthrough if there is no joystick support
 		if (((EventSource & AINPUT_SOURCE_CLASS_JOYSTICK) == AINPUT_SOURCE_CLASS_JOYSTICK) &&
@@ -449,7 +450,6 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			(actionType == AMOTION_EVENT_ACTION_MOVE))
 		{
 			const int axisCount = sizeof(AxisList)/sizeof(int32_t);
-			int32 device = AInputEvent_getDeviceId(event);
 
 			// poll all the axes and forward to update controller state
 			for (int axis = 0; axis < axisCount; axis++)
@@ -535,6 +535,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 				UE_LOG(LogAndroid, Verbose, TEXT("Received targeted motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), actionPointer, pointerId, action, x, y);
 
 				TouchInput TouchMessage;
+				TouchMessage.DeviceId = device;
 				TouchMessage.Handle = pointerId;
 				TouchMessage.Type = type;
 				TouchMessage.Position = FVector2D(x, y);
@@ -555,6 +556,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 					UE_LOG(LogAndroid, Verbose, TEXT("Received motion event from index %u (id %d) action %d: (%.2f, %.2f)"), i, pointerId, action, x, y);
 
 					TouchInput TouchMessage;
+					TouchMessage.DeviceId= device;
 					TouchMessage.Handle = pointerId;
 					TouchMessage.Type = type;
 					TouchMessage.Position = FVector2D(x, y);
