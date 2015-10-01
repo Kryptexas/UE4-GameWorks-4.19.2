@@ -1389,11 +1389,6 @@ void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEv
 	}
 }
 
-void UAnimInstance::AnimNotify_Sound(UAnimNotify* AnimNotify)
-{
-	AnimNotify->Notify(GetSkelMeshComponent(), NULL);
-}
-
 //to debug montage weight
 #define DEBUGMONTAGEWEIGHT 0
 

@@ -430,9 +430,6 @@ public:
 
 	bool CanTransitionSignature() const;
 	
-	UFUNCTION()
-	void AnimNotify_Sound(UAnimNotify* Notify);
-
 	/*********************************************************************************************
 	* SlotAnimation
 	********************************************************************************************* */
