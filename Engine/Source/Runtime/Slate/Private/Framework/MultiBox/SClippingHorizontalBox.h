@@ -18,10 +18,7 @@ public:
 		SLATE_ARGUMENT(FName, StyleName)
 	SLATE_END_ARGS()
 
-	FORCENOINLINE SClippingHorizontalBox() 
-	{
-		bCanTick = true;
-	}
+	FORCENOINLINE SClippingHorizontalBox() { }
 
 	/** SWidget interface */
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
