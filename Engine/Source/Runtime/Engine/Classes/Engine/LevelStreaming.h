@@ -71,13 +71,16 @@ class ULevelStreaming : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Deprecated name of the package containing the level to load. Use WorldAsset or GetWorldAssetPackageFName instead.		*/
+	/** Deprecated name of the package containing the level to load. Use GetWorldAsset() or GetWorldAssetPackageFName() instead.		*/
 	UPROPERTY()
 	FName PackageName_DEPRECATED;
 
+private:
 	/** The reference to the world containing the level to load																	*/
-	UPROPERTY(Category=LevelStreaming, VisibleAnywhere, BlueprintReadOnly, meta=(DisplayName = "Level"))
+	UPROPERTY(Category=LevelStreaming, VisibleAnywhere, BlueprintReadOnly, meta=(DisplayName = "Level", AllowPrivateAccess="true"))
 	TAssetPtr<UWorld> WorldAsset;
+
+public:
 
 	/** If this isn't Name_None, then we load from this package on disk to the new package named PackageName					*/
 	UPROPERTY()
@@ -163,8 +166,8 @@ class ULevelStreaming : public UObject
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	virtual void Serialize( FArchive& Ar ) override;
 #if WITH_EDITOR
+	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	
 	/** Remove duplicates in EditorStreamingVolumes list*/
@@ -176,6 +179,9 @@ class ULevelStreaming : public UObject
 	{
 		return (LoadedLevel || PendingUnloadLevel);
 	}
+
+	/** Returns a constant reference to the world asset this streaming level object references  */
+	ENGINE_API const TAssetPtr<UWorld>& GetWorldAsset() const { return WorldAsset; }
 
 	/** Setter for WorldAsset. Use this instead of setting WorldAsset directly to update the cached package name. */
 	ENGINE_API void SetWorldAsset(const TAssetPtr<UWorld>& NewWorldAsset);
@@ -343,6 +349,8 @@ private:
 
 	/** The cached package name of the world asset that is loaded by the levelstreaming */
 	FName CachedWorldAssetPackageFName;
+
+	FName CachedLoadedLevelPackageName;
 	
 	/** Friend classes to allow access to SetLoadedLevel */
 	friend class UEngine;

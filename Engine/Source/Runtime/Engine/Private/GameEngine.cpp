@@ -604,7 +604,7 @@ bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading 
 	{
 		if (StreamingLevel != nullptr)
 		{
-			const FString StreamingLevelName = StreamingLevel->WorldAsset.GetLongPackageName();
+			const FString StreamingLevelName = StreamingLevel->GetWorldAsset().GetLongPackageName();
 			if (StreamingLevelName == PrefixedName)
 			{
 				Str = PrefixedName;

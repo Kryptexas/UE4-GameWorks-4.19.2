@@ -221,23 +221,23 @@ void ULevelStreaming::PostLoad()
 		CachedWorldAssetPackageFName = FName(*WorldPackageName);
 		if ( !PIESession )
 		{
-			if (FPackageName::DoesPackageExist(WorldPackageName) == false)
-			{
-				UE_LOG(LogLevelStreaming, Display, TEXT("Failed to find streaming level package file: %s. This streaming level may not load or save properly."), *WorldPackageName);
+		if (FPackageName::DoesPackageExist(WorldPackageName) == false)
+		{
+			UE_LOG(LogLevelStreaming, Display, TEXT("Failed to find streaming level package file: %s. This streaming level may not load or save properly."), *WorldPackageName);
 #if WITH_EDITOR
-				if (GIsEditor)
-				{
-					// Launch notification to inform user of default change
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("PackageName"), FText::FromString(WorldPackageName));
-					FNotificationInfo Info(FText::Format(LOCTEXT("LevelStreamingFailToStreamLevel", "Failed to find streamed level {PackageName}, please fix the reference to it in the Level Browser"), Args));
-					Info.ExpireDuration = 7.0f;
+			if (GIsEditor)
+			{
+				// Launch notification to inform user of default change
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("PackageName"), FText::FromString(WorldPackageName));
+				FNotificationInfo Info(FText::Format(LOCTEXT("LevelStreamingFailToStreamLevel", "Failed to find streamed level {PackageName}, please fix the reference to it in the Level Browser"), Args));
+				Info.ExpireDuration = 7.0f;
 
-					FSlateNotificationManager::Get().AddNotification(Info);
-				}
-#endif // WITH_EDITOR
+				FSlateNotificationManager::Get().AddNotification(Info);
 			}
+#endif // WITH_EDITOR
 		}
+	}
 	}
 
 	if (GetLinkerUE4Version() < VER_UE4_LEVEL_STREAMING_DRAW_COLOR_TYPE_CHANGE)
@@ -260,20 +260,20 @@ UWorld* ULevelStreaming::GetWorld() const
 	}
 }
 
+#if WITH_EDITOR
 void ULevelStreaming::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 	
 	if (Ar.IsLoading())
 	{
-#if WITH_EDITOR
 		if ((GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0 && GetOutermost()->PIEInstanceID != INDEX_NONE)
 		{
 			RenameForPIE(GetOutermost()->PIEInstanceID);
 		}
-#endif
 	}
 }
+#endif
 
 FName ULevelStreaming::GetLODPackageName() const
 {
@@ -305,6 +305,7 @@ void ULevelStreaming::SetLoadedLevel(class ULevel* Level)
 	check(PendingUnloadLevel == nullptr);
 	PendingUnloadLevel = LoadedLevel;
 	LoadedLevel = Level;
+	CachedLoadedLevelPackageName = (LoadedLevel ? LoadedLevel->GetOutermost()->GetFName() : NAME_None);
 
 	// Cancel unloading for this level, in case it was queued for it
 	FLevelStreamingGCHelper::CancelUnloadRequest(LoadedLevel);
@@ -343,13 +344,13 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevelStreaming_RequestLevel);
 	FScopeCycleCounterUObject Context(PersistentWorld);
+
 	// Package name we want to load
-	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : GetWorldAssetPackageFName();
-	FName DesiredPackageNameToLoad = PersistentWorld->IsGameWorld() ? GetLODPackageNameToLoad() : PackageNameToLoad;
+	const bool bIsGameWorld = PersistentWorld->IsGameWorld();
+	const FName DesiredPackageName = bIsGameWorld ? GetLODPackageName() : GetWorldAssetPackageFName();
 
 	// Check if currently loaded level is what we want right now
-	if (LoadedLevel != NULL && 
-		LoadedLevel->GetOutermost()->GetFName() == DesiredPackageName)
+	if (LoadedLevel && CachedLoadedLevelPackageName == DesiredPackageName)
 	{
 		return true;
 	}
@@ -459,11 +460,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	// Async load package if world object couldn't be found and we are allowed to request a load.
 	if (bAllowLevelLoadRequests)
 	{
-		FString PackageNameToLoadFrom = DesiredPackageName.ToString();
-		if (DesiredPackageNameToLoad != NAME_None)
-		{
-			PackageNameToLoadFrom = DesiredPackageNameToLoad.ToString();
-		}
+		const FName DesiredPackageNameToLoad = bIsGameWorld ? GetLODPackageNameToLoad() : PackageNameToLoad;
+		const FString PackageNameToLoadFrom = DesiredPackageNameToLoad != NAME_None ? DesiredPackageNameToLoad.ToString() : DesiredPackageName.ToString();
 
 		if (GUseSeekFreeLoading)
 		{
@@ -674,8 +672,8 @@ bool ULevelStreaming::IsStreamingStatePending() const
 	{
 		if (IsLevelLoaded() == ShouldBeLoaded() && IsLevelVisible() == ShouldBeVisible())
 		{
-			FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : GetWorldAssetPackageFName();
-			if (!LoadedLevel || LoadedLevel->GetOutermost()->GetFName() == DesiredPackageName)
+			const FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : GetWorldAssetPackageFName();
+			if (!LoadedLevel || CachedLoadedLevelPackageName == DesiredPackageName)
 			{
 				return false;
 			}
@@ -769,8 +767,7 @@ void ULevelStreaming::SetWorldAsset(const TAssetPtr<UWorld>& NewWorldAsset)
 
 FString ULevelStreaming::GetWorldAssetPackageName() const
 {
-	const FString WorldAssetPath = WorldAsset.ToStringReference().ToString();
-	return FPackageName::ObjectPathToPackageName(WorldAssetPath);
+	return GetWorldAssetPackageFName().ToString();
 }
 
 FName ULevelStreaming::GetWorldAssetPackageFName() const
