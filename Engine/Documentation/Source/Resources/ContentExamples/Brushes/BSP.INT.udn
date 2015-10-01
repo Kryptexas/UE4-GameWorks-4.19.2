@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:An overview of the Geometry Editing Content Example map.
 Related: Engine/Actors/Brushes
 Related: Engine/UI/LevelEditor/Modes
+Version: 4.9
 
 
 [VAR:Topic]
@@ -52,7 +53,7 @@ Related: Engine/UI/LevelEditor/Modes
 ![](BSP_Header.png)
 [/REGION]
 
-[TOC(start:2 end:2)]
+<!---[TOC(start:2 end:2)]--->
 
 
 
@@ -74,8 +75,8 @@ Listed below are the examples provided in the Geometry_Editing map:
 | ------- | ------------ |
 | **1.1 Additive and Subtractive Geometry Example** | Shows how Additive and Subtractive Brushes interact with one another. |
 | **1.2 Order Example** | Shows how the order in which you place Additive or Subtractive Brushes can affect how they interact with one another. |
-| **1.3 Solidity Example** | Shows how a Brush can collide differently with objects based on its **Solidity** setting. (e.g. whether a Brush causes cuts to be created in surrounding brushes or if it collides with objects in the world). |
-| **1.4 Surface Properties Example** | Shows how to control how textures that are placed across your surfaces as well as lightmap resolution via the **Surface Properties** options. |
-| **1.5 Edit Geometry Example** | This example demonstrates how to edit a Brush's shape with **Edit Mode** by clicking on the Edit (**Shift+5**) button. |
+| **1.3 Solidity Example** | Shows how a Brush can collide differently with objects based on its Solidity setting. (e.g. whether a Brush causes cuts to be created in surrounding brushes or if it collides with objects in the world). |
+| **1.4 Surface Properties Example** | Shows how to control how textures that are placed across your surfaces as well as lightmap resolution via the Surface Properties options. |
+| **1.5 Edit Geometry Example** | This example demonstrates how to edit a Brush's shape with Edit Mode by clicking on the Edit (Shift+5) button. |
 | **1.6 Example House** | This is an example of using Additive and Subtractive Brushes to construct a house with windows and a door opening. |
 
