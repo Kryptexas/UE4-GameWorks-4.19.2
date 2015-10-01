@@ -54,11 +54,9 @@ bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
 
 	// Check serialized custom versions against latest custom versions.
 	const FCustomVersionContainer& LatestCustomVersions  = FCustomVersionContainer::GetRegistered();
-	const TArray<FCustomVersion>&  PackageCustomVersions = PackageFileSummary.GetCustomVersionContainer().GetAllVersions();
-	for (TArray<FCustomVersion>::TConstIterator It(PackageCustomVersions); It; ++It)
+	const FCustomVersionSet&  PackageCustomVersions = PackageFileSummary.GetCustomVersionContainer().GetAllVersions();
+	for (const FCustomVersion& SerializedCustomVersion : PackageCustomVersions)
 	{
-		const FCustomVersion& SerializedCustomVersion = *It;
-
 		auto* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
 		if (!LatestVersion || SerializedCustomVersion.Version > LatestVersion->Version)
 		{

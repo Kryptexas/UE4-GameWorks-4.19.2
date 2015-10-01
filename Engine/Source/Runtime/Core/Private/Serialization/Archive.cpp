@@ -208,7 +208,7 @@ void FArchive::UsingCustomVersion(const FGuid& Key)
 	// If this fails, you probably don't have an FCustomVersionRegistration variable defined for this GUID.
 	check(RegisteredVersion);
 
-	const_cast<FCustomVersionContainer&>(GetCustomVersions()).SetVersion(Key, RegisteredVersion->Version, RegisteredVersion->FriendlyName);
+	const_cast<FCustomVersionContainer&>(GetCustomVersions()).SetVersion(Key, RegisteredVersion->Version, RegisteredVersion->GetFriendlyName());
 }
 
 int32 FArchive::CustomVer(const FGuid& Key) const
@@ -222,7 +222,7 @@ int32 FArchive::CustomVer(const FGuid& Key) const
 	return CustomVersion ? CustomVersion->Version : -1;
 }
 
-void FArchive::SetCustomVersion(const FGuid&  Key, int32 Version, FString FriendlyName)
+void FArchive::SetCustomVersion(const FGuid& Key, int32 Version, FName FriendlyName)
 {
 	const_cast<FCustomVersionContainer&>(GetCustomVersions()).SetVersion(Key, Version, FriendlyName);
 }

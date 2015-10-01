@@ -9,7 +9,7 @@ namespace DirectoryWatcher
 {
 
 template<typename T>
-void ReadWithCustomVersions(FArchive& Ar, T& Data)
+void ReadWithCustomVersions(FArchive& Ar, T& Data, ECustomVersionSerializationFormat::Type CustomVersionFormat)
 {
 	int64 CustomVersionsOffset = 0;
 	Ar << CustomVersionsOffset;
@@ -20,7 +20,7 @@ void ReadWithCustomVersions(FArchive& Ar, T& Data)
 
 	// Serialize the custom versions
 	FCustomVersionContainer Vers = Ar.GetCustomVersions();
-	Vers.Serialize(Ar);
+	Vers.Serialize(Ar, CustomVersionFormat);
 	Ar.SetCustomVersions(Vers);
 
 	Ar.Seek(DataStart);
@@ -65,7 +65,20 @@ EFileAction ToFileAction(FFileChangeData::EFileChangeAction InAction)
 const FGuid FFileCacheCustomVersion::Key(0x8E7DDCB3, 0x80DA47BB, 0x9FD346A2, 0x93984DF6);
 FCustomVersionRegistration GRegisterFileCacheVersion(FFileCacheCustomVersion::Key, FFileCacheCustomVersion::Latest, TEXT("FileCacheVersion"));
 
-static const uint32 CacheFileMagicNumber = 0x03DCCB00;
+static const uint32 CacheFileMagicNumberOldCustomVersionFormat = 0x03DCCB00;
+static const uint32 CacheFileMagicNumber = 0x03DCCB03;
+
+static ECustomVersionSerializationFormat::Type GetCustomVersionFormatForFileCache(uint32 MagicNumber)
+{
+	if (MagicNumber == CacheFileMagicNumberOldCustomVersionFormat)
+	{
+		return ECustomVersionSerializationFormat::Guids;
+	}
+	else
+	{
+		return ECustomVersionSerializationFormat::Optimized;
+	}
+}
 
 /** Single runnable thread used to parse file cache directories without blocking the main thread */
 struct FAsyncTaskThread : public FRunnable
@@ -465,10 +478,10 @@ TOptional<FDirectoryState> FFileCache::ReadCache() const
 			uint32 MagicNumber = 0;
 			*Ar << MagicNumber;
 
-			if (MagicNumber == CacheFileMagicNumber)
+			if (MagicNumber == CacheFileMagicNumber || MagicNumber == CacheFileMagicNumberOldCustomVersionFormat)
 			{
 				FDirectoryState Result;
-				ReadWithCustomVersions(*Ar, Result);
+				ReadWithCustomVersions(*Ar, Result, GetCustomVersionFormatForFileCache(MagicNumber));
 
 				Optional.Emplace(MoveTemp(Result));
 			}
