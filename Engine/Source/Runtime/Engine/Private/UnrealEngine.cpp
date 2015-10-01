@@ -166,13 +166,6 @@ ENGINE_API uint32 GGPUFrameTime = 0;
 /** System resolution instance */
 FSystemResolution GSystemResolution;
 
-/** Threshold for a frame to be considered a hitch (in seconds. */
-static FAutoConsoleVariableRef GHitchThresholdCVar(
-	TEXT("t.HitchThreshold"),
-	GHitchThreshold,
-	TEXT("Time in seconds that is considered a hitch by \"stat dumphitches\"")
-	);
-
 TAutoConsoleVariable<int32> CVarAllowOneFrameThreadLag(
 	TEXT("r.OneFrameThreadLag"),
 	1,
@@ -6459,19 +6452,19 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 
 	if (bAllowFrameRateSmoothing && IsAllowedFramerateSmoothing())
 	{
-			// Work in FPS domain as that is what the function will return.
-			MaxTickRate = 1.f / RunningAverageDeltaTime;
+		// Work in FPS domain as that is what the function will return.
+		MaxTickRate = 1.f / RunningAverageDeltaTime;
 
-			// Clamp FPS into ini defined min/ max range.
-			if (SmoothedFrameRateRange.HasLowerBound())
-			{
-				MaxTickRate = FMath::Max( MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue() );
-			}
-			if (SmoothedFrameRateRange.HasUpperBound())
-			{
-				MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
-			}
+		// Clamp FPS into ini defined min/ max range.
+		if (SmoothedFrameRateRange.HasLowerBound())
+		{
+			MaxTickRate = FMath::Max( MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue() );
 		}
+		if (SmoothedFrameRateRange.HasUpperBound())
+		{
+			MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
+		}
+	}
 
 	if (CVarCauseHitches.GetValueOnGameThread())
 	{

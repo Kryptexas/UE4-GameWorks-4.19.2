@@ -252,8 +252,8 @@ extern CORE_API bool GIsFirstInstance;
 
 #endif
 
-/** Threshold for a frame to be considered a hitch (in seconds. */
-extern CORE_API float GHitchThreshold;
+/** Threshold for a frame to be considered a hitch (in milliseconds). */
+extern CORE_API float GHitchThresholdMS;
 
 /** Size to break up data into when saving compressed data */
 extern CORE_API int32 GSavingCompressionChunkSize;

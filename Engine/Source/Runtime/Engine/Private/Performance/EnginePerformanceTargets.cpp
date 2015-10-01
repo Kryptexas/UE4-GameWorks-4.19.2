@@ -23,9 +23,9 @@ TAutoConsoleVariable<float> GTargetFrameTimeThresholdCVar(
 
 // The threshold that would be considered so bad that it would cause a hitch in gameplay
 // (*cosmetic only* for reporting purposes such as FPS charts, should not be used in scalability code)
-TAutoConsoleVariable<float> GHitchFrameTimeThresholdCVar(
+FAutoConsoleVariableRef GHitchFrameTimeThresholdCVar(
 	TEXT("t.HitchFrameTimeThreshold"),
-	60.0f,
+	GHitchThresholdMS,
 	TEXT("Definition of a hitchy frame (in ms)\n")
 	TEXT(" default: 60.0 ms"));
 
@@ -58,7 +58,7 @@ float FEnginePerformanceTargets::GetUnacceptableFrameTimeThresholdMS()
 
 float FEnginePerformanceTargets::GetHitchFrameTimeThresholdMS()
 {
-	return GHitchFrameTimeThresholdCVar.GetValueOnGameThread();
+	return GHitchThresholdMS;
 }
 
 float FEnginePerformanceTargets::GetMinTimeBetweenHitchesMS()
