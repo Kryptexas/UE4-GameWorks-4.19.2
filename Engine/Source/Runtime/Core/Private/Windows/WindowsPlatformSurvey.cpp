@@ -384,7 +384,7 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 	// Get CPU count from SystemInfo
 	OutResults.CPUCount = SystemInfo.dwNumberOfProcessors;
 
-	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark);
+	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark, true, 5.f);
 
 	// Get CPU speed
 	if (OutResults.CPUCount > 0)
