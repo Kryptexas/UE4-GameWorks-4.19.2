@@ -1449,7 +1449,7 @@ bool UActorComponent::IsNameStableForNetworking() const
 
 bool UActorComponent::IsSupportedForNetworking() const
 {
-	return IsNameStableForNetworking() || GetIsReplicated();
+	return GetIsReplicated() || IsNameStableForNetworking();
 }
 
 void UActorComponent::SetIsReplicated(bool ShouldReplicate)
@@ -1461,11 +1461,6 @@ void UActorComponent::SetIsReplicated(bool ShouldReplicate)
 	{
 		MyOwner->UpdateReplicatedComponent( this );
 	}
-}
-
-bool UActorComponent::GetIsReplicated() const
-{
-	return bReplicates;
 }
 
 bool UActorComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)

@@ -274,7 +274,10 @@ public:
 	void SetIsReplicated(bool ShouldReplicate);
 
 	/** Returns whether replication is enabled or not. */
-	bool GetIsReplicated() const;
+	FORCEINLINE bool GetIsReplicated() const
+	{
+		return bReplicates;
+	}
 
 	/** Allows a component to replicate other subobject on the actor  */
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags);
