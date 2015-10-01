@@ -69,11 +69,25 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	OOMAllocationAlignment = Alignment;
 
 	bIsOOM = true;
+	FPlatformMemoryStats PlatformMemoryStats = FPlatformMemory::GetStats();
 	if (BackupOOMMemoryPool)
 	{
 		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool);
 		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), BackupOOMMemoryPoolSize);
 	}
+	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
+		TEXT("\n\tAvailablePhysical %llu")\
+		TEXT("\n\tAvailableVirtual %llu")\
+		TEXT("\n\tUsedPhysical %llu")\
+		TEXT("\n\tPeakUsedPhysical %llu")\
+		TEXT("\n\tUsedVirtual %llu")\
+		TEXT("\n\tPeakUsedVirtual %llu"),
+		(uint64)PlatformMemoryStats.AvailablePhysical,
+		(uint64)PlatformMemoryStats.AvailableVirtual,
+		(uint64)PlatformMemoryStats.UsedPhysical,
+		(uint64)PlatformMemoryStats.PeakUsedPhysical,
+		(uint64)PlatformMemoryStats.UsedVirtual,
+		(uint64)PlatformMemoryStats.PeakUsedVirtual);
 	UE_LOG(LogMemory, Fatal, TEXT("Ran out of memory allocating %llu bytes with alignment %u"), Size, Alignment);
 }
 
