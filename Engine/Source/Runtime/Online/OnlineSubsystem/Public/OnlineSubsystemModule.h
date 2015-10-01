@@ -49,6 +49,12 @@ private:
 	 */
 	void ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName) const;
 
+	// As above but recombines the SubsystemName and InstanceName into a key
+	FName ParseOnlineSubsystemName(FName FullName) const;
+
+	// As above but uses a cache to avoid all of the string operations
+	FName ParseOnlineSubsystemNameCached(FName FullName) const;
+
 	/**
 	 *	Shuts down all registered online subsystem platforms and unloads their modules
 	 */
