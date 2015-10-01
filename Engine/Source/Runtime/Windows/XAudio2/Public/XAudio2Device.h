@@ -77,7 +77,6 @@ class FSpatializationHelper;
  */
 class FXAudio2Device : public FAudioDevice
 {
-
 	/** Starts up any platform specific hardware/APIs */
 	virtual bool InitializeHardware() override;
 
