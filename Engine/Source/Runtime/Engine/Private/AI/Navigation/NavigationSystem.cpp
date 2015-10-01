@@ -1612,14 +1612,24 @@ FBox UNavigationSystem::GetWorldBounds() const
 
 	NavigableWorldBounds = FBox(0);
 
-	if (GetWorld() != NULL && bWholeWorldNavigable == true)
+	if (GetWorld() != nullptr)
 	{
-		// @TODO - super slow! Need to ask tech guys where I can get this from
-		for( FActorIterator It(GetWorld()); It; ++It )
+		if (bWholeWorldNavigable == false)
 		{
-			if (IsNavigationRelevant(*It))
+			for (const FNavigationBounds& Bounds : RegisteredNavBounds)
 			{
-				NavigableWorldBounds += (*It)->GetComponentsBoundingBox();
+				NavigableWorldBounds += Bounds.AreaBox;
+			}
+		}
+		else
+		{
+			// @TODO - super slow! Need to ask tech guys where I can get this from
+			for (FActorIterator It(GetWorld()); It; ++It)
+			{
+				if (IsNavigationRelevant(*It))
+				{
+					NavigableWorldBounds += (*It)->GetComponentsBoundingBox();
+				}
 			}
 		}
 	}
