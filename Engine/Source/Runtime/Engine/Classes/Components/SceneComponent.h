@@ -704,7 +704,7 @@ protected:
 private:
 
 	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None);
-	void UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, ETeleportType Teleport = ETeleportType::None);
+	void UpdateComponentToWorldWithParent(USceneComponent* Parent, FName SocketName, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, ETeleportType Teleport = ETeleportType::None);
 
 
 public:
@@ -900,8 +900,8 @@ protected:
 
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
-		If Parent is not passed in we use the component's AttachParent*/
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL) const;
+		If Parent is not passed in or is NULL then we use the component's existing AttachParent and AttachSocket */
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const;
 
 	
 public:
