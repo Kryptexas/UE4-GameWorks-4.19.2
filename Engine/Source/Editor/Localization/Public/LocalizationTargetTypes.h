@@ -204,11 +204,21 @@ struct FGatherTextFromMetaDataConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "MetaData")
 	TArray<FMetaDataKeyGatherSpecification> KeySpecifications;
 
-	/* If enable, data that is specified as editor-only may be processed for gathering. */
+	/* If enabled, data that is specified as editor-only may be processed for gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	bool ShouldGatherFromEditorOnlyData;
 
 	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
+};
+
+USTRUCT()
+struct FLocalizationExportingSettings
+{
+	GENERATED_BODY()
+
+	/* Should user comments in existing PO files be persisted after export? Useful if using a third party service that stores editor/translator notes in the PO format's comment fields. */
+	UPROPERTY(config, EditAnywhere, Category = "Comments")
+	bool ShouldPersistCommentsOnExport;
 };
 
 USTRUCT()
@@ -300,6 +310,10 @@ struct FLocalizationTargetSettings
 	/* Parameters for defining what text is gathered from metadata and how. */
 	UPROPERTY(config, EditAnywhere, Category = "Gather")
 	FGatherTextFromMetaDataConfiguration GatherFromMetaData;
+
+	/* Settings for import/export of translations. */
+	UPROPERTY(config, EditAnywhere, Category = "Import & Export")
+	FLocalizationExportingSettings ExportSettings;
 
 	/* The index of the native culture among the supported cultures. */
 	UPROPERTY(config, EditAnywhere, Category = "Cultures")

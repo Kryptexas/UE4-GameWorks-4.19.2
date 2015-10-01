@@ -323,12 +323,12 @@ namespace LocalizationConfigurationScript
 				ConfigSection.Add( TEXT("CulturesToGenerate"), Target->Settings.SupportedCulturesStatistics[Index].CultureName );
 			};
 
-			// Export for a specific culture.
+			// Import for a specific culture.
 			if (CultureName.IsSet())
 			{
 				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureName.GetValue() );
 			}
-			// Export for all cultures.
+			// Import for all cultures.
 			else
 			{
 				for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
@@ -395,6 +395,11 @@ namespace LocalizationConfigurationScript
 
 			ConfigSection.Add( TEXT("bExportLoc"), TEXT("true") );
 
+			if (Target->Settings.ExportSettings.ShouldPersistCommentsOnExport)
+			{
+				ConfigSection.Add(TEXT("ShouldPersistComments"), "true");
+			}
+
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
 
@@ -450,7 +455,6 @@ namespace LocalizationConfigurationScript
 			{
 				ConfigSection.Add( TEXT("bUseCultureDirectory"), "false" );
 			}
-
 
 			ConfigSection.Add( TEXT("ManifestName"), FPaths::GetCleanFilename(GetManifestPath(Target)) );
 			ConfigSection.Add( TEXT("ArchiveName"), FPaths::GetCleanFilename(GetArchivePath(Target, FString())) );
