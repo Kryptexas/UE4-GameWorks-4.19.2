@@ -798,6 +798,15 @@ public:
 	static FORCEINLINE float DistSquared( const FVector &V1, const FVector &V2 );
 
 	/**
+	 * Squared distance between two points in the XY plane only.
+	 *	
+	 * @param V1 The first point.
+	 * @param V2 The second point.
+	 * @return The squared distance between two points in the XY plane
+	 */
+	static FORCEINLINE float DistSquaredXY( const FVector &V1, const FVector &V2 );
+	
+	/**
 	 * Compute pushout of a box from a plane.
 	 *
 	 * @param Normal The plane normal.
@@ -1888,6 +1897,11 @@ FORCEINLINE float FVector::Dist( const FVector &V1, const FVector &V2 )
 FORCEINLINE float FVector::DistSquared( const FVector &V1, const FVector &V2 )
 {
 	return FMath::Square(V2.X-V1.X) + FMath::Square(V2.Y-V1.Y) + FMath::Square(V2.Z-V1.Z);
+}
+
+FORCEINLINE float FVector::DistSquaredXY( const FVector &V1, const FVector &V2 )
+{
+	return FMath::Square(V2.X-V1.X) + FMath::Square(V2.Y-V1.Y);
 }
 
 FORCEINLINE float FVector::BoxPushOut( const FVector& Normal, const FVector& Size )
