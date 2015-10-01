@@ -139,6 +139,16 @@ public:
 		return DismissPopupEvent;
 	}
 
+	virtual FOnShowDialog& OnShowDialog() override
+	{
+		return ShowDialogDelegate;
+	}
+
+	virtual FOnDismissAllDialogs& OnDismissAllDialogs() override
+	{
+		return DismissAllDialogsDelegate;
+	}
+
 public:
 
 	/**
@@ -190,6 +200,12 @@ private:
 
 	/** Delegate for handling requests to dismiss the current popup menu. */
 	FOnDismissPopup DismissPopupEvent;
+
+	/** Delegate for showing dialogs. */
+	FOnShowDialog ShowDialogDelegate;
+
+	/** Delegate for dismissing all dialogs. */
+	FOnDismissAllDialogs DismissAllDialogsDelegate;
 
 	///** Tracks wether the widget is currently hidden or not*/
 	//bool bIsHidden;
