@@ -159,6 +159,7 @@ public:
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) override;
 	virtual void JumpToHyperlink(const UObject* ObjectReference, bool bRequestRename = false) override;
 	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) override;
+	virtual void SummonFindAndReplaceUI() override;
 	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const override;
 	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const UActorComponent* InComponent, bool IsCntrlDown) override;
 	virtual int32 GetNumberOfSelectedNodes() const override;
@@ -204,6 +205,7 @@ public:
 	TSharedPtr<class SSCSEditor> GetSCSEditor() const {return SCSEditor;}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
+	TSharedPtr<class SReplaceNodeReferences> GetReplaceReferencesWidget() const {return ReplaceReferencesWidget;}
 
 	/**
 	 * Provides access to the preview actor.
@@ -1027,6 +1029,9 @@ protected:
 	/** All of this blueprints' functions and variables */
 	TSharedPtr<class SMyBlueprint> MyBlueprintWidget;
 	
+	/** Widget for replacing node references */
+	TSharedPtr<class SReplaceNodeReferences> ReplaceReferencesWidget;
+
 	/** Compiler results log, with the log listing that it reflects */
 	TSharedPtr<class SWidget> CompilerResults;
 	TSharedPtr<class IMessageLogListing> CompilerResultsListing;

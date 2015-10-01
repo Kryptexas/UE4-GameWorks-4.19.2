@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "FindInBlueprintManager.h"
+
 typedef TSharedPtr<class FFindInBlueprintsResult> FSearchResult;
 typedef STreeView<FSearchResult>  STreeViewType;
+
+DECLARE_DELEGATE_OneParam(FOnSearchComplete, TArray<TSharedPtr<class FImaginaryFiBData>>&);
 
 /** Some utility functions to help with Find-in-Blueprint functionality */
 namespace FindInBlueprintsHelpers
@@ -76,6 +80,9 @@ public:
 	 */
 	virtual void ParseSearchInfo(FText InKey, FText InValue) {};
 
+	/** Returns the Object represented by this search information give the Blueprint it can be found in */
+	virtual UObject* GetObject(UBlueprint* InBlueprint) const;
+
 	/**
 	 * Adds extra search info, anything that does not have a predestined place in the search result. Adds a sub-item to the searches and formats its description so the tag displays
 	 *
@@ -120,6 +127,7 @@ public:
 	virtual void ParseSearchInfo(FText InKey, FText InValue) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
+	virtual UObject* GetObject(UBlueprint* InBlueprint) const override;
 	/** End FFindInBlueprintsResult Interface */
 
 private:
@@ -210,7 +218,12 @@ protected:
 class SFindInBlueprints: public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SFindInBlueprints ){}
+	SLATE_BEGIN_ARGS( SFindInBlueprints )
+		: _bIsSearchWindow(true)
+		, _bHideSearchBar(false)
+	{}
+		SLATE_ARGUMENT(bool, bIsSearchWindow)
+		SLATE_ARGUMENT(bool, bHideSearchBar)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
@@ -219,8 +232,28 @@ public:
 	/** Focuses this widget's search box, and changes the mode as well, and optionally the search terms */
 	void FocusForUse(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false);
 
+	/**
+	 * Submits a search query
+	 *
+	 * @param InSearchString						String to search using
+	 * @param bInIsFindWithinBlueprint				TRUE if searching within the current Blueprint only
+	 * @param InSearchFilterForImaginaryDataReturn	If requesting a callback on search complete for the filtered imaginary data, this is the filter that the raw data will be passed through. By default nothing is collected
+	 * @param InMinimiumVersionRequirement			The minimum search requirement Blueprints must be to be searched or they will be reported as out-of-date.
+	 * @param InOnSearchComplete					Callback when the search is complete, passing the filtered imaginary data (if any).
+	 */
+	void MakeSearchQuery(FString InSearchString, bool bInIsFindWithinBlueprint, enum ESearchQueryFilter InSearchFilterForImaginaryDataReturn = ESearchQueryFilter::AllFilter, EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST, FOnSearchComplete InOnSearchComplete = FOnSearchComplete());
+
 	/** Called when caching Blueprints is complete, if this widget initiated the indexing */
 	void OnCacheComplete();
+
+	/**
+	 * Asynchronously caches all Blueprints below a specified version.
+	 *
+	 * @param InOnFinished						Callback when the cache process is complete.
+	 * @param InMinimiumVersionRequirement		Version that Blueprints must be below to be loaded and indexed, by default all out-of-date Blueprints
+	 */
+	void CacheAllBlueprints(FSimpleDelegate InOnFinished = FSimpleDelegate(), EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST);
+
 private:
 	/** Processes results of the ongoing async stream search */
 	EActiveTimerReturnType UpdateSearchResults( double InCurrentTime, float InDeltaTime );
@@ -248,12 +281,10 @@ private:
 
 	/* Called when a new row is being generated */
 	TSharedRef<ITableRow> OnGenerateRow(FSearchResult InItem, const TSharedRef<STableViewBase>& OwnerTable);
-
-	/** Begins the search based on the SearchValue */
-	void InitiateSearch();
 	
 	/** Launches a thread for streaming more content into the results widget */
 	void LaunchStreamThread(const FString& InSearchValue);
+	void LaunchStreamThread(const FString& InSearchValue, enum ESearchQueryFilter InSearchFilterForRawDataReturn, EFiBVersion InMinimiumVersionRequirement, FOnSearchComplete InOnSearchComplete);
 
 	/** Returns the percent complete on the search for the progress bar */
 	TOptional<float> GetPercentCompleteSearch() const;
@@ -275,6 +306,7 @@ private:
 
 	/** Callback to cache all uncached Blueprints */
 	FReply OnCacheAllBlueprints();
+	FReply OnCacheAllBlueprints(FSimpleDelegate InOnFinished, EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST);
 
 	/** Callback to cancel the caching process */
 	FReply OnCancelCacheAll();
@@ -351,4 +383,13 @@ private:
 
 	/** Weak pointer to the cache bar slot, so it can be removed */
 	TWeakPtr< SWidget > CacheBarSlot;
+
+	/** Callback when search is complete */
+	FOnSearchComplete OnSearchComplete;
+
+	/** Cached count of out of date Blueprints from last search. */
+	int32 OutOfDateWithLastSearchBPCount;
+
+	/** Cached version that was last searched */
+	EFiBVersion LastSearchedFiBVersion;
 };

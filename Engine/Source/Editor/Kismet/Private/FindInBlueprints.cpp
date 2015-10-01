@@ -123,6 +123,11 @@ FReply FFindInBlueprintsResult::OnClick()
 	return FReply::Handled();
 }
 
+UObject* FFindInBlueprintsResult::GetObject(UBlueprint* InBlueprint) const
+{
+	return GetParentBlueprint();
+}
+
 FText FFindInBlueprintsResult::GetCategory() const
 {
 	return FText::GetEmpty();
@@ -286,6 +291,11 @@ void FFindInBlueprintsGraphNode::FinalizeSearchData()
 		Class = FindObject<UClass>(ANY_PACKAGE, *ClassName, true);
 		ClassName.Empty();
 	}
+}
+
+UObject* FFindInBlueprintsGraphNode::GetObject(UBlueprint* InBlueprint) const
+{
+	return FBlueprintEditorUtils::GetNodeByGUID(InBlueprint, NodeGuid);
 }
 
 //////////////////////////////////////////////////////////
@@ -510,9 +520,14 @@ FText FFindInBlueprintsGraph::GetCategory() const
 
 void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor)
 {
+	OutOfDateWithLastSearchBPCount = 0;
+	LastSearchedFiBVersion = EFiBVersion::FIB_VER_LATEST;
 	BlueprintEditorPtr = InBlueprintEditor;
 
-	RegisterCommands();
+	if (InArgs._bIsSearchWindow)
+	{
+		RegisterCommands();
+	}
 
 	bIsInFindWithinBlueprintMode = true;
 	
@@ -530,6 +545,7 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 					.HintText(LOCTEXT("BlueprintSearchHint", "Enter function or event name to find references..."))
 					.OnTextChanged(this, &SFindInBlueprints::OnSearchTextChanged)
 					.OnTextCommitted(this, &SFindInBlueprints::OnSearchTextCommitted)
+					.Visibility(InArgs._bHideSearchBar? EVisibility::Collapsed : EVisibility::Visible)
 				]
 				+SHorizontalBox::Slot()
 				.Padding(2.f, 0.f)
@@ -538,6 +554,7 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 					SNew(SCheckBox)
 					.OnCheckStateChanged(this, &SFindInBlueprints::OnFindModeChanged)
 					.IsChecked(this, &SFindInBlueprints::OnGetFindModeChecked)
+					.Visibility(InArgs._bHideSearchBar? EVisibility::Collapsed : EVisibility::Visible)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("BlueprintSearchModeChange", "Find In Current Blueprint Only"))
@@ -830,7 +847,18 @@ EActiveTimerReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentT
 			ConditionallyAddCacheBar();
 
 			StreamSearch->EnsureCompletion();
+
+			TArray<TSharedPtr<class FImaginaryFiBData>> ImaginaryResults;
+			if (OnSearchComplete.IsBound())
+			{
+				// Pull out the filtered imaginary results if there is a callback to pass them to
+				StreamSearch->GetFilteredImaginaryResults(ImaginaryResults);
+			}
+			OutOfDateWithLastSearchBPCount = StreamSearch->GetOutOfDateCount();
+
 			StreamSearch.Reset();
+
+			OnSearchComplete.ExecuteIfBound(ImaginaryResults);
 		}
 	}
 
@@ -863,7 +891,7 @@ void SFindInBlueprints::FocusForUse(bool bSetFindWithinBlueprint, FString NewSea
 	if (!NewSearchTerms.IsEmpty())
 	{
 		SearchTextField->SetText(FText::FromString(NewSearchTerms));
-		InitiateSearch();
+		MakeSearchQuery(SearchValue, bIsInFindWithinBlueprintMode);
 
 		// Select the first result
 		if (bSelectFirstResult && ItemsFound.Num())
@@ -882,31 +910,11 @@ void SFindInBlueprints::FocusForUse(bool bSetFindWithinBlueprint, FString NewSea
 	}
 }
 
-void SFindInBlueprints::OnSearchTextChanged( const FText& Text)
+void SFindInBlueprints::MakeSearchQuery(FString InSearchString, bool bInIsFindWithinBlueprint, enum ESearchQueryFilter InSearchFilterForImaginaryDataReturn/* = ESearchQueryFilter::AllFilter*/, EFiBVersion InMinimiumVersionRequirement/* = EFiBVersion::FIB_VER_LATEST*/, FOnSearchComplete InOnSearchComplete/* = FOnSearchComplete()*/)
 {
-	SearchValue = Text.ToString();
-}
+	SearchTextField->SetText(FText::FromString(InSearchString));
+	LastSearchedFiBVersion = InMinimiumVersionRequirement;
 
-void SFindInBlueprints::OnSearchTextCommitted( const FText& Text, ETextCommit::Type CommitType )
-{
-	if (CommitType == ETextCommit::OnEnter)
-	{
-		InitiateSearch();
-	}
-}
-
-void SFindInBlueprints::OnFindModeChanged(ECheckBoxState CheckState)
-{
-	bIsInFindWithinBlueprintMode = CheckState == ECheckBoxState::Checked;
-}
-
-ECheckBoxState SFindInBlueprints::OnGetFindModeChecked() const
-{
-	return bIsInFindWithinBlueprintMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SFindInBlueprints::InitiateSearch()
-{
 	if(ItemsFound.Num())
 	{
 		// Reset the scroll to the top
@@ -915,19 +923,20 @@ void SFindInBlueprints::InitiateSearch()
 
 	ItemsFound.Empty();
 
-	if (SearchValue.Len() > 0)
+	if (InSearchString.Len() > 0)
 	{
 		OnRemoveCacheBar();
 
 		TreeView->RequestTreeRefresh();
+		HighlightText = FText::FromString( InSearchString );
 
-		HighlightText = FText::FromString( SearchValue );
-		if (bIsInFindWithinBlueprintMode)
+		if (bInIsFindWithinBlueprint)
 		{
 			if(StreamSearch.IsValid() && !StreamSearch->IsComplete())
 			{
 				StreamSearch->Stop();
 				StreamSearch->EnsureCompletion();
+				OutOfDateWithLastSearchBPCount = StreamSearch->GetOutOfDateCount();
 				StreamSearch.Reset();
 			}
 
@@ -971,9 +980,32 @@ void SFindInBlueprints::InitiateSearch()
 		}
 		else
 		{
-			LaunchStreamThread(SearchValue);
+			LaunchStreamThread(InSearchString, InSearchFilterForImaginaryDataReturn, InMinimiumVersionRequirement, InOnSearchComplete);
 		}
 	}
+}
+
+void SFindInBlueprints::OnSearchTextChanged( const FText& Text)
+{
+	SearchValue = Text.ToString();
+}
+
+void SFindInBlueprints::OnSearchTextCommitted( const FText& Text, ETextCommit::Type CommitType )
+{
+	if (CommitType == ETextCommit::OnEnter)
+	{
+		MakeSearchQuery(SearchValue, bIsInFindWithinBlueprintMode);
+	}
+}
+
+void SFindInBlueprints::OnFindModeChanged(ECheckBoxState CheckState)
+{
+	bIsInFindWithinBlueprintMode = CheckState == ECheckBoxState::Checked;
+}
+
+ECheckBoxState SFindInBlueprints::OnGetFindModeChecked() const
+{
+	return bIsInFindWithinBlueprintMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFindInBlueprints::LaunchStreamThread(const FString& InSearchValue)
@@ -990,6 +1022,24 @@ void SFindInBlueprints::LaunchStreamThread(const FString& InSearchValue)
 	}
 
 	StreamSearch = MakeShareable(new FStreamSearch(InSearchValue));
+	OnSearchComplete = FOnSearchComplete();
+}
+
+void SFindInBlueprints::LaunchStreamThread(const FString& InSearchValue, enum ESearchQueryFilter InSearchFilterForRawDataReturn, EFiBVersion InMinimiumVersionRequirement, FOnSearchComplete InOnSearchComplete)
+{
+	if(StreamSearch.IsValid() && !StreamSearch->IsComplete())
+	{
+		StreamSearch->Stop();
+		StreamSearch->EnsureCompletion();
+	}
+	else
+	{
+		// If the stream search wasn't already running, register the active timer
+		RegisterActiveTimer( 0.f, FWidgetActiveTimerDelegate::CreateSP( this, &SFindInBlueprints::UpdateSearchResults ) );
+	}
+
+	StreamSearch = MakeShareable(new FStreamSearch(InSearchValue, InSearchFilterForRawDataReturn, InMinimiumVersionRequirement));
+	OnSearchComplete = InOnSearchComplete;
 }
 
 TSharedRef<ITableRow> SFindInBlueprints::OnGenerateRow( FSearchResult InItem, const TSharedRef<STableViewBase>& OwnerTable )
@@ -1094,13 +1144,23 @@ EVisibility SFindInBlueprints::GetSearchbarVisiblity() const
 	return StreamSearch.IsValid()? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+void SFindInBlueprints::CacheAllBlueprints(FSimpleDelegate InOnFinished/* = FSimpleDelegate()*/, EFiBVersion InMinimiumVersionRequirement/* = EFiBVersion::FIB_VER_LATEST*/)
+{
+	OnCacheAllBlueprints(InOnFinished, InMinimiumVersionRequirement);
+}
+
 FReply SFindInBlueprints::OnCacheAllBlueprints()
+{
+	return OnCacheAllBlueprints(FSimpleDelegate(), LastSearchedFiBVersion);
+}
+
+FReply SFindInBlueprints::OnCacheAllBlueprints(FSimpleDelegate InOnFinished/* = FSimpleDelegate()*/, EFiBVersion InMinimiumVersionRequirement/* = EFiBVersion::FIB_VER_LATEST*/)
 {
 	if(!FFindInBlueprintSearchManager::Get().IsCacheInProgress())
 	{
 		// Request from the SearchManager a delegate to use for ticking the cache system.
 		FWidgetActiveTimerDelegate WidgetActiveTimer;
-		FFindInBlueprintSearchManager::Get().CacheAllUncachedBlueprints(SharedThis(this), WidgetActiveTimer);
+		FFindInBlueprintSearchManager::Get().CacheAllUncachedBlueprints(SharedThis(this), WidgetActiveTimer, InOnFinished, InMinimiumVersionRequirement);
 		RegisterActiveTimer(0.f, WidgetActiveTimer);
 	}
 
@@ -1178,7 +1238,7 @@ FText SFindInBlueprints::GetUncachedBlueprintWarningText() const
 
 	// The number of unindexed Blueprints is the total of those that failed to cache and those that haven't been attempted yet.
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("Count"), FindInBlueprintManager.GetNumberUncachedBlueprints() + FailedToCacheCount);
+	Args.Add(TEXT("Count"), FindInBlueprintManager.GetNumberUncachedBlueprints() + FailedToCacheCount + OutOfDateWithLastSearchBPCount);
 
 	FText ReturnDisplayText;
 	if(IsCacheInProgress())

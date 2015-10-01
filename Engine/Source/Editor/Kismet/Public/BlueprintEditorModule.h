@@ -46,6 +46,9 @@ public:
 	/** Invokes the search UI and sets the mode and search terms optionally */
 	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) = 0;
 
+	/** Invokes the Find and Replace UI */
+	virtual void SummonFindAndReplaceUI() = 0;
+
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) = 0;
 
 	virtual bool CanPasteNodes() const= 0;

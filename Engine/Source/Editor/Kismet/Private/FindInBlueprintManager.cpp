@@ -63,10 +63,25 @@ const FString FFiBMD::FiBSearchableHiddenExplicitMD = TEXT("BlueprintSearchableH
 
 ////////////////////////////////////
 // FStreamSearch
-FStreamSearch::FStreamSearch(const FString& InSearchValue )
+FStreamSearch::FStreamSearch(const FString& InSearchValue)
 	: SearchValue(InSearchValue)
 	, bThreadCompleted(false)
 	, StopTaskCounter(0)
+	, MinimiumVersionRequirement(EFiBVersion::FIB_VER_LATEST)
+	, BlueprintCountBelowVersion(0)
+	, ImaginaryDataFilter(ESearchQueryFilter::AllFilter)
+{
+	// Add on a Guid to the thread name to ensure the thread is uniquely named.
+	Thread = FRunnableThread::Create( this, *FString::Printf(TEXT("FStreamSearch%s"), *FGuid::NewGuid().ToString()), 0, TPri_BelowNormal );
+}
+
+FStreamSearch::FStreamSearch(const FString& InSearchValue, ESearchQueryFilter InImaginaryDataFilter, EFiBVersion InMinimiumVersionRequirement)
+	: SearchValue(InSearchValue)
+	, bThreadCompleted(false)
+	, StopTaskCounter(0)
+	, MinimiumVersionRequirement(InMinimiumVersionRequirement)
+	, BlueprintCountBelowVersion(0)
+	, ImaginaryDataFilter(InImaginaryDataFilter)
 {
 	// Add on a Guid to the thread name to ensure the thread is uniquely named.
 	Thread = FRunnableThread::Create( this, *FString::Printf(TEXT("FStreamSearch%s"), *FGuid::NewGuid().ToString()), 0, TPri_BelowNormal );
@@ -90,12 +105,26 @@ uint32 FStreamSearch::Run()
 	FSearchData QueryResult;
 	while (FFindInBlueprintSearchManager::Get().ContinueSearchQuery(this, QueryResult))
 	{
-		// This work cannot be spun off to a use the TaskGraph system for spreading the work over multiple threads/cores as the stack limit is too small for the work being done.
-		if (QueryResult.Value.Len() > 0)
+		if (QueryResult.ImaginaryBlueprint.IsValid())
 		{
-			TSharedPtr< FImaginaryBlueprint> ImaginaryBlueprint(new FImaginaryBlueprint(FPaths::GetBaseFilename(QueryResult.BlueprintPath.ToString()), QueryResult.BlueprintPath.ToString(), QueryResult.ParentClass, QueryResult.Interfaces, QueryResult.Value));
+			// If the Blueprint is below the version, add it to a list. The search will still proceed on this Blueprint
+			if (QueryResult.Version < MinimiumVersionRequirement)
+			{
+				++BlueprintCountBelowVersion;
+			}
+
 			TSharedPtr< FFiBSearchInstance > SearchInstance(new FFiBSearchInstance);
-			FSearchResult SearchResult = SearchInstance->StartSearchQuery(*SearchValue, ImaginaryBlueprint);
+			FSearchResult SearchResult;
+			if (ImaginaryDataFilter != ESearchQueryFilter::AllFilter)
+			{
+				SearchInstance->MakeSearchQuery(*SearchValue, QueryResult.ImaginaryBlueprint);
+				SearchInstance->CreateFilteredResultsListFromTree(ImaginaryDataFilter, FilteredImaginaryResults);
+				SearchResult = SearchInstance->GetSearchResults(QueryResult.ImaginaryBlueprint);
+			}
+			else
+			{
+				SearchResult = SearchInstance->StartSearchQuery(*SearchValue, QueryResult.ImaginaryBlueprint);
+			}
 
 			// If there are children, add the item to the search results
 			if(SearchResult.IsValid() && SearchResult->Children.Num() != 0)
@@ -154,6 +183,11 @@ void FStreamSearch::GetFilteredItems(TArray<FSearchResult>& OutItemsFound)
 float FStreamSearch::GetPercentComplete() const
 {
 	return FFindInBlueprintSearchManager::Get().GetPercentComplete(this);
+}
+
+void FStreamSearch::GetFilteredImaginaryResults(TArray<TSharedPtr<class FImaginaryFiBData>>& OutFilteredImaginaryResults)
+{
+	OutFilteredImaginaryResults = MoveTemp(FilteredImaginaryResults);
 }
 
 /** Temporarily forces all nodes and pins to use non-friendly names, forces all schema to have nodes clear their cached values so they will re-cache, and then reverts at the end */
@@ -907,13 +941,14 @@ class FCacheAllBlueprintsTickableObject
 
 public:
 
-	FCacheAllBlueprintsTickableObject(TArray<FName>& InUncachedBlueprints, bool bInCheckOutAndSave)
+	FCacheAllBlueprintsTickableObject(TArray<FName> InUncachedBlueprints, bool bInCheckOutAndSave, FSimpleDelegate InOnFinished = FSimpleDelegate())
 		: TickCacheIndex(0)
 		, UncachedBlueprints(InUncachedBlueprints)
 		, bIsStarted(false)
 		, bIsCancelled(false)
 		, bRecursionGuard(false)
 		, bCheckOutAndSave(bInCheckOutAndSave)
+		, OnFinished(InOnFinished)
 	{
 		// Start the Blueprint indexing 'progress' notification
 		FNotificationInfo Info( LOCTEXT("BlueprintIndexMessage", "Indexing Blueprints...") );
@@ -1006,9 +1041,6 @@ public:
 			FAssetRegistryModule* AssetRegistryModule = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 			FAssetData AssetData = AssetRegistryModule->Get().GetAssetByObjectPath(UncachedBlueprints[TickCacheIndex]);
 
-			// Cache whether the Blueprint is already loaded
-			bool bIsLoaded = AssetData.IsAssetLoaded();
-
 			bool bIsWorldAsset = AssetData.GetClass() == UWorld::StaticClass();
 
 			// Construct a full package filename with path so we can query the read only status and save to disk
@@ -1081,6 +1113,10 @@ public:
 				ProgressNotification.Pin()->SetText(LOCTEXT("BlueprintIndexComplete", "Finished indexing Blueprints!"));
 
 				FFindInBlueprintSearchManager::Get().FinishedCachingBlueprints(TickCacheIndex, FailedToCacheList);
+
+				// We have actually finished, use the OnFinished callback.
+				OnFinished.ExecuteIfBound();
+
 				return EActiveTimerReturnType::Stop;
 			}
 			else
@@ -1118,6 +1154,9 @@ private:
 
 	/** If TRUE, Blueprints will be checked out and resaved after being loaded */
 	bool bCheckOutAndSave;
+
+	/** Callback for when caching is finished */
+	FSimpleDelegate OnFinished;
 };
 
 FFindInBlueprintSearchManager& FFindInBlueprintSearchManager::Get()
@@ -1437,7 +1476,7 @@ FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlue
 	Writer->WriteObjectEnd();
 	Writer->Close();
 
-	int32 Version = EFiBVersion::FIB_VER_ALL;
+	int32 Version = EFiBVersion::FIB_VER_LATEST;
 	SearchMetaData = FiBSerializationHelpers::Serialize(Version, false) + Writer->GetSerializedLookupTable() + SearchMetaData;
 	return SearchMetaData;
 }
@@ -1532,6 +1571,13 @@ bool FFindInBlueprintSearchManager::ContinueSearchQuery(const FStreamSearch* InS
 			}
 			else
 			{
+				// If there is FiB data, parse it into an ImaginaryBlueprint
+				if (SearchArray[SearchIdx].Value.Len() > 0)
+				{
+					SearchArray[SearchIdx].ImaginaryBlueprint = MakeShareable(new FImaginaryBlueprint(FPaths::GetBaseFilename(SearchArray[SearchIdx].BlueprintPath.ToString()), SearchArray[SearchIdx].BlueprintPath.ToString(), SearchArray[SearchIdx].ParentClass, SearchArray[SearchIdx].Interfaces, SearchArray[SearchIdx].Value));
+					SearchArray[SearchIdx].Value.Empty();
+				}
+
  				OutSearchData = SearchArray[SearchIdx++];
 				return true;
 			}
@@ -1757,12 +1803,12 @@ FString FFindInBlueprintSearchManager::ConvertFTextToHexString(FText InValue)
 	return BytesToHex(SerializedData.GetData(), SerializedData.Num());
 }
 
-void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bCheckoutAndSave)
+void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bInCheckoutAndSave)
 {
 	// Multiple threads can be adding to this at the same time
 	FScopeLock ScopeLock(&SafeModifyCacheCriticalSection);
 
-	if(bInSourceControlActive && bCheckoutAndSave)
+	if(bInSourceControlActive && bInCheckoutAndSave)
 	{
 		TArray<FString> UncachedBlueprintStrings;
 		UncachedBlueprintStrings.Reserve(UncachedBlueprints.Num());
@@ -1777,15 +1823,47 @@ void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceC
 	CachingObject->Start();
 }
 
-void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindInBlueprints > InSourceWidget, FWidgetActiveTimerDelegate& OutActiveTimerDelegate)
+void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindInBlueprints > InSourceWidget, FWidgetActiveTimerDelegate& InOutActiveTimerDelegate, FSimpleDelegate InOnFinished/* = FSimpleDelegate()*/, EFiBVersion InMinimiumVersionRequirement/* = EFiBVersion::FIB_VER_LATEST*/)
 {
 	// Do not start another caching process if one is in progress
 	if(!IsCacheInProgress())
 	{
+		TArray<FName> BlueprintsToUpdate;
+		// Add any out-of-date Blueprints to the list
+		for (FSearchData SearchData : SearchArray)
+		{
+			if ((SearchData.Value.Len() != 0 || SearchData.ImaginaryBlueprint.IsValid()) && SearchData.Version < InMinimiumVersionRequirement)
+			{
+				BlueprintsToUpdate.Add(SearchData.BlueprintPath);
+			}
+		}
+
 		FText DialogTitle = LOCTEXT("ConfirmIndexAll_Title", "Indexing All");
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("PackageCount"), UncachedBlueprints.Num());
-		const EAppReturnType::Type ReturnValue = FMessageDialog::Open(EAppMsgType::YesNoCancel, FText::Format(LOCTEXT("CacheAllConfirmationMessage", "This process can take a long time and the editor may become unresponsive; there are {PackageCount} Blueprints to load.\n\nWould you like to checkout, load, and save all Blueprints to make this indexing permanent? Otherwise, all Blueprints will still be loaded but you will be required to re-index the next time you start the editor!"), Args), &DialogTitle);
+		Args.Add(TEXT("PackageCount"), UncachedBlueprints.Num() + BlueprintsToUpdate.Num());
+
+		FText DialogDisplayText;
+		
+		if (UncachedBlueprints.Num() && BlueprintsToUpdate.Num())
+		{
+			Args.Add(TEXT("PackageCount"), UncachedBlueprints.Num() + BlueprintsToUpdate.Num());
+			Args.Add(TEXT("UnindexedCount"), UncachedBlueprints.Num());
+			Args.Add(TEXT("OutOfDateCount"), BlueprintsToUpdate.Num());
+			DialogDisplayText = FText::Format(LOCTEXT("CacheAllConfirmationMessage", "This process can take a long time and the editor may become unresponsive; there are {PackageCount} ({UnindexedCount} Unindexed/{OutOfDateCount} Out-of-Date) Blueprints to load. \
+																					\n\nWould you like to checkout, load, and save all Blueprints to make this indexing permanent? Otherwise, all Blueprints will still be loaded but you will be required to re-index the next time you start the editor!"), Args);
+		}
+		else if (UncachedBlueprints.Num() && BlueprintsToUpdate.Num() == 0)
+		{
+			DialogDisplayText = FText::Format(LOCTEXT("CacheAllConfirmationMessage", "This process can take a long time and the editor may become unresponsive; there are {PackageCount} unindexed Blueprints to load. \
+																					 \n\nWould you like to checkout, load, and save all Blueprints to make this indexing permanent? Otherwise, all Blueprints will still be loaded but you will be required to re-index the next time you start the editor!"), Args);
+		}
+		else if (UncachedBlueprints.Num() == 0 && BlueprintsToUpdate.Num())
+		{
+			DialogDisplayText = FText::Format(LOCTEXT("CacheAllConfirmationMessage", "This process can take a long time and the editor may become unresponsive; there are {PackageCount} out-of-date Blueprints to load. \
+																					 \n\nWould you like to checkout, load, and save all Blueprints to make this indexing permanent? Otherwise, all Blueprints will still be loaded but you will be required to re-index the next time you start the editor!"), Args);
+		}
+
+		const EAppReturnType::Type ReturnValue = FMessageDialog::Open(EAppMsgType::YesNoCancel, DialogDisplayText, &DialogTitle);
 
 		// If Yes is chosen, checkout and save all Blueprints, if No is chosen, only load all Blueprints
 		if (ReturnValue != EAppReturnType::Cancel)
@@ -1793,10 +1871,14 @@ void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindIn
 			// Add all failed to cache Blueprints to the UncachedBlueprints list and resubmit for caching
 			UncachedBlueprints.Append(FailedToCachePaths);
 			FailedToCachePaths.Empty();
+			
+			TArray<FName> TempUncachedBlueprints;
+			TempUncachedBlueprints.Append(UncachedBlueprints);
+			TempUncachedBlueprints.Append(BlueprintsToUpdate);
 
 			const bool bCheckoutAndSave = ReturnValue == EAppReturnType::Yes;
-			CachingObject = new FCacheAllBlueprintsTickableObject(UncachedBlueprints, bCheckoutAndSave);
-			OutActiveTimerDelegate.BindRaw(CachingObject, &FCacheAllBlueprintsTickableObject::Tick);
+			CachingObject = new FCacheAllBlueprintsTickableObject(MoveTemp(TempUncachedBlueprints), bCheckoutAndSave, InOnFinished);
+			InOutActiveTimerDelegate.BindRaw(CachingObject, &FCacheAllBlueprintsTickableObject::Tick);
 
 			const bool bIsSourceControlEnabled = ISourceControlModule::Get().IsEnabled();
 			if(!bIsSourceControlEnabled && bCheckoutAndSave)

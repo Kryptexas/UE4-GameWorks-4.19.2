@@ -204,19 +204,12 @@ FString UK2Node_Variable::GetFindReferenceSearchString() const
 	FString ResultSearchString;
 	if (VariableReference.IsLocalScope())
 	{
-		return FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s && MemberScope=+%s))"), *VariableReference.GetMemberName().ToString(), *VariableReference.GetMemberScopeName());
+		ResultSearchString = VariableReference.GetReferenceSearchString(nullptr);
 	}
 	else
 	{
-		FGuid Guid = VariableReference.GetMemberGuid();
-		if (Guid.IsValid())
-		{
-			ResultSearchString = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s && MemberGuid(A=%i && B=%i && C=%i && D=%i)))"), *VariableReference.GetMemberName().ToString(), Guid.A, Guid.B, Guid.C, Guid.D);
-		}
-		else
-		{
-			ResultSearchString = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s))"), *VariableReference.GetMemberName().ToString());
-		}
+		UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
+		ResultSearchString = VariableReference.GetReferenceSearchString(VariableProperty->GetOwnerClass());
 	}
 	return ResultSearchString;
 }

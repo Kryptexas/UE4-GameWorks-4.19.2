@@ -54,6 +54,7 @@
 #include "EditorCategoryUtils.h"
 #include "EngineUtils.h"
 #include "Engine/LevelScriptActor.h"
+#include "ClassIconFinder.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
@@ -8143,6 +8144,27 @@ void FBlueprintEditorUtils::PostSetupObjectPinType(UBlueprint* InBlueprint, FBPV
 			InOutVarDesc.PropertyFlags |= CPF_DisableEditOnTemplate;
 		}
 	}
+}
+
+const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType& PinType )
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	
+	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.TypeIcon"));
+	const UObject* PinSubObject = PinType.PinSubCategoryObject.Get();
+	if( PinType.bIsArray && PinType.PinCategory != K2Schema->PC_Exec )
+	{
+		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon"));
+	}
+	else if( PinSubObject )
+	{
+		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *PinSubObject->GetName());
+		if( VarClass )
+		{
+			IconBrush = FClassIconFinder::FindIconForClass( VarClass );
+		}
+	}
+	return IconBrush;
 }
 
 FText FBlueprintEditorUtils::GetFriendlyClassDisplayName(const UClass* Class)

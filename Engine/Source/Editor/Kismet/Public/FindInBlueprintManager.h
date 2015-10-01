@@ -98,6 +98,9 @@ struct FSearchData
 	/** Cached to determine if the Blueprint is seen as no longer valid, allows it to be cleared out next save to disk */
 	bool bMarkedForDeletion;
 
+	/** Cached ImaginaryBlueprint data for the searchable content, prevents having to re-parse every search */
+	TSharedPtr< class FImaginaryBlueprint > ImaginaryBlueprint;
+
 	/** Version of the data */
 	int32 Version;
 
@@ -117,7 +120,8 @@ struct FSearchData
 		, ParentClass(MoveTemp(Other.ParentClass))
 		, Interfaces(MoveTemp(Other.Interfaces))
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
-		, Version(0)
+		, Version(Other.Version)
+		, ImaginaryBlueprint(Other.ImaginaryBlueprint)
 	{
 	}
 
@@ -135,6 +139,7 @@ struct FSearchData
 		ParentClass = MoveTemp(RHS.ParentClass);
 		Interfaces = MoveTemp(RHS.Interfaces);
 		Version = RHS.Version;
+		ImaginaryBlueprint = RHS.ImaginaryBlueprint;
 		return *this;
 	}
 
@@ -146,6 +151,7 @@ struct FSearchData
 		, Interfaces(Other.Interfaces)
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
 		, Version(Other.Version)
+		, ImaginaryBlueprint(Other.ImaginaryBlueprint)
 	{
 	}
 
@@ -163,6 +169,7 @@ struct FSearchData
 		ParentClass = RHS.ParentClass;
 		Interfaces = RHS.Interfaces;
 		Version = RHS.Version;
+		ImaginaryBlueprint = RHS.ImaginaryBlueprint;
 		return *this;
 	}
 
@@ -170,6 +177,22 @@ struct FSearchData
 	~FSearchData()
 	{
 	}
+};
+
+/** Filters are used by functions for searching to decide whether items can call certain functions or match the requirements of a function */
+enum ESearchQueryFilter
+{
+	BlueprintFilter = 0,
+	GraphsFilter,
+	UberGraphsFilter,
+	FunctionsFilter,
+	MacrosFilter,
+	NodesFilter,
+	PinsFilter,
+	PropertiesFilter,
+	VariablesFilter,
+	ComponentsFilter,
+	AllFilter, // Will search all items, when used inside of another filter it will search all sub-items of that filter
 };
 
 /** Used for external gather functions to add Key/Value pairs to be placed into Json */
@@ -191,7 +214,7 @@ enum EFiBVersion
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	FIB_VER_PLUS_ONE,
-	FIB_VER_ALL = FIB_VER_PLUS_ONE - 1 // Always the last version, we want Blueprints to be at latest
+	FIB_VER_LATEST = FIB_VER_PLUS_ONE - 1 // Always the last version, we want Blueprints to be at latest
 };
 
 struct KISMET_API FFiBMD
@@ -212,7 +235,8 @@ class FStreamSearch : public FRunnable
 {
 public:
 	/** Constructor */
-	FStreamSearch(const FString& InSearchValue );
+	FStreamSearch(const FString& InSearchValue);
+	FStreamSearch(const FString& InSearchValue, enum ESearchQueryFilter InImaginaryDataFilter, EFiBVersion InMinimiumVersionRequirement);
 
 	/** Begin FRunnable Interface */
 	virtual bool Init() override;
@@ -240,6 +264,15 @@ public:
 	/** Helper function to query the percent complete this search is */
 	float GetPercentComplete() const;
 
+	/** Returns the Out-of-Date Blueprint count */
+	int32 GetOutOfDateCount() const
+	{
+		return BlueprintCountBelowVersion;
+	}
+
+	/** Returns the FilteredImaginaryResults from the search query, these results have been filtered by the ImaginaryDataFilter. */
+	void GetFilteredImaginaryResults(TArray<TSharedPtr<class FImaginaryFiBData>>& OutFilteredImaginaryResults);
+
 public:
 	/** Thread to run the cleanup FRunnable on */
 	FRunnableThread* Thread;
@@ -258,6 +291,18 @@ public:
 
 	/** > 0 if we've been asked to abort work in progress at the next opportunity */
 	FThreadSafeCounter StopTaskCounter;
+
+	/** When searching, any Blueprint below this version will be considered out-of-date */
+	EFiBVersion MinimiumVersionRequirement;
+
+	/** A going count of all Blueprints below the MinimiumVersionRequirement */
+	int32 BlueprintCountBelowVersion;
+
+	/** Filtered (ImaginaryDataFilter) list of imaginary data results that met the search requirements */
+	TArray<TSharedPtr<class FImaginaryFiBData>> FilteredImaginaryResults;
+
+	/** Filter to limit the FilteredImaginaryResults to */
+	enum ESearchQueryFilter ImaginaryDataFilter;
 };
 
 ////////////////////////////////////
@@ -334,10 +379,20 @@ public:
 	/**
 	 * Starts caching all uncached Blueprints at a rate of 1 per tick
 	 *
-	 * @param InSourceWidget		The source FindInBlueprints widget, this widget will be informed when caching is complete
+	 * @param InSourceWidget				The source FindInBlueprints widget, this widget will be informed when caching is complete
+	 * @param InOutActiveTimerDelegate		Binds an object that ticks every time the Find-in-Blueprints widget ticks to cache all Blueprints
+	 * @param InOnFinished					Callback when caching is finished
+	 * @param InMinimiumVersionRequirement	Minimum version requirement for caching, any Blueprints below this version will be re-indexed
 	 */
-	void CacheAllUncachedBlueprints(TWeakPtr< class SFindInBlueprints > InSourceWidgetm, FWidgetActiveTimerDelegate& OutActiveTimerDelegate);
-	void OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bCheckoutAndSave);
+	void CacheAllUncachedBlueprints(TWeakPtr< class SFindInBlueprints > InSourceWidget, FWidgetActiveTimerDelegate& InOutActiveTimerDelegate, FSimpleDelegate InOnFinished = FSimpleDelegate(), EFiBVersion InMinimiumVersionRequirement = EFiBVersion::FIB_VER_LATEST);
+	
+	/**
+	 * Starts the actual caching process
+	 *
+	 * @param bInSourceControlActive		TRUE if source control is active
+	 * @param bInCheckoutAndSave			TRUE if the system should checkout and save all assets that need to be reindexed
+	 */
+	void OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bInCheckoutAndSave);
 
 	/** Stops the caching process where it currently is at, the rest can be continued later */
 	void CancelCacheAll(SFindInBlueprints* InFindInBlueprintWidget);

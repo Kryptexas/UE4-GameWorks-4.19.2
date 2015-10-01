@@ -61,6 +61,14 @@ public:
 	 * @return								Search result shared pointer, can be used for display in the search results window
 	 */
 	FSearchResult StartSearchQuery(const FString& InSearchString, TSharedPtr<FImaginaryBlueprint> InImaginaryBlueprintRoot);
+
+	/**
+	 * Starts a search query given a string and an imaginary Blueprint
+	 *
+	 * @param InSearchString				The string to search using
+	 * @param InImaginaryBlueprintRoot		The imaginary Blueprint to search through
+	 */
+	void MakeSearchQuery(const FString& InSearchString, TSharedPtr<FImaginaryBlueprint> InImaginaryBlueprintRoot);
 	
 	/**
 	 * Runs a search query on any pending imaginary data
@@ -106,6 +114,12 @@ public:
 	 * @return						TRUE if the function was successful at finding valid results
 	 */
 	bool OnFilterDefaultFunction(const FTextFilterString& InFunctionName, const FTextFilterString& InFunctionParams);
+
+	/** Builds a list of search results in their imaginary data form, filtered by an object type */
+	void CreateFilteredResultsListFromTree(ESearchQueryFilter InSearchQueryFilter, TArray< TSharedPtr<FImaginaryFiBData> >& InOutValidSearchResults);
+
+	/** Helper function to return search results given an imaginary Blueprint root */
+	FSearchResult GetSearchResults(TSharedPtr<FImaginaryBlueprint> InImaginaryBlueprintRoot);
 public:
 	/** Current item being searched in the Imaginary Blueprint */
 	TWeakPtr< FImaginaryFiBData > CurrentSearchable;

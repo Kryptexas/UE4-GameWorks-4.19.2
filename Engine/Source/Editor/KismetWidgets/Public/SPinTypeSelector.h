@@ -137,14 +137,6 @@ protected:
 	/** Helper to generate the filtered list of types, based on the search string matching */
 	bool GetChildrenMatchingSearch(const FText& SearchText, const TArray<FPinTypeTreeItem>& UnfilteredList, TArray<FPinTypeTreeItem>& OutFilteredList);
 
-	/** 
-	 * Determine the best icon to represent the given pin.
-	 *
-	 * @param PinType		The pin get the icon for.
-	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
-	 */
-	const FSlateBrush* GetIconFromPin( const FEdGraphPinType& PinType ) const;
-
 	/** Callback to get the tooltip text for the pin type combo box */
 	FText GetToolTipForComboBoxType() const;
 

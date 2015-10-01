@@ -1238,6 +1238,14 @@ public:
 	 */
 	static class UK2Node_FunctionResult* FindOrCreateFunctionResultNode(class UK2Node_EditablePinBase* InFunctionEntryNode);
 
+	/** 
+	 * Determine the best icon to represent the given pin.
+	 *
+	 * @param PinType		The pin get the icon for.
+	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
+	 */
+	static const struct FSlateBrush* GetIconFromPin( const FEdGraphPinType& PinType );
+
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
 	static void CleanNullGraphReferencesRecursive(UEdGraph* Graph);

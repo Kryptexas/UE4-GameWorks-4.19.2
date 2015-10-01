@@ -43,6 +43,7 @@
 #include "Engine/TimelineTemplate.h"
 
 #include "BlueprintEditorSettings.h"
+#include "SReplaceNodeReferences.h"
 
 #define LOCTEXT_NAMESPACE "MyBlueprint"
 
@@ -172,7 +173,14 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		ToolKitCommandList->MapAction( FGraphEditorCommands::Get().FindReferences,
 			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindReference),
 			FCanExecuteAction(),
+			FIsActionChecked(),
 			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindReference) );
+
+		ToolKitCommandList->MapAction( FGraphEditorCommands::Get().FindAndReplaceReferences,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindAndReplaceReference),
+			FCanExecuteAction(),
+			FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindAndReplaceReference) );
 	
 		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
 			FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
@@ -1557,11 +1565,11 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 		CurrentBlueprint = BlueprintEditor->GetBlueprintObj();
 		CurrentInspector = BlueprintEditor->GetInspector();
 
-		OnActionSelectedHelper(InAction, Blueprint, CurrentInspector.ToSharedRef());
+		OnActionSelectedHelper(InAction, BlueprintEditorPtr, Blueprint, CurrentInspector.ToSharedRef());
 	}
 }
 
-void SMyBlueprint::OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector)
+void SMyBlueprint::OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, TWeakPtr< FBlueprintEditor > InBlueprintEditor, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector)
 {
 	if (InAction.IsValid())
 	{
@@ -1592,6 +1600,7 @@ void SMyBlueprint::OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAct
 			Options.bForceRefresh = true;
 
 			Inspector->ShowDetailsForSingleObject(VarAction->GetProperty(), Options);
+			InBlueprintEditor.Pin()->GetReplaceReferencesWidget()->SetSourceVariable(VarAction->GetProperty());
 		}
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
 		{
@@ -1772,7 +1781,7 @@ FEdGraphSchemaAction_K2InputAction* SMyBlueprint::SelectionAsInputAction() const
 
 bool SMyBlueprint::SelectionIsCategory() const
 {
-	return !GraphActionMenu->GetSelectedCategoryName().IsEmpty();
+	return !SelectionHasContextMenu();
 }
 
 bool SMyBlueprint::SelectionHasContextMenu() const
@@ -1849,6 +1858,7 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("Rename", "Rename"), LOCTEXT("Rename_Tooltip", "Renames this function or variable from blueprint.") );
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().ImplementFunction);
 			MenuBuilder.AddMenuEntry(FGraphEditorCommands::Get().FindReferences);
+			MenuBuilder.AddMenuEntry(FGraphEditorCommands::Get().FindAndReplaceReferences);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().GotoNativeVarDefinition);
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().DeleteEntry);
@@ -2166,6 +2176,21 @@ bool SMyBlueprint::CanFindReference() const
 	}
 
 	return true;
+}
+
+void SMyBlueprint::OnFindAndReplaceReference()
+{
+	BlueprintEditorPtr.Pin()->SummonFindAndReplaceUI();
+}
+
+bool SMyBlueprint::CanFindAndReplaceReference() const
+{
+	if (SelectionAsVar() && GetDefault<UEditorExperimentalSettings>()->bEnableFindAndReplaceReferences)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void SMyBlueprint::OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph::Type InGraphType)

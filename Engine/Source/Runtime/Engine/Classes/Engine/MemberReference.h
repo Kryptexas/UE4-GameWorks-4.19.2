@@ -228,6 +228,17 @@ public:
 	{
 		return !MemberScope.IsEmpty();
 	}
+
+#if WITH_EDITOR
+	/**
+	 * Returns a search string to submit to Find-in-Blueprints to find references to this reference
+	 *
+	 * @param InFieldOwner		The owner of the field, cannot be resolved internally
+	 * @return					Search string to find this reference in other Blueprints
+	 */
+	ENGINE_API FString GetReferenceSearchString(UClass* InFieldOwner) const;
+#endif
+
 private:
 #if WITH_EDITOR
 	/**

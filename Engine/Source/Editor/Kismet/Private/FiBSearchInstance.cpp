@@ -147,6 +147,17 @@ FSearchResult FFiBSearchInstance::StartSearchQuery(const FString& InSearchString
 	PendingSearchables.Add(InImaginaryBlueprintRoot);
 	DoSearchQuery(InSearchString);
 
+	return GetSearchResults(InImaginaryBlueprintRoot);
+}
+
+void FFiBSearchInstance::MakeSearchQuery(const FString& InSearchString, TSharedPtr<FImaginaryBlueprint> InImaginaryBlueprintRoot)
+{
+	PendingSearchables.Add(InImaginaryBlueprintRoot);
+	DoSearchQuery(InSearchString);
+}
+
+FSearchResult FFiBSearchInstance::GetSearchResults(TSharedPtr<FImaginaryBlueprint> InImaginaryBlueprintRoot)
+{
 	FSearchResult CachedSearchResult = FImaginaryFiBData::CreateSearchTree(nullptr, InImaginaryBlueprintRoot, MatchesSearchQuery, MatchingSearchComponents);
 	return MatchesSearchQuery.Num() > 0? CachedSearchResult : nullptr;
 }
@@ -196,6 +207,18 @@ bool FFiBSearchInstance::DoSearchQuery(const FString& InSearchString, bool bInCo
 	CurrentSearchable.Reset();
 
 	return MatchesSearchQuery.Num() > 0;
+}
+
+void FFiBSearchInstance::CreateFilteredResultsListFromTree(ESearchQueryFilter InSearchQueryFilter, TArray< TSharedPtr<FImaginaryFiBData> >& InOutValidSearchResults)
+{
+	for (const FImaginaryFiBData* ImaginaryDataPtr : MatchesSearchQuery)
+	{
+		if (!ImaginaryDataPtr->IsCategory() && ImaginaryDataPtr->IsCompatibleWithFilter(InSearchQueryFilter))
+		{
+			FImaginaryFiBData* NonCastImaginaryDataPtr = const_cast<FImaginaryFiBData*>(ImaginaryDataPtr);
+			InOutValidSearchResults.Add(NonCastImaginaryDataPtr->AsShared());
+		}
+	}
 }
 
 void FFiBSearchInstance::BuildFunctionTargets(TSharedPtr<FImaginaryFiBData> InRootData, ESearchQueryFilter InSearchQueryFilter, TArray< TWeakPtr< FImaginaryFiBData > >& OutTargetPendingSearchables)

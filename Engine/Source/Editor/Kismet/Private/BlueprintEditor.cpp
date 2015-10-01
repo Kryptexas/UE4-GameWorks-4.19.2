@@ -53,6 +53,7 @@
 #include "SBlueprintPalette.h"
 #include "SBlueprintActionMenu.h"
 #include "SMyBlueprint.h"
+#include "SReplaceNodeReferences.h"
 #include "FindInBlueprints.h"
 // End of core kismet tabs
 
@@ -661,6 +662,11 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 		MyBlueprintWidget->Refresh();
 	}
 
+	if (ReplaceReferencesWidget.IsValid())
+	{
+		ReplaceReferencesWidget->Refresh();
+	}
+
 	if (SCSEditor.IsValid())
 	{
 		SCSEditor->UpdateTree();
@@ -725,6 +731,11 @@ void FBlueprintEditor::SummonSearchUI(bool bSetFindWithinBlueprint, FString NewS
 {
 	TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
 	FindResults->FocusForUse(bSetFindWithinBlueprint, NewSearchTerms, bSelectFirstResult);
+}
+
+void FBlueprintEditor::SummonFindAndReplaceUI()
+{
+	TabManager->InvokeTab(FBlueprintEditorTabs::ReplaceNodeReferencesID);
 }
 
 void FBlueprintEditor::EnableSCSPreview(bool bEnable)
@@ -2181,6 +2192,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 	if (IsEditingSingleBlueprint())
 	{
 		this->MyBlueprintWidget = SNew(SMyBlueprint, SharedThis(this));
+		this->ReplaceReferencesWidget = SNew(SReplaceNodeReferences, SharedThis(this));
 	}
 	
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");

@@ -7,6 +7,7 @@
 #include "Editor/UnrealEd/Public/SListViewSelectorDropdownMenu.h"
 #include "SSearchBox.h"
 #include "SSubMenuHandler.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "PinTypeSelector"
 
@@ -207,7 +208,7 @@ FText SPinTypeSelector::GetTypeDescription() const
 
 const FSlateBrush* SPinTypeSelector::GetTypeIconImage() const
 {
-	return GetIconFromPin( TargetPinType.Get() );
+	return FBlueprintEditorUtils::GetIconFromPin( TargetPinType.Get() );
 }
 
 FSlateColor SPinTypeSelector::GetTypeIconColor() const
@@ -242,7 +243,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 	const FEdGraphPinType& PinType = InItem->GetPinType(false);
 
 	// Determine the best icon the to represents this item
-	const FSlateBrush* IconBrush = GetIconFromPin(PinType);
+	const FSlateBrush* IconBrush = FBlueprintEditorUtils::GetIconFromPin(PinType);
 
 	// Use tooltip if supplied, otherwise just repeat description
 	const FText OrgTooltip = InItem->GetToolTip();
@@ -381,7 +382,7 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 
 	// Do not force the pin type here, that causes a load of the Blueprint (if unloaded)
 	FEdGraphPinType PinType = InItem->GetPinType(false);
-	const FSlateBrush* IconBrush = GetIconFromPin(PinType);
+	const FSlateBrush* IconBrush = FBlueprintEditorUtils::GetIconFromPin(PinType);
 
 	FFormatNamedArguments Args;
 
@@ -707,25 +708,6 @@ bool SPinTypeSelector::GetChildrenMatchingSearch(const FText& InSearchText, cons
 	}
 
 	return bReturnVal;
-}
-
-const FSlateBrush* SPinTypeSelector::GetIconFromPin( const FEdGraphPinType& PinType ) const
-{
-	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.TypeIcon"));
-	const UObject* PinSubObject = PinType.PinSubCategoryObject.Get();
-	if( (PinType.bIsArray || (IsArrayChecked() == ECheckBoxState::Checked)) && PinType.PinCategory != Schema->PC_Exec )
-	{
-		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon"));
-	}
-	else if( PinSubObject )
-	{
-		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *PinSubObject->GetName());
-		if( VarClass )
-		{
-			IconBrush = FClassIconFinder::FindIconForClass( VarClass );
-		}
-	}
-	return IconBrush;
 }
 
 FText SPinTypeSelector::GetToolTipForComboBoxType() const
