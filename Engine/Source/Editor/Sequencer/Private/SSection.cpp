@@ -564,6 +564,17 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 
 		MenuBuilder.BeginSection("SequencerKeys", NSLOCTEXT("Sequencer", "KeysMenu", "Keys"));
 		{
+			const bool bUseFrames = SequencerSnapValues::IsTimeSnapIntervalFrameRate(Sequencer.GetSettings()->GetTimeSnapInterval());
+
+			MenuBuilder.AddMenuEntry(
+				bUseFrames ? NSLOCTEXT("Sequencer", "SetKeyFrame", "Set Key Frame") : NSLOCTEXT("Sequencer", "SetKeyTime", "Set key time"),
+				bUseFrames ? NSLOCTEXT("Sequencer", "SetKeyFrameTooltip", "Set key frame") : NSLOCTEXT("Sequencer", "SetKeyTimeTooltip", "Set key time"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SetKeyTime, bUseFrames),
+					FCanExecuteAction::CreateSP(&Sequencer, &FSequencer::CanSetKeyTime))
+			);
+
 			MenuBuilder.AddMenuEntry(
 				NSLOCTEXT("Sequencer", "SnapToFrame", "Snap to Frame"),
 				NSLOCTEXT("Sequencer", "SnapToFrameToolTip", "Snap selected keys to frame"),

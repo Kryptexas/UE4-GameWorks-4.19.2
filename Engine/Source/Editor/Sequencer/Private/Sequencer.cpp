@@ -41,6 +41,7 @@
 #include "Engine/Selection.h"
 #include "LevelEditor.h"
 #include "IMenu.h"
+#include "STextEntryPopup.h"
 
 #include "MovieSceneCaptureModule.h"
 #include "AutomatedLevelSequenceCapture.h"
@@ -2134,6 +2135,90 @@ void FSequencer::SetKey()
 	
 			KeyArea->AddKeyUnique(GetGlobalTime(), GetKeyInterpolation());
 		}
+	}
+}
+
+bool FSequencer::CanSetKeyTime() const
+{
+	return Selection.GetSelectedKeys().Num() > 0;
+}
+
+void FSequencer::SetKeyTime(const bool bUseFrames)
+{
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
+
+	float KeyTime = 0.f;
+	for ( const FSelectedKey& Key : SelectedKeysArray )
+	{
+		if (Key.IsValid())
+		{
+			KeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
+			break;
+		}
+	}
+
+	float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+	
+	GenericTextEntryModeless(
+		bUseFrames ? NSLOCTEXT("Sequencer.Popups", "SetKeyFramePopup", "New Frame") : NSLOCTEXT("Sequencer.Popups", "SetKeyTimePopup", "New Time"),
+		bUseFrames ? FText::AsNumber( SequencerHelpers::TimeToFrame( KeyTime, FrameRate )) : FText::AsNumber( KeyTime ),
+		FOnTextCommitted::CreateSP(this, &FSequencer::OnSetKeyTimeTextCommitted, bUseFrames)
+		);
+}
+
+void FSequencer::OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, const bool bUseFrames)
+{
+	CloseEntryPopupMenu();
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+		double dNewTime = bUseFrames ? SequencerHelpers::FrameToTime(FCString::Atod(*InText.ToString()), FrameRate) : FCString::Atod(*InText.ToString());
+		const bool bIsNumber = InText.IsNumeric(); 
+		if(!bIsNumber)
+			return;
+
+		const float NewKeyTime = (float)dNewTime;
+
+		FScopedTransaction SetKeyTimeTransaction(NSLOCTEXT("Sequencer", "SetKeyTime_Transaction", "Set Key Time"));
+
+		TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
+	
+		for ( const FSelectedKey& Key : SelectedKeysArray )
+		{
+			if (Key.IsValid())
+			{
+				Key.Section->Modify();
+				Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
+			}
+		}
+	}
+}
+
+void FSequencer::GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted)
+{
+	TSharedRef<STextEntryPopup> TextEntryPopup = 
+		SNew(STextEntryPopup)
+		.Label(DialogText)
+		.DefaultText(DefaultText)
+		.OnTextCommitted(OnTextComitted)
+		.ClearKeyboardFocusOnCommit(false)
+		.SelectAllTextWhenFocused(true)
+		.MaxWidth(1024.0f);
+
+	EntryPopupMenu = FSlateApplication::Get().PushMenu(
+		ToolkitHost.Pin()->GetParentWidget(),
+		FWidgetPath(),
+		TextEntryPopup,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+		);
+}
+
+void FSequencer::CloseEntryPopupMenu()
+{
+	if (EntryPopupMenu.IsValid())
+	{
+		EntryPopupMenu.Pin()->Dismiss();
 	}
 }
 
