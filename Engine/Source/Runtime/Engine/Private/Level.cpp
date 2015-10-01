@@ -1675,8 +1675,9 @@ void ULevel::ReleaseRenderingResources()
 void ULevel::RouteActorInitialize()
 {
 	// Send PreInitializeComponents and collect volumes.
-	for( AActor* const Actor : Actors )
+	for( int32 Index = 0; Index < Actors.Num(); ++Index )
 	{
+		AActor* const Actor = Actors[Index];
 		if( Actor && !Actor->IsActorInitialized() )
 		{
 			Actor->PreInitializeComponents();

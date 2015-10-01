@@ -299,6 +299,7 @@ void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 					{
 						NewPin->PinType = OldPin->ParentPin->PinType;
 						GetSchema()->SplitPin(NewPin);
+						break;
 					}
 				}
 			}
