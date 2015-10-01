@@ -55,7 +55,7 @@ It is possible to create a child Blueprint based on a parent Blueprint, similar 
 
 The parent Blueprint is **BP_Pickup_Parent_C**, and the three child Blueprints are:
 
-*  **BP_Pickup_Child_Health**
+* **BP_Pickup_Child_Health**
 * **BP_Pickup_Child_Coin**
 * **BP_Pickup_Child_Cupcake**
 
