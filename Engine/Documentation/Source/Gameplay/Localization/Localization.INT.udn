@@ -3,6 +3,7 @@ Title: Localization
 Crumbs:%ROOT%, Gameplay
 Description:Information about how to localize your project.
 Related: Programming/UnrealArchitecture/StringHandling/FText
+version: 4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
