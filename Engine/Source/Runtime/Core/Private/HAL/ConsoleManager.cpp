@@ -121,12 +121,24 @@ public:
 		{
 			FConsoleManager& ConsoleManager = (FConsoleManager&)IConsoleManager::Get();
 			FString CVarName = ConsoleManager.FindConsoleObjectName(this);
-			UE_LOG(LogConsoleManager, Warning,
-				TEXT("A console variable Set() for '%s' failed. The access with 'SetBy%s' failed because 'SetBy%s' did set it before and and has a higher priority (this might be an intentional override)"),
+
+			const FString Message = FString::Printf(TEXT("Setting the console variable '%s' with 'SetBy%s' was ignored as it is lower priority than the previous 'SetBy%s'"),
 				CVarName.IsEmpty() ? TEXT("unknown?") : *CVarName,
 				GetSetByTCHAR((EConsoleVariableFlags)NewPri),
 				GetSetByTCHAR((EConsoleVariableFlags)OldPri)
 				);
+
+			// If it was set by an ini that has to be hand edited, it is not an issue if a lower priority system tried and failed to set it afterwards
+			const bool bIntentionallyIgnored = (OldPri == EConsoleVariableFlags::ECVF_SetBySystemSettingsIni);
+
+			if (bIntentionallyIgnored)
+			{
+				UE_LOG(LogConsoleManager, Display, TEXT("%s"), *Message);
+			}
+			else
+			{
+				UE_LOG(LogConsoleManager, Warning, TEXT("%s"), *Message);
+			}
 		}
 
 		return bRet;
