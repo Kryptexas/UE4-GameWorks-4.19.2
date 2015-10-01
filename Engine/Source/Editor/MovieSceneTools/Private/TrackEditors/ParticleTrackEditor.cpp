@@ -235,14 +235,12 @@ bool FParticleTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) co
 }
 
 
-TSharedRef<ISequencerSection> FParticleTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FParticleTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
-	
-	const TSharedPtr<ISequencer> OwningSequencer = GetSequencer();
-	TSharedRef<ISequencerSection> NewSection( new FParticleSection( SectionObject, OwningSequencer.ToSharedRef() ) );
 
-	return NewSection;
+	const TSharedPtr<ISequencer> OwningSequencer = GetSequencer();
+	return MakeShareable( new FParticleSection( SectionObject, OwningSequencer.ToSharedRef() ) );
 }
 
 

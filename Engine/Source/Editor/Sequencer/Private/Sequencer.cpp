@@ -1555,20 +1555,23 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> N
 		TSharedRef<const FTrackNode> SectionAreaNode = StaticCastSharedRef<const FTrackNode>( NodeToBeDeleted );
 		UMovieSceneTrack* Track = SectionAreaNode->GetTrack();
 
-		if( OwnerMovieScene->IsAMasterTrack( Track ) )
+		if (Track != nullptr)
 		{
-			OwnerMovieScene->RemoveMasterTrack( Track );
-		}
-		else if( OwnerMovieScene->GetShotTrack() == Track )
-		{
-			OwnerMovieScene->RemoveShotTrack();
-		}
-		else
-		{
-			OwnerMovieScene->RemoveTrack( Track );
-		}
+			if( OwnerMovieScene->IsAMasterTrack( *Track ) )
+			{
+				OwnerMovieScene->RemoveMasterTrack( Track );
+			}
+			else if( OwnerMovieScene->GetShotTrack() == Track )
+			{
+				OwnerMovieScene->RemoveShotTrack();
+			}
+			else
+			{
+				OwnerMovieScene->RemoveTrack( Track );
+			}
 		
-		bAnythingRemoved = true;
+			bAnythingRemoved = true;
+		}
 	}
 	else if ( NodeToBeDeleted->GetType() == ESequencerNode::Category )
 	{

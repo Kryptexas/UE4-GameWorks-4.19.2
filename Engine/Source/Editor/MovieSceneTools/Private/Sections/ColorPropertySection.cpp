@@ -6,6 +6,7 @@
 #include "ColorPropertySection.h"
 #include "MovieSceneSequence.h"
 
+
 void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
 {
 	UMovieSceneColorSection* ColorSection = Cast<UMovieSceneColorSection>( &SectionObject );
@@ -15,6 +16,7 @@ void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& 
 	LayoutBuilder.AddKeyArea( "B", NSLOCTEXT( "FColorPropertySection", "BlueArea", "Blue" ), MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetBlueCurve(), ColorSection ) ) );
 	LayoutBuilder.AddKeyArea( "A", NSLOCTEXT( "FColorPropertySection", "OpacityArea", "Opacity" ), MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetAlphaCurve(), ColorSection ) ) );
 }
+
 
 int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
@@ -74,50 +76,8 @@ int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, 
 void FColorPropertySection::ConsolidateColorCurves( TArray< TKeyValuePair<float, FLinearColor> >& OutColorKeys, const UMovieSceneColorSection* Section ) const
 {
 	// Get the default color of the first instance
-	FLinearColor DefaultColor( 0.0f, 0.0f, 0.0f, 0.0f );
-
-	static const FName SlateColorName( "SlateColor" );
-
-	UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
-
-	const TArray<FMovieSceneBinding>& MovieSceneBindings = Sequence->GetMovieScene()->GetBindings();
-
-	bool bFoundColor = false;
-	for ( int32 BindingIndex = 0; BindingIndex < MovieSceneBindings.Num() && !bFoundColor; ++BindingIndex )
-	{
-		const FMovieSceneBinding& MovieSceneBinding = MovieSceneBindings[BindingIndex];
-
-		for ( int32 TrackIndex = 0; TrackIndex < MovieSceneBinding.GetTracks().Num() && !bFoundColor; ++TrackIndex )
-		{
-			if ( MovieSceneBinding.GetTracks()[TrackIndex] == Track )
-			{
-				UObject* RuntimeObject = Sequence->FindObject( MovieSceneBinding.GetObjectGuid() );
-
-				if ( RuntimeObject != nullptr )
-				{
-					UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName( CastChecked<UMovieSceneColorTrack>( Track )->GetPropertyName() );
-					UStructProperty* ColorStructProp = Cast<UStructProperty>( Property );
-					if ( ColorStructProp && ColorStructProp->Struct )
-					{
-						if ( ColorStructProp->Struct->GetFName() == SlateColorName )
-						{
-							DefaultColor = (*Property->ContainerPtrToValuePtr<FSlateColor>( RuntimeObject )).GetSpecifiedColor();
-						}
-						else if ( ColorStructProp->Struct->GetFName() == NAME_LinearColor )
-						{
-							DefaultColor = *Property->ContainerPtrToValuePtr<FLinearColor>( RuntimeObject );
-						}
-						else
-						{
-							DefaultColor = Property->ContainerPtrToValuePtr<FColor>( RuntimeObject )->ReinterpretAsLinear();
-						}
-						bFoundColor = true;
-						break;
-					}
-				}
-			}
-		}
-	}
+	static const FName SlateColorName("SlateColor");
+	FLinearColor DefaultColor = FindSlateColor(SlateColorName);
 
 	// @todo Sequencer Optimize - This could all get cached, instead of recalculating everything every OnPaint
 
@@ -180,4 +140,51 @@ void FColorPropertySection::ConsolidateColorCurves( TArray< TKeyValuePair<float,
 	{
 		OutColorKeys.Add( TKeyValuePair<float, FLinearColor>( TimesWithKeys[i], Section->Eval( TimesWithKeys[i], DefaultColor ) ) );
 	}
+}
+
+
+FLinearColor FColorPropertySection::FindSlateColor(const FName& ColorName) const
+{
+	const UMovieSceneSequence* FocusedSequence = Sequencer->GetFocusedMovieSceneSequence();
+	const TArray<FMovieSceneBinding>& FocusedBindings = FocusedSequence->GetMovieScene()->GetBindings();
+
+	for (const FMovieSceneBinding& Binding : FocusedBindings)
+	{
+		for (const UMovieSceneTrack* BindingTrack : Binding.GetTracks())
+		{
+			if (BindingTrack != &Track)
+			{
+				continue;
+			}
+
+			UObject* RuntimeObject = FocusedSequence->FindObject(Binding.GetObjectGuid());
+
+			if (RuntimeObject == nullptr)
+			{
+				continue;
+			}
+
+			UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(Track.GetPropertyName());
+			UStructProperty* ColorStructProp = Cast<UStructProperty>(Property);
+			
+			if ((ColorStructProp == nullptr) || (ColorStructProp->Struct == nullptr))
+			{
+				continue;
+			}
+
+			if (ColorStructProp->Struct->GetFName() == ColorName)
+			{
+				return (*Property->ContainerPtrToValuePtr<FSlateColor>(RuntimeObject)).GetSpecifiedColor();
+			}
+
+			if (ColorStructProp->Struct->GetFName() == NAME_LinearColor)
+			{
+				return *Property->ContainerPtrToValuePtr<FLinearColor>(RuntimeObject);
+			}
+
+			return Property->ContainerPtrToValuePtr<FColor>(RuntimeObject)->ReinterpretAsLinear();
+		}
+	}
+
+	return FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }

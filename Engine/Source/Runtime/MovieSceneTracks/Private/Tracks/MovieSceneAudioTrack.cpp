@@ -134,7 +134,7 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
-	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(this);
+	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(*this);
 }
 
 

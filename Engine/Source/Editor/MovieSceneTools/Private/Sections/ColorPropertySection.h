@@ -7,21 +7,45 @@ class UMovieSceneColorSection;
 /**
 * A color section implementation
 */
-class FColorPropertySection : public FPropertySection
+class FColorPropertySection
+	: public FPropertySection
 {
 public:
-	FColorPropertySection( UMovieSceneSection& InSectionObject, FName SectionName, ISequencer* InSequencer, UMovieSceneTrack* InTrack )
-		: FPropertySection( InSectionObject, SectionName )
-		, Sequencer( InSequencer )
-		, Track( InTrack ) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InSectionObject
+	 * @param SectionName The name of the section.
+	 * @param InSequencer The sequencer that manages the section.
+	 * @param InTrack The track that owns the section.
+	 */
+	FColorPropertySection(UMovieSceneSection& InSectionObject, ISequencer* InSequencer, UMovieSceneTrack& InTrack)
+		: FPropertySection(InSectionObject, InTrack.GetTrackName())
+		, Sequencer(InSequencer)
+		, Track(*Cast<UMovieSceneColorTrack>(&InTrack))
+	{ }
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
+public:
+
+	// FPropertySection interface
+
+	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;
+	virtual int32 OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const override;
+
+protected:
+
+	/** Consolidate color curves for all track sections. */
+	void ConsolidateColorCurves(TArray< TKeyValuePair<float, FLinearColor> >& OutColorKeys, const UMovieSceneColorSection* Section) const;
+	
+	/** Find the Slate color of the specified name in the track. */
+	FLinearColor FindSlateColor(const FName& ColorName) const;
 
 private:
-	void ConsolidateColorCurves( TArray< TKeyValuePair<float, FLinearColor> >& OutColorKeys, const UMovieSceneColorSection* Section ) const;
 
+	/** The sequencer that manages the section. */
 	ISequencer* Sequencer;
-	UMovieSceneTrack* Track;
+
+	/** The track that owns the section. */
+	UMovieSceneColorTrack& Track;
 };

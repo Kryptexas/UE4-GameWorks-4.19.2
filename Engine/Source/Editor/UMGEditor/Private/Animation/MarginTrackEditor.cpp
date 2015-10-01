@@ -34,15 +34,12 @@ TSharedRef<ISequencerTrackEditor> FMarginTrackEditor::CreateTrackEditor( TShared
 }
 
 
-TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
 	UClass* SectionClass = SectionObject.GetOuter()->GetClass();
-
-	TSharedRef<ISequencerSection> NewSection = MakeShareable( new FMarginPropertySection( SectionObject, Track->GetTrackName() ) );
-
-	return NewSection;
+	return MakeShareable( new FMarginPropertySection( SectionObject, Track.GetTrackName() ) );
 }
 
 

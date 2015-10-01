@@ -472,14 +472,12 @@ bool FAudioTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 }
 
 
-TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 	
-	bool bIsAMasterTrack = Cast<UMovieScene>(Track->GetOuter())->IsAMasterTrack(Track);
-	TSharedRef<ISequencerSection> NewSection( new FAudioSection(SectionObject, bIsAMasterTrack) );
-
-	return NewSection;
+	bool bIsAMasterTrack = Cast<UMovieScene>(Track.GetOuter())->IsAMasterTrack(Track);
+	return MakeShareable( new FAudioSection(SectionObject, bIsAMasterTrack) );
 }
 
 

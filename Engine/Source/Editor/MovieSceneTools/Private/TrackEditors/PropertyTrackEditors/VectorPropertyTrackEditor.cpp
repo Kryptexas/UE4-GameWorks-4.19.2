@@ -12,9 +12,9 @@ TSharedRef<ISequencerTrackEditor> FVectorPropertyTrackEditor::CreateTrackEditor(
 }
 
 
-TSharedRef<ISequencerSection> FVectorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FVectorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
-	return MakeShareable(new FVectorPropertySection( SectionObject, Track->GetTrackName() ));
+	return MakeShareable(new FVectorPropertySection( SectionObject, Track.GetTrackName() ));
 }
 
 
