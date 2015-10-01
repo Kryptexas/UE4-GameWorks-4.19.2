@@ -19,13 +19,12 @@ SWebBrowser::~SWebBrowser()
 {
 	if (BrowserWindow.IsValid())
 	{
-		BrowserWindow->OnCreateWindow().Unbind();		
+		BrowserWindow->OnCreateWindow().Unbind();
 		BrowserWindow->OnCloseWindow().Unbind();
 		BrowserWindow->OnDocumentStateChanged().RemoveAll(this);
 		BrowserWindow->OnNeedsRedraw().RemoveAll(this);
 		BrowserWindow->OnTitleChanged().RemoveAll(this);
 		BrowserWindow->OnUrlChanged().RemoveAll(this);
-		BrowserWindow->OnToolTip().RemoveAll(this);
 		BrowserWindow->OnShowPopup().RemoveAll(this);
 		BrowserWindow->OnDismissPopup().RemoveAll(this);
 		BrowserWindow->OnBeforeBrowse().Unbind();
@@ -68,9 +67,6 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 			OSWindowHandle = NativeWindow->GetOSWindowHandle();
 		}
 
-		static bool AllowCEF = !FParse::Param(FCommandLine::Get(), TEXT("nocef"));
-		if (AllowCEF)
-		{
 		BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(
 			OSWindowHandle,
 			InArgs._InitialURL,
@@ -79,9 +75,12 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 			InArgs._ContentsToLoad,
 			InArgs._ShowErrorMessage,
 			InArgs._BackgroundColor
-			);		
-		}
+			);
 	}
+
+	TSharedRef<SWidget> BrowserWidgetRef = BrowserWindow.IsValid() ? BrowserWindow->CreateWidget(InArgs._ViewportSize) : SNullWidget::NullWidget;
+	BrowserWidgetRef->SetVisibility(TAttribute<EVisibility>(this, &SWebBrowser::GetViewportVisibility));
+	BrowserWidget = BrowserWidgetRef;
 
 	ChildSlot
 	[
@@ -150,16 +149,11 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		+SVerticalBox::Slot()
 		[
 			SNew(SOverlay)
-			+SOverlay::Slot()
+			+ SOverlay::Slot()
 			[
-				SAssignNew(ViewportWidget, SViewport)
-				.ViewportSize(InArgs._ViewportSize)
-				.EnableGammaCorrection(false)
-				.EnableBlending(InArgs._SupportsTransparency)
-				.IgnoreTextureAlpha(!InArgs._SupportsTransparency)
-				.Visibility(this, &SWebBrowser::GetViewportVisibility)
+				BrowserWidgetRef
 			]
-			+SOverlay::Slot()
+			+ SOverlay::Slot()
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
@@ -175,7 +169,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	{
 		if(OnCreateWindow.IsBound())
 		{
-			BrowserWindow->OnCreateWindow().BindSP(this, &SWebBrowser::HandleCreateWindow);		
+			BrowserWindow->OnCreateWindow().BindSP(this, &SWebBrowser::HandleCreateWindow);
 		}
 
 		if(OnCloseWindow.IsBound())
@@ -187,7 +181,6 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow->OnNeedsRedraw().AddSP(this, &SWebBrowser::HandleBrowserWindowNeedsRedraw);
 		BrowserWindow->OnTitleChanged().AddSP(this, &SWebBrowser::HandleTitleChanged);
 		BrowserWindow->OnUrlChanged().AddSP(this, &SWebBrowser::HandleUrlChanged);
-		BrowserWindow->OnToolTip().AddSP(this, &SWebBrowser::HandleToolTip);
 		BrowserWindow->OnBeforeBrowse().BindSP(this, &SWebBrowser::HandleBeforeNavigation);
 		BrowserWindow->OnLoadUrl().BindSP(this, &SWebBrowser::HandleLoadUrl);
 		BrowserWindow->OnShowDialog().BindSP(this, &SWebBrowser::HandleShowDialog);
@@ -195,8 +188,6 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 		BrowserWindow->OnBeforePopup().BindSP(this, &SWebBrowser::HandleBeforePopup);
 		BrowserWindow->OnShowPopup().AddSP(this, &SWebBrowser::HandleShowPopup);
 		BrowserWindow->OnDismissPopup().AddSP(this, &SWebBrowser::HandleDismissPopup);
-		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow));
-		ViewportWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
 	}
 	else
 	{
@@ -429,20 +420,6 @@ void SWebBrowser::HandleUrlChanged( FString NewUrl )
 	OnUrlChanged.ExecuteIfBound(AddressBarUrl);
 }
 
-void SWebBrowser::HandleToolTip(FString ToolTipText)
-{
-	if(ToolTipText.IsEmpty())
-	{
-		FSlateApplication::Get().CloseToolTip();
-		ViewportWidget->SetToolTip(nullptr);
-	}
-	else
-	{
-		ViewportWidget->SetToolTipText(FText::FromString(ToolTipText));
-		FSlateApplication::Get().UpdateToolTip(true);
-	}
-}
-
 bool SWebBrowser::HandleBeforeNavigation(const FString& Url, bool bIsRedirect)
 {
 	if(OnBeforeNavigation.IsBound())
@@ -560,7 +537,7 @@ void SWebBrowser::HandleShowPopup(const FIntRect& PopupSize)
 	MenuViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, true));
 	MenuContent->SetViewportInterface(MenuViewport.ToSharedRef());
 	FWidgetPath WidgetPath;
-	FSlateApplication::Get().GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), WidgetPath);
+	FSlateApplication::Get().GeneratePathToWidgetUnchecked(BrowserWidget.ToSharedRef(), WidgetPath);
 	if (WidgetPath.IsValid())
 	{
 		TSharedRef< SWidget > MenuContentRef = MenuContent.ToSharedRef();
@@ -569,7 +546,7 @@ void SWebBrowser::HandleShowPopup(const FIntRect& PopupSize)
 
 
 		// Open the pop-up. The popup method will be queried from the widget path passed in.
-		TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(ViewportWidget.ToSharedRef(), WidgetPath, MenuContentRef, NewPosition, FPopupTransitionEffect( FPopupTransitionEffect::ComboButton ), false);
+		TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(BrowserWidget.ToSharedRef(), WidgetPath, MenuContentRef, NewPosition, FPopupTransitionEffect( FPopupTransitionEffect::ComboButton ), false);
 		NewMenu->GetOnMenuDismissed().AddSP(this, &SWebBrowser::HandleMenuDismissed);
 		PopupMenuPtr = NewMenu;
 	}

@@ -244,9 +244,6 @@ private:
 	/** Callback for loaded url changes. */
 	void HandleUrlChanged(FString NewUrl);
 	
-	/** Callback for showing browser tool tips. */
-	void HandleToolTip(FString ToolTipText);
-
 	/**
 	 * A delegate that is executed prior to browser navigation.
 	 *
@@ -295,13 +292,10 @@ private:
 	/** Interface for dealing with a web browser window. */
 	TSharedPtr<IWebBrowserWindow> BrowserWindow;
 
-	/** Viewport interface for rendering the web page. */
-	TSharedPtr<FWebBrowserViewport> BrowserViewport;
+	TSharedPtr<SWidget> BrowserWidget;
+
 	/** Viewport interface for rendering popup menus. */
 	TSharedPtr<FWebBrowserViewport>	MenuViewport;
-
-	/** The actual viewport widget. Required to update its tool tip property. */
-	TSharedPtr<SViewport> ViewportWidget;
 
 	TArray<TSharedRef<IWebBrowserAdapter>> Adapters;
 

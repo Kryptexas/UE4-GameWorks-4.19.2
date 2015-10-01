@@ -1,6 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WebBrowserPrivatePCH.h"
+
+#define LOCTEXT_NAMESPACE "WebBrowserHandler"
+
+#if WITH_CEF3
+
 #include "WebBrowserHandler.h"
 #include "WebBrowserModule.h"
 #include "WebBrowserWindow.h"
@@ -9,9 +14,6 @@
 #include "WebBrowserPopupFeatures.h"
 #include "SlateApplication.h"
 
-#define LOCTEXT_NAMESPACE "WebBrowserHandler"
-
-#if WITH_CEF3
 FWebBrowserHandler::FWebBrowserHandler()
 { }
 

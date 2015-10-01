@@ -28,23 +28,28 @@
 #	include <pthread.h>
 #endif
 
-// Define some platform-dependent file locations
-#define CEF3_BIN_DIR TEXT("Binaries/ThirdParty/CEF3")
-#if PLATFORM_WINDOWS && PLATFORM_64BITS
-#	define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Win64/Resources")
-#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Win64/UnrealCEFSubProcess.exe")
-#elif PLATFORM_WINDOWS && PLATFORM_32BITS
-#	define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Win32/Resources")
-#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Win32/UnrealCEFSubProcess.exe")
-#elif PLATFORM_MAC
-#	define CEF3_FRAMEWORK_DIR CEF3_BIN_DIR TEXT("/Mac/Chromium Embedded Framework.framework")
-#	define CEF3_RESOURCES_DIR CEF3_FRAMEWORK_DIR TEXT("/Resources")
-#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Mac/UnrealCEFSubProcess.app/Contents/MacOS/UnrealCEFSubProcess")
-#elif PLATFORM_LINUX // @todo Linux
-#	define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Linux/Resources")
-#	define CEF3_SUBPROCES_EXE TEXT("Binaries/Linux/UnrealCEFSubProcess")
+#if PLATFORM_ANDROID
+#	include <Android/AndroidPlatformWebBrowser.h>
 #endif
 
+// Define some platform-dependent file locations
+#if WITH_CEF3
+#	define CEF3_BIN_DIR TEXT("Binaries/ThirdParty/CEF3")
+#	if PLATFORM_WINDOWS && PLATFORM_64BITS
+#		define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Win64/Resources")
+#		define CEF3_SUBPROCES_EXE TEXT("Binaries/Win64/UnrealCEFSubProcess.exe")
+#	elif PLATFORM_WINDOWS && PLATFORM_32BITS
+#		define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Win32/Resources")
+#		define CEF3_SUBPROCES_EXE TEXT("Binaries/Win32/UnrealCEFSubProcess.exe")
+#	elif PLATFORM_MAC
+#		define CEF3_FRAMEWORK_DIR CEF3_BIN_DIR TEXT("/Mac/Chromium Embedded Framework.framework")
+#		define CEF3_RESOURCES_DIR CEF3_FRAMEWORK_DIR TEXT("/Resources")
+#		define CEF3_SUBPROCES_EXE TEXT("Binaries/Mac/UnrealCEFSubProcess.app/Contents/MacOS/UnrealCEFSubProcess")
+#	elif PLATFORM_LINUX // @todo Linux
+#		define CEF3_RESOURCES_DIR CEF3_BIN_DIR TEXT("/Linux/Resources")
+#		define CEF3_SUBPROCES_EXE TEXT("Binaries/Linux/UnrealCEFSubProcess")
+#	endif
+#endif
 
 namespace {
 
@@ -264,39 +269,48 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	FColor BackgroundColor)
 {
 #if WITH_CEF3
-
-	// Information used when creating the native window.
-	CefWindowHandle WindowHandle = (CefWindowHandle)OSWindowHandle; // TODO: check this is correct for all platforms
-	CefWindowInfo WindowInfo;
-
-	// Always use off screen rendering so we can integrate with our windows
-	WindowInfo.SetAsWindowless(WindowHandle, bUseTransparency);
-
-	// Specify CEF browser settings here.
-	CefBrowserSettings BrowserSettings;
-	
-	// Set max framerate to maximum supported.
-	BrowserSettings.windowless_frame_rate = 60;
-	BrowserSettings.background_color = CefColorSetARGB(BackgroundColor.A, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B);
-
-	// Disable plugins
-	BrowserSettings.plugins = STATE_DISABLED;
-
-
-	// WebBrowserHandler implements browser-level callbacks.
-	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
-
-	// Create the CEF browser window.
-	CefRefPtr<CefBrowser> Browser = CefBrowserHost::CreateBrowserSync(WindowInfo, NewHandler.get(), *InitialURL, BrowserSettings, nullptr);
-	if (Browser.get())
+	static bool AllowCEF = !FParse::Param(FCommandLine::Get(), TEXT("nocef"));
+	if (AllowCEF)
 	{
-		// Create new window
-		TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
-		NewHandler->SetBrowserWindow(NewBrowserWindow);
+		// Information used when creating the native window.
+		CefWindowHandle WindowHandle = (CefWindowHandle)OSWindowHandle; // TODO: check this is correct for all platforms
+		CefWindowInfo WindowInfo;
 
-		WindowInterfaces.Add(NewBrowserWindow);
-		return NewBrowserWindow;
+		// Always use off screen rendering so we can integrate with our windows
+		WindowInfo.SetAsWindowless(WindowHandle, bUseTransparency);
+
+		// Specify CEF browser settings here.
+		CefBrowserSettings BrowserSettings;
+
+		// Set max framerate to maximum supported.
+		BrowserSettings.windowless_frame_rate = 60;
+		BrowserSettings.background_color = CefColorSetARGB(BackgroundColor.A, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B);
+
+		// Disable plugins
+		BrowserSettings.plugins = STATE_DISABLED;
+
+
+		// WebBrowserHandler implements browser-level callbacks.
+		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
+
+		// Create the CEF browser window.
+		CefRefPtr<CefBrowser> Browser = CefBrowserHost::CreateBrowserSync(WindowInfo, NewHandler.get(), *InitialURL, BrowserSettings, nullptr);
+		if (Browser.get())
+		{
+			// Create new window
+			TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+			NewHandler->SetBrowserWindow(NewBrowserWindow);
+
+			WindowInterfaces.Add(NewBrowserWindow);
+			return NewBrowserWindow;
+		}
 	}
+#elif PLATFORM_ANDROID
+	// Create new window
+	TSharedPtr<FWebBrowserWindow> NewBrowserWindow = MakeShareable(new FWebBrowserWindow(InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+
+	//WindowInterfaces.Add(NewBrowserWindow);
+	return NewBrowserWindow;
 #endif
 	return nullptr;
 }
