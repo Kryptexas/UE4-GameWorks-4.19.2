@@ -5,6 +5,7 @@ Description:Setting up networked games for multiplayer.
 Related: Gameplay/Networking/Blueprints
 Related: Gameplay/Networking/Example
 Related: Gameplay/Networking/Actors
+version: 4.9
 
 The UE4 framework is built with multiplayer gaming in mind. As long as you follow the basic framework conventions, you generally don't have to do much to extend a single player experience to multiplayer.
 
