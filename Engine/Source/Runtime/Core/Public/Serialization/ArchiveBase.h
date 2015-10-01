@@ -321,7 +321,7 @@ public:
 	{
 		Serialize(V, (LengthBits + 7) / 8);
 
-		if (IsLoading())
+		if (IsLoading() && (LengthBits % 8) != 0)
 		{
 			((uint8*)V)[LengthBits / 8] &= ((1 << (LengthBits & 7)) - 1);
 		}
