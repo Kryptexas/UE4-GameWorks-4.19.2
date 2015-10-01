@@ -201,7 +201,21 @@ namespace UnrealBuildTool
 		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
-			return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+			switch (InBinaryType)
+			{
+				case UEBuildBinaryType.DynamicLinkLibrary:
+					return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+				case UEBuildBinaryType.Executable:
+					return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
+				case UEBuildBinaryType.StaticLibrary:
+					return "";
+				case UEBuildBinaryType.Object:
+					return "";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return "";
+				default:
+					return "";
+			}
 		}
 
 		/// <summary>
