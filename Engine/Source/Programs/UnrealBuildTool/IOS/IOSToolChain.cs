@@ -203,6 +203,8 @@ namespace UnrealBuildTool
 
 			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
 
+			Result += " " + BuildPlat.GetAdditionalLinkerFlags(CompileEnvironment.Config.Target.Configuration);
+
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
