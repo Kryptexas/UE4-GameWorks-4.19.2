@@ -1094,9 +1094,7 @@ namespace EInviteStatus
 		/** Friend has sent player an invite, but it has not been accepted/rejected */
 		PendingInbound,
 		/** Player has sent friend an invite, but it has not been accepted/rejected */
-		PendingOutbound,
-		/** Player has been blocked */
-		Blocked,
+		PendingOutbound
 	};
 
 	/** 
@@ -1121,10 +1119,6 @@ namespace EInviteStatus
 			case PendingOutbound:
 			{
 				return TEXT("PendingOutbound");
-			}
-			case Blocked:
-			{
-				return TEXT("Blocked");
 			}
 		}
 		return TEXT("");
@@ -1160,13 +1154,6 @@ public:
 	 * @return last time the player was seen by the current user
 	 */
 	virtual FDateTime GetLastSeen() const = 0;
-};
-
-/**
- * Blocked user info returned via IOnlineFriends interface
- */
-class FOnlineBlockedPlayer : public FOnlineUser
-{
 };
 
 /** The possible permission categories we can choose from to read from the server */
