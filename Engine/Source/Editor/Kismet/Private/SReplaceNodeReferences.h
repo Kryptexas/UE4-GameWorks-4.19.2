@@ -3,6 +3,9 @@
 class FTargetReplaceReferences
 {
 public:
+	virtual ~FTargetReplaceReferences()
+	{}
+
 	/** Returns a generated widget to represent this target item reference */
 	virtual TSharedRef<SWidget> CreateWidget() const = 0;
 

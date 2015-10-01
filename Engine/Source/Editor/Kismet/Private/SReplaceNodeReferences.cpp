@@ -456,7 +456,6 @@ void SReplaceNodeReferences::FindAllReplacementsComplete(TArray<TSharedPtr<class
 			{
 				BlueprintsModified.AddUnique(ImaginaryData->GetBlueprint());
 				UObject* Node = ImaginaryData->GetObject(ImaginaryData->GetBlueprint());
-				Node = Node;
 				UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(Node);
 				if (ensure(VariableNode))
 				{
