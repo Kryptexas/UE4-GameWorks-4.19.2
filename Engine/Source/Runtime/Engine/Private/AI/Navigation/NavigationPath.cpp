@@ -466,26 +466,6 @@ void FNavMeshPath::PerformStringPulling(const FVector& StartLoc, const FVector& 
 
 namespace
 {
-	FORCEINLINE bool CalculateSegmentIntersection2D(const FVector& SegmentStartA, const FVector& SegmentEndA, const FVector& SegmentStartB, const FVector& SegmentEndB, FVector& IntersectionPoint)
-	{
-		const FVector VectorA = SegmentEndA - SegmentStartA;
-		const FVector VectorB = SegmentEndB - SegmentStartB;
-
-		const float S = (-VectorA.Y * (SegmentStartA.X - SegmentStartB.X) + VectorA.X * (SegmentStartA.Y - SegmentStartB.Y)) / (-VectorB.X * VectorA.Y + VectorA.X * VectorB.Y);
-		const float T = ( VectorB.X * (SegmentStartA.Y - SegmentStartB.Y) - VectorB.Y * (SegmentStartA.X - SegmentStartB.X)) / (-VectorB.X * VectorA.Y + VectorA.X * VectorB.Y);
-
-		const bool bIntersects = S >= 0 && S <= 1 && T >= 0 && T <= 1;
-
-		if (bIntersects)
-		{
-			IntersectionPoint.X = SegmentStartA.X + (T * VectorA.X);
-			IntersectionPoint.Y = SegmentStartA.Y + (T * VectorA.Y);
-			IntersectionPoint.Z = SegmentStartA.Z + (T * VectorA.Z);
-		}
-
-		return bIntersects;
-	}
-
 	struct FPathPointInfo
 	{
 		FPathPointInfo() 
@@ -579,7 +559,7 @@ namespace
 #if DEBUG_DRAW_OFFSET
 			DrawDebugLine( GInternalDebugWorld_, Left, Right, FColor::White, true );
 #endif
-			bool bIntersected = CalculateSegmentIntersection2D( Left, Right, StartTrace, EndTrace, IntersectionPoint );
+			bool bIntersected = FMath::SegmentIntersection2D(Left, Right, StartTrace, EndTrace, IntersectionPoint);
 			if ( !bIntersected)
 			{
 				const float EdgeHalfLength = (CurrentEdge->Left - CurrentEdge->Right).Size() * 0.5;
