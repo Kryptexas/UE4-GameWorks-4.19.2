@@ -757,7 +757,7 @@ namespace CollisionResponseConsoleCommands
 					const FString PathName = FormatObjectName(Comp);
 					if (RequiredResponse == ECollisionResponse::ECR_Overlap)
 					{
-						UE_LOG(LogCollisionCommands, Log, TEXT("%3d, %14s, %-*s, %-16s, %s"),
+						UE_LOG(LogCollisionCommands, Log, TEXT("%3d, %-14s, %-*s, %-16s, %s"),
 							   Index, Comp->bGenerateOverlapEvents ? TEXT("true"):TEXT("false"), MaxWidth, *PathName, *ChannelDisplayName, Outer->GetOuter() ? *GetPathNameSafe(Outer->GetOuter()) : *GetPathNameSafe(Outer));
 					}
 					else
