@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2709921
 Availability:Public
 Title:1.5 - マテリアル ドメイン
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -83,4 +83,5 @@ Related: Engine/Rendering/Materials/MaterialProperties
 | **Deferred Decals (ディファード デカール)** | マテリアルを **デカール アクタ** で使用する場合は、この設定にしないと機能しません。 |
 | **Light Function (ライト関数)**  | **Light 関数** としてライトに適用されたマテリアルに使用されます。 |
 | **PostProcess (ポストプロセス)**     | **ポストプロセス** チェーンで **ブレンド可能なマテリアル** としてマテリアルが使用される場合。 |
+| **User Interface (ユーザー インターフェース)**     | このマテリアルは **UMG** または **Slate UI** に使用されます。 |
 
