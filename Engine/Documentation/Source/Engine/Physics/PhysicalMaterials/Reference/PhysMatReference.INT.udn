@@ -6,19 +6,19 @@ Description:Assets applied to physically simulated primitives directly or via ma
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+		![%Engine/Physics/PhysicalMaterials/Reference:title%](Engine/Physics/physics_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/physics_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+		%Engine/Physics/PhysicalMaterials/Reference:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+		%Engine/Physics/PhysicalMaterials/Reference:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/Reference]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -30,13 +30,13 @@ Description:Assets applied to physically simulated primitives directly or via ma
 		![](%ROOT%/physics_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+		%Engine/Physics/PhysicalMaterials/Reference:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+		%Engine/Physics/PhysicalMaterials/Reference:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/Reference]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
