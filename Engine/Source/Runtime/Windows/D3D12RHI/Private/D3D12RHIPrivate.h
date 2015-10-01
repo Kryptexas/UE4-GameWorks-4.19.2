@@ -1617,7 +1617,7 @@ public:
 
 		return *HelperThreadDynamicHeapAllocator;
 	}
-	FD3D12DynamicHeapAllocator* ThreadDynamicHeapAllocatorArray[8];
+	FD3D12DynamicHeapAllocator* ThreadDynamicHeapAllocatorArray[16];
 	uint32 NumThreadDynamicHeapAllocators;
 	static __declspec(thread) FD3D12DynamicHeapAllocator* HelperThreadDynamicHeapAllocator;
 
