@@ -173,6 +173,11 @@ void SSequencerCurveEditor::NodeTreeSelectionChanged()
 			UpdateCurveOwner();
 		}
 
+		if (GetAllowAutoFrame())
+		{
+			ZoomToFit();
+		}
+
 		UpdateCurveViewModelSelection();
 	}
 }
@@ -190,6 +195,30 @@ void SSequencerCurveEditor::OnCurveEditorCurveVisibilityChanged()
 {
 	UpdateCurveOwner();
 }
+
+TArray<FRichCurve*> SSequencerCurveEditor::GetCurvesToFit() const
+{
+	TArray<FRichCurve*> FitCurves;
+
+	for(auto CurveViewModel : CurveViewModels)
+	{
+		if (CurveViewModel->bIsVisible)
+		{
+			if (CurveOwner->GetSelectedCurves().Contains(CurveViewModel->CurveInfo.CurveToEdit))
+			{
+				FitCurves.Add(CurveViewModel->CurveInfo.CurveToEdit);
+			}
+		}
+	}
+
+	if (FitCurves.Num() > 0)
+	{
+		return FitCurves;
+	}
+
+	return SCurveEditor::GetCurvesToFit();
+}
+
 
 SSequencerCurveEditor::~SSequencerCurveEditor()
 {

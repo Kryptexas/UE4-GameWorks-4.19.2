@@ -240,6 +240,14 @@ public:
 	UNREALED_API bool GetAllowAutoFrame() { return bAllowAutoFrame; }
 	UNREALED_API void SetAllowAutoFrame(bool bInAllowAutoFrame) { bAllowAutoFrame = bInAllowAutoFrame; }
 
+	/* Get the curves to will be used during a fit operation */
+	UNREALED_API virtual TArray<FRichCurve*> GetCurvesToFit()const;
+
+	/** Zoom to fit */
+	UNREALED_API void ZoomToFitHorizontal();
+	UNREALED_API void ZoomToFitVertical();
+	UNREALED_API void ZoomToFit();
+
 private:
 	/** Used to track a key and the curve that owns it */
 	struct FSelectedCurveKey
@@ -372,13 +380,6 @@ private:
 	/** Function to check whether the current track is editable */
 	bool IsEditingEnabled() const;
 
-	/* Get the curves to will be used during a fit operation */
-	TArray<FRichCurve*> GetCurvesToFit()const;
-
-	void ZoomToFitHorizontal();
-	void ZoomToFitVertical();
-	void ZoomToFit();
-
 	FReply ZoomToFitHorizontalClicked();
 	FReply ZoomToFitVerticalClicked();
 
@@ -419,7 +420,7 @@ private:
 	/** Function pointer to execute callback function when user select 'Create external curve'*/
 	FSimpleDelegate OnCreateAsset;
 
-	// SWidget interface
+	//~ Begin SWidget Interface
 	UNREALED_API virtual FVector2D ComputeDesiredSize(float) const override;
 
 	/** Paint a curve */
@@ -440,7 +441,7 @@ private:
 	void PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
 protected:
-	// SWidget interface
+	//~ Begin SWidget Interface
 	UNREALED_API virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -517,7 +518,7 @@ private:
 	/** Perform redo*/
 	void	RedoAction();
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	UNREALED_API virtual void PostUndo(bool bSuccess) override;
 	UNREALED_API virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
@@ -553,7 +554,7 @@ protected:
 	/** Get Time Step for vertical line drawing **/
 	UNREALED_API virtual float GetTimeStep(FTrackScaleInfo &ScaleInfo) const;
 	
-	// SWidget interface
+	//~ Begin SWidget Interface
 	UNREALED_API virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
 		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
