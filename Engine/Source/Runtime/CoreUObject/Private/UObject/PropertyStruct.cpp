@@ -92,79 +92,20 @@ bool UStructProperty::Identical( const void* A, const void* B, uint32 PortFlags 
 	return Struct->CompareScriptStruct(A, B, PortFlags);
 }
 
-bool UStructProperty::UseNativeSerialization() const
-{
-	return 0 != (Struct->StructFlags & STRUCT_SerializeNative);
-}
-
-bool UStructProperty::UseBinarySerialization(const FArchive& Ar) const
-{
-	return !(Ar.IsLoading() || Ar.IsSaving()) 
-		||	Ar.WantBinaryPropertySerialization()
-		||	(0 != (Struct->StructFlags & STRUCT_Immutable));
-}
-
 bool UStructProperty::UseBinaryOrNativeSerialization(const FArchive& Ar) const
-{
-	const bool bUseBinarySerialization = UseBinarySerialization(Ar);
-	const bool bUseNativeSerialization = UseNativeSerialization();
-	return bUseBinarySerialization || bUseNativeSerialization;
-}
-
-void UStructProperty::StaticSerializeItem(FArchive& Ar, void* Value, void const* Defaults, UScriptStruct* Struct, const bool bUseBinarySerialization, const bool bUseNativeSerialization)
 {
 	check(Struct);
 
-	// Preload struct before serialization tracking to not double count time.
-	if (bUseBinarySerialization || bUseNativeSerialization)
-	{
-		Ar.Preload(Struct);
-	}
-
-	bool bItemSerialized = false;
-	if (bUseNativeSerialization)
-	{
-		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
-		check(CppStructOps); // else should not have STRUCT_SerializeNative
-		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_SerializeNative
-		bItemSerialized = CppStructOps->Serialize(Ar, Value);
-	}
-
-	if (!bItemSerialized)
-	{
-		if (bUseBinarySerialization)
-		{
-			// Struct is already preloaded above.
-			if (!Ar.IsPersistent() && Ar.GetPortFlags() != 0 && !Struct->ShouldSerializeAtomically(Ar))
-			{
-				Struct->SerializeBinEx(Ar, Value, Defaults, Struct);
-			}
-			else
-			{
-				Struct->SerializeBin(Ar, Value);
-			}
-		}
-		else
-		{
-			Struct->SerializeTaggedProperties(Ar, (uint8*)Value, Struct, (uint8*)Defaults);
-		}
-	}
-
-	if (Struct->StructFlags & STRUCT_PostSerializeNative)
-	{
-		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
-		check(CppStructOps); // else should not have STRUCT_PostSerializeNative
-		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_PostSerializeNative
-		CppStructOps->PostSerialize(Ar, Value);
-	}
+	const bool bUseBinarySerialization = Struct->UseBinarySerialization(Ar);
+	const bool bUseNativeSerialization = Struct->UseNativeSerialization();
+	return bUseBinarySerialization || bUseNativeSerialization;
 }
 
 void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
-	const bool bUseBinarySerialization = UseBinarySerialization(Ar);
-	const bool bUseNativeSerialization = UseNativeSerialization();
+	check(Struct);
 
-	StaticSerializeItem(Ar, Value, Defaults, Struct, bUseBinarySerialization, bUseNativeSerialization);
+	Struct->SerializeItem(Ar, Value, Defaults);
 }
 
 bool UStructProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData ) const

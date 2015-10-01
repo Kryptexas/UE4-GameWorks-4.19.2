@@ -2221,6 +2221,63 @@ void UScriptStruct::Serialize( FArchive& Ar )
 	}
 }
 
+bool UScriptStruct::UseBinarySerialization(const FArchive& Ar) const
+{
+	return !(Ar.IsLoading() || Ar.IsSaving())
+		|| Ar.WantBinaryPropertySerialization()
+		|| (0 != (StructFlags & STRUCT_Immutable));
+}
+
+void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Defaults)
+{
+	const bool bUseBinarySerialization = UseBinarySerialization(Ar);
+	const bool bUseNativeSerialization = UseNativeSerialization();
+
+	// Preload struct before serialization tracking to not double count time.
+	if (bUseBinarySerialization || bUseNativeSerialization)
+	{
+		Ar.Preload(this);
+	}
+
+	bool bItemSerialized = false;
+	if (bUseNativeSerialization)
+	{
+		UScriptStruct::ICppStructOps* CppStructOps = GetCppStructOps();
+		check(CppStructOps); // else should not have STRUCT_SerializeNative
+		check(!InheritedCppStructOps()); // else should not have STRUCT_SerializeNative
+		bItemSerialized = CppStructOps->Serialize(Ar, Value);
+	}
+
+	if (!bItemSerialized)
+	{
+		if (bUseBinarySerialization)
+		{
+			// Struct is already preloaded above.
+			if (!Ar.IsPersistent() && Ar.GetPortFlags() != 0 && !ShouldSerializeAtomically(Ar))
+			{
+				SerializeBinEx(Ar, Value, Defaults, this);
+			}
+			else
+			{
+				SerializeBin(Ar, Value);
+			}
+		}
+		else
+		{
+			SerializeTaggedProperties(Ar, (uint8*)Value, this, (uint8*)Defaults);
+		}
+	}
+
+	if (StructFlags & STRUCT_PostSerializeNative)
+	{
+		UScriptStruct::ICppStructOps* CppStructOps = GetCppStructOps();
+		check(CppStructOps); // else should not have STRUCT_PostSerializeNative
+		check(!InheritedCppStructOps()); // else should not have STRUCT_PostSerializeNative
+		CppStructOps->PostSerialize(Ar, Value);
+	}
+}
+
+
 void UScriptStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	Super::Link(Ar, bRelinkExistingProperties);

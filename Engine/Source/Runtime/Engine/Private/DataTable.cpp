@@ -64,9 +64,11 @@ void UDataTable::LoadStructData(FArchive& Ar)
 
 		// Load row data
 		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
-		LoadUsingStruct->InitializeStruct(RowData);
+
 		// And be sure to call DestroyScriptStruct later
-		LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
+		LoadUsingStruct->InitializeStruct(RowData);
+
+		LoadUsingStruct->SerializeItem(Ar, RowData, nullptr);
 
 		// Add to map
 		RowMap.Add(RowName, RowData);
@@ -90,7 +92,8 @@ void UDataTable::SaveStructData(FArchive& Ar)
 
 			// Save out data
 			uint8* RowData = RowIt.Value();
-			RowStruct->SerializeTaggedProperties(Ar, RowData, RowStruct, NULL);
+
+			RowStruct->SerializeItem(Ar, RowData, nullptr);
 		}
 	}
 }

@@ -1075,6 +1075,31 @@ public:
 		}
 	}
 
+	/** Returns true if this struct has a native serialize function */
+	bool UseNativeSerialization() const
+	{
+		if ((StructFlags&STRUCT_SerializeNative) != 0)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	/** Returns true if this struct should be binary serialized for the given archive */
+	COREUOBJECT_API bool UseBinarySerialization(const FArchive& Ar) const;
+
+	/** 
+	 * Serializes a specific instance of a struct 
+	 *
+	 * @param	Ar			Archive we are serializing to/from
+	 * @param	Value		Pointer to memory of struct
+	 * @param	Defaults	Default value for this struct, pass nullptr to not use defaults 
+	 */
+	COREUOBJECT_API void SerializeItem(FArchive& Ar, void* Value, void const* Defaults);
+
 	/**
 	 * Compare two script structs
 	 *

@@ -3232,11 +3232,7 @@ public:
 
 	static const TCHAR* ImportText_Static(UScriptStruct* InStruct, const FString& InName, const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText);
 
-	bool UseNativeSerialization() const;
-	bool UseBinarySerialization(const FArchive& Ar) const;
 	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;
-
-	static void StaticSerializeItem(FArchive& Ar, void* Value, void const* Defaults, UScriptStruct* Struct, const bool bUseBinarySerialization, const bool bUseNativeSerialization);
 
 public:
 
