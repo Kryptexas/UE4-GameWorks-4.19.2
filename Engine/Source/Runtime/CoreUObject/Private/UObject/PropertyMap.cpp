@@ -33,7 +33,6 @@ namespace UE4MapProperty_Private
 			}
 
 			++Index;
-			--Num;
 		}
 
 		return false;
