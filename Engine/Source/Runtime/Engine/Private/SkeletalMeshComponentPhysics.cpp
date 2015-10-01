@@ -2213,6 +2213,7 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 
 			int32 NumClothLODs = Actor.ParentClothingAsset->getNumGraphicalLodLevels();
 
+			// NOTE: forcePhysicalLod() is an deferred operation.   getActivePhysicalLod() may return previous state.
 			// decide whether should enable or disable
 			if (!IsMappedClothLOD || (LODIndex >= NumClothLODs))
 			{
@@ -2221,12 +2222,8 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 			}
 			else
 			{	
-				int32 CurPhysLOD = Actor.ApexClothingActor->getActivePhysicalLod();
-				// if disabled, enables clothing simulation
-				if(CurPhysLOD == 0)
-				{
-					Actor.ApexClothingActor->forcePhysicalLod(1);
-				}
+				// enable clothing simulation
+				Actor.ApexClothingActor->forcePhysicalLod(1);
 			}
 		}
 	}
