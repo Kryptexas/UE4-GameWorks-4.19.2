@@ -53,7 +53,7 @@ Description:直接应用于物理模拟的图元资源或通过使用的材质�
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/PhysicalMaterials/PhysMatUserGuide "%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:description%")
-		* [](Engine/Physics/PhysicalMaterials/PhysMatReference "%Engine/Physics/PhysicalMaterials/PhysMatReference:description%")
+		* [](Engine/Physics/PhysicalMaterials/Reference "%Engine/Physics/PhysicalMaterials/Reference:description%")
 	[/PARAM]
 [/OBJECT]
 
