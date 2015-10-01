@@ -280,6 +280,11 @@ public:
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
 
+	/** Called when a user executes the set key time for selected keys */
+	bool CanSetKeyTime() const;
+	void SetKeyTime(const bool bUseFrames);
+	void OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, const bool bUseFrames);
+
 public:
 
 	/** Access the currently enabled edit tool */
@@ -422,6 +427,12 @@ protected:
 	/** Manually sets a key for the selected objects at the current time */
 	void SetKey();
 
+	/** Modeless Version of the String Entry Box */
+	void GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted);
+	
+	/** Closes the popup created by GenericTextEntryModeless*/
+	void CloseEntryPopupMenu();
+
 	/** Trim a section to the left or right */
 	void TrimSection(bool bTrimLeft);
 
@@ -530,6 +541,9 @@ private:
 
 	/** True if this sequencer is being edited within the level editor */
 	bool bIsEditingWithinLevelEditor;
+
+	/** Generic Popup Entry */
+	TWeakPtr<class IMenu> EntryPopupMenu;
 
 	/** Stores a dirty bit for whether the sequencer tree (and other UI bits) may need to be refreshed.  We
 	    do this simply to avoid refreshing the UI more than once per frame. (e.g. during live recording where
