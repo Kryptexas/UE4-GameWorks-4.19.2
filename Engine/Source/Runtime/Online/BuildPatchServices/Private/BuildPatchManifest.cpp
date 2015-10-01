@@ -715,6 +715,7 @@ void FBuildPatchAppManifest::InitLookups()
 	// Setup internals
 	TotalBuildSize = 0;
 	FileManifestLookup.Empty(Data->FileManifestList.Num());
+	TaggedFilesLookup.Empty();
 	FileNameLookup.Empty(Data->bIsFileData ? Data->FileManifestList.Num() : 0);
 	for (auto& File : Data->FileManifestList)
 	{
@@ -725,6 +726,19 @@ void FBuildPatchAppManifest::InitLookups()
 		{
 			// File data chunk parts should have been checked already
 			FileNameLookup.Add(File.FileChunkParts[0].Guid, &File.Filename);
+		}
+		if (File.InstallTags.Num() == 0)
+		{
+			// Untagged files are required
+			TaggedFilesLookup.FindOrAdd(TEXT("")).Add(&File);
+		}
+		else
+		{
+			// Fill out lookup for optional files
+			for (auto& FileTag : File.InstallTags)
+			{
+				TaggedFilesLookup.FindOrAdd(FileTag).Add(&File);
+			}
 		}
 	}
 	TotalDownloadSize = 0;
@@ -800,6 +814,17 @@ void FBuildPatchAppManifest::SerializeToJSON(FString& JSONOutput)
 								Writer->WriteValue(TEXT("Size"), ToStringBlob(FileChunkPart.Size));
 							}
 							Writer->WriteObjectEnd();
+						}
+					}
+					Writer->WriteArrayEnd();
+				}
+				if (FileManifest.InstallTags.Num() > 0)
+				{
+					Writer->WriteArrayStart(TEXT("InstallTags"));
+					{
+						for (const auto& InstallTag : FileManifest.InstallTags)
+						{
+							Writer->WriteValue(InstallTag);
 						}
 					}
 					Writer->WriteArrayEnd();
@@ -956,6 +981,14 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 				bSuccess = bSuccess && FromStringBlob(JsonChunkPart->GetStringField(TEXT("Offset")), FileChunkPart.Offset);
 				bSuccess = bSuccess && FromStringBlob(JsonChunkPart->GetStringField(TEXT("Size")), FileChunkPart.Size);
 				AllDataGuids.Add(FileChunkPart.Guid);
+			}
+			if (JsonFileManifest->HasTypedField<EJson::Array>(TEXT("InstallTags")))
+			{
+				TArray<TSharedPtr<FJsonValue>> JsonInstallTagsArray = JsonFileManifest->GetArrayField(TEXT("InstallTags"));
+				for (auto JsonInstallTagIt = JsonInstallTagsArray.CreateConstIterator(); JsonInstallTagIt && bSuccess; ++JsonInstallTagIt)
+				{
+					FileManifest.InstallTags.Add((*JsonInstallTagIt)->AsString());
+				}
 			}
 			FileManifest.bIsUnixExecutable = JsonFileManifest->HasField(TEXT("bIsUnixExecutable")) && JsonFileManifest->GetBoolField(TEXT("bIsUnixExecutable"));
 			FileManifest.bIsReadOnly = JsonFileManifest->HasField(TEXT("bIsReadOnly")) && JsonFileManifest->GetBoolField(TEXT("bIsReadOnly"));
@@ -1152,6 +1185,9 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 	// Mark as should be re-saved, client that stores manifests should start using binary
 	bNeedsResaving = true;
 
+	// Setup internal lookups
+	InitLookups();
+
 	// Make sure we don't have any half loaded data
 	if( !bSuccess )
 	{
@@ -1193,9 +1229,25 @@ int64 FBuildPatchAppManifest::GetDownloadSize() const
 	return TotalDownloadSize;
 }
 
+int64 FBuildPatchAppManifest::GetDownloadSize(const TSet<FString>& Tags) const
+{
+	TSet<FString> TaggedFiles;
+	GetTaggedFileList(Tags, TaggedFiles);
+	TArray<FGuid> RequiredChunks;
+	GetChunksRequiredForFiles(TaggedFiles.Array(), RequiredChunks, true);
+	return GetDataSize(RequiredChunks);
+}
+
 int64 FBuildPatchAppManifest::GetBuildSize() const
 {
 	return TotalBuildSize;
+}
+
+int64 FBuildPatchAppManifest::GetBuildSize(const TSet<FString>& Tags) const
+{
+	TSet<FString> TaggedFiles;
+	GetTaggedFileList(Tags, TaggedFiles);
+	return GetFileSize(TaggedFiles.Array());
 }
 
 TArray<FString> FBuildPatchAppManifest::GetBuildFileList() const
@@ -1263,6 +1315,28 @@ uint32 FBuildPatchAppManifest::GetNumFiles() const
 void FBuildPatchAppManifest::GetFileList(TArray<FString>& Filenames) const
 {
 	FileManifestLookup.GetKeys(Filenames);
+}
+
+void FBuildPatchAppManifest::GetFileTagList(TSet<FString>& Tags) const
+{
+	TArray<FString> TagsArray;
+	TaggedFilesLookup.GetKeys(TagsArray);
+	Tags.Append(MoveTemp(TagsArray));
+}
+
+void FBuildPatchAppManifest::GetTaggedFileList(const TSet<FString>& Tags, TSet<FString>& TaggedFiles) const
+{
+	for (auto& Tag : Tags)
+	{
+		auto* Files = TaggedFilesLookup.Find(Tag);
+		if (Files != nullptr)
+		{
+			for (auto& File : *Files)
+			{
+				TaggedFiles.Add(File->Filename);
+			}
+		}
+	}
 }
 
 void FBuildPatchAppManifest::GetDataList(TArray<FGuid>& DataGuids) const
@@ -1451,6 +1525,16 @@ const IManifestFieldPtr FBuildPatchAppManifest::SetCustomField(const FString& Fi
 	return SetCustomField(FieldName, ToStringBlob(Value));
 }
 
+void FBuildPatchAppManifest::RemoveCustomField(const FString& FieldName)
+{
+	Data->CustomFields.RemoveAll([&](const FCustomFieldData& Entry){ return Entry.Key == FieldName; });
+	CustomFieldLookup.Empty(Data->CustomFields.Num());
+	for (auto& CustomField : Data->CustomFields)
+	{
+		CustomFieldLookup.Add(CustomField.Key, &CustomField);
+	}
+}
+
 void FBuildPatchAppManifest::EnumerateProducibleChunks( const FString& InstallDirectory, const TArray< FGuid >& ChunksRequired, TArray< FGuid >& ChunksAvailable ) const
 {
 	// A struct that will store byte ranges
@@ -1621,12 +1705,14 @@ bool FBuildPatchAppManifest::NeedsResaving() const
 	return bNeedsResaving;
 }
 
-void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TArray< FString >& OutDatedFiles)
+void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TSet< FString >& OutDatedFiles)
 {
 	if (!OldManifest.IsValid())
 	{
 		// All files are outdated if no OldManifest
-		NewManifest->FileManifestLookup.GetKeys(OutDatedFiles);
+		TArray<FString> Filenames;
+		NewManifest->FileManifestLookup.GetKeys(Filenames);
+		OutDatedFiles.Append(MoveTemp(Filenames));
 	}
 	else
 	{

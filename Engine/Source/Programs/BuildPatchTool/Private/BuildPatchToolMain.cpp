@@ -6,6 +6,7 @@
 	The tool can be used in two modes of operation:
 	(1) to generate patch data (manifest, chunks, files) for build images given the existing cloud data; or
 	(2) to "compactify" a cloud directory by removing all orphaned chunks, not referenced by any manifest file.
+	(3) to enumerate the data files referenced by a manifest
 
 	In order to trigger compactify functionality, the -compactify commandline argument should be specified.
 
@@ -34,7 +35,7 @@
 	-PrereqName=""			Specifies in quotes, the display name for the prerequisites installer
 	-PrereqPath=""			Specifies in quotes, the prerequisites installer to launch on successful product install
 	-PrereqArgs=""			Specifies in quotes, the commandline to send to prerequisites installer on launch
-	-DataAgeThreshold=12.5	Specified the maximum age (in days) of existing patch data which can be reused in the generated manifest
+	-DataAgeThreshold=12.5	Specified the maximum age (in days) of existing manifest files whose referenced patch data can be reused in the generated manifest
 
 	NB: -DataAgeThreshold can also be present in the [PatchGeneration] section of BuildPatchTool.ini in the cloud directory
 	NB: If -DataAgeThreshold is not supplied, either on the command-line or in BuildPatchTool.ini, then all existing data is eligible for reuse in the generated manifest
@@ -56,10 +57,9 @@
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
 	-preview			Log all the actions it will take to update internal structures, but don't actually execute them.
-	-nopatchdelete		When specified, will only set the modified date of referenced files to the current time, but will NOT delete any patch data.
 	-ManifestsList=""			Specifies in quotes, the list of manifest filenames to keep following the operation. If omitted, all manifests are kept.
 	-ManifestsFile=""			Specifies in quotes, the name of the file (relative to CloudDir) which contains a list of manifests to keep, one manifest filename per line
-	-DataAgeThreshold=14.25		The maximum age in days of chunk files that will be retained. All older chunks will be deleted.
+	-DataAgeThreshold=2			The minimum age in days of chunk files that will be deleted. Any unreferenced chunks older than this will be deleted.
 
 	NB: If -ManifestsList is specified, then -ManifestsFile is ignored.
 	NB: -DataAgeThreshold can also be present in the [Compactify] section of BuildPatchTool.ini in the cloud directory
@@ -139,8 +139,22 @@ namespace EBuildPatchToolMode
 	};
 }
 
+namespace EBuildPatchToolReturnCode
+{
+	enum Type
+	{
+		OK = 0,
+		ArgumentProcessingError,
+		CouldNotOpenManifestToKeepFile,
+		UnknownToolMode,
+		UnknownError,
+		LegacyDoNotUse,
+		FileIgnoreListNotFound,
+		FileAttributeListNotFound
+	};
+}
 
-int32 BuildPatchToolMain( const TCHAR* CommandLine )
+EBuildPatchToolReturnCode::Type BuildPatchToolMain( const TCHAR* CommandLine )
 {
 	// Add log device
 	if (FParse::Param(CommandLine, TEXT("stdout")))
@@ -178,7 +192,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 	EBuildPatchToolMode::Type ToolMode = EBuildPatchToolMode::Unknown;
 	bool bPreview = false;
-	bool bNoPatchDelete = false;
 	bool bPatchWithReuseAgeThreshold = true;
 	bool bIncludeSizes = false;
 
@@ -219,7 +232,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			ToolMode = EBuildPatchToolMode::PatchGeneration;
 		}
 		bPreview = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("preview"))) != INDEX_NONE;
-		bNoPatchDelete = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("nopatchdelete"))) != INDEX_NONE;
 		bIncludeSizes = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("includesizes"))) != INDEX_NONE;
 		BuildRootIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("BuildRoot")));
 		CloudDirIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("CloudDir")));
@@ -411,25 +423,19 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	if( !bSuccess )
 	{
 		GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing arguments"));
-		return 1;
-	}
-
-	if (ToolMode == EBuildPatchToolMode::Compactify && bPreview && bNoPatchDelete)
-	{
-		GLog->Log(ELogVerbosity::Error, TEXT("Only one of -preview and -nopatchdelete can be specified"));
-		return 5;
+		return EBuildPatchToolReturnCode::ArgumentProcessingError;
 	}
 
 	if (!IgnoreListFile.IsEmpty() && !FPaths::FileExists(IgnoreListFile))
 	{
 		GLog->Logf(ELogVerbosity::Error, TEXT("Provided file ignore list was not found %s"), *IgnoreListFile);
-		return 6;
+		return EBuildPatchToolReturnCode::FileIgnoreListNotFound;
 	}
 
 	if (!AttributeListFile.IsEmpty() && !FPaths::FileExists(AttributeListFile))
 	{
 		GLog->Logf(ELogVerbosity::Error, TEXT("Provided file attribute list was not found %s"), *AttributeListFile);
-		return 7;
+		return EBuildPatchToolReturnCode::FileAttributeListNotFound;
 	}
 
 	// Load the BuildPatchServices Module
@@ -468,7 +474,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 				GLog->Log(ELogVerbosity::Error, TEXT("Could not open specified manifests to keep file"));
 				BuildPatchServicesModule.Reset();
 				FCoreDelegates::OnExit.Broadcast();
-				return 2;
+				return EBuildPatchToolReturnCode::CouldNotOpenManifestToKeepFile;
 			}
 		}
 
@@ -477,10 +483,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		if (bPreview)
 		{
 			CompactifyMode = ECompactifyMode::Preview;
-		}
-		else if (bNoPatchDelete)
-		{
-			CompactifyMode = ECompactifyMode::NoPatchDelete;
 		}
 
 		// Run the compactify routine
@@ -528,7 +530,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		BuildPatchServicesModule.Reset();
 		FCoreDelegates::OnExit.Broadcast();
 	}
-		return 3;
+		return EBuildPatchToolReturnCode::UnknownToolMode;
 	}
 
 	// Release the module ptr
@@ -537,15 +539,15 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	// Check for processing error
 	if (!bSuccess)
 	{
-		GLog->Log(ELogVerbosity::Error, TEXT("A fatal error occurred executing BuildPatchTool.exe"));
+		GLog->Log(ELogVerbosity::Error, TEXT("An unknown error occurred executing BuildPatchTool.exe"));
 		FCoreDelegates::OnExit.Broadcast();
-		return 4;
+		return EBuildPatchToolReturnCode::UnknownError;
 	}
 
 	FCoreDelegates::OnExit.Broadcast();
 
 	GLog->Log(TEXT("BuildPatchToolMain completed successfuly"));
-	return 0;
+	return EBuildPatchToolReturnCode::OK;
 }
 
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
@@ -572,5 +574,5 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		CommandLine += Argument;
 	}
 
-	return BuildPatchToolMain( *CommandLine );
+	return static_cast<int32>(BuildPatchToolMain( *CommandLine ));
 }

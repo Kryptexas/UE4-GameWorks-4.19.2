@@ -47,7 +47,10 @@ namespace EBuildPatchInstallError
 		InitializationError = 9,
 
 		// An error occurred creating a file due to excessive path length
-		PathLengthExceeded = 10
+		PathLengthExceeded = 10,
+
+		// An error occurred creating a file due to their not being enough space left on the disk
+		OutOfDiskSpace = 11
 	};
 };
 
