@@ -571,7 +571,7 @@ void SWebBrowser::HandleDismissPopup()
 	if (PopupMenuPtr.IsValid())
 	{
 		PopupMenuPtr.Pin()->Dismiss();
-		FSlateApplication::Get().SetKeyboardFocus(ViewportWidget, EFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(BrowserWidget, EFocusCause::SetDirectly);
 	}
 }
 

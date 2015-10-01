@@ -127,7 +127,7 @@ TSharedRef<SWidget> FWebBrowserWindow::CreateWidget(TAttribute<FVector2D> InView
 		.EnableBlending(bUseTransparency)
 		.IgnoreTextureAlpha(!bUseTransparency);
 
-	TSharedRef<FWebBrowserViewport> BrowserViewportRef = MakeShareable(new FWebBrowserViewport(this->AsShared(), ViewportWidgetRef));
+	TSharedRef<FWebBrowserViewport> BrowserViewportRef = MakeShareable(new FWebBrowserViewport(this->AsShared()));
 	BrowserViewport = BrowserViewportRef;
 	ViewportWidgetRef->SetViewportInterface(MoveTemp(BrowserViewportRef));
 	ViewportWidget = ViewportWidgetRef;
