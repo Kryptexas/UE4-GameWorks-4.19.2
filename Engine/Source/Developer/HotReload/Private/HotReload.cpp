@@ -8,8 +8,8 @@
 #include "HotReloadClassReinstancer.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Engine/Classes/Engine/BlueprintGeneratedClass.h"
-#endif
 #include "KismetEditorUtilities.h"
+#endif
 
 DEFINE_LOG_CATEGORY(LogHotReload);
 
@@ -181,10 +181,13 @@ private:
 	void GetPackagesToRebindAndDependentModules(const TArray<FString>& InGameModuleNames, TArray<UPackage*>& OutPackagesToRebind, TArray<FName>& OutDependentModules);
 
 #if WITH_ENGINE
+	void RegisterForReinstancing(UClass* OldClass, UClass* NewClass);
+	void ReinstanceClasses();
+
 	/**
 	 * Called from CoreUObject to re-instance hot-reloaded classes
 	 */
-	void ReinstanceClass(UClass* OldClass, UClass* NewClass);
+	void ReinstanceClass(UClass* OldClass, UClass* NewClass, const TMap<UClass*, UClass*>& OldToNewClassesMap);
 #endif
 
 	/**
@@ -391,7 +394,8 @@ void FHotReloadModule::StartupModule()
 
 #if WITH_ENGINE
 	// Register re-instancing delegate (Core)
-	FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.BindRaw(this, &FHotReloadModule::ReinstanceClass);
+	FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.BindRaw(this, &FHotReloadModule::RegisterForReinstancing);
+	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.BindRaw(this, &FHotReloadModule::ReinstanceClasses);
 #endif
 
 	// Register directory watcher delegate
@@ -644,11 +648,11 @@ void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, ECompilation
 /**
  * Gets duplicated CDO from the cache, renames it and returns.
  */
-UObject* GetCachedCDODuplicate(UClass* Class, FName Name)
+UObject* GetCachedCDODuplicate(UObject* CDO, FName Name)
 {
 	UObject* DupCDO = nullptr;
 
-	UObject** DupCDOPtr = GetDuplicatedCDOMap().Find(Class);
+	UObject** DupCDOPtr = GetDuplicatedCDOMap().Find(CDO);
 	if (DupCDOPtr != nullptr)
 	{
 		DupCDO = *DupCDOPtr;
@@ -982,9 +986,46 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 }
 
 #if WITH_ENGINE
-void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass)
+namespace {
+	static TArray<TPair<UClass*, UClass*> >& GetClassesToReinstance()
+	{
+		static TArray<TPair<UClass*, UClass*> > Data;
+		return Data;
+	}
+}
+
+void FHotReloadModule::RegisterForReinstancing(UClass* OldClass, UClass* NewClass)
+{
+	TPair<UClass*, UClass*> Pair;
+	
+	Pair.Key = OldClass;
+	Pair.Value = NewClass;
+
+	GetClassesToReinstance().Add(MoveTemp(Pair));
+}
+
+void FHotReloadModule::ReinstanceClasses()
+{
+	TMap<UClass*, UClass*> OldToNewClassesMap;
+	for (TPair<UClass*, UClass*>& Pair : GetClassesToReinstance())
+	{
+		if (Pair.Value != nullptr)
+		{
+			OldToNewClassesMap.Add(Pair.Key, Pair.Value);
+		}
+	}
+
+	for (TPair<UClass*, UClass*>& Pair : GetClassesToReinstance())
+	{
+		ReinstanceClass(Pair.Key, Pair.Value, OldToNewClassesMap);
+	}
+
+	GetClassesToReinstance().Empty();
+}
+
+void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass, const TMap<UClass*, UClass*>& OldToNewClassesMap)
 {	
-	auto ReinstanceHelper = FHotReloadClassReinstancer::Create(NewClass, OldClass, ReconstructedCDOsMap, HotReloadBPSetToRecompile, HotReloadBPSetToRecompileBytecodeOnly);
+	TSharedPtr<FHotReloadClassReinstancer> ReinstanceHelper = FHotReloadClassReinstancer::Create(NewClass, OldClass, OldToNewClassesMap, ReconstructedCDOsMap, HotReloadBPSetToRecompile, HotReloadBPSetToRecompileBytecodeOnly);
 	if (ReinstanceHelper->ClassNeedsReinstancing())
 	{
 		UE_LOG(LogHotReload, Log, TEXT("Re-instancing %s after hot-reload."), NewClass ? *NewClass->GetName() : *OldClass->GetName());

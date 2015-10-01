@@ -28,7 +28,7 @@ public:
 	/**
 	 * CDO duplicates provider delegate type.
 	 */
-	DECLARE_DELEGATE_RetVal_TwoParams(UObject*, FCDODuplicatesProvider, UClass*, FName);
+	DECLARE_DELEGATE_RetVal_TwoParams(UObject*, FCDODuplicatesProvider, UObject*, FName);
 
 	/**
 	 * Gets CDO duplicates provider delegate.
@@ -158,10 +158,10 @@ private:
 	 * Gets class CDO duplicate from cache (or creates it if not available or not
 	 * during hot-reload) for given class.
 	 *
-	 * @param Class Class to get (or create) CDO for.
+	 * @param CDO Object to get duplicate of.
 	 * @param Name The name that CDO has to be renamed with (or created with).
 	 */
-	static UObject* GetClassCDODuplicate(UClass* Class, FName Name);
+	static UObject* GetClassCDODuplicate(UObject* CDO, FName Name);
 };
 
 

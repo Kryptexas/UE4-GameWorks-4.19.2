@@ -5,6 +5,9 @@
 
 #if WITH_ENGINE
 #include "Engine/BlueprintGeneratedClass.h"
+#include "Layers/ILayers.h"
+#include "BlueprintEditor.h"
+#include "Kismet2/CompilerResultsLog.h"
 
 void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, UClass* InOldClass)
 {
@@ -262,18 +265,24 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	}
 }
 
-FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass, TMap<UObject*, UObject*>& OutReconstructedCDOsMap, TSet<UBlueprint*>& InBPSetToRecompile, TSet<UBlueprint*>& InBPSetToRecompileBytecodeOnly)
+FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass, const TMap<UClass*, UClass*>& InOldToNewClassesMap, TMap<UObject*, UObject*>& OutReconstructedCDOsMap, TSet<UBlueprint*>& InBPSetToRecompile, TSet<UBlueprint*>& InBPSetToRecompileBytecodeOnly)
 	: NewClass(nullptr)
 	, bNeedsReinstancing(false)
 	, CopyOfPreviousCDO(nullptr)
 	, ReconstructedCDOsMap(OutReconstructedCDOsMap)
 	, BPSetToRecompile(InBPSetToRecompile)
 	, BPSetToRecompileBytecodeOnly(InBPSetToRecompileBytecodeOnly)
+	, OldToNewClassesMap(InOldToNewClassesMap)
 {
 	ensure(InOldClass);
 	ensure(!HotReloadedOldClass && !HotReloadedNewClass);
 	HotReloadedOldClass = InOldClass;
 	HotReloadedNewClass = InNewClass ? InNewClass : InOldClass;
+
+	for (const TPair<UClass*, UClass*>& OldToNewClass : OldToNewClassesMap)
+	{
+		ObjectsThatShouldUseOldStuff.Add(OldToNewClass.Key);
+	}
 
 	// If InNewClass is NULL, then the old class has not changed after hot-reload.
 	// However, we still need to check for changes to its constructor code (CDO values).
@@ -289,7 +298,7 @@ FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClas
 			FArchiveReplaceObjectRef<UObject> ReplaceObjectArch(*BlueprintIt, ClassRedirects, false, true, true);
 			if (ReplaceObjectArch.GetCount())
 			{
-				EnlistDependentBlueprintToRecompile(*BlueprintIt, true);
+				EnlistDependentBlueprintToRecompile(*BlueprintIt, false);
 			}
 		}
 	}

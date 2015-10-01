@@ -182,11 +182,22 @@ void UK2Node_EditablePinBase::Serialize(FArchive& Ar)
 	else
 	{
 		SerializedItems.Empty(UserDefinedPins.Num());
+
 		for (int32 Index = 0; Index < UserDefinedPins.Num(); ++Index)
 		{
 			SerializedItems.Add(*(UserDefinedPins[Index].Get()));
 		}
+
 		Ar << SerializedItems;
+
+		if (Ar.IsModifyingWeakAndStrongReferences())
+		{
+			UserDefinedPins.Empty(SerializedItems.Num());
+			for (int32 Index = 0; Index < SerializedItems.Num(); ++Index)
+			{
+				UserDefinedPins.Add(MakeShareable(new FUserPinInfo(SerializedItems[Index])));
+			}
+		}
 	}
 }
 

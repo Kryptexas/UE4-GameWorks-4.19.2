@@ -372,6 +372,9 @@ struct FCompiledInDeferEnum
  */
 COREUOBJECT_API class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, const TCHAR* EnumName);
 
+COREUOBJECT_API class UScriptStruct* FindExistingStructIfHotReload(UObject* Outer, const TCHAR* StructName, SIZE_T Size, uint32 Crc);
+COREUOBJECT_API class UEnum* FindExistingEnumIfHotReload(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc);
+
 /** @return	True if there are any newly-loaded UObjects that are waiting to be registered by calling ProcessNewlyLoadedUObjects() */
 COREUOBJECT_API bool AnyNewlyLoadedUObjects();
 
@@ -380,7 +383,7 @@ COREUOBJECT_API void ProcessNewlyLoadedUObjects();
 
 #if WITH_HOT_RELOAD
 /** Map of duplicated CDOs for reinstancing during hot-reload purposes. */
-COREUOBJECT_API TMap<UClass*, UObject*>& GetDuplicatedCDOMap();
+COREUOBJECT_API TMap<UObject*, UObject*>& GetDuplicatedCDOMap();
 #endif // WITH_HOT_RELOAD
 
 /**
