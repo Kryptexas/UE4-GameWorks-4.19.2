@@ -189,6 +189,26 @@ bool FOnlineFriendsSteam::GetRecentPlayers(const FUniqueNetId& UserId, const FSt
 	return false;
 }
 
+bool FOnlineFriendsSteam::BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
+{
+	return false;
+}
+
+bool FOnlineFriendsSteam::UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
+{
+	return false;
+}
+
+bool FOnlineFriendsSteam::QueryBlockedPlayers(const FUniqueNetId& UserId)
+{
+	return false;
+}
+
+bool FOnlineFriendsSteam::GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers)
+{
+	return false;
+}
+
 void FOnlineAsyncTaskSteamReadFriendsList::Finalize()
 {
 	FOnlineSubsystemSteam* SteamSubsystem = FriendsPtr->SteamSubsystem;

@@ -94,6 +94,10 @@ public:
 	virtual bool IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 	virtual bool QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace) override;
 	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers) override;
+	virtual bool BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) override;
+	virtual bool UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) override;
+	virtual bool QueryBlockedPlayers(const FUniqueNetId& UserId) override;
+	virtual bool GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers) override;
 
 	// FOnlineFriendsFacebook
 
