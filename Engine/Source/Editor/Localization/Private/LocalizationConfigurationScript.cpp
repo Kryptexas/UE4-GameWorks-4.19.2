@@ -393,11 +393,12 @@ namespace LocalizationConfigurationScript
 			// CommandletClass
 			ConfigSection.Add( TEXT("CommandletClass"), TEXT("InternationalizationExport") );
 
-			ConfigSection.Add( TEXT("bExportLoc"), TEXT("true") );
+			ConfigSection.Add(TEXT("bExportLoc"), TEXT("true"));
 
-			if (Target->Settings.ExportSettings.ShouldPersistCommentsOnExport)
+			// Export-specific settings.
 			{
-				ConfigSection.Add(TEXT("ShouldPersistComments"), "true");
+				ConfigSection.Add(TEXT("ShouldPersistCommentsOnExport"), Target->Settings.ExportSettings.ShouldPersistCommentsOnExport ? TEXT("true") : TEXT("false"));
+				ConfigSection.Add(TEXT("ShouldAddSourceLocationsAsComments"), Target->Settings.ExportSettings.ShouldAddSourceLocationsAsComments ? TEXT("true") : TEXT("false"));
 			}
 
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;

@@ -294,6 +294,9 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		bUseCultureDirectory = true;
 	}
 
+	bool ShouldAddSourceLocationsAsComments = true;
+	GetBoolFromConfig(*SectionName, TEXT("ShouldAddSourceLocationsAsComments"), ShouldAddSourceLocationsAsComments, ConfigPath);
+
 	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 	// Load the manifest info
 	{
@@ -397,7 +400,12 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 									PoEntry->AddReference(PORefString); // Source location.
 
 									PoEntry->AddExtractedComment( GetConditionedKeyForExtractedComment(Context.Key) ); // "Notes from Programmer" in the form of the Key.
-									PoEntry->AddExtractedComment( GetConditionedReferenceForExtractedComment(PORefString) ); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
+
+									if (ShouldAddSourceLocationsAsComments)
+									{
+										PoEntry->AddExtractedComment(GetConditionedReferenceForExtractedComment(PORefString)); // "Notes from Programmer" in the form of the Source Location, since this comes in handy too and OneSky doesn't properly show references, only comments.
+									}
+
 									TArray<FString> InfoMetaDataStrings;
 									if (Context.InfoMetadataObj.IsValid())
 									{

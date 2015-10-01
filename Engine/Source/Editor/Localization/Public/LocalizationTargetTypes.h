@@ -216,9 +216,18 @@ struct FLocalizationExportingSettings
 {
 	GENERATED_BODY()
 
+	FLocalizationExportingSettings()
+	: ShouldPersistCommentsOnExport(false)
+	, ShouldAddSourceLocationsAsComments(true)
+	{}
+
 	/* Should user comments in existing PO files be persisted after export? Useful if using a third party service that stores editor/translator notes in the PO format's comment fields. */
 	UPROPERTY(config, EditAnywhere, Category = "Comments")
 	bool ShouldPersistCommentsOnExport;
+
+	/* Should source locations be added to PO file entries as comments? Useful if a third party service doesn't expose PO file reference comments, which typically store the source location. */
+	UPROPERTY(config, EditAnywhere, Category = "Comments")
+	bool ShouldAddSourceLocationsAsComments;
 };
 
 USTRUCT()
