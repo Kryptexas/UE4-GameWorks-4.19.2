@@ -3,6 +3,7 @@ Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Register as an Oculus developer to gain access to necessary programs and documentation
 Availability:Public
 Version: 4.9
+SkillLevel: Beginner
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +25,7 @@ While it is not mandatory to register as an Oculus developer, registering will a
 
 %Steps%
 
-Visit the [Oculus Developer Center](https://developer.oculus.com/) and click on person icon in the upper right hand corner of the page to log in if you already have an Oculus account. 
+Visit the [Oculus Developer Center](https://developer.oculus.com/) and click on the person icon in the upper right hand corner of the page to log in if you already have an Oculus account. 
 Please note that if you already have an account you can skip ahead to the next step.
 	
 ![](Oculus_Downloads.png)

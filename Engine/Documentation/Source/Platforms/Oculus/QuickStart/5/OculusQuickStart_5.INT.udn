@@ -3,8 +3,9 @@ Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Load and play content designed for the Oculus Rift using Unreal Engine 4.
 Availability:Public
 Version: 4.9
+SkillLevel: Beginner
 
-In this section we will cover how you can test to see if your Dk2 is working inside Unreal Engine 4.
+In this section we will cover how you can test to see if your DK2 is working inside Unreal Engine 4.
 
 [VAR:Steps]
 [OBJECT:Navigation]

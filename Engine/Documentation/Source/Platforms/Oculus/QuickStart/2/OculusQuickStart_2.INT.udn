@@ -3,6 +3,7 @@ Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Download the needed software for running games on the Oculus Rift
 Availability:Public
 Version: 4.9
+SkillLevel: Beginner
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,7 +21,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-In this section we will go over which version of the Oculus PC Runtime drivers you need to download and were you can download them form.
+In this section we will go over which version of the Oculus PC Runtime drivers you need to download and where you can download them from.
 
 %Steps%
 
@@ -30,11 +31,11 @@ The version of the Oculus Runtime that is currently compatible with the latest v
 [/REGION]
 
 
-1. From the web browser of your choice got the Oculus Developer webpage by clicking on the link below.
+1. From the web browser of your choice go to the Oculus Developer webpage by clicking on the link below.
 	
 	[https://developer.oculus.com/](https://developer.oculus.com/) 
 
-1. Download the [PC RUNTIME( v0.7.0.0-BETA)](https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/) by clicking on the PC RUNTIME(V0.7.0-BETA) button.
+1. Download the [PC RUNTIME( v0.7.0.0-BETA)](https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/) by clicking on the **PC RUNTIME(V0.7.0-BETA)** button.
 
 	![](Downloads.png)
 

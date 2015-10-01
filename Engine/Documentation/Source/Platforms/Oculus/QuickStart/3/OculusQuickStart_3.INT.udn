@@ -3,6 +3,7 @@ Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Install the needed software for running games on the Oculus Rift
 Availability:Public
 Version: 4.9
+SkillLevel: Beginner
 
 In the section we will go over how you can install the Oculus drivers once they have been downloaded to your development PC.
 
@@ -25,7 +26,7 @@ In the section we will go over how you can install the Oculus drivers once they 
 %Steps%
 
 
-1. Locate where the **0.7.0 BETA** drivers that were download in the last step and double-click on them to being the install process.
+1. Locate where the **0.7.0 BETA** drivers that were downloaded in the last step and **Double-click** on them to being the install process.
 
 1. When the installer starts, Click the **Next** button to being the install.
 	
@@ -59,7 +60,7 @@ In the section we will go over how you can install the Oculus drivers once they 
 
 	 ![](oculus_setup_9.png)
 
-1. Reboot your computer when prompted.
+1. **Reboot** your computer when prompted.
 
 	![](oculus_setup_10.png)
 
