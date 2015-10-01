@@ -176,6 +176,24 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
 }
 
+void FDebug::ConditionallyEmitBeginCrashUATMarker()
+{
+	const bool bWriteUATMarkers = FParse::Param( FCommandLine::Get(), TEXT( "CrashForUAT" ) ) && FParse::Param( FCommandLine::Get(), TEXT( "stdout" ) );
+	if (bWriteUATMarkers)
+	{
+		UE_LOG( LogOutputDevice, Error, TEXT( "\nbegin: stack for UAT" ) );
+	}
+}
+
+void FDebug::ConditionallyEmitEndCrashUATMarker()
+{
+	const bool bWriteUATMarkers = FParse::Param( FCommandLine::Get(), TEXT( "CrashForUAT" ) ) && FParse::Param( FCommandLine::Get(), TEXT( "stdout" ) );
+	if (bWriteUATMarkers)
+	{
+		UE_LOG( LogOutputDevice, Error, TEXT( "\nend: stack for UAT" ) );
+	}
+}
+
 #if DO_CHECK || DO_GUARD_SLOW
 //
 // Failed assertion handler.
@@ -262,7 +280,9 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 		FMemory::SystemFree( StackTrace );
 
 		// Dump the error and flush the log.
-		UE_LOG(LogOutputDevice, Log, TEXT("=== Handled error: ===") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), ErrorMsg);
+		FDebug::ConditionallyEmitBeginCrashUATMarker();
+		UE_LOG(LogOutputDevice, Warning, TEXT("=== Handled error: ===") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), ErrorMsg);
+		FDebug::ConditionallyEmitEndCrashUATMarker();
 		GLog->Flush();
 
 		// Submit the error report to the server! (and display a balloon in the system tray)
