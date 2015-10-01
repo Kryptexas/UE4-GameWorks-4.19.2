@@ -173,6 +173,9 @@ protected:
 	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
 	uint32 bDisableDetachmentUpdateOverlaps:1;
 
+	/** If true, OnUpdateTransform virtual will be called each time this component is moved. */
+	uint32 bWantsOnUpdateTransform:1;
+
 private:
 	/** Physics Volume in which this SceneComponent is located **/
 	UPROPERTY(transient)

@@ -442,15 +442,16 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_TransformChanged);
 		{
-		// Then update bounds
+			// Then update bounds
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_UpdateBounds);
-		UpdateBounds();
+			UpdateBounds();
 		}
 
+		// Call OnUpdateTransform if this components wants it
+		if(bWantsOnUpdateTransform)
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_OnUpdateTransform);
-		// Always send new transform to physics
-		OnUpdateTransform(bSkipPhysicsMove, Teleport);
+			OnUpdateTransform(bSkipPhysicsMove, Teleport);
 		}
 
 		// Flag render transform as dirty
@@ -458,9 +459,9 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_UpdateChildTransforms);
-		// Now go and update children
-		//Do not pass skip physics to children. This is only used when physics updates us, but in that case we really do need to update the attached children since they are kinematic
-		UpdateChildTransforms(false, Teleport);
+			// Now go and update children
+			//Do not pass skip physics to children. This is only used when physics updates us, but in that case we really do need to update the attached children since they are kinematic
+			UpdateChildTransforms(false, Teleport);
 		}
 
 		// Refresh navigation
@@ -471,22 +472,22 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_NOT_TransformChanged);
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_UpdateBounds);
-		// We update bounds even if transform doesn't change, as shape/mesh etc might have done
-		UpdateBounds();
+			// We update bounds even if transform doesn't change, as shape/mesh etc might have done
+			UpdateBounds();
 		}
 
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_UpdateChildTransforms);
-		// Now go and update children
-		UpdateChildTransforms();
+			// Now go and update children
+			UpdateChildTransforms();
 		}
 
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_MarkRenderTransformDirty);
-		// Need to flag as dirty so new bounds are sent to render thread
-		MarkRenderTransformDirty();
+			// Need to flag as dirty so new bounds are sent to render thread
+			MarkRenderTransformDirty();
+		}
 	}
-}
 }
 
 

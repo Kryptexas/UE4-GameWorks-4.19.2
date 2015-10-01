@@ -17,6 +17,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	bAllowSpatialization = true;
 	bStopWhenOwnerDestroyed = true;
 	bNeverNeedsRenderUpdate = true;
+	bWantsOnUpdateTransform = true;
 #if WITH_EDITORONLY_DATA
 	bVisualizeComponent = true;
 #endif

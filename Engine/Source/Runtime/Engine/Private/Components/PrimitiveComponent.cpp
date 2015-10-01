@@ -185,6 +185,8 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bCanEverAffectNavigation = false;
 	bNavigationRelevant = false;
 
+	bWantsOnUpdateTransform = true;
+
 	bCachedAllCollideableDescendantsRelative = false;
 	LastCheckedAllCollideableDescendantsTime = 0.f;
 }

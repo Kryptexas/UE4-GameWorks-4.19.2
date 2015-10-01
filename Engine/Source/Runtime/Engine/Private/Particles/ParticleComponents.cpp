@@ -2756,6 +2756,9 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	// Disable receiving decals by default.
 	bReceivesDecals = false;
 
+	// Don't need to call OnUpdateTransform, no physics state to update
+	bWantsOnUpdateTransform = false;
+
 	SavedAutoAttachRelativeScale3D = FVector(1.f, 1.f, 1.f);
 }
 
