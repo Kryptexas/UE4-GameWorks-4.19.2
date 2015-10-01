@@ -146,6 +146,21 @@ public:
 
 		return ETextDirection::LeftToRight;
 	}
+
+	virtual ETextDirection ComputeBaseDirection(const FText& InText) override
+	{
+		return FLegacyTextBiDi::ComputeBaseDirection(InText.ToString());
+	}
+
+	virtual ETextDirection ComputeBaseDirection(const FString& InString) override
+	{
+		return FLegacyTextBiDi::ComputeBaseDirection(*InString, 0, InString.Len());
+	}
+
+	virtual ETextDirection ComputeBaseDirection(const TCHAR*, const int32 InStringStartIndex, const int32 InStringLen) override
+	{
+		return ETextDirection::LeftToRight;
+	}
 };
 
 } // namespace Internal
@@ -193,6 +208,21 @@ ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringS
 		OutTextDirectionInfo.Add(MoveTemp(TextDirectionInfo));
 	}
 
+	return ETextDirection::LeftToRight;
+}
+
+ETextDirection ComputeBaseDirection(const FText& InText)
+{
+	return ComputeBaseDirection(InText.ToString());
+}
+
+ETextDirection ComputeBaseDirection(const FString& InString)
+{
+	return ComputeBaseDirection(*InString, 0, InString.Len());
+}
+
+ETextDirection ComputeBaseDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen)
+{
 	return ETextDirection::LeftToRight;
 }
 

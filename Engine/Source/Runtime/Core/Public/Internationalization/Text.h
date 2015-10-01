@@ -792,6 +792,11 @@ namespace TextBiDi
 		virtual ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
 		virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
 		virtual ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
+
+		/** See TextBiDi::ComputeBaseDirection */
+		virtual ETextDirection ComputeBaseDirection(const FText& InText) = 0;
+		virtual ETextDirection ComputeBaseDirection(const FString& InString) = 0;
+		virtual ETextDirection ComputeBaseDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen) = 0;
 	};
 
 	/**
@@ -816,6 +821,15 @@ namespace TextBiDi
 	CORE_API ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
 	CORE_API ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
 	CORE_API ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
+
+	/**
+	 * Utility function which will compute the base direction of the given text.
+	 * This provides the text flow direction that should be used when combining bidirectional text runs together.
+	 * @return RightToLeft if the first character in the string has a bidirectional character type of R or AL, otherwise LeftToRight.
+	 */
+	CORE_API ETextDirection ComputeBaseDirection(const FText& InText);
+	CORE_API ETextDirection ComputeBaseDirection(const FString& InString);
+	CORE_API ETextDirection ComputeBaseDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen);
 } // namespace TextBiDi
 
 Expose_TNameOf(FText)

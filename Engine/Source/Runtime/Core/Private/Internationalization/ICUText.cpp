@@ -294,6 +294,14 @@ ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& 
 	return ETextDirection::LeftToRight;
 }
 
+ETextDirection ComputeBaseDirection(const icu::UnicodeString& InICUString)
+{
+	const UBiDiDirection ICUBaseDirection = ubidi_getBaseDirection(InICUString.getBuffer(), InICUString.length());
+
+	// ICUToUE will treat UBIDI_NEUTRAL as LTR
+	return Internal::ICUToUE(ICUBaseDirection);
+}
+
 class FICUTextBiDi : public ITextBiDi
 {
 public:
@@ -352,6 +360,28 @@ public:
 		StringConverter.ConvertString(InString, InStringStartIndex, InStringLen, ICUString);
 
 		return Internal::ComputeTextDirection(ICUBiDi, ICUString, InStringStartIndex, OutTextDirectionInfo);
+	}
+
+	virtual ETextDirection ComputeBaseDirection(const FText& InText) override
+	{
+		return FICUTextBiDi::ComputeBaseDirection(InText.ToString());
+	}
+
+	virtual ETextDirection ComputeBaseDirection(const FString& InString) override
+	{
+		return FICUTextBiDi::ComputeBaseDirection(*InString, 0, InString.Len());
+	}
+
+	virtual ETextDirection ComputeBaseDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen) override
+	{
+		if (InStringLen == 0)
+		{
+			return ETextDirection::LeftToRight;
+		}
+
+		StringConverter.ConvertString(InString, InStringStartIndex, InStringLen, ICUString);
+
+		return Internal::ComputeBaseDirection(ICUString);
 	}
 
 private:
@@ -447,6 +477,28 @@ ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringS
 	}
 
 	return ETextDirection::LeftToRight;
+}
+
+ETextDirection ComputeBaseDirection(const FText& InText)
+{
+	return ComputeBaseDirection(InText.ToString());
+}
+
+ETextDirection ComputeBaseDirection(const FString& InString)
+{
+	return ComputeBaseDirection(*InString, 0, InString.Len());
+}
+
+ETextDirection ComputeBaseDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen)
+{
+	if (InStringLen == 0)
+	{
+		return ETextDirection::LeftToRight;
+	}
+
+	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString, InStringStartIndex, InStringLen);
+
+	return Internal::ComputeBaseDirection(ICUString);
 }
 
 } // namespace TextBiDi
