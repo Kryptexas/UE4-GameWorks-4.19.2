@@ -358,6 +358,21 @@ public:
 	class FAudioDevice * AudioDevice;
 };
 
+/**
+* FSpatializationParams
+* Struct for retrieving parameters needed for computing 3d spatialization
+*/
+struct FSpatializationParams
+{
+	FVector ListenerPosition;
+	FVector ListenerOrientation;
+	FVector EmitterPosition;
+	FVector LeftChannelPosition;
+	FVector RightChannelPosition;
+	float Distance;
+	float NormalizedOmniRadius;
+};
+
 /*-----------------------------------------------------------------------------
 	FSoundSource.
 -----------------------------------------------------------------------------*/
@@ -377,6 +392,8 @@ public:
 		, LFEBleed(0.5f)
 		, HighFrequencyGain(1.0f)
 		, LastUpdate(0)
+		, LeftChannelSourceLocation(0)
+		, RightChannelSourceLocation(0)
 	{
 	}
 
@@ -479,6 +496,18 @@ public:
 	 */
 	ENGINE_API void SetHighFrequencyGain( void );
 
+	/** Updates the stereo emitter positions of this voice */
+	ENGINE_API void UpdateStereoEmitterPositions();
+
+	/** Draws debug info about this source voice if enabled. */
+	ENGINE_API void DrawDebugInfo();
+
+	/**
+	* Gets parameters necessary for computing 3d spatialization of sources
+	*/
+	ENGINE_API FSpatializationParams GetSpatializationParams();
+
+
 	const FSoundBuffer* GetBuffer() const {return Buffer;}
 
 	/**
@@ -489,6 +518,7 @@ public:
 	}
 
 protected:
+
 	// Variables.	
 	class FAudioDevice*		AudioDevice;
 	struct FWaveInstance*	WaveInstance;
@@ -514,6 +544,11 @@ protected:
 	int32					LastUpdate;
 	/** Last tick when this source was active *and* had a hearable volume */
 	int32					LastHeardUpdate;
+
+	/** The location of the left-channel source for stereo spatialization. */
+	FVector						LeftChannelSourceLocation;
+	/** The location of the right-channel source for stereo spatialization. */
+	FVector						RightChannelSourceLocation;
 
 	friend class FAudioDevice;
 };

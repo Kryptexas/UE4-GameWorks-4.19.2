@@ -218,14 +218,6 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
-	if (Listeners.Num() > 0)
-	{
-		// Caches the matrix used to transform a sounds position into local space so we can just look
-		// at the Y component after normalization to determine spatialization.
-		const FVector Up = Listeners[0].GetUp();
-		const FVector Right = Listeners[0].GetFront();
-		InverseListenerTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
-	}
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

@@ -292,6 +292,106 @@ void FSoundSource::SetHighFrequencyGain( void )
 	}
 }
 
+void FSoundSource::UpdateStereoEmitterPositions()
+{
+	// Only call this function if we're told to use spatialization
+	check(WaveInstance->bUseSpatialization);
+	check(Buffer->NumChannels == 2);
+
+	if (WaveInstance->StereoSpread > 0.0f)
+	{
+		// We need to compute the stereo left/right channel positions using the audio component position and the spread 
+		const FVector& ListenerPosition = AudioDevice->Listeners[0].Transform.GetLocation();
+		FVector ListenerToSourceDir = WaveInstance->Location - ListenerPosition;
+		ListenerToSourceDir.Normalize();
+
+		float HalfSpread = 0.5f * WaveInstance->StereoSpread;
+
+		// Get direction of left emitter from true emitter position (left hand rule)
+		FVector LeftEmitterDir = FVector::CrossProduct(ListenerToSourceDir, FVector::UpVector);
+		FVector LeftEmitterOffset = LeftEmitterDir * HalfSpread;
+
+		// Get position vector of left emitter by adding to true emitter the dir scaled by half the spread
+		LeftChannelSourceLocation = WaveInstance->Location + LeftEmitterOffset;
+
+		// Right emitter position is same as right but opposite direction
+		RightChannelSourceLocation = WaveInstance->Location - LeftEmitterOffset;
+	}
+	else
+	{
+		LeftChannelSourceLocation = WaveInstance->Location;
+		RightChannelSourceLocation = WaveInstance->Location;
+	}
+}
+
+void FSoundSource::DrawDebugInfo()
+{
+	// Draw 3d Debug information about this source, if enabled
+	// TODO - Audio Threading. This won't work cross thread.
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+
+	if (DeviceManager && DeviceManager->IsVisualizeDebug3dEnabled())
+	{
+		UAudioComponent* AudioComponent = (WaveInstance->ActiveSound ? WaveInstance->ActiveSound->GetAudioComponent() : nullptr);
+		if (AudioComponent)
+		{
+			UWorld* SoundWorld = AudioComponent->GetWorld();
+			if (SoundWorld)
+			{
+				FRotator SoundRotation = AudioComponent->GetComponentRotation();
+				DrawDebugCrosshairs(SoundWorld, WaveInstance->Location, SoundRotation, 20.0f, FColor::White, false, -1.0f, SDPG_Foreground);
+
+				FString Name;
+				WaveInstance->ActiveSound->Sound->GetName(Name);
+
+				if (Buffer->NumChannels == 2 && WaveInstance->bUseSpatialization)
+				{
+					DrawDebugCrosshairs(SoundWorld, LeftChannelSourceLocation, SoundRotation, 20.0f, FColor::Red, false, -1.0f, SDPG_Foreground);
+					DrawDebugCrosshairs(SoundWorld, RightChannelSourceLocation, SoundRotation, 20.0f, FColor::Green, false, -1.0f, SDPG_Foreground);
+				}
+
+				DrawDebugString(SoundWorld, AudioComponent->GetComponentLocation() + FVector(0, 0, 32), *Name, nullptr, FColor::White, 0.033, false);
+			}
+		}
+	}
+}
+
+FSpatializationParams FSoundSource::GetSpatializationParams()
+{
+	FSpatializationParams Params;
+
+		// Calculate direction from listener to sound, where the sound is at the origin if unspatialised.
+	if (WaveInstance->bUseSpatialization)
+	{
+		FVector EmitterPosition = AudioDevice->GetListenerTransformedDirection(WaveInstance->Location, &Params.Distance);
+		Params.NormalizedOmniRadius = (Params.Distance > 0) ? (WaveInstance->OmniRadius / Params.Distance) : FLT_MAX;
+
+		if (Buffer->NumChannels == 2)
+		{
+			Params.LeftChannelPosition = AudioDevice->GetListenerTransformedDirection(LeftChannelSourceLocation, nullptr);
+			Params.RightChannelPosition = AudioDevice->GetListenerTransformedDirection(RightChannelSourceLocation, nullptr);
+			Params.EmitterPosition = FVector::ZeroVector;
+		}
+		else
+		{
+			Params.EmitterPosition = EmitterPosition;
+		}
+	}
+	else
+	{
+		Params.NormalizedOmniRadius = 0.0f;
+		Params.Distance = 0.0f;
+		Params.EmitterPosition = FVector::ZeroVector;
+	}
+
+	// We are currently always computing spatialization for XAudio2 relative to the listener!
+	Params.ListenerOrientation = FVector::UpVector;
+	Params.ListenerPosition = FVector::ZeroVector;
+
+	return Params;
+}
+
+
 /*-----------------------------------------------------------------------------
 	FNotifyBufferFinishedHooks implementation.
 -----------------------------------------------------------------------------*/

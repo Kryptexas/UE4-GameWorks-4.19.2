@@ -746,6 +746,17 @@ protected:
 
 	void AddSoundToStop(struct FActiveSound* SoundToStop);
 
+	/** Updates the listener transform. */
+	void UpdateListenerTransform();
+
+	/**   
+	* Gets the direction of the given position vector transformed relative to listener.   
+	* @param Position				Input position vector to transform relative to listener
+	* @param OutDistance			Optional output of distance from position to listener
+	* @return The input position relative to the listener.
+	*/
+	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
+
 public:
 
 	/** The maximum number of concurrent audible sounds */
@@ -858,6 +869,9 @@ private:
 
 	friend class FSoundConcurrencyManager;
 	FSoundConcurrencyManager ConcurrencyManager;
+
+	/** Inverse listener transformation, used for spatialization */
+	FMatrix InverseListenerTransform;
 };
 
 

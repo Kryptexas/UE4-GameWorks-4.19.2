@@ -166,9 +166,6 @@ protected:
 	/** Decompress a wav a number of times for profiling purposes */
 	void TimeTest( FOutputDevice& Ar, const TCHAR* WaveAssetName );
 
-	/** Inverse listener transformation, used for spatialization */
-	FMatrix InverseListenerTransform;
-
 	// For calculating spatialised volumes
 	static FSpatializationHelper SpatializationHelper;
 

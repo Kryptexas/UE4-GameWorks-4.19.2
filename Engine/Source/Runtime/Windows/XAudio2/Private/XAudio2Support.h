@@ -424,35 +424,9 @@ protected:
 	int32 GetDestinationVoiceIndexForEffect( SourceDestinations Effect );
 
 	/**
-	* FSpatializationParams
-	* Struct for retrieving parameters needed for computing 3d spatialization
-	*/
-	struct FSpatializationParams
-	{
-		FVector ListenerPosition;
-		FVector ListenerOrientation;
-		FVector EmitterPosition;
-		FVector LeftChannelPosition;
-		FVector RightChannelPosition;
-		float Distance;
-		float NormalizedOmniRadius;
-	};
-
-	/**
 	* Converts a vector orientation from UE4 coordinates to XAudio2 coordinates
 	*/
 	inline FVector ConvertToXAudio2Orientation(const FVector& InputVector);
-
-	/**
-	* Transform the given position in absolute world-space to listener-relative space. Optionally returns distance.
-	*/
-	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance = nullptr);
-
-	/**
-	* Gets parameters necessary for computing 3d spatialization of sources
-	*/
-	void GetSpatializationParams(FSpatializationParams& Params);
-	void UpdateStereoEmitterPositions();
 
 	/**
 	* Calculates the channel volumes for various input channel configurations.
@@ -503,10 +477,6 @@ protected:
 	uint32						VoiceId;
 	/** Whether or not this sound is spatializing using an HRTF spatialization algorithm. */
 	bool						bUsingHRTFSpatialization;
-	/** The location of the left-channel source for stereo spatialization. */
-	FVector						LeftChannelSourceLocation;
-	/** The location of the right-channel source for stereo spatialization. */
-	FVector						RightChannelSourceLocation;
 
 	friend class FXAudio2Device;
 	friend class FXAudio2SoundSourceCallback;

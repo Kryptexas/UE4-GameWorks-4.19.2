@@ -2068,6 +2068,8 @@ void FAudioDevice::Update( bool bGameTicking )
 		INC_DWORD_STAT_BY( STAT_ActiveSounds, ActiveSounds.Num() );
 	}
 
+	UpdateListenerTransform();
+
 	// now let the platform perform anything it needs to handle
 	UpdateHardware();
 
@@ -2662,6 +2664,27 @@ bool FAudioDevice::IsAudioDeviceMuted() const
 	return bIsDeviceMuted;
 }
 
+void FAudioDevice::UpdateListenerTransform()
+{
+	if (Listeners.Num() > 0)
+	{
+		// Caches the matrix used to transform a sounds position into local space so we can just look
+		// at the Y component after normalization to determine spatialization.
+		const FVector Up = Listeners[0].GetUp();
+		const FVector Right = Listeners[0].GetFront();
+		InverseListenerTransform = FMatrix(Up, Right, Up ^ Right, Listeners[0].Transform.GetTranslation()).InverseFast();
+	}
+}
+
+FVector FAudioDevice::GetListenerTransformedDirection(const FVector& Position, float* OutDistance)
+{
+	FVector UnnormalizedDirection = InverseListenerTransform.TransformPosition(Position);
+	if (OutDistance)
+	{
+		*OutDistance = UnnormalizedDirection.Size();
+	}
+	return UnnormalizedDirection.GetSafeNormal();
+}
 
 #if WITH_EDITOR
 void FAudioDevice::OnBeginPIE(const bool bIsSimulating)
