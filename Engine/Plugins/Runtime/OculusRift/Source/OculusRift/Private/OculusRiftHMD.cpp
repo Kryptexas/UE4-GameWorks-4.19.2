@@ -2,6 +2,7 @@
 
 #include "HMDPrivatePCH.h"
 #include "OculusRiftHMD.h"
+#include "OculusRiftMeshAssets.h"
 
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftHMD_05.cpp
 
@@ -1354,12 +1355,10 @@ bool FOculusRiftHMD::InitDevice()
 		UpdateStereoRenderingParams();
 		UpdateHmdCaps();
 
-#if 0
 		if (!HasHiddenAreaMesh())
 		{
 			SetupOcclusionMeshes();
 		}
-#endif
 
 		if (CurrentSettings->QueueAheadStatus != FSettings::EQA_Default)
 		{
@@ -1397,7 +1396,6 @@ void FOculusRiftHMD::ReleaseDevice()
 	}
 }
 
-#if 0
 void FOculusRiftHMD::SetupOcclusionMeshes()
 {
 	if (HmdDesc.Type == ovrHmdType::ovrHmd_DK2)
@@ -1414,8 +1412,14 @@ void FOculusRiftHMD::SetupOcclusionMeshes()
 		VisibleAreaMeshes[0].BuildMesh(CB_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
 		VisibleAreaMeshes[1].BuildMesh(CB_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
 	}
+	else if (HmdDesc.Type == ovrHmdType::ovrHmd_E3_2015 || HmdDesc.Type == ovrHmdType::ovrHmd_ES06)
+	{
+		HiddenAreaMeshes[0].BuildMesh(EVT_LeftEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
+		HiddenAreaMeshes[1].BuildMesh(EVT_RightEyeHiddenAreaPositions, HiddenAreaVertexCount, FHMDViewMesh::MT_HiddenArea);
+		VisibleAreaMeshes[0].BuildMesh(EVT_LeftEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
+		VisibleAreaMeshes[1].BuildMesh(EVT_RightEyeVisibleAreaPositions, VisibleAreaVertexCount, FHMDViewMesh::MT_VisibleArea);
+	}
 }
-#endif
 
 void FOculusRiftHMD::UpdateHmdCaps()
 {

@@ -110,6 +110,38 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 	}
 }
 
+static void DrawOcclusionMesh(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass, const FHMDViewMesh MeshAssets[])
+{
+	check(IsInRenderingThread());
+	check(StereoPass != eSSP_FULL);
+
+	const uint32 MeshIndex = (StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
+	const FHMDViewMesh& Mesh = MeshAssets[MeshIndex];
+	check(Mesh.IsValid());
+
+	DrawIndexedPrimitiveUP(
+		RHICmdList,
+		PT_TriangleList,
+		0,
+		Mesh.NumVertices,
+		Mesh.NumTriangles,
+		Mesh.pIndices,
+		sizeof(Mesh.pIndices[0]),
+		Mesh.pVertices,
+		sizeof(Mesh.pVertices[0])
+		);
+}
+
+void FOculusRiftHMD::DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
+{
+	DrawOcclusionMesh(RHICmdList, StereoPass, HiddenAreaMeshes);
+}
+
+void FOculusRiftHMD::DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
+{
+	DrawOcclusionMesh(RHICmdList, StereoPass, VisibleAreaMeshes);
+}
+
 void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());

@@ -161,7 +161,13 @@ private:
 	 * Renders the scene's prepass and occlusion queries.
 	 * @return true if anything was rendered
 	 */
-	bool RenderPrePass(FRHICommandListImmediate& RHICmdList);
+	bool RenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDepthWasCleared);
+
+	/**
+	 * Renders the active HMD's hidden area mask as a depth prepass, if available.
+	 * @return true if depth is cleared
+	 */
+	bool RenderPrePassHMD(FRHICommandListImmediate& RHICmdList);
 
 	/** Issues occlusion queries. */
 	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);

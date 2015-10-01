@@ -5,6 +5,7 @@
 #include "ModuleInterface.h"
 #include "ModuleManager.h"		// For inline LoadModuleChecked()
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "HeadMountedDisplayTypes.h"
 
 /**
  * The public interface of the MotionControlsModule
