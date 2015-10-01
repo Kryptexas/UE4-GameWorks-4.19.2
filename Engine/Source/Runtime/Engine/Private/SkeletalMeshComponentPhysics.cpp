@@ -3190,7 +3190,10 @@ void USkeletalMeshComponent::UpdateClothTransform()
 		if(NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor)
 		{
 			NxParameterized::Interface* ActorDesc = ApexClothingActor->getActorDesc();
-			verify(NxParameterized::setParamMat44(*ActorDesc, "globalPose", PxGlobalPose));
+			if(ActorDesc != nullptr)
+			{
+				verify(NxParameterized::setParamMat44(*ActorDesc, "globalPose", PxGlobalPose));
+			}
 		}
 	}
 }
