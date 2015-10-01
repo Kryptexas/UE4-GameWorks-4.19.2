@@ -59,13 +59,15 @@ public:
 
 	void UpdateVisibility();
 
+	bool IsLocked() const { return CursorClipRect.Area() > 0; }
+
 private:
 	EMouseCursor::Type CurrentType;
 
 	/** Cursors */
 	NSCursor* CursorHandles[EMouseCursor::TotalCursorCount];
 
-	FIntRect CusorClipRect;
+	FIntRect CursorClipRect;
 
 	bool bIsVisible;
 	bool bUseHighPrecisionMode;

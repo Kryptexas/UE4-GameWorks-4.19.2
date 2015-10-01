@@ -187,6 +187,10 @@ public:
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
 
+	void OnCursorLock();
+
+	void IgnoreMouseMoveDelta() { bIgnoreMouseMoveDelta = true; }
+
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
@@ -278,6 +282,8 @@ private:
 	NSUInteger CurrentModifierFlags;
 
 	bool bEmulatingRightClick;
+
+	bool bIgnoreMouseMoveDelta;
 
 	TArray<FCocoaWindow*> WindowsToClose;
 
