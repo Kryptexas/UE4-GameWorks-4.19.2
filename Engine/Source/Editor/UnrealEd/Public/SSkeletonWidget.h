@@ -471,6 +471,8 @@ public:
 	static UNREALED_API void ShowWindow(USkeleton* OldSkeleton, const FText& WarningMessage, bool bDuplicateAssets, FOnRetargetAnimation RetargetDelegate);
 
 	static TSharedPtr<SWindow> DialogWindow;
+
+	bool bShowDuplicateAssetOption;
 };
 
 ////////////////////////////////////////////////////
