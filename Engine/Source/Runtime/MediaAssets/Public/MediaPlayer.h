@@ -14,6 +14,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaClosed);
 /** Multicast delegate that is invoked when a media player's media has been opened. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaPlayerMediaOpened, FString, OpenedUrl);
 
+/** Multicast delegate that is invoked when a media player's media has failed to open. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaPlayerMediaOpenFailed, FString, FailedUrl);
+
 
 /**
  * Implements a media player asset that can play movies and other media.
@@ -180,7 +183,7 @@ public:
 	 * @see GetTime, Rewind
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool Seek( const FTimespan& InTime );
+	bool Seek(const FTimespan& InTime);
 
 	/**
 	 * Enables or disables playback looping.
@@ -190,7 +193,7 @@ public:
 	 * @see IsLooping
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SetLooping( bool InLooping );
+	bool SetLooping(bool InLooping);
 
 	/**
 	 * Changes the media's playback rate.
@@ -200,7 +203,7 @@ public:
 	 * @see GetRate, SupportsRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SetRate( float Rate );
+	bool SetRate(float Rate);
 
 	/**
 	 * Checks whether the specified playback rate is supported.
@@ -210,7 +213,7 @@ public:
 	 * @see SupportsScrubbing, SupportsSeeking
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SupportsRate( float Rate, bool Unthinned ) const;
+	bool SupportsRate(float Rate, bool Unthinned) const;
 
 	/**
 	 * Checks whether the currently loaded media supports scrubbing.
@@ -254,6 +257,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaOpened OnMediaOpened;
 
+	/** Holds a delegate that is invoked when a media source has failed to open. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaOpenFailed OnMediaOpenFailed;
+
 public:
 
 	/**
@@ -275,7 +282,7 @@ public:
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 protected:
@@ -299,7 +306,10 @@ private:
 	void HandlePlayerMediaClosed();
 
 	/** Callback for when the player has opened a new media source. */
-	void HandlePlayerMediaOpened( FString OpenedUrl );
+	void HandlePlayerMediaOpened(FString OpenedUrl);
+
+	/** Callback for when the player has failed to open a new media source. */
+	void HandlePlayerMediaOpenFailed(FString FailedUrl);
 
 	/** Callback for when the player's tracks changed. */
 	void HandlePlayerTracksChanged();

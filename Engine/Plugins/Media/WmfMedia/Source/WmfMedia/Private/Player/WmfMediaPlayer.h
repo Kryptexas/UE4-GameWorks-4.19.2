@@ -64,6 +64,12 @@ public:
 		return OpenedEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaOpenFailed, FOnMediaOpenFailed);
+	virtual FOnMediaOpenFailed& OnOpenFailed() override
+	{
+		return OpenFailedEvent;
+	}
+
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnTracksChanged, FOnTracksChanged);
 	virtual FOnTracksChanged& OnTracksChanged() override
 	{
@@ -117,6 +123,9 @@ private:
 	/** The URL of the currently opened media. */
 	FString MediaUrl;
 
+	/** The media source resolver. */
+	TComPtr<FWmfMediaResolver> Resolver;
+
 	/** The available video tracks. */
 	TArray<IMediaVideoTrackRef> VideoTracks;
 
@@ -127,6 +136,9 @@ private:
 
 	/** Holds an event delegate that is invoked when media has been opened. */
 	FOnMediaOpened OpenedEvent;
+
+	/** Holds an event delegate that is invoked when media failed to open. */
+	FOnMediaOpenFailed OpenFailedEvent;
 
 	/** Holds an event delegate that is invoked when the media tracks have changed. */
 	FOnTracksChanged TracksChangedEvent;

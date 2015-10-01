@@ -140,21 +140,31 @@ public:
 	virtual bool IsReady() const = 0;
 
 	/**
-	 * Opens a media from a file on disk.
+	 * Opens a media from a URL, possibly asynchronously.
+	 *
+	 * The media may not necessarily be opened after this function succeeds,
+	 * because opening may happen asynchronously. Subscribe to the OnOpened
+	 * OnOpenFailed events to detect when the media finished or failed to
+	 * open. These events are only triggered if Open returns true.
 	 *
 	 * @param Url The URL of the media to open (file name or web address).
-	 * @return true if the media was opened successfully, false otherwise.
-	 * @see Close, IsReady
+	 * @return true if the media is being opened, false otherwise.
+	 * @see Close, IsReady, OnOpen, OnOpenFailed
 	 */
 	virtual bool Open(const FString& Url) = 0;
 
 	/**
-	 * Opens a media from a file or memory archive.
+	 * Opens a media from a file or memory archive, possibly asynchronously.
+	 *
+	 * The media may not necessarily be opened after this function succeeds,
+	 * because opening may happen asynchronously. Subscribe to the OnOpened
+	 * OnOpenFailed events to detect when the media finished or failed to
+	 * open. These events are only triggered if Open returns true.
 	 *
 	 * @param Archive The archive holding the media data.
 	 * @param OriginalUrl The original URL of the media that was loaded into the buffer.
-	 * @return true if the media was opened, false otherwise.
-	 * @see Close, IsReady
+	 * @return true if the media is being opened, false otherwise.
+	 * @see Close, IsReady, OnOpen, OnOpenFailed
 	 */
 	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl) = 0;
 
@@ -198,6 +208,10 @@ public:
 	/** Gets an event delegate that is invoked when media has been opened. */
 	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaOpened, FString /*OpenedUrl*/)
 	virtual FOnMediaOpened& OnOpened() = 0;
+
+	/** Gets an event delegate that is invoked when media failed to open. */
+	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaOpenFailed, FString /*FailedUrl*/)
+	virtual FOnMediaOpenFailed& OnOpenFailed() = 0;
 
 	/** Gets an event delegate that is invoked when the media tracks have changed. */
 	DECLARE_EVENT(IMediaPlayer, FOnTracksChanged)

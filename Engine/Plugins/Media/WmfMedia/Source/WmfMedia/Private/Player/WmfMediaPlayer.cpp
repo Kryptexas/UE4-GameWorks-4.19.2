@@ -2,6 +2,7 @@
 
 #include "WmfMediaPrivatePCH.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "Async/Async.h"
 
 
 /* FWmfVideoPlayer structors
@@ -10,12 +11,30 @@
 FWmfMediaPlayer::FWmfMediaPlayer()
 	: Duration(0)
 	, MediaSession(nullptr)
-{ }
+{
+	Resolver = new(std::nothrow) FWmfMediaResolver;
+	{
+		Resolver->OnResolveComplete().BindLambda([=](TComPtr<IUnknown> SourceObject, FString ResolvedUrl) {
+			AsyncTask(ENamedThreads::GameThread, [=]() {
+				InitializeMediaSession(SourceObject, ResolvedUrl)
+					? OpenedEvent.Broadcast(ResolvedUrl)
+					: OpenFailedEvent.Broadcast(ResolvedUrl);
+			});
+		});
+
+		Resolver->OnResolveFailed().BindLambda([=](FString FailedUrl) {
+			AsyncTask(ENamedThreads::GameThread, [=]() {
+				OpenFailedEvent.Broadcast(FailedUrl);
+			});
+		});
+	}
+}
 
 
 FWmfMediaPlayer::~FWmfMediaPlayer()
 {
 	Close();
+	Resolver->OnResolveComplete().Unbind();
 }
 
 
@@ -72,6 +91,8 @@ bool FWmfMediaPlayer::SupportsSeeking() const
 
 void FWmfMediaPlayer::Close()
 {
+	Resolver->Cancel();
+
 	if (MediaSession == NULL)
 	{
 		return;
@@ -181,25 +202,7 @@ bool FWmfMediaPlayer::Open(const FString& Url)
 		return false;
 	}
 
-	TComPtr<IMFSourceResolver> SourceResolver;
-
-	if (FAILED(::MFCreateSourceResolver(&SourceResolver)))
-	{
-		return false;
-	}
-
-	// resolve the media source from the given URL
-	MF_OBJECT_TYPE ObjectType = MF_OBJECT_INVALID;
-	TComPtr<IUnknown> SourceObject;
-
-	if (FAILED(SourceResolver->CreateObjectFromURL(*Url, MF_RESOLUTION_MEDIASOURCE, NULL, &ObjectType, &SourceObject)))
-	{
-		UE_LOG(LogWmfMedia, Error, TEXT("Failed to create source object from URL for %s"), *Url);
-
-		return false;
-	}
-
-	return InitializeMediaSession(SourceObject, Url);
+	return Resolver->ResolveUrl(Url);
 }
 
 
@@ -210,26 +213,7 @@ bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Arch
 		return false;
 	}
 
-	TComPtr<IMFSourceResolver> SourceResolver;
-	
-	if (FAILED(::MFCreateSourceResolver(&SourceResolver)))
-	{
-		return false;
-	}
-
-	// create the media source from the given buffer
-	TComPtr<FWmfMediaByteStream> ByteStream = new FWmfMediaByteStream(Archive);
-	MF_OBJECT_TYPE ObjectType = MF_OBJECT_INVALID;
-	TComPtr<IUnknown> SourceObject;
-	
-	if (FAILED(SourceResolver->CreateObjectFromByteStream(ByteStream, *OriginalUrl, MF_RESOLUTION_MEDIASOURCE, NULL, &ObjectType, &SourceObject)))
-	{
-		UE_LOG(LogWmfMedia, Error, TEXT("Failed to create source object from buffer for %s"), *OriginalUrl);
-
-		return false;
-	}
-
-	return InitializeMediaSession(SourceObject, OriginalUrl);
+	return Resolver->ResolveByteStream(Archive, OriginalUrl);
 }
 
 
@@ -483,8 +467,6 @@ bool FWmfMediaPlayer::InitializeMediaSession(IUnknown* SourceObject, const FStri
 	{
 		MediaSession->OnError().AddRaw(this, &FWmfMediaPlayer::HandleSessionError);
 	}
-
-	OpenedEvent.Broadcast(SourceUrl);
 
 	return (MediaSession->GetState() != EMediaStates::Error);
 }

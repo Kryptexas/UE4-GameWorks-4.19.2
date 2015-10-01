@@ -86,6 +86,12 @@ public:
 		return OpenedEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FAvfMediaPlayer, IMediaPlayer::FOnMediaOpenFailed, FOnMediaOpenFailed);
+	virtual FOnMediaOpenFailed& OnOpenFailed() override
+	{
+		return OpenFailedEvent;
+	}
+
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnTracksChanged, FOnTracksChanged);
 	virtual FOnTracksChanged& OnTracksChanged() override
 	{
@@ -153,6 +159,9 @@ private:
 
 	/** Holds an event delegate that is invoked when media has been loaded. */
 	FOnMediaOpened OpenedEvent;
+
+	/** Holds an event delegate that is invoked when media failed to open. */
+	FOnMediaOpenFailed OpenFailedEvent;
 
 	/** Holds an event delegate that is invoked when the media tracks have changed. */
 	FOnTracksChanged TracksChangedEvent;
