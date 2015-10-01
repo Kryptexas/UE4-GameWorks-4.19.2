@@ -535,15 +535,15 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 
 		if(SequencerWidget.IsValid() && NewSequencerAssetEditor.IsValid())
 		{
-			InvokeTab("Sequencer");
-			SequencerTab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
-			SequencerTab->SetContent(SequencerWidget.ToSharedRef());
+			TSharedRef<SDockTab> Tab = InvokeTab("Sequencer");
+
+			Tab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
+			Tab->SetContent(SequencerWidget.ToSharedRef());
 
 			SequencerAssetEditor = NewSequencerAssetEditor;
 		}
 		else
 		{
-			SequencerTab.Reset();
 			SequencerAssetEditor.Reset();
 		}
 	}
@@ -755,13 +755,12 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		if (FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle"))
 		{
 			// @todo sequencer: remove when world-centric mode is added
-			SequencerTab = SNew(SDockTab)
+			return SNew(SDockTab)
 				.Icon( FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle")->GetBrush("LevelSequenceEditor.Tabs.Sequencer") )
 				.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
 				[
 					SNullWidget::NullWidget
 				];
-			return SequencerTab.ToSharedRef();
 		}
 	}
 	else if( TabIdentifier == LevelEditorStatsViewerTab )
@@ -771,7 +770,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.StatsViewer" ) )
 			.Label( NSLOCTEXT("LevelEditor", "StatsViewerTabTitle", "Statistics") )
 			[
-				StatsViewerModule.CreateStatsViewer()					
+				StatsViewerModule.CreateStatsViewer()
 			];
 	}
 	else if ( TabIdentifier == "WorldSettingsTab" )
@@ -799,10 +798,10 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	return SNew(SDockTab);
 }
 
-void SLevelEditor::InvokeTab( FName TabID )
+TSharedRef<SDockTab> SLevelEditor::InvokeTab( FName TabID )
 {
 	TSharedPtr<FTabManager> LevelEditorTabManager = GetTabManager();
-	LevelEditorTabManager->InvokeTab(TabID);
+	return LevelEditorTabManager->InvokeTab(TabID);
 }
 
 void SLevelEditor::SyncDetailsToSelection()
