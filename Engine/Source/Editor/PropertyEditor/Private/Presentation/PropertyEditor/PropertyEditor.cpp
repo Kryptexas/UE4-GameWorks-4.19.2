@@ -349,10 +349,10 @@ void FPropertyEditor::ResetToDefault()
 	PropertyUtilities->EnqueueDeferredAction( FSimpleDelegate::CreateSP( this, &FPropertyEditor::OnResetToDefault ) );
 }
 
-void FPropertyEditor::CustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate )
+void FPropertyEditor::CustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault)
 {
 	// This action must be deferred until next tick so that we avoid accessing invalid data before we have a chance to tick
-	PropertyUtilities->EnqueueDeferredAction( FSimpleDelegate::CreateSP( this, &FPropertyEditor::OnCustomResetToDefault, OnCustomResetToDefaultDelegate ) );
+	PropertyUtilities->EnqueueDeferredAction(FSimpleDelegate::CreateLambda([this, OnCustomResetToDefault](){ this->OnCustomResetToDefault(OnCustomResetToDefault); }));
 }
 
 void FPropertyEditor::OnGetClassesForAssetPicker( TArray<const UClass*>& OutClasses )
@@ -405,13 +405,13 @@ void FPropertyEditor::OnResetToDefault()
 	PropertyNode->ResetToDefault( PropertyUtilities->GetNotifyHook() );
 }
 
-void FPropertyEditor::OnCustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate )
+void FPropertyEditor::OnCustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault)
 {
-	if(OnCustomResetToDefaultDelegate.IsBound())
+	if (OnCustomResetToDefault.OnResetToDefaultClicked().IsBound())
 	{
 		PropertyNode->NotifyPreChange( PropertyNode->GetProperty(), PropertyUtilities->GetNotifyHook() );
 
-		OnCustomResetToDefaultDelegate.Execute();
+		OnCustomResetToDefault.OnResetToDefaultClicked().Execute(GetPropertyHandle());
 
 		// Call PostEditchange on all the objects
 		FPropertyChangedEvent ChangeEvent( PropertyNode->GetProperty() );

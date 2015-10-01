@@ -104,13 +104,9 @@ IDetailPropertyRow& FDetailPropertyRow::Visibility( TAttribute<EVisibility> Visi
 	return *this;
 }
 
-IDetailPropertyRow& FDetailPropertyRow::OverrideResetToDefault( TAttribute<bool> IsResetToDefaultVisible, FSimpleDelegate OnResetToDefaultClicked )
+IDetailPropertyRow& FDetailPropertyRow::OverrideResetToDefault(const FResetToDefaultOverride& ResetToDefault)
 {
-	CustomResetToDefault = MakeShareable( new FCustomResetToDefault );
-
-	CustomResetToDefault->IsResetToDefaultVisible = IsResetToDefaultVisible;
-	CustomResetToDefault->OnResetToDefaultClicked = OnResetToDefaultClicked;
-
+	CustomResetToDefault = ResetToDefault;
 	return *this;
 }
 
@@ -217,6 +213,13 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 	if( bShowCustomPropertyChildren && CustomTypeInterface.IsValid() )
 	{
 		PropertyTypeLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory));
+
+		/** Does this row pass its custom reset behavior to its children? */
+		if (CustomResetToDefault.IsSet() && CustomResetToDefault->PropagatesToChildren())
+		{
+			PropertyTypeLayoutBuilder->OverrideResetChildrenToDefault(CustomResetToDefault.GetValue());
+		}
+
 		CustomTypeInterface->CustomizeChildren(PropertyHandle.ToSharedRef(), *PropertyTypeLayoutBuilder, *this);
 	}
 }
@@ -463,7 +466,7 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		[
 			SNew( SResetToDefaultPropertyEditor, PropertyEditor.ToSharedRef() )
 			.IsEnabled( IsEnabledAttrib )
-			.CustomResetToDefault( CustomResetToDefault.IsValid() ? *CustomResetToDefault : FCustomResetToDefault() )
+			.CustomResetToDefault(CustomResetToDefault)
 		];
 	}
 
