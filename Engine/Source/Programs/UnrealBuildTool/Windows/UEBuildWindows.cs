@@ -578,6 +578,11 @@ namespace UnrealBuildTool
 		/// <returns>Common tools path.</returns>
 		public static string GetVSComnToolsPath(WindowsCompiler Compiler)
 		{
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win64 && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win32)
+			{
+				return null;
+			}
+
 			int VSVersion;
 
 			switch (Compiler)
