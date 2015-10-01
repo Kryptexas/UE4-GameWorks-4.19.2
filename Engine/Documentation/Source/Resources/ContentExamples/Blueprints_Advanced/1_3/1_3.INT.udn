@@ -10,6 +10,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -63,7 +64,7 @@ The **BP_Radial_Array** Blueprint uses the Construction Script to generate an ev
 [![](AdvBP_1_3_ConstructionScript.png)](AdvBP_1_3_ConstructionScript.png)
 [/REGION]
 [REGION:caption]
-Click for full size or **right-click** and Save As.
+_Click for full size or **right-click** and Save As._
 [/REGION]
 
 
