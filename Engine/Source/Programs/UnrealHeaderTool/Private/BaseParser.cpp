@@ -213,9 +213,15 @@ Loop:
 				PrevComment += c;
 				PrevComment += NextChar;
 				bInsideComment = true;
+
+				// Move past the star. Do it only when not in comment,
+				// otherwise end of comment might be missed e.g.
+				// /*/ Comment /*/
+				// ~~~~~~~~~~~~~^ Will report second /* as beginning of comment
+				// And throw error that end of file is found in comment.
+				InputPos++;
 			}
 
-			InputPos++;
 			goto Loop;
 		}
 		else if( c==TEXT('*') && NextChar==TEXT('/') )
