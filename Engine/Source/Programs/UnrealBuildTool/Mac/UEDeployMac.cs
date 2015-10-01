@@ -26,7 +26,7 @@ namespace UnrealBuildTool.Mac
 		{
 			Log.TraceInformation("Deploying now!");
 
-			string IntermediateDirectory = InTarget.EngineIntermediateDirectory.FullName;
+			string IntermediateDirectory = InTarget.EngineIntermediateDirectory;
 			if (!Directory.Exists(IntermediateDirectory))
 			{
 				IntermediateDirectory = Path.GetFullPath("../../" + InTarget.AppName + "/Intermediate/Build/Mac/" + InTarget.AppName + "/" + InTarget.Configuration);
