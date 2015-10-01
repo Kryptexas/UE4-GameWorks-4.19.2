@@ -202,7 +202,17 @@ void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 	if (WndFocus)
 	{
 		int WndX, WndY;
-		SDL_GetWindowPosition(WndFocus, &WndX, &WndY);	//	get top left
+
+		// Get top-left.
+		if(LinuxApplication)
+		{
+			LinuxApplication->GetWindowPositionInEventLoop(WndFocus, &WndX, &WndY);
+		}
+		else
+		{
+			SDL_GetWindowPosition(WndFocus, &WndX, &WndY);
+		}
+
 		SDL_WarpMouseInWindow(WndFocus, X - WndX, Y - WndY);
 	}
 	else

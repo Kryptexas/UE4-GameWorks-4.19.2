@@ -277,13 +277,26 @@ void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )
 	{
-		SDL_Event event;
-
-		while (SDL_PollEvent(&event))
+		if( LinuxApplication )
 		{
-			if( LinuxApplication )
+			LinuxApplication->SaveWindowLocationsForEventLoop();
+
+			SDL_Event event;
+
+			while (SDL_PollEvent(&event))
 			{
 				LinuxApplication->AddPendingEvent( event );
+			}
+
+			LinuxApplication->ClearWindowLocationsAfterEventLoop();
+		}
+		else
+		{
+			// No application to send events to. Just flush out the
+			// queue.
+			SDL_Event event;
+			while (SDL_PollEvent(&event))
+			{
 			}
 		}
 	}
