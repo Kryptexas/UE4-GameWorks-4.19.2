@@ -980,7 +980,7 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 				}
 			}
 		}
-		PendingCollisionNotifies.Empty();
+		PendingCollisionNotifies.Reset();
 	}
 
 #if WITH_APEX
