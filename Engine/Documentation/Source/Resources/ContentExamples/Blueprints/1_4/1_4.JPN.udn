@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712736
 Availability:Public
 Title:1.4 - コンストラクション スクリプト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -11,6 +11,7 @@ Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related:Engine/Animation/AnimBlueprints/EventGraph
 Related:Engine/Blueprints/UserGuide/UserConstructionScript
 Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -62,7 +63,7 @@ Related:Gameplay/HowTo/SetUpInput/Blueprints
 [/REGION]
 
 
-## コンポーネント リストとコンストラクション スクリプト 
+## コンポーネント リストと コンストラクションスクリプト 
 
 このサンプルでは、2 つのオブジェクトが両方とも全く同じに見えることに気づくでしょう。しかし、1 つはコンポーネント リストからアセンブルされ、もう 1 つはコンストラクション スクリプトからアセンブルされます。このケースでは、サンプルは主に教育目的の練習であり、各アプローチの利点を理解することが重要です。 
 
