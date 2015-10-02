@@ -91,7 +91,7 @@ Normal collision creation and detection does not work with Skeletal Mesh Actors.
 
 ### Creating Collision for a Skeletal Mesh Actor 
 
-To create a Physics Asset for your mesh, all you have to do is simply **Right-click** on the mesh in the **Content Browser** and then choose **Create** -> **Create Physics Asset**. You can read more about how to create Physics Assets by checking out the [Physics Asset Tool User Guide]( Engine/Physics/PhAT/UserGuide)
+To create a Physics Asset for your mesh, all you have to do is simply **Right-click** on the mesh in the **Content Browser** and then choose **Create** -> **Create Physics Asset**. You can read more about how to create Physics Assets by checking out the [Physics Asset Tool](Engine/Physics/PhAT) documentation.
 
 ![](SkeletalMeshActor_Create_Physics_Asset.png)
 
