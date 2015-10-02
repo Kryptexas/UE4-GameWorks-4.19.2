@@ -580,7 +580,7 @@ FString FEmitHelper::GetBaseFilename(const UObject* AssetObj)
 FString FEmitHelper::GetPCHFilename()
 {
 	FString PCHFilename;
-	FBlueprintCompilerCppBackendModule& BackEndModule = (FBlueprintCompilerCppBackendModule&)FBlueprintCompilerCppBackendModule::Get();
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 
 	auto& PchFilenameQuery = BackEndModule.OnPCHFilenameQuery();
 	if (PchFilenameQuery.IsBound())
