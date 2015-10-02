@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:2652851
+﻿INTSourceChangelist:2712919
 Availability:Public
 Title:2.2 - アクタの追跡
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
 Description: 高度なブループリント サンプル レベルの概要、サンプル 2.2:アクタの追跡
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -56,13 +57,13 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 この **BP_Spotlight_Follow** ブループリントには、イベントグラフにスクリプトが含まれており、プレーヤー ポーンがどれくらい離れているかを検知し、指定範囲内に来るとプレーヤーポーンの方に向けられます。**Spotlight mesh** コンポーネントがヒンジ経由でのクリッピングを防ぐために固定されたピッチのみを変更するのに対して、 **Hinge mesh** コンポーネントはスポットライトの左右揺れを操作します。
 
 
-## イベントグラフ
+## イベント グラフ
 
 [REGION:lightbox]
 [![](AdvBP_2_2_EventGraph.png)](AdvBP_2_2_EventGraph.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As (名前を付けて保存)] を選択します。
+フルサイズ表示するには、**右クリック** し、[Save As (名前を付けて保存)] を選択します。
 [/REGION]
 
 **Find Look at Rotation** ノードは、開始位置と終了位置が与えられている場合、回転値を生成するノードです。生成された回転値は、終了位置へ向くように開始位置のコンポーネントに適用されます。このブループリントでは、開始位置はスポットライトの位置となり、終了位置はプレーヤーのポーンの位置になります。Rotator の値は分離され、その結果の **Pitch** 値と **Yaw** 値は、Spotlight コンポーネントと Static Mesh コンポーネントにそれぞれ適用されます。
