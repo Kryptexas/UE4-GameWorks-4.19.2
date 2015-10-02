@@ -120,8 +120,8 @@ struct FSearchData
 		, ParentClass(MoveTemp(Other.ParentClass))
 		, Interfaces(MoveTemp(Other.Interfaces))
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
-		, Version(Other.Version)
 		, ImaginaryBlueprint(Other.ImaginaryBlueprint)
+		, Version(Other.Version)
 	{
 	}
 
@@ -150,8 +150,8 @@ struct FSearchData
 		, ParentClass(Other.ParentClass)
 		, Interfaces(Other.Interfaces)
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
-		, Version(Other.Version)
 		, ImaginaryBlueprint(Other.ImaginaryBlueprint)
+		, Version(Other.Version)
 	{
 	}
 
