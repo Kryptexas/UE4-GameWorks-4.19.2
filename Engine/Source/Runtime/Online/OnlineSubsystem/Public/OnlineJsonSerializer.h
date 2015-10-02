@@ -618,7 +618,16 @@ struct FOnlineJsonSerializable
 			JsonWriter->Close();
 		}
 		return JsonStr;
-
+	}
+	virtual void ToJson(TSharedRef<TJsonWriter<> >& JsonWriter, bool bFlatObject) const
+	{
+		FOnlineJsonSerializerWriter<> Serializer(JsonWriter);
+		((FOnlineJsonSerializable*)this)->Serialize(Serializer, bFlatObject);
+	}
+	virtual void ToJson(TSharedRef< TJsonWriter< TCHAR, TCondensedJsonPrintPolicy< TCHAR > > >& JsonWriter, bool bFlatObject) const
+	{
+		FOnlineJsonSerializerWriter<TCHAR, TCondensedJsonPrintPolicy< TCHAR >> Serializer(JsonWriter);
+		((FOnlineJsonSerializable*)this)->Serialize(Serializer, bFlatObject);
 	}
 	/**
 	 * Serializes the contents of a JSON string into this object
