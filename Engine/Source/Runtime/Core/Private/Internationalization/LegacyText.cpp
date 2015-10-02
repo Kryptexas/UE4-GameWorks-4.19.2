@@ -121,17 +121,17 @@ public:
 		return ETextDirection::LeftToRight;
 	}
 
-	virtual ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	virtual ETextDirection ComputeTextDirection(const FText& InText, const ETextDirection InBaseDirection, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
 	{
-		return FLegacyTextBiDi::ComputeTextDirection(InText.ToString(), OutTextDirectionInfo);
+		return FLegacyTextBiDi::ComputeTextDirection(InText.ToString(), InBaseDirection, OutTextDirectionInfo);
 	}
 
-	virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	virtual ETextDirection ComputeTextDirection(const FString& InString, const ETextDirection InBaseDirection, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
 	{
-		return FLegacyTextBiDi::ComputeTextDirection(*InString, 0, InString.Len(), OutTextDirectionInfo);
+		return FLegacyTextBiDi::ComputeTextDirection(*InString, 0, InString.Len(), InBaseDirection, OutTextDirectionInfo);
 	}
 
-	virtual ETextDirection ComputeTextDirection(const TCHAR*, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	virtual ETextDirection ComputeTextDirection(const TCHAR*, const int32 InStringStartIndex, const int32 InStringLen, const ETextDirection InBaseDirection, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
 	{
 		OutTextDirectionInfo.Reset();
 
@@ -185,17 +185,17 @@ ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringS
 	return ETextDirection::LeftToRight;
 }
 
-ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+ETextDirection ComputeTextDirection(const FText& InText, const ETextDirection InBaseDirection, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
 {
-	return ComputeTextDirection(InText.ToString(), OutTextDirectionInfo);
+	return ComputeTextDirection(InText.ToString(), InBaseDirection, OutTextDirectionInfo);
 }
 
-ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+ETextDirection ComputeTextDirection(const FString& InString, const ETextDirection InBaseDirection, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
 {
-	return ComputeTextDirection(*InString, 0, InString.Len(), OutTextDirectionInfo);
+	return ComputeTextDirection(*InString, 0, InString.Len(), InBaseDirection, OutTextDirectionInfo);
 }
 
-ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+ETextDirection ComputeTextDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen, const ETextDirection InBaseDirection, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
 {
 	OutTextDirectionInfo.Reset();
 
