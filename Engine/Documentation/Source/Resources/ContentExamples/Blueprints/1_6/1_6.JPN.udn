@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712764
 Availability:Public
 Title:1.6 - 簡単な計算
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
 Description:ブループリントのサンプル レベルの概要、サンプル1.6：簡単な計算
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Components
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Components
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -49,7 +50,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 [REGION:fullwidth]
 
-## 概要
+
 
 このサンプルではブループリントのデータで簡単な数式の計算を実演します。ゲームの実行時間を加算して、Text Render コンポーネントへ秒数を適用します。 
 
