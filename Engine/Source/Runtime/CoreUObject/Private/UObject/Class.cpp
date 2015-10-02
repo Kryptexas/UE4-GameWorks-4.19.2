@@ -2242,10 +2242,10 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 	bool bItemSerialized = false;
 	if (bUseNativeSerialization)
 	{
-		UScriptStruct::ICppStructOps* CppStructOps = GetCppStructOps();
-		check(CppStructOps); // else should not have STRUCT_SerializeNative
+		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_SerializeNative
 		check(!InheritedCppStructOps()); // else should not have STRUCT_SerializeNative
-		bItemSerialized = CppStructOps->Serialize(Ar, Value);
+		bItemSerialized = TheCppStructOps->Serialize(Ar, Value);
 	}
 
 	if (!bItemSerialized)
@@ -2270,10 +2270,10 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 
 	if (StructFlags & STRUCT_PostSerializeNative)
 	{
-		UScriptStruct::ICppStructOps* CppStructOps = GetCppStructOps();
-		check(CppStructOps); // else should not have STRUCT_PostSerializeNative
+		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_PostSerializeNative
 		check(!InheritedCppStructOps()); // else should not have STRUCT_PostSerializeNative
-		CppStructOps->PostSerialize(Ar, Value);
+		TheCppStructOps->PostSerialize(Ar, Value);
 	}
 }
 
