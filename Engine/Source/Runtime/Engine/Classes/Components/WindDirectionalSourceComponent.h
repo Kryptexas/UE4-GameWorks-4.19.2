@@ -23,6 +23,12 @@ class ENGINE_API UWindDirectionalSourceComponent : public USceneComponent
 	UPROPERTY(interp, Category = WindDirectionalSourceComponent)
 	float MaxGustAmount;
 
+	UPROPERTY(interp, Category = WindDirectionalSourceComponent, meta = (editcondition = "bSimulatePhysics", ClampMin = "0.1", UIMin = "0.1"))
+	float Radius;
+
+	UPROPERTY(EditAnywhere, Category = WindDirectionalSourceComponent)
+	uint32 bPointWind : 1;
+
 public:
 	class FWindSourceSceneProxy* SceneProxy;
 
