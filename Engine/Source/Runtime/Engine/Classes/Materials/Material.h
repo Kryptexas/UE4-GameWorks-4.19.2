@@ -431,14 +431,14 @@ public:
 	float TranslucencyDirectionalLightingIntensity;
 
 	/** Scale used to make translucent shadows more or less opaque than the material's actual opacity. */
-	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Density Scale"))
+	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Shadow Density Scale"))
 	float TranslucentShadowDensityScale;
 
 	/** 
 	 * Scale used to make translucent self-shadowing more or less opaque than the material's shadow on other objects. 
 	 * This is only used when the object is casting a volumetric translucent shadow.
 	 */
-	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Density Scale"))
+	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Self Shadow Density Scale"))
 	float TranslucentSelfShadowDensityScale;
 
 	/** Used to make a second self shadow gradient, to add interesting shading in the shadow of the first. */

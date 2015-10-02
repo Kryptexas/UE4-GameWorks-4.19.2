@@ -132,13 +132,25 @@ enum ETranslucencyLightingMode
 	 * Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.
 	 * This is the cheapest lighting method, however the material normal is not taken into account.
 	 */
-	TLM_VolumetricNonDirectional UMETA(DisplayName="Volumetric Non Directional"),
+	TLM_VolumetricNonDirectional UMETA(DisplayName="Volumetric NonDirectional"),
 
 	 /** 
 	 * Lighting will be calculated for a volume, with directionality so that the normal of the material is taken into account. 
 	 * Note that the default particle tangent space is facing the camera, so enable bGenerateSphericalParticleNormals to get a more useful tangent space.
 	 */
 	TLM_VolumetricDirectional UMETA(DisplayName="Volumetric Directional"),
+
+	/** 
+	 * Same as Volumetric Non Directional, but lighting is only evaluated at vertices so the pixel shader cost is significantly less.
+	 * Note that lighting still comes from a volume texture, so it is limited in range.  Directional lights become unshadowed in the distance.
+	 */
+	TLM_VolumetricPerVertexNonDirectional UMETA(DisplayName="Volumetric PerVertex NonDirectional"),
+
+	 /** 
+	 * Same as Volumetric Directional, but lighting is only evaluated at vertices so the pixel shader cost is significantly less.
+	 * Note that lighting still comes from a volume texture, so it is limited in range.  Directional lights become unshadowed in the distance.
+	 */
+	TLM_VolumetricPerVertexDirectional UMETA(DisplayName="Volumetric PerVertex Directional"),
 
 	/** 
 	 * Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry

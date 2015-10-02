@@ -16,7 +16,91 @@
 extern int32 GIndirectLightingCache;
 
 /** Whether some GBuffer targets are optionnal. */
-bool UseSelectiveBasePassOutputs();
+extern bool UseSelectiveBasePassOutputs();
+
+/** Parameters needed for looking up into translucency lighting volumes. */
+class FTranslucentLightingVolumeParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		TranslucencyLightingVolumeAmbientInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInner"));
+		TranslucencyLightingVolumeAmbientInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInnerSampler"));
+		TranslucencyLightingVolumeAmbientOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuter"));
+		TranslucencyLightingVolumeAmbientOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuterSampler"));
+		TranslucencyLightingVolumeDirectionalInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInner"));
+		TranslucencyLightingVolumeDirectionalInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInnerSampler"));
+		TranslucencyLightingVolumeDirectionalOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuter"));
+		TranslucencyLightingVolumeDirectionalOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuterSampler"));
+	}
+
+	template<typename ShaderRHIParamRef>
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI)
+	{
+		if (TranslucencyLightingVolumeAmbientInner.IsBound())
+		{
+			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI, 
+				TranslucencyLightingVolumeAmbientInner, 
+				TranslucencyLightingVolumeAmbientInnerSampler, 
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+				SceneContext.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI, 
+				TranslucencyLightingVolumeAmbientOuter, 
+				TranslucencyLightingVolumeAmbientOuterSampler, 
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+				SceneContext.GetTranslucencyVolumeAmbient(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI, 
+				TranslucencyLightingVolumeDirectionalInner, 
+				TranslucencyLightingVolumeDirectionalInnerSampler, 
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+				SceneContext.GetTranslucencyVolumeDirectional(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI, 
+				TranslucencyLightingVolumeDirectionalOuter, 
+				TranslucencyLightingVolumeDirectionalOuterSampler, 
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
+				SceneContext.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
+		}
+	}
+
+	/** Serializer. */
+	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingVolumeParameters& P)
+	{
+		Ar << P.TranslucencyLightingVolumeAmbientInner;
+		Ar << P.TranslucencyLightingVolumeAmbientInnerSampler;
+		Ar << P.TranslucencyLightingVolumeAmbientOuter;
+		Ar << P.TranslucencyLightingVolumeAmbientOuterSampler;
+		Ar << P.TranslucencyLightingVolumeDirectionalInner;
+		Ar << P.TranslucencyLightingVolumeDirectionalInnerSampler;
+		Ar << P.TranslucencyLightingVolumeDirectionalOuter;
+		Ar << P.TranslucencyLightingVolumeDirectionalOuterSampler;
+		return Ar;
+	}
+
+private:
+
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientInner;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientInnerSampler;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuter;
+	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuterSampler;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInner;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInnerSampler;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuter;
+	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuterSampler;
+};
 
 /**
  * The base shader type for vertex shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
@@ -34,6 +118,7 @@ protected:
 		LightMapPolicyType::VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		AtmosphericFogTextureParameters.Bind(Initializer.ParameterMap);
+		TranslucentLightingVolumeParameters.Bind(Initializer.ParameterMap);
 		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputsVelocityToGBuffer)
 		{
@@ -61,6 +146,7 @@ public:
 		LightMapPolicyType::VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
 		Ar << AtmosphericFogTextureParameters;
+		Ar << TranslucentLightingVolumeParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
 		return bShaderHasOutdatedParameters;
@@ -83,6 +169,8 @@ public:
 			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 			AtmosphericFogTextureParameters.Set(RHICmdList, GetVertexShader(), View);
 		}
+
+		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue);
@@ -92,6 +180,7 @@ private:
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
 	FAtmosphereShaderTextureParameters AtmosphericFogTextureParameters;
+	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
 	FShaderParameter SkipOutputVelocityParameter;
@@ -272,14 +361,7 @@ public:
 
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
-		TranslucencyLightingVolumeAmbientInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInner"));
-		TranslucencyLightingVolumeAmbientInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientInnerSampler"));
-		TranslucencyLightingVolumeAmbientOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuter"));
-		TranslucencyLightingVolumeAmbientOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeAmbientOuterSampler"));
-		TranslucencyLightingVolumeDirectionalInner.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInner"));
-		TranslucencyLightingVolumeDirectionalInnerSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalInnerSampler"));
-		TranslucencyLightingVolumeDirectionalOuter.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuter"));
-		TranslucencyLightingVolumeDirectionalOuterSampler.Bind(ParameterMap, TEXT("TranslucencyLightingVolumeDirectionalOuterSampler"));
+		TranslucentLightingVolumeParameters.Bind(ParameterMap);
 		ReflectionCubemap.Bind(ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
 		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
@@ -298,14 +380,7 @@ public:
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingParameters& P)
 	{
-		Ar << P.TranslucencyLightingVolumeAmbientInner;
-		Ar << P.TranslucencyLightingVolumeAmbientInnerSampler;
-		Ar << P.TranslucencyLightingVolumeAmbientOuter;
-		Ar << P.TranslucencyLightingVolumeAmbientOuterSampler;
-		Ar << P.TranslucencyLightingVolumeDirectionalInner;
-		Ar << P.TranslucencyLightingVolumeDirectionalInnerSampler;
-		Ar << P.TranslucencyLightingVolumeDirectionalOuter;
-		Ar << P.TranslucencyLightingVolumeDirectionalOuterSampler;
+		Ar << P.TranslucentLightingVolumeParameters;
 		Ar << P.ReflectionCubemap;
 		Ar << P.ReflectionCubemapSampler;
 		Ar << P.CubemapArrayIndex;
@@ -320,14 +395,7 @@ public:
 
 private:
 
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientInner;
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientInnerSampler;
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuter;
-	FShaderResourceParameter TranslucencyLightingVolumeAmbientOuterSampler;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInner;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalInnerSampler;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuter;
-	FShaderResourceParameter TranslucencyLightingVolumeDirectionalOuterSampler;
+	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionCubemapSampler;
 	FShaderParameter CubemapArrayIndex;

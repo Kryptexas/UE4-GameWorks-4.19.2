@@ -31,15 +31,6 @@
 	 
 #endif
 
-Texture3D TranslucencyLightingVolumeAmbientInner;
-SamplerState TranslucencyLightingVolumeAmbientInnerSampler;
-Texture3D TranslucencyLightingVolumeAmbientOuter;
-SamplerState TranslucencyLightingVolumeAmbientOuterSampler;
-Texture3D TranslucencyLightingVolumeDirectionalInner;
-SamplerState TranslucencyLightingVolumeDirectionalInnerSampler;
-Texture3D TranslucencyLightingVolumeDirectionalOuter;
-SamplerState TranslucencyLightingVolumeDirectionalOuterSampler;
-
 Texture2D		HZBTexture;
 SamplerState	HZBSampler;
 Texture2D		PrevSceneColor;
@@ -163,74 +154,80 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	#include "ForEachLight.usf"
 #endif
 
-/** Calculates lighting for translucency. */
-float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, float3 DiffuseColor, half Roughness, half3 SpecularColor, float IndirectIrradiance, float MaterialAO)
+void GetVolumeLightingNonDirectional(float4 AmbientLightingVector, float3 DiffuseColor, inout float3 InterpolatedLighting, out float4 VolumeLighting)
 {
+	// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
+	FOneBandSHVectorRGB TranslucentLighting;
+	TranslucentLighting.R.V.x = AmbientLightingVector.r;
+	TranslucentLighting.G.V.x = AmbientLightingVector.g;
+	TranslucentLighting.B.V.x = AmbientLightingVector.b;
+
+	FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(1);
+	VolumeLighting = float4(DotSH1(TranslucentLighting, DiffuseTransferSH), AmbientLightingVector.a);
+	InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
+}
+
+void GetVolumeLightingDirectional(float4 AmbientLightingVector, float3 DirectionalLightingVector, float3 WorldNormal, float3 DiffuseColor, inout float3 InterpolatedLighting, out float4 VolumeLighting)
+{
+	float DirectionalLightingIntensity = GetMaterialTranslucencyDirectionalLightingIntensity();
+
+	AmbientLightingVector.rgb /= DirectionalLightingIntensity;
+	DirectionalLightingVector.rgb *= DirectionalLightingIntensity;
+
+	// Reconstruct the SH coefficients based on what was encoded
+	FTwoBandSHVectorRGB TranslucentLighting;
+	TranslucentLighting.R.V.x = AmbientLightingVector.r;
+	TranslucentLighting.G.V.x = AmbientLightingVector.g;
+	TranslucentLighting.B.V.x = AmbientLightingVector.b;
+	float3 NormalizedAmbientColor = AmbientLightingVector.rgb / Luminance( AmbientLightingVector.rgb );
+
+	// Scale the monocrome directional coefficients with the normalzed ambient color as an approximation to the uncompressed values
+	TranslucentLighting.R.V.yzw = DirectionalLightingVector.rgb * NormalizedAmbientColor.r;
+	TranslucentLighting.G.V.yzw = DirectionalLightingVector.rgb * NormalizedAmbientColor.g;
+	TranslucentLighting.B.V.yzw = DirectionalLightingVector.rgb * NormalizedAmbientColor.b;
+			
+	// Compute diffuse lighting which takes the normal into account
+	FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(WorldNormal, 1);
+	VolumeLighting = float4(max(half3(0,0,0), DotSH(TranslucentLighting, DiffuseTransferSH)), AmbientLightingVector.a);
+	InterpolatedLighting += DiffuseColor * VolumeLighting.rgb;
+}
+
+/** Calculates lighting for translucency. */
+float3 GetTranslucencyLighting(
+	FMaterialPixelParameters MaterialParameters, 
+	FBasePassInterpolantsVSToPS BasePassInterpolants, 
+	float3 DiffuseColor, 
+	half Roughness, 
+	half3 SpecularColor, 
+	float IndirectIrradiance, 
+	float MaterialAO)
+{
+	float4 VolumeLighting;
 	float3 InterpolatedLighting = 0;
 
-	// Apply a stable offset to the world position used for lighting, which breaks up artifacts from using a low res volume texture
-	float3 InnerVolumeUVs = (MaterialParameters.AbsoluteWorldPosition + MaterialParameters.LightingPositionOffset - View.TranslucencyLightingVolumeMin[0].xyz) * View.TranslucencyLightingVolumeInvSize[0].xyz;
-	float3 OuterVolumeUVs = (MaterialParameters.AbsoluteWorldPosition + MaterialParameters.LightingPositionOffset - View.TranslucencyLightingVolumeMin[1].xyz) * View.TranslucencyLightingVolumeInvSize[1].xyz;
+	float3 InnerVolumeUVs;
+	float3 OuterVolumeUVs;
+	float FinalLerpFactor;
+	ComputeVolumeUVs(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 
-	// Controls how fast the lerp between the inner and outer cascades happens
-	// Larger values result in a shorter transition distance
-	float TransitionScale = 6;
-	// Setup a 3d lerp factor going to 0 at the edge of the inner volume
-	float3 InnerLerpFactors = saturate((.5f - abs(InnerVolumeUVs - .5f)) * TransitionScale);
-	float InnerLerpFactor = InnerLerpFactors.x * InnerLerpFactors.y * InnerLerpFactors.z;
+	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
 
-	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
+		GetVolumeLightingDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), BasePassInterpolants.DirectionalLightingVector, MaterialParameters.WorldNormal, DiffuseColor, InterpolatedLighting, VolumeLighting);
 
-		// Fetch both the ambient and directional values for both cascades
-		float4 InnerVector0 = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientInner, TranslucencyLightingVolumeAmbientInnerSampler, InnerVolumeUVs, 0);
-		float3 InnerVector1 = Texture3DSampleLevel(TranslucencyLightingVolumeDirectionalInner, TranslucencyLightingVolumeDirectionalInnerSampler, InnerVolumeUVs, 0).rgb;
-		float4 OuterVector0 = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
-		float3 OuterVector1 = Texture3DSampleLevel(TranslucencyLightingVolumeDirectionalOuter, TranslucencyLightingVolumeDirectionalOuterSampler, OuterVolumeUVs, 0).rgb;
+	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
 
-		float DirectionalLightingIntensity = GetMaterialTranslucencyDirectionalLightingIntensity();
+		GetVolumeLightingNonDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), DiffuseColor, InterpolatedLighting, VolumeLighting);
 
-		// Lerp between cascades
-		// Increase the directional coefficients and attenuate the ambient coefficient based on a tweaked value
-		float4 Vector0 = lerp(OuterVector0, InnerVector0, InnerLerpFactor) / DirectionalLightingIntensity;
-		float3 Vector1 = lerp(OuterVector1, InnerVector1, InnerLerpFactor) * DirectionalLightingIntensity;
-
-		// Reconstruct the SH coefficients based on what was encoded
-		FTwoBandSHVectorRGB TranslucentLighting;
-		TranslucentLighting.R.V.x = Vector0.r;
-		TranslucentLighting.G.V.x = Vector0.g;
-		TranslucentLighting.B.V.x = Vector0.b;
-		float3 NormalizedAmbientColor = Vector0.rgb / Luminance( Vector0.rgb );
-
-		// Scale the monocrome directional coefficients with the normalzed ambient color as an approximation to the uncompressed values
-		TranslucentLighting.R.V.yzw = Vector1.rgb * NormalizedAmbientColor.r;
-		TranslucentLighting.G.V.yzw = Vector1.rgb * NormalizedAmbientColor.g;
-		TranslucentLighting.B.V.yzw = Vector1.rgb * NormalizedAmbientColor.b;
-			
-		// Compute diffuse lighting which takes the normal into account
-		FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
-		float4 VolumeLighting = float4(max(half3(0,0,0), DotSH(TranslucentLighting, DiffuseTransferSH)), Vector0.a);
-		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
+	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
+	
+		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+		float3 DirectionalLightingVector = GetDirectionalLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+		GetVolumeLightingDirectional(AmbientLightingVector, DirectionalLightingVector, MaterialParameters.WorldNormal, DiffuseColor, InterpolatedLighting, VolumeLighting);
 
 	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
 
-		// Lookup the inner and outer cascade ambient lighting values
-		float4 InnerLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientInner, TranslucencyLightingVolumeAmbientInnerSampler, InnerVolumeUVs, 0);
-		float4 OuterLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
-
-		// Lerp between cascades
-		float4 Vector0 = lerp(OuterLighting, InnerLighting, InnerLerpFactor);
-
-		// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
-		FOneBandSHVectorRGB TranslucentLighting;
-		TranslucentLighting.R.V.x = Vector0.r;
-		TranslucentLighting.G.V.x = Vector0.g;
-		TranslucentLighting.B.V.x = Vector0.b;
-
-		FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
-		float4 VolumeLighting = float4( DotSH1(TranslucentLighting, DiffuseTransferSH), Vector0.a );
-
-		// Determine lighting if no self shadowing is applied
-		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
+		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+		GetVolumeLightingNonDirectional(AmbientLightingVector, DiffuseColor, InterpolatedLighting, VolumeLighting);
 
 	#elif TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 
@@ -365,7 +362,7 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 
 			#endif
 
-			#if (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
+			#if (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && (TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL)
 				// NonDirectional lighting can't depend on the normal
 				SkyLightingNormal = NormalizedBentNormal;
 			#else
@@ -461,11 +458,11 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1].x;
 			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
 
-			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
+			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(1);
 			OutDiffuseLighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
 
 			#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-				FOneBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH1(-MaterialParameters.WorldNormal, 1);
+				FOneBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH1(1);
 				OutSubsurfaceLighting += DotSH1(PointIndirectLighting, SubsurfaceTransferSH);
 			#endif
 
@@ -829,7 +826,7 @@ void Main(
 		
 	// Volume lighting for lit translucency
 	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
-		Color += GetTranslucencyLighting(MaterialParameters, DiffuseColor, Roughness, SpecularColor, IndirectIrradiance, MaterialAO);
+		Color += GetTranslucencyLighting(MaterialParameters, BasePassInterpolants, DiffuseColor, Roughness, SpecularColor, IndirectIrradiance, MaterialAO);
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT

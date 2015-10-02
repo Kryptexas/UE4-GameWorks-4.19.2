@@ -63,6 +63,31 @@ void Main(
 	#endif
 #endif
 
+#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
+	float4 VolumeLighting;
+	float3 InterpolatedLighting = 0;
+
+	float3 InnerVolumeUVs;
+	float3 OuterVolumeUVs;
+	float FinalLerpFactor;
+
+	//@todo - get from VF
+	float3 LightingPositionOffset = 0;
+	ComputeVolumeUVs(WorldPosition.xyz - View.PreViewTranslation.xyz, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+
+	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
+	
+		Output.BasePassInterpolants.AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor).xyz;
+		Output.BasePassInterpolants.DirectionalLightingVector = GetDirectionalLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+
+	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
+
+		Output.BasePassInterpolants.AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor).xyz;
+
+	#endif
+#endif
+
+
 #if WRITES_VELOCITY_TO_GBUFFER
 	{
 		float4 PrevTranslatedWorldPosition = VertexFactoryGetPreviousWorldPosition( Input, VFIntermediates );	
