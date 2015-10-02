@@ -13,7 +13,7 @@ FMovieSceneFloatTrackInstance::FMovieSceneFloatTrackInstance( UMovieSceneFloatTr
 }
 
 
-void FMovieSceneFloatTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneFloatTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -23,7 +23,7 @@ void FMovieSceneFloatTrackInstance::SaveState(const TArray<UObject*>& RuntimeObj
 }
 
 
-void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{

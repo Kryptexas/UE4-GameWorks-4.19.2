@@ -12,7 +12,7 @@ FMovieSceneVisibilityTrackInstance::FMovieSceneVisibilityTrackInstance(UMovieSce
 }
 
 
-void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
  	for( UObject* Object : RuntimeObjects )
  	{
@@ -33,7 +33,7 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& Runti
 }
 
 
-void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
  	for( UObject* Object : RuntimeObjects )
  	{

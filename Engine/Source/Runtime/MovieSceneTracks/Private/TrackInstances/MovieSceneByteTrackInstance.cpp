@@ -13,7 +13,7 @@ FMovieSceneByteTrackInstance::FMovieSceneByteTrackInstance( UMovieSceneByteTrack
 }
 
 
-void FMovieSceneByteTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneByteTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -23,7 +23,7 @@ void FMovieSceneByteTrackInstance::SaveState(const TArray<UObject*>& RuntimeObje
 }
 
 
-void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{

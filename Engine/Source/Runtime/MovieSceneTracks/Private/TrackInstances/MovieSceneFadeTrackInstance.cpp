@@ -17,6 +17,23 @@ FMovieSceneFadeTrackInstance::FMovieSceneFadeTrackInstance(UMovieSceneFadeTrack&
 /* IMovieSceneTrackInstance interface
  *****************************************************************************/
 
+void FMovieSceneFadeTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+{
+	// Reset editor preview/fade
+	EMovieSceneViewportParams ViewportParams;
+	ViewportParams.SetWhichViewportParam = (EMovieSceneViewportParams::SetViewportParam)(EMovieSceneViewportParams::SVP_FadeAmount | EMovieSceneViewportParams::SVP_FadeColor);
+	ViewportParams.FadeAmount = 0.f;
+	ViewportParams.FadeColor = FLinearColor::Black;
+
+	TMap<FViewportClient*, EMovieSceneViewportParams> ViewportParamsMap;
+	Player.GetViewportSettings(ViewportParamsMap);
+	for (auto ViewportParamsPair : ViewportParamsMap)
+	{
+		ViewportParamsMap[ViewportParamsPair.Key] = ViewportParams;
+	}
+	Player.SetViewportSettings(ViewportParamsMap);
+}
+
 void FMovieSceneFadeTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	FLinearColor FadeColor = FLinearColor::Black;
