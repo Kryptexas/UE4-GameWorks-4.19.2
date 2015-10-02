@@ -59,6 +59,9 @@ private:
 	UPROPERTY(Instanced)
 	ULevelSequenceInstance* SequenceInstance;
 
+	/** Create the level sequence instance required to play back our sequence */
+	void CreateSequenceInstance();
+
 	/** Update the instance of our level sequence. */
 	void UpdateAnimationInstance();
 };
