@@ -149,7 +149,11 @@ namespace iPhonePackager
 					}
 					else
 					{
-						bPassesNameCheck = TestProvision.ApplicationIdentifier.Contains("*");
+						if (TestProvision.ApplicationIdentifier.Contains("*"))
+						{
+							string CompanyName = TestProvision.ApplicationIdentifier.Substring(TestProvision.ApplicationIdentifierPrefix.Length + 1);
+							bPassesNameCheck = CompanyName == "*";
+						}
 					}
 					if (!bPassesNameCheck && bCheckIdentifier)
 					{
@@ -177,7 +181,12 @@ namespace iPhonePackager
 					bool bPassesHasMatchingCertCheck = false;
 					if (bCheckCert)
 					{
-						bPassesHasMatchingCertCheck = (CodeSignatureBuilder.FindCertificate(TestProvision) != null);
+						X509Certificate2 Cert = CodeSignatureBuilder.FindCertificate(TestProvision);
+						bPassesHasMatchingCertCheck = (Cert != null);
+						if (bPassesHasMatchingCertCheck && Config.bCert)
+						{
+							bPassesHasMatchingCertCheck &= (Cert.FriendlyName == Config.Certificate);
+						}
 					}
 					else
 					{

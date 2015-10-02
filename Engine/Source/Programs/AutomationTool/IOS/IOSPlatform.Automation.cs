@@ -215,6 +215,13 @@ public class IOSPlatform : Platform
 			BuildPlatContext.SetUpProjectEnvironment();
 			Params.Provision = BuildPlatContext.MobileProvision;
 		}
+		if (String.IsNullOrEmpty(Params.Certificate))
+		{
+			UnrealBuildTool.IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as UnrealBuildTool.IOSPlatform;
+			UnrealBuildTool.IOSPlatformContext BuildPlatContext = (IOSPlatformContext)BuildPlat.CreateContext(Params.RawProjectPath);
+			BuildPlatContext.SetUpProjectEnvironment();
+			Params.Certificate = BuildPlatContext.SigningCertificate;
+		}
 
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
@@ -280,6 +287,10 @@ public class IOSPlatform : Platform
 					{
 						IPPArguments += " -provision \"" + Params.Provision + "\""; 
 					}
+					if (Params.Certificate != null)
+					{
+						IPPArguments += " -certificate \"" + Params.Certificate + "\"";
+					}
 
 					RunAndLog(CmdEnv, IPPExe, IPPArguments);
 				}
@@ -329,6 +340,11 @@ public class IOSPlatform : Platform
 						IPPArguments.Add(" -provision");
 						IPPArguments.Add(Params.Provision);
 					}
+					if (Params.Certificate != null)
+					{
+						IPPArguments.Add(" -certificate");
+						IPPArguments.Add(Params.Certificate);
+					}
 
 					if (RunIPP(IPPArguments.ToArray()) != 0)
 					{
@@ -368,7 +384,7 @@ public class IOSPlatform : Platform
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision);
+				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate);
 
 				// now generate the ipa
 				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
@@ -410,7 +426,7 @@ public class IOSPlatform : Platform
 		return XcodeProj;
 	}
 
-	private void CodeSign(string BaseDirectory, string GameName, FileReference RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null)
+	private void CodeSign(string BaseDirectory, string GameName, FileReference RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null, string Certificate = null)
 	{
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
@@ -423,7 +439,14 @@ public class IOSPlatform : Platform
 		Arguments += " - iOS'";
 		Arguments += " -configuration " + TargetConfig.ToString();
 		Arguments += " -sdk iphoneos";
-		Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+		if (Certificate != null)
+		{
+			Arguments += " CODE_SIGN_IDENTITY=" + Certificate;
+		}
+		else
+		{
+			Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+		}
 		if (Provision != null)
 		{
 			// read the provision to get the UUID

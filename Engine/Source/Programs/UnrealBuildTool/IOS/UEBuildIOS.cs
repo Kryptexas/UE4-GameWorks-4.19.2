@@ -44,6 +44,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public string MobileProvision = "";
 
+		/// <summary>
+		/// signing certificate to use for code signing
+		/// </summary>
+		public string SigningCertificate = "";
+
 		public IOSPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.IOS, InProjectFile)
 		{
 		}
@@ -179,6 +184,7 @@ namespace UnrealBuildTool
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalShippingLinkerFlags", out AdditionalShippingLinkerFlags);
 
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision", out MobileProvision);
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate", out SigningCertificate);
 
 				bInitializedProject = true;
 			}

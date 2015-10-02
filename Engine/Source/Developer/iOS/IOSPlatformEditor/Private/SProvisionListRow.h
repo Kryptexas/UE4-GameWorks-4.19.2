@@ -18,7 +18,7 @@ public:
 		SLATE_ARGUMENT(ProvisionPtr, Provision)
 		SLATE_ARGUMENT(ProvisionListPtr, ProvisionList)
 		SLATE_EVENT(FOnProvisionChanged, OnProvisionChanged)
-		SLATE_END_ARGS()
+	SLATE_END_ARGS()
 
 public:
 

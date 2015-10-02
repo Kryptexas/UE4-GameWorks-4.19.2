@@ -405,6 +405,7 @@ namespace AutomationTool
 			bool? CodeSign = null,
 			bool? UploadSymbols = null,
 			string Provision = null,
+			string Certificate = null,
 			ParamList<string> InMapsToRebuildLightMaps = null
 			)
 		{
@@ -578,6 +579,7 @@ namespace AutomationTool
 			}
 
 			this.Provision = ParseParamValueIfNotSpecified(Command, Provision, "provision", String.Empty, true);
+			this.Certificate = ParseParamValueIfNotSpecified(Command, Certificate, "certificate", String.Empty, true);
 
 			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Device);
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
@@ -993,15 +995,12 @@ namespace AutomationTool
         /// <summary>
         /// Shared: Ref to an auto-generated plugin file that should be incorporated into the project's build
         /// </summary>
-        public FileReference NativizedScriptPlugin;
+        public FileReference GeneratedPluginDescFile;
 
-        /// <summary>
-        /// Shared: Used to guard against fatal use of the GeneratedScriptPlugin param
-        /// </summary>
-        public bool UseNativizedScriptPlugin()
-        {
-            return (NativizedScriptPlugin != null) && NativizedScriptPlugin.Exists();
-        }
+		/// <summary>
+		/// Shared: Ref to a manifest file, detailing the asset files that were converted into native source
+		/// </summary>
+		public FileReference GeneratedPluginManifest;
 
 		#endregion
 
@@ -1319,6 +1318,11 @@ namespace AutomationTool
 		/// Provision to use
 		/// </summary>
 		public string Provision = null;
+
+		/// <summary>
+		/// Certificate to use
+		/// </summary>
+		public string Certificate = null;
 
 		#endregion
 

@@ -290,6 +290,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
 	FString MobileProvision;
 
+	// Signing certificate to utilize when signing
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	FString SigningCertificate;
+
 
 #if WITH_EDITOR
 	// UObject interface
