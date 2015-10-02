@@ -166,58 +166,61 @@ struct FSkeletalMeshOptimizationSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** The method to use when optimizing the skeletal mesh LOD */
-		UPROPERTY()
-		TEnumAsByte<enum SkeletalMeshOptimizationType> ReductionMethod;
+	/** The method to use when optimizing the skeletal mesh LOD */
+	UPROPERTY()
+	TEnumAsByte<enum SkeletalMeshOptimizationType> ReductionMethod;
 
 	/** If ReductionMethod equals SMOT_NumOfTriangles this value is the ratio of triangles [0-1] to remove from the mesh */
 	UPROPERTY()
-		float NumOfTrianglesPercentage;
+	float NumOfTrianglesPercentage;
 
 	/**If ReductionMethod equals SMOT_MaxDeviation this value is the maximum deviation from the base mesh as a percentage of the bounding sphere. */
 	UPROPERTY()
-		float MaxDeviationPercentage;
+	float MaxDeviationPercentage;
 
 	/** The welding threshold distance. Vertices under this distance will be welded. */
 	UPROPERTY()
-		float WeldingThreshold;
+	float WeldingThreshold;
 
 	/** Whether Normal smoothing groups should be preserved. If false then NormalsThreshold is used **/
 	UPROPERTY()
-		bool bRecalcNormals;
+	bool bRecalcNormals;
 
 	/** If the angle between two triangles are above this value, the normals will not be
 	smooth over the edge between those two triangles. Set in degrees. This is only used when PreserveNormals is set to false*/
 	UPROPERTY()
-		float NormalsThreshold;
+	float NormalsThreshold;
 
 	/** How important the shape of the geometry is. */
 	UPROPERTY()
-		TEnumAsByte<enum SkeletalMeshOptimizationImportance> SilhouetteImportance;
+	TEnumAsByte<enum SkeletalMeshOptimizationImportance> SilhouetteImportance;
 
 	/** How important texture density is. */
 	UPROPERTY()
-		TEnumAsByte<enum SkeletalMeshOptimizationImportance> TextureImportance;
+	TEnumAsByte<enum SkeletalMeshOptimizationImportance> TextureImportance;
 
 	/** How important shading quality is. */
 	UPROPERTY()
-		TEnumAsByte<enum SkeletalMeshOptimizationImportance> ShadingImportance;
+	TEnumAsByte<enum SkeletalMeshOptimizationImportance> ShadingImportance;
 
 	/** How important skinning quality is. */
 	UPROPERTY()
-		TEnumAsByte<enum SkeletalMeshOptimizationImportance> SkinningImportance;
+	TEnumAsByte<enum SkeletalMeshOptimizationImportance> SkinningImportance;
 
 	/** The ratio of bones that will be removed from the mesh */
 	UPROPERTY()
-		float BoneReductionRatio;
+	float BoneReductionRatio;
 
 	/** Maximum number of bones that can be assigned to each vertex. */
 	UPROPERTY()
-		int32 MaxBonesPerVertex;
+	int32 MaxBonesPerVertex;
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TArray<FBoneReference> BonesToRemove;
+	TArray<FBoneReference> BonesToRemove;
 
+	/** Maximum number of bones that can be assigned to each vertex. */
+	UPROPERTY()
+	int32 BaseLOD;
 
 	FSkeletalMeshOptimizationSettings()
 		: ReductionMethod(SMOT_MaxDeviation)
@@ -232,6 +235,7 @@ struct FSkeletalMeshOptimizationSettings
 		, SkinningImportance(SMOI_Normal)
 		, BoneReductionRatio(100.0f)
 		, MaxBonesPerVertex(4)
+		, BaseLOD(0)
 	{
 	}
 
@@ -271,7 +275,8 @@ struct FSkeletalMeshOptimizationSettings
 			&& SkinningImportance == Other.SkinningImportance
 			&& bRecalcNormals == Other.bRecalcNormals
 			&& BoneReductionRatio == Other.BoneReductionRatio
-			&& MaxBonesPerVertex == Other.MaxBonesPerVertex;
+			&& MaxBonesPerVertex == Other.MaxBonesPerVertex
+			&& BaseLOD == Other.BaseLOD;
 	}
 
 	/** Inequality. */

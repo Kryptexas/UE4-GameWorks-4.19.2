@@ -63,6 +63,7 @@ private:
 	ECheckBoxState ShouldRecalculateNormals() const;
 	float GetHardAngleThreshold() const;
 	int32 GetMaxBonesPerVertex() const;
+	int32 GetBaseLOD() const;
 
 	void OnPercentTrianglesChanged(float NewValue);
 	void OnMaxDeviationChanged(float NewValue);
@@ -71,6 +72,7 @@ private:
 	void OnWeldingThresholdChanged(float NewValue);
 	void OnHardAngleThresholdChanged(float NewValue);
 	void OnMaxBonesPerVertexChanged(int32 NewValue);
+	void OnBaseLODChanged(int32 NewBasedLOD);
 
 	void OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void OnTextureImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);

@@ -266,6 +266,12 @@ public:
 
 		FStaticLODModel* SrcModel = &SkeletalMesh->PreModifyMesh();
 
+		const int32 BaseLOD = Settings.BaseLOD;
+		if (BaseLOD> 0 && SkeletalMeshResource->LODModels.IsValidIndex(BaseLOD))
+		{
+			SrcModel = &SkeletalMeshResource->LODModels[BaseLOD];
+		}
+
 		TComponentReregisterContext<USkinnedMeshComponent> ReregisterContext;
 		SkeletalMesh->ReleaseResources();
 		SkeletalMesh->ReleaseResourcesFence.Wait();

@@ -300,6 +300,25 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
+		ChildrenBuilder.AddChildContent(LOCTEXT("BaseLOD", "Base LOD"))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("BaseLODTitle", "Base LOD"))
+			]
+		.ValueContent()
+			[
+				SNew(SSpinBox<int32>)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.MinValue(0)
+				.Value(this, &FSkelMeshReductionSettingsLayout::GetBaseLOD)
+				.OnValueChanged(this, &FSkelMeshReductionSettingsLayout::OnBaseLODChanged)
+			];
+
+	}
+
+	{
 		ChildrenBuilder.AddChildContent(LOCTEXT("ApplyChanges", "Apply Changes"))
 			.ValueContent()
 			.HAlign(HAlign_Left)
@@ -371,6 +390,11 @@ int32 FSkelMeshReductionSettingsLayout::GetMaxBonesPerVertex() const
 	return ReductionSettings.MaxBonesPerVertex;
 }
 
+int32 FSkelMeshReductionSettingsLayout::GetBaseLOD() const
+{
+	return ReductionSettings.BaseLOD;
+}
+
 void FSkelMeshReductionSettingsLayout::OnPercentTrianglesChanged(float NewValue)
 {
 	// Percentage -> fraction.
@@ -400,6 +424,11 @@ void FSkelMeshReductionSettingsLayout::OnHardAngleThresholdChanged(float NewValu
 void FSkelMeshReductionSettingsLayout::OnMaxBonesPerVertexChanged(int32 NewValue)
 {
 	ReductionSettings.MaxBonesPerVertex = NewValue;
+}
+
+void FSkelMeshReductionSettingsLayout::OnBaseLODChanged(int32 NewLOD)
+{
+	ReductionSettings.BaseLOD = NewLOD;
 }
 
 void FSkelMeshReductionSettingsLayout::OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
