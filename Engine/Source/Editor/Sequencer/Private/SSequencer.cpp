@@ -917,7 +917,7 @@ void SSequencer::UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieScen
 
 	if( BreadcrumbTrail->PeekCrumb().BreadcrumbType == FSequencerBreadcrumb::MovieSceneType && BreadcrumbTrail->PeekCrumb().MovieSceneInstance.Pin() != FocusedMovieSceneInstance )
 	{
-		FText CrumbName = FText::FromString( FocusedMovieSceneInstance->GetSequence()->GetName() );
+		FText CrumbName = FocusedMovieSceneInstance->GetSequence()->GetDisplayName();
 		// The current breadcrumb is not a moviescene so we need to make a new breadcrumb in order return to the parent moviescene later
 		BreadcrumbTrail->PushCrumb( CrumbName, FSequencerBreadcrumb( FocusedMovieSceneInstance ) );
 	}
@@ -1285,7 +1285,7 @@ void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
 
 FText SSequencer::GetRootAnimationName() const
 {
-	return FText::FromName(Sequencer.Pin()->GetRootMovieSceneSequence()->GetFName());
+	return Sequencer.Pin()->GetRootMovieSceneSequence()->GetDisplayName();
 }
 
 FText SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
