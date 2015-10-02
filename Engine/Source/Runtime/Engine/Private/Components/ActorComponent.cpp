@@ -1157,9 +1157,9 @@ void UActorComponent::RecreatePhysicsState()
 	}
 }
 
-void UActorComponent::ConditionalTickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction &ThisTickFunction)
+FORCEINLINE_DEBUGGABLE void UActorComponent::ConditionalTickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction &ThisTickFunction)
 {
-	if(bRegistered && !IsPendingKill())
+	if(bRegistered)
 	{
 		AActor* MyOwner = GetOwner();
 		//@optimization, I imagine this is all unnecessary in a shipping game with no editor

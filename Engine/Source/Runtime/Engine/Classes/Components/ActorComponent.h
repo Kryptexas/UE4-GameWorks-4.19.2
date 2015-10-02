@@ -465,6 +465,7 @@ public:
 	 */
 	void RegisterComponentWithWorld(UWorld* InWorld);
 	
+private:
 	/**
 	 * Conditionally calls Tick if bRegistered == true and a bunch of other criteria are met
 	 * @param DeltaTime - The time since the last tick.
@@ -472,6 +473,11 @@ public:
 	 * @param ThisTickFunction - the tick function that we are running
 	 */
 	void ConditionalTickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction &ThisTickFunction);
+
+	/** Friend for access to ConditionalTickComponent(). */
+	friend struct FActorComponentTickFunction;
+
+public:
 
 	/**
 	 * Returns whether the component's owner is selected.
