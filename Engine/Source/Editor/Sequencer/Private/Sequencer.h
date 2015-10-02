@@ -89,6 +89,7 @@ public:
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual FSequencerSelection& GetSelection() override;
+	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
 
 	/** Set the global time directly, without performing any auto-scroll */
@@ -551,4 +552,5 @@ private:
 	bool bNeedTreeRefresh;
 
 	FSequencerSelection Selection;
+	FSequencerSelectionPreview SelectionPreview;
 };

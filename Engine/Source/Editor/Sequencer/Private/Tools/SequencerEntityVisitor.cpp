@@ -77,10 +77,28 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 	}
 }
 
-void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, FSequencerDisplayNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
+void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, FSequencerDisplayNode& InNode, TArray<TSharedRef<ISequencerSection>> InSections)
 {
 	if (Range.IntersectNode(InNode))
 	{
+		// Prune the selections to anything that is in the range, visiting if necessary
+		for (int32 SectionIndex = 0; SectionIndex < InSections.Num();)
+		{
+			UMovieSceneSection* Section = InSections[SectionIndex]->GetSectionObject();
+			if (!Range.IntersectSection(Section))
+			{
+				InSections.RemoveAtSwap(SectionIndex, 1, false);
+				continue;
+			}
+
+			if (Visitor.CheckEntityMask(ESequencerEntity::Section))
+			{
+				Visitor.VisitSection(Section);
+			}
+
+			++SectionIndex;
+		}
+
 		bool bNodeHasKeyArea = false;
 		if (InNode.GetType() == ESequencerNode::KeyArea)
 		{
@@ -97,29 +115,26 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 			}
 		}
 
-		if (!bNodeHasKeyArea && (!InNode.IsExpanded() || InNode.GetChildNodes().Num() == 0))
+		// As a fallback, we need to handle:
+		//  - Key groupings on collapsed parents
+		//  - Sections that have no key areas
+		const bool bIterateKeyGroupings = Visitor.CheckEntityMask(ESequencerEntity::Key) &&
+			!bNodeHasKeyArea &&
+			(!InNode.IsExpanded() || InNode.GetChildNodes().Num() == 0);
+
+		if (bIterateKeyGroupings)
 		{
-			// As a fallback, we need to handle:
-			//  - Key groupings on collapsed parents
-			//  - Sections that have no key areas
 			for (int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex)
 			{
 				UMovieSceneSection* Section = InSections[SectionIndex]->GetSectionObject();
-				if (Range.IntersectSection(Section))
-				{
-					if (Visitor.CheckEntityMask(ESequencerEntity::Section))
-					{
-						Visitor.VisitSection(Section);
-					}
 
-					if (Visitor.CheckEntityMask(ESequencerEntity::Key))
+				if (Visitor.CheckEntityMask(ESequencerEntity::Key))
+				{
+					// Only handle grouped keys if we actually have children
+					if (InNode.GetChildNodes().Num() != 0 && Range.IntersectKeyArea(InNode, VirtualKeySize.X))
 					{
-						// Only handle grouped keys if we actually have children
-						if (InNode.GetChildNodes().Num() != 0 && Range.IntersectKeyArea(InNode, VirtualKeySize.X))
-						{
-							TSharedRef<IKeyArea> KeyArea = InNode.UpdateKeyGrouping(SectionIndex);
-							HandleKeyArea(Visitor, KeyArea, Section);
-						}
+						TSharedRef<IKeyArea> KeyArea = InNode.UpdateKeyGrouping(SectionIndex);
+						HandleKeyArea(Visitor, KeyArea, Section);
 					}
 				}
 			}
@@ -144,22 +159,12 @@ void FSequencerEntityWalker::HandleKeyAreaNode(const ISequencerEntityVisitor& Vi
 	for( int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex )
 	{
 		UMovieSceneSection* Section = InSections[SectionIndex]->GetSectionObject();
-
-		// If the section is at all within the marquee, we check its keys
-		if (Range.IntersectSection(Section))
+		if (Visitor.CheckEntityMask(ESequencerEntity::Key))
 		{
-			if (Visitor.CheckEntityMask(ESequencerEntity::Section))
+			if (Range.IntersectKeyArea(InOwnerNode, VirtualKeySize.X))
 			{
-				Visitor.VisitSection(Section);
-			}
-
-			if (Visitor.CheckEntityMask(ESequencerEntity::Key))
-			{
-				if (Range.IntersectKeyArea(InOwnerNode, VirtualKeySize.X))
-				{
-					TSharedRef<IKeyArea> KeyArea = InKeyAreaNode.GetKeyArea(SectionIndex);
-					HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
-				}
+				TSharedRef<IKeyArea> KeyArea = InKeyAreaNode.GetKeyArea(SectionIndex);
+				HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
 			}
 		}
 	}

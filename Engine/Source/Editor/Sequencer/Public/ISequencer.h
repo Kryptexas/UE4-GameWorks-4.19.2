@@ -9,6 +9,7 @@
 
 
 class FSequencerSelection;
+class FSequencerSelectionPreview;
 class UMovieSceneSequence;
 class UAnimSequence;
 class UMovieScene;
@@ -153,6 +154,7 @@ public:
 	virtual void UpdateRuntimeInstances() = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
+	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) = 0;
 };

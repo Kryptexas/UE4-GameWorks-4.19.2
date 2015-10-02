@@ -1916,6 +1916,11 @@ FSequencerSelection& FSequencer::GetSelection()
 	return Selection;
 }
 
+FSequencerSelectionPreview& FSequencer::GetSelectionPreview()
+{
+	return SelectionPreview;
+}
+
 float FSequencer::GetOverlayFadeCurve() const
 {
 	return OverlayCurve.GetLerp();

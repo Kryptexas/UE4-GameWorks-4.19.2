@@ -255,9 +255,11 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	// Ask the interface to draw the section
 	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bEnabled );
 
-	const bool bDisplaySectionHandles = true;
+	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
 
-	DrawSectionHandlesAndSelection(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, bDisplaySectionHandles, bEnabled );
+	DrawSectionHandles(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, DrawEffects, SelectionColor);
+
+	DrawSelectionBorder(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, DrawEffects, SelectionColor);
 
 	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle, bEnabled );
 
@@ -311,12 +313,21 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 	static const FName SelectionColorPressedName("SelectionColor_Pressed");
 
 	const FLinearColor PressedKeyColor = FEditorStyle::GetSlateColor(SelectionColorPressedName).GetColor( InWidgetStyle );
-	const FLinearColor SelectedKeyColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor( InWidgetStyle );
-	const FLinearColor SelectedInactiveColor = FEditorStyle::GetSlateColor(SelectionInactiveColorName).GetColor( InWidgetStyle )
-		* FLinearColor(.25, .25, .25, 1);  // Make the color a little darker since it's not very visible next to white keyframes.
-
+	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor( InWidgetStyle );
+	FLinearColor SelectedKeyColor = SelectionColor;
 	// @todo Sequencer temp color, make hovered brighter than selected.
 	FLinearColor HoveredKeyColor = SelectedKeyColor * FLinearColor(1.5,1.5,1.5,1.0f);
+
+
+	auto& Selection = Sequencer.GetSelection();
+	auto& SelectionPreview = Sequencer.GetSelectionPreview();
+
+	if (Selection.GetActiveSelection() != FSequencerSelection::EActiveSelection::KeyAndSection)
+	{
+		// Selected key color is different when the active selection is not keys
+		SelectedKeyColor = FEditorStyle::GetSlateColor(SelectionInactiveColorName).GetColor( InWidgetStyle )
+			* FLinearColor(.25, .25, .25, 1);  // Make the color a little darker since it's not very visible next to white keyframes.
+	}
 
 	// Draw all keys in each key area
 	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
@@ -325,161 +336,182 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
 		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
 
+		if (!KeyHandles.Num())
+		{
+			continue;
+		}
+
 		FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, AllottedGeometry );
 
-		FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite() ? 			
-			FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+		FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite() ?
+			FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) :
 			FTimeToPixel( KeyAreaGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
 
 		// Draw a box for the key area 
 		// @todo Sequencer - Allow the IKeyArea to do this
-		if (KeyHandles.Num())
-		{
-			FSlateDrawElement::MakeBox( 
-				OutDrawElements,
-				LayerId,
-				KeyAreaGeometry.ToPaintGeometry(),
-				BackgroundBrush,
-				MyClippingRect,
-				DrawEffects,
-				FLinearColor( .1f, .1f, .1f, 0.7f ) ); 
-		}
+		FSlateDrawElement::MakeBox( 
+			OutDrawElements,
+			LayerId,
+			KeyAreaGeometry.ToPaintGeometry(),
+			BackgroundBrush,
+			MyClippingRect,
+			DrawEffects,
+			FLinearColor( .1f, .1f, .1f, 0.7f ) ); 
 
-		int32 KeyLayer = LayerId + 1;
+		const int32 KeyLayer = LayerId + 1;
 
-		for( int32 KeyIndex = 0; KeyIndex < KeyHandles.Num(); ++KeyIndex )
+		for (const FKeyHandle& KeyHandle : KeyHandles)
 		{
-			FKeyHandle KeyHandle = KeyHandles[KeyIndex];
 			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
 
 			// Omit keys which would not be visible
-			if( SectionObject.IsTimeWithinSection( KeyTime ) )
+			if( !SectionObject.IsTimeWithinSection( KeyTime ) )
 			{
-				const FSlateBrush* BrushToUse = SectionInterface->GetKeyBrush(KeyHandle);
-				if(BrushToUse == nullptr)
-				{
-					BrushToUse = DefaultKeyBrush;
-				}
-				FLinearColor KeyColor( 1.0f, 1.0f, 1.0f, 1.0f );
-				FLinearColor KeyTint(1.f, 1.f, 1.f, 1.f);
-
-				if (Element.GetType() == FKeyAreaLayoutElement::Group)
-				{
-					auto Group = StaticCastSharedPtr<FGroupedKeyArea>(KeyArea);
-					KeyTint = Group->GetKeyTint(KeyHandle);
-					BrushToUse = Group->GetBrush(KeyHandle);
-				}
-
-				// Where to start drawing the key (relative to the section)
-				float KeyPosition =  TimeToPixelConverter.TimeToPixel( KeyTime );
-
-				FSelectedKey TestKey( SectionObject, KeyArea, KeyHandle );
-
-				bool bSelected = Sequencer.GetSelection().IsSelected( TestKey );
-				bool bActive = Sequencer.GetSelection().GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
-
-				if( TestKey == PressedKey )
-				{
-					KeyColor = PressedKeyColor;
-				}
-				else if( TestKey == HoveredKey )
-				{
-					KeyColor = HoveredKeyColor;
-				}
-				else if( bSelected )
-				{
-					if (bActive)
-					{
-						KeyColor = SelectedKeyColor;
-					}
-					else
-					{
-						KeyColor = SelectedInactiveColor;
-					}
-				}
-
-				KeyColor *= KeyTint;
-
-				// Draw the key
-				FSlateDrawElement::MakeBox(
-					OutDrawElements,
-					// always draw selected keys on top of other keys
-					bSelected ? KeyLayer+1 : KeyLayer,
-					// Center the key along Y.  Ensure the middle of the key is at the actual key time
-					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
-					BrushToUse,
-					MyClippingRect,
-					DrawEffects,
-					KeyColor
-					);
+				continue;
 			}
+
+			const FSlateBrush* BrushToUse = SectionInterface->GetKeyBrush(KeyHandle);
+			if(BrushToUse == nullptr)
+			{
+				BrushToUse = DefaultKeyBrush;
+			}
+			FLinearColor KeyColor( 1.0f, 1.0f, 1.0f, 1.0f );
+			FLinearColor KeyTint(1.f, 1.f, 1.f, 1.f);
+
+			if (Element.GetType() == FKeyAreaLayoutElement::Group)
+			{
+				auto Group = StaticCastSharedPtr<FGroupedKeyArea>(KeyArea);
+				KeyTint = Group->GetKeyTint(KeyHandle);
+				BrushToUse = Group->GetBrush(KeyHandle);
+			}
+
+			// Where to start drawing the key (relative to the section)
+			float KeyPosition =  TimeToPixelConverter.TimeToPixel( KeyTime );
+
+			FSelectedKey TestKey( SectionObject, KeyArea, KeyHandle );
+
+			bool bSelected = Selection.IsSelected( TestKey );
+			ESelectionPreviewState SelectionPreviewState = SelectionPreview.GetSelectionState( TestKey );
+
+			if( TestKey == PressedKey )
+			{
+				KeyColor = PressedKeyColor;
+			}
+			else if( TestKey == HoveredKey )
+			{
+				KeyColor = HoveredKeyColor;
+			}
+			else if( SelectionPreviewState == ESelectionPreviewState::Selected )
+			{
+				FLinearColor PreviewSelectionColor = SelectionColor.LinearRGBToHSV();
+				PreviewSelectionColor.R += 0.1f; // +10% hue
+				PreviewSelectionColor.G = 0.6f; // 60% saturation
+				KeyColor = PreviewSelectionColor.HSVToLinearRGB();
+			}
+			else if( SelectionPreviewState == ESelectionPreviewState::NotSelected )
+			{
+				// Default white selection color
+			}
+			else if( bSelected )
+			{
+				KeyColor = SelectedKeyColor;
+			}
+
+			KeyColor *= KeyTint;
+
+			// Draw the key
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				// always draw selected keys on top of other keys
+				bSelected ? KeyLayer+1 : KeyLayer,
+				// Center the key along Y.  Ensure the middle of the key is at the actual key time
+				KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
+				BrushToUse,
+				MyClippingRect,
+				DrawEffects,
+				KeyColor
+				);
 		}
 	}
 }
 
-void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles, bool bParentEnabled ) const
+void SSection::DrawSectionHandles( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor ) const
 {
-	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const FSlateBrush* LeftGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripLeftBrushName());
+	const FSlateBrush* RightGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripRightBrushName());
 
-	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
+	// Left Grip
+	FSlateDrawElement::MakeBox
+	(
+		OutDrawElements,
+		LayerId,
+		// Center the key along Y.  Ensure the middle of the key is at the actual key time
+		AllottedGeometry.ToPaintGeometry(FVector2D(0.0f, 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
+		LeftGripBrush,
+		MyClippingRect,
+		DrawEffects,
+		(bLeftEdgePressed || bLeftEdgeHovered) ? SelectionColor : LeftGripBrush->GetTint(FWidgetStyle())
+	);
+	
+	// Right Grip
+	FSlateDrawElement::MakeBox
+	(
+		OutDrawElements,
+		LayerId,
+		// Center the key along Y.  Ensure the middle of the key is at the actual key time
+		AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.Size.X-SectionInterface->GetSectionGripSize(), 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
+		RightGripBrush,
+		MyClippingRect,
+		DrawEffects,
+		(bRightEdgePressed || bRightEdgeHovered) ? SelectionColor : RightGripBrush->GetTint(FWidgetStyle())
+	);
+}
 
+void SSection::DrawSelectionBorder( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor ) const
+{
 	FSequencerSelection& Selection = ParentSectionArea->GetSequencer().GetSelection();
-	const bool bSelected = Selection.IsSelected(SectionObject);
-	const bool bActive = Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
+	FSequencerSelectionPreview& SelectionPreview = ParentSectionArea->GetSequencer().GetSelectionPreview();
+	
+	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
+	ESelectionPreviewState SelectionPreviewState = SelectionPreview.GetSelectionState( SectionObject );
 
-	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
-	FLinearColor SelectionInactiveColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionInactiveColorName).GetColor(FWidgetStyle());
-	FLinearColor TransparentSelectionColor = SelectionColor;
-
-	if( bDisplaySectionHandles )
+	if (SelectionPreviewState == ESelectionPreviewState::NotSelected)
 	{
-		const FSlateBrush* LeftGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripLeftBrushName());
-		const FSlateBrush* RightGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripRightBrushName());
-
-		// Left Grip
-		FSlateDrawElement::MakeBox
-		(
-			OutDrawElements,
-			LayerId,
-			// Center the key along Y.  Ensure the middle of the key is at the actual key time
-			AllottedGeometry.ToPaintGeometry(FVector2D(0.0f, 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
-			LeftGripBrush,
-			MyClippingRect,
-			DrawEffects,
-			(bLeftEdgePressed || bLeftEdgeHovered) ? TransparentSelectionColor : LeftGripBrush->GetTint(FWidgetStyle())
-		);
-		
-		// Right Grip
-		FSlateDrawElement::MakeBox
-		(
-			OutDrawElements,
-			LayerId,
-			// Center the key along Y.  Ensure the middle of the key is at the actual key time
-			AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.Size.X-SectionInterface->GetSectionGripSize(), 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
-			RightGripBrush,
-			MyClippingRect,
-			DrawEffects,
-			(bRightEdgePressed || bRightEdgeHovered) ? TransparentSelectionColor : RightGripBrush->GetTint(FWidgetStyle())
-		);
+		// Explicitly not selected in the preview selection
+		return;
 	}
-
+	else if (SelectionPreviewState == ESelectionPreviewState::Undefined && !Selection.IsSelected(SectionObject))
+	{
+		// No preview selection for this section, and it's not selected
+		return;
+	}
+	
+	// Use a muted selection color for selection previews
+	if( SelectionPreviewState == ESelectionPreviewState::Selected )
+	{
+		SelectionColor = SelectionColor.LinearRGBToHSV();
+		SelectionColor.R += 0.1f; // +10% hue
+		SelectionColor.G = 0.6f; // 60% saturation
+		SelectionColor = SelectionColor.HSVToLinearRGB();
+	}
+	else if (Selection.GetActiveSelection() != FSequencerSelection::EActiveSelection::KeyAndSection)
+	{
+		// Use an inactive selection color for existing selections that are not active
+		SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionInactiveColorName).GetColor(FWidgetStyle());
+	}
 
 	// draw selection box
-	if(bSelected)
-	{
-		static const FName SelectionBorder("Sequencer.Section.SelectionBorder");
+	static const FName SelectionBorder("Sequencer.Section.SelectionBorder");
 
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId+1,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush(SelectionBorder),
-			MyClippingRect,
-			DrawEffects,
-			bActive ? SelectionColor : SelectionInactiveColor
-			);
-	}
-
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId+1,
+		AllottedGeometry.ToPaintGeometry(),
+		FEditorStyle::GetBrush(SelectionBorder),
+		MyClippingRect,
+		DrawEffects,
+		SelectionColor
+		);
 }
 
 TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

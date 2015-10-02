@@ -9,9 +9,12 @@
 
 FReply FSequencerEditTool_Default::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FSequencer& Sequencer = static_cast<FSequencer&>(GetSequencer());
-	Sequencer.GetSelection().EmptySelectedSections();
-	Sequencer.GetSelection().EmptySelectedKeys();
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		FSequencer& Sequencer = static_cast<FSequencer&>(GetSequencer());
+		Sequencer.GetSelection().EmptySelectedSections();
+		Sequencer.GetSelection().EmptySelectedKeys();
+	}
 	return FReply::Unhandled();
 }
 

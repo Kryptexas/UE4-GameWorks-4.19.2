@@ -73,7 +73,7 @@ private:
 	/** Handle visitation of a particular node */
 	void HandleNode(const ISequencerEntityVisitor& Visitor, FSequencerDisplayNode& InNode);
 	/** Handle visitation of a particular node, along with a set of sections */
-	void HandleNode(const ISequencerEntityVisitor& Visitor, FSequencerDisplayNode& InNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
+	void HandleNode(const ISequencerEntityVisitor& Visitor, FSequencerDisplayNode& InNode, TArray<TSharedRef<ISequencerSection>> InSections);
 	/** Handle visitation of a key area node */
 	void HandleKeyAreaNode(const ISequencerEntityVisitor& Visitor, FSectionKeyAreaNode& InKeyAreaNode, FSequencerDisplayNode& InOwnerNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
 	/** Handle visitation of a key area */
