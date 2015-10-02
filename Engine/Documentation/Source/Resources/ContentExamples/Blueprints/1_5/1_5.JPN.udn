@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712756
 Availability:Public
 Title:1.5 - イベントグラフ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
 Description:ブループリントのサンプル レベルの概要、サンプル 1.5：イベントグラフ
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Components
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Components
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -57,14 +58,14 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## コンストラクション スクリプト
 
-オブジェクトに対するコンストラクション スクリプトでは、動的マテリアル インスタンスを作成して適用します。また、コンストラクション スクリプトの変数に対して適切なカラーを設定します。これはパブリックになっているため、 **[詳細]** パネルで見ることができます。
+オブジェクトに対するコンストラクション スクリプトでは、動的マテリアル インスタンスを作成して適用します。また、コンストラクション スクリプトの変数に対して適切なカラーを設定します。これはパブリックになっているため、 **[Details (詳細)]** パネルで見ることができます。
 
 [REGION:lightbox]
 [![](1.5ConstructionScript.png)](1.5ConstructionScript.png)
 [/REGION]
 
 ## イベント グラフ
-イベント グラフには、コンストラクション スクリプトのカラー セットからイベントグラフの変数のカラーセットにブレンドする Timeline があります。イベントグラフの変数のカラーセットも、パブリックであり、**[詳細]** パネルで見ることができます。Timeline は、あるカラーから他のカラーへのスムーズなトランジションを実現するために使用されます。Timelines に関する詳細は、[タイムラインのドキュメンテーション](Engine/Blueprints\UserGuide\Timelines) を参照してください。
+イベント グラフには、コンストラクション スクリプトのカラー セットからイベントグラフの変数のカラーセットにブレンドする Timeline があります。イベントグラフの変数のカラーセットも、パブリックであり、**[Details (詳細)]** パネルで見ることができます。Timeline は、あるカラーから他のカラーへのスムーズなトランジションを実現するために使用されます。Timelines に関する詳細は、[タイムラインのドキュメンテーション](Engine/Blueprints\UserGuide\Timelines) を参照してください。
 
 [REGION:lightbox]
 [![](1.5EventGraph.png)](1.5EventGraph.png)
