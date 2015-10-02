@@ -1643,6 +1643,7 @@ void UEdGraphSchema_K2::OnCreateNonExistentLocalVariable( UK2Node_Variable* Vari
 					if (VariableNode->VariableReference.IsSameReference(OldReference))
 					{
 						VariableNode->VariableReference.SetLocalMember(VarName, Variable->GetGraph()->GetName(), LocalVarGuid);
+						VariableNode->ReconstructNode();
 					}
 				}
 			}
