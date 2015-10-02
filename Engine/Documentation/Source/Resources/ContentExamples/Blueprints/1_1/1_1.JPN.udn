@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652825
+﻿INTSourceChangelist:2712692
 Availability:Public
 Title:1.1 - ハローワールド
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -10,6 +10,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -53,10 +54,8 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [REGION:tip]
 このサンプルはエディタでプレイする(PIE) または Simulation 中に最も良く見られます。シミュレーションするには、エディタ ツールバーのスクリーン上部にある **[Simulate (シミュレート)]** ボタンをクリックするか **[Alt-S]** を押します。エディタでプレイするにはエディタ ツールバーにある **[Play]** ボタンをクリックするか **[Alt-P]** を押します。
 
-![Simulate](button_Simulate.png)(h:60) ![Play In Editor](button_PlayIn.png)(h:60)
+![Simulate](button_Simulate.png)(h:150) ![Play In Editor](button_PlayIn.png)(h:150)
 [/REGION]
-
-
 
 
 
