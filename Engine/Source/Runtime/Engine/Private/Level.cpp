@@ -803,6 +803,11 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 
 void ULevel::CreateModelComponents()
 {
+	FScopedSlowTask SlowTask(10);
+	SlowTask.MakeDialogDelayed(3.0f);
+
+	SlowTask.EnterProgressFrame(4);
+
 	// Update the model vertices and edges.
 	Model->UpdateVertices();
 
@@ -902,6 +907,8 @@ void ULevel::CreateModelComponents()
 	// Clear old cached data in case we don't regenerate it below, e.g. after removing all BSP from a level.
 	Model->NumIncompleteNodeGroups = 0;
 	Model->CachedMappings.Empty();
+
+	SlowTask.EnterProgressFrame(4);
 
 	// Work only needed if we actually have BSP in the level.
 	if( ModelComponents.Num() )
@@ -1004,6 +1011,8 @@ void ULevel::CreateModelComponents()
 		}
 	}
 	Model->UpdateVertices();
+
+	SlowTask.EnterProgressFrame(2);
 
 	for (int32 UpdateCompIdx = 0; UpdateCompIdx < ModelComponents.Num(); UpdateCompIdx++)
 	{
