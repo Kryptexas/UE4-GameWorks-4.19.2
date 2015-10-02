@@ -8,17 +8,11 @@
 
 struct FMarqueeSelectData;
 
-enum class ESequencerSelectionMode
-{
-	Keys, Sections
-};
-
 class FSequencerEditTool_Selection : public FSequencerEditTool_Default
 {
 public:
 
 	FSequencerEditTool_Selection(TSharedPtr<FSequencer> InSequencer, TSharedPtr<SSequencer> InSequencerWidget);
-	FSequencerEditTool_Selection(TSharedPtr<FSequencer> InSequencer, TSharedPtr<SSequencer> InSequencerWidget, ESequencerSelectionMode ExplicitMode);
 
 	virtual ISequencer& GetSequencer() const override;
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const override;
@@ -26,17 +20,16 @@ public:
 	virtual FReply OnMouseButtonDown(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void   OnMouseLeave(SWidget& OwnerWidget, const FPointerEvent& MouseEvent) override;
 	virtual void   OnMouseCaptureLost() override;
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	virtual FName GetIdentifier() const override;
-
-public:
-
-	static ESequencerSelectionMode GetGlobalSelectionMode();
 	
-	ESequencerSelectionMode GetSelectionMode() const { return SelectionMode; }
-	void SetSelectionMode(ESequencerSelectionMode Mode);
-	
+private:
+
+	/** Update the software cursor */
+	void UpdateCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 private:
 
 	/** The sequencer itself */
@@ -61,6 +54,9 @@ private:
 	/** Current drag operation if any */
 	TSharedPtr<IEditToolDragOperation> DragOperation;
 
-	/** What we are selecting */
-	ESequencerSelectionMode SelectionMode;
+	/** Cached mouse position for software cursor rendering */
+	FVector2D MousePosition;
+
+	/** Software cursor decorator brush */
+	const FSlateBrush* CursorDecorator;
 };

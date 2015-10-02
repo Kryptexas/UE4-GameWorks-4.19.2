@@ -11,6 +11,7 @@
 #include "ISequencerModule.h"
 #include "ISequencerObjectChangeListener.h"
 #include "SequencerSelection.h"
+#include "SequencerSelectionPreview.h"
 #include "SequencerCommands.h"
 #include "SequencerNodeTree.h"
 #include "SequencerDisplayNode.h"

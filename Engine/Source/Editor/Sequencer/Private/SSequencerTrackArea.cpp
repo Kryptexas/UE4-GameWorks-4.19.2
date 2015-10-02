@@ -203,6 +203,24 @@ FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPo
 	return FReply::Handled();
 }
 
+void SSequencerTrackArea::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
+	{
+		SequencerPin->GetEditTool().OnMouseEnter(*this, MyGeometry, MouseEvent);
+	}
+}
+
+void SSequencerTrackArea::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	auto SequencerPin = SequencerWidget.Pin();
+	if (SequencerPin.IsValid())
+	{
+		SequencerPin->GetEditTool().OnMouseLeave(*this, MouseEvent);
+	}
+}
+
 void SSequencerTrackArea::OnMouseCaptureLost()
 {
 	auto SequencerPin = SequencerWidget.Pin();
