@@ -49,8 +49,7 @@ void ALevelSequenceActor::PostInitProperties()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		// Make an instance of our asset so that we can keep hard references to actors we are using
-		SequenceInstance = NewObject<ULevelSequenceInstance>(this, "AnimationInstance");
+		CreateSequenceInstance();
 	}
 }
 
@@ -122,8 +121,19 @@ void ALevelSequenceActor::InitializePlayer()
 	}
 }
 
+void ALevelSequenceActor::CreateSequenceInstance()
+{
+	if (!SequenceInstance)
+	{
+		// Make an instance of our asset so that we can keep hard references to actors we are using
+		SequenceInstance = NewObject<ULevelSequenceInstance>(this, "AnimationInstance");
+	}
+}
+
 void ALevelSequenceActor::UpdateAnimationInstance()
 {
+	CreateSequenceInstance();
+	
 	ULevelSequence* LevelSequenceAsset = Cast<ULevelSequence>(LevelSequence.TryLoad());
 	SequenceInstance->Initialize(LevelSequenceAsset, GetWorld(), true);
 }
