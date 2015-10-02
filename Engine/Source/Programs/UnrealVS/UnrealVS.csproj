@@ -179,7 +179,7 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="StartupProjectSelector.cs" />
     <Compile Include="UnrealVSOptions.cs">
-      <SubType>component</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="UnrealVSPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
