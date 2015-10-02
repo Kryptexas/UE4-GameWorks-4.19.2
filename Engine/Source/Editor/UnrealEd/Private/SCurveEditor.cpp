@@ -1173,7 +1173,7 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 
 	ValidateSelection();
 
-	if (Settings->GetAutoFrameCurveEditor() && GetAllowAutoFrame())
+	if (GetAutoFrame())
 	{
 		if( bZoomToFitVertical )
 		{
@@ -2284,6 +2284,11 @@ void SCurveEditor::ValidateSelection()
 			i--;
 		}
 	}
+}
+
+bool SCurveEditor::GetAutoFrame() const
+{
+	return Settings->GetAutoFrameCurveEditor() && GetAllowAutoFrame();
 }
 
 TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
