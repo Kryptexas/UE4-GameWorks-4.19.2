@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2613493
+﻿INTSourceChangelist:2702483
 Availability:Public
 Title:ランドスケープ マテリアル
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープ テレインで作業するためのマテリアルを設定
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -26,7 +27,7 @@ Description:ランドスケープ テレインで作業するためのマテリ�
 
 [TOC(start:2 end:3)]
 
-マテリアルはすべてランダムに Landscape アクタと使用することができますが、アンリアル エンジン 4 (UE4) のマテリアル システムは、ランドスケープのテクスチャ化を大幅に向上させるランドスケープ専用のマテリアル ノードを提供しています。これらのノードの詳細、機能の仕方、ランドスケープ マテリアルでの使用方法について、このページで説明していきます。 
+**マテリアル** はすべてランダムに **Landscape** アクタと使用することができますが、アンリアル エンジン 4 (UE4) のマテリアル システムは、ランドスケープのテクスチャ化を大幅に向上させるランドスケープ専用のマテリアル ノードを提供しています。これらのノードの詳細、機能の仕方、ランドスケープ マテリアルでの使用方法について、このページで説明していきます。 
 
 [REGION:note]
 他のマテリアルの修正方法と同じように、ランドスケープの使用のために [マテリアル エディタ](Engine/Rendering/Materials\Editor) 内でマテリアルを修正します。
@@ -38,9 +39,9 @@ Description:ランドスケープ テレインで作業するためのマテリ�
 
 ## Landscape Specific Material ノード
 
-マテリアル エディタの中に、ランドスケープ システムで使える 6 つの特別なノードがあると思います。これらのノードはすべて **右クリック** メニューまたは Landscape カテゴリの **[Palette (パレット)]** メニューにあります。 
+マテリアル エディタの中に、ランドスケープ システムで使える 6 つの特別なノードがあると思います。これらのノードはすべて **コンテキスト** メニューまたは Landscape カテゴリの **[Palette (パレット)]** メニューにあります。 
 
-**右クリック メニュー**
+**コンテキストメニュー**
 
 ![Material Editor Context Menu](Landscape_Mat_Context.png)
 
@@ -52,7 +53,7 @@ Description:ランドスケープ テレインで作業するためのマテリ�
 ### Landscape Layer Blend ノード
 [EXCERPT:LandscapeLayerBlend]
 
-**LandscapeLayerBlend** ノードは、ランドスケープ レイヤーとして使用できるように、複数のテクスチャあるいはマテリアル ネットワークとのブレンドが可能です。**LandscapeLayerBlend** は、配列を使用してランドスケープ レイヤーに関する情報を格納します。この配列にレイヤーを追加するには、 **0 elements** の横に表示されるプラス記号をクリックします。
+**LandscapeLayerBlend** ノードは、ランドスケープ レイヤーとして使用できるように、複数のテクスチャあるいはマテリアル ネットワークとのブレンドが可能です。LandscapeLayerBlend は、配列を使用してランドスケープ レイヤーに関する情報を格納します。この配列にレイヤーを追加するには、 0 elements の横に表示されるプラス記号をクリックします。
 
 ![](Landscape_Add_To_Array.png)
 
@@ -60,7 +61,7 @@ Description:ランドスケープ テレインで作業するためのマテリ�
 
 ![LandscapeLayerBlend Node](Landscape_LayerBlend.png)
 
-LandscapeLayerBlend ノードのプロパティは、マテリアル エディタの **[Details (詳細)]** パネルで設定できます。 
+**LandscapeLayerBlend** ノードのプロパティは、**マテリアル エディタ** の **[Details (詳細)]** パネルで設定できます。 
 
 
 |番号| プロパティ | 説明 |
@@ -79,30 +80,27 @@ LandscapeLayerBlend ノードのプロパティは、マテリアル エディ�
 
 | 番号 | 項目 | 説明 |
 |--------| -------- | ----------- |
-|1:| **Layer_LayerName_** | 各レイヤーが、互いとブレンドするための入力を追加します。これらの入力はレイヤーが **[Details (詳細)]** パネルに追加されるまで利用できません。|
+|1:| **Layer _LayerName_** | 各レイヤーが、互いとブレンドするための入力を追加します。これらの入力はレイヤーが **[Details (詳細)]** パネルに追加されるまで利用できません。|
 |2:| **Height _LayerName_** | ブレンドする高さマップを提供します。これらの入力は **Blend Type** プロパティが **LB_HeightBlend** に設定されたレイヤー上でのみ表示されることに注意してください。|
 |3:| **Unlabeled Output** | 互いにブレンドされたレイヤーの結果です。 |
 
 
-[REGION:note]
-レイヤー ブレンド モードを組み合わせて使うと、ランドスケープ全体に渡り、異なるレイヤーが重なる部分にに黒い点ができてしまうことがあります。複数のランドスケープ レイヤーに **LB_HeightBlend** を使用すれば、この問題を防ぐことができます。**LB_HeightBlend** は、指定された高さの値を使って、レイヤーのブレンド係数 (ウエイト) を調整することで機能します。リージョンに複数のレイヤーをペイントし、それが全て **LB_HeightBlend** に設定されていると、リージョンにペイントされたレイヤーを全て同時に高さ 0 に設定することができるので、各レイヤーのブレンド係数は 0 が望ましいです。暗示的または明示的な順序はないため、その領域に寄与するレイヤーがないと結果は黒い点になります。法線マップをブレンドすると、法線の値が (0,0,0) となり、有効ではなく、光源に関しレンダリングの問題を引き起こすため、状態は悪化します。この問題を解決するには、次の例にあるようなレイヤーの場合には **LB_AlphaBlend** を使用することです。 
+
+レイヤー ブレンド モードを組み合わせて使うと、ランドスケープ全体に渡り、異なるレイヤーが重なる部分にに黒い点ができてしまうことがあります。複数のランドスケープ レイヤーに LB_HeightBlend を使用すれば、この問題を防ぐことができます。LB_HeightBlend は、指定された高さの値を使って、レイヤーのブレンド係数 (ウエイト) を調整することで機能します。リージョンに複数のレイヤーをペイントし、それが全て LB_HeightBlend に設定されていると、リージョンにペイントされたレイヤーを全て同時に高さ 0 に設定することができるので、各レイヤーのブレンド係数は 0 が望ましいです。暗示的または明示的な順序はないため、その領域に寄与するレイヤーがないと結果は黒い点になります。法線マップをブレンドすると、法線の値が (0,0,0) となり、有効ではなく、光源に関しレンダリングの問題を引き起こすため、状態は悪化します。この問題を解決するには、次の例にあるようなレイヤーの場合には **LB_AlphaBlend** を使用することです。 
 ![LB_HeightBlend Problem](HeightBlendProblem.jpg)(w:800 h:238)
 
-左の画像では、レイヤーは全て **LB_HeightBlend** であり、ところどころ黒くなっています。右の画像では、赤い 1 のレイヤーに **LB_AlphaBlend** を使用するようにしたところ問題が解決しました。
+左の画像では、レイヤーは全て LB_HeightBlend であり、ところどころ黒くなっています。右の画像では、赤い 1 のレイヤーに LB_AlphaBlend を使用するようにしたところ問題が解決しました。
 
 
-[/REGION]
-
-以下の図は、多数のレイヤーを全部一緒にブレンドするための **Landscape Layer Blend** ノードのプロパティの例です。その他のレイヤーの ブレンド モードは **LB_HeightBlend** に設定されていますが、 **Soil** レイヤーはどのように **LB_HeightBlend** に設定されているかに注目してください。それが、レイヤーが重なる部分が黒い点にならないようにするポイントになります。 
+以下の図は、多数のレイヤーを全部一緒にブレンドするための **Landscape Layer Blend** ノードのプロパティの例です。その他のレイヤーの ブレンド モードは LB_HeightBlend に設定されていますが、**Soil** レイヤーはどのように LB_HeightBlend に設定されているかに注目してください。これが上記の問題点 (レイヤーが重なる部分が黒い点になる) を防ぐポイントになります。 
 
 ![Layer Blend Properties](LayerBlendProperties.png)
 
 
-[REGION:tip]
-レイヤーを削除するには、レイヤーのエレメント番号の右側にある **ドロップダウンの矢印** をクリックしてコンテクスト メニューを開き **[Delete]** をクリックします。
+レイヤーを削除するには、レイヤーのエレメント番号の右側にあるドロップダウンの矢印をクリックしてコンテキスト メニューを開き **[Delete (削除)]** をクリックします。
 
 ![Delete Layer](Landscape_DeleteBlendLayer2.png)
-[/REGION]
+
 
 [/EXCERPT:LandscapeLayerBlend]
 
@@ -112,7 +110,7 @@ LandscapeLayerBlend ノードのプロパティは、マテリアル エディ�
 
 ![LandscapeLayerCoords Node](Landscape_Material_CoordsExp.png)
 
-LandscapeLayerCoords ノードのプロパティは、 **[Details]** パネルで設定できます。
+LandscapeLayerCoords ノードのプロパティは、 **[Details (詳細)]** パネルで設定できます。
 
 | 番号 | プロパティ | 説明 |
 |--------| -------- | ----------- |
@@ -134,7 +132,7 @@ LandscapeLayerCoords ノードのプロパティは、 **[Details]** パネル�
 
 ![LandscapeLayerSwitch Node](LayerSwitchNode.png)
 
-LandscapeLayerSwitch ノードのプロパティは、 **[Details]** パネルで設定できます。
+LandscapeLayerSwitch ノードのプロパティは、 **[Details (詳細)]** パネルで設定できます。
 
 | 番号 | プロパティ | 説明 |
 |--------| -------- | ----------- |
@@ -152,7 +150,7 @@ LandscapeLayerSwitch ノードのプロパティは、 **[Details]** パネル�
 
 ![LandscapeLayerWeight Node](Landscape_Mat_LayerWeightNode.png)
 
-LandscapeLayerWeight ノードのプロパティは、 **[Details]** パネルで設定できます。
+LandscapeLayerWeight ノードのプロパティは、 **[Details (詳細)]** パネルで設定できます。
 
 |番号| プロパティ | 説明 |
 |------| -------- | ----------- |
@@ -170,11 +168,11 @@ LandscapeLayerWeight ノードのプロパティは、 **[Details]** パネル�
 
 [EXCERPT:LandscapeVisibilityMask]
 
-LandscapeVisibilityMask ノードを使って、ランドスケープで可視化されている部分を取り除きます。洞窟などの穴を作成することができます。 
+**LandscapeVisibilityMask** ノードを使って、ランドスケープで可視化されている部分を取り除き、例えば洞窟などの穴を作成できるようにします。 
 
 ![LandscapeVisibilityMask Node](Landscape_VisibilityMask.png)
 
-LandscapeVisibilityMask ノードのプロパティは、 **[Details]** パネルで設定できます。
+LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]** パネルで設定できます。
 
 |番号| プロパティ | 説明 |
 |-------| -------- | ----------- |
@@ -195,17 +193,17 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details]** パネ�
 
 **LandscapeLayerWeight** ノードの設定と使用は、以下の通り、非常に簡単です。 
 
-[REGION:tip]
+[REGION:note]
 レイヤー名はユニークでなければならないので、できるだけ記述的な名前をつけるようにすると便利かもしれません。
 [/REGION]
 
 
-1. マテリアル エディタで LandscapeLayerWeight ノードをマテリアル グラフに追加します。**[Parameter Name (パラメータ名)]** のデフォルトは「None」です。
+1. **マテリアル エディタ** で **LandscapeLayerWeight** ノードをマテリアル グラフに追加します。**[Parameter Name (パラメータ名)]** のデフォルトは「None」です。
 	[REGION:fullwidth]
 	![](Landscape_Layer_Weight_Base.png)
 	[/REGION]
 
-1. **[Details]** パネルで、 **[Parameter Name]** を記述的なレイヤー名に変更します。例えば、「岩」などです。
+1. **[Details]** パネルで、**[Parameter Name (パレット名)]** を記述的なレイヤー名に変更します。例えば、「岩」などです。
 
 	![Layer Name](Landscape_Mat_ParamName.png)<br/>
 	**[Parameter Name]** に入力すると、ノード自体が更新されます。<br/>
@@ -215,11 +213,11 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details]** パネ�
 
 1. **Texture Samples** または他のマテリアル ネットワーク表現式を **LandscapeLayerWeight** ノードに追加して接続します。
 
-1. **LandscapeLayerCoords** ノードを追加し、それぞれのプロパティを設定し、 Texture Sample ノードに接続します。
+1. **LandscapeLayerCoords** ノードを追加し、それぞれのプロパティを設定し、**Texture Sample** ノードに接続します。
 
-1. 各レイヤーのノードの出力ピンから次のレイヤー ノードの **Base** ピンへドラッグし、ワイヤーで接続します (最初のレイヤー ノードの **Base** ピンは切断したままにしておきます)。
+1. 各 **Layer** ノードの出力ピンから次のレイヤー ノードの **Base** ピンへドラッグし、ワイヤーで接続します (最初のレイヤー ノードの **Base** ピンは切断したままにしておきます)。
 
-1. 最後のレイヤー ノードの出力ピンを、マテリアルの基本ノードの **Base Color** 入力ピンにドラッグします。
+1. 最後の **Layer** ノードの出力ピンを、マテリアルの基本ノードの **Base Color** 入力ピンにドラッグします。
 
 
 **LandscapeLayerWeight** ノードを使ったサンプルは、完了すると以下のようになります。
@@ -233,12 +231,13 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details]** パネ�
 ### Landscape Layer Blend ノードの使用方法
 
 **LandscapeLayerWeight** ノードを使用してレイヤーを手動でブレンドする方法の代わりに、 **LandscapeLayerBlend** ノードを使って複数のレイヤーをブレンドするという方法があります。この方法では、アルファ ブレンディング、または、高さベースのオフセットをともなったアルファ ブレンディングを使用します。高さベースのオフセットを用いることによって、高さマップに基づいてレイヤーを他のレイヤーとブレンドすることができます。 
-**LandscapeLayerBlend ノードの使用方法**
+
+**LandscapeLayerBlend ノードの使用方法:**
 
 1. マテリアル エディタで LandscapeLayerBlend を追加します。
 	![](Landscape_LayerBlend_Material_Example_00.png)
 
-1. **[Details]** パネルで、 **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
+1. **[Details]** パネルの **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
 	![](Landscape_LayerBlend_Material_Example_01.png)
 
 1. レイヤーを展開してプロパティを表示します。
@@ -292,7 +291,7 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details]** パネ�
 これによって、全体的なマテリアルの複雑度が下がり、ランドスケープに適用されているマテリアルが任意の数のテクスチャ サンプルをもてるようになります。ただし、そのためには、個々のコンポーネント上で使用されているサンプルの数が、シェーダーモデルの仕様によって規定されている最大値を超えないという条件がつきます (SM 3.0 では 16)。 
 以上によって、ランドスケープ上のあらゆる部分で使用されている、あらゆるテクスチャまたはネットワークを含むマスター マテリアルをセットアップすることが可能であるということになります。その結果、非常に複雑なネットワークの集合体ができる可能性があります (その一方で、ランドスケープのコンポーネントに適用されている最終的なマテリアルが、ハードウェアによって認められるパラメータ内にとどまります)。
 
-[REGION:tip]
+[REGION:note]
 すべてのマテリアル式のネットワークは、単純な **TextureSample** のかわりに、 **Layer** 入力に接続することが可能です。これによって、より複雑なエフェクトが可能になります。たとえば、どのくらい離れてレイヤーを眺めるかに応じて、詳細なテクスチャからより大きなマクロ テクスチャに遷移させるエフェクトなどが実現できます。 
 [/region]
 
@@ -352,7 +351,7 @@ Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリ
 作成されたマテリアルは、使用したり表示したりするために、レベル内のランドスケープ アクタに割り当てられなければなりません。次の方法でマテリアルを Landscape アクタに割り当てます。
 
 
-**マテリアルをランドスケープに割り当てる**
+**マテリアルをランドスケープに割り当てる:**
 
 1. **コンテンツ ブラウザ** から使用する Landscape マテリアルを検索して、これを選択します。
 1. レベル ビューポート または **ワールド アウトライナー** でランドスケープを選択します。
