@@ -43,12 +43,12 @@ Related:
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
+<!---[TOC(start:2 end:2)]--->
 
 
 
 
-The Content Examples provided inside the **Destructibles** map showcase how destructible meshes can be created and used in **Unreal Engine 4**. Automatically generated and custom imported destructibles, fracturing controls with **Support** and **Destruction Depth** levels as well as how to fire events upon destruction like spawning particles or playing sounds are demonstrated in this map. 
+The Content Examples provided inside the **Destructibles** map showcase how destructible meshes can be created and used in Unreal Engine 4. Automatically generated and custom imported destructibles, fracturing controls with Support and Destruction Depth levels as well as how to fire events upon destruction like spawning particles or playing sounds are demonstrated in this map. 
 
 
 ## Destructibles Map
