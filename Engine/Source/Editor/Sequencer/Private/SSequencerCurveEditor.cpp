@@ -173,7 +173,7 @@ void SSequencerCurveEditor::NodeTreeSelectionChanged()
 			UpdateCurveOwner();
 		}
 
-		if (GetAllowAutoFrame())
+		if (GetAutoFrame())
 		{
 			ZoomToFit();
 		}

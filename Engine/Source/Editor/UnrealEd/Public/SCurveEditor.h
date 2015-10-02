@@ -237,8 +237,11 @@ public:
 	UNREALED_API TSharedPtr<FUICommandList> GetCommands();
 
 	/** Gets or sets whether autoframing is allowed */
-	UNREALED_API bool GetAllowAutoFrame() { return bAllowAutoFrame; }
+	UNREALED_API bool GetAllowAutoFrame() const { return bAllowAutoFrame; }
 	UNREALED_API void SetAllowAutoFrame(bool bInAllowAutoFrame) { bAllowAutoFrame = bInAllowAutoFrame; }
+
+	/** Gets whether autoframe will be invoked (combination of allow auto frame and curve editor auto frame setting) */
+	UNREALED_API bool GetAutoFrame() const;
 
 	/* Get the curves to will be used during a fit operation */
 	UNREALED_API virtual TArray<FRichCurve*> GetCurvesToFit()const;
