@@ -254,14 +254,6 @@ void ULevelSequenceInstance::SpawnOrDestroyObjects(bool DestroyAll)
 
 			if (ensure(World != nullptr))
 			{
-				if (!bAnyLevelActorsChanged)
-				{
-					DeselectAllActors();
-				}
-
-				// Actor should never be selected in the Editor at this point (we took care of that up above)
-				ensure(!Actor->IsSelected());
-
 				const bool bNetForce = false;
 				const bool bShouldModifyLevel = false;
 				const bool bWasDestroyed = World->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
@@ -382,27 +374,4 @@ void ULevelSequenceInstance::UnbindPossessableObjects(const FGuid& ObjectId)
 	}
 
 	CachedObjectBindings.Remove(ObjectId);
-}
-
-void ULevelSequenceInstance::DeselectAllActors()
-{
-	// @todo sequencer: gmp: fix me
-	/*
-	USelection* Selection = GEditor->GetSelectedActors();
-	{
-		Selection->BeginBatchSelectOperation();
-		Selection->MarkBatchDirty();
-
-		for (auto SpawnedActorPair : SpawnedActors)
-		{
-			AActor* SpawnedActor = SpawnedActorPair.Value.Get();
-
-			if (SpawnedActor != nullptr)
-			{
-				GEditor->GetSelectedActors()->Deselect(SpawnedActor);
-			}
-		}
-
-		Selection->EndBatchSelectOperation();
-	}*/
 }
