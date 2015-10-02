@@ -60,21 +60,29 @@ bool FFadeTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 {
-	if (FadeTrack.IsValid())
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	if (MovieScene == nullptr)
 	{
 		return;
 	}
 
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
-
-	if (MovieScene != nullptr)
+	UMovieSceneTrack* FadeTrack = MovieScene->FindMasterTrack( UMovieSceneFadeTrack::StaticClass() );
+	if (FadeTrack != nullptr)
 	{
-		FadeTrack = MovieScene->AddMasterTrack(UMovieSceneFadeTrack::StaticClass());
-		FadeTrack->AddSection(FadeTrack->CreateNewSection());
-
-		GetSequencer()->NotifyMovieSceneDataChanged();
+		return;
 	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddFadeTrack_Transaction", "Add Fade Track"));
+
+	MovieScene->Modify();
+		
+	FadeTrack = GetMasterTrack( UMovieSceneFadeTrack::StaticClass() );
+	ensure(FadeTrack);
+
+	FadeTrack->AddSection(FadeTrack->CreateNewSection());
+
+	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 
 

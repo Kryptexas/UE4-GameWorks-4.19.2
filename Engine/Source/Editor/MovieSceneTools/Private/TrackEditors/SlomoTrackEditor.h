@@ -45,9 +45,4 @@ private:
 
 	/** Callback for executing the "Add Slomo Track" menu entry. */
 	void HandleAddSlomoTrackMenuEntryExecute();
-
-private:
-
-	/** Pointer to the sequence's slomo track, if it exists. */
-	TWeakObjectPtr<UMovieSceneTrack> SlomoTrack;
 };
