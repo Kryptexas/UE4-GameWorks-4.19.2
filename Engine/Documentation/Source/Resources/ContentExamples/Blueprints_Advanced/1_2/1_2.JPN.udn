@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2652851
+﻿INTSourceChangelist:2712790
 Availability:Public
-Title:1.2 - 自動ウォール
+Title:1.2 - Automatic Wall
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description: 高度なブループリントのサンプル レベルの概要、サンプル 1.2:自動ウォール
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Components
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Description: 高度なブループリントのサンプル レベルの概要 サンプル 1.2:Automatic Wall
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Components
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -62,13 +63,13 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 ベクター変数の 3D ウィジェットを表示するには、変数が選択されると **ブループリント エディタ** の **[Details (詳細)]** パネルに表示される **[Show 3D Widget (3D ウィジェットを表示)]** オプションをクリックします。
 [/REGION]
 
-## コンストラクションスクリプト
+## コンストラクション スクリプト
 
 [REGION:lightbox]
 [![](AdvBP_1_2_ConstructionScript.png)](AdvBP_1_2_ConstructionScript.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As (名前を付けて保存)] を選択します。
+フルサイズ表示するには、**右クリック** し、[Save As (名前を付けて保存)] を選択します。
 [/REGION]
 
 *	 **ForLoop** ノードはスクリプトのセクションを繰り返します。ForLoop ノードからの **Index** 出力に変数 **MeshWidth** を乗じて、追加された各 Static Mesh コンポーネントに対する位置オフセットが算出されます。 
