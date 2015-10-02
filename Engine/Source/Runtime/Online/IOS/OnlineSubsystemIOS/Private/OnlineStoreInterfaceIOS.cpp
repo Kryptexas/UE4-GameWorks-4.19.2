@@ -287,13 +287,13 @@
 		Request.delegate = self;
 		[Request start];
     }
-#endif
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
 	else
-	{
-		[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
-	}
 #endif
+	{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+		[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
+#endif
+	}
 }
 @end
 
