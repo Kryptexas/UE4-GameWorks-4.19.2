@@ -911,7 +911,7 @@ namespace UnrealBuildTool
 
 		private void WriteSchemeFile(string TargetName, string TargetGuid, string BuildTargetGuid, string IndexTargetGuid, bool bHasEditorConfiguration, string GameProjectPath)
 		{
-			string DefaultConfiguration = bHasEditorConfiguration ? "Development Editor" : "Development";
+			string DefaultConfiguration = bHasEditorConfiguration && !XcodeProjectFileGenerator.bGeneratingRunIOSProject ? "Development Editor" : "Development";
 
 			var Content = new StringBuilder();
 

@@ -158,11 +158,16 @@ namespace UnrealBuildTool
 
 			WorkspaceDataContent.Append("</Workspace>" + ProjectFileGenerator.NewLine);
 
-			var WorkspaceDataFilePath = MasterProjectRelativePath + "/" + MasterProjectName + ".xcworkspace/contents.xcworkspacedata";
+			string ProjectName = MasterProjectName;
+			if (ProjectFilePlatform != XcodeProjectFilePlatform.All)
+			{
+				ProjectName += ProjectFilePlatform == XcodeProjectFilePlatform.Mac ? "_Mac" : "_IOS";
+			}
+			var WorkspaceDataFilePath = MasterProjectRelativePath + "/" + ProjectName + ".xcworkspace/contents.xcworkspacedata";
 			bSuccess = WriteFileIfChanged(WorkspaceDataFilePath, WorkspaceDataContent.ToString(), new UTF8Encoding());
 			if (bSuccess)
 			{
-				var WorkspaceSettingsFilePath = MasterProjectRelativePath + "/" + MasterProjectName + ".xcworkspace/xcuserdata/" + Environment.UserName + ".xcuserdatad/WorkspaceSettings.xcsettings";
+				var WorkspaceSettingsFilePath = MasterProjectRelativePath + "/" + ProjectName + ".xcworkspace/xcuserdata/" + Environment.UserName + ".xcuserdatad/WorkspaceSettings.xcsettings";
 				bSuccess = WriteWorkspaceSettingsFile(WorkspaceSettingsFilePath);
 			}
 
@@ -206,6 +211,11 @@ namespace UnrealBuildTool
 					bGeneratingRunIOSProject = true;
 					break;
 				}
+			}
+
+			if (bGeneratingGameProjectFiles)
+			{
+				IncludeEngineSource = true;
 			}
 		}
 	}

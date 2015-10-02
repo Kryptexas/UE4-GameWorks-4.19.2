@@ -980,15 +980,19 @@ namespace UnrealBuildTool
 				{
 					string Project = Target.ProjectDirectory + "/" + AppName + ".uproject";
 
+					string SchemeName = AppName;
+
 					// generate the dummy project so signing works
 					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
 						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk"});
-						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcodeproj";
+						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcworkspace";
+						SchemeName = "UE4";
 					}
 					else
 					{
-						Project = Target.ProjectDirectory + "/" + AppName + ".xcodeproj";
+						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game"});
+						Project = Target.ProjectDirectory + "/" + AppName + "_IOS.xcworkspace";
 					}
 
 					if (Directory.Exists (Project))
@@ -1000,12 +1004,19 @@ namespace UnrealBuildTool
 							DeployHandler.PrepTargetForDeployment(Target);
 						}
 
+						var ConfigName = Target.Configuration.ToString();
+						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+						{
+							ConfigName += " " + Target.Rules.ConfigurationName;
+						}
+
 						// code sign the project
 						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
-						                " -project \"" + Project + "\"" +
-						                " -configuration " + Target.Configuration +
-						                " -scheme '" + AppName + "'" +
+						                " -workspace \"" + Project + "\"" +
+										" -configuration \"" + ConfigName + "\"" +
+										" -scheme '" + SchemeName + "'" +
 						                " -sdk iphoneos" +
+										" -destination generic/platform=iOS" +
 						                " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 
                         Console.WriteLine("Code signing with command line: " + CmdLine);
@@ -1141,6 +1152,7 @@ namespace UnrealBuildTool
 
 					string Arguments = "";
 					string PathToApp = RulesCompiler.GetTargetFilename(AppName);
+					string SchemeName = AppName;
 
 					// right now, no programs have a Source subdirectory, so assume the PathToApp is directly in the root
 					if (Path.GetDirectoryName(PathToApp).Contains(@"\Engine\Source\Programs"))
@@ -1166,10 +1178,20 @@ namespace UnrealBuildTool
 								throw new BuildException("The target was not in a /Source subdirectory");
 							}
 						}
-						if (AppName != "UE4Game")
+						if (AppName != "UE4Game" && AppName != "UE4Client")
 						{
 							PathToApp += "\\" + AppName + ".uproject";
 						}
+						else
+						{
+							SchemeName = "UE4";
+						}
+					}
+
+					var SchemeConfiguration = Target.Configuration.ToString();
+					if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+					{
+						SchemeConfiguration += " " + Target.Rules.ConfigurationName;
 					}
 
 					if (bUseDangerouslyFastMode)
@@ -1186,7 +1208,7 @@ namespace UnrealBuildTool
 							Arguments += " -strip";
 						}
 					}
-					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
+					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName + " -schemename " + SchemeName + " -schemeconfig \"" + SchemeConfiguration + "\"";
 
 					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 					string Architecture = BuildPlatform.GetActiveArchitecture();

@@ -220,9 +220,18 @@ public class IOSPlatform : Platform
 			Params.Certificate = UnrealBuildTool.IOSPlatform.SigningCertificate;
 		}
 
+		var TargetConfiguration = SC.StageTargetConfigurations[0];
+
+		// Scheme name and configuration for code signing with Xcode project
+		string SchemeName = Path.GetFileNameWithoutExtension(Params.RawProjectPath);
+		string SchemeConfiguration = TargetConfiguration.ToString();
+		if (Params.Client)
+		{
+			SchemeConfiguration += " Client";
+		}
+
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
-			var TargetConfiguration = SC.StageTargetConfigurations[0];
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
 			var ProjectStub = Path.GetFullPath(Params.ProjectGameExeFilename);
 
@@ -248,6 +257,7 @@ public class IOSPlatform : Platform
 				{
 					string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
 					IPPArguments += " -config " + TargetConfiguration.ToString();
+					IPPArguments += " -schemename " + SchemeName + " -schemeconfig \"" + SchemeConfiguration + "\"";
 
 					if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
 					{
@@ -298,6 +308,10 @@ public class IOSPlatform : Platform
 					IPPArguments.Add(Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
 					IPPArguments.Add("-config");
 					IPPArguments.Add(TargetConfiguration.ToString());
+					IPPArguments.Add("-schemename");
+					IPPArguments.Add(SchemeName);
+					IPPArguments.Add("-schemeconfig");
+					IPPArguments.Add("\"" + SchemeConfiguration + "\"");
 
 					if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
 					{
@@ -381,7 +395,7 @@ public class IOSPlatform : Platform
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate);
+				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, SchemeName, SchemeConfiguration);
 
 				// now generate the ipa
 				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.StageTargetConfigurations[0], Params.Distribution);
@@ -395,7 +409,7 @@ public class IOSPlatform : Platform
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
-		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcodeproj");
+		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcworkspace");
 		Console.WriteLine ("Project: " + XcodeProj);
 		//		if (!Directory.Exists (XcodeProj))
 		{
@@ -423,18 +437,19 @@ public class IOSPlatform : Platform
 		return XcodeProj;
 	}
 
-	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null, string Certificate = null)
+	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null, string Certificate = null, string SchemeName = null, string SchemeConfiguration = null)
 	{
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
 		string XcodeProj = EnsureXcodeProjectExists (RawProjectPath, LocalRoot, ProjectName, ProjectDirectory, IsCode, out bWasGenerated);
 
 		string Arguments = "UBT_NO_POST_DEPLOY=true";
-		Arguments += " /usr/bin/xcrun xcodebuild build -project \"" + XcodeProj + "\"";
+		Arguments += " /usr/bin/xcrun xcodebuild build -workspace \"" + XcodeProj + "\"";
 		Arguments += " -scheme '";
-		Arguments += GameName;
-		Arguments += " - iOS'";
-		Arguments += " -configuration " + TargetConfig.ToString();
+		Arguments += SchemeName != null ? SchemeName : GameName;
+		Arguments += "'";
+		Arguments += " -configuration \"" + (SchemeConfiguration != null ? SchemeConfiguration : TargetConfig.ToString()) + "\"";
+		Arguments += " -destination generic/platform=iOS";
 		Arguments += " -sdk iphoneos";
 		if (!string.IsNullOrEmpty(Certificate))
 		{

@@ -72,8 +72,9 @@ namespace iPhonePackager
 		{
 			string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
 					" -project UE4_FromPC.xcodeproj" + 
-					" -configuration " + Program.GameConfiguration +
-					" -target '" + Program.GameName + "'" +
+					" -configuration \"" + Program.SchemeConfiguration + "\"" +
+					" -target '" + Program.SchemeName + "'" +
+					" -destination generic/platform=iOS" +
 					" -sdk " + ((Program.Architecture == "-simulator") ? "iphonesimulator" : "iphoneos");
 
 			// sign with the Distribution identity when packaging for distribution

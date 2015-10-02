@@ -80,6 +80,8 @@ namespace iPhonePackager
 		static private string GamePath = "";
 		static public string GameConfiguration = "";
 		static public string Architecture = "";
+		static public string SchemeName = "";
+		static public string SchemeConfiguration = "";
 
 		static public SlowProgressDialog ProgressDialog = null;
 		static public BackgroundWorker BGWorker = null;
@@ -289,6 +291,30 @@ namespace iPhonePackager
 							if (Arguments.Length > ArgIndex + 1)
 							{
 								Config.OverrideBundleName = Arguments [++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
+						else if (Arg == "-schemename")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								SchemeName = Arguments[++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
+						else if (Arg == "-schemeconfig")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								SchemeConfiguration = Arguments[++ArgIndex];
 							}
 							else
 							{
