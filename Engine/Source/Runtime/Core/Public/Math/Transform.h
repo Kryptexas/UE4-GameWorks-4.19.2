@@ -78,15 +78,6 @@ public:
 		, Translation(0.f)
 		, Scale3D(1.f)
 	{
-		// Note: This can be used to track down initialization issues with bone atom arrays; but it will
-		// cause issues with transient fields such as RootMotionDelta that get initialized to 0 by default
-#if 0
-		float qnan = FMath::Log2(-5.3f);
-		check(FMath::IsNaN(qnan));
-		Translation = FVector(qnan, qnan, qnan);
-		Rotation = FQuat(qnan, qnan, qnan, qnan);
-		Scale3D = FVector(qnan, qnan, qnan);
-#endif
 	}
 
 	/**
@@ -107,6 +98,15 @@ public:
 	 */
 	FORCEINLINE explicit FTransform(ENoInit) 
 	{
+		// Note: This can be used to track down initialization issues with bone transform arrays; but it will
+		// cause issues with transient fields such as RootMotionDelta that get initialized to 0 by default
+#if ENABLE_NAN_DIAGNOSTIC
+		float qnan = FMath::Log2(-5.3f);
+		check(FMath::IsNaN(qnan));
+		Translation = FVector(qnan, qnan, qnan);
+		Rotation = FQuat(qnan, qnan, qnan, qnan);
+		Scale3D = FVector(qnan, qnan, qnan);
+#endif
 	}
 
 	/**
