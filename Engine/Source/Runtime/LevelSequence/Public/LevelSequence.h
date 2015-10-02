@@ -100,15 +100,6 @@ public:
 	virtual FText GetDisplayName() const override;
 #endif
 
-protected:
-
-	/**
-	 * Deselect all proxy actors in the Editor.
-	 *
-	 * @todo sequencer: remove Editor dependencies from this class
-	 */
-	void DeselectAllActors();
-
 private:
 
 	/** The level sequence we are instancing. */
