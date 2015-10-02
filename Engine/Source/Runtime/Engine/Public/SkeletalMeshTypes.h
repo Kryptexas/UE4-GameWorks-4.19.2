@@ -1665,7 +1665,9 @@ public:
 	SIZE_T GetResourceSize() const;
 
 	/** Rebuild index buffer for everything **/
+#if WITH_EDITOR
 	ENGINE_API void RebuildIndexBuffer();
+#endif
 	ENGINE_API void RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBufferData, FMultiSizeIndexContainerData* AdjacencyData);
 };
 

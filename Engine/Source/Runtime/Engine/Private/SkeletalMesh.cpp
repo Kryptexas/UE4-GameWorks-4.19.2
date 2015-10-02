@@ -1681,6 +1681,7 @@ void FStaticLODModel::RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBuff
 	}
 }
 
+#if WITH_EDITOR
 void FStaticLODModel::RebuildIndexBuffer()
 {
 	// The index buffer needs to be rebuilt on copy.
@@ -1692,6 +1693,7 @@ void FStaticLODModel::RebuildIndexBuffer()
 
 	RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
 }
+#endif
 /*-----------------------------------------------------------------------------
 FStaticMeshSourceData
 -----------------------------------------------------------------------------*/
