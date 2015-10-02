@@ -9,7 +9,7 @@ FMovieSceneMaterialTrackInstance::FMovieSceneMaterialTrackInstance( UMovieSceneM
 	MaterialTrack = &InMaterialTrack;
 }
 
-void FMovieSceneMaterialTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneMaterialTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -33,7 +33,7 @@ void FMovieSceneMaterialTrackInstance::SaveState(const TArray<UObject*>& Runtime
 	}
 }
 
-void FMovieSceneMaterialTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneMaterialTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{

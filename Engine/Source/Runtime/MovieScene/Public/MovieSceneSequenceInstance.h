@@ -27,10 +27,10 @@ public:
 	MOVIESCENE_API FMovieSceneSequenceInstance(const UMovieSceneSequence& InMovieSceneSequence);
 
 	/** Save state of the objects that this movie scene controls. */
-	MOVIESCENE_API void SaveState();
+	MOVIESCENE_API void SaveState(class IMovieScenePlayer& Player);
 
 	/** Restore state of the objects that this movie scene controls. */
-	MOVIESCENE_API void RestoreState();
+	MOVIESCENE_API void RestoreState(class IMovieScenePlayer& Player);
 
 	/**
 	 * Updates this movie scene.

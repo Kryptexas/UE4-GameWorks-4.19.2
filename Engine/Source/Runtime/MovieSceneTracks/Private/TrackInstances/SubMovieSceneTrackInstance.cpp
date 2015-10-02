@@ -90,7 +90,7 @@ void FSubMovieSceneTrackInstance::Update( float Position, float LastPosition, co
 }
 
 
-void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubMovieSceneTrack->GetAllSections();
 
@@ -101,13 +101,13 @@ void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjec
 		TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef( Section );
 		if( Instance.IsValid() )
 		{
-			Instance->SaveState();
+			Instance->SaveState(Player);
 		}
 	}
 }
 
 
-void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubMovieSceneTrack->GetAllSections();
 
@@ -118,7 +118,7 @@ void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeOb
 		TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef( Section );
 		if( Instance.IsValid() )
 		{
-			Instance->RestoreState();
+			Instance->RestoreState(Player);
 		}
 	}
 }

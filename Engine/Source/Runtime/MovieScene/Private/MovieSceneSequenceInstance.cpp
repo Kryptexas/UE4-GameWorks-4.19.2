@@ -11,7 +11,7 @@ FMovieSceneSequenceInstance::FMovieSceneSequenceInstance(const UMovieSceneSequen
 }
 
 
-void FMovieSceneSequenceInstance::SaveState()
+void FMovieSceneSequenceInstance::SaveState(class IMovieScenePlayer& Player)
 {
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
 	for (; ObjectIt; ++ObjectIt)
@@ -20,13 +20,18 @@ void FMovieSceneSequenceInstance::SaveState()
 
 		for (FMovieSceneInstanceMap::TIterator It = ObjectBindingInstance.TrackInstances.CreateIterator(); It; ++It)
 		{
-			It.Value()->SaveState(ObjectBindingInstance.RuntimeObjects);
+			It.Value()->SaveState(ObjectBindingInstance.RuntimeObjects, Player);
+		}
+
+		for( FMovieSceneInstanceMap::TIterator It( MasterTrackInstances ); It; ++It )
+		{
+			It.Value()->SaveState( ObjectBindingInstance.RuntimeObjects, Player );
 		}
 	}
 }
 
 
-void FMovieSceneSequenceInstance::RestoreState()
+void FMovieSceneSequenceInstance::RestoreState(class IMovieScenePlayer& Player)
 {
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
 	for (; ObjectIt; ++ObjectIt)
@@ -35,7 +40,12 @@ void FMovieSceneSequenceInstance::RestoreState()
 
 		for (FMovieSceneInstanceMap::TIterator It = ObjectBindingInstance.TrackInstances.CreateIterator(); It; ++It)
 		{
-			It.Value()->RestoreState(ObjectBindingInstance.RuntimeObjects);
+			It.Value()->RestoreState(ObjectBindingInstance.RuntimeObjects, Player);
+		}
+
+		for( FMovieSceneInstanceMap::TIterator It( MasterTrackInstances ); It; ++It )
+		{
+			It.Value()->RestoreState( ObjectBindingInstance.RuntimeObjects, Player );
 		}
 	}
 }
@@ -172,7 +182,7 @@ void FMovieSceneSequenceInstance::RefreshInstanceMap( const TArray<UMovieSceneTr
 			// The track does not have an instance, create one
 			Instance = Track->CreateInstance();
 			Instance->RefreshInstance( RuntimeObjects, Player );
-			Instance->SaveState(RuntimeObjects);
+			Instance->SaveState(RuntimeObjects, Player);
 
 			TrackInstances.Add( Track, Instance );
 		}
