@@ -60,21 +60,29 @@ bool FSlomoTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 {
-	if (SlomoTrack.IsValid())
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	if (MovieScene == nullptr)
 	{
 		return;
 	}
 
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
-
-	if (MovieScene != nullptr)
+	UMovieSceneTrack* SlomoTrack = MovieScene->FindMasterTrack( UMovieSceneSlomoTrack::StaticClass() );
+	if (SlomoTrack != nullptr)
 	{
-		SlomoTrack = MovieScene->AddMasterTrack(UMovieSceneSlomoTrack::StaticClass());
-		SlomoTrack->AddSection(SlomoTrack->CreateNewSection());
-
-		GetSequencer()->NotifyMovieSceneDataChanged();
+		return;
 	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddSlomoTrack_Transaction", "Add Play Rate Track"));
+
+	MovieScene->Modify();
+		
+	SlomoTrack = GetMasterTrack( UMovieSceneSlomoTrack::StaticClass() );
+	ensure(SlomoTrack);
+
+	SlomoTrack->AddSection(SlomoTrack->CreateNewSection());
+
+	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 
 

@@ -45,9 +45,4 @@ private:
 
 	/** Callback for executing the "Add Fade Track" menu entry. */
 	void HandleAddFadeTrackMenuEntryExecute();
-
-private:
-
-	/** Pointer to the sequence's fade track, if it exists. */
-	TWeakObjectPtr<UMovieSceneTrack> FadeTrack;
 };
