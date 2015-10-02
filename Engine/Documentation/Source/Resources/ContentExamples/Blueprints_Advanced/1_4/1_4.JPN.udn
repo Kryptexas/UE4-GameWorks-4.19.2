@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2652851
+﻿INTSourceChangelist:2712822
 Availability:Public
 Title:1.4 - カスタム スポットライト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description: 高度なブループリントのサンプル レベルの概要、サンプル 1.4カスタマイズ可能なスポットライト
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Components
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Description: 高度なブループリントのサンプルレベルの概要、サンプル 1.4:カスタマイズ可能なスポットライト
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Components
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -62,7 +63,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 ![](AdvBP_1_4_ComponentsList.png)
 
 
-ブループリントには 3 つの Static Mesh コンポーネントが含まれます。ウォールにスポットライトをアタッチするベース、スポットライトそのもの、この 2 つをつなぐヒンジです。スポットライトはヒンジの中でソケットにアタッチされ、ヒンジはベースの中でソケットにアタッチされます。ソケットは、[](Engine/Content\Types\StaticMeshes\Editor) で作成および配置することが可能で、ブループリントにオフセット値と回転値を手入力せずにスタティックメッシュを一緒にアタッチする手軽で簡単な方法です。
+ブループリントには 3 つの Static Mesh コンポーネントが含まれます。壁にスポットライトをアタッチするベース、スポットライトそのもの、この 2 つを繋ぐヒンジです。スポットライトはヒンジの中でソケットにアタッチされ、ヒンジはベースの中でソケットにアタッチされます。ソケットは、[](Engine/Content\Types\StaticMeshes\Editor) で作成および配置することが可能で、ブループリントにオフセット値と回転値を手入力せずにスタティックメッシュを一緒にアタッチする手軽で簡単な方法です。
 
 ## コンストラクション スクリプト
 
@@ -70,7 +71,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [![](AdvBP_1_4_ConstructionScript.png)](AdvBP_1_4_ConstructionScript.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+フルサイズ表示するには、**右クリック** し、[Save As (名前を付けて保存)] を選択します。
 [/REGION]
 
 **Light color** 変数は、ブループリント内の **Spotlight** SpotLight コンポーネントの色を変更するだけでなく、**Spotlight メッシュ** と **Light beam メッシュ** StaticMesh コンポーネントに適用するマテリアル インスタンスのベクター パラメータの変更にも使用されます。これらのマテリアル インスタンスはコンストラクション スクリプトの StaticMesh コンポーネントに対して作成および適用されるので、ブループリントの各インスタンスはそれぞれが独自の動的なマテリアル インスタンスを持ちます。
