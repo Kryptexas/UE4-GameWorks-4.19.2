@@ -325,9 +325,10 @@ public:
 			SrcModel->LegacyRawPointIndices.Unlock();
 
 			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData( IndexBufferData );
-			NewSrcModel->MultiSizeIndexContainer.RebuildIndexBuffer( IndexBufferData );
+			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
+			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+			NewSrcModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
 
 			// now fix up SrcModel to NewSrcModel
 			SrcModel = NewSrcModel;
@@ -365,9 +366,10 @@ public:
 			SrcModel->LegacyRawPointIndices.Unlock();
 
 			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData( IndexBufferData );
-			NewModel->MultiSizeIndexContainer.RebuildIndexBuffer( IndexBufferData );
+			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
+			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+			NewModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
 
 			// Required bones are recalculated later on.
 			NewModel->RequiredBones.Empty();

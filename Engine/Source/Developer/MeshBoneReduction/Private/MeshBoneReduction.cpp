@@ -251,9 +251,10 @@ public:
 		SrcModel.LegacyRawPointIndices.Unlock();
 
 		// The index buffer needs to be rebuilt on copy.
-		FMultiSizeIndexContainerData IndexBufferData;
+		FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
 		SrcModel.MultiSizeIndexContainer.GetIndexBufferData( IndexBufferData );
-		NewModel->MultiSizeIndexContainer.RebuildIndexBuffer( IndexBufferData );
+		SrcModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData( AdjacencyIndexBufferData );
+		NewModel->RebuildIndexBuffer( &IndexBufferData, &AdjacencyIndexBufferData );
 
 		// Required bones are recalculated later on.
 		NewModel->RequiredBones.Empty();

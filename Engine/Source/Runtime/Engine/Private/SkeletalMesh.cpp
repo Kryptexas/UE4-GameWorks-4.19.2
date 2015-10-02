@@ -1667,6 +1667,31 @@ SIZE_T FStaticLODModel::GetResourceSize() const
 
 	return ResourceSize;
 }
+
+void FStaticLODModel::RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBufferData, FMultiSizeIndexContainerData* AdjacencyIndexBufferData)
+{
+	if (IndexBufferData)
+	{
+		MultiSizeIndexContainer.RebuildIndexBuffer(*IndexBufferData);
+	}
+
+	if (AdjacencyIndexBufferData)
+	{
+		AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(*AdjacencyIndexBufferData);
+	}
+}
+
+void FStaticLODModel::RebuildIndexBuffer()
+{
+	// The index buffer needs to be rebuilt on copy.
+	FMultiSizeIndexContainerData IndexBufferData;
+	MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+
+	FMultiSizeIndexContainerData AdjacencyIndexBufferData;
+	AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+
+	RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
+}
 /*-----------------------------------------------------------------------------
 FStaticMeshSourceData
 -----------------------------------------------------------------------------*/
@@ -1734,9 +1759,10 @@ void FSkeletalMeshSourceData::Init( const USkeletalMesh* SkeletalMesh, FStaticLO
 	InLODModel.LegacyRawPointIndices.Unlock();
 
 	/** The index buffer needs to be rebuilt on copy. */
-	FMultiSizeIndexContainerData IndexBufferData;
+	FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
 	InLODModel.MultiSizeIndexContainer.GetIndexBufferData( IndexBufferData );
-	LODModel->MultiSizeIndexContainer.RebuildIndexBuffer( IndexBufferData );
+	InLODModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+	LODModel->RebuildIndexBuffer( &IndexBufferData, &AdjacencyIndexBufferData );
 
 	/** Vertex buffers also need to be rebuilt. Source data is always stored with full precision position data. */
 	LODModel->BuildVertexBuffers(SkeletalMesh->GetVertexBufferFlags());

@@ -1663,6 +1663,10 @@ public:
 	 * Get Resource Size
 	 */
 	SIZE_T GetResourceSize() const;
+
+	/** Rebuild index buffer for everything **/
+	ENGINE_API void RebuildIndexBuffer();
+	ENGINE_API void RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBufferData, FMultiSizeIndexContainerData* AdjacencyData);
 };
 
 /**

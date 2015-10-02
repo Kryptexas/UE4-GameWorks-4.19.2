@@ -2465,12 +2465,13 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 	// Index buffer will be destroyed when we copy the LOD model so we must copy the index buffer and reinitialize it after the copy
 	FMultiSizeIndexContainerData Data;
 	NewLODModel.MultiSizeIndexContainer.GetIndexBufferData(Data);
+	FMultiSizeIndexContainerData AdjacencyData;
+	NewLODModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyData);
 
 	// Assign new FStaticLODModel to desired slot in selected skeletal mesh.
 	DestImportedResource->LODModels[DesiredLOD] = NewLODModel;
 
-	DestImportedResource->LODModels[DesiredLOD].MultiSizeIndexContainer.RebuildIndexBuffer(Data);
-
+	DestImportedResource->LODModels[DesiredLOD].RebuildIndexBuffer(&Data, &AdjacencyData);
 	// rebuild vertex buffers and reinit RHI resources
 	BaseSkeletalMesh->PostEditChange();
 }
