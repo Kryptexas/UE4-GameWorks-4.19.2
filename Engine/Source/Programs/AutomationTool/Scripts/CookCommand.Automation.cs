@@ -216,11 +216,11 @@ public partial class Project : CommandUtils
                     CommandletParams += " -compressed";
                 }
                 // we provide the option for users to run a conversion on certain (script) assets, translating them 
-                // into native source code... to use those classes over the assets, we need to provide the cooker a
-                // manifest of what all was converted (and what native classes to replace them with)
-                if (Params.GeneratedPluginManifest != null && Params.GeneratedPluginManifest.Exists())
+                // into native source code... to use those classes over the assets, we need to incorporate the 
+                // generated plugin into the cooker
+                if (Params.UseNativizedScriptPlugin())
                 {
-                    CommandletParams += " -NativizedAssetManifest=\"" + Params.GeneratedPluginManifest + "\"";
+                    CommandletParams += " -PLUGIN=\"" + Params.NativizedScriptPlugin + "\"";
                 }
                 if (Params.HasAdditionalCookerOptions)
                 {

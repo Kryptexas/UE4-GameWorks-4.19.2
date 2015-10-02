@@ -49,16 +49,10 @@ public partial class Project : CommandUtils
         string PluginDescFilename  = GeneratedPluginName + ".uplugin";
         string GeneratedPluginPath = Path.GetFullPath(CommandUtils.CombinePaths(GeneratedPluginDirectory, PluginDescFilename));
 
-        Params.GeneratedPluginDescFile = new FileReference(GeneratedPluginPath);
-        Params.GeneratedPluginManifest = new FileReference(NativizationManifestPath);
-
-        if (!Params.GeneratedPluginDescFile.Exists())
+        Params.NativizedScriptPlugin = new FileReference(GeneratedPluginPath);
+        if (!Params.UseNativizedScriptPlugin())
         {
             throw new AutomationException("Missing the nativized plugin file (" + GeneratedPluginPath + "). It seems the commandlet didn't generate it as expected.");
-        }
-        if (!Params.GeneratedPluginManifest.Exists())
-        {
-            throw new AutomationException("Missing the nativization manifest file (" + NativizationManifestPath + "). It seems the commandlet didn't generate it as expected.");
         }
 
         Log("********** NATIVIZE-ASSETS COMMAND COMPLETED **********");

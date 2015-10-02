@@ -38,6 +38,14 @@ public partial class Project : CommandUtils
 		var Agenda = new UE4Build.BuildAgenda();
 		var CrashReportPlatforms = new HashSet<UnrealTargetPlatform>();
 
+        string ScriptPluginArgs = "";
+        // if we're utilizing an auto-generated code plugin/module (a product of 
+        // the BuildCookeRun process), make sure to compile it along with the targets here
+        if (Params.UseNativizedScriptPlugin())
+        {
+            ScriptPluginArgs = "-PLUGIN \"" + Params.NativizedScriptPlugin + "\"";
+        }
+
 		// Setup editor targets
 		if (Params.HasEditorTargets && !Params.Rocket)
 		{
@@ -46,7 +54,7 @@ public partial class Project : CommandUtils
 			const UnrealTargetConfiguration EditorConfiguration = UnrealTargetConfiguration.Development;
 
 			CrashReportPlatforms.Add(EditorPlatform);
-			Agenda.AddTargets(Params.EditorTargets.ToArray(), EditorPlatform, EditorConfiguration, Params.CodeBasedUprojectPath);
+            Agenda.AddTargets(Params.EditorTargets.ToArray(), EditorPlatform, EditorConfiguration, Params.CodeBasedUprojectPath, ScriptPluginArgs);
 			if (Params.EditorTargets.Contains("UnrealHeaderTool") == false)
 			{
 				Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, EditorPlatform, EditorConfiguration);
@@ -73,16 +81,7 @@ public partial class Project : CommandUtils
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
 				{
 					CrashReportPlatforms.Add(ClientPlatform);
-
-                    string ExtraUBTArgs = "";
-                    // if we're utilizing an auto-generated code plugin/module 
-                    // (a product of the BuildCookeRun process), make sure to 
-                    // compile it into the project
-                    if (Params.GeneratedPluginDescFile != null && Params.GeneratedPluginDescFile.Exists())
-                    {
-                        ExtraUBTArgs += "-PLUGIN \"" + Params.GeneratedPluginDescFile + "\"";
-                    }
-					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath, ExtraUBTArgs);
+                    Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatform, BuildConfig, Params.CodeBasedUprojectPath, ScriptPluginArgs);
 				}
 			}
 		}
@@ -93,7 +92,7 @@ public partial class Project : CommandUtils
 				foreach (var ServerPlatform in Params.ServerTargetPlatforms)
 				{
 					CrashReportPlatforms.Add(ServerPlatform);
-					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatform, BuildConfig, Params.CodeBasedUprojectPath);
+                    Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatform, BuildConfig, Params.CodeBasedUprojectPath, ScriptPluginArgs);
 				}
 			}
 		}
