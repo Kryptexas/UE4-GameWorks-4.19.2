@@ -223,7 +223,7 @@ public class IOSPlatform : Platform
 		var TargetConfiguration = SC.StageTargetConfigurations[0];
 
 		// Scheme name and configuration for code signing with Xcode project
-		string SchemeName = Path.GetFileNameWithoutExtension(Params.RawProjectPath);
+		string SchemeName = Params.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(Params.RawProjectPath) : "UE4";
 		string SchemeConfiguration = TargetConfiguration.ToString();
 		if (Params.Client)
 		{
@@ -410,8 +410,11 @@ public class IOSPlatform : Platform
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
 		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcworkspace");
+		if (!Directory.Exists(XcodeProj))
+		{
+			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "Engine", Path.GetFileName(XcodeProj));
+		}
 		Console.WriteLine ("Project: " + XcodeProj);
-		//		if (!Directory.Exists (XcodeProj))
 		{
 			// project.xcodeproj doesn't exist, so generate temp project
 			string Arguments = "-project=\"" + RawProjectPath + "\"";
