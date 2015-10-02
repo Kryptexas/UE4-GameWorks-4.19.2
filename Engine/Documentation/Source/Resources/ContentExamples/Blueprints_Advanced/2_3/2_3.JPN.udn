@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2652851
+﻿INTSourceChangelist:2712922
 Availability:Public
-Title:2.3 - ブループリント インターフェイス
+Title:2.3 - ブループリント インターフェース
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:高度なブループリント サンプル レベルの概要、サンプル 2.3:ブループリント インターフェイス
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Types/Interface
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Description: 高度なブループリントのサンプル レベルの概要、サンプル 2.3:ブループリント インターフェース
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Types/Interface
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -54,7 +55,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 
 
-[**ブループリントインターフェイス**](Engine/Blueprints\UserGuide\Types\Interface) は、あるブループリント が別のブループリントのイベントや関数をトリガーできるようにします。この 2 つのブループリントは両方とも、 **Blueprint Properties** でブループリント インターフェイスを実装していなければなりません。
+[ブループリントインターフェイス](Engine/Blueprints\UserGuide\Types\Interface) は、あるブループリント が別のブループリントのイベントや関数をトリガーできるようにします。この 2 つのブループリントは両方とも、 **Blueprint Properties** でブループリント インターフェイスを実装していなければなりません。
 この例では、 **BP_Button** ブループリント が **BP_Gears** ブループリントのギアのスピンを開始または停止させます。
 
 
@@ -67,7 +68,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [![](AdvBP_2_3_Btn_EventGraph.png)](AdvBP_2_3_Btn_EventGraph.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As (名前を付けて保存)] を選択します。
+フルサイズ表示するには、**右クリック** し、[Save As (名前を付けて保存)] を選択します。
 [/REGION]
 
 Shape コンポーネントは、ボックス、カプセル、または球のいずれかで、主にコリジョン検知に使用されるシンプルな形状のコンポーネントです。BP_Button のボックス コンポーネントはポーンをオーバーラップするためだけに設定されるので、スクリプトの **OnComponentBeginOverlap** イベントはポーンがボックスにオーバーラップした時に発行のみします。
@@ -82,7 +83,7 @@ Shape コンポーネントは、ボックス、カプセル、または球の�
 [![](AdvBP_2_3_Grs_EventGraph.png)](AdvBP_2_3_Grs_EventGraph.png)
 [/REGION]
 [REGION:caption]
-フルサイズ表示するには、**右クリック** または [Save As (名前を付けて保存)] を選択します。
+フルサイズ表示するには、**右クリック** し、[Save As (名前を付けて保存)] を選択します。
 [/REGION]
 
 ギア ブループリントは、ギア Static Mesh コンポーネントの回転を開始または終了させるノードに接続された、特別な **Toggle** インターフェイス イベントの形でインターフェイスを実装します。このイベントは、BP_Button の **Toggle interface message** ノードによりトリガーされます。
