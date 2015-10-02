@@ -2222,6 +2222,24 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Determines whether a file exists in the depot.
+		/// </summary>
+		/// <param name="DepotFile">Depot path</param>
+		/// <returns>List of records describing the file's mapping. Usually just one, but may be more.</returns>
+		public bool FileExistsInDepot(string DepotFile, bool AllowSpew = true)
+		{
+			string CommandLine = String.Format("-z tag fstat {0}", CommandUtils.MakePathSafeToUseWithCommandLine(DepotFile));
+
+			string Output;
+			if(!LogP4Output(out Output, CommandLine, AllowSpew: false) || Output.Contains("no such file(s)"))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		/// <summary>
 		/// Gets file stats.
 		/// </summary>
 		/// <param name="Filename">Filenam</param>
