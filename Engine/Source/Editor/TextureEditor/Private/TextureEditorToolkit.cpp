@@ -418,6 +418,10 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	{
 		NumMips = TextureCube->GetNumMips();
 	}
+	else if (Texture2DRT)
+	{
+		NumMips = Texture2DRT->GetNumMips();
+	}
 
 	NumMipsText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_NumMips", "Number of Mips: {0}"), FText::AsNumber(NumMips)));
 
