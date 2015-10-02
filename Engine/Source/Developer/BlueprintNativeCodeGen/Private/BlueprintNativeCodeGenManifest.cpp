@@ -8,7 +8,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
 #include "Serialization/JsonWriter.h"
-#include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
+#include "IBlueprintCompilerCppBackendModule.h" // for ConstructBaseFilename()
 
 DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenManifest, Log, All);
 
@@ -150,7 +150,8 @@ static FString BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(const FSt
 //------------------------------------------------------------------------------
 static FString BlueprintNativeCodeGenManifestImpl::GetBaseFilename(const FAssetData& Asset)
 {
-	return IBlueprintCompilerCppBackendModule::GetBaseFilename(Asset.GetAsset());
+	IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	return CodeGenBackend.ConstructBaseFilename(Asset.GetAsset());
 }
 
 //------------------------------------------------------------------------------

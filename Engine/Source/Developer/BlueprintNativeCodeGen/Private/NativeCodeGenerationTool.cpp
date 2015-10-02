@@ -13,7 +13,7 @@
 #include "BlueprintNativeCodeGenUtils.h"
 //#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
 #include "Developer/BlueprintCompilerCppBackend/Public/BlueprintCompilerCppBackendGatherDependencies.h"
-#include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
+#include "IBlueprintCompilerCppBackendModule.h" // for ConstructBaseFilename()
 #include "KismetCompilerModule.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
@@ -31,7 +31,9 @@ struct FGeneratedCodeData
 		FName GeneratedClassName, SkeletonClassName;
 		InBlueprint.GetBlueprintClassNames(GeneratedClassName, SkeletonClassName);
 		ClassName = GeneratedClassName.ToString();
-		BaseFilename = IBlueprintCompilerCppBackendModule::GetBaseFilename(&InBlueprint);
+
+		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		BaseFilename = CodeGenBackend.ConstructBaseFilename(&InBlueprint);
 
 		GatherUserDefinedDependencies(InBlueprint);
 	}
@@ -125,6 +127,8 @@ struct FGeneratedCodeData
 		FScopedSlowTask SlowTask(WorkParts, LOCTEXT("GeneratingCppFiles", "Generating C++ files.."));
 		SlowTask.MakeDialog();
 
+		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+
 		TArray<FString> CreatedFiles;
 		for(auto Obj : DependentObjects)
 		{
@@ -135,7 +139,7 @@ struct FGeneratedCodeData
 			FBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource);
 			SlowTask.EnterProgressFrame();
 
-			const FString BackendBaseFilename = IBlueprintCompilerCppBackendModule::GetBaseFilename(Obj);
+			const FString BackendBaseFilename = CodeGenBackend.ConstructBaseFilename(Obj);
 
 			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(BackendBaseFilename + TEXT(".h")));
 			const bool bHeaderSaved = FFileHelper::SaveStringToFile(*HeaderSource, *FullHeaderFilename);
@@ -173,7 +177,7 @@ struct FGeneratedCodeData
 
 			SlowTask.EnterProgressFrame();
 
-			const FString BackendBaseFilename = IBlueprintCompilerCppBackendModule::GetBaseFilename(BPGC);
+			const FString BackendBaseFilename = CodeGenBackend.ConstructBaseFilename(BPGC);
 
 			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(BackendBaseFilename + TEXT(".h")));
 			const bool bHeaderSaved = FFileHelper::SaveStringToFile(HeaderSource, *FullHeaderFilename);

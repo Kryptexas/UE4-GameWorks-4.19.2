@@ -3,6 +3,7 @@
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "EdGraphSchema_K2.h"
+#include "IBlueprintCompilerCppBackendModule.h" // for OnPCHFilenameQuery()
 
 FString FEmitterLocalContext::GenerateUniqueLocalName()
 {
@@ -574,6 +575,25 @@ FString FEmitHelper::GetBaseFilename(const UObject* AssetObj)
 	}
 
 	return FPackageName::GetLongPackageAssetName(PackagePath+Postfix);
+}
+
+FString FEmitHelper::GetPCHFilename()
+{
+	FString PCHFilename;
+	FBlueprintCompilerCppBackendModule& BackEndModule = (FBlueprintCompilerCppBackendModule&)FBlueprintCompilerCppBackendModule::Get();
+
+	auto& PchFilenameQuery = BackEndModule.OnPCHFilenameQuery();
+	if (PchFilenameQuery.IsBound())
+	{
+		PCHFilename = PchFilenameQuery.Execute();
+	}
+
+	if (PCHFilename.IsEmpty())
+	{
+		PCHFilename  = FApp::GetGameName();
+		PCHFilename += TEXT(".h");
+	}
+	return PCHFilename;
 }
 
 FString FEmitHelper::EmitUFuntion(UFunction* Function, TArray<FString>* AdditinalMetaData)

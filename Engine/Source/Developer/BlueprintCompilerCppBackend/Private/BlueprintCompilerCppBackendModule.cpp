@@ -8,35 +8,34 @@
 
 class FBlueprintCompilerCppBackendModule : public IBlueprintCompilerCppBackendModule
 {
-	/** IModuleInterface implementation */
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-	virtual IBlueprintCompilerCppBackend* Create()  override;
+public:
+	//~ Begin IBlueprintCompilerCppBackendModuleInterface interface
+	virtual IBlueprintCompilerCppBackend* Create() override;
+	//~ End IBlueprintCompilerCppBackendModuleInterface interface
+
+	//~ Begin IBlueprintCompilerCppBackendModule interface
+	FString ConstructBaseFilename(const UObject* AssetObj) override;
+	virtual FPCHFilenameQuery& OnPCHFilenameQuery() override;
+	//~ End IBlueprintCompilerCppBackendModule interface
+
+private: 
+	FPCHFilenameQuery PCHFilenameQuery;
 };
-
-IMPLEMENT_MODULE(FBlueprintCompilerCppBackendModule, BlueprintCompilerCppBackend)
-
-
-
-void FBlueprintCompilerCppBackendModule::StartupModule()
-{
-	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
-}
-
-
-void FBlueprintCompilerCppBackendModule::ShutdownModule()
-{
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-}
 
 IBlueprintCompilerCppBackend* FBlueprintCompilerCppBackendModule::Create()
 {
 	return new FBlueprintCompilerCppBackend();
 }
 
-FString IBlueprintCompilerCppBackendModule::GetBaseFilename(const UObject* AssetObj)
+FString FBlueprintCompilerCppBackendModule::ConstructBaseFilename(const UObject* AssetObj)
 {
 	// use the same function that the backend uses for #includes
 	return FEmitHelper::GetBaseFilename(AssetObj);
 }
+
+IBlueprintCompilerCppBackendModule::FPCHFilenameQuery& FBlueprintCompilerCppBackendModule::OnPCHFilenameQuery()
+{
+	return PCHFilenameQuery;
+}
+
+IMPLEMENT_MODULE(FBlueprintCompilerCppBackendModule, BlueprintCompilerCppBackend)

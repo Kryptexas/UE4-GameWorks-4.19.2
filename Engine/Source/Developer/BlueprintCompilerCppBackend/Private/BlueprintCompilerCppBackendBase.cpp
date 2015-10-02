@@ -3,7 +3,6 @@
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendBase.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
 
 void FBlueprintCompilerCppBackendBase::EmitStructProperties(FEmitterLocalContext& EmitterContext, UStruct* SourceClass)
 {
@@ -593,7 +592,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 	{
 		Dst.AddLine(FString::Printf(TEXT("#include \"%s%s\""), Message, bAddDotH ? TEXT(".h") : TEXT("")));
 	};
-	EmitIncludeHeader(EmitterContext.Body, FApp::GetGameName(), true);
+	EmitIncludeHeader(EmitterContext.Body, *FEmitHelper::GetPCHFilename(), false);
 	EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
 	EmitIncludeHeader(bIncludeCodeHelpersInHeader ? EmitterContext.Header : EmitterContext.Body, TEXT("GeneratedCodeHelpers"), true);
 
@@ -621,7 +620,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
 				if (!bAlreadyIncluded)
 				{
-					const FString GeneratedFilename = IBlueprintCompilerCppBackendModule::GetBaseFilename(Field);
+					const FString GeneratedFilename = FEmitHelper::GetBaseFilename(Field);
 					EmitIncludeHeader(Dst, *GeneratedFilename, true);
 				}
 			}

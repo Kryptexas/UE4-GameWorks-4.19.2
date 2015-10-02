@@ -228,6 +228,8 @@ struct FEmitHelper
 	static FString GetBaseFilename(const UObject* AssetObj);
 
 	static FString ReplaceConvertedMetaData(UObject* Obj);
+
+	static FString GetPCHFilename();
 };
 
 struct FNonativeComponentData;
