@@ -88,9 +88,9 @@ public:
 	 * Called to generate a section layout for a particular section.
 	 *
 	 * @param SectionObject The section to make UI for.
-	 * @param SectionName The name of the section.
+	 * @param Track The track that owns the section.
 	 */
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack* Track) = 0;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;
 
 	/** Called when the instance of this track editor is released */
 	virtual void OnRelease() = 0;

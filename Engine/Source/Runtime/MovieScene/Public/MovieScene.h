@@ -233,7 +233,7 @@ public:
 	 *
 	 * @return true if the track is a master track, false otherwise.
 	 */
-	bool IsAMasterTrack(const UMovieSceneTrack* Track) const;
+	bool IsAMasterTrack(const UMovieSceneTrack& Track) const;
 
 	/**
 	 * Get all master tracks.

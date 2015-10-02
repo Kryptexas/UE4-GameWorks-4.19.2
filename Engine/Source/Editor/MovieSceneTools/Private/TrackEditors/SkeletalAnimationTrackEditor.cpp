@@ -154,13 +154,11 @@ bool FSkeletalAnimationTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> 
 }
 
 
-TSharedRef<ISequencerSection> FSkeletalAnimationTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FSkeletalAnimationTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 	
-	TSharedRef<ISequencerSection> NewSection( new FSkeletalAnimationSection(SectionObject) );
-
-	return NewSection;
+	return MakeShareable( new FSkeletalAnimationSection(SectionObject) );
 }
 
 

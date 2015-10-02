@@ -6,15 +6,15 @@
 #include "ColorPropertySection.h"
 
 
-TSharedRef<ISequencerTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<ISequencerTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
-	return MakeShareable( new FColorPropertyTrackEditor( InSequencer ) );
+	return MakeShareable(new FColorPropertyTrackEditor(InSequencer));
 }
 
 
-TSharedRef<ISequencerSection> FColorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FColorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
-	return MakeShareable(new FColorPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get(), Track ));
+	return MakeShareable(new FColorPropertySection(SectionObject, GetSequencer().Get(), Track));
 }
 
 

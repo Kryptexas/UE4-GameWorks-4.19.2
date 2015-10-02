@@ -529,13 +529,11 @@ bool FShotTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 	return Type == UMovieSceneShotTrack::StaticClass();
 }
 
-TSharedRef<ISequencerSection> FShotTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FShotTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
-	TSharedRef<ISequencerSection> NewSection( new FShotSection( GetSequencer(), ThumbnailPool, SectionObject ) );
-
-	return NewSection;
+	return MakeShareable( new FShotSection( GetSequencer(), ThumbnailPool, SectionObject ) );
 }
 
 void FShotTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)

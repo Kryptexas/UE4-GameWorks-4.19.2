@@ -406,11 +406,11 @@ bool UMovieScene::RemoveMasterTrack( UMovieSceneTrack* Track )
 }
 
 
-bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack* Track) const
+bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack& Track) const
 {
-	for (int32 TrackIndex = 0; TrackIndex < MasterTracks.Num(); ++TrackIndex)
+	for ( const UMovieSceneTrack* MasterTrack : MasterTracks)
 	{
-		if (Track == MasterTracks[TrackIndex])
+		if (&Track == MasterTrack)
 		{
 			return true;
 		}
