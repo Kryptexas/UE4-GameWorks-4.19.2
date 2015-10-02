@@ -307,11 +307,16 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 					}
 
 					// We don't know if this widget is being removed from a named slot and RemoveFromParent is not enough to take care of this
-					INamedSlotInterface* NamedSlotHost = FWidgetBlueprintEditorUtils::FindNamedSlotHostForContent(TemplateWidget, Blueprint->WidgetTree);
-					if (NamedSlotHost != nullptr)
+					UWidget* NamedSlotHostWidget = FWidgetBlueprintEditorUtils::FindNamedSlotHostWidgetForContent(TemplateWidget, Blueprint->WidgetTree);
+					if (NamedSlotHostWidget != nullptr)
 					{
-						NamedSlotHost->ModifySlots();
-						FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(TemplateWidget, NamedSlotHost);
+						INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(NamedSlotHostWidget);
+						if (NamedSlotHost != nullptr)
+						{
+							NamedSlotHostWidget->SetFlags(RF_Transactional);
+							NamedSlotHostWidget->Modify();
+							FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(TemplateWidget, NamedSlotHost);
+						}
 					}
 
 					TemplateWidget->RemoveFromParent();
@@ -770,11 +775,16 @@ FReply FNamedSlotModel::HandleAcceptDrop(FDragDropEvent const& DragDropEvent, EI
 		UWidget* DroppingWidget = HierarchyDragDropOp->DraggedWidgets[0].Widget.GetTemplate();
 
 		// We don't know if this widget is being removed from a named slot and RemoveFromParent is not enough to take care of this
-		INamedSlotInterface* SourceNamedSlotHost = FWidgetBlueprintEditorUtils::FindNamedSlotHostForContent(DroppingWidget, Blueprint->WidgetTree);
-		if (SourceNamedSlotHost != nullptr)
+		UWidget* SourceNamedSlotHostWidget = FWidgetBlueprintEditorUtils::FindNamedSlotHostWidgetForContent(DroppingWidget, Blueprint->WidgetTree);
+		if (SourceNamedSlotHostWidget != nullptr)
 		{
-			SourceNamedSlotHost->ModifySlots();
-			FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(DroppingWidget, SourceNamedSlotHost);
+			INamedSlotInterface* SourceNamedSlotHost = Cast<INamedSlotInterface>(SourceNamedSlotHostWidget);
+			if (SourceNamedSlotHost != nullptr)
+			{
+				SourceNamedSlotHostWidget->SetFlags(RF_Transactional);
+				SourceNamedSlotHostWidget->Modify();
+				FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(DroppingWidget, SourceNamedSlotHost);
+			}
 		}
 
 		DroppingWidget->RemoveFromParent();

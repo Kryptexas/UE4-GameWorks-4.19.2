@@ -171,7 +171,6 @@ public:
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const override;
 	virtual UWidget* GetContentForSlot(FName SlotName) const override;
 	virtual void SetContentForSlot(FName SlotName, UWidget* Content) override;
-	virtual void ModifySlots() override;
 	// UNamedSlotInterface End
 
 	/**

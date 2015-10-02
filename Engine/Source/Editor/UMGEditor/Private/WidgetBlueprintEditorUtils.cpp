@@ -352,11 +352,16 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 INamedSlotInterface* FWidgetBlueprintEditorUtils::FindNamedSlotHostForContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
 {
-	INamedSlotInterface* Host = nullptr;
+	return Cast<INamedSlotInterface>(FindNamedSlotHostWidgetForContent(WidgetTemplate, WidgetTree));
+}
+
+UWidget* FWidgetBlueprintEditorUtils::FindNamedSlotHostWidgetForContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+{
+	UWidget* HostWidget = nullptr;
 
 	WidgetTree->ForEachWidget([&](UWidget* Widget) {
 
-		if (Host != nullptr)
+		if (HostWidget != nullptr)
 		{
 			return;
 		}
@@ -372,14 +377,14 @@ INamedSlotInterface* FWidgetBlueprintEditorUtils::FindNamedSlotHostForContent(UW
 				{
 					if (SlotContent == WidgetTemplate)
 					{
-						Host = NamedSlotHost;
+						HostWidget = Widget;
 					}
 				}
 			}
 		}
 	});
 
-	return Host;
+	return HostWidget;
 }
 
 bool FWidgetBlueprintEditorUtils::RemoveNamedSlotHostContent(UWidget* WidgetTemplate, INamedSlotInterface* NamedSlotHost)
