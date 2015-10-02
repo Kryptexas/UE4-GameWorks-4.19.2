@@ -57,7 +57,6 @@ XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails;
 
 #define DEBUG_XAUDIO2 0
 
-FSpatializationHelper FXAudio2Device::SpatializationHelper;
 
 bool FXAudio2Device::InitializeHardware()
 {
@@ -182,7 +181,7 @@ bool FXAudio2Device::InitializeHardware()
 	}
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
-	SpatializationHelper.Init();
+	DeviceProperties->SpatializationHelper.Init();
 
 	// Initialize permanent memory stack for initial & always loaded sound allocations.
 	if( CommonAudioPoolSize )

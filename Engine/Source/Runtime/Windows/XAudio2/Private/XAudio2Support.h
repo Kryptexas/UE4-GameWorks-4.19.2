@@ -579,6 +579,9 @@ struct FXAudioDeviceProperties
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
+	// For calculating speaker maps for 3d audio
+	FSpatializationHelper				SpatializationHelper;
+
 	/** Source callback to handle looping sound callbacks */
 	FXAudio2SoundSourceCallback	SourceCallback;
 	
