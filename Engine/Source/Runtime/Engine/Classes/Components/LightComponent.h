@@ -7,11 +7,7 @@
 #include "EngineDefines.h"
 #include "LightComponent.generated.h"
 
-/** 
- * A texture containing depth values of static objects that was computed during the lighting build.
- * Used by Stationary lights to shadow translucency.
- */
-class FStaticShadowDepthMap : public FTexture
+class FStaticShadowDepthMapData
 {
 public:
 	/** Transform from world space to the coordinate space that DepthSamples are stored in. */
@@ -22,11 +18,23 @@ public:
 	/** Shadowmap depth values */
 	TArray<FFloat16> DepthSamples;
 
-	FStaticShadowDepthMap() :
+	FStaticShadowDepthMapData() :
 		WorldToLight(FMatrix::Identity),
 		ShadowMapSizeX(0),
 		ShadowMapSizeY(0)
 	{}
+
+	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMap);
+};
+
+/** 
+ * A texture containing depth values of static objects that was computed during the lighting build.
+ * Used by Stationary lights to shadow translucency.
+ */
+class FStaticShadowDepthMap : public FTexture
+{
+public:
+	FStaticShadowDepthMapData Data;
 
 	virtual void InitRHI();
 
