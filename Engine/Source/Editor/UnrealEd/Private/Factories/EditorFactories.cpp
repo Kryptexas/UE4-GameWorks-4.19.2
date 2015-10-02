@@ -4006,6 +4006,12 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 			return nullptr;
 		}
 
+		if (NumMips > MAX_TEXTURE_MIP_COUNT)
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("DDS file contains an unsupported number of mipmap levels."));
+			return nullptr;
+		}
+
 		// create the cube texture
 		UTextureCube* TextureCube = CreateTextureCube( InParent, Name, Flags );
 
