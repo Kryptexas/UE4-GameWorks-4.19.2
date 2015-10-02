@@ -97,6 +97,7 @@ public:
 
 #if WITH_EDITOR
 	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const override;
+	virtual FText GetDisplayName() const override;
 #endif
 
 protected:

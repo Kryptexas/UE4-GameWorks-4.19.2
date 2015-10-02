@@ -114,5 +114,10 @@ public:
 	 * @returns true if DisplayName has been set to a valid display name, otherwise false.
 	 */
 	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const PURE_VIRTUAL(UMovieSceneSequence::TryGetObjectDisplayName, return false;);
+
+	/**
+	 * Get the display name for this movie sequence
+	 */
+	virtual FText GetDisplayName() const { return FText::FromName(GetFName()); }
 #endif
 };

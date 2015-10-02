@@ -362,6 +362,12 @@ bool ULevelSequenceInstance::TryGetObjectDisplayName(const FGuid& ObjectId, FTex
 
 	return true;
 }
+
+FText ULevelSequenceInstance::GetDisplayName() const
+{
+	return LevelSequence ? FText::FromName(LevelSequence->GetFName()) : Super::GetDisplayName();
+}
+
 #endif
 
 void ULevelSequenceInstance::UnbindPossessableObjects(const FGuid& ObjectId)
