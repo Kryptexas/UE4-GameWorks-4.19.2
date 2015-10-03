@@ -430,6 +430,12 @@ protected:
 	
 	/**  */
 	virtual void BindCommands();
+
+	/** Removes the Actors in all read-only Levels from the viewport's existing selection */
+	void DeselectActorsInAllReadOnlyLevel(const FLevelModelList& InLevelList);
+
+	/** Removes the Actors in all read-only Levels from the viewport's existing selection */
+	void DeselectSurfaceInAllReadOnlyLevel(const FLevelModelList& InLevelList);
 	
 	/** Called whenever level collection has been changed */
 	virtual void OnLevelsCollectionChanged();
