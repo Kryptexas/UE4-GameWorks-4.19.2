@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Add Simple Collision to a Static Mesh
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:スタティックメッシュにシンプルなコリジョンを追加する
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:コリジョン ジオメトリの作成および設定のコンテンツ ガイド
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,26 +24,26 @@ Description:Content guide to creating and setting up collision geometry.
 [/OBJECT]
 [/VAR]
 
-## Steps
+## ステップ
 
 [REGION:raw]
 ![](Engine\Physics\Collision\HowTo\COLREF_collisionMenu_BuildYourOwn.png)
 [/REGION]
 
-These options create basic collision shapes:
+これらのオプションで基本的なコリジョン形状が作成されます。
 
 [REGION:raw]
 ![](Engine\Physics\Collision\HowTo\COLREF_BuildYourOwn_01.png)(convert:false)
 [/REGION]
 
-Once a simple collision shape is created, it can be moved, rotated, and scaled into the desired position. You can create more than one collision shape for more complex Static Meshes.
+シンプルなコリジョン形状が作成されたら、それを好きな位置に移動、回転、スケーリングしていくことができます。複雑なスタティックメッシュの場合は、コリジョン形状を 2 つ以上作成することも可能です。
 
-| **Control** | **Action** |
+| **制御** | **アクション** |
 | --- | --- |
-| **W, E, R** | Switch between Translation, Rotation, and Scale tools. |
-| **Delete** | Will delete the currently selected Physics Body or Bodies. |
-| **F** | Will focus on the currently selected Physics Body or Bodies. |
-| **Ctrl + Left Click** | Adds a Physics Body to the selection. |
-| **Alt + Left Drag (On a manipulation widget)** | Duplicates a Physics Body. |
+| **W, E, R** | 平行移動、回転、スケーリング ツールを切り替えます。 |
+| **Delete** | 選択中の物理ボディまたはボディを削除します。 |
+| **F** | 選択中の物理ボディまたはボディをフォーカスします。 |
+| **Ctrl + 左クリック** | 物理ボディを選択内容に追加します。 |
+| **Alt + Left Drag (操作ウェジェット上で)** | 物理ボディを複製します。 |
 
 
