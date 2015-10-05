@@ -68,8 +68,8 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					// Finally assume 2015 is installed to defer errors somewhere else like VCToolChain
-					CachedCompiler = WindowsCompiler.VisualStudio2015;
+					// Finally assume 2015 (and 2013 on non-Windows platforms) is installed to defer errors somewhere else like VCToolChain
+					CachedCompiler = Utils.IsRunningOnMono ? WindowsCompiler.VisualStudio2013 : WindowsCompiler.VisualStudio2015;
 				}
 
 				return CachedCompiler.Value;
