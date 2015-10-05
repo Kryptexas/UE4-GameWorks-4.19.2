@@ -3,6 +3,7 @@ Title: Get Started with UE4
 Crumbs: %ROOT%
 Description:Introductory information for developers starting out creating games with Unreal Engine.
 Navigation:start
+version: 4.9
 
 [VAR:Params]
 [PARAM:image]
