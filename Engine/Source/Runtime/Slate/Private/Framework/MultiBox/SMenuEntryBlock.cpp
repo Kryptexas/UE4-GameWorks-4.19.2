@@ -616,30 +616,18 @@ public:
 		];
 
 		SButton::Construct( ButtonArgs );
+	}
 
-		// Replace SButtons delegate for getting the border image with our own
-		// so we can control hovered state
-		BorderImage.Bind( this, &SSubMenuButton::GetBorderImage );
+	virtual bool IsHovered() const override
+	{
+		// Submenu widgets which have been opened should remain as if hovered, even if the cursor is outside them
+		return SWidget::IsHovered() || ShouldAppearHovered.Get();
 	}
 
 private:
-	const FSlateBrush* GetBorderImage() const
-	{
-		// If the button should appear hovered always show the hovered image
-		// Otherwise let SButton decide
-		if( ShouldAppearHovered.Get() )
-		{
-			return HoverImage;
-		}
-		else
-		{
-			return SButton::GetBorder();
-		}
-	}
-
 	FSlateColor InvertOnHover() const
 	{
-		if ( this->IsHovered() || ShouldAppearHovered.Get() )
+		if ( this->IsHovered() )
 		{
 			return FLinearColor::Black;
 		}
