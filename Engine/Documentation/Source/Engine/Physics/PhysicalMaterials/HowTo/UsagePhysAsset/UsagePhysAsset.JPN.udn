@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Assign a Physical Material to a Physics Asset
+﻿Availability:Public
+Title:物理マテリアルを物理アセットに割り当てる
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:How to assign a Physical Material to the entirety of a Physics Asset using the Physics Asset Tool.
-Version: 4.9
-SkillLevel: Intermediate
+Description:物理アセット ツールで物理アセット全体に物理マテリアルを割り当てる方法
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,24 +45,24 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-The following steps detail how to set the Physical Material of all Physics Bodies in a Physics Asset at once.
+以下のステップで、物理アセット ツールで全ての物理ボディの物理マテリアルを一度に設定します。
 
 [EXCERPT:PhysMatSkelMesh1]
-1. **Open** a Physics Asset in the Physics Asset Tool.
+1. PhAT で物理アセットを **開きます**。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysicsAsset1.jpg)
 
-1. **Select** a Physical Material in the Content Browser.
+1. コンテンツ ブラウザから物理マテリアルを **選択します**。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\M_Glass.jpg)
 
-1. In the Physics Asset Tool, **click** the **Apply PhysMat** button from the **Asset** dropdown in the toolbar: ![](Engine\Physics\PhysicalMaterials\HowTo\AssetButton.jpg).
-	
+1. 物理アセットツールのツールバーの **[Asset (アセット)]** ドロップダウンから **[Apply PhysMat (PhysMat を適用)]** ![](Engine\Physics\PhysicalMaterials\HowTo\AssetButton.jpg)　を **クリック** します。
+
 	[REGION:raw]
 	![](Engine\Physics\PhysicalMaterials\HowTo\ApplyPhysMat.jpg)
 	[/REGION]
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. ![](Shared\Icons\icon_SaveAsset_40x.png) を **クリックして保存** します。
 [/EXCERPT:PhysMatSkelMesh1]
 
 
