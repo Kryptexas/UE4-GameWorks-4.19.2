@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Edit a Physical Material
+﻿INTSourceChangelist:2714898
+Availability:Public
+Title:物理マテリアルの編集
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
-Version: 4.9
-SkillLevel: Intermediate
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,19 +45,19 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-The following steps detail how to edit an already existing Physical Material.
+以下のステップで既存の物理マテリアルを編集します。
 
-1. **Double click** the new Physical Material to edit its properties.
+1. プロパティを編集するために、新規の物理マテリアルを **ダブルクリック** します。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatProperties.jpg)(w:250)
 
-1. **Adjust Properties**.
+1. **プロパティを調整します。**
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\AdjustProperties.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. **[Save (保存)]** ![](Shared\Icons\icon_SaveAsset_40x.png) をクリックします。
 
-See the **[](Engine/Physics/PhysicalMaterials/Reference)** for information on the properties in the Physical Material.
+物理マテリアルのプロパティに関する情報は、**[**物理マテリアルのリファレンス**](Engine/Physics\PhysicalMaterials\Reference)** を参照してください。
 
 
 
