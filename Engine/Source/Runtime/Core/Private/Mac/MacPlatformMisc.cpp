@@ -1535,7 +1535,7 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		
 		// Command line, must match the Windows version.
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter8>!"));
-		WriteUTF16String(ReportFile, FCommandLine::Get());
+		WriteUTF16String(ReportFile, FCommandLine::GetOriginal());
 		WriteLine(ReportFile, TEXT("!</Parameter8>"));
 		
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter9>"));
