@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Review Collision in Your Game
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:ゲームのコリジョンをレビューする
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:コリジョン ジオメトリの作成および設定のコンテンツ ガイド
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,17 +26,17 @@ Description:Content guide to creating and setting up collision geometry.
 
 
 
-Here are a couple of console commands you can use while in game to give you information on the collision in your game.
+コンソール コマンドには、インゲーム中にゲームのコリジョンの情報を与えることができるものがあります。
 
-1. Run your game.
-1. Hit the **`** (back tick/tilda key) to bring up the console input box.
-1. Enter one of the following commands:
+1. ゲームを実行してください。
+1. **`** (バックティック/ティルダ キー) でコンソール コマンド ボックスを表示します。
+1. 以下のいずれかのコマンドを入力してください。
 
-	* **show COLLISION** - This will draw all collision models and blocking volumes in use in the level. 
+	* **show COLLISION** - レベルで使用するコリジョン モデルおよびブロック ボリュームを描画します。 
 
 		![](Engine/Physics/Collision/HowTo/COLREF_showCollision.png)(w:900)
 
-	* **stat game** - This shows you various useful stats on how long different types of collision are taking.
+	* **stat game** - 受け取っているコリジョンのタイプと時間に関する様々な便利な情報を表示します。
 
 		![](Engine/Physics/Collision/HowTo/Collision_StatGame.png)(w:900)
 
