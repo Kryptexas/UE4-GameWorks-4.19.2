@@ -3,13 +3,16 @@ Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
 Description: Metadata keywords used when declaring classes, functions, and interfaces to specify how they behave with various aspects of the engine and editor.
 Availability:Public
 
-When declaring classes, functions, and interfaces, metadata specifiers can be added to the declaration to control how they behave with various 
+When declaring classes, functions, and interfaces, metadata specifiers can be added to the declaration to control how they behave with various
 aspects of the engine and editor.
 
 [EXCERPT:MetadataUsage]
-The usage of metadata specifiers differs from regular class, function, and interface specifiers.  
+The usage of metadata specifiers differs from regular class, function, and interface specifiers.
 [/EXCERPT:MetadataUsage]
 
+To use metadata specifies, use the meta specifier in a `UCLASS`, `UINTERFACE`, or `UFUNCTION` macro:
+
+    UCLASS(meta=(BlueprintSpawnableComponent))
 
 ## Class Metadata Specifiers
 [EXCERPT:ClassMetadata]
