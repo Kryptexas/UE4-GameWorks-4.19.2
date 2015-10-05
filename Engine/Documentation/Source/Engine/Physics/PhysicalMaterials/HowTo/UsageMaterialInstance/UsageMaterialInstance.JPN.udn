@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Assign a Physical Material to a Material Instance
+﻿INTSourceChangelist:2714898
+Availability:Public
+Title:物理マテリアルをマテリアル インスタンスに割り当てる
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
-Version: 4.9
-SkillLevel: Intermediate
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,15 +46,15 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-1. **Open** or **create** a new Material Instance.
+1. マテリアル インスタンスを **開く**、もしくは **新規作成** します。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMat_MaterialInst_01.png)
 
-1. **Change** the Physical Material.
+1. [Physical Material (物理マテリアル)] を **変更します**。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\StoneMat.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. ![](Shared\Icons\icon_SaveAsset_40x.png) を **クリックして保存** します。
 
 
 
