@@ -703,8 +703,13 @@ void FPlaneMap::AddPlane(const FPlane& Plane, int32 Index)
 void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase*>& Lights)
 {
 #if WITH_EDITOR
+	FScopedSlowTask SlowTask(10);
+	SlowTask.MakeDialogDelayed(3.0f);
+
 	// cache the level
 	LightingLevel = Level;
+
+	SlowTask.EnterProgressFrame(1);
 
 	// gather all the lights for each component
 	TMap<int32, TArray<ULightComponent*> > ComponentRelevantLights;
@@ -765,6 +770,8 @@ void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase
 	// The FPlaneMap buckets together planes with components within a specified granular range.
 	FPlaneMap PlaneMap(1/16.0f, 50.0f, GLightmassDebugOptions.CoplanarTolerance);
 
+	SlowTask.EnterProgressFrame(1);
+
 	for (int32 NodeIndex = 0; NodeIndex < Nodes.Num(); NodeIndex++)
 	{
 		const FBspNode& Node = Nodes[NodeIndex];
@@ -776,150 +783,159 @@ void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase
 		}
 	}
 
+	SlowTask.EnterProgressFrame(8);
+
 	// Every item in the PlaneMap now contains a list of indices of nodes with similar planes.
 	// Now we can do a O(n^2) check to see if any pairs of nodes have planes within the allowed threshold, to be added to the same group.
-	for (const auto& Pair : PlaneMap.GetMap())
 	{
-		const auto& PlaneMapItem = Pair.Value;
+		FScopedSlowTask InnerTask(PlaneMap.GetMap().Num());
+		InnerTask.MakeDialogDelayed(3.0f);
 
-		const int32 NumMapNodes = PlaneMapItem.Num();
-		if (NumMapNodes > 1)
+		for (const auto& Pair : PlaneMap.GetMap())
 		{
-			for (int32 MapIndex1 = 0; MapIndex1 < NumMapNodes - 1; MapIndex1++)
+			InnerTask.EnterProgressFrame(1);
+
+			const auto& PlaneMapItem = Pair.Value;
+
+			const int32 NumMapNodes = PlaneMapItem.Num();
+			if (NumMapNodes > 1)
 			{
-				for (int32 MapIndex2 = MapIndex1 + 1; MapIndex2 < NumMapNodes; MapIndex2++)
+				for (int32 MapIndex1 = 0; MapIndex1 < NumMapNodes - 1; MapIndex1++)
 				{
-					const int32 NodeIndex1 = PlaneMapItem[MapIndex1];
-					const int32 NodeIndex2 = PlaneMapItem[MapIndex2];
-					const FBspNode& Node1 = Nodes[NodeIndex1];
-					const FBspNode& Node2 = Nodes[NodeIndex2];
-					const FBspSurf& Surf1 = Surfs[Node1.iSurf];
-					const FBspSurf& Surf2 = Surfs[Node2.iSurf];
-
-					// if I've already been parented, I don't need to reparent
-					if (ParentNodes[NodeIndex1] != nullptr && ParentNodes[NodeIndex2] != nullptr && ParentNodes[NodeIndex1] == ParentNodes[NodeIndex2])
+					for (int32 MapIndex2 = MapIndex1 + 1; MapIndex2 < NumMapNodes; MapIndex2++)
 					{
-						continue;
-					}
+						const int32 NodeIndex1 = PlaneMapItem[MapIndex1];
+						const int32 NodeIndex2 = PlaneMapItem[MapIndex2];
+						const FBspNode& Node1 = Nodes[NodeIndex1];
+						const FBspNode& Node2 = Nodes[NodeIndex2];
+						const FBspSurf& Surf1 = Surfs[Node1.iSurf];
+						const FBspSurf& Surf2 = Surfs[Node2.iSurf];
 
-					// variable to see check if the 2 nodes are conodes
-					bool bNodesAreConodes = false;
-
-					// if we have a tolerance, then join based on coplanar adjacency
-					if (GLightmassDebugOptions.bGatherBSPSurfacesAcrossComponents)
-					{
-						// are these two nodes conodes?
-						if (Surf1.LightMapScale == Surf2.LightMapScale)
+						// if I've already been parented, I don't need to reparent
+						if (ParentNodes[NodeIndex1] != nullptr && ParentNodes[NodeIndex2] != nullptr && ParentNodes[NodeIndex1] == ParentNodes[NodeIndex2])
 						{
-							if (LightmassSettingsEquality[Surf1.iLightmassIndex * NumLightmassSettings + Surf2.iLightmassIndex])
+							continue;
+						}
+
+						// variable to see check if the 2 nodes are conodes
+						bool bNodesAreConodes = false;
+
+						// if we have a tolerance, then join based on coplanar adjacency
+						if (GLightmassDebugOptions.bGatherBSPSurfacesAcrossComponents)
+						{
+							// are these two nodes conodes?
+							if (Surf1.LightMapScale == Surf2.LightMapScale)
 							{
-								if (Surf1.Plane.Equals(Surf2.Plane, GLightmassDebugOptions.CoplanarTolerance))
+								if (LightmassSettingsEquality[Surf1.iLightmassIndex * NumLightmassSettings + Surf2.iLightmassIndex])
 								{
-									// they are coplanar, have the same lightmap res and Lightmass settings, 
-									// now we need to check for adjacency which we check for by looking for a shared vertex
-									// This is O(n^2) but since there are often only 3 or 4 verts in a poly, this will iterate on average only about 16 times.
-									// I doubt it would be any more efficient to use a TSet to check for duplicated indices in this case.
-									FVert* VertPool1 = &Verts[Node1.iVertPool];
-									for (int32 A = 0; A < Node1.NumVertices && !bNodesAreConodes; A++)
+									if (Surf1.Plane.Equals(Surf2.Plane, GLightmassDebugOptions.CoplanarTolerance))
 									{
-										FVert* VertPool2 = &Verts[Node2.iVertPool];
-										for (int32 B = 0; B < Node2.NumVertices && !bNodesAreConodes; B++)
+										// they are coplanar, have the same lightmap res and Lightmass settings, 
+										// now we need to check for adjacency which we check for by looking for a shared vertex
+										// This is O(n^2) but since there are often only 3 or 4 verts in a poly, this will iterate on average only about 16 times.
+										// I doubt it would be any more efficient to use a TSet to check for duplicated indices in this case.
+										FVert* VertPool1 = &Verts[Node1.iVertPool];
+										for (int32 A = 0; A < Node1.NumVertices && !bNodesAreConodes; A++)
 										{
-											// if they share a vertex location, they are adjacent (this won't detect adjacency via T-joints)
-											if (VertPool1->pVertex == VertPool2->pVertex)
+											FVert* VertPool2 = &Verts[Node2.iVertPool];
+											for (int32 B = 0; B < Node2.NumVertices && !bNodesAreConodes; B++)
 											{
-												bNodesAreConodes = true;
+												// if they share a vertex location, they are adjacent (this won't detect adjacency via T-joints)
+												if (VertPool1->pVertex == VertPool2->pVertex)
+												{
+													bNodesAreConodes = true;
+												}
+												VertPool2++;
 											}
-											VertPool2++;
+											VertPool1++;
 										}
-										VertPool1++;
 									}
 								}
 							}
 						}
-					}
-					// if coplanar tolerance is < 0, then we join nodes together based on being in the same ModelComponent
-					// and from the same surface
-					else
-					{
-						if (Node1.iSurf == Node2.iSurf && Node1.ComponentIndex == Node2.ComponentIndex)
-						{
-							bNodesAreConodes = true;
-						}
-					}
-
-					// are Node1 and Node2 conodes - if so, join into a group
-					if (bNodesAreConodes)
-					{
-						// okay, these two nodes are conodes, so we need to stick them together into some pot of nodes
-						// look to see if either one are already in a group
-						FNodeGroup* NodeGroup = NULL;
-						// if both are already in different groups, we need to combine the groups
-						if (ParentNodes[NodeIndex1] != NULL && ParentNodes[NodeIndex2] != NULL)
-						{
-							NodeGroup = ParentNodes[NodeIndex1];
-
-							// merge 2 into 1
-							FNodeGroup* NodeGroup2 = ParentNodes[NodeIndex2];
-							for (int32 NodeIndex = 0; NodeIndex < NodeGroup2->Nodes.Num(); NodeIndex++)
-							{
-								NodeGroup->Nodes.Add(NodeGroup2->Nodes[NodeIndex]);
-							}
-							for (int32 LightIndex = 0; LightIndex < NodeGroup2->RelevantLights.Num(); LightIndex++)
-							{
-								NodeGroup->RelevantLights.AddUnique(NodeGroup2->RelevantLights[LightIndex]);
-							}
-
-							// replace all the users of NodeGroup2 with NodeGroup
-							for (int32 GroupIndex = 0; GroupIndex < ParentNodes.Num(); GroupIndex++)
-							{
-								if (ParentNodes[GroupIndex] == NodeGroup2)
-								{
-									ParentNodes[GroupIndex] = NodeGroup;
-								}
-							}
-
-							// the key for the nodegroup is the 0th node (could just be a set now)
-							NodeGroups.Remove(NodeGroup2->Nodes[0]);
-
-							// free the now useless nodegroup
-							delete NodeGroup2;
-						}
-						else if (ParentNodes[NodeIndex1] != NULL)
-						{
-							NodeGroup = ParentNodes[NodeIndex1];
-						}
-						else if (ParentNodes[NodeIndex2] != NULL)
-						{
-							NodeGroup = ParentNodes[NodeIndex2];
-						}
-						// otherwise, make a new group and put them both in it
+						// if coplanar tolerance is < 0, then we join nodes together based on being in the same ModelComponent
+						// and from the same surface
 						else
 						{
-							NodeGroup = NodeGroups.Add(NodeIndex1, new FNodeGroup());
+							if (Node1.iSurf == Node2.iSurf && Node1.ComponentIndex == Node2.ComponentIndex)
+							{
+								bNodesAreConodes = true;
+							}
 						}
 
-						// apply both these nodes to the NodeGroup
-						for (int32 WhichNode = 0; WhichNode < 2; WhichNode++)
+						// are Node1 and Node2 conodes - if so, join into a group
+						if (bNodesAreConodes)
 						{
-							// operator on each node in this loop
-							int32 NodeIndex = WhichNode ? NodeIndex2 : NodeIndex1;
-
-							// track what group the node went into
-							ParentNodes[NodeIndex] = NodeGroup;
-
-							// is this node already not yet in the group
-							if (NodeGroup->Nodes.Find(NodeIndex) == INDEX_NONE)
+							// okay, these two nodes are conodes, so we need to stick them together into some pot of nodes
+							// look to see if either one are already in a group
+							FNodeGroup* NodeGroup = NULL;
+							// if both are already in different groups, we need to combine the groups
+							if (ParentNodes[NodeIndex1] != NULL && ParentNodes[NodeIndex2] != NULL)
 							{
-								// add it to the group
-								NodeGroup->Nodes.Add(NodeIndex);
+								NodeGroup = ParentNodes[NodeIndex1];
 
-								// add the relevant lights to the nodegroup
-								TArray<ULightComponent*>* RelevantLights = ComponentRelevantLights.Find(Nodes[NodeIndex].ComponentIndex);
-								check(RelevantLights);
-								for (int32 LightIndex = 0; LightIndex < RelevantLights->Num(); LightIndex++)
+								// merge 2 into 1
+								FNodeGroup* NodeGroup2 = ParentNodes[NodeIndex2];
+								for (int32 NodeIndex = 0; NodeIndex < NodeGroup2->Nodes.Num(); NodeIndex++)
 								{
-									NodeGroup->RelevantLights.AddUnique((*RelevantLights)[LightIndex]);
+									NodeGroup->Nodes.Add(NodeGroup2->Nodes[NodeIndex]);
+								}
+								for (int32 LightIndex = 0; LightIndex < NodeGroup2->RelevantLights.Num(); LightIndex++)
+								{
+									NodeGroup->RelevantLights.AddUnique(NodeGroup2->RelevantLights[LightIndex]);
+								}
+
+								// replace all the users of NodeGroup2 with NodeGroup
+								for (int32 GroupIndex = 0; GroupIndex < ParentNodes.Num(); GroupIndex++)
+								{
+									if (ParentNodes[GroupIndex] == NodeGroup2)
+									{
+										ParentNodes[GroupIndex] = NodeGroup;
+									}
+								}
+
+								// the key for the nodegroup is the 0th node (could just be a set now)
+								NodeGroups.Remove(NodeGroup2->Nodes[0]);
+
+								// free the now useless nodegroup
+								delete NodeGroup2;
+							}
+							else if (ParentNodes[NodeIndex1] != NULL)
+							{
+								NodeGroup = ParentNodes[NodeIndex1];
+							}
+							else if (ParentNodes[NodeIndex2] != NULL)
+							{
+								NodeGroup = ParentNodes[NodeIndex2];
+							}
+							// otherwise, make a new group and put them both in it
+							else
+							{
+								NodeGroup = NodeGroups.Add(NodeIndex1, new FNodeGroup());
+							}
+
+							// apply both these nodes to the NodeGroup
+							for (int32 WhichNode = 0; WhichNode < 2; WhichNode++)
+							{
+								// operator on each node in this loop
+								int32 NodeIndex = WhichNode ? NodeIndex2 : NodeIndex1;
+
+								// track what group the node went into
+								ParentNodes[NodeIndex] = NodeGroup;
+
+								// is this node already not yet in the group
+								if (NodeGroup->Nodes.Find(NodeIndex) == INDEX_NONE)
+								{
+									// add it to the group
+									NodeGroup->Nodes.Add(NodeIndex);
+
+									// add the relevant lights to the nodegroup
+									TArray<ULightComponent*>* RelevantLights = ComponentRelevantLights.Find(Nodes[NodeIndex].ComponentIndex);
+									check(RelevantLights);
+									for (int32 LightIndex = 0; LightIndex < RelevantLights->Num(); LightIndex++)
+									{
+										NodeGroup->RelevantLights.AddUnique((*RelevantLights)[LightIndex]);
+									}
 								}
 							}
 						}
