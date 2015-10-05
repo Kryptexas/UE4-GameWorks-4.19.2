@@ -229,7 +229,26 @@ public:
 	}
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
-		return FPlatformProperties::RequiresCookedData();
+		// default to false on Windows since FAsyncBufferedFileReaderWindows already buffers the data
+		bool bResult = !PLATFORM_WINDOWS && FPlatformProperties::RequiresCookedData();
+
+		// Allow a choice between shorter load times or less memory on desktop platforms.
+		// Note: this cannot be in config since they aren't read at that point.
+		if (PLATFORM_DESKTOP)
+		{
+			if (FParse::Param(CmdLine, TEXT("NoCachedReadFile")))
+			{
+				bResult = false;
+			}
+			else if (FParse::Param(CmdLine, TEXT("CachedReadFile")))
+			{
+				bResult = true;
+			}
+
+			UE_LOG(LogPlatformFile, Log, TEXT("%s cached read wrapper"), bResult ? TEXT("Using") : TEXT("Not using"));
+		}
+
+		return bResult;
 	}
 	IPlatformFile* GetLowerLevel() override
 	{
