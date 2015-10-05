@@ -774,7 +774,7 @@ bool UVMReflection::ExecuteUnitTest()
 		}
 
 		bool bError = false;
-		FText Result = (FText)(FVMReflection(TestObj)->*"TextProp", &bError);
+		FText Result = FText::GetEmpty();// (FText)((FVMReflection(TestObj)->*"TextProp"), &bError);
 
 		TestResults.Add(TEXT("FText Reading"), (!bError && Result.EqualTo(TargetResult)));
 	}
@@ -1364,7 +1364,7 @@ bool UVMReflection::ExecuteUnitTest()
 		bool bError = false;
 		FText Result;
 		
-		Result = (FText)((FVMReflection(TestObj)->*"DynTextPropArray")["FText"][0], &bError);
+		Result = FText::GetEmpty();// (FText)((FVMReflection(TestObj)->*"DynTextPropArray")["FText"][0], &bError);
 
 		TestResults.Add(TEXT("Dynamic Array Type Verify (FText)"), (!bError && Result.EqualTo(TargetResult)));
 	}

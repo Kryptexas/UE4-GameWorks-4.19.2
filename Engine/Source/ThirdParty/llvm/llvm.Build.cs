@@ -16,7 +16,12 @@ public class llvm : ModuleRules
 		}
 
 		var LLVMVersion = @"3.5.0";
-		var VSVersion = @"vs2013";
+		// VS2015 uses a newer version of the libs
+		if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+		{
+			LLVMVersion = @"3.6.2";
+		}
+		var VSVersion = @"vs" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 		var TargetArch = @"x86";
 		var RootDirectory = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, @"llvm", LLVMVersion);
 		PublicIncludePaths.AddRange(
@@ -60,5 +65,14 @@ public class llvm : ModuleRules
 				"LLVMX86Info.lib",
 				"LLVMX86Utils.lib",
 			});
+
+		// The 3.6.2 version we use for VS2015 has moved some functionality around.
+		if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+		{
+			PublicAdditionalLibraries.AddRange(
+				new string[] {
+					"LLVMTransformUtils.lib",
+				});
+		}
 	}
 }

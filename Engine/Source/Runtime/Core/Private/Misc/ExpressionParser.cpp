@@ -903,6 +903,17 @@ PRAGMA_DISABLE_OPTIMIZATION
 		FHugeType(int32 InId) : FMoveableType(InId) {}
 		FHugeType(FHugeType&& In) : FMoveableType(MoveTemp(In)) {}
 		FHugeType(const FHugeType& In) : FMoveableType(In) {}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+		FHugeType& operator=(FHugeType&& In) = default;
+#else
+		FHugeType& operator=(FHugeType&& In)
+		{
+			MoveTemp(In);
+			return *this;
+		}
+#endif
+
 		
 		uint8 Padding[1024];
 	};
