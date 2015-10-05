@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Asset Tool How To Guide
+﻿INTSourceChangelist:2714898
+Availability:Public
+Title:Physics Asset Tool 操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
-Description:How to use the Physics Asset Tool to create Physics Asset for Skeletal Meshes.
-Version: 4.9
+Description:スケルタル メッシュに対して物理アセットを作成する物理アセットツールの使用方法
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,88 +47,88 @@ Version: 4.9
 
 
 
-The **Physics Asset Tool** is used for creating **Physics Assets** for use with **Skeletal Meshes**. One can start from nothing and build to a full ragdoll setup or use the automation 
-tools to create a basic set of Physics Bodies and Physics Constraints.
+**物理アセット ツール** は **スケルタル メッシュ** を使用して **物理アセット** を作成するためのツールです。ゼロの状態から完全にラグドールをセットアップしたり、 
+自動ツールを使って物理ボディの基本セットや物理コンストレイントを作成することができます。
 
-This document will cover step by step procedures for the most common activities in the Physics Asset Tool.
+このページでは、物理アセットツールの中で最も一般的な動作のための手順を順番に説明していきます。
 
-## New Physics Asset
+## 新規の物理アセット
 
-When a Skeletal Mesh is imported, there is an option to generate a Physics Asset for it as it is imported. Once the imported file is processed, you will be presented with the 
-"New Asset" dialog:
+スケルタル メッシュをインポートする場合、インポートされているスケルタル メッシュに対し物理アセットを生成するオプションがあります。インポートされたファイルが処理されると、 
+[New Asset (新規アセット)] ダイアログが表示されます。
 
 [REGION:raw]
 ![](Engine/Physics/PhAT/HowTo/PhATUG_ImportPA.png)
 [/REGION]
 
-However, you can follow these steps if you need to create a Physics Asset for a Skeletal Mesh at a later time:
+ただし、後からスケルタル メッシュに対して物理アセットを作成する必要が出てきた場合には、次の手順を行います。
 
-1. Find the Skeletal Mesh asset you wish to add a Physics Asset to in the 
-**Content Browser**.
-1. **Right-click** on the Skeletal Mesh in the Content Browser to bring up the **Context Menu** -> **Create** -> **Create Physics Asset**.
-1. Adjust setting to your liking.
+1. 物理アセットに追加したいスケルタルメッシュ アセットを 
+ **コンテンツ ブラウザ** から見つけます。
+1. **コンテンツ ブラウザ** の スケルタル メッシュ を 右クリック して、**[Create (作成)]** から **[Create Physics Asset (物理アセットを作成)]** を表示します。
+1. ここで設定をします。
 
 	![](Shared\PhAT\PhAT_restetDefault.png)
 
-1. **Click** 'Ok'.
+1. [OK] を **クリック** します。
 
-## Editing a Physics Asset
+## 物理アセットの編集
 
-1. Find the Physics Asset in the Content Browser.
+1. コンテンツ ブラウザで物理アセットを見つけます。
 
 	![](Engine/Physics\PhysicalMaterials\PhysMatUserGuide\PhysMat_PhAT_02.png)
 
-1. **Double-click** to open it in the Physics Asset Tool (PhAT).
+1. 物理アセットツール (PhAT) にある物理アセットを **ダブルクリック** して開きます。
 
 	![](Engine/Physics/PhAT/HowTo/PhATUG_FullWindow.png)(w:900)
 
 
-## Physics Bodies
+##物理ボディ
 
-### Editing Physics Bodies
+###物理ボディの編集
 
-1. Enable Body Editing Mode ![](Shared\Icons\icon_PHatMode_Body_40x.png).
-1. Select a Physics Body in the Viewport or in the **Hierarchy Pane**.
-	* If it is difficult to see the Physics Body you desire, use the **Viewport** -> **Modes** -> **MeshRender Mode** -> **Wireframe/None** to adjust the visibility of the 
-	Skeletal Mesh.
-1. **Move, rotate, and scale** the Physics Body using the Translation, Rotation, and Scale tools so it fits the Skeletal Mesh and Skeletal Joint.
-1. Edit the Physics Body's properties in the Details Pane.
-1. **Enable** or **Disable** Collision between the current Physics Bodies and other in the Physics Asset using the _Collision On_ and _Collision Off_ tools. Any Physics Body that can 
-collide with the currently selected Physics Body will be blue, if they cannot collide, they will be gray.
-1. If a series of bodies should act as one, such as with the twist joints that form a wrist, use the _Weld_ tool to prevent undesired physics simulation behavior. Welded Physics 
-Bodies will be yellow in color.
-1. Save ![](Shared\Icons\icon_SaveAsset_40x.png) often.
+1. [Body Editing Mode] ![](Shared\Icons\icon_PHatMode_Body_40x.png) を有効にします。
+1. ビューポートまたは **[階層] ペイン** で物理ボディを選択します。
+	* 対象の物理ボディが見えにくい場合は、 **ビューポート** > **[Modes]** > **[MeshRender Mode]** > **[Wireframe/None]** の順に選択して 
+	スケルタル メッシュの可視性を調節します。
+1. 平行移動、回転、スケールツールを使って物理ボディを **移動、回転、スケール** して、スケルタル メッシュおよびスケルタル ジョイントに合わせます。
+1. [Details (詳細)] ペインで 物理ボディのプロパティを編集します。
+1. [_Collision On_] ツールと [_Collision Off_] ツールを使って、現在選択されている物理ボディと物理アセット内の他のボディとのコリジョンを、**有効** あるいは **無効** にします。選択中の物理ボディとの衝突が可能な物理ボディは青、 
+そうでない物理ボディはグレイになります。
+1. ねじれたジョイントで手首が形成される等、ひと続きのボディが 1 つの動作をする場合、望ましくない物理シミュレーション ビヘイビアにならないように _Weld (結合)_ ツールを使用します。結合された物理ボディは 
+黄色になります。
+1. 頻繁に ![](Shared\Icons\icon_SaveAsset_40x.png) で保存してください。
 
-See the **[Physics Asset Tool Reference](Engine/Physics/PhAT/Reference)** for more information on the properties in the Physics Asset Tool.
+物理アセット ツールのプロパティに関する情報は、**[物理マテリアルのリファレンス](Engine/Physics/PhAT/Reference)** を参照してください。
 
 [PUBLISH:licensee]
 [REGION:note]
-As of change list #1977557, multi select is enabled for Physics Bodies and Physics Constraints, enabling you to edit multiple bodies or constraints at the same time.
+チェンジリスト #1977557 の段階で、物理ボディおよび物理コンストレイントに対して複数選択が有効になっているので、複数のボディあるいはコンストレイントを同時に修正することができます。
 [/REGION]
 [/PUBLISH]
 
-### Deleting Physics Bodies
+###物理ボディの削除
 
-1. **Enable** Body Editing Mode ![](Shared\Icons\icon_PHatMode_Body_40x.png).
-1. **Select** a Physics Body you wish to delete.
-	* If it is difficult to see the Physics Body you desire, use the **Viewport -> Modes -> MeshRender Mode -> Wireframe/None** to adjust the visibility of the Skeletal Mesh.
-1. Press the **Delete** key.
+1. [Body Editing Mode] ![](Shared\Icons\icon_PHatMode_Body_40x.png) を **有効** にします。
+1. 削除したい物理ボディを **選択** します。
+	* 探している物理ボディが見えにくい場合は、 **ビューポート > [Modes] >し [MeshRender Mode] > [Wireframe/None]** の順に選択してスケルタル メッシュの可視性を調節します。
+1. **[Delete (削除)]** キーを押します。
 
 	![](Shared\PhAT\PhAT_DelBone.png)
 
-### Creating New Physics Bodies
+###物理ボディの新規作成
 
 ![](Engine/Physics/PhAT/HowTo/PhATUG_addBody.png)(w:900)
 
-1. **Right-click** an already existing Physics Body or a Bone in the Hierarchy Panel.
-1. **Select** the type of Physics Body you wish to add from the Context Menu using the left mouse button.
+1. 既に [Hierarchy] パネルにある物理ボディあるいはボーンを **右クリック** します。
+1. 追加したい物理ボディのタイプをコンテキスト メニューからクリックして **選択** します。
 
-	If the Bone in the Hierarchy Panel does not already have a Physics Body on it, the only option in the **right-click** context menu is "Add Body."
+	[Hierarchy (階層)] パネルにボーンにまだ物理ボディがないと、 **右クリック** のコンテキスト メニュー オプションには [Add Body (ボディを追加)] しか表示されません。
 
-	Finally, you can just **double-click** a bone that does not have a Physics Body in the **Hierarchy** Panel to "Add Body."
+	最後に、物理ボディをもたないボーンを **[Hierarchy (階層)]** パネルで **ダブルクリック** して「ボディを追加」します。
 
 
-### Enabling and Disabling Collision Between Physics Bodies
+### 物理ボディ間のコリジョンの有効化 / 無効化
 
 [REGION:simpletable]
 | --- | --- |
@@ -152,181 +152,181 @@ As of change list #1977557, multi select is enabled for Physics Bodies and Physi
 
 [EXCERPT:ColOn]
 [REGION:raw]
-**Enabling Collision**
+**コリジョンを有効にする**
 
-1. **Select** 2 or more Physics Bodies using **Ctrl + Left Mouse click**.
-1. **Click** the "Collision On" ![](Shared\Icons\icon_PhAT_EnableCollision_40x.png) button.
+1. **Ctrl + クリック** で、物理ボディを 2 つ以上 **選択** します。
+1. [Collision On] ![](Shared\Icons\icon_PhAT_EnableCollision_40x.png) ボタンを **クリック** します。
 
 
 [/REGION]
 [/EXCERPT:ColOn]
 
 [EXCERPT:ColOff]
-**Disabling Collision** 
+**コリジョンの無効化** 
 
-1. **Select** 2 or more Physics Bodies using **Ctrl + Left Mouse click**.
-1. **Click** the "Collision Off" ![](Shared\Icons\icon_PhAT_DisableCollision_40x.png) button.
+1. **Ctrl + クリック** で、物理ボディを 2 つ以上 **選択** します。
+1. [Collision Off] ![](Shared\Icons\icon_PhAT_DisableCollision_40x.png) ボタンを **クリック** します。
 
 [/EXCERPT:ColOff]
 
 -->
 
 
-### Welding
+### 結合
 
-Welding Physics Bodies will make multiple bodies interact as one, as well as lock together the Skeletal Mesh Joints they are associated with. To Weld one Physics Body to another:
+物理ボディを結合すると、関連しているスケルタル メッシュ ジョイントをまとめてロックするたけでなく、複数のボディを 1 つのボディとして作用させることができます。1 つの物理ボディを他のボディに結合するには以下を行います。
 
-1. **Select** 2 or more Physics Bodies using **Ctrl + Left Mouse click**.
-1. **Click** the "Weld" ![](Shared\Icons\icon_PhAT_Weld_40x.png) button.
-
-
-Any Physics Body welded to the currently selected Physics Body will show in Yellow.
+1. **Ctrl + クリック** で、物理ボディを 2 つ以上 **選択** します。
+1. [Weld] ![](Shared\Icons\icon_PhAT_Weld_40x.png) ボタンを **クリック** します。
 
 
-### Physical Materials
+選択中の物理ボディに結合された物理ボディは、全て黄色で表示されます。
 
-Each Physics Body in a Physics Asset can have a Physical Material assigned to it. To apply a Physics Material to a single Physics Body:
 
-1. **Enable** Body Editing Mode ![](Shared\Icons\icon_PHatMode_Body_40x.png).
-1. **Select** a Physics Body in the Viewport or in the **Hierarchy** Pane.
-	* If it is difficult to see the Physics Body you desire, use the **Viewport** -> **Modes** -> **MeshRender Mode** -> **Wireframe/None** to adjust the visibility of the Skeletal 
-	Mesh.
-1. In the Details pane, locate the Simple Collision Physical Material property and assign a Physics Material.
+###物理マテリアル
+
+物理アセットの物理ボディには、それぞれ物理マテリアルを割り当てることができます。物理マテリアルを単一の物理ボディに適用するには、以下の操作を行います。
+
+1. [Body Editing Mode] ![](Shared\Icons\icon_PHatMode_Body_40x.png) を **有効** にします。
+1. ビューポートまたは **[Hierarchy (階層)]** ペイン で物理ボディを **選択** します。
+	* 対象の物理ボディが見えにくい場合は、 **ビューポート** > **[Modes]** > **[MeshRender Mode]** > **[Wireframe/None]** の順に選択して 
+	スケルタル メッシュの可視性を調節します。
+1. [Details (詳細)] ペインで Simple Collision Physical Material プロパティを見つけて物理マテリアルを割り当てます。
 
 [REGION:raw]
 ![](Engine/Physics/PhysicalMaterials/HowTo/PhysMat_PhAT_04.png)(w:920)
 [/REGION]
 
 
-## Constraints
+## コンストレイント
 
 [REGION:note]
-The use of Physics Constraints is covered in the [Physics Constraints User Guide](Engine/Physics\Constraints\ConstraintsUserGuide) and their properties are covered in the [Physics Constraint Reference](Engine/Physics\Constraints\ConstraintsReference). This section will only cover workflows that are specific to the Physics Asset Tool or ones that have deviated substantially from the norm.
+物理コンストレイントの使用についての説明は [物理コンストレイント ユーザー ガイド](Engine/Physics\Constraints\ConstraintsUserGuide) 、プロパティについての説明は [物理コンストレイント リファレンス](Engine/Physics\Constraints\ConstraintsReference) でご覧いただけます。このページでは、物理アセットツール用のワークフローまたは大幅に標準から外れたワークフローのみを説明します。
 [/REGION]
 
-### Editing Physics Constraints
+### 物理コンストレイントの編集
 
-1. **Enable** Constraint Editing Mode ![](Shared\Icons\icon_PHatMode_Joint_40x.png).
-1. **Select** a Physics Constraint in the Viewport or in the Hierarchy Pane.
-1. **Move and rotate** the Physics Constraint using the Translation and Rotation to create the rotational point of the "joint" the Physics Constraint will form.
-1. Edit the Physics Constraint's properties in the Details Pane.
+1. [Constraint Editing Mode] ![](Shared\Icons\icon_PHatMode_Joint_40x.png) を **有効** にします。
+1. ビューポートまたは [Hierarchy (階層)] ペインで物理コンストレイントを **選択** します。
+1. 平行移動と回転を使って物理コンストレイントの **移動と回転** を行い、物理コンストレイントが形成する「ジョイント」の回転ポイントを作成します。
+1. [Details (詳細)] ペインで物理コンストレイントのプロパティを編集します。
 
 	[REGION:tip]
-	You can switch Swing1, Swing2, and Twist from Limited to Locked quickly by using the "**1**", "**2**", and "**3**" keys respectively. The "**4**" key can be used cycle through 
-	them setting one to limited and the other two to locked.
+	"**1**" 、 "**2**" 、 "**3**" キーで、 Swing1 、 Swing2 、 Twist を Limited (制限付き) から Locked (ロック) に簡単に切り替えることができます。"**4**" キーで、 1 つは設定を「Limited」にして、 
+	残り 2 つを Locked にすることができます。
 	[/REGION]
 
-1. Save ![](Shared\Icons\icon_SaveAsset_40x.png) often.
+1. 頻繁に ![](Shared\Icons\icon_SaveAsset_40x.png) で保存してください。
 
 
 
-See the **[Physics Asset Tool Reference](Engine/Physics/PhAT/Reference)** for more information on the properties in the Physics Asset Tool.
+物理アセット ツールのプロパティに関する情報は、**[物理マテリアルのリファレンス](Engine/Physics/PhAT/Reference)** を参照してください。
 
 
 
 
-### Aligning Physics Constraints
+### 物理コンストレイントを調整する
 
-If you are using the Physics Constraint's Linear or Angular limits, you will be able to see their alignment:
+物理コンストレイントの線形制限あるいは角度制限を使用している場合、それらのアラインメントが表示されます。
 
 ![](Engine/Physics/PhAT/HowTo/PhATUG_Limits.png)(w:300 convert:false)
 
-By then translating and rotating the Physics Constraint, you can align the limits to give the desired results. In the most basic of terms, when a Physics Constraint is limited, 
-you can see a yellow line suspended in a green arc or cone structure. The line will be "constrained" within this arc or cone.
+物理コンストレイントを平行移動および回転させて、望みの結果になるように制限を調整します。平たく言うと、物理コンストレイントが制限された場合、 
+緑の円弧あるいはコーンの構造体に黄色の線が表示されます。線はこの円弧またはコーン内に「制約」されます。
 
-For more information on Physics Constraints and their properties, see the **[Physics Constraints User Guide](Engine/Physics\Constraints\ConstraintsUserGuide)**.
-
-
-### Deleting Physics Constraints
-
-[REGION:note]
-There is no easy way to recreate a Physics Constraint, be mindful of this when deleting them.
-[/REGION]
-
-1. **Enable** Constraint Editing Mode ![](Shared\Icons\icon_PHatMode_Joint_40x.png).
-1. **Select** the Physics Constraint you wish to delete.
-1. **Press** the **Delete** key.
+物理コンストレイントとこれらのプロパティに関する詳細は、**[物理コンストレイント ユーザー ガイド](Engine/Physics\Constraints\ConstraintsUserGuide)** を参照してください。
 
 
-### Recreating a Physics Constraint
+### 物理コンストレイントの削除
 
 [REGION:note]
-There is no easy way to recreate a Physics Constraint, be mindful of this when deleting them.
+物理コンストレイントを再生成するのは難しいので、削除には注意してください。
 [/REGION]
 
-Physics Constraints are only created on generation of a Physics Body and are only generated upstream. So if you remove a Physics Constraint from the shoulder, you would have to 
-remove the upper arm Physics Body (which will remove the elbow Physics Constraint), then re-create the upper arm Physics Body. This would create the shoulder Physics Constraint, 
-but not the elbow Physics Constraint, so you would have to continue this process down the arm.
+1. [Constraint Editing Mode] ![](Shared\Icons\icon_PHatMode_Joint_40x.png) を **有効** にします。
+1. 削除したい物理コンストレイントを **選択** します。
+1. **[Delete (削除)]** キーを **押します** 。
 
 
-### Constraint Snapping
+### 物理アセットの再生成
 
-Snapping a Physics Constraint will take the blue locator for the Physics Constraint and snap its location and rotation to the red one's location and rotation.
+[REGION:note]
+物理コンストレイントを再生成するのは難しいので、削除には注意してください。
+[/REGION]
 
-You can snap the currently selected Physics Constraint(s) by using the Snap Constraint ![](Shared\Icons\icon_PhAT_SnapConstraint_40x.png) button.
-
-
-## Both Physics Bodies and Physics Constraints
-
-### Copying Bodies and Constraints
-
-While in either mode, properties from one Physics Body or Constraint can be copied to other Physics Bodies or Constraints:
-
-1. **Select** the Physics Body or Constraint you wish to copy data from.
-1. **Press Ctrl + C**.
-1. **Select** the Physics Bodies or Constraints you wish to apply data to.
-1. **Press Ctrl + V**.
+物理コンストレイントの生成は、物理ボディの作成時のみ行われ、アップストリーム生成のみです。肩から物理コンストレイントを削除する場合、 
+上腕の物理ボディを削除 (それにより肘の物理コンストレイントも削除されます) してから上腕の物理ボディを再生成する必要があります。これにより、肩の物理コンストレイントは作成されますが、 
+肘の物理コンストレイントは作成されませんので、このプロセスを腕まで続けなければなりません。
 
 
-This will not overwrite the shape of a Physics Body.
+### コンストレイントのスナップ機能
+
+物理コンストレイントのスナップ機能は、物理コンストレイントに対し青いロケーターを取り、赤のロケーターに対する位置と回転へスナップします。
+
+[Snap Constraint] ![](Shared\Icons\icon_PhAT_SnapConstraint_40x.png) ボタンを使って現在選択されている物理コンストレイントをスナップします。
 
 
-## Testing
+## 物理ボディと物理コンストレイントの両方
 
-Clicking the Simulation ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) button will allow you to test your Physics Asset.
+### ボディとコンストレイントのコピー
+
+いずれかのモードの場合、ある物理ボディまたはコンストレイントのプロパティを別の物理ボディまたはコンストレイントへコピーすることができます。
+
+1. データをコピーしたい物理ボディまたはコンストレイントを **選択** します。
+1. **Ctrl + C** を押します。
+1. データを適用したい物理ボディまたはコンストレイントを **選択** します。
+1. **Ctrl + V を押します**。
+
+
+この操作は物理ボディの形状をオーバーライトしません。
+
+
+## テスト
+
+[Simulation] ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) ボタンをクリックすると、物理アセットをテストできます。
 
 ![](Engine/Physics/PhAT/HowTo/SimPhAT.png)(w:600)
 
-The downward triangle next to the Simulation button will give you access to **Real Simulation** and **No Gravity**:
+[Simulation (シミュレーション)] ボタンの隣のダウンロード用三角印で、**[Real Simulation (リアル シミュレーション)]** と **[No Gravity (重力なし)]** へアクセスすることができます。
 
-* **Real Simulation** - Simulates the entire Physics Asset with gravity enabled.
-* **No Gravity** - Simulates the entire Physics Asset but does not turn on gravity, leaving you to **ctrl+click** to poke the Physics Bodies in a zero gravity environment.
+* **Real Simulation (リアル シミュレーション)** - 重力を有効にして物理アセット全体をシミュレートします。
+* **No Gravity (重力なし)** - 物理アセット全体をシミュレートしますが重力は有効にせず、無重力環境で物理ボディをいじる時に **ctrl + クリック** します。
 
-	This is useful for finding any interpenetrating Physics Bodies or Limited Physics Constraints already outside of their limits.
+	貫通している物理ボディや、制限対象なのに既に制限外にある物理コンストレイントを見つけるのに便利です。
 
-You can also simulate a chain of joints by toggling **Selected Simulation** ![](Engine/Physics/PhAT/HowTo/selectedToggle_button.png) on, then clicking the **Simulation** ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) button.
+**[Selected Simulation (選択中のシミュレーション)]** を切り替えてから **[Simulation (シミュレーション)]** ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) ボタンをクリックすれば、ジョイントのチェーンをシミュレートすることもできます。
 
-* **Selected Simulation** - Does mostly what it sounds like, it only simulates the Physics Bodies you have selected (using **ctrl+left click** you can select more than one 
-Physics Body) and those down the hierarchy from the selected Physics Bodies. So if you select the shoulder, the entire arm will simulate.
+* **Selected Simulation (選択中のシミュレーション)** - その名の通り、選択中の物理ボディ (**ctrl + クリック** で複数の物理ボディを選択可能) 
+と、選択中の物理ボディの階層より下の物理ボディのみをシミュレートします。従って、肩を選択した場合、腕全体がシミュレートされます。
 
 
 
-## Exploding
+## 爆発
 
-This is caused by two Physics Bodies interpenetrating and the physics system attempting to correct it by applying a massive amount of force to expel the Physics Bodies from each other. 
-If a Physics Constraint is keeping the offending Physics Bodies together, the physics system will continually apply force to separate them, causing very erratic and extreme movement.
+これは、貫通している 2 つの物理ボディと、お互いから物理ボディを追い出すために莫大な力を加えることでそれを修正しようとしている物理システムが原因です。 
+物理コンストレイントは問題となっている物理ボディと一緒になろうとするので、物理システムはそれらを離す力を適用し続け、非常に不規則で極端な動きを引き起こします。
 
 ![](Engine/Physics/PhAT/HowTo/brokenPhAT.png)
 
-This is normally fixed by disabling collision between the two offending Physics Bodies, or changing their positions and/or scale to make sure they do not interpenetrate. Also, welded 
-Physics Bodies act as one regardless of interpenetration.
+これは問題となっている 2 つの物理ボディ間のコリジョンを無効にする、またはそれらが貫通しないように位置またはスケールを変更することで通常解決されます。結合された物理ボディは 
+貫通に関係なく 1 つとして動作します。
 
-## Jitter
+## ジッター
 
-If the Physics Asset is mostly "collapsed" but still shaking and twitching on the ground, but not violently bouncing around, there are a few values you can tweak to get it to stop 
-and sleep. 
+物理アセットが、激しく跳ね返るのではなく、グラウンド上で震えたりピクピクしている状態でほぼ「崩壊」状態にある場合、 
+その動作を停止およびスリープするように調整する値が幾つかあります。 
 
-Before doing anything, try simulating with No Gravity, this will show you if any of your Physics Constraints are miss aligned and trying to correct before the Physics Asset has 
-even hit the ground.
+まず最初に、 No Gravity を使ってシミュレートしてください。コンストレイントが正しく調整されていないと、 
+物理アセットがグラウンドにぶつかる前に修正しようとします。
 
-Often times, a small amount of Linear and Angular Damping on all the Physics Asset's Physics Bodies is more than enough to stop the asset from shaking. However, using large 
-values in Linear Damping will cause a Physics Body slow its movement through the world, even due to gravity. Damping, as it is implemented here, is not "drag" per se. It is 
-more like moving through a viscous substance.
+多くの場合、全ての物理アセットの物理ボディの Linear Damping および Angular Damping の値は小さくてもアセットの揺れは十分止まります。ただし 
+ Linear Damping で大きい値を使用すると、いくら重力があるとはいえ、物理ボディがワールドを移動する速度が遅くなります。実行されている Damping はいわゆる「ドラッグ」ではありません。Damping はここで実行されているように、 
+「ドラッグ」というよりはむしろ粘質物の間を移動する感じです。
 
-If jitter is still an issue, perhaps you have a number of really small Physics Bodies, check the **[Substepping](Engine/Physics/Substepping)** documentation for information on having the 
-physics simulation calculate in-between solutions.
+ジッターがまだ起こるようであれば、小さい物理ボディが多いのかもしれません。**[サブステップ](Engine/Physics/Substepping)** ドキュメントをクリックして参照するか、 
+物理シミュレーションにソリューションを計算させてください。
 
-See the **[](Engine/Physics/PhAT/Reference)** and **[](Engine/Physics/Constraints/ConstraintsReference)** for more details on the properties for Physics Constraints.
+物理コンストレイントのプロパティの詳細については、 **[](Engine/Physics/PhAT/Reference)** と **[](Engine/Physics/Constraints/ConstraintsReference)** をご覧ください。
 
 
 
