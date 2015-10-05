@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Add a Collision Hull to a Static Mesh Using the Auto Convex Collision Tool
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:自動凸型コリジョン ツールを使ってコリジョン モデルを作成する
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
 Description:
 
@@ -27,27 +27,27 @@ Description:
 
 
 
-## Steps
+## ステップ
 
 [REGION:raw]
 ![](Engine/Physics/Collision/HowTo/COLREF_collisionMenu_Auto.png)
 [/REGION]
 
-The **Static Mesh Editor** has the capability to generate collision using a number of convex hulls.
+**スタティックメッシュ エディタ** は、多数の凸型ハルを使ってコリジョンを生成する機能があります。
 
 ![](Engine/Physics/Collision/HowTo/Collision_CreateCollisionHullWithAutoConvex_0.png)
 
-This rounded cube would probably work just fine with **6DOP Simplified Collision** but let us assume it needs more than that.
+丸みを帯びたこのキューブは、 **6DOP Simplified Collision** で問題なく動作すると思われますが、それ以上が必要だと仮定します。
 
-Selecting **Collision Menu -> Auto Convex Collision** will bring up this panel in the lower right hand side:
+**[Collision (コリジョン)] メニュー -> [Auto Convex Collision (自動凸型コリジョン)]** を選択すると、右下にこのようなパネルが表示されます。
 
 ![](Engine/Physics/Collision/HowTo/Collision_CreateCollisionHullWithAutoConvex_1.png)
 
-* **Max Hulls** - Determines the number of hulls to create to best match the shape of the object.
-* **Max Hull Verts** - Maximum number of collision hull vertices. Increasing this value increase how complex the collision hulls are allowed to be.
-* **Apply** - Adds collision to the object based on the settings above.
-* **Defaults** - Resets the values of **Max Hulls** and **Max Hull Verts** to the values seen in the image above.
+* **Max Hulls** - オブジェクトの形状に最も一致するハルの作成数を判断します。
+* **Max Hull Verts** - コリジョン ハル頂点の最大数。この値が高くなると、とコリジョン ハルの許容複雑度が増します。
+* **Apply** - 上記の設定に基いてコリジョンをオブジェクトに追加します。
+* **Defaults** - **[Max Hulls]** と **[Max Hull Verts]** の値を上の画像で表示された値にリセットします。
 
 ![](Engine/Physics/Collision/HowTo/Collision_CreateCollisionHullWithAutoConvex_2.png)
 
-As you can see, the auto convex collision is reasonably accurate.
+ご覧の通り、自動凸型コリジョンはかなり正確です。
