@@ -5,6 +5,7 @@ Description:An overview of the Level Design level, example 3: Lighting Pass
 Related: Engine/Rendering/LightingAndShadows/Basics
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/ParticleSystems
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
