@@ -733,7 +733,7 @@ void UGeomModifier_Extrude::Apply(int32 InLength, int32 InSegments)
 		{
 			FGeomPoly* gp = &go->PolyPool[p];
 
-			FVector Normal = mode->GetWidgetNormalFromCurrentAxis( gp );
+			FVector Normal = Brush->GetActorQuat().Inverse().RotateVector( mode->GetWidgetNormalFromCurrentAxis( gp ) );
 
 			if( gp->IsSelected() )
 			{
