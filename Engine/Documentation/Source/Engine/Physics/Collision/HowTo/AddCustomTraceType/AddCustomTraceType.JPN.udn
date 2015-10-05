@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Add a Custom Trace Type to your Project
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:カスタム仕様のトレース タイプをプロジェクトに追加する
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:コリジョン ジオメトリの作成および設定のコンテンツ ガイド
 
 [VAR:Topic]
 [OBJECT:Topic]
