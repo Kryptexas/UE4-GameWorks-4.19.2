@@ -184,6 +184,7 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& MaterialList )
 {
 	const bool bAllowNullEntries = true;
+	bool bAnyMaterialsToDisplay = false;
 
 	// Iterate over every material on the actors
 	for( FMaterialIterator It( SelectedComponents ); It; ++It )
@@ -210,9 +211,12 @@ void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& Ma
 			if( bAllowNullEntries || Material )
 			{
 				MaterialList.AddMaterial( MaterialIndex, Material, bCanBeReplaced );
+				bAnyMaterialsToDisplay = true;
 			}
 		}
 	}
+
+	MaterialCategory->SetCategoryVisibility(bAnyMaterialsToDisplay);
 }
 
 void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll )
