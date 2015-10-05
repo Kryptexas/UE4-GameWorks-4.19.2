@@ -41,6 +41,11 @@ In the following section we will go over how to setup a project to work with Ste
 	[/region]
 
 1. Right - Click inside of the **Content Browser** and select the create a new Blueprint.
+	From the **Pick Parent Class** window that is displayed select the **Game Mode** option and call it **VR_Gamemode**. 
+	
+	![](Create_New_Game_Mode.png)
+
+1. Right - Click inside of the **Content Browser** and select the create a new Blueprint.
 	From the **Pick Parent Class** window that is displayed use the search box at the bottom and search for **PlayerCameraManager**. 
 	Once PlayerCameraManager is located click on it to create it and name it **VR_PlayerCameraManager**.
 
