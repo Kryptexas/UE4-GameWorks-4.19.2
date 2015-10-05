@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Bodies Overview
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:物理ボディの概要
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:Overview of what a Physics Body, or BodyInstance, is and what it does.
+Description:物理ボディ、物理インスタンス、その機能についての概要
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,9 +47,9 @@ Description:Overview of what a Physics Body, or BodyInstance, is and what it doe
 [TOC(start:2)]
 
 
-Overview Text
+概要テキスト
 
-## Additional Info
+## 追加情報
 
 
 
