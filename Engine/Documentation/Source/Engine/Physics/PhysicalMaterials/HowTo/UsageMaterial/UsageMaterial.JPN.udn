@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Assign a Physical Material to a Material
+﻿Availability:Public
+Title:物理マテリアルをマテリアルに割り当てる
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
-Version: 4.9
-SkillLevel: Intermediate
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,16 +45,16 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-1. **Open** or **create** a new Material.
+1. マテリアルを **開く**、もしくは **新規作成** します。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMat_Material_01.png)
 
-1. **Select** the main material node.
+1. メインとなるマテリアル ノードを **選択します**。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatNone.jpg)
 
-1. **Change** the Physical Material.
+1. [Physical Material (物理マテリアル)] を **変更します**。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatGlass2.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. ![](Shared\Icons\icon_SaveAsset_40x.png) を **クリックして保存** します。
