@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Create a Physical Material
+﻿INTSourceChangelist:2714898
+Availability:Public
+Title:物理マテリアルの作成
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:
-Version: 4.9
-SkillLevel: Basic
+Version:4.9
+SkillLevel:Basic
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,21 +46,21 @@ SkillLevel: Basic
 [/VAR]
 
 
-1. From the Content Browser. **click** ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) **New Asset** -> **Physics** -> **Physical Material** or **right-click** in the **Content Browser** -> **Physics** -> **Physical Material**.
+1. コンテンツ ブラウザから、 ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) を **クリック** して **[New Asset (新規アセット)]** -> **[Physics (物理)]** -> **[Physical Material (物理マテリアル)]** の順に選択するか、**コンテンツ ブラウザ** を **右クリック** して **[Physics (物理)]** -> **[Physical Material (物理マテリアル)]** の順で選択します。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatCreate.jpg)
 
-1. **Double click** the new Physical Material to edit its properties.
+1. プロパティを編集するために、新規の物理マテリアルを **ダブルクリック** します。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysMatProperties.jpg)(w:250)
 
-1. **Adjust Properties**.
+1. **プロパティを調整します。**
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\AdjustProperties.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. **[Save (保存)]** ![](Shared\Icons\icon_SaveAsset_40x.png) をクリックします。
 
-See the [**Physical Material Reference**](Engine/Physics\PhysicalMaterials\Reference) for information on the properties in the Physical Material.
+物理マテリアルのプロパティに関する情報は、 [**物理マテリアルのリファレンス**](Engine/Physics\PhysicalMaterials\Reference) を参照してください。
 
 
 
