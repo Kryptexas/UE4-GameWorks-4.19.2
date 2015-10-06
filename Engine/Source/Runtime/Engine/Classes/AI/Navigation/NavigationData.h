@@ -439,9 +439,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	float ObservedPathsTickInterval;
 
-	UPROPERTY(Transient)
-	UWorld* CachedWorld;
-
 public:
 	//----------------------------------------------------------------------//
 	// Life cycle                                                                
