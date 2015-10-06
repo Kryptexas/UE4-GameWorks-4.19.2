@@ -155,6 +155,7 @@ FUnrealEdMisc::FUnrealEdMisc() :
 	bSaveLayoutOnClose( true ),
 	bDeletePreferences( false ),
 	bIsAssetAnalyticsPending( false ),
+	bEditorCrashed(false),
 	PerformanceAnalyticsStats(new FPerformanceAnalyticsStats()),
 	NavigationBuildingNotificationHandler(NULL)
 {
@@ -204,6 +205,7 @@ void FUnrealEdMisc::OnInit()
 	FEditorDelegates::ChangeEditorMode.AddRaw(this, &FUnrealEdMisc::OnEditorChangeMode);
 	FCoreDelegates::PreModal.AddRaw(this, &FUnrealEdMisc::OnEditorPreModal);
 	FCoreDelegates::PostModal.AddRaw(this, &FUnrealEdMisc::OnEditorPostModal);
+	FCoreDelegates::OnHandleSystemError.AddRaw(this, &FUnrealEdMisc::OnCrashing);
 
 	// Register the play world commands
 	FPlayWorldCommands::Register();
@@ -462,6 +464,38 @@ void FUnrealEdMisc::InitEngineAnalytics()
 	if ( FEngineAnalytics::IsAvailable() )
 	{
 		IAnalyticsProvider& EngineAnalytics = FEngineAnalytics::GetProvider();
+
+		// Editor is starting - Check for the abnormal shutdown flag
+		FString AbnormalShutdownFlag;
+		FString EngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
+		FString StoredSection = FString::Printf(TEXT("Unreal Engine/Editor/%s"), *EngineVersionString);
+		if (FPlatformMisc::GetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), AbnormalShutdownFlag))
+		{
+			if (!AbnormalShutdownFlag.IsEmpty())
+			{
+				// Abnormal shutdown flag is set
+				FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
+				bool bHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
+
+#if PLATFORM_WINDOWS
+				const FString PlatformName(TEXT("Windows"));
+#elif PLATFORM_MAC
+				const FString PlatformName(TEXT("Mac"));
+#elif PLATFORM_LINUX
+				const FString PlatformName(TEXT("Linux"));
+#else
+				const FString PlatformName(TEXT("Unknown"));
+#endif
+				TArray< FAnalyticsEventAttribute > AbnormalShutdownAttributes;
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("EngineVersion"), EngineVersionString));
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("ShutdownType"), AbnormalShutdownFlag));
+
+				FEditorAnalytics::ReportEvent(TEXT("Editor.AbnormalShutdown"), PlatformName, bHasCode, AbnormalShutdownAttributes);
+			}
+		}
+
+		// Set the abnormal shutdown flag
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), TEXT("AbnormalShutdown"));
 
 		// Send analytics about sample projects
 		if( FPaths::IsProjectFilePathSet() )
@@ -762,6 +796,14 @@ void FUnrealEdMisc::OnExit()
 		FEditorViewportStats::SendUsageData();
 	}
 
+	// Editor is shutting down - Clear the abnormal shutdown flag
+	if (!bEditorCrashed)
+	{
+		FString EngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
+		FString StoredSection = FString::Printf(TEXT("Unreal Engine/Editor/%s"), *EngineVersionString);
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), FString());
+	}
+
 	FInputBindingManager::Get().UnregisterUserDefinedChordChanged(OnUserDefinedChordChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();
 	FUObjectToken::DefaultOnMessageTokenActivated().Unbind();
@@ -799,6 +841,7 @@ void FUnrealEdMisc::OnExit()
 	FEditorDelegates::ChangeEditorMode.RemoveAll(this);
 	FCoreDelegates::PreModal.RemoveAll(this);
 	FCoreDelegates::PostModal.RemoveAll(this);
+	FCoreDelegates::OnHandleSystemError.RemoveAll(this);
 
 	FComponentAssetBrokerage::PRIVATE_ShutdownBrokerage();
 
@@ -1010,6 +1053,14 @@ void FUnrealEdMisc::OnEditorPostModal()
 	{
 		FSlateApplication::Get().ExternalModalStop();
 	}
+}
+
+void FUnrealEdMisc::OnCrashing()
+{
+	bEditorCrashed = true;
+	FString EngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
+	FString StoredSection = FString::Printf(TEXT("Unreal Engine/Editor/%s"), *EngineVersionString);
+	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), TEXT("Crashed"));
 }
 
 void FUnrealEdMisc::OnDeferCommand( const FString& DeferredCommand )
@@ -1691,4 +1742,4 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 	}
 }
 
-#undef  LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE
