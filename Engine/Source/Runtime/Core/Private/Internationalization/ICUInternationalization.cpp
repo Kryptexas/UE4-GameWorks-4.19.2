@@ -210,8 +210,9 @@ void FICUInternationalization::LoadDLLs()
 		FString LibraryName = "lib" "icu" + Stem + ".53.1" + LibraryNamePostfix + "." "dylib";
 #endif //PLATFORM_*
 
-		void* DLLHandle = FPlatformProcess::GetDllHandle(*(TargetSpecificPath / LibraryName));
-		check(DLLHandle != nullptr);
+		const FString DLLFilename = TargetSpecificPath / LibraryName;
+		void* DLLHandle = FPlatformProcess::GetDllHandle(*DLLFilename);
+		checkf(DLLHandle != nullptr, TEXT("Failed to load DLL: %s"), *DLLFilename);
 		DLLHandles.Add(DLLHandle);
 	}
 }
