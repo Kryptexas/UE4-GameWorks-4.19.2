@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2653165
+﻿INTSourceChangelist:2716570
 Availability:Public
 Title:1.1 - ランドスケープ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Landscapes
-Description:ランドスケープのサンプル レベルの概要、1.1：ランドスケープ
+Description:ランドスケープのサンプル レベルの概要、サンプル 1.1：ランドスケープ
 Related:Engine/Landscape/Creation
 Related:Engine/Landscape/Editing
 Related:Engine/Landscape/UI
@@ -10,6 +10,7 @@ Related:Engine/Landscape/Materials
 Related:Engine/Landscape/Editing/Splines
 Related:Engine/Landscape/Editing/Gizmos
 Related:Engine/Landscape/Editing/Brushes
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
