@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714445
 Availability:Public
 Title:1.1 - CPU と GPU スプライトパーティクルの比較
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -9,6 +9,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,7 +73,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
 
 
-**アンリアル・エンジン 4** で利用可能なパーティクル タイプの 1 つに **GPU スプライト** があります。最初に CPU 上でスポーンされるパーティクルですが、その後、全てグラフィックカードで処理及び演算処理されます。GPU で演算処理をするため、何千ものより多くのパーティクルを一度に処理できるのが利点です。高密度でより詳細なパーティクル システムを実現します。
+アンリアル・エンジン 4 で利用可能なパーティクル タイプの 1 つに **GPU スプライト** があります。最初に CPU 上でスポーンされるパーティクルですが、その後、全てグラフィックカードで処理及び演算処理されます。GPU で演算処理をするため、何千ものより多くのパーティクルを一度に処理できるのが利点です。高密度でより詳細なパーティクル システムを実現します。
 
 最初にとてもシンプルな 2 つのパーティクルの噴水をお見せします。ひとつは一般的なCPU パーティクルスプライトで作成し、もうひとつは GPU スプライトで作成したものです。GPU パーティクルを使用した右側の噴水は、もうひとつの噴水よりもはるかに多くのパーティクルを出力していることがわかります。 
 
