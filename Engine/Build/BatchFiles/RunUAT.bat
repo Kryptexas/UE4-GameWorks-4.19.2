@@ -31,15 +31,9 @@ if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 echo path="%path%"
 
-rem ## Skip to 2015 setup if specifically selected
-:args
-if "%1" == "-2015" goto NoVisualStudio2013Environment
-if "%1" == "" goto skip
-shift
-goto args
-:skip
-
 rem ## Check for Visual Studio 2013
+
+for %%P in (%*) do if "%%P" == "-2015" goto NoVisualStudio2013Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 12
