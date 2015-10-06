@@ -18,6 +18,7 @@ The **Destructible Mesh Editor** consists of six areas:
 1. [Fracture Settings Panel](#FractureSettingsPanel)
 1. [Chunk Parameters Panel](#ChunkParametersPanel)
 
+
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
 <!-- For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). -->
@@ -57,6 +58,8 @@ The **Destructible Mesh Editor** consists of six areas:
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
 
 
+
+
 ## Toolbar
 
 | Item | Description |
@@ -81,7 +84,7 @@ The viewport will also allow you to use different Preview Depths to see your dif
 
 The **Destructible Settings** panel shows specific properties pertaining to the Destructible Mesh Actor, such as the Materials applied to the surface and interior, Damage settings, and flags that can enable specific abilities. 
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+For information about the basics of using this panel, see the [Destructibles Properties Matrix](Engine/Physics/Destructibles/DestructibleProperties) documentation.
 
 ![Editor Destructible Settings Panel](DM_Settings.png)
 
@@ -90,7 +93,7 @@ For information about the basics of using this panel, see the [**Destructibles P
 
 The **Fracture Settings** panel shows settings to control how the Destructible Mesh Actor is broken into chunks. There are properties that pertain to the number of chunks the fracture should contain, control for the interior material UVs, and the random pattern seed. 
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+For information about the basics of using this panel, see the [Destructibles Properties Matrix](Engine/Physics/Destructibles/DestructibleProperties) documentation.
 
 ![Fracture Settings Panel](DM_FractureSettings.png)
 
@@ -99,7 +102,7 @@ For information about the basics of using this panel, see the [**Destructibles P
 
 The **Chunk Parameters** panel contains settings that directly affect specific chunks that are selected in the preview panel when viewing Preview Depth 1 or higher. The settings here can control whether a chunk can be damaged, fractured, crumbled, or even considered as support.
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+For information about the basics of using this panel, see the [Destructibles Properties Matrix](Engine/Physics/Destructibles/DestructibleProperties) documentation.
 
 ![Chunk Parameters Panel](DM_ChunkParameters.png)
 
