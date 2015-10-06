@@ -1,7 +1,8 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2716683
+Availability:Public
 Title:2.1 - Static Light（静的ライト）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのコンテンツ サンプルの概要、2.1：Static Light
+Description:ライティングのコンテンツ サンプルの概要、サンプル 2.1：Static Light (静的ライト)
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -11,6 +12,7 @@ Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/Shadows
 Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related:Engine/Rendering/LightingAndShadows/LightMobility
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -68,15 +70,18 @@ Static lights (静的ライト) はライトマップのみを使用するため
 
 ブラシ サーフェスのライトマップ解像度は、_Lightmap Resolution_ プロパティ経由で設定しています。これは実際に密度を設定しているため、値が低ければ低いほど高い解像度となります。
 
-[REGION:imagetable]
-|![](LightmapRes_4.png)(w:%2XSize%)  |![](LightmapRes_16.png)(w:%2XSize%)  |
-|------------------------|-------------------------|
-|ライトマップの解像度:4.0|ライトマップの解像度:16.0|
-[/REGION]
-[/EXCERPT:StaticLighting02]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lightmap Resolution: 4.0](LightmapRes_4.png)(w:%2XSize%)
+	[/PARAM]
+	[PARAM:after]
+	![Lightmap Resolution: 16.0](LightmapRes_16.png)(w:%2XSize%)
+	[/PARAM]
+[/OBJECT]
+
 
 [EXCERPT:ILC]
-Static lights は _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます:
+Static lights (静的ライト) は _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます:
 
 `r.Cache.DrawLightingSamples 1`
 
@@ -85,7 +90,7 @@ Static lights は _Indirect Lighting Cache のサンプル グリッド_ が原�
 ![](IndirectLightingCache.png)
 
 [REGION:note]
-Indirect lighting Cache のサンプルを存在させるには、シーン周りに _[Lightmass Importance Volume]_ を設定し、ライティングはライトマスで構築しなくてはいけません。
+Indirect lighting Cache のサンプルを存在させるには、シーン周りに **Lightmass Importance Volume** を設定し、ライティングはライトマスで構築しなくてはいけません。
 [/REGION]
 
 
@@ -94,7 +99,7 @@ Indirect lighting Cache のサンプルを存在させるには、シーン周�
 [/EXCERPT:ILC] 
 
 
-これに加えて、Static lights は [3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。静的ライトは Light 関数をサポートしません。これについては [3.2](Resources\ContentExamples\Lighting\3_2) で説明します。
+これに加えて、Static lights (静的ライト) は [3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。Static lights (静的ライト) は Light 関数をサポートしません。これについては [3.2](Resources\ContentExamples\Lighting\3_2) で説明します。
 
 
 
