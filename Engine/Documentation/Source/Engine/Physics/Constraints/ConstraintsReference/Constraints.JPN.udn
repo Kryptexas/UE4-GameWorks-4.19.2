@@ -1,43 +1,320 @@
-﻿INTSourceChangelist:2678767
+﻿INTSourceChangelist:2714898
 Availability:Public
 Title:物理コンストレイントのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:アンリアル エディタの物理コンストレイントで利用可能なすべてのプロパティに関するリファレンス。
-バージョン：4.9
+Version:4.9
 
-[TOC(start:2)]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
-[EXCERPT:PhysXConstraints_001]
-コンストレイントは基本的にジョイントの一種です。2 つのアクタを接続し (おそらく 1 つは物理的にシミュレーションします)、制限や力を適用することもできます。アンリアル エンジン 4 は、 
-非常に柔軟なデータ ドリブンのコンストレイント システムです。オプションを変更するだけで、デザイナーは様々なジョイントを作成することができます。エンジンにはデフォルトでいくつかの 
-ジョイント タイプ (ボールとソケット、ヒンジ、プリズマティック (直動) ) があります。こららの違いは設定だけです。どのタイプのジョイントから初めても、ご自由に独自のコンフィギュレーションをつくる 
-ことができます。
-[/EXCERPT:PhysXConstraints_001]
 
-## プロパティのリファレンス
 
-PhysX コンストレイントを作成するには以下の 3 種類の方法があります。すなわち、**ブループリント**、**アクタ**、および **物理アセットツール** (**PhAT**) で作成します。
+このページは、物理コンストレイントのプロパティのリファレンス リストです。 
 
-###アクタのコンストレイント
+## プロパティ
 
-| プロパティ | 説明 |
-| -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
-| **Constraint Actor 1** | %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
-| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
-| **Constraint Actor 2** | %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
-| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
-| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+以下は主なカテゴリ別に分類した物理コンストレイントのプロパティです。
 
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		cons
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		コンストレイント
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+![](propConstraint.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Constraint Actor 1** || %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
+| **Component Name 1** || %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Constraint Actor 2** || %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
+| **Component Name 2** || %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** || %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** || %doxygen:FConstraintInstance::bDisableCollision% |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		proj
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		プロジェクション
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+![](propProjection.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Enable Projection** || %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection Linear Tolerance** || %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** || %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		join
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		ジョイント プリセット
+	[/PARAM]
+	[PARAM:content]
+		%p3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p3]
+
+![](propJointPresets.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Hinge** || ジョイントをヒンジに設定します。ヒンジを使用したジョイントは 1 面のみの動作が可能です。 |
+| **Hinge** || ジョイントをプリズマティックに設定します。プリズマティックを使用したジョイントはリニアスライド動作のみが可能になります。 |
+| **Ball and Socket** || ジョイントをボールとソケットに設定します。ボールとソケットを使用したジョイントは、共通の中心軸を持つ無数の軸周りの動作が可能になります。 |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linlim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		直線の制限
+	[/PARAM]
+	[PARAM:content]
+		%p4%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p4]
+
+![](propLinearLimits.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Linear XMotion** || %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear XMotion** || %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear XMotion** || %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Size** || %doxygen:FConstraintInstance::LinearLimitSize% |
+[/REGION]
+
+### 高度なプロパティ
+
+![](propLinearLimitsADV.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Linear Limit Soft** || %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** || %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** || %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** || %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** || %doxygen:FConstraintInstance::LinearBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		anglim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		角度の制限
+	[/PARAM]
+	[PARAM:content]
+		%p5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p5]
+
+![](propsAngularLimits.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Angular Swing 1Motion** || %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Twist Motion** || %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Swing 2Motion** || %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Swing 1Limit Angle** || %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Twist Limit Angle** || %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing 2Limit Angle** || %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Angular Rotation Offset** || %doxygen:FConstraintInstance::AngularRotationOffset% |
+[/REGION]
+
+### 高度なプロパティ
+
+![](propsAngularLimitsADV.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Swing Limit Soft** || %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** || %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** || %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** || %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** || %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** || %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** || %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** || %doxygen:FConstraintInstance::AngularBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		線形モーター
+	[/PARAM]
+	[PARAM:content]
+		%p6%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p6]
+
+![](propLinearMotor.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Linear Position Drive** || %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| **Linear Position Target** || %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Strength** || %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Velocity Drive** || %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| **Linear Velocity Target** || %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Velocity Strength** || %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Max Linear Force** || %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		angmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		角度モーター
+	[/PARAM]
+	[PARAM:content]
+		%p7%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p7]
+
+![](propsAngularMotor.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Angular Orientation Drive** || %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| **Angular Orientation Target** || %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Orientation Strength** || %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Velocity Drive** || %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| **Angular Velocity Target** || %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Velocity Strength** || %doxygen:FConstraintInstance::AngularDriveDamping% |
+| **Max Angular Force** || %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Mode** || %doxygen:FConstraintInstance::AngularDriveMode% |
+[/REGION]
+
+[/VAR]
+
+
+
+<!--
 ![](PhysCon_JointPresets.png)(convert:false) 
 
 [INCLUDE:#presetTable]
 
 * **物理コンストレイント アクタ** の使用については、[**%Engine/Physics\Constraints\ConstraintsUserGuide:title%**](Engine/Physics\Constraints\ConstraintsUserGuide) をご覧ください。
-<!--
+
 [EXCERPT:presetTable]
 | ジョイント プリセット | 説明 |
 | --- | ---- |
@@ -45,13 +322,13 @@ PhysX コンストレイントを作成するには以下の 3 種類の方法�
 | **Prismatic** | **Swing Motions** を _ロック_ し、**Angular Twist Motion** _ロック_ し、**Linear Y** と **Linear Z motions** を _ロック_ し、**Linear ZMotion** を _フリー_ に設定します。油圧ピストンのようになります。 |
 | **Ball and Socket** | すべての **Linear Motions** を _ロック_ し、**Swing Motions** を設定し、**Twist Motions** を _フリー_ に設定します。完全に自由に回転します。サンドバックや建物解体用のボールのようになります。 |
 [/EXCERPT:presetTable]
--->
+
 
 ### ブループリント コンストレイント
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
+|[REGION:tablesection]コンストレイント[/REGION]||
 | **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
 | **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
 | **Joint Name** | %doxygen:FConstraintInstance::JointName% |
@@ -65,7 +342,7 @@ PhysX コンストレイントを作成するには以下の 3 種類の方法�
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
+|[REGION:tablesection]コンストレイント[/REGION]||
 | **Joint Name** | %doxygen:FConstraintInstance::JointName% |
 | **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
 | **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
@@ -96,7 +373,7 @@ PhysX コンストレイントを作成するには以下の 3 種類の方法�
 | **Enable Projection** | %doxygen:FConstraintInstance::bEnableProjection% |
 | **Projection Linear Tolerance** | %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
 | **Projection Angular Tolerance** | %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
-|[REGION:tablesection]Angular Limits[/REGION]||
+|[REGION:tablesection]角度の制限[/REGION]||
 | **Angular Swing 1Motion** | %doxygen:FConstraintInstance::AngularSwing1Motion% |
 | **Angular Swing 2Motion** | %doxygen:FConstraintInstance::AngularSwing2Motion% |
 | **Angular Twist Motion** | %doxygen:FConstraintInstance::AngularTwistMotion% |
@@ -112,7 +389,7 @@ PhysX コンストレイントを作成するには以下の 3 種類の方法�
 | **Twist Limit Damping** | %doxygen:FConstraintInstance::TwistLimitDamping% |
 | **Angular Breakable** | %doxygen:FConstraintInstance::bAngularBreakable% |
 | **Angular Break Threshold** | %doxygen:FConstraintInstance::AngularBreakThreshold% |
-|[REGION:tablesection]Linear Motor[/REGION]||
+|[REGION:tablesection]線形モーター[/REGION]||
 | **Linear Position Drive** | %doxygen:FConstraintInstance::bLinearPositionDrive% |
 | **Linear XPosition Drive** | %doxygen:FConstraintInstance::bLinearXPositionDrive% |
 | **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
@@ -123,7 +400,7 @@ PhysX コンストレイントを作成するには以下の 3 種類の方法�
 | **Linear Velocity Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
 | **Linear Velocity Strength** | リニア (直線) 駆動に適用する減衰 |
 | **Max Linear Force** | リニア (直線) 駆動が適用できる力の限界 |
-|[REGION:tablesection]Angular Motor[/REGION]||
+|[REGION:tablesection]角度モーター[/REGION]||
 | **Angular Orientation Drive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
 | **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget% |
 | **Angular Position Strength** | 角度駆動に適用するスプリング値 |
@@ -161,13 +438,13 @@ PhysX コンストレイントを作成するには以下の 3 種類の方法�
 
 ![](PhysCon_JointPresets.png)
 
-物理コンストレイントのアイコンは、ジョイントのタイプに応じて変わることに注意してください。
+物理、物理面
 
 [REGION:lightbox]
 [![](PhysCon_Hinge.png)(w:300)](PhysCon_Hinge.png) [![](PhysCon_Prismatic.png)(w:300)](PhysCon_Prismatic.png) [![](PhysCon_BallNJoint.png)(w:300)](PhysCon_BallNJoint.png) 
 [/REGION]
 
-_左から右に以下のようなアイコンになります。ヒンジ、プリズマティック、 およびボールとソケット_
+_左から右に以下のようになります。ヒンジ、プリズマティック、 およびボールとソケット_
 
 ### 直線の自由度と制限
 
@@ -181,7 +458,7 @@ _左から右に以下のようなアイコンになります。ヒンジ、プ�
 
 _左から右に以下のようになります (物理コンストレイントは 4x に拡大されています)。Linear Motions は 15 ユニットに制限されています。Linear Motions は free に設定されています。_
 
-<!-- For information on all the properties relating to Linear Freedom and Limits see:[%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+<!-- 直線の自由度と制限に関するすべてのプロパティの情報は以下をご覧ください。 [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
 
 ### 角度の自由度と制限
 
@@ -203,7 +480,7 @@ _左から右に以下のようになります。Swing 1 は 45 度に制限、S
 [![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
 [/REGION]
 
-<!-- For information on all the properties relating to Angular Freedom and Limits see:[%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+<!-- 角度の自由度と制限に関するすべてのプロパティの情報は以下をご覧ください。 [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
 
 ### 方向
 
@@ -242,7 +519,7 @@ Linear Motion では、制約されたアクタを重力が下に引っ張りま
 
 
 ### プリズマティック (直動) 
-プリズマティック ジョイントは 3 つのうち 2 つの直線の自由度がロックされます。また、すべての角度の自由度もロックされます。これにより、「レール」を滑り落ちることはできますが、全く回転しないようにできます。
+プリズマティック ジョイントは 3 つのうち 2 つの直線の自由度がロックされます。また、すべての角度の自由度もロックされます。これにより、「レール」を滑り落ちることはできますが、全く回転できません。
 
 
 ### ジョイントの摩擦
@@ -253,7 +530,7 @@ Linear Motion では、制約されたアクタを重力が下に引っ張りま
 最初にボールとソケットのジョイントを作成して、ジョイントでサンドバッグ (垂直ポール上に叩くことができるボールがある) のようなものをシミュレーションできます。次にスイング位置駆動をオンにし、押されると垂直位置周辺でうまく跳ね返るようになるまで **AngularDriveSpring** と **AngularDriveDamping** を調整します。スイング制限をオンにし、遠過ぎる場所でスイングしないようにすることができます。
 
 -->
- 
+-->
 
 
 
