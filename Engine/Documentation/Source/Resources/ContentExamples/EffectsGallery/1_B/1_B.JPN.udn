@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714445
 Availability:Public
 Title:1.2 -  Velocity Cone モジュールを使用した GPU パーティクル 
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -9,6 +9,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -88,7 +89,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
 3 番目のエミッタはパーティクル システムにスタティックメッシュのインスタンスを放出する際に Mesh TypeData モジュールを使用します。この場合はシンプルな球体形状です。エミッタのライフタイムは 0 に設定されており、これは事実上パーティクルの寿命を永続的なものにします。
 
-パーティクル エフェクトを作成するために、パーティクル エフェクト全部を一連の異なるサブシステムと考えると大抵の場合役立ちます。ここでは中央にメッシュがある二つの噴水へエフェクトを分割します。キャンプ ファイヤーなどその他のエフェクトの場合、、エレメントを火の中心、外部の炎、火花、煙、そして発生しうる熱変形として単一パーティクルシステム内の別のエミッタに切り離すことになるでしょう。
+パーティクル エフェクトを作成するために、パーティクル エフェクト全部を一連の異なるサブシステムと考えると大抵の場合役立ちます。ここでは中央にメッシュがある二つの噴水へエフェクトを分割します。キャンプ ファイヤーなどその他のエフェクトの場合、エレメントを火の中心、外部の炎、火花、煙、そして発生しうる熱変形として単一パーティクルシステム内の別のエミッタに切り離すことになるでしょう。
   
 Velocity モジュールに関する詳細は、 [Velocity モジュールのドキュメント](Engine/Rendering/ParticleSystems\Reference\Modules\Velocity) を参照してください。 
 
