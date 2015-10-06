@@ -13,6 +13,7 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
