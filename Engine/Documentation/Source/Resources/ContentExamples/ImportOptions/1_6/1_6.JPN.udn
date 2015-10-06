@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2714669
+Availability:Public
 Title:1.6 - ドラッグ ＆ ドロップ アニメーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
 Description:ドラッグ ＆ ドロップ アニメーション
@@ -11,6 +12,7 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
