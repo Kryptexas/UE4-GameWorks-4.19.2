@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653187
+﻿INTSourceChangelist:2716625
 Availability:Public
 Title:3 - ライティング評価
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -6,6 +6,7 @@ Description:レベルデザインの概要、サンプル 3：ライティング
 Related: Engine/Rendering/LightingAndShadows/Basics
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/ParticleSystems
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
