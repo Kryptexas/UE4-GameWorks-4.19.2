@@ -10,6 +10,8 @@ namespace AutomationTool
 	[DebuggerDisplay("{Name}")]
 	public abstract class BuildNode
 	{
+		public const int ExplicitFrequencyShift = 16;
+
 		public string Name;
 		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
 		public string AgentRequirements;
