@@ -2970,6 +2970,7 @@ void FEngineLoop::AppExit( )
 
 	if( GLog )
 	{
+		GLog->SetCurrentThreadAsMasterThread();
 		GLog->TearDown();
 	}
 
