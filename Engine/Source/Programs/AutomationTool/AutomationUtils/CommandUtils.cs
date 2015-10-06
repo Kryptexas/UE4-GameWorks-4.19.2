@@ -2492,7 +2492,12 @@ namespace AutomationTool
 				throw new AutomationException("SignTool not found at '{0}' (are you missing the Windows SDK?)", SignToolName);
 			}
 
-			// Code sign the executable
+			// nothing to sign
+			if (String.IsNullOrEmpty(FilesToSign))
+			{
+				return;
+			}
+
 			string TimestampServer = "http://timestamp.verisign.com/scripts/timestamp.dll";
 
 			string SpecificStoreArg = bUseMachineStoreInsteadOfUserStore ? " /sm" : "";	
