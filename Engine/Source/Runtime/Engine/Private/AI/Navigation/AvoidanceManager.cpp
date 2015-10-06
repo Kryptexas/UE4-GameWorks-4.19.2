@@ -259,6 +259,41 @@ FVector AvoidCones(TArray<FVelocityAvoidanceCone>& AllCones, const FVector& Base
 	return CurrentPosition;
 }
 
+static bool AvoidsNavEdges(const FVector& OrgLocation, const FVector& TestVelocity, const TArray<FNavEdgeSegment>& NavEdges, float MaxZDiff)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Avoidance: avoid nav edges"), STAT_AIAvoidanceEdgeAvoid, STATGROUP_AI);
+
+	for (int32 Idx = 0; Idx < NavEdges.Num(); Idx++)
+	{
+		const FVector2D Seg1ToSeg0(NavEdges[Idx].P1 - NavEdges[Idx].P0);
+		const FVector2D NewPosToOrg(TestVelocity);
+		const FVector2D OrgToSeg0(NavEdges[Idx].P0 - OrgLocation);
+		const float CrossD = FVector2D::CrossProduct(Seg1ToSeg0, NewPosToOrg);
+		if (FMath::Abs(CrossD) < KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		const float CrossS = FVector2D::CrossProduct(NewPosToOrg, OrgToSeg0) / CrossD;
+		const float CrossT = FVector2D::CrossProduct(Seg1ToSeg0, OrgToSeg0) / CrossD;
+		if (CrossS < 0.0f || CrossS > 1.0f || CrossT < 0.0f || CrossT > 1.0f)
+		{
+			continue;
+		}
+
+		const FVector CrossPt = FMath::Lerp(NavEdges[Idx].P0, NavEdges[Idx].P1, CrossT);
+		const float ZDiff = FMath::Abs(OrgLocation.Z - CrossPt.Z);
+		if (ZDiff > MaxZDiff)
+		{
+			continue;
+		}
+
+		return false;
+	}
+	
+	return true;
+}
+
 //RickH - We could probably significantly improve speed if we put separate Z checks in place and did everything else in 2D.
 FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData& inAvoidanceData, float DeltaTime, int32* inIgnoreThisUID)
 {
@@ -422,6 +457,13 @@ FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData
 		return inAvoidanceData.Velocity;
 	}
 
+	TArray<FNavEdgeSegment> NavEdges;
+	if (EdgeProviderOb.IsValid())
+	{
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Avoidance: collect nav edges"), STAT_AIAvoidanceEdgeCollect, STATGROUP_AI);
+		EdgeProviderInterface->GetEdges(inAvoidanceData.Center, inAvoidanceData.TestRadius2D, NavEdges);
+	}
+
 	//Find a good velocity that isn't inside a cone.
 	if (AllCones.Num())
 	{
@@ -453,14 +495,18 @@ FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData
 			BestScorePotential = (VelSpacePoint|ReturnVelocity) * (VelSpacePoint|VelSpacePoint);
 			if (BestScorePotential > BestScore)
 			{
-				FVector CandidateVelocity = AvoidCones(AllCones, FVector::ZeroVector, VelSpacePoint, AllCones.Num());
-				float CandidateScore = (CandidateVelocity|ReturnVelocity) * (CandidateVelocity|CandidateVelocity);
-
-				//Vectors are rated by their length and their overall forward movement.
-				if (CandidateScore > BestScore)
+				const bool bAvoidsNavEdges = NavEdges.Num() > 0 ? AvoidsNavEdges(inAvoidanceData.Center, VelSpacePoint, NavEdges, inAvoidanceData.Height) : true;
+				if (bAvoidsNavEdges)
 				{
-					BestScore = CandidateScore;
-					BestVelocity = CandidateVelocity;
+					FVector CandidateVelocity = AvoidCones(AllCones, FVector::ZeroVector, VelSpacePoint, AllCones.Num());
+					float CandidateScore = (CandidateVelocity|ReturnVelocity) * (CandidateVelocity|CandidateVelocity);
+
+					//Vectors are rated by their length and their overall forward movement.
+					if (CandidateScore > BestScore)
+					{
+						BestScore = CandidateScore;
+						BestVelocity = CandidateVelocity;
+					}
 				}
 			}
 		}
@@ -551,4 +597,10 @@ bool UAvoidanceManager::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 #endif
 
 	return false;
+}
+
+void UAvoidanceManager::SetNavEdgeProvider(INavEdgeProviderInterface* InEdgeProvider)
+{
+	EdgeProviderInterface = InEdgeProvider;
+	EdgeProviderOb = Cast<UObject>(InEdgeProvider);
 }

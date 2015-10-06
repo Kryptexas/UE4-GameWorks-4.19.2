@@ -381,6 +381,7 @@ public:
 	inline bool IsParentSelected() const { return bParentSelected; }
 	inline bool IsIndividuallySelected() const { return bIndividuallySelected; }
 	inline bool IsSelected() const { return IsParentSelected() || IsIndividuallySelected(); }
+	inline bool WantsSelectionOutline() const { return bWantsSelectionOutline; }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
 	inline uint8 GetCustomDepthStencilValue() const { return CustomDepthStencilValue; }
 	inline bool ShouldRenderInMainPass() const { return bRenderInMainPass; }
@@ -645,6 +646,9 @@ protected:
 
 	/** Whether this primitive requires notification when its level is added to the world and made visible for the first time. */
 	uint32 bNeedsLevelAddedToWorldNotification : 1;
+
+	/** true by default, if set to false will make given proxy never drawn with selection outline */
+	uint32 bWantsSelectionOutline : 1;
 
 private:
 

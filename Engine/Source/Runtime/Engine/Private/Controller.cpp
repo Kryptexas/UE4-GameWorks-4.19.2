@@ -104,6 +104,11 @@ FRotator AController::GetControlRotation() const
 
 void AController::SetControlRotation(const FRotator& NewRotation)
 {
+	if (NewRotation.ContainsNaN())
+	{
+		checkf(!GEnsureOnNANDiagnostic, TEXT("AController::SetControlRotation about to apply NaN-containing rotation! (%s)"), *NewRotation.ToString());
+		return;
+	}
 	if (!ControlRotation.Equals(NewRotation, 1e-3f))
 	{
 		ControlRotation = NewRotation;
@@ -495,26 +500,23 @@ void AController::GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Ro
 
 void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	UFont* RenderFont = GEngine->GetSmallFont();
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	if ( Pawn == NULL )
 	{
 		if (PlayerState == NULL)
 		{
-			YL = Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
+			DisplayDebugManager.DrawString(TEXT("NO PlayerState"));
 		}
 		else
 		{
 			PlayerState->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
-		YPos += YL;
-
-		Super::DisplayDebug(Canvas, DebugDisplay, YL,YPos);
+		Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		return;
 	}
 
-	Canvas->SetDrawColor(255,0,0);
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("CONTROLLER %s Pawn %s"), *GetName(), *Pawn->GetName()), 4.0f, YPos );
-	YPos += YL;
+	DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("CONTROLLER %s Pawn %s"), *GetName(), *Pawn->GetName()));
 }
 
 FString AController::GetHumanReadableName() const

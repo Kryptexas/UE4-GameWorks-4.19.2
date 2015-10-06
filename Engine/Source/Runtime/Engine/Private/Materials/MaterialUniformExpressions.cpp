@@ -229,21 +229,79 @@ void FUniformExpressionSet::SetParameterCollections(const TArray<UMaterialParame
 	}
 }
 
-FShaderUniformBufferParameter* ConstructMaterialUniformBufferParameter() { return NULL; }
+static FShaderUniformBufferParameter* ConstructMaterialUniformBufferParameter()
+{
+	return nullptr;
+}
+
+
+static FName MaterialLayoutName(TEXT("Material"));
+
+FRHIUniformBufferLayout* FUniformExpressionSet::CreateDebugLayout() const
+{
+	// Make sure FUniformExpressionSet::CreateBufferStruct() is in sync
+	uint32 NextMemberOffset = 0;
+	FRHIUniformBufferLayout* Layout = new FRHIUniformBufferLayout(MaterialLayoutName);
+	if (UniformVectorExpressions.Num())
+	{
+		const uint32 VectorArraySize = UniformVectorExpressions.Num() * sizeof(FVector4);
+		NextMemberOffset += VectorArraySize;
+	}
+
+	if (UniformScalarExpressions.Num())
+	{
+		const uint32 ScalarArraySize = (UniformScalarExpressions.Num() + 3) / 4 * sizeof(FVector4);
+		NextMemberOffset += ScalarArraySize;
+	}
+
+	Layout->ConstantBufferSize = NextMemberOffset;
+	Layout->ResourceOffset = Align(NextMemberOffset, 8);
+
+	for (int32 i = 0; i < Uniform2DTextureExpressions.Num(); ++i)
+	{
+		check((NextMemberOffset & 0x7) == 0);
+		Layout->Resources.Add(UBMT_TEXTURE);
+		NextMemberOffset += 8;
+		Layout->Resources.Add(UBMT_SAMPLER);
+		NextMemberOffset += 8;
+	}
+
+	for (int32 i = 0; i < UniformCubeTextureExpressions.Num(); ++i)
+	{
+		check((NextMemberOffset & 0x7) == 0);
+		Layout->Resources.Add(UBMT_TEXTURE);
+		NextMemberOffset += 8;
+		Layout->Resources.Add(UBMT_SAMPLER);
+		NextMemberOffset += 8;
+	}
+
+	// Wrap_WorldGroupSettings
+	Layout->Resources.Add(UBMT_SAMPLER);
+	NextMemberOffset += 8;
+
+	// Clamp_WorldGroupSettings
+	Layout->Resources.Add(UBMT_SAMPLER);
+	NextMemberOffset += 8;
+
+	const uint32 StructSize = Align(NextMemberOffset, UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+	Layout->GetHash();
+	return Layout;
+}
 
 void FUniformExpressionSet::CreateBufferStruct()
 {
+	// Make sure FUniformExpressionSet::CreateDebugLayout() is in sync
 	TArray<FUniformBufferStruct::FMember> Members;
 	uint32 NextMemberOffset = 0;
 
-	if(UniformVectorExpressions.Num())
+	if (UniformVectorExpressions.Num())
 	{
 		new(Members) FUniformBufferStruct::FMember(TEXT("VectorExpressions"),TEXT(""),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,UniformVectorExpressions.Num(),NULL);
 		const uint32 VectorArraySize = UniformVectorExpressions.Num() * sizeof(FVector4);
 		NextMemberOffset += VectorArraySize;
 	}
 
-	if(UniformScalarExpressions.Num())
+	if (UniformScalarExpressions.Num())
 	{
 		new(Members) FUniformBufferStruct::FMember(TEXT("ScalarExpressions"),TEXT(""),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,(UniformScalarExpressions.Num() + 3) / 4,NULL);
 		const uint32 ScalarArraySize = (UniformScalarExpressions.Num() + 3) / 4 * sizeof(FVector4);
@@ -260,10 +318,10 @@ void FUniformExpressionSet::CreateBufferStruct()
 		bInitializedTextureNames = true;
 		for (int32 i = 0; i < 128; ++i)
 		{
-			Texture2DNames[i] = FString::Printf(TEXT("Texture2D_%d"),i);
-			Texture2DSamplerNames[i] = FString::Printf(TEXT("Texture2D_%dSampler"),i);
-			TextureCubeNames[i] = FString::Printf(TEXT("TextureCube_%d"),i);
-			TextureCubeSamplerNames[i] = FString::Printf(TEXT("TextureCube_%dSampler"),i);
+			Texture2DNames[i] = FString::Printf(TEXT("Texture2D_%d"), i);
+			Texture2DSamplerNames[i] = FString::Printf(TEXT("Texture2D_%dSampler"), i);
+			TextureCubeNames[i] = FString::Printf(TEXT("TextureCube_%d"), i);
+			TextureCubeSamplerNames[i] = FString::Printf(TEXT("TextureCube_%dSampler"), i);
 		}
 	}
 
@@ -294,10 +352,9 @@ void FUniformExpressionSet::CreateBufferStruct()
 	new(Members) FUniformBufferStruct::FMember(TEXT("Clamp_WorldGroupSettings"),TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
 	NextMemberOffset += 8;
 
-	static FName LayoutName(TEXT("MaterialUniforms"));
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 	UniformBufferStruct = new FUniformBufferStruct(
-		LayoutName,
+		MaterialLayoutName,
 		TEXT("MaterialUniforms"),
 		TEXT("Material"),
 		ConstructMaterialUniformBufferParameter,

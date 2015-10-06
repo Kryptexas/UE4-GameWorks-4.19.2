@@ -507,6 +507,8 @@ public:
 
 	// If Translucency should be rendered into a separate RT and composited without DepthOfField, can be disabled in the materials (affects sorting)
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
+	// Depth buffer for separate translucency rendering (needed if SeparateTranslucencyScreenPercentage is <100)
+	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyDepthRT;
 	// Temporal AA result of last frame
 	TRefCountPtr<IPooledRenderTarget> TemporalAAHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> PendingTemporalAAHistoryRT;
@@ -698,6 +700,26 @@ public:
 		return SeparateTranslucencyRT;
 	}
 
+	bool IsSeparateTranslucencyDepthValid()
+	{
+		return SeparateTranslucencyDepthRT != nullptr;
+	}
+
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FIntPoint Size)
+	{
+		if (!SeparateTranslucencyDepthRT || SeparateTranslucencyDepthRT->GetDesc().Extent != Size)
+		{
+			// Create the SeparateTranslucency render target (alpha is needed to lerping)
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_DepthStencil, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, true));
+			GRenderTargetPool.FindFreeElement(Desc, SeparateTranslucencyDepthRT, TEXT("SeparateTranslucencyDepth"));
+		}
+		return SeparateTranslucencyDepthRT;
+	}
+	const FTexture2DRHIRef& GetSeparateTranslucencyDepthSurface()
+	{
+		return (const FTexture2DRHIRef&)SeparateTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
+	}
+
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
 	{
@@ -716,6 +738,7 @@ public:
 		HZBOcclusionTests.ReleaseDynamicRHI();
 		EyeAdaptationRT.SafeRelease();
 		SeparateTranslucencyRT.SafeRelease();
+		SeparateTranslucencyDepthRT.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
 		PendingTemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();
@@ -1419,7 +1442,7 @@ public:
 	void UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo);
 	void PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags);
 
-	bool IsActive() { return (SceneNodes.Num() > 0) && (IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLODEnabled"))->GetInt() == 1); }
+	bool IsActive() { return (SceneNodes.Num() > 0); }
 
 private:
 	/** Scene this Tree belong to */

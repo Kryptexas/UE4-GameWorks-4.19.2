@@ -39,7 +39,8 @@ public:
 
 		if( Material->IsUIMaterial() )
 		{
-			if (FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderPS")))
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderPS")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderVS")))
 			{
 				return true;
 			}

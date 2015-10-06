@@ -20,6 +20,7 @@
 #include "GameFramework/GameMode.h"
 #include "PerfCountersHelpers.h"
 
+
 #if USE_SERVER_PERF_COUNTERS
 #include "PerfCountersModule.h"
 #endif
@@ -1809,7 +1810,7 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 		if (!Ahead.IsZero())
 		{
 			FHitResult Hit(1.0f);
-			Hit.Location = ViewLocation + Ahead;
+			FVector PredictedLocation = ViewLocation + Ahead;
 
 			static FName NAME_ServerForwardView = FName(TEXT("ServerForwardView"));
 			UWorld* World = NULL;
@@ -1822,8 +1823,16 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 				World = ViewerPawn->GetWorld();
 			}
 			check( World );
-			World->LineTraceSingleByObjectType(Hit, ViewLocation, Hit.Location, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget));
-			ViewLocation = Hit.Location;
+			if (World->LineTraceSingleByObjectType(Hit, ViewLocation, PredictedLocation, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget)))
+			{
+				// hit something, view location is hit location
+				ViewLocation = Hit.Location;
+			}
+			else
+			{
+				// No hit, so view location is predicted location
+				ViewLocation = PredictedLocation;
+			}
 		}
 	}
 }
@@ -2447,7 +2456,10 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 					static IConsoleVariable* DebugObjectCvar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.DebugObject"));
-					if (DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && PriorityActors[j]->Actor && PriorityActors[j]->Actor->GetName().Contains(DebugObjectCvar->GetString()) )
+					static IConsoleVariable* DebugAllObjectsCvar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.DebugAll"));
+					if (PriorityActors[j]->Actor && 
+						((DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && PriorityActors[j]->Actor->GetName().Contains(DebugObjectCvar->GetString())) ||
+						(DebugAllObjectsCvar && DebugAllObjectsCvar->GetInt() != 0)))
 					{
 						UE_LOG(LogNetPackageMap, Log, TEXT("Evaluating actor for replication %s"), *PriorityActors[j]->Actor->GetName());
 					}

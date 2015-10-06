@@ -379,6 +379,12 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 
 	CacheFilename = FPaths::GameIntermediateDir() / TEXT("CachedAssetRegistry.bin");
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("multiprocess")))
+	{
+		bLoadAndSaveCache = false;
+	}
+	
+
 	if ( bIsSynchronous )
 	{
 		// Run the package file discovery synchronously

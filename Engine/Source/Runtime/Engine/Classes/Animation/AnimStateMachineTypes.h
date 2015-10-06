@@ -275,14 +275,9 @@ public:
 		: InitialState(INDEX_NONE)
 	{}
 
-	// Finds a state by name or NULL if no such state exists
-	int32 FindStateIndex(FName StateName);
+	// Finds a state by name or INDEX_NONE if no such state exists
+	ENGINE_API int32 FindStateIndex(FName StateName) const;
 };
-
-
-
-
-
 
 UCLASS()
 class UAnimStateMachineTypes : public UObject

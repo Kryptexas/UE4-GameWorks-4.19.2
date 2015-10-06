@@ -62,7 +62,26 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 {
 	if (DraggedObjects.StaticMeshActors.IsSet() && DraggedObjects.StaticMeshActors->Num() > 0)
 	{
-		const int32 NumStaticMeshActors = DraggedObjects.StaticMeshActors->Num();		
+		const int32 NumStaticMeshActors = DraggedObjects.StaticMeshActors->Num();	
+		bool bSameLevelInstance = true;
+		ULevel* Level = nullptr;
+		for (auto Actor : DraggedObjects.StaticMeshActors.GetValue())
+		{
+			if (Level == nullptr)
+			{
+				Level = Actor->GetLevel();
+			}
+			else if (Level != Actor->GetLevel())
+			{
+				bSameLevelInstance = false;
+			}
+		}
+
+		if (!bSameLevelInstance)
+		{
+			return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("NotInSameLevelAsset", "Static Mesh Actors not in the same level asset (streaming level)"));
+		}
+
 		return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_CompatibleNewCluster, LOCTEXT("CreateNewCluster", "Create new Cluster"));
 	}
 	else if (DraggedObjects.LODActors.IsSet() && DraggedObjects.LODActors->Num() > 0)
@@ -75,6 +94,8 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 			auto LODActors = DraggedObjects.LODActors.GetValue();
 			int32 LevelIndex = -1;
 			bool bSameLODLevel = true;
+			bool bSameLevelInstance = true;
+			ULevel* Level = nullptr;
 			for (auto Actor : LODActors)
 			{
 				ALODActor* LODActor = Cast<ALODActor>(Actor.Get());
@@ -86,9 +107,28 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 				{
 					bSameLODLevel = false;
 				}
+
+				if (Level == nullptr)
+				{
+					Level = LODActor->GetLevel();
+				}
+				else if (Level != LODActor->GetLevel())
+				{
+					bSameLevelInstance = false;
+				}
 			}
 
-			if ( bSameLODLevel && LevelIndex < (int32)( LODLevelIndex + 1 ) )
+			if (!bSameLODLevel)
+			{
+				return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("NotInSameLODLevel", "LODActors are not all in the same HLOD level"));
+			}
+
+			if (!bSameLevelInstance)
+			{
+				return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("NotInSameLevelAsset", "LODActors not in the same level asset (streaming level)"));
+			}
+
+			if (bSameLevelInstance && bSameLODLevel && LevelIndex < (int32)(LODLevelIndex + 1))
 			{
 				return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleNewCluster, LOCTEXT("CreateNewCluster", "Create new Cluster"));
 			}
@@ -109,23 +149,26 @@ void HLODOutliner::FLODLevelDropTarget::OnDrop(FDragDropPayload& DraggedObjects,
 
 void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &DraggedObjects)
 {	
-	// Change this to pass world into OnDrop?
-	UWorld* World = nullptr;
+	// Outerworld in which the LODActors should be spawned/saved (this is to enable support for streaming levels)
+	UWorld* OuterWorld = nullptr;
 	if (DraggedObjects.StaticMeshActors.IsSet() && DraggedObjects.StaticMeshActors->Num() > 0)
 	{
-		World = DraggedObjects.StaticMeshActors.GetValue()[0]->GetWorld();
+		OuterWorld = Cast<UWorld>(DraggedObjects.StaticMeshActors.GetValue()[0]->GetLevel()->GetOuter());
 	}
 	else if (DraggedObjects.LODActors.IsSet() && DraggedObjects.LODActors->Num() > 0)
 	{
-		World = DraggedObjects.LODActors.GetValue()[0]->GetWorld();
+		OuterWorld = Cast<UWorld>(DraggedObjects.LODActors.GetValue()[0]->GetLevel()->GetOuter());
 	}
 
-	const FScopedTransaction Transaction(LOCTEXT("UndoAction_CreateNewCluster", "Create new Cluster"));
-	World->Modify();
+	// Retrieve world settings from the InWorld instance, this is the instance the HLODOutliner is running on
+	auto WorldSettings = DraggedObjects.OutlinerWorld->GetWorldSettings();
 
-	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem)
+	const FScopedTransaction Transaction(LOCTEXT("UndoAction_CreateNewCluster", "Create new Cluster"));
+	OuterWorld->Modify();
+
+	if (WorldSettings->bEnableHierarchicalLODSystem)
 	{
-		ALODActor* NewCluster = HierarchicalLODUtils::CreateNewClusterActor(World, LODLevelIndex);
+		ALODActor* NewCluster = HierarchicalLODUtils::CreateNewClusterActor(OuterWorld, LODLevelIndex, WorldSettings);
 
 		if (NewCluster)
 		{

@@ -10,11 +10,6 @@ const FFriendsChatChromeStyle& FFriendsChatChromeStyle::GetDefault()
 	return Default;
 }
 
-FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetSlashMarkupButtonStyle(const FButtonStyle& ButtonStyle)
-{
-	SlashMarkupButtonStyle = ButtonStyle;
-	return *this;
-}
 
 FFriendsChatChromeStyle& FFriendsChatChromeStyle::SetChatBackgroundBrush(const FSlateBrush& Value)
 {

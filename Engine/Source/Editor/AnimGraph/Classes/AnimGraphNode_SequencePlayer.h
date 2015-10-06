@@ -15,10 +15,6 @@ class UAnimGraphNode_SequencePlayer : public UAnimGraphNode_AssetPlayerBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_SequencePlayer Node;
 
-	// Sync group settings for this player.  Sync groups keep related animations with different lengths synchronized.
-	UPROPERTY(EditAnywhere, Category=Settings)
-	FAnimationGroupReference SyncGroup;
-
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;

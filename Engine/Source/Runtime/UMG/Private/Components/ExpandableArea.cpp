@@ -16,7 +16,7 @@ UExpandableArea::UExpandableArea(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bIsExpanded(false)
 {
-	bIsVariable = false;
+	bIsVariable = true;
 
 	SExpandableArea::FArguments ExpandableDefaults;
 	Style       = *ExpandableDefaults._Style;
@@ -43,7 +43,7 @@ void UExpandableArea::SetIsExpanded(bool IsExpanded)
 	}
 }
 
-void UExpandableArea::ReleaseSlateResources(bool bReleaseChildren)
+void UExpandableArea::ReleaseSlateResources( bool bReleaseChildren )
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 

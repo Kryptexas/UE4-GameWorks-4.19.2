@@ -8,7 +8,7 @@
 
 void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_AssetPlayerBase::Initialize(Context);
 
 	EvaluateGraphExposedInputs.Execute(Context);
 	InternalTimeAccumulator = StartPosition;
@@ -33,25 +33,12 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 
 	if ((Sequence != NULL) && (Context.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		const float FinalBlendWeight = Context.GetFinalBlendWeight();
-
-		// Create a tick record and fill it out
-		FAnimGroupInstance* SyncGroup;
-		FAnimTickRecord& TickRecord = Context.AnimInstance->CreateUninitializedTickRecord(GroupIndex, /*out*/ SyncGroup);
-		TickRecord.SourceNodeRef = this;
-		Context.AnimInstance->InitTickRecordFromLastFrame(GroupIndex, TickRecord);
-
 		if (InternalTimeAccumulator > Sequence->SequenceLength)
 		{
 			InternalTimeAccumulator = 0.f;
 		}
-		Context.AnimInstance->MakeSequenceTickRecord(TickRecord, Sequence, bLoopAnimation, PlayRate, FinalBlendWeight, /*inout*/ InternalTimeAccumulator);
 
-		// Update the sync group if it exists
-		if (SyncGroup != NULL)
-		{
-			SyncGroup->TestTickRecordForLeadership(GroupRole);
-		}
+		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, PlayRate);
 	}
 }
 

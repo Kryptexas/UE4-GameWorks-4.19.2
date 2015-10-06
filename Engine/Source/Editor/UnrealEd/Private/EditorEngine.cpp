@@ -583,9 +583,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	// Init transactioning.
 	Trans = CreateTrans();
 
-	// Load all of the runtime modules that the game needs.  The game is part of the editor, so we'll need these loaded.
-	UGameEngine::LoadRuntimeEngineStartupModules();
-
 	SlowTask.EnterProgressFrame(50);
 
 	// Load all editor modules here

@@ -1685,7 +1685,15 @@ void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGa
 	}
 
 	const FGameplayEffectSpec& Spec = ActiveEffect.Spec;
-	TSet<FGameplayAttribute> AttributesToUpdate;
+
+	if (Spec.Def == nullptr)
+	{
+		ABILITY_LOG(Error, TEXT("UpdateAllAggregatorModMagnitudes called with no UGameplayEffect def."));
+		return;
+	}
+
+	static TSet<FGameplayAttribute> AttributesToUpdate;
+	AttributesToUpdate.Reset();
 
 	for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 	{
@@ -2948,7 +2956,7 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 	// Note: keep one return location to avoid copy operation.
 	return ReturnList;
 }
-TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const
+TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
 
@@ -2995,7 +3003,7 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 	return ReturnList;
 }
 
-TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FGameplayEffectQuery Query) const
+TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsDuration);
 
@@ -3035,7 +3043,7 @@ TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEf
 	return ReturnList;
 }
 
-TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEffects(const FGameplayEffectQuery Query) const
+TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEffects(const FGameplayEffectQuery& Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffects);
 
@@ -3348,6 +3356,12 @@ FGameplayEffectQuery& FGameplayEffectQuery::operator=(const FGameplayEffectQuery
 
 bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 {
+	if (Effect.Spec.Def == nullptr)
+	{
+		ABILITY_LOG(Error, TEXT("Matches called with no UGameplayEffect def."));
+		return false;
+	}
+
 	// since all of these query conditions must be met to be considered a match, failing
 	// any one of them means we can return false
 

@@ -936,10 +936,9 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 		{
 			NewMesh->SourceModels[i].BuildSettings = ExistingMeshDataPtr->ExistingLODData[i].ExistingBuildSettings;
 			NewMesh->SourceModels[i].ReductionSettings = ExistingMeshDataPtr->ExistingLODData[i].ExistingReductionSettings;
-			NewMesh->SourceModels[i].ScreenSize = ExistingMeshDataPtr->ExistingLODData[i].ExistingScreenSize;
-
+			NewMesh->SourceModels[i].ScreenSize = ExistingMeshDataPtr->ExistingLODData[i].ExistingScreenSize;			
 		}
-
+		
 		for(int32 i=NumCommonLODs; i < ExistingMeshDataPtr->ExistingLODData.Num(); ++i)
 		{
 			if (ExistingMeshDataPtr->ExistingLODData[i].ExistingMaterials.Num() > 0)
@@ -956,6 +955,21 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 			SrcModel->BuildSettings = ExistingMeshDataPtr->ExistingLODData[i].ExistingBuildSettings;
 			SrcModel->ReductionSettings = ExistingMeshDataPtr->ExistingLODData[i].ExistingReductionSettings;
 			SrcModel->ScreenSize = ExistingMeshDataPtr->ExistingLODData[i].ExistingScreenSize;
+		}
+
+		// Restore the section info		
+		for (int32 i = 0; i < NewMesh->RenderData->LODResources.Num(); i++)
+		{
+			FStaticMeshLODResources& LOD = NewMesh->RenderData->LODResources[i];
+			int32 NumSections = LOD.Sections.Num();
+			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+			{
+				FMeshSectionInfo OldSectionInfo = ExistingMeshDataPtr->ExistingSectionInfoMap.Get(i, SectionIndex);
+				if(NewMesh->Materials.IsValidIndex(OldSectionInfo.MaterialIndex))
+				{
+					NewMesh->SectionInfoMap.Set(i, SectionIndex, OldSectionInfo);
+				}
+			}
 		}
 
 		// Assign sockets from old version of this StaticMesh.

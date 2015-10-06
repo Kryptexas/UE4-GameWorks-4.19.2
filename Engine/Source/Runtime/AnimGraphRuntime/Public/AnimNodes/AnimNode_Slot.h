@@ -22,11 +22,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Slot : public FAnimNode_Base
 
 protected:
 	FSlotNodeWeightInfo WeightData;
-
-private:
-	/** Counter to register slot node just once per initialization */
-	UPROPERTY(transient)
-	int16 LastSlotNodeInitializationCounter;
+	FGraphTraversalCounter SlotNodeInitializationCounter;
 
 public:	
 	FAnimNode_Slot();

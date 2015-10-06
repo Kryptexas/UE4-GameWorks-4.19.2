@@ -1799,33 +1799,6 @@ FBox UPrimitiveComponent::GetNavigationBounds() const
 	return Bounds.GetBox();
 }
 
-void UPrimitiveComponent::SetCanEverAffectNavigation(bool bRelevant)
-{
-	if (bCanEverAffectNavigation != bRelevant)
-	{
-		bCanEverAffectNavigation = bRelevant;
-
-		HandleCanEverAffectNavigationChange();
-	}
-}
-
-void UPrimitiveComponent::HandleCanEverAffectNavigationChange()
-{
-	// update octree if already registered
-	if (bRegistered)
-	{
-		if (bCanEverAffectNavigation)
-		{
-			bNavigationRelevant = IsNavigationRelevant();
-			UNavigationSystem::OnComponentRegistered(this);
-		}
-		else
-		{
-			UNavigationSystem::OnComponentUnregistered(this);
-		}
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////
 // COLLISION
 
@@ -2154,15 +2127,6 @@ void UPrimitiveComponent::GetOverlappingComponents(TArray<UPrimitiveComponent*>&
 		{
 			OutOverlappingComponents.Add(OtherComp);
 		}
-	}
-}
-
-
-void UPrimitiveComponent::UpdateNavigationData()
-{
-	if (bNavigationRelevant)
-	{
-		Super::UpdateNavigationData();
 	}
 }
 

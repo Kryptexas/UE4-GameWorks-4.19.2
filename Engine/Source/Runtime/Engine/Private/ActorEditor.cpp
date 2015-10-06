@@ -367,7 +367,7 @@ void AActor::PostEditUndo()
 	{
 		ResetOwnedComponents();
 		// notify navigation system
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 	else
 	{
@@ -392,7 +392,7 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	{
 		ResetOwnedComponents();
 		// notify navigation system
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 	else
 	{

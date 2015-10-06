@@ -625,6 +625,13 @@ void FParticleEmitterInstance::UpdateTransforms()
 	{
 		EmitterToSimulation = EmitterToComponent;
 		SimulationToWorld = ComponentToWorld;
+#if ENABLE_NAN_DIAGNOSTIC
+		if (SimulationToWorld.ContainsNaN())
+		{
+			ensure(!GEnsureOnNANDiagnostic);
+			SimulationToWorld = FMatrix::Identity;
+		}
+#endif
 	}
 	else
 	{

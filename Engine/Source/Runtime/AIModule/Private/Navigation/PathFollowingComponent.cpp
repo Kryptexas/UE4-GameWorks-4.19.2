@@ -11,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "Engine/Canvas.h"
 #include "TimerManager.h"
+#include "DisplayDebugHelpers.h"
 
 #include "Navigation/PathFollowingComponent.h"
 
@@ -1366,11 +1367,9 @@ FString UPathFollowingComponent::GetResultDesc(EPathFollowingResult::Type Result
 
 void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const
 {
-	Canvas->SetDrawColor(FColor::Blue);
-	UFont* RenderFont = GEngine->GetSmallFont();
-	FString StatusDesc = FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc());
-	YL = Canvas->DrawText(RenderFont, StatusDesc, 4.0f, YPos);
-	YPos += YL;
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+	DisplayDebugManager.SetDrawColor(FColor::Blue);
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc()));
 
 	if (Status == EPathFollowingStatus::Moving)
 	{
@@ -1378,8 +1377,7 @@ void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayI
 		FString TargetDesc = FString::Printf(TEXT("  Move target [%d/%d]: %s (%s)"),
 			MoveSegmentEndIndex, NumMoveSegments, *GetCurrentTargetLocation().ToString(), *GetNameSafe(DestinationActor.Get()));
 		
-		YL = Canvas->DrawText(RenderFont, TargetDesc, 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc()));
 	}
 }
 

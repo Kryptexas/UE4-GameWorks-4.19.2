@@ -1048,7 +1048,7 @@ namespace AutomationTool
             Filename = ConvertSeparators(PathSeparator.Default, Filename);
             try
 			{
-                File.AppendAllText(Filename, Text + Environment.NewLine);
+        		        File.AppendAllText(Filename, Text + Environment.NewLine);
 			}
 			catch (Exception Ex)
 			{
@@ -1274,15 +1274,26 @@ namespace AutomationTool
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
 			Dest = ConvertSeparators(PathSeparator.Default, Dest);
+
+			String DestDirName = "";
+			try
+			{
+				DestDirName = Path.GetDirectoryName(Dest);
+			}
+			catch (Exception Ex)
+			{
+				throw new AutomationException(String.Format("Failed to get directory name for dest: {0}, {1}", Dest, Ex.Message));
+			}
+
 			if (InternalUtils.SafeFileExists(Dest, true))
 			{
 				InternalUtils.SafeDeleteFile(Dest, bQuiet);
 			}
-			else if (!InternalUtils.SafeDirectoryExists(Path.GetDirectoryName(Dest), true))
+			else if (!InternalUtils.SafeDirectoryExists(DestDirName, true))
 			{
-				if (!InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(Dest), bQuiet))
+				if (!InternalUtils.SafeCreateDirectory(DestDirName, bQuiet))
 				{
-					throw new AutomationException("Failed to create directory {0} for copy", Path.GetDirectoryName(Dest));
+					throw new AutomationException("Failed to create directory {0} for copy", DestDirName);
 				}
 			}
 			if (InternalUtils.SafeFileExists(Dest, true))

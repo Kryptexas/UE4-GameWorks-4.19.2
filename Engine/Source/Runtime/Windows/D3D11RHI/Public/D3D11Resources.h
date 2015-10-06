@@ -32,8 +32,15 @@ public:
 	}
 };
 
+struct FD3D11ShaderData
+{
+	FD3D11ShaderResourceTable	ShaderResourceTable;
+	TArray<FName>				UniformBuffers;
+	bool						bShaderNeedsGlobalConstantBuffer;
+};
+
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
-class FD3D11VertexShader : public FRHIVertexShader
+class FD3D11VertexShader : public FRHIVertexShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Vertex };
@@ -41,80 +48,56 @@ public:
 	/** The vertex shader resource. */
 	TRefCountPtr<ID3D11VertexShader> Resource;
 
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
 	/** The vertex shader's bytecode, with custom data attached. */
 	TArray<uint8> Code;
 
 	// TEMP remove with removal of bound shader state
 	int32 Offset;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11GeometryShader : public FRHIGeometryShader
+class FD3D11GeometryShader : public FRHIGeometryShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Geometry };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11GeometryShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11HullShader : public FRHIHullShader
+class FD3D11HullShader : public FRHIHullShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Hull };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11HullShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11DomainShader : public FRHIDomainShader
+class FD3D11DomainShader : public FRHIDomainShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Domain };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11DomainShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11PixelShader : public FRHIPixelShader
+class FD3D11PixelShader : public FRHIPixelShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Pixel };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11PixelShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
-class FD3D11ComputeShader : public FRHIComputeShader
+class FD3D11ComputeShader : public FRHIComputeShader, public FD3D11ShaderData
 {
 public:
 	enum { StaticFrequency = SF_Compute };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11ComputeShader> Resource;
-
-	FD3D11ShaderResourceTable ShaderResourceTable;
-
-	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 /**

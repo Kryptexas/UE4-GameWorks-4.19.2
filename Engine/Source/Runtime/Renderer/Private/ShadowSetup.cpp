@@ -1336,18 +1336,13 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowGroupPrimitives;
 	PrimitiveSceneInfo->GatherLightingAttachmentGroupPrimitives(ShadowGroupPrimitives);
 
-
-#define TEST_BBOX_NANS_UE_21208
-
-#ifdef TEST_BBOX_NANS_UE_21208
-	// allow for silent failure 
+#if ENABLE_NAN_DIAGNOSTIC
+	// allow for silent failure: only possible if NaN checking is enabled.  
 	if (ShadowGroupPrimitives.Num() == 0)
 	{
 		return;
 	}
 #endif
-
-#undef TEST_BBOX_NANS_UE_21208
 
 	// Compute the composite bounds of this group of shadow primitives.
 	FBoxSphereBounds OriginalBounds = ShadowGroupPrimitives[0]->Proxy->GetBounds();
@@ -2120,6 +2115,7 @@ void FSceneRenderer::GatherShadowPrimitives(
 			ProjectedShadowInfo->StaticMeshWholeSceneShadowBatchVisibility.AddZeroed(Scene->StaticMeshes.GetMaxIndex());
 		}
 
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ShadowOctreeTraversal);
 		// Find primitives that are in a shadow frustum in the octree.
 		for(FScenePrimitiveOctree::TConstIterator<SceneRenderingAllocator> PrimitiveOctreeIt(Scene->PrimitiveOctree);
 			PrimitiveOctreeIt.HasPendingNodes();
@@ -2129,7 +2125,6 @@ void FSceneRenderer::GatherShadowPrimitives(
 			const FOctreeNodeContext& PrimitiveOctreeNodeContext = PrimitiveOctreeIt.GetCurrentContext();
 
 			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_ShadowOctreeTraversal);
 				// Find children of this octree node that may contain relevant primitives.
 				FOREACH_OCTREE_CHILD_NODE(ChildRef)
 				{

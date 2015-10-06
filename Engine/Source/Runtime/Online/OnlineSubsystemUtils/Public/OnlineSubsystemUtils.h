@@ -62,6 +62,7 @@ namespace Online
 	IMPLEMENT_GET_INTERFACE(Entitlements);
 	IMPLEMENT_GET_INTERFACE(Leaderboards);
 	IMPLEMENT_GET_INTERFACE(Achievements);
+	IMPLEMENT_GET_INTERFACE(Presence);
 }
 
 #undef IMPLEMENT_GET_INTERFACE

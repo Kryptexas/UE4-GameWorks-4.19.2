@@ -414,6 +414,14 @@ struct FClothPhysicsProperties
 {
 	GENERATED_USTRUCT_BODY()
 
+	// vertical stiffness of the cloth in the range [0, 1].   usually set to 1.0
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float VerticalResistance;
+
+	// Horizontal stiffness of the cloth in the range [0, 1].  usually set to 1.0
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float HorizontalResistance;
+
 	// Bending stiffness of the cloth in the range [0, 1]. 
 	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float BendResistance;
@@ -422,9 +430,10 @@ struct FClothPhysicsProperties
 	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float ShearResistance;
 
-	// Make cloth simulation less stretchy. A value smaller than 1 will turn it off. 
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "4.0"))
-	float StretchLimit;
+	//  latest email from nvidia suggested this is not in use, my code search revealed the same.   will wait for nv engineering confirmation before deleting
+	// Make cloth simulation less stretchy. A value smaller than 1 will turn it off.  Apex parameter hardStretchLimitation.
+	//UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "4.0"))
+	//float HardStretchLimitation;
 
 	// Friction coefficient in the range[0, 1]
 	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
@@ -433,20 +442,64 @@ struct FClothPhysicsProperties
 	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float Damping;
 
+	// Tether stiffness of the cloth in the range[0, 1].  Equivalent to 1.0-Relax in autodesk plugin.
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float TetherStiffness;
+	// Tether Limit, corresponds to 1.0+StretchLimit parameter on Autodesk plugin.  
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "1.0", UIMax = "2.0"))
+	float TetherLimit;
+
+
+
 	// Drag coefficient n the range [0, 1] 
 	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float Drag;
 
-	// Amount of gravity that is applied to the cloth. 
-	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	// Frequency for stiffness 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "1.0", UIMin = "1.0", UIMax = "1000"))
+	float StiffnessFrequency;
+
+	// Gravity multiplier for this cloth.  Also called Density in Autodesk plugin.
+	UPROPERTY(EditAnywhere, Category = Scale, meta = ( UIMin = "0.0", UIMax = "100.0"))
 	float GravityScale;
+
+	// A mass scaling that is applied to the cloth.   Corresponds to 100X the MotionAdaptation parameter in autodesk plugin.
+	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0"))
+	float MassScale;
+
 	// Amount of inertia that is kept when using local space simulation. Internal name is inertia scale
-	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1.0"))
 	float InertiaBlend;
 
 	// Minimal amount of distance particles will keep of each other.
-	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "10000.0"))
 	float SelfCollisionThickness;
+
+	// unclear what this actually does.
+	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float SelfCollisionSquashScale;
+
+	// Self collision stiffness.  0 off, 1 for on.
+	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1.0"))
+	float SelfCollisionStiffness;
+
+	// A computation parameter for the Solver.   Along with frame rate this probably specifies the number of solver iterations
+	UPROPERTY(EditAnywhere, Category = Solver, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1000.0"))
+	float SolverFrequency;
+
+
+	// Lower (compression) Limit of SoftZone (relative to rest length).  Applied for all fiber types.  If both compression and expansion are 1.0 then there is no deadzone.
+	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "0.0", UIMax = "1.0"))
+	float FiberCompression;
+
+	// Upper (expansion) Limit of SoftZone (relative to rest length).  Applied to all fiber types.   Also referred to as "stretch" range by apex internally.
+	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "1.0", UIMax = "2.0"))
+	float FiberExpansion;
+
+	// Resistance Multiplier that's applied to within SoftZone amount for all fiber types.  0.0 for a complete deadzone (no force).  At 1.0 the spring response within the softzone is as stiff it is elsewhere.  This parameter also known as scale by Apex internally.
+	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "0.0", UIMax = "1.0"))
+	float FiberResistance;
+
 };
 
 USTRUCT()

@@ -51,7 +51,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;
-	CapsuleComponent->bCanEverAffectNavigation = false;
+	CapsuleComponent->SetCanEverAffectNavigation(false);
 	CapsuleComponent->bDynamicObstacle = true;
 	RootComponent = CapsuleComponent;
 
@@ -92,7 +92,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		static FName MeshCollisionProfileName(TEXT("CharacterMesh"));
 		Mesh->SetCollisionProfileName(MeshCollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
-		Mesh->bCanEverAffectNavigation = false;
+		Mesh->SetCanEverAffectNavigation(false);
 	}
 
 	BaseRotationOffset = FQuat::Identity;
@@ -224,6 +224,8 @@ void ACharacter::NotifyJumpApex()
 void ACharacter::Landed(const FHitResult& Hit)
 {
 	OnLanded(Hit);
+
+	LandedDelegate.Broadcast(Hit);
 }
 
 bool ACharacter::CanJump() const
@@ -777,8 +779,6 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 
 	float Indent = 0.f;
 
-	UFont* RenderFont = GEngine->GetSmallFont();
-
 	static FName NAME_Physics = FName(TEXT("Physics"));
 	if (DebugDisplay.IsDisplayOn(NAME_Physics) )
 	{
@@ -795,8 +795,8 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 			BaseString = FString::Printf(TEXT("Based On %s"), *BaseString);
 		}
 		
-		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToString(), *BasedMovement.Rotation.ToString(), *BaseString), Indent, YPos);
-		YPos += YL;
+		FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToCompactString(), *BasedMovement.Rotation.ToCompactString(), *BaseString), Indent);
 
 		if ( CharacterMovement != NULL )
 		{
@@ -804,8 +804,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		}
 		const bool Crouched = CharacterMovement && CharacterMovement->IsCrouching();
 		FString T = FString::Printf(TEXT("Crouched %i"), Crouched);
-		YL = Canvas->DrawText(RenderFont, T, Indent, YPos );
-		YPos += YL;
+		DisplayDebugManager.DrawString(T, Indent);
 	}
 }
 
@@ -985,16 +984,19 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 void ACharacter::OnRep_ReplicatedMovement()
 {
 	// Skip standard position correction if we are playing root motion, OnRep_RootMotion will handle it.
-	if (!IsPlayingNetworkedRootMotionMontage())
+	if (!IsPlayingNetworkedRootMotionMontage()) // animation root motion
 	{
-		Super::OnRep_ReplicatedMovement();
+		if (!CharacterMovement || !CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources()) // root motion sources
+		{
+			Super::OnRep_ReplicatedMovement();
+		}
 	}
 }
 
 /** Get FAnimMontageInstance playing RootMotion */
 FAnimMontageInstance * ACharacter::GetRootMotionAnimMontageInstance() const
 {
-	return (Mesh && Mesh->AnimScriptInstance) ? Mesh->AnimScriptInstance->GetRootMotionMontageInstance() : NULL;
+	return (Mesh && Mesh->GetAnimInstance()) ? Mesh->GetAnimInstance()->GetRootMotionMontageInstance() : NULL;
 }
 
 void ACharacter::OnRep_RootMotion()
@@ -1004,12 +1006,19 @@ void ACharacter::OnRep_RootMotion()
 		UE_LOG(LogRootMotion, Log,  TEXT("ACharacter::OnRep_RootMotion"));
 
 		// Save received move in queue, we'll try to use it during Tick().
-		if( RepRootMotion.AnimMontage )
+		if( RepRootMotion.bIsActive )
 		{
 			// Add new move
 			FSimulatedRootMotionReplicatedMove NewMove;
 			NewMove.RootMotion = RepRootMotion;
 			NewMove.Time = GetWorld()->GetTimeSeconds();
+			// Convert RootMotionSource Server IDs -> Local IDs in AuthoritativeRootMotion and cull invalid
+			// so that when we use this root motion it has the correct IDs
+			if (CharacterMovement)
+			{
+				CharacterMovement->ConvertRootMotionServerIDsToLocalIDs(CharacterMovement->CurrentRootMotion, NewMove.RootMotion.AuthoritativeRootMotion, NewMove.Time);
+				NewMove.RootMotion.AuthoritativeRootMotion.CullInvalidSources();
+			}
 			RootMotionRepMoves.Add(NewMove);
 		}
 		else
@@ -1229,8 +1238,9 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
 
-	if ( RootMotionMontageInstance )
+	if ( (CharacterMovement && CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources()) || RootMotionMontageInstance )
 	{
+		RepRootMotion.bIsActive = true;
 		// Is position stored in local space?
 		RepRootMotion.bRelativePosition = BasedMovement.HasRelativeLocation();
 		RepRootMotion.bRelativeRotation = BasedMovement.HasRelativeRotation();
@@ -1238,8 +1248,27 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		RepRootMotion.Rotation			= RepRootMotion.bRelativeRotation ? BasedMovement.Rotation : GetActorRotation();
 		RepRootMotion.MovementBase		= BasedMovement.MovementBase;
 		RepRootMotion.MovementBaseBoneName = BasedMovement.BoneName;
-		RepRootMotion.AnimMontage		= RootMotionMontageInstance->Montage;
-		RepRootMotion.Position			= RootMotionMontageInstance->GetPosition();
+		if (RootMotionMontageInstance)
+		{
+			RepRootMotion.AnimMontage		= RootMotionMontageInstance->Montage;
+			RepRootMotion.Position			= RootMotionMontageInstance->GetPosition();
+		}
+		else
+		{
+			RepRootMotion.AnimMontage = nullptr;
+		}
+		if (CharacterMovement)
+		{
+			RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
+			RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
+			RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
+		}
+		else
+		{
+			RepRootMotion.AuthoritativeRootMotion.Clear();
+			RepRootMotion.Acceleration = FVector::ZeroVector;
+			RepRootMotion.LinearVelocity = FVector::ZeroVector;
+		}
 
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, true );
 	}
@@ -1279,20 +1308,20 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 bool ACharacter::IsPlayingRootMotion() const
 {
-	if (Mesh && Mesh->AnimScriptInstance)
+	if (Mesh && Mesh->GetAnimInstance())
 	{
-		return	(Mesh->AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
-				(Mesh->AnimScriptInstance->GetRootMotionMontageInstance() != NULL);
+		return	(Mesh->GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
+				(Mesh->GetAnimInstance()->GetRootMotionMontageInstance() != NULL);
 	}
 	return false;
 }
 
 bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
 {
-	if (Mesh && Mesh->AnimScriptInstance)
+	if (Mesh && Mesh->GetAnimInstance())
 	{
-		return	(Mesh->AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
-			(Mesh->AnimScriptInstance->GetRootMotionMontageInstance() != NULL);
+		return	(Mesh->GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
+			(Mesh->GetAnimInstance()->GetRootMotionMontageInstance() != NULL);
 	}
 	return false;
 }

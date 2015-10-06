@@ -22,17 +22,28 @@ class AIMODULE_API UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 	GENERATED_UCLASS_BODY()
 
 	/** query to run */
-	UPROPERTY(Category=Node, EditAnywhere)
+	UPROPERTY(Category = Node, EditAnywhere, meta = (EditCondition = "!bUseBBKey"))
 	UEnvQuery* QueryTemplate;
 
 	/** optional parameters for query */
-	UPROPERTY(Category=Node, EditAnywhere)
+	UPROPERTY(Category = Node, VisibleAnywhere, meta = (DisplayName = "QueryParams_DEPRECATED"))
 	TArray<FEnvNamedValue> QueryParams;
+
+	UPROPERTY(Category = Node, EditAnywhere)
+	TArray<FAIDynamicParam> QueryConfig;
 
 	/** determines which item will be stored (All = only first matching) */
 	UPROPERTY(Category = Node, EditAnywhere)
 	TEnumAsByte<EEnvQueryRunMode::Type> RunMode;
 
+	/** blackboard key storing an EQS query template */
+	UPROPERTY(EditAnywhere, Category = Blackboard, meta = (EditCondition = "bUseBBKey"))
+	struct FBlackboardKeySelector EQSQueryBlackboardKey;
+
+	UPROPERTY()
+	bool bUseBBKey;
+
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
@@ -42,6 +53,9 @@ class AIMODULE_API UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 
 	/** finish task */
 	void OnQueryFinished(TSharedPtr<FEnvQueryResult> Result);
+
+	/** Convert QueryParams to QueryConfig */
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	/** prepare query params */

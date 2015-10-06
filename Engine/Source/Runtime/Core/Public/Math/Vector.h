@@ -38,7 +38,11 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		if (ContainsNaN())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FVector contains NaN: %s"), *ToString());
+			*const_cast<FVector*>(this) = ZeroVector;
+		}
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}

@@ -442,16 +442,18 @@ struct FScreenMessageString
 	UPROPERTY(transient)
 	float CurrentTimeDisplayed;
 
+	/** Scale of text */
+	UPROPERTY(transient)
+	FVector2D TextScale;
 
-
-		FScreenMessageString()
+	FScreenMessageString()
 		: Key(0)
 		, DisplayColor(ForceInit)
 		, TimeToDisplay(0)
 		, CurrentTimeDisplayed(0)
-		{
-		}
-	
+		, TextScale(ForceInit)
+	{
+	}
 };
 
 
@@ -886,13 +888,16 @@ public:
 	class UMaterial* ConstraintLimitMaterial;
 
 	UPROPERTY()
-	class UMaterialInstanceDynamic * ConstraintLimitMaterialX;
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialX;
 
 	UPROPERTY()
-	class UMaterialInstanceDynamic * ConstraintLimitMaterialY;
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialY;
 
 	UPROPERTY()
-	class UMaterialInstanceDynamic * ConstraintLimitMaterialZ;
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialZ;
+
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialPrismatic;
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
@@ -1943,11 +1948,11 @@ public:
 	 */
 	bool IsConsoleBuild(EConsoleType ConsoleType = CONSOLE_Any) const;
 
-	/** Add a FString to the On-screen debug message system */
-	void AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor DisplayColor,const FString& DebugMessage);
+	/** Add a FString to the On-screen debug message system. bNewerOnTop only works with Key == INDEX_NONE */
+	void AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor DisplayColor,const FString& DebugMessage, bool bNewerOnTop = true, const FVector2D& TextScale = FVector2D::UnitVector);
 
-	/** Add a FString to the On-screen debug message system */
-	void AddOnScreenDebugMessage(int32 Key, float TimeToDisplay, FColor DisplayColor, const FString& DebugMessage);
+	/** Add a FString to the On-screen debug message system. bNewerOnTop only works with Key == INDEX_NONE */
+	void AddOnScreenDebugMessage(int32 Key, float TimeToDisplay, FColor DisplayColor, const FString& DebugMessage, bool bNewerOnTop = true, const FVector2D& TextScale = FVector2D::UnitVector);
 
 	/** Retrieve the message for the given key */
 	bool OnScreenDebugMessageExists(uint64 Key);
@@ -1955,8 +1960,13 @@ public:
 	/** Clear any existing debug messages */
 	void ClearOnScreenDebugMessages();
 
+#if !UE_BUILD_SHIPPING
 	/** Capture screenshots and performance metrics */
-	void PerformanceCapture(const FString& CaptureName);
+	void PerformanceCapture(UWorld* World, const FString& CaptureName);
+
+	/** Logs performance capture for use in automation analytics */
+	void LogPerformanceCapture(UWorld* World, const FString& CaptureName);
+#endif	// UE_BUILD_SHIPPING
 
 	/**
 	 * Ticks the FPS chart.
@@ -1985,6 +1995,13 @@ public:
 	 */
 	virtual void DumpFPSChart( const FString& InMapName, bool bForceDump = false );
 
+	/**
+	* Dumps the FPS chart information to the passed in archive for analytics.
+	*
+	* @param	InMapName	Name of the map (Or Global)
+	*/
+	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
+
 private:
 
 	/**
@@ -2006,6 +2023,11 @@ private:
 	 * Dumps the FPS chart information to the special stats log file.
 	 */
 	virtual void DumpFPSChartToStatsLog( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName );
+
+	/**
+	* Dumps the FPS chart information to an analytic event param array.
+	*/
+	virtual void DumpFPSChartToAnalyticsParams(float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
 
 	/**
 	 * Dumps the frame times information to the special stats log file.

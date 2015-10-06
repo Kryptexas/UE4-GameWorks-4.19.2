@@ -254,6 +254,7 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 		Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 	}
 
+#if WITH_EDITOR
 	// Composite editor primitives if we had any to draw and compositing is enabled
 	if (bDoEditorPrimitives)
 	{
@@ -262,6 +263,7 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 		//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
 		Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 	}
+#endif
 
 	// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
 	TRefCountPtr<IPooledRenderTarget> Temp;

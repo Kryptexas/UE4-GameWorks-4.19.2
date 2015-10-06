@@ -11,8 +11,6 @@ class UFactory;
 
 #endif
 
-#define LOCTEXT_NAMESPACE "FunctionalTesting"
-
 namespace FFunctionalTesting
 {
 	const TCHAR* ReproStringTestSeparator = TEXT("@");
@@ -51,7 +49,6 @@ namespace FFunctionalTesting
 // 
 //----------------------------------------------------------------------//
 
-FAutomationTestExecutionInfo* UFunctionalTestingManager::ExecutionInfo = NULL;
 
 UFunctionalTestingManager::UFunctionalTestingManager( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
@@ -73,6 +70,14 @@ void UFunctionalTestingManager::SetUpTests()
 	OnSetupTests.Broadcast();
 }
 
+struct FSortTestActorsByName
+{
+	FORCEINLINE bool operator()(const AFunctionalTest& A, const AFunctionalTest& B) const
+	{
+		return A.GetName() > B.GetName(); 
+	}
+};
+
 bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
 {
 	UFunctionalTestingManager* Manager = GetManager(WorldContext);
@@ -82,33 +87,25 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		UE_LOG(LogFunctionalTest, Warning, TEXT("Functional tests are already running, aborting."));
 		return true;
 	}
-	
-	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
-	FunctionalTestingLog.Open();
-	if (bNewLog)
-	{
-		FunctionalTestingLog.NewPage(LOCTEXT("NewLogLabel", "Functional Test"));
-	}
 
 	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
 	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
 	Manager->TestsLeft.Reset();
+	Manager->AllTests.Reset();
 	Manager->SetReproString(ReproString);
 
 	Manager->SetUpTests();
 
 	if (Manager->TestReproStrings.Num() > 0)
 	{
-		static const FText RunningFromReproString = LOCTEXT("RunningFromReproString", "Running tests indicated by Repro String:");
-		AddLogItem(RunningFromReproString);
-		AddLogItem(FText::FromString(ReproString));
+		UE_LOG(LogFunctionalTest, Log, TEXT("Running tests indicated by Repro String: %s"), *ReproString);
 		Manager->TriggerFirstValidTest();
 	}
 	else
 	{
-		for (TActorIterator<AFunctionalTest> It(GWorld); It; ++It)
+		for (TActorIterator<AFunctionalTest> It(WorldContext->GetWorld()); It; ++It)
 		{
 			AFunctionalTest* Test = (*It);
 			if (Test != NULL && Test->bIsEnabled == true)
@@ -116,6 +113,8 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 				Manager->AllTests.Add(Test);
 			}
 		}
+
+		Manager->AllTests.Sort(FSortTestActorsByName());
 
 		if (Manager->AllTests.Num() > 0)
 		{
@@ -126,21 +125,11 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 
 	if (Manager->bIsRunning == false)
 	{
-		AddLogItem(LOCTEXT("NoTestsDefined", "No tests defined on map or . DONE.")); 
+		UE_LOG(LogFunctionalTest, Warning, TEXT("No tests defined on map or . DONE."));
 		return false;
 	}
 
-#if WITH_EDITOR
-	FEditorDelegates::EndPIE.AddUObject(Manager, &UFunctionalTestingManager::OnEndPIE);
-#endif // WITH_EDITOR
-	
 	return true;
-}
-
-void UFunctionalTestingManager::OnEndPIE(const bool bIsSimulating)
-{
-	FEditorDelegates::EndPIE.RemoveAll(this);
-	RemoveFromRoot();
 }
 
 void UFunctionalTestingManager::TriggerFirstValidTest()
@@ -148,7 +137,7 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 	UWorld* World = GetWorld();
 	bIsRunning = World != NULL && World->GetNavigationSystem() != NULL;
 
-	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false))
+	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false) && World->AreActorsInitialized())
 	{
 		bIsRunning = RunFirstValidTest();
 		if (bIsRunning == false)
@@ -248,9 +237,7 @@ void UFunctionalTestingManager::AllTestsDone()
 {
 	if (GatheredFailedTestsReproString.IsEmpty() == false)
 	{
-		static const FText ReproStringLabel = LOCTEXT("ReproString", "Repro String:");
-		AddLogItem(ReproStringLabel);
-		AddLogItem(FText::FromString(GatheredFailedTestsReproString));
+		UE_LOG(LogFunctionalTest, Log, TEXT("Repro String : %s"), *GatheredFailedTestsReproString);
 	}
 
 	if (bLooped == true)
@@ -263,21 +250,17 @@ void UFunctionalTestingManager::AllTestsDone()
 		GatheredFailedTestsReproString = TEXT("");
 		TestsLeft = AllTests;
 
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("IterationIndex"), CurrentIteration);
-		AddLogItem(FText::Format(LOCTEXT("StartingIteration", "----- Starting iteration {IterationIndex} -----"), Arguments));
+		UE_LOG(LogFunctionalTest, Log, TEXT("----- Starting iteration %d -----"), CurrentIteration);
 		bIsRunning = RunFirstValidTest();
 		if (bIsRunning == false)
 		{
-			static const FText FailedToStartAnotherIterationText = LOCTEXT("FailedToStartAnotherIteration", "Failed to start another iteration.");
-			AddWarning(FailedToStartAnotherIterationText);
+			UE_LOG(LogFunctionalTest, Warning, TEXT("Failed to start another iteration."));
 		}
 	}
 	else
 	{
 		bFinished = true;
-		FEditorDelegates::EndPIE.RemoveAll(this);
-		AddLogItem(LOCTEXT("TestDone", "DONE."));
+		UE_LOG(LogFunctionalTest, Log, TEXT("DONE."));
 		RemoveFromRoot();
 	}
 }
@@ -299,7 +282,7 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			
 			if (TestParams.Num() == 0)
 			{
-				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to parse \'%s\'"), *SingleTestReproString)));
+				UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to parse \'%s\'"), *SingleTestReproString);
 				continue;
 			}
 			// first param is the test name. Look for it		
@@ -316,12 +299,12 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 				}
 				else
 				{
-					AddWarning(FText::FromString(FString::Printf(TEXT("Test \'%s\' failed to start"), *TestToRun->GetName())));
+					UE_LOG(LogFunctionalTest, Warning, TEXT("Test \'%s\' failed to start"), *TestToRun->GetName());
 				}
 			}
 			else
 			{
-				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to find test \'%s\'"), *TestName)));
+				UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find test \'%s\'"), *TestName);
 			}
 		}
 	}
@@ -350,7 +333,7 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 				}
 				else
 				{
-					AddWarning(FText::FromString(FString::Printf(TEXT("Test: %s failed to start"), *TestsLeft[Index]->GetName())));
+					UE_LOG(LogFunctionalTest, Warning, TEXT("Test: %s failed to start"), *TestsLeft[Index]->GetName());
 					bRemove = true;
 				}
 			}
@@ -380,38 +363,5 @@ void UFunctionalTestingManager::SetReproString(FString ReproString)
 	}
 }
 
-//----------------------------------------------------------------------//
-// logging
-//----------------------------------------------------------------------//
-void UFunctionalTestingManager::AddError(const FText& InError)
-{
-	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
-	FunctionalTestingLog.Error(InError);
-	if (ExecutionInfo)
-	{
-		ExecutionInfo->Errors.Add(InError.ToString());
-	}
-}
 
-
-void UFunctionalTestingManager::AddWarning(const FText& InWarning)
-{
-	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
-	FunctionalTestingLog.Warning(InWarning);
-	if (ExecutionInfo)
-	{
-		ExecutionInfo->Warnings.Add(InWarning.ToString());
-	}
-}
-
-
-void UFunctionalTestingManager::AddLogItem(const FText& InLogItem)
-{
-	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
-	FunctionalTestingLog.Info(InLogItem);
-	if (ExecutionInfo)
-	{
-		ExecutionInfo->LogItems.Add(InLogItem.ToString());
-	}
-}
 #undef LOCTEXT_NAMESPACE

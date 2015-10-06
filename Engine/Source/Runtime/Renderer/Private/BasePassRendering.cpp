@@ -161,6 +161,25 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 			
 		SetShaderValue(RHICmdList, PixelShader, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
 	}
+	else
+	{
+		//set dummies for platforms that require bound resources.
+		SetTextureParameter(
+			RHICmdList,
+			PixelShader,
+			HZBTexture,
+			HZBSampler,
+			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
+			GBlackTexture->TextureRHI);
+
+		SetTextureParameter(
+			RHICmdList,
+			PixelShader,
+			PrevSceneColor,
+			PrevSceneColorSampler,
+			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
+			GBlackTexture->TextureRHI);
+	}
 }
 
 void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)

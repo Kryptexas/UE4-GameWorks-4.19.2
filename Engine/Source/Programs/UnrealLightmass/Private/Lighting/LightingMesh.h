@@ -381,7 +381,8 @@ public:
 	{ return true; }
 
 	/** Returns the LOD of this instance. */
-	virtual int32 GetLODIndex() const { return 0; }
+	virtual uint32 GetLODIndices() const { return 0; }
+	virtual uint32 GetHLODRange() const { return 0; }
 
 	/** For debugging */
 	virtual void SetDebugMaterial(bool bUseDebugMaterial, FLinearColor Diffuse);

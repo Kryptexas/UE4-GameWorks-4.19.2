@@ -637,9 +637,12 @@ namespace EAbilityGenericReplicatedEvent
 
 struct FAbilityReplicatedData
 {
-	FAbilityReplicatedData() : bTriggered(false) {}
+	FAbilityReplicatedData() : bTriggered(false), VectorPayload(ForceInitToZero) {}
 	/** Event has triggered */
 	bool bTriggered;
+
+	/** Optional Vector payload for event */
+	FVector_NetQuantize100 VectorPayload;
 
 	FSimpleMulticastDelegate Delegate;
 };
@@ -679,6 +682,7 @@ struct FAbilityReplicatedDataCache
 		for (int32 i=0; i < (int32) EAbilityGenericReplicatedEvent::MAX; ++i)
 		{
 			GenericEvents[i].bTriggered = false;
+			GenericEvents[i].VectorPayload = FVector::ZeroVector;
 		}
 
 	}

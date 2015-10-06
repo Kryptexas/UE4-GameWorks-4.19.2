@@ -24,6 +24,7 @@ public:
 		DrawType = SolidAndWireMeshes;
 		ViewFlagName = TEXT("VisLog");
 		ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*ViewFlagName));
+		bWantsSelectionOutline = false;
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override

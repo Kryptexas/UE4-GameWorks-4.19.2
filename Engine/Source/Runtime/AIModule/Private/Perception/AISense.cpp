@@ -118,13 +118,6 @@ TSubclassOf<UAISense> UAISenseConfig::GetSenseImplementation() const
 	return UAISense::StaticClass(); 
 }
 
-#if !UE_BUILD_SHIPPING
-void UAISenseConfig::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
-{
-
-}
-#endif // !UE_BUILD_SHIPPING
-
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
@@ -134,7 +127,7 @@ TSubclassOf<UAISense> UAISenseConfig_Sight::GetSenseImplementation() const
 }
 
 #if !UE_BUILD_SHIPPING
-void UAISenseConfig_Sight::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
+void UAISenseConfig_Sight::GetDebugData(TArray<FString>& OnScreenStrings, TArray<FDrawDebugShapeElement>& DebugShapes, const UAIPerceptionComponent& PerceptionComponent) const
 {
 	/*PeripheralVisionAngleDegrees*/
 	const AActor* BodyActor = PerceptionComponent.GetBodyActor();
@@ -143,13 +136,14 @@ void UAISenseConfig_Sight::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent
 		UWorld* World = BodyActor->GetWorld();
 		FVector BodyLocation, BodyFacing;
 		PerceptionComponent.GetLocationAndDirection(BodyLocation, BodyFacing);
-		DrawDebugCylinder(World, BodyLocation, BodyLocation + FVector(0, 0, -50), SightRadius, 32, UAISense_Sight::GetDebugSightRangeColor());
-		DrawDebugCylinder(World, BodyLocation, BodyLocation + FVector(0, 0, -50), LoseSightRadius, 32, UAISense_Sight::GetDebugLoseSightColor());
+
+		DebugShapes.Add(FDrawDebugShapeElement::MakeCylinder(BodyLocation, BodyLocation + FVector(0, 0, -50), LoseSightRadius, 32, UAISense_Sight::GetDebugLoseSightColor()));
+		DebugShapes.Add(FDrawDebugShapeElement::MakeCylinder(BodyLocation, BodyLocation + FVector(0, 0, -50), SightRadius, 32, UAISense_Sight::GetDebugSightRangeColor()));
 
 		const float SightPieLength = FMath::Max(LoseSightRadius, SightRadius);
-		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
-		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
-		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(-PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
+		DebugShapes.Add(FDrawDebugShapeElement::MakeLine(BodyLocation, BodyLocation + (BodyFacing * SightPieLength), UAISense_Sight::GetDebugSightRangeColor()));
+		DebugShapes.Add(FDrawDebugShapeElement::MakeLine(BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor()));
+		DebugShapes.Add(FDrawDebugShapeElement::MakeLine(BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(-PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor()));
 	}
 }
 #endif // !UE_BUILD_SHIPPING
@@ -168,20 +162,22 @@ TSubclassOf<UAISense> UAISenseConfig_Hearing::GetSenseImplementation() const
 	return *Implementation; 
 }
 #if !UE_BUILD_SHIPPING
-void UAISenseConfig_Hearing::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
-{	
+void UAISenseConfig_Hearing::GetDebugData(TArray<FString>& OnScreenStrings, TArray<FDrawDebugShapeElement>& DebugShapes, const UAIPerceptionComponent& PerceptionComponent) const
+{
 	const AActor* BodyActor = PerceptionComponent.GetBodyActor();
 	if (BodyActor != nullptr)
 	{
 		UWorld* World = BodyActor->GetWorld();
 		FVector OwnerLocation = BodyActor->GetActorLocation();
-		DrawDebugCylinder(World, OwnerLocation, OwnerLocation + FVector(0, 0, -50), HearingRange, 32, UAISense_Hearing::GetDebugHearingRangeColor());
+		DebugShapes.Add(FDrawDebugShapeElement::MakeCylinder(OwnerLocation, OwnerLocation + FVector(0, 0, -50), HearingRange, 32, UAISense_Hearing::GetDebugHearingRangeColor()));
 		if (bUseLoSHearing)
 		{
-			DrawDebugCylinder(World, OwnerLocation, OwnerLocation + FVector(0, 0, -50), LoSHearingRange, 32, UAISense_Hearing::GetDebugLoSHearingRangeeColor());
+			DebugShapes.Add(FDrawDebugShapeElement::MakeCylinder(OwnerLocation, OwnerLocation + FVector(0, 0, -50), LoSHearingRange, 32, UAISense_Hearing::GetDebugLoSHearingRangeeColor()));
 		}
 	}
 }
+
+
 #endif // !UE_BUILD_SHIPPING
 
 //----------------------------------------------------------------------//

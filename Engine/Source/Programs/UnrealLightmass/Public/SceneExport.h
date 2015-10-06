@@ -1014,7 +1014,8 @@ struct FSplineMeshParams
 struct FStaticMeshStaticLightingMeshData
 {
 	/** The LOD this mesh represents. */
-	int32 EncodedLODIndex;
+	uint32 EncodedLODIndices;
+	uint32 EncodedHLODRange;
 	FMatrix LocalToWorld;
 	/** true if the primitive has a transform which reverses the winding of its triangles. */
 	bool bReverseWinding;

@@ -203,11 +203,18 @@ void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<
 	}
 }
 
-void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
+void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bAllowRemapToExisting, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
 {
 	if(!OldSkeleton || OldSkeleton->GetPreviewMesh(true))
 	{
-		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, AnimBlueprints, bRemapReferencedAssets, NameRule, bConvertSpaces);
+		FAnimationRetargetContext RetargetContext(AnimBlueprints, bRemapReferencedAssets, bConvertSpaces);
+
+		if(bAllowRemapToExisting)
+		{
+			SAnimationRemapAssets::ShowWindow(RetargetContext, NewSkeleton);
+		}
+
+		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, RetargetContext, bRemapReferencedAssets, NameRule);
 	}
 	else
 	{

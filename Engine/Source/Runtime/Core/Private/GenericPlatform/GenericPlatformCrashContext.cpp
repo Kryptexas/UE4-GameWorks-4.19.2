@@ -80,7 +80,11 @@ void FGenericCrashContext::Initialize()
 	if (FCommandLine::IsInitialized())
 	{
 		const TCHAR* CmdLine = FCommandLine::Get();
-		if (FParse::Param( CmdLine, TEXT("fullcrashdump") ))
+		if (FParse::Param( CmdLine, TEXT("fullcrashdumpalways") ))
+		{
+			NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::FullDumpAlways;
+		}
+		else if (FParse::Param( CmdLine, TEXT("fullcrashdump") ))
 		{
 			NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::FullDump;
 		}
@@ -214,7 +218,13 @@ const FString& FGenericCrashContext::GetUniqueCrashName()
 
 const bool FGenericCrashContext::IsFullCrashDump()
 {
-	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDump);
+	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDump) ||
+		(NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDumpAlways);
+}
+
+const bool FGenericCrashContext::IsFullCrashDumpOnEnsure()
+{
+	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDumpAlways);
 }
 
 void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )

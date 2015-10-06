@@ -9,6 +9,7 @@
 #include "Database.h"
 #include "RenderCore.h"
 #include "Scalability.h"
+#include "AnalyticsEventAttribute.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Performance/EnginePerformanceTargets.h"
 
@@ -1064,6 +1065,116 @@ void UEngine::DumpFPSChartToHTML( float TotalTime, float DeltaTime, int32 NumFra
 }
 
 /**
+* Dumps the FPS chart information to an analytic event param array.
+*/
+void UEngine::DumpFPSChartToAnalyticsParams(float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName, TArray<FAnalyticsEventAttribute>& InParamArray)
+{
+
+	// Keep track of percentage of time at 30+ FPS.
+	float PctTimeAbove30 = 0;
+	// Keep track of percentage of time at 60+ FPS.
+	float PctTimeAbove60 = 0;
+
+	// Iterate over all buckets
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GFPSChart); BucketIndex++)
+	{
+		// Figure out bucket time and frame percentage.
+		const float BucketTimePercentage = 100.f * GFPSChart[BucketIndex].CummulativeTime / TotalTime;
+		const float BucketFramePercentage = 100.f * GFPSChart[BucketIndex].Count / NumFrames;
+
+		// Figure out bucket range. Buckets start at 5 frame intervals then change to 10.
+		int32 StartFPS = 0;
+		int32 EndFPS = 0;
+		CalcQuantisedFPSRange(BucketIndex, StartFPS, EndFPS);
+
+		//Keep track of time spent at 30+ FPS.
+		if (StartFPS >= 30)
+		{
+			PctTimeAbove30 += BucketTimePercentage;
+		}
+
+		// Keep track of time spent at 60+ FPS.
+		if (StartFPS >= 60)
+		{
+			PctTimeAbove60 += BucketTimePercentage;
+		}
+
+		InParamArray.Add(FAnalyticsEventAttribute(FString::Printf(TEXT("Bucket_%i_%i_TimePercentage"), StartFPS, EndFPS), BucketTimePercentage));
+	}
+
+	// Update hitch data
+	int32 TotalHitchCount = 0;
+	int32 TotalGameThreadBoundHitches = 0;
+	int32 TotalRenderThreadBoundHitches = 0;
+	int32 TotalGPUBoundHitches = 0;
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GHitchChart); ++BucketIndex)
+	{
+		FString ParamName;
+		if (BucketIndex == 0)
+		{
+			ParamName = FString::Printf(TEXT("Hitch_%i_Plus_HitchCount"), GHitchThresholds[BucketIndex]);
+		}
+		else
+		{
+			ParamName = FString::Printf(TEXT("Hitch_%i_%i_HitchCount"), GHitchThresholds[BucketIndex], GHitchThresholds[BucketIndex - 1]);
+		}
+
+		InParamArray.Add(FAnalyticsEventAttribute(ParamName, GHitchChart[BucketIndex].HitchCount));
+
+		TotalHitchCount += GHitchChart[BucketIndex].HitchCount;
+		TotalGameThreadBoundHitches += GHitchChart[BucketIndex].GameThreadBoundHitchCount;
+		TotalRenderThreadBoundHitches += GHitchChart[BucketIndex].RenderThreadBoundHitchCount;
+		TotalGPUBoundHitches += GHitchChart[BucketIndex].GPUBoundHitchCount;
+	}
+
+	// Add hitch totals to the param array
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalHitches"), TotalHitchCount));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGameBoundHitches"), TotalGameThreadBoundHitches));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalRenderBoundHitches"), TotalRenderThreadBoundHitches));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGPUBoundHitches"), TotalGPUBoundHitches));
+
+	// Get OS info
+	FString OSMajor;
+	FString OSMinor;
+	FPlatformMisc::GetOSVersions(OSMajor, OSMinor);
+
+	// Get settings info
+	const Scalability::FQualityLevels& Quality = GEngine->GetGameUserSettings()->ScalabilityQuality;
+
+	// Add non-bucket params
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ChangeList"), GetChangeListNumberForPerfTesting()));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("BuildType"), EBuildConfigurations::ToString(FApp::GetBuildConfiguration())));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("DateStamp"), FDateTime::Now().ToString()));
+
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("OS"), FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU"), FString::Printf(TEXT("%s %s"), *FPlatformMisc::GetCPUVendor(), *FPlatformMisc::GetCPUBrand())));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPU"), FPlatformMisc::GetPrimaryGPUBrand()));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ResolutionQuality"), Quality.ResolutionQuality));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ViewDistanceQuality"), Quality.ViewDistanceQuality));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("AntiAliasingQuality"), Quality.AntiAliasingQuality));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ShadowQuality"), Quality.ShadowQuality));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("PostProcessQuality"), Quality.PostProcessQuality));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TextureQuality"), Quality.TextureQuality));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("FXQuality"), Quality.EffectsQuality));
+
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("AvgFPS"), FString::Printf(TEXT("%4.2f"), NumFrames / TotalTime)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentAbove30"), FString::Printf(TEXT("%4.2f"), PctTimeAbove30)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentAbove60"), FString::Printf(TEXT("%4.2f"), PctTimeAbove60)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TimeDisregarded"), FString::Printf(TEXT("%4.2f"), FMath::Max<float>(0, DeltaTime - TotalTime))));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FString::Printf(TEXT("%4.2f"), DeltaTime)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("FrameCount"), FString::Printf(TEXT("%i"), NumFrames)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("AvgGPUTime"), FString::Printf(TEXT("%4.2f ms"), float((GTotalGPUTime / NumFrames)*1000.0))));
+
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentGameThreadBound"), FString::Printf(TEXT("%4.2f"), (float(GNumFramesBound_GameThread) / float(NumFrames))*100.0f)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentRenderThreadBound"), FString::Printf(TEXT("%4.2f"), (float(GNumFramesBound_RenderThread) / float(NumFrames))*100.0f)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentGPUBound"), FString::Printf(TEXT("%4.2f"), (float(GNumFramesBound_GPU) / float(NumFrames))*100.0f)));
+
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TimeGameThreadBound"), FString::Printf(TEXT("%4.2f"), ((GTotalFramesBoundTime_GameThread) / DeltaTime)*100.0f)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TimeRenderThreadBound"), FString::Printf(TEXT("%4.2f"), ((GTotalFramesBoundTime_RenderThread) / DeltaTime)*100.0f)));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("TimeGPUBound"), FString::Printf(TEXT("%4.2f"), ((GTotalFramesBoundTime_GPU) / DeltaTime)*100.0f)));
+}
+
+/**
  * Dumps the FPS chart information to the passed in archive.
  *
  * @param	InMapName	Name of the map
@@ -1109,6 +1220,42 @@ void UEngine::DumpFPSChart( const FString& InMapName, bool bForceDump )
 		}
 	}
 }
+
+/**
+* Dumps the FPS chart information to the passed in archive for analytics.
+*
+* @param	InMapName	Name of the map (Or Global)
+*/
+void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsEventAttribute>& InParamArray)
+{
+	// Iterate over all buckets, gathering total frame count and cumulative time.
+	float TotalTime = 0;
+	const float DeltaTime = FPlatformTime::Seconds() - GFPSChartStartTime;
+	int32 NumFrames = 0;
+	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GFPSChart); BucketIndex++)
+	{
+		NumFrames += GFPSChart[BucketIndex].Count;
+		TotalTime += GFPSChart[BucketIndex].CummulativeTime;
+	}
+
+	bool bMemoryChartIsActive = false;
+	if (FParse::Param(FCommandLine::Get(), TEXT("CaptureMemeoryChartInfo")) || FParse::Param(FCommandLine::Get(), TEXT("gCMI")))
+	{
+		bMemoryChartIsActive = true;
+	}
+
+	if (TotalTime > 0.f
+		&& NumFrames > 0
+		&& bMemoryChartIsActive == false)
+	{
+		if (FApp::IsGame())
+		{
+			DumpFPSChartToAnalyticsParams(TotalTime, DeltaTime, NumFrames, InMapName, InParamArray);
+		}
+	}
+}
+
+
 
 #endif // DO_CHARTING
 

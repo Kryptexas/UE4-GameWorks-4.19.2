@@ -53,7 +53,7 @@ FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize,
 		const IFontProviderInterface* FontProvider = Cast<const IFontProviderInterface>(InFontObject);
 		if (!FontProvider || !FontProvider->GetCompositeFont())
 		{
-			UE_LOG(LogSlate, Warning, TEXT("'%s' does not provide a composite font that can be used with Slate. Slate will be forced to use the fallback font path which may be slower."), *InFontObject->GetName());
+			UE_LOG(LogSlate, Verbose, TEXT("'%s' does not provide a composite font that can be used with Slate. Slate will be forced to use the fallback font path which may be slower."), *InFontObject->GetName());
 		}
 	}
 	else

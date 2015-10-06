@@ -58,6 +58,9 @@ enum class ECrashDumpMode : int32
 
 	/** Full memory crash minidump */
 	FullDump = 1,
+
+	/** Full memory crash minidump, even on ensures */
+	FullDumpAlways = 2,
 };
 
 /**
@@ -117,6 +120,11 @@ public:
 	 * @return whether this crash is a full memory minidump
 	 */
 	const bool IsFullCrashDump();
+
+	/**
+	 * @return whether this crash is a full memory minidump if the crash context is for an ensure
+	 */
+	const bool IsFullCrashDumpOnEnsure();
 
 	/** Serializes crash's informations to the specified filename. Should be overridden for platforms where using FFileHelper is not safe, all POSIX platforms. */
 	virtual void SerializeAsXML( const TCHAR* Filename );

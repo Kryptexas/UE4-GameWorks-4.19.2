@@ -422,6 +422,19 @@ protected:
 	// game-time config
 	//----------------------------------------------------------------------//
 	
+	/** By default navigation will skip the first update after being successfully loaded
+	*  setting bForceRebuildOnLoad to false can override this behavior */
+	UPROPERTY(config, EditAnywhere, Category = Runtime)
+	uint32 bForceRebuildOnLoad : 1;
+
+	/** If set, navigation data can act as default one in navigation system's queries */
+	UPROPERTY(config, VisibleAnywhere, Category = Runtime, AdvancedDisplay)
+	uint32 bCanBeMainNavData : 1;
+
+	/** If set, navigation data will be spawned in persistent level during rebuild if actor doesn't exist */
+	UPROPERTY(config, VisibleAnywhere, Category = Runtime, AdvancedDisplay)
+	uint32 bCanSpawnOnRebuild : 1;
+
 	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
 	UPROPERTY(config)
 	uint32 bRebuildAtRuntime_DEPRECATED:1;
@@ -429,11 +442,6 @@ protected:
 	/** Navigation data runtime generation options */
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	ERuntimeGenerationType RuntimeGeneration;
-
-	/** By default navigation will skip the first update after being successfully loaded
-	 *  setting bForceRebuildOnLoad to false can override this behavior */
-	UPROPERTY(config, EditAnywhere, Category = Runtime)
-	uint32 bForceRebuildOnLoad : 1;
 
 	/** all observed paths will be processed every ObservedPathsTickInterval seconds */
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
@@ -497,6 +505,9 @@ public:
 	FORCEINLINE void MarkAsNeedingUpdate() { bWantsUpdate = true; }
 
 	virtual void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles) {}
+
+	bool CanBeMainNavData() const { return bCanBeMainNavData; }
+	bool CanSpawnOnRebuild() const { return bCanSpawnOnRebuild; }
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
@@ -794,6 +805,7 @@ protected:
 	
 protected:
 	/** Navigation data versioning. */
+	UPROPERTY()
 	uint32 DataVersion;
 
 	typedef FPathFindingResult (*FFindPathPtr)(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);

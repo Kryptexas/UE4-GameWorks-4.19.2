@@ -692,7 +692,7 @@ struct FHeightmapAccessor
 			if (CollisionComponent)
 			{
 				CollisionComponent->RecreateCollision();
-				UNavigationSystem::UpdateNavOctree(CollisionComponent);
+				UNavigationSystem::UpdateComponentInNavOctree(*CollisionComponent);
 			}
 		}
 	}
@@ -920,7 +920,7 @@ struct FAlphamapAccessor
 					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 					if (NavSys)
 					{
-						NavSys->UpdateNavOctree(CollisionComponent);
+						NavSys->UpdateComponentInNavOctree(*CollisionComponent);
 					}
 				}
 			}
@@ -1025,7 +1025,7 @@ struct FFullWeightmapAccessor
 					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 					if (NavSys)
 					{
-						NavSys->UpdateNavOctree(CollisionComponent);
+						NavSys->UpdateComponentInNavOctree(*CollisionComponent);
 					}
 				}
 			}

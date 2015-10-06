@@ -485,6 +485,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			uint32 NumSRVs = 0;
 			uint32 NumCBs = 0;
 			uint32 NumUAVs = 0;
+			TArray<FString> UniformBufferNames;
 
 			TBitArray<> UsedUniformBufferSlots;
 			UsedUniformBufferSlots.Init(false,32);
@@ -519,26 +520,26 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 					if (bGlobalCB)
 					{
-					// Track all of the variables in this constant buffer.
-					for (uint32 ConstantIndex = 0; ConstantIndex < CBDesc.Variables; ConstantIndex++)
-					{
-						ID3D11ShaderReflectionVariable* Variable = ConstantBuffer->GetVariableByIndex(ConstantIndex);
-						D3D11_SHADER_VARIABLE_DESC VariableDesc;
-						Variable->GetDesc(&VariableDesc);
-						if (VariableDesc.uFlags & D3D10_SVF_USED)
+						// Track all of the variables in this constant buffer.
+						for (uint32 ConstantIndex = 0; ConstantIndex < CBDesc.Variables; ConstantIndex++)
 						{
+							ID3D11ShaderReflectionVariable* Variable = ConstantBuffer->GetVariableByIndex(ConstantIndex);
+							D3D11_SHADER_VARIABLE_DESC VariableDesc;
+							Variable->GetDesc(&VariableDesc);
+							if (VariableDesc.uFlags & D3D10_SVF_USED)
+							{
 								bGlobalUniformBufferUsed = true;
 
-							Output.ParameterMap.AddParameterAllocation(
-								ANSI_TO_TCHAR(VariableDesc.Name),
-								CBIndex,
-								VariableDesc.StartOffset,
-								VariableDesc.Size
-								);
-								UsedUniformBufferSlots[CBIndex] = true;
+								Output.ParameterMap.AddParameterAllocation(
+									ANSI_TO_TCHAR(VariableDesc.Name),
+									CBIndex,
+									VariableDesc.StartOffset,
+									VariableDesc.Size
+									);
+									UsedUniformBufferSlots[CBIndex] = true;
+							}
 						}
 					}
-				}
 					else
 					{
 						// Track just the constant buffer itself.
@@ -549,6 +550,12 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 							0
 							);
 						UsedUniformBufferSlots[CBIndex] = true;
+
+						if (UniformBufferNames.Num() <= (int32)CBIndex)
+						{
+							UniformBufferNames.AddDefaulted(CBIndex - UniformBufferNames.Num() + 1);
+						}
+						UniformBufferNames[CBIndex] = CBDesc.Name;
 					}
 
 					NumCBs = FMath::Max(NumCBs, BindDesc.BindPoint + BindDesc.BindCount);
@@ -669,10 +676,31 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			
 			// Build the SRT for this shader.
 			FD3D11ShaderResourceTable SRT;
+
+			TArray<uint8> UniformBufferNameBytes;
+
 			{
 				// Build the generic SRT for this shader.
-				FShaderResourceTable GenericSRT;
+				FShaderCompilerResourceTable GenericSRT;
 				BuildResourceTableMapping(Input.Environment.ResourceTableMap, Input.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, Output.ParameterMap, GenericSRT);
+
+				if (UniformBufferNames.Num() < GenericSRT.ResourceTableLayoutHashes.Num())
+				{
+					UniformBufferNames.AddDefaulted(GenericSRT.ResourceTableLayoutHashes.Num() - UniformBufferNames.Num() + 1);
+				}
+
+				for (int32 Index = 0; Index < GenericSRT.ResourceTableLayoutHashes.Num(); ++Index)
+				{
+					if (GenericSRT.ResourceTableLayoutHashes[Index] != 0 && UniformBufferNames[Index].Len() == 0)
+					{
+						auto* Name = Input.Environment.ResourceTableLayoutHashes.FindKey(GenericSRT.ResourceTableLayoutHashes[Index]);
+						check(Name);
+						UniformBufferNames[Index] = *Name;
+					}
+				}
+
+				FMemoryWriter UniformBufferNameWriter(UniformBufferNameBytes);
+				UniformBufferNameWriter << UniformBufferNames;
 
 				// At runtime textures are just SRVs, so combine them for the purposes of building token streams.
 				GenericSRT.ShaderResourceViewMap.Append(GenericSRT.TextureMap);
@@ -686,7 +714,6 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, SRT.ShaderResourceViewMap);
 				BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, SRT.SamplerMap);
 				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);
-
 			}
 
 			FMemoryWriter Ar(Output.ShaderCode.GetWriteAccess(), true);
@@ -698,6 +725,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				FShaderCodePackedResourceCounts PackedResourceCounts = { bGlobalUniformBufferUsed, NumSamplers, NumSRVs, NumCBs, NumUAVs };
 
 				Output.ShaderCode.AddOptionalData(PackedResourceCounts);
+				Output.ShaderCode.AddOptionalData('u', UniformBufferNameBytes.GetData(), UniformBufferNameBytes.Num());
 			}
 
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping

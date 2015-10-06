@@ -359,12 +359,17 @@ public:
 	void FindBestAxisVectors3( FVector4& Axis1, FVector4& Axis2 ) const;
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
+	FORCEINLINE void DiagnosticCheckNaN()
 	{
-		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		if (ContainsNaN())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FVector contains NaN: %s"), *ToString());
+			*this = FVector4(FVector::ZeroVector);
+
+		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() const { }
+	FORCEINLINE void DiagnosticCheckNaN() { }
 #endif
 
 public:

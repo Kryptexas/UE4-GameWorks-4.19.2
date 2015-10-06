@@ -22,15 +22,15 @@ namespace PartyConsoleVariables
 
 UPartyGameState::UPartyGameState(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
+	PartyStateRefDef(nullptr),
+	PartyStateRef(nullptr),
 	OwningUserId(nullptr),
 	bDebugAcceptingMembers(false),
 	PartyInfo(nullptr),
 	bPromotionLockoutState(false),
 	bStayWithPartyOnDisconnect(false),
 	ReservationBeaconClientClass(nullptr),
-	ReservationBeaconClient(nullptr),
-	PartyStateRef(nullptr),
-	PartyStateRefDef(nullptr)
+	ReservationBeaconClient(nullptr)
 {
 	PartyMemberStateClass = UPartyMemberState::StaticClass();
 	ReservationBeaconClientClass = APartyBeaconClient::StaticClass();
@@ -62,6 +62,7 @@ void UPartyGameState::OnShutdown()
 		{
 			PartyStateRefDef->DestroyStruct(PartyStateRefScratch);
 			FMemory::Free(PartyStateRefScratch);
+			PartyStateRefScratch = nullptr;
 		}
 		PartyStateRefDef = nullptr;
 	}

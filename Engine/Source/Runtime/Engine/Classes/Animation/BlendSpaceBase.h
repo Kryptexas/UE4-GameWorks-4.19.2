@@ -277,7 +277,7 @@ public:
 	virtual TArray<FName>* GetUniqueMarkerNames() override { return (bAllSequencesHaveMatchingMarkers && SampleData.Num() > 0) ? SampleData[0].Animation->GetUniqueMarkerNames() : nullptr; }
 	//~ End UAnimationAsset Interface
 
-	void TickFollowerSamples(TArray<FBlendSampleData> &SampleDataList, const int32 HighestWeightIndex, FAnimAssetTickContext &Context) const
+	void TickFollowerSamples(TArray<FBlendSampleData> &SampleDataList, const int32 HighestWeightIndex, FAnimAssetTickContext &Context, bool bResetMarkerDataOnFollowers) const
 	{
 		for (int32 SampleIndex = 0; SampleIndex < SampleDataList.Num(); ++SampleIndex)
 		{
@@ -285,6 +285,10 @@ public:
 			const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
 			if (HighestWeightIndex != SampleIndex)
 			{
+				if (bResetMarkerDataOnFollowers)
+				{
+					SampleDataItem.MarkerTickRecord.Reset();
+				}
 				Sample.Animation->TickByMarkerAsFollower(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, Context.GetLeaderDelta(), true);
 			}
 		}

@@ -40,14 +40,6 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 
 	void TickMe(float DeltaTime);
 
-	//----------------------------------------------------------------------//
-	// Automation logging
-	//----------------------------------------------------------------------//
-	static void SetAutomationExecutionInfo(FAutomationTestExecutionInfo* InExecutionInfo) { ExecutionInfo = InExecutionInfo; }
-	static void AddError(const FText& InError);
-	static void AddWarning(const FText& InWarning);
-	static void AddLogItem(const FText& InLogItem);
-
 private:
 	void LogMessage(const FString& MessageString, TSharedPtr<IMessageLogListing> LogListing = NULL);
 	
@@ -58,7 +50,6 @@ protected:
 	void SetUpTests();
 
 	void OnTestDone(class AFunctionalTest* FTest);
-	void OnEndPIE(const bool bIsSimulating);
 
 	bool RunFirstValidTest();
 
@@ -82,8 +73,6 @@ protected:
 	FString GatheredFailedTestsReproString;
 	FString StartingReproString;
 	TArray<FString> TestReproStrings;
-
-	static FAutomationTestExecutionInfo* ExecutionInfo;
 
 private:
 	FTimerHandle TriggerFirstValidTestTimerHandle;

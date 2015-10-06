@@ -86,7 +86,7 @@ FReply SAnimationScrubPanel::OnClick_Forward_Step()
 
 			// Advance a single frame, leaving it paused afterwards
 			SMC->GlobalAnimRateScale = 1.0f;
-			SMC->TickAnimation(1.0f / TargetFramerate);
+			SMC->TickAnimation(1.0f / TargetFramerate, false);
 			SMC->GlobalAnimRateScale = 0.0f;
 		}
 	}
@@ -392,7 +392,7 @@ UAnimInstance* SAnimationScrubPanel::GetAnimInstanceWithBlueprint() const
 {
 	if (UDebugSkelMeshComponent* DebugComponent = PersonaPtr.Pin()->GetPreviewMeshComponent())
 	{
-		UAnimInstance* Instance = DebugComponent->AnimScriptInstance;
+		UAnimInstance* Instance = DebugComponent->GetAnimInstance();
 
 		if ((Instance != NULL) && (Instance->GetClass()->ClassGeneratedBy != NULL))
 		{

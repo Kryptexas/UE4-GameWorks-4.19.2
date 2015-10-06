@@ -10,6 +10,7 @@
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "EnvironmentQuery/EnvQueryInstanceBlueprintWrapper.h"
+
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #include "Engine/Brush.h"
@@ -109,7 +110,7 @@ UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
 }
 
-UEnvQueryManager* UEnvQueryManager::GetCurrent(UObject* WorldContextObject)
+UEnvQueryManager* UEnvQueryManager::GetCurrent(const UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
@@ -701,14 +702,35 @@ UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldC
 
 	if (EQSManager)
 	{
-		QueryInstanceWrapper = NewObject<UEnvQueryInstanceBlueprintWrapper>((UClass*)(WrapperClass)  ? (UClass*)WrapperClass : UEnvQueryInstanceBlueprintWrapper::StaticClass());
-		check(QueryInstanceWrapper);
-		FEnvQueryRequest QueryRequest(QueryTemplate, Querier);
-		// @todo named params still missing support
-		//QueryRequest.SetNamedParams(QueryParams);
+		bool bValidQuerier = true;
 
-		QueryInstanceWrapper->SetRunMode(RunMode);
-		QueryInstanceWrapper->SetQueryID(QueryRequest.Execute(RunMode, QueryInstanceWrapper, &UEnvQueryInstanceBlueprintWrapper::OnQueryFinished));
+		// convert controller-owners to pawns, unless specifically configured not to do so
+		if (GET_AI_CONFIG_VAR(bAllowControllersAsEQSQuerier) == false && Cast<AController>(Querier))
+		{
+			AController* Controller = Cast<AController>(Querier);
+			if (Controller->GetPawn())
+			{
+				Querier = Controller->GetPawn();
+			}
+			else
+			{
+				UE_VLOG(Controller, LogEQS, Error, TEXT("Trying to run EQS query while not having a pawn! Aborting."));
+				bValidQuerier = false;
+			}
+		}
+
+		if (bValidQuerier)
+		{
+			QueryInstanceWrapper = NewObject<UEnvQueryInstanceBlueprintWrapper>((UClass*)(WrapperClass) ? (UClass*)WrapperClass : UEnvQueryInstanceBlueprintWrapper::StaticClass());
+			check(QueryInstanceWrapper);
+
+			FEnvQueryRequest QueryRequest(QueryTemplate, Querier);
+			// @todo named params still missing support
+			//QueryRequest.SetNamedParams(QueryParams);
+
+			QueryInstanceWrapper->SetRunMode(RunMode);
+			QueryInstanceWrapper->SetQueryID(QueryRequest.Execute(RunMode, QueryInstanceWrapper, &UEnvQueryInstanceBlueprintWrapper::OnQueryFinished));
+		}
 	}
 	
 	return QueryInstanceWrapper;

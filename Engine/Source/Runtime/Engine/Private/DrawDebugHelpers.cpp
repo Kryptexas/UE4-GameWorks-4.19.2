@@ -1021,3 +1021,33 @@ void DrawDebugCanvasWireCone(UCanvas* Canvas, const FTransform& Transform, float
 	}
 	DrawDebugCanvasLine( Canvas, Verts[Verts.Num()-1], Verts[0], Color );
 }
+
+//
+// Canvas 2D
+//
+
+void DrawDebugCanvas2DLine(UCanvas* Canvas, const FVector2D& StartPosition, const FVector2D& EndPosition, const FLinearColor& LineColor, const float& LineThickness)
+{
+	if (Canvas)
+	{
+		FCanvasLineItem LineItem(StartPosition, EndPosition);
+		LineItem.LineThickness = LineThickness;
+		LineItem.SetColor(LineColor);
+		Canvas->DrawItem(LineItem);
+	}
+}
+
+void DrawDebugCanvas2DCircle(UCanvas* Canvas, const FVector2D& Center, float Radius, int32 NumSides, const FLinearColor& LineColor, const float& LineThickness)
+{
+	const float	AngleDelta = 2.0f * PI / NumSides;
+	FVector2D AxisX(1.f, 0.f);
+	FVector2D AxisY(0.f, -1.f);
+	FVector2D LastVertex = Center + AxisX * Radius;
+
+	for (int32 SideIndex = 0; SideIndex < NumSides; SideIndex++)
+	{
+		const FVector2D Vertex = Center + (AxisX * FMath::Cos(AngleDelta * (SideIndex + 1)) + AxisY * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
+		DrawDebugCanvas2DLine(Canvas, LastVertex, Vertex, LineColor, LineThickness);
+		LastVertex = Vertex;
+	}
+}

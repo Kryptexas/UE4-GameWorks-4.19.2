@@ -108,6 +108,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
 
+	/** This feature allows you to broadcast to a live streaming service directly from the editor.  This requires you to have a live streaming plugin installed. */
+	UPROPERTY(EditAnywhere, config, Category=Tools)
+	bool bLiveStreamingFromEditor;
+
 	/** Enables Metal/High-end mobile rendering path previw on Desktop */
 	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
 	bool bFeatureLevelES31Preview;

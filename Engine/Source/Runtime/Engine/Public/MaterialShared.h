@@ -243,7 +243,9 @@ public:
 
 	void SetParameterCollections(const TArray<class UMaterialParameterCollection*>& Collections);
 	void CreateBufferStruct();
+	ENGINE_API FRHIUniformBufferLayout* CreateDebugLayout() const;
 	const FUniformBufferStruct& GetUniformBufferStruct() const;
+
 	ENGINE_API FUniformBufferRHIRef CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const;
 
 	uint32 GetAllocatedSize() const

@@ -3356,6 +3356,9 @@ public:
 			Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
 		}
 
+
+		CheckEmitterFinished();
+
 		check(AllocatedTiles.Num() == TileTimeOfDeath.Num());
 	}
 
@@ -4296,7 +4299,7 @@ void FFXSystem::SimulateGPUParticles(
 	static TArray<FNewParticle> NewParticles;
 	for (TSparseArray<FParticleSimulationGPU*>::TIterator It(GPUSimulations); It; ++It)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_GPUParticleBuildSimCmdsTime);
+		//SCOPE_CYCLE_COUNTER(STAT_GPUParticleBuildSimCmdsTime);
 
 		FParticleSimulationGPU* Simulation = *It;
 		if (Simulation->SimulationPhase == Phase

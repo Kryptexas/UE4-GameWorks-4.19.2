@@ -248,14 +248,27 @@ public:
 	}
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
+	FORCEINLINE void DiagnosticCheckNaN()
 	{
-		ensureMsgf(!Origin.ContainsNaN(), TEXT("Origin contains NaN: %s"), *Origin.ToString());
-		ensureMsgf(!BoxExtent.ContainsNaN(), TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
-		ensureMsgf(!FMath::IsNaN(SphereRadius) && FMath::IsFinite(SphereRadius), TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+		if (Origin.ContainsNaN())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("Origin contains NaN: %s"), *Origin.ToString());
+			Origin = FVector::ZeroVector;
+		}
+		if (BoxExtent.ContainsNaN())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
+			BoxExtent = FVector::ZeroVector;
+
+		}
+		if (FMath::IsNaN(SphereRadius) || !FMath::IsFinite(SphereRadius))
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+			SphereRadius = 0.f;
+		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() const {}
+	FORCEINLINE void DiagnosticCheckNaN() {}
 #endif
 
 public:

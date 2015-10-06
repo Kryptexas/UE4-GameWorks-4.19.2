@@ -360,7 +360,7 @@ static UEdGraphNode* BlueprintEditorImpl::FindNodeWithError(UBlueprint* Blueprin
 	{
 		for (UEdGraphNode* Node : Graph->Nodes)
 		{
-			if (Node->bHasCompilerMessage && !Node->ErrorMsg.IsEmpty() && (Node->ErrorType <= Severity))
+			if (Node && Node->bHasCompilerMessage && !Node->ErrorMsg.IsEmpty() && (Node->ErrorType <= Severity))
 			{
 				if ((ChoiceNode == nullptr) || (ChoiceNode->ErrorType > Node->ErrorType))
 				{

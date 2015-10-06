@@ -65,7 +65,10 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 	{
 		for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
 		{
-			BlendPoses[ChildIndex].Update(Context);
+			if (BlendWeights[ChildIndex] > ZERO_ANIMWEIGHT_THRESH)
+			{
+				BlendPoses[ChildIndex].Update(Context);
+			}
 		}
 	}
 }

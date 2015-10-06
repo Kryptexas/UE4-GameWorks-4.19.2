@@ -8,6 +8,10 @@
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
+DECLARE_CYCLE_STAT(TEXT("WeldPhysics"), STAT_WeldPhysics, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("UnweldPhysics"), STAT_UnweldPhysics, STATGROUP_Physics);
+
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	#define WarnInvalidPhysicsOperations(Text, BodyInstance)  { static const FText _WarnText(Text); WarnInvalidPhysicsOperations_Internal(_WarnText, BodyInstance); }
 #else
@@ -700,6 +704,8 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 
 bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName ParentSocketName /* = Name_None */, bool bWeldSimulatedChild /* = false */)
 {
+	SCOPE_CYCLE_COUNTER(STAT_WeldPhysics);
+
 	//WeldToInternal assumes attachment is already done
 	if (AttachParent != InParent || AttachSocketName != ParentSocketName)
 	{
@@ -777,6 +783,8 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 
 void UPrimitiveComponent::UnWeldFromParent()
 {
+	SCOPE_CYCLE_COUNTER(STAT_UnweldPhysics);
+
 	FBodyInstance* NewRootBI = GetBodyInstance(NAME_None, false);
 	UWorld* CurrentWorld = GetWorld();
 	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || IsPendingKill())
@@ -997,7 +1005,7 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 		if (bNavigationRelevant != bNewNavRelevant)
 		{
 			bNavigationRelevant = bNewNavRelevant;
-			UNavigationSystem::UpdateNavOctree(this);
+			UNavigationSystem::UpdateComponentInNavOctree(*this);
 		}
 	}
 }

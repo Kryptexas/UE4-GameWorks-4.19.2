@@ -138,6 +138,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Variable")
 	uint32 bEditableWhenInherited:1;
 
+	/** Cached navigation relevancy flag for collision updates */
+	uint32 bNavigationRelevant : 1;
+
+protected:
+	/** Whether this component can potentially influence navigation */
+	UPROPERTY(EditAnywhere, Category = Collision, AdvancedDisplay)
+	uint32 bCanEverAffectNavigation : 1;
+
+public:
 	/** If true, we call the virtual InitializeComponent */
 	uint32 bWantsInitializeComponent:1;
 
@@ -687,6 +696,19 @@ public:
 	 */
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) {};
 
+	/** Can this component potentially influence navigation */
+	bool CanEverAffectNavigation() const;
+
+	/** set value of bCanEverAffectNavigation flag and update navigation octree if needed */
+	void SetCanEverAffectNavigation(bool bRelevant);
+
+	/** override to supply actual logic */
+	virtual bool IsNavigationRelevant() const { return false; }
+
+protected:
+	/** Makes sure navigation system has up to date information regarding component's navigation relevancy and if it can affect navigation at all */
+	void HandleCanEverAffectNavigationChange();
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 private:
@@ -716,4 +738,9 @@ FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
 	checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
 	return Owner;
 #endif
+}
+
+FORCEINLINE bool UActorComponent::CanEverAffectNavigation() const
+{
+	return bCanEverAffectNavigation;
 }

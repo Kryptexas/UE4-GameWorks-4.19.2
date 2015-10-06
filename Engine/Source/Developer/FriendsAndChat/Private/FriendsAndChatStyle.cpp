@@ -4,9 +4,27 @@
 
 const FName FFriendsAndChatStyle::TypeName( TEXT("FFriendsAndChatStyle") );
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetSmallFriendsFontStyle(const FFriendsFontStyle& FontStyle)
+{
+	FriendsSmallFontStyle = FontStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle)
 {
 	FriendsNormalFontStyle = FontStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetLargeFriendsFontStyle(const FFriendsFontStyle& FontStyle)
+{
+	FriendsLargeFontStyle = FontStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendActionFontStyle(const FFriendsFontStyle& FontStyle)
+{
+	FriendActionFontStyle = FontStyle;
 	return *this;
 }
 
@@ -40,39 +58,16 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsMarkupStyle(const FFriends
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowEdgingBrush(const FSlateBrush& Value)
-{
-	WindowEdgingBrush = Value;
-	return *this;
-}
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetBorderPadding(const FMargin& Padding)
 {
 	BorderPadding = Padding;
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatFooterMinDesiredHeight(const float InChatFooterMinDesiredHeight)
-{
-	ChatFooterMinDesiredHeight = InChatFooterMinDesiredHeight;
-	return *this;
-}
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatFooterPadding(const FMargin& InChatFooterPadding)
-{
-	ChatFooterPadding = InChatFooterPadding;
-	return *this;
-}
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle)
 {
 	ScrollBarStyle = InScrollBarStyle;
-	return *this;
-}
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowStyle(const FWindowStyle& InStyle)
-{
-	WindowStyle = InStyle;
 	return *this;
 }
 
@@ -190,18 +185,6 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 		6,
 		FriendStyle.FriendsNormalFontStyle.FriendsFontSmall.TypefaceFontName
 		)));
-
-	Style->Set("GlobalChatIcon", FInlineTextImageStyle()
-		.SetImage(FriendStyle.FriendsChatStyle.ChatGlobalBrush)
-		.SetBaseline(0));
-
-	Style->Set("WhisperChatIcon", FInlineTextImageStyle()
-		.SetImage(FriendStyle.FriendsChatStyle.ChatWhisperBrush)
-		.SetBaseline(0));
-
-	Style->Set("PartyChatIcon", FInlineTextImageStyle()
-		.SetImage(FriendStyle.FriendsChatStyle.ChatGameBrush)
-		.SetBaseline(0));
 
 	return Style;
 }

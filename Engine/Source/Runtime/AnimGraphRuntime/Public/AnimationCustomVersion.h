@@ -17,6 +17,9 @@ struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 		// Converted the range clamp into a remap function, rather than just clamping
 		BoneDrivenControllerRemapping = 2,
 
+		// Added ability to offset angular ranges for constraints
+		AnimDynamicsAddAngularOffsets = 3,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

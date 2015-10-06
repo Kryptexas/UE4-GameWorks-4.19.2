@@ -452,8 +452,7 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 	ParallelBlendPhysicsCompletionTask.SafeRelease();
 }
 
-
-void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning)
+void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, bool bNoDefer)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -488,6 +487,13 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 	// Gracefully handle NaN
 	if(CurrentLocalToWorld.ContainsNaN())
 	{
+		return;
+	}
+
+	// If we are only using bodies for physics, don't need to move them right away, can defer until simulation (unless told not to)
+	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && !bNoDefer)
+	{
+		PhysScene->MarkForPreSimKinematicUpdate(this, Teleport, bNeedsSkinning);
 		return;
 	}
 
@@ -571,8 +577,10 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						{
 							const FName BodyName = PhysicsAsset->BodySetup[i]->BoneName;
 							UE_LOG(LogPhysics, Warning, TEXT("UpdateKinematicBonesToAnim: Trying to set transform with bad data %s on PhysicsAsset '%s' in SkeletalMesh '%s' for bone '%s'"), *BoneTransform.ToHumanReadableString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName(), *BodyName.ToString());
+							BoneTransform.DiagnosticCheck_IsValid();	//In special nan mode we want to actually ensure
+
 							continue;
-						}					
+						}
 
 						// If kinematic and not teleporting, set kinematic target
 						if (!BodyInst->IsInstanceSimulatingPhysics() && !bTeleport)

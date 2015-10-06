@@ -2,6 +2,9 @@
 
 #include "AutomationControllerPrivatePCH.h"
 
+#if WITH_EDITOR
+#include "MessageLog.h"
+#endif
 
 namespace AutomationControllerConstants
 {
@@ -14,6 +17,8 @@ void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& Session
 	//invalidate previous tests
 	++ExecutionCount;
 	DeviceClusterManager.Reset();
+
+	ControllerResetDelegate.ExecuteIfBound();
 
 	// Don't allow reports to be exported
 	bTestResultsAvailable = false;
@@ -72,6 +77,11 @@ void FAutomationControllerManager::RunTests( const bool bInIsLocalSession )
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
 	CheckTestTimer = 0.f;
 
+#if WITH_EDITOR
+	FMessageLog AutomationTestingLog("AutomationTestingLog");
+	AutomationTestingLog.Open();
+	AutomationTestingLog.Info(FText::FromString(TEXT("--------------------------NEW RUN-------------------")));
+#endif
 	//reset all tests
 	ReportManager.ResetForExecution(NumTestPasses);
 
@@ -127,7 +137,7 @@ void FAutomationControllerManager::Init()
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;
 	bRequestFullScreenScreenshots = false;
-	bPrintResults = false;
+	bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
 
 	// Update the ini with the settings
 	bTrackHistory = false;
@@ -236,7 +246,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 							FMessageAddress DeviceAddress = DeviceAddresses[AddressIndex];
 
 							// Send the test to the device for execution!
-							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), bScreenshotsEnabled, bRequestFullScreenScreenshots), DeviceAddress);
+							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), NextTest->GetDisplayName(), bScreenshotsEnabled, bRequestFullScreenScreenshots, bSendAnalytics), DeviceAddress);
 
 							// Add a test so we can check later if the device is still active
 							TestRunningArray.Add( FTestRunningInfo( DeviceAddress ) );
@@ -669,28 +679,48 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 
 		Report->SetResults(ClusterIndex,CurrentTestPass, TestResults);
 
-		if (bPrintResults)
+#if WITH_EDITOR
+		FMessageLog AutomationTestingLog("AutomationTestingLog");
+		AutomationTestingLog.Open();
+#endif
+
+		for (TArray<FString>::TConstIterator ErrorIter(Message.Errors); ErrorIter; ++ErrorIter)
 		{
-			for (TArray<FString>::TConstIterator ErrorIter(Message.Errors); ErrorIter; ++ErrorIter)
-			{
-				GLog->Logf(ELogVerbosity::Error, TEXT("%s"), **ErrorIter);
-			}
-			for (TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter)
-			{
-				GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), **WarningIter);
-			}
-			for (TArray<FString>::TConstIterator LogItemIter(Message.Logs); LogItemIter; ++LogItemIter)
-			{
-				GLog->Logf(ELogVerbosity::Log, TEXT("%s"), **LogItemIter);
-			}
-			if (TestResults.State == EAutomationState::Success)
-			{
-				GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
-			}
-			else
-			{
-				GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Failed (%s)"), *Report->GetDisplayName());
-			}
+			GLog->Logf(ELogVerbosity::Error, TEXT("%s"), **ErrorIter);
+#if WITH_EDITOR
+			AutomationTestingLog.Error(FText::FromString(*ErrorIter));
+#endif
+		}
+		for (TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter)
+		{
+			GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), **WarningIter);
+#if WITH_EDITOR
+			AutomationTestingLog.Warning(FText::FromString(*WarningIter));
+#endif
+		}
+		for (TArray<FString>::TConstIterator LogItemIter(Message.Logs); LogItemIter; ++LogItemIter)
+		{
+			GLog->Logf(ELogVerbosity::Log, TEXT("%s"), **LogItemIter);
+#if WITH_EDITOR
+			AutomationTestingLog.Info(FText::FromString(*LogItemIter));
+#endif
+		}
+
+		if (TestResults.State == EAutomationState::Success)
+		{
+			FString SuccessString = FString::Printf(TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
+			GLog->Logf(ELogVerbosity::Log, *SuccessString);
+#if WITH_EDITOR
+			AutomationTestingLog.Info(FText::FromString(*SuccessString));
+#endif
+		}
+		else
+		{
+			FString FailureString = FString::Printf(TEXT("...Automation Test Failed (%s)"), *Report->GetDisplayName());
+			GLog->Logf(ELogVerbosity::Log, *FailureString);
+#if WITH_EDITOR
+			AutomationTestingLog.Error(FText::FromString(*FailureString));
+#endif
 		}
 
 		// Device is now good to go

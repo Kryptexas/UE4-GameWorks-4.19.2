@@ -935,7 +935,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			{
 				FSceneViewState* ViewState = (FSceneViewState*)View.State;
 				// we need to allocate this now so it ends up in the snapshot
-				ViewState->GetSeparateTranslucency(RHICmdList, SceneContext.GetBufferSizeXY());
+				static IConsoleVariable* STSP_CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SeparateTranslucencyScreenPercentage"));
+				FIntPoint ScaledSize(SceneContext.GetBufferSizeXY().X * (STSP_CVar->GetInt() / 100.0f), SceneContext.GetBufferSizeXY().Y * (STSP_CVar->GetInt() / 100.0f) );
+				ViewState->GetSeparateTranslucency(ScaledSize);
+
+				ViewState->GetSeparateTranslucencyDepth(SceneContext.GetBufferSizeXY());
+				DownsampleDepthSurface(RHICmdList, ViewState->GetSeparateTranslucencyDepthSurface(), View, STSP_CVar->GetInt() / 100.0f);
 			}
 			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, 
 				CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, 
@@ -1100,6 +1105,13 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 				FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 				
 				// always call BeginRenderingSeparateTranslucency() even if there are no primitives to we keep the RT allocated
+				FSceneViewState* ViewState = (FSceneViewState*)View.State;
+				if (ViewState)
+				{
+					static IConsoleVariable* STSP_CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SeparateTranslucencyScreenPercentage"));
+					ViewState->GetSeparateTranslucencyDepth(SceneContext.GetBufferSizeXY());
+					DownsampleDepthSurface(RHICmdList, ViewState->GetSeparateTranslucencyDepthSurface(), View, STSP_CVar->GetInt() / 100.0f);
+				}
 				bool bSetupTranslucency = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, true);
 
 				const TIndirectArray<FMeshBatch>& WorldList = View.ViewMeshElements;

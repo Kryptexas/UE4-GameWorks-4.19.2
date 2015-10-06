@@ -394,12 +394,16 @@ public:
 public:
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
+	FORCEINLINE void DiagnosticCheckNaN()
 	{
-		ensureMsgf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
+		if (ContainsNaN())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FQuat contains NaN: %s"), *ToString());
+			*this = FQuat::Identity;
+		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() const {}
+	FORCEINLINE void DiagnosticCheckNaN() {}
 #endif
 
 public:

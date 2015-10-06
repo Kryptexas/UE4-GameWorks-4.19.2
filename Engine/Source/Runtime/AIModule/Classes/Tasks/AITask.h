@@ -17,7 +17,7 @@ enum class EAITaskPriority : uint8
 	Ultimate = 254,
 };
 
-UCLASS(Abstract)
+UCLASS(Abstract, BlueprintType)
 class AIMODULE_API UAITask : public UGameplayTask
 {
 	GENERATED_BODY()

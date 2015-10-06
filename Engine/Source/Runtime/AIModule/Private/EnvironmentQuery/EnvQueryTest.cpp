@@ -27,12 +27,13 @@ UEnvQueryTest::UEnvQueryTest(const FObjectInitializer& ObjectInitializer) : Supe
 
 void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 {
-	if (!IsScoring())
+	UObject* QueryOwner = QueryInstance.Owner.Get();
+	if (QueryOwner == nullptr || !IsScoring())
 	{
 		return;
 	}
 
-	ScoringFactor.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	ScoringFactor.BindData(QueryOwner, QueryInstance.QueryID);
 	float ScoringFactorValue = ScoringFactor.GetValue();
 
 	float MinScore = 0;
@@ -40,23 +41,23 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 
 	if (ClampMinType == EEnvQueryTestClamping::FilterThreshold)
 	{
-		FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		FloatValueMin.BindData(QueryOwner, QueryInstance.QueryID);
 		MinScore = FloatValueMin.GetValue();
 	}
 	else if (ClampMinType == EEnvQueryTestClamping::SpecifiedValue)
 	{
-		ScoreClampMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		ScoreClampMin.BindData(QueryOwner, QueryInstance.QueryID);
 		MinScore = ScoreClampMin.GetValue();
 	}
 
 	if (ClampMaxType == EEnvQueryTestClamping::FilterThreshold)
 	{
-		FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		FloatValueMax.BindData(QueryOwner, QueryInstance.QueryID);
 		MaxScore = FloatValueMax.GetValue();
 	}
 	else if (ClampMaxType == EEnvQueryTestClamping::SpecifiedValue)
 	{
-		ScoreClampMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+		ScoreClampMax.BindData(QueryOwner, QueryInstance.QueryID);
 		MaxScore = ScoreClampMax.GetValue();
 	}
 

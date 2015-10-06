@@ -1339,6 +1339,11 @@ void FPersonaMeshDetails::OnMaterialChanged(UMaterialInterface* NewMaterial, UMa
 	check(MaterialProperty);
 	Mesh->PreEditChange(MaterialProperty);
 
+	FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+	check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
+	const int32 TotalSlotCount = ImportedResource->LODModels[LODIndex].Sections.Num();
+
+	check(TotalSlotCount > SlotIndex);
 	if (LODIndex == 0)
 	{
 		int MaterialIndex = GetMaterialIndex(LODIndex, SlotIndex);
@@ -1374,7 +1379,8 @@ void FPersonaMeshDetails::OnMaterialChanged(UMaterialInterface* NewMaterial, UMa
 
 		if (bIsUsedInParentLODs)
 		{
-			int32 NewMaterialIndex = Mesh->Materials.Add(FSkeletalMaterial(NewMaterial));
+			FSkeletalMaterial OldMaterial = Mesh->Materials[MaterialIndex];
+			int32 NewMaterialIndex = Mesh->Materials.Add(OldMaterial);
 
 			if (Mesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
 			{
@@ -1382,8 +1388,14 @@ void FPersonaMeshDetails::OnMaterialChanged(UMaterialInterface* NewMaterial, UMa
 			}
 			else
 			{
-				// @TODO : need to overwrite section's material index
-				MaterialIndex = SlotIndex;
+				// copy all old ones back
+				Mesh->LODInfo[LODIndex].LODMaterialMap.AddZeroed(TotalSlotCount);
+				for (int32 SlotId = 0; SlotId < TotalSlotCount; ++SlotId)
+				{
+					Mesh->LODInfo[LODIndex].LODMaterialMap[SlotId] = GetMaterialIndex(LODIndex, SlotId);
+				}
+
+				Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex] = NewMaterialIndex;
 			}
 		}
 		else

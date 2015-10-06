@@ -2,6 +2,8 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 
+#include "FriendsAndChatStyle.h"
+
 /**
  * Implements the FriendsAndChat module.
  */
@@ -24,7 +26,6 @@ public:
 	{
 		FFriendsAndChatModuleStyle::Shutdown();
 	}
-
 };
 
 

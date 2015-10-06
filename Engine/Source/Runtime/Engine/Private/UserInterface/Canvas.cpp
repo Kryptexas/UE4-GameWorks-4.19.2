@@ -2007,3 +2007,30 @@ FVector2D UCanvas::K2_TextSize(UFont* RenderFont, const FString& RenderText, FVe
 	return FVector2D::ZeroVector;
 }
 
+void FDisplayDebugManager::DrawString(const FString& InDebugString, const float& OptionalXOffset)
+{
+	if (Canvas)
+	{
+		DebugTextItem.Text = FText::FromString(InDebugString);
+		Canvas->DrawItem(DebugTextItem, FVector2D(CurrentPos.X + OptionalXOffset, CurrentPos.Y));
+
+		NextColumXPos = FMath::Max(NextColumXPos, CurrentPos.X + OptionalXOffset + DebugTextItem.DrawnSize.X);
+		MaxCharHeight = FMath::Max(MaxCharHeight, DebugTextItem.DrawnSize.Y);
+
+		CurrentPos.Y += GetYStep();
+		AddColumnIfNeeded();
+	}
+}
+
+void FDisplayDebugManager::AddColumnIfNeeded()
+{
+	if (Canvas)
+	{
+		const float YStep = GetYStep();
+		if ((CurrentPos.Y + YStep) > Canvas->SizeY)
+		{
+			CurrentPos.Y = InitialPos.Y;
+			CurrentPos.X = NextColumXPos + YStep * 2.f;
+		}
+	}
+}

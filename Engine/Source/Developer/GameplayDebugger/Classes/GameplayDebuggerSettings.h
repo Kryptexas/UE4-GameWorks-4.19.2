@@ -46,9 +46,9 @@ public:
 	DECLARE_EVENT_OneParam(UGameplayDebuggerSettings, FSettingChangedEvent, FName /*PropertyName*/);
 	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
 
-	uint32 GetSettings()
+	uint32& GetSettings()
 	{
-		uint32 Settings = 0;
+		static uint32 Settings = 0;
 		Settings = OverHead ? Settings | (1 << EAIDebugDrawDataView::OverHead) : Settings & ~(1 << EAIDebugDrawDataView::OverHead);
 		Settings = Basic ? Settings | (1 << EAIDebugDrawDataView::Basic) : Settings & ~(1 << EAIDebugDrawDataView::Basic);
 		Settings = BehaviorTree ? Settings | (1 << EAIDebugDrawDataView::BehaviorTree) : Settings & ~(1 << EAIDebugDrawDataView::BehaviorTree);

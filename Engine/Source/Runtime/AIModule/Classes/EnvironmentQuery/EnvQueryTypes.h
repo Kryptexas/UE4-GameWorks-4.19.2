@@ -5,6 +5,7 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvironmentQuery/EnvQueryContext.h"
 #include "DataProviders/AIDataProvider.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "EnvQueryTypes.generated.h"
 
 class ARecastNavMesh;
@@ -184,6 +185,14 @@ namespace EEnvQueryParam
 }
 
 UENUM()
+enum class EAIParamType : uint8
+{
+	Float,
+	Int,
+	Bool,
+};
+
+UENUM()
 namespace EEnvQueryTrace
 {
 	enum Type
@@ -248,10 +257,10 @@ struct AIMODULE_API FEnvNamedValue
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	FName ParamName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
-	TEnumAsByte<EEnvQueryParam::Type> ParamType;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
+	TEnumAsByte<EAIParamType> ParamType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	float Value;
 };
 
@@ -769,6 +778,7 @@ private:
 	/** time spent doing generation for this query */
 	double GenerationExecutionTime;
 
+	// @todo do we really need this data in shipped builds?
 	/** time spent on each test of this query */
 	TArray<double> PerStepExecutionTime;
 
@@ -779,7 +789,7 @@ public:
 #endif // USE_EQS_DEBUGGER
 
 	/** run mode */
-	TEnumAsByte<EEnvQueryRunMode::Type> Mode;
+	EEnvQueryRunMode::Type Mode;
 
 	/** item type's CDO for location tests */
 	UEnvQueryItemType_VectorBase* ItemTypeVectorCDO;
@@ -787,13 +797,9 @@ public:
 	/** item type's CDO for actor tests */
 	UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
 
-	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false), bHasLoggedTimeLimitWarning(false)
-#if USE_EQS_DEBUGGER
-		, bStoreDebugInfo(bDebuggingInfoEnabled) 
-#endif // USE_EQS_DEBUGGER
-	{ IncStats(); }
-	FEnvQueryInstance(const FEnvQueryInstance& Other) { *this = Other; IncStats(); }
-	~FEnvQueryInstance() { DecStats(); }
+	FEnvQueryInstance();
+	FEnvQueryInstance(const FEnvQueryInstance& Other);
+	~FEnvQueryInstance();
 
 	/** execute single step of query */
 	void ExecuteOneStep(double InCurrentStepTimeLimit);
@@ -1177,3 +1183,25 @@ namespace FEQSHelpers
 	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }
+
+USTRUCT(BlueprintType)
+struct AIMODULE_API FAIDynamicParam
+{
+	GENERATED_USTRUCT_BODY();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EQS)
+	FName ParamName;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EQS)
+	TEnumAsByte<EAIParamType> ParamType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EQS)
+	float Value;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EQS)
+	FBlackboardKeySelector BBKey;
+
+	void ConfigureBBKey(UObject &QueryOwner);
+
+	static void GenerateConfigurableParamsFromNamedValues(UObject &QueryOwner, TArray<FAIDynamicParam>& OutQueryConfig, TArray<FEnvNamedValue>& InQueryParams);
+};

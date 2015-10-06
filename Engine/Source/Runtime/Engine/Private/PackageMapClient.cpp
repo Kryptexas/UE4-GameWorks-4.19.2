@@ -8,6 +8,7 @@
 #include "Engine/ActorChannel.h"
 #include "RepLayout.h"
 #include "Engine/PackageMapClient.h"
+#include "ScopedTimers.h"
 
 // ( OutPacketId == GUID_PACKET_NOT_ACKED ) == NAK'd		(this GUID is not acked, and is not pending either, so sort of waiting)
 // ( OutPacketId == GUID_PACKET_ACKED )		== FULLY ACK'd	(this GUID is fully acked, and we no longer need to send full path)
@@ -47,10 +48,13 @@ static uint32 GetPackageChecksum( const UPackage* Package )
 bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& Object, FNetworkGUID *OutNetGUID)
 {
 	SCOPE_CYCLE_COUNTER(STAT_PackageMap_SerializeObjectTime);
-
+	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static IConsoleVariable* DebugObjectCvar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.DebugObject"));
-	if (DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && Object && Object->GetName().Contains(DebugObjectCvar->GetString()))
+	static IConsoleVariable* DebugAllObjectsCvar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.DebugAll"));
+	if (Object &&
+		((DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && Object->GetName().Contains(DebugObjectCvar->GetString())) ||
+		(DebugAllObjectsCvar && DebugAllObjectsCvar->GetInt() != 0)))
 	{
 		UE_LOG(LogNetPackageMap, Log, TEXT("Serialized Object %s"), *Object->GetName());
 	}
@@ -92,41 +96,66 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 	}
 	else if (Ar.IsLoading())
 	{
-		// ----------------	
-		// Read NetGUID from stream and resolve object
-		// ----------------	
-		FNetworkGUID NetGUID = InternalLoadObject( Ar, Object, 0 );
-
-		// Write out NetGUID to caller if necessary
-		if ( OutNetGUID )
+		FNetworkGUID NetGUID;
+		double LoadTime = 0.0;
 		{
-			*OutNetGUID = NetGUID;
-		}	
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			FScopedDurationTimer NetSerializeTime(LoadTime);
+#endif
 
-		// ----------------	
-		// Final Checks/verification
-		// ----------------	
+			// ----------------	
+			// Read NetGUID from stream and resolve object
+			// ----------------	
+			NetGUID = InternalLoadObject(Ar, Object, 0);
 
-		// NULL if we haven't finished loading the objects level yet
-		if ( !ObjectLevelHasFinishedLoading( Object ) )
-		{
-			UE_LOG(LogNetPackageMap, Warning, TEXT("Using None instead of replicated reference to %s because the level it's in has not been made visible"), *Object->GetFullName());
-			Object = NULL;
+			// Write out NetGUID to caller if necessary
+			if (OutNetGUID)
+			{
+				*OutNetGUID = NetGUID;
+			}
+
+#if 0		// Enable this code to force any actor with missing/broken content to not load in replays
+			if (NetGUID.IsValid() && Connection->InternalAck && GuidCache->IsGUIDBroken(NetGUID, true))
+			{
+				Ar.SetError();
+				UE_LOG(LogNetPackageMap, Warning, TEXT("UPackageMapClient::SerializeObject: InternalAck GUID broken."));
+				return false;
+			}
+#endif
+
+			// ----------------	
+			// Final Checks/verification
+			// ----------------	
+
+			// NULL if we haven't finished loading the objects level yet
+			if (!ObjectLevelHasFinishedLoading(Object))
+			{
+				UE_LOG(LogNetPackageMap, Warning, TEXT("Using None instead of replicated reference to %s because the level it's in has not been made visible"), *Object->GetFullName());
+				Object = NULL;
+			}
+
+			// Check that we got the right class
+			if (Object && !Object->IsA(Class))
+			{
+				UE_LOG(LogNetPackageMap, Warning, TEXT("Forged object: got %s, expecting %s"), *Object->GetFullName(), *Class->GetFullName());
+				Object = NULL;
+			}
+
+			if (NetGUID.IsValid() && Object == NULL && bShouldTrackUnmappedGuids && !GuidCache->IsGUIDBroken(NetGUID, false))
+			{
+				TrackedUnmappedNetGuids.AddUnique(NetGUID);
+			}
+
+			UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("UPackageMapClient::SerializeObject Serialized Object %s as <%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString());
 		}
-
-		// Check that we got the right class
-		if ( Object && !Object->IsA( Class ) )
+		
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		static IConsoleVariable* LongLoadThreshholdCVAR = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.LongLoadThreshhold"));		
+		if (LongLoadThreshholdCVAR && ((float)LoadTime > LongLoadThreshholdCVAR->GetFloat()))
 		{
-			UE_LOG(LogNetPackageMap, Warning, TEXT("Forged object: got %s, expecting %s"),*Object->GetFullName(),*Class->GetFullName());
-			Object = NULL;
+			UE_LOG(LogNetPackageMap, Warning, TEXT("Long net serialize: %fms, Serialized Object %s"), (float)LoadTime * 1000.0f, *Object->GetName());
 		}
-
-		if ( NetGUID.IsValid() && Object == NULL && bShouldTrackUnmappedGuids )
-		{
-			TrackedUnmappedNetGuids.AddUnique( NetGUID );
-		}
-
-		UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("UPackageMapClient::SerializeObject Serialized Object %s as <%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString() );
+#endif
 
 		// reference is mapped if it was not NULL (or was explicitly null)
 		return (Object != NULL || !NetGUID.IsValid());
@@ -706,14 +735,20 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 			return NetGUID;
 		}
 
-		if ( NetGUID.IsDefault() )
+		if (NetGUID.IsDefault())
 		{
 			// This should be from the client
 			// If we get here, we want to go ahead and assign a network guid, 
 			// then export that to the client at the next available opportunity
-			check( IsNetGUIDAuthority() );
+			check(IsNetGUIDAuthority());
 
-			Object = StaticFindObject( UObject::StaticClass(), ObjOuter, *PathName, false );
+			Object = StaticFindObject(UObject::StaticClass(), ObjOuter, *PathName, false);
+
+			if (Object == nullptr && bIsPackage)
+			{
+				// Try to load package if it wasn't found. Note load package fails if the package is already loaded.
+				Object = LoadPackage(NULL, *PathName, LOAD_None);
+			}
 
 			if ( Object == NULL )
 			{
@@ -1767,6 +1802,30 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 	}
 }
 
+static bool ObjectLevelHasFinishedLoading( UObject* Object, UNetDriver* Driver )
+{
+	if ( Object != NULL && Driver != NULL && Driver->GetWorld() != NULL )
+	{
+		// get the level for the object
+		ULevel* Level = NULL;
+		for ( UObject* Obj = Object; Obj != NULL; Obj = Obj->GetOuter() )
+		{
+			Level = Cast<ULevel>( Obj );
+			if ( Level != NULL )
+			{
+				break;
+			}
+		}
+
+		if ( Level != NULL && Level != Driver->GetWorld()->PersistentLevel )
+		{
+			return Level->bIsVisible;
+		}
+	}
+
+	return true;
+}
+
 UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped )
 {
 	if ( !ensure( NetGUID.IsValid() ) )
@@ -1980,6 +2039,13 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			return NULL;
 		}
 	}
+
+	if ( Object && !ObjectLevelHasFinishedLoading( Object, Driver ) )
+	{
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
+		return NULL;
+	}
+
 
 	// Assign the resolved object to this guid
 	CacheObjectPtr->Object = Object;		

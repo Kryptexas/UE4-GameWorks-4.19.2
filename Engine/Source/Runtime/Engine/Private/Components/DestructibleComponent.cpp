@@ -967,7 +967,7 @@ void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigi
 			DestructibleComponent->SyncComponentToRBPhysics();
 		}
 
-		UNavigationSystem::UpdateNavOctree(DestructibleComponent);
+		UNavigationSystem::UpdateComponentInNavOctree(*DestructibleComponent);
 	}
 
 }

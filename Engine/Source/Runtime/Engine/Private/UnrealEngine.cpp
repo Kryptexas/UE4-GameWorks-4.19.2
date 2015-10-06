@@ -126,8 +126,20 @@
 
 #include "InstancedReferenceSubobjectHelper.h"
 
-DEFINE_LOG_CATEGORY(LogEngine);
+#include "ABTesting.h"
+#include "Performance/EnginePerformanceTargets.h"
 
+#if !UE_BUILD_SHIPPING
+#include "AutomationTest.h"
+#include "IAutomationWorkerModule.h"
+#endif	// UE_BUILD_SHIPPING
+
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
+#endif
+
+DEFINE_LOG_CATEGORY(LogEngine);
+DEFINE_LOG_CATEGORY(LogAutomationAnalytics);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
@@ -953,21 +965,27 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	//Load the streaming pause rendering module.
 	FModuleManager::LoadModulePtr<IModuleInterface>(TEXT("StreamingPauseRendering"));
 
+	bool bIsRHS = true;
+	if (GConfig)
+	{
+		GConfig->GetBool(TEXT("DevOptions.Debug"), TEXT("bEngineStatsOnRHS"), bIsRHS, GEngineIni);
+	}
+
 	// Add the stats to the list, note this is also the order that they get rendered in if active.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Version"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatVersion, NULL, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Version"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatVersion, NULL, bIsRHS));
 #endif
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_NamedEvents"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatNamedEvents, &UEngine::ToggleStatNamedEvents, true));
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_FPS"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatFPS, &UEngine::ToggleStatFPS, true));
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Summary"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSummary, NULL, true));
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Unit"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatUnit, &UEngine::ToggleStatUnit, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_NamedEvents"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatNamedEvents, &UEngine::ToggleStatNamedEvents, bIsRHS));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_FPS"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatFPS, &UEngine::ToggleStatFPS, bIsRHS));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Summary"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSummary, NULL, bIsRHS));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Unit"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatUnit, &UEngine::ToggleStatUnit, bIsRHS));
 	/* @todo Slate Rendering
 #if STATS
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SlateBatches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSlateBatches, NULL, true));
 #endif
 	*/
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Hitches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatHitches, &UEngine::ToggleStatHitches, true));
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_AI"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatAI, NULL, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Hitches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatHitches, &UEngine::ToggleStatHitches, bIsRHS));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_AI"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatAI, NULL, bIsRHS));
 
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_ColorList"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatColorList, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Levels"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevels, NULL));
@@ -1369,6 +1387,8 @@ void UEngine::InitializeObjectReferences()
 		ConstraintLimitMaterialY->SetVectorParameterValue(FName("Color"), FLinearColor::Green);
 		ConstraintLimitMaterialZ = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
 		ConstraintLimitMaterialZ->SetVectorParameterValue(FName("Color"), FLinearColor::Blue);
+		ConstraintLimitMaterialPrismatic = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialPrismatic->SetVectorParameterValue(FName("Color"), FLinearColor(FColor::Orange));
 
 		//@TODO: This should move into the editor (used in editor modes exclusively)
 		if (DefaultBSPVertexTexture == NULL)
@@ -1471,39 +1491,42 @@ void UEngine::InitializeObjectReferences()
 		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
-	// set the font object pointers
-	if (TinyFont == NULL && TinyFontName.ToString().Len())
+	// set the font object pointers, unless on server
+	if (!UE_SERVER)
 	{
-		TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
-	}
-	if (SmallFont == NULL && SmallFontName.ToString().Len())
-	{
-		SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
-	}
-	if (MediumFont == NULL && MediumFontName.ToString().Len())
-	{
-		MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
-	}
-	if (LargeFont == NULL && LargeFontName.ToString().Len())
-	{
-		LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
-	}
-	if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
-	{
-		SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	// Additional fonts.
-	AdditionalFonts.Empty( AdditionalFontNames.Num() );
-	for ( int32 FontIndex = 0 ; FontIndex < AdditionalFontNames.Num() ; ++FontIndex )
-	{
-		const FString& FontName = AdditionalFontNames[FontIndex];
-		UFont* NewFont = NULL;
-		if( FontName.Len() )
+		if (TinyFont == NULL && TinyFontName.ToString().Len())
 		{
-			NewFont = LoadObject<UFont>(NULL,*FontName,NULL,LOAD_None,NULL);
+			TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
 		}
-		AdditionalFonts.Add( NewFont );
+		if (SmallFont == NULL && SmallFontName.ToString().Len())
+		{
+			SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
+		}
+		if (MediumFont == NULL && MediumFontName.ToString().Len())
+		{
+			MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
+		}
+		if (LargeFont == NULL && LargeFontName.ToString().Len())
+		{
+			LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
+		}
+		if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
+		{
+			SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
+		}
+
+		// Additional fonts.
+		AdditionalFonts.Empty( AdditionalFontNames.Num() );
+		for ( int32 FontIndex = 0 ; FontIndex < AdditionalFontNames.Num() ; ++FontIndex )
+		{
+			const FString& FontName = AdditionalFontNames[FontIndex];
+			UFont* NewFont = NULL;
+			if( FontName.Len() )
+			{
+				NewFont = LoadObject<UFont>(NULL,*FontName,NULL,LOAD_None,NULL);
+			}
+			AdditionalFonts.Add( NewFont );
+		}
 	}
 
 	if (GameSingleton == NULL && GameSingletonClassName.ToString().Len() > 0)
@@ -4461,18 +4484,16 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
 		if (!ensure(0))
 		{
-			UE_LOG(LogEngine, Warning, TEXT("Ensure condition failed (this is the expected behavior)."));
+			return true;
 		}
-		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT("ENSUREALWAYS") ) )
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
 		if( !ensureAlways( 0 ) )
 		{
-			UE_LOG(LogEngine, Warning, TEXT("Ensure condition failed (this is the expected behavior)."));
+			return true;
 		}
-		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT( "FATAL" ) ) )
 	{
@@ -6634,13 +6655,15 @@ bool UEngine::IsConsoleBuild(EConsoleType ConsoleType) const
  *	@param	DisplayColor	The color to display the text in.
  *	@param	DebugMessage	The message to display.
  */
-void UEngine::AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor DisplayColor,const FString& DebugMessage)
+void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor DisplayColor, const FString& DebugMessage, bool bNewerOnTop, const FVector2D& TextScale)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (bEnableOnScreenDebugMessages == true)
 	{
 		if (Key == (uint64)-1)
 		{
+			if (bNewerOnTop)
+			{
 			FScreenMessageString* NewMessage = new(PriorityScreenMessages)FScreenMessageString();
 			check(NewMessage);
 			NewMessage->Key = Key;
@@ -6648,6 +6671,19 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor Disp
 			NewMessage->DisplayColor = DisplayColor;
 			NewMessage->TimeToDisplay = TimeToDisplay;
 			NewMessage->CurrentTimeDisplayed = 0.0f;
+				NewMessage->TextScale = TextScale;
+			}
+			else
+			{
+				FScreenMessageString NewMessage;
+				NewMessage.CurrentTimeDisplayed = 0.0f;
+				NewMessage.Key = Key;
+				NewMessage.DisplayColor = DisplayColor;
+				NewMessage.TimeToDisplay = TimeToDisplay;
+				NewMessage.ScreenMessage = DebugMessage;
+				NewMessage.TextScale = TextScale;
+				PriorityScreenMessages.Insert(NewMessage, 0);
+			}
 		}
 		else
 		{
@@ -6660,6 +6696,7 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor Disp
 				NewMessage.DisplayColor = DisplayColor;
 				NewMessage.TimeToDisplay = TimeToDisplay;
 				NewMessage.ScreenMessage = DebugMessage;
+				NewMessage.TextScale = TextScale;
 				ScreenMessages.Add((int32)Key, NewMessage);
 			}
 			else
@@ -6669,6 +6706,7 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor Disp
 				Message->DisplayColor = DisplayColor;
 				Message->TimeToDisplay = TimeToDisplay;
 				Message->CurrentTimeDisplayed = 0.0f;
+				Message->TextScale = TextScale;
 			}
 		}
 	}
@@ -6676,11 +6714,11 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key,float TimeToDisplay,FColor Disp
 }
 
 /** Wrapper from int32 to uint64 */
-void UEngine::AddOnScreenDebugMessage(int32 Key, float TimeToDisplay, FColor DisplayColor, const FString& DebugMessage)
+void UEngine::AddOnScreenDebugMessage(int32 Key, float TimeToDisplay, FColor DisplayColor, const FString& DebugMessage, bool bNewerOnTop, const FVector2D& TextScale)
 {
 	if (bEnableOnScreenDebugMessages == true)
 	{
-		AddOnScreenDebugMessage( (uint64)Key, TimeToDisplay, DisplayColor, DebugMessage);
+		AddOnScreenDebugMessage((uint64)Key, TimeToDisplay, DisplayColor, DebugMessage, bNewerOnTop, TextScale);
 	}
 }
 
@@ -6710,11 +6748,12 @@ void UEngine::ClearOnScreenDebugMessages()
 	PriorityScreenMessages.Empty();
 }
 
-void UEngine::PerformanceCapture(const FString& CaptureName)
+#if !UE_BUILD_SHIPPING
+void UEngine::PerformanceCapture(UWorld* World, const FString& CaptureName)
 {
 	//mapname
 	FString PathName = CaptureName + TEXT("/") + FPlatformProperties::PlatformName();
-
+	LogPerformanceCapture(World, CaptureName);
 	// Create the folder name based on the hardware specs we have been provided
 	FString HardwareDetails = FHardwareInfo::GetHardwareDetailsString();
 
@@ -6752,8 +6791,42 @@ void UEngine::PerformanceCapture(const FString& CaptureName)
 	const bool bShowUI = false;
 	const bool bAddFilenameSuffix = false;
 	FScreenshotRequest::RequestScreenshot( ScreenshotName, bShowUI, bAddFilenameSuffix );
-
 }
+
+void UEngine::LogPerformanceCapture(UWorld* World, const FString& CaptureName)
+{
+	const FString EventType = TEXT("PERF");
+	const int32 ChangeList = GEngineVersion.GetChangelist();
+
+	TArray<FString> PathArray;
+	CaptureName.ParseIntoArray(PathArray, TEXT("/"), true);
+	FString MapName = PathArray[1];
+	FString MatineeName = PathArray[2];
+
+	extern ENGINE_API float GAverageFPS;
+
+	const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
+//	const FStatHitchesData* StatHitchesData = World->GetGameViewport->GetStatHitchesData();
+
+	FAutomationPerformanceSnapshot PerfSnapshot;
+	PerfSnapshot.Changelist = FString::FromInt( ChangeList );
+	PerfSnapshot.BuildConfiguration = EBuildConfigurations::ToString( FApp::GetBuildConfiguration() );
+	PerfSnapshot.MapName = MapName;
+	PerfSnapshot.MatineeName = MatineeName;
+	PerfSnapshot.AverageFPS = FString::Printf( TEXT( "%0.2f" ), GAverageFPS );
+	PerfSnapshot.AverageFrameTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->FrameTime );
+	PerfSnapshot.AverageGameThreadTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->GameThreadTime );
+	PerfSnapshot.AverageRenderThreadTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->RenderThreadTime );
+	PerfSnapshot.AverageGPUTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->GPUFrameTime );
+	// PerfSnapshot.PercentOfFramesAtLeast60FPS = ???;	// @todo
+	// PerfSnapshot.PercentOfFramesAtLeast60FPS = ???;	// @todo
+		
+	const FString PerfSnapshotAsCommaDelimitedString = PerfSnapshot.ToCommaDelimetedString();
+	
+	FAutomationTestFramework::GetInstance().AddAnalyticsItemToCurrentTest( 
+		FString::Printf( TEXT( "%s,%s" ), *PerfSnapshotAsCommaDelimitedString, *EventType ) );
+}
+#endif	// UE_BUILD_SHIPPING
 
 /** Transforms a location in 3D space into 'map space', in 2D */
 static FVector2D TransformLocationToMap(FVector2D TopLeftPos, FVector2D BottomRightPos, FVector2D MapOrigin, const FVector2D& MapSize, FVector Loc)
@@ -7235,7 +7308,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 	//@todo joeg: Move this stuff to a function, make safe to use on consoles by
 	// respecting the various safe zones, and make it compile out.
 	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
-	const int32 StatsXOffset	= FPlatformProperties::SupportsWindowedMode() ?  4 : 100;
+	const int32 StatsXOffset = 100;// FPlatformProperties::SupportsWindowedMode() ? 4 : 100;
 
 	int32 MessageY = 35;
 
@@ -7404,8 +7477,9 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 					{
 						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
 						MessageTextItem.SetColor( Message.DisplayColor );
+						MessageTextItem.Scale = Message.TextScale;
 						Canvas->DrawItem( MessageTextItem, FVector2D( MessageX, YPos ) );
-						YPos += 20;
+						YPos += MessageTextItem.DrawnSize.Y * 1.15f;
 					}
 					Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
 					if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
@@ -7426,8 +7500,9 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 					{
 						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
 						MessageTextItem.SetColor( Message.DisplayColor );
+						MessageTextItem.Scale = Message.TextScale;
 						Canvas->DrawItem( MessageTextItem, FVector2D( MessageX, YPos ) );												
-						YPos += 20;
+						YPos += MessageTextItem.DrawnSize.Y * 1.15f;
 					}
 					Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
 					if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)

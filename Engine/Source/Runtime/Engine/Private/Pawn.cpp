@@ -162,7 +162,7 @@ void APawn::SetCanAffectNavigationGeneration(bool bNewValue)
 		UpdateNavigationRelevance();
 
 		// update entries in navigation octree 
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 }
 
@@ -735,11 +735,10 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 // 		HUD->Canvas->SetPos(4,YPos);
 // 	}
 
-	UFont* RenderFont = GEngine->GetSmallFont();
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	if ( PlayerState == NULL )
 	{
-		YL = Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
-		YPos += YL;
+		DisplayDebugManager.DrawString(TEXT("NO PlayerState"));
 	}
 	else
 	{
@@ -748,22 +747,18 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	Canvas->SetDrawColor(255,255,255);
-
+	DisplayDebugManager.SetDrawColor(FColor(255,255,255));
 
 	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
-		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight));
 	}
 
 	// Controller
 	if ( Controller == NULL )
 	{
-		Canvas->SetDrawColor(255,0,0);
-		YL = Canvas->DrawText(RenderFont, TEXT("NO Controller"), 4.0f, YPos);
-		YPos += YL;
-		//HUD->PlayerOwner->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
+		DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
+		DisplayDebugManager.DrawString(TEXT("NO Controller"));
 	}
 	else
 	{
@@ -861,6 +856,11 @@ void APawn::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		if (!bUseControllerRotationRoll)
 		{
 			NewControlRotation.Roll = CurrentRotation.Roll;
+		}
+
+		if (NewControlRotation.ContainsNaN())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
 		}
 
 		SetActorRotation(NewControlRotation);

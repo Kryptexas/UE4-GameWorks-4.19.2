@@ -21,6 +21,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinShownByDefault))
 	mutable float ExplicitTime;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
+	bool bShouldLoopWhenInSyncGroup;
+
 public:	
 	FAnimNode_SequenceEvaluator()
 		: ExplicitTime(0.0f)

@@ -138,7 +138,7 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 
 	const FText ResultText = FTestResultTypeEnum->GetEnumText( TestResult.GetValue() );
 	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\'")
-		, *GetActorLabel()
+		, *GetName()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
 	const FString AdditionalDetails = FString::Printf(TEXT("%s %s, time %.2fs"), *GetAdditionalTestFinishedMessage(TestResult), *OnAdditionalTestFinishedMessageRequest(TestResult), TotalTime);
@@ -151,23 +151,23 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 		case EFunctionalTestResult::Error:
 		case EFunctionalTestResult::Failed:
 			UE_VLOG(this, LogFunctionalTest, Error, TEXT("%s"), *OutMessage);
-			UFunctionalTestingManager::AddError(FText::FromString(OutMessage));
+			UE_LOG(LogFunctionalTest, Error, TEXT("%s"), *OutMessage);
 			break;
 
 		case EFunctionalTestResult::Running:
 			UE_VLOG(this, LogFunctionalTest, Warning, TEXT("%s"), *OutMessage);
-			UFunctionalTestingManager::AddWarning(FText::FromString(OutMessage));
+			UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *OutMessage);
 			break;
 		
 		default:
 			UE_VLOG(this, LogFunctionalTest, Log, TEXT("%s"), *OutMessage);
-			UFunctionalTestingManager::AddLogItem(FText::FromString(OutMessage));
+			UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *OutMessage);
 			break;
 	}
 	
 	if (AdditionalDetails.IsEmpty() == false)
 	{
-		UFunctionalTestingManager::AddLogItem(FText::FromString(AdditionalDetails));
+		UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *AdditionalDetails);
 	}
 
 	TestFinishedObserver.ExecuteIfBound(this);
@@ -188,10 +188,10 @@ void AFunctionalTest::CleanUp()
 //@todo add "warning" level here
 void AFunctionalTest::LogMessage(const FString& Message)
 {
-	UFunctionalTestingManager::AddLogItem(FText::FromString(Message));
+	UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *Message);
 	UE_VLOG(this, LogFunctionalTest, Log
 		, TEXT("%s> %s")
-		, *GetActorLabel(), *Message);
+		, *GetName(), *Message);
 }
 
 void AFunctionalTest::SetTimeLimit(float InTimeLimit, TEnumAsByte<EFunctionalTestResult::Type> InResult)
@@ -200,7 +200,7 @@ void AFunctionalTest::SetTimeLimit(float InTimeLimit, TEnumAsByte<EFunctionalTes
 	{
 		UE_VLOG(this, LogFunctionalTest, Warning
 			, TEXT("%s> Trying to set TimeLimit to less than 0. Falling back to 0 (infinite).")
-			, *GetActorLabel());
+			, *GetName());
 
 		InTimeLimit = 0.f;
 	}
@@ -210,7 +210,7 @@ void AFunctionalTest::SetTimeLimit(float InTimeLimit, TEnumAsByte<EFunctionalTes
 	{
 		UE_VLOG(this, LogFunctionalTest, Warning
 			, TEXT("%s> Trying to set test Result to \'Invalid\'. Falling back to \'Failed\'")
-			, *GetActorLabel());
+			, *GetName());
 
 		InResult = EFunctionalTestResult::Failed;
 	}

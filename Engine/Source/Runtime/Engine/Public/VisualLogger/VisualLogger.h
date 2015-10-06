@@ -119,7 +119,7 @@
 #define TEXT_FALSE TEXT("FALSE")
 #define TEXT_CONDITION(Condition) ((Condition) ? TEXT_TRUE : TEXT_FALSE)
 
-DECLARE_LOG_CATEGORY_EXTERN(LogVisual, Warning, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogVisual, Display, All);
 
 
 #if ENABLE_VISUAL_LOG

@@ -1652,6 +1652,8 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	if (auto WorldContextPin = EntryNode->GetAutoWorldContextPin())
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName);
+		//should allow function libraries that reference world contexts from objects that don't have one
+		Function->SetMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext, TEXT("true"));
 	}
 
 	for (int32 EntryPinIndex = 0; EntryPinIndex < EntryNode->Pins.Num(); ++EntryPinIndex)
@@ -3644,6 +3646,8 @@ void FKismetCompilerContext::Compile()
 		const uint32 ParentSignatureCrc = ParentBP ? ParentBP->CrcLastCompiledSignature : 0;
 		Blueprint->CrcLastCompiledSignature = SignatureArchiveCrc32.Crc32(NewClass, ParentSignatureCrc);
 	}
+
+	PostCompile();
 }
 
 bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)

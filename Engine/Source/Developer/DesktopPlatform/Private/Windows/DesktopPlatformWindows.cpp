@@ -525,12 +525,19 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 		return false;
 	}
 
+	// Pass through VS015 support
+	FString FinalArguments = Arguments;
+	if(_MSC_VER >= 1900)
+	{
+		FinalArguments.Append(TEXT(" -2015"));
+	}
+
 	// Write the output
-	Warn->Logf(TEXT("Running %s %s"), *UnrealBuildToolPath, *Arguments);
+	Warn->Logf(TEXT("Running %s %s"), *UnrealBuildToolPath, *FinalArguments);
 
 	// Spawn UBT
 	int32 ExitCode = 0;
-	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
+	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, FinalArguments, Warn, &ExitCode) && ExitCode == 0;
 }
 
 bool FDesktopPlatformWindows::IsUnrealBuildToolRunning()

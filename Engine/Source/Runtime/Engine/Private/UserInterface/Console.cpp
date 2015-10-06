@@ -1322,7 +1322,12 @@ void UConsole::FakeGotoState(FName NextStateName)
 	if (NextStateName == NAME_Typing)
 	{
 		BeginState_Typing(ConsoleState);
+
+		// Save the currently focused widget so that we can restore to it once the console is closed
+		PreviousFocusedWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
+
 		FSlateApplication::Get().ResetToDefaultPointerInputSettings();
+		FSlateApplication::Get().SetKeyboardFocus(GetOuterUGameViewportClient()->GetGameViewportWidget());
 	}
 	else if (NextStateName == NAME_Open)
 	{
@@ -1335,13 +1340,23 @@ void UConsole::FakeGotoState(FName NextStateName)
 		// to SetKeyboardFocus the console is still considered active
 		ConsoleState = NAME_None;
 
-		// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
-		// in order to ensure it gets a chance to reapply any custom input settings
-		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		if (CurrentFocus.IsValid())
+		TSharedPtr<SWidget> WidgetToFocus;
+		if (PreviousFocusedWidget.IsValid())
+		{
+			// Restore focus to whatever was the focus before the console was opened.
+			WidgetToFocus = PreviousFocusedWidget.Pin();
+		}
+		else
+		{
+			// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
+			// in order to ensure it gets a chance to reapply any custom input settings
+			WidgetToFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
+		}
+
+		if (WidgetToFocus.IsValid())
 		{
 			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
-			FSlateApplication::Get().SetKeyboardFocus(CurrentFocus);
+			FSlateApplication::Get().SetKeyboardFocus(WidgetToFocus);
 		}
 	}
 

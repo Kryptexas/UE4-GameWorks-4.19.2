@@ -407,6 +407,8 @@ public:
 	UAIPerceptionComponent* GetAIPerceptionComponent();
 
 	const UAIPerceptionComponent* GetAIPerceptionComponent() const;
+
+	UBrainComponent* GetBrainComponent() { return BrainComponent; }
 };
 
 //----------------------------------------------------------------------//

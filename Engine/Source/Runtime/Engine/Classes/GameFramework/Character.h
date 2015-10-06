@@ -3,6 +3,7 @@
 #pragma once
 #include "GameFramework/Pawn.h"
 #include "Animation/AnimationAsset.h"
+#include "GameFramework/RootMotionSource.h"
 #include "Character.generated.h"
 
 class UPawnMovementComponent;
@@ -12,6 +13,7 @@ class UPrimitiveComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCharacterReachedApexSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLandedSignature, const FHitResult&, Hit);
 
 //
 // Forward declarations
@@ -26,6 +28,10 @@ struct FRepRootMotionMontage
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Whether this has useful/active data. */
+	UPROPERTY()
+	bool bIsActive;
+
 	/** AnimMontage providing Root Motion */
 	UPROPERTY()
 	UAnimMontage* AnimMontage;
@@ -36,7 +42,7 @@ struct FRepRootMotionMontage
 
 	/** Location */
 	UPROPERTY()
-	FVector_NetQuantize10 Location;
+	FVector_NetQuantize100 Location;
 
 	/** Rotation */
 	UPROPERTY()
@@ -58,13 +64,27 @@ struct FRepRootMotionMontage
 	UPROPERTY()
 	bool bRelativeRotation;
 
-	/** Clear the montage */
+	/** State of Root Motion Sources on Authority */
+	UPROPERTY()
+	FRootMotionSourceGroup AuthoritativeRootMotion;
+
+	/** Acceleration */
+	UPROPERTY()
+	FVector_NetQuantize10 Acceleration;
+
+	/** Velocity */
+	UPROPERTY()
+	FVector_NetQuantize10 LinearVelocity;
+
+	/** Clear root motion sources and root motion montage */
 	void Clear()
 	{
+		bIsActive = false;
 		AnimMontage = NULL;
+		AuthoritativeRootMotion.Clear();
 	}
 
-	/** Is Valid */
+	/** Is Valid - animation root motion only */
 	bool HasRootMotion() const
 	{
 		return (AnimMontage != NULL);
@@ -335,6 +355,10 @@ public:
 	UPROPERTY(Transient)
 	uint32 bClientResimulateRootMotion:1;
 
+	/** If server disagrees with root motion state, client has to resimulate root motion from last AckedMove. */
+	UPROPERTY(Transient)
+	uint32 bClientResimulateRootMotionSources:1;
+
 	/** Disable simulated gravity (set when character encroaches geometry on client, to keep him from falling through floors) */
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;
@@ -526,6 +550,16 @@ public:
 	* @param Hit Result describing the landing that resulted in a valid landing spot.
 	* @see OnMovementModeChanged()
 	*/
+	FLandedSignature LandedDelegate;
+
+	/**
+	* Called upon landing when falling, to perform actions based on the Hit result.
+	* Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
+	* Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
+	*
+	* @param Hit Result describing the landing that resulted in a valid landing spot.
+	* @see OnMovementModeChanged()
+	*/
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnLanded(const FHitResult& Hit);
 
@@ -691,6 +725,16 @@ public:
 
 	// Root Motion
 public:
+	/** 
+	 *  For LocallyControlled Autonomous clients. 
+	 *  During a PerformMovement() after root motion is prepared, we save it off into this and
+	 *  then record it into our SavedMoves.
+	 *  During SavedMove playback we use it as our "Previous Move" SavedRootMotion which includes
+	 *  last received root motion from the Server
+	 **/
+	UPROPERTY(Transient)
+	FRootMotionSourceGroup SavedRootMotion;
+
 	/** For LocallyControlled Autonomous clients. Saved root motion data to be used by SavedMoves. */
 	UPROPERTY(Transient)
 	FRootMotionMovementParams ClientRootMotionParams;

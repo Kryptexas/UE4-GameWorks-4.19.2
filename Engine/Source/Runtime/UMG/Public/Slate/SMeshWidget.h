@@ -2,32 +2,34 @@
 
 #pragma once
 
-class UStaticMesh;
-class FSlateInstanceBufferUpdate;
+class USlateMeshData;
 
 /**
  * A widget that draws vertexes provided by a 2.5D StaticMesh.
  * The Mesh's material is used.
  * Hardware instancing is supported.
  */
-class UMG_API SMeshWidget : public SLeafWidget
+class UMG_API SMeshWidget : public SLeafWidget, public FGCObject
 {
 
 public:
 	SLATE_BEGIN_ARGS(SMeshWidget)
-		: _StaticMeshSource(nullptr)
+		: _MeshData(nullptr)
 	{}
 		/** The StaticMesh asset that should be drawn. */
-		SLATE_ARGUMENT(UStaticMesh*, StaticMeshSource)
+		SLATE_ARGUMENT(USlateMeshData*, MeshData)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& Args);
 
 	/** Draw the InStaticMesh when this widget paints */
-	void SetMesh(const UStaticMesh& InStaticMesh);
+	void SetMesh(const USlateMeshData& InMeshData);
 
 	/** Begin an update to the per instance buffer. Enables hardware instancing. */
 	TSharedPtr<FSlateInstanceBufferUpdate> BeginPerInstanceBufferUpdate(int32 InitialSize);
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 protected:
 	// BEGIN SLeafWidget interface
@@ -36,9 +38,6 @@ protected:
 	// END SLeafWidget interface
 
 private:
-	/** Populate OutSlateVerts and OutIndexes with data from this static mesh such that Slate can render it. */
-	static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FSlateVertex>& OutSlateVerts, TArray<SlateIndex>& OutIndexes);
-
 	/** Holds a copy of the Static Mesh's data converted to a format that Slate understands. */
 	TArray<FSlateVertex> VertexData;
 	/** Connectivity data: Order in which the vertexes occur to make up a series of triangles. */

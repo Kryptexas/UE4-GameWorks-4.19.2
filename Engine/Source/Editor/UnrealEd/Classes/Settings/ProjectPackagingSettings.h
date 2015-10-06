@@ -93,6 +93,13 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool bGenerateChunks;
 
+	/**
+	* Normally during chunk generation all dependencies of a package in a chunk will be pulled into that package's chunk.
+	* If this is enabled then only hard dependencies are pulled in. Soft dependencies stay in their original chunk.
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Packaging)
+	bool bChunkHardReferencesOnly;
+
 	/** 
 	 * If enabled, will generate data for HTTP Chunk Installer. This data can be hosted on webserver to be installed at runtime. Requires "Generate Chunks" enabled.
 	 */

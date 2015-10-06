@@ -19,11 +19,11 @@ struct FSlateUpdateInstanceBufferCommand : public FRHICommand<FSlateUpdateInstan
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateUpdateInstanceBuffer );
 
-		uint8* InstanceBufferData = (uint8*)InstanceBuffer.LockBuffer_RenderThread(InstanceData.Num());
+		uint8* InstanceBufferData = (uint8*)InstanceBuffer.LockBuffer_RHIThread(InstanceData.Num());
 
 		FMemory::Memcpy(InstanceBufferData, InstanceData.GetData(), InstanceData.Num()*sizeof(FVector4) );
 	
-		InstanceBuffer.UnlockBuffer_RenderThread();
+		InstanceBuffer.UnlockBuffer_RHIThread();
 	}
 };
 
@@ -87,11 +87,11 @@ void FSlateUpdatableInstanceBuffer::UpdateRenderingData_RenderThread(FRHICommand
 
 	if(!GRHIThread || RHICmdList.Bypass())
 	{
-		uint8* InstanceBufferData = (uint8*)InstanceBufferResource.LockBuffer_RenderThread(RenderThreadBufferData.Num());
+		uint8* InstanceBufferData = (uint8*)InstanceBufferResource.LockBuffer_RHIThread(RenderThreadBufferData.Num());
 
 		FMemory::Memcpy(InstanceBufferData, RenderThreadBufferData.GetData(), RenderThreadBufferData.Num()*sizeof(FVector4) );
 	
-		InstanceBufferResource.UnlockBuffer_RenderThread();
+		InstanceBufferResource.UnlockBuffer_RHIThread();
 	}
 	else
 	{

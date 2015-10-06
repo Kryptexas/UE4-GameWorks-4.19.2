@@ -134,6 +134,9 @@ namespace EAutomationDeviceGroupTypes
 
 
 /** Console command delegate type (takes no arguments.)  This is a void callback function. */
+DECLARE_DELEGATE(FOnAutomationControllerReset);
+
+/** Console command delegate type (takes no arguments.)  This is a void callback function. */
 DECLARE_DELEGATE(FOnAutomationControllerTestsRefreshed);
 
 /** Delegate for setting the automation controller status in the UI */
@@ -213,6 +216,16 @@ public:
 	virtual void SetUsingFullSizeScreenshots(const  bool bNewValue ) = 0;
 
 	/**
+	* Returns if analytics should be sent
+	*/
+	virtual bool IsSendAnalytics() const = 0;
+
+	/**
+	* Sets if analytics should be sent
+	*/
+	virtual void SetSendAnalytics(const bool bNewValue) = 0;
+
+	/**
 	 * Returns if screenshots are allowed.
 	 */
 	virtual bool IsScreenshotAllowed() const = 0;
@@ -221,11 +234,6 @@ public:
 	 * Sets if screenshots are enabled.
 	 */
 	virtual void SetScreenshotsEnabled( const bool bNewValue ) = 0;
-
-	/**
-	 * Sets if the results of tests should be echoed to the console
-	 */
-	virtual void SetPrintResults(const bool bNewValue) = 0;
 
 	/**
 	 * Filters the visible list of tests.
@@ -422,6 +430,13 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FOnAutomationControllerTestsRefreshed& OnTestsRefreshed( ) = 0;
+
+	/**
+	* Gets a delegate that is invoked when the controller's reset.
+	*
+	* @return The delegate.
+	*/
+	virtual FOnAutomationControllerReset& OnControllerReset() = 0;
 
 public:
 

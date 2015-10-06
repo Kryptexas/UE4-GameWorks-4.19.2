@@ -1065,7 +1065,7 @@ protected:
 	virtual void OnChildDetached(USceneComponent* ChildComponent) {}
 
 	/** Called after changing transform, tries to update navigation octree for this component */
-	virtual void UpdateNavigationData();
+	void UpdateNavigationData();
 
 	/** Called after changing transform, tries to update navigation octree for owner */
 	void PostUpdateNavigationData();

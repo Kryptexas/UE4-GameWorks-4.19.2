@@ -24,6 +24,7 @@ namespace EAutomationCommand
 		//RunSingleTest,			//Run one test specified by the commandline
 		RunCommandLineTests,		//Run only tests that are listed on the commandline
 		RunAll,						//Run all the tests that are supported
+		RunFilter,                  //
 		Quit						//quit the app when tests are done
 	};
 };
@@ -48,10 +49,10 @@ public:
 
 		const bool bSkipScreenshots = FParse::Param(FCommandLine::Get(), TEXT("NoScreenshots"));
 		const bool bFullSizeScreenshots = FParse::Param(FCommandLine::Get(), TEXT("FullSizeScreenshots"));
+		const bool bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
 		AutomationController->SetScreenshotsEnabled(!bSkipScreenshots);
 		AutomationController->SetUsingFullSizeScreenshots(bFullSizeScreenshots);
 
-		AutomationController->SetPrintResults(true);
 
 		// Register for the callback that tells us there are tests available
 		AutomationController->OnTestsRefreshed().BindRaw(this, &FAutomationExecCmd::HandleRefreshTestCallback);
@@ -62,15 +63,23 @@ public:
 		FParse::Value(FCommandLine::Get(), TEXT("TestLoops="), NumTestLoops);
 		AutomationController->SetNumPasses(NumTestLoops);
 		TestCount = 0;
+		SetUpFilterMapping();
 	}
 
+	void SetUpFilterMapping()
+	{
+		FilterMaps.Empty();
+		FilterMaps.Add("Engine", EAutomationTestFlags::EngineFilter);
+		FilterMaps.Add("Smoke", EAutomationTestFlags::SmokeFilter);
+		FilterMaps.Add("Stress", EAutomationTestFlags::StressFilter);
+		FilterMaps.Add("Perf", EAutomationTestFlags::PerfFilter);
+		FilterMaps.Add("Product", EAutomationTestFlags::ProductFilter);
 
+	}
 	void Shutdown()
 	{
 		//IAutomationControllerModule* AutomationControllerModule = &FModuleManager::LoadModuleChecked<IAutomationControllerModule>("AutomationController");
 		//AutomationControllerModule->ShutdownModule();
-
-		AutomationController->SetPrintResults(false);
 
 		FTicker::GetCoreTicker().RemoveTicker(TickHandler);
 	}
@@ -123,6 +132,8 @@ public:
 			}
 		}
 	}
+
+
 
 
 	void FindWorkers(float DeltaTime)
@@ -179,6 +190,26 @@ public:
 			else
 			{
 				AutomationTestState = EAutomationTestState::Complete;
+			}
+		}
+		else if (AutomationCommand == EAutomationCommand::RunFilter)
+		{
+			if (FilterMaps.Contains(StringCommand))
+			{
+				OutputDevice->Logf(TEXT("Running %i Automation Tests"), AllTestNames.Num());
+				AutomationController->SetEnabledTests(AllTestNames);
+				bRunTests = true;
+			}
+			else
+			{
+				AutomationTestState = EAutomationTestState::Complete;
+				OutputDevice->Log(TEXT("Not a valid flag to filter on! Valid options are: "));
+				TArray<FString> FlagNames;
+				FilterMaps.GetKeys(FlagNames);
+				for (int i = 0; i < FlagNames.Num(); i++)
+				{
+					OutputDevice->Log(FlagNames[i]);
+				}
 			}
 		}
 		else if (AutomationCommand == EAutomationCommand::RunAll)
@@ -267,20 +298,24 @@ public:
 	virtual bool Exec(UWorld*, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
 		bool bHandled = false;
-
-		//save off device to send results to
-		OutputDevice = GLog;
-
-		StringCommand.Empty();
-		//figure out if we are handling this request
+		// Track whether we have a flag we care about passing through.
+		FString FlagToUse = "";
+//figure out if we are handling this request
 		if (FParse::Command(&Cmd, TEXT("Automation")))
 		{
+			//save off device to send results to
+			OutputDevice = GLog;
+
+			StringCommand.Empty();
+
 			TArray<FString> CommandList;
 			StringCommand = Cmd;
 			StringCommand.ParseIntoArray(CommandList, TEXT(";"), true);
 
 			//assume we handle this
 			bHandled = true;
+
+			
 
 			for (int CommandIndex = 0; CommandIndex < CommandList.Num(); ++CommandIndex)
 			{
@@ -291,9 +326,17 @@ public:
 				}
 				else if (FParse::Command(&TempCmd, TEXT("RunTests")))
 				{
+
 					//only one of these should be used
 					StringCommand = TempCmd;
 					AutomationCommandQueue.Add(EAutomationCommand::RunCommandLineTests);
+				}
+				else if (FParse::Command(&TempCmd, TEXT("RunFilter")))
+				{
+					FlagToUse = TempCmd;
+					//only one of these should be used
+					StringCommand = TempCmd;
+					AutomationCommandQueue.Add(EAutomationCommand::RunFilter);
 				}
 				else if (FParse::Command(&TempCmd, TEXT("RunAll")))
 				{
@@ -303,6 +346,13 @@ public:
 				{
 					AutomationCommandQueue.Add(EAutomationCommand::Quit);
 				}
+				// let user know he mis-typed a param/command
+				else if (FParse::Command(&TempCmd, TEXT("RunTest")))
+				{
+					Ar.Logf(TEXT("Unhandled token \"RunTest\". You probably meant \"RunTests\". Bailing out."));
+					bHandled = false;
+					break;
+				}
 			}
 		}
 
@@ -310,6 +360,12 @@ public:
 		if (bHandled)
 		{
 			Init();
+			// Have to check for requested flags here. Post init, pre callback.
+			// Otherwise check fails if it's our first automation request of the day.
+			if (FilterMaps.Contains(FlagToUse))
+			{
+				AutomationController->SetRequestedTestFlags(FilterMaps[FlagToUse]);
+			}
 		}
 
 		// Shutdown our service
@@ -346,6 +402,9 @@ private:
 
 	//This is the numbers of tests that are found in the command line.
 	int32 TestCount;
+
+	//Dictionary that maps flag names to flag values.
+	TMap<FString, int32> FilterMaps;
 };
 
 static FAutomationExecCmd AutomationExecCmd;

@@ -70,6 +70,10 @@ SAutomationWindow::~SAutomationWindow()
 	if (AutomationController.IsValid())
 	{
 		AutomationController->RemoveCallbacks();
+
+		AutomationController->OnControllerReset().Unbind();
+		AutomationController->OnTestsRefreshed().Unbind();
+		AutomationController->OnTestsAvailable().Unbind();
 	}
 }
 
@@ -88,6 +92,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	SessionManager = InSessionManager;
 	AutomationController = InAutomationController;
 
+	AutomationController->OnControllerReset().BindRaw(this, &SAutomationWindow::OnRefreshTestCallback);
 	AutomationController->OnTestsRefreshed().BindRaw(this, &SAutomationWindow::OnRefreshTestCallback);
 	AutomationController->OnTestsAvailable().BindRaw(this, &SAutomationWindow::OnTestAvailableCallback);
 
@@ -1109,6 +1114,20 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 
 		];
 
+	
+	TSharedRef<SWidget> SendAnalyticsWidget =
+		SNew(SCheckBox)
+		.IsChecked(this, &SAutomationWindow::IsSendAnalyticsCheckBoxChecked)
+		.OnCheckStateChanged(this, &SAutomationWindow::HandleSendAnalyticsBoxCheckStateChanged)
+		.Padding(FMargin(4.0f, 0.0f))
+		.ToolTipText(LOCTEXT("AutomationSendAnalyticsTip", "If checked, tests send analytics results to the backend"))
+		.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AutomationSendAnalyticsText", "Enable analytics"))
+		];
+
 	TSharedRef<SWidget> EnableScreenshotsWidget =
 		SNew(SCheckBox)
 		.IsChecked(this, &SAutomationWindow::IsEnableScreenshotsCheckBoxChecked)
@@ -1140,6 +1159,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	{
 		MenuBuilder.AddWidget(NumTests, FText::GetEmpty());
+		MenuBuilder.AddWidget(SendAnalyticsWidget, FText::GetEmpty());
 	}
 	MenuBuilder.EndSection();
 	MenuBuilder.BeginSection("AutomationWindowScreenshots", LOCTEXT("ScreenshotOptions", "Screenshot Settings"));
@@ -1220,6 +1240,17 @@ void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ECheckBoxS
 	AutomationController->SetUsingFullSizeScreenshots(CheckBoxState == ECheckBoxState::Checked);
 }
 
+ECheckBoxState SAutomationWindow::IsSendAnalyticsCheckBoxChecked() const
+{
+	return AutomationController->IsSendAnalytics() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::HandleSendAnalyticsBoxCheckStateChanged(ECheckBoxState CheckBoxState)
+{
+	AutomationController->SetSendAnalytics(CheckBoxState == ECheckBoxState::Checked);
+}
+
+
 ECheckBoxState SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
 {
 	return AutomationController->IsScreenshotAllowed() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1241,13 +1272,18 @@ TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
 {
  	TArray< TSharedPtr<IAutomationReport> >SelectedReport = TestTable->GetSelectedItems();
 
-	if (SelectedReport.Num() > 0 && SelectedReport[0].IsValid())
+	TArray<FString> AssetNames;
+	for (int32 ReportIndex = 0; ReportIndex < SelectedReport.Num(); ++ReportIndex)
 	{
-		if (SelectedReport[0]->GetAssetName().Len() > 0)
+		if (SelectedReport[ReportIndex].IsValid() && (SelectedReport[ReportIndex]->GetAssetName().Len() > 0))
 		{
-			return SNew(SAutomationTestItemContextMenu, SelectedReport[0]->GetAssetName());
+			AssetNames.Add(SelectedReport[ReportIndex]->GetAssetName());
 		}
 	}		
+	if (AssetNames.Num())
+	{
+		return SNew(SAutomationTestItemContextMenu, AssetNames);
+	}
 
 	return nullptr;
 }
@@ -1495,9 +1531,14 @@ FText SAutomationWindow::OnGetNumDevicesInClusterString(const int32 ClusterIndex
 	return FText::AsNumber(AutomationController->GetNumDevicesInCluster(ClusterIndex));
 }
 
-
 void SAutomationWindow::OnRefreshTestCallback()
 {
+	//if the window hasn't been created yet
+	if (!PlatformsHBox.IsValid())
+	{
+		return;
+	}
+
 	//rebuild the platform header
 	RebuildPlatformIcons();
 

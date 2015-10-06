@@ -64,9 +64,10 @@ bool WriteMinidump( const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo, bool 
 
 	MINIDUMP_TYPE MinidumpType = MiniDumpNormal;//(MINIDUMP_TYPE)(MiniDumpWithPrivateReadWriteMemory|MiniDumpWithDataSegs|MiniDumpWithHandleData|MiniDumpWithFullMemoryInfo|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
 
-	// For ensures use minidump to avoid severe hitches when writing 3GB+ files.
+	// For ensures by default we use minidump to avoid severe hitches when writing 3GB+ files.
 	// However the crash dump mode will remain the same.
-	if (CrashContext.IsFullCrashDump() && bIsEnsure == false)
+	bool bShouldBeFullCrashDump = bIsEnsure ? CrashContext.IsFullCrashDumpOnEnsure() : CrashContext.IsFullCrashDump();
+	if (bShouldBeFullCrashDump)
 	{
 		MinidumpType = (MINIDUMP_TYPE)(MiniDumpWithFullMemory|MiniDumpWithFullMemoryInfo|MiniDumpWithHandleData|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
 	}

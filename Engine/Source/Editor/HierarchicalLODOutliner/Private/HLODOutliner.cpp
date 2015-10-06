@@ -76,6 +76,7 @@ namespace HLODOutliner
 				]
 			];
 
+		
 		MainContentPanel->AddSlot()
 			.AutoHeight()
 			.Padding(0.0f, 0.0f, 0.0f, 4.0f)
@@ -306,7 +307,13 @@ namespace HLODOutliner
 			{
 				RestoreForcedLODLevel(ForcedLODLevel);
 				ForcedLODLevel = -1;
-				SetForcedLODLevel(SnappedValue - 1);				
+				SetForcedLODLevel(SnappedValue - 1);
+
+				// Invalidate viewport to make sure HLODs are visible while dragging
+				if (GEditor)
+				{
+					GEditor->GetActiveViewport()->Invalidate();
+				}				
 			}
 		}
 	}

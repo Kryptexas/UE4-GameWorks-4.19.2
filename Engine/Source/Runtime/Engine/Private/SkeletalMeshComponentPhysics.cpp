@@ -915,6 +915,8 @@ void USkeletalMeshComponent::TermArticulated()
 	if (PhysScene)
 	{
 		PhysScene->DeferredRemoveCollisionDisableTable(SkelMeshCompID);
+		// Clear from deferred kinematic update set
+		PhysScene->ClearPreSimKinematicUpdate(this);
 	}
 
 	// Get the scene type from the SkeletalMeshComponent's BodyInstance
@@ -2234,9 +2236,12 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 
 bool USkeletalMeshComponent::IsExecutingParallelCloth() const
 {
+	return false;
+	/*
 	UWorld* World = GetWorld();
 	FPhysScene* PhysScene = World ? World->GetPhysicsScene() : nullptr;
 	return PhysScene && PhysScene->GetClothManager()->IsPreparingClothAsync();
+	*/
 }
 
 void USkeletalMeshComponent::RemoveAllClothingActors()
@@ -3578,13 +3583,20 @@ void USkeletalMeshComponent::ParallelUpdateClothState(float DeltaTime, FClothSim
 			}
 
 			if (BoneIndex != INDEX_NONE)
-		   {
-			   BoneMatrices[Index] = U2PMatrix(BoneTransforms[BoneIndex].ToMatrixWithScale());
-		   }
-		   else
-		   {
-			   BoneMatrices[Index] = PxMat44::createIdentity();
-		   }
+			{
+				BoneMatrices[Index] = U2PMatrix(BoneTransforms[BoneIndex].ToMatrixWithScale());
+			}
+			else
+			{
+				BoneMatrices[Index] = PxMat44::createIdentity();
+			}
+
+			if (BoneTransforms[BoneIndex].GetScale3D().IsNearlyZero())
+			{
+				BoneMatrices[Index].column0 = PxMat44::createIdentity().column0;
+				BoneMatrices[Index].column1 = PxMat44::createIdentity().column1;
+				BoneMatrices[Index].column2 = PxMat44::createIdentity().column2;
+			}
 		}
 
 		NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor;

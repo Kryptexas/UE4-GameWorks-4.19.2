@@ -40,7 +40,7 @@ private:
 	public:
 
 		TWeakObjectPtr<USceneComponent> Component;
-		UWidgetComponent* WidgetComponent;
+		class UWidgetComponent* WidgetComponent;
 
 		TSharedPtr<SWidget> ContainerWidget;
 		TSharedPtr<SWidget> Widget;

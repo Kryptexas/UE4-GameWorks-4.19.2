@@ -14,11 +14,11 @@
  * buffer we allocate a slot for it from UsedUniformBufferSlots.
  */
 extern SHADERCOMPILERCOMMON_API void BuildResourceTableMapping(
-	const TMap<FString,FResourceTableEntry>& ResourceTableMap,
-	const TMap<FString,uint32>& ResourceTableLayoutHashes,
-	TBitArray<>& UsedUniformBufferSlots,
-	FShaderParameterMap& ParameterMap,
-	FShaderResourceTable& OutSRT
+		const TMap<FString,FResourceTableEntry>& ResourceTableMap,
+		const TMap<FString,uint32>& ResourceTableLayoutHashes,
+		TBitArray<>& UsedUniformBufferSlots,
+		FShaderParameterMap& ParameterMap,
+		FShaderCompilerResourceTable& OutSRT
 	);
 
 /**
@@ -34,7 +34,7 @@ extern SHADERCOMPILERCOMMON_API void BuildResourceTableTokenStream(
 	);
 
 // Finds the number of used uniform buffers in a resource map
-extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT);
+extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderCompilerResourceTable& InSRT);
 
 
 // This function goes through the shader source and converts

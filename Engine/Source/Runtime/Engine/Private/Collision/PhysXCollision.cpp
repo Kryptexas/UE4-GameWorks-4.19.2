@@ -1329,6 +1329,23 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		PxSweepHit PHit;
 		bHaveBlockingHit = SyncScene->sweepSingle(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHit, PQueryFilterData, &PQueryCallbackSweep);
 
+		// Emergency NaN guarding. If we get a NaN back, act like there was no hit
+		if (PHit.position.isFinite() == false || PHit.normal.isFinite() == false)
+		{
+			bHaveBlockingHit = false;
+#if ENABLE_NAN_DIAGNOSTIC
+			UE_LOG(LogCollision, Error, TEXT("GeomSweepSingle resulted in a NaN/INF in PHit!"));
+			UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+			UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
+			UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
+			UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
+
+			//convert to FVector will do further diagnostic and print as needed
+			FVector NanCheckVectorPosition = P2UVector(PHit.position);
+			FVector NanCheckVectorNormal = P2UVector(PHit.normal);
+#endif
+		}
+
 		if (!bHaveBlockingHit)
 		{
 			// Not using anything from this scene, so unlock it.

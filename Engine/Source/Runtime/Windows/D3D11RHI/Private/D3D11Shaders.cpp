@@ -6,6 +6,31 @@
 
 #include "D3D11RHIPrivate.h"
 
+template <typename TShaderType>
+static inline void ReadShaderOptionalData(FShaderCodeReader& InShaderCode, TShaderType& OutShader)
+{
+	auto PackedResourceCounts = InShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
+	check(PackedResourceCounts);
+	OutShader.bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	OutShader.ShaderName = InShaderCode.FindOptionalData('n');
+
+	int32 UniformBufferTableSize = 0;
+	auto* UniformBufferData = InShaderCode.FindOptionalDataAndSize('u', UniformBufferTableSize);
+	if (UniformBufferData && UniformBufferTableSize > 0)
+	{
+		FBufferReader UBReader((void*)UniformBufferData, UniformBufferTableSize, false);
+		TArray<FString> Names;
+		UBReader << Names;
+		check(OutShader.UniformBuffers.Num() == 0);
+		for (int32 Index = 0; Index < Names.Num(); ++Index)
+		{
+			OutShader.UniformBuffers.Add(FName(*Names[Index]));
+		}
+	}
+#endif
+}
+
 FVertexShaderRHIRef FD3D11DynamicRHI::RHICreateVertexShader(const TArray<uint8>& Code)
 {
 	FShaderCodeReader ShaderCode(Code);
@@ -20,12 +45,7 @@ FVertexShaderRHIRef FD3D11DynamicRHI::RHICreateVertexShader(const TArray<uint8>&
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateVertexShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
 
-	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-	check(PackedResourceCounts);
-	Shader->bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	ReadShaderOptionalData(ShaderCode, *Shader);
 	
 	// TEMP
 	Shader->Code = Code;
@@ -48,13 +68,8 @@ FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShader(const TArray<uin
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateGeometryShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
 	
-	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-	check(PackedResourceCounts);
-	Shader->bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
-	
+	ReadShaderOptionalData(ShaderCode, *Shader);
+
 	return Shader;
 }
 
@@ -124,12 +139,7 @@ FHullShaderRHIRef FD3D11DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateHullShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
 	
-	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-	check(PackedResourceCounts);
-	Shader->bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	ReadShaderOptionalData(ShaderCode, *Shader);
 
 	return Shader;
 }
@@ -148,12 +158,7 @@ FDomainShaderRHIRef FD3D11DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateDomainShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
 	
-	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-	check(PackedResourceCounts);
-	Shader->bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	ReadShaderOptionalData(ShaderCode, *Shader);
 
 	return Shader;
 }
@@ -172,12 +177,7 @@ FPixelShaderRHIRef FD3D11DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreatePixelShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
 	
-	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-	check(PackedResourceCounts);
-	Shader->bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	ReadShaderOptionalData(ShaderCode, *Shader);
 
 	return Shader;
 }
@@ -196,12 +196,7 @@ FComputeShaderRHIRef FD3D11DynamicRHI::RHICreateComputeShader(const TArray<uint8
 
 	VERIFYD3D11RESULT( Direct3DDevice->CreateComputeShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
 	
-	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
-	check(PackedResourceCounts);
-	Shader->bShaderNeedsGlobalConstantBuffer = PackedResourceCounts->bGlobalUniformBufferUsed;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Shader->ShaderName = ShaderCode.FindOptionalData('n');
-#endif
+	ReadShaderOptionalData(ShaderCode, *Shader);
 
 	return Shader;
 }

@@ -5,7 +5,7 @@
 #include "AISystem.h"
 #include "Perception/AISense.h"
 #include "AIPerceptionSystem.h"
-
+#include "Debug/DebugDrawService.h"
 #include "AIPerceptionComponent.generated.h"
 
 class AAIController;
@@ -225,12 +225,15 @@ public:
 	bool AgeStimuli(const float ConstPerceptionAgingRate);
 	void ForgetActor(AActor* ActorToForget);
 
+	/** basically cleans up PerceptualData, resulting in loss of all previous perception */
+	void ForgetAll();
+
 	float GetYoungestStimulusAge(const AActor& Source) const;
 	bool HasAnyActiveStimulus(const AActor& Source) const;
 	bool HasActiveStimulus(const AActor& Source, FAISenseID Sense) const;
 
 #if !UE_BUILD_SHIPPING
-	void DrawDebugInfo(UCanvas* Canvas);
+	void GetDebugData(TArray<FString>& OnScreenStrings, TArray<FDrawDebugShapeElement>& DebugShapes) const;
 #endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_VISUAL_LOG

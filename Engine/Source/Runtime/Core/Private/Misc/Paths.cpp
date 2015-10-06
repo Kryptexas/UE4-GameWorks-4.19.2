@@ -136,6 +136,11 @@ FString FPaths::GamePluginsDir()
 	return FPaths::GameDir() + TEXT("Plugins/");
 }
 
+FString FPaths::GamePersistentDownloadDir()
+{
+	return FPlatformMisc::GamePersistentDownloadDir();
+}
+
 FString FPaths::SourceConfigDir()
 {
 	return FPaths::GameDir() + TEXT("Config/");
@@ -201,7 +206,7 @@ FString FPaths::AutomationLogDir()
 
 FString FPaths::CloudDir()
 {
-	return FPaths::GameSavedDir() + TEXT("Cloud/");
+	return FPlatformMisc::CloudDir();
 }
 
 FString FPaths::GameDevelopersDir()

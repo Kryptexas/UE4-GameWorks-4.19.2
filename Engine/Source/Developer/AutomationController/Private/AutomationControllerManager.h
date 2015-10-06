@@ -43,6 +43,16 @@ public:
 		bRequestFullScreenScreenshots = bNewValue;
 	}
 
+	virtual bool IsSendAnalytics() const override
+	{
+		return bSendAnalytics;
+	}
+
+	virtual void SetSendAnalytics(const bool bNewValue) override
+	{
+		bSendAnalytics = bNewValue;
+	}
+
 	virtual bool IsScreenshotAllowed() const override
 	{
 		return bScreenshotsEnabled;
@@ -52,12 +62,6 @@ public:
 	{
 		bScreenshotsEnabled = bNewValue;
 	}
-
-	virtual void SetPrintResults(const bool bNewValue) override
-	{
-		bPrintResults = bNewValue;
-	}
-
 
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) override
 	{
@@ -180,6 +184,12 @@ public:
 	{
 		return TestsRefreshedDelegate;
 	}
+
+	virtual FOnAutomationControllerReset& OnControllerReset() override
+	{
+		return ControllerResetDelegate;
+	}
+
 
 	virtual bool IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const override;
 	virtual void ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup ) override;
@@ -363,8 +373,8 @@ private:
 	/** If we should request full screen screen shots. */
 	bool bRequestFullScreenScreenshots;
 
-	/** If we want to echo results to the console */
-	bool bPrintResults;
+	/** If we should send result to analytics */
+	bool bSendAnalytics;
 
 	/** If we should track any test history for the next run. */
 	bool bTrackHistory;
@@ -382,6 +392,9 @@ private:
 
 	/** Holds a delegate that is invoked when the controller's tests are being refreshed. */
 	FOnAutomationControllerTestsRefreshed TestsRefreshedDelegate;
+
+	/** Holds a delegate that is invoked when the controller's reset. */
+	FOnAutomationControllerReset ControllerResetDelegate;	
 
 	/** Holds a delegate that is invoked when the tests have completed. */
 	FOnAutomationControllerTestsComplete TestsCompleteDelegate;

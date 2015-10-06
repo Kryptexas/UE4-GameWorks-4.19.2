@@ -355,11 +355,15 @@ private:
 
 	/** Map of Tags to Nodes - Internal use only */
 	TMap<FGameplayTag, TSharedPtr<FGameplayTagNode>> GameplayTagNodeMap;
-	mutable FCriticalSection GameplayTagNodeMapCritical;
 
 	/** Map of Names to tags - Internal use only */
 	TMap<FName, FGameplayTag> GameplayTagMap;
+
+#if WITH_EDITOR
+	// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
+	// This class is not generically threadsafe.
 	mutable FCriticalSection GameplayTagMapCritical;
+#endif
 
 	/** Sorted list of nodes, used for network replication */
 	TArray<TSharedPtr<FGameplayTagNode>> NetworkGameplayTagNodeIndex;

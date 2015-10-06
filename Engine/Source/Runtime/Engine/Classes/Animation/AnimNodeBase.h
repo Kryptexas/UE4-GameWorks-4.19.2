@@ -221,6 +221,9 @@ private:
 	/** Nodes that we are dependent on. */
 	TArray<DebugItem> NodeChain;
 
+	/** Additional info provided, used in GetNodeName. States machines can provide the state names for the Root Nodes to use for example. */
+	FString NodeDescription;
+
 public:
 	struct FFlattenedDebugData
 	{
@@ -236,14 +239,21 @@ public:
 
 	FNodeDebugData(const class UAnimInstance* InAnimInstance) : AbsoluteWeight(1.f), AnimInstance(InAnimInstance) {}
 	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight) : AbsoluteWeight(AbsWeight), AnimInstance(InAnimInstance) {}
+	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight, FString InNodeDescription) 
+		: AbsoluteWeight(AbsWeight)
+		, NodeDescription(InNodeDescription)
+		, AnimInstance(InAnimInstance) 
+	{}
 
 	void AddDebugItem(FString DebugData, bool bPoseSource = false);
-	FNodeDebugData& BranchFlow(float BranchWeight);
+	FNodeDebugData& BranchFlow(float BranchWeight, FString InNodeDescription = FString());
 
 	template<class Type>
 	FString GetNodeName(Type* Node)
 	{
-		return FString::Printf(TEXT("%s<W:%.1f%%>"), *Node->StaticStruct()->GetName(), AbsoluteWeight*100.f);
+		FString FinalString = FString::Printf(TEXT("%s<W:%.1f%%> %s"), *Node->StaticStruct()->GetName(), AbsoluteWeight*100.f, *NodeDescription);
+		NodeDescription.Empty();
+		return FinalString;
 	}
 
 	void GetFlattenedDebugData(TArray<FFlattenedDebugData>& FlattenedDebugData, int32 Indent, int32& ChainID);
@@ -280,6 +290,8 @@ namespace EPinHidingMode
 	};
 }
 
+#define ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG 0
+
 /** A pose link to another node */
 USTRUCT()
 struct ENGINE_API FPoseLinkBase
@@ -294,6 +306,13 @@ struct ENGINE_API FPoseLinkBase
 	/** The source link ID, used for debug visualization. */
 	UPROPERTY()
 	int32 SourceLinkID;
+#endif
+
+#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
+	FGraphTraversalCounter InitializationCounter;
+	FGraphTraversalCounter CachedBonesCounter;
+	FGraphTraversalCounter UpdateCounter;
+	FGraphTraversalCounter EvaluationCounter;
 #endif
 
 protected:
@@ -491,8 +510,10 @@ struct ENGINE_API FAnimNode_Base
 
 	virtual void GatherDebugData(FNodeDebugData& DebugData)
 	{ 
-		DebugData.AddDebugItem(TEXT("Non Overridden GatherDebugData")); 
+		DebugData.AddDebugItem(FString::Printf(TEXT("Non Overriden GatherDebugData! (%s)"), *DebugData.GetNodeName(this)));
 	}
+
+	virtual bool CanUpdateInWorkerThread() const { return true; }
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}

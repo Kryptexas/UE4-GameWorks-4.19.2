@@ -100,6 +100,12 @@ private:
 	void HandleScreenShotCapturedWithName(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName);
 #endif
 
+	//dispatches analytics events to the data collector
+	void SendAnalyticsEvents(TArray<FString>& InAnalyticsItems);
+
+	// Helper for Performance Capture Analytics
+	void RecordPerformanceAnalytics( const FAutomationPerformanceSnapshot& PerfSnapshot );
+
 private:
 
 	// The collection of test data we are to send to a controller
@@ -118,6 +124,12 @@ private:
 
 	/** Execute one of the tests by request of the controller. */
 	FString TestName;
+
+	/** Beautified name of the test */
+	FString BeautifiedTestName;
+
+	/** Whether to send analytics events to the backend - sent from controller */
+	bool bSendAnalytics;
 
 	/** Whether the controller has requested that the network command should execute */
 	bool bExecuteNextNetworkCommand;

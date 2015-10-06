@@ -56,6 +56,7 @@ public:
 		Errors.Empty();
 		Warnings.Empty();
 		LogItems.Empty();
+		AnalyticsItems.Empty();
 	}
 
 	/** Whether the automation test completed successfully or not */
@@ -66,6 +67,8 @@ public:
 	TArray<FString> Warnings;
 	/** Any log items that occurred during execution */
 	TArray<FString> LogItems;
+	/** Any analytics items that occurred during execution */
+	TArray<FString> AnalyticsItems;
 	/** Time to complete the task */
 	float Duration;
 };
@@ -517,6 +520,15 @@ public:
 	{
 		bForceSmokeTests = bInForceSmokeTests;
 	}
+
+	/**
+	 * Adds a analytics string to the current test to be parsed later.  Must be called only when an automation test is in progress
+	 *
+	 * @param	AnalyticsItem	Log item to add to the current test
+	 */
+	void AddAnalyticsItemToCurrentTest( const FString& AnalyticsItem );
+
+
 private:
 
 	/** Special feedback context used exclusively while automation testing */
@@ -712,6 +724,13 @@ public:
 	 * @param	InLogItem	Log item to add to this test
 	 */
 	void AddLogItem( const FString& InLogItem );
+
+	/**
+	* Adds a analytics string to parse later
+	*
+	* @param	InLogItem	Log item to add to this test
+	*/
+	void AddAnalyticsItem(const FString& InAnalyticsItem);
 
 	/**
 	 * Returns whether this test has any errors associated with it or not

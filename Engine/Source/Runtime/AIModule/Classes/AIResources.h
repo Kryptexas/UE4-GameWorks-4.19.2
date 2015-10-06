@@ -4,13 +4,13 @@
 #include "GameplayTaskResource.h"
 #include "AIResources.generated.h"
 
-UCLASS()
+UCLASS(meta = (DisplayName = "AI Movement"))
 class AIMODULE_API UAIResource_Movement : public UGameplayTaskResource
 {
 	GENERATED_BODY()
 };
 
-UCLASS()
+UCLASS(meta = (DisplayName = "AI Logic"))
 class AIMODULE_API UAIResource_Logic : public UGameplayTaskResource
 {
 	GENERATED_BODY()

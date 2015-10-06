@@ -153,6 +153,15 @@ namespace HierarchicalLODUtils
 				LODActor->SetActorLocation(OutProxyLocation);
 				LODActor->SubObjects = OutAssets;
 
+				const bool bCalculateDrawDistance = false;
+				if (LODSetup.bSimplifyMesh && bCalculateDrawDistance)
+				{
+					/*ScreenSize = 2.0f * Bounds.SphereRadius / ViewDistance;*/
+					float TotalScreen = 1920.0f * 1080.0f;
+					float SizeOnScreen = TotalScreen / (LODSetup.ProxySetting.ScreenSize*LODSetup.ProxySetting.ScreenSize);
+					float ViewDistance = (MainMesh->GetBounds().SphereRadius * 2.0f) / SizeOnScreen;
+				}
+
 				for (auto& Actor : LODActor->SubActors)
 				{
 					Actor->SetLODParent(LODActor->GetStaticMeshComponent(), LODActor->LODDrawDistance);
@@ -329,11 +338,10 @@ namespace HierarchicalLODUtils
 	}
 
 	/** Creates a new cluster actor in the given InWorld with InLODLevel as HLODLevel */
-	static ALODActor* CreateNewClusterActor(UWorld* InWorld, const int32 InLODLevel)
+	static ALODActor* CreateNewClusterActor(UWorld* InWorld, const int32 InLODLevel, AWorldSettings* WorldSettings)
 	{
 		// Check incoming data
-		check(InWorld != nullptr && InLODLevel >= 0);
-		auto WorldSettings = InWorld->GetWorldSettings();
+		check(InWorld != nullptr && WorldSettings != nullptr && InLODLevel >= 0);
 		if (!WorldSettings->bEnableHierarchicalLODSystem || WorldSettings->HierarchicalLODSetup.Num() == 0 || WorldSettings->HierarchicalLODSetup.Num() < InLODLevel)
 		{
 			return nullptr;

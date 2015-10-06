@@ -15,7 +15,6 @@
 #include "AITypes.h"
 #include "AISystem.h"
 #include "GenericTeamAgentInterface.h"
-#include "Perception/AIPerceptionComponent.h"
 #include "AIController.h"
 
 
@@ -275,6 +274,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
 	//DefaultContext.CursorY += 20;
+	BlackboardFinishY = 0.0f;
 
 	FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(GetDebuggingReplicator());
 	bool bForceOverhead = false;
@@ -471,6 +471,7 @@ void AGameplayDebuggingHUDComponent::DrawBehaviorTreeData(APlayerController* PC,
 	PrintString(DefaultContext, FString::Printf(TEXT("Brain Component: {yellow}%s\n"), *DebugComponent->BrainComponentName));
 	PrintString(DefaultContext, DebugComponent->BrainComponentString);
 	PrintString(DefaultContext, FColor::White, DebugComponent->BlackboardString, 600.0f, DebugInfoStartY);
+	BlackboardFinishY = DefaultContext.CursorY;
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -704,41 +705,38 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 		return;
 	}
 
-	//@FIXME: It have to be changed to only draw data collected by Debugging Component, just moved functionality from FN for now
-	APawn* MyPawn = Cast<APawn>(DebugComponent->GetSelectedActor());
-	if (MyPawn)
+	PrintString(DefaultContext, FColor::Green, TEXT("\nPERCEPTION COMPONENT\n"));
+	PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
+	PrintString(DefaultContext, *DebugComponent->PerceptionLegend);
+
+	PrintString(DefaultContext, FString::Printf(TEXT("\nDistance Sensor-PlayerPawn: %.1f\n"), DebugComponent->DistanceFromSensor));
+	PrintString(DefaultContext, FString::Printf(TEXT("Distance Pawn-PlayerPawn: %.1f\n"), DebugComponent->DistanceFromPlayer));
+
+	float VerticalLabelOffset = 0.f;
+	for (const FDrawDebugShapeElement& Shape : DebugComponent->PerceptionShapeElements)
 	{
-		AAIController* BTAI = Cast<AAIController>(MyPawn->GetController());
-		if (BTAI)
+		if (Shape.GetType() == EDrawDebugShapeElement::String)
 		{
-			// standalone only
-			if (BTAI->GetAIPerceptionComponent() && DefaultContext.Canvas != NULL)
-			{
-				BTAI->GetAIPerceptionComponent()->DrawDebugInfo(DefaultContext.Canvas);
+			const FVector& Loc = Shape.Points[0];
+			const FVector ScreenLoc = DefaultContext.Canvas->Project(Loc);
 
-				const FVector AILocation = MyPawn->GetActorLocation();
-				const FVector Facing = MyPawn->GetActorForwardVector();
-
-				UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(this);
-				if (PerceptionSys)
-				{
-					PrintString(DefaultContext, FColor::Green, TEXT("\nPERCEPTION COMPONENT\n"));
-					PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
-					
-					FString PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
-					PrintString(DefaultContext, *PerceptionLegend);
-				}
-				
-				if (PC && PC->GetPawn())
-				{
-					const float DistanceFromPlayer = (MyPawn->GetActorLocation() - PC->GetPawn()->GetActorLocation()).Size();
-					const float DistanceFromSensor = DebugComponent->SensingComponentLocation != FVector::ZeroVector ? (DebugComponent->SensingComponentLocation - PC->GetPawn()->GetActorLocation()).Size() : -1;
-					PrintString(DefaultContext, FString::Printf(TEXT("Distance Sensor-PlayerPawn: %.1f\n"), DistanceFromSensor));
-					PrintString(DefaultContext, FString::Printf(TEXT("Distance Pawn-PlayerPawn: %.1f\n"), DistanceFromPlayer));
-				}
-			}
+			PrintString(DefaultContext, Shape.GetFColor(), Shape.Description, ScreenLoc.X, ScreenLoc.Y + VerticalLabelOffset);
+			VerticalLabelOffset += 17;
+		}
+		else if (Shape.GetType() == EDrawDebugShapeElement::Segment)
+		{
+			DrawDebugLine(World, Shape.Points[0], Shape.Points[1], Shape.GetFColor());
+		}
+		else if (Shape.GetType() == EDrawDebugShapeElement::SinglePoint)
+		{
+			DrawDebugSphere(World, Shape.Points[0], Shape.ThicknesOrRadius, 16, Shape.GetFColor());
+		}
+		else if (Shape.GetType() == EDrawDebugShapeElement::Cylinder)
+		{
+			DrawDebugCylinder(World, Shape.Points[0], Shape.Points[1], Shape.ThicknesOrRadius, 16, Shape.GetFColor());
 		}
 	}
+
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 

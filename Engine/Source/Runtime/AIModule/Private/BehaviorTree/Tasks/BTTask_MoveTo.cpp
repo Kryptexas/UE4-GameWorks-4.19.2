@@ -19,6 +19,8 @@ UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer)
 	bAllowStrafe = GET_AI_CONFIG_VAR(bAllowStrafing);
 	bAllowPartialPath = GET_AI_CONFIG_VAR(bAcceptPartialPaths);
 
+	ObservedBlackboardValueTolerance = AcceptableRadius * 0.95f;
+
 	// accept only actors and vectors
 	BlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_MoveTo, BlackboardKey), AActor::StaticClass());
 	BlackboardKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_MoveTo, BlackboardKey));
@@ -28,7 +30,8 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 {
 	EBTNodeResult::Type NodeResult = EBTNodeResult::InProgress;
 
-	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
+	MyMemory->PreviousGoalLocation = FAISystem::InvalidLocation;
 	AAIController* MyController = OwnerComp.GetAIOwner();
 
 	MyMemory->bWaitingForPath = MyController->ShouldPostponePathUpdates();
@@ -40,6 +43,16 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		UE_VLOG(MyController, LogBehaviorTree, Log, TEXT("Pathfinding requests are freezed, waiting..."));
 	}
+
+	if (NodeResult == EBTNodeResult::InProgress && bObserveBlackboardValue)
+	{
+		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+		if (ensure(BlackboardComp))
+		{
+			MyMemory->BBObserverDelegateHandle = BlackboardComp->RegisterObserver(BlackboardKey.GetSelectedKeyID(), this, FOnBlackboardChangeNotification::CreateUObject(this, &UBTTask_MoveTo::OnBlackboardValueChange));
+		}
+	}
+	
 	
 	return NodeResult;
 }
@@ -47,7 +60,7 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
-	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
 	AAIController* MyController = OwnerComp.GetAIOwner();
 
 	EBTNodeResult::Type NodeResult = EBTNodeResult::Failed;
@@ -78,6 +91,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 				else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 				{
 					const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
+					MyMemory->PreviousGoalLocation = TargetLocation;
 					AIMoveTask->SetUp(MyController, TargetLocation, nullptr, AcceptableRadius, /*bUsePathfinding=*/true, FAISystem::BoolToAIOption(bStopOnOverlap), FAISystem::BoolToAIOption(bAllowPartialPath));
 					NodeResult = EBTNodeResult::InProgress;
 				}
@@ -142,9 +156,51 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	return NodeResult;
 }
 
+EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
+{
+	UBehaviorTreeComponent* BehaviorComp = Cast<UBehaviorTreeComponent>(Blackboard.GetBrainComponent());
+	if (BehaviorComp == nullptr)
+	{
+		return EBlackboardNotificationResult::RemoveObserver;
+	}
+	
+	uint8* RawMemory = BehaviorComp->GetNodeMemory(this, BehaviorComp->FindInstanceContainingNode(this));
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(RawMemory);
+
+	// this means the move has already started. MyMemory->bWaitingForPath == true would mean we're waiting for right moment to start it anyway,
+	// so we don't need to do anything due to BB value change 
+	if (MyMemory != nullptr && MyMemory->bWaitingForPath == false && BehaviorComp->GetAIOwner() != nullptr)
+	{
+		check(BehaviorComp->GetAIOwner()->GetPathFollowingComponent());
+
+		bool bUpdateMove = true;
+		// check if new goal is almost identical to previous one
+		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
+		{
+			const FVector TargetLocation = Blackboard.GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
+
+			bUpdateMove = (FVector::DistSquared(TargetLocation, MyMemory->PreviousGoalLocation) > ObservedBlackboardValueTolerance*ObservedBlackboardValueTolerance);
+		}
+
+		if (bUpdateMove)
+		{
+			StopWaitingForMessages(*BehaviorComp);
+			BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(TEXT("Updating move due to BB value change"), MyMemory->MoveRequestID, /*bResetVelocity=*/false, /*bSilent=*/true);
+			const EBTNodeResult::Type NodeResult = PerformMoveTask(*BehaviorComp, RawMemory);
+
+			if (NodeResult != EBTNodeResult::InProgress)
+			{
+				FinishLatentTask(*BehaviorComp, NodeResult);
+			}
+		}
+	}
+
+	return EBlackboardNotificationResult::ContinueObserving;
+}
+
 EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
 	if (!MyMemory->bWaitingForPath)
 	{
 		AAIController* MyController = OwnerComp.GetAIOwner();
@@ -156,6 +212,22 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp,
 	}
 
 	return Super::AbortTask(OwnerComp, NodeMemory);
+}
+
+void UBTTask_MoveTo::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+{
+	if (bObserveBlackboardValue)
+	{
+		FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
+		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+		if (ensure(BlackboardComp) && MyMemory->BBObserverDelegateHandle.IsValid())
+		{
+			BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), MyMemory->BBObserverDelegateHandle);
+			MyMemory->BBObserverDelegateHandle.Reset();
+		}
+	}
+
+	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
 }
 
 void UBTTask_MoveTo::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)

@@ -1340,7 +1340,7 @@ void ULandscapeHeightfieldCollisionComponent::PostEditUndo()
 		RecreateCollision();
 	}
 
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }
 
 bool ULandscapeHeightfieldCollisionComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const

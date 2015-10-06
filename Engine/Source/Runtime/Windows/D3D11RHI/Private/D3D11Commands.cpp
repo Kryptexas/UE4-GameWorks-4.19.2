@@ -1303,13 +1303,25 @@ void FD3D11DynamicRHI::SetResourcesFromTables(const ShaderType* RESTRICT Shader)
 		{
 			if (Buffer->GetLayout().GetHash() != Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex])
 			{
-				FString DebugName = Buffer->GetLayout().GetDebugName().GetPlainNameString();
+				auto& BufferLayout = Buffer->GetLayout();
+				FString DebugName = BufferLayout.GetDebugName().GetPlainNameString();
 				const FString& ShaderName = Shader->ShaderName;
 				
-				UE_LOG(LogD3D11RHI, Error, TEXT("SetResourcesFromTables upcoming check() info Layout='%s' Shader='%s'"), *DebugName, *ShaderName);
+				FString ShaderUB;
+				if (BufferIndex < Shader->UniformBuffers.Num())
+				{
+					ShaderUB = FString::Printf(TEXT("expecting UB '%s'"), *Shader->UniformBuffers[BufferIndex].GetPlainNameString());
+				}
+				UE_LOG(LogD3D11RHI, Error, TEXT("SetResourcesFromTables upcoming check(%08x != %08x); Bound Layout='%s' Shader='%s' %s"), BufferLayout.GetHash(), Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex], *DebugName, *ShaderName, *ShaderUB);
+				FString ResourcesString;
+				for (int32 Index = 0; Index < BufferLayout.Resources.Num(); ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("%d "), BufferLayout.Resources[Index]);
+				}
+				UE_LOG(LogD3D11RHI, Error, TEXT("Layout CB Size %d Res Offs %d; %d Resources: %s"), BufferLayout.ConstantBufferSize, BufferLayout.ResourceOffset, BufferLayout.Resources.Num(), *ResourcesString);
 
 				// this might mean you are accessing a data you haven't bound e.g. GBuffer
-				check(Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
+				check(BufferLayout.GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
 			}
 		}
 #endif

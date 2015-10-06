@@ -465,7 +465,10 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		}
 
 		// Refresh navigation
-		UpdateNavigationData();
+		if (bNavigationRelevant)
+		{
+			UpdateNavigationData();
+		}
 	}
 	else
 	{
@@ -731,9 +734,7 @@ void USceneComponent::UpdateBounds()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComponentUpdateBounds);
 
-#if WITH_EDITOR
 	FBoxSphereBounds OriginalBounds = Bounds; // Save old bounds
-#endif
 
 	// if use parent bound if attach parent exists, and the flag is set
 	// since parents tick first before child, this should work correctly
@@ -761,8 +762,19 @@ void USceneComponent::UpdateBounds()
 void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	ConditionalUpdateComponentToWorld();
+	
+#if ENABLE_NAN_DIAGNOSTIC
+	bool NaN = NewRotation.ContainsNaN();
+	if (NaN)
+	{
+		UE_LOG(LogBlueprint, Error, TEXT("USceneComponent::SetRelativeLocationAndRotation contains NaN is NewRotation. %s "), *GetNameSafe( GetOwner() ) );
+		ensure(!GEnsureOnNANDiagnostic);
+	}
+#else
+	bool NaN = false;
+#endif
 
-	const FTransform DesiredRelTransform(NewRotation, NewLocation);
+	const FTransform DesiredRelTransform(NaN ? FQuat::Identity :NewRotation, NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
 	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 
@@ -1346,7 +1358,23 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 					// when snap, we'd like to give socket or bone scale only
 					// to do so, get parent and get socket relative to parent
 					FTransform SocketTransform = AttachParent->GetSocketTransform(AttachSocketName);
+#if ENABLE_NAN_DIAGNOSTIC
+					if (SocketTransform.ContainsNaN())
+					{
+						UE_LOG(LogSceneComponent, Error, TEXT("Attaching particle to SocketTransform that contains NaN, earlying out"));
+						ensure(!GEnsureOnNANDiagnostic);
+						return false;
+					}
+#endif
 					FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(SocketTransform);
+#if ENABLE_NAN_DIAGNOSTIC
+					if (RelativeTM.ContainsNaN())
+					{
+						UE_LOG(LogSceneComponent, Error, TEXT("Attaching particle to RelativeTM that contains NaN, earlying out"));
+						ensure(!GEnsureOnNANDiagnostic);
+						return false;
+					}
+#endif
 					RelativeScale3D = RelativeTM.GetScale3D();
 				}
 			}
@@ -1931,7 +1959,13 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes quat, if this is a new rotation. Then we'll use it below.
 		UpdateComponentToWorldWithParent(AttachParent,AttachSocketName, bNoPhysics, RelativeRotationCache.GetCachedQuat(), Teleport);
 
-		PostUpdateNavigationData();
+		// we need to call this even if this component itself is not navigation relevant
+		// checking ShouldUpdateNavOctreeOnComponentChange here is an optimization for static navigation users
+		if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange())
+		{
+			PostUpdateNavigationData();
+		}
+
 		return true;
 	}
 
@@ -2599,7 +2633,7 @@ void USceneComponent::UpdateNavigationData()
 		IsRegistered() && World && World->IsGameWorld() &&
 		World->GetNetMode() < ENetMode::NM_Client)
 	{
-		UNavigationSystem::UpdateNavOctree(this);
+		UNavigationSystem::UpdateComponentInNavOctree(*this);
 	}
 }
 

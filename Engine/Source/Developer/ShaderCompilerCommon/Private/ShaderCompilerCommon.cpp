@@ -58,7 +58,7 @@ enum EHlslCompileFlag
 	HLSLCC_PackUniformsIntoUniformBuffers = 0x1000 | HLSLCC_PackUniforms,
 };
 
-int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT)
+int16 GetNumUniformBuffersUsed(const FShaderCompilerResourceTable& InSRT)
 {
 	auto CountLambda = [&](const TArray<uint32>& In)
 					{
@@ -117,7 +117,7 @@ void BuildResourceTableMapping(
 	const TMap<FString,uint32>& ResourceTableLayoutHashes,
 	TBitArray<>& UsedUniformBufferSlots,
 	FShaderParameterMap& ParameterMap,
-	FShaderResourceTable& OutSRT)
+	FShaderCompilerResourceTable& OutSRT)
 {
 	check(OutSRT.ResourceTableBits == 0);
 	check(OutSRT.ResourceTableLayoutHashes.Num() == 0);

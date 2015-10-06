@@ -563,7 +563,7 @@ public:
 						UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 						if (NavSys)
 						{
-							NavSys->UpdateNavOctree(CollisionComponent);
+							NavSys->UpdateComponentInNavOctree(*CollisionComponent);
 						}
 					}
 				}

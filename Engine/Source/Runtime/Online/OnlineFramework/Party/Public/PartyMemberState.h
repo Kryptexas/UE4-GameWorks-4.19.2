@@ -36,19 +36,29 @@ class PARTY_API UPartyMemberState : public UObject
 	FUniqueNetIdRepl UniqueId;
 
 	/** Display name of this party member */
-	UPROPERTY(Transient)
+	UPROPERTY(BlueprintReadOnly, Transient, Category = PartyMemberState )
 	FText DisplayName;
 
 	/** @return the party this member is associated with */
-	UPartyGameState* GetParty() const { return GetTypedOuter<UPartyGameState>(); }
+	UPartyGameState* GetParty() const;
 
 protected:
+
+	/** Reflection data for child USTRUCT */
+	UPROPERTY()
+	const UScriptStruct* MemberStateRefDef;
+
+	/** Pointer to child USTRUCT that holds the current state of party member (set via InitPartyMemberState) */
+	FPartyMemberRepState* MemberStateRef;
 
 	template<typename T>
 	void InitPartyMemberState(T* InMemberState)
 	{
 		MemberStateRef = InMemberState;
-		MemberStateRefDef = T::StaticStruct();
+		if (MemberStateRefDef == nullptr)
+		{
+			MemberStateRefDef = T::StaticStruct();
+		}
 
 		MemberStateRefScratch = (FPartyMemberRepState*)FMemory::Malloc(MemberStateRefDef->GetCppStructOps()->GetSize());
 		MemberStateRefDef->InitializeStruct(MemberStateRefScratch);
@@ -67,19 +77,14 @@ protected:
 	virtual void Reset();
 
 private:
+	
+	/** Scratch copy of child USTRUCT for handling replication comparisons */
+	FPartyMemberRepState* MemberStateRefScratch;
 
 	/** Have we announced this player joining the game locally */
 	UPROPERTY(Transient)
 	bool bHasAnnouncedJoin;
 
-	/** Pointer to child USTRUCT that holds the current state of party member (set via InitPartyMemberState) */
-	FPartyMemberRepState* MemberStateRef;
-
-	/** Scratch copy of child USTRUCT for handling replication comparisons */
-	FPartyMemberRepState* MemberStateRefScratch;
-
-	/** Reflection data for child USTRUCT */
-	const UScriptStruct* MemberStateRefDef;
 
 	friend UPartyGameState;
 };

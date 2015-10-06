@@ -6,16 +6,18 @@ namespace UnrealBuildTool.Rules
 	{
 		public SimplygonUtilities(TargetInfo Target)
 		{
+            BinariesSubFolder = "NotForLicensees";
+
 			PublicIncludePaths.AddRange(
 				new string[] {
-					"Developer/SimplygonUtilities/Public",
+					ModuleDirectory + "/Public/",
 				}
 				);
 
-			PrivateIncludePaths.AddRange(
+            PublicIncludePaths.AddRange(
 				new string[] {
-					"Developer/SimplygonUtilities/Private",
-					"Developer/SimplygonUtilities/Private/Layouts",
+					ModuleDirectory + "/Private/",
+					ModuleDirectory + "/Private/Layouts/",
 				}
 				);
 
@@ -70,7 +72,7 @@ namespace UnrealBuildTool.Rules
 
 			if (UEBuildConfiguration.bCompileSimplygon == true)
 			{
-				AddThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
+                AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
 			}
 		}
 	}

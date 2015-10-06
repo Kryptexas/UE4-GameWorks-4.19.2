@@ -259,7 +259,7 @@ bool FPhysScene::GetKinematicTarget_AssumesLocked(const FBodyInstance* BodyInsta
 
 void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, const FTransform& TargetTransform, bool bAllowSubstepping)
 {
-	TargetTransform.DiagnosticCheckNaN_All();
+	TargetTransform.DiagnosticCheck_IsValid();
 
 #if WITH_PHYSX
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic_AssumesLocked())
@@ -275,7 +275,6 @@ void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, c
 #endif
 		{
 			const PxTransform PNewPose = U2PTransform(TargetTransform);
-			ensure(PNewPose.isValid());
 			PRigidDynamic->setKinematicTarget(PNewPose);
 		}
 	}
@@ -600,27 +599,105 @@ void FinishSceneStat(uint32 Scene)
 void GatherApexStats(const UWorld* World, NxApexScene* ApexScene)
 {
 #if STATS
-	SCOPED_APEX_SCENE_READ_LOCK(ApexScene);
-	int32 NumVerts = 0;
-	int32 NumCloths = 0;
-	for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_GatherApexStats);
+
+	if ( FThreadStats::IsCollectingData(GET_STATID(STAT_NumCloths)) ||  FThreadStats::IsCollectingData(GET_STATID(STAT_NumClothVerts)) )
 	{
-		if (Itr->GetWorld() != World) { continue; }
-		const TArray<FClothingActor>& ClothingActors = Itr->GetClothingActors();
-		for (const FClothingActor& ClothingActor : ClothingActors)
+		SCOPED_APEX_SCENE_READ_LOCK(ApexScene);
+		int32 NumVerts = 0;
+		int32 NumCloths = 0;
+		for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
 		{
-			if (ClothingActor.ApexClothingActor && ClothingActor.ApexClothingActor->getActivePhysicalLod() == 1)
+			if (Itr->GetWorld() != World) { continue; }
+			const TArray<FClothingActor>& ClothingActors = Itr->GetClothingActors();
+			for (const FClothingActor& ClothingActor : ClothingActors)
 			{
-				NumCloths++;
-				NumVerts += ClothingActor.ApexClothingActor->getNumSimulationVertices();
+				if (ClothingActor.ApexClothingActor && ClothingActor.ApexClothingActor->getActivePhysicalLod() == 1)
+				{
+					NumCloths++;
+					NumVerts += ClothingActor.ApexClothingActor->getNumSimulationVertices();
+				}
 			}
 		}
+		SET_DWORD_STAT(STAT_NumCloths, NumCloths);        // number of recently simulated apex cloths.
+		SET_DWORD_STAT(STAT_NumClothVerts, NumVerts);	  // number of recently simulated apex vertices.
 	}
-	SET_DWORD_STAT(STAT_NumCloths, NumCloths);        // number of recently simulated apex cloths.
-	SET_DWORD_STAT(STAT_NumClothVerts, NumVerts);	  // number of recently simulated apex vertices.
 #endif
 }
 #endif
+
+void FPhysScene::MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning)
+{
+	// If null, or pending kill, do nothing
+	if (InSkelComp != nullptr && !InSkelComp->IsPendingKill())
+	{
+		// If we are already flagged, just need to update info
+		if(InSkelComp->bDeferredKinematicUpdate)
+		{
+			FDeferredKinematicUpdateInfo* Info = DeferredKinematicUpdateSkelMeshes.Find(InSkelComp);
+			check(Info != nullptr); // If the bool was set, we must be in the map!
+			// If we are currently not going to teleport physics, but this update wants to, we 'upgrade' it
+			if (Info->TeleportType == ETeleportType::None && InTeleport == ETeleportType::TeleportPhysics)
+			{
+				Info->TeleportType = ETeleportType::TeleportPhysics;
+			}
+
+			// If we need skinning, remember that
+			if (bNeedsSkinning)
+			{
+				Info->bNeedsSkinning = true;
+			}
+		}
+		// We are not flagged yet..
+		else
+		{
+			// Set info and add to map
+			FDeferredKinematicUpdateInfo Info;
+			Info.TeleportType = InTeleport;
+			Info.bNeedsSkinning = bNeedsSkinning;
+			DeferredKinematicUpdateSkelMeshes.Add(InSkelComp, Info);
+
+			// Set flag on component
+			InSkelComp->bDeferredKinematicUpdate = true;
+		}
+	}
+}
+
+void FPhysScene::ClearPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp)
+{
+	// If non-null, and flagged for deferred update..
+	if(InSkelComp != nullptr && InSkelComp->bDeferredKinematicUpdate)
+	{
+		// Remove from map
+		int32 NumRemoved = DeferredKinematicUpdateSkelMeshes.Remove(InSkelComp);
+
+		check(NumRemoved == 1); // Should be in map if flag was set!
+
+		// Clear flag
+		InSkelComp->bDeferredKinematicUpdate = false;
+	}
+}
+
+
+void FPhysScene::UpdateKinematicsOnDeferredSkelMeshes()
+{
+	for (TMap< USkeletalMeshComponent*, FDeferredKinematicUpdateInfo >::TIterator It(DeferredKinematicUpdateSkelMeshes); It; ++It)
+	{
+		USkeletalMeshComponent* SkelComp = (*It).Key;
+		FDeferredKinematicUpdateInfo Info = (*It).Value;
+
+		check(SkelComp->bDeferredKinematicUpdate); // Should be true if in map!
+
+		// Perform kinematic updates
+		SkelComp->UpdateKinematicBonesToAnim(SkelComp->GetSpaceBases(), Info.TeleportType, Info.bNeedsSkinning, true);
+
+		// Clear deferred flag
+		SkelComp->bDeferredKinematicUpdate = false; 
+	}
+
+	// Empty map now all is done
+	DeferredKinematicUpdateSkelMeshes.Reset();
+}
 
 
 /** Exposes ticking of physics-engine scene outside Engine. */
@@ -685,6 +762,9 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	check(!InOutCompletionEvent.GetReference()); // these should be gone because nothing is outstanding
 	InOutCompletionEvent = FGraphEvent::CreateGraphEvent();
 	bool bTaskOutstanding = false;
+
+	// Update any skeletal meshes that need their bone transforms sent to physics sim
+	UpdateKinematicsOnDeferredSkelMeshes();
 
 #if WITH_PHYSX
 

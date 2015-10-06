@@ -2331,6 +2331,38 @@ int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterial
 	}
 }
 
+void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, int32& OutNumTextureCoordinates, bool& OutUseVertexColor)
+{
+#if WITH_EDITORONLY_DATA
+	// FHLSLMaterialTranslator collects all required information during translation, but these data are protected. Needs to
+	// derive own class from it to get access to these data.
+	class FMaterialAnalyzer : public FHLSLMaterialTranslator
+	{
+	public:
+		FMaterialAnalyzer(FMaterial* InMaterial, FMaterialCompilationOutput& InMaterialCompilationOutput, const FStaticParameterSet& StaticParameters, EShaderPlatform InPlatform, EMaterialQualityLevel::Type InQualityLevel, ERHIFeatureLevel::Type InFeatureLevel)
+			: FHLSLMaterialTranslator(InMaterial, InMaterialCompilationOutput, StaticParameters, InPlatform, InQualityLevel, InFeatureLevel)
+		{}
+		int32 GetTextureCoordsCount() const
+		{
+			return NumUserTexCoords;
+		}
+		bool UsesVertexColor() const
+		{
+			return bUsesVertexColor;
+		}
+	};
+
+	FMaterialCompilationOutput TempOutput;
+	FMaterialResource* MaterialResource = GetMaterialResource(GMaxRHIFeatureLevel);
+	FMaterialAnalyzer MaterialTranslator(MaterialResource, TempOutput, FStaticParameterSet(), GMaxRHIShaderPlatform, MaterialResource->GetQualityLevel(), GMaxRHIFeatureLevel);
+	static_cast<FMaterialCompiler*>(&MaterialTranslator)->SetMaterialProperty(InProperty); // FHLSLMaterialTranslator hides this interface, so cast to parent
+	CompileProperty(&MaterialTranslator, InProperty);
+	// Request data from translator
+	OutNumTextureCoordinates = MaterialTranslator.GetTextureCoordsCount();
+	OutUseVertexColor = MaterialTranslator.UsesVertexColor();
+#endif
+}
+
 //Reorder the output index for any FExpressionInput connected to a UMaterialExpressionBreakMaterialAttributes.
 //If the order of pins in the material results or the make/break attributes nodes changes 
 //then the OutputIndex stored in any FExpressionInput coming from UMaterialExpressionBreakMaterialAttributes will be wrong and needs reordering.

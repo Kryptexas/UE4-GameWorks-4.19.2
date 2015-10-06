@@ -37,6 +37,7 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	TextWithoutShadowDistance = 1500;
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
+	bWantsSelectionOutline = false;
 
 	if (InComponent == NULL)
 	{
@@ -73,6 +74,7 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	TextWithoutShadowDistance = 1500;
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
+	bWantsSelectionOutline = false;
 
 	Spheres = InSpheres;
 	Texts = InTexts;

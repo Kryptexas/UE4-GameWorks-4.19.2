@@ -240,10 +240,7 @@ void UGameplayTagsManager::ConstructNetIndex()
 {
 	NetworkGameplayTagNodeIndex.Empty();
 
-	{
-		FScopeLock Lock(&GameplayTagNodeMapCritical);
 	GameplayTagNodeMap.GenerateValueArray(NetworkGameplayTagNodeIndex);
-	}
 
 	NetworkGameplayTagNodeIndex.Sort(FCompareFGameplayTagNodeByTag());
 
@@ -278,11 +275,7 @@ FName UGameplayTagsManager::GetTagNameFromNetIndex(FGameplayTagNetIndex Index)
 
 FGameplayTagNetIndex UGameplayTagsManager::GetNetIndexFromTag(const FGameplayTag &InTag)
 {
-	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = nullptr;
-	{
-		FScopeLock Lock(&GameplayTagNodeMapCritical);
-		GameplayTagNode = GameplayTagNodeMap.Find(InTag);
-	}
+	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(InTag);
 
 	if (GameplayTagNode && GameplayTagNode->IsValid())
 	{
@@ -319,44 +312,44 @@ void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Conta
 		{
 			NamesToRemove.Add(TagName);
 			if (NewTag->IsValid())
-				{
+			{
 				TagsToAdd.Add(NewTag);
 				DeprecatedTagNamesNotFoundInTagMap.Remove(NewTag->GetTagName());
-				}
 			}
-			}
+		}
+	}
 
 	// Add additional tags to the TagsToAdd set from the deprecated list if they weren't already added above
 	for (FName AdditionalDeprecatedTag : DeprecatedTagNamesNotFoundInTagMap)
-				{
+	{
 		const FGameplayTag* NewTag = TagRedirects.Find(AdditionalDeprecatedTag);
 		if (NewTag && NewTag->IsValid())
-					{
+		{
 			TagsToAdd.Add(NewTag);
-					}
-				}
+		}
+	}
 
 	// Remove all tags from the NamesToRemove set
 	for (FName RemoveName : NamesToRemove)
 	{
 		FGameplayTag OldTag = RequestGameplayTag(RemoveName, false);
 		if (OldTag.IsValid())
-				{
-				Container.RemoveTag(OldTag);
-			}
+		{
+			Container.RemoveTag(OldTag);
+		}
 		else
-			{
+		{
 			FGameplayTagRedirectHelper::RemoveTagByExplicitName(Container, RemoveName);
-				}
-			}
+		}
+	}
 
 	// Add all tags from the TagsToAdd set
 	for (const FGameplayTag* AddTag : TagsToAdd)
 	{
 		check(AddTag);
 		Container.AddTag(*AddTag);
-		}
 	}
+}
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
 {
@@ -441,12 +434,14 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 		FGameplayTag GameplayTag = FGameplayTag(TagNode->GetCompleteTag());
 
 		{
+#if WITH_EDITOR
+			// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
+			// This function is not generically threadsafe.
 			FScopeLock Lock(&GameplayTagMapCritical);
+#endif
 			GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
 		}
 
-		{
-			FScopeLock Lock(&GameplayTagNodeMapCritical);
 		GameplayTagNodeMap.Add(GameplayTag, TagNode);
 
 		TSet<FName> ParentSet;
@@ -455,7 +450,6 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 		{
 			TagNode->Parents.AddTagFast(FGameplayTag(Name));
 		}
-	}
 	}
 	else if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
 	{
@@ -615,13 +609,18 @@ void UGameplayTagsManager::AddNewGameplayTagToINI(FString NewTag)
 
 #endif // WITH_EDITOR
 
+DECLARE_CYCLE_STAT(TEXT("UGameplayTagsManager::RequestGameplayTag"), STAT_UGameplayTagsManager_RequestGameplayTag, STATGROUP_GameplayTags);
+
 FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorIfNotFound) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_UGameplayTagsManager_RequestGameplayTag);
+#if WITH_EDITOR
+	// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
+	// This function is not generically threadsafe.
 	FScopeLock Lock(&GameplayTagMapCritical);
+#endif
 
-	const FGameplayTag* Tag = nullptr;
-	Tag = GameplayTagMap.Find(TagName);
-
+	const FGameplayTag* Tag = GameplayTagMap.Find(TagName);
 	if (!Tag)
 	{ 
 		if (ErrorIfNotFound)
@@ -651,7 +650,6 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGa
 
 FGameplayTag UGameplayTagsManager::RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const
 {
-	FScopeLock Lock(&GameplayTagNodeMapCritical);
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
 	{
@@ -703,7 +701,6 @@ bool UGameplayTagsManager::AddLeafTagToContainer(FGameplayTagContainer& TagConta
 
 void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag) const
 {
-	FScopeLock Lock(&GameplayTagNodeMapCritical);
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
 	{
@@ -722,7 +719,6 @@ void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, co
 
 void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll) const
 {
-	FScopeLock Lock(&GameplayTagNodeMapCritical);
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
 	{
@@ -884,8 +880,12 @@ int32 UGameplayTagsManager::GameplayTagsMatchDepth(const FGameplayTag& GameplayT
 	return Tags1.Intersect(Tags2).Num();
 }
 
+DECLARE_CYCLE_STAT(TEXT("UGameplayTagsManager::GetAllParentNodeNames"), STAT_UGameplayTagsManager_GetAllParentNodeNames, STATGROUP_GameplayTags);
+
 void UGameplayTagsManager::GetAllParentNodeNames(TSet<FName>& NamesList, const TSharedPtr<FGameplayTagNode> GameplayTag) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_UGameplayTagsManager_GetAllParentNodeNames);
+
 	NamesList.Add(GameplayTag->GetCompleteTag());
 	const TSharedPtr<FGameplayTagNode> Parent = GameplayTag->GetParentTagNode().Pin();
 	if (Parent.IsValid())
@@ -894,8 +894,12 @@ void UGameplayTagsManager::GetAllParentNodeNames(TSet<FName>& NamesList, const T
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("UGameplayTagsManager::ValidateTagCreation"), STAT_UGameplayTagsManager_ValidateTagCreation, STATGROUP_GameplayTags);
+
 bool UGameplayTagsManager::ValidateTagCreation(FName TagName) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_UGameplayTagsManager_ValidateTagCreation);
+
 	return FindTagNode(GameplayRootTag, TagName).IsValid();
 }
 

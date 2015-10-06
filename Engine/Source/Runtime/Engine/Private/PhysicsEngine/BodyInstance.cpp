@@ -38,6 +38,9 @@ DEFINE_STAT(STAT_InitBodies);
 DEFINE_STAT(STAT_BulkSceneAdd);
 DEFINE_STAT(STAT_StaticInitBodies);
 
+DECLARE_CYCLE_STAT(TEXT("UpdateBodyScale"), STAT_BodyInstanceUpdateBodyScale, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("CreatePhysicsShapesAndActors"), STAT_CreatePhysicsShapesAndActors, STATGROUP_Physics);
+
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
 ////////////////////////////////////////////////////////////////////////////
@@ -1156,6 +1159,8 @@ struct FInitBodiesHelper
 
 	bool CreateShapesAndActors_PhysX(TArray<PxActor*>& PSyncActors, TArray<PxActor*>& PAsyncActors, TArray<PxActor*>& PDynamicActors, const bool bCanDefer, bool& bDynamicsUseAsyncScene) 
 	{
+		SCOPE_CYCLE_COUNTER(STAT_CreatePhysicsShapesAndActors);
+
 		const int32 NumBodies = Bodies.Num();
 		PSyncActors.Reserve(NumBodies);
 
@@ -2072,6 +2077,8 @@ EScaleMode::Type ComputeScaleMode(const TArray<PxShape*>& PShapes)
 
 bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BodyInstanceUpdateBodyScale);
+
 	if (!IsValidBodyInstance())
 	{
 		//UE_LOG(LogPhysics, Log, TEXT("Body hasn't been initialized. Call InitBody to initialize."));

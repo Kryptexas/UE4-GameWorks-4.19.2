@@ -73,7 +73,7 @@ bool FAnimNode_TransitionPoseEvaluator::InputNodeNeedsEvaluate() const
 	return (EvaluatorMode == EEvaluatorMode::EM_Standard) || (CacheFramesRemaining > 0);
 }
 
-void FAnimNode_TransitionPoseEvaluator::CachePose(FPoseContext& PoseToCache)
+void FAnimNode_TransitionPoseEvaluator::CachePose(const FPoseContext& PoseToCache)
 {
 	CachedPose.CopyBonesFrom(PoseToCache.Pose);
 	CachedCurve.CopyFrom(PoseToCache.Curve);

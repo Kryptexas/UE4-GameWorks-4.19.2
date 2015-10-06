@@ -9,24 +9,19 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(transient)
-	int16 LastInitializedContextCounter;
-
-	UPROPERTY(transient)
-	int16 LastCacheBonesContextCounter;
-
-	UPROPERTY(transient)
-	int16 LastUpdatedContextCounter;
-
-	UPROPERTY(transient)
-	int16 LastEvaluatedContextCounter;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
 	FPoseLink Pose;
 
 protected:
 	FCompactPose CachedPose;
 	FBlendedCurve CachedCurve;
+
+	FGraphTraversalCounter InitializationCounter;
+	FGraphTraversalCounter CachedBonesCounter;
+	FGraphTraversalCounter UpdateCounter;
+	FGraphTraversalCounter EvaluationCounter;
+	FGraphTraversalCounter DebugDataCounter;
+
 
 public:	
 	FAnimNode_SaveCachedPose();

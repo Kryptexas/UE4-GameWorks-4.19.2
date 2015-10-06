@@ -137,9 +137,6 @@ public:
 		return GameViewportWidget;
 	}
 
-	/** Loads engine startup modules that the game needs to run.  This will also be called when the editor starts up. */
-	static void LoadRuntimeEngineStartupModules();
-
 	/**
 	 * This is a global, parameterless function used by the online subsystem modules.
 	 * It should never be used in gamecode - instead use the appropriate world context function 

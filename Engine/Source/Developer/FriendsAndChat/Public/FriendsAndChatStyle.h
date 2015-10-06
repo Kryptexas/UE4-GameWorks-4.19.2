@@ -48,47 +48,42 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 
 	// Common Style
 
-	/** Window edging style */
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush WindowEdgingBrush;
-	FFriendsAndChatStyle& SetWindowEdgingBrush(const FSlateBrush& Value);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY(EditAnywhere, Category = Appearance) //TODO Antony.Carter Do we not need more of these per widget?
 	FMargin BorderPadding;
 	FFriendsAndChatStyle& SetBorderPadding(const FMargin& InBorderPadding);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	float ChatFooterMinDesiredHeight;
-	FFriendsAndChatStyle& SetChatFooterMinDesiredHeight(const float InChatFooterMinDesiredHeight);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FMargin ChatFooterPadding;
-	FFriendsAndChatStyle& SetChatFooterPadding(const FMargin& InChatFooterPadding);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
 	FScrollBarStyle ScrollBarStyle;
 	FFriendsAndChatStyle& SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FWindowStyle WindowStyle;
-	FFriendsAndChatStyle& SetWindowStyle(const FWindowStyle& InStyle);
 
 	/** SFriendActions Action Button style */
 	UPROPERTY( EditAnywhere, Category = Appearance )
 	FButtonStyle ActionButtonStyle;
 	FFriendsAndChatStyle& SetActionButtonStyle(const FButtonStyle& ButtonStyle);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsFontStyle FriendsSmallFontStyle;
+	FFriendsAndChatStyle& SetSmallFriendsFontStyle(const FFriendsFontStyle& FontStyle);
+
 	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsFontStyle FriendsNormalFontStyle;
 	FFriendsAndChatStyle& SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsFontStyle FriendsLargeFontStyle;
+	FFriendsAndChatStyle& SetLargeFriendsFontStyle(const FFriendsFontStyle& FontStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsFontStyle FriendActionFontStyle;
+	FFriendsAndChatStyle& SetFriendActionFontStyle(const FFriendsFontStyle& FontStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FFriendsComboStyle FriendsComboStyle;
+	FFriendsAndChatStyle& SetFriendsComboStyle(const FFriendsComboStyle& InFriendsListStyle);
+
 	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsListStyle FriendsListStyle;
 	FFriendsAndChatStyle& SetFriendsListStyle(const FFriendsListStyle& InFriendsListStyle);
-
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FFriendsComboStyle FriendsComboStyle;
-	FFriendsAndChatStyle& SetFriendsComboStyle(const FFriendsComboStyle& InFriendsListStyle);
 
 	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsChatStyle FriendsChatStyle;

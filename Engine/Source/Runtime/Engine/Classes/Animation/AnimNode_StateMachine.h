@@ -170,6 +170,8 @@ private:
 	// true if it is the first update.
 	bool bFirstUpdate;
 
+	TArray<FPoseContext*> StateCachedPoses;
+
 public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
@@ -220,10 +222,11 @@ protected:
 
 	// helper functions for calling update and evaluate on state nodes
 	void UpdateState(int32 StateIndex, const FAnimationUpdateContext& Context);
-	void EvaluateState(int32 StateIndex, FPoseContext& Output);
+	const FPoseContext& EvaluateState(int32 StateIndex, const FPoseContext& Context);
 
 	// transition type evaluation functions
 	void EvaluateTransitionStandardBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid);
+	void EvaluateTransitionStandardBlendInternal(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, const FPoseContext& PreviousStateResult, const FPoseContext& NextStateResult);
 	void EvaluateTransitionCustomBlend(FPoseContext& Output, FAnimationActiveTransitionEntry& Transition, bool bIntermediatePoseIsValid);
 
 public:

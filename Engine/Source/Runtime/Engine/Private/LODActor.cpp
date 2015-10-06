@@ -14,40 +14,52 @@
 
 #define LOCTEXT_NAMESPACE "LODActor"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static void ToggleHLODEnabled(UWorld* InWorld)
 {
-	FlushRenderingCommands();
-	
-	ULevel* CurrentLevel = InWorld->GetCurrentLevel();	
-	
-	bool bHLODEnabled = ( IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLODEnabled"))->GetInt() == 1 );
-	IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLODEnabled"))->Set((int32)!bHLODEnabled);
+	static bool bHLODEnabled = true;
 
-	for (AActor* Actor : CurrentLevel->Actors)
+	FlushRenderingCommands();
+
+	auto Levels = InWorld->GetLevels();
+
+	for (auto Level : Levels)
 	{
-		ALODActor* LODActor = Cast<ALODActor>(Actor);
-		if (LODActor)
+		for (AActor* Actor : Level->Actors)
 		{
-			LODActor->SetActorHiddenInGame(bHLODEnabled);
-#if WITH_EDITOR
-			LODActor->SetIsTemporarilyHiddenInEditor(bHLODEnabled);
-#endif // WITH_EDITOR
-			LODActor->MarkComponentsRenderStateDirty();			
+			ALODActor* LODActor = Cast<ALODActor>(Actor);
+			if (LODActor)
+			{
+				LODActor->SetActorHiddenInGame(bHLODEnabled);
+	#if WITH_EDITOR
+				LODActor->SetIsTemporarilyHiddenInEditor(bHLODEnabled);
+	#endif // WITH_EDITOR
+				LODActor->MarkComponentsRenderStateDirty();
+			}
 		}
 	}
+
+	bHLODEnabled = !bHLODEnabled;
 }
 
 static FAutoConsoleCommandWithWorld GToggleHLODEnabledCmd(
 	TEXT("ToggleHLODEnabled"),
 	TEXT("Toggles whether or not the HLOD system is enabled."),
-	FConsoleCommandWithWorldDelegate::CreateStatic(ToggleHLODEnabled)
+	FConsoleCommandWithWorldDelegate::CreateStatic(ToggleHLODEnabled),
+	ECVF_Cheat
 	);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, LODDrawDistance(5000)	
 {
 	bCanBeDamaged = false;
+
+	// Cast shadows if any sub-actors do
+	bool bCastsShadow = false;
+	bool bCastsStaticShadow = false;
+	bool bCastsDynamicShadow = false;
 
 #if WITH_EDITORONLY_DATA
 	
@@ -73,6 +85,10 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 					if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
 					{
 						NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+
+						bCastsShadow |= Component->CastShadow;
+						bCastsStaticShadow |= Component->bCastStaticShadow;
+						bCastsDynamicShadow |= Component->bCastDynamicShadow;
 					}
 
 					Component->MarkRenderStateDirty();
@@ -82,6 +98,13 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 			{
 				ALODActor* LODActor = Cast<ALODActor>(Actor);
 				NumTrianglesInSubActors += LODActor->GetNumTrianglesInSubActors();
+
+				if (UStaticMeshComponent* ActorMeshComponent = LODActor->StaticMeshComponent)
+				{
+					bCastsShadow |= ActorMeshComponent->CastShadow;
+					bCastsStaticShadow |= ActorMeshComponent->bCastStaticShadow;
+					bCastsDynamicShadow |= ActorMeshComponent->bCastDynamicShadow;
+				}
 			}
 		}
 	
@@ -99,9 +122,9 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	StaticMeshComponent->Mobility = EComponentMobility::Static;
 	StaticMeshComponent->bGenerateOverlapEvents = false;
-	StaticMeshComponent->bCastDynamicShadow = false;
-	StaticMeshComponent->bCastStaticShadow = false;
-	StaticMeshComponent->CastShadow = false;
+	StaticMeshComponent->CastShadow = bCastsShadow;
+	StaticMeshComponent->bCastStaticShadow = bCastsStaticShadow;
+	StaticMeshComponent->bCastDynamicShadow = bCastsDynamicShadow;
 
 	RootComponent = StaticMeshComponent;	
 }
@@ -240,6 +263,11 @@ void ALODActor::AddSubActor(AActor* InActor)
 	InActor->SetLODParent(StaticMeshComponent, LODDrawDistance);
 	SetIsDirty(true);
 
+	// Cast shadows if any sub-actors do
+	bool bCastsShadow = false;
+	bool bCastsStaticShadow = false;
+	bool bCastsDynamicShadow = false;
+
 	// Adding number of triangles
 	if (!InActor->IsA<ALODActor>())
 	{
@@ -250,6 +278,10 @@ void ALODActor::AddSubActor(AActor* InActor)
 			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
 			{
 				NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+
+				StaticMeshComponent->CastShadow |= Component->CastShadow;
+				StaticMeshComponent->bCastStaticShadow |= Component->bCastStaticShadow;
+				StaticMeshComponent->bCastDynamicShadow |= Component->bCastDynamicShadow;
 			}
 
 			Component->MarkRenderStateDirty();
@@ -259,6 +291,13 @@ void ALODActor::AddSubActor(AActor* InActor)
 	{
 		ALODActor* LODActor = Cast<ALODActor>(InActor);
 		NumTrianglesInSubActors += LODActor->GetNumTrianglesInSubActors();
+		
+		if (UStaticMeshComponent* ActorMeshComponent = LODActor->StaticMeshComponent)
+		{
+			StaticMeshComponent->CastShadow |= ActorMeshComponent->CastShadow;
+			StaticMeshComponent->bCastStaticShadow |= ActorMeshComponent->bCastStaticShadow;
+			StaticMeshComponent->bCastDynamicShadow |= ActorMeshComponent->bCastDynamicShadow;
+		}
 	}
 
 	StaticMeshComponent->MarkRenderStateDirty();

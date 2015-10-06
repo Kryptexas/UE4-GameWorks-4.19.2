@@ -68,7 +68,7 @@ namespace HLODOutliner
 		return FReply::Unhandled();
 	}
 
-	FReply HandleDrop(TWeakPtr<STableViewBase> Widget, const FDragDropEvent& DragDropEvent, IDropTarget& DropTarget, FDragValidationInfo& ValidationInfo, bool bApplyDrop = false)
+	FReply HandleDrop(TWeakPtr<STableViewBase> Widget, const FDragDropEvent& DragDropEvent, IDropTarget& DropTarget, FDragValidationInfo& ValidationInfo, SHLODWidgetItem* DroppedWidget, bool bApplyDrop = false)
 	{
 		FDragDropPayload DraggedObjects;
 		// Validate now to make sure we don't doing anything we shouldn't
@@ -87,6 +87,7 @@ namespace HLODOutliner
 
 		if (bApplyDrop)
 		{
+			DraggedObjects.OutlinerWorld = DroppedWidget->GetWorld();
 			DropTarget.OnDrop(DraggedObjects, ValidationInfo, Widget.Pin().ToSharedRef());
 		}
 
@@ -192,7 +193,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		if (TreeItem)
 		{
 			FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
-			return HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, true);
+			return HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, this, true);
 		}
 
 		return FReply::Unhandled();

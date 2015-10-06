@@ -119,5 +119,5 @@ void UNavRelevantComponent::SetNavigationRelevancy(bool bRelevant)
 
 void UNavRelevantComponent::RefreshNavigationModifiers()
 {
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }

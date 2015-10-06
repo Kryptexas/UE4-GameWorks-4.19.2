@@ -16,7 +16,23 @@ struct FFlattenMaterial
 		, MetallicSize(0, 0)
 		, RoughnessSize(0, 0)
 		, SpecularSize(0, 0)
+		, OpacitySize(0, 0)
+		, EmissiveSize(0, 0)
+		, BlendMode(BLEND_Opaque)
+		, EmissiveScale(1.0f)
+		, bTwoSided(false)
 	{}
+
+	void ReleaseData()
+	{
+		DiffuseSamples.Empty();
+		NormalSamples.Empty();
+		MetallicSamples.Empty();
+		RoughnessSamples.Empty();
+		SpecularSamples.Empty();
+		OpacitySamples.Empty();
+		EmissiveSamples.Empty();
+	}
 		
 	FGuid			MaterialId;
 		
@@ -25,16 +41,20 @@ struct FFlattenMaterial
 	FIntPoint		MetallicSize;	
 	FIntPoint		RoughnessSize;	
 	FIntPoint		SpecularSize;	
+	FIntPoint		OpacitySize;
+	FIntPoint		EmissiveSize;
 
-	FIntPoint		AOSize;
+	bool			bTwoSided;
+	EBlendMode		BlendMode;
+	float			EmissiveScale;
 			
 	TArray<FColor>	DiffuseSamples;
 	TArray<FColor>	NormalSamples;
 	TArray<FColor>	MetallicSamples;
 	TArray<FColor>	RoughnessSamples;
 	TArray<FColor>	SpecularSamples;
-	
-	TArray<FColor>	AOSamples;
+	TArray<FColor>	OpacitySamples;
+	TArray<FColor>	EmissiveSamples;
 };
 
 

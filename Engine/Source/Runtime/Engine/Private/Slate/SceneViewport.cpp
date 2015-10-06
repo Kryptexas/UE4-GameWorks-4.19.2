@@ -526,6 +526,13 @@ FReply FSceneViewport::OnMouseMove( const FGeometry& InGeometry, const FPointerE
 			MouseDelta.Y -= CursorDelta.Y;
 			++NumMouseSamplesY;
 		}
+
+		if ( bCursorHiddenDueToCapture )
+		{
+			// If hidden during capture, don't actually move the cursor
+			FVector2D RevertedCursorPos( MousePosBeforeHiddenDueToCapture.X, MousePosBeforeHiddenDueToCapture.Y );
+			FSlateApplication::Get().SetCursorPos(RevertedCursorPos);
+		}
 	}
 
 	return CurrentReplyState;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -351,6 +351,8 @@ namespace AutomationTool
             string AdditionalCookerOptions = null,
             string BasedOnReleaseVersion = null,
             string CreateReleaseVersion = null,
+			string CreateReleaseVersionBasePath = null,
+			string BasedOnReleaseVersionBasePath = null,
             bool? GeneratePatch = null,
             string DLCName = null,
             string DiffCookedContentPath = null,

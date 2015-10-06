@@ -92,9 +92,8 @@ void ULandscapeComponent::UpdateNavigationRelevance()
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (CollisionComponent && Proxy)
 	{
-		CollisionComponent->bCanEverAffectNavigation = Proxy->bUsedForNavigation;
-
-		UNavigationSystem::UpdateNavOctree(CollisionComponent.Get());
+		CollisionComponent->SetCanEverAffectNavigation(Proxy->bUsedForNavigation);
+		// UNavigationSystem::UpdateNavOctree(CollisionComponent.Get());
 	}
 }
 
@@ -776,7 +775,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 	{
 		// set relevancy for navigation system
 		ALandscapeProxy* LandscapeProxy = CollisionComp->GetLandscapeProxy();
-		CollisionComp->bCanEverAffectNavigation = LandscapeProxy ? LandscapeProxy->bUsedForNavigation : false;
+		CollisionComp->SetCanEverAffectNavigation(LandscapeProxy ? LandscapeProxy->bUsedForNavigation : false);
 	}
 
 	// Move any foliage instances if we created a new collision component.

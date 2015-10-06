@@ -1787,6 +1787,35 @@ bool FPImplRecastNavMesh::GetPolyNeighbors(NavNodeRef PolyID, TArray<NavNodeRef>
 	return false;
 }
 
+bool FPImplRecastNavMesh::GetPolyEdges(NavNodeRef PolyID, TArray<FNavigationPortalEdge>& Edges) const
+{
+	if (DetourNavMesh)
+	{
+		dtPolyRef PolyRef = (dtPolyRef)PolyID;
+		dtPoly const* Poly = 0;
+		dtMeshTile const* Tile = 0;
+
+		dtStatus Status = DetourNavMesh->getTileAndPolyByRef(PolyRef, &Tile, &Poly);
+		if (dtStatusSucceed(Status))
+		{
+			for (int32 Idx = 0; Idx < Poly->vertCount; Idx++)
+			{
+				FNavigationPortalEdge NeiData;
+				NeiData.Left = Recast2UnrealPoint(&Tile->verts[3 * Poly->verts[Idx]]);
+				NeiData.Right = Recast2UnrealPoint(&Tile->verts[3 * Poly->verts[(Idx + 1) % Poly->vertCount]]);
+
+				// not a ref, but can be converted into one later if needed, basic info (hard edge) is there
+				NeiData.ToRef = Poly->neis[Idx];
+				Edges.Add(NeiData);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FPImplRecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
 {
 	if (DetourNavMesh && PolyID)
@@ -1966,7 +1995,7 @@ bool FPImplRecastNavMesh::GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Poly
 	}
 
 	const dtMeshTile* Tile = ((const dtNavMesh*)DetourNavMesh)->getTile(TileIndex);
-	const int32 MaxPolys = Tile ? Tile->header->offMeshBase : 0;
+	const int32 MaxPolys = Tile && Tile->header ? Tile->header->offMeshBase : 0;
 	if (MaxPolys > 0)
 	{
 		// only ground type polys

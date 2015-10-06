@@ -128,7 +128,9 @@ public class APEX : ModuleRules
 			string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string RuntimeDependency in RuntimeDependenciesX64)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix)));
+				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
+				RuntimeDependencies.Add(new RuntimeDependency(FileName));
+				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb"));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
@@ -150,7 +152,9 @@ public class APEX : ModuleRules
 			string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string RuntimeDependency in RuntimeDependenciesX86)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix)));
+				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
+				RuntimeDependencies.Add(new RuntimeDependency(FileName));
+				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb"));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)

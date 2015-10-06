@@ -1897,6 +1897,15 @@ int32 GetNumRenderSubmeshes(NxClothingAsset *InAsset, int32 LODIndex)
 	return SubmeshCount;
 }
 
+static const char* ApexFiberGroupNames[] = 
+{
+	"verticalStiffnessScaling", 
+	"horizontalStiffnessScaling", 
+	"bendingStiffnessScaling", 
+	"shearingStiffnessScaling" 
+};
+
+
 void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& PropertyInfo)
 {
 	const NxParameterized::Interface* AssetParams = InAsset->getAssetNxParameterized();
@@ -1919,12 +1928,20 @@ void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsPr
 		char ParameterName[MAX_SPRINTF]; 
 
 		// stiffness properties
-		FCStringAnsi::Sprintf(ParameterName, "materials[%d].bendingStiffness", MaterialIndex); 
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStretchingStiffness", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.VerticalResistance));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].horizontalStretchingStiffness", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HorizontalResistance));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].bendingStiffness", MaterialIndex);
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.BendResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].shearingStiffness", MaterialIndex); 
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.ShearResistance));
-		FCStringAnsi::Sprintf(ParameterName, "materials[%d].hardStretchLimitation", MaterialIndex); 
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StretchLimit));
+		//FCStringAnsi::Sprintf(ParameterName, "materials[%d].hardStretchLimitation", MaterialIndex);
+		//verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HardStretchLimitation));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherStiffness", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherStiffness));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherLimit", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherLimit));
 
 		// resistance properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].friction", MaterialIndex); 
@@ -1933,16 +1950,49 @@ void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsPr
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Damping));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].drag", MaterialIndex); 
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Drag));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].stiffnessFrequency", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StiffnessFrequency));
 
 		// scale properties
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].massScale", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.MassScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].gravityScale", MaterialIndex);
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.GravityScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].inertiaScale", MaterialIndex);
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.InertiaBlend));
 
 		// self-collision properties
-		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfcollisionThickness", MaterialIndex); 
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfcollisionThickness", MaterialIndex);
 		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionThickness));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionStiffness", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionStiffness));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionSquashScale", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionSquashScale));
+
+		// computation or solver properties
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].solverFrequency", MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SolverFrequency));
+
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStiffnessScaling.compressionRange",  MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberCompression));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStiffnessScaling.stretchRange",  MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberExpansion));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStiffnessScaling.scale",  MaterialIndex);
+		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberResistance));
+		for (const char* FiberGroup : ApexFiberGroupNames)
+		{
+			// normal usage is for all sets to be the same.  set to -1 (disable gui) otherwise.  Advanced users can edit xml for now.
+			float FiberCompression, FiberExpansion, FiberResistance;
+			FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.compressionRange", MaterialIndex, FiberGroup);
+			verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberCompression));
+			FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.stretchRange", MaterialIndex, FiberGroup);
+			verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberExpansion));
+			FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.scale", MaterialIndex, FiberGroup);
+			verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberResistance));
+			if (PropertyInfo.FiberCompression != FiberCompression) { PropertyInfo.FiberCompression = -1.0f ;}
+			if (PropertyInfo.FiberExpansion   != FiberExpansion  ) { PropertyInfo.FiberExpansion   = -1.0f ;}
+			if (PropertyInfo.FiberResistance  != FiberResistance ) { PropertyInfo.FiberResistance  = -1.0f ;}
+		}
 
 	}
 }
@@ -1963,12 +2013,20 @@ void SetPhysicsPropertiesToApexAsset(NxClothingAsset *InAsset, FClothPhysicsProp
 		char ParameterName[MAX_SPRINTF];
 
 		// stiffness properties
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStretchingStiffness", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.VerticalResistance));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].horizontalStretchingStiffness", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HorizontalResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].bendingStiffness", MaterialIndex);
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.BendResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].shearingStiffness", MaterialIndex);
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.ShearResistance));
-		FCStringAnsi::Sprintf(ParameterName, "materials[%d].hardStretchLimitation", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StretchLimit));
+		//FCStringAnsi::Sprintf(ParameterName, "materials[%d].hardStretchLimitation", MaterialIndex);
+		//verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HardStretchLimitation));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherStiffness", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherStiffness));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherLimit", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherLimit));
 
 		// resistance properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].friction", MaterialIndex);
@@ -1977,16 +2035,42 @@ void SetPhysicsPropertiesToApexAsset(NxClothingAsset *InAsset, FClothPhysicsProp
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Damping));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].drag", MaterialIndex);
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Drag));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].stiffnessFrequency", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StiffnessFrequency));
 
 		// scale properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].gravityScale", MaterialIndex);
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.GravityScale));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].massScale", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.MassScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].inertiaScale", MaterialIndex);
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.InertiaBlend));
 
 		// self-collision properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfcollisionThickness", MaterialIndex);
 		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionThickness));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionStiffness", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionStiffness));
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionSquashScale", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionSquashScale));
+
+		// computation or solver properties
+		FCStringAnsi::Sprintf(ParameterName, "materials[%d].solverFrequency", MaterialIndex);
+		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SolverFrequency));
+
+		if (PropertyInfo.FiberCompression >= 0.0f && PropertyInfo.FiberExpansion >= 0.0f && PropertyInfo.FiberResistance >= 0.0f)
+		{
+			for (const char* FiberGroup : ApexFiberGroupNames)
+			{
+				FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.compressionRange", MaterialIndex, FiberGroup);
+				verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberCompression));
+				FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.stretchRange", MaterialIndex, FiberGroup);
+				verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberExpansion));
+				FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.scale", MaterialIndex, FiberGroup);
+				verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberResistance));
+			}
+		}
+
 	}
 }
 

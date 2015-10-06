@@ -590,9 +590,9 @@ float SAnimationRefPoseViewport::GetViewMinInput() const
 		{
 			return 0.0f;
 		}
-		else if (PreviewComponent->AnimScriptInstance != NULL)
+		else if (PreviewComponent->GetAnimInstance() != NULL)
 		{
-			return FMath::Max<float>((float)(PreviewComponent->AnimScriptInstance->LifeTimer - 30.0), 0.0f);
+			return FMath::Max<float>((float)(PreviewComponent->GetAnimInstance()->LifeTimer - 30.0), 0.0f);
 		}
 	}
 
@@ -607,9 +607,9 @@ float SAnimationRefPoseViewport::GetViewMaxInput() const
 		{
 			return PreviewComponent->PreviewInstance->GetLength();
 		}
-		else if (PreviewComponent->AnimScriptInstance != NULL)
+		else if (PreviewComponent->GetAnimInstance() != NULL)
 		{
-			return PreviewComponent->AnimScriptInstance->LifeTimer;
+			return PreviewComponent->GetAnimInstance()->LifeTimer;
 		}
 	}
 

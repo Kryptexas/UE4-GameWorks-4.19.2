@@ -8,6 +8,7 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
+#include "Math/Color.h"
 #include "InputCore.h"
 #include "EngineDefines.h"
 #include "EngineSettings.h"
@@ -74,5 +75,4 @@
 #include "Tasks/AITask.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAINavigation, Warning, All);
-DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogCrowdFollowing, Warning, All);

@@ -116,6 +116,9 @@ struct FAnimationEvaluationContext
 	// Are we evaluating this tick
 	bool bDoEvaluation;
 
+	// Are we updating the anim instance this tick
+	bool bDoUpdate;
+
 	// Are we storing data in cache bones this tick
 	bool bDuplicateToCacheBones;
 
@@ -141,6 +144,7 @@ struct FAnimationEvaluationContext
 		Curve.InitFrom(Other.Curve);
 		bDoInterpolation = Other.bDoInterpolation;
 		bDoEvaluation = Other.bDoEvaluation;
+		bDoUpdate = Other.bDoUpdate;
 		bDuplicateToCacheBones = Other.bDuplicateToCacheBones;
 		bDuplicateToCacheCurve = Other.bDuplicateToCacheCurve;
 	}
@@ -334,6 +338,9 @@ public:
 
 	/** Set during InitArticulated, to indicate if there are bodies in the async scene */
 	uint32 bHasBodiesInAsyncScene:1;
+
+	/** Indicates that this SkeletalMeshComponent has deferred kinematic bone updates until next physics sim.  */
+	uint32 bDeferredKinematicUpdate:1;
 
 	/** If we are running physics, should we update non-simulated bones based on the animation bone positions. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
@@ -749,7 +756,7 @@ public:
 	virtual void InitAnim(bool bForceReinit);
 
 	/** Tick Animation system */
-	void TickAnimation(float DeltaTime);
+	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);
 
 	/** Tick Clothing Animation , basically this is called inside TickComponent */
 	void TickClothing(float DeltaTime, FTickFunction& ThisTickFunction);
@@ -1066,8 +1073,11 @@ public:
 	/** 
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
+	 *	@param	Teleport		Whether movement is a 'teleport' (ie infers no physics velocity, but moves simulating bodies) or not
+	 *	@param	bNeedsSkinning	Whether we may need  to send new triangle data for per-poly skeletal mesh collision
+	 *	@perem	bNoDefer		Whether we can defer actual update of bodies (if 'physics only' collision)
 	 */
-	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning);
+	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, bool bNoDefer = false);
 
 	DEPRECATED(4.9, "bForceUpdate is no longer used. Please use Teleport")
 	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
@@ -1268,6 +1278,10 @@ private:
 
 	// Handles registering/unregistering the pre cloth tick as it is needed
 	void UpdatePreClothTickRegisteredState();
+
+	// Handles registering/unregistering the 'during animation' tick as it is needed
+	void UpdateDuringAnimationTickRegisteredState();
+
 	friend class FParallelBlendPhysicsTask;
 	
 	//wrapper for parallel blend physics

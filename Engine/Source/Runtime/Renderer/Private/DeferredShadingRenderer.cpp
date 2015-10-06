@@ -1844,44 +1844,52 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandLis
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	if (SceneContext.UseDownsizedOcclusionQueries() && (FeatureLevel >= ERHIFeatureLevel::SM4))
 	{
-		SetRenderTarget(RHICmdList, NULL, SceneContext.GetSmallDepthSurface());
-
-		SCOPED_DRAW_EVENT(RHICmdList, DownsampleDepth);
-
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
-			// Set shaders and texture
-			TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
-			TShaderMapRef<FDownsampleSceneDepthPS> PixelShader(View.ShaderMap);
-
-			extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
-
-			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DownsampleDepthBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
-
-			RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI());
-
-			PixelShader->SetParameters(RHICmdList, View);
-
-			const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X / SceneContext.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y / SceneContext.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() / SceneContext.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / SceneContext.GetSmallColorDepthDownsampleFactor());
-
-			RHICmdList.SetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
-
-			DrawRectangle(
-				RHICmdList,
-				0, 0,
-				DownsampledSizeX, DownsampledSizeY,
-				View.ViewRect.Min.X, View.ViewRect.Min.Y,
-				View.ViewRect.Width(), View.ViewRect.Height(),
-				FIntPoint(DownsampledSizeX, DownsampledSizeY),
-				SceneContext.GetBufferSizeXY(),
-				*ScreenVertexShader,
-				EDRF_UseTriangleOptimization);
+			DownsampleDepthSurface(RHICmdList, SceneContext.GetSmallDepthSurface(), View, 1.0f / SceneContext.GetSmallColorDepthDownsampleFactor());
 		}
 	}
+}
+
+
+
+/** Downsample the scene depth with a specified scale factor to a specified render target*/
+void FDeferredShadingSceneRenderer::DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	SetRenderTarget(RHICmdList, NULL, RenderTarget);
+	SCOPED_DRAW_EVENT(RHICmdList, DownsampleDepth);
+
+	// Set shaders and texture
+	TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+	TShaderMapRef<FDownsampleSceneDepthPS> PixelShader(View.ShaderMap);
+
+	extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DownsampleDepthBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+
+	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI());
+
+	PixelShader->SetParameters(RHICmdList, View);
+
+	const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X * ScaleFactor);
+	const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y * ScaleFactor);
+	const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() * ScaleFactor);
+	const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() * ScaleFactor);
+
+	RHICmdList.SetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
+
+	DrawRectangle(
+		RHICmdList,
+		0, 0,
+		DownsampledSizeX, DownsampledSizeY,
+		View.ViewRect.Min.X, View.ViewRect.Min.Y,
+		View.ViewRect.Width(), View.ViewRect.Height(),
+		FIntPoint(DownsampledSizeX, DownsampledSizeY),
+		SceneContext.GetBufferSizeXY(),
+		*ScreenVertexShader,
+		EDRF_UseTriangleOptimization);
 }

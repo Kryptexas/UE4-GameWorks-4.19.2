@@ -3,6 +3,7 @@
 #pragma once
 #include "TimerManager.h"
 #include "AI/RVOAvoidanceInterface.h"
+#include "NavEdgeProviderInterface.h"
 #include "AvoidanceManager.generated.h"
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Avoidance Time"),STAT_AI_ObstacleAvoidance,STATGROUP_AI, );
@@ -153,10 +154,12 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	void HandleToggleDebugAll( const TCHAR* Cmd, FOutputDevice& Ar );
 	void HandleToggleAvoidance( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif
-	
+
 	//~ Begin FExec Interface
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	//~ End FExec Interface
+
+	void SetNavEdgeProvider(INavEdgeProviderInterface* InEdgeProvider);
 
 private:
 
@@ -183,6 +186,10 @@ private:
 
 	/** Keeping this here to avoid constant allocation */
 	TArray<FVelocityAvoidanceCone> AllCones;
+
+	/** Provider of navigation edges to consider for avoidance */
+	TWeakObjectPtr<UObject> EdgeProviderOb;
+	INavEdgeProviderInterface* EdgeProviderInterface;
 
 	/** set when RemoveOutdatedObjects timer is already requested */
 	uint32 bRequestedUpdateTimer : 1;

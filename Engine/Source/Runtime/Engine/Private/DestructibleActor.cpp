@@ -46,7 +46,7 @@ void ADestructibleActor::PostLoad()
 	
 	if (DestructibleComponent)
 	{
-		DestructibleComponent->bCanEverAffectNavigation = bAffectNavigation;
+		DestructibleComponent->SetCanEverAffectNavigation(bAffectNavigation);
 	}
 }
 

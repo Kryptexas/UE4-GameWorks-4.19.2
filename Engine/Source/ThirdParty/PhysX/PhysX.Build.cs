@@ -174,7 +174,9 @@ public class PhysX : ModuleRules
 			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/{0}/Win64/VS{1}/", PhysXVersion, WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string DLL in RuntimeDependenciesX64)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
+				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
+				RuntimeDependencies.Add(new RuntimeDependency(FileName));
+				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb")));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
 		}
@@ -222,7 +224,9 @@ public class PhysX : ModuleRules
 			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/{0}/Win32/VS{1}/", PhysXVersion, WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string DLL in RuntimeDependenciesX86)
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
+				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
+				RuntimeDependencies.Add(new RuntimeDependency(FileName));
+				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb")));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
 		}

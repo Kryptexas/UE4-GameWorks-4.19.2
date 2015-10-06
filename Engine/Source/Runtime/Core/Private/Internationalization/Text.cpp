@@ -913,14 +913,14 @@ bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutTe
 	return FoundString.IsValid();
 }
 
-CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
+CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
 {
 	//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 	//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
 	//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
 
 	// Older FText's stored their "SourceString", that is now stored in a history class so move it there
-	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FTEXT_HISTORY)
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FTEXT_HISTORY)
 	{
 		FString SourceStringToImplantIntoHistory;
 		Ar << SourceStringToImplantIntoHistory;
@@ -928,7 +928,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 		FTextDisplayStringPtr DisplayString;
 
 		// Namespaces and keys are no longer stored in the FText, we need to read them in and discard
-		if( Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT )
+		if (Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT)
 		{
 			FString Namespace;
 			FString Key;
@@ -949,7 +949,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 	}
 
 #if WITH_EDITOR
-	if (Ar.IsCooking() && Ar.IsSaving() && Ar.IsPersistent() && (Ar.GetDebugSerializationFlags()&DSF_EnableCookerWarnings))
+	if (Ar.IsCooking() && Ar.IsSaving() && Ar.IsPersistent() && (Ar.GetDebugSerializationFlags() & DSF_EnableCookerWarnings))
 	{
 		if (!!(Value.Flags & ETextFlag::ConvertedProperty))
 		{
@@ -979,16 +979,16 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 		Value.Flags = OriginalFlags;
 	}
 
-	if( Ar.UE4Ver() >= VER_UE4_FTEXT_HISTORY )
+	if (Ar.UE4Ver() >= VER_UE4_FTEXT_HISTORY)
 	{
 		bool bSerializeHistory = true;
 
-		if(Ar.IsSaving())
+		if (Ar.IsSaving())
 		{
 			// Skip the history for empty texts
 			bSerializeHistory = !Value.IsEmpty();
 
-			if(!bSerializeHistory)
+			if (!bSerializeHistory)
 			{
 				int8 NoHistory = INDEX_NONE;
 				Ar << NoHistory;
@@ -1001,7 +1001,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 			Ar << HistoryType;
 
 			// Create the history class based on the serialized type
-			switch ((ETextHistoryType)HistoryType)
+			switch((ETextHistoryType)HistoryType)
 			{
 			case ETextHistoryType::Base:
 				{
@@ -1128,7 +1128,6 @@ FText FText::FromString( FString String )
 	{
 		NewText.Flags |= ETextFlag::CultureInvariant;
 	}
-	NewText.Flags |= ETextFlag::InitializedFromString;
 
 	return NewText;
 }

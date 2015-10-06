@@ -804,7 +804,7 @@ static void BuildShaderOutput(
 	// Build the SRT for this shader.
 	{
 		// Build the generic SRT for this shader.
-		FShaderResourceTable GenericSRT;
+		FShaderCompilerResourceTable GenericSRT;
 		BuildResourceTableMapping(ShaderInput.Environment.ResourceTableMap, ShaderInput.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, ShaderOutput.ParameterMap, GenericSRT);
 
 		// Copy over the bits indicating which resource tables are active.

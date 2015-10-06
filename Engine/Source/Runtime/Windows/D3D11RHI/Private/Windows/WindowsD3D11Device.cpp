@@ -377,7 +377,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 	// If the device we were using has been removed, release it and the resources we created for it.
 	if(bDeviceRemoved)
 	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("bDeviceRemoved"));
+		UE_LOG(LogD3D11RHI, Log, TEXT("Init due to bDeviceRemoved"));
 		check(Direct3DDevice);
 
 		HRESULT hRes = Direct3DDevice->GetDeviceRemovedReason();
@@ -405,7 +405,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 	// If we don't have a device yet, either because this is the first viewport, or the old device was removed, create a device.
 	if(!Direct3DDevice)
 	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("!Direct3DDevice"));
+		UE_LOG(LogD3D11RHI, Log, TEXT("Creating new Direct3DDevice"));
 		check(!GIsRHIInitialized);
 
 		// Clear shadowed shader resources.

@@ -22,10 +22,15 @@ void UUserInterfaceSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	// Allow the assets to be replaced in the editor, but make sure they're part of the root set in cooked games
+#if WITH_EDITOR
 	if ( HasAnyFlags(RF_ClassDefaultObject) == false )
 	{
 		ForceLoadResources();
 	}
+#else
+	ForceLoadResources();
+#endif
 }
 
 float UUserInterfaceSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const

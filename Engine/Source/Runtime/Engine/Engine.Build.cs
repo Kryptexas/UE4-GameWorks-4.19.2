@@ -30,6 +30,8 @@ public class Engine : ModuleRules
 				"HeadMountedDisplay",
 				"Advertising",
 				"NetworkReplayStreaming",
+				"AutomationWorker",
+                		"Analytics"
 				"MovieSceneCapture"
 			}
 		);

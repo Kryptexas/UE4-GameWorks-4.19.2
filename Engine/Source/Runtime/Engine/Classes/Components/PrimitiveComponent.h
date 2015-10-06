@@ -419,16 +419,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
-	/** Whether this component can potentially influence navigation */
-	UPROPERTY(EditAnywhere, Category=Collision, AdvancedDisplay)
-	uint32 bCanEverAffectNavigation:1;
-
-	/** Cached navigation relevancy flag for collision updates */
-	uint32 bNavigationRelevant : 1;
-
 protected:
-
-	virtual void UpdateNavigationData() override;
 
 	/** Returns true if all descendant components that we can possibly overlap with use relative location and rotation. */
 	virtual bool AreAllCollideableDescendantsRelative(bool bAllowCachedValue = true) const;
@@ -1796,21 +1787,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=Collision)
 	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
-
-	/** Can this component potentially influence navigation */
-	bool CanEverAffectNavigation() const
-	{
-		return bCanEverAffectNavigation;
-	}
-
-	/** set value of bCanEverAffectNavigation flag and update navigation octree if needed */
-	void SetCanEverAffectNavigation(bool bRelevant);
 	
-protected:
-	/** Makes sure navigation system has up to date information regarding component's navigation relevancy and if it can affect navigation at all */
-	void HandleCanEverAffectNavigationChange();
-
-public:
 	DEPRECATED(4.5, "UPrimitiveComponent::DisableNavigationRelevance() is deprecated, use SetCanEverAffectNavigation() instead.")
 	void DisableNavigationRelevance()
 	{

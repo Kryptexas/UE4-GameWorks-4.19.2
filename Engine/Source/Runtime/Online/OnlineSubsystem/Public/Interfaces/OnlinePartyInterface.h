@@ -63,6 +63,9 @@ public:
 		NewAttrValue = AttrValue;
 	}
 
+	void ToJson(FString& JsonString) const;
+	void FromJson(const FString& JsonString);
+
 	/**
 	 * Dump state about the party data for debugging
 	 */
@@ -126,6 +129,11 @@ public:
 	 * @return true if the join info cannot be used to request an invite
 	 */
 	virtual bool IsInvalidForInviteRequest() const = 0;
+
+	/**
+	 * @return the game-specific custom data that was sent along with this invite
+	 */
+	virtual const FOnlinePartyData& GetCustomPayload() const = 0;
 };
 
 /**
@@ -203,6 +211,7 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 {
 	FPartyConfiguration()
 		: Permissions(EPartyPermissions::Public)
+		, bPresenceParty(false)
 		, bShouldPublishToPresence(false)
 		, bCanNonLeaderPublishToPresence(false)
 		, bCanNonLeaderInviteToParty(false)
@@ -214,6 +223,8 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 
 	/** Permission for configuring party */
 	EPartyPermissions::Type Permissions;
+	/** is this party tied to presence */
+	bool bPresenceParty;
 	/** should publish info to presence */
 	bool bShouldPublishToPresence;
 	/** should publish info to presence */
@@ -239,8 +250,9 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 
 	FString DumpState() const
 	{
-		return FString::Printf(TEXT("Permissions: %s Publish: L(%d) NL(%d) NL Invite(%d) RemoveOnDisconnect: %d Accepting: %d Not Accepting Reason(%d) MaxMembers: %d Nickname: %s Description: %s Password: %s"),
+		return FString::Printf(TEXT("Permissions: %s PresenceEnabled: %d Publish: L(%d) NL(%d) NL Invite(%d) RemoveOnDisconnect: %d Accepting: %d Not Accepting Reason(%d) MaxMembers: %d Nickname: %s Description: %s Password: %s"),
 			ToString(Permissions),
+			bPresenceParty,
 			bShouldPublishToPresence,
 			bCanNonLeaderPublishToPresence,
 			bCanNonLeaderInviteToParty,
@@ -286,6 +298,11 @@ public:
 	{}
 
 	virtual TSharedPtr<const FUniqueNetId> GetLeaderId() const = 0;
+	
+	/**
+	 * Return a structure suitable for joining this party
+	 */
+	virtual const TSharedRef<IOnlinePartyJoinInfo> GetJoinInfo() const = 0;
 
 	/**
 	 * Calculate the possible joinability state of this party
@@ -734,11 +751,12 @@ public:
 	 * @param LocalUserId - user making the request
 	 * @param PartyId - id of an existing party
 	 * @param RecipientId - id of the user being invited
+	 * @param CustomPayload - game defined key value pairs
 	 * @param Delegate - called on completion
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, const FOnSendInvitationComplete& Delegate = FOnSendInvitationComplete()) = 0;
+	virtual bool SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, const FOnlinePartyData& CustomPayload = FOnlinePartyData(), const FOnSendInvitationComplete& Delegate = FOnSendInvitationComplete()) = 0;
 
 	/**
 	* Accept an invite to a party. NOTE this does not initiate a join.
@@ -845,25 +863,25 @@ public:
 	virtual TSharedPtr<FOnlinePartyInfo> GetPartyInfo(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const = 0;
 
 	/**
-	* Get a party member by id
-	*
-	* @param LocalUserId - user making the request
-	* @param PartyId     - id of an existing party
-	* @param MemberId    - id of member to find
-	*
-	* @return party member info or nullptr if not found
-	*/
+	 * Get a party member by id
+	 *
+	 * @param LocalUserId - user making the request
+	 * @param PartyId     - id of an existing party
+	 * @param MemberId    - id of member to find
+	 *
+	 * @return party member info or nullptr if not found
+	 */
 	virtual TSharedPtr<FOnlinePartyMember> GetPartyMember(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const = 0;
 
 	/**
-	* Get current cached data associated with a party
-	* FOnPartyDataReceived notification called whenever this data changes
-	*
-	* @param LocalUserId - user making the request
-	* @param PartyId     - id of an existing party
-	*
-	* @return party data or nullptr if not found
-	*/
+	 * Get current cached data associated with a party
+	 * FOnPartyDataReceived notification called whenever this data changes
+	 *
+	 * @param LocalUserId - user making the request
+	 * @param PartyId     - id of an existing party
+	 *
+	 * @return party data or nullptr if not found
+	 */
 	virtual TSharedPtr<FOnlinePartyData> GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const = 0;
 
 	/**
@@ -912,35 +930,35 @@ public:
 	virtual bool GetPartyMembers(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, TArray<TSharedRef<FOnlinePartyMember>>& OutPartyMembersArray) const = 0;
 
 	/**
-	* Get a list of parties the user has been invited to
-	*
-	* @param LocalUserId            - user making the request
-	* @param OutPendingInvitesArray - list of party info needed to join the party
-	*
-	* @return true if entries found
-	*/
+	 * Get a list of parties the user has been invited to
+	 *
+	 * @param LocalUserId            - user making the request
+	 * @param OutPendingInvitesArray - list of party info needed to join the party
+	 *
+	 * @return true if entries found
+	 */
 	virtual bool GetPendingInvites(const FUniqueNetId& LocalUserId, TArray<TSharedRef<IOnlinePartyInvite>>& OutPendingInvitesArray) const = 0;
 
 	/**
-	* Get list of users requesting to join the party
-	*
-	* @param LocalUserId           - user making the request
-	* @param PartyId               - id of an existing party
-	* @param OutPendingUserIdArray - list of pending party members
-	*
-	* @return true if entries found
-	*/
+	 * Get list of users requesting to join the party
+	 *
+	 * @param LocalUserId           - user making the request
+	 * @param PartyId               - id of an existing party
+	 * @param OutPendingUserIdArray - list of pending party members
+	 *
+	 * @return true if entries found
+	 */
 	virtual bool GetPendingJoinRequests(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, TArray<TSharedRef<IOnlinePartyPendingJoinRequestInfo>>& OutPendingJoinRequestArray) const = 0;
 
 	/**
-	* Get list of users invited to a party that have not yet responded
-	*
-	* @param LocalUserId                - user making the request
-	* @param PartyId                    - id of an existing party
-	* @param OutPendingInvitedUserArray - list of user that have pending invites
-	*
-	* @return true if entries found
-	*/
+	 * Get list of users invited to a party that have not yet responded
+	 *
+	 * @param LocalUserId                - user making the request
+	 * @param PartyId                    - id of an existing party
+	 * @param OutPendingInvitedUserArray - list of user that have pending invites
+	 *
+	 * @return true if entries found
+	 */
 	virtual bool GetPendingInvitedUsers(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, TArray<TSharedRef<const FUniqueNetId>>& OutPendingInvitedUserArray) const = 0;
 
 	/**
@@ -953,19 +971,19 @@ public:
 	virtual FString MakeTokenFromJoinInfo(const IOnlinePartyJoinInfo& JoinInfo) const = 0;
 
 	/**
-	* Creates a IOnlinePartyJoinInfo object from a command line token
-	*
-	* @param Token - the token string
-	*
-	* return the new IOnlinePartyJoinInfo object
-	*/
+	 * Creates a IOnlinePartyJoinInfo object from a command line token
+	 *
+	 * @param Token - the token string
+	 *
+	 * return the new IOnlinePartyJoinInfo object
+	 */
 	virtual TSharedRef<IOnlinePartyJoinInfo> MakeJoinInfoFromToken(const FString& Token) const = 0;
 
 	/**
-	* Checks to see if there is a pending command line invite and consumes it
-	*
-	* return the pending IOnlinePartyJoinInfo object
-	*/
+	 * Checks to see if there is a pending command line invite and consumes it
+	 *
+	 * return the pending IOnlinePartyJoinInfo object
+	 */
 	virtual TSharedPtr<IOnlinePartyJoinInfo> ConsumePendingCommandLineInvite() = 0;
 
 	/**
@@ -996,11 +1014,11 @@ public:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPartyJoined, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/);
 
 	/**
-	* Notification when player promotion is locked out.
-	*
-	* @param PartyId - id associated with the party
-	* @param bLockoutState - if promotion is currently locked out
-	*/
+	 * Notification when player promotion is locked out.
+	 *
+	 * @param PartyId - id associated with the party
+	 * @param bLockoutState - if promotion is currently locked out
+	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPartyPromotionLockoutChanged, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const bool /*bLockoutState*/);
 
 	/**
@@ -1020,21 +1038,21 @@ public:
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPartyDataReceived, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const TSharedRef<FOnlinePartyData>& /*PartyData*/);
 
 	/**
-	* Notification when a member changes in a party
-	* @param LocalUserId - id associated with this notification
-	* @param PartyId - id associated with the party
-	* @param MemberId - id of member that joined
-	* @param Reason - how the member changed
-	*/
+	 * Notification when a member changes in a party
+	 * @param LocalUserId - id associated with this notification
+	 * @param PartyId - id associated with the party
+	 * @param MemberId - id of member that joined
+	 * @param Reason - how the member changed
+	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnPartyMemberChanged, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*MemberId*/, const EMemberChangedReason /*Reason*/);
 
 	/**
-	* Notification when a member exits a party
-	* @param LocalUserId - id associated with this notification
-	* @param PartyId - id associated with the party
-	* @param MemberId - id of member that joined
-	* @param Reason - why the member was removed
-	*/
+	 * Notification when a member exits a party
+	 * @param LocalUserId - id associated with this notification
+	 * @param PartyId - id associated with the party
+	 * @param MemberId - id of member that joined
+	 * @param Reason - why the member was removed
+	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnPartyMemberExited, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*MemberId*/, const EMemberExitedReason /*Reason*/);
 
 	/**
@@ -1061,20 +1079,20 @@ public:
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnPartyInvitesChanged, const FUniqueNetId& /*LocalUserId*/);
 
 	/**
-	* Notification when a request for an invite has been received
-	* @param LocalUserId - id associated with this notification
-	* @param PartyId - id associated with the party
-	* @param SenderId - id of user that sent the invite
-	* @param RequestForId - id of user that sender is requesting the invite for - invalid if the sender is requesting the invite
-	*/
+	 * Notification when a request for an invite has been received
+	 * @param LocalUserId - id associated with this notification
+	 * @param PartyId - id associated with the party
+	 * @param SenderId - id of user that sent the invite
+	 * @param RequestForId - id of user that sender is requesting the invite for - invalid if the sender is requesting the invite
+	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnPartyInviteRequestReceived, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*SenderId*/, const FUniqueNetId& /*RequestForId*/);
 
 	/**
-	* Notification when a new invite is received
-	* @param LocalUserId - id associated with this notification
-	* @param SenderId - id of member that sent the invite
-	* @param PartyId - id associated with the party
-	*/
+	 * Notification when a new invite is received
+	 * @param LocalUserId - id associated with this notification
+	 * @param SenderId - id of member that sent the invite
+	 * @param PartyId - id associated with the party
+	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPartyInviteReceived, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*SenderId*/);
 
 	/**
@@ -1431,4 +1449,61 @@ inline const TCHAR* ToString(EKickMemberCompletionResult Value)
 	}
 	}
 	return TEXT("");
+}
+
+inline void FOnlinePartyData::ToJson(FString& JsonString) const
+{
+	JsonString.Empty();
+
+	// iterate over key/val attrs and convert each entry to a json string
+	TSharedRef<FJsonObject> JsonObject(new FJsonObject());
+	TArray<TSharedPtr<FJsonValue> > JsonProperties;
+	for (FOnlinePartyAttrs::TConstIterator It(KeyValAttrs); It; ++It)
+	{
+		const FString& PropertyName = It.Key();
+		const FVariantData& PropertyValue = It.Value();
+
+		TSharedRef<FJsonObject> PropertyJson = PropertyValue.ToJson();
+		PropertyJson->SetStringField(TEXT("Name"), *PropertyName);
+		JsonProperties.Add(MakeShareable(new FJsonValueObject(PropertyJson)));
+	}
+	JsonObject->SetArrayField(TEXT("Attrs"), JsonProperties);
+
+	auto JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&JsonString);
+	FJsonSerializer::Serialize(JsonObject, JsonWriter);
+	JsonWriter->Close();
+}
+
+inline void FOnlinePartyData::FromJson(const FString& JsonString)
+{
+	KeyValAttrs.Empty();
+
+	// json string to key/val attrs
+	TSharedPtr<FJsonObject> JsonObject;
+	TSharedRef<TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(JsonString);
+	if (FJsonSerializer::Deserialize(JsonReader, JsonObject) &&
+		JsonObject.IsValid())
+	{
+		if (JsonObject->HasTypedField<EJson::Array>(TEXT("Attrs")))
+		{
+			const TArray<TSharedPtr<FJsonValue> >& JsonProperties = JsonObject->GetArrayField(TEXT("Attrs"));
+			for (auto JsonPropertyValue : JsonProperties)
+			{
+				TSharedPtr<FJsonObject> JsonPropertyObject = JsonPropertyValue->AsObject();
+				if (JsonPropertyObject.IsValid())
+				{
+					FString PropertyName;
+					if (JsonPropertyObject->TryGetStringField(TEXT("Name"), PropertyName) &&
+						!PropertyName.IsEmpty())
+					{
+						FVariantData PropertyData;
+						if (PropertyData.FromJson(JsonPropertyObject.ToSharedRef()))
+						{
+							KeyValAttrs.Add(PropertyName, PropertyData);
+						}
+					}
+				}
+			}
+		}
+	}
 }

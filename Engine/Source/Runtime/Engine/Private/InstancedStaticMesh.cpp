@@ -1573,7 +1573,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	ReleasePerInstanceRenderData();
 	MarkRenderStateDirty();
 
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }
 
 int32 UInstancedStaticMeshComponent::GetInstanceCount() const
@@ -1635,7 +1635,7 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 void UInstancedStaticMeshComponent::PartialNavigationUpdate(int32 InstanceIdx)
 {
 	// Just update everything
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }
 
 bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
@@ -1769,7 +1769,7 @@ void UInstancedStaticMeshComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }
 #endif
 

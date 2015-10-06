@@ -9,6 +9,7 @@
 #include "Animation/BlendSpace1D.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimCompress.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorUtils"
 

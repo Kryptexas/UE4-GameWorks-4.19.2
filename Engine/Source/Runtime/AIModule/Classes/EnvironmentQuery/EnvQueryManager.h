@@ -168,7 +168,7 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	static TArray<TSubclassOf<UEnvQueryItemType> > RegisteredItemTypes;
 
 	static UEnvQueryManager* GetCurrent(UWorld* World);
-	static UEnvQueryManager* GetCurrent(UObject* WorldContextObject);
+	static UEnvQueryManager* GetCurrent(const UObject* WorldContextObject);
 	
 	UFUNCTION(BlueprintCallable, Category = "AI|EQS", meta = (WorldContext = "WorldContext", AdvancedDisplay = "WrapperClass"))
 	static UEnvQueryInstanceBlueprintWrapper* RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass);

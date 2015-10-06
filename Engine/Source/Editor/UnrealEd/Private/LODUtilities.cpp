@@ -85,7 +85,8 @@ void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const 
 		GWarn->BeginSlowTask(StatusUpdate, true);
 	}
 
-	if(MeshReduction->ReduceSkeletalMesh(SkeletalMesh, DesiredLOD, InSetting, true))
+	bool bRecalcLOD = ( !SkeletalMesh->LODInfo.IsValidIndex(DesiredLOD) );
+	if (MeshReduction->ReduceSkeletalMesh(SkeletalMesh, DesiredLOD, InSetting, bRecalcLOD))
 	{
 		check(SkeletalMesh->LODInfo.Num() >= 2);
 		SkeletalMesh->MarkPackageDirty();

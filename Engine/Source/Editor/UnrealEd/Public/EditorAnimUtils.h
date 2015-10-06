@@ -27,7 +27,7 @@ namespace EditorAnimUtils
 		FString Rename(const UObject* Asset) const;
 	};
 
-	class FAnimationRetargetContext
+	class UNREALED_API FAnimationRetargetContext
 	{
 	public:
 		FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces, const FNameDuplicationRule& NameRule=FNameDuplicationRule());
@@ -54,6 +54,8 @@ namespace EditorAnimUtils
 		/** Retarget the contained assets */
 		void RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton);
 	
+		void AddRemappedAsset(UAnimationAsset* OriginalAsset, UAnimationAsset* NewAsset);
+
 	private:
 		/** Lists of assets to retarget. Populated from FAssetData supplied to constructor */
 		TArray<UAnimSequence*>		AnimSequencesToRetarget;
@@ -64,6 +66,9 @@ namespace EditorAnimUtils
 		TMap<UAnimSequence*, UAnimSequence*>		DuplicatedSequences;
 		TMap<UAnimationAsset*, UAnimationAsset*>	DuplicatedComplexAssets;
 		TMap<UAnimBlueprint*, UAnimBlueprint*>		DuplicatedBlueprints;
+
+		TMap<UAnimSequence*, UAnimSequence*>		RemappedSequences;
+		TMap<UAnimationAsset*, UAnimationAsset*>	RemappedComplexAssets;
 
 		/** If we only chose one object to retarget store it here */
 		UObject* SingleTargetObject;
@@ -106,7 +111,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, const FNameDuplicationRule* NameRule);
+	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, const FNameDuplicationRule* NameRule);
 
 	// Populates the supplied TArrays with any animation assets that this blueprint refers too
 	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimSequences);

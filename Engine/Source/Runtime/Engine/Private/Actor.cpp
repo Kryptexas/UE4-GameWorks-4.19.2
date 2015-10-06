@@ -345,6 +345,12 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 			NewLocation = NewLocation - Offset;
 		}
 
+		if (NewLocation.ContainsNaN() || PrevLocation.ContainsNaN())
+		{
+			bTeleportSucceeded = false;
+			UE_LOG(LogActor, Log,  TEXT("Attempted to teleport to NaN"));
+		}
+
 		if ( bTeleportSucceeded )
 		{
 			// check whether this actor unacceptably encroaches on any other actors.
@@ -609,7 +615,7 @@ void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 		if (RootComponent != nullptr && RootComponent->IsRegistered())
 		{
 			UNavigationSystem::UpdateNavOctreeBounds(this);
-			UNavigationSystem::UpdateNavOctreeAll(this);
+			UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 		}
 	}
 }
@@ -1485,6 +1491,17 @@ void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 			const bool bAllowShrinking = false;
 			USceneComponent* SceneComp = CompsToCheck.Pop(bAllowShrinking);
 
+			//////////////////////////////////////////////////////////////////////////
+			// ORION ONLY - DO NOT INTEGRATE INTO MAIN!
+			// Tracking down https://jira.ol.epicgames.net/browse/OR-3997
+			if(!ensure(SceneComp->IsValidLowLevel()))
+			{
+				UE_LOG(LogSpawn, Error, TEXT("GetAttachedActors called for actor [%s], is accessing an invalid scene component" ), *GetFullName() );
+				continue;
+			}
+			// ORION ONLY
+			//////////////////////////////////////////////////////////////////////////
+
 			// Add it to the 'checked' set, should not already be there!
 			if (!CheckedComps.Contains(SceneComp))
 			{
@@ -1998,21 +2015,20 @@ FString AActor::GetHumanReadableName() const
 
 void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	Canvas->SetDrawColor(255,0,0);
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+	DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
 
 	FString T = GetHumanReadableName();
 	if( IsPendingKill() )
 	{
 		T = FString::Printf(TEXT("%s DELETED (IsPendingKill() == true)"), *T);
 	}
-	UFont* RenderFont = GEngine->GetSmallFont();
 	if( T != "" )
 	{
-		YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(T);
 	}
 
-	Canvas->SetDrawColor(255,255,255);
+	DisplayDebugManager.SetDrawColor(FColor(255, 255, 255));
 
 	if( DebugDisplay.IsDisplayOn(TEXT("net")) )
 	{
@@ -2025,18 +2041,15 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 			{
 				T = T + FString(TEXT(" Tear Off"));
 			}
-			YL = Canvas->DrawText(RenderFont, T, 4.0f, YPos);
-			YPos += YL;
+			DisplayDebugManager.DrawString(T);
 		}
 	}
 
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("Location: %s Rotation: %s"), *GetActorLocation().ToString(), *GetActorRotation().ToString()), 4.0f, YPos);
-	YPos += YL;
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("Location: %s Rotation: %s"), *GetActorLocation().ToCompactString(), *GetActorRotation().ToCompactString()));
 
 	if( DebugDisplay.IsDisplayOn(TEXT("physics")) )
 	{
-		YL = Canvas->DrawText(RenderFont,FString::Printf(TEXT("Velocity: %s Speed: %f Speed2D: %f"), *GetVelocity().ToString(), GetVelocity().Size(), GetVelocity().Size2D()), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Velocity: %s Speed: %f Speed2D: %f"), *GetVelocity().ToCompactString(), GetVelocity().Size(), GetVelocity().Size2D()));
 	}
 
 	if( DebugDisplay.IsDisplayOn(TEXT("collision")) )
@@ -2044,13 +2057,11 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 		Canvas->DrawColor.B = 0;
 		float MyRadius, MyHeight;
 		GetComponentsBoundingCylinder(MyRadius, MyHeight);
-		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("Collision Radius: %f Height: %f"), MyRadius, MyHeight), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Collision Radius: %f Height: %f"), MyRadius, MyHeight));
 
 		if ( RootComponent == NULL )
 		{
-			YL = Canvas->DrawText(RenderFont, FString(TEXT("No RootComponent")), 4.0f, YPos );
-			YPos += YL;
+			DisplayDebugManager.DrawString(FString(TEXT("No RootComponent")));
 		}
 
 		T = FString(TEXT("Overlapping "));
@@ -2075,12 +2086,10 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 		{
 			T = TEXT("Overlapping nothing");
 		}
-		YL = Canvas->DrawText(RenderFont,T, 4,YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(T);
 	}
-	YL = Canvas->DrawText( RenderFont,FString::Printf(TEXT(" Instigator: %s Owner: %s"), (Instigator ? *Instigator->GetName() : TEXT("None")),
-		(Owner ? *Owner->GetName() : TEXT("None"))), 4,YPos);
-	YPos += YL;
+	DisplayDebugManager.DrawString(FString::Printf(TEXT(" Instigator: %s Owner: %s"), 
+		(Instigator ? *Instigator->GetName() : TEXT("None")), (Owner ? *Owner->GetName() : TEXT("None"))));
 
 	static FName NAME_Animation(TEXT("Animation"));
 	static FName NAME_Bones = FName(TEXT("Bones"));
@@ -2923,6 +2932,13 @@ bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep, FHitResul
 
 bool AActor::SetActorRotation(FRotator NewRotation)
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRotation.ContainsNaN())
+	{
+		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorRotation found NaN in FRotator NewRotation"));
+		NewRotation = FRotator::ZeroRotator;
+	}
+#endif
 	if (RootComponent)
 	{
 		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true);
@@ -2933,6 +2949,12 @@ bool AActor::SetActorRotation(FRotator NewRotation)
 
 bool AActor::SetActorRotation(const FQuat& NewRotation)
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRotation.ContainsNaN())
+	{
+		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorRotation found NaN in FQuat NewRotation"));
+	}
+#endif
 	if (RootComponent)
 	{
 		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true);
@@ -2943,6 +2965,13 @@ bool AActor::SetActorRotation(const FQuat& NewRotation)
 
 bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRotation.ContainsNaN())
+	{
+		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorLocationAndRotation found NaN in FRotator NewRotation"));
+		NewRotation = FRotator::ZeroRotator;
+	}
+#endif
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
@@ -2958,6 +2987,12 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotati
 
 bool AActor::SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRotation.ContainsNaN())
+	{
+		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorLocationAndRotation found NaN in FQuat NewRotation"));
+	}
+#endif
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
@@ -3323,7 +3358,7 @@ ENetMode AActor::GetNetMode() const
 		return World->DemoNetDriver->GetNetMode();
 	}
 
-	return NM_Standalone;
+	return (IsRunningDedicatedServer() ? NM_DedicatedServer : NM_Standalone);
 }
 
 UNetDriver* AActor::GetNetDriver() const

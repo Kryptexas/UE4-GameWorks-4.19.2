@@ -1211,6 +1211,8 @@ void APlayerController::CleanupPlayerState()
 
 void APlayerController::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection)
 {
+	SetAsLocalPlayerController();
+
 	// Attempt to match the player controller to a local viewport (client side)
 	InBunch << NetPlayerIndex;
 	if (Connection->Driver != NULL && Connection == Connection->Driver->ServerConnection)
@@ -2776,24 +2778,21 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	Canvas->SetDrawColor(255,255,0);
-	UFont* RenderFont = GEngine->GetSmallFont();
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()), 4.0f, YPos );
-	YPos += YL;
+	FDisplayDebugManager DisplayDebugManager = Canvas->DisplayDebugManager;
+	DisplayDebugManager.SetDrawColor(FColor(255, 255, 0));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()));
 
 	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
 		if (PlayerCameraManager != NULL)
 		{
-			YL = Canvas->DrawText(RenderFont, "<<<< CAMERA >>>>", 4.0f, YPos );
-			YPos += YL;
-			PlayerCameraManager->DisplayDebug( Canvas, DebugDisplay, YL, YPos );
+			DisplayDebugManager.DrawString(FString(TEXT("<<<< CAMERA >>>>")));
+			PlayerCameraManager->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
 		else
 		{
-			Canvas->SetDrawColor(255,0,0);
-			YL = Canvas->DrawText(RenderFont, "<<<< NO CAMERA >>>>", 4.0f, YPos );
-			YPos += YL;
+			DisplayDebugManager.SetDrawColor(FColor::Red);
+			DisplayDebugManager.DrawString(FString(TEXT("<<<< NO CAMERA >>>>")));
 		}
 	}
 	if ( DebugDisplay.IsDisplayOn(NAME_Input) )
@@ -2801,23 +2800,21 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		TArray<UInputComponent*> InputStack;
 		BuildInputStack(InputStack);
 
-		Canvas->SetDrawColor(255,255,255);
-		YL = Canvas->DrawText(RenderFont, TEXT("<<<< INPUT STACK >>>"), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.SetDrawColor(FColor::White);
+		DisplayDebugManager.DrawString(FString(TEXT("<<<< INPUT STACK >>>")));
 
 		for(int32 i=InputStack.Num() - 1; i >= 0; --i)
 		{
 			AActor* Owner = InputStack[i]->GetOwner();
-			Canvas->SetDrawColor(255,255,255);
+			DisplayDebugManager.SetDrawColor(FColor::White);
 			if (Owner)
 			{
-				YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT(" %s.%s"), *Owner->GetName(), *InputStack[i]->GetName()), 4.0f, YPos);
+				DisplayDebugManager.DrawString(FString::Printf(TEXT(" %s.%s"), *Owner->GetName(), *InputStack[i]->GetName()));
 			}
 			else
 			{
-				YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT(" %s"), *InputStack[i]->GetName()), 4.0f, YPos);
+				DisplayDebugManager.DrawString(FString::Printf(TEXT(" %s"), *InputStack[i]->GetName()));
 			}
-			YPos += YL;
 		}
 
 		if (PlayerInput)
@@ -2826,16 +2823,14 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		}
 		else
 		{
-			Canvas->SetDrawColor(255,0,0);
-			YL = Canvas->DrawText(RenderFont, "NO INPUT", 4.0f, YPos);
-			YPos += YL;
+			DisplayDebugManager.SetDrawColor(FColor::Red);
+			DisplayDebugManager.DrawString(FString(TEXT("NO INPUT")));
 		}
 	}
 	if ( DebugDisplay.IsDisplayOn("ForceFeedback"))
 	{
-		Canvas->SetDrawColor(255, 255, 255);
-		YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.SetDrawColor(FColor::White);
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
 	}
 }
 

@@ -331,6 +331,8 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
 		static const FName NAME_DateTime(TEXT("DateTime"));
+		static const FName NAME_Color(TEXT("Color"));
+		static const FName NAME_LinearColor(TEXT("LinearColor"));
 		if (JsonValue->Type == EJson::Object)
 		{
 			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
@@ -340,6 +342,23 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - FJsonObjectConverter::JsonObjectToUStruct failed for property %s"), *Property->GetNameCPP());
 				return false;
 			}
+		}
+		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_LinearColor)
+		{
+			FLinearColor& ColorOut = *(FLinearColor*)OutValue;
+			FString ColorString = JsonValue->AsString();
+
+			FColor IntermediateColor;
+			IntermediateColor = FColor::FromHex(ColorString);
+
+			ColorOut = IntermediateColor;
+		}
+		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_Color)
+		{
+			FColor& ColorOut = *(FColor*)OutValue;
+			FString ColorString = JsonValue->AsString();
+
+			ColorOut = FColor::FromHex(ColorString);
 		}
 		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_DateTime)
 		{

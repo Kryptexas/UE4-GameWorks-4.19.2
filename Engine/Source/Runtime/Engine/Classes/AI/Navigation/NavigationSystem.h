@@ -32,6 +32,7 @@ class ANavMeshBoundsVolume;
 class FNavDataGenerator;
 class AWorldSettings;
 struct FNavigationRelevantData;
+class UNavigationSystem;
 #if WITH_EDITOR
 class FEdMode;
 #endif // WITH_EDITOR
@@ -43,6 +44,8 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const UClass* /*AreaClass
 
 /** Delegate to let interested parties know that Nav Data has been registered */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataGenerigEvent, ANavigationData*, NavData);
+
+DECLARE_MULTICAST_DELEGATE(FOnNavigationInitDone);
 
 namespace NavigationDebugDrawing
 {
@@ -239,6 +242,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Transient, meta = (displayname = OnNavigationGenerationFinished))
 	FOnNavDataGenerigEvent OnNavigationGenerationFinishedDelegate;
+
+	FOnNavigationInitDone OnNavigationInitDone;
 	
 private:
 	TWeakObjectPtr<UCrowdManager> CrowdManager;
@@ -588,10 +593,10 @@ public:
 	static void OnActorUnregistered(AActor* Actor);
 
 	/** update navoctree entry for specified actor/component */
-	static void UpdateNavOctree(AActor* Actor);
-	static void UpdateNavOctree(UActorComponent* Comp);
+	static void UpdateActorInNavOctree(AActor& Actor);
+	static void UpdateComponentInNavOctree(UActorComponent& Comp);
 	/** update all navoctree entries for actor and its components */
-	static void UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors = true);
+	static void UpdateNavOctreeAll(AActor& Actor, bool bUpdateAttachedActors = true);
 	/** update all navoctree entries for actor and its non scene components after root movement */
 	static void UpdateNavOctreeAfterMove(USceneComponent* Comp);
 
@@ -776,7 +781,11 @@ public:
 
 	static FORCEINLINE bool ShouldUpdateNavOctreeOnComponentChange()
 	{
-		return bUpdateNavOctreeOnComponentChange;
+		return bUpdateNavOctreeOnComponentChange
+#if WITH_EDITOR
+			|| (GIsEditor && !GIsPlayInEditorWorld)
+#endif
+			;
 	}
 
 	/** 
@@ -907,6 +916,12 @@ protected:
 	DEPRECATED(4.8, "EnableAllGenerators is deprecated. Use AddNavigationBuildLock / RemoveNavigationBuildLock instead.")
 	void EnableAllGenerators(bool bEnable, bool bForce = false) {}
 
+	virtual void SpawnMissingNavigationData();
+
+	/** constructs a navigation data instance of specified NavDataClass, in passed World
+	*	for supplied NavConfig */
+	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
+
 private:
 	DEPRECATED(4.8, "NavigationBuildingLock is deprecated. Use AddNavigationBuildLock instead.")
 	void NavigationBuildingLock() { return AddNavigationBuildLock(ENavigationBuildLock::NoUpdateInEditor); }
@@ -916,12 +931,6 @@ private:
 
 	// adds navigation bounds update request to a pending list
 	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
-
-	void SpawnMissingNavigationData();
-
-	/** constructs a navigation data instance of specified NavDataClass, in passed World
-	 *	for supplied NavConfig */
-	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
 
 	/** Triggers navigation building on all eligible navigation data. */
 	void RebuildAll();
@@ -974,5 +983,12 @@ public:
 	DEPRECATED(4.8, "GetRandomPoint is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableRadius")
 	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext", DeprecatedFunction, DeprecatedMessage = "GetRandomPoint is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace"))
 	static FVector GetRandomPoint(UObject* WorldContext, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+
+	DEPRECATED(4.11, "UpdateNavOctree is deprecated. Use UpdateActorInNavOctree")
+	static void UpdateNavOctree(AActor* Actor);
+	DEPRECATED(4.11, "UpdateNavOctree is deprecated. Use UpdateComponentInNavOctree")
+	static void UpdateNavOctree(UActorComponent* Comp);
+	DEPRECATED(4.11, "UpdateNavOctreeAll is deprecated. Use UpdateComponentInNavOctree")
+	static void UpdateNavOctreeAll(AActor* Actor);
 };
 

@@ -31,7 +31,7 @@ ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	BrushComponent = CreateDefaultSubobject<UBrushComponent>(TEXT("BrushComponent0"));
 	BrushComponent->Mobility = EComponentMobility::Static;
 	BrushComponent->bGenerateOverlapEvents = false;
-	BrushComponent->bCanEverAffectNavigation = false;
+	BrushComponent->SetCanEverAffectNavigation(false);
 
 	RootComponent = BrushComponent;
 	

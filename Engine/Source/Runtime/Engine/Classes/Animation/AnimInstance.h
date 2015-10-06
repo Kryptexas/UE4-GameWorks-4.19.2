@@ -23,6 +23,7 @@ class UWorld;
 struct FTransform;
 class FDebugDisplayInfo;
 struct FAnimNode_AssetPlayerBase;
+struct FAnimNode_Base;
 
 DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
@@ -265,11 +266,19 @@ struct FNativeTransitionBinding
 	/** Delegate to use when checking transition */
 	FCanTakeTransition NativeTransitionDelegate;
 
-	FNativeTransitionBinding(const FName& InMachineName, const FName& InPreviousStateName, const FName& InNextStateName, const FCanTakeTransition& InNativeTransitionDelegate)
+#if WITH_EDITORONLY_DATA
+	/** Name of this transition rule */
+	FName TransitionName;
+#endif
+
+	FNativeTransitionBinding(const FName& InMachineName, const FName& InPreviousStateName, const FName& InNextStateName, const FCanTakeTransition& InNativeTransitionDelegate, const FName& InTransitionName = NAME_None)
 		: MachineName(InMachineName)
 		, PreviousStateName(InPreviousStateName)
 		, NextStateName(InNextStateName)
 		, NativeTransitionDelegate(InNativeTransitionDelegate)
+#if WITH_EDITORONLY_DATA
+		, TransitionName(InTransitionName)
+#endif
 	{
 	}
 };
@@ -311,7 +320,12 @@ struct FMontageActiveSlotTracker
 
 struct FMontageEvaluationState
 {
-	FMontageEvaluationState(UAnimMontage* InMontage, float InWeight, float InPosition) : Montage(InMontage), MontageWeight(InWeight), MontagePosition(InPosition) {}
+	FMontageEvaluationState(UAnimMontage* InMontage, float InWeight, float InDesiredWeight, float InPosition) 
+		: Montage(InMontage)
+		, MontageWeight(InWeight)
+		, DesiredWeight(InDesiredWeight)
+		, MontagePosition(InPosition) 
+	{}
 
 	// The montage to evaluate
 	UAnimMontage* Montage;
@@ -319,8 +333,63 @@ struct FMontageEvaluationState
 	// The weight to use for this montage
 	float MontageWeight;
 
+	// The desired weight of this montage
+	float DesiredWeight;
+
 	// The position to evaluate this montage at
 	float MontagePosition;
+};
+
+struct FGraphTraversalCounter
+{
+private:
+	int16 InternalCounter;
+
+public:
+	FGraphTraversalCounter()
+		: InternalCounter(INDEX_NONE)
+	{}
+
+	int16 Get() const
+	{
+		return InternalCounter;
+	}
+
+	void Increment()
+	{
+		InternalCounter++;
+
+		// Avoid wrapping over back to INDEX_NONE, as this means 'never been traversed'
+		if (InternalCounter == INDEX_NONE)
+		{
+			InternalCounter++;
+		}
+	}
+
+	void SynchronizeWith(const FGraphTraversalCounter& InMasterCounter)
+	{
+		InternalCounter = InMasterCounter.Get();
+	}
+
+	bool IsSynchronizedWith(const FGraphTraversalCounter& InMasterCounter) const
+	{
+		return ((InternalCounter != INDEX_NONE) && (InternalCounter == InMasterCounter.Get()));
+	}
+
+	bool WasSynchronizedInTheLastFrame(const FGraphTraversalCounter& InMasterCounter) const
+	{
+		// Test if we're currently in sync with our master counter
+		if (IsSynchronizedWith(InMasterCounter))
+		{
+			return true;
+		}
+
+		// If not, test if the Master Counter is a frame ahead of us
+		FGraphTraversalCounter TestCounter(*this);
+		TestCounter.Increment();
+
+		return TestCounter.IsSynchronizedWith(InMasterCounter);
+	}
 };
 
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
@@ -350,25 +419,38 @@ class ENGINE_API UAnimInstance : public UObject
 	UPROPERTY(Category = RootMotion, EditDefaultsOnly)
 	TEnumAsByte<ERootMotionMode::Type> RootMotionMode;
 
+	// Allows this anim instance to update its native update, blend tree, montages and asset players on
+	// a worker thread. this requires certain conditions to be met:
+	// - All access of variables in the blend tree should be a direct access of a member variable
+	// - No BlueprintUpdateAnimation event should be used (i.e. the event graph should be empty). Only native update is permitted.
+	UPROPERTY(Category = Optimization, EditDefaultsOnly)
+	bool bRunUpdatesInWorkerThreads;
+
+	/** 
+	 * Whether we can use parallel updates for our animations.
+	 * Conditions affecting this include:
+	 * - Use of BlueprintUpdateAnimation
+	 * - Use of non 'fast-path' EvaluateGraphExposedInputs in the node graph
+	 */
+	UPROPERTY()
+	bool bCanUseParallelUpdateAnimation;
+
+	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
+	bool bNeedsUpdate;
+
 public:
 
 	// @todo document
-	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
-	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
+	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
+	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
 
-	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
+	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
 
 	// @todo document
-	void BlendSpaceAdvanceImmediate(UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
+	void BlendSpaceAdvanceImmediate(UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
 
 	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
 	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
-
-	// Populate a tick record with previous frames data
-	void InitTickRecord(const TArray<FAnimTickRecord>& TickRecords, FAnimTickRecord &NewTickRecord) const;
-	
-	// Populate a tick record with previous frames data
-	void InitTickRecordFromLastFrame(int32 GroupIndex, FAnimTickRecord& NewTickRecord) const;
 
 	/**
 	 * Get Slot Node Weight : this returns new Slot Node Weight, Source Weight, Original TotalNodeWeight
@@ -404,6 +486,13 @@ public:
 
 	// Are we being evaluated on a worker thread
 	bool IsRunningParallelEvaluation() const;
+
+	// Can does this anim instance need an update (parallel or not)?
+	bool NeedsUpdate() const;
+
+private:
+	// Does this anim instance need immediate update (rather than parallel)?
+	bool NeedsImmediateUpdate(float DeltaSeconds) const;
 
 public:
 	/** Returns the owning actor of this AnimInstance */
@@ -699,18 +788,47 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
 	float GetRelevantAnimTimeFraction(int32 MachineIndex, int32 StateIndex);
 
+	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
+	FAnimNode_Base* GetNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
+
+	/** Gets a checked node given an index into the node property array */
+	FAnimNode_Base* GetCheckedNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
+
+	/** Gets a checked node given an index into the node property array */
+	template<class NodeType>
+	NodeType* GetCheckedNodeFromIndex(int32 NodeIdx)
+	{
+		return (NodeType*)GetNodeFromIndexUntypedChecked(NodeIdx, NodeType::StaticStruct());
+	}
+
+	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
+	template<class NodeType>
+	NodeType* GetNodeFromIndex(int32 NodeIdx)
+	{
+		return (NodeType*)GetNodeFromIndexUntyped(NodeIdx, NodeType::StaticStruct());
+	}
+
+	/** 
+	 * Get the index of the specified instance asset player. Useful to pass to GetInstanceAssetPlayerLength (etc.).
+	 * Passing NAME_None to InstanceName will return the first (assumed only) player instance index found.
+	 */
+	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
+
+public:
+
+	/** Gets the runtime instance of the specified state machine by Name */
+	FAnimNode_StateMachine* GetStateMachineInstanceFromName(FName MachineName);
+
+	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
+	const FBakedAnimationStateMachine* GetMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+
 protected:
 
 	/** Gets the runtime instance of the specified state machine */
 	FAnimNode_StateMachine* GetStateMachineInstance(int32 MachineIndex);
 
-	/** Gets a checked node given an index into the node property array */
-	template<class NodeType>
-	NodeType* GetCheckedNodeFromIndex(int32 NodeIdx);
-
-	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
-	template<class NodeType>
-	NodeType* GetNodeFromIndex(int32 NodeIdx);
+	/** Gets the runtime instance desc of the state machine specified by name */
+	const FBakedAnimationStateMachine* GetStateMachineInstanceDesc(FName MachineName);
 
 	/** 
 	 * Get the index of the specified instance asset player. Useful to pass to GetInstanceAssetPlayerLength (etc.).
@@ -800,11 +918,17 @@ public:
 	void UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic);
 	//--- AI communication end ---//
 
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
 	bool GetTimeToClosestMarker(FName SyncGroup, FName MarkerName, float& OutMarkerTime) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
 	bool HasMarkerBeenHitThisFrame(FName SyncGroup, FName MarkerName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
+	bool IsSyncGroupBetweenMarkers(FName InSyncGroupName, FName PreviousMarker, FName NextMarker, bool bRespectMarkerOrder = true) const;
+
+	UFUNCTION(BlueprintCallable, Category = "SyncGroup")
+	FMarkerSyncAnimPosition GetSyncGroupPosition(FName InSyncGroupName) const;
 
 public:
 	// Root node of animation graph
@@ -818,12 +942,19 @@ public:
 
 	// Animation phase trigger
 	// start with initialize
-	// update happens in every tick
+	// update happens in every tick. Can happen in parallel with others if conditions are right.
 	// evaluate happens when condition is met - i.e. depending on your skeletalmeshcomponent update flag
 	// post eval happens after evaluation is done
 	// uninitialize happens when owner is unregistered
 	void InitializeAnimation();
-	void UpdateAnimation(float DeltaSeconds);
+	void UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion);
+
+	/** Run update animation work on a worker thread */
+	void ParallelUpdateAnimation();
+
+	/** Called after updates are completed, dispatches notifies etc. */
+	void PostUpdateAnimation();
+
 	void EvaluateAnimation(struct FPoseContext& Output);
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
@@ -831,8 +962,12 @@ public:
 	// the below functions are the native overrides for each phase
 	// Native initialization override point
 	virtual void NativeInitializeAnimation();
-	// Native update override point
+	// Native update override point. It is usually a good idea to simply gather data in this step and 
+	// for the bulk of the work to be done in NativeUpdateAnimation.
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
+	// Native update override point. Can be called from a worker thread. This is a good place to do any
+	// heavy lifting (as opposed to NativeUpdateAnimation_GameThread()).
+	virtual void NativeUpdateAnimation_WorkerThread(float DeltaSeconds);
 	// Native evaluate override point.
 	// @return true if this function is implemented, false otherwise.
 	// Note: the node graph will not be evaluated if this function returns true
@@ -844,7 +979,7 @@ public:
 
 	// Sets up a native transition delegate between states with PrevStateName and NextStateName, in the state machine with name MachineName.
 	// Note that a transition already has to exist for this to succeed
-	void AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate);
+	void AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate, const FName& TransitionName = NAME_None);
 
 	// Check for whether a native rule is bound to the specified transition
 	bool HasNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, FName& OutBindingName);
@@ -877,6 +1012,9 @@ public:
 	UPROPERTY(transient)
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
+	// Some nodes need access to time dilation (stored in world settings) so we store it off and access it here
+	float CurrentTimeDilation;
+
 protected:
 	int32 GetSyncGroupReadIndex() const { return 1 - SyncGroupWriteIndex; }
 	int32 GetSyncGroupWriteIndex() const { return SyncGroupWriteIndex; }
@@ -893,6 +1031,9 @@ private:
 
 	//This frames marker sync data
 	FMarkerTickContext MarkerTickContext;
+
+	// The last time delta passed into UpdateAnimation()
+	float CurrentDeltaSeconds;
 
 public: 
 	/** Update all internal curves from Blended Curve */
@@ -912,22 +1053,14 @@ public:
 #endif
 
 public:
-	int16 GetSlotNodeInitializationCounter() const { return SlotNodeInitializationCounter; }
-	int16 GetGraphTraversalCounter() const { return GraphTraversalCounter; }
-
-	/** Increment traversal counter every time the graph is about to be traversed, to ensure every node is only touched once. */
-	void IncrementGraphTraversalCounter();
+	FGraphTraversalCounter InitializationCounter;
+	FGraphTraversalCounter CachedBonesCounter;
+	FGraphTraversalCounter UpdateCounter;
+	FGraphTraversalCounter EvaluationCounter;
+	FGraphTraversalCounter DebugDataCounter;
+	FGraphTraversalCounter SlotNodeInitializationCounter;
 
 private:
-	/** Counter so we register Slot nodes just once per Initialization pass 
-	 * State can trigger initialization later, and we don't want to register these nodes multiple times. */
-	UPROPERTY(Transient)
-	int16 SlotNodeInitializationCounter;
-
-	/** Counter incremented every time the graph is about to be traversed, to ensure every node is only touched once. */
-	UPROPERTY(Transient)
-	int16 GraphTraversalCounter;
-
 	TMap<FName, FMontageActiveSlotTracker> SlotWeightTracker;
 
 public:
@@ -1015,5 +1148,13 @@ protected:
 
 	// Updates the montage data used for evaluation based on the current playing montages
 	void UpdateMontageEvaluationData();
-};
 
+	/** Called to setup for updates */
+	void PreUpdateAnimation(float DeltaSeconds);
+
+	/** Actually does the update work, can be called from a worker thread  */
+	void UpdateAnimationInternal(float DeltaSeconds);
+
+	/** Tick all active asset player instances */
+	virtual void TickAssetPlayerInstances(float DeltaSeconds);
+};

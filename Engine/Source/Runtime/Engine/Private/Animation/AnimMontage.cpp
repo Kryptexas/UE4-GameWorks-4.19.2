@@ -11,12 +11,6 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimSequenceBase.h"
-#include "Animation/AnimStats.h"
-#include "Animation/AnimSingleNodeInstance.h"
-
-DEFINE_STAT(STAT_AnimMontageInstance_Advance);
-DEFINE_STAT(STAT_AnimMontageInstance_TickBranchPoints);
-DEFINE_STAT(STAT_AnimMontageInstance_Advance_Iteration);
 
 ///////////////////////////////////////////////////////////////////////////
 //

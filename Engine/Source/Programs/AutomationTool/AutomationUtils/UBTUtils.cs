@@ -32,6 +32,10 @@ namespace AutomationTool
 			{
 				CommandLine += " -rocket";
 			}
+			if (GlobalCommandLine.VS2015)
+			{
+				CommandLine += " -2015";
+			}
 			if (!IsBuildMachine && UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 			{
 				CommandLine += " -nocreatestub";

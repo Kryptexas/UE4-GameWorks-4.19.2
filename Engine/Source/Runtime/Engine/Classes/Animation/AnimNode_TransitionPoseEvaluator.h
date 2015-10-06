@@ -70,5 +70,5 @@ public:
 
 	bool InputNodeNeedsUpdate() const;
 	bool InputNodeNeedsEvaluate() const;
-	void CachePose(FPoseContext& PoseToCache);
+	void CachePose(const FPoseContext& PoseToCache);
 };

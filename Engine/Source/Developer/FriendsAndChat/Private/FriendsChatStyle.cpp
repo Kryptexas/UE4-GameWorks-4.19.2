@@ -100,27 +100,26 @@ FFriendsChatStyle& FFriendsChatStyle::SetPartyHyperlinkChatColor(const FLinearCo
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetChatGlobalBrush(const FSlateBrush& Brush)
 {
-	ChatGlobalBrush = Brush;
+	WhisperHyperlinkChatColor = InFontColor;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetChatGameBrush(const FSlateBrush& Brush)
+FFriendsChatStyle& FFriendsChatStyle::SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor)
 {
-	ChatGameBrush = Brush;
+	GlobalHyperlinkChatColor = InFontColor;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetChatPartyBrush(const FSlateBrush& Brush)
+FFriendsChatStyle& FFriendsChatStyle::SetGameHyperlinkChatColor(const FLinearColor& InFontColor)
 {
-	ChatPartyBrush = Brush;
+	GameHyperlinkChatColor = InFontColor;
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetChatWhisperBrush(const FSlateBrush& Brush)
+FFriendsChatStyle& FFriendsChatStyle::SetPartyHyperlinkChatColor(const FLinearColor& InFontColor)
 {
-	ChatWhisperBrush = Brush;
+	PartyHyperlinkChatColor = InFontColor;
 	return *this;
 }
 

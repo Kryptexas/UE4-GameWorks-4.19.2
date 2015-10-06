@@ -184,7 +184,8 @@ void UAIPerceptionComponent::OnRegister()
 	// this should not be needed but aparently AAIController::PostRegisterAllComponents
 	// gets called component's OnRegister
 	AIOwner = Cast<AAIController>(GetOwner());
-	if (AIOwner)
+	ensure(AIOwner == nullptr || AIOwner->GetAIPerceptionComponent() == nullptr || AIOwner->GetAIPerceptionComponent() == this);
+	if (AIOwner && AIOwner->GetAIPerceptionComponent() == nullptr)
 	{
 		AIOwner->SetPerceptionComponent(*this);
 	}
@@ -522,6 +523,11 @@ void UAIPerceptionComponent::ForgetActor(AActor* ActorToForget)
 	PerceptualData.Remove(ActorToForget);
 }
 
+void UAIPerceptionComponent::ForgetAll()
+{
+	PerceptualData.Reset();
+}
+
 float UAIPerceptionComponent::GetYoungestStimulusAge(const AActor& Source) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
@@ -633,21 +639,13 @@ bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerception
 // debug
 //----------------------------------------------------------------------//
 #if !UE_BUILD_SHIPPING
-void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
+void UAIPerceptionComponent::GetDebugData(TArray<FString>& OnScreenStrings, TArray<FDrawDebugShapeElement>& DebugShapes) const
 {
-	if (Canvas == nullptr)
 	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (World)
-	{
-		UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(World);
+		UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
 		check(PerceptionSys);
-		UFont* Font = GEngine->GetSmallFont();
 
-		for (TActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
+		for (UAIPerceptionComponent::TActorPerceptionContainer::TConstIterator It(GetPerceptualDataConstIterator()); It; ++It)
 		{
 			if (It->Key == NULL)
 			{
@@ -655,28 +653,21 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 			}
 
 			const FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
-			
+
 			if (ActorPerceptionInfo.Target.IsValid())
 			{
 				const FVector TargetLocation = ActorPerceptionInfo.Target->GetActorLocation();
-				float VerticalLabelOffset = 0.f;
-
 				for (const auto& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 				{
 					if (Stimulus.Strength >= 0)
 					{
-						const FVector ScreenLoc = Canvas->Project(Stimulus.StimulusLocation + FVector(0, 0, 30));
-						Canvas->DrawText(Font, FString::Printf(TEXT("%s: %.2f a:%.2f")
-							, *PerceptionSys->GetSenseName(Stimulus.Type)
-							, Stimulus.Strength, Stimulus.GetAge())
-							, ScreenLoc.X, ScreenLoc.Y + VerticalLabelOffset);
-
-						VerticalLabelOffset += 17.f;
+						const FString Description = FString::Printf(TEXT("%s: %.2f a:%.2f"), *PerceptionSys->GetSenseName(Stimulus.Type), Stimulus.Strength, Stimulus.GetAge());
+						DebugShapes.Add(FDrawDebugShapeElement::MakeString(Description, Stimulus.StimulusLocation + FVector(0, 0, 30)));
 
 						const FColor DebugColor = PerceptionSys->GetSenseDebugColor(Stimulus.Type);
-						DrawDebugSphere(World, Stimulus.StimulusLocation, 30.f, 16, DebugColor);
-						DrawDebugLine(World, Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor);
-						DrawDebugLine(World, TargetLocation, Stimulus.StimulusLocation, FColor::Black);
+						DebugShapes.Add(FDrawDebugShapeElement::MakePoint(Stimulus.StimulusLocation, DebugColor, 30));
+						DebugShapes.Add(FDrawDebugShapeElement::MakeLine(Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor));
+						DebugShapes.Add(FDrawDebugShapeElement::MakeLine(TargetLocation, Stimulus.StimulusLocation, FColor::Black));
 					}
 				}
 			}
@@ -684,10 +675,14 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 
 		for (auto Sense : SensesConfig)
 		{
-			Sense->DrawDebugInfo(*Canvas, *this);
+			if (Sense)
+			{
+				Sense->GetDebugData(OnScreenStrings, DebugShapes, *this);
+			}
 		}
 	}
 }
+
 #endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_VISUAL_LOG

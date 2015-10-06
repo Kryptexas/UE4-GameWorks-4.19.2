@@ -277,7 +277,7 @@ inline FArchive& operator<<(FArchive& Ar, FBaseShaderResourceTable& SRT)
 	return Ar;
 }
 
-struct FShaderResourceTable
+struct FShaderCompilerResourceTable
 {
 	/** Bits indicating which resource tables contain resources bound to this shader. */
 	uint32 ResourceTableBits;
@@ -300,7 +300,7 @@ struct FShaderResourceTable
 	/** Hash of the layouts of resource tables at compile time, used for runtime validation. */
 	TArray<uint32> ResourceTableLayoutHashes;
 
-	FShaderResourceTable()
+	FShaderCompilerResourceTable()
 		: ResourceTableBits(0)
 		, MaxBoundResourceTable(0)
 	{
@@ -603,6 +603,36 @@ public:
 		}
 
 		return 0;
+	}
+
+	// Returns nullptr and Size -1 if not key was not found
+	const uint8* FindOptionalDataAndSize(uint8 InKey, int32& OutSize) const
+	{
+		check(ShaderCode.Num() >= 4);
+
+		const uint8* End = &ShaderCode[0] + ShaderCode.Num();
+
+		int32 LocalOptionalDataSize = GetOptionalDataSize();
+
+		const uint8* Start = End - LocalOptionalDataSize;
+		const uint8* Current = Start;
+
+		while (Current < End)
+		{
+			uint8 Key = *Current++;
+			uint8 Size = *Current++;
+
+			if (Key == InKey)
+			{
+				OutSize = Size;
+				return Current;
+			}
+
+			Current += Size;
+		}
+
+		OutSize = -1;
+		return nullptr;
 	}
 
 	int32 GetOptionalDataSize() const

@@ -130,12 +130,16 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 static TAutoConsoleVariable<int32> CVarRHICmdSpewParallelListBalance(
 	TEXT("r.RHICmdSpewParallelListBalance"),
 	0,
-	TEXT("For debugging, spews the size of the parallel command lists. This stalls and otherwise wrecks performance."));
+	TEXT("For debugging, spews the size of the parallel command lists. This stalls and otherwise wrecks performance.\n")
+	TEXT(" 0: off (default)\n")
+	TEXT(" 1: enabled"));
 
 static TAutoConsoleVariable<int32> CVarRHICmdBalanceParallelLists(
 	TEXT("r.RHICmdBalanceParallelLists"),
 	1,
-	TEXT("If >0 preprocess the drawlists to try to balance the load equally among the command lists."));
+	TEXT("Allows to enable a preprocess of the drawlists to try to balance the load equally among the command lists.\n")
+	TEXT(" 0: off \n")
+	TEXT(" 1: enabled (default)"));
 
 static TAutoConsoleVariable<int32> CVarRHICmdMinCmdlistForParallelSubmit(
 	TEXT("r.RHICmdMinCmdlistForParallelSubmit"),

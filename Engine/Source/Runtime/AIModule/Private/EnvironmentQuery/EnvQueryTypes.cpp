@@ -308,6 +308,75 @@ namespace FEQSHelpers
 }
 
 //----------------------------------------------------------------------//
+// FEnvQueryInstance
+//----------------------------------------------------------------------//
+FEnvQueryInstance::FEnvQueryInstance() 
+	: World(nullptr)
+	, CurrentTest(INDEX_NONE)
+	, CurrentTestStartingItem(INDEX_NONE)
+	, NumValidItems(0)
+	, ValueSize(0)
+	, bFoundSingleResult(false)
+	, bPassOnSingleResult(false)
+	, bHasLoggedTimeLimitWarning(false)
+#if USE_EQS_DEBUGGER
+	, bStoreDebugInfo(bDebuggingInfoEnabled)
+#endif // USE_EQS_DEBUGGER
+	, Mode(EEnvQueryRunMode::SingleResult)
+	, ItemTypeVectorCDO(nullptr)
+	, ItemTypeActorCDO(nullptr)
+{
+	IncStats();
+	CurrentStepTimeLimit = TotalExecutionTime = GenerationExecutionTime = 0.0;
+}
+
+FEnvQueryInstance::FEnvQueryInstance(const FEnvQueryInstance& Other) 
+{ 
+	*this = Other; 
+	IncStats(); 
+}
+
+FEnvQueryInstance::~FEnvQueryInstance() 
+{ 
+	DecStats(); 
+}
+
+//----------------------------------------------------------------------//
+// FEQSConfigurableQueryParam
+//----------------------------------------------------------------------//
+void FAIDynamicParam::ConfigureBBKey(UObject &QueryOwner)
+{
+	BBKey.AllowNoneAsValue(true);
+
+	switch (ParamType)
+	{
+	case EAIParamType::Float:
+	case EAIParamType::Int:
+		BBKey.AddFloatFilter(&QueryOwner, ParamName);
+		BBKey.AddIntFilter(&QueryOwner, ParamName);
+		break;
+	case EAIParamType::Bool:
+		BBKey.AddBoolFilter(&QueryOwner, ParamName);
+		break;
+	default:
+		checkNoEntry();
+		break;
+	}
+};
+
+void FAIDynamicParam::GenerateConfigurableParamsFromNamedValues(UObject &QueryOwner, TArray<FAIDynamicParam>& OutQueryConfig, TArray<FEnvNamedValue>& InQueryParams)
+{
+	for (const FEnvNamedValue& Param : InQueryParams)
+	{
+		FAIDynamicParam& NewParam = OutQueryConfig[OutQueryConfig.Add(FAIDynamicParam())];
+		NewParam.ParamName = Param.ParamName;
+		NewParam.ParamType = Param.ParamType;
+		NewParam.Value = Param.Value;
+		NewParam.ConfigureBBKey(QueryOwner);
+	}
+}
+
+//----------------------------------------------------------------------//
 // DEPRECATED
 //----------------------------------------------------------------------//
 #if WITH_RECAST

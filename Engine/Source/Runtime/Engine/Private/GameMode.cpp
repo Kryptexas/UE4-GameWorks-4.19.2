@@ -1083,7 +1083,6 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, con
 
 void AGameMode::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	Canvas->SetDrawColor(255,255,255);
 }
 
 

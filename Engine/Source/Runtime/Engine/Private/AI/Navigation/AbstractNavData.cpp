@@ -22,6 +22,9 @@ AAbstractNavData::AAbstractNavData(const FObjectInitializer& ObjectInitializer) 
 	bListedInSceneOutliner = false;
 #endif
 
+	bCanBeMainNavData = false;
+	bCanSpawnOnRebuild = false;
+
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		FindPathImplementation = FindPathAbstract;

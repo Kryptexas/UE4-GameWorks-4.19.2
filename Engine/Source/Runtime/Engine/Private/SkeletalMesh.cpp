@@ -3940,7 +3940,7 @@ void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 			if(AnimInst)
 			{
 				AnimInst->Montage_Stop(0.f);
-				AnimInst->UpdateAnimation(0.f);
+				AnimInst->UpdateAnimation(0.f, false);
 			}
 		}
 		// Update space bases to reset it back to ref pose
@@ -4113,7 +4113,7 @@ void ASkeletalMeshActor::FinishAnimControl(UInterpGroup* InInterpGroup)
 		if(AnimInst)
 	{
 			AnimInst->Montage_Stop(0.f);
-			AnimInst->UpdateAnimation(0.f);
+			AnimInst->UpdateAnimation(0.f, false);
 		}
 
 		// Update space bases to reset it back to ref pose

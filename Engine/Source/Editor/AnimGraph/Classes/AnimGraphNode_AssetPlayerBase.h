@@ -12,4 +12,8 @@ UCLASS(Abstract, MinimalAPI)
 class UAnimGraphNode_AssetPlayerBase : public UAnimGraphNode_Base
 {
 	GENERATED_BODY()
+public:
+	// Sync group settings for this player.  Sync groups keep related animations with different lengths synchronized.
+	UPROPERTY(EditAnywhere, Category = Settings)
+	FAnimationGroupReference SyncGroup;
 };

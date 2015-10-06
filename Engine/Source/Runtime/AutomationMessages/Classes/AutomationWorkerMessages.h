@@ -218,6 +218,10 @@ struct FAutomationWorkerRunTests
 	UPROPERTY(EditAnywhere, Category="Message")
 	FString TestName;
 
+	/** Holds the name of the test to run. */
+	UPROPERTY()
+	FString BeautifiedTestName;
+
 	/** If true, we will save out screenshots for tests that support them. */
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bScreenshotsEnabled;
@@ -230,12 +234,14 @@ struct FAutomationWorkerRunTests
 	FAutomationWorkerRunTests( ) { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRunTests(uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, bool InScreenshotsEnabled, bool InFullSizeScreenshots)
+	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InScreenshotsEnabled, bool InFullSizeScreenshots, bool InSendAnalytics)
 		: ExecutionCount(InExecutionCount)
 		, RoleIndex(InRoleIndex)
 		, TestName(InTestName)
+		, BeautifiedTestName(InBeautifiedTestName)
 		, bScreenshotsEnabled(InScreenshotsEnabled)
 		, bUseFullSizeScreenShots(InFullSizeScreenshots)
+		, bSendAnalytics(InSendAnalytics)
 	{ }
 };
 

@@ -450,9 +450,6 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 	}
 #endif
 
-	// Load all of the engine modules that we need at startup that are not editor-related
-	UGameEngine::LoadRuntimeEngineStartupModules();
-
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
 	GetGameUserSettings()->ApplyNonResolutionSettings();
@@ -560,7 +557,7 @@ void UGameEngine::PreExit()
 
 			if (World->GetGameInstance() != nullptr)
 			{
-			World->GetGameInstance()->Shutdown();
+				World->GetGameInstance()->Shutdown();
 			}
 
 			World->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
@@ -615,20 +612,6 @@ bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading 
 
 	return false;
 }
-
-void UGameEngine::LoadRuntimeEngineStartupModules()
-{
-	// NOTE: These modules will be loaded when the game starts up, and also when the editor starts up.
-
-	// We only want live streaming support if we're actually in a game
-	if( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
-	{
-		FModuleManager::Get().LoadModule( TEXT("GameLiveStreaming") );
-	}
-
-	// ... load other required engine runtime modules here (but NOT editor modules) ...
-}
-
 
 /*-----------------------------------------------------------------------------
 	Command line executor.

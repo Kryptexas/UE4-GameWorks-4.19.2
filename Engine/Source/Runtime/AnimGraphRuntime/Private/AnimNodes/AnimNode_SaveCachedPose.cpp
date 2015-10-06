@@ -7,20 +7,19 @@
 // FAnimNode_SaveCachedPose
 
 FAnimNode_SaveCachedPose::FAnimNode_SaveCachedPose()
-	: LastInitializedContextCounter(INDEX_NONE)
-	, LastCacheBonesContextCounter(INDEX_NONE)
-	, LastUpdatedContextCounter(INDEX_NONE)
-	, LastEvaluatedContextCounter(INDEX_NONE)
 {
 }
 
 void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
-
-	if (LastInitializedContextCounter != Context.AnimInstance->GetGraphTraversalCounter())
+	// StateMachines cause reinitialization on state changes.
+	// we only want to let them through if we're not relevant as to not create a pop.
+	if (!InitializationCounter.IsSynchronizedWith(Context.AnimInstance->InitializationCounter)
+		|| ((EvaluationCounter.Get() != INDEX_NONE) && !EvaluationCounter.WasSynchronizedInTheLastFrame(Context.AnimInstance->EvaluationCounter)))
 	{
-		LastInitializedContextCounter = Context.AnimInstance->GetGraphTraversalCounter();
+		InitializationCounter.SynchronizeWith(Context.AnimInstance->InitializationCounter);
+
+		FAnimNode_Base::Initialize(Context);
 
 		// Initialize the subgraph
 		Pose.Initialize(Context);
@@ -29,20 +28,20 @@ void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Con
 
 void FAnimNode_SaveCachedPose::CacheBones(const FAnimationCacheBonesContext& Context)
 {
-	if (LastCacheBonesContextCounter != Context.AnimInstance->GetGraphTraversalCounter())
+	if (!CachedBonesCounter.IsSynchronizedWith(Context.AnimInstance->CachedBonesCounter))
 	{
-		LastCacheBonesContextCounter = Context.AnimInstance->GetGraphTraversalCounter();
+		CachedBonesCounter.SynchronizeWith(Context.AnimInstance->CachedBonesCounter);
 
-		// Initialize the subgraph
+		// Cache bones in the subgraph
 		Pose.CacheBones(Context);
 	}
 }
 
 void FAnimNode_SaveCachedPose::Update(const FAnimationUpdateContext& Context)
 {
-	if (LastUpdatedContextCounter != Context.AnimInstance->GetGraphTraversalCounter())
+	if (!UpdateCounter.IsSynchronizedWith(Context.AnimInstance->UpdateCounter))
 	{
-		LastUpdatedContextCounter = Context.AnimInstance->GetGraphTraversalCounter();
+		UpdateCounter.SynchronizeWith(Context.AnimInstance->UpdateCounter);
 
 		// Update the subgraph
 		Pose.Update(Context);
@@ -51,9 +50,9 @@ void FAnimNode_SaveCachedPose::Update(const FAnimationUpdateContext& Context)
 
 void FAnimNode_SaveCachedPose::Evaluate(FPoseContext& Output)
 {
-	if (LastEvaluatedContextCounter != Output.AnimInstance->GetGraphTraversalCounter())
+	if (!EvaluationCounter.IsSynchronizedWith(Output.AnimInstance->EvaluationCounter))
 	{
-		LastEvaluatedContextCounter = Output.AnimInstance->GetGraphTraversalCounter();
+		EvaluationCounter.SynchronizeWith(Output.AnimInstance->EvaluationCounter);
 
 		FPoseContext CachingContext(Output);
 		Pose.Evaluate(CachingContext);
@@ -72,5 +71,9 @@ void FAnimNode_SaveCachedPose::GatherDebugData(FNodeDebugData& DebugData)
 	FString DebugLine = DebugData.GetNodeName(this);
 	DebugData.AddDebugItem(DebugLine);
 
-	Pose.GatherDebugData(DebugData);
+	if (!DebugDataCounter.IsSynchronizedWith(DebugData.AnimInstance->DebugDataCounter))
+	{
+		DebugDataCounter.SynchronizeWith(DebugData.AnimInstance->DebugDataCounter);
+		Pose.GatherDebugData(DebugData);
+	}
 }

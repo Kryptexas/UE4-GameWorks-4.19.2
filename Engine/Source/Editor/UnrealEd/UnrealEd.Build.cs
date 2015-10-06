@@ -87,6 +87,7 @@ public class UnrealEd : ModuleRules
 				"UnrealAudio",
                 "Niagara",
                 "VectorVM",
+                "FunctionalTesting"
 			}
 		);
 

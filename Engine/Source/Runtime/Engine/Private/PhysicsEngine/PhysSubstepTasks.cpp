@@ -44,7 +44,7 @@ void FPhysSubstepTask::RemoveBodyInstance_AssumesLocked(FBodyInstance* BodyInsta
 void FPhysSubstepTask::SetKinematicTarget_AssumesLocked(FBodyInstance* Body, const FTransform& TM)
 {
 #if WITH_PHYSX
-	TM.DiagnosticCheckNaN_All();
+	TM.DiagnosticCheck_IsValid();
 
 	//We only interpolate kinematic actors
 	if (!Body->IsNonKinematic())

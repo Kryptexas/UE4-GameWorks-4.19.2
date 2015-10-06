@@ -743,6 +743,10 @@ void UGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const 
 	}
 }
 
+void UGameplayAbility::SetMovementSyncPoint(FName SyncName)
+{
+}
+
 float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemaining);
@@ -1212,6 +1216,20 @@ FGameplayEffectContextHandle UGameplayAbility::GetGrantedByEffectContext() const
 	}
 
 	return FGameplayEffectContextHandle();
+}
+
+void UGameplayAbility::RemoveGrantedByEffect()
+{
+	check(IsInstantiated()); // You should not call this on non instanced abilities.
+	check(CurrentActorInfo);
+	if (CurrentActorInfo)
+	{
+		FActiveGameplayEffectHandle ActiveHandle = CurrentActorInfo->AbilitySystemComponent->FindActiveGameplayEffectHandle(GetCurrentAbilitySpecHandle());
+		if (ActiveHandle.IsValid())
+		{
+			CurrentActorInfo->AbilitySystemComponent->RemoveActiveGameplayEffect(ActiveHandle);
+		}
+	}
 }
 
 UObject* UGameplayAbility::GetSourceObject(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const

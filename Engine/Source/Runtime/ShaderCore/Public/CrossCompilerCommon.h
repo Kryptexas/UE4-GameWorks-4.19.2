@@ -84,7 +84,7 @@ namespace CrossCompiler
 	{
 		TArray<TArray<FPackedArrayInfo>>	PackedUniformBuffers;
 		TArray<FPackedArrayInfo>			PackedGlobalArrays;
-		FShaderResourceTable				ShaderResourceTable;
+		FShaderCompilerResourceTable		ShaderResourceTable;
 
 		uint16	InOutMask;
 		uint8	NumSamplers;

@@ -31,13 +31,13 @@ struct FLODCluster
 	FLODCluster& operator=(const FLODCluster & Other);
 
 	/** Invalidates this cluster */
-	void Invalidate() { bValid = false; }
+	inline void Invalidate() { bValid = false; }
 	
 	/** Returns whether or not this cluster is valid */
-	bool IsValid() const {	return bValid; }
+	inline bool IsValid() const { return bValid; }
 
 	/** Return cost of the cluster, lower is better */
-	const float GetCost() const
+	inline const float GetCost() const
 	{
 		return ClusterCost;
 	}
@@ -59,7 +59,7 @@ struct FLODCluster
 	float ClusterCost;
 
 	/**
-	* if criteria matches, build new LODActor and replace current Actors with that. We don't need 
+	* if criteria matches, build new LODActor and replace current Actors with that. We don't need
 	* this clears previous actors and sets to this new actor
 	* this is required when new LOD is created from these actors, this will be replaced
 	* to save memory and to reduce memory increase during this process, we discard previous actors and replace with this actor

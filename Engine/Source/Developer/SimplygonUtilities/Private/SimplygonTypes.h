@@ -3,12 +3,44 @@
 #pragma once
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "Engine.h"
+#include "Containers/EnumAsByte.h"
 #include "SimplygonSDK.h"
 
 #include "SimplygonTypes.generated.h"
 
-static const char* USER_MATERIAL_CHANNEL_AO = "UserAO";
+
+/** Export material proxy cache*/
+struct FExportMaterialProxyCache
+{
+	// Material proxies for each property. Note: we're not handling all properties here,
+	// so hold only up to MP_Normal inclusive.
+	FMaterialRenderProxy* Proxies[EMaterialProperty::MP_Normal + 1];
+
+	FExportMaterialProxyCache()
+	{
+		FMemory::Memzero(Proxies);
+	}
+
+	~FExportMaterialProxyCache()
+	{
+		Release();
+	}
+
+	void Release()
+	{
+		for (int32 PropertyIndex = 0; PropertyIndex < ARRAY_COUNT(Proxies); PropertyIndex++)
+		{
+			FMaterialRenderProxy* Proxy = Proxies[PropertyIndex];
+			if (Proxy)
+			{
+				delete Proxy;
+				Proxies[PropertyIndex] = nullptr;
+			}
+		}
+	}
+};
 
 UENUM()
 namespace ESimplygonMaterialChannel
@@ -24,15 +56,13 @@ namespace ESimplygonMaterialChannel
 		SG_MATERIAL_CHANNEL_DISPLACEMENT UMETA(DisplayName = "Displacement", DisplayValue = "Displacement"),
 		SG_MATERIAL_CHANNEL_BASECOLOR UMETA(DisplayName = "Basecolor", DisplayValue = "Basecolor"),
 		SG_MATERIAL_CHANNEL_ROUGHNESS UMETA(DisplayName = "Roughness", DisplayValue = "Roughness"),
-		SG_MATERIAL_CHANNEL_METALLIC UMETA(DisplayName = "Metallic", DisplayValue = "Metallic"),
-		SG_MATERIAL_CHANNEL_AO UMETA(DisplayName = "AO", DisplayValue = "AO")
+		SG_MATERIAL_CHANNEL_METALLIC UMETA(DisplayName = "Metallic", DisplayValue = "Metallic")
 	};
 
 }
 
 static const char* GetSimplygonMaterialChannel(ESimplygonMaterialChannel::Type channel)
 {
-
 	if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_BASECOLOR)
 		return SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR;
 	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SPECULAR)
@@ -44,11 +74,15 @@ static const char* GetSimplygonMaterialChannel(ESimplygonMaterialChannel::Type c
 	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_NORMALS)
 		return SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS;
 	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITY)
+#if USE_USER_OPACITY_CHANNEL
+		return USER_MATERIAL_CHANNEL_OPACITY;
+#else
 		return SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY;
-	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_DIFFUSE)
+#endif
+	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_EMISSIVE)
+		return SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE;
+	else
 		return SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR;
-	else 
-		return SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY;
 
 }
 
@@ -256,8 +290,59 @@ struct  FSimplygonChannelCastingSettings
 	{
 		return !(*this == Other);
 	}
-
 };
+
+
+static const ESimplygonTextureResolution::Type GetResolutionEnum(const int32 InSize)
+{
+	switch (InSize)
+	{
+		case 64:
+		{
+			return ESimplygonTextureResolution::TextureResolution_64;
+		}
+
+		case 128:
+		{
+			return ESimplygonTextureResolution::TextureResolution_128;
+		}
+
+		case 256:
+		{
+			return ESimplygonTextureResolution::TextureResolution_256;
+		}
+
+		case 512:
+		{
+			return ESimplygonTextureResolution::TextureResolution_512;
+
+		}
+		case 1024:
+		{
+			return ESimplygonTextureResolution::TextureResolution_1024;
+		}
+		case 2048:
+		{
+			return ESimplygonTextureResolution::TextureResolution_2048;
+		}
+		case 4096:
+		{
+			return ESimplygonTextureResolution::TextureResolution_4096;
+		}
+		case 8192:
+		{
+			return ESimplygonTextureResolution::TextureResolution_8192;
+		}
+
+		default:
+		{
+			check(false);
+			return ESimplygonTextureResolution::TextureResolution_64;
+		}
+	}
+
+	return ESimplygonTextureResolution::TextureResolution_64;
+}
 
 /*
 * Desc : The following class stores settings for the simplygon material LOD. Specifically the mapping image
@@ -296,8 +381,7 @@ struct FSimplygonMaterialLODSettings
 
 	UPROPERTY()
 	TArray<struct FSimplygonChannelCastingSettings> ChannelsToCast;
-
-
+	
 	FSimplygonMaterialLODSettings()
 		: bActive(false)
 		, MaterialLODType(EMaterialLODType::BakeTexture)
@@ -335,12 +419,14 @@ struct FSimplygonMaterialLODSettings
 		}
 	}
 
+
+
 	FSimplygonMaterialLODSettings(const FMaterialProxySettings& Settings)
 		: bActive(true)
 		, MaterialLODType(EMaterialLODType::BakeTexture)
 		, bUseAutomaticSizes( Settings.bAutomaticTextureSizes )
-		, TextureWidth( Settings.TextureSize.X)	
-		, TextureHeight( Settings.TextureSize.Y)
+		, TextureWidth(GetResolutionEnum(Settings.TextureSize.X))
+		, TextureHeight(GetResolutionEnum(Settings.TextureSize.Y))
 		, SamplingQuality(ESimplygonTextureSamplingQuality::High)
 		, GutterSpace( Settings.GutterSpace )
 		, TextureStrech(ESimplygonTextureStrech::None)
@@ -351,18 +437,19 @@ struct FSimplygonMaterialLODSettings
 
 		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SPECULAR, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
 		ChannelsToCast.Last().bActive = Settings.bSpecularMap;
+		//ChannelsToCast.Last().bUseSRGB = false;
 
 		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_ROUGHNESS, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
 		ChannelsToCast.Last().bActive = Settings.bRoughnessMap;
+		//ChannelsToCast.Last().bUseSRGB = false;
 
 		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_METALLIC, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
 		ChannelsToCast.Last().bActive = Settings.bMetallicMap;
+		//ChannelsToCast.Last().bUseSRGB = false;
 
 		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_NORMALS, ESimplygonCasterType::Normals, ESimplygonColorChannels::RGB));
 		ChannelsToCast.Last().bActive = Settings.bNormalMap;
 
-		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_AO, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
-		ChannelsToCast.Last().bActive = true;
 	}
 
 	static int32 GetTextureResolutionFromEnum(ESimplygonTextureResolution::Type InResolution)

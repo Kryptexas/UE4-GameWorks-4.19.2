@@ -129,7 +129,7 @@ struct FFloatCurve : public FAnimCurveBase
 
 	// we don't want to have = operator. This only copies curves, but leaving naming and everything else intact. 
 	void CopyCurve(FFloatCurve& SourceCurve);
-	float Evaluate(float CurrentTime) const;
+	ENGINE_API float Evaluate(float CurrentTime) const;
 	void UpdateOrAddKey(float NewKey, float CurrentTime);
 	void Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 };

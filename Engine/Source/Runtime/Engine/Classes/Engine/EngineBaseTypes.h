@@ -44,6 +44,9 @@ enum ETickingGroup
 	/** Any item that needs to be executed before physics simulation starts. */
 	TG_PrePhysics UMETA(DisplayName="Pre Physics"),
 
+	/** Any item that can safely run during parallel animation processing (i.e. that cannot touch the animation system) */
+	TG_DuringAnimation UMETA(DisplayName="During Animation"),
+
 	/** Special tick group that starts physics simulation. */							
 	TG_StartPhysics UMETA(Hidden, DisplayName="Start Physics"),
 

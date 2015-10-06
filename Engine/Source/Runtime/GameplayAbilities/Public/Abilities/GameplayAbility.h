@@ -196,6 +196,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	FGameplayEffectContextHandle GetGrantedByEffectContext() const;
 
+	/** Removes the GameplayEffect that granted this ability. Can only be called on instanced abilities. */
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	void RemoveGrantedByEffect();
+
 	/** Returns an effect context, given a specified actor info */
 	virtual FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
 
@@ -615,6 +619,9 @@ public:
 
 	/** Applies the ability's cost to the target */
 	virtual void ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const;
+
+	/** Movement Sync */
+	virtual void SetMovementSyncPoint(FName SyncName);
 
 protected:
 

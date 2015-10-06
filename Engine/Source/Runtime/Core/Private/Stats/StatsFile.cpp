@@ -268,6 +268,8 @@ IStatsWriteFile::IStatsWriteFile()
 	CompressedData.Reserve( EStatsFileConstants::MAX_COMPRESSED_SIZE );
 }
 
+#define STATSFILE_TEMPORARY_FILENAME_SUFFIX		TEXT(".inprogress")
+
 void IStatsWriteFile::Start( const FString& InFilename )
 {
 	const FString PathName = *(FPaths::ProfilingDir() + TEXT( "UnrealStats/" ));
@@ -275,12 +277,14 @@ void IStatsWriteFile::Start( const FString& InFilename )
 	const FString Path = FPaths::GetPath( Filename );
 	IFileManager::Get().MakeDirectory( *Path, true );
 
-	UE_LOG( LogStats, Log, TEXT( "Opening stats file: %s" ), *Filename );
+	const FString TempFilename = Filename + STATSFILE_TEMPORARY_FILENAME_SUFFIX;
 
-	File = IFileManager::Get().CreateFileWriter( *Filename );
+	UE_LOG( LogStats, Log, TEXT( "Opening stats file: %s" ), *TempFilename );
+
+	File = IFileManager::Get().CreateFileWriter( *TempFilename );
 	if( !File )
 	{
-		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filename );
+		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *TempFilename );
 	}
 	else
 	{
@@ -306,10 +310,18 @@ void IStatsWriteFile::Stop()
 		delete File;
 		File = nullptr;
 
+		const FString TempFilename = ArchiveFilename + STATSFILE_TEMPORARY_FILENAME_SUFFIX;
+		if (!IFileManager::Get().Move(*ArchiveFilename, *TempFilename))
+		{
+			UE_LOG(LogStats, Warning, TEXT("Could not rename stats file: %s to final name %s"), *TempFilename, *ArchiveFilename);
+		}
+
 		UE_LOG( LogStats, Log, TEXT( "Wrote stats file: %s" ), *ArchiveFilename );
 		FCommandStatsFile::Get().LastFileSaved = ArchiveFilename;
 	}
 }
+
+#undef STATSFILE_TEMPORARY_FILENAME_SUFFIX
 
 void IStatsWriteFile::WriteHeader()
 {

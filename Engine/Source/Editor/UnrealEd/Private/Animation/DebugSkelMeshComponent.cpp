@@ -95,7 +95,7 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 #if WITH_APEX_CLOTHING
 	SectionsDisplayMode = ESectionDisplayMode::None;
 	// always shows cloth morph target when previewing in editor
-	bClothMorphTarget = true;
+	bClothMorphTarget = false;
 #endif //#if WITH_APEX_CLOTHING
 }
 

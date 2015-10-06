@@ -39,10 +39,6 @@ struct FRIENDSANDCHAT_API FFriendsChatChromeStyle
 	 */
 	static const FFriendsChatChromeStyle& GetDefault();
 
-	UPROPERTY()
-	FButtonStyle SlashMarkupButtonStyle;
-	FFriendsChatChromeStyle& SetSlashMarkupButtonStyle(const FButtonStyle& ButtonStyle);
-
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatBackgroundBrush;
 	FFriendsChatChromeStyle& SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);

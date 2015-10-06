@@ -1356,6 +1356,7 @@ public:
 		}
 		else
 		{
+			check(Contents && ContentsSize && &Layout);
 			auto* Cmd = new (AllocCommand<FRHICommandBuildLocalUniformBuffer>()) FRHICommandBuildLocalUniformBuffer(this, Contents, ContentsSize, Layout);
 			Result.WorkArea = &Cmd->WorkArea;
 		}

@@ -180,6 +180,16 @@ namespace EAppReturnType
 	};
 }
 
+/*
+ * Holds a computed SHA256 hash.
+ */
+struct CORE_API FSHA256Signature
+{
+	uint8 Signature[32];
+
+	/** Generates a hex string of the signature */
+	FString ToString() const;
+};
 
 /**
 * Generic implementation for most platforms
@@ -606,6 +616,18 @@ public:
 	static const TCHAR* GameDir();
 
 	/**
+	*	Return the CloudDir.  CloudDir can be per-user.
+	*/
+	static FString CloudDir();
+
+	/**
+	*	Return the GamePersistentDownloadDir.  
+	*	On some platforms, returns the writable directory for downloaded data that persists across play sessions.
+	*	This dir is always per-game.
+	*/
+	static const TCHAR* GamePersistentDownloadDir();
+
+	/**
 	 * Load the preinit modules required by this platform, typically they are the renderer modules
 	 */
 	static void LoadPreInitModules()
@@ -673,6 +695,18 @@ public:
 	{
 		return false;
 	}
+
+	/**
+	* Generates the SHA256 signature of the given data.
+	* 
+	*
+	* @param Data Pointer to the beginning of the data to hash
+	* @param Bytesize Size of the data to has, in bytes.
+	* @param OutSignature Output Structure to hold the computed signature. 
+	*
+	* @return whether the hash was computed successfully
+	*/
+	static bool GetSHA256Signature(const void* Data, uint32 ByteSize, FSHA256Signature& OutSignature);	
 
 	static FString GetDefaultLocale();
 

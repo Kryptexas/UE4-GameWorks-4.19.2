@@ -143,7 +143,9 @@ public:
 	FFunctionalTestDoneSignature TestFinishedObserver;
 
 protected:
-	uint32 bIsRunning : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=FunctionalTesting)
+	bool bIsRunning;
+	
 	float TotalTime;
 
 public:

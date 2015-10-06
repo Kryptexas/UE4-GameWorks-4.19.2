@@ -7,11 +7,10 @@
 #include "MaterialExportUtils.h"
 #include "MaterialCompiler.h"
 #include "ThumbnailHelpers.h" // for FClassThumbnailScene
+#include "MaterialUtilities.h"
+#include "ShaderCompiler.h"   // for GShaderCompilingManager
 
 #include "SimplygonUtilitiesModule.h"
-
-#include "MaterialUtilities.h"
-
 
 // NOTE: if this code would fail in cook commandlet, check FApp::CanEverRender() function. It disables rendering
 // when commandlet is running. We should disallow IsRunningCommandlet() to return 'true' when rendering a material.
@@ -22,6 +21,9 @@
 //#define SHOW_WIREFRAME_MESH 1 // should use "reuse UVs" for better visualization effect
 //#define VISUALIZE_DILATION 1
 //#define SAVE_INTERMEDIATE_TEXTURES		TEXT("C:/TEMP")
+
+// Could use ERHIFeatureLevel::Num, but this will cause assertion when baking material on startup.
+#define MATERIAL_FEATURE_LEVEL		ERHIFeatureLevel::SM5
 
 //PRAGMA_DISABLE_OPTIMIZATION
 
@@ -137,7 +139,8 @@ public:
 		//SetData(Data);
 	}
 };
-static TGlobalResource<FMeshVertexFactory> GMeshVertexFactory;
+
+TGlobalResource<FMeshVertexFactory> GMeshVertexFactory;
 
 /**
  * Canvas render item enqueued into renderer command list.
@@ -572,7 +575,7 @@ public:
 		// Check if material is TwoSided - single-sided materials should be rendered with normal and reverse
 		// triangle corner orders, to avoid problems with inside-out meshes or mesh parts. Note:
 		// FExportMaterialProxy::GetMaterial() (which is really called here) ignores 'InFeatureLevel' parameter.
-		const FMaterial* Material = Data.MaterialRenderProxy->GetMaterial(ERHIFeatureLevel::SM5);
+		const FMaterial* Material = Data.MaterialRenderProxy->GetMaterial(MATERIAL_FEATURE_LEVEL);
 		bool bIsMaterialTwoSided = Material->IsTwoSided();
 
 		TArray<FMaterialMeshVertex> Verts;
@@ -788,19 +791,49 @@ void PerformImageDilation(TArray<FColor>& InBMP, int32 InImageWidth, int32 InIma
 	}
 }
 
-
 bool GRendererInitialized = false;
+
+struct FMaterialData
+{
+	/*
+	* Input data
+	*/
+	UMaterialInterface* Material;
+	FExportMaterialProxyCache ProxyCache;
+	const FRawMesh* Mesh;
+	const FStaticLODModel* LODModel;
+	int32 MaterialIndex;
+	const FBox2D& TexcoordBounds;
+	const TArray<FVector2D>& TexCoords;
+
+	/*
+	* Output data
+	*/
+	float EmissiveScale;
+
+	FMaterialData(
+		UMaterialInterface* InMaterial,
+		const FRawMesh* InMesh,
+		const FStaticLODModel* InLODModel,
+		int32 InMaterialIndex,
+		const FBox2D& InTexcoordBounds,
+		const TArray<FVector2D>& InTexCoords)
+		: Material(InMaterial)
+		, Mesh(InMesh)
+		, LODModel(InLODModel)
+		, MaterialIndex(InMaterialIndex)
+		, TexcoordBounds(InTexcoordBounds)
+		, TexCoords(InTexCoords)
+		, EmissiveScale(0.0f)
+	{}
+};
 
 // Reference: FCanvasTileRendererItem::Render_GameThread
 bool RenderMaterial(
+	FMaterialData& InMaterialData,
 	FMaterialRenderProxy* InMaterialProxy,
 	EMaterialProperty InMaterialProperty,
 	UTextureRenderTarget2D* InRenderTarget,
-	const FRawMesh* InMesh,
-	const FStaticLODModel* InLODModel,
-	int32 InMaterialIndex,
-	const FBox2D& InTexcoordBounds,
-	const TArray<FVector2D>& InTexCoords,
 	TArray<FColor>& OutBMP)
 {
 	check(InRenderTarget);
@@ -818,8 +851,8 @@ bool RenderMaterial(
 		Canvas.Clear(FLinearColor::Yellow);
 #endif
 
-		FVector2D UV0(InTexcoordBounds.Min.X, InTexcoordBounds.Min.Y);
-		FVector2D UV1(InTexcoordBounds.Max.X, InTexcoordBounds.Max.Y);
+		FVector2D UV0(InMaterialData.TexcoordBounds.Min.X, InMaterialData.TexcoordBounds.Min.Y);
+		FVector2D UV1(InMaterialData.TexcoordBounds.Max.X, InMaterialData.TexcoordBounds.Max.Y);
 		FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), InMaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY), UV0, UV1);
 		TileItem.bFreezeTime = true;
 		Canvas.DrawItem( TileItem );
@@ -849,6 +882,13 @@ bool RenderMaterial(
 
 		if (!GRendererInitialized)
 		{
+			// Force global shaders to be compiled and saved
+			if (GShaderCompilingManager)
+			{
+				// Process any asynchronous shader compile results that are ready, limit execution time
+				GShaderCompilingManager->ProcessAsyncResults(false, true);
+			}
+
 			// Initialize the renderer in a case if material LOD computed in UStaticMesh::PostLoad()
 			// when loading a scene on UnrealEd startup. Use GetRendererModule().BeginRenderingViewFamily()
 			// for that. Prepare a dummy scene because it is required by that function.
@@ -872,11 +912,11 @@ bool RenderMaterial(
 		FSimplygonMaterialRenderItem::EnqueueMaterialRender(
 			&Canvas,
 			&ViewFamily,
-			InMesh,
-			InLODModel,
-			InMaterialIndex,
-			InTexcoordBounds,
-			InTexCoords,
+			InMaterialData.Mesh,
+			InMaterialData.LODModel,
+			InMaterialData.MaterialIndex,
+			InMaterialData.TexcoordBounds,
+			InMaterialData.TexCoords,
 			FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY),
 			InMaterialProxy
 		);
@@ -894,34 +934,104 @@ bool RenderMaterial(
 	FReadSurfaceDataFlags ReadPixelFlags(bNormalmap ? RCM_SNorm : RCM_UNorm);
 	ReadPixelFlags.SetLinearToGamma(false);
 
-	bool result = RTResource->ReadPixels(OutBMP, ReadPixelFlags);
+	bool result = false;
+	
+	if (InMaterialProperty != MP_EmissiveColor)
+	{
+		// Read normal color image
+		result = RTResource->ReadPixels(OutBMP, ReadPixelFlags);
+	}
+	else
+	{
+		// Read HDR emissive image
+		TArray<FFloat16Color> Color16;
+		result = RTResource->ReadFloat16Pixels(Color16);
+		// Find color scale value
+		float MaxValue = 0;
+		for (int32 PixelIndex = 0; PixelIndex < Color16.Num(); PixelIndex++)
+		{
+			FFloat16Color& Pixel16 = Color16[PixelIndex];
+			float R = Pixel16.R.GetFloat();
+			float G = Pixel16.G.GetFloat();
+			float B = Pixel16.B.GetFloat();
+			float Max = FMath::Max3(R, G, B);
+			if (Max > MaxValue)
+			{
+				MaxValue = Max;
+			}
+		}
+		if (MaxValue <= 0.01f)
+		{
+			// Black emissive, drop it
+			return false;
+		}
+		// Now convert Float16 to Color
+		OutBMP.SetNumUninitialized(Color16.Num());
+		float Scale = 255.0f / MaxValue;
+		for (int32 PixelIndex = 0; PixelIndex < Color16.Num(); PixelIndex++)
+		{
+			FFloat16Color& Pixel16 = Color16[PixelIndex];
+			FColor& Pixel8 = OutBMP[PixelIndex];
+			Pixel8.R = (uint8)FMath::RoundToInt(Pixel16.R.GetFloat() * Scale);
+			Pixel8.G = (uint8)FMath::RoundToInt(Pixel16.G.GetFloat() * Scale);
+			Pixel8.B = (uint8)FMath::RoundToInt(Pixel16.B.GetFloat() * Scale);
+		}
+		InMaterialData.EmissiveScale = MaxValue;
+	}
+
 	PerformImageDilation(OutBMP, InRenderTarget->GetSurfaceWidth(), InRenderTarget->GetSurfaceHeight(), bNormalmap);
 #ifdef SAVE_INTERMEDIATE_TEXTURES
 	FString FilenameString = FString::Printf(
 		SAVE_INTERMEDIATE_TEXTURES TEXT("/%s-mat%d-prop%d.bmp"),
-		*InMaterialProxy->GetFriendlyName(), InMaterialIndex, (int32)InMaterialProperty);
+		*InMaterialProxy->GetFriendlyName(), InMaterialData.MaterialIndex, (int32)InMaterialProperty);
 	FFileHelper::CreateBitmap(*FilenameString, InRenderTarget->GetSurfaceWidth(), InRenderTarget->GetSurfaceHeight(), OutBMP.GetData());
 #endif // SAVE_INTERMEDIATE_TEXTURES
 	return result;
 }
 
-// Reference: MaterialExportUtils::ExportMaterialProperty
-bool ExportMaterialProperty(
-	UMaterialInterface* InMaterial,
-	EMaterialProperty InMaterialProperty,
-	UTextureRenderTarget2D* InRenderTarget,
-	const FRawMesh* InMesh,
-	const FStaticLODModel* InLODModel,
-	int32 InMaterialIndex,
-	const FBox2D& InTexcoordBounds,
-	const TArray<FVector2D>& InTexCoords,
-	TArray<FColor>& OutBMP)
+FMaterialRenderProxy* CreateExportMaterialProxy(FMaterialData& InMaterialData, EMaterialProperty InMaterialProperty)
 {
-	TScopedPointer<FMaterialRenderProxy> MaterialProxy(FMaterialUtilities::CreateExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	check(InMaterialProperty >= 0 && InMaterialProperty < ARRAY_COUNT(InMaterialData.ProxyCache.Proxies));
+	if (InMaterialData.ProxyCache.Proxies[InMaterialProperty])
+	{
+		return InMaterialData.ProxyCache.Proxies[InMaterialProperty];
+	}
+	FMaterialRenderProxy* Proxy = FMaterialUtilities::CreateExportMaterialProxy(InMaterialData.Material, InMaterialProperty);
+	InMaterialData.ProxyCache.Proxies[InMaterialProperty] = Proxy;
+	return Proxy;
+}
+
+// Reference: MaterialExportUtils::RenderMaterialPropertyToTexture, MaterialExportUtils::ExportMaterialProperty
+bool FSimplygonUtilities::RenderMaterialPropertyToTexture(
+	FMaterialData& InMaterialData,
+	bool bInCompileOnly,
+	EMaterialProperty InMaterialProperty,
+	bool bInForceLinearGamma,
+	EPixelFormat InPixelFormat,
+	FIntPoint& InTargetSize,
+	TArray<FColor>& OutSamples)
+{
+	if (InTargetSize.X == 0 || InTargetSize.Y == 0)
 	{
 		return false;
 	}
+
+	FMaterialRenderProxy* MaterialProxy = CreateExportMaterialProxy(InMaterialData, InMaterialProperty);
+	if (MaterialProxy == nullptr)
+	{
+		return false;
+	}
+
+	if (bInCompileOnly)
+	{
+		// Rendering will be executed on 2nd pass. Currently we only need to launch a shader compiler for this property.
+		return true;
+	}
+
+//	FMaterial* Material = const_cast<FMaterial*>(MaterialProxy->GetMaterial(MATERIAL_FEATURE_LEVEL)); - doesn't work, causes assertion
+//	Material->FinishCompilation();
+	GShaderCompilingManager->FinishAllCompilation();
+
 #if 0
 	// The code is disabled: WillGenerateUniformData() is a method of FExportMaterialProxy class, which is not available through
 	// FMaterialRenderProxy interface. The following code was used to optimize execution time of material flattening, without
@@ -937,51 +1047,18 @@ bool ExportMaterialProperty(
 	}
 #endif
 
-	return RenderMaterial(
-		MaterialProxy,
-		InMaterialProperty,
-		InRenderTarget,
-		InMesh,
-		InLODModel,
-		InMaterialIndex,
-		InTexcoordBounds,
-		InTexCoords,
-		OutBMP);
-}
+	// Disallow garbage collection of RenderTarget.
+	check(CurrentlyRendering == false);
+	CurrentlyRendering = true;
 
-// Reference: MaterialExportUtils::RenderMaterialPropertyToTexture
-bool RenderMaterialPropertyToTexture(
-	UMaterialInterface* InMaterial, 
-	EMaterialProperty InMaterialProperty,
-	float InTargetGamma,
-	bool bInForceLinearGamma,
-	EPixelFormat InPixelFormat,
-	FIntPoint& InTargetSize,
-	const FRawMesh* InMesh,
-	const FStaticLODModel* InLODModel,
-	int32 InMaterialIndex,
-	const FBox2D& InTexcoordBounds,
-	const TArray<FVector2D>& InTexCoords,
-	TArray<FColor>& OutSamples)
-{
-	// Create temporary render target
-	auto RenderTargetTexture = NewObject<UTextureRenderTarget2D>();
-	check(RenderTargetTexture);
-	RenderTargetTexture->AddToRoot();
-	RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	RenderTargetTexture->TargetGamma = InTargetGamma;
-	RenderTargetTexture->InitCustomFormat(InTargetSize.X, InTargetSize.Y, InPixelFormat, bInForceLinearGamma);
+	UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(bInForceLinearGamma, InPixelFormat, InTargetSize);
 
 	OutSamples.Empty(InTargetSize.X * InTargetSize.Y);
-	bool bResult = ExportMaterialProperty(
-		InMaterial,
+	bool bResult = RenderMaterial(
+		InMaterialData,
+		MaterialProxy,
 		InMaterialProperty,
-		RenderTargetTexture,
-		InMesh,
-		InLODModel,
-		InMaterialIndex,
-		InTexcoordBounds,
-		InTexCoords,
+		RenderTarget,
 		OutSamples);
 
 	// Check for uniform value
@@ -1004,17 +1081,13 @@ bool RenderMaterialPropertyToTexture(
 		}
 
 		// Fill background with maximal color value and render again
-		RenderTargetTexture->ClearColor = FLinearColor(MaxColor);
+		//todo: check if 2nd call to ExportMaterialProperty() will recompile shader
+		RenderTarget->ClearColor = FLinearColor(MaxColor);
 		TArray<FColor> OutSamples2;
 		ExportMaterialProperty(
-			InMaterial,
+			InMaterialData,
 			InMaterialProperty,
-			RenderTargetTexture,
-			InMesh,
-			InLODModel,
-			InMaterialIndex,
-			InTexcoordBounds,
-			InTexCoords,
+			RenderTarget,
 			OutSamples2);
 		for (int32 Index = 0; Index < OutSamples2.Num(); Index++)
 		{
@@ -1036,41 +1109,41 @@ bool RenderMaterialPropertyToTexture(
 	}
 #endif
 
-	RenderTargetTexture->RemoveFromRoot();
-	RenderTargetTexture = nullptr;
+	CurrentlyRendering = false;
 
-	if (!bResult)
-	{
-		return false;
-	}
 
-	return true;
+	return bResult;
 }
 
-bool ExportMaterial(
-	UMaterialInterface* InMaterial,
-	const FRawMesh* InMesh,
-	const FStaticLODModel* InLODModel,
-	int32 InMaterialIndex,
-	const FBox2D& InTexcoordBounds,
-	const TArray<FVector2D>& InTexCoords,
-	FFlattenMaterial& OutFlattenMaterial)
+bool FSimplygonUtilities::ExportMaterial(
+	FMaterialData& InMaterialData,
+	FFlattenMaterial& OutFlattenMaterial,
+	FExportMaterialProxyCache* CompiledMaterial)
 {
-	UE_LOG(LogSimplygonUtilities, Log, TEXT("(Simplygon) Flattening material: %s"), *InMaterial->GetName());
+	UMaterialInterface* Material = InMaterialData.Material;
+	UE_LOG(LogSimplygonUtilities, Log, TEXT("Flattening material: %s"), *Material->GetName());
 
-	//Check if comandlet rendering is enabled
-	if (FApp::CanEverRender())
+	if (CompiledMaterial)
 	{
-		UE_LOG(LogSimplygonUtilities, Log, TEXT("(Simplygon) Using commandlet rendering"));
-	}
-	else
-	{
-		UE_LOG(LogSimplygonUtilities, Warning, TEXT("(Simplygon) Commandlet rendering is disabled. This will mostlikely break the cooking process."));
+		// ExportMaterial was called with non-null CompiledMaterial. This means compiled shaders
+		// should be stored outside, and could be re-used in next call to ExportMaterial.
+		// FMaterialData already has "proxy cache" fiels, should swap it with CompiledMaterial,
+		// and swap back before returning from this function.
+		// Purpose of the following line: use compiled material cached from previous call.
+		Exchange(*CompiledMaterial, InMaterialData.ProxyCache);
 	}
 
-	// Precache all used textures
+	// Check if comandlet rendering is enabled
+	if (!FApp::CanEverRender())
+	{
+		UE_LOG(LogSimplygonUtilities, Warning, TEXT("Commandlet rendering is disabled. This will mostlikely break the cooking process."));
+	}
+
+	FullyLoadMaterialStatic(Material);
+
+	// Precache all used textures, otherwise could get everything rendered with low-res textures.
 	TArray<UTexture*> MaterialTextures;
-	InMaterial->GetUsedTextures(MaterialTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
+	Material->GetUsedTextures(MaterialTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
 
 	for (int32 TexIndex = 0; TexIndex < MaterialTextures.Num(); TexIndex++)
 	{
@@ -1089,83 +1162,67 @@ bool ExportMaterial(
 		}
 	}
 
-	// Render Diffuse property
-	bool bRenderDiffuse = OutFlattenMaterial.DiffuseSize.X > 0 &&
-		OutFlattenMaterial.DiffuseSize.Y > 0;
-	if (bRenderDiffuse)
+	// Render base color property
+	bool bRenderNormal = Material->GetMaterial()->HasNormalConnected() || ( Material->GetMaterial()->bUseMaterialAttributes ); // QQ check for material attributes connection
+	bool bRenderEmissive = Material->IsPropertyActive(MP_EmissiveColor);
+
+	bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked;
+	bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode());
+	check(!bRenderOpacity || !bRenderOpacityMask);
+
+	for (int32 Pass = 0; Pass < 2; Pass++)
 	{
-		RenderMaterialPropertyToTexture(InMaterial, MP_BaseColor, 0.0f, false, PF_B8G8R8A8, 
-			OutFlattenMaterial.DiffuseSize, InMesh, InLODModel, InMaterialIndex, InTexcoordBounds, InTexCoords, OutFlattenMaterial.DiffuseSamples);
+		// Perform this operation in 2 passes: the first will compile shaders, second will render.
+		bool bCompileOnly = Pass == 0;
+
+		// Compile shaders and render flatten material.
+		RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_BaseColor, false, PF_B8G8R8A8, OutFlattenMaterial.DiffuseSize, OutFlattenMaterial.DiffuseSamples);
+		RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_Metallic, false, PF_B8G8R8A8, OutFlattenMaterial.MetallicSize, OutFlattenMaterial.MetallicSamples);
+		RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_Specular, false, PF_B8G8R8A8, OutFlattenMaterial.SpecularSize, OutFlattenMaterial.SpecularSamples);
+		RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_Roughness, false, PF_B8G8R8A8, OutFlattenMaterial.RoughnessSize, OutFlattenMaterial.RoughnessSamples);
+		if (bRenderNormal)
+		{
+			RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_Normal, true, PF_B8G8R8A8, OutFlattenMaterial.NormalSize, OutFlattenMaterial.NormalSamples);
+		}
+		if (bRenderOpacityMask)
+		{
+			RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.OpacitySize, OutFlattenMaterial.OpacitySamples);
+		}
+		if (bRenderOpacity)
+		{
+			// Number of blend modes, let's UMaterial decide whether it wants this property
+			RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_Opacity, true, PF_B8G8R8A8, OutFlattenMaterial.OpacitySize, OutFlattenMaterial.OpacitySamples);
+		}
+		if (bRenderEmissive)
+		{
+			// PF_FloatRGBA is here to be able to render and read HDR image using ReadFloat16Pixels()
+			RenderMaterialPropertyToTexture(InMaterialData, bCompileOnly, MP_EmissiveColor, false, PF_FloatRGBA, OutFlattenMaterial.EmissiveSize, OutFlattenMaterial.EmissiveSamples);
+			OutFlattenMaterial.EmissiveScale = InMaterialData.EmissiveScale;
+		}
 	}
 
-	// Render metallic property
-	bool bRenderMetallic = OutFlattenMaterial.MetallicSize.X > 0 &&
-		OutFlattenMaterial.MetallicSize.Y > 0;
-	if (bRenderMetallic)
+	OutFlattenMaterial.MaterialId = Material->GetLightingGuid();
+
+	if (CompiledMaterial)
 	{
-		RenderMaterialPropertyToTexture(InMaterial, MP_Metallic, 0.0f, false, PF_B8G8R8A8,
-			OutFlattenMaterial.MetallicSize, InMesh, InLODModel, InMaterialIndex, InTexcoordBounds, InTexCoords, OutFlattenMaterial.MetallicSamples);
+		// Store compiled material to external cache.
+		Exchange(*CompiledMaterial, InMaterialData.ProxyCache);
 	}
 
-	// Render specular property
-	bool bRenderSpecular = OutFlattenMaterial.SpecularSize.X > 0 &&
-						   OutFlattenMaterial.SpecularSize.Y > 0 ;
-	if (bRenderSpecular)
-	{
-		RenderMaterialPropertyToTexture(InMaterial, MP_Specular, 0.0f, false, PF_B8G8R8A8,
-			OutFlattenMaterial.SpecularSize, InMesh, InLODModel, InMaterialIndex, InTexcoordBounds, InTexCoords, OutFlattenMaterial.SpecularSamples);
-	}
-
-	// Render roughness property
-	bool bRenderRoughness = OutFlattenMaterial.RoughnessSize.X > 0 &&
-						    OutFlattenMaterial.RoughnessSize.Y > 0 ;
-	if (bRenderRoughness)
-	{
-		RenderMaterialPropertyToTexture(InMaterial, MP_Roughness, 0.0f, false, PF_B8G8R8A8,
-			OutFlattenMaterial.RoughnessSize, InMesh, InLODModel, InMaterialIndex, InTexcoordBounds, InTexCoords, OutFlattenMaterial.RoughnessSamples);
-	}
-
-	// Render AO property
-	bool bRenderAO = OutFlattenMaterial.AOSize.X > 0 &&
-		OutFlattenMaterial.AOSize.Y > 0;
-	if (bRenderAO)
-	{
-		RenderMaterialPropertyToTexture(InMaterial, MP_AmbientOcclusion, 0.0f, false, PF_B8G8R8A8,
-			OutFlattenMaterial.AOSize, InMesh, InLODModel, InMaterialIndex, InTexcoordBounds, InTexCoords, OutFlattenMaterial.AOSamples);
-	}
-
-	if (OutFlattenMaterial.NormalSize.X > 0 &&
-		OutFlattenMaterial.NormalSize.Y > 0 &&
-		( InMaterial->GetMaterial()->HasNormalConnected() ||
-		(InMaterial->GetMaterial()->bUseMaterialAttributes /*&& InMaterial->GetMaterial()->MaterialAttributes.IsConnected(MP_Normal)*/)))
-
-
-	{
-		RenderMaterialPropertyToTexture(InMaterial, MP_Normal, 0.0f, true, PF_B8G8R8A8,
-			OutFlattenMaterial.NormalSize, InMesh, InLODModel, InMaterialIndex, InTexcoordBounds, InTexCoords, OutFlattenMaterial.NormalSamples);
-	}
-	OutFlattenMaterial.MaterialId = InMaterial->GetLightingGuid();
-
-	UE_LOG(LogSimplygonUtilities, Log, TEXT("(Simplygon) Flattening done. (%s)"), *InMaterial->GetName());
+	UE_LOG(LogSimplygonUtilities, Log, TEXT("Flattening done. (%s)"), *Material->GetName());
 	return true;
 }
 
 bool FSimplygonUtilities::ExportMaterial(
 	UMaterialInterface* InMaterial,
-	FFlattenMaterial& OutFlattenMaterial)
+	FFlattenMaterial& OutFlattenMaterial,
+	FExportMaterialProxyCache* CompiledMaterial)
 {
 	FBox2D DummyBounds(FVector2D(0, 0), FVector2D(1, 1));
 	TArray<FVector2D> EmptyTexCoords;
 
-	FullyLoadMaterial(InMaterial);
-	::ExportMaterial(
-		InMaterial,
-		nullptr,
-		nullptr,
-		0,
-		DummyBounds,
-		EmptyTexCoords,
-		OutFlattenMaterial);
+	FMaterialData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
+	ExportMaterial(MaterialData, OutFlattenMaterial, CompiledMaterial);
 	return true;
 }
 
@@ -1175,17 +1232,11 @@ bool FSimplygonUtilities::ExportMaterial(
 	int32 InMaterialIndex,
 	const FBox2D& InTexcoordBounds,
 	const TArray<FVector2D>& InTexCoords,
-	FFlattenMaterial& OutFlattenMaterial)
+	FFlattenMaterial& OutFlattenMaterial,
+	FExportMaterialProxyCache* CompiledMaterial)
 {
-	FullyLoadMaterial(InMaterial);
-	::ExportMaterial(
-		InMaterial,
-		InMesh,
-		nullptr,
-		InMaterialIndex,
-		InTexcoordBounds,
-		InTexCoords,
-		OutFlattenMaterial);
+	FMaterialData MaterialData(InMaterial, InMesh, nullptr, InMaterialIndex, InTexcoordBounds, InTexCoords);
+	ExportMaterial(MaterialData, OutFlattenMaterial, CompiledMaterial);
 	return true;
 }
 
@@ -1195,18 +1246,129 @@ bool FSimplygonUtilities::ExportMaterial(
 	int32 InMaterialIndex,
 	const FBox2D& InTexcoordBounds,
 	const TArray<FVector2D>& InTexCoords,
-	FFlattenMaterial& OutFlattenMaterial)
+	FFlattenMaterial& OutFlattenMaterial,
+	FExportMaterialProxyCache* CompiledMaterial)
 {
-	FullyLoadMaterial(InMaterial);
-	::ExportMaterial(
-		InMaterial,
-		nullptr,
-		InMesh,
-		InMaterialIndex,
-		InTexcoordBounds,
-		InTexCoords,
-		OutFlattenMaterial);
+	FMaterialData MaterialData(InMaterial, nullptr, InMesh, InMaterialIndex, InTexcoordBounds, InTexCoords);
+	ExportMaterial(MaterialData, OutFlattenMaterial, CompiledMaterial);
 	return true;
+}
+
+FFlattenMaterial* FSimplygonUtilities::CreateFlattenMaterial(
+	const FSimplygonMaterialLODSettings& InMaterialLODSettings,
+	int32 InTextureWidth,
+	int32 InTextureHeight)
+{
+	// Create new material.
+	FFlattenMaterial* Material = new FFlattenMaterial();
+	// Override non-zero defaults with zeros.
+	Material->DiffuseSize = FIntPoint::ZeroValue;
+	Material->NormalSize = FIntPoint::ZeroValue;
+
+	// Initialize size of enabled channels. Other channels
+	FIntPoint ChannelSize(InTextureWidth, InTextureHeight);
+	for (int32 ChannelIndex = 0; ChannelIndex < InMaterialLODSettings.ChannelsToCast.Num(); ChannelIndex++)
+	{
+		const FSimplygonChannelCastingSettings& Channel = InMaterialLODSettings.ChannelsToCast[ChannelIndex];
+		if (Channel.bActive)
+		{
+			switch (Channel.MaterialChannel)
+			{
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_BASECOLOR:
+				Material->DiffuseSize = ChannelSize;
+				break;
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SPECULAR:
+				Material->SpecularSize = ChannelSize;
+				break;
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_ROUGHNESS:
+				Material->RoughnessSize = ChannelSize;
+				break;
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_METALLIC:
+				Material->MetallicSize = ChannelSize;
+				break;
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_NORMALS:
+				Material->NormalSize = ChannelSize;
+				break;
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITY:
+				Material->OpacitySize = ChannelSize;
+				break;
+			case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_EMISSIVE:
+				Material->EmissiveSize = ChannelSize;
+				break;
+			default:
+				UE_LOG(LogSimplygonUtilities, Error, TEXT("Unsupported material channel: %d"), (int32)Channel.MaterialChannel);
+			}
+		}
+	}
+
+	return Material;
+}
+
+void FSimplygonUtilities::AnalyzeMaterial(
+	UMaterialInterface* InMaterial,
+	const FSimplygonMaterialLODSettings& InMaterialLODSettings,
+	int32& OutNumTexCoords,
+	bool& OutUseVertexColor)
+{
+	OutUseVertexColor = false;
+	OutNumTexCoords = 0;
+	for (int32 ChannelIndex = 0; ChannelIndex < InMaterialLODSettings.ChannelsToCast.Num(); ChannelIndex++)
+	{
+		const FSimplygonChannelCastingSettings& Channel = InMaterialLODSettings.ChannelsToCast[ChannelIndex];
+		if (!Channel.bActive)
+		{
+			continue;
+		}
+		EMaterialProperty Property;
+		switch (Channel.MaterialChannel)
+		{
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_BASECOLOR:
+			Property = MP_BaseColor;
+			break;
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SPECULAR:
+			Property = MP_Specular;
+			break;
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_ROUGHNESS:
+			Property = MP_Roughness;
+			break;
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_METALLIC:
+			Property = MP_Metallic;
+			break;
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_NORMALS:
+			Property = MP_Normal;
+			break;
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITY:
+			{
+				EBlendMode BlendMode = InMaterial->GetBlendMode();
+				if (BlendMode == BLEND_Masked)
+				{
+					Property = MP_OpacityMask;
+				}
+				else if (IsTranslucentBlendMode(BlendMode))
+				{
+					Property = MP_Opacity;
+				}
+				else
+				{
+					continue;
+				}
+			}
+			break;
+		case ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_EMISSIVE:
+			Property = MP_EmissiveColor;
+			break;
+		default:
+			UE_LOG(LogSimplygonUtilities, Error, TEXT("Unsupported material channel: %d"), (int32)Channel.MaterialChannel);
+			continue;
+		}
+		// Analyze this material channel.
+		int32 NumTextureCoordinates = 0;
+		bool bUseVertexColor = false;
+		InMaterial->AnalyzeMaterialProperty(Property, NumTextureCoordinates, bUseVertexColor);
+		// Accumulate data.
+		OutNumTexCoords = FMath::Max(NumTextureCoordinates, OutNumTexCoords);
+		OutUseVertexColor |= bUseVertexColor;
+	}
 }
 
 void FSimplygonUtilities::GetTextureCoordinateBoundsForRawMesh(const FRawMesh& InRawMesh, TArray<FBox2D>& OutBounds)
@@ -1271,10 +1433,10 @@ void FSimplygonUtilities::GetTextureCoordinateBoundsForSkeletalMesh(const FStati
 	}
 }
 
-// Load material and all linked expressions/textures. This function is intended to be used with materials created by SgCreateMaterial() function,
-// so material instances, functions and other nested objects are not handled. This function will do nothing useful if material is already loaded.
-// It's intended to work when we're baking a new material during engine startup, inside a PostLoad call.
-void FSimplygonUtilities::FullyLoadMaterial(UMaterialInterface* Material)
+// Load material and all linked expressions/textures. This function will do nothing useful if material is already loaded.
+// It's intended to work when we're baking a new material during engine startup, inside a PostLoad call - in this case we
+// could have ExportMaterial() call for material which has not all components loaded yet.
+void FSimplygonUtilities::FullyLoadMaterialStatic(UMaterialInterface* Material)
 {
 	FLinkerLoad* Linker = Material->GetLinker();
 	if (Linker == nullptr)
@@ -1286,7 +1448,7 @@ void FSimplygonUtilities::FullyLoadMaterial(UMaterialInterface* Material)
 	Material->ConditionalPostLoad();
 	// Now load all used textures.
 	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, ERHIFeatureLevel::Num, true);
+	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, MATERIAL_FEATURE_LEVEL, true);
 	for (int32 i = 0; i < Textures.Num(); ++i)
 	{
 		UTexture* Texture = Textures[i];
@@ -1298,10 +1460,15 @@ void FSimplygonUtilities::FullyLoadMaterial(UMaterialInterface* Material)
 	}
 }
 
+void FSimplygonUtilities::FullyLoadMaterial(UMaterialInterface* Material)
+{
+	FullyLoadMaterialStatic(Material);
+}
+
 void FSimplygonUtilities::PurgeMaterialTextures(UMaterialInterface* Material)
 {
 	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, ERHIFeatureLevel::Num, true);
+	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, MATERIAL_FEATURE_LEVEL, true);
 	for (int32 i = 0; i < Textures.Num(); ++i)
 	{
 		UTexture* Texture = Textures[i];
@@ -1328,11 +1495,11 @@ void FSimplygonUtilities::SaveMaterial(UMaterialInterface* Material)
 		return;
 	}
 
-	UE_LOG(LogSimplygonUtilities, Log, TEXT("(Simplygon) Saving material: %s"), *Material->GetName());
+	UE_LOG(LogSimplygonUtilities, Log, TEXT("Saving material: %s"), *Material->GetName());
 	TArray<UPackage*> PackagesToSave;
 	TArray<UTexture*> Textures;
 
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, ERHIFeatureLevel::Num, true);
+	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, MATERIAL_FEATURE_LEVEL, true);
 	for (int32 i = 0; i < Textures.Num(); ++i)
 	{
 		UTexture* texture = Textures[i];
@@ -1344,9 +1511,51 @@ void FSimplygonUtilities::SaveMaterial(UMaterialInterface* Material)
 
 	PackagesToSave.Add(MaterialPackage);
 	FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
-	UE_LOG(LogSimplygonUtilities, Log, TEXT("(Simplygon) Saved successfully (%s)"), *Material->GetName());
+	UE_LOG(LogSimplygonUtilities, Log, TEXT("Saved successfully (%s)"), *Material->GetName());
 }
 
+UTextureRenderTarget2D* FSimplygonUtilities::CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, FIntPoint& InTargetSize)
+{
+	// Find any pooled render tagret with suitable properties.
+	for (int32 RTIndex = 0; RTIndex < RTPool.Num(); RTIndex++)
+	{
+		UTextureRenderTarget2D* RT = RTPool[RTIndex];
+		if (RT->SizeX == InTargetSize.X &&
+			RT->SizeY == InTargetSize.Y &&
+			RT->OverrideFormat == InPixelFormat &&
+			RT->bForceLinearGamma == bInForceLinearGamma)
+		{
+			return RT;
+		}
+	}
+
+	// Not found - create a new one.
+	UTextureRenderTarget2D* NewRT = NewObject<UTextureRenderTarget2D>();
+	check(NewRT);
+	NewRT->AddToRoot();
+	NewRT->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	NewRT->TargetGamma = 0.0f;
+	NewRT->InitCustomFormat(InTargetSize.X, InTargetSize.Y, InPixelFormat, bInForceLinearGamma);
+
+	RTPool.Add(NewRT);
+	return NewRT;
+}
+
+void FSimplygonUtilities::ClearRTPool()
+{
+	if (CurrentlyRendering)
+	{
+		// Just in case - if garbage collection will happen during rendering, don't allow to GC used render target.
+		return;
+	}
+
+	// Allow GC'ing of all render targets.
+	for (int32 RTIndex = 0; RTIndex < RTPool.Num(); RTIndex++)
+	{
+		RTPool[RTIndex]->RemoveFromRoot();
+	}
+	RTPool.Empty();
+}
 
 //PRAGMA_ENABLE_OPTIMIZATION
 

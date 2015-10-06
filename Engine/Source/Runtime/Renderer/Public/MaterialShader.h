@@ -37,6 +37,7 @@ public:
 	int32 NumCubeTextureExpressions;
 	int32 NumPerFrameScalarExpressions;
 	int32 NumPerFrameVectorExpressions;
+	FRHIUniformBufferLayout* DebugLayout;
 
 	FDebugUniformExpressionSet()
 		: NumVectorExpressions(0)
@@ -45,12 +46,18 @@ public:
 		, NumCubeTextureExpressions(0)
 		, NumPerFrameScalarExpressions(0)
 		, NumPerFrameVectorExpressions(0)
+		, DebugLayout(nullptr)
 	{
 	}
 
 	explicit FDebugUniformExpressionSet(const FUniformExpressionSet& InUniformExpressionSet)
 	{
 		InitFromExpressionSet(InUniformExpressionSet);
+	}
+
+	~FDebugUniformExpressionSet()
+	{
+		delete DebugLayout;
 	}
 
 	/** Initialize from a uniform expression set. */
@@ -62,6 +69,7 @@ public:
 		NumCubeTextureExpressions = InUniformExpressionSet.UniformCubeTextureExpressions.Num();
 		NumPerFrameScalarExpressions = InUniformExpressionSet.PerFrameUniformScalarExpressions.Num();
 		NumPerFrameVectorExpressions = InUniformExpressionSet.PerFrameUniformVectorExpressions.Num();
+		DebugLayout = InUniformExpressionSet.CreateDebugLayout();
 	}
 
 	/** Returns true if the number of uniform expressions matches those with which the debug set was initialized. */
@@ -108,10 +116,12 @@ public:
 	template<typename ShaderRHIParamRef>
 	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
 	{
-		const auto& UBParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
-		check(UBParameter.IsInitialized());
 		CheckShaderIsValid();
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, UBParameter,View.UniformBuffer);
+		const auto& ViewUBParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUBParameter, View.UniformBuffer);
+
+		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

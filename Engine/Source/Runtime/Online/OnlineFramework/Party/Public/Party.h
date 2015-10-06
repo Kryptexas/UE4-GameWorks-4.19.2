@@ -16,6 +16,15 @@ class IOnlinePartyJoinInfo;
 
 enum class EPartyType : uint8;
 
+#define PARTY_CONFIG_TYPE TEXT("PARTY_CONFIG_TYPE")
+enum class EPartyConfigType : uint8
+{
+	// Social "persistent" party
+	PersistentParty = 0,
+	// Transient team association
+	TeamParty
+};
+
 /**
  * Holds the basic information needed to join a party
  */
@@ -296,9 +305,8 @@ public:
 
 protected:
 
-	/** Class of party state to be used for parties*/
-	UPROPERTY(Transient)
-	TSubclassOf<UPartyGameState> PartyGameStateClass;
+	/** Mapping of party types to party classes, up to game to define relationship */
+	TMap<int32, TSubclassOf<UPartyGameState>> PartyClasses;
 
 	UPROPERTY(Config)
 	int32 DefaultMaxPartySize;

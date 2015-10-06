@@ -217,6 +217,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChangedLaptopMode, EConvertibleLaptopMode);
 	static FPlatformChangedLaptopMode PlatformChangedLaptopMode;
 
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FLoadStringAssetReferenceInCook, FString&);
+	static FLoadStringAssetReferenceInCook LoadStringAssetReferenceInCook;
+
 private:
 
 	// Callbacks for hotfixes

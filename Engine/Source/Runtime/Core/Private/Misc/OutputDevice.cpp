@@ -265,6 +265,12 @@ void VARARGS FDebug::LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR
  */
 void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg)
 {
+
+#if STATS
+	FString EnsureFailedPerfMessage = FString::Printf(TEXT("FDebug::EnsureFailed"));
+	SCOPE_LOG_TIME_IN_SECONDS(*EnsureFailedPerfMessage, nullptr)
+#endif
+
 	// You can set bShouldCrash to true to cause a regular assertion to trigger (stopping program execution) when an ensure() error occurs
 	const bool bShouldCrash = false;		// By default, don't crash on ensure()
 	if( bShouldCrash )
@@ -298,8 +304,15 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
 	if( StackTrace != NULL )
 	{
-		StackTrace[0] = 0;
-		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );
+
+		{
+#if STATS
+			FString StackWalkPerfMessage = FString::Printf(TEXT("FPlatformStackWalk::StackWalkAndDump"));
+			SCOPE_LOG_TIME_IN_SECONDS(*StackWalkPerfMessage, nullptr)
+#endif
+			StackTrace[0] = 0;
+			FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );
+		}
 
 		// Create a final string that we'll output to the log (and error history buffer)
 		TCHAR ErrorMsg[16384];
@@ -349,6 +362,11 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 
 				if( !bHasErrorAlreadyBeenReported )
 				{
+#if STATS
+					FString SubmitErrorReporterfMessage = FString::Printf(TEXT("SubmitErrorReport"));
+					SCOPE_LOG_TIME_IN_SECONDS(*SubmitErrorReporterfMessage, nullptr)
+#endif
+
 					FCoreDelegates::OnHandleSystemEnsure.Broadcast();
 
 					FPlatformMisc::SubmitErrorReport( ErrorMsg, EErrorReportMode::Balloon );
@@ -367,6 +385,11 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 
 	if ( bShouldSendNewReport )
 	{
+#if STATS
+		FString SendNewReportMessage = FString::Printf(TEXT("SendNewReport"));
+		SCOPE_LOG_TIME_IN_SECONDS(*SendNewReportMessage, nullptr)
+#endif
+
 #if PLATFORM_DESKTOP
 		FScopeLock Lock( &FailDebugCriticalSection );
 

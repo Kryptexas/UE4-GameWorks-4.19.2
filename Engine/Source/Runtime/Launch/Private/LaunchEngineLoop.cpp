@@ -2032,7 +2032,16 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		FModuleManager::Get().LoadModule(TEXT("Blutility"));
 	}
+
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+
+#if WITH_ENGINE
+	// Load runtime client modules (which are also needed at cook-time)
+	if( !IsRunningDedicatedServer() )
+	{
+		FModuleManager::Get().LoadModule( TEXT( "GameLiveStreaming" ) );
+	}
+#endif
 
 	return bSuccess;
 }
@@ -2370,7 +2379,6 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	return bIdleMode;
 }
 
-
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 #include "StackTracker.h"
@@ -2406,7 +2414,6 @@ static TAutoConsoleVariable<int32> CVarLogGameThreadMallocChurn_StackLen(
 
 
 extern CORE_API TFunction<void(int32)>* GGameThreadMallocHook;
-
 
 struct FScopedSampleMallocChurn
 {
@@ -2488,7 +2495,6 @@ FStackTracker FScopedSampleMallocChurn::GGameThreadMallocChurnTracker;
 uint64 FScopedSampleMallocChurn::DumpFrame = 0;
 
 #endif
-
 
 void FEngineLoop::Tick()
 {

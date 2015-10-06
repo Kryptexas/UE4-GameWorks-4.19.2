@@ -38,6 +38,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_WheelHandler : public FAnimNode_SkeletalCo
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual bool CanUpdateInWorkerThread() const override { return false; }
 	// End of FAnimNode_SkeletalControlBase interface
 
 private:

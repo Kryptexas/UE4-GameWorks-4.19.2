@@ -480,6 +480,10 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	/** Root Bone will be locked to that position when extracting root motion.**/
 	UPROPERTY(EditAnywhere, Category = RootMotion)
 	TEnumAsByte<ERootMotionRootLock::Type> RootMotionRootLock;
+	
+	/** Force Root Bone Lock even if Root Motion is not enabled */
+	UPROPERTY(EditAnywhere, Category = RootMotion)
+	bool bForceRootLock;
 
 	/** Have we copied root motion settings from an owning montage */
 	UPROPERTY()
@@ -814,6 +818,9 @@ public:
 	virtual void GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const;
 	virtual FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const;
 	virtual void GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& SyncPosition, bool bLooping, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float& CurrentTime) const;
+	
+	virtual float GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const override;
+	virtual float GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const override;
 
 private:
 	/**
@@ -867,6 +874,9 @@ private:
 
 	/** Refresh sync marker data*/
 	void RefreshSyncMarkerDataFromAuthored();
+
+	/** Take a set of marker positions and validates them against a requested start position, updating them as desired */
+	void ValidateCurrentPosition(const FMarkerSyncAnimPosition& Position, bool bPlayingForwards, bool bLooping, float&CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const;
 
 	friend class UAnimationAsset;
 };

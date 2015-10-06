@@ -17,6 +17,8 @@
 
 DEFINE_LOG_CATEGORY(LogActorComponent);
 
+DECLARE_CYCLE_STAT(TEXT("RegisterComponent"), STAT_RegisterComponent, STATGROUP_Component);
+DECLARE_CYCLE_STAT(TEXT("UnregisterComponent"), STAT_UnregisterComponent, STATGROUP_Component);
 
 DECLARE_CYCLE_STAT(TEXT("Component OnRegister"), STAT_ComponentOnRegister, STATGROUP_Component);
 DECLARE_CYCLE_STAT(TEXT("Component OnUnregister"), STAT_ComponentOnUnregister, STATGROUP_Component);
@@ -119,13 +121,16 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*=
 	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	CreationMethod = EComponentCreationMethod::Native;
-
+	
 	bAutoRegister = true;
 	bNetAddressable = false;
 	bEditableWhenInherited = true;
 #if WITH_EDITOR
 	bCanUseCachedOwner = true;
 #endif
+
+	bCanEverAffectNavigation = false;
+	bNavigationRelevant = false;
 }
 
 void UActorComponent::PostInitProperties()
@@ -788,6 +793,9 @@ void UActorComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 
 void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 {
+	SCOPE_CYCLE_COUNTER(STAT_RegisterComponent);
+	FScopeCycleCounterUObject ComponentScope(this);
+
 	checkf(!HasAnyFlags(RF_Unreachable), TEXT("%s"), *GetFullName());
 
 	if(IsPendingKill())
@@ -898,6 +906,9 @@ void UActorComponent::RegisterComponent()
 
 void UActorComponent::UnregisterComponent()
 {
+	SCOPE_CYCLE_COUNTER(STAT_UnregisterComponent);
+	FScopeCycleCounterUObject ComponentScope(this);
+
 	// Do nothing if not registered
 	if(!IsRegistered())
 	{
@@ -1584,5 +1595,31 @@ void UActorComponent::GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedP
 	}
 }
 
+void UActorComponent::SetCanEverAffectNavigation(bool bRelevant)
+{
+	if (bCanEverAffectNavigation != bRelevant)
+	{
+		bCanEverAffectNavigation = bRelevant;
+
+		HandleCanEverAffectNavigationChange();
+	}
+}
+
+void UActorComponent::HandleCanEverAffectNavigationChange()
+{
+	// update octree if already registered
+	if (bRegistered)
+	{
+		if (bCanEverAffectNavigation)
+		{
+			bNavigationRelevant = IsNavigationRelevant();
+			UNavigationSystem::OnComponentRegistered(this);
+		}
+		else
+		{
+			UNavigationSystem::OnComponentUnregistered(this);
+		}
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -611,7 +611,7 @@ partial class GUBP
 
             DoASharedPromotable = NumSharedCode > 0 || NonCodeProjectNames.Count > 0 || NonCodeFormalBuilds.Count > 0;
 
-			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform) && !BranchOptions.ExcludeNodes.Contains("NonUnityTestCompile"))
 			{
 				BranchConfig.AddNode(new NonUnityTestNode(BranchConfig, HostPlatform));
 			}

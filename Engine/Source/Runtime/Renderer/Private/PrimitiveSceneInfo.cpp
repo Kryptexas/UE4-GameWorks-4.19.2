@@ -408,6 +408,31 @@ void FPrimitiveSceneInfo::UnlinkAttachmentGroup()
 
 void FPrimitiveSceneInfo::GatherLightingAttachmentGroupPrimitives(TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator>& OutChildSceneInfos)
 {
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Renderer/Private/PrimitiveSceneInfo.cpp#8
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Renderer/Private/PrimitiveSceneInfo.cpp#9
+#if ENABLE_NAN_DIAGNOSTIC
+	// local function that returns full name of object
+	auto GetObjectName = [](const UPrimitiveComponent* InPrimitive)->FString
+	{
+		return (InPrimitive) ? InPrimitive->GetFullName() : FString(TEXT("Unknown Object"));
+	};
+
+	// verify that the current object has a valid bbox before adding it
+	const float& BoundsRadius = this->Proxy->GetBounds().SphereRadius;
+	if (ensureMsgf(!FMath::IsNaN(BoundsRadius) && FMath::IsFinite(BoundsRadius),
+		TEXT("%s had an ill-formed bbox and was skipped during shadow setup, contact DavidH."), *GetObjectName(this->ComponentForDebuggingOnly)))
+	{
+		OutChildSceneInfos.Add(this);
+	}
+	else
+	{
+		// return, leaving the TArray empty
+		return;
+	}
+
+#else 
+	// add self at the head of this queue
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Renderer/Private/PrimitiveSceneInfo.cpp
 
 #ifdef TEST_BBOX_NANS_UE_21208
 	
@@ -433,6 +458,7 @@ void FPrimitiveSceneInfo::GatherLightingAttachmentGroupPrimitives(TArray<FPrimit
 
 #else
 	// add self at the head of the quie
+<<<<
 	OutChildSceneInfos.Add(this);
 
 #endif
@@ -447,6 +473,21 @@ void FPrimitiveSceneInfo::GatherLightingAttachmentGroupPrimitives(TArray<FPrimit
 			for (int32 ChildIndex = 0, ChildIndexMax = AttachmentGroup->Primitives.Num(); ChildIndex < ChildIndexMax; ChildIndex++)
 			{
 				FPrimitiveSceneInfo* ShadowChild = AttachmentGroup->Primitives[ChildIndex];
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Renderer/Private/PrimitiveSceneInfo.cpp#8
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Renderer/Private/PrimitiveSceneInfo.cpp#9
+#if ENABLE_NAN_DIAGNOSTIC
+				// Only enqueue objects with valid bounds using the normality of the SphereRaduis as criteria.
+
+				const float& ShadowChildBoundsRadius = ShadowChild->Proxy->GetBounds().SphereRadius;
+
+				if (ensureMsgf(!FMath::IsNaN(ShadowChildBoundsRadius) && FMath::IsFinite(ShadowChildBoundsRadius),
+					TEXT("%s had an ill-formed bbox and was skipped during shadow setup, contact DavidH."), *GetObjectName(ShadowChild->ComponentForDebuggingOnly)))
+				{
+					checkSlow(!OutChildSceneInfos.Contains(ShadowChild))
+				    OutChildSceneInfos.Add(ShadowChild);
+				}
+#else
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Renderer/Private/PrimitiveSceneInfo.cpp
 
 #ifdef TEST_BBOX_NANS_UE_21208
 				// Only enqueue objects with valid bounds using the normality of the SphereRaduis as criteria.
@@ -462,6 +503,7 @@ void FPrimitiveSceneInfo::GatherLightingAttachmentGroupPrimitives(TArray<FPrimit
 #else
 				// enqueue all objects.
 
+<<<<
 				checkSlow(!OutChildSceneInfos.Contains(ShadowChild))
 			    OutChildSceneInfos.Add(ShadowChild);
 #endif

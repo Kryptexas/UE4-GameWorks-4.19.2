@@ -15,9 +15,9 @@ void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
 	WeightData.Reset();
 
 	// If this node has not already been registered with the AnimInstance, do it.
-	if ((LastSlotNodeInitializationCounter == INDEX_NONE) || (LastSlotNodeInitializationCounter != Context.AnimInstance->GetSlotNodeInitializationCounter()))
+	if (!SlotNodeInitializationCounter.IsSynchronizedWith(Context.AnimInstance->SlotNodeInitializationCounter))
 	{
-		LastSlotNodeInitializationCounter = Context.AnimInstance->GetSlotNodeInitializationCounter();
+		SlotNodeInitializationCounter.SynchronizeWith(Context.AnimInstance->SlotNodeInitializationCounter);
 		Context.AnimInstance->RegisterSlotNodeWithAnimInstance(SlotName);
 	}
 }
@@ -95,6 +95,5 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 
 FAnimNode_Slot::FAnimNode_Slot()
 	: SlotName(FAnimSlotGroup::DefaultSlotName)
-	, LastSlotNodeInitializationCounter(INDEX_NONE)
 {
 }

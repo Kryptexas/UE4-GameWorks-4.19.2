@@ -465,6 +465,25 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
+BEGIN_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters,ENGINE_API)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Bilinear)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, BilinearClamped)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Point)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PointClamped)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Trilinear)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, TrilinearClamped)
+END_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters)
+
+ENGINE_API class FBuiltinSamplersUniformBuffer : public TUniformBuffer<FBuiltinSamplersParameters>
+{
+public:
+	FBuiltinSamplersUniformBuffer();
+
+	virtual void InitDynamicRHI() override;
+};
+
+extern ENGINE_API TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;
+
 /**
  * A projection from scene space into a 2D screen region.
  */

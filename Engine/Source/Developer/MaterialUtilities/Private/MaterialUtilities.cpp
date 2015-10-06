@@ -19,7 +19,6 @@
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
 
-
 IMPLEMENT_MODULE(FDefaultModuleImpl, MaterialUtilities);
 
 

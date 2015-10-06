@@ -190,7 +190,10 @@ FStaticLightingMesh::FStaticLightingMesh(
 	Component(InComponent),
 	BoundingBox(InBoundingBox),
 	Guid(FGuid::NewGuid()),
-	SourceMeshGuid(InGuid)
+	SourceMeshGuid(InGuid),
+	HLODTreeIndex(0),
+	HLODChildStartIndex(0),
+	HLODChildEndIndex(0)
 {}
 
 FStaticLightingTextureMapping::FStaticLightingTextureMapping(FStaticLightingMesh* InMesh,UObject* InOwner,int32 InSizeX,int32 InSizeY,int32 InLightmapTextureCoordinateIndex,bool bInBilinearFilter):

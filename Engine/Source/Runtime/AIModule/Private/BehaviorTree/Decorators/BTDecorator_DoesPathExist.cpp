@@ -37,8 +37,11 @@ void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree& Asset)
 	}
 
 	UBlackboardData* BBAsset = GetBlackboardAsset();
-	BlackboardKeyA.CacheSelectedKey(BBAsset);
-	BlackboardKeyB.CacheSelectedKey(BBAsset);
+	if (ensure(BBAsset))
+	{
+		BlackboardKeyA.ResolveSelectedKey(*BBAsset);
+		BlackboardKeyB.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const

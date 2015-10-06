@@ -324,7 +324,9 @@ public:
 	int32 Width;
 	int32 NumAlloc;
 	int32 MinDrawsPerCommandList;
+	// see r.RHICmdBalanceParallelLists
 	bool bBalanceCommands;
+	// see r.RHICmdSpewParallelListBalance
 	bool bSpewBalance;
 public:
 	TArray<FRHICommandList*,SceneRenderingAllocator> CommandLists;

@@ -2,6 +2,9 @@
 
 
 #include "RendererPrivate.h"
+
+#if WITH_EDITOR
+
 #include "PostProcessCompositeEditorPrimitives.h"
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
@@ -364,3 +367,5 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FR
 		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
 	}
 }
+
+#endif

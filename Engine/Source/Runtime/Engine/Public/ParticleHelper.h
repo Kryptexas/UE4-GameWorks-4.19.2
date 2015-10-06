@@ -1349,6 +1349,9 @@ struct FDynamicEmitterDataBase
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory, size_t Size);
 
+	virtual void CreateVertexFactory(const FSceneView *View)
+	{}
+
 	/**
 	 *	Create the render thread resources for this emitter data
 	 *
@@ -1423,11 +1426,13 @@ private:
 	 */
 	void ReturnVertexFactory()
 	{
+		/*
 		if (ParticleVertexFactory != NULL)
 		{
 			GParticleVertexFactoryPool.ReturnParticleVertexFactory(ParticleVertexFactory);
 			ParticleVertexFactory = NULL;
 		}
+		*/
 	}
 };
 
@@ -1634,8 +1639,20 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 {
 	FDynamicSpriteEmitterData(const UParticleModuleRequired* RequiredModule) :
 		FDynamicSpriteEmitterDataBase(RequiredModule)
+		, VertexFactory(nullptr)
 	{
 	}
+
+	~FDynamicSpriteEmitterData()
+	{
+		if (VertexFactory != nullptr)
+		{
+			VertexFactory->ReleaseResource();
+			delete VertexFactory;
+		}
+	}
+
+	virtual void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -1723,6 +1740,8 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 
 	/** Uniform parameters. Most fields are filled in when updates are sent to the rendering thread, some are per-view! */
 	FParticleSpriteUniformParameters UniformParameters;
+
+	class FParticleSpriteVertexFactory *VertexFactory;
 };
 
 /** Source data for Mesh emitters */
@@ -1781,6 +1800,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	FDynamicMeshEmitterData(const UParticleModuleRequired* RequiredModule);
 
 	virtual ~FDynamicMeshEmitterData();
+
+	void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh);
@@ -1860,7 +1881,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	 Initialize this emitter's vertex factory with the vertex buffers from the mesh's rendering data.
 	 */
-	void SetupVertexFactory( FMeshParticleVertexFactory* VertexFactory, FStaticMeshLODResources& LODResources) const;
+	void SetupVertexFactory( FMeshParticleVertexFactory* InVertexFactory, FStaticMeshLODResources& LODResources) const;
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const override
@@ -1905,6 +1926,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	uint32 bFaceCameraDirectionRatherThanPosition:1;
 	/** The EMeshCameraFacingOption setting to use if bUseCameraFacing is true. */
 	uint8 CameraFacingOption;
+
+	FMeshParticleVertexFactory *VertexFactory;
 };
 
 /** Source data for Beam emitters */
@@ -2060,15 +2083,20 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 		: 
 		  FDynamicSpriteEmitterDataBase(RequiredModule)
 		, LastFramePreRendered(-1)
+		, VertexFactory(nullptr)
 	{
 	}
+
+	~FDynamicBeam2EmitterData();
+
+	void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
 
 
 	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
-	
+
 	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy) override;
 
 	// Debugging functions
@@ -2119,6 +2147,8 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	FDynamicBeam2EmitterReplayData Source;
 
 	int32									LastFramePreRendered;
+
+	class FParticleBeamTrailVertexFactory *VertexFactory;
 };
 
 /** Source data for trail-type emitters */
@@ -2205,8 +2235,13 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		, DistanceTessellationStepSize(12.5f)
 		, TangentTessellationScalar(25.0f)
 		, TextureTileDistance(0.0f)
+		, VertexFactory(nullptr)
 	{
 	}
+
+	~FDynamicTrailsEmitterData();
+
+	virtual void CreateVertexFactory(const FSceneView *View);
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
@@ -2280,6 +2315,8 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	float DistanceTessellationStepSize;
 	float TangentTessellationScalar;
 	float TextureTileDistance;
+
+	class FParticleBeamTrailVertexFactory *VertexFactory;
 };
 
 /** Dynamic emitter data for Ribbon emitters */
@@ -2413,7 +2450,7 @@ public:
 		return false;
 	}
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
 

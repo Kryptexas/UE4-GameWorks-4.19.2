@@ -46,6 +46,12 @@ public:
 	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | Gameplay Tasks")
 	bool bEnableBTAITasks;
 
+	/** if enable will make EQS not complaint about using Controllers as queriers. Default behavior (false) will 
+	 *	in places automatically convert controllers to pawns, and complain if code user bypasses the conversion or uses
+	 *	pawn-less controller */
+	UPROPERTY(globalconfig, EditDefaultsOnly, Category = "AISystem | EQS")
+	bool bAllowControllersAsEQSQuerier;
+
 protected:
 	/** Behavior tree manager used by game */
 	UPROPERTY(Transient)
@@ -64,7 +70,7 @@ protected:
 	UPROPERTY(Transient)
 	UAIHotSpotManager* HotSpotManager;
 
-	typedef TMultiMap<TWeakObjectPtr<UBlackboardData>, TWeakObjectPtr<UBlackboardComponent>> FBlackboardDataToComponentsMap;
+	typedef TMultiMap<TWeakObjectPtr<UBlackboardData>, TWeakObjectPtr<UBlackboardComponent> > FBlackboardDataToComponentsMap;
 
 	/** UBlackboardComponent instances that reference the blackboard data definition */
 	FBlackboardDataToComponentsMap BlackboardDataToComponentsMap;

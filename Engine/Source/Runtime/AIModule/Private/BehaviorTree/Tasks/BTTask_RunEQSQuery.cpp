@@ -6,6 +6,11 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EnvQuery.h"
 
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Float.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
+
 UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Run EQS Query";
@@ -15,6 +20,30 @@ UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const FObjectInitializer& ObjectInitial
 	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		CollectKeyFilters();
+	}
+
+	EQSQueryBlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_RunEQSQuery, EQSQueryBlackboardKey), UEnvQuery::StaticClass());
+}
+
+void UBTTask_RunEQSQuery::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (QueryConfig.Num() > 0 || bUseBBKey)
+	{
+		UBlackboardData* BBAsset = GetBlackboardAsset();
+		if (BBAsset)
+		{
+			for (FAIDynamicParam& RuntimeParam : QueryConfig)
+			{
+				if (RuntimeParam.BBKey.NeedsResolving())
+				{
+					RuntimeParam.BBKey.ResolveSelectedKey(*BBAsset);
+				}
+			}
+
+			EQSQueryBlackboardKey.ResolveSelectedKey(*BBAsset);
+		}
 	}
 }
 
@@ -27,17 +56,76 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(UBehaviorTreeComponent& Own
 		QueryOwner = ControllerOwner->GetPawn();
 	}
 
-	FEnvQueryRequest QueryRequest(QueryTemplate, QueryOwner);
-	QueryRequest.SetNamedParams(QueryParams);
-
-	FBTEnvQueryTaskMemory* MyMemory = (FBTEnvQueryTaskMemory*)NodeMemory;
-	MyMemory->RequestID = QueryRequest.Execute(RunMode, this, &UBTTask_RunEQSQuery::OnQueryFinished);
-
-	const bool bValid = (MyMemory->RequestID >= 0);
-	if (bValid)
+	if (bUseBBKey)
 	{
-		WaitForMessage(OwnerComp, UBrainComponent::AIMessage_QueryFinished, MyMemory->RequestID);
-		return EBTNodeResult::InProgress;
+		const UBlackboardComponent* BlackboardComponent = OwnerComp.GetBlackboardComponent();
+		check(BlackboardComponent);
+		
+		// set QueryTemplate to contents of BB key
+		UObject* QueryTemplateObject = BlackboardComponent->GetValue<UBlackboardKeyType_Object>(EQSQueryBlackboardKey.GetSelectedKeyID());
+		QueryTemplate = Cast<UEnvQuery>(QueryTemplateObject);
+
+		UE_CVLOG(QueryTemplate == nullptr, QueryOwner, LogBehaviorTree, Warning, TEXT("%s configured to use BB key, but indicated key (%s) doesn't contain EQS template pointer")
+			, *GetName(), *EQSQueryBlackboardKey.SelectedKeyName.ToString());
+	}
+
+	if (QueryTemplate != nullptr)
+	{
+		FEnvQueryRequest QueryRequest(QueryTemplate, QueryOwner);
+		if (QueryConfig.Num() > 0)
+		{
+			UBlackboardComponent* BBComp = OwnerComp.GetBlackboardComponent();
+
+			// resolve 
+			for (FAIDynamicParam& RuntimeParam : QueryConfig)
+			{
+				// check if given param requires runtime resolve, like reading from BB
+				if (RuntimeParam.BBKey.IsSet())
+				{
+					check(BBComp && "If BBKey.IsSet and there's no BB component then we\'re in the error land!");
+
+					// grab info from BB
+					switch (RuntimeParam.ParamType)
+					{
+					case EAIParamType::Float:
+					{
+						const float Value = BBComp->GetValue<UBlackboardKeyType_Float>(RuntimeParam.BBKey.GetSelectedKeyID());
+						QueryRequest.SetFloatParam(RuntimeParam.ParamName, Value);
+					}
+					break;
+					case EAIParamType::Int:
+					{
+						const int32 Value = BBComp->GetValue<UBlackboardKeyType_Int>(RuntimeParam.BBKey.GetSelectedKeyID());
+						QueryRequest.SetIntParam(RuntimeParam.ParamName, Value);
+					}
+					break;
+					case EAIParamType::Bool:
+					{
+						const bool Value = BBComp->GetValue<UBlackboardKeyType_Bool>(RuntimeParam.BBKey.GetSelectedKeyID());
+						QueryRequest.SetBoolParam(RuntimeParam.ParamName, Value);
+					}
+					break;
+					default:
+						break;
+					}
+
+				}
+				else
+				{
+					QueryRequest.SetFloatParam(RuntimeParam.ParamName, RuntimeParam.Value);
+				}
+			}
+		}
+
+		FBTEnvQueryTaskMemory* MyMemory = (FBTEnvQueryTaskMemory*)NodeMemory;
+		MyMemory->RequestID = QueryRequest.Execute(RunMode, this, &UBTTask_RunEQSQuery::OnQueryFinished);
+
+		const bool bValid = (MyMemory->RequestID >= 0);
+		if (bValid)
+		{
+			WaitForMessage(OwnerComp, UBrainComponent::AIMessage_QueryFinished, MyMemory->RequestID);
+			return EBTNodeResult::InProgress;
+		}
 	}
 
 	return EBTNodeResult::Failed;
@@ -59,8 +147,8 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(UBehaviorTreeComponent& Owner
 
 FString UBTTask_RunEQSQuery::GetStaticDescription() const
 {
-	return FString::Printf(TEXT("%s: %s\nBlackboard key: %s"), *Super::GetStaticDescription(),
-		*GetNameSafe(QueryTemplate), *BlackboardKey.SelectedKeyName.ToString());
+	return bUseBBKey ? FString::Printf(TEXT("%s: EQS query indicated by %s blackboard key\nResult Blackboard key: %s"), *Super::GetStaticDescription(), *EQSQueryBlackboardKey.SelectedKeyName.ToString(), *BlackboardKey.SelectedKeyName.ToString())
+		: FString::Printf(TEXT("%s: %s\nResult Blackboard key: %s"), *Super::GetStaticDescription(), *GetNameSafe(QueryTemplate), *BlackboardKey.SelectedKeyName.ToString());
 }
 
 void UBTTask_RunEQSQuery::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
@@ -126,6 +214,17 @@ void UBTTask_RunEQSQuery::CollectKeyFilters()
 // 	}
 }
 
+void UBTTask_RunEQSQuery::PostLoad()
+{
+	Super::PostLoad();
+
+	if (QueryParams.Num() > 0)
+	{
+		FAIDynamicParam::GenerateConfigurableParamsFromNamedValues(*this, QueryConfig, QueryParams);
+		QueryParams.Empty();
+	}
+}
+
 #if WITH_EDITOR
 void UBTTask_RunEQSQuery::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -136,7 +235,11 @@ void UBTTask_RunEQSQuery::PostEditChangeProperty(FPropertyChangedEvent& Property
 	{
 		if (QueryTemplate)
 		{
-			QueryTemplate->CollectQueryParams(QueryParams);
+			QueryTemplate->CollectQueryParams(*this, QueryConfig);
+		}
+		else
+		{
+			QueryConfig.Reset();
 		}
 	}
 }

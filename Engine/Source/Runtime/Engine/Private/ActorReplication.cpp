@@ -143,6 +143,17 @@ void AActor::OnRep_ReplicatedMovement()
 			{
 				if (Role == ROLE_SimulatedProxy)
 				{
+#if ENABLE_NAN_DIAGNOSTIC
+					if (ReplicatedMovement.Location.ContainsNaN())
+					{
+						ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Location"));
+					}
+					if (ReplicatedMovement.Rotation.ContainsNaN())
+					{
+						ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Rotation"));
+					}
+#endif
+
 					PostNetReceiveVelocity(ReplicatedMovement.LinearVelocity);
 					PostNetReceiveLocationAndRotation();
 				}

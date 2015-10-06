@@ -126,8 +126,10 @@ FSupportedAreaData::FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass, int32
 ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bEnableDrawing(false)
-	, RuntimeGeneration(ERuntimeGenerationType::LegacyGeneration) //TODO: set to a valid value once bRebuildAtRuntime_DEPRECATED is removed
 	, bForceRebuildOnLoad(false)
+	, bCanBeMainNavData(true)
+	, bCanSpawnOnRebuild(true)
+	, RuntimeGeneration(ERuntimeGenerationType::LegacyGeneration) //TODO: set to a valid value once bRebuildAtRuntime_DEPRECATED is removed
 	, DataVersion(NAVMESHVER_LATEST)
 	, FindPathImplementation(NULL)
 	, FindHierarchicalPathImplementation(NULL)
@@ -182,11 +184,12 @@ void ANavigationData::PostInitProperties()
 void ANavigationData::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
+	
 	UWorld* MyWorld = GetWorld();
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
 
-	if (NavSys == nullptr || MyWorld == nullptr)
+	if (MyWorld == nullptr ||
+		(MyWorld->GetNetMode() != NM_Client && MyWorld->GetNavigationSystem() == nullptr) ||
+		(MyWorld->GetNetMode() == NM_Client && !bNetLoadOnClient))
 	{
 		CleanUpAndMarkPendingKill();
 	}

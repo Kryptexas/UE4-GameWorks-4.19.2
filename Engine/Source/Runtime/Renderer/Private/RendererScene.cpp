@@ -523,6 +523,11 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		OwnerPosition,
 		Primitive->CalcBounds(FTransform::Identity)
 	};
+
+	// Help track down primitive with bad bounds way before the it gets to the Renderer
+	ensureMsgf(!Primitive->Bounds.BoxExtent.ContainsNaN() && !Primitive->Bounds.Origin.ContainsNaN() && !FMath::IsNaN(Primitive->Bounds.SphereRadius) && FMath::IsFinite(Primitive->Bounds.SphereRadius),
+			TEXT("Nans found on Bounds for Primitive %s: Origin %s, BoxExtent %s, SphereRadius %f"), *Primitive->GetName(), *Primitive->Bounds.Origin.ToString(), *Primitive->Bounds.BoxExtent.ToString(), Primitive->Bounds.SphereRadius);
+
 	// Create any RenderThreadResources required.
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		FCreateRenderThreadResourcesCommand,
@@ -665,6 +670,10 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 			UpdateParams.LocalToWorld = Primitive->GetRenderMatrix();
 			UpdateParams.OwnerPosition = OwnerPosition;
 			UpdateParams.LocalBounds = Primitive->CalcBounds(FTransform::Identity);
+
+			// Help track down primitive with bad bounds way before the it gets to the Renderer
+			ensureMsgf(!Primitive->Bounds.BoxExtent.ContainsNaN() && !Primitive->Bounds.Origin.ContainsNaN() && !FMath::IsNaN(Primitive->Bounds.SphereRadius) && FMath::IsFinite(Primitive->Bounds.SphereRadius),
+				TEXT("Nans found on Bounds for Primitive %s: Origin %s, BoxExtent %s, SphereRadius %f"), *Primitive->GetName(), *Primitive->Bounds.Origin.ToString(), *Primitive->Bounds.BoxExtent.ToString(), Primitive->Bounds.SphereRadius);
 
 			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 				UpdateTransformCommand,

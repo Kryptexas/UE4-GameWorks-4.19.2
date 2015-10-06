@@ -46,6 +46,21 @@ static TAutoConsoleVariable<int32> CVarAllowConcurrentQueue(
 	1,
 	TEXT("If true, queue ticks concurrently."));
 
+static bool GCanDemoteInto[TG_MAX] =
+{
+	true,		// 	TG_PrePhysics,
+	false,		// 	TG_DuringAnimation,
+	true,		// 	TG_StartPhysics,
+	false,		// 	TG_DuringPhysics,
+	true,		// 	TG_EndPhysics,
+	true,		// 	TG_PreCloth,
+	true,		// 	TG_StartCloth,
+	true,		// 	TG_EndCloth,
+	true,		// 	TG_PostPhysics,
+	true,		// 	TG_PostUpdateWork,
+	true,		// 	TG_NewlySpawned,
+};
+
 template<typename InElementType, typename InAllocator = FDefaultAllocator>
 class TArrayWithThreadsafeAdd : public TArray<InElementType, InAllocator>
 {
@@ -1585,16 +1600,16 @@ void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTic
 
 			// tick group is the max of the prerequisites, the current tick group, and the desired tick group
 			ETickingGroup MyActualTickGroup =  FMath::Max<ETickingGroup>(MaxPrerequisiteTickGroup, FMath::Max<ETickingGroup>(TickGroup,TickContext.TickGroup));
-			if (MyActualTickGroup == TG_DuringPhysics && TickGroup != TG_DuringPhysics)
+			if (TickGroup != MyActualTickGroup && !GCanDemoteInto[MyActualTickGroup])
 			{
-				MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1); // if the tick was "promoted" to during async, but it was not designed for that, then it needs to go later
+				MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1); // if the tick was "promoted" to during another tick group, but it was not designed for that, then it needs to go later
 			}
 			ActualTickGroup = MyActualTickGroup;
 
 			if (TickState == FTickFunction::ETickState::Enabled)
 			{
-			TTS.QueueTickTask(&TaskPrerequisites, this, TickContext);
-		}
+				TTS.QueueTickTask(&TaskPrerequisites, this, TickContext);
+			}
 		}
 		TickQueuedGFrameCounter = GFrameCounter;
 	}
@@ -1651,9 +1666,9 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 
 			// tick group is the max of the prerequisites, the current tick group, and the desired tick group
 			ETickingGroup MyActualTickGroup =  FMath::Max<ETickingGroup>(MaxPrerequisiteTickGroup, FMath::Max<ETickingGroup>(TickGroup,TickContext.TickGroup));
-			if (MyActualTickGroup == TG_DuringPhysics && TickGroup != TG_DuringPhysics)
+			if (TickGroup != MyActualTickGroup && !GCanDemoteInto[MyActualTickGroup])
 			{
-				MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1); // if the tick was "promoted" to during async, but it was not designed for that, then it needs to go later
+				MyActualTickGroup = ETickingGroup(MyActualTickGroup + 1); // if the tick was "promoted" to during another tick group, but it was not designed for that, then it needs to go later
 			}
 			ActualTickGroup = MyActualTickGroup;
 

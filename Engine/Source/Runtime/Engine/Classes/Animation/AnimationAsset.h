@@ -28,6 +28,8 @@ struct FMarkerPair
 	float TimeToMarker;
 
 	FMarkerPair() : MarkerIndex(MarkerIndexSpecialValues::Unitialized) {}
+
+	void Reset() { MarkerIndex = MarkerIndexSpecialValues::Unitialized; }
 };
 
 struct FMarkerTickRecord
@@ -37,6 +39,8 @@ struct FMarkerTickRecord
 	FMarkerPair NextMarker;
 
 	bool IsValid() const { return PreviousMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized && NextMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized; }
+
+	void Reset() { PreviousMarker.Reset(); NextMarker.Reset(); }
 };
 
 /** Transform definition */
@@ -66,11 +70,13 @@ struct FBlendSampleData
 		:	SampleDataIndex(0)
 		,	TotalWeight(0.f)
 		,	Time(0.f)
+		,	PreviousTime(0.f)
 	{}
 	FBlendSampleData(int32 Index)
 		:	SampleDataIndex(Index)
 		,	TotalWeight(0.f)
 		,	Time(0.f)
+		,	PreviousTime(0.f)
 	{}
 	bool operator==( const FBlendSampleData& Other ) const 
 	{
@@ -177,22 +183,37 @@ struct FAnimExtractContext
 
 //Represent a current play position in an animation
 //based on sync markers
+USTRUCT(BlueprintType)
 struct FMarkerSyncAnimPosition
 {
+	GENERATED_USTRUCT_BODY()
+
 	/** The marker we have passed*/
+	UPROPERTY()
 	FName PreviousMarkerName;
 
 	/** The marker we are heading towards */
+	UPROPERTY()
 	FName NextMarkerName;
 
 	/** Value between 0 and 1 representing where we are:
 	0   we are at PreviousMarker
 	1   we are at NextMarker
 	0.5 we are half way between the two */
+	UPROPERTY()
 	float PositionBetweenMarkers;
 
 	/** Is this a valid Marker Sync Position */
 	bool IsValid() const { return !(PreviousMarkerName == NAME_None && NextMarkerName == NAME_None); }
+
+	FMarkerSyncAnimPosition()
+	{}
+
+	FMarkerSyncAnimPosition(const FName& InPrevMarkerName, const FName& InNextMarkerName, const float& InAlpha)
+		: PreviousMarkerName(InPrevMarkerName)
+		, NextMarkerName(InNextMarkerName)
+		, PositionBetweenMarkers(InAlpha)
+	{}
 };
 
 struct FPassedMarker
@@ -214,6 +235,8 @@ struct FAnimTickRecord
 	class UAnimationAsset* SourceAsset;
 
 	float* TimeAccumulator;
+	FMarkerTickRecord* MarkerTickRecord;
+
 	FVector BlendSpacePosition;	
 	FBlendFilter* BlendFilter;
 	TArray<FBlendSampleData>* BlendSampleDataCache;
@@ -222,15 +245,10 @@ struct FAnimTickRecord
 	bool bLooping;
 	
 	bool bCanUseMarkerSync;
-	
-	FMarkerTickRecord MarkerTickRecord;
-
-	void* SourceNodeRef; //Used to find last frames TickRecord
 
 public:
 	FAnimTickRecord()
 		: bCanUseMarkerSync(false)
-		, SourceNodeRef(nullptr)
 	{
 	}
 };
@@ -268,7 +286,7 @@ public:
 
 	bool IsMarkerSyncStartValid() const
 	{
-		return !(MarkerSyncStartPostion.PreviousMarkerName == NAME_None && MarkerSyncStartPostion.NextMarkerName == NAME_None);
+		return MarkerSyncStartPostion.IsValid();
 	}
 
 	TArray<FPassedMarker> MarkersPassedThisTick;
@@ -299,7 +317,10 @@ namespace EAnimGroupRole
 		AlwaysFollower,
 
 		/** This node will always be a leader (if more than one node is AlwaysLeader, the last one ticked wins). */
-		AlwaysLeader
+		AlwaysLeader,
+
+		/** This node will be excluded from the sync group while blending in. Once blended in it will be the sync group leader until blended out*/
+		TransitionLeader,
 	};
 }
 
@@ -342,7 +363,7 @@ public:
 	ENGINE_API void TestTickRecordForLeadership(EAnimGroupRole::Type MembershipType);
 
 	// Called after all tick records have been added but before assets are actually ticked
-	ENGINE_API void Finalize(const TArray<FName>& PreviousValidMarkers, int32 PreviousGroupLeader);
+	ENGINE_API void Finalize(const FAnimGroupInstance* PreviousGroup);
 };
 
 /** Utility struct to accumulate root motion. */

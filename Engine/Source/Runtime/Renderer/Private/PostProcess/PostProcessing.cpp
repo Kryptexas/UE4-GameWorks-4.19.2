@@ -251,6 +251,7 @@ static void AddTonemapper(
 	Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
 }
 
+#if WITH_EDITOR
 static void AddSelectionOutline(FPostprocessContext& Context)
 {
 	FRenderingCompositePass* SelectionColorPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSelectionOutlineColor());
@@ -262,6 +263,7 @@ static void AddSelectionOutline(FPostprocessContext& Context)
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 }
+#endif
 
 static void AddGammaOnlyTonemapper(FPostprocessContext& Context)
 {
@@ -1547,7 +1549,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
-		// Show the selection outline if it is in the editor and we arent in wireframe 
+#if WITH_EDITOR
+		// Show the selection outline if it is in the editor and we aren't in wireframe 
 		// If the engine is in demo mode and game view is on we also do not show the selection outline
 		if ( GIsEditor
 			&& View.Family->EngineShowFlags.SelectionOutline
@@ -1565,9 +1568,9 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(true));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-			//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
+#endif
 
 		if (View.Family->EngineShowFlags.GBufferHints && FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
@@ -2042,13 +2045,14 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessAa);
 		}
 
+#if WITH_EDITOR
 		if (FSceneRenderer::ShouldCompositeEditorPrimitives(View) )
 		{
 			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
 			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-			//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
 			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 		}
+#endif
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{

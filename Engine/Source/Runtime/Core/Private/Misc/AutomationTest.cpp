@@ -38,7 +38,24 @@ void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const 
 		// Log items
 		else
 		{
-			CurTest->AddLogItem( FString( V ) );
+			// IMPORTANT NOTE: This code will never be called in a build with NO_LOGGING defined, which means pretty much
+			// any Test or Shipping config build.  If you're trying to use the automation test framework for performance
+			// data capture in a Test config, you'll want to call the AddAnalyticsItemToCurrentTest() function instead of
+			// using this log interception stuff.
+
+			FString LogString = FString(V);
+			FString AnalyticsString = TEXT("AUTOMATIONANALYTICS");
+			if (LogString.StartsWith(*AnalyticsString))
+			{
+				//Remove "analytics" from the string
+				LogString = LogString.Right(LogString.Len() - (AnalyticsString.Len() + 1));
+
+				CurTest->AddAnalyticsItem(LogString);
+			}
+			else
+			{
+				CurTest->AddLogItem(LogString);
+			}
 		}
 	}
 }
@@ -642,6 +659,19 @@ bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& Ou
 }
 
 
+void FAutomationTestFramework::AddAnalyticsItemToCurrentTest( const FString& AnalyticsItem )
+{
+	if( CurrentTest != nullptr )
+	{
+		CurrentTest->AddAnalyticsItem( AnalyticsItem );
+	}
+	else
+	{
+		UE_LOG( LogAutomationTest, Warning, TEXT( "AddAnalyticsItemToCurrentTest() called when no automation test was actively running!" ) );
+	}
+}
+
+
 FAutomationTestFramework::FAutomationTestFramework()
 :	CachedContext( NULL )
 ,	RequestedTestFilter(EAutomationTestFlags::SmokeFilter)
@@ -693,6 +723,12 @@ void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 	{
 		ExecutionInfo.LogItems.Add( InLogItem );
 	}
+}
+
+
+void FAutomationTestBase::AddAnalyticsItem(const FString& InAnalyticsItem)
+{
+	ExecutionInfo.AnalyticsItems.Add(InAnalyticsItem);
 }
 
 

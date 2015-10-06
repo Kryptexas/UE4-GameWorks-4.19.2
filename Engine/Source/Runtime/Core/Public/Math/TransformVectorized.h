@@ -43,17 +43,29 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
-		ensureMsgf(!VectorContainsNaNOrInfinite(Scale3D), TEXT("FTransform Vectorized Scale3D contains NaN"));
+		if (VectorContainsNaNOrInfinite(Scale3D))
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized Scale3D contains NaN"));
+			const_cast<FTransform*>(this)->Scale3D = VectorSet_W0( VectorOne() );
+		}
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Translate() const
 	{
-		ensureMsgf(!VectorContainsNaNOrInfinite(Translation), TEXT("FTransform Vectorized Translation contains NaN"));
+		if (VectorContainsNaNOrInfinite(Translation))
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized Translation contains NaN"));
+			const_cast<FTransform*>(this)->Translation = VectorZero();
+		}
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const
 	{
-		ensureMsgf(!VectorContainsNaNOrInfinite(Rotation), TEXT("FTransform Vectorized Rotation contains NaN"));
+		if (VectorContainsNaNOrInfinite(Rotation))
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized Rotation contains NaN"));
+			const_cast<FTransform*>(this)->Rotation = VectorSet_W1( VectorZero() );
+		}
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_All() const
@@ -62,11 +74,22 @@ public:
 		DiagnosticCheckNaN_Rotate();
 		DiagnosticCheckNaN_Translate();
 	}
+
+	FORCEINLINE void DiagnosticCheck_IsValid() const
+	{
+		DiagnosticCheckNaN_All();
+		if (!IsValid())
+		{
+			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized transform is not valid: %s"), *ToHumanReadableString());
+		}
+		
+	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN_Translate() const {}
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const {}
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const {}
 	FORCEINLINE void DiagnosticCheckNaN_All() const {}
+	FORCEINLINE void DiagnosticCheck_IsValid() const {}
 #endif
 
 	/**

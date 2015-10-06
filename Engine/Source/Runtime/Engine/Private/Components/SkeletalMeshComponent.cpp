@@ -38,6 +38,7 @@
 #endif
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
+TAutoConsoleVariable<int32> CVarUseParallelAnimUpdate(TEXT("a.ParallelAnimUpdate"), 0, TEXT("If != 0, then we update animation blend tree, native update, asset players and montages (is possible) on worker threads."));
 
 DECLARE_CYCLE_STAT(TEXT("Swap Anim Buffers"), STAT_CompleteAnimSwapBuffers, STATGROUP_Anim);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, STATGROUP_Anim, );
@@ -119,7 +120,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	PrimaryComponentTick.TickGroup = CVarUseParallelAnimationEvaluation.GetValueOnGameThread() != 0 && CVarUseParallelAnimUpdate.GetValueOnGameThread() != 0 ? TG_DuringAnimation : TG_PrePhysics;
 	bWantsInitializeComponent = true;
 	GlobalAnimRateScale = 1.0f;
 	bNoSkeletonUpdate = false;
@@ -174,6 +175,7 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 	Super::RegisterComponentTickFunctions(bRegister);
 
 	UpdatePreClothTickRegisteredState();
+	UpdateDuringAnimationTickRegisteredState();
 }
 
 void USkeletalMeshComponent::RegisterPreClothTick(bool bRegister)
@@ -209,6 +211,20 @@ void USkeletalMeshComponent::UpdatePreClothTickRegisteredState()
 {
 	bool bShouldRunClothTick = ShouldRunPreClothTick();
 	RegisterPreClothTick(bShouldRunClothTick && PrimaryComponentTick.IsTickFunctionRegistered());
+}
+
+void USkeletalMeshComponent::UpdateDuringAnimationTickRegisteredState()
+{
+	if( CVarUseParallelAnimationEvaluation.GetValueOnGameThread() != 0 && 
+		CVarUseParallelAnimUpdate.GetValueOnGameThread() != 0 &&
+		FApp::ShouldUseThreadingForPerformance())
+	{
+		PrimaryComponentTick.TickGroup = TG_DuringAnimation;
+	}
+	else
+	{
+		PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	}
 }
 
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
@@ -289,8 +305,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 
 		InitializeAnimScriptInstance(bForceReinit);
 
-        //Make sure we have a valid pose		
-        TickAnimation(0.f); 
+		//Make sure we have a valid pose		
+		TickAnimation(0.f, false); 
 
 		RefreshBoneTransforms();
 		UpdateComponentToWorld();
@@ -478,7 +494,7 @@ void USkeletalMeshComponent::LoadedFromAnotherClass(const FName& OldClassName)
 }
 #endif // WITH_EDITOR
 
-void USkeletalMeshComponent::TickAnimation(float DeltaTime)
+void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRootMotion)
 {
 
 	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
@@ -488,7 +504,7 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 		if (AnimScriptInstance != NULL)
 		{
 			// Tick the animation
-			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale);
+			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, bNeedsValidRootMotion);
 
 			// TODO @LinaH - I've hit access violations due to AnimScriptInstance being NULL after this, probably due to
 			// AnimNotifies?  Please take a look and fix as we discussed.  Temporary fix:
@@ -614,7 +630,7 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 	if ((AnimUpdateRateParams != nullptr) && (!ShouldUseUpdateRateOptimizations() || !AnimUpdateRateParams->ShouldSkipUpdate()))
 	{
 		float TimeAdjustment = AnimUpdateRateParams->GetTimeAdjustment();
-		TickAnimation(DeltaTime + TimeAdjustment);
+		TickAnimation(DeltaTime + TimeAdjustment, bNeedsValidRootMotion);
 		LastPoseTickTime = GetWorld()->TimeSeconds;
 		if (CVarSpewAnimRateOptimization.GetValueOnGameThread() > 0 && Ticked.Increment()==500)
 		{
@@ -1039,6 +1055,12 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 		return;
 	}
 
+	// update anim instance
+	if(AnimEvaluationContext.bDoUpdate)
+	{
+		AnimScriptInstance->ParallelUpdateAnimation();
+	}
+
 	// evaluate pure animations, and fill up LocalAtoms
 	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation, OutCurve);
 	// Fill SpaceBases from LocalAtoms
@@ -1119,7 +1141,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bDoPAE = !!CVarUseParallelAnimationEvaluation.GetValueOnGameThread() && FApp::ShouldUseThreadingForPerformance();
 
-	const bool bDoParallelEvaluation = bDoPAE && bShouldDoEvaluation && TickFunction && TickFunction->IsCompletionHandleValid();
+	const bool bDoParallelEvaluation = bDoPAE && bShouldDoEvaluation && TickFunction && (TickFunction->GetActualTickGroup() == TickFunction->TickGroup) && TickFunction->IsCompletionHandleValid();
 
 	const bool bBlockOnTask = !bDoParallelEvaluation;  // If we aren't trying to do parallel evaluation then we
 															// will need to wait on an existing task.
@@ -1137,6 +1159,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
 
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;
+	AnimEvaluationContext.bDoUpdate = AnimScriptInstance && AnimScriptInstance->NeedsUpdate();
 	
 	AnimEvaluationContext.bDoInterpolation = bDoEvaluationRateOptimization && !bInvalidCachedBones && AnimUpdateRateParams->ShouldInterpolateSkippedFrames();
 	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoEvaluationRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
@@ -1172,20 +1195,20 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 			AnimEvaluationContext.VertexAnims.Append(ActiveVertexAnims);
 		}
 
-			// start parallel work
-			check(!IsValidRef(ParallelAnimationEvaluationTask));
-			ParallelAnimationEvaluationTask = TGraphTask<FParallelAnimationEvaluationTask>::CreateTask().ConstructAndDispatchWhenReady(this);
+		// start parallel work
+		check(!IsValidRef(ParallelAnimationEvaluationTask));
+		ParallelAnimationEvaluationTask = TGraphTask<FParallelAnimationEvaluationTask>::CreateTask().ConstructAndDispatchWhenReady(this);
 
-			// set up a task to run on the game thread to accept the results
-			FGraphEventArray Prerequistes;
-			Prerequistes.Add(ParallelAnimationEvaluationTask);
-			FGraphEventRef TickCompletionEvent = TGraphTask<FParallelAnimationCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
+		// set up a task to run on the game thread to accept the results
+		FGraphEventArray Prerequistes;
+		Prerequistes.Add(ParallelAnimationEvaluationTask);
+		FGraphEventRef TickCompletionEvent = TGraphTask<FParallelAnimationCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
 
-			if ( TickFunction )
-			{
-				TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
-			}
+		if ( TickFunction )
+		{
+			TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
 		}
+	}
 	else
 	{
 		if (AnimEvaluationContext.bDoEvaluation)
@@ -1200,15 +1223,22 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, ActiveVertexAnims, RootBoneTranslation, AnimEvaluationContext.Curve);
 			}
 		}
-		else if (!AnimEvaluationContext.bDoInterpolation)
+		else
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_RefreshBoneTransforms_CopyBones);
-			LocalAtoms.Reset();
-			LocalAtoms.Append(CachedLocalAtoms);
-			TArray<FTransform>& LocalEditableSpaceBases = GetEditableSpaceBases();
-			LocalEditableSpaceBases.Reset();
-			LocalEditableSpaceBases.Append(CachedSpaceBases);
-			AnimEvaluationContext.Curve.CopyFrom(CachedCurve);
+			if (!AnimEvaluationContext.bDoInterpolation)
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_RefreshBoneTransforms_CopyBones);
+				LocalAtoms.Reset();
+				LocalAtoms.Append(CachedLocalAtoms);
+				TArray<FTransform>& LocalEditableSpaceBases = GetEditableSpaceBases();
+				LocalEditableSpaceBases.Reset();
+				LocalEditableSpaceBases.Append(CachedSpaceBases);
+				AnimEvaluationContext.Curve.CopyFrom(CachedCurve);
+			}
+			if(AnimEvaluationContext.bDoUpdate)
+			{
+				AnimScriptInstance->ParallelUpdateAnimation();
+			}
 		}
 
 		PostAnimEvaluation(AnimEvaluationContext);
@@ -1252,10 +1282,15 @@ FClothSimulationContext::FClothSimulationContext()
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
+	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
+
+	if(AnimEvaluationContext.bDoUpdate)
+	{
+		EvaluationContext.AnimInstance->PostUpdateAnimation();
+	}
+
 	AnimEvaluationContext.Clear();
 
-	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
-	
 	if (EvaluationContext.bDuplicateToCacheCurve)
 	{
 		CachedCurve.InitFrom(EvaluationContext.Curve);
@@ -1307,7 +1342,6 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		// Flip buffers, update bounds, attachments etc.
 		PostBlendPhysics();
 	}
-
 
 	PrepareCloth();
 }
@@ -1452,6 +1486,13 @@ void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 
 UAnimInstance* USkeletalMeshComponent::GetAnimInstance() const
 {
+	// check for concurrent access
+#if DO_CHECK
+	if(AnimScriptInstance && PrimaryComponentTick.TickGroup == TG_DuringAnimation)
+	{
+		check(!AnimScriptInstance->IsRunningParallelEvaluation());
+	}
+#endif
 	return AnimScriptInstance;
 }
 
@@ -1849,6 +1890,12 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 	if (!bWorldToComponentUpdated)
 	{
 		UpdateComponentToWorld();
+	}
+
+	if (ComponentToWorld.ContainsNaN())
+	{
+		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("SkeletalMeshComponent: ComponentToWorld contains NaN!"));
+		ComponentToWorld = FTransform::Identity;
 	}
 
 	const FTransform NewWorldTransform = InTransform * ComponentToWorld;

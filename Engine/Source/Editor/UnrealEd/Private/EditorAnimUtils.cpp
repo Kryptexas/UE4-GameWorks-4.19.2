@@ -159,9 +159,24 @@ namespace EditorAnimUtils
 	{
 		if(!HasDuplicates())
 		{
-			DuplicatedSequences = DuplicateAssets<UAnimSequence>(AnimSequencesToRetarget, DestinationPackage, NameRule);
-			DuplicatedComplexAssets = DuplicateAssets<UAnimationAsset>(ComplexAnimsToRetarget, DestinationPackage, NameRule);
-			DuplicatedBlueprints = DuplicateAssets<UAnimBlueprint>(AnimBlueprintsToRetarget, DestinationPackage, NameRule);
+			TArray<UAnimSequence*> AnimSequencesToDuplicate = AnimSequencesToRetarget;
+			TArray<UAnimationAsset*> ComplexAnimsToDuplicate = ComplexAnimsToRetarget;
+			TArray<UAnimBlueprint*> AnimBlueprintsToDuplicate = AnimBlueprintsToRetarget;
+
+			// We only want to duplicate unmapped assets, so we remove mapped assets from the list we're duplicating
+			for(TPair<UAnimSequence*, UAnimSequence*>& Pair : RemappedSequences)
+			{
+				AnimSequencesToDuplicate.Remove(Pair.Key);
+			}
+
+			for(TPair<UAnimationAsset*, UAnimationAsset*>& Pair : RemappedComplexAssets)
+			{
+				ComplexAnimsToDuplicate.Remove(Pair.Key);
+			}
+
+			DuplicatedSequences = DuplicateAssets<UAnimSequence>(AnimSequencesToDuplicate, DestinationPackage, NameRule);
+			DuplicatedComplexAssets = DuplicateAssets<UAnimationAsset>(ComplexAnimsToDuplicate, DestinationPackage, NameRule);
+			DuplicatedBlueprints = DuplicateAssets<UAnimBlueprint>(AnimBlueprintsToDuplicate, DestinationPackage, NameRule);
 
 			DuplicatedSequences.GenerateValueArray(AnimSequencesToRetarget);
 			DuplicatedComplexAssets.GenerateValueArray(ComplexAnimsToRetarget);
@@ -227,15 +242,20 @@ namespace EditorAnimUtils
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
 		}
 
+		// Put duplicated and remapped assets in one list
+		RemappedSequences.Append(DuplicatedSequences);
+		RemappedComplexAssets.Append(DuplicatedComplexAssets);
+
 		// convert all Animation Blueprints and compile 
 		for ( auto AnimBPIter = AnimBlueprintsToRetarget.CreateIterator(); AnimBPIter; ++AnimBPIter )
 		{
 			UAnimBlueprint * AnimBlueprint = (*AnimBPIter);
 
 			AnimBlueprint->TargetSkeleton = NewSkeleton;
-			if(HasDuplicates())
+
+			if(RemappedSequences.Num() > 0 || RemappedComplexAssets.Num() > 0)
 			{
-				ReplaceReferredAnimationsInBlueprint(AnimBlueprint, DuplicatedComplexAssets, DuplicatedSequences);
+				ReplaceReferredAnimationsInBlueprint(AnimBlueprint, RemappedComplexAssets, RemappedSequences);
 			}
 
 			bool bIsRegeneratingOnLoad = false;
@@ -244,6 +264,18 @@ namespace EditorAnimUtils
 			FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
 			AnimBlueprint->PostEditChange();
 			AnimBlueprint->MarkPackageDirty();
+		}
+	}
+
+	void FAnimationRetargetContext::AddRemappedAsset(UAnimationAsset* OriginalAsset, UAnimationAsset* NewAsset)
+	{
+		if(OriginalAsset->IsA(UAnimSequence::StaticClass()) && NewAsset->IsA(UAnimSequence::StaticClass()))
+		{
+			RemappedSequences.Add(Cast<UAnimSequence>(OriginalAsset), Cast<UAnimSequence>(NewAsset));
+		}
+		else if(OriginalAsset->IsA(UAnimationAsset::StaticClass()) && NewAsset->IsA(UAnimationAsset::StaticClass()))
+		{
+			RemappedComplexAssets.Add(Cast<UAnimationAsset>(OriginalAsset), Cast<UAnimationAsset>(NewAsset));
 		}
 	}
 

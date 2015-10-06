@@ -41,6 +41,8 @@ namespace HLODOutliner
 		// SMultiColumnTableRow overrides
 		virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 
+		/** Returns World set through the HLODOutliner parent widget */
+		UWorld* GetWorld() const { return World; }
 	protected:
 		/** Returns the display string of the node */
 		FText GetItemDisplayString() const;
@@ -54,6 +56,8 @@ namespace HLODOutliner
 		virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 		virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 		//~ End STableRow Interface.
+
+		
 
 	private:
 		/** The info about the widget that we are visualizing. */

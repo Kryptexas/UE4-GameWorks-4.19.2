@@ -12,7 +12,6 @@ public class FunctionalTesting : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"UnrealEd",
                 "MessageLog",
                 "AIModule"
 			}

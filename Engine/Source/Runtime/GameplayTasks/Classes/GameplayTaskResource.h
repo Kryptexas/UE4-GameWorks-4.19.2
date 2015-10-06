@@ -14,6 +14,7 @@ protected:
 	int32 ManualResourceID;
 
 private:
+	UPROPERTY()
 	int8 AutoResourceID;
 
 public:

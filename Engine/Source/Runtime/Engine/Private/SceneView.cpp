@@ -25,9 +25,42 @@
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
+DECLARE_CYCLE_STAT(TEXT("StartFinalPostprocessSettings"), STAT_StartFinalPostprocessSettings, STATGROUP_Engine);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FForwardLightData,TEXT("ForwardLightData"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
+
+FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
+{
+	FBuiltinSamplersParameters UB;
+	UB.Bilinear = nullptr;
+	UB.BilinearClamped = nullptr;
+	UB.Point = nullptr;
+	UB.PointClamped = nullptr;
+	UB.Trilinear = nullptr;
+	UB.TrilinearClamped = nullptr;
+	SetContents(UB);
+}
+
+void FBuiltinSamplersUniformBuffer::InitDynamicRHI()
+{
+	FBuiltinSamplersParameters UB;
+
+	UB.Bilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear,	AM_Wrap, AM_Wrap, AM_Wrap));
+	UB.BilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear,	AM_Clamp, AM_Clamp, AM_Clamp));
+	UB.Point =				RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point,		AM_Wrap, AM_Wrap, AM_Wrap));
+	UB.PointClamped =		RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point,		AM_Clamp, AM_Clamp, AM_Clamp));
+	UB.Trilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear,	AM_Wrap, AM_Wrap, AM_Wrap));
+	UB.TrilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear,	AM_Clamp, AM_Clamp, AM_Clamp));
+	SetContents(UB);
+
+	TUniformBuffer<FBuiltinSamplersParameters>::InitDynamicRHI();
+}
+
+TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;
+
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
@@ -1109,6 +1142,8 @@ void DoPostProcessVolume(IInterface_PostProcessVolume* Volume, FVector ViewLocat
 
 void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 {
+	SCOPE_CYCLE_COUNTER(STAT_StartFinalPostprocessSettings);
+
 	check(IsInGameThread());
 
 	// The final settings for the current viewer position (blended together from many volumes).

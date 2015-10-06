@@ -113,7 +113,7 @@ FLODCluster::FLODCluster(AActor* Actor1)
 	AddActor(Actor1);
 	// calculate new filling factor
 	FillingFactor = 1.f;	
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	ClusterCost = (Bound.W * Bound.W * Bound.W);
 }
 
 FLODCluster::FLODCluster(AActor* Actor1, AActor* Actor2)
@@ -125,7 +125,7 @@ FLODCluster::FLODCluster(AActor* Actor1, AActor* Actor2)
 	
 	// calculate new filling factor
 	FillingFactor = CalculateFillingFactor(Actor1Bound, 1.f, Actor2Bound, 1.f);	
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 }
 
 FLODCluster::FLODCluster()
@@ -133,7 +133,7 @@ FLODCluster::FLODCluster()
 , bValid(false)
 {
 	FillingFactor = 1.0f;
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	ClusterCost = (Bound.W * Bound.W * Bound.W);
 }
 
 FSphere FLODCluster::AddActor(AActor* NewActor)
@@ -145,7 +145,7 @@ FSphere FLODCluster::AddActor(AActor* NewActor)
 
 	NewActor->GetActorBounds(false, Origin, Extent);
 
-	// scale 0.01 (change to meter from centimeter) QQ Extens.GetSize	
+	// scale 0.01 (change to meter from centimeter)
 	FSphere NewBound = FSphere(Origin*CM_TO_METER, Extent.Size()*CM_TO_METER);
 	Bound += NewBound;
 
@@ -196,7 +196,7 @@ void FLODCluster::MergeClusters(const FLODCluster& Other)
 	FillingFactor = CalculateFillingFactor(Bound, FillingFactor, Other.Bound, Other.FillingFactor);
 	Bound += Other.Bound;	
 
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 	
 
 	for (auto& Actor: Other.Actors)
@@ -233,7 +233,7 @@ void FLODCluster::SubtractCluster(const FLODCluster& Other)
 		Bound = FSphere(ForceInitToZero);
 		AddActor(NewActors[0]);
 		FillingFactor = 1.f;
-		ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+		ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 	}
 	else if (NewActors.Num() >= 2)
 	{
@@ -256,9 +256,10 @@ void FLODCluster::SubtractCluster(const FLODCluster& Other)
 			Bound += NewBound;
 		}
 
-		ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+		ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 	}
 }
+
 
 ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes)
 {
@@ -270,7 +271,7 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx];
 
 		// Retrieve draw distance for current and next LOD level
-		const float DrawDistance = LODSetup.DrawDistance;		
+		const float DrawDistance = LODSetup.DrawDistance;
 		const int32 LODCount = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup.Num();
 		const float NextDrawDistance = (LODIdx < (LODCount - 1)) ? InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx + 1].DrawDistance : 0.0f;
 
@@ -280,10 +281,10 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 		{
 			TArray<UStaticMeshComponent*> AllComponents;
 
-			for (auto& Actor: Actors)
+			for (auto& Actor : Actors)
 			{
 				TArray<UStaticMeshComponent*> Components;
-				
+
 				if (Actor->IsA<ALODActor>())
 				{
 					HierarchicalLODUtils::ExtractStaticMeshComponentsFromLODActor(Actor, Components);
@@ -321,7 +322,7 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 						MeshUtilities.CreateProxyMesh(Actors, LODSetup.ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
 					}
 					else
-					{						
+					{
 						MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), LODSetup.MergeSetting, AssetsOuter, PackageName, -1, OutAssets, OutProxyLocation, LODSetup.DrawDistance, true);
 					}
 
@@ -331,7 +332,7 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 						AssetIter->ClearFlags(RF_Public | RF_Standalone);
 					}
 
-					
+
 					// set staticmesh
 					for (auto& Asset : OutAssets)
 					{
@@ -340,30 +341,42 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 						if (StaticMesh)
 						{
 							MainMesh = StaticMesh;
+							break;
 						}
 					}
 				}
-							
+
 
 				if (MainMesh || !bCreateMeshes)
 				{
 					UWorld* LevelWorld = Cast<UWorld>(InLevel->GetOuter());
 
-					check (LevelWorld);
+					check(LevelWorld);
 
 					FTransform Transform;
-					Transform.SetLocation(OutProxyLocation);					
-										
+					Transform.SetLocation(OutProxyLocation);
+
 					// create LODActors using the current Actors
 					ALODActor* NewActor = nullptr;
-										
-					NewActor = LevelWorld->SpawnActor<ALODActor>(ALODActor::StaticClass(), Transform);				
+
+					NewActor = LevelWorld->SpawnActor<ALODActor>(ALODActor::StaticClass(), Transform);
 					NewActor->SubObjects = OutAssets;
-					NewActor->LODLevel = LODIdx+1;
+					NewActor->LODLevel = LODIdx + 1;
 					NewActor->LODDrawDistance = DrawDistance;
-					NewActor->SetStaticMesh( MainMesh );
+					NewActor->SetStaticMesh(MainMesh);
+
+					const bool bCalculateDrawDistance = false;
+					if (LODSetup.bSimplifyMesh && bCalculateDrawDistance)
+					{
+						/*ScreenSize = 2.0f * Bounds.SphereRadius / ViewDistance;*/
+						float TotalScreen = 1920.0f * 1080.0f;
+						float SizeOnScreen = TotalScreen / (LODSetup.ProxySetting.ScreenSize*LODSetup.ProxySetting.ScreenSize);
+						float ViewDistance = (MainMesh->GetBounds().SphereRadius * 2.0f) / SizeOnScreen;
+					}
+
+
 					// now set as parent
-					for(auto& Actor : Actors)
+					for (auto& Actor : Actors)
 					{
 						NewActor->AddSubActor(Actor);
 					}

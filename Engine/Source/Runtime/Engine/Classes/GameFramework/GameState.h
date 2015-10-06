@@ -45,11 +45,11 @@ class ENGINE_API AGameState : public AInfo
 protected:
 
 	/** What match state we are currently in */
-	UPROPERTY(replicatedUsing=OnRep_MatchState)
+	UPROPERTY(ReplicatedUsing=OnRep_MatchState, BlueprintReadOnly, VisibleInstanceOnly, Category = GameState)
 	FName MatchState;
 
 	/** Previous map state, used to handle if multiple transitions happen per frame */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = GameState)
 	FName PreviousMatchState;
 
 	/** Called when the state transitions to WaitingToStart */

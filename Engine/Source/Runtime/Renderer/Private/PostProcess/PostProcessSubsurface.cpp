@@ -894,12 +894,6 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceRecombine::ComputeOutputDesc
 	Ret.Reset();
 	Ret.DebugName = TEXT("SceneColorSubsurface");
 
-	if(bSingleViewportMode)
-	{
-		// we don't need an alpha channel any more as it was used for ScreenSpaceSubsurfaceScattering only
-		Ret.Format = (Ret.Format == PF_FloatRGBA) ? PF_FloatRGB : PF_FloatRGBA;
-	}
-
 	// we replace the HDR SceneColor with this one
 	return Ret;
 }

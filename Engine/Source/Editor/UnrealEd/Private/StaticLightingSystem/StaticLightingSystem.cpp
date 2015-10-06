@@ -23,6 +23,8 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "RendererInterface.h"
 #include "EditorBuildUtils.h"
 
+#include "Engine/LODActor.h"
+
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 
 // Don't compile the static lighting system on consoles.
@@ -757,6 +759,48 @@ void FStaticLightingSystem::PostInvalidateStaticLighting()
 	}
 }
 
+void UpdateStaticLightingHLODTreeIndices(TMultiMap<AActor*, FStaticLightingMesh*>& ActorMeshMap, ALODActor* LODActor, uint32 HLODTreeIndex, uint32& HLODLeafIndex)
+{
+	check(LODActor && HLODTreeIndex > 0);
+
+	uint32 LeafStartIndex = HLODLeafIndex;
+	++HLODLeafIndex;
+
+	for (AActor* SubActor : LODActor->SubActors)
+	{
+		if (ALODActor* LODActor = Cast<ALODActor>(SubActor))
+		{
+			UpdateStaticLightingHLODTreeIndices(ActorMeshMap, LODActor, HLODTreeIndex, HLODLeafIndex);
+		}
+		else
+		{
+			TArray<FStaticLightingMesh*> SubActorMeshes;
+			ActorMeshMap.MultiFind(SubActor,SubActorMeshes);
+
+			for (FStaticLightingMesh* SubActorMesh : SubActorMeshes)
+			{
+				check(SubActorMesh->HLODTreeIndex == 0)
+				{
+					SubActorMesh->HLODTreeIndex = HLODTreeIndex;
+					SubActorMesh->HLODChildStartIndex = HLODLeafIndex;
+					SubActorMesh->HLODChildEndIndex = HLODLeafIndex;
+					++HLODLeafIndex;
+				}
+			}
+		}
+	}
+
+	TArray<FStaticLightingMesh*> LODActorMeshes;
+	ActorMeshMap.MultiFind(LODActor, LODActorMeshes);
+	for (FStaticLightingMesh* LODActorMesh : LODActorMeshes)
+	{
+		LODActorMesh->HLODTreeIndex = HLODTreeIndex;
+		LODActorMesh->HLODChildStartIndex = LeafStartIndex;
+		LODActorMesh->HLODChildEndIndex = HLODLeafIndex - 1;
+		check(LODActorMesh->HLODChildEndIndex >= LODActorMesh->HLODChildStartIndex);
+	}
+}
+
 void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryForLighting, bool bForceNoPrecomputedLighting)
 {
 	uint32 ActorsInvalidated = 0;
@@ -771,7 +815,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 	
 	bool bObjectsToBuildLightingForFound = false;
 	// Gather static lighting info from actor components.
-	for( int32 LevelIndex=0; LevelIndex<World->GetNumLevels(); LevelIndex++ )
+	for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
 	{
 		bool bMarkLevelDirty = false;
 		ULevel* Level = World->GetLevel(LevelIndex);
@@ -779,17 +823,17 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 		// If the geometry is dirty and we're allowed to automatically clean it up, do so
 		if (Level->bGeometryDirtyForLighting)
 		{
-			UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build detected that geometry needs to be rebuilt to avoid incorrect lighting (due to modifying a lighting property).") );
+			UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build detected that geometry needs to be rebuilt to avoid incorrect lighting (due to modifying a lighting property)."));
 			if (bRebuildDirtyGeometryForLighting)
 			{
 				// This will go ahead and clean up lighting on all dirty levels (not just this one)
-				UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build automatically rebuilding geometry.") );
+				UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build automatically rebuilding geometry."));
 				GEditor->Exec(World, TEXT("MAP REBUILD ALLDIRTYFORLIGHTING"));
 			}
 		}
 
-		const bool bBuildLightingForLevel = Options.ShouldBuildLightingForLevel( Level );
-	
+		const bool bBuildLightingForLevel = Options.ShouldBuildLightingForLevel(Level);
+
 		// Gather static lighting info from BSP.
 		bool bBuildBSPLighting = bBuildLightingForLevel;
 
@@ -805,10 +849,10 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 				bBuildBSPLighting = false;
 				// Build only selected brushes/surfaces
 				TArray<ABrush*> SelectedBrushes;
-				for(int32 ActorIndex = 0;ActorIndex < Level->Actors.Num();ActorIndex++)
+				for (int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ActorIndex++)
 				{
 					AActor* Actor = Level->Actors[ActorIndex];
-					if(Actor)
+					if (Actor)
 					{
 						ABrush* Brush = Cast<ABrush>(Actor);
 						if (Brush && Brush->IsSelected())
@@ -854,7 +898,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 									for (int32 InnerNodeIndex = 0; InnerNodeIndex < SomeModelComponent->Nodes.Num(); InnerNodeIndex++)
 									{
 										FBspNode& InnerNode = Model->Nodes[SomeModelComponent->Nodes[InnerNodeIndex]];
-										SelectedSurfaceIndices.AddUnique(InnerNode.iSurf);										
+										SelectedSurfaceIndices.AddUnique(InnerNode.iSurf);
 									}
 								}
 							}
@@ -881,7 +925,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 									for (int32 InnerNodeIndex = 0; InnerNodeIndex < SomeModelComponent->Nodes.Num(); InnerNodeIndex++)
 									{
 										FBspNode& InnerNode = Model->Nodes[SomeModelComponent->Nodes[InnerNodeIndex]];
-										SelectedSurfaceIndices.AddUnique(InnerNode.iSurf);										
+										SelectedSurfaceIndices.AddUnique(InnerNode.iSurf);
 									}
 								}
 							}
@@ -930,11 +974,49 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 			}
 		}
 
-		// Gather static lighting info from actors.
-		for(int32 ActorIndex = 0;ActorIndex < Level->Actors.Num();ActorIndex++)
+		// Gather HLOD primitives
+		TMultiMap<AActor*, UPrimitiveComponent*> PrimitiveActorMap;
+		TMultiMap<UPrimitiveComponent*, UStaticMeshComponent*> PrimitiveSubStaticMeshMap;
+
+		for (int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ActorIndex++)
 		{
 			AActor* Actor = Level->Actors[ActorIndex];
-			if(Actor)
+			if (Actor)
+			{
+				ALODActor* LODActor = Cast<ALODActor>(Actor);
+				if (LODActor && LODActor->GetStaticMeshComponent())
+				{
+
+					UPrimitiveComponent* PrimitiveParent = LODActor->GetStaticMeshComponent()->GetLODParentPrimitive();
+
+					for (auto SubActor : LODActor->SubActors)
+					{
+						PrimitiveActorMap.Add(SubActor, LODActor->GetStaticMeshComponent());
+
+						if (PrimitiveParent)
+						{
+							PrimitiveActorMap.Add(SubActor, PrimitiveParent);
+						}
+
+						TArray<UStaticMeshComponent*> SubStaticMeshComponents;
+						SubActor->GetComponents<UStaticMeshComponent>(SubStaticMeshComponents);
+						for (auto SMC : SubStaticMeshComponents)
+						{
+							PrimitiveSubStaticMeshMap.Add(LODActor->GetStaticMeshComponent(), SMC);
+						}
+					}
+				}
+			}
+		}
+
+		TMultiMap<AActor*, FStaticLightingMesh*> ActorMeshMap;
+		TArray<ALODActor*> LODActors;
+
+		// Gather static lighting info from actors.
+		for (int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ActorIndex++)
+		{
+			AActor* Actor = Level->Actors[ActorIndex];
+			if (Actor)
 			{
 				const bool bBuildActorLighting =
 					bBuildLightingForLevel &&
@@ -956,15 +1038,24 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 					}
 				}
 
+				TArray<UPrimitiveComponent*> HLODPrimitiveParents;
+				PrimitiveActorMap.MultiFind(Actor, HLODPrimitiveParents);
+				
+				ALODActor* LODActor = Cast<ALODActor>(Actor);
+				if (LODActor)
+				{
+					LODActors.Add(LODActor);
+				}
+				
 				// Gather static lighting info from each of the actor's components.
-				for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
+				for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 				{
 					UPrimitiveComponent* Primitive = Components[ComponentIndex];
-					if(Primitive->IsRegistered() && !bForceNoPrecomputedLighting)
+					if (Primitive->IsRegistered() && !bForceNoPrecomputedLighting)
 					{
 						// Find the lights relevant to the primitive.
 						TArray<ULightComponent*> PrimitiveRelevantLights;
-						for(int32 LightIndex = 0;LightIndex < Lights.Num();LightIndex++)
+						for (int32 LightIndex = 0; LightIndex < Lights.Num(); LightIndex++)
 						{
 							ULightComponentBase* LightBase = Lights[LightIndex];
 							ULightComponent* Light = Cast<ULightComponent>(LightBase);
@@ -978,7 +1069,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 
 						// Query the component for its static lighting info.
 						FStaticLightingPrimitiveInfo PrimitiveInfo;
-						Primitive->GetStaticLightingInfo(PrimitiveInfo,PrimitiveRelevantLights,Options);
+						Primitive->GetStaticLightingInfo(PrimitiveInfo, PrimitiveRelevantLights, Options);
 						if (PrimitiveInfo.Meshes.Num() > 0 && (Primitive->Mobility == EComponentMobility::Static))
 						{
 							if (World->GetWorldSettings()->bPrecomputeVisibility)
@@ -986,11 +1077,24 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 								// Make sure the level gets dirtied since we are changing the visibility Id of a component in it
 								bMarkLevelDirty = true;
 							}
-								
+
 							PrimitiveInfo.VisibilityId = Primitive->VisibilityId = NextVisibilityId;
 							NextVisibilityId++;
 						}
-						AddPrimitiveStaticLightingInfo(PrimitiveInfo,bBuildActorLighting);
+
+						TArray<UStaticMeshComponent*> LODSubActorSMComponents;
+
+						if (LODActor)
+						{
+							PrimitiveSubStaticMeshMap.MultiFind(Primitive, LODSubActorSMComponents);
+						}
+
+						for (auto Mesh : PrimitiveInfo.Meshes)
+						{
+							ActorMeshMap.Add(Actor, Mesh);
+						}
+
+						AddPrimitiveStaticLightingInfo(PrimitiveInfo, bBuildActorLighting);
 					}
 				}
 			}
@@ -1000,6 +1104,23 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 			if (ActorsInvalidated % ProgressUpdateFrequency == 0)
 			{
 				GWarn->UpdateProgress(ActorsInvalidated, ActorsToInvalidate);
+			}
+		}
+
+		// Recurse through HLOD trees, group actors and calculate child ranges
+		uint32 HLODTreeIndex = 1;
+		uint32 HLODLeafIndex;
+
+		for (ALODActor* LODActor : LODActors)		
+		{
+			// Only process fully merged (root) HLOD nodes
+			if (LODActor->GetStaticMeshComponent() && !LODActor->GetStaticMeshComponent()->GetLODParentPrimitive())
+			{
+				HLODLeafIndex = 0;
+
+				UpdateStaticLightingHLODTreeIndices(ActorMeshMap, LODActor, HLODTreeIndex, HLODLeafIndex);
+
+				++HLODTreeIndex;
 			}
 		}
 

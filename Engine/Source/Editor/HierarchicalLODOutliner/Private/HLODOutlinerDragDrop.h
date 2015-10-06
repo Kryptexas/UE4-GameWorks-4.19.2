@@ -33,7 +33,11 @@ namespace HLODOutliner
 		/** OPtional array of dragged static mesh actors */
 		TOptional<TArray<TWeakObjectPtr<AActor>>> StaticMeshActors;
 
+		/** Flag whether or not this is a drop coming from the SceneOutliner or within the HLOD Outliner */
 		bool bSceneOutliner;
+
+		/** World instance that is being used for the HLOD Outliner */
+		UWorld* OutlinerWorld;
 
 		/**
 		*	Parse a drag operation into our list of actors and folders

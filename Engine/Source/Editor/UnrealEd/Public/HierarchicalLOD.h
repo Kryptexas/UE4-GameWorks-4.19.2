@@ -129,7 +129,9 @@ private:
 	/** Cached array of LODLevel settings */
 	TArray<FHierarchicalSimplification> BuildLODLevelSettings;
 
-
+	/** LOD Actors per HLOD level */
 	TArray<TArray<ALODActor*>> LODLevelLODActors;
+
+	/** Valid Static Mesh actors in level (populated during initialize clusters) */
 	TArray<AActor*> ValidStaticMeshActorsInLevel;
 };

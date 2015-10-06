@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "RendererPrivate.h"
+
+#if WITH_EDITOR
+
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessSelectionOutline.h"
@@ -63,7 +66,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 #else
 			bool bActorSelectionColorIsSubdued = false;
 #endif
-			if (PrimitiveSceneProxy->IsSelected() && MeshBatchAndRelevance.Mesh->bUseSelectionOutline)
+			if (PrimitiveSceneProxy->IsSelected() && MeshBatchAndRelevance.Mesh->bUseSelectionOutline && PrimitiveSceneProxy->WantsSelectionOutline())
 			{
 				const int32* AssignedStencilIndexPtr = PrimitiveSceneProxy->IsIndividuallySelected() ? IndividuallySelectedProxies.Find( PrimitiveSceneProxy ) : ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
 
@@ -396,3 +399,5 @@ FPooledRenderTargetDesc FRCPassPostProcessSelectionOutline::ComputeOutputDesc(EP
 
 	return Ret;
 }
+
+#endif

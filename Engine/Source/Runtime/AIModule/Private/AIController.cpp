@@ -111,8 +111,8 @@ void AAIController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Debug
 		AActor* FocusActor = GetFocusActor();
 		if (FocusActor)
 		{
-			YL = Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("      Focus %s"), *FocusActor->GetName()), 4.0f, YPos);
-			YPos += YL;
+			FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("      Focus %s"), *FocusActor->GetName()));
 		}
 	}
 }
@@ -782,7 +782,10 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 		}
 		else
 		{
-			UE_VLOG(this, LogAINavigation, Error, TEXT("Trying to find path to %s resulted in Error"), *GetNameSafe(MoveRequest.GetGoalActor()));
+			UE_VLOG(this, LogAINavigation, Error, TEXT("Trying to find path to %s resulted in Error")
+				, MoveRequest.HasGoalActor() ? *GetNameSafe(MoveRequest.GetGoalActor()) : *MoveRequest.GetGoalLocation().ToString());
+			UE_VLOG_SEGMENT(this, LogAINavigation, Error, GetPawn() ? GetPawn()->GetActorLocation() : FAISystem::InvalidLocation
+				, MoveRequest.GetGoalLocation(), FColor::Red, TEXT("Failed move to %s"), *GetNameSafe(MoveRequest.GetGoalActor()));
 		}
 	}
 

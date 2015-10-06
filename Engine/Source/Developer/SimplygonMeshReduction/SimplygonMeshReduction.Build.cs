@@ -20,6 +20,7 @@ public class SimplygonMeshReduction : ModuleRules
         PrivateDependencyModuleNames.Add("MaterialUtilities");
         PrivateDependencyModuleNames.Add("MeshBoneReduction");
         PrivateDependencyModuleNames.Add("RHI");
-        PrivateDependencyModuleNames.Add("SimplygonUtilities");
+
+        PublicDependencyModuleNames.Add("SimplygonUtilities");
 	}
 }

@@ -228,7 +228,7 @@ public:
 	}
 
 	// Copy bone transform from SrcPose to this
-	void CopyBonesFrom(FCompactPose& SrcPose)
+	void CopyBonesFrom(const FCompactPose& SrcPose)
 	{
 		if (this != &SrcPose)
 		{

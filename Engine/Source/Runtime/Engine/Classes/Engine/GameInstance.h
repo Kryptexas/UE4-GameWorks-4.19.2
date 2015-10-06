@@ -230,4 +230,7 @@ public:
 
 	/** @return OnlineSession class to use for this game instance  */
 	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass();
+
+	/** Returns true if this instance is for a dedicated server world */
+	bool IsDedicatedServerInstance() const;
 };

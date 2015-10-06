@@ -63,6 +63,7 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
+	EngineShowFlags.SeparateTranslucency = true;
 
 	OverrideNearClipPlane(1.0f);
 

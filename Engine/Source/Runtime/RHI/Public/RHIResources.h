@@ -146,7 +146,7 @@ struct FRHIUniformBufferLayout
 	{
 		if (!bComputedHash)
 		{
-			uint32 TmpHash = ConstantBufferSize;
+			uint32 TmpHash = ConstantBufferSize << 16;
 			// This is to account for 32vs64 bits difference in pointer sizes.
 			TmpHash ^= Align(ResourceOffset, 8);
 			uint32 N = Resources.Num();
@@ -156,6 +156,11 @@ struct FRHIUniformBufferLayout
 				TmpHash ^= (Resources[--N] << 8);
 				TmpHash ^= (Resources[--N] << 16);
 				TmpHash ^= (Resources[--N] << 24);
+			}
+			while (N >= 2)
+			{
+				TmpHash ^= Resources[--N] << 0;
+				TmpHash ^= Resources[--N] << 16;
 			}
 			while (N > 0)
 			{
@@ -167,7 +172,7 @@ struct FRHIUniformBufferLayout
 		return Hash;
 	}
 
-	FRHIUniformBufferLayout(FName InName) :
+	explicit FRHIUniformBufferLayout(FName InName) :
 		ConstantBufferSize(0),
 		ResourceOffset(0),
 		Name(InName),

@@ -160,7 +160,11 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 
 	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
-	//~ End UObject Interface.
+	virtual bool NeedsLoadForServer() const override
+	{
+		return false;
+	}
+	//~ End UObject interface.
 };
 
 

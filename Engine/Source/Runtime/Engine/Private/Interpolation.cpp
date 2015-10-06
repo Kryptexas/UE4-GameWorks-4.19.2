@@ -424,6 +424,7 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool 
 		}
 	}
 
+#if !UE_BUILD_SHIPPING
 	if (EventName == NAME_PerformanceCapture)
 	{
 		//get the map name
@@ -434,8 +435,9 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool 
 		PackageName.Split(TEXT("/"), &FolderName, &MapName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
 		FString CaptureName = FString::Printf(TEXT("PerformanceCapture/%s/%s_%4.2f"), *MapName, *GetName(), EventTime);
-		GEngine->PerformanceCapture(CaptureName);
+		GEngine->PerformanceCapture(GetWorld(), CaptureName);
 	}
+#endif	// UE_BUILD_SHIPPING
 }
 
 void AMatineeActor::Play()

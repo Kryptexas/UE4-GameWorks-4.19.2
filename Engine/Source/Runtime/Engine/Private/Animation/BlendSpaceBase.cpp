@@ -71,6 +71,14 @@ struct FSyncPattern
 // I can't make this member since I  need to change this in const function
 bool bNeedReinitializeFilter = false;
 
+/** Scratch buffers for multithreaded usage */
+struct FBlendSpaceScratchData : public TThreadSingleton<FBlendSpaceScratchData>
+{
+	TArray<FBlendSampleData> OldSampleDataList;
+	TArray<FBlendSampleData> NewSampleDataList;
+	TArray<FGridBlendSample, TInlineAllocator<4> > RawGridSamples;
+};
+
 UBlendSpaceBase::UBlendSpaceBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -215,9 +223,9 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 		check(Instance.BlendSampleDataCache);
 
 		// For Target weight interpolation, we'll need to save old data, and interpolate to new data
-		static TArray<FBlendSampleData> OldSampleDataList;
-		static TArray<FBlendSampleData> NewSampleDataList;
-		check(IsInGameThread() && !OldSampleDataList.Num() && !NewSampleDataList.Num()); // this must be called non-recursively on the game thread
+		TArray<FBlendSampleData>& OldSampleDataList = FBlendSpaceScratchData::Get().OldSampleDataList;
+		TArray<FBlendSampleData>& NewSampleDataList = FBlendSpaceScratchData::Get().NewSampleDataList;
+		check(!OldSampleDataList.Num() && !NewSampleDataList.Num()); // this must be called non-recursively
 
 		OldSampleDataList.Append(*Instance.BlendSampleDataCache);
 
@@ -264,7 +272,7 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 
 			bool bCanDoMarkerSync = bAllSequencesHaveMatchingMarkers && (Context.IsSingleAnimationContext() || (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition()));
 
-			if (bCanDoMarkerSync && Instance.MarkerTickRecord.IsValid())
+			if (bCanDoMarkerSync)
 			{
 				//Copy previous frame marker data to current frame
 				for (FBlendSampleData& PrevBlendSampleItem : OldSampleDataList)
@@ -315,22 +323,26 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 					FBlendSampleData& SampleDataItem = SampleDataList[HighestWeightIndex];
 					const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
 
-					if (!Instance.MarkerTickRecord.IsValid())
+					bool bResetMarkerDataOnFollowers = false;
+					if (!Instance.MarkerTickRecord->IsValid())
 					{
-						SampleDataItem.Time = NormalizedCurrentTime * Sample.Animation->SequenceLength;
+						SampleDataItem.MarkerTickRecord.Reset();
+						bResetMarkerDataOnFollowers = true;
 					}
-					if (!SampleDataItem.MarkerTickRecord.IsValid() && Context.MarkerTickContext.GetMarkerSyncStartPosition().IsValid())
+					else if (!SampleDataItem.MarkerTickRecord.IsValid() && Context.MarkerTickContext.GetMarkerSyncStartPosition().IsValid())
 					{
 						Sample.Animation->GetMarkerIndicesForPosition(Context.MarkerTickContext.GetMarkerSyncStartPosition(), true, SampleDataItem.MarkerTickRecord.PreviousMarker, SampleDataItem.MarkerTickRecord.NextMarker, SampleDataItem.Time);
 					}
-					if (Context.GetDeltaTime() != 0.f)
+
+					const float NewDeltaTime = Context.GetDeltaTime() * Instance.PlayRateMultiplier;
+					if (!FMath::IsNearlyZero(NewDeltaTime))
 					{
-						Context.SetLeaderDelta(Context.GetDeltaTime());
-						Sample.Animation->TickByMarkerAsLeader(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, Context.GetDeltaTime(), true);
-						TickFollowerSamples(SampleDataList, HighestWeightIndex, Context);
+						Context.SetLeaderDelta(NewDeltaTime);
+						Sample.Animation->TickByMarkerAsLeader(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, NewDeltaTime, true);
+						TickFollowerSamples(SampleDataList, HighestWeightIndex, Context, bResetMarkerDataOnFollowers);
 					}
 					NormalizedCurrentTime = SampleDataItem.Time / Sample.Animation->SequenceLength;
-					Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
+					*Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
 				}
 				else
 				{
@@ -350,15 +362,21 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 				}
 				if (bCanDoMarkerSync)
 				{
-					if (Context.GetDeltaTime() != 0.f)
-					{
-						TickFollowerSamples(SampleDataList, -1, Context);
-					}
 					const int32 HighestWeightIndex = GetHighestWeightSample(SampleDataList);
 					FBlendSampleData& SampleDataItem = SampleDataList[HighestWeightIndex];
 					const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
-					Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
-					NormalizedCurrentTime =  SampleDataItem.Time / Sample.Animation->SequenceLength; 
+
+					if (Context.GetDeltaTime() != 0.f)
+					{
+						if(!Instance.MarkerTickRecord->IsValid())
+						{
+							SampleDataItem.Time = NormalizedCurrentTime * Sample.Animation->SequenceLength;
+						}
+
+						TickFollowerSamples(SampleDataList, -1, Context, false);
+					}
+					*Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
+					NormalizedCurrentTime =  SampleDataItem.Time / Sample.Animation->SequenceLength;
 				}
 				else
 				{
@@ -444,8 +462,8 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 
 bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray<FBlendSampleData> & OutSampleDataList) const
 {
-	static TArray<FGridBlendSample, TInlineAllocator<4> > RawGridSamples;
-	check(IsInGameThread() && !RawGridSamples.Num()); // this must be called non-recursively from the gamethread
+	TArray<FGridBlendSample, TInlineAllocator<4> >& RawGridSamples = FBlendSpaceScratchData::Get().RawGridSamples;
+	check(!RawGridSamples.Num()); // this must be called non-recursively
 	GetRawSamplesFromBlendInput(BlendInput, RawGridSamples);
 
 	OutSampleDataList.Reset();
@@ -1154,13 +1172,13 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 
 	const int32 NumPoses = BlendSampleDataCache.Num();
 
-	TArray<FCompactPose> ChildrenPoses;
+	TArray<FCompactPose, TInlineAllocator<8>> ChildrenPoses;
 	ChildrenPoses.AddZeroed(NumPoses);
 
-	TArray<FBlendedCurve> ChildrenCurves;
+	TArray<FBlendedCurve, TInlineAllocator<8>> ChildrenCurves;
 	ChildrenCurves.AddZeroed(NumPoses);
 
-	TArray<float>	ChildrenWeights;
+	TArray<float, TInlineAllocator<8>> ChildrenWeights;
 	ChildrenWeights.AddZeroed(NumPoses);
 
 	for(int32 ChildrenIdx=0; ChildrenIdx<ChildrenPoses.Num(); ++ChildrenIdx)
@@ -1197,27 +1215,29 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 		}
 	}
 
-	if(PerBoneBlend.Num() > 0)
+	TFixedSizeArrayView<FCompactPose> ChildrenPosesView(ChildrenPoses);
+
+	if (PerBoneBlend.Num() > 0)
 	{
-		if(IsValidAdditive())
+		if (IsValidAdditive())
 		{
-			if(bRotationBlendInMeshSpace)
+			if (bRotationBlendInMeshSpace)
 			{
-				FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+				FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(ChildrenPosesView, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
 			}
 			else
 			{
-				FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+				FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPosesView, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
 			}
 		}
 		else
 		{
-			FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPoses, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
+			FAnimationRuntime::BlendPosesTogetherPerBone(ChildrenPosesView, ChildrenCurves, this, BlendSampleDataCache, OutPose, OutCurve);
 		}
 	}
 	else
 	{
-		FAnimationRuntime::BlendPosesTogether(ChildrenPoses, ChildrenCurves, ChildrenWeights, OutPose, OutCurve);
+		FAnimationRuntime::BlendPosesTogether(ChildrenPosesView, ChildrenCurves, ChildrenWeights, OutPose, OutCurve);
 	}
 
 	// Once all the accumulation and blending has been done, normalize rotations.

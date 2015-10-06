@@ -441,8 +441,10 @@ public:
 		LandscapeEdit.Flush();
 
 		TSet<ULandscapeComponent*> Components;
-		if (LandscapeEdit.GetComponentsInRegion(DestMinX, DestMinY, DestMaxX, DestMaxY, &Components))
+		if (LandscapeEdit.GetComponentsInRegion(DestMinX, DestMinY, DestMaxX, DestMaxY, &Components) && Components.Num() > 0)
 		{
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*begin(Components));
+
 			for (ULandscapeComponent* Component : Components)
 			{
 				// Recreate collision for modified components and update the navmesh
@@ -450,10 +452,9 @@ public:
 				if (CollisionComponent)
 				{
 					CollisionComponent->RecreateCollision();
-					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 					if (NavSys)
 					{
-						NavSys->UpdateNavOctree(CollisionComponent);
+						NavSys->UpdateComponentInNavOctree(*CollisionComponent);
 					}
 				}
 			}

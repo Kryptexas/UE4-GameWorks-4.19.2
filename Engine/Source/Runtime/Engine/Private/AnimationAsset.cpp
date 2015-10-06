@@ -15,6 +15,7 @@ void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type Member
 	switch (MembershipType)
 	{
 	case EAnimGroupRole::CanBeLeader:
+	case EAnimGroupRole::TransitionLeader:
 		// Set it if we're better than the current leader (or if there is no leader yet)
 		if ((GroupLeaderIndex == INDEX_NONE) || (ActivePlayers[GroupLeaderIndex].EffectiveBlendWeight < Candidate.EffectiveBlendWeight))
 		{
@@ -33,7 +34,7 @@ void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type Member
 	}
 }
 
-void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers, int32 PreviousGroupLeader)
+void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
 {
 	GroupLeaderIndex = FMath::Max(GroupLeaderIndex, 0);
 
@@ -48,9 +49,32 @@ void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers, int
 		//filter markers based on what exists in the other animations
 		for ( int32 ActivePlayerIndex = 0; ActivePlayerIndex < ActivePlayers.Num(); ++ActivePlayerIndex )
 		{
-			if ( ActivePlayerIndex != GroupLeaderIndex )
+			FAnimTickRecord& Candidate = ActivePlayers[ActivePlayerIndex];
+
+			if (PreviousGroup)
 			{
-				FAnimTickRecord& Candidate = ActivePlayers[ActivePlayerIndex];
+				bool bCandidateFound = false;
+				for (const FAnimTickRecord& PrevRecord : PreviousGroup->ActivePlayers)
+				{
+					if (PrevRecord.MarkerTickRecord == Candidate.MarkerTickRecord)
+					{
+						// Found previous record for "us"
+						if (PrevRecord.SourceAsset != Candidate.SourceAsset)
+						{
+							Candidate.MarkerTickRecord->Reset(); // Changed animation, clPear our cached data
+						}
+						bCandidateFound = true;
+						break;
+					}
+				}
+				if (!bCandidateFound)
+				{
+					Candidate.MarkerTickRecord->Reset(); // we weren't active last frame, reset
+				}
+			}
+
+			if (ActivePlayerIndex != GroupLeaderIndex && ValidMarkers.Num() > 0)
+			{
 				TArray<FName>* PlayerMarkerNames = Candidate.SourceAsset->GetUniqueMarkerNames();
 				if ( PlayerMarkerNames ) // Let anims with no markers set use length scaling sync
 				{
@@ -63,21 +87,19 @@ void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers, int
 							ValidMarkers.RemoveAtSwap(ValidMarkerIndex, 1, false);
 						}
 					}
-					if (ValidMarkers.Num() == 0) //No common markers between all anims, no marker syncing
-					{
-						bCanUseMarkerSync = false;
-						break;
-					}
 				}
 			}
 		}
+
+		bCanUseMarkerSync = ValidMarkers.Num() > 0;
+
 		ValidMarkers.Sort();
-		if (ValidMarkers != PreviousValidMarkers || PreviousGroupLeader != GroupLeaderIndex)
+
+		if (!PreviousGroup || PreviousGroup->GroupLeaderIndex != GroupLeaderIndex || ValidMarkers != PreviousGroup->ValidMarkers)
 		{
-			for (int32 Idx = 0; Idx < ActivePlayers.Num(); ++Idx)
+			for (FAnimTickRecord& TickRecord : ActivePlayers)
 			{
-				ActivePlayers[Idx].MarkerTickRecord.PreviousMarker.MarkerIndex = MarkerIndexSpecialValues::Unitialized;
-				ActivePlayers[Idx].MarkerTickRecord.NextMarker.MarkerIndex = MarkerIndexSpecialValues::Unitialized;
+				TickRecord.MarkerTickRecord->Reset();
 			}
 		}
 	}
@@ -406,7 +428,6 @@ void FBoneContainer::RemapFromSkeleton(USkeleton const & SourceSkeleton)
 	// Skeleton to Skeleton mapping...
 	PoseToSkeletonBoneIndexArray = SkeletonToPoseBoneIndexArray;
 }
-
 
 void FBlendSampleData::NormalizeDataWeight(TArray<FBlendSampleData>& SampleDataList)
 {

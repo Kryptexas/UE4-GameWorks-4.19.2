@@ -277,6 +277,16 @@ public:
 	 */
 	void GetAllPartyMembers(TArray<UPartyMemberState*>& PartyMembers) const;
 
+	template< typename TPartyMemberState >
+	void GetTypedPartyMembers( TArray< TPartyMemberState* >& PartyMembers ) const
+	{
+		PartyMembers.Empty( PartyMembersState.Num() );
+		for ( auto Iter = PartyMembersState.CreateConstIterator(); Iter; ++Iter )
+		{
+			PartyMembers.Add( Cast< TPartyMemberState >( Iter.Value() ) );
+		}
+	}
+
 	/** @return delegate fired when global party data has changed */
 	FOnPartyDataChanged& OnPartyDataChanged() { return PartyDataChanged; }
 	/** @return delegate fired when an individual party member's data has changed */
@@ -318,6 +328,18 @@ protected:
 	void InitFromJoin(const FUniqueNetId& LocalUserId, TSharedPtr<FOnlinePartyInfo>& InPartyInfo);
 
 protected:
+
+	/** Reflection data for child USTRUCT */
+	UPROPERTY()
+	const UScriptStruct* PartyStateRefDef;
+
+	/**
+	* Pointer to child USTRUCT that holds the current state of party member (set via InitPartyMemberState)
+	*
+	* Cached data for the party, only modifiable by the party leader
+	* Reference to the data structure defined in a child class
+	*/
+	FPartyState* PartyStateRef;
 
 	/** User who created or joined this room (not the party leader) */
 	UPROPERTY()
@@ -586,19 +608,8 @@ protected:
 
 private:
 
-	/**
-	 * Pointer to child USTRUCT that holds the current state of party member (set via InitPartyMemberState)
-	 *
-	 * Cached data for the party, only modifiable by the party leader
-	 * Reference to the data structure defined in a child class
-	 */
-	FPartyState* PartyStateRef;
-
 	/** Scratch copy of child USTRUCT for handling replication comparisons */
 	FPartyState* PartyStateRefScratch;
-
-	/** Reflection data for child USTRUCT */
-	const UScriptStruct* PartyStateRefDef;
 
 	friend UParty;
 	friend UPartyMemberState;

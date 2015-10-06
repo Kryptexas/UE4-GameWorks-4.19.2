@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(LogGameplayDebugger);
 #define LOCTEXT_NAMESPACE "FGameplayDebugger"
 FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator)
 {
-	uint32 Settings = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->GetSettings();
+	uint32& Settings = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->GetSettings();
 	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
 }
 
@@ -53,6 +53,7 @@ public:
 
 private:
 	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) override;
+	virtual bool IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController) override;
 
 	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController);
 
@@ -316,6 +317,36 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 	}
 #endif
 	
+	return false;
+}
+
+bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (PlayerController == NULL)
+	{
+		return false;
+	}
+
+	UWorld* World = PlayerController->GetWorld();
+	if (World == NULL)
+	{
+		return false;
+	}
+
+	for (auto It = GetAllReplicators(World).CreateConstIterator(); It; ++It)
+	{
+		TWeakObjectPtr<AGameplayDebuggingReplicator> Replicator = *It;
+		if (Replicator.IsValid())
+		{
+			if (Replicator->GetLocalPlayerOwner() == PlayerController)
+			{
+				return Replicator->IsDrawEnabled();
+			}
+		}
+	}
+#endif
+
 	return false;
 }
 

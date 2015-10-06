@@ -85,8 +85,7 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 		if (ChildIndex != LastActiveChildIndex)
 		{
 			bool LastChildIndexIsInvalid = (LastActiveChildIndex == INDEX_NONE);
-			LastActiveChildIndex = ChildIndex;
-
+			
 			const float CurrentWeight = BlendWeights[ChildIndex];
 			const float DesiredWeight = 1.0f;
 			const float WeightDifference = FMath::Clamp<float>(FMath::Abs<float>(DesiredWeight - CurrentWeight), 0.0f, 1.0f);
@@ -99,6 +98,12 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 			for (int32 i = 0; i < RemainingBlendTimes.Num(); ++i)
 			{
 				RemainingBlendTimes[i] = RemainingBlendTime;
+			}
+
+			// If we have a valid previous child and we're instantly blending - update that pose with zero weight
+			if(RemainingBlendTime == 0.0f && !LastChildIndexIsInvalid)
+			{
+				BlendPose[LastActiveChildIndex].Update(Context.FractionalWeight(0.0f));
 			}
 
 			for(int32 i = 0; i < Blends.Num(); ++i)
@@ -116,6 +121,8 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 					Blend.SetValueRange(BlendWeights[i], 0.0f);
 				}
 			}
+
+			LastActiveChildIndex = ChildIndex;
 		}
 
 		// Advance the weights
@@ -246,7 +253,7 @@ void FAnimNode_BlendListBase::GatherDebugData(FNodeDebugData& DebugData)
 	const int32 ChildIndex = GetActiveChildIndex();
 
 	FString DebugLine = GetNodeName(DebugData);
-	DebugLine += FString::Printf(TEXT("(Active: (%i/%i) BlendWeight: %.1f%% BlendTime %.3f)"), ChildIndex+1, NumPoses, BlendWeights[ChildIndex]*100.f, BlendTime[ChildIndex]);
+	DebugLine += FString::Printf(TEXT("(Active: (%i/%i) Weight: %.1f%% Time %.3f)"), ChildIndex+1, NumPoses, BlendWeights[ChildIndex]*100.f, BlendTime[ChildIndex]);
 
 	DebugData.AddDebugItem(DebugLine);
 	

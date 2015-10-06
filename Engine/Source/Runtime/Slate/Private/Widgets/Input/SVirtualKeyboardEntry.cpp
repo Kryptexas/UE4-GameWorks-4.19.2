@@ -47,7 +47,7 @@ void SVirtualKeyboardEntry::SetText(const TAttribute< FText >& InNewText)
 	bNeedsUpdate = true;
 }
 
-void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, bool InCommit)
+void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextChanged will handle the update.
@@ -74,7 +74,7 @@ void SVirtualKeyboardEntry::RestoreOriginalText()
 {
 	if( HasTextChangedFromOriginal() )
 	{
-		SetTextFromVirtualKeyboard(OriginalText, false);
+		SetTextFromVirtualKeyboard(OriginalText, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
 	}
 }
 

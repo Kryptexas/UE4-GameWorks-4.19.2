@@ -358,6 +358,7 @@ FText UEnum::GetEnumText(int32 InIndex) const
 	return FText::FromString( GetEnumName(InIndex) );
 }
 
+PRAGMA_DISABLE_OPTIMIZATION
 int32 UEnum::FindEnumIndex(FName InName) const
 {
 	int32 EnumIndex = GetIndexByName(InName);
@@ -382,7 +383,7 @@ int32 UEnum::FindEnumIndex(FName InName) const
 
 	return EnumIndex;
 }
-
+PRAGMA_ENABLE_OPTIMIZATION
 int32 UEnum::FindEnumRedirects(const UEnum* Enum, FName EnumEntryName) 
 {
 	check (Enum);

@@ -14,10 +14,6 @@ class UAnimGraphNode_BlendSpacePlayer : public UAnimGraphNode_BlendSpaceBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendSpacePlayer Node;
 
-	// Sync group settings for this player.  Sync groups keep related animations with different lengths synchronized.
-	UPROPERTY(EditAnywhere, Category=Settings)
-	FAnimationGroupReference SyncGroup;
-
 	// UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

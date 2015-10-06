@@ -38,7 +38,7 @@ void UMaterialGraph::RebuildGraph()
 		MaterialInputs.Add( FMaterialInputInfo( GetEmissivePinName(), MP_EmissiveColor ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Opacity", "Opacity"), MP_Opacity ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("OpacityMask", "Opacity Mask"), MP_OpacityMask ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Normal", "Normal"), MP_Normal ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetNormalPinName(), MP_Normal ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldPositionOffset", "World Position Offset"), MP_WorldPositionOffset ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldDisplacement", "World Displacement"), MP_WorldDisplacement ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("TessellationMultiplier", "Tessellation Multiplier"), MP_TessellationMultiplier ) );
@@ -474,7 +474,12 @@ FText UMaterialGraph::GetBaseColorPinName() const
 
 FText UMaterialGraph::GetMetallicPinName() const
 {
-	return Material->GetShadingModel() == MSM_Hair ? LOCTEXT("Diffuse", "Diffuse") : LOCTEXT("Metallic", "Metallic");
+	return Material->GetShadingModel() == MSM_Hair ? LOCTEXT("Scatter", "Scatter") : LOCTEXT("Metallic", "Metallic");
+}
+
+FText UMaterialGraph::GetNormalPinName() const
+{
+	return Material->GetShadingModel() == MSM_Hair ? LOCTEXT("Tangent", "Tangent") : LOCTEXT("Normal", "Normal");
 }
 
 FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
@@ -486,7 +491,7 @@ FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
 		case MSM_ClearCoat:
 			return LOCTEXT("ClearCoat", "Clear Coat");
 		case MSM_Hair:
-			return LOCTEXT("HairOpacity", "Hair Opacity");
+			return LOCTEXT("Backlit", "Backlit");
 		default:
 			return LOCTEXT("CustomData0", "Custom Data 0");
 		}
@@ -497,8 +502,6 @@ FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
 		{
 		case MSM_ClearCoat:
 			return LOCTEXT("ClearCoatRoughness", "Clear Coat Roughness");
-		case MSM_Hair:
-			return LOCTEXT("SecondaryRoughness", "Secondary Roughness");
 		default:
 			return LOCTEXT("CustomData1", "Custom Data 1");
 		}

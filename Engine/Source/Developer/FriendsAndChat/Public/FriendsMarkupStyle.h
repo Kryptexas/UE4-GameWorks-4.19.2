@@ -40,11 +40,11 @@ struct FRIENDSANDCHAT_API FFriendsMarkupStyle
 	static const FFriendsMarkupStyle& GetDefault();
 
 	/** Markup Button style */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FButtonStyle MarkupButtonStyle;
 	FFriendsMarkupStyle& SetMarkupButtonStyle(const FButtonStyle& ButtonStyle);
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FTextBlockStyle MarkupTextStyle;
 	FFriendsMarkupStyle& SetMarkupTextStyle(const FTextBlockStyle& InTextStyle);
 

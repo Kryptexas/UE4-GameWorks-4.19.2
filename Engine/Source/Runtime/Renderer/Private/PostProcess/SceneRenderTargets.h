@@ -165,7 +165,8 @@ protected:
 		LargestDesiredSizeLastFrame( 0, 0 ),
 		ThisFrameNumber( 0 ),
 		bVelocityPass(false),
-		BufferSize(0, 0), 
+		bSeparateTranslucencyPass(false),
+		BufferSize(0, 0),
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
 		bUseDownsizedOcclusionQueries(true),
@@ -494,6 +495,11 @@ public:
 	{
 		bVelocityPass = bInVelocityPass;
 	}
+
+	bool IsSeparateTranslucencyPass()
+	{
+		return bSeparateTranslucencyPass;
+	}
 	
 	// Can be called when the Scene Color content is no longer needed. As we create SceneColor on demand we can make sure it is created with the right format.
 	// (as a call to SetSceneColor() can override it with a different format)
@@ -585,6 +591,7 @@ public:
 
 	/** ONLY for snapshots!!! this is a copy of the SeparateTranslucencyRT from the view state. */
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
+	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyDepthRT;
 
 	// todo: free ScreenSpaceAO so pool can reuse
 	bool bScreenSpaceAOIsValid;
@@ -606,6 +613,7 @@ private:
 	uint32 ThisFrameNumber;
 
 	bool bVelocityPass;
+	bool bSeparateTranslucencyPass;
 	/** CAUTION: When adding new data, make sure you copy it in the snapshot constructor! **/
 
 	/**

@@ -598,6 +598,12 @@ public:
 	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const NxApexDamageEventReportData& DamageEvent);
 #endif
 
+	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */
+	void MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning);
+
+	/** Remove this SkeletalMeshComponent from set needing kinematic update before simulating physics*/
+	void ClearPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp);
+
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
 	void InitPhysScene(uint32 SceneType);
@@ -610,6 +616,9 @@ private:
 
 	/** Helper function for determining which scene a dyanmic body is in*/
 	EPhysicsSceneType SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const;
+
+	/** Process kinematic updates on any deferred skeletal meshes */
+	void UpdateKinematicsOnDeferredSkelMeshes();
 
 #if WITH_SUBSTEPPING
 	/** Task created from TickPhysScene so we can substep without blocking */
@@ -656,6 +665,18 @@ private:
 #if WITH_PHYSX
 	TMap<PxActor*, SleepEvent::Type> PendingSleepEvents[PST_MAX];
 #endif
+
+	/** Information about how to perform kinematic update before physics */
+	struct FDeferredKinematicUpdateInfo
+	{
+		/** Whether to teleport physics bodies or not */
+		ETeleportType	TeleportType;
+		/** Whether to update skinning info */
+		bool			bNeedsSkinning;
+	};
+
+	/** Map of SkeletalMeshComponents that need their bone transforms sent to the physics engine before simulation. */
+	TMap<USkeletalMeshComponent*, FDeferredKinematicUpdateInfo>	DeferredKinematicUpdateSkelMeshes;
 };
 
 /**

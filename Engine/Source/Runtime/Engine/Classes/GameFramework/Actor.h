@@ -2207,6 +2207,7 @@ public:
 	virtual FName GetAttachParentSocketName() const;
 
 	/** Find all Actors which are attached directly to a component in this actor */
+	UFUNCTION(BlueprintPure, Category = "Utilities")
 	virtual void GetAttachedActors(TArray<AActor*>& OutActors) const;
 
 	/**

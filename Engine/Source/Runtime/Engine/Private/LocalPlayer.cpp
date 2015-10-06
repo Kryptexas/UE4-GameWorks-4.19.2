@@ -39,6 +39,7 @@ static TAutoConsoleVariable<int32> CVarViewportTest(
 
 #endif
 
+DECLARE_CYCLE_STAT(TEXT("CalcSceneView"), STAT_CalcSceneView, STATGROUP_Engine);
 
 //////////////////////////////////////////////////////////////////////////
 // Things used by ULocalPlayer::Exec
@@ -657,6 +658,8 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	class FViewElementDrawer* ViewDrawer,
 	EStereoscopicPass StereoPass)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CalcSceneView);
+
 	if ((PlayerController == NULL) || (Size.X <= 0.f) || (Size.Y <= 0.f) || (Viewport == NULL))
 	{
 		return NULL;

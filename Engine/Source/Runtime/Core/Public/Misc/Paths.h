@@ -138,6 +138,11 @@ public:
 	 */
 	static FString GamePluginsDir();
 
+	/*
+	* Returns the writable directory for downloaded data that persists across play sessions.
+	*/
+	static FString GamePersistentDownloadDir();
+
 	/**
 	 * Returns the directory the engine uses to look for the source leaf ini files. This
 	 * can't be an .ini variable for obvious reasons.

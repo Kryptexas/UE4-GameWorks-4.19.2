@@ -5,13 +5,13 @@
 #include "PartyGameState.h"
 #include "Party.h"
 
-#pragma optimize("", off)
+PRAGMA_DISABLE_OPTIMIZATION
 UPartyMemberState::UPartyMemberState(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	bHasAnnouncedJoin(false),
+	MemberStateRefDef(nullptr),
 	MemberStateRef(nullptr),
 	MemberStateRefScratch(nullptr),
-	MemberStateRefDef(nullptr)
+	bHasAnnouncedJoin(false)	
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -28,11 +28,17 @@ void UPartyMemberState::BeginDestroy()
 		{
 			MemberStateRefDef->DestroyStruct(MemberStateRefScratch);
 			FMemory::Free(MemberStateRefScratch);
+			MemberStateRefScratch = nullptr;
 		}
 		MemberStateRefDef = nullptr;
 	}
 
 	MemberStateRef = nullptr;
+}
+
+UPartyGameState* UPartyMemberState::GetParty() const
+{
+	return GetTypedOuter<UPartyGameState>();
 }
 
 void UPartyMemberState::UpdatePartyMemberState()
@@ -55,4 +61,4 @@ void UPartyMemberState::Reset()
 		MemberStateRef->Reset();
 	}
 }
-#pragma optimize("", on)
+PRAGMA_ENABLE_OPTIMIZATION

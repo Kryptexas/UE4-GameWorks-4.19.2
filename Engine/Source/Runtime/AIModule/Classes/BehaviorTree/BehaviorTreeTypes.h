@@ -465,14 +465,14 @@ protected:
 	UPROPERTY(transient, EditAnywhere, BlueprintReadWrite, Category = Blackboard, Meta = (Tooltip = ""))
 	uint32 bNoneIsAllowedValue:1;
 
+	/** find initial selection. Called when None is not a valid option for this key selector */
+	void InitSelection(const UBlackboardData& BlackboardAsset);
+
 public:
-	/** cache ID and class of selected key */
-	void CacheSelectedKey(UBlackboardData* BlackboardAsset);
-
-	/** find initial selection */
-	void InitSelectedKey(UBlackboardData* BlackboardAsset);
-
-	void AllowNoneAsValue(bool bNewVal ) { bNoneIsAllowedValue = bNewVal; }
+	/** find ID and class of selected key */
+	void ResolveSelectedKey(const UBlackboardData& BlackboardAsset);
+		
+	void AllowNoneAsValue(bool bAllow) { bNoneIsAllowedValue = bAllow; }
 
 	FORCEINLINE FBlackboard::FKey GetSelectedKeyID() const { return SelectedKeyID; }
 
@@ -511,8 +511,14 @@ public:
 	void AddStringFilter(UObject* Owner);
 	DEPRECATED(4.8, "This version is deprecated, please use override with PropertyName.")
 	void AddNameFilter(UObject* Owner);
+	DEPRECATED(4.10, "CacheSelectedKey is deprecated. Please use ResolveSelectedKey instead.")
+	void CacheSelectedKey(UBlackboardData* BlackboardAsset);
+	DEPRECATED(4.10, "InitSelectedKey is deprecated. Please use InitSelection instead.")
+	void InitSelectedKey(UBlackboardData* BlackboardAsset);
 
 	FORCEINLINE bool IsNone() const { return bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey; }
+	FORCEINLINE bool IsSet() const { return SelectedKeyID != FBlackboard::InvalidKey; }
+	FORCEINLINE bool NeedsResolving() const { return SelectedKeyID == FBlackboard::InvalidKey && SelectedKeyName.IsNone() == false; }
 
 	friend FBlackboardDecoratorDetails;
 };

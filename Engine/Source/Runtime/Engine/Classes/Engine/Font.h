@@ -252,7 +252,11 @@ public:
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
-	//~ End UObject Interface
+	virtual bool NeedsLoadForServer() const override
+	{
+		return false;
+	}
+	//~ End UObject interface
 
 	/**
 	 * Caches the character count and maximum character height for this font (as well as sub-fonts, in the multi-font case)

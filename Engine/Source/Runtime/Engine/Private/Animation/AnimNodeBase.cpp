@@ -42,6 +42,11 @@ void FPoseLinkBase::Initialize(const FAnimationInitializeContext& Context)
 
 	AttemptRelink(Context);
 
+#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
+	// 	checkf(!InitializationCounter.IsSynchronizedWith(Context.AnimInstance->InitializationCounter), TEXT("Already called Initialize on this node!"));
+	InitializationCounter.SynchronizeWith(Context.AnimInstance->InitializationCounter);
+#endif
+
 	// Do standard initialization
 	if (LinkedNode != NULL)
 	{
@@ -55,6 +60,12 @@ void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext& Context)
 	checkf( !bProcessed, TEXT( "CacheBones already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
 		Context.AnimInstance ? *Context.AnimInstance->GetFullName() : TEXT( "None" ), Context.GetAnimBlueprintClass() ? *Context.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
 	TGuardValue<bool> CircularGuard(bProcessed, true);
+#endif
+
+#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
+	// 	checkf(InitializationCounter.IsSynchronizedWith(Context.AnimInstance->InitializationCounter), TEXT("Calling CachedBones without initialization!"));
+	// 	checkf(!CachedBonesCounter.IsSynchronizedWith(Context.AnimInstance->CachedBonesCounter), TEXT("Already called CachedBones for this node!"));
+	CachedBonesCounter.SynchronizeWith(Context.AnimInstance->CachedBonesCounter);
 #endif
 
 	if (LinkedNode != NULL)
@@ -96,6 +107,12 @@ void FPoseLinkBase::Update(const FAnimationUpdateContext& Context)
 	}
 #endif
 
+#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
+	checkf(InitializationCounter.IsSynchronizedWith(Context.AnimInstance->InitializationCounter), TEXT("Calling Update without initialization!"));
+	checkf(!UpdateCounter.IsSynchronizedWith(Context.AnimInstance->UpdateCounter), TEXT("Already called Update for this node!"));
+	UpdateCounter.SynchronizeWith(Context.AnimInstance->UpdateCounter);
+#endif
+
 	if (LinkedNode != NULL)
 	{
 		LinkedNode->Update(Context);
@@ -129,6 +146,14 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 	}
 #endif
 
+#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
+	checkf(InitializationCounter.IsSynchronizedWith(Output.AnimInstance->InitializationCounter), TEXT("Calling Evaluate without initialization!"));
+	checkf(CachedBonesCounter.IsSynchronizedWith(Output.AnimInstance->CachedBonesCounter), TEXT("Calling Evaluate without CachedBones!"));
+	checkf(UpdateCounter.IsSynchronizedWith(Output.AnimInstance->UpdateCounter), TEXT("Calling Evaluate without Update for this node!"));
+	checkf(!EvaluationCounter.IsSynchronizedWith(Output.AnimInstance->EvaluationCounter), TEXT("Already called Evaluate for this node!"));
+	EvaluationCounter.SynchronizeWith(Output.AnimInstance->EvaluationCounter);
+#endif
+
 	if (LinkedNode != NULL)
 	{
 #if ENABLE_ANIMNODE_POSE_DEBUG
@@ -159,6 +184,14 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	checkf( !bProcessed, TEXT( "EvaluateComponentSpace already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
 		Output.AnimInstance ? *Output.AnimInstance->GetFullName() : TEXT( "None" ), Output.GetAnimBlueprintClass() ? *Output.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
 	TGuardValue<bool> CircularGuard(bProcessed, true);
+#endif
+
+#if ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG
+	checkf(InitializationCounter.IsSynchronizedWith(Output.AnimInstance->InitializationCounter), TEXT("Calling EvaluateComponentSpace without initialization!"));
+	checkf(CachedBonesCounter.IsSynchronizedWith(Output.AnimInstance->CachedBonesCounter), TEXT("Calling EvaluateComponentSpace without CachedBones!"));
+	checkf(UpdateCounter.IsSynchronizedWith(Output.AnimInstance->UpdateCounter), TEXT("Calling EvaluateComponentSpace without Update for this node!"));
+	checkf(!EvaluationCounter.IsSynchronizedWith(Output.AnimInstance->EvaluationCounter), TEXT("Already called EvaluateComponentSpace for this node!"));
+	EvaluationCounter.SynchronizeWith(Output.AnimInstance->EvaluationCounter);
 #endif
 
 	if (LinkedNode != NULL)
@@ -199,10 +232,10 @@ void FNodeDebugData::AddDebugItem(FString DebugData, bool bPoseSource)
 	NodeChain.Add( DebugItem(DebugData, bPoseSource) );
 }
 
-FNodeDebugData& FNodeDebugData::BranchFlow(float BranchWeight)
+FNodeDebugData& FNodeDebugData::BranchFlow(float BranchWeight, FString InNodeDescription)
 {
 	DebugItem& LatestItem = NodeChain.Last();
-	new (LatestItem.ChildNodeChain) FNodeDebugData(AnimInstance, BranchWeight*AbsoluteWeight);
+	new (LatestItem.ChildNodeChain) FNodeDebugData(AnimInstance, BranchWeight*AbsoluteWeight, InNodeDescription);
 	return LatestItem.ChildNodeChain.Last();
 }
 

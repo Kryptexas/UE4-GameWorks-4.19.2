@@ -237,7 +237,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyEvent.GetKey() == EKeys::Up )
+			else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -255,7 +255,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyEvent.GetKey() == EKeys::Down )
+			else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
 			{
 				// Begin at INDEX_NONE so the first item will get selected
 				int32 SelectionIndex = INDEX_NONE;

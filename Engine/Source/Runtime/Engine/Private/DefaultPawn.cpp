@@ -31,7 +31,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 
 	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
-	CollisionComponent->bCanEverAffectNavigation = false;
+	CollisionComponent->SetCanEverAffectNavigation(false);
 	CollisionComponent->bDynamicObstacle = true;
 
 	RootComponent = CollisionComponent;
@@ -64,7 +64,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 		const float Scale = CollisionComponent->GetUnscaledSphereRadius() / 160.f; // @TODO: hardcoding known size of EngineMeshes.Sphere. Should use a unit sphere instead.
 		MeshComponent->SetRelativeScale3D(FVector(Scale));
 		MeshComponent->bGenerateOverlapEvents = false;
-		MeshComponent->bCanEverAffectNavigation = false;
+		MeshComponent->SetCanEverAffectNavigation(false);
 	}
 
 	// This is the default pawn class, we want to have it be able to move out of the box.

@@ -307,7 +307,7 @@ void UAnimSequenceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class
 		{
 			if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition())
 			{
-				TickByMarkerAsLeader(Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, MoveDelta, Instance.bLooping);
+				TickByMarkerAsLeader(*Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, MoveDelta, Instance.bLooping);
 			}
 			else
 			{
@@ -323,7 +323,7 @@ void UAnimSequenceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class
 		// Follow the leader
 		if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition() && Context.MarkerTickContext.IsMarkerSyncStartValid())
 		{
-			TickByMarkerAsFollower(Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, Context.GetLeaderDelta(), Instance.bLooping);
+			TickByMarkerAsFollower(*Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, Context.GetLeaderDelta(), Instance.bLooping);
 		}
 		else
 		{

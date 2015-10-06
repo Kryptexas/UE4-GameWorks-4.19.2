@@ -177,7 +177,7 @@ void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModi
 	if( PreviewMeshComponent )
 	{
 		bool bShouldUpdatePreviewSocketMeshes = (ObjectBeingModified == PreviewMeshComponent->StaticMesh);
-		if( !bShouldUpdatePreviewSocketMeshes )
+		if( !bShouldUpdatePreviewSocketMeshes && PreviewMeshComponent->StaticMesh )
 		{
 			const int32 SocketCount = PreviewMeshComponent->StaticMesh->Sockets.Num();
 			for( int32 i = 0; i < SocketCount; ++i )

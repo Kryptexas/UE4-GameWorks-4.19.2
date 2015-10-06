@@ -14,7 +14,6 @@ UParty::UParty(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	bLeavingPersistentParty(false)
 {
-	PartyGameStateClass = UPartyGameState::StaticClass();
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 	}
@@ -519,9 +518,10 @@ void UParty::CreateParty(const FUniqueNetId& InUserId, const FPartyConfiguration
 
 void UParty::OnCreatePartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ECreatePartyCompletionResult Result, FOnCreatePartyComplete InCompletionDelegate)
 {
-	bool bWasSuccessful = Result == ECreatePartyCompletionResult::Succeeded;
-	UE_LOG(LogParty, Display, TEXT("OnCreatePartyComplete() %s %d %s"), *InPartyId.ToString(), bWasSuccessful, ToString(Result));
-	if (bWasSuccessful)
+	UE_LOG(LogParty, Display, TEXT("OnCreatePartyComplete() %s %s"), *InPartyId.ToString(), ToString(Result));
+
+	ECreatePartyCompletionResult LocalResult = Result;
+	if (Result == ECreatePartyCompletionResult::Succeeded)
 	{
 		UWorld* World = GetWorld();
 		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
@@ -530,23 +530,45 @@ void UParty::OnCreatePartyComplete(const FUniqueNetId& LocalUserId, const FOnlin
 			TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInt->GetPartyInfo(LocalUserId, InPartyId);
 			if (PartyInfo.IsValid())
 			{
-				UPartyGameState* NewParty = NewObject<UPartyGameState>(this, PartyGameStateClass);
+				FVariantData PartyConfigType;
+				PartyInfo->Config->ClientConfigData.GetAttribute(PARTY_CONFIG_TYPE, PartyConfigType);
+				if (PartyConfigType.GetType() == EOnlineKeyValuePairDataType::Int32)
+				{
+					int32 PartyType = 0;
+					PartyConfigType.GetValue(PartyType);
 
-				// Add right away so future delegate broadcasts have this available
-				JoinedParties.Add(InPartyId.ToString(), NewParty);
+					TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(PartyType);
+					if (PartyGameStateClass != nullptr)
+					{
+						UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
 
-				// Initialize and trigger delegates
-				NewParty->InitFromCreate(LocalUserId, PartyInfo);
+						// Add right away so future delegate broadcasts have this available
+						JoinedParties.Add(InPartyId.ToString(), NewParty);
+
+						// Initialize and trigger delegates
+						NewParty->InitFromCreate(LocalUserId, PartyInfo);
+					}
+					else
+					{
+						UE_LOG(LogParty, Warning, TEXT("No valid party class when creating party %s"), *InPartyId.ToString());
+						LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
+					}
+				}
+				else
+				{
+					UE_LOG(LogParty, Warning, TEXT("Invalid party config type when creating party %s"), *InPartyId.ToString());
+					LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
+				}
 			}
 			else
 			{
 				UE_LOG(LogParty, Warning, TEXT("Invalid PartyInfo when creating party %s"), *InPartyId.ToString());
-				bWasSuccessful = false;
+				LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
 			}
 		}
 	}
 
-	InCompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, Result);
+	InCompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, LocalResult);
 }
 
 void UParty::JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate)
@@ -571,19 +593,46 @@ void UParty::OnJoinPartyComplete(const FUniqueNetId& LocalUserId, const FOnlineP
 			TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInt->GetPartyInfo(LocalUserId, InPartyId);
 			if (PartyInfo.IsValid())
 			{
-				UPartyGameState* NewParty = NewObject<UPartyGameState>(this, PartyGameStateClass);
+				FVariantData PartyConfigType;
+				PartyInfo->Config->ClientConfigData.GetAttribute(PARTY_CONFIG_TYPE, PartyConfigType);
+				if (PartyConfigType.GetType() == EOnlineKeyValuePairDataType::Int32)
+				{
+					int32 PartyType = 0;
+					PartyConfigType.GetValue(PartyType);
 
-				// Add right away so future delegate broadcasts have this available
-				JoinedParties.Add(InPartyId.ToString(), NewParty);
+					TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(PartyType);
+					if (PartyGameStateClass != nullptr)
+					{
+						UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
 
-				// Initialize and trigger delegates
-				NewParty->InitFromJoin(LocalUserId, PartyInfo);
+						// Add right away so future delegate broadcasts have this available
+						JoinedParties.Add(InPartyId.ToString(), NewParty);
+
+						// Initialize and trigger delegates
+						NewParty->InitFromJoin(LocalUserId, PartyInfo);
+					}
+					else
+					{
+						LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
+						ErrorString = FString::Printf(TEXT("No valid party class when joining party %s"), *InPartyId.ToString());
+					}
+				}
+				else
+				{
+					LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
+					ErrorString = FString::Printf(TEXT("Invalid party config type when joining party %s"), *InPartyId.ToString());
+				}
 			}
 			else
 			{
 				LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
 				ErrorString = FString::Printf(TEXT("Invalid PartyInfo when joining party %s"), *InPartyId.ToString());
 			}
+		}
+		else
+		{
+			LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
+			ErrorString = FString::Printf(TEXT("No party interface when joining party %s"), *InPartyId.ToString());
 		}
 	}
 	else
@@ -644,9 +693,12 @@ void UParty::GetPersistentPartyConfiguration(FPartyConfiguration& PartyConfig)
 
 	PartyConfig.Permissions = bIsPrivate ? EPartyPermissions::Private : EPartyPermissions::Public;
 	PartyConfig.bIsAcceptingMembers = bIsPrivate ? false : true;
+	PartyConfig.bPresenceParty = true;
 	PartyConfig.bShouldPublishToPresence = !bIsPrivate;
 	PartyConfig.bCanNonLeaderPublishToPresence = !bIsPrivate && !bLeaderFriendsOnly;
 	PartyConfig.bCanNonLeaderInviteToParty = !bLeaderInvitesOnly;
+
+	PartyConfig.ClientConfigData.SetAttribute(PARTY_CONFIG_TYPE, (int32)EPartyConfigType::PersistentParty);
 
 	PartyConfig.MaxMembers = DefaultMaxPartySize;
 	PartyConfig.bShouldRemoveOnDisconnection = true;
@@ -671,15 +723,14 @@ void UParty::CreatePersistentParty(const FUniqueNetId& InUserId, const FOnCreate
 
 void UParty::OnCreatePersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ECreatePartyCompletionResult Result, FOnCreatePartyComplete CompletionDelegate)
 {
-	bool bWasSuccessful = Result == ECreatePartyCompletionResult::Succeeded;
-	if (bWasSuccessful)
+	if (Result == ECreatePartyCompletionResult::Succeeded)
 	{
 		PersistentPartyId = InPartyId.AsShared();
 	}
 
 	OnCreatePartyComplete(LocalUserId, InPartyId, Result, CompletionDelegate);
 
-	if (bWasSuccessful)
+	if (Result == ECreatePartyCompletionResult::Succeeded)
 	{
 		UPartyGameState* PersistentParty = GetPersistentParty();
 		if (PersistentParty)

@@ -790,7 +790,7 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 			const float AvgTimeMS = ( AccumulatedRecordTime / RecordCountSinceFlush ) * 1000;
 			const float MaxRecordTimeMS = MaxRecordTime * 1000;
 
-			if ( AvgTimeMS > 3.0f || MaxRecordTimeMS > 6.0f )
+			if ( AvgTimeMS > 8.0f )//|| MaxRecordTimeMS > 6.0f )
 			{
 				UE_LOG( LogDemo, Warning, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, World->NetworkActors.Num() );
 			}

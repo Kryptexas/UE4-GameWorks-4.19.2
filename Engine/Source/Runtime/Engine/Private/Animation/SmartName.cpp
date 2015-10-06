@@ -149,7 +149,7 @@ bool FSmartNameMapping::Exists(const FName& Name)
 	return UidMap.FindKey(Name) != nullptr;
 }
 
-const FSmartNameMapping::UID* FSmartNameMapping::FindUID(const FName& Name)
+const FSmartNameMapping::UID* FSmartNameMapping::FindUID(const FName& Name) const
 {
 	return UidMap.FindKey(Name);
 }

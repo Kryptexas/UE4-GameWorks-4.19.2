@@ -414,17 +414,7 @@ float UInterpToMovementComponent::GetSimulationTimeStep(float RemainingTime, int
 
 void UInterpToMovementComponent::BeginPlay()
 {
-	StartLocation = UpdatedComponent->GetComponentLocation();
-	TimeMultiplier = 1.0f / Duration;
-	if( ControlPoints.Num() != 0 )
-	{
-		UpdateControlPoints(true);
-		// Update the component location to match first control point
-		FVector MoveDelta = ComputeMoveDelta(0.0f);
-		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation();
-		FHitResult Hit(1.f);
-		UpdatedComponent->MoveComponent(MoveDelta, CurrentRotation, false, &Hit);
-	}	
+	FinaliseControlPoints();
 }
 
 void UInterpToMovementComponent::UpdateControlPoints(bool InForceUpdate)
@@ -485,10 +475,33 @@ float UInterpToMovementComponent::ReverseDirection(const FHitResult& Hit, float 
 }
 
 
-void UInterpToMovementComponent::AddControlPointPosition(FVector Pos)
+void UInterpToMovementComponent::AddControlPointPosition(FVector Pos,bool bPositionIsRelative)
 {
 	UE_LOG(LogInterpToMovementComponent, Warning, TEXT("Pos:%s"),*Pos.ToString());
-	ControlPoints.Add( FInterpControlPoint(Pos));
+	ControlPoints.Add( FInterpControlPoint(Pos,bPositionIsRelative));
+}
+
+void UInterpToMovementComponent::FinaliseControlPoints()
+{
+	StartLocation = UpdatedComponent->GetComponentLocation();
+	TimeMultiplier = 1.0f / Duration;
+	if (ControlPoints.Num() != 0)
+	{
+		UpdateControlPoints(true);
+		// Update the component location to match first control point
+		FVector MoveDelta = ComputeMoveDelta(0.0f);
+		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation();
+		FHitResult Hit(1.f);
+		UpdatedComponent->MoveComponent(MoveDelta, CurrentRotation, false, &Hit);
+	} 
+}
+
+void UInterpToMovementComponent::RestartMovement(float InitialDirection)
+{	
+	CurrentDirection = InitialDirection;
+	CurrentTime = 0.0f;
+	bIsWaiting = false;
+	bStopped = false;
 }
 
 #if WITH_EDITOR
@@ -501,4 +514,6 @@ void UInterpToMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& P
 		UpdateControlPoints(true);
 	}
 }
+
+
 #endif // WITH_EDITOR

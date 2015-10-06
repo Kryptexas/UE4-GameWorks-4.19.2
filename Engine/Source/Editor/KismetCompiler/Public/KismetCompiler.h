@@ -215,6 +215,9 @@ protected:
 	// Gives derived classes a chance to emit debug data
 	virtual void PostCompileDiagnostics() {}
 
+	// Gives derived classes a chance to hook up any custom logic
+	virtual void PostCompile() {}
+
 	/** Determines if a node is pure */
 	virtual bool IsNodePure(const UEdGraphNode* Node) const;
 

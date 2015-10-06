@@ -14,9 +14,6 @@ class UAnimGraphNode_BlendSpaceEvaluator : public UAnimGraphNode_BlendSpaceBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendSpaceEvaluator Node;
 
-	UPROPERTY(EditAnywhere, Category=Settings)
-	FAnimationGroupReference SyncGroup;
-
 	// UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

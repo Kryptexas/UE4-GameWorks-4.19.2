@@ -1039,15 +1039,15 @@ public partial class Project : CommandUtils
 			bool bAddedToChunk = false;
 			for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
 			{
-                string OriginalFilename = StagingFile.Key;
-                string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
-                string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
-                string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
+                		string OriginalFilename = StagingFile.Key;
+                		string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
+                		string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
+                		string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
 
 				if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) || 
-                    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
-                    ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
-                    ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
+                		    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
+		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
+		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
 				{
 					PakResponseFiles[ChunkIndex].Add(StagingFile.Key, StagingFile.Value);
 					bAddedToChunk = true;
@@ -1055,6 +1055,7 @@ public partial class Project : CommandUtils
 			}
 			if (!bAddedToChunk)
 			{
+				Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
 				PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
 			}
 		}

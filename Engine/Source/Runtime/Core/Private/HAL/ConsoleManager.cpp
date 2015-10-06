@@ -1747,6 +1747,15 @@ static TAutoConsoleVariable<float> CVarScreenPercentage(
 	TEXT("<0 is treated like 100."),
 	ECVF_Scalability | ECVF_Default);
 
+static TAutoConsoleVariable<float> CVarSeparateTranslucencyScreenPercentage(
+	TEXT("r.SeparateTranslucencyScreenPercentage"),
+	100.0f,
+	TEXT("Render separate translucency at this percentage of the full resolution.\n")
+	TEXT("in percent, >0 and <=100, larger numbers are possible (supersampling).")
+	TEXT("<0 is treated like 100."),
+	ECVF_Scalability | ECVF_Default);
+
+
 static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
 	TEXT("r.MaterialQualityLevel"),
 	1,
@@ -1831,6 +1840,19 @@ static TAutoConsoleVariable<int32> CVarMSAACompositingSampleCount(
 	TEXT(" 4: 4x MSAA, high quality (high GPU memory consumption)\n")
 	TEXT(" 8: 8x MSAA, very high quality (insane GPU memory consumption)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+
+static TAutoConsoleVariable<float> CVarNetPackageMapLongLoadThreshhold(
+	TEXT("net.PackageMap.LongLoadThreshhold"),
+	0.02f,
+	TEXT("Threshhold time in seconds for printing long load warnings in object serialization"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetPackageMapDebugAllObjects(
+	TEXT("net.PackageMap.DebugAll"),
+	0,
+	TEXT("Debugs PackageMap serialization of all objects"),	
+	ECVF_Default);
 
 static TAutoConsoleVariable<FString> CVarNetPackageMapDebugObject(
 	TEXT("net.PackageMap.DebugObject"),

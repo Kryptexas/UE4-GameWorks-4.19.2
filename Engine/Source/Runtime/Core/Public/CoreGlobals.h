@@ -322,3 +322,7 @@ extern CORE_API double GBlueprintCompileTime;
  */
 CORE_API void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature);
 #endif // WITH_HOT_RELOAD_CTORS
+
+extern CORE_API void NaNDiagnosticFail(const TCHAR* Info);
+
+extern CORE_API int32 GEnsureOnNANDiagnostic;

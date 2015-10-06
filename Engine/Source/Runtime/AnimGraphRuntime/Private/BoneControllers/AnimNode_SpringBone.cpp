@@ -44,11 +44,8 @@ void FAnimNode_SpringBone::Update(const FAnimationUpdateContext& Context)
 
 	RemainingTime += Context.GetDeltaTime();
 
-	const USkeletalMeshComponent* SkelComp = Context.AnimInstance->GetSkelMeshComponent();
-	const UWorld* World = SkelComp->GetWorld();
-	check(World->GetWorldSettings());
 	// Fixed step simulation at 120hz
-	FixedTimeStep = (1.f / 120.f) * World->GetWorldSettings()->GetEffectiveTimeDilation();
+	FixedTimeStep = (1.f / 120.f) * Context.AnimInstance->CurrentTimeDilation;
 }
 
 void FAnimNode_SpringBone::GatherDebugData(FNodeDebugData& DebugData)

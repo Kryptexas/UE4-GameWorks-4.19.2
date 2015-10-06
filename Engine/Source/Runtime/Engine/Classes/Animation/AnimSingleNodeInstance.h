@@ -40,6 +40,9 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	UPROPERTY(transient)
 	float CurrentTime;
 
+	/** Cache for data needed during marker sync */
+	FMarkerTickRecord MarkerTickRecord;
+
 	UPROPERTY(transient)
 	float PlayRate;
 	 

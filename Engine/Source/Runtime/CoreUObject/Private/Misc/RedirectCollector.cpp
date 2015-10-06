@@ -88,6 +88,15 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 		FString ToLoad = First.Key();
 		FPackagePropertyPair RefFilenameAndProperty = First.Value();
 		First.RemoveCurrent();
+		
+		if (FCoreDelegates::LoadStringAssetReferenceInCook.IsBound())
+		{
+			if (FCoreDelegates::LoadStringAssetReferenceInCook.Execute(ToLoad) == false)
+			{
+				// Skip this reference
+				continue;
+			}
+		}
 
 		if (!FilterPackage.IsEmpty() && FilterPackage != RefFilenameAndProperty.Package)
 		{

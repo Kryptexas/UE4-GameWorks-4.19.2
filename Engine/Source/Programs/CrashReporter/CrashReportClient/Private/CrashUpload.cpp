@@ -170,7 +170,7 @@ void FCrashUpload::CompressAndSendData()
 		const FString Filename = FPaths::GetCleanFilename( PathOfFileToUpload );
 
 		const bool bValidFullDumpForCopy = Filename == FGenericCrashContext::UE4MinidumpName && 
-			FPrimaryCrashProperties::Get()->CrashDumpMode == ECrashDumpMode::FullDump && 
+			(FPrimaryCrashProperties::Get()->CrashDumpMode == ECrashDumpMode::FullDump || FPrimaryCrashProperties::Get()->CrashDumpMode == ECrashDumpMode::FullDumpAlways) &&
 			FPrimaryCrashProperties::Get()->CrashVersion >= ECrashDescVersions::VER_3_CrashContext &&
 			!FullCrashDumpLocation.IsEmpty();
 		if (bValidFullDumpForCopy)

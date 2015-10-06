@@ -37,10 +37,16 @@ UEnvQueryTest_Distance::UEnvQueryTest_Distance(const FObjectInitializer& ObjectI
 
 void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	UObject* QueryOwner = QueryInstance.Owner.Get();
+	if (QueryOwner == nullptr)
+	{
+		return;
+	}
+
+	FloatValueMin.BindData(QueryOwner, QueryInstance.QueryID);
 	float MinThresholdValue = FloatValueMin.GetValue();
 
-	FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	FloatValueMax.BindData(QueryOwner, QueryInstance.QueryID);
 	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	// don't support context Item here, it doesn't make any sense
@@ -101,6 +107,7 @@ void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 			break;
 
 		default:
+			checkNoEntry();
 			return;
 	}
 }

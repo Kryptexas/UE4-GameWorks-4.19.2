@@ -40,10 +40,7 @@ protected:
 
 	/** bounds for navigation octree */
 	mutable FBox Bounds;
-
-	UPROPERTY()
-	uint32 bNavigationRelevant : 1;
-
+	
 	/** attach navigation data to entry for owner's root component (depends on its relevancy) */
 	UPROPERTY()
 	uint32 bAttachToOwnersRoot : 1;

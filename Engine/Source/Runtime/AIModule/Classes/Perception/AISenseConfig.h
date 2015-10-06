@@ -3,6 +3,9 @@
 #pragma once
 
 #include "AIPerceptionTypes.h"
+#if !UE_BUILD_SHIPPING
+#	include "Debug/DebugDrawService.h"
+#endif
 #include "AISenseConfig.generated.h"
 
 class UAISenseImplementation;
@@ -37,6 +40,6 @@ public:
 	//----------------------------------------------------------------------//
 	// DEBUG	
 	//----------------------------------------------------------------------//
-	virtual void DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const;
+	virtual void GetDebugData(TArray<FString>& OnScreenStrings, TArray<FDrawDebugShapeElement>& DebugShapes, const UAIPerceptionComponent& PerceptionComponent) const {}
 #endif // !UE_BUILD_SHIPPING
 };

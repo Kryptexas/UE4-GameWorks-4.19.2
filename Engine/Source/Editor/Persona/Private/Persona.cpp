@@ -113,9 +113,9 @@ public:
 	{
 		if (UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent())
 		{
-			if (PreviewComponent->AnimScriptInstance != nullptr)
+			if (PreviewComponent->GetAnimInstance() != nullptr)
 			{
-				return PreviewComponent->AnimScriptInstance;
+				return PreviewComponent->GetAnimInstance();
 			}
 		}
 
@@ -773,7 +773,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	else
 	{
 		// Make sure the object being debugged is the preview instance
-		AnimBlueprint->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
+		AnimBlueprint->SetObjectBeingDebugged(PreviewComponent->GetAnimInstance());
 	}
 
 	ExtendMenu();
@@ -1703,12 +1703,12 @@ void FPersona::Compile()
 {
 	// Note if we were debugging the preview
 	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
-	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->AnimScriptInstance == CurrentDebugObject);
+	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->GetAnimInstance() == CurrentDebugObject);
 
 	if (PreviewComponent != NULL)
 	{
 		// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
-		FAssetEditorManager::Get().CloseOtherEditors(PreviewComponent->AnimScriptInstance, nullptr);
+		FAssetEditorManager::Get().CloseOtherEditors(PreviewComponent->GetAnimInstance(), nullptr);
 	}
 
 	// Compile the blueprint
@@ -1716,7 +1716,7 @@ void FPersona::Compile()
 
 	if (PreviewComponent != NULL)
 	{
-		if (PreviewComponent->AnimScriptInstance == NULL)
+		if (PreviewComponent->GetAnimInstance() == NULL)
 		{
 			// try reinitialize animation if it doesn't exist
 			PreviewComponent->InitAnim(true);
@@ -1724,7 +1724,7 @@ void FPersona::Compile()
 
 		if (bIsDebuggingPreview)
 		{
-			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
+			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->GetAnimInstance());
 		}
 	}
 
@@ -1880,7 +1880,7 @@ void FPersona::SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh)
 		UAnimationAsset* AnimAssetToPlay = NULL;
 		float PlayPosition = 0.f;
 		bool bPlaying = false;
-		bool bNeedsToCopyAnimationData = PreviewComponent->AnimScriptInstance && PreviewComponent->AnimScriptInstance == PreviewComponent->PreviewInstance;
+		bool bNeedsToCopyAnimationData = PreviewComponent->GetAnimInstance() && PreviewComponent->GetAnimInstance() == PreviewComponent->PreviewInstance;
 		if(bNeedsToCopyAnimationData)
 		{
 			AnimAssetToPlay = PreviewComponent->PreviewInstance->CurrentAsset;
@@ -2027,7 +2027,7 @@ void FPersona::GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) cons
 {
 	if (PreviewComponent->IsAnimBlueprintInstanced())
 	{
-		new (DebugList) FCustomDebugObject(PreviewComponent->AnimScriptInstance, LOCTEXT("PreviewObjectLabel", "Preview Instance").ToString());
+		new (DebugList) FCustomDebugObject(PreviewComponent->GetAnimInstance(), LOCTEXT("PreviewObjectLabel", "Preview Instance").ToString());
 	}
 }
 
@@ -3202,7 +3202,7 @@ void FPersona::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeing
 	FBlueprintEditor::OnBlueprintChangedImpl(InBlueprint, bIsJustBeingCompiled);
 
 	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
-	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->AnimScriptInstance == CurrentDebugObject);
+	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->GetAnimInstance() == CurrentDebugObject);
 
 	if(PreviewComponent != NULL)
 	{
@@ -3212,7 +3212,7 @@ void FPersona::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeing
 
 		if(bIsDebuggingPreview)
 		{
-			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
+			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->GetAnimInstance());
 		}
 	}
 

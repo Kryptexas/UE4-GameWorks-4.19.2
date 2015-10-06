@@ -518,7 +518,7 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 				const bool bLegalActor = Actor && !Actor->IsPendingKill();
 				if (bLegalActor)
 				{
-					UpdateNavOctreeAll(Actor);
+					UpdateActorAndComponentsInNavOctree(*Actor);
 				}
 			}
 		}
@@ -723,6 +723,8 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 			}
 		}
 	}
+
+	OnNavigationInitDone.Broadcast();
 }
 
 void UNavigationSystem::RegisterNavigationDataInstances()
@@ -935,13 +937,13 @@ FPathFindingResult UNavigationSystem::FindPathSync(FPathFindingQuery Query, EPat
 	FPathFindingResult Result(ENavigationQueryResult::Error);
 	if (Query.NavData.IsValid())
 	{
-		if (Mode == EPathFindingMode::Hierarchical)
-		{
-			Result = Query.NavData->FindHierarchicalPath(FNavAgentProperties(), Query);
-		}
-		else
+		if (Mode == EPathFindingMode::Regular)
 		{
 			Result = Query.NavData->FindPath(FNavAgentProperties(), Query);
+		}
+		else // EPathFindingMode::Hierarchical
+		{
+			Result = Query.NavData->FindHierarchicalPath(FNavAgentProperties(), Query);
 		}
 	}
 
@@ -1499,7 +1501,7 @@ ANavigationData* UNavigationSystem::GetMainNavData(FNavigationSystem::ECreateIfE
 		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
 			ANavigationData* NavData = NavDataSet[NavDataIndex];
-			if (NavData != NULL && NavData->IsPendingKill() == false && !NavData->IsA(AAbstractNavData::StaticClass()))
+			if (NavData && !NavData->IsPendingKill() && NavData->CanBeMainNavData())
 			{
 				MainNavData = NavData;
 				break;
@@ -2448,86 +2450,122 @@ const FNavigationRelevantData* UNavigationSystem::GetDataForObject(const UObject
 	return nullptr;
 }
 
-void UNavigationSystem::UpdateNavOctree(AActor* Actor)
+void UNavigationSystem::UpdateActorInNavOctree(AActor& Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
-	INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(Actor);
+	INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(&Actor);
 	if (NavElement)
 	{
-		UNavigationSystem* NavSys = Actor ? UNavigationSystem::GetCurrent(Actor->GetWorld()) : NULL;
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor.GetWorld());
 		if (NavSys)
 		{
-			NavSys->UpdateNavOctreeElement(Actor, NavElement, OctreeUpdate_Modifiers);
+			NavSys->UpdateNavOctreeElement(&Actor, NavElement, OctreeUpdate_Modifiers);
 		}
 	}
 }
 
-void UNavigationSystem::UpdateNavOctree(UActorComponent* Comp)
+void UNavigationSystem::UpdateComponentInNavOctree(UActorComponent& Comp)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
-	// special case for early out: use cached nav relevancy
-	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp);
-	if (PrimComp == nullptr || PrimComp->bNavigationRelevant == true)
+	if (ShouldUpdateNavOctreeOnComponentChange() == false)
 	{
-		INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(Comp);
+		return;
+	}
+
+	// special case for early out: use cached nav relevancy
+	if (Comp.bNavigationRelevant == true)
+	{
+		INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(&Comp);
 		if (NavElement)
 		{
-			AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
-			if (OwnerActor)
+			AActor* OwnerActor = Comp.GetOwner();
+			if (ensure(OwnerActor))
 			{
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
 				if (NavSys)
 				{
-					if (OwnerActor->IsComponentRelevantForNavigation(Comp))
+					if (OwnerActor->IsComponentRelevantForNavigation(&Comp))
 					{
-						NavSys->UpdateNavOctreeElement(Comp, NavElement, OctreeUpdate_Default);
+						NavSys->UpdateNavOctreeElement(&Comp, NavElement, OctreeUpdate_Default);
 					}
 					else
 					{
-						NavSys->UnregisterNavOctreeElement(Comp, NavElement, OctreeUpdate_Default);
+						NavSys->UnregisterNavOctreeElement(&Comp, NavElement, OctreeUpdate_Default);
 					}
 				}
 			}
 		}
 	}
-	else if (PrimComp != nullptr && PrimComp->CanEverAffectNavigation()) // implies PrimComp->bNavigationRelevant == false
+	else if (Comp.CanEverAffectNavigation()) 
 	{
 		// could have been relevant before and not it isn't. Need to check if there's an octree element ID for it
-		INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(Comp);
+		INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(&Comp);
 		if (NavElement)
 		{
-			AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
+			AActor* OwnerActor = Comp.GetOwner();
 			if (OwnerActor)
 			{
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
 				if (NavSys)
 				{
-					NavSys->UnregisterNavOctreeElement(Comp, NavElement, OctreeUpdate_Default);
+					NavSys->UnregisterNavOctreeElement(&Comp, NavElement, OctreeUpdate_Default);
 				}
 			}
 		}
 	}
 }
 
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
+void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
+void UNavigationSystem::UpdateActorAndComponentsInNavOctree(AActor& Actor)
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
 void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors)
+<<<<
 {
-	if (Actor)
-	{
-		UpdateNavOctree(Actor);
+	UpdateActorInNavOctree(Actor);
 		
-		TInlineComponentArray<UActorComponent*> Components;
-		Actor->GetComponents(Components);
+	TInlineComponentArray<UActorComponent*> Components;
+	Actor.GetComponents(Components);
 
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UpdateNavOctree(Components[ComponentIndex]);
-		}
+	for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
+	{
+		check(Components[ComponentIndex]);
+		UpdateComponentInNavOctree(*Components[ComponentIndex]);
+	}
 
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
+		if (Actor->GetRootComponent())
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
+	if (Actor.GetRootComponent())
+	{
+		for (int32 RootChildIndex = 0; RootChildIndex < Actor.GetRootComponent()->AttachChildren.Num(); RootChildIndex++)
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
 		if (bUpdateAttachedActors)
+<<<<
 		{
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
+			for (int32 RootChildIndex = 0; RootChildIndex < Actor->GetRootComponent()->AttachChildren.Num(); RootChildIndex++)
+			{
+				if (Actor->GetRootComponent()->AttachChildren[RootChildIndex] && Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter() != Actor)
+				{
+					UpdateNavOctreeAll(Cast<AActor>(Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter()));
+				}
+			}
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
+			if (Actor.GetRootComponent()->AttachChildren[RootChildIndex] && Actor.GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter() != &Actor)
+			{
+				AActor* AttachedActor = Cast<AActor>(Actor.GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter());
+				if (AttachedActor)
+				{
+					UpdateActorAndComponentsInNavOctree(*AttachedActor);
+				}
+			}
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
 			UpdateAttachedActorsInNavOctree(*Actor);
+<<<<
 		}
 	}
 }
@@ -2537,7 +2575,7 @@ void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
 	AActor* OwnerActor = Comp->GetOwner();
 	if (OwnerActor && OwnerActor->GetRootComponent() == Comp)
 	{
-		UpdateNavOctree(OwnerActor);
+		UpdateActorInNavOctree(*OwnerActor);
 
 		TInlineComponentArray<UActorComponent*> Components;
 		OwnerActor->GetComponents(Components);
@@ -2545,9 +2583,10 @@ void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{
 			UActorComponent* const Component = Components[ComponentIndex];
-			if (Component && !Cast<USceneComponent>(Component))
+			// updating only INavRelevantInterfaces here on purpose, all the rest will get updated automatically
+			if (Component && Cast<INavRelevantInterface>(Component))
 			{
-				UpdateNavOctree(Component);
+				UpdateComponentInNavOctree(*Component);
 			}
 		}
 
@@ -2569,8 +2608,24 @@ void UNavigationSystem::UpdateAttachedActorsInNavOctree(AActor& RootActor)
 		
 		for (int32 AttachmentIndex = 0; AttachmentIndex < TempAttachedActors.Num(); ++AttachmentIndex)
 		{
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
+			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
+			{
+				UpdateNavOctreeAll(Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter()));
+			}
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
+			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
+			{
+				AActor* AttachedActor = Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter());
+				if (AttachedActor)
+				{
+					UpdateActorAndComponentsInNavOctree(*AttachedActor);
+				}
+			}
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
 			// and store the ones we don't know about yet
 			UniqueAttachedActors.AddUnique(TempAttachedActors[AttachmentIndex]);
+<<<<
 		}
 	}
 	
@@ -3120,20 +3175,25 @@ void UNavigationSystem::SpawnMissingNavigationData()
 	{
 		for (int32 AgentIndex = 0; AgentIndex < SupportedAgentsCount; ++AgentIndex)
 		{
-			if (AlreadyInstantiated[AgentIndex] == false && SupportedAgents[AgentIndex].NavigationDataClass != nullptr)
+			const FNavDataConfig& NavConfig = SupportedAgents[AgentIndex];
+			if (AlreadyInstantiated[AgentIndex] == false && NavConfig.NavigationDataClass != nullptr)
 			{
 				bool bHandled = false;
 
-				ANavigationData* Instance = CreateNavigationDataInstance(SupportedAgents[AgentIndex]);
+				ANavigationData* NavDataCDO = NavConfig.NavigationDataClass->GetDefaultObject<ANavigationData>();
+				if (NavDataCDO == nullptr || !NavDataCDO->CanSpawnOnRebuild())
+				{
+					continue;
+				}
 
+				ANavigationData* Instance = CreateNavigationDataInstance(NavConfig);
 				if (Instance != NULL)
 				{
 					RequestRegistration(Instance);
 				}
-				else 
+				else
 				{
-					UE_LOG(LogNavigation, Warning, TEXT("Was not able to create navigation data for SupportedAgent %s (index %d)")
-						, *(SupportedAgents[AgentIndex].Name.ToString()), AgentIndex);
+					UE_LOG(LogNavigation, Warning, TEXT("Was not able to create navigation data for SupportedAgent[%d]: %s"), AgentIndex, *NavConfig.Name.ToString());
 				}
 			}
 		}
@@ -3326,11 +3386,19 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 
 		if (InLevel && !InLevel->IsPersistentLevel())
 		{
-			for (ANavigationData* NavData : NavDataSet)
-			{
+			for (int32 DataIndex = NavDataSet.Num() - 1; DataIndex >= 0; --DataIndex)
+			{		
+				ANavigationData* NavData = NavDataSet[DataIndex];
 				if (NavData)
 				{
-					NavData->OnStreamingLevelRemoved(InLevel, InWorld);
+					if (NavData->GetLevel() != InLevel)
+					{
+						NavData->OnStreamingLevelRemoved(InLevel, InWorld);
+					}
+					else
+					{
+						NavDataSet.RemoveAt(DataIndex, 1, /*bAllowShrinking=*/false);
+					}
 				}
 			}
 		}
@@ -3990,4 +4058,31 @@ bool UNavigationSystem::GetRandomPointInRadius(const FVector& Origin, float Radi
 	return GetRandomReachablePointInRadius(Origin, Radius, ResultLocation, NavData, QueryFilter);
 }
 
+>>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
+}
+==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
+void UNavigationSystem::UpdateNavOctree(AActor* Actor)
+{
+	if (Actor)
+	{
+		UpdateActorInNavOctree(*Actor);
+	}
+}
+
+void UNavigationSystem::UpdateNavOctree(UActorComponent* Comp)
+{
+	if (Comp)
+	{
+		UpdateComponentInNavOctree(*Comp);
+	}
+}
+
+void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
+{
+	if (Actor)
+	{
+		UpdateActorAndComponentsInNavOctree(*Actor);
+	}
+}
+==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
 #undef LOCTEXT_NAMESPACE

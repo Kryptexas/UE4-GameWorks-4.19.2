@@ -292,7 +292,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 	IsEditable = InArgs._IsEditable;
 	TargetSkeleton = InArgs._Skeleton;
 	bPreviewLockModeOn = 0;
-	LODSelection = LOD_Auto;
+	LODSelection = 0;
 
 	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
 	check(SharedPersona.IsValid());
@@ -674,38 +674,19 @@ void SAnimationEditorViewportTabBody::BindCommands()
 	//LOD Auto
 	CommandList.MapAction( 
 		ViewportLODMenuCommands.LODAuto,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, LOD_Auto),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, 0),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_Auto));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, 0));
 
-	//LOD 0
-	CommandList.MapAction( 
+	// LOD 0
+	CommandList.MapAction(
 		ViewportLODMenuCommands.LOD0,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, LOD_0),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, 1),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_0));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, 1));
 
-	//LOD 1
-	CommandList.MapAction( 
-		ViewportLODMenuCommands.LOD1,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, LOD_1),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_1));
-
-	//LOD 2
-	CommandList.MapAction( 
-		ViewportLODMenuCommands.LOD2,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, LOD_2),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_2));
-
-	//LOD 3
-	CommandList.MapAction( 
-		ViewportLODMenuCommands.LOD3,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetLODModel, LOD_3),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_3));
-
+	// all other LODs will be added dynamically 
+	
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ToggleGrid,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
@@ -935,7 +916,7 @@ void SAnimationEditorViewportTabBody::OnShowAdditiveBase()
 bool SAnimationEditorViewportTabBody::IsPreviewingAnimation() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	return (PreviewComponent && PreviewComponent->PreviewInstance && (PreviewComponent->PreviewInstance == PreviewComponent->AnimScriptInstance));
+	return (PreviewComponent && PreviewComponent->PreviewInstance && (PreviewComponent->PreviewInstance == PreviewComponent->GetAnimInstance()));
 }
 
 bool SAnimationEditorViewportTabBody::IsShowingBones() const
@@ -1228,7 +1209,7 @@ void SAnimationEditorViewportTabBody::SetPreviewComponent(class UDebugSkelMeshCo
 	UAnimBlueprint* SourceBlueprint = Cast<UAnimBlueprint>(PersonaPtr.Pin()->GetBlueprintObj());
 	if ( SourceBlueprint && PreviewComponent->IsAnimBlueprintInstanced() )
 	{
-		SourceBlueprint->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
+		SourceBlueprint->SetObjectBeingDebugged(PreviewComponent->GetAnimInstance());
 	}
 
 	PopulateNumUVChannels();
@@ -1346,9 +1327,9 @@ float SAnimationEditorViewportTabBody::GetViewMinInput() const
 		{
 			return 0.0f;
 		}
-		else if (PreviewComponent->AnimScriptInstance != NULL)
+		else if (PreviewComponent->GetAnimInstance() != NULL)
 		{
-			return FMath::Max<float>((float)(PreviewComponent->AnimScriptInstance->LifeTimer - 30.0), 0.0f);
+			return FMath::Max<float>((float)(PreviewComponent->GetAnimInstance()->LifeTimer - 30.0), 0.0f);
 		}
 	}
 
@@ -1365,9 +1346,9 @@ float SAnimationEditorViewportTabBody::GetViewMaxInput() const
 		{
 			return PreviewComponent->PreviewInstance->GetLength();
 		}
-		else if (PreviewComponent->AnimScriptInstance != NULL)
+		else if (PreviewComponent->GetAnimInstance() != NULL)
 		{
-			return PreviewComponent->AnimScriptInstance->LifeTimer;
+			return PreviewComponent->GetAnimInstance()->LifeTimer;
 		}
 	}
 
@@ -1391,12 +1372,12 @@ void SAnimationEditorViewportTabBody::UpdateShowFlagForMeshEdges()
 	LevelViewportClient->EngineShowFlags.SetMeshEdges(bDrawBonesInfluence || bShowMeshEdgesViewMode);
 }
 
-bool SAnimationEditorViewportTabBody::IsLODModelSelected(ELODViewSelection LODSelectionType) const
+bool SAnimationEditorViewportTabBody::IsLODModelSelected(int32 LODSelectionType) const
 {
 	return (LODSelection == LODSelectionType) ? true : false;
 }
 
-void SAnimationEditorViewportTabBody::OnSetLODModel(ELODViewSelection LODSelectionType)
+void SAnimationEditorViewportTabBody::OnSetLODModel(int32 LODSelectionType)
 {
 	LODSelection = LODSelectionType;
 
@@ -1534,7 +1515,7 @@ void SAnimationEditorViewportTabBody::OnLODChanged()
 	// If the currently selected LoD is invalid, revert to LOD_Auto
 	if ( LodCount < LODSelection )
 	{
-		OnSetLODModel( LOD_Auto );
+		OnSetLODModel( 0 );
 	}
 
 	if (PersonaPtr.Pin()->PersonaMeshDetailLayout)

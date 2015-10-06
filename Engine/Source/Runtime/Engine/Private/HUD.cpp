@@ -129,12 +129,11 @@ void AHUD::PostRender()
 
 	if ( bShowDebugInfo )
 	{
-		UFont* Font = GEngine->GetTinyFont();
-		float XL, YL;
-		Canvas->StrLen(Font, TEXT("X"), XL, YL);
-
-		float YPos = 50;
-		ShowDebugInfo(YL, YPos);
+		if (DebugCanvas)
+		{
+			DebugCanvas->DisplayDebugManager.Initialize(DebugCanvas, GEngine->GetTinyFont(), FVector2D(4.f, 50.f));
+			ShowDebugInfo(DebugCanvas->DisplayDebugManager.GetMaxCharHeightRef(), DebugCanvas->DisplayDebugManager.GetYPosRef());
+		}
 	}
 	else if ( bShowHUD )
 	{

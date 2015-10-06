@@ -2,6 +2,7 @@
 
 #pragma once
 #include "ShowFlags.h"
+#include "GameplayDebuggerSettings.h"
 #include "GameplayDebuggingHUDComponent.generated.h"
 
 class AGameplayDebuggingReplicator;
@@ -107,6 +108,7 @@ protected:
 	FPrintContext DefaultContext;
 	UWorld* World;
 	FEngineShowFlags EngineShowFlags;
+	float BlackboardFinishY;
 
 private:
 	float ItemDescriptionWidth;

@@ -547,7 +547,7 @@ void UAnimPreviewInstance::MontagePreview_StepForward()
 		float NewTime = Montage->SequenceLength * (NextFrame / NumFrames);
 
 		GetSkelMeshComponent()->GlobalAnimRateScale = 1.0f;
-		GetSkelMeshComponent()->TickAnimation(NewTime - CurrentTime);
+		GetSkelMeshComponent()->TickAnimation(NewTime - CurrentTime, false);
 
 		MontagePreview_SetPlaying(false);
 	}
@@ -602,7 +602,7 @@ void UAnimPreviewInstance::MontagePreview_StepBackward()
 		float NewTime = Montage->SequenceLength * (NextFrame / NumFrames);
 
 		GetSkelMeshComponent()->GlobalAnimRateScale = 1.0f;
-		GetSkelMeshComponent()->TickAnimation(FMath::Abs(NewTime - CurrentTime));
+		GetSkelMeshComponent()->TickAnimation(FMath::Abs(NewTime - CurrentTime), false);
 
 		MontagePreview_SetPlaying(false);
 	}

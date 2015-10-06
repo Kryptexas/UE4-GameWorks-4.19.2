@@ -472,7 +472,10 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 		UE_LOG(LogBlueprintDebug, Warning, TEXT("Tried to break execution in an unknown spot at object %s:%04X"), *StackFrame.Node->GetFullName(), StackFrame.Code - StackFrame.Node->Script.GetData());
 	}
 
-	if ((GUnrealEd->PlayWorld != NULL) && !GIsAutomationTesting)
+	// A check to !GIsAutomationTesting was removed from here as it seemed redundant.
+	// Breakpoints have to be explicitly enabled by the user which shouldn't happen 
+	// under automation and this was preventing debugging on automation test bp's.
+	if ((GUnrealEd->PlayWorld != NULL))
 	{
 		// Pause the simulation
 		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
