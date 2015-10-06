@@ -46,7 +46,7 @@ int32 UPaperGroupedSpriteComponent::AddInstanceWithMaterial(const FTransform& Tr
 
 	MarkRenderStateDirty();
 
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 
 	return NewInstanceIndex;
 }
@@ -77,7 +77,7 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 	}
 
 	// Request navigation update
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 
 	FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
 
@@ -98,7 +98,7 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 	}
 
 	// Request navigation update
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 
 	if (bMarkRenderStateDirty)
 	{
@@ -135,7 +135,7 @@ bool UPaperGroupedSpriteComponent::RemoveInstance(int32 InstanceIndex)
 	}
 
 	// Request navigation update
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 
 	// remove instance
 	PerInstanceSpriteData.RemoveAt(InstanceIndex);
@@ -165,7 +165,7 @@ void UPaperGroupedSpriteComponent::ClearInstances()
 	// Indicate we need to update render state to reflect changes
 	MarkRenderStateDirty();
 
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }
 
 int32 UPaperGroupedSpriteComponent::GetInstanceCount() const
@@ -319,7 +319,7 @@ void UPaperGroupedSpriteComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	UNavigationSystem::UpdateNavOctree(this);
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
 }
 #endif
 

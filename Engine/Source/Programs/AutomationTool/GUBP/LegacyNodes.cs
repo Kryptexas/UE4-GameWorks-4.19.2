@@ -1581,7 +1581,8 @@ partial class GUBP
         UnrealTargetPlatform TargetPlatform;
         string CookPlatform;
         bool bIsMassive;
-		
+
+		public String ExtraArgsForCook = "";
 
         public CookNode(GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, string InCookPlatform)
             : base(InHostPlatform)
@@ -1683,7 +1684,8 @@ partial class GUBP
             }
 			using(TelemetryStopwatch CookStopwatch = new TelemetryStopwatch("Cook.{0}.{1}", GameProj.GameName, CookPlatform))
 			{
-				CommandUtils.CookCommandlet(GameProj.FilePath, "UE4Editor-Cmd.exe", null, null, null, null, CookPlatform);
+				String CookArgs = String.Format("-Unversioned {0}", ExtraArgsForCook);
+				CommandUtils.CookCommandlet(GameProj.FilePath, "UE4Editor-Cmd.exe", null, null, null, null, CookPlatform, CookArgs);
 			}
             var CookedPath = CombinePaths(Path.GetDirectoryName(GameProj.FilePath.FullName), "Saved", "Cooked", CookPlatform);
             var CookedFiles = CommandUtils.FindFiles("*", true, CookedPath);

@@ -44,7 +44,7 @@ float2 ComputeDOFFocalMask(float SceneDepth, float SkyWithoutHorizonMask)
 
 // pixel shader entry point
 void SetupPS(
-	float4 UVAndScreenPos : TEXCOORD0
+	noperspective float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor0 : SV_Target0
 #if MRT_COUNT > 0
 	, out float4 OutColor1 : SV_Target1

@@ -309,9 +309,13 @@ float3 Attenuation( uint p, float h, float3 Color, FHairTemp HairTemp )
 		float yi = asin(h);
 		float yt = asin(h / HairTemp.n_prime);
 		
-		float f = Hair_F( HairTemp.CosThetaD * sqrt( 1- h*h ) );		// (14)
-		float3 T = exp( -2 * ua_prime * ( 1 + cos(2*yt) ) );
-		A = Pow2(1 - f) * pow( f, p - 1 ) * pow( T, p );		// (13)
+		float f = Hair_F( HairTemp.CosThetaD * sqrt( 1 - h*h ) );		// (14)
+		//float3 T = exp( -2 * ua_prime * ( 1 + cos(2*yt) ) );
+		float3 T = exp( -2 * ua_prime * cos(yt) );
+		if( p == 1 )
+			A = Pow2(1 - f) * T;		// (13)
+		else
+			A = Pow2(1 - f) * f * T*T;	// (13)
 	}
 	return A;
 }
@@ -440,15 +444,15 @@ float3 HairShadingRef( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 
 
 	float Alpha[] =
 	{
-		-0.13,
-		0.13 * 0.5,
-		0.13 * 1.5,
+		-0.05,
+		0.05 * 0.5,
+		0.05 * 1.5,
 	};
 	float B[] =
 	{
 		Pow2( GBuffer.Roughness ),
 		Pow2( GBuffer.Roughness ) / 2,
-		Pow2( GBuffer.CustomData.z ) * 2,
+		Pow2( GBuffer.Roughness ) * 2,
 	};
 
 	float3 S = 0;
@@ -480,19 +484,15 @@ float3 HairShadingRef( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 
 // Approximation to HairShadingRef using concepts from the following papers:
 // [Marschner et al. 2003, "Light Scattering from Human Hair Fibers"]
 // [Pekelis et al. 2015, "A Data-Driven Light Scattering Model for Hair"]
-float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Random )
+float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Shadow, uint2 Random )
 {
-	const float3 DiffuseN	= OctahedronToUnitVector( GBuffer.CustomData.xy * 2 - 1 );
-	const float Roughness2	= GBuffer.CustomData.z;
-	const float Opacity		= GBuffer.CustomData.w;
+	//const float3 DiffuseN	= OctahedronToUnitVector( GBuffer.CustomData.xy * 2 - 1 );
+	const float Backlit	= GBuffer.CustomData.z;
 
 #if HAIR_REFERENCE
-	if( DiffuseN.x > 0 )
-	{
-		return HairShadingRef( GBuffer, L, V, N, Random );
-	}
-#endif
-	
+	float3 S = HairShadingRef( GBuffer, L, V, N, Random );
+	//float3 S = HairShadingMarschner( GBuffer, L, V, N );
+#else
 	// N is the vector parallel to hair pointing toward root
 
 	const float VoL       = dot(V,L);
@@ -502,25 +502,26 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Ran
 
 	const float3 Lp = L - SinThetaL * N;
 	const float3 Vp = V - SinThetaV * N;
-	const float CosPhi = dot(Lp,Vp) * rsqrt( dot(Lp,Lp) * dot(Vp,Vp) );
-	const float CosHalfPhi = sqrt( 0.5 + 0.5 * CosPhi );
+	const float CosPhi = dot(Lp,Vp) * rsqrt( dot(Lp,Lp) * dot(Vp,Vp) + 1e-4 );
+	const float CosHalfPhi = sqrt( saturate( 0.5 + 0.5 * CosPhi ) );
 	const float Phi = acos( CosPhi );
 
 	float n = 1.55;
 	//float n_prime = sqrt( n*n - 1 + Pow2( CosThetaD ) ) / CosThetaD;
 	float n_prime = 1.2 / CosThetaD + 0.35 * CosThetaD;
 
+	float Shift = -0.05;
 	float Alpha[] =
 	{
-		-0.13,
-		0.13 * 0.5,
-		0.13 * 1.5,
+		Shift,
+		-Shift * 0.5,
+		-Shift * 1.5,
 	};
 	float B[] =
 	{
 		Pow2( GBuffer.Roughness ),
 		Pow2( GBuffer.Roughness ) / 2,
-		Pow2( Roughness2 ) * 2,
+		Pow2( GBuffer.Roughness ) * 2,
 	};
 
 	float3 S = 0;
@@ -534,7 +535,7 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Ran
 		float Mp = Hair_g( B[0] * sqrt(2.0) * CosHalfPhi, SinThetaL + SinThetaV - Shift );
 		float Np = 0.25 * CosHalfPhi;
 		float Fp = Hair_F( sqrt( 0.5 + 0.5 * VoL ) );
-		S += Mp * Np * Fp * ( GBuffer.Specular * 2 );
+		S += Mp * Np * Fp * ( GBuffer.Specular * 2 ) * lerp( 1, Backlit, saturate(-VoL) );
 	}
 
 	// TT
@@ -548,9 +549,11 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Ran
 		float yi = asin(h);
 		float yt = asin(h / n_prime);
 		
-		float f = Hair_F( CosThetaD * sqrt( 1 - h*h ) );
+		float f = Hair_F( CosThetaD * sqrt( saturate( 1 - h*h ) ) );
 		float Fp = Pow2(1 - f);
-		float3 Tp = pow( GBuffer.BaseColor, 0.5 * ( 1 + cos(2*yt) ) / CosThetaD );
+		//float3 Tp = pow( GBuffer.BaseColor, 0.5 * ( 1 + cos(2*yt) ) / CosThetaD );
+		//float3 Tp = pow( GBuffer.BaseColor, 0.4 / CosThetaD );
+		float3 Tp = pow( GBuffer.BaseColor, 0.5 * cos(yt) / CosThetaD );
 
 		//float t = asin( 1 / n_prime );
 		//float d = ( sqrt(2) - t ) / ( 1 - t );
@@ -558,7 +561,7 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Ran
 		float s = 0.3;
 		float Np = exp( (Phi - PI) / s ) / ( s * Pow2( 1 + exp( (Phi - PI) / s ) ) );
 
-		S += Mp * Np * Fp * Tp;
+		S += Mp * Np * Fp * Tp * Backlit;
 	}
 
 	// TRT
@@ -566,9 +569,10 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Ran
 		float Mp = Hair_g( B[2], SinThetaL + SinThetaV - Alpha[2] );
 		
 		//float h = 0.75;
-		float f = Hair_F( CosThetaD * 0.66 );
+		float f = Hair_F( CosThetaD * 0.5 );
 		float Fp = Pow2(1 - f) * f;
-		float3 Tp = pow( GBuffer.BaseColor, 1.6 / CosThetaD );
+		//float3 Tp = pow( GBuffer.BaseColor, 1.6 / CosThetaD );
+		float3 Tp = pow( GBuffer.BaseColor, 0.8 / CosThetaD );
 
 		//float s = 0.3;
 		//float Np = exp( Phi / s ) / ( s * Pow2( 1 + exp( Phi / s ) ) );
@@ -577,12 +581,18 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Ran
 		S += Mp * Np * Fp * Tp;
 	}
 
+#endif
+
+	float3 FakeNormal = normalize( V - N * dot(V,N) );
+	//N = normalize( DiffuseN + FakeNormal * 2 );
+	N = FakeNormal;
 
 	// Hack approximation for multiple scattering.
-	float Wrap = 1 - Opacity;
-	float NoL = saturate( ( dot(DiffuseN, L) + Wrap ) / Square( 1 + Wrap ) );
-	float DiffuseScatter = GBuffer.GBufferAO * NoL * (1 / PI) * GBuffer.Metallic;
-	S += GBuffer.BaseColor * DiffuseScatter;
+	float Wrap = 1;
+	float NoL = saturate( ( dot(N, L) + Wrap ) / Square( 1 + Wrap ) );
+	float DiffuseScatter = (1 / PI) * NoL * GBuffer.Metallic;
+	float3 ScatterTint = pow( GBuffer.BaseColor / Luminance( GBuffer.BaseColor ), 1 - Shadow );
+	S += GBuffer.BaseColor * DiffuseScatter * ScatterTint;
 
 	return S;
 }
@@ -653,7 +663,7 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 	}
 }
 
-float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Random )
+float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Shadow, uint2 Random )
 {
 	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 
@@ -666,7 +676,7 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uin
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
 			return SubsurfaceShadingTwoSided( SubsurfaceColor, L, V, N );
 		case SHADINGMODELID_HAIR:
-			return HairShading( GBuffer, L, V, N, Random );
+			return HairShading( GBuffer, L, V, N, Shadow, Random );
 		default:
 			return 0;
 	}

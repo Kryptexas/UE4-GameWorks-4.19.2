@@ -172,6 +172,10 @@
 #define INVARIANT										
 #endif
 
+#ifndef REVERSEBITS
+#define REVERSEBITS										reversebits
+#endif
+
 #ifndef ENABLE_RE_Z
 #define ENABLE_RE_Z
 #endif
@@ -217,6 +221,38 @@
 
 #ifndef HAS_INVERTED_Z_BUFFER
 #define HAS_INVERTED_Z_BUFFER	1
+#endif
+
+#ifndef COMPRESSED_16_FLOAT
+#define COMPRESSED_16_FLOAT
+#endif
+
+#ifndef COMPRESSED_16_UNORM
+#define COMPRESSED_16_UNORM
+#endif
+
+#ifndef COMPRESSED_16_SNORM
+#define COMPRESSED_16_SNORM
+#endif
+
+#ifndef COMPRESSED_16_UINT
+#define COMPRESSED_16_UINT
+#endif
+
+#ifndef COMPRESSED_16_INT
+#define COMPRESSED_16_INT
+#endif
+
+#ifndef COMPRESSED_8_UNORM
+#define COMPRESSED_8_UNORM
+#endif
+
+#ifndef COMPRESSED_8_SNORM
+#define COMPRESSED_8_SNORM
+#endif
+
+#ifndef COMPRESSED_8_UINT
+#define COMPRESSED_8_UINT
 #endif
 
 /** When defined sets the layer index for volumetric rendering in the vertex shader, rather than using a geometry shader */

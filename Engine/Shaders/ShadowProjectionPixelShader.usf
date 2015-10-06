@@ -107,7 +107,7 @@ void Main(
 		BRANCH
 		if (IsSubsurfaceModel(InGBufferData.ShadingModelID))
 		{
-			float Opacity = InGBufferData.CustomData.a;
+			float Opacity = InGBufferData.ShadingModelID == SHADINGMODELID_HAIR ? 1 : InGBufferData.CustomData.a;
 			// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
 			float Density = -.05f * log(1 - min(Opacity, .999f));
 			//@todo - Use a larger kernel filter based on material opacity

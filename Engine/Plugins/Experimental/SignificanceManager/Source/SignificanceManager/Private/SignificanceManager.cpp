@@ -2,6 +2,7 @@
 
 #include "SignificanceManagerPrivate.h"
 #include "SignificanceManager.h"
+#include "DisplayDebugHelpers.h"
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, SignificanceManager );
 
@@ -289,10 +290,10 @@ void USignificanceManager::OnShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDe
 		}
 		else
 		{
-			Canvas->SetDrawColor(255,0,0);
-			UFont* RenderFont = GEngine->GetSmallFont();
-			YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("SIGNIFICANCE MANAGER - %d Managed Objects"), ManagedObjects.Num()), 4.0f, YPos );
-			YPos += YL;
+			FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+			DisplayDebugManager.SetFont(GEngine->GetSmallFont());
+			DisplayDebugManager.SetDrawColor(FColor::Red);
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("SIGNIFICANCE MANAGER - %d Managed Objects"), ManagedObjects.Num()));
 
 			const FName SignificanceManagerTag(*CVarSignificanceManagerFilterTag->GetString());
 			TArray<const FManagedObjectInfo*> AllObjects;
@@ -302,14 +303,13 @@ void USignificanceManager::OnShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDe
 				GetManagedObjects(AllObjects, true);
 			}
 
+			DisplayDebugManager.SetDrawColor(FColor::White);
 			const int32 NumObjectsToShow = FMath::Min(GSignificanceManagerObjectsToShow, ObjectsToShow.Num());
 			for (int32 Index = 0; Index < NumObjectsToShow; ++Index)
 			{
 				const FManagedObjectInfo* ObjectInfo = ObjectsToShow[Index];
 				const FString Str = FString::Printf(TEXT("%6.3f - %s (%s)"), ObjectInfo->GetSignificance(), *ObjectInfo->GetObject()->GetName(), *ObjectInfo->GetTag().ToString());
-				Canvas->SetDrawColor(FColor::White);
-				YL = Canvas->DrawText(RenderFont, Str, 4.0f, YPos);
-				YPos += YL;
+				DisplayDebugManager.DrawString(Str);
 			}
 		}
 	}
