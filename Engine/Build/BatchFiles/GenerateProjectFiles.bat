@@ -26,18 +26,14 @@ if not exist ..\Binaries\DotNET\RPCUtility.exe goto Error_MissingBinaryPrerequis
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
+rem ## Skip to 2015 setup if specifically selected
+:args
+if "%1" == "-2015" goto NoVisualStudio2013Environment
+if "%1" == "" goto skip
+shift
+goto args
+:skip
 
-rem ## Check for Visual Studio 2015
-
-pushd %~dp0
-call GetVSComnToolsPath 14
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-:NoVisualStudio2015Environment
 rem ## Check for Visual Studio 2013
 
 pushd %~dp0
@@ -49,6 +45,17 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 :NoVisualStudio2013Environment
+rem ## Check for Visual Studio 2015
+
+pushd %~dp0
+call GetVSComnToolsPath 14
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+:NoVisualStudio2015Environment
 rem ## Check for Visual Studio 2012
 
 pushd %~dp0

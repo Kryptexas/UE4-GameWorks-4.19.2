@@ -690,7 +690,11 @@ namespace UnrealBuildTool
 							UBTArguments.Append( " -noxge" );
 						}
 
-						// Propagate command-line option to switch back to old 2013 toolchain
+						// Propagate command-line option
+						if ( UnrealBuildTool.CommandLineContains( "-2015" ) )
+						{
+							UBTArguments.Append( " -2015" );
+						}
 						if ( UnrealBuildTool.CommandLineContains( "-2013" ) )
 						{
 							UBTArguments.Append( " -2013" );
