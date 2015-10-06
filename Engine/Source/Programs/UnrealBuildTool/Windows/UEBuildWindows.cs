@@ -57,19 +57,19 @@ namespace UnrealBuildTool
 					CachedCompiler = WindowsCompiler.VisualStudio2015;
 				}
 
-				// Second, default based on what's installed, test for 2013 first
-				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
-				{
-					CachedCompiler = WindowsCompiler.VisualStudio2013;
-				}
+				// Second, default based on what's installed, from newest to oldest
  				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015)))
  				{
  					CachedCompiler = WindowsCompiler.VisualStudio2015;
  				}
+				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
 				else
 				{
-					// Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
-					CachedCompiler = WindowsCompiler.VisualStudio2013;
+					// Finally assume 2015 (and 2013 on non-Windows platforms) is installed to defer errors somewhere else like VCToolChain
+					CachedCompiler = Utils.IsRunningOnMono ? WindowsCompiler.VisualStudio2013 : WindowsCompiler.VisualStudio2015;
 				}
 
 				return CachedCompiler.Value;

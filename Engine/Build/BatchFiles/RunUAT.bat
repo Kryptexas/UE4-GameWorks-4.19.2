@@ -31,9 +31,18 @@ if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 echo path="%path%"
 
-rem ## Check for Visual Studio 2013
+rem ## Check for Visual Studio 2015
 
-for %%P in (%*) do if "%%P" == "-2015" goto NoVisualStudio2013Environment
+pushd %~dp0
+call GetVSComnToolsPath 14
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+rem ## Check for Visual Studio 2013
+:NoVisualStudio2015Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 12
@@ -44,19 +53,8 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
-rem ## Check for Visual Studio 2015
-:NoVisualStudio2013Environment
-
-pushd %~dp0
-call GetVSComnToolsPath 14
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
 rem ## Check for Visual Studio 2012
-:NoVisualStudio2015Environment
+:NoVisualStudio2013Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 11
