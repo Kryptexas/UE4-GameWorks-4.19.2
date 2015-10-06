@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653104
+﻿INTSourceChangelist:2714556
 Availability:Public
 Title:2.7 - CPU パーティクルから動的ライトの放出
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,7 +73,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image074.png)
 [/REGION]
 
-**アンリアル エンジン** の非常に便利なパーティクル機能の 1 つとして CPU パーティクルからライトを放出させるというものがあります。エミッタに **Light** モジュールを追加することで、エミッタから放出されるパーティクルは動的ライトをスポーンすることもできます。モジュールのプロパティを使用してライトの明度や半径などを制御できます。
+アンリアル エンジンの非常に便利なパーティクル機能の 1 つとして CPU パーティクルからライトを放出させるというものがあります。エミッタに **Light** モジュールを追加することで、エミッタから放出されるパーティクルは動的ライトをスポーンすることもできます。モジュールのプロパティを使用してライトの明度や半径などを制御できます。
 
 ![](image076.png)
 
