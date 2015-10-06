@@ -7,6 +7,7 @@ Related: Engine/Blueprints\Editor
 Related: Engine/Blueprints\Editor\Modes\Components
 Related: Engine/Blueprints\Editor\Modes\Defaults
 Related: Engine/Blueprints\Editor\Modes\GraphPanel
+Version: 4.9
 
 
 [VAR:Topic]
@@ -55,11 +56,9 @@ Related: Engine/Blueprints\Editor\Modes\GraphPanel
 ![](MouseInterfaceTitle.png)
 [/REGION]
 
-[TOC(start:2 end:2)]
 
 
-
-The Mouse Interface example demonstrates how to utilize mouse or touch inputs in your games. The level, which is pretty simple in terms of play and execution, consists of an array of spheres with a cube that tracks back and forth behind them.
+The **Mouse Interface** map in Content Examples demonstrates how to utilize mouse or touch inputs in your games. The level, which is pretty simple in terms of play and execution, consists of an array of spheres with a cube that tracks back and forth behind them.
 
 
 ![](MouseInterfaceGame.png)(w:400)
