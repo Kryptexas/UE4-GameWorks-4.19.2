@@ -298,6 +298,11 @@ private:
 	 */
 	void OnResetDialogState();
 
+	/**
+	 * Called when render process was terminated abnormally.
+	 */
+	void OnRenderProcessTerminated(CefRequestHandler::TerminationStatus Status);
+
 
 	/** Specifies if window creation functionality is available. 
 	 *
@@ -502,6 +507,9 @@ private:
 
 	FIntPoint PopupPosition;
 	bool bShowPopupRequested;
+
+	/** This is set to true when reloading after render process crash. */
+	bool bRecoverFromRenderProcessCrash;
 
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FWebJSScripting> Scripting;
