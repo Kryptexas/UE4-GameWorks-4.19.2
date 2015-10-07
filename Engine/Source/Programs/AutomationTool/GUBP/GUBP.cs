@@ -1373,7 +1373,7 @@ public partial class GUBP : BuildCommand
 			List<BuildNode> NodesToCull = new List<BuildNode>();
 			foreach (BuildNode NodeToDo in NodesToDo)
 			{
-				if (NodeToDo.FrequencyShift >= BuildNode.ExplicitFrequencyShift || (TimeIndex % (1 << NodeToDo.FrequencyShift)) != 0)
+				if ((NodeToDo.FrequencyShift >= BuildNode.ExplicitFrequencyShift && ParseParam("CIS")) || (TimeIndex % (1 << NodeToDo.FrequencyShift)) != 0)
 				{
 					NodesToCull.Add(NodeToDo);
 				}
