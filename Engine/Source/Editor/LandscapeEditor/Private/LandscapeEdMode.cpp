@@ -584,6 +584,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		if (CurrentTool)
 		{
 			CurrentTool->EndTool(ViewportClient);
+			Viewport->CaptureMouse(false);
 			bToolActive = false;
 		}
 	}
@@ -1211,7 +1212,12 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 						}
 						else
 						{
+							Viewport->CaptureMouse(true);
 							bToolActive = CurrentTool->BeginTool(ViewportClient, CurrentToolTarget, HitLocation);
+							if (!bToolActive)
+							{
+								Viewport->CaptureMouse(false);
+							}
 							return bToolActive;
 						}
 					}
@@ -1228,6 +1234,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 				//Set the cursor position to that of the slate cursor so it wont snap back
 				Viewport->SetPreCaptureMousePosFromSlateCursor();
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 				return true;
 			}
@@ -1291,6 +1298,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 			}
 
@@ -1307,6 +1315,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 			}
 

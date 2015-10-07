@@ -410,9 +410,9 @@ public:
 					}
 				}
 
-				GWarn->BeginSlowTask(LOCTEXT("BeginMovingLandscapeComponentsToCurrentLevelTask", "Moving Landscape components to current level"), true);
+				FScopedSlowTask SlowTask(0, LOCTEXT("BeginMovingLandscapeComponentsToCurrentLevelTask", "Moving Landscape components to current level"));
+				SlowTask.MakeDialogDelayed(10); // show slow task dialog after 10 seconds
 
-				int32 Progress = 0;
 				LandscapeInfo->SortSelectedComponents();
 				const int32 ComponentSizeVerts = Landscape->NumSubsections * (Landscape->SubsectionSizeQuads + 1);
 				const int32 NeedHeightmapSize = 1 << FMath::CeilLogTwo(ComponentSizeVerts);
@@ -435,8 +435,6 @@ public:
 						TargetSelectedCollisionComponents.Add(CollisionComp);
 					}
 				}
-
-				int32 TotalProgress = TargetSelectedComponents.Num() * TargetSelectedCollisionComponents.Num();
 
 				// Check which ones are need for height map change
 				TSet<UTexture2D*> OldHeightmapTextures;
@@ -670,7 +668,6 @@ public:
 
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("ComponentName"), FText::FromString(Component->GetName()));
-					GWarn->StatusUpdate(Progress++, TotalProgress, FText::Format(LOCTEXT("MovingComponentStatus", "Moving Component: {ComponentName}"), Args));
 				}
 
 				for (ULandscapeHeightfieldCollisionComponent* Component : TargetSelectedCollisionComponents)
@@ -689,7 +686,6 @@ public:
 
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("ComponentName"), FText::FromString(Component->GetName()));
-					GWarn->StatusUpdate(Progress++, TotalProgress, FText::Format(LOCTEXT("MovingComponentStatus", "Moving Component: {ComponentName}"), Args));
 				}
 
 				GEditor->SelectNone(false, true);
@@ -712,8 +708,6 @@ public:
 				}
 
 				//Landscape->bLockLocation = (LandscapeInfo->XYtoComponentMap.Num() != Landscape->LandscapeComponents.Num());
-
-				GWarn->EndSlowTask();
 
 				// Remove Selection
 				LandscapeInfo->ClearSelectedRegion(true);
