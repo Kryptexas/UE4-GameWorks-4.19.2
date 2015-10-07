@@ -1264,7 +1264,7 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 			SeparateTranslucency = &ViewState->GetSeparateTranslucency(RHICmdList, ScaledSize);
 		}
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-		const FTexture2DRHIRef &SeparateTranslucencyDepth = (const FTexture2DRHIRef&)ViewState->GetSeparateTranslucencyDepth(GetBufferSizeXY())->GetRenderTargetItem().TargetableTexture;
+		const FTexture2DRHIRef &SeparateTranslucencyDepth = (const FTexture2DRHIRef&)ViewState->GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY())->GetRenderTargetItem().TargetableTexture;
 
 		check((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture->GetClearColor() == FLinearColor::Black);
 		// clear the render target the first time, re-use afterwards
@@ -1304,7 +1304,7 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 			static IConsoleVariable* STSP_CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SeparateTranslucencyScreenPercentage"));
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			FIntPoint ScaledSize(GetBufferSizeXY().X * (STSP_CVar->GetInt() / 100.0f), GetBufferSizeXY().Y * (STSP_CVar->GetInt() / 100.0f));
-			SeparateTranslucency = &ViewState->GetSeparateTranslucency( ScaledSize );
+			SeparateTranslucency = &ViewState->GetSeparateTranslucency( RHICmdList, ScaledSize );
 			SeparateTranslucencyDepth = &ViewState->GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY());
 		}
 

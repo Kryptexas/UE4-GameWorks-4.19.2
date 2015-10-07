@@ -31,8 +31,8 @@ public class Engine : ModuleRules
 				"Advertising",
 				"NetworkReplayStreaming",
 				"AutomationWorker",
-                		"Analytics"
-				"MovieSceneCapture"
+                "Analytics",
+				"MovieSceneCapture",
 			}
 		);
 

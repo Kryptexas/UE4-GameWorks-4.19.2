@@ -596,7 +596,7 @@ public:
 	static void UpdateActorInNavOctree(AActor& Actor);
 	static void UpdateComponentInNavOctree(UActorComponent& Comp);
 	/** update all navoctree entries for actor and its components */
-	static void UpdateNavOctreeAll(AActor& Actor, bool bUpdateAttachedActors = true);
+	static void UpdateActorAndComponentsInNavOctree(AActor& Actor, bool bUpdateAttachedActors = true);
 	/** update all navoctree entries for actor and its non scene components after root movement */
 	static void UpdateNavOctreeAfterMove(USceneComponent* Comp);
 
@@ -988,7 +988,7 @@ public:
 	static void UpdateNavOctree(AActor* Actor);
 	DEPRECATED(4.11, "UpdateNavOctree is deprecated. Use UpdateComponentInNavOctree")
 	static void UpdateNavOctree(UActorComponent* Comp);
-	DEPRECATED(4.11, "UpdateNavOctreeAll is deprecated. Use UpdateComponentInNavOctree")
+	DEPRECATED(4.11, "UpdateNavOctreeAll is deprecated. Use UpdateActorAndComponentsInNavOctree")
 	static void UpdateNavOctreeAll(AActor* Actor);
 };
 

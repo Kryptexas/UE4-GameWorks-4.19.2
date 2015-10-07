@@ -15,6 +15,8 @@
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "PerfCountersHelpers.h"
+#if WITH_EDITOR
+#include "UnrealEd.h"
 #endif
 
 #if !UE_BUILD_SHIPPING

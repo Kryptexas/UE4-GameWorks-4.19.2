@@ -11,6 +11,8 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/AnimStats.h"
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -1660,7 +1662,7 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 	UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
 	if(AnimInst)
 	{
-		UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
+		UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
 		if(SingleNodeInst)
 		{
 			if(SingleNodeInst->CurrentAsset != InAnimSequence)
@@ -1770,7 +1772,7 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 
 			float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
 			AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
-			AnimInst->UpdateAnimation(DeltaTime);
+			AnimInst->UpdateAnimation(DeltaTime, false);
 
 			// since we don't advance montage in the tick, we manually have to handle notifies
 			AnimMontageInst->HandleEvents(OldMontagePosition, InPosition, NULL);

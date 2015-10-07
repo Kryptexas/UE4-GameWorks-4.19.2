@@ -6796,7 +6796,7 @@ void UEngine::PerformanceCapture(UWorld* World, const FString& CaptureName)
 void UEngine::LogPerformanceCapture(UWorld* World, const FString& CaptureName)
 {
 	const FString EventType = TEXT("PERF");
-	const int32 ChangeList = GEngineVersion.GetChangelist();
+	const int32 ChangeList = FEngineVersion::Current().GetChangelist();
 
 	TArray<FString> PathArray;
 	CaptureName.ParseIntoArray(PathArray, TEXT("/"), true);

@@ -173,7 +173,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		{
 			FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
 
-			HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, false);
+			HLODOutliner::HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, false);
 			UpdateOperationDecorator(DragDropEvent, ValidationInfo);
 		}
 	}
@@ -193,7 +193,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		if (TreeItem)
 		{
 			FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
-			return HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, this, true);
+			return HLODOutliner::HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, this, true);
 		}
 
 		return FReply::Unhandled();

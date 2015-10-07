@@ -282,7 +282,7 @@ public partial class Project : CommandUtils
     private static void DiffCookedContent( ProjectParams Params)
     {
         List<UnrealTargetPlatform> PlatformsToCook = Params.ClientTargetPlatforms;
-        string ProjectPath = Path.GetFullPath(Params.RawProjectPath);
+        string ProjectPath = Params.RawProjectPath.FullName;
 
         var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Cooked");
 

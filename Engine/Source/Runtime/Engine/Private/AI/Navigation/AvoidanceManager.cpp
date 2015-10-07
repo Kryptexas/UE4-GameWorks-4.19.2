@@ -495,7 +495,7 @@ FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData
 			BestScorePotential = (VelSpacePoint|ReturnVelocity) * (VelSpacePoint|VelSpacePoint);
 			if (BestScorePotential > BestScore)
 			{
-				const bool bAvoidsNavEdges = NavEdges.Num() > 0 ? AvoidsNavEdges(inAvoidanceData.Center, VelSpacePoint, NavEdges, inAvoidanceData.Height) : true;
+				const bool bAvoidsNavEdges = NavEdges.Num() > 0 ? AvoidsNavEdges(inAvoidanceData.Center, VelSpacePoint, NavEdges, inAvoidanceData.HalfHeight) : true;
 				if (bAvoidsNavEdges)
 				{
 					FVector CandidateVelocity = AvoidCones(AllCones, FVector::ZeroVector, VelSpacePoint, AllCones.Num());

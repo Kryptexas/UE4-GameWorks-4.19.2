@@ -2517,13 +2517,7 @@ void UNavigationSystem::UpdateComponentInNavOctree(UActorComponent& Comp)
 	}
 }
 
->>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
-void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
-==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
-void UNavigationSystem::UpdateActorAndComponentsInNavOctree(AActor& Actor)
-==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
-void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors)
-<<<<
+void UNavigationSystem::UpdateActorAndComponentsInNavOctree(AActor& Actor, bool bUpdateAttachedActors)
 {
 	UpdateActorInNavOctree(Actor);
 		
@@ -2536,37 +2530,9 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedAc
 		UpdateComponentInNavOctree(*Components[ComponentIndex]);
 	}
 
->>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
-		if (Actor->GetRootComponent())
-==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
-	if (Actor.GetRootComponent())
+	if (bUpdateAttachedActors)
 	{
-		for (int32 RootChildIndex = 0; RootChildIndex < Actor.GetRootComponent()->AttachChildren.Num(); RootChildIndex++)
-==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
-		if (bUpdateAttachedActors)
-<<<<
-		{
->>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
-			for (int32 RootChildIndex = 0; RootChildIndex < Actor->GetRootComponent()->AttachChildren.Num(); RootChildIndex++)
-			{
-				if (Actor->GetRootComponent()->AttachChildren[RootChildIndex] && Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter() != Actor)
-				{
-					UpdateNavOctreeAll(Cast<AActor>(Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter()));
-				}
-			}
-==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
-			if (Actor.GetRootComponent()->AttachChildren[RootChildIndex] && Actor.GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter() != &Actor)
-			{
-				AActor* AttachedActor = Cast<AActor>(Actor.GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter());
-				if (AttachedActor)
-				{
-					UpdateActorAndComponentsInNavOctree(*AttachedActor);
-				}
-			}
-==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
-			UpdateAttachedActorsInNavOctree(*Actor);
-<<<<
-		}
+		UpdateAttachedActorsInNavOctree(Actor);
 	}
 }
 
@@ -2608,31 +2574,15 @@ void UNavigationSystem::UpdateAttachedActorsInNavOctree(AActor& RootActor)
 		
 		for (int32 AttachmentIndex = 0; AttachmentIndex < TempAttachedActors.Num(); ++AttachmentIndex)
 		{
->>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
-			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
-			{
-				UpdateNavOctreeAll(Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter()));
-			}
-==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
-			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
-			{
-				AActor* AttachedActor = Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter());
-				if (AttachedActor)
-				{
-					UpdateActorAndComponentsInNavOctree(*AttachedActor);
-				}
-			}
-==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
 			// and store the ones we don't know about yet
 			UniqueAttachedActors.AddUnique(TempAttachedActors[AttachmentIndex]);
-<<<<
 		}
 	}
 	
 	// skipping the first item since that's the root, and we just care about the attached actors
 	for (int32 ActorIndex = 1; ActorIndex < UniqueAttachedActors.Num(); ++ActorIndex)
 	{
-		UpdateNavOctreeAll(UniqueAttachedActors[ActorIndex], /*bUpdateAttachedActors = */false);
+		UpdateActorAndComponentsInNavOctree(*UniqueAttachedActors[ActorIndex], /*bUpdateAttachedActors = */false);
 	}
 }
 
@@ -4058,9 +4008,6 @@ bool UNavigationSystem::GetRandomPointInRadius(const FVector& Origin, float Radi
 	return GetRandomReachablePointInRadius(Origin, Radius, ResultLocation, NavData, QueryFilter);
 }
 
->>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#8
-}
-==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp#14
 void UNavigationSystem::UpdateNavOctree(AActor* Actor)
 {
 	if (Actor)
@@ -4084,5 +4031,5 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 		UpdateActorAndComponentsInNavOctree(*Actor);
 	}
 }
-==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Engine/Private/AI/Navigation/NavigationSystem.cpp
+
 #undef LOCTEXT_NAMESPACE

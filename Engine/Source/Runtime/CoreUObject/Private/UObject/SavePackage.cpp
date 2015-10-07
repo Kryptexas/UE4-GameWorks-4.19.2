@@ -3102,11 +3102,57 @@ TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
 
 	return RedirectDuplicatesToOriginals;
 }
-#endif // WITH_EDITOR
 
-
-#if WITH_EDITOR
 COREUOBJECT_API extern bool GOutputCookingWarnings;
+
+/**
+ * Find imports to converted BPGC, that should replaced by a generated native class. 
+ * For each converted class a stub is generated. The import object is replaced with the stub.
+ */
+struct FImportReplacementsHelper
+{
+	TSet<UObject*> UniqueTagImpObjects;
+
+	FImportReplacementsHelper(const TArray<UObject*>& InTagImpObjects)
+	{
+		if (FReplaceCookedBPGC::Get().IsEnabled())
+		{
+			UniqueTagImpObjects = TSet<UObject*>(InTagImpObjects);
+		}
+	}
+
+	UObject* Handle(UObject* Obj, TArray<FObjectImport>& ImportMap)
+	{
+		if (FReplaceCookedBPGC::Get().IsEnabled())
+		{
+			UObject* ReplacedObjectToImport = FReplaceCookedBPGC::Get().FindReplacementStub(Obj);
+			Obj = ReplacedObjectToImport ? ReplacedObjectToImport : Obj;
+			if (ReplacedObjectToImport)
+			{
+				{
+					ensure(ReplacedObjectToImport->GetOuter() == ReplacedObjectToImport->GetOutermost());
+					bool bAlreadyAdded = false;
+					UniqueTagImpObjects.Add(ReplacedObjectToImport->GetOuter(), &bAlreadyAdded);
+					if (!bAlreadyAdded)
+					{
+						new(ImportMap)FObjectImport(ReplacedObjectToImport->GetOuter());
+					}
+				}
+
+									{
+										bool bAlreadyAdded = false;
+										UniqueTagImpObjects.Add(ReplacedObjectToImport->GetClass(), &bAlreadyAdded);
+										if (!bAlreadyAdded)
+										{
+											new(ImportMap)FObjectImport(ReplacedObjectToImport->GetClass());
+										}
+									}
+			}
+		}
+		return Obj;
+	}
+
+};
 
 class FDiffSerializeArchive : public FBufferArchive
 {

@@ -937,9 +937,9 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				// we need to allocate this now so it ends up in the snapshot
 				static IConsoleVariable* STSP_CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SeparateTranslucencyScreenPercentage"));
 				FIntPoint ScaledSize(SceneContext.GetBufferSizeXY().X * (STSP_CVar->GetInt() / 100.0f), SceneContext.GetBufferSizeXY().Y * (STSP_CVar->GetInt() / 100.0f) );
-				ViewState->GetSeparateTranslucency(ScaledSize);
+				ViewState->GetSeparateTranslucency(RHICmdList, ScaledSize);
 
-				ViewState->GetSeparateTranslucencyDepth(SceneContext.GetBufferSizeXY());
+				ViewState->GetSeparateTranslucencyDepth(RHICmdList, SceneContext.GetBufferSizeXY());
 				DownsampleDepthSurface(RHICmdList, ViewState->GetSeparateTranslucencyDepthSurface(), View, STSP_CVar->GetInt() / 100.0f);
 			}
 			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, 
@@ -1109,7 +1109,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 				if (ViewState)
 				{
 					static IConsoleVariable* STSP_CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SeparateTranslucencyScreenPercentage"));
-					ViewState->GetSeparateTranslucencyDepth(SceneContext.GetBufferSizeXY());
+					ViewState->GetSeparateTranslucencyDepth(RHICmdList, SceneContext.GetBufferSizeXY());
 					DownsampleDepthSurface(RHICmdList, ViewState->GetSeparateTranslucencyDepthSurface(), View, STSP_CVar->GetInt() / 100.0f);
 				}
 				bool bSetupTranslucency = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, true);

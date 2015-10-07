@@ -216,26 +216,6 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		uint8* RawData = ContextData.RawData.GetData();
 		const FVector CircleCenterOffset = FVector(0.f, 0.f, CircleCenterZOffset.GetValue());
 
-		TArray<AActor*> ContextActorsToIgnoreWhenGeneratingCircle;
-		if (bIgnoreAnyContextActorsWhenGeneratingCircle)
-		{
-			UEnvQueryItemType_ActorBase* DefEnvQueryActorBaseItemTypeOb = Cast<UEnvQueryItemType_ActorBase>(ContextData.ValueType->GetDefaultObject());
-			if (DefEnvQueryActorBaseItemTypeOb != nullptr)
-			{
-				uint8* ActorRawData = ContextData.RawData.GetData();
-
-				for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
-				{
-					AActor* Actor = DefEnvQueryActorBaseItemTypeOb->GetActor(ActorRawData);
-					if (Actor)
-					{
-						ContextActorsToIgnoreWhenGeneratingCircle.Add(Actor);
-					}
-					ActorRawData += DefTypeValueSize;
-				}
-			}
-		}
-
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
 			const FVector ContextItemLocation = DefTypeOb->GetItemLocation(RawData) + CircleCenterOffset;

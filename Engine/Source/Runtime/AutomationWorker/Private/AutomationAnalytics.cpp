@@ -296,7 +296,7 @@ void FAutomationAnalytics::FireEvent_AutomationTestResults(const FAutomationWork
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::ErrorCount), TestResults->Errors.Num()));
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::WarningCount), TestResults->Warnings.Num()));
 
-		const int32 ChangeList = GEngineVersion.GetChangelist();
+		const int32 ChangeList = FEngineVersion::Current().GetChangelist();
 		FString ChangeListString = FString::FromInt(ChangeList);
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::CL), ChangeListString));
 

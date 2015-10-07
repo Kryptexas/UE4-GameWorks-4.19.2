@@ -787,47 +787,6 @@ FQuat FQuat::FindBetweenVectors(const FVector& A, const FVector& B)
 	return FindBetween_Helper(A, B, NormAB);
 }
 
-
-//
-// Based on:
-// http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
-// http://www.euclideanspace.com/maths/algebra/vectors/angleBetween/index.htm
-//
-FORCEINLINE_DEBUGGABLE FQuat FindBetween_Helper(const FVector& A, const FVector& B, float NormAB)
-{
-	float W = NormAB + FVector::DotProduct(A, B);
-	FQuat Result;
-
-	if (W >= 1e-6f * NormAB)
-	{
-		//Axis = FVector::CrossProduct(A, B);
-		Result = FQuat(A.Y * B.Z - A.Z * B.Y,
-			A.Z * B.X - A.X * B.Z,
-			A.X * B.Y - A.Y * B.X,
-			W);
-	}
-	else
-	{
-		// A and B point in opposite directions
-		W = 0.f;
-		Result = FMath::Abs(A.X) > FMath::Abs(A.Y)
-			? FQuat(-A.Z, 0.f, A.X, W)
-			: FQuat(0.f, -A.Z, A.Y, W);
-	}
-
-	Result.Normalize();
-	return Result;
-}
-
-
-
-FQuat FQuat::FindBetweenNormals(const FVector& A, const FVector& B)
-{
-	const float NormAB = 1.f;
-	return FindBetween_Helper(A, B, NormAB);
-}
-
-
 FQuat FQuat::Log() const
 {
 	FQuat Result;

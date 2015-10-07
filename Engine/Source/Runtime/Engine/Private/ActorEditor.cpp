@@ -174,8 +174,8 @@ void AActor::PostEditMove(bool bFinished)
 			UNavigationSystem::UpdateNavOctreeBounds(ParentedActors[Idx]);
 		}
 
-		// not doing manual update of all attached actors since UpdateNavOctreeAll should take care of it
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		// not doing manual update of all attached actors since UpdateActorAndComponentsInNavOctree should take care of it
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 }
 

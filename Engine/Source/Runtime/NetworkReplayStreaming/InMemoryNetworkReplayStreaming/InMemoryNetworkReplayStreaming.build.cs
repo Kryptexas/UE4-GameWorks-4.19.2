@@ -8,13 +8,19 @@ namespace UnrealBuildTool.Rules
 		{
 			PublicIncludePathModuleNames.Add("Engine");
 
+			PublicDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"Engine"
+				}
+			);
+
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
 					"NetworkReplayStreaming",
-                    "Json",
-					"Engine"
+                    "Json"
 				}
 			);
 		}

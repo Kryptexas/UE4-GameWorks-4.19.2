@@ -288,7 +288,7 @@ void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 
 	if (PropertyName == LocationName || PropertyName == RotationName || PropertyName == ScaleName)
 	{
-		UNavigationSystem::UpdateNavOctree(this);
+		UNavigationSystem::UpdateComponentInNavOctree(*this);
 	}
 }
 

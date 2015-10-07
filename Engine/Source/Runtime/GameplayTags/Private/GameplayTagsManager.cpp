@@ -861,20 +861,16 @@ int32 UGameplayTagsManager::GameplayTagsMatchDepth(const FGameplayTag& GameplayT
 	TSet<FName> Tags1;
 	TSet<FName> Tags2;
 
+	const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
+	if (TagNode)
 	{
-		FScopeLock Lock(&GameplayTagNodeMapCritical);
+		GetAllParentNodeNames(Tags1, *TagNode);
+	}
 
-		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
-		if (TagNode)
-		{
-			GetAllParentNodeNames(Tags1, *TagNode);
-		}
-
-		TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
-		if (TagNode)
-		{
-			GetAllParentNodeNames(Tags2, *TagNode);
-		}
+	TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
+	if (TagNode)
+	{
+		GetAllParentNodeNames(Tags2, *TagNode);
 	}
 
 	return Tags1.Intersect(Tags2).Num();

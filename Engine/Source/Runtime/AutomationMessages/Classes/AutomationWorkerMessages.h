@@ -230,6 +230,10 @@ struct FAutomationWorkerRunTests
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bUseFullSizeScreenShots;
 
+	/** If true, send results to analytics when complete */
+	UPROPERTY()
+	bool bSendAnalytics;
+
 	/** Default constructor. */
 	FAutomationWorkerRunTests( ) { }
 
