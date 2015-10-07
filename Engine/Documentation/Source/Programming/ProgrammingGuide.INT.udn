@@ -2,6 +2,7 @@ Availability:Public
 Title:Programming Guide
 Crumbs: %ROOT%
 Description:Information for programmers developing with Unreal Engine.
+version: 4.9
 
 [VAR:Params]
 [PARAM:image]
