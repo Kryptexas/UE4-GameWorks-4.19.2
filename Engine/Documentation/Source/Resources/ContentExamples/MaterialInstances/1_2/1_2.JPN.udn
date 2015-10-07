@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653283
+﻿INTSourceChangelist:2716853
 Availability:Public
 Title:1.2 - マテリアル インスタンス
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -10,6 +10,7 @@ Related:Engine/Rendering/Materials/ExpressionReference
 Related:Engine/Rendering/Materials/MaterialInputs
 Related:Engine/Rendering/Materials/LayeredMaterials
 Related:Engine/Actors/DecalActor
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,7 +73,7 @@ Related:Engine/Actors/DecalActor
 ![](MI_1_2_001.png)(w:900)
 </div>
 
-**マテリアル インスタンス** は子マテリアルです。つまり、 **Parent マテリアル** にある全てのものを持ちますが、**パラメータ** はマテリアル インスタンス上で個別に修正することができます。
+**マテリアル インスタンス** は子マテリアルです。つまり、 **親マテリアル** にある全てのものを持ちますが、**パラメータ** はマテリアル インスタンス上で個別に修正することができます。
 
 何故インスタンスを使用するのでしょうか？マテリアルは非常に柔軟なので、思いついたものはほとんど何でもマテリアル エディタによって命を吹き込むことができます。しかし、複雑なシェーダー デザインをテクニカル アーティストに任せて、そのマテリアルを使用してマテリアル インスタンスを作成し、テクニカル アーティストが公開したテクスチャやパラメータを調整するだけにしたい場合もあるでしょう。このような場合にインスタンスが役立ちます。
 
