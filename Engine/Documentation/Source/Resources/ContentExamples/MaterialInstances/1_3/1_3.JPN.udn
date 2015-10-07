@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2653283
+﻿INTSourceChangelist:2716857
 Availability:Public
 Title:1.3 - インスタンスのインスタンス
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスのサンプル レベルの概要、1.3：インスタンスのインスタンス
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.3：インスタンスのインスタンス
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/ExpressionReference
@@ -10,6 +10,7 @@ Related:Engine/Rendering/Materials/MaterialInputs
 Related:Engine/Rendering/Materials/LayeredMaterials
 Related:Engine/Rendering/Materials/MaterialInstances
 Related:Engine/Actors/DecalActor
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
