@@ -1,7 +1,8 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2716906
+Availability:Public
 Title:1.11 - World Displacement
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description: マテリアル ノードのサンプル レベルの概要、1.11:ワールド ディスプレースメント (変位)
+Description: マテリアル ノードのサンプル レベルの概要、サンプル 1.11:ワールド ディスプレースメント (変位)
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/ExpressionReference
@@ -9,6 +10,7 @@ Related:Engine/Rendering/Materials/MaterialInputs
 Related:Engine/Rendering/Materials/LayeredMaterials
 Related:Engine/Rendering/Materials/MaterialInstances
 Related:Engine/Actors/DecalActor
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
