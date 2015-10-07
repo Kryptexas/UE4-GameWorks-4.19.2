@@ -286,7 +286,7 @@ namespace UnrealBuildTool
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
 
 		/// List of additional properties to be added to the build receipt
-		public List<BuildProperty> ExtraBuildProperties = new List<BuildProperty>();
+		public List<ReceiptProperty> AdditionalPropertiesForReceipt = new List<ReceiptProperty>();
 
 		/// <summary>
 		/// Property for the directory containing this module. Useful for adding paths to third party dependencies.

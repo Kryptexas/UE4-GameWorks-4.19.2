@@ -150,6 +150,38 @@ namespace UnrealBuildTool
 		}
 	}
 
+	[Serializable]
+	public class ReceiptProperty : ISerializable
+	{
+		[XmlAttribute]
+		public string Name;
+
+		[XmlAttribute]
+		public string Value;
+
+		private ReceiptProperty()
+		{
+		}
+
+		public ReceiptProperty(SerializationInfo Info, StreamingContext Context)
+		{
+			Name  = Info.GetString("na");
+			Value = Info.GetString("va");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("na", Name);
+			Info.AddValue("va", Value);
+		}
+
+		public ReceiptProperty(string InName, string InValue)
+		{
+			Name = InName;
+			Value = InValue;
+		}
+	}
+
 	/// <summary>
 	/// Stores a record of a built target, with all metadata that other tools may need to know about the build.
 	/// </summary>
@@ -164,6 +196,9 @@ namespace UnrealBuildTool
 
 		[XmlArrayItem("RuntimeDependency")]
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
+
+		[XmlArrayItem("AdditionalProperty")]
+		public List<ReceiptProperty> AdditionalProperties = new List<ReceiptProperty>();
 
 		// if packaging in a mode where some files aren't required, set this to false
 		public bool bRequireDependenciesToExist = true;
@@ -180,6 +215,7 @@ namespace UnrealBuildTool
 			Properties                  = (List<BuildProperty>)Info.GetValue("pr", typeof(List<BuildProperty>));
 			BuildProducts               = (List<BuildProduct>)Info.GetValue("bp", typeof(List<BuildProduct>));
 			RuntimeDependencies         = (List<RuntimeDependency>)Info.GetValue("rd", typeof(List<RuntimeDependency>));
+			AdditionalProperties		= (List<ReceiptProperty>)Info.GetValue("ap", typeof(List<ReceiptProperty>));
 			bRequireDependenciesToExist = Info.GetBoolean("rq");
 		}
 
@@ -189,6 +225,7 @@ namespace UnrealBuildTool
 			Info.AddValue("bp", BuildProducts);
 			Info.AddValue("rd", RuntimeDependencies);
 			Info.AddValue("rq", bRequireDependenciesToExist);
+			Info.AddValue("ap", AdditionalProperties);
 		}
 
 		/// <summary>
@@ -205,6 +242,7 @@ namespace UnrealBuildTool
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(OtherRuntimeDependency));
 			}
+			AdditionalProperties = new List<ReceiptProperty>(Other.AdditionalProperties);
 		}
 
 		/// <summary>

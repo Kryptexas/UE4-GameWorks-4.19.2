@@ -1660,7 +1660,7 @@ namespace UnrealBuildTool
 			{
 				if(Module.bIncludedInTarget)
 				{
-					Receipt.Properties.AddRange(Module.ExtraBuildProperties);
+					Receipt.AdditionalProperties.AddRange(Module.AdditionalPropertiesForReceipt);
 				}
 			}
 
@@ -2385,7 +2385,7 @@ namespace UnrealBuildTool
 				InDynamicallyLoadedModuleNames: new List<string>(),
 				InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
 				InRuntimeDependencies: new List<RuntimeDependency>(),
-				InExtraBuildProperties: new List<BuildProperty>(),
+				InAdditionalPropertiesForReceipt: new List<ReceiptProperty>(),
 				InOptimizeCode: ModuleRules.CodeOptimization.Default,
 				InAllowSharedPCH: false,
 				InSharedPCHHeaderFile: "",
@@ -3430,7 +3430,7 @@ namespace UnrealBuildTool
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
 							InRuntimeDependencies: RulesObject.RuntimeDependencies,
-							InExtraBuildProperties: RulesObject.ExtraBuildProperties,
+							InAdditionalPropertiesForReceipt: RulesObject.AdditionalPropertiesForReceipt,
 							InOptimizeCode: RulesObject.OptimizeCode,
 							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
@@ -3476,7 +3476,7 @@ namespace UnrealBuildTool
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
 							InRuntimeDependencies: RulesObject.RuntimeDependencies,
-							InExtraBuildProperties: RulesObject.ExtraBuildProperties,
+							InAdditionalPropertiesForReceipt: RulesObject.AdditionalPropertiesForReceipt,
 							InOptimizeCode: RulesObject.OptimizeCode,
 							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
@@ -3511,7 +3511,7 @@ namespace UnrealBuildTool
 							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
 							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
 							InRuntimeDependencies: RulesObject.RuntimeDependencies,
-							InExtraBuildProperties: RulesObject.ExtraBuildProperties,
+							InAdditionalPropertiesForReceipt: RulesObject.AdditionalPropertiesForReceipt,
 							InBuildCsFilename: InBuildCsFile
 						);
 
