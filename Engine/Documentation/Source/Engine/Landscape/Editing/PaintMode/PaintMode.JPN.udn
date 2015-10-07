@@ -179,7 +179,7 @@ Landscape マテリアルに関する詳細は、[**Landscape マテリアル**]
 | オプション | 説明 |
 | ------ | ----------- |
 | **Phys Material** | このレイヤーが優先されているランドスケープ領域に割り当てられた [物理マテリアル](Engine/Physics/PhysicalMaterials) (ある場合) です。 |
-| **Hardness** | [侵食](Engine/Landscape/Editing/SculptMode/#侵食) ツールで使用する値です。 |
+| **Hardness** | [侵食](Engine/Landscape/Editing/SculptMode/#Erosion（浸食）) ツールで使用する値です。 |
 
 ### 存在しないレイヤー
 
