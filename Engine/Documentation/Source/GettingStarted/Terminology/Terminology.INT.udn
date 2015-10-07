@@ -2,6 +2,7 @@ Availability: Public
 Title:Unreal Engine 4 Terminology
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description: Covers the most commonly used terms when working with Unreal Engine 4. 
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
