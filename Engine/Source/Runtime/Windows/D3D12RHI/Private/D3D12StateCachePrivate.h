@@ -409,13 +409,12 @@ typedef FD3D12ConservativeMap<FD3D12SRVArrayDesc, D3D12_GPU_DESCRIPTOR_HANDLE> F
 class FD3D12ResourceHelper : public FD3D12DeviceChild
 {
 public:
-	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, FD3D12Resource **ppOutResource);
-	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, FD3D12Resource **ppOutResource);
-	HRESULT CreateDefaultResource(const D3D12_RESOURCE_DESC& Desc, FD3D12Resource **ppOutResource);
-	HRESULT CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 heapSize, FD3D12Resource **ppOutResource);
+	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppOutResource);
+	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppOutResource);
+	HRESULT CreateDefaultResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppOutResource);
+	HRESULT CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 heapSize, FD3D12Resource** ppOutResource);
 
 	FD3D12ResourceHelper(FD3D12Device* InParent);
-
 };
 
 // Vertex Buffer State

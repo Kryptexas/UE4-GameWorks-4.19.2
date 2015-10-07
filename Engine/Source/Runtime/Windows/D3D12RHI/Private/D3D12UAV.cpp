@@ -85,7 +85,7 @@ FUnorderedAccessViewRHIRef FD3D12DynamicRHI::RHICreateUnorderedAccessView(FVerte
 {
 	FD3D12VertexBuffer*  VertexBuffer = FD3D12DynamicRHI::ResourceCast(VertexBufferRHI);
 
-	FD3D12ResourceLocation *pResourceLocation = VertexBuffer->ResourceLocation.GetReference();
+	FD3D12ResourceLocation* pResourceLocation = VertexBuffer->ResourceLocation.GetReference();
     const D3D12_RESOURCE_DESC& BufferDesc = pResourceLocation->GetResource()->GetDesc();
 	const uint64 effectiveBufferSize = pResourceLocation->GetEffectiveBufferSize();
 
@@ -162,7 +162,7 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FVertexB
 
 	uint32 Width = VertexBuffer->GetSize();
 
-	FD3D12Resource *pResource = VertexBuffer->ResourceLocation->GetResource();
+	FD3D12Resource* pResource = VertexBuffer->ResourceLocation->GetResource();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
     SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -192,7 +192,7 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FVertexB
 		check(VertexBuffer->GetUsage() & BUF_AnyDynamic);
 	}
 
-    FD3D12ShaderResourceView *SRV = new FD3D12ShaderResourceView(GetRHIDevice(), &SRVDesc, VertexBuffer->ResourceLocation, Stride);
+    FD3D12ShaderResourceView* SRV = new FD3D12ShaderResourceView(GetRHIDevice(), &SRVDesc, VertexBuffer->ResourceLocation, Stride);
 	VertexBuffer->SetDynamicSRV(SRV);
 	return SRV;
 }
