@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2653227
+﻿INTSourceChangelist:2716717
 Availability:Public
 Title:4.1 - フォールオフ指数
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのサンプル レベル、4.1：フォールオフ指数
+Description:ライティングのサンプル レベルの概要、サンプル 4.1：フォールオフ指数
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -12,6 +12,7 @@ Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/Shadows
 Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related:Engine/Rendering/LightingAndShadows/LightMobility
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -56,7 +57,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 [/REGION]
 
 
-このサンプルでは、ライトのフォールオフ制御に使用する **フォールオフ指数** を説明します。フォールオフは光源から離れるにつれてライトの効力が減衰する割合です。[4.2] (Resources\ContentExamples\Lighting\4_2) で説明している **逆 2 乗フォールオフ (減衰)** を使用していない時は、この値を指数として **指数フォールオフ** を使用します。指数フォールオフはしばしば現実世界に近いイメージを作成しますが、通常は定型化された表現に最適です。
+このサンプルでは、ライトのフォールオフ制御に使用する **フォールオフ指数** を説明します。フォールオフは光源から離れるにつれてライトの効力が減衰する割合です。[4.2] (Resources\ContentExamples\Lighting\4_2) で説明している **逆 2 乗フォールオフ (減衰)** を使用していない時は、この値を指数として 指数フォールオフ を使用します。指数フォールオフはしばしば現実世界に近いイメージを作成しますが、通常は定型化された表現に最適です。
 
 
 
