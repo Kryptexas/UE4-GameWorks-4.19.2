@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2618634
+﻿INTSourceChangelist:2716715
 Availability:Public
-Title:3.2 - ライト機能
+Title:3.2 - Light Functions
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのサンプル レベル、3.1：ライト機能
+Description:ライティングのサンプル レベル、サンプル 3.1：Light Functions
 Related:Engine/Rendering/LightingAndShadows/LightFunctions
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
@@ -13,7 +13,24 @@ Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/Shadows
 Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related:Engine/Rendering/LightingAndShadows/LightMobility
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Lighting/3_1 "%Resources/ContentExamples/Lighting/3_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ライティングのホーム](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -42,7 +59,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightFunctions#LightFunctions]
 
-ライト機能は、主に全体的なライト形状を変化させる際に使用するので、[サンプル 3.1](Resources\ContentExamples\Lighting\3_1) で紹介した IES プロファイルと混同しないでください。IES プロファイルの計算は演算コストが低く、可能な時はいつでもライト機能の代替として使用することができます。
+Light Functions は、主に全体的なライト形状を変化させる際に使用するので、[サンプル 3.1](Resources\ContentExamples\Lighting\3_1) で紹介した IES プロファイルと混同しないようにしてください。IES プロファイルの計算は演算コストが低く、可能な時はいつでも Light Functions の代替として使用することができます。
 
 
 
