@@ -139,6 +139,10 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefSettings Settings;
 	Settings.no_sandbox = true;
 	Settings.command_line_args_disabled = true;
+
+	FString CefLogFile(FPaths::Combine(*FPaths::GameLogDir(), TEXT("cef3.log")));
+	CefLogFile = FPaths::ConvertRelativePathToFull(CefLogFile);
+	CefString(&Settings.log_file) = *CefLogFile;
 	Settings.log_severity = LOGSEVERITY_WARNING;
 
 	// Specify locale from our settings
