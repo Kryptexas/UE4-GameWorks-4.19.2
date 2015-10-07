@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2652661
+﻿INTSourceChangelist:2717960
 Availability:Public
 Title:アクタのプロパティの編集
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -32,11 +32,7 @@ Related:Engine/UI/PropertyMatrix
 
 1.	アクタを配置すると、**[Details (詳細)]** パネルに情報が追加されます。 
 
-	[REGION:lightbox]
-	[![](Details2.png)(w:800)](Details2.png)
-	[/REGION]
-
-	_クリックしてフルサイズで表示_
+	![](Details2.png)
 
 1.	 **[Details]** パネル内の _Transform_ の下にある **Scale** で鍵のアイコンをクリックして **XYZ** の値を **3.0** に設定します。 
 
