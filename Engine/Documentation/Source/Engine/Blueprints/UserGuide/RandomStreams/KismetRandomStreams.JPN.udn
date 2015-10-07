@@ -61,7 +61,7 @@ RandomStreams は、ブループリント の構造体変数の特殊タイプ�
 
 ![RandomStream Variable](variable.png)
 
-新しい変数をブループリント クラスや Level ブループリント内に追加する方法の詳細手順については、[変数の作成手順](Engine/Blueprints/UserGuide\Variables#変数の作成手順) をご覧ください。
+新しい変数をブループリント クラスや Level ブループリント内に追加する方法の詳細手順については、[変数の作成](Engine/Blueprints/UserGuide\Variables#変数の作成) をご覧ください。
 
 ## RandomStream 関数
 
