@@ -1,15 +1,15 @@
-﻿NTSourceChangelist:2652989
-Availability:Public
+﻿Availability:Public
 Title:1.1 - HUD のサンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:ブループリントHUD のサンプル レベルの概要、サンプル 1.1：HUD のサンプル
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Description:ブループリント HUD のサンプル レベルの概要、サンプル 1.1：HUD のサンプル
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -48,9 +48,9 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [REGION:fullwidth]
 
 このサンプルはゲーム内の簡易な HUD を実演するもので、簡単なポーズ (一時停止) メニュー形式でクリック可能なボタンを含みます。オブジェクティブ (目標物) の名前とプレイヤーからの距離と共に、オブジェクティブ上にオブジェクティブ マーカーが描画されると同時に、HUD にはヘルスバーマテリアルが描画されて、キャラクターからのヘルス値の受け取りに Blueprint Interface 関数を使用します。
-HUD ブループリントを検索するには **[コンテンツ ブラウザ]** で **BP_HUD_Example** を検索してください。
+HUD ブループリントを検索するには [コンテンツ ブラウザ] で** BP_HUD_Example** を検索してください。
 
-## GameMode
+## GameMode クラス
 
 **GameMode** ではゲーム固有のゲームプレイ動作や設定に加え、デフォルトの Pawn クラス、HUD クラス、PlayerController クラスを設定します。このサンプルでは、
 **GameInfo_HUD** ブループリントは、HUD クラスとして **BP_HUD_Example** ブループリントを設定する GameMode ブループリントです。**[World Settings (ワールド設定)]** タブで **GameMode Override (ゲームモードのオーバーライド) ** として設定しなくてはいけません。
@@ -60,7 +60,7 @@ HUD ブループリントを検索するには **[コンテンツ ブラウザ]*
 
 ## HUD （Heads Up Display: ヘッドアップ ディスプレイ）
 
-HUD の各エレメントを描画するために使用する **ReceiveDrawHUD** イベントはスクリーンサイズを表す X と Y 値を提供します。この値はゲームのスクリーンサイズに従い、
+HUD の各エレメントを描画するために使用する **ReceiveDrawHUD** Event はスクリーンサイズを表す X と Y 値を提供します。この値はゲームのスクリーンサイズに従い、
  様々な HUD エレメントのスケーリングまたは再配置を可能にするためブループリント全体へ取り込まれます。例えば、解像度に関係なく、ボタンを常にスクリーン中央へ表示させます。
 
 
@@ -70,10 +70,10 @@ HUD の各エレメントを描画するために使用する **ReceiveDrawHUD**
 ヘルスバーは HUD ブループリントのコンストラクション スクリプトで作成する動的マテリアル インスタンスです。マテリアルには Current Health と Maximum Health のスカラー パラメータに応じてヘルスバーの長さを変更するノードがあります。 
 HUD ブループリントはキャラクターの現在のヘルス状態に基づいて Current Health パラメータを更新します。
 
-### ピックアップアイテム
+### ピックアップ アイテム
 ![](BP_HUD_pickup.png)
 
-このレベルでオブジェクティブ (目標物) となるピックアップ アイテムは **BP_Pickup_Child_Health** で、 [高度なブループリント、子ブループリント](Resources\ContentExamples\Blueprints_Advanced\2_5) のコンテンツ サンプルでも取り上げています。Level ブループリントで
+このレベルでオブジェクティブ (目標物) となるピックアップ アイテムは **BP_Pickup_Child_Health** で、 [子ブループリント](Resources\ContentExamples\Blueprints_Advanced\2_5) のコンテンツ サンプルでも取り上げています。Level ブループリントで
 Objective 変数として設定します。 
 
 HUD ブループリントで Current Objective が NULL ではない場合、
@@ -102,7 +102,7 @@ HUD ブループリントで Current Objective が NULL ではない場合、
 
 ![](BP_HUD_pressM.png)
 
- **BP_PlayerController_HUD** ブループリントはこのサンプルで使用するデフォルト PlayerController クラスです。 **GameInfo_HUD** GameMode ブループリントでも設定されます。**「Press "M" for Menu」** の文字列は **BP_HUD_Example** ブループリントで設定されますが、
+**BP_PlayerController_HUD** ブループリントはこのサンプルで使用するデフォルト PlayerController クラスです。 **GameInfo_HUD** GameMode ブループリントでも設定されます。**「Press "M" for Menu」** の文字列は **BP_HUD_Example** ブループリントで設定されますが、
 実際には **[M]** キー押下時の最初の応答は、PlayerController ブループリントが設定します。
 
 **[M]** キーを押すと、ターゲットとして HUD ブループリントと一緒に Toggle Menu インターフェイス メッセージが実行されます。その後 PlayerController は、以下を行います。
