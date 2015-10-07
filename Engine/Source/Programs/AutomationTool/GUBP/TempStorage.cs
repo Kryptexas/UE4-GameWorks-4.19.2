@@ -595,7 +595,7 @@ namespace AutomationTool
             }
             TopDirectoryTestedForClean.Add(TopDirectory);
 
-            const int MaximumDaysToKeepTempStorage = 1;
+            const int MaximumDaysToKeepTempStorage = 3;
             var StartTimeDir = DateTime.UtcNow;
             DirectoryInfo DirInfo = new DirectoryInfo(TopDirectory);
             var TopLevelDirs = DirInfo.GetDirectories();
@@ -642,7 +642,7 @@ namespace AutomationTool
         
         public static string SharedTempStorageDirectory()
         {
-            return "GUBP";
+            return "GTMP";
         }
         public static string UE4TempStorageDirectory()
         {
