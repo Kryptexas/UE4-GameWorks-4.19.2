@@ -1807,7 +1807,7 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		
 		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder));
 		
-		FString Arguments = EnsureLogFolder + TEXT("/ -Unattended");
+		FString Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
 		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
 		FPlatformProcess::ExecProcess(*ReportClient, *Arguments, nullptr, nullptr, nullptr);
 	}
