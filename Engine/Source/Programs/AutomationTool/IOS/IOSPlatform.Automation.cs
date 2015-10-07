@@ -410,10 +410,6 @@ public class IOSPlatform : Platform
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
 		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcworkspace");
-		if (!Directory.Exists(XcodeProj))
-		{
-			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "Engine", Path.GetFileName(XcodeProj));
-		}
 		Console.WriteLine ("Project: " + XcodeProj);
 		{
 			// project.xcodeproj doesn't exist, so generate temp project
@@ -433,7 +429,7 @@ public class IOSPlatform : Platform
 			if (!Directory.Exists (XcodeProj))
 			{
 				// something very bad happened
-				throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
+				throw new AutomationException("iOS couldn't find the appropriate Xcode Project " + XcodeProj);
 			}
 		}
 
