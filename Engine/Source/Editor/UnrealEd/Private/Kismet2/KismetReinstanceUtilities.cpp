@@ -630,6 +630,9 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 		TMap<UObject*, UObject*> FieldMappings;
 		GenerateFieldMappings(FieldMappings);
 
+		// Determine whether or not we will be updating references for an Animation Blueprint class.
+		const bool bIsAnimBlueprintClass = !!Cast<UAnimBlueprint>(ClassToReinstance->ClassGeneratedBy);
+
 		for( auto DependentBP = Dependencies.CreateIterator(); DependentBP; ++DependentBP )
 		{
 			UClass* BPClass = (*DependentBP)->GeneratedClass;
@@ -643,6 +646,13 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 				|| (BPClass->ClassGeneratedBy && BPClass->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad|RF_BeingRegenerated)) )
 			{
 				continue;
+			}
+
+			// Ensure that Animation Blueprint child class dependencies are always re-linked, as the child may reference properties generated during
+			// compilation of the parent class, which will have shifted to a TRASHCLASS Outer at this point (see UAnimBlueprintGeneratedClass::Link()).
+			if(bIsAnimBlueprintClass && BPClass->IsChildOf(ClassToReinstance))
+			{
+				BPClass->StaticLink(true);
 			}
 
 			bool bBPWasChanged = false;
