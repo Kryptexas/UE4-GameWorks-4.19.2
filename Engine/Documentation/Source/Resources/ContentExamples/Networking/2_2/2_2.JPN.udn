@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2719899
 Availability:Public
 Title:2.2 - ネットワークの関連性 [パート 2 - 関数をレプリケートする方法]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -8,6 +8,7 @@ Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
