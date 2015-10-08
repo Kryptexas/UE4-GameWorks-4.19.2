@@ -35,7 +35,7 @@ As the screenshots are being captured, they will be sent to the Unreal Frontend 
 
 $ Select **Screen Comparison** from the Session Frontend's Window menu :
 
-This will display an UI that updates as it receives images.
+This will display a UI that updates as it receives images.
 
 $ UI Navigation :
 
