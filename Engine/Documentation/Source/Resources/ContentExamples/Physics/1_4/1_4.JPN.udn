@@ -1,13 +1,15 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2720029
+Availability:Public
 Title:1.4 - Thruster
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理のサンプル レベルの概要、1.4:Thruster
+Description: 物理のサンプル レベルの概要、サンプル 1.4:Thruster
 Related:Engine/Physics/PhysicsBodies
-Related:Engine/Physics/PhAT/UserGuide
+Related:Engine/Physics/PhAT/HowTo
 Related:Engine/Physics/Constraints/ConstraintsReference
 Related:Engine/Physics/Constraints/ConstraintsUserGuide
 Related:Engine/Physics/Collision
 Related:Engine/Physics/PhysicalMaterials/Reference
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -75,6 +77,6 @@ Related:Engine/Physics/PhysicalMaterials/Reference
 
 ![](physics_1_4_002.png)(w:300)
 
-Physics Thrusters は、**[Modes]** パネルの **Place Mode** セクションの _All Classes_ にあります。
+Physics Thrusters は、**[Modes]** パネルの **[Place Mode]** セクションの _[All Classes]_ にあります。
 
 
