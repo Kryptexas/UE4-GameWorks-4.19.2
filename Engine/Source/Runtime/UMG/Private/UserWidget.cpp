@@ -418,21 +418,6 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 	}
 }
 
-TSharedRef<SWidget> UUserWidget::MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget)
-{
-	UserSlateWidget = TakeWidget();
-
-	return SNew(SConstraintCanvas)
-
-		+ SConstraintCanvas::Slot()
-		.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
-		.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
-		.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
-		[
-			UserSlateWidget.ToSharedRef()
-		];
-}
-
 UWidget* UUserWidget::GetRootWidget() const
 {
 	if ( WidgetTree )
@@ -464,10 +449,20 @@ void UUserWidget::AddToScreen(ULocalPlayer* Player, int32 ZOrder)
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
-		TSharedPtr<SWidget> OutUserSlateWidget;
-		TSharedRef<SWidget> RootWidget = MakeViewportWidget(OutUserSlateWidget);
+		// First create and initialize the variable so that users calling this function twice don't
+		// attempt to add the widget to the viewport again.
+		TSharedRef<SConstraintCanvas> FullScreenCanvas = SNew(SConstraintCanvas);
+		FullScreenWidget = FullScreenCanvas;
 
-		FullScreenWidget = RootWidget;
+		TSharedRef<SWidget> UserSlateWidget = TakeWidget();
+
+		FullScreenCanvas->AddSlot()
+			.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
+			.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
+			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
+			[
+				UserSlateWidget
+			];
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -477,19 +472,27 @@ void UUserWidget::AddToScreen(ULocalPlayer* Player, int32 ZOrder)
 			{
 				if ( Player )
 				{
-					ViewportClient->AddViewportWidgetForPlayer(Player, RootWidget, ZOrder);
+					ViewportClient->AddViewportWidgetForPlayer(Player, FullScreenCanvas, ZOrder);
 				}
 				else
 				{
 					// We add 10 to the zorder when adding to the viewport to avoid 
 					// displaying below any built-in controls, like the virtual joysticks on mobile builds.
-					ViewportClient->AddViewportWidgetContent(RootWidget, ZOrder + 10);
+					ViewportClient->AddViewportWidgetContent(FullScreenCanvas, ZOrder + 10);
 				}
 
-				// Widgets added to the viewport are automatically removed if the persistant level is unloaded.
+				// Just in case we already hooked this delegate, remove the handler.
+				FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
+
+				// Widgets added to the viewport are automatically removed if the persistent level is unloaded.
 				FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UUserWidget::OnLevelRemovedFromWorld);
 			}
 		}
+	}
+	else
+	{
+		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("WidgetAlreadyOnScreen", "The widget '{0}' was already added to the screen."),
+			FText::FromString(GetClass()->GetName())));
 	}
 }
 

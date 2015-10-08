@@ -744,9 +744,6 @@ public:
 	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
-	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget);
-
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidget() const;
 
