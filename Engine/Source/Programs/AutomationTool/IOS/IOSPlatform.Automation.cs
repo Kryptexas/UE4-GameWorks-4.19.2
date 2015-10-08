@@ -409,7 +409,12 @@ public class IOSPlatform : Platform
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
+		string RawProjectDir = Path.GetDirectoryName(RawProjectPath);
 		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcworkspace");
+		if (!Directory.Exists(RawProjectDir + "/Source") && !Directory.Exists(RawProjectDir + "/Intermediate/Source"))
+		{
+			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "Engine", Path.GetFileName(XcodeProj));
+		}
 		Console.WriteLine ("Project: " + XcodeProj);
 		{
 			// project.xcodeproj doesn't exist, so generate temp project
