@@ -323,6 +323,13 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		}
 	}
 #endif
+
+#if WITH_EDITOR
+	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
+	{
+		Ar << PlatformData;
+	}
+#endif
 }
 
 SIZE_T ULandscapeComponent::GetResourceSize(EResourceSizeMode::Type Mode)
@@ -527,19 +534,10 @@ void ULandscapeComponent::PostLoad()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		// If we're loading on a platform that doesn't require cooked data, but *only* supports OpenGL ES, preload data from the DDC
+		// If we're loading on a platform that doesn't require cooked data, but *only* supports OpenGL ES, generate or preload data from the DDC
 		if (!FPlatformProperties::RequiresCookedData() && GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
 		{
-			// Only check the DDC if we don't already have it loaded
-			if (!PlatformData.HasValidPlatformData())
-			{
-				// Attempt to load the ES2 landscape data from the DDC
-				if (!PlatformData.LoadFromDDC(StateId))
-				{
-					// Height Data is available after loading height map, so need to defer it
-					UE_LOG(LogLandscape, Warning, TEXT("Attempt to access the DDC when there is none available on component '%s'."), *GetFullName());
-				}
-			}
+			CheckGenerateLandscapePlatformData(false);
 		}
 	}
 
@@ -830,11 +828,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 	}
 	else // i.e. (FeatureLevel <= ERHIFeatureLevel::ES3_1)
 	{
-#if WITH_EDITOR
-		// See if we need to cook platform data for ES2 preview in editor
-		// We can't always pre-cook it in PostLoad/Serialize etc because landscape can be edited
-		CheckGenerateLandscapePlatformData(false);
-
+#if WITH_EDITOR 
 		if (PlatformData.HasValidPlatformData())
 		{
 			if (EditToolRenderData == NULL)
@@ -2183,7 +2177,6 @@ void FLandscapeComponentDerivedData::GetUncompressedData(TArray<uint8>& OutUncom
 
 FArchive& operator<<(FArchive& Ar, FLandscapeComponentDerivedData& Data)
 {
-	check(!Ar.IsSaving() || Data.CompressedLandscapeData.Num() > 0);
 	return Ar << Data.CompressedLandscapeData;
 }
 

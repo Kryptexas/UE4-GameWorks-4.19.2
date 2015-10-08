@@ -366,6 +366,17 @@ bool ULandscapeComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolum
 	return false;
 }
 
+void ULandscapeComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel)
+{
+	Super::PreFeatureLevelChange(PendingFeatureLevel);
+
+	if (PendingFeatureLevel <= ERHIFeatureLevel::ES3_1)
+	{
+		// See if we need to cook platform data for ES2 preview in editor
+		CheckGenerateLandscapePlatformData(false);
+	}
+}
+
 void ULandscapeComponent::PostEditUndo()
 {
 	UpdateMaterialInstances();
