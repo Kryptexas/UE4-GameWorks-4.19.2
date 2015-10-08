@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2719899
 Availability:Public
 Title:2.1 - ネットワークの関連性 [パート 1 - 全くレプリケートされていない場合]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -8,6 +8,7 @@ Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
