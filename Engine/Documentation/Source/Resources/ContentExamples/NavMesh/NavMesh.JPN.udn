@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620692
+﻿INTSourceChangelist:2718470
 Availability:Public
 Title:NavMesh コンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -7,6 +7,7 @@ Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
+Version:4.9
 
 [REGION:banner]
 ![](NavMesh_Header.png)(convert:false)
@@ -50,7 +51,7 @@ Related:Engine/Actors/Volumes
 **Navmesh** コンテンツ サンプル マップでは、**ポーン** が障害物を避けたり、傾斜を乗り越えたり、レッジを飛び越えて進むことができるようにする **NavMesh** の作成および使用方法を 3 つのサンプルを使って説明します。エディタでは、レベル内に **NavMeshBoundsVolume** を配置した状態で、 **[P]** キーを押すと NavMesh の対象エリアが表示 / 非表示されます。最後のサンプルでは、レベル内で アクタ が移動する時に **NavMesh** の対象エリアがどのように自動的に更新されるのかを説明します (**[Level Editor/Miscellaneous (レベル エディタ / その他)]** の **[Editor Settings (エディタ設定)]** で **[Update Navigation Automatically (ナビゲーションを自動更新する)]** チェックボックスのチェックを外せば無効にできます)。 
 
 [region:note]
-それぞれのサンプル別にさらにリソースを見る場合は、サンプル名をクリックしてください。
+サンプル名をクリッすると、サンプルごとにリソースを見ることができます。
 [/region]
  
 
@@ -60,9 +61,9 @@ Related:Engine/Actors/Volumes
 
 **Navmesh** マップで提供されているサンプルは以下の通りです。
 
-| サンプル | 実演内容 |
+| サンプル | 内容 |
 | ------- | ------------ |
-| **[シンプルなナビゲーション](Resources\ContentExamples\NavMesh\1_1)** | 一連の障害物間で ポーン をナビゲートする方法です。 |
+| **[1.1 シンプルなナビゲーション](Resources\ContentExamples\NavMesh\1_1)** | 一連の障害物間で ポーン をナビゲートする方法です。 |
 | **[1.2 Nav Link Proxy](Resources\ContentExamples\NavMesh\1_2)** | ポーン をナビゲートして傾斜に飛び乗ったり降りたりしています。 |
 | **[1.3 再ビルド](Resources\ContentExamples\NavMesh\1_3)** | NavMesh は、 スタティックメッシュ などのアクタがエディタ内で移動すると自動的に更新されます。
 
