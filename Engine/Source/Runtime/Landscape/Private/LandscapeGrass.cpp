@@ -1638,6 +1638,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										FoliageCache.CachedGrassComps.Add(NewComp);
 
 										HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
+										HierarchicalInstancedStaticMeshComponent->bCastStaticShadow = false;
 
 										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
 										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;
