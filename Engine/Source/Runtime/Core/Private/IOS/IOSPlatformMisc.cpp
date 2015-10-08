@@ -476,9 +476,9 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		{
 			if (Minor == 1)
 			{
-				DeviceType == IOS_IPhone6Plus;
+				DeviceType = IOS_IPhone6Plus;
 			}
-			else if (Minor == 2)
+			else if (Minor = 2)
 			{
 				DeviceType == IOS_IPhone6;
 			}
@@ -488,11 +488,11 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			// note that Apple switched the minor order around between 6 and 6S (gotta keep us on our toes!)
 			if (Minor == 1)
 			{
-				DeviceType == IOS_IPhone6S;
+				DeviceType = IOS_IPhone6S;
 			}
 			else if (Minor == 2)
 			{
-				DeviceType == IOS_IPhone6SPlus;
+				DeviceType = IOS_IPhone6SPlus;
 			}
 		}
 		else if (Major >= 9)
