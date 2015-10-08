@@ -916,7 +916,7 @@ private:
 	FRHIDepthRenderTargetView CurrentDepthStencilTarget;
 	FRHIRenderTargetView CurrentRenderTargets[MaxSimultaneousRenderTargets];
 	FShaderDrawKey CurrentDrawKey;
-	FBoundShaderStateRHIParamRef CurrentShaderState;
+	FBoundShaderStateRHIRef CurrentShaderState;
 	FShaderCacheBoundState BoundShaderState;
 	uint32 Viewport[4];
 	float DepthRange[2];
