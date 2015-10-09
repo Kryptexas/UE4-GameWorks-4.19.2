@@ -3247,8 +3247,11 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataC
 			// Set descriptive name
 			Instance->Rename(*StrName, NULL, REN_DoNotDirty);
 #if WITH_EDITOR
-			const bool bMarkDirty = false;
-			Instance->SetActorLabel(StrName, bMarkDirty );
+			if (GIsEditor == true && World->IsPlayInEditor() == false)
+			{
+				const bool bMarkDirty = false;
+				Instance->SetActorLabel(StrName, bMarkDirty);
+			}
 #endif // WITH_EDITOR
 		}
 	}
