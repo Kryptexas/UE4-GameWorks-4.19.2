@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2721776
 Availability:Public
 Title:1.15 - Blur GBuffer Intensity
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスのサンプル レベルの概要、1.15：Blur GBuffer Intensity
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.15：Blur GBuffer Intensity
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
