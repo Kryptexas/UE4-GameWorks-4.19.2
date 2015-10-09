@@ -383,21 +383,8 @@ namespace UnrealBuildTool
 			Content.Append("/* End PBXGroup section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
 		}
 
-		private void AppendLegacyTargetSection(StringBuilder Content, string TargetName, string TargetGuid, string TargetBuildConfigGuid)
+		private void AppendLegacyTargetSection(StringBuilder Content, string TargetName, string TargetGuid, string TargetBuildConfigGuid, string UProjectPath)
 		{
-			string UProjectPath = "";
-			if (UnrealBuildTool.HasUProjectFile() && TargetName.StartsWith(Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile()))) // @todo: merge CL #2238572
-			{
-				if (XcodeProjectFileGenerator.MasterProjectRelativePath == UnrealBuildTool.GetUProjectPath())
-				{
-					UProjectPath = " " + "\\\"$(PROJECT_DIR)/" + Path.GetFileName(UnrealBuildTool.GetUProjectFile()) + "\\\"";
-				}
-				else
-				{
-					UProjectPath = " " + "\\\"" + UnrealBuildTool.GetUProjectFile() + "\\\"";
-				}
-			}
-
             MacToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.Mac) as MacToolChain;
             string UE4Dir = Toolchain.ConvertPath(Path.GetFullPath(Directory.GetCurrentDirectory() + "../../.."));
 			string BuildToolPath = UE4Dir + "/Engine/Build/BatchFiles/Mac/" + (XcodeProjectFileGenerator.bGeneratingRocketProjectFiles ? "Rocket" : "") + "Build.sh";
@@ -406,7 +393,7 @@ namespace UnrealBuildTool
 
 			Content.Append("\t\t" + TargetGuid + " /* " + TargetName + " */ = {" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tisa = PBXLegacyTarget;" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\tbuildArgumentsString = \"$(ACTION) $(UE_BUILD_TARGET_NAME) $(PLATFORM_NAME) $(UE_BUILD_TARGET_CONFIG)" + UProjectPath + "\";" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\tbuildArgumentsString = \"$(ACTION) $(UE_BUILD_TARGET_NAME) $(PLATFORM_NAME) $(UE_BUILD_TARGET_CONFIG)" + (string.IsNullOrEmpty(UProjectPath) ? "" : " \\\"" + UProjectPath + "\\\"") + "\";" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildConfigurationList = "  + TargetBuildConfigGuid + " /* Build configuration list for PBXLegacyTarget \"" + TargetName + "\" */;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildPhases = (" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
@@ -988,14 +975,17 @@ namespace UnrealBuildTool
 			if (bHasEditorConfiguration && TargetName != "UE4")
 			{
 				Content.Append("      <CommandLineArguments>" + ProjectFileGenerator.NewLine);
-				Content.Append("         <CommandLineArgument" + ProjectFileGenerator.NewLine);
-				Content.Append("            argument = \"" + TargetName + "\"" + ProjectFileGenerator.NewLine);
-				Content.Append("            isEnabled = \"YES\">" + ProjectFileGenerator.NewLine);
-				Content.Append("         </CommandLineArgument>" + ProjectFileGenerator.NewLine);
 				if (IsForeignProject)
 				{
 					Content.Append("         <CommandLineArgument" + ProjectFileGenerator.NewLine);
                     Content.Append("            argument = \"&quot;" + GameProjectPath + "&quot;\"" + ProjectFileGenerator.NewLine);
+					Content.Append("            isEnabled = \"YES\">" + ProjectFileGenerator.NewLine);
+					Content.Append("         </CommandLineArgument>" + ProjectFileGenerator.NewLine);
+				}
+				else
+				{
+					Content.Append("         <CommandLineArgument" + ProjectFileGenerator.NewLine);
+					Content.Append("            argument = \"" + TargetName + "\"" + ProjectFileGenerator.NewLine);
 					Content.Append("            isEnabled = \"YES\">" + ProjectFileGenerator.NewLine);
 					Content.Append("         </CommandLineArgument>" + ProjectFileGenerator.NewLine);
 				}
@@ -1173,7 +1163,7 @@ namespace UnrealBuildTool
 				AppendTargetDependencySection(ProjectFileContent, BuildTargetName, BuildTargetGuid, TargetDependencyGuid, TargetProxyGuid);
 			}
 			AppendGroupSection(ProjectFileContent, MainGroupGuid, ProductRefGroupGuid, TargetAppGuid, TargetName);
-			AppendLegacyTargetSection(ProjectFileContent, BuildTargetName, BuildTargetGuid, BuildTargetConfigListGuid);
+			AppendLegacyTargetSection(ProjectFileContent, BuildTargetName, BuildTargetGuid, BuildTargetConfigListGuid, GameProjectPath);
 			AppendRunTargetSection(ProjectFileContent, TargetName, TargetGuid, TargetConfigListGuid, TargetDependencyGuid, TargetAppGuid);
 			AppendIndexTargetSection(ProjectFileContent, IndexTargetName, IndexTargetGuid, IndexTargetConfigListGuid, SourcesBuildPhaseGuid);
 			AppendProjectSection(ProjectFileContent, TargetName, TargetGuid, BuildTargetName, BuildTargetGuid, IndexTargetName, IndexTargetGuid, MainGroupGuid, ProductRefGroupGuid, ProjectGuid, ProjectConfigListGuid);
