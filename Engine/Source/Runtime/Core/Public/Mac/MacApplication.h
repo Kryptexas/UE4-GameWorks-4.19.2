@@ -213,7 +213,7 @@ private:
 	void ProcessKeyUpEvent(const FDeferredMacEvent& Event);
 
 	void OnWindowDidMove(TSharedRef<FMacWindow> Window);
-	void OnWindowDidResize(TSharedRef<FMacWindow> Window);
+	void OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking = false);
 	bool OnWindowDestroyed(TSharedRef<FMacWindow> Window);
 
 	void OnApplicationDidBecomeActive();

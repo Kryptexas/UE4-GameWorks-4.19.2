@@ -246,7 +246,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 						NSSize ViewSize = [WindowHandle openGLFrame].size;
 						float WidthScale = ViewSize.width / WindowSize.width;
 						float HeightScale = ViewSize.height / WindowSize.height;
-						MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
+						MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale), WindowHandle);
 					}
 				}, UE4ResizeEventMode, true);
 				MacApplication->DeferEvent([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle]);

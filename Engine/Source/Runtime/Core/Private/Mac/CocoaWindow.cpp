@@ -198,6 +198,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)windowWillEnterFullScreen:(NSNotification*)Notification
 {
+	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+	if (MacCursor)
+	{
+		MacCursor->SetShouldIgnoreLocking(true);
+	}
+
 	// Handle clicking on the titlebar fullscreen item
 	if (self.TargetWindowMode == EWindowMode::Windowed)
 	{
@@ -234,12 +240,18 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		NSSize ViewSize = [self openGLFrame].size;
 		float WidthScale = ViewSize.width / WindowSize.width;
 		float HeightScale = ViewSize.height / WindowSize.height;
-		MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
+		MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale), self);
 	}
 }
 
 - (void)windowWillExitFullScreen:(NSNotification *)Notification
 {
+	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+	if (MacCursor)
+	{
+		MacCursor->SetShouldIgnoreLocking(true);
+	}
+
 	if (self.TargetWindowMode != EWindowMode::Windowed)
 	{
 		self.TargetWindowMode = EWindowMode::Windowed;
@@ -263,9 +275,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 
 	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
-	if (MacCursor)
+	if (MacCursor && MacCursor->GetFullScreenWindow() == self)
 	{
-		MacCursor->SetMouseScaling(FVector2D(1.0f, 1.0f));
+		MacCursor->SetMouseScaling(FVector2D::UnitVector, nullptr);
 	}
 }
 
@@ -401,7 +413,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
-	if (MacApplication)
+	if (MacApplication && self.TargetWindowMode == WindowMode)
 	{
 		MacApplication->DeferEvent(Notification);
 	}
@@ -410,6 +422,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (void)windowWillClose:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
+
+	if (MacApplication)
+	{
+		FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+		if (MacCursor && MacCursor->GetFullScreenWindow() == self)
+		{
+			MacCursor->SetMouseScaling(FVector2D::UnitVector, nullptr);
+		}
+	}
+	
 	[self setDelegate:nil];
 }
 
