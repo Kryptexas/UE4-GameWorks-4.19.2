@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2721838
+Availability:Public
 Title:1.3 - シーンカラー
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスのサンプル レベルの概要、1.3：シーンカラー
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.3：シーンカラー
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
