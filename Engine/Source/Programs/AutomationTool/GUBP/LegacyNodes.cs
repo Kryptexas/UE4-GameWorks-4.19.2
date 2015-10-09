@@ -20,6 +20,20 @@ partial class GUBP
         public List<string> AllDependencyBuildProducts = null;
         public string AgentSharingGroup = "";
 
+		// Included for compatibility during //UE4/Main import
+		[Obsolete]
+		public virtual string GameNameIfAnyForTempStorage()
+		{
+			return "";
+		}
+
+		// Included for compatibility during //UE4/Main import
+		[Obsolete]
+		public virtual string RootIfAnyForTempStorage()
+		{
+			return "";
+		}
+
         public virtual string GetFullName()
         {
             throw new AutomationException("Unimplemented GetFullName.");
@@ -1581,7 +1595,7 @@ partial class GUBP
         UnrealTargetPlatform TargetPlatform;
         string CookPlatform;
         bool bIsMassive;
-
+		
 		public String ExtraArgsForCook = "";
 
         public CookNode(GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, string InCookPlatform)
@@ -1676,6 +1690,30 @@ partial class GUBP
         {
             return bIsMassive ? 240 : base.TimeoutInMinutes();
         }
+
+		public string RootForCook()
+		{
+			return CombinePaths(Path.GetDirectoryName(GameProj.FilePath.FullName), "Saved", "Cooked", CookPlatform);
+		}
+
+		//this lets the extra build products through, but filepaths become too long for windows. revert for now.
+#if false
+        public override string RootIfAnyForTempStorage()
+        {
+            return CombinePaths(Path.GetDirectoryName(GameProj.FilePath), "Saved");
+        }
+
+		private string RootForCookedFiles()
+		{
+			return CombinePaths(RootIfAnyForTempStorage(), "Cooked", CookPlatform);
+		}
+
+		private string RootForChunkFiles()
+		{
+			return CombinePaths(RootIfAnyForTempStorage(), "TmpPackaging", CookPlatform);
+		}
+#endif
+
         public override void DoBuild(GUBP bp)
         {
             if (HostPlatform == UnrealTargetPlatform.Mac)
@@ -1687,7 +1725,7 @@ partial class GUBP
 				String CookArgs = String.Format("-Unversioned {0}", ExtraArgsForCook);
 				CommandUtils.CookCommandlet(GameProj.FilePath, "UE4Editor-Cmd.exe", null, null, null, null, CookPlatform, CookArgs);
 			}
-            var CookedPath = CombinePaths(Path.GetDirectoryName(GameProj.FilePath.FullName), "Saved", "Cooked", CookPlatform);
+			var CookedPath = RootForCook();
             var CookedFiles = CommandUtils.FindFiles("*", true, CookedPath);
             if (CookedFiles.GetLength(0) < 1)
             {
@@ -1699,6 +1737,17 @@ partial class GUBP
             {
                 AddBuildProduct(CookedFile);
             }
+
+			//can't add these until we straighten out the storage root.
+#if false
+			//add in any chunk data files if they exist.
+			String TmpPackagingPath = RootForChunkFiles();
+			var PackagingFiles = CommandUtils.FindFiles("*", true, TmpPackagingPath);
+			foreach (var PackageDataFile in PackagingFiles)
+			{
+				AddBuildProduct(PackageDataFile);
+			}
+#endif
         }
     }
 

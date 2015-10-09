@@ -141,8 +141,8 @@ namespace UnrealBuildTool
 				// We always want to generate a class library, not an executable
 				CompileParams.GenerateExecutable = false;
 
-				// Always fail compiles for warnings
-				CompileParams.TreatWarningsAsErrors = true;
+				// Never fail compiles for warnings
+				CompileParams.TreatWarningsAsErrors = false;
 
 				// Always generate debug information as it takes minimal time
 				CompileParams.IncludeDebugInformation = true;
@@ -221,15 +221,18 @@ namespace UnrealBuildTool
 				throw new BuildException(Ex, "Failed to launch compiler to compile assembly from source files '{0}' (Exception: {1})", SourceFileNames.ToString(), Ex.Message);
 			}
 
-			// Display compilation errors
+			// Display compilation warnings and errors
 			if (CompileResults.Errors.Count > 0)
 			{
-				Log.TraceInformation("Errors detected while compiling {0}:", OutputAssemblyPath);
+				Log.TraceInformation("Messages while compiling {0}:", OutputAssemblyPath);
 				foreach (var CurError in CompileResults.Errors)
 				{
 					Log.TraceInformation(CurError.ToString());
 				}
-				throw new BuildException("UnrealBuildTool encountered an error while compiling source files");
+				if(CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
+				{
+					throw new BuildException("UnrealBuildTool encountered an error while compiling source files");
+				}
 			}
 
 			// Grab the generated assembly

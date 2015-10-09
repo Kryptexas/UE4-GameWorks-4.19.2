@@ -46,14 +46,21 @@ FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
 
 void FBuiltinSamplersUniformBuffer::InitDynamicRHI()
 {
+	static TRefCountPtr<FRHISamplerState> Bilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap));
+	static TRefCountPtr<FRHISamplerState> BilinearClamped =		RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp));
+	static TRefCountPtr<FRHISamplerState> Point =				RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap));
+	static TRefCountPtr<FRHISamplerState> PointClamped =		RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point, AM_Clamp, AM_Clamp, AM_Clamp));
+	static TRefCountPtr<FRHISamplerState> Trilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear, AM_Wrap, AM_Wrap, AM_Wrap));
+	static TRefCountPtr<FRHISamplerState> TrilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp));
+
 	FBuiltinSamplersParameters UB;
 
-	UB.Bilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear,	AM_Wrap, AM_Wrap, AM_Wrap));
-	UB.BilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear,	AM_Clamp, AM_Clamp, AM_Clamp));
-	UB.Point =				RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point,		AM_Wrap, AM_Wrap, AM_Wrap));
-	UB.PointClamped =		RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point,		AM_Clamp, AM_Clamp, AM_Clamp));
-	UB.Trilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear,	AM_Wrap, AM_Wrap, AM_Wrap));
-	UB.TrilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear,	AM_Clamp, AM_Clamp, AM_Clamp));
+	UB.Bilinear =			Bilinear;
+	UB.BilinearClamped =	BilinearClamped;
+	UB.Point =				Point;
+	UB.PointClamped =		PointClamped;
+	UB.Trilinear =			Trilinear;
+	UB.TrilinearClamped =	TrilinearClamped;
 	SetContents(UB);
 
 	TUniformBuffer<FBuiltinSamplersParameters>::InitDynamicRHI();

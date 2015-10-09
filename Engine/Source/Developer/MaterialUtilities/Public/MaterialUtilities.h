@@ -18,9 +18,9 @@ struct FFlattenMaterial
 		, SpecularSize(0, 0)
 		, OpacitySize(0, 0)
 		, EmissiveSize(0, 0)
+		, bTwoSided(false)
 		, BlendMode(BLEND_Opaque)
 		, EmissiveScale(1.0f)
-		, bTwoSided(false)
 	{}
 
 	void ReleaseData()

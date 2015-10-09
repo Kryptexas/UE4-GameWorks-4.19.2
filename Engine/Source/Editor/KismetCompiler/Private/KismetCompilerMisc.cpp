@@ -505,10 +505,12 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 				{
 					MessageLog.Warning(
 						*FString::Printf(
-							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s' ").ToString(),
+							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s'. EnumVal: %d. EnumAcceptableMax: %d ").ToString(),
 							*ByteProperty->GetName(),
 							*DefaultObject->GetClass()->GetName(),
-							*DefaultObject->GetName()
+							*DefaultObject->GetName(),
+							EnumValue,
+							Enum->GetMaxEnumValue()
 						)
 					);
 				}

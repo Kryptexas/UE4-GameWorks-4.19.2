@@ -1910,6 +1910,13 @@ namespace AutomationTool
             return CachedRootBuildStorageDirectory;
         }
 
+		// Included for compatibility during //UE4/Main import
+		[Obsolete]
+		public static string RootSharedTempStorageDirectory()
+		{
+			return RootBuildStorageDirectory();
+		}
+
         public static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
         {
             if (!DirectoryExists_NoExceptions(Dir))

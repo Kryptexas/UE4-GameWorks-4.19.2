@@ -394,7 +394,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 			{
 				FGraphEventRef SetWidgetText = FFunctionGraphTask::CreateAndDispatchWhenReady([&]()
 				{
-					VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))), false);
+					VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))), ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
 				}, TStatId(), NULL, ENamedThreads::GameThread);
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(SetWidgetText);
 			}

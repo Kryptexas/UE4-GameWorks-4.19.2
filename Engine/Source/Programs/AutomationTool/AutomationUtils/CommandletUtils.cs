@@ -16,6 +16,24 @@ namespace AutomationTool
 		/// <summary>
 		/// Runs Cook commandlet.
 		/// </summary>
+		[Obsolete("CookCommandlet now takes a FileReference for project argument")]
+		public static void CookCommandlet(string ProjectName)
+		{
+			FileReference ProjectFile;
+			if(ProjectName.Contains('/') || ProjectName.Contains('\\'))
+			{
+				ProjectFile = new FileReference(ProjectName);
+			}
+			else if(!UProjectInfo.TryGetProjectFileName(ProjectName, out ProjectFile))
+			{
+				throw new AutomationException("Cannot determine project path for {0}", ProjectName);
+			}
+			CookCommandlet(ProjectFile);
+		}
+
+		/// <summary>
+		/// Runs Cook commandlet.
+		/// </summary>
 		/// <param name="ProjectName">Project name.</param>
 		/// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
 		/// <param name="Maps">List of maps to cook, can be null in which case -MapIniSection=AllMaps is used.</param>
@@ -179,6 +197,24 @@ namespace AutomationTool
 		/// Runs a commandlet using Engine/Binaries/Win64/UE4Editor-Cmd.exe.
 		/// </summary>
 		/// <param name="ProjectName">Project name.</param>
+		/// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
+		/// <param name="Commandlet">Commandlet name.</param>
+		/// <param name="Parameters">Command line parameters (without -run=)</param>
+		[Obsolete("RunCommandlet now takes a uproject path as first argument")]
+		public static void RunCommandlet(string ProjectName, string UE4Exe, string Commandlet, string Parameters = null)
+		{
+			FileReference ProjectFile;
+			if(!UProjectInfo.TryGetProjectFileName(ProjectName, out ProjectFile))
+			{
+				throw new AutomationException("Cannot determine project file for {0}", ProjectName);
+			}
+			RunCommandlet(ProjectFile, UE4Exe, Commandlet, Parameters);
+		}
+
+		/// <summary>
+		/// Runs a commandlet using Engine/Binaries/Win64/UE4Editor-Cmd.exe.
+		/// </summary>
+		/// <param name="ProjectFile">Project name.</param>
 		/// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
 		/// <param name="Commandlet">Commandlet name.</param>
 		/// <param name="Parameters">Command line parameters (without -run=)</param>

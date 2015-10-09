@@ -90,7 +90,7 @@ public:
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const {}
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const {}
 	FORCEINLINE void DiagnosticCheckNaN_All() const {}
-	FORCEINLINE void DiagnosticCheck_IsValid() const;
+	FORCEINLINE void DiagnosticCheck_IsValid() const {}
 #endif
 
 	/**

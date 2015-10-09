@@ -282,7 +282,6 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_R8G8				].PlatformFormat	= MTLPixelFormatRG8Unorm;
 
 	GDynamicRHI = this;
-	GIsRHIInitialized = true;
 	
 #if PLATFORM_DESKTOP
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
@@ -349,6 +348,7 @@ uint64 FMetalDynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
 
 void FMetalDynamicRHI::Init()
 {
+	GIsRHIInitialized = true;
 }
 
 void FMetalRHICommandContext::RHIBeginFrame()

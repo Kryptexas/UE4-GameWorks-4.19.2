@@ -976,9 +976,9 @@ bool FChunkManifestGenerator::GetPackageDependencyChain(FName SourcePackage, FNa
 	return false;
 }
 
-bool FChunkManifestGenerator::GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type DependencyType)
+bool FChunkManifestGenerator::GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type InDependencyType)
 {	
-	return AssetRegistry.GetDependencies(PackageName, DependentPackageNames, DependencyType);
+	return AssetRegistry.GetDependencies(PackageName, DependentPackageNames, InDependencyType);
 }
 
 bool FChunkManifestGenerator::GatherAllPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames)

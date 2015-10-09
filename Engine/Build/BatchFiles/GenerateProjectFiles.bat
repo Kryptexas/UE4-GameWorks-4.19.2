@@ -40,18 +40,9 @@ if exist "%ProgramFiles(x86)%\MSBuild\12.0\bin\MSBuild.exe" (
 	goto ReadyToCompile
 )
 
-rem ## Check for Visual Studio 2015
-
-pushd %~dp0
-call GetVSComnToolsPath 14
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-:NoVisualStudio2015Environment
 rem ## Check for Visual Studio 2013
+
+for %%P in (%*) do if "%%P" == "-2015" goto NoVisualStudio2013Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 12
@@ -62,6 +53,17 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 :NoVisualStudio2013Environment
+rem ## Check for Visual Studio 2015
+
+pushd %~dp0
+call GetVSComnToolsPath 14
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+:NoVisualStudio2015Environment
 rem ## Check for Visual Studio 2012
 
 pushd %~dp0

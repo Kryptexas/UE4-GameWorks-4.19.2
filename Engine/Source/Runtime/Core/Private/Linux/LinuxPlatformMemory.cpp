@@ -41,11 +41,6 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		Jemalloc,
 		Binned
 	}
->>>> ORIGINAL //depot/UE4-Orion/Engine/Source/Runtime/Core/Private/Linux/LinuxPlatformMemory.cpp#4
-	AllocatorToUse = FORCE_ANSI_ALLOCATOR ? EAllocatorToUse::Ansi : EAllocatorToUse::Binned;
-==== THEIRS //depot/UE4-Orion/Engine/Source/Runtime/Core/Private/Linux/LinuxPlatformMemory.cpp#5
-	AllocatorToUse = FORCE_ANSI_ALLOCATOR ? EAllocatorToUse::Ansi : EAllocatorToUse::Jemalloc;
-==== YOURS //Marc.Audy_Z2487/Engine/Source/Runtime/Core/Private/Linux/LinuxPlatformMemory.cpp
 	AllocatorToUse = EAllocatorToUse::Binned;
 
 	// Prefer jemalloc for the editor and programs as it saved ~20% RES usage in my (RCL) tests.
@@ -54,7 +49,6 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 	{
 		AllocatorToUse = EAllocatorToUse::Jemalloc;
 	}
-<<<<
 
 	if (FORCE_ANSI_ALLOCATOR)
 	{

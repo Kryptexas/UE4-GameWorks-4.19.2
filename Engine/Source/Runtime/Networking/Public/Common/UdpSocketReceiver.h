@@ -94,9 +94,12 @@ public:
 				Reader->SetNumUninitialized(FMath::Min(Size, 65507u));
 
 				int32 Read = 0;
-				Socket->RecvFrom(Reader->GetData(), Reader->Num(), Read, *Sender);
-
-				DataReceivedDelegate.ExecuteIfBound(Reader, FIPv4Endpoint(Sender));
+				
+				if (Socket->RecvFrom(Reader->GetData(), Reader->Num(), Read, *Sender))
+				{
+					Reader->RemoveAt(Read, Reader->Num() - Read, false);
+					DataReceivedDelegate.ExecuteIfBound(Reader, FIPv4Endpoint(Sender));
+				}
 			}
 		}
 

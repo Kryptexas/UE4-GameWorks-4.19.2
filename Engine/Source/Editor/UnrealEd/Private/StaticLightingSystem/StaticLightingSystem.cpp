@@ -768,9 +768,9 @@ void UpdateStaticLightingHLODTreeIndices(TMultiMap<AActor*, FStaticLightingMesh*
 
 	for (AActor* SubActor : LODActor->SubActors)
 	{
-		if (ALODActor* LODActor = Cast<ALODActor>(SubActor))
+		if (ALODActor* LODSubActor = Cast<ALODActor>(SubActor))
 		{
-			UpdateStaticLightingHLODTreeIndices(ActorMeshMap, LODActor, HLODTreeIndex, HLODLeafIndex);
+			UpdateStaticLightingHLODTreeIndices(ActorMeshMap, LODSubActor, HLODTreeIndex, HLODLeafIndex);
 		}
 		else
 		{

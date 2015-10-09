@@ -173,7 +173,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		{
 			FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
 
-			HLODOutliner::HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, false);
+			HLODOutliner::HandleDrop(WeakTableViewBase, DragDropEvent, *TreeItem, ValidationInfo, this, false);
 			UpdateOperationDecorator(DragDropEvent, ValidationInfo);
 		}
 	}

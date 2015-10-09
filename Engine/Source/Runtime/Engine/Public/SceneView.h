@@ -474,7 +474,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, TrilinearClamped)
 END_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters)
 
-ENGINE_API class FBuiltinSamplersUniformBuffer : public TUniformBuffer<FBuiltinSamplersParameters>
+class ENGINE_API FBuiltinSamplersUniformBuffer : public TUniformBuffer<FBuiltinSamplersParameters>
 {
 public:
 	FBuiltinSamplersUniformBuffer();

@@ -455,4 +455,25 @@ namespace UnrealBuildTool
 			}
 		}
 	}
+
+	/// <summary>
+	/// Legacy class for compatibility in //UE4/Main import.
+	/// </summary>
+	[Obsolete]
+	public class BuildReceipt : TargetReceipt
+	{
+		public BuildReceipt(TargetReceipt Other) : base(Other)
+		{
+		}
+
+		public static new BuildReceipt Read(string FileName)
+		{
+			return new BuildReceipt(TargetReceipt.Read(FileName));
+		}
+
+		public void ExpandPathVariables(string EngineDir, string ProjectDir)
+		{
+			base.ExpandPathVariables(new DirectoryReference(EngineDir), new DirectoryReference(ProjectDir));
+		}
+	}
 }

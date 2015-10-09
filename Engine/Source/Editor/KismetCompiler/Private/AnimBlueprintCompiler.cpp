@@ -1950,9 +1950,9 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* 
 
 						if(bLeafNode)
 						{
-							if(UK2Node_VariableGet* VariableGetNode = Cast<UK2Node_VariableGet>(LinkedNode))
+							if(UK2Node_VariableGet* LinkedVariableGetNode = Cast<UK2Node_VariableGet>(LinkedNode))
 							{
-								if(!VariableGetNode->IsNodePure() || !VariableGetNode->VariableReference.IsSelfContext())
+								if(!LinkedVariableGetNode->IsNodePure() || !LinkedVariableGetNode->VariableReference.IsSelfContext())
 								{
 									// only local variable access is allowed for leaf nodes, so 
 									Handler.bHasOnlyMemberAccess = false;

@@ -1573,6 +1573,23 @@ namespace UnrealBuildTool
 		/// Map of root folders to a cached list of all UBT-related source files in that folder or any of its sub-folders.
 		/// We cache these file names so we can avoid searching for them later on.
 		static Dictionary<DirectoryReference, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<DirectoryReference, RulesFileCache>();
+		
+		// Included for compatibility during //UE4/Main import
+		[Obsolete]
+		public static string GetModuleFilename(string ModuleName)
+		{
+			foreach(RulesFileCache Cache in RootFolderToRulesFileCache.Values)
+			{
+				foreach(FileReference ModuleFile in Cache.ModuleRules)
+				{
+					if(String.Compare(ModuleFile.GetFileNameWithoutAnyExtensions(), ModuleName, StringComparison.InvariantCultureIgnoreCase) == 0)
+					{
+						return ModuleFile.FullName;
+					}
+				}
+			}
+			return null;
+		}
 
 		public static List<FileReference> FindAllRulesSourceFiles(RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true)
 		{
