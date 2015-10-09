@@ -459,7 +459,6 @@ class FPostProcessSubsurfaceExtractSpecularPS : public FGlobalShader
 public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
-	FSubsurfaceParameters SubsurfaceParameters;
 
 	/** Initialization constructor. */
 	FPostProcessSubsurfaceExtractSpecularPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -467,7 +466,6 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
-		SubsurfaceParameters.Bind(Initializer.ParameterMap);
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
@@ -478,14 +476,13 @@ public:
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
-		SubsurfaceParameters.SetParameters(Context.RHICmdList, ShaderRHI, Context);
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SubsurfaceParameters;
+		Ar << PostprocessParameter << DeferredParameters;
 		return bShaderHasOutdatedParameters;
 	}
 

@@ -16,9 +16,6 @@ Texture2D SSProfilesTexture;
 // x:Radius*DistanceToProjectionWindow/KernelSize*0.5, y:DistanceToProjectionWindow, zw:xy scale correction for BufferSize!=ViewportSize
 float4 SSSParams;
 
-// 0: (testing, could be faster), 1: higher quality
-#define FULLRES_WHERE_POSSIBLE 1
-
 // ------------------------------------------
 
 // setup for "SeparableSSS.usf"
@@ -262,40 +259,6 @@ float4 SetupSubsurfaceForOnePixel(float2 UV)
 	return Ret;
 }
 
-void ExtractSpecularPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
-{
-	float2 GBufferUV = UVAndScreenPos.xy;
-
-	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, GBufferUV);
-
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(GBufferUV);
-
-	// 0: dont' fade in subsurface half res,  1:fully fade in half res
-	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
-
-	float3 ExtractedSpecular = 0;
-	 
-#if SSS_RECOMBINE_METHOD
-	// we took the specular highlights out, now we add them back in
-	ExtractedSpecular += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
-#endif
-
-	// alpha channel can be anything - we consumed the value and likely output to a format that doesn't need the value
-	OutColor = float4(lerp(SceneColor4.rgb, ExtractedSpecular, BlendFactor), 0);
-
-#if FULLRES_WHERE_POSSIBLE
-	// 0..255, which SubSurface profile to pick
-	uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(ScreenSpaceData.GBuffer);
-
-	// reference
-//	float3 DiffuseLighting = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
-	// cheaper:
-	float3 DiffuseLighting = SceneColor4 - ExtractedSpecular;
-
-	// add center sample from full resolution input for better quality
-	OutColor.rgb += DiffuseLighting * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
-#endif
-}
 
 void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
@@ -384,13 +347,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// can be optimized
 	float2 GBufferUV = (ViewportUV * PostprocessInput0Size.xy * 2 + View.ViewRectMin.xy) * View.BufferSizeAndInvSize.zw;
 
-	bool bIncludeCenter = true;
-
-#if FULLRES_WHERE_POSSIBLE && SSS_DIRECTION == 1
-	bIncludeCenter = false;
-#endif
-
-	OutColor = SSSSBlurPS(GBufferUV, ViewportUV, Direction, false, bIncludeCenter);
+	OutColor = SSSSBlurPS(GBufferUV, ViewportUV, Direction, false);
 
 #if SSS_DIRECTION == 1
 	// second pass prepares the setup from the recombine pass which doesn't need depth but wants to reconstruct the color
@@ -446,3 +403,25 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	OutColor = float4(SSSColor * BlendFactor + SceneColor4.rgb, LerpFactor);
 }
 
+
+void ExtractSpecularPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 GBufferUV = UVAndScreenPos.xy;
+
+	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, GBufferUV);
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(GBufferUV);
+
+	// 0: dont' fade in subsurface half res,  1:fully fade in half res
+	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
+
+	float3 ExtractedSpecular = 0;
+	 
+#if SSS_RECOMBINE_METHOD
+	// we took the specular highlights out, now we add them back in
+	ExtractedSpecular += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
+#endif
+
+	// alpha channel can be anything - we consumed the value and likely output to a format that doesn't need the value
+	OutColor = float4(lerp(SceneColor4.rgb, ExtractedSpecular, BlendFactor), 0);
+}
