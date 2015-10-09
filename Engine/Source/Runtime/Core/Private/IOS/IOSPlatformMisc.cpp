@@ -478,7 +478,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			{
 				DeviceType = IOS_IPhone6Plus;
 			}
-			else if (Minor = 2)
+			else if (Minor == 2)
 			{
 				DeviceType == IOS_IPhone6;
 			}
