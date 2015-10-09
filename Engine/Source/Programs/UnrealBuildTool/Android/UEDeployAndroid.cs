@@ -641,7 +641,7 @@ namespace UnrealBuildTool.Android
 			}
 
 			// replace escaped characters (note: changes &# pattern before &, then patches back to allow escaped character codes in the string)
-			ApplicationDisplayName = ApplicationDisplayName.Replace("&#", "$@#$").Replace("&", "&amp;").Replace("'", "&#39;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("$@#$", "&#");
+			ApplicationDisplayName = ApplicationDisplayName.Replace("&#", "$@#$").Replace("&", "&amp;").Replace("'", "\\'").Replace("\"", "\\\"").Replace("<", "&lt;").Replace(">", "&gt;").Replace("$@#$", "&#");
 
 			// if it doesn't exist, need to repackage
 			if (!File.Exists(StringsXMLPath))
