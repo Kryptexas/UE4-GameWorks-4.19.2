@@ -117,6 +117,7 @@ return TSuper::SupportsFeature(Feature);
 			static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 			OutFormats.AddUnique(NAME_GLSL_150_MAC);
 
+#if PLATFORM_MAC // @todo: Enable on Windows, Linux and OS X 10.10 (fallback to online shader compiler)
 			if (FPlatformMisc::MacOSXVersionCompare(10, 11, 0) >= 0)
 			{
 				static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
@@ -124,6 +125,7 @@ return TSuper::SupportsFeature(Feature);
 				static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 				OutFormats.AddUnique(NAME_SF_METAL_SM5);
 			}
+#endif
 		}
 	}
 
