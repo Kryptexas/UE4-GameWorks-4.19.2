@@ -427,7 +427,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 	OutResult.FaceIndex = INDEX_NONE;
 }
 
-EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat)
+void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ConvertQueryImpactHit);
 
@@ -436,7 +436,7 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 	if (bInitialOverlap && Geom != nullptr)
 	{
 		ConvertOverlappedShapeToImpactHit(World, PHit, StartLoc, EndLoc, OutResult, *Geom, QueryTM, QueryFilter, bReturnPhysMat);
-		return EConvertQueryResult::Valid;
+		return;
 	}
 
 	// See if this is a 'blocking' hit
@@ -456,24 +456,10 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 	OutResult.Location = SafeLocationToFitShape;
 
 	const bool bUsePxPoint = ((PHit.flags & PxHitFlag::ePOSITION) && !bInitialOverlap);
-	if (bUsePxPoint && !PHit.position.isFinite())
-	{
-		OutResult.Reset();
-		UE_LOG(LogCollision, Error, TEXT("ConvertQueryImpactHit() received NaN/Inf for position: %.2f %.2f %.2f"), PHit.position.x, PHit.position.y, PHit.position.z);
-		return EConvertQueryResult::Invalid;
-	}
-
 	OutResult.ImpactPoint = bUsePxPoint ? P2UVector(PHit.position) : StartLoc;
 	
 	// Caution: we may still have an initial overlap, but with null Geom. This is the case for RayCast results.
 	const bool bUsePxNormal = ((PHit.flags & PxHitFlag::eNORMAL) && !bInitialOverlap);
-	if (bUsePxNormal && !PHit.normal.isFinite())
-	{
-		OutResult.Reset();
-		UE_LOG(LogCollision, Error, TEXT("ConvertQueryImpactHit() received NaN/Inf for normal: %.2f %.2f %.2f"), PHit.normal.x, PHit.normal.y, PHit.normal.z);
-		return EConvertQueryResult::Invalid;
-	}
-
 	FVector Normal = bUsePxNormal ? P2UVector(PHit.normal).GetSafeNormal() : -TraceStartToEnd.GetSafeNormal();
 	OutResult.Normal = Normal;
 	OutResult.ImpactNormal = Normal;
@@ -523,15 +509,11 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 			OutResult.FaceIndex	= PTriMeshGeom.triangleMesh->getTrianglesRemap()[PHit.faceIndex];
 		}
 	}
-
-	return EConvertQueryResult::Valid;
 }
 
-EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat)
+void ConvertRaycastResults(const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
 	OutHits.Reserve(OutHits.Num() + NumHits);
-	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
-	bool bHadBlockingHit = false;
 
 	PxTransform PStartTM(U2PVector(StartLoc));
 	for(int32 i=0; i<NumHits; i++)
@@ -539,28 +521,16 @@ EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UW
 		FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
 		const PxRaycastHit& PHit = Hits[i];
 
-		if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, NULL, PStartTM, bReturnFaceIndex, bReturnPhysMat) == EConvertQueryResult::Valid)
-		{
-			bHadBlockingHit |= NewResult.bBlockingHit;
-		}
-		else
-		{
-			// Reject invalid result (this should be rare). Remove from the results.
-			OutHits.Pop(/*bAllowShrinking=*/ false);
-			ConvertResult = EConvertQueryResult::Invalid;
-		}
+		ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, NULL, PStartTM, bReturnFaceIndex, bReturnPhysMat);
 	}
 
 	// Sort results from first to last hit
 	OutHits.Sort( FCompareFHitResultTime() );
-	OutHasValidBlockingHit = bHadBlockingHit;
-	return ConvertResult;
 }
 
-EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
+bool AddSweepResults(const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
 {
 	OutHits.Reserve(OutHits.Num() + NumHits);
-	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
 	bool bHadBlockingHit = false;
 
 	for(int32 i=0; i<NumHits; i++)
@@ -570,24 +540,14 @@ EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* 
 		if(PHit.distance <= MaxDistance)
 		{
 			FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
-			if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, false, bReturnPhysMat) == EConvertQueryResult::Valid)
-			{
-				bHadBlockingHit |= NewResult.bBlockingHit;
-			}
-			else
-			{
-				// Reject invalid result (this should be rare). Remove from the results.
-				OutHits.Pop(/*bAllowShrinking=*/ false);
-				ConvertResult = EConvertQueryResult::Invalid;
-			}
-			
+			ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, false, bReturnPhysMat);
+			bHadBlockingHit |= NewResult.bBlockingHit;
 		}
 	}
 
 	// Sort results from first to last hit
 	OutHits.Sort( FCompareFHitResultTime() );
-	OutHasValidBlockingHit = bHadBlockingHit;
-	return ConvertResult;
+	return bHadBlockingHit;
 }
 
 /* Function to find the best normal from the list of triangles that are overlapping our geom. */

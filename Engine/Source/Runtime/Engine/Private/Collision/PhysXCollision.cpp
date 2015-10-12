@@ -991,17 +991,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			if (bHaveBlockingHit) // If we got a hit
 			{
 				PxTransform PStartTM(U2PVector(Start));
-				if (ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, NULL, PStartTM, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
-				{
-					bHaveBlockingHit = false;
-					UE_LOG(LogCollision, Error, TEXT("RaycastSingle resulted in a NaN/INF in PHit!"));
-#if ENABLE_NAN_DIAGNOSTIC
-					UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-					UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
-					UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
-					UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
-#endif
-				}
+				ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, NULL, PStartTM, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
 			}
 		}
 #endif //WITH_PHYSX
@@ -1180,17 +1170,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 
 		if (NumHits > 0)
 		{
-			if (ConvertRaycastResults(bBlockingHit, World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
-			{
-				// We don't need to change bBlockingHit, that's done by ConvertRaycastResults if it removed the blocking hit.
-				UE_LOG(LogCollision, Error, TEXT("RaycastMulti resulted in a NaN/INF in PHit!"));
-#if ENABLE_NAN_DIAGNOSTIC
-				UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-				UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
-				UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
-				UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
-#endif
-			}
+			ConvertRaycastResults(World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
 		}
 
 		bHaveBlockingHit = bBlockingHit;
@@ -1349,6 +1329,23 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		PxSweepHit PHit;
 		bHaveBlockingHit = SyncScene->sweepSingle(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHit, PQueryFilterData, &PQueryCallbackSweep);
 
+		// Emergency NaN guarding. If we get a NaN back, act like there was no hit
+		if (PHit.position.isFinite() == false || PHit.normal.isFinite() == false)
+		{
+			bHaveBlockingHit = false;
+#if ENABLE_NAN_DIAGNOSTIC
+			UE_LOG(LogCollision, Error, TEXT("GeomSweepSingle resulted in a NaN/INF in PHit!"));
+			UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+			UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
+			UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
+			UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
+
+			//convert to FVector will do further diagnostic and print as needed
+			FVector NanCheckVectorPosition = P2UVector(PHit.position);
+			FVector NanCheckVectorNormal = P2UVector(PHit.normal);
+#endif
+		}
+
 		if (!bHaveBlockingHit)
 		{
 			// Not using anything from this scene, so unlock it.
@@ -1381,17 +1378,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 		if(bHaveBlockingHit) // If we got a hit, convert it to unreal type
 		{
-			if (ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
-			{
-				bHaveBlockingHit = false;
-				UE_LOG(LogCollision, Error, TEXT("GeomSweepSingle resulted in a NaN/INF in PHit!"));
-#if ENABLE_NAN_DIAGNOSTIC
-				UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-				UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
-				UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
-				UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
-#endif
-			}
+			ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
 		}
 	}
 
@@ -1523,17 +1510,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 		// Convert all hits to unreal structs. This will remove any hits further than MinBlockDistance, and sort results.
 		if (NumHits > 0)
 		{
-			if (AddSweepResults(bBlockingHit, World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
-			{
-				// We don't need to change bBlockingHit, that's done by AddSweepResults if it removed the blocking hit.
-				UE_LOG(LogCollision, Error, TEXT("GeomSweepMulti resulted in a NaN/INF in PHit!"));
-#if ENABLE_NAN_DIAGNOSTIC				
-				UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-				UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
-				UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
-				UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
-#endif
-			}
+			bBlockingHit |= AddSweepResults(World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial);
 		}
 	}
 

@@ -32,7 +32,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-[TOC (start:2 end:2)]
+[TOC (start:2)]
 
 
 
@@ -170,58 +170,6 @@ Each item in the Sample Data array has the following properties:
 | -------- | ----------- |
 | **Animation** | The AnimationSequence asset to blend to. |
 | **Sample Value** | The input values (X and Y corresponding to the Blend Parameters) where the Animation has full influence. |
-
-
-## Anim Asset Details
-
-When setting up your Blend Space asset, there are additional options that can be set via the **Anim Asset Details** panel inside of **Persona**. By default, this window is located in the lower left-hand corner of the **Animation** tab of the Persona Editor and contains the following properties: 
-
-![](BlendSpaceDetails.png)
-
-### Blend Space
-
-|---|---|
-|**Display Editor Vertically**| Only available for 1D Blend Space assets, toggles the Blend Space graph display in either vertical or horizontal display modes.|
-
-### Input Interpolation
-
-|---|---|
-|**Axis to Scale Animation**| Not available for 	1D Blend Space assets, this allows you (if you have input interpolation) to determine which axis to drive animation speed (scale). For example, for locomotion animation, speed axis will drive animation speed (thus scale).|
-|**Interpolation Params**| Input interpolation parameter for all 3 axis, for each axis input, decide how you’d like to interpolate input to by setting Interpolation Time and Interpolation Type. |
-
-### Sample Interpolation
-
-|---|---|
-|**Target Weight Interpolation Speed Per Sec**| When target samples are set, how fast you would like to get to target which improves target blending. For example, if you interpolate input, when you move from left to right rapidly, you will interpolate through forward, but if you use target weight interpolation, you will skip forward but interpolate between left and right.|
-|**Per Bone Blend**| Define target weight interpolation per bone. This will blend in different speed per each bone setting.|
-
-### Animation Notifies
-
-|---|---|
-|**Notify Trigger Mode**| Assign the current mode used by the Blend Space to decide which animation notifies to fire: All Animation (all notify events will fire), HighestWeightedAnimation (Notify events will only fire from the highest weighted animation) or None (no notify events will fire from any animations).|
-
-### Additive Settings
-
-|---|---|
-|**Preview Base Pose**| Preview Base pose for additive Blend Space.|
-
-### Animation
-
-|---|---|
-|**Skeleton**| Pointer to the Skeleton this asset can be played on (unadjustable).|
-
-### Meta Data
-
-|---|---|
-|**Meta Data**| This is Meta Data that can be saved with the asset. The meta data is a Blueprintable class derived from the Anim Meta Data class. This allows you to add custom meta data to animation assets (Anim Sequence, Anim Montage, Anim Composite, and Blendspace are all supported). You can query the data from an animation asset in C++ by calling the `GetMetaData()` method, or by using `GetSectionMetaData()` on Anim Montages. |
-
-### Thumbnail
-
-|---|---|
-|**Orbit Pitch**| The pitch of the orbit camera around the asset. |
-|**Orbit Yaw**| The yaw of the orbit camera around the asset. |
-|**Orbit Zoom**| The offset from the bounds sphere distance from the asset.|
-
 
 
 
