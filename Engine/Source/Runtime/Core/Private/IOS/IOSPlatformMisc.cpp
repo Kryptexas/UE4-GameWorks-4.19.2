@@ -480,7 +480,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			}
 			else if (Minor == 2)
 			{
-				DeviceType == IOS_IPhone6;
+				DeviceType = IOS_IPhone6;
 			}
 		}
 		else if (Major == 8)
