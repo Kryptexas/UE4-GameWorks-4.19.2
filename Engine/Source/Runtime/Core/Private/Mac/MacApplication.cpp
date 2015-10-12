@@ -580,12 +580,10 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 		else if (Event.NotificationName == NSWindowDidBecomeMainNotification)
 		{
 			MessageHandler->OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
-			OnWindowsReordered(![NSApp isActive]);
 		}
 		else if (Event.NotificationName == NSWindowDidResignMainNotification)
 		{
 			MessageHandler->OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
-			OnWindowsReordered(![NSApp isActive]);
 		}
 		else if (Event.NotificationName == NSWindowWillMoveNotification)
 		{
@@ -1004,6 +1002,8 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
 
 void FMacApplication::OnApplicationDidBecomeActive()
 {
+	OnWindowsReordered();
+
 	for (int32 Index = 0; Index < SavedWindowsOrder.Num(); Index++)
 	{
 		const FSavedWindowOrderInfo& Info = SavedWindowsOrder[Index];
@@ -1055,7 +1055,7 @@ void FMacApplication::OnApplicationDidBecomeActive()
 
 void FMacApplication::OnApplicationWillResignActive()
 {
-	OnWindowsReordered(true);
+	OnWindowsReordered();
 
 	if (SavedWindowsOrder.Num() > 0)
 	{
@@ -1101,28 +1101,25 @@ void FMacApplication::OnApplicationWillResignActive()
 	}, @[ NSDefaultRunLoopMode ], false);
 }
 
-void FMacApplication::OnWindowsReordered(bool bIsAppInBackground)
+void FMacApplication::OnWindowsReordered()
 {
-	if (bIsAppInBackground)
+	TMap<int32, int32> Levels;
+
+	for (int32 Index = 0; Index < SavedWindowsOrder.Num(); Index++)
 	{
-		TMap<int32, int32> Levels;
+		const FSavedWindowOrderInfo& Info = SavedWindowsOrder[Index];
+		Levels.Add(Info.WindowNumber, Info.Level);
+	}
 
-		for (int32 Index = 0; Index < SavedWindowsOrder.Num(); Index++)
+	SavedWindowsOrder.Empty();
+
+	NSArray* OrderedWindows = [NSApp orderedWindows];
+	for (NSWindow* Window in OrderedWindows)
+	{
+		if ([Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
 		{
-			const FSavedWindowOrderInfo& Info = SavedWindowsOrder[Index];
-			Levels.Add(Info.WindowNumber, Info.Level);
-		}
-
-		SavedWindowsOrder.Empty();
-
-		NSArray* OrderedWindows = [NSApp orderedWindows];
-		for (NSWindow* Window in OrderedWindows)
-		{
-			if ([Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
-			{
-				SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level]));
-				[Window setLevel:NSNormalWindowLevel];
-			}
+			SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level]));
+			[Window setLevel:NSNormalWindowLevel];
 		}
 	}
 }

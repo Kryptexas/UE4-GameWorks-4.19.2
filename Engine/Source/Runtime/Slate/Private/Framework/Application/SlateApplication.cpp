@@ -4166,6 +4166,13 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+#if PLATFORM_MAC
+	NSWindow* ActiveWindow = [NSApp keyWindow];
+	const bool bNeedToActivateWindow = (ActiveWindow == nullptr);
+#else
+	const bool bNeedToActivateWindow = false;
+#endif
+
 	const TSharedPtr<SWidget> PreviouslyFocusedWidget = GetKeyboardFocusedWidget();
 
 	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderPointer), PointerEvent, [] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
@@ -4193,13 +4200,6 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 		});
 	}
 	LOG_EVENT(EEventLog::MouseButtonDown, Reply);
-
-#if PLATFORM_MAC
-		NSWindow* ActiveWindow = [NSApp keyWindow];
-		const bool bNeedToActivateWindow = (ActiveWindow == nullptr);
-#else
-		const bool bNeedToActivateWindow = false;
-#endif
 
 	// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
 	// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.

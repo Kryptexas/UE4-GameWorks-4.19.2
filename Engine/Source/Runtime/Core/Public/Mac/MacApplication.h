@@ -218,7 +218,7 @@ private:
 
 	void OnApplicationDidBecomeActive();
 	void OnApplicationWillResignActive();
-	void OnWindowsReordered(bool bIsAppInBackground);
+	void OnWindowsReordered();
 
 	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
