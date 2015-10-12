@@ -74,6 +74,14 @@ public:
 	/** Sets the current value of the slider. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetValue(float InValue);
+
+	/** Sets if the slidable area should be indented to fit the handle */
+	UFUNCTION(BlueprintCallable, Category="Behavior")
+	void SetIndentHandle(bool InValue);
+
+	/** Sets the handle to be interactive or fixed */
+	UFUNCTION(BlueprintCallable, Category="Behavior")
+	void SetLocked(bool InValue);
 	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

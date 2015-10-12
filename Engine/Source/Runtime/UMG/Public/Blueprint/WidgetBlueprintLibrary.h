@@ -87,7 +87,7 @@ public:
 	 * @param Tint			Color to render the line.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Painting", meta=(DisplayName="Draw Text"))
-	void DrawTextFormatted(UPARAM(ref) FPaintContext& Context, const FText& Text, FVector2D Position, UFont* Font, int32 FontSize = 16, FName FontTypeFace = FName(TEXT("Regular")), FLinearColor Tint = FLinearColor::White);
+	static void DrawTextFormatted(UPARAM(ref) FPaintContext& Context, const FText& Text, FVector2D Position, UFont* Font, int32 FontSize = 16, FName FontTypeFace = FName(TEXT("Regular")), FLinearColor Tint = FLinearColor::White);
 
 	/**
 	 * The event reply to use when you choose to handle an event.  This will prevent the event 
