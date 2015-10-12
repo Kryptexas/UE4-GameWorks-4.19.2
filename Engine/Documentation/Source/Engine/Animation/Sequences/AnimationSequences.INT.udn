@@ -106,6 +106,72 @@ Each option provides a different compression method as outlined in the table bel
 | **Remove Trivial Keys** | Removes trivial frames of tracks when position or orientation is constant over the entire animation from the raw animation data. |
 
 
+## Anim Asset Details
+
+When an Animation Sequence asset is opened in **Persona**, there are several properties that can be adjusted inside the **Anim Asset Details** panel which can determine how the asset is handled. These properties include things such as tweaking playback speed, enabling/disabling Root Motion, assigning any Meta Data to the asset and others which are outlined in the tables below. 
+
+![](AnimAssetDetails.png)
+
+### Linear Key Removal
+
+|---|---|
+|**Max Pos Diff**| Max position difference to use when testing if an animation key may be removed. Lower values retain more keys, but yield less compression.|
+|**Max Angle Diff**| Max angle difference to use when testing if an animation key may be removed. Lower values retain more keys, but yield less compression. |
+|**Max Scale Diff**| Max scale difference to use when testing if an animation key may be removed. Lower values retain more keys, but yield less compression. |
+|**Max Effector Diff**| As keys are tested for removal, we monitor the effects all the way down to the end effectors. If their position changes by more than this amount as a result of removing a key, the key will be retained. This value is used for all bones except the end-effectors parent. |
+|**Min Effector Diff**| Similar to Max Effector Diff, however this value is used for the end-effectors parent, allowing tighter restrictions near the end of a skeletal chain. |
+|**Effector Diff Socket**| Error threshold for End Effectors with Sockets attached to them. Typically for more important bones where we want to be less aggressive with compression. |
+|**Parent Key Scale**| A scale value which increases the likelihood that a bone will retain a key if its parent also had a key at the same time position. Higher values can remove shaking artifacts from the animation at the cost of compression. |
+|**Retarget**| If true, as the animation is compressed, adjust animated nodes to compensate for compression error. If false, do not adjust animated nodes. |
+|**Actually Filter Linear Keys**| Controls whether the final filtering step will occur, or only the retargeting after bitwise compression. If both this and **Retarget** are false, then the linear compressor will do no better than the underlying bitwise compressor, extremely slowly.|
+
+
+### Animation
+
+|---|---|
+|**Retarget Source**| When retargeting, this pose will be used as a base of animation.|
+|**Rate Scale**| Number for tweaking playback rate of this animation globally. |
+|**Skeleton**| Contains the skeleton associated with this Montage. Cannot be changed in the editor.|
+
+### Compression
+
+|---|---|
+|**Description**| Name of Compression Scheme used for this asset.|
+|**Do Not Override Compression**| Do not attempt to override compression scheme when running Compress Animations commandlet. Some high frequency animations are too sensitive and shouldn’t be changed. |
+
+### Additive Settings
+
+|---|---|
+|**Additive Anim Type**| The type of additive animation type to use: No Additive, Local Space or Mesh Space. Local space is additive and delta is calculated by local space. Mesh Space is additive and delta will be applied in component space. |
+|**Base Pose Type**| Decides how the additive delta is to be calculated: None (No Base Pose), Reference Pose (The mesh’s default reference pose), Selected Animation Scaled (choose another animation and scale the animation), Selected Animation Frame (choose another animation and only based on the frame number). Base Pose Type is only available if Additive Anim Type is set to Local or Mesh Space. |
+
+### Root Motion
+
+|---|---|
+|**Enable Root Motion**| If this is on, it will allow extracting of [Root Motion]( Engine/Animation/RootMotion). |
+|**RootMotion Root Lock**| Root Bone will be locked to that position specified when extracting root motion. |
+
+### Import Settings
+
+|---|---|
+|**Asset Import Data**| The importing data and options used for the mesh. |
+
+
+### Meta Data
+
+|---|---|
+|**Meta Data**| This is Meta Data that can be saved with the asset. The meta data is a Blueprintable class derived from the Anim Meta Data class. This allows you to add custom meta data to animation assets (Anim Sequence, Anim Montage, Anim Composite, and Blendspace are all supported). You can query the data from an animation asset in C++ by calling the `GetMetaData()` method, or by using `GetSectionMetaData()` on Anim Montages. |
+
+### Thumbnail
+
+
+|---|---|
+|**Orbit Pitch**| The pitch of the orbit camera around the asset. |
+|**Orbit Yaw**| The yaw of the orbit camera around the asset. |
+|**Orbit Zoom**| The offset from the bounds sphere distance from the asset.|
+
+
+
 
 
 
