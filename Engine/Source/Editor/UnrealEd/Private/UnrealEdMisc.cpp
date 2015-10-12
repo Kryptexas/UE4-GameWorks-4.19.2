@@ -467,15 +467,18 @@ void FUnrealEdMisc::InitEngineAnalytics()
 
 		// Editor is starting - Check for the abnormal shutdown flag
 		FString AbnormalShutdownFlag;
-		FString EngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
-		FString StoredSection = FString::Printf(TEXT("Unreal Engine/Editor/%s"), *EngineVersionString);
-		if (FPlatformMisc::GetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), AbnormalShutdownFlag))
+		FString ShutdownEngineVersionString;
+		if (FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), AbnormalShutdownFlag) &&
+			FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("EngineVersion"), ShutdownEngineVersionString))
 		{
-			if (!AbnormalShutdownFlag.IsEmpty())
+			if (!AbnormalShutdownFlag.IsEmpty() && !ShutdownEngineVersionString.IsEmpty())
 			{
 				// Abnormal shutdown flag is set
 				FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 				bool bHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
+
+				FString CrashTimestamp;
+				FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), CrashTimestamp);
 
 #if PLATFORM_WINDOWS
 				const FString PlatformName(TEXT("Windows"));
@@ -487,15 +490,19 @@ void FUnrealEdMisc::InitEngineAnalytics()
 				const FString PlatformName(TEXT("Unknown"));
 #endif
 				TArray< FAnalyticsEventAttribute > AbnormalShutdownAttributes;
-				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("EngineVersion"), EngineVersionString));
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("EngineVersion"), ShutdownEngineVersionString));
 				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("ShutdownType"), AbnormalShutdownFlag));
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("CrashTimestamp"), CrashTimestamp));
 
 				FEditorAnalytics::ReportEvent(TEXT("Editor.AbnormalShutdown"), PlatformName, bHasCode, AbnormalShutdownAttributes);
 			}
 		}
 
-		// Set the abnormal shutdown flag
-		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), TEXT("AbnormalShutdown"));
+		// Set the abnormal shutdown flag and the running engine version string
+		FString CurrentEngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), TEXT("AbnormalShutdown"));
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("EngineVersion"), CurrentEngineVersionString);
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), FDateTime::UtcNow().ToIso8601());
 
 		// Send analytics about sample projects
 		if( FPaths::IsProjectFilePathSet() )
@@ -799,9 +806,7 @@ void FUnrealEdMisc::OnExit()
 	// Editor is shutting down - Clear the abnormal shutdown flag
 	if (!bEditorCrashed)
 	{
-		FString EngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
-		FString StoredSection = FString::Printf(TEXT("Unreal Engine/Editor/%s"), *EngineVersionString);
-		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), FString());
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), FString());
 	}
 
 	FInputBindingManager::Get().UnregisterUserDefinedChordChanged(OnUserDefinedChordChangedDelegateHandle);
@@ -1058,9 +1063,8 @@ void FUnrealEdMisc::OnEditorPostModal()
 void FUnrealEdMisc::OnCrashing()
 {
 	bEditorCrashed = true;
-	FString EngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
-	FString StoredSection = FString::Printf(TEXT("Unreal Engine/Editor/%s"), *EngineVersionString);
-	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), StoredSection, TEXT("AbnormalShutdownFlag"), TEXT("Crashed"));
+	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), TEXT("Crashed"));
+	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), FDateTime::UtcNow().ToIso8601());
 }
 
 void FUnrealEdMisc::OnDeferCommand( const FString& DeferredCommand )
