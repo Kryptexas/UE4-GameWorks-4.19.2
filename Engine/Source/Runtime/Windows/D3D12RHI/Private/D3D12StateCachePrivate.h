@@ -836,6 +836,7 @@ protected:
 	bool bNeedSetBlendFactor;
 	bool bNeedSetStencilRef;
 	bool bAutoFlushComputeShaderCache;
+	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
 
 	struct
 	{
@@ -1430,8 +1431,11 @@ public:
 	~FD3D12StateCacheBase()
 	{
 	}
+
 	void ApplyState(bool IsCompute = false);
 	void RestoreState();
+	void DirtyViewDescriptorTables();
+	void DirtySamplerDescriptorTables();
 	bool VerifyResourceStates(const bool IsCompute);
 
 	template <class ViewT>

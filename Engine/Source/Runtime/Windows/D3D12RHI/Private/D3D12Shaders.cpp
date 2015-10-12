@@ -21,10 +21,8 @@ FVertexShaderRHIRef FD3D12DynamicRHI::RHICreateVertexShader(const TArray<uint8>&
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2]) ? MAX_CBS : 0;
 
 	Shader->Code = Code;
 	Shader->Offset = Offset;
@@ -53,10 +51,8 @@ FPixelShaderRHIRef FD3D12DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2]) ? MAX_CBS : 0;
 
 	Shader->Code = Code;
 
@@ -84,10 +80,8 @@ FHullShaderRHIRef FD3D12DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2]) ? MAX_CBS : 0;
 
 	Shader->Code = Code;
 
@@ -115,10 +109,8 @@ FDomainShaderRHIRef FD3D12DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2] > 0) ? MAX_CBS : 0;
 
 	Shader->Code = Code;
 
@@ -146,10 +138,8 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShader(const TArray<uin
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2] > 0) ? MAX_CBS : 0;
 
 	Shader->Code = Code;
 
@@ -201,10 +191,8 @@ FGeometryShaderRHIRef FD3D12DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2] > 0) ? MAX_CBS : 0;
 
 	// Indicate this shader uses stream output
 	Shader->bShaderNeedsStreamOutput = true;
@@ -245,10 +233,8 @@ FComputeShaderRHIRef FD3D12DynamicRHI::RHICreateComputeShader(const TArray<uint8
 	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 5] != 0;
 	Shader->SamplerCount                     = Code[Code.Num() - 4];
 	Shader->SRVCount                         = Code[Code.Num() - 3];
+	Shader->CBCount                          = Code[Code.Num() - 2];
 	Shader->UAVCount                         = Code[Code.Num() - 1];
-
-	//TODO Special case for Constant Buffer count as it currently needs all buffers set if it needs any set.
-	Shader->CBCount = (Code[Code.Num() - 2] > 0) ? MAX_CBS : 0;
 
 	Shader->Code = Code;
 

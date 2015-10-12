@@ -662,6 +662,7 @@ void FD3D12Device::InitD3DDevice()
 		D3D12_FEATURE_DATA_D3D12_OPTIONS D3D12Caps;
 		VERIFYD3D11RESULT(GetDevice()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &D3D12Caps, sizeof(D3D12Caps)));
 		ResourceHeapTier = D3D12Caps.ResourceHeapTier;
+		ResourceBindingTier = D3D12Caps.ResourceBindingTier;
 
 		// Init offline descriptor allocators
 		RTVAllocator.Init(GetDevice());

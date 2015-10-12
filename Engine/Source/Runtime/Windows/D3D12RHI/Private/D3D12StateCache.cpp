@@ -12,7 +12,7 @@
 
 #define IL_MAX_SEMANTIC_NAME 255
 
-static int32 GEnablePSOCache = 0;
+static int32 GEnablePSOCache = 1;
 static FAutoConsoleVariableRef CVarEnablePSOCache(
 	TEXT("D3D12.EnablePSOCache"),
 	GEnablePSOCache,
@@ -699,6 +699,9 @@ void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* In
 	Parent = InParent;
 	CmdContext = InCmdContext;
 
+	// Cache the resource binding tier
+	ResourceBindingTier = GetParentDevice()->GetResourceBindingTier();
+
 	DescriptorCache.Init(InParent, InCmdContext);
 
 	if (AncestralState)
@@ -870,6 +873,41 @@ void FD3D12StateCacheBase::RestoreState()
 		bNeedSetSamplersPerShaderStage[i] = true;
 		bNeedSetSRVsPerShaderStage[i] = true;
 		bNeedSetConstantBuffersPerShaderStage[i] = true;
+	}
+}
+
+void FD3D12StateCacheBase::DirtyViewDescriptorTables()
+{
+	// Mark the CBV/SRV/UAV descriptor tables dirty for the current root signature.
+	// Note: Descriptor table state is undefined at the beginning of a command list and after descriptor heaps are changed on a command list.
+	// This will cause the next call to ApplyState to copy and set these descriptors again.
+
+	// Currently only a single RS is used, so set all tables for the specified type in that RS
+	{
+		bNeedSetUAVs = true;
+		bNeedSetSRVs = true;
+		bNeedSetConstantBuffers = true;
+		for (int i = 0; i < SF_NumFrequencies; i++)
+		{
+			bNeedSetSRVsPerShaderStage[i] = true;
+			bNeedSetConstantBuffersPerShaderStage[i] = true;
+		}
+	}
+}
+
+void FD3D12StateCacheBase::DirtySamplerDescriptorTables()
+{
+	// Mark the sampler descriptor tables dirty for the current root signature.
+	// Note: Descriptor table state is undefined at the beginning of a command list and after descriptor heaps are changed on a command list.
+	// This will cause the next call to ApplyState to copy and set these descriptors again.
+
+	// Currently only a single RS is used, so set all tables for the specified type in that RS
+	{
+		bNeedSetSamplers = true;
+		for (int i = 0; i < SF_NumFrequencies; i++)
+		{
+			bNeedSetSamplersPerShaderStage[i] = true;
+		}
 	}
 }
 
@@ -1143,36 +1181,54 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 	{
 		if (bNeedSetUAVs || bForceState)
 		{
-			NumUAVs = PipelineState.Common.CurrentNumberOfSimultaneousUAVs;
+			if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
+			{
+				// Tier 1 and 2 HW requires the full number of UAV descriptors defined in the root signature.
+				NumUAVs = D3D12_PS_CS_UAV_REGISTER_COUNT;
+			}
+			else
+			{
+				NumUAVs = PipelineState.Common.CurrentNumberOfSimultaneousUAVs;
+			}
 		}
 		for (uint32 Stage = StartStage; Stage < EndStage; ++Stage)
 		{
 			if ((bNeedSetSRVs && bNeedSetSRVsPerShaderStage[Stage]) || bForceState)
 			{
-				// Disable SRV slot optimization for now. This will causes us to use a lot more descriptor heap slots.
-				//NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
-				NumSRVs[Stage] = MAX_SRVS;
+				if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+				{
+					// Tier 1 HW requires the full number of SRV descriptors defined in the root signature.
+					NumSRVs[Stage] = MAX_SRVS;
+				}
+				else
+				{
+					// Disable SRV slot optimization for now. This will causes us to use a lot more descriptor heap slots.
+					//NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
+					NumSRVs[Stage] = MAX_SRVS;
+				}
 			}
 			if ((bNeedSetConstantBuffers && (bNeedSetConstantBuffersPerShaderStage[Stage])) || bForceState)
 			{
-				NumCBs[Stage] = PipelineState.Common.CurrentShaderCBCounts[Stage];
+				if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
+				{
+					// Tier 1 and 2 HW requires the full number of CB descriptors defined in the root signature.
+					NumCBs[Stage] = MAX_CBS;
+				}
+				else
+				{
+					NumCBs[Stage] = PipelineState.Common.CurrentShaderCBCounts[Stage];
+				}
 			}
 			NumSRVs[SF_NumFrequencies] += NumSRVs[Stage];
 			NumCBs[SF_NumFrequencies] += NumCBs[Stage];
 		}
 
-		uint32 NumViews = NumUAVs + NumSRVs[SF_NumFrequencies] + NumCBs[SF_NumFrequencies];
+		const uint32 NumViews = NumUAVs + NumSRVs[SF_NumFrequencies] + NumCBs[SF_NumFrequencies];
 		if (!DescriptorCache.ViewHeap.CanReserveSlots(NumViews))
 		{
 			DescriptorCache.ViewHeap.RollOver();
 			NumSRVs[SF_NumFrequencies] = 0;
 			NumCBs[SF_NumFrequencies] = 0;
-
-			bNeedSetUAVs = true;
-			bNeedSetConstantBuffers = true;
-			bNeedSetSRVs = true;
-			memset(bNeedSetConstantBuffersPerShaderStage, 0xffffffff, sizeof(bNeedSetConstantBuffersPerShaderStage));
-			memset(bNeedSetSRVsPerShaderStage, 0xffffffff, sizeof(bNeedSetSRVsPerShaderStage));
 			continue;
 		}
 		ViewHeapSlot = DescriptorCache.ViewHeap.ReserveSlots(NumViews);
@@ -1187,7 +1243,15 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			{
 				if (bNeedSetSamplersPerShaderStage[Stage] || bForceState)
 				{
-					NumSamplers[Stage] = PipelineState.Common.CurrentShaderSamplerCounts[Stage];
+					if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+					{
+						// Tier 1 HW requires the full number of sampler descriptors defined in the root signature.
+						NumSamplers[Stage] = D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+					}
+					else
+					{
+						NumSamplers[Stage] = PipelineState.Common.CurrentShaderSamplerCounts[Stage];
+					}
 				}
 				NumSamplers[SF_NumFrequencies] += NumSamplers[Stage];
 			}
@@ -1196,9 +1260,6 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		{
 			DescriptorCache.SamplerHeap.RollOver();
 			NumSamplers[SF_NumFrequencies] = 0;
-
-			bNeedSetSamplers = true;
-			memset(bNeedSetSamplersPerShaderStage, 0xffffffff, sizeof(bNeedSetSamplersPerShaderStage));
 			continue;
 		}
 		SamplerHeapSlot = DescriptorCache.SamplerHeap.ReserveSlots(NumSamplers[SF_NumFrequencies]);
@@ -2457,6 +2518,7 @@ void FD3D12DescriptorCache::HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type)
 
 	if (Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 	{
+		CmdContext->StateCache.DirtyViewDescriptorTables();
 		ViewHeapSequenceNumber++;
 
 		SRVMap.Reset();
@@ -2464,6 +2526,7 @@ void FD3D12DescriptorCache::HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type)
 	else
 	{
 		check(Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		CmdContext->StateCache.DirtySamplerDescriptorTables();
 
 		SamplerMap.Reset();
 	}
@@ -2483,9 +2546,8 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 	ViewHeap.Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	SamplerHeap.Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	D3D12_FEATURE_DATA_D3D12_OPTIONS D3D12Caps;
-	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &D3D12Caps, sizeof(D3D12Caps)));
-	ViewHeap.Desc.NumDescriptors = (D3D12Caps.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 : NUM_VIEW_DESCRIPTORS_TIER_2;
+	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier = GetParentDevice()->GetResourceBindingTier();
+	ViewHeap.Desc.NumDescriptors = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 : NUM_VIEW_DESCRIPTORS_TIER_2;
 	SamplerHeap.Desc.NumDescriptors = NUM_SAMPLER_DESCRIPTORS;
 
 	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&ViewHeap.Desc, IID_PPV_ARGS(ViewHeap.Heap.GetInitReference())));

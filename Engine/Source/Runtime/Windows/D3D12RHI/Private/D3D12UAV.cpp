@@ -203,7 +203,9 @@ void FD3D12CommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unordered
 
 	// Check if the view heap is full and needs to rollover.
 	if (!StateCache.GetDescriptorCache()->ViewHeap.CanReserveSlots(1))
+	{
 		StateCache.GetDescriptorCache()->ViewHeap.RollOver();
+	}	
 	uint32 ReservedSlot = StateCache.GetDescriptorCache()->ViewHeap.ReserveSlots(1);
 	D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle = UnorderedAccessView->GetView();
 	D3D12_CPU_DESCRIPTOR_HANDLE DestSlot = StateCache.GetDescriptorCache()->ViewHeap.GetCPUSlotHandle(ReservedSlot);

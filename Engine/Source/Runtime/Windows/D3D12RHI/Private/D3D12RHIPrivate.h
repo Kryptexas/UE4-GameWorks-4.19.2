@@ -774,6 +774,7 @@ private:
     TRefCountPtr<ID3D12Device>  Direct3DDevice;
     FD3D12DynamicRHI*           OwningRHI;
 	D3D12_RESOURCE_HEAP_TIER    ResourceHeapTier;
+	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
 
     /** True if the device being used has been removed. */
     bool bDeviceRemoved;
@@ -858,7 +859,8 @@ public:
 	inline FD3D12CommandContext& GetDefaultCommandContext() const { return GetCommandContext(0); }
 	inline FD3D12DynamicHeapAllocator& GetDefaultUploadHeapAllocator() { return GetDefaultCommandContext().GetUploadHeapAllocator();	}
 
-	inline D3D12_RESOURCE_HEAP_TIER   GetResourceHeapTier() { return ResourceHeapTier; }
+	inline D3D12_RESOURCE_HEAP_TIER    GetResourceHeapTier() { return ResourceHeapTier; }
+	inline D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() { return ResourceBindingTier; }
 
 	TArray<FD3D12CommandListHandle> PendingCommandLists;
     uint32 PendingCommandListsTotalWorkCommands;
