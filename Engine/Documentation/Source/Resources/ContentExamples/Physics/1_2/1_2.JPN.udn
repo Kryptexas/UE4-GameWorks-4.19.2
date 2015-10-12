@@ -1,15 +1,14 @@
-﻿INTSourceChangelist:2720007
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.2 - SkeletalMesh RigidBody
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理のサンプル レベルの概要、サンプル 1.2:スケルタルメッシュ 剛体のシミュレーション物理
+Description: 物理のサンプル レベルの概要、1.2:スケルタルメッシュ 剛体のシミュレーション物理
 Related:Engine/Physics/PhysicsBodies
-Related:Engine/Physics/PhAT/HowTo
+Related:Engine/Physics/PhAT/UserGuide
 Related:Engine/Physics/Constraints/ConstraintsReference
 Related:Engine/Physics/Constraints/ConstraintsUserGuide
 Related:Engine/Physics/Collision
 Related:Engine/Physics/PhysicalMaterials/Reference
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -74,7 +73,7 @@ Version:4.9
 [/REGION]
 
 
-**スケルタル メッシュ** は 3D Studio Max や Maya などの外部ソフトウェアでのみ作成することができますが、コリジョンはアンリアル エンジンでセットアップします。**[Create Physics Asset (物理アセットを作成)]** にチェックを入れると、インポート時に物理アセットが自動作成されます。ただし、作成されるアセットはジョイントとそのジョイントに適用される皮の重量に基づいた概算なので、**物理アセット ツール** すなわち **PhAT** で編集する必要があります。
+**スケルタル メッシュ** は 3D Studio Max や Maya などの外部ソフトウェアでのみ作成することができますが、コリジョンはアンリアル エンジンでセットアップします。**Create Physics Asset** にチェックを入れると、インポート時に物理アセットが自動作成されます。ただし、作成されるアセットはジョイントとそのジョイントに適用される皮の重量に基づいた概算なので、 **Physics Asset Tool** や **PhAT** で編集する必要があります。
 
 ![](physics_1_2_002.png)(h:335) ![](physics_1_2_003.png)(h:335)
 

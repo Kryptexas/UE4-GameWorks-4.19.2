@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2719769
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.1 - シンプルなナビゲーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
@@ -7,7 +7,6 @@ Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

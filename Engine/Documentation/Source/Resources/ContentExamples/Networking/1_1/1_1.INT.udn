@@ -7,7 +7,6 @@ Related: Gameplay/Networking/Actors/Components
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
-Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

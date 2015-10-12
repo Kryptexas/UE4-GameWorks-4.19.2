@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2225905
 Availability:Public
 Title:マテリアル関数を使用する
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,13 +8,13 @@ Description:マテリアル内でマテリアル関数を使用する方法
 
 ## マテリアル関数の適用
 
-マテリアル関数を一度作成または編集すると、[マテリアル エディタのパレット](Engine/Rendering/Materials/Editor/Interface#パレットパネル) から直接ドラッグすることによって既存マテリアルへ追加することができます。または、**コンテンツ ブラウザ** からマテリアル エディタに追加することができます。マテリアル関数内には、入力や出力ノードで定義された、様々な入出力が含まれています。
+マテリアル関数を一度作成または編集すると、[マテリアル エディタのパレット](Engine/Rendering/Materials/Editor/Interface#[パレット]パネル) から直接ドラッグすることによって既存マテリアルへ追加することができます。または、**コンテンツ ブラウザ** からマテリアル エディタに追加することができます。マテリアル関数内には、入力や出力ノードで定義された、様々な入出力が含まれています。
 
 ![FunctionLibrary.png](FunctionLibrary.png)
 
 ![DragDrop.png](DragDrop.png)(w:400)
 
-あるいは、**F** キーを押下しながら、**コンテンツ ブラウザ** で関数が選択されている状態でマテリアルエディタをクリックします。この時にコンテンツブラウザで関数が選択されていない場合、空の MaterialFunctionCall ノードが作成されます。 
+あるいは、**F** キーを押下しながら、**コンテンツ ブラウザ** で関数が選択されている状態でマテリアルエディタをクリックします。この時にコンテンツブラウザで関数が選択されていない場合、空のMaterialFunctionCall ノードが作成されます。 
 
 ![EmptyFunctionCall.png](EmptyFunctionCall.png)
 

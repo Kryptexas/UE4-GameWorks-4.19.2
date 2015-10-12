@@ -5,7 +5,6 @@ Description:An overview of the Post Processing example level, example 1.10: Glob
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
-Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

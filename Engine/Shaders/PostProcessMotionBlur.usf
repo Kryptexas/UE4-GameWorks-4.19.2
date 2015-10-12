@@ -165,8 +165,8 @@ void OverrideWithTestChart(float2 ScreenPos, inout float2 ObjectVelocity, inout 
 void SetupVS(
 	in float4 InPosition : ATTRIBUTE0,
 	in float2 InTexCoord : ATTRIBUTE1,
-	out float2 OutUV: TEXCOORD0,
-	out float2 OutUVs[4]: TEXCOORD1,
+	out noperspective float2 OutUV: TEXCOORD0,
+	out noperspective float2 OutUVs[4]: TEXCOORD1,
 	out float4 OutPosition : SV_POSITION
 	)
 {
@@ -187,8 +187,8 @@ void SetupVS(
 // MRT0: velocity in normalized_motionblur_velocity and mask in 0:background..1:object (needed for soft masked)
 // MRT1: color and depth in alpha
 void SetupPS(
-	float2 UV : TEXCOORD0,				// UV into the full resolution source RT
-	float2 UVs[4] : TEXCOORD1,			// UV for high quality 4 samples with blurring
+	noperspective float2 UV : TEXCOORD0,				// UV into the full resolution source RT
+	noperspective float2 UVs[4] : TEXCOORD1,			// UV for high quality 4 samples with blurring
 	out float4 OutVelocity : SV_Target0,
 	out float4 OutColor : SV_Target1)
 {
@@ -645,7 +645,7 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 }
 
 
-void MainRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 

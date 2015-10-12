@@ -1,15 +1,14 @@
-﻿INTSourceChangelist:2720060
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.7 - リニア モーター
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理のサンプル レベルの概要、サンプル 1.7:物理コンストレイント リニア モーター
+Description: 物理のサンプル レベルの概要、1.7:物理コンストレイント リニア モーター
 Related:Engine/Physics/PhysicsBodies
-Related:Engine/Physics/PhAT/HowTo
+Related:Engine/Physics/PhAT/UserGuide
 Related:Engine/Physics/Constraints/ConstraintsReference
 Related:Engine/Physics/Constraints/ConstraintsUserGuide
 Related:Engine/Physics/Collision
 Related:Engine/Physics/PhysicalMaterials/Reference
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -76,7 +75,7 @@ Version:4.9
 
 **PhyiscsConstraint** 上でリニア モーターを有効にすると、2 種類のいずれかの方法で、アタッチされている物理シミュレーション オブジェクトを軸に沿って動かすことができます。
 
-1 つ目は、 **Linear Position Drive (直線ポジションドライブ)** でコンストレイントの位置に対し相対な位置を取得する方法です。スプリングのようなものだと考えてください。スプリングは位置静止をを取得しようとします。圧縮でも引張でも、押したり引いたりすることで位置静止を取得しようとします。**Linear Drive Spring**、**Linear Drive Damping**、**Maximum Spring Force** で、どのくらい迅速に、どのくらい弾んでスプリングが静止ステートを取得するのか定義できます。
+1 つ目は、 **Linear Position Drive (直線ポジションドライブ)** でコンストレイントの位置に対し相対な位置を取得する方法です。スプリングのようなものだと考えてください。スプリングは位置静止をを取得しようとします。圧縮でも引張でも、押したり引いたりすることで位置静止を取得しようとします。**Linear Drive Spring** 、 **Linear Drive Damping** 、 **Maximum Spring Force** で、どのくらい迅速に、どのくらい弾んでスプリングが静止ステートを取得するのか定義できます。
 
 Linear Velocity Drive (直線速度ドライブ) は、コンストレイントの位置から特定の方向にフォースを適用します。シミュレーション中のオブジェクトは、コンストレイントの長さに達するまで、コンストレイントから遠ざかります。逆向きのフォースを使って、コンストレイントされたオブジェクトをまとめて引き寄せます。
 

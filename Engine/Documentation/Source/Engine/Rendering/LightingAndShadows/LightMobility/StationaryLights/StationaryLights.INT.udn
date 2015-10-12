@@ -124,7 +124,6 @@ Translucency also receives shadowing very cheaply with Stationary lights - Light
 	[/PARAM]
 [/OBJECT]
 
-The resolution of the static shadow depth map is controlled by StaticShadowDepthMapTransitionSampleDistanceX and StaticShadowDepthMapTransitionSampleDistanceY in BaseLightmass.ini, with a default setting of 100 meaning one texel every meter.
 
 ### Dynamic Shadowing
 
@@ -186,10 +185,10 @@ In the following image you see the difference between the two shadowing methods.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Area Shadows Enabled](AreaShadows.png)(w:900)
+	![Area Shadows Enabled](Area_Shadows_On.png)(w:900)
 	[/PARAM]
 	[PARAM:after]
-	![Area Shadows Disabled](UniformPenumbraSharp.png)(w:900)
+	![Area Shadows Disabled](Area_Shadows_Off.png)(w:900)
 	[/PARAM]
 [/OBJECT]
 

@@ -11,7 +11,7 @@
 void MainDownsampleVS(
 	in float4 InPosition : ATTRIBUTE0,
 	in float2 UV : ATTRIBUTE1,
-	out float2 OutUV : TEXCOORD0,
+	out noperspective float2 OutUV : TEXCOORD0,
 	out float4 OutPosition : SV_POSITION
 	) 
 {

@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2719778
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.2 - Nav Link Proxy
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
-Description: NavMesh サンプル レベルの概要、サンプル 1.2:Nav Link Proxy
+Description: NavMesh サンプル レベルの概要、1.2:Nav Link Proxy
 Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

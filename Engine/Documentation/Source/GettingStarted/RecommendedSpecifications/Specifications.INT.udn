@@ -3,7 +3,6 @@ Title:Hardware & Software Specifications
 SEO-Title:Hardware & Software Specifications
 Crumbs: %ROOT%, GettingStarted
 Description:Minimum and recommended hardware specifications and necessary software for developing with Unreal Engine.
-version: 4.9
 
 [PUBLISH:Rocket]
 %Globals:OSSelect_Linux%

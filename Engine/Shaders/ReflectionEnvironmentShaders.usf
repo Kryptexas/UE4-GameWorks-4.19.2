@@ -444,7 +444,7 @@ SamplerState ScreenSpaceReflectionsSampler;
 
 /** Used to apply reflection capture contribution along with SSR to scene color. */
 void ReflectionApplyPS(
-	in float4 UVAndScreenPos : TEXCOORD0, 
+	in noperspective float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;

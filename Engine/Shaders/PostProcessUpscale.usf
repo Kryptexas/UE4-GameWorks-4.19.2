@@ -62,7 +62,7 @@ float2 PaniniProjectionScreenPos(float2 InScreenPos)
 // vertex shader entry point
 void MainVS(
 	in uint VertexId : SV_VertexID,
-	out float4 OutTexCoord : TEXCOORD0,
+	out noperspective float4 OutTexCoord : TEXCOORD0,
 	out float4 OutPosition : SV_POSITION
 	)
 {

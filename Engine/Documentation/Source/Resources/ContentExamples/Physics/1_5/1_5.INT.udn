@@ -8,7 +8,6 @@ Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
 Related: Engine/Physics/PhysicalMaterials/Reference
-Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -74,7 +73,7 @@ Version: 4.9
 [/REGION]
 
 
-A **Physics Constraint** is basically a type of joint. It allows you to connect two Actors together (presumably one physically simulating), and also apply limits or forces. Unreal Engine 4 
+A constraint is basically a type of joint. It allows you to connect two Actors together (presumably one physically simulating), and also apply limits or forces. Unreal Engine 4 
 has a very flexible and data-driven constraint system that allows designers to make many different types of joints simply by changing some options. The engine has a few default 
 joint types (ball-and-socket, hinge, prismatic) but they only differ in their settings. You should feel free to start with any joint type and experiment with making your own 
 configurations.

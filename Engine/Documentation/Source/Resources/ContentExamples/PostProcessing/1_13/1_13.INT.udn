@@ -5,7 +5,6 @@ Description:An overview of the Post Processing example level, example 1.13: Scre
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
-Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -65,23 +64,10 @@ Version: 4.9
 [/VAR]
 
 <div align="center">
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Screen Percentage - 100](1_13_01.png)(w:600)
-	[/PARAM]
-	[PARAM:after]
-	![Screen Percentage - 25](1_13_02.png)(w:600)
-	[/PARAM]
-[/OBJECT]
-</div>
-
-<!---
-<div align="center">
 [REGION:lightbox]
 [![](1_13_01.png)(w:440)](1_13_01.png) [![](1_13_02.png)(w:440)](1_13_02.png)
 [/REGION:lightbox]
 </div>
---->
 
 **Screen Percentage** renders the scene at a lower resolution and then scales it up. The value represents a percentage of the overall resolution of the scene.
 

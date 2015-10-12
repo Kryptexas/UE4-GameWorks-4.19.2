@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2719800
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.3 - 再ビルド
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
@@ -7,7 +7,6 @@ Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -70,7 +69,6 @@ Version:4.9
 [/REGION]
 
 **NavMesh** は、 **スタティックメッシュ** などのアクタがエディタ内で移動すると自動的に更新されます。このサンプルでは、ランプ間の隙間を埋めるようにブロック スタティックメッシュを移動して配置することができます。NavMesh が自動的に更新され、新しく形成されたブリッジをはさんでビルドされることで、 **再生** あるいは **シミュレート** されたポーンはブリッジを超えるようにナビゲートできるようになります。
-
 
 [REGION:lightbox]
 [![](NavMesh_1_3_001.png)(w:225)](NavMesh_1_3_001.png)

@@ -14,7 +14,7 @@ Version: 4.9
 
 [EXCERPT:PostProcessMaterials_Desc]
 The engine already features complex post processing based on a graph of post processing nodes. The **Post Processing Materials**
-can be additionally inserted in some specific position. See [FAQ](#FAQ) **r.CompositionGraphDebug** to get a dump of the full graph.
+can be additionally inserted in some specific position. See [**FAQ**](#FAQ) **r.CompositionGraphDebug** to get a dump of the full graph.
 The graph is actually not only doing post processing but also some parts of the lighting. Over time we plan to make more
 parts be customizable through the material editor.
 [/EXCERPT:PostProcessMaterials_Desc]

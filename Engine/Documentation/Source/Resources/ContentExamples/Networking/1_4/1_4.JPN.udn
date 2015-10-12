@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2719855
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.4 - 変数のレプリケーション（RepNotify）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能のサンプル レベルの概要、サンプル 1.4:変数のレプリケーション (RepNotify)
+Description:ネットワーク機能のサンプル レベルの概要、1.4:変数のレプリケーション (RepNotify)
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -70,7 +69,7 @@ Version:4.9
 
 **OnRep_StreetlightScalar** 関数はその後、街頭の外見の更新処理するので、すべてのマシン上で有効になります。 
 
-RepNotify への変数の設定は、 **[Replication (レプリケーション)]** ドロップダウン メニューの変数の **[Details (詳細)]** パネルで行えます。 
+RepNotify への変数の設定は、 **[Replication]** ドロップダウン メニューの変数の **[Details]** パネルで行えます。 
 
 ![](1_4_RepNotify.png)
 

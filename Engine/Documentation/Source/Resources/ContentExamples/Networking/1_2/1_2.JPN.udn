@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2719844
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.2 - ブループリントでネットワーク権限とリモート クライアントを検知する
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能のサンプル レベルの概要、サンプル 1.2:ブループリントでネットワーク権限とリモート クライアントを検知する
+Description:ネットワーク機能のサンプル レベルの概要、1.2:ブループリントでネットワーク権限とリモート クライアントを検知する
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

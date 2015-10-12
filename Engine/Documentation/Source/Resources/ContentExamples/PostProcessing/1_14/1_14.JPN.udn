@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2721743
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.14 - AA メソッド
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスのサンプル レベルの概要、サンプル 1.14：AA メソッド
+Description:ポストプロセスのサンプル レベルの概要、1.14：AA メソッド
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
-Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -65,26 +64,9 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Anti-Aliasing: None](1_14_01.png)(w:960)
-	[/PARAM]
-	[PARAM:after]
-	![Anti-Aliasing: Temporal](1_14_03.png)(w:960)
-	[/PARAM]
-[/OBJECT]
-
-
-[Region:lightbox]
-[Region:imagetable]
-| [![](1_14_01.png)(w:302)](1_14_01.png) | [![](1_14_02.png)(w:302)](1_14_02.png) | [![](1_14_03.png)(w:302)](1_14_03.png) |
-| ------ | ------ | ------ |
-| None | FXAA | TXAA |
-[/Region]
-[/Region]
-
-
+[REGION:lightbox]
+[![](1_14_01.png)(w:302)](1_14_01.png) [![](1_14_02.png)(w:302)](1_14_02.png) [![](1_14_03.png)(w:302)](1_14_03.png)
+[/REGION:lightbox]
 
 アンチエイリアス処理は、スクリーンの縁に表示されるジャギーを取り除いて画像の品質を向上させます。**Temporal AA** (テンポラル アンチエイリアシング) はデフォルトであり、最善の結果が得られます。デフォルトで有効ですが、 [Real-time] がビューポートでアクティブまたはゲームモード **(G-key)** となっている時にエディタのみに表示されます。 
 

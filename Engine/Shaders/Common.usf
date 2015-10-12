@@ -1317,7 +1317,7 @@ MaterialFloat GetBoxPushout(MaterialFloat3 Normal,MaterialFloat3 Extent)
 /** Output of the screen vertex shader. */
 struct FScreenVertexOutput
 {
-	MaterialFloat2 UV : TEXCOORD0;
+	noperspective MaterialFloat2 UV : TEXCOORD0;
 	float4 Position : SV_POSITION;
 };
 

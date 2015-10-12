@@ -135,7 +135,7 @@ When running Unreal, it is important to add the `-game` flag if you rebuilt your
 
 ## Building with Xcode
 
-[REGION:note]
+[REGION:tip]
 When building in Xcode, you are only compiling the game project, not the Editor.  
 [/REGION]
 

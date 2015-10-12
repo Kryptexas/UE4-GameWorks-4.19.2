@@ -9,7 +9,7 @@ float2 InputViewportMaxBound;
 Texture2D		Texture;
 SamplerState	TextureSampler;
 
-void HZBBuildPS(float4 RenderTargetUVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void HZBBuildPS(noperspective float4 RenderTargetUVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float4 Depth;
 	float2 UV[4];

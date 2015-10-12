@@ -11,7 +11,7 @@ float4 SourceTexelOffsets01;
 float4 SourceTexelOffsets23;
 
 void Main(
-	float2 InUV : TEXCOORD0,
+	noperspective float2 InUV : TEXCOORD0,
 	out float OutDepth : SV_DEPTH,
 	out float4 OutColor : SV_Target0
 	)

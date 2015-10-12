@@ -877,8 +877,8 @@ void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 		bInterrupted = bInterrupt;
 	}
 
-	// if it hasn't stopped, stop now
-	if (IsStopped() == false)
+	// if desired weight is > 0.f, turn that off
+	if (Blend.GetDesiredValue() > 0.f)
 	{
 		// do not use default Montage->BlendOut 
 		// depending on situation, the BlendOut time can change 
@@ -1073,7 +1073,7 @@ bool FAnimMontageInstance::SetNextSectionID(int32 const & SectionID, int32 const
 
 void FAnimMontageInstance::OnMontagePositionChanged(FName const & ToSectionName) 
 {
-	if (bPlaying && IsStopped())
+	if (bPlaying && (Blend.GetDesiredValue() == 0.f))
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("Changing section on Montage (%s) to '%s' during blend out. This can cause incorrect visuals!"),
 			*GetNameSafe(Montage), *ToSectionName.ToString());
@@ -1437,8 +1437,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 						}
 					}
 
-					// If current section is last one, check to trigger a blend out and if it hasn't stopped yet, see if we should stop
-					if (NextSectionIndex == INDEX_NONE && !IsStopped())
+					// If current section is last one, check to trigger a blend out.
+					if( NextSectionIndex == INDEX_NONE )
 					{
 						const float DeltaPosToEnd = bPlayingForward ? (CurrentSectionLength - PosInSection) : PosInSection;
 						const float DeltaTimeToEnd = DeltaPosToEnd / FMath::Abs(CombinedPlayRate);
@@ -1504,7 +1504,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 	}
 
 	// If this Montage has no weight, it should be terminated.
-	if (IsStopped() && (Blend.IsComplete()))
+	if ((Blend.GetDesiredValue()<= ZERO_ANIMWEIGHT_THRESH) && (Blend.IsComplete()))
 	{
 		// nothing else to do
 		Terminate();
