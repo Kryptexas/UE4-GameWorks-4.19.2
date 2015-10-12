@@ -214,7 +214,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /Gy");
 
 				// Allow 800% of the default memory allocation limit.
-				Arguments.Append(" /Zm800");
+				Arguments.Append(" /Zm1000");
 
 				// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 				Arguments.Append(" /wd4819");

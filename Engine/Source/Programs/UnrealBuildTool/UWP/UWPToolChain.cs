@@ -61,7 +61,7 @@ namespace UnrealBuildTool
 			Arguments.Append(" /c");
 
 			// Allow 800% of the default memory allocation limit.
-			Arguments.Append(" /Zm800");
+			Arguments.Append(" /Zm1000");
 
 			// Allow large object files to avoid hitting the 2^16 section limit when running with -StressTestUnity.
 			Arguments.Append(" /bigobj");
