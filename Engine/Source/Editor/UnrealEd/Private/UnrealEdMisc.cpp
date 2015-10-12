@@ -499,7 +499,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 		}
 
 		// Set the abnormal shutdown flag and the running engine version string
-		FString CurrentEngineVersionString = GEngineVersion.ToString(EVersionComponent::Patch);
+		FString CurrentEngineVersionString = GEngineVersion.ToString(EVersionComponent::Changelist);
 		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), TEXT("AbnormalShutdown"));
 		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("EngineVersion"), CurrentEngineVersionString);
 		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), FDateTime::UtcNow().ToIso8601());
