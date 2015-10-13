@@ -123,6 +123,8 @@ public:
 				MirrorPoint3D.Y = EdMode->UISettings->MirrorPoint.Y;
 				MirrorPlaneScale.Y = (MaxX - MinX) / 2.0f;
 			}
+
+			MirrorPoint3D.Z = GetLocalZAtPoint(LandscapeInfo, FMath::RoundToInt(MirrorPoint3D.X), FMath::RoundToInt(MirrorPoint3D.Y));
 			MirrorPoint3D = LandscapeToWorld.TransformPosition(MirrorPoint3D);
 
 			FMatrix Matrix;
@@ -221,7 +223,9 @@ public:
 		{
 			MirrorPoint3D.Y = EdMode->UISettings->MirrorPoint.Y;
 		}
+		MirrorPoint3D.Z = GetLocalZAtPoint(LandscapeInfo, FMath::RoundToInt(MirrorPoint3D.X), FMath::RoundToInt(MirrorPoint3D.Y));
 		MirrorPoint3D = LandscapeToWorld.TransformPosition(MirrorPoint3D);
+		MirrorPoint3D.Z += 1000.f; // place the widget a little off the ground for better visibility
 		return MirrorPoint3D;
 	}
 
@@ -241,6 +245,19 @@ public:
 	}
 
 protected:
+	float GetLocalZAtPoint(const ULandscapeInfo* LandscapeInfo, int32 x, int32 y) const
+	{
+		// try to find Z location
+		TSet<ULandscapeComponent*> Components;
+		LandscapeInfo->GetComponentsInRegion(x, y, x, y, Components);
+		for (ULandscapeComponent* Component : Components)
+		{
+			FLandscapeComponentDataInterface DataInterface(Component);
+			return LandscapeDataAccess::GetLocalHeight(DataInterface.GetHeight(x - Component->SectionBaseX, y - Component->SectionBaseY));
+		}
+		return 0.0f;
+	}
+
 	template<typename T>
 	void ApplyMirrorInternal(T* MirrorData, int32 SizeX, int32 SizeY, int32 MirrorSize)
 	{
@@ -457,6 +474,9 @@ public:
 					}
 				}
 			}
+
+			// Flush dynamic foliage (grass)
+			ALandscapeProxy::InvalidateGeneratedComponentData(Components);
 		}
 	}
 

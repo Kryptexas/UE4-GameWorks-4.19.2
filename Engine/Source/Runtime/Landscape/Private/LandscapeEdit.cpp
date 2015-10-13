@@ -1610,7 +1610,7 @@ void ULandscapeComponent::GetComponentExtent(int32& MinX, int32& MinY, int32& Ma
 
 #define MAX_LANDSCAPE_SUBSECTIONS 2
 
-void ULandscapeInfo::GetComponentsInRegion(int32 X1, int32 Y1, int32 X2, int32 Y2, TSet<ULandscapeComponent*>& OutComponents)
+void ULandscapeInfo::GetComponentsInRegion(int32 X1, int32 Y1, int32 X2, int32 Y2, TSet<ULandscapeComponent*>& OutComponents) const
 {
 	// Find component range for this block of data
 	// X2/Y2 Coordinates are "inclusive" max values
