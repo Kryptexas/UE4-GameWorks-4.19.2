@@ -76,6 +76,13 @@ void UTileView::RequestListRefresh()
 	MyTileView->RequestListRefresh();
 }
 
+void UTileView::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyTileView.Reset();
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UTileView::GetEditorIcon()
