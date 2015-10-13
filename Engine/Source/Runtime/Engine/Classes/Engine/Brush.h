@@ -143,6 +143,7 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostEditMove(bool bFinished) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 	virtual bool Modify(bool bAlwaysMarkDirty = false) override;

@@ -475,7 +475,7 @@ public:
 		{
 			const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[i];
 
-			if (ConvexElem.ConvexMesh)
+			if (ConvexElem.ConvexMesh || ConvexElem.ConvexMeshNegX)
 			{
 				PxTransform PLocalPose;
 				bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);

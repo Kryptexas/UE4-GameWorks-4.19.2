@@ -55,6 +55,18 @@ void ABrush::PostEditMove(bool bFinished)
 	Super::PostEditMove(bFinished);
 }
 
+void ABrush::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	// Prior to reregistering the BrushComponent (done in the Super), request an update to the Body Setup to take into account any change
+	// in the mirroring of the Actor. This will actually be updated when the component is reregistered.
+	if (BrushComponent && PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("RelativeScale3D"))
+	{
+		BrushComponent->RequestUpdateBrushCollision();
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+
 void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(Brush)

@@ -1786,26 +1786,15 @@ static void MirrorActors(const FVector& MirrorScale)
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 
 		const FVector PivotLocation = GLevelEditorModeTools().PivotLocation;
-		ABrush* Brush = Cast< ABrush >( Actor );
-		if( Brush && Brush->Brush )
-		{
-			// Brushes have to reverse their poly vertex order and recalculate the normal as negating one of the scale axes
-			// changes the handedness of the local transform.
-			Brush->Modify();
-			Brush->Brush->Modify();
-			Brush->Brush->Polys->Modify();
-
-			for( int32 poly = 0 ; poly < Brush->Brush->Polys->Element.Num() ; poly++ )
-			{
-				FPoly* Poly = &(Brush->Brush->Polys->Element[poly]);
-
-				Poly->Reverse();
-				Poly->CalcNormal();
-			}
-		}
 
 		Actor->Modify();
 		Actor->EditorApplyMirror( MirrorScale, PivotLocation );
+
+		ABrush* Brush = Cast< ABrush >(Actor);
+		if (Brush && Brush->BrushComponent)
+		{
+			Brush->BrushComponent->RequestUpdateBrushCollision();
+		}
 
 		Actor->InvalidateLightingCache();
 		Actor->PostEditMove( true );
@@ -1823,6 +1812,7 @@ static void MirrorActors(const FVector& MirrorScale)
 
 	GEditor->RedrawLevelEditingViewports();
 }
+
 
 /**
 * Gathers up a list of selection FPolys from selected static meshes.
