@@ -33,11 +33,11 @@ public:
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
+#endif
 
 	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	//~ End UVisual Interface
-#endif
 
 protected:
 	TSharedPtr< SListView<UObject*> > MyListView;
