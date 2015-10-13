@@ -1154,7 +1154,7 @@ public partial class GUBP : BuildCommand
 				}
 			}
 			{
-				string Line = String.Format("{0} {1}", NewIndex, NowMinutes);
+				string Line = ParseParam("ResetCounter")? "-1 0" : String.Format("{0} {1}", NewIndex, NowMinutes);
 				LogVerbose("Attempting to write {0} with {1}", P4IndexFileP4, Line);
 				int WorkingCL = -1;
 				try
