@@ -23,7 +23,7 @@ UDeviceProfileManager& UDeviceProfileManager::Get()
 			DeviceProfileManagerSingleton->LoadProfiles();
 		}
 
-		UDeviceProfile* ActiveProfile = &DeviceProfileManagerSingleton->FindProfile(GetActiveProfileName());
+		UDeviceProfile* ActiveProfile = DeviceProfileManagerSingleton->FindProfile(GetActiveProfileName());
 		DeviceProfileManagerSingleton->SetActiveDeviceProfile(ActiveProfile);
 
 		InitializeSharedSamplerStates();
@@ -183,7 +183,7 @@ void UDeviceProfileManager::DeleteProfile( UDeviceProfile* Profile )
 }
 
 
-UDeviceProfile& UDeviceProfileManager::FindProfile( const FString& ProfileName )
+UDeviceProfile* UDeviceProfileManager::FindProfile(const FString& ProfileName, bool bCreateIfNotFound)
 {
 	UDeviceProfile* FoundProfile = nullptr;
 
@@ -197,7 +197,12 @@ UDeviceProfile& UDeviceProfileManager::FindProfile( const FString& ProfileName )
 		}
 	}
 
-	return FoundProfile != nullptr ? *FoundProfile : CreateProfile(ProfileName, FPlatformProperties::PlatformName());
+	if (FoundProfile == nullptr && bCreateIfNotFound)
+	{
+		FoundProfile = &CreateProfile(ProfileName, FPlatformProperties::PlatformName());
+	}
+
+	return FoundProfile;
 }
 
 
@@ -240,7 +245,7 @@ void UDeviceProfileManager::LoadProfiles()
 			for (int32 PlatformIndex = 0; PlatformIndex < TargetPlatforms.Num(); ++PlatformIndex)
 			{
 				ITargetPlatform* Platform = TargetPlatforms[PlatformIndex];
-				if (const UTextureLODSettings* TextureLODSettingsObj = (UTextureLODSettings*)&FindProfile(Platform->PlatformName()))
+				if (const UTextureLODSettings* TextureLODSettingsObj = (UTextureLODSettings*)FindProfile(Platform->PlatformName(), false))
 				{
 					// Set TextureLODSettings
 					Platform->RegisterTextureLODSettings(TextureLODSettingsObj);
