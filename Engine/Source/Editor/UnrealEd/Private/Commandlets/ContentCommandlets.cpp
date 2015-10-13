@@ -317,7 +317,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			if (bStripEditorOnlyContent)
 			{
 				UE_LOG(LogContentCommandlet, Log, TEXT("Removing editor only data"));
-				Package->PackageFlags |= PKG_FilterEditorOnly;
+				Package->SetPackageFlags(PKG_FilterEditorOnly);
 			}
 
 			if (bSavePackage == true)
@@ -833,7 +833,7 @@ void ReferenceObject(UObject* Object, TMap<FString, FPackageObjects>& ObjectRefs
 	bool bIsValid = true;
 	// can't be in a script packge or be a field/template in a native package, or a top level pacakge, or in the transient package
 	if (!bValidWritableOuterName ||
-		(Object->GetOutermost()->PackageFlags & PKG_ContainsScript) ||
+		Object->GetOutermost()->HasAnyPackageFlags(PKG_ContainsScript) ||
 		Object->IsA(UField::StaticClass()) ||
 		Object->IsTemplate(RF_ClassDefaultObject) ||
 		Object->GetOuter() == NULL ||

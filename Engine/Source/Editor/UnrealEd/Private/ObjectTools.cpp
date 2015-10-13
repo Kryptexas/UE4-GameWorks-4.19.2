@@ -86,7 +86,7 @@ namespace ObjectTools
 			if( ObjectPackage != NULL )
 			{
 				if( ObjectPackage != GetTransientPackage()
-					&& (ObjectPackage->PackageFlags & PKG_PlayInEditor) == 0
+					&& (ObjectPackage->HasAnyPackageFlags(PKG_PlayInEditor) == false)
 					&& !Obj->IsPendingKill() )
 				{
 					bIsSupported = true;
@@ -1193,7 +1193,7 @@ namespace ObjectTools
 	void SelectActorsInLevelDirectlyReferencingObject( UObject* RefObj )
 	{
 		UPackage* Package = Cast<UPackage>(RefObj->GetOutermost());
-		if (Package && ((Package->PackageFlags & PKG_ContainsMap) != 0))
+		if (Package && Package->ContainsMap())
 		{
 			// Walk the chain of outers to find the object that is 'in' the level...
 			UObject* ObjToSelect = NULL;
@@ -2593,7 +2593,10 @@ namespace ObjectTools
 					NewPackage->GetOutermost()->FullyLoad();
 
 					// Make sure we copy all the cooked package flags if the asset was already cooked.
-					NewPackage->PackageFlags |= (Object->GetOutermost()->PackageFlags & PKG_FilterEditorOnly);
+					if (Object->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
+					{
+						NewPackage->SetPackageFlags(PKG_FilterEditorOnly);
+					}
 					NewPackage->bIsCookedForEditor = Object->GetOutermost()->bIsCookedForEditor;
 
 					UObjectRedirector* Redirector = Cast<UObjectRedirector>( StaticFindObject(UObjectRedirector::StaticClass(), NewPackage, *NewObjectName) );

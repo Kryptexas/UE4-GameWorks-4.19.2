@@ -559,7 +559,7 @@ void ULevel::PostLoad()
 	}
 
 #if WITH_EDITOR
-	if (!(GetOutermost()->PackageFlags & PKG_PlayInEditor))
+	if (!GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 	{
 		// Rename the LevelScriptBlueprint after the outer world.
 		UWorld* OuterWorld = Cast<UWorld>(GetOuter());

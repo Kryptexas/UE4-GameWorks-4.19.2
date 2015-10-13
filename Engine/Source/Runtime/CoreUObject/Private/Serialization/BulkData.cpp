@@ -895,7 +895,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		{
 			// check if we save the package compressed
 			UPackage* Pkg = Owner ? dynamic_cast<UPackage*>(Owner->GetOutermost()) : nullptr;
-			if (Pkg && !!(Pkg->PackageFlags & PKG_StoreCompressed) )
+			if (Pkg && Pkg->HasAnyPackageFlags(PKG_StoreCompressed) )
 			{
 				ECompressionFlags BaseCompressionMethod = COMPRESS_Default;
 				if (Ar.IsCooking())

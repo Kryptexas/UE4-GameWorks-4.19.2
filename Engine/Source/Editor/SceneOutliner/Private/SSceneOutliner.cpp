@@ -1583,7 +1583,7 @@ namespace SceneOutliner
 				bool bAnyInPIE = false;
 				for (auto* Actor : SelectedActors)
 				{
-					if (!bAnyInPIE && Actor && (Actor->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+					if (!bAnyInPIE && Actor && Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 					{
 						bAnyInPIE = true;
 					}
@@ -1597,7 +1597,7 @@ namespace SceneOutliner
 				for (FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt && !bChanged; ++SelectionIt)
 				{
 					AActor* Actor = CastChecked< AActor >( *SelectionIt );
-					if (!bAnyInPIE && (Actor->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+					if (!bAnyInPIE && Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 					{
 						bAnyInPIE = true;
 					}

@@ -827,7 +827,7 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 	{
 		// Do not consider PIE world objects or script packages, as they should never end up in the
 		// transaction buffer and we don't want to mark them dirty here either.
-		if ((GetOutermost()->PackageFlags & (PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn)) == 0)
+		if (GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn) == false)
 		{
 			// Attempt to mark the package dirty and save a copy of the object to the transaction
 			// buffer. The save will fail if there isn't a valid transactor, the object isn't
@@ -3418,7 +3418,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 								// Recurse if we're in the same package.
 								if( RootObject->GetOutermost() == Object->GetOutermost() 
 								// Or if package doesn't contain script.
-								||	!(Object->GetOutermost()->PackageFlags & PKG_ContainsScript) )
+								||	!Object->GetOutermost()->HasAnyPackageFlags(PKG_ContainsScript) )
 								{
 									// Serialize object. We don't want to use the << operator here as it would call 
 									// this function again instead of serializing members.
@@ -3465,7 +3465,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					// Only list certain class if specified.
 					if( (!ListClass || ObjectReference->GetClass() == ListClass)
 					// Only list non-script objects if specified.
-					&&	(!bShouldOnlyListContent || !(ObjectReference->GetOutermost()->PackageFlags & PKG_ContainsScript))
+					&&	(!bShouldOnlyListContent || !ObjectReference->GetOutermost()->HasAnyPackageFlags(PKG_ContainsScript))
 					// Exclude the transient package.
 					&&	ObjectReference->GetOutermost() != GetTransientPackage() )
 					{

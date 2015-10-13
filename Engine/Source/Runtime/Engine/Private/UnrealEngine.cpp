@@ -9346,7 +9346,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 #if WITH_EDITOR
 		if (WorldContext.WorldType == EWorldType::PIE)
 		{
-			MapOuter->PackageFlags |= PKG_PlayInEditor;
+			MapOuter->SetPackageFlags(PKG_PlayInEditor);
 		}
 		MapOuter->PIEInstanceID = WorldContext.PIEInstance;
 #endif
@@ -9386,7 +9386,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				auto NewPackage = CreatePackage(NULL, *PIEPackageName);
 				if (NewPackage != nullptr && WorldContext.WorldType == EWorldType::PIE)
 				{
-					NewPackage->PackageFlags |= PKG_PlayInEditor;
+					NewPackage->SetPackageFlags(PKG_PlayInEditor);
 					LoadFlags |= LOAD_PackageForPIE;
 				}
 				WorldPackage = LoadPackage(NewPackage, *SourceWorldPackage, LoadFlags);
@@ -9476,7 +9476,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 		FScopeCycleCounterUObject MapScope(WorldPackage);
 
-		if (FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !(WorldPackage->PackageFlags & PKG_DisallowLazyLoading))
+		if (FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !WorldPackage->HasAnyPackageFlags(PKG_DisallowLazyLoading))
 		{
 			UE_LOG(LogLoad, Fatal, TEXT("Map '%s' has not been cooked correctly! Most likely stale version on the XDK."), *WorldPackage->GetName());
 		}
@@ -9506,10 +9506,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	WorldContext.World()->WorldType = WorldContext.WorldType;
 	
 	// Fixme: hacky but we need to set PackageFlags here if we are in a PIE Context.
-	// Also, dont add to root when in PIE, since PIE doesn't remove world from root
+	// Also, don't add to root when in PIE, since PIE doesn't remove world from root
 	if (WorldContext.WorldType == EWorldType::PIE)
 	{
-		check((CastChecked<UPackage>(WorldContext.World()->GetOutermost())->PackageFlags & PKG_PlayInEditor) == PKG_PlayInEditor);
+		check(WorldContext.World()->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor));
 		WorldContext.World()->ClearFlags(RF_Standalone);
 	}
 	else

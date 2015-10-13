@@ -196,7 +196,7 @@ void ULevelStreaming::PostLoad()
 {
 	Super::PostLoad();
 
-	const bool PIESession = GetWorld()->WorldType == EWorldType::PIE || (GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0;
+	const bool PIESession = GetWorld()->WorldType == EWorldType::PIE || GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
 
 	// If this streaming level was saved with a short package name, try to convert it to a long package name
 	if ( !PIESession && PackageName_DEPRECATED != NAME_None )
@@ -263,7 +263,7 @@ void ULevelStreaming::Serialize( FArchive& Ar )
 	if (Ar.IsLoading())
 	{
 #if WITH_EDITOR
-		if ((GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0 && GetOutermost()->PIEInstanceID != INDEX_NONE)
+		if (GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor) && GetOutermost()->PIEInstanceID != INDEX_NONE)
 		{
 			RenameForPIE(GetOutermost()->PIEInstanceID);
 		}
@@ -410,7 +410,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	if ( PersistentWorld->IsPlayInEditor() )
 	{
 #if WITH_EDITOR
-		if ((PersistentWorld->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+		if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 		{
 			PackageFlags |= PKG_PlayInEditor;
 		}

@@ -349,14 +349,14 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
 		Filename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*Filename);
 
-		uint32 OriginalPackageFlags = Package->PackageFlags;
+		uint32 OriginalPackageFlags = Package->GetPackageFlags();
 		UWorld* World = NULL;
 		EObjectFlags Flags = RF_NoFlags;
 		bool bPackageFullyLoaded = false;
 
 		if (bCompressed)
 		{
-			Package->PackageFlags |= PKG_StoreCompressed;
+			Package->SetPackageFlags(PKG_StoreCompressed);
 		}
 
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
@@ -440,11 +440,11 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 
 				if (!Target->HasEditorOnlyData())
 				{
-					Package->PackageFlags |= PKG_FilterEditorOnly;
+					Package->SetPackageFlags(PKG_FilterEditorOnly);
 				}
 				else
 				{
-					Package->PackageFlags &= ~PKG_FilterEditorOnly;
+					Package->ClearPackageFlags(PKG_FilterEditorOnly);
 				}
 
 				if (World)
@@ -473,7 +473,7 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 			}
 		}
 
-		Package->PackageFlags = OriginalPackageFlags;
+		Package->SetPackageFlagsTo(OriginalPackageFlags);
 	}
 
 	// return success
@@ -486,7 +486,7 @@ void UCookCommandlet::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 	if (PackagesToNotReload.Contains(Name))
 	{
 		UE_LOG(LogCookCommandlet, Verbose, TEXT("Marking %s already loaded."), *Name);
-		Package->PackageFlags |= PKG_ReloadingForCooker;
+		Package->SetPackageFlags(PKG_ReloadingForCooker);
 	}
 }
 
@@ -1397,7 +1397,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 					SaveCookedPackage(Pkg, SAVE_KeepGUID | SAVE_Async | (bUnversioned ? SAVE_Unversioned : 0), bWasUpToDate);
 
 					PackagesToNotReload.Add(Pkg->GetName());
-					Pkg->PackageFlags |= PKG_ReloadingForCooker;
+					Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 					{
 						TArray<UObject *> ObjectsInPackage;
 						GetObjectsWithOuter(Pkg, ObjectsInPackage, true);

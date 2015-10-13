@@ -187,7 +187,7 @@ void UTexture2D::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR	
-	if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked && !(GetOutermost()->PackageFlags & PKG_ReloadingForCooker))
+	if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked && !GetOutermost()->HasAnyPackageFlags(PKG_ReloadingForCooker))
 	{
 		// The composite texture may not have been loaded yet. We have to defer caching platform
 		// data until post load.
