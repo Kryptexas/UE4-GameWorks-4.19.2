@@ -71,14 +71,14 @@ const FText UListView::GetPaletteCategory()
 	return LOCTEXT("Misc", "Misc");
 }
 
+#endif
+
 void UListView::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyListView.Reset();
 }
-
-#endif
 
 /////////////////////////////////////////////////////
 
