@@ -154,10 +154,13 @@ namespace UnrealBuildTool
 
 			UEBuildModuleDistribution DistributionLevel = UEBuildModuleDistribution.Public;
 
-			// Keep checking as long as we haven't reached the maximum level
-			for (int PathIndex = 0; PathIndex < PathsToCheck.Count && DistributionLevel != UEBuildModuleDistribution.NoRedist; ++PathIndex)
+			if (!Rules.bOutputPubliclyDistributable)
 			{
-				DistributionLevel = Utils.Max(DistributionLevel, UEBuildModule.GetModuleDistributionLevelBasedOnLocation(PathsToCheck[PathIndex]));
+				// Keep checking as long as we haven't reached the maximum level
+				for (int PathIndex = 0; PathIndex < PathsToCheck.Count && DistributionLevel != UEBuildModuleDistribution.NoRedist; ++PathIndex)
+				{
+					DistributionLevel = Utils.Max(DistributionLevel, UEBuildModule.GetModuleDistributionLevelBasedOnLocation(PathsToCheck[PathIndex]));
+				}
 			}
 
 			return DistributionLevel;

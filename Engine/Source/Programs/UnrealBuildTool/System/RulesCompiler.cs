@@ -238,6 +238,13 @@ namespace UnrealBuildTool
 		public bool bBuildLocallyWithSNDBS = false;
 
 		/// <summary>
+		/// Whether the output from this module can be publicly distributed, even if it has code/
+		/// dependencies on modules that are not (i.e. CarefullyRedist, NotForLicensees, NoRedist).
+		/// This should be used when you plan to release binaries but not source.
+		/// </summary>
+		public bool bOutputPubliclyDistributable = false;
+
+		/// <summary>
         /// List of modules names (no path needed) with header files that our module's public headers needs access to, but we don't need to "import" or link against.
 		/// </summary>
 		public List<string> PublicIncludePathModuleNames = new List<string>();
