@@ -1602,6 +1602,16 @@ public partial class Project : CommandUtils
 
 			string PlatformName = StagePlatform.ToString();
 			string StageArchitecture = !String.IsNullOrEmpty(Params.SpecifiedArchitecture) ? Params.SpecifiedArchitecture : "";
+			if (string.IsNullOrEmpty(StageArchitecture))
+			{
+				StageArchitecture = "";
+				var BuildPlatform = UEBuildPlatform.GetBuildPlatform(StagePlatform, true);
+				if (BuildPlatform != null)
+				{
+					StageArchitecture = BuildPlatform.CreateContext(Params.RawProjectPath).GetActiveArchitecture();
+				}
+			}
+
 			foreach (var Target in ListToProcess)
 			{
 				foreach (var Config in ConfigsToProcess)
