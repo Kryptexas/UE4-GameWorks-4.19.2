@@ -114,7 +114,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 {
 	if (OutputMessage.Len() > 0)
 	{
-		CertificateList.Reset();
+		CertificateList->Reset();
 		ProvisionList->Reset();
 
 		// Now split up the log into multiple lines
