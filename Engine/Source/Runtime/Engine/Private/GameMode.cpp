@@ -21,6 +21,8 @@
 #include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
 #include "Engine/GameInstance.h"
+#include "IMovieSceneCapture.h"
+#include "MovieSceneCaptureSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -283,7 +285,7 @@ void AGameMode::PostLogin( APlayerController* NewPlayer )
 	bool HidePlayer=false, HideHUD=false, DisableMovement=false, DisableTurning=false;
 
 	//Check to see if we should start in cinematic mode (matinee movie capture)
-	if(ShouldStartInCinematicMode(HidePlayer, HideHUD, DisableMovement, DisableTurning))
+	if(ShouldStartInCinematicMode(NewPlayer, HidePlayer, HideHUD, DisableMovement, DisableTurning))
 	{
 		NewPlayer->SetCinematicMode(true, HidePlayer, HideHUD, DisableMovement, DisableTurning);
 	}
@@ -295,22 +297,29 @@ void AGameMode::PostLogin( APlayerController* NewPlayer )
 	K2_PostLogin(NewPlayer);
 }
 
-bool AGameMode::ShouldStartInCinematicMode(bool& OutHidePlayer,bool& OutHideHUD,bool& OutDisableMovement,bool& OutDisableTurning)
+bool AGameMode::ShouldStartInCinematicMode(APlayerController* Player, bool& OutHidePlayer,bool& OutHideHUD,bool& OutDisableMovement,bool& OutDisableTurning)
 {
-	bool StartInCinematicMode = false;
-	if(GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture)
+	ULocalPlayer* LocPlayer = Player->GetLocalPlayer();
+	if (!LocPlayer)
 	{
-		GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CinematicMode"), StartInCinematicMode, GEditorPerProjectIni );
-		if(StartInCinematicMode)
+		return false;
+	}
+	else if(LocPlayer->ViewportClient && LocPlayer->ViewportClient->Viewport)
+	{
+		if (auto* MovieSceneCapture = LocPlayer->ViewportClient->Viewport->GetMovieSceneCapture())
 		{
-			GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableMovement"), OutDisableMovement, GEditorPerProjectIni );
-			GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTurning"), OutDisableTurning, GEditorPerProjectIni );
-			GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HidePlayer"), OutHidePlayer, GEditorPerProjectIni );
-			GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), OutHideHUD, GEditorPerProjectIni );
-			return StartInCinematicMode;
+			const FMovieSceneCaptureSettings& Settings = MovieSceneCapture->GetSettings();
+			if (Settings.bCinematicMode)
+			{
+				OutDisableMovement = !Settings.bAllowMovement;
+				OutDisableTurning = !Settings.bAllowTurning;
+				OutHidePlayer = !Settings.bShowPlayer;
+				OutHideHUD = !Settings.bShowHUD;
+				return true;
+			}
 		}
 	}
-	return StartInCinematicMode;
+	return false;
 }
 
 

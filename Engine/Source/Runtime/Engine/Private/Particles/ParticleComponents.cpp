@@ -3315,6 +3315,7 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 		//@todo.SAS. Remove thisline  - it is used for debugging purposes...
 		Proxy->SetLastDynamicData(Proxy->GetDynamicData());
 		//@todo.SAS. END
+		Proxy->SetVisualizeLODIndex(GetCurrentLODIndex());
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		Proxy->UpdateData( ParticleDynamicData );
 	}

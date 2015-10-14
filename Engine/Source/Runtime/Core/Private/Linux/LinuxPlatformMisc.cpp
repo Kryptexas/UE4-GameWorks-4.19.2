@@ -118,6 +118,25 @@ namespace
 	bool GInitializedSDL = false;
 }
 
+size_t GCacheLineSize = CACHE_LINE_SIZE;
+
+void LinuxPlatform_UpdateCacheLineSize()
+{
+	// sysfs "API", as usual ;/
+	FILE * SysFsFile = fopen("/sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size", "r");
+	if (SysFsFile)
+	{
+		int SystemLineSize = 0;
+		fscanf(SysFsFile, "%d", &SystemLineSize);
+		fclose(SysFsFile);
+
+		if (SystemLineSize > 0)
+		{
+			GCacheLineSize = SystemLineSize;
+		}
+	}
+}
+
 void FLinuxPlatformMisc::PlatformInit()
 {
 	// install a platform-specific signal handler
@@ -130,6 +149,8 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - we're logged in %s"), FPlatformMisc::HasBeenStartedRemotely() ? TEXT("remotely") : TEXT("locally"));
 	UE_LOG(LogInit, Log, TEXT(" - Number of physical cores available for the process: %d"), FPlatformMisc::NumberOfCores());
 	UE_LOG(LogInit, Log, TEXT(" - Number of logical cores available for the process: %d"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+	LinuxPlatform_UpdateCacheLineSize();
+	UE_LOG(LogInit, Log, TEXT(" - Cache line size: %Zu"), GCacheLineSize);
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
 
 	UE_LOG(LogInit, Log, TEXT("Linux-specific commandline switches:"));
@@ -256,13 +277,26 @@ void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )
 	{
-		SDL_Event event;
-
-		while (SDL_PollEvent(&event))
+		if( LinuxApplication )
 		{
-			if( LinuxApplication )
+			LinuxApplication->SaveWindowLocationsForEventLoop();
+
+			SDL_Event event;
+
+			while (SDL_PollEvent(&event))
 			{
 				LinuxApplication->AddPendingEvent( event );
+			}
+
+			LinuxApplication->ClearWindowLocationsAfterEventLoop();
+		}
+		else
+		{
+			// No application to send events to. Just flush out the
+			// queue.
+			SDL_Event event;
+			while (SDL_PollEvent(&event))
+			{
 			}
 		}
 	}
@@ -543,55 +577,91 @@ int32 FLinuxPlatformMisc::NumberOfCores()
 {
 	// WARNING: this function ignores edge cases like affinity mask changes (and even more fringe cases like CPUs going offline)
 	// in the name of performance (higher level code calls NumberOfCores() way too often...)
-	static int32 NumCoreIds = 0;
-	if (NumCoreIds == 0)
+	static int32 NumberOfCores = 0;
+	if (NumberOfCores == 0)
 	{
-		cpu_set_t AvailableCpusMask;
-		CPU_ZERO(&AvailableCpusMask);
-
-		if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+		if (FParse::Param(FCommandLine::Get(), TEXT("usehyperthreading")))
 		{
-			NumCoreIds = 1;	// we are running on something, right?
+			NumberOfCores = NumberOfCoresIncludingHyperthreads();
 		}
 		else
 		{
-			char FileNameBuffer[1024];
-			unsigned char PossibleCores[CPU_SETSIZE] = { 0 };
+			cpu_set_t AvailableCpusMask;
+			CPU_ZERO(&AvailableCpusMask);
 
-			for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+			if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
 			{
-				if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
-				{
-					sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
-					
-					FILE* CoreIdFile = fopen(FileNameBuffer, "r");
-					unsigned int CoreId = 0;
-					if (CoreIdFile)
-					{
-						if (1 != fscanf(CoreIdFile, "%d", &CoreId))
-						{
-							CoreId = 0;
-						}
-						fclose(CoreIdFile);
-					}
-
-					if (CoreId >= ARRAY_COUNT(PossibleCores))
-					{
-						CoreId = 0;
-					}
-					
-					PossibleCores[ CoreId ] = 1;
-				}
+				NumberOfCores = 1;	// we are running on something, right?
 			}
-
-			for(int32 Idx = 0; Idx < ARRAY_COUNT(PossibleCores); ++Idx)
+			else
 			{
-				NumCoreIds += PossibleCores[Idx];
+				char FileNameBuffer[1024];
+				struct CpuInfo
+				{
+					int Core;
+					int Package;
+				}
+				CpuInfos[CPU_SETSIZE];
+
+				FMemory::Memzero(CpuInfos);
+				int MaxCoreId = 0;
+				int MaxPackageId = 0;
+
+				for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+				{
+					if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+					{
+						sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
+
+						if (FILE* CoreIdFile = fopen(FileNameBuffer, "r"))
+						{
+							if (1 != fscanf(CoreIdFile, "%d", &CpuInfos[CpuIdx].Core))
+							{
+								CpuInfos[CpuIdx].Core = 0;
+							}
+							fclose(CoreIdFile);
+						}
+
+						sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", CpuIdx);
+
+						unsigned int PackageId = 0;
+						if (FILE* PackageIdFile = fopen(FileNameBuffer, "r"))
+						{
+							if (1 != fscanf(PackageIdFile, "%d", &CpuInfos[CpuIdx].Package))
+							{
+								CpuInfos[CpuIdx].Package = 0;
+							}
+							fclose(PackageIdFile);
+						}
+
+						MaxCoreId = FMath::Max(MaxCoreId, CpuInfos[CpuIdx].Core);
+						MaxPackageId = FMath::Max(MaxPackageId, CpuInfos[CpuIdx].Package);
+					}
+				}
+
+				int NumCores = MaxCoreId + 1;
+				int NumPackages = MaxPackageId + 1;
+				int NumPairs = NumPackages * NumCores;
+				unsigned char * Pairs = reinterpret_cast<unsigned char *>(FMemory_Alloca(NumPairs * sizeof(unsigned char)));
+				FMemory::Memzero(Pairs, NumPairs * sizeof(unsigned char));
+
+				for (int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+				{
+					if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+					{
+						Pairs[CpuInfos[CpuIdx].Package * NumCores + CpuInfos[CpuIdx].Core] = 1;
+					}
+				}
+
+				for (int32 Idx = 0; Idx < NumPairs; ++Idx)
+				{
+					NumberOfCores += Pairs[Idx];
+				}
 			}
 		}
 	}
 
-	return NumCoreIds;
+	return NumberOfCores;
 }
 
 int32 FLinuxPlatformMisc::NumberOfCoresIncludingHyperthreads()
@@ -717,6 +787,24 @@ bool FLinuxPlatformMisc::IsDebuggerPresent()
 	close(StatusFile);
 	return bDebugging;
 }
+#endif // !UE_BUILD_SHIPPING
+
+#if !UE_BUILD_SHIPPING
+void FLinuxPlatformMisc::UngrabAllInput()
+{
+	if (GInitializedSDL)
+	{
+		SDL_Window * GrabbedWindow = SDL_GetGrabbedWindow();
+		if (GrabbedWindow)
+		{
+			SDL_SetWindowGrab(GrabbedWindow, SDL_FALSE);
+			SDL_SetKeyboardGrab(GrabbedWindow, SDL_FALSE);
+		}
+
+		SDL_CaptureMouse(SDL_FALSE);
+	}
+}
+
 #endif // !UE_BUILD_SHIPPING
 
 bool FLinuxPlatformMisc::HasBeenStartedRemotely()

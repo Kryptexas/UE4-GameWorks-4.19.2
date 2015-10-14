@@ -5,16 +5,20 @@
 #include "MovieSceneAudioTrack.h"
 #include "IMovieScenePlayer.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundCue.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Runtime/Engine/Public/AudioDecompress.h"
 #include "MovieSceneAudioTrackInstance.h"
 
+
 #define LOCTEXT_NAMESPACE "MovieSceneAudioTrack"
+
 
 UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 FName UMovieSceneAudioTrack::GetTrackName() const
 {
@@ -27,29 +31,42 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
 }
 
+
 const TArray<UMovieSceneSection*>& UMovieSceneAudioTrack::GetAllSections() const
 {
 	return AudioSections;
 }
 
+
 void UMovieSceneAudioTrack::RemoveAllAnimationData()
 {
+	// do nothing
 }
+
 
 bool UMovieSceneAudioTrack::HasSection( UMovieSceneSection* Section ) const
 {
 	return AudioSections.Find( Section ) != INDEX_NONE;
 }
 
+
+void UMovieSceneAudioTrack::AddSection( UMovieSceneSection* Section )
+{
+	AudioSections.Add( Section );
+}
+
+
 void UMovieSceneAudioTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	AudioSections.Remove( Section );
 }
 
+
 bool UMovieSceneAudioTrack::IsEmpty() const
 {
 	return AudioSections.Num() == 0;
 }
+
 
 TRange<float> UMovieSceneAudioTrack::GetSectionBoundaries() const
 {
@@ -61,6 +78,36 @@ TRange<float> UMovieSceneAudioTrack::GetSectionBoundaries() const
 	return TRange<float>::Hull(Bounds);
 }
 
+float GetSoundDuration(USoundBase* Sound)
+{
+	USoundWave* SoundWave = nullptr;
+
+	if (Sound->IsA<USoundWave>())
+	{
+		SoundWave = Cast<USoundWave>(Sound);
+	}
+	else if (Sound->IsA<USoundCue>())
+	{
+#if WITH_EDITORONLY_DATA
+		USoundCue* SoundCue = Cast<USoundCue>(Sound);
+
+		// @todo Sequencer - Right now for sound cues, we just use the first sound wave in the cue
+		// In the future, it would be better to properly generate the sound cue's data after forcing determinism
+		const TArray<USoundNode*>& AllNodes = SoundCue->AllNodes;
+		for (int32 i = 0; i < AllNodes.Num() && SoundWave == nullptr; ++i)
+		{
+			if (AllNodes[i]->IsA<USoundNodeWavePlayer>())
+			{
+				SoundWave = Cast<USoundNodeWavePlayer>(AllNodes[i])->GetSoundWave();
+			}
+		}
+#endif
+	}
+
+	const float Duration = (SoundWave ? SoundWave->GetDuration() : 0.f);
+	return Duration == INDEFINITELY_LOOPING_DURATION ? SoundWave->Duration : Duration;
+}
+
 void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 {
 	check(Sound);
@@ -69,7 +116,7 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 	// @todo Once we have infinite sections, we can remove this
 	float DurationToUse = 1.f; // if all else fails, use 1 second duration
 
-	float SoundDuration = Sound->GetDuration();
+	float SoundDuration = GetSoundDuration(Sound);
 	if (SoundDuration != INDEFINITELY_LOOPING_DURATION)
 	{
 		DurationToUse = SoundDuration;
@@ -84,11 +131,11 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 	AudioSections.Add(NewSection);
 }
 
+
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
-	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(this);
+	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(*this);
 }
-
 
 
 #undef LOCTEXT_NAMESPACE

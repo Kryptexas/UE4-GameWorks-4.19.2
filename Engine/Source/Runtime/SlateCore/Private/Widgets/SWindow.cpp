@@ -287,6 +287,10 @@ void SWindow::Construct(const FArguments& InArgs)
 			break;
 		}
 
+		// Clamp window size to be no greater than the work area size
+		WindowSize.X = FMath::Min(WindowSize.X, AutoCenterRect.GetSize().X);
+		WindowSize.Y = FMath::Min(WindowSize.Y, AutoCenterRect.GetSize().Y);
+
 		// Setup a position and size for the main frame window that's centered in the desktop work area
 		const FVector2D DisplayTopLeft( AutoCenterRect.Left, AutoCenterRect.Top );
 		const FVector2D DisplaySize( AutoCenterRect.Right - AutoCenterRect.Left, AutoCenterRect.Bottom - AutoCenterRect.Top );

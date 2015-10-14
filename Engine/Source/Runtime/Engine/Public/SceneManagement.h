@@ -624,7 +624,7 @@ public:
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
 {
 	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE;
 }
 
 /** Represents a USkyLightComponent to the rendering thread. */
@@ -694,6 +694,7 @@ public:
 	virtual float GetSourceRadius() const { return 0.0f; }
 	virtual bool IsInverseSquared() const { return false; }
 	virtual float GetLightSourceAngle() const { return 0.0f; }
+	virtual float GetTraceDistance() const { return 0.0f; }
 
 	virtual FVector2D GetLightShaftConeParams() const
 	{

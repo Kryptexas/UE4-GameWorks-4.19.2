@@ -30,44 +30,48 @@ FObjectResource::FObjectResource( UObject* InObject )
 -----------------------------------------------------------------------------*/
 
 FObjectExport::FObjectExport()
-:	FObjectResource	()
-,	ObjectFlags		( RF_NoFlags												)
-,	bExportLoadFailed	( false													)
-,	SerialSize		( 0															)
-,	SerialOffset	( 0															)
-,	ScriptSerializationStartOffset	( 0											)
-,	ScriptSerializationEndOffset	( 0											)
-,	Object			( NULL														)
-,	HashNext		( INDEX_NONE												)
-,	bForcedExport	( false														)
-,	bNotForClient	( false														)
-,	bNotForServer	( false														)
-,	PackageGuid		( FGuid(0,0,0,0)											)
-,	bNotForEditorGame	(true													)
+: FObjectResource()
+, ObjectFlags(RF_NoFlags)
+, SerialSize(0)
+, SerialOffset(0)
+, ScriptSerializationStartOffset(0)
+, ScriptSerializationEndOffset(0)
+, Object(NULL)
+, HashNext(INDEX_NONE)
+, bForcedExport(false)
+, bNotForClient(false)
+, bNotForServer(false)
+, bNotForEditorGame(true)
+, bIsAsset(false)
+, bExportLoadFailed(false)
+, PackageGuid(FGuid(0, 0, 0, 0))
+, PackageFlags(0)
 {}
 
 FObjectExport::FObjectExport( UObject* InObject )
-:	FObjectResource	( InObject													)
-,	ObjectFlags		( InObject ? InObject->GetMaskedFlags() : RF_NoFlags		)
-,	bExportLoadFailed	( false													)
-,	SerialSize		( 0															)
-,	SerialOffset	( 0															)
-,	ScriptSerializationStartOffset	( 0											)
-,	ScriptSerializationEndOffset	( 0											)
-,	Object			( InObject													)
-,	HashNext		( INDEX_NONE												)
-,	bForcedExport	( false														)
-,	bNotForClient	( false														)
-,	bNotForServer	( false														)
-,	PackageGuid		( FGuid(0,0,0,0)											)
-,	PackageFlags	( 0															)
-,	bNotForEditorGame	(true													)
+: FObjectResource(InObject)
+, ObjectFlags(InObject ? InObject->GetMaskedFlags() : RF_NoFlags)
+, SerialSize(0)
+, SerialOffset(0)
+, ScriptSerializationStartOffset(0)
+, ScriptSerializationEndOffset(0)
+, Object(InObject)
+, HashNext(INDEX_NONE)
+, bForcedExport(false)
+, bNotForClient(false)
+, bNotForServer(false)
+, bNotForEditorGame(true)
+, bIsAsset(false)
+, bExportLoadFailed(false)
+, PackageGuid(FGuid(0, 0, 0, 0))
+, PackageFlags(0)
 {
 	if(Object)		
 	{
 		bNotForClient = Object->HasAnyMarks(OBJECTMARK_NotForClient);
 		bNotForServer = Object->HasAnyMarks(OBJECTMARK_NotForServer);
 		bNotForEditorGame = Object->HasAnyMarks(OBJECTMARK_NotForEditorGame);
+		bIsAsset = Object->IsAsset();
 	}
 }
 
@@ -79,9 +83,17 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.ObjectName;
 
 	uint32 Save = E.ObjectFlags & RF_Load;
+	if (Ar.IsSaving() && E.bIsAsset)
+	{
+		// Add RF_AssetExport flag if this is the main asset in the package
+		// This flag should never be set on the actual object
+		Save |= RF_AssetExport;
+	}
 	Ar << Save;
 	if (Ar.IsLoading())
 	{
+		// Remember if the export is the main asset in its package. RF_Load will mask RF_AssetExport flag out.
+		E.bIsAsset = !!(Save & RF_AssetExport);
 		E.ObjectFlags = EObjectFlags(Save & RF_Load);
 	}
 

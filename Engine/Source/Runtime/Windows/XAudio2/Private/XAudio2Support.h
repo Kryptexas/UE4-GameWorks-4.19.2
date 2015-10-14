@@ -449,8 +449,8 @@ protected:
 	FXAudio2SoundBuffer*		XAudio2Buffer;
 	/** XAudio2 source voice associated with this source. */
 	IXAudio2SourceVoice*		Source;
-	/** Structure to handle looping sound callbacks */
-	FXAudio2SoundSourceCallback	SourceCallback;
+	/** The max channels in the voice's effect chain. This is used to classify a pool for IXAudio2SourceVoice. */
+	int32						MaxEffectChainChannels;
 
 	/** Asynchronous task for real time audio sources */
 	FAsyncRealtimeAudioTask* RealtimeAsyncTask;
@@ -529,7 +529,37 @@ public:
 	void CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes );
 };
 
-/** Variables required for the early init */
+/** A pool entry for related IXAudio2SourceVoices */
+struct FSourceVoicePoolEntry
+{
+	/** The format for all voices in this entry */
+	WAVEFORMATEX Format;
+	
+	/** The max number of channels used in the effect chain for this voice. This is needed because
+		XAudio2 defaults the max output channels for any effect chain to be the number of input channels. So
+		a mono-to-stereo effect (e.g. for HRTF processing) would not work. 
+	*/
+	int32 MaxEffectChainChannels;
+	
+	/** The array of free voices in this pool entry. */
+	TArray<struct IXAudio2SourceVoice*> FreeVoices;
+};
+
+/** Function to compare two WAVEFORMATEX structs */
+FORCEINLINE bool operator==(const WAVEFORMATEX& FormatA, const WAVEFORMATEX& FormatB)
+{
+	/** Unfortunately, need to compare every member of the WAVEFORMATEX struct */
+	return FormatA.cbSize 			== FormatB.cbSize &&
+			FormatA.nAvgBytesPerSec == FormatB.nAvgBytesPerSec &&
+			FormatA.nBlockAlign 	== FormatB.nBlockAlign &&
+			FormatA.nChannels 		== FormatB.nChannels &&
+			FormatA.nSamplesPerSec 	== FormatB.nSamplesPerSec &&
+			FormatA.wBitsPerSample 	== FormatB.wBitsPerSample &&
+			FormatA.wFormatTag 		== FormatB.wFormatTag;
+}
+
+
+/** This structure holds any singleton XAudio2 resources which need to be used, not just "properties" of the device. */
 struct FXAudioDeviceProperties
 {
 	// These variables are non-static to support multiple audio device instances
@@ -544,11 +574,124 @@ struct FXAudioDeviceProperties
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
+	/** Source callback to handle looping sound callbacks */
+	FXAudio2SoundSourceCallback	SourceCallback;
+	
+	/** The array of voice pools. Each pool is according to the sound format (and max effect chain channels) */
+	TArray<FSourceVoicePoolEntry*> VoicePool;
+
 	FXAudioDeviceProperties()
 		: XAudio2(nullptr)
 		, MasteringVoice(nullptr)
 		, XAudio2Dll(nullptr)
 	{
+	}
+	
+	~FXAudioDeviceProperties()
+	{
+		// Destroy all the xaudio2 voices allocated in our pools
+		for (int32 i = 0; i < VoicePool.Num(); ++i)
+		{
+			for (int32 j = 0; j < VoicePool[i]->FreeVoices.Num(); ++j)
+			{
+				IXAudio2SourceVoice* Voice = VoicePool[i]->FreeVoices[j];
+				Voice->DestroyVoice();
+			}
+		}
+
+		// Now delete all the pool entries
+		for (int32 i = 0; i < VoicePool.Num(); ++i)
+		{
+			delete VoicePool[i];
+			VoicePool[i] = nullptr;
+		}
+
+		// close hardware interfaces
+		if (MasteringVoice)
+		{
+			MasteringVoice->DestroyVoice();
+			MasteringVoice = NULL;
+		}
+
+		if (XAudio2)
+		{
+			// Force the hardware to release all references
+			XAudio2->Release();
+			XAudio2 = NULL;
+		}
+
+#if PLATFORM_WINDOWS && PLATFORM_64BITS
+		if (XAudio2Dll)
+		{
+			if (!FreeLibrary(XAudio2Dll))
+			{
+				UE_LOG(LogAudio, Warning, TEXT("Failed to free XAudio2 Dll"));
+			}
+		}
+#endif
+	}
+
+	/** Returns either a new IXAudio2SourceVoice or a recycled IXAudio2SourceVoice according to the sound format and max channel count in the voice's effect chain*/
+	void GetFreeSourceVoice(IXAudio2SourceVoice** Voice, const FPCMBufferInfo& BufferInfo, const XAUDIO2_EFFECT_CHAIN* EffectChain = nullptr, int32 MaxEffectChainChannels = 0)
+	{
+		// First find the pool for the given format
+		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
+		for (int32 i = 0; i < VoicePool.Num(); ++i)
+		{
+			if (VoicePool[i]->Format == BufferInfo.PCMFormat && VoicePool[i]->MaxEffectChainChannels == MaxEffectChainChannels)
+			{
+				VoicePoolEntry = VoicePool[i];
+				break;
+			}
+		}
+
+		// If we found a voice pool entry for this format and we have free voices
+		// then use the voice
+		if (VoicePoolEntry && VoicePoolEntry->FreeVoices.Num() > 0)
+		{
+			*Voice = VoicePoolEntry->FreeVoices.Pop(false);
+		}
+		else
+		{
+			// Create a brand new source voice with this format.
+			XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain);
+		}
+	}
+
+	/** Releases the voice into a pool of free voices according to the voice format and the max effect chain channels */
+	void ReleaseSourceVoice(IXAudio2SourceVoice* Voice, const FPCMBufferInfo& BufferInfo, const int32 MaxEffectChainChannels)
+	{
+		// Make sure the voice is stopped
+		Voice->Stop();
+
+		// And make sure there's no audio remaining the voice so when it's re-used it's fresh.
+		Voice->FlushSourceBuffers();
+
+		// See if there is an existing pool for this source voice
+		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
+		for (int32 i = 0; i < VoicePool.Num(); ++i)
+		{
+			if (VoicePool[i]->Format == BufferInfo.PCMFormat && VoicePool[i]->MaxEffectChainChannels == MaxEffectChainChannels)
+			{
+				VoicePoolEntry = VoicePool[i];
+				break;
+			}
+		}
+
+		// If we found a voice pool entry for this voice, add the voice to the list of free voices
+		if (VoicePoolEntry)
+		{
+			VoicePoolEntry->FreeVoices.Add(Voice);
+		}
+		else
+		{
+			// Otherwise We need to make a new voice pool entry with this format and max effect chain channels
+			VoicePoolEntry = new FSourceVoicePoolEntry();
+			VoicePoolEntry->Format = BufferInfo.PCMFormat;
+			VoicePoolEntry->FreeVoices.Add(Voice);
+			VoicePoolEntry->MaxEffectChainChannels = MaxEffectChainChannels;
+			VoicePool.Add(VoicePoolEntry);
+		}
 	}
 };
 

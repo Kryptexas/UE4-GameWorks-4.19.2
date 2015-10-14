@@ -4,14 +4,15 @@
 #include "MovieSceneVectorTrackInstance.h"
 #include "MovieSceneVectorTrack.h"
 
+
 FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVectorTrack& InVectorTrack )
 {
 	VectorTrack = &InVectorTrack;
-
 	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( VectorTrack->GetPropertyName(), VectorTrack->GetPropertyPath() ) );
 }
 
-void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+
+void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
@@ -40,7 +41,8 @@ void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeOb
 	}
 }
 
-void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+
+void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
@@ -55,27 +57,27 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 			case 2:
 			{
 				FVector2D *VectorValue = InitVector2DMap.Find(Object);
-				if (VectorValue != NULL)
+				if (VectorValue != nullptr)
 				{
-					PropertyBindings->CallFunction(Object, VectorValue);
+					PropertyBindings->CallFunction<FVector2D>(Object, VectorValue);
 				}
 				break;
 			}
 			case 3:
 			{
 				FVector *VectorValue = InitVector3DMap.Find(Object);
-				if (VectorValue != NULL)
+				if (VectorValue != nullptr)
 				{
-					PropertyBindings->CallFunction(Object, VectorValue);
+					PropertyBindings->CallFunction<FVector2D>(Object, VectorValue);
 				}
 				break;
 			}
 			case 4:
 			{
 				FVector4 *VectorValue = InitVector4DMap.Find(Object);
-				if (VectorValue != NULL)
+				if (VectorValue != nullptr)
 				{
-					PropertyBindings->CallFunction(Object, VectorValue);
+					PropertyBindings->CallFunction<FVector2D>(Object, VectorValue);
 				}
 				break;
 			}
@@ -84,6 +86,7 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }
+
 
 void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -98,7 +101,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 				FVector2D Value(Vector.X, Vector.Y);
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction(Object, &Value);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Value);
 				}
 				break;
 			}
@@ -107,7 +110,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 				FVector Value(Vector.X, Vector.Y, Vector.Z);
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction(Object, &Value);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Value);
 				}
 				break;
 			}
@@ -115,12 +118,12 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 			{
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction(Object, &Vector);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Vector);
 				}
 				break;
 			}
 			default:
-				UE_LOG(LogSequencerRuntime, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
+				UE_LOG(LogMovieScene, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
 				break;
 		}
 		

@@ -305,6 +305,8 @@ void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys(class UInputComp
 			InputComponent->BindKey(EKeys::Add, IE_Released, this, &UGameplayDebuggingControllerComponent::CycleDetailsView);
 		}
 		InputComponent->BindKey(FInputChord(EKeys::Tab, false, false, false, false), IE_Released, this, &UGameplayDebuggingControllerComponent::ToggleDebugCamera);
+		InputComponent->BindKey(FInputChord(EKeys::Tab, false, true, false, false), IE_Released, this, &UGameplayDebuggingControllerComponent::ToggleOnScreenDebugMessages);
+		InputComponent->BindKey(FInputChord(EKeys::Tilde, false, true, false, false), IE_Released, this, &UGameplayDebuggingControllerComponent::ToggleGameHUD);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -432,6 +434,32 @@ void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 		}
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void UGameplayDebuggingControllerComponent::ToggleOnScreenDebugMessages()
+{
+	if (!bToolActivated || PlayerOwner == nullptr)
+	{
+		return;
+	}
+
+	if (GEngine)
+	{
+		GEngine->bEnableOnScreenDebugMessages = !GEngine->bEnableOnScreenDebugMessages;
+	}
+}
+
+void UGameplayDebuggingControllerComponent::ToggleGameHUD()
+{
+	if (!bToolActivated || PlayerOwner == nullptr)
+	{
+		return;
+	}
+
+	if (AHUD* const GameHUD = PlayerOwner->GetHUD())
+	{
+		GameHUD->bShowHUD = !GameHUD->bShowHUD;
+	}
 }
 
 void UGameplayDebuggingControllerComponent::ToggleDebugCamera()

@@ -232,9 +232,6 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 		{
 			checkf(false, TEXT("Interface property tried to serialize a missing interface.  Did you remove a native class and not fully recompile?"));
 		}
-
-		int32 a = 0;
-		++a;
  	}
 }
 
@@ -258,6 +255,13 @@ void UInterfaceProperty::SetInterfaceClass(UClass* NewInterfaceClass)
 bool UInterfaceProperty::SameType(const UProperty* Other) const
 {
 	return Super::SameType(Other) && (InterfaceClass == ((UInterfaceProperty*)Other)->InterfaceClass);
+}
+
+void UInterfaceProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UInterfaceProperty* This = CastChecked<UInterfaceProperty>(InThis);
+	Collector.AddReferencedObject(This->InterfaceClass, This);
+	Super::AddReferencedObjects(This, Collector);
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UInterfaceProperty, UProperty,

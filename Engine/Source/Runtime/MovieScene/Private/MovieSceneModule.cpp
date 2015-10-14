@@ -1,27 +1,24 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieScenePrivatePCH.h"
-#include "ModuleManager.h"
-#include "MovieScene.h"
-#include "MovieSceneBindings.h"
-#include "RuntimeMovieScenePlayer.h"
 
 
-DEFINE_LOG_CATEGORY(LogSequencerRuntime);
+DEFINE_LOG_CATEGORY(LogMovieScene);
 
 
 /**
- * MovieScene module implementation (private)
+ * MovieScene module implementation.
  */
 class FMovieSceneModule
 	: public IMovieSceneModule
 {
 public:
 
-	/** IModuleInterface */
+	// IModuleInterface interface
+
 	virtual void StartupModule() override { }
 	virtual void ShutdownModule() override { }
 };
 
 
-IMPLEMENT_MODULE( FMovieSceneModule, MovieScene );
+IMPLEMENT_MODULE(FMovieSceneModule, MovieScene);

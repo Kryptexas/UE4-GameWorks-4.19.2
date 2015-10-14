@@ -1574,18 +1574,37 @@ float FMath::GetTForSegmentPlaneIntersect(const FVector& StartPoint, const FVect
 	return ( Plane.W - (StartPoint|Plane) ) / ( (EndPoint - StartPoint)|Plane);	
 }
 
-bool FMath::SegmentPlaneIntersection(const FVector& StartPoint, const FVector& EndPoint, const FPlane& Plane, FVector& out_IntersectPoint)
+bool FMath::SegmentPlaneIntersection(const FVector& StartPoint, const FVector& EndPoint, const FPlane& Plane, FVector& out_IntersectionPoint)
 {
-	float T = FMath::GetTForSegmentPlaneIntersect(StartPoint,EndPoint,Plane);
+	float T = FMath::GetTForSegmentPlaneIntersect(StartPoint, EndPoint, Plane);
 	// If the parameter value is not between 0 and 1, there is no intersection
-	if( T > -KINDA_SMALL_NUMBER && T < 1.f+KINDA_SMALL_NUMBER )
+	if (T > -KINDA_SMALL_NUMBER && T < 1.f + KINDA_SMALL_NUMBER)
 	{
-		out_IntersectPoint = StartPoint + T * (EndPoint - StartPoint);
+		out_IntersectionPoint = StartPoint + T * (EndPoint - StartPoint);
 		return true;
 	}
 	return false;
 }
 
+bool FMath::SegmentIntersection2D(const FVector& SegmentStartA, const FVector& SegmentEndA, const FVector& SegmentStartB, const FVector& SegmentEndB, FVector& out_IntersectionPoint)
+{
+	const FVector VectorA = SegmentEndA - SegmentStartA;
+	const FVector VectorB = SegmentEndB - SegmentStartB;
+
+	const float S = (-VectorA.Y * (SegmentStartA.X - SegmentStartB.X) + VectorA.X * (SegmentStartA.Y - SegmentStartB.Y)) / (-VectorB.X * VectorA.Y + VectorA.X * VectorB.Y);
+	const float T = (VectorB.X * (SegmentStartA.Y - SegmentStartB.Y) - VectorB.Y * (SegmentStartA.X - SegmentStartB.X)) / (-VectorB.X * VectorA.Y + VectorA.X * VectorB.Y);
+
+	const bool bIntersects = (S >= 0 && S <= 1 && T >= 0 && T <= 1);
+
+	if (bIntersects)
+	{
+		out_IntersectionPoint.X = SegmentStartA.X + (T * VectorA.X);
+		out_IntersectionPoint.Y = SegmentStartA.Y + (T * VectorA.Y);
+		out_IntersectionPoint.Z = SegmentStartA.Z + (T * VectorA.Z);
+	}
+
+	return bIntersects;
+}
 
 /**
  * Compute the screen bounds of a point light along one axis.

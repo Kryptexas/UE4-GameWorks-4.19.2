@@ -644,11 +644,14 @@ namespace UnrealBuildTool
 		}
 
 		private static Dictionary<Object,StringBuilder> SSHOutputMap = new Dictionary<object,StringBuilder>();
+		private static System.Threading.Mutex DictionaryLock = new System.Threading.Mutex();
 		static public void OutputReceivedForSSH(Object Sender, DataReceivedEventArgs Line)
 		{
 			if ((Line != null) && (Line.Data != null) && (Line.Data != ""))
 			{
+				DictionaryLock.WaitOne();
 				StringBuilder SSHOutput = SSHOutputMap[Sender];
+				DictionaryLock.ReleaseMutex();
 				if (SSHOutput.Length != 0)
 				{
 					SSHOutput.Append(Environment.NewLine);
@@ -786,7 +789,7 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" '{2}' {3}@{4}:'{1}/{5}'",
+				"-zae \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" --chmod=ug=rwX,o=rxX '{2}' {3}@{4}:'{1}/{5}'",
 				ResolvedRsyncAuthentication,
 				RemoteDir,
 				ConvertPathToCygwin(LocalPath),
@@ -890,7 +893,9 @@ namespace UnrealBuildTool
 			Hashtable Return = new Hashtable();
 
 			// add this process to the map
+			DictionaryLock.WaitOne();
 			SSHOutputMap[SSHProcess] = new StringBuilder("");
+			DictionaryLock.ReleaseMutex();
 			SSHProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
 			SSHProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
 
@@ -899,10 +904,12 @@ namespace UnrealBuildTool
 			Console.WriteLine("Execute took {0}", (DateTime.Now - Start).ToString());
 
 			// now we have enough to fill out the HashTable
+			DictionaryLock.WaitOne();
 			Return["CommandOutput"] = SSHOutputMap[SSHProcess].ToString();
 			Return["ExitCode"] = (object)ExitCode;
 
 			SSHOutputMap.Remove(SSHProcess);
+			DictionaryLock.ReleaseMutex();
 
 			return Return;
 		}

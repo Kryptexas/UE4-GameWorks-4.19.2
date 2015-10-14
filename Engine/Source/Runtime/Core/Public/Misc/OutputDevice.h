@@ -384,6 +384,12 @@ struct CORE_API FMsg
  **/
 struct CORE_API FDebug
 {
+	/** Conditionally emits a special UAT marker. */
+	static void ConditionallyEmitBeginCrashUATMarker();
+
+	/** Conditionally emits a special UAT marker. */
+	static void ConditionallyEmitEndCrashUATMarker();
+
 	/** Logs final assert message and exits the program. */
 	static void VARARGS AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);
 

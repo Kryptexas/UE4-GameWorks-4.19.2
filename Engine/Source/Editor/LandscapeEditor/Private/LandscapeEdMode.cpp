@@ -178,7 +178,6 @@ FEdModeLandscape::FEdModeLandscape()
 	InitializeTool_Paint();
 	InitializeTool_Smooth();
 	InitializeTool_Flatten();
-	InitializeTool_Ramp();
 	InitializeTool_Erosion();
 	InitializeTool_HydraErosion();
 	InitializeTool_Noise();
@@ -193,6 +192,8 @@ FEdModeLandscape::FEdModeLandscape()
 	InitializeTool_CopyPaste();
 	InitializeTool_Visibility();
 	InitializeTool_Splines();
+	InitializeTool_Ramp();
+	InitializeTool_Mirror();
 
 	CurrentTool = nullptr;
 	CurrentToolIndex = INDEX_NONE;
@@ -269,6 +270,7 @@ void FEdModeLandscape::InitializeToolModes()
 	ToolMode_Sculpt->ValidTools.Add(TEXT("Visibility"));
 	ToolMode_Sculpt->ValidTools.Add(TEXT("Mask"));
 	ToolMode_Sculpt->ValidTools.Add(TEXT("CopyPaste"));
+	ToolMode_Sculpt->ValidTools.Add(TEXT("Mirror"));
 
 	FLandscapeToolMode* ToolMode_Paint = new(LandscapeToolModes)FLandscapeToolMode(TEXT("ToolMode_Paint"), ELandscapeToolTargetTypeMask::Weightmap);
 	ToolMode_Paint->ValidTools.Add(TEXT("Paint"));
@@ -582,6 +584,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		if (CurrentTool)
 		{
 			CurrentTool->EndTool(ViewportClient);
+			Viewport->CaptureMouse(false);
 			bToolActive = false;
 		}
 	}
@@ -1209,7 +1212,12 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 						}
 						else
 						{
+							Viewport->CaptureMouse(true);
 							bToolActive = CurrentTool->BeginTool(ViewportClient, CurrentToolTarget, HitLocation);
+							if (!bToolActive)
+							{
+								Viewport->CaptureMouse(false);
+							}
 							return bToolActive;
 						}
 					}
@@ -1226,6 +1234,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 				//Set the cursor position to that of the slate cursor so it wont snap back
 				Viewport->SetPreCaptureMousePosFromSlateCursor();
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 				return true;
 			}
@@ -1289,6 +1298,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 			}
 
@@ -1305,6 +1315,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 			}
 

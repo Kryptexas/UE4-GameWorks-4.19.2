@@ -5,35 +5,43 @@
 #include "MovieSceneSection.h"
 #include "MovieSceneParticleSection.generated.h"
 
+
 /**
- * The kind of key this particle section is
- */
+* Defines the types of particle keys.
+*/
 UENUM()
 namespace EParticleKey
 {
 	enum Type
 	{
-		Toggle,
-		Trigger
+		Active = 0,
+		Inactive = 1,
 	};
 }
 
+
 /**
- * Particle section, for particle toggling and triggering
+ * Particle section, for particle toggling and triggering.
  */
-UCLASS( MinimalAPI )
-class UMovieSceneParticleSection : public UMovieSceneSection
+UCLASS(MinimalAPI)
+class UMovieSceneParticleSection
+	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
-public:
-	/** Sets this section's key type*/
-	void SetKeyType(EParticleKey::Type InKeyType) {KeyType = InKeyType;}
 
-	/** Gets the key type for this section */
-	EParticleKey::Type GetKeyType() {return KeyType;}
-	
+	void AddKey(float Time, EParticleKey::Type KeyType);
+
+	MOVIESCENETRACKS_API FIntegralCurve& GetParticleCurve();
+
+	/**
+	* UMovieSceneSection interface
+	*/
+	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
+	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles ) override;
+	virtual void GetKeyHandles( TSet<FKeyHandle>& KeyHandles ) const override;
+
 private:
-	/** The way this particle key will operate */
-	UPROPERTY()
-	TEnumAsByte<EParticleKey::Type> KeyType;
+	/** Curve containing the particle keys. */
+	UPROPERTY(EditAnywhere, Category="Particles")
+	FIntegralCurve ParticleKeys;
 };

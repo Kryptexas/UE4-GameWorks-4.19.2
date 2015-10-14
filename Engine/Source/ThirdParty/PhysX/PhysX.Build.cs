@@ -134,7 +134,6 @@ public class PhysX : ModuleRules
 
 			string[] RuntimeDependenciesX64 = new string[] {
 				"PhysX3{0}_x64.dll",
-				"PhysX3Gpu{0}_x64.dll",
 				"PhysX3Common{0}_x64.dll",
 				"PhysX3Cooking{0}_x64.dll",
 			};
@@ -156,7 +155,6 @@ public class PhysX : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "PhysXDevice64.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
@@ -184,7 +182,6 @@ public class PhysX : ModuleRules
 
 			string[] RuntimeDependenciesX86 = new string[] {
 				"PhysX3{0}_x86.dll",
-				"PhysX3Gpu{0}_x86.dll",
 				"PhysX3Common{0}_x86.dll",
 				"PhysX3Cooking{0}_x86.dll",
 			};
@@ -206,7 +203,6 @@ public class PhysX : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "PhysXDevice.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -219,7 +215,6 @@ public class PhysX : ModuleRules
 				PhysXLibDir + "/libLowLevel{0}.a",
 				PhysXLibDir + "/libLowLevelCloth{0}.a",
 				PhysXLibDir + "/libPhysX3{0}.a",
-				PhysXLibDir + "/libPhysX3CharacterKinematic{0}.a",
 				PhysXLibDir + "/libPhysX3Extensions{0}.a",
 				PhysXLibDir + "/libPhysX3Cooking{0}.a",
 				PhysXLibDir + "/libPhysX3Common{0}.a",
@@ -249,7 +244,6 @@ public class PhysX : ModuleRules
 				"LowLevel{0}",
 				"LowLevelCloth{0}",
 				"PhysX3{0}",
-				"PhysX3CharacterKinematic{0}",
 				"PhysX3Extensions{0}",
 				// "PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
@@ -265,7 +259,11 @@ public class PhysX : ModuleRules
 			// the "shipping" don't need the nvTools library
 			if (LibraryMode != PhysXLibraryMode.Shipping || !bShippingBuildsActuallyUseShippingPhysXLibraries)
 			{
-				PublicAdditionalLibraries.Add("nvToolsExt");
+				// use for profiling, but crash handler won't work
+//				PublicAdditionalLibraries.Add("nvToolsExt");
+
+				// disables profiling, crash handler will work
+				PublicAdditionalLibraries.Add("nvToolsExtStub");
 			}
 
 			foreach (string Lib in StaticLibrariesAndroid)
@@ -285,7 +283,6 @@ public class PhysX : ModuleRules
 				"LowLevel{0}",
 				"LowLevelCloth{0}",
 				"PhysX3{0}",
-				"PhysX3CharacterKinematic{0}",
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
 				"PhysX3Common{0}",
@@ -321,7 +318,6 @@ public class PhysX : ModuleRules
                     "LowLevel",
                     "LowLevelCloth",
 					"PhysX3",
-					"PhysX3CharacterKinematic",
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
@@ -352,7 +348,6 @@ public class PhysX : ModuleRules
                     "LowLevel",
                     "LowLevelCloth",
 					"PhysX3",
-					"PhysX3CharacterKinematic",
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",

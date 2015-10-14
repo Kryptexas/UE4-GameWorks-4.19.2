@@ -151,6 +151,7 @@ const FKey EKeys::A_AccentGrave("A_AccentGrave");
 const FKey EKeys::E_AccentGrave("E_AccentGrave");
 const FKey EKeys::E_AccentAigu("E_AccentAigu");
 const FKey EKeys::C_Cedille("C_Cedille");
+const FKey EKeys::Section("Section");
 
 
 // Setup platform specific keys
@@ -271,11 +272,15 @@ const FKey EKeys::MotionController_Right_Thumbstick_Right("MotionController_Righ
 const FKey EKeys::MotionController_Left_Thumbstick_X("MotionController_Left_Thumbstick_X");
 const FKey EKeys::MotionController_Left_Thumbstick_Y("MotionController_Left_Thumbstick_Y");
 const FKey EKeys::MotionController_Left_TriggerAxis("MotionController_Left_TriggerAxis");
+const FKey EKeys::MotionController_Left_Grip1Axis( "MotionController_Left_Grip1Axis" );
+const FKey EKeys::MotionController_Left_Grip2Axis( "MotionController_Left_Grip2Axis" );
 
 //		Right Controller
 const FKey EKeys::MotionController_Right_Thumbstick_X("MotionController_Right_Thumbstick_X");
 const FKey EKeys::MotionController_Right_Thumbstick_Y("MotionController_Right_Thumbstick_Y");
 const FKey EKeys::MotionController_Right_TriggerAxis("MotionController_Right_TriggerAxis");
+const FKey EKeys::MotionController_Right_Grip1Axis( "MotionController_Right_Grip1Axis" );
+const FKey EKeys::MotionController_Right_Grip2Axis( "MotionController_Right_Grip2Axis" );
 
 // PS4-specific
 const FKey EKeys::PS4_Special("PS4_Special");
@@ -507,6 +512,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::E_AccentGrave, FText::FromString(FString::Chr(232))));
 	AddKey(FKeyDetails(EKeys::E_AccentAigu, FText::FromString(FString::Chr(233))));
 	AddKey(FKeyDetails(EKeys::C_Cedille, FText::FromString(FString::Chr(231))));
+	AddKey(FKeyDetails(EKeys::Section, FText::FromString(FString::Chr(167))));
 
 
 	// Setup Gamepad keys
@@ -626,11 +632,15 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_X, LOCTEXT("MotionController_Left_Thumbstick_X", "MotionController (L) Thumbstick X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Left_Thumbstick_Y, LOCTEXT("MotionController_Left_Thumbstick_Y", "MotionController (L) Thumbstick Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Left_TriggerAxis, LOCTEXT("MotionController_Left_TriggerAxis", "MotionController (L) TriggerAxis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Grip1Axis, LOCTEXT("MotionController_Left_Grip1Axis", "MotionController (L) Grip1 Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Left_Grip2Axis, LOCTEXT("MotionController_Left_Grip2Axis", "MotionController (L) Grip2 Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	
 	//	Right Controller
 	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_X, LOCTEXT("MotionController_Right_Thumbstick_X", "MotionController (R) Thumbstick X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Right_Thumbstick_Y, LOCTEXT("MotionController_Right_Thumbstick_Y", "MotionController (R) Thumbstick Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 	AddKey(FKeyDetails(EKeys::MotionController_Right_TriggerAxis, LOCTEXT("MotionController_Right_TriggerAxis", "MotionController (R) TriggerAxis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Grip1Axis, LOCTEXT("MotionController_Right_Grip1Axis", "MotionController (R) Grip1 Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::MotionController_Right_Grip2Axis, LOCTEXT("MotionController_Right_Grip2Axis", "MotionController (R) Grip2 Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 
 	// PS4-specific
 	AddMenuCategoryDisplayInfo("PS4", LOCTEXT("PS4SubCategory", "PS4"), TEXT("GraphEditor.PadEvent_16x"));

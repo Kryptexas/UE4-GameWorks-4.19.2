@@ -310,12 +310,6 @@ protected:
 	/** Expand timeline nodes into necessary nodes */
 	void ExpandTimelineNodes(UEdGraph* SourceGraph);
 
-	/** Expand any PlayMovieScene nodes */
-	void ExpandPlayMovieSceneNodes(UEdGraph* SourceGraph);
-
-	/** Used internally by ExpandPlayMovieSceneNodes() to generate a node network to allocate a URuntimeMovieScenePlayer object instance on demand */
-	UEdGraphPin* ExpandNodesToAllocateRuntimeMovieScenePlayer( UEdGraph* SourceGraph, class UK2Node_PlayMovieScene* PlayMovieSceneNode, class ULevel* Level, class UK2Node_TemporaryVariable*& OutPlayerVariableNode );
-
 	/**
 	 * First phase of compiling a function graph
 	 *   - Performs initial validation that the graph is at least well formed enough to be processed further

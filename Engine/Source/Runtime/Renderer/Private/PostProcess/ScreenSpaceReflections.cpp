@@ -348,17 +348,19 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		// disable blend mode
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	
-		// Draw a quad mapping scene color to the view's render target to set stencil to set the stencil mask where it needs to be
-		DrawRectangle( 
+		DrawPostProcessPass(
 			Context.RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+			View.ViewRect.Min.X, View.ViewRect.Min.Y,
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			View.ViewRect.Size(),
 			SceneContext.GetBufferSizeXY(),
 			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
+
 	} // ScreenSpaceReflectionsStencil draw event
 
 	{ // ScreenSpaceReflections draw event
@@ -411,19 +413,19 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		}
 		#undef CASE
 
-
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle( 
+		DrawPostProcessPass(
 			RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+			View.ViewRect.Min.X, View.ViewRect.Min.Y,
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			View.ViewRect.Size(),
 			FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
 			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
-
+	
 		RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	} // ScreenSpaceReflections
 }

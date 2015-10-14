@@ -58,6 +58,12 @@ class UFoliageType : public UObject
 	virtual bool IsFoliageReallocationRequiredForPropertyChange(struct FPropertyChangedEvent& PropertyChangedEvent) const { return true; }
 
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	/* Notifies all relevant foliage actors that HiddenEditorView mask has been changed */
+	FOLIAGE_API void OnHiddenEditorViewMaskChanged(UWorld* InWorld);
+
+	/* Nice and clean name for user interface */
+	FOLIAGE_API FName GetDisplayFName() const;
 #endif
 
 	/* A GUID that is updated every time the foliage type is modified, 
@@ -227,6 +233,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(DisplayName="Light Map Resolution", EditCondition="bOverrideLightMapRes"))
 	int32 OverriddenLightMapRes;
 
+	/**
+	 * If enabled, foliage will render a pre-pass which allows it to occlude other primitives, and also allows 
+	 * it to correctly receive DBuffer decals. Enabling this setting may have a negative performance impact.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = InstanceSettings)
+	uint32 bUseAsOccluder : 1;
+
 	/** Custom collision for foliage */
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(HideObjectType=true))
 	struct FBodyInstance BodyInstance;
@@ -234,6 +247,10 @@ public:
 	/** Force navmesh */
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(HideObjectType=true))
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> CustomNavigableGeometry;
+
+	/** Bitflag to represent in which editor views this foliage mesh is hidden. */
+	UPROPERTY(transient)
+	uint64 HiddenEditorViews;
 
 	UPROPERTY()
 	uint32 IsSelected:1;

@@ -738,7 +738,7 @@ bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const 
 				Entry.ReadOrder = PakOrder;
 				Entry.PakFile = Pak;
 				PakFiles.Add(Entry);
-				PakFiles.Sort();
+				PakFiles.StableSort();
 			}
 			bSuccess = true;
 		}

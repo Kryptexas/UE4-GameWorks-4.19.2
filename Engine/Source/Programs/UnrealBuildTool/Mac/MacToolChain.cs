@@ -92,6 +92,7 @@ namespace UnrealBuildTool
 			Result += " -fasm-blocks";
 
 			Result += " -Wall -Werror";
+			//Result += " -Wsign-compare"; // fed up of not seeing the signed/unsigned warnings we get on Windows - lets enable them here too.
 
 			Result += " -Wno-unused-variable";
 			Result += " -Wno-unused-value";
@@ -147,6 +148,12 @@ namespace UnrealBuildTool
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
 				Result += " -gdwarf-2";
+			}
+
+			string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+			if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+			{
+				Result += " --analyze";
 			}
 
 			return Result;
@@ -435,7 +442,7 @@ namespace UnrealBuildTool
 			return 0;
 		}
 
-		private string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
+		public static string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
 		{
 			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string EngineVersionMajor = "4";
@@ -1135,6 +1142,16 @@ namespace UnrealBuildTool
 		 */
 		public FileItem GenerateDebugInfo(FileItem MachOBinary)
 		{
+			string BinaryPath = MachOBinary.AbsolutePath;
+			if(BinaryPath.Contains(".app"))
+			{
+				while(BinaryPath.Contains(".app"))
+				{
+					BinaryPath = Path.GetDirectoryName(BinaryPath);
+				}
+				BinaryPath = Path.Combine(BinaryPath, Path.GetFileName(Path.ChangeExtension(MachOBinary.AbsolutePath, ".dSYM")));
+			}
+
 			// Make a file item for the source and destination files
 			string FullDestPath = Path.ChangeExtension(MachOBinary.AbsolutePath, ".dSYM");
 
@@ -1155,15 +1172,28 @@ namespace UnrealBuildTool
 				DebugOutputMap.Add (GenDebugAction, OutputFile.AbsolutePath);
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(MacToolChain.RPCDebugInfoActionHandler);
 			}
-			GenDebugAction.WorkingDirectory = Path.GetFullPath(".");
+			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
 
 			// Deletes ay existing file on the building machine,
 			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
-				ToolchainDir,
-				InputFile.AbsolutePath,
-				DestFile.AbsolutePath);
+			if(BinaryPath == MachOBinary.AbsolutePath)
+			{
+				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
+					ToolchainDir,
+					InputFile.AbsolutePath,
+					DestFile.AbsolutePath);
+			}
+			else
+			{
+				FileItem MovedFile = FileItem.GetItemByPath(BinaryPath);
+				FileItem FinalFile = LocalToRemoteFileItem(MovedFile, false);
+				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"; mv \"{2}\" \"{3}\"'",
+					ToolchainDir,
+					InputFile.AbsolutePath,
+					DestFile.AbsolutePath,
+					FinalFile.AbsolutePath);
+			}
 			GenDebugAction.PrerequisiteItems.Add(InputFile);
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;
@@ -1186,7 +1216,7 @@ namespace UnrealBuildTool
 
 			// Make the compile action
 			Action FinalizeAppBundleAction = new Action(ActionType.CreateAppBundle);
-			FinalizeAppBundleAction.WorkingDirectory = Path.GetFullPath(".");
+			FinalizeAppBundleAction.WorkingDirectory = GetMacDevSrcRoot(); // Path.GetFullPath(".");
 			FinalizeAppBundleAction.CommandPath = "/bin/sh";
 			FinalizeAppBundleAction.CommandDescription = "";
 
@@ -1211,12 +1241,12 @@ namespace UnrealBuildTool
 		FileItem CopyBundleResource(UEBuildBundleResource Resource, FileItem Executable)
 		{
 			Action CopyAction = new Action(ActionType.CreateAppBundle);
-			CopyAction.WorkingDirectory = Path.GetFullPath(".");
+			CopyAction.WorkingDirectory = GetMacDevSrcRoot(); // Path.GetFullPath(".");
 			CopyAction.CommandPath = "/bin/sh";
 			CopyAction.CommandDescription = "";
 
 			string BundlePath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
-			string SourcePath = Path.Combine(CopyAction.WorkingDirectory, Resource.ResourcePath);
+			string SourcePath = Path.Combine(Path.GetFullPath("."), Resource.ResourcePath);
 			string TargetPath = Path.Combine(BundlePath, "Contents", Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath));
 
 			FileItem TargetItem;
@@ -1305,7 +1335,7 @@ namespace UnrealBuildTool
 			{
 				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
 				{
-					if(Path.GetExtension(Receipt.BuildProducts[i].Path) == DebugExtension)
+					if(Path.GetExtension(Receipt.BuildProducts[i].Path) == DebugExtension && Receipt.BuildProducts[i].Path.Contains(".app"))
 					{
 						Receipt.BuildProducts.RemoveAt(i--);
 					}
@@ -1313,9 +1343,15 @@ namespace UnrealBuildTool
 
 				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
 				{
-					if(Receipt.BuildProducts[i].Type == BuildProductType.Executable || Receipt.BuildProducts[i].Type == BuildProductType.DynamicLibrary)
+					if((Receipt.BuildProducts[i].Type == BuildProductType.Executable || Receipt.BuildProducts[i].Type == BuildProductType.DynamicLibrary) && Receipt.BuildProducts[i].Path.Contains(".app"))
 					{
-						Receipt.AddBuildProduct(Path.ChangeExtension(Receipt.BuildProducts[i].Path, DebugExtension), BuildProductType.SymbolFile);
+						string BinaryPath = Receipt.BuildProducts[i].Path;
+						while(BinaryPath.Contains(".app"))
+						{
+							BinaryPath = Path.GetDirectoryName(BinaryPath);
+						}
+						BinaryPath = Path.Combine(BinaryPath, Path.GetFileName(Receipt.BuildProducts[i].Path));
+						Receipt.AddBuildProduct(Path.ChangeExtension(BinaryPath, DebugExtension), BuildProductType.SymbolFile);
 					}
 				}
 			}
@@ -1431,7 +1467,30 @@ namespace UnrealBuildTool
 		{
 			foreach (UEBuildBinary Binary in Target.AppBinaries)
 			{
-				BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
+				string BinaryPath = Path.GetFullPath(Binary.ToString());
+				BuiltBinaries.Add(BinaryPath);
+
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) 
+				{
+					string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
+					if (DebugExtension == ".dsym") 
+					{
+						if (BinaryPath.Contains(".app")) 
+						{
+							string NewPath = BinaryPath;
+							while (NewPath.Contains(".app")) 
+							{
+								NewPath = Path.GetDirectoryName (NewPath);
+							}
+							NewPath = Path.Combine(NewPath, Path.GetFileName(BinaryPath));
+							BuiltBinaries.Add(Path.ChangeExtension(NewPath, DebugExtension));
+						} 
+						else 
+						{
+							BuiltBinaries.Add(Path.ChangeExtension(BinaryPath, DebugExtension));
+						}
+					}
+				}
 			}
 
 			base.PostBuildSync(Target);

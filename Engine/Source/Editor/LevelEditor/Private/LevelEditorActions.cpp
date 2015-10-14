@@ -64,6 +64,7 @@
 #include "Editor/Persona/Public/AnimationRecorder.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
+#include "MaterialShaderQualitySettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -478,8 +479,21 @@ void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel
 bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualityLevel::Type TestQualityLevel )
 {
 	static const auto MaterialQualityLevelVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MaterialQualityLevel"));
-	EMaterialQualityLevel::Type MaterialQualityLevel = (EMaterialQualityLevel::Type)FMath::Clamp(MaterialQualityLevelVar->GetValueOnGameThread(), 0, 1);
+	EMaterialQualityLevel::Type MaterialQualityLevel = (EMaterialQualityLevel::Type)FMath::Clamp(MaterialQualityLevelVar->GetValueOnGameThread(), 0, (int32)EMaterialQualityLevel::Num-1);
 	return TestQualityLevel == MaterialQualityLevel;
+}
+
+void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatform)
+{
+	UMaterialShaderQualitySettings::Get()->SetPreviewPlatform(MaterialQualityPlatform);
+
+	SetFeatureLevelPreview(ERHIFeatureLevel::ES2);
+}
+
+bool FLevelEditorActionCallbacks::IsPreviewPlatformChecked(FName MaterialQualityPlatform)
+{
+	const FName& PreviewPlatform = UMaterialShaderQualitySettings::Get()->GetPreviewPlatform();
+	return PreviewPlatform == MaterialQualityPlatform && ERHIFeatureLevel::ES2 == GetWorld()->FeatureLevel;
 }
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
@@ -1551,7 +1565,21 @@ bool FLevelEditorActionCallbacks::PasteHere_CanExecute()
 
 void FLevelEditorActionCallbacks::ExecuteExecCommand( FString Command )
 {
-	GUnrealEd->Exec( GetWorld(), *Command );
+	UWorld* OldWorld = nullptr;
+
+	// The play world needs to be selected if it exists
+	if (GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld)
+	{
+		OldWorld = SetPlayInEditorWorld(GEditor->PlayWorld);
+	}
+
+	GUnrealEd->Exec(GetWorld(), *Command);
+
+	// Restore the old world if there was one
+	if (OldWorld)
+	{
+		RestoreEditorWorld(OldWorld);
+	}
 }
 
 void FLevelEditorActionCallbacks::OnSelectAllActorsOfClass( bool bArchetype )
@@ -3011,8 +3039,13 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( FocusAllViewportsToSelection, "Focus Selected Actors in All Viewports", "Moves the camera in front of the selected actors in all open viewports", EUserInterfaceActionType::Button, FInputChord( EKeys::F, EModifierKey::Shift ) );
 
-	UI_COMMAND( MaterialQualityLevel_Low, "Low", "Sets material quality in the scene to low.", EUserInterfaceActionType::RadioButton, FInputChord() );
-	UI_COMMAND( MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND(MaterialQualityLevel_Low, "Low", "Sets material quality in the scene to low.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(MaterialQualityLevel_Medium, "Medium", "Sets material quality in the scene to medium.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputChord());
+
+	UI_COMMAND(PreviewPlatformOverride_DefaultES2, "Default Mobile / HTML5 Preview", "Use default mobile settings (no quality overrides).", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_AndroidES2, "Android Preview", "Mobile preview using Android's quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_IOSES2, "iOS ES2 Preview", "Mobile preview using iOS's OpenGL ES2 quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
 
 	UI_COMMAND( ConnectToSourceControl, "Connect to Source Control...", "Opens a dialog to connect to source control.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( ChangeSourceControlSettings, "Change Source Control Settings...", "Opens a dialog to change source control settings.", EUserInterfaceActionType::Button, FInputChord());

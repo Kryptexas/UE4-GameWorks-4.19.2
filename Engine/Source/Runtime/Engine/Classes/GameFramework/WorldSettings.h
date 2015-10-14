@@ -296,8 +296,11 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	TSubclassOf<UDamageType> KillZDamageType;
 
 	// current gravity actually being used
-	UPROPERTY(transient, replicated)
+	UPROPERTY(transient, ReplicatedUsing=OnRep_WorldGravityZ)
 	float WorldGravityZ;
+
+	UFUNCTION()
+	virtual void OnRep_WorldGravityZ();
 
 	// optional level specific gravity override set by level designer
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bGlobalGravitySet"))

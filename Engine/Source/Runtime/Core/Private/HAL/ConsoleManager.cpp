@@ -1658,13 +1658,6 @@ static TAutoConsoleVariable<int32> CVarSceneColorFringeQuality(
 
 // ---------------------------------------
 
-static TAutoConsoleVariable<int32> CVarAmbientOcclusionLevels(
-	TEXT("r.AmbientOcclusionLevels"),
-	3,
-	TEXT("Defines how many mip levels are using during the ambient occlusion calculation. This is useful when tweaking the algorithm.\n")
-	TEXT(" 0:none, 1:one, 2:two, 3:three(default), 4:four(larger at little cost but can flicker)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<float> CVarAmbientOcclusionRadiusScale(
 	TEXT("r.AmbientOcclusionRadiusScale"),
 	1.0f,
@@ -1744,7 +1737,7 @@ static TAutoConsoleVariable<float> CVarScreenPercentage(
 static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
 	TEXT("r.MaterialQualityLevel"),
 	1,
-	TEXT("0 corresponds to low quality materials, as defined by quality switches in materials, 1 corresponds to high."),
+	TEXT("0 corresponds to low quality materials, as defined by quality switches in materials, 1 corresponds to high and 2 for medium."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarUseDXT5NormalMaps(
@@ -2037,16 +2030,6 @@ static TAutoConsoleVariable<int32> CVarDetailMode(
 	TEXT(" 2: high, show all objects (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarRefractionQuality(
-	TEXT("r.RefractionQuality"),
-	2,
-	TEXT("Defines the distorion/refraction quality which allows to adjust for quality or performance.\n")
-	TEXT("<=0: off (fastest)\n")
-	TEXT("  1: low quality (not yet implemented)\n")
-	TEXT("  2: normal quality (default)\n")
-	TEXT("  3: high quality (e.g. color fringe, not yet implemented)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("r.DBuffer"),
 	0,
@@ -2120,4 +2103,4 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	TEXT("r.CheckSRVTransitions"),
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
-	ECVF_RenderThreadSafe);  
+	ECVF_RenderThreadSafe);

@@ -304,7 +304,8 @@ bool FAudioDevice::HandleListWavesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		FWaveInstance* WaveInstance = WaveInstances[ InstanceIndex ];
 		FSoundSource* Source = WaveInstanceSourceMap.FindRef( WaveInstance );
-		AActor* SoundOwner = WaveInstance->ActiveSound->AudioComponent.IsValid() ? WaveInstance->ActiveSound->AudioComponent->GetOwner() : NULL;
+		UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
+		AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
 		Ar.Logf( TEXT( "%4i.    %s %6.2f %6.2f  %s   %s"), InstanceIndex, Source ? TEXT( "Yes" ) : TEXT( " No" ), WaveInstance->ActiveSound->PlaybackTime, WaveInstance->GetActualVolume(), *WaveInstance->WaveData->GetPathName(), SoundOwner ? *SoundOwner->GetName() : TEXT("None") );
 	}
 
@@ -546,7 +547,7 @@ bool FAudioDevice::HandleListAudioComponentsCommand( const TCHAR* Cmd, FOutputDe
 	for( int32 ASIndex = 0; ASIndex < ActiveSounds.Num(); ASIndex++ )
 	{
 		const FActiveSound* ActiveSound = ActiveSounds[ASIndex];
-		UAudioComponent* AComp = ActiveSound->AudioComponent.Get();
+		UAudioComponent* AComp = ActiveSound->GetAudioComponent();
 		if( AComp )
 		{
 			Ar.Logf( TEXT( "    0x%p: %4d - %s, %s, %s, %s" ),
@@ -1705,7 +1706,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if ( !ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
-				 ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
+				 ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetPathName() : TEXT("NO COMPONENT"),
 				 *ActiveSound->DebugOriginalSoundName.ToString() ))
 			{
 				// Sound was not valid, stop playing it.
@@ -1722,7 +1723,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 						ActiveSound->PlaybackTime, 
 						Duration, 
 						*ActiveSound->Sound->GetName(), 
-						(ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT")));
+						(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
 					ActiveSound->Stop(this);
 				}
 				else
@@ -2063,9 +2064,9 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 		else
 		{
 			// TODO - Audio Threading. This call would be a task back to game thread
-			if (NewActiveSound.AudioComponent.IsValid())
+			if (UAudioComponent* AudioComponent = NewActiveSound.GetAudioComponent())
 			{
-				NewActiveSound.AudioComponent->PlaybackCompleted(true);
+				AudioComponent->PlaybackCompleted(true);
 			}
 			//UE_LOG(LogAudio, Verbose, TEXT( "   %g: MaxConcurrentPlayCount AudioComponent : '%s' with Sound: '%s' Max: %d   Curr: %d " ), NewActiveSound.World ? NewActiveSound.World->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "NULL" ), Sound->MaxConcurrentPlayCount, Sound->CurrentPlayCount );
 			return;
@@ -2075,8 +2076,10 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 
 	++NewActiveSound.Sound->CurrentPlayCount;
 
+	UAudioComponent* AudioComponent = NewActiveSound.GetAudioComponent();
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	UE_LOG(LogAudio, VeryVerbose, TEXT("New ActiveSound %s Comp: %s Loc: %s"), *NewActiveSound.Sound->GetName(), (NewActiveSound.AudioComponent.IsValid() ? *NewActiveSound.AudioComponent->GetFullName() : TEXT("No AudioComponent")), *NewActiveSound.Transform.GetTranslation().ToString() );
+	UE_LOG(LogAudio, VeryVerbose, TEXT("New ActiveSound %s Comp: %s Loc: %s"), *NewActiveSound.Sound->GetName(), (AudioComponent ? *AudioComponent->GetFullName() : TEXT("No AudioComponent")), *NewActiveSound.Transform.GetTranslation().ToString() );
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	FActiveSound* ActiveSound = new FActiveSound(NewActiveSound);
@@ -2084,14 +2087,14 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 	if (ActiveSound->Sound)
 	{
 		if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("AddNewActiveSound with INVALID sound. AudioComponent=%s"),
-			ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT") ))
+			AudioComponent ? *AudioComponent->GetPathName() : TEXT("NO COMPONENT") ))
 		{
 			static FName InvalidSoundName(TEXT("INVALID_Sound"));
 			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
 		}
 		else if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
 			*ActiveSound->Sound->GetPathName(),
-			ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
+			AudioComponent ? *AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
 			(int32)ActiveSound->Sound->IsPendingKill(),
 			(int32)ActiveSound->Sound->HasAnyFlags(RF_BeginDestroyed)))
 		{
@@ -2105,6 +2108,10 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 	}
 #endif
 	ActiveSounds.Add(ActiveSound);
+	if (AudioComponent)
+	{
+		AudioComponentToActiveSoundMap.Add((UPTRINT)AudioComponent, ActiveSound);
+	}
 }
 
 void FAudioDevice::StopActiveSound( UAudioComponent* AudioComponent )
@@ -2120,27 +2127,27 @@ void FAudioDevice::StopActiveSound( UAudioComponent* AudioComponent )
 
 FActiveSound* FAudioDevice::FindActiveSound( UAudioComponent* AudioComponent )
 {
-	// find the active sound corresponding to this audiocomponent
-	for( int32 Index = 0; Index < ActiveSounds.Num(); ++Index )
+	// find the active sound corresponding to this audio component
+	if (FActiveSound** ActiveSoundPtr = AudioComponentToActiveSoundMap.Find((UPTRINT)AudioComponent))
 	{
-		FActiveSound* ActiveSound = ActiveSounds[Index];
-		if (ActiveSound->AudioComponent.IsValid(true) && ActiveSound->AudioComponent.Get() == AudioComponent)
-		{
-			return ActiveSound;
-		}
+		return *ActiveSoundPtr;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void FAudioDevice::RemoveActiveSound(FActiveSound* ActiveSound)
 {
-	// find the active sound corresponding to this audiocomponent
 	for( int32 Index = 0; Index < ActiveSounds.Num(); ++Index )
 	{
 		if (ActiveSound == ActiveSounds[Index])
 		{
+			const UPTRINT AudioComponentIndex = ActiveSound->GetAudioComponentIndex();
 			ActiveSounds.RemoveAt(Index);
+			if (AudioComponentIndex > 0)
+			{
+				AudioComponentToActiveSoundMap.Remove(AudioComponentIndex);
+			}
 			delete ActiveSound;
 			break;
 		}
@@ -2258,9 +2265,17 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 		}
 		else
 		{
-			if( WorldToFlush == nullptr || ActiveSound->World == nullptr || ActiveSound->World == WorldToFlush )
+			if (WorldToFlush == nullptr)
 			{
 				ActiveSound->Stop(this);
+			}
+			else
+			{
+				UWorld* ActiveSoundWorld = ActiveSound->World.Get();
+				if (ActiveSoundWorld == nullptr || ActiveSoundWorld == WorldToFlush)
+				{
+					ActiveSound->Stop(this);
+				}
 			}
 		}
 	}
@@ -2544,9 +2559,9 @@ void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioC
 			FWaveInstance* WaveInstance = WaveInstanceIt.Value();
 			if (WaveInstance->WaveData == SoundWave)
 			{
-				if (ActiveSound->AudioComponent.IsValid())
+				if (UAudioComponent* AudioComponent = ActiveSound->GetAudioComponent())
 				{
-					StoppedComponents.Add(ActiveSound->AudioComponent.Get());
+					StoppedComponents.Add(AudioComponent);
 				}
 				ActiveSound->Stop(this);
 				bStoppedSounds = true;

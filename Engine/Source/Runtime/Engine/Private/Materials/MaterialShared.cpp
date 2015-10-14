@@ -24,12 +24,14 @@
 
 #include "VertexFactory.h"
 #include "RendererInterface.h"
+#include "MaterialShaderQualitySettings.h"
 DEFINE_LOG_CATEGORY(LogMaterial);
 
 FName MaterialQualityLevelNames[] = 
 {
 	FName(TEXT("Low")),
 	FName(TEXT("High")),
+	FName(TEXT("Medium")),
 	FName(TEXT("Num"))
 };
 
@@ -268,7 +270,7 @@ void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& O
 	OutId.QualityLevel = GetQualityLevelForShaderMapId();
 	OutId.FeatureLevel = GetFeatureLevel();
 	OutId.SetShaderDependencies(ShaderTypes, VFTypes);
-	GetReferencedTexturesHash(OutId.TextureReferencesHash);
+	GetReferencedTexturesHash(Platform, OutId.TextureReferencesHash);
 }
 
 EMaterialTessellationMode FMaterial::GetTessellationMode() const 
@@ -1869,7 +1871,7 @@ void FMaterial::GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FS
 	OutVFTypes.Sort(FCompareVertexFactoryTypes());
 }
 
-void FMaterial::GetReferencedTexturesHash(FSHAHash& OutHash) const
+void FMaterial::GetReferencedTexturesHash(EShaderPlatform Platform, FSHAHash& OutHash) const
 {
 	FSHA1 HashState;
 
@@ -1885,6 +1887,15 @@ void FMaterial::GetReferencedTexturesHash(FSHAHash& OutHash) const
 		}
 
 		HashState.UpdateWithString(*TextureName, TextureName.Len());
+	}
+
+	// TODO:
+	// Appending the quality settings for this platform,
+	// this is being done here to avoid bumping EUnrealEngineObjectUE4Version for 4.10
+	// must be fixed for 4.11.
+	if (bHasQualityLevelUsage)
+	{
+		UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(GetQualityLevelForShaderMapId(), HashState);
 	}
 
 	HashState.Final();

@@ -1303,11 +1303,28 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 							LOCTEXT("JumpToConnection", "Jump to Connection..."),
 							LOCTEXT("JumpToSpecificConnection", "Jump to specific connection..."),
 							FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
+
+						MenuBuilder->AddSubMenu(
+							LOCTEXT("StraightenConnection", "Straighten Connection To..."),
+							LOCTEXT("StraightenConnection_Tip", "Straighten a specific connection"),
+							FNewMenuDelegate::CreateUObject( this, &UEdGraphSchema_K2::GetStraightenConnectionToSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
 					}
 					else
 					{
 						((UEdGraphSchema_K2*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
 						((UEdGraphSchema_K2*const)this)->GetJumpToConnectionSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
+						
+						UEdGraphPin* Pin = InGraphPin->LinkedTo[0];
+						FText PinName = Pin->GetDisplayName();
+						FText NodeName = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+
+						MenuBuilder->AddMenuEntry(
+							FGraphEditorCommands::Get().StraightenConnections,
+							NAME_None,
+							FText::Format(LOCTEXT("StraightenDescription_SinglePin", "Straighten Connection to {0} ({1})"), NodeName, PinName),
+							FText::Format(LOCTEXT("StraightenDescription_SinglePin_Node_Tip", "Straighten the connection between this pin, and {0} ({1})"), NodeName, PinName),
+							FSlateIcon(NAME_None, NAME_None, NAME_None)
+						);
 					}
 				}
 	
@@ -1487,7 +1504,27 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteSelectionToFunction );
 						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteSelectionToMacro );
 					}
+
+					MenuBuilder->AddSubMenu(LOCTEXT("AlignmentHeader", "Alignment"), FText(), FNewMenuDelegate::CreateLambda([](FMenuBuilder& InMenuBuilder){
+						
+						InMenuBuilder.BeginSection("EdGraphSchemaAlignment", LOCTEXT("AlignHeader", "Align"));
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesTop );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesMiddle );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesBottom );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesLeft );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesCenter );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().AlignNodesRight );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().StraightenConnections );
+						InMenuBuilder.EndSection();
+
+						InMenuBuilder.BeginSection("EdGraphSchemaDistribution", LOCTEXT("DistributionHeader", "Distribution"));
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().DistributeNodesHorizontally );
+						InMenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().DistributeNodesVertically );
+						InMenuBuilder.EndSection();
+						
+					}));
 				}
+				
 				MenuBuilder->EndSection();
 			}
 
@@ -1804,6 +1841,63 @@ void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& M
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
 		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnObject, Cast<const UObject>(PinLink), false)));
+	}
+}
+
+// todo: this is a long way off ideal, but we can't pass context from our menu items onto the graph panel implementation
+// It'd be better to be able to pass context through to menu/ui commands
+namespace { UEdGraphPin* StraightenDestinationPin = nullptr; }
+UEdGraphPin* UEdGraphSchema_K2::GetAndResetStraightenDestinationPin()
+{
+	UEdGraphPin* Temp = StraightenDestinationPin;
+	StraightenDestinationPin = nullptr;
+	return Temp;
+}
+
+void UEdGraphSchema_K2::GetStraightenConnectionToSubMenuActions( class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin ) const
+{
+	auto MenuCommandList = MenuBuilder.GetTopCommandList();
+	if(!ensure(MenuCommandList.IsValid()))
+	{
+		return;
+	}
+
+	// Make sure we have a unique name for every entry in the list
+	TMap<FString, uint32> LinkTitleCount;
+
+	TMap<UEdGraphNode*, TArray<UEdGraphPin*>> NodeToPins;
+
+	for (UEdGraphPin* Pin : InGraphPin->LinkedTo)
+	{
+		UEdGraphNode* Node = Pin->GetOwningNode();
+		if (Node)
+		{
+			NodeToPins.FindOrAdd(Node).Add(Pin);
+		}
+	}
+
+	MenuBuilder.AddMenuEntry( FGraphEditorCommands::Get().StraightenConnections,
+		NAME_None, LOCTEXT("StraightenAllConnections", "All Connected Pins"),
+		TAttribute<FText>(), FSlateIcon(NAME_None, NAME_None, NAME_None) );
+
+	for (auto& Pair : NodeToPins)
+	{
+		FText NodeName = Pair.Key->GetNodeTitle(ENodeTitleType::ListView);
+		for (UEdGraphPin* Pin : Pair.Value)
+		{
+			FText PinName = Pin->GetDisplayName();
+			MenuBuilder.AddMenuEntry(
+				FText::Format(LOCTEXT("StraightenDescription_Node", "{0} ({1})"), NodeName, Pin->GetDisplayName()),
+				FText::Format(LOCTEXT("StraightenDescription_Node_Tip", "Straighten the connection between this pin, and {0} ({1})"), NodeName, Pin->GetDisplayName()),
+				FSlateIcon(),
+				FExecuteAction::CreateLambda([=]{
+				if (const FUIAction* UIAction = MenuCommandList->GetActionForCommand(FGraphEditorCommands::Get().StraightenConnections))
+				{
+					StraightenDestinationPin = Pin;
+					UIAction->ExecuteAction.Execute();
+				}
+			}));
+		}
 	}
 }
 

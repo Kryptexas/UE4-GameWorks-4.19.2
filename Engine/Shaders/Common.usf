@@ -720,9 +720,9 @@ MaterialFloat3 RGBTDecode8BPC(MaterialFloat4 RGBT, MaterialFloat Range)
 	return RGBT.rgb * RGBT.a;
 }
 
-#define HDR_ENCODE_NONE 0.0
-#define HDR_ENCODE_MOSAIC 1.0
-#define HDR_ENCODE_RGBA 2.0
+#define HDR_ENCODE_NONE 0.0		// 64bpp HDR
+#define HDR_ENCODE_MOSAIC 1.0	// 32bpp HDR using Mosaic encoding
+#define HDR_ENCODE_RGBA 2.0		// 32bpp HDR using RGBA encoding
 
 float GetHDR32bppEncodeMode()
 {

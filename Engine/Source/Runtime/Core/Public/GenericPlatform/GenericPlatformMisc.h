@@ -761,6 +761,26 @@ public:
 	}
 
 	/*
+	 * Resets the gamepad to player controller id assignments
+	 */
+	static void ResetGamepadAssignments()
+	{}
+
+	/*
+	* Resets the gamepad assignment to player controller id
+	*/
+	static void ResetGamepadAssignmentToController(int32 ControllerId)
+	{}
+
+	/*
+	 * Returns true if controller id assigned to a gamepad
+	 */
+	static bool IsControllerAssignedToGamepad(int32 ControllerId)
+	{
+		return (ControllerId == 0);
+	}
+
+	/*
 	 * Set whether the volume buttons are handled by the system
 	 */
 	static void SetVolumeButtonsHandledBySystem(bool enabled)

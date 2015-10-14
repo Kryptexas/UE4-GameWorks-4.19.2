@@ -13,7 +13,7 @@ FMovieSceneBoolTrackInstance::FMovieSceneBoolTrackInstance( UMovieSceneBoolTrack
 }
 
 
-void FMovieSceneBoolTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneBoolTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -23,7 +23,7 @@ void FMovieSceneBoolTrackInstance::SaveState(const TArray<UObject*>& RuntimeObje
 }
 
 
-void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -33,9 +33,10 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 		}
 
 		bool *BoolValue = InitBoolMap.Find(Object);
-		if (BoolValue != NULL)
+
+		if (BoolValue != nullptr)
 		{
-			PropertyBindings->CallFunction(Object, BoolValue);
+			PropertyBindings->CallFunction<bool>(Object, BoolValue);
 		}
 	}
 
@@ -46,11 +47,12 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	bool BoolValue = false;
+
 	if( BoolTrack->Eval( Position, LastPosition, BoolValue ) )
 	{
 		for( UObject* Object : RuntimeObjects )
 		{
-			PropertyBindings->CallFunction( Object, &BoolValue );
+			PropertyBindings->CallFunction<bool>( Object, &BoolValue );
 		}
 	}
 }

@@ -69,10 +69,10 @@ public:
 	virtual void AppendCommands( const TSharedRef<FUICommandList>& InCommandsToAppend ) override;
 
 	/**
-	 * Given a tab ID, summons a new tab in the tab stack specified.
-	 * If SummonInStack is null, use the default location
+	 * Given a tab ID, summons a new tab in the position saved in the current layout, or in a default position.
+	 * @return the invoked tab
 	 */
-	void InvokeTab( FName TabID );
+	TSharedRef<SDockTab> InvokeTab( FName TabID );
 
 	/**
 	 * Sync the details panel to the current selection
@@ -229,8 +229,7 @@ private:
 	/** List of all actor details panels to update when selection changes */
 	TArray< TWeakPtr<class SActorDetails> > AllActorDetailPanels;
 
-	/** Attached sequencer info */
-	TSharedPtr<SDockTab> SequencerTab;
+	/** Attached sequencer asset editor */
 	TWeakPtr<IAssetEditorInstance> SequencerAssetEditor;
 };
 

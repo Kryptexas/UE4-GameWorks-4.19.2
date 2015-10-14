@@ -254,6 +254,11 @@ ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
 
 struct FAndroidES31OpenGL : public FOpenGLES31
 {
+	static FORCEINLINE EShaderPlatform GetShaderPlatform()
+	{
+		return bES2Fallback ? SP_OPENGL_ES2_ANDROID : SP_OPENGL_ES31_EXT;
+	}
+
 	static FORCEINLINE void InitDebugContext()
 	{
 		bDebugContext = glIsEnabled( GL_DEBUG_OUTPUT_KHR) != GL_FALSE;

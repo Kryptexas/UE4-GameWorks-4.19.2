@@ -31,7 +31,18 @@ if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 echo path="%path%"
 
+rem ## Check for Visual Studio 2015
+
+pushd %~dp0
+call GetVSComnToolsPath 14
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
 rem ## Check for Visual Studio 2013
+:NoVisualStudio2015Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 12
@@ -88,7 +99,7 @@ echo RunUAT.bat ERROR: The batch file does not appear to be located in the /Engi
 goto Exit_Failure
 
 :Error_NoVisualStudioEnvironment
-echo RunUAT.bat ERROR: A valid version of Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
+echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 or Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
 goto Exit_Failure
 
 :Error_NoFallbackExecutable

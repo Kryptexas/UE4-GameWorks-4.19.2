@@ -3,7 +3,7 @@
 #include "AssetRegistryPCH.h"
 
 #define MAX_FILES_TO_PROCESS_BEFORE_FLUSH 250
-#define CACHE_SERIALIZATION_VERSION 4
+#define CACHE_SERIALIZATION_VERSION 5
 
 FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous, bool bInLoadAndSaveCache)
 	: StopTaskCounter( 0 )
@@ -190,17 +190,30 @@ uint32 FAssetDataGatherer::Run()
 
 						if ( bLoadAndSaveCache )
 						{
-							// Update the cache
-							const FName PackageName = FName(*FPackageName::FilenameToLongPackageName(AssetFile));
-							const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
-							FDiskCachedAssetData* NewData = new FDiskCachedAssetData(PackageName, FileTimestamp);
-							for ( auto AssetIt = AssetDataFromFile.CreateConstIterator(); AssetIt; ++AssetIt )
+							// don't store info on cooked packages
+							bool bIsCooked = false;
+							for (const auto& AssetData : AssetDataFromFile)
 							{
-								NewData->AssetDataList.Add((*AssetIt)->ToAssetData());
+								bIsCooked |= AssetData->IsCooked();
+								if (bIsCooked)
+								{
+									break;
+								}
 							}
-							NewData->DependencyData = DependencyData;
-							NewCachedAssetData.Add(NewData);
-							NewCachedAssetDataMap.Add(PackageName, NewData);
+							if (bIsCooked == false)
+							{
+								// Update the cache
+								const FName PackageName = FName(*FPackageName::FilenameToLongPackageName(AssetFile));
+								const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
+								FDiskCachedAssetData* NewData = new FDiskCachedAssetData(PackageName, FileTimestamp);
+								for (auto AssetIt = AssetDataFromFile.CreateConstIterator(); AssetIt; ++AssetIt)
+								{
+									NewData->AssetDataList.Add((*AssetIt)->ToAssetData());
+								}
+								NewData->DependencyData = DependencyData;
+								NewCachedAssetData.Add(NewData);
+								NewCachedAssetDataMap.Add(PackageName, NewData);
+							}
 						}
 					}
 				}
@@ -415,7 +428,66 @@ bool FAssetDataGatherer::IsValidPackageFileToRead(const FString& Filename) const
 	return false;
 }
 
-bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FBackgroundAssetData*>& AssetDataList, FPackageDependencyData& DependencyData) const
+FBackgroundAssetData* FAssetDataGatherer::CreateAssetDataFromLinkerTables(const FString& AssetFilename, uint32 InPackageFlags, const FObjectExport& AssetExport, const TArray<FObjectImport>& ImportMap, const TArray<FObjectExport>& ExportMap) const
+{
+	const FString PackageName = FPackageName::FilenameToLongPackageName(AssetFilename);
+	const FString PackagePath = FPaths::GetPath(PackageName);
+	FString GroupNames; // Not used for anything
+	TMap<FString, FString> Tags; // Not used for anything
+	TArray<int32> ChunkIDs; // Not used for anything
+
+	// We need to get the class name from the import/export maps
+	FName ObjectClassName;
+	if (AssetExport.ClassIndex.IsNull())
+	{
+		ObjectClassName = UClass::StaticClass()->GetFName();
+	}
+	else if (AssetExport.ClassIndex.IsExport())
+	{
+		const FObjectExport& ClassExport = ExportMap[AssetExport.ClassIndex.ToExport()];
+		ObjectClassName = ClassExport.ObjectName;
+	}
+	else if (AssetExport.ClassIndex.IsImport())
+	{
+		const FObjectImport& ClassImport = ImportMap[AssetExport.ClassIndex.ToImport()];
+		ObjectClassName = ClassImport.ObjectName;
+	}
+	return new FBackgroundAssetData(PackageName, PackagePath, GroupNames, AssetExport.ObjectName.ToString(), ObjectClassName.ToString(), Tags, ChunkIDs, InPackageFlags);
+}
+
+FBackgroundAssetData* FAssetDataGatherer::CreateAssetDataFromCookedPackage(const FString& AssetFilename, uint32 InPackageFlags, FPackageReader& PackageReader) const
+{
+	FString PackageName = FPackageName::FilenameToLongPackageName(AssetFilename);
+	FBackgroundAssetData* Result = nullptr;
+
+	// If the packaged is saved with the right version we have the information
+	// which of the objects in the export map as the asset.
+	// Otherwise we need to store a temp minimal data and then force load the asset
+	// to re-generate its registry data
+	if (PackageReader.IsFilterEditorOnly())
+	{
+		TArray<FObjectImport> ImportMap;
+		TArray<FObjectExport> ExportMap;		
+		PackageReader.SerializeNameMap();
+		PackageReader.SerializeImportMap(ImportMap);
+		PackageReader.SerializeExportMap(ExportMap);
+		for (FObjectExport& Export : ExportMap)
+		{
+			if (Export.bIsAsset)
+			{
+				Result = CreateAssetDataFromLinkerTables(AssetFilename, InPackageFlags, Export, ImportMap, ExportMap);
+				break;
+			}
+		}
+	}	
+	if (!Result)
+	{
+		Result = new FBackgroundAssetData(PackageName, InPackageFlags);
+	}
+	return Result;
+}
+
+bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FBackgroundAssetData*>& AssetDataList, FPackageDependencyData& DependencyData ) const
 {
 	FPackageReader PackageReader;
 
@@ -423,6 +495,15 @@ bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FBac
 	{
 		return false;
 	}
+
+	if (!!(PackageReader.GetPackageFlags() & PKG_FilterEditorOnly))
+	{
+		// Try to reconstruct asset data from the cooked package by serializing its import and export tables
+		FBackgroundAssetData* CookedPackageData = CreateAssetDataFromCookedPackage(AssetFilename, PackageReader.GetPackageFlags(), PackageReader);
+		AssetDataList.Add(CookedPackageData);
+		return true;
+	}
+
 
 	if ( !PackageReader.ReadAssetRegistryData(AssetDataList) )
 	{

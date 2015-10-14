@@ -19,10 +19,6 @@ typedef uint16 FBoneIndexType;
 
 #include "ReferenceSkeleton.h"
 
-// Define that controls showing chart of distance factors for skel meshes during entire run of the game on exit.
-#define CHART_DISTANCE_FACTORS 0
-
-
 class FRawStaticIndexBuffer16or32Interface;
 class FPrimitiveDrawInterface;
 

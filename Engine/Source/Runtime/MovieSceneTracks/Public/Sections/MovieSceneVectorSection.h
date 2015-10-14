@@ -3,16 +3,18 @@
 #pragma once
 
 #include "MovieSceneSection.h"
-
 #include "MovieSceneVectorSection.generated.h"
+
 
 /**
  * A vector section
  */
 UCLASS(MinimalAPI )
-class UMovieSceneVectorSection : public UMovieSceneSection
+class UMovieSceneVectorSection
+	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
+
 public:
 	
 	/**
@@ -32,17 +34,19 @@ public:
 	 *
 	 * @param Time	The location in time where the key should be added
 	 * @param Value	The value of the key
+	 * @param KeyParams The keying parameters
 	 */
-	void AddKey( float Time, FName CurveName, const FVector4& Value );
+	void AddKey( float Time, FName CurveName, const FVector4& Value, FKeyParams KeyParams );
 	
 	/** 
 	 * Determines if a new key would be new data, or just a duplicate of existing data
 	 *
 	 * @param Time	The location in time where the key would be added
 	 * @param Value	The value of the new key
+	 * @param KeyParams The keying parameters
 	 * @return True if the new key would be new data, false if duplicate
 	 */
-	bool NewKeyIsNewData(float Time, const FVector4& Value) const;
+	bool NewKeyIsNewData(float Time, const FVector4& Value, FKeyParams KeyParams) const;
 
 	/** Gets one of four curves in this section */
 	FRichCurve& GetCurve(const int32& Index) { return Curves[Index]; }
@@ -54,7 +58,7 @@ public:
 	int32 GetChannelsUsed() const {return ChannelsUsed;}
 
 private:
-	void AddKeyToNamedCurve(float Time, FName CurveName, const FVector4& Value);
+	void AddKeyToNamedCurve(float Time, FName CurveName, const FVector4& Value, FKeyParams KeyParams);
 
 private:
 	/** Vector t */

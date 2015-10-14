@@ -361,7 +361,7 @@ public:
 	bool HasOverridenBaseProperties()const;
 
 	// For all materials instances, UMaterialInstance::CacheResourceShadersForRendering
-	static void AllMaterialsCacheResourceShadersForRendering();
+	ENGINE_API static void AllMaterialsCacheResourceShadersForRendering();
 
 	/** 
 	 * Determine whether this Material Instance is a child of another Material

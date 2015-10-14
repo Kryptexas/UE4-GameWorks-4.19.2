@@ -22,7 +22,6 @@ Level.cpp: Level-related functions
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #endif
-#include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "LevelUtils.h"
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
@@ -804,6 +803,11 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 
 void ULevel::CreateModelComponents()
 {
+	FScopedSlowTask SlowTask(10);
+	SlowTask.MakeDialogDelayed(3.0f);
+
+	SlowTask.EnterProgressFrame(4);
+
 	// Update the model vertices and edges.
 	Model->UpdateVertices();
 
@@ -812,66 +816,94 @@ void ULevel::CreateModelComponents()
 	// Clear the model index buffers.
 	Model->MaterialIndexBuffers.Empty();
 
-	TMap< FModelComponentKey, TArray<uint16> > ModelComponentMap;
-
-	// Sort the nodes by zone, grid cell and masked poly flags.
-	for(int32 NodeIndex = 0;NodeIndex < Model->Nodes.Num();NodeIndex++)
+	struct FNodeIndices
 	{
-		FBspNode& Node = Model->Nodes[NodeIndex];
-		FBspSurf& Surf = Model->Surfs[Node.iSurf];
+		TArray<uint16> Nodes;
+		TSet<uint16> UniqueNodes;
 
-		if(Node.NumVertices > 0)
+		FNodeIndices()
 		{
-			// Calculate the bounding box of this node.
-			FBox NodeBounds(0);
-			for(int32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
-			{
-				NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];
-			}
+			Nodes.Reserve(16);
+			UniqueNodes.Reserve(16);
+		}
 
-			// Create a sort key for this node using the grid cell containing the center of the node's bounding box.
+		void AddUnique(uint16 Index)
+		{
+			if (!UniqueNodes.Contains(Index))
+			{
+				Nodes.Add(Index);
+				UniqueNodes.Add(Index);
+			}
+		}
+	};
+
+	TMap< FModelComponentKey, FNodeIndices > ModelComponentMap;
+
+	{
+		FScopedSlowTask InnerTask(Model->Nodes.Num());
+		InnerTask.MakeDialogDelayed(3.0f);
+
+		// Sort the nodes by zone, grid cell and masked poly flags.
+		for (int32 NodeIndex = 0; NodeIndex < Model->Nodes.Num(); NodeIndex++)
+		{
+			InnerTask.EnterProgressFrame(1);
+
+			FBspNode& Node = Model->Nodes[NodeIndex];
+			FBspSurf& Surf = Model->Surfs[Node.iSurf];
+
+			if (Node.NumVertices > 0)
+			{
+				// Calculate the bounding box of this node.
+				FBox NodeBounds(0);
+				for (int32 VertexIndex = 0; VertexIndex < Node.NumVertices; VertexIndex++)
+				{
+					NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];
+				}
+
+				// Create a sort key for this node using the grid cell containing the center of the node's bounding box.
 #define MODEL_GRID_SIZE_XY	2048.0f
 #define MODEL_GRID_SIZE_Z	4096.0f
-			FModelComponentKey Key;
-			check( OwningWorld );
-			if (OwningWorld->GetWorldSettings()->bMinimizeBSPSections)
-			{
-				Key.X				= 0;
-				Key.Y				= 0;
-				Key.Z				= 0;
+				FModelComponentKey Key;
+				check(OwningWorld);
+				if (OwningWorld->GetWorldSettings()->bMinimizeBSPSections)
+				{
+					Key.X = 0;
+					Key.Y = 0;
+					Key.Z = 0;
+				}
+				else
+				{
+					Key.X = FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
+					Key.Y = FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
+					Key.Z = FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
+				}
+
+				Key.MaskedPolyFlags = 0;
+
+				// Find an existing node list for the grid cell.
+				FNodeIndices* ComponentNodes = ModelComponentMap.Find(Key);
+				if (!ComponentNodes)
+				{
+					// This is the first node we found in this grid cell, create a new node list for the grid cell.
+					ComponentNodes = &ModelComponentMap.Add(Key);
+				}
+
+				// Add the node to the grid cell's node list.
+				ComponentNodes->AddUnique(NodeIndex);
 			}
 			else
 			{
-				Key.X				= FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
-				Key.Y				= FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
-				Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
+				// Put it in component 0 until a rebuild occurs.
+				Node.ComponentIndex = 0;
 			}
-
-			Key.MaskedPolyFlags = 0;
-
-			// Find an existing node list for the grid cell.
-			TArray<uint16>* ComponentNodes = ModelComponentMap.Find(Key);
-			if(!ComponentNodes)
-			{
-				// This is the first node we found in this grid cell, create a new node list for the grid cell.
-				ComponentNodes = &ModelComponentMap.Add(Key,TArray<uint16>());
-			}
-
-			// Add the node to the grid cell's node list.
-			ComponentNodes->AddUnique(NodeIndex);
-		}
-		else
-		{
-			// Put it in component 0 until a rebuild occurs.
-			Node.ComponentIndex = 0;
 		}
 	}
 
 	// Create a UModelComponent for each grid cell's node list.
-	for(TMap< FModelComponentKey, TArray<uint16> >::TConstIterator It(ModelComponentMap);It;++It)
+	for (TMap< FModelComponentKey, FNodeIndices >::TConstIterator It(ModelComponentMap); It; ++It)
 	{
 		const FModelComponentKey&		Key		= It.Key();
-		const TArray<uint16>&			Nodes	= It.Value();	
+		const TArray<uint16>&			Nodes	= It.Value().Nodes;
 
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)
 		{
@@ -903,6 +935,8 @@ void ULevel::CreateModelComponents()
 	// Clear old cached data in case we don't regenerate it below, e.g. after removing all BSP from a level.
 	Model->NumIncompleteNodeGroups = 0;
 	Model->CachedMappings.Empty();
+
+	SlowTask.EnterProgressFrame(4);
 
 	// Work only needed if we actually have BSP in the level.
 	if( ModelComponents.Num() )
@@ -1005,6 +1039,8 @@ void ULevel::CreateModelComponents()
 		}
 	}
 	Model->UpdateVertices();
+
+	SlowTask.EnterProgressFrame(2);
 
 	for (int32 UpdateCompIdx = 0; UpdateCompIdx < ModelComponents.Num(); UpdateCompIdx++)
 	{
@@ -1750,53 +1786,6 @@ void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 }	
 
 #endif	//WITH_EDITOR
-
-
-#if WITH_EDITOR
-void ULevel::AddMovieSceneBindings( class UMovieSceneBindings* MovieSceneBindings )
-{
-	// @todo sequencer major: We need to clean up stale bindings objects that no PlayMovieScene node references anymore (LevelScriptBlueprint compile time?)
-	if( ensure( MovieSceneBindings != NULL ) )
-	{
-		Modify();
-
-		// @todo sequencer UObjects: Dangerous cast here to work around MovieScene not being a dependency module of engine
-		UObject* ObjectToAdd = (UObject*)MovieSceneBindings;
-		MovieSceneBindingsArray.AddUnique( ObjectToAdd );
-	}
-}
-
-void ULevel::ClearMovieSceneBindings()
-{
-	Modify();
-
-	MovieSceneBindingsArray.Reset();
-}
-#endif
-
-void ULevel::AddActiveRuntimeMovieScenePlayer( UObject* RuntimeMovieScenePlayer )
-{
-	ActiveRuntimeMovieScenePlayers.Add( RuntimeMovieScenePlayer );
-}
-
-
-void ULevel::TickRuntimeMovieScenePlayers( const float DeltaSeconds )
-{
-	for( int32 CurPlayerIndex = 0; CurPlayerIndex < ActiveRuntimeMovieScenePlayers.Num(); ++CurPlayerIndex )
-	{
-		// Should never have any active RuntimeMovieScenePlayers on an editor world!
-		check( OwningWorld->IsGameWorld() );
-
-		IRuntimeMovieScenePlayerInterface* RuntimeMovieScenePlayer =
-			Cast< IRuntimeMovieScenePlayerInterface >( ActiveRuntimeMovieScenePlayers[ CurPlayerIndex ] );
-		check( RuntimeMovieScenePlayer != NULL );
-
-		// @todo sequencer runtime: Support expiring instances of RuntimeMovieScenePlayers that have finished playing
-		// @todo sequencer runtime: Support destroying spawned actors for a completed moviescene
-		RuntimeMovieScenePlayer->Tick( DeltaSeconds );
-	}
-}
-
 
 bool ULevel::IsPersistentLevel() const
 {

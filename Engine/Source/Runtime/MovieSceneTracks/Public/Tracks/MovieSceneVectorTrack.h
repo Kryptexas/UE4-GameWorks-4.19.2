@@ -9,12 +9,16 @@
 
 #include "MovieSceneVectorTrack.generated.h"
 
-template<typename VecType>
-struct FVectorKey
+struct MOVIESCENETRACKS_API FVectorKey
 {
-	VecType Value;
+	FVectorKey() { }
+	FVectorKey( const FVector& InValue, FName InCurveName );
+	FVectorKey( const FVector2D& InValue, FName InCurveName );
+	FVectorKey( const FVector4& InValue, FName InCurveName );
+
+	FVector4 Value;
+	uint32 ChannelsUsed;
 	FName CurveName;
-	bool bAddKeyEvenIfUnchanged;
 };
 
 /**
@@ -32,17 +36,12 @@ public:
 	/**
 	 * Adds a key to a section.  Will create the section if it doesn't exist
 	 *
-	 * @param ObjectHandle		Handle to the object(s) being changed
-	 * @param InPropertyName	The name of the property being manipulated.  @todo Sequencer - Could be a UFunction name
 	 * @param Time				The time relative to the owning movie scene where the section should be
-	 * @param InKey				The vector key to add
-	 * @param InChannelsUsed	The number of channels used, 2, 3, or 4, determining which type of vector this is
+	 * @param Key				The vector key to add
+	 * @param KeyParams         The keying parameters 
 	 * @return True if the key was successfully added.
 	 */
-
-	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector4>& Key );
-	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector>& Key );
-	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector2D>& Key );
+	virtual bool AddKeyToSection( float Time, const FVectorKey& Key, FKeyParams KeyParams );
 	
 	/**
 	 * Evaluates the track at the playback position
@@ -54,11 +53,21 @@ public:
 	 */
 	virtual bool Eval( float Position, float LastPostion, FVector4& InOutVector ) const;
 
+	/**
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return Whether the track can be keyed
+	 */
+	virtual bool CanKeyTrack( float Time, const FVectorKey& Key, FKeyParams KeyParams ) const;
+
 	/** @return Get the number of channels used by the vector */
 	int32 GetNumChannelsUsed() const { return NumChannelsUsed; }
 
 private:
-	virtual bool AddKeyToSection( float Time, const FVector4& InKey, int32 InChannelsUsed, FName CurveName, bool bAddKeyEvenIfUnchanged );
+	virtual bool AddKeyToSection( float Time, const FVector4& InKey, int32 InChannelsUsed, FName CurveName, FKeyParams KeyParams );
 private:
 	/** The number of channels used by the vector (2,3, or 4) */
 	UPROPERTY()

@@ -11,12 +11,13 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "SceneUtils.h"
 
-static TAutoConsoleVariable<int32> CVarAmbientOcclusionMaxQuality(
+static TAutoConsoleVariable<float> CVarAmbientOcclusionMaxQuality(
 	TEXT("r.AmbientOcclusionMaxQuality"),
-	100,
+	100.0f,
 	TEXT("Defines the max clamping value from the post process volume's quality level for ScreenSpace Ambient Occlusion\n")
-	TEXT(" 100: don't override quality level from the post process volume (default)\n")
-	TEXT(" <100: clamp down quality level from the post process volume to the maximum set by this cvar"),
+	TEXT("     100: don't override quality level from the post process volume (default)\n")
+	TEXT("   0..99: clamp down quality level from the post process volume to the maximum set by this cvar\n")
+	TEXT(" -100..0: Enforces a different quality (the absolute value) even if the postprocessvolume asks for a lower quality."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarAmbientOcclusionStepMipLevelFactor(
@@ -125,8 +126,9 @@ FArchive& operator<<(FArchive& Ar, FScreenSpaceAOandSSRShaderParameters& This)
  * Encapsulates the post processing ambient occlusion pixel shader.
  * @param bAOSetupAsInput true:use AO setup instead of full resolution depth and normal
  * @param bDoUpsample true:we have lower resolution pass data we need to upsample, false otherwise
+ * @param ShaderQuality 0..4, 0:low 4:high
  */
-template<uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality>
+template<uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 ShaderQuality>
 class FPostProcessAmbientOcclusionPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessAmbientOcclusionPS, Global);
@@ -142,7 +144,7 @@ class FPostProcessAmbientOcclusionPS : public FGlobalShader
 
 		OutEnvironment.SetDefine(TEXT("USE_UPSAMPLE"), bDoUpsample);
 		OutEnvironment.SetDefine(TEXT("USE_AO_SETUP_AS_INPUT"), bTAOSetupAsInput);
-		OutEnvironment.SetDefine(TEXT("SAMPLESET_QUALITY"), SampleSetQuality);
+		OutEnvironment.SetDefine(TEXT("SHADER_QUALITY"), ShaderQuality);
 	}
 
 	/** Default constructor. */
@@ -192,7 +194,7 @@ public:
 			HzbStepMipLevelFactorValue
 			);
 		
-		SetShaderValue(Context.RHICmdList, ShaderRHI, HzbUvAndStepMipLevelFactor, HzbUvAndStepMipLevelFactorValue );
+		SetShaderValue(Context.RHICmdList, ShaderRHI, HzbUvAndStepMipLevelFactor, HzbUvAndStepMipLevelFactorValue);
 	}
 	
 	// FShader interface.
@@ -224,6 +226,8 @@ public:
 	VARIATION0(0)
 	VARIATION0(1)
 	VARIATION0(2)
+	VARIATION0(3)
+	VARIATION0(4)
 	
 #undef VARIATION0
 #undef VARIATION1
@@ -308,8 +312,6 @@ FShader* FRCPassPostProcessAmbientOcclusionSetup::SetShaderSetupTempl(const FRen
 
 void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, AmbientOcclusionSetup);
-
 	const FSceneView& View = Context.View;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
@@ -321,6 +323,8 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = SrcRect  / ScaleFactor;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, AmbientOcclusionSetup, TEXT("AmbientOcclusionSetup %dx%d"), DestRect.Width(), DestRect.Height());
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
@@ -343,12 +347,11 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 		VertexShader = SetShaderSetupTempl<0>(Context);
 	}
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle( 
+	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
-			SrcRect.Min.X, SrcRect.Min.Y, 
+		SrcRect.Min.X, SrcRect.Min.Y, 
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
@@ -403,11 +406,11 @@ bool FRCPassPostProcessAmbientOcclusionSetup::IsInitialPass() const
 
 
 // ---------------------------------
-template <uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality>
-void FRCPassPostProcessAmbientOcclusion::SetShaderTempl(const FRenderingCompositePassContext& Context)
+template <uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 ShaderQuality>
+FShader* FRCPassPostProcessAmbientOcclusion::SetShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessAmbientOcclusionPS<bTAOSetupAsInput, bDoUpsample, SampleSetQuality> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessAmbientOcclusionPS<bTAOSetupAsInput, bDoUpsample, ShaderQuality> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -418,12 +421,26 @@ void FRCPassPostProcessAmbientOcclusion::SetShaderTempl(const FRenderingComposit
 
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context, InputDesc0->Extent);
+
+	return *VertexShader;
+}
+
+float GetAmbientOcclusionQualityRT(const FSceneView& View)
+{
+	float CVarValue = CVarAmbientOcclusionMaxQuality.GetValueOnRenderThread();
+
+	if(CVarValue < 0)
+	{
+		return FMath::Clamp(-CVarValue, 0.0f, 100.0f);
+	}
+	else
+	{
+		return FMath::Min(CVarValue, View.FinalPostProcessSettings.AmbientOcclusionQuality);
+	}
 }
 
 void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, AmbientOcclusion);
-
 	const FSceneView& View = Context.View;
 
 	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
@@ -459,38 +476,48 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	const float QualityPercent = FMath::Min(float(CVarAmbientOcclusionMaxQuality.GetValueOnRenderThread()), Context.View.FinalPostProcessSettings.AmbientOcclusionQuality);
-	const int32 QualitySet = 
-		(QualityPercent > 60.0f) +
-		(QualityPercent > 25.0f);
-	bool bDoUpsample = (InputDesc2 != 0);
+	float QualityPercent = GetAmbientOcclusionQualityRT(Context.View);
+	
+	// 0..4, 0:low 4:high
+	const int32 ShaderQuality = 
+		(QualityPercent > 75.0f) +
+		(QualityPercent > 55.0f) +
+		(QualityPercent > 25.0f) +
+		(QualityPercent > 5.0f);
 
-#define SET_SHADER_CASE(Quality)                                \
-	case Quality:			                                    \
-	if(bAOSetupAsInput)                                         \
-    {                                                           \
-		if(bDoUpsample) SetShaderTempl<1, 1, Quality>(Context); \
-		else SetShaderTempl<1, 0, Quality>(Context);            \
-	}                                                           \
-	else                                                        \
-    {                                                           \
-		if(bDoUpsample) SetShaderTempl<0, 1, Quality>(Context); \
-		else SetShaderTempl<0, 0, Quality>(Context);            \
-	}                                                           \
+	bool bDoUpsample = (InputDesc2 != 0);
+	
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, AmbientOcclusion, TEXT("AmbientOcclusion %dx%d SetupAsInput=%d Upsample=%d ShaderQuality=%d"), 
+		ViewRect.Width(), ViewRect.Height(), bAOSetupAsInput, bDoUpsample, ShaderQuality);
+
+	FShader* VertexShader = 0;
+
+#define SET_SHADER_CASE(ShaderQualityCase) \
+	case ShaderQualityCase: \
+	if(bAOSetupAsInput) \
+    { \
+		if(bDoUpsample) VertexShader = SetShaderTempl<1, 1, ShaderQualityCase>(Context); \
+		else VertexShader = SetShaderTempl<1, 0, ShaderQualityCase>(Context); \
+	} \
+	else \
+    { \
+		if(bDoUpsample) VertexShader = SetShaderTempl<0, 1, ShaderQualityCase>(Context); \
+		else VertexShader = SetShaderTempl<0, 0, ShaderQualityCase>(Context); \
+	} \
 	break
 
-	switch(QualitySet)
+	switch(ShaderQuality)
 	{
 		SET_SHADER_CASE(0);
 		SET_SHADER_CASE(1);
 		SET_SHADER_CASE(2);
+		SET_SHADER_CASE(3);
+		SET_SHADER_CASE(4);
 		default:
 			break;
 	};
 
 #undef SET_SHADER_CASE
-
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
@@ -501,9 +528,8 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Size(),
 		TexSize,
-		*VertexShader,
+		VertexShader,
 		EDRF_UseTriangleOptimization);
-
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget->TargetableTexture, DestRenderTarget->ShaderResourceTexture, false, FResolveParams());
 }
@@ -536,9 +562,10 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusion::ComputeOutputDesc(EP
 
 void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, ApplyAOToBasePassSceneColor);
-
 	const FSceneView& View = Context.View;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, ApplyAOToBasePassSceneColor, TEXT("ApplyAOToBasePassSceneColor %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
+
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	const FSceneRenderTargetItem& DestRenderTarget = SceneContext.GetSceneColor()->GetRenderTargetItem();
@@ -563,12 +590,11 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context, SceneContext.GetBufferSizeXY());
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle( 
+	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		SceneContext.GetBufferSizeXY(),

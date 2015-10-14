@@ -44,6 +44,9 @@ enum class EUnit
 	/** Time units */
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
 
+	/** Arbitrary multiplier */
+	Multiplier,
+
 	/** Symbolic entry, not specifyable on meta data */
 	Unspecified
 };
@@ -51,7 +54,7 @@ enum class EUnit
 /** Enumeration that specifies particular classes of unit */
 enum class EUnitType
 {
-	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time,
+	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time, Arbitrary,
 
 	// Symbolic entry - do not use directly
 	NumberOf,

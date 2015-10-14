@@ -32,18 +32,7 @@ FFoliagePaletteItemModel::FFoliagePaletteItemModel(FFoliageMeshUIInfoPtr InTypeI
 	, FoliageEditMode(InFoliageEditMode)
 {
 	// Determine the display FName
-	if (TypeInfo->Settings->IsAsset())
-	{
-		DisplayFName = TypeInfo->Settings->GetFName();
-	}
-	else if (UBlueprint* FoliageTypeBP = Cast<UBlueprint>(TypeInfo->Settings->GetClass()->ClassGeneratedBy))
-	{
-		DisplayFName = FoliageTypeBP->GetFName();
-	}
-	else
-	{
-		DisplayFName = TypeInfo->Settings->GetStaticMesh()->GetFName();
-	}
+	DisplayFName = TypeInfo->Settings->GetDisplayFName();
 	
 	FAssetData AssetData;
 	if (!IsBlueprint())

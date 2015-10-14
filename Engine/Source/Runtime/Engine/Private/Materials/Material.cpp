@@ -31,6 +31,7 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "ShaderCompiler.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "MaterialShaderQualitySettings.h"
 #if WITH_EDITOR
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -405,7 +406,15 @@ void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 	}
 }
 
-void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
+static TAutoConsoleVariable<int32> CVarDiscardUnusedQualityLevels(
+	TEXT("r.DiscardUnusedQuality"),
+	0,
+	TEXT("Wether to keep or discard unused quality level shadermaps in memory.\n")
+	TEXT("0: keep all quality levels in memory. (default)\n")
+	TEXT("1: Discard unused quality levels on load."),
+	ECVF_ReadOnly);
+
+void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
 	if (Ar.IsSaving())
 	{
@@ -451,10 +460,16 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMateria
 			LoadedResources.Add(LoadedResource);
 		}
 
-		// Apply in 2 passes - first pass is for shader maps without a specified quality level
-		// Second pass is where shader maps with a specified quality level override
-		for (int32 PassIndex = 0; PassIndex < 2; PassIndex++)
+		if (CVarDiscardUnusedQualityLevels.GetValueOnAnyThread())
 		{
+			// Map EMaterialQualityLevel to a score.
+			// Higher quality levels are of increasing weight such that lower quality is preferred when neighbouring hi/lo QLs exist.
+			static const int32 QualityScores[EMaterialQualityLevel::Num + 1] = { 0, 3, 1, 10 };
+
+			int32 DesiredQL = (int32)GetCachedScalabilityCVars().MaterialQualityLevel;
+			check(DesiredQL < EMaterialQualityLevel::Num);
+			const int32 DesiredScore = QualityScores[DesiredQL];
+
 			for (int32 ResourceIndex = 0; ResourceIndex < LoadedResources.Num(); ResourceIndex++)
 			{
 				FMaterialResource& LoadedResource = LoadedResources[ResourceIndex];
@@ -463,21 +478,69 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMateria
 				if (LoadedShaderMap && LoadedShaderMap->GetShaderPlatform() == GMaxRHIShaderPlatform)
 				{
 					EMaterialQualityLevel::Type LoadedQualityLevel = LoadedShaderMap->GetShaderMapId().QualityLevel;
+					LoadedQualityLevel = LoadedQualityLevel == EMaterialQualityLevel::Num ? EMaterialQualityLevel::High : LoadedQualityLevel;
 					ERHIFeatureLevel::Type LoadedFeatureLevel = LoadedShaderMap->GetShaderMapId().FeatureLevel;
 
-					for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+					// find current QL:
+					int32 CurrentQL = (int32)EMaterialQualityLevel::Num;
+					for (int32 i = 0; i < EMaterialQualityLevel::Num; i++)
 					{
-						// Apply to all resources in the first pass if the shader map does not have a quality level specified
-						if ((PassIndex == 0 && LoadedQualityLevel == EMaterialQualityLevel::Num)
-							// Apply to just the corresponding resource in the second pass if the shader map has a quality level specified
-							|| (PassIndex == 1 && QualityLevelIndex == LoadedQualityLevel))
+						FMaterialResource* MaterialResource = OutMaterialResourcesLoaded[i][LoadedFeatureLevel];
+						if (MaterialResource != nullptr && MaterialResource->GetGameThreadShaderMap() != nullptr)
+						{
+							int32 FoundQL = MaterialResource->GetGameThreadShaderMap()->GetShaderMapId().QualityLevel;
+							CurrentQL = FoundQL == EMaterialQualityLevel::Num ? EMaterialQualityLevel::High : FoundQL;
+						}
+					}
+
+					// Determine if this is a better match than our current shader map.
+					const int32 CurrentScore = FMath::Abs(QualityScores[CurrentQL] - DesiredScore);
+					const int32 PotentialScore = FMath::Abs(QualityScores[LoadedQualityLevel] - DesiredScore);
+					if (PotentialScore < CurrentScore)
+					{
+						// replace existing shadermap with loadedshadermap.
+						for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 						{
 							if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
 							{
 								OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] = new FMaterialResource();
 							}
-
+							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->ReleaseShaderMap();
 							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			// Apply in 2 passes - first pass is for shader maps without a specified quality level
+			// Second pass is where shader maps with a specified quality level override
+			for (int32 PassIndex = 0; PassIndex < 2; PassIndex++)
+			{
+				for (int32 ResourceIndex = 0; ResourceIndex < LoadedResources.Num(); ResourceIndex++)
+				{
+					FMaterialResource& LoadedResource = LoadedResources[ResourceIndex];
+					FMaterialShaderMap* LoadedShaderMap = LoadedResource.GetGameThreadShaderMap();
+
+					if (LoadedShaderMap && LoadedShaderMap->GetShaderPlatform() == GMaxRHIShaderPlatform)
+					{
+						EMaterialQualityLevel::Type LoadedQualityLevel = LoadedShaderMap->GetShaderMapId().QualityLevel;
+						ERHIFeatureLevel::Type LoadedFeatureLevel = LoadedShaderMap->GetShaderMapId().FeatureLevel;
+						for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+						{
+							// Apply to all resources in the first pass if the shader map does not have a quality level specified
+							if ((PassIndex == 0 && LoadedQualityLevel == EMaterialQualityLevel::Num)
+								// Apply to just the corresponding resource in the second pass if the shader map has a quality level specified
+								|| (PassIndex == 1 && QualityLevelIndex == LoadedQualityLevel))
+							{
+								if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
+								{
+									OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] = new FMaterialResource();
+								}
+
+								OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
+							}
 						}
 					}
 				}
@@ -1797,7 +1860,7 @@ void UMaterial::CacheResourceShadersForCooking(EShaderPlatform ShaderPlatform, T
 	ERHIFeatureLevel::Type TargetFeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
 
 	TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
-	GetQualityLevelNodeUsage(QualityLevelsUsed);
+	GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
 
 	bool bAnyQualityLevelUsed = false;
 
@@ -2136,6 +2199,20 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 #endif // WITH_EDITOR
 }
 
+void UMaterial::GetQualityLevelUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& OutQualityLevelsUsed, EShaderPlatform ShaderPlatform)
+{
+	GetQualityLevelNodeUsage(OutQualityLevelsUsed);
+
+	// OR in the quality overrides if we're a valid shader platform
+	if (ShaderPlatform != SP_NumPlatforms)
+	{
+		const UShaderPlatformQualitySettings* MaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(ShaderPlatform);
+		OutQualityLevelsUsed[EMaterialQualityLevel::Low] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::Low).bEnableOverride;
+		OutQualityLevelsUsed[EMaterialQualityLevel::Medium] |= MaterialQualitySettings->GetQualityOverrides(EMaterialQualityLevel::Medium).bEnableOverride;
+		// No need for EMaterialQualityLevel::High as this is always available
+	}
+}
+
 void UMaterial::GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& OutQualityLevelsUsed)
 {
 	OutQualityLevelsUsed.AddZeroed(EMaterialQualityLevel::Num);
@@ -2190,12 +2267,12 @@ void UMaterial::GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterial
 
 void UMaterial::UpdateResourceAllocations()
 {
-	TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
-	GetQualityLevelNodeUsage(QualityLevelsUsed);
-
-	for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+	for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 	{
-		for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
+		TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
+		EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevelIndex];
+		GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
+		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 		{
 			FMaterialResource*& CurrentResource = MaterialResources[QualityLevelIndex][FeatureLevelIndex];
 
@@ -2204,9 +2281,9 @@ void UMaterial::UpdateResourceAllocations()
 				CurrentResource = AllocateResource();
 			}
 
-			const bool bQualityLevelHasDifferentNodes = QualityLevelsUsed[QualityLevelIndex];
+			const bool bHasQualityLevelUsage = QualityLevelsUsed[QualityLevelIndex];
 			// Setup transient FMaterialResource properties that are needed to use this resource for rendering or compilation
-			CurrentResource->SetMaterial(this, (EMaterialQualityLevel::Type)QualityLevelIndex, bQualityLevelHasDifferentNodes, (ERHIFeatureLevel::Type)FeatureLevelIndex);
+			CurrentResource->SetMaterial(this, (EMaterialQualityLevel::Type)QualityLevelIndex, bHasQualityLevelUsage, (ERHIFeatureLevel::Type)FeatureLevelIndex);
 		}
 	}
 }

@@ -4,20 +4,21 @@
 #include "MovieSceneVisibilityTrackInstance.h"
 #include "MovieSceneVisibilityTrack.h"
 
+
 FMovieSceneVisibilityTrackInstance::FMovieSceneVisibilityTrackInstance(UMovieSceneVisibilityTrack& InVisibilityTrack)
 {
 	VisibilityTrack = &InVisibilityTrack;
-
 	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( VisibilityTrack->GetPropertyName(), VisibilityTrack->GetPropertyPath() ) );
 }
 
-void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+
+void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
  	for( UObject* Object : RuntimeObjects )
  	{
 		AActor* Actor = Cast<AActor>(Object);
 
-		if (Actor != NULL)
+		if (Actor != nullptr)
 		{
 #if WITH_EDITOR
 			if (GIsEditor && !Actor->GetWorld()->IsPlayInEditor())
@@ -31,7 +32,8 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& Runti
  	}
 }
 
-void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+
+void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
  	for( UObject* Object : RuntimeObjects )
  	{
@@ -42,10 +44,10 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 
 		AActor* Actor = Cast<AActor>(Object);
 
-		if (Actor != NULL)
+		if (Actor != nullptr)
 		{
 			bool *HiddenInGameValue = InitHiddenInGameMap.Find(Object);
-			if (HiddenInGameValue != NULL)
+			if (HiddenInGameValue != nullptr)
 			{
 				Actor->SetActorHiddenInGame(*HiddenInGameValue);
 			}
@@ -54,7 +56,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 			if (GIsEditor && !Actor->GetWorld()->IsPlayInEditor())
 			{
 				bool *HiddenInEditorValue = InitHiddenInEditorMap.Find(Object);
-				if (HiddenInEditorValue != NULL)
+				if (HiddenInEditorValue != nullptr)
 				{
 					if (Actor->IsTemporarilyHiddenInEditor() != *HiddenInEditorValue)
 					{
@@ -66,6 +68,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 		}
  	}
 }
+
 
 void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -79,7 +82,7 @@ void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosit
  		{
 			AActor* Actor = Cast<AActor>(Object);
 
-			if (Actor != NULL)
+			if (Actor != nullptr)
 			{
 				Actor->SetActorHiddenInGame(Visible);
 
@@ -99,8 +102,8 @@ void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosit
 	}
 }
 
+
 void FMovieSceneVisibilityTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }
-

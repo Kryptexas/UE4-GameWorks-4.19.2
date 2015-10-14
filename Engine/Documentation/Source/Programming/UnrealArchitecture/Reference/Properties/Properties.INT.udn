@@ -6,18 +6,17 @@ Version: 4.9
 
 ## Property Declaration
 
-UProperty variables are declared using standard C++ syntax with additional descriptors, such as variable specifiers and metadata placed above the declaration.
+Properties are declared using standard C++ variable syntax, preceeded by the UPROPERTY macro which defines property metadata and variable specifiers.
 
 	UPROPERTY([specifier, specifier, ...], [meta(key=value, key=value, ...)])
 	Type VariableName;
 
 ## Core Data Types
 
-
 ### Integers
 The convention for integral data types is "int" or "uint" followed by the size in bits.
 
-|Variable Type | Description | 
+|Variable Type | Description |
 | ------------| -------------|
 | **uint8**	 | 8-bit  unsigned|
 | **uint16**	| 16-bit unsigned|
@@ -35,6 +34,7 @@ Unreal uses the standard C++ floating point types, float and double.
 Boolean types can be represented either with the C++ bool keyword or as a bitfield.
 
 	uint32 bIsHungry : 1;
+    bool bIsThirsty;
 
 ### Strings
 Unreal supports 3 core types of strings.
@@ -48,9 +48,7 @@ For most uses, Unreal relies on the TCHAR type for characters.  The TEXT() macro
 
 For more on the three string types, when to use each one, and how to work with them, see the **[String Handling documentation](Programming/UnrealArchitecture/StringHandling)**.
 
-
-
-### Property Specifiers
+## Property Specifiers
 
 [INCLUDE:Programming/UnrealArchitecture/Reference/Properties/Specifiers#main(offset:2)]
 

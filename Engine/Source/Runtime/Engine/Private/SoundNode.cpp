@@ -22,9 +22,11 @@ void USoundNode::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (!Ar.IsCooking())
+	if (!Ar.IsFilterEditorOnly())
 	{
+#if WITH_EDITORONLY_DATA
 		Ar << GraphNode;
+#endif
 	}
 }
 

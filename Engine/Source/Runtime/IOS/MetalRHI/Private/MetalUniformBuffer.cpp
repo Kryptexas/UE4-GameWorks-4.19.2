@@ -181,6 +181,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 	: FRHIUniformBuffer(Layout)
 	, Buffer(nil)
 	, Offset(0)
+	, Size(Layout.ConstantBufferSize)
 	, LastCachedFrame(INDEX_NONE)
 {
 	if (Layout.ConstantBufferSize > 0)
@@ -242,7 +243,7 @@ FMetalUniformBuffer::~FMetalUniformBuffer()
 	// don't need to free the ring buffer!
 	if (Buffer != nil && Buffer != FMetalManager::Get()->GetRingBuffer())
 	{
-		AddNewlyFreedBufferToUniformBufferPool(Buffer, Offset, GetSize());
+		AddNewlyFreedBufferToUniformBufferPool(Buffer, Offset, Size);
 	}
 }
 

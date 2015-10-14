@@ -1655,6 +1655,15 @@ namespace UnrealBuildTool
 				Receipt.Merge(BinaryReceipt);
 			}
 
+			// Add all the properties from the build modules
+			foreach(UEBuildModule Module in Modules.Values)
+			{
+				if(Module.bIncludedInTarget)
+				{
+					Receipt.AdditionalProperties.AddRange(Module.AdditionalPropertiesForReceipt);
+				}
+			}
+
 			// Convert all the paths to use variables for the engine and project root
 			Receipt.InsertStandardPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 		}
@@ -2376,6 +2385,7 @@ namespace UnrealBuildTool
 				InDynamicallyLoadedModuleNames: new List<string>(),
 				InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
 				InRuntimeDependencies: new List<RuntimeDependency>(),
+				InAdditionalPropertiesForReceipt: new List<ReceiptProperty>(),
 				InOptimizeCode: ModuleRules.CodeOptimization.Default,
 				InAllowSharedPCH: false,
 				InSharedPCHHeaderFile: "",
@@ -3420,6 +3430,7 @@ namespace UnrealBuildTool
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
 							InRuntimeDependencies: RulesObject.RuntimeDependencies,
+							InAdditionalPropertiesForReceipt: RulesObject.AdditionalPropertiesForReceipt,
 							InOptimizeCode: RulesObject.OptimizeCode,
 							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
@@ -3465,6 +3476,7 @@ namespace UnrealBuildTool
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
 							InRuntimeDependencies: RulesObject.RuntimeDependencies,
+							InAdditionalPropertiesForReceipt: RulesObject.AdditionalPropertiesForReceipt,
 							InOptimizeCode: RulesObject.OptimizeCode,
 							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
@@ -3499,6 +3511,7 @@ namespace UnrealBuildTool
 							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
 							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
 							InRuntimeDependencies: RulesObject.RuntimeDependencies,
+							InAdditionalPropertiesForReceipt: RulesObject.AdditionalPropertiesForReceipt,
 							InBuildCsFilename: InBuildCsFile
 						);
 

@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-    class IOSPlatform : UEBuildPlatform
+    public class IOSPlatform : UEBuildPlatform
     {
         // by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
         [XmlConfig]
@@ -27,6 +27,18 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string ShippingArchitectures = "armv7,arm64";
 
+		/** additional linker flags for shipping */
+		public static string AdditionalShippingLinkerFlags = "";
+
+		/** additional linker flags for non-shipping */
+		public static string AdditionalLinkerFlags = "";
+
+		/** mobile provision to use for code signing */
+		public static string MobileProvision = "";
+
+		/** signing certificate to use for code signing */
+		public static string SigningCertificate = "";
+
 		private bool bInitializedProject = false;
 
 		public string GetRunTimeVersion()
@@ -39,6 +51,18 @@ namespace UnrealBuildTool
 			return RunTimeIOSDevices;
 		}
 
+		public string GetAdditionalLinkerFlags(CPPTargetConfiguration InConfiguration)
+		{
+			if (InConfiguration != CPPTargetConfiguration.Shipping)
+			{
+				return AdditionalLinkerFlags;
+			}
+			else
+			{
+				return AdditionalShippingLinkerFlags;
+			}
+
+		}
 		// The current architecture - affects everything about how UBT operates on IOS
         public override string GetActiveArchitecture()
         {
@@ -239,6 +263,12 @@ namespace UnrealBuildTool
 				// determine if we need to generate the dsym
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
 
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalLinkerFlags", out AdditionalLinkerFlags);
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalShippingLinkerFlags", out AdditionalShippingLinkerFlags);
+
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision", out MobileProvision);
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate", out SigningCertificate);
+
 				bInitializedProject = true;
 			}
 		}
@@ -256,6 +286,8 @@ namespace UnrealBuildTool
 			};
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 
+				"AdditionalLinkerFlags",
+				"AdditionalShippingLinkerFlags"
 			};
 
 			// look up iOS specific settings

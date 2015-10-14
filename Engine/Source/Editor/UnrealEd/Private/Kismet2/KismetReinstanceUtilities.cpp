@@ -183,7 +183,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Temporarily suspend the undo buffer; we don't need to record the duplicated CDO until it is fully resolved
  		ITransaction* CurrentTransaction = GUndo;
  		GUndo = NULL;
-		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance, DuplicatedClass->GetDefaultObjectName());
+		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance->GetDefaultObject(), DuplicatedClass->GetDefaultObjectName());
 
 		// Restore the undo buffer
 		GUndo = CurrentTransaction;
@@ -630,6 +630,9 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 		TMap<UObject*, UObject*> FieldMappings;
 		GenerateFieldMappings(FieldMappings);
 
+		// Determine whether or not we will be updating references for an Animation Blueprint class.
+		const bool bIsAnimBlueprintClass = !!Cast<UAnimBlueprint>(ClassToReinstance->ClassGeneratedBy);
+
 		for( auto DependentBP = Dependencies.CreateIterator(); DependentBP; ++DependentBP )
 		{
 			UClass* BPClass = (*DependentBP)->GeneratedClass;
@@ -643,6 +646,13 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 				|| (BPClass->ClassGeneratedBy && BPClass->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad|RF_BeingRegenerated)) )
 			{
 				continue;
+			}
+
+			// Ensure that Animation Blueprint child class dependencies are always re-linked, as the child may reference properties generated during
+			// compilation of the parent class, which will have shifted to a TRASHCLASS Outer at this point (see UAnimBlueprintGeneratedClass::Link()).
+			if(bIsAnimBlueprintClass && BPClass->IsChildOf(ClassToReinstance))
+			{
+				BPClass->StaticLink(true);
 			}
 
 			bool bBPWasChanged = false;
@@ -1492,16 +1502,16 @@ void FBlueprintCompileReinstancer::ReparentChild(UClass* ChildClass)
 	ChildClass->StaticLink(true);
 }
 
-UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UClass* Class, FName Name)
+UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UObject* CDO, FName Name)
 {
 	UObject* DupCDO = nullptr;
 
 	FCDODuplicatesProvider& CDODupProvider = GetCDODuplicatesProviderDelegate();
 
-	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(Class, Name)) == nullptr)
+	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(CDO, Name)) == nullptr)
 	{
 		GIsDuplicatingClassForReinstancing = true;
-		DupCDO = (UObject*)StaticDuplicateObject(Class->GetDefaultObject(), GetTransientPackage(), *Name.ToString());
+		DupCDO = (UObject*)StaticDuplicateObject(CDO, GetTransientPackage(), *Name.ToString());
 		GIsDuplicatingClassForReinstancing = false;
 	}
 

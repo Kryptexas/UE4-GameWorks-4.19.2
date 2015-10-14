@@ -174,9 +174,10 @@ FString FSoundSource::Describe(bool bUseLongName)
 	AActor* SoundOwner = NULL;
 	
 	// TODO - Audio Threading. This won't work cross thread.
-	if (WaveInstance->ActiveSound && WaveInstance->ActiveSound->AudioComponent.IsValid())
+	UAudioComponent* AudioComponent = (WaveInstance->ActiveSound ? WaveInstance->ActiveSound->GetAudioComponent() : nullptr);
+	if (AudioComponent)
 	{
-		SoundOwner = WaveInstance->ActiveSound->AudioComponent->GetOwner();
+		SoundOwner = AudioComponent->GetOwner();
 	}
 
 	return FString::Printf(TEXT("Wave: %s, Volume: %6.2f, Owner: %s"), 

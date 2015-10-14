@@ -158,17 +158,9 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent interface.
 
-	// Begin UActorComponent interface.
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	// End UActorComponent interface.
-
 	// Begin UObject interface.
 	virtual void PostLoad() override;
 	// End UObject interface.
-
-private:
-	/** The state of the text the last time it was updated (used to allow updates when the text is changed due to a culture update) */
-	FTextSnapshot TextLastUpdate;
 };
 
 

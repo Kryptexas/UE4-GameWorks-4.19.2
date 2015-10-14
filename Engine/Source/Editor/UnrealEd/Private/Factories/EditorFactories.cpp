@@ -552,6 +552,11 @@ UObject* ULevelFactory::FactoryCreateText
 						SpawnInfo.Name = ActorUniqueName;
 						SpawnInfo.Template = Archetype;
 						SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+						if (GEditor->bIsSimulatingInEditor)
+						{
+							// During SIE, we don't want to run construction scripts on a BP until it is completely constructed
+							SpawnInfo.bDeferConstruction = true;
+						}
 						AActor* NewActor = World->SpawnActor( TempClass, nullptr, nullptr, SpawnInfo );
 						
 						if( NewActor )
@@ -4003,6 +4008,12 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 		if (Format == TSF_Invalid)
 		{
 			Warn->Logf(ELogVerbosity::Error, TEXT("DDS file contains data in an unsupported format."));
+			return nullptr;
+		}
+
+		if (NumMips > MAX_TEXTURE_MIP_COUNT)
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("DDS file contains an unsupported number of mipmap levels."));
 			return nullptr;
 		}
 

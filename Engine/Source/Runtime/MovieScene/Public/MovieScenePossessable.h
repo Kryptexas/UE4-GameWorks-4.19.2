@@ -43,6 +43,17 @@ public:
 		return Guid;
 	}
 
+	/** 
+	* Set the unique identifier
+	*
+	* @param InGuid
+	*/
+
+	void SetGuid(const FGuid& InGuid)
+	{
+		Guid = InGuid;
+	}
+
 	/**
 	 * Get the name of the possessed object.
 	 *
@@ -52,6 +63,16 @@ public:
 	const FString& GetName() const
 	{
 		return Name;
+	}
+
+	/**
+	* Set the name of the possessed object
+	*
+	* @param InName
+	*/
+	void SetName(const FString& InName)
+	{
+		Name = InName;
 	}
 
 	/**

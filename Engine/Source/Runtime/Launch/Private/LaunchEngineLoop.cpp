@@ -2034,7 +2034,6 @@ void FEngineLoop::InitTime()
 	FParse::Value(FCommandLine::Get(),TEXT("FPS="),FixedFPS);
 	if( FixedFPS > 0 )
 	{
-		GEngine->MatineeScreenshotOptions.MatineeCaptureFPS = (int32)FixedFPS;
 		FApp::SetFixedDeltaTime(1 / FixedFPS);
 	}
 
@@ -2971,6 +2970,7 @@ void FEngineLoop::AppExit( )
 
 	if( GLog )
 	{
+		GLog->SetCurrentThreadAsMasterThread();
 		GLog->TearDown();
 	}
 

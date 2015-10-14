@@ -170,11 +170,11 @@ namespace AutomationTool
 			}
 			List<string> ECProps = new List<string>();
 			ECProps.Add(String.Format("TimeIndex={0}", TimeIndex));
-			foreach (BuildNode Node in SortedNodes)
+			foreach (BuildNode Node in SortedNodes.Where(x => x.FrequencyShift != BuildNode.ExplicitFrequencyShift))
 			{
 				ECProps.Add(string.Format("AllNodes/{0}={1}", Node.Name, GetNodeForAllNodesProperty(Node, TimeQuantum)));
 			}
-			foreach (KeyValuePair<BuildNode, int> NodePair in FullNodeListSortKey)
+			foreach (KeyValuePair<BuildNode, int> NodePair in FullNodeListSortKey.Where(x => x.Key.FrequencyShift != BuildNode.ExplicitFrequencyShift))
 			{
 				ECProps.Add(string.Format("SortKey/{0}={1}", NodePair.Key.Name, NodePair.Value));
 			}

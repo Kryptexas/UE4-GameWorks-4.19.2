@@ -401,7 +401,9 @@ namespace AutomationTool
             bool? IterativeDeploy = null,
 			bool? FastCook = null,
 			bool? IgnoreCookErrors = null,
-			bool? CodeSign = null
+			bool? CodeSign = null,
+			string Provision = null,
+			string Certificate = null
 			)
 		{
 			//
@@ -456,6 +458,8 @@ namespace AutomationTool
 			this.CookFlavor = ParseParamValueIfNotSpecified(Command, CookFlavor, "cookflavor", String.Empty);
             this.NewCook = GetParamValueIfNotSpecified(Command, NewCook, this.NewCook, "NewCook");
             this.OldCook = GetParamValueIfNotSpecified(Command, OldCook, this.OldCook, "OldCook");
+			this.CreateReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, CreateReleaseVersionBasePath, "createreleaseversionroot", String.Empty);
+			this.BasedOnReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersionBasePath, "basedonreleaseversionroot", String.Empty);
             this.CreateReleaseVersion = ParseParamValueIfNotSpecified(Command, CreateReleaseVersion, "createreleaseversion", String.Empty);
             this.BasedOnReleaseVersion = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersion, "basedonreleaseversion", String.Empty);
             this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
@@ -568,6 +572,9 @@ namespace AutomationTool
 			{
 				this.DeviceName = this.Device;
 			}
+
+			this.Provision = ParseParamValueIfNotSpecified(Command, Provision, "provision", String.Empty, true);
+			this.Certificate = ParseParamValueIfNotSpecified(Command, Certificate, "certificate", String.Empty, true);
 
 			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Device);
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
@@ -1039,7 +1046,7 @@ namespace AutomationTool
         public string InternationalizationPreset;
 
         /// <summary>
-        /// Cook: Create a cooked release version
+        /// Cook: Create a cooked release version.  Also, the version. e.g. 1.0
         /// </summary>
         public string CreateReleaseVersion;
 
@@ -1057,6 +1064,16 @@ namespace AutomationTool
         /// Cook: Base this cook of a already released version of the cooked data
         /// </summary>
         public string BasedOnReleaseVersion;
+
+		/// <summary>
+        /// Cook: Path to the root of the directory where we store released versions of the game for a given version
+        /// </summary>
+		public string BasedOnReleaseVersionBasePath;
+
+		/// <summary>
+		/// Cook: Path to the root of the directory to create a new released version of the game.
+		/// </summary>
+		public string CreateReleaseVersionBasePath;
 
         /// <summary>
         /// Are we generating a patch, generate a patch from a previously released version of the game (use CreateReleaseVersion to create a release). 
@@ -1215,6 +1232,16 @@ namespace AutomationTool
 		/// By default we don't code sign unless it is required or requested
 		/// </summary>
 		public bool bCodeSign = false;
+
+		/// <summary>
+		/// Provision to use
+		/// </summary>
+		public string Provision = null;
+
+		/// <summary>
+		/// Certificate to use
+		/// </summary>
+		public string Certificate = null;
 
 		#endregion
 
@@ -1795,6 +1822,45 @@ namespace AutomationTool
 			}
 		}
 		private string ProjectBinariesPath;
+
+
+		/// <summary>
+		/// Get the path to the directory of the version we are basing a diff or a patch on.  
+		/// </summary>				
+		public String GetBasedOnReleaseVersionPath(DeploymentContext SC)
+		{
+			String BasePath = BasedOnReleaseVersionBasePath;
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, CookFlavor);
+			if (String.IsNullOrEmpty(BasePath))
+			{
+				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
+			}
+			else
+			{
+				BasePath = CommandUtils.CombinePaths(BasePath, BasedOnReleaseVersion, Platform);
+			}
+			return BasePath;
+		}
+
+		/// <summary>
+		/// Get the path to the target directory for creating a new release version
+		/// </summary>
+		/// <param name="SC"></param>
+		/// <returns></returns>
+		public String GetCreateReleaseVersionPath(DeploymentContext SC)
+		{
+			String BasePath = CreateReleaseVersionBasePath;
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, CookFlavor);
+			if (String.IsNullOrEmpty(BasePath))
+			{
+				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", CreateReleaseVersion, Platform);
+			}
+			else
+			{
+				BasePath = CommandUtils.CombinePaths(BasePath, CreateReleaseVersion, Platform);
+			}
+			return BasePath;
+		}
 
         /// <summary>
         /// True if we are generating a patch

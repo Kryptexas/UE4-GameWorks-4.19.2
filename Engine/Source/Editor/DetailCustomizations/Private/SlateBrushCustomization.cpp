@@ -991,11 +991,11 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 	{
 		TArray<void*> RawData;
-		ResourceObjectProperty->AccessRawData(RawData);
+			ResourceObjectProperty->AccessRawData(RawData);
 
-		check(RawData[0] != NULL);
-		TemporaryBrush = *static_cast<FSlateBrush*>( RawData[0] );
-	}
+			check(RawData[0] != NULL);
+			TemporaryBrush = *static_cast<FSlateBrush*>(RawData[0]);
+		}
 
 private:
 
@@ -1231,12 +1231,12 @@ void FSlateBrushStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle
 void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// Add the child properties
-	TSharedPtr<IPropertyHandle> ImageSizeProperty = StructPropertyHandle->GetChildHandle( TEXT("ImageSize") );
+	ImageSizeProperty = StructPropertyHandle->GetChildHandle( TEXT("ImageSize") );
 	DrawAsProperty = StructPropertyHandle->GetChildHandle( TEXT("DrawAs") );
 	TSharedPtr<IPropertyHandle> TilingProperty = StructPropertyHandle->GetChildHandle( TEXT("Tiling") );
 	TSharedPtr<IPropertyHandle> MarginProperty = StructPropertyHandle->GetChildHandle( TEXT("Margin") );
 	TSharedPtr<IPropertyHandle> TintProperty = StructPropertyHandle->GetChildHandle( TEXT("TintColor") );
-	TSharedPtr<IPropertyHandle> ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
+	ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
 	
 	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Image" ) )
 	.NameContent()
@@ -1250,7 +1250,14 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 		SNew( SBrushResourceObjectBox, &StructCustomizationUtils, ResourceObjectProperty, ImageSizeProperty )
 	];
 
-	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() );
+	// Add the image size property with custom reset delegates that also affect the child properties (the components)
+	const bool bOverrideDefaultOnVectorChildren = true;
+	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() )
+	.OverrideResetToDefault(FResetToDefaultOverride::Create(
+		FIsResetToDefaultVisible::CreateSP(this, &FSlateBrushStructCustomization::IsImageSizeResetToDefaultVisible),
+		FResetToDefaultHandler::CreateSP(this, &FSlateBrushStructCustomization::OnImageSizeResetToDefault),
+		bOverrideDefaultOnVectorChildren));
+
 	StructBuilder.AddChildProperty(TintProperty.ToSharedRef());
 	StructBuilder.AddChildProperty( DrawAsProperty.ToSharedRef() );
 	StructBuilder.AddChildProperty( TilingProperty.ToSharedRef() )
@@ -1319,4 +1326,91 @@ EVisibility FSlateBrushStructCustomization::GetMarginPropertyVisibility() const
 	FPropertyAccess::Result Result = DrawAsProperty->GetValue( DrawAsType );
 
 	return (Result == FPropertyAccess::MultipleValues || DrawAsType == ESlateBrushDrawType::Box || DrawAsType == ESlateBrushDrawType::Border) ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+bool FSlateBrushStructCustomization::IsImageSizeResetToDefaultVisible(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	UObject* ResourceObject;
+	if (FPropertyAccess::Success == ResourceObjectProperty->GetValue(ResourceObject) && ResourceObject && ResourceObject->IsA<UTexture2D>())
+	{
+		// get texture size from ResourceObjectProperty and compare to image size prop value
+		const FVector2D SizeDefault = GetDefaultImageSize();
+
+		FVector2D Size;
+		ImageSizeProperty->GetValue(Size);
+
+		if (PropertyHandle->GetProperty() == ImageSizeProperty->GetProperty())
+		{
+			// reseting the whole vector
+			return SizeDefault != Size;
+		}
+		else if (PropertyHandle->GetProperty() == ImageSizeProperty->GetChildHandle(0)->GetProperty())	// X
+		{
+			// reseting the vector.X
+			return SizeDefault.X != Size.X;
+		}
+		else if (PropertyHandle->GetProperty() == ImageSizeProperty->GetChildHandle(1)->GetProperty())	// Y
+		{
+			// reseting the vector.Y
+			return SizeDefault.Y != Size.Y;
+		}
+
+		ensureMsgf(false, TEXT("Property handle mismatch in brush size FVector2D struct"));
+		return false;
+	}
+
+	// Fall back to default handler
+	return PropertyHandle->DiffersFromDefault();
+}
+
+void FSlateBrushStructCustomization::OnImageSizeResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	UObject* ResourceObject;
+	if (FPropertyAccess::Success == ResourceObjectProperty->GetValue(ResourceObject) && ResourceObject && ResourceObject->IsA<UTexture2D>())
+	{
+		// Set image size prop value to the texture size in ResourceObjectProperty
+		const FVector2D SizeDefault = GetDefaultImageSize();
+
+		if (PropertyHandle->GetProperty() == ImageSizeProperty->GetProperty())
+		{
+			// reseting the whole vector
+			PropertyHandle->SetValue(SizeDefault);
+		}
+		else if (PropertyHandle->GetProperty() == ImageSizeProperty->GetChildHandle(0)->GetProperty())	// X
+		{
+			// reseting the vector.X
+			PropertyHandle->SetValue(SizeDefault.X);
+		}
+		else if (PropertyHandle->GetProperty() == ImageSizeProperty->GetChildHandle(1)->GetProperty())	// Y
+		{
+			// reseting the vector.Y
+			PropertyHandle->SetValue(SizeDefault.Y);
+		}
+		else
+		{
+			ensureMsgf(false, TEXT("Property handle mismatch in brush size FVector2D struct"));
+		}
+	}	
+	else
+	{
+		// Fall back to default handler. 
+		PropertyHandle->ResetToDefault();
+	}
+}
+
+FVector2D FSlateBrushStructCustomization::GetDefaultImageSize() const
+{
+	// Custom default behavior using the texture's size, if one is set as the resource object
+	UObject* ResourceObject;
+	if (FPropertyAccess::Success == ResourceObjectProperty->GetValue(ResourceObject))
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(ResourceObject);
+		if (Texture != nullptr)
+		{
+			return FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+		}
+	}
+
+	// Fall back on the standard default size for brush images
+	return FVector2D(SlateBrushDefs::DefaultImageSize, SlateBrushDefs::DefaultImageSize);
 }

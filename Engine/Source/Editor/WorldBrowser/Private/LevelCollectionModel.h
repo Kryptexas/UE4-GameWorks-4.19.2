@@ -22,7 +22,7 @@ public:
 
 
 public:
-	FLevelCollectionModel(UEditorEngine* InEditor);
+	FLevelCollectionModel();
 	virtual ~FLevelCollectionModel();
 
 	/** FTickableEditorObject interface */
@@ -38,7 +38,7 @@ public:
 	bool IsSimulating() const;
 
 	/**	@return	Current simulation world */
-	UWorld* GetSimulationWorld() const { return Editor->PlayWorld; }
+	UWorld* GetSimulationWorld() const;
 
 	/**	@return	Current editor world */
 	UWorld* GetWorld(bool bEvenIfPendingKill = false) const { return CurrentWorld.Get(bEvenIfPendingKill); }
@@ -430,6 +430,12 @@ protected:
 	
 	/**  */
 	virtual void BindCommands();
+
+	/** Removes the Actors in all read-only Levels from the viewport's existing selection */
+	void DeselectActorsInAllReadOnlyLevel(const FLevelModelList& InLevelList);
+
+	/** Removes the Actors in all read-only Levels from the viewport's existing selection */
+	void DeselectSurfaceInAllReadOnlyLevel(const FLevelModelList& InLevelList);
 	
 	/** Called whenever level collection has been changed */
 	virtual void OnLevelsCollectionChanged();
@@ -471,8 +477,6 @@ protected:
 	void CacheCanExecuteSourceControlVars() const;
 		
 protected:
-	//
-	const TWeakObjectPtr<UEditorEngine> Editor;
 	
 	// The editor world from where we pull our data
 	TWeakObjectPtr<UWorld>				CurrentWorld;

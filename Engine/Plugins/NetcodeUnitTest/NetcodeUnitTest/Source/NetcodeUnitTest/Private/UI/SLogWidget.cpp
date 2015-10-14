@@ -30,7 +30,7 @@ IMPLEMENT_GET_PRIVATE_VAR(SEditableTextBox, EditableText, TSharedPtr<SEditableTe
 IMPLEMENT_GET_PRIVATE_VAR(SButton, Style, const FButtonStyle*);
 
 // Enable access to SDockTab::GetCurrentStyle, using the CALL_PRIVATE macro
-IMPLEMENT_GET_PRIVATE_FUNC_CONST(SDockTab, GetCurrentStyle, const FDockTabStyle&, void, const);
+// IMPLEMENT_GET_PRIVATE_FUNC_CONST(SDockTab, GetCurrentStyle, const FDockTabStyle&, void, const);
 
 
 // @todo JohnB: Perhaps move widget searching to a NUTSlate.h file, or such?
@@ -968,9 +968,9 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 				{
 					TSharedRef<SButton> CurButton = StaticCastSharedRef<SButton>(InWidget);
 					const FButtonStyle* ButtonStyle = GET_PRIVATE(SButton, CurButton, Style);
-					const FDockTabStyle& TabStyle = CALL_PRIVATE(SDockTab, ReturnVal, GetCurrentStyle)();
-
-					bFound = ButtonStyle == &TabStyle.CloseButtonStyle;
+// 					const FDockTabStyle& TabStyle = CALL_PRIVATE(SDockTab, ReturnVal, GetCurrentStyle)();
+// 
+// 					bFound = ButtonStyle == &TabStyle.CloseButtonStyle;
 				}
 
 				return bFound;

@@ -4,11 +4,14 @@
 #include "SubMovieSceneTrackEditor.h"
 #include "SubMovieSceneTrack.h"
 #include "SubMovieSceneSection.h"
+#include "MovieSceneSequence.h"
+
 
 /**
  * A generic implementation for displaying simple property sections
  */
-class FSubMovieSceneSection : public ISequencerSection
+class FSubMovieSceneSection
+	: public ISequencerSection
 {
 public:
 	FSubMovieSceneSection( TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSectionObject, FName SectionName )
@@ -29,7 +32,7 @@ public:
 
 	virtual FText GetSectionTitle() const override
 	{
-		return FText::FromString( SectionObject.GetMovieScene()->GetName() );
+		return FText::FromString( SectionObject.GetMovieSceneAnimation()->GetName() );
 	}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
@@ -49,6 +52,8 @@ public:
 
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
+		const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 		// Add a box for the section
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -56,7 +61,7 @@ public:
 			AllottedGeometry.ToPaintGeometry(),
 			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
 			SectionClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FColor( 220, 120, 120 )
 		);
 
@@ -69,10 +74,11 @@ private:
 	/** The section we are visualizing */
 	USubMovieSceneSection& SectionObject;
 	/** The instance that this section is part of */
-	TWeakPtr<FMovieSceneInstance> MovieSceneInstance;
+	TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
 	/** Sequencer interface */
 	TWeakPtr<ISequencer> Sequencer;
 };
+
 
 FSubMovieSceneTrackEditor::FSubMovieSceneTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
@@ -81,10 +87,11 @@ FSubMovieSceneTrackEditor::FSubMovieSceneTrackEditor( TSharedRef<ISequencer> InS
 }
 
 
-TSharedRef<FMovieSceneTrackEditor> FSubMovieSceneTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<ISequencerTrackEditor> FSubMovieSceneTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FSubMovieSceneTrackEditor( InSequencer ) );
 }
+
 
 bool FSubMovieSceneTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
@@ -92,20 +99,22 @@ bool FSubMovieSceneTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type
 	return Type == USubMovieSceneTrack::StaticClass();
 }
 
-TSharedRef<ISequencerSection> FSubMovieSceneTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+
+TSharedRef<ISequencerSection> FSubMovieSceneTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
-	return MakeShareable( new FSubMovieSceneSection( GetSequencer(), SectionObject, Track->GetTrackName() ) );
+	return MakeShareable( new FSubMovieSceneSection( GetSequencer(), SectionObject, Track.GetTrackName() ) );
 }
+
 
 bool FSubMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
-	if (Asset->IsA<UMovieScene>())
+	UMovieSceneSequence* Animation = Cast<UMovieSceneSequence>( Asset );
+
+	if( Animation )
 	{
-		GetSequencer()->AddSubMovieScene( CastChecked<UMovieScene>( Asset ) );
+		GetSequencer()->AddSubMovieScene( Animation );
 
 		return true;
 	}
 	return false;
 }
-
-

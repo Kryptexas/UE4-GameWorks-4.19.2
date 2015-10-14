@@ -2655,6 +2655,12 @@ void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector co
 	}
 }
 
+/** Draw a debug circle */
+void UKismetSystemLibrary::DrawDebugCircle(UObject* WorldContextObject,FVector Center, float Radius, int32 NumSegments, FLinearColor LineColor, float LifeTime, float Thickness, FVector YAxis, FVector ZAxis, bool bDrawAxis)
+{ 
+	::DrawDebugCircle(GEngine->GetWorldFromContextObject(WorldContextObject),Center, Radius, NumSegments, LineColor.ToFColor(true), false, LifeTime, SDPG_World, Thickness, YAxis, ZAxis, bDrawAxis);
+}
+
 /** Draw a debug point */
 void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const Position, float Size, FLinearColor PointColor, float LifeTime)
 {
@@ -2991,7 +2997,7 @@ int32 UKismetSystemLibrary::GetRenderingMaterialQualityLevel()
 	static const IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
 
 	// clamp range
-	int32 Ret = FMath::Clamp(CVar->GetInt(), 0, 1);
+	int32 Ret = FMath::Clamp(CVar->GetInt(), 0, (int32)EMaterialQualityLevel::Num - 1);
 
 	return Ret;
 }
@@ -3029,12 +3035,23 @@ void UKismetSystemLibrary::CollectGarbage()
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));
 }
 
-void UKismetSystemLibrary::ShowAdBanner(bool bShowOnBottomOfScreen)
+void UKismetSystemLibrary::ShowAdBanner(int32 AdIdIndex, bool bShowOnBottomOfScreen)
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
-		Provider->ShowAdBanner(bShowOnBottomOfScreen);
+		Provider->ShowAdBanner(bShowOnBottomOfScreen, AdIdIndex);
 	}
+}
+
+int32 UKismetSystemLibrary::GetAdIDCount()
+{
+	uint32 AdIDCount = 0;
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		AdIDCount = Provider->GetAdIDCount();
+	}
+
+	return AdIDCount;
 }
 
 void UKismetSystemLibrary::HideAdBanner()
@@ -3120,6 +3137,21 @@ void UKismetSystemLibrary::SetVolumeButtonsHandledBySystem(bool bEnabled)
 bool UKismetSystemLibrary::GetVolumeButtonsHandledBySystem()
 {
 	return FPlatformMisc::GetVolumeButtonsHandledBySystem();
+}
+
+void UKismetSystemLibrary::ResetGamepadAssignments()
+{
+	FPlatformMisc::ResetGamepadAssignments();
+}
+
+void UKismetSystemLibrary::ResetGamepadAssignmentToController(int32 ControllerId)
+{
+	FPlatformMisc::ResetGamepadAssignmentToController(ControllerId);
+}
+
+bool UKismetSystemLibrary::IsControllerAssignedToGamepad(int32 ControllerId)
+{
+	return FPlatformMisc::IsControllerAssignedToGamepad(ControllerId);
 }
 
 void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState)

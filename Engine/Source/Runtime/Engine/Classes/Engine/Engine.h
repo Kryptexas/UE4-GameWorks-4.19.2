@@ -450,19 +450,6 @@ struct FScreenMessageString
 };
 
 
-UENUM()
-namespace EMatineeCaptureType
-{
-	enum Type
-	{
-		AVI		UMETA(DisplayName="AVI Movie"),
-		BMP		UMETA(DisplayName="BMP Image Sequence"),
-		PNG		UMETA(DisplayName="PNG Image Sequence"),
-		JPEG	UMETA(DisplayName="JPEG Image Sequence")
-	};
-}
-
-
 USTRUCT()
 struct FGameNameRedirect
 {
@@ -532,42 +519,6 @@ class IAnalyticsProvider;
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
 DECLARE_DELEGATE(FEndStreamingPauseDelegate);
 
-USTRUCT()
-struct FMatineeScreenshotOptions
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** determines if we should start the matinee capture as soon as the game loads */
-	UPROPERTY(transient)
-	uint32 bStartWithMatineeCapture:1;
-
-	/** should we compress the capture */
-	UPROPERTY(transient)
-	uint32 bCompressMatineeCapture:1;
-
-	/** the name of the matine that we want to record */
-	UPROPERTY(transient)
-	FString MatineeCaptureName;
-
-	/** The package name where the matinee belongs to */
-	UPROPERTY(transient)
-	FString MatineePackageCaptureName;
-
-	/** the fps of the matine that we want to record */
-	UPROPERTY(transient)
-	int32 MatineeCaptureFPS;
-
-	/** The capture type, e.g. AVI or Screen Shots */
-	UPROPERTY(transient)
-	TEnumAsByte<EMatineeCaptureType::Type> MatineeCaptureType;
-
-	/** Whether or not to disable texture streaming during matinee movie capture */
-	UPROPERTY(transient)
-	bool bNoTextureStreaming;
-
-	UPROPERTY(transient)
-	bool bHideHud;
-};
 
 /**
  * Abstract base class of all Engine classes, responsible for management of systems critical to editor or game systems.
@@ -799,7 +750,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference WireframeMaterialName;
+	FString WireframeMaterialName;
 
 #if WITH_EDITORONLY_DATA
 	/** A translucent material used to render things in geometry mode. */
@@ -825,7 +776,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LevelColorationLitMaterialName;
+	FString LevelColorationLitMaterialName;
 
 	/** Material used for visualizing level membership in unlit view port modes. */
 	UPROPERTY()
@@ -833,7 +784,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LevelColorationUnlitMaterialName;
+	FString LevelColorationUnlitMaterialName;
 
 	/** Material used for visualizing lighting only w/ lightmap texel density. */
 	UPROPERTY()
@@ -841,7 +792,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LightingTexelDensityName;
+	FString LightingTexelDensityName;
 
 	/** Material used for visualizing level membership in lit view port modes. Uses shading to show axis directions. */
 	UPROPERTY()
@@ -849,7 +800,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ShadedLevelColorationLitMaterialName;
+	FString ShadedLevelColorationLitMaterialName;
 
 	/** Material used for visualizing level membership in unlit view port modes.  Uses shading to show axis directions. */
 	UPROPERTY()
@@ -857,7 +808,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ShadedLevelColorationUnlitMaterialName;
+	FString ShadedLevelColorationUnlitMaterialName;
 
 	/** Material used to indicate that the associated BSP surface should be removed. */
 	UPROPERTY()
@@ -873,7 +824,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorMaterialName;
+	FString VertexColorMaterialName;
 
 	/** Material for visualizing vertex colors on meshes in the scene (color only, no alpha) */
 	UPROPERTY()
@@ -881,7 +832,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_ColorOnly;
+	FString VertexColorViewModeMaterialName_ColorOnly;
 
 	/** Material for visualizing vertex colors on meshes in the scene (alpha channel as color) */
 	UPROPERTY()
@@ -889,7 +840,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_AlphaAsColor;
+	FString VertexColorViewModeMaterialName_AlphaAsColor;
 
 	/** Material for visualizing vertex colors on meshes in the scene (red only) */
 	UPROPERTY()
@@ -897,7 +848,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_RedOnly;
+	FString VertexColorViewModeMaterialName_RedOnly;
 
 	/** Material for visualizing vertex colors on meshes in the scene (green only) */
 	UPROPERTY()
@@ -905,7 +856,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_GreenOnly;
+	FString VertexColorViewModeMaterialName_GreenOnly;
 
 	/** Material for visualizing vertex colors on meshes in the scene (blue only) */
 	UPROPERTY()
@@ -913,7 +864,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_BlueOnly;
+	FString VertexColorViewModeMaterialName_BlueOnly;
 
 #if WITH_EDITORONLY_DATA
 	/** Material used to render bone weights on skeletal meshes */
@@ -981,6 +932,10 @@ public:
 	/** The colors used to render stationary light overlap. */
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> StationaryLightOverlapColors;
+
+	/** The colors used to render LOD coloration. */
+	UPROPERTY(globalconfig)
+	TArray<FLinearColor> LODColorationColors;
 
 	/**
 	* Complexity limits for the various complexity view mode combinations.
@@ -1386,8 +1341,6 @@ private:
 	int32 ScreenSaverInhibitorSemaphore;
 
 public:
-	UPROPERTY(transient)
-	FMatineeScreenshotOptions MatineeScreenshotOptions;
 
 	/** true if the the user cannot modify levels that are read only. */
 	UPROPERTY(transient)
@@ -1500,6 +1453,9 @@ public:
 	/** Reference to the HMD device that is attached, if any */
 	TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice;
 
+	/** Extensions that can modify view parameters on the render thread. */
+	TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
+	
 	/** Reference to the Motion Control devices that are attached, if any */
 	TArray < class IMotionController*> MotionControllerDevices;
 
@@ -2626,9 +2582,6 @@ public:
 	 */
 	const UGameUserSettings* GetGameUserSettings() const;
 	UGameUserSettings* GetGameUserSettings();
-
-	/** Delegate handler for screenshots */
-	void HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors);
 
 private:
 	void CreateGameUserSettings();

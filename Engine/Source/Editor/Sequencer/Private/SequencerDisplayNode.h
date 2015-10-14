@@ -4,6 +4,23 @@
 
 class IKeyArea;
 class ISequencerSection;
+class SSequencerTreeViewRow;
+class FGroupedKeyArea;
+
+/** Structure used to define padding for a particular node */
+struct FNodePadding
+{
+	FNodePadding(float InUniform) : Top(InUniform), Bottom(InUniform) {}
+	FNodePadding(float InTop, float InBottom) : Top(InTop), Bottom(InBottom) {}
+	
+	/** @return The sum total of the separate padding values */
+	float Combined() const { return Top + Bottom; }
+
+	/** Padding to be applied to the top of the node */
+	float Top;
+	/** Padding to be applied to the bottom of the node */
+	float Bottom;
+};
 
 namespace ESequencerNode
 {
@@ -55,9 +72,10 @@ public:
 	 * Adds a new section area for this node.
 	 * 
 	 * @param SectionName		Name of the section area
-	 * @param AssociatedType	The track associated with sections in this node
+	 * @param AssociatedTrack	The track associated with sections in this node
+	 * @param AssociatedEditor	The track editor for the associated track
 	 */
-	TSharedRef<class FTrackNode> AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack );
+	TSharedRef<class FTrackNode> AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor );
 
 	/**
 	 * Adds a key area to this node
@@ -82,6 +100,11 @@ public:
 	virtual float GetNodeHeight() const = 0;
 	
 	/**
+	 * @return The desired padding of the node when displayed
+	 */
+	virtual FNodePadding GetNodePadding() const = 0;
+
+	/**
 	 * @return The localized display name of this node
 	 */
 	virtual FText GetDisplayName() const = 0;
@@ -91,7 +114,7 @@ public:
 	 * 
 	 * @return Generated outliner container widget
 	 */
-	virtual TSharedRef<SWidget> GenerateContainerWidgetForOutliner();
+	virtual TSharedRef<SWidget> GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow);
 
 	/**
 	* Generates a widget editing a row in the animation outliner portion of the track area
@@ -109,12 +132,21 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForSectionArea( const TAttribute< TRange<float> >& ViewRange );
 
 	/**
+	 * Get the display node that is ultimately responsible for constructing a section area widget for this node.
+	 * Could return this node itself, or a parent node
+	 */
+	TSharedPtr<FSequencerDisplayNode> GetSectionAreaAuthority() const;
+
+	/**
 	 * @return the path to this node starting with the outermost parent
 	 */
 	FString GetPathName() const;
 
+	/** Summon context menu */
+	TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 	/** What sort of context menu this node summons */
-	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) {return TSharedPtr<SWidget>();}
+	virtual void BuildContextMenu(FMenuBuilder& MenuBuilder);
 
 	/**
 	 * @return The name of the node (for identification purposes)
@@ -127,14 +159,41 @@ public:
 	uint32 GetNumChildren() const { return ChildNodes.Num(); }
 
 	/**
-	 * @return How deep we are in the master tree
-	 */
-	uint32 GetTreeLevel() const { return TreeLevel; }
-
-	/**
 	 * @return A List of all Child nodes belonging to this node
 	 */
 	const TArray< TSharedRef<FSequencerDisplayNode> >& GetChildNodes() const { return ChildNodes; }
+
+	/**
+	 * Iterate this entire node tree, child first.
+	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
+	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
+	 * @return  true where the client prematurely exited the iteration, false otherwise
+	 */
+	bool Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+
+	/**
+	 * Iterate this entire node tree, parent first.
+	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
+	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
+	 * @return  true where the client prematurely exited the iteration, false otherwise
+	 */
+	bool Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+
+	/**
+	 * Iterate any visible portions of this node's sub-tree, child first.
+	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
+	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
+	 * @return  true where the client prematurely exited the iteration, false otherwise
+	 */
+	bool TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+
+	/**
+	 * Iterate any visible portions of this node's sub-tree, parent first.
+	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
+	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
+	 * @return  true where the client prematurely exited the iteration, false otherwise
+	 */
+	bool TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Sorts the child nodes with the supplied predicate
@@ -164,63 +223,41 @@ public:
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const;
 
 	/**
-	 * Toggles the expansion state of this node
+	 * Set whether this node is expanded or not
 	 */
-	void ToggleExpansion();
+	void SetExpansionState(bool bInExpanded);
 
 	/**
-	 * @return Whether or not this node is expanded                                                              
+	 * @return Whether or not this node is expanded
 	 */
 	bool IsExpanded() const;
 
 	/**
-	 * @return Whether or not a node is visible
+	 * @return Whether this node is explicitly hidden from the view or not
 	 */
-	bool IsVisible() const;
+	bool IsHidden() const;
 
-	/** Updates the cached shot filtered visibility flag */
-	void UpdateCachedShotFilteredVisibility();
+	/** Initialize this node with expansion states and virtual offsets */
+	void Initialize(float InVirtualTop, float InVirtualBottom);
 
-	/** Pins this node, forcing it to the top of the sequencer. Affects visibility */
-	void PinNode();
+	/** @return this node's virtual offset from the top of the tree, irrespective of expansion states */
+	float GetVirtualTop() const { return VirtualTop; }
 	
+	/** @return this node's virtual offset plus its virtual height, irrespective of expansion states */
+	float GetVirtualBottom() const { return VirtualBottom; }
+
+	/** Get the key grouping for the specified section index, ensuring it is fully up to date */
+	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(int32 InSectionIndex);
+
+	/** Get the key grouping for the specified section index */
+	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
+
 protected:
-	/**
-	 * Visibility of nodes is a complex situation. There are 7 different factors to account for:
-	 * - Expansion State of Parents
-	 * - Search Filtering
-	 * - Shot Filtering
-	 * - Clean View
-	 * - Pinned Nodes
-	 * - Manually keyed nodes with a single key are not displayed
-	 * - Sub Movie Scene Filtering (maybe, we might just ignore this completely)
-	 *
-	 * It is handled by first caching the shot filtering state in each node.
-	 * Manually keyed nodes with a single key are cached at this point as well.
-	 * This cached state is updated only when shot filtering changes.
-	 * This is done for a) Simplicity, to break things apart
-	 * and b) Efficiency, since that is likely the most expensive visibility flag
-	 * and, most importantly, c) because it is the only pass that is dependent on
-	 * the way the tree structure is laid out (it requires looking at child nodes).
-	 *
-	 * Then, the remaining visibility flags are AND'd together in these groups
-	 * 1) CachedShotFilteringFlag
-	 * 2) Search Filtering, which overrides Expansion State of Parents
-	 * 3) Clean View and Pinned Nodes, which intersects with shot filtering global enabling
-	 * 4) Sub Movie Scenes (not implemented yet)
-	 */
+	/** The virtual offset of this item from the top of the tree, irrespective of expansion states */
+	float VirtualTop;
+	/** The virtual offset + virtual heightof this item, irrespective of expansion states */
+	float VirtualBottom;
 
-	/**
-	 * Returns visibility, calculating the conditions for which this
-	 * node's shot filtering visibility is cached
-	 */
-	virtual bool GetShotFilteredVisibilityToCache() const = 0;
-	
-	/** Whether this node has visible children, based on cached shot filtering visibility only */
-	bool HasVisibleChildren() const;
-	/** Whether this node is a root node, or it's parent is expanded */
-	bool IsParentExpandedOrIsARootNode() const;
-	
 protected:
 	/** The parent of this node*/
 	TWeakPtr< FSequencerDisplayNode > ParentNode;
@@ -230,14 +267,10 @@ protected:
 	FSequencerNodeTree& ParentTree;
 	/** The name identifier of this node */
 	FName NodeName;
-	/** How far deep in the tree the node is */
-	uint32 TreeLevel;
 	/** Whether or not the node is expanded */
 	bool bExpanded;
-	/** A cached state of what this node's visibility is based only on shot filtering */
-	bool bCachedShotFilteredVisibility;
-	/** Whether this node is pinned to the top of the sequencer */
-	bool bNodeIsPinned;
+	/** Transient grouped keys for this node */
+	TArray< TSharedPtr<FGroupedKeyArea> > KeyGroupings;
 };
 
 /**
@@ -265,8 +298,8 @@ public:
 	/** FSequencerDisplayNodeInterface */
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::KeyArea; }
 	virtual float GetNodeHeight() const override;
+	virtual FNodePadding GetNodePadding() const override;
 	virtual FText GetDisplayName() const override { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 
 	/**
@@ -312,18 +345,19 @@ public:
 	/**
 	 * Constructor
 	 * 
-	 * @param InNodeName	The name identifier of then node
-	 * @param InDisplayName	Display name of the section area
-	 * @param InParentNode	The parent of this node or NULL if this is a root node
-	 * @param InParentTree	The tree this node is in
+	 * @param InNodeName The name identifier of then node
+	 * @param InAssociatedType The track that this node represents.
+	 * @param InAssociatedEditor The track editor for the track that this node represents.
+	 * @param InParentNode The parent of this node or NULL if this is a root node
+	 * @param InParentTree The tree this node is in
 	 */
-	FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
+	FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
 
 	/** FSequencerDisplayNodeInterface */
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Track; }
 	virtual float GetNodeHeight() const override;
+	virtual FNodePadding GetNodePadding() const override;
 	virtual FText GetDisplayName() const override;
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const override;
 	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 
@@ -369,6 +403,8 @@ private:
 	TSharedPtr< FSectionKeyAreaNode > TopLevelKeyNode;
 	/** The type associated with the sections in this node */
 	TWeakObjectPtr<UMovieSceneTrack> AssociatedType;
+	/** The track editor for the track associated with this node. */
+	ISequencerTrackEditor& AssociatedEditor;
 };
 
 /**
@@ -396,17 +432,20 @@ public:
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Object; }
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
-	virtual bool GetShotFilteredVisibilityToCache() const override;
+	virtual FNodePadding GetNodePadding() const override;
 	TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 	
 	/** @return The object binding on this node */
 	const FGuid& GetObjectBinding() const { return ObjectBinding; }
 	
 	/** What sort of context menu this node summons */
-	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void BuildContextMenu(FMenuBuilder& MenuBuilder) override;
 
 private:
-	TSharedRef<SWidget> OnGetAddPropertyTrackMenuContent();
+	TSharedRef<SWidget> OnGetAddTrackMenuContent();
+
+	void AddPropertyMenuItemsWithCategories(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyablePropertyPath);
+	void AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyableProperties, int32 PropertyNameIndexStart = 0, int32 PropertyNameIndexEnd = -1);
 
 	void AddTrackForProperty(TArray<UProperty*> PropertyPath);
 
@@ -441,8 +480,8 @@ public:
 	/** FSequencerDisplayNodeInterface */
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Category; }
 	virtual float GetNodeHeight() const override;
+	virtual FNodePadding GetNodePadding() const override;
 	virtual FText GetDisplayName() const override { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 private:
 	/** The display name of the category */
 	FText DisplayName;

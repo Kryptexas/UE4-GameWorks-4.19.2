@@ -29,6 +29,7 @@
 #include "SubtitleManager.h"
 #include "InterpolationHitProxy.h"
 
+#include "LevelEditor.h"
 #include "LevelEditorActions.h"
 #include "EditorSupportDelegates.h"
 
@@ -49,6 +50,8 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraAnim.h"
 
+#include "MovieSceneCaptureModule.h"
+#include "LevelCapture.h"
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
 
@@ -1480,12 +1483,6 @@ void FMatinee::StopPlaying()
 
 	// Make sure fixed time step mode is set correctly based on whether we're currently 'playing' or not
 	UpdateFixedTimeStepPlayback();
-}
-
-/** Starts recording the current sequence */
-void FMatinee::StartRecordingMovie()
-{
-	GUnrealEd->PlayMap(NULL, NULL, 0, -1, false, true);
 }
 
 void FMatinee::OnPostUndoRedo(FUndoSessionContext SessionContext, bool Succeeded)
@@ -2969,6 +2966,24 @@ FString FMatinee::GetInterpEdFPSSnapSizeLocName( int32 StringIndex )
 bool FMatinee::IsCameraAnim() const
 {
 	return MatineeActor->IsA(AMatineeActorCameraAnim::StaticClass());
+}
+
+void FMatinee::OnMenuCreateMovie()
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	IMovieSceneCaptureModule& MovieSceneCaptureModule = IMovieSceneCaptureModule::Get();
+
+	// Create a new movie scene capture object for a generic level capture
+	ULevelCapture* MovieSceneCapture = NewObject<ULevelCapture>(GetTransientPackage(), ULevelCapture::StaticClass(), NAME_None, RF_Transient);
+	MovieSceneCapture->LoadConfig();
+
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	if (Mode && Mode->InterpEd)
+	{
+		MovieSceneCapture->Level = Mode->InterpEd->GetMatineeActor()->GetOutermost()->GetName();
+	}
+
+	MovieSceneCaptureModule.OpenCaptureSettings(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -203,6 +203,8 @@ namespace UnrealBuildTool
 
 			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
 
+			Result += " " + BuildPlat.GetAdditionalLinkerFlags(CompileEnvironment.Config.Target.Configuration);
+
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
@@ -371,6 +373,7 @@ namespace UnrealBuildTool
 			Result += " -dead_strip";
 			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
 			Result += " -Wl,-no_pie";
+			Result += " -stdlib=libc++";
 			//			Result += " -v";
 
 			// link in the frameworks
@@ -598,7 +601,7 @@ namespace UnrealBuildTool
 					{
 						// add it to the prerequisites to make sure it's built first (this should be the case of non-system libraries)
 						FileItem LibFile = FileItem.GetItemByPath(Path.GetFullPath(AdditionalLibrary));
-						FileItem RemoteLibFile = LocalToRemoteFileItem(LibFile, false);
+						FileItem RemoteLibFile = LocalToRemoteFileItem(LibFile, true);
 						LinkAction.PrerequisiteItems.Add(RemoteLibFile);
 
 						// and add to the commandline
@@ -977,15 +980,19 @@ namespace UnrealBuildTool
 				{
 					string Project = Target.ProjectDirectory + "/" + AppName + ".uproject";
 
+					string SchemeName = AppName;
+
 					// generate the dummy project so signing works
 					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
 						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk"});
-						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcodeproj";
+						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcworkspace";
+						SchemeName = "UE4";
 					}
 					else
 					{
-						Project = Target.ProjectDirectory + "/" + AppName + ".xcodeproj";
+						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game"});
+						Project = Target.ProjectDirectory + "/" + AppName + "_IOS.xcworkspace";
 					}
 
 					if (Directory.Exists (Project))
@@ -997,12 +1004,19 @@ namespace UnrealBuildTool
 							DeployHandler.PrepTargetForDeployment(Target);
 						}
 
+						var ConfigName = Target.Configuration.ToString();
+						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+						{
+							ConfigName += " " + Target.Rules.ConfigurationName;
+						}
+
 						// code sign the project
 						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
-						                " -project \"" + Project + "\"" +
-						                " -configuration " + Target.Configuration +
-						                " -scheme '" + AppName + " - iOS'" +
+						                " -workspace \"" + Project + "\"" +
+										" -configuration \"" + ConfigName + "\"" +
+										" -scheme '" + SchemeName + "'" +
 						                " -sdk iphoneos" +
+										" -destination generic/platform=iOS" +
 						                " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 
                         Console.WriteLine("Code signing with command line: " + CmdLine);
@@ -1053,12 +1067,10 @@ namespace UnrealBuildTool
 							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
-						string LocalZipPath = GetLocalFrameworkZipPath( Framework );
-
-						LocalZipPath = LocalZipPath.Replace( ".zip", "" );
+						string UnpackedZipPath = GetRemoteIntermediateFrameworkZipPath( Framework );
 
 						// For now, this is hard coded, but we need to loop over all modules, and copy bundled assets that need it
-						string LocalSource	= LocalZipPath + "/" + Framework.CopyBundledAssets;
+						string LocalSource	= UnpackedZipPath + "/" + Framework.CopyBundledAssets;
 						string BundleName	= Framework.CopyBundledAssets.Substring( Framework.CopyBundledAssets.LastIndexOf( '/' ) + 1 );
 						string LocalDest	= LocalFrameworkAssets + "/" + BundleName;
 
@@ -1140,6 +1152,7 @@ namespace UnrealBuildTool
 
 					string Arguments = "";
 					string PathToApp = RulesCompiler.GetTargetFilename(AppName);
+					string SchemeName = AppName;
 
 					// right now, no programs have a Source subdirectory, so assume the PathToApp is directly in the root
 					if (Path.GetDirectoryName(PathToApp).Contains(@"\Engine\Source\Programs"))
@@ -1165,10 +1178,20 @@ namespace UnrealBuildTool
 								throw new BuildException("The target was not in a /Source subdirectory");
 							}
 						}
-						if (AppName != "UE4Game")
+						if (AppName != "UE4Game" && AppName != "UE4Client")
 						{
 							PathToApp += "\\" + AppName + ".uproject";
 						}
+						else
+						{
+							SchemeName = "UE4";
+						}
+					}
+
+					var SchemeConfiguration = Target.Configuration.ToString();
+					if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+					{
+						SchemeConfiguration += " " + Target.Rules.ConfigurationName;
 					}
 
 					if (bUseDangerouslyFastMode)
@@ -1185,7 +1208,7 @@ namespace UnrealBuildTool
 							Arguments += " -strip";
 						}
 					}
-					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
+					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName + " -schemename " + SchemeName + " -schemeconfig \"" + SchemeConfiguration + "\"";
 
 					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 					string Architecture = BuildPlatform.GetActiveArchitecture();

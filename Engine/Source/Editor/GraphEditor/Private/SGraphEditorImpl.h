@@ -51,6 +51,7 @@ private:
 	TSharedPtr<SWidget>	TitleBar;
 
 	UEdGraphPin* GraphPinForMenu;
+	UEdGraphNode* GraphNodeForMenu;
 
 	/** Info on the appearance */
 	TAttribute<FGraphAppearanceInfo> Appearance;
@@ -129,8 +130,10 @@ public:
 	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false, bool bSelectNode = true ) override;
 	virtual void JumpToPin( const UEdGraphPin* JumpToMe ) override;
 	virtual UEdGraphPin* GetGraphPinForMenu() override;
+	virtual UEdGraphNode* GetGraphNodeForMenu() override;
 	virtual void ZoomToFit(bool bOnlySelection) override;
 	virtual bool GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding) override;
+	virtual bool GetBoundsForNode( const UEdGraphNode* InNode, class FSlateRect& Rect, float Padding) const override;
 	virtual void NotifyGraphChanged() override;
 	virtual TSharedPtr<SWidget> GetTitleBar() const override;
 	virtual void SetViewLocation(const FVector2D& Location, float ZoomAmount) override;
@@ -139,6 +142,8 @@ public:
 	virtual void UnlockFromGraphEditor(TWeakPtr<SGraphEditor> Other) override;
 	virtual void AddNotification ( FNotificationInfo& Info, bool bSuccess ) override;
 	virtual void SetPinVisibility(SGraphEditor::EPinVisibility Visibility) override;
+	virtual void StraightenConnections() override;
+	virtual void StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign) override;
 	// End of SGraphEditor interface
 protected:
 	//

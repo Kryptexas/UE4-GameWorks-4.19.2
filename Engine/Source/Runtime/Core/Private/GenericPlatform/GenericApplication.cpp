@@ -89,11 +89,15 @@ const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Thumbstick
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Left_Thumbstick_X("MotionController_Left_Thumbstick_X");
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Left_Thumbstick_Y("MotionController_Left_Thumbstick_Y");
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Left_TriggerAxis("MotionController_Left_TriggerAxis");
+const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Left_Grip1Axis( "MotionController_Left_Grip1Axis" );
+const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Left_Grip2Axis( "MotionController_Left_Grip2Axis" );
 
 	//		Right Controller
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Thumbstick_X("MotionController_Right_Thumbstick_X");
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Thumbstick_Y("MotionController_Right_Thumbstick_Y");
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_TriggerAxis("MotionController_Right_TriggerAxis");
+const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Grip1Axis( "MotionController_Right_Grip1Axis" );
+const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Grip2Axis( "MotionController_Right_Grip2Axis" );
 
 void FDisplayMetrics::PrintToLog() const
 {

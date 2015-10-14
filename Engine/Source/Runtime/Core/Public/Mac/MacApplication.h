@@ -187,6 +187,10 @@ public:
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
 
+	void OnCursorLock();
+
+	void IgnoreMouseMoveDelta() { bIgnoreMouseMoveDelta = true; }
+
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
@@ -209,12 +213,12 @@ private:
 	void ProcessKeyUpEvent(const FDeferredMacEvent& Event);
 
 	void OnWindowDidMove(TSharedRef<FMacWindow> Window);
-	void OnWindowDidResize(TSharedRef<FMacWindow> Window);
+	void OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking = false);
 	bool OnWindowDestroyed(TSharedRef<FMacWindow> Window);
 
 	void OnApplicationDidBecomeActive();
 	void OnApplicationWillResignActive();
-	void OnWindowsReordered(bool bIsAppInBackground);
+	void OnWindowsReordered();
 
 	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
@@ -278,6 +282,8 @@ private:
 	NSUInteger CurrentModifierFlags;
 
 	bool bEmulatingRightClick;
+
+	bool bIgnoreMouseMoveDelta;
 
 	TArray<FCocoaWindow*> WindowsToClose;
 

@@ -572,7 +572,7 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 #if PLATFORM_WINDOWS
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".sln");
 #elif PLATFORM_MAC
-	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcodeproj");
+	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcworkspace");
 #elif PLATFORM_LINUX
 	// FIXME: Should depend on PreferredAccessor setting
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".workspace");

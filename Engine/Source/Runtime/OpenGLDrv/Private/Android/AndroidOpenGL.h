@@ -126,6 +126,11 @@ extern "C"
 
 struct FAndroidOpenGL : public FOpenGLES2
 {
+	static FORCEINLINE EShaderPlatform GetShaderPlatform()
+	{
+		return SP_OPENGL_ES2_ANDROID;
+	}
+
 	// Optional:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
 	{

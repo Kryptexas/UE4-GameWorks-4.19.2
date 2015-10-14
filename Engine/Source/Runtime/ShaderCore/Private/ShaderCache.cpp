@@ -73,7 +73,7 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_PCES2:
 		case SP_OPENGL_SM5:
-		case SP_OPENGL_ES2:
+		case SP_OPENGL_ES2_ANDROID:
 		case SP_OPENGL_ES2_WEBGL:
 		case SP_OPENGL_ES2_IOS:
 		case SP_OPENGL_ES31_EXT:
@@ -432,6 +432,7 @@ void FShaderCache::InternalLogBoundShaderState(EShaderPlatform Platform, FVertex
 	
 	FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(Platform);
 	PlatformCache.BoundShaderStates.Add(Info);
+	BoundShaderStates.Add(Info, BoundState);
 	
 	if(VertexShader)
 	{
@@ -747,6 +748,10 @@ void FShaderCache::InternalSetBoundShaderState(FBoundShaderStateRHIParamRef Stat
 		{
 			BoundShaderState = ShaderStates.FindChecked(State);
 		}
+		else
+		{
+			CurrentShaderState.SafeRelease();
+		}
 		CurrentDrawKey.Hash = 0;
 	}
 }
@@ -906,7 +911,6 @@ void FShaderCache::PrebindShader(FShaderCacheKey const& Key)
 																					   GeometryShader);
 						if (IsValidRef(BoundState))
 						{
-							BoundShaderStates.Add(State, BoundState);
 							if (bUseShaderPredraw)
 							{
 								TSet<int32>& StreamCache = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey).ShaderDrawStates.FindOrAdd(State);

@@ -11,7 +11,6 @@ struct FColorKey
 {
 	FLinearColor Value;
 	FName CurveName;
-	bool bAddKeyEvenIfUnchanged;
 	bool bIsSlateColor;
 };
 
@@ -33,9 +32,10 @@ public:
 	 *
 	 * @param Time				The time relative to the owning movie scene where the section should be
 	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( float Time, const FColorKey& Key );
+	virtual bool AddKeyToSection( float Time, const FColorKey& Key, FKeyParams KeyParams );
 	
 	/**
 	 * Evaluates the track at the playback position
@@ -47,9 +47,17 @@ public:
 	 */
 	virtual bool Eval( float Position, float LastPostion, FLinearColor& OutColor ) const;
 
-	bool IsSlateColor() const { return bIsSlateColor; }
+	/**
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return Whether the track can be keyed
+	 */
+	virtual bool CanKeyTrack( float Time, const FColorKey& Key, FKeyParams KeyParams ) const;
 
 private:
 	UPROPERTY()
-	bool bIsSlateColor;
+	bool bIsSlateColor_DEPRECATED;
 };

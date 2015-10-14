@@ -248,6 +248,9 @@ void SCollectionView::HandleCollectionRenamed( const FCollectionNameType& Origin
 	{
 		CollectionItem->CollectionName = NewCollection.Name;
 		CollectionItem->CollectionType = NewCollection.Type;
+
+		AvailableCollections.Remove(OriginalCollection);
+		AvailableCollections.Add(NewCollection, CollectionItem);
 	}
 }
 
@@ -1460,6 +1463,13 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 			OutWarningMessage = FText::Format( LOCTEXT("CreateCollectionFailed", "Failed to create the collection. {0}"), CollectionManagerModule.Get().GetLastError());
 			return false;
 		}
+
+		// Since we're really adding a new collection (as our placeholder item is currently transient), we don't get a rename event from the collections manager
+		// We'll spoof one here that so that our placeholder tree item is updated with the final name - this will preserve its expansion and selection state
+		HandleCollectionRenamed(
+			FCollectionNameType(CollectionItem->CollectionName, CollectionItem->CollectionType), 
+			FCollectionNameType(NewNameFinal, CollectionItem->CollectionType)
+			);
 
 		if ( NewCollectionParentKey.IsSet() )
 		{

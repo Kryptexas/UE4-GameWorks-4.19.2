@@ -5,6 +5,7 @@
 #include "MovieScene3DPathTrack.h"
 #include "Components/SplineComponent.h"
 
+
 UMovieScene3DPathSection::UMovieScene3DPathSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 	, FrontAxisEnum(MovieScene3DPathSection_Axis::Y)
@@ -12,22 +13,10 @@ UMovieScene3DPathSection::UMovieScene3DPathSection( const FObjectInitializer& Ob
 	, bFollow (true)
 	, bReverse (false)
 	, bForceUpright (false)
-{
-}
+{ }
 
-void UMovieScene3DPathSection::SetPathId(const FGuid& InPathId)
-{
-	Modify();
 
-	PathId = InPathId;
-}
-
-FGuid UMovieScene3DPathSection::GetPathId() const
-{
-	return PathId;
-}
-
-void UMovieScene3DPathSection::Eval( float Position, USplineComponent* SplineComponent, FVector& OutTranslation, FRotator& OutRotation ) const
+void UMovieScene3DPathSection::Eval( USceneComponent* SceneComponent, float Position, USplineComponent* SplineComponent, FVector& OutTranslation, FRotator& OutRotation ) const
 {
 	float Timing = TimingCurve.Eval( Position );
 
@@ -115,7 +104,13 @@ void UMovieScene3DPathSection::Eval( float Position, USplineComponent* SplineCom
 		OutRotation.Pitch = 0.f;
 		OutRotation.Roll = 0.f;
 	}
+
+	if (!bFollow)
+	{
+		OutRotation = SceneComponent->GetRelativeTransform().GetRotation().Rotator();
+	}
 }
+
 
 void UMovieScene3DPathSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )
 {
@@ -125,12 +120,14 @@ void UMovieScene3DPathSection::MoveSection( float DeltaPosition, TSet<FKeyHandle
 	TimingCurve.ShiftCurve(DeltaPosition, KeyHandles);
 }
 
+
 void UMovieScene3DPathSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {	
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 	
 	TimingCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
+
 
 void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -144,12 +141,12 @@ void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
+
 void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FGuid& InPathId )
 {
 	Modify();
-	PathId = InPathId;
+	ConstraintId = InPathId;
 
 	TimingCurve.UpdateOrAddKey(Time, 0);
 	TimingCurve.UpdateOrAddKey(SequenceEndTime, 1);
 }
-

@@ -2,16 +2,8 @@
 
 #pragma once
 
-namespace SequencerSectionConstants
-{
-	/** How far the user has to drag the mouse before we consider the action dragging rather than a click */
-	const float SectionDragStartDistance = 5.0f;
+#include "KeyAreaLayout.h"
 
-	/** The size of each key */
-	const FVector2D KeySize(11.0f, 11.0f);
-
-	const float SectionGripSize = 7.0f;
-}
 
 class SSection : public SCompoundWidget
 {
@@ -27,35 +19,15 @@ public:
 	/** Caches the parent geometry to be given to section interfaces that need it on tick */
 	void CacheParentGeometry(const FGeometry& InParentGeometry) {ParentGeometry = InParentGeometry;}
 
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	
+	/** Temporarily disable dynamic layout regeneration. This prevents overlapping key groups from being amalgamated during drags. Key times will continue to update correctly. */
+	static void DisableLayoutRegeneration();
+
+	/** Re-enable dynamic layout regeneration */
+	static void EnableLayoutRegeneration();
+
 private:
-	/** Information about how to draw a key area */
-	struct FKeyAreaElement
-	{
-		FKeyAreaElement( FSectionKeyAreaNode& InKeyAreaNode, float InHeightOffset )
-			: KeyAreaNode( InKeyAreaNode )
-			, HeightOffset( InHeightOffset )
-		{}
-
-		FSectionKeyAreaNode& KeyAreaNode;
-		float HeightOffset;
-	};
-
-	/**
-	 * Gets all the visible key areas in this section
-	 *
-	 * @param SectionAreaNode		The section area node containing key areas
-	 * @param OutKeyAreaElements	Populated list of key elements to draw
-	 */
-	void GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreaElements ) const;
-
-	/**
-	 * Recursively gets keys areas from a list of nodes
-	 *
-	 * @param Nodes					List of nodes that could be key areas or contain key areas
-	 * @param HeightOffset			The current height offset incremented for each key area
-	 * @param OutKeyAreaElements	Populated list of key elements to draw
-	 */
-	void GetKeyAreas_Recursive(  const TArray< TSharedRef<FSequencerDisplayNode> >& Nodes, float& HeightOffset, TArray<FKeyAreaElement>& OutKeyAreaElements ) const;
 
 	/**
 	 * Computes the geometry for a key area
@@ -64,7 +36,7 @@ private:
 	 * @param SectionGeometry	The geometry of the section
 	 * @return The geometry of the key area
 	 */
-	FGeometry GetKeyAreaGeometry( const FKeyAreaElement& KeyArea, const FGeometry& SectionGeometry ) const;
+	FGeometry GetKeyAreaGeometry( const FKeyAreaLayoutElement& KeyArea, const FGeometry& SectionGeometry ) const;
 
 	/**
 	 * Determines the key that is under the mouse
@@ -74,6 +46,16 @@ private:
 	 * @return The key that is under the mouse.  Invalid if there is no key under the mouse
 	 */
 	FSelectedKey GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry ) const;
+
+	/**
+	 * Creates a key at the mouse position
+	 *
+	 * @param MousePosition		The current screen space position of the mouse
+	 * @param AllottedGeometry	The geometry of the mouse event
+	 * @param InPressedKey      Key if pressed
+	 * @return The newly created key
+	 */
+	FSelectedKey CreateKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry, FSelectedKey InPressedKey );
 
 	/**
 	 * Checks for user interaction (via the mouse) with the left and right edge of a section
@@ -101,15 +83,26 @@ private:
 	 * @param OutDrawElements	List of draw elements to add to
 	 * @param LayerId			The starting draw area
 	 */
-	void PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle ) const;
+	void PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 
 	/**
-	 * Draw the borders around each section.  The borders are the areas which can be used to expand or collapse the size of the section.
+	 * Draw the section resize handles.
 	 */
-	void DrawSectionBorders( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
+	void DrawSectionHandles( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor ) const;
+
+	/**
+	 * Draw a box representing this section's selection
+	 */
+	void DrawSelectionBorder( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor ) const;
 
 	/** Summons a context menu over the associated section */
 	TSharedPtr<SWidget> OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+
+	/** Add edit menu for trim and split */
+	void AddEditMenu(FMenuBuilder& MenuBuilder);
+
+	/** Add extrapolation menu for pre and post infinity */
+	void AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool bPreInfinity);
 
 	/**
 	 * Selects the section or keys if they are found under the mouse
@@ -132,8 +125,9 @@ private:
 	 * Selects the section if needed
 	 *
 	 * @param MouseEvent		The mouse event that may have caused selection
+	 * @param bSelectDueToDrag	If we are selecting the key due to a drag operation rather than it just being clicked
 	 */
-	void HandleSectionSelection( const FPointerEvent& MouseEvent );
+	void HandleSectionSelection( const FPointerEvent& MouseEvent, bool bSelectDueToDrag );
 
 	/** @return the sequencer interface */
 	FSequencer& GetSequencer() const;
@@ -156,25 +150,71 @@ private:
 	 * Resets the hovered state of elements in the widget (section edges, keys)
 	 */
 	void ResetHoveredState();
+
+	/** 
+	 * Creates geometry for a section without space for the handles
+	 */
+	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const;
+
+	/** 
+	 * Select all keys within the section
+	 */
+	void SelectAllKeys();
+
+	/**
+	 * Are there keys to select? 
+	 */
+	bool CanSelectAllKeys() const;
+
+	/**
+	 * Trim section 
+	 */
+	void TrimSection(bool bTrimLeft);
+
+	/**
+	 * Split section
+	 */
+	void SplitSection();
+
+	/**
+	 * Is there a trimmable section?
+	 */
+	bool IsTrimmable() const;
+
+	/**
+	 * Set extrapolation mode
+	 */
+	void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity);
+
+	/**
+	 * Is extrapolation mode selected
+	 */
+	bool IsExtrapolationModeSelected(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) const;
+
+	/**
+	 * Section active/inactive toggle
+	 */
+	void ToggleSectionActive();
+	bool IsToggleSectionActive() const;
+
+	/*
+	 * Delete section
+	 */ 
+	void DeleteSection();
+
 private:
 	/** Interface to section data */
 	TSharedPtr<ISequencerSection> SectionInterface;
 	/** Section area where this section resides */
 	TSharedPtr<FTrackNode> ParentSectionArea;
-	/** Key areas inside this section */
-	TArray<FKeyAreaElement> KeyAreas;
-	/** Current drag operation if any */
-	TSharedPtr<class FSequencerDragOperation> DragOperation;
+	/** Cached layout generated each tick */
+	TOptional<FKeyAreaLayout> Layout;
 	/** The currently pressed key if any */
 	FSelectedKey PressedKey;
 	/** The current hovered key if any */
 	FSelectedKey HoveredKey;
-	/** The distance we have dragged since the mouse was pressed down */
-	float DistanceDragged;
 	/** The index of this section in the parent section area */
 	int32 SectionIndex;
-	/** Whether or not we are dragging */
-	bool bDragging;
 	/** Whether or not the left edge of the section is hovered */
 	bool bLeftEdgeHovered;
 	/** Whether or not the left edge of the section is pressed */

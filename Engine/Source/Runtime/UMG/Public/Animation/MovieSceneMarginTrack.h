@@ -3,13 +3,13 @@
 #pragma once
 
 #include "MovieScenePropertyTrack.h"
+#include "KeyParams.h"
 #include "MovieSceneMarginTrack.generated.h"
 
 struct FMarginKey
 {
 	FMargin Value;
 	FName CurveName;
-	bool bAddKeyEvenIfUnchanged;
 };
 
 /**
@@ -30,9 +30,10 @@ public:
 	 *
 	 * @param Time				The time relative to the owning movie scene where the section should be
 	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
 	 * @return True if the key was successfully added.
 	 */
-	UMG_API bool AddKeyToSection( float Time, const FMarginKey& MarginKey );
+	UMG_API bool AddKeyToSection( float Time, const FMarginKey& MarginKey, FKeyParams KeyParams );
 
 	/**
 	 * Evaluates the track at the playback position
@@ -44,4 +45,13 @@ public:
 	 */
 	bool Eval( float Position, float LastPostion, FMargin& InOutMargin ) const;
 
+	/**
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return True if the key was successfully added.
+	 */
+	UMG_API bool CanKeyTrack( float Time, const FMarginKey& MarginKey, FKeyParams KeyParams ) const;
 };

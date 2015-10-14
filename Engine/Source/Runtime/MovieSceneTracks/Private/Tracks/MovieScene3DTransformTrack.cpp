@@ -6,11 +6,13 @@
 #include "IMovieScenePlayer.h"
 #include "MovieScene3DTransformTrackInstance.h"
 
+
 bool FTransformKey::ShouldKeyTranslation( EAxis::Type Axis) const
 {
 	// If the previous transform is not valid we have nothing to compare against so assume we always key. Otherwise check for differences
 	return !PreviousTransform.IsValid() || GetVectorComponentIfDifferent( Axis, NewTransform.Translation, PreviousTransform.Translation );
 }
+
 
 bool FTransformKey::ShouldKeyRotation( EAxis::Type Axis ) const
 {
@@ -18,11 +20,13 @@ bool FTransformKey::ShouldKeyRotation( EAxis::Type Axis ) const
 	return !PreviousTransform.IsValid() || GetVectorComponentIfDifferent( Axis, NewTransform.Rotation.Euler(), PreviousTransform.Rotation.Euler() );
 }
 
+
 bool FTransformKey::ShouldKeyScale( EAxis::Type Axis ) const
 {
 	// If the previous transform is not valid we have nothing to compare against so assume we always key. Otherwise check for differences
 	return !PreviousTransform.IsValid() || GetVectorComponentIfDifferent( Axis, NewTransform.Scale, PreviousTransform.Scale );
 }
+
 
 bool FTransformKey::ShouldKeyAny() const
 {
@@ -30,6 +34,7 @@ bool FTransformKey::ShouldKeyAny() const
 		ShouldKeyRotation(EAxis::X) || ShouldKeyRotation(EAxis::Y) || ShouldKeyRotation(EAxis::Z) ||
 		ShouldKeyScale(EAxis::X) || ShouldKeyScale(EAxis::Y) || ShouldKeyScale(EAxis::Z);
 }
+
 
 bool FTransformKey::GetVectorComponentIfDifferent( EAxis::Type Axis, const FVector& Current, const FVector& Previous ) const
 {
@@ -57,37 +62,43 @@ bool FTransformKey::GetVectorComponentIfDifferent( EAxis::Type Axis, const FVect
 	return bShouldAddKey;
 }
 
+
 UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 UMovieSceneSection* UMovieScene3DTransformTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieScene3DTransformSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieScene3DTransformTrackInstance( *this ) );
 }
 
+
 bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation, F3DTransformTrackKey::Type KeyType )
 {
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime(Sections, InKey.GetKeyTime());
-	if (!NearestSection || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, InKey.GetKeyTime());
+	if (!NearestSection || InKey.KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
 	{
 		Modify();
 
 		UMovieScene3DTransformSection* NewSection = Cast<UMovieScene3DTransformSection>( FindOrAddSection( InKey.GetKeyTime() ) );
 
-		// key each component of the transform
-		if (KeyType & F3DTransformTrackKey::Key_Translation)
-			NewSection->AddTranslationKeys( InKey );
-		if (KeyType & F3DTransformTrackKey::Key_Rotation)
-			NewSection->AddRotationKeys( InKey, bUnwindRotation );
-		if (KeyType & F3DTransformTrackKey::Key_Scale)
-			NewSection->AddScaleKeys( InKey );
+		FTransformKey Key(InKey);
+
+		Key.KeyParams.bAddKeyEvenIfUnchanged = InKey.KeyParams.bAddKeyEvenIfUnchanged && (KeyType & F3DTransformTrackKey::Key_Translation);
+		NewSection->AddTranslationKeys( Key );
+
+		Key.KeyParams.bAddKeyEvenIfUnchanged = InKey.KeyParams.bAddKeyEvenIfUnchanged && (KeyType & F3DTransformTrackKey::Key_Rotation);
+		NewSection->AddRotationKeys( Key, bUnwindRotation );
+
+		Key.KeyParams.bAddKeyEvenIfUnchanged = InKey.KeyParams.bAddKeyEvenIfUnchanged && (KeyType & F3DTransformTrackKey::Key_Scale);
+		NewSection->AddScaleKeys( Key );
 
 		return true;
 	}
@@ -95,19 +106,35 @@ bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, co
 }
 
 
-bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, TArray<bool>& OutHasTranslationKeys, TArray<bool>& OutHasRotationKeys, TArray<bool>& OutHasScaleKeys ) const
+bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale ) const
 {
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
+	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
 		const UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>( Section );
 
-		// Evalulate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
-		TransformSection->EvalTranslation( Position, OutTranslation, OutHasTranslationKeys );
-		TransformSection->EvalRotation( Position, OutRotation, OutHasRotationKeys );
-		TransformSection->EvalScale( Position, OutScale, OutHasScaleKeys );
+		if (!Section->IsInfinite())
+		{
+			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
+		}
+
+		// Evaluate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
+		TransformSection->EvalTranslation( Position, OutTranslation );
+		TransformSection->EvalRotation( Position, OutRotation );
+		TransformSection->EvalScale( Position, OutScale );
 	}
 
-	return Section != NULL;
+	return Section != nullptr;
+}
+
+
+bool UMovieScene3DTransformTrack::CanKeyTrack(const FTransformKey& InKey ) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, InKey.GetKeyTime());
+	if (!NearestSection || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
+	{
+		return true;
+	}
+	return false;
 }

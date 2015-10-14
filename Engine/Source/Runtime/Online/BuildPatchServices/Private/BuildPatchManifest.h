@@ -188,6 +188,9 @@ struct FFileManifestData
 	TArray<FChunkPartData> FileChunkParts;
 
 	UPROPERTY()
+	TArray<FString> InstallTags;
+
+	UPROPERTY()
 	bool bIsUnixExecutable;
 
 	UPROPERTY()
@@ -380,8 +383,11 @@ public:
 	virtual const FString& GetPrereqPath() const override;
 	virtual const FString& GetPrereqArgs() const override;
 	virtual int64 GetDownloadSize() const override;
+	virtual int64 GetDownloadSize(const TSet<FString>& Tags) const override;
 	virtual int64 GetBuildSize() const override;
+	virtual int64 GetBuildSize(const TSet<FString>& Tags) const override;
 	virtual TArray<FString> GetBuildFileList() const override;
+	virtual void GetFileTagList(TSet<FString>& Tags) const override;
 	virtual void GetRemovableFiles(IBuildManifestRef OldManifest, TArray< FString >& RemovableFiles) const override;
 	virtual void GetRemovableFiles(const TCHAR* InstallPath, TArray< FString >& RemovableFiles) const override;
 	virtual bool NeedsResaving() const override;
@@ -390,6 +396,7 @@ public:
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const FString& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const double& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const int64& Value) override;
+	virtual void RemoveCustomField(const FString& FieldName) override;
 	virtual IBuildManifestRef Duplicate() const override;
 	// END IBuildManifest Interface
 
@@ -488,7 +495,14 @@ public:
 	 * Get the list of files described by this manifest
 	 * @param Filenames		OUT		Receives the array of files.
 	 */
-	void GetFileList(TArray< FString >& Filenames) const;
+	void GetFileList(TArray<FString>& Filenames) const;
+
+	/**
+	 * Get the list of files that are tagged with the provided tags
+	 * @param Tags					The tags for the required file groups.
+	 * @param TaggedFiles	OUT		Receives the tagged files.
+	 */
+	void GetTaggedFileList(const TSet<FString>& Tags, TSet<FString>& TaggedFiles) const;
 
 	/**
 	* Get the list of Guids for all files described by this manifest
@@ -570,9 +584,9 @@ public:
 	 * @param OldManifest		IN		The Build Manifest that is currently installed. Shared Ptr - Can be invalid.
 	 * @param NewManifest		IN		The Build Manifest that is being patched to. Shared Ref - Implicitly valid.
 	 * @param InstallDirectory	IN		The Build installation directory, so that it can be checked for missing files.
-	 * @param OutDatedFiles		OUT		The array of files that do not match or are new.
+	 * @param OutDatedFiles		OUT		The files that changed hash, are new, are wrong size, or missing on disk.
 	 */
-	static void GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TArray< FString >& OutDatedFiles);
+	static void GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TSet<FString>& OutDatedFiles);
 
 	/**
 	 * Check a single file to see if it will be effected by patching
@@ -621,6 +635,7 @@ private:
 	/** Some lookups to optimize data access */
 	TMap<FGuid, FString*> FileNameLookup;
 	TMap<FString, FFileManifestData*> FileManifestLookup;
+	TMap<FString, TArray<FFileManifestData*>> TaggedFilesLookup;
 	TMap<FGuid, FChunkInfoData*> ChunkInfoLookup;
 	TMap<FString, FCustomFieldData*> CustomFieldLookup;
 

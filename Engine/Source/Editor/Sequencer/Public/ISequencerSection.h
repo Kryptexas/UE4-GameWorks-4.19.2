@@ -4,6 +4,27 @@
 
 class IKeyArea;
 
+namespace SequencerSectionConstants
+{
+	/** How far the user has to drag the mouse before we consider the action dragging rather than a click */
+	const float SectionDragStartDistance = 5.0f;
+
+	/** The size of each key */
+	const FVector2D KeySize(11.0f, 11.0f);
+
+	const float DefaultSectionGripSize = 7.0f;
+
+	const float DefaultSectionHeight = 15.f;
+
+	const FName SelectionColorName("SelectionColor");
+
+	const FName SelectionInactiveColorName("SelectionColorInactive");
+	
+	const FName DefaultSectionGripLeftImageName("Sequencer.DefaultSectionGripLeft");
+	
+	const FName DefaultSectionGripRightImageName("Sequencer.DefaultSectionGripRight");
+}
+
 /**
  * Interface that should be implemented for the UI portion of a section
  */
@@ -36,6 +57,13 @@ public:
 	 */
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const = 0;
 
+	/** Allows a section to override the brush to use for a key by handle.
+	 *
+	 * @param KeyHandle the handle of the key to get a brush for.
+	 * @return A const pointer to a slate brush if the brush should be overridden, otherwise null.
+	 */
+	virtual const FSlateBrush* GetKeyBrush(FKeyHandle KeyHandle) const { return nullptr; }
+
 	/**
 	 * Called when the section is double clicked
 	 *
@@ -65,12 +93,21 @@ public:
 	/**
 	 * @return The height of the section
 	 */
-	virtual float GetSectionHeight() const { return 15.0f; }
+	virtual float GetSectionHeight() const { return SequencerSectionConstants::DefaultSectionHeight; }
 	
+	virtual float GetSectionGripSize() const { return SequencerSectionConstants::DefaultSectionGripSize; }
+
+	virtual FName GetSectionGripLeftBrushName() const { return SequencerSectionConstants::DefaultSectionGripLeftImageName; }
+
+	virtual FName GetSectionGripRightBrushName() const { return SequencerSectionConstants::DefaultSectionGripRightImageName; }
+
 	/**
 	 * @return Whether or not the user can resize this section.
 	 */
 	virtual bool SectionIsResizable() const {return true;}
+
+
+	virtual bool AreSectionsConnected() const { return false; }
 
 	/**
 	 * Ticks the section during the Slate tick
@@ -88,4 +125,20 @@ public:
 	 * @param MenuBuilder	The menu builder to change
 	 */
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) {}
+
+	/**
+	 * Called when the user requests that a category from this section be deleted. 
+	 *
+	 * @param CategoryNamePath An array of category names which is the path to the category to be deleted.
+	 * @returns Whether or not the category was deleted.
+	 */
+	virtual bool RequestDeleteCategory( const TArray<FName>& CategoryNamePath ) { return false; }
+
+	/**
+	* Called when the user requests that a key area from this section be deleted.
+	*
+	* @param KeyAreaNamePath An array of names representing the path of to the key area to delete, starting with any categories which contain the key area.
+	* @returns Whether or not the key area was deleted.
+	*/
+	virtual bool RequestDeleteKeyArea( const TArray<FName>& KeyAreaNamePath ) { return false; }
 };

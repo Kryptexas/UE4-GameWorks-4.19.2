@@ -118,8 +118,6 @@ public class APEX : ModuleRules
 				"APEX_Clothing{0}_x64.dll",
 				"APEX_Destructible{0}_x64.dll",
 				"APEX_Legacy{0}_x64.dll",
-				"APEX_Loader{0}_x64.dll",
-				"APEX_Particles{0}_x64.dll",
 				"ApexFramework{0}_x64.dll",
 			};
 
@@ -142,8 +140,6 @@ public class APEX : ModuleRules
 				"APEX_Clothing{0}_x86.dll",
 				"APEX_Destructible{0}_x86.dll",
 				"APEX_Legacy{0}_x86.dll",
-				"APEX_Loader{0}_x86.dll",
-				"APEX_Particles{0}_x86.dll",
 				"ApexFramework{0}_x86.dll",
 			};
 
@@ -159,7 +155,6 @@ public class APEX : ModuleRules
 			Definitions.Add("APEX_STATICALLY_LINKED=1");
 
 			ApexLibraries.Add("APEX_Legacy{0}");
-			ApexLibraries.Add("APEX_Loader{0}");
 
 			LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
 		}
@@ -169,7 +164,6 @@ public class APEX : ModuleRules
             Definitions.Add("APEX_STATICALLY_LINKED=1");
 
             ApexLibraries.Add("APEX_Legacy{0}");
-            ApexLibraries.Add("APEX_Loader{0}");
 
             LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
         }

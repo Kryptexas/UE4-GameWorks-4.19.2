@@ -314,9 +314,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		{
 			if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(GetClass()))
 			{
-				UAnimBlueprint* AnimBP = CastChecked<UAnimBlueprint>(AnimBlueprintClass->ClassGeneratedBy);
-
-				if (AnimBP->GetObjectBeingDebugged() == this)
+				UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(AnimBlueprintClass->ClassGeneratedBy);
+				if (AnimBP && AnimBP->GetObjectBeingDebugged() == this)
 				{
 					AnimBlueprintClass->GetAnimBlueprintDebugData().ResetNodeVisitSites();
 				}
@@ -590,7 +589,7 @@ void UAnimInstance::BindNativeDelegates()
 				FAnimNode_StateMachine* StateMachine = Property->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
 				if(StateMachine)
 				{
-					const FBakedAnimationStateMachine* MachineDescription = StateMachine->GetMachineDescription();
+					const FBakedAnimationStateMachine* MachineDescription = AnimBlueprintGeneratedClass->BakedStateMachines.IsValidIndex(StateMachine->StateMachineIndexInClass) ? &(AnimBlueprintGeneratedClass->BakedStateMachines[StateMachine->StateMachineIndexInClass]) : nullptr;
 					if(MachineDescription && MachineName == MachineDescription->MachineName)
 					{
 						// check each state transition for a match
@@ -1647,6 +1646,26 @@ float UAnimInstance::GetCurrentStateElapsedTime(int32 MachineIndex)
 	}
 
 	return 0.0f;
+}
+
+FName UAnimInstance::GetCurrentStateName(int32 MachineIndex)
+{
+	if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>((UObject*)GetClass()))
+	{
+		if ((MachineIndex >= 0) && (MachineIndex < AnimBlueprintClass->AnimNodeProperties.Num()))
+		{
+			const int32 InstancePropertyIndex = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - MachineIndex; //@TODO: ANIMREFACTOR: Reverse indexing
+
+			UStructProperty* MachineInstanceProperty = AnimBlueprintClass->AnimNodeProperties[InstancePropertyIndex];
+			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
+
+			FAnimNode_StateMachine* MachineInstance = MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
+
+			return MachineInstance->GetCurrentStateName();
+		}
+	}
+
+	return NAME_None;
 }
 
 void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)

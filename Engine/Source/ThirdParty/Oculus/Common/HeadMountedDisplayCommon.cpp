@@ -331,6 +331,10 @@ void FHeadMountedDisplay::GetPositionalTrackingCameraProperties(FVector& OutOrig
 {
 }
 
+void FHeadMountedDisplay::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
+{
+}
+
 bool FHeadMountedDisplay::IsInLowPersistenceMode() const
 {
 	const auto frame = GetCurrentFrame();

@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "RenderingCompositionGraph.h"
 #include "HighResScreenshot.h"
+#include "IHeadMountedDisplay.h"
 
 void ExecuteCompositionGraphDebug();
 
@@ -123,6 +124,7 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListIm
 	, FeatureLevel(View.GetFeatureLevel())
 	, ShaderMap(InView.ShaderMap)
 	, bWasProcessed(false)
+	, bHasHmdMesh(false)
 {
 	check(!IsViewportValid());
 }
@@ -134,10 +136,18 @@ FRenderingCompositePassContext::~FRenderingCompositePassContext()
 
 void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
 {
-	// call this method only once afetr the graph is finished
+	// call this method only once after the graph is finished
 	check(!bWasProcessed);
 
 	bWasProcessed = true;
+
+	// query if we have a custom HMD post process mesh to use
+	static const auto* const HiddenAreaMaskCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.HiddenAreaMask"));
+	bHasHmdMesh = (HiddenAreaMaskCVar != nullptr &&
+		HiddenAreaMaskCVar->GetValueOnRenderThread() == 1 &&
+		GEngine &&
+		GEngine->HMDDevice.IsValid() &&
+		GEngine->HMDDevice->HasVisibleAreaMesh());
 
 	if(Root)
 	{

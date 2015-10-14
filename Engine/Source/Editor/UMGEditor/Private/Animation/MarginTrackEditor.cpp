@@ -1,16 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "MovieSceneMarginTrack.h"
 #include "MarginTrackEditor.h"
-#include "Editor/MovieSceneTools/Public/PropertySection.h"
-#include "Editor/MovieSceneTools/Public/MovieSceneToolHelpers.h"
-#include "Runtime/UMG/Public/Animation/MovieSceneMarginSection.h"
-#include "Runtime/UMG/Public/Animation/MovieSceneMarginTrack.h"
-#include "Editor/Sequencer/Public/ISectionLayoutBuilder.h"
-#include "Editor/Sequencer/Public/ISequencerObjectChangeListener.h"
-#include "Editor/PropertyEditor/Public/PropertyHandle.h"
+#include "MovieSceneMarginSection.h"
+#include "PropertySection.h"
+#include "ISectionLayoutBuilder.h"
+#include "MovieSceneToolHelpers.h"
 
-class FMarginPropertySection : public FPropertySection
+
+class FMarginPropertySection
+	: public FPropertySection
 {
 public:
 	FMarginPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
@@ -27,89 +27,36 @@ public:
 	}
 };
 
-FMarginTrackEditor::FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
-	: FMovieSceneTrackEditor( InSequencer ) 
-{
-	// Get the object change listener for the sequencer and register a delegates for when properties change that we care about
-	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( "Margin" ).AddRaw( this, &FMarginTrackEditor::OnMarginChanged );
-}
 
-FMarginTrackEditor::~FMarginTrackEditor()
-{
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	if( Sequencer.IsValid() )
-	{
-		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( "Margin" ).RemoveAll( this );
-	}
-}
-
-
-
-TSharedRef<FMovieSceneTrackEditor> FMarginTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<ISequencerTrackEditor> FMarginTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FMarginTrackEditor( InSequencer ) );
 }
 
-bool FMarginTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
-{
-	return Type == UMovieSceneMarginTrack::StaticClass();
-}
 
-TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
 	UClass* SectionClass = SectionObject.GetOuter()->GetClass();
-
-	TSharedRef<ISequencerSection> NewSection = MakeShareable( new FMarginPropertySection( SectionObject, Track->GetTrackName() ) );
-
-	return NewSection;
+	return MakeShareable( new FMarginPropertySection( SectionObject, Track.GetTrackName() ) );
 }
 
 
-void FMarginTrackEditor::OnMarginChanged(  const FPropertyChangedParams& PropertyChangedParams )
+bool FMarginTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey )
 {
-	AnimatablePropertyChanged
-	(
-		UMovieSceneMarginTrack::StaticClass(), 
-		PropertyChangedParams.bRequireAutoKey,
-		FOnKeyProperty::CreateRaw(this, &FMarginTrackEditor::OnKeyMargin, &PropertyChangedParams ) 
-	);
-}
+	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FMargin>();
 
-
-void FMarginTrackEditor::OnKeyMargin( float KeyTime, const FPropertyChangedParams* PropertyChangedParams )
-{
-	FMargin MarginValue = *PropertyChangedParams->GetPropertyValue<FMargin>();
-	FName PropertyName = PropertyChangedParams->PropertyPath.Last()->GetFName();
-
-	for( int32 ObjectIndex = 0; ObjectIndex < PropertyChangedParams->ObjectsThatChanged.Num(); ++ObjectIndex )
+	if (InTrack)
 	{
-		UObject* Object = PropertyChangedParams->ObjectsThatChanged[ObjectIndex];
-
-		FMarginKey Key;
-		Key.bAddKeyEvenIfUnchanged = !PropertyChangedParams->bRequireAutoKey;
-		Key.CurveName = PropertyChangedParams->StructPropertyNameToKey;
-		Key.Value = MarginValue;
-
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
-		if (ObjectHandle.IsValid())
+		const UMovieSceneMarginTrack* MarginTrack = CastChecked<const UMovieSceneMarginTrack>( InTrack );
+		if (MarginTrack)
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneMarginTrack::StaticClass(), PropertyName );
-			if( ensure( Track ) )
-			{
-				UMovieSceneMarginTrack* MarginTrack = CastChecked<UMovieSceneMarginTrack>(Track);
-				MarginTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams->GetPropertyPathString() );
-				// Find or add a new section at the auto-key time and changing the property same property
-				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
-				bool bSuccessfulAdd = MarginTrack->AddKeyToSection( KeyTime, Key );
-				if (bSuccessfulAdd)
-				{
-					MarginTrack->SetAsShowable();
-				}
-			}
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return MarginTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
 		}
 	}
+
+	return false;
 }

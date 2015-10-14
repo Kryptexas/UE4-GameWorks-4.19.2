@@ -1029,8 +1029,12 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 }
 
 //////////////////////////////////////////////////////////////////////////
+
+#endif //GEARVR_SUPPORTED_PLATFORMS
+
 void FGearVRPlugin::StartOVRGlobalMenu() const 
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1039,10 +1043,12 @@ void FGearVRPlugin::StartOVRGlobalMenu() const
 
 		OculusHMD->StartOVRGlobalMenu();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 }
 
 void FGearVRPlugin::StartOVRQuitMenu() const 
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1051,10 +1057,12 @@ void FGearVRPlugin::StartOVRQuitMenu() const
 
 		OculusHMD->StartOVRQuitMenu();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 }
 
 void FGearVRPlugin::SetCPUAndGPULevels(int32 CPULevel, int32 GPULevel) const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1063,10 +1071,12 @@ void FGearVRPlugin::SetCPUAndGPULevels(int32 CPULevel, int32 GPULevel) const
 
 		OculusHMD->SetCPUAndGPULevels(CPULevel, GPULevel);
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 }
 
 bool FGearVRPlugin::IsPowerLevelStateMinimum() const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1075,11 +1085,13 @@ bool FGearVRPlugin::IsPowerLevelStateMinimum() const
 
 		return OculusHMD->IsPowerLevelStateMinimum();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 	return false;
 }
 
 bool FGearVRPlugin::IsPowerLevelStateThrottled() const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1088,11 +1100,13 @@ bool FGearVRPlugin::IsPowerLevelStateThrottled() const
 
 		return OculusHMD->IsPowerLevelStateThrottled();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 	return false;
 }
 
 float FGearVRPlugin::GetTemperatureInCelsius() const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1101,11 +1115,13 @@ float FGearVRPlugin::GetTemperatureInCelsius() const
 
 		return OculusHMD->GetTemperatureInCelsius();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 	return 0.f;
 }
 
 float FGearVRPlugin::GetBatteryLevel() const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1114,11 +1130,13 @@ float FGearVRPlugin::GetBatteryLevel() const
 
 		return OculusHMD->GetBatteryLevel();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 	return 0.f;
 }
 
 bool FGearVRPlugin::AreHeadPhonesPluggedIn() const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1127,9 +1145,11 @@ bool FGearVRPlugin::AreHeadPhonesPluggedIn() const
 
 		return OculusHMD->AreHeadPhonesPluggedIn();
 	}
+#endif //GEARVR_SUPPORTED_PLATFORMS
 	return false;
 }
 
+#if GEARVR_SUPPORTED_PLATFORMS
 
 #include <HeadMountedDisplayCommon.cpp>
 

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "KeyParams.h"
 #include "MovieSceneSection.generated.h"
 
 /**
@@ -33,22 +34,36 @@ public:
 	 * 
 	 * @param InEndTime	The new end time
 	 */
-	void SetStartTime( float NewStartTime ) { StartTime = NewStartTime; }
+	void SetStartTime( float NewStartTime )
+	{ 
+		Modify();
+
+		StartTime = NewStartTime;
+	}
 
 	/**
 	 * Sets a new end time for this section
 	 * 
 	 * @param InEndTime	The new end time
 	 */
-	void SetEndTime( float NewEndTime ) { EndTime = NewEndTime; }
+	void SetEndTime( float NewEndTime )
+	{ 
+		Modify();
+
+		EndTime = NewEndTime;
+	}
 	
 	/**
 	 * @return The range of times of the section
 	 */
 	TRange<float> GetRange() const 
 	{
-		// Uses an inclusive range so that sections that start and end on the same value aren't considered empty ranges.
-		return TRange<float>( TRange<float>::BoundsType::Inclusive( StartTime ), TRange<float>::BoundsType::Inclusive( EndTime ) );
+		// Use the single value constructor for zero sized ranges because it creates a range that is inclusive on both upper and lower
+		// bounds which isn't considered "empty".  Use the standard constructor for non-zero sized ranges so that they work well when
+		// calculating overlap with other non-zero sized ranges.
+		return StartTime == EndTime 
+			? TRange<float>(StartTime) 
+			: TRange<float>(StartTime, EndTime);
 	}
 	
 	/**
@@ -142,8 +157,10 @@ public:
 	 * @param InCurve	The curve to add keys to
 	 * @param Time		The time where the key should be added
 	 * @param Value		The value at the given time
+	 * @param KeyParams The keying parameters
+	 * @param bUnwindRotation Unwind rotation
 	 */
-	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value );
+	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, FKeyParams KeyParams, const bool bUnwindRotation = false);
 
 	/**
 	 * Checks to see if this section overlaps with an array of other sections
@@ -166,24 +183,32 @@ public:
 	 */
 	virtual MOVIESCENE_API void InitialPlacement(const TArray<UMovieSceneSection*>& Sections, float InStartTime, float InEndTime, bool bAllowMultipleRows);
 
+	/** Whether or not this section is active. */
+	void SetIsActive(bool bInIsActive) { bIsActive = bInIsActive; }
+	bool IsActive() const { return bIsActive; }
+
 	/** Whether or not this section is infinite. An infinite section will draw the entire width of the track. StartTime and EndTime will be ignored but not discarded. */
 	void SetIsInfinite(bool bInIsInfinite) { bIsInfinite = bInIsInfinite; }
 	bool IsInfinite() const { return bIsInfinite; }
 
 private:
 	/** The start time of the section */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	float StartTime;
 
 	/** The end time of the section */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	float EndTime;
 
 	/** The row index that this section sits on */
 	UPROPERTY()
 	int32 RowIndex;
 
+	/** Toggle whether this section is active/inactive */
+	UPROPERTY(EditAnywhere, Category="Section")
+	uint32 bIsActive : 1;
+
 	/** Toggle to set this section to be infinite */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	uint32 bIsInfinite : 1;
 };

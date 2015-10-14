@@ -2304,7 +2304,11 @@ namespace AutomationTool
 			}
 
 			string SignToolName = null;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}
@@ -2469,7 +2473,11 @@ namespace AutomationTool
 		public static void SignListFilesIfEXEOrDLL(string FilesToSign)
 		{
 			string SignToolName = null;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}
@@ -2484,7 +2492,12 @@ namespace AutomationTool
 				throw new AutomationException("SignTool not found at '{0}' (are you missing the Windows SDK?)", SignToolName);
 			}
 
-			// Code sign the executable
+			// nothing to sign
+			if (String.IsNullOrEmpty(FilesToSign))
+			{
+				return;
+			}
+
 			string TimestampServer = "http://timestamp.verisign.com/scripts/timestamp.dll";
 
 			string SpecificStoreArg = bUseMachineStoreInsteadOfUserStore ? " /sm" : "";	

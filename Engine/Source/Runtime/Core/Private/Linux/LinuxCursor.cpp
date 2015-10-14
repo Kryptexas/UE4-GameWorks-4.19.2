@@ -202,7 +202,17 @@ void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 	if (WndFocus)
 	{
 		int WndX, WndY;
-		SDL_GetWindowPosition(WndFocus, &WndX, &WndY);	//	get top left
+
+		// Get top-left.
+		if(LinuxApplication)
+		{
+			LinuxApplication->GetWindowPositionInEventLoop(WndFocus, &WndX, &WndY);
+		}
+		else
+		{
+			SDL_GetWindowPosition(WndFocus, &WndX, &WndY);
+		}
+
 		SDL_WarpMouseInWindow(WndFocus, X - WndX, Y - WndY);
 	}
 	else
@@ -217,9 +227,12 @@ void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
 {	
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor );
 	CurrentType = InNewCursor;
-	if(CursorHandles[InNewCursor] == NULL)
+	if(CursorHandles[InNewCursor] == nullptr)
 	{
-		bHidden = true;
+		if (InNewCursor != EMouseCursor::Custom)
+		{
+			bHidden = true;
+		}
 		SDL_ShowCursor(SDL_DISABLE);
 		SDL_SetCursor(CursorHandles[0]);
 	}

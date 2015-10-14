@@ -67,6 +67,10 @@ ActorFactory.cpp:
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Components/BillboardComponent.h"
 
+#include "LevelSequence.h"
+#include "LevelSequenceActor.h"
+#include "ActorFactoryMovieScene.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
@@ -1937,6 +1941,57 @@ void UActorFactoryCylinderVolume::PostSpawnActor( UObject* Asset, AActor* NewAct
 		Builder->OuterRadius = 128.0f;
 		CreateBrushForVolumeActor( VolumeActor, Builder );
 	}
+}
+
+/*-----------------------------------------------------------------------------
+UActorFactoryMovieScene
+-----------------------------------------------------------------------------*/
+UActorFactoryMovieScene::UActorFactoryMovieScene(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("MovieSceneDisplayName", "MovieScene");
+	NewActorClass = ALevelSequenceActor::StaticClass();
+}
+
+bool UActorFactoryMovieScene::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
+{
+	if ( UActorFactory::CanCreateActorFrom( AssetData, OutErrorMsg ) )
+	{
+		return true;
+	}
+
+	if ( AssetData.IsValid() && !AssetData.GetClass()->IsChildOf( ULevelSequence::StaticClass() ) )
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoLevelSequenceAsset", "A valid sequencer asset must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
+{
+	ALevelSequenceActor* NewActor = Cast<ALevelSequenceActor>(Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name));
+
+	if (NewActor)
+	{
+		if (ULevelSequence* LevelSequence = Cast<ULevelSequence>(Asset))
+		{
+			NewActor->SetSequence(LevelSequence);
+		}
+	}
+
+	return NewActor;
+}
+
+UObject* UActorFactoryMovieScene::GetAssetFromActorInstance(AActor* Instance)
+{
+	if (ALevelSequenceActor* LevelSequenceActor = Cast<ALevelSequenceActor>(Instance))
+	{
+		return LevelSequenceActor->LevelSequence.TryLoad();
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

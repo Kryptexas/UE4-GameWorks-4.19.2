@@ -19,10 +19,8 @@
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 DEFINE_LOG_CATEGORY_STATIC(WorldBrowser, Log, All);
 
-FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor, 
-								 FWorldTileCollectionModel& InWorldModel, 
-								 int32 InTileIdx)
-	: FLevelModel(InWorldModel, InEditor) 
+FWorldTileModel::FWorldTileModel(FWorldTileCollectionModel& InWorldModel, int32 InTileIdx)
+	: FLevelModel(InWorldModel) 
 	, TileIdx(InTileIdx)
 	, TileDetails(NULL)
 	, bWasShelved(false)
@@ -469,7 +467,7 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 			{
 				if (Actor != nullptr)
 				{
-					Editor->BroadcastOnActorMoved(Actor);
+					GEditor->BroadcastOnActorMoved(Actor);
 				}
 			}
 		}

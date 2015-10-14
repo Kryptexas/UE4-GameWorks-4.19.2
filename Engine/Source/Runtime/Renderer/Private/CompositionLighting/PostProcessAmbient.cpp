@@ -92,8 +92,7 @@ void FRCPassPostProcessAmbient::Render(FRenderingCompositePassContext& Context)
 
 		PixelShader->SetParameters(Context.RHICmdList, Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
 
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle(
+		DrawPostProcessPass(
 			Context.RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
@@ -102,6 +101,8 @@ void FRCPassPostProcessAmbient::Render(FRenderingCompositePassContext& Context)
 			View.ViewRect.Size(),
 			FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
 			*VertexShader,
+			View.StereoPass, 
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
 	}
 }

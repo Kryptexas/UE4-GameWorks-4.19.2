@@ -136,6 +136,9 @@ bool FOpenGLES31::bRequiresGLFragCoordVaryingLimitHack = false;
 /* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
 bool FOpenGLES31::bRequiresTexture2DPrecisionHack = false;
 
+/* Indicates shader compiler hack checks are being tested */
+bool FOpenGLES31::bIsCheckingShaderCompilerHacks = false;
+
 /** GL_EXT_disjoint_timer_query or GL_NV_timer_query*/
 bool FOpenGLES31::bSupportsDisjointTimeQueries = false;
 

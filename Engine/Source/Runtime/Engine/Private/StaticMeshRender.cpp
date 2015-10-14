@@ -190,6 +190,9 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchInde
 	OutMeshBatch.ReverseCulling = IsLocalToWorldDeterminantNegative();
 	OutMeshBatch.CastShadow = true;
 	OutMeshBatch.LODIndex = LODIndex;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	OutMeshBatch.VisualizeLODIndex = LODIndex;
+#endif
 	OutMeshBatch.LCI = &ProxyLODInfo;
 	if (ForcedLodModel > 0) 
 	{
@@ -250,6 +253,9 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 		OutBatchElement.MinVertexIndex = Section.MinVertexIndex;
 		OutBatchElement.MaxVertexIndex = Section.MaxVertexIndex;
 		OutMeshBatch.LODIndex = LODIndex;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		OutMeshBatch.VisualizeLODIndex = LODIndex;
+#endif
 		OutMeshBatch.UseDynamicData = false;
 		OutMeshBatch.ReverseCulling = IsLocalToWorldDeterminantNegative();
 		OutMeshBatch.CastShadow = bCastShadow && Section.bCastShadow;

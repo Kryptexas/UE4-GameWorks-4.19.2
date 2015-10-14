@@ -2,20 +2,26 @@
 
 #pragma once
 
-#include "Editor/Sequencer/Public/MovieSceneTrackEditor.h"
+#include "PropertyTrackEditor.h"
+#include "MovieScene2DTransformTrack.h"
 
-class IPropertyHandle;
 
-class F2DTransformTrackEditor : public FMovieSceneTrackEditor
+class UMovieSceneTrack;
+
+
+class F2DTransformTrackEditor
+	: public FPropertyTrackEditor<UMovieScene2DTransformTrack, F2DTransformKey>
 {
 public:
+
 	/**
 	 * Constructor
 	 *
-	 * @param InSequencer	The sequencer instance to be used by this tool
+	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
-	F2DTransformTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~F2DTransformTrackEditor();
+	F2DTransformTrackEditor( TSharedRef<ISequencer> InSequencer )
+		: FPropertyTrackEditor<UMovieScene2DTransformTrack, F2DTransformKey>( InSequencer, "WidgetTransform" )
+	{ }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -23,23 +29,17 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
-	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
+public:
 
-private:
-	/**
-	 * Called by the details panel when an animatable property changes
-	 *
-	 * @param InObjectsThatChanged	List of objects that changed
-	 * @param PropertyValue			Handle to the property value which changed
-	 */
-	void OnTransformChanged( const class FPropertyChangedParams& PropertyChangedParams );
+	// ISequencerTrackEditor interface
 
-	/** Called After OnMarginChanged if we actually can key the margin */
-	void OnKeyTransform( float KeyTime, const class FPropertyChangedParams* PropertyChangedParams );
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+
+protected:
+
+	// FPropertyTrackEditor interface
+
+	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey ) override;
 };
-
-

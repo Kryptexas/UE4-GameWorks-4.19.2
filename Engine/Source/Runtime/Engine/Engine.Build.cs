@@ -29,7 +29,8 @@ public class Engine : ModuleRules
 				"ImageWrapper",
 				"HeadMountedDisplay",
 				"Advertising",
-				"NetworkReplayStreaming"
+				"NetworkReplayStreaming",
+				"MovieSceneCapture"
 			}
 		);
 
@@ -71,14 +72,16 @@ public class Engine : ModuleRules
 				"Projects",
 				"Niagara",
                 "Internationalization",
-                "PacketHandler"
+                "PacketHandler",
+                "MaterialShaderQualitySettings",
 			}
         );
 
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");
-		CircularlyReferencedDependentModules.Add("Niagara");
+        CircularlyReferencedDependentModules.Add("Niagara");
+        CircularlyReferencedDependentModules.Add("MaterialShaderQualitySettings");
 
 		// The AnimGraphRuntime module is not needed by Engine proper, but it is loaded in LaunchEngineLoop.cpp,
 		// and needs to be listed in an always-included module in order to be compiled into standalone games
@@ -88,6 +91,7 @@ public class Engine : ModuleRules
 			new string[]
 			{
 				"MovieScene",
+				"MovieSceneCapture",
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",

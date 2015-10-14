@@ -1,13 +1,15 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#ifndef _MOVIE_SCENE_CORE_TYPES_PRIVATE_
-#define _MOVIE_SCENE_CORE_TYPES_PRIVATE_
+#pragma once
+
 
 /* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"
 #include "Engine.h"
+#include "IMovieScenePlayer.h"
+#include "KeyParams.h"
 #include "MovieScene.h"
 #include "MovieSceneCommonHelpers.h"
 #include "MovieScenePropertyTrack.h"
@@ -17,10 +19,3 @@
 #include "IMovieSceneTracksModule.h"
 
 
-/* Private includes
- *****************************************************************************/
-
-#include "MovieSceneTracksClasses.h"
-
-
-#endif

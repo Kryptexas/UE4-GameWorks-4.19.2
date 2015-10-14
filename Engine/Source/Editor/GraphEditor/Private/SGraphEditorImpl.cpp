@@ -150,6 +150,11 @@ UEdGraphPin* SGraphEditorImpl::GetGraphPinForMenu()
 	return GraphPinForMenu;
 }
 
+UEdGraphNode* SGraphEditorImpl::GetGraphNodeForMenu()
+{
+	return GraphNodeForMenu;
+}
+
 void SGraphEditorImpl::ZoomToFit(bool bOnlySelection)
 {
 	GraphPanel->ZoomToFit(bOnlySelection);
@@ -157,6 +162,30 @@ void SGraphEditorImpl::ZoomToFit(bool bOnlySelection)
 bool SGraphEditorImpl::GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding )
 {
 	return GraphPanel->GetBoundsForSelectedNodes(Rect, Padding);
+}
+
+bool SGraphEditorImpl::GetBoundsForNode( const UEdGraphNode* InNode, class FSlateRect& Rect, float Padding) const
+{
+	FVector2D TopLeft, BottomRight;
+	if (GraphPanel->GetBoundsForNode(InNode, TopLeft, BottomRight, Padding))
+	{
+		Rect.Left = TopLeft.X;
+		Rect.Top = TopLeft.Y;
+		Rect.Bottom = BottomRight.Y;
+		Rect.Right = BottomRight.X;
+		return true;
+	}
+	return false;
+}
+
+void SGraphEditorImpl::StraightenConnections()
+{
+	GraphPanel->StraightenConnections();
+}
+
+void SGraphEditorImpl::StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign)
+{
+	GraphPanel->StraightenConnections(SourcePin, PinToAlign);
 }
 
 void SGraphEditorImpl::Construct( const FArguments& InArgs )
@@ -422,7 +451,18 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphCon
 			
 		// Cache the pin this menu is being brought up for
 		GraphPinForMenu = SpawnInfo.GraphPin;
-
+		GraphNodeForMenu = SpawnInfo.GraphNode;
+		
+		// Ensure we reset the GraphNodeForMenu when the menu closes
+		RegisterActiveTimer(0.1f, FWidgetActiveTimerDelegate::CreateLambda([this](double, float){
+			if (!FSlateApplication::Get().AnyMenusVisible())
+			{
+				GraphNodeForMenu = nullptr;
+				return EActiveTimerReturnType::Stop;
+			}
+			return EActiveTimerReturnType::Continue;
+		}));
+		
 		if ((SpawnInfo.GraphPin != NULL) || (SpawnInfo.GraphNode != NULL))
 		{
 			// Get all menu extenders for this context menu from the graph editor module

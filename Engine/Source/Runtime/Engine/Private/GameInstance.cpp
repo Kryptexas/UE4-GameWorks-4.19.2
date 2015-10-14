@@ -241,10 +241,11 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		// Make sure "always loaded" sub-levels are fully loaded
 		PlayWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 
-		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystemRunMode::PIEMode : FNavigationSystemRunMode::SimulationMode);
 		PlayWorld->CreateAISystem();
 
 		PlayWorld->InitializeActorsForPlay(URL);
+		// calling it after InitializeActorsForPlay has been called to have all potential bounding boxed initialized
+		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystemRunMode::PIEMode : FNavigationSystemRunMode::SimulationMode);
 
 		// @todo, just use WorldContext.GamePlayer[0]?
 		if (LocalPlayer)
@@ -296,7 +297,7 @@ void UGameInstance::StartGameInstance()
 	// Enter initial world.
 	EBrowseReturnVal::Type BrowseRet = EBrowseReturnVal::Failure;
 	FString Error;
-	TCHAR Parm[4096] = TEXT("");
+	
 	const TCHAR* Tmp = FCommandLine::Get();
 
 #if UE_BUILD_SHIPPING
@@ -306,12 +307,19 @@ void UGameInstance::StartGameInstance()
 
 	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
 	const FString& DefaultMap = GameMapsSettings->GetGameDefaultMap();
-	if (!FParse::Token(Tmp, Parm, ARRAY_COUNT(Parm), 0) || Parm[0] == '-')
+
+	FString PackageName;
+
+#if WITH_EDITOR
+	PackageName = InitialMapOverride;
+#endif
+
+	if (PackageName.IsEmpty() && (!FParse::Token(Tmp, PackageName, 0) || **PackageName == '-'))
 	{
-		FCString::Strcpy(Parm, *(DefaultMap + GameMapsSettings->LocalMapOptions));
+		PackageName = DefaultMap + GameMapsSettings->LocalMapOptions;
 	}
 
-	FURL URL(&DefaultURL, Parm, TRAVEL_Partial);
+	FURL URL(&DefaultURL, *PackageName, TRAVEL_Partial);
 	if (URL.Valid)
 	{
 		BrowseRet = Engine->Browse(*WorldContext, URL, Error);
@@ -323,7 +331,7 @@ void UGameInstance::StartGameInstance()
 		UE_LOG(LogLoad, Error, TEXT("%s"), *FString::Printf(TEXT("Failed to enter %s: %s. Please check the log for errors."), *URL.Map, *Error));
 
 		// the map specified on the command-line couldn't be loaded.  ask the user if we should load the default map instead
-		if (FCString::Stricmp(Parm, *DefaultMap) != 0)
+		if (FCString::Stricmp(*PackageName, *DefaultMap) != 0)
 		{
 			const FText Message = FText::Format(NSLOCTEXT("Engine", "MapNotFound", "The map specified on the commandline '{0}' could not be found. Would you like to load the default map instead?"), FText::FromString(URL.Map));
 			if (   FCString::Stricmp(*URL.Map, *DefaultMap) != 0  

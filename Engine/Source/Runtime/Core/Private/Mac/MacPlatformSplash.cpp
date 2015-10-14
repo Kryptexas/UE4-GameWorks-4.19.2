@@ -37,41 +37,6 @@ static FText GSplashScreenAppName;
 static FText GSplashScreenText[ SplashTextType::NumTextTypes ];
 static NSRect GSplashScreenTextRects[ SplashTextType::NumTextTypes ];
 
-
-/**
- * Finds a usable splash pathname for the given filename
- *
- * @param SplashFilename Name of the desired splash name ("Splash.bmp")
- * @param OutPath String containing the path to the file, if this function returns true
- *
- * @return true if a splash screen was found
- */
-static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath, bool& OutIsCustom)
-{
-	// first look in game's splash directory
-	OutPath = FPaths::GameContentDir() + TEXT("Splash/") + SplashFilename;
-	OutIsCustom = true;
-	
-	// if this was found, then we're done
-	if (IFileManager::Get().FileSize(*OutPath) != -1)
-	{
-		return true;
-	}
-	
-	// next look in Engine/Splash
-	OutPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename);
-	OutIsCustom = false;
-	
-	// if this was found, then we're done
-	if (IFileManager::Get().FileSize(*OutPath) != -1)
-	{
-		return true;
-	}
-	
-	// if not found yet, then return failure
-	return false;
-}
-
 /**
  * Sets the text displayed on the splash screen (for startup/loading progress)
  *
@@ -215,7 +180,7 @@ void FMacPlatformSplash::Show()
 
 		const FText GameName = FText::FromString(FApp::GetGameName());
 
-		const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault.bmp") : TEXT("EdSplash.bmp") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault.bmp") : TEXT("Splash.bmp") );
+		const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash") );
 
 		// make sure a splash was found
 		FString SplashPath;
@@ -275,6 +240,7 @@ void FMacPlatformSplash::Show()
 		NSBitmapImageRep* BitmapRep = [NSBitmapImageRep imageRepWithData: [GSplashScreenImage TIFFRepresentation]];
 		float ImageWidth = [BitmapRep pixelsWide];
 		float ImageHeight = [BitmapRep pixelsHigh];
+		[GSplashScreenImage setSize:NSMakeSize(ImageWidth, ImageHeight)];
 
 		NSRect ContentRect;
 		ContentRect.origin.x = 0;

@@ -2,11 +2,17 @@
 
 #pragma once
 
+#include "SlateIcon.h"
+#include "WorkspaceItem.h"
+
+
+class FTabManager;
 class SDockingArea;
 class SDockTab;
 class SDockingTabStack;
+class SWindow;
 struct FTabMatcher;
-class FTabManager;
+
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(
 	FOnActiveTabChanged,

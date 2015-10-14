@@ -390,6 +390,12 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 		GLenum BlitFilter;
 		GLint DestX0, DestY0, DestX1, DestY1;
 
+		if ( WinH == 0 || WinW == 0 )
+		{
+			// Nothing to blit
+			return false;
+		}
+
 		if ( ( WinW == BackbufferSizeX ) && ( WinH == BackbufferSizeY ) )
 		{
 			// We match up. We're probably in windowed mode, or an exact

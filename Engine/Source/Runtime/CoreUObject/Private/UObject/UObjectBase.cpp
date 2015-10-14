@@ -383,78 +383,8 @@ void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TC
 	GetDeferredCompiledInStructRegistration().Add(Registrant);
 }
 
-#if WITH_HOT_RELOAD
-struct FStructOrEnumCompiledInfo : FFieldCompiledInInfo
-{
-	FStructOrEnumCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
-		: FFieldCompiledInInfo(InClassSize, InCrc)
-	{
-	}
-
-	virtual UClass* Register() const
-	{
-		return nullptr;
-	}
-};
-
-/** Registered struct info (including size and reflection info) */
-static TMap<FName, FStructOrEnumCompiledInfo*>& GetStructOrEnumGeneratedCodeInfo()
-{
-	static TMap<FName, FStructOrEnumCompiledInfo*> StructOrEnumCompiledInfoMap;
-	return StructOrEnumCompiledInfoMap;
-}
-#endif
-
 class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRegister)(), UObject* StructOuter, const TCHAR* StructName, SIZE_T Size, uint32 Crc)
 {
-#if WITH_HOT_RELOAD
-	// Try to get the existing info for this struct
-	const FName StructFName(StructName);
-	FStructOrEnumCompiledInfo* Info = nullptr;
-	auto ExistingInfo = GetStructOrEnumGeneratedCodeInfo().Find(StructFName);
-	if (!ExistingInfo)
-	{
-		// New struct
-		Info = new FStructOrEnumCompiledInfo(Size, Crc);
-		Info->bHasChanged = true;
-		GetStructOrEnumGeneratedCodeInfo().Add(StructFName, Info);
-	}
-	else
-	{
-		// Hot-relaoded struct, check if it has changes
-		Info = *ExistingInfo;
-		Info->bHasChanged = (*ExistingInfo)->Size != Size || (*ExistingInfo)->Crc != Crc;
-		Info->Size = Size;
-		Info->Crc = Crc;
-	}
-
-	if (GIsHotReload)
-	{		
-		if (!Info->bHasChanged)
-		{
-			// New struct added during hot-reload
-			UScriptStruct* ReturnStruct = FindObject<UScriptStruct>(StructOuter, StructName);
-			if (ReturnStruct)
-			{
-				UE_LOG(LogClass, Log, TEXT( "%s HotReload."), StructName);
-				return ReturnStruct;
-			}
-			UE_LOG(LogClass, Log, TEXT("Could not find existing script struct %s for HotReload. Assuming new"), StructName);
-		}
-		else
-		{
-			// Existing struct, make sure we destroy the old one
-			UScriptStruct* ExistingStruct = FindObject<UScriptStruct>(StructOuter, StructName);
-			if (ExistingStruct)
-			{
-				// Make sure the old struct is not used by anything
-				ExistingStruct->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
-				const FName OldStructRename = MakeUniqueObjectName(GetTransientPackage(), ExistingStruct->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), StructName));
-				ExistingStruct->Rename(*OldStructRename.ToString(), GetTransientPackage());
-			}
-		}
-	}
-#endif
 	return (*InRegister)();
 }
 
@@ -524,7 +454,7 @@ static TArray<FFieldCompiledInInfo*>& GetDeferredClassRegistration()
 }
 
 #if WITH_HOT_RELOAD
-TMap<UClass*, UObject*>& GetDuplicatedCDOMap()
+TMap<UObject*, UObject*>& GetDuplicatedCDOMap()
 {
 	/**
 	 * GC referencer object, so duplicated CDOs aren't destroyed if still
@@ -545,7 +475,7 @@ TMap<UClass*, UObject*>& GetDuplicatedCDOMap()
 		}
 
 		/** Duplicated CDOs map. */
-		TMap<UClass*, UObject*> Map;
+		TMap<UObject*, UObject*> Map;
 	};
 
 	static FDuplicatedCDOMap Cache;
@@ -657,7 +587,7 @@ void UClassRegisterAllCompiledInClasses()
 /** Re-instance all existing classes that have changed during hot-reload */
 void UClassReplaceHotReloadClasses()
 {
-	if (FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.IsBound())
+	if (FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.IsBound())
 	{
 		for (auto Class : GetHotReloadClasses())
 		{
@@ -669,9 +599,11 @@ void UClassReplaceHotReloadClasses()
 				RegisteredClass = Class->Register();
 			}
 
-			FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(Class->OldClass, RegisteredClass);
+			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Execute(Class->OldClass, RegisteredClass);
 		}
 	}
+
+	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.ExecuteIfBound();
 	GetHotReloadClasses().Empty();
 }
 
@@ -700,7 +632,7 @@ static void UClassGenerateCDODuplicatesForHotReload()
 					*MakeUniqueObjectName(GetTransientPackage(), Class, TEXT("HOTRELOAD_CDO_DUPLICATE")).ToString()
 					);
 				GIsDuplicatingClassForReinstancing = false;
-				GetDuplicatedCDOMap().Add(Class, DupCDO);
+				GetDuplicatedCDOMap().Add(Class->GetDefaultObject(), DupCDO);
 			}
 		}
 	}
@@ -983,3 +915,117 @@ const TCHAR* DebugFullName(UObject* Object)
 		return TEXT("None");
 	}
 }
+
+namespace
+{
+#if WITH_HOT_RELOAD
+	struct FStructOrEnumCompiledInfo : FFieldCompiledInInfo
+	{
+		struct FKey
+		{
+			UObject* Outer;
+			FName Name;
+
+			friend bool operator==(const FKey& A, const FKey& B)
+			{
+				return A.Outer == B.Outer && A.Name == B.Name;
+			}
+
+			friend uint32 GetTypeHash(const FKey& Key)
+			{
+				return HashCombine(GetTypeHash(Key.Outer), GetTypeHash(Key.Name));
+			}
+		};
+
+		/** Registered struct info (including size and reflection info) */
+		static TMap<FStructOrEnumCompiledInfo::FKey, FStructOrEnumCompiledInfo*>& GetRegisteredInfo()
+		{
+			static TMap<FStructOrEnumCompiledInfo::FKey, FStructOrEnumCompiledInfo*> StructOrEnumCompiledInfoMap;
+			return StructOrEnumCompiledInfoMap;
+		}
+
+		FStructOrEnumCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
+			: FFieldCompiledInInfo(InClassSize, InCrc)
+		{
+		}
+
+		virtual UClass* Register() const
+		{
+			return nullptr;
+		}
+	};
+
+
+#endif // WITH_HOT_RELOAD
+
+	template <typename TType>
+	TType* FindExistingStructOrEnumIfHotReload(UObject* Outer, const TCHAR* Name, SIZE_T Size, uint32 Crc)
+	{
+#if WITH_HOT_RELOAD
+		FStructOrEnumCompiledInfo::FKey Key;
+
+		Key.Outer = Outer;
+		Key.Name = Name;
+
+		FStructOrEnumCompiledInfo* Info = nullptr;
+		FStructOrEnumCompiledInfo** ExistingInfo = FStructOrEnumCompiledInfo::GetRegisteredInfo().Find(Key);
+		if (!ExistingInfo)
+		{
+			// New struct
+			Info = new FStructOrEnumCompiledInfo(Size, Crc);
+			Info->bHasChanged = true;
+			FStructOrEnumCompiledInfo::GetRegisteredInfo().Add(Key, Info);
+		}
+		else
+		{
+			// Hot-relaoded struct, check if it has changes
+			Info = *ExistingInfo;
+			Info->bHasChanged = (*ExistingInfo)->Size != Size || (*ExistingInfo)->Crc != Crc;
+			Info->Size = Size;
+			Info->Crc = Crc;
+		}
+
+		if (!GIsHotReload)
+		{
+			return nullptr;
+		}
+
+		if (!Info->bHasChanged)
+		{
+			// New type added during hot-reload
+			TType* Return = FindObject<TType>(Outer, Name);
+			if (Return)
+			{
+				UE_LOG(LogClass, Log, TEXT("%s HotReload."), Name);
+				return Return;
+			}
+			UE_LOG(LogClass, Log, TEXT("Could not find existing type %s for HotReload. Assuming new"), Name);
+		}
+		else
+		{
+			// Existing type, make sure we destroy the old one
+			TType* Existing = FindObject<TType>(Outer, Name);
+			if (Existing)
+			{
+				// Make sure the old struct is not used by anything
+				Existing->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
+				const FName OldRename = MakeUniqueObjectName(GetTransientPackage(), Existing->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), Name));
+				Existing->Rename(*OldRename.ToString(), GetTransientPackage());
+			}
+		}
+#endif
+
+		return nullptr;
+	}
+}
+
+UScriptStruct* FindExistingStructIfHotReload(UObject* Outer, const TCHAR* StructName, SIZE_T Size, uint32 Crc)
+{
+	return FindExistingStructOrEnumIfHotReload<UScriptStruct>(Outer, StructName, Size, Crc);
+}
+
+UEnum* FindExistingEnumIfHotReload(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc)
+{
+	return FindExistingStructOrEnumIfHotReload<UEnum>(Outer, EnumName, Size, Crc);
+}
+

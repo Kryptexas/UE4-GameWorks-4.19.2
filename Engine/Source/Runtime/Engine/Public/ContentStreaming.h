@@ -474,6 +474,8 @@ struct ITextureStreamingManager : public IStreamingManager
 
 	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
 	virtual bool IsManagedStreamingTexture(const UTexture2D* Texture2D) = 0;
+
+	virtual int64 GetMemoryOverBudget() const = 0;
 };
 
 /**
@@ -896,6 +898,8 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 *	@return						- Whether it succeeded or not
 	 **/
 	virtual bool StreamOutTextureData( int64 RequiredMemorySize ) override;
+
+	virtual int64 GetMemoryOverBudget() const override { return MemoryOverBudget; }
 
 	/**
 	 * Allows the streaming manager to process exec commands.
@@ -1321,6 +1325,7 @@ protected:
 	uint64 TotalLastRenderHeuristicSize;
 	/** Total number of bytes using ForcedIntoMemory heuristics, currently in memory. */
 	uint64 TotalForcedHeuristicSize;
+	int64 MemoryOverBudget;
 
 	/** Unmodified texture pool size, in bytes, as specified in the .ini file. */
 	int64 OriginalTexturePoolSize;

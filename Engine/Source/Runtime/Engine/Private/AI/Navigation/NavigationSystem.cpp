@@ -514,6 +514,22 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 			}
 		}
 	}
+	
+	// Add all found elements to octree, this will not add new dirty areas to navigation
+	if (PendingOctreeUpdates.Num())
+	{
+		TArray<FNavigationDirtyArea> SavedDirtyAreas; 
+		Exchange(SavedDirtyAreas, DirtyAreas);
+
+		for (TSet<FNavigationDirtyElement>::TIterator It(PendingOctreeUpdates); It; ++It)
+		{
+			AddElementToNavOctree(*It);
+		}
+		PendingOctreeUpdates.Empty(32);
+
+		// Discard all navigation updates caused by octree construction
+		Exchange(SavedDirtyAreas, DirtyAreas);
+	}
 
 	return bSupportRebuilding;
 }
@@ -595,6 +611,10 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 	}
 	else
 	{
+		// Discard all bounds updates that was submitted during world initialization, 
+		// to avoid navigation rebuild right after map is loaded
+		PendingNavBoundsUpdates.Empty();
+		
 		// gather navigable bounds
 		GatherNavigationBounds();
 
@@ -1592,14 +1612,24 @@ FBox UNavigationSystem::GetWorldBounds() const
 
 	NavigableWorldBounds = FBox(0);
 
-	if (GetWorld() != NULL && bWholeWorldNavigable == true)
+	if (GetWorld() != nullptr)
 	{
-		// @TODO - super slow! Need to ask tech guys where I can get this from
-		for( FActorIterator It(GetWorld()); It; ++It )
+		if (bWholeWorldNavigable == false)
 		{
-			if (IsNavigationRelevant(*It))
+			for (const FNavigationBounds& Bounds : RegisteredNavBounds)
 			{
-				NavigableWorldBounds += (*It)->GetComponentsBoundingBox();
+				NavigableWorldBounds += Bounds.AreaBox;
+			}
+		}
+		else
+		{
+			// @TODO - super slow! Need to ask tech guys where I can get this from
+			for (FActorIterator It(GetWorld()); It; ++It)
+			{
+				if (IsNavigationRelevant(*It))
+				{
+					NavigableWorldBounds += (*It)->GetComponentsBoundingBox();
+				}
 			}
 		}
 	}
@@ -1853,14 +1883,14 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 
 void UNavigationSystem::UnregisterNavData(ANavigationData* NavData)
 {
+	NavDataSet.RemoveSingle(NavData);
+
 	if (NavData == NULL)
 	{
 		return;
 	}
 
 	FScopeLock Lock(&NavDataRegistration);
-
-	NavDataSet.RemoveSingle(NavData);
 	NavData->OnUnregistered();
 }
 
@@ -2206,9 +2236,8 @@ void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystemRunMo
 			NavSys = CreateNavigationSystem(World);
 		}
 
-		// Remove old/stale chunk data from all levels, when navigation auto-update is enabled
-		// In case navigation system will be created chunks will be regenerated anyway
-		if (Mode == FNavigationSystemRunMode::EditorMode && bNavigationAutoUpdateEnabled == true)
+		// Remove old/stale chunk data from all sub-levels when navigation system is disabled
+		if (NavSys == nullptr && Mode == FNavigationSystemRunMode::EditorMode)
 		{
 			DiscardNavigationDataChunks(World);
 		}
@@ -2554,7 +2583,7 @@ void UNavigationSystem::UpdateNavOctree(UActorComponent* Comp)
 	}
 }
 
-void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
+void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors)
 {
 	if (Actor)
 	{
@@ -2568,15 +2597,9 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 			UpdateNavOctree(Components[ComponentIndex]);
 		}
 
-		if (Actor->GetRootComponent())
+		if (bUpdateAttachedActors)
 		{
-			for (int32 RootChildIndex = 0; RootChildIndex < Actor->GetRootComponent()->AttachChildren.Num(); RootChildIndex++)
-			{
-				if (Actor->GetRootComponent()->AttachChildren[RootChildIndex] && Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter() != Actor)
-				{
-					UpdateNavOctreeAll(Cast<AActor>(Actor->GetRootComponent()->AttachChildren[RootChildIndex]->GetOuter()));
-				}
-			}
+			UpdateAttachedActorsInNavOctree(*Actor);
 		}
 	}
 }
@@ -2600,13 +2623,33 @@ void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
 			}
 		}
 
-		for (int32 RootChildIndex = 0; RootChildIndex < Comp->AttachChildren.Num(); RootChildIndex++)
+		UpdateAttachedActorsInNavOctree(*OwnerActor);
+	}
+}
+
+void UNavigationSystem::UpdateAttachedActorsInNavOctree(AActor& RootActor)
+{
+	TArray<AActor*> UniqueAttachedActors;
+	UniqueAttachedActors.Add(&RootActor);
+
+	TArray<AActor*> TempAttachedActors;
+	for (int32 ActorIndex = 0; ActorIndex < UniqueAttachedActors.Num(); ++ActorIndex)
+	{
+		check(UniqueAttachedActors[ActorIndex]);
+		// find all attached actors
+		UniqueAttachedActors[ActorIndex]->GetAttachedActors(TempAttachedActors);
+		
+		for (int32 AttachmentIndex = 0; AttachmentIndex < TempAttachedActors.Num(); ++AttachmentIndex)
 		{
-			if (Comp->AttachChildren[RootChildIndex] && Comp->AttachChildren[RootChildIndex]->GetOuter() != OwnerActor)
-			{
-				UpdateNavOctreeAll(Cast<AActor>(Comp->AttachChildren[RootChildIndex]->GetOuter()));
-			}
+			// and store the ones we don't know about yet
+			UniqueAttachedActors.AddUnique(TempAttachedActors[AttachmentIndex]);
 		}
+	}
+	
+	// skipping the first item since that's the root, and we just care about the attached actors
+	for (int32 ActorIndex = 1; ActorIndex < UniqueAttachedActors.Num(); ++ActorIndex)
+	{
+		UpdateNavOctreeAll(UniqueAttachedActors[ActorIndex], /*bUpdateAttachedActors = */false);
 	}
 }
 
@@ -3204,8 +3247,11 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataC
 			// Set descriptive name
 			Instance->Rename(*StrName, NULL, REN_DoNotDirty);
 #if WITH_EDITOR
-			const bool bMarkDirty = false;
-			Instance->SetActorLabel(StrName, bMarkDirty );
+			if (GIsEditor == true && World->IsPlayInEditor() == false)
+			{
+				const bool bMarkDirty = false;
+				Instance->SetActorLabel(StrName, bMarkDirty);
+			}
 #endif // WITH_EDITOR
 		}
 	}

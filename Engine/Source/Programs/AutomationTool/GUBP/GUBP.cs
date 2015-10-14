@@ -183,10 +183,10 @@ public partial class GUBP : BuildCommand
             TempStorage.DeleteLocalTempStorageManifests(CmdEnv);
         }
 
-		int TimeIndex = ParseParamInt("TimeIndex", 0);
-		if (TimeIndex == 0)
+		int TimeIndex = ParseParamInt("TimeIndex", -1);
+		if (TimeIndex == -1)
 		{
-			TimeIndex = ParseParamInt("UserTimeIndex", 0);
+			TimeIndex = ParseParamInt("UserTimeIndex", -1);
 		}
 		if (ParseParam("CIS") && ExplicitTriggerName == "" && CommanderSetup) // explicit triggers will already have a time index assigned
 		{
@@ -546,7 +546,7 @@ public partial class GUBP : BuildCommand
 			{
 				Builder.Append("  ");
 			}
-			Builder.AppendFormat("{0} ({1})", NodeToDo.Name, GetTimeIntervalString(TimeQuantum << NodeToDo.FrequencyShift));
+			Builder.AppendFormat("{0} ({1})", NodeToDo.Name, (NodeToDo.FrequencyShift >= BuildNode.ExplicitFrequencyShift)? "explicit" : GetTimeIntervalString(TimeQuantum << NodeToDo.FrequencyShift));
 			if(NodeToDo.IsComplete)
 			{
 				Builder.Append(" - (Completed)");
@@ -1368,12 +1368,12 @@ public partial class GUBP : BuildCommand
 	/// <param name="TimeIndex">The current time index. All nodes are run for TimeIndex=0, otherwise they are culled based on their FrequencyShift parameter.</param>
 	private void CullNodesForTimeIndex(HashSet<BuildNode> NodesToDo, int TimeIndex)
 	{
-		if (TimeIndex != 0)
+		if (TimeIndex >= 0)
 		{
 			List<BuildNode> NodesToCull = new List<BuildNode>();
 			foreach (BuildNode NodeToDo in NodesToDo)
 			{
-				if ((TimeIndex % (1 << NodeToDo.FrequencyShift)) != 0)
+				if ((NodeToDo.FrequencyShift >= BuildNode.ExplicitFrequencyShift && ParseParam("CIS")) || (TimeIndex % (1 << NodeToDo.FrequencyShift)) != 0)
 				{
 					NodesToCull.Add(NodeToDo);
 				}

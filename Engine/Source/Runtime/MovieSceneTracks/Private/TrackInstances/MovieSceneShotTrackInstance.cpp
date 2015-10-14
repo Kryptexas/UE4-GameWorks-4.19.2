@@ -9,8 +9,8 @@
 
 FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InShotTrack )
 	: FSubMovieSceneTrackInstance( InShotTrack )
-{
-}
+{ }
+
 
 void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player )
 {
@@ -22,7 +22,7 @@ void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& Runt
 	{
 		// @todo Sequencer - Sub-moviescenes: Get the cameras from the root movie scene instance.  We should support adding cameras for sub-moviescenes as shots
 		TArray<UObject*> CameraObjects;
-		Player.GetRuntimeObjects(Player.GetRootMovieSceneInstance(), CastChecked<UMovieSceneShotSection>( Section )->GetCameraGuid(), CameraObjects );
+		Player.GetRuntimeObjects(Player.GetRootMovieSceneSequenceInstance(), CastChecked<UMovieSceneShotSection>( Section )->GetCameraGuid(), CameraObjects );
 		if( CameraObjects.Num() == 1 )
 		{
 			RuntimeCameraObjects.Add( CameraObjects[0] );
@@ -36,6 +36,7 @@ void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& Runt
 
 	FSubMovieSceneTrackInstance::RefreshInstance( RuntimeObjects, Player );
 }
+
 
 void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -63,6 +64,7 @@ void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, c
 		}
 	}
 }
+
 
 void FMovieSceneShotTrackInstance::ClearInstance( IMovieScenePlayer& Player )
 {

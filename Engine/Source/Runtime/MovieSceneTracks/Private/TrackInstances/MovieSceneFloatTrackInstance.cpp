@@ -13,7 +13,7 @@ FMovieSceneFloatTrackInstance::FMovieSceneFloatTrackInstance( UMovieSceneFloatTr
 }
 
 
-void FMovieSceneFloatTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneFloatTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -23,7 +23,7 @@ void FMovieSceneFloatTrackInstance::SaveState(const TArray<UObject*>& RuntimeObj
 }
 
 
-void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -33,9 +33,9 @@ void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 		}
 
 		float *FloatValue = InitFloatMap.Find(Object);
-		if (FloatValue != NULL)
+		if (FloatValue != nullptr)
 		{
-			PropertyBindings->CallFunction(Object, FloatValue);
+			PropertyBindings->CallFunction<float>(Object, FloatValue);
 		}
 	}
 
@@ -50,7 +50,7 @@ void FMovieSceneFloatTrackInstance::Update( float Position, float LastPosition, 
 	{
 		for(UObject* Object : RuntimeObjects)
 		{
-			PropertyBindings->CallFunction( Object, &FloatValue );
+			PropertyBindings->CallFunction<float>( Object, &FloatValue );
 		}
 	}
 }

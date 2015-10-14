@@ -128,7 +128,6 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 
 	PixelShader->SetPS(Context, LoopSizeValue);
 
-	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,

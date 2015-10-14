@@ -94,11 +94,26 @@ void STextBlock::SetText( const TAttribute< FText >& InText )
 
 void STextBlock::SetText( const FText& InText )
 {
-	if ( BoundText.IsBound() || BoundText.Get().ToString() != InText.ToString() )
+	if ( !BoundText.IsBound() )
 	{
-		BoundText = InText;
-		Invalidate(EInvalidateWidget::LayoutAndVolatility);
+		const FString& OldString = BoundText.Get().ToString();
+		const FString& NewString = InText.ToString();
+		const int32 OldLength = OldString.Len();
+		const int32 NewLength = NewString.Len();
+
+		// Only compare reasonably sized strings, it's not worth checking this
+		// for large blocks of text.
+		if ( OldLength <= 20 )
+		{
+			if ( OldString.Compare(NewString, ESearchCase::CaseSensitive) == 0 )
+			{
+				return;
+			}
+		}
 	}
+
+	BoundText = InText;
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const

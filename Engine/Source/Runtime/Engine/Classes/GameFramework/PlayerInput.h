@@ -1,10 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
+//~=============================================================================
 // PlayerInput
 // Object within PlayerController that manages player input.
 // Only spawned on client.
-//=============================================================================
+//~=============================================================================
 
 #pragma once
 #include "Components/InputComponent.h"
@@ -256,6 +256,9 @@ public:
 	// @todo: We have 10 touches to match the number of Touch* entries in EKeys (not easy to make this an enum or define or anything)
 	FVector Touches[EKeys::NUM_TOUCH_KEYS];
 
+	/** Used to store paired touch locations for event ids during the frame and flushed when processed. */
+	TMap<uint32, FVector> TouchEventLocations;
+
 	// Mouse smoothing sample data
 	float ZeroTime[2];    /** How long received mouse movement has been zero. */
 	float SmoothedMouse[2];    /** Current average mouse movement/sample */
@@ -389,10 +392,10 @@ private:
 
 public:
 	
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual UWorld* GetWorld() const override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** Flushes the current key state. */
 	void FlushPressedKeys();

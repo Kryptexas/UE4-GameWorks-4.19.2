@@ -8,13 +8,20 @@
 #include "SSequencer.h"
 #include "SSequencerSectionAreaView.h"
 #include "MovieSceneSection.h"
-#include "MovieScene.h"
+#include "MovieSceneSequence.h"
 #include "MovieSceneTrack.h"
+#include "MovieSceneTrackEditor.h"
 #include "CommonMovieSceneTools.h"
 #include "IKeyArea.h"
-#include "ISequencerObjectBindingManager.h"
+#include "GroupedKeyArea.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
+
+namespace SequencerNodeConstants
+{
+	float CommonPadding = 4.f;
+}
 
 class SSequencerObjectTrack : public SLeafWidget
 {
@@ -53,17 +60,6 @@ private:
 
 int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	// Draw a region around the entire section area
-	FSlateDrawElement::MakeBox( 
-		OutDrawElements, 
-		LayerId,
-		AllottedGeometry.ToPaintGeometry(),
-		FEditorStyle::GetBrush("Sequencer.SectionArea.Background"),
-		MyClippingRect,
-		ESlateDrawEffect::None,
-		FLinearColor( .1f, .1f, .1f, 0.5f )
-		);
-
 	TArray<float> OutKeyTimes;
 	CollectAllKeyTimes(OutKeyTimes);
 	
@@ -132,17 +128,100 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	: ParentNode( InParentNode )
 	, ParentTree( InParentTree )
 	, NodeName( InNodeName )
-	, TreeLevel( InParentNode.IsValid() ? InParentNode->GetTreeLevel() + 1 : 0 )
 	, bExpanded( false )
-	, bCachedShotFilteredVisibility( true )
-	, bNodeIsPinned( false )
+{
+	
+}
+
+void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom)
 {
 	bExpanded = ParentTree.GetSavedExpansionState( *this );
+
+	VirtualTop = InVirtualTop;
+	VirtualBottom = InVirtualBottom;
 }
 
 void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FObjectBindingNode> ObjectBindingNode)
 {
 	ChildNodes.Add(ObjectBindingNode);
+}
+
+
+bool FSequencerDisplayNode::Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	for (auto& Child : GetChildNodes())
+	{
+		if (!Child->Traverse_ChildFirst(InPredicate, true))
+		{
+			return false;
+		}
+	}
+
+	return bIncludeThisNode ? InPredicate(*this) : true;
+}
+
+bool FSequencerDisplayNode::Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	if (bIncludeThisNode && !InPredicate(*this))
+	{
+		return false;
+	}
+
+	for (auto& Child : GetChildNodes())
+	{
+		if (!Child->Traverse_ParentFirst(InPredicate, true))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool FSequencerDisplayNode::TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	// If the item is not expanded, its children ain't visible
+	if (IsExpanded())
+	{
+		for (auto& Child : GetChildNodes())
+		{
+			if (!Child->IsHidden() && !Child->TraverseVisible_ChildFirst(InPredicate, true))
+			{
+				return false;
+			}
+		}
+	}
+
+	if (bIncludeThisNode && !IsHidden())
+	{
+		return InPredicate(*this);
+	}
+
+	// Continue iterating regardless of visibility
+	return true;
+}
+
+
+bool FSequencerDisplayNode::TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+{
+	if (bIncludeThisNode && !IsHidden() && !InPredicate(*this))
+	{
+		return false;
+	}
+
+	// If the item is not expanded, its children ain't visible
+	if (IsExpanded())
+	{
+		for (auto& Child : GetChildNodes())
+		{
+			if (!Child->IsHidden() && !Child->TraverseVisible_ParentFirst(InPredicate, true))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
@@ -169,7 +248,7 @@ TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName C
 	return CategoryNode.ToSharedRef();
 }
 
-TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack )
+TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor )
 {
 	TSharedPtr<FTrackNode> SectionNode;
 
@@ -186,7 +265,7 @@ TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionN
 	if( !SectionNode.IsValid() )
 	{
 		// No existing node found make a new one
-		SectionNode = MakeShareable( new FTrackNode( SectionName, AssociatedTrack, SharedThis( this ), ParentTree ) );
+		SectionNode = MakeShareable( new FTrackNode( SectionName, AssociatedTrack, AssociatedEditor, SharedThis( this ), ParentTree ) );
 		ChildNodes.Add( SectionNode.ToSharedRef() );
 	}
 
@@ -220,9 +299,9 @@ void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& Disp
 	KeyAreaNode->AddKeyArea( KeyArea );
 }
 
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner()
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow)
 {
-	return SNew( SAnimationOutlinerView, SharedThis( this ), &GetSequencer() );
+	return SNew( SAnimationOutlinerTreeNode, SharedThis( this ), InRow );
 }
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateEditWidgetForOutliner()
@@ -250,6 +329,24 @@ TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea( const T
 	}
 }
 
+TSharedPtr<FSequencerDisplayNode> FSequencerDisplayNode::GetSectionAreaAuthority() const
+{
+	TSharedPtr<FSequencerDisplayNode> Authority = SharedThis(const_cast<FSequencerDisplayNode*>(this));
+
+	while (Authority.IsValid())
+	{
+		if (Authority->GetType() == ESequencerNode::Object || Authority->GetType() == ESequencerNode::Track)
+		{
+			return Authority;
+		}
+		else
+		{
+			Authority = Authority->GetParent();
+		}
+	}
+	return Authority;
+}
+
 FString FSequencerDisplayNode::GetPathName() const
 {
 	// First get our parent's path
@@ -265,6 +362,28 @@ FString FSequencerDisplayNode::GetPathName() const
 	return PathName;
 }
 
+TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// @todo sequencer replace with UI Commands instead of faking it
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
+
+	BuildContextMenu(MenuBuilder);
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
+{
+	TSharedRef<FSequencerDisplayNode> NodeToBeDeleted = SharedThis(this);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("DeleteNode", "Delete"),
+		LOCTEXT("DeleteNodeTooltip", "Delete this or selected nodes"),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, NodeToBeDeleted)));
+}
+
 void FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<FSectionKeyAreaNode> >& OutNodes) const
 {
 	for (int32 i = 0; i < ChildNodes.Num(); ++i)
@@ -277,63 +396,57 @@ void FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<F
 	}
 }
 
-void FSequencerDisplayNode::ToggleExpansion()
+void FSequencerDisplayNode::SetExpansionState(bool bInExpanded)
 {
-	bExpanded = !bExpanded;
+	bExpanded = bInExpanded;
 
 	// Expansion state has changed, save it to the movie scene now
 	ParentTree.SaveExpansionState( *this, bExpanded );
-
-	UpdateCachedShotFilteredVisibility();
 }
 
 bool FSequencerDisplayNode::IsExpanded() const
 {
-	return ParentTree.HasActiveFilter() ? ParentTree.IsNodeFiltered( AsShared() ) : bExpanded;
+	return ParentTree.HasActiveFilter() ? true : bExpanded;
 }
 
-bool FSequencerDisplayNode::IsVisible() const
+bool FSequencerDisplayNode::IsHidden() const
 {
-	// Must be visible after shot filtering AND
-	// If there is a search filter, must be filtered, otherwise, it's parent must be expanded AND
-	// If shot filtering is off on clean view is on, node must be pinned
-	return bCachedShotFilteredVisibility &&
-		(ParentTree.HasActiveFilter() ? ParentTree.IsNodeFiltered(AsShared()) : IsParentExpandedOrIsARootNode()) &&
-		(GetSequencer().IsShotFilteringOn() || !GetSequencer().GetSettings()->GetIsUsingCleanView() || bNodeIsPinned);
+	return ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared());
 }
 
-bool FSequencerDisplayNode::HasVisibleChildren() const
+TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectionIndex)
 {
-	for (int32 i = 0; i < ChildNodes.Num(); ++i)
+	if (!KeyGroupings.IsValidIndex(InSectionIndex))
 	{
-		if (ChildNodes[i]->bCachedShotFilteredVisibility) {return true;}
+		KeyGroupings.SetNum(InSectionIndex + 1);
 	}
-	return false;
-}
 
-bool FSequencerDisplayNode::IsParentExpandedOrIsARootNode() const
-{
-	return !ParentNode.IsValid() || ParentNode.Pin()->bExpanded;
-}
-
-void FSequencerDisplayNode::UpdateCachedShotFilteredVisibility()
-{
-	// Tell our children to update their visibility first
-	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
+	if (!KeyGroupings[InSectionIndex].IsValid())
 	{
-		ChildNodes[ChildIndex]->UpdateCachedShotFilteredVisibility();
+		KeyGroupings[InSectionIndex] = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
 	}
-	
-	// then cache our visibility
-	// this must be done after the children, because it relies on child cached visibility
-	bCachedShotFilteredVisibility = GetShotFilteredVisibilityToCache();
+
+	return KeyGroupings[InSectionIndex].ToSharedRef();
 }
 
-void FSequencerDisplayNode::PinNode()
+TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSectionIndex)
 {
-	bNodeIsPinned = true;
-}
+	if (!KeyGroupings.IsValidIndex(InSectionIndex))
+	{
+		KeyGroupings.SetNum(InSectionIndex + 1);
+	}
 
+	if (!KeyGroupings[InSectionIndex].IsValid())
+	{
+		KeyGroupings[InSectionIndex] = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
+	}
+	else
+	{
+		*KeyGroupings[InSectionIndex] = FGroupedKeyArea(*this, InSectionIndex);
+	}
+
+	return KeyGroupings[InSectionIndex].ToSharedRef();
+}
 
 
 float FSectionKeyAreaNode::GetNodeHeight() const
@@ -342,9 +455,9 @@ float FSectionKeyAreaNode::GetNodeHeight() const
 	return SequencerLayoutConstants::KeyAreaHeight;
 }
 
-bool FSectionKeyAreaNode::GetShotFilteredVisibilityToCache() const
+FNodePadding FSectionKeyAreaNode::GetNodePadding() const
 {
-	return true;
+	return FNodePadding(0.f, 1.f);
 }
 
 TSharedRef<SWidget> FSectionKeyAreaNode::GenerateEditWidgetForOutliner()
@@ -366,9 +479,10 @@ void FSectionKeyAreaNode::AddKeyArea( TSharedRef< IKeyArea> KeyArea )
 	KeyAreas.Add( KeyArea );
 }
 
-FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
+FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 	: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 	, AssociatedType( &InAssociatedType )
+	, AssociatedEditor( InAssociatedEditor )
 {
 }
 
@@ -377,10 +491,15 @@ float FTrackNode::GetNodeHeight() const
 	return Sections.Num() > 0 ? Sections[0]->GetSectionHeight() * (GetMaxRowIndex()+1) : SequencerLayoutConstants::SectionAreaDefaultHeight;
 }
 
+FNodePadding FTrackNode::GetNodePadding() const
+{
+	return FNodePadding(SequencerNodeConstants::CommonPadding);
+}
+
 FText FTrackNode::GetDisplayName() const
 {
 	// @todo Sequencer - IS there a better way to get the section interface name for the animation outliner?
-	return Sections.Num() > 0 ? Sections[0]->GetDisplayName() : FText::FromName(NodeName);
+	return TopLevelKeyNode.IsValid() && Sections.Num() > 0 ? Sections[0]->GetDisplayName() : FText::FromName(NodeName);
 }
 
 void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
@@ -392,17 +511,6 @@ void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
 	}
 
 	TopLevelKeyNode->AddKeyArea( KeyArea );
-}
-
-bool FTrackNode::GetShotFilteredVisibilityToCache() const
-{
-	// if no child sections are visible, neither is the entire section
-	bool bAnySectionsVisible = false;
-	for (int32 i = 0; i < Sections.Num() && !bAnySectionsVisible; ++i)
-	{
-		bAnySectionsVisible = GetSequencer().IsSectionVisible(Sections[i]->GetSectionObject());
-	}
-	return AssociatedType->HasShowableData() && bAnySectionsVisible;
 }
 
 void FTrackNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const
@@ -427,6 +535,21 @@ TSharedRef<SWidget> FTrackNode::GenerateEditWidgetForOutliner()
 			{
 				return KeyAreas[0]->CreateKeyEditor(&GetSequencer());
 			}
+		}
+	}
+	else
+	{
+		FGuid ObjectBinding;
+		TSharedPtr<FSequencerDisplayNode> ParentNode = GetParent();
+		if ( ParentNode.IsValid() && ParentNode->GetType() == ESequencerNode::Object )
+		{
+			ObjectBinding = StaticCastSharedPtr<FObjectBindingNode>(ParentNode)->GetObjectBinding();
+		}
+
+		TSharedPtr<SWidget> EditWidget = AssociatedEditor.BuildOutlinerEditWidget( ObjectBinding, AssociatedType.Get() );
+		if ( EditWidget.IsValid() )
+		{
+			return EditWidget.ToSharedRef();
 		}
 	}
 	return FSequencerDisplayNode::GenerateEditWidgetForOutliner();
@@ -481,27 +604,25 @@ void FTrackNode::FixRowIndices()
 FText FObjectBindingNode::GetDisplayName() const
 {
 	FText DisplayName;
-	return GetSequencer().GetObjectBindingManager()->TryGetObjectBindingDisplayName(GetSequencer().GetFocusedMovieSceneInstance(), ObjectBinding, DisplayName) ?
+	return GetSequencer().GetFocusedMovieSceneSequence()->TryGetObjectDisplayName(ObjectBinding, DisplayName) ?
 		DisplayName : DefaultDisplayName;
 }
 
 float FObjectBindingNode::GetNodeHeight() const
-{ 
+{
 	return SequencerLayoutConstants::ObjectNodeHeight;
 }
 
-bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
+FNodePadding FObjectBindingNode::GetNodePadding() const
 {
-	// if shot filtering is off and we are not unfilterable
-	// always show the object nodes (clean view is handled elsewhere)
-	return !GetSequencer().IsShotFilteringOn() || GetSequencer().IsObjectUnfilterable(ObjectBinding) || HasVisibleChildren();
+	return FNodePadding(SequencerNodeConstants::CommonPadding * 2, 0.f);
 }
 
 const UClass* FObjectBindingNode::GetClassForObjectBinding()
 {
 	FSequencer& ParentSequencer = GetSequencer();
 
-	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieScene();
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
 	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectBinding);
@@ -525,7 +646,7 @@ TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 	[
 		SNew(SComboButton)
 		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
-		.OnGetMenuContent(this, &FObjectBindingNode::OnGetAddPropertyTrackMenuContent)
+		.OnGetMenuContent(this, &FObjectBindingNode::OnGetAddTrackMenuContent)
 		.ContentPadding(FMargin(2, 0))
 		.ButtonContent()
 		[
@@ -558,82 +679,152 @@ TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
 	return EditBox.ToSharedRef();
 }
 
-TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+void FObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
-	const UClass* ObjectClass = GetClassForObjectBinding();
+	if (GetSequencer().IsLevelEditorSequencer())
+	{
+		const UClass* ObjectClass = GetClassForObjectBinding();
+		
+		if (ObjectClass->IsChildOf(AActor::StaticClass()))
+		{
+			FFormatNamedArguments Args;
+			MenuBuilder.AddMenuEntry(
+				FText::Format( LOCTEXT("Assign Actor ", "Assign Actor"), Args),
+				FText::Format( LOCTEXT("AssignActorTooltip", "Assign the selected actor to this track"), Args ),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::AssignActor, ObjectBinding, this),
+							FCanExecuteAction::CreateSP(&GetSequencer(), &FSequencer::CanAssignActor, ObjectBinding)) );
+		}
+	}
 
-	// @todo sequencer replace with UI Commands instead of faking it
-	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
-
-	GetSequencer().BuildObjectBindingContextMenu(MenuBuilder, ObjectBinding, ObjectClass);
-
-	return MenuBuilder.MakeWidget();
+	FSequencerDisplayNode::BuildContextMenu(MenuBuilder);
 }
 
 void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UProperty*>& PropertyPath, FSequencer& Sequencer, TArray<TArray<UProperty*>>& KeyablePropertyPaths)
 {
+	//@todo need to resolve this between UMG and the level editor sequencer
+	const bool bRecurseAllProperties = Sequencer.IsLevelEditorSequencer();
+
 	for (TFieldIterator<UProperty> PropertyIterator(PropertySource); PropertyIterator; ++PropertyIterator)
 	{
 		UProperty* Property = *PropertyIterator;
-		PropertyPath.Add(Property);
-		if (Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath)))
+
+		if (Property && !Property->HasAnyPropertyFlags(CPF_Deprecated))
 		{
-			KeyablePropertyPaths.Add(PropertyPath);
-		}
-		else
-		{
-			UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-			if (StructProperty != nullptr)
+			PropertyPath.Add(Property);
+
+			bool bIsPropertyKeyable = Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath));
+			if (bIsPropertyKeyable)
 			{
-				GetKeyablePropertyPaths(Class, StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+				KeyablePropertyPaths.Add(PropertyPath);
 			}
+
+			if (!bIsPropertyKeyable || bRecurseAllProperties)
+			{
+				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+				if (StructProperty != nullptr)
+				{
+					GetKeyablePropertyPaths(Class, StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+				}
+			}
+
+			PropertyPath.RemoveAt(PropertyPath.Num() - 1);
 		}
-		PropertyPath.RemoveAt(PropertyPath.Num() - 1);
 	}
 }
 
-TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
+struct PropertyMenuData
 {
-	TArray<TArray<UProperty*>> KeyablePropertyPaths;
-	TArray<UObject*> BoundObjects;
+	FString MenuName;
+	TArray<UProperty*> PropertyPath;
+};
+	
+TSharedRef<SWidget> FObjectBindingNode::OnGetAddTrackMenuContent()
+{
 	FSequencer& Sequencer = GetSequencer();
-	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetRootMovieSceneInstance(), ObjectBinding, BoundObjects);
-	for (UObject* BoundObject : BoundObjects)
+
+	//@todo need to resolve this between UMG and the level editor sequencer
+	const bool bUseSubMenus = Sequencer.IsLevelEditorSequencer();
+
+	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequence()->FindObject(ObjectBinding);
+
+	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
+	TSharedRef<FUICommandList> CommandList(new FUICommandList);
+	FMenuBuilder AddTrackMenuBuilder(true, nullptr, SequencerModule.GetMenuExtensibilityManager()->GetAllExtenders(CommandList, TArrayBuilder<UObject*>().Add(BoundObject)));
+
+	const UClass* ObjectClass = GetClassForObjectBinding();
+	AddTrackMenuBuilder.BeginSection( NAME_None, LOCTEXT("TracksMenuHeader" , "Tracks"));
+	GetSequencer().BuildObjectBindingTrackMenu(AddTrackMenuBuilder, ObjectBinding, ObjectClass);
+	AddTrackMenuBuilder.EndSection();
+
+	TArray<TArray<UProperty*>> KeyablePropertyPaths;
+
+	if (BoundObject != nullptr)
 	{
 		TArray<UProperty*> PropertyPath;
 		GetKeyablePropertyPaths(BoundObject->GetClass(), BoundObject->GetClass(), PropertyPath, Sequencer, KeyablePropertyPaths);
 	}
 
-	KeyablePropertyPaths.Sort([](const TArray<UProperty*>& A,const TArray<UProperty*>& B)
+	// [Aspect Ratio]
+	// [PostProcess Settings] [Bloom1Tint] [X]
+	// [PostProcess Settings] [Bloom1Tint] [Y]
+	// [PostProcess Settings] [ColorGrading]
+	// [Ortho View]
+
+	// Create property menu data based on keyable property paths
+	TArray<PropertyMenuData> KeyablePropertyMenuData;
+	for (auto KeyablePropertyPath : KeyablePropertyPaths)
 	{
-		for (int32 IndexToCheck = 0; IndexToCheck < A.Num() && IndexToCheck < B.Num(); IndexToCheck++)
-		{
-			int32 CompareResult = A[IndexToCheck]->GetName().Compare(B[IndexToCheck]->GetName());
-			if (CompareResult != 0)
-			{
-				return CompareResult < 0;
-			}
-		}
-		// If a difference in name wasn't found, the shorter path should be first.
-		return A.Num() < B.Num();
+		PropertyMenuData KeyableMenuData;
+		KeyableMenuData.PropertyPath = KeyablePropertyPath;
+		KeyableMenuData.MenuName = KeyablePropertyPath[0]->GetDisplayNameText().ToString();
+		KeyablePropertyMenuData.Add(KeyableMenuData);
+	}
+
+	// Sort on the menu name
+	KeyablePropertyMenuData.Sort([](const PropertyMenuData& A, const PropertyMenuData& B)
+	{
+		int32 CompareResult = A.MenuName.Compare(B.MenuName);
+		return CompareResult < 0;
 	});
+	
 
-	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
-	TSharedRef<FUICommandList> CommandList(new FUICommandList);
-	FMenuBuilder AddTrackMenuBuilder(true, nullptr, SequencerModule.GetMenuExtensibilityManager()->GetAllExtenders(CommandList, BoundObjects));
-
+	// Add menu items
 	AddTrackMenuBuilder.BeginSection( SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection, LOCTEXT("PropertiesMenuHeader" , "Properties"));
+	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); )
 	{
-		for ( TArray<UProperty*>& KeyablePropertyPath : KeyablePropertyPaths )
+		TArray<TArray<UProperty*> > KeyableSubMenuPropertyPaths;
+
+		KeyableSubMenuPropertyPaths.Add(KeyablePropertyMenuData[MenuDataIndex].PropertyPath);
+
+		// If this menu data only has one property name, add the menu item
+		if (KeyablePropertyMenuData[MenuDataIndex].PropertyPath.Num() == 1 || !bUseSubMenus)
 		{
-			FUIAction AddTrackMenuAction( FExecuteAction::CreateSP( this, &FObjectBindingNode::AddTrackForProperty, KeyablePropertyPath ) );
-			TArray<FString> PropertyNames;
-			for ( UProperty* Property : KeyablePropertyPath )
+			AddPropertyMenuItems(AddTrackMenuBuilder, KeyableSubMenuPropertyPaths);
+			++MenuDataIndex;
+		}
+		// Otherwise, look to the next menu data to gather up new data
+		else
+		{
+			for (; MenuDataIndex < KeyablePropertyMenuData.Num()-1; )
 			{
-				PropertyNames.Add( Property->GetName() );
+				if (KeyablePropertyMenuData[MenuDataIndex].MenuName == KeyablePropertyMenuData[MenuDataIndex+1].MenuName)
+				{	
+					++MenuDataIndex;
+					KeyableSubMenuPropertyPaths.Add(KeyablePropertyMenuData[MenuDataIndex].PropertyPath);
+				}
+				else
+				{
+					break;
+				}
 			}
-			AddTrackMenuBuilder.AddMenuEntry( FText::FromString( FString::Join( PropertyNames, TEXT( "." ) ) ), FText(), FSlateIcon(), AddTrackMenuAction );
+
+			AddTrackMenuBuilder.AddSubMenu(
+				FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName),
+				FText::GetEmpty(), 
+				FNewMenuDelegate::CreateSP(this, &FObjectBindingNode::AddPropertyMenuItemsWithCategories, KeyableSubMenuPropertyPaths));
+
+			++MenuDataIndex;
 		}
 	}
 	AddTrackMenuBuilder.EndSection();
@@ -641,22 +832,142 @@ TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
 	return AddTrackMenuBuilder.MakeWidget();
 }
 
+void FObjectBindingNode::AddPropertyMenuItemsWithCategories(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyablePropertyPaths)
+{
+	// [PostProcessSettings] [Bloom1Tint] [X]
+	// [PostProcessSettings] [Bloom1Tint] [Y]
+	// [PostProcessSettings] [ColorGrading]
+
+	// Create property menu data based on keyable property paths
+	TSet<UProperty*> PropertiesTraversed;
+	TArray<PropertyMenuData> KeyablePropertyMenuData;
+	for (auto KeyablePropertyPath : KeyablePropertyPaths)
+	{		
+		PropertyMenuData KeyableMenuData;
+		KeyableMenuData.PropertyPath = KeyablePropertyPath;
+
+		// If the path is greater than 1, keep track of the actual properties (not channels) and only add these properties once since we can't do single channel keying of a property yet.
+		if (KeyablePropertyPath.Num() > 1) //@todo
+		{
+			if (PropertiesTraversed.Find(KeyablePropertyPath[1]) != nullptr)
+			{
+				continue;
+			}
+
+			KeyableMenuData.MenuName = FObjectEditorUtils::GetCategoryFName(KeyablePropertyPath[1]).ToString();
+			PropertiesTraversed.Add(KeyablePropertyPath[1]);
+		}
+		else
+		{
+			// No sub menus items, so skip
+			continue; 
+		}
+		KeyablePropertyMenuData.Add(KeyableMenuData);
+	}
+
+	// Sort on the menu name
+	KeyablePropertyMenuData.Sort([](const PropertyMenuData& A, const PropertyMenuData& B)
+	{
+		int32 CompareResult = A.MenuName.Compare(B.MenuName);
+		return CompareResult < 0;
+	});
+
+	// Add menu items
+	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); )
+	{
+		TArray<TArray<UProperty*> > KeyableSubMenuPropertyPaths;
+		KeyableSubMenuPropertyPaths.Add(KeyablePropertyMenuData[MenuDataIndex].PropertyPath);
+
+		for (; MenuDataIndex < KeyablePropertyMenuData.Num()-1; )
+		{
+			if (KeyablePropertyMenuData[MenuDataIndex].MenuName == KeyablePropertyMenuData[MenuDataIndex+1].MenuName)
+			{
+				++MenuDataIndex;
+				KeyableSubMenuPropertyPaths.Add(KeyablePropertyMenuData[MenuDataIndex].PropertyPath);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		const int32 PropertyNameIndexStart = 1; // Strip off the struct property name
+		const int32 PropertyNameIndexEnd = 2; // Stop at the property name, don't descend into the channels
+
+		AddTrackMenuBuilder.AddSubMenu(
+			FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName),
+			FText::GetEmpty(), 
+			FNewMenuDelegate::CreateSP(this, &FObjectBindingNode::AddPropertyMenuItems, KeyableSubMenuPropertyPaths, PropertyNameIndexStart, PropertyNameIndexEnd));
+
+		++MenuDataIndex;
+	}
+}
+
+void FObjectBindingNode::AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyableProperties, int32 PropertyNameIndexStart, int32 PropertyNameIndexEnd)
+{
+	TArray<PropertyMenuData> KeyablePropertyMenuData;
+
+	for (auto KeyableProperty : KeyableProperties)
+	{
+		TArray<FString> PropertyNames;
+		if (PropertyNameIndexEnd == -1)
+		{
+			PropertyNameIndexEnd = KeyableProperty.Num();
+		}
+
+		//@todo
+		if (PropertyNameIndexStart >= KeyableProperty.Num())
+		{
+			continue;
+		}
+
+		for (int32 PropertyNameIndex = PropertyNameIndexStart; PropertyNameIndex < PropertyNameIndexEnd; ++PropertyNameIndex)
+		{
+			PropertyNames.Add(KeyableProperty[PropertyNameIndex]->GetDisplayNameText().ToString());
+		}
+
+		PropertyMenuData KeyableMenuData;
+		KeyableMenuData.PropertyPath = KeyableProperty;
+		KeyableMenuData.MenuName = FString::Join( PropertyNames, TEXT( "." ) );
+		KeyablePropertyMenuData.Add(KeyableMenuData);
+	}
+
+	// Sort on the menu name
+	KeyablePropertyMenuData.Sort([](const PropertyMenuData& A, const PropertyMenuData& B)
+	{
+		int32 CompareResult = A.MenuName.Compare(B.MenuName);
+		return CompareResult < 0;
+	});
+
+	// Add menu items
+	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); ++MenuDataIndex)
+	{
+		FUIAction AddTrackMenuAction( FExecuteAction::CreateSP( this, &FObjectBindingNode::AddTrackForProperty, KeyablePropertyMenuData[MenuDataIndex].PropertyPath ) );
+		AddTrackMenuBuilder.AddMenuEntry( FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName), FText(), FSlateIcon(), AddTrackMenuAction );
+	}
+}
+
 void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
-
-	TArray<UObject*> BoundObjects;
-	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetFocusedMovieSceneInstance(), ObjectBinding, BoundObjects);
+	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequence()->FindObject(ObjectBinding);
 
 	TArray<UObject*> KeyableBoundObjects;
-	for (UObject* BoundObject : BoundObjects)
+	if (BoundObject != nullptr)
 	{
 		if (Sequencer.CanKeyProperty(FCanKeyPropertyParams(BoundObject->GetClass(), PropertyPath)))
 		{
 			KeyableBoundObjects.Add(BoundObject);
 		}
 	}
-	Sequencer.KeyProperty(FKeyPropertyParams(KeyableBoundObjects, PropertyPath));
+
+	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath);
+	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
+	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = false;
+	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = false;
+	KeyPropertyParams.KeyParams.KeyInterpolation = Sequencer.GetKeyInterpolation();
+
+	Sequencer.KeyProperty(KeyPropertyParams);
 }
 
 float FSectionCategoryNode::GetNodeHeight() const 
@@ -664,10 +975,9 @@ float FSectionCategoryNode::GetNodeHeight() const
 	return SequencerLayoutConstants::CategoryNodeHeight;
 }
 
-bool FSectionCategoryNode::GetShotFilteredVisibilityToCache() const
+FNodePadding FSectionCategoryNode::GetNodePadding() const
 {
-	// this node is only visible if at least one child node is visible
-	return HasVisibleChildren();
+	return FNodePadding(SequencerNodeConstants::CommonPadding/2);
 }
 
 #undef LOCTEXT_NAMESPACE

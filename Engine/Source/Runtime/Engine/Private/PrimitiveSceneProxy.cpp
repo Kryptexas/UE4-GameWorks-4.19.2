@@ -131,7 +131,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 
 #if WITH_EDITOR
 		// cache the actor's group membership
-		HiddenEditorViews = InComponent->GetOwner()->HiddenEditorViews;
+		HiddenEditorViews = InComponent->GetHiddenEditorViews();
 #endif
 	}
 	
@@ -262,6 +262,12 @@ void FPrimitiveSceneProxy::ApplyWorldOffset(FVector InOffset)
 	FMatrix NewLocalToWorld = LocalToWorld.ConcatTranslation(InOffset);
 	
 	SetTransform(NewLocalToWorld, NewBounds, NewLocalBounds, NewActorPosition);
+}
+
+void FPrimitiveSceneProxy::ApplyLateUpdateTransform(const FMatrix& LateUpdateTransform)
+{
+	const FMatrix AdjustedLocalToWorld = LocalToWorld * LateUpdateTransform;
+	SetTransform(AdjustedLocalToWorld, Bounds, LocalBounds, ActorPosition);
 }
 
 /**

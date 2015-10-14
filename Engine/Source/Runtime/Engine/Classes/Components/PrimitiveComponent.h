@@ -241,7 +241,7 @@ public:
 	 * This should generally be true for all objects, and let the renderer make decisions about whether to render objects in the depth only pass.
 	 * @todo - if any rendering features rely on a complete depth only pass, this variable needs to go away.
 	 */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
 	uint32 bUseAsOccluder:1;
 
 	/** If this is True, this component can be selected in the editor. */
@@ -1505,6 +1505,11 @@ public:
 	virtual float GetDiffuseBoost(int32 ElementIndex) const		{ return 1.0f; };
 	
 	virtual bool GetShadowIndirectOnly() const { return false; }
+
+#if WITH_EDITOR
+	/** Returns mask that represents in which views this primitive is hidden */
+	virtual uint64 GetHiddenEditorViews() const;
+#endif// WITH_EDITOR
 
 	/**
 	 *	Set the angular velocity of all bodies in this component.

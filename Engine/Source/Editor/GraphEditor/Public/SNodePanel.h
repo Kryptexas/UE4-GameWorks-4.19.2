@@ -778,7 +778,7 @@ protected:
 	 * Get the bounds of the given node
 	 * @return True if successful
 	 */
-	bool GetBoundsForNode(const UObject* InNode, /*out*/ FVector2D& MinCorner, /*out*/ FVector2D& MaxCorner, float Padding = 0.0f);
+	bool GetBoundsForNode(const UObject* InNode, /*out*/ FVector2D& MinCorner, /*out*/ FVector2D& MaxCorner, float Padding = 0.0f) const;
 
 	/**
 	 * Get the bounds of the selected nodes 

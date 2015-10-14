@@ -2,6 +2,7 @@
 
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserWindow.h"
+#include "WebBrowserViewport.h"
 #include "WebBrowserByteResource.h"
 #include "WebBrowserPopupFeatures.h"
 #include "WebJSScripting.h"
@@ -111,6 +112,23 @@ void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 			InternalCefBrowser->GetHost()->WasResized();
 		}
 	}
+}
+
+TSharedRef<SWidget> FWebBrowserWindow::CreateWidget(TAttribute<FVector2D> InViewportSize)
+{
+	TSharedRef<SViewport> ViewportWidgetRef =
+		SNew(SViewport)
+		.ViewportSize(InViewportSize)
+		.EnableGammaCorrection(false)
+		.EnableBlending(bUseTransparency)
+		.IgnoreTextureAlpha(!bUseTransparency);
+
+	TSharedRef<FWebBrowserViewport> BrowserViewportRef = MakeShareable(new FWebBrowserViewport(this->AsShared(), ViewportWidgetRef));
+	BrowserViewport = BrowserViewportRef;
+	ViewportWidgetRef->SetViewportInterface(MoveTemp(BrowserViewportRef));
+	ViewportWidget = ViewportWidgetRef;
+
+	return ViewportWidgetRef;
 }
 
 FSlateShaderResource* FWebBrowserWindow::GetTexture(bool bIsPopup)
@@ -711,7 +729,17 @@ void FWebBrowserWindow::SetToolTip(const CefString& CefToolTip)
 	if (ToolTipText != NewToolTipText)
 	{
 		ToolTipText = NewToolTipText;
-		OnToolTip().Broadcast(ToolTipText);
+
+		if (ToolTipText.IsEmpty())
+		{
+			FSlateApplication::Get().CloseToolTip();
+			ViewportWidget->SetToolTip(nullptr);
+		}
+		else
+		{
+			ViewportWidget->SetToolTipText(FText::FromString(ToolTipText));
+			FSlateApplication::Get().UpdateToolTip(true);
+		}
 	}
 }
 

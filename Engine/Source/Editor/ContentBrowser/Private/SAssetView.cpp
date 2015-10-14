@@ -15,6 +15,9 @@
 #include "KismetEditorUtilities.h"
 #include "IPluginManager.h"
 #include "NativeClassHierarchy.h"
+#include "MessageLog.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -498,8 +501,9 @@ void SAssetView::DeferredCreateNewAsset()
 		FName AssetClassName = DeferredAssetToCreate->AssetClass->GetFName();
 		TMap<FName, FString> EmptyTags;
 		TArray<int32> EmptyChunkIDs;
-	
-		FAssetData NewAssetData(PackageName, PackagePathFName, NAME_None, AssetName, AssetClassName, EmptyTags, EmptyChunkIDs);
+		const uint32 EmptyPackageFlags = 0;
+
+		FAssetData NewAssetData(PackageName, PackagePathFName, NAME_None, AssetName, AssetClassName, EmptyTags, EmptyChunkIDs, EmptyPackageFlags);
 		TSharedPtr<FAssetViewItem> NewItem = MakeShareable(new FAssetViewCreation(NewAssetData, DeferredAssetToCreate->AssetClass, DeferredAssetToCreate->Factory));
 
 		NewItem->bRenameWhenScrolledIntoview = true;
@@ -536,8 +540,9 @@ void SAssetView::DuplicateAsset(const FString& PackagePath, const TWeakObjectPtr
 	FName AssetClass = OriginalObject->GetClass()->GetFName();
 	TMap<FName, FString> EmptyTags;
 	TArray<int32> EmptyChunkIDs;
+	const uint32 EmptyPackageFlags = 0;
 
-	FAssetData NewAssetData(PackageName, PackagePathFName, NAME_None, AssetName, AssetClass, EmptyTags, EmptyChunkIDs);
+	FAssetData NewAssetData(PackageName, PackagePathFName, NAME_None, AssetName, AssetClass, EmptyTags, EmptyChunkIDs, EmptyPackageFlags);
 	TSharedPtr<FAssetViewItem> NewItem = MakeShareable(new FAssetViewDuplication(NewAssetData, OriginalObject));
 	NewItem->bRenameWhenScrolledIntoview = true;
 
@@ -3390,8 +3395,26 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 
 		// Committed rename
 		Asset = ItemAsAsset->Data.GetAsset();
-		ContentBrowserUtils::RenameAsset(Asset, NewName, ErrorMessage);
-		bSuccess = true;
+		if(Asset == NULL)
+		{
+			//put back the original name
+			RenamingAsset.Reset();
+			
+			//Notify the user rename fail and link the output log
+			FNotificationInfo Info(LOCTEXT("RenameAssetsFailed", "Failed to rename assets"));
+			Info.ExpireDuration = 5.0f;
+			Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ FGlobalTabmanager::Get()->InvokeTab(FName("OutputLog")); });
+			Info.HyperlinkText = LOCTEXT("ShowOutputLogHyperlink", "Show Output Log");
+			FSlateNotificationManager::Get().AddNotification(Info);
+			
+			//Set the content browser error message
+			ErrorMessage = LOCTEXT("RenameAssetsFailed", "Failed to rename assets");
+		}
+		else
+		{
+			ContentBrowserUtils::RenameAsset(Asset, NewName, ErrorMessage);
+			bSuccess = true;
+		}
 	}
 	else if ( ItemType == EAssetItemType::Creation || ItemType == EAssetItemType::Duplication )
 	{

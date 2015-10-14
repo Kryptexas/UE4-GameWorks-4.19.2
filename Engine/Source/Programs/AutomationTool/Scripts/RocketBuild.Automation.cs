@@ -1029,7 +1029,17 @@ namespace Rocket
 			BuildDerivedDataCacheNode DerivedDataCacheNode = (BuildDerivedDataCacheNode)BranchConfig.FindNode(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
 			CopyManifestFilesToOutput(DerivedDataCacheNode.SavedManifestPath, DerivedDataCacheNode.SavedDir, OutputDir);
 
-			// Write the Rocket.txt file with the 
+			// Add the VS2015 redistributable DLLs to the install
+			if(HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				DirectoryInfo RedistFolder = new DirectoryInfo(Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Extras", "Redist", "en-us", "VS2015"));
+				foreach(FileInfo File in RedistFolder.EnumerateFiles("*.dll"))
+				{
+					CommandUtils.CopyFile(File.FullName, Path.Combine(OutputDir, "Engine", "Binaries", "Win64", File.Name));
+				}
+			}
+
+			// Write the Rocket.txt file with the editor arguments
 			string RocketFile = CommandUtils.CombinePaths(OutputDir, "Engine/Build/Rocket.txt");
 			CommandUtils.WriteAllText(RocketFile, "-installedengine -rocket");
 

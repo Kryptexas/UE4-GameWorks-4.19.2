@@ -155,6 +155,7 @@ FUnrealEdMisc::FUnrealEdMisc() :
 	bSaveLayoutOnClose( true ),
 	bDeletePreferences( false ),
 	bIsAssetAnalyticsPending( false ),
+	bEditorCrashed(false),
 	PerformanceAnalyticsStats(new FPerformanceAnalyticsStats()),
 	NavigationBuildingNotificationHandler(NULL)
 {
@@ -204,6 +205,7 @@ void FUnrealEdMisc::OnInit()
 	FEditorDelegates::ChangeEditorMode.AddRaw(this, &FUnrealEdMisc::OnEditorChangeMode);
 	FCoreDelegates::PreModal.AddRaw(this, &FUnrealEdMisc::OnEditorPreModal);
 	FCoreDelegates::PostModal.AddRaw(this, &FUnrealEdMisc::OnEditorPostModal);
+	FCoreDelegates::OnHandleSystemError.AddRaw(this, &FUnrealEdMisc::OnCrashing);
 
 	// Register the play world commands
 	FPlayWorldCommands::Register();
@@ -462,6 +464,45 @@ void FUnrealEdMisc::InitEngineAnalytics()
 	if ( FEngineAnalytics::IsAvailable() )
 	{
 		IAnalyticsProvider& EngineAnalytics = FEngineAnalytics::GetProvider();
+
+		// Editor is starting - Check for the abnormal shutdown flag
+		FString AbnormalShutdownFlag;
+		FString ShutdownEngineVersionString;
+		if (FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), AbnormalShutdownFlag) &&
+			FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("EngineVersion"), ShutdownEngineVersionString))
+		{
+			if (!AbnormalShutdownFlag.IsEmpty() && !ShutdownEngineVersionString.IsEmpty())
+			{
+				// Abnormal shutdown flag is set
+				FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
+				bool bHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
+
+				FString CrashTimestamp;
+				FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), CrashTimestamp);
+
+#if PLATFORM_WINDOWS
+				const FString PlatformName(TEXT("Windows"));
+#elif PLATFORM_MAC
+				const FString PlatformName(TEXT("Mac"));
+#elif PLATFORM_LINUX
+				const FString PlatformName(TEXT("Linux"));
+#else
+				const FString PlatformName(TEXT("Unknown"));
+#endif
+				TArray< FAnalyticsEventAttribute > AbnormalShutdownAttributes;
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("EngineVersion"), ShutdownEngineVersionString));
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("ShutdownType"), AbnormalShutdownFlag));
+				AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("CrashTimestamp"), CrashTimestamp));
+
+				FEditorAnalytics::ReportEvent(TEXT("Editor.AbnormalShutdown"), PlatformName, bHasCode, AbnormalShutdownAttributes);
+			}
+		}
+
+		// Set the abnormal shutdown flag and the running engine version string
+		FString CurrentEngineVersionString = GEngineVersion.ToString(EVersionComponent::Changelist);
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), TEXT("AbnormalShutdown"));
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("EngineVersion"), CurrentEngineVersionString);
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), FDateTime::UtcNow().ToIso8601());
 
 		// Send analytics about sample projects
 		if( FPaths::IsProjectFilePathSet() )
@@ -762,6 +803,12 @@ void FUnrealEdMisc::OnExit()
 		FEditorViewportStats::SendUsageData();
 	}
 
+	// Editor is shutting down - Clear the abnormal shutdown flag
+	if (!bEditorCrashed)
+	{
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), FString());
+	}
+
 	FInputBindingManager::Get().UnregisterUserDefinedChordChanged(OnUserDefinedChordChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();
 	FUObjectToken::DefaultOnMessageTokenActivated().Unbind();
@@ -799,6 +846,7 @@ void FUnrealEdMisc::OnExit()
 	FEditorDelegates::ChangeEditorMode.RemoveAll(this);
 	FCoreDelegates::PreModal.RemoveAll(this);
 	FCoreDelegates::PostModal.RemoveAll(this);
+	FCoreDelegates::OnHandleSystemError.RemoveAll(this);
 
 	FComponentAssetBrokerage::PRIVATE_ShutdownBrokerage();
 
@@ -1010,6 +1058,13 @@ void FUnrealEdMisc::OnEditorPostModal()
 	{
 		FSlateApplication::Get().ExternalModalStop();
 	}
+}
+
+void FUnrealEdMisc::OnCrashing()
+{
+	bEditorCrashed = true;
+	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("AbnormalShutdownFlag"), TEXT("Crashed"));
+	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Editor"), TEXT("CrashTimestamp"), FDateTime::UtcNow().ToIso8601());
 }
 
 void FUnrealEdMisc::OnDeferCommand( const FString& DeferredCommand )
@@ -1563,7 +1618,7 @@ void FUnrealEdMisc::CancelPerformanceSurvey()
 	LevelEditor.OnMapChanged().Remove( OnMapChangedDelegateHandle );
 }
 
-void FUnrealEdMisc::OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )
+void FUnrealEdMisc::OnMapChanged( UWorld* World, EMapChangeType MapChangeType )
 {
 	if (bIsSurveyingPerformance)
 	{
@@ -1691,4 +1746,4 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 	}
 }
 
-#undef  LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE

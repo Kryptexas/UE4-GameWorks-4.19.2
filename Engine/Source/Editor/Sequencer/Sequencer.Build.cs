@@ -21,23 +21,25 @@ public class Sequencer : ModuleRules
 				"MovieScene", 
 				"MovieSceneTracks", 
 				"MovieSceneTools", 
+				"MovieSceneCapture", 
 				"EditorWidgets", 
 				"SequencerWidgets",
-				"BlueprintGraph"
+				"BlueprintGraph",
 			}
 		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
-				"Kismet"
+				"Kismet",
 			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
-				"WorkspaceMenuStructure"
+				"LevelEditor",
+				"WorkspaceMenuStructure",
 			}
 		);
 

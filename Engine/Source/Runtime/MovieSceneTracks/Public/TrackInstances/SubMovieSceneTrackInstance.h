@@ -5,7 +5,7 @@
 #include "IMovieSceneTrackInstance.h"
 
 
-class FMovieSceneInstance;
+class FMovieSceneSequenceInstance;
 class USubMovieSceneSection;
 class USubMovieSceneTrack;
 
@@ -23,8 +23,8 @@ public:
 	/** IMovieSceneTrackInstance interface */
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
 	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player ) override;
-	virtual void SaveState (const TArray<UObject*>& RuntimeObjects) override;
-	virtual void RestoreState (const TArray<UObject*>& RuntimeObjects) override;
+	virtual void SaveState (const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override;
+	virtual void RestoreState (const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override;
 	virtual void ClearInstance( IMovieScenePlayer& Player ) override;
 protected:
 
@@ -32,5 +32,5 @@ protected:
 	TWeakObjectPtr<USubMovieSceneTrack> SubMovieSceneTrack;
 
 	/** Mapping of section lookups to instances.  Each section has a movie scene which must be instanced */
-	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneInstance> > SubMovieSceneInstances; 
+	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneSequenceInstance> > SubMovieSceneInstances; 
 };

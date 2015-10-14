@@ -135,7 +135,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
 			FActiveSound NewActiveSound;
-			NewActiveSound.AudioComponent = this;
+			NewActiveSound.SetAudioComponent(this);
 			NewActiveSound.World = GetWorld();
 			NewActiveSound.Sound = Sound;
 			NewActiveSound.SoundClassOverride = SoundClassOverride;
@@ -363,6 +363,16 @@ const FAttenuationSettings* UAudioComponent::GetAttenuationSettingsToApply() con
 		return Sound->GetAttenuationSettingsToApply();
 	}
 	return nullptr;
+}
+
+bool UAudioComponent::BP_GetAttenuationSettingsToApply(FAttenuationSettings& OutAttenuationSettings)
+{
+	if (const FAttenuationSettings* Settings = GetAttenuationSettingsToApply())
+	{
+		OutAttenuationSettings = *Settings;
+		return true;
+	}
+	return false;
 }
 
 void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const

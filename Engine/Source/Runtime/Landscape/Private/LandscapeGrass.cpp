@@ -454,8 +454,16 @@ public:
 			GrassWeightArrays.Empty(GrassTypes.Num());
 			for (auto GrassType : GrassTypes)
 			{
-				int32 Index = GrassWeightArrays.Add(&NewGrassData->WeightData.Add(GrassType));
-				GrassWeightArrays[Index]->Empty(FMath::Square(ComponentSizeVerts));
+				NewGrassData->WeightData.Add(GrassType);
+			}
+
+			// need a second loop because the WeightData map will reallocate its arrays as grass types are added
+			for (auto GrassType : GrassTypes)
+			{
+				TArray<uint8>* DataArray = NewGrassData->WeightData.Find(GrassType);
+				check(DataArray);
+				DataArray->Empty(FMath::Square(ComponentSizeVerts));
+				GrassWeightArrays.Add(DataArray);
 			}
 
 			for (int32 PassIdx = 0; PassIdx < NumPasses; PassIdx++)
@@ -504,6 +512,18 @@ public:
 							}
 						}
 					}
+				}
+			}
+
+			// remove null grass type if we had one (can occur if the node has null entries)
+			NewGrassData->WeightData.Remove(nullptr);
+
+			// Remove any grass data that is entirely weight 0
+			for (auto Iter(NewGrassData->WeightData.CreateIterator()); Iter; ++Iter)
+			{
+				if (Iter.Value().IndexOfByPredicate([&](const int8& Weight){ return Weight != 0; }) == INDEX_NONE)
+				{
+					Iter.RemoveCurrent();
 				}
 			}
 
@@ -617,10 +637,7 @@ void ULandscapeComponent::RenderGrassMap()
 			GrassTypes.Empty(GrassExpressions[0]->GrassTypes.Num());
 			for (auto& GrassTypeInput : GrassExpressions[0]->GrassTypes)
 			{
-				if (GrassTypeInput.GrassType)
-				{
-					GrassTypes.Add(GrassTypeInput.GrassType);
-				}
+				GrassTypes.Add(GrassTypeInput.GrassType);
 			}
 
 			TArray<ULandscapeComponent*> LandscapeComponents;
@@ -1621,6 +1638,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										FoliageCache.CachedGrassComps.Add(NewComp);
 
 										HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
+										HierarchicalInstancedStaticMeshComponent->bCastStaticShadow = false;
 
 										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
 										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;

@@ -236,7 +236,7 @@ static void ApplyUnroll(FbxNode *pNode, FbxAnimLayer* pLayer, FbxAnimCurveFilter
 		// Set bone rotation order
 		EFbxRotationOrder RotationOrder = eEulerXYZ;
 		pNode->GetRotationOrder(FbxNode::eSourcePivot, RotationOrder);
-		pUnrollFilter->SetRotationOrder(RotationOrder*2);
+		pUnrollFilter->SetRotationOrder((FbxEuler::EOrder)(RotationOrder*2));
 
 		pUnrollFilter->Apply(lRCurve, 3);
 	}
@@ -1071,7 +1071,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 			{
 				FbxAnimCurveNode* CurveNode = Property.GetCurveNode();
 				// do this if user defined and animated and leaf node
-				if( CurveNode && Property.GetFlag(FbxPropertyAttr::eUserDefined) && 
+				if( CurveNode && Property.GetFlag(FbxPropertyFlags::eUserDefined) &&
 					CurveNode->IsAnimated() && IsSupportedCurveDataType(Property.GetPropertyDataType().GetType()) )
 				{
 					FString CurveName = UTF8_TO_TCHAR(CurveNode->GetName());

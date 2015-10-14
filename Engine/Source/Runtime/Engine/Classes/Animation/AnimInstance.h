@@ -743,6 +743,10 @@ public:
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
 	float GetCurrentStateElapsedTime(int32 MachineIndex);
 
+	/** Returns the name of a currently active state in a state machine. */
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true", AnimGetter = "true"))
+	FName GetCurrentStateName(int32 MachineIndex);
+
 	/** Sets a morph target to a certain weight. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetMorphTarget(FName MorphTargetName, float Value);

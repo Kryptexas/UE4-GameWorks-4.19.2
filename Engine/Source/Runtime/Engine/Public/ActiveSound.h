@@ -69,7 +69,20 @@ public:
 
 	class USoundBase* Sound;
 	TWeakObjectPtr<class UWorld> World;
+
+private:
 	TWeakObjectPtr<class UAudioComponent> AudioComponent;
+	UPTRINT AudioComponentIndex;
+
+public:
+
+	UAudioComponent* GetAudioComponent() const { return AudioComponent.Get(); }
+	UPTRINT GetAudioComponentIndex() const { return AudioComponentIndex; }
+	void SetAudioComponent(UAudioComponent* Component)
+	{
+		AudioComponent = Component;
+		AudioComponentIndex = (UPTRINT)Component;
+	}
 
 	/** Optional SoundClass to override Sound */
 	USoundClass* SoundClassOverride;

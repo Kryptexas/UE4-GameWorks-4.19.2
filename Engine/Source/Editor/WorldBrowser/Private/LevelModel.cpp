@@ -12,10 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FLevelModel::FLevelModel(FLevelCollectionModel& InLevelCollectionModel,
-						const TWeakObjectPtr<UEditorEngine>& InEditor)
+FLevelModel::FLevelModel(FLevelCollectionModel& InLevelCollectionModel)
 	: LevelCollectionModel(InLevelCollectionModel)
-	, Editor(InEditor)
 	, bSelected(false)
 	, bExpanded(false)
 	, bLoadingLevel(false)
@@ -250,7 +248,7 @@ void FLevelModel::SetLocked(bool bLocked)
 		DeselectAllSurfaces();
 
 		// Tell the editor selection status was changed.
-		Editor->NoteSelectionChange();
+		GEditor->NoteSelectionChange();
 
 		// If locking the current level, reset the p-level as the current level
 		//@todo: fix this!
@@ -290,7 +288,7 @@ void FLevelModel::MakeLevelCurrent()
 				
 			// Deselect all selected builder brushes.
 			bool bDeselectedSomething = false;
-			for (FSelectionIterator It(Editor->GetSelectedActorIterator()); It; ++It)
+			for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 			{
 				AActor* Actor = static_cast<AActor*>(*It);
 				checkSlow(Actor->IsA(AActor::StaticClass()));
@@ -298,7 +296,7 @@ void FLevelModel::MakeLevelCurrent()
 				ABrush* Brush = Cast< ABrush >( Actor );
 				if (Brush && FActorEditorUtils::IsABuilderBrush(Brush))
 				{
-					Editor->SelectActor(Actor, /*bInSelected=*/ false, /*bNotify=*/ false);
+					GEditor->SelectActor(Actor, /*bInSelected=*/ false, /*bNotify=*/ false);
 					bDeselectedSomething = true;
 				}
 			}
@@ -306,7 +304,7 @@ void FLevelModel::MakeLevelCurrent()
 			// Send a selection change callback if necessary.
 			if (bDeselectedSomething)
 			{
-				Editor->NoteSelectionChange();
+				GEditor->NoteSelectionChange();
 			}
 		}
 							
@@ -613,7 +611,7 @@ void FLevelModel::DeselectAllActors()
 		return;
 	}
 
-	USelection* SelectedActors = Editor->GetSelectedActors();
+	USelection* SelectedActors = GEditor->GetSelectedActors();
 	SelectedActors->Modify();
 
 	// Deselect all level actors 
@@ -642,7 +640,7 @@ void FLevelModel::SelectActors(bool bSelect, bool bNotify, bool bSelectEvenIfHid
 		return;
 	}
 
-	Editor->GetSelectedActors()->BeginBatchSelectOperation();
+	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	bool bChangesOccurred = false;
 
 	// Iterate over all actors, looking for actors in this level.
@@ -665,17 +663,17 @@ void FLevelModel::SelectActors(bool bSelect, bool bNotify, bool bSelectEvenIfHid
 			}
 
 			bool bNotifyForActor = false;
-			Editor->GetSelectedActors()->Modify();
-			Editor->SelectActor(Actor, bSelect, bNotifyForActor, bSelectEvenIfHidden);
+			GEditor->GetSelectedActors()->Modify();
+			GEditor->SelectActor(Actor, bSelect, bNotifyForActor, bSelectEvenIfHidden);
 			bChangesOccurred = true;
 		}
 	}
 
-	Editor->GetSelectedActors()->EndBatchSelectOperation();
+	GEditor->GetSelectedActors()->EndBatchSelectOperation();
 
 	if (bNotify)
 	{
-		Editor->NoteSelectionChange();
+		GEditor->NoteSelectionChange();
 	}
 }
 

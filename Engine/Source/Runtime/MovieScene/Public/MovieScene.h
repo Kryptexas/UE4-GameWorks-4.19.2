@@ -9,13 +9,24 @@
 
 
 class UBlueprint;
-class UMovieSceneObjectManager;
 class UMovieSceneSection;
 class UMovieSceneTrack;
 
 
-MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
+MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
 
+
+/** @todo: remove this type when support for intrinsics on TMap values is added? */
+USTRUCT()
+struct FMovieSceneExpansionState
+{
+	GENERATED_BODY()
+
+	FMovieSceneExpansionState(bool bInExpanded = true) : bExpanded(bInExpanded) {}
+
+	UPROPERTY()
+	bool bExpanded;
+};
 
 /**
  * Editor only data that needs to be saved between sessions for editing but has no runtime purpose
@@ -25,9 +36,9 @@ struct FMovieSceneEditorData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** List of collapsed sequencer nodes.  We store collapsed instead of expanded so that new nodes with no saved state are expanded by default */
+	/** Map of node path -> expansion state. */
 	UPROPERTY()
-	TArray<FString> CollapsedSequencerNodes;
+	TMap<FString, FMovieSceneExpansionState> ExpansionStates;
 };
 
 
@@ -38,7 +49,7 @@ UCLASS()
 class MOVIESCENE_API UMovieScene
 	: public UObject
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
 
@@ -114,6 +125,11 @@ public:
 	 */
 	bool RemovePossessable(const FGuid& PossessableGuid);
 	
+	/*
+	* Replace an existing possessable with another 
+	*/
+	bool ReplacePossessable(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
+
 	/**
 	 * Tries to locate a possessable in this MovieScene for the specified possessable GUID.
 	 *
@@ -217,7 +233,7 @@ public:
 	 *
 	 * @return true if the track is a master track, false otherwise.
 	 */
-	bool IsAMasterTrack(const UMovieSceneTrack* Track) const;
+	bool IsAMasterTrack(const UMovieSceneTrack& Track) const;
 
 	/**
 	 * Get all master tracks.
@@ -239,18 +255,13 @@ public:
 		return ObjectBindings;
 	}
 
-	/**
-	 * Get the movie scene's object manager.
-	 *
-	 * @return The object manager.
-	 */
-	TScriptInterface<UMovieSceneObjectManager> GetObjectManager() const
-	{
-		return BindingManager;
-	}
+	/*
+	* Replace an existing binding with another 
+	*/
+	void ReplaceBinding(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
 
 	/**
-	 * @return The time range of the movie scene (defined by all sections in the scene)
+	 * @return The time range of the movie scene (the in to out time range)
 	 */
 	TRange<float> GetTimeRange() const;
 
@@ -282,10 +293,6 @@ protected:
 
 private:
 
-	/** The object binding manager. */
-	UPROPERTY()
-	TScriptInterface<UMovieSceneObjectManager> BindingManager;
-
 	/**
 	 * Data-only blueprints for all of the objects that we we're able to spawn.
 	 * These describe objects and actors that we may instantiate at runtime,
@@ -315,4 +322,21 @@ private:
 	UPROPERTY()
 	FMovieSceneEditorData EditorData;
 #endif
+
+public:
+	/** In time of the movie scene in seconds*/
+	UPROPERTY()
+	float InTime;
+
+	/** Out time of the movie scene in seconds */
+	UPROPERTY()
+	float OutTime;
+
+	/** Start time of the movie scene in seconds*/
+	UPROPERTY()
+	float StartTime;
+
+	/** End time of the movie scene in seconds */
+	UPROPERTY()
+	float EndTime;
 };

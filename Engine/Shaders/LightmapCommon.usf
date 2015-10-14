@@ -6,6 +6,14 @@
 #define MATERIAL_USE_LM_DIRECTIONALITY	1
 #endif
 
+
+// Material quality overrides
+#ifndef QL_FORCEDISABLE_LM_DIRECTIONALITY
+#define QL_FORCEDISABLE_LM_DIRECTIONALITY 0
+#endif
+
+#define USE_LM_DIRECTIONALITY (MATERIAL_USE_LM_DIRECTIONALITY && !QL_FORCEDISABLE_LM_DIRECTIONALITY)
+
 Texture2D LightMapTexture;
 SamplerState LightMapSampler;
 	
@@ -32,7 +40,7 @@ half4 GetLightMapColorLQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 	const half LogBlackPoint = 0.00390625;	// exp2(-8);
 	half L = exp2( LogL * 16 - 8 ) - LogBlackPoint;		// 1 exp2, 1 smad, 1 ssub
 
-#if MATERIAL_USE_LM_DIRECTIONALITY
+#if USE_LM_DIRECTIONALITY
 	// Alpha doesn't matter, will scaled by zero
 	half4 SH = Lightmap1 * LightMapScale[1] + LightMapAdd[1];	// 1 vmad
 
@@ -70,7 +78,7 @@ void GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNorm
 	const half LogBlackPoint = 0.01858136;
 	half L = exp2( LogL ) - LogBlackPoint;
 
-#if MATERIAL_USE_LM_DIRECTIONALITY
+#if USE_LM_DIRECTIONALITY
 	// Range scale SH. Alpha doesn't matter, will scale with zero
 	half4 SH = Lightmap1 * LightMapScale[1] + LightMapAdd[1];
 

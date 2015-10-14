@@ -269,7 +269,6 @@
 #include "Engine/ChildConnection.h"
 #include "Engine/Polys.h"
 #include "Sound/ReverbEffect.h"
-#include "MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "GameFramework/SaveGame.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/Selection.h"

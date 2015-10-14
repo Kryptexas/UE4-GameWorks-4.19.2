@@ -184,6 +184,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Shipping"))
 	bool bShipForArmV7S;
 	
+	// Any additional linker flags to pass to the linker in non-shipping builds
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DispalyName = "Additional Non-Shipping Linker Flags", ConfigHierarchyEditable))
+	FString AdditionalLinkerFlags;
+
+	// Any additional linker flags to pass to the linker in shipping builds
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DispalyName = "Additional Shipping Linker Flags", ConfigHierarchyEditable))
+	FString AdditionalShippingLinkerFlags;
+
 	// The name or ip address of the remote mac which will be used to build IOS
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Build", meta = (ConfigHierarchyEditable))
 	FString RemoteServerName;
@@ -267,6 +275,15 @@ public:
 	// Facebook App ID obtained from Facebook's Developer Centre
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (EditCondition = "bEnableFacebookSupport"))
 	FString FacebookAppID;
+
+	// Mobile provision to utilize when signing
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	FString MobileProvision;
+
+	// Signing certificate to utilize when signing
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	FString SigningCertificate;
+
 
 #if WITH_EDITOR
 	// UObject interface

@@ -243,6 +243,9 @@ namespace UnrealBuildTool
 		/** Files which this module depends on at runtime. */
 		public List<RuntimeDependency> RuntimeDependencies;
 
+		/** Additional properties to add to the target receipt */
+		public List<ReceiptProperty> AdditionalPropertiesForReceipt;
+
 		public UEBuildModule(
 			UEBuildTarget InTarget,
 			string InName,
@@ -269,6 +272,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InDynamicallyLoadedModuleNames,
             IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames,
 			IEnumerable<RuntimeDependency> InRuntimeDependencies,
+			IEnumerable<ReceiptProperty> InAdditionalPropertiesForReceipt,
 			string InBuildCsFilename
 			)
 		{
@@ -296,6 +300,7 @@ namespace UnrealBuildTool
 			DynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter( InDynamicallyLoadedModuleNames );
             PlatformSpecificDynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
 			RuntimeDependencies = (InRuntimeDependencies == null)? new List<RuntimeDependency>() : new List<RuntimeDependency>(InRuntimeDependencies);
+			AdditionalPropertiesForReceipt = (InAdditionalPropertiesForReceipt == null)? new List<ReceiptProperty>() : new List<ReceiptProperty>(InAdditionalPropertiesForReceipt);
 			IsRedistributableOverride = InIsRedistributableOverride;
 
 			Debug.Assert(InBuildCsFilename == null || InBuildCsFilename.EndsWith(".Build.cs", StringComparison.InvariantCultureIgnoreCase));
@@ -921,6 +926,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicDependencyModuleNames,
 			IEnumerable<string> InPublicDelayLoadDLLs,		// Delay loaded DLLs that should be setup when including this module
 			IEnumerable<RuntimeDependency> InRuntimeDependencies,
+			IEnumerable<ReceiptProperty> InAdditionalPropertiesForReceipt,
 			string InBuildCsFilename
 			)
 		: base(
@@ -949,6 +955,7 @@ namespace UnrealBuildTool
 			InDynamicallyLoadedModuleNames:					null,
 			InPlatformSpecificDynamicallyLoadedModuleNames: null,
 			InRuntimeDependencies:							InRuntimeDependencies,
+			InAdditionalPropertiesForReceipt:				InAdditionalPropertiesForReceipt,
 			InBuildCsFilename:								InBuildCsFilename
 			)
 		{
@@ -1183,6 +1190,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InDynamicallyLoadedModuleNames,
             IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames,
 			IEnumerable<RuntimeDependency> InRuntimeDependencies,
+			IEnumerable<ReceiptProperty> InAdditionalPropertiesForReceipt,
             ModuleRules.CodeOptimization InOptimizeCode,
 			bool InAllowSharedPCH,
 			string InSharedPCHHeaderFile,
@@ -1222,6 +1230,7 @@ namespace UnrealBuildTool
 					InDynamicallyLoadedModuleNames,
                     InPlatformSpecificDynamicallyLoadedModuleNames,
 					InRuntimeDependencies,
+					InAdditionalPropertiesForReceipt,
 					InBuildCsFilename
 				)
 		{
@@ -2151,6 +2160,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InDynamicallyLoadedModuleNames,
             IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames,
 			IEnumerable<RuntimeDependency> InRuntimeDependencies,
+			IEnumerable<ReceiptProperty> InAdditionalPropertiesForReceipt,
             ModuleRules.CodeOptimization InOptimizeCode,
 			bool InAllowSharedPCH,
 			string InSharedPCHHeaderFile,
@@ -2168,7 +2178,7 @@ namespace UnrealBuildTool
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,null,InDefinitions,
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
-            InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InRuntimeDependencies, InOptimizeCode,
+            InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InRuntimeDependencies, InAdditionalPropertiesForReceipt, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride, true,
 			InEnableExceptions, InEnableShadowVariableWarnings, bInBuildSourceFiles, InBuildCsFilename, bInUseAVX)
 		{

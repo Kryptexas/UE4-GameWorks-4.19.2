@@ -23,6 +23,7 @@ public class DetailCustomizations : ModuleRules
 				"UnrealEd",
 				"EditorWidgets",
 				"KismetWidgets",
+				"MovieSceneCapture",
 				"SharedSettingsWidgets",
                 "ContentBrowser",
 				"BlueprintGraph",

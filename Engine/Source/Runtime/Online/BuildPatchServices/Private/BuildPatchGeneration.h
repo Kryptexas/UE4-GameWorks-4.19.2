@@ -347,6 +347,7 @@ struct FFileAttributes
 	bool bReadOnly;
 	bool bCompressed;
 	bool bUnixExecutable;
+	TSet<FString> InstallTags;
 	FFileAttributes();
 };
 

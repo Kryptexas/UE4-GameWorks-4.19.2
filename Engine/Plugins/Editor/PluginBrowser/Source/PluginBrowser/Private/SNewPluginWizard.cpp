@@ -28,17 +28,21 @@ SNewPluginWizard::SNewPluginWizard()
 	const FText AdvancedTemplateName = LOCTEXT("AdvancedTemplateTabLabel", "Standalone Window");
 	const FText BlueprintLibTemplateName = LOCTEXT("BlueprintLibTemplateLabel", "Blueprint Library");
 	const FText EditorModeTemplateName = LOCTEXT("EditorModeTemplateLabel", "Editor Mode");
+	const FText ThirdPartyTemplateName = LOCTEXT("ThirdPartyTemplateLabel", "Third Party Library");
+
 	const FText BlankDescription = LOCTEXT("BlankTemplateDesc", "Create a blank plugin with a minimal amount of code.\n\nChoose this if you want to set everything up from scratch or are making a non-visual plugin.\nA plugin created with this template will appear in the Editor's plugin list but will not register any buttons or menu entries.");
 	const FText BasicDescription = LOCTEXT("BasicTemplateDesc", "Create a plugin that will add a button to the toolbar in the Level Editor.\n\nStart by implementing something in the created \"OnButtonClick\" event.");
 	const FText AdvancedDescription = LOCTEXT("AdvancedTemplateDesc", "Create a plugin that will add a button to the toolbar in the Level Editor that summons an empty standalone tab window when clicked.");
 	const FText BlueprintLibDescription = LOCTEXT("BPLibTemplateDesc", "Create a plugin that will contain Blueprint Function Library.\n\nChoose this if you want to create static blueprint nodes.");
 	const FText EditorModeDescription = LOCTEXT("EditorModeDesc", "Create a plugin that will have an editor mode.\n\nThis will include a toolkit example to specify UI that will appear in \"Modes\" tab (next to Foliage, Landscape etc).\nIt will also include very basic UI that demonstrates editor interaction and undo/redo functions usage.");
+	const FText ThirdPartyDescription = LOCTEXT("ThirdPartyDesc", "Create a plugin that uses an included third party library.\n\nThis can be used as an example of how to include, load and use a third party library yourself.");
 
-	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlankTemplateName, BlankDescription, TEXT("Blank"), false, false, false)));
-	Templates.Add(MakeShareable(new FPluginTemplateDescription(BasicTemplateName, BasicDescription, TEXT("Basic"), true, false, false)));
-	Templates.Add(MakeShareable(new FPluginTemplateDescription(AdvancedTemplateName, AdvancedDescription, TEXT("Advanced"), true, false, false)));
-	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlueprintLibTemplateName, BlueprintLibDescription, TEXT("Blank"), false, false, true)));
-	Templates.Add(MakeShareable(new FPluginTemplateDescription(EditorModeTemplateName, EditorModeDescription, TEXT("Blank"), false, true, false)));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlankTemplateName, BlankDescription, TEXT("Blank"))));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(BasicTemplateName, BasicDescription, TEXT("Basic"))));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(AdvancedTemplateName, AdvancedDescription, TEXT("Advanced"))));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlueprintLibTemplateName, BlueprintLibDescription, TEXT("BlueprintLibrary"))));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(EditorModeTemplateName, EditorModeDescription, TEXT("EditorMode"))));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(ThirdPartyTemplateName, ThirdPartyDescription, TEXT("ThirdPartyLibrary"))));
 
 	AbsoluteGamePluginPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::GamePluginsDir());
 	FPaths::MakePlatformFilename(AbsoluteGamePluginPath);
@@ -431,16 +435,15 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	const FString AutoPluginName = PluginNameText.ToString();
 	const FPluginTemplateDescription& SelectedTemplate = *CurrentTemplate.Get();
 
-	// For the time being, add all the features to editor mode templates
-	bool bUsesToolkits = SelectedTemplate.bMakeEditorMode;
-	bool bIncludeSampleUI = SelectedTemplate.bMakeEditorMode && bUsesToolkits;
-
 	// Plugin thumbnail image
+	bool bRequiresDefaultIcon = false;
 	FString PluginBaseDir = IPluginManager::Get().FindPlugin(TEXT("PluginBrowser"))->GetBaseDir();
-	FString PluginEditorIconPath = PluginBaseDir / TEXT("Templates") / SelectedTemplate.OnDiskPath / TEXT("Resources/Icon128.png");
+	FString TemplateFolderName = PluginBaseDir / TEXT("Templates") / SelectedTemplate.OnDiskPath;
+	FString PluginEditorIconPath = TemplateFolderName / TEXT("Resources/Icon128.png");
 	if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*PluginEditorIconPath))
 	{
 		PluginEditorIconPath = PluginBaseDir / TEXT("Resources/DefaultIcon128.png");
+		bRequiresDefaultIcon = true;
 	}
 
 	TArray<FString> CreatedFiles;
@@ -459,95 +462,16 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	// Resource folder
 	const FString ResourcesFolder = PluginFolder / TEXT("Resources");
 
-	// Copy the icons
-	bSucceeded = bSucceeded && CopyFile(ResourcesFolder / TEXT("Icon128.png"), PluginEditorIconPath, /*inout*/ CreatedFiles);
-
-	if (SelectedTemplate.bIncludeUI)
+	if (bRequiresDefaultIcon)
 	{
-		FString PluginButtonIconPath = PluginBaseDir / TEXT("Resources/ButtonIcon_40x.png");
-		bSucceeded = bSucceeded && CopyFile(ResourcesFolder / TEXT("ButtonIcon_40x.png"), PluginButtonIconPath, /*inout*/ CreatedFiles);
+		// Copy the icon
+		bSucceeded = bSucceeded && CopyFile(ResourcesFolder / TEXT("Icon128.png"), PluginEditorIconPath, /*inout*/ CreatedFiles);
 	}
 
-	// Source folder
-	const FString SourceFolder = PluginFolder / TEXT("Source");
-
-	// Create Plugin Module Folders
-	const FString PluginModuleFolder = SourceFolder / AutoPluginName;
-	FString PrivateSourceFolder = PluginModuleFolder / TEXT("Private");
-	FString PublicSourceFolder = PluginModuleFolder / TEXT("Public");
-
-	TArray<FString> PrivateDependencyModuleNames;
-	PrivateDependencyModuleNames.Add("CoreUObject");
-	PrivateDependencyModuleNames.Add("Engine");
-	PrivateDependencyModuleNames.Add("Slate");
-	PrivateDependencyModuleNames.Add("SlateCore");
-
-	// If we're going to create editor mode, make sure that all build files will have necessary modules dependencies
-	// Only Blank plugin needs additional modules dependencies
-	// @TODO: find better way check if selected template is Blank template
-	if (SelectedTemplate.bMakeEditorMode && !SelectedTemplate.bIncludeUI)
+	if (bSucceeded && !FPluginHelpers::CopyPluginTemplateFolder(*PluginFolder, *TemplateFolderName, AutoPluginName))
 	{
-		PrivateDependencyModuleNames.AddUnique(TEXT("InputCore"));
-		PrivateDependencyModuleNames.AddUnique(TEXT("UnrealEd"));
-		PrivateDependencyModuleNames.AddUnique(TEXT("LevelEditor"));
-	}
-
-	// Based on chosen template create build, and other source files
-	if (bSucceeded && !FPluginHelpers::CreatePluginBuildFile(PluginModuleFolder / AutoPluginName + TEXT(".Build.cs"), AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath, PrivateDependencyModuleNames))
-	{
-		PopErrorNotification(FText::Format(LOCTEXT("FailedBuild", "Failed to create plugin build file. {0}"), LocalFailReason));
+		PopErrorNotification(FText::Format(LOCTEXT("FailedTemplateCopy", "Failed to copy plugin Template: {0}"), FText::FromString(TemplateFolderName)));
 		bSucceeded = false;
-	}
-
-	if (bSucceeded && !FPluginHelpers::CreatePluginHeaderFile(PublicSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath))
-	{
-		PopErrorNotification(FText::Format(LOCTEXT("FailedHeader", "Failed to create plugin header file. {0}"), LocalFailReason));
-		bSucceeded = false;
-	}
-
-	if (bSucceeded && !FPluginHelpers::CreatePrivatePCHFile(PrivateSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath))
-	{
-		PopErrorNotification(FText::Format(LOCTEXT("FailedPCH", "Failed to create plugin PCH file. {0}"), LocalFailReason));
-		bSucceeded = false;
-	}
-
-	if (bSucceeded && !FPluginHelpers::CreatePluginCPPFile(PrivateSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath, SelectedTemplate.bMakeEditorMode, bUsesToolkits))
-	{
-		PopErrorNotification(FText::Format(LOCTEXT("FailedCppFile", "Failed to create plugin cpp file. {0}"), LocalFailReason));
-		bSucceeded = false;
-	}
-
-	if (SelectedTemplate.bIncludeUI)
-	{
-		if (bSucceeded && !FPluginHelpers::CreatePluginStyleFiles(PrivateSourceFolder, PublicSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath))
-		{
-			PopErrorNotification(FText::Format(LOCTEXT("FailedStylesFile", "Failed to create plugin styles files. {0}"), LocalFailReason));
-			bSucceeded = false;
-		}
-
-		if (bSucceeded && !FPluginHelpers::CreateCommandsFiles(PublicSourceFolder, AutoPluginName, LocalFailReason, SelectedTemplate.OnDiskPath))
-		{
-			PopErrorNotification(FText::Format(LOCTEXT("FailedStylesFile", "Failed to create plugin commands files. {0}"), LocalFailReason));
-			bSucceeded = false;
-		}
-	}
-
-	if (SelectedTemplate.bAddBPLibrary)
-	{
-		if (bSucceeded && !FPluginHelpers::CreateBlueprintFunctionLibraryFiles(PrivateSourceFolder, PublicSourceFolder, AutoPluginName, LocalFailReason))
-		{
-			PopErrorNotification(FText::Format(LOCTEXT("FailedBPLibraryFile", "Failed to create blueprint library files. {0}"), LocalFailReason));
-			bSucceeded = false;
-		}
-	}
-
-	if (SelectedTemplate.bMakeEditorMode)
-	{
-		if (bSucceeded && !FPluginHelpers::CreatePluginEdModeFiles(PrivateSourceFolder, PublicSourceFolder, AutoPluginName, bUsesToolkits, bIncludeSampleUI, LocalFailReason))
-		{
-			PopErrorNotification(FText::Format(LOCTEXT("FailedBPLibraryFile", "Failed to create EdMode files. {0}"), LocalFailReason));
-			bSucceeded = false;
-		}
 	}
 
 	if (bSucceeded)

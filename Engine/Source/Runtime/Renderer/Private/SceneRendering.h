@@ -856,7 +856,10 @@ protected:
 	void OnStartFrame();
 
 	/** Renders the scene's distortion */
-	void RenderDistortion(FRHICommandListImmediate& RHICmdList);	
+	void RenderDistortion(FRHICommandListImmediate& RHICmdList);
+	void RenderDistortionES2(FRHICommandListImmediate& RHICmdList);
+
+	static int32 GetRefractionQuality(const FSceneViewFamily& ViewFamily);
 };
 
 

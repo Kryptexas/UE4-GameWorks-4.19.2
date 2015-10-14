@@ -1341,12 +1341,15 @@ namespace UnrealBuildTool
         /// </summary>
         private void AddPS4Projects(MasterProjectFolder Folder)
         {
-            string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "PS4");
-            DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
-            if (ProjectFolderInfo.Exists)
-            {
-                Folder.ChildProjects.Add(AddSimpleCSharpProject("PS4/PS4DevKitUtil"));
-            }
+			if (UEBuildPlatform.BuildPlatformDictionary.ContainsKey(UnrealTargetPlatform.PS4))
+			{
+				string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "PS4");
+				DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
+				if (ProjectFolderInfo.Exists)
+				{
+					Folder.ChildProjects.Add(AddSimpleCSharpProject("PS4/PS4DevKitUtil"));
+				}
+			}
         }
 
 		/// <summary>
@@ -2097,7 +2100,7 @@ namespace UnrealBuildTool
                 var AutomationToolDir = Path.Combine(EngineRelativePath, "Source", "Programs", "AutomationTool");
                 new XDocument(
                     new XElement(NS + "Project",
-                        new XAttribute("ToolsVersion", "4.0"),
+                        new XAttribute("ToolsVersion", VCProjectFileGenerator.ProjectFileToolVersionString),
                         new XAttribute("DefaultTargets", "Build"),
                         new XElement(NS + "ItemGroup",
                             from AutomationProject in AutomationProjectFiles
@@ -2149,7 +2152,7 @@ namespace UnrealBuildTool
 		/// <param name="FileName">File to write</param>
 		/// <param name="NewFileContents">File content</param>
 		/// <returns>True if the file was saved, or if it didn't need to be overwritten because the content was unchanged</returns>
-		public static bool WriteFileIfChanged( string FileName, string NewFileContents )
+		public static bool WriteFileIfChanged( string FileName, string NewFileContents, Encoding InEncoding = null )
 		{
 			// Check to see if the file already exists, and if so, load it up
 			string LoadedFileContent = null;
@@ -2198,9 +2201,9 @@ namespace UnrealBuildTool
                     // platforms.  In this case UTF8 encoding will still be used but without the
                     // BOM, which is, AFAICT, desirable in almost all cases.
 					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-                        File.WriteAllText(FileName, NewFileContents);
+                        File.WriteAllText(FileName, NewFileContents, new UTF8Encoding());
                     else
-                        File.WriteAllText(FileName, NewFileContents, Encoding.UTF8);
+                        File.WriteAllText(FileName, NewFileContents, InEncoding != null ? InEncoding : Encoding.UTF8);
                     Log.TraceVerbose("Saved {0}", Path.GetFileName(FileName));
 				}
 				catch( Exception ex )

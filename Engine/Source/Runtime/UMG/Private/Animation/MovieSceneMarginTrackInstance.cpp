@@ -19,7 +19,7 @@ void FMovieSceneMarginTrackInstance::Update( float Position, float LastPosition,
 		FMargin MarginValue = PropertyBindings->GetCurrentValue<FMargin>( Object );
 		if(MarginTrack->Eval(Position, LastPosition, MarginValue))
 		{
-			PropertyBindings->CallFunction(Object, &MarginValue);
+			PropertyBindings->CallFunction<FMargin>(Object, &MarginValue);
 		}
 	}
 }

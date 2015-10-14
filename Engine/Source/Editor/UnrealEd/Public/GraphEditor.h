@@ -303,6 +303,18 @@ public:
 		}
 	}
 
+	virtual class UEdGraphNode* GetGraphNodeForMenu()
+	{
+		if ( Implementation.IsValid() )
+		{
+			return Implementation->GetGraphNodeForMenu();
+		}
+		else
+		{
+			return NULL;
+		}
+	}
+
 	// Zooms out to fit either all nodes or only the selected ones
 	virtual void ZoomToFit(bool bOnlySelection)
 	{
@@ -320,6 +332,32 @@ public:
 			return Implementation->GetBoundsForSelectedNodes(Rect, Padding);
 		}
 		return false;
+	}
+
+	/** Get Bounds for the specified node, returns false on failure */
+	virtual bool GetBoundsForNode( const UEdGraphNode* InNode, class FSlateRect& Rect, float Padding ) const
+	{
+		if (Implementation.IsValid())
+		{
+			return Implementation->GetBoundsForNode(InNode, Rect, Padding);
+		}
+		return false;
+	}
+
+	virtual void StraightenConnections()
+	{
+		if (Implementation.IsValid())
+		{
+			return Implementation->StraightenConnections();
+		}
+	}
+
+	virtual void StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign = nullptr)
+	{
+		if (Implementation.IsValid())
+		{
+			return Implementation->StraightenConnections(SourcePin, PinToAlign);
+		}
 	}
 
 	// Invoked to let this widget know that the GraphEditor module has been reloaded

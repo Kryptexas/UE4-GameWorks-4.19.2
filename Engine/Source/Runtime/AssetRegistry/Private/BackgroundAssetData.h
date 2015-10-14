@@ -15,6 +15,16 @@ public:
 
 	/** Test to see if this asset data is within the given search path */
 	virtual bool IsWithinSearchPath(const FString& InSearchPath) const = 0;
+
+	/** Returns true if the asset was cooked and will require loading to resolve its class */
+	virtual bool IsCookedAndRequiresLoading() const = 0;
+
+	/** Returns true if the asset was cooked */
+	virtual bool IsCooked() const = 0;
+
+	/** Returns the package name */
+	virtual FString GetPackageName() const = 0;
+
 };
 
 /** A class to hold important information about an assets found by the Asset Registry. Intended for use by the background gathering thread to avoid creation of FNames */
@@ -22,12 +32,16 @@ class FBackgroundAssetData : public IGatheredAssetData
 {
 public:
 	/** Constructor */
-	FBackgroundAssetData(FString InPackageName, FString InPackagePath, FString InGroupNames, FString InAssetName, FString InAssetClass, TMap<FString, FString> InTags, TArray<int32> InChunkIDs);
-
+	FBackgroundAssetData(FString InPackageName, FString InPackagePath, FString InGroupNames, FString InAssetName, FString InAssetClass, TMap<FString, FString> InTags, TArray<int32> InChunkIDs, uint32 InPackageFlags);
+	FBackgroundAssetData(FString InPackageName, uint32 InPackageFlags);
 	/** IGatheredAssetData interface */
 	virtual FAssetData ToAssetData() const override;
 	virtual bool IsWithinSearchPath(const FString& InSearchPath) const override;
 	
+	virtual bool IsCookedAndRequiresLoading() const override { return !!(PackageFlags & PKG_FilterEditorOnly) && !AssetClass.Len(); }
+	virtual bool IsCooked() const override { return !!(PackageFlags & PKG_FilterEditorOnly); }
+
+	virtual FString GetPackageName() const override { return PackageName; }
 private:
 	/** The object path for the asset in the form 'Package.GroupNames.AssetName' */
 	FString ObjectPath;
@@ -45,6 +59,8 @@ private:
 	TSharedMapView<FString, FString> TagsAndValues;
 	/** The IDs of the chunks this asset is located in for streaming install.  Empty if not assigned to a chunk */
 	TArray<int32> ChunkIDs;
+	/** Asset package flags */
+	uint32 PackageFlags;
 };
 
 /** A class to wrap up an existing FAssetData to avoid redundant FName -> FString -> FName conversion */
@@ -57,7 +73,9 @@ public:
 	/** IGatheredAssetData interface */
 	virtual FAssetData ToAssetData() const override;
 	virtual bool IsWithinSearchPath(const FString& InSearchPath) const override;
-
+	virtual bool IsCookedAndRequiresLoading() const override { return false; }
+	virtual bool IsCooked() const override { return false; }
+	virtual FString GetPackageName()const override;
 private:
 	/** The asset data we're wrapping up */
 	FAssetData WrappedAssetData;

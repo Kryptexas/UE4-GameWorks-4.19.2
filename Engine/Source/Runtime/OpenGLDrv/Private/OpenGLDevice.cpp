@@ -1020,6 +1020,8 @@ static void CheckVaryingLimit()
 		}
 
 		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
+		FOpenGL::bIsCheckingShaderCompilerHacks = true;
+
 		const ANSICHAR* TestVertexProgram = "\n"
 			"#version 100\n"
 			"attribute vec4 in_ATTRIBUTE0;\n"
@@ -1084,14 +1086,18 @@ static void CheckVaryingLimit()
 		if (!VerifyCompiledShader(VertexShader->Resource, TestVertexProgram, false))
 		{
 			UE_LOG(LogRHI, Warning, TEXT("Vertex shader for varying test failed to compile. Try running anyway."));
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
 		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(FragmentCode).GetReference());
 		if (!VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
 		{
 			UE_LOG(LogRHI, Warning, TEXT("Fragment shader for varying test failed to compile. Try running anyway."));
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
+
+		FOpenGL::bIsCheckingShaderCompilerHacks = false;
 
 		// Now try linking them.. this is where gl_FragCoord may cause a failure
 		GLuint Program = glCreateProgram();
@@ -1118,6 +1124,8 @@ static void CheckTextureCubeLodSupport()
 	if (IsES2Platform(GMaxRHIShaderPlatform))
 	{
 		UE_LOG(LogRHI, Display, TEXT("Testing for shader compiler compatibility"));
+		FOpenGL::bIsCheckingShaderCompilerHacks = true;
+
 		// This code creates a sample program and finds out which hacks are required to compile it
 		const ANSICHAR* TestFragmentProgram = "\n"
 			"#version 100\n"
@@ -1161,6 +1169,7 @@ static void CheckTextureCubeLodSupport()
 		{
 			UE_LOG(LogRHI, Display, TEXT("Shaders compile fine no need to enable hacks"));
 			// we are done
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
 		
@@ -1177,6 +1186,7 @@ static void CheckTextureCubeLodSupport()
 			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to remove precision modifiers for texture samplers"));
 
 			// we are done
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
 
@@ -1190,6 +1200,7 @@ static void CheckTextureCubeLodSupport()
 		{
 			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod"));
 			// we are done
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
 
@@ -1203,10 +1214,12 @@ static void CheckTextureCubeLodSupport()
 		{
 			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod and remove precision modifiers"));
 			// we are done
+			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
 
 		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
+		FOpenGL::bIsCheckingShaderCompilerHacks = false;
 	}
 #endif
 }

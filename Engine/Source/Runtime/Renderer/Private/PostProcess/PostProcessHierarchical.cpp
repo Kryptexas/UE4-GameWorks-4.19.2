@@ -164,8 +164,8 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 			);
 
 		RHICmdList.SetViewport(0, 0, 0.0f, DstDrawSize.X, DstDrawSize.Y, 1.0f);
-			
-		DrawRectangle(
+		
+		DrawPostProcessPass(
 			RHICmdList,
 			0, 0,
 			HCBSize.X, HCBSize.Y,
@@ -174,11 +174,13 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 			DstDrawSize,
 			SceneContext.GetBufferSizeXY(),
 			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
 #else
 		RHICmdList.SetViewport(0, 0, 0.0f, HCBSize.X, HCBSize.Y, 1.0f);
 			
-		DrawRectangle(
+		DrawPostProcessPass(
 			RHICmdList,
 			0, 0,
 			HCBSize.X, HCBSize.Y,
@@ -187,6 +189,8 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 			HCBSize,
 			SceneContext.GetBufferSizeXY(),
 			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
 #endif
 
@@ -221,7 +225,7 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 
 		RHICmdList.SetViewport(0, 0, 0.0f, DstDrawSize.X, DstDrawSize.Y, 1.0f);
 
-		DrawRectangle(
+		DrawPostProcessPass(
 			RHICmdList,
 			0, 0,
 			DstSize.X, DstSize.Y,
@@ -230,11 +234,13 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 			DstDrawSize,
 			SrcSize,
 			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
 #else
 		RHICmdList.SetViewport(0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f);
 
-		DrawRectangle(
+		DrawPostProcessPass(
 			RHICmdList,
 			0, 0,
 			DstSize.X, DstSize.Y,
@@ -243,6 +249,8 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 			DstSize,
 			SrcSize,
 			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
 			EDRF_UseTriangleOptimization);
 #endif
 

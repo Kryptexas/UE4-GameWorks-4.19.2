@@ -422,6 +422,8 @@ void USkeletalMeshComponent::PostBlendPhysics()
 {
 	FlipEditableSpaceBases();
 
+	UpdateComponentToWorld();
+
 	// Update Child Transform - The above function changes bone transform, so will need to update child transform
 	UpdateChildTransforms();
 

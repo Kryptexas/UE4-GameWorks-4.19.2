@@ -56,6 +56,9 @@ private:
 	/** Update the curve view model selection */
 	void UpdateCurveViewModelSelection();
 
+	/* Get the curves to will be used during a fit operation */
+	virtual TArray<FRichCurve*> GetCurvesToFit()const override;
+
 private:
 
 	/** The sequencer which owns this widget. */

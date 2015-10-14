@@ -439,9 +439,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	float ObservedPathsTickInterval;
 
-	UPROPERTY(Transient)
-	UWorld* CachedWorld;
-
 public:
 	//----------------------------------------------------------------------//
 	// Life cycle                                                                
@@ -455,10 +452,16 @@ public:
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	// End UObject Interface
 		
 	virtual void CleanUp();
 
+private:
+	/** Simply unregisters self from navigation system and calls CleanUp */
+	void UnregisterAndCleanUp();
+
+public:
 	virtual void CleanUpAndMarkPendingKill();
 
 	FORCEINLINE bool IsRegistered() const { return bRegistered; }

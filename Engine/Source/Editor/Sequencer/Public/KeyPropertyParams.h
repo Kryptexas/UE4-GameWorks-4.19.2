@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "KeyParams.h"
+
 class IPropertyHandle;
 class UClass;
 class UProperty;
@@ -62,6 +64,8 @@ struct SEQUENCER_API FKeyPropertyParams
 	/** An array of UProperty objects which represents a path of properties to get from the root object to the
 	property to be keyed. */
 	TArray<UProperty*> PropertyPath;
+	/** Keyframing params */
+	FKeyParams KeyParams;
 };
 
 /**
@@ -95,6 +99,6 @@ public:
 	/** Represents the FName of an inner property which should be keyed for a struct property.  If all inner 
 	properties should be keyed, this will be FName::None. */
 	FName StructPropertyNameToKey;
-	/** If autokey is required. */
-	bool bRequireAutoKey;
+	/** Keyframing params */
+	FKeyParams KeyParams;
 };

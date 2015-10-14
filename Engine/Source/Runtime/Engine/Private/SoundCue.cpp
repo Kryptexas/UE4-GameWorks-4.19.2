@@ -34,21 +34,6 @@ void USoundCue::PostInitProperties()
 	}
 }
 
-void USoundCue::Serialize( FArchive& Ar )
-{
-	// Always force the duration to be updated when we are saving or cooking
-	if (Ar.IsSaving() || Ar.IsCooking())
-	{
-		Duration = (FirstNode ? FirstNode->GetDuration() : 0.f);
-	}
-
-	Super::Serialize( Ar );
-
-	if (!Ar.IsCooking())
-	{
-		Ar << SoundCueGraph;
-	}
-}
 
 void USoundCue::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -58,6 +43,24 @@ void USoundCue::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 
 	Super::AddReferencedObjects(InThis, Collector);
 }
+
+void USoundCue::Serialize(FArchive& Ar)
+{
+	// Always force the duration to be updated when we are saving or cooking
+	if (Ar.IsSaving() || Ar.IsCooking())
+	{
+		Duration = (FirstNode ? FirstNode->GetDuration() : 0.f);
+	}
+
+	Super::Serialize(Ar);
+
+#if WITH_EDITORONLY_DATA
+	if (!Ar.IsFilterEditorOnly())
+	{
+		Ar << SoundCueGraph;
+	}
+#endif
+}
 #endif // WITH_EDITOR
 
 void USoundCue::PostLoad()
@@ -66,17 +69,25 @@ void USoundCue::PostLoad()
 
 	// Game doesn't care if there are NULL graph nodes
 #if WITH_EDITOR
-	if (GIsEditor)
+	if (GIsEditor )
 	{
-		// Deal with SoundNode types being removed - iterate in reverse as nodes may be removed
-		for (int32 idx=SoundCueGraph->Nodes.Num()-1; idx >= 0; --idx)
+		if (SoundCueGraph)
 		{
-			USoundCueGraphNode* Node = Cast<USoundCueGraphNode>(SoundCueGraph->Nodes[idx]);
-
-			if (Node && Node->SoundNode == NULL)
+			// Deal with SoundNode types being removed - iterate in reverse as nodes may be removed
+			for (int32 idx = SoundCueGraph->Nodes.Num() - 1; idx >= 0; --idx)
 			{
-				FBlueprintEditorUtils::RemoveNode(NULL, Node, true);
+				USoundCueGraphNode* Node = Cast<USoundCueGraphNode>(SoundCueGraph->Nodes[idx]);
+
+				if (Node && Node->SoundNode == NULL)
+				{
+					FBlueprintEditorUtils::RemoveNode(NULL, Node, true);
+				}
 			}
+		}
+		else
+		{
+			// we should have a soundcuegraph unless we are contained in a package which is missing editor only data
+			check( GetOutermost()->PackageFlags & PKG_FilterEditorOnly );
 		}
 
 		// Always load all sound waves in the editor

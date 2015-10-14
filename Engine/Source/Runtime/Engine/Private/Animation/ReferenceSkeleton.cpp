@@ -16,7 +16,7 @@ FArchive &operator<<(FArchive& Ar, FMeshBoneInfo& F)
 #if WITH_EDITORONLY_DATA
 	if (Ar.UE4Ver() >= VER_UE4_STORE_BONE_EXPORT_NAMES)
 	{
-		if (!Ar.IsCooking())
+		if (!Ar.IsCooking() && !Ar.IsFilterEditorOnly())
 		{
 			Ar << F.ExportName;
 		}

@@ -25,6 +25,8 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
+class FWebBrowserViewport;
+
 /**
  * Helper for containing items required for CEF browser window creation.
  */
@@ -90,6 +92,7 @@ public:
 	virtual void LoadURL(FString NewURL) override;
 	virtual void LoadString(FString Contents, FString DummyURL) override;
 	virtual void SetViewportSize(FIntPoint WindowSize) override;
+	virtual TSharedRef<SWidget> CreateWidget(TAttribute<FVector2D> ViewportSize) override;
 	virtual FSlateShaderResource* GetTexture(bool bIsPopup = false) override;
 	virtual bool IsValid() const override;
 	virtual bool IsInitialized() const override;
@@ -135,12 +138,6 @@ public:
 	virtual FOnUrlChanged& OnUrlChanged() override
 	{
 		return UrlChangedEvent;
-	}
-
-	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnToolTip, FOnToolTip);
-	virtual FOnToolTip& OnToolTip() override
-	{
-		return ToolTipEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnNeedsRedraw, FOnNeedsRedraw);
@@ -383,6 +380,11 @@ private:
 
 private:
 
+	/** Viewport interface for rendering the web page. */
+	TSharedPtr<FWebBrowserViewport> BrowserViewport;
+	/** The actual viewport widget. Required to update its tool tip property. */
+	TSharedPtr<SViewport> ViewportWidget;
+
 	/** Current state of the document being loaded. */
 	EWebBrowserDocumentState DocumentState;
 
@@ -433,9 +435,6 @@ private:
 
 	/** Delegate for broadcasting address changes. */
 	FOnUrlChanged UrlChangedEvent;
-
-	/** Delegate for showing or hiding tool tips. */
-	FOnToolTip ToolTipEvent;
 
 	/** Delegate for notifying that the window needs refreshing. */
 	FOnNeedsRedraw NeedsRedrawEvent;

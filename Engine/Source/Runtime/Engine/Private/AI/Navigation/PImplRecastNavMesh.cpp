@@ -745,9 +745,13 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 
 	if (StartNode != INVALID_NAVNODEREF)
 	{
+		float RecastHitNormal[3];
+
 		const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
-			, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
+			, QueryFilter, &RaycastResult.HitTime, RecastHitNormal
 			, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+
+		RaycastResult.HitNormal = Recast2UnrVector(RecastHitNormal);
 
 		if (dtStatusSucceed(RaycastStatus) == false)
 		{
@@ -784,9 +788,13 @@ void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLo
 
 	if (StartNode != INVALID_NAVNODEREF)
 	{
+		float RecastHitNormal[3];
+
 		const dtStatus RaycastStatus = NavQuery.raycast(StartNode, &RecastStart.X, &RecastEnd.X
-					, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
-					, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+			, QueryFilter, &RaycastResult.HitTime, RecastHitNormal
+			, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+
+		RaycastResult.HitNormal = Recast2UnrVector(RecastHitNormal);
 
 		if (dtStatusSucceed(RaycastStatus) == false)
 		{
@@ -1693,6 +1701,36 @@ bool FPImplRecastNavMesh::GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& A
 		{
 			Flags = Poly->flags;
 			AreaType = Poly->getArea();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FPImplRecastNavMesh::GetPolyNeighbors(NavNodeRef PolyID, TArray<NavNodeRef>& Neighbors) const
+{
+	if (DetourNavMesh)
+	{
+		const dtPolyRef PolyRef = static_cast<dtPolyRef>(PolyID);
+		dtPoly const* Poly = 0;
+		dtMeshTile const* Tile = 0;
+
+		const dtStatus Status = DetourNavMesh->getTileAndPolyByRef(PolyRef, &Tile, &Poly);
+
+		if (dtStatusSucceed(Status))
+		{
+			uint32 LinkIdx = Poly->firstLink;
+			Neighbors.Reserve(DT_VERTS_PER_POLYGON);
+
+			while (LinkIdx != DT_NULL_LINK)
+			{
+				const dtLink& Link = DetourNavMesh->getLink(Tile, LinkIdx);
+				LinkIdx = Link.next;
+
+				Neighbors.Add(Link.ref);
+			}
+
 			return true;
 		}
 	}

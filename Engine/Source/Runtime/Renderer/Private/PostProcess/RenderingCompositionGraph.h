@@ -129,6 +129,11 @@ struct FRenderingCompositePassContext
 		return ViewPortRect.Min != ViewPortRect.Max;
 	}
 
+	bool HasHmdMesh() const
+	{
+		return bHasHmdMesh;
+	}
+
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
@@ -154,6 +159,9 @@ private:
 	TShaderMap<FGlobalShaderType>* ShaderMap;
 	// to ensure we only process the graph once
 	bool bWasProcessed;
+
+	// If true there's a custom mesh to use instead of a full screen quad when rendering post process passes.
+	bool bHasHmdMesh;
 };
 
 // ---------------------------------------------------------------------------

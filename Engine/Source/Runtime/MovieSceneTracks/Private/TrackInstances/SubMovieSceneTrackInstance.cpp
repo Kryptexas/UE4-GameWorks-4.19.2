@@ -3,7 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "SubMovieSceneTrack.h"
 #include "SubMovieSceneTrackInstance.h"
-#include "MovieSceneInstance.h"
+#include "MovieSceneSequenceInstance.h"
 #include "SubMovieSceneSection.h"
 #include "IMovieScenePlayer.h"
 
@@ -28,14 +28,14 @@ void FSubMovieSceneTrackInstance::RefreshInstance( const TArray<UObject*>& Runti
 
 		// If the section doesn't have a valid movie scene or no longer has one 
 		// (e.g user deleted it) then skip adding an instance for it
-		if( Section->GetMovieScene() )
+		if( Section->GetMovieSceneAnimation() )
 		{
 			FoundSections.Add(Section);
 
-			TSharedPtr<FMovieSceneInstance> Instance = SubMovieSceneInstances.FindRef(Section);
+			TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef(Section);
 			if (!Instance.IsValid())
 			{
-				Instance = MakeShareable(new FMovieSceneInstance(*Section->GetMovieScene()));
+				Instance = MakeShareable(new FMovieSceneSequenceInstance(*Section->GetMovieSceneAnimation()));
 
 				SubMovieSceneInstances.Add(Section, Instance.ToSharedRef());
 			}
@@ -47,7 +47,7 @@ void FSubMovieSceneTrackInstance::RefreshInstance( const TArray<UObject*>& Runti
 		}
 	}
 
-	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneInstance> >::TIterator It =  SubMovieSceneInstances.CreateIterator();
+	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneSequenceInstance> >::TIterator It =  SubMovieSceneInstances.CreateIterator();
 	for( ; It; ++It )
 	{
 		// Remove any sections that no longer exist
@@ -70,22 +70,27 @@ void FSubMovieSceneTrackInstance::Update( float Position, float LastPosition, co
 	{
 		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( TraversedSections[SectionIndex] );
 
-		TSharedPtr<FMovieSceneInstance>& Instance = SubMovieSceneInstances.FindChecked( Section );
+		TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef( Section );
 
-		TRange<float> TimeRange = Instance->GetMovieSceneTimeRange();
+		FMovieSceneSequenceInstance* InstancePtr = Instance.Get();
 
-		// Position for the movie scene needs to be in local space
-		float LocalDelta = TimeRange.GetLowerBoundValue() - Section->GetStartTime();
-		float LocalPosition = Position + LocalDelta;
+		if( InstancePtr )
+		{
+			TRange<float> TimeRange = InstancePtr->GetMovieSceneTimeRange();
+
+			// Position for the movie scene needs to be in local space
+			float LocalDelta = TimeRange.GetLowerBoundValue() - Section->GetStartTime();
+			float LocalPosition = Position + LocalDelta;
 
 
-		Instance->Update( LocalPosition, LastPosition + LocalDelta, Player );
+			InstancePtr->Update(LocalPosition, LastPosition + LocalDelta, Player);
+		}
 	}
 
 }
 
 
-void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
+void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubMovieSceneTrack->GetAllSections();
 
@@ -93,15 +98,16 @@ void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjec
 	{
 		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( AllSections[SectionIndex] );
 
-		TSharedPtr<FMovieSceneInstance> Instance = SubMovieSceneInstances.FindRef( Section );
+		TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef( Section );
 		if( Instance.IsValid() )
 		{
-			Instance->SaveState();
+			Instance->SaveState(Player);
 		}
 	}
 }
 
-void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
+
+void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubMovieSceneTrack->GetAllSections();
 
@@ -109,17 +115,18 @@ void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeOb
 	{
 		USubMovieSceneSection* Section = CastChecked<USubMovieSceneSection>( AllSections[SectionIndex] );
 
-		TSharedPtr<FMovieSceneInstance> Instance = SubMovieSceneInstances.FindRef( Section );
+		TSharedPtr<FMovieSceneSequenceInstance> Instance = SubMovieSceneInstances.FindRef( Section );
 		if( Instance.IsValid() )
 		{
-			Instance->RestoreState();
+			Instance->RestoreState(Player);
 		}
 	}
 }
+
 
 void FSubMovieSceneTrackInstance::ClearInstance( IMovieScenePlayer& Player )
 {
-	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneInstance> >::TIterator It =  SubMovieSceneInstances.CreateIterator();
+	TMap< TWeakObjectPtr<USubMovieSceneSection>, TSharedPtr<FMovieSceneSequenceInstance> >::TIterator It =  SubMovieSceneInstances.CreateIterator();
 	for( ; It; ++It )
 	{
 		Player.RemoveMovieSceneInstance( *It.Key().Get(), It.Value().ToSharedRef() );

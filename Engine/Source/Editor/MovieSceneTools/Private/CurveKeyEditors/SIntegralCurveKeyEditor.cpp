@@ -13,24 +13,25 @@ void SIntegralCurveKeyEditor::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SSpinBox<int32>)
-		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.AnimationOutliner.KeyEditorSpinBoxStyle"))
+		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 		.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
 		.MinValue(TOptional<int32>())
 		.MaxValue(TOptional<int32>())
 		.MaxSliderValue(TOptional<int32>())
 		.MinSliderValue(TOptional<int32>())
 		.Delta(1)
-		.MinDesiredWidth(60.0f)
 		.Value(this, &SIntegralCurveKeyEditor::OnGetKeyValue)
 		.OnValueChanged(this, &SIntegralCurveKeyEditor::OnValueChanged)
+		.OnValueCommitted(this, &SIntegralCurveKeyEditor::OnValueCommitted)
 		.OnBeginSliderMovement(this, &SIntegralCurveKeyEditor::OnBeginSliderMovement)
 		.OnEndSliderMovement(this, &SIntegralCurveKeyEditor::OnEndSliderMovement)
+		.ClearKeyboardFocusOnCommit(true)
 	];
 }
 
 void SIntegralCurveKeyEditor::OnBeginSliderMovement()
 {
-	GEditor->BeginTransaction(LOCTEXT("SetIntegralKey", "Set integral key value"));
+	GEditor->BeginTransaction(LOCTEXT("SetIntegralKey", "Set Integral Key Value"));
 	OwningSection->SetFlags(RF_Transactional);
 	OwningSection->Modify();
 }
@@ -45,7 +46,7 @@ void SIntegralCurveKeyEditor::OnEndSliderMovement(int32 Value)
 
 int32 SIntegralCurveKeyEditor::OnGetKeyValue() const
 {
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Evaluate(CurrentTime);
 }
 
@@ -53,7 +54,7 @@ void SIntegralCurveKeyEditor::OnValueChanged(int32 Value)
 {
 	OwningSection->Modify();
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieScene());
+	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 
 	bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
 	if (bKeyWillBeAdded)
@@ -68,8 +69,25 @@ void SIntegralCurveKeyEditor::OnValueChanged(int32 Value)
 		}
 	}
 
-	Curve->UpdateOrAddKey(CurrentTime, Value);
+	if (Curve->GetNumKeys() == 0)
+	{
+		Curve->SetDefaultValue(Value);
+	}
+	else
+	{
+		Curve->UpdateOrAddKey(CurrentTime, Value);
+	}
 	Sequencer->UpdateRuntimeInstances();
+}
+
+void SIntegralCurveKeyEditor::OnValueCommitted(int32 Value, ETextCommit::Type CommitInfo)
+{
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		const FScopedTransaction Transaction( LOCTEXT("SetIntegralKey", "Set Integral Key Value") );
+
+		OnValueChanged(Value);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

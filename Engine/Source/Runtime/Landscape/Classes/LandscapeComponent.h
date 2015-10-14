@@ -274,11 +274,11 @@ public:
 	uint8 MobileBlendableLayerMask;
 
 	/** Material interface used for ES2. Serialized only when cooking or loading cooked builds. */
-	UPROPERTY(Transient, DuplicateTransient)
+	UPROPERTY(NonPIEDuplicateTransient)
 	UMaterialInterface* MobileMaterialInterface;
 
 	/** Generated weight/normal map texture used for ES2. Serialized only when cooking or loading cooked builds. */
-	UPROPERTY(Transient, DuplicateTransient)
+	UPROPERTY(NonPIEDuplicateTransient)
 	UTexture2D* MobileWeightNormalmapTexture;
 
 public:
@@ -325,6 +325,7 @@ public:
 	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material) override;
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual void PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel) override;
 #endif
 	// End UPrimitiveComponent interface.
 

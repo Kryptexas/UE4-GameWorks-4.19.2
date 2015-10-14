@@ -310,7 +310,7 @@ void DrawDebugCoordinateSystem(const UWorld* InWorld, FVector const& AxisLoc, FR
 	}
 }
 
-static void InternalDrawDebugCircle(const UWorld* InWorld, const FMatrix& TransformMatrix, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+static void InternalDrawDebugCircle(const UWorld* InWorld, const FMatrix& TransformMatrix, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness = 0.f)
 {
 	// no debug line drawing on dedicated server
 	if( GEngine->GetNetMode(InWorld) != NM_DedicatedServer )
@@ -337,14 +337,14 @@ static void InternalDrawDebugCircle(const UWorld* InWorld, const FMatrix& Transf
 				const FVector Vertex1 = Center + Radius * (AxisY * FMath::Cos(Angle) + AxisZ * FMath::Sin(Angle));
 				Angle += AngleStep;
 				const FVector Vertex2 = Center + Radius * (AxisY * FMath::Cos(Angle) + AxisZ * FMath::Sin(Angle));
-				Lines.Add(FBatchedLine(Vertex1, Vertex2, Color, LineLifeTime, 0.0f, DepthPriority));
+				Lines.Add(FBatchedLine(Vertex1, Vertex2, Color, LineLifeTime, Thickness, DepthPriority));
 			}
 			LineBatcher->DrawLines(Lines);
 		}
 	}
 }
 
-void DrawDebugCircle(const UWorld* InWorld, const FMatrix& TransformMatrix, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+void DrawDebugCircle(const UWorld* InWorld, const FMatrix& TransformMatrix, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness, bool bDrawAxis)
 {
 	// no debug line drawing on dedicated server
 	if( GEngine->GetNetMode(InWorld) != NM_DedicatedServer )
@@ -356,19 +356,44 @@ void DrawDebugCircle(const UWorld* InWorld, const FMatrix& TransformMatrix, floa
 
 			// Need at least 4 segments
 			Segments = FMath::Max((Segments - 2) / 2, 4);
-			InternalDrawDebugCircle(InWorld, TransformMatrix, Radius, Segments, Color, bPersistentLines, LifeTime, DepthPriority);
+			InternalDrawDebugCircle(InWorld, TransformMatrix, Radius, Segments, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
 
-			const FVector Center = TransformMatrix.GetOrigin();
-			const FVector AxisY = TransformMatrix.GetScaledAxis( EAxis::Y );
-			const FVector AxisZ = TransformMatrix.GetScaledAxis( EAxis::Z );
+			if (bDrawAxis)
+			{
+				const FVector Center = TransformMatrix.GetOrigin();
+				const FVector AxisY = TransformMatrix.GetScaledAxis( EAxis::Y );
+				const FVector AxisZ = TransformMatrix.GetScaledAxis( EAxis::Z );
 
-			TArray<FBatchedLine> Lines;
-			Lines.Empty(2);
-			Lines.Add(FBatchedLine(Center - Radius * AxisY, Center + Radius * AxisY, Color, LineLifeTime, 0.0f, DepthPriority));
-			Lines.Add(FBatchedLine(Center - Radius * AxisZ, Center + Radius * AxisZ, Color, LineLifeTime, 0.0f, DepthPriority));
-			LineBatcher->DrawLines(Lines);
+				TArray<FBatchedLine> Lines;
+				Lines.Empty(2);
+				Lines.Add(FBatchedLine(Center - Radius * AxisY, Center + Radius * AxisY, Color, LineLifeTime, Thickness, DepthPriority));
+				Lines.Add(FBatchedLine(Center - Radius * AxisZ, Center + Radius * AxisZ, Color, LineLifeTime, Thickness, DepthPriority));
+				LineBatcher->DrawLines(Lines);
+			}
 		}
 	}
+}
+
+void DrawDebugCircle(const UWorld* InWorld, FVector Center, float Radius, int32 Segments, const FColor& Color, bool PersistentLines, float LifeTime, uint8 DepthPriority, float Thickness, FVector YAxis, FVector ZAxis, bool bDrawAxis)
+{
+	FMatrix TM;
+	TM.SetOrigin(Center);
+	TM.SetAxis(0, FVector(1,0,0));
+	TM.SetAxis(1, YAxis);
+	TM.SetAxis(2, ZAxis);
+	
+	DrawDebugCircle(
+		InWorld,
+		TM,
+		Radius,
+		Segments,
+		Color,
+		PersistentLines,
+		LifeTime,
+		DepthPriority,
+		Thickness,
+		bDrawAxis
+	);
 }
 
 void DrawDebug2DDonut(const UWorld* InWorld, const FMatrix& TransformMatrix, float InnerRadius, float OuterRadius, int32 Segments, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)

@@ -12,6 +12,7 @@ FActiveSound::FActiveSound()
 	: Sound(NULL)
 	, World(NULL)
 	, AudioComponent(NULL)
+	, AudioComponentIndex(0)
 	, SoundClassOverride(NULL)
 	, bOccluded(false)
 	, bAllowSpatialization(true)
@@ -275,7 +276,7 @@ FWaveInstance* FActiveSound::FindWaveInstance( const UPTRINT WaveInstanceHash )
 void FActiveSound::UpdateAdjustVolumeMultiplier( const float DeltaTime )
 {
 	// keep stepping towards our target until we hit our stop time
-	if( PlaybackTime <= TargetAdjustVolumeStopTime )
+	if( PlaybackTime < TargetAdjustVolumeStopTime )
 	{
 		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTime / (TargetAdjustVolumeStopTime - PlaybackTime);
 	}

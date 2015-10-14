@@ -2,7 +2,6 @@
 
 #pragma once
 #include "Editor/Sequencer/Public/ISequencerModule.h"
-#include "Editor/Sequencer/Public/ISequencerObjectBindingManager.h"
 #include "Editor/Sequencer/Public/MovieSceneTrackEditor.h"
 #include "Editor/Sequencer/Public/ISequencerSection.h"
 #include "Runtime/MovieScene/Public/MovieScene.h"
@@ -123,8 +122,8 @@ public:
 	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player);
 
 	virtual void ClearInstance( IMovieScenePlayer& Player ) override {}
-	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) override {}
-	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) override {}
+	virtual void SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override {}
+	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override {}
 
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
@@ -211,43 +210,10 @@ public:
 		return false;
 	}
 
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack* Track)
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
 	{
 		INiagaraSequencerSection *Sec = new INiagaraSequencerSection(SectionObject);
 		return MakeShareable(Sec);
 	}
 
-};
-
-
-
-/**
- * Sequencer object binding manager for Niagara effects; all of this is just stubbed out
-*/
-class FNiagaraSequencerObjectBindingManager : public FGCObject, public ISequencerObjectBindingManager
-{
-public:
-	FNiagaraSequencerObjectBindingManager()
-	{}
-
-	~FNiagaraSequencerObjectBindingManager()
-	{}
-
-	/** FGCObject interface */
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override {	}
-
-	/** ISequencerObjectBindingManager interface */
-	virtual bool AllowsSpawnableObjects() const override { return false; }
-	virtual FGuid FindGuidForObject(const UMovieScene& MovieScene, UObject& Object) const override { return FGuid(); }
-	virtual void SpawnOrDestroyObjectsForInstance(TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll) override { }
-	virtual void RemoveMovieSceneInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance ) override {}
-	virtual void DestroyAllSpawnedObjects() override { }
-	virtual bool CanPossessObject(UObject& Object) const override 	{ return false; }
-	virtual void BindPossessableObject(const FGuid& PossessableGuid, UObject& PossessedObject) override	{};
-	virtual void UnbindPossessableObjects(const FGuid& PossessableGuid) override	{};
-	virtual void GetRuntimeObjects(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects) const override	{}
-	virtual UObject* GetParentObject( UObject* Object ) const override { return nullptr; }
-
-	virtual bool TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const override	{ return false; }
-private:
 };

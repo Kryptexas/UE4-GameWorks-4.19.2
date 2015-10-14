@@ -595,10 +595,15 @@ public:
 	static void UpdateNavOctree(AActor* Actor);
 	static void UpdateNavOctree(UActorComponent* Comp);
 	/** update all navoctree entries for actor and its components */
-	static void UpdateNavOctreeAll(AActor* Actor);
+	static void UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors = true);
 	/** update all navoctree entries for actor and its non scene components after root movement */
 	static void UpdateNavOctreeAfterMove(USceneComponent* Comp);
 
+protected:
+	/** updates navoctree information on actors attached to RootActor */
+	static void UpdateAttachedActorsInNavOctree(AActor& RootActor);
+
+public:
 	/** removes all navoctree entries for actor and its components */
 	static void ClearNavOctreeAll(AActor* Actor);
 	/** updates bounds of all components implementing INavRelevantInterface */

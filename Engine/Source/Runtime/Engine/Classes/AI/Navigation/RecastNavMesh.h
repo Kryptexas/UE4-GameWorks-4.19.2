@@ -783,7 +783,9 @@ public:
 	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
 
 	/** Event from generator that navmesh build has finished */
-	void OnNavMeshGenerationFinished();
+	virtual void OnNavMeshGenerationFinished();
+
+	virtual void EnsureBuildCompletion() override;
 
 	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
@@ -828,6 +830,8 @@ public:
 
 	/** Area sort function */
 	virtual void SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>& Areas) const;
+
+	void RecreateDefaultFilter();
 
 	int32 GetMaxSimultaneousTileGenerationJobsCount() const { return MaxSimultaneousTileGenerationJobsCount; }
 	void SetMaxSimultaneousTileGenerationJobsCount(int32 NewJobsCountLimit);
@@ -878,6 +882,9 @@ public:
 	/** Retrieves poly and area flags for specified polygon */
 	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
 	bool GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const;
+
+	/** Finds all polys connected with specified one, results expressed as array of NavNodeRefs */
+	bool GetPolyNeighbors(NavNodeRef PolyID, TArray<NavNodeRef>& Neighbors) const;
 
 	/** Finds closest point constrained to given poly */
 	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;
@@ -960,9 +967,6 @@ protected:
 
 	/** Returns query extent including adjustments for voxelization error compensation */
 	FVector GetModifiedQueryExtent(const FVector& QueryExtent) const;
-
-	// @todo docuement
-	UPrimitiveComponent* ConstructRenderingComponentImpl();
 
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);

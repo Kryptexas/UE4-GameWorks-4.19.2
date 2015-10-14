@@ -145,6 +145,7 @@ private:
 FComponentMaterialCategory::FComponentMaterialCategory( TArray< TWeakObjectPtr<USceneComponent> >& InSelectedComponents )
 	: SelectedComponents( InSelectedComponents )
 	, NotifyHook( nullptr )
+	, MaterialCategory( nullptr )
 {
 }
 
@@ -172,24 +173,25 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	}
 
 
-	// only show the category if there are materials to display
-	if( bAnyMaterialsToDisplay )
-	{
-		// Make a category for the materials.
-		IDetailCategoryBuilder& MaterialCategory = DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific );
+	// Make a category for the materials.
+	MaterialCategory = &DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific );
 
-		MaterialCategory.AddCustomBuilder( MaterialList );
-	}
+	MaterialCategory->AddCustomBuilder( MaterialList );
+	MaterialCategory->SetCategoryVisibility( bAnyMaterialsToDisplay );
+	
 }
 
 void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& MaterialList )
 {
 	const bool bAllowNullEntries = true;
+	bool bAnyMaterialsToDisplay = false;
 
 	// Iterate over every material on the actors
 	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{	
 		int32 MaterialIndex = It.GetMaterialIndex();
+
+		MaterialCategory->SetCategoryVisibility( true );
 
 		UActorComponent* CurrentComponent = It.GetComponent();
 
@@ -209,9 +211,12 @@ void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& Ma
 			if( bAllowNullEntries || Material )
 			{
 				MaterialList.AddMaterial( MaterialIndex, Material, bCanBeReplaced );
+				bAnyMaterialsToDisplay = true;
 			}
 		}
 	}
+
+	MaterialCategory->SetCategoryVisibility(bAnyMaterialsToDisplay);
 }
 
 void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll )

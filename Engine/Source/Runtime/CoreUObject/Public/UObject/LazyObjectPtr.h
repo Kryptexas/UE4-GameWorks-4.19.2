@@ -46,7 +46,7 @@ struct COREUOBJECT_API FUniqueObjectGuid
 	/**
 	 * Fixes up this UniqueObjectID to add or remove the PIE prefix depending on what is currently active
 	 */
-	FUniqueObjectGuid FixupForPIE() const;
+	FUniqueObjectGuid FixupForPIE(int32 PlayInEditorID = GPlayInEditorID) const;
 
 	/**
 	 * Attempts to find a currently loaded object that matches this object ID

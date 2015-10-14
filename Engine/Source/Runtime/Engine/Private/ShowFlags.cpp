@@ -276,6 +276,9 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 		case VMI_CollisionVisibility:
 			bPostProcessing = false;
 			break;
+		case VMI_LODColoration:
+			bPostProcessing = true;
+			break;
 	}
 
 	if(!bPerspective)
@@ -301,6 +304,7 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 	EngineShowFlags.SetWireframe(ViewModeIndex == VMI_Wireframe || ViewModeIndex == VMI_BrushWireframe);
 	EngineShowFlags.SetCollisionPawn(ViewModeIndex == VMI_CollisionPawn);
 	EngineShowFlags.SetCollisionVisibility(ViewModeIndex == VMI_CollisionVisibility);
+	EngineShowFlags.SetLODColoration(ViewModeIndex == VMI_LODColoration);
 }
 
 void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex ViewModeIndex, FEngineShowFlags& EngineShowFlags, FName CurrentBufferVisualizationMode, bool bIsSplitScreen)
@@ -352,7 +356,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			EngineShowFlags.ScreenSpaceReflections = 0;
 		}
 	}
-	
+
 	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RefractionQuality"));
 		if(ICVar->GetValueOnGameThread() <= 0)
@@ -390,7 +394,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			EngineShowFlags.DynamicShadows = 0;
 		}
 
-		if(ViewModeIndex == VMI_BrushWireframe)
+		if( ViewModeIndex == VMI_BrushWireframe)
 		{
 			EngineShowFlags.Brushes = 1;
 		}
@@ -423,6 +427,14 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 		if( ViewModeIndex == VMI_LightComplexity )
 		{
 			EngineShowFlags.Translucency = 0;
+		}
+
+		if( ViewModeIndex == VMI_LODColoration )
+		{
+			EngineShowFlags.Lighting = 1;		// Best currently otherwise the image becomes hard to read.
+			EngineShowFlags.Fog = 0;			// Removed fog to improve color readability.
+			EngineShowFlags.AtmosphericFog = 0;
+			EngineShowFlags.Translucency = 0;	// Translucent are off because there are no color override shader currently for translucency.
 		}
 	}
 
@@ -558,6 +570,10 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	{
 		return VMI_CollisionVisibility;
 	}
+	else if (EngineShowFlags.LODColoration)
+	{
+		return VMI_LODColoration;
+	}
 
 	return EngineShowFlags.Lighting ? VMI_Lit : VMI_Unlit;
 }
@@ -582,6 +598,7 @@ const TCHAR* GetViewModeName(EViewModeIndex ViewModeIndex)
 		case VMI_VisualizeBuffer:			return TEXT("VisualizeBuffer");
 		case VMI_CollisionPawn:				return TEXT("CollisionPawn");
 		case VMI_CollisionVisibility:		return TEXT("CollisionVis");
+		case VMI_LODColoration:				return TEXT("LODColoration");
 	}
 	return TEXT("");
 }

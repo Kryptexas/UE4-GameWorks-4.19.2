@@ -6,16 +6,20 @@
 /**
  * Tools for director tracks
  */
-class FShotTrackEditor : public FMovieSceneTrackEditor
+class FShotTrackEditor
+	: public FMovieSceneTrackEditor
 {
 public:
+
 	/**
 	 * Constructor
 	 *
-	 * @param InSequencer	The sequencer instance to be used by this tool
+	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	FShotTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~FShotTrackEditor();
+
+	/** Virtual destructor. */
+	virtual ~FShotTrackEditor();
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -23,16 +27,30 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
-	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
+public:
+
+	// ISequencerTrackEditor interface
+
 	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL) override;
+	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
+	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
+
+protected:
+
+	/**
+	 * Gets the movie scene of the currently focused sequence.
+	 *
+	 * @return The focused movie scene, or nullptr if no scene is focused.
+	 */
+	UMovieScene* GetFocusedMovieScene() const;
 
 private:
+
 	/** Delegate for AnimatablePropertyChanged in AddKey */
 	void AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
 
@@ -41,7 +59,20 @@ private:
 
 	/** Finds the index in the ShotSections array where a new shot should be inserted */
 	int32 FindIndexForNewShot( const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime ) const;
+
+	UFactory* GetAssetFactoryForNewShot( UClass* SequenceClass );
+
+	/** Callback for determining whether the "Add Shot Track" menu entry can execute. */
+	bool HandleAddShotTrackMenuEntryCanExecute() const;
+
+	/** Callback for executing the "Add Shot Track" menu entry. */
+	void HandleAddShotTrackMenuEntryExecute();
+
+	/** Callback for executing the "Add Shot" menu entry. */
+	void HandleAddShotMenuEntryExecute(FGuid CameraGuid);
+
 private:
+
 	/** The Thumbnail pool which draws all the viewport thumbnails for the director track */
 	TSharedPtr<class FShotThumbnailPool> ThumbnailPool;
 };
@@ -83,7 +114,7 @@ private:
 class FShotThumbnail : public ISlateViewport, public TSharedFromThis<FShotThumbnail>
 {
 public:
-	FShotThumbnail(TSharedPtr<class FShotSection> InSection, TRange<float> InTimeRange);
+	FShotThumbnail(TSharedPtr<class FShotSection> InSection, const FIntPoint& InSize, TRange<float> InTimeRange);
 	~FShotThumbnail();
 
 	/* ISlateViewport interface */
@@ -112,6 +143,8 @@ private:
 	/** Parent shot section we are a thumbnail of */
 	TWeakPtr<class FShotSection> OwningSection;
 	
+	FIntPoint Size;
+
 	/** The Texture RHI that holds the thumbnail */
 	class FSlateTexture2DRHIRef* Texture;
 
@@ -140,12 +173,12 @@ public:
 	virtual FText GetDisplayName() const override { return NSLOCTEXT("FShotSection", "", "Shots"); }
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
+	virtual float GetSectionGripSize() const override;
+	virtual FName GetSectionGripLeftBrushName() const override;
+	virtual FName GetSectionGripRightBrushName() const override;
+	virtual bool AreSectionsConnected() const override { return true; }
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) override;
-
-	/** Filter to selected shot sections */
-	void FilterToSelectedShotSections(bool bZoomToShotBounds);
 
 	/** Gets the thumbnail width */
 	uint32 GetThumbnailWidth() const;
@@ -156,17 +189,17 @@ public:
 	/** Draws the passed in viewport thumbnail and copies it to the thumbnail's texture */
 	void DrawViewportThumbnail(TSharedPtr<FShotThumbnail> ShotThumbnail);
 
-	/** Calculates and sets the thumbnail width, and resizes if it is different than before */
-	void CalculateThumbnailWidthAndResize();
-
 	/** Gets the time range of what in the sequencer is visible */
 	TRange<float> GetVisibleTimeRange() const {return VisibleTimeRange;}
 
 	/** @return The sequencer widget owning the shot section */
 	TSharedRef<SWidget> GetSequencerWidget() { return Sequencer.Pin()->GetSequencerWidget(); }
 private:
+
 	ACameraActor* UpdateCameraObject() const;
+
 	FText GetShotName() const;
+
 	void OnRenameShot( const FText& NewShotName, ETextCommit::Type CommitType );
 private:
 	/** The section we are visualizing */

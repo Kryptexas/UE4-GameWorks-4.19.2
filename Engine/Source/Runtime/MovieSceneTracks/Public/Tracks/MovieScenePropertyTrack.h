@@ -18,11 +18,11 @@ public:
 	virtual FName GetTrackName() const override { return PropertyName; }
 	virtual void RemoveAllAnimationData() override;
 	virtual bool HasSection( UMovieSceneSection* Section ) const override;
+	virtual void AddSection( UMovieSceneSection* Section ) override;
 	virtual void RemoveSection( UMovieSceneSection* Section ) override;
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
-	virtual bool HasShowableData() const override {return bSectionsAreShowable;}
 	
 	/**
 	 * Sets the property name for this animatable property

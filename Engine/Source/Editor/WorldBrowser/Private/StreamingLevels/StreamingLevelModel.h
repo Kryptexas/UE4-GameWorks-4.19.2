@@ -21,9 +21,7 @@ public:
 	 *	@param	InWorldData			Level collection owning this model
 	 *	@param	InLevelStreaming	Streaming object this model should represent
 	 */
-	FStreamingLevelModel(const TWeakObjectPtr<UEditorEngine>& InEditor, 
-							FStreamingLevelCollectionModel& InWorldData, 
-							class ULevelStreaming* InLevelStreaming);
+	FStreamingLevelModel(FStreamingLevelCollectionModel& InWorldData, class ULevelStreaming* InLevelStreaming);
 	~FStreamingLevelModel();
 
 

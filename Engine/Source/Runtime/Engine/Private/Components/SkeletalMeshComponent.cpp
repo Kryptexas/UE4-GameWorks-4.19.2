@@ -358,36 +358,6 @@ void USkeletalMeshComponent::InitializeComponent()
 	InitAnim(false);
 }
 
-#if CHART_DISTANCE_FACTORS
-static void AddDistanceFactorToChart(float DistanceFactor)
-{
-	if(DistanceFactor < SMALL_NUMBER)
-	{
-		return;
-	}
-
-	if(DistanceFactor >= GDistanceFactorDivision[NUM_DISTANCEFACTOR_BUCKETS-2])
-	{
-		GDistanceFactorChart[NUM_DISTANCEFACTOR_BUCKETS-1]++;
-	}
-	else if(DistanceFactor < GDistanceFactorDivision[0])
-	{
-		GDistanceFactorChart[0]++;
-	}
-	else
-	{
-		for(int32 i=1; i<NUM_DISTANCEFACTOR_BUCKETS-2; i++)
-		{
-			if(DistanceFactor < GDistanceFactorDivision[i])
-			{
-				GDistanceFactorChart[i]++;
-				break;
-			}
-		}
-	}
-}
-#endif // CHART_DISTANCE_FACTORS
-
 #if WITH_EDITOR
 void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

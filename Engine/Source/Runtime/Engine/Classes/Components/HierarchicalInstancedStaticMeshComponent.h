@@ -96,9 +96,17 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	int32 NumBuiltInstances;
 
+	// Bounding box of any built instances (cached from the ClusterTree)
+	UPROPERTY()
+	FBox BuiltInstanceBounds;
+
 	// Bounding box of any unbuilt instances
 	UPROPERTY()
 	FBox UnbuiltInstanceBounds;
+
+	// Bounds of each individual unbuilt instance, used for LOD calculation
+	UPROPERTY()
+	TArray<FBox> UnbuiltInstanceBoundsList;
 
 	// The number of nodes in the occlusion layer
 	UPROPERTY()
@@ -169,6 +177,9 @@ public:
 protected:
 	/** Removes a single instance without extra work such as rebuilding the tree or marking render state dirty. */
 	void RemoveInstanceInternal(int32 InstanceIndex);
+
+	void UpdateInstanceTreeBoundsInternal(int32 InstanceIndex, const FBox& NewBounds);
+	static void UpdateInstanceTreeBoundsInternal_RenderThread(TArray<FClusterNode>& ClusterTree, int32 InstanceIndex, const FBox& NewBounds);
 
 	/** Gets and approximate number of verts for each LOD to generate heuristics **/
 	int32 GetVertsForLOD(int32 LODIndex);

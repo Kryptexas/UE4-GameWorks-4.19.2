@@ -14,7 +14,32 @@ namespace EMovieScenePlayerStatus
 	};
 }
 
-class FMovieSceneInstance;
+struct EMovieSceneViewportParams
+{
+	EMovieSceneViewportParams()
+	{
+		FadeAmount = 0.f;
+		FadeColor = FLinearColor::Black;
+		bEnableColorScaling = false;
+	}
+
+	enum SetViewportParam
+	{
+		SVP_FadeAmount   = 0x00000001,
+		SVP_FadeColor    = 0x00000002,
+		SVP_ColorScaling = 0x00000004,
+		SVP_All          = SVP_FadeAmount | SVP_FadeColor | SVP_ColorScaling
+	};
+
+	SetViewportParam SetWhichViewportParam;
+
+	float FadeAmount;
+	FLinearColor FadeColor;
+	FVector ColorScale; 
+	bool bEnableColorScaling;
+};
+
+class FMovieSceneSequenceInstance;
 
 /**
  * Interface for movie scene players
@@ -30,7 +55,7 @@ public:
 	 * @param ObjectHandle The handle to runtime objects
 	 * @Param The list of runtime objects that will be populated
 	 */
-	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const = 0;
+	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const = 0;
 
 
 	/**
@@ -41,13 +66,27 @@ public:
 	 */
 	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const = 0;
 
+	/*
+	 * Set the perspective viewport settings
+	 *
+	 * @param ViewportParamMap A map from the viewport client to its settings
+	 */
+	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) = 0;
+
+	/*
+	 * Get the current perspective viewport settings
+	 *
+	 * @param ViewportParamMap A map from the viewport client to its settings
+	 */
+	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const = 0;
+
 	/**
 	 * Adds a MovieScene instance to the player.  MovieScene players need to know about each instance for actor spawning
 	 *
 	 * @param MovieSceneSection	The section owning the MovieScene being instanced. 
 	 * @param InstanceToAdd		The instance being added
 	 */
-	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) = 0;
+	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd ) = 0;
 
 	/**
 	 * Removes a MovieScene instance from the player. 
@@ -55,12 +94,12 @@ public:
 	 * @param MovieSceneSection	The section owning the MovieScene that was instanced. 
 	 * @param InstanceToAdd		The instance being removed
 	 */
-	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) = 0;
+	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove ) = 0;
 
 	/**
 	 * @return The root movie scene instance being played
 	 */
-	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const = 0;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const = 0;
 
 	/** @return whether the player is currently playing, scrubbing, etc. */
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const = 0;

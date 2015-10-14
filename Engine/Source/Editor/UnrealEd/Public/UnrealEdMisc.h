@@ -7,20 +7,22 @@
 class FPerformanceAnalyticsStats;
 class FTickableEditorObject;
 
-namespace EMapChangeType
+
+enum class EMapChangeType : uint8
 {
-	enum Type
-	{
-		/** Map has just been loaded*/
-		LoadMap,
-		/** Map is about to be saved*/
-		SaveMap,
-		/** A new map is loaded*/
-		NewMap,
-		/** The world is about to be torn down */
-		TearDownWorld,
-	};
-}
+	/** Map has just been loaded*/
+	LoadMap,
+
+	/** Map is about to be saved*/
+	SaveMap,
+
+	/** A new map is loaded*/
+	NewMap,
+
+	/** The world is about to be torn down */
+	TearDownWorld,
+};
+
 
 /** The public interface for the unreal editor misc singleton. */
 class UNREALED_API FUnrealEdMisc
@@ -234,6 +236,7 @@ private:
 	void OnEditorChangeMode(FEditorModeID NewEditorMode);
 	void OnEditorPreModal();
 	void OnEditorPostModal();
+	void OnCrashing();
 
 	/** Delegate that gets called by modules that can't directly access Engine */
 	void OnDeferCommand( const FString& DeferredCommand );
@@ -247,7 +250,7 @@ private:
 	/**
 	 * Called when a map is changed (loaded,saved,new map, etc)
 	 */
-	void OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType );
+	void OnMapChanged( UWorld* World, EMapChangeType MapChangeType );
 
 	/** Called when the input manager records a user-defined chord */
 	void OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo);
@@ -313,6 +316,9 @@ private:
 
 	/** true if an asset analytics pass is pending */
 	bool bIsAssetAnalyticsPending;
+
+	/** true if a crash error was reported by Core */
+	bool bEditorCrashed;
 
 	/** The time that the last performance survey frame rate sample happened */
 	FDateTime LastFrameRateTime;

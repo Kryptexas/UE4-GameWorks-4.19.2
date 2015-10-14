@@ -31,6 +31,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	{
 		if( IsDebuggerPresent() )
 		{
+			UngrabAllInput();
 			raise(SIGTRAP);
 		}
 	}
@@ -84,6 +85,24 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 		__sync_synchronize();
 	}
 
+	FORCEINLINE static void PrefetchBlock(const void* InPtr, int32 NumBytes = 1)
+	{
+		extern size_t GCacheLineSize;
+
+		const char* Ptr = static_cast<const char*>(InPtr);
+		const size_t CacheLineSize = GCacheLineSize;
+		for (size_t BytesPrefetched = 0; BytesPrefetched < NumBytes; BytesPrefetched += CacheLineSize)
+		{
+			__builtin_prefetch(Ptr);
+			Ptr += CacheLineSize;
+		}
+	}
+
+	FORCEINLINE static void Prefetch(void const* Ptr, int32 Offset = 0)
+	{
+		__builtin_prefetch(static_cast<char const*>(Ptr) + Offset);
+	}
+
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
 	static void LoadPreInitModules();
@@ -131,6 +150,13 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 * Initializes video (and not only) subsystem.
 	 */
 	static bool PlatformInitMultimedia();
+
+#if !UE_BUILD_SHIPPING	// only in non-shipping because we break into the debugger in non-shipping builds only
+	/**
+	 * Ungrabs input (useful before breaking into debugging)
+	 */
+	static void UngrabAllInput();
+#endif // !UE_BUILD_SHIPPING
 
 	/**
 	 * Returns whether the program has been started remotely (e.g. over SSH)

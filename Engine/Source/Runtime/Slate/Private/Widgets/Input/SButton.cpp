@@ -383,4 +383,7 @@ void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
 
 	BorderPadding = Style->NormalPadding;
 	PressedBorderPadding = Style->PressedPadding;
+
+	HoveredSound = Style->HoveredSlateSound;
+	PressedSound = Style->PressedSlateSound;
 }

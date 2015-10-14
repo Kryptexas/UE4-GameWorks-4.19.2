@@ -4,19 +4,25 @@
 
 #include "MovieScene3DPathSection.h"
 #include "MovieScene3DPathTrack.h"
+
+
 /**
  * Tools for animating a transform with a path curve
  */
-class F3DPathTrackEditor : public FMovieSceneTrackEditor
+class F3DPathTrackEditor
+	: public FMovieSceneTrackEditor
 {
 public:
+
 	/**
 	 * Constructor
 	 *
-	 * @param InSequencer	The sequencer instance to be used by this tool
+	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	F3DPathTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~F3DPathTrackEditor();
+
+	/** Virtual destructor. */
+	virtual ~F3DPathTrackEditor();
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -24,19 +30,24 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
-	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
-	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL ) override;
-	virtual void BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
+public:
 
 	/** Add path */
 	void AddPath(FGuid ObjectGuid, UObject* AdditionalAsset);
 
 	/** Set path */
 	void SetPath(UMovieSceneSection* Section, AActor* ActorWithSplineComponent);
+
+public:
+
+	// ISequencerTrackEditor interface
+
+	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL ) override;
+	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 
 private:
 

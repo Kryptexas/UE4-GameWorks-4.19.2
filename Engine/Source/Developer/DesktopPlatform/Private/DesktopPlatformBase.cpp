@@ -813,7 +813,7 @@ bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 {
 	// Get the platform-specific suffix for solution files
 #if PLATFORM_MAC
-	const TCHAR* Suffix = TEXT(".xcodeproj/project.pbxproj");
+	const TCHAR* Suffix = TEXT(".xcworkspace/contents.xcworkspacedata");
 #elif PLATFORM_LINUX
 	const TCHAR* Suffix = TEXT(".workspace");	// FIXME: Should depend on PreferredAccessor setting
 #else

@@ -80,6 +80,10 @@ void FSimpleHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat
 {
 }
 
+void FSimpleHMD::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
+{
+}
+
 void FSimpleHMD::SetInterpupillaryDistance(float NewInterpupillaryDistance)
 {
 }

@@ -74,56 +74,59 @@ FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultVa
 					BottomCurve.Eval(Position, DefaultValue.Bottom));
 }
 
-void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& MarginKey )
+void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& MarginKey, FKeyParams KeyParams )
 {
 	Modify();
 
-	if( MarginKey.CurveName == NAME_None )
+	static FName LeftName("Left");
+	static FName TopName("Top");
+	static FName RightName("Right");
+	static FName BottomName("Bottom");
+
+	FName CurveName = MarginKey.CurveName;
+
+	bool bTopKeyExists = TopCurve.IsKeyHandleValid(TopCurve.FindKey(Time));
+	bool bLeftKeyExists = LeftCurve.IsKeyHandleValid(LeftCurve.FindKey(Time));
+	bool bRightKeyExists = RightCurve.IsKeyHandleValid(RightCurve.FindKey(Time));
+	bool bBottomKeyExists = BottomCurve.IsKeyHandleValid(BottomCurve.FindKey(Time));
+
+	if ( (CurveName == NAME_None || CurveName == LeftName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bLeftKeyExists && !KeyParams.bAutoKeying && LeftCurve.GetNumKeys() > 0) ) )
 	{
-		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left);
-		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top);
-		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right);
-		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom);
+		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left, KeyParams);
 	}
-	else
+
+	if ( (CurveName == NAME_None || CurveName == TopName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTopKeyExists && !KeyParams.bAutoKeying && TopCurve.GetNumKeys() > 0) ) )
 	{
-		AddKeyToNamedCurve( Time, MarginKey );
+		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top, KeyParams);
+	}
+
+	if ( (CurveName == NAME_None || CurveName == RightName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bRightKeyExists && !KeyParams.bAutoKeying && RightCurve.GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right, KeyParams);
+	}
+
+	if ( (CurveName == NAME_None || CurveName == BottomName) &&
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bBottomKeyExists && !KeyParams.bAutoKeying && BottomCurve.GetNumKeys() > 0) ) )
+	{
+		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom, KeyParams);
 	}
 }
 
-bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value) const
+bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value, FKeyParams KeyParams) const
 {
-	return TopCurve.GetNumKeys() == 0 ||
+	bool bHasEmptyKeys = TopCurve.GetNumKeys() == 0 ||
 		LeftCurve.GetNumKeys() == 0 ||
 		RightCurve.GetNumKeys() == 0 ||
 		BottomCurve.GetNumKeys() == 0 ||
 		(Eval(Time,Value) != Value);
-}
 
-void UMovieSceneMarginSection::AddKeyToNamedCurve( float Time, const FMarginKey& MarginKey )
-{
-	static FName Left("Left");
-	static FName Top("Top");
-	static FName Right("Right");
-	static FName Bottom("Bottom");
-
-	FName CurveName = MarginKey.CurveName;
-
-	if( CurveName == Left )
+	if (bHasEmptyKeys || (KeyParams.bAutoKeying && Eval(Time, Value) != Value))
 	{
-		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left);
+		return true;
 	}
-	else if( CurveName == Top )
-	{
-		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top);
-	}
-	else if( CurveName == Right )
-	{
-		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right);
-	}
-	else if( CurveName == Bottom )
-	{
-		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom);
-	}
+	return false;
 }
 

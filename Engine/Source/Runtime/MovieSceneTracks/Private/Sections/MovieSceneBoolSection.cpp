@@ -10,10 +10,12 @@ UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& Object
 	SetIsInfinite(true);
 }
 
+
 bool UMovieSceneBoolSection::Eval( float Position ) const
 {
 	return !!BoolCurve.Evaluate(Position);
 }
+
 
 void UMovieSceneBoolSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )
 {
@@ -21,6 +23,7 @@ void UMovieSceneBoolSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>&
 
 	BoolCurve.ShiftCurve(DeltaPosition, KeyHandles);
 }
+
 
 void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
@@ -31,6 +34,7 @@ void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin, 
 	
 	BoolCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
+
 
 void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -44,13 +48,28 @@ void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
-void UMovieSceneBoolSection::AddKey( float Time, bool Value )
+
+void UMovieSceneBoolSection::AddKey( float Time, bool Value, FKeyParams KeyParams )
 {
 	Modify();
-	BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+
+	if (BoolCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
+	{
+		BoolCurve.SetDefaultValue(Value ? 1 : 0);
+	}
+	else
+	{
+		BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+	}
 }
 
-bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value) const
+
+bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const
 {
-	return BoolCurve.GetNumKeys() == 0 || Eval(Time) != Value;
+	if ( BoolCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
+	{
+		return true;
+	}
+
+	return false;
 }

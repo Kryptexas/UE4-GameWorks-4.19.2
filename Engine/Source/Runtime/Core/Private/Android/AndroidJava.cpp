@@ -30,7 +30,7 @@ FJavaClassObject::~FJavaClassObject()
 	JEnv->DeleteGlobalRef(Object);
 }
 
-FJavaClassMethod FJavaClassObject::GetClassMethod(const char* MethodName, const char* FuncSig)
+FJavaClassMethod FJavaClassObject::GetClassMethod(const char* MethodName, const char* FuncSig) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	FJavaClassMethod Method;
@@ -43,7 +43,7 @@ FJavaClassMethod FJavaClassObject::GetClassMethod(const char* MethodName, const 
 }
 
 template<>
-void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...)
+void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	va_list Params;
@@ -54,7 +54,7 @@ void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...)
 }
 
 template<>
-bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...)
+bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	va_list Params;
@@ -66,7 +66,7 @@ bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...)
 }
 
 template<>
-int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...)
+int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	va_list Params;
@@ -78,7 +78,7 @@ int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...)
 }
 
 template<>
-jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...)
+jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	va_list Params;
@@ -92,7 +92,7 @@ jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...)
 }
 
 template<>
-int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...)
+int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	va_list Params;
@@ -104,7 +104,7 @@ int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...)
 }
 
 template<>
-FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...)
+FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...) const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	va_list Params;
@@ -129,7 +129,7 @@ jstring FJavaClassObject::GetJString(const FString& String)
 	return result;
 }
 
-void FJavaClassObject::VerifyException()
+void FJavaClassObject::VerifyException() const
 {
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	if (JEnv->ExceptionCheck())

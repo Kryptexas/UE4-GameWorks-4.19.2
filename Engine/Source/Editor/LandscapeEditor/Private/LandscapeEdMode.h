@@ -237,11 +237,12 @@ public:
 	float DraggingEdge_Remainder;
 
 	TWeakObjectPtr<ALandscapeGizmoActiveActor> CurrentGizmoActor;
-	//
+	// UI callbacks for copy/paste tool
 	FLandscapeToolCopyPaste<FHeightmapToolTarget>* CopyPasteTool;
 	void CopyDataToGizmo();
 	void PasteDataFromGizmo();
 
+	// UI callbacks for splines tool
 	FLandscapeToolSplines* SplinesTool;
 	void ShowSplineProperties();
 	virtual void SelectAllConnectedSplineControlPoints();
@@ -250,9 +251,14 @@ public:
 	void SetbUseAutoRotateOnJoin(bool InbAutoRotateOnJoin);
 	bool GetbUseAutoRotateOnJoin();
 
+	// UI callbacks for ramp tool
 	void ApplyRampTool();
 	bool CanApplyRampTool();
 	void ResetRampTool();
+
+	// UI callbacks for mirror tool
+	void ApplyMirrorTool();
+	void CenterMirrorTool();
 
 	/** Constructor */
 	FEdModeLandscape();
@@ -277,6 +283,7 @@ public:
 	void InitializeTool_Visibility();
 	void InitializeTool_Splines();
 	void InitializeTool_Ramp();
+	void InitializeTool_Mirror();
 	void InitializeToolModes();
 
 	/** Destructor */

@@ -122,7 +122,9 @@ void FOutputDeviceWindowsError::HandleError()
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
 	// Dump the error and flush the log.
-	UE_LOG( LogWindows, Log, TEXT( "=== Critical error: ===" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR, GErrorHist );
+	FDebug::ConditionallyEmitBeginCrashUATMarker();
+	UE_LOG( LogWindows, Error, TEXT( "=== Critical error: ===" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR, GErrorHist );
+	FDebug::ConditionallyEmitEndCrashUATMarker();
 
 	GLog->PanicFlushThreadedLogs();
 

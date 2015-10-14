@@ -32,6 +32,9 @@
 #include "GameFramework/GameUserSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "SGameLayerManager.h"
+#include "ActorEditorUtils.h"
+#include "IMovieSceneCapture.h"
+#include "MovieSceneCaptureSettings.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -826,6 +829,11 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
+	if (GEngine->ViewExtensions.Num())
+	{
+		ViewFamily.ViewExtensions.Append(GEngine->ViewExtensions.GetData(), GEngine->ViewExtensions.Num());
+	}
+
 	// Allow HMD to modify the view later, just before rendering
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
@@ -1233,15 +1241,12 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 {
 	if (GIsDumpingMovie || FScreenshotRequest::IsScreenshotRequested() || GIsHighResScreenshot)
 	{
+	
 		TArray<FColor> Bitmap;
 
 		bool bShowUI = false;
 		TSharedPtr<SWindow> WindowPtr = GetWindow();
 		if (!GIsDumpingMovie && (FScreenshotRequest::ShouldShowUI() && WindowPtr.IsValid()))
-		{
-			bShowUI = true;
-		}
-		else if( GIsDumpingMovie && WindowPtr.IsValid() && !GEngine->MatineeScreenshotOptions.bHideHud )
 		{
 			bShowUI = true;
 		}
@@ -2313,7 +2318,7 @@ void UGameViewportClient::ToggleShowVolumes()
 		AVolume* Owner = Cast<AVolume>(BrushComponent->GetOwner());
 
 		// Only bother with volume brushes that belong to the world's scene
-		if (Owner && BrushComponent->GetScene() == GetWorld()->Scene)
+		if (Owner && BrushComponent->GetScene() == GetWorld()->Scene && !FActorEditorUtils::IsABuilderBrush(Owner))
 		{
 			// We're expecting this to be in the game at this point
 			check(Owner->GetWorld()->IsGameWorld());
@@ -2390,7 +2395,9 @@ void UGameViewportClient::ToggleShowCollision()
 			UPrimitiveComponent* PrimitiveComponent = *It;
 			if (!PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == World->Scene)
 			{
-				if (PrimitiveComponent->GetOwner() && PrimitiveComponent->GetOwner()->GetWorld() && PrimitiveComponent->GetOwner()->GetWorld()->IsGameWorld())
+				AActor* Owner = PrimitiveComponent->GetOwner();
+
+				if (Owner && Owner->GetWorld() && Owner->GetWorld()->IsGameWorld() && !FActorEditorUtils::IsABuilderBrush(Owner))
 				{
 					// Save state before modifying the collision visibility
 					Mapping.Add(PrimitiveComponent, CollVisibilityState(PrimitiveComponent->bHiddenInGame, PrimitiveComponent->bVisible));

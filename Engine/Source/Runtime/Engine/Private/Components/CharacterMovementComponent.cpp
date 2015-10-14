@@ -5995,6 +5995,13 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 		return;
 	}
 
+	// Bail out if our character's controller doesn't have a Player. This may be the case when the local player
+	// has switched to another controller, such as a debug camera controller.
+	if (PC && PC->Player == nullptr)
+	{
+		return;
+	}
+
 	FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
 	if (!ClientData)
 	{

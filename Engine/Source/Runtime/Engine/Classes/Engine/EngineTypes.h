@@ -2457,6 +2457,10 @@ struct FMeshMergingSettings
 	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
 	bool bPivotPointAtZero;
 
+	/** Whether to merge physics data (collision primitives)*/
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	bool bMergePhysicsData;
+
 	/** Whether to merge source materials into one flat material */
 	UPROPERTY(EditAnywhere, Category=MeshMerge)
 	bool bMergeMaterials;
@@ -2483,6 +2487,7 @@ struct FMeshMergingSettings
 		, TargetLightMapResolution(256)
 		, bImportVertexColors(false)
 		, bPivotPointAtZero(false)
+		, bMergePhysicsData(false)
 		, bMergeMaterials(false)
 		, bExportNormalMap(true)
 		, bExportMetallicMap(false)

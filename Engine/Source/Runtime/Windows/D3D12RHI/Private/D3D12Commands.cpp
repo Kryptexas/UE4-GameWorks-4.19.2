@@ -234,7 +234,7 @@ void FD3D12CommandContext::RHIDispatchIndirectComputeShader(FVertexBufferRHIPara
 		GetParentDevice()->GetDispatchIndirectCommandSignature(),
 		1,
 		ArgumentBuffer->ResourceLocation->GetResource()->GetResource(),
-		ArgumentBuffer->ResourceLocation->GetOffset() + ArgumentOffset * 20,
+		ArgumentBuffer->ResourceLocation->GetOffset() + ArgumentOffset,
 		NULL,
 		0
 		);
@@ -1490,7 +1490,7 @@ void FD3D12CommandContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVerte
 		GetParentDevice()->GetDrawIndirectCommandSignature(),
 		1,
 		ArgumentBuffer->ResourceLocation->GetResource()->GetResource(),
-		ArgumentBuffer->ResourceLocation->GetOffset() + ArgumentOffset * 20,
+		ArgumentBuffer->ResourceLocation->GetOffset() + ArgumentOffset,
 		NULL,
 		0
 		);
@@ -1605,7 +1605,7 @@ void FD3D12CommandContext::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,
 		GetParentDevice()->GetDrawIndexedIndirectCommandSignature(),
 		1,
 		ArgumentBuffer->ResourceLocation->GetResource()->GetResource(),
-		ArgumentBuffer->ResourceLocation->GetOffset() + ArgumentOffset * 20,
+		ArgumentBuffer->ResourceLocation->GetOffset() + ArgumentOffset,
 		NULL,
 		0
 		);

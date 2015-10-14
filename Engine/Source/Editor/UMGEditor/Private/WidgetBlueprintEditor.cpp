@@ -6,7 +6,6 @@
 #include "WidgetBlueprintEditor.h"
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
-#include "Animation/UMGSequencerObjectBindingManager.h"
 #include "ObjectEditorUtils.h"
 
 #include "PropertyCustomizationHelpers.h"
@@ -53,8 +52,6 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	
 	Sequencer.Reset();
 
-	SequencerObjectBindingManager.Reset();
-
 	// Un-Register sequencer menu extenders.
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll([this]( const FAssetEditorExtender& Extender )
@@ -86,9 +83,9 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 
 	// If the user has close the sequencer tab, this will not be initialized.
-	if ( SequencerObjectBindingManager.IsValid() )
+	if (CurrentAnimation.IsValid())
 	{
-		SequencerObjectBindingManager->InitPreviewObjects();
+		CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
 	}
 
 	DesignerCommandList = MakeShareable(new FUICommandList);
@@ -312,13 +309,7 @@ void FWidgetBlueprintEditor::CutSelectedWidgets()
 
 const UWidgetAnimation* FWidgetBlueprintEditor::RefreshCurrentAnimation()
 {
-	if( !SequencerObjectBindingManager->HasValidWidgetAnimation() )
-	{
-		ChangeViewedAnimation(*UWidgetAnimation::GetNullAnimation());
-		return nullptr;
-	}
-
-	return SequencerObjectBindingManager->GetWidgetAnimation();
+	return CurrentAnimation.Get();
 }
 
 bool FWidgetBlueprintEditor::CanPasteWidgets()
@@ -557,14 +548,31 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 {
 	if(!Sequencer.IsValid())
 	{
-		FSequencerViewParams ViewParams( TEXT( "UMGSequencerSettings" ) );
-		ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
-		ViewParams.InitialScrubPosition = 0;
-		ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContent);
+		const float InTime = 0.f;
+		const float OutTime = 5.0f;
 
-		SequencerObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *UWidgetAnimation::GetNullAnimation()));
+		FSequencerViewParams ViewParams(TEXT("UMGSequencerSettings"));
+		{
+			ViewParams.InitalViewRange = TRange<float>(InTime, OutTime);
+			ViewParams.InitialScrubPosition = 0;
+			ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContent);
+		}
 
-		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer(UWidgetAnimation::GetNullAnimation()->MovieScene, ViewParams, SequencerObjectBindingManager.ToSharedRef());
+		FSequencerInitParams SequencerInitParams;
+		{
+			UWidgetAnimation* NullAnimation = UWidgetAnimation::GetNullAnimation();
+			NullAnimation->MovieScene->StartTime = InTime;
+			NullAnimation->MovieScene->InTime = InTime;
+			NullAnimation->MovieScene->OutTime = OutTime;
+			NullAnimation->MovieScene->EndTime = OutTime;
+
+			SequencerInitParams.ViewParams = ViewParams;
+			SequencerInitParams.RootSequence = NullAnimation;
+			SequencerInitParams.bEditWithinLevelEditor = false;
+			SequencerInitParams.ToolkitHost = nullptr;
+		};
+
+		Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
 		ChangeViewedAnimation(*UWidgetAnimation::GetNullAnimation());
 	}
 
@@ -573,12 +581,15 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimationToView )
 {
-	TSharedRef<FUMGSequencerObjectBindingManager> NewObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, InAnimationToView));
-	Sequencer->ResetToNewRootMovieScene(*InAnimationToView.MovieScene, NewObjectBindingManager);
+	if (CurrentAnimation.IsValid())
+	{
+		CurrentAnimation->Initialize(nullptr);
+	}
 
-	check(SequencerObjectBindingManager.IsUnique());
-	SequencerObjectBindingManager = NewObjectBindingManager;
-	SequencerObjectBindingManager->InitPreviewObjects();
+	CurrentAnimation = &InAnimationToView;
+	CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
+
+	Sequencer->ResetToNewRootSequence(InAnimationToView);
 
 	TSharedPtr<SOverlay> SequencerOverlayPin = SequencerOverlay.Pin();
 	if (SequencerOverlayPin.IsValid())
@@ -660,7 +671,13 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewWidgetPtr = PreviewActor;
 	}
 
+	if (CurrentAnimation.IsValid())
+	{
+		CurrentAnimation->Initialize(PreviewActor);
+	}
+
 	OnWidgetPreviewUpdated.Broadcast();
+	Sequencer->UpdateRuntimeInstances();
 }
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const
@@ -777,7 +794,7 @@ void GetBindableObjects(UWidget* RootWidget, TArray<FObjectAndDisplayName>& Bind
 	}
 }
 
-TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TSharedRef<ISequencer> InSequencer)
+void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
 {
 	TArray<FObjectAndDisplayName> BindableObjects;
 	{
@@ -785,19 +802,18 @@ TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TShared
 		BindableObjects.Sort();
 	}
 
-	FMenuBuilder AddMenuBuilder(true, nullptr);
-
-	for (FObjectAndDisplayName& BindableObject : BindableObjects)
+	if (CurrentAnimation.IsValid())
 	{
-		FGuid BoundObjectGuid = SequencerObjectBindingManager->FindGuidForObject(*InSequencer->GetFocusedMovieScene(), *BindableObject.Object);
-		if (!BoundObjectGuid.IsValid())
+		for (FObjectAndDisplayName& BindableObject : BindableObjects)
 		{
-			FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
-			AddMenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
+			FGuid BoundObjectGuid = CurrentAnimation->FindObjectId(*BindableObject.Object);
+			if (BoundObjectGuid.IsValid() == false)
+			{
+				FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
+				MenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
+			}
 		}
 	}
-
-	return AddMenuBuilder.MakeWidget();
 }
 
 void FWidgetBlueprintEditor::AddObjectToAnimation(UObject* ObjectToAnimate)

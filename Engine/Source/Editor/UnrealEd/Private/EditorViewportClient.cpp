@@ -801,6 +801,14 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(0, 1, 0, 0),
 					FPlane(0, 0, ViewLocation.X, 1));
 			}
+			else if (EffectiveViewportType == LVT_OrthoFreelook)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(0, 0, 1, 0),
+					FPlane(1, 0, 0, 0),
+					FPlane(0, 1, 0, 0),
+					FPlane(0, 0, ViewLocation.X, 1));
+			}
 			else
 			{
 				// Unknown viewport type
@@ -930,6 +938,10 @@ void FEditorViewportClient::Tick(float DeltaTime)
 
 	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const bool bIsAnimating = ViewTransform.UpdateTransition();
+	if (bIsAnimating && GetViewportType() == LVT_Perspective)
+	{
+		PerspectiveCameraMoved();
+	}
 
 	if ( bIsTracking )
 	{

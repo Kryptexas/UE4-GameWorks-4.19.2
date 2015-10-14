@@ -9,7 +9,7 @@ public class FBX : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string FBXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "FBX/2014.2.1/";
+		string FBXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "FBX/2016.1.1/";
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
 					FBXSDKDir + "include",
@@ -20,7 +20,7 @@ public class FBX : ModuleRules
 
 		if ( Target.Platform == UnrealTargetPlatform.Win64 )
 		{
-			string FBxLibPath = FBXSDKDir + "lib/vs2012/"; // VS2013 libs are not readily available for FBX, so let's just use the 2012 ones while we can.
+			string FBxLibPath = FBXSDKDir + "lib/vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 
 			FBxLibPath += "x64/release/";
 			PublicLibraryPaths.Add(FBxLibPath);
@@ -32,12 +32,12 @@ public class FBX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			string LibDir = FBXSDKDir + "lib/mac/";
+			string LibDir = FBXSDKDir + "lib/clang/release/";
 			PublicAdditionalLibraries.Add(LibDir + "libfbxsdk.dylib");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			string LibDir = FBXSDKDir + "lib/linux/" + Target.Architecture;
+			string LibDir = FBXSDKDir + "lib/gcc4/" + Target.Architecture + "/release/";
 			if (!Directory.Exists(LibDir))
 			{
 				string Err = string.Format("FBX SDK not found in {0}", LibDir);

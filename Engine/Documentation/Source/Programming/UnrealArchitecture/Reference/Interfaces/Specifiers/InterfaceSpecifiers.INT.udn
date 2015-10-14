@@ -4,14 +4,15 @@ Description: Keywords used when declaring gameplay interfaces to specify how the
 Availability:Public
 
 [EXCERPT:main]
-When declaring interfaces, specifiers can be added to the declaration to control how the interface behaves with various 
+When declaring interfaces, specifiers can be added to the declaration to control how the interface behaves with various
 aspects of the engine and editor. Interfaces use a subset of the specifiers available when declaring classes.
 
-
+[REGION:buttonlist]
 * [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Blueprintable)
 * [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DependsOn)
 * [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/MinimalAPI)
 * [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NotBlueprintable)
+[/REGION]
 
 ## Metadata Specifiers
 [INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]

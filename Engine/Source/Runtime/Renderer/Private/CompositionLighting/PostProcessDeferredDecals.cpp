@@ -296,7 +296,7 @@ IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDe
 FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
+void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View, bool bUseHmdMesh)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -317,15 +317,17 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 
 	PixelShader->SetParameters(RHICmdList, View);
 
-	DrawRectangle( 
+	DrawPostProcessPass(
 		RHICmdList,
-		0, 0, 
+		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 		SceneContext.GetBufferSizeXY(),
 		*ScreenVertexShader,
+		View.StereoPass,
+		bUseHmdMesh,
 		EDRF_UseTriangleOptimization);
 }
 
@@ -651,7 +653,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			// Setup a stencil mask to prevent certain pixels from receiving deferred decals
 			if (bStencilDecalsInThisStage)
 			{
-				StencilDecalMask(RHICmdList, View);
+				StencilDecalMask(RHICmdList, View, Context.HasHmdMesh());
 			}
 
 			// optimization to have less state changes

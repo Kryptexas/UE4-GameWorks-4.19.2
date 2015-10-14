@@ -87,6 +87,25 @@ DEFINE_LOG_CATEGORY(LogSpawn);
 
 #define LOCTEXT_NAMESPACE "World"
 
+FActorSpawnParameters& FActorSpawnParameters::operator=(const FActorSpawnParameters& Other)
+{
+	Name = Other.Name;
+	Template = Other.Template;
+	Owner = Other.Owner;
+	Instigator = Other.Instigator;
+	OverrideLevel = Other.OverrideLevel;
+	SpawnCollisionHandlingOverride = Other.SpawnCollisionHandlingOverride;
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	bNoCollisionFail = Other.bNoCollisionFail;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	bRemoteOwned = Other.bRemoteOwned;
+	bNoFail = Other.bNoFail;
+	bDeferConstruction = Other.bDeferConstruction;
+	bAllowDuringConstructionScript = Other.bAllowDuringConstructionScript;
+	ObjectFlags = Other.ObjectFlags;
+	return *this;
+}
+
 /*-----------------------------------------------------------------------------
 	UWorld implementation.
 -----------------------------------------------------------------------------*/
@@ -812,6 +831,14 @@ void UWorld::RepairWorldSettings()
 			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel, REN_ForceNoResetLoaders);
 		}
 		
+		bool bClearOwningWorld = false;
+
+		if (PersistentLevel->OwningWorld == nullptr)
+		{
+			bClearOwningWorld = true;
+			PersistentLevel->OwningWorld = this;
+		}
+
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
@@ -837,6 +864,10 @@ void UWorld::RepairWorldSettings()
 		// Re-sort actor list as we just shuffled things around.
 		PersistentLevel->SortActorList();
 
+		if (bClearOwningWorld)
+		{
+			PersistentLevel->OwningWorld = nullptr;
+		}
 	}
 	check(GetWorldSettings());
 }
@@ -2272,6 +2303,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	// Set up string asset reference fixups
 	TArray<FString> PackageNamesBeingDuplicatedForPIE;
+	PackageNamesBeingDuplicatedForPIE.Add(PrefixedLevelName);
 	if ( OwningWorld )
 	{
 		const FString PlayWorldMapName = ConvertToPIEPackageName(OwningWorld->GetOutermost()->GetName(), WorldContext.PIEInstance);
@@ -2283,7 +2315,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 			if (StreamingLevel)
 			{
 				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
-				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
+				PackageNamesBeingDuplicatedForPIE.AddUnique(StreamingLevelPIEName);
 			}
 		}
 	}
@@ -4845,13 +4877,14 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Make sure "always loaded" sub-levels are fully loaded
 			LoadedWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 			
-			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystemRunMode::GameMode);
-
 			// Note that AI system will be created only if ai-system-creation conditions are met
 			LoadedWorld->CreateAISystem();
 
 			// call initialize functions on everything that wasn't carried over from the old world
 			LoadedWorld->InitializeActorsForPlay(PendingTravelURL, false);
+
+			// calling it after InitializeActorsForPlay has been called to have all potential bounding boxed initialized
+			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystemRunMode::GameMode);
 
 			// send loading complete notifications for all local players
 			for (FLocalPlayerIterator It(GEngine, LoadedWorld); It; ++It)

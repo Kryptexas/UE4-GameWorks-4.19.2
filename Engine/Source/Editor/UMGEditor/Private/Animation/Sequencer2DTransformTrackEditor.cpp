@@ -2,18 +2,18 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "Sequencer2DTransformTrackEditor.h"
-#include "Editor/MovieSceneTools/Public/PropertySection.h"
-#include "Editor/MovieSceneTools/Public/MovieSceneToolHelpers.h"
-#include "Runtime/UMG/Public/Animation/MovieScene2DTransformSection.h"
-#include "Runtime/UMG/Public/Animation/MovieScene2DTransformTrack.h"
-#include "Editor/Sequencer/Public/ISectionLayoutBuilder.h"
-#include "Editor/Sequencer/Public/ISequencerObjectChangeListener.h"
-#include "Editor/PropertyEditor/Public/PropertyHandle.h"
-#include "Slate/WidgetTransform.h"
+#include "MovieScene2DTransformSection.h"
+#include "MovieScene2DTransformTrack.h"
+#include "PropertySection.h"
+#include "ISectionLayoutBuilder.h"
+#include "MovieSceneToolHelpers.h"
 
-class F2DTransformSection : public FPropertySection
+
+class F2DTransformSection
+	: public FPropertySection
 {
 public:
+
 	F2DTransformSection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
@@ -43,90 +43,36 @@ public:
 	}
 };
 
-F2DTransformTrackEditor::F2DTransformTrackEditor( TSharedRef<ISequencer> InSequencer )
-	: FMovieSceneTrackEditor( InSequencer ) 
-{
-	// Get the object change listener for the sequencer and register a delegates for when properties change that we care about
-	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( "WidgetTransform" ).AddRaw( this, &F2DTransformTrackEditor::OnTransformChanged );
-}
 
-F2DTransformTrackEditor::~F2DTransformTrackEditor()
-{
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	if( Sequencer.IsValid() )
-	{
-		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( "WidgetTransform" ).RemoveAll( this );
-	}
-}
-
-
-
-TSharedRef<FMovieSceneTrackEditor> F2DTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<ISequencerTrackEditor> F2DTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new F2DTransformTrackEditor( InSequencer ) );
 }
 
-bool F2DTransformTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
-{
-	return Type == UMovieScene2DTransformTrack::StaticClass();
-}
 
-TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
 	UClass* SectionClass = SectionObject.GetOuter()->GetClass();
-
-	TSharedRef<ISequencerSection> NewSection = MakeShareable( new F2DTransformSection( SectionObject, Track->GetTrackName() ) );
-
-	return NewSection;
+	return MakeShareable( new F2DTransformSection( SectionObject, Track.GetTrackName() ) );
 }
 
 
-void F2DTransformTrackEditor::OnTransformChanged( const FPropertyChangedParams& PropertyChangedParams )
+bool F2DTransformTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey )
 {
-	AnimatablePropertyChanged
-	(
-		UMovieScene2DTransformTrack::StaticClass(), 
-		PropertyChangedParams.bRequireAutoKey,
-		FOnKeyProperty::CreateRaw(this, &F2DTransformTrackEditor::OnKeyTransform, &PropertyChangedParams ) 
-	);
-}
+	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FWidgetTransform>();
 
-
-void F2DTransformTrackEditor::OnKeyTransform( float KeyTime, const FPropertyChangedParams* PropertyChangedParams )
-{
-	FWidgetTransform TransformValue = *PropertyChangedParams->GetPropertyValue<FWidgetTransform>();
-
-	FName PropertyName = PropertyChangedParams->PropertyPath.Last()->GetFName();
-
-	for( int32 ObjectIndex = 0; ObjectIndex < PropertyChangedParams->ObjectsThatChanged.Num(); ++ObjectIndex )
+	if (InTrack)
 	{
-		UObject* Object = PropertyChangedParams->ObjectsThatChanged[ObjectIndex];
-
-		F2DTransformKey Key;
-		Key.bAddKeyEvenIfUnchanged = !PropertyChangedParams->bRequireAutoKey;
-		Key.CurveName = PropertyChangedParams->StructPropertyNameToKey;
-		Key.Value = TransformValue;
-
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
-		if (ObjectHandle.IsValid())
+		const UMovieScene2DTransformTrack* TransformTrack = CastChecked<const UMovieScene2DTransformTrack>( InTrack );
+		if (TransformTrack)
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene2DTransformTrack::StaticClass(), PropertyName );
-			if( ensure( Track ) )
-			{
-				UMovieScene2DTransformTrack* TransformTrack = CastChecked<UMovieScene2DTransformTrack>(Track);
-				TransformTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams->GetPropertyPathString() );
-				// Find or add a new section at the auto-key time and changing the property same property
-				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
-				bool bSuccessfulAdd = TransformTrack->AddKeyToSection( KeyTime, Key );
-				if (bSuccessfulAdd)
-				{
-					TransformTrack->SetAsShowable();
-				}
-			}
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return TransformTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
 		}
 	}
+
+	return false;
 }

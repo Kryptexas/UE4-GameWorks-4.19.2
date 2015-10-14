@@ -178,6 +178,11 @@ void SDetailsViewBase::SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesCha
 	OnDisplayedPropertiesChangedDelegate = InOnDisplayedPropertiesChangedDelegate;
 }
 
+void SDetailsViewBase::RerunCurrentFilter()
+{
+	UpdateFilteredDetails();
+}
+
 EVisibility SDetailsViewBase::GetTreeVisibility() const
 {
 	return DetailLayout.IsValid() && DetailLayout->HasDetails() ? EVisibility::Visible : EVisibility::Collapsed;

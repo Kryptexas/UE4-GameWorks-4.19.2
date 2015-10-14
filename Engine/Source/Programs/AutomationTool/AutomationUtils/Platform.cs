@@ -433,6 +433,16 @@ namespace AutomationTool
         }
 
 		/// <summary>
+		/// Returns true if the platform wants patches to generate a small .pak file containing the difference
+		/// of current data against a shipped pak file.
+		/// </summary>
+		/// <returns></returns>
+		public virtual bool GetPlatformPatchesWithDiffPak()
+		{
+			return true;
+		}
+
+		/// <summary>
 		///  Returns whether the platform requires a package to deploy to a device
 		/// </summary>
 		public virtual bool RequiresPackageToDeploy

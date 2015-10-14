@@ -12,6 +12,8 @@
 
 #if WITH_EDITOR
 
+#include "Editor.h"
+
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
 void AActor::PreEditChange(UProperty* PropertyThatWillChange)
@@ -25,7 +27,8 @@ void AActor::PreEditChange(UProperty* PropertyThatWillChange)
 		BPGC->UnbindDynamicDelegatesForProperty(this, ObjProp);
 	}
 
-	if ( ReregisterComponentsWhenModified() )
+	// During SIE, allow components to be unregistered here, and then reregistered and reconstructed in PostEditChangeProperty.
+	if (GEditor->bIsSimulatingInEditor || ReregisterComponentsWhenModified())
 	{
 		UnregisterAllComponents();
 	}
@@ -42,7 +45,9 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 	
 	const bool bTransformationChanged = (PropertyName == Name_RelativeLocation || PropertyName == Name_RelativeRotation || PropertyName == Name_RelativeScale3D);
 
-	if ( ReregisterComponentsWhenModified() )
+	// During SIE, allow components to reregistered and reconstructed in PostEditChangeProperty.
+	// This is essential as construction is deferred during spawning / duplication when in SIE.
+	if (GEditor->bIsSimulatingInEditor || ReregisterComponentsWhenModified())
 	{
 		// In the Undo case we have an annotation storing information about constructed components and we do not want
 		// to improperly apply out of date changes so we need to skip registration of all blueprint created components
@@ -161,16 +166,16 @@ void AActor::PostEditMove(bool bFinished)
 		// update actor and all its components in navigation system after finishing move
 		// USceneComponent::UpdateNavigationData works only in game world
 		UNavigationSystem::UpdateNavOctreeBounds(this);
-		UNavigationSystem::UpdateNavOctreeAll(this);
 
 		TArray<AActor*> ParentedActors;
 		GetAttachedActors(ParentedActors);
-
 		for (int32 Idx = 0; Idx < ParentedActors.Num(); Idx++)
 		{
 			UNavigationSystem::UpdateNavOctreeBounds(ParentedActors[Idx]);
-			UNavigationSystem::UpdateNavOctreeAll(ParentedActors[Idx]);
 		}
+
+		// not doing manual update of all attached actors since UpdateNavOctreeAll should take care of it
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 

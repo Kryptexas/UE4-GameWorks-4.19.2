@@ -12,7 +12,7 @@ public:
 		SLATE_ARGUMENT(ISequencer*, Sequencer)
 		SLATE_ARGUMENT(UMovieSceneSection*, OwningSection)
 		SLATE_ARGUMENT(FIntegralCurve*, Curve)
-		SLATE_ARGUMENT(UEnum*, Enum)
+		SLATE_ARGUMENT(const UEnum*, Enum)
 	SLATE_END_ARGS();
 
 	void Construct(const FArguments& InArgs);
@@ -20,12 +20,17 @@ public:
 private:
 	FText GetCurrentValue() const;
 
-	TSharedRef<SWidget> OnGenerateWidget(TSharedPtr<FString> InItem);
+	TSharedRef<SWidget> OnGenerateWidget(TSharedPtr<int32> InItem);
 
-	void OnComboSelectionChanged(TSharedPtr<FString> InSelectedItem, ESelectInfo::Type SelectInfo);
+	void OnComboSelectionChanged(TSharedPtr<int32> InSelectedItem, ESelectInfo::Type SelectInfo);
+
+	void OnComboMenuOpening();
 
 	ISequencer* Sequencer;
 	UMovieSceneSection* OwningSection;
 	FIntegralCurve* Curve;
-	TArray<TSharedPtr<FString>> EnumValues;
+	const UEnum* Enum;
+	TArray<TSharedPtr<int32>> VisibleEnumNameIndices;
+	TSharedPtr<SComboBox<TSharedPtr<int32>>> EnumValuesCombo;
+	bool bUpdatingSelectionInternally;
 };

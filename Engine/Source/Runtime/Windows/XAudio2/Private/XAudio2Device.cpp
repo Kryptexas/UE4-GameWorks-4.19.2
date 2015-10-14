@@ -204,30 +204,6 @@ void FXAudio2Device::TeardownHardware()
 {
 	if (DeviceProperties)
 	{
-		// close hardware interfaces
-		if (DeviceProperties->MasteringVoice)
-		{
-			DeviceProperties->MasteringVoice->DestroyVoice();
-			DeviceProperties->MasteringVoice = NULL;
-		}
-
-		if (DeviceProperties->XAudio2)
-		{
-			// Force the hardware to release all references
-			DeviceProperties->XAudio2->Release();
-			DeviceProperties->XAudio2 = NULL;
-		}
-
-#if PLATFORM_WINDOWS && PLATFORM_64BITS
-		if (DeviceProperties->XAudio2Dll)
-		{
-			if (!FreeLibrary(DeviceProperties->XAudio2Dll))
-			{
-				UE_LOG(LogAudio, Warning, TEXT("Failed to free XAudio2 Dll"));
-			}
-		}
-#endif
-
 		delete DeviceProperties;
 		DeviceProperties = nullptr;
 	}
