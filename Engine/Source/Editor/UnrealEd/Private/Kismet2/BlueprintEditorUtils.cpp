@@ -2870,15 +2870,6 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 			if (TestBP->CachedDependencies.Contains(Blueprint))
 			{
 				DependentBlueprints.Add(TestBP);
-
-				// When a Macro Library depends on this Blueprint, then any Blueprint that 
-				// depends on it must also depend on this Blueprint for re-compiling (bytecode, skeleton, full) purposes
-				if (TestBP->BlueprintType == BPTYPE_MacroLibrary)
-				{
-					TArray< UBlueprint*> MacroLibraryDependencies;
-					GetDependentBlueprints(TestBP, MacroLibraryDependencies);
-					DependentBlueprints.Append(MacroLibraryDependencies);
-				}
 			}
 		}
 	}
