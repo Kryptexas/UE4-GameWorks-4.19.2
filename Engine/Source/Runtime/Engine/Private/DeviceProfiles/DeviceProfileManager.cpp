@@ -6,6 +6,9 @@
 #include "TargetPlatform.h"
 #include "IDeviceProfileSelectorModule.h"
 #include "IConsoleManager.h"
+#if WITH_EDITOR
+#include "PlatformInfo.h"
+#endif
 
 FString UDeviceProfileManager::DeviceProfileFileName;
 
@@ -23,7 +26,7 @@ UDeviceProfileManager& UDeviceProfileManager::Get()
 			DeviceProfileManagerSingleton->LoadProfiles();
 		}
 
-		UDeviceProfile* ActiveProfile = DeviceProfileManagerSingleton->FindProfile(GetActiveProfileName());
+		UDeviceProfile* ActiveProfile = &DeviceProfileManagerSingleton->FindProfile(GetActiveProfileName());
 		DeviceProfileManagerSingleton->SetActiveDeviceProfile(ActiveProfile);
 
 		InitializeSharedSamplerStates();
@@ -183,7 +186,7 @@ void UDeviceProfileManager::DeleteProfile( UDeviceProfile* Profile )
 }
 
 
-UDeviceProfile* UDeviceProfileManager::FindProfile(const FString& ProfileName, bool bCreateIfNotFound)
+UDeviceProfile& UDeviceProfileManager::FindProfile( const FString& ProfileName )
 {
 	UDeviceProfile* FoundProfile = nullptr;
 
@@ -197,12 +200,7 @@ UDeviceProfile* UDeviceProfileManager::FindProfile(const FString& ProfileName, b
 		}
 	}
 
-	if (FoundProfile == nullptr && bCreateIfNotFound)
-	{
-		FoundProfile = &CreateProfile(ProfileName, FPlatformProperties::PlatformName());
-	}
-
-	return FoundProfile;
+	return FoundProfile != nullptr ? *FoundProfile : CreateProfile(ProfileName, FPlatformProperties::PlatformName());
 }
 
 
@@ -237,6 +235,7 @@ void UDeviceProfileManager::LoadProfiles()
 			}
 		}
 
+#if WITH_EDITOR
 		if (!FPlatformProperties::RequiresCookedData())
 		{
 			// Register Texture LOD settings with each Target Platform
@@ -245,13 +244,14 @@ void UDeviceProfileManager::LoadProfiles()
 			for (int32 PlatformIndex = 0; PlatformIndex < TargetPlatforms.Num(); ++PlatformIndex)
 			{
 				ITargetPlatform* Platform = TargetPlatforms[PlatformIndex];
-				if (const UTextureLODSettings* TextureLODSettingsObj = (UTextureLODSettings*)FindProfile(Platform->PlatformName(), false))
+				if (const UTextureLODSettings* TextureLODSettingsObj = (UTextureLODSettings*)&FindProfile(*Platform->GetPlatformInfo().VanillaPlatformName.ToString()))
 				{
 					// Set TextureLODSettings
 					Platform->RegisterTextureLODSettings(TextureLODSettingsObj);
 				}
 			}
 		}
+#endif
 
 		ManagerUpdatedDelegate.Broadcast();
 	}

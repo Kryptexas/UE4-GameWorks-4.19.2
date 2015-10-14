@@ -49,10 +49,9 @@ public:
 	 * Find a profile based on the name.
 	 *
 	 * @param ProfileName - The profile name to find.
-	 * @param bCreateIfNotFound - Whether to create a default profile if none is found.
-	 * @return The found profile or nullptr if not found and bCreateIfNotFound is false.
+	 * @return The found profile.
 	 */
-	UDeviceProfile* FindProfile( const FString& ProfileName, bool bCreateIfNotFound=true );
+	UDeviceProfile& FindProfile( const FString& ProfileName );
 
 	/**
 	 * Get the device profile .ini name.

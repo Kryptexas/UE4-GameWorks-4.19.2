@@ -30,7 +30,8 @@ public class Engine : ModuleRules
 				"HeadMountedDisplay",
 				"Advertising",
 				"NetworkReplayStreaming",
-				"MovieSceneCapture"
+				"MovieSceneCapture",
+  				"DesktopPlatform"
 			}
 		);
 
@@ -213,7 +214,8 @@ public class Engine : ModuleRules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"DerivedDataCache", 
-					"TargetPlatform"
+					"TargetPlatform",
+                    "DesktopPlatform"
 				}
 			);
 		}
