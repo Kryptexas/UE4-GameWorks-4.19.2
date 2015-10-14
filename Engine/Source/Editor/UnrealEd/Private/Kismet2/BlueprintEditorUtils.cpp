@@ -5009,7 +5009,9 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 
 				TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(InBlueprint);
-				if (FoundAssetEditor.IsValid())
+
+				// No need to submit a search query if there are no nodes.
+				if (FoundAssetEditor.IsValid() && VariableNodes.Num())
 				{
 					TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
 
