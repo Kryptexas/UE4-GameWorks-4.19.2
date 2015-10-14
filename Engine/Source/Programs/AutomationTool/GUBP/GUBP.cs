@@ -171,12 +171,20 @@ public partial class GUBP : BuildCommand
 			Log("Setting TimeIndex to {0}", TimeIndex);
 		}
 
+		// Find the list of nodes which we're actually going to execute
 		HashSet<BuildNode> NodesToDo = ParseNodesToDo(Graph.BuildNodes, Graph.AggregateNodes);
 		CullNodesForTimeIndex(NodesToDo, TimeIndex);
         if (JobInfo.IsPreflight)
         {
             CullNodesForPreflight(NodesToDo);
         }
+
+		// From each of those nodes, remove any order dependencies that we're not going to run. There are no circumstances in which they should be 
+		// considered dependencies from this point on.
+		foreach(BuildNode NodeToDo in NodesToDo)
+		{
+			NodeToDo.OrderDependencies.RemoveWhere(x => !NodesToDo.Contains(x));
+		}
 
 		TriggerNode ExplicitTrigger = null;
 		if (CommanderSetup)
