@@ -7691,8 +7691,9 @@ void FBlueprintEditor::OnFindReferences()
 				{
 					SearchTerm =  CustomEvent->CustomFunctionName.ToString();
 				}
-				else if (UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(SelectedNode))
+				else if (Cast<UK2Node_Variable>(SelectedNode) && !Cast<UK2Node_StructOperation>(SelectedNode))
 				{
+					UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(SelectedNode);
 					SearchTerm = FName::NameToDisplayString(VariableNode->GetVarName().ToString(), VariableNode->GetPropertyForVariable()->IsA(UBoolProperty::StaticClass()) );
 				}
 				else
