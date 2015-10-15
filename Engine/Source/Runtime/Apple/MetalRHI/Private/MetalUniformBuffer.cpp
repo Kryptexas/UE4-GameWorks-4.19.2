@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
-
+#include "MetalProfiler.h"
 
 #define NUM_POOL_BUCKETS 29
 

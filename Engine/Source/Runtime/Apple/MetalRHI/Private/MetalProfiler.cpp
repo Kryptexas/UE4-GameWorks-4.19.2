@@ -1,7 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
 
@@ -236,7 +234,7 @@ void FMetalGPUProfiler::PopEvent()
 	FGPUProfiler::PopEvent();
 }
 
-TGlobalResource<FVector4VertexDeclaration> GMetalVector4VertexDeclaration;
+//TGlobalResource<FVector4VertexDeclaration> GMetalVector4VertexDeclaration;
 TGlobalResource<FTexture> GMetalLongTaskRT;
 
 static FGlobalBoundShaderState LongGPUTaskBoundShaderState;

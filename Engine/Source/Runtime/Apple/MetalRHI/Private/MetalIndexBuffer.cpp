@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
-
+#include "MetalProfiler.h"
 
 /** Constructor */
 FMetalIndexBuffer::FMetalIndexBuffer(uint32 InStride, uint32 InSize, uint32 InUsage)

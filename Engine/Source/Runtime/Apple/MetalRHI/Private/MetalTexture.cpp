@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
+#include "MetalProfiler.h" // for STAT_MetalTexturePageOffTime
 
 uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
 

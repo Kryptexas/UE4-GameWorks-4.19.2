@@ -2,7 +2,7 @@
 
 
 #include "MetalRHIPrivate.h"
-
+#include "MetalProfiler.h"
 
 FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FResourceArrayInterface* ResourceArray, uint32 Usage)
 	: FRHIStructuredBuffer(Stride, Size, Usage)
