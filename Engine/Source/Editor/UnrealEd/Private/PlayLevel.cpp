@@ -62,6 +62,7 @@
 #include "GeneralProjectSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
 
@@ -1250,6 +1251,13 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 			AdditionalParameters += TEXT(" -opengl");
 		}
 		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
+	}
+
+	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
+	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	{
+		AdditionalParameters += TEXT(" -nohmd");
+		UE_LOG(LogHMD, Warning, TEXT("Standalone game VR not supported, please use VR Preview."));
 	}
 
 	if (PlayInSettings->DisableStandaloneSound)
