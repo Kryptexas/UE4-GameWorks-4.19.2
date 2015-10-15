@@ -171,7 +171,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	const double StartReceiveTime = FPlatformTime::Seconds();
 
 	// Process all incoming packets.
-	uint8 Data[MAX_PACKET_SIZE * 2];		// x 2 for now until we resolve some issues with the sending side incorrectly calculating fragmentation size
+	uint8 Data[MAX_PACKET_SIZE];
 	TSharedRef<FInternetAddr> FromAddr = SocketSubsystem->CreateInternetAddr();
 	for( ; Socket != NULL; )
 	{
