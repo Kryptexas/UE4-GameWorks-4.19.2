@@ -331,28 +331,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (NSRect)constrainFrameRect:(NSRect)FrameRect toScreen:(NSScreen*)Screen
 {
-	// Only windows can be unconstrained from screens
+	NSRect ConstrainedRect = [super constrainFrameRect:FrameRect toScreen:Screen];
+
 	if (self.TargetWindowMode == EWindowMode::Windowed)
 	{
-		// We must constrain to beneath the menu bar of the main screen if that is the host screen,
-		// otherwise we can end up with windows that can't be moved or closed...
-		NSArray* AllScreens = [NSScreen screens];
-		NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-		if(Screen == PrimaryScreen)
-		{
-			NSRect Frame = [Screen visibleFrame];
-			if(FrameRect.origin.y > Frame.origin.y)
-			{
-				FrameRect.origin.y = Frame.origin.y;
-			}
-		}
-		return FrameRect;
+		// In windowed mode do not limit the window size to screen size
+		ConstrainedRect.origin.y -= FrameRect.size.height - ConstrainedRect.size.height;
+		ConstrainedRect.size = FrameRect.size;
 	}
-	// In fullscreen we want the system default behaviour...
-	else
-	{
-		return [super constrainFrameRect:FrameRect toScreen:Screen];
-	}
+
+	return ConstrainedRect;
 }
 
 - (void)windowDidChangeScreen:(NSNotification*)Notification
