@@ -185,7 +185,7 @@ public class APEX : ModuleRules
 			// This MUST be defined for XboxOne!
 			Definitions.Add("PX_HAS_SECURE_STRCPY=1");
 
-			APEXLibDir += "/XboxOne";
+			APEXLibDir += "/XboxOne/VS" + XboxOnePlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(APEXLibDir);
 
 			LibraryFormatString = "{0}.lib";

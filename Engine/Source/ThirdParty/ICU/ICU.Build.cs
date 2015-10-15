@@ -272,7 +272,7 @@ public class ICU : ModuleRules
 			string LibraryExtension = "lib";
 			foreach (string Stem in LibraryNameStems)
 			{
-				string LibraryName = ICURootPath + "XboxOne/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				string LibraryName = ICURootPath + "XboxOne/VS" + XboxOnePlatform.GetVisualStudioCompilerVersionName() + "/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}

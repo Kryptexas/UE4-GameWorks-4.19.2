@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 11
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libpng", "libpng\libpng.vcxproj", "{D8405DEA-B309-64DE-22F3-0B385D9C465C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Durango = Debug|Durango
+		Release|Durango = Release|Durango
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D8405DEA-B309-64DE-22F3-0B385D9C465C}.Debug|Durango.ActiveCfg = Debug|Durango
+		{D8405DEA-B309-64DE-22F3-0B385D9C465C}.Debug|Durango.Build.0 = Debug|Durango
+		{D8405DEA-B309-64DE-22F3-0B385D9C465C}.Release|Durango.ActiveCfg = Release|Durango
+		{D8405DEA-B309-64DE-22F3-0B385D9C465C}.Release|Durango.Build.0 = Release|Durango
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

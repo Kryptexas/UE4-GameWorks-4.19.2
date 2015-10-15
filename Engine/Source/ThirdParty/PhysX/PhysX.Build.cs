@@ -407,7 +407,7 @@ public class PhysX : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
 			PublicSystemIncludePaths.Add("include/foundation/xboxone");
-			PublicLibraryPaths.Add(PhysXDir + "Lib/XboxOne");
+			PublicLibraryPaths.Add(PhysXDir + "Lib/XboxOne/VS" + XboxOnePlatform.GetVisualStudioCompilerVersionName());
 
 			string[] StaticLibrariesXB1 = new string[] {
 				"PhysX3{0}.lib",

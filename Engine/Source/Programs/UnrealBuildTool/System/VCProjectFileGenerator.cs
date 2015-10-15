@@ -271,13 +271,6 @@ namespace UnrealBuildTool
 								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
 							}
 
-							// Visual Studio 2015 is not supported by Xbox One debugger add-in yet
-							if (SupportedPlatform == UnrealTargetPlatform.XboxOne)
-							{
-								Log.TraceInformation("Forcing Visual Studio max version to 2012 projects for Xbox One compatibility (use '-2015' to override.)");
-								ProposedFormat = VCProjectFileFormat.VisualStudio2012;
-							}
-
 							// Reduce the Visual Studio version to the max supported by each platform we plan to include.
 							if (ProposedFormat < ProjectFileFormat)
 							{
