@@ -325,7 +325,7 @@ public:
 			if (FileReader)
 			{
 				const int64 FileSize = FileReader->TotalSize();
-				ANSICHAR* AnsiContents = (ANSICHAR*)FMemory::Malloc(FileSize);
+				ANSICHAR* AnsiContents = (ANSICHAR*)FMemory::Malloc(FileSize + 1);
 				FileReader->Serialize(AnsiContents, FileSize);
 				FileReader->Close();
 				delete FileReader;
