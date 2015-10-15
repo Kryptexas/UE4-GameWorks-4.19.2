@@ -1552,6 +1552,13 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 		else if (bDynamicObjectTask)
 		{
 			BeginCalculateVolumeSamples();
+
+			// If we didn't generate any samples then we can end the task
+			if (!IsDebugMode() && NumVolumeSampleTasksOutstanding <= 0)
+			{
+				FLightmassSwarm* Swarm = GetExporter().GetSwarm();
+				Swarm->TaskCompleted(PrecomputedVolumeLightingGuid);
+			} 
 		}
 		else if (PrecomputedVisibilityTaskIndex >= 0)
 		{
