@@ -24,11 +24,14 @@ class SAndroidWebBrowserWidget : public SLeafWidget
 
 	void LoadURL(const FString& NewURL);
 
+	void Close();
+
 protected:
 	// mutable to allow calling JWebView_Update from inside OnPaint (which is const)
 	mutable TOptional<FJavaClassObject> JWebView;
 	TOptional<FJavaClassMethod> JWebView_Update;
 	TOptional<FJavaClassMethod> JWebView_LoadURL;
+	TOptional<FJavaClassMethod> JWebView_Close;
 };
 
 void SAndroidWebBrowserWidget::Construct(const FArguments& Args)
@@ -37,6 +40,7 @@ void SAndroidWebBrowserWidget::Construct(const FArguments& Args)
 
 	JWebView_Update = JWebView->GetClassMethod("Update", "(IIII)V");
 	JWebView_LoadURL = JWebView->GetClassMethod("LoadURL", "(Ljava/lang/String;)V");
+	JWebView_Close = JWebView->GetClassMethod("Close", "()V");
 
 	JWebView->CallMethod<void>(JWebView_LoadURL.GetValue(), FJavaClassObject::GetJString(Args._InitialURL));
 }
@@ -81,6 +85,11 @@ void SAndroidWebBrowserWidget::LoadURL(const FString& NewURL)
 	JWebView->CallMethod<void>(JWebView_LoadURL.GetValue(), FJavaClassObject::GetJString(NewURL));
 }
 
+void SAndroidWebBrowserWidget::Close()
+{
+	JWebView->CallMethod<void>(JWebView_Close.GetValue());
+}
+
 FWebBrowserWindow::FWebBrowserWindow(FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: CurrentUrl(MoveTemp(InUrl))
 	, ContentsToLoad(MoveTemp(InContentsToLoad))
@@ -89,6 +98,7 @@ FWebBrowserWindow::FWebBrowserWindow(FString InUrl, TOptional<FString> InContent
 
 FWebBrowserWindow::~FWebBrowserWindow()
 {
+	CloseBrowser(true);
 }
 
 void FWebBrowserWindow::LoadURL(FString NewURL)
@@ -234,6 +244,7 @@ void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 
 void FWebBrowserWindow::CloseBrowser(bool bForce)
 {
+	BrowserWidget->Close();
 }
 
 void FWebBrowserWindow::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent /*= true*/)

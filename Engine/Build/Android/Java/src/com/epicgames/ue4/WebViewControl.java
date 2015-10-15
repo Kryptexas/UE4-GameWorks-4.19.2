@@ -79,6 +79,22 @@ class WebViewControl
 		});
 	}
 
+	public void Close()
+	{
+		GameActivity._activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if (webPopup != null)
+				{
+					webPopup.dismiss();
+					webPopup = null;
+				}
+			}
+		});
+	}
+	
 	// Web Views
 	private PopupWindow webPopup;
 	private LinearLayout webLayout;
