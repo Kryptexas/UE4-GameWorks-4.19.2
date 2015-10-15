@@ -142,6 +142,12 @@ void UIpConnection::LowLevelSend( void* Data, int32 Count )
 	// Send to remote.
 	int32 BytesSent = 0;
 	CLOCK_CYCLES(Driver->SendCycles);
+
+	if ( Count > MaxPacket )
+	{
+		UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: Count > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), Count, MaxPacket, *Describe() );
+	}
+
 	Socket->SendTo(DataToSend, Count, BytesSent, *RemoteAddr);
 	UNCLOCK_CYCLES(Driver->SendCycles);
 	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
