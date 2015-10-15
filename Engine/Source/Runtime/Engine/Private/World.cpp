@@ -3148,6 +3148,12 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	if (bCleanupResources && PersistentLevel)
 	{
 		PersistentLevel->ReleaseRenderingResources();
+
+		// Flush any render commands and released accessed UTextures and materials to give them a chance to be collected.
+		if ( FSlateApplication::IsInitialized() )
+		{
+			FSlateApplication::Get().FlushRenderState();
+		}
 	}
 
 	// Clear standalone flag when switching maps in the Editor. This causes resources placed in the map
