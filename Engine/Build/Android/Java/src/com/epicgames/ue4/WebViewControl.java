@@ -24,6 +24,7 @@ class WebViewControl
 			public void run()
 			{
 				webView = new WebView(GameActivity._activity);
+				webView.setWebViewClient(new WebViewClient());
 				webView.getSettings().setJavaScriptEnabled(true);
 				webView.loadUrl("about:blank");
 			}
