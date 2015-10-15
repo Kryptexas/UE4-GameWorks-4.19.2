@@ -1055,7 +1055,8 @@ public:
 		bool bNullPrivateRefs,
 		bool bIgnoreOuterRef,
 		bool bIgnoreArchetypeRef,
-		bool bDelayStart=false
+		bool bDelayStart=false,
+		bool bIgnoreClassGeneratedByRef = true
 	)
 	: SearchObject(InSearchObject), ReplacementMap(inReplacementMap)
 	, Count(0), bNullPrivateReferences(bNullPrivateRefs)
@@ -1064,7 +1065,7 @@ public:
 		ArIsModifyingWeakAndStrongReferences = true;		// Also replace weak references too!
 		ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 		ArIgnoreOuterRef = bIgnoreOuterRef;
-
+		ArIgnoreClassGeneratedByRef = bIgnoreClassGeneratedByRef;
 		if ( !bDelayStart )
 		{
 			SerializeSearchObject();
