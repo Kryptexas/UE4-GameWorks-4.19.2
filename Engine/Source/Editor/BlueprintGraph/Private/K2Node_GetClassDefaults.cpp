@@ -18,10 +18,11 @@ namespace
 	// Optional pin manager subclass.
 	struct FClassDefaultsOptionalPinManager : public FOptionalPinManager
 	{
-		FClassDefaultsOptionalPinManager(UClass* InClass)
+		FClassDefaultsOptionalPinManager(UClass* InClass, bool bExcludeObjectArrays)
 			:FOptionalPinManager()
 		{
 			SrcClass = InClass;
+			bExcludeObjectArrayProperties = bExcludeObjectArrays;
 		}
 
 		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
@@ -34,13 +35,21 @@ namespace
 
 		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override
 		{
-			// Don't expose object reference properties or anything not marked BlueprintReadOnly/BlueprintReadWrite.
-			// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
-			return TestProperty != nullptr
-				&& !TestProperty->IsA<UClassProperty>()
-				&& !TestProperty->IsA<UObjectProperty>()
-				&& !TestProperty->IsA<UInterfaceProperty>()
-				&& TestProperty->HasAllPropertyFlags(CPF_BlueprintVisible);
+			// Don't expose anything not marked BlueprintReadOnly/BlueprintReadWrite.
+			if(!TestProperty || !TestProperty->HasAllPropertyFlags(CPF_BlueprintVisible))
+			{
+				return false;
+			}
+			
+			if(UArrayProperty* TestArrayProperty = Cast<UArrayProperty>(TestProperty))
+			{
+				if(bExcludeObjectArrayProperties)
+				{
+					TestProperty = TestArrayProperty->Inner;
+				}
+			}
+
+			return IsSupportedPropertyType(TestProperty);
 		}
 
 		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property = nullptr) const override
@@ -51,9 +60,21 @@ namespace
 			Pin->bAdvancedView = Property && Property->HasAnyPropertyFlags(CPF_AdvancedDisplay);
 		}
 
+		static bool IsSupportedPropertyType(const UProperty* InProperty)
+		{
+			// Don't expose object reference properties.
+			// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
+			return !InProperty->IsA<UClassProperty>()
+				&& !InProperty->IsA<UObjectProperty>()
+				&& !InProperty->IsA<UInterfaceProperty>();
+		}
+
 	private:
 		// Class type for which optional pins are being managed.
 		UClass* SrcClass;
+
+		// Indicates whether or not object array properties will be excluded.
+		bool bExcludeObjectArrayProperties;
 	};
 
 	// Compilation handler subclass.
@@ -180,6 +201,10 @@ void UK2Node_GetClassDefaults::AllocateDefaultPins()
 
 void UK2Node_GetClassDefaults::PostPlacedNewNode()
 {
+	// Always exclude object array properties for new nodes.
+	// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
+	bExcludeObjectArrays = true;
+
 	if(UEdGraphPin* ClassPin = FindClassPin(Pins))
 	{
 		// Default to the owner BP's generated class for "normal" BPs if this is a new node
@@ -209,6 +234,30 @@ void UK2Node_GetClassDefaults::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 	if(ChangedPin != nullptr && ChangedPin->PinName == ClassPinName && ChangedPin->Direction == EGPD_Input)
 	{
 		OnClassPinChanged();
+	}
+}
+
+void UK2Node_GetClassDefaults::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	if(auto SourceClass = GetInputClass())
+	{
+		for(auto Pin : Pins)
+		{
+			if(Pin && Pin->Direction == EGPD_Output && Pin->LinkedTo.Num() > 0)
+			{
+				// Emit a warning for existing connections to potentially unsafe array property defaults. We do this rather than just implicitly breaking the connection (for compatibility).
+				if(auto ArrayProperty = Cast<UArrayProperty>(SourceClass->FindPropertyByName(FName(*Pin->PinName))))
+				{
+					// Even though array property defaults are copied, the copy could still contain a reference to an object that belongs to the CDO, which would potentially be unsafe to modify.
+					if(!FClassDefaultsOptionalPinManager::IsSupportedPropertyType(ArrayProperty->Inner))
+					{
+						MessageLog.Warning(*LOCTEXT("UnsafeConnectionWarning", "@@ has an unsafe connection to the @@ output pin that is not fully supported at this time. It should be disconnected to avoid potentially corrupting class defaults at runtime. If you need to keep this connection, make sure you're not changing the state of any elements in the array. Also note that if you recreate this node, it will not include this output pin.").ToString(), this, Pin);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -333,7 +382,7 @@ UClass* UK2Node_GetClassDefaults::GetInputClass(const UEdGraphPin* FromPin) cons
 void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 {
 	// Create the set of output pins through the optional pin manager
-	FClassDefaultsOptionalPinManager OptionalPinManager(InClass);
+	FClassDefaultsOptionalPinManager OptionalPinManager(InClass, bExcludeObjectArrays);
 	OptionalPinManager.RebuildPropertyList(ShowPinForProperties, InClass);
 	OptionalPinManager.CreateVisiblePins(ShowPinForProperties, InClass, EGPD_Output, this);
 
