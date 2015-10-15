@@ -330,6 +330,8 @@ public:
 				FileReader->Close();
 				delete FileReader;
 
+				AnsiContents[FileSize] = 0;
+				
 				TArray<FString> Lines;
 				FString(ANSI_TO_TCHAR(AnsiContents)).ParseIntoArrayLines(Lines);
 				FMemory::Free(AnsiContents);
