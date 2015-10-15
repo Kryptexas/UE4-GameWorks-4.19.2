@@ -105,7 +105,7 @@ private:
 			if( RawData.Num() == 1 )
 			{
 				FName* RawFName = (FName*)RawData[0];
-				*RawFName == **InitialValue;
+				*RawFName = **InitialValue;
 			}
 		}
 
