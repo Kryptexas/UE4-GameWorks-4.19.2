@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
+#include "MetalProfiler.h"
 
 
 FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)

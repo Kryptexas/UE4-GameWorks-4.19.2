@@ -8,6 +8,7 @@
 #include "MetalShaderResources.h"
 #include "MetalResources.h"
 #include "ShaderCache.h"
+#include "MetalProfiler.h"
 
 /** Set to 1 to enable shader debugging (makes the driver save the shader source) */
 #define DEBUG_METAL_SHADERS (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)

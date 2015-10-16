@@ -2,6 +2,7 @@
 
 #include "MetalRHIPrivate.h"
 #include "MetalRenderPipelineDesc.h"
+#include "MetalProfiler.h"
 
 static_assert(Offset_End <= sizeof(FMetalRenderPipelineHash) * 8, "Too many bits used for the Hash");
 
