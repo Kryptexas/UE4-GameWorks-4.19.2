@@ -429,14 +429,20 @@ void SSessionBrowser::HandleSessionTreeViewSelectionChanged(const TSharedPtr<FSe
 		else
 		{
 			// an instance got deselected
+			TArray<ISessionInstanceInfoPtr> UnselectedSessions;
 			for (const auto& InstanceInfo : SessionManager->GetSelectedInstances())
 			{
-				const auto& InstanceItem = ItemMap.FindRef(InstanceInfo->GetInstanceId());
+				const TSharedPtr<FSessionBrowserTreeItem>& InstanceItem = ItemMap.FindRef(InstanceInfo->GetInstanceId());
 
 				if (!SessionTreeView->IsItemSelected(InstanceItem))
 				{
-					SessionManager->SetInstanceSelected(InstanceInfo.ToSharedRef(), false);
+					UnselectedSessions.Add(InstanceInfo);
 				}
+			}
+
+			for (const auto& Session : UnselectedSessions)
+			{
+				SessionManager->SetInstanceSelected(Session.ToSharedRef(), false);
 			}
 		}
 	}
