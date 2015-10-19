@@ -46,6 +46,11 @@ public:
 		 * If you supply your own Version string, occurrences of "%VERSION%" are replaced with FEngineVersion::Current(). ie, -AnalyticsAppVersion=MyCustomID-%VERSION%.
 		 */
 		FString AppVersionET;
+		/** When true, sends events using the legacy ET protocol that passes all attributes as URL parameters. Defaults to false. */
+		bool UseLegacyProtocol;
+
+		/** Default ctor to ensure all values have their proper default. */
+		Config() : UseLegacyProtocol(false) {}
 
 		/** KeyName required for APIKey configuration. */
 		static FString GetKeyNameForAPIKey() { return TEXT("APIKeyET"); }
@@ -53,6 +58,8 @@ public:
 		static FString GetKeyNameForAPIServer() { return TEXT("APIServerET"); }
 		/** KeyName required for AppVersion configuration. */
 		static FString GetKeyNameForAppVersion() { return TEXT("AppVersionET"); }
+		/** Optional parameter to use the legacy backend protocol. */
+		static FString GetKeyNameForUseLegacyProtocol() { return TEXT("UseLegacyProtocol"); }
 		/** Default value if no APIServer configuration is provided. */
 		static FString GetDefaultAPIServer() { return TEXT("http://devonline-02:/ETAP/"); }
 	};
