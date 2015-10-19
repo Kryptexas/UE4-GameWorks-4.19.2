@@ -241,6 +241,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMaterial::ComputeOutputDesc(EPassOutpu
 		Ret.Format = OutputFormat;
 	}
 	Ret.Reset();
+	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("PostProcessMaterial");
 
 	return Ret;
