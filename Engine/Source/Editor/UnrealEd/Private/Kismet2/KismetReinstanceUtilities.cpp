@@ -130,6 +130,7 @@ struct FReplaceReferenceHelper
 TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToRefresh = TSet<TWeakObjectPtr<UBlueprint>>();
 TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToRecompile = TSet<TWeakObjectPtr<UBlueprint>>();
 TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToByteRecompile = TSet<TWeakObjectPtr<UBlueprint>>();
+TSet<UBlueprint*> FBlueprintCompileReinstancer::CompiledBlueprintsToSave = TSet<UBlueprint*>();
 
 UClass* FBlueprintCompileReinstancer::HotReloadedOldClass = nullptr;
 UClass* FBlueprintCompileReinstancer::HotReloadedNewClass = nullptr;
@@ -141,6 +142,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
 	, ClassToReinstanceDefaultValuesCRC(0)
+	, bIsSourceReinstancer(false)
 {
 	if( InClassToReinstance != NULL )
 	{
@@ -256,6 +258,16 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		{
 			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
+
+			bool const bIsLevelPackage = (UWorld::FindWorldInPackage(GeneratingBP->GetOutermost()) != nullptr);
+			// we don't want to save the entire level (especially if this 
+			// compile was already kicked off as a result of a level save, as it
+			// could cause a recursive save)... let the "SaveOnCompile" setting 
+			// only save blueprint assets
+			if (!bIsLevelPackage)
+			{
+				CompiledBlueprintsToSave.Add(GeneratingBP);
+			}
 		}
 	}
 }
@@ -320,6 +332,29 @@ void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
 
 FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
 {
+	if (bIsSourceReinstancer)
+	{
+		if (CompiledBlueprintsToSave.Num() > 0)
+		{
+			if ( !IsRunningCommandlet() && !GIsAutomationTesting )
+			{
+				TArray<UPackage*> PackagesToSave;
+				for (UBlueprint* BP : CompiledBlueprintsToSave)
+				{
+					UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+					const bool bShouldSaveOnCompile = (( Settings->SaveOnCompile == SoC_Always ) || ( ( Settings->SaveOnCompile == SoC_SuccessOnly ) && ( BP->Status == BS_UpToDate ) ));
+
+					if (bShouldSaveOnCompile)
+					{
+						PackagesToSave.Add(BP->GetOutermost());
+					}
+				}
+
+				FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+			}
+			CompiledBlueprintsToSave.Empty();		
+		}
+	}
 }
 
 class FReinstanceFinalizer : public TSharedFromThis<FReinstanceFinalizer>
@@ -542,6 +577,9 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 
 		if (QueueToReinstance.Num() && (QueueToReinstance[0] == SharedThis))
 		{
+			// Mark it as the source reinstancer, no other reinstancer can get here until this Blueprint finishes compiling
+			bIsSourceReinstancer = true;
+
 			TSet<TWeakObjectPtr<UBlueprint>> CompiledBlueprints;
 
 			while (DependentBlueprintsToRecompile.Num())

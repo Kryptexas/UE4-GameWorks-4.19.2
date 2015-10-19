@@ -40,6 +40,7 @@ protected:
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRefresh;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRecompile;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToByteRecompile;
+	static TSet<UBlueprint*> CompiledBlueprintsToSave;
 
 	static UClass* HotReloadedOldClass;
 	static UClass* HotReloadedNewClass;
@@ -76,6 +77,9 @@ protected:
 
 	/** Objects that should keep reference to old class */
 	TSet<UObject*> ObjectsThatShouldUseOldStuff;
+
+	/** TRUE if this is the source reinstancer that all other active reinstancing is spawned from */
+	bool bIsSourceReinstancer;
 
 public:
 	// FSerializableObject interface
