@@ -229,6 +229,16 @@ namespace UnrealBuildTool
 						break;
 				}
 			}
+
+			// By default VS2015 doesn't install the C++ toolchain. Help developers out with a special message.
+			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
+			{
+				string CompilerExe = Path.Combine(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015), "../../VC/bin/cl.exe");
+				if (!File.Exists(CompilerExe))
+				{
+					Log.TraceInformation("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
+				}
+			}
 		}
 
 

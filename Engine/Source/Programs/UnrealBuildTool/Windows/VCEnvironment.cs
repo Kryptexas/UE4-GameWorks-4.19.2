@@ -316,6 +316,20 @@ namespace UnrealBuildTool
 		/// <returns>The version of the compiler.</returns>
 		private static Version FindCLExeVersion(string CompilerExe)
 		{
+			// Check that the cl.exe exists (GetVersionInfo doesn't handle this well).
+			if (!File.Exists(CompilerExe))
+			{
+				// By default VS2015 doesn't install the C++ toolchain. Help developers out with a special message.
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+				{
+					throw new BuildException("Failed to find cl.exe in the default toolchain directory " + CompilerExe + ". Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
+				}
+				else
+				{
+					throw new BuildException("Failed to find cl.exe in the default toolchain directory " + CompilerExe + ". Please check that Visual Studio is correctly installed.");
+				}
+			}
+
 			var ExeVersionInfo = FileVersionInfo.GetVersionInfo(CompilerExe);
 			if (ExeVersionInfo == null)
 			{
