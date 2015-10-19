@@ -708,7 +708,7 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 		if ( Texture.Source.HasHadBulkDataCleared() )
 		{
 			// don't do any work we can't reload this
-			UE_LOG(LogTexture, Error, TEXT("Unable to load texture source data could be because it has been cleared. %s"), *Texture.GetName())
+			UE_LOG(LogTexture, Error, TEXT("Unable to load texture source data could be because it has been cleared. %s"), *Texture.GetPathName())
 			return;
 		}
 
