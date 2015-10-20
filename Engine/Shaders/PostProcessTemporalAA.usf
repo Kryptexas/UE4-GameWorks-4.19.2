@@ -244,7 +244,9 @@ float RandFast( uint2 PixelPos, float Magic = 3571.0 )
 	return Random.x;
 }
 
-void SSRTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+void SSRTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
+	float4 SvPosition : SV_POSITION,		// after all interpolators
+	out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -256,11 +258,13 @@ void SSRTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 In
 	#include "PostProcessTemporalCommon.usf"
 #else 
 	// On broken platforms then at least draw something without AA.
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
 #endif
 }
 
-void DOFTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+void DOFTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
+	float4 SvPosition : SV_POSITION,		// after all interpolators
+	out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -277,11 +281,13 @@ void DOFTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 In
 	#define AA_DOF 1
 	#include "PostProcessTemporalCommon.usf"
 #else 
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
 #endif
 }
 
-void LightShaftTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+void LightShaftTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
+	float4 SvPosition : SV_POSITION,		// after all interpolators
+	out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -292,7 +298,7 @@ void LightShaftTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, fl
 	#define AA_NAN 1
 	#include "PostProcessTemporalCommon.usf"
 #else 
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
 #endif
 }
 
@@ -305,8 +311,6 @@ void MainTemporalAAPS(
 	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
-	float4 UVAndScreenPos = float4(UV, SvPositionToScreenPosition(SvPosition).xy);
-
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
 	#define AA_FILTERED 1
@@ -326,12 +330,12 @@ void MainTemporalAAPS(
 	float Random = RandFast( PixelPos );
 	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #else 
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
 #endif
 }
 
 void MainFastTemporalAAPS(
-	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	in noperspective float2 UV: TEXCOORD0,
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
 	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
@@ -355,6 +359,6 @@ void MainFastTemporalAAPS(
 	float Random = RandFast( PixelPos );
 	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #else 
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
 #endif
 }
