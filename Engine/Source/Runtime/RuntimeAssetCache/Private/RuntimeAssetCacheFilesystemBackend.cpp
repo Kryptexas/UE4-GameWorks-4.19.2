@@ -1,6 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
 #include "RuntimeAssetCachePrivatePCH.h"
 #include "RuntimeAssetCacheFilesystemBackend.h"
 #include "RuntimeAssetCacheEntryMetadata.h"
