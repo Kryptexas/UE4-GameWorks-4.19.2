@@ -161,10 +161,6 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 
 		const FString KeyDesc = ActivationKeyName != ActivationKeyDisplayName ? FString::Printf(TEXT("(%s key)"), *ActivationKeyName) : TEXT("");
 		FString HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Numpad numbers to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
-		if (UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->UseAlternateKeys())
-		{
-			HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Alt + number to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
-		}
 
 		float HeaderWidth = 0.0f;
 		CalulateStringSize(DefaultContext, DefaultContext.Font, HeaderDesc, HeaderWidth, MaxHeight);
@@ -180,28 +176,31 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 		}
 
 		{
+			static FString KeyShortcut = GDC->DebugCameraBind.GetInputText().ToString();
 			const int32 DebugCameraIndex = Categories.Add(FDebugCategoryView());
 			CategoriesWidth.AddZeroed(1);
-			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[Tab]: %s  "), GDC && GDC->GetDebugCameraController().IsValid() ? TEXT("{Green}") : TEXT("{White}"), TEXT("Debug Camera"));
+			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[%s]: %s  "), GDC && GDC->GetDebugCameraController().IsValid() ? TEXT("{Green}") : TEXT("{White}"), *KeyShortcut, TEXT("Debug Camera"));
 			float StrHeight = 0.0f;
 			CalulateStringSize(DefaultContext, DefaultContext.Font, Categories[DebugCameraIndex].Desc, CategoriesWidth[DebugCameraIndex], StrHeight);
 			TotalWidth += CategoriesWidth[DebugCameraIndex];
 			MaxHeight = FMath::Max(MaxHeight, StrHeight);
 		}
 		{
+			static FString KeyShortcut = GDC->OnScreenDebugMessagesBind.GetInputText().ToString();
 			const int32 DebugCameraIndex = Categories.Add(FDebugCategoryView());
 			CategoriesWidth.AddZeroed(1);
-			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[Ctrl+Tab]: %s  "), GEngine && GEngine->bEnableOnScreenDebugMessages ? TEXT("{Green}") : TEXT("{White}"), TEXT("DebugMessages"));
+			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[%s]: %s  "), GEngine && GEngine->bEnableOnScreenDebugMessages ? TEXT("{Green}") : TEXT("{White}"), *KeyShortcut, TEXT("DebugMessages"));
 			float StrHeight = 0.0f;
 			CalulateStringSize(DefaultContext, DefaultContext.Font, Categories[DebugCameraIndex].Desc, CategoriesWidth[DebugCameraIndex], StrHeight);
 			TotalWidth += CategoriesWidth[DebugCameraIndex];
 			MaxHeight = FMath::Max(MaxHeight, StrHeight);
 		}
 		{
+			static FString KeyShortcut = GDC->GameHUDBind.GetInputText().ToString();
 			const AHUD* GameHUD = MyPC ? MyPC->GetHUD() : NULL;
 			const int32 DebugCameraIndex = Categories.Add(FDebugCategoryView());
 			CategoriesWidth.AddZeroed(1);
-			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[Ctrl+Tilde]: %s  "), GameHUD && GameHUD->bShowHUD ? TEXT("{Green}") : TEXT("{White}"), TEXT("GameHUD"));
+			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[%s]: %s  "), GameHUD && GameHUD->bShowHUD ? TEXT("{Green}") : TEXT("{White}"), *KeyShortcut, TEXT("GameHUD"));
 			float StrHeight = 0.0f;
 			CalulateStringSize(DefaultContext, DefaultContext.Font, Categories[DebugCameraIndex].Desc, CategoriesWidth[DebugCameraIndex], StrHeight);
 			TotalWidth += CategoriesWidth[DebugCameraIndex];
