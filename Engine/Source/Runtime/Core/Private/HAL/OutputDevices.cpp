@@ -883,6 +883,15 @@ void FOutputDeviceRedirector::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 
 	FScopeLock ScopeLock( &SynchronizationObject );
 
+#if PLATFORM_DESKTOP
+	// this is for errors which occur after shutdown we might be able to salvage information from stdout 
+	if (OutputDevices.Num() == 0)
+	{
+		printf("%s\n", TCHAR_TO_ANSI(Data));
+	}
+#endif
+
+
 	if ( bEnableBacklog )
 	{
 		new(BacklogLines)FBufferedLine( Data, Category, Verbosity, RealTime );
