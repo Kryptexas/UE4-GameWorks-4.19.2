@@ -230,7 +230,7 @@ void USoundWave::Serialize( FArchive& Ar )
 		}
 
 #if WITH_EDITORONLY_DATA	
-		if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked && !(GetOutermost()->PackageFlags & PKG_ReloadingForCooker))
+		if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked && !GetOutermost()->HasAnyPackageFlags(PKG_ReloadingForCooker))
 		{
 			BeginCachePlatformData();
 		}
@@ -324,7 +324,7 @@ void USoundWave::PostLoad()
 {
 	Super::PostLoad();
 
-	if (GetOutermost()->PackageFlags & PKG_ReloadingForCooker)
+	if (GetOutermost()->HasAnyPackageFlags(PKG_ReloadingForCooker))
 	{
 		return;
 	}

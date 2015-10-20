@@ -1158,9 +1158,9 @@ static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 
 void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettings& LODSettings)
 {
-	if (Owner->GetOutermost()->PackageFlags & PKG_FilterEditorOnly)
+	if (Owner->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
-		// Don't chache for cooked packages
+		// Don't cache for cooked packages
 		return;
 	}
 
@@ -1717,7 +1717,7 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 	FString PlatformDerivedDataKey = BuildStaticMeshDerivedDataKey(Mesh, PlatformLODSettings.GetLODGroup(Mesh->LODGroup));
 	FStaticMeshRenderData* PlatformRenderData = Mesh->RenderData;
 
-	if (Mesh->GetOutermost()->PackageFlags & PKG_FilterEditorOnly)
+	if (Mesh->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
 		check(PlatformRenderData);
 		return *PlatformRenderData;
@@ -1957,7 +1957,7 @@ void UStaticMesh::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	if (!(GetOutermost()->PackageFlags & PKG_FilterEditorOnly))
+	if (!GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
 		// Needs to happen before 'CacheDerivedData'
 		if (GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR)

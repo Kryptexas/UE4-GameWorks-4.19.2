@@ -841,7 +841,10 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			if (Type.PinCategory == Schema->PC_AssetClass)
 			{
 				auto AssetClassProperty = NewObject<UAssetClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
-				AssetClassProperty->MetaClass = SubType;
+				// we want to use this setter function instead of setting the 
+				// MetaClass member directly, because it properly handles  
+				// placeholder classes (classes that are stubbed in during load)
+				AssetClassProperty->SetMetaClass(SubType);
 				NewProperty = AssetClassProperty;
 			}
 			else

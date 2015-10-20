@@ -62,6 +62,7 @@
 #include "GeneralProjectSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
 
@@ -186,7 +187,7 @@ void UEditorEngine::EndPlayMap()
 	{
 		UObject* Object = *It;
 
-		if ((Object->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+		if (Object->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 		{
 			if (Object->HasAnyFlags(RF_Standalone))
 			{
@@ -327,7 +328,7 @@ void UEditorEngine::EndPlayMap()
 	for( FObjectIterator ObjectIt; ObjectIt; ++ObjectIt )
 	{
 		UObject* Object = *ObjectIt;
-		if( Object->GetOutermost()->PackageFlags & PKG_PlayInEditor )
+		if( Object->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 		{
 			UWorld* TheWorld = UWorld::FindWorldInPackage(Object->GetOutermost());
 			if ( TheWorld )
@@ -1250,6 +1251,13 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 			AdditionalParameters += TEXT(" -opengl");
 		}
 		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
+	}
+
+	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
+	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	{
+		AdditionalParameters += TEXT(" -nohmd");
+		UE_LOG(LogHMD, Warning, TEXT("Standalone game VR not supported, please use VR Preview."));
 	}
 
 	if (PlayInSettings->DisableStandaloneSound)
@@ -3410,7 +3418,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	UE_LOG( LogPlayLevel, Log, TEXT("Creating play world package: %s"),  *PlayWorldMapName );	
 
 	UPackage* PlayWorldPackage = CastChecked<UPackage>(CreatePackage(NULL,*PlayWorldMapName));
-	PlayWorldPackage->PackageFlags |= PKG_PlayInEditor;
+	PlayWorldPackage->SetPackageFlags(PKG_PlayInEditor);
 	PlayWorldPackage->PIEInstanceID = WorldContext.PIEInstance;
 	PlayWorldPackage->FileName = InPackage->FileName;
 	PlayWorldPackage->SetGuid( InPackage->GetGuid() );

@@ -48,6 +48,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void RequestListRefresh();
 
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;

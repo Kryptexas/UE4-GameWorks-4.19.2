@@ -4,6 +4,7 @@
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
 #include "LandscapeEdit.h"
+#include "LandscapeDataAccess.h"
 #include "LandscapeRender.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Algo/Reverse.h"

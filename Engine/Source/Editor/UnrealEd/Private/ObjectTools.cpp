@@ -86,7 +86,7 @@ namespace ObjectTools
 			if( ObjectPackage != NULL )
 			{
 				if( ObjectPackage != GetTransientPackage()
-					&& (ObjectPackage->PackageFlags & PKG_PlayInEditor) == 0
+					&& (ObjectPackage->HasAnyPackageFlags(PKG_PlayInEditor) == false)
 					&& !Obj->IsPendingKill() )
 				{
 					bIsSupported = true;
@@ -494,6 +494,30 @@ namespace ObjectTools
 		TArray<UObject*> ReplaceableObjects;
 		// Objects whose references could not be successfully replaced
 		TArray<UObject*> UnreplaceableObjects;
+
+		void AppendUnique(const FForceReplaceInfo& ForceReplaceInfo)
+		{
+			const TArray<UPackage*>& ForceReplaceInfoDirtiedPackages = ForceReplaceInfo.DirtiedPackages;
+			DirtiedPackages.Reserve(DirtiedPackages.Num() + ForceReplaceInfoDirtiedPackages.Num());
+			for (UPackage* Package : ForceReplaceInfoDirtiedPackages)
+			{
+				DirtiedPackages.AddUnique(Package);
+			}
+
+			const TArray<UObject*>& ForceReplaceInfoReplaceableObjects = ForceReplaceInfo.ReplaceableObjects;
+			ReplaceableObjects.Reserve(ReplaceableObjects.Num() + ForceReplaceInfoReplaceableObjects.Num());
+			for (UObject* Object : ForceReplaceInfoReplaceableObjects)
+			{
+				ReplaceableObjects.Add(Object);
+			}
+
+			const TArray<UObject*>& ForceReplaceInfoUnreplaceableObjects = ForceReplaceInfo.UnreplaceableObjects;
+			UnreplaceableObjects.Reserve(UnreplaceableObjects.Num() + ForceReplaceInfoUnreplaceableObjects.Num());
+			for (UObject* Object : ForceReplaceInfoUnreplaceableObjects)
+			{
+				UnreplaceableObjects.Add(Object);
+			}
+		}
 	};
 
 	/**
@@ -630,7 +654,7 @@ namespace ObjectTools
 				// If an object is "unreplaceable" store it separately to warn the user about later
 				else
 				{
-					OutInfo.UnreplaceableObjects.Add( CurObjToReplace );
+					OutInfo.UnreplaceableObjects.AddUnique( CurObjToReplace );
 				}
 			}
 		}
@@ -789,12 +813,39 @@ namespace ObjectTools
 			}
 
 			FForceReplaceInfo ReplaceInfo;
+			FForceReplaceInfo GeneratedClassReplaceInfo;
+
 			// Scope the reregister context below to complete after object deletion and before garbage collection
 			{
 				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
 				FGlobalComponentReregisterContext ReregisterContext;
+				ForceReplaceReferences( ObjectToConsolidateTo, ObjectsToConsolidate, ReplaceInfo );				
 				
-				ForceReplaceReferences( ObjectToConsolidateTo, ObjectsToConsolidate, ReplaceInfo );
+				if (UBlueprint* ObjectToConsolidateTo_BP = Cast<UBlueprint>(ObjectToConsolidateTo))
+				{
+					// Replace all UClass/TSubClassOf properties of generated class.
+					TArray<UObject*> ObjectsToConsolidate_BP;
+					TArray<UClass*> OldGeneratedClasses;
+					ObjectsToConsolidate_BP.Reserve(ObjectsToConsolidate.Num());
+					OldGeneratedClasses.Reserve(ObjectsToConsolidate.Num());
+					for (UObject* ObjectToConsolidate : ObjectsToConsolidate)
+					{
+						UClass* OldGeneratedClass = Cast<UBlueprint>(ObjectToConsolidate)->GeneratedClass;
+						ObjectsToConsolidate_BP.Add(OldGeneratedClass);
+						OldGeneratedClasses.Add(OldGeneratedClass);
+					}
+				
+					ForceReplaceReferences(ObjectToConsolidateTo_BP->GeneratedClass, ObjectsToConsolidate_BP, GeneratedClassReplaceInfo);
+
+					// Repair the references of GeneratedClass on the object being consolidated so they can be properly disposed of upon deletion.
+					for (int32 Index = 0, MaxIndex = ObjectsToConsolidate.Num(); Index < MaxIndex; ++Index)
+					{
+						Cast<UBlueprint>(ObjectsToConsolidate[Index])->GeneratedClass = OldGeneratedClasses[Index];
+					}
+
+					ReplaceInfo.AppendUnique(GeneratedClassReplaceInfo);
+				}
+
 				DirtiedPackages.Append( ReplaceInfo.DirtiedPackages );
 				UnconsolidatableObjects.Append( ReplaceInfo.UnreplaceableObjects );
 			}
@@ -859,7 +910,10 @@ namespace ObjectTools
 					Redirector->DestinationObject = ObjectToConsolidateTo;
 
 					// Keep track of the object name so we can rename the redirector later
-					RedirectorToObjectNameMap.Add(Redirector, CurObjName);
+					if (!RedirectorToObjectNameMap.FindKey(CurObjName))
+					{
+						RedirectorToObjectNameMap.Add(Redirector, CurObjName);
+					}
 
 					// If consolidating blueprints, make sure redirectors are created for the consolidated blueprint class and CDO
 					if ( BlueprintToConsolidateTo != NULL && BlueprintToConsolidate != NULL )
@@ -1193,7 +1247,7 @@ namespace ObjectTools
 	void SelectActorsInLevelDirectlyReferencingObject( UObject* RefObj )
 	{
 		UPackage* Package = Cast<UPackage>(RefObj->GetOutermost());
-		if (Package && ((Package->PackageFlags & PKG_ContainsMap) != 0))
+		if (Package && Package->ContainsMap())
 		{
 			// Walk the chain of outers to find the object that is 'in' the level...
 			UObject* ObjToSelect = NULL;
@@ -2593,7 +2647,10 @@ namespace ObjectTools
 					NewPackage->GetOutermost()->FullyLoad();
 
 					// Make sure we copy all the cooked package flags if the asset was already cooked.
-					NewPackage->PackageFlags |= (Object->GetOutermost()->PackageFlags & PKG_FilterEditorOnly);
+					if (Object->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
+					{
+						NewPackage->SetPackageFlags(PKG_FilterEditorOnly);
+					}
 					NewPackage->bIsCookedForEditor = Object->GetOutermost()->bIsCookedForEditor;
 
 					UObjectRedirector* Redirector = Cast<UObjectRedirector>( StaticFindObject(UObjectRedirector::StaticClass(), NewPackage, *NewObjectName) );

@@ -27,7 +27,11 @@ pushd libPNG-1.5.2\projects
 	popd
 
 	REM XboxOne
-	pushd XboxOne
+	pushd XboxOne\VS2012
+	msbuild libpng_XboxOne.sln /target:Clean,libpng /p:Platform=Durango;Configuration=Release
+	msbuild libpng_XboxOne.sln /target:Clean,libpng /p:Platform=Durango;Configuration=Debug
+	popd
+	pushd XboxOne\VS2015
 	msbuild libpng_XboxOne.sln /target:Clean,libpng /p:Platform=Durango;Configuration=Release
 	msbuild libpng_XboxOne.sln /target:Clean,libpng /p:Platform=Durango;Configuration=Debug
 	popd

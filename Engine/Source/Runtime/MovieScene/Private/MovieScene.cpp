@@ -105,7 +105,7 @@ const FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* G
 	check( GamePreviewObject != nullptr );
 
 	// Must only be called for objects in game preview worlds
-	const bool bIsGamePreviewObject = !!( GamePreviewObject->GetOutermost()->PackageFlags & PKG_PlayInEditor );
+	const bool bIsGamePreviewObject = GamePreviewObject->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
 	check( bIsGamePreviewObject );
 
 	for( auto CurSpawnableIt( Spawnables.CreateConstIterator() ); CurSpawnableIt; ++CurSpawnableIt )

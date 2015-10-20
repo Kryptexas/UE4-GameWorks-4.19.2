@@ -1612,7 +1612,7 @@ void FSequencer::PlaceActorInFrontOfCamera( AActor* ActorCDO )
 	if ((GCurrentLevelEditingViewportClient != nullptr) && GCurrentLevelEditingViewportClient->IsPerspective())
 	{
 		// Don't allow this when the active viewport is showing a simulation/PIE level
-		const bool bIsViewportShowingPIEWorld = ( GCurrentLevelEditingViewportClient->GetWorld()->GetOutermost()->PackageFlags & PKG_PlayInEditor ) != 0;
+		const bool bIsViewportShowingPIEWorld = GCurrentLevelEditingViewportClient->GetWorld()->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
 		if( !bIsViewportShowingPIEWorld )
 		{
 			// @todo sequencer actors: Ideally we could use the actor's collision to figure out how far to push out

@@ -76,7 +76,7 @@ void UBlueprintGeneratedClass::PostLoad()
 
 	if (const UPackage* Package = GetOutermost())
 	{
-		if (Package->PackageFlags & PKG_ForDiffing)
+		if (Package->HasAnyPackageFlags(PKG_ForDiffing))
 		{
 			ClassFlags |= CLASS_Deprecated;
 		}

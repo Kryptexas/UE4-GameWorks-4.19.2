@@ -3374,7 +3374,10 @@ void UClass::Serialize( FArchive& Ar )
 		}
 	}
 
-	Ar << ClassGeneratedBy;
+	if (!Ar.IsIgnoringClassGeneratedByRef())
+	{
+		Ar << ClassGeneratedBy;
+	}
 
 	if(Ar.IsLoading())
 	{

@@ -547,6 +547,10 @@ void UBrushComponent::PostLoad()
 	}
 
 #if WITH_EDITOR
+	// If loading a brush with mirroring whose body setup has not been created correctly, request that it be rebuilt now.
+	// The rebuilding will actually happen in the UBodySetup::PostLoad.
+	RequestUpdateBrushCollision();
+
 	AActor* Owner = GetOwner();
 
 	if (Owner)
@@ -727,8 +731,23 @@ bool UBrushComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& I
 
 	return false;
 }
-#endif
 
+void UBrushComponent::RequestUpdateBrushCollision()
+{
+	if (BrushBodySetup)
+	{
+		const bool bIsMirrored = (RelativeScale3D.X * RelativeScale3D.Y * RelativeScale3D.Z) < 0.0f;
+		if ((BrushBodySetup->bGenerateNonMirroredCollision && bIsMirrored) || (BrushBodySetup->bGenerateMirroredCollision && !bIsMirrored))
+		{
+			// Brushes only maintain one convex mesh as they can't be transformed at runtime.
+			// Here we invalidate the body setup, and specify whether we wish to build a non-mirrored or a mirrored mesh.
+			BrushBodySetup->bGenerateNonMirroredCollision = !bIsMirrored;
+			BrushBodySetup->bGenerateMirroredCollision = bIsMirrored;
+			BrushBodySetup->InvalidatePhysicsData();
+		}
+	}
+}
+#endif
 
 void UBrushComponent::BuildSimpleBrushCollision()
 {
@@ -747,12 +766,13 @@ void UBrushComponent::BuildSimpleBrushCollision()
 
 	// No complex collision, so use the simple for that
 	BrushBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-	// Don't need mirrored version of collision data
-	BrushBodySetup->bGenerateMirroredCollision = false;
 
 #if WITH_EDITOR
+	RequestUpdateBrushCollision();
+
 	// Convert collision model into convex hulls.
 	BrushBodySetup->CreateFromModel( Brush, true );
+
 	RecreatePhysicsState();
 #endif // WITH_EDITOR
 

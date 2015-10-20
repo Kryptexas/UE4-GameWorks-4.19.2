@@ -47,8 +47,11 @@ public:
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
-#endif
 	// End UPrimitiveComponent interface.
+
+	/** If the transform mirroring no longer reflects the body setup, request its recalculation */
+	ENGINE_API void RequestUpdateBrushCollision();
+#endif
 
 	/** Create the AggGeom collection-of-convex-primitives from the Brush UModel data. */
 	ENGINE_API void BuildSimpleBrushCollision();

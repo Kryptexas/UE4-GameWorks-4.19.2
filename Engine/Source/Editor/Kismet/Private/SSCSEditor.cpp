@@ -1230,7 +1230,7 @@ void FSCSEditorTreeNodeComponent::RemoveMeAsChild()
 
 UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemplate(UBlueprint* Blueprint, bool bCreateIfNecessary) const
 {
-	UActorComponent* OverridenComponent = NULL;
+	UActorComponent* OverriddenComponent = NULL;
 
 	FComponentKey Key(GetSCSNode());
 
@@ -1244,14 +1244,14 @@ UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemp
 		UInheritableComponentHandler* InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(bCreateIfNecessary);
 		if (InheritableComponentHandler)
 		{
-			OverridenComponent = InheritableComponentHandler->GetOverridenComponentTemplate(Key);
-			if (!OverridenComponent && bCreateIfNecessary)
+			OverriddenComponent = InheritableComponentHandler->GetOverridenComponentTemplate(Key);
+			if (!OverriddenComponent && bCreateIfNecessary)
 			{
-				OverridenComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
+				OverriddenComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
 			}
 		}
 	}
-	return OverridenComponent;
+	return OverriddenComponent;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3568,9 +3568,9 @@ void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 			int32 NumComponentInstances = 0;
 			for (auto CompIt = ActorInstance->GetComponents().CreateConstIterator(); CompIt; ++CompIt)
 			{
-				// Don't count editor-only components in instanced mode, because we don't show them there. Also, don't count UCS-added components if the option to hide them is enabled, and don't count components that are based on the CDO in the BP editor context (i.e. preview world).
+				// Don't count editor-only components in instanced mode (unless it's the root component), because we don't show them there. Also, don't count UCS-added components if the option to hide them is enabled, and don't count components that are based on the CDO in the BP editor context (i.e. preview world).
 				const UActorComponent* CompInst = *CompIt;
-				if ((!CompInst->IsEditorOnly() || EditorMode != EComponentEditorMode::ActorInstance)
+				if ((!CompInst->IsEditorOnly() || EditorMode != EComponentEditorMode::ActorInstance || CompInst == ActorInstance->GetRootComponent())
 					&& (CompInst->CreationMethod != EComponentCreationMethod::UserConstructionScript || bShowInstancedUCSComponents)
 					&& (EditorMode != EComponentEditorMode::BlueprintSCS || CompInst->GetArchetype() != CompInst->GetClass()->GetDefaultObject()))
 				{

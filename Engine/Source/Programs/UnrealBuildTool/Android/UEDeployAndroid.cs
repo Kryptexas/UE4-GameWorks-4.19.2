@@ -1484,6 +1484,14 @@ namespace UnrealBuildTool.Android
                 
                 Log.TraceInformation("Cleaning up files based on template dir {0}", TemplateDestinationBase);
 
+				// Make a set of files that are okay to clean up
+				var cleanFiles = new HashSet<string>();
+				cleanFiles.Add("OBBData.java");
+				foreach (var template in templates)
+				{
+					cleanFiles.Add(Path.GetFileName(template.DestinationFile));
+				}
+
                 foreach(var filename in files)
                 {
                     if (filename == UE4DownloadShimFileName)  // we always need the shim, and it'll get rewritten if needed anyway
@@ -1492,6 +1500,10 @@ namespace UnrealBuildTool.Android
                     string filePath = Path.GetDirectoryName(filename);  // grab the file's path
                     if(filePath != TemplateDestinationBase)             // and check to make sure it isn't the same as the Template directory we calculated earlier
                     {
+						// Only delete the files in the cleanup set
+						if (!cleanFiles.Contains(Path.GetFileName(filename)))
+							continue;
+
                         Log.TraceInformation("Cleaning up file {0} with path {1}", filename, filePath);
                         File.Delete(filename);
 

@@ -290,7 +290,7 @@ void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, 
 			if( Object->IsA(Class) && !Object->IsPendingKill() )
 			{
 				// If we're in a PIE session then only allow set commands to affect PlayInEditor objects.
-				if( !GIsPlayInEditorWorld || ( Object->GetOutermost()->PackageFlags & PKG_PlayInEditor ) != 0 )
+				if( !GIsPlayInEditorWorld || Object->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor)  )
 				{
 #if WITH_EDITOR
 					if( !Object->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
@@ -962,7 +962,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 		if (CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
 		{
-			if (Result->PackageFlags & PKG_ProcessingDependencies)
+			if (Result->HasAnyPackageFlags(PKG_ProcessingDependencies))
 			{
 				// We've currently already processing the dependencies of this package, so there is a circular dependency
 				EndLoad();
@@ -978,12 +978,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 				AssetRegistry->GetDependencies(PackageName, PackageDependencies, EAssetRegistryDependencyType::Hard);
 
-				Result->PackageFlags |= PKG_ProcessingDependencies;
+				Result->SetPackageFlags(PKG_ProcessingDependencies);
 				for (auto Dependency : PackageDependencies)
 				{
 					LoadPackage(InOuter, *Dependency.ToString(), LoadFlags);
 				}
-				Result->PackageFlags &= ~PKG_ProcessingDependencies;
+				Result->ClearPackageFlags(PKG_ProcessingDependencies);
 			}
 		}
 #endif
@@ -991,7 +991,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		// If we are loading a package for diff'ing, set the package flag
 		if(LoadFlags & LOAD_ForDiff)
 		{
-			Result->PackageFlags |= PKG_ForDiffing;
+			Result->SetPackageFlags(PKG_ForDiffing);
 		}
 
 		// Save the filename we load from
@@ -1741,7 +1741,7 @@ bool SaveToTransactionBuffer(UObject* Object, bool bMarkDirty)
 	// Neither PIE world objects nor script packages should end up in the transaction buffer. Additionally, in order
 	// to save a copy of the object, we must have a transactor and the object must be transactional.
 	const bool IsTransactional = Object->HasAnyFlags(RF_Transactional);
-	const bool IsNotPIEOrContainsScriptObject = ( ( Object->GetOutermost()->PackageFlags & ( PKG_PlayInEditor | PKG_ContainsScript ) ) == 0 );
+	const bool IsNotPIEOrContainsScriptObject = (Object->GetOutermost()->HasAnyPackageFlags( PKG_PlayInEditor | PKG_ContainsScript) == false);
 
 	if ( GUndo && IsTransactional && IsNotPIEOrContainsScriptObject )
 	{
@@ -1945,7 +1945,11 @@ UObject* StaticAllocateObject
 		{
 			// Should only get in here if we're NOT creating a subobject of a CDO.  CDO subobjects may still need to be serialized off of disk after being created by the constructor
 			// if really necessary there was code to allow replacement of object just needing postload, but lets not go there unless we have to
-			checkf(!Obj->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad|RF_ClassDefaultObject), *FText::Format( NSLOCTEXT( "Core", "ReplaceNotFullyLoaded_f", "Attempting to replace an object that hasn't been fully loaded: {0}" ), FText::FromString( Obj->GetFullName() ) ).ToString() );
+			checkf(!Obj->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad|RF_ClassDefaultObject),
+				*FText::Format(NSLOCTEXT("Core", "ReplaceNotFullyLoaded_f", "Attempting to replace an object that hasn't been fully loaded: {0} (Outer={1}, Flags={2})"),
+					FText::FromString(Obj->GetFullName()),
+					InOuter ? FText::FromString(InOuter->GetFullName()) : FText::FromString(TEXT("NULL")),
+					FText::FromString(FString::Printf(TEXT("0x%08x"), (int32)Obj->GetFlags()))).ToString());
 		}
 		// Subobjects are always created in the constructor, no need to re-create them here unless their archetype != CDO or they're blueprint generated.	
 		if (!bCreatingCDO && (!bCanRecycleSubobjects || !Obj->IsDefaultSubobject()))

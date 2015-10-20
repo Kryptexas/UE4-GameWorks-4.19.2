@@ -1449,7 +1449,7 @@ void UTexture::BeginCachePlatformData()
 void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TMap<FString, FTexturePlatformData*>* CookedPlatformDataPtr = GetCookedPlatformData();
-	if (CookedPlatformDataPtr && !(GetOutermost()->PackageFlags & PKG_FilterEditorOnly))
+	if (CookedPlatformDataPtr && !GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
 		TMap<FString,FTexturePlatformData*>& CookedPlatformData = *CookedPlatformDataPtr;
 		
@@ -1704,7 +1704,7 @@ void UTexture::FinishCachePlatformData()
 			}
 
 #if DO_CHECK
-			if (!(GetOutermost()->PackageFlags & PKG_FilterEditorOnly))
+			if (!GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 			{
 				FString DerivedDataKey;
 				FTextureBuildSettings BuildSettings;

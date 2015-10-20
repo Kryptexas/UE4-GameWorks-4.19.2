@@ -329,6 +329,20 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
+- (NSRect)constrainFrameRect:(NSRect)FrameRect toScreen:(NSScreen*)Screen
+{
+	NSRect ConstrainedRect = [super constrainFrameRect:FrameRect toScreen:Screen];
+
+	if (self.TargetWindowMode == EWindowMode::Windowed)
+	{
+		// In windowed mode do not limit the window size to screen size
+		ConstrainedRect.origin.y -= FrameRect.size.height - ConstrainedRect.size.height;
+		ConstrainedRect.size = FrameRect.size;
+	}
+
+	return ConstrainedRect;
+}
+
 - (void)windowDidChangeScreen:(NSNotification*)Notification
 {
 	// The windowdidChangeScreen notification only comes after you finish dragging.

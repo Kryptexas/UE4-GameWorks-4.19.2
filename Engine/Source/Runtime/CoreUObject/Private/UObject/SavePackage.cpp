@@ -3117,7 +3117,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			return false;
 		}
 
-		bool FilterEditorOnly = (InOuter->PackageFlags & PKG_FilterEditorOnly) != 0;
+		const bool FilterEditorOnly = InOuter->HasAnyPackageFlags(PKG_FilterEditorOnly);
 		// store a list of additional packages to cook when this is cooked (ie streaming levels)
 		TArray<FString> AdditionalPackagesToCook;
 
@@ -3242,7 +3242,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				TSet<UObject*> DependenciesReferencedByNonRedirectors;
 		
 				/** If true, we are going to compress the package to memory to save a little time */
-				bool bCompressFromMemory = !!(InOuter->PackageFlags & PKG_StoreCompressed);
+				const bool bCompressFromMemory = InOuter->HasAnyPackageFlags(PKG_StoreCompressed);
 
 				/** If true, we are going to save to disk async to save time. */
 				bool bSaveAsync = !!(SaveFlags & SAVE_Async);
@@ -3886,8 +3886,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						UPackage* Package = dynamic_cast<UPackage*>(Object);
 						if (Package != NULL)
 						{
-							Linker->ExportMap[i].PackageFlags = Package->PackageFlags;
-							if (!(Package->PackageFlags & PKG_ServerSideOnly))
+							Linker->ExportMap[i].PackageFlags = Package->GetPackageFlags();
+							if (!Package->HasAnyPackageFlags(PKG_ServerSideOnly))
 							{
 								Linker->ExportMap[i].PackageGuid = Package->GetGuid();
 							}
@@ -4268,7 +4268,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->LinkerRoot->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
 				
 				// Update package flags from package, in case serialization has modified package flags.
-				Linker->Summary.PackageFlags  = Linker->LinkerRoot->PackageFlags & ~PKG_NewlyCreated;
+				Linker->Summary.PackageFlags = Linker->LinkerRoot->GetPackageFlags() & ~PKG_NewlyCreated;
 
 				Linker->Seek(0);
 				*Linker << Linker->Summary;
@@ -4321,7 +4321,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						UE_LOG_COOK_TIME(TEXT("CompressFromMemory"));
 					}
 					// Compress the temporarily file to destination.
-					else if( InOuter->PackageFlags & PKG_StoreCompressed )
+					else if( InOuter->HasAnyPackageFlags(PKG_StoreCompressed) )
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
@@ -4330,7 +4330,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						UE_LOG_COOK_TIME(TEXT("CompressFromTempFile"));
 					}
 					// Fully compress package in one "block".
-					else if( InOuter->PackageFlags & PKG_StoreFullyCompressed )
+					else if( InOuter->HasAnyPackageFlags(PKG_StoreFullyCompressed) )
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Full-package compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
@@ -4364,7 +4364,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 
 					// Make sure to clean up any stale .uncompressed_size files.
-					if( !(InOuter->PackageFlags & PKG_StoreFullyCompressed) )
+					if( !InOuter->HasAnyPackageFlags(PKG_StoreFullyCompressed) )
 					{
 						IFileManager::Get().Delete( *(NewPath + TEXT(".uncompressed_size")) );
 					}
@@ -4465,7 +4465,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		if( Success == true )
 		{
 			// Package has been save, so unmark NewlyCreated flag.
-			InOuter->PackageFlags &= ~PKG_NewlyCreated;
+			InOuter->ClearPackageFlags(PKG_NewlyCreated);
 
 			// send a message that the package was saved
 			UPackage::PackageSavedEvent.Broadcast(Filename, InOuter);

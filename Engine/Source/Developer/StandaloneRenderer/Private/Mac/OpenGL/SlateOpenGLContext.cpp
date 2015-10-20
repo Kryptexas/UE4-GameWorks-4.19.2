@@ -8,6 +8,7 @@
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
+#include "CocoaThread.h"
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
@@ -224,9 +225,11 @@ void FSlateOpenGLContext::Destroy()
 		// PixelFormat and Context are released by View
 		CGDisplayRemoveReconfigurationCallback(&MacOpenGLContextReconfigurationCallBack, this);
 
-		[PixelFormat release];
-		[Context clearDrawable];
-		[Context release];
+		MainThreadCall(^{
+			[PixelFormat release];
+			[Context clearDrawable];
+			[Context release];
+		}, NSDefaultRunLoopMode, false);
 		PixelFormat = NULL;
 		Context = NULL;
 	}

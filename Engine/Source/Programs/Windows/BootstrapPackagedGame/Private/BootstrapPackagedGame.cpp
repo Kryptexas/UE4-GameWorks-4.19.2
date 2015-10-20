@@ -35,6 +35,10 @@ int InstallMissingPrerequisites(const WCHAR* BaseDirectory)
 	{
 		wcscat_s(MissingPrerequisites, TEXT("Microsoft Visual C++ 2013 Runtime\n"));
 	}
+	if(LoadLibrary(L"MSVCP140.DLL") == NULL || LoadLibrary(L"ucrtbase.dll") == NULL)
+	{
+		wcscat_s(MissingPrerequisites, TEXT("Microsoft Visual C++ 2015 Runtime\n"));
+	}
 	if(LoadLibrary(L"XINPUT1_3.DLL") == NULL)
 	{
 		wcscat_s(MissingPrerequisites, TEXT("DirectX Runtime\n"));
