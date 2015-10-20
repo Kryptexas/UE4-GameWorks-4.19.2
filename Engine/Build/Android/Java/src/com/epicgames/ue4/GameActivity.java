@@ -67,10 +67,14 @@ import com.epicgames.ue4.GooglePlayLicensing;
 // Console commands listener, only for debug builds
 import com.epicgames.ue4.ConsoleCmdReceiver;
 
+import android.os.Build;
+
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
 
 import com.epicgames.ue4.DownloadShim;
+
+//$${gameActivityImportAdditions}$$
 
 //Extending NativeActivity so that this Java class is instantiated
 //from the beginning of the program.  This will allow the user
@@ -162,9 +166,6 @@ public class GameActivity extends NativeActivity
 	/** Check to see if we should be verifying the files once we have them */
 	public boolean VerifyOBBOnStartUp = false;
 
-	/** Whether this application was packaged for GearVR or not */
-	public boolean PackagedForGearVR = false;
-	
 	/** Flag to ensure we have finished startup before allowing nativeOnActivityResult to get called */
 	private boolean InitCompletedOK = false;
 	
@@ -189,6 +190,8 @@ public class GameActivity extends NativeActivity
 	
 	private StoreHelper IapStoreHelper;
 
+//$${gameActivityClassAdditions}$$
+
 	@Override
 	public void onStart()
 	{
@@ -201,6 +204,7 @@ public class GameActivity extends NativeActivity
 			registerReceiver(consoleCmdReceiver, new IntentFilter(Intent.ACTION_RUN));
 		}
 		
+//$${gameActivityOnStartAdditions}$$
 		Log.debug("==================================> Inside onStart function in GameActivity");
 	}
 
@@ -455,20 +459,8 @@ public class GameActivity extends NativeActivity
 			{
 				Log.debug( "UI hiding not found. Leaving as " + ShouldHideUI);
 			}
-			
-			if(bundle.containsKey("com.samsung.android.vr.application.mode"))
-			{
-				PackagedForGearVR = true;
-				String VRMode = bundle.getString("com.samsung.android.vr.application.mode");
-				Log.debug("Found GearVR mode = " + VRMode);
 
-				com.oculus.svclib.OVREntitlementChecker.doAutomatedCheck(this);
-			}
-			else
-			{
-				PackagedForGearVR = false;
-				Log.debug("No GearVR mode detected.");
-			}
+//$${gameActivityReadMetadataAdditions}$$
 		}
 		catch (NameNotFoundException e)
 		{
@@ -635,6 +627,8 @@ public class GameActivity extends NativeActivity
 		{
 			HasAllFiles = true;
 		}
+
+//$${gameActivityOnCreateAdditions}$$
 		
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
@@ -709,7 +703,16 @@ public class GameActivity extends NativeActivity
 			}
 		}
 
+//$${gameActivityOnResumeAdditions}$$
 		Log.debug("==============> GameActive.onResume complete!");
+	}
+
+	@Override
+	protected void onPause()
+	{
+		super.onPause();
+//$${gameActivityOnPauseAdditions}$$
+		Log.debug("==============> GameActive.onPause complete!");
 	}
 
 	@Override
@@ -721,6 +724,17 @@ public class GameActivity extends NativeActivity
 		{
 			unregisterReceiver(consoleCmdReceiver);
 		}
+
+//$${gameActivityOnStopAdditions}$$
+		Log.debug("==============> GameActive.onStop complete!");
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+//$${gameActivityOnDestroyAdditions}$$
+		Log.debug("==============> GameActive.onDestroy complete!");
 	}
 
 	// handle ad popup visibility and requests
@@ -1094,12 +1108,6 @@ public class GameActivity extends NativeActivity
 		});
 	}
 
-	// check the manifest to determine if we are a GearVR application
-	public boolean AndroidThunkJava_IsGearVRApplication()
-	{
-		return PackagedForGearVR;
-	}
-
 	public static String AndroidThunkJava_GetFontDirectory()
 	{
 		// Parse and find the first known fonts directory on the device
@@ -1243,6 +1251,8 @@ public class GameActivity extends NativeActivity
 		{
 			super.onActivityResult(requestCode, resultCode, data);
 		}
+
+//$${gameActivityOnActivityResultAdditions}$$
 		
 		if(InitCompletedOK)
 		{
@@ -1379,14 +1389,7 @@ public class GameActivity extends NativeActivity
 	static
 	{
 		System.loadLibrary("gnustl_shared");
-		try
-		{
-			System.loadLibrary("vrapi");
-		}
-		catch (java.lang.UnsatisfiedLinkError e)
-		{
-			Log.debug("GearVR library not loaded. Ignore this if GearVR plugin intentionally disabled.");
-		}
+//$${soLoadLibrary}$$
 		System.loadLibrary("UE4");
 	}
 }

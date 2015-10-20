@@ -196,6 +196,11 @@ void FAndroidApplication::InitializeJavaEnv( JavaVM* VM, jint Version, jobject G
 	GlobalObjectRef = GlobalThis;
 }
 
+jobject FAndroidApplication::GetGameActivityThis()
+{
+	return GlobalObjectRef;
+}
+
 static void JavaEnvDestructor(void*)
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** JavaEnvDestructor: %d"), FPlatformTLS::GetCurrentThreadId());

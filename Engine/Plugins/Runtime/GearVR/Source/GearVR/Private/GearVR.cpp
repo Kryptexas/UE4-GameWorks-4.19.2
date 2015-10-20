@@ -17,9 +17,19 @@
 
 #define DEFAULT_PREDICTION_IN_SECONDS 0.035
 
+#if PLATFORM_ANDROID
 // call out to JNI to see if the application was packaged for GearVR
-extern bool AndroidThunkCpp_IsGearVRApplication();
-
+bool AndroidThunkCpp_IsGearVRApplication()
+{
+	bool bIsGearVRApplication = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", false);
+		bIsGearVRApplication = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	}
+	return bIsGearVRApplication;
+}
+#endif
 
 //---------------------------------------------------
 // GearVR Plugin Implementation
