@@ -2431,6 +2431,14 @@ namespace UnrealBuildTool
 				return null;
 			}
 
+			// Check to see if any BuildConfiguration files have changed since the last build
+			if (XmlConfigLoader.NewestXmlTimestamp > UBTMakefileInfo.LastWriteTime)
+			{
+				Log.TraceVerbose("Makefile is older than BuildConfiguration.xml, ignoring it" );
+				ReasonNotLoaded = "BuildConfiguration.xml is newer";
+				return null;
+			}
+
 			UBTMakefile LoadedUBTMakefile = null;
 
 			try
