@@ -578,8 +578,6 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 		// update the back buffer texture the first time used this frame
 		if (Surface.Texture == nil)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_MetalMakeDrawableTime);
-
 			uint32 IdleStart = FPlatformTime::Cycles();
 
 			if (CurrentDrawable == nil)
