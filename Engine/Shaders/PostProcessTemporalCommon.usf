@@ -473,6 +473,9 @@ which can be configured via defines for various temporal AA passes.
 	#if RESPONSIVE
 		// Responsive forces 1/4 of new frame.
 		BlendFinal = 1.0/4.0;
+	#elif AA_NAN && COMPILER_GLSL
+		// The current Metal & GLSL compilers don't handle saturate(NaN) -> 0, instead they return NaN/INF.
+		BlendFinal = -min(-BlendFinal, 0.0);
 	#endif
 
 	// Offscreen feedback resets.

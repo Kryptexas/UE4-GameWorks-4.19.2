@@ -319,11 +319,14 @@ void MainTemporalAAPS(
 	#define AA_YCOCG 1
 	#define AA_BICUBIC 1
 	#include "PostProcessTemporalCommon.usf"
-	
+
+	// InExposureScale will always be 1.0 for < SM5 so the exposure of the below will always be wrong, so only use it when EyeAdaptation is supported.
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
 	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
-#else 
+#endif
+#else
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
 #endif
 }
@@ -349,10 +352,13 @@ void MainFastTemporalAAPS(
 	#define AA_BICUBIC 0
 	#include "PostProcessTemporalCommon.usf"
 
+	// InExposureScale will always be 1.0 for < SM5 so the exposure of the below will always be wrong, so only use it when EyeAdaptation is supported.
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
 	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
-#else 
+#endif
+#else
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
 #endif
 }
