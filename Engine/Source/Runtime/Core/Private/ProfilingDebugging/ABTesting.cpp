@@ -95,7 +95,7 @@ const TCHAR* FABTest::TickAndGetCommand()
 	{
 		RemainingCoolDown--;
 	}
-	else if (LastGCFrame != GLastGCFrame && !bABScopeTestActive) // reject GC frames for whole game tests
+	else if (bABTestActive && LastGCFrame != GLastGCFrame && !bABScopeTestActive) // reject GC frames for whole game tests
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Rejecting abtest frame because of GC."));
 	}
