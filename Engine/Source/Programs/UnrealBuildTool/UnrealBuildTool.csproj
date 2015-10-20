@@ -114,6 +114,7 @@
     </When>
   </Choose>
   <ItemGroup>
+    <Compile Include="Android\AndroidPluginLanguage.cs" />
     <Compile Include="Mac\MacToolChain.cs" />
     <Compile Include="Mac\UEBuildMac.cs" />
     <Compile Include="Mac\MacProjectGenerator.cs" />
