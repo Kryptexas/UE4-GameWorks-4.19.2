@@ -336,7 +336,7 @@ public:
 				FString(ANSI_TO_TCHAR(AnsiContents)).ParseIntoArrayLines(Lines);
 				FMemory::Free(AnsiContents);
 
-				for (int32 Index = 0; Index < Lines.Num(); Index++)
+				for (int32 Index = Lines.Num()-1; Index >=0; Index--)
 				{
 					if (AndroidDirectory[0] == 0 && Lines[Index].StartsWith(TEXT("export ANDROID_HOME=")))
 					{
