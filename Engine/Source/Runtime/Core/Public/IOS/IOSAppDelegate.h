@@ -94,6 +94,7 @@ UITextFieldDelegate>
  */
 + (IOSAppDelegate*)GetDelegate;
 
+-(void)EnableIdleTimer:(bool)bEnable;
 
 -(void) ParseCommandLineOverrides;
 
