@@ -1645,7 +1645,7 @@ void UParticleModuleLocationBoneSocket::FinalUpdate(FParticleEmitterInstance* Ow
 		for(int32 SourceIndex = 0; SourceIndex < SourceLocations.Num(); ++SourceIndex)
 		{
 			int32 BoneIndex = InstancePayload->SourceComponent->GetBoneIndex(SourceLocations[SourceIndex].BoneSocketName);
-			if (BoneIndex != INDEX_NONE)
+			if (BoneIndex != INDEX_NONE && InstancePayload->PrevFrameBoneSocketPositions.Num() > SourceIndex)
 			{
 				const FMatrix WorldBoneTM = SourceComponent->GetBoneMatrix(BoneIndex);
 				InstancePayload->PrevFrameBoneSocketPositions[SourceIndex] = WorldBoneTM.GetOrigin();

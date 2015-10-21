@@ -827,6 +827,11 @@ public:
 		return ( Find(Item) != INDEX_NONE );
 	}
 
+	int32 Num()
+	{
+		return ArrayMax;
+	}
+
 private:
 	/** The maximum number of elements in the array. This is cannot dynamically change.*/
 	int32 ArrayMax;
