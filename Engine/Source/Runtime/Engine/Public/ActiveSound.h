@@ -231,8 +231,6 @@ public:
 	// Updates the wave instances to be played.
 	void UpdateWaveInstances( TArray<FWaveInstance*> &OutWaveInstances, const float DeltaTime );
 
-	void Stop();
-
 	/** 
 	 * Find an existing waveinstance attached to this audio component (if any)
 	 */
@@ -306,6 +304,13 @@ public:
 	uint32 GetSoundConcurrencyObjectID() const;
 
 private:
+
+	/** This is a friend so the audio device can call Stop() on the active sound. */
+	friend class FAudioDevice;
+
+	/** Stops the active sound. Can only be called from the owning audio device. */
+	void Stop();
+
 	void UpdateAdjustVolumeMultiplier(const float DeltaTime);
 
 	/** if OcclusionCheckInterval > 0.0, checks if the sound has become (un)occluded during playback
@@ -318,5 +323,4 @@ private:
 
 	/** Apply the interior settings to the ambient sound as appropriate */
 	void HandleInteriorVolumes( const FListener& Listener, struct FSoundParseParameters& ParseParams );
-
 };

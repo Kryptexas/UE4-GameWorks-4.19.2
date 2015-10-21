@@ -1786,7 +1786,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		if (!ActiveSound->Sound)
 		{
 			// No sound - cleanup and remove
-			ActiveSound->Stop();
+			AddSoundToStop(ActiveSound);
 		}
 		// If the world scene allows audio - tick wave instances.
 		else 
@@ -1801,7 +1801,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 					 *ActiveSound->DebugOriginalSoundName.ToString()))
 				{
 					// Sound was not valid, stop playing it.
-					ActiveSound->Stop();
+					AddSoundToStop(ActiveSound);
 				}
 				else
 #endif
@@ -1816,7 +1816,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 							Duration,
 							*ActiveSound->Sound->GetName(),
 							(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
-						ActiveSound->Stop();
+						AddSoundToStop(ActiveSound);
 					}
 					else
 					{
@@ -2030,12 +2030,7 @@ void FAudioDevice::Update( bool bGameTicking )
 		Listener.UpdateCurrentInteriorSettings();
 	}
 
-	// Stop any pending active sounds that need to be stopped
-	while (PendingSoundsToStop.Num() > 0)
-	{
-		FActiveSound* SoundToStop = PendingSoundsToStop.Pop();
-		SoundToStop->Stop();
-	}
+	ProcessingPendingActiveSoundStops();
 
 	if (Sources.Num())
 	{
@@ -2097,7 +2092,7 @@ void FAudioDevice::StopAllSounds( bool bShouldStopUISounds )
 
 		if (bShouldStopUISounds)
 		{
-			ActiveSound->Stop();
+			AddSoundToStop(ActiveSound);
 		}
 		// If we're allowing UI sounds to continue then first filter on the active sounds state
 		else if (!ActiveSound->bIsUISound)
@@ -2110,12 +2105,15 @@ void FAudioDevice::StopAllSounds( bool bShouldStopUISounds )
 				FWaveInstance* WaveInstance = WaveInstanceIt.Value();
 				if (WaveInstance && !WaveInstance->bIsUISound)
 				{
-					ActiveSound->Stop();
+					AddSoundToStop(ActiveSound);
 					break;
 				}
 			}
 		}
 	}
+
+	// Immediately process stopping sounds
+	ProcessingPendingActiveSoundStops();
 }
 
 void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
@@ -2180,9 +2178,27 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 
 }
 
+void FAudioDevice::ProcessingPendingActiveSoundStops()
+{
+	// Stop any pending active sounds that need to be stopped
+	for (FActiveSound* ActiveSound : PendingSoundsToStop)
+	{
+		check(ActiveSound);
+		ActiveSound->Stop();
+	}
+	PendingSoundsToStop.Reset();
+}
+
+
 void FAudioDevice::AddSoundToStop(FActiveSound* SoundToStop)
 {
-	PendingSoundsToStop.Add(SoundToStop);
+	check(SoundToStop);
+	bool bIsAlreadyInSet = false;
+	PendingSoundsToStop.Add(SoundToStop, &bIsAlreadyInSet);
+	if (bIsAlreadyInSet)
+	{
+		UE_LOG(LogAudio, Verbose, TEXT("Stopping sound which was already in the process of stopping"));
+	}
 }
 
 void FAudioDevice::StopActiveSound( UAudioComponent* AudioComponent )
@@ -2192,8 +2208,13 @@ void FAudioDevice::StopActiveSound( UAudioComponent* AudioComponent )
 	FActiveSound* ActiveSound = FindActiveSound(AudioComponent);
 	if (ActiveSound)
 	{
-		ActiveSound->Stop();
+		StopActiveSound(ActiveSound);
 	}
+}
+
+void FAudioDevice::StopActiveSound(FActiveSound* ActiveSound)
+{
+	AddSoundToStop(ActiveSound);
 }
 
 FActiveSound* FAudioDevice::FindActiveSound( UAudioComponent* AudioComponent )
@@ -2343,18 +2364,21 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 		{
 			if (WorldToFlush == nullptr)
 			{
-				ActiveSound->Stop();
+				AddSoundToStop(ActiveSound);
 			}
 			else
 			{
 				UWorld* ActiveSoundWorld = ActiveSound->World.Get();
 				if (ActiveSoundWorld == nullptr || ActiveSoundWorld == WorldToFlush)
 				{
-					ActiveSound->Stop();
+					AddSoundToStop(ActiveSound);
 				}
 			}
 		}
 	}
+
+	// Immediately stop all pending active sounds
+	ProcessingPendingActiveSoundStops();
 
 	// Anytime we flush, make sure to clear all the listeners.  We'll get the right ones soon enough.
 	Listeners.Empty();
@@ -2639,7 +2663,7 @@ void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioC
 				{
 					StoppedComponents.Add(AudioComponent);
 				}
-				ActiveSound->Stop();
+				AddSoundToStop(ActiveSound);
 				bStoppedSounds = true;
 				break;
 			}

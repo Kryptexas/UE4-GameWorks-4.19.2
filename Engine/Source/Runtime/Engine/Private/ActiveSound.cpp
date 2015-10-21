@@ -274,7 +274,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 
 	if (bFinished)
 	{
-		Stop();
+		AudioDevice->StopActiveSound(this);
 	}
 	else if (ThisSoundsWaveInstances.Num() > 0)
 	{

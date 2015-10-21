@@ -374,6 +374,11 @@ public:
 	void StopActiveSound( class UAudioComponent* AudioComponent );
 
 	/**
+	* Stops the active sound
+	*/
+	void StopActiveSound(FActiveSound* ActiveSound);
+
+	/**
 	 * Finds the active sound for the specified audio component
 	 */
 	FActiveSound* FindActiveSound( class UAudioComponent* AudioComponent );
@@ -757,6 +762,9 @@ protected:
 	*/
 	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
 
+	/** Processes the set of pending sounds that need to be stopped */ 
+	void ProcessingPendingActiveSoundStops();
+
 public:
 
 	/** The maximum number of concurrent audible sounds */
@@ -860,7 +868,7 @@ public:
 private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
-	TArray<struct FActiveSound*> PendingSoundsToStop;
+	TSet<struct FActiveSound*> PendingSoundsToStop;
 
 	TMap<UPTRINT, struct FActiveSound*> AudioComponentToActiveSoundMap;
 
