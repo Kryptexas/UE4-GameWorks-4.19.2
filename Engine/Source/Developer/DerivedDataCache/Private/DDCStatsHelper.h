@@ -1,6 +1,6 @@
 #pragma once
 
-
+#define DISABLE_COOKINGSTATS 1
 class FDDCScopeStatHelper
 {
 private:

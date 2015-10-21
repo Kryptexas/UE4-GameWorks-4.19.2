@@ -135,12 +135,9 @@ public:
 						}
 					}
 				}
-				Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), OutData.Num()));
-				Stat.AddTag(NAME_Retrieved, TEXT("true"));
 				return true;
 			}
 		}
-		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;
 	}
 	/**
