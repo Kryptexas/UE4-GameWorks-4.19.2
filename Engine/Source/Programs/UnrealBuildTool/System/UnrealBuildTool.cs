@@ -65,7 +65,10 @@ namespace UnrealBuildTool
         /** The Unreal project directory.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set. */
         static string UProjectPath = "";
 
-        /** This is set to true during UBT startup, after it is safe to be accessing the IsGatheringBuild and IsAssemblingBuild properties.  Never access this directly. */
+		/** The Remote Ini directory.  This should always be valid when compiling using a remote server. */
+		static string RemoteIniPath = "";
+
+		/** This is set to true during UBT startup, after it is safe to be accessing the IsGatheringBuild and IsAssemblingBuild properties.  Never access this directly. */
         private static bool bIsSafeToCheckIfGatheringOrAssemblingBuild = false;
 
 		/** True if this run of UBT should only invalidate Makefile. */
@@ -176,6 +179,15 @@ namespace UnrealBuildTool
         {
             return UProjectPath;
         }
+
+		/// <summary>
+		/// The Unreal remote tool ini directory.  This should be valid if compiling using a remote server */
+		/// </summary>
+		/// <returns>The directory path</returns>
+		static public string GetRemoteIniPath()
+		{
+			return RemoteIniPath;
+		}
 
         /// <summary>
         /// The Unreal project source directory.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set. */
@@ -544,6 +556,10 @@ namespace UnrealBuildTool
                 UProjectFile = InArg;
                 bSetupProject = true;
             }
+			else if (LowercaseArg.StartsWith("-remoteini="))
+			{
+				RemoteIniPath = InArg.Substring(11);
+			}
             else
             {
                 return false;
