@@ -2071,39 +2071,39 @@ struct FMeshReductionSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
+		/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float PercentTriangles;
+		float PercentTriangles;
 
 	/** The maximum distance in object space by which the reduced mesh may deviate from the original mesh. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float MaxDeviation;
+		float MaxDeviation;
 
 	/** Threshold in object space at which vertices are welded together. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float WeldingThreshold;
+		float WeldingThreshold;
 
 	/** Angle at which a hard edge is introduced between faces. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float HardAngleThreshold;
+		float HardAngleThreshold;
 
 	/** Higher values minimize change to border edges. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
+		TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
 
 	/** Higher values reduce texture stretching. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
+		TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
 
 	/** Higher values try to preserve normals better. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
+		TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
 
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	bool bRecalculateNormals;
+		bool bRecalculateNormals;
 
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	int32 BaseLODModel;
+		int32 BaseLODModel;
 
 	/** Default settings. */
 	FMeshReductionSettings()
@@ -3662,4 +3662,3 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	/** Actor will fail to spawn. */
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
-

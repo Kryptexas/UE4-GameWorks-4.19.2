@@ -69,7 +69,7 @@
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 
-#include "Settings/EditorSettings.h"
+#include "AnalyticsPrivacySettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -1102,7 +1102,7 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 
 bool UEditorEngine::AreEditorAnalyticsEnabled() const 
 {
-	return GetDefault<UEditorSettings>()->bEditorAnalyticsEnabled;
+	return GetDefault<UAnalyticsPrivacySettings>()->bSendUsageData;
 }
 
 void UEditorEngine::CreateStartupAnalyticsAttributes( TArray<FAnalyticsEventAttribute>& StartSessionAttributes ) const
@@ -1649,14 +1649,14 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	// Build list of dynamic brushes
 	TArray<ABrush*> DynamicBrushes;
 	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
-	{
-		ABrush* DynamicBrush = Cast<ABrush>(*It);
-		if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
-			(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
 		{
-			DynamicBrushes.Add(DynamicBrush);
+			ABrush* DynamicBrush = Cast<ABrush>(*It);
+			if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
+				(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
+			{
+				DynamicBrushes.Add(DynamicBrush);
+			}
 		}
-	}
 
 	FScopedSlowTask SlowTask(StaticBrushes.Num() + DynamicBrushes.Num());
 	SlowTask.MakeDialogDelayed(3.0f);

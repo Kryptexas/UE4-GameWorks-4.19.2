@@ -8,7 +8,7 @@ UEditorSettings::UEditorSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bCopyStarterContentPreference = false;
-	bEditorAnalyticsEnabled = true;
+	bEditorAnalyticsEnabled_DEPRECATED = true;
 	AutoScalabilityWorkScaleAmount = 1;
 }
 

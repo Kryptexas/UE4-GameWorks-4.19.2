@@ -23,11 +23,19 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Core",
+                    "CoreUObject",
                     // ... add other public dependencies that you statically link with here ...
 				}
 				);
 
-			DynamicallyLoadedModuleNames.AddRange(
+            PrivateDependencyModuleNames.AddRange(
+                new string[]
+                {
+                    "Engine",
+				}
+                );
+
+            DynamicallyLoadedModuleNames.AddRange(
 				new string[]
 				{
 					// ... add any modules that your module loads dynamically here ...

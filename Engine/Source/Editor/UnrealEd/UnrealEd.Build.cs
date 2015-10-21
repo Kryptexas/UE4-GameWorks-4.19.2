@@ -136,6 +136,7 @@ public class UnrealEd : ModuleRules
                 "LocalizationService",
 				"AddContentDialog",
 				"GameProjectGeneration",
+                "Analytics"
 			}
 		);
 

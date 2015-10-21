@@ -31,7 +31,8 @@ public class Engine : ModuleRules
 				"Advertising",
 				"NetworkReplayStreaming",
 				"MovieSceneCapture",
-  				"DesktopPlatform"
+				"DesktopPlatform",
+				"Analytics"
 			}
 		);
 

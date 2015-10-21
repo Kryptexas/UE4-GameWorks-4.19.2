@@ -27,6 +27,7 @@
 #include "AI/Navigation/RecastNavMesh.h"
 #include "Engine/NetworkSettings.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Engine/EndUserSettings.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -160,6 +161,13 @@ protected:
 			LOCTEXT("CrowdManagerSettingsName", "Crowd Manager"),
 			LOCTEXT("CrowdManagerSettingsDescription", "Settings for the AI Crowd Manager."),
 			GetMutableDefault<UCrowdManager>()
+			);
+
+		// End-user settings
+		SettingsModule.RegisterSettings("Project", "Engine", "EndUser",
+			LOCTEXT("EndUserSettingsName", "End-User Settings"),
+			LOCTEXT("EndUserSettingsDescription", "Settings you may wish to expose to end-users of your game."),
+			GetMutableDefault<UEndUserSettings>()
 			);
 	}
 
