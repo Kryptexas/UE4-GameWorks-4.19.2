@@ -25,6 +25,7 @@ public class AssetTools : ModuleRules
 				"Landscape",
                 "Foliage",
                 "Niagara",
+                "HeadMountedDisplay"
 			}
 		);
 

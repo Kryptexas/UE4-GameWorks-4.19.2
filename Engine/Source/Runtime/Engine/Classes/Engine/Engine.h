@@ -1455,7 +1455,7 @@ public:
 
 	/** Extensions that can modify view parameters on the render thread. */
 	TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
-	
+
 	/** Reference to the Motion Control devices that are attached, if any */
 	TArray < class IMotionController*> MotionControllerDevices;
 
@@ -2155,16 +2155,9 @@ protected:
 	 */
 	virtual bool InitializeHMDDevice();
 
-	/**
-	 *	Detects and initializes any motion controller devices
-	 *
-	 *	@return true if there are any initialized motion controllers, false otherwise
-	 */
 	virtual bool InitializeMotionControllers();
 
-	/**
-	 *	Record EngineAnalytics information for attached HMD devices
-	 */
+	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();
 
 	/**

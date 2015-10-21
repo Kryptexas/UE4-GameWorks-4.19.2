@@ -468,6 +468,21 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			}
 			return true;
 		}
+		else if (FParse::Command(&Cmd, TEXT("HQDISTORTION")))
+		{
+			FString CmdName = FParse::Token(Cmd, 0);
+			if (!FCString::Stricmp(*CmdName, TEXT("ON")))
+			{
+				GetSettings()->EyeLayer.Header.Flags = GetSettings()->EyeLayer.Header.Flags | ovrLayerFlag_HighQuality;
+				Ar.Log(TEXT("HQ Distortion is ON."));
+			}
+			else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
+			{
+				GetSettings()->EyeLayer.Header.Flags = GetSettings()->EyeLayer.Header.Flags & ~ovrLayerFlag_HighQuality;
+				Ar.Log(TEXT("HQ Distortion is OFF."));
+			}
+			return true;
+		}
 		if (FParse::Command(&Cmd, TEXT("QAHEAD"))) // pixel density
 		{
 			FString CmdName = FParse::Token(Cmd, 0);
@@ -1832,8 +1847,8 @@ void FOculusRiftHMD::ApplySystemOverridesOnStereo(bool force)
 	// ALWAYS SET r.FinishCurrentFrame to 0! Otherwise the perf might be poor.
 	// @TODO: revise the FD3D11DynamicRHI::RHIEndDrawingViewport code (and other renderers)
 	// to ignore this var completely.
-	static const auto CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-	CFinishFrameVar->Set(0);
+ 	static const auto CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
+ 	CFinishFrameVar->Set(0);
 }
 
 //////////////////////////////////////////////////////////////////////////

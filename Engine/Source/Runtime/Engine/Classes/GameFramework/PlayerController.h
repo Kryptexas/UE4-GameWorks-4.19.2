@@ -236,6 +236,10 @@ class ENGINE_API APlayerController : public AController
 
 	TMap<int32, FDynamicForceFeedbackDetails> DynamicForceFeedbacks;
 
+	/** Currently playing haptic effects for both the left and right hand */
+	TSharedPtr<struct FActiveHapticFeedbackEffect> ActiveHapticEffect_Left;
+	TSharedPtr<struct FActiveHapticFeedbackEffect> ActiveHapticEffect_Right;
+
 	/** list of names of levels the server is in the middle of sending us for a PrepareMapChange() call */
 	TArray<FName> PendingMapChangeLevelNames;
 
@@ -866,6 +870,34 @@ public:
 	void PlayDynamicForceFeedback(float Intensity, float Duration, bool bAffectsLeftLarge, bool bAffectsLeftSmall, bool bAffectsRightLarge, bool bAffectsRightSmall, TEnumAsByte<EDynamicForceFeedbackAction::Type> Action, FLatentActionInfo LatentInfo);
 
 	/**
+	* Play a haptic feedback curve on the player's controller
+	* @param	HapticEffect			The haptic effect to play
+	* @param	Hand					Which hand to play the effect on
+	* @param	Scale					Scale between 0.0 and 1.0 on the intensity of playback
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	void PlayHapticEffect(class UHapticFeedbackEffect* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale = 1.f);
+
+	/**
+	* Stops a playing haptic feedback curve
+	* @param	HapticEffect			The haptic effect to stop
+	* @param	Hand					Which hand to stop the effect for
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	void StopHapticEffect(TEnumAsByte<EControllerHand> Hand);
+
+	/**
+	* Sets the value of the haptics for the specified hand directly, using frequency and amplitude.  NOTE:  If a curve is already
+	* playing for this hand, it will be cancelled in favour of the specified values.
+	*
+	* @param	Frequency				The normalized frequency [0.0, 1.0] to play through the haptics system
+	* @param	Amplitude				The normalized amplitude [0.0, 1.0] to set the haptic feedback to
+	* @param	Hand					Which hand to play the effect on
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	void SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand);
+
+	/**
 	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.
 	 * NOTE: This is implemented as a locally executed wrapper for ClientTravelInternal, to avoid API compatability breakage
 	 *
@@ -1318,7 +1350,7 @@ protected:
 	void TickPlayerInput(const float DeltaSeconds, const bool bGamePaused);
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
-	void ProcessForceFeedback(const float DeltaTime, const bool bGamePaused);
+	void ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused);
 
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();

@@ -12,6 +12,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "GameFramework/OnlineSession.h"
 #include "IHeadMountedDisplay.h"
+#include "IMotionController.h"
 #include "IInputInterface.h"
 #include "SlateBasics.h"
 #include "GameFramework/TouchInterface.h"
@@ -30,6 +31,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/InputSettings.h"
+#include "GameFramework/HapticFeedbackEffect.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/GameMode.h"
@@ -3481,7 +3483,59 @@ void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration
 	}
 }
 
-void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool bGamePaused)
+void APlayerController::PlayHapticEffect(UHapticFeedbackEffect* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale)
+{
+	if (HapticEffect)
+	{
+		switch (Hand)
+		{
+		case EControllerHand::Left:
+			ActiveHapticEffect_Left.Reset();
+			ActiveHapticEffect_Left = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale));
+			break;
+		case EControllerHand::Right:
+			ActiveHapticEffect_Right.Reset();
+			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale));
+			break;
+		default:
+			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand.GetValue(), *HapticEffect->GetName());
+			break;
+		}
+	}
+}
+
+void APlayerController::StopHapticEffect(TEnumAsByte<EControllerHand> Hand)
+{
+	SetHapticsByValue(0.f, 0.f, Hand);
+}
+
+void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand)
+{
+	if (Hand == EControllerHand::Left)
+	{
+		ActiveHapticEffect_Left.Reset();
+	}
+	else if (Hand == EControllerHand::Right)
+	{
+		ActiveHapticEffect_Right.Reset();
+	}
+	else
+	{
+		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand.GetValue(), Frequency, Amplitude);
+		return;
+	}
+
+	IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
+	if (InputInterface)
+	{
+		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+
+		FHapticFeedbackValues Values(Frequency, Amplitude);
+		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand.GetValue(), Values);
+	}
+}
+
+void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused)
 {
 	if (Player == NULL)
 	{
@@ -3490,8 +3544,13 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 
 	ForceFeedbackValues.LeftLarge = ForceFeedbackValues.LeftSmall = ForceFeedbackValues.RightLarge = ForceFeedbackValues.RightSmall = 0.f;
 
+	FHapticFeedbackValues LeftHaptics, RightHaptics;
+	bool bLeftHapticsNeedUpdate = false;
+	bool bRightHapticsNeedUpdate = false;
+
 	if (!bGamePaused)
 	{
+		// --- Force Feedback --------------------------
 		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
 		{
 			if (!ActiveForceFeedbackEffects[Index].Update(DeltaTime, ForceFeedbackValues))
@@ -3499,9 +3558,33 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 				ActiveForceFeedbackEffects.RemoveAtSwap(Index);
 			}
 		}
+
 		for (const auto& DynamicEntry : DynamicForceFeedbacks)
 		{
 			DynamicEntry.Value.Update(ForceFeedbackValues);
+		}
+
+		// --- Haptic Feedback -------------------------
+		if (ActiveHapticEffect_Left.IsValid())
+		{
+			const bool bPlaying = ActiveHapticEffect_Left->Update(DeltaTime, LeftHaptics);
+			if (!bPlaying)
+			{
+				ActiveHapticEffect_Left.Reset();
+			}
+
+			bLeftHapticsNeedUpdate = true;
+		}
+
+		if (ActiveHapticEffect_Right.IsValid())
+		{
+			const bool bPlaying = ActiveHapticEffect_Right->Update(DeltaTime, RightHaptics);
+			if (!bPlaying)
+			{
+				ActiveHapticEffect_Right.Reset();
+			}
+
+			bRightHapticsNeedUpdate = true;
 		}
 	}
 
@@ -3510,7 +3593,21 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 		IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
 		if (InputInterface)
 		{
-			InputInterface->SetForceFeedbackChannelValues(CastChecked<ULocalPlayer>(Player)->GetControllerId(), (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
+			const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+
+			// Force Feedback Update
+			InputInterface->SetForceFeedbackChannelValues(ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
+
+			// Haptic Updates
+			if (bLeftHapticsNeedUpdate)
+			{
+				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Left, LeftHaptics);
+			}
+
+			if (bRightHapticsNeedUpdate)
+			{
+				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
+			}
 		}
 	}
 }
@@ -3716,7 +3813,7 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 	}
 
 	ProcessPlayerInput(DeltaSeconds, bGamePaused);
-	ProcessForceFeedback(DeltaSeconds, bGamePaused);
+	ProcessForceFeedbackAndHaptics(DeltaSeconds, bGamePaused);
 }
 
 void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunction& ThisTickFunction )
