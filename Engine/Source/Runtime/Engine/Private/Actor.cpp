@@ -2198,7 +2198,21 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 	if (Component->IsCreatedByConstructionScript())
 	{
-		BlueprintCreatedComponents.AddUnique(Component);
+		// Check if there's a component that has the same name and the same class already in BlueprintCreatedComponents array.
+		// If so it's either this component or its template and we're currently instancing components for this actor
+		bool bComponentOrItsTemplateAlreadyExists = false;
+		for (UActorComponent* ExistingComponent : BlueprintCreatedComponents)
+		{
+			if (ExistingComponent && ExistingComponent->GetFName() == Component->GetFName() && ExistingComponent->GetClass() == Component->GetClass())
+			{
+				bComponentOrItsTemplateAlreadyExists = true;
+				break;
+			}
+		}
+		if (!bComponentOrItsTemplateAlreadyExists)
+		{
+			BlueprintCreatedComponents.AddUnique(Component);
+		}
 	}
 	else if (Component->CreationMethod == EComponentCreationMethod::Instance)
 	{

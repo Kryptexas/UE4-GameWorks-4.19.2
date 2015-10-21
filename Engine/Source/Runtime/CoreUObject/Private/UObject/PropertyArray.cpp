@@ -327,10 +327,15 @@ void UArrayProperty::InstanceSubobjects( void* Data, void const* DefaultData, UO
 		FScriptArrayHelper ArrayHelper(this, Data);
 		FScriptArrayHelper DefaultArrayHelper(this, DefaultData);
 
-		for( int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ElementIndex++ )
+		for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ElementIndex++)
 		{
 			uint8* DefaultValue = (DefaultData && ElementIndex < DefaultArrayHelper.Num()) ? DefaultArrayHelper.GetRawPtr(ElementIndex) : NULL;
-			Inner->InstanceSubobjects( ArrayHelper.GetRawPtr(ElementIndex), DefaultValue, Owner, InstanceGraph );
+			uint8* DestValue = ArrayHelper.GetRawPtr(ElementIndex);
+			Inner->InstanceSubobjects(DestValue, DefaultValue, Owner, InstanceGraph);
+			// The check below makes sure nothing re-allocated the array we're instancing subobjects for.
+			// If so, then DestValue pointed to old memory and we probably corrupted it in Inner->InstanceSubobjects.
+			// This usually happens when something adds items to the array while we're instancing subobjects.
+			checkf(DestValue == ArrayHelper.GetRawPtr(ElementIndex), TEXT("%s has been re-allocated while instancing subobjects for %s, fix higher level code!"), *GetName(), *Owner->GetPathName());
 		}
 	}
 }
