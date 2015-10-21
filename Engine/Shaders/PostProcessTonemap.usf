@@ -286,7 +286,9 @@ void MainVS_ES2(
 
 	#if ES2_PROFILE && COMPILER_GLSL_ES2
 		// This is currently the last pass, so flip the texture on V to match D3D
-		OutTexCoord.y = 1.0 - OutTexCoord.y;
+		float2 FlipEdge;
+		DrawRectangle(InPosition, float2(1, 1), OutPosition, FlipEdge.xy);
+		OutTexCoord.y = FlipEdge.y - OutTexCoord.y;
 	#endif
 
 	// Fine adjustment is inside the possible non-full viewport in the full resolution texture.

@@ -102,8 +102,8 @@ class FPostProcessUpscalePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		// Always allow simple bilinear upscale. (Provides upscaling for ES2 emulation)
-		if (Method == 1)
+		// Always allow point and bilinear upscale. (Provides upscaling for ES2 emulation)
+		if (Method == 0 || Method == 1)
 		{
 			return true;
 		}
