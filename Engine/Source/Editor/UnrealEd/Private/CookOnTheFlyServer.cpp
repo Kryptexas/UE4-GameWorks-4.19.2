@@ -1402,18 +1402,27 @@ void UCookOnTheFlyServer::CleanUpChildCookers()
 		const FString MasterCookerStatsFilename = GetStatsFilename(FString());
 
 		FString AllStats;
-		ensure(FFileHelper::LoadFileToString(AllStats, *MasterCookerStatsFilename));
-		
+		if (FFileHelper::LoadFileToString(AllStats, *MasterCookerStatsFilename))
+		{
+			for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
+			{
+				check(ChildCooker.bFinished == true);
+				const FString ChildCookerStatsFilename = GetStatsFilename(ChildCooker.ResponseFileName);
+
+				FString ChildStats;
+				if (FFileHelper::LoadFileToString(ChildStats, *ChildCookerStatsFilename))
+				{
+					AllStats += ChildStats;
+				}
+			}
+		}
+
+		FFileHelper::SaveStringToFile(AllStats, *MasterCookerStatsFilename);
+
 		for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
 		{
 			check(ChildCooker.bFinished == true);
-			const FString ChildCookerStatsFilename = GetStatsFilename(ChildCooker.ResponseFileName);
-
-			FString ChildStats;
-			ensure(FFileHelper::LoadFileToString(ChildStats, *ChildCookerStatsFilename));
-
-			AllStats += ChildStats;
-
+		
 			if (ChildCooker.Thread != nullptr)
 			{
 				ChildCooker.Thread->WaitForCompletion();
@@ -1422,7 +1431,6 @@ void UCookOnTheFlyServer::CleanUpChildCookers()
 			}
 		}
 
-		ensure(FFileHelper::SaveStringToFile(AllStats, *MasterCookerStatsFilename));
 	}
 }
 
