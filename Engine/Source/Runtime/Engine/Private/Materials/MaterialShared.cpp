@@ -1402,7 +1402,13 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		bSucceeded = true;
 	}
 
-	RenderingThreadShaderMap = GameThreadShaderMap;
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		SetRenderingThreadShaderMap,
+		FMaterial*, Material, this,
+		FMaterialShaderMap*, ShaderMap, GameThreadShaderMap,
+		{
+			Material->SetRenderingThreadShaderMap(ShaderMap);
+		});
 
 	return bSucceeded;
 }
