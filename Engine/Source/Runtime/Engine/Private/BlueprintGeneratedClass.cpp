@@ -694,6 +694,18 @@ public:
 protected:
 	virtual FArchive& operator<<(UObject*& Object) override
 	{
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+		if (Object && !Object->IsValidLowLevelFast())
+		{
+			UProperty* SerializingProperty = GetSerializedProperty();
+
+			UE_LOG(LogBlueprint, Fatal, TEXT("Invalid object in PersistentFrame: 0x%016llx, Blueprint object: %s, ReferencingProperty: %s"),
+				(int64)(PTRINT)Object,
+				SerializingObject   ? *SerializingObject->GetFullName()   : TEXT("NULL"),
+				SerializingProperty ? *SerializingProperty->GetFullName() : TEXT("NULL"));
+		}
+#endif
+
 		const bool bWeakRef = Object ? !Object->HasAnyFlags(RF_StrongRefOnFrame) : false;
 		Collector.SetShouldHandleAsWeakRef(bWeakRef); 
 		return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
