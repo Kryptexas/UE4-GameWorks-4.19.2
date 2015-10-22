@@ -342,6 +342,14 @@ namespace EpicGames.MCP.Automation
             /// </summary>
             public string AppLaunchCmdArgs;
             /// <summary>
+            /// Matches the corresponding BuildPatchTool command line argument.
+            /// </summary>
+            public string PrereqPath;
+            /// <summary>
+            /// Matches the corresponding BuildPatchTool command line argument.
+            /// </summary>
+            public string PrereqArgs;
+            /// <summary>
             /// Corresponds to the -nochunks parameter
             /// </summary>
             public ChunkType AppChunkType;
