@@ -8,6 +8,7 @@
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
 #include "AudioDevice.h"
+#include "IOSAudioDevice.h"
 
 
 FEngineLoop GEngineLoop;
@@ -19,6 +20,14 @@ void FAppEntry::Suspend()
 	{
 		GEngine->GetMainAudioDevice()->SuspendContext();
 	}
+    else
+    {
+        int32& SuspendCounter = FIOSAudioDevice::GetSuspendCounter();
+        if (SuspendCounter == 0)
+        {
+            FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
+        }
+    }
 }
 
 void FAppEntry::Resume()
@@ -27,6 +36,14 @@ void FAppEntry::Resume()
 	{
 		GEngine->GetMainAudioDevice()->ResumeContext();
 	}
+    else
+    {
+        int32& SuspendCounter = FIOSAudioDevice::GetSuspendCounter();
+        if (SuspendCounter > 0)
+        {
+            FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
+        }
+    }
 }
 
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
