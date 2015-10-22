@@ -27,12 +27,9 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 
-            // Currently, the Rift is only supported on windows and mac platforms
-            if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
-            {
-//				Definitions.Add("USE_OVR_MOTION_SDK=" + ( UEBuildConfiguration.bOculusInputControllerSupport ? "1" : "0" ) );
-				Definitions.Add("USE_OVR_MOTION_SDK=" + ( true ? "1" : "0" ) );
-				
+            // Currently, the Rift is only supported on win64
+            if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+            {	
 				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVR" });
             }
 		}

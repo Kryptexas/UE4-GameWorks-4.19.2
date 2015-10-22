@@ -5,7 +5,9 @@
 #include "IMotionController.h"
 #include "InputCoreTypes.h"
 
-#if USE_OVR_MOTION_SDK
+#define OCULUS_TOUCH_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) // || PLATFORM_MAC
+
+#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 /**
  * Digital buttons on the SteamVR controller
@@ -192,4 +194,4 @@ struct FOculusTouchControllerState
 	}
 };
 
-#endif	// USE_OVR_MOTION_SDK
+#endif	// OCULUS_TOUCH_SUPPORTED_PLATFORMS

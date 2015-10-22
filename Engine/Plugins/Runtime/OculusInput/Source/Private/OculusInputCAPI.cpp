@@ -2,7 +2,7 @@
 
 #include "OculusInput.h"
 
-#if USE_OVR_MOTION_SDK
+#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 #if PLATFORM_WINDOWS
 	// Required for OVR_CAPIShim.c
@@ -17,4 +17,4 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#endif	// USE_OVR_MOTION_SDK
+#endif	// OCULUS_TOUCH_SUPPORTED_PLATFORMS

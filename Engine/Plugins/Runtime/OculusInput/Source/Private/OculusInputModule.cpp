@@ -3,7 +3,7 @@
 #include "OculusInput.h"
 #include "IOculusInputPlugin.h"
 
-#if USE_OVR_MOTION_SDK
+#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 class FOculusInputModule : public IOculusInputPlugin
 {
@@ -14,12 +14,12 @@ class FOculusInputModule : public IOculusInputPlugin
 	}
 };
 
-#else	//	USE_OVR_MOTION_SDK
+#else	//	OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 class FOculusInputModule : public FDefaultModuleImpl
 {
 };
 
-#endif	// USE_OVR_MOTION_SDK
+#endif	// OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 IMPLEMENT_MODULE( FOculusInputModule, OculusInput )

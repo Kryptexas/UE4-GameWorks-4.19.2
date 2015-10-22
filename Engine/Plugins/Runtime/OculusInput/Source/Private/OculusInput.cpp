@@ -4,7 +4,7 @@
 #include "Features/IModularFeatures.h"
 #include "IOculusRiftPlugin.h"
 
-#if USE_OVR_MOTION_SDK
+#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
 #define OVR_TESTING 0
 #define OVR_DEBUG_LOGGING 0
@@ -524,4 +524,4 @@ float FOculusInput::GetHapticAmplitudeScale() const
 }
 
 #undef LOCTEXT_NAMESPACE
-#endif	 // USE_OVR_MOTION_SDK
+#endif	 // OCULUS_TOUCH_SUPPORTED_PLATFORMS
