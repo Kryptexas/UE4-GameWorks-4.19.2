@@ -13,7 +13,7 @@
 
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
-#include "AnalyticsPrivacySettings.h"
+#include "Analytics/AnalyticsPrivacySettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 

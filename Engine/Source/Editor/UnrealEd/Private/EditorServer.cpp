@@ -69,7 +69,7 @@
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 
-#include "AnalyticsPrivacySettings.h"
+#include "Analytics/AnalyticsPrivacySettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
