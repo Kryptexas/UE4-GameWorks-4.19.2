@@ -46,6 +46,26 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static const TCHAR* GetDefaultDeviceProfileName() { return TEXT("Android_Default"); }
 	static bool GetVolumeButtonsHandledBySystem();
 	static void SetVolumeButtonsHandledBySystem(bool enabled);
+	// Returns current volume, 0-100 (%)
+	static int GetVolumeState(double* OutTimeOfChangeInSec = nullptr);
+
+	enum EBatteryState
+	{
+		BATTERY_STATE_CHARGING,
+		BATTERY_STATE_DISCHARGING,
+		BATTERY_STATE_FULL,
+		BATTERY_STATE_NOT_CHARGING,
+		BATTERY_STATE_UNKNOWN
+	};
+	struct FBatteryState
+	{
+		FAndroidMisc::EBatteryState	State;
+		int							Level;          // in range [0,100]
+		float						Temperature;    // in degrees of Celsius
+	};
+
+	static FBatteryState GetBatteryState();
+	static bool AreHeadPhonesPluggedIn();
 	static void ResetGamepadAssignments();
 	static void ResetGamepadAssignmentToController(int32 ControllerId);
 	static bool IsControllerAssignedToGamepad(int32 ControllerId);

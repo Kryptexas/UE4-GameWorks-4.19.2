@@ -91,6 +91,7 @@ public:
 
 	ovrTextureSwapChain*	GetColorTextureSet() const { return ColorTextureSet; }
 	uint32					GetCurrentIndex() const { return CurrentIndex;  }
+	uint32					GetTextureCount() const { return TextureCount; }
 protected:
 	void InitWithCurrentElement();
 
@@ -203,6 +204,7 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 
 	const unsigned eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
 	pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eyeIdx].HeadPose = NewTracking.HeadPose;
+	pPresentBridge->LoadingIconParms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Textures[eyeIdx].HeadPose = NewTracking.HeadPose;
 
 	ovrPosef CurEyeRenderPose;
 
@@ -407,11 +409,54 @@ void FGearVR::ShutdownRendering()
 	}
 }
 
+void FGearVR::SetLoadingIconTexture(FTextureRHIRef InTexture)
+{
+	if (pGearVRBridge)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(EnterVRMode,
+		FGearVRCustomPresent*, pGearVRBridge, pGearVRBridge,
+		FTextureRHIRef, InTexture, InTexture,
+		{
+			pGearVRBridge->SetLoadingIconTexture_RenderThread(InTexture);
+		});
+	}
+}
+
+void FGearVR::SetLoadingIconMode(bool bActiveLoadingIcon)
+{
+	if (pGearVRBridge)
+	{
+		pGearVRBridge->SetLoadingIconMode(bActiveLoadingIcon);
+	}
+}
+
+bool FGearVR::IsInLoadingIconMode() const
+{
+	if (pGearVRBridge)
+	{
+		return pGearVRBridge->IsInLoadingIconMode();
+	}
+	return false;
+}
+
+void FGearVR::RenderLoadingIcon_RenderThread()
+{
+	check(IsInRenderingThread());
+
+	if (pGearVRBridge)
+	{
+		static uint32 FrameIndex = 0;
+		pGearVRBridge->RenderLoadingIcon_RenderThread(FrameIndex++);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 FGearVRCustomPresent::FGearVRCustomPresent(jobject InActivityObject, int InMinimumVsyncs) :
 	FRHICustomPresent(nullptr),
 	bInitialized(false),
+	bLoadingIconIsActive(false),
 	MinimumVsyncs(InMinimumVsyncs),
+	LoadingIconTextureSet(nullptr),
 	OvrMobile(nullptr),
 	ActivityObject(InActivityObject)
 {
@@ -423,6 +468,8 @@ void FGearVRCustomPresent::Shutdown()
 	UE_LOG(LogHMD, Log, TEXT("FGearVRCustomPresent::Shutdown() is called"));
 	check(IsInRenderingThread());
 	Reset(); 
+	
+	SetLoadingIconTexture_RenderThread(nullptr);
 
 	FScopeLock lock(&OvrMobileLock);
 	if (OvrMobile)
@@ -434,28 +481,6 @@ void FGearVRCustomPresent::Shutdown()
 	GLRHI->SetCustomPresent(nullptr);
 }
 
-void FGearVRCustomPresent::DicedBlit(uint32 SourceX, uint32 SourceY, uint32 DestX, uint32 DestY, uint32 Width, uint32 Height, uint32 NumXSteps, uint32 NumYSteps)
-{
-	check((NumXSteps > 0) && (NumYSteps > 0))
-	uint32 StepX = Width / NumXSteps;
-	uint32 StepY = Height / NumYSteps;
-
-	uint32 MaxX = SourceX + Width;
-	uint32 MaxY = SourceY + Height;
-	
-	for (; SourceY < MaxY; SourceY += StepY, DestY += StepY)
-	{
-		uint32 CurHeight = FMath::Min(StepY, MaxY - SourceY);
-
-		for (uint32 CurSourceX = SourceX, CurDestX = DestX; CurSourceX < MaxX; CurSourceX += StepX, CurDestX += StepX)
-		{
-			uint32 CurWidth = FMath::Min(StepX, MaxX - CurSourceX);
-
-			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, CurDestX, DestY, CurSourceX, SourceY, CurWidth, CurHeight);
-			GL_CHECK_ERROR;
-		}
-	}
-}
 
 void FGearVRCustomPresent::SetRenderContext(FHMDViewExtension* InRenderContext)
 {
@@ -499,8 +524,8 @@ void FGearVRCustomPresent::BeginRendering(FHMDViewExtension& InRenderContext, co
 	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_RIGHT].TexCoordsFromTanAngles.M[0][2] -= 1.0 - ((float)RTSizeY / (float)RTSizeX);
 	FrameParms.WarpProgram = VRAPI_FRAME_PROGRAM_MIDDLE_CLAMP;
 
-	const ovrRectf LeftEyeRect  = { 0.0f, 0.0f, 0.5f, 1.0f };
-	const ovrRectf RightEyeRect = { 0.5f, 0.0f, 0.5f, 1.0f };
+	static const ovrRectf LeftEyeRect  = { 0.0f, 0.0f, 0.5f, 1.0f };
+	static const ovrRectf RightEyeRect = { 0.5f, 0.0f, 0.5f, 1.0f };
 	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_LEFT].TextureRect = LeftEyeRect;
 	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_RIGHT].TextureRect= RightEyeRect;
 }
@@ -516,15 +541,24 @@ void FGearVRCustomPresent::FinishRendering()
 		if (OvrMobile)
 		{
 			check(RenderThreadId == gettid());
-			
-			FrameParms.PerformanceParms = DefaultPerfParms;
-			FrameParms.PerformanceParms.CpuLevel = RenderContext->GetFrameSetting()->CpuLevel;
-			FrameParms.PerformanceParms.GpuLevel = RenderContext->GetFrameSetting()->GpuLevel;
-			FrameParms.PerformanceParms.MainThreadTid = RenderContext->GetRenderFrame()->GameThreadId;
-			FrameParms.PerformanceParms.RenderThreadTid = gettid();
-			vrapi_SubmitFrame(OvrMobile, &FrameParms);
 
-			TextureSet->SwitchToNextElement();
+			if (IsInLoadingIconMode())
+			{
+				FGameFrame* CurrentFrame = GetRenderFrame();
+				LoadingIconParms.FrameIndex = CurrentFrame->FrameNumber;
+				DoRenderLoadingIcon_RenderThread(RenderContext->GetFrameSetting()->CpuLevel, RenderContext->GetFrameSetting()->GpuLevel, RenderContext->GetRenderFrame()->GameThreadId);
+			}
+			else
+			{
+				FrameParms.PerformanceParms = DefaultPerfParms;
+				FrameParms.PerformanceParms.CpuLevel = RenderContext->GetFrameSetting()->CpuLevel;
+				FrameParms.PerformanceParms.GpuLevel = RenderContext->GetFrameSetting()->GpuLevel;
+				FrameParms.PerformanceParms.MainThreadTid = RenderContext->GetRenderFrame()->GameThreadId;
+				FrameParms.PerformanceParms.RenderThreadTid = gettid();
+				vrapi_SubmitFrame(OvrMobile, &FrameParms);
+
+				TextureSet->SwitchToNextElement();
+			}
 		}
 		else
 		{
@@ -617,9 +651,12 @@ void FGearVRCustomPresent::DoEnterVRMode()
 		JavaRT.ActivityObject = ActivityObject;
 		GJavaVM->AttachCurrentThread(&JavaRT.Env, nullptr);
 
+		LoadingIconParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_LOADING_ICON, 0);
+		LoadingIconParms.MinimumVsyncs = MinimumVsyncs;
+
 		FrameParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_DEFAULT, 0);
 		FrameParms.MinimumVsyncs = MinimumVsyncs;
-		FrameParms.ExtraLatencyMode = EXTRA_LATENCY_MODE_ALWAYS;
+		FrameParms.ExtraLatencyMode = VRAPI_EXTRA_LATENCY_MODE_ALWAYS;
 
 		RenderThreadId = gettid();
 		ovrModeParms parms = vrapi_DefaultModeParms(&JavaRT);
@@ -677,6 +714,87 @@ void FGearVRCustomPresent::OnReleaseThreadOwnership()
 		JavaRT.Vm->DetachCurrentThread();
 		JavaRT.Vm = nullptr;
 		JavaRT.Env = nullptr;
+	}
+}
+
+void FGearVRCustomPresent::SetLoadingIconMode(bool bLoadingIconActive)
+{
+	bLoadingIconIsActive = bLoadingIconActive;
+}
+
+bool FGearVRCustomPresent::IsInLoadingIconMode() const
+{
+	return bLoadingIconIsActive;
+}
+
+void FGearVRCustomPresent::SetLoadingIconTexture_RenderThread(FTextureRHIRef Texture)
+{
+	check(IsInRenderingThread());
+	SrcLoadingIconTexture = Texture;
+
+	if (LoadingIconTextureSet)
+	{
+		vrapi_DestroyTextureSwapChain(LoadingIconTextureSet);
+		LoadingIconTextureSet = nullptr;
+	}
+
+	// Reset LoadingIconParms
+	LoadingIconParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_LOADING_ICON, 0);
+	LoadingIconParms.MinimumVsyncs = MinimumVsyncs;
+
+	if (Texture && Texture->GetTexture2D())
+	{
+		const uint32 SizeX = Texture->GetTexture2D()->GetSizeX();
+		const uint32 SizeY = Texture->GetTexture2D()->GetSizeY();
+
+		const ovrTextureFormat VrApiFormat = VRAPI_TEXTURE_FORMAT_8888;
+
+		LoadingIconTextureSet = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D_EXTERNAL, VrApiFormat, SizeX, SizeY, 0, false);
+		// set the icon
+		GLuint LoadingIconTexID = *(GLuint*)SrcLoadingIconTexture->GetNativeResource();
+		
+		UE_LOG(LogHMD, Log, TEXT("LOADINGICON TEX ID %d"), LoadingIconTexID);
+		vrapi_SetTextureSwapChainHandle(LoadingIconTextureSet, 0, LoadingIconTexID);
+	}
+}
+
+void FGearVRCustomPresent::RenderLoadingIcon_RenderThread(uint32 FrameIndex)
+{
+	check(IsInRenderingThread());
+	LoadingIconParms.FrameIndex = FrameIndex;
+	DoRenderLoadingIcon_RenderThread(0, 0, 0);
+}
+
+void FGearVRCustomPresent::DoRenderLoadingIcon_RenderThread(int CpuLevel, int GpuLevel, pid_t GameTid)
+{
+	check(IsInRenderingThread());
+
+	if (OvrMobile)
+	{
+		LoadingIconParms.PerformanceParms = DefaultPerfParms;
+		if (CpuLevel)
+		{
+			LoadingIconParms.PerformanceParms.CpuLevel = CpuLevel;
+		}
+		if (GpuLevel)
+		{
+			LoadingIconParms.PerformanceParms.GpuLevel = GpuLevel;
+		}
+		if (GameTid)
+		{
+			LoadingIconParms.PerformanceParms.MainThreadTid = GameTid;
+		}
+		LoadingIconParms.PerformanceParms.RenderThreadTid = gettid();
+
+		if (LoadingIconTextureSet)
+		{
+			for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++)
+			{
+				LoadingIconParms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Textures[eye].ColorTextureSwapChain = LoadingIconTextureSet;
+			}
+		}
+
+		vrapi_SubmitFrame(OvrMobile, &LoadingIconParms);
 	}
 }
 

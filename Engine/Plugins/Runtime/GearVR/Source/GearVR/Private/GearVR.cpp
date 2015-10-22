@@ -67,6 +67,14 @@ class FGearVRPlugin : public IGearVRPlugin
 	virtual float GetBatteryLevel() const;
 
 	virtual bool AreHeadPhonesPluggedIn() const;
+
+	virtual void SetLoadingIconTexture(FTextureRHIRef InTexture);
+
+	virtual void SetLoadingIconMode(bool bActiveLoadingIcon);
+
+	virtual void RenderLoadingIcon_RenderThread();
+
+	virtual bool IsInLoadingIconMode() const;
 };
 
 IMPLEMENT_MODULE( FGearVRPlugin, GearVR )
@@ -193,7 +201,7 @@ bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 	CurrentFrame->Settings = Settings->Clone();
 	FSettings* CurrentSettings = CurrentFrame->GetSettings();
 
-	if (CurrentSettings->IsStereoEnabled() && pGearVRBridge && pGearVRBridge->IsTextureSetCreated())
+	if (OCFlags.bResumed && CurrentSettings->IsStereoEnabled() && pGearVRBridge && pGearVRBridge->IsTextureSetCreated())
 	{
 		// re-enter VR mode if necessary
 		EnterVRMode();
@@ -386,6 +394,44 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			});
 		return true;
 	}
+#if !UE_BUILD_SHIPPING
+	else if (FParse::Command(&Cmd, TEXT("OVRLD")))
+	{
+		SetLoadingIconMode(!IsInLoadingIconMode());
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("OVRLDI")))
+	{
+		if (!IsInLoadingIconMode())
+		{
+			const TCHAR* iconPath = TEXT("/Game/Loading/LoadingIconTexture.LoadingIconTexture");
+			UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+			UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+			UE_LOG(LogHMD, Log, TEXT("...EEE"));
+			if (LoadingTexture != nullptr)
+			{
+				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				SetRenderLoadingTex,
+				FGearVR*, pGearVR, this,
+				UTexture2D*, LoadingTexture, LoadingTexture,
+				{
+					UE_LOG(LogHMD, Log, TEXT("...Success. Loading icon format %d"), int(LoadingTexture->Resource->TextureRHI->GetFormat()));
+					pGearVR->SetLoadingIconTexture(LoadingTexture->Resource->TextureRHI);
+				});
+				FlushRenderingCommands();
+			}
+			else
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Can't load texture %s for loading icon"), iconPath);
+			}
+			return true;
+		}
+		else
+		{
+			SetLoadingIconTexture(nullptr);
+		}
+	}
+#endif
 	return false;
 }
 
@@ -669,7 +715,7 @@ void FGearVR::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = false;
-	InViewFamily.EngineShowFlags.ScreenPercentage = false;
+	InViewFamily.EngineShowFlags.ScreenPercentage =false;
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 }
 
@@ -785,16 +831,16 @@ void FGearVR::Shutdown()
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(ShutdownRen,
-		FGearVR*, Plugin, this,
+	FGearVR*, Plugin, this,
+	{
+		Plugin->ShutdownRendering();
+		if (Plugin->pGearVRBridge)
 		{
-			Plugin->ShutdownRendering();
-			if (Plugin->pGearVRBridge)
-			{
-				Plugin->pGearVRBridge->Shutdown();
-				Plugin->pGearVRBridge = nullptr;
-			}
+			Plugin->pGearVRBridge->Shutdown();
+			Plugin->pGearVRBridge = nullptr;
+		}
 
-		});
+	});
 
 	// Wait for all resources to be released
 	FlushRenderingCommands();
@@ -809,6 +855,7 @@ void FGearVR::Shutdown()
 void FGearVR::ApplicationPauseDelegate()
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("+++++++ GEARVR APP PAUSE ++++++"));
+	OCFlags.bResumed = false;
 
 	LeaveVRMode();
 }
@@ -816,6 +863,7 @@ void FGearVR::ApplicationPauseDelegate()
 void FGearVR::ApplicationResumeDelegate()
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("+++++++ GEARVR APP RESUME ++++++"));
+	OCFlags.bResumed = true;
 }
 
 void FGearVR::UpdateHmdRenderInfo()
@@ -942,8 +990,10 @@ void FGearVR::StartOVRGlobalMenu()
 {
 	check(IsInRenderingThread());
 
-	check(pGearVRBridge);
-	ovr_StartSystemActivity(&pGearVRBridge->JavaRT, PUI_GLOBAL_MENU, NULL);
+	if (pGearVRBridge)
+	{
+		ovr_StartSystemActivity(&pGearVRBridge->JavaRT, PUI_GLOBAL_MENU, NULL);
+	}
 }
 
 void FGearVR::StartOVRQuitMenu()
@@ -995,17 +1045,17 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 
 float FGearVR::GetBatteryLevel() const
 {
-	return ovr_GetBatteryLevel() / 100.f;
+	return FAndroidMisc::GetBatteryState().Level;
 }
 
 float FGearVR::GetTemperatureInCelsius() const
 {
-	return ovr_GetBatteryTemperature() / 10.0f;
+	return FAndroidMisc::GetBatteryState().Temperature;
 }
 
 bool FGearVR::AreHeadPhonesPluggedIn() const
 {
-	return ovr_HeadPhonesArePluggedIn();
+	return FAndroidMisc::AreHeadPhonesPluggedIn();
 }
 
 bool FGearVR::IsPowerLevelStateThrottled() const
@@ -1037,10 +1087,6 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 	auto GearVRHMD = static_cast<FGearVR*>(InDelegate);
 	pPresentBridge = GearVRHMD->pGearVRBridge;
 }
-
-//////////////////////////////////////////////////////////////////////////
-
-#endif //GEARVR_SUPPORTED_PLATFORMS
 
 void FGearVRPlugin::StartOVRGlobalMenu() const 
 {
@@ -1159,7 +1205,54 @@ bool FGearVRPlugin::AreHeadPhonesPluggedIn() const
 	return false;
 }
 
-#if GEARVR_SUPPORTED_PLATFORMS
+void FGearVRPlugin::SetLoadingIconTexture(FTextureRHIRef InTexture)
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		OculusHMD->SetLoadingIconTexture(InTexture);
+	}
+}
+
+void FGearVRPlugin::SetLoadingIconMode(bool bActiveLoadingIcon)
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		OculusHMD->SetLoadingIconMode(bActiveLoadingIcon);
+	}
+}
+
+void FGearVRPlugin::RenderLoadingIcon_RenderThread()
+{
+	check(IsInRenderingThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		OculusHMD->RenderLoadingIcon_RenderThread();
+	}
+}
+
+bool FGearVRPlugin::IsInLoadingIconMode() const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		return OculusHMD->IsInLoadingIconMode();
+	}
+	return false;
+}
 
 #include <HeadMountedDisplayCommon.cpp>
 
