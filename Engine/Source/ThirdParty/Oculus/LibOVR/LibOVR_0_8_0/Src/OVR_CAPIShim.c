@@ -64,12 +64,12 @@ limitations under the License.
     #pragma warning(disable: 4996) // 'getenv': This function or variable may be unsafe.
 #endif
 
-// SHA-256 of string 'OculusSDK0.7'
+// SHA-256 of string 'OculusSDK0.8'
 static const uint8_t VersionSHA256[] = {
-    0xf4, 0x54, 0xa8, 0x60, 0x77, 0x08, 0x78, 0x50, 0x0d, 0x46, 0x82, 0x4e, 0xcd, 0x7d, 0x7e, 0x09,
-    0x93, 0xf4, 0x46, 0x64, 0xe8, 0xe2, 0x68, 0x7b, 0x99, 0x02, 0xbe, 0x70, 0x5f, 0x83, 0x44, 0xf4};
+	0x47, 0x38, 0x2c, 0xfe, 0x10, 0xc6, 0x96, 0x98, 0xdc, 0x90, 0x32, 0xe0, 0x55, 0x2a, 0xe6, 0x0f,
+	0x33, 0x2e, 0x27, 0xb0, 0xa8, 0x07, 0xfe, 0xff, 0xb6, 0x7e, 0x79, 0x70, 0xa6, 0xb2, 0x89, 0xcc};
 
-static const uint8_t VersionXOR = 0x1a;
+static const uint8_t VersionXOR = 0xc9;
 
 // -----------------------------------------------------------------------------------
 // ***** OVR_ENABLE_DEVELOPER_SEARCH
@@ -464,19 +464,22 @@ static ModuleHandleType OVR_OpenLibrary(const FilePathCharType* libraryPath)
 }
 
 
-/*  Currently not in use, but expected to be used in the future
 static void OVR_CloseLibrary(ModuleHandleType hLibrary)
 {
     if (hLibrary)
     {
         #if defined(_WIN32)
+            // We may need to consider what to do in the case that the library is in an exception state.
+            // In a Windows C++ DLL, all global objects (including static members of classes) will be constructed just 
+            // before the calling of the DllMain with DLL_PROCESS_ATTACH and they will be destroyed just after 
+            // the call of the DllMain with DLL_PROCESS_DETACH. We may need to intercept DLL_PROCESS_DETACH and 
+            // have special handling for the case that the DLL is broken.
             FreeLibrary(hLibrary);
         #else
             dlclose(hLibrary);
         #endif
     }
 }
-*/
 
 
 // Returns a valid ModuleHandleType (e.g. Windows HMODULE) or returns ModuleHandleTypeNull (e.g. NULL).
@@ -801,47 +804,48 @@ OVR_DECLARE_IMPORT(ovrResult,        ovr_Initialize, (const ovrInitParams* param
 OVR_DECLARE_IMPORT(ovrBool,          ovr_Shutdown, ())
 OVR_DECLARE_IMPORT(const char*,      ovr_GetVersionString, ())
 OVR_DECLARE_IMPORT(void,             ovr_GetLastErrorInfo, (ovrErrorInfo* errorInfo))
-OVR_DECLARE_IMPORT(ovrHmdDesc,       ovr_GetHmdDesc, (ovrHmd hmd))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_Create, (ovrHmd* pHmd, ovrGraphicsLuid* pLuid))
-OVR_DECLARE_IMPORT(void,             ovr_Destroy, (ovrHmd hmd))
-OVR_DECLARE_IMPORT(unsigned int,     ovr_GetEnabledCaps, (ovrHmd hmd))
-OVR_DECLARE_IMPORT(void,             ovr_SetEnabledCaps, (ovrHmd hmd, unsigned int hmdCaps))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_ConfigureTracking, (ovrHmd hmd, unsigned int requestedTrackingCaps, unsigned int requiredTrackingCaps))
-OVR_DECLARE_IMPORT(void,             ovr_RecenterPose, (ovrHmd hmd))
-OVR_DECLARE_IMPORT(ovrTrackingState, ovr_GetTrackingState, (ovrHmd hmd, double absTime))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_GetInputState, (ovrHmd hmd, unsigned int controllerMask, ovrInputState*))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_SetControllerVibration, (ovrHmd hmd, unsigned int controllerTypeMask, float frequency, float amplitude))
-OVR_DECLARE_IMPORT(ovrSizei,         ovr_GetFovTextureSize, (ovrHmd hmd, ovrEyeType eye, ovrFovPort fov, float pixelsPerDisplayPixel))
-OVR_DECLARE_IMPORT(void,             ovr_SubmitFrameLegacy, (ovrHmd hmd, unsigned int frameIndex, const ovrPosef renderPose[2], const ovrTexture eyeTexture[2]))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_SubmitFrame, (ovrHmd hmd, unsigned int frameIndex, const ovrViewScaleDesc* viewScaleDesc, ovrLayerHeader const * const * layerPtrList, unsigned int layerCount))
-OVR_DECLARE_IMPORT(ovrEyeRenderDesc, ovr_GetRenderDesc, (ovrHmd hmd, ovrEyeType eyeType, ovrFovPort fov))
-OVR_DECLARE_IMPORT(ovrFrameTiming,   ovr_GetFrameTiming, (ovrHmd hmd, unsigned int frameIndex))
+OVR_DECLARE_IMPORT(ovrHmdDesc,       ovr_GetHmdDesc, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_Create, (ovrSession* pSession, ovrGraphicsLuid* pLuid))
+OVR_DECLARE_IMPORT(void,             ovr_Destroy, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_GetSessionStatus, (ovrSession session, ovrSessionStatus* sessionStatus))
+OVR_DECLARE_IMPORT(unsigned int,     ovr_GetEnabledCaps, (ovrSession session))
+OVR_DECLARE_IMPORT(void,             ovr_SetEnabledCaps, (ovrSession session, unsigned int hmdCaps))
+OVR_DECLARE_IMPORT(unsigned int,     ovr_GetTrackingCaps, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_ConfigureTracking, (ovrSession session, unsigned int requestedTrackingCaps, unsigned int requiredTrackingCaps))
+OVR_DECLARE_IMPORT(void,             ovr_RecenterPose, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrTrackingState, ovr_GetTrackingState, (ovrSession session, double absTime, ovrBool latencyMarker))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_GetInputState, (ovrSession session, unsigned int controllerMask, ovrInputState*))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_SetControllerVibration, (ovrSession session, unsigned int controllerTypeMask, float frequency, float amplitude))
+OVR_DECLARE_IMPORT(ovrSizei,         ovr_GetFovTextureSize, (ovrSession session, ovrEyeType eye, ovrFovPort fov, float pixelsPerDisplayPixel))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_SubmitFrame, (ovrSession session, long long frameIndex, const ovrViewScaleDesc* viewScaleDesc, ovrLayerHeader const * const * layerPtrList, unsigned int layerCount))
+OVR_DECLARE_IMPORT(ovrEyeRenderDesc, ovr_GetRenderDesc, (ovrSession session, ovrEyeType eyeType, ovrFovPort fov))
+OVR_DECLARE_IMPORT(double,           ovr_GetPredictedDisplayTime, (ovrSession session, long long frameIndex))
 OVR_DECLARE_IMPORT(double,           ovr_GetTimeInSeconds, ())
-OVR_DECLARE_IMPORT(void,             ovr_ResetBackOfHeadTracking, (ovrHmd hmd))
-OVR_DECLARE_IMPORT(void,             ovr_ResetMulticameraTracking, (ovrHmd hmd))
-OVR_DECLARE_IMPORT(ovrBool,          ovr_GetBool, (ovrHmd hmd, const char* propertyName, ovrBool defaultVal))
-OVR_DECLARE_IMPORT(ovrBool,          ovr_SetBool, (ovrHmd hmd, const char* propertyName, ovrBool value))
-OVR_DECLARE_IMPORT(int,              ovr_GetInt, (ovrHmd hmd, const char* propertyName, int defaultVal))
-OVR_DECLARE_IMPORT(ovrBool,          ovr_SetInt, (ovrHmd hmd, const char* propertyName, int value))
-OVR_DECLARE_IMPORT(float,            ovr_GetFloat, (ovrHmd hmd, const char* propertyName, float defaultVal))
-OVR_DECLARE_IMPORT(ovrBool,          ovr_SetFloat, (ovrHmd hmd, const char* propertyName, float value))
-OVR_DECLARE_IMPORT(unsigned int,     ovr_GetFloatArray, (ovrHmd hmd, const char* propertyName, float values[], unsigned int arraySize))
-OVR_DECLARE_IMPORT(ovrBool,          ovr_SetFloatArray, (ovrHmd hmd, const char* propertyName, const float values[], unsigned int arraySize))
-OVR_DECLARE_IMPORT(const char*,      ovr_GetString, (ovrHmd hmd, const char* propertyName, const char* defaultVal))
-OVR_DECLARE_IMPORT(ovrBool,          ovr_SetString, (ovrHmd hmddesc, const char* propertyName, const char* value))
+OVR_DECLARE_IMPORT(void,             ovr_ResetBackOfHeadTracking, (ovrSession session))
+OVR_DECLARE_IMPORT(void,             ovr_ResetMulticameraTracking, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrBool,          ovr_GetBool, (ovrSession session, const char* propertyName, ovrBool defaultVal))
+OVR_DECLARE_IMPORT(ovrBool,          ovr_SetBool, (ovrSession session, const char* propertyName, ovrBool value))
+OVR_DECLARE_IMPORT(int,              ovr_GetInt, (ovrSession session, const char* propertyName, int defaultVal))
+OVR_DECLARE_IMPORT(ovrBool,          ovr_SetInt, (ovrSession session, const char* propertyName, int value))
+OVR_DECLARE_IMPORT(float,            ovr_GetFloat, (ovrSession session, const char* propertyName, float defaultVal))
+OVR_DECLARE_IMPORT(ovrBool,          ovr_SetFloat, (ovrSession session, const char* propertyName, float value))
+OVR_DECLARE_IMPORT(unsigned int,     ovr_GetFloatArray, (ovrSession session, const char* propertyName, float values[], unsigned int arraySize))
+OVR_DECLARE_IMPORT(ovrBool,          ovr_SetFloatArray, (ovrSession session, const char* propertyName, const float values[], unsigned int arraySize))
+OVR_DECLARE_IMPORT(const char*,      ovr_GetString, (ovrSession session, const char* propertyName, const char* defaultVal))
+OVR_DECLARE_IMPORT(ovrBool,          ovr_SetString, (ovrSession session, const char* propertyName, const char* value))
 OVR_DECLARE_IMPORT(int,              ovr_TraceMessage, (int level, const char* message))
 
 #if defined (_WIN32)
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateSwapTextureSetD3D11, (ovrHmd hmddesc, ID3D11Device* device, const D3D11_TEXTURE2D_DESC* desc, unsigned int miscFlags, ovrSwapTextureSet** outTextureSet))
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureD3D11,  (ovrHmd hmddesc, ID3D11Device* device, const D3D11_TEXTURE2D_DESC* desc, unsigned int miscFlags, ovrTexture** outMirrorTexture))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateSwapTextureSetD3D11, (ovrSession session, ID3D11Device* device, const D3D11_TEXTURE2D_DESC* desc, unsigned int miscFlags, ovrSwapTextureSet** outTextureSet))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureD3D11,  (ovrSession session, ID3D11Device* device, const D3D11_TEXTURE2D_DESC* desc, unsigned int miscFlags, ovrTexture** outMirrorTexture))
 #endif
 
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateSwapTextureSetGL, (ovrHmd hmddesc, GLuint format, int width, int height, ovrSwapTextureSet** outTextureSet))
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureGL,  (ovrHmd hmddesc, GLuint format, int width, int height, ovrTexture** outMirrorTexture))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateSwapTextureSetGL, (ovrSession session, GLuint format, int width, int height, ovrSwapTextureSet** outTextureSet))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureGL,  (ovrSession session, GLuint format, int width, int height, ovrTexture** outMirrorTexture))
 
-OVR_DECLARE_IMPORT(void, ovr_DestroySwapTextureSet, (ovrHmd hmddesc, ovrSwapTextureSet* textureSet))
-OVR_DECLARE_IMPORT(void, ovr_DestroyMirrorTexture, (ovrHmd hmddesc, ovrTexture* textureSet))
-OVR_DECLARE_IMPORT(ovrResult, ovr_SetQueueAheadFraction, (ovrHmd hmddesc, float queueAheadFraction))
+OVR_DECLARE_IMPORT(void, ovr_DestroySwapTextureSet, (ovrSession session, ovrSwapTextureSet* textureSet))
+OVR_DECLARE_IMPORT(void, ovr_DestroyMirrorTexture, (ovrSession session, ovrTexture* textureSet))
+OVR_DECLARE_IMPORT(ovrResult, ovr_SetQueueAheadFraction, (ovrSession session, float queueAheadFraction))
 
 OVR_DECLARE_IMPORT(ovrResult, ovr_Lookup, (const char* name, void** data));
 
@@ -865,8 +869,10 @@ static ovrResult OVR_LoadSharedLibrary(int requestedProductVersion, int requeste
     OVR_GETFUNCTION(ovr_GetHmdDesc)
     OVR_GETFUNCTION(ovr_Create)
     OVR_GETFUNCTION(ovr_Destroy)
+    OVR_GETFUNCTION(ovr_GetSessionStatus)
     OVR_GETFUNCTION(ovr_GetEnabledCaps)
     OVR_GETFUNCTION(ovr_SetEnabledCaps)
+    OVR_GETFUNCTION(ovr_GetTrackingCaps)
     OVR_GETFUNCTION(ovr_ConfigureTracking)
     OVR_GETFUNCTION(ovr_RecenterPose)
     OVR_GETFUNCTION(ovr_GetTrackingState)
@@ -875,7 +881,7 @@ static ovrResult OVR_LoadSharedLibrary(int requestedProductVersion, int requeste
     OVR_GETFUNCTION(ovr_GetFovTextureSize)
     OVR_GETFUNCTION(ovr_SubmitFrame)
     OVR_GETFUNCTION(ovr_GetRenderDesc)
-    OVR_GETFUNCTION(ovr_GetFrameTiming)
+    OVR_GETFUNCTION(ovr_GetPredictedDisplayTime)
     OVR_GETFUNCTION(ovr_GetTimeInSeconds)
     OVR_GETFUNCTION(ovr_ResetBackOfHeadTracking)
     OVR_GETFUNCTION(ovr_ResetMulticameraTracking)
@@ -906,13 +912,56 @@ static ovrResult OVR_LoadSharedLibrary(int requestedProductVersion, int requeste
 
 static void OVR_UnloadSharedLibrary()
 {
-    // TBD: Currently there are some CAPI functions and code in the render shim that does
-    // not work with unloading the LibOVRRT. We also have the problem that LibOVR returns
-    // a string pointer in the GetLastError function.
-    //OVR_CloseLibrary(hLibOVR);
-    //hLibOVR = NULL;
-}
+    // To consider: Make all pointers be part of a struct and memset the struct to 0 here.
+    ovr_InitializeRenderingShimVersionPtr = NULL;
+    ovr_InitializePtr = NULL;
+    ovr_ShutdownPtr = NULL;
+    ovr_GetVersionStringPtr = NULL;
+    ovr_GetLastErrorInfoPtr = NULL;
+    ovr_GetHmdDescPtr = NULL;
+    ovr_CreatePtr = NULL;
+    ovr_DestroyPtr = NULL;
+    ovr_GetSessionStatusPtr = NULL;
+    ovr_GetEnabledCapsPtr = NULL;
+    ovr_SetEnabledCapsPtr = NULL;
+    ovr_GetTrackingCapsPtr = NULL;
+    ovr_ConfigureTrackingPtr = NULL;
+    ovr_RecenterPosePtr = NULL;
+    ovr_GetTrackingStatePtr = NULL;
+    ovr_GetInputStatePtr = NULL;
+    ovr_SetControllerVibrationPtr = NULL;
+    ovr_GetFovTextureSizePtr = NULL;
+    ovr_SubmitFramePtr = NULL;
+    ovr_GetRenderDescPtr = NULL;
+    ovr_GetPredictedDisplayTimePtr = NULL;
+    ovr_GetTimeInSecondsPtr = NULL;
+    ovr_ResetBackOfHeadTrackingPtr = NULL;
+    ovr_ResetMulticameraTrackingPtr = NULL;
+    ovr_GetBoolPtr = NULL;
+    ovr_SetBoolPtr = NULL;
+    ovr_GetIntPtr = NULL;
+    ovr_SetIntPtr = NULL;
+    ovr_GetFloatPtr = NULL;
+    ovr_SetFloatPtr = NULL;
+    ovr_GetFloatArrayPtr = NULL;
+    ovr_SetFloatArrayPtr = NULL;
+    ovr_GetStringPtr = NULL;
+    ovr_SetStringPtr = NULL;
+    ovr_TraceMessagePtr = NULL;
+    #if defined (_WIN32)
+    ovr_CreateSwapTextureSetD3D11Ptr = NULL;
+    ovr_CreateMirrorTextureD3D11Ptr = NULL;
+    #endif
+    ovr_CreateSwapTextureSetGLPtr = NULL;
+    ovr_CreateMirrorTextureGLPtr = NULL;
+    ovr_DestroySwapTextureSetPtr = NULL;
+    ovr_DestroyMirrorTexturePtr = NULL;
+    ovr_SetQueueAheadFractionPtr = NULL;
+    ovr_LookupPtr = NULL;
 
+    OVR_CloseLibrary(hLibOVR);
+    hLibOVR = NULL;
+}
 
 
 OVR_PUBLIC_FUNCTION(ovrBool) ovr_InitializeRenderingShim()
@@ -962,16 +1011,16 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* inputParams)
     // it from being optimized out. In this case, compute
     // a cheap CRC.
     uint8_t crc = 0;
-    int i;
+    size_t i;
 
     for (i = 0; i < sizeof(VersionSHA256); ++i)
     {
         crc ^= VersionSHA256[i];
     }
 
+    assert(crc == VersionXOR);
     if (crc != VersionXOR)
     {
-        assert(FALSE);
         return ovrError_Initialize;
     }
 
@@ -1047,7 +1096,7 @@ OVR_PUBLIC_FUNCTION(void) ovr_GetLastErrorInfo(ovrErrorInfo* errorInfo)
         ovr_GetLastErrorInfoPtr(errorInfo);
 }
 
-OVR_PUBLIC_FUNCTION(ovrHmdDesc) ovr_GetHmdDesc(ovrHmd hmd)
+OVR_PUBLIC_FUNCTION(ovrHmdDesc) ovr_GetHmdDesc(ovrSession session)
 {
     if (!ovr_GetHmdDescPtr)
     {
@@ -1057,53 +1106,67 @@ OVR_PUBLIC_FUNCTION(ovrHmdDesc) ovr_GetHmdDesc(ovrHmd hmd)
         return hmdDesc;
     }
 
-    return ovr_GetHmdDescPtr(hmd);
+    return ovr_GetHmdDescPtr(session);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_Create(ovrHmd* pHmd, ovrGraphicsLuid* pLuid)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_Create(ovrSession* pSession, ovrGraphicsLuid* pLuid)
 {
     if (!ovr_CreatePtr)
         return ovrError_NotInitialized;
-    return ovr_CreatePtr(pHmd, pLuid);
+    return ovr_CreatePtr(pSession, pLuid);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_Destroy(ovrHmd hmd)
+OVR_PUBLIC_FUNCTION(void) ovr_Destroy(ovrSession session)
 {
     if (!ovr_DestroyPtr)
         return;
-    ovr_DestroyPtr(hmd);
+    ovr_DestroyPtr(session);
 }
 
-OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetEnabledCaps(ovrHmd hmd)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetSessionStatus(ovrSession session, ovrSessionStatus* sessionStatus)
+{
+    if (!ovr_GetSessionStatusPtr)
+        return ovrError_NotInitialized;
+    return ovr_GetSessionStatusPtr(session, sessionStatus);
+}
+
+OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetEnabledCaps(ovrSession session)
 {
     if (!ovr_GetEnabledCapsPtr)
         return 0;
-    return ovr_GetEnabledCapsPtr(hmd);
+    return ovr_GetEnabledCapsPtr(session);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_SetEnabledCaps(ovrHmd hmd, unsigned int hmdCaps)
+OVR_PUBLIC_FUNCTION(void) ovr_SetEnabledCaps(ovrSession session, unsigned int hmdCaps)
 {
     if (!ovr_SetEnabledCapsPtr)
         return;
-    ovr_SetEnabledCapsPtr(hmd, hmdCaps);
+    ovr_SetEnabledCapsPtr(session, hmdCaps);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_ConfigureTracking(ovrHmd hmd, unsigned int requestedTrackingCaps,
+OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetTrackingCaps(ovrSession session)
+{
+    if (!ovr_GetTrackingCapsPtr)
+        return 0;
+    return ovr_GetTrackingCapsPtr(session);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_ConfigureTracking(ovrSession session, unsigned int requestedTrackingCaps,
                                                          unsigned int requiredTrackingCaps)
 {
     if (!ovr_ConfigureTrackingPtr)
         return ovrError_NotInitialized;
-    return ovr_ConfigureTrackingPtr(hmd, requestedTrackingCaps, requiredTrackingCaps);
+    return ovr_ConfigureTrackingPtr(session, requestedTrackingCaps, requiredTrackingCaps);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_RecenterPose(ovrHmd hmd)
+OVR_PUBLIC_FUNCTION(void) ovr_RecenterPose(ovrSession session)
 {
     if (!ovr_RecenterPosePtr)
         return;
-    ovr_RecenterPosePtr(hmd);
+    ovr_RecenterPosePtr(session);
 }
 
-OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrHmd hmd, double absTime)
+OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrSession session, double absTime, ovrBool latencyMarker)
 {
     if (!ovr_GetTrackingStatePtr)
     {
@@ -1112,10 +1175,10 @@ OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrHmd hmd, double ab
         return nullTrackingState;
     }
 
-    return ovr_GetTrackingStatePtr(hmd, absTime);
+    return ovr_GetTrackingStatePtr(session, absTime, latencyMarker);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrHmd hmd, unsigned int controllerMask, ovrInputState* inputState)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrSession session, unsigned int controllerMask, ovrInputState* inputState)
 {
     if (!ovr_GetInputStatePtr)
     {
@@ -1123,19 +1186,19 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrHmd hmd, unsigned int contro
             memset(inputState, 0, sizeof(ovrInputState));
         return ovrError_NotInitialized;
     }
-    return ovr_GetInputStatePtr(hmd, controllerMask, inputState);
+    return ovr_GetInputStatePtr(session, controllerMask, inputState);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrHmd hmd, unsigned int controllerTypeMask, float frequency, float amplitude)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrSession session, unsigned int controllerTypeMask, float frequency, float amplitude)
 {
 	if (!ovr_SetControllerVibrationPtr)
 	{
         return ovrError_NotInitialized;
 	}
-	return ovr_SetControllerVibrationPtr(hmd, controllerTypeMask, frequency, amplitude);
+	return ovr_SetControllerVibrationPtr(session, controllerTypeMask, frequency, amplitude);
 }
 
-OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrHmd hmd, ovrEyeType eye, ovrFovPort fov,
+OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrSession session, ovrEyeType eye, ovrFovPort fov,
                                              float pixelsPerDisplayPixel)
 {
     if (!ovr_GetFovTextureSizePtr)
@@ -1145,11 +1208,11 @@ OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrHmd hmd, ovrEyeType eye, 
         return nullSize;
     }
 
-    return ovr_GetFovTextureSizePtr(hmd, eye, fov, pixelsPerDisplayPixel);
+    return ovr_GetFovTextureSizePtr(session, eye, fov, pixelsPerDisplayPixel);
 }
 
 #if defined (_WIN32)
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrHmd hmd,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrSession session,
                                                                 ID3D11Device* device,
                                                                 const D3D11_TEXTURE2D_DESC* desc,
                                                                 unsigned int miscFlags,
@@ -1158,10 +1221,10 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrHmd hmd,
     if (!ovr_CreateSwapTextureSetD3D11Ptr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateSwapTextureSetD3D11Ptr(hmd, device, desc, miscFlags, outTextureSet);
+    return ovr_CreateSwapTextureSetD3D11Ptr(session, device, desc, miscFlags, outTextureSet);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureD3D11(ovrHmd hmd,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureD3D11(ovrSession session,
                                                                ID3D11Device* device,
                                                                const D3D11_TEXTURE2D_DESC* desc,
                                                                unsigned int miscFlags,
@@ -1170,63 +1233,63 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureD3D11(ovrHmd hmd,
     if (!ovr_CreateMirrorTextureD3D11Ptr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateMirrorTextureD3D11Ptr(hmd, device, desc, miscFlags, outMirrorTexture);
+    return ovr_CreateMirrorTextureD3D11Ptr(session, device, desc, miscFlags, outMirrorTexture);
 }
 #endif
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrHmd hmd, GLuint format,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrSession session, GLuint format,
                                                              int width, int height,
                                                              ovrSwapTextureSet** outTextureSet)
 {
     if (!ovr_CreateSwapTextureSetGLPtr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateSwapTextureSetGLPtr(hmd, format, width, height, outTextureSet);
+    return ovr_CreateSwapTextureSetGLPtr(session, format, width, height, outTextureSet);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrHmd hmd, GLuint format,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrSession session, GLuint format,
                                                             int width, int height,
                                                             ovrTexture** outMirrorTexture)
 {
     if (!ovr_CreateMirrorTextureGLPtr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateMirrorTextureGLPtr(hmd, format, width, height, outMirrorTexture);
+    return ovr_CreateMirrorTextureGLPtr(session, format, width, height, outMirrorTexture);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_DestroySwapTextureSet(ovrHmd hmd, ovrSwapTextureSet* textureSet)
+OVR_PUBLIC_FUNCTION(void) ovr_DestroySwapTextureSet(ovrSession session, ovrSwapTextureSet* textureSet)
 {
     if (!ovr_DestroySwapTextureSetPtr)
         return;
 
-    ovr_DestroySwapTextureSetPtr(hmd, textureSet);
+    ovr_DestroySwapTextureSetPtr(session, textureSet);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_DestroyMirrorTexture(ovrHmd hmd, ovrTexture* mirrorTexture)
+OVR_PUBLIC_FUNCTION(void) ovr_DestroyMirrorTexture(ovrSession session, ovrTexture* mirrorTexture)
 {
     if (!ovr_DestroyMirrorTexturePtr)
         return;
 
-    ovr_DestroyMirrorTexturePtr(hmd, mirrorTexture);
+    ovr_DestroyMirrorTexturePtr(session, mirrorTexture);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetQueueAheadFraction(ovrHmd hmd, float queueAheadFraction)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetQueueAheadFraction(ovrSession session, float queueAheadFraction)
 {
     if (!ovr_SetQueueAheadFractionPtr)
         return ovrError_NotInitialized;
 
-    return ovr_SetQueueAheadFractionPtr(hmd, queueAheadFraction);
+    return ovr_SetQueueAheadFractionPtr(session, queueAheadFraction);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_SubmitFrame(ovrHmd hmd, unsigned int frameIndex, const ovrViewScaleDesc* viewScaleDesc, ovrLayerHeader const * const * layerPtrList, unsigned int layerCount)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SubmitFrame(ovrSession session, long long frameIndex, const ovrViewScaleDesc* viewScaleDesc, ovrLayerHeader const * const * layerPtrList, unsigned int layerCount)
 {
     if (!ovr_SubmitFramePtr)
         return ovrError_NotInitialized;
 
-    return ovr_SubmitFramePtr(hmd, frameIndex, viewScaleDesc, layerPtrList, layerCount);
+    return ovr_SubmitFramePtr(session, frameIndex, viewScaleDesc, layerPtrList, layerCount);
 }
 
-OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrHmd hmd, ovrEyeType eyeType, ovrFovPort fov)
+OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrSession session, ovrEyeType eyeType, ovrFovPort fov)
 {
     if (!ovr_GetRenderDescPtr)
     {
@@ -1234,18 +1297,15 @@ OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrHmd hmd, ovrEyeType e
         memset(&nullEyeRenderDesc, 0, sizeof(nullEyeRenderDesc));
         return nullEyeRenderDesc;
     }
-    return ovr_GetRenderDescPtr(hmd, eyeType, fov);
+    return ovr_GetRenderDescPtr(session, eyeType, fov);
 }
 
-OVR_PUBLIC_FUNCTION(ovrFrameTiming) ovr_GetFrameTiming(ovrHmd hmd, unsigned int frameIndex)
+OVR_PUBLIC_FUNCTION(double) ovr_GetPredictedDisplayTime(ovrSession session, long long frameIndex)
 {
-    if (!ovr_GetFrameTimingPtr)
-    {
-        ovrFrameTiming nullFrameTiming;
-        memset(&nullFrameTiming, 0, sizeof(nullFrameTiming));
-        return nullFrameTiming;
-    }
-    return ovr_GetFrameTimingPtr(hmd, frameIndex);
+    if (!ovr_GetPredictedDisplayTimePtr)
+        return 0.0;
+
+    return ovr_GetPredictedDisplayTimePtr(session, frameIndex);
 }
 
 OVR_PUBLIC_FUNCTION(double) ovr_GetTimeInSeconds()
@@ -1255,92 +1315,92 @@ OVR_PUBLIC_FUNCTION(double) ovr_GetTimeInSeconds()
     return ovr_GetTimeInSecondsPtr();
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_ResetBackOfHeadTracking(ovrHmd hmd)
+OVR_PUBLIC_FUNCTION(void) ovr_ResetBackOfHeadTracking(ovrSession session)
 {
     if (!ovr_ResetBackOfHeadTrackingPtr)
         return;
-    ovr_ResetBackOfHeadTrackingPtr(hmd);
+    ovr_ResetBackOfHeadTrackingPtr(session);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_ResetMulticameraTracking(ovrHmd hmd)
+OVR_PUBLIC_FUNCTION(void) ovr_ResetMulticameraTracking(ovrSession session)
 {
     if (!ovr_ResetMulticameraTrackingPtr)
         return;
-    ovr_ResetMulticameraTrackingPtr(hmd);
+    ovr_ResetMulticameraTrackingPtr(session);
 }
 
-OVR_PUBLIC_FUNCTION(ovrBool) ovr_GetBool(ovrHmd hmd, const char* propertyName, ovrBool defaultVal)
+OVR_PUBLIC_FUNCTION(ovrBool) ovr_GetBool(ovrSession session, const char* propertyName, ovrBool defaultVal)
 {
     if (!ovr_GetBoolPtr)
         return ovrFalse;
-    return ovr_GetBoolPtr(hmd, propertyName, defaultVal);
+    return ovr_GetBoolPtr(session, propertyName, defaultVal);
 }
 
-OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetBool(ovrHmd hmd, const char* propertyName, ovrBool value)
+OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetBool(ovrSession session, const char* propertyName, ovrBool value)
 {
     if (!ovr_SetBoolPtr)
         return ovrFalse;
-    return ovr_SetBoolPtr(hmd, propertyName, value);
+    return ovr_SetBoolPtr(session, propertyName, value);
 }
 
-OVR_PUBLIC_FUNCTION(int) ovr_GetInt(ovrHmd hmd, const char* propertyName, int defaultVal)
+OVR_PUBLIC_FUNCTION(int) ovr_GetInt(ovrSession session, const char* propertyName, int defaultVal)
 {
     if (!ovr_GetIntPtr)
         return 0;
-    return ovr_GetIntPtr(hmd, propertyName, defaultVal);
+    return ovr_GetIntPtr(session, propertyName, defaultVal);
 }
 
-OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetInt(ovrHmd hmd, const char* propertyName, int value)
+OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetInt(ovrSession session, const char* propertyName, int value)
 {
     if (!ovr_SetIntPtr)
         return ovrFalse;
-    return ovr_SetIntPtr(hmd, propertyName, value);
+    return ovr_SetIntPtr(session, propertyName, value);
 }
 
-OVR_PUBLIC_FUNCTION(float) ovr_GetFloat(ovrHmd hmd, const char* propertyName, float defaultVal)
+OVR_PUBLIC_FUNCTION(float) ovr_GetFloat(ovrSession session, const char* propertyName, float defaultVal)
 {
     if (!ovr_GetFloatPtr)
         return 0.f;
-    return ovr_GetFloatPtr(hmd, propertyName, defaultVal);
+    return ovr_GetFloatPtr(session, propertyName, defaultVal);
 }
 
-OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloat(ovrHmd hmd, const char* propertyName, float value)
+OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloat(ovrSession session, const char* propertyName, float value)
 {
     if (!ovr_SetFloatPtr)
         return ovrFalse;
-    return ovr_SetFloatPtr(hmd, propertyName, value);
+    return ovr_SetFloatPtr(session, propertyName, value);
 }
 
-OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetFloatArray(ovrHmd hmd, const char* propertyName,
+OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetFloatArray(ovrSession session, const char* propertyName,
                                             float values[], unsigned int arraySize)
 {
     if (!ovr_GetFloatArrayPtr)
         return 0;
-    return ovr_GetFloatArrayPtr(hmd, propertyName, values, arraySize);
+    return ovr_GetFloatArrayPtr(session, propertyName, values, arraySize);
 }
 
-OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloatArray(ovrHmd hmd, const char* propertyName,
+OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloatArray(ovrSession session, const char* propertyName,
                                              const float values[], unsigned int arraySize)
 {
     if (!ovr_SetFloatArrayPtr)
         return ovrFalse;
-    return ovr_SetFloatArrayPtr(hmd, propertyName, values, arraySize);
+    return ovr_SetFloatArrayPtr(session, propertyName, values, arraySize);
 }
 
-OVR_PUBLIC_FUNCTION(const char*) ovr_GetString(ovrHmd hmd, const char* propertyName,
+OVR_PUBLIC_FUNCTION(const char*) ovr_GetString(ovrSession session, const char* propertyName,
                                         const char* defaultVal)
 {
     if (!ovr_GetStringPtr)
         return "(Unable to load LibOVR)";
-    return ovr_GetStringPtr(hmd, propertyName, defaultVal);
+    return ovr_GetStringPtr(session, propertyName, defaultVal);
 }
 
-OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetString(ovrHmd hmd, const char* propertyName,
+OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetString(ovrSession session, const char* propertyName,
                                     const char* value)
 {
     if (!ovr_SetStringPtr)
         return ovrFalse;
-    return ovr_SetStringPtr(hmd, propertyName, value);
+    return ovr_SetStringPtr(session, propertyName, value);
 }
 
 OVR_PUBLIC_FUNCTION(int) ovr_TraceMessage(int level, const char* message)

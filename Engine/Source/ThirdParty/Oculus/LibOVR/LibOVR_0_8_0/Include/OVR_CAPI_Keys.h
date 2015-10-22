@@ -45,10 +45,17 @@
 
 #define OVR_PERF_HUD_MODE                   "PerfHudMode"   // allowed values are defined in enum ovrPerfHudMode
 
+#define OVR_LAYER_HUD_MODE "LayerHudMode" // allowed values are defined in enum ovrLayerHudMode
+#define OVR_LAYER_HUD_CURRENT_LAYER "LayerHudCurrentLayer" // The layer to show 
+#define OVR_LAYER_HUD_SHOW_ALL_LAYERS "LayerHudShowAll" // Hide other layers when the hud is enabled
+
 #define OVR_DEBUG_HUD_STEREO_MODE               "DebugHudStereoMode"                // allowed values are defined in enum ovrDebugHudStereoMode
+#define OVR_DEBUG_HUD_STEREO_GUIDE_INFO_ENABLE  "DebugHudStereoGuideInfoEnable"     // bool
 #define OVR_DEBUG_HUD_STEREO_GUIDE_SIZE         "DebugHudStereoGuideSize2f"         // float[2]
 #define OVR_DEBUG_HUD_STEREO_GUIDE_POSITION     "DebugHudStereoGuidePosition3f"     // float[3]
 #define OVR_DEBUG_HUD_STEREO_GUIDE_YAWPITCHROLL "DebugHudStereoGuideYawPitchRoll3f" // float[3]
 #define OVR_DEBUG_HUD_STEREO_GUIDE_COLOR        "DebugHudStereoGuideColor4f"        // float[4]
+
+
 
 #endif // OVR_CAPI_Keys_h

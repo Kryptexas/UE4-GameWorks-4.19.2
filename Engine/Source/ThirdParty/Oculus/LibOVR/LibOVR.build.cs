@@ -6,7 +6,7 @@ public class LibOVR : ModuleRules
 {
 	// Version of LibOVR
 	public const int LibOVR_Major = 0;
-	public       int LibOVR_Minor = 7;
+	public       int LibOVR_Minor = 8;
 	public const int LibOVR_Patch = 0;
 
     public LibOVR(TargetInfo Target)

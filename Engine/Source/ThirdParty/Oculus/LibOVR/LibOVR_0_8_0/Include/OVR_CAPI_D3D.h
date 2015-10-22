@@ -59,10 +59,10 @@ typedef enum ovrSwapTextureSetD3D11Flags_
 
 /// Create Texture Set suitable for use with D3D11.
 ///
-/// Multiple calls to ovr_CreateSwapTextureSetD3D11 for the same ovrHmd is supported, but applications
+/// Multiple calls to ovr_CreateSwapTextureSetD3D11 for the same ovrHmd are supported, but applications
 /// cannot rely on switching between ovrSwapTextureSets at runtime without a performance penalty.
 ///
-/// \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+/// \param[in]  session Specifies an ovrSession previously returned by ovr_Create.
 /// \param[in]  device Specifies the associated ID3D11Device, which must be the one that the textures will be used with in the application's process.
 /// \param[in]  desc Specifies requested texture properties. See notes for more info about texture format.
 /// \param[in]  miscFlags Specifies misc bit flags of type \a ovrSwapTextureSetD3D11Flags used when creating the swap textures
@@ -85,7 +85,7 @@ typedef enum ovrSwapTextureSetD3D11Flags_
 ///
 /// \see ovr_DestroySwapTextureSet
 ///
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrHmd hmd,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrSession session,
                                                                 ID3D11Device* device,
                                                                 const D3D11_TEXTURE2D_DESC* desc,
                                                                 unsigned int miscFlags,
@@ -96,7 +96,7 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrHmd hmd,
 /// A second call to ovr_CreateMirrorTextureD3D11 for a given ovrHmd before destroying the first one
 /// is not supported and will result in an error return.
 ///
-/// \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+/// \param[in]  session Specifies an ovrSession previously returned by ovr_Create.
 /// \param[in]  device Specifies the associated ID3D11Device, which must be the one that the textures will be used with in the application's process.
 /// \param[in]  desc Specifies requested texture properties. See notes for info about texture format.
 /// \param[in]  miscFlags Specifies misc bit flags of type \a ovrSwapTextureSetD3D11Flags used when creating the swap textures
@@ -117,18 +117,12 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrHmd hmd,
 ///
 /// \see ovr_DestroyMirrorTexture
 ///
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureD3D11(ovrHmd hmd,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureD3D11(ovrSession session,
                                                                ID3D11Device* device,
                                                                const D3D11_TEXTURE2D_DESC* desc,
                                                                unsigned int miscFlags,
                                                                ovrTexture** outMirrorTexture);
 
 
-// Temporary backwards compatibility
-/*
-#define ovr_CreateSwapTextureSetD3D11 ovr_CreateSwapTextureSetD3D11
-#define ovr_CreateMirrorTextureD3D11  ovr_CreateMirrorTextureD3D11
-*/
 
-
-#endif    // OVR_CAPI_h
+#endif    // OVR_CAPI_D3D_h

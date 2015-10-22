@@ -12,7 +12,7 @@
 #endif
 
 #include <OVR_Version.h>
-#include <OVR_CAPI_0_7_0.h>
+#include <OVR_CAPI_0_8_0.h>
 #include <OVR_CAPI_Keys.h>
 #include <Extras/OVR_Math.h>
 #include <OVR_ErrorCode.h>

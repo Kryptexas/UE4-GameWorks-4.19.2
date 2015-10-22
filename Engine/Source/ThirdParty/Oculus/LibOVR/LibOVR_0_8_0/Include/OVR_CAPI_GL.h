@@ -44,10 +44,10 @@ typedef union ovrGLTexture_s
 
 /// Creates a Texture Set suitable for use with OpenGL.
 ///
-/// Multiple calls to ovr_CreateSwapTextureSetD3D11 for the same ovrHmd is supported, but applications
+/// Multiple calls to ovr_CreateSwapTextureSetD3D11 for the same ovrHmd are supported, but applications
 /// cannot rely on switching between ovrSwapTextureSets at runtime without a performance penalty.
 ///
-/// \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+/// \param[in]  session Specifies an ovrSession previously returned by ovr_Create.
 /// \param[in]  format Specifies the texture format.
 /// \param[in]  width Specifies the requested texture width.
 /// \param[in]  height Specifies the requested texture height.
@@ -67,17 +67,17 @@ typedef union ovrGLTexture_s
 ///
 /// \see ovr_DestroySwapTextureSet
 ///
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrHmd hmd, GLuint format,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrSession session, GLuint format,
                                                              int width, int height,
                                                              ovrSwapTextureSet** outTextureSet);
 
 
 /// Creates a Mirror Texture which is auto-refreshed to mirror Rift contents produced by this application.
 ///
-/// A second call to ovr_CreateMirrorTextureGL for a given ovrHmd  before destroying the first one
+/// A second call to ovr_CreateMirrorTextureGL for a given ovrHmd before destroying the first one
 /// is not supported and will result in an error return.
 ///
-/// \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+/// \param[in]  session Specifies an ovrSession previously returned by ovr_Create.
 /// \param[in]  format Specifies the texture format.
 /// \param[in]  width Specifies the requested texture width.
 /// \param[in]  height Specifies the requested texture height.
@@ -95,15 +95,9 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrHmd hmd, GLuint for
 ///
 /// \see ovr_DestroyMirrorTexture
 ///
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrHmd hmd, GLuint format,
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrSession session, GLuint format,
                                                             int width, int height,
                                                             ovrTexture** outMirrorTexture);
-
-// Temporary backwards compatibility
-/*
-#define ovr_CreateSwapTextureSetGL  ovr_CreateSwapTextureSetGL
-#define ovr_CreateMirrorTextureGL   ovr_CreateMirrorTextureGL
-*/
 
 
 #endif    // OVR_CAPI_GL_h

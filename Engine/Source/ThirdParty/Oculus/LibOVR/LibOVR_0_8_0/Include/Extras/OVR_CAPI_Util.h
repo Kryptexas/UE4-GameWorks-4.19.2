@@ -46,6 +46,54 @@ typedef enum ovrProjectionModifier_
 } ovrProjectionModifier;
 
 
+/// Return values for ovr_Detect.
+///
+/// \see ovr_Detect
+///
+typedef struct OVR_ALIGNAS(8) ovrDetectResult_
+{
+    /// Is ovrFalse when the Oculus Service is not running.
+    ///   This means that the Oculus Service is either uninstalled or stopped.
+    ///   IsOculusHMDConnected will be ovrFalse in this case.
+    /// Is ovrTrue when the Oculus Service is running.
+    ///   This means that the Oculus Service is installed and running.
+    ///   IsOculusHMDConnected will reflect the state of the HMD.
+    ovrBool IsOculusServiceRunning;
+
+    /// Is ovrFalse when an Oculus HMD is not detected.
+    ///   If the Oculus Service is not running, this will be ovrFalse.
+    /// Is ovrTrue when an Oculus HMD is detected.
+    ///   This implies that the Oculus Service is also installed and running.
+    ovrBool IsOculusHMDConnected;
+
+    OVR_UNUSED_STRUCT_PAD(pad0, 6) ///< \internal struct padding
+
+} ovrDetectResult;
+
+OVR_STATIC_ASSERT(sizeof(ovrDetectResult) == 8, "ovrDetectResult size mismatch");
+
+
+/// Detects Oculus Runtime and Device Status
+///
+/// Checks for Oculus Runtime and Oculus HMD device status without loading the LibOVRRT
+/// shared library.  This may be called before ovr_Initialize() to help decide whether or
+/// not to initialize LibOVR.
+///
+/// \param[in] timeoutMsec Specifies a timeout to wait for HMD to be attached or 0 to poll.
+///
+/// \return Returns an ovrDetectResult object indicating the result of detection.
+///
+/// \see ovrDetectResult
+///
+OVR_PUBLIC_FUNCTION(ovrDetectResult) ovr_Detect(int timeoutMsec);
+
+// On the Windows platform,
+#ifdef _WIN32
+    /// This is the Windows Named Event name that is used to check for HMD connected state.
+    #define OVR_HMD_CONNECTED_EVENT_NAME L"OculusHMDConnected"
+#endif // _WIN32
+
+
 /// Used to generate projection from ovrEyeDesc::Fov.
 ///
 /// \param[in] fov Specifies the ovrFovPort to use.
@@ -113,10 +161,13 @@ OVR_PUBLIC_FUNCTION(void) ovr_CalcEyePoses(ovrPosef headPose,
 /// \param[in]  hmdToEyeViewOffset Can be ovrEyeRenderDesc.HmdToEyeViewOffset returned from 
 ///             ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
 ///             of the two vectors for both eyes.
+/// \param[in]  latencyMarker Specifies that this call is the point in time where
+///             the "App-to-Mid-Photon" latency timer starts from. If a given ovrLayer
+///             provides "SensorSampleTimestamp", that will override the value stored here.
 /// \param[out] outEyePoses The predicted eye poses.
 /// \param[out] outHmdTrackingState The predicted ovrTrackingState. May be NULL, in which case it is ignored.
 ///
-OVR_PUBLIC_FUNCTION(void) ovr_GetEyePoses(ovrHmd hmd, unsigned int frameIndex,
+OVR_PUBLIC_FUNCTION(void) ovr_GetEyePoses(ovrSession session, long long frameIndex, ovrBool latencyMarker,
                                              const ovrVector3f hmdToEyeViewOffset[2],
                                              ovrPosef outEyePoses[2],
                                              ovrTrackingState* outHmdTrackingState);
