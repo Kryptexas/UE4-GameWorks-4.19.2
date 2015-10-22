@@ -742,16 +742,18 @@ void FCanvas::Flush_GameThread(bool bForce)
 	struct FCanvasFlushParameters
 	{
 		FIntRect ViewRect;
-		const FRenderTarget* CanvasRenderTarget;
-		bool bIsScaledToRenderTarget;
+		FTexture2DRHIRef CanvasRenderTargetTexture;
 	};
 	FCanvasFlushParameters FlushParameters =
 	{
 		ViewRect,
-		RenderTarget,
-		IsScaledToRenderTarget()
+		RenderTarget->GetRenderTargetTexture()
 	};
-	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
+	
+	if (IsScaledToRenderTarget())
+	{
+		FlushParameters.ViewRect = FIntRect(0, 0, FlushParameters.CanvasRenderTargetTexture->GetSizeX(), FlushParameters.CanvasRenderTargetTexture->GetSizeY());
+	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		CanvasFlushSetupCommand,
@@ -760,18 +762,11 @@ void FCanvas::Flush_GameThread(bool bForce)
 		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 
 		// Set the RHI render target.
-		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTargetTexture, FTextureRHIRef());
 		// disable depth test & writes
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-
-		if (Parameters.bIsScaledToRenderTarget)
-		{
-			Parameters.ViewRect = FIntRect(0, 0, Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeX(), Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeY());
-		}
-
-		const FIntRect& ViewportRect = Parameters.ViewRect;
 		// set viewport to RT size
-		RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
+		RHICmdList.SetViewport(Parameters.ViewRect.Min.X, Parameters.ViewRect.Min.Y, 0.0f, Parameters.ViewRect.Max.X, Parameters.ViewRect.Max.Y, 1.0f);
 	});
 
 	// iterate over the FCanvasSortElements in sorted order and render all the batched items for each entry
