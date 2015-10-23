@@ -2625,6 +2625,14 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				continue;
 			}
 
+			UBlueprint* MacroBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(MacroGraph);
+			// unfortunately, you may be expanding a macro that has yet to be
+			// regenerated on load (thanks cyclic dependencies!), and in certain
+			// cases the nodes found within the macro may be out of date 
+			// (function signatures, etc.), so let's force a reconstruct of the 
+			// nodes we inject from the macro (just in case)
+			const bool bForceRegenNodes = bIsLoading && MacroBlueprint && !MacroBlueprint->bHasBeenRegenerated;
+
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
 			UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL, &MessageLog, true);
 
@@ -2732,6 +2740,11 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				
 				if( DuplicatedNode != NULL )
 				{
+					if (bForceRegenNodes)
+					{
+						DuplicatedNode->ReconstructNode();
+					}
+
 					// Record the source node mapping for the intermediate node first, as it's going to be overwritten through the MessageLog below
 					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(MessageLog.FindSourceObject(DuplicatedNode));
 					if (MacroSourceNode)
