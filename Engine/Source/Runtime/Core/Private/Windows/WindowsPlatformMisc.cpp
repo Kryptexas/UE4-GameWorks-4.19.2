@@ -2031,6 +2031,116 @@ bool FWindowsPlatformMisc::GetStoredValue(const FString& InStoreId, const FStrin
 	return QueryRegKey(HKEY_CURRENT_USER, *FullRegistryKey, *InKeyName, OutValue);
 }
 
+bool FWindowsPlatformMisc::GetStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName, FTimespan InTimeout)
+{
+	// Implements locking via a reg key. The key is read/write locked while we check the timeout value in it.
+	// If the time has expired or the key/value aren't there we can obtain the lock.
+	// It is obtained by writing a new timeout to a value.
+	// The key is unlocked before we return but locked during the reads and writes to avoid concurrent access.
+
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InLockName.IsEmpty());
+
+	FString LockRegistryKey = FString(TEXT("Software")) / InStoreId / InSectionName / InLockName;
+	LockRegistryKey = LockRegistryKey.Replace(TEXT("/"), TEXT("\\")); // we use forward slashes, but the registry needs back slashes
+
+	HKEY hKey;
+	HRESULT Result = ::RegCreateKeyEx(HKEY_CURRENT_USER, *LockRegistryKey, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, nullptr, &hKey, nullptr);
+	if (Result == ERROR_SUCCESS)
+	{
+		::DWORD Size = 0;
+		// First, we'll call RegQueryValueEx to find out how large of a buffer we need
+		if ((RegQueryValueEx(hKey, TEXT("Timeout"), NULL, NULL, NULL, &Size) == ERROR_SUCCESS) && Size)
+		{
+			// Allocate a buffer to hold the value and call the function again to get the data
+			char *Buffer = new char[Size];
+			if (RegQueryValueEx(hKey, TEXT("Timeout"), NULL, NULL, (LPBYTE)Buffer, &Size) == ERROR_SUCCESS)
+			{
+				FString ExistingTimeoutString(Size - 1, (TCHAR*)Buffer);
+				ExistingTimeoutString.TrimToNullTerminator();
+
+				int64 ExistingTimeoutTicks;
+				if (LexicalConversion::TryParseString(ExistingTimeoutTicks, *ExistingTimeoutString))
+				{
+					FDateTime ExistingTimeout(ExistingTimeoutTicks);
+					if (ExistingTimeout > FDateTime::UtcNow())
+					{
+						::RegCloseKey(hKey);
+						return false;
+					}
+				}
+			}
+			delete[] Buffer;
+		}
+
+		FDateTime NewTimeout = FDateTime::UtcNow() + InTimeout;
+		FString NewTimeoutString = LexicalConversion::ToString(NewTimeout.GetTicks());
+		Result = ::RegSetValueEx(hKey, TEXT("Timeout"), 0, REG_SZ, (const BYTE*)*NewTimeoutString, (NewTimeoutString.Len() + 1) * sizeof(TCHAR));
+
+		::RegCloseKey(hKey);
+	}
+
+	return Result == ERROR_SUCCESS;
+}
+
+void FWindowsPlatformMisc::ReleaseStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName)
+{
+	// Implements unlocking a reg key that was locked with GetStoredLock().
+	// This "unlocks" a key by deleting it (and the timeout value in it).
+	// This allows GetStoredLock() to obtain the lock next time.
+
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InLockName.IsEmpty());
+
+	FString LockRegistryKey = FString(TEXT("Software")) / InStoreId / InSectionName / InLockName;
+	LockRegistryKey = LockRegistryKey.Replace(TEXT("/"), TEXT("\\")); // we use forward slashes, but the registry needs back slashes
+
+	::RegDeleteKey(HKEY_CURRENT_USER, *LockRegistryKey);
+}
+
+bool FWindowsPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
+{
+	// Deletes values in reg keys and also deletes the owning key if it becomes empty
+
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	FString FullRegistryKey = FString(TEXT("Software")) / InStoreId / InSectionName;
+	FullRegistryKey = FullRegistryKey.Replace(TEXT("/"), TEXT("\\")); // we use forward slashes, but the registry needs back slashes
+
+	HKEY hKey;
+	HRESULT Result = ::RegOpenKeyEx(HKEY_CURRENT_USER, *FullRegistryKey, 0, KEY_WRITE | KEY_READ, &hKey);
+	if (Result == ERROR_SUCCESS)
+	{
+		Result = ::RegDeleteValue(hKey, *InKeyName);
+
+		// Query for sub-keys in the open key
+		TCHAR CheckKeyName[256];
+		::DWORD CheckKeyNameLength = sizeof(CheckKeyName) / sizeof(CheckKeyName[0]);
+		HRESULT EnumResult = RegEnumKeyEx(hKey, 0, CheckKeyName, &CheckKeyNameLength, NULL, NULL, NULL, NULL);
+		bool bZeroSubKeys = EnumResult != ERROR_SUCCESS;
+
+		// Query for a remaining value in the open key
+		wchar_t CheckValueName[256];
+		::DWORD CheckValueNameLength = sizeof(CheckValueName) / sizeof(CheckValueName[0]);
+		EnumResult = RegEnumValue(hKey, 0, CheckValueName, &CheckValueNameLength, NULL, NULL, NULL, NULL);
+		bool bZeroValues = EnumResult != ERROR_SUCCESS;
+
+		::RegCloseKey(hKey);
+
+		if (bZeroSubKeys && bZeroValues)
+		{
+			// No more values - delete the section
+			::RegDeleteKey(HKEY_CURRENT_USER, *FullRegistryKey);
+		}
+	}
+
+	return Result == ERROR_SUCCESS;
+}
+
 uint32 FWindowsPlatformMisc::GetLastError()
 {
 	return (uint32)::GetLastError();

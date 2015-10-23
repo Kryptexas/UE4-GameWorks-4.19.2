@@ -94,6 +94,9 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static FString GetDefaultLocale();
 	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
 	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
+	static bool GetStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName, FTimespan InTimeout);
+	static void ReleaseStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName);
+	static bool DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName);
 	static TArray<uint8> GetSystemFontBytes();
 	static TArray<FString> GetPreferredLanguages();
 	static FString GetLocalCurrencyCode();

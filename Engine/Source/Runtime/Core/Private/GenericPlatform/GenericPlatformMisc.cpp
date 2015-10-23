@@ -325,6 +325,86 @@ bool FGenericPlatformMisc::GetStoredValue(const FString& InStoreId, const FStrin
 	return false;
 }
 
+bool FGenericPlatformMisc::GetStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName, FTimespan InTimeout)
+{
+	// Implements locking by writing a timeout time to a named value in the shared key-value store.
+	// Concurrent access is blocked by obtaining an exclusive write lock to a separate file
+	// named to match the lock.
+
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InLockName.IsEmpty());
+
+	const FString LockPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / InSectionName / InLockName;
+
+	TAutoPtr<FArchive> OuterLock(IFileManager::Get().CreateFileWriter(*LockPath));
+	if (OuterLock.IsValid())
+	{
+		FString ExistingTimeoutString;
+		if (GetStoredValue(InStoreId, InSectionName, InLockName, ExistingTimeoutString))
+		{
+			int64 ExistingTimeoutTicks;
+			if (LexicalConversion::TryParseString(ExistingTimeoutTicks, *ExistingTimeoutString))
+			{
+				FDateTime ExistingTimeout(ExistingTimeoutTicks);
+				if (ExistingTimeout > FDateTime::UtcNow())
+				{
+					return false;
+				}
+			}
+		}
+
+		FDateTime NewTimeout = FDateTime::UtcNow() + InTimeout;
+		FString NewTimeoutString = LexicalConversion::ToString(NewTimeout.GetTicks());
+		return SetStoredValue(InStoreId, InSectionName, InLockName, NewTimeoutString);
+	}
+
+	return false;
+}
+
+void FGenericPlatformMisc::ReleaseStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName)
+{
+	// Implements unlocking by deleting a timeout time in a named value in the shared key-value store.
+	// Concurrent access is blocked by obtaining an exclusive write lock to a separate file
+	// named to match the lock.
+
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InLockName.IsEmpty());
+
+	const FString LockPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / InSectionName / InLockName;
+
+	TAutoPtr<FArchive> OuterLock(IFileManager::Get().CreateFileWriter(*LockPath));
+	if (OuterLock.IsValid())
+	{
+		DeleteStoredValue(InStoreId, InSectionName, InLockName);
+	}
+}
+
+bool FGenericPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
+{	
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	// This assumes that FPlatformProcess::ApplicationSettingsDir() returns a user-specific directory; it doesn't on Windows, but Windows overrides this behavior to use the registry
+	const FString ConfigPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / FString(TEXT("KeyValueStore.ini"));
+
+	FConfigFile ConfigFile;
+	ConfigFile.Read(ConfigPath);
+
+	FConfigSection* const Section = ConfigFile.Find(InSectionName);
+	if (Section)
+	{
+		int32 RemovedNum = Section->Remove(*InKeyName);
+
+		ConfigFile.Dirty = true;
+		return ConfigFile.Write(ConfigPath) && RemovedNum == 1;
+	}
+
+	return false;
+}
+
 void FGenericPlatformMisc::LowLevelOutputDebugString( const TCHAR *Message )
 {
 	FPlatformMisc::LocalPrint( Message );

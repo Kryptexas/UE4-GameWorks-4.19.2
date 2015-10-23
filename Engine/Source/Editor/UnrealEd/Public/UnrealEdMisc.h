@@ -236,7 +236,6 @@ private:
 	void OnEditorChangeMode(FEditorModeID NewEditorMode);
 	void OnEditorPreModal();
 	void OnEditorPostModal();
-	void OnCrashing();
 
 	/** Delegate that gets called by modules that can't directly access Engine */
 	void OnDeferCommand( const FString& DeferredCommand );
@@ -316,9 +315,6 @@ private:
 
 	/** true if an asset analytics pass is pending */
 	bool bIsAssetAnalyticsPending;
-
-	/** true if a crash error was reported by Core */
-	bool bEditorCrashed;
 
 	/** The time that the last performance survey frame rate sample happened */
 	FDateTime LastFrameRateTime;
