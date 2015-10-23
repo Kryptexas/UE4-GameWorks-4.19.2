@@ -71,8 +71,6 @@
 
 #include "Analytics/AnalyticsPrivacySettings.h"
 
-#include "KismetReinstanceUtilities.h"
-
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
 /** Used for the "tagsounds" and "checksounds" commands only			*/
@@ -1142,9 +1140,6 @@ UTransactor* UEditorEngine::CreateTrans()
 
 void UEditorEngine::PostUndo(bool bSuccess)
 {
-	// Cache any Actor that needs to be re-instanced because it still points to a REINST_ class
-	TMap< UClass*, UClass* > OldToNewClassMapToReinstance;
-
 	//Update the actor selection followed by the component selection if needed (note: order is important)
 		
 	//Get the list of all selected actors after the operation
@@ -1160,19 +1155,6 @@ void UEditorEngine::PostUndo(bool bSuccess)
 		else
 		{
 			GetSelectedActors()->Select(Actor, false);
-		}
-
-		// If the Actor's Class is not the AuthoritativeClass, then it needs to be re-instanced
-		UClass* OldClass = Actor->GetClass();
-		if (OldClass->HasAnyClassFlags(CLASS_NewerVersionExists))
-		{
-			UClass* NewClass = OldClass->GetAuthoritativeClass();
-			if (!ensure(NewClass != OldClass))
-			{
-				UE_LOG(LogActor, Warning, TEXT("WARNING: %s is out of date and is the same as its AuthoritativeClass during PostUndo!"), *OldClass->GetName());
-			};
-
-			OldToNewClassMapToReinstance.Add(OldClass, NewClass);
 		}
 	}
 
@@ -1257,9 +1239,6 @@ void UEditorEngine::PostUndo(bool bSuccess)
 		ComponentSelection->MarkBatchDirty();
 		ComponentSelection->EndBatchSelectOperation();
 	}
-
-	// Re-instance any actors that need it
-	FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(OldToNewClassMapToReinstance);
 }
 
 bool UEditorEngine::UndoTransaction()
