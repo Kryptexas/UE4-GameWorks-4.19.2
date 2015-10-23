@@ -11,7 +11,7 @@ UMovieSceneByteSection::UMovieSceneByteSection( const FObjectInitializer& Object
 
 uint8 UMovieSceneByteSection::Eval( float Position ) const
 {
-	return !!ByteCurve.Evaluate(Position);
+	return ByteCurve.Evaluate(Position);
 }
 
 
