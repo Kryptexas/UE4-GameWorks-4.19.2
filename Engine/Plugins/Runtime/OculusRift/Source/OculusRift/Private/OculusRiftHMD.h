@@ -32,6 +32,15 @@
 #pragma pack (pop)
 #endif
 
+DECLARE_STATS_GROUP(TEXT("OculusRiftHMD"), STATGROUP_OculusRiftHMD, STATCAT_Advanced);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("BeginRendering"), STAT_BeginRendering, STATGROUP_OculusRiftHMD, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("FinishRendering"), STAT_FinishRendering, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("LatencyRender"), STAT_LatencyRender, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("LatencyTimewarp"), STAT_LatencyTimewarp, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("LatencyPostPresent"), STAT_LatencyPostPresent, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("ErrorRender"), STAT_ErrorRender, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("ErrorTimewarp"), STAT_ErrorTimewarp, STATGROUP_OculusRiftHMD, );
+
 struct FDistortionVertex;
 class FOculusRiftHMD;
 

@@ -15,14 +15,13 @@
 #include "SlateBasics.h"
 
 
-DECLARE_STATS_GROUP(TEXT("OculusRiftHMD"), STATGROUP_OculusRiftHMD, STATCAT_Advanced);
-DECLARE_CYCLE_STAT(TEXT("BeginRendering"), STAT_BeginRendering, STATGROUP_OculusRiftHMD);
-DECLARE_CYCLE_STAT(TEXT("FinishRendering"), STAT_FinishRendering, STATGROUP_OculusRiftHMD);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("LatencyRender"), STAT_LatencyRender, STATGROUP_OculusRiftHMD);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("LatencyTimewarp"), STAT_LatencyTimewarp, STATGROUP_OculusRiftHMD);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("LatencyPostPresent"), STAT_LatencyPostPresent, STATGROUP_OculusRiftHMD);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("ErrorRender"), STAT_ErrorRender, STATGROUP_OculusRiftHMD);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("ErrorTimewarp"), STAT_ErrorTimewarp, STATGROUP_OculusRiftHMD);
+DEFINE_STAT(STAT_BeginRendering);
+DEFINE_STAT(STAT_FinishRendering);
+DEFINE_STAT(STAT_LatencyRender);
+DEFINE_STAT(STAT_LatencyTimewarp);
+DEFINE_STAT(STAT_LatencyPostPresent);
+DEFINE_STAT(STAT_ErrorRender);
+DEFINE_STAT(STAT_ErrorTimewarp);
 
 //-------------------------------------------------------------------------------------------------
 // FViewExtension
