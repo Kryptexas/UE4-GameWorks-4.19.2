@@ -660,10 +660,10 @@ void USceneComponent::OnComponentDestroyed()
 
 	ScopedMovementStack.Reset();
 
-	// Detach children before destroying
-	for (int32 Index = AttachChildren.Num()-1; Index >= 0; --Index)
+	int32 ChildCount = AttachChildren.Num();
+	while (ChildCount > 0)
 	{
-		if (USceneComponent* Child = AttachChildren[Index])
+		if (USceneComponent* Child = AttachChildren.Last())
 		{
 			if (AttachParent)
 			{
@@ -673,7 +673,13 @@ void USceneComponent::OnComponentDestroyed()
 			{
 				Child->DetachFromParent();
 			}
+			checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
 		}
+		else
+		{
+			AttachChildren.Pop(false);
+		}
+		ChildCount = AttachChildren.Num();
 	}
 
 	// Ensure we are detached before destroying
