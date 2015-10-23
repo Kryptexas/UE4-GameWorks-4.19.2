@@ -35,7 +35,7 @@ class VolumeReceiver extends BroadcastReceiver
 	private static String STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE";
 	private static String STREAM_VALUE = "android.media.EXTRA_VOLUME_STREAM_VALUE";
 
-	private static void startReceiver( Activity activity )
+	public static void startReceiver( Activity activity )
 	{
 		GameActivity.Log.debug( "Registering volume receiver" );
 		if ( filter == null ) 
@@ -55,7 +55,7 @@ class VolumeReceiver extends BroadcastReceiver
 		GameActivity.Log.debug( "startVolumeReceiver: " + volume );
 	}
 
-	private static void stopReceiver( Activity activity )
+	public static void stopReceiver( Activity activity )
 	{
 		GameActivity.Log.debug( "Unregistering volume receiver" );
 		activity.unregisterReceiver( receiver );

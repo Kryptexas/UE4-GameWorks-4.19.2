@@ -30,7 +30,7 @@ class HeadsetReceiver extends BroadcastReceiver
 
 	private static native void stateChanged(int state);
 
-	private static void startReceiver( Activity activity )
+	public static void startReceiver( Activity activity )
 	{
 		GameActivity.Log.debug("Registering headset receiver");
 		if ( filter == null ) 
@@ -50,7 +50,7 @@ class HeadsetReceiver extends BroadcastReceiver
 		stateChanged( state );
 	}
 
-	private static void stopReceiver( Context context )
+	public static void stopReceiver( Context context )
 	{
 		GameActivity.Log.debug("Unregistering headset receiver");
 		context.unregisterReceiver( receiver );

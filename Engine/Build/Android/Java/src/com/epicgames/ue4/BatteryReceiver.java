@@ -64,7 +64,7 @@ class BatteryReceiver extends BroadcastReceiver
 		}
 	}
 
-	private static void startReceiver( Activity activity )
+	public static void startReceiver( Activity activity )
 	{
 		GameActivity.Log.debug("Registering battery receiver");
 
@@ -84,7 +84,7 @@ class BatteryReceiver extends BroadcastReceiver
 		receiver.processIntent( activity.getIntent() );
 	}
 
-	private static void stopReceiver( Context context )
+	public static void stopReceiver( Context context )
 	{
 		GameActivity.Log.debug("Unregistering battery receiver");
 		context.unregisterReceiver( receiver );
