@@ -213,6 +213,12 @@ namespace UnrealBuildTool
 				// Separate functions for linker.
 				Arguments.Append(" /Gy");
 
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
+				{
+					// Allow 800% of the default memory allocation limit when compiling with old compilers
+					Arguments.Append(" /Zm800");
+				}
+
 				// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 				Arguments.Append(" /wd4819");
 			}

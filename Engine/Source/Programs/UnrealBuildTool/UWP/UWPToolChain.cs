@@ -60,6 +60,12 @@ namespace UnrealBuildTool
 			// Compile into an .obj file, and skip linking.
 			Arguments.Append(" /c");
 
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
+			{
+				// Allow 800% of the default memory allocation limit when compiling with old compilers
+				Arguments.Append(" /Zm800");
+			}
+
 			// Allow large object files to avoid hitting the 2^16 section limit when running with -StressTestUnity.
 			Arguments.Append(" /bigobj");
 
