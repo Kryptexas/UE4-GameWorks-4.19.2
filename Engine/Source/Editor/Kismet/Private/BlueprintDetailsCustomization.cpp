@@ -2365,6 +2365,7 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ECheckBoxState InStat
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
 	PinType.bIsReference = (InState == ECheckBoxState::Checked)? true : false;
+	PinType.bIsConst = (PinType.bIsArray || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
 	PinInfoChanged(PinType);
 }
 

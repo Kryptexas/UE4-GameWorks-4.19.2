@@ -739,7 +739,7 @@ void FBlueprintEditorUtils::GetAllGraphNames(const UBlueprint* Blueprint, TArray
 	}
 }
 
-void FBlueprintEditorUtils::GetCompilerRelevantNodes(const UEdGraphPin* FromPin, FCompilerRelevantNodesArray& OutNodes)
+void FBlueprintEditorUtils::GetCompilerRelevantNodeLinks(UEdGraphPin* FromPin, FCompilerRelevantNodeLinkArray& OutNodeLinks)
 {
 	if(FromPin)
 	{
@@ -757,24 +757,32 @@ void FBlueprintEditorUtils::GetCompilerRelevantNodes(const UEdGraphPin* FromPin,
 					// Recursively check each link for a compiler-relevant node that will "pass through" this node at compile time
 					for(auto LinkedPin : FromPin->LinkedTo)
 					{
-						GetCompilerRelevantNodes(LinkedPin, OutNodes);
+						GetCompilerRelevantNodeLinks(LinkedPin, OutNodeLinks);
 					}
 				}
 			}
 			else
 			{
-				OutNodes.Add(OwningNode);
+				OutNodeLinks.Add(FCompilerRelevantNodeLink(OwningNode, FromPin));
 			}
 		}		
 	}
 }
 
-UK2Node* FBlueprintEditorUtils::FindFirstCompilerRelevantNode(const UEdGraphPin* FromPin)
+UK2Node* FBlueprintEditorUtils::FindFirstCompilerRelevantNode(UEdGraphPin* FromPin)
 {
-	FCompilerRelevantNodesArray RelevantNodes;
-	GetCompilerRelevantNodes(FromPin, RelevantNodes);
-	
-	return RelevantNodes.Num() > 0 ? RelevantNodes[0] : nullptr;
+	FCompilerRelevantNodeLinkArray RelevantNodeLinks;
+	GetCompilerRelevantNodeLinks(FromPin, RelevantNodeLinks);
+
+	return RelevantNodeLinks.Num() > 0 ? RelevantNodeLinks[0].Node : nullptr;
+}
+
+UEdGraphPin* FBlueprintEditorUtils::FindFirstCompilerRelevantLinkedPin(UEdGraphPin* FromPin)
+{
+	FCompilerRelevantNodeLinkArray RelevantNodeLinks;
+	GetCompilerRelevantNodeLinks(FromPin, RelevantNodeLinks);
+
+	return RelevantNodeLinks.Num() > 0 ? RelevantNodeLinks[0].LinkedPin : nullptr;
 }
 
 /** 

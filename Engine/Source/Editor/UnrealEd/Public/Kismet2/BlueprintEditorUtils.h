@@ -94,8 +94,20 @@ private:
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
 
-/** Array type for GetCompilerRelevantNodes()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 */
-typedef TArray<UK2Node*, TInlineAllocator<4> > FCompilerRelevantNodesArray;
+struct UNREALED_API FCompilerRelevantNodeLink
+{
+	UK2Node* Node;
+	UEdGraphPin* LinkedPin;
+
+	FCompilerRelevantNodeLink(UK2Node* InNode, UEdGraphPin* InLinkedPin)
+		: Node(InNode)
+		, LinkedPin(InLinkedPin)
+	{
+	}
+};
+
+/** Array type for GetCompilerRelevantNodeLinks() */
+typedef TArray<FCompilerRelevantNodeLink, TInlineAllocator<4> > FCompilerRelevantNodeLinkArray;
 
 class UNREALED_API FBlueprintEditorUtils
 {
@@ -519,12 +531,12 @@ public:
 	static void GetAllGraphNames(const UBlueprint* Blueprint, TArray<FName>& GraphNames);
 
 	/**
-	 * Gets the compiler-relevant (i.e. non-ignorable) nodes from the given pin.
+	 * Gets the compiler-relevant (i.e. non-ignorable) node links from the given pin.
 	 *
 	 * @param			FromPin			The pin to start searching from.
-	 * @param			OutNodes		Will contain the given pin's owning node if compiler-relevant, or all nodes linked to the owning node at the matching "pass-through" pin that are compiler-relevant. Empty if no compiler-relevant nodes can be found from the given pin.
+	 * @param			OutNodeLinks	Will contain the given pin + owning node if compiler-relevant, or all nodes linked to the owning node at the matching "pass-through" pin that are compiler-relevant. Empty if no compiler-relevant node links can be found from the given pin.
 	 */
-	static void GetCompilerRelevantNodes(const UEdGraphPin* FromPin, FCompilerRelevantNodesArray& OutNodes);
+	static void GetCompilerRelevantNodeLinks(UEdGraphPin* FromPin, FCompilerRelevantNodeLinkArray& OutNodeLinks);
 
 	/**
 	 * Finds the first compiler-relevant (i.e. non-ignorable) node from the given pin.
@@ -533,8 +545,16 @@ public:
 	 *
 	 * @return			The given pin's owning node if compiler-relevant, or the first node linked to the owning node at the matching "pass-through" pin that is compiler-relevant. May be NULL if no compiler-relevant nodes can be found from the given pin.
 	 */
-	static UK2Node* FindFirstCompilerRelevantNode(const UEdGraphPin* FromPin);
+	static UK2Node* FindFirstCompilerRelevantNode(UEdGraphPin* FromPin);
 
+	/**
+	 * Finds the first compiler-relevant (i.e. non-ignorable) node from the given pin and returns the owned pin that's linked.
+	 *
+	 * @param			FromPin			The pin to start searching from.
+	 *
+	 * @return			The given pin if its owning node is compiler-relevant, or the first pin linked to the owning node at the matching "pass-through" pin that is owned by a compiler-relevant node. May be NULL if no compiler-relevant nodes can be found from the given pin.
+	 */
+	static UEdGraphPin* FindFirstCompilerRelevantLinkedPin(UEdGraphPin* FromPin);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Functions
