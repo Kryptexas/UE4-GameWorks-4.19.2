@@ -1,5 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "IOculusRiftPlugin.h"
+
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 #include "HMDPrivatePCH.h"
 #include "OculusRiftHMD.h"
@@ -489,3 +492,5 @@ bool FOculusAutomationTest_Screenshots::RunTest(const FString& Parameters)
 	return true;
 }
 #endif
+
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
