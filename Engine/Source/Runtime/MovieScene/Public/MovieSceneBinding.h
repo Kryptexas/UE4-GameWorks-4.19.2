@@ -12,7 +12,7 @@ class UMovieSceneTrack;
  * A set of tracks bound to runtime objects
  */
 USTRUCT()
-struct FMovieSceneBinding
+struct MOVIESCENE_API FMovieSceneBinding
 {
 	GENERATED_USTRUCT_BODY()
 
