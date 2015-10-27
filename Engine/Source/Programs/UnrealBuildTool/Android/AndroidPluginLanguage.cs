@@ -436,7 +436,7 @@ namespace UnrealBuildTool.Android
 			XDoc = XDocument.Parse("<root xmlns:android=\"http://schemas.android.com/apk/res/android\"></root>");
 			foreach (string Basename in XMLFiles)
 			{
-				string Filename = Path.Combine(PathPrefix, Basename);
+				string Filename = Path.Combine(PathPrefix, Basename.Replace("\\", "/"));
 				Log.TraceInformation("\nAPL: {0}", Filename);
 				if (File.Exists(Filename))
 				{
