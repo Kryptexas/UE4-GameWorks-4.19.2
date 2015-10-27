@@ -1356,7 +1356,10 @@ namespace UnrealBuildTool.Android
 			}
 
 			APL.ProcessPluginNode(Arch, "androidManifestUpdates", "", ref XDoc);
-			return XDoc.ToString();
+			var MemStream = new MemoryStream();
+			var Stream = new StreamWriter(MemStream, System.Text.UTF8Encoding.UTF8);
+			XDoc.Save(Stream);
+			return System.Text.UTF8Encoding.UTF8.GetString(MemStream.ToArray());
 		}
 
 		private string GenerateProguard(string Arch, string EngineSourcePath, string GameBuildFilesPath)
