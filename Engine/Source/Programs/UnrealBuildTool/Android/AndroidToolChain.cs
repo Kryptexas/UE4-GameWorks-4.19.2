@@ -346,8 +346,6 @@ namespace UnrealBuildTool
 			Result += " -Wno-unknown-pragmas";			// probably should kill this one, sign of another issue in PhysX?
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
-			// we use this feature to allow static FNames.
-			Result += " -Wno-gnu-string-literal-operator-template";
 
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
@@ -359,6 +357,8 @@ namespace UnrealBuildTool
 			{
 				Result += " -Wno-undefined-bool-conversion"; // 'this' pointer cannot be null in well-defined C++ code; pointer may be assumed to always convert to true (if (this))
 
+				// we use this feature to allow static FNames.
+				Result += " -Wno-gnu-string-literal-operator-template";
 			}
 
 			if (ClangVersionFloat >= 3.6f)
