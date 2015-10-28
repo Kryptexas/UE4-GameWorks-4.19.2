@@ -707,10 +707,9 @@ struct FInternalGroup
 		: GroupName( InGroupName )
 		, GroupCategory(InGroupCategory)
 		, GroupDescription( InGroupDescription )
-		, DisplayMode( InDisplayMode )
 		, TotalBudget( InTotalBudget )
 		, BudgetIgnoreStats( InBudgetIgnore )
-		
+		, DisplayMode( InDisplayMode )	
 	{
 		// To avoid copy.
 		Exchange( EnabledItems, InEnabledItems );
