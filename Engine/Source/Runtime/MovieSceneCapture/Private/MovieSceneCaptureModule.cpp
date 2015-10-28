@@ -4,63 +4,45 @@
 #include "MovieSceneCapture.h"
 #include "MovieSceneCaptureModule.h"
 #include "JsonObjectConverter.h"
+#include "ActiveMovieSceneCaptures.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneCapture"
 
-class FMovieSceneCaptureModule : public IMovieSceneCaptureModule, public FTickableGameObject, public FGCObject
+class FMovieSceneCaptureModule : public IMovieSceneCaptureModule
 {
-public:
-
-	void TickCapture(UMovieSceneCapture* Capture)
-	{
-		ExistingCaptures.Add(Capture);
-	}
-
-	void StopTickingCapture(UMovieSceneCapture* Capture)
-	{
-		ExistingCaptures.Remove(Capture);
-	}
-
 private:
 
-	TArray<UMovieSceneCapture*> ExistingCaptures;
-
-	/** Tickable interface */
-	virtual bool IsTickableInEditor() const override { return false; }
-	virtual bool IsTickable() const override { return true; }
-	virtual bool IsTickableWhenPaused() const override { return false; }
-	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FCachePutAsyncWorker, STATGROUP_ThreadPoolAsyncTasks); }
-	virtual void Tick( float DeltaTime ) override
-	{
-		for (auto* Obj : ExistingCaptures)
-		{
-			Obj->CaptureFrame(DeltaTime);
-		}
-	}
-
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
-	{
-		for (auto* Obj : ExistingCaptures)
-		{
-			Collector.AddReferencedObject(Obj);
-		}
-	}
+	/** Handle to a movie capture implementation created from the command line, to be initialized once a world is loaded */
+	FMovieSceneCaptureHandle StartupMovieCaptureHandle;
 
 	/** End Tickable interface */
 	virtual void StartupModule() override
 	{
 		FCoreDelegates::OnPreExit.AddRaw(this, &FMovieSceneCaptureModule::PreExit);
+		FWorldDelegates::OnPostWorldInitialization.AddRaw(this, &FMovieSceneCaptureModule::OnPostWorldInitialization);
 	}
 
 	void PreExit()
 	{
-		TArray<UMovieSceneCapture*> ExistingCapturesCopy;
-		Swap(ExistingCaptures, ExistingCapturesCopy);
+		FActiveMovieSceneCaptures::Get().Shutdown();
+	}
 
-		for (auto* Obj : ExistingCapturesCopy)
+	void OnPostWorldInitialization(UWorld* World, const UWorld::InitializationValues IVS)
+	{
+		if (!World)
 		{
-			Obj->Close();
+			return;
 		}
+
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		if (GameEngine && StartupMovieCaptureHandle.IsValid())
+		{
+			IMovieSceneCaptureInterface* StartupCaptureInterface = RetrieveMovieSceneInterface(StartupMovieCaptureHandle);
+			StartupCaptureInterface->Initialize(GameEngine->SceneViewport.ToSharedRef());
+		}
+
+		StartupMovieCaptureHandle = FMovieSceneCaptureHandle();
+		FWorldDelegates::OnPostWorldInitialization.RemoveAll(this);
 	}
 
 	virtual void PreUnloadCallback() override
@@ -118,8 +100,9 @@ private:
 				{
 					return nullptr;
 				}
-
-				TickCapture(Capture);
+				
+				FActiveMovieSceneCaptures::Get().Add(Capture);
+				StartupMovieCaptureHandle = Capture->GetHandle();
 				return Capture;
 			}
 		}
@@ -130,7 +113,7 @@ private:
 	virtual IMovieSceneCaptureInterface* CreateMovieSceneCapture(TWeakPtr<FSceneViewport> InSceneViewport) override
 	{
 		UMovieSceneCapture* Capture = NewObject<UMovieSceneCapture>(GetTransientPackage());
-		TickCapture(Capture);
+		FActiveMovieSceneCaptures::Get().Add(Capture);
 		Capture->Initialize(InSceneViewport);
 		Capture->StartCapture();
 		return Capture;
@@ -138,29 +121,34 @@ private:
 
 	virtual IMovieSceneCaptureInterface* RetrieveMovieSceneInterface(FMovieSceneCaptureHandle Handle)
 	{
-		auto** Existing = ExistingCaptures.FindByPredicate([&](const UMovieSceneCapture* In){ return In->GetHandle() == Handle; });
-		return Existing ? *Existing : nullptr;
+		for (auto* Existing : FActiveMovieSceneCaptures::Get().GetActiveCaptures())
+		{
+			if (Existing->GetHandle() == Handle)
+			{
+				return Existing;
+			}
+		}
+		return nullptr;
 	}
 
 	IMovieSceneCaptureInterface* GetFirstActiveMovieSceneCapture()
 	{
-		return ExistingCaptures.Num() ? ExistingCaptures[0] : nullptr;
-	}
+		for (auto* Existing : FActiveMovieSceneCaptures::Get().GetActiveCaptures())
+		{
+			return Existing;
+		}
 
-	virtual void OnMovieSceneCaptureFinished(IMovieSceneCaptureInterface* Capture)
-	{
-		StopTickingCapture(static_cast<UMovieSceneCapture*>(Capture));
+		return nullptr;
 	}
 
 	virtual void DestroyMovieSceneCapture(FMovieSceneCaptureHandle Handle)
 	{
-		// Calling Close() can remove itself from the array
-		auto Captures = ExistingCaptures;
-		for (auto* Existing : Captures)
+		for (auto* Existing : FActiveMovieSceneCaptures::Get().GetActiveCaptures())
 		{
 			if (Existing->GetHandle() == Handle)
 			{
 				Existing->Close();
+				break;
 			}
 		}
 	}

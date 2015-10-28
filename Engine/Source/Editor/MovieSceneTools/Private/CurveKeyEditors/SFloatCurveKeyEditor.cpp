@@ -10,6 +10,7 @@ void SFloatCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
+	IntermediateValue = InArgs._IntermediateValue;
 	ChildSlot
 	[
 		SNew(SSpinBox<float>)
@@ -46,6 +47,11 @@ void SFloatCurveKeyEditor::OnEndSliderMovement(float Value)
 
 float SFloatCurveKeyEditor::OnGetKeyValue() const
 {
+	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
+	{
+		return IntermediateValue.Get().GetValue();
+	}
+
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Eval(CurrentTime);
 }

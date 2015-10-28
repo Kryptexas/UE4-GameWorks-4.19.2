@@ -104,6 +104,12 @@ struct FMath : public FPlatformMath
 		return Min + RandHelper(Range);
 	}
 
+	/** Util to generate a random number in a range. Overloaded to distinguish from int32 version, where passing a float is typically a mistake. */
+	static FORCEINLINE float RandRange(float InMin, float InMax)
+	{
+		return FRandRange(InMin, InMax);
+	}
+
 	/** Util to generate a random number in a range. */
 	static FORCEINLINE float FRandRange(float InMin, float InMax)
 	{

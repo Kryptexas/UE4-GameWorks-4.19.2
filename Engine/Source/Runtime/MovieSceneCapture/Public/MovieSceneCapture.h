@@ -62,8 +62,12 @@ public:
 	FMovieSceneCaptureSettings Settings;
 
 	/** Additional command line arguments to pass to the external process when capturing */
-	UPROPERTY(EditAnywhere, transient, Category=General, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, config, Category=General, AdvancedDisplay)
 	FString AdditionalCommandLineArguments;
+
+	/** Command line arguments inherited from this process */
+	UPROPERTY(EditAnywhere, transient, Category=General, AdvancedDisplay)
+	FString InheritedCommandLineArguments;
 
 	/** Value used to control the BufferVisualizationDumpFrames cvar in the child process */
 	UPROPERTY()
@@ -80,8 +84,8 @@ public:
 	/** Finalize the capture, waiting for any outstanding processing */
 	void StopCapture();
 
-	/** Capture a frame from our bound viewport */
-	virtual void CaptureFrame(float DeltaSeconds);
+	/** Capture a frame from our previously populated color buffer (populated by slate) */
+	void CaptureFrame(float DeltaSeconds);
 
 protected:
 
@@ -93,6 +97,14 @@ protected:
 	/** Prepare the slate renderer for a screenshot */
 	void PrepareForScreenshot();
 
+	/** Called at the end of a frame, before a frame is presented by slate */
+	virtual void Tick(float DeltaSeconds);
+
+private:
+
+	/** Internal function that calls the virtual */
+	void OnPreWorldTickInternal(ELevelTick TickType, float DeltaSeconds) {}
+
 protected:
 
 	/** Resolve the specified format using the user supplied formatting rules. */
@@ -103,6 +115,26 @@ protected:
 
 	/** Calculate a unique index for the {unique} formatting rule */
 	FString ResolveUniqueFilename();
+
+private:
+
+	struct FTicker : public FTickableGameObject
+	{
+		FTicker(UMovieSceneCapture* InCapture) : Capture(InCapture) {}
+
+	private:
+		virtual bool IsTickableInEditor() const override { return false; }
+		virtual bool IsTickable() const override { return true; }
+		virtual bool IsTickableWhenPaused() const override { return false; }
+		virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(UMovieSceneCapture, STATGROUP_Tickables); }
+		virtual void Tick(float DeltaSeconds) override
+		{
+			Capture->Tick(DeltaSeconds);
+		}
+
+		UMovieSceneCapture* Capture;
+	};
+	friend FTicker;
 
 protected:
 	
@@ -118,6 +150,14 @@ protected:
 	TSharedPtr<ICaptureStrategy> CaptureStrategy;
 	/** Scratch space for per-frame screenshots */
 	TArray<FColor> ScratchBuffer;
+	/** Whether we need to capture this frame or not, set to true during a frame to capture it, then processed on the proceeding frame */
+	bool bHasOutstandingFrame;
+	/** The delta of the last frame */
+	float LastFrameDelta;
+	/** Whether we have started capturing or not */
+	bool bCapturing;
+	/** Class responsible for ticking this instance */
+	TUniquePtr<FTicker> Ticker;
 };
 
 /** A strategy that employs a fixed frame time-step, and as such never drops a frame. Potentially accelerated.  */

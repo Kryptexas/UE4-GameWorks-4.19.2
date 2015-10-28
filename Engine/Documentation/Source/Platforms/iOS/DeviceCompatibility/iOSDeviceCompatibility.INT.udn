@@ -2,6 +2,7 @@ Availability:Public
 Title:iOS Device Compatibility
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Device compatibility for developing with iOS.
+Version: 4.9
 
 [VAR:Retina]
 ![](%ROOT%/icon_success_16x.png)

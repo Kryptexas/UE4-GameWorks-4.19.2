@@ -14,9 +14,17 @@ public class MaterialUtilities : ModuleRules
 				"Engine",
 				"RenderCore",
                 "RHI",
-                "Landscape"
+                "Landscape",
+                "UnrealEd",
+                "ShaderCore"
 			}
 		);
+
+        PublicDependencyModuleNames.AddRange(
+			new string [] {
+				 "RawMesh",            
+			}
+		);      
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {

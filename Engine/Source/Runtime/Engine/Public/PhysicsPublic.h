@@ -14,48 +14,7 @@
 /**
  * Physics stats
  */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time"),STAT_TotalPhysicsTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Start Physics Time"),STAT_PhysicsKickOffDynamicsTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Fetch Results Time"),STAT_PhysicsFetchDynamicsTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys Events Time"),STAT_PhysicsEventTime,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SetBodyTransform"),STAT_SetBodyTransform,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart,STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("SyncComponentsToBodies"), STAT_SyncComponentsToBodies, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body"), STAT_InitBody, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Debug"), STAT_InitBodyDebug, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Scene Interaction"), STAT_InitBodySceneInteraction, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Body Post Add to Scene"), STAT_InitBodyPostAdd, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Term Body"), STAT_TermBody, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials"), STAT_UpdatePhysMats, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials Scene Interaction"), STAT_UpdatePhysMatsSceneInteraction, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update"), STAT_UpdatePhysFilter, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update (PhysX Code)"), STAT_UpdatePhysFilterPhysX, STATGROUP_Physics, );
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Bodies"), STAT_InitBodies, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Bulk Body Scene Add"), STAT_BulkSceneAdd, STATGROUP_Physics, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Static Init Bodies"), STAT_StaticInitBodies, STATGROUP_Physics, );
-
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Constraints"), STAT_NumActiveConstraints, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Simulated Bodies"), STAT_NumActiveSimulatedBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Active Kinematic Bodies"), STAT_NumActiveKinematicBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Mobile Bodies"), STAT_NumMobileBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Static Bodies"), STAT_NumStaticBodies, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Shapes"), STAT_NumShapes, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Cloths"), STAT_NumCloths, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("ClothVerts"), STAT_NumClothVerts, STATGROUP_Physics, );
-
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Broadphase Adds"), STAT_NumBroadphaseAddsAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Broadphase Removes"), STAT_NumBroadphaseRemovesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Constraints"), STAT_NumActiveConstraintsAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Simulated Bodies"), STAT_NumActiveSimulatedBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Active Kinematic Bodies"), STAT_NumActiveKinematicBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Mobile Bodies"), STAT_NumMobileBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Static Bodies"), STAT_NumStaticBodiesAsync, STATGROUP_Physics, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time (all)"), STAT_TotalPhysicsTime, STATGROUP_Physics, );
 
 #if WITH_PHYSX
 

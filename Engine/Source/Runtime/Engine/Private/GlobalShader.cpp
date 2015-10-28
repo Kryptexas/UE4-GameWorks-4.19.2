@@ -110,6 +110,7 @@ void FGlobalShaderType::BeginCompileShader(EShaderPlatform Platform, TArray<FSha
 
 FShader* FGlobalShaderType::FinishCompileShader(const FShaderCompileJob& CurrentJob)
 {
+	FShader* Shader = nullptr;
 	if (CurrentJob.bSucceeded)
 	{
 		FShaderType* SpecificType = CurrentJob.ShaderType->LimitShaderResourceToThisType() ? CurrentJob.ShaderType : NULL;
@@ -120,7 +121,7 @@ FShader* FGlobalShaderType::FinishCompileShader(const FShaderCompileJob& Current
 		check(Resource);
 
 		// Find a shader with the same key in memory
-		FShader* Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(GGlobalShaderMapHash, NULL, CurrentJob.ShaderType, CurrentJob.Input.Target));
+		Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(GGlobalShaderMapHash, NULL, CurrentJob.ShaderType, CurrentJob.Input.Target));
 
 		// There was no shader with the same key so create a new one with the compile output, which will bind shader parameters
 		if (!Shader)
@@ -128,13 +129,19 @@ FShader* FGlobalShaderType::FinishCompileShader(const FShaderCompileJob& Current
 			Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, GGlobalShaderMapHash, NULL));
 			CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), (EShaderFrequency)CurrentJob.Output.Target.Frequency, CurrentJob.VFType);
 		}
-		
-		return Shader;
 	}
-	else
+
+	static auto* CVarShowShaderWarnings = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShowShaderCompilerWarnings"));
+	if (CVarShowShaderWarnings && CVarShowShaderWarnings->GetInt() && CurrentJob.Output.Errors.Num() > 0)
 	{
-		return NULL;
+		UE_LOG(LogShaderCompilers, Warning, TEXT("Warnings compiling global shader %s:\n"), CurrentJob.ShaderType->GetName());
+		for (int32 ErrorIndex = 0; ErrorIndex < CurrentJob.Output.Errors.Num(); ErrorIndex++)
+		{
+			UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *CurrentJob.Output.Errors[ErrorIndex].StrippedErrorMessage);
+		}
 	}
+
+	return Shader;
 }
 
 FGlobalShader::FGlobalShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

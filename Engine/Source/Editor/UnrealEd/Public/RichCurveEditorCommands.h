@@ -22,6 +22,7 @@ public:
 	TSharedPtr<FUICommandInfo> ZoomToFitHorizontal;
 	TSharedPtr<FUICommandInfo> ZoomToFitVertical;
 	TSharedPtr<FUICommandInfo> ZoomToFit;
+	TSharedPtr<FUICommandInfo> ZoomToFitAll;
 	TSharedPtr<FUICommandInfo> ToggleSnapping;
 
 	TSharedPtr<FUICommandInfo> InterpolationConstant;

@@ -11,5 +11,12 @@ public:
 	FFloatPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection( InSectionObject, SectionName ) {}
 
+	// FPropertyInterface 
+
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
+	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
+	virtual void ClearIntermediateValue() override;
+
+private:
+	mutable TSharedPtr<FFloatCurveKeyArea> KeyArea;
 };

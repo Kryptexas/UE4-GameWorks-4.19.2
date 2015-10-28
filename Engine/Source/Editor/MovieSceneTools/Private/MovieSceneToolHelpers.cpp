@@ -38,6 +38,10 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 		{
 			Value = Curve->Eval(TimeToCopyFrom);
 		}
+		else if ( IntermediateValue.IsSet() )
+		{
+			Value = IntermediateValue.GetValue();
+		}
 
 		Curve->AddKey(Time, Value, false, CurrentKeyHandle);
 		AddedKeyHandles.Add(CurrentKeyHandle);
@@ -45,23 +49,23 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 		// Set the default key interpolation
 		switch (InKeyInterpolation)
 		{
-			case MSKI_Auto:
+			case EMovieSceneKeyInterpolation::Auto:
 				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
 				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
 				break;
-			case MSKI_User:
+			case EMovieSceneKeyInterpolation::User:
 				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
 				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_User);
 				break;
-			case MSKI_Break:
+			case EMovieSceneKeyInterpolation::Break:
 				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
 				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Break);
 				break;
-			case MSKI_Linear:
+			case EMovieSceneKeyInterpolation::Linear:
 				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Linear);
 				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
 				break;
-			case MSKI_Constant:
+			case EMovieSceneKeyInterpolation::Constant:
 				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Constant);
 				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
 				break;
@@ -96,7 +100,8 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 	return SNew(SFloatCurveKeyEditor)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
-		.Curve(Curve);
+		.Curve(Curve)
+		.IntermediateValue_Lambda( [this] { return IntermediateValue; } );
 };
 
 
@@ -125,42 +130,13 @@ TArray<FKeyHandle> FNameCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInt
 }
 
 
-TArray<FKeyHandle> FIntegralKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
-{
-	TArray<FKeyHandle> AddedKeyHandles;
-
-	FKeyHandle CurrentKey = Curve.FindKey(Time);
-	if (Curve.IsKeyHandleValid(CurrentKey) == false)
-	{
-		if (OwningSection->GetStartTime() > Time)
-		{
-			OwningSection->SetStartTime(Time);
-		}
-		if (OwningSection->GetEndTime() < Time)
-		{
-			OwningSection->SetEndTime(Time);
-		}
-
-		int32 Value = Curve.Evaluate(Time);
-		if (TimeToCopyFrom != FLT_MAX)
-		{
-			Value = Curve.Evaluate(TimeToCopyFrom);
-		}
-
-		Curve.AddKey(Time, Value, CurrentKey);
-		AddedKeyHandles.Add(CurrentKey);
-	}
-
-	return AddedKeyHandles;
-}
-
-
-TSharedRef<SWidget> FIntegralKeyArea::CreateKeyEditor(ISequencer* Sequencer)
+TSharedRef<SWidget> FByteKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
 	return SNew(SIntegralCurveKeyEditor)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
-		.Curve(&Curve);
+		.Curve(&Curve)
+		.IntermediateValue_Lambda( [this] { return IntermediateValue; } );
 };
 
 
@@ -170,7 +146,8 @@ TSharedRef<SWidget> FEnumKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(&Curve)
-		.Enum(Enum);
+		.Enum(Enum)
+		.IntermediateValue_Lambda( [this] { return IntermediateValue; } );
 };
 
 
@@ -179,7 +156,8 @@ TSharedRef<SWidget> FBoolKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 	return SNew(SBoolCurveKeyEditor)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
-		.Curve(&Curve);
+		.Curve(&Curve)
+		.IntermediateValue_Lambda( [this] { return IntermediateValue; } );
 };
 
 

@@ -14,7 +14,7 @@
 #include "Editor/UnrealEd/Classes/Factories/Factory.h"
 #include "ObjectTools.h"
 #include "MeshUtilities.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 #endif // WITH_EDITOR
 
 #include "GameFramework/WorldSettings.h"
@@ -484,6 +484,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 					}
 				}		
 			
+				bool bBuildSuccesfull = true;
 				const int32 NumLODLevels = LODLevelActors.Num();
 				for (int32 LODIndex = 0; LODIndex < NumLODLevels; ++LODIndex)
 				{
@@ -491,12 +492,12 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 					TArray<ALODActor*>& LODLevel = LODLevelActors[CurrentLODLevel];
 					for (ALODActor* Actor : LODLevel)
 					{
-						HierarchicalLODUtils::BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel], CurrentLODLevel);
+						bBuildSuccesfull &= FHierarchicalLODUtilities::BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel], CurrentLODLevel);
 						SlowTask.EnterProgressFrame(100.0f / (float)NumLODActors);
 					}
 				}
 				
-				
+				check(bBuildSuccesfull);				
 			}
 		}		
 	}
@@ -551,8 +552,8 @@ void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const ui
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
 	UPackage* AssetsOuter = LODActor->GetLevel()->GetOutermost();
 
-	const bool bResult = HierarchicalLODUtils::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);
-	//check(bResult);
+	const bool bResult = FHierarchicalLODUtilities::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);	
+	check(bResult);
 }
 
 void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const int32 LODIdx, float HighestCost, int32 MinNumActors, const bool bCreateMeshes)
@@ -674,7 +675,6 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 						{
 							ValidStaticMeshActorsInLevel.RemoveSingleSwap(RemoveActor, false);
 						}
-
 					}
 				}				
 			}

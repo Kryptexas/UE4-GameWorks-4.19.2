@@ -86,6 +86,8 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 		ActivePlayers[0].bCanUseMarkerSync = true;
 		bCanUseMarkerSync = true;
 
+		int32 PlayerIndexToResetMarkers = INDEX_NONE;
+
 		//filter markers based on what exists in the other animations
 		for ( int32 ActivePlayerIndex = 0; ActivePlayerIndex < ActivePlayers.Num(); ++ActivePlayerIndex )
 		{
@@ -125,6 +127,8 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 						if ( !PlayerMarkerNames->Contains(MarkerName) )
 						{
 							ValidMarkers.RemoveAtSwap(ValidMarkerIndex, 1, false);
+
+							PlayerIndexToResetMarkers = ActivePlayerIndex;
 						}
 					}
 				}
@@ -134,6 +138,17 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 		bCanUseMarkerSync = ValidMarkers.Num() > 0;
 
 		ValidMarkers.Sort();
+
+		// if we have list of markers that needs to rest
+		if (PlayerIndexToResetMarkers > 0)
+		{
+			// if you removed valid markers, we also should reset previous candidate marker tick record
+			// because they might contain previous marker sets
+			for (int32 InternalActivePlayerIndex = 0; InternalActivePlayerIndex < PlayerIndexToResetMarkers; ++InternalActivePlayerIndex)
+			{
+				ActivePlayers[InternalActivePlayerIndex].MarkerTickRecord->Reset();
+			}
+		}
 	}
 }
 

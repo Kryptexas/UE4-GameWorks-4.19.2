@@ -5,6 +5,11 @@
 #include "VectorPropertyTrackEditor.h"
 #include "VectorPropertySection.h"
 
+FName FVectorPropertyTrackEditor::XName( "X" );
+FName FVectorPropertyTrackEditor::YName( "Y" );
+FName FVectorPropertyTrackEditor::ZName( "Z" );
+FName FVectorPropertyTrackEditor::WName( "W" );
+
 
 TSharedRef<ISequencerTrackEditor> FVectorPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
@@ -12,54 +17,82 @@ TSharedRef<ISequencerTrackEditor> FVectorPropertyTrackEditor::CreateTrackEditor(
 }
 
 
-TSharedRef<ISequencerSection> FVectorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<FPropertySection> FVectorPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	return MakeShareable(new FVectorPropertySection( SectionObject, Track.GetTrackName() ));
 }
 
 
-bool FVectorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FVectorKey& OutKey )
+void FVectorPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FVectorKey>& GeneratedKeys )
 {
-	bool bIsVector2D = false, bIsVector = false, bIsVector4 = false;
 	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
 
-	if ( StructProp && StructProp->Struct )
-	{
-		FName StructName = StructProp->Struct->GetFName();
+	FName StructName = StructProp->Struct->GetFName();
 
-		bIsVector2D = StructName == NAME_Vector2D;
-		bIsVector = StructName == NAME_Vector;
-		bIsVector4 = StructName == NAME_Vector4;
-	}
+	bool bIsVector2D = StructName == NAME_Vector2D;
+	bool bIsVector = StructName == NAME_Vector;
+	bool bIsVector4 = StructName == NAME_Vector4;
 
-	if ( !bIsVector2D && !bIsVector && !bIsVector4 )
-	{
-		return false;
-	}
+	FVector4 VectorValues;
+	int32 Channels;
 
-	// Get the vector value from the property
 	if ( bIsVector2D )
 	{
-		OutKey = FVectorKey(*PropertyChangedParams.GetPropertyValue<FVector2D>(), PropertyChangedParams.StructPropertyNameToKey );
+		FVector2D Vector2DValue = PropertyChangedParams.GetPropertyValue<FVector2D>();
+		VectorValues.X = Vector2DValue.X;
+		VectorValues.Y = Vector2DValue.Y;
+		Channels = 2;
 	}
 	else if ( bIsVector )
 	{
-		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector>(), PropertyChangedParams.StructPropertyNameToKey );
+		FVector Vector3DValue = PropertyChangedParams.GetPropertyValue<FVector>();
+		VectorValues.X = Vector3DValue.X;
+		VectorValues.Y = Vector3DValue.Y;
+		VectorValues.Z = Vector3DValue.Z;
+		Channels = 3;
 	}
 	else // if ( bIsVector4 )
 	{
-		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector4>(), PropertyChangedParams.StructPropertyNameToKey );
+		VectorValues = PropertyChangedParams.GetPropertyValue<FVector4>();
+		Channels = 4;
 	}
 
-	if (InTrack)
+	FName ChannelName = PropertyChangedParams.StructPropertyNameToKey;
+
+	if ( ChannelName == NAME_None || ChannelName == XName )
 	{
-		const UMovieSceneVectorTrack* VectorTrack = CastChecked<const UMovieSceneVectorTrack>( InTrack );
-		if (VectorTrack)
-		{
-			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
-			return VectorTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
-		}
+		GeneratedKeys.Add( FVectorKey( EKeyVectorChannel::X, VectorValues.X ) );
 	}
+	if ( ChannelName == NAME_None || ChannelName == YName )
+	{
+		GeneratedKeys.Add( FVectorKey( EKeyVectorChannel::Y, VectorValues.Y ) );
+	}
+	if ( (ChannelName == NAME_None || ChannelName == ZName) && Channels >= 3 )
+	{
+		GeneratedKeys.Add( FVectorKey( EKeyVectorChannel::Z, VectorValues.Z ) );
+	}
+	if ( (ChannelName == NAME_None || ChannelName == WName) && Channels >= 4 )
+	{
+		GeneratedKeys.Add( FVectorKey( EKeyVectorChannel::W, VectorValues.W ) );
+	}
+}
 
-	return false;
+void FVectorPropertyTrackEditor::InitializeNewTrack( UMovieSceneVectorTrack* NewTrack, FPropertyChangedParams PropertyChangedParams )
+{
+	FPropertyTrackEditor<UMovieSceneVectorTrack, UMovieSceneVectorSection, FVectorKey>::InitializeNewTrack( NewTrack, PropertyChangedParams );
+	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
+	FName StructName = StructProp->Struct->GetFName();
+
+	if ( StructName == NAME_Vector2D )
+	{
+		NewTrack->SetNumChannelsUsed( 2 );
+	}
+	if ( StructName == NAME_Vector )
+	{
+		NewTrack->SetNumChannelsUsed( 3 );
+	}
+	if ( StructName == NAME_Vector4 )
+	{
+		NewTrack->SetNumChannelsUsed( 4 );
+	}
 }

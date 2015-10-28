@@ -15,4 +15,6 @@ public:
 	{
 		DisplayName = FText::FromString( TEXT( "Visible" ) );
 	}
+
+	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
 };

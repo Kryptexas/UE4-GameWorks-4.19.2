@@ -123,7 +123,8 @@ public:
 	}
 
 	// Dynamic casting.
-	virtual FMaterialShaderType* GetMaterialShaderType() { return this; }
+	virtual FMaterialShaderType* GetMaterialShaderType() override { return this; }
+	virtual const FMaterialShaderType* GetMaterialShaderType() const override { return this; }
 
 protected:
 

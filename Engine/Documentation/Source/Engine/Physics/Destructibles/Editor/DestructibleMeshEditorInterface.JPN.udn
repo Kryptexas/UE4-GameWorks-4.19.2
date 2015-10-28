@@ -1,41 +1,42 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Destructible Mesh Editor UI
+﻿INTSourceChangelist:2718289
+Availability:Docs
+Title:被破壊メッシュエディタの UI
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Physics/Destructibles/Editor
-Description:Tool used to preview the look, preview depth levels, and materials of DestructibleMesh assets.
+Description:被破壊メッシュ アセットの外観、プレビュー深度レベル、、およびマテリアルをプレビューするためのツール。
 
 [TOC(start:2)]
 
 
-The **Destructible Mesh Editor** consists of six areas:
+**Destructible Mesh Editor (被破壊メッシュエディタ)** には、次の 6 つの領域があります。
 
 [REGION:fullwidth]
 ![](DM_UI.png)
 [/REGION]
-1. [Menu Bar](#MenuBar)
-1. [Toolbar](#ToolBar)
-1. [Viewport Panel](#ViewportPanel)
-1. [Destructible Settings Panel](#DestructibleSettingsPanel)
-1. [Fracture Settings Panel](#FractureSettingsPanel)
-1. [Chunk Parameters Panel](#ChunkParametersPanel)
+1. [メニュー バー](#メニューバー)
+1. [ツール バー](#ツールバー)
+1. [ビューポート パネル](#ビューポートパネル)
+1. [被破壊設定パネル](#被破壊設定パネル)
+1. [フラクチャー設定パネル](#フラクチャー設定パネル)
+1. [チャンク パラメータ パネル](#チャンクパラメータパネル)
+
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
 <!-- For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). -->
 
-## Menu Bar
+## メニューバー
 
-### File
+### ファイル
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
 
-### Edit
+### 編集
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
 
-### Asset
+### アセット
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetViewReference]
@@ -43,7 +44,7 @@ The **Destructible Mesh Editor** consists of six areas:
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
 
 
-### Window
+### ウィンドウ
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
@@ -53,74 +54,76 @@ The **Destructible Mesh Editor** consists of six areas:
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
 
 
-### Help
+### ヘルプ
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
 
 
-## Toolbar
 
-| Item | Description |
+
+## ツールバー
+
+| アイテム | 説明 |
 | ---- | ----------- |
-| **![Fracture Mesh](DM_FractureMeshIcon.png)** | This will fracture the meshes root chunk(s) based upon the Fracture Settings. |
-| **![Refresh](DM_RefreshIcon.png)** | This will refresh the DestructibleMesh from the StaticMesh it was created from. |
-| **![Import FBX Chunks](DM_FBXChunksIcon.png)** | This will import a FBX as depth level 1 chunks. |
-| **![Preview Depth](DM_PreviewDepthIcon.png)** | This is a drop down selection to preview a specific depth level of destruction. |
-| **![Explode Amount](DM_ExplodeAmtIcon.png)** | This slider will push apart the chunks of the specified Preview Depth. |
+| **![Fracture Mesh](DM_FractureMeshIcon.png)** | メッシュのルート チャンクを、フラクチャー設定に基づいて破砕 (フラクチャー) します。 |
+| **![Refresh](DM_RefreshIcon.png)** | 作成元のスタティックメッシュから被破壊メッシュをリフレッシュします。 |
+| **![Import FBX Chunks](DM_FBXChunksIcon.png)** | 深度レベル 1 のチャンクとして FBX をインポートします。 |
+| **![Preview Depth](DM_PreviewDepthIcon.png)** | 破壊の個別の深度レベルをプレビューするためのドロップダウンの選択です。 |
+| **![Explode Amount](DM_ExplodeAmtIcon.png)** | このスライダーは、指定されたプレビュー深度のチャンクを分けます。 |
 
 
-## Viewport Panel
+## ビューポート パネル
 
-The **Viewport** panel shows a rendered view of the Destructible Mesh asset. This allows you to examine the Destructible Mesh as it would be rendered in-game. 
-The viewport will also allow you to use different Preview Depths to see your different levels of destruction. This will allow different chunks to be selected which can be used in conjunction with the Chunk Parameters panel settings as well.  
+**[Viewport (ビューポート)]** パネルは、被破壊メッシュ アセットがレンダリングされたビューを表示します。これにより、インゲームでレンダリングされる状態の被破壊メッシュを確認することができます。 
+このビューポートでは、様々な破壊レベルを確認するために異なるプレビュー深度を使用することができます。これにより、様々なチャンクを選択して、それをチャンク パラメータ パネルの設定と合わせて使用することができます。  
 
 ![Destructible Mesh Editor Preview panel](DM_Preview.png)
 
 
 
-## Destructible Settings Panel
+## 被破壊設定パネル
 
-The **Destructible Settings** panel shows specific properties pertaining to the Destructible Mesh Actor, such as the Materials applied to the surface and interior, Damage settings, and flags that can enable specific abilities. 
+**[Destructible Settings (被破壊設定)]** パネルには、Destructible Mesh アクタに関する各種プロパティが表示されます。サーフェスやインテリアに適用されたマテリアル、ダメージ設定、特定の機能を有効にするフラグなどのプロパティがあります。 
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+このパネルの基本操作の詳細は、[被破壊プロパティのマトリクス](Engine/Physics/Destructibles/DestructibleProperties) をご覧ください。
 
 ![Editor Destructible Settings Panel](DM_Settings.png)
 
 
-## Fracture Settings Panel
+## フラクチャー設定パネル
 
-The **Fracture Settings** panel shows settings to control how the Destructible Mesh Actor is broken into chunks. There are properties that pertain to the number of chunks the fracture should contain, control for the interior material UVs, and the random pattern seed. 
+**Fracture Settings (フラクチャー設定)** パネルには、Destructible Mesh アクタが壊れてチャンクに分かれる制御方法の設定が表示されます。フラクチャーに含むチャンク数、内部のマテリアルの UV の制御、ランダム パターン シードなどに関するプロパティがあります。 
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+このパネルの基本操作の詳細は、[被破壊プロパティのマトリクス](Engine/Physics/Destructibles/DestructibleProperties) をご覧ください。
 
 ![Fracture Settings Panel](DM_FractureSettings.png)
 
 
-## Chunk Parameters Panel
+## チャンク パラメータ パネル
 
-The **Chunk Parameters** panel contains settings that directly affect specific chunks that are selected in the preview panel when viewing Preview Depth 1 or higher. The settings here can control whether a chunk can be damaged, fractured, crumbled, or even considered as support.
+**[Chunk Parameters (チャンク パラメータ)]** パネルには、プレビュー深度 1 以上を見る場合に、プレビュー パネルで選択したチャンクに直接影響を与える設定があります。こうした設定は、チャンクがダメージを受けるか、破砕するか、粉々に砕けるかを制御し、サポートとして考えることもできます。
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+このパネルの基本操作の詳細は、[被破壊プロパティのマトリクス](Engine/Physics/Destructibles/DestructibleProperties) をご覧ください。
 
 ![Chunk Parameters Panel](DM_ChunkParameters.png)
 
 
-## Controls
+## 制御
 
 
-### Mouse Controls
+### マウスの操作
 
-**Viewport Panel**
-
-
-* **LMB + Drag** - If the camera is locked, rotates the mesh around its Z axis and moves towards or away from the origin. Otherwise, rotates the camera around its Z axis and moves the camera along its local X axis.
-* **RMB + Drag** - If the camera is locked, rotates the mesh. Otherwise, rotates the camera.
-* **LMB + RMB + Drag** - If the camera is not locked, moves the camera along its local YZ plane.
+**ビューポート パネル**
 
 
-### Keyboard Controls
+* **左マウスボタンを押しながらドラッグ** - カメラがロックされている場合、Z 軸の周りでメッシュを回転し、原点に向かって、または原点から離れて移動します。それ以外の場合、カメラを Z 軸の周りで回転させ、カメラをローカルの X 軸にそって移動させます。
+* **右マウスボタンを押しながらドラッグ** - カメラがロックされている場合、メッシュを回転させます。それ以外の場合、カメラを回転させます。
+* **左マウスボタンと右マウスボタンを押しながらドラッグ** - カメラがロックされていない場合、ローカルの YZ プレーンに沿ってカメラを移動します。
 
-* **L + Mouse Move** - Rotates the preview light in the **Preview** panel.
+
+### キーボードの操作
+
+* **L + マウスの移動** - **[Preview]** パネルでプレビュー ライトを回転させます。
 
 
 

@@ -226,6 +226,8 @@ void AWorldSettings::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
+	FHierarchicalSimplification DefaultObject;
+
 	for (FHierarchicalSimplification Entry : HierarchicalLODSetup)
 	{
 		Entry.ProxySetting.PostLoadDeprecated();	
@@ -305,9 +307,9 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 			GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeSetup"));
 		}
 
-		if (PropertyThatChanged->GetName() == TEXT("DrawDistance"))
+		if (PropertyThatChanged->GetName() == TEXT("TransitionScreenSize"))
 		{
-			GEditor->BroadcastHLODDrawDistanceChanged();
+			GEditor->BroadcastHLODTransitionScreenSizeChanged();
 		}
 
 		if (PropertyThatChanged->GetName() == TEXT("HierarchicalLODSetup"))

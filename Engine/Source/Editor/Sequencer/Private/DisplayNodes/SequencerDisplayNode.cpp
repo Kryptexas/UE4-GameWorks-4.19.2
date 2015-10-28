@@ -148,7 +148,7 @@ void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FSequencerObjectBind
 }
 
 
-bool FSequencerDisplayNode::Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+bool FSequencerDisplayNode::Traverse_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
 {
 	for (auto& Child : GetChildNodes())
 	{
@@ -161,7 +161,7 @@ bool FSequencerDisplayNode::Traverse_ChildFirst(const TFunctionRef<bool(FSequenc
 	return bIncludeThisNode ? InPredicate(*this) : true;
 }
 
-bool FSequencerDisplayNode::Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+bool FSequencerDisplayNode::Traverse_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
 {
 	if (bIncludeThisNode && !InPredicate(*this))
 	{
@@ -179,7 +179,7 @@ bool FSequencerDisplayNode::Traverse_ParentFirst(const TFunctionRef<bool(FSequen
 	return true;
 }
 
-bool FSequencerDisplayNode::TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+bool FSequencerDisplayNode::TraverseVisible_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
 {
 	// If the item is not expanded, its children ain't visible
 	if (IsExpanded())
@@ -203,7 +203,7 @@ bool FSequencerDisplayNode::TraverseVisible_ChildFirst(const TFunctionRef<bool(F
 }
 
 
-bool FSequencerDisplayNode::TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
+bool FSequencerDisplayNode::TraverseVisible_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
 {
 	if (bIncludeThisNode && !IsHidden() && !InPredicate(*this))
 	{

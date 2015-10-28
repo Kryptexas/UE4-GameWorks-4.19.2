@@ -14,6 +14,8 @@ UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitia
 	bMonitorEditorPerformance = true;
 	BlueprintFavorites = CreateDefaultSubobject<UBlueprintPaletteFavorites>(TEXT("BlueprintFavorites"));
 	SCSViewportCameraSpeed = 4;
+
+	SimplygonServerIP = "127.0.0.1";
 }
 
 void UEditorPerProjectUserSettings::PostInitProperties()

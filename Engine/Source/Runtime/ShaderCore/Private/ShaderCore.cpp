@@ -569,10 +569,14 @@ void InitializeShaderTypes()
 
 	FShaderType::Initialize(ShaderFileToUniformBufferVariables);
 	FVertexFactoryType::Initialize(ShaderFileToUniformBufferVariables);
+
+	FShaderPipelineType::Initialize();
 }
 
 void UninitializeShaderTypes()
 {
+	FShaderPipelineType::Uninitialize();
+
 	FShaderType::Uninitialize();
 	FVertexFactoryType::Uninitialize();
 }

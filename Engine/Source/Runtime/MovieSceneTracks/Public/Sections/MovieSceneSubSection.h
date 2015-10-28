@@ -16,6 +16,9 @@ class MOVIESCENETRACKS_API UMovieSceneSubSection
 {
 	GENERATED_BODY()
 
+	/** Default constructor. */
+	UMovieSceneSubSection();
+
 public:
 
 	/**
@@ -39,6 +42,16 @@ public:
 	{
 		SubSequence = &Sequence;
 	}
+
+public:
+
+	/** Number of seconds to skip at the beginning of the sub-sequence. */
+	UPROPERTY(EditAnywhere, Category="Clipping")
+	float StartOffset;
+
+	/** Playback time scaling factor. */
+	UPROPERTY(EditAnywhere, Category="Timing")
+	float TimeScale;
 
 private:
 

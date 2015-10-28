@@ -50,16 +50,17 @@ The corresponding documentation is designed to provide some insight into how eac
 [/EXCERPT:Showcases]
 
 [REGION:topics third]
-%Resources/ContentExamples:TopicCompact%
 %Resources/Showcases/Infiltrator:topiccompact%
+%Resources/ContentExamples:TopicCompact%
+%Engine/OpenWorldTools:TopicCompact%
 %watertopic%
 %featurestopic%
 %Resources/Showcases/MatineeFightScene:topiccompact%
-%Resources/Showcases/Effects:TopicCompact%
 %Resources/Showcases/Reflections:TopicCompact%
 %Resources/Showcases/RealisticRendering:TopicCompact%
-%Resources/Showcases/Stylized:TopicCompact%
+%Resources/Showcases/Effects:TopicCompact%
 %Resources/Showcases/BlueprintExamples:TopicCompact%
+%Resources/Showcases/Stylized:TopicCompact%
 [/REGION]
 
 [VAR:watertopic]

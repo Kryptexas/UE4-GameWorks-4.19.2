@@ -39,7 +39,10 @@ public:
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
 		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
-		CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
+		if (CacheApplyPhase == ECacheApplyPhase::PostUserConstructionScript)
+		{
+			CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
+		}
 	}
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
@@ -1691,10 +1694,10 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		}
 		else
 		{
-			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent X=%f Y=%f Z=%f Cached X=%f Y=%f Z=%f"), 
+			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
 				*GetPathName(),
-				ComponentToWorld.GetLocation().X, ComponentToWorld.GetLocation().Y, ComponentToWorld.GetLocation().Z,
-				StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().X, StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().Y, StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().Z);
+				*ComponentToWorld.ToString(),
+				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
 		}
 	}
 

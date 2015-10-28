@@ -1,6 +1,5 @@
-﻿INTSourceChangelist:2727346
-Availability:Public
-Title:5.Playing in Editor (PIE)
+﻿Availability:Public
+Title:5.Playing in Editor （PIE）
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:エディタ再生によるコードのテスト
 version:4.9
@@ -68,8 +67,7 @@ version:4.9
 
 				// ゲーム開始時またはスポーン時に呼ばれます。
 				virtual void BeginPlay() override;
-	// フレーム毎に呼ばれます。
-
+				// フレーム毎に呼ばれます。
 				virtual void Tick( float DeltaSeconds ) override;
 
 				// 機能と入力をバインドするために呼ばれます。
@@ -153,7 +151,6 @@ version:4.9
 				Super::BeginPlay();
 	}
 
-
 			// フレーム毎に呼ばれます。
 			void ACollidingPawn::Tick( float DeltaTime )
 			{
@@ -224,8 +221,8 @@ version:4.9
 			class HOWTO_COMPONENTS_API UCollidingPawnMovementComponent : public UPawnMovementComponent
 			{
 				GENERATED_BODY()
-	public:
 
+			public:
 				virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;	
 			};
 

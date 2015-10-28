@@ -42,6 +42,12 @@ public:
 	/** Step to previous camera key */
 	TSharedPtr< FUICommandInfo > StepToPreviousCameraKey;
 
+	/** Set start playback range */
+	TSharedPtr< FUICommandInfo > SetStartPlaybackRange;
+
+	/** Set end playback range */
+	TSharedPtr< FUICommandInfo > SetEndPlaybackRange;
+
 	/** Expand nodes and descendants */
 	TSharedPtr< FUICommandInfo > ExpandNodesAndDescendants;
 

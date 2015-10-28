@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:2710029
 Availability:Public
-Title:4.ポーンとコンポーネントの併用
+Title:4. ポーンとコンポーネントの併用
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:ポーンの機能、入力設定、コンポーネントを結び付けます。
 version:4.9
@@ -217,8 +217,8 @@ version:4.9
 			void ACollidingPawn::BeginPlay()
 			{
 				Super::BeginPlay();
-	}
 
+	}
 
 			// フレームごとに呼ばれます。
 			void ACollidingPawn::Tick( float DeltaTime )

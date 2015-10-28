@@ -29,8 +29,9 @@ void FUMGDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle& Keye
 	FKeyPropertyParams KeyPropertyParams(Objects, KeyedPropertyHandle);
 	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
 	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = true;
-	KeyPropertyParams.KeyParams.KeyInterpolation = BlueprintEditor.Pin()->GetSequencer()->GetKeyInterpolation();
+	KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
+	KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
+	KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
 
 	BlueprintEditor.Pin()->GetSequencer()->KeyProperty(KeyPropertyParams);
 }

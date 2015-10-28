@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MovieSceneCaptureDialog : ModuleRules
 {
-    public MovieSceneCaptureDialog(TargetInfo Target)
+	public MovieSceneCaptureDialog(TargetInfo Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -16,16 +16,17 @@ public class MovieSceneCaptureDialog : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"EditorStyle",
 				"Engine",
 				"InputCore",
 				"Json",
 				"JsonUtilities",
 				"MovieScene",
 				"MovieSceneCapture",
+				"PropertyEditor",
+				"SessionServices",
 				"Slate",
 				"SlateCore",
-                "PropertyEditor",
-			    "EditorStyle",
 				"UnrealEd",
 			}
 		);

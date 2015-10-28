@@ -38,31 +38,3 @@ bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidg
 
 	return (Section != nullptr);
 }
-
-
-bool UMovieScene2DTransformTrack::AddKeyToSection(float Time, const F2DTransformKey& TransformKey, FKeyParams KeyParams)
-{
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Time);
-	if(!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieScene2DTransformSection>(NearestSection)->NewKeyIsNewData(Time, TransformKey.Value, KeyParams))
-	{
-		Modify();
-
-		UMovieScene2DTransformSection* NewSection = CastChecked<UMovieScene2DTransformSection>(FindOrAddSection(Time));
-
-		NewSection->AddKey(Time, TransformKey, KeyParams);
-
-		return true;
-	}
-	return false;
-}
-
-
-bool UMovieScene2DTransformTrack::CanKeyTrack(float Time, const F2DTransformKey& TransformKey, FKeyParams KeyParams) const
-{
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || CastChecked<UMovieScene2DTransformSection>(NearestSection)->NewKeyIsNewData(Time, TransformKey.Value, KeyParams))
-	{
-		return true;
-	}
-	return false;
-}

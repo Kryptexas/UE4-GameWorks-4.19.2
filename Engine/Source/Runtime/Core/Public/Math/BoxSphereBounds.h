@@ -248,28 +248,32 @@ public:
 	}
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN()
+	FORCEINLINE void DiagnosticCheckNaN() const
 	{
 		if (Origin.ContainsNaN())
 		{
 			logOrEnsureNanError(TEXT("Origin contains NaN: %s"), *Origin.ToString());
-			Origin = FVector::ZeroVector;
+			const_cast<FBoxSphereBounds*>(this)->Origin = FVector::ZeroVector;
 		}
 		if (BoxExtent.ContainsNaN())
 		{
 			logOrEnsureNanError(TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
-			BoxExtent = FVector::ZeroVector;
-
+			const_cast<FBoxSphereBounds*>(this)->BoxExtent = FVector::ZeroVector;
 		}
 		if (FMath::IsNaN(SphereRadius) || !FMath::IsFinite(SphereRadius))
 		{
 			logOrEnsureNanError(TEXT("SphereRadius contains NaN: %f"), SphereRadius);
-			SphereRadius = 0.f;
+			const_cast<FBoxSphereBounds*>(this)->SphereRadius = 0.f;
 		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() {}
+	FORCEINLINE void DiagnosticCheckNaN() const {}
 #endif
+
+	inline bool ContainsNaN() const
+	{
+		return Origin.ContainsNaN() || BoxExtent.ContainsNaN() || FMath::IsNaN(SphereRadius) || !FMath::IsFinite(SphereRadius);
+	}
 
 public:
 

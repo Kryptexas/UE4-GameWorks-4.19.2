@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2706643
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: マテリアル エディタ UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
@@ -24,7 +24,7 @@ Version:4.9
 HLSL コードパネルもありますが、デフォルトでは非表示になっています。このパネルを表示するには、**[Window]** メニューで **[HLSLコード]** をクリックします。詳細は、[HLSLコードパネル](#HLSLコードパネル) を参照してください。
 [/REGION]
 
-%Shared/Editors/Common/EditorMenuItems:UITabTips%
+[INCLUDE:Shared/Editors/Common/EditorMenuItems#UITabTips]
 
 ##メニューバー
 

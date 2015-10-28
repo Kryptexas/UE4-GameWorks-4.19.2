@@ -325,10 +325,9 @@ private:
 
 		UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(WidgetBlueprint, MakeUniqueObjectName(WidgetBlueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
 		NewAnimation->MovieScene = NewObject<UMovieScene>(NewAnimation, NewAnimation->GetFName(), RF_Transactional);
-		NewAnimation->MovieScene->StartTime = InTime;
-		NewAnimation->MovieScene->InTime = InTime;
-		NewAnimation->MovieScene->OutTime = OutTime;
-		NewAnimation->MovieScene->EndTime = OutTime;
+
+		NewAnimation->MovieScene->SetPlaybackRange(InTime, OutTime);
+		NewAnimation->MovieScene->GetEditorData().WorkingRange = TRange<float>(InTime, OutTime);
 
 		bool bRequestRename = true;
 		bool bNewAnimation = true;

@@ -2,14 +2,14 @@
 
 #pragma once
 
+#include "MovieSceneBoolSection.h"
 #include "MovieSceneBoolTrack.h"
-
 
 /**
 * A property track editor for bools.
 */
 class FBoolPropertyTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneBoolTrack, bool>
+	: public FPropertyTrackEditor<UMovieSceneBoolTrack, UMovieSceneBoolSection, bool>
 {
 public:
 	/**
@@ -29,15 +29,9 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-public:
-
-	// ISequencerTrackEditor interface
-
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-
 protected:
 
 	// FPropertyTrackEditor interface
-
-	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, bool& OutKey ) override;
+	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& GeneratedKeys ) override;
 };

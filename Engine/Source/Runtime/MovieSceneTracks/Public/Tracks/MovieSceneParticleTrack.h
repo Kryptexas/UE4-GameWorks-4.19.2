@@ -26,7 +26,7 @@ public:
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	
-	virtual void AddNewKey( float KeyTime );
+	virtual void AddNewSection( float SectionTime );
 
 	virtual TArray<UMovieSceneSection*> GetAllParticleSections() const {return ParticleSections;}
 

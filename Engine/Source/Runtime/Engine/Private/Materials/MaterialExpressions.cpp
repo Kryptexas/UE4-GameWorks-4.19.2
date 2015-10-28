@@ -64,6 +64,7 @@
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialExpressionMax.h"
+#include "Materials/MaterialExpressionMaterialProxyReplace.h"
 #include "Materials/MaterialExpressionMin.h"
 #include "Materials/MaterialExpressionMultiply.h"
 #include "Materials/MaterialExpressionNoise.h"
@@ -8143,6 +8144,51 @@ int32 UMaterialExpressionLightmassReplace::Compile(class FMaterialCompiler* Comp
 void UMaterialExpressionLightmassReplace::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("LightmassReplace"));
+}
+
+
+
+//
+//	UMaterialExpressionMaterialProxy
+//
+UMaterialExpressionMaterialProxyReplace::UMaterialExpressionMaterialProxyReplace(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+int32 UMaterialExpressionMaterialProxyReplace::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	if (!Realtime.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing MaterialProxyReplace input Realtime"));
+	}
+	else if (!MaterialProxy.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing MaterialProxyReplace input MaterialProxy"));
+	}
+	else
+	{
+		int32 Arg1 = Realtime.Compile(Compiler);
+		int32 Arg2 = MaterialProxy.Compile(Compiler);
+		return Compiler->LightmassReplace(Arg1, Arg2);
+	}
+}
+
+void UMaterialExpressionMaterialProxyReplace::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("MaterialProxyReplace"));
 }
 
 

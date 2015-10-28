@@ -10,6 +10,7 @@ void SIntegralCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
+	IntermediateValue = InArgs._IntermediateValue;
 	ChildSlot
 	[
 		SNew(SSpinBox<int32>)
@@ -46,6 +47,11 @@ void SIntegralCurveKeyEditor::OnEndSliderMovement(int32 Value)
 
 int32 SIntegralCurveKeyEditor::OnGetKeyValue() const
 {
+	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
+	{
+		return IntermediateValue.Get().GetValue();
+	}
+
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	return Curve->Evaluate(CurrentTime);
 }

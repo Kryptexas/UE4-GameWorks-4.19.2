@@ -292,7 +292,17 @@ void FStreamableManager::RequestAsyncLoad(const FStringAssetReference& TargetToS
 }
 
 
-void FStreamableManager::FindInMemory(FStringAssetReference& InOutTargetName, struct FStreamable* Existing)
+void FStreamableManager::RequestAsyncLoad( const TArray<FStringAssetReference>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority /*= DefaultAsyncLoadPriority */ )
+{
+	RequestAsyncLoad( TargetsToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority );
+}
+
+void FStreamableManager::RequestAsyncLoad( const FStringAssetReference& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority /*= DefaultAsyncLoadPriority */ )
+{
+	RequestAsyncLoad( TargetToStream, FStreamableDelegate::CreateLambda( MoveTemp( Callback ) ), Priority );
+}
+
+void FStreamableManager::FindInMemory( FStringAssetReference& InOutTargetName, struct FStreamable* Existing )
 {
 	check(Existing);
 	check(!Existing->bAsyncUnloadRequestOutstanding);

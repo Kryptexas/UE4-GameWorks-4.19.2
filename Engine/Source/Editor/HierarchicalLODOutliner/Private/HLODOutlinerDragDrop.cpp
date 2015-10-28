@@ -2,7 +2,7 @@
 
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HLODOutlinerDragDrop.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 #include "ITreeItem.h"
 #include "TreeItemID.h"
 
@@ -41,7 +41,7 @@ bool HLODOutliner::FDragDropPayload::ParseDrag(const FDragDropOperation& Operati
 		for (auto& ActorPtr : ActorOp.Actors)
 		{
 			AActor* Actor = ActorPtr.Get();
-			if (HierarchicalLODUtils::ShouldGenerateCluster(Actor))
+			if (FHierarchicalLODUtilities::ShouldGenerateCluster(Actor))
 			{
 				if (!StaticMeshActors.IsSet())
 				{

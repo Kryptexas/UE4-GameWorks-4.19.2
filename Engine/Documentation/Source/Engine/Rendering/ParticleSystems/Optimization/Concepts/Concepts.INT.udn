@@ -2,6 +2,8 @@ Availability: Public
 Title:Core Optimization Concepts
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:Identifying trouble areas and problem content in order to optimize effects.
+Version:4.9
+
 
 
 [TOC]

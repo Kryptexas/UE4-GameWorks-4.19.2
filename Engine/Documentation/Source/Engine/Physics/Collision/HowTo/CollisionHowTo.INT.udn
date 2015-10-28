@@ -36,7 +36,9 @@ Description:Content guide to creating and setting up collision geometry.
 		* [](Engine/Physics/Collision/HowTo/AddSimpleCollision "%Engine/Physics/Collision/HowTo/AddSimpleCollision:description%")
 		* [](Engine/Physics/Collision/HowTo/AddDOP "%Engine/Physics/Collision/HowTo/AddDOP:description%")
 		* [](Engine/Physics/Collision/HowTo/AddCustomCollisionType "%Engine/Physics/Collision/HowTo/AddCustomCollisionType:description%")
+		[PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/AddCustomTraceType "%Engine/Physics/Collision/HowTo/AddCustomTraceType:description%")
+		[/PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/PreviewCollision "%Engine/Physics/Collision/HowTo/PreviewCollision:description%")
 	[/PARAM]
 [/OBJECT]

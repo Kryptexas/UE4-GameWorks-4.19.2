@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Containers/BitArray.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "NavigationTypes.generated.h"
 
 #define INVALID_NAVNODEREF (0)
@@ -16,7 +17,6 @@
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
 
-struct FNavigationQueryFilter;
 class AActor;
 class ANavigationData;
 class INavAgentInterface;
@@ -570,7 +570,7 @@ struct ENGINE_API FPathFindingQuery
 	TWeakObjectPtr<const UObject> Owner;
 	FVector StartLocation;
 	FVector EndLocation;
-	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
+	FSharedConstNavQueryFilter QueryFilter;
 	FNavPathSharedPtr PathInstanceToFill;
 
 	/** additional flags passed to navigation data handling request */
@@ -584,9 +584,9 @@ struct ENGINE_API FPathFindingQuery
 	FPathFindingQuery(const FPathFindingQuery& Source);
 
 	DEPRECATED(4.8, "This version of FPathFindingQuery's constructor is deprecated. Please use ANavigationData reference rather than a pointer")
-	FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
+	FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 
-	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
+	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 
 	explicit FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride = NULL);
 

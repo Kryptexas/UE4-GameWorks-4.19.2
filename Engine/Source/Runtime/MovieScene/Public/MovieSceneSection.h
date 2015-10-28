@@ -187,7 +187,15 @@ public:
 	 * @param KeyParams The keying parameters
 	 * @param bUnwindRotation Unwind rotation
 	 */
-	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, FKeyParams KeyParams, const bool bUnwindRotation = false);
+	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, EMovieSceneKeyInterpolation Interpolation, const bool bUnwindRotation = false );
+
+	/**
+	 * Sets the default value for a curve.
+	 *
+	 * @param InCurve The curve to set a default value on.
+	 * @param Value The value to use as the default.
+	 */
+	void MOVIESCENE_API SetCurveDefault( FRichCurve& InCurve, float Value );
 
 	/**
 	 * Checks to see if this section overlaps with an array of other sections

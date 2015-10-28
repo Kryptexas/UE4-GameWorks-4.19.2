@@ -773,6 +773,15 @@ void USceneComponent::UpdateBounds()
 		Bounds = CalcBounds(ComponentToWorld);
 	}
 
+
+#if ENABLE_NAN_DIAGNOSTIC
+	if (Bounds.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("Bounds contains NaN for %s"), *GetPathName());
+		Bounds.DiagnosticCheckNaN();
+	}
+#endif
+
 #if WITH_EDITOR
 	// If bounds have changed (in editor), trigger data rebuild
 	if ( IsRegistered() && (World != NULL) && !World->IsGameWorld() &&
@@ -2091,7 +2100,7 @@ bool USceneComponent::MoveComponent(const FVector& Delta, const FRotator& NewRot
 		{
 			if (Hit)
 			{
-				*Hit = FHitResult();
+				Hit->Init();
 			}
 			return true;
 		}

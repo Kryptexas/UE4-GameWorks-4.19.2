@@ -90,15 +90,15 @@ Through the use of Blueprints, designers can prototype, implement, or modify vir
 
 ## Starting Out
 
-[DIR(end:"1" type:"topic" resource:"quickstart")]
+[DIR(end:"1" output:"topic" type:"quickstart")]
 
 ## Reference
 
-[DIR(end:"1" type:"topic" resource:"reference")]
+[DIR(end:"1" output:"topic" type:"reference")]
 
 ## Guides
 
-[DIR(end:"1" type:"topic" resource:"howto")]
+[DIR(end:"1" output:"topic" type:"howto")]
 
 ## Video Tutorials
 

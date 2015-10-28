@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms/GearVR
 Description:How to setup your C++ based UE4 project to be used with the Gear VR Headset.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

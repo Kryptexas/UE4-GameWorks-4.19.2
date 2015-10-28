@@ -626,9 +626,25 @@ public:
 	*/
 	float GetTimeoutValue();
 
+	/** Adds the channel to the ticking channels list. USed to selectively tick channels that have queued bunches or are pending dormancy. */
+	void StartTickingChannel(UChannel* Channel) { ChannelsToTick.AddUnique(Channel); }
+
+	/** Removes a channel from the ticking list directly */
+	void StopTickingChannel(UChannel* Channel) { ChannelsToTick.Remove(Channel); }
+
 protected:
 
 	void CleanupDormantActorState();
+
+private:
+	/**
+	 * The channels that need ticking. This will be a subset of OpenChannels, only including
+	 * channels that need to process either dormancy or queued bunches. Should be a significant
+	 * optimization over ticking and calling virtual functions on the potentially hundreds of
+	 * OpenChannels every frame.
+	 */
+	UPROPERTY()
+	TArray<UChannel*> ChannelsToTick;
 };
 
 

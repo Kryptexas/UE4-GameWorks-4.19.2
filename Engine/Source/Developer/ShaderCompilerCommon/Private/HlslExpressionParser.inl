@@ -20,11 +20,17 @@ namespace CrossCompiler
 	struct FSymbolScope
 	{
 		FSymbolScope* Parent;
+		const TCHAR* Name;
 
 		TSet/*TLinearSet*/<FString> Symbols;
 		TLinearArray<FSymbolScope> Children;
 
-		FSymbolScope(FLinearAllocator* InAllocator, FSymbolScope* InParent) : Parent(InParent), Children(InAllocator)/*, Symbols(InAllocator)*/ {}
+		FSymbolScope(FLinearAllocator* InAllocator, FSymbolScope* InParent) :
+			Parent(InParent),
+			Children(InAllocator),
+			Name(nullptr)
+		{
+		}
 		~FSymbolScope() {}
 
 		void Add(const FString& Type)
@@ -32,7 +38,7 @@ namespace CrossCompiler
 			Symbols.Add(Type);
 		}
 
-		static bool FindType(const FSymbolScope* Scope, const FString& Type)
+		static bool FindType(const FSymbolScope* Scope, const FString& Type, bool bSearchUpwards = true)
 		{
 			while (Scope)
 			{
@@ -41,10 +47,44 @@ namespace CrossCompiler
 					return true;
 				}
 
+				if (!bSearchUpwards)
+				{
+					return false;
+				}
+
 				Scope = Scope->Parent;
 			}
 
 			return false;
+		}
+
+		const FSymbolScope* FindNamespace(const TCHAR* Namespace) const
+		{
+			for (auto& Child : Children)
+			{
+				if (!FCString::Strcmp(Child.Name, Namespace))
+				{
+					return &Child;
+				}
+			}
+
+			return nullptr;
+		}
+
+		static const FSymbolScope* FindGlobalNamespace(const TCHAR* Namespace, const FSymbolScope* Scope)
+		{
+			return Scope->GetGlobalScope()->FindNamespace(Namespace);
+		}
+
+		const FSymbolScope* GetGlobalScope() const
+		{
+			const FSymbolScope* Scope = this;
+			while (Scope->Parent)
+			{
+				Scope = Scope->Parent;
+			}
+
+			return Scope;
 		}
 	};
 
@@ -331,7 +371,7 @@ namespace CrossCompiler
 				{
 					if (FSymbolScope::FindType(SymbolScope, Token->String))
 					{
-						auto* Type = new(Allocator)AST::FTypeSpecifier(Allocator, Token->SourceInfo);
+						auto* Type = new(Allocator) AST::FTypeSpecifier(Allocator, Token->SourceInfo);
 						Type->TypeName = Allocator->Strdup(Token->String);
 						*OutSpecifier = Type;
 						return EParseResult::Matched;
@@ -352,6 +392,66 @@ namespace CrossCompiler
 	EParseResult ParseGeneralType(FHlslScanner& Scanner, int32 TypeFlags, FSymbolScope* SymbolScope, FLinearAllocator* Allocator, AST::FTypeSpecifier** OutSpecifier)
 	{
 		auto* Token = Scanner.PeekToken();
+
+		// Handle types with namespaces
+		{
+			auto* Token1 = Scanner.PeekToken(1);
+			auto* Token2 = Scanner.PeekToken(2);
+			FString TypeString;
+			if (Token && Token->Token == EHlslToken::Identifier && Token1 && Token1->Token == EHlslToken::ColonColon && Token2 && Token2->Token == EHlslToken::Identifier)
+			{
+				auto* Namespace = SymbolScope->GetGlobalScope();
+				do
+				{
+					Token = Scanner.PeekToken();
+					check(Scanner.MatchToken(EHlslToken::Identifier));
+					auto* OuterNamespace = Token;
+					check(Scanner.MatchToken(EHlslToken::ColonColon));
+					auto* InnerOrType = Scanner.PeekToken();
+					if (!InnerOrType)
+					{
+						Scanner.SourceError(*FString::Printf(TEXT("Expecting identifier for type '%s'!"), InnerOrType ? *InnerOrType->String : TEXT("null")));
+						return EParseResult::Error;
+					}
+
+					Namespace = Namespace->FindNamespace(*OuterNamespace->String);
+					if (!Namespace)
+					{
+						Scanner.SourceError(*FString::Printf(TEXT("Unknown namespace '%s'!"), *TypeString));
+						return EParseResult::Error;
+					}
+					TypeString += OuterNamespace->String;
+					TypeString += TEXT("::");
+					auto* Token1 = Scanner.PeekToken(1);
+					if (Token1 && Token1->Token == EHlslToken::ColonColon)
+					{
+						continue;
+					}
+					else
+					{
+						if (InnerOrType && FChar::IsAlpha(InnerOrType->String[0]))
+						{
+							Scanner.Advance();
+							if (FSymbolScope::FindType(Namespace, InnerOrType->String, false))
+							{
+								auto* Type = new(Allocator) AST::FTypeSpecifier(Allocator, Token->SourceInfo);
+								Type->TypeName = Allocator->Strdup(*TypeString);
+								*OutSpecifier = Type;
+								return EParseResult::Matched;
+							}
+							else
+							{
+								Scanner.SourceError(*FString::Printf(TEXT("Unknown type '%s'!"), *TypeString));
+								return EParseResult::Error;
+							}
+						}
+						break;
+					}
+				}
+				while (Token);
+			}
+		}
+
 		auto Result = ParseGeneralTypeFromToken(Token, TypeFlags, SymbolScope, Allocator, OutSpecifier);
 		if (Result == EParseResult::Matched)
 		{
@@ -629,9 +729,33 @@ namespace CrossCompiler
 			break;
 
 		case EHlslToken::Identifier:
-			Scanner.Advance();
-			AtomExpression = new(Allocator) AST::FUnaryExpression(Allocator, AST::EOperators::Identifier, nullptr, Token->SourceInfo);
-			AtomExpression->Identifier = Allocator->Strdup(Token->String);
+		{
+			auto* Token1 = Scanner.PeekToken(1);
+			auto* Token2 = Scanner.PeekToken(2);
+			if (Token1 && Token1->Token == EHlslToken::ColonColon && Token2 && Token2->Token == EHlslToken::Identifier)
+			{
+				FString Name = Token->String;
+				Scanner.Advance();
+				while (Token1 && Token1->Token == EHlslToken::ColonColon && Token2 && Token2->Token == EHlslToken::Identifier)
+				{
+					Name += Token1->String;
+					Name += Token2->String;
+					Scanner.Advance();
+					Scanner.Advance();
+					Token1 = Scanner.PeekToken();
+					Token2 = Scanner.PeekToken(1);
+				}
+
+				AtomExpression = new(Allocator) AST::FUnaryExpression(Allocator, AST::EOperators::Identifier, nullptr, Token->SourceInfo);
+				AtomExpression->Identifier = Allocator->Strdup(*Name);
+			}
+			else
+			{
+				Scanner.Advance();
+				AtomExpression = new(Allocator) AST::FUnaryExpression(Allocator, AST::EOperators::Identifier, nullptr, Token->SourceInfo);
+				AtomExpression->Identifier = Allocator->Strdup(Token->String);
+			}
+		}
 			break;
 
 		case EHlslToken::LeftParenthesis:

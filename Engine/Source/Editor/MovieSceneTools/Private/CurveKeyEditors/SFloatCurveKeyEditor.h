@@ -12,6 +12,7 @@ public:
 		SLATE_ARGUMENT(ISequencer*, Sequencer)
 		SLATE_ARGUMENT(UMovieSceneSection*, OwningSection)
 		SLATE_ARGUMENT(FRichCurve*, Curve)
+		SLATE_ATTRIBUTE(TOptional<float>, IntermediateValue)
 	SLATE_END_ARGS();
 
 	void Construct(const FArguments& InArgs);
@@ -29,4 +30,5 @@ private:
 	ISequencer* Sequencer;
 	UMovieSceneSection* OwningSection;
 	FRichCurve* Curve;
+	TAttribute<TOptional<float>> IntermediateValue;
 };

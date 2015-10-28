@@ -6,6 +6,8 @@
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
 #include "PropertyEditorModule.h"
+#include "ISettingsModule.h"
+#include "LevelSequenceProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -44,6 +46,14 @@ public:
 	{
 		Style = MakeShareable(new FLevelSequenceEditorStyle());
 
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+		{
+			SettingsModule->RegisterSettings("Project", "Editor", "Level Sequences",
+				LOCTEXT("RuntimeSettingsName", "Level Sequences"),
+				LOCTEXT("RuntimeSettingsDescription", "Configure project settings relating to Level Sequences"),
+				GetMutableDefault<ULevelSequenceProjectSettings>());
+		}
+
 		RegisterAssetTools();
 		RegisterCustomizations();
 		RegisterMenuExtensions();
@@ -51,6 +61,11 @@ public:
 	
 	virtual void ShutdownModule() override
 	{
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+		{
+			SettingsModule->UnregisterSettings("Project", "Editor", "Level Sequences");
+		}
+
 		UnregisterAssetTools();
 		UnregisterCustomizations();
 		UnregisterMenuExtensions();

@@ -14,8 +14,9 @@ namespace EParticleKey
 {
 	enum Type
 	{
-		Active = 0,
-		Inactive = 1,
+		Activate = 0,
+		Deactivate = 1,
+		Trigger = 2,
 	};
 }
 

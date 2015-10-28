@@ -78,7 +78,7 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 
 	MovieScene->Modify();
 		
-	SlomoTrack = FindOrAddMasterTrack<UMovieSceneSlomoTrack>();
+	SlomoTrack = FindOrCreateMasterTrack<UMovieSceneSlomoTrack>().Track;
 	ensure(SlomoTrack);
 
 	UMovieSceneSection* NewSection = SlomoTrack->CreateNewSection();

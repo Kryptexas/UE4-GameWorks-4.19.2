@@ -7,7 +7,7 @@
 UMovieSceneParticleSection::UMovieSceneParticleSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
-	ParticleKeys.SetDefaultValue((int32)EParticleKey::Inactive);
+	ParticleKeys.SetDefaultValue((int32)EParticleKey::Deactivate);
 	ParticleKeys.SetUseDefaultValueBeforeFirstKey(true);
 	SetIsInfinite(true);
 }

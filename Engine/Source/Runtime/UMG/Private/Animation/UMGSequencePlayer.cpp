@@ -13,6 +13,7 @@ UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializ
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 	TimeCursorPosition = 0.0f;
+	AnimationStartOffset = 0;
 	Animation = nullptr;
 }
 
@@ -23,7 +24,8 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	UMovieScene* MovieScene = Animation->GetMovieScene();
 
 	// Cache the time range of the sequence to determine when we stop
-	TimeRange = MovieScene->GetTimeRange();
+	TimeRange = MovieScene->GetPlaybackRange();
+	AnimationStartOffset = TimeRange.GetLowerBoundValue();
 
 	UWidgetTree* WidgetTree = UserWidget.WidgetTree;
 
@@ -48,7 +50,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 		TimeCursorPosition += bIsPlayingForward ? DeltaTime : -DeltaTime;
 
-		float AnimationLength = TimeRange.GetUpperBoundValue();
+		float AnimationLength = TimeRange.Size<float>();
 		if ( TimeCursorPosition < 0 )
 		{
 			NumLoopsCompleted++;
@@ -98,7 +100,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 		if (RootMovieSceneInstance.IsValid())
 		{
-			RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
+			RootMovieSceneInstance->Update(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset, *this);
 		}
 	}
 }
@@ -110,13 +112,15 @@ void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSeq
 
 	PlayMode = InPlayMode;
 
-	// Clamp the start time to be between 0 and the upper time bound
-	TimeCursorPosition = StaticCast<double>(FMath::Clamp(StartAtTime, 0.0f, TimeRange.GetUpperBoundValue()));
+	float AnimationLength = TimeRange.Size<float>();
+
+	// Clamp the start time to be between 0 and the animation length
+	TimeCursorPosition = StaticCast<double>(FMath::Clamp(StartAtTime, 0.0f, AnimationLength));
 
 	if (PlayMode == EUMGSequencePlayMode::Reverse)
 	{
 		// When playing in reverse count substract the start time from the end.
-		TimeCursorPosition = TimeRange.GetUpperBoundValue() - TimeCursorPosition;
+		TimeCursorPosition = AnimationLength - TimeCursorPosition;
 	}
 
 	if ( PlayMode == EUMGSequencePlayMode::PingPong )

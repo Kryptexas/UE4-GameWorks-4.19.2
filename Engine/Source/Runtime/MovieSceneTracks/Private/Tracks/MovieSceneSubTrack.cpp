@@ -25,7 +25,7 @@ void UMovieSceneSubTrack::AddSequence(UMovieSceneSequence& Sequence, float Time)
 	{
 		NewSection->SetSequence(Sequence);
 		NewSection->SetStartTime(Time);
-		NewSection->SetEndTime(Time + Sequence.GetMovieScene()->GetTimeRange().Size<float>());
+		NewSection->SetEndTime(Time + Sequence.GetMovieScene()->GetPlaybackRange().Size<float>());
 	}
 
 	Sections.Add(NewSection);

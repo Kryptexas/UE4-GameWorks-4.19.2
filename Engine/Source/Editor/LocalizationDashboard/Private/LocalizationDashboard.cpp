@@ -240,7 +240,7 @@ void FLocalizationDashboard::RegisterTabSpawner()
 		return DockTab;
 	};
 
-	FGlobalTabmanager::Get()->RegisterTabSpawner(TabName, FOnSpawnTab::CreateLambda( TFunction<TSharedRef<SDockTab> (const FSpawnTabArgs&)>(SpawnMainTab) ) )
+	FGlobalTabmanager::Get()->RegisterTabSpawner(TabName, FOnSpawnTab::CreateLambda( MoveTemp(SpawnMainTab) ) )
 		.SetDisplayName(LOCTEXT("MainTabTitle", "Localization Dashboard"));
 }
 

@@ -317,9 +317,17 @@ namespace CrossCompiler
 			WriteOperator(Writer);
 			if (SubExpressions[0])
 			{
-				Writer << (TCHAR)'(';
+				if (Writer.ExpressionScope != 0)
+				{
+					Writer << (TCHAR)'(';
+				}
+				++Writer.ExpressionScope;
 				SubExpressions[0]->Write(Writer);
-				Writer << TEXT(")");
+				--Writer.ExpressionScope;
+				if (Writer.ExpressionScope != 0)
+				{
+					Writer << (TCHAR)')';
+				}
 			}
 
 			// Suffix
@@ -362,13 +370,21 @@ namespace CrossCompiler
 				break;
 
 			default:
-				Writer << (TCHAR)'(';
+				if (Writer.ExpressionScope != 0)
+				{
+					Writer << (TCHAR)'(';
+				}
+				++Writer.ExpressionScope;
 				SubExpressions[0]->Write(Writer);
 				Writer << (TCHAR)' ';
 				WriteOperator(Writer);
 				Writer << (TCHAR)' ';
 				SubExpressions[1]->Write(Writer);
-				Writer << (TCHAR)')';
+				--Writer.ExpressionScope;
+				if (Writer.ExpressionScope != 0)
+				{
+					Writer << (TCHAR)')';
+				}
 				break;
 			}
 		}
@@ -496,12 +512,12 @@ namespace CrossCompiler
 				}
 			}
 
+			Writer << TEXT(")");
 			if (ReturnSemantic && *ReturnSemantic)
 			{
-				Writer << TEXT(": ") << ReturnSemantic;
+				Writer << TEXT(" : ") << ReturnSemantic;
 			}
-
-			Writer << TEXT(")\n");
+			Writer << TEXT("\n");
 		}
 
 		FFunction::~FFunction()
@@ -828,6 +844,7 @@ namespace CrossCompiler
 			if (Type)
 			{
 				Type->Write(Writer);
+				Writer << TEXT(" ");
 			}
 
 			bool bFirst = true;
@@ -835,7 +852,6 @@ namespace CrossCompiler
 			{
 				if (bFirst)
 				{
-					Writer << TEXT(" ");
 					bFirst = false;
 				}
 				else

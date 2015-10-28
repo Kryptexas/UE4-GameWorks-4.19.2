@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2695309
 Availability: Public
-Title:Infiltrator Demo
+Title:잠입자 데모
 Crumbs:%ROOT%, Resources,
-Description:An overview of the real time Infiltrator Demo
+Description:실시간 잠입자 데모 개요입니다.
 Related: Engine/Matinee
 Related: Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials
 Related: Engine/Rendering/ParticleSystems
@@ -52,75 +52,75 @@ Skilllevel: Intermediate
 
 ![](Infiltrator_Page_Header.png)
 
-First shown at GDC 2013, Infiltrator showcases Unreal Engine 4's (UE4) PBR and cinematic capabilities at the time. 
-The project is full of expert-level content to help you learn about all the different aspects of what goes into creating a AAA-quality scene. 
-In the following document we will high light some of the UE4 specific tools that were used to create the Infiltrator demo.
+GDC 2013 에서 처음 선보인 Infiltrator (잠입자)는 당시의 언리얼 엔진 4 (UE4) 물리 기반 렌더링과 시네마틱 관련 성능을 선보여 주는 데모입니다.
+이 프로젝트는 전문가 수준의 콘텐츠가 가득해서 AAA 급 퀄리티 씬을 만드는 데 있어 여러가지 다양한 요소들에 대해 전부 배워보는 데 도움이 됩니다.
+이 문서에서는 잠입자 데모를 만드는 데 사용된 몇 가지 UE4 전용 툴에 대해 살펴보도록 하겠습니다.
 
 [region:note]
-Please note, if you use the Infiltrator assets in a new project with reference lighting, you'll have to make a few tweaks to make the Infiltrator content match your content.
+참고로 기준 라이팅 상태로 새 프로젝트에서 잠입자 애셋을 사용하는 경우, 쓰시는 콘텐츠에 맞도록 잠입자 콘텐츠를 조정해 줘야 할 것입니다.
 [/region]
 
-## Location
-You can find and download the Infiltrator project from the **Engine Features Samples** section of the **Learn Tab** in the Epic Games Launcher. 
+## 위치
+잠입자 프로젝트의 위치는 에픽 게임스 런처 **학습 탭** 의 **엔진 기능 샘플** 섹션에 있습니다.
 
  ![](Infiltrator_Launcher_Location.png)
 
 
-## Tools Used
-The Infiltrator demo makes uses of almost all of the tools UE4 has to offer. 
-In the following section we will highlight some of these tools as well as provide links to documentation for further reading.
+## 사용된 툴
+잠입자 데모는 UE4 에 제공된 거의 모든 기능을 활용합니다.
+다음 섹션에서는 그 툴 몇 가지에 대해 살펴보고 더욱 자세히 알아볼 수 있도록 문서 링크도 제공해 드리도록 하겠습니다.
 
-### Matinee 
+### 마티네
 
 ![](Infiltrator_Matinee.png)
 
-The Matinee Cinematic Tool provides the ability to animate the properties of Actors over time, to create either dynamic game play or cinematic in-game sequences. 
-Matinee is the main tool used to bring the Infiltrator demo from an idea into reality. 
-For more information about Matinee and how to use it, make sure to check out [](Engine/Matinee).
+마티네 시네마틱 툴은 시간에 따른 액터의 프로퍼티 애니메이션 기능을 제공하여, 동적인 게임 플레이 또는 게임내 시네마틱 시퀀스를 만들 수 있습니다.
+마티네는 개념 단계의 잠입자 데모를 현실로 구현시키는 데 사용된 툴입니다.
+마티네 및 그 사용법 관련 상세 정보는 [](Engine/Matinee) 문서를 참고하세요.
 
 
-### Material Editor
+### 마티네 에디터
 
 ![](Infiltrator_Material_Graph_Whole.png)
 
-As with any Unreal-based project the Material Editor was used to create all of the Materials that are being used. 
-However Infiltrator make use of a new way of thinking about how to apply Materials to objects. 
-Instead of using a single Material, Infiltrator uses Material Layers which allow you to mix and match different Materials together instead of just Textures. 
-To learn more about creating, setting up, and using Layered Materials, see [](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials).
+다른 언리얼 기반 프로젝트와 마찬가지로, 쓰인 모든 머티리얼 제작에는 머티리얼 에디터가 사용되었습니다.
+하지만 잠입자는 오브젝트에 머티리얼을 적용하는 데 있어 새로운 방식을 활용했습니다.
+단일 머티리얼을 사용하는 대신, 잠입자는 머티리얼 레이어를 사용하여 텍스처 뿐만 아닌 여러가지 머티리얼을 섞어 어우러질 수 있도록 했습니다.
+레이어드 머티리얼 제작, 구성, 사용법 관련 자세한 정보는 [](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials) 문서를 참고하세요.
 
-### Cascade Particle Editor
+### 캐스케이드 파티클 에디터
 
 ![](Infiltrator_Cascade_Editor.png)
 
- The Cascade Particle Editor allows artist to quickly and easily create incredible visual effects ranging from smoke and sparks to effects for pick ups or things the player should be aware of. 
- All of the effects you see in Infiltrator were created using the Cascade Particle Editor. 
- For a complete overview of all the features Cascade offers, check out [](Engine/Rendering/ParticleSystems).
+ 캐스케이드 파티클 에디터는 연기나 스파크에서부터 픽업이나 플레이어에게 중요한 사물의 이펙트에 이르기까지 엄청난 비주얼 이펙트를, 아티스트가 직접 쉽고 빠르게 만들 수 있도록 해주는 툴입니다.
+ 잠입자에서 보이는 모든 이펙트는 캐스케이드 파티클 에디터를 사용해서 제작되었습니다.
+ 캐스케이드의 모든 기능에 대한 상세 개요는 [](Engine/Rendering/ParticleSystems) 문서를 참고하세요.
 
 
-### Persona Animation System
+### 페르소나 애니메이션 시스템
 
 ![](Infiltrator_Animation_Tools.png)
 
- UE4's Persona Animation System allows users to create animations for their project using a wide variety of animation data. 
- From using skeletal-based animations to morph-based animations, the animation system enables both simple and complex animation across a wide variety of different characters. 
- For details on how to incorporate animation into your project, please see [](Engine/Animation).
+ UE4 의 페르소나 애니메이션 시스템은 사용자가 아주 다양한 애니메이션 데이터를 사용해서 프로젝트에 쓸 애니메이션을 만들 수 있도록 해주는 시스템입니다.
+ 스켈레톤 기반 애니메이션에서 모프 기반 애니메이션에 이르기까지, 이 애니메이션 시스템을 통해 아주 다양한 여러가지 캐릭터에 걸쳐 간단한 것은 물론 복잡한 애니메이션까지 만들 수 있습니다.
+ 프로젝트에 애니메이션을 불어넣는 법에 대한 상세 정보는 [](Engine/Animation) 문서를 참고하세요.
 
 
-### Maya Animation Rigging Toolset (A.R.T)
+### 마야 애니메이션 리깅 툴세트 (A.R.T)
 
 ![](Infiltrator_ART_Tools.jpg)(h:550)
 
-The Maya Animation Rigging Toolset, or A.R.T for short, is a comprehensive toolset that takes a character through skeleton creation, skeleton placement, and rig creation, as well as many animation tools to speed up animator workflow.
- If you would like to learn more about the A.R.T tools and how to install and use them, check out the [Animation Rigging Toolset](Engine/Content/Tools/MayaRiggingTool) guide.
+Maya Animation Rigging Toolset, 줄여서 A.R.T 는 캐릭터의 스켈레톤 생성 및 배치와 릭 생성 뿐 아니라 애니메이터의 작업 효율을 높여줄 여러가지 애니메이션 툴이 결합된 복합 툴세트입니다.
+ A.R.T 툴 및 그 설치와 사용법 관련 상세 정보는 [](Engine/Content/Tools/MayaRiggingTool) 문서를 참고하시기 바랍니다.
 
 
-## Infiltrator Matinee Breakdown
+## 잠입자 마티네 분석
 
-To access the Infiltrator cinematic you will need to first go to the Main Toolbar and open the Matinee sequence label **Cinematic**. 
+잠입자 시네마틱에 접근하려면 먼저 메인 툴바에 가서 **시네마틱** 이란 라벨의 마티네 시퀀스를 열어야 합니다.
 
 ![](Infiltrator_Open_Cinematic.png)
 
-After the Infiltrator cinematic Matinee has been opened you can play the cinematic using the Play, Loop, Stop, or Reverse buttons or by scrubbing the Timeline. 
+잠입자 시네마틱 마티네가 열린 이후, 재생, 루프, 중지, 역재생 버튼이나 타임라인 스크러빙을 통해 시네마틱을 재생할 수 있습니다.
 
 ![](Infiltrator_Matinee_Scrub.png)
 

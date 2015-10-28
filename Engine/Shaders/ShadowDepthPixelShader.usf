@@ -61,7 +61,7 @@ void Main(
 	#if INTERPOLATE_POSITION
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, 1, SvPositionToTranslatedWorld(SvPosition), SvPosition);
+			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, 1, SvPositionToTranslatedWorld(SvPosition), SvPosition.xyz);
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, SvPosition, 1);

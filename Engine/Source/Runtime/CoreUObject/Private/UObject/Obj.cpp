@@ -1197,6 +1197,8 @@ FString GetConfigFilename( UObject* SourceObject )
 {
 	checkSlow(SourceObject);
 
+#if 0 // If you find that you are sad this code is gone, please contact RobM or JoeG. We could not find a case for its existence
+	// and it broke/made cumbersome perobjectconfig file specification for files that were outside the transient package
 	if (UsesPerObjectConfig(SourceObject) && SourceObject->GetOutermost() != GetTransientPackage())
 	{
 		// if this is a PerObjectConfig object that is not contained by the transient package,
@@ -1206,6 +1208,7 @@ FString GetConfigFilename( UObject* SourceObject )
 		return PerObjectConfigName;
 	}
 	else
+#endif
 	{
 		// otherwise look at the class to get the config name
 		return SourceObject->GetClass()->GetConfigName();

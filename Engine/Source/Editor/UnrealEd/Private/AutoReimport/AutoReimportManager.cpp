@@ -30,9 +30,9 @@ struct FStateMachine
 	FStateMachine(TState InitialState) : CurrentState(InitialState){}
 
 	/** Add an enum->function mapping for this state machine */
-	void Add(TState State, EStateMachineNode NodeType, const FunctionType& Function)
+	void Add(TState State, EStateMachineNode NodeType, FunctionType&& Function)
 	{
-		Nodes.Add(State, FStateMachineNode(NodeType, Function));
+		Nodes.Add(State, FStateMachineNode(NodeType, MoveTemp(Function)));
 	}
 
 	/** Set a new state for this machine */
@@ -68,7 +68,7 @@ private:
 
 	struct FStateMachineNode
 	{
-		FStateMachineNode(EStateMachineNode InType, const FunctionType& InEndpoint) : Endpoint(InEndpoint), Type(InType) {}
+		FStateMachineNode(EStateMachineNode InType, FunctionType&& InEndpoint) : Endpoint(MoveTemp(InEndpoint)), Type(InType) {}
 
 		/** The function endpoint for this node */
 		FunctionType Endpoint;

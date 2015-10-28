@@ -2,6 +2,7 @@ Availability: Public
 Title:Getting Results
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:Profiling common trouble areas with Particle Systems.
+Version: 4.9
 
 
 [TOC]
@@ -102,22 +103,22 @@ Automatic essentially lets the game determine the LOD as you play.  If you incre
 
 Appropriately setting the LOD Method can be vital to performance and visuals.
 
-Automatic - the game will set the LOD based on the distance parameters defined in the effect, using the LOD Distance Check Time settings. Typically used on ambient effects which loop and are not called by game code.
+**Automatic** - the game will set the LOD based on the distance parameters defined in the effect, using the LOD Distance Check Time settings. Typically used on ambient effects which loop and are not called by game code.
 
-Direct Set - the LOD is determined (typically by game code) when the effect is spawned and stays at the LOD defined.  Typically used in burst effects like explosions or impacts.
+**Direct Set** - the LOD is determined (typically by game code) when the effect is spawned and stays at the LOD defined.  Typically used in burst effects like explosions or impacts.
 
-Activate Automatic - The LOD is defined when the effect is spawned, based upon the distance parameters defined in the LOD.  Typically used on burst effects called by Blueprints etc. which require LODs to never shift once spawned.
+**Activate Automatic** - The LOD is defined when the effect is spawned, based upon the distance parameters defined in the LOD.  Typically used on burst effects called by Blueprints etc. which require LODs to never shift once spawned.
 
 
 ## Fixed vs. Non Fixed Bounds - Game Thread
 
 Bounds are one of the ways in which the engine determines visibility of an effect.  These invisible coordinates tell the engine if an effect is in view or out of view.  If a corner of your bounds is visible, the engine will calculate any components of the effect necessary.
 
-Bounds are costly the check and update each frame, therefore it is a good idea to set your bounds to be fixed and determine how large bounds need to be.  In some cases, you might want your bounds to be rather large if you need to see every piece of debris flying out of an explosion.  If you wish to keep costs low, tightening bounds to core components can increase performance, at the risk of effects popping off when the bounds go out of view.
+Bounds are costly, they check and update each frame, therefore it is a good idea to set your bounds to be fixed and determine how large bounds need to be.  In some cases, you might want your bounds to be rather large if you need to see every piece of debris flying out of an explosion.  If you wish to keep costs low, tightening bounds to core components can increase performance, at the risk of effects popping off when the bounds go out of view.
 
 There are some considerations for fixed vs. non-fixed bounds to keep in mind.
 
-Fast moving effects such as rocket trails, tracers, or anything attached to a projectile etc. should not have fixed bounds set nor have the fixed bounds set so large that the emitter cannot fly outside of the bounds.
+Fast moving effects such as rocket trails, tracers, or anything attached to a projectile should not have fixed bounds set nor have the fixed bounds set so large that the emitter cannot fly outside of the bounds.
 
 When setting bounds, be aware of local vs. world space coordinates defined in your system.  If an emitter is rotated the opposite direction of your bounds orientation, it is possible for elements of the effect to fly out of your bounds and elements popping out of view can occur.
 
@@ -180,9 +181,9 @@ Typically there is a high cost associated with doing CPU particle collision in U
 Several settings can be used to minimize collision costs these include:
 
 
-* MaxCollisions: keep this value as low as possible.
-* Collision Completion Option: set this to HaltCollisions/Freeze to stop doing collision checks against the scene once MaxCollisions is reached.
-* The Damping Factor determines the bounce of objects following collision, lower values may result in objects coming to rest faster (lower Max Collisions value).
+* **MaxCollisions**: keep this value as low as possible.
+* **Collision Completion** Option: set this to HaltCollisions/Freeze to stop doing collision checks against the scene once MaxCollisions is reached.
+* The **Damping Factor** determines the bounce of objects following collision, lower values may result in objects coming to rest faster (lower Max Collisions value).
 
 
 
@@ -226,7 +227,7 @@ A more recent addition to the Cooker evaluates all modules in a particle system 
 
 ## Tick Time - Game Thread
 
-Tick Time represents the amount of time spent updating particle systems in the scene.  Tick Time can be viewed with the stat particles command which lists out all relative information required to assess particle evaluation costs.
+**Tick Time** represents the amount of time spent updating particle systems in the scene.  Tick Time can be viewed with the stat particles command which lists out all relative information required to assess particle evaluation costs.
 
 There are many methods which can be used to reduce Tick costs.
 

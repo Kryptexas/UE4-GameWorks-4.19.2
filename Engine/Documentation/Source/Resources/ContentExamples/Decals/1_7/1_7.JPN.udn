@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2653049
-Availability:Public
+﻿Availability:Public
 Title:1.7 - アニメートされたデカール マテリアル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
 Description:デカールのサンプル レベルの概要、サンプル 1.7：アニメートされたデカール マテリアル
@@ -11,6 +10,7 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

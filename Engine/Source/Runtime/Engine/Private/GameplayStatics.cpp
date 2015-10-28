@@ -806,7 +806,7 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 	}
 }
 
-UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
+UAudioComponent* UGameplayStatics::CreateSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -825,10 +825,19 @@ UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, cla
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
 		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
 		AudioComponent->SetPitchMultiplier(PitchMultiplier);
-		AudioComponent->bAllowSpatialization	= false;
-		AudioComponent->bIsUISound				= true;
-		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->bAllowSpatialization = false;
+		AudioComponent->bIsUISound = true;
+		AudioComponent->bAutoDestroy = true;
+		AudioComponent->SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?		
+	}
+	return AudioComponent;
+}
+
+UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
+{
+	UAudioComponent* AudioComponent = CreateSound2D(WorldContextObject, Sound, VolumeMultiplier, PitchMultiplier, StartTime, ConcurrencySettings);
+	if (AudioComponent)
+	{
 		AudioComponent->Play(StartTime);
 	}
 	return AudioComponent;

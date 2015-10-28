@@ -52,6 +52,9 @@ struct ENGINE_API FStreamableManager
 	void RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority);
 	void RequestAsyncLoad(const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority);
 
+	void RequestAsyncLoad( const TArray<FStringAssetReference>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority );
+	void RequestAsyncLoad( const FStringAssetReference& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority );
+
 	/** Exposes references to GC system */
 	void AddStructReferencedObjects(class FReferenceCollector& Collector) const;
 

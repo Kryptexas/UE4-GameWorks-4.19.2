@@ -4,6 +4,37 @@
 
 #include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 
+struct FPaintPlaybackRangeArgs
+{
+	FPaintPlaybackRangeArgs()
+		: StartBrush(nullptr), EndBrush(nullptr), BrushWidth(0.f)
+	{}
+
+	FPaintPlaybackRangeArgs(const FSlateBrush* InStartBrush, const FSlateBrush* InEndBrush, float InBrushWidth)
+		: StartBrush(InStartBrush), EndBrush(InEndBrush), BrushWidth(InBrushWidth)
+	{}
+	/** Brush to use for the start bound */
+	const FSlateBrush* StartBrush;
+	/** Brush to use for the end bound */
+	const FSlateBrush* EndBrush;
+	/** The width of the above brushes, in slate units */
+	float BrushWidth;
+};
+
+struct FPaintSectionAreaViewArgs
+{
+	FPaintSectionAreaViewArgs()
+		: bDisplayTickLines(false), bDisplayScrubPosition(false)
+	{}
+
+	/** Whether to display tick lines */
+	bool bDisplayTickLines;
+	/** Whether to display the scrub position */
+	bool bDisplayScrubPosition;
+	/** Optional Paint args for the playback range*/
+	TOptional<FPaintPlaybackRangeArgs> PlaybackRangeArgs;
+};
+
 /**
  * A time slider controller for sequencer
  * Draws and manages time data for a Sequencer
@@ -19,6 +50,7 @@ public:
 	virtual FReply OnMouseButtonUp( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FCursorReply OnCursorQuery( TSharedRef<const SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	/** End ITimeSliderController Interface */
 
 	/** Get the current view range for this controller */
@@ -77,7 +109,7 @@ public:
 	/**
 	 * Draws major tick lines in the section view                                                              
 	 */
-	int32 OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, bool bDisplayTickLines, bool bDisplayScrubPosition ) const;
+	int32 OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, const FPaintSectionAreaViewArgs& Args ) const;
 
 private:
 	/**
@@ -97,8 +129,30 @@ private:
 	 */
 	void DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs ) const;
 
+	/**
+	 * Draws the playback range
+	 * @return the new layer ID
+	 */
+	int32 DrawPlaybackRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const;
+
+private:
+	/**
+	 * Hit test the lower bound of the playback range
+	 */
+	bool HitTestPlaybackStart(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
+
+	/**
+	 * Hit test the upper bound of the playback range
+	 */
+	bool HitTestPlaybackEnd(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
+
+	void SetPlaybackRangeStart(float NewStart);
+	void SetPlaybackRangeEnd(float NewEnd);
+
 private:
 	FTimeSliderArgs TimeSliderArgs;
+	/** The size of the scrub handle */
+	float ScrubHandleSize;
 	/** Brush for drawing an upwards facing scrub handle */
 	const FSlateBrush* ScrubHandleUp;
 	/** Brush for drawing a downwards facing scrub handle */
@@ -110,6 +164,8 @@ private:
 	{
 		DRAG_SCRUBBING_TIME,
 		DRAG_SETTING_RANGE,
+		DRAG_START_RANGE,
+		DRAG_END_RANGE,
 		DRAG_NONE
 	};
 	DragType MouseDragType;

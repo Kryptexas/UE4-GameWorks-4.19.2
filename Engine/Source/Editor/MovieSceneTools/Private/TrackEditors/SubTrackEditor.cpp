@@ -63,27 +63,117 @@ public:
 
 	virtual int32 OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const override 
 	{
-		const UMovieScene* MovieScene = SectionObject.GetSequence()->GetMovieScene();
-		int32 NumTracks = MovieScene->GetPossessableCount() + MovieScene->GetSpawnableCount() + MovieScene->GetMasterTracks().Num();
-		const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+		const float SectionSize = SectionObject.GetTimeSize();
 
-		// add a box for the section
+		if (SectionSize <= 0.0f)
+		{
+			return LayerId;
+		}
+
+		const float DrawScale = AllottedGeometry.Size.X / SectionSize;
+		const ESlateDrawEffect::Type DrawEffects = bParentEnabled
+			? ESlateDrawEffect::None
+			: ESlateDrawEffect::DisabledEffect;
+
+		UMovieScene* MovieScene = SectionObject.GetSequence()->GetMovieScene();
+		const FFloatRange& PlaybackRange = MovieScene->GetPlaybackRange();
+
+		// add box for the working size
+		const float StartOffset = SectionObject.TimeScale * SectionObject.StartOffset;
+		const float WorkingStart = -SectionObject.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
+		const float WorkingSize = SectionObject.TimeScale * MovieScene->GetEditorData().WorkingRange.Size<float>();
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
+			AllottedGeometry.ToPaintGeometry(
+				FVector2D(WorkingStart * DrawScale, 0.f),
+				FVector2D(WorkingSize * DrawScale, AllottedGeometry.Size.Y)
+			),
 			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
 			SectionClippingRect,
 			DrawEffects,
 			FColor(220, 120, 120)
 		);
 
+		// add dark tint for left out-of-bounds & working range
+		if (StartOffset < 0.0f)
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId + 1,
+				AllottedGeometry.ToPaintGeometry(
+					FVector2D(0.0f, 0.f),
+					FVector2D(-StartOffset * DrawScale, AllottedGeometry.Size.Y)
+				),
+				FEditorStyle::GetBrush("WhiteBrush"),
+				SectionClippingRect,
+				ESlateDrawEffect::None,
+				FLinearColor::Black.CopyWithNewOpacity(0.2f)
+			);
+		}
+
+		// add green line for playback start
+		if (StartOffset <= 0)
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId + 2,
+				AllottedGeometry.ToPaintGeometry(
+					FVector2D(-StartOffset * DrawScale, 0.f),
+					FVector2D(1.0f, AllottedGeometry.Size.Y)
+				),
+				FEditorStyle::GetBrush("WhiteBrush"),
+				SectionClippingRect,
+				ESlateDrawEffect::None,
+				FColor(32, 128, 32)	// 120, 75, 50 (HSV)
+			);
+		}
+
+		// add dark tint for left out-of-bounds & working range
+		const float PlaybackEnd = SectionObject.TimeScale * PlaybackRange.Size<float>() - StartOffset;
+
+		if (PlaybackEnd < SectionSize)
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId + 1,
+				AllottedGeometry.ToPaintGeometry(
+					FVector2D(PlaybackEnd * DrawScale, 0.f),
+					FVector2D((SectionSize - PlaybackEnd) * DrawScale, AllottedGeometry.Size.Y)
+				),
+				FEditorStyle::GetBrush("WhiteBrush"),
+				SectionClippingRect,
+				ESlateDrawEffect::None,
+				FLinearColor::Black.CopyWithNewOpacity(0.2f)
+			);
+		}
+
+		// add red line for playback end
+		if (PlaybackEnd <= SectionSize)
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId + 2,
+				AllottedGeometry.ToPaintGeometry(
+					FVector2D(PlaybackEnd * DrawScale, 0.f),
+					FVector2D(1.0f, AllottedGeometry.Size.Y)
+				),
+				FEditorStyle::GetBrush("WhiteBrush"),
+				SectionClippingRect,
+				ESlateDrawEffect::None,
+				FColor(128, 32, 32)	// 0, 75, 50 (HSV)
+			);
+		}
+
 		// add number of tracks within the section's sequence
+		int32 NumTracks = MovieScene->GetPossessableCount() + MovieScene->GetSpawnableCount() + MovieScene->GetMasterTracks().Num();
+
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
-			LayerId + 1,
+			LayerId + 3,
 			AllottedGeometry.ToOffsetPaintGeometry(FVector2D(5.0f, 32.0f)),
-			FText::Format(LOCTEXT("NumTracksFormat", "Number of tracks: {0}"), FText::AsNumber(NumTracks)),
+			FText::Format(LOCTEXT("NumTracksFormat", "{0} track(s)"), FText::AsNumber(NumTracks)),
 			FEditorStyle::GetFontStyle("NormalFont"),
 			SectionClippingRect,
 			DrawEffects,
@@ -179,7 +269,7 @@ bool FSubTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObject
 
 	if (CanAddSubSequence(*Sequence))
 	{
-		AnimatablePropertyChanged(UMovieSceneSubTrack::StaticClass(), FOnKeyProperty::CreateRaw(this, &FSubTrackEditor::HandleSequenceAdded, Sequence));
+		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FSubTrackEditor::HandleSequenceAdded, Sequence));
 	}
 
 	return true;
@@ -249,10 +339,11 @@ void FSubTrackEditor::HandleAddSubTrackMenuEntryExecute()
 }
 
 
-void FSubTrackEditor::HandleSequenceAdded(float KeyTime, class UMovieSceneSequence* Sequence)
+bool FSubTrackEditor::HandleSequenceAdded(float KeyTime, class UMovieSceneSequence* Sequence)
 {
-	auto SubTrack = FindOrAddMasterTrack<UMovieSceneSubTrack>();
+	auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
 	SubTrack->AddSequence(*Sequence, KeyTime);
+	return true;
 }
 
 

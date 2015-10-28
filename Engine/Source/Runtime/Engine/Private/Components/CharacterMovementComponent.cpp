@@ -6207,7 +6207,7 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 			else
 			{
 				ClientData->MeshTranslationOffset = FMath::Lerp(ClientData->OriginalMeshTranslationOffset, FVector::ZeroVector, LerpPercent);
-				ClientData->MeshRotationOffset = FQuat::Slerp(ClientData->OriginalMeshRotationOffset, ClientData->MeshRotationTarget, LerpPercent);
+				ClientData->MeshRotationOffset = FQuat::FastLerp(ClientData->OriginalMeshRotationOffset, ClientData->MeshRotationTarget, LerpPercent).GetNormalized();
 			}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -6240,7 +6240,7 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 			if (DeltaSeconds < ClientData->SmoothNetUpdateRotationTime)
 			{
 				// Slowly decay rotation offset
-				ClientData->MeshRotationOffset = FQuat::Slerp(ClientData->MeshRotationOffset, ClientData->MeshRotationTarget, DeltaSeconds / ClientData->SmoothNetUpdateRotationTime);
+				ClientData->MeshRotationOffset = FQuat::FastLerp(ClientData->MeshRotationOffset, ClientData->MeshRotationTarget, DeltaSeconds / ClientData->SmoothNetUpdateRotationTime).GetNormalized();
 			}
 			else
 			{

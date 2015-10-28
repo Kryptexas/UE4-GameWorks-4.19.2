@@ -197,7 +197,7 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(SectionTimes, SnapThresold, *Settings);
+			SnappedTime = SnapToInterval(SectionTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
 		}
 
 		if (SnappedTime.IsSet())
@@ -336,7 +336,7 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(SectionTimes, SnapThresold, *Settings);
+			SnappedTime = SnapToInterval(SectionTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
 		}
 
 		if (SnappedTime.IsSet())
@@ -505,7 +505,7 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapKeyTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(KeyTimes, SnapThresold, *Settings);
+			SnappedTime = SnapToInterval(KeyTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
 		}
 
 		if (SnappedTime.IsSet())

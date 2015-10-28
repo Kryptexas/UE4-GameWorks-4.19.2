@@ -55,7 +55,7 @@ private:
 	void AddPathSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	void AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset);
+	bool AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset);
 };
 
 

@@ -60,7 +60,7 @@ order:2
 [/OBJECT]
 [/VAR]
 
-[DIR(end:"1" type:"topic")]
+[DIR(end:"1" output:"topic" parent:"Engine/Editor")]
 
 <!--
 [REGION:topics third]

@@ -91,8 +91,8 @@ FLockFreePointerQueueBaseLinkAllocator& FLockFreePointerQueueBaseLinkAllocator::
 	return Singleton;
 }
 
-static FThreadSafeCounter Sleeps;
-static FThreadSafeCounter BigSleeps;
+//static FThreadSafeCounter Sleeps;
+//static FThreadSafeCounter BigSleeps;
 
 void LockFreeCriticalSpin(int32& SpinCount)
 {
@@ -100,15 +100,15 @@ void LockFreeCriticalSpin(int32& SpinCount)
 	if (SpinCount > 256)
 	{
 		FPlatformProcess::Sleep(0.00001f);
-		BigSleeps.Increment();
+		//BigSleeps.Increment();
 	}
 	else if (SpinCount > 32)
 	{
 		FPlatformProcess::Sleep(0.0f);
-		if (Sleeps.Increment() % 10000 == 9999)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("sleep0 %d sleep 10us %d"), Sleeps.GetValue() + 1, BigSleeps.GetValue());
-		}
+		//if (Sleeps.Increment() % 10000 == 9999)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("sleep0 %d sleep 10us %d"), Sleeps.GetValue() + 1, BigSleeps.GetValue());
+		//}
 	}
 	else if (SpinCount > 8)
 	{

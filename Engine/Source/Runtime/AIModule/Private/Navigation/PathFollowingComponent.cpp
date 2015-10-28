@@ -705,7 +705,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	}
 
 #endif
-	TSharedPtr<FNavigationQueryFilter> QueryFilter = Path->GetFilter()->GetCopy();
+	FSharedNavQueryFilter QueryFilter = Path->GetFilter()->GetCopy();
 #if WITH_RECAST
 	const uint8 StartArea = FNavMeshNodeFlags(Path->GetPathPoints()[StartIndex].Flags).Area;
 	TArray<float> CostArray;

@@ -276,8 +276,7 @@
 			// 
 			// ActorPerfPropsDetailsListView
 			// 
-			this.ActorPerfPropsDetailsListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+			this.ActorPerfPropsDetailsListView.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.ActorPerfPropsDetailsListView.Font = new System.Drawing.Font("Tahoma", 8.25F);
 			this.ActorPerfPropsDetailsListView.FullRowSelect = true;

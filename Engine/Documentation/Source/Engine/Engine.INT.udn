@@ -75,7 +75,7 @@ engine
 
 ## Browse Topics
 
-[DIR(end:"1" output:"topiccompact")]
+[DIR(end:"1" output:"topiccompact" parent:"Engine" org:"hierarchy")]
 
 <!--
 ## Table of Contents

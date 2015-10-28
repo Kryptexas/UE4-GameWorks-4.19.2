@@ -195,6 +195,5 @@ public:
 	virtual void DropFrames(int32 NumFramesToDrop) = 0;
 
 protected:
-
 	void PrepareForScreenshot();
 };

@@ -122,6 +122,15 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 				}
 			}
 
+			// when this flag is true, we'll reinitialize the children
+			if (bResetChildOnActivation)
+			{
+				FAnimationInitializeContext ReinitializeContext(Context.AnimInstance);
+
+				// reinitialize
+				BlendPose[ChildIndex].Initialize(ReinitializeContext);
+			}
+
 			LastActiveChildIndex = ChildIndex;
 		}
 

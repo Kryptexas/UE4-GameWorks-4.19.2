@@ -32,10 +32,10 @@ public:
 	void SetEndOffset(float InEndOffset) { EndOffset = InEndOffset; }
 	
 	/** Gets the animation duration, modified by play rate */
-	float GetDuration() const { return FMath::IsNearlyZero(PlayRate) ? 0.f : AnimSequence->SequenceLength / PlayRate; }
+	float GetDuration() const { return FMath::IsNearlyZero(PlayRate) || AnimSequence == nullptr ? 0.f : AnimSequence->SequenceLength / PlayRate; }
 
 	/** Gets the animation sequence length, not modified by play rate */
-	float GetSequenceLength() const { return AnimSequence->SequenceLength; }
+	float GetSequenceLength() const { return AnimSequence != nullptr ? AnimSequence->SequenceLength : 0.f; }
 
 	/** Sets the play rate of the animation clip */
 	float GetPlayRate() const { return PlayRate; }
@@ -57,6 +57,14 @@ public:
 	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
 
 private:
+
+	// UObject interface
+#if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	float PreviousPlayRate;
+#endif
+
 	/** The animation sequence this section has */
 	UPROPERTY(EditAnywhere, Category="Animation")
 	class UAnimSequence* AnimSequence;

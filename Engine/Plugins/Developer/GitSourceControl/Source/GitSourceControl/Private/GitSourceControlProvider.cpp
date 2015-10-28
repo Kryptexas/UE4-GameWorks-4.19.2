@@ -129,7 +129,7 @@ ECommandResult::Type FGitSourceControlProvider::GetState( const TArray<FString>&
 	return ECommandResult::Succeeded;
 }
 
-TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
+TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const
 {
 	TArray<FSourceControlStateRef> Result;
 	for(const auto& CacheItem : StateCache)

@@ -57,7 +57,8 @@ tags:Blueprints
 
 
 ## 初心者向け
-[DIR(output:"fancy" type:"howto" skill:"Beginner")]
+
+[DIR(output:"fancy" type:"howto" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
 ## 中級者向け
 [REGION:wrapper transparent]

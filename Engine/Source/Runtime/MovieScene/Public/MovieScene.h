@@ -39,6 +39,14 @@ struct FMovieSceneEditorData
 	/** Map of node path -> expansion state. */
 	UPROPERTY()
 	TMap<FString, FMovieSceneExpansionState> ExpansionStates;
+
+	/** User-defined working range in which the entire sequence should reside. */
+	UPROPERTY()
+	FFloatRange WorkingRange;
+
+	/** The last view-range that the user was observing */
+	UPROPERTY()
+	FFloatRange ViewRange;
 };
 
 
@@ -315,9 +323,17 @@ public:
 	void ReplaceBinding(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
 
 	/**
-	 * @return The time range of the movie scene (the in to out time range)
+	 * @return The playback time range of this movie scene, relative to its 0-time offset.
 	 */
-	TRange<float> GetTimeRange() const;
+	TRange<float> GetPlaybackRange() const;
+
+	/**
+	 * Set the start and end playback positions (playback range) for this movie scene
+	 *
+	 * @param Start The offset from 0-time to start playback of this movie scene
+	 * @param End The offset from 0-time to end playback of this movie scene
+	 */
+	void SetPlaybackRange(float Start, float End);
 
 	/**
 	 * Returns all sections and their associated binding data.
@@ -326,6 +342,8 @@ public:
 	 */
 	TArray<UMovieSceneSection*> GetAllSections() const;
 
+public:
+	
 #if WITH_EDITORONLY_DATA
 	/**
 	 * @return The editor only data for use with this movie scene
@@ -344,6 +362,18 @@ protected:
 	 * @param Guid The guid bound to animation data to remove
 	 */
 	void RemoveBinding(const FGuid& Guid);
+
+protected:
+
+	/**
+	 * Called after this object has been deserialized
+	 */
+	virtual void PostLoad() override;
+
+	/**
+	 * Perform legacy upgrade of time ranges
+	 */
+	void UpgradeTimeRanges();
 
 private:
 
@@ -377,20 +407,18 @@ private:
 	FMovieSceneEditorData EditorData;
 #endif
 
-public:
-	/** In time of the movie scene in seconds*/
-	UPROPERTY()
-	float InTime;
+private:
 
-	/** Out time of the movie scene in seconds */
+	/** User-defined playback range for this movie scene. Must be a finite range. Relative to this movie-scene's 0-time origin. */
 	UPROPERTY()
-	float OutTime;
-
-	/** Start time of the movie scene in seconds*/
+	FFloatRange PlaybackRange;
+	
 	UPROPERTY()
-	float StartTime;
-
-	/** End time of the movie scene in seconds */
+	float InTime_DEPRECATED;
 	UPROPERTY()
-	float EndTime;
+	float OutTime_DEPRECATED;
+	UPROPERTY()
+	float StartTime_DEPRECATED;
+	UPROPERTY()
+	float EndTime_DEPRECATED;
 };

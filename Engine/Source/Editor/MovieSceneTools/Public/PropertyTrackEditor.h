@@ -2,18 +2,23 @@
 
 #pragma once
 
-#include "MovieSceneTrackEditor.h"
+#include "KeyframeTrackEditor.h"
+#include "PropertySection.h"
 #include "ISequencerObjectChangeListener.h"
 
 class IPropertyHandle;
 class FPropertyChangedParams;
 
 /**
- * Tools for animatable property types such as floats ands vectors
- */
- template<typename TrackType, typename KeyType>
-class FPropertyTrackEditor : public FMovieSceneTrackEditor
+* Tools for animatable property types such as floats ands vectors
+*/
+template<typename TrackType, typename SectionType, typename KeyDataType>
+class FPropertyTrackEditor
+	: public FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>
 {
+public:
+	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnSetIntermediateValueFromPropertyChange, UMovieSceneTrack*, FPropertyChangedParams )
+
 public:
 	/**
 	* Constructor
@@ -21,7 +26,7 @@ public:
 	* @param InSequencer The sequencer instance to be used by this tool
 	*/
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
-		: FMovieSceneTrackEditor( InSequencer )
+		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{ }
 
 	/**
@@ -31,7 +36,7 @@ public:
 	* @param WatchedPropertyTypeName The property type name that this property track editor should watch for changes.
 	*/
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, FName WatchedPropertyTypeName )
-		: FMovieSceneTrackEditor( InSequencer )
+		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
 		AddWatchedPropertyType( WatchedPropertyTypeName );
 	}
@@ -44,7 +49,7 @@ public:
 	* @param WatchedPropertyTypeName2 The second property type name that this property track editor should watch for changes.
 	*/
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, FName WatchedPropertyTypeName1, FName WatchedPropertyTypeName2 )
-		: FMovieSceneTrackEditor( InSequencer )
+		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
 		AddWatchedPropertyType( WatchedPropertyTypeName1 );
 		AddWatchedPropertyType( WatchedPropertyTypeName2 );
@@ -59,7 +64,7 @@ public:
 	* @param WatchedPropertyTypeName3 The third property type name that this property track editor should watch for changes.
 	*/
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, FName WatchedPropertyTypeName1, FName WatchedPropertyTypeName2, FName WatchedPropertyTypeName3 )
-		: FMovieSceneTrackEditor( InSequencer )
+		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
 		AddWatchedPropertyType( WatchedPropertyTypeName1 );
 		AddWatchedPropertyType( WatchedPropertyTypeName2 );
@@ -73,7 +78,7 @@ public:
 	* @param WatchedPropertyTypeNameS An array of property type names that this property track editor should watch for changes.
 	*/
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, TArray<FName> InWatchedPropertyTypeNames )
-		: FMovieSceneTrackEditor( InSequencer )
+		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
 		for ( FName WatchedPropertyTypeName : InWatchedPropertyTypeNames )
 		{
@@ -115,32 +120,52 @@ public:
 		}
 	}
 
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override
+	{
+		TSharedRef<FPropertySection> PropertySection = MakePropertySectionInterface( SectionObject, Track );
+		OnSetIntermediateValueFromPropertyChange.AddSP( PropertySection, &FPropertySection::SetIntermediateValueForTrack );
+		GetSequencer()->OnGlobalTimeChanged().AddSP( PropertySection, &FPropertySection::ClearIntermediateValue );
+		return PropertySection;
+	}
+
 protected:
+
+	/** Creates a property section for a section object. */
+	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) = 0;
+
 	/**
-	 * Tries to generate a key for the track based on a property change event.  This will be called when a property changes
-	 * which matches a property type name which was supplied on construction.
-	 *
-	 * @param InTrack The track where this key could be added
-	 * @param PropertyChangedParams Parameters associated with the property change.
-	 * @param OutKey If this call is successful this represents the key which was generated.
-	 *
-	 * @return true if generating a key was successful, otherwise false.
+	* Generates a new key who's value is the result of the supplied property change.
+	*
+	* @param PropertyChangedParams Parameters associated with the property change.
+	* @return The new key.
+	*/
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<KeyDataType>& GeneratedKeys ) = 0;
+
+	/** When true, this track editor will only be used on properties which have specified it as a custom track class. This is necessary to prevent duplicate
+		property change handling in cases where a custom track editor handles the same type of data as one of the standard track editors. */
+	virtual bool ForCustomizedUseOnly() { return false; }
+
+	/** 
+	 * Initialized values on a track after it's been created, but before any sections or keys have been added.
+	 * @param NewTrack The newly created track.
+	 * @param PropertyChangedParams The property change parameters which caused this track to be created.
 	 */
-	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, KeyType& OutKey ) = 0;
-	
+	virtual void InitializeNewTrack( TrackType* NewTrack, FPropertyChangedParams PropertyChangedParams )
+	{
+		NewTrack->SetPropertyNameAndPath( PropertyChangedParams.PropertyPath.Last()->GetFName(), PropertyChangedParams.GetPropertyPathString() );
+	}
+
 private:
 	/** Adds a callback for property changes for the supplied property type name. */
 	void AddWatchedPropertyType( FName WatchedPropertyTypeName )
 	{
-		GetSequencer()->GetObjectChangeListener().GetOnAnimatablePropertyChanged( WatchedPropertyTypeName ).AddRaw( this, &FPropertyTrackEditor<TrackType, KeyType>::OnAnimatedPropertyChanged );
+		GetSequencer()->GetObjectChangeListener().GetOnAnimatablePropertyChanged( WatchedPropertyTypeName ).AddRaw( this, &FPropertyTrackEditor<TrackType, SectionType, KeyDataType>::OnAnimatedPropertyChanged );
 		WatchedPropertyTypeNames.Add( WatchedPropertyTypeName );
 	}
 
-	/** Get the property name and track class from the property */
-	void GetPropertyAndTrackClass(const UProperty* Property, FName& PropertyName, TSubclassOf<UMovieSceneTrack>& SequencerTrackClass)
+	/** Get a customized track class from the property if there is one, otherwise return nullptr. */
+	TSubclassOf<UMovieSceneTrack> GetCustomizedTrackClass( const UProperty* Property )
 	{
-		PropertyName = Property->GetFName();
-
 		// Look for a customized track class for this property on the meta data
 		const FString& MetaSequencerTrackClass = Property->GetMetaData( TEXT( "SequencerTrackClass" ) );
 		if ( !MetaSequencerTrackClass.IsEmpty() )
@@ -150,11 +175,9 @@ private:
 			{
 				MetaClass = LoadObject<UClass>( nullptr, *MetaSequencerTrackClass );
 			}
-			if ( MetaClass != NULL )
-			{
-				SequencerTrackClass = MetaClass;
-			}
+			return MetaClass;
 		}
+		return nullptr;
 	}
 
 	/**
@@ -165,71 +188,48 @@ private:
 	*/
 	virtual void OnAnimatedPropertyChanged( const FPropertyChangedParams& PropertyChangedParams )
 	{
-		bool bCreateHandleIfMissing = PropertyChangedParams.KeyParams.bCreateHandleIfMissing;
-
-		for ( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
-		{
-			FGuid ObjectHandle = FindOrCreateHandleToObject( Object, bCreateHandleIfMissing );
-
-			if ( ObjectHandle.IsValid() )
-			{
-				FName PropertyName;
-				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
-				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
-
-				const bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
-
-				UMovieSceneTrack* Track = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(SequencerTrackClass, ObjectHandle, PropertyName);
-
-				KeyType Key;
-				const bool bCanCreateKey = TryGenerateKeyFromPropertyChanged( Track, PropertyChangedParams, Key );
-
-				if (bCreateTrackIfMissing || bCanCreateKey )
-				{
-					AnimatablePropertyChanged( TrackType::StaticClass(),
-						FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams, Key ) );
-				}
-			}
-		}
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams ) );
 	}
 
 	/** Adds a key based on a property change. */
-	void OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams, KeyType Key )
+	bool OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams )
 	{
-		bool bCreateHandleIfMissing = PropertyChangedParams.KeyParams.bCreateHandleIfMissing;
+		TArray<KeyDataType> KeysForPropertyChange;
+		GenerateKeysFromPropertyChanged( PropertyChangedParams, KeysForPropertyChange );
 
-		for ( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
+		TSubclassOf<UMovieSceneTrack> CustomizedClass = GetCustomizedTrackClass( PropertyChangedParams.PropertyPath.Last() );
+		TSubclassOf<UMovieSceneTrack> TrackClass = CustomizedClass != nullptr ? CustomizedClass : TrackType::StaticClass();
+
+		// If the track class has been customized for this property then it's possible this track editor doesn't support it, 
+		// also check for track editors which should only be used for customization.
+		if ( SupportsType( TrackClass ) && ( ForCustomizedUseOnly() == false || CustomizedClass != nullptr) )
 		{
-			FGuid ObjectHandle = FindOrCreateHandleToObject( Object, bCreateHandleIfMissing );
-			if ( ObjectHandle.IsValid() )
-			{
-				FName PropertyName;
-				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
-				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
+			FOnInitializeNewTrack OnInitializeNewTrack;
+			OnInitializeNewTrack.BindLambda( [&](TrackType* NewTrack) { InitializeNewTrack( NewTrack, PropertyChangedParams ); } );
 
-				const bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
+			FOnSetIntermediateValue OnSetIntermediateValue;
+			OnSetIntermediateValue.BindSP( this, &FPropertyTrackEditor::SetIntermediateValueFromPropertyChange, PropertyChangedParams );
 
-				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, SequencerTrackClass, PropertyName, bCreateTrackIfMissing );
-				if ( Track )
-				{
-					TrackType* TypedTrack = CastChecked<TrackType>( Track );
-
-					TypedTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams.GetPropertyPathString() );
-					// Find or add a new section at the auto-key time and changing the property same property
-					// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
-					bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, Key, PropertyChangedParams.KeyParams );
-					if ( bSuccessfulAdd )
-					{
-						TypedTrack->SetAsShowable();
-					}
-				}
-			}
+			return AddKeysToObjects( PropertyChangedParams.ObjectsThatChanged, KeyTime, KeysForPropertyChange, PropertyChangedParams.KeyParams,
+				TrackClass, PropertyChangedParams.PropertyPath.Last()->GetFName(), OnInitializeNewTrack, OnSetIntermediateValue );
+		}
+		else
+		{
+			return false;
 		}
 	}
 
 private:
+
+	void SetIntermediateValueFromPropertyChange(  UMovieSceneTrack* Track, FPropertyChangedParams PropertyChangedParams )
+	{
+		OnSetIntermediateValueFromPropertyChange.Broadcast( Track, PropertyChangedParams );
+	}
+
+private:
+
 	/** An array of property type names which are being watched for changes. */
 	TArray<FName> WatchedPropertyTypeNames;
+
+	FOnSetIntermediateValueFromPropertyChange OnSetIntermediateValueFromPropertyChange;
 };
-
-

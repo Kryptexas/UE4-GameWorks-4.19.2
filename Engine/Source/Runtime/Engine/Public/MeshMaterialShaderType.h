@@ -98,7 +98,8 @@ public:
 	}
 
 	// Dynamic casting.
-	virtual FMeshMaterialShaderType* GetMeshMaterialShaderType() { return this; }
+	virtual FMeshMaterialShaderType* GetMeshMaterialShaderType() override { return this; }
+	virtual const FMeshMaterialShaderType* GetMeshMaterialShaderType() const override { return this; }
 
 protected:
 

@@ -26,7 +26,7 @@
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
-static TAutoConsoleVariable<float> CVarDemoRecordHz( TEXT( "demo.RecordHz" ), 10, TEXT( "Number of demo frames recorded per second" ) );
+static TAutoConsoleVariable<float> CVarDemoRecordHz( TEXT( "demo.RecordHz" ), 8, TEXT( "Number of demo frames recorded per second" ) );
 static TAutoConsoleVariable<float> CVarDemoTimeDilation( TEXT( "demo.TimeDilation" ), -1.0f, TEXT( "Override time dilation during demo playback (-1 = don't override)" ) );
 static TAutoConsoleVariable<float> CVarDemoSkipTime( TEXT( "demo.SkipTime" ), 0, TEXT( "Skip fixed amount of network replay time (in seconds)" ) );
 static TAutoConsoleVariable<int32> CVarEnableCheckpoints( TEXT( "demo.EnableCheckpoints" ), 1, TEXT( "Whether or not checkpoints save on the server" ) );
@@ -434,11 +434,12 @@ struct FNetworkDemoMetadataHeader
 
 void UDemoNetDriver::ResetDemoState()
 {
-	DemoFrameNum	= 0;
-	LastRecordTime	= 0;
-	DemoTotalTime	= 0;
-	DemoCurrentTime	= 0;
-	DemoTotalFrames	= 0;
+	DemoFrameNum		= 0;
+	LastRecordTime		= FPlatformTime::Seconds();
+	LastCheckpointTime	= FPlatformTime::Seconds();
+	DemoTotalTime		= 0;
+	DemoCurrentTime		= 0;
+	DemoTotalFrames		= 0;
 }
 
 bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error )
@@ -1291,7 +1292,12 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		return;		// Not enough real-time has passed to record another frame
 	}
 
-	LastRecordTime = CurrentSeconds;
+	// Advance by the delay amount to take into account we could be fractionally into the next frame
+	// But don't be more than a fraction of a frame behind either (we don't want to do catch-up frames when there is a long delay)
+	if ( CurrentSeconds - LastRecordTime >= RECORD_DELAY )
+	{
+		LastRecordTime += RECORD_DELAY;
+	}
 
 	// Save out a frame
 	DemoFrameNum++;

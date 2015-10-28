@@ -10,42 +10,59 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 
-/** Stores all of the input and output information used to compile a single shader. */
-class FShaderCompileJob : public FRefCountedObject
+class FShaderPipelineCompileJob;
+
+/** Stores all of the common information used to compile a shader or pipeline. */
+class FShaderCommonCompileJob : public FRefCountedObject
 {
 public:
 	/** Id of the shader map this shader belongs to. */
 	uint32 Id;
-	/** Vertex factory type that this shader belongs to, may be NULL */
-	FVertexFactoryType* VFType;
-	/** Shader type that this shader belongs to, must be valid */
-	FShaderType* ShaderType;
-	/** Input for the shader compile */
-	FShaderCompilerInput Input;
 	/** true if the results of the shader compile have been processed. */
 	bool bFinalized;
 	/** Output of the shader compile */
 	bool bSucceeded;
 	bool bOptimizeForLowLatency;
-	FShaderCompilerOutput Output;
 
-	FShaderCompileJob(
-		const uint32& InId,
-		FVertexFactoryType* InVFType,
-		FShaderType* InShaderType) 
-		:
+	FShaderCommonCompileJob(uint32 InId) :
 		Id(InId),
-		VFType(InVFType),
-		ShaderType(InShaderType),
 		bFinalized(false),
 		bSucceeded(false),
 		bOptimizeForLowLatency(false)
 	{
 	}
 
+	virtual FShaderCompileJob* GetSingleShaderJob() { return nullptr; }
+	virtual const FShaderCompileJob* GetSingleShaderJob() const { return nullptr; }
+};
+
+
+/** Stores all of the input and output information used to compile a single shader. */
+class FShaderCompileJob : public FShaderCommonCompileJob
+{
+public:
+	/** Vertex factory type that this shader belongs to, may be NULL */
+	FVertexFactoryType* VFType;
+	/** Shader type that this shader belongs to, must be valid */
+	FShaderType* ShaderType;
+	/** Input for the shader compile */
+	FShaderCompilerInput Input;
+	FShaderCompilerOutput Output;
+
+	FShaderCompileJob(uint32 InId, FVertexFactoryType* InVFType, FShaderType* InShaderType) :
+		FShaderCommonCompileJob(InId),
+		VFType(InVFType),
+		ShaderType(InShaderType)
+	{
+	}
+
 	~FShaderCompileJob()
 	{
 	}
+
+	virtual FShaderCompileJob* GetSingleShaderJob() override { return this; }
+	virtual const FShaderCompileJob* GetSingleShaderJob() const override { return this; }
+
 };
 
 class FShaderCompileThreadRunnableBase : public FRunnable

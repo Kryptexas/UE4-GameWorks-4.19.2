@@ -2,7 +2,7 @@
 Availability:Public
 Title:物理コンストレイント
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:複数の物理オブジェクトに対して、およびワールドに対して制約(constraint) する方法
+Description:複数の物理オブジェクトに対して、およびワールドに対して制約（constraint）する方法
 バージョン：4.9
 
 [OBJECT:TopicList]

@@ -93,6 +93,7 @@ public:
 	virtual FSequencerSelection& GetSelection() override;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) override;
+	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 
 	/** Set the global time directly, without performing any auto-scroll */
 	void SetGlobalTimeDirectly(float Time);
@@ -102,6 +103,11 @@ public:
 
 	/** @return The current clamp range */
 	FAnimatedRange GetClampRange() const;
+
+	TRange<float> GetPlaybackRange() const;
+	void SetPlaybackRange(TRange<float> InNewPlaybackRange);
+	void SetStartPlaybackRange();
+	void SetEndPlaybackRange();
 
 public:
 
@@ -313,6 +319,13 @@ protected:
 	virtual float OnGetScrubPosition() const { return ScrubPosition; }
 
 	/**
+	 * Set the view range
+	 * @param NewViewRange The new view range. Must be a finite range
+	 * @param Interpolation How to interpolate to the new view range
+	 */
+	void SetViewRange(const TRange<float>& NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated);
+
+	/**
 	 * Called when the view range is changed by the user
 	 *
 	 * @param	NewViewRange The new view range
@@ -392,7 +405,6 @@ protected:
 	
 	/** Called when a user executes the delete command to delete sections or keys */
 	void DeleteSelectedItems();
-	bool CanDeleteSelectedItems() const;
 	
 	/** Transport controls */
 	void TogglePlay();
@@ -466,6 +478,9 @@ protected:
 
 	/** Updates a viewport client from camera cut data */
 	void UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const;
+
+	/** Is the sequencer widget focused? */
+	bool IsSequencerWidgetFocused() const;
 
 private:
 
@@ -554,4 +569,7 @@ private:
 
 	FSequencerSelection Selection;
 	FSequencerSelectionPreview SelectionPreview;
+
+	/** A delegate which is called any time the global time changes. */
+	FOnGlobalTimeChanged OnGlobalTimeChangedDelegate;
 };

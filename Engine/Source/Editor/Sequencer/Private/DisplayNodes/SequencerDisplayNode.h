@@ -175,7 +175,7 @@ public:
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+	bool Traverse_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Iterate this entire node tree, parent first.
@@ -183,7 +183,7 @@ public:
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+	bool Traverse_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Iterate any visible portions of this node's sub-tree, child first.
@@ -191,7 +191,7 @@ public:
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+	bool TraverseVisible_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Iterate any visible portions of this node's sub-tree, parent first.
@@ -199,7 +199,7 @@ public:
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
+	bool TraverseVisible_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Sorts the child nodes with the supplied predicate

@@ -281,8 +281,7 @@ void F3DPathTrackEditor::AddPath(FGuid ObjectGuid, UObject* AdditionalAsset)
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-	AnimatablePropertyChanged( UMovieScene3DPathTrack::StaticClass(),
-		FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, AdditionalAsset) );
+	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, AdditionalAsset) );
 }
 
 
@@ -291,7 +290,7 @@ void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithS
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "UndoSetPath", "Set Path"));
 
 	UMovieScene3DPathSection* PathSection = (UMovieScene3DPathSection*)(Section);
-	FGuid SplineId = FindOrCreateHandleToObject(ActorWithSplineComponent);
+	FGuid SplineId = FindOrCreateHandleToObject(ActorWithSplineComponent).Handle;
 
 	if (SplineId.IsValid())
 	{
@@ -300,8 +299,12 @@ void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithS
 }
 
 
-void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset)
+bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset)
 {
+	bool bHandleCreated = false;
+	bool bTrackCreated = false;
+	bool bTrackModified = false;
+
 	AActor* ActorWithSplineComponent = nullptr;
 	
 	if (AdditionalAsset != nullptr)
@@ -313,24 +316,30 @@ void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 
 	if (ActorWithSplineComponent != nullptr)
 	{
-		SplineId = FindOrCreateHandleToObject(ActorWithSplineComponent);
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( ActorWithSplineComponent );
+		SplineId = HandleResult.Handle;
+		bHandleCreated |= HandleResult.bWasCreated;
 	}
 
 	if (!SplineId.IsValid())
 	{
-		return;
+		return false;
 	}
 
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
+		FGuid ObjectHandle = HandleResult.Handle;
+		bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
 			MovieSceneHelpers::SetRuntimeObjectMobility(Object);
 
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DPathTrack::StaticClass(), FName("Path"));
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieScene3DPathTrack::StaticClass(), FName( "Path" ) );
+			UMovieSceneTrack* Track = TrackResult.Track;
+			bTrackCreated |= TrackResult.bWasCreated;
 
 			if (ensure(Track))
 			{
@@ -351,7 +360,10 @@ void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 				}
 
 				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, SplineId );
+				bTrackModified = true;
 			}
 		}
 	}
+
+	return bHandleCreated || bTrackCreated || bTrackModified;
 }

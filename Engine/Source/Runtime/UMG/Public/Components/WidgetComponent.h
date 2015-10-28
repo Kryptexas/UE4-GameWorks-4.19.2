@@ -143,6 +143,8 @@ public:
 	/** @return The pivot point where the UI is rendered about the origin. */
 	FVector2D GetPivot() const { return Pivot; }
 
+	void SetPivot( const FVector2D& InPivot ) { Pivot = InPivot; }
+
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;
 	
@@ -154,6 +156,10 @@ public:
 	
 	/** Sets the widget class used to generate the widget for this component */
 	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
+
+	EWidgetSpace GetWidgetSpace() const { return Space; }
+
+	void SetWidgetSpace( EWidgetSpace NewSpace ) { Space = NewSpace; }
 
 protected:
 	void RemoveWidgetFromScreen();

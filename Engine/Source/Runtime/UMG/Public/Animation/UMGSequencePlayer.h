@@ -63,6 +63,9 @@ private:
 	/** The current time cursor position within the sequence (in seconds) */
 	double TimeCursorPosition;
 
+	/** The offset from 0 to the start of the animation (in seconds) */
+	double AnimationStartOffset;
+
 	/** Status of the player (e.g play, stopped) */
 	EMovieScenePlayerStatus::Type PlayerStatus;
 

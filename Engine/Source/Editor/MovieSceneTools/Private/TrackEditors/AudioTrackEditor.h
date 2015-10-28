@@ -40,10 +40,10 @@ public:
 private:
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for master sounds */
-	void AddNewMasterSound( float KeyTime, class USoundBase* Sound );
+	bool AddNewMasterSound( float KeyTime, class USoundBase* Sound );
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for attached sounds */
-	void AddNewAttachedSound( float KeyTime, class USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo );
+	bool AddNewAttachedSound( float KeyTime, class USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo );
 };
 
 

@@ -71,7 +71,7 @@ After going through this tutorial, developers will know the following:
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	[DIR(output:"checkpoint")]
+	[DIR(output:"checkpoint" parent:"Engine/QuickStart" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 

@@ -159,13 +159,15 @@
  */
 
 
+#define USE_VARIADIC_DELEGATES PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+
 // This suffix is appended to all header exported delegates
 #define HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX TEXT("__DelegateSignature")
 
 /** Helper macro that enables passing comma-separated arguments as a single macro parameter */
 #define FUNC_CONCAT( ... ) __VA_ARGS__
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+#if USE_VARIADIC_DELEGATES
 	#define FUNC_DECLARE_DELEGATE_BASE(Prefix, Suffix, ...) Prefix<__VA_ARGS__>
 	#define FUNC_DECLARE_DYNAMIC_DELEGATE_BASE(TWeakPtr, Prefix, Suffix, ...) FUNC_DECLARE_DELEGATE_BASE(Prefix, Suffix, TWeakPtr, __VA_ARGS__)
 #else
@@ -425,7 +427,7 @@ namespace UE4Delegates_Private
 #define FUNC_INCLUDING_INLINE_IMPL
 
 #ifndef UE_BUILD_DOCS
-	#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+	#if USE_VARIADIC_DELEGATES
 		#include "DelegateInstanceInterface_Variadics.h"
 		#include "DelegateInstancesImpl_Variadics.inl"
 		#include "DelegateSignatureImpl_Variadics.inl"

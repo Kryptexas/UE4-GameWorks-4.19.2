@@ -17,5 +17,6 @@
 #include "MovieSceneTrack.h"
 #include "IMovieSceneTrackInstance.h"
 #include "IMovieSceneTracksModule.h"
+#include "IKeyframeSection.h"
 
 

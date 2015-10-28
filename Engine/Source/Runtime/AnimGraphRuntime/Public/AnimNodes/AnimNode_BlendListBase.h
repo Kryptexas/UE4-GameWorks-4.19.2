@@ -46,9 +46,14 @@ protected:
 	//Store which poses we need to evaluate
 	TArray<int32> PosesToEvaluate;
 
+	/** This reinitializes child pose when re-activated. For example, when active child changes */
+	UPROPERTY(EditAnywhere, Category = Option)
+	bool bResetChildOnActivation;
+
 public:	
 	FAnimNode_BlendListBase()
 		: LastActiveChildIndex(0)
+		, bResetChildOnActivation(false)
 	{
 		BlendWeights.Empty();
 		RemainingBlendTimes.Empty();

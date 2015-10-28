@@ -20,10 +20,10 @@ void FMovieSceneParticleTrackInstance::Update( float Position, float LastPositio
 
 	if (Position > LastPosition && Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
-		
 		const TArray<UMovieSceneSection*> Sections = ParticleTrack->GetAllParticleSections();
-		EParticleKey::Type ParticleKey = EParticleKey::Active;
+		EParticleKey::Type ParticleKey = EParticleKey::Deactivate;
 		bool bKeyFound = false;
+
 		for (int32 i = 0; i < Sections.Num(); ++i)
 		{
 			UMovieSceneParticleSection* Section = Cast<UMovieSceneParticleSection>( Sections[i] );
@@ -50,17 +50,25 @@ void FMovieSceneParticleTrackInstance::Update( float Position, float LastPositio
 				AEmitter* Emitter = Cast<AEmitter>(RuntimeObjects[i]);
 				if (Emitter)
 				{
-					if ( ParticleKey == EParticleKey::Active )
+					UParticleSystemComponent* ParticleSystemComponent = Emitter->GetParticleSystemComponent();
+					if ( ParticleSystemComponent != nullptr )
 					{
-						if ( Emitter->IsActive() )
+						if ( ParticleKey == EParticleKey::Activate)
 						{
-							Emitter->Deactivate();
+							if ( ParticleSystemComponent->IsActive() )
+							{
+								ParticleSystemComponent->SetActive(false, true);
+							}
+							ParticleSystemComponent->SetActive(true, true);
 						}
-						Emitter->Activate();
-					}
-					else if( ParticleKey == EParticleKey::Inactive )
-					{
-						Emitter->Deactivate();
+						else if( ParticleKey == EParticleKey::Deactivate )
+						{
+							ParticleSystemComponent->SetActive(false, true);
+						}
+						else if ( ParticleKey == EParticleKey::Trigger )
+						{
+							ParticleSystemComponent->ActivateSystem(true);
+						}
 					}
 				}
 			}

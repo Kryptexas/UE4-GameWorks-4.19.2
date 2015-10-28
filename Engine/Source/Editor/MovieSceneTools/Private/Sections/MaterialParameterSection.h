@@ -15,4 +15,8 @@ public:
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
 	virtual bool RequestDeleteCategory( const TArray<FName>& CategoryNamePath ) override;
 	virtual bool RequestDeleteKeyArea( const TArray<FName>& KeyAreaNamePath ) override;
+
+	// FPropertySection interface.
+	virtual void SetIntermediateValue(FPropertyChangedParams PropertyChangedParams) override { }
+	virtual void ClearIntermediateValue() override { }
 };

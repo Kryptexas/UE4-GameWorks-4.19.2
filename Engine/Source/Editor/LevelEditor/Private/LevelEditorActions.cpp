@@ -64,7 +64,8 @@
 #include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
+#include "Engine/LODActor.h"
 #include "AsyncResult.h"
 #include "IPortalApplicationWindow.h"
 #include "IPortalServiceLocator.h"
@@ -1609,7 +1610,7 @@ void FLevelEditorActionCallbacks::OnSelectOwningHLODCluster()
 	if (GEditor->GetSelectedActorCount() > 0)
 	{
 		AActor* Actor = Cast<AActor>(GEditor->GetSelectedActors()->GetSelectedObject(0));
-		ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(Actor);
+		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(Actor);
 		if (Actor && ParentActor)
 		{
 			GEditor->SelectNone(false, true);

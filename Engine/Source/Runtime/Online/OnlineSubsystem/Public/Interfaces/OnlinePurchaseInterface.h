@@ -158,6 +158,7 @@ DECLARE_DELEGATE_ThreeParams(FOnQueryReceiptsComplete, const FUniqueNetId& /*Use
 class IOnlinePurchase
 {
 public:
+	virtual ~IOnlinePurchase() {}
 
 	/**
 	 * Determine if user is allowed to purchase from store 

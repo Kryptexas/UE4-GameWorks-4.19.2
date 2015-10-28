@@ -11,26 +11,13 @@ TSharedRef<ISequencerTrackEditor> FFloatPropertyTrackEditor::CreateTrackEditor( 
 }
 
 
-TSharedRef<ISequencerSection> FFloatPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<FPropertySection> FFloatPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	return MakeShareable(new FFloatPropertySection( SectionObject, Track.GetTrackName() ));
 }
 
 
-bool FFloatPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, float& OutKey )
+void FFloatPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<float>& GeneratedKeys )
 {
-	OutKey = *PropertyChangedParams.GetPropertyValue<float>();
-
-	if (InTrack)
-	{
-		const UMovieSceneFloatTrack* FloatTrack = CastChecked<const UMovieSceneFloatTrack>( InTrack );
-
-		if (FloatTrack)
-		{
-			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
-			return FloatTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
-		}
-	}
-
-	return false;
+	GeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<float>() );
 }

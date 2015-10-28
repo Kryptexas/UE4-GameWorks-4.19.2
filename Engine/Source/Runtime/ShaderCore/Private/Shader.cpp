@@ -942,8 +942,120 @@ void FShader::VerifyBoundUniformBufferParameters()
 	}
 }
 
+bool FShaderPipelineType::bInitialized = false;
 
-void DumpShaderStats( EShaderPlatform Platform, EShaderFrequency Frequency )
+FShaderPipelineType::FShaderPipelineType(const TCHAR* InName, const FShaderType* InVertexShader, const FShaderType* InHullShader, const FShaderType* InDomainShader, const FShaderType* InGeometryShader, const FShaderType* InPixelShader) :
+	VertexShader(InVertexShader),
+	HullShader(InHullShader),
+	DomainShader(InDomainShader),
+	GeometryShader(InGeometryShader),
+	PixelShader(InPixelShader),
+	Name(InName),
+	TypeName(Name),
+	GlobalListLink(this)
+{
+	checkf(Name && *Name, TEXT("Shader Pipeline Type requires a valid Name!"));
+
+	checkf(VertexShader, TEXT("A Shader Pipeline always requires a Vertex Shader"));
+
+	checkf((HullShader == nullptr && DomainShader == nullptr) || (HullShader != nullptr && DomainShader != nullptr), TEXT("Both Hull & Domain shaders are needed for tessellation on Pipeline %s"), Name);
+
+	//make sure the name is shorter than the maximum serializable length
+	check(FCString::Strlen(InName) < NAME_SIZE);
+
+	if (PixelShader)
+	{
+		Stages.Add(PixelShader);
+	}
+	if (GeometryShader)
+	{
+		Stages.Add(GeometryShader);
+	}
+	if (DomainShader)
+	{
+		Stages.Add(DomainShader);
+		Stages.Add(HullShader);
+	}
+	Stages.Add(VertexShader);
+
+	GlobalListLink.Link(GetTypeList());
+	GetNameToTypeMap().Add(FName(InName), this);
+
+	// This will trigger if an IMPLEMENT_SHADER_TYPE was in a module not loaded before InitializeShaderTypes
+	// Shader types need to be implemented in modules that are loaded before that
+	checkf(!bInitialized, TEXT("Shader Pipeline was loaded after Engine init, use ELoadingPhase::PostConfigInit on your module to cause it to load earlier."));
+}
+
+FShaderPipelineType::~FShaderPipelineType()
+{
+	GetNameToTypeMap().Remove(FName(Name));
+	GlobalListLink.Unlink();
+}
+
+TMap<FName, FShaderPipelineType*>& FShaderPipelineType::GetNameToTypeMap()
+{
+	static TMap<FName, FShaderPipelineType*>* GShaderPipelineNameToTypeMap = NULL;
+	if (!GShaderPipelineNameToTypeMap)
+	{
+		GShaderPipelineNameToTypeMap = new TMap<FName, FShaderPipelineType*>();
+	}
+	return *GShaderPipelineNameToTypeMap;
+}
+
+TLinkedList<FShaderPipelineType*>*& FShaderPipelineType::GetTypeList()
+{
+	static TLinkedList<FShaderPipelineType*>* GShaderPipelineList = nullptr;
+	return GShaderPipelineList;
+}
+
+void FShaderPipelineType::Initialize()
+{
+	check(!bInitialized);
+
+	TSet<FName> UsedNames;
+
+	for (TLinkedList<FShaderPipelineType*>::TIterator It(FShaderPipelineType::GetTypeList()); It; It.Next())
+	{
+		const auto* PipelineType = *It;
+		auto& Stages = PipelineType->GetStages();
+
+		// #todo-rco: Do we allow mix/match of global/mesh/material stages?
+		// Check all shaders are the same type, start from the top-most stage
+		const FGlobalShaderType* GlobalType = Stages[0]->GetGlobalShaderType();
+		const FMeshMaterialShaderType* MeshType = Stages[0]->GetMeshMaterialShaderType();
+		const FMaterialShaderType* MateriallType = Stages[0]->GetMaterialShaderType();
+		for (int32 Index = 1; Index < Stages.Num(); ++Index)
+		{
+			if (GlobalType)
+			{
+				checkf(Stages[Index]->GetGlobalShaderType(), TEXT("Invalid combination of Shader types on Pipeline %s"), PipelineType->Name);
+			}
+			else if (MeshType)
+			{
+				checkf(Stages[Index]->GetMeshMaterialShaderType(), TEXT("Invalid combination of Shader types on Pipeline %s"), PipelineType->Name);
+			}
+			else if (MateriallType)
+			{
+				checkf(Stages[Index]->GetMaterialShaderType(), TEXT("Invalid combination of Shader types on Pipeline %s"), PipelineType->Name);
+			}
+		}
+
+		FName PipelineName = PipelineType->GetFName();
+		checkf(!UsedNames.Contains(PipelineName), TEXT("Two Pipelines with the same name %s found!"), PipelineType->Name);
+		UsedNames.Add(PipelineName);
+	}
+
+	bInitialized = true;
+}
+
+void FShaderPipelineType::Uninitialize()
+{
+	check(bInitialized);
+
+	bInitialized = false;
+}
+
+void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 {
 #if ALLOW_DEBUG_FILES
 	FDiagnosticTableViewer ShaderTypeViewer(*FDiagnosticTableViewer::GetUniqueTemporaryFilePath(TEXT("ShaderStats")));

@@ -380,7 +380,7 @@ void UCrowdManager::OnAgentFinishedCustomLink(const ICrowdAgentInterface* Agent)
 #endif
 }
 
-bool UCrowdManager::SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const
+bool UCrowdManager::SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, FSharedConstNavQueryFilter Filter) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_AgentUpdateTime);
 

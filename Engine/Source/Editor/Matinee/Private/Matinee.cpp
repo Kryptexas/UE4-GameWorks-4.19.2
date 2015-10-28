@@ -2980,6 +2980,9 @@ void FMatinee::OnMenuCreateMovie()
 	ULevelCapture* MovieSceneCapture = NewObject<ULevelCapture>(GetTransientPackage(), ULevelCapture::StaticClass(), NAME_None, RF_Transient);
 	MovieSceneCapture->LoadConfig();
 
+	// Ensure that this matinee is up and running before we start capturing
+	MovieSceneCapture->SetPrerequisiteActor(MatineeActor);
+
 	IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
 }
 

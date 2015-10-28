@@ -12,35 +12,13 @@ TSharedRef<ISequencerTrackEditor> FVisibilityPropertyTrackEditor::CreateTrackEdi
 }
 
 
-TSharedRef<ISequencerSection> FVisibilityPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<FPropertySection> FVisibilityPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	return MakeShareable(new FVisibilityPropertySection( SectionObject, Track.GetTrackName(), GetSequencer().Get() ));
 }
 
 
-bool FVisibilityPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, bool& OutKey )
+void FVisibilityPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& GeneratedKeys )
 {
-	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(PropertyChangedParams.PropertyPath.Last());
-
-	if (BoolProperty && PropertyChangedParams.ObjectsThatChanged.Num() != 0)
-	{
-		void* CurrentObject = PropertyChangedParams.ObjectsThatChanged[0];
-		for (int32 i = 0; i < PropertyChangedParams.PropertyPath.Num(); ++i)
-		{
-			CurrentObject = PropertyChangedParams.PropertyPath[i]->ContainerPtrToValuePtr<void>(CurrentObject, 0);
-		}
-		OutKey = BoolProperty->GetPropertyValue(CurrentObject);
-
-		if (InTrack)
-		{
-			const UMovieSceneVisibilityTrack* VisibilityTrack = CastChecked<const UMovieSceneVisibilityTrack>( InTrack );
-			if (VisibilityTrack)
-			{
-				float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
-				return VisibilityTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
-			}
-		}
-	}
-
-	return false;
+	GeneratedKeys.Add(!PropertyChangedParams.GetPropertyValue<bool>());
 }

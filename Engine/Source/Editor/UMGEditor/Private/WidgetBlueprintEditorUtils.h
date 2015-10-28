@@ -60,5 +60,7 @@ private:
 
 	static void BuildReplaceWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
 
+	static void ReplaceWidgetWithChildren(UWidgetBlueprint* BP, FWidgetReference Widget);
+
 	static void ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass);
 };

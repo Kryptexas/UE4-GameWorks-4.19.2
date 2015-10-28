@@ -151,6 +151,7 @@ bool UChannel::CleanUp( const bool bForDestroy )
 
 	// Remove from connection's channel table.
 	verifySlow(Connection->OpenChannels.Remove(this) == 1);
+	Connection->StopTickingChannel(this);
 	Connection->Channels[ChIndex] = NULL;
 	Connection = NULL;
 
@@ -1757,6 +1758,11 @@ void UActorChannel::Tick()
 	ProcessQueuedBunches();
 }
 
+bool UActorChannel::CanStopTicking() const
+{
+	return Super::CanStopTicking() && PendingGuidResolves.Num() == 0 && QueuedBunches.Num() == 0;
+}
+
 bool UActorChannel::ProcessQueuedBunches()
 {
 
@@ -1878,6 +1884,9 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 				if ( !Connection->Driver->GuidCache->IsGUIDLoaded( NetGUID ) )
 				{
 					PendingGuidResolves.Add( NetGUID );
+					
+					// Start ticking this channel so that we try to resolve the pending GUID
+					Connection->StartTickingChannel(this);
 				}
 			}
 		}
@@ -1914,6 +1923,9 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 			}
 
 			QueuedBunches.Add( new FInBunch( Bunch ) );
+			
+			// Start ticking this channel so we can process the queued bunches when possible
+			Connection->StartTickingChannel(this);
 
 			return;
 		}
@@ -2371,6 +2383,7 @@ void UActorChannel::StartBecomingDormant()
 		MapIt.Value()->StartBecomingDormant();
 	}
 	bPendingDormancy = 1;
+	Connection->StartTickingChannel(this);
 }
 
 void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )

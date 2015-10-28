@@ -112,7 +112,7 @@ ECommandResult::Type FSubversionSourceControlProvider::GetState( const TArray<FS
 	return ECommandResult::Succeeded;
 }
 
-TArray<FSourceControlStateRef> FSubversionSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
+TArray<FSourceControlStateRef> FSubversionSourceControlProvider::GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const
 {
 	TArray<FSourceControlStateRef> Result;
 	for (const auto& CacheItem : StateCache)

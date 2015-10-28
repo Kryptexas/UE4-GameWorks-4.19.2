@@ -91,15 +91,15 @@ order:5
 
 ## 開始する
 
-[DIR(end:"1" type:"topic" resource:"quickstart")]
+[DIR(end:"1" output:"topic" type:"quickstart")]
 
 ## リファレンス
 
-[DIR(end:"1" type:"topic" resource:"reference")]
+[DIR(end:"1" output:"topic" type:"reference")]
 
 ## ガイド
 
-[DIR(end:"1" type:"topic" resource:"howto")]
+[DIR(end:"1" output:"topic" type:"howto")]
 
 ## ビデオ チュートリアル
 

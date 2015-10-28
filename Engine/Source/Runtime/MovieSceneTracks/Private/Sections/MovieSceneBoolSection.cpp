@@ -50,27 +50,26 @@ void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 }
 
 
-void UMovieSceneBoolSection::AddKey( float Time, bool Value, FKeyParams KeyParams )
+void UMovieSceneBoolSection::AddKey( float Time, const bool& Value, EMovieSceneKeyInterpolation KeyInterpolation )
 {
 	Modify();
-
-	if (BoolCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
-	{
-		BoolCurve.SetDefaultValue(Value ? 1 : 0);
-	}
-	else
-	{
-		BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
-	}
+	BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
 }
 
 
-bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const
+void UMovieSceneBoolSection::SetDefault( const bool& Value )
 {
-	if ( BoolCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
-	{
-		return true;
-	}
+	Modify();
+	BoolCurve.SetDefaultValue(Value ? 1 : 0);
+}
 
-	return false;
+
+bool UMovieSceneBoolSection::NewKeyIsNewData( float Time, const bool& Value ) const
+{
+	return Eval(Time) != Value;
+}
+
+bool UMovieSceneBoolSection::HasKeys( const bool& Value ) const
+{
+	return BoolCurve.GetNumKeys() != 0;
 }

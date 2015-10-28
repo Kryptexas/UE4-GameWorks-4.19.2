@@ -2446,14 +2446,17 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 		}
 		MenuBuilder.EndSection();
 
-		MenuBuilder.BeginSection("SyncMarkerCreateNew");
+		if (Sequence->IsA(UAnimSequence::StaticClass()))
 		{
-			FUIAction UIAction;
-			UIAction.ExecuteAction.BindRaw(
-				this, &SAnimNotifyTrack::OnNewSyncMarkerClicked);
-			MenuBuilder.AddMenuEntry(LOCTEXT("NewSyncMarker", "New Sync Marker"), LOCTEXT("NewSyncMarkerToolTip", "Create a new animation sync marker"), FSlateIcon(), UIAction);
+			MenuBuilder.BeginSection("SyncMarkerCreateNew");
+			{
+				FUIAction UIAction;
+				UIAction.ExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::OnNewSyncMarkerClicked);
+				MenuBuilder.AddMenuEntry(LOCTEXT("NewSyncMarker", "New Sync Marker"), LOCTEXT("NewSyncMarkerToolTip", "Create a new animation sync marker"), FSlateIcon(), UIAction);
+			}
+			MenuBuilder.EndSection();
 		}
-		MenuBuilder.EndSection();
 	}
 }
 

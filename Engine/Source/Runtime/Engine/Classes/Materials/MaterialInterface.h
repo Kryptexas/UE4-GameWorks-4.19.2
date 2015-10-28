@@ -573,8 +573,8 @@ public:
 	ENGINE_API void AnalyzeMaterialProperty(EMaterialProperty InProperty, int32& OutNumTextureCoordinates, bool& OutUseVertexColor);
 
 	/** Iterate over all feature levels currently marked as active */
-	template <typename TFunction>
-	static void IterateOverActiveFeatureLevels(TFunction InHandler) 
+	template <typename FunctionType>
+	static void IterateOverActiveFeatureLevels(FunctionType InHandler) 
 	{  
 		uint32 FeatureLevels = GetFeatureLevelsToCompileForAllMaterials();
 		while (FeatureLevels != 0)

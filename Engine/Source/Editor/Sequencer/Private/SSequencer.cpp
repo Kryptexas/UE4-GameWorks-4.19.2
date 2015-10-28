@@ -36,9 +36,49 @@
 #include "PropertyEditorModule.h"
 #include "SSequencerShotFilterOverlay.h"
 #include "SSequencerTreeViewBox.h"
-
+#include "NumericTypeInterface.h"
+#include "NumericUnitTypeInterface.inl"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
+
+
+/* Numeric type interface for showing numbers as frames or times */
+struct FFramesOrTimeInterface : public TNumericUnitTypeInterface<float>
+{
+	DECLARE_DELEGATE_RetVal(bool, FOnGetShowFrames);
+
+	FFramesOrTimeInterface(FOnGetShowFrames InShowFrameNumbers, TSharedPtr<FSequencerTimeSliderController> InController)
+		: TNumericUnitTypeInterface(EUnit::Seconds)
+		, ShowFrameNumbers(InShowFrameNumbers)
+		, TimeSliderController(MoveTemp(InController))
+	{}
+
+private:
+	FOnGetShowFrames ShowFrameNumbers;
+	TSharedPtr<FSequencerTimeSliderController> TimeSliderController;
+
+	virtual FString ToString(const float& Value) const override
+	{
+		if (ShowFrameNumbers.Execute())
+		{
+			int32 Frame = TimeSliderController->TimeToFrame(Value);
+			return FString::Printf(TEXT("%d"), Frame);
+		}
+
+		return FString::Printf(TEXT("%.2fs"), Value);
+	}
+
+	virtual TOptional<float> FromString(const FString& InString) override
+	{
+		if (ShowFrameNumbers.Execute())
+		{
+			int32 NewEndFrame = FCString::Atoi(*InString);
+			return float(TimeSliderController->FrameToTime(NewEndFrame));
+		}
+
+		return TNumericUnitTypeInterface::FromString(InString);
+	}
+};
 
 
 /* SSequencer interface
@@ -64,6 +104,8 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	{
 		TimeSliderArgs.ViewRange = InArgs._ViewRange;
 		TimeSliderArgs.ClampRange = InArgs._ClampRange;
+		TimeSliderArgs.PlaybackRange = InArgs._PlaybackRange;
+		TimeSliderArgs.OnPlaybackRangeChanged = InArgs._OnPlaybackRangeChanged;
 		TimeSliderArgs.OnViewRangeChanged = InArgs._OnViewRangeChanged;
 		TimeSliderArgs.OnClampRangeChanged = InArgs._OnClampRangeChanged;
 		TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
@@ -75,6 +117,8 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 	TSharedRef<FSequencerTimeSliderController> TimeSliderController( new FSequencerTimeSliderController( TimeSliderArgs ) );
 	
+	NumericTypeInterface = MakeShareable( new FFramesOrTimeInterface(FFramesOrTimeInterface::FOnGetShowFrames::CreateSP(this, &SSequencer::ShowFrameNumbers), TimeSliderController) );
+
 	bool bMirrorLabels = false;
 	// Create the top and bottom sliders
 	TSharedRef<ITimeSlider> TopTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderController, bMirrorLabels );
@@ -162,7 +206,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					SNew( SSequencerCurveEditorToolBar, CurveEditor->GetCommands() )
+					SNew( SSequencerCurveEditorToolBar, InSequencer, CurveEditor->GetCommands() )
 					.Visibility( this, &SSequencer::GetCurveEditorToolBarVisibility )
 				]
 			]
@@ -279,6 +323,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 													.Visibility( EVisibility::HitTestInvisible )
 													.DisplayScrubPosition( true )
 													.DisplayTickLines( false )
+													.PaintPlaybackRangeArgs(this, &SSequencer::GetSectionPlaybackRangeArgs)
 											]
 
 										+ SGridPanel::Slot( Column1, Row2 )
@@ -390,6 +435,11 @@ void SSequencer::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEv
 
 /* SSequencer implementation
  *****************************************************************************/
+
+TSharedRef<INumericTypeInterface<float>> SSequencer::GetNumericTypeInterface()
+{
+	return NumericTypeInterface.ToSharedRef();
+}
 
 void SSequencer::UpdateDetailsView()
 {
@@ -583,21 +633,6 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 						.Value( this, &SSequencer::OnGetTimeSnapInterval )
 						.OnValueChanged( this, &SSequencer::OnTimeSnapIntervalChanged )
 				]);
-
-		ToolBarBuilder.AddWidget(
-			SNew( SImage )
-				.Image(FEditorStyle::GetBrush("Sequencer.Value")) );
-
-		ToolBarBuilder.AddWidget(
-			SNew( SBox )
-				.VAlign( VAlign_Center )
-				[
-					SNew( SNumericDropDown<float> )
-						.DropDownValues( SequencerSnapValues::GetSnapValues() )
-						.ToolTipText( LOCTEXT( "ValueSnappingIntervalToolTip", "Curve value snapping interval" ) )
-						.Value( this, &SSequencer::OnGetValueSnapInterval )
-						.OnValueChanged( this, &SSequencer::OnValueSnapIntervalChanged )
-				]);
 	}
 	ToolBarBuilder.EndSection();
 
@@ -658,9 +693,70 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	}
 	MenuBuilder.EndSection();
 
+	MenuBuilder.BeginSection( "Ranges", LOCTEXT( "RangesHeader", "Playback Range" ) );
+	{
+		TSharedPtr<FSequencer> PinnedSequencer = Sequencer.Pin();
+
+		// Menu entry for the start position
+		auto OnStartComitted = [=](float NewValue, ETextCommit::Type){
+			TRange<float> Range = PinnedSequencer->GetPlaybackRange();
+			NewValue = FMath::Min(NewValue, Range.GetUpperBoundValue());
+			PinnedSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->SetPlaybackRange(NewValue, Range.GetUpperBoundValue());
+		};
+		MenuBuilder.AddWidget(
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SSpacer)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SSpinBox<float>)
+				.TypeInterface(NumericTypeInterface)
+				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
+				.OnValueCommitted_Lambda(OnStartComitted)
+				.OnValueChanged_Lambda([=](float NewValue){
+					OnStartComitted(NewValue, ETextCommit::Default);
+				})
+				.Value_Lambda([=]() -> float {
+					return PinnedSequencer->GetPlaybackRange().GetLowerBoundValue();
+				})
+			],
+			LOCTEXT("PlaybackStartLabel", "Start"));
+
+		// Menu entry for the end position
+		auto OnEndComitted = [=](float NewValue, ETextCommit::Type){
+			TRange<float> Range = PinnedSequencer->GetPlaybackRange();
+			NewValue = FMath::Max(NewValue, Range.GetLowerBoundValue());
+			PinnedSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->SetPlaybackRange(Range.GetLowerBoundValue(), NewValue);
+		};
+		MenuBuilder.AddWidget(
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SSpacer)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SSpinBox<float>)
+				.TypeInterface(NumericTypeInterface)
+				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
+				.OnValueCommitted_Lambda(OnEndComitted)
+				.OnValueChanged_Lambda([=](float NewValue){
+					OnEndComitted(NewValue, ETextCommit::Default);
+				})
+				.Value_Lambda([=]() -> float {
+					return PinnedSequencer->GetPlaybackRange().GetUpperBoundValue();
+				})
+			],
+			LOCTEXT("PlaybackStartEnd", "End"));
+	}
+
+
 	return MenuBuilder.MakeWidget();
 }
-
 
 TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 {
@@ -671,7 +767,7 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowFrameNumbers );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowRangeSlider );
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLockInOutToStartEndRange );				
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLockInOutToStartEndRange );
 	}
 	MenuBuilder.EndSection();
 
@@ -845,18 +941,6 @@ float SSequencer::OnGetTimeSnapInterval() const
 void SSequencer::OnTimeSnapIntervalChanged( float InInterval )
 {
 	Settings->SetTimeSnapInterval(InInterval);
-}
-
-
-float SSequencer::OnGetValueSnapInterval() const
-{
-	return Settings->GetCurveValueSnapInterval();
-}
-
-
-void SSequencer::OnValueSnapIntervalChanged( float InInterval )
-{
-	Settings->SetCurveValueSnapInterval( InInterval );
 }
 
 
@@ -1421,6 +1505,20 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 	{
 		// Only zoom horizontally if the editor is visible
 		CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+	}
+}
+
+FPaintPlaybackRangeArgs SSequencer::GetSectionPlaybackRangeArgs() const
+{
+	if (GetBottomTimeSliderVisibility() == EVisibility::Visible)
+	{
+		static FPaintPlaybackRangeArgs Args(FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_L"), FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_R"), 6.f);
+		return Args;
+	}
+	else
+	{
+		static FPaintPlaybackRangeArgs Args(FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Bottom_L"), FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Bottom_R"), 6.f);
+		return Args;
 	}
 }
 

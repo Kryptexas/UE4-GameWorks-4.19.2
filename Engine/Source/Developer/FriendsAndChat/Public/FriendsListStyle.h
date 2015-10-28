@@ -45,48 +45,44 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FButtonStyle GlobalChatButtonStyle;
 	FFriendsListStyle& SetGlobalChatButtonStyle(const FButtonStyle& ButtonStyle);
 
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FSlateColor ButtonInvertedForegroundColor;
-	FFriendsListStyle& SetButtonInvertedForegroundColor(const FSlateColor& Value);
-
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FSlateColor ButtonForegroundColor;
-	FFriendsListStyle& SetButtonForegroundColor(const FSlateColor& Value);
-
 	/** Friends List Open Button style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FButtonStyle FriendItemButtonStyle;
 	FFriendsListStyle& SetFriendItemButtonStyle(const FButtonStyle& ButtonStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FButtonStyle ConfirmButtonStyle;
+	FFriendsListStyle& SetConfirmButtonStyle(const FButtonStyle& ButtonStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FButtonStyle CancelButtonStyle;
+	FFriendsListStyle& SetCancelButtonStyle(const FButtonStyle& ButtonStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateColor ButtonContentColor;
+	FFriendsListStyle& SetButtonContentColor(const FSlateColor& InColor);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateColor ButtonHoverContentColor;
+	FFriendsListStyle& SetButtonHoverContentColor(const FSlateColor& InColor);
 
 	/** Optional content for the Add Friend button */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ActionMenuArrowBrush;
 	FFriendsListStyle& SetActionMenuArrowBrush(const FSlateBrush& BrushStyle);
 
-	/** Friends List Open Button style */
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FButtonStyle FriendListOpenButtonStyle;
-	FFriendsListStyle& SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle);
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FButtonStyle BackButtonStyle;
+	FFriendsListStyle& SetBackButtonStyle(const FButtonStyle& ButtonStyle);
 
-	/** Friends General Purpose Button style */
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FButtonStyle FriendGeneralButtonStyle;
-	FFriendsListStyle& SetFriendGeneralButtonStyle(const FButtonStyle& ButtonStyle);
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FButtonStyle HeaderButtonStyle;
+	FFriendsListStyle& SetHeaderButtonStyle(const FButtonStyle& ButtonStyle);
 
 	/** Friends List Action Button style */
 	UPROPERTY( EditAnywhere, Category = Appearance )
 	FButtonStyle FriendListActionButtonStyle;
 	FFriendsListStyle& SetFriendListActionButtonStyle(const FButtonStyle& ButtonStyle);
-
-	/** Friends List Critical Button style */
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FButtonStyle FriendListCriticalButtonStyle;
-	FFriendsListStyle& SetFriendsListCriticalButtonStyle(const FButtonStyle& ButtonStyle);
-
-	/** Friends List Emphasis Button style */
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FButtonStyle FriendListEmphasisButtonStyle;
-	FFriendsListStyle& SetFriendsListEmphasisButtonStyle(const FButtonStyle& ButtonStyle);
 
 	/** Friends List Close button style */
 	UPROPERTY( EditAnywhere, Category = Appearance )
@@ -103,10 +99,10 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FSlateBrush AddFriendButtonContentBrush;
 	FFriendsListStyle& SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle);
 
-	/** Optional content for the Add Friend button (hovered) */
-	UPROPERTY( EditAnywhere, Category = Appearance )
-	FSlateBrush AddFriendButtonContentHoveredBrush;
-	FFriendsListStyle& SetAddFriendButtonContentHoveredBrush(const FSlateBrush& BrushStyle);
+	/** Friend Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush StatusIconBrush;
+	FFriendsListStyle& SetStatusIconBrush(const FSlateBrush& BrushStyle);
 
 	/** Friend Image brush style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -153,25 +149,15 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FSlateBrush AwayBrush;
 	FFriendsListStyle& SetAwayBrush(const FSlateBrush& AwayBrush);
 
-	/** Window background style */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush Background;
-	FFriendsListStyle& SetBackgroundBrush(const FSlateBrush& InBackground);
-
-	/** Friend container header */
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush FriendContainerHeader;
-	FFriendsListStyle& SetFriendContainerHeader(const FSlateBrush& InFriendContainerHeader);
-
-	/** Friend list header */
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush FriendListHeader;
-	FFriendsListStyle& SetFriendListHeader(const FSlateBrush& InFriendListHeader);
-
 	/** Friends window background */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush FriendsContainerBackground;
 	FFriendsListStyle& SetFriendContainerBackground(const FSlateBrush& InFriendContainerBackground);
+
+	/** Friends window background */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendsListBackground;
+	FFriendsListStyle& SetFriendsListBackground(const FSlateBrush& InBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor FriendListActionFontColor;

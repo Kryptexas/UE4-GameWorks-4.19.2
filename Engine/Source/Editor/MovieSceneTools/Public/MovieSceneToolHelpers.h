@@ -124,15 +124,28 @@ public:
 
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 
+	void SetIntermediateValue( float InIntermediateValue )
+	{
+		IntermediateValue = InIntermediateValue;
+	}
+
+	void ClearIntermediateValue()
+	{
+		IntermediateValue.Reset();
+	}
+
 private:
 	/** The curve which provides the keys for this key area. */
 	FRichCurve* Curve;
 	/** The section that owns this key area. */
 	UMovieSceneSection* OwningSection;
+
+	TOptional<float> IntermediateValue;
 };
 
 
 /** A key area for integral keys */
+template<typename IntegralType>
 class MOVIESCENETOOLS_API FIntegralKeyArea : public IKeyArea
 {
 public:
@@ -199,33 +212,84 @@ public:
 		return RCCE_None;
 	}
 
-	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) override;
+	virtual TArray<FKeyHandle> AddKeyUnique( float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX ) override
+	{
+		TArray<FKeyHandle> AddedKeyHandles;
+
+		FKeyHandle CurrentKey = Curve.FindKey( Time );
+		if ( Curve.IsKeyHandleValid( CurrentKey ) == false )
+		{
+			if ( OwningSection->GetStartTime() > Time )
+			{
+				OwningSection->SetStartTime( Time );
+			}
+			if ( OwningSection->GetEndTime() < Time )
+			{
+				OwningSection->SetEndTime( Time );
+			}
+
+			int32 Value = Curve.Evaluate( Time );
+			if ( TimeToCopyFrom != FLT_MAX )
+			{
+				Value = Curve.Evaluate( TimeToCopyFrom );
+			}
+			else if ( IntermediateValue.IsSet() )
+			{
+				Value = IntermediateValue.GetValue();
+			}
+
+			Curve.AddKey( Time, Value, CurrentKey );
+			AddedKeyHandles.Add( CurrentKey );
+		}
+
+		return AddedKeyHandles;
+	}
 
 	virtual FRichCurve* GetRichCurve() override { return nullptr; };
 
 	virtual UMovieSceneSection* GetOwningSection() override { return OwningSection; }
 
-	virtual bool CanCreateKeyEditor() override
+	void SetIntermediateValue( IntegralType InIntermediateValue )
 	{
-		return true;
+		IntermediateValue = InIntermediateValue;
 	}
 
-	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
+	void ClearIntermediateValue()
+	{
+		IntermediateValue.Reset();
+	}
 
 protected:
 	/** Curve with keys in this area */
 	FIntegralCurve& Curve;
 	/** The section that owns this key area. */
 	UMovieSceneSection* OwningSection;
+
+	TOptional<IntegralType> IntermediateValue;
 };
 
+/** A key area for displaying and editing byte curves. */
+class FByteKeyArea : public FIntegralKeyArea < uint8 >
+{
+public:
+	FByteKeyArea( FIntegralCurve& InCurve, UMovieSceneSection* InOwningSection )
+		: FIntegralKeyArea( InCurve, InOwningSection )
+	{}
 
-/** A key area for displaying and editing intragral curves representing enums. */
-class FEnumKeyArea : public FIntegralKeyArea
+	virtual bool CanCreateKeyEditor() override
+	{
+		return true;
+	}
+
+	virtual TSharedRef<SWidget> CreateKeyEditor( ISequencer* Sequencer ) override;
+};
+
+/** A key area for displaying and editing integral curves representing enums. */
+class FEnumKeyArea : public FByteKeyArea
 {
 public:
 	FEnumKeyArea(FIntegralCurve& InCurve, UMovieSceneSection* InOwningSection, const UEnum* InEnum)
-		: FIntegralKeyArea(InCurve, InOwningSection)
+		: FByteKeyArea(InCurve, InOwningSection)
 		, Enum(InEnum)
 	{}
 
@@ -239,11 +303,12 @@ public:
 private:
 	/** The enum which provides available integral values for this key area. */
 	const UEnum* Enum;
+
 };
 
 
 /** A key area for displaying and editing integral curves representing bools. */
-class FBoolKeyArea : public FIntegralKeyArea
+class FBoolKeyArea : public FIntegralKeyArea<bool>
 {
 public:
 	FBoolKeyArea(FIntegralCurve& InCurve, UMovieSceneSection* InOwningSection)

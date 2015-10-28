@@ -13,7 +13,7 @@ TSharedRef<ISequencerTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( T
 }
 
 
-TSharedRef<ISequencerSection> FBytePropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<FPropertySection> FBytePropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
 	return MakeShareable( new FBytePropertySection( SectionObject, Track.GetTrackName(), Cast<UMovieSceneByteTrack>( SectionObject.GetOuter() )->GetEnum() ) );
 }
@@ -68,23 +68,7 @@ UMovieSceneTrack* FBytePropertyTrackEditor::AddTrack(UMovieScene* FocusedMovieSc
 }
 
 
-bool FBytePropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey )
+void FBytePropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<uint8>& GeneratedKeys )
 {
-	OutKey = *PropertyChangedParams.GetPropertyValue<uint8>();
-
-	if (InTrack == nullptr)
-	{
-		return false;
-	}
-
-	const UMovieSceneByteTrack* ByteTrack = CastChecked<const UMovieSceneByteTrack>( InTrack );
-
-	if (ByteTrack == nullptr)
-	{
-		return false;
-	}
-
-	float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
-
-	return ByteTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+	GeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<uint8>() );
 }

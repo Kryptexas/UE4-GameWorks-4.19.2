@@ -12,8 +12,12 @@ public:
 		: FPropertySection( InSectionObject, InSectionName )
 		, Enum( InEnum ) {}
 
+	// FPropertySection interface
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
+	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
+	virtual void ClearIntermediateValue() override;
 
 private:
+	mutable TSharedPtr<FByteKeyArea> KeyArea;
 	UEnum* Enum;
 };

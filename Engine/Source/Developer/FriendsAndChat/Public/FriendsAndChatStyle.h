@@ -78,10 +78,6 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetFriendActionFontStyle(const FFriendsFontStyle& FontStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FFriendsComboStyle FriendsComboStyle;
-	FFriendsAndChatStyle& SetFriendsComboStyle(const FFriendsComboStyle& InFriendsListStyle);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
 	FCheckBoxStyle CheckBoxStyle;
 	FFriendsAndChatStyle& SetCheckBoxStyle(const FCheckBoxStyle& InCheckBoxStyle);
 

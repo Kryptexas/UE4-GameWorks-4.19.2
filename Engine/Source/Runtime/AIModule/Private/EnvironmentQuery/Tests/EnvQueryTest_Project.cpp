@@ -33,7 +33,7 @@ void UEnvQueryTest_Project::RunTest(FEnvQueryInstance& QueryInstance) const
 		const ANavigationData* NavData = FEQSHelpers::FindNavigationDataForQuery(QueryInstance);
 		if (NavData)
 		{
-			TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, ProjectionData.NavigationFilter);
+			FSharedConstNavQueryFilter NavigationFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, ProjectionData.NavigationFilter);
 			TArray<FNavigationProjectionWork> Workload;
 			Workload.Reserve(QueryInstance.Items.Num());
 

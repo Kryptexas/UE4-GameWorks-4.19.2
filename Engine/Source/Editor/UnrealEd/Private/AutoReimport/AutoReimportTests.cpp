@@ -9,8 +9,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportTests, Log, All);
 class FDelayedCallbackLatentCommand : public IAutomationLatentCommand
 {
 public:
-	FDelayedCallbackLatentCommand(TFunction<void()> InCallback, float InDelay = 0.1f)
-		: Callback(InCallback), Delay(InDelay)
+	FDelayedCallbackLatentCommand(TFunction<void()>&& InCallback, float InDelay = 0.1f)
+		: Callback(MoveTemp(InCallback)), Delay(InDelay)
 	{}
 
 	virtual bool Update() override
@@ -60,7 +60,7 @@ struct FAutoReimportTestPayload
 	}
 	~FAutoReimportTestPayload()
 	{
-		// Avoid writing out the file after we've nuiked the directory
+		// Avoid writing out the file after we've nuked the directory
 		FileCache = nullptr;
 		IFileManager::Get().DeleteDirectory(*WorkingDir, false, true);
 	}
@@ -73,9 +73,10 @@ struct FAutoReimportTestPayload
 		}
 	}
 
-	void WaitForStartup(TFunction<void()> Finished)
+	void WaitForStartup(TFunction<void()>&& Finished)
 	{
-		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
+		// Ideally, this would capture-by-move, but we don't have full compiler support for that yet.
+		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]() mutable {
 			FileCache->Tick();
 			if (FileCache->MoveDetectionInitialized())
 			{
@@ -83,7 +84,7 @@ struct FAutoReimportTestPayload
 			}
 			else
 			{
-				WaitForStartup(Finished);
+				WaitForStartup(MoveTemp(Finished));
 			}
 		}, 0.1));
 	}

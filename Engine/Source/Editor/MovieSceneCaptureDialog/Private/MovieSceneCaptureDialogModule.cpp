@@ -14,7 +14,14 @@
 #include "Editor.h"
 #include "PropertyEditing.h"
 
+#include "ISessionServicesModule.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
+#include "ISessionManager.h"
+
 #define LOCTEXT_NAMESPACE "MovieSceneCaptureDialog"
+
+const TCHAR* MovieCaptureSessionName = TEXT("Movie Scene Capture");
 
 DECLARE_DELEGATE_RetVal_OneParam(FText, FOnStartCapture, UMovieSceneCapture*);
 
@@ -127,6 +134,8 @@ public:
 		ProcHandle = InProcHandle;
 
 		FString BrowseToFolder = FPaths::ConvertRelativePathToFull(InArgs._BrowseToFolder);
+		BrowseToFolder.RemoveFromEnd(TEXT("\\"));
+
 		auto OnBrowseToFolder = [=]{
 			FPlatformProcess::ExploreFolder(*BrowseToFolder);
 		};
@@ -233,7 +242,34 @@ private:
 	{
 		if (State == SNotificationItem::CS_Pending)
 		{
-			FPlatformProcess::TerminateProc(ProcHandle);
+			bool bFoundInstance = false;
+
+			// Attempt to send a remote command to gracefully terminate the process
+			ISessionServicesModule& SessionServices = FModuleManager::Get().LoadModuleChecked<ISessionServicesModule>("SessionServices");
+			TSharedRef<ISessionManager> SessionManager = SessionServices.GetSessionManager();
+
+			TArray<TSharedPtr<ISessionInfo>> Sessions;
+			SessionManager->GetSessions(Sessions);
+
+			for (const TSharedPtr<ISessionInfo>& Session : Sessions)
+			{
+				if (Session->GetSessionName() == MovieCaptureSessionName)
+				{
+					TArray<TSharedPtr<ISessionInstanceInfo>> Instances;
+					Session->GetInstances(Instances);
+
+					for (const TSharedPtr<ISessionInstanceInfo>& Instance : Instances)
+					{
+						Instance->ExecuteCommand("exit");
+						bFoundInstance = true;
+					}
+				}
+			}
+
+			if (!bFoundInstance)
+			{
+				FPlatformProcess::TerminateProc(ProcHandle);
+			}
 		}
 		return FReply::Handled();
 	}
@@ -250,6 +286,9 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 {
 	virtual void OpenDialog(const TSharedRef<FTabManager>& TabManager, UMovieSceneCapture* CaptureObject) override
 	{
+		// Ensure the session services module is loaded otherwise we won't necessarily receive status updates from the movie capture session
+		FModuleManager::Get().LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
+
 		TSharedPtr<SWindow> ExistingWindow = CaptureSettingsWindow.Pin();
 		if (ExistingWindow.IsValid())
 		{
@@ -345,21 +384,33 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			return LOCTEXT("UnableToSaveCaptureManifest", "Unable to save capture manifest");
 		}
 
-		// this parameter tells UE4Editor to run in game mode
 		FString EditorCommandLine = FString::Printf(TEXT("%s -MovieSceneCaptureManifest=\"%s\" -game"), *SavedMapNames[0], *Filename);
+
+		// Spit out any additional, user-supplied command line args
 		if (!CaptureObject->AdditionalCommandLineArguments.IsEmpty())
 		{
 			EditorCommandLine.AppendChar(' ');
 			EditorCommandLine.Append(CaptureObject->AdditionalCommandLineArguments);
 		}
+		
+		// Spit out any inherited command line args
+		if (!CaptureObject->InheritedCommandLineArguments.IsEmpty())
+		{
+			EditorCommandLine.AppendChar(' ');
+			EditorCommandLine.Append(CaptureObject->InheritedCommandLineArguments);
+		}
 
+		// Disable texture streaming if necessary
 		if (!CaptureObject->Settings.bEnableTextureStreaming)
 		{
 			EditorCommandLine.Append(TEXT(" -NoTextureStreaming"));
 		}
 		
-		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d"), CaptureObject->Settings.Resolution.ResX);
-		EditorCommandLine += FString::Printf(TEXT(" -ResY=%d"), CaptureObject->Settings.Resolution.ResY);
+		// Set the game resolution
+		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
+
+		// Ensure game session is correctly set up 
+		EditorCommandLine += FString::Printf(TEXT(" -messaging -SessionName=\"%s\""), MovieCaptureSessionName);
 
 		CaptureObject->SaveConfig();
 

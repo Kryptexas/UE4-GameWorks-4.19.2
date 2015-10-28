@@ -348,11 +348,6 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		
 		SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
 
-		IMovieSceneCaptureInterface* MovieSceneCaptureImpl = StartupMovieCaptureHandle.IsValid() ? IMovieSceneCaptureModule::Get().RetrieveMovieSceneInterface(StartupMovieCaptureHandle) : nullptr;
-		if (MovieSceneCaptureImpl)
-		{
-			MovieSceneCaptureImpl->Initialize(SceneViewport.ToSharedRef());
-		}
 
 		// Move the registration of the game viewport to that messages are correctly received.
 		if (!FPlatformProperties::SupportsWindowedMode())

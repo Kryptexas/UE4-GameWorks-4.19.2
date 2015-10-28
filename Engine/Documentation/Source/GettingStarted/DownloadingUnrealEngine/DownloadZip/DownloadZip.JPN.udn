@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2648562
-Availability:NoPublish
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title: アンリアル・エンジンを GitHub から ZIP ファイルでダウンロードする
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:アンリアル エンジンのソースコードを ZIP ファイルでダウンロードしてみましょう。
 Prereq:GettingStarted/DownloadingUnrealEngine
 Related:Programming/Development/BuildingUnrealEngine
-バージョン：4.8
-スキルレベル:上級
+Version:4.8
+SkillLevel:Advanced
 
 GitHub から Zip ファイルでソースコードをダウンロードする方法を説明します。
 
@@ -31,8 +31,8 @@ GitHub から Zip ファイルでソースコードをダウンロードする�
 		ZIP ファイルを解凍する前に以下を行います：
 
 		1.	ZIP ファイルを **右クリック** する。
-		1.	**[Properties...] をクリックする** 。
-		1.	**[Unblock] を選択する**。
+		1.	**[Properties...(プロパティ)] をクリックする** 。
+		1.	**[Unblock (ブロック解除)] を選択する**。
 
 		サードパーティの ZIP ユーティリティの場合は、解凍時に上記の手順を要求しない場合もあります。
 		[/REGION]
@@ -41,12 +41,12 @@ GitHub から Zip ファイルでソースコードをダウンロードする�
 		[REGION:note]
 		デベロッパーは Microsoft の無料版 Visual Studio のすべてのデスクトップ版で UE4 をビルドします ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs))。
 		[/REGION]
-	1.	エクスプローラでソースフォルダを開き **Setup.bat**を実行します。
+	1.	エクスプローラでソースフォルダを開き **Setup.bat** を実行します。
 		[REGION:note]
 		セットアップ用バッチファイルが、エンジン用バイナリ コンテンツのダウンロード、前提条件のインストール、アンリアル ファイルの関連付けの設定を行います。現在エンジン バイナリには 4GB のディスク容量が必要なので、ダウンロードには若干時間がかかる場合があります。それ以降チェックアウトする場合、ダウンロード時間は短くなります。
 		[/REGION]
 		[REGION:warning]
-		SmartScreen からの警告が Windows 8 に表示される場合があります。まず **[More Info (詳細)]**、次に **[Run Anyway]** をクリックしてセットアップ用バッチファイルの実行を継続します。
+		SmartScreen からの警告が Windows 8 に表示される場合があります。まず **[More Info (詳細)]**、次に **[Run Anyway (このまま実行)]** をクリックしてセットアップ用バッチファイルの実行を継続します。
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

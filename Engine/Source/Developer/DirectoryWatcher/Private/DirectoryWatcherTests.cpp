@@ -73,7 +73,7 @@ class FDelayedCallbackLatentCommand : public IAutomationLatentCommand
 {
 public:
 	FDelayedCallbackLatentCommand(TFunction<void()> InCallback, float InDelay = 0.1f)
-		: Callback(InCallback), Delay(InDelay)
+		: Callback(MoveTemp(InCallback)), Delay(InDelay)
 	{}
 
 	virtual bool Update() override

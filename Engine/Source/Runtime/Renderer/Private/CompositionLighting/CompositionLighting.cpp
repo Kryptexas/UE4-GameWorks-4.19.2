@@ -65,7 +65,7 @@ static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 	return Context.View.FinalPostProcessSettings.ContributingCubemaps.Num() != 0 && !IsSimpleDynamicLightingEnabled();
 }
 
-static bool IsLpvIndirectPassRequired(const FViewInfo& View)
+bool IsLpvIndirectPassRequired(const FViewInfo& View)
 {
 	FScene* Scene = (FScene*)View.Family->Scene;
 

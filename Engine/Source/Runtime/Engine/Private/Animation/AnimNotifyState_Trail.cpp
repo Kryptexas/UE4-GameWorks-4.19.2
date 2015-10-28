@@ -59,6 +59,11 @@ UAnimNotifyState_Trail::UAnimNotifyState_Trail(const FObjectInitializer& ObjectI
 #endif // WITH_EDITORONLY_DATA
 }
 
+UParticleSystem* UAnimNotifyState_Trail::GetOverridenPSTemplate(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation) const
+{
+	return OverridePSTemplate(MeshComp, Animation);
+}
+
 void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float TotalDuration)
 {
 	bool bError = ValidateInput(MeshComp);
@@ -78,7 +83,7 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 		Width = AnimInst->GetCurveValue(WidthScaleCurve);
 	}
 
-	UParticleSystem* ParticleSystemTemplate = OverridePSTemplate(MeshComp, Animation);
+	UParticleSystem* ParticleSystemTemplate = GetOverridenPSTemplate(MeshComp, Animation);
 	if (ParticleSystemTemplate != nullptr)
 	{
 		PSTemplate = ParticleSystemTemplate;

@@ -1431,21 +1431,16 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	{
 		if (OutHit)
 		{
-			*OutHit = FHitResult();
+			OutHit->Init();
 		}
 		return false;
 	}
 
 	ConditionalUpdateComponentToWorld();
 
-	// Init HitResult
-	FHitResult BlockingHit(1.f);
+	// Set up
 	const FVector TraceStart = GetComponentLocation();
 	const FVector TraceEnd = TraceStart + Delta;
-	BlockingHit.TraceStart = TraceStart;
-	BlockingHit.TraceEnd = TraceEnd;
-
-	// Set up.
 	float DeltaSizeSq = Delta.SizeSquared();
 	const FQuat InitialRotationQuat = ComponentToWorld.GetRotation();
 
@@ -1459,7 +1454,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			// copy to optional output param
 			if (OutHit)
 			{
-				*OutHit = BlockingHit;
+				OutHit->Init(TraceStart, TraceEnd);
 			}
 			return true;
 		}
@@ -1468,6 +1463,11 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 
 	const bool bSkipPhysicsMove = ((MoveFlags & MOVECOMP_SkipPhysicsMove) != MOVECOMP_NoFlags);
 
+	// WARNING: HitResult is only partially initialized in some paths. All data is valid only if bFilledHitResult is true.
+	FHitResult BlockingHit(NoInit);
+	BlockingHit.bBlockingHit = false;
+	BlockingHit.Time = 1.f;
+	bool bFilledHitResult = false;
 	bool bMoved = false;
 	bool bIncludesOverlapsAtEnd = false;
 	bool bRotationOnly = false;
@@ -1587,6 +1587,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 				if (BlockingHitIndex >= 0)
 				{
 					BlockingHit = Hits[BlockingHitIndex];
+					bFilledHitResult = true;
 				}
 			}
 		
@@ -1597,6 +1598,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			}
 			else
 			{
+				check(bFilledHitResult);
 				NewLocation = TraceStart + (BlockingHit.Time * (TraceEnd - TraceStart));
 
 				// Sanity check
@@ -1618,7 +1620,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			bIncludesOverlapsAtEnd = AreSymmetricRotations(InitialRotationQuat, NewRotationQuat, GetComponentScale());
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if ( (BlockingHit.Time < 1.f) && !IsZeroExtent() )
+			if (UCheatManager::IsDebugCapsuleSweepPawnEnabled() && BlockingHit.bBlockingHit && !IsZeroExtent())
 			{
 				// this is sole debug purpose to find how capsule trace information was when hit 
 				// to resolve stuck or improve our movement system - To turn this on, use DebugCapsuleSweepPawn
@@ -1626,7 +1628,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 				if (ActorPawn && ActorPawn->Controller && ActorPawn->Controller->IsLocalPlayerController())
 				{
 					APlayerController const* const PC = CastChecked<APlayerController>(ActorPawn->Controller);
-					if (PC->CheatManager && PC->CheatManager->bDebugCapsuleSweepPawn)
+					if (PC->CheatManager)
 					{
 						FVector CylExtent = ActorPawn->GetSimpleCollisionCylinderExtent()*FVector(1.001f,1.001f,1.0f);							
 						FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CylExtent);
@@ -1694,6 +1696,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	// Handle blocking hit notifications. Avoid if pending kill (which could happen after overlaps).
 	if (BlockingHit.bBlockingHit && !IsPendingKill())
 	{
+		check(bFilledHitResult);
 		if (IsDeferringMovementUpdates())
 		{
 			FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
@@ -1724,7 +1727,14 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	// copy to optional output param
 	if (OutHit)
 	{
-		*OutHit = BlockingHit;
+		if (bFilledHitResult)
+		{
+			*OutHit = BlockingHit;
+		}
+		else
+		{
+			OutHit->Init(TraceStart, TraceEnd);
+		}
 	}
 
 	// Return whether we moved at all.

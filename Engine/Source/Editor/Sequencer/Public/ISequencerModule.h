@@ -32,9 +32,6 @@ DECLARE_DELEGATE_TwoParams(FOnGetAddMenuContent, FMenuBuilder& /*MenuBuilder*/, 
  */
 struct FSequencerViewParams
 {
-	/** The initial time range of the view. */
-	TRange<float> InitalViewRange;
-
 	/** Initial Scrub Position. */
 	float InitialScrubPosition;
 
@@ -47,8 +44,7 @@ struct FSequencerViewParams
 	FString UniqueName;
 
 	FSequencerViewParams(FString InName = FString())
-		: InitalViewRange(0.0f, 5.0f)
-		, InitialScrubPosition(0.0f)
+		: InitialScrubPosition(0.0f)
 		, UniqueName(MoveTemp(InName))
 	{ }
 };

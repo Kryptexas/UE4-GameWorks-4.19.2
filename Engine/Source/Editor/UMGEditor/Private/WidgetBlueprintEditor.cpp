@@ -553,7 +553,6 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 		FSequencerViewParams ViewParams(TEXT("UMGSequencerSettings"));
 		{
-			ViewParams.InitalViewRange = TRange<float>(InTime, OutTime);
 			ViewParams.InitialScrubPosition = 0;
 			ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContent);
 		}
@@ -561,10 +560,8 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 		FSequencerInitParams SequencerInitParams;
 		{
 			UWidgetAnimation* NullAnimation = UWidgetAnimation::GetNullAnimation();
-			NullAnimation->MovieScene->StartTime = InTime;
-			NullAnimation->MovieScene->InTime = InTime;
-			NullAnimation->MovieScene->OutTime = OutTime;
-			NullAnimation->MovieScene->EndTime = OutTime;
+			NullAnimation->MovieScene->SetPlaybackRange(InTime, OutTime);
+			NullAnimation->MovieScene->GetEditorData().WorkingRange = TRange<float>(InTime, OutTime);
 
 			SequencerInitParams.ViewParams = ViewParams;
 			SequencerInitParams.RootSequence = NullAnimation;
@@ -714,7 +711,7 @@ const FWidgetReference& FWidgetBlueprintEditor::GetHoveredWidget() const
 
 void FWidgetBlueprintEditor::AddPostDesignerLayoutAction(TFunction<void()> Action)
 {
-	QueuedDesignerActions.Add(Action);
+	QueuedDesignerActions.Add(MoveTemp(Action));
 }
 
 TArray< TFunction<void()> >& FWidgetBlueprintEditor::GetQueuedDesignerActions()

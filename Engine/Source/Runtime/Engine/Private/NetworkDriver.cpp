@@ -204,9 +204,11 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	ProcessQueuedBunchesCurrentFrameMilliseconds = 0.0f;
 
 #if STATS
+	const double CurrentRealtimeSeconds = FPlatformTime::Seconds();
+
 	// Update network stats (only main game net driver for now)
 	if (NetDriverName == NAME_GameNetDriver && 
-		Time - StatUpdateTime > StatPeriod && ( ClientConnections.Num() > 0 || ServerConnection != NULL ))
+		 CurrentRealtimeSeconds - StatUpdateTime > StatPeriod && ( ClientConnections.Num() > 0 || ServerConnection != NULL ) )
 	{
 		int32 Ping = 0;
 		int32 NumOpenChannels = 0;
@@ -228,7 +230,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 
 		if (FThreadStats::IsCollectingData())
 		{
-			float RealTime = Time - StatUpdateTime;
+			const float RealTime = CurrentRealtimeSeconds - StatUpdateTime;
 
 			// Use the elapsed time to keep things scaled to one measured unit
 			InBytes = FMath::TruncToInt(InBytes / RealTime);
@@ -478,7 +480,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		VoiceBytesRecv = 0;
 		VoiceInPercent = 0;
 		VoiceOutPercent = 0;
-		StatUpdateTime = Time;
+		StatUpdateTime = CurrentRealtimeSeconds;
 	}
 #endif // STATS
 

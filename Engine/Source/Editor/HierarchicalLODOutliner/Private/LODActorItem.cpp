@@ -5,7 +5,7 @@
 #include "LODActorItem.h"
 #include "Engine/LODActor.h"
 #include "HLODOutliner.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 #include "ScopedTransaction.h"
 #include "SlateBasics.h"
 #include "TreeItemID.h"
@@ -45,7 +45,7 @@ void HLODOutliner::FLODActorItem::GenerateContextMenu(FMenuBuilder& MenuBuilder,
 	MenuBuilder.AddMenuEntry(LOCTEXT("CreateHLODVolume", "Create Containing Hierarchical Volume"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::CreateHierarchicalVolumeForActor)));
 
 	AActor* Actor = LODActor.Get();
-	ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(Actor);
+	ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(Actor);
 	if (ParentActor && Parent.Pin()->GetTreeItemType() == TreeItemType::HierarchicalLODActor)
 	{		
 		MenuBuilder.AddMenuEntry(LOCTEXT("RemoveChildFromCluster", "Remove from cluster"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(&Outliner, &SHLODOutliner::RemoveLODActorFromCluster)));
@@ -196,6 +196,7 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDro
 			bool bValidForMerge = true;
 			bool bValidForChilding = true;
 			int32 FirstLODLevel = -1;
+			ULevel* Level = nullptr;
 
 			for (auto Actor : DraggedObjects.LODActors.GetValue())
 			{
@@ -225,7 +226,18 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDro
 						{
 							bValidForChilding = false;
 						}
-					}						
+					}		
+
+					// Check if in same level asset
+					if (Level == nullptr)
+					{
+						Level = InLODActor->GetLevel();
+					}
+					else if (Level != InLODActor->GetLevel())
+					{
+						bValidForMerge = false;
+						bValidForChilding = false;
+					}
 				}
 			}
 
@@ -295,7 +307,7 @@ void HLODOutliner::FLODActorDropTarget::MoveToCluster(AActor* InActor, ALODActor
 {
 	const FScopedTransaction Transaction(LOCTEXT("UndoAction_MoveActorBetweenClusters", "Move Actor between Clusters"));
 	InActor->Modify();
-	ALODActor* CurrentParentActor = (OldParentActor) ? OldParentActor : HierarchicalLODUtils::GetParentLODActor(InActor);
+	ALODActor* CurrentParentActor = (OldParentActor) ? OldParentActor : FHierarchicalLODUtilities::GetParentLODActor(InActor);
 	if (CurrentParentActor)
 	{
 		CurrentParentActor->Modify();

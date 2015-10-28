@@ -21,6 +21,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "HierarchicalLOD.h"
+#include "ActorEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 
@@ -313,12 +314,25 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, FName Id, const bool bAllo
 	{
 		if( bDoBuild )
 		{
-			// We can't set the busy cursor for all windows, because lighting
-			// needs a cursor for the lighting options dialog.
-			const FScopedBusyCursor BusyCursor;
+			bool bBSPRebuildNeeded = false;
+			// Only BSP brushes affect lighting.  Check if there is any BSP in the level and skip the geometry rebuild if there isn't any.
+			for( TActorIterator<ABrush> ActorIt( InWorld ); ActorIt; ++ActorIt )
+			{
+				ABrush* Brush = *ActorIt;
+				
+				if( !Brush->IsVolumeBrush() && !Brush->IsBrushShape() && !FActorEditorUtils::IsABuilderBrush( Brush ) )
+				{
+					// brushes that aren't volumes are considered bsp
+					bBSPRebuildNeeded = true;
+					break;
+				}
+			}
 
-			// BSP export to lightmass relies on current BSP state
-			GUnrealEd->Exec( InWorld, TEXT("MAP REBUILD ALLVISIBLE") );
+			if( bBSPRebuildNeeded )
+			{
+				// BSP export to lightmass relies on current BSP state
+				GUnrealEd->Exec( InWorld, TEXT("MAP REBUILD ALLVISIBLE") );
+			}
 
 			GUnrealEd->BuildLighting( LightingBuildOptions );
 			bShouldMapCheck = false;
@@ -492,7 +506,6 @@ bool FEditorBuildUtils::ProcessAutomatedBuildBehavior( EAutomatedBuildBehavior I
 
 	return bSuccessful;
 }
-
 
 
 /**

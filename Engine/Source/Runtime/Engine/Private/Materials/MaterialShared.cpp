@@ -911,11 +911,11 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 			for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
 			{
 				FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
-				const FShader* Shader = MaterialShaderMap->GetShader(ShaderType);
-				if (Shader && Shader->GetNumInstructions() > 0)
+				int32 NumInstructions = MaterialShaderMap->GetNumInstructionsForShader(ShaderType);
+				if (NumInstructions > 0)
 				{
 					//if the shader was found, add it to the output arrays
-					InstructionCounts.Push(Shader->GetNumInstructions());
+					InstructionCounts.Push(NumInstructions);
 					Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
 				}
 			}
@@ -933,11 +933,11 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 					FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
 					if (ShaderType)
 					{
-						const FShader* Shader = MeshShaderMap->GetShader(ShaderType);
-						if (Shader && Shader->GetNumInstructions() > 0)
+						int32 NumInstructions = MaterialShaderMap->GetNumInstructionsForShader(ShaderType);
+						if (NumInstructions > 0)
 						{
 							//if the shader was found, add it to the output arrays
-							InstructionCounts.Push(Shader->GetNumInstructions());
+							InstructionCounts.Push(NumInstructions);
 							Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
 						}
 					}
@@ -2332,7 +2332,10 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 
 	FMaterialCompilationOutput TempOutput;
 	FMaterialResource* MaterialResource = GetMaterialResource(GMaxRHIFeatureLevel);
-	FMaterialAnalyzer MaterialTranslator(MaterialResource, TempOutput, FStaticParameterSet(), GMaxRHIShaderPlatform, MaterialResource->GetQualityLevel(), GMaxRHIFeatureLevel);
+	FMaterialShaderMapId ShaderMapID;
+	MaterialResource->GetShaderMapId(GMaxRHIShaderPlatform, ShaderMapID);
+	FMaterialAnalyzer MaterialTranslator(MaterialResource, TempOutput, ShaderMapID.ParameterSet, GMaxRHIShaderPlatform, MaterialResource->GetQualityLevel(), GMaxRHIFeatureLevel);	
+	
 	static_cast<FMaterialCompiler*>(&MaterialTranslator)->SetMaterialProperty(InProperty); // FHLSLMaterialTranslator hides this interface, so cast to parent
 	CompileProperty(&MaterialTranslator, InProperty);
 	// Request data from translator

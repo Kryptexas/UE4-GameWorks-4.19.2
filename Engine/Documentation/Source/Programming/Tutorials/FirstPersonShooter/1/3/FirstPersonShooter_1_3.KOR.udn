@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2672918
 Availability: Docs
-Title: 1.3 - Adding Log Messaging
+Title: 1.3 - 로그 메시징 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
-Description: Learn how to add log messaging to your game.
+Description: 게임에 로그 메시징 추가법을 배워봅니다.
 SkillLevel: Beginner
 Version: 4.9
 
@@ -24,17 +24,17 @@ Version: 4.9
 
 %Steps%
 
-You'll add a log message to your newly created FPSGameMode in this step. Log messages are useful for verifying and debugging your code. In this case, you'll use your log message to verify that you're actually using your new Game Mode.
+이번 단계에서는 새로 생성된 FPSGameMode 에 로그 메시지를 추가해 보겠습니다. 로그 메시지는 코드 확인 및 디버깅에 유용합니다. 여기서는 로그 메시지를 사용하여 실제로 새 게임 모드를 사용중인지 확인해 보겠습니다.
 
-## FPSGameMode Interface File
+## FPSGameMode 인터페이스 파일
 
-1.	In the **Solution Explorer**, expand **FPSProject > Source > FPSProject**.
+1.	**Solution Explorer** 에서 **FPSProject > Source > FPSProject** 를 펼칩니다.
 
 	![](InterfaceFile.png)
 
-1.	**Double-click** `FPSGameMode.h` to open the interface file for your newly created **FPSGameMode** class.
+1.	`FPSGameMode.h` 에 더블클릭하여 새로 생성된 **FPSGameMode** 클래스에 대한 인터페이스 파일을 엽니다.
 
-1.	Your class declaration should like the following:
+1.	클래스 선언은 다음과 같을 것입니다:
 
 		UCLASS()
 		class FPSPROJECT_API AFPSGameMode : public AGameMode
@@ -42,19 +42,19 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 			GENERATED_BODY()
 		};
 
-1.	Add the following constructor declaration under the `GENERATED_BODY()` macro:
+1.	`GENERATED_BODY()` 매크로 아래 다음과 같은 생성자를 추가합니다:
 
 		AFPSGameMode(const FObjectInitializer& ObjectInitializer);
 
-1.	Add the following function declaration under the `AFPSGameMode` constructor declaration:
+1.	`AFPSGameMode` 생성자 선언 아래 다음과 같은 함수 선언을 추가합니다:
 
 		virtual void StartPlay() override;
 
 	[REGION:note]
-	This function declaration will allow you to override the StartPlay() function (inherited from the `AActor` class) so that you can print a log message to the screen when gameplay begins.
+	이 함수 선언은 (`AActor` 클래스에서 상속된) StartPlay() 함수를 덮어써서 게임플레이가 시작되면 로그 메시지를 출력하도록 할 수 있습니다.
 	[/REGION]
 
-1.	Your class interface should look like the following:
+1.	클래스 인터페이스는 다음과 같을 것입니다:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
@@ -76,27 +76,27 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 			virtual void StartPlay() override;
 		};
 
-1.	Save your interface file in Visual Studio.
+1.	Visual Studio 에서 인터페이스 파일을 저장합니다.
 
-## FPSGameMode Implementation File
+## FPSGameMode 구현 파일
 
-1.	In the **Solution Explorer**, locate `FPSGameMode.cpp` (also located in **FPSProject > Source > FPSProject**).
+1.	**Solution Explorer** 에서 `FPSGameMode.cpp` 파일을 찾습니다 (마찬가지로 **FPSProject > Source > FPSProject** 에 있습니다).
 
 	![](ImplementationFile.png)
 
-1.	**Double-click** `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
+1.	`FPSGameMode.cpp` 에 더블클릭하여 **FPSGameMode** 클래스에 대한 구현 파일을 엽니다.
 
-1.	Add the following constructor definition to `FPSGameMode.cpp`:
+1.	`FPSGameMode.cpp` 에 다음 생성자 정의를 추가합니다:
 
 		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 		{
 		}
 
 	[REGION:note]
-	The FPSGameMode is AFPSGameMode because it derives from a class that ultimately derives from the base Actor class.
+	FPSGameMode 는 AFPSGameMode 인데, 최종적으로 베이스 Actor 클래스에서 파생되는 클래스에서 파생되기 때문입니다.
 	[/REGION]
 
-1.	Add the following lines of code for the `StartPlay()` function below the `AFPSGameMode` constructor:
+1.	`AFPSGameMode` 생성자 아래 `StartPlay()` 함수에 대한 다음 줄을 추가합니다:
 
 		void AFPSGameMode::StartPlay()
 		{
@@ -111,10 +111,10 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 		}//StartPlay()
 
 	[REGION:note]
-	`StartPlay()` will print "Hello World, this is FPSGameMode!" to your screen in yellow text when gameplay begins.
+	`StartPlay()` 는 게임플레이가 시작되면 화면에 노랑색으로 "Hello World, this is FPSGameMode!" 를 출력합니다.
 	[/REGION]
 
-1.	Your class implementation should look like the following:
+1.	클래스 구현이 다음과 같을 것입니다:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
@@ -137,6 +137,6 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 			}
 		}//StartPlay()
 
-1.	Save your implementation file in Visual Studio.
+1.	Visual Studio 에서 구현 파일을 저장합니다.
 
 %Steps%

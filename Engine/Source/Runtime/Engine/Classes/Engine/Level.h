@@ -244,8 +244,12 @@ struct ENGINE_API FLevelSimplificationDetails
 	float DetailsPercentage;
 
 	/** Static mesh material simplification */
-	UPROPERTY(Category=StaticMesh, EditAnywhere)
-	FMaterialProxySettings StaticMeshMaterial;
+	UPROPERTY()
+	FMaterialSimplificationSettings StaticMeshMaterial_DEPRECATED;
+
+	/** Landscape material simplification */
+	UPROPERTY(Category = Landscape, EditAnywhere)
+	FMaterialProxySettings StaticMeshMaterialSettings;
 
 	UPROPERTY()
 	bool bOverrideLandscapeExportLOD;
@@ -255,8 +259,12 @@ struct ENGINE_API FLevelSimplificationDetails
 	int32 LandscapeExportLOD;
 
 	/** Landscape material simplification */
-	UPROPERTY(Category=Landscape, EditAnywhere)
-	FMaterialSimplificationSettings LandscapeMaterial;
+	UPROPERTY()
+	FMaterialSimplificationSettings LandscapeMaterial_DEPRECATED;
+
+	/** Landscape material simplification */
+	UPROPERTY(Category = Landscape, EditAnywhere)
+	FMaterialProxySettings LandscapeMaterialSettings;
 
 	/** Whether to bake foliage into landscape static mesh texture */
 	UPROPERTY(Category=Landscape, EditAnywhere)

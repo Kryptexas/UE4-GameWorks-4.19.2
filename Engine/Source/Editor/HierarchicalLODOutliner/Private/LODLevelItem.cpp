@@ -4,7 +4,7 @@
 #include "HLODOutliner.h"
 #include "LevelEditor.h"
 #include "LODLevelItem.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 #include "ScopedTransaction.h"
 #include "SlateBasics.h"
 #include "TreeItemID.h"
@@ -95,6 +95,7 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 			int32 LevelIndex = -1;
 			bool bSameLODLevel = true;
 			bool bSameLevelInstance = true;
+			bool bValidOperation = true;
 			ULevel* Level = nullptr;
 			for (auto Actor : LODActors)
 			{
@@ -108,6 +109,11 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 					bSameLODLevel = false;
 				}
 
+				if (FHierarchicalLODUtilities::GetParentLODActor(LODActor))
+				{
+					bValidOperation = false;
+				}
+
 				if (Level == nullptr)
 				{
 					Level = LODActor->GetLevel();
@@ -116,6 +122,11 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 				{
 					bSameLevelInstance = false;
 				}
+			}
+
+			if (!bValidOperation)
+			{
+				return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("OneOrMultipleAlreadyInHLODLevel", "One or multiple LODActors are already part of a cluster in this HLOD level"));
 			}
 
 			if (!bSameLODLevel)
@@ -168,21 +179,21 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 
 	if (WorldSettings->bEnableHierarchicalLODSystem)
 	{
-		ALODActor* NewCluster = HierarchicalLODUtils::CreateNewClusterActor(OuterWorld, LODLevelIndex, WorldSettings);
+		ALODActor* NewCluster = FHierarchicalLODUtilities::CreateNewClusterActor(OuterWorld, LODLevelIndex, WorldSettings);
 
 		if (NewCluster)
 		{
 			for (TWeakObjectPtr<AActor> StaticMeshActor : DraggedObjects.StaticMeshActors.GetValue())
 			{
 				AActor* InActor = StaticMeshActor.Get();
-				ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+				ALODActor* CurrentParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
 				if (CurrentParentActor)
 				{
 					CurrentParentActor->RemoveSubActor(InActor);
 
 					if (!CurrentParentActor->HasValidSubActors())
 					{
-						HierarchicalLODUtils::DeleteLODActor(CurrentParentActor);
+						FHierarchicalLODUtilities::DeleteLODActor(CurrentParentActor);
 					}
 				}
 
@@ -192,13 +203,13 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 			for (TWeakObjectPtr<AActor> LODActor : DraggedObjects.LODActors.GetValue())
 			{
 				AActor* InActor = LODActor.Get();
-				ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+				ALODActor* CurrentParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
 				if (CurrentParentActor)
 				{
 					CurrentParentActor->RemoveSubActor(InActor);
 					if (!CurrentParentActor->HasValidSubActors())
 					{
-						HierarchicalLODUtils::DeleteLODActor(CurrentParentActor);
+						FHierarchicalLODUtilities::DeleteLODActor(CurrentParentActor);
 					}
 				}
 

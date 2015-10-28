@@ -24,10 +24,12 @@ namespace CrossCompiler
 		{
 			FString& Output;
 			int32 Indent;
+			int32 ExpressionScope;
 
 			FASTWriter(FString& FinalOutput) :
 				Output(FinalOutput),
-				Indent(0)
+				Indent(0),
+				ExpressionScope(0)
 			{
 			}
 

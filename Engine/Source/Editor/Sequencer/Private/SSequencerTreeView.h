@@ -23,6 +23,7 @@ struct FSequencerTreeViewColumn
 	typedef TFunction<TSharedRef<SWidget>(const FDisplayNodeRef&, const TSharedRef<SSequencerTreeViewRow>&)> FOnGenerate;
 
 	FSequencerTreeViewColumn(const FOnGenerate& InOnGenerate, const TAttribute<float>& InWidth) : Generator(InOnGenerate), Width(InWidth) {}
+	FSequencerTreeViewColumn(FOnGenerate&& InOnGenerate, const TAttribute<float>& InWidth) : Generator(MoveTemp(InOnGenerate)), Width(InWidth) {}
 
 	/** Function used to generate a cell for this column */
 	FOnGenerate Generator;

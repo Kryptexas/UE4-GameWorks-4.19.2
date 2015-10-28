@@ -8,7 +8,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoKeyEnabled = false;
 	bKeyAllEnabled = false;
 	bKeyInterpPropertiesOnly = false;
-	KeyInterpolation = MSKI_Auto;
+	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
 	SpawnPosition = SSP_Origin;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;

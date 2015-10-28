@@ -100,11 +100,14 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 				AEmitter* ParticleSystemActor = Cast<AEmitter>( OwningSequencer->GetFocusedMovieSceneSequence()->FindObject( ObjectHandle ) );
 				if ( ParticleSystemActor != nullptr )
 				{
-					for ( UParticleEmitter* Emitter : ParticleSystemActor->GetParticleSystemComponent()->Template->Emitters )
+					if (ParticleSystemActor->GetParticleSystemComponent())
 					{
-						UParticleModuleRequired* RequiredModule = Emitter->GetLODLevel( 0 )->RequiredModule;
-						bIsLooping |= RequiredModule->EmitterLoops == 0;
-						LastEmitterEndTime = FMath::Max( LastEmitterEndTime, RequiredModule->EmitterDelay + RequiredModule->EmitterDuration );
+						for ( UParticleEmitter* Emitter : ParticleSystemActor->GetParticleSystemComponent()->Template->Emitters )
+						{
+							UParticleModuleRequired* RequiredModule = Emitter->GetLODLevel( 0 )->RequiredModule;
+							bIsLooping |= RequiredModule->EmitterLoops == 0;
+							LastEmitterEndTime = FMath::Max( LastEmitterEndTime, RequiredModule->EmitterDelay + RequiredModule->EmitterDuration );
+						}
 					}
 				}
 			}
@@ -117,7 +120,7 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 	for ( auto KeyIterator = ParticleSection->GetParticleCurve().GetKeyIterator(); KeyIterator; ++KeyIterator )
 	{
 		FIntegralKey Key = *KeyIterator;
-		if ( (EParticleKey::Type)Key.Value == EParticleKey::Active )
+		if ( (EParticleKey::Type)Key.Value == EParticleKey::Activate )
 		{
 			if ( CurrentRangeStart.IsSet() == false )
 			{
@@ -139,7 +142,7 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 				}
 			}
 		}
-		if ( (EParticleKey::Type)Key.Value == EParticleKey::Inactive )
+		if ( (EParticleKey::Type)Key.Value == EParticleKey::Deactivate )
 		{
 			if ( CurrentRangeStart.IsSet() )
 			{
@@ -199,11 +202,11 @@ const FSlateBrush* FParticleSection::GetKeyBrush( FKeyHandle KeyHandle ) const
 	if ( ParticleSection != nullptr )
 	{
 		FIntegralKey ParticleKey = ParticleSection->GetParticleCurve().GetKey(KeyHandle);
-		if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Active )
+		if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Activate )
 		{
 			return LeftKeyBrush;
 		}
-		else if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Inactive )
+		else if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Deactivate )
 		{
 			return RightKeyBrush;
 		}
@@ -251,7 +254,7 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("Sequencer", "AddParticleTrack", "Add Particle Track"),
+			NSLOCTEXT("Sequencer", "AddParticleTrack", "Particle Track"),
 			NSLOCTEXT("Sequencer", "TriggerParticlesTooltip", "Adds a track for controlling particle emitter state."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FParticleTrackEditor::AddParticleKey, ObjectBinding))
@@ -264,25 +267,32 @@ void FParticleTrackEditor::AddParticleKey( const FGuid ObjectGuid )
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
 
-	AnimatablePropertyChanged( UMovieSceneParticleTrack::StaticClass(), 
-		FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects ) );
+	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects ) );
 }
 
-void FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects )
+bool FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects )
 {
+	bool bHandleCreated = false;
+	bool bTrackCreated = false;
+
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
+		FGuid ObjectHandle = HandleResult.Handle;
+		bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneParticleTrack::StaticClass(), FName("ParticleSystem"));
-
-			if (ensure(Track))
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieSceneParticleTrack::StaticClass(), FName( "ParticleSystem" ) );
+			UMovieSceneTrack* Track = TrackResult.Track;
+			bTrackCreated |= TrackResult.bWasCreated;
+			if ( bTrackCreated && ensure(Track))
 			{
-				Cast<UMovieSceneParticleTrack>(Track)->AddNewKey( KeyTime );
+				Cast<UMovieSceneParticleTrack>(Track)->AddNewSection( KeyTime );
 			}
 		}
 	}
+
+	return bHandleCreated || bTrackCreated;
 }

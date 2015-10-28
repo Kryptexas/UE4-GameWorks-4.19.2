@@ -6,6 +6,7 @@
 #include "MovieSceneSkeletalAnimationSection.h"
 #include "IMovieScenePlayer.h"
 #include "Matinee/MatineeAnimInterface.h"
+#include "MovieSceneCommonHelpers.h"
 
 
 FMovieSceneSkeletalAnimationTrackInstance::FMovieSceneSkeletalAnimationTrackInstance( UMovieSceneSkeletalAnimationTrack& InAnimationTrack )
@@ -30,8 +31,33 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 		if (AnimInterface) 
 		{
 			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));
+			
+			// cbb: If there is no overlapping section, evaluate the closest section only if the current time is before it.
+			if (AnimSection == nullptr)
+			{
+				UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(AnimationTrack->GetAllSections(), Position);
+				if (NearestSection != nullptr)
+				{
+					AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(NearestSection);
+					if (Position < AnimSection->GetStartTime())
+					{
+						Position = AnimSection->GetStartTime();
+					}
+					else if ( Position > AnimSection->GetEndTime() )
+					{
+						Position = AnimSection->GetEndTime();
+					}
+					else
+					{
+						AnimSection = nullptr;
+					}
+				}
+			}
+
 			if (AnimSection && AnimSection->IsActive())
 			{
+				Position -= 1 / 1000.0f;
+
 				int32 ChannelIndex = 0;
 				FName SlotName = FName("AnimationSlot");
 				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();

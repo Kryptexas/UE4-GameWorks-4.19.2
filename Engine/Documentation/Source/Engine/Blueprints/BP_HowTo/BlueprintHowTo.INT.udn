@@ -56,7 +56,7 @@ When you are ready and have an understanding of the core aspects behind Blueprin
 
 
 ## Beginner
-[DIR(output:"fancy" type:"howto" skill:"Beginner")]
+[DIR(output:"fancy" type:"howto" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
 ## Intermediate
 [REGION:wrapper transparent]

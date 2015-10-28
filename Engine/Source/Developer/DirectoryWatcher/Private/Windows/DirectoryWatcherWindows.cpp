@@ -60,7 +60,10 @@ bool FDirectoryWatcherWindows::RegisterDirectoryChangedCallback_Handle( const FS
 		if ( !Request->Init(Directory) )
 		{
 			uint32 Error = GetLastError();
-			UE_LOG(LogDirectoryWatcher, Warning, TEXT("Failed to begin reading directory changes for %s. Error: %d"), *Directory, Error);
+			TCHAR ErrorMsg[1024];
+			FPlatformMisc::GetSystemErrorMessage(ErrorMsg, 1024, Error);
+			UE_LOG(LogDirectoryWatcher, Warning, TEXT("Failed to begin reading directory changes for %s. Error: %s (0x%08x)"), ErrorMsg, Error);
+
 			delete Request;
 			NumRequests--;
 			return false;

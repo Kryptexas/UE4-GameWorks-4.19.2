@@ -34,6 +34,14 @@ class UEditorPerProjectUserSettings : public UObject
 	/** When enabled, Engine Version Number is displayed in the ProjectBadge */
 	UPROPERTY(EditAnywhere, config, Category = DeveloperTools, meta = (DisplayName = "Display Engine Version Number in Project Badge", ConfigRestartRequired = true))
 	bool bDisplayEngineVersionInBadge;
+
+	/** When enabled, use SimplygonSwarm Module / server to create proxies */
+	UPROPERTY(EditAnywhere, config, Category = SimplygonSwarm, meta = (DisplayName = "Use Simplygon distributed proxy server", ConfigRestartRequired = false))
+	bool bUseSimplygonSwarm;
+
+	/** Server IP for the distributed Simplygon server */
+	UPROPERTY(EditAnywhere, config, Category = SimplygonSwarm, meta = (DisplayName = "Simplygon distributed proxy server IP", ConfigRestartRequired = false, editcondition = "bUseSimplygonSwarm"))
+	FString SimplygonServerIP;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
 	UPROPERTY(EditAnywhere, config, Category=Performance)

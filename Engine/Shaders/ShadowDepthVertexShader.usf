@@ -231,7 +231,7 @@ void Main(
 		OutParameters.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
 		#if INTERPOLATE_POSITION
-			OutParameters.PixelPosition = WorldPos;
+			OutParameters.PixelPosition = WorldPos.xyz;
 		#endif
 	#endif
 

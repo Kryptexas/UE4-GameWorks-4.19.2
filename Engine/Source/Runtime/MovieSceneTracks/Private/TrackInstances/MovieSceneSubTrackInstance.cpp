@@ -122,8 +122,15 @@ void FMovieSceneSubTrackInstance::Update(float Position, float LastPosition, con
 			continue;
 		}
 
-		// skip sections without valid instances
+		// skip sections with invalid time scale
 		UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>(Section);
+
+		if (SubSection->TimeScale == 0.0f)
+		{
+			continue;
+		}
+
+		// skip sections without valid instances
 		TSharedPtr<FMovieSceneSequenceInstance> Instance = SequenceInstancesBySection.FindRef(SubSection);
 
 		if (!Instance.IsValid())
@@ -132,14 +139,9 @@ void FMovieSceneSubTrackInstance::Update(float Position, float LastPosition, con
 		}
 
 		// calculate section's local time
-		const TRange<float>& InstanceRange = Instance->GetTimeRange();
-
-		const float InstanceSize = InstanceRange.Size<float>();
-		const float SectionSize = SectionRange.Size<float>();
-
-		const float Scale = ((InstanceSize != 0.0f) && (SectionSize != 0.0f)) ? InstanceSize / SectionSize : 1.0f;
-		const float InstanceLastPosition = Scale * (LastPosition - SubSection->GetStartTime());
-		const float InstancePosition = Scale * (Position - SubSection->GetStartTime());
+		const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue();
+		const float InstanceLastPosition = InstanceOffset + (LastPosition - SubSection->GetStartTime()) / SubSection->TimeScale;
+		const float InstancePosition = InstanceOffset + (Position - SubSection->GetStartTime()) / SubSection->TimeScale;
 
 		// update section
 		Instance->Update(InstancePosition, InstanceLastPosition, Player);

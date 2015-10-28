@@ -43,7 +43,7 @@ public:
 private:
 
 	/** Delegate for AnimatablePropertyChanged in AddKey. */
-	virtual void AddKeyInternal( float KeyTime, const TArray<UObject*> Objects);
+	virtual bool AddKeyInternal( float KeyTime, const TArray<UObject*> Objects);
 };
 
 

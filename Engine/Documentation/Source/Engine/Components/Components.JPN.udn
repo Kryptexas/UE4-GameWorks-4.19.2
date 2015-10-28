@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2696012
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: コンポーネント
 Crumbs:%ROOT%, Engine
-Description:Description:アクタ内のサブオブジェクトとして使用するように設計された様々なタイプののコンポーネントの概要。  
+Description:Description:アクタ内のサブオブジェクトとして使用するように設計された様々なタイプののコンポーネントの概要。
 version:4.9
+parent:Engine/Editor
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]

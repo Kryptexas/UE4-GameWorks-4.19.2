@@ -57,5 +57,5 @@ private:
 	void HandleAddSubTrackMenuEntryExecute();
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
-	void HandleSequenceAdded(float KeyTime, class UMovieSceneSequence* Sequence);
+	bool HandleSequenceAdded(float KeyTime, class UMovieSceneSequence* Sequence);
 };

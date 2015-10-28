@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714891
 Availability: Public
-Title:Physics
+Title:피직스
 Crumbs: %ROOT%, Engine
-Description:Subsystem used to calculate collision and simulate physical actors.
+Description:충돌 계산이나 물리 액터 시뮬레이션에 사용되는 서브시스템입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,19 +49,19 @@ Description:Subsystem used to calculate collision and simulate physical actors.
 [/REGION]
 
 [REGION:quote]
-Physics is the natural science that involves the study of matter and its motion through space and time."
+"물리학은 물질에 대한 연구와, 그것의 운동에 관여하는 에너지나 힘 등을 연구하는 자연과학의 한 분야이다."
 
--- [Wikipedia](https://en.wikipedia.org/wiki/Physics)
+-- [위키피디아](https://ko.wikipedia.org/wiki/%EB%AC%BC%EB%A6%AC%ED%95%99)
 [/REGION]
 
 [EXCERPT:Intro]
-In Unreal Engine 4, physics are simulated using the PhysX 3.3 physics engine. All physics driven motion (physics bodies that are falling or have a force applied to them) and collisions (physics bodies interacting with each other) are managed by PhysX.Having physics in your game will help improve the immersion value of every scene, as it helps players believe that they are interacting with the scene and that the scene is responding back in some way or another.
+언리얼 엔진 4 에서 피직스(물리)는 PhysX 3.3 피직스 엔진을 사용하여 시물레이션이 이루어집니다. 물리로 구동되는 모든 운동(낙하중이거나 힘이 가해진 물리 본체) 및 콜리전(충돌, 물리 본체끼리 만났을 때의 상호작용)은 PhysX 에 의해 관리됩니다. 게임에 피직스가 있으면, 플레이어가 상호작용할 때 씬이 그에 대해 어떤 식으로든 반응한다는 느낌을 줄 수 있으므로, 모든 씬의 현실감을 향상시키는 데 도움이 됩니다.
 [/EXCERPT:Intro]
 
-## Simulation
+## 시뮬레이션
 
 
 
-## Collision
+## 콜리전
 
 

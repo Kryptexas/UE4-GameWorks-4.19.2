@@ -72,8 +72,8 @@ class FTypeContainer
 	struct TFunctionInstanceProvider
 		: public IInstanceProvider
 	{
-		TFunctionInstanceProvider(TFunction<TSharedPtr<void>()> InCreateFunc)
-			: CreateFunc(InCreateFunc)
+		TFunctionInstanceProvider(TFunction<TSharedPtr<void>()>&& InCreateFunc)
+			: CreateFunc(MoveTemp(InCreateFunc))
 		{ }
 
 		virtual ~TFunctionInstanceProvider() override { }

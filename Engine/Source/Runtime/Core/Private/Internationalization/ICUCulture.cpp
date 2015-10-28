@@ -13,7 +13,7 @@ namespace
 	TSharedRef<const icu::BreakIterator> CreateBreakIterator( const icu::Locale& ICULocale, const EBreakIteratorType Type)
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		TFunction<icu::BreakIterator* (const icu::Locale&, UErrorCode&)> FactoryFunction;
+		icu::BreakIterator* (*FactoryFunction)(const icu::Locale&, UErrorCode&) = nullptr;
 		switch (Type)
 		{
 		case EBreakIteratorType::Grapheme:

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "MovieSceneTrack.h"
+#include "KeyParams.h"
 #include "MovieScenePropertyTrack.generated.h"
 
 
@@ -43,17 +44,12 @@ public:
 	/** @return The property path for this track */
 	const FString& GetPropertyPath() const { return PropertyPath; }
 
-	/** Sets this track as showable permanently */
-	void SetAsShowable() {bSectionsAreShowable = true;}
-
-protected:
-
 	/**
 	 * Finds a section at the current time.
 	 *
 	 * @param Time	The time relative to the owning movie scene where the section should be
 	 *
-	 * @return The found section, or nullptr if it can't be found
+	 * @return The found section, or the new section.
 	 */
 	class UMovieSceneSection* FindOrAddSection(  float Time );
 
@@ -70,8 +66,4 @@ protected:
 	/** All the sections in this list */
 	UPROPERTY()
 	TArray<UMovieSceneSection*> Sections;
-	
-	/** True if this should generate a display node in Sequencer */
-	UPROPERTY()
-	bool bSectionsAreShowable;
 };

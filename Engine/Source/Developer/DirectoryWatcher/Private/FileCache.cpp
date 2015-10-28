@@ -722,7 +722,7 @@ TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 	return PendingTransactions;
 }
 
-TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(const TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)>& InPredicate)
+TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)> InPredicate)
 {
 	HarvestDirtyFileHashes();
 

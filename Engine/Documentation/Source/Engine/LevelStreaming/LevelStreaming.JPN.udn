@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2735870
 Availability:Public
 Title: レベルストリーミング
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:メモリ使用量の削減とシームレスなワールド作成のためにレベルを非同期的にロードまたはアンロードする方法
+parent:Engine
+order:10
 
 [VAR:Topic]
 [OBJECT:Topic]

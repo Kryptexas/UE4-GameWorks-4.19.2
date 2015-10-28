@@ -62,6 +62,9 @@ class ENGINE_API UControlChannel
 	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) override;
 
 	virtual void Tick() override;
+
+	/** Always tick the control channel for now. */
+	virtual bool CanStopTicking() const override { return false; }
 	//~ End UChannel Interface.
 
 

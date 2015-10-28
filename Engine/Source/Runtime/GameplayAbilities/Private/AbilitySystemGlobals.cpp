@@ -219,7 +219,10 @@ void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& Cu
 
 void UAbilitySystemGlobals::StartAsyncLoadingObjectLibraries()
 {
-	GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
+	if (GlobalGameplayCueManager != nullptr)
+	{
+		GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
+	}
 }
 
 // --------------------------------------------------------------------

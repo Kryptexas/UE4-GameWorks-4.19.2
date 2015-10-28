@@ -195,7 +195,7 @@ void SCulturePicker::RebuildEntries()
 		RootEntries.Add(MakeShareable(new FCultureEntry(nullptr, true)));
 	}
 	
-	TFunctionRef<void (const TArray< TSharedPtr<FCultureEntry> >&, TArray< TSharedPtr<FCultureEntry> >&)> DeepCopyAndFilter
+	TFunction<void (const TArray< TSharedPtr<FCultureEntry> >&, TArray< TSharedPtr<FCultureEntry> >&)> DeepCopyAndFilter
 		= [&](const TArray< TSharedPtr<FCultureEntry> >& InEntries, TArray< TSharedPtr<FCultureEntry> >& OutEntries)
 	{
 		for (const TSharedPtr<FCultureEntry>& InEntry : InEntries)

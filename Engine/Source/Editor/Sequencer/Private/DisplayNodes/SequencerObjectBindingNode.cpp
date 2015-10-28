@@ -422,9 +422,9 @@ void FSequencerObjectBindingNode::AddTrackForProperty(TArray<UProperty*> Propert
 	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath);
 	{
 		KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-		KeyPropertyParams.KeyParams.bCreateHandleIfMissing = false;
-		KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = false;
-		KeyPropertyParams.KeyParams.KeyInterpolation = Sequencer.GetKeyInterpolation();
+		KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
+		KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
+		KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
 	}
 
 	Sequencer.KeyProperty(KeyPropertyParams);

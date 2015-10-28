@@ -6,10 +6,12 @@
 #include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "MaterialUtilities.h"
-#include "SimplygonUtilities.h"
+#include "SimplygonTypes.h"
 #include "StaticMeshResources.h"
 #include "Components/SplineMeshComponent.h"
 #include "SimplygonSDK.h"
+
+#include "MeshMergeData.h"
 
 // Standard Simplygon channels have some issues with extracting color data back from simplification, 
 // so we use this workaround with user channels
@@ -42,10 +44,6 @@ static const TCHAR* SG_UE_INTEGRATION_REV = TEXT("@305");
 //@third party code BEGIN SIMPLYGON
 #include "ImageUtils.h"
 
-#include "SimplygonUtilities.h"
-#include "SimplygonUtilitiesModule.h"
-#include "SimplygonTypes.h"
-
 // Notes about IChartAggregator:
 // - Available since Simplygon 7.0 (defined(SIMPLYGONSDK_VERSION) && SIMPLYGONSDK_VERSION >= 0x700).
 // - Use of pure IChartAggregator will re-introduce bugs with UVs outside of 0..1 range, so UVs should
@@ -73,6 +71,9 @@ public:
 	virtual class IMeshReduction* GetMeshReductionInterface() override;
 	virtual class IMeshMerging* GetMeshMergingInterface() override;
 };
+
+
+
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimplygon, Log, All);
@@ -126,8 +127,7 @@ public:
 
 			if (Task != nullptr)
 			if (!IsInGameThread())
-			{
-					
+			{					
 				// Protection agains execition of this callback from non-game thread.
 				UE_LOG(LogSimplygon,Warning,TEXT("FDefaultEventHandler called from non-game thread. Progress is %d%%."), ProgressPercent);
 			}
@@ -611,787 +611,12 @@ public:
 		}
 	};
 
-	FMaterialCastingProperties MaterialCastProperties;
-
-	/** **/
-	bool GatherRenderDataFromLODResource(FRawMesh* OutRawMesh, FStaticMeshLODResources* InLODResource, bool NegativeScale)
-	{
-		if (!InLODResource)
-		{
-			UE_LOG(LogSimplygon, Error, TEXT("LOD resource is NULL"));
-			return false;
-		}
-
-		FStaticMeshLODResources* RenderData = InLODResource;
-
-		uint32 TriangleCount = RenderData->GetNumTriangles();
-		uint32 WedgeCount = TriangleCount * 3;
-		uint32 VertexCount = RenderData->PositionVertexBuffer.GetNumVertices();
-		int32 UVsCount = FMath::Min((int32)RenderData->VertexBuffer.GetNumTexCoords(), (int32)MAX_MESH_TEXTURE_COORDS);
-
-		check(VertexCount == RenderData->VertexBuffer.GetNumVertices());
-		FIndexArrayView Indices = RenderData->IndexBuffer.GetArrayView();
-
-		// Vertex positions
-		OutRawMesh->VertexPositions.Empty(VertexCount);
-		OutRawMesh->VertexPositions.AddUninitialized(VertexCount);
-		for (uint32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
-		{
-			OutRawMesh->VertexPositions[VertexIndex] = RenderData->PositionVertexBuffer.VertexPosition(VertexIndex);
-		}
-
-		//Indices, Tangents, Vertex Colors
-	{
-		OutRawMesh->WedgeIndices.Empty(WedgeCount);
-		OutRawMesh->WedgeIndices.AddUninitialized(WedgeCount);
-
-		OutRawMesh->WedgeTangentZ.Empty(WedgeCount);
-		OutRawMesh->WedgeTangentZ.AddUninitialized(WedgeCount);
-		OutRawMesh->WedgeTangentX.Empty(WedgeCount);
-		OutRawMesh->WedgeTangentX.AddUninitialized(WedgeCount);
-		OutRawMesh->WedgeTangentY.Empty(WedgeCount);
-		OutRawMesh->WedgeTangentY.AddUninitialized(WedgeCount);
-
-		bool bHasVertexColors = RenderData->ColorVertexBuffer.GetNumVertices() > 0;
-		OutRawMesh->WedgeColors.Empty(WedgeCount);
-		OutRawMesh->WedgeColors.AddUninitialized(WedgeCount);
-
-		for (uint32 TriIndex = 0; TriIndex < TriangleCount; ++TriIndex)
-		{
-			for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
-			{
-				int32 SourceIndex = Indices[TriIndex * 3 + CornerIndex];
-
-				const uint32 DestIndex = TriIndex * 3 + (NegativeScale ? (2 - CornerIndex) : CornerIndex);
-
-				OutRawMesh->WedgeIndices[DestIndex] = SourceIndex; //Indices
-
-				OutRawMesh->WedgeTangentX[DestIndex] = (RenderData->VertexBuffer.VertexTangentX(SourceIndex)); //Tangents
-				OutRawMesh->WedgeTangentY[DestIndex] = (RenderData->VertexBuffer.VertexTangentY(SourceIndex)); //Bitangents
-				OutRawMesh->WedgeTangentZ[DestIndex] = (RenderData->VertexBuffer.VertexTangentZ(SourceIndex)); //Normals
-
-				if (bHasVertexColors)
-				{
-					OutRawMesh->WedgeColors[DestIndex] = RenderData->ColorVertexBuffer.VertexColor(SourceIndex); //Vertex Colors
-				}
-
-			}
-		}
-	}
-
-	// UVs 
-	for (int32 UVIndex = 0; UVIndex < UVsCount; ++UVIndex)
-	{
-		OutRawMesh->WedgeTexCoords[UVIndex].Empty(WedgeCount);
-		OutRawMesh->WedgeTexCoords[UVIndex].AddUninitialized(WedgeCount);
-
-		uint32 VertexIndex;
-		for (uint32 TriIndex = 0; TriIndex < TriangleCount; ++TriIndex)
-		{
-			for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
-			{
-				const uint32 DestIndex = NegativeScale ? (2 - CornerIndex) : CornerIndex;
-
-				VertexIndex = Indices[TriIndex * 3 + CornerIndex];
-
-				FVector2D UV = RenderData->VertexBuffer.GetVertexUV(VertexIndex, UVIndex);
-				OutRawMesh->WedgeTexCoords[UVIndex][TriIndex * 3 + DestIndex].X = UV.X;
-				OutRawMesh->WedgeTexCoords[UVIndex][TriIndex * 3 + DestIndex].Y = UV.Y;
-
-				/*if (CornerIndex == 0)
-				{
-				OutRawMesh->WedgeTexCoords[UVIndex][TriIndex * 3 + CornerIndex] = FVector2D(0.0f, 0.0f);
-				}
-				else if (CornerIndex == 2)
-				{
-				OutRawMesh->WedgeTexCoords[UVIndex][TriIndex * 3 + CornerIndex] = FVector2D(1.0f, 0.0f);
-				}
-				else if (CornerIndex == 1)
-				{
-				OutRawMesh->WedgeTexCoords[UVIndex][TriIndex * 3 + CornerIndex] = FVector2D(1.0f, 1.0f);
-				}*/
-			}
-		}
-	}
-
-	//Per-face Material indices
-	{
-		OutRawMesh->FaceMaterialIndices.Empty(TriangleCount);
-		OutRawMesh->FaceMaterialIndices.AddZeroed(TriangleCount);
-		uint32 CurrentTriangleId = 0;
-		for (int32 i = 0; i < RenderData->Sections.Num(); i++)
-		{
-			FStaticMeshSection& Section = RenderData->Sections[i];
-
-			for (uint32 SectionTriIndex = 0; SectionTriIndex < Section.NumTriangles; ++SectionTriIndex)
-			{
-				OutRawMesh->FaceMaterialIndices[CurrentTriangleId++] = Section.MaterialIndex;
-			}
-		}
-	}
-
-	//SmoothingMasks
-	OutRawMesh->FaceSmoothingMasks.Empty(TriangleCount);
-	OutRawMesh->FaceSmoothingMasks.AddZeroed(TriangleCount);
-
-	return true;
-	}
-
-	bool GatherMaterialData(
-		UStaticMeshComponent* InMeshComponent,
-		const int32 RawMeshIndex,
-		FMeshMaterialReductionData& OutMeshData,
-		TArray<UMaterialInterface*>& OutMaterials,
-		TMap<int32, TArray<int32>>& RawMeshMaterialMap)
-	{
-		if (!InMeshComponent)
-		{
-			UE_LOG(LogSimplygon, Error, TEXT("Input actor has mesh components that are NULL"));
-			return false;
-		}
-
-		UStaticMesh* SrcMesh = InMeshComponent->StaticMesh;
-		if (!SrcMesh)
-		{
-			UE_LOG(LogSimplygon, Error, TEXT("Static mesh is NULL"));
-			return false;
-		}
-
-		UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(UMaterial::GetDefaultMaterial(MD_Surface));
-
-		//Need to store the unique material indices in order to re-map the material indices in each rawmesh
-		TArray<int32> GlobalMaterialIndices;
-
-		//Use the base mesh to harvest materials
-		FStaticMeshLODResources* RenderData = &SrcMesh->RenderData->LODResources[0];
-
-		for (const FStaticMeshSection& Section : RenderData->Sections)
-		{
-			UMaterialInterface* MaterialToAdd = InMeshComponent->GetMaterial(Section.MaterialIndex);
-			if (MaterialToAdd)
-			{
-				//Need to check if the resource exists..
-				FMaterialResource* Resource = MaterialToAdd->GetMaterialResource(GMaxRHIFeatureLevel);
-				if (!Resource)
-				{
-					MaterialToAdd = DefaultMaterial;
-				}
-			}
-			else
-			{
-				MaterialToAdd = DefaultMaterial;
-			}
-
-			int32 MatId = OutMaterials.Add(MaterialToAdd);
-			OutMeshData.NonFlattenMaterials.Add(MaterialToAdd);
-			GlobalMaterialIndices.Add(MatId);
-		}
-
-		//Add a key as the current raw mesh along with its "global" material indices
-		RawMeshMaterialMap.Add(RawMeshIndex, GlobalMaterialIndices);
-
-		return true;
-	}
-
-	bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh)
-	{
-		UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
-
-		if (StaticMesh->SourceModels.IsValidIndex(LODIndex) &&
-			StaticMeshComponent->LODData.IsValidIndex(LODIndex) &&
-			StaticMeshComponent->LODData[LODIndex].OverrideVertexColors != nullptr)
-		{
-			FColorVertexBuffer& ColorVertexBuffer = *StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
-			FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
-			FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
-			FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
-
-			FIndexArrayView Indices = RenderModel.IndexBuffer.GetArrayView();
-
-			if (Indices.Num() > 0 &&
-				ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
-			{
-				int32 NumWedges = RawMesh.WedgeIndices.Num();
-				if (Indices.Num() == NumWedges)
-				{
-					int32 NumExistingColors = RawMesh.WedgeColors.Num();
-					if (NumExistingColors < NumWedges)
-					{
-						RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
-					}
-
-					for (int32 i = 0; i < NumWedges; ++i)
-					{
-						FColor WedgeColor = FColor::White;
-						//int32 Index = RenderData.WedgeMap[i];
-						int32 Index = Indices[i];
-						if (Index != INDEX_NONE)
-						{
-							WedgeColor = ColorVertexBuffer.VertexColor(Index);
-						}
-
-						RawMesh.WedgeColors[i] = WedgeColor;
-					}
-
-					return true;
-				}
-				else
-				{
-					UE_LOG(LogSimplygon, Warning, TEXT("{%s} Wedge map size %d is wrong. Expected %d."), *StaticMesh->GetName(), RenderData.WedgeMap.Num(), RawMesh.WedgeIndices.Num());
-				}
-			}
-		}
-
-		return false;
-	}
-
-	bool GatherRawMeshData(
-		UStaticMeshComponent* InMeshComponent,
-		TArray<struct FMeshMaterialReductionData*>& OutRawMeshes,
-		ISimplygonUtilities& SimplygonUtilities)
-	{
-		UStaticMesh* SrcMesh = InMeshComponent->StaticMesh;
-
-		if (!SrcMesh)
-		{
-			UE_LOG(LogSimplygon, Error, TEXT("Static mesh is null"));
-			return false;
-		}
-
-		if (SrcMesh->SourceModels.Num() < 1)
-		{
-			UE_LOG(LogSimplygon, Error, TEXT("No base render mesh found."));
-			return false;
-		}
-
-		//Always access the base mesh
-		FStaticMeshSourceModel& SrcModel = SrcMesh->SourceModels[0];
-		FRawMesh* RawMesh(new FRawMesh());
-
-		if (!SrcModel.RawMeshBulkData->IsEmpty())
-		{
-			//Find out if a negative scale has been applied to the object
-			bool bNegativeScale = false;
-			FVector Scale = InMeshComponent->ComponentToWorld.GetScale3D();
-			int32 NegativeCount = 0;
-			if (Scale[0] < 0) NegativeCount++;
-			if (Scale[1] < 0) NegativeCount++;
-			if (Scale[2] < 0) NegativeCount++;
-			bNegativeScale = NegativeCount == 1 || NegativeCount == 3;
-
-			//GatherRenderDataFromLODResource_Depricated(RawMesh, &SrcMesh->RenderData->LODResources[0]);
-			GatherRenderDataFromLODResource(RawMesh, &SrcMesh->RenderData->LODResources[0], bNegativeScale);
-
-			// Make sure the raw mesh is not irreparably malformed.
-			if (!RawMesh->IsValidOrFixable())
-			{
-				UE_LOG(LogSimplygon, Error, TEXT("Raw mesh is corrupt for %s."), *(SrcMesh->GetName()));
-				return false;
-			}
-
-			USplineMeshComponent* SplineMeshComponent = Cast<USplineMeshComponent>(InMeshComponent);
-			if (SplineMeshComponent)
-			{
-				for (int32 iVert = 0; iVert < RawMesh->WedgeIndices.Num(); ++iVert)
-				{
-					uint32 Index = RawMesh->WedgeIndices[iVert];
-					float& AxisValue = USplineMeshComponent::GetAxisValue(RawMesh->VertexPositions[Index], SplineMeshComponent->ForwardAxis);
-					FTransform SliceTransform = SplineMeshComponent->CalcSliceTransform(AxisValue);
-					RawMesh->WedgeTangentX[iVert] = SliceTransform.TransformVector(RawMesh->WedgeTangentX[iVert]);
-					RawMesh->WedgeTangentY[iVert] = SliceTransform.TransformVector(RawMesh->WedgeTangentY[iVert]);
-					RawMesh->WedgeTangentZ[iVert] = SliceTransform.TransformVector(RawMesh->WedgeTangentZ[iVert]);
-				}
-
-				for (int32 iVert = 0; iVert < RawMesh->VertexPositions.Num(); ++iVert)
-				{
-					float& AxisValue = USplineMeshComponent::GetAxisValue(RawMesh->VertexPositions[iVert], SplineMeshComponent->ForwardAxis);
-					FTransform SliceTransform = SplineMeshComponent->CalcSliceTransform(AxisValue);
-					AxisValue = 0.0f;
-					RawMesh->VertexPositions[iVert] = SliceTransform.TransformPosition(RawMesh->VertexPositions[iVert]);
-				}
-			}
-
-			//Transform the raw mesh to world space
-			FTransform LocalToWorld = InMeshComponent->ComponentToWorld;
-
-			//This should be applied to the tangents..
-			/*			
-			FMatrix LocalToWorldInverseTranspose = LocalToWorld.ToMatrixWithScale();
-			LocalToWorldInverseTranspose = LocalToWorldInverseTranspose.InverseFast().GetTransposed();*/
-				
-
-			FTransform LocalToWorldRot = FTransform::Identity;
-			LocalToWorldRot.CopyRotationPart(LocalToWorld);
-
-			for (FVector& Vertex : RawMesh->VertexPositions)
-			{
-				Vertex = LocalToWorld.TransformPosition(Vertex);
-			}
-
-			for (FVector& Tangent : RawMesh->WedgeTangentX)
-			{
-				//Tangent = LocalToWorldInverseTranspose.TransformFVector4(Tangent);
-				Tangent = LocalToWorldRot.TransformVector(Tangent);
-			}
-
-			for (FVector& Bitangent : RawMesh->WedgeTangentY)
-			{
-				//Bitangent = LocalToWorldInverseTranspose.TransformFVector4(Bitangent);
-				Bitangent = LocalToWorldRot.TransformVector(Bitangent);
-			}
-
-			for (FVector& Normal : RawMesh->WedgeTangentZ)
-			{
-				//Normal = LocalToWorldInverseTranspose.TransformFVector4(Normal);
-				Normal = LocalToWorldRot.TransformVector(Normal);
-			}
-
-			PropagatePaintedColorsToRawMesh(InMeshComponent, 0, *RawMesh);
-
-			if (!RawMesh->IsValid())
-			{
-				UE_LOG(LogSimplygon, Error, TEXT("Raw mesh is corrupt for %s"), *(SrcMesh->GetName()));
-				return false;
-			}
-
-			//Add the raw mesh to the collection of raw meshes. Store SrcMesh pointer for material analyzis.
-			FMeshMaterialReductionData* Data = SimplygonUtilities.CreateMeshReductionData(RawMesh, true);
-			Data->StaticMesh = SrcMesh;
-			OutRawMeshes.Add(Data);
-		}
-
-		return true;
-	}
-
-	void GetTextureCoordinateBoundsForRawMesh(const FRawMesh& InRawMesh, TArray<FBox2D>& OutBounds)
-	{
-		int32 NumWedges = InRawMesh.WedgeIndices.Num();
-		int32 NumTris = NumWedges / 3;
-
-		OutBounds.Empty();
-		int32 WedgeIndex = 0;
-		for (int32 TriIndex = 0; TriIndex < NumTris; TriIndex++)
-		{
-			int MaterialIndex = InRawMesh.FaceMaterialIndices[TriIndex];
-			if (OutBounds.Num() <= MaterialIndex)
-				OutBounds.SetNumZeroed(MaterialIndex + 1);
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++, WedgeIndex++)
-			{
-				OutBounds[MaterialIndex] += InRawMesh.WedgeTexCoords[0][WedgeIndex];
-			}
-		}
-		return;
-	}
-
-
-	/*
-	* Process all meshes which are going to be combined into a single mesh and find which materials could be reused
-	* between meshes.
-	*/
-	void RemapMassiveLODMaterials(
-		const TArray<UMaterialInterface*>& InMaterials,
-		const TArray<FMeshMaterialReductionData*>& InMeshData,
-		const TMap<int32, TArray<int32> >& InMaterialMap,
-		const FSimplygonMaterialLODSettings& InMaterialLODSettings,
-		TArray<bool>& OutMeshShouldBakeVertexData,
-		TMap<int32, TArray<int32> >& OutMaterialMap,
-		TArray<UMaterialInterface*>& OutMaterials)
-	{
-		// Gather material properties
-		TMap<UMaterialInterface*, int32> MaterialNumTexCoords;
-		TMap<UMaterialInterface*, bool>  MaterialUseVertexColors;
-
-		for (int32 MaterialIndex = 0; MaterialIndex < InMaterials.Num(); MaterialIndex++)
-		{
-			UMaterialInterface* Material = InMaterials[MaterialIndex];
-			if (MaterialNumTexCoords.Find(Material) != nullptr)
-			{
-				// This material was already processed.
-				continue;
-			}
-			// QQQ
-			//if (!InMaterialLODSettings.bBakeVertexData)
-			//{
-			//	// We are not baking vertex data at all, don't analyze materials.
-			//	MaterialNumTexCoords.Add(Material, 0);
-			//	MaterialUseVertexColors.Add(Material, false);
-			//	continue;
-			//}
-			int32 NumTexCoords = 0;
-			bool bUseVertexColors = false;
-			FSimplygonUtilities::AnalyzeMaterial(Material, InMaterialLODSettings, NumTexCoords, bUseVertexColors);
-			MaterialNumTexCoords.Add(Material, NumTexCoords);
-			MaterialUseVertexColors.Add(Material, bUseVertexColors);
-		}
-
-		// Check which meshes has vertex colors.
-		TArray<bool> MeshHasVertexColors;
-		MeshHasVertexColors.AddZeroed(InMeshData.Num());
-		// QQ if (InMaterialLODSettings.bBakeVertexData)
-		{
-			for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
-			{
-				const FRawMesh* Mesh = InMeshData[MeshIndex]->Mesh;
-				bool bHasVertexColors = false;
-				for (int32 WedgeIndex = 0; WedgeIndex < Mesh->WedgeColors.Num(); WedgeIndex++)
-				{
-					if (Mesh->WedgeColors[WedgeIndex] != FColor::White)
-					{
-						bHasVertexColors = true;
-						break;
-					}
-				}
-				MeshHasVertexColors[MeshIndex] = bHasVertexColors;
-			}
-		}
-
-		// Build list of mesh's material properties.
-		OutMeshShouldBakeVertexData.Empty();
-		OutMeshShouldBakeVertexData.AddZeroed(InMeshData.Num());
-
-		for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
-		{
-			const TArray<int32>& MeshMaterialMap = InMaterialMap[MeshIndex];
-			int32 NumTexCoords = 0;
-			bool bUseVertexColors = false;
-			// Accumulate data of all materials.
-			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-			{
-				UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
-				NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
-				bUseVertexColors |= MaterialUseVertexColors[Material];
-			}
-			// Take into account presence of vertex colors in mesh.
-			bUseVertexColors &= MeshHasVertexColors[MeshIndex];
-			// Store data.
-			MeshHasVertexColors[MeshIndex] = bUseVertexColors;
-			OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexColors || (NumTexCoords >= 2);
-		}
-
-		// Build new material map.
-		// Structure used to simplify material merging.
-		struct FMeshMaterialData
-		{
-			UMaterialInterface* Material;
-			UStaticMesh* Mesh;
-			bool bHasVertexColors;
-
-			FMeshMaterialData(UMaterialInterface* InMaterial, UStaticMesh* InMesh, bool bInHasVertexColors)
-				: Material(InMaterial)
-				, Mesh(InMesh)
-				, bHasVertexColors(bInHasVertexColors)
-			{
-			}
-
-			bool operator==(const FMeshMaterialData& Other) const
-			{
-				return Material == Other.Material && Mesh == Other.Mesh && bHasVertexColors == Other.bHasVertexColors;
-			}
-		};
-
-		TArray<FMeshMaterialData> MeshMaterialData;
-		OutMaterialMap.Empty();
-		for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
-		{
-			const TArray<int32>& MeshMaterialMap = InMaterialMap[MeshIndex];
-			TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(MeshIndex);
-			UStaticMesh* StaticMesh = InMeshData[MeshIndex]->StaticMesh;
-
-			if (!MeshHasVertexColors[MeshIndex])
-			{
-				// No vertex colors - could merge materials with other meshes.
-				if (!OutMeshShouldBakeVertexData[MeshIndex])
-				{
-					// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
-					// which don't require vertex data baking too.
-					StaticMesh = nullptr;
-				}
-
-				for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-				{
-					FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-					int32 Index = MeshMaterialData.Find(Data);
-					if (Index == INDEX_NONE)
-					{
-						// Not found, add new entry.
-						Index = MeshMaterialData.Add(Data);
-					}
-					NewMeshMaterialMap.Add(Index);
-				}
-			}
-			else
-			{
-				// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
-				for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-				{
-					FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-					int32 Index = MeshMaterialData.Add(Data);
-					NewMeshMaterialMap.Add(Index);
-				}
-			}
-		}
-
-		// Build new material list - simply extract MeshMaterialData[i].Material.
-		OutMaterials.Empty();
-		OutMaterials.AddUninitialized(MeshMaterialData.Num());
-		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterialData.Num(); MaterialIndex++)
-		{
-			OutMaterials[MaterialIndex] = MeshMaterialData[MaterialIndex].Material;
-		}
-	}
-
-	/*
-	* Flatten all materials with baking vertex data when needed and taking into account material sharing.
-	* All flatten materials will be put to the first item in MeshData array.
-	*/
-	void FlattenMassiveLODMaterials(
-		TArray<FMeshMaterialReductionData*>& MeshData,
-		const TArray<UMaterialInterface*>& InMaterials,
-		const TMap<int32, TArray<int32> >& InMaterialMap,
-		const FSimplygonMaterialLODSettings& InMaterialLODSettings,
-		const TArray<bool>& InMeshShouldBakeVertexData,
-		ISimplygonUtilities& SimplygonUtilities)
-	{
-		const int32 TextureWidth = FSimplygonMaterialLODSettings::GetTextureResolutionFromEnum(InMaterialLODSettings.TextureWidth);
-		const int32 TextureHeight = FSimplygonMaterialLODSettings::GetTextureResolutionFromEnum(InMaterialLODSettings.TextureHeight);
-
-		// Prepare container for cached shaders.
-		TMap<UMaterialInterface*, FExportMaterialProxyCache> CachedShaders;
-		CachedShaders.Empty(InMaterials.Num());
-
-		for (int32 MaterialIndex = 0; MaterialIndex < InMaterials.Num(); MaterialIndex++)
-		{
-			UMaterialInterface* CurrentMaterial = InMaterials[MaterialIndex];
-
-			// Check if we already have cached compiled shader for this material.
-			FExportMaterialProxyCache* CachedShader = CachedShaders.Find(CurrentMaterial);
-			if (CachedShader == nullptr)
-			{
-				CachedShader = &CachedShaders.Add(CurrentMaterial);
-			}
-
-			// Find a mesh which uses this material.
-			int32 UsedMeshIndex = 0;
-			int32 LocalMaterialIndex = 0;
-			FMeshMaterialReductionData* UsedMeshData = nullptr;
-			for (int32 MeshIndex = 0; MeshIndex < MeshData.Num() && UsedMeshData == nullptr; MeshIndex++)
-			{
-				const TArray<int32>& GlobalMaterialIndices = *InMaterialMap.Find(MeshIndex);
-				for (LocalMaterialIndex = 0; LocalMaterialIndex < GlobalMaterialIndices.Num(); LocalMaterialIndex++)
-				{
-					if (GlobalMaterialIndices[LocalMaterialIndex] == MaterialIndex)
-					{
-						UsedMeshIndex = MeshIndex;
-						UsedMeshData = MeshData[MeshIndex];
-						break;
-					}
-				}
-			}
-			check(UsedMeshData != nullptr);
-
-			FFlattenMaterial* FlattenMaterial = FSimplygonUtilities::CreateFlattenMaterial(InMaterialLODSettings, TextureWidth, TextureHeight);
-
-			if (InMeshShouldBakeVertexData[UsedMeshIndex])
-			{
-				// Generate new non-overlapping texture coordinates for mesh
-				if (UsedMeshData->TexcoordBounds.Num() == 0)
-				{
-					GetTextureCoordinateBoundsForRawMesh(*UsedMeshData->Mesh, UsedMeshData->TexcoordBounds);
-					GenerateUniqueUVs(*UsedMeshData->Mesh, 0.8f, TextureWidth, TextureHeight, 3.0f, UsedMeshData->NewUVs);
-				}
-				// Generate FFlattenMaterial using mesh geometry
-				FSimplygonUtilities::ExportMaterial(
-					CurrentMaterial,
-					UsedMeshData->Mesh,
-					LocalMaterialIndex,
-					UsedMeshData->TexcoordBounds[LocalMaterialIndex],
-					UsedMeshData->NewUVs,
-					*FlattenMaterial,
-					CachedShader);
-			}
-			else
-			{
-				// Generate simple FFlattenMaterial
-				FSimplygonUtilities::ExportMaterial(
-					CurrentMaterial,
-					*FlattenMaterial,
-					CachedShader);
-			}
-			// Adding all materials to the first mesh
-			MeshData[0]->FlattenMaterials.Add(FlattenMaterial);
-			check(MeshData[0]->FlattenMaterials.Num() == MaterialIndex + 1);
-
-			// Check if this material will be used later. If not - release shader.
-			bool bMaterialStillUsed = false;
-			for (int32 Index = MaterialIndex + 1; Index < InMaterials.Num(); Index++)
-			{
-				if (InMaterials[Index] == CurrentMaterial)
-				{
-					bMaterialStillUsed = true;
-					break;
-				}
-			}
-			if (!bMaterialStillUsed)
-			{
-				CachedShader->Release();
-			}
-		}
-		// Adjust emissive channels
-		MeshData[0]->AdjustEmissiveChannels();
-	}
-		
-
-	virtual void BuildProxy(
-		const TArray<UStaticMeshComponent*> InputStaticMeshComponents,
-		const struct FMeshProxySettings& InProxySettings,
-		FRawMesh& OutProxyMesh,
-		FFlattenMaterial& OutMaterial,
-		FBox& OutProxyBox
-		)
-	{
-		ISimplygonUtilities& SimplygonUtilities = FModuleManager::Get().LoadModuleChecked<ISimplygonUtilities>("SimplygonUtilities");
-
-		TArray<FMeshMaterialReductionData*>				InputDataArray;
-		TArray<UMaterialInterface*>						StaticMeshMaterials;
-		TMap<int32, TArray<int32>>						MaterialMap;
-		UMaterial*										OutNonFlattenMaterial = NULL;
-		
-		//Convert static mesh components
-		for (int32 ComponentIndex = 0; ComponentIndex < InputStaticMeshComponents.Num(); ++ComponentIndex)
-		{
-			UStaticMeshComponent* MeshComponent = InputStaticMeshComponents[ComponentIndex];
-			//Store the bounds for each component
-			OutProxyBox += MeshComponent->Bounds.GetBox();
-
-			bool bSuccess = GatherRawMeshData(MeshComponent, InputDataArray, SimplygonUtilities);
-
-			if (bSuccess)
-			{
-				GatherMaterialData(MeshComponent, InputDataArray.Num() - 1, *InputDataArray.Last(), StaticMeshMaterials, MaterialMap);
-			}
-		}
-
-
-		const FSimplygonMaterialLODSettings& MaterialLODSettings = FSimplygonMaterialLODSettings(InProxySettings.MaterialSettings);
-
-		// Share materials whenever possible.
-		TArray<bool> MeshShouldBakeVertexData;
-		TMap<int32, TArray<int32> > NewMaterialMap;
-		TArray<UMaterialInterface*> NewStaticMeshMaterials;
-		RemapMassiveLODMaterials(
-			StaticMeshMaterials,
-			InputDataArray,
-			MaterialMap,
-			MaterialLODSettings,
-			MeshShouldBakeVertexData,
-			NewMaterialMap,
-			NewStaticMeshMaterials);
-		// Use shared material data.
-		Exchange(MaterialMap, NewMaterialMap);
-		Exchange(StaticMeshMaterials, NewStaticMeshMaterials);
-
-		// Put all materials to InputDataArray[0] and find resulting BlendMode. Note that massive lOD processors
-		// doesn't have multiple output materials feature, so we are using InputDataArray[0] for resulting material.
-		InputDataArray[0]->NonFlattenMaterials = StaticMeshMaterials;
-		InputDataArray[0]->BuildOutputMaterialMap(MaterialLODSettings, false);
-
-		// Convert materials into flatten materials. Can't use FMeshMaterialReductionData::BuildFlattenMaterials
-		// here because of binding materials to different meshes.
-		FlattenMassiveLODMaterials(
-			InputDataArray,
-			StaticMeshMaterials,
-			MaterialMap,
-			MaterialLODSettings,
-			MeshShouldBakeVertexData,
-			SimplygonUtilities);
-
-		/*// Prepare container for cached shaders.
-		TMap<UMaterialInterface*, FExportMaterialProxyCache> CachedShaders;
-		CachedShaders.Empty(StaticMeshMaterials.Num());
-
-		for (int32 MaterialIndex = 0; MaterialIndex < StaticMeshMaterials.Num(); ++MaterialIndex)
-		{
-			UMaterialInterface* CurrentMaterial = StaticMeshMaterials[MaterialIndex];
-
-			// Check if we already have cached compiled shader for this material.
-			FExportMaterialProxyCache* CachedShader = CachedShaders.Find(CurrentMaterial);
-			if (CachedShader == nullptr)
-			{
-				CachedShader = &CachedShaders.Add(CurrentMaterial);
-			}
-
-			FFlattenMaterial* FlattenMaterial = new FFlattenMaterial();
-
-			FlattenMaterial->DiffuseSize = InProxySettings.MaterialSettings.TextureSize;
-			FlattenMaterial->NormalSize = InProxySettings.MaterialSettings.bNormalMap ? InProxySettings.MaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			FlattenMaterial->MetallicSize = InProxySettings.MaterialSettings.bMetallicMap ? InProxySettings.MaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			FlattenMaterial->RoughnessSize = InProxySettings.MaterialSettings.bRoughnessMap ? InProxySettings.MaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			FlattenMaterial->SpecularSize = InProxySettings.MaterialSettings.bSpecularMap ? InProxySettings.MaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			//FlattenMaterial->AOSize = InProxySettings.Material.TextureSize;
-			
-			//Render FFlattenMaterial			
-			//Find a mesh for this material. Later could switch to loop over InputDataArray and its NonFlatternMaterials
-			FMeshMaterialReductionData* MeshData = NULL;
-			int32 LocalMaterialIndex = 0;
-			for (int32 RawMeshIndex = 0; RawMeshIndex < InputDataArray.Num() && MeshData == NULL; RawMeshIndex++)
-			{
-				const TArray<int32>& GlobalMaterialIndices = *MaterialMap.Find(RawMeshIndex);
-				for (LocalMaterialIndex = 0; LocalMaterialIndex < GlobalMaterialIndices.Num(); LocalMaterialIndex++)
-				{
-					if (GlobalMaterialIndices[LocalMaterialIndex] == MaterialIndex)
-					{
-						MeshData = InputDataArray[RawMeshIndex];
-						break;
-					}
-				}
-			}
-			check(MeshData);
-			// Generate new non-overlapping texture coordinates for mesh
-			if (MeshData->TexcoordBounds.Num() == 0)
-			{
-				GetTextureCoordinateBoundsForRawMesh(*MeshData->Mesh, MeshData->TexcoordBounds);
-				GenerateUniqueUVs(*MeshData->Mesh, 0.8f, InProxySettings.MaterialSettings.TextureSize.X, InProxySettings.MaterialSettings.TextureSize.Y, 3.0f, MeshData->NewUVs);
-			}
-			// Generate FFlattenMaterial using mesh geometry
-			SimplygonUtilities.ExportMaterial(
-				CurrentMaterial,
-				MeshData->Mesh,
-				LocalMaterialIndex,
-				MeshData->TexcoordBounds[LocalMaterialIndex],
-				MeshData->NewUVs,
-				*FlattenMaterial);
-				
-			check(MeshData->FlattenMaterials.Num() == LocalMaterialIndex);
-			MeshData->FlattenMaterials.Add(FlattenMaterial);
-			
-		}*/
-
-		//For each raw mesh, re-map the material indices from Local to Global material indices space
-		for (int32 RawMeshIndex = 0; RawMeshIndex < InputDataArray.Num(); ++RawMeshIndex)
-		{
-			const TArray<int32>& GlobalMaterialIndices = *MaterialMap.Find(RawMeshIndex);
-			TArray<int32>& MaterialIndices = InputDataArray[RawMeshIndex]->Mesh->FaceMaterialIndices;
-			int32 MaterialIndicesCount = MaterialIndices.Num();
-
-			for (int32 TriangleIndex = 0; TriangleIndex < MaterialIndicesCount; ++TriangleIndex)
-			{
-				int32 LocalMaterialIndex = MaterialIndices[TriangleIndex];
-				int32 GlobalMaterialIndex = GlobalMaterialIndices[LocalMaterialIndex];
-
-				//Assign the new material index to the raw mesh
-				MaterialIndices[TriangleIndex] = GlobalMaterialIndex;
-			}
-		}
-
-		ProxyLOD(InputDataArray, InProxySettings, OutProxyMesh, OutMaterial);
-
-	}
-
 	// Processor is spRemeshingProcessor or spAggregationProcessor
 	template <typename ProcessorClass>
-	void SimplygonProcessMassiveLOD(
+	void SimplygonProcessLOD(
 		ProcessorClass Processor,
-		const TArray<FMeshMaterialReductionData*>& DataArray,
+		const TArray<FMeshMergeData>& DataArray,
+		const TArray<FFlattenMaterial> FlattenedMaterials,
 		const FSimplygonMaterialLODSettings& MaterialLODSettings,
 		FFlattenMaterial& OutMaterial)
 	{
@@ -1408,22 +633,12 @@ public:
 			MaterialLODSettings,
 			Processor->GetMappingImageSettings(),
 			/*InAggregateProcess = */ TAreTypesEqual<ProcessorClass, SimplygonSDK::spAggregationProcessor>::Value,
-			/*InRemoveUVs = */ true,
-			nullptr);
+			/*InRemoveUVs = */ true);
 
 		// Convert FFlattenMaterial array to Simplygon materials
 		SimplygonSDK::spMaterialTable InputMaterialTable = SDK->CreateMaterialTable();
-		for (int32 MeshIndex = 0; MeshIndex < DataArray.Num(); MeshIndex++)
-		{
-			// For some cases, MassiveLOD will have all materials baked in DataArray[0]
-			if (DataArray[MeshIndex]->FlattenMaterials.Num())
-			{
-				// Convert and immediately release FFlattenMaterial. It's worth releasing input materials if MassiveLOD converts
-				// really big scenes.
-				CreateSGMaterialFromFlattenMaterial(DataArray[MeshIndex]->FlattenMaterials, MaterialLODSettings, InputMaterialTable, true);
-			}
-		}
-
+		CreateSGMaterialFromFlattenMaterial(FlattenedMaterials, MaterialLODSettings, InputMaterialTable, true);
+		
 		// Perform LOD processing
 		UE_LOG(LogSimplygon, Log, TEXT("Processing with %s."), *FString(Processor->GetClass()));
 		Processor->RunProcessing();
@@ -1434,19 +649,179 @@ public:
 		SimplygonSDK::spMappingImage MappingImage = Processor->GetMappingImage();
 		SimplygonSDK::spMaterial SgMaterial = RebakeMaterials(MaterialLODSettings, MappingImage, InputMaterialTable);
 		CreateFlattenMaterialFromSGMaterial(SgMaterial, OutMaterial);
-		// Use OutputBlendMode[0] from DataArray[0], as prepared by GenerateMassiveLODMesh function.
-		OutMaterial.BlendMode = DataArray[0]->OutputBlendMode[0];
-		OutMaterial.bTwoSided = DataArray[0]->OutputTwoSided[0];
-		OutMaterial.EmissiveScale = DataArray[0]->OutputEmissiveScale[0];
+
+		if (FlattenedMaterials.Num())
+		{
+			OutMaterial.BlendMode = FlattenedMaterials[0].BlendMode;
+			OutMaterial.bTwoSided = FlattenedMaterials[0].bTwoSided;
+			OutMaterial.EmissiveScale = FlattenedMaterials[0].EmissiveScale;
+		}
+		
 		UE_LOG(LogSimplygon, Log, TEXT("Casting done."));
 	}
 
-	virtual void ProxyLOD(
-		const TArray<FMeshMaterialReductionData*>& InData,
-		const struct FMeshProxySettings& InProxySettings,
-		FRawMesh& OutProxyMesh,
-		FFlattenMaterial& OutMaterial)
+
+	class FProxyLODTask : FRunnable
 	{
+	public:
+		FProxyLODTask(const TArray<struct FMeshMergeData>& InData,
+			const struct FMeshProxySettings& InProxySettings,
+			const TArray<struct FFlattenMaterial>& InputMaterials,
+			const FGuid InJobGUID, FProxyCompleteDelegate& InDelegate,
+			SimplygonSDK::ISimplygonSDK* InSDK, FSimplygonMeshReduction* InReduction)
+			: Data(InData)
+			, ProxySettings(InProxySettings)
+			, Materials(InputMaterials)
+			, JobGUID(InJobGUID)
+			, Delegate(InDelegate)			
+			, SDK(InSDK)
+			, Reduction(InReduction)
+		{
+		}
+
+		virtual bool Init()
+		{
+			return true;
+		}
+
+		virtual uint32 Run()
+		{
+			FRawMesh OutProxyMesh;
+			FFlattenMaterial OutMaterial;
+
+			if (!Data.Num())
+			{
+				UE_LOG(LogSimplygon, Log, TEXT("The selected meshes are not valid. Make sure to select static meshes only."));
+				OutProxyMesh.Empty();
+				return 1;
+			}
+
+			//Create a Simplygon Scene
+			SimplygonSDK::spScene Scene = SDK->CreateScene();
+
+			SimplygonSDK::spGeometryValidator GeometryValidator = SDK->CreateGeometryValidator();
+			TArray<FBox2D> GlobalTexcoordBounds;
+
+			
+			for (int32 MeshIndex = 0; MeshIndex < Data.Num(); ++MeshIndex)
+			{
+				GlobalTexcoordBounds.Append(Data[MeshIndex].TexCoordBounds);
+			}
+
+			//For each raw mesh in array create a scene mesh and populate with geometry data
+			for (int32 MeshIndex = 0; MeshIndex < Data.Num(); ++MeshIndex)
+			{
+				SimplygonSDK::spGeometryData GeometryData = Reduction->CreateGeometryFromRawMesh(Data[MeshIndex].RawMesh, Data[MeshIndex].TexCoordBounds, Data[MeshIndex].NewUVs);
+				if (!GeometryData)
+				{
+					UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
+					continue;
+				}
+
+				GeometryData->CleanupNanValues();
+
+				//Validate the geometry
+				Reduction->ValidateGeometry(GeometryValidator, GeometryData);
+
+				check(GeometryData)
+
+#ifdef DEBUG_PROXY_MESH
+					SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
+				objexp->SetExportFilePath("d:/BeforeProxyMesh.obj");
+				objexp->SetSingleGeometry(GeometryData);
+				objexp->RunExport();
+#endif
+
+				SimplygonSDK::spSceneMesh Mesh = SDK->CreateSceneMesh();
+				Mesh->SetGeometry(GeometryData);
+				Mesh->SetName(TCHAR_TO_ANSI(*FString::Printf(TEXT("UnrealMesh%d"), MeshIndex)));
+				Scene->GetRootNode()->AddChild(Mesh);
+
+			}
+
+			//Create a remesher
+			SimplygonSDK::spRemeshingProcessor RemeshingProcessor = SDK->CreateRemeshingProcessor();
+
+			//Setup the remesher
+			//RemeshingProcessor->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
+			// TODO add more settings back in
+			RemeshingProcessor->GetRemeshingSettings()->SetOnScreenSize(ProxySettings.ScreenSize);
+			RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance(ProxySettings.MergeDistance);
+			RemeshingProcessor->SetScene(Scene);
+
+			FSimplygonMaterialLODSettings MaterialLODSettings(ProxySettings.MaterialSettings);
+			MaterialLODSettings.bActive = true;
+
+			// Process data
+			Reduction->SimplygonProcessLOD<SimplygonSDK::spRemeshingProcessor>(RemeshingProcessor, Data, Materials, MaterialLODSettings, OutMaterial);
+
+			//Collect the proxy mesh
+			SimplygonSDK::spSceneMesh ProxyMesh = SimplygonSDK::Cast<SimplygonSDK::ISceneMesh>(Scene->GetRootNode()->GetChild(0));
+
+#ifdef DEBUG_PROXY_MESH
+			SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
+			objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
+			objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
+			objexp->RunExport();
+#endif
+
+			//Convert geometry data to raw mesh data
+			SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
+			Reduction->CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
+
+			// Default smoothing
+			OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
+			for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
+			{
+				SmoothingMask = 1;
+			}
+
+			Delegate.ExecuteIfBound(OutProxyMesh, OutMaterial, JobGUID);
+
+			return 0;
+		}
+
+		virtual void Stop()
+		{
+
+		}
+
+		void StartJobAsync()
+		{
+			Thread = FRunnableThread::Create(this, TEXT("SimplygonMeshReductionTask"), 0, TPri_BelowNormal);
+		}
+
+		bool IsRunning() const
+		{
+			return (Thread != nullptr);
+		}
+		void Wait()
+		{
+			Thread->WaitForCompletion();
+		}
+	private:
+		FRunnableThread* Thread;
+		TArray<FMeshMergeData> Data;
+		struct FMeshProxySettings ProxySettings;
+		TArray<FFlattenMaterial> Materials;
+		FGuid JobGUID;
+		FProxyCompleteDelegate Delegate;
+		SimplygonSDK::ISimplygonSDK* SDK;
+		FSimplygonMeshReduction* Reduction;
+	};
+
+	virtual void ProxyLOD(const TArray<FMeshMergeData>& InData,
+		const struct FMeshProxySettings& InProxySettings,
+		const TArray<FFlattenMaterial>& InputMaterials,
+		const FGuid InJobGUID) override
+	{
+		/*	FProxyLODTask* Task = new FProxyLODTask(InData, InProxySettings, InputMaterials, InJobGUID, CompleteDelegate, SDK, this);
+			Task->StartJobAsync();
+			return;*/
+
+		FRawMesh OutProxyMesh;
+		FFlattenMaterial OutMaterial;
+
 		if (!InData.Num())
 		{
 			UE_LOG(LogSimplygon, Log, TEXT("The selected meshes are not valid. Make sure to select static meshes only."));
@@ -1459,17 +834,16 @@ public:
 
 		SimplygonSDK::spGeometryValidator GeometryValidator = SDK->CreateGeometryValidator();
 		TArray<FBox2D> GlobalTexcoordBounds;
-	
-		// QQ needed?
+				
 		for (int32 MeshIndex = 0; MeshIndex < InData.Num(); ++MeshIndex)
 		{
-			GlobalTexcoordBounds.Append(InData[MeshIndex]->TexcoordBounds);
+			GlobalTexcoordBounds.Append(InData[MeshIndex].TexCoordBounds);
 		}
-		
+
 		//For each raw mesh in array create a scene mesh and populate with geometry data
 		for (int32 MeshIndex = 0; MeshIndex < InData.Num(); ++MeshIndex)
 		{
-			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(*InData[MeshIndex]->Mesh, GlobalTexcoordBounds, InData[MeshIndex]->NewUVs);
+			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(InData[MeshIndex].RawMesh, InData[MeshIndex].TexCoordBounds, InData[MeshIndex].NewUVs);
 			if (!GeometryData)
 			{
 				UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
@@ -1502,7 +876,7 @@ public:
 
 		//Setup the remesher
 		RemeshingProcessor->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
-		// SetRemeshingSettings(InProxySettings, RemeshingProcessor); QQ more settings
+		// TODO add more settings back in
 		RemeshingProcessor->GetRemeshingSettings()->SetOnScreenSize(InProxySettings.ScreenSize);
 		RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance(InProxySettings.MergeDistance);
 		RemeshingProcessor->SetScene(Scene);
@@ -1511,33 +885,30 @@ public:
 		MaterialLODSettings.bActive = true;
 
 		// Process data
-		SimplygonProcessMassiveLOD<SimplygonSDK::spRemeshingProcessor>(RemeshingProcessor, InData, MaterialLODSettings, OutMaterial);
+		SimplygonProcessLOD<SimplygonSDK::spRemeshingProcessor>(RemeshingProcessor, InData, InputMaterials, MaterialLODSettings, OutMaterial);
 
 		//Collect the proxy mesh
 		SimplygonSDK::spSceneMesh ProxyMesh = SimplygonSDK::Cast<SimplygonSDK::ISceneMesh>(Scene->GetRootNode()->GetChild(0));
 
 #ifdef DEBUG_PROXY_MESH
 		SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
-		objexp->SetExportFilePath( "d:/AfterProxyMesh.obj" );
-		objexp->SetSingleGeometry( ProxyMesh->GetGeometry() );
+		objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
+		objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
 		objexp->RunExport();
 #endif
-	
+
 		//Convert geometry data to raw mesh data
 		SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
 		CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
-
-		//// Since mesh proxies have 1 texture channel
-		//// put copy to channel 1 for lightmaps
-		//OutProxyMesh.WedgeTexCoords[1].Empty();
-		//OutProxyMesh.WedgeTexCoords[1].Append(OutProxyMesh.WedgeTexCoords[0]);
-
+		
 		// Default smoothing
 		OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
 		for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
 		{
 			SmoothingMask = 1;
 		}
+
+		CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
 	}
 
 private:
@@ -1669,7 +1040,7 @@ private:
 	}
 
 	// This is a copy of CreateGeometryFromRawMesh with additional features for material LOD.
-	SimplygonSDK::spGeometryData CreateGeometryFromRawMesh(const FRawMesh& RawMesh, const TArray<FBox2D>& TextureBounds, const TArray<FVector2D>& InTexCoords)
+	SimplygonSDK::spGeometryData CreateGeometryFromRawMesh(const FRawMesh& RawMesh, const TArray<FBox2D> & TextureBounds, const TArray<FVector2D>& InTexCoords)
 	{
 		int32 NumVertices = RawMesh.VertexPositions.Num();
 		int32 NumWedges = RawMesh.WedgeIndices.Num();
@@ -1713,6 +1084,7 @@ private:
 					// Compute texture bounds for current material.
 					float MinU = 0, ScaleU = 1;
 					float MinV = 0, ScaleV = 1;
+					
 					if (TextureBounds.IsValidIndex(MaterialIndex) && TexCoordIndex == 0 && InTexCoords.Num() == 0)
 					{
 						const FBox2D& Bounds = TextureBounds[MaterialIndex];
@@ -2574,23 +1946,7 @@ private:
 		ReductionSettings->SetDataCreationPreferences(2); //2 = reposition vertices enabled
 		ReductionSettings->SetGenerateGeomorphData(true);
 	}
-
 	
-	//void SetRemeshingSettings( const FSimplygonRemeshingSettings& Settings, SimplygonSDK::spRemeshingProcessor RemeshingProcessor )
-	//{
-	//	SimplygonSDK::spRemeshingSettings RemeshingSettings = RemeshingProcessor->GetRemeshingSettings();
-	//	RemeshingSettings->SetOnScreenSize(Settings.ScreenSize);
-	//	RemeshingSettings->SetMergeDistance(Settings.MergeDistance);
-	//	//RemeshingSettings->SetUseGroundPlane(Settings.bUseClippingPlane);
-	//	//RemeshingSettings->SetGroundPlaneAxisIndex(Settings.AxisIndex); // 0:X-Axis, 1:Y-Axis, 2:Z-Axis
-	//	//RemeshingSettings->SetGroundPlaneLevel(Settings.ClippingLevel);
-	//	//RemeshingSettings->SetGroundPlaneNegativeHalfspace(Settings.bPlaneNegativeHalfspace);
-	//	RemeshingSettings->SetTransferNormals( false );
-	//	RemeshingSettings->SetMergeDistance( Settings.MergeDistance );
-	//	RemeshingSettings->SetHardEdgeAngleInRadians(FMath::DegreesToRadians(Settings.HardAngleThreshold));
-	//}
-	 
-
 	/**
 	 * Sets vertex normal settings for Simplygon.
 	 * @param Settings - The skeletal mesh optimization settings.
@@ -2699,88 +2055,6 @@ private:
 	}
 
 	//Material conversions
-	bool CreateSGMaterialFromFlattenMaterial(
-		const TArray<FFlattenMaterial>& InputMaterials,
-		SimplygonSDK::spMaterialTable& OutSGMaterialTable, 
-		FMaterialCastingProperties& OutCastProperties)
-	{
-		if (InputMaterials.Num() == 0)
-		{
-			//If there are no materials, feed Simplygon with a default material instead.
-			UE_LOG(LogSimplygon, Log, TEXT("Input meshes do not contain any materials. A proxy without material will be generated."));
-			return false;
-		}
-			
-		for (int32 MaterialIndex = 0; MaterialIndex < InputMaterials.Num(); MaterialIndex++)
-		{
-			SimplygonSDK::spMaterial SGMaterial = SDK->CreateMaterial();
-			const FFlattenMaterial& FlattenMaterial = InputMaterials[MaterialIndex];
-
-			//Create UE4 Channels
-			//Simplygon 5.5 has three new channels already present called base color metallic roughness
-			//To conform with older simplygon versions:
-			if(!SGMaterial->HasUserChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR))
-				SGMaterial->AddUserChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR);
-
-			if(!SGMaterial->HasUserChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC))
-				SGMaterial->AddUserChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC);
-
-			if(!SGMaterial->HasUserChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS))
-				SGMaterial->AddUserChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS);
-
-			// We actually use these channels for metallic, roughness and specular
-			if(!SGMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_METALLIC))
-				SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_METALLIC);
-
-			if(!SGMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_ROUGHNESS))
-				SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_ROUGHNESS);
-
-			if(!SGMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_SPECULAR))
-				SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_SPECULAR);
-
-					
-			SGMaterial->SetName(TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"), MaterialIndex)));
-			
-			// BaseColor
-			if (FlattenMaterial.DiffuseSamples.Num())
-			{
-				SetMaterialChannelData(FlattenMaterial.DiffuseSamples, FlattenMaterial.DiffuseSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_DIFFUSE);
-			}
-
-			// Normal
-			if (FlattenMaterial.NormalSamples.Num())
-			{
-				OutCastProperties.bCastNormals = true;
-				SetMaterialChannelData(FlattenMaterial.NormalSamples, FlattenMaterial.NormalSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS);
-			}
-
-			// Metallic
-			if (FlattenMaterial.MetallicSamples.Num())
-			{
-				OutCastProperties.bCastMetallic = true;
-				SetMaterialChannelData(FlattenMaterial.MetallicSamples, FlattenMaterial.MetallicSize, SGMaterial, USER_MATERIAL_CHANNEL_METALLIC);
-			}
-
-			// Roughness
-			if (FlattenMaterial.RoughnessSamples.Num())
-			{
-				OutCastProperties.bCastRoughness = true;
-				SetMaterialChannelData(FlattenMaterial.RoughnessSamples, FlattenMaterial.RoughnessSize, SGMaterial, USER_MATERIAL_CHANNEL_ROUGHNESS);
-			}
-
-			// Specular
-			if (FlattenMaterial.SpecularSamples.Num())
-			{
-				OutCastProperties.bCastSpecular = true;
-				SetMaterialChannelData(FlattenMaterial.SpecularSamples, FlattenMaterial.SpecularSize, SGMaterial, USER_MATERIAL_CHANNEL_SPECULAR);
-			}
-			
- 			OutSGMaterialTable->AddMaterial(SGMaterial);
-		}
-
-		return true;
-	}
-
 	void GetMaterialChannelData(const SimplygonSDK::spMaterial& InSGMaterial, const char* SGMaterialChannelName, TArray<FColor>& OutSamples, FIntPoint& OutTextureSize)
 	{
 		SimplygonSDK::spImageData SGChannelData = InSGMaterial->GetLayeredTextureImage(SGMaterialChannelName, 0);
@@ -2881,9 +2155,9 @@ private:
 		ImageSize = ImageSize.ComponentMax(Settings.SpecularMapSize);
 		return ImageSize;
 	}
-
+	
 	bool CreateSGMaterialFromFlattenMaterial(
-		const TIndirectArray<FFlattenMaterial>& InputMaterials,
+		const TArray<FFlattenMaterial>& InputMaterials,
 		const FSimplygonMaterialLODSettings& InMaterialLODSettings,
 		SimplygonSDK::spMaterialTable& OutSGMaterialTable,
 		bool bReleaseInputMaterials)
@@ -2971,153 +2245,9 @@ private:
 				// and above the call chain.
 				const_cast<FFlattenMaterial*>(&FlattenMaterial)->ReleaseData();
 			}
-			}
+		}
 
 		return true;
-		}
-
-	void CreateRawMeshFromGeometry_Proxy(FRawMesh& OutRawMesh, 
-										 const SimplygonSDK::spGeometryData& GeometryData, 
-										 EWindingMode WindingMode)
-	{
-		check(GeometryData);
-
-		SimplygonSDK::spRealArray Positions = GeometryData->GetCoords();
-		SimplygonSDK::spRidArray Indices = GeometryData->GetVertexIds();
-		SimplygonSDK::spRidArray MaterialIndices = GeometryData->GetMaterialIds();
-		SimplygonSDK::spRidArray GroupIds = GeometryData->GetGroupIds();
-		SimplygonSDK::spRealArray LinearColors = GeometryData->GetColors(0);
-		SimplygonSDK::spRealArray Normals = GeometryData->GetNormals();
-		SimplygonSDK::spRealArray Tangents = GeometryData->GetTangents(0);
-		SimplygonSDK::spRealArray Bitangents = GeometryData->GetBitangents(0);
-		
-		SimplygonSDK::spRealData sgTuple = SDK->CreateRealData();
-
-		check(Positions);
-		check(Indices);
-
-		FRawMesh& RawMesh = OutRawMesh;
-		const bool bReverseWinding = (WindingMode == WINDING_Reverse);
-		int32 NumTris = GeometryData->GetTriangleCount();
-		int32 NumWedges = NumTris * 3;
-		int32 NumVertices = GeometryData->GetVertexCount();
-
-		RawMesh.VertexPositions.Empty(NumVertices);
-		RawMesh.VertexPositions.AddUninitialized(NumVertices);
-		for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
-		{
-			//Positions->GetTuple(VertexIndex, (float*)&RawMesh.VertexPositions[VertexIndex]);
-			Positions->GetTuple(VertexIndex, sgTuple);
-			SimplygonSDK::real* vertexPos = sgTuple->GetData();
-			RawMesh.VertexPositions[VertexIndex] = GetConversionMatrix().TransformPosition(FVector(vertexPos[0], vertexPos[1], vertexPos[2]));
-		}
-
-		RawMesh.WedgeIndices.Empty(NumWedges);
-		RawMesh.WedgeIndices.AddUninitialized(NumWedges);
-		for (int32 TriIndex = 0; TriIndex < NumTris; ++TriIndex)
-		{
-			
-			for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
-			{
-				const uint32 DestIndex = bReverseWinding ? (2 - CornerIndex) : CornerIndex;
-				RawMesh.WedgeIndices[TriIndex * 3 + DestIndex] = Indices->GetItem(TriIndex * 3 + CornerIndex);
-			}
-			
-		}
-
-		for(int32 TexCoordIndex = 0; TexCoordIndex < MAX_MESH_TEXTURE_COORDS; ++TexCoordIndex)
-		{
-			SimplygonSDK::spRealArray TexCoords = GeometryData->GetTexCoords(TexCoordIndex);
-			if (TexCoords)
-			{
-				RawMesh.WedgeTexCoords[TexCoordIndex].Empty(NumWedges);
-				RawMesh.WedgeTexCoords[TexCoordIndex].AddUninitialized(NumWedges);
-				for (int32 TriIndex = 0; TriIndex < NumTris; ++TriIndex)
-				{
-					for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
-					{
-						const uint32 DestIndex = bReverseWinding ? (2 - CornerIndex) : CornerIndex;
-						//TexCoords->GetTuple(TriIndex * 3 + CornerIndex, (float*)&RawMesh.WedgeTexCoords[TexCoordIndex][TriIndex * 3 + DestIndex]);
-						TexCoords->GetTuple(TriIndex * 3 + CornerIndex, sgTuple);
-
-						SimplygonSDK::real* sgTextCoors = sgTuple->GetData();
-						RawMesh.WedgeTexCoords[TexCoordIndex][TriIndex * 3 + DestIndex] = FVector2D(sgTextCoors[0], sgTextCoors[1]);
-					}
-				
-				}
-			}
-		}
-
-		if (LinearColors)
-		{
-			RawMesh.WedgeColors.Empty(NumWedges);
-			RawMesh.WedgeColors.AddUninitialized(NumWedges);
-			for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-			{
-				//LinearColors->GetTuple(WedgeIndex, (float*)&LinearColor);
-				LinearColors->GetTuple(WedgeIndex, sgTuple);
-				SimplygonSDK::real* sgVertexColor = sgTuple->GetData();
-				FLinearColor LinearColor(sgVertexColor[0], sgVertexColor[1], sgVertexColor[2], sgVertexColor[3]);
-				RawMesh.WedgeColors[WedgeIndex] = LinearColor.ToFColor(true);
-			}
-		}
-
-		if (Normals)
-		{
-			if (Tangents && Bitangents)
-			{
-				RawMesh.WedgeTangentX.Empty(NumWedges);
-				RawMesh.WedgeTangentX.AddUninitialized(NumWedges);
-				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-				{
-					//Tangents->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentX[WedgeIndex]);
-					Tangents->GetTuple(WedgeIndex, sgTuple);
-					SimplygonSDK::real* sgTangents = sgTuple->GetData();
-					RawMesh.WedgeTangentX[WedgeIndex] = GetConversionMatrix().TransformPosition(FVector(sgTangents[0], sgTangents[1], sgTangents[2]));
-				}
-
-				RawMesh.WedgeTangentY.Empty(NumWedges);
-				RawMesh.WedgeTangentY.AddUninitialized(NumWedges);
-				for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-				{
-					//Bitangents->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentY[WedgeIndex]);
-					Bitangents->GetTuple(WedgeIndex, sgTuple);
-					SimplygonSDK::real* sgBitangents = sgTuple->GetData();
-					RawMesh.WedgeTangentY[WedgeIndex] = GetConversionMatrix().TransformPosition(FVector(sgBitangents[0], sgBitangents[1], sgBitangents[2]));
-				}
-			}
-
-			RawMesh.WedgeTangentZ.Empty(NumWedges);
-			RawMesh.WedgeTangentZ.AddUninitialized(NumWedges);
-			for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-			{
-				//Normals->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentZ[WedgeIndex]);
-				Normals->GetTuple(WedgeIndex, sgTuple);
-				SimplygonSDK::real* sgNormal = sgTuple->GetData();
-				RawMesh.WedgeTangentZ[WedgeIndex] = GetConversionMatrix().TransformPosition(FVector(sgNormal[0], sgNormal[1], sgNormal[2]));
-			}
-		}
-
-		RawMesh.FaceMaterialIndices.Empty(NumTris);
-		RawMesh.FaceMaterialIndices.AddZeroed(NumTris);
-		if (MaterialIndices)
-		{
-			for (int32 TriIndex = 0; TriIndex < NumTris; ++TriIndex)
-			{
-				/*This is hard-coded to zero for now, but should be changed when ProxyLOD
-				  supports multiple materials.
-				*/
-				RawMesh.FaceMaterialIndices[TriIndex] = 0;//MaterialIndices->GetItem(TriIndex);
-			}
-		}
-
-		//Default Smoothing
-		RawMesh.FaceSmoothingMasks.Empty(NumTris);
-		RawMesh.FaceSmoothingMasks.AddZeroed(NumTris);
-		for (int32 TriIndex = 0; TriIndex < NumTris; ++TriIndex)
-		{
-			RawMesh.FaceSmoothingMasks[TriIndex] = 1;
-		}
 	}
 
 	/**
@@ -3185,7 +2315,6 @@ private:
 		//cast->SetBakeVertexColors(InCasterSettings.bBakeVertexColors);
 		cast->SetIsSRGB(InCasterSettings.bUseSRGB);
 		cast->CastMaterials(); // Fetch!
-
 	}
 
 	/**
@@ -3219,7 +2348,6 @@ private:
 		cast->CastMaterials(); // Fetch!
 	}
 
-
 	/**
 	 * Use Simplygon Opacity Caster to Cast an Opacity Channel
 	 * @param InCasterSettings - The Caster Settings used to setup the Simplygon Caster.
@@ -3242,9 +2370,7 @@ private:
 		cast->SetOutputChannelBitDepth( 8 ); // 8 bits per channel. So in this case we will have 24bit colors RGB.
 		cast->SetDilation( 10 ); // To avoid mip-map artifacts, the empty pixels on the map needs to be filled to a degree aswell.
 		cast->SetOutputImage(OutColorData);
-		cast->CastMaterials(); // Fetch!
-
-		
+		cast->CastMaterials(); // Fetch!		
 	}
 
 	/**
@@ -3255,8 +2381,7 @@ private:
 	void SetupMappingImage(const FSimplygonMaterialLODSettings& InMaterialLODSettings,
 		SimplygonSDK::spMappingImageSettings InMappingImageSettings,
 		bool InAggregateProcess,
-		bool InRemoveUVs,
-		const FMeshMaterialReductionData* ReductionData)
+		bool InRemoveUVs)
 	{
 		if (!InMaterialLODSettings.bActive)
 		{
@@ -3265,24 +2390,7 @@ private:
 
 		int32 NumInputMaterials = 1;
 		int32 NumOutputMaterials = 1;
-		if (ReductionData)
-		{
-			NumInputMaterials = ReductionData->GetInputMaterialCount();
-			NumOutputMaterials = ReductionData->GetOutputMaterialCount();
-			if (NumOutputMaterials > 1)
-			{
-				// The following code is required only if we're generating multiple materials.
-				// Setup additional MappingImageSettings.
-				InMappingImageSettings->SetInputMaterialCount(NumInputMaterials);
-				InMappingImageSettings->SetOutputMaterialCount(NumOutputMaterials);
-				for (int32 MaterialIndex = 0; MaterialIndex < NumInputMaterials; MaterialIndex++)
-				{
-					int32 OutMaterialIndex = ReductionData->OutputMaterialMap[MaterialIndex];
-					InMappingImageSettings->SetInputOutputMaterialMapping(MaterialIndex, OutMaterialIndex);
-				}
-			}
-		}
-
+		
 		//if (InMaterialLODSettings.bReuseExistingCharts || InAggregateProcess) - we're always using UVs from the mesh because new UVs are already generated with GenerateUniqueUVs() call
 		if (InAggregateProcess || NumOutputMaterials > 1)
 		{
@@ -3331,96 +2439,7 @@ private:
 			InMappingImageSettings->SetForcePower2Texture(true);
 		}
 	}
-
-
-	/**
-	 * Sets Mapping Image Setting for Simplygon.
-	 * @param InMaterialLODSettings - The MaterialLOD Settings used for setting up Simplygon MappingImageSetting.
-	 * @param InMappingImageSettings - The Simplygon MappingImage Settings that is being setup.
-	 */
-	void SetupMappingImage(FMaterialProxySettings InMaterialProxySettings,
-						   SimplygonSDK::spMappingImageSettings InMappingImageSettings,
-						   bool InAggregateProcess,
-						   bool InRemoveUVs,
-						   const FMeshMaterialReductionData* ReductionData)
-	{
-		//if (InMaterialProxySettings) QQQ .bActive
-		{
-			return;
-		}
-
-		int32 NumInputMaterials = 1;
-		int32 NumOutputMaterials = 1;
-		if (ReductionData)
-		{
-			NumInputMaterials = ReductionData->GetInputMaterialCount(); 
-			NumOutputMaterials = ReductionData->GetOutputMaterialCount();
-			if (NumOutputMaterials > 1)
-			{
-				// The following code is required only if we're generating multiple materials.
-				// Setup additional MappingImageSettings.
-				InMappingImageSettings->SetInputMaterialCount(NumInputMaterials);
-				InMappingImageSettings->SetOutputMaterialCount(NumOutputMaterials);
-				for (int32 MaterialIndex = 0; MaterialIndex < NumInputMaterials; MaterialIndex++)
-				{
-					int32 OutMaterialIndex = ReductionData->OutputMaterialMap[MaterialIndex];
-					InMappingImageSettings->SetInputOutputMaterialMapping(MaterialIndex, OutMaterialIndex);
-				}
-			}
-		}
-
-		//if (InMaterialLODSettings.bReuseExistingCharts || InAggregateProcess) - we're always using UVs from the mesh because new UVs are already generated with GenerateUniqueUVs() call
-		if (InAggregateProcess || NumOutputMaterials > 1)
-		{
-			InMappingImageSettings->SetTexCoordGeneratorType(SimplygonSDK::SG_TEXCOORDGENERATORTYPE_CHARTAGGREGATOR);
-			// QQQ InMappingImageSettings->SetChartAggregatorMode(SimplygonSDK::SG_CHARTAGGREGATORMODE_SURFACEAREA);
-		}
-		else
-		{
-			InMappingImageSettings->SetTexCoordGeneratorType(SimplygonSDK::SG_TEXCOORDGENERATORTYPE_PARAMETERIZER);
-		}
-
-		InMappingImageSettings->SetGenerateMappingImage(true);
-		InMappingImageSettings->SetTexCoordLevel(0);
-
-		if (NumOutputMaterials > 1)
-		{
-			InMappingImageSettings->SetGenerateTexCoords(true);	//! check if it is possible to avoid this
-		}
-			
-
-		for (int32 MaterialIndex = 0; MaterialIndex < NumOutputMaterials; MaterialIndex++)
-		{
-			InMappingImageSettings->SetGutterSpace(MaterialIndex, InMaterialProxySettings.GutterSpace);
-			InMappingImageSettings->SetMultisamplingLevel(MaterialIndex, GetSamples(ESimplygonTextureSamplingQuality::High));
-		}
-			
-			if (InRemoveUVs)
-			{
-				InMappingImageSettings->SetUseFullRetexturing(true);
-			}
-			
-			InMappingImageSettings->SetGenerateTangents(false);
-			
-
-
-			bool bAutomaticSizes = InMaterialProxySettings.bAutomaticTextureSizes;
-			InMappingImageSettings->SetUseAutomaticTextureSize(bAutomaticSizes);
-			
-			if (!bAutomaticSizes)
-			{
-			for (int32 MaterialIndex = 0; MaterialIndex < NumOutputMaterials; MaterialIndex++)
-			{
-				InMappingImageSettings->SetWidth(MaterialIndex, InMaterialProxySettings.TextureSize.X);
-				InMappingImageSettings->SetHeight(MaterialIndex, InMaterialProxySettings.TextureSize.Y);
-			}
-			}
-			else
-			{
-				InMappingImageSettings->SetForcePower2Texture(true);
-			}
-	}
-	
+		
 	SimplygonSDK::spMaterial RebakeMaterials(const FSimplygonMaterialLODSettings& InMaterialLODSettings,
 		SimplygonSDK::spMappingImage& InMappingImage,
 		SimplygonSDK::spMaterialTable& InSGMaterialTable,
@@ -3465,7 +2484,6 @@ private:
 
 		return OutMaterial;
 	}
-
 	
 	/*
 	*  (1, 0, 0)
@@ -3510,119 +2528,6 @@ private:
 			}
 		}
 	}
-	
-
-
-	virtual bool GenerateUniqueUVs(FRawMesh& RawMesh,
-		uint32 TexCoordIndex,
-		float MaxDesiredStretch,
-		uint32 DesiredTextureWidth,
-		uint32 DesiredTextureHeight,
-		uint32 DesiredGutterSpace)
-	{
-		bool bSuccess = false;
-
-		SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(RawMesh);
-		check(GeometryData);
-
-		SimplygonSDK::spRealArray NewUVs = SDK->CreateRealArray();
-		NewUVs->DeepCopy(GeometryData->GetTexCoords(0));
-
-		SimplygonSDK::spParameterizer SgParameterizer = SDK->CreateParameterizer();
-		SgParameterizer->SetMaxStretch(MaxDesiredStretch);
-		SgParameterizer->SetTextureWidth(DesiredTextureWidth);
-		SgParameterizer->SetTextureHeight(DesiredTextureHeight);
-		SgParameterizer->SetGutterSpace(DesiredGutterSpace);
-		SgParameterizer->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
-		bSuccess = SgParameterizer->Parameterize(GeometryData, NewUVs);
-
-		//SimplygonSDK::spChartAggregator SgChartAggregator = SDK->CreateChartAggregator();
-
-		if (bSuccess)
-		{
-
-			SimplygonSDK::spRealArray ExistingUVs = GeometryData->GetTexCoords(TexCoordIndex);
-			if (ExistingUVs)
-			{
-				GeometryData->RemoveTexCoords(TexCoordIndex);
-			}
-			GeometryData->AddTexCoords(TexCoordIndex);
-			GeometryData->GetTexCoords(TexCoordIndex)->DeepCopy(NewUVs);
-
-			CreateRawMeshFromGeometry(RawMesh, GeometryData, WINDING_Keep);
-		}
-
-		return bSuccess;
-	}
-
-	virtual bool GenerateUniqueUVs(
-		const FRawMesh& RawMesh,
-		float MaxDesiredStretch,
-		uint32 DesiredTextureWidth,
-		uint32 DesiredTextureHeight,
-		uint32 DesiredGutterSpace,
-		TArray<FVector2D>& OutTexCoords)
-	{
-#if USE_FLAYOUT_UV
-		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-		if (MeshUtilities.GenerateUniqueUVsForStaticMesh(RawMesh, FMath::Max(DesiredTextureWidth, DesiredTextureHeight), OutTexCoords))
-		{
-			return true;
-		}
-#endif
-		bool bSuccess = false;
-
-		SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(RawMesh);
-		check(GeometryData);
-
-		/*SimplygonSDK::spWelder Welder = SDK->CreateWelder();
-		Welder->SetWeldDist(0.0f);
-		Welder->WeldGeometry(GeometryData);*/
-
-		SimplygonSDK::spRealArray NewUVs = SDK->CreateRealArray();
-		NewUVs->DeepCopy(GeometryData->GetTexCoords(0));
-
-#if !USE_SIMPLYGON_CHART_AGGREGATOR
-		SimplygonSDK::spParameterizer SgParameterizer = SDK->CreateParameterizer();
-		SgParameterizer->SetMaxStretch(MaxDesiredStretch);
-#else
-		SimplygonSDK::spChartAggregator SgParameterizer = SDK->CreateChartAggregator();
-		SgParameterizer->SetSeparateOverlappingCharts(true);
-		SgParameterizer->SetUseAreaWeighting(true);
-		SgParameterizer->SetTexCoordLevel(0);
-		SgParameterizer->SetKeepOriginalChartSizes(false);
-		SgParameterizer->SetKeepOriginalChartProportions(false);
-#endif
-
-		SgParameterizer->SetTextureWidth(DesiredTextureWidth);
-		SgParameterizer->SetTextureHeight(DesiredTextureHeight);
-		SgParameterizer->SetGutterSpace(DesiredGutterSpace);
-		SgParameterizer->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
-		bSuccess = SgParameterizer->Parameterize(GeometryData, NewUVs);
-
-		if (bSuccess)
-		{
-			int32 NumWedges = RawMesh.WedgeTangentX.Num();
-			int32 NumTriangles = GeometryData->GetTriangleCount() * 3;
-
-			check(NumWedges == NumTriangles);
-			OutTexCoords.Empty(NumWedges);
-			OutTexCoords.AddUninitialized(NumWedges);
-
-			SimplygonSDK::spRealData DestTexCoord = SDK->CreateRealData();
-			for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-			{
-				//NewUVs->GetTuple(WedgeIndex, (float*)&OutTexCoords[WedgeIndex]);
-				NewUVs->GetTuple(WedgeIndex, DestTexCoord);
-				SimplygonSDK::real* sgTexCoords = DestTexCoord->GetData();
-
-				OutTexCoords[WedgeIndex].X = sgTexCoords[0];
-				OutTexCoords[WedgeIndex].Y = sgTexCoords[1];
-			}
-		}
-
-		return bSuccess;
-	}
 };
 
 TScopedPointer<FSimplygonMeshReduction> GSimplygonMeshReduction;
@@ -3639,14 +2544,24 @@ void FSimplygonMeshReductionModule::ShutdownModule()
 	GSimplygonMeshReduction = NULL;
 }
 
+#define USE_SIMPLYGON_SWARM 0
+
 IMeshReduction* FSimplygonMeshReductionModule::GetMeshReductionInterface()
 {
+#if !USE_SIMPLYGON_SWARM
 	return GSimplygonMeshReduction;
+#else
+	return nullptr;
+#endif
 }
 
 IMeshMerging* FSimplygonMeshReductionModule::GetMeshMergingInterface()
 {
+#if !USE_SIMPLYGON_SWARM
 	return GSimplygonMeshReduction;
+#else
+return nullptr;
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

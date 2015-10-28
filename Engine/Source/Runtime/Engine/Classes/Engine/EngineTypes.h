@@ -1692,23 +1692,38 @@ struct ENGINE_API FHitResult
 
 	FHitResult()
 	{
-		FMemory::Memzero(this, sizeof(FHitResult));
-		Time = 1.f;
+		Init();
 	}
 	
 	explicit FHitResult(float InTime)
 	{
-		FMemory::Memzero(this, sizeof(FHitResult));
+		Init();
 		Time = InTime;
 	}
 
-	explicit FHitResult(EForceInit Init)
+	explicit FHitResult(EForceInit InInit)
+	{
+		Init();
+	}
+
+	explicit FHitResult(ENoInit NoInit)
+	{
+	}
+
+	explicit FHitResult(FVector Start, FVector End)
+	{
+		Init(Start, End);
+	}
+
+	/** Initialize empty hit result with given time. */
+	FORCEINLINE void Init()
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
 		Time = 1.f;
 	}
 
-	explicit FHitResult(FVector Start, FVector End)
+	/** Initialize empty hit result with given time, TraceStart, and TraceEnd */
+	FORCEINLINE void Init(FVector Start, FVector End)
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
 		Time = 1.f;
@@ -1718,12 +1733,13 @@ struct ENGINE_API FHitResult
 
 	/** Ctor for easily creating "fake" hits from limited data. */
 	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm);
- 
-	void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
+
+	/** Reset hit result while optionally saving TraceStart and TraceEnd. */
+	FORCEINLINE void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
 	{
 		const FVector SavedTraceStart = TraceStart;
 		const FVector SavedTraceEnd = TraceEnd;
-		FMemory::Memzero(this, sizeof(FHitResult));
+		Init();
 		Time = InTime;
 		if (bPreserveTraceData)
 		{
@@ -2354,6 +2370,7 @@ struct FMeshBuildSettings
 	}
 };
 
+// Use FMaterialProxySettings instead
 USTRUCT()
 struct FMaterialSimplificationSettings
 {
@@ -2486,6 +2503,14 @@ struct FMaterialProxySettings
 	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bSpecularMap"))
 	float SpecularConstant;
 
+	// Whether to generate emissive map
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bEmissiveMap;
+
+	// Whether to generate opacity map
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bOpacityMap;
+
 
 	FMaterialProxySettings()
 		: TextureSize(1024, 1024)
@@ -2524,6 +2549,10 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 ScreenSize;
 
+	/** Material simplification */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	FMaterialProxySettings MaterialSettings;
+
 	UPROPERTY()
 	int32 TextureWidth_DEPRECATED;
 	UPROPERTY()
@@ -2552,10 +2581,6 @@ struct FMeshProxySettings
 	/** Angle at which a hard edge is introduced between faces */
 	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (DisplayName = "Hard Edge Angle"))
 	float HardAngleThreshold;
-	
-	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	FMaterialProxySettings MaterialSettings;
 
 	/** Lightmap resolution */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
@@ -2581,9 +2606,8 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bPlaneNegativeHalfspace;
 
-	UPROPERTY(EditAnywhere, Category = ProxySettings)
-	bool bBakeVertexData;
-
+	UPROPERTY()
+	bool bBakeVertexData_DEPRECATED;
 
 	/** Default settings. */
 	FMeshProxySettings()
@@ -2645,8 +2669,8 @@ struct FMeshMergingSettings
 	int32 TargetLightMapResolution;
 		
 	/** Whether we should import vertex colors into merged mesh */
-	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
-	bool bImportVertexColors;
+	UPROPERTY()
+	bool bImportVertexColors_DEPRECATED;
 	
 	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
 	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
@@ -2659,38 +2683,49 @@ struct FMeshMergingSettings
 	/** Whether to merge source materials into one flat material */
 	UPROPERTY(EditAnywhere, Category=MeshMerge)
 	bool bMergeMaterials;
+
+	/** Material simplification */
+	UPROPERTY(EditAnywhere, Category = MeshMerge, meta = (editcondition = "bMergeMaterials"))
+	FMaterialProxySettings MaterialSettings;
+
+	UPROPERTY(EditAnywhere, Category = MeshMerge)
+	bool bBakeVertexData;
+
 	/** Whether to export normal maps for material merging */
-	UPROPERTY(EditAnywhere, Category=MeshMerge)
-	bool bExportNormalMap;
+	UPROPERTY()
+	bool bExportNormalMap_DEPRECATED;
 	/** Whether to export metallic maps for material merging */
-	UPROPERTY(EditAnywhere, Category=MeshMerge)
-	bool bExportMetallicMap;
+	UPROPERTY()
+	bool bExportMetallicMap_DEPRECATED;
 	/** Whether to export roughness maps for material merging */
-	UPROPERTY(EditAnywhere, Category=MeshMerge)
-	bool bExportRoughnessMap;
+	UPROPERTY()
+	bool bExportRoughnessMap_DEPRECATED;
 	/** Whether to export specular maps for material merging */
-	UPROPERTY(EditAnywhere, Category=MeshMerge)
-	bool bExportSpecularMap;
+	UPROPERTY()
+	bool bExportSpecularMap_DEPRECATED;
 	/** Merged material texture atlas resolution */
-	UPROPERTY(EditAnywhere, Category=MeshMerge)
-	int32 MergedMaterialAtlasResolution;
+	UPROPERTY()
+	int32 MergedMaterialAtlasResolution_DEPRECATED;
 		
 	/** Default settings. */
 	FMeshMergingSettings()
 		: bGenerateLightMapUV(false)
 		, TargetLightMapUVChannel(1)
 		, TargetLightMapResolution(256)
-		, bImportVertexColors(false)
+		, bImportVertexColors_DEPRECATED(false)
 		, bPivotPointAtZero(false)
 		, bMergePhysicsData(false)
 		, bMergeMaterials(false)
-		, bExportNormalMap(true)
-		, bExportMetallicMap(false)
-		, bExportRoughnessMap(false)
-		, bExportSpecularMap(false)
-		, MergedMaterialAtlasResolution(1024)
+		, bExportNormalMap_DEPRECATED(true)
+		, bExportMetallicMap_DEPRECATED(false)
+		, bExportRoughnessMap_DEPRECATED(false)
+		, bExportSpecularMap_DEPRECATED(false)
+		, MergedMaterialAtlasResolution_DEPRECATED(1024)
 	{
 	}
+
+	/** Handles deprecated properties */
+	void PostLoadDeprecated();
 };
 
 
@@ -3858,3 +3893,41 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
 
+/** Intermediate material merging data */
+struct FMaterialMergeData
+{
+	/** Input data */
+	/** Material that is being baked out */
+	class UMaterialInterface* Material;
+	/** Material proxy cache, eliminates shader compilations when a material is baked out multiple times for different meshes */
+	struct FExportMaterialProxyCache* ProxyCache;
+	/** Raw mesh data used to bake out the material with, optional */
+	const struct FRawMesh* Mesh;
+	/** LODModel data used to bake out the material with, optional */
+	const class FStaticLODModel* LODModel;
+	/** Material index to use when the material is baked out using mesh data (face material indices) */
+	int32 MaterialIndex;
+	/** Optional tex coordinate bounds of original texture coordinates set */
+	const FBox2D& TexcoordBounds;
+	/** Optional new set of non-overlapping texture coordinates */
+	const TArray<FVector2D>& TexCoords;
+
+	/** Output emissive scale, maximum baked out emissive value (used to scale other samples, 1/EmissiveScale * Sample) */
+	float EmissiveScale;
+
+	FMaterialMergeData(
+		UMaterialInterface* InMaterial,
+		const FRawMesh* InMesh,
+		const FStaticLODModel* InLODModel,
+		int32 InMaterialIndex,
+		const FBox2D& InTexcoordBounds,
+		const TArray<FVector2D>& InTexCoords)
+		: Material(InMaterial)
+		, Mesh(InMesh)
+		, LODModel(InLODModel)
+		, MaterialIndex(InMaterialIndex)
+		, TexcoordBounds(InTexcoordBounds)
+		, TexCoords(InTexCoords)
+		, EmissiveScale(0.0f)
+	{}
+};

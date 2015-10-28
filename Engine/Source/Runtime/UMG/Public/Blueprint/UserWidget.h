@@ -712,7 +712,7 @@ public:
 	 * Plays an animation in this widget a specified number of times
 	 * 
 	 * @param InAnimation The animation to play
-	 * @param StartAtTime The time in the animation from which to start playing. For looped animations, this will only affect the first playback of the animation.
+	 * @param StartAtTime The time in the animation from which to start playing, relative to the start position. For looped animations, this will only affect the first playback of the animation.
 	 * @param NumLoopsToPlay The number of times to loop this animation (0 to loop indefinitely)
 	 * @param PlayMode Specifies the playback mode
 	 */
@@ -731,7 +731,7 @@ public:
 	 * Pauses an already running animation in this widget
 	 * 
 	 * @param The name of the animation to pause
-	 * @return the time point the animation was at when it was paused.  Use this as the StartAtTime when you trigger PlayAnimation.
+	 * @return the time point the animation was at when it was paused, relative to its start position.  Use this as the StartAtTime when you trigger PlayAnimation.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
 	float PauseAnimation(const UWidgetAnimation* InAnimation);

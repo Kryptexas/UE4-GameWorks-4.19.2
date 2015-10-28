@@ -64,6 +64,7 @@ public class LevelEditor : ModuleRules
 				"Sequencer",
                 "Foliage",
                 "HierarchicalLODOutliner",
+                "HierarchicalLODUtilities",
 				"MaterialShaderQualitySettings",
 			}
 		);

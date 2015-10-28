@@ -1138,7 +1138,7 @@ public:
 	/**
 	* @return an instance of a singleton for the current thread.
 	*/
-	static CORE_API FTlsAutoCleanup* Get( const TFunctionRef<FTlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot );
+	static CORE_API FTlsAutoCleanup* Get( TFunctionRef<FTlsAutoCleanup*()> CreateInstance, uint32& TlsSlot );
 };
 
 

@@ -182,10 +182,10 @@ bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails
 {
 	return bCreatePackagePerAsset == Other.bCreatePackagePerAsset
 		&& DetailsPercentage == Other.DetailsPercentage
-		&& StaticMeshMaterial == Other.StaticMeshMaterial
+		&& StaticMeshMaterialSettings == Other.StaticMeshMaterialSettings
 		&& bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD
 		&& LandscapeExportLOD == Other.LandscapeExportLOD
-		&& LandscapeMaterial == Other.LandscapeMaterial
+		&& LandscapeMaterialSettings == Other.LandscapeMaterialSettings
 		&& bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape
 		&& bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
 }
@@ -195,35 +195,59 @@ void FLevelSimplificationDetails::PostLoadDeprecated()
 	FLevelSimplificationDetails DefaultObject;
 	if (bGenerateMeshNormalMap_DEPRECATED != DefaultObject.bGenerateMeshNormalMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bNormalMap = bGenerateMeshNormalMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bNormalMap = bGenerateMeshNormalMap_DEPRECATED;
 	}
 	if (bGenerateMeshMetallicMap_DEPRECATED != DefaultObject.bGenerateMeshMetallicMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bMetallicMap = bGenerateMeshMetallicMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bMetallicMap = bGenerateMeshMetallicMap_DEPRECATED;
 	}
 	if (bGenerateMeshRoughnessMap_DEPRECATED != DefaultObject.bGenerateMeshRoughnessMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bRoughnessMap = bGenerateMeshRoughnessMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bRoughnessMap = bGenerateMeshRoughnessMap_DEPRECATED;
 	}
 	if (bGenerateMeshSpecularMap_DEPRECATED != DefaultObject.bGenerateMeshSpecularMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bSpecularMap = bGenerateMeshSpecularMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bSpecularMap = bGenerateMeshSpecularMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeNormalMap_DEPRECATED != DefaultObject.bGenerateLandscapeNormalMap_DEPRECATED)
 	{
-		LandscapeMaterial.bNormalMap = bGenerateLandscapeNormalMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bNormalMap = bGenerateLandscapeNormalMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeMetallicMap_DEPRECATED != DefaultObject.bGenerateLandscapeMetallicMap_DEPRECATED)
 	{
-		LandscapeMaterial.bMetallicMap = bGenerateLandscapeMetallicMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bMetallicMap = bGenerateLandscapeMetallicMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeRoughnessMap_DEPRECATED != DefaultObject.bGenerateLandscapeRoughnessMap_DEPRECATED)
 	{
-		LandscapeMaterial.bRoughnessMap = bGenerateLandscapeRoughnessMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bRoughnessMap = bGenerateLandscapeRoughnessMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeSpecularMap_DEPRECATED != DefaultObject.bGenerateLandscapeSpecularMap_DEPRECATED)
 	{
-		LandscapeMaterial.bSpecularMap = bGenerateLandscapeSpecularMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bSpecularMap = bGenerateLandscapeSpecularMap_DEPRECATED;
+	}
+
+	if (!(LandscapeMaterial_DEPRECATED == DefaultObject.LandscapeMaterial_DEPRECATED))
+	{
+		LandscapeMaterialSettings.TextureSize = LandscapeMaterial_DEPRECATED.BaseColorMapSize;
+		LandscapeMaterialSettings.bNormalMap = LandscapeMaterial_DEPRECATED.bNormalMap;
+		LandscapeMaterialSettings.bMetallicMap = LandscapeMaterial_DEPRECATED.bMetallicMap;
+		LandscapeMaterialSettings.bRoughnessMap = LandscapeMaterial_DEPRECATED.bRoughnessMap;
+		LandscapeMaterialSettings.bSpecularMap = LandscapeMaterial_DEPRECATED.bSpecularMap;
+		LandscapeMaterialSettings.RoughnessConstant = LandscapeMaterial_DEPRECATED.RoughnessConstant;
+		LandscapeMaterialSettings.MetallicConstant = LandscapeMaterial_DEPRECATED.MetallicConstant;
+		LandscapeMaterialSettings.SpecularConstant = LandscapeMaterial_DEPRECATED.SpecularConstant;
+	}
+
+	if (!(StaticMeshMaterial_DEPRECATED == DefaultObject.StaticMeshMaterial_DEPRECATED))
+	{
+		StaticMeshMaterialSettings.TextureSize = StaticMeshMaterial_DEPRECATED.BaseColorMapSize;
+		StaticMeshMaterialSettings.bNormalMap = StaticMeshMaterial_DEPRECATED.bNormalMap;
+		StaticMeshMaterialSettings.bMetallicMap = StaticMeshMaterial_DEPRECATED.bMetallicMap;
+		StaticMeshMaterialSettings.bRoughnessMap = StaticMeshMaterial_DEPRECATED.bRoughnessMap;
+		StaticMeshMaterialSettings.bSpecularMap = StaticMeshMaterial_DEPRECATED.bSpecularMap;
+		StaticMeshMaterialSettings.RoughnessConstant = StaticMeshMaterial_DEPRECATED.RoughnessConstant;
+		StaticMeshMaterialSettings.MetallicConstant = StaticMeshMaterial_DEPRECATED.MetallicConstant;
+		StaticMeshMaterialSettings.SpecularConstant = StaticMeshMaterial_DEPRECATED.SpecularConstant;
 	}
 }
 

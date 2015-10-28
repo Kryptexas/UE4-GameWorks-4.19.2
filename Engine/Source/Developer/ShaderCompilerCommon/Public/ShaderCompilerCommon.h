@@ -63,7 +63,7 @@ extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderComp
 //		}
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
 
-extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& SourceCode, const TArray<FString>& SystemOutputs, const TArray<FString>& UsedOutputs, const FString& EntryPoint);
+extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& InOutSourceCode, const TArray<FString>& SystemOutputs, const TArray<FString>& UsedOutputs, const FString& EntryPoint, TArray<FString>& OutErrors);
 
 // Cross compiler support/common functionality
 namespace CrossCompiler

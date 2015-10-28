@@ -3475,6 +3475,7 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 	{
 		// Combine tags from the definition and the spec into one container to match queries that may span both
 		// static to avoid memory allocations every time we do a query
+		check(IsInGameThread());
 		static FGameplayTagContainer TargetTags;
 		TargetTags.RemoveAllTags();
 		if (Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.Num() > 0)
@@ -3496,6 +3497,7 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 	{
 		// Combine tags from the definition and the spec into one container to match queries that may span both
 		// static to avoid memory allocations every time we do a query
+		check(IsInGameThread());
 		static FGameplayTagContainer GETags;
 		GETags.RemoveAllTags();
 		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.Num() > 0)

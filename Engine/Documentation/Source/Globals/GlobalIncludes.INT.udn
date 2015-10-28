@@ -4,7 +4,7 @@ Crumbs:
 Description:
 
 [VAR:CURRENT_RELEASE_NUMBER]
-4.4.0
+4.9.2
 [/VAR]
 
 [VAR:CURRENT_RELEASE_DEPENDENCIES]
@@ -12,19 +12,6 @@ Description:
 * Required_2of2.zip.
 [/VAR]
 
-
-[EXCERPT:RED]
-[OBJECT:FontColor]
-	[PARAMLITERAL:color]
-	red
-	[/PARAMLITERAL]
-[/OBJECT]
-[/EXCERPT:RED]
-
-[EXCERPT:ENDCOLOR]
-[OBJECT:EndColor]
-[/OBJECT]
-[/EXCERPT:ENDCOLOR]
 
 [VAR:OSSelect]
 [REGION:section]

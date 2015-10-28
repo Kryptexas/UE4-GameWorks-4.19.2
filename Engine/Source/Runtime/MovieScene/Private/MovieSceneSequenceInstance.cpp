@@ -7,7 +7,7 @@
 FMovieSceneSequenceInstance::FMovieSceneSequenceInstance(const UMovieSceneSequence& InMovieSceneSequence)
 	: MovieSceneSequence( &InMovieSceneSequence )
 {
-	TimeRange = MovieSceneSequence->GetMovieScene()->GetTimeRange();
+	TimeRange = MovieSceneSequence->GetMovieScene()->GetPlaybackRange();
 }
 
 
@@ -105,7 +105,7 @@ void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, cl
 void FMovieSceneSequenceInstance::RefreshInstance( IMovieScenePlayer& Player )
 {
 	UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
-	TimeRange = MovieScene->GetTimeRange();
+	TimeRange = MovieScene->GetPlaybackRange();
 
 	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
 

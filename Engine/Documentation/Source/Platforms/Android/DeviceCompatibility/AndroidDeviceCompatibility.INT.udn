@@ -2,6 +2,7 @@ Availability:Public
 Title:Android Device Compatibility
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Device compatibility for developing with Android.
+Version: 4.9
 
 [VAR:Supported]
 ![](%ROOT%/icon_success_16x.png)

@@ -352,6 +352,19 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static UAudioComponent* SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundConcurrency* ConcurrencySettings = nullptr);
 
 	/**
+	 * Creates a sound with no attenuation, perfect for UI sounds. This does NOT play the sound
+	 *
+	 * ● Not Replicated.
+	 * @param Sound - Sound to create.
+	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
+	 * @param PitchMultiplier - Multiplies the pitch.
+	 * @param StartTime - How far in to the sound to begin playback at
+	 * @return An audio component to manipulate the spawned sound
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Audio", meta=( WorldContext="WorldContextObject", AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play" ))
+		static UAudioComponent* CreateSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundConcurrency* ConcurrencySettings = nullptr);
+
+	/**
 	 * Plays a sound at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
 	 * @param Sound - sound to play
 	 * @param Location - World position to play sound at

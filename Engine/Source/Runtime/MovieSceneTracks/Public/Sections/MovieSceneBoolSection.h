@@ -8,7 +8,9 @@
  * A single bool section
  */
 UCLASS( MinimalAPI )
-class UMovieSceneBoolSection : public UMovieSceneSection
+class UMovieSceneBoolSection 
+	: public UMovieSceneSection
+	, public IKeyframeSection<bool>
 {
 	GENERATED_UCLASS_BODY()
 
@@ -27,24 +29,11 @@ public:
 	 */
 	virtual bool Eval( float Position ) const;
 
-	/** 
-	 * Adds a key to the section
-	 *
-	 * @param Time	The location in time where the key should be added
-	 * @param Value	The value of the key
-	 * @param KeyParams The keying parameters
-	 */
-	void AddKey( float Time, bool Value, FKeyParams KeyParams );
-	
-	/** 
-	 * Determines if a new key would be new data, or just a duplicate of existing data
-	 *
-	 * @param Time	The location in time where the key would be added
-	 * @param Value	The value of the new key
-	 * @param KeyParams The keying parameters
-	 * @return True if the new key would be new data, false if duplicate
-	 */
-	bool NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const;
+	// IKeyframeSection interface.
+	virtual void AddKey( float Time, const bool& Value, EMovieSceneKeyInterpolation KeyInterpolation ) override;
+	virtual void SetDefault( const bool& Value ) override;
+	virtual bool NewKeyIsNewData(float Time, const bool& Value ) const override;
+	virtual bool HasKeys( const bool& Value ) const;
 
 	/**
 	 * UMovieSceneSection interface 

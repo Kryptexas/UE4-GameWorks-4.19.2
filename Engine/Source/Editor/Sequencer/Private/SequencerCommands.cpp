@@ -16,6 +16,8 @@ void FSequencerCommands::RegisterCommands()
 	UI_COMMAND( StepToPreviousKey, "Step to Previous Key", "Step to the previous key", EUserInterfaceActionType::Button, FInputChord(EKeys::Comma) );
 	UI_COMMAND( StepToNextCameraKey, "Step to Next Camera Key", "Step to the next camera key", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Alt, EKeys::Period) );
 	UI_COMMAND( StepToPreviousCameraKey, "Step to Previous Camera Key", "Step to the previous camera key", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Alt, EKeys::Comma) );
+	UI_COMMAND( SetStartPlaybackRange, "Set Start Playback Range", "Set the start playback range", EUserInterfaceActionType::Button, FInputChord(EKeys::LeftBracket) );
+	UI_COMMAND( SetEndPlaybackRange, "Set End Playback Range", "Set the end playback range", EUserInterfaceActionType::Button, FInputChord(EKeys::RightBracket) );
 
 	UI_COMMAND( ExpandNodesAndDescendants, "Expand Nodes", "Expand selected nodes", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( CollapseNodesAndDescendants, "Collapse Nodes", "Collapse selected nodes", EUserInterfaceActionType::Button, FInputChord() );

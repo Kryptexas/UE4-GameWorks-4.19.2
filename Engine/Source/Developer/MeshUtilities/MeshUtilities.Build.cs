@@ -7,6 +7,13 @@ public class MeshUtilities : ModuleRules
 {
 	public MeshUtilities(TargetInfo Target)
 	{
+
+        PublicDependencyModuleNames.AddRange(
+            new string[] {
+                "MaterialUtilities"
+            }
+        );
+
 		PrivateDependencyModuleNames.AddRange(
 			new string [] {
 				"Core",
@@ -16,11 +23,20 @@ public class MeshUtilities : ModuleRules
 				"RenderCore", // For FPackedNormal
 				"SlateCore",
 				"MaterialUtilities", 
-                "MeshBoneReduction"
+                "MeshBoneReduction",		
+                "UnrealEd",
+                "RHI",                
+                "HierarchicalLODUtilities"
 			}
 		);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "SimplygonSwarm"
+            }
+        );
+
+        AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
 		AddThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
 		AddThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
 		AddThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");

@@ -717,7 +717,7 @@ void USkeletalMeshComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysM
 	}
 }
 
-DEFINE_STAT(STAT_InitArticulated);
+DECLARE_CYCLE_STAT(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics);
 
 TAutoConsoleVariable<int32> CVarEnableRagdollPhysics(TEXT("p.RagdollPhysics"), 1, TEXT("If 1, ragdoll physics will be used. Otherwise just root body is simulated"));
 

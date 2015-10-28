@@ -11,7 +11,7 @@
 #include "Editor/UnrealEd/Classes/Factories/Factory.h"
 #include "MeshUtilities.h"
 #include "ObjectTools.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 #endif // WITH_EDITOR
 
 #include "GameFramework/WorldSettings.h"
@@ -263,17 +263,13 @@ void FLODCluster::SubtractCluster(const FLODCluster& Other)
 
 ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes)
 {
-	FColor Colours[8] = { FColor::Cyan, FColor::Red, FColor::Green, FColor::Blue, FColor::Yellow, FColor::Magenta, FColor::White, FColor::Black };
-	// do big size
 	if (InLevel && InLevel->GetWorld())
 	{
 		// create asset using Actors
 		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx];
 
 		// Retrieve draw distance for current and next LOD level
-		const float DrawDistance = LODSetup.DrawDistance;
 		const int32 LODCount = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup.Num();
-		const float NextDrawDistance = (LODIdx < (LODCount - 1)) ? InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx + 1].DrawDistance : 0.0f;
 
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = InLevel->GetOutermost(); // this asset is going to save with map, this means, I'll have to delete with it
@@ -287,7 +283,7 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 
 				if (Actor->IsA<ALODActor>())
 				{
-					HierarchicalLODUtils::ExtractStaticMeshComponentsFromLODActor(Actor, Components);
+					FHierarchicalLODUtilities::ExtractStaticMeshComponentsFromLODActor(Actor, Components);
 				}
 				else
 				{
@@ -300,93 +296,29 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 				AllComponents.Append(Components);
 			}
 
-			// it shouldn't even have come here if it didn't have any staticmesh
-			if (ensure(AllComponents.Num() > 0))
+			// Create LOD Actor
+			UWorld* LevelWorld = Cast<UWorld>(InLevel->GetOuter());
+			check(LevelWorld);
+
+			FTransform Transform;
+			ALODActor* NewActor = nullptr;
+
+			NewActor = LevelWorld->SpawnActor<ALODActor>(ALODActor::StaticClass(), Transform);
+			NewActor->LODLevel = LODIdx + 1;
+			NewActor->LODDrawDistance = 0.0f;			
+
+			// now set as parent
+			for (auto& Actor : Actors)
 			{
-				// In case we don't have outer generated assets should have same path as LOD level
-
-				const FString AssetsPath = AssetsOuter->GetName() + TEXT("/");
-				AActor* FirstActor = Actors[0];
-
-				TArray<UObject*> OutAssets;
-				FVector OutProxyLocation = FVector::ZeroVector;
-				UStaticMesh* MainMesh = nullptr;
-				if (bCreateMeshes)
-				{
-					// Generate proxy mesh and proxy material assets
-					IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-					// should give unique name, so use level + actor name
-					const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
-					if (MeshUtilities.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
-					{
-						MeshUtilities.CreateProxyMesh(Actors, LODSetup.ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
-					}
-					else
-					{
-						MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), LODSetup.MergeSetting, AssetsOuter, PackageName, -1, OutAssets, OutProxyLocation, LODSetup.DrawDistance, true);
-					}
-
-					// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
-					for (auto& AssetIter : OutAssets)
-					{
-						AssetIter->ClearFlags(RF_Public | RF_Standalone);
-					}
-
-
-					// set staticmesh
-					for (auto& Asset : OutAssets)
-					{
-						UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
-
-						if (StaticMesh)
-						{
-							MainMesh = StaticMesh;
-							break;
-						}
-					}
-				}
-
-
-				if (MainMesh || !bCreateMeshes)
-				{
-					UWorld* LevelWorld = Cast<UWorld>(InLevel->GetOuter());
-
-					check(LevelWorld);
-
-					FTransform Transform;
-					Transform.SetLocation(OutProxyLocation);
-
-					// create LODActors using the current Actors
-					ALODActor* NewActor = nullptr;
-
-					NewActor = LevelWorld->SpawnActor<ALODActor>(ALODActor::StaticClass(), Transform);
-					NewActor->SubObjects = OutAssets;
-					NewActor->LODLevel = LODIdx + 1;
-					NewActor->LODDrawDistance = DrawDistance;
-					NewActor->SetStaticMesh(MainMesh);
-
-					const bool bCalculateDrawDistance = false;
-					if (LODSetup.bSimplifyMesh && bCalculateDrawDistance)
-					{
-						/*ScreenSize = 2.0f * Bounds.SphereRadius / ViewDistance;*/
-						float TotalScreen = 1920.0f * 1080.0f;
-						float SizeOnScreen = TotalScreen / (LODSetup.ProxySetting.ScreenSize*LODSetup.ProxySetting.ScreenSize);
-						float ViewDistance = (MainMesh->GetBounds().SphereRadius * 2.0f) / SizeOnScreen;
-					}
-
-
-					// now set as parent
-					for (auto& Actor : Actors)
-					{
-						NewActor->AddSubActor(Actor);
-					}
-
-					// Mark dirty according to whether or not this is a preview build
-					NewActor->SetIsDirty(!bCreateMeshes);
-
-					return NewActor;
-				}
+				NewActor->AddSubActor(Actor);
 			}
+
+			// Mark dirty according to whether or not this is a preview build
+			NewActor->SetIsDirty(!bCreateMeshes);
+
+			FHierarchicalLODUtilities::BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup, LODIdx);
+
+			return NewActor;
 		}
 	}
 

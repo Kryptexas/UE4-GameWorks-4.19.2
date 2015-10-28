@@ -71,7 +71,7 @@ FString FTokenStream::GetErrorContext() const
 }
 
 /** Parse out a token */
-TOptional<FStringToken> FTokenStream::ParseToken(const TFunctionRef<EParseState(TCHAR)>& Pred, FStringToken* Accumulate) const
+TOptional<FStringToken> FTokenStream::ParseToken(TFunctionRef<EParseState(TCHAR)> Pred, FStringToken* Accumulate) const
 {
 	const TCHAR* OptReadPos = Accumulate ? Accumulate->GetTokenEndPos() : ReadPos;
 
@@ -275,9 +275,9 @@ void FExpressionTokenConsumer::Add(const FStringToken& SourceToken, FExpressionN
 	Tokens.Add(FExpressionToken(SourceToken, MoveTemp(Node)));
 }
 
-void FTokenDefinitions::DefineToken(const TFunction<FExpressionDefinition>& Definition)
+void FTokenDefinitions::DefineToken(TFunction<FExpressionDefinition>&& Definition)
 {
-	Definitions.Emplace(Definition);
+	Definitions.Emplace(MoveTemp(Definition));
 }
 
 TOptional<FExpressionError> FTokenDefinitions::ConsumeToken(FExpressionTokenConsumer& Consumer) const

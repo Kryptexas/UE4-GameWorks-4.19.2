@@ -11,6 +11,7 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
 	Enum = InArgs._Enum;
+	IntermediateValue = InArgs._IntermediateValue;
 
 	for (int32 i = 0; i < InArgs._Enum->NumEnums() - 1; i++)
 	{
@@ -40,6 +41,12 @@ void SEnumCurveKeyEditor::Construct(const FArguments& InArgs)
 
 FText SEnumCurveKeyEditor::GetCurrentValue() const
 {
+	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
+	{
+		int32 IntermediateNameIndex = Enum->GetIndexByValue( IntermediateValue.Get().GetValue() );
+		return Enum->GetDisplayNameText( IntermediateNameIndex );
+	}
+
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	int32 CurrentNameIndex = Enum->GetIndexByValue(Curve->Evaluate(CurrentTime));
 	return Enum->GetDisplayNameText(CurrentNameIndex);

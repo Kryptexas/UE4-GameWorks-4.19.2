@@ -23,7 +23,5 @@ public:
 	
 	virtual IMovieSceneCaptureInterface* RetrieveMovieSceneInterface(FMovieSceneCaptureHandle Handle) = 0;
 	virtual void DestroyMovieSceneCapture(FMovieSceneCaptureHandle Handle) = 0;
-
-	virtual void OnMovieSceneCaptureFinished(IMovieSceneCaptureInterface*) = 0;
 };
 

@@ -45,9 +45,14 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	 * {frame}		- The current frame number (only relevant for image sequences)
 	 * {width}		- The width of the captured frames
 	 * {height}		- The height of the captured frames
+	 * {world}		- The name of the current world
 	 */
-	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay, DisplayName="Filename Format")
+	UPROPERTY(config, EditAnywhere, Category=General, DisplayName="Filename Format")
 	FString OutputFormat;
+
+	/** Whether to overwrite existing files or not */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	bool bOverwriteExisting;
 
 	/** The frame rate at which to capture */
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)

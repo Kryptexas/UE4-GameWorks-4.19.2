@@ -681,6 +681,8 @@ public:
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 
+	uint32 GetNumInstructionsForShader(const FShaderType* ShaderType) const;
+
 	bool IsValidForRendering() const
 	{
 		return bCompilationFinalized && bCompiledSuccessfully && !bDeletedThroughDeferredCleanup;

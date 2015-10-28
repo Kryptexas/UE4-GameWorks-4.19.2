@@ -210,7 +210,7 @@ public:
 	/** needed before AppendData() ccan be called */
 	ENGINE_API void StartAppend(FRHICommandListImmediate& RHICmdList, bool bWorldIsPaused);
 
-	ENGINE_API void SetVelocityPassCallback(const TFunction<bool(FRHICommandList& RHICmdList)>& InIsVelocityFunc);
+	ENGINE_API void SetVelocityPassCallback(TFunction<bool(FRHICommandList& RHICmdList)> InIsVelocityFunc);
 
 	/**
 	 * use between LockData() and UnlockData()

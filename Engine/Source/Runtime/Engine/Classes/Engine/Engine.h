@@ -949,6 +949,10 @@ public:
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> LODColorationColors;
 
+	/** The colors used to render LOD coloration. */
+	UPROPERTY(globalconfig)
+	TArray<FLinearColor> HLODColorationColors;
+
 	/**
 	* Complexity limits for the various complexity view mode combinations.
 	* These limits are used to map instruction counts to ShaderComplexityColors.
@@ -1589,11 +1593,11 @@ public:
 	void BroadcastHLODActorMarkedDirty(class ALODActor* InActor) { HLODActorMarkedDirtyEvent.Broadcast(InActor); }
 
 	/** Editor-only event triggered when a HLOD Actor is marked dirty */
-	DECLARE_EVENT(UEngine, FHLODDrawDistanceChangedEvent);
-	FHLODDrawDistanceChangedEvent& OnHLODDrawDistanceChanged() { return HLODDrawDistanceChangedEvent; }
+	DECLARE_EVENT(UEngine, FHLODTransitionScreenSizeChangedEvent);
+	FHLODTransitionScreenSizeChangedEvent& OnHLODTransitionScreenSizeChanged() { return HLODTransitionScreenSizeChangedEvent; }
 
 	/** Called by internal engine systems after a HLOD Actor is marked dirty */
-	void BroadcastHLODDrawDistanceChanged() { HLODDrawDistanceChangedEvent.Broadcast(); }
+	void BroadcastHLODTransitionScreenSizeChanged() { HLODTransitionScreenSizeChangedEvent.Broadcast(); }
 
 	/** Editor-only event triggered when a HLOD level is added or removed */
 	DECLARE_EVENT(UEngine, FHLODLevelsArrayChangedEvent);
@@ -2332,7 +2336,7 @@ private:
 	FHLODActorMarkedDirtyEvent HLODActorMarkedDirtyEvent;
 
 	/** Broadcasts after a Draw distance value (World settings) is changed */
-	FHLODDrawDistanceChangedEvent HLODDrawDistanceChangedEvent;
+	FHLODTransitionScreenSizeChangedEvent HLODTransitionScreenSizeChangedEvent;
 
 	/** Broadcasts after the HLOD levels array is changed */
 	FHLODLevelsArrayChangedEvent HLODLevelsArrayChangedEvent;

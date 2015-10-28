@@ -18,6 +18,10 @@
 #endif
 
 class FShaderType;
+class FShaderPipelineType;
+class FGlobalShaderType;
+class FMaterialShaderType;
+class FMeshMaterialShaderType;
 class FVertexFactoryParameterRef;
 
 /** Used to identify the global shader map. */
@@ -803,9 +807,12 @@ public:
 	}
 
 	// Dynamic casts.
-	virtual class FGlobalShaderType* GetGlobalShaderType() { return NULL; }
-	virtual class FMaterialShaderType* GetMaterialShaderType() { return NULL; }
-	virtual class FMeshMaterialShaderType* GetMeshMaterialShaderType() { return NULL; }
+	virtual FGlobalShaderType* GetGlobalShaderType() { return nullptr; }
+	virtual const FGlobalShaderType* GetGlobalShaderType() const { return nullptr; }
+	virtual FMaterialShaderType* GetMaterialShaderType() { return nullptr; }
+	virtual const FMaterialShaderType* GetMaterialShaderType() const { return nullptr; }
+	virtual FMeshMaterialShaderType* GetMeshMaterialShaderType() { return nullptr; }
+	virtual const FMeshMaterialShaderType* GetMeshMaterialShaderType() const { return nullptr; }
 	
 	// Accessors.
 	EShaderFrequency GetFrequency() const 
@@ -875,7 +882,7 @@ public:
 		ShaderIdMapCritical.Unlock();
 	}
 
-	bool LimitShaderResourceToThisType()
+	bool LimitShaderResourceToThisType() const
 	{
 		return GetStreamOutElementsRef != &FShader::GetStreamOutElements;
 	}
@@ -989,6 +996,59 @@ private:
 	);
 #endif
 
+
+// Binding of a set of shader stages in a single pipeline
+class SHADERCORE_API FShaderPipelineType
+{
+public:
+	const FShaderType* const VertexShader;
+	const FShaderType* const HullShader;
+	const FShaderType* const DomainShader;
+	const FShaderType* const GeometryShader;
+	const FShaderType* const PixelShader;
+	const TCHAR* const Name;
+	FName TypeName;
+
+	FShaderPipelineType(
+		const TCHAR* InName,
+		const FShaderType* InVertexShader,
+		const FShaderType* InHullShader,
+		const FShaderType* InDomainShader,
+		const FShaderType* InGeometryShader,
+		const FShaderType* InPixelShader);
+	virtual ~FShaderPipelineType();
+
+	bool HasTessellation() const { return HullShader != nullptr; }
+	bool HasGeometry() const { return GeometryShader != nullptr; }
+	bool HasPixelShader() const { return PixelShader != nullptr; }
+
+	FName GetFName() const { return TypeName; }
+
+	// Returns an array of valid stages, sorted from PS->GS->DS->HS->VS
+	const TArray<const FShaderType*>& GetStages() const { return Stages; }
+
+	static TLinkedList<FShaderPipelineType*>*& GetTypeList();
+
+	/** @return The global shader pipeline name to type map */
+	static TMap<FName, FShaderPipelineType*>& GetNameToTypeMap();
+
+	/** Initialize static members, this must be called before any shader types are created. */
+	static void Initialize();
+	static void Uninitialize();
+
+	/** Serializes a shader type reference by name. */
+	SHADERCORE_API friend FArchive& operator<<(FArchive& Ar, const FShaderPipelineType*& Ref);
+
+protected:
+	TLinkedList<FShaderPipelineType*> GlobalListLink;
+
+	// Pipeline Stages, ordered from lowest (usually PS) to highest (VS). Guaranteed at least one stage (for VS).
+	TArray<const FShaderType*> Stages;
+
+	static bool bInitialized;
+};
+
+
 /** Encapsulates a dependency on a shader type and saved state from that shader type. */
 class FShaderTypeDependency
 {
@@ -1017,9 +1077,9 @@ public:
 };
 
 /** Used to compare two shader types by name. */
-class FCompareShaderTypes											
+class FCompareShaderTypes
 {																				
-public:		
+public:
 	FORCEINLINE bool operator()(const FShaderType& A, const FShaderType& B ) const
 	{
 		int32 AL = FCString::Strlen(A.GetName());

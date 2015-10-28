@@ -6,7 +6,7 @@
 /**
  * Abstract base class for multicast delegates.
  */
-typedef TArray<IDelegateInstance*, TInlineAllocator<1> > TInvocationList;
+typedef TArray<FDelegateBase, TInlineAllocator<1> > TInvocationList;
 
 template<typename ObjectPtrType = FWeakObjectPtr>
 class FMulticastDelegateBase
@@ -15,20 +15,14 @@ public:
 
 	~FMulticastDelegateBase()
 	{
-		// On destruction clear our invocation list, but don't bother compacting
-		for (IDelegateInstance*& DelegateInstanceRef : InvocationList)
-		{
-			delete DelegateInstanceRef;
-		}
 	}
 
 	/** Removes all functions from this delegate's invocation list. */
 	void Clear( )
 	{
-		for (IDelegateInstance*& DelegateInstanceRef : InvocationList)
+		for (FDelegateBase& DelegateBaseRef : InvocationList)
 		{
-			delete DelegateInstanceRef;
-			DelegateInstanceRef = nullptr;
+			DelegateBaseRef.Unbind();
 		}
 
 		CompactInvocationList();
@@ -41,9 +35,9 @@ public:
 	 */
 	inline bool IsBound( ) const
 	{
-		for (IDelegateInstance* DelegateInstance : InvocationList)
+		for (const FDelegateBase& DelegateBaseRef : InvocationList)
 		{
-			if (DelegateInstance != nullptr)
+			if (DelegateBaseRef.GetDelegateInstance())
 			{
 				return true;
 			}
@@ -58,8 +52,9 @@ public:
 	 */
 	inline bool IsBoundToObject( void const* InUserObject ) const
 	{
-		for (IDelegateInstance* DelegateInstance : InvocationList)
+		for (const FDelegateBase& DelegateBaseRef : InvocationList)
 		{
+			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstance();
 			if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
 			{
 				return true;
@@ -79,12 +74,12 @@ public:
 	{
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
-			IDelegateInstance*& DelegateInstanceRef = InvocationList[InvocationListIndex];
+			FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
 
-			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->HasSameObject(InUserObject))
+			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstance();
+			if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
 			{
-				delete DelegateInstanceRef;
-				DelegateInstanceRef = nullptr;
+				DelegateBaseRef.Unbind();
 			}
 		}
 
@@ -104,12 +99,13 @@ protected:
 	/**
 	 * Adds the given delegate instance to the invocation list.
 	 *
-	 * @param DelegateInstance The delegate instance to add.
+	 * @param NewDelegateBaseRef The delegate instance to add.
 	 */
-	inline FDelegateHandle AddInternal( IDelegateInstance* DelegateInstance )
+	inline FDelegateHandle AddInternal(FDelegateBase&& NewDelegateBaseRef)
 	{
-		InvocationList.Add(DelegateInstance);
-		return DelegateInstance->GetHandle();
+		FDelegateHandle Result = NewDelegateBaseRef.GetHandle();
+		InvocationList.Add(MoveTemp(NewDelegateBaseRef));
+		return Result;
 	}
 
 	/**
@@ -126,16 +122,13 @@ protected:
 
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
-			IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
+			FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
+
+			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstance();
 
 			if ((DelegateInstance == nullptr) || DelegateInstance->IsCompactable())
 			{
 				InvocationList.RemoveAtSwap(InvocationListIndex);
-
-				if (DelegateInstance != nullptr)
-				{
-					delete DelegateInstance;
-				}
 			}
 		}
 

@@ -32,7 +32,7 @@ void FAnimNode_RotateRootBone::Evaluate(FPoseContext& Output)
 	checkSlow(!FMath::IsNaN(Yaw) && FMath::IsFinite(Yaw));
 	checkSlow(!FMath::IsNaN(Pitch) && FMath::IsFinite(Pitch));
 
-	if (Pitch != 0.f || Yaw != 0.f)
+	if (!FMath::IsNearlyZero(Pitch, KINDA_SMALL_NUMBER) || !FMath::IsNearlyZero(Yaw, KINDA_SMALL_NUMBER))
 	{
 		// Build our desired rotation
 		const FRotator DeltaRotation(Pitch, Yaw, 0.f);
@@ -43,8 +43,9 @@ void FAnimNode_RotateRootBone::Evaluate(FPoseContext& Output)
 		const FQuat MeshSpaceDeltaQuat = MeshToComponentQuat.Inverse() * DeltaQuat * MeshToComponentQuat;
 
 		// Apply rotation to root bone.
-		FCompactPoseBoneIndex RootBone(0);
-		Output.Pose[RootBone].SetRotation(Output.Pose[RootBone].GetRotation() * MeshSpaceDeltaQuat);
+		FCompactPoseBoneIndex RootBoneIndex(0);
+		Output.Pose[RootBoneIndex].SetRotation(Output.Pose[RootBoneIndex].GetRotation() * MeshSpaceDeltaQuat);
+		Output.Pose[RootBoneIndex].NormalizeRotation();
 	}
 }
 

@@ -41,13 +41,13 @@ UWidgetAnimation* UWidgetAnimation::GetNullAnimation()
 
 float UWidgetAnimation::GetStartTime() const
 {
-	return MovieScene->GetTimeRange().GetLowerBoundValue();
+	return MovieScene->GetPlaybackRange().GetLowerBoundValue();
 }
 
 
 float UWidgetAnimation::GetEndTime() const
 {
-	return MovieScene->GetTimeRange().GetUpperBoundValue();
+	return MovieScene->GetPlaybackRange().GetUpperBoundValue();
 }
 
 

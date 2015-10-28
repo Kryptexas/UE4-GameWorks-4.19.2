@@ -95,7 +95,8 @@ public:
 	}
 
 	// Dynamic casting.
-	virtual FGlobalShaderType* GetGlobalShaderType() { return this; }
+	virtual FGlobalShaderType* GetGlobalShaderType() override { return this; }
+	virtual const FGlobalShaderType* GetGlobalShaderType() const override { return this; }
 
 private:
 	ConstructCompiledType ConstructCompiledRef;

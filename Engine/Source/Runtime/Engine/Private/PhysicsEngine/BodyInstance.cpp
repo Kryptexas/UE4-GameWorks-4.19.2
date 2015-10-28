@@ -27,20 +27,22 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
-DEFINE_STAT(STAT_InitBody);
-DEFINE_STAT(STAT_InitBodyDebug);
-DEFINE_STAT(STAT_InitBodySceneInteraction);
-DEFINE_STAT(STAT_InitBodyPostAdd);
-DEFINE_STAT(STAT_UpdatePhysFilter);
-DEFINE_STAT(STAT_UpdatePhysFilterPhysX);
-
-DEFINE_STAT(STAT_InitBodies);
-DEFINE_STAT(STAT_BulkSceneAdd);
-DEFINE_STAT(STAT_StaticInitBodies);
-
+DECLARE_CYCLE_STAT(TEXT("Init Body"), STAT_InitBody, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Init Body Debug"), STAT_InitBodyDebug, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Init Body Scene Interaction"), STAT_InitBodySceneInteraction, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Init Body Post Add to Scene"), STAT_InitBodyPostAdd, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Term Body"), STAT_TermBody, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Update Materials"), STAT_UpdatePhysMats, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Update Materials Scene Interaction"), STAT_UpdatePhysMatsSceneInteraction, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Filter Update"), STAT_UpdatePhysFilter, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Filter Update (PhysX Code)"), STAT_UpdatePhysFilterPhysX, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Init Bodies"), STAT_InitBodies, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Bulk Body Scene Add"), STAT_BulkSceneAdd, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Static Init Bodies"), STAT_StaticInitBodies, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("UpdateBodyScale"), STAT_BodyInstanceUpdateBodyScale, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("CreatePhysicsShapesAndActors"), STAT_CreatePhysicsShapesAndActors, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("BodyInstance SetCollisionProfileName"), STAT_BodyInst_SetCollisionProfileName, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Phys SetBodyTransform"), STAT_SetBodyTransform, STATGROUP_Physics);
 
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
@@ -163,16 +165,17 @@ bool FCollisionResponse::AddReponseToArray(ECollisionChannel Channel, ECollision
 
 void FCollisionResponse::UpdateArrayFromResponseContainer()
 {
-	ResponseArray.Empty();
+	ResponseArray.Empty(ARRAY_COUNT(ResponseToChannels.EnumArray));
 
 	const FCollisionResponseContainer& DefaultResponse = FCollisionResponseContainer::GetDefaultResponseContainer();
+	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
 
-	for(int32 i=0; i<ARRAY_COUNT(ResponseToChannels.EnumArray); i++)
+	for (int32 i = 0; i < ARRAY_COUNT(ResponseToChannels.EnumArray); i++)
 	{
 		// if not same as default
-		if ( ResponseToChannels.EnumArray[i] != DefaultResponse.EnumArray[i] )
+		if (ResponseToChannels.EnumArray[i] != DefaultResponse.EnumArray[i])
 		{
-			FName ChannelName = UCollisionProfile::Get()->ReturnChannelNameFromContainerIndex(i);
+			FName ChannelName = CollisionProfile->ReturnChannelNameFromContainerIndex(i);
 			if (ChannelName != NAME_None)
 			{
 				FResponseChannel NewResponse;
@@ -398,9 +401,6 @@ void FBodyInstance::UpdateTriMeshVertices(const TArray<FVector> & NewPositions)
 	}
 #endif
 }
-
-DEFINE_STAT(STAT_UpdatePhysMats);
-DEFINE_STAT(STAT_UpdatePhysMatsSceneInteraction);
 
 void FBodyInstance::UpdatePhysicalMaterials()
 {
@@ -1854,7 +1854,6 @@ void TermBodyHelper(int16& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
 
 #endif
 
-DEFINE_STAT(STAT_TermBody);
 /**
  *	Clean up the physics engine info for this instance.
  */

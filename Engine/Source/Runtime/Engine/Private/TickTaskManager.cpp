@@ -163,72 +163,146 @@ struct FTickContext
 /**
  * Class that handles the actual tick tasks and starting and completing tick groups
  */
-	/** Helper class define the task of ticking a component **/
-	class FTickFunctionTask
-	{
-		/** Actor to tick **/
-		FTickFunction*			Target;
-		/** tick context, here thread is desired execution thread **/
-		FTickContext			Context;
-		/** If true, log each tick **/
-		bool					bLogTick; 
-		/** If true, log prereqs **/
-		bool					bLogTicksShowPrerequistes; 
+/** Helper class define the task of ticking a component **/
+class FTickFunctionTask
+{
+	/** Actor to tick **/
+	FTickFunction*			Target;
+	/** tick context, here thread is desired execution thread **/
+	FTickContext			Context;
+	/** If true, log each tick **/
+	bool					bLogTick; 
+	/** If true, log prereqs **/
+	bool					bLogTicksShowPrerequistes; 
 public:
-		/** Constructor
-		 * @param InTarget - Function to tick
-		 * @param InContext - context to tick in, here thread is desired execution thread
-		**/
-		FORCEINLINE FTickFunctionTask(FTickFunction* InTarget, const FTickContext* InContext, bool InbLogTick, bool bInLogTicksShowPrerequistes)
-			: Target(InTarget)
-			, Context(*InContext)
-			, bLogTick(InbLogTick)
-		, bLogTicksShowPrerequistes(bInLogTicksShowPrerequistes)
-		{
-		}
-		FORCEINLINE TStatId GetStatId() const
-		{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FTickFunctionTask, STATGROUP_TaskGraphTasks);
-		}
-		/** return the thread for this task **/
-		FORCEINLINE ENamedThreads::Type GetDesiredThread()
-		{
+	/** Constructor
+		* @param InTarget - Function to tick
+		* @param InContext - context to tick in, here thread is desired execution thread
+	**/
+	FORCEINLINE FTickFunctionTask(FTickFunction* InTarget, const FTickContext* InContext, bool InbLogTick, bool bInLogTicksShowPrerequistes)
+		: Target(InTarget)
+		, Context(*InContext)
+		, bLogTick(InbLogTick)
+	, bLogTicksShowPrerequistes(bInLogTicksShowPrerequistes)
+	{
+	}
+	FORCEINLINE TStatId GetStatId() const
+	{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FTickFunctionTask, STATGROUP_TaskGraphTasks);
+	}
+	/** return the thread for this task **/
+	FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
 		if (Target->bHighPriority)
 		{
 			return ENamedThreads::HiPri(Context.Thread);
 		}
-			return Context.Thread;
-		}
-		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
-		{ 
-			return ESubsequentsMode::TrackSubsequents; 
-		}
-		/** 
-		 *	Actually execute the tick.
-		 *	@param	CurrentThread; the thread we are running on
-		 *	@param	MyCompletionGraphEvent; my completion event. Not always useful since at the end of DoWork, you can assume you are done and hence further tasks do not need you as a prerequisite. 
-		 *	However, MyCompletionGraphEvent can be useful for passing to other routines or when it is handy to set up subsequents before you actually do work.
-		 **/
-		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+		return Context.Thread;
+	}
+	FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+	{ 
+		return ESubsequentsMode::TrackSubsequents; 
+	}
+	/** 
+		*	Actually execute the tick.
+		*	@param	CurrentThread; the thread we are running on
+		*	@param	MyCompletionGraphEvent; my completion event. Not always useful since at the end of DoWork, you can assume you are done and hence further tasks do not need you as a prerequisite. 
+		*	However, MyCompletionGraphEvent can be useful for passing to other routines or when it is handy to set up subsequents before you actually do work.
+		**/
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		if (bLogTick)
 		{
-			if (bLogTick)
+		UE_LOG(LogTick, Log, TEXT("tick %s %6d %2d %s"), Target->bHighPriority ? TEXT("*") : TEXT(" "),GFrameCounter, (int32)CurrentThread, *Target->DiagnosticMessage());
+			if (bLogTicksShowPrerequistes)
 			{
-			UE_LOG(LogTick, Log, TEXT("tick %s %6d %2d %s"), Target->bHighPriority ? TEXT("*") : TEXT(" "),GFrameCounter, (int32)CurrentThread, *Target->DiagnosticMessage());
-				if (bLogTicksShowPrerequistes)
-				{
-					Target->ShowPrerequistes();
-				}
+				Target->ShowPrerequistes();
 			}
-			Target->ExecuteTick(Context.DeltaSeconds, Context.TickType, CurrentThread, MyCompletionGraphEvent);
-		Target->TaskPointer = nullptr;  // This is stale and a good time to clear it for safety
 		}
+		Target->ExecuteTick(Context.DeltaSeconds, Context.TickType, CurrentThread, MyCompletionGraphEvent);
+		Target->TaskPointer = nullptr;  // This is stale and a good time to clear it for safety
+	}
 };
+
 
 /**
  * Class that handles the actual tick tasks and starting and completing tick groups
  */
 class FTickTaskSequencer
 {
+	/**
+	 * Class that handles dispatching a tick group
+	 */
+	class FDipatchTickGroupTask
+	{
+		/** Sequencer to proxy to **/
+		FTickTaskSequencer &TTS;
+		/** Tick group to dispatch **/
+		ETickingGroup WorldTickGroup;
+	public:
+		/** Constructor
+			* @param InTarget - Function to tick
+			* @param InContext - context to tick in, here thread is desired execution thread
+		**/
+		FORCEINLINE FDipatchTickGroupTask(FTickTaskSequencer &InTTS, ETickingGroup InWorldTickGroup)
+			: TTS(InTTS)
+			, WorldTickGroup(InWorldTickGroup)
+		{
+		}
+		FORCEINLINE TStatId GetStatId() const
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FDipatchTickGroupTask, STATGROUP_TaskGraphTasks);
+		}
+		FORCEINLINE ENamedThreads::Type GetDesiredThread()
+		{
+			return ENamedThreads::HiPri(ENamedThreads::AnyThread);
+		}
+		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+		{ 
+			return ESubsequentsMode::TrackSubsequents; 
+		}
+		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+		{
+			TTS.DispatchTickGroup(CurrentThread, WorldTickGroup);
+		}
+	};
+	/**
+	 * Class that handles Reset a tick group
+	 */
+	class FResetTickGroupTask
+	{
+		/** Sequencer to proxy to **/
+		FTickTaskSequencer &TTS;
+		/** Tick group to dispatch **/
+		ETickingGroup WorldTickGroup;
+	public:
+		/** Constructor
+			* @param InTarget - Function to tick
+			* @param InContext - context to tick in, here thread is desired execution thread
+		**/
+		FORCEINLINE FResetTickGroupTask(FTickTaskSequencer &InTTS, ETickingGroup InWorldTickGroup)
+			: TTS(InTTS)
+			, WorldTickGroup(InWorldTickGroup)
+		{
+		}
+		FORCEINLINE TStatId GetStatId() const
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FDipatchTickGroupTask, STATGROUP_TaskGraphTasks);
+		}
+		FORCEINLINE ENamedThreads::Type GetDesiredThread()
+		{
+			return ENamedThreads::HiPri(ENamedThreads::AnyThread);
+		}
+		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+		{ 
+			return ESubsequentsMode::TrackSubsequents; 
+		}
+		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+		{
+			TTS.ResetTickGroup(WorldTickGroup);
+		}
+	};
+
 	/** Completion handles for each phase of ticks */
 	TArrayWithThreadsafeAdd<FGraphEventRef, TInlineAllocator<4> > TickCompletionEvents[TG_MAX];
 
@@ -381,7 +455,7 @@ public:
 
 		if (SingleThreadedMode())
 		{
-			DispatchTickGroupInner(ENamedThreads::GameThread, WorldTickGroup);
+			DispatchTickGroup(ENamedThreads::GameThread, WorldTickGroup);
 		}
 		else
 		{
@@ -390,13 +464,7 @@ public:
 			// dispatch the tick group on another thread, that way, the game thread can be processing ticks while ticks are being queued by another thread
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup);
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-				FDelegateGraphTask::CreateAndDispatchWhenReady(
-					FDelegateGraphTask::FDelegate::CreateRaw(this, &FTickTaskSequencer::DispatchTickGroup, WorldTickGroup),
-					GET_STATID(STAT_FDelegateGraphTask_DispatchTickGroup), 
-					nullptr,
-					ENamedThreads::GameThread, 
-					ENamedThreads::HiPri(ENamedThreads::AnyThread)),
-				ENamedThreads::HiPri(ENamedThreads::GameThread));
+				TGraphTask<FDipatchTickGroupTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(*this, WorldTickGroup));
 		}
 
 		if (bBlockTillComplete || SingleThreadedMode())
@@ -409,15 +477,12 @@ public:
 					FTaskGraphInterface::Get().WaitUntilTasksComplete(TickCompletionEvents[Block], ENamedThreads::GameThread);
 					if (SingleThreadedMode() || WorldTickGroup == TG_NewlySpawned)
 					{
-						ResetTickGroupInner(Block);
+						ResetTickGroup(Block);
 					}
 					else
 					{
 						DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ResetTickGroup"), STAT_FDelegateGraphTask_ResetTickGroup, STATGROUP_TaskGraphTasks);
-
-						CleanupTasks.Add(FDelegateGraphTask::CreateAndDispatchWhenReady(
-							FDelegateGraphTask::FDelegate::CreateRaw(this, &FTickTaskSequencer::ResetTickGroup, Block),
-							GET_STATID(STAT_FDelegateGraphTask_ResetTickGroup)));
+						CleanupTasks.Add(TGraphTask<FResetTickGroupTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(*this, Block));
 					}
 				}
 			}
@@ -488,16 +553,12 @@ private:
 	{
 	}
 
-	void ResetTickGroupInner(ETickingGroup WorldTickGroup)
+	void ResetTickGroup(ETickingGroup WorldTickGroup)
 	{
 		TickCompletionEvents[WorldTickGroup].Reset();
 	}
-	void ResetTickGroup(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, ETickingGroup WorldTickGroup)
-	{
-		ResetTickGroupInner(WorldTickGroup);
-	}
 
-	void DispatchTickGroupInner(ENamedThreads::Type CurrentThread, ETickingGroup WorldTickGroup)
+	void DispatchTickGroup(ENamedThreads::Type CurrentThread, ETickingGroup WorldTickGroup)
 	{
 		{
 			TArray<TGraphTask<FTickFunctionTask>*>& TickArray = HiPriTickTasks[WorldTickGroup];
@@ -515,11 +576,6 @@ private:
 			}
 			TickArray.Reset();
 		}
-	}
-
-	void DispatchTickGroup(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, ETickingGroup WorldTickGroup)
-	{
-		DispatchTickGroupInner(CurrentThread, WorldTickGroup);
 	}
 
 };

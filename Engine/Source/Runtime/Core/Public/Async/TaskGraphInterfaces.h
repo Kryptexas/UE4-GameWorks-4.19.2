@@ -1362,9 +1362,9 @@ public:
      *	@param StatId The stat id for this task.
      * @param InDesiredThread - Thread to run on
      **/
-    FFunctionGraphTask(TFunction<void()>& InFunction, const TStatId StatId, ENamedThreads::Type InDesiredThread)
+    FFunctionGraphTask(TFunction<void()>&& InFunction, const TStatId StatId, ENamedThreads::Type InDesiredThread)
     : FCustomStatIDGraphTaskBase(StatId)
-    , Function(InFunction)
+    , Function(MoveTemp(InFunction))
     , DesiredThread(InDesiredThread)
     {
     }
@@ -1379,7 +1379,7 @@ public:
      **/
     static FGraphEventRef CreateAndDispatchWhenReady(TFunction<void()> InFunction, const TStatId InStatId, const FGraphEventArray* InPrerequisites = NULL, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
     {
-        return TGraphTask<FFunctionGraphTask>::CreateTask(InPrerequisites).ConstructAndDispatchWhenReady(InFunction, InStatId, InDesiredThread);
+        return TGraphTask<FFunctionGraphTask>::CreateTask(InPrerequisites).ConstructAndDispatchWhenReady(MoveTemp(InFunction), InStatId, InDesiredThread);
     }
     /**
      * Create a task and dispatch it when the prerequisites are complete
@@ -1394,7 +1394,7 @@ public:
         FGraphEventArray Prerequisites;
         check(InPrerequisite.GetReference());
         Prerequisites.Add(InPrerequisite);
-        return CreateAndDispatchWhenReady(InFunction, InStatId, &Prerequisites, InDesiredThread);
+        return CreateAndDispatchWhenReady(MoveTemp(InFunction), InStatId, &Prerequisites, InDesiredThread);
     }
 };
 

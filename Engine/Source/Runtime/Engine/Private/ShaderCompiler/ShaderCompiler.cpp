@@ -41,6 +41,13 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugShortNames(
 	TEXT("When set to 1, will shorten names factory and shader type folder names to avoid issues with long paths.")
 	);
 
+static int32 GShowShaderWarnings = 0;
+static FAutoConsoleVariableRef CVarShowShaderWarnings(
+	TEXT("r.ShowShaderCompilerWarnings"),
+	GShowShaderWarnings,
+	TEXT("When set to 1, will display all warnings.")
+	);
+
 static TAutoConsoleVariable<int32> CVarKeepShaderDebugData(
 	TEXT("r.Shaders.KeepDebugInfo"),
 	0,
@@ -656,7 +663,7 @@ void FShaderCompileThreadRunnable::ReadAvailableResults()
 				{
 					FArchive& OutputFile = *OutputFilePtr;
 					check(!CurrentWorkerInfo.bComplete);
-						DoReadTaskResults(CurrentWorkerInfo.QueuedJobs, OutputFile);
+					DoReadTaskResults(CurrentWorkerInfo.QueuedJobs, OutputFile);
 
 					// Close the output file.
 					delete OutputFilePtr;
@@ -962,25 +969,28 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	// Launch the worker process
 	int32 PriorityModifier = -1; // below normal
 
-#if DEBUG_SHADERCOMPILEWORKER
-	// Note: Set breakpoint here and launch the shadercompileworker with WorkerParameters a cmd-line
-	const TCHAR* WorkerParametersText = *WorkerParameters;
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
-	return FProcHandle();
-#else
-#if UE_BUILD_DEBUG && PLATFORM_LINUX
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
-#endif
-	uint32 WorkerId = 0;
-	FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ShaderCompileWorkerName, *WorkerParameters, true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
-	if( !WorkerHandle.IsValid() )
+	if (DEBUG_SHADERCOMPILEWORKER)
 	{
-		// If this doesn't error, the app will hang waiting for jobs that can never be completed
-		UE_LOG(LogShaderCompilers, Fatal, TEXT( "Couldn't launch %s! Make sure the file is in your binaries folder." ), *ShaderCompileWorkerName );
+		// Note: Set breakpoint here and launch the shadercompileworker with WorkerParameters a cmd-line
+		const TCHAR* WorkerParametersText = *WorkerParameters;
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
+		return FProcHandle();
 	}
-
-	return WorkerHandle;
+	else
+	{
+#if UE_BUILD_DEBUG && PLATFORM_LINUX
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
 #endif
+		uint32 WorkerId = 0;
+		FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ShaderCompileWorkerName, *WorkerParameters, true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
+		if (!WorkerHandle.IsValid())
+		{
+			// If this doesn't error, the app will hang waiting for jobs that can never be completed
+			UE_LOG(LogShaderCompilers, Fatal, TEXT("Couldn't launch %s! Make sure the file is in your binaries folder."), *ShaderCompileWorkerName);
+		}
+
+		return WorkerHandle;
+	}
 }
 
 /** Flushes all pending jobs for the given shader maps. */
@@ -1001,7 +1011,6 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 				for (int32 ShaderMapIndex = 0; ShaderMapIndex < ShaderMapIdsToFinishCompiling.Num(); ShaderMapIndex++)
 				{
 					const FShaderMapCompileResults* ResultsPtr = ShaderMapJobs.Find(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
-
 					if (ResultsPtr)
 					{
 						const FShaderMapCompileResults& Results = *ResultsPtr;
@@ -1193,7 +1202,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 
 					Material->RemoveOutstandingCompileId(ShaderMap->CompilingId);
 
-					if ( !bSuccess )
+					if (!bSuccess)
 					{
 						// Propagate error messages
 						Material->CompileErrors = Errors;
@@ -1232,6 +1241,16 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 						}
 					}
 
+					if (bSuccess && GShowShaderWarnings && Errors.Num() > 0)
+					{
+						UE_LOG(LogShaderCompilers, Warning, TEXT("Warnings while compiling Material %s for platform %s:"),
+							*Material->GetBaseMaterialPathName(),
+							*LegacyShaderPlatformToShaderFormat(ShaderMap->GetShaderPlatform()).ToString());
+						for (int32 ErrorIndex = 0; ErrorIndex < Errors.Num(); ErrorIndex++)
+						{
+							UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *Errors[ErrorIndex]);
+						}
+					}
 				}
 
 				// Cleanup shader jobs and compile tracking structures
@@ -1831,7 +1850,9 @@ void GlobalBeginCompileShader(
 				ShaderTypeName.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
 				ShaderTypeName.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
 				ShaderTypeName.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
+				ShaderTypeName.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
 				ShaderTypeName.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
+				ShaderTypeName.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
 				ShaderTypeName.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
 				ShaderTypeName.ReplaceInline(TEXT("Position"), TEXT("Pos"));
 				ShaderTypeName.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
@@ -1843,6 +1864,8 @@ void GlobalBeginCompileShader(
 				ShaderTypeName.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
 				ShaderTypeName.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
 				ShaderTypeName.ReplaceInline(TEXT("Output"), TEXT("Out"));
+				ShaderTypeName.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
+				ShaderTypeName.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
 				ShaderTypeName.ReplaceInline(TEXT("true"), TEXT("_1"));
 				ShaderTypeName.ReplaceInline(TEXT("false"), TEXT("_0"));
 			}

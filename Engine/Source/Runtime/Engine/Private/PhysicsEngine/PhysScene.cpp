@@ -23,6 +23,44 @@
 #include "Components/LineBatchComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
+/** Physics stats **/
+
+DEFINE_STAT(STAT_TotalPhysicsTime);
+DECLARE_CYCLE_STAT(TEXT("Start Physics Time (sync)"), STAT_PhysicsKickOffDynamicsTime, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (sync)"), STAT_PhysicsFetchDynamicsTime, STATGROUP_Physics);
+
+DECLARE_CYCLE_STAT(TEXT("Start Physics Time (cloth)"), STAT_PhysicsKickOffDynamicsTime_Cloth, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (cloth)"), STAT_PhysicsFetchDynamicsTime_Cloth, STATGROUP_Physics);
+
+DECLARE_CYCLE_STAT(TEXT("Start Physics Time (async)"), STAT_PhysicsKickOffDynamicsTime_Async, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (async)"), STAT_PhysicsFetchDynamicsTime_Async, STATGROUP_Physics);
+
+
+DECLARE_CYCLE_STAT(TEXT("Phys Events Time"), STAT_PhysicsEventTime, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("SyncComponentsToBodies (sync)"), STAT_SyncComponentsToBodies, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("SyncComponentsToBodies (cloth)"), STAT_SyncComponentsToBodies_Cloth, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("SyncComponentsToBodies (async)"), STAT_SyncComponentsToBodies_Async, STATGROUP_Physics);
+
+DECLARE_DWORD_COUNTER_STAT(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Active Constraints"), STAT_NumActiveConstraints, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Active Simulated Bodies"), STAT_NumActiveSimulatedBodies, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Active Kinematic Bodies"), STAT_NumActiveKinematicBodies, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Mobile Bodies"), STAT_NumMobileBodies, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Static Bodies"), STAT_NumStaticBodies, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Shapes"), STAT_NumShapes, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Cloths"), STAT_NumCloths, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("ClothVerts"), STAT_NumClothVerts, STATGROUP_Physics);
+
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Broadphase Adds"), STAT_NumBroadphaseAddsAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Broadphase Removes"), STAT_NumBroadphaseRemovesAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Active Constraints"), STAT_NumActiveConstraintsAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Active Simulated Bodies"), STAT_NumActiveSimulatedBodiesAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Active Kinematic Bodies"), STAT_NumActiveKinematicBodiesAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Mobile Bodies"), STAT_NumMobileBodiesAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Static Bodies"), STAT_NumStaticBodiesAsync, STATGROUP_Physics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROUP_Physics);
+
 #define USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE			1
 #define USE_SPECIAL_FRICTION_MODEL_FOR_ASYNC_SCENE	0
 
@@ -778,7 +816,9 @@ void FPhysScene::UpdateKinematicsOnDeferredSkelMeshes()
 void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
-	SCOPE_CYCLE_COUNTER(STAT_PhysicsKickOffDynamicsTime);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsKickOffDynamicsTime, SceneType == PST_Sync);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsKickOffDynamicsTime_Async, SceneType == PST_Async);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsKickOffDynamicsTime_Cloth, SceneType == PST_Cloth);
 
 	check(SceneType < NumPhysScenes);
 
@@ -974,7 +1014,9 @@ void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FG
 void FPhysScene::ProcessPhysScene(uint32 SceneType)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
-	SCOPE_CYCLE_COUNTER(STAT_PhysicsFetchDynamicsTime);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsFetchDynamicsTime, SceneType == PST_Sync);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsFetchDynamicsTime_Cloth, SceneType == PST_Cloth);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_PhysicsFetchDynamicsTime_Async, SceneType == PST_Async);
 
 	check(SceneType < NumPhysScenes);
 	if (bPhysXSceneExecuting[SceneType] == 0)
@@ -1066,12 +1108,12 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 }
 #endif
 
-DEFINE_STAT(STAT_SyncComponentsToBodies);
-
 void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
-	SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies, SceneType == PST_Sync);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies_Cloth, SceneType == PST_Cloth);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies_Async, SceneType == PST_Async);
 
 	for (FBodyInstance* BodyInstance : ActiveBodyInstances[SceneType])
 	{

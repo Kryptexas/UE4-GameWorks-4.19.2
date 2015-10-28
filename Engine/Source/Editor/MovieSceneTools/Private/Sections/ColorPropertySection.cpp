@@ -11,10 +11,15 @@ void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& 
 {
 	UMovieSceneColorSection* ColorSection = Cast<UMovieSceneColorSection>( &SectionObject );
 
-	LayoutBuilder.AddKeyArea( "R", NSLOCTEXT( "FColorPropertySection", "RedArea", "Red" ), MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetRedCurve(), ColorSection ) ) );
-	LayoutBuilder.AddKeyArea( "G", NSLOCTEXT( "FColorPropertySection", "GreenArea", "Green" ), MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetGreenCurve(), ColorSection ) ) );
-	LayoutBuilder.AddKeyArea( "B", NSLOCTEXT( "FColorPropertySection", "BlueArea", "Blue" ), MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetBlueCurve(), ColorSection ) ) );
-	LayoutBuilder.AddKeyArea( "A", NSLOCTEXT( "FColorPropertySection", "OpacityArea", "Opacity" ), MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetAlphaCurve(), ColorSection ) ) );
+	RedKeyArea = MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetRedCurve(), ColorSection ) ) ;
+	GreenKeyArea = MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetGreenCurve(), ColorSection ) ) ;
+	BlueKeyArea = MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetBlueCurve(), ColorSection ) ) ;
+	AlphaKeyArea = MakeShareable( new FFloatCurveKeyArea( &ColorSection->GetAlphaCurve(), ColorSection ) );
+
+	LayoutBuilder.AddKeyArea( "R", NSLOCTEXT( "FColorPropertySection", "RedArea", "Red" ), RedKeyArea.ToSharedRef() );
+	LayoutBuilder.AddKeyArea( "G", NSLOCTEXT( "FColorPropertySection", "GreenArea", "Green" ), GreenKeyArea.ToSharedRef() );
+	LayoutBuilder.AddKeyArea( "B", NSLOCTEXT( "FColorPropertySection", "BlueArea", "Blue" ), BlueKeyArea.ToSharedRef() );
+	LayoutBuilder.AddKeyArea( "A", NSLOCTEXT( "FColorPropertySection", "OpacityArea", "Opacity" ), AlphaKeyArea.ToSharedRef() );
 }
 
 
@@ -187,4 +192,38 @@ FLinearColor FColorPropertySection::FindSlateColor(const FName& ColorName) const
 	}
 
 	return FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+void FColorPropertySection::SetIntermediateValue( FPropertyChangedParams PropertyChangedParams )
+{
+	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
+	FName StructName = StructProp->Struct->GetFName();
+	bool bIsFColor = StructName == NAME_Color;
+	bool bIsFLinearColor = StructName == NAME_LinearColor;
+	bool bIsSlateColor = StructName == FName( "SlateColor" );
+
+	FLinearColor ColorValue;
+
+	if ( bIsFColor )
+	{
+		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>().ReinterpretAsLinear();
+	}
+	else
+	{
+		ColorValue = PropertyChangedParams.GetPropertyValue<FLinearColor>();
+	}
+
+	// @todo - Sequencer - This will cause slightly different values to show up in the key editors for FColors.
+	RedKeyArea->SetIntermediateValue(ColorValue.R);
+	GreenKeyArea->SetIntermediateValue(ColorValue.G);
+	BlueKeyArea->SetIntermediateValue(ColorValue.B);
+	AlphaKeyArea->SetIntermediateValue(ColorValue.A);
+}
+
+void FColorPropertySection::ClearIntermediateValue()
+{
+	RedKeyArea->ClearIntermediateValue();
+	GreenKeyArea->ClearIntermediateValue();
+	BlueKeyArea->ClearIntermediateValue();
+	AlphaKeyArea->ClearIntermediateValue();
 }

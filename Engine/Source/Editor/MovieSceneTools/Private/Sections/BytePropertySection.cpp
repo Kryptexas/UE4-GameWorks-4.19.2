@@ -10,10 +10,22 @@ void FBytePropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& L
 	UMovieSceneByteSection* ByteSection = Cast<UMovieSceneByteSection>( &SectionObject );
 	if ( Enum != nullptr )
 	{
-		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FEnumKeyArea( ByteSection->GetCurve(), ByteSection, Enum ) ) );
+		KeyArea = MakeShareable( new FEnumKeyArea( ByteSection->GetCurve(), ByteSection, Enum ) );
+		LayoutBuilder.SetSectionAsKeyArea( KeyArea.ToSharedRef() );
 	}
 	else
 	{
-		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FIntegralKeyArea( ByteSection->GetCurve(), ByteSection ) ) );
+		KeyArea = MakeShareable( new FByteKeyArea( ByteSection->GetCurve(), ByteSection ) );
+		LayoutBuilder.SetSectionAsKeyArea( KeyArea.ToSharedRef() );
 	}
+}
+
+void FBytePropertySection::SetIntermediateValue( FPropertyChangedParams PropertyChangedParams )
+{
+	KeyArea->SetIntermediateValue( PropertyChangedParams.GetPropertyValue<uint8>() );
+}
+
+void FBytePropertySection::ClearIntermediateValue()
+{
+	KeyArea->ClearIntermediateValue();
 }

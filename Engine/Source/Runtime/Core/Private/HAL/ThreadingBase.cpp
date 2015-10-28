@@ -694,7 +694,7 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 	FThreadSingletonInitializer
 -----------------------------------------------------------------------------*/
 
-FTlsAutoCleanup* FThreadSingletonInitializer::Get( const TFunctionRef<FTlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot )
+FTlsAutoCleanup* FThreadSingletonInitializer::Get( TFunctionRef<FTlsAutoCleanup*()> CreateInstance, uint32& TlsSlot )
 {
 	if( TlsSlot == 0 )
 	{

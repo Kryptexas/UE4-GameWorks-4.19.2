@@ -7,7 +7,6 @@
 UMovieScenePropertyTrack::UMovieScenePropertyTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
-	bSectionsAreShowable = false;
 }
 
 

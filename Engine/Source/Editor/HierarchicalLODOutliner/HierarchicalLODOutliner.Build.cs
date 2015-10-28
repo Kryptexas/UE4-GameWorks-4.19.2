@@ -18,7 +18,8 @@ public class HierarchicalLODOutliner : ModuleRules
                 "EditorStyle",
                 "Engine",
                 "UnrealEd",
-                "PropertyEditor"
+                "PropertyEditor",
+                "HierarchicalLODUtilities"
 			}
         );
         

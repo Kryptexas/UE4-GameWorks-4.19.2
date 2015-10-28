@@ -937,6 +937,14 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 	}
 }
 
+struct FGetBonePoseScratchArea : public TThreadSingleton<FGetBonePoseScratchArea>
+{
+	BoneTrackArray RotationScalePairs;
+	BoneTrackArray TranslationPairs;
+	BoneTrackArray AnimScaleRetargetingPairs;
+	BoneTrackArray AnimRelativeRetargetingPairs;
+};
+
 void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE);
@@ -1029,17 +1037,16 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	TArray<FBoneNode> const& BoneTree = MySkeleton->GetBoneTree();
 	TArray<int32> const& SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 
-	//@TODO:@ANIMATION: These should be memstack allocated - very heavy
-	BoneTrackArray RotationScalePairs;
-	BoneTrackArray TranslationPairs;
-	BoneTrackArray AnimScaleRetargetingPairs;
-	BoneTrackArray AnimRelativeRetargetingPairs;
+	BoneTrackArray& RotationScalePairs = FGetBonePoseScratchArea::Get().RotationScalePairs;
+	BoneTrackArray& TranslationPairs = FGetBonePoseScratchArea::Get().TranslationPairs;
+	BoneTrackArray& AnimScaleRetargetingPairs = FGetBonePoseScratchArea::Get().AnimScaleRetargetingPairs;
+	BoneTrackArray& AnimRelativeRetargetingPairs = FGetBonePoseScratchArea::Get().AnimRelativeRetargetingPairs;
 
 	// build a list of desired bones
-	RotationScalePairs.Empty(NumTracks);
-	TranslationPairs.Empty(NumTracks);
-	AnimScaleRetargetingPairs.Empty(NumTracks);
-	AnimRelativeRetargetingPairs.Empty(NumTracks);
+	RotationScalePairs.Reset();
+	TranslationPairs.Reset();
+	AnimScaleRetargetingPairs.Reset();
+	AnimRelativeRetargetingPairs.Reset();
 
 	// Optimization: assuming first index is root bone. That should always be the case in Skeletons.
 	checkSlow((SkeletonToPoseBoneIndexArray[0] == 0));

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2672558
 Availability: Docs
-Title: 1.1 - Setting up your Project
+Title: 1.1 - 프로젝트 구성
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
-Description: Learn how to set up your First Person Shooter project.
+Description: 일인칭 슈팅 프로젝트 구성법을 배워봅니다.
 SkillLevel: Beginner
 Version: 4.9
 
@@ -24,55 +24,55 @@ Version: 4.9
 %Steps%
 
 [REGION:note]
-You should have a copy of **Visual Studio 2013** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial.
+이 튜토리얼 시작 전 데스크탑용 **Visual Studio 2013** (Community 또는 Professional Editions 버전)이 설치되어 있어야 합니다.
 [/REGION]
 
-During this step, you will create a starting point for your First Person Shooter (FPS) game by using Unreal Engine 4's Project Browser.
+이번 단계에서는 언리얼 엔진 4 의 프로젝트 브라우저를 사용해서 일인칭 슈팅 (FPS) 게임의 시작점을 만들어 보겠습니다.
 
-1.	Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
+1.	런처에서 **언리얼 엔진** 을 엽니다. [](Engine/Basics/Projects/Browser) 가 나타날 것입니다.
 
-1.	Click on the **New Project** tab and then select the **Blueprint** tab.
+1.	**새 프로젝트** 탭을 클릭한 다음 **블루프린트** 탭을 선택합니다.
 
-1.	Select the **Blank** project.
+1.	**공백** 프로젝트를 선택합니다.
 
-1.	Name the project "FPSProject". Make sure **No Starter Content** is set.
+1.	프로젝트 이름을 "FPSProject" 라 합니다. **시작용 콘텐츠 없음** 으로 되어있는지 확인합니다.
 	
 	![](UnrealPrjBrowser.png)
 
 	[REGION:warning]
-	Some of the code samples in this tutorial will need to be updated if you name your project differently.
+	프로젝트 이름을 다르게 하는 경우 이 튜토리얼의 몇몇 코드 샘플을 업데이트해 주어야 할 것입니다.
 	[/REGION]
 
-1.	Click the **Create Project** button.
+1.	**프로젝트 생성** 버튼을 클릭합니다.
 
-1.	Your project is now open in Unreal Editor. Click the **Play** button in the Level Editor to move around the level. Use the WASD keys to move and use the mouse to aim your camera.
+1.	이제 프로젝트가 언리얼 에디터에 열립니다. 레벨 에디터의 **플레이** 버튼을 클릭하여 레벨을 돌아다닙니다. WASD 키로 이동, 마우스로 카메라 조준입니다.
 
 	![](ClickPlayButton.png)
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이(PIE) 보드를 빠져나갑니다.
 
 	![](ClickStopButton.png)
 
-1.	Create a Maps folder within the Content folder.
+1.	Content 폴더 안에 Maps 폴더를 만듭니다.
 
 	![](MapsFolder.png)
 
-1.	In the **File** menu, select **Save as...** to save your level as "FPSMap" within the Maps folder.
+1.	**파일** 메뉴에서 **다른 이름으로 저장...** 을 선택하여 레벨을 Maps 폴더 안에 "FPSMap" 으로 저장합니다.
 
 	![](SaveLevelAs.png)
 
-1.	In the **Edit** menu, click on **Project Settings**.
+1.	**편집** 메뉴에서 **프로젝트 세팅** 을 클릭합니다.
 
-1.	Under the **Project** heading on the left side of the **Project Settings** tab, click on **Maps & Modes**.
+1.	**프로젝트 세팅** 탭 왼편의 **프로젝트** 제목줄 아래 **맵 & 모드** 를 클릭합니다.
 
-1.	Select **FPSMap** as the **Editor Startup Map** using the dropdown menu.
+1.	드롭다운 메뉴를 사용하여 **Editor Startup Map** (에디터 시작 맵)을 **FPSMap** 으로 설정합니다.
 
 	![](EditorDefaultMap.png)
 
 	[REGION:note]
-	From now on, the editor will automatically load FPSMap as the default map.
+	이제부터 에디터는 자동으로 FPSMap 을 기본 맵으로 로드합니다.
 	[/REGION]
 
-1.	Close the **Project Settings** menu.
+1.	**프로젝트 세팅** 메뉴를 닫습니다.
 
 %Steps%

@@ -151,7 +151,7 @@ float UMovieSceneShotTrack::FindEndTimeForShot( float StartTime )
 		UMovieScene* OwnerScene = GetTypedOuter<UMovieScene>();
 
 		// End time should just end where the movie scene ends.  Ensure it is at least the same as start time (this should only happen when the movie scene has an initial time range smaller than the start time
-		EndTime = FMath::Max( OwnerScene->GetTimeRange().GetUpperBoundValue(), StartTime );
+		EndTime = FMath::Max( OwnerScene->GetPlaybackRange().GetUpperBoundValue(), StartTime );
 	}
 
 			

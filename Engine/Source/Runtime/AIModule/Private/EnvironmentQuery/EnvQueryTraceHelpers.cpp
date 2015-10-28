@@ -179,7 +179,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLoc
 
 void FEQSHelpers::RunNavRaycasts(const ANavigationData& NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode /*= ETraceMode::Keep*/)
 {
-	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
+	FSharedConstNavQueryFilter NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
 
 	TArray<FNavigationRaycastWork> RaycastWorkload;
 	RaycastWorkload.Reserve(Points.Num());
@@ -211,7 +211,7 @@ void FEQSHelpers::RunNavRaycasts(const ANavigationData& NavData, const FEnvTrace
 
 void FEQSHelpers::RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode /*= ETraceMode::Discard*/)
 {
-	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
+	FSharedConstNavQueryFilter NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
 	TArray<FNavigationProjectionWork> Workload;
 	Workload.Reserve(Points.Num());
 

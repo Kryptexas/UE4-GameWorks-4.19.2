@@ -25,7 +25,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 		.Padding(2.0f, 2.0f)
 		[
 			SNew(SBox)
-			.MinDesiredWidth(18)
+			.WidthOverride(36)
 			.HAlign(HAlign_Center)
 			[
 				SNew(SSpinBox<float>)
@@ -34,7 +34,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 				.OnValueCommitted( this, &STimeRange::OnStartTimeCommitted )
 				.OnValueChanged( this, &STimeRange::OnStartTimeChanged )
 				.MinValue(TOptional<float>())
-				.MaxValue(this, &STimeRange::MaxStartTime)
+				.MaxValue(this, &STimeRange::MaxOutTime)
 				.Style(&FEditorStyle::Get().GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 				.TypeInterface(NumericTypeInterface)
 				.ClearKeyboardFocusOnCommit(true)
@@ -45,7 +45,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 		.Padding(2.0f, 2.0f)
 		[
 			SNew(SBox)
-			.MinDesiredWidth(18)
+			.WidthOverride(36)
 			.HAlign(HAlign_Center)
 			[
 				SNew(SSpinBox<float>)
@@ -53,8 +53,8 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 				.ToolTipText(this, &STimeRange::InTimeTooltip)
 				.OnValueCommitted( this, &STimeRange::OnInTimeCommitted )
 				.OnValueChanged( this, &STimeRange::OnInTimeChanged )
-				.MinValue(this, &STimeRange::MinInTime)
-				.MaxValue(this, &STimeRange::MaxInTime)
+				.MinValue(TOptional<float>())
+				.MaxValue(this, &STimeRange::MaxOutTime)
 				.Style(&FEditorStyle::Get().GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 				.TypeInterface(NumericTypeInterface)
 				.ClearKeyboardFocusOnCommit(true)
@@ -72,7 +72,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 		.Padding(2.0f, 2.0f)
 		[
 			SNew(SBox)
-			.MinDesiredWidth(18)
+			.WidthOverride(36)
 			.HAlign(HAlign_Center)
 			[
 				SNew(SSpinBox<float>)
@@ -80,8 +80,8 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 				.ToolTipText(this, &STimeRange::OutTimeTooltip)
 				.OnValueCommitted( this, &STimeRange::OnOutTimeCommitted )
 				.OnValueChanged( this, &STimeRange::OnOutTimeChanged )
-				.MinValue(this, &STimeRange::MinOutTime)
-				.MaxValue(this, &STimeRange::MaxOutTime)
+				.MinValue(this, &STimeRange::MinInTime)
+				.MaxValue(TOptional<float>())
 				.Style(&FEditorStyle::Get().GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 				.TypeInterface(NumericTypeInterface)
 				.ClearKeyboardFocusOnCommit(true)
@@ -92,7 +92,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 		.Padding(2.0f, 2.0f)
 		[
 			SNew(SBox)
-			.MinDesiredWidth(18)
+			.WidthOverride(36)
 			.HAlign(HAlign_Center)
 			[
 				SNew(SSpinBox<float>)
@@ -100,7 +100,7 @@ void STimeRange::Construct( const STimeRange::FArguments& InArgs, TSharedRef<ITi
 				.ToolTipText(this, &STimeRange::EndTimeTooltip)
 				.OnValueCommitted( this, &STimeRange::OnEndTimeCommitted )
 				.OnValueChanged( this, &STimeRange::OnEndTimeChanged )
-				.MinValue(this, &STimeRange::MinEndTime)
+				.MinValue(this, &STimeRange::MinInTime)
 				.MaxValue(TOptional<float>())
 				.Style(&FEditorStyle::Get().GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 				.TypeInterface(NumericTypeInterface)

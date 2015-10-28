@@ -16,7 +16,7 @@
  * of that class when you want to bind a function to the delegate.
  */
 template <typename WrappedRetValType, typename... ParamTypes>
-class TBaseDelegate : public FDelegateBase<>
+class TBaseDelegate : public FDelegateBase
 {
 public:
 	/** Type definition for return value type. */
@@ -96,7 +96,9 @@ public:
 	template <typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateStatic(typename TIdentity<RetValType (*)(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseStaticDelegateInstance<TFuncType, VarTypes...>::Create(InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseStaticDelegateInstance<TFuncType, VarTypes...>::Create(Result, InFunc, Vars...);
+		return Result;
 	}
 
 	/**
@@ -106,7 +108,9 @@ public:
 	template<typename FunctorType, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateLambda(FunctorType&& InFunctor, VarTypes... Vars)
 	{
-		return TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type, VarTypes...>::Create(Forward<FunctorType>(InFunctor), Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type, VarTypes...>::Create(Result, Forward<FunctorType>(InFunctor), Vars...);
+		return Result;
 	}
 
 	/**
@@ -118,12 +122,16 @@ public:
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateRaw(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseRawMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(InUserObject, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseRawMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
+		return Result;
 	}
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateRaw(UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseRawMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create( InUserObject, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseRawMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
+		return Result;
 	}
 	
 	/**
@@ -135,12 +143,16 @@ public:
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateSP(const TSharedRef<UserClass, ESPMode::Fast>& InUserObjectRef, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
+		return Result;
 	}
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateSP(const TSharedRef<UserClass, ESPMode::Fast>& InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::Fast, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
+		return Result;
 	}
 
 	/**
@@ -169,12 +181,16 @@ public:
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateThreadSafeSP(const TSharedRef<UserClass, ESPMode::ThreadSafe>& InUserObjectRef, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
+		return Result;
 	}
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateThreadSafeSP(const TSharedRef<UserClass, ESPMode::ThreadSafe>& InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(InUserObjectRef, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::ThreadSafe, TFuncType, VarTypes...>::Create(Result, InUserObjectRef, InFunc, Vars...);
+		return Result;
 	}
 
 	/**
@@ -203,7 +219,9 @@ public:
 	template <typename UObjectTemplate, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateUFunction(UObjectTemplate* InUserObject, const FName& InFunctionName, VarTypes... Vars)
 	{
-		return TBaseUFunctionDelegateInstance<UObjectTemplate, TFuncType, VarTypes...>::Create(InUserObject, InFunctionName, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseUFunctionDelegateInstance<UObjectTemplate, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunctionName, Vars...);
+		return Result;
 	}
 
 	/**
@@ -215,12 +233,16 @@ public:
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateUObject(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseUObjectMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(InUserObject, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseUObjectMethodDelegateInstance<false, UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
+		return Result;
 	}
 	template <typename UserClass, typename... VarTypes>
 	inline static TBaseDelegate<RetValType, ParamTypes...> CreateUObject(UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
-		return TBaseUObjectMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create(InUserObject, InFunc, Vars...);
+		TBaseDelegate<RetValType, ParamTypes...> Result;
+		TBaseUObjectMethodDelegateInstance<true , UserClass, TFuncType, VarTypes...>::Create(Result, InUserObject, InFunc, Vars...);
+		return Result;
 	}
 
 public:
@@ -229,8 +251,15 @@ public:
 	 * Default constructor
 	 */
 	inline TBaseDelegate()
-		: FDelegateBase(nullptr)
-	{ }
+	{
+	}
+
+	/**
+	 * 'Null' constructor
+	 */
+	inline TBaseDelegate(TYPE_OF_NULLPTR)
+	{
+	}
 
 	/**
 	 * Destructor.
@@ -241,26 +270,48 @@ public:
 	}
 
 	/**
-	 * Creates and initializes a new instance with the given delegate instance.
+	 * Move constructor.
 	 *
-	 * The delegate will assume ownership of the incoming delegate instance!
-	 * IMPORTANT: This is a system-internal function and you should never be using this in regular C++ code
-	 *
-	 * @param InDelegateInstance The delegate instance to assign.
+	 * @param Other The delegate object to move from.
 	 */
-	inline TBaseDelegate( TDelegateInstanceInterface* InDelegateInstance )
-		: FDelegateBase(InDelegateInstance)
-	{ }
+	inline TBaseDelegate(TBaseDelegate&& Other)
+	{
+		*this = MoveTemp(Other);
+	}
 
 	/**
 	 * Creates and initializes a new instance from an existing delegate object.
 	 *
 	 * @param Other The delegate object to copy from.
 	 */
-	inline TBaseDelegate( const TBaseDelegate& Other )
-		: FDelegateBase(nullptr)
+	inline TBaseDelegate(const TBaseDelegate& Other)
 	{
 		*this = Other;
+	}
+
+	/**
+	 * Move assignment operator.
+	 *
+	 * @param	OtherDelegate	Delegate object to copy from
+	 */
+	inline TBaseDelegate& operator=(TBaseDelegate&& Other)
+	{
+		if (&Other != this)
+		{
+			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+			TDelegateInstanceInterface* OtherInstance = Other.GetDelegateInstance();
+
+			if (OtherInstance != nullptr)
+			{
+				OtherInstance->CreateCopy(*this);
+			}
+			else
+			{
+				Unbind();
+			}
+		}
+
+		return *this;
 	}
 
 	/**
@@ -268,20 +319,20 @@ public:
 	 *
 	 * @param	OtherDelegate	Delegate object to copy from
 	 */
-	inline TBaseDelegate& operator=( const TBaseDelegate& Other )
+	inline TBaseDelegate& operator=(const TBaseDelegate& Other)
 	{
 		if (&Other != this)
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)Other.GetDelegateInstance();
+			TDelegateInstanceInterface* OtherInstance = Other.GetDelegateInstance();
 
 			if (OtherInstance != nullptr)
 			{
-				SetDelegateInstance(OtherInstance->CreateCopy());
+				OtherInstance->CreateCopy(*this);
 			}
 			else
 			{
-				SetDelegateInstance(nullptr);
+				Unbind();
 			}
 		}
 
@@ -431,13 +482,21 @@ public:
 	 */
 	inline RetValType Execute(ParamTypes... Params) const
 	{
-		TDelegateInstanceInterface* LocalDelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
+		TDelegateInstanceInterface* LocalDelegateInstance = GetDelegateInstance();
 
 		// If this assert goes off, Execute() was called before a function was bound to the delegate.
 		// Consider using ExecuteIfSafe() instead.
 		checkSlow(LocalDelegateInstance != nullptr);
 
 		return LocalDelegateInstance->Execute(Params...);
+	}
+
+	/**
+	 * Returns a pointer to the correctly-typed delegate instance.
+	 */
+	TDelegateInstanceInterface* GetDelegateInstance() const
+	{
+		return (TDelegateInstanceInterface*)FDelegateBase::GetDelegateInstance();
 	}
 };
 
@@ -457,16 +516,53 @@ public:
 	}
 
 	/**
-	 * Creates and initializes a new instance with the given delegate instance.
-	 *
-	 * The delegate will assume ownership of the incoming delegate instance!
-	 * IMPORTANT: This is a system-internal function and you should never be using this in regular C++ code
-	 *
-	 * @param InDelegateInstance The delegate instance to assign.
+	 * 'Null' constructor
 	 */
-	TBaseDelegate(TDelegateInstanceInterface* InDelegateInstance)
-		: Super(InDelegateInstance)
+	FORCEINLINE TBaseDelegate(TYPE_OF_NULLPTR)
+		: Super(nullptr)
 	{
+	}
+
+	/**
+	 * Move constructor.
+	 *
+	 * @param Other The delegate object to move from.
+	 */
+	FORCEINLINE TBaseDelegate(TBaseDelegate&& Other)
+		: Super(MoveTemp(Other))
+	{
+	}
+
+	/**
+	 * Creates and initializes a new instance from an existing delegate object.
+	 *
+	 * @param Other The delegate object to copy from.
+	 */
+	FORCEINLINE TBaseDelegate(const TBaseDelegate& Other)
+		: Super(Other)
+	{
+	}
+
+	/**
+	 * Move assignment operator.
+	 *
+	 * @param	OtherDelegate	Delegate object to copy from
+	 */
+	inline TBaseDelegate& operator=(TBaseDelegate&& Other)
+	{
+		(Super&)*this = MoveTemp((Super&)Other);
+		return *this;
+	}
+
+	/**
+	 * Assignment operator.
+	 *
+	 * @param	OtherDelegate	Delegate object to copy from
+	 */
+	inline TBaseDelegate& operator=(const TBaseDelegate& Other)
+	{
+		(Super&)*this = (Super&)Other;
+		return *this;
 	}
 
 	/**
@@ -479,7 +575,7 @@ public:
 	{
 		if (Super::IsBound())
 		{
-			return ((TDelegateInstanceInterface*)Super::GetDelegateInstance())->ExecuteIfSafe(Params...);
+			return Super::GetDelegateInstance()->ExecuteIfSafe(Params...);
 		}
 
 		return false;
@@ -513,19 +609,18 @@ public:
 public:
 
 	/**
-	 * Adds a delegate instance to this multicast delegate's invocation list.
+	 * DEPRECATED: Adds a delegate instance to this multicast delegate's invocation list.
 	 *
-	 * This delegate will take over ownership of the given delegate instance.
+	 * This method is retained for backwards compatibility.
 	 *
-	 * @param DelegateInstance The delegate instance to add.
+	 * @param Delegate The delegate to add.
 	 */
-	FDelegateHandle Add( TDelegateInstanceInterface* DelegateInstance )
+	FDelegateHandle Add(FDelegate&& InNewDelegate)
 	{
 		FDelegateHandle Result;
-
-		if (DelegateInstance != nullptr)
+		if (InNewDelegate.GetDelegateInstance())
 		{
-			Result = AddDelegateInstance(DelegateInstance);
+			Result = AddDelegateInstance(MoveTemp(InNewDelegate));
 		}
 
 		return Result;
@@ -538,14 +633,12 @@ public:
 	 *
 	 * @param Delegate The delegate to add.
 	 */
-	FDelegateHandle Add( const FDelegate& Delegate )
+	FDelegateHandle Add(const FDelegate& InNewDelegate)
 	{
-		FDelegateHandle             Result;
-		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)Delegate.GetDelegateInstance();
-
-		if (DelegateInstance != nullptr)
+		FDelegateHandle Result;
+		if (InNewDelegate.GetDelegateInstance())
 		{
-			Result = AddDelegateInstance(DelegateInstance->CreateCopy());
+			Result = AddDelegateInstance(FDelegate(InNewDelegate));
 		}
 
 		return Result;
@@ -744,15 +837,17 @@ protected:
 		{
 			Clear();
 
-			for (IDelegateInstance* DelegateInstance : Other.GetInvocationList())
+			for (const FDelegateBase& OtherDelegateRef : Other.GetInvocationList())
 			{
 				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-				TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)DelegateInstance;
+				TDelegateInstanceInterface* OtherInstance = ((const FDelegate&)OtherDelegateRef).GetDelegateInstance();
 
 				if (OtherInstance != nullptr)
 				{
-					AddInternal(OtherInstance->CreateCopy());
-				}			
+					FDelegate Temp;
+					OtherInstance->CreateCopy(Temp);
+					AddInternal(MoveTemp(Temp));
+				}
 			}
 		}
 
@@ -768,22 +863,23 @@ protected:
 	 *
 	 * @param	InDelegate	Delegate to add
 	 */
-	FDelegateHandle AddDelegateInstance( TDelegateInstanceInterface* InDelegateInstance )
+	FDelegateHandle AddDelegateInstance(FDelegate&& InNewDelegate)
 	{
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 		// verify that the same function isn't already bound
-		for (IDelegateInstance* DelegateInstance : GetInvocationList())
+		for (const FDelegateBase& DelegateRef : GetInvocationList())
 		{
+			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+			TDelegateInstanceInterface* DelegateInstance = ((const FDelegate&)DelegateRef).GetDelegateInstance();
+
 			if (DelegateInstance != nullptr)
 			{
-				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
-				check(!DelegateInstanceInterface->IsSameFunction(*InDelegateInstance));
+				check(!DelegateInstance->IsSameFunction(*InNewDelegate.GetDelegateInstance()));
 			}
 		}
 #endif
 
-		return AddInternal(InDelegateInstance);
+		return AddInternal(MoveTemp(InNewDelegate));
 	}
 
 public:
@@ -804,9 +900,10 @@ public:
 			for (int32 InvocationListIndex = LocalInvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 			{
 				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)LocalInvocationList[InvocationListIndex];
+				const FDelegate& DelegateBase = (const FDelegate&)LocalInvocationList[InvocationListIndex];
 
-				if ((DelegateInstanceInterface == nullptr) || !DelegateInstanceInterface->ExecuteIfSafe(Params...))
+				TDelegateInstanceInterface* DelegateInstanceInterface = DelegateBase.GetDelegateInstance();
+				if (DelegateInstanceInterface == nullptr || !DelegateInstanceInterface->ExecuteIfSafe(Params...))
 				{
 					NeedsCompaction = true;
 				}
@@ -835,14 +932,14 @@ protected:
 
 		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{
-			// InvocationList is const, so we const_cast to be able to null the entry
+			// InvocationList is const, so we const_cast to be able to unbind the entry
 			// TODO: This is horrible, can we get the base class to do it?
-			IDelegateInstance*& DelegateInstanceRef = const_cast<IDelegateInstance*&>(LocalInvocationList[InvocationListIndex]);
+			FDelegateBase& DelegateBase = const_cast<FDelegateBase&>(LocalInvocationList[InvocationListIndex]);
 
-			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->GetHandle() == Handle)
+			IDelegateInstance* DelegateInstanceInterface = DelegateBase.GetDelegateInstance();
+			if ((DelegateInstanceInterface != nullptr) && DelegateInstanceInterface->GetHandle() == Handle)
 			{
-				delete DelegateInstanceRef;
-				DelegateInstanceRef = nullptr;
+				DelegateBase.Unbind();
 
 				break; // each delegate binding has a unique handle, so once we find it, we can stop
 			}

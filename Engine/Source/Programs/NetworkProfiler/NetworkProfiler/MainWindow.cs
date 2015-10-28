@@ -95,7 +95,7 @@ namespace NetworkProfiler
 			SetupColumns( PropertyListView, new String[]	{ "Total Size (KBytes)", "Count", "Average Size (Bytes)", "Average Size (Bits)", "Time (ms)", "Property" });
 			SetupColumns( RPCListView,		new String[]	{ "Total Size (KBytes)", "Count", "Average Size (Bytes)", "Average Size (Bits)", "Time (ms)", "RPC" });
 
-			SetupColumns( ActorPerfPropsListView, new String[] { "Actor", "MS", "Bytes", "Count", "Update HZ", "Rep HZ", "Waste" } );
+			SetupColumns( ActorPerfPropsListView, new String[] { "Actor", "MS", "KB/s", "Bytes", "Count", "Update HZ", "Rep HZ", "Waste" } );
 			SetupColumns( ActorPerfPropsDetailsListView, new String[] { "Property", "Bytes", "Count" } );
 
 			ActorPerfPropsDetailsListView.Columns[0].Width = 170;
@@ -278,6 +278,29 @@ namespace NetworkProfiler
 			UpdateChartSeries( SeriesType.ContentBlockHeaderSize, SeriesChartType.StackedArea, true );
 			UpdateChartSeries( SeriesType.ContentBlockFooterSize, SeriesChartType.StackedArea, true );
 			UpdateChartSeries( SeriesType.PropertyHandleSize, SeriesChartType.StackedArea, true );
+		}
+
+		private void SetDefaultFastLineView()
+		{
+			foreach ( var Series in NetworkChart.Series )
+			{
+				Series.Enabled = false;
+			}
+
+			for ( int i = 0; i < ChartListBox.Items.Count; ++i )
+			{
+				ChartListBox.SetItemChecked( i, false );
+			}
+
+			UpdateChartSeries( SeriesType.SendBunchSize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.PropertySize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.RPCSize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.ExportBunchSize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.MustBeMappedGuidsSize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.SendBunchHeaderSize, SeriesChartType.StackedArea, true );
+			UpdateChartSeries( SeriesType.ContentBlockHeaderSize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.ContentBlockFooterSize, SeriesChartType.FastLine, true );
+			UpdateChartSeries( SeriesType.PropertyHandleSize, SeriesChartType.FastLine, true );
 		}
 
 		private void SetupColumns(ListView ListView, String[] Headers)
@@ -714,7 +737,7 @@ namespace NetworkProfiler
 		{
 			if (LineViewRadioButton.Checked)
 			{
-				SetDefaultLineView();
+				SetDefaultFastLineView();
 			}
 		}
 

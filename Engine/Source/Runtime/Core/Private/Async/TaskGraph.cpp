@@ -234,10 +234,19 @@ static int32 GMaxTasksToStartOnDequeue = 1;
 #else
 static int32 GMaxTasksToStartOnDequeue = 2;
 #endif
+
 static FAutoConsoleVariableRef CVarMaxTasksToStartOnDequeue(
 	TEXT("TaskGraph.MaxTasksToStartOnDequeue"),
 	GMaxTasksToStartOnDequeue,
 	TEXT("Performance tweak, controls how many additional task threads a task thread starts when it grabs a list of new tasks. This only applies in TaskGraph.ConsoleSpinMode"),
+	ECVF_Cheat
+	);
+
+static int32 GAllAnyThreadTasksFromGameHiPri = 0;
+static FAutoConsoleVariableRef CVarAllAnyThreadTasksFromGameHiPri(
+	TEXT("TaskGraph.AllAnyThreadTasksFromGameHiPri"),
+	GAllAnyThreadTasksFromGameHiPri,
+	TEXT("If > 0, then all any thread tasks queued from the game thread are hi priority."),
 	ECVF_Cheat
 	);
 
@@ -1255,7 +1264,7 @@ public:
 		{
 			FString Name = FString::Printf(TEXT("TaskGraphThread %d"), ThreadIndex - (LastExternalThread + 1));
 			uint32 StackSize = 256 * 1024;
-			WorkerThreads[ThreadIndex].RunnableThread = FRunnableThread::Create(&Thread(ThreadIndex), *Name, StackSize, TPri_Normal, FPlatformAffinity::GetTaskGraphThreadMask()); // these are below normal threads? so that they sleep when the named threads are active
+			WorkerThreads[ThreadIndex].RunnableThread = FRunnableThread::Create(&Thread(ThreadIndex), *Name, StackSize, TPri_BelowNormal, FPlatformAffinity::GetTaskGraphThreadMask()); // these are below normal threads? so that they sleep when the named threads are active
 			WorkerThreads[ThreadIndex].bAttached = true;
 		}
 	}
@@ -1285,7 +1294,6 @@ public:
 		StalledUnnamedThreads.PopAll(NotProperlyUnstalled);
 		FPlatformTLS::FreeTlsSlot(PerThreadIDTLSSlot);
 	}
-
 
 	// API inherited from FTaskGraphInterface
 
@@ -1346,9 +1354,22 @@ public:
 			TASKGRAPH_SCOPE_CYCLE_COUNTER(3, STAT_TaskGraph_QueueTask_AnyThread);
 			if (FPlatformProcess::SupportsMultithreading())
 			{
+				ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread;
+				if (GAllAnyThreadTasksFromGameHiPri || !GFastSchedulerLatched)
+				{
+				    if (ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown) == ENamedThreads::AnyThread)
+				    {
+					    CurrentThreadIfKnown = GetCurrentThread();
+				    }
+				    else
+				    {
+					    CurrentThreadIfKnown = ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown);
+					    checkThreadGraph(CurrentThreadIfKnown == GetCurrentThread());
+				    }
+				}
 				{
 					TASKGRAPH_SCOPE_CYCLE_COUNTER(4, STAT_TaskGraph_QueueTask_IncomingAnyThreadTasks_Push);
-					if (ENamedThreads::GetPriority(Task->ThreadToExecuteOn))
+					if ((GAllAnyThreadTasksFromGameHiPri && CurrentThreadIfKnown == ENamedThreads::GameThread) ||  ENamedThreads::GetPriority(Task->ThreadToExecuteOn))
 					{
 						IncomingAnyThreadTasksHiPri.Push(Task);
 					}
@@ -1385,16 +1406,6 @@ public:
 						ThreadToExecuteOn = ENamedThreads::Type((uint32(NextUnnamedThreadForTaskFromUnknownThread.Increment()) % uint32(NextUnnamedThreadMod - GNumWorkerThreadsToIgnore)) + NumNamedThreads);
 					}
 					FTaskThreadBase* Target = &Thread(ThreadToExecuteOn);
-					ENamedThreads::Type CurrentThreadIfKnown;
-					if (ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown) == ENamedThreads::AnyThread)
-					{
-						CurrentThreadIfKnown = GetCurrentThread();
-					}
-					else
-					{
-						CurrentThreadIfKnown = ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown);
-						checkThreadGraph(CurrentThreadIfKnown == GetCurrentThread());
-					}
 					if (ThreadToExecuteOn != CurrentThreadIfKnown)
 					{
 						Target->WakeUp();
@@ -1990,6 +2001,17 @@ public:
 		if (StallingThread >= NumNamedThreads && !GFastSchedulerLatched)
 		{
 			StalledUnnamedThreads.Push(&Thread(StallingThread));
+		}
+	}
+
+	void SetTaskThreadPriorities(EThreadPriority Pri)
+	{
+		for (int32 ThreadIndex = 0; ThreadIndex < NumThreads; ThreadIndex++)
+		{
+			if (ThreadIndex > LastExternalThread)
+			{
+				WorkerThreads[ThreadIndex].RunnableThread->SetThreadPriority(Pri);
+			}
 		}
 	}
 
@@ -2788,4 +2810,30 @@ static FAutoConsoleCommand TaskGraphBenchmarkCmd(
 	TEXT("TaskGraph.Benchmark"),
 	TEXT("Prints the time to run 1000 no-op tasks."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&TaskGraphBenchmark)
+	);
+
+static void SetTaskThreadPriority(const TArray<FString>& Args)
+{
+	EThreadPriority Pri = TPri_Normal;
+	if (Args.Num() && Args[0] == TEXT("abovenormal"))
+	{
+		Pri = TPri_AboveNormal;
+		UE_LOG(LogConsoleResponse, Display, TEXT("Setting task thread priority to above normal."));
+	}
+	else if (Args.Num() && Args[0] == TEXT("belownormal"))
+	{
+		Pri = TPri_BelowNormal;
+		UE_LOG(LogConsoleResponse, Display, TEXT("Setting task thread priority to below normal."));
+	}
+	else
+	{
+		UE_LOG(LogConsoleResponse, Display, TEXT("Setting task thread priority to normal."));
+	}
+	FTaskGraphImplementation::Get().SetTaskThreadPriorities(Pri);
+}
+
+static FAutoConsoleCommand TaskThreadPriorityCmd(
+	TEXT("TaskGraph.TaskThreadPriority"),
+	TEXT("Sets the priority of the task threads. Argument is one of belownormal, normal or abovenormal."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&SetTaskThreadPriority)
 	);

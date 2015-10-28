@@ -779,6 +779,8 @@ static void ServiceLocalQueue()
 	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
 }
 
+extern bool IsLpvIndirectPassRequired(const FViewInfo& View);
+
 static TAutoConsoleVariable<float> CVarStallInitViews(
 	TEXT("CriticalPathStall.AfterInitViews"),
 	0.0f,

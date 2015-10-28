@@ -498,6 +498,25 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 {
 	Menu.BeginSection("ReplaceWith", LOCTEXT("WidgetTree_ReplaceWith", "Replace With..."));
 	{
+		if ( Widgets.Num() == 1 )
+		{
+			FWidgetReference Widget = *Widgets.CreateIterator();
+			UClass* WidgetClass = Widget.GetTemplate()->GetClass();
+			if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && Cast<UPanelWidget>(Widget.GetTemplate())->GetChildrenCount() == 1 )
+			{
+				Menu.AddMenuEntry(
+					LOCTEXT("ReplaceWithChild", "Replace With Child"),
+					LOCTEXT("ReplaceWithChildTooltip", "Remove this widget and insert the children of this widget into the parent."),
+					FSlateIcon(),
+					FUIAction(
+						FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgetWithChildren, BP, Widget),
+						FCanExecuteAction()
+					));
+
+				Menu.AddMenuSeparator();
+			}
+		}
+
 		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 		{
 			UClass* WidgetClass = *ClassIt;
@@ -522,6 +541,44 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 		}
 	}
 	Menu.EndSection();
+}
+
+void FWidgetBlueprintEditorUtils::ReplaceWidgetWithChildren(UWidgetBlueprint* BP, FWidgetReference Widget)
+{
+	if ( UPanelWidget* ExistingPanelTemplate = Cast<UPanelWidget>(Widget.GetTemplate()) )
+	{
+		UWidget* FirstChildTemplate = ExistingPanelTemplate->GetChildAt(0);
+
+		FScopedTransaction Transaction(LOCTEXT("ReplaceWidgets", "Replace Widgets"));
+
+		ExistingPanelTemplate->Modify();
+		FirstChildTemplate->Modify();
+
+		if ( UPanelWidget* PanelParentTemplate = ExistingPanelTemplate->GetParent() )
+		{
+			PanelParentTemplate->Modify();
+
+			FirstChildTemplate->RemoveFromParent();
+			PanelParentTemplate->ReplaceChild(ExistingPanelTemplate, FirstChildTemplate);
+		}
+		else if ( ExistingPanelTemplate == BP->WidgetTree->RootWidget )
+		{
+			FirstChildTemplate->RemoveFromParent();
+
+			BP->WidgetTree->Modify();
+			BP->WidgetTree->RootWidget = FirstChildTemplate;
+		}
+		else
+		{
+			Transaction.Cancel();
+			return;
+		}
+
+		// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
+		ExistingPanelTemplate->Rename(nullptr, nullptr);
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	}
 }
 
 void FWidgetBlueprintEditorUtils::ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass)

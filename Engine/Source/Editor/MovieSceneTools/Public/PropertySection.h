@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "MovieSceneTrack.h"
+#include "MovieSceneSection.h"
 #include "ISequencerSection.h"
 
 /**
@@ -44,7 +46,22 @@ public:
 
 		return LayerId;
 	}
-	
+
+	void SetIntermediateValueForTrack( UMovieSceneTrack* Track, FPropertyChangedParams PropertyChangedParams )
+	{
+		if ( SectionObject.GetOuter() == Track )
+		{
+			SetIntermediateValue(PropertyChangedParams);
+		}
+	}
+
+	/** Sets the intermediate value for this section interface.  Intermediate values are used to display property values which
+		have changed, but have not been keyed yet. */
+	virtual void SetIntermediateValue(FPropertyChangedParams PropertyChangedParams) = 0;
+
+	/** Clears any previously set intermediate values. */
+	virtual void ClearIntermediateValue() = 0;
+
 protected:
 	/** Display name of the section */
 	FText DisplayName;

@@ -492,13 +492,11 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 			TArray<UObject*> OutObjects;
 			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
-			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(),
-				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
+			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
 		}
 		else
 		{
-			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(),
-				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewMasterSound, Sound));
+			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewMasterSound, Sound));
 		}
 
 		return true;
@@ -507,31 +505,41 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 }
 
 
-void FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
+bool FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
 {
-	UMovieSceneTrack* Track = FindOrAddMasterTrack<UMovieSceneAudioTrack>();
+	UMovieSceneTrack* Track = FindOrCreateMasterTrack<UMovieSceneAudioTrack>().Track;
 
 	auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
 	AudioTrack->AddNewSound( Sound, KeyTime );
+	return true;
 }
 
 
-void FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo )
+bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo )
 {
+	bool bHandleCreated = false;
+	bool bTrackCreated = false;
+	bool bTrackModified = false;
+
 	for( int32 ObjectIndex = 0; ObjectIndex < ObjectsToAttachTo.Num(); ++ObjectIndex )
 	{
 		UObject* Object = ObjectsToAttachTo[ObjectIndex];
 
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
+		FGuid ObjectHandle = HandleResult.Handle;
+		bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
-			
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
-
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
+			UMovieSceneTrack* Track = TrackResult.Track;
+			bTrackCreated |= TrackResult.bWasCreated;
 			if (ensure(Track))
 			{
 				Cast<UMovieSceneAudioTrack>(Track)->AddNewSound( Sound, KeyTime );
+				bTrackModified = true;
 			}
 		}
 	}
+
+	return bHandleCreated || bTrackCreated || bTrackModified;
 }

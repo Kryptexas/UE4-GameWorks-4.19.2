@@ -131,7 +131,7 @@ public:
 	 * @param InFunc The object's message handling function.
 	 */
 	FFunctionMessageCatchall( FuncType InFunc )
-		: Func(InFunc)
+		: Func(MoveTemp(InFunc))
 	{ }
 
 	/** Virtual destructor. */
@@ -175,7 +175,7 @@ public:
 	 * @param InHandlerFunc The object's message handling function.
 	 */
 	TFunctionMessageHandler( FuncType InFunc )
-		: Func(InFunc)
+		: Func(MoveTemp(InFunc))
 	{ }
 
 	/** Virtual destructor. */

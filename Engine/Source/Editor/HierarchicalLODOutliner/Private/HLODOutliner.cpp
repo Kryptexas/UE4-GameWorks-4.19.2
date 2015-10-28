@@ -1,4 +1,4 @@
-// Copyirght 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HLODOutliner.h"
@@ -25,7 +25,7 @@
 #include "HLODSelectionActor.h"
 #include "TreeItemID.h"
 
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 
 #define LOCTEXT_NAMESPACE "HLODOutliner"
 
@@ -60,7 +60,7 @@ namespace HLODOutliner
 		CreateSettingsView();
 
 		/** Holds all widgets for the profiler window like menu bar, toolbar and tabs. */
-		TSharedRef<SVerticalBox> MainContentPanel = SNew(SVerticalBox);
+		MainContentPanel = SNew(SVerticalBox);
 		ChildSlot
 			[
 				SNew(SBorder)
@@ -71,12 +71,14 @@ namespace HLODOutliner
 					// Overlay slot for the main HLOD window area
 					+ SOverlay::Slot()
 					[
-						MainContentPanel
+						MainContentPanel.ToSharedRef()
 					]
 				]
 			];
 
-		
+		// Disable panel if system is not enabled
+		MainContentPanel->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SHLODOutliner::IsHLODEnabledInWorldSettings)));
+
 		MainContentPanel->AddSlot()
 			.AutoHeight()
 			.Padding(0.0f, 0.0f, 0.0f, 4.0f)
@@ -302,7 +304,7 @@ namespace HLODOutliner
 		if (bForcedSliderValueUpdating)
 		{
 			// Snap values
-			int32 SnappedValue = FMath::RoundToInt(FMath::Min(ForcedLODSliderValue, 1.0f) * (float)LODLevelDrawDistances.Num());
+			int32 SnappedValue = FMath::RoundToInt(FMath::Min(ForcedLODSliderValue, 1.0f) * (float)LODLevelTransitionScreenSizes.Num());
 			if (SnappedValue - 1 != ForcedLODLevel)
 			{
 				RestoreForcedLODLevel(ForcedLODLevel);
@@ -316,6 +318,7 @@ namespace HLODOutliner
 				}				
 			}
 		}
+
 	}
 
 	void SHLODOutliner::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -424,7 +427,7 @@ namespace HLODOutliner
 				FLODActorItem* Item = static_cast<FLODActorItem*>(SelectedNodes[0].Get());
 				ALODActor* LODActor = Item->LODActor.Get();
 				
-				HierarchicalLODUtils::CreateVolumeForLODActor(LODActor, CurrentWorld);
+				FHierarchicalLODUtilities::CreateVolumeForLODActor(LODActor, CurrentWorld);
 			}
 		}
 		return FReply::Handled();
@@ -454,7 +457,7 @@ namespace HLODOutliner
 		GEngine->OnHLODActorMoved().AddSP(this, &SHLODOutliner::OnHLODActorMovedEvent);
 		GEngine->OnHLODActorAdded().AddSP(this, &SHLODOutliner::OnHLODActorAddedEvent);
 		GEngine->OnHLODActorMarkedDirty().AddSP(this, &SHLODOutliner::OnHLODActorMarkedDirtyEvent);
-		GEngine->OnHLODDrawDistanceChanged().AddSP(this, &SHLODOutliner::OnHLODDrawDistanceChangedEvent);
+		GEngine->OnHLODTransitionScreenSizeChanged().AddSP(this, &SHLODOutliner::OnHLODTransitionScreenSizeChangedEvent);
 		GEngine->OnHLODLevelsArrayChanged().AddSP(this, &SHLODOutliner::OnHLODLevelsArrayChangedEvent);
 		
 	}
@@ -512,7 +515,7 @@ namespace HLODOutliner
 			bHLODsBuild &= Build;
 		}
 
-		return (LODLevelDrawDistances.Num() > 0 && bHLODsBuild);
+		return (LODLevelTransitionScreenSizes.Num() > 0 && bHLODsBuild);
 	}
 
 	void SHLODOutliner::HandleForcedLevelSliderValueChanged(float NewValue)
@@ -528,7 +531,7 @@ namespace HLODOutliner
 	void SHLODOutliner::HandleForcedLevelSliderCaptureEnd()
 	{	
 		bForcedSliderValueUpdating = false;		
-		ForcedLODSliderValue = ((1.0f / (LODLevelDrawDistances.Num())) * (ForcedLODLevel + 1));
+		ForcedLODSliderValue = ((1.0f / (LODLevelTransitionScreenSizes.Num())) * (ForcedLODLevel + 1));
 	}
 
 	float SHLODOutliner::HandleForcedLevelSliderValue() const
@@ -619,7 +622,7 @@ namespace HLODOutliner
 			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 			ALODActor* LODActor = ActorItem->LODActor.Get();
 
-			AHierarchicalLODVolume* Volume = HierarchicalLODUtils::CreateVolumeForLODActor(LODActor, CurrentWorld);
+			AHierarchicalLODVolume* Volume = FHierarchicalLODUtilities::CreateVolumeForLODActor(LODActor, CurrentWorld);
 			check(Volume);
 		}		
 	}
@@ -718,7 +721,7 @@ namespace HLODOutliner
 			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 
 			ALODActor* LODActor = ActorItem->LODActor.Get();
-			ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(LODActor);
+			ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(LODActor);
 
 			LODActor->Modify();
 
@@ -727,7 +730,7 @@ namespace HLODOutliner
 				ParentActor->Modify();
 			}
 
-			HierarchicalLODUtils::DeleteLODActor(LODActor);
+			FHierarchicalLODUtilities::DeleteLODActor(LODActor);
 			CurrentWorld->DestroyActor(LODActor);
 
 			if (ParentActor && !ParentActor->HasValidSubActors())
@@ -851,9 +854,9 @@ namespace HLODOutliner
 
 	void SHLODOutliner::DestroyLODActor(ALODActor* InActor)
 	{		
-		ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
 
-		HierarchicalLODUtils::DeleteLODActor(InActor);
+		FHierarchicalLODUtilities::DeleteLODActor(InActor);
 		CurrentWorld->DestroyActor(InActor);
 
 		if (ParentActor && !ParentActor->HasValidSubActors())
@@ -874,10 +877,15 @@ namespace HLODOutliner
 				{
 					if (LODActor->LODLevel == LODLevelIndex + 1)
 					{
-						LODActor->LODDrawDistance = LODLevelDrawDistances[LODLevelIndex];
-						LODActor->UpdateSubActorLODParents();
-						
-						LODActor->SetIsDirty(true);
+						if (!LODActor->IsDirty() && LODActor->GetStaticMeshComponent())
+						{
+							// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axi)
+							static const float FOVRad = 90.0f * (float)PI / 360.0f;
+							static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);						
+							FBoxSphereBounds Bounds = LODActor->GetStaticMeshComponent()->CalcBounds(FTransform());
+							LODActor->LODDrawDistance = FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(Bounds.SphereRadius, LODLevelTransitionScreenSizes[LODLevelIndex], ProjectionMatrix);
+							LODActor->UpdateSubActorLODParents();
+						}						
 					}
 				}
 			}
@@ -888,7 +896,7 @@ namespace HLODOutliner
 	{
 		if (CurrentWorld)
 		{
-			HierarchicalLODUtils::DeleteLODActorsInHLODLevel(CurrentWorld, HLODLevelIndex);
+			FHierarchicalLODUtilities::DeleteLODActorsInHLODLevel(CurrentWorld, HLODLevelIndex);
 		}
 	}
 
@@ -920,21 +928,23 @@ namespace HLODOutliner
 			return;
 		}
 
+		TArray<FTreeItemPtr> NewSelectedNodes = TreeView->GetSelectedItems();
+
 		EmptySelection();
+		TreeView->ClearSelection();
 
-		SelectedNodes = TreeView->GetSelectedItems();
-
-		if (TreeItem.IsValid())
-		{			
-			StartSelection();
-
-			ITreeItem::TreeItemType Type = TreeItem->GetTreeItemType();
-
-			switch (Type)
+		// Loop over previously retrieve lsit of selected nodes
+		StartSelection();
+		for (FTreeItemPtr SelectedItem : NewSelectedNodes)
+		{
+			if (SelectedItem.IsValid())
 			{
+				ITreeItem::TreeItemType Type = SelectedItem->GetTreeItemType();
+				switch (Type)
+				{
 				case ITreeItem::HierarchicalLODLevel:
 				{
-					FLODLevelItem* LevelItem = (FLODLevelItem*)(TreeItem.Get());
+					FLODLevelItem* LevelItem = (FLODLevelItem*)(SelectedItem.Get());
 					const TArray<TWeakPtr<ITreeItem>>& Children = LevelItem->GetChildren();
 					for (auto& WeakChild : Children)
 					{
@@ -949,24 +959,23 @@ namespace HLODOutliner
 
 				case ITreeItem::HierarchicalLODActor:
 				{
-					FLODActorItem* ActorItem = (FLODActorItem*)(TreeItem.Get());
+					FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 					SelectActorInViewport(ActorItem->LODActor.Get(), 0);
 					break;
 				}
 
 				case ITreeItem::StaticMeshActor:
 				{
-					FStaticMeshActorItem* StaticMeshActorItem = (FStaticMeshActorItem*)(TreeItem.Get());
+					FStaticMeshActorItem* StaticMeshActorItem = (FStaticMeshActorItem*)(SelectedItem.Get());
 					SelectActorInViewport(StaticMeshActorItem->StaticMeshActor.Get(), 0);
 					break;
 				}
-
-			
+				}
 			}
-			
-
-			EndSelection();
 		}
+		EndSelection();
+
+		SelectedNodes = TreeView->GetSelectedItems();
 	}
 
 	void SHLODOutliner::OnOutlinerDoubleClick(FTreeItemPtr TreeItem)
@@ -1121,7 +1130,7 @@ namespace HLODOutliner
 			FVector Origin, Extent;
 			FBox BoundingBox = Actor->GetComponentsBoundingBox(true);
 			BoundSphereSpawned->SetWorldLocation(BoundingBox.GetCenter());
-			BoundSphereSpawned->SetSphereRadius(BoundingBox.GetExtent().Size());
+			BoundSphereSpawned->SetSphereRadius(BoundingBox.GetExtent().GetAbsMax());
 			BoundSphereSpawned->ShapeColor = FColor::Red;		
 
 			SelectionActors.Add(SelectionActor);
@@ -1163,6 +1172,7 @@ namespace HLODOutliner
 	{		
 		USelection* Selection = Cast<USelection>(Obj);
 		AActor* SelectedActor = Cast<AActor>(Obj);
+		TreeView->ClearSelection();
 		if (Selection)
 		{
 			int32 NumSelected = Selection->Num();
@@ -1258,11 +1268,13 @@ namespace HLODOutliner
 
 	void SHLODOutliner::OnMapChange(uint32 MapFlags)
 	{
+		CurrentWorld = nullptr;
 		FullRefresh();
 	}
 
 	void SHLODOutliner::OnNewCurrentLevel()
 	{
+		CurrentWorld = nullptr;
 		FullRefresh();	
 	}
 
@@ -1298,7 +1310,7 @@ namespace HLODOutliner
 			return;
 		}
 
-		ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
 		if (ParentActor)
 		{
 			ParentActor->Modify();
@@ -1315,23 +1327,23 @@ namespace HLODOutliner
 	{		
 		if (InActor->GetStaticMeshComponent()->StaticMesh)
 		{
-			HierarchicalLODUtils::DeleteLODActorAssets(InActor);		
+			FHierarchicalLODUtilities::DeleteLODActorAssets(InActor);		
 		}		
 		FullRefresh();
 	}
 
-	void SHLODOutliner::OnHLODDrawDistanceChangedEvent()
+	void SHLODOutliner::OnHLODTransitionScreenSizeChangedEvent()
 	{
 		if (CurrentWorld)
 		{
 			auto WorldSettings = CurrentWorld->GetWorldSettings();
 
-			int32 MaxLODLevel = FMath::Min(WorldSettings->HierarchicalLODSetup.Num(), LODLevelDrawDistances.Num());
+			int32 MaxLODLevel = FMath::Min(WorldSettings->HierarchicalLODSetup.Num(), LODLevelTransitionScreenSizes.Num());
 			for (int32 LODLevelIndex = 0; LODLevelIndex < MaxLODLevel; ++LODLevelIndex)
 			{
-				if (LODLevelDrawDistances[LODLevelIndex] != WorldSettings->HierarchicalLODSetup[LODLevelIndex].DrawDistance)
+				if (LODLevelTransitionScreenSizes[LODLevelIndex] != WorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize)
 				{
-					LODLevelDrawDistances[LODLevelIndex] = WorldSettings->HierarchicalLODSetup[LODLevelIndex].DrawDistance;
+					LODLevelTransitionScreenSizes[LODLevelIndex] = WorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize;
 					UpdateDrawDistancesForLODLevel(LODLevelIndex);
 				}
 			}
@@ -1386,7 +1398,7 @@ namespace HLODOutliner
 			{
 				LODLevelBuildFlags.Empty();
 				LODLevelActors.Empty();
-				LODLevelDrawDistances.Empty();
+				LODLevelTransitionScreenSizes.Empty();
 
 				const uint32 LODLevels = WorldSettings->HierarchicalLODSetup.Num();
 				for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
@@ -1400,8 +1412,8 @@ namespace HLODOutliner
 					AllNodes.Add(LevelItem->AsShared());
 
 					LODLevelBuildFlags.Add(true);
-					LODLevelActors.AddDefaulted();
-					LODLevelDrawDistances.Add(WorldSettings->HierarchicalLODSetup[LODLevelIndex].DrawDistance);
+					LODLevelActors.AddDefaulted();					
+					LODLevelTransitionScreenSizes.Add(WorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize);
 
 					TreeItemsMap.Add(LevelItem->GetID(), LevelItem);
 
@@ -1559,6 +1571,16 @@ namespace HLODOutliner
 		TreeView->SetItemSelection(InItem, true);
 
 		TreeView->RequestTreeRefresh();
+	}
+
+	bool SHLODOutliner::IsHLODEnabledInWorldSettings()
+	{
+		if (CurrentWorld)
+		{
+			return CurrentWorld->GetWorldSettings()->bEnableHierarchicalLODSystem;
+		}
+
+		return false;
 	}
 
 	FReply SHLODOutliner::RetrieveActors()

@@ -1,136 +1,136 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Level Streaming User Guide
-Crumbs:%ROOT%, Editor, Editor/LevelEditing, Engine/LevelStreaming
-Description:Guide to setting up real-time asynchronous streaming of levels.
+﻿INTSourceChangelist:2735870
+Availability:Docs
+Title: レベルストリーミングのユーザーガイド
+Crumbs:
+Description:レベルのリアルタイムな非同期ストリーミングを実現する方法
 
 [REGION:todo]
-	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+	このページはアンリアル エンジン 3 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
 [/REGION]
 
 [TOC(start:2)]
 
 
 
-## Overview
+## 概要
 
-By following the directions in this document, Unreal Engine 4 users should be able to successfully set up the realtime streaming of multiple levels together to create the illusion of one large, seamless world.
+このドキュメントの指示に従うことにより、アンリアル・エンジン 4ユーザーは、広大なシームレスワールドのイル―ジョンを実現するために、複数レベルのリアルタイムな同時ストリーミングを設定することができます。
 
-For information about volume-based level streaming, see the doc on [Level Streaming Volumes](Engine/LevelStreaming/StreamingVolumes).
+ボリュームに基づいたレベルストリーミングに関する情報は、[Level Streaming Volumes] (Engine/LevelStreaming/StreamingVolumes)を参照してください。
 
 
 
-## The Persistent Level
+## Persistent（パーシスタント）レベル
 
-The first step towards getting your levels to blend together seamlessly is creating the persistent level. This can be thought of as a master level that is primarily used to govern which levels will be streamed in and out. 
+レベルをシームレスにブレンドする最初の手順として Persistent (持続可能な) レベルを作成します。このレベルは主にストリーム入出力を統括するマスターレベルとして捉えることができます。 
 
-Creating a persistent level and adding streaming levels to it can be done in just a few simple steps: 
+パーシスタントレベルの作成と、ストリーミングレベルをこのレベルへ追加する作業は、いくつかの簡単な手順で完了します： 
 
-1. Create a new map, add a small cube of geometry out of sight somewhere (this simply validates it as a level as far as the engine is concerned, and will likely be a step that is done away with eventually)
-1. Place a playerstart wherever you would like the player to begin. Note that in the persistent level this playerstart will likely be floating in space, but once you have streamed a level in, it should be moved to wherever you want the player to begin in the first streamed level. We will be launching the persistent level when it's time to play the game, but the player will actually be moving through the geometry of one of your streamed levels, not the persistent level.  
-1. Save your map, giving it a name denoting it as the persistent level for your own organizational purposes. Headquarters_P, for example.
-1. Open the generic browser, and click on the "Level" tab. This is where you must list every level that you wish to stream in. If Headquarters consists of three maps, all three should be added here. Do so by selecting Level->New From File from the Level pull-down menu. The order in which you add the streaming levels is not important, but future versions of Editor/UserGuide will allow you to re-order the levels to keep things organized. You should end up with something like what is in the picture below. 
-1. _Note that you will be given the option to stream your levels in by distance or by Blueprint_:
-    * Distance streaming loads and unloads a level based on the player's distance from the level's origin. 
-    * Blueprint streaming allows the designer to load and unload the level at will via Blueprint scripting, and thus is the most common choice here.
+1. マップを新規に作成して、見えない領域にジオメトリの小さなキューブを追加します (エンジンはこのマップをレベルとして認識しますが、今後はこの手法は徐々に使用しなくなる予定です)。
+1. プレイヤーのスタート位置を playerstart (プレイヤー開始地点) として配置します。パーシスタントレベルでは、この「playerstart」は空間に浮いている可能性が高いですが、一度レベルをストリーム入力すると、最初にストリーム入力したレベルではプレイヤーの開始点を好きな位置へ移動することができます。ゲームの開始時にパーシスタントレベル起動させますが、プレイヤーはパーシスタントレベルではなく、実際にストリーミングされたレベルの 1 つにあるジオメトリを移動します。  
+1. パーシスタントレベルを表す名前を付けてマップを保存しておくと、管理しやすくなります。例えば、「Headquarters_P」などです。
+1. 汎用ブラウザを開いて [Level] タブをクリックします。ストリーミング入力する全てのレベルをこのタブに記載しなくてはいけません。「Headquarters」が 3 つのマップから構成される場合、全てのマップをここに追加します。レベルのプルダウンメニューから [Level->New From File] を選択して追加します。ストリーミングレベルを追加する順序は重要ではありませんが、エディタおよびユーザーガイドの今後のバージョンではレベルが整理出来るように並び替え機能もサポートする予定です。最終的には以下に示す画像のような結果となります。 
+1. _レベルをストリーミングする方法は、距離またはブループリントによるオプションが与えられます_:
+    * 距離によるストリーミングは、レベルの原点からプレイヤーまでの距離に基づいてレベルをロードまたはアンロードします。 
+    * ブループリントによるストリーミングは、ブループリントスクリプトを使用してデザイナーの思い通りのレベルをロードまたはアンロードすることができます。これは最も頻繁に使用される方法です。
 
 ![streamingImagenew1.jpg](streamingImagenew1.jpg)
 
-**Example 1: The level browser after three streamed levels have been added**
+**サンプル 1:ストリーミングされた 3 つのレベルを追加後のレベル ブラウザ**
 
-The level denoted as "CURRENT" is the level that will be modified if changes are made in the editor windows or Blueprints. This allows you to easily work on multiple maps, as long as they are all writeable. If you press the save button, it will save the CURRENT level (or you can save all maps listed here including the persistent by clicking the Save All Levels button).
+CURRENT と表示されるレベルは、エディタ ウィンドウまたはブループリントで行われた変更に伴って修正されるレベルです。書き込み可能なマップである限り、複数のマップの作業を円滑に行うことができます。保存ボタンを押すと、CURRENT レベルが保存されます (もしくは [Save All Levels (すべてのレベルを保存)] ボタンをクリックして、パーシスタントレベルも含めて、ここに記載されているすべてのマップを保存することができます）。
 
-The visible checkbox allows you to hide and unhide the levels in the editor, although this is for visualization purposes only and has no bearing on whether or not a level will stream into the game when it is run. However, a level that is not visible here will not be affected if you rebuild the level, which can be a great timesaver if you have complicated levels. 
+[Visible] チェックボックスは、エディタでレベルの表示または非表示を切り替えますが、これは視覚上のみの問題で、ゲーム実行時にレベルがゲームへストリーム入力されるかどうかには関係しません。しかし、ここで見えないレベルは、レベルを再ビルドしても結果が反映されないため、複雑なレベルがある場合はレベルを不可視にしておくことで時間をかなり節約することができます。 
 
-In order to permanently remove a streamed level from your persistent level, select Remove level from world from the Level pulldown in the browser. If you need to change a level's streaming method, remove the level and then re-add it, selecting the method you would prefer it to stream in by. Currently "Load" and "Unload" are not functional, nor is the Lock/Unlock icon or the Draw Bounding Box flag. 
+パーシスタントレベルからストリーム入力したレベルを永久に削除するために、ブラウザのレベルプルダウンからワールドを選択、その後 [Remove Level (レベルを削除)] を選択します。レベルのストリーミング方法を変更する場合、一度レベルを削除してから再度そのレベルを追加して、適用したいストリーミング方法を選択します。現時点で "Load" および "Unload" は機能していません。また、[Lock/Unlock] アイコンまたは Draw Bounding Box フラグも機能していません。 
 
 ![streamingImagenew2.jpg](streamingImagenew2.jpg)
 
-**Example 2: Right-click and choose "Make Current" to change which level you are working on**
+**サンプル 2:右クリックから [Make Current (現在のレベル)] を選択して作業レベルを変更**
 
 
-### Persistent Level Quick How-To
+### パーシスタントレベルの作成方法（簡略版）
 
 
-* Create a new map in Editor/UserGuide
-* Add a piece of simple BSP geometry, such as a cube
-* Add a playerstart
-* Add the levels you would like to stream in the Level Browser.
-* Save and name the map
+* Editor/UserGuide でマップを新規に作成します。
+* キューブなどシンプルな BSP ジオメトリの一部を追加します。
+* playerstart 地点を追加します。
+* ストリーミングさせるレベルをレベルブラウザへ追加します。
+* 名前を付けてマップを保存します。
 
 
 
-## Distance-based Streaming
+## 距離に基づいたストリーミング
 
-If you have chosen to stream your level in based on its distance from the player, there are some extra steps to take. First, make sure your persistent level is selected in the generic browser, and then expand the WorldSettings category on the far right-hand side. Right-click on the WorldSettings_# that you should now see and select "Edit Properties". Open the WorldSettings property in the property window and then open the StreamingLevels property. You should see each of the streaming levels listed here. You will now be able to set at what distance from the player the level will stream in at in the MaxDistance field. Think of this as a sphere that is centered at 0,0,0 in that level's world space by default. When the player enters this sphere, the level will stream in and when he leaves the sphere, the level will be unloaded. The location of this sphere can be changed, and most likely will have to be, since you'll in most cases want this sphere to completely surround the level you are streaming in, so that it is loaded when you are near the level, and unloaded when you leave the levels immediate area. We are planning on adding ways of visualizing where this sphere exists, but this has not yet been implemented. 
+プレイヤーからの距離に基づいたストリーミング方法には追加の手順がいくつかあります。最初に、パーシスタントレベルが汎用ブラウザで選択されていることを確認してください。次に右側の [WorldSettings] カテゴリを展開します。[WorldSettings_#] を右クリックして、表示される [Edit Properties (環境設定を編集)] を選択します。 プロパティ ウィンドウで WorldSettings プロパティを開いて、次に StreamingLevels プロパティを開きます。ここに記載されるそれぞれのストリーミングレベルを確認してください。レベルがストリーミング入力するプレイヤーからの距離を [MaxDistance] フィールドに設定することができます。これはレベルのワールド空間にデフォルトで設定された (0、0、0) が中心となる球と考えてください。プレイヤーが球に入るとレベルのストリーミングが開始して、プレイヤーが球から離れるとレベルはアンロードされます。球の位置は変更可能です。レベル付近に近くとロードし、周辺エリアから離れるとアンロードするため、大抵のケースにおいてストリーミングしているレベルをこの球で完全に取り囲むことから、変更は必要となります。球の存在位置の可視化に対応する予定ですが、実際にはまだ実装されていません。 
 
-This method of streaming can be useful for situations where you want to load and unload a level numerous times, based on player distance from the level. Note that there may be a noticeable hitch as the level loads, if it is a large map, as the level is actually being streamed in and out, not being hidden and unhidden. 
+この手法によるストリーミングは、レベルからプレイヤーまでの距離に基づいたレベルのロードおよびアンロードを何度も行う場合に便利です。レベルは表示/非表示ではなく、実際にストリーム入出力されているため、大きなマップの場合は遅延が顕著に表れることがあるかもしれません。 
 
 ![streamingImagenew4.jpg](streamingImagenew4.jpg)
 
-**Example 4: Setting up distance-based streaming**
+**サンプル 4:距離に基づいたストリーミング**
 
 
-### Distance Streaming Quick How-To
+### 距離に基づいたストリーミング (簡略版)
 
 
-* Open the Generic Browser
-* Click the Level tab
-* Select Level->New From File from the Generic Browser file menu and select the level you would like to stream in
-* Choose "Distance" streaming
-* Making sure "Persistent Level" is selected, expand the WorldSettings property on the right-hand side. Right-click on the WorldSettings_# and select "Edit Properties"
-* In the property menu that should now be open, expand WorldSettings and then StreamingLevels.
-* Enter the distance from the player in game units at which you would like the level to be streamed into the world, and change the origin to the location in world space you would like that distance to be measured from. 
+* 汎用ブラウザを開きます。
+* [Level] タブをクリックします。
+* 汎用ブラウザのファイル メニューから [Level] -> [New From File] を選択して、ストリーミング入力させるレベルをレベルブラウザへ追加します。
+* [Distance (距離に基づいた)] ストリーミングを選択します。
+* [Persistent Level] が選択されていることを確認してください。右側の [WorldSettings] プロパティを展開します。 [WorldSettings_#] を右クリックして、[Edit Properties] を選択します。
+* 今開いているプロパティメニューから、[WorldSettings] プロパティを展開してた後に [StreamingLevels] を展開します。
+* レベルをワールドへストリーミング入力したいプレイヤーからの距離を、ゲーム単位で入力します。原点は、ワールド空間で距離の計測を開始する位置へ変更します。 
 
 
 
 
-## Working with the Streamed Levels
+## ストリーミングしたレベルの作業
 
 
-### Loading and Events
+### ロードとイベント
 
-A new Kismet action was added to replace the Level Startup action that typically gets many events rolling when a level is loaded. This action is called Level Loaded And Visible. It basically functions in the same way as a Level Startup, but is designed to work in conjunction with the Change Level Visibility action. Whenever a level is made visible to the player, either by the CLV action or by streaming it in if the bMakeVisibleAfterLoad flag has been checked, this Loaded And Visible action will fire. This combined with Remote Events allows each streamed level to be its own self-contained entity that can be loaded and unloaded as necessary as well as receive and give events to other streamed levels. The example picture below has the player teleporting as soon as the subject level has been made visible, and also spawns a creature when a remote event from another level has been fired. 
+通常レベルのロード時に多くのイベントを展開させる Level Startup 操作の代わりに、新たなキズメット操作が追加されました。Level Loaded And Visible という機能です。基本的に Level Startup と同様の機能ですが、Change Level Visibility アクションと連動して作用するように設計されています。レベルがプレイヤーから見える状態になると、bMakeVisibleAfterLoad フラグをチェックしたまま CLV 操作またはレベルをストリーム入力することにより、常に Loaded And Visible アクションが発行されます。Remote Events と一緒に使うことにより、必要に応じてロードもしくはアンロードが行えて、ストリーム入力された別のレベルとイベントを与え合うことができる自己完結のエンティティとすることができます。例えば下の画像は、対象となるレベルが可視化されるとプレーヤが直ちにテレポートし、他のレベルからリモート イベントが発行されると何らかの生物のスポーンも行います。 
 
 ![streamingImagenew5.jpg](streamingImagenew5.jpg)
 
-**Example 5: Example script of a streamed level**
+**サンプル 5:ストリーミング入力するレベルのスクリプトの例**
 
 
-### Moving Actors Between Levels
+### レベル間のアクタの移動
 
-As of the DEC 2007 QA-Approved build, you can move Actors between levels by simply copying them from one level (Ctrl + C), changing the current level and then pasting them (Ctrl + V). However, this uses a similar pathway to that of the _MoveSelectedActorsToCurrentLevel_ in that it has to serialize them out to a _scratch_ world in order to resolve potential references between the Actors. This functionality was introduced in changelist #203995 and #206418.
+2007 年 12 月 QA 承認ビルド以降は、あるレベルから単にアクタをコピーして、現レベルから別のレベルへ移動して貼り付ける (Ctrl+V) だけでアクタのレベル間移動が可能になりました。しかし、アクタ間の潜在的なリファレンスを解決するために_scratch_ワールドへシリアライズ (直列化)  なくてはいけないという点で、_MoveSelectedActorsToCurrentLevel_ と類似したパスウェイを使用します。この機能はチェンジリスト#203995 と #206418で導入されました。
 
-In builds prior to the JAN 2007 QA-Approved build, you may have experiencd _out of memory_ problems when moving a large number of Actors at once; but this was fixed when we improved performance (and memory usage) of editor transaction buffers (changelist #206829).
+2007 年 1 月 QA 承認ビルド以前は、一度にたくさんのアクタを移動させた時に _メモリ不足_ 問題を経験されたかもしれませんが、エディタ トランザクション バッファ (チェンジリスト#206829) のパフォーマンス (およびメモリ使用量) の改善時に修正されています。
 
-Also in the JAN 2007 QA-Approved build, you can move Actors into a new level using the _New Level from Selected Actors_ button in the [Level Browser](Editor/Browsers/Levels) (changelist #206324).
-
-
-### Optimization
-
-Most developers will find that the more streaming levels they have the better, both for performance and workflow reasons. However, this should be tempered by a limiting factor currently in the system, namely that actors that have been placed in one level cannot be directly referenced in kismet by another level. Remote events can be fired and received to trigger events across streaming levels, but it is not possible to directly reference actors across levels at this point. In the picture above, Pathnode_0 and Pathnode_1 must be located in the same level as this script, in this case Headquarters_2. If either of those nodes were in HQ_1 or 3, these actions would not function. 
-
-As of the December 2007 QA-Approved build, there is a feature that makes it easier to chop existing levels into streaming chunks.
+さらに、2007  年1 月 QA ビルド承認ビルドでは、[レベル ブラウザ](Editor/Browsers/Levels) の [_New Level from Selected Actors_] ボタンを使用してアクタを新たなレベルへ移動させることができるようになりました (チェンジリスト #206324)。
 
 
-* Select a bunch of actors in the world.
-* Select _New Level from Selected Actors_ from the Level Browser's _Level_.
-* A new streaming level will be created on disk and added to the world, and the selected actors will then be moved to that new level.
+### 最適化
+
+ほとんどのデベロッパーは、パフォーマンスとワークフローの点から、ストリーミングレベルが多いほど良いと感じるはずです。これは現行システムの制限要素によって和らげられるべきです。つまり、あるレベルに配置されているアクタはキズメット内の別のレベルから直接参照することはできません。リモートイベントは、ストリーミングレベル全域でイベントをトリガーするために発行したり受け取ることができますが、この時点ではレベル全域でアクタを直接参照することはできません。上記の画像の Pathnode_0 と Pathnode_1 は、スクリプトと同レベル、この例では Headquarters_2 に位置していなければいけません。いずれかのノードが HQ_1 または 3 にある場合、これらの操作は機能しません。 
+
+2007 年 12 月 QA 承認ビルド以降は、既存レベルを分割したストリーミングレベルへ簡単に分ける機能が追加されました。
 
 
-This should make it easier to create smaller streaming level sections!
+* ワールドで複数のアクタを選択します。
+* レベルブラウザの _Level_ から [_New Level from Selected Actors_] を選択します。
+* 新たなストリーミングレベルがディスク上に作成されて、ワールドへ追加されます。その後選択したアクタは新規レベルへ移動されます。
 
 
-
-## Streaming Volumes
-
-For information about volume-based level streaming, see the [Level Streaming Volumes](Engine/LevelStreaming/StreamingVolumes) page.
+より小さなストリーミングレベルセクションの作成が容易になりました！
 
 
 
-## Conclusion
+##ストリーミング ボリューム
 
-That concludes our overview of how to dynamically stream levels in and out of your game world. Since many aspects of this feature are new and constantly being updated, expect this document to be updated regularly as new features and simplifications come online. 
+ボリュームに基づいたレベルストリーミング情報は、[Level Streaming Volumes](Engine/LevelStreaming/StreamingVolumes) を参照してください。
+
+
+
+## まとめ
+
+ゲームワールドへレベルを動的にストリーミング入出力させる方法の概観は以上です。この機能の多くは新機能で更新中の機能もあるため、新機能と簡素化が追加されるごとに本文を定期的に更新する予定です。 
 
  
 

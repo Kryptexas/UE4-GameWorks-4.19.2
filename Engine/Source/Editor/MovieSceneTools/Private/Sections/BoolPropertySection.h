@@ -12,9 +12,17 @@ public:
 		: FPropertySection( InSectionObject, SectionName )
 		, Sequencer( InSequencer ) {}
 
+	// FPropertySection interface
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
-
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
+	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
+	virtual void ClearIntermediateValue() override;
+
+protected:
+
+	mutable TSharedPtr<FBoolKeyArea> KeyArea;
+
 private:
+
 	ISequencer* Sequencer;
 };

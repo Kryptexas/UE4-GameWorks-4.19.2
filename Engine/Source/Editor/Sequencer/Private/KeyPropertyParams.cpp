@@ -45,6 +45,7 @@ FKeyPropertyParams::FKeyPropertyParams(TArray<UObject*> InObjectsToKey, const IP
 {
 	ObjectsToKey = InObjectsToKey;
 	PropertyHandleToPropertyPath(InObjectsToKey[0]->GetClass(), InPropertyHandle, PropertyPath);
+	KeyParams.bCreateKeyOnlyWhenAutoKeying = true;
 }
 
 FString FPropertyChangedParams::GetPropertyPathString() const

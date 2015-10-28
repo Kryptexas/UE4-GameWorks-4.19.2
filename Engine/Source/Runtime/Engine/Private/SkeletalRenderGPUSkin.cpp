@@ -1326,9 +1326,9 @@ void FPreviousPerBoneMotionBlur::EndAppend(FRHICommandListImmediate& RHICmdList)
     }
 }
 
-void FPreviousPerBoneMotionBlur::SetVelocityPassCallback(const TFunction<bool(FRHICommandList& RHICmdList)>& InIsVelocityFunc)
+void FPreviousPerBoneMotionBlur::SetVelocityPassCallback(TFunction<bool(FRHICommandList& RHICmdList)> InIsVelocityFunc)
 {
-	IsVelocityFunc = InIsVelocityFunc;
+	IsVelocityFunc = MoveTemp(InIsVelocityFunc);
 }
 
 

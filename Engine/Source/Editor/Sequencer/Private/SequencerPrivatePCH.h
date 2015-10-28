@@ -27,7 +27,6 @@
 #include "SAnimationOutlinerTreeNode.h"
 #include "MovieSceneSequenceInstance.h"
 #include "SequencerSettings.h"
-#include "SequencerProjectSettings.h"
 #include "SequencerCommonHelpers.h"
 #include "SequencerCurveOwner.h"
 #include "SSequencerCurveEditor.h"

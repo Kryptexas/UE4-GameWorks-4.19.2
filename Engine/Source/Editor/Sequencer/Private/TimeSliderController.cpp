@@ -106,6 +106,7 @@ FSequencerTimeSliderController::FSequencerTimeSliderController( const FTimeSlide
 {
 	ScrubHandleUp = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleUp" ) ); 
 	ScrubHandleDown = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleDown" ) );
+	ScrubHandleSize = 13.f;
 }
 
 struct FDrawTickArgs
@@ -272,15 +273,21 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
 
-		const float HandleSize = 13.0f;
-		float HalfSize = FMath::CeilToFloat(HandleSize/2.0f);
+		FPaintPlaybackRangeArgs PlaybackRangeArgs(
+			bMirrorLabels ? FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Bottom_L") : FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Top_L"),
+			bMirrorLabels ? FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Bottom_R") : FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Top_R"),
+			6.f
+		);
+		LayerId = DrawPlaybackRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, PlaybackRangeArgs);
+
+		float HalfSize = FMath::CeilToFloat(ScrubHandleSize/2.0f);
 
 		// Draw the scrub handle
 		float XPos = RangeToScreen.InputToLocalX( TimeSliderArgs.ScrubPosition.Get() );
 
 		// Should draw above the text
 		const int32 ArrowLayer = LayerId + 2;
-		FPaintGeometry MyGeometry =	AllottedGeometry.ToPaintGeometry( FVector2D( XPos-HalfSize, 0 ), FVector2D( HandleSize, AllottedGeometry.Size.Y ) );
+		FPaintGeometry MyGeometry =	AllottedGeometry.ToPaintGeometry( FVector2D( XPos-HalfSize, 0 ), FVector2D( ScrubHandleSize, AllottedGeometry.Size.Y ) );
 		FLinearColor ScrubColor = InWidgetStyle.GetColorAndOpacityTint();
 
 		// @todo Sequencer this color should be specified in the style
@@ -373,6 +380,61 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 	}
 
 	return LayerId;
+}
+
+int32 FSequencerTimeSliderController::DrawPlaybackRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const
+{
+	if (!TimeSliderArgs.PlaybackRange.IsSet())
+	{
+		return LayerId;
+	}
+
+	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
+
+	float PlaybackRangeL = RangeToScreen.InputToLocalX(PlaybackRange.GetLowerBoundValue());
+	float PlaybackRangeR = RangeToScreen.InputToLocalX(PlaybackRange.GetUpperBoundValue());
+
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId+1,
+		AllottedGeometry.ToPaintGeometry(FVector2D(PlaybackRangeL, 0.f), FVector2D(Args.BrushWidth, AllottedGeometry.Size.Y)),
+		Args.StartBrush,
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		FColor(32, 128, 32)	// 120, 75, 50 (HSV)
+	);
+
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId+1,
+		AllottedGeometry.ToPaintGeometry(FVector2D(PlaybackRangeR - Args.BrushWidth, 0.f), FVector2D(Args.BrushWidth, AllottedGeometry.Size.Y)),
+		Args.EndBrush,
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		FColor(128, 32, 32)	// 0, 75, 50 (HSV)
+	);
+
+	// Black tint for excluded regions
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId+1,
+		AllottedGeometry.ToPaintGeometry(FVector2D(0.f, 0.f), FVector2D(PlaybackRangeL - 1.f, AllottedGeometry.Size.Y)),
+		FEditorStyle::GetBrush("WhiteBrush"),
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		FLinearColor::Black.CopyWithNewOpacity(0.2f)
+	);
+
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId+1,
+		AllottedGeometry.ToPaintGeometry(FVector2D(PlaybackRangeR, 0.f), FVector2D(AllottedGeometry.Size.X - PlaybackRangeR, AllottedGeometry.Size.Y)),
+		FEditorStyle::GetBrush("WhiteBrush"),
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		FLinearColor::Black.CopyWithNewOpacity(0.2f)
+	);
+	return LayerId + 1;
 }
 
 FReply FSequencerTimeSliderController::OnMouseButtonDown( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -521,16 +583,37 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 		}
 		else if (MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
 		{
+			TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
+			FScrubRangeToScreen RangeToScreen(LocalViewRange, MyGeometry.Size);
+
 			DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
 
 			if ( MouseDragType == DRAG_NONE )
 			{
 				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistance() )
 				{
-					if (FSlateApplication::Get().GetModifierKeys().AreModifersDown(EModifierKey::Control))
+					const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
+
+					TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
+					float LocalMouseDownPos = RangeToScreen.InputToLocalX(MouseDownRange[0]);
+
+					// Favor dragging the end position
+					if (HitTestPlaybackEnd(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
+					{
+						MouseDragType = DRAG_END_RANGE;
+					}
+					else if (HitTestPlaybackStart(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
+					{
+						MouseDragType = DRAG_START_RANGE;
+					}
+					else if (FSlateApplication::Get().GetModifierKeys().AreModifersDown(EModifierKey::Control))
+					{
 						MouseDragType = DRAG_SETTING_RANGE;
+					}
 					else
+					{
 						MouseDragType = DRAG_SCRUBBING_TIME;
+					}
 					TimeSliderArgs.OnBeginScrubberMovement.ExecuteIfBound();
 				}
 			}
@@ -540,7 +623,28 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
 				float NewValue = RangeToScreen.LocalXToInput( CursorPos.X );
 
-				if (MouseDragType == DRAG_SCRUBBING_TIME)
+
+				// Set the start range time?
+				if (MouseDragType == DRAG_START_RANGE)
+				{
+					if (TimeSliderArgs.Settings->GetIsSnapEnabled())
+					{
+						NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					}
+
+					SetPlaybackRangeStart(NewValue);
+				}
+				// Set the end range time?
+				else if(MouseDragType == DRAG_END_RANGE)
+				{
+					if (TimeSliderArgs.Settings->GetIsSnapEnabled())
+					{
+						NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					}
+					
+					SetPlaybackRangeEnd(NewValue);
+				}
+				else if (MouseDragType == DRAG_SCRUBBING_TIME)
 				{
 					if ( TimeSliderArgs.Settings->GetIsSnapEnabled() && TimeSliderArgs.Settings->GetSnapPlayTimeToInterval() )
 					{
@@ -595,7 +699,27 @@ FReply FSequencerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> WidgetO
 	return FReply::Unhandled();
 }
 
-int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, bool bDisplayTickLines, bool bDisplayScrubPosition  ) const
+FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
+{
+	FScrubRangeToScreen RangeToScreen(TimeSliderArgs.ViewRange.Get(), MyGeometry.Size);
+	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
+	const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
+
+	// Use L/R resize cursor if we're dragging or hovering a playback range bound
+	float HitTestPosition = MyGeometry.AbsoluteToLocal(CursorEvent.GetScreenSpacePosition()).X;
+	if (MouseDragType == DRAG_END_RANGE ||
+		MouseDragType == DRAG_START_RANGE ||
+		HitTestPlaybackStart(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
+		HitTestPlaybackEnd(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition)
+		)
+	{
+		return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
+	}
+
+	return FCursorReply::Unhandled();
+}
+
+int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, const FPaintSectionAreaViewArgs& Args ) const
 {
 	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
@@ -608,7 +732,12 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 
 	FScrubRangeToScreen RangeToScreen( LocalViewRange, AllottedGeometry.Size );
 
-	if( bDisplayTickLines )
+	if (Args.PlaybackRangeArgs.IsSet())
+	{
+		LayerId = DrawPlaybackRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, Args.PlaybackRangeArgs.GetValue());
+	}
+
+	if( Args.bDisplayTickLines )
 	{
 		static FLinearColor TickColor(0.f, 0.f, 0.f, 0.3f);
 		
@@ -629,7 +758,7 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
 	}
 
-	if( bDisplayScrubPosition )
+	if( Args.bDisplayScrubPosition )
 	{
 		// Draw a line for the scrub position
 		TArray<FVector2D> LinePoints;
@@ -780,5 +909,56 @@ void FSequencerTimeSliderController::PanByDelta( float InDelta )
 	SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);
 }
 
+bool FSequencerTimeSliderController::HitTestPlaybackStart(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const
+{
+	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f;
+	float LocalPlaybackStartPos = RangeToScreen.InputToLocalX(PlaybackRange.GetLowerBoundValue());
+
+	// We favor hit testing the scrub bar over hit testing the playback range bounds
+	if (FMath::IsNearlyEqual(LocalPlaybackStartPos, RangeToScreen.InputToLocalX(ScrubPosition), ScrubHandleSize/2.f))
+	{
+		return false;
+	}
+
+	// Hit test against the brush region to the right of the playback start position, +/- DragToleranceSlateUnits
+	return LocalHitPositionX >= LocalPlaybackStartPos - DragToleranceSlateUnits &&
+		LocalHitPositionX <= LocalPlaybackStartPos + BrushSizeInStateUnits + DragToleranceSlateUnits;
+}
+
+bool FSequencerTimeSliderController::HitTestPlaybackEnd(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const
+{
+	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f;
+	float LocalPlaybackEndPos = RangeToScreen.InputToLocalX(PlaybackRange.GetUpperBoundValue());
+	
+	// We favor hit testing the scrub bar over hit testing the playback range bounds
+	if (FMath::IsNearlyEqual(LocalPlaybackEndPos, RangeToScreen.InputToLocalX(ScrubPosition), ScrubHandleSize/2.f))
+	{
+		return false;
+	}
+	
+	// Hit test against the brush region to the left of the playback end position, +/- DragToleranceSlateUnits
+	return LocalHitPositionX >= LocalPlaybackEndPos - BrushSizeInStateUnits - DragToleranceSlateUnits &&
+		LocalHitPositionX <= LocalPlaybackEndPos + DragToleranceSlateUnits;
+}
+
+void FSequencerTimeSliderController::SetPlaybackRangeStart(float NewStart)
+{
+	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
+
+	if (NewStart <= PlaybackRange.GetUpperBoundValue())
+	{
+		TimeSliderArgs.OnPlaybackRangeChanged.ExecuteIfBound(TRange<float>(NewStart, PlaybackRange.GetUpperBoundValue()));
+	}
+}
+
+void FSequencerTimeSliderController::SetPlaybackRangeEnd(float NewEnd)
+{
+	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
+
+	if (NewEnd >= PlaybackRange.GetLowerBoundValue())
+	{
+		TimeSliderArgs.OnPlaybackRangeChanged.ExecuteIfBound(TRange<float>(PlaybackRange.GetLowerBoundValue(), NewEnd));
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

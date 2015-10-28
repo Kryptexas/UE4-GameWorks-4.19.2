@@ -771,18 +771,34 @@ void FViewport::HighResScreenshot()
 
 	BeginInitResource(DummyViewport);
 
-	DummyViewport->EnqueueBeginRenderFrame();
-
 	bool MaskShowFlagBackup = ViewportClient->GetEngineShowFlags()->HighResScreenshotMask;
-	uint32 MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
+	const uint32 MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
+
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(GetHighResScreenshotConfig().bMaskEnabled);
 	ViewportClient->GetEngineShowFlags()->SetMotionBlur(false);
 
-	FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
+	// Render the requested number of frames (at least once)
+	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
+	const uint32 DefaultScreenshotDelay = 4;
+	uint32 FrameDelay = HighResScreenshotDelay ? FMath::Max(HighResScreenshotDelay->GetValueOnGameThread(), 1) : DefaultScreenshotDelay;
+
+	while (FrameDelay)
 	{
-		ViewportClient->Draw(DummyViewport, &Canvas);
+		DummyViewport->EnqueueBeginRenderFrame();
+
+		FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
+		{
+			ViewportClient->Draw(DummyViewport, &Canvas);
+		}
+		Canvas.Flush_GameThread();
+
+		// Draw the debug canvas
+		DummyViewport->GetDebugCanvas()->Flush_GameThread(true);
+		FlushRenderingCommands();
+
+		--FrameDelay;
 	}
-	Canvas.Flush_GameThread();
+
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(MaskShowFlagBackup);
 	ViewportClient->GetEngineShowFlags()->MotionBlur = MotionBlurShowFlagBackup;
 	ViewportClient->ProcessScreenShots(DummyViewport);
@@ -795,9 +811,6 @@ void FViewport::HighResScreenshot()
 		Viewport->EndRenderFrame(RHICmdList, false, false);
 		GetRendererModule().SceneRenderTargetsSetBufferSize(InRestoreSize.X, InRestoreSize.Y);
 	});
-
-	// Draw the debug canvas;
-	DummyViewport->GetDebugCanvas()->Flush_GameThread(true);
 
 	BeginReleaseResource(DummyViewport);
 	FlushRenderingCommands();
@@ -987,12 +1000,11 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		}
 		else
 		{
-			if( GIsHighResScreenshot || bTakeHighResScreenShot )
+			if( GIsHighResScreenshot )
 			{
 				const bool bShowUI = false;
 				const bool bAddFilenameSuffix = true;
 				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
-				GIsHighResScreenshot = true;
 				GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 				GAreScreenMessagesEnabled = false;
 				HighResScreenshot();

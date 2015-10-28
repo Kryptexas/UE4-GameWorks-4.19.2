@@ -138,6 +138,9 @@ public:
 
 	void Update(const float DeltaSeconds);
 
+	/** Instruct this player to start playing next frame update */
+	void AutoPlayNextFrame();
+
 private:
 
 	/** Called when the cursor position has changed to implement looping */
@@ -166,9 +169,15 @@ private:
 
 private:
 
+	/** The offset from 0 that the sequence we're playing starts */
+	float SequenceStartOffset;
+
 	/** The root movie scene instance to update when playing. */
 	TSharedPtr<FMovieSceneSequenceInstance> RootMovieSceneInstance;
 
 	/** The world this player will spawn actors in, if needed */
 	TWeakObjectPtr<UWorld> World;
+
+	/** If true, the sequence will begin playing when it is next updated */
+	bool bAutoPlayNextFrame;
 };

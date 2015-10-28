@@ -247,9 +247,9 @@ public:
 	UNREALED_API virtual TArray<FRichCurve*> GetCurvesToFit()const;
 
 	/** Zoom to fit */
-	UNREALED_API void ZoomToFitHorizontal();
-	UNREALED_API void ZoomToFitVertical();
-	UNREALED_API void ZoomToFit();
+	UNREALED_API void ZoomToFitHorizontal(const bool bZoomToFitAll = false);
+	UNREALED_API void ZoomToFitVertical(const bool bZoomToFitAll = false);
+	UNREALED_API void ZoomToFit(const bool bZoomToFitAll = false);
 
 private:
 	/** Used to track a key and the curve that owns it */

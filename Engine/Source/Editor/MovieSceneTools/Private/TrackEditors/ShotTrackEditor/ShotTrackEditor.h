@@ -48,7 +48,7 @@ public:
 protected:
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	void AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
+	bool AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
 
 	/** Finds the index in the ShotSections array where a new shot should be inserted */
 	int32 FindIndexForNewShot(const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime) const;

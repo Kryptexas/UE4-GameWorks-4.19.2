@@ -51,7 +51,7 @@ void FShotTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
 	
 	if (bValidKey)*/
 	{
-		AnimatablePropertyChanged(UMovieSceneShotTrack::StaticClass(), FOnKeyProperty::CreateRaw(this, &FShotTrackEditor::AddKeyInternal, ObjectGuid));
+		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FShotTrackEditor::AddKeyInternal, ObjectGuid));
 	}
 }
 
@@ -162,7 +162,7 @@ void FShotTrackEditor::Tick(float DeltaTime)
 /* FShotTrackEditor implementation
  *****************************************************************************/
 
-void FShotTrackEditor::AddKeyInternal(float KeyTime, const FGuid ObjectGuid)
+bool FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
 	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
 	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
@@ -184,6 +184,8 @@ void FShotTrackEditor::AddKeyInternal(float KeyTime, const FGuid ObjectGuid)
 	FString ShotName = FString::Printf(TEXT("Shot_%04d"), ShotNumber);
 
 	ShotTrack->AddNewShot(ObjectGuid, KeyTime, FText::FromString(ShotName), ShotNumber);
+
+	return true;
 }
 
 
@@ -391,7 +393,7 @@ TSharedRef<SWidget> FShotTrackEditor::HandleAddShotComboButtonGetMenuContent()
 
 void FShotTrackEditor::HandleAddShotComboButtonMenuEntryExecute(AActor* Camera)
 {
-	FGuid ObjectGuid = FindOrCreateHandleToObject(Camera);
+	FGuid ObjectGuid = FindOrCreateHandleToObject(Camera).Handle;
 
 	if (ObjectGuid.IsValid())
 	{

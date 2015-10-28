@@ -59,4 +59,4 @@ Blueprint クラスへ変換すれば、**コンテンツブラウザ** から�
 
 ## ステップ
 
-[DIR(end:"1" output:"list" type:"multi-step")]
+[DIR(end:"1" output:"listbutton" type:"multi-step" parent:"Engine/Blueprints/QuickStart" org:"hierarchy")]

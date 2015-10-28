@@ -3,7 +3,7 @@
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HierarchicalLODOutlinerModule.h"
 #include "HLODOutliner.h"
-#include "HierarchicalLODUtils.h"
+#include "HierarchicalLODUtilities.h"
 
 void FHierarchicalLODOutlinerModule::StartupModule()
 {
@@ -41,14 +41,14 @@ void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()
 
 	if (WorldSettings)
 	{
-		auto& HierarchicalLODSetup = WorldSettings->HierarchicalLODSetup;
-		auto& NumHLODLevels = WorldSettings->NumHLODLevels;
+		TArray<FHierarchicalSimplification>& HierarchicalLODSetup = WorldSettings->HierarchicalLODSetup;
+		int32 NumHLODLevels = WorldSettings->NumHLODLevels;
 
 		if (HierarchicalLODSetup.Num() > 1 && HierarchicalLODSetup.Num() > NumHLODLevels)
 		{
 			// HLOD level was added, use previous level settings to "guess" new settings
-			auto& NewLevelSetup = HierarchicalLODSetup.Last();
-			auto& OldLastLevelSetup = HierarchicalLODSetup[HierarchicalLODSetup.Num() - 2];
+			FHierarchicalSimplification& NewLevelSetup = HierarchicalLODSetup.Last();
+			const FHierarchicalSimplification& OldLastLevelSetup = HierarchicalLODSetup[HierarchicalLODSetup.Num() - 2];
 
 			NewLevelSetup.bSimplifyMesh = OldLastLevelSetup.bSimplifyMesh;
 			NewLevelSetup.MergeSetting = OldLastLevelSetup.MergeSetting;
@@ -56,17 +56,15 @@ void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()
 
 			NewLevelSetup.DesiredBoundRadius = OldLastLevelSetup.DesiredBoundRadius * 2.5f;
 			NewLevelSetup.DesiredFillingPercentage = FMath::Max(OldLastLevelSetup.DesiredFillingPercentage * 0.75f, 1.0f);
-			NewLevelSetup.DrawDistance = OldLastLevelSetup.DrawDistance * 2.5f;
+			NewLevelSetup.TransitionScreenSize = OldLastLevelSetup.TransitionScreenSize * 0.75f;
 			NewLevelSetup.MinNumberOfActorsToBuild = OldLastLevelSetup.MinNumberOfActorsToBuild;
 		}
 		else if (HierarchicalLODSetup.Num() < NumHLODLevels)
 		{
 			// HLOD Level was removed, now remove all LODActors for this level
-			HierarchicalLODUtils::DeleteLODActorsInHLODLevel(CurrentWorld, NumHLODLevels - 1);
+			FHierarchicalLODUtilities::DeleteLODActorsInHLODLevel(CurrentWorld, NumHLODLevels - 1);
 		}
 	}
-
-	
 }
 
 TSharedRef<SWidget> FHierarchicalLODOutlinerModule::CreateHLODOutlinerWidget()

@@ -318,7 +318,7 @@ uint32 FBuildPatchDownloader::Run()
 				OnDownloadComplete(NextGuid, DownloadUrl, FileDataArray, bSuccess, INDEX_NONE);
 				FileDataArray.Empty();
 			};
-			Async(EAsyncExecution::ThreadPool, Task);
+			Async(EAsyncExecution::ThreadPool, MoveTemp(Task));
 		}
 	}
 	SetIdle( true );

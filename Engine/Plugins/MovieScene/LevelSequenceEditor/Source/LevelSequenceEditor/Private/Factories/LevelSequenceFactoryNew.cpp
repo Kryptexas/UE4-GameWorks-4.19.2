@@ -2,8 +2,9 @@
 
 #include "LevelSequenceEditorPCH.h"
 #include "LevelSequence.h"
+#include "LevelSequenceProjectSettings.h"
 #include "LevelSequenceFactoryNew.h"
-
+#include "MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneFactory"
 
@@ -27,6 +28,10 @@ UObject* ULevelSequenceFactoryNew::FactoryCreateNew(UClass* Class, UObject* InPa
 {
 	auto NewLevelSequence = NewObject<ULevelSequence>(InParent, Name, Flags|RF_Transactional);
 	NewLevelSequence->Initialize();
+	
+	// Set up some sensible defaults
+	const ULevelSequenceProjectSettings* ProjectSettings = GetDefault<ULevelSequenceProjectSettings>();
+	NewLevelSequence->GetMovieScene()->SetPlaybackRange(ProjectSettings->DefaultStartTime, ProjectSettings->DefaultStartTime + ProjectSettings->DefaultDuration);
 
 	return NewLevelSequence;
 }

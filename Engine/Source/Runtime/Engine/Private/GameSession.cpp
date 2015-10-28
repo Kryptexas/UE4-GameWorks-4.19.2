@@ -30,7 +30,7 @@ APlayerController* GetPlayerControllerFromNetId(UWorld* World, const FUniqueNetI
 		{
 			APlayerController* PlayerController = *Iterator;
 			// Determine if this is a player with replication
-			if (PlayerController->PlayerState != NULL)
+			if (PlayerController->PlayerState != NULL && PlayerController->PlayerState->UniqueId.IsValid())
 			{
 				// If the ids match, then this is the right player.
 				if (*PlayerController->PlayerState->UniqueId == PlayerNetId)

@@ -1917,6 +1917,18 @@ const FMeshMaterialShaderMap* FMaterialShaderMap::GetMeshShaderMap(FVertexFactor
 	return MeshShaderMap;
 }
 
+uint32 FMaterialShaderMap::GetNumInstructionsForShader(const FShaderType* ShaderType) const
+{
+	uint32 MaxNumInstructions = 0;
+	auto* FoundShader = Shaders.Find(ShaderType);
+	if (FoundShader && *FoundShader)
+	{
+		return (*FoundShader)->GetNumInstructions();
+	}
+
+	return 0;
+}
+
 void FMaterialShaderMap::InitOrderedMeshShaderMaps()
 {
 	OrderedMeshShaderMaps.Empty(FVertexFactoryType::GetNumVertexFactoryTypes());

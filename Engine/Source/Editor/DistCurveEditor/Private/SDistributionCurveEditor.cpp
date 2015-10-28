@@ -1482,7 +1482,7 @@ void SDistributionCurveEditor::FitViewHorizontally()
 	Viewport->RefreshViewport();
 }
 
-void SDistributionCurveEditor::IterateKeys(const TFunctionRef<void(int32, int32, FCurveEdEntry&, FCurveEdInterface&)>& IteratorCallback)
+void SDistributionCurveEditor::IterateKeys(TFunctionRef<void(int32, int32, FCurveEdEntry&, FCurveEdInterface&)> IteratorCallback)
 {
 	if (SharedData->SelectedKeys.Num() == 0)
 	{

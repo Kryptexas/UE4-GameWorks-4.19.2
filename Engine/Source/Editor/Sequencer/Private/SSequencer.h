@@ -22,7 +22,7 @@ class SSequencerTrackArea;
 class SSequencerTrackOutliner;
 class SSequencerTreeView;
 struct FSectionHandle;
-
+struct FPaintPlaybackRangeArgs;
 
 namespace SequencerLayoutConstants
 {
@@ -91,6 +91,12 @@ public:
 		/** The current clamp range (seconds) */
 		SLATE_ATTRIBUTE( FAnimatedRange, ClampRange )
 
+		/** The playback range */
+		SLATE_ATTRIBUTE( TRange<float>, PlaybackRange )
+		
+		/** Called when the user changes the playback range */
+		SLATE_EVENT( FOnRangeChanged, OnPlaybackRangeChanged )
+
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 
@@ -98,7 +104,7 @@ public:
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
 
 		/** Called when the user changes the clamp range */
-		SLATE_EVENT( FOnClampRangeChanged, OnClampRangeChanged )
+		SLATE_EVENT( FOnRangeChanged, OnClampRangeChanged )
 
 		/** Called when the user has begun scrubbing */
 		SLATE_EVENT( FSimpleDelegate, OnBeginScrubbing )
@@ -178,6 +184,9 @@ public:
 
 	/** Get an array of section handles for the given set of movie scene sections */
 	TArray<FSectionHandle> GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const;
+
+	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
+	TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface();
 
 public:
 
@@ -349,6 +358,9 @@ private:
 	/** Called when the curve editor is shown or hidden */
 	void OnCurveEditorVisibilityChanged();
 
+	/** Gets paint options for painting the playback range on sequencer */
+	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
+
 private:
 
 	/** Holds the details view. */
@@ -392,6 +404,9 @@ private:
 
 	/** Extender to use for the 'add' menu */
 	TSharedPtr<FExtender> AddMenuExtender;
+
+	/** Numeric type interface used for converting parsing and generating strings from numbers */
+	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 };

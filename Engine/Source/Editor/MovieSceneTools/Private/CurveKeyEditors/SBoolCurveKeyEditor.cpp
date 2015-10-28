@@ -11,6 +11,7 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
+	IntermediateValue = InArgs._IntermediateValue;
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 	ChildSlot
 	[
@@ -22,6 +23,11 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 
 ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 {
+	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
+	{
+		return IntermediateValue.Get().GetValue() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
 
 	UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>(OwningSection);

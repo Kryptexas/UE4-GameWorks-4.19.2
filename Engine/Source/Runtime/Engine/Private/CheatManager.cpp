@@ -29,6 +29,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
 #define LOCTEXT_NAMESPACE "CheatManager"	
 
+bool UCheatManager::bDebugCapsuleSweepPawn = false;
+
+
 UCheatManager::UCheatManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bToggleAILogging(false)

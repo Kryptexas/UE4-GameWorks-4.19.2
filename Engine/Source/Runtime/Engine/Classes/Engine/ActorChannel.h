@@ -98,6 +98,7 @@ public:
 	virtual void SetClosingFlag() override;
 	virtual void ReceivedBunch( FInBunch& Bunch ) override;
 	virtual void Tick() override;
+	virtual bool CanStopTicking() const override;
 
 	void ProcessBunch( FInBunch & Bunch );
 	bool ProcessQueuedBunches();

@@ -356,13 +356,15 @@ namespace HLODOutliner
 		void OnHLODActorMarkedDirtyEvent(ALODActor* InActor);	
 
 		/** Called when a DrawDistance value within WorldSettings changed */
-		void OnHLODDrawDistanceChangedEvent();
+		void OnHLODTransitionScreenSizeChangedEvent();
 
 		/** Called when the HLOD Levels array within WorldSettings changed */
 		void OnHLODLevelsArrayChangedEvent();
 
 		/** End of Broadcast event delegates */
 
+		/** Callback function used to check if Hierarchical LOD functionality is enabled in the current world settings */
+		bool IsHLODEnabledInWorldSettings();
 	private:
 		/** Tells the scene outliner that it should do a full refresh, which will clear the entire tree and rebuild it from scratch. */
 		void FullRefresh();
@@ -424,6 +426,10 @@ namespace HLODOutliner
 		TSharedPtr<SHLODTree> TreeView;
 		/** Property viewing widget */
 		TSharedPtr<IDetailsView> SettingsView;
+		/** Content panel widget */
+		TSharedPtr<SVerticalBox> MainContentPanel;
+		/** Attribute determining if the outliner UI is enabled*/
+		TAttribute<bool> EnabledAttribute;
 	
 		/** Map containing all the nodes with their corresponding keys */
 		TMap<FTreeItemID, FTreeItemPtr> TreeItemsMap;
@@ -448,7 +454,7 @@ namespace HLODOutliner
 		TArray<bool> LODLevelBuildFlags;
 		/** Array of LODActors/Cluster per LOD level*/
 		TArray<TArray<ALODActor*>> LODLevelActors;
-		/** Array of DrawDistances for each LOD Level*/
-		TArray<float> LODLevelDrawDistances;
+		/** Array of TransitionScreenSizes for each LOD Level*/
+		TArray<float> LODLevelTransitionScreenSizes;		
 	};
 };

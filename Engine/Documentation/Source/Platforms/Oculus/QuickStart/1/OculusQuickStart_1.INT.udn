@@ -3,7 +3,7 @@ Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Register as an Oculus developer to gain access to necessary programs and documentation
 Availability:Public
 Version: 4.9
-SkillLevel: Beginner
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -6,6 +6,7 @@
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
+#include "HlslAST.h"
 #include "HlslLexer.h"
 #include "HlslParser.h"
 #include "ShaderPreprocessor.h"
@@ -26,6 +27,21 @@ namespace CCT
 		FShaderCompilerOutput CompilerOutput;
 		TArray<FShaderCompilerError> Errors;
 		return PreprocessShaderFile(Output, Errors, InputFile);
+	}
+
+	static void DumpMessages(CrossCompiler::FCompilerMessages& Messages)
+	{
+		for (auto& Message : Messages.MessageList)
+		{
+			if (Message.bIsError)
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("%s"), *Message.Message);
+			}
+			else
+			{
+				UE_LOG(LogCrossCompilerTool, Warning, TEXT("%s"), *Message.Message);
+			}
+		}
 	}
 
 	static int32 Run(const FRunInfo& RunInfo)
@@ -100,11 +116,15 @@ namespace CCT
 					}
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s"), Count++, *File);
 
-					if (!CrossCompiler::Parser::Parse(HLSLShader, File, false))
+					CrossCompiler::FCompilerMessages Messages;
+					if (!CrossCompiler::Parser::Parse(HLSLShader, File, Messages))
 					{
+						DumpMessages(Messages);
 						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *File);
 						return 1;
 					}
+
+					DumpMessages(Messages);
 				}
 			}
 			else
@@ -133,11 +153,15 @@ namespace CCT
 					return 0;
 				}
 
-				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile, true))
+				CrossCompiler::FCompilerMessages Messages;
+				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile, Messages))
 				{
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);
+					DumpMessages(Messages);
 					return 1;
 				}
+
+				DumpMessages(Messages);
 			}
 			//Scanner.Dump();
 			return 0;

@@ -25,6 +25,10 @@ class ISequencer
 	, public TSharedFromThis<ISequencer>
 {
 public:
+	
+	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
+
+public:
 
 	/** Close the sequencer. */
 	virtual void Close() = 0;
@@ -174,4 +178,7 @@ public:
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
 	virtual void NotifyMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType) = 0;
+
+	/** Gets a multicast delegate which is executed whenever the global time changes. */
+	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
 };

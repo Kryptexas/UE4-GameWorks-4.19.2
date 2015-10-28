@@ -68,6 +68,7 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
 	, CurrentNumLoops(0)
+	, bAutoPlayNextFrame(false)
 { }
 
 
@@ -131,7 +132,7 @@ void ULevelSequencePlayer::Play()
 
 	if (RootMovieSceneInstance.IsValid())
 	{
-		RootMovieSceneInstance->Update(TimeCursorPosition, TimeCursorPosition, *this);
+		RootMovieSceneInstance->Update(TimeCursorPosition + SequenceStartOffset, TimeCursorPosition + SequenceStartOffset, *this);
 	}
 }
 
@@ -155,7 +156,7 @@ void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 
 	if (RootMovieSceneInstance.IsValid())
 	{
-		RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
+		RootMovieSceneInstance->Update(TimeCursorPosition + SequenceStartOffset, LastTimePosition + SequenceStartOffset, *this);
 	}
 }
 
@@ -167,7 +168,7 @@ float ULevelSequencePlayer::GetLength() const
 	}
 
 	UMovieScene* MovieScene = LevelSequence->GetMovieScene();
-	return MovieScene ? MovieScene->GetTimeRange().Size<float>() : 0;
+	return MovieScene ? MovieScene->GetPlaybackRange().Size<float>() : 0;
 }
 
 float ULevelSequencePlayer::GetPlayRate() const
@@ -186,7 +187,7 @@ void ULevelSequencePlayer::OnCursorPositionChanged()
 	float Length = GetLength();
 
 	// Handle looping or stopping
-	if (TimeCursorPosition > Length || TimeCursorPosition < 0)
+	if (TimeCursorPosition >= Length || TimeCursorPosition < 0)
 	{
 		if (PlaybackSettings.LoopCount < 0 || CurrentNumLoops < PlaybackSettings.LoopCount)
 		{
@@ -211,6 +212,8 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 {
 	LevelSequence = InLevelSequence;
 	LevelSequence->BindToContext(InWorld);
+
+	SequenceStartOffset = LevelSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue();
 
 	World = InWorld;
 	PlaybackSettings = Settings;
@@ -265,6 +268,13 @@ TSharedRef<FMovieSceneSequenceInstance> ULevelSequencePlayer::GetRootMovieSceneS
 
 void ULevelSequencePlayer::Update(const float DeltaSeconds)
 {
+	if (bAutoPlayNextFrame)
+	{
+		Play();
+		bAutoPlayNextFrame = false;
+		return;
+	}
+
 	float LastTimePosition = TimeCursorPosition;
 
 	if (bIsPlaying)
@@ -275,6 +285,11 @@ void ULevelSequencePlayer::Update(const float DeltaSeconds)
 
 	if(RootMovieSceneInstance.IsValid())
 	{
-		RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
+		RootMovieSceneInstance->Update(TimeCursorPosition + SequenceStartOffset, LastTimePosition + SequenceStartOffset, *this);
 	}
+}
+
+void ULevelSequencePlayer::AutoPlayNextFrame()
+{
+	bAutoPlayNextFrame = true;
 }

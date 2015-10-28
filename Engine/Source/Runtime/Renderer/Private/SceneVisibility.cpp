@@ -100,11 +100,19 @@ static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
 	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static int32 GOcclusionCullParallelPrimFetch = 1;
+static int32 GOcclusionCullParallelPrimFetch = 0;
 static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	TEXT("r.OcclusionCullParallelPrimFetch"),
 	GOcclusionCullParallelPrimFetch,
 	TEXT("Enables Parallel Occlusion Cull primitive fetch."),
+	ECVF_RenderThreadSafe
+	);
+
+static int32 GOcclusionCullParallelPrimFetchHiPri = 1;
+static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetchHiPri(
+	TEXT("r.OcclusionCullParallelPrimFetchHiPri"),
+	GOcclusionCullParallelPrimFetchHiPri,
+	TEXT("When using r.OcclusionCullParallelPrimFetch, setting this to 1 uses hi priority tasks."),
 	ECVF_RenderThreadSafe
 	);
 
@@ -955,7 +963,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return GOcclusionCullParallelPrimFetchHiPri ? ENamedThreads::HiPri(ENamedThreads::AnyThread) : ENamedThreads::AnyThread;
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }

@@ -345,8 +345,8 @@ void FPhysSubstepTask::StepSimulation(PhysXCompletionTask * Task)
 }
 #endif
 
-DEFINE_STAT(STAT_SubstepSimulationStart);
-DEFINE_STAT(STAT_SubstepSimulationEnd);
+DECLARE_CYCLE_STAT(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics);
 
 void FPhysSubstepTask::SubstepSimulationStart()
 {

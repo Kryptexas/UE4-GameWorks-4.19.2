@@ -174,7 +174,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	void OnAgentFinishedCustomLink(const ICrowdAgentInterface* Agent) const;
 
 	/** sets move target for crowd agent (only for fully simulated) */
-	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const;
+	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, FSharedConstNavQueryFilter Filter) const;
 
 	/** sets move direction for crowd agent (only for fully simulated) */
 	bool SetAgentMoveDirection(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveDirection) const;

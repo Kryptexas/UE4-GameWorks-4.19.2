@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2653049
+﻿INTSourceChangelist:2714346
 Availability:Public
 Title:1.1 - デカールの基本
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -11,6 +11,7 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -74,7 +75,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 
 
-デカールはレベル内のスタティックメッシュやスケルタルメッシュを含むメッシュに投影されるマテリアルです。こうしたメッシュには、静的または可動の可動性の設定がありますが、デカールはこうしたメッシュに投影されます。ほとんどのデカールは極端にパフォーマンスを低下させずに一斉にレンダリングすることができます。スクリーン空間サイズが大きくなり、シェーダー命令カウントが増えるとパフォーマンスが低下します。
+**デカール** はレベル内のスタティックメッシュやスケルタルメッシュを含むメッシュに投影されるマテリアルです。こうしたメッシュには、静的または可動の可動性の設定がありますが、デカールはこうしたメッシュに投影されます。ほとんどのデカールは極端にパフォーマンスを低下させずに一斉にレンダリングすることができます。スクリーン空間サイズが大きくなり、シェーダー命令カウントが増えるとパフォーマンスが低下します。
 
 
 Deferred Decal アクタは、 **[Modes (モード)]** パネルの **[All Classes (全てのクラス)]** タブから直接追加することができます。その後、新規のマテリアルを作成して **マテリアル ドメイン** のプロパティをマテリアルの **[Details (詳細)]** パネルで **Deferred Decal** へ変更します。その後、マテリアルを Decal アクタへ適用します。

@@ -1402,6 +1402,11 @@ public:
 		return bUseAsyncTasks;
 	}
 
+	FORCEINLINE void AddTask(TFunction<void()>&& Task)
+	{
+		ParallelTasks.Add(new (FMemStack::Get()) TFunction<void()>(MoveTemp(Task)));
+	}
+
 	FORCEINLINE void AddTask(const TFunction<void()>& Task)
 	{
 		ParallelTasks.Add(new (FMemStack::Get()) TFunction<void()>(Task));

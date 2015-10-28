@@ -3,7 +3,7 @@ Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Connect and update your Oculus Rift headset.
 Availability:Public
 Version: 4.9
-SkillLevel: Beginner
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]

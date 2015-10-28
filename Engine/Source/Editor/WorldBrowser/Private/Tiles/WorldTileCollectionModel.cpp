@@ -1956,25 +1956,31 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 
 			FMeshProxySettings ProxySettings;
 			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(SimplificationDetails.DetailsPercentage/100.f);
-			ProxySettings.MaterialSettings = SimplificationDetails.StaticMeshMaterial;
+			ProxySettings.MaterialSettings = SimplificationDetails.StaticMeshMaterialSettings;
 
 			TArray<UObject*> OutAssets;
-			FVector OutProxyLocation;
 			FString ProxyPackageName = FString::Printf(TEXT("PROXY_%s_LOD%d"), *FPackageName::GetShortName(TileModel->TileDetails->PackageName), TargetLODIndex + 1);
 			
-			// Generate proxy mesh and proxy material assets
-			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, OutAssets, OutProxyLocation);
-		
-			if (OutAssets.Num())
+			// Generate proxy mesh and proxy material assets 
+			FCreateProxyDelegate ProxyDelegate;
+			ProxyDelegate.BindLambda(
+				[&](const FGuid Guid, TArray<UObject*>& AssetsToSync)
 			{
-				UStaticMesh* ProxyMesh = nullptr;
-				if (OutAssets.FindItemByClass(&ProxyMesh))
+				//Update the asset registry that a new static mash and material has been created
+				if (AssetsToSync.Num())
 				{
-					new(AssetsToSpawn) FAssetToSpawnInfo(ProxyMesh, FTransform(OutProxyLocation - ActorsOffset));
-				}
+					UStaticMesh* ProxyMesh = nullptr;
+					if (OutAssets.FindItemByClass(&ProxyMesh))
+					{
+						new(AssetsToSpawn)FAssetToSpawnInfo(ProxyMesh, FTransform(-ActorsOffset));
+					}
 
-				GeneratedAssets.Append(OutAssets);
-			}
+					GeneratedAssets.Append(OutAssets);
+				}
+			});
+
+			FGuid JobGuid = FGuid::NewGuid();
+			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, JobGuid, ProxyDelegate);
 		}
 
 		// Convert landscape actors into static meshes
@@ -2026,11 +2032,11 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 								
 			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
-			LandscapeFlattenMaterial.DiffuseSize	= SimplificationDetails.LandscapeMaterial.BaseColorMapSize;
-			LandscapeFlattenMaterial.NormalSize		= SimplificationDetails.LandscapeMaterial.bNormalMap ?  SimplificationDetails.LandscapeMaterial.NormalMapSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.MetallicSize	= SimplificationDetails.LandscapeMaterial.bMetallicMap ? SimplificationDetails.LandscapeMaterial.MetallicMapSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.RoughnessSize	= SimplificationDetails.LandscapeMaterial.bRoughnessMap ? SimplificationDetails.LandscapeMaterial.RoughnessMapSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.SpecularSize	= SimplificationDetails.LandscapeMaterial.bSpecularMap ? SimplificationDetails.LandscapeMaterial.SpecularMapSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.DiffuseSize = SimplificationDetails.LandscapeMaterialSettings.TextureSize;
+			LandscapeFlattenMaterial.NormalSize = SimplificationDetails.LandscapeMaterialSettings.bNormalMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.MetallicSize = SimplificationDetails.LandscapeMaterialSettings.bMetallicMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.RoughnessSize = SimplificationDetails.LandscapeMaterialSettings.bRoughnessMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.SpecularSize = SimplificationDetails.LandscapeMaterialSettings.bSpecularMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
 			
 			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
 
@@ -2040,19 +2046,19 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				{
 					LandscapeFlattenMaterial.MetallicSize = FIntPoint(1, 1);
 					LandscapeFlattenMaterial.MetallicSamples.SetNum(1);
-					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.MetallicConstant);
+					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.MetallicConstant);
 				}
 				if (LandscapeFlattenMaterial.RoughnessSamples.Num() == 0)
 				{
 					LandscapeFlattenMaterial.RoughnessSize = FIntPoint(1, 1);
 					LandscapeFlattenMaterial.RoughnessSamples.SetNum(1);
-					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.RoughnessConstant);
+					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.RoughnessConstant);
 				}
 				if (LandscapeFlattenMaterial.SpecularSamples.Num() == 0)
 				{
 					LandscapeFlattenMaterial.SpecularSize = FIntPoint(1, 1);
 					LandscapeFlattenMaterial.SpecularSamples.SetNum(1);
-					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterial.SpecularConstant);
+					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.SpecularConstant);
 				}
 			}
 		

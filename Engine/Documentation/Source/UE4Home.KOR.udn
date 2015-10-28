@@ -65,7 +65,7 @@ Navigation:home
 
 [/PUBLISH:Rocket]
 
-[DIR(end:"1" output:"role")]
+[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%")]
 
 <!--
 [REGION:frontpage]

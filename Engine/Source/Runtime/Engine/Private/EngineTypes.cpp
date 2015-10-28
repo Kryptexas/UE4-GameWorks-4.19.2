@@ -46,6 +46,39 @@ void FMeshProxySettings::PostLoadDeprecated()
 	}
 }
 
+
+void FMeshMergingSettings::PostLoadDeprecated()
+{
+	FMeshMergingSettings DefaultObject;
+	if (bImportVertexColors_DEPRECATED != DefaultObject.bImportVertexColors_DEPRECATED)
+	{
+		bBakeVertexData = bImportVertexColors_DEPRECATED;
+	}
+
+	if (bExportNormalMap_DEPRECATED != DefaultObject.bExportNormalMap_DEPRECATED)
+	{
+		MaterialSettings.bNormalMap = bExportNormalMap_DEPRECATED;
+	}
+
+	if (bExportMetallicMap_DEPRECATED != DefaultObject.bExportMetallicMap_DEPRECATED)
+	{
+		MaterialSettings.bMetallicMap = bExportMetallicMap_DEPRECATED;
+	}
+	if (bExportRoughnessMap_DEPRECATED != DefaultObject.bExportRoughnessMap_DEPRECATED)
+	{
+		MaterialSettings.bRoughnessMap = bExportRoughnessMap_DEPRECATED;
+	}
+	if (bExportSpecularMap_DEPRECATED != DefaultObject.bExportSpecularMap_DEPRECATED)
+	{
+		MaterialSettings.bSpecularMap = bExportSpecularMap_DEPRECATED;
+	}
+	if (MergedMaterialAtlasResolution_DEPRECATED != DefaultObject.MergedMaterialAtlasResolution_DEPRECATED)
+	{
+		MaterialSettings.TextureSize.X = MergedMaterialAtlasResolution_DEPRECATED;
+		MaterialSettings.TextureSize.Y = MergedMaterialAtlasResolution_DEPRECATED;
+	}
+}
+
 UEngineBaseTypes::UEngineBaseTypes(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
