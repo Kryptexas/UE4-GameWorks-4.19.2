@@ -542,17 +542,32 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 					MeshInfo.MorphNum = Mesh->GetShapeCount();
 					// skeleton root
 					FbxSkin* Skin = (FbxSkin*)Mesh->GetDeformer(0, FbxDeformer::eSkin);
-					FbxNode* Link = Skin->GetCluster(0)->GetLink();
-					while (Link->GetParent() && Link->GetParent()->GetSkeleton())
+					int32 ClusterCount = Skin->GetClusterCount();
+					FbxNode* Link = NULL;
+					for (int32 ClusterId = 0; ClusterId < ClusterCount; ++ClusterId)
 					{
-						Link = Link->GetParent();
+						FbxCluster* Cluster = Skin->GetCluster(ClusterId);
+						Link = Cluster->GetLink();
+						while (Link && Link->GetParent() && Link->GetParent()->GetSkeleton())
+						{
+							Link = Link->GetParent();
+						}
+
+						if (Link != NULL)
+						{
+							break;
+						}
 					}
-					MeshInfo.SkeletonRoot = MakeName(Link->GetName());
-					MeshInfo.SkeletonElemNum = Link->GetChildCount(true);
-					
-					FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE,FBXSDK_TIME_MINUS_INFINITE);
-					Link->GetAnimationInterval(AnimTimeSpan);
-					GlobalTimeSpan.UnionAssignment(AnimTimeSpan);
+
+					MeshInfo.SkeletonRoot = Link? MakeName(Link->GetName()) : "None";
+					MeshInfo.SkeletonElemNum = Link? Link->GetChildCount(true) : 0;
+
+					if (Link)
+					{
+						FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+						Link->GetAnimationInterval(AnimTimeSpan);
+						GlobalTimeSpan.UnionAssignment(AnimTimeSpan);
+					}
 				}
 				else
 				{
@@ -1127,7 +1142,7 @@ FbxNode* FFbxImporter::GetRootSkeleton(FbxNode* Link)
 
 	// get Unreal skeleton root
 	// mesh and dummy are used as bone if they are in the skeleton hierarchy
-	while (RootBone->GetParent())
+	while (RootBone && RootBone->GetParent())
 	{
 		FbxNodeAttribute* Attr = RootBone->GetParent()->GetNodeAttribute();
 		if (Attr && 
@@ -1328,34 +1343,44 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 		
 		if (Deformer != NULL )
 		{
-			if( Deformer->GetClusterCount() > 0 )
+			int32 ClusterCount = Deformer->GetClusterCount();
+			bool bFoundCorrectLink = false;
+			for (int32 ClusterId = 0; ClusterId < ClusterCount; ++ClusterId)
 			{
-				FbxNode* Link = Deformer->GetCluster(0)->GetLink(); //Get the bone influences by this first cluster
+				FbxNode* Link = Deformer->GetCluster(ClusterId)->GetLink(); //Get the bone influences by this first cluster
 				Link = GetRootSkeleton(Link); // Get the skeleton root itself
 
-				int32 i;
-				for (i = 0; i < SkeletonArray.Num(); i++)
+				if (Link)
 				{
-					if (Link == SkeletonArray[i])
+					int32 i;
+					for (i = 0; i < SkeletonArray.Num(); i++)
 					{
-						// append to existed outSkelMeshArray element
-						TArray<FbxNode*>* TempArray = outSkelMeshArray[i];
-						TempArray->Add(NodeToAdd);
-						break;
+						if (Link == SkeletonArray[i])
+						{
+							// append to existed outSkelMeshArray element
+							TArray<FbxNode*>* TempArray = outSkelMeshArray[i];
+							TempArray->Add(NodeToAdd);
+							break;
+						}
 					}
-				}
 
-				// if there is no outSkelMeshArray element that is bind to this skeleton
-				// create new element for outSkelMeshArray
-				if (i == SkeletonArray.Num())
-				{
-					TArray<FbxNode*>* TempArray = new TArray<FbxNode*>();
-					TempArray->Add(NodeToAdd);
-					outSkelMeshArray.Add(TempArray);
-					SkeletonArray.Add(Link);
+					// if there is no outSkelMeshArray element that is bind to this skeleton
+					// create new element for outSkelMeshArray
+					if (i == SkeletonArray.Num())
+					{
+						TArray<FbxNode*>* TempArray = new TArray<FbxNode*>();
+						TempArray->Add(NodeToAdd);
+						outSkelMeshArray.Add(TempArray);
+						SkeletonArray.Add(Link);
+					}
+
+					bFoundCorrectLink = true;
+					break;
 				}
 			}
-			else
+			
+			// we didn't find the correct link
+			if (!bFoundCorrectLink)
 			{
 				AddTokenizedErrorMessage(
 					FTokenizedMessage::Create(

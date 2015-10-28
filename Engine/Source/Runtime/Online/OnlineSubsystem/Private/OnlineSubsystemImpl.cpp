@@ -109,8 +109,12 @@ void FOnlineSubsystemImpl::SetNamedInterface(FName InterfaceName, UObject* NewIn
 
 bool FOnlineSubsystemImpl::IsServer() const
 {
+#if WITH_EDITOR
 	FName WorldContextHandle = (InstanceName != NAME_None && InstanceName != DefaultInstanceName) ? InstanceName : NAME_None;
 	return IsServerForOnlineSubsystems(WorldContextHandle);
+#else
+	return IsServerForOnlineSubsystems(NAME_None);
+#endif
 }
 
 bool FOnlineSubsystemImpl::IsLocalPlayer(const FUniqueNetId& UniqueId) const

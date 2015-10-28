@@ -123,7 +123,8 @@ float Vis_Neumann( float NoV, float NoL )
 // [Kelemen 2001, "A microfacet based coupled specular-matte brdf model with importance sampling"]
 float Vis_Kelemen( float VoH )
 {
-	return rcp( 4 * VoH * VoH );
+	// constant to prevent NaN
+	return rcp( 4 * VoH * VoH + 1e-5);
 }
 
 // Tuned to match behavior of Vis_Smith
@@ -251,6 +252,15 @@ float D_InvBeckmann( float Roughness, float NoH )
 	float Sin2h = 1 - Cos2h;
 	float Sin4h = Sin2h * Sin2h;
 	return rcp( PI * (1 + A*m2) * Sin4h ) * ( Sin4h + A * exp( -Cos2h / (m2 * Sin2h) ) );
+}
+
+float D_InvGGX( float Roughness, float NoH )
+{
+	float a = Roughness * Roughness;
+	float a2 = a * a;
+	float A = 4;
+	float d = ( NoH - a2 * NoH ) * NoH + a2;
+	return rcp( PI * (1 + A*a2) ) * ( 1 + 4 * a2*a2 / ( d*d ) );
 }
 
 float Vis_Cloth( float NoV, float NoL )

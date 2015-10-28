@@ -2,7 +2,7 @@
 
 #pragma once
 
-class FSectionKeyAreaNode;
+class FSequencerSectionKeyAreaNode;
 class FTrackNode;
 
 /**
@@ -59,5 +59,5 @@ private:
 	/** Background brush of the section area */
 	const FSlateBrush* BackgroundBrush;
 	/** All the widgets in the panel */
-	TSlotlessChildren<SSection> Children;
+	TSlotlessChildren<SSequencerSection> Children;
 };

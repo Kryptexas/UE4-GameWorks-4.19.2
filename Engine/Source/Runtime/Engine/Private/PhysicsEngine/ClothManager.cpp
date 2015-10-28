@@ -10,7 +10,7 @@ FClothManager::FClothManager(UWorld* InAssociatedWorld)
 {
 }
 
-static TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("Whether to prepare and start cloth sim off the game thread"));
+TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("Whether to prepare and start cloth sim off the game thread"));
 
 void FClothManagerData::PrepareCloth(float DeltaTime, FTickFunction& TickFunction)
 {

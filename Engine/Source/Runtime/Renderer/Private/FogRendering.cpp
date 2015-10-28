@@ -145,32 +145,23 @@ public:
 		SceneTextureParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightShaftsOutput& LightShaftsOutput)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 		ExponentialParameters.Set(RHICmdList, GetPixelShader(), &View);
 
-		if (LightShaftsOutput.bRendered)
-		{
-			SetTextureParameter(
-				RHICmdList, 
-				GetPixelShader(),
-				OcclusionTexture, OcclusionSampler,
-				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-				LightShaftsOutput.LightShaftOcclusion->GetRenderTargetItem().ShaderResourceTexture
-				);
-		}
-		else
-		{
-			SetTextureParameter(
-				RHICmdList, 
-				GetPixelShader(),
-				OcclusionTexture, OcclusionSampler,
-				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-				GWhiteTexture->TextureRHI
-				);
-		}
+		FTextureRHIRef TextureRHI = LightShaftsOutput.LightShaftOcclusion ?
+			LightShaftsOutput.LightShaftOcclusion->GetRenderTargetItem().ShaderResourceTexture :
+			GWhiteTexture->TextureRHI;
+
+		SetTextureParameter(
+			RHICmdList, 
+			GetPixelShader(),
+			OcclusionTexture, OcclusionSampler,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			TextureRHI
+			);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -281,7 +272,7 @@ void FSceneRenderer::InitFogConstants()
 FGlobalBoundShaderState ExponentialBoundShaderState;
 
 /** Sets the bound shader state for either the per-pixel or per-sample fog pass. */
-void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
+void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& View, const FLightShaftsOutput& LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
@@ -294,7 +285,7 @@ void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& 
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput)
+bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
@@ -317,7 +308,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
-			SCOPED_DRAW_EVENTF(RHICmdList, Fog, TEXT("Fog %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
+			SCOPED_DRAW_EVENTF(RHICmdList, Fog, TEXT("ExponentialHeightFog %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
 			if (View.IsPerspectiveProjection() == false)
 			{

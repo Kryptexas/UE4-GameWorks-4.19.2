@@ -6,6 +6,9 @@
 #include "Analytics.h"
 #include "EngineVersion.h"
 #include "QoSReporter.h"
+#if WITH_PERFCOUNTERS
+	#include "PerfCountersModule.h"
+#endif // WITH_PERFCOUNTERS
 
 #ifndef WITH_QOSREPORTER
 	#error "WITH_QOSREPORTER should be defined in Build.cs file"
@@ -87,11 +90,16 @@ void FQoSReporter::Initialize()
 		UE_LOG(LogQoSReporter, Verbose, TEXT("HeartbeatInterval configured to %f from config."), HeartbeatInterval);
 	}
 
+	// randomize heartbeats to prevent servers from bursting at once (they hit rate limit on data router and get throttled with 429)
+	LastHeartbeatTimestamp = FPlatformTime::Seconds() + HeartbeatInterval * FMath::FRand();
+
 	bIsInitialized = true;
 }
 
 void FQoSReporter::Shutdown()
 {
+	checkf(!bIsInitialized || Analytics.IsValid(), TEXT("Analytics provider for QoS reporter module is left initialized - internal error."));
+
 	Analytics.Reset();
 	bIsInitialized = false;
 }
@@ -117,7 +125,7 @@ void FQoSReporter::ReportStartupCompleteEvent()
 }
 
 double FQoSReporter::HeartbeatInterval = 300;
-double FQoSReporter::LastHeartbeatTimestamp = FPlatformTime::Seconds();
+double FQoSReporter::LastHeartbeatTimestamp = 0;
 
 void FQoSReporter::Tick()
 {
@@ -138,8 +146,118 @@ void FQoSReporter::SendHeartbeat()
 {
 	checkf(Analytics.IsValid(), TEXT("SendHeartbeat() should not be called if Analytics provider was not configured"));
 
-	extern ENGINE_API float GAverageFPS;
 	TArray<FAnalyticsEventAttribute> ParamArray;
-	ParamArray.Add(FAnalyticsEventAttribute(TEXT("AverageFPS"), GAverageFPS));
-	Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::Heartbeat), ParamArray);
+	ParamArray.Add(FAnalyticsEventAttribute(TEXT("Role"), GetApplicationRole()));
+
+	if (IsRunningDedicatedServer())
+	{
+		AddServerHeartbeatAttributes(ParamArray);
+		Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::ServerPerfCounters), ParamArray);
+	}
+	else
+	{
+		AddClientHeartbeatAttributes(ParamArray);
+		Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::Heartbeat), ParamArray);
+	}
 }
+
+/**
+ * Sends heartbeat stats.
+ */
+void FQoSReporter::AddServerHeartbeatAttributes(TArray<FAnalyticsEventAttribute> & OutArray)
+{
+#if WITH_PERFCOUNTERS
+	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+	if (PerfCounters)
+	{
+		FString PerfCountersJSON = PerfCounters->GetAllCountersAsJson();
+
+		const TMap<FString, IPerfCounters::FJsonVariant>& PerfCounterMap = PerfCounters->GetAllCounters();
+		int NumAddedCounters = 0;
+
+		// only add string and number values
+		for (const auto& It : PerfCounterMap)
+		{
+			const IPerfCounters::FJsonVariant& JsonValue = It.Value;
+			switch (JsonValue.Format)
+			{
+				case IPerfCounters::FJsonVariant::String:
+					OutArray.Add(FAnalyticsEventAttribute(It.Key, JsonValue.StringValue));
+					break;
+				case IPerfCounters::FJsonVariant::Number:
+					OutArray.Add(FAnalyticsEventAttribute(It.Key, FString::Printf(TEXT("%f"), JsonValue.NumberValue)));
+					break;
+				default:
+					// don't write anything (supporting these requires more changes in PerfCounters API)
+					UE_LOG(LogQoSReporter, Log, TEXT("PerfCounter '%s' of unsupported type %d skipped"), *It.Key, static_cast<int32>(JsonValue.Format));
+					break;
+			}
+		}
+
+		// for compatibility with wash, avoid resetting if -statsport is used (temporary measure to avoid interference)
+		static bool bCheckedResettingStats = false;
+		static bool bResetStats = true;
+
+		if (!bCheckedResettingStats)
+		{
+			int32 StatsPort = -1;
+			if (FParse::Value(FCommandLine::Get(), TEXT("statsPort="), StatsPort) && StatsPort > 0)
+			{
+				bResetStats = false;
+			}
+
+			bCheckedResettingStats = true;
+		}
+		
+		if (bResetStats)
+		{
+			UE_LOG(LogQoSReporter, Verbose, TEXT("Resetting PerfCounters - new stat period begins."));
+			PerfCounters->ResetStatsForNextPeriod();
+		}
+		else
+		{
+			UE_LOG(LogQoSReporter, Verbose, TEXT("Not resetting PerfCounters, relying on wash to drive stats periods."));
+		}
+	}
+	else if (UE_SERVER)
+	{
+		UE_LOG(LogQoSReporter, Warning, TEXT("PerfCounters module is not available, could not send proper server heartbeat."));
+	}
+#else
+	#if UE_SERVER
+		#error "QoS module requires perfcounters for servers"
+	#endif // UE_SERVER
+#endif // WITH_PERFCOUNTERS
+}
+
+void FQoSReporter::AddClientHeartbeatAttributes(TArray<FAnalyticsEventAttribute> & OutArray)
+{
+	extern ENGINE_API float GAverageFPS;
+	OutArray.Add(FAnalyticsEventAttribute(TEXT("AverageFPS"), GAverageFPS));
+}
+
+/**
+ * Returns application role (server, client)
+ */
+FString FQoSReporter::GetApplicationRole()
+{
+	if (IsRunningDedicatedServer())
+	{
+		static FString DedicatedServer(TEXT("DedicatedServer"));
+		return DedicatedServer;
+	}
+	else if (IsRunningClientOnly())
+	{
+		static FString ClientOnly(TEXT("ClientOnly"));
+		return ClientOnly;
+	}
+	else if (IsRunningGame())
+	{
+		static FString StandaloneGame(TEXT("StandaloneGame"));
+		return StandaloneGame;
+	}
+
+	static FString Editor(TEXT("Editor"));
+	return Editor;
+}
+

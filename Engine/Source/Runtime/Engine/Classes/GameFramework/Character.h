@@ -229,27 +229,25 @@ public:
 	ACharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-private_subobject:
+
+private:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
-	DEPRECATED_FORGAME(4.6, "Mesh should not be accessed directly, please use GetMesh() function instead. Mesh will soon be private and your code will not compile.")
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;
 
 #if WITH_EDITORONLY_DATA
-	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 #endif
 
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	DEPRECATED_FORGAME(4.6, "CharacterMovement should not be accessed directly, please use GetCharacterMovement() function instead. CharacterMovement will soon be private and your code will not compile.")
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCharacterMovementComponent* CharacterMovement;
 
 	/** The CapsuleComponent being used for movement collision (by CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
-	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCapsuleComponent* CapsuleComponent;
+
 public:
 
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
@@ -362,6 +360,9 @@ public:
 	/** Disable simulated gravity (set when character encroaches geometry on client, to keep him from falling through floors) */
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;
+
+	UPROPERTY(Transient)
+	uint32 bClientCheckEncroachmentOnNetUpdate:1;
 
 	/** Disable root motion on the server. When receiving a DualServerMove, where the first move is not root motion and the second is. */
 	UPROPERTY(Transient)
@@ -754,8 +755,15 @@ public:
 	/** Restore actor to an old buffered move. */
 	bool RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove);
 	
-	/** Called on client after position update is received to actually move the character. */
-	virtual void UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation);
+	DEPRECATED(4.11, "UpdateSimulatedPosition() is deprecated and is not used by engine code. Use OnUpdateSimulatedPosition() instead.")
+	virtual void UpdateSimulatedPosition(const FVector& Location, const FRotator& NewRotation);
+
+	/**
+	 * Called on client after position update is received to respond to the new location and rotation.
+	 * Actual change in location is expected to occur in CharacterMovement->SmoothCorrection(), after which this occurs.
+	 * Default behavior is to check for penetration in a blocking object if bClientCheckEncroachmentOnNetUpdate is enabled, and set bSimGravityDisabled=true if so.
+	 */
+	virtual void OnUpdateSimulatedPosition(const FVector& OldLocation, const FQuat& OldRotation);
 
 	/** Replicated Root Motion montage */
 	UPROPERTY(ReplicatedUsing=OnRep_RootMotion)
@@ -795,3 +803,18 @@ public:
 	/** Returns CapsuleComponent subobject **/
 	class UCapsuleComponent* GetCapsuleComponent() const;
 };
+
+
+//////////////////////////////////////////////////////////////////////////
+// Character inlines
+
+/** Returns Mesh subobject **/
+FORCEINLINE USkeletalMeshComponent* ACharacter::GetMesh() const { return Mesh; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+FORCEINLINE UArrowComponent* ACharacter::GetArrowComponent() const { return ArrowComponent; }
+#endif
+/** Returns CharacterMovement subobject **/
+FORCEINLINE UCharacterMovementComponent* ACharacter::GetCharacterMovement() const { return CharacterMovement; }
+/** Returns CapsuleComponent subobject **/
+FORCEINLINE UCapsuleComponent* ACharacter::GetCapsuleComponent() const { return CapsuleComponent; }

@@ -12,7 +12,7 @@ FKeyAreaLayoutElement FKeyAreaLayoutElement::FromGroup(const TSharedRef<FGrouped
 	return Tmp;
 }
 
-FKeyAreaLayoutElement FKeyAreaLayoutElement::FromKeyAreaNode(const TSharedRef<FSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset)
+FKeyAreaLayoutElement FKeyAreaLayoutElement::FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset)
 {
 	FKeyAreaLayoutElement Tmp;
 	Tmp.Type = Single;
@@ -56,7 +56,7 @@ FKeyAreaLayout::FKeyAreaLayout(FSequencerDisplayNode& InNode, int32 InSectionInd
 
 		if (Node.GetType() == ESequencerNode::KeyArea)
 		{
-			Elements.Add(FKeyAreaLayoutElement::FromKeyAreaNode(StaticCastSharedRef<FSectionKeyAreaNode>(Node.AsShared()), InSectionIndex, TotalHeight));
+			Elements.Add(FKeyAreaLayoutElement::FromKeyAreaNode(StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node.AsShared()), InSectionIndex, TotalHeight));
 		}
 		else if (!Node.IsExpanded())
 		{

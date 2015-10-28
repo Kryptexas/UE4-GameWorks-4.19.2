@@ -4,6 +4,8 @@ Crumbs:%ROOT%, Engine
 Description:System for rendering instanced meshes on the surfaces of other geometry for use as foliage or other ground cover effects.
 Version: 4.9
 SkillLevel:Intermediate
+parent:Engine
+order:9
 
 [VAR:Topic]
 [OBJECT:Topic]

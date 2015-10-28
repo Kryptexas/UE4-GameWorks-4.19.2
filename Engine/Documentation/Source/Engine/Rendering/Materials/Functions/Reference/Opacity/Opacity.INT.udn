@@ -2,6 +2,7 @@ Availability: Public
 title:Opacity
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions to handle opacity values within a material network.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -15,7 +16,7 @@ The following is a list of all the functions underneath the Opacity category.
 
 ### SoftOpacity
 
-The SoftOpacity function takes in an Opacity value and then runs a variety of calculations on it to give it a softer feel. It applies a Fresnel effect, and depth-based alpha, and pixel depth. The end result causes the object to fade away as the camera approaches it.
+The **SoftOpacity** function takes in an Opacity value and then runs a variety of calculations on it to give it a softer feel. It applies a Fresnel effect, and depth-based alpha, and pixel depth. The end result causes the object to fade away as the camera approaches it.
 
 | Item | Description |
 | -------- | -------- |

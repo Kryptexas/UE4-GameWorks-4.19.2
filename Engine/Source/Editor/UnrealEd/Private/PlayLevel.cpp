@@ -35,6 +35,7 @@
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SScissorRectBox.h"
 #include "Online.h"
+#include "OnlineSubsystemUtils.h"
 #include "SNotificationList.h"
 #include "SGameLayerManager.h"
 #include "NotificationManager.h"
@@ -65,10 +66,46 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
 
-inline FName GetOnlineIdentifier(const FWorldContext& WorldContext)
+const static FName NAME_CategoryPIE("PIE");
+
+// This class listens to output log messages, and forwards warnings and errors to the message log
+class FOutputLogErrorsToMessageLogProxy : public FOutputDevice
 {
-	return FName(*FString::Printf(TEXT(":%s"), *WorldContext.ContextHandle.ToString()));
-}
+public:
+	FOutputLogErrorsToMessageLogProxy()
+	{
+		GLog->AddOutputDevice(this);
+	}
+
+	~FOutputLogErrorsToMessageLogProxy()
+	{
+		GLog->RemoveOutputDevice(this);
+	}
+
+	// FOutputDevice interface
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override
+	{
+		//@TODO: Remove IsInGameThread() once the message log is thread safe
+		if ((Verbosity <= ELogVerbosity::Warning) && IsInGameThread())
+		{
+			const FText Message = FText::Format(LOCTEXT("OutputLogToMessageLog", "{0}: {1}"), FText::FromName(Category), FText::AsCultureInvariant(FString(V)));
+
+			switch (Verbosity)
+			{
+			case ELogVerbosity::Warning:
+				FMessageLog(NAME_CategoryPIE).SuppressLoggingToOutputLog(true).Warning(Message);
+				break;
+			case ELogVerbosity::Error:
+				FMessageLog(NAME_CategoryPIE).SuppressLoggingToOutputLog(true).Error(Message);
+				break;
+			case ELogVerbosity::Fatal:
+				FMessageLog(NAME_CategoryPIE).SuppressLoggingToOutputLog(true).CriticalError(Message);
+				break;
+			}
+		}
+	}
+	// End of FOutputDevice interface
+};
 
 void UEditorEngine::EndPlayMap()
 {
@@ -214,7 +251,7 @@ void UEditorEngine::EndPlayMap()
 			TeardownPlaySession(ThisContext);
 			
 			// Cleanup online subsystems instantiated during PIE
-			FName OnlineIdentifier = GetOnlineIdentifier(ThisContext);
+			FName OnlineIdentifier = Online::GetUtils()->GetOnlineIdentifier(ThisContext);
 			if (IOnlineSubsystem::DoesInstanceExist(OnlineIdentifier))
 			{
 				IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
@@ -346,7 +383,7 @@ void UEditorEngine::EndPlayMap()
 			Arguments.Add(TEXT("Path"), FText::FromString(ErrorString));
 				
 			// We cannot safely recover from this.
-			FMessageLog("PIE").CriticalError()
+			FMessageLog(NAME_CategoryPIE).CriticalError()
 				->AddToken(FUObjectToken::Create(Object, FText::FromString(Object->GetFullName())))
 				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("PIEObjectStillReferenced", "Object from PIE level still referenced. Shortest path from root: {Path}"), Arguments)));
 		}
@@ -403,8 +440,11 @@ void UEditorEngine::EndPlayMap()
 	bRequestEndPlayMapQueued = false;
 	bUseVRPreviewForPlayWorld = false;
 
+	// Tear down the output log to message log thunker
+	OutputLogErrorsToMessageLogProxyPtr.Reset();
+
 	// display any info if required.
-	FMessageLog("PIE").Notify(LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."));
+	FMessageLog(NAME_CategoryPIE).Notify(LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."));
 }
 
 void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
@@ -2153,6 +2193,12 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		EndPlayMap();
 	}
 
+	// Register for log processing so we can promote errors/warnings to the message log
+	if (GetDefault<UEditorStyleSettings>()->bPromoteOutputLogWarningsDuringPIE)
+	{
+		OutputLogErrorsToMessageLogProxyPtr = MakeShareable(new FOutputLogErrorsToMessageLogProxy());
+	}
+
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->OnBeginPlay();
@@ -2219,8 +2265,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	if (SupportsOnlinePIE())
 	{
-		bool bHasRequiredLogins = PlayNumberOfClients <= PIELogins.Num();
-
+		bool bHasRequiredLogins = PlayNumberOfClients <= Online::GetUtils()->GetNumPIELogins();
 		if (bHasRequiredLogins)
 		{
 			// If we support online PIE use it even if we're standalone
@@ -2228,9 +2273,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		}
 		else
 		{
-			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
+			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, change editor settings");
 			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
-			FMessageLog("PIE").Warning(ErrorMsg);
+			FMessageLog(NAME_CategoryPIE).Warning(ErrorMsg);
 		}
 	}
 
@@ -2447,14 +2492,7 @@ void UEditorEngine::CancelPlayingViaLauncher()
 
 bool UEditorEngine::SupportsOnlinePIE() const
 {
-	if (bOnlinePIEEnabled && PIELogins.Num() > 0)
-	{
-		// If we can't get the identity interface then things are either not configured right or disabled
-		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
-		return IdentityInt.IsValid();
-	}
-
-	return false;
+	return Online::GetUtils()->SupportsOnlinePIE();
 }
 
 void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpectatorMode, double PIEStartTime)
@@ -2467,6 +2505,9 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 	DataStruct.bAnyBlueprintErrors = bAnyBlueprintErrors;
 	DataStruct.bStartInSpectatorMode = bStartInSpectatorMode;
 	DataStruct.PIEStartTime = PIEStartTime;
+
+	TArray<FOnlineAccountCredentials> PIELogins;
+	Online::GetUtils()->GetPIELogins(PIELogins);
 
 	int32 ClientNum = 0;
 	int32 PIEInstance = 1;
@@ -2490,7 +2531,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.NetMode = PlayNetMode;
 
 		// Always get the interface (it will create the subsystem regardless)
-		FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
+		FName OnlineIdentifier = Online::GetUtils()->GetOnlineIdentifier(PieWorldContext);
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for server %s"), *OnlineIdentifier.ToString());
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 		IOnlineIdentityPtr IdentityInt = OnlineSub->GetIdentityInterface();
@@ -2504,18 +2545,13 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 			GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
 
 			// Login to online platform before creating world
-			FOnlineAccountCredentials AccountCreds;
-			AccountCreds.Id = PIELogins[ClientNum].Id;
-			AccountCreds.Token = PIELogins[ClientNum].Token;
-			AccountCreds.Type = PIELogins[ClientNum].Type;
-
 			FOnLoginCompleteDelegate Delegate;
 			Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
 
 			// Login first and continue the flow later
 			FDelegateHandle DelegateHandle = IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate);
 			OnLoginPIECompleteDelegateHandlesForPIEInstances.Add(OnlineIdentifier, DelegateHandle);
-			IdentityInt->Login(0, AccountCreds);
+			IdentityInt->Login(0, PIELogins[ClientNum]);
 
 			ClientNum++;
 		}
@@ -2525,7 +2561,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 			OnlineSub->SetForceDedicated(true);
 			if (CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct))
 			{
-				FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
+				FMessageLog(NAME_CategoryPIE).Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
 			}
 			else
 			{
@@ -2552,24 +2588,20 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
 		DataStruct.NetMode = WillAutoConnectToServer ? EPlayNetMode::PIE_Client : EPlayNetMode::PIE_Standalone;
 
-		FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
+		FName OnlineIdentifier = Online::GetUtils()->GetOnlineIdentifier(PieWorldContext);
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
 		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 		check(IdentityInt.IsValid());
 		NumOnlinePIEInstances++;
 
-		FOnlineAccountCredentials AccountCreds;
-		AccountCreds.Id = PIELogins[ClientNum].Id;
-		AccountCreds.Token = PIELogins[ClientNum].Token;
-		AccountCreds.Type = PIELogins[ClientNum].Type;
-
+		// Login to online platform before creating world
 		FOnLoginCompleteDelegate Delegate;
 		Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
 
 		FDelegateHandle DelegateHandle = OnLoginPIECompleteDelegateHandlesForPIEInstances.FindRef(OnlineIdentifier);
 		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, DelegateHandle);
 		OnLoginPIECompleteDelegateHandlesForPIEInstances.Add(OnlineIdentifier, IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate));
-		IdentityInt->Login(0, AccountCreds);
+		IdentityInt->Login(0, PIELogins[ClientNum]);
 	}
 
 	// Restore window settings
@@ -2593,7 +2625,7 @@ void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuc
 		return;
 	}
 
-	FName OnlineIdentifier = GetOnlineIdentifier(*PieWorldContext);
+	FName OnlineIdentifier = Online::GetUtils()->GetOnlineIdentifier(*PieWorldContext);
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 
 	// Cleanup the login delegate before calling create below
@@ -2612,22 +2644,22 @@ void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuc
 		{
 			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 			{
-				FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+				FMessageLog(NAME_CategoryPIE).Info(LOCTEXT("LoggedInClient", "Server logged in"));
 			}
 			else
 			{
-				FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
+				FMessageLog(NAME_CategoryPIE).Info(LOCTEXT("LoggedInClient", "Client logged in"));
 			}
 		}
 		else
 		{
 			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 			{
-				FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
+				FMessageLog(NAME_CategoryPIE).Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
 			}
 			else
 			{
-				FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+				FMessageLog(NAME_CategoryPIE).Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
 			}
 		}
 	}
@@ -2647,7 +2679,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 			FText::Format(LOCTEXT("SIESessionLabel", "SIE session: {Package} ({TimeStamp})"), Arguments) : 
 			FText::Format(LOCTEXT("PIESessionLabel", "PIE session: {Package} ({TimeStamp})"), Arguments);
 
-		FMessageLog("PIE").NewPage(PIESessionLabel);
+		FMessageLog(NAME_CategoryPIE).NewPage(PIESessionLabel);
 	}
 
 	// create a new GameInstance
@@ -3023,7 +3055,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("MapName"), FText::FromString(GameInstance->PIEMapName));
 		Arguments.Add(TEXT("StartTime"), FPlatformTime::Seconds() - PIEStartTime);
-		FMessageLog("PIE").Info( FText::Format(LOCTEXT("PIEStartTime", "Play in editor start time for {MapName} {StartTime}"), Arguments) );
+		FMessageLog(NAME_CategoryPIE).Info(FText::Format(LOCTEXT("PIEStartTime", "Play in editor start time for {MapName} {StartTime}"), Arguments));
 	}
 
 	// Update the details window with the actors we have just selected

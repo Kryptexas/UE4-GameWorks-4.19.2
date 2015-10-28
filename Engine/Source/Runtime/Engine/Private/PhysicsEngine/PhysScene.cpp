@@ -86,6 +86,105 @@ struct FPendingApexDamageManager
 };
 #endif
 
+#if WITH_PHYSX
+
+template <bool IsCloth>
+class FPhysXTask
+{
+	PxBaseTask&	Task;
+
+public:
+	FPhysXTask(PxBaseTask* InTask)
+		: Task(*InTask)
+	{
+	}
+
+	~FPhysXTask()
+	{
+		Task.release();
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		if (!IsCloth)
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_Physics);
+		}
+		else
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXClothTask, STATGROUP_Physics);
+		}
+
+	}
+	static ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+	static ESubsequentsMode::Type GetSubsequentsMode()
+	{
+		return ESubsequentsMode::TrackSubsequents;
+	}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		FPlatformMisc::BeginNamedEvent(FColor::Black, Task.getName());
+		Task.run();
+		FPlatformMisc::EndNamedEvent();
+	}
+};
+
+
+/** Used to dispatch physx tasks to task graph */
+template <bool IsClothScene>
+class FPhysXCPUDispatcher : public PxCpuDispatcher
+{
+public:
+	virtual void submitTask(PxBaseTask& Task) override
+	{
+		TGraphTask<FPhysXTask<IsClothScene>>::CreateTask(NULL).ConstructAndDispatchWhenReady(&Task);
+	}
+
+	virtual PxU32 getWorkerCount() const override
+	{
+		return FTaskGraphInterface::Get().GetNumWorkerThreads();
+	}
+};
+
+DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"), STAT_PhysXSingleThread, STATGROUP_Physics);
+
+/** Used to dispatch physx tasks to the game thread */
+class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
+{
+	TArray<PxBaseTask*> TaskStack;
+
+	virtual void submitTask(PxBaseTask& Task) override
+	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysXSingleThread);
+		check(IsInGameThread());
+
+		TaskStack.Push(&Task);
+		if (TaskStack.Num() > 1)
+		{
+			return;
+		}
+		Task.run();
+		Task.release();
+		while (TaskStack.Num() > 1)
+		{
+			PxBaseTask& ChildTask = *TaskStack.Pop();
+			ChildTask.run();
+			ChildTask.release();
+		}
+		verify(&Task == TaskStack.Pop() && !TaskStack.Num());
+	}
+
+	virtual PxU32 getWorkerCount() const override
+	{
+		return 1;
+	}
+};
+#endif
+
 /** Exposes creation of physics-engine scene outside Engine (for use with PhAT for example). */
 FPhysScene::FPhysScene()
 #if WITH_APEX
@@ -101,32 +200,7 @@ FPhysScene::FPhysScene()
 	PhysxUserData = FPhysxUserData(this);
 
 	ClothManager = nullptr;
-
 	
-	int64 NumPhysxDispatcher = 0;
-	FParse::Value(FCommandLine::Get(), TEXT("physxDispatcher="), NumPhysxDispatcher);
-	if(NumPhysxDispatcher == 0 && FParse::Param(FCommandLine::Get(), TEXT("physxDispatcher")))
-	{
-		NumPhysxDispatcher = 4;	//by default give physx 4 threads
-	}
-	
-	// Create dispatcher for tasks
-	if (PhysSingleThreadedMode())
-	{
-		CPUDispatcher = new FPhysXCPUDispatcherSingleThread();
-	}
-	else
-	{
-		if(NumPhysxDispatcher)
-		{
-			CPUDispatcher = PxDefaultCpuDispatcherCreate(NumPhysxDispatcher);
-		}else
-		{
-			CPUDispatcher = new FPhysXCPUDispatcher();
-		}
-		
-	}
-
 #endif	//#if WITH_PHYSX
 
 	// initialize console variable - this console variable change requires it to restart scene. 
@@ -211,11 +285,11 @@ FPhysScene::~FPhysScene()
 
 		// Destroy the physics scene
 		TermPhysScene(SceneType);
-	}
 
 #if WITH_PHYSX
-	GPhysCommandHandler->DeferredDeleteCPUDispathcer(CPUDispatcher);
+		GPhysCommandHandler->DeferredDeleteCPUDispathcer(CPUDispatcher[SceneType]);
 #endif	//#if WITH_PHYSX
+	}
 }
 
 namespace
@@ -817,7 +891,10 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 			Task->removeReference();
 			bTaskOutstanding = true;
 
-			GatherApexStats(this->OwningWorld,ApexScene);
+			if (SceneType == PST_Cloth)
+			{
+				GatherApexStats(this->OwningWorld, ApexScene);
+			}
 
 #endif
 		}
@@ -840,7 +917,10 @@ void FPhysScene::KillVisualDebugger()
 {
 	if (GPhysXSDK)
 	{
-		GPhysXSDK->getPvdConnectionManager()->disconnect();
+		if (PxVisualDebuggerConnectionManager* PVD = GPhysXSDK->getPvdConnectionManager())
+		{
+			PVD->disconnect();
+		}
 	}
 }
 
@@ -1209,16 +1289,19 @@ void FPhysScene::StartFrame()
 }
 
 TAutoConsoleVariable<int32> CVarEnableClothPhysics(TEXT("p.ClothPhysics"), 1, TEXT("If 1, physics cloth will be used for simulation."));
-
+extern TAutoConsoleVariable<int32> CVarParallelCloth;
 void FPhysScene::StartCloth()
 {
 	FGraphEventArray FinishPrerequisites;
+
+
 	if(CVarEnableClothPhysics.GetValueOnAnyThread())
 	{
 		TickPhysScene(PST_Cloth, PhysicsSubsceneCompletion[PST_Cloth]);
 		{
 			if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
 			{
+				ENamedThreads::Type CurrentThread = CVarParallelCloth.GetValueOnAnyThread() ? ENamedThreads::AnyThread : ENamedThreads::GameThread;
 				DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Cloth"),
 				STAT_FDelegateGraphTask_ProcessPhysScene_Cloth,
 					STATGROUP_TaskGraphTasks);
@@ -1227,7 +1310,7 @@ void FPhysScene::StartCloth()
 					FDelegateGraphTask::CreateAndDispatchWhenReady(
 					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth),
 					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Cloth), PhysicsSubsceneCompletion[PST_Cloth],
-					ENamedThreads::GameThread, ENamedThreads::GameThread
+					CurrentThread, ENamedThreads::GameThread
 					)
 					);
 			}
@@ -1447,6 +1530,41 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	check(SceneType < NumPhysScenes);
 
 #if WITH_PHYSX
+
+	int64 NumPhysxDispatcher = 0;
+	FParse::Value(FCommandLine::Get(), TEXT("physxDispatcher="), NumPhysxDispatcher);
+	if (NumPhysxDispatcher == 0 && FParse::Param(FCommandLine::Get(), TEXT("physxDispatcher")))
+	{
+		NumPhysxDispatcher = 4;	//by default give physx 4 threads
+	}
+
+	// Create dispatcher for tasks
+	if (PhysSingleThreadedMode())
+	{
+		CPUDispatcher[SceneType] = new FPhysXCPUDispatcherSingleThread();
+	}
+	else
+	{
+		if (NumPhysxDispatcher)
+		{
+			CPUDispatcher[SceneType] = PxDefaultCpuDispatcherCreate(NumPhysxDispatcher);
+		}
+		else
+		{
+			if (SceneType == PST_Cloth)
+			{
+				CPUDispatcher[SceneType] = new FPhysXCPUDispatcher<true>();
+			}
+			else
+			{
+				CPUDispatcher[SceneType] = new FPhysXCPUDispatcher<false>();
+			}
+
+		}
+
+	}
+
+
 	PhysxUserData = FPhysxUserData(this);
 
 	// Create sim event callback
@@ -1454,7 +1572,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 
 	// Include scene descriptor in loop, so that we might vary it with scene type
 	PxSceneDesc PSceneDesc(GPhysXSDK->getTolerancesScale());
-	PSceneDesc.cpuDispatcher = CPUDispatcher;
+	PSceneDesc.cpuDispatcher = CPUDispatcher[SceneType];
 
 	FPhysSceneShaderInfo PhysSceneShaderInfo;
 	PhysSceneShaderInfo.PhysScene = this;

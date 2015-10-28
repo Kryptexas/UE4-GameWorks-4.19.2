@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "ISequencerEditTool.h"
+#include "SequencerEditTool.h"
 
-class FSequencerEditTool_Default : public ISequencerEditTool
+
+class FSequencerEditTool_Default
+	: public FSequencerEditTool
 {
 public:
+
+	// ISequencerEditTool interface
 
 	virtual FReply OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 };

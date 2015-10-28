@@ -463,10 +463,10 @@ struct FGameNameRedirect
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FString OldGameName;
+	FName OldGameName;
 
 	UPROPERTY()
-	FString NewGameName;
+	FName NewGameName;
 };
 
 
@@ -476,19 +476,25 @@ struct FClassRedirect
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FString ObjectName;
+	FName ObjectName;
 
 	UPROPERTY()
-	FString OldClassName;
+	FName OldClassName;
 
 	UPROPERTY()
-	FString NewClassName;
+	FName NewClassName;
 
 	UPROPERTY()
-	FString OldSubobjName;
+	FName OldSubobjName;
 
 	UPROPERTY()
-	FString NewSubobjName;
+	FName NewSubobjName;
+
+	UPROPERTY()
+	FName NewClassClass; 
+
+	UPROPERTY()
+	FName NewClassPackage; 
 
 	UPROPERTY()
 	bool InstanceOnly;
@@ -501,10 +507,10 @@ struct FStructRedirect
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FString OldStructName;
+	FName OldStructName;
 
 	UPROPERTY()
-	FString NewStructName;
+	FName NewStructName;
 };
 
 
@@ -930,10 +936,6 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FLinearColor LightingOnlyBrightness;
-
-	/** The colors used to render light complexity. */
-	UPROPERTY(globalconfig)
-	TArray<FColor> LightComplexityColors;
 
 	/** The colors used to render shader complexity. */
 	UPROPERTY(globalconfig)

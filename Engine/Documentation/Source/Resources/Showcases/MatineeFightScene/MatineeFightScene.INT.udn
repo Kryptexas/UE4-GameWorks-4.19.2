@@ -10,6 +10,7 @@ Related: Engine\UI\CurveEditor
 Related: Engine/Rendering/ParticleSystems
 Related: Engine/Blueprints
 Related: Engine/Basics/Projects/CreatingTemplates
+Version: 4.9
 
 
 [VAR:Topic]
@@ -62,7 +63,7 @@ Related: Engine/Basics/Projects/CreatingTemplates
 
 The **Matinee** example shows how to create highly stylized cinematic sequences using Unreal Engine 4's **Matinee Editor**. If you do not know what Matinee is, the Matinee Editor (or simply Matinee) is a system which is based on the use of specialized **Tracks** in which you can place **Keyframes** and set the values of certain properties for the **Actors** in your level where you can adjust those values over time. 
 
-On this page, we will jump into and discuss each of the different sections inside the **Matinee Actor** used to create the fight sequence scene and how each of the elements come together to produce the final result shown in the **Scene Breakdown** section below. With an understanding of how it was constructed, you will be able to modify it and put a different spin on it or take the knowledge, tips-and-tricks learned here and apply them to your own scenes. 
+On this page, we will jump into and discuss each of the different sections inside the Matinee Actor used to create the fight sequence scene and how each of the elements come together to produce the final result shown in the **Scene Breakdown** section below. With an understanding of how it was constructed, you will be able to modify it and put a different spin on it or take the knowledge, tips-and-tricks learned here and apply them to your own scenes. 
 
 You can also head to the [](Engine\Matinee) documentation for more details on how to work with and use Matinee. 
 
@@ -134,11 +135,15 @@ You can also press the **G** key while in the viewport to toggle this option on/
 
 With **Game View** enabled, you will be able to playback the **Matinee** sequence from the **Matinee Editor** window and get an idea of what the final result will look like without the editor icons being displayed. 
 
-[REGION:imagetable]
-| ![](GameViewOff.png)(w:450) | ![](GameViewOn.png)(w:450) |
-| :---: | :---: |
-| Game View Off | Game View On |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Game View Off](GameViewOff.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Game View Om](GameViewOn.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 [REGION:tip]
 Inside the **Matinee Editor** under the menu toolbar **View** option, you can select **Hide All 3D Trajectories** which will hide the movement paths but keep all the other editor icons. 
@@ -155,7 +160,7 @@ If you scrub the **Time Bar** to any position on or after the second keyframe on
 
 In the sections below, we will deconstruct the **Matinee** used to generate the Fight Sequence and discuss how it was put together by looking at each of the **Tracks** and how they were used. We will also look at the **Director Group** and its related **Tracks** as well as discuss some of the techniques used by our team here to produce the final result. 
 
-We will first start by looking at the meat of the **Matinee** sequence, the **Tracks**, starting with the **Camera Tracks** and working our way down through the list. 
+We will first start by looking at the meat of the Matinee sequence, the Tracks, starting with the Camera Tracks and working our way down through the list. 
 
 ### Camera Tracks
 
@@ -194,14 +199,14 @@ While there are several property tracks that can be added and adjusted, the six 
 | Property Name | Description |
 | ------- | ------------ |
 | **DepthOfFieldFocalDistance** | This is the distance in which the Depth of Field effect should be sharp, in unreal units (cm). |
-| **DepthOfFieldFocalRegion** | The artificial region where all content is in focus, starting after **DepthOfFieldFocalDistance**, in unreal units (cm). |
+| **DepthOfFieldFocalRegion** | The artificial region where all content is in focus, starting after DepthOfFieldFocalDistance, in unreal units (cm). |
 | **DepthOfFieldScale** | BokehDOF only: used to amplify the Depth of Field effect (like aperture). Setting the value to 0 will turn it off. |
 | **DepthOfFieldNearBlurSize** | Gaussian only: this is the maximum size of the Depth of Field blur for near objects (in percent of the view width). Note: performance cost scales with size. |
 | **DepthOfFieldFarBlurSize** | Gaussian only: this is the maximum size of the Depth of Field blur for far objects (in percent of the view width). Note: performance cost scales with size.  |
 | **DepthOfFieldMaxBokehSize** | BokehDOF only: the maximum size of the Depth of Field blur (in percent of the view width). Note: performance cost scales with size*size.  |
 
 [REGION:note]
-Please see the [](Engine\Rendering\PostProcessEffects\DepthOfField) documentation for more information on using **Depth Of Field**. 
+Please see the [](Engine\Rendering\PostProcessEffects\DepthOfField) documentation for more information on using Depth Of Field. 
 [/REGION]
 
 The properties above are the same settings that can be adjusted via the **Details** panel of a **Camera Actor** under the **Depth Of Field** section: 
@@ -263,24 +268,24 @@ You can add offsets for the start or end times of an **Animation Sequence** by *
 
 If you were to open the **Trooper_1 Animation Sequence** located in the **Game/Character/Trooper/Animation** folder, you would see that the character does not start the animation until around the 5.9 second mark of the sequence. 
 
-You will also notice that **Animation Sequences** for each character have been placed throughout the scene regardless of whether or not they are visible during the **Matinee** sequence. 
+You will also notice that Animation Sequences for each character have been placed throughout the scene regardless of whether or not they are visible during the Matinee sequence. 
 
 ![](ExtraAnimSequences.png)
 
 _**Trooper_1 Animation Sequence** is added even though the character is not visible yet (character visibility is toggled **On** by the green bar)._
 
-These extra **Animation Sequences** are in place so that you may edit them and rearrange the shot sequence if you would like. Since the characters are not visible and the timing of each animation is not set, they do not hinder the overall scene but give you an opportunity to have additional options when cutting the final sequence together. 
+These extra Animation Sequences are in place so that you may edit them and rearrange the shot sequence if you would like. Since the characters are not visible and the timing of each animation is not set, they do not hinder the overall scene but give you an opportunity to have additional options when cutting the final sequence together. 
 
 #### Character Movement Tracks
 
 ![](CharacterMovementTrack.png)
 
-The **Movement** tracks for each character are primarily used to specify a start position or orientation for each character when they enter the scene or to adjust the positioning of each character during the scene. Because the **Animation Sequences** contain translation in them, movement around the scene is handled by the animation itself. If the animations did not have translation in them, the **Movement** track would be used to drive the character's movement around in the scene. 
+The **Movement** tracks for each character are primarily used to specify a start position or orientation for each character when they enter the scene or to adjust the positioning of each character during the scene. Because the Animation Sequences contain translation in them, movement around the scene is handled by the animation itself. If the animations did not have translation in them, the Movement track would be used to drive the character's movement around in the scene. 
 
-Due to the character-to-character interaction in this scene, it is important that if you change one of the character's **Movement** tracks, you will need to adjust the other characters as well so that they still synch up and play their animations together. 
+Due to the character-to-character interaction in this scene, it is important that if you change one of the character's Movement tracks, you will need to adjust the other characters as well so that they still synch up and play their animations together. 
 
 [REGION:tip]
-When a keyframe is added to the **Movement** track, you can specify the desired location of the character at that keyframe by selecting the keyframe in the **Matinee** window, then moving the character in the viewport to the desired location. 
+When a keyframe is added to the Movement track, you can specify the desired location of the character at that keyframe by selecting the keyframe in the Matinee window, then moving the character in the viewport to the desired location. 
 [/REGION]
 
 #### Character Visibility Tracks
@@ -297,7 +302,7 @@ You can **Right-Click** on a keyframe and "flip" the toggle to the opposite of i
 
 ![](CharacterLightTracks.png)
 
-Two **SpotLights** were added to the scene to provide additional lighting of the characters for each shot. Each of these **Spotlights** were set to **Movable** and are positioned using the **Movement** track. Additionally, the **Intensity**, **LightColor**, and **Radius** for each light is adjusted during the scene depending upon the shot. To better describe what is occurring, take a look at the image below. 
+Two **SpotLights** were added to the scene to provide additional lighting of the characters for each shot. Each of these Spotlights were set to **Movable** and are positioned using the Movement track. Additionally, the **Intensity**, **LightColor**, and **Radius** for each light is adjusted during the scene depending upon the shot. To better describe what is occurring, take a look at the image below. 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -314,19 +319,19 @@ kfJeFFGuEPQ
 When looking at the scene from the editor view and not the **Matinee Preview**, you can see that lights are being toggled on/off and positioned based on the needs of the shot. 
 
 [REGION:tip]
-You can disable the **Matinee Preview** by unchecking the **Allow Matinee Preview** option from the **Viewport Options** menu. 
+You can disable the Matinee Preview by unchecking the **Allow Matinee Preview** option from the Viewport Options menu. 
 [/REGION]
 
 #### Character Light Movement Tracks
 
 ![](CharacterLightsMovement.png)
 
-The **Movement** tracks for both the **Primary_Light** and **Secondary_Light** function similar to other **Movement** (the keyframes tell the light to move to the designated position when the keyframe is reached). You may notice that most of the keyframes on the **Movement** track are blue and only one keyframe on the **Secondary_Light** is red. 
+The **Movement** tracks for both the **Primary_Light** and **Secondary_Light** function similar to other Movement (the keyframes tell the light to move to the designated position when the keyframe is reached). You may notice that most of the keyframes on the Movement track are blue and only one keyframe on the **Secondary_Light** is red. 
 
 The color of the keyframes indicate which type of **Interp Mode** is being used for the movement, and for this scene most keyframes are set to use **Constant** (meaning the light will not interp to the position but will instead jump to the position). The red keyframe indicates that the **Interp Mode** is set to use **Linear** (meaning the light will interpolate smoothly between keyframes and not jump to the position). 
 
 [REGION:tip]
-You can change the **Interp Mode** by **Right-Clicking** on a keyframe, and if the track supports it, selecting the **Interp Mode** option from the context menu that appears. 
+You can change the Interp Mode by **Right-Clicking** on a keyframe, and if the track supports it, selecting the **Interp Mode** option from the context menu that appears. 
 [/REGION]
 
 
@@ -336,12 +341,12 @@ You can change the **Interp Mode** by **Right-Clicking** on a keyframe, and if t
 
 The **Intensity**, **LightColor**, and **Radius** tracks for each light allow you to modify the light's **Intensity**, **LightColor**, or **Radius** respectively at each placed keyframe. 
 
-The **Intensity** track for this scene also makes use of the **Curve Editor** which provides finer control of the adjustments made to the lights **Intensity** value. 
+The Intensity track for this scene also makes use of the **Curve Editor** which provides finer control of the adjustments made to the lights **Intensity** value. 
 
 ![](IntensityCurveEditor.png)
 
 [REGION:note]
-For more on using the **Curve Editor**, refer to the [](Engine\UI\CurveEditor) documentation.
+For more on using the Curve Editor, refer to the [](Engine\UI\CurveEditor) documentation.
 [/REGION]
 
 
@@ -377,7 +382,7 @@ For more on **Particle Effects**, refer to the [](Engine/Rendering/ParticleSyste
 The remaining FX groups under the **FX_Takedowns** and  **FX_TileBreaks** folders are used to toggle the bigger effects in the scene such as the bigger water splashes when a character hits the ground, or as the name implies, trigger the tile breaking effect seen when the characters hit the walls. 
 
 [REGION:note]
-In order to see the tile breaks, you may need to run the game in the editor and not play it through **Matinee** as they require physics simulation to occur. 
+In order to see the tile breaks, you may need to run the game in the editor and not play it through Matinee as they require physics simulation to occur. 
 [/REGION]
 
 #### FX Takedowns (Relative Scale 3D Track)
@@ -406,14 +411,14 @@ You can access the **Level Blueprint** by clicking the **Blueprints** button fro
 
 ![](AccessLevelBlueprint.png)
 
-Below is the **Level Blueprint** used in this scene (for a better view, it is recommended you view the **Blueprint** inside the editor). 
+Below is the **Level Blueprint** used in this scene (for a better view, it is recommended you view the Blueprint inside the editor). 
 
 ![](LevelBlueprintFull.png)(w:780)
 
-This **Blueprint** also handles resetting of the **StaticMesh** objects when the **Matinee** loops around to play the sequence again, without this portion of script, the tiles would remain broken on the ground. 
+This Blueprint also handles resetting of the **StaticMesh** objects when the Matinee loops around to play the sequence again, without this portion of script, the tiles would remain broken on the ground. 
 
 [REGION:note]
-For more information on working with **Blueprints**, refer to the [](Engine/Blueprints) documentation.
+For more information on working with Blueprints, refer to the [](Engine/Blueprints) documentation.
 [/REGION]
 
 
@@ -425,7 +430,7 @@ For more information on working with **Blueprints**, refer to the [](Engine/Blue
 
 Each of the **Sound** tracks inside the **Audio** folder that are assigned to the different troopers contain several sound assets that are played at different keyframes during the sequence. These are used to produce the majority of the impact sounds, grunts, and VO heard during the sequence. 
 
-When a sound asset is added to the **Sound** track, you can **Right-Click** on the keyframe to adjust the asset's **Volume** or **Pitch** from the context menu. 
+When a sound asset is added to the Sound track, you can **Right-Click** on the keyframe to adjust the asset's **Volume** or **Pitch** from the context menu. 
 
 ![](AudioVolumePitchMenu.png)
 
@@ -434,21 +439,21 @@ Most of the sound effects used can be found in the **Game/Sound/FightMatinee** f
 [/REGION]
 
 ### Director Group
-While the **Tracks** are the main course of **Matinee**, the **Director Group** and its related tracks serve up the dessert and add polish to the scene. 
+While the **Tracks** are the main course of Matinee, the **Director Group** and its related tracks serve up the dessert and add polish to the scene. 
 
 ![](DirectorGroup.png)(w:800)
 
 In short, with the **Director Group** you have access to special tracks, most importantly the **Director Track** (which allows you to take over the players view and assign it to different **Actors** in the scene, such as different cameras). You also have the ability to fade the scene in or out with the **Fade Track**, increase or decrease the game speed (including playback of the **Matinee** sequence) with the **Slomo Track**, control the overall **Volume** or **Pitch** of audio in the game with the **Audio Master Track**, or modify the color of the scene through the **Color Scale Track**. 
 
 [REGION:note]
-For more information on the **Tracks** available in **Matinee**, including the **Director Group Tracks**, refer to the [](Engine/Matinee/TrackReference) documentation.
+For more information on the Tracks available in Matinee, including the Director Group tracks, refer to the [](Engine/Matinee/TrackReference) documentation.
 [/REGION]
 
 #### Director Track
 
 ![](DirectorTrack.png)
 
-In this **Matinee** sequence, the **Director** track is used mostly to switch between different camera perspectives (mostly designated to using the "shake" cameras which are children of other cameras that control its main movement). 
+In this Matinee sequence, the **Director** track is used mostly to switch between different camera perspectives (mostly designated to using the "shake" cameras which are children of other cameras that control its main movement). 
 
 You can add **Shots** to the **Director Track** by pressing the **Enter** key at the desired location in the sequence. When a key is added, you are presented with a context menu which will allow you to select a **Group** to cut to for the shot (typically these are **Camera Actors**). 
 
@@ -478,11 +483,11 @@ Remember, you can **Right-Click** on a keyframe and choose **Interp Mode** to se
 
 #### Sound Tracks
 
-Inside the **Director Group**, you will notice that several additional **Sound Tracks** have been added which include more sound effects, music and ambient sounds. 
+Inside the Director Group, you will notice that several additional **Sound Tracks** have been added which include more sound effects, music and ambient sounds. 
 
 ![](DirectorGroupSoundTracks.png)(w:800)
 
-The **Sound Tracks** included in the **Director Group** could also have been placed and lumped in with the **Sound Tracks** under the **Audio** folder in the **Tracks Window**, however for clarity purposes as these effects enhance the audio and may be deemed as polish, they are included here (you could place them in either section however). 
+The **Sound** tracks included in the Director Group could also have been placed and lumped in with the Sound tracks under the **Audio** folder in the **Tracks Window**, however for clarity purposes as these effects enhance the audio and may be deemed as polish, they are included here (you could place them in either section however). 
 
 One thing to note about this section, the **Music** is split into two different tracks and does not use a single "master" music track to supply the score but instead uses smaller snippets that are placed to accentuate the scene based on the visuals that are taking place. 
 
@@ -492,7 +497,7 @@ One thing to note about this section, the **Music** is split into two different 
 
 ![](AudioMasterTrack.png)
 
-The **Audio Master Track** included in this scene is there to normalize the audio to a standard volume and pitch (which are set to the default of 1). No other keyframes are placed on this track for this example, however depending upon your needs, you could add keyframes to reduce the overall volume or adjust the pitch if you desired. 
+The **Audio Master** track included in this scene is there to normalize the audio to a standard volume and pitch (which are set to the default of 1). No other keyframes are placed on this track for this example, however depending upon your needs, you could add keyframes to reduce the overall volume or adjust the pitch if you desired. 
 
 [REGION:tip]
 You could use this track to fade out any audio that you have in your scene (such as music, sound effects, etc.) by adding two keyframes which interp between the values 1 and 0 for the **Volume** setting. 
@@ -502,7 +507,7 @@ You could use this track to fade out any audio that you have in your scene (such
 
 ![](DirectorGroupEvent.png)
 
-The **Event Track** in the **Director Group** is used to reset the physics objects that are toggled on during the scene (these are the **Static Mesh** tile pieces that break apart when the characters hit the walls).  
+The **Event** track in the Director Group is used to reset the physics objects that are toggled on during the scene (these are the **Static Mesh** tile pieces that break apart when the characters hit the walls).  
 
 If you open the **Level Blueprint**, the section of script that is executed when this event is called is outlined below (it is recommended that you view the full **Blueprint** inside the editor). 
 
@@ -515,7 +520,7 @@ In this section, we will cover some of the techniques used to create the fight s
 
 ### Camera Transitions
 
-One of the first **Camera** tips you will see used quite frequently in this **Matinee** sequence is in regards to camera movement. If you take a look at the **Director** track, each time a cut is made to a different camera, on that camera's **Movement** track you will notice that a keyframe has been placed prior to the cut occurring (see below). 
+One of the first **Camera** tips you will see used quite frequently in this Matinee sequence is in regards to camera movement. If you take a look at the **Director** track, each time a cut is made to a different camera, on that camera's **Movement** track you will notice that a keyframe has been placed prior to the cut occurring (see below). 
 
 ![](CameraMovementTip.png)(w:800)
 

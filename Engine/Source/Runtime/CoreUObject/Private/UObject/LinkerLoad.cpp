@@ -51,12 +51,14 @@ FName FLinkerLoad::NAME_LoadErrors("LoadErrors");
 
 
 TMap<FName, FName> FLinkerLoad::ObjectNameRedirects;			    // OldClassName to NewClassName for ImportMap
+TMap<FName, TPair<FName, FName>> FLinkerLoad::ObjectNameClassRedirects; // OldClassName to NewClassClass and NewClassPackage for ImportMap
 TMap<FName, FName> FLinkerLoad::ObjectNameRedirectsInstanceOnly;	// OldClassName to NewClassName for ExportMap
 TMap<FName, FName> FLinkerLoad::ObjectNameRedirectsObjectOnly;		// Object name to NewClassName for export map
 TMap<FName, FName> FLinkerLoad::GameNameRedirects;					// Game package name to new game package name
 TMap<FName, FName> FLinkerLoad::StructNameRedirects;				// Old struct name to new struct name mapping
 TMap<FString, FString> FLinkerLoad::PluginNameRedirects;			// Old plugin name to new plugin name mapping
 TMap<FName, FLinkerLoad::FSubobjectRedirect> FLinkerLoad::SubobjectNameRedirects;	
+TSet<FName> FLinkerLoad::KnownMissingPackages;
 bool FLinkerLoad::bActiveRedirectsMapInitialized = false;
 
 void FLinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
@@ -93,6 +95,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FName ObjectName = NAME_None;
 					FName OldSubobjName = NAME_None;
 					FName NewSubobjName = NAME_None;
+					FName NewClassClass = NAME_None;
+					FName NewClassPackage = NAME_None;
 
 					bool bInstanceOnly = false;
 
@@ -104,6 +108,9 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 
 					FParse::Value( *It.Value(), TEXT("OldSubobjName="), OldSubobjName );
 					FParse::Value( *It.Value(), TEXT("NewSubobjName="), NewSubobjName );
+
+					FParse::Value( *It.Value(), TEXT("NewClassClass="), NewClassClass );
+					FParse::Value( *It.Value(), TEXT("NewClassPackage="), NewClassPackage );
 
 					if (NewSubobjName != NAME_None || OldSubobjName != NAME_None)
 					{
@@ -151,6 +158,11 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 							}
 
 							ObjectNameRedirects.Add(OldClassName,NewClassName);
+
+							if (!NewClassClass.IsNone() || !NewClassPackage.IsNone())
+							{
+								ObjectNameClassRedirects.Add(OldClassName,TPair<FName,FName>(TPairInitializer<FName, FName>(NewClassClass,NewClassPackage)));
+							}
 						}
 					}
 				}	
@@ -186,6 +198,14 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					NewPluginName = FString(TEXT("/")) + NewPluginName + FString(TEXT("/"));
 
 					PluginNameRedirects.Add(OldPluginName, NewPluginName);
+				}
+				else if ( It.Key() == TEXT("KnownMissingPackages") )
+				{
+					FName KnownMissingPackage = NAME_None;
+
+					FParse::Value( *It.Value(), TEXT("PackageName="), KnownMissingPackage );
+
+					KnownMissingPackages.Add(KnownMissingPackage);
 				}
 			}
 		}
@@ -1292,6 +1312,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 		// Fix up imports, not required if everything is cooked.
 		if (!FPlatformProperties::RequiresCookedData())
 		{
+			static const FName NAME_ScriptStruct(TEXT("ScriptStruct"));
+			static const FName NAME_BlueprintGeneratedClass(TEXT("BlueprintGeneratedClass"));
+
 			bool bDone = false;
 			while (!bDone)
 			{
@@ -1357,16 +1380,15 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 						}
 					}
 
-					static FName NAME_ScriptStruct(TEXT("ScriptStruct"));
 
-					bool bIsClass = Import.ClassName == NAME_Class;
-					bool bIsStruct = Import.ClassName == NAME_ScriptStruct;
-					bool bIsEnum = Import.ClassName == NAME_Enum;
-					bool bIsClassOrStructOrEnum = bIsClass || bIsStruct || bIsEnum;
+					const bool bIsClass = (Import.ClassName == NAME_Class) || (Import.ClassName == NAME_BlueprintGeneratedClass);
+					const bool bIsStruct = (Import.ClassName == NAME_ScriptStruct);
+					const bool bIsEnum = (Import.ClassName == NAME_Enum);
+					const bool bIsClassOrStructOrEnum = bIsClass || bIsStruct || bIsEnum;
 
 					FString RedirectName, ResultPackage, ResultClass;
-					FName* RedirectNameObj = ObjectNameRedirects.Find(Import.ObjectName);
-					FName* RedirectNameClass = ObjectNameRedirects.Find(Import.ClassName);
+					const FName* RedirectNameObj = ObjectNameRedirects.Find(Import.ObjectName);
+					const FName* RedirectNameClass = ObjectNameRedirects.Find(Import.ClassName);
 					int32 OldOuterIndex = 0;
 					if ( (RedirectNameObj && bIsClassOrStructOrEnum) || RedirectNameClass )
 					{
@@ -1388,6 +1410,18 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 							// This is a class object (needs to have its OuterIndex changed if the package is different)
 							bUpdateOuterIndex = true;
 							RedirectName = RedirectNameObj->ToString();
+
+							if (TPair<FName, FName>* RedirectNameNewClassPair = ObjectNameClassRedirects.Find(Import.ObjectName))
+							{
+								if (!RedirectNameNewClassPair->Key.IsNone())
+								{
+									Import.ClassName = RedirectNameNewClassPair->Key;
+								}
+								if (!RedirectNameNewClassPair->Value.IsNone())
+								{
+									Import.ClassPackage = RedirectNameNewClassPair->Value;
+								}
+							}
 						}
 
 						// Accepts either "PackageName.ClassName" or just "ClassName"
@@ -4259,7 +4293,6 @@ FArchive& FLinkerLoad::operator<<( UObject*& Object )
 	// When loading mark all packages that are accessed by non editor-only properties as being required at runtime.
 	if (Ar.IsLoading() && Temporary && !Ar.IsEditorOnlyPropertyOnTheStack())
 	{
-		FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 		const bool bReferenceFromOutsideOfThePackage = Temporary->GetOutermost() != LinkerRoot;
 		const bool bIsAClass = Temporary->IsA(UClass::StaticClass());
 		const bool bReferencingPackageIsNotEditorOnly = bReferenceFromOutsideOfThePackage && !LinkerRoot->IsLoadedByEditorPropertiesOnly();
@@ -4276,6 +4309,7 @@ FArchive& FLinkerLoad::operator<<( UObject*& Object )
 			// So we need to remember which packages have been kept marked as editor-only by which package so that after all
 			// objects have been serialized we can go back and make sure the LinkerRoot package is still marked as editor-only and if not,
 			// remove the flag from all packages that are marked as such because of it.
+			FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 			TSet<FName>& PackagesMarkedEditorOnly = ThreadContext.PackagesMarkedEditorOnlyByOtherPackage.FindOrAdd(LinkerRoot->GetFName());
 			if (!PackagesMarkedEditorOnly.Contains(Temporary->GetOutermost()->GetFName()))
 			{

@@ -281,11 +281,164 @@ public:
 		return bOptimizeMesh;
 	}
 
+	/** internal only access function, so that you can use with register or with no-register */
+	void Reduce(
+		USkeletalMesh* SkeletalMesh,
+		FSkeletalMeshResource* SkeletalMeshResource,
+		FStaticLODModel* SrcModel,
+		int32 LODIndex,
+		int32 BaseLOD,
+		const FSkeletalMeshOptimizationSettings& Settings,
+		bool bCalcLODDistance
+		)
+	{
+		// Insert a new LOD model entry if needed.
+		if (LODIndex == SkeletalMeshResource->LODModels.Num())
+		{
+			SkeletalMeshResource->LODModels.Add(0);
+		}
+
+		// We'll need to store the max deviation after optimization if we wish to recalculate the LOD's display distance
+		float MaxDeviation = 0.0f;
+
+		// Swap in a new model, delete the old.
+		check(LODIndex < SkeletalMeshResource->LODModels.Num());
+		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
+		//delete LODModels[LODIndex]; -- keep model valid until we'll be ready to replace it; required to be able to refresh UI with mesh stats
+
+		// Copy over LOD info from LOD0 if there is no previous info.
+		if (LODIndex == SkeletalMesh->LODInfo.Num())
+		{
+			FSkeletalMeshLODInfo* NewLODInfo = new(SkeletalMesh->LODInfo) FSkeletalMeshLODInfo;
+			FSkeletalMeshLODInfo& OldLODInfo = SkeletalMesh->LODInfo[BaseLOD];
+			*NewLODInfo = OldLODInfo;
+
+		}
+
+		// now try bone reduction process if it's setup
+		TMap<FBoneIndexType, FBoneIndexType> BonesToRemove;
+
+		IMeshBoneReductionModule& MeshBoneReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshBoneReductionModule>("MeshBoneReduction");
+		IMeshBoneReduction * MeshBoneReductionInterface = MeshBoneReductionModule.GetMeshBoneReductionInterface();
+
+		// See if we'd like to remove extra bones first
+		if (MeshBoneReductionInterface->GetBoneReductionData(SkeletalMesh, LODIndex, BonesToRemove))
+		{
+			// if we do, now create new model and make a copy of SrcMesh to cut the bone count
+			FStaticLODModel * NewSrcModel = new FStaticLODModel();
+
+			//	Bulk data arrays need to be locked before a copy can be made.
+			SrcModel->RawPointIndices.Lock(LOCK_READ_ONLY);
+			SrcModel->LegacyRawPointIndices.Lock(LOCK_READ_ONLY);
+			*NewSrcModel = *SrcModel;
+			SrcModel->RawPointIndices.Unlock();
+			SrcModel->LegacyRawPointIndices.Unlock();
+
+			// The index buffer needs to be rebuilt on copy.
+			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
+			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+			NewSrcModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
+
+			// now fix up SrcModel to NewSrcModel
+			SrcModel = NewSrcModel;
+			//todo: check - memory leak here - SrcModel is not released?
+
+			// fix up chunks to remove the bones that set to be removed
+			for (int32 ChunkIndex = 0; ChunkIndex < NewSrcModel->Chunks.Num(); ++ChunkIndex)
+			{
+				MeshBoneReductionInterface->FixUpChunkBoneMaps(NewSrcModel->Chunks[ChunkIndex], BonesToRemove);
+			}
+		}
+
+		FStaticLODModel * NewModel = new FStaticLODModel();
+		LODModels[LODIndex] = NewModel;
+
+		// Reduce LOD model with SrcMesh
+		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->Bounds, MaxDeviation, SkeletalMesh->RefSkeleton, Settings))
+		{
+			if (bCalcLODDistance)
+			{
+				ensure(LODIndex != 0);
+
+				if (LODIndex == 1)
+				{
+					SkeletalMesh->LODInfo[LODIndex].ScreenSize = 1.f;
+				}
+				else
+				{
+					SkeletalMesh->LODInfo[LODIndex].ScreenSize = SkeletalMesh->LODInfo[LODIndex - 1].ScreenSize * 0.5;
+				}
+			}
+
+			// if material hasn't been customized
+			if (SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.Num() == 0)
+			{
+				// copy parent index
+				for (int32 SectionId = 0; SectionId < NewModel->Sections.Num() && SectionId < SrcModel->Sections.Num(); ++SectionId)
+				{
+					NewModel->Sections[SectionId].MaterialIndex = SrcModel->Sections[SectionId].MaterialIndex;
+				}
+
+				// also if BaseLOD has material customized, follow it. 
+				SkeletalMesh->LODInfo[LODIndex].LODMaterialMap = SkeletalMesh->LODInfo[BaseLOD].LODMaterialMap;
+			}
+			else
+			{
+				// make sure we don't have more materials
+				int32 TotalSectionCount = NewModel->Sections.Num();
+				if (SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.Num() > TotalSectionCount)
+				{
+					SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.SetNum(TotalSectionCount);
+				}
+			}
+
+			// Flag this LOD as having been simplified.
+			SkeletalMesh->LODInfo[LODIndex].bHasBeenSimplified = true;
+			SkeletalMesh->bHasBeenSimplified = true;
+		}
+		else
+		{
+			//	Bulk data arrays need to be locked before a copy can be made.
+			SrcModel->RawPointIndices.Lock(LOCK_READ_ONLY);
+			SrcModel->LegacyRawPointIndices.Lock(LOCK_READ_ONLY);
+			*NewModel = *SrcModel;
+			SrcModel->RawPointIndices.Unlock();
+			SrcModel->LegacyRawPointIndices.Unlock();
+
+			// The index buffer needs to be rebuilt on copy.
+			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
+			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+			NewModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
+
+			// Required bones are recalculated later on.
+			NewModel->RequiredBones.Empty();
+			SkeletalMesh->LODInfo[LODIndex].bHasBeenSimplified = false;
+		}
+
+		SkeletalMesh->CalculateRequiredBones(SkeletalMeshResource->LODModels[LODIndex], SkeletalMesh->RefSkeleton, &BonesToRemove);
+
+		if (LODIndex >= SkeletalMesh->OptimizationSettings.Num())
+		{
+			FSkeletalMeshOptimizationSettings DefaultSettings;
+			const FSkeletalMeshOptimizationSettings SettingsToCopy =
+				SkeletalMesh->OptimizationSettings.Num() ? SkeletalMesh->OptimizationSettings.Last() : DefaultSettings;
+			while (LODIndex >= SkeletalMesh->OptimizationSettings.Num())
+			{
+				SkeletalMesh->OptimizationSettings.Add(SettingsToCopy);
+			}
+		}
+		check(LODIndex < SkeletalMesh->OptimizationSettings.Num());
+		SkeletalMesh->OptimizationSettings[LODIndex] = Settings;
+	}
+
 	virtual bool ReduceSkeletalMesh(
 		USkeletalMesh* SkeletalMesh,
 		int32 LODIndex,
 		const FSkeletalMeshOptimizationSettings& Settings,
-		bool bCalcLODDistance
+		bool bCalcLODDistance, 
+		bool bReregisterComponent = true
 		) override
 	{
 		check( SkeletalMesh );
@@ -314,143 +467,21 @@ public:
 			}
 		}
 
-		TComponentReregisterContext<USkinnedMeshComponent> ReregisterContext;
-		SkeletalMesh->ReleaseResources();
-		SkeletalMesh->ReleaseResourcesFence.Wait();
-
-		// Insert a new LOD model entry if needed.
-		if ( LODIndex == SkeletalMeshResource->LODModels.Num() )
+		if (bReregisterComponent)
 		{
-			SkeletalMeshResource->LODModels.Add(0);
-		}
+			TComponentReregisterContext<USkinnedMeshComponent> ReregisterContext;
+			SkeletalMesh->ReleaseResources();
+			SkeletalMesh->ReleaseResourcesFence.Wait();
 
-		// We'll need to store the max deviation after optimization if we wish to recalculate the LOD's display distance
-		float MaxDeviation = 0.0f;
+			Reduce(SkeletalMesh, SkeletalMeshResource, SrcModel, LODIndex, BaseLOD, Settings, bCalcLODDistance);
 
-		// Swap in a new model, delete the old.
-		check( LODIndex < SkeletalMeshResource->LODModels.Num() );
-		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
-		//delete LODModels[LODIndex]; -- keep model valid until we'll be ready to replace it; required to be able to refresh UI with mesh stats
-
-		// Copy over LOD info from LOD0 if there is no previous info.
-		if ( LODIndex == SkeletalMesh->LODInfo.Num() )
-		{
-			FSkeletalMeshLODInfo* NewLODInfo = new( SkeletalMesh->LODInfo ) FSkeletalMeshLODInfo;
-			FSkeletalMeshLODInfo& OldLODInfo = SkeletalMesh->LODInfo[BaseLOD];
-			*NewLODInfo = OldLODInfo;
-
-		}
-
-		// now try bone reduction process if it's setup
-		TMap<FBoneIndexType, FBoneIndexType> BonesToRemove;
-
-        IMeshBoneReductionModule& MeshBoneReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshBoneReductionModule>("MeshBoneReduction");
-		IMeshBoneReduction * MeshBoneReductionInterface = MeshBoneReductionModule.GetMeshBoneReductionInterface();
-
-		// See if we'd like to remove extra bones first
-		if (MeshBoneReductionInterface->GetBoneReductionData( SkeletalMesh, LODIndex, BonesToRemove ))
-		{
-			// if we do, now create new model and make a copy of SrcMesh to cut the bone count
-			FStaticLODModel * NewSrcModel = new FStaticLODModel();
-			
-			//	Bulk data arrays need to be locked before a copy can be made.
-			SrcModel->RawPointIndices.Lock( LOCK_READ_ONLY );
-			SrcModel->LegacyRawPointIndices.Lock( LOCK_READ_ONLY );
-			*NewSrcModel = *SrcModel;
-			SrcModel->RawPointIndices.Unlock();
-			SrcModel->LegacyRawPointIndices.Unlock();
-
-			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
-			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
-			NewSrcModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
-
-			// now fix up SrcModel to NewSrcModel
-			SrcModel = NewSrcModel;
-			//todo: check - memory leak here - SrcModel is not released?
-
-			// fix up chunks to remove the bones that set to be removed
-			for ( int32 ChunkIndex=0; ChunkIndex< NewSrcModel->Chunks.Num(); ++ChunkIndex )	
-			{
-				MeshBoneReductionInterface->FixUpChunkBoneMaps(NewSrcModel->Chunks[ChunkIndex], BonesToRemove);
-			}
-		}
-
-		FStaticLODModel * NewModel = new FStaticLODModel();
-		LODModels[LODIndex] = NewModel;
-
-		// Reduce LOD model with SrcMesh
-		if ( ReduceLODModel(SrcModel, NewModel, SkeletalMesh->Bounds, MaxDeviation, SkeletalMesh->RefSkeleton, Settings) )
-		{
-			if( bCalcLODDistance )
-			{
-				float ViewDistance = CalculateViewDistance( MaxDeviation );
-				SkeletalMesh->LODInfo[LODIndex].ScreenSize = 2.0f * SkeletalMesh->Bounds.SphereRadius / ViewDistance;
-			}
-
-			// if material hasn't been customized
-			if (SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.Num() == 0)
-			{
-				// copy parent index
-				for (int32 SectionId = 0; SectionId < NewModel->Sections.Num() && SectionId < SrcModel->Sections.Num() ; ++SectionId)
-				{
-					NewModel->Sections[SectionId].MaterialIndex = SrcModel->Sections[SectionId].MaterialIndex;
-				}
-
-				// also if BaseLOD has material customized, follow it. 
-				SkeletalMesh->LODInfo[LODIndex].LODMaterialMap = SkeletalMesh->LODInfo[BaseLOD].LODMaterialMap;
-			}
-			else
-			{
-				// make sure we don't have more materials
-				int32 TotalSectionCount = NewModel->Sections.Num();
-				if (SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.Num() > TotalSectionCount)
-				{
-					SkeletalMesh->LODInfo[LODIndex].LODMaterialMap.SetNum(TotalSectionCount);
-				}
-			}
-
-			// Flag this LOD as having been simplified.
-			SkeletalMesh->LODInfo[LODIndex].bHasBeenSimplified = true;
-			SkeletalMesh->bHasBeenSimplified = true;
+			SkeletalMesh->PostEditChange();
+			SkeletalMesh->InitResources();
 		}
 		else
 		{
-			//	Bulk data arrays need to be locked before a copy can be made.
-			SrcModel->RawPointIndices.Lock( LOCK_READ_ONLY );
-			SrcModel->LegacyRawPointIndices.Lock( LOCK_READ_ONLY );
-			*NewModel = *SrcModel;
-			SrcModel->RawPointIndices.Unlock();
-			SrcModel->LegacyRawPointIndices.Unlock();
-
-			// The index buffer needs to be rebuilt on copy.
-			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
-			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
-			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
-			NewModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
-
-			// Required bones are recalculated later on.
-			NewModel->RequiredBones.Empty();
-			SkeletalMesh->LODInfo[LODIndex].bHasBeenSimplified = false;
+			Reduce(SkeletalMesh, SkeletalMeshResource, SrcModel, LODIndex, BaseLOD, Settings, bCalcLODDistance);
 		}
-
-		SkeletalMesh->CalculateRequiredBones( SkeletalMeshResource->LODModels[LODIndex], SkeletalMesh->RefSkeleton, &BonesToRemove );
-		SkeletalMesh->PostEditChange();
-		SkeletalMesh->InitResources();
-		
-		if ( LODIndex >= SkeletalMesh->OptimizationSettings.Num() )
-		{
-			FSkeletalMeshOptimizationSettings DefaultSettings;
-			const FSkeletalMeshOptimizationSettings SettingsToCopy =
-				SkeletalMesh->OptimizationSettings.Num() ? SkeletalMesh->OptimizationSettings.Last() : DefaultSettings;
-			while ( LODIndex >= SkeletalMesh->OptimizationSettings.Num() )
-			{
-				SkeletalMesh->OptimizationSettings.Add( SettingsToCopy );
-			}
-		}
-		check( LODIndex < SkeletalMesh->OptimizationSettings.Num() );
-		SkeletalMesh->OptimizationSettings[ LODIndex ] = Settings;
 
 		return true;
 	}

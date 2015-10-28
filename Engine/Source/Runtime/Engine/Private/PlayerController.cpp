@@ -82,6 +82,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bForceFeedbackEnabled = true;
 
 	bAutoManageActiveCameraTarget = true;
+	bHidePawnInCinematicMode = false;
 
 	bIsLocalPlayerController = false;
 
@@ -2837,12 +2838,13 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 void APlayerController::SetCinematicMode(bool bInCinematicMode, bool bHidePlayer, bool bAffectsHUD, bool bAffectsMovement, bool bAffectsTurning)
 {
 	bCinematicMode = bInCinematicMode;
+	bHidePawnInCinematicMode = bCinematicMode && bHidePlayer;
 
 	// If we have a pawn we need to determine if we should show/hide the player
 	if (GetPawn() != NULL)
 	{
 		// Only hide the pawn if in cinematic mode and we want to
-		if (bCinematicMode && bHidePlayer)
+		if (bCinematicMode && bHidePawnInCinematicMode)
 		{
 			GetPawn()->SetActorHiddenInGame(true);
 		}
@@ -3634,6 +3636,12 @@ void APlayerController::SetPawn(APawn* InPawn)
 	}
 
 	Super::SetPawn(InPawn);
+
+	// If we have a pawn we need to determine if we should show/hide the player for cinematic mode
+	if (GetPawn() && bCinematicMode && bHidePawnInCinematicMode)
+	{
+		GetPawn()->SetActorHiddenInGame(true);
+	}
 }
 
 

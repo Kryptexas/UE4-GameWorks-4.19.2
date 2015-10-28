@@ -41,7 +41,8 @@ public:
 		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId,
+		bool bSeparateTranslucencyEnabled = true
 		);
 
 	/**
@@ -56,7 +57,8 @@ public:
 		const uint64& BatchElementMask,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId,
+		bool bSeparateTranslucencyEnabled = true
 		);
 
 	/**
@@ -79,7 +81,8 @@ private:
 		float DitheredLODTransitionValue,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId,
+		bool bSeparateTranslucencyEnabled = true
 		);
 
 };

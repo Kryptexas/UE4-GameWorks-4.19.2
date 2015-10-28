@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2612770
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリント通信プロジェクト
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:様々なブループリント通信方法を使って作成されたサンプル プロジェクト 
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -23,7 +24,6 @@ Description:様々なブループリント通信方法を使って作成され�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]

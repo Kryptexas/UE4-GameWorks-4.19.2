@@ -18,13 +18,12 @@ public:
 	}
 
 	virtual IMovieSceneCaptureInterface* InitializeFromCommandLine() = 0;
-	virtual IMovieSceneCaptureInterface* CreateMovieSceneCapture(FViewport* Viewport) = 0;
-
+	virtual IMovieSceneCaptureInterface* CreateMovieSceneCapture(TWeakPtr<FSceneViewport> Viewport) = 0;
+	virtual IMovieSceneCaptureInterface* GetFirstActiveMovieSceneCapture() = 0;
+	
 	virtual IMovieSceneCaptureInterface* RetrieveMovieSceneInterface(FMovieSceneCaptureHandle Handle) = 0;
 	virtual void DestroyMovieSceneCapture(FMovieSceneCaptureHandle Handle) = 0;
 
 	virtual void OnMovieSceneCaptureFinished(IMovieSceneCaptureInterface*) = 0;
-
-	virtual void OpenCaptureSettings(const TSharedRef<class FTabManager>& TabManager, UMovieSceneCapture* CaptureObject) = 0;
 };
 

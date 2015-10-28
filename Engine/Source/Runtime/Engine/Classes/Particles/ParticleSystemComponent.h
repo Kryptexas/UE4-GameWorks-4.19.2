@@ -311,7 +311,7 @@ public:
 	 * This also disables attachment on dedicated servers, where we don't actually activate even if bAutoActivate is true.
 	 * @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Attachment)
 	uint32 bAutoManageAttachment:1;
 
 private:
@@ -798,6 +798,9 @@ private:
 	bool bAsyncWorkOutstanding;
 	/** This flag is only valid during finalize. It is sent back from the potentially async task to indicate that all emitters are finished */
 	bool bAllEmittersFinished;
+	/** Time in ms since a tick was last performed; used with MinTimeBetweenTicks (on UParticleSystem) to control tick rate */
+	uint32 TimeSinceLastTick;
+
 public:
 
 	//~ Begin UActorComponent Interface.

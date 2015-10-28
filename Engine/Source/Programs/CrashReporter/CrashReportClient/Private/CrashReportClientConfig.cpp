@@ -97,5 +97,7 @@ void FCrashReportClientConfig::ReadFullCrashDumpConfigurations()
 		Branch.ReplaceInline( TEXT( "*" ), TEXT( "" ) );
 
 		FullCrashDumpConfigurations.Add( FFullCrashDumpEntry( Branch, NetworkLocation, bExactMatch ) );
+
+		UE_LOG( CrashReportClientLog, Log, TEXT( "FullCrashDump: %s, NetworkLocation: %s, bExactMatch:%i" ), *Branch, *NetworkLocation, bExactMatch );
 	}
 }

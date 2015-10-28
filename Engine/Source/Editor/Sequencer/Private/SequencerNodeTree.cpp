@@ -9,7 +9,7 @@
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
 #include "MovieSceneTrackEditor.h"
-#include "SectionLayoutBuilder.h"
+#include "SequencerSectionLayoutBuilder.h"
 #include "ISequencerSection.h"
 #include "ISequencerTrackEditor.h"
 
@@ -58,7 +58,7 @@ void FSequencerNodeTree::Update()
 	TArray< TSharedRef<FSequencerDisplayNode> > NewObjectNodes;
 	for( const FMovieSceneBinding& Binding : Bindings )
 	{
-		TSharedRef<FObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), GuidToBindingMap, NewObjectNodes );
+		TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), GuidToBindingMap, NewObjectNodes );
 
 		const TArray<UMovieSceneTrack*>& Tracks = Binding.GetTracks();
 
@@ -173,7 +173,7 @@ void FSequencerNodeTree::MakeSectionInterfaces( UMovieSceneTrack& Track, TShared
 		TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface( *SectionObject, Track );
 
 		// Ask the section to generate it's inner layout
-		FSectionLayoutBuilder Builder( SectionAreaNode );
+		FSequencerSectionLayoutBuilder Builder( SectionAreaNode );
 		Section->GenerateSectionLayout( Builder );
 
 		SectionAreaNode->AddSection( Section );
@@ -188,10 +188,10 @@ const TArray< TSharedRef<FSequencerDisplayNode> >& FSequencerNodeTree::GetRootNo
 }
 
 
-TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList)
+TSharedRef<FSequencerObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList)
 {
-	TSharedPtr<FObjectBindingNode> ObjectNode;
-	TSharedPtr<FObjectBindingNode>* FoundObjectNode = ObjectBindingMap.Find(ObjectBinding);
+	TSharedPtr<FSequencerObjectBindingNode> ObjectNode;
+	TSharedPtr<FSequencerObjectBindingNode>* FoundObjectNode = ObjectBindingMap.Find(ObjectBinding);
 	if (FoundObjectNode != nullptr)
 	{
 		ObjectNode = *FoundObjectNode;
@@ -202,7 +202,7 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 		FName ObjectNodeName = *ObjectBinding.ToString();
 
 		// Try to get the parent object node if there is one.
-		TSharedPtr<FObjectBindingNode> ParentNode;
+		TSharedPtr<FSequencerObjectBindingNode> ParentNode;
 		TArray<UObject*> RuntimeObjects;
 		UMovieSceneSequence* Animation = Sequencer.GetFocusedMovieSceneSequence();
 		UObject* RuntimeObject = Animation->FindObject(ObjectBinding);
@@ -212,7 +212,7 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 			if (ParentObject != nullptr)
 			{
 				FGuid ParentBinding = Animation->FindObjectId(*ParentObject);
-				TSharedPtr<FObjectBindingNode>* FoundParentNode = ObjectBindingMap.Find( ParentBinding );
+				TSharedPtr<FSequencerObjectBindingNode>* FoundParentNode = ObjectBindingMap.Find( ParentBinding );
 				if ( FoundParentNode != nullptr )
 				{
 					ParentNode = *FoundParentNode;
@@ -229,7 +229,7 @@ TSharedRef<FObjectBindingNode> FSequencerNodeTree::AddObjectBinding(const FStrin
 		}
 
 		// Create the node.
-		ObjectNode = MakeShareable( new FObjectBindingNode( ObjectNodeName, ObjectName, ObjectBinding, ParentNode, *this ) );
+		ObjectNode = MakeShareable( new FSequencerObjectBindingNode( ObjectNodeName, ObjectName, ObjectBinding, ParentNode, *this ) );
 		if (ParentNode.IsValid())
 		{
 			ParentNode->AddObjectBindingNode(ObjectNode.ToSharedRef());

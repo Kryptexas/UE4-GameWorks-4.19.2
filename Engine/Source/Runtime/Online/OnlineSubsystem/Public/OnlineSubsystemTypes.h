@@ -54,6 +54,36 @@ inline void GenerateNonce(uint8* Nonce, uint32 Length)
 	}
 }
 
+/**
+ * Environment for the current online platform
+ */
+namespace EOnlineEnvironment
+{
+	enum Type
+	{
+		/** Dev environment */
+		Development,
+		/** Cert environment */
+		Certification,
+		/** Prod environment */
+		Production,
+		/** Not determined yet */
+		Unknown
+	};
+
+	/** @return the stringified version of the enum passed in */
+	inline const TCHAR* ToString(EOnlineEnvironment::Type EnvironmentType)
+	{
+		switch (EnvironmentType)
+		{
+			case Development: return TEXT("Development");
+			case Certification: return TEXT("Certification");
+			case Production: return TEXT("Production");
+			case Unknown: default: return TEXT("Unknown");
+		};
+	}
+}
+
 /** Possible login states */
 namespace ELoginStatus
 {

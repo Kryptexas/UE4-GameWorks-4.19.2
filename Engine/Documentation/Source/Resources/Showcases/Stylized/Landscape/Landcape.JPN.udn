@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2347450
+﻿INTSourceChangelist:2726448
 Availability:Public
-Title:定型化したレンダリング ランドスケープ
+Title:スタイライズド レンダリング ランドスケープ
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
-Description:UE4 に同梱されている定型化したレンダリングのショーケースに使用したランドスケープ エフェクトの概要
+Description:UE4 に同梱のスタイライズド レンダリング ショーケースに使用したランドスケープ エフェクトの概要
 Related:Engine/Landscape
 Related:Engine/Landscape/Editing/Splines
 Related:Engine/Landscape/Materials
+Version:4.9
 
 
 
@@ -24,7 +25,7 @@ Related:Engine/Landscape/Materials
 
 まず、使用している Material 式を理解するために、マテリアル エディタでマテリアルを開きます。以下の手順に従ってください。
 
-1. **コンテンツ ブラウザ** で **M_Terrain_Gound_A** マテリアルを検索します。検索は、アセットツリーの **「Game」** フォルダ内で行っていることを確認してください。マテリアルのみでフィルタリングすると検索に役立つかもしれません。
+1. **コンテンツ ブラウザ** で **M_Terrain_Gound_A** マテリアルを検索します。検索は、アセットツリーの「**Game**」フォルダ内で行っていることを確認してください。マテリアルのみでフィルタリングすると検索に役立つかもしれません。
 
 	![](M_Terrain_GroundCB.png)
 

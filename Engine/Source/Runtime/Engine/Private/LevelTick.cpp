@@ -1029,6 +1029,7 @@ static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
 	ECVF_Default
 	);
 
+#include "GameFramework/SpawnActorTimer.h"
 
 /**
  * Update the level after a variable amount of time, DeltaSeconds, has passed.
@@ -1053,6 +1054,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		GEngine->HMDDevice->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
+
+#if ENABLE_SPAWNACTORTIMER
+	FSpawnActorTimer& SpawnTimer = FSpawnActorTimer::Get();
+	SpawnTimer.IncrementFrameCount();
+#endif
 
 #if ENABLE_COLLISION_ANALYZER
 	// Tick collision analyzer (only if level is really ticking)

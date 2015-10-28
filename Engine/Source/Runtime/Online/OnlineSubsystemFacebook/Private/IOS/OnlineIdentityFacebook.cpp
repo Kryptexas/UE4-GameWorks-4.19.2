@@ -243,3 +243,8 @@ FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const 
 
 	return PLATFORMUSERID_NONE;
 }
+
+FString FOnlineIdentityFacebook::GetAuthType() const
+{
+	return TEXT("");
+}

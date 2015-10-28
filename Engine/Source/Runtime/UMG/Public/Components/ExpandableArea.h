@@ -33,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Expansion")
 	float MaxHeight;
 	
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Expansion" )
+	FMargin HeaderPadding;
+	
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Expansion")
 	FMargin AreaPadding;

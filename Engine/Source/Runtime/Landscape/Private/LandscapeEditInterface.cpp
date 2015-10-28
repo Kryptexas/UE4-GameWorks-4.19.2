@@ -4758,7 +4758,7 @@ bool FLandscapeTextureDataInfo::UpdateTextureData()
 	{
 		if( MipInfo[i].MipData && MipInfo[i].MipUpdateRegions.Num()>0 )
 		{
-			Texture->UpdateTextureRegions( i, MipInfo[i].MipUpdateRegions.Num(), &MipInfo[i].MipUpdateRegions[0], ((Texture->Source.GetSizeX())>>i)*DataSize, DataSize, (uint8*)MipInfo[i].MipData, false );
+			Texture->UpdateTextureRegions( i, MipInfo[i].MipUpdateRegions.Num(), &MipInfo[i].MipUpdateRegions[0], ((Texture->Source.GetSizeX())>>i)*DataSize, DataSize, (uint8*)MipInfo[i].MipData);
 			bNeedToWaitForUpdate = true;
 		}
 	}

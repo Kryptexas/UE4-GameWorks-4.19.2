@@ -749,6 +749,10 @@ void UWidget::SynchronizeProperties()
 	// in the case where it's a user widget.  We always want to prefer the SObjectWidget so that bindings to 
 	// visibility and enabled status are not stomping values setup in the root widget in the User Widget.
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( !SafeWidget.IsValid() )
+	{
+		return;
+	}
 
 #if WITH_EDITOR
 	// Always use an enabled and visible state in the designer.
@@ -757,7 +761,7 @@ void UWidget::SynchronizeProperties()
 		SafeWidget->SetEnabled(true);
 		SafeWidget->SetVisibility(BIND_UOBJECT_ATTRIBUTE(EVisibility, GetVisibilityInDesigner));
 	}
-	else
+	else 
 #endif
 	{
 		if ( bOverride_Cursor /*|| CursorDelegate.IsBound()*/ )

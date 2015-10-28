@@ -569,16 +569,30 @@ public:
 	int32 MaxSimulationIterations;
 
 	/**
-	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.
+	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server. Not used by Linear smoothing.
 	 */
-	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float NetworkSimulatedSmoothLocationTime;
 
 	/**
-	 * How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.
+	 * How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server. Not used by Linear smoothing.
 	 */
-	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float NetworkSimulatedSmoothRotationTime;
+
+	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkMaxSmoothUpdateDistance;
+
+	/**
+	 * Maximum distance beyond which character is teleported to the new server location without any smoothing.
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkNoSmoothUpdateDistance;
+
+	/** Smoothing mode for simulated proxies in network game. */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
+	ENetworkSmoothingMode NetworkSmoothingMode;
 
 	/** Used in determining if pawn is going off ledge.  If the ledge is "shorter" than this value then the pawn will be able to walk off it. **/
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
@@ -1715,9 +1729,16 @@ public:
 	//--------------------------------
 	// Client hook
 	//--------------------------------
-	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation) override;
 
+	/**
+	 * React to new transform from network update.
+	 * IMPORTANT: It is expected that this function triggers any movement/transform updates to match the network update if desired.
+	 */
+	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation) override;
+
+	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	/** Get prediction data for a server game. Should not be used if not running as a server. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
 	virtual bool HasPredictionData_Client() const override { return ClientPredictionData != NULL; }
@@ -1730,10 +1751,21 @@ protected:
 	class FNetworkPredictionData_Client_Character* ClientPredictionData;
 	class FNetworkPredictionData_Server_Character* ServerPredictionData;
 
-	virtual class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
-	virtual class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
+	class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
+	class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
 
-	virtual void SmoothClientPosition(float DeltaTime);
+	/**
+	 * Smooth mesh location for network interpolation, based on values set up by SmoothCorrection.
+	 * Internally this simply calls SmoothClientPosition_Interpolate() then SmoothClientPosition_UpdateVisuals().
+	 * @param DeltaSeconds Time since last update.
+	 */
+	virtual void SmoothClientPosition(float DeltaSeconds);
+
+	/** Update interpolation values for client smoothing. Does not change actual mesh location. */
+	void SmoothClientPosition_Interpolate(float DeltaSeconds);
+
+	/** Update mesh location based on interpolated values. */
+	void SmoothClientPosition_UpdateVisuals();
 
 	static uint32 PackYawAndPitchTo32(const float Yaw, const float Pitch); 
 
@@ -2157,7 +2189,7 @@ public:
 	uint8 MovementMode;
 };
 
-class ENGINE_API FNetworkPredictionData_Client_Character : public FNetworkPredictionData_Client
+class ENGINE_API FNetworkPredictionData_Client_Character : public FNetworkPredictionData_Client, protected FNoncopyable
 {
 public:
 
@@ -2178,27 +2210,31 @@ public:
 	int32 MaxFreeMoveCount;					// Limit on size of free list
 	int32 MaxSavedMoveCount;				// Limit on the size of the saved move buffer
 
-	uint32 bUpdatePosition:1; // when true, update the position (via ClientUpdatePosition)
-	
 	/** RootMotion saved while animation is updated, so we can store it and replay if needed in case of a position correction. */
 	FRootMotionMovementParams RootMotionMovement;
+
+	uint32 bUpdatePosition:1; // when true, update the position (via ClientUpdatePosition)
 
 	// Mesh smoothing variables (for network smoothing)
 	//
 	/** Whether to smoothly interpolate pawn position corrections on clients based on received location updates */
+	DEPRECATED(4.11, "bSmoothNetUpdates will be removed, use UCharacterMovementComponent::NetworkSmoothingMode instead.")
 	uint32 bSmoothNetUpdates:1;
-
-	/** Used for position smoothing in net games */
-	FVector MeshTranslationOffset;
-
-	/** Used for rotation smoothing in net games */
-	FQuat MeshRotationOffset;
 
 	/** Used for position smoothing in net games */
 	FVector OriginalMeshTranslationOffset;
 
+	/** World space offset of the mesh. Target value is zero offset. Used for position smoothing in net games. */
+	FVector MeshTranslationOffset;
+
 	/** Used for rotation smoothing in net games */
 	FQuat OriginalMeshRotationOffset;
+
+	/** Component space offset of the mesh. Used for rotation smoothing in net games. */
+	FQuat MeshRotationOffset;
+
+	/** Target for mesh rotation interpolation. */
+	FQuat MeshRotationTarget;
 
 	/** Used for remembering how much time has passed between server corrections */
 	float LastCorrectionDelta;
@@ -2207,25 +2243,28 @@ public:
 	float CurrentSmoothTime;
 
 	/** Used to signify that linear smoothing is desired */
+	DEPRECATED(4.11, "bUseLinearSmoothing will be removed, use UCharacterMovementComponent::NetworkSmoothingMode instead.")
 	bool bUseLinearSmoothing;
 
-	/** Maximum location correction distance for which other pawn positions on a client will be smoothly updated */
+	/**
+	 * Copied value from UCharacterMovementComponent::NetworkMaxSmoothUpdateDistance.
+	 * @see UCharacterMovementComponent::NetworkMaxSmoothUpdateDistance
+	 */
 	float MaxSmoothNetUpdateDist;
 
-	/** If the updated location is more than NoSmoothNetUpdateDist from the current pawn position on the client, pop it to the updated location.
-	If it is between MaxSmoothNetUpdateDist and NoSmoothNetUpdateDist, pop to MaxSmoothNetUpdateDist away from the updated location */
+	/**
+	 * Copied value from UCharacterMovementComponent::NetworkNoSmoothUpdateDistance.
+	 * @see UCharacterMovementComponent::NetworkNoSmoothUpdateDistance
+	 */
 	float NoSmoothNetUpdateDist;
 
-	/** How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.  Must be >= 0.0 
-	This variable isn't used when bUseLinearSmoothing = true */
+	/** How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.  Must be >= 0. Not used for linear smoothing. */
 	float SmoothNetUpdateTime;
 
-	/** How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.  Must be >= 0.0
-	This variable isn't used when bUseLinearSmoothing = true */
+	/** How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.  Must be >= 0. Not used for linear smoothing. */
 	float SmoothNetUpdateRotationTime;
 	
-	// how long server will wait for client move update before setting position
-	// @TODO: don't duplicate between server and client data (though it's used by both)
+	/** How long server will wait for client move update before setting position */
 	float MaxResponseTime;
 
 	/** Values used for visualization and debugging of simulated net corrections */
@@ -2256,7 +2295,7 @@ public:
 };
 
 
-class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredictionData_Server
+class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredictionData_Server, protected FNoncopyable
 {
 public:
 

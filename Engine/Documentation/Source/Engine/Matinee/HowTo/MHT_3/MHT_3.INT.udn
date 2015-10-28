@@ -2,6 +2,8 @@ Availability: Public
 Title:Using Multiple Cameras
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:This scene shows how to switch between multiple cameras and apply camera movement.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 ---
@@ -190,7 +192,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 1. Move the **Time Bar** back to **0.00** (if it is not already there) and click on the **Director** track then press **Enter** to add a keyframe. 
 
-1. The ![](MHT3_CutToGroup.png) **Cut To Group** pop-up window will appear, go ahead and press **Ok** for **Camera1** to finish adding the keyframe. 
+1. The **Cut To Group** pop-up window will appear, go ahead and press **Ok** for **Camera1** to finish adding the keyframe. 
 	
 	![](MHT3_FirstCutAdded.png)(w:740)
 
@@ -204,7 +206,8 @@ In the following steps, we are going to create a short sequence that uses multip
 	_Click image for full view._
 
 1. **Close** the Matinee window, then select the **Matinee** in the **World Outliner** and in the Details panel, check the following options: **Play on Level Load**, **Looping**, **Disable Movement Input**, **Disable Look at Input**, and **Hide Player**. 
-
+	
+	![](MHT3_CutToGroup.png)
 	![](MHT3_MatineeActorSettings.png)
 
 1. From the main toolbar, click **Build** (optional to build the lighting in the level) then click the **Play** button. 

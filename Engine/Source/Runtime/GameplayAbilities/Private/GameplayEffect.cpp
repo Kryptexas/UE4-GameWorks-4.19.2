@@ -51,7 +51,7 @@ void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 	TagContainer.AppendTags(InheritableOwnedTagsContainer.CombinedTags);
 }
 
-void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*>& OutEffects) const
+void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*, TInlineAllocator<4> >& OutEffects) const
 {
 	OutEffects.Append(TargetEffects);
 
@@ -237,7 +237,9 @@ float FCustomCalculationBasedFloat::CalculateMagnitude(const FGameplayEffectSpec
 bool FGameplayEffectModifierMagnitude::CanCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const
 {
 	// Only can calculate magnitude properly if all required capture definitions are fulfilled by the spec
-	TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
+	static TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
+	ReqCaptureDefs.Reset();
+
 	GetAttributeCaptureDefinitions(ReqCaptureDefs);
 
 	return InRelevantSpec.HasValidCapturedAttributes(ReqCaptureDefs);
@@ -287,7 +289,9 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 
 bool FGameplayEffectModifierMagnitude::AttemptRecalculateMagnitudeFromDependentChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const
 {
-	TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
+	static TArray<FGameplayEffectAttributeCaptureDefinition > ReqCaptureDefs;
+	ReqCaptureDefs.Reset();
+
 	GetAttributeCaptureDefinitions(ReqCaptureDefs);
 
 	// We could have many potential captures. If a single one matches our criteria, then we call AttemptCalculateMagnitude once and return.
@@ -462,7 +466,8 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
 
 	// Make TargetEffectSpecs too
-	TArray<const UGameplayEffect*> TargetEffectDefs;
+	TArray<const UGameplayEffect*, TInlineAllocator<4> > TargetEffectDefs;
+
 	InDef->GetTargetEffects(TargetEffectDefs);
 
 	for (const UGameplayEffect* TargetDef : TargetEffectDefs)
@@ -594,11 +599,13 @@ void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
 		CapturedRelevantAttributes.AddCaptureDefinition(UAbilitySystemComponent::GetIncomingDurationCapture());
 	}
 
-	// Gather capture definitions from duration
+	static TArray<FGameplayEffectAttributeCaptureDefinition> CaptureDefs;
+
+	// Gather capture definitions from duration	
 	{
-		TArray<FGameplayEffectAttributeCaptureDefinition> DurationCaptureDefs;
-		Def->DurationMagnitude.GetAttributeCaptureDefinitions(DurationCaptureDefs);
-		for (const FGameplayEffectAttributeCaptureDefinition& CurDurationCaptureDef : DurationCaptureDefs)
+		CaptureDefs.Reset();
+		Def->DurationMagnitude.GetAttributeCaptureDefinitions(CaptureDefs);
+		for (const FGameplayEffectAttributeCaptureDefinition& CurDurationCaptureDef : CaptureDefs)
 		{
 			CapturedRelevantAttributes.AddCaptureDefinition(CurDurationCaptureDef);
 		}
@@ -610,10 +617,10 @@ void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
 		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
 		const FModifierSpec& ModSpec = Modifiers[ModIdx];
 
-		TArray<FGameplayEffectAttributeCaptureDefinition> CalculationCaptureDefs;
-		ModDef.ModifierMagnitude.GetAttributeCaptureDefinitions(CalculationCaptureDefs);
+		CaptureDefs.Reset();
+		ModDef.ModifierMagnitude.GetAttributeCaptureDefinitions(CaptureDefs);
 		
-		for (const FGameplayEffectAttributeCaptureDefinition& CurCaptureDef : CalculationCaptureDefs)
+		for (const FGameplayEffectAttributeCaptureDefinition& CurCaptureDef : CaptureDefs)
 		{
 			CapturedRelevantAttributes.AddCaptureDefinition(CurCaptureDef);
 		}
@@ -622,10 +629,9 @@ void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
 	// Gather all capture definitions from executions
 	for (const FGameplayEffectExecutionDefinition& Exec : Def->Executions)
 	{
-		TArray<FGameplayEffectAttributeCaptureDefinition> ExecutionCaptureDefs;
-		Exec.GetAttributeCaptureDefinitions(ExecutionCaptureDefs);
-
-		for (const FGameplayEffectAttributeCaptureDefinition& CurExecCaptureDef : ExecutionCaptureDefs)
+		CaptureDefs.Reset();
+		Exec.GetAttributeCaptureDefinitions(CaptureDefs);
+		for (const FGameplayEffectAttributeCaptureDefinition& CurExecCaptureDef : CaptureDefs)
 		{
 			CapturedRelevantAttributes.AddCaptureDefinition(CurExecCaptureDef);
 		}
@@ -1180,6 +1186,10 @@ FActiveGameplayEffect::FActiveGameplayEffect(FActiveGameplayEffect&& Other)
 	,PeriodHandle(Other.PeriodHandle)
 	,DurationHandle(Other.DurationHandle)
 {
+
+	ReplicationID = Other.ReplicationID;
+	ReplicationKey = Other.ReplicationKey;
+
 	// Note: purposefully not copying PendingNext pointer.
 }
 
@@ -1199,6 +1209,9 @@ FActiveGameplayEffect& FActiveGameplayEffect::operator=(FActiveGameplayEffect&& 
 	PeriodHandle = Other.PeriodHandle;
 	DurationHandle = Other.DurationHandle;
 	// Note: purposefully not copying PendingNext pointer.
+
+	ReplicationID = Other.ReplicationID;
+	ReplicationKey = Other.ReplicationKey;
 	return *this;
 }
 
@@ -1218,6 +1231,9 @@ FActiveGameplayEffect& FActiveGameplayEffect::operator=(const FActiveGameplayEff
 	PeriodHandle = Other.PeriodHandle;
 	DurationHandle = Other.DurationHandle;
 	PendingNext = Other.PendingNext;
+
+	ReplicationID = Other.ReplicationID;
+	ReplicationKey = Other.ReplicationKey;
 	return *this;
 }
 
@@ -1278,29 +1294,35 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		}
 	}
 
+	// Adjust start time for local clock
+	{
+		static const float MAX_DELTA_TIME = 3.f;
+
+		// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
+		float WorldTimeSeconds = InArray.GetWorldTime();
+		float ServerWorldTime = InArray.GetServerWorldTime();
+
+		float DeltaServerWorldTime = ServerWorldTime - StartServerWorldTime;	// How long we think the effect has been playing
+
+		// Set our local start time accordingly
+		StartWorldTime = WorldTimeSeconds - DeltaServerWorldTime;
+		CachedStartServerWorldTime = StartServerWorldTime;
+
+		// Determine if we should invoke the OnActive GameplayCue event
+		if (ShouldInvokeGameplayCueEvents)
+		{
+			// These events will get invoked if, after the parent array has been completely updated, this GE is still not inhibited
+			bPendingRepOnActiveGC = (ServerWorldTime > 0 && FMath::Abs(DeltaServerWorldTime) < MAX_DELTA_TIME);
+			bPendingRepWhileActiveGC = true;
+		}
+	}
+
 	// Handles are not replicated, so create a new one.
 	Handle = FActiveGameplayEffectHandle::GenerateNewHandle(InArray.Owner);
 
+	// Do stuff for adding GEs (add mods, tags, *invoke callbacks*
 	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectAdded(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
-
-	static const float MAX_DELTA_TIME = 3.f;
-
-	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
-	float WorldTimeSeconds = InArray.GetWorldTime();
-	float ServerWorldTime = InArray.GetServerWorldTime();
-
-	float DeltaServerWorldTime = ServerWorldTime - StartServerWorldTime;	// How long we think the effect has been playing
-
-	// Set our local start time accordingly
-	StartWorldTime = WorldTimeSeconds - DeltaServerWorldTime;
-	CachedStartServerWorldTime = StartServerWorldTime;
-
-	if (ShouldInvokeGameplayCueEvents)
-	{
-		// These events will get invoked if, after the parent array has been completely updated, this GE is still not inhibited
-		bPendingRepOnActiveGC = (ServerWorldTime > 0 && FMath::Abs(DeltaServerWorldTime) < MAX_DELTA_TIME);
-		bPendingRepWhileActiveGC = true;
-	}
+	
 }
 
 void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray)
@@ -1392,7 +1414,8 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	//		This will run custom code to 'do stuff'
 	// ------------------------------------------------------
 	
-	TArray< FGameplayEffectSpecHandle > ConditionalEffectSpecs;
+	TArray< FGameplayEffectSpecHandle, TInlineAllocator<4> > ConditionalEffectSpecs;
+
 	bool GameplayCuesWereManuallyHandled = false;
 
 	for (const FGameplayEffectExecutionDefinition& CurExecDef : SpecToUse.Def->Executions)
@@ -1423,8 +1446,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			}
 
 			// Execute any mods the custom execution yielded
-			TArray<FGameplayModifierEvaluatedData> OutModifiers;
-			ExecutionOutput.GetOutputModifiers(OutModifiers);
+			TArray<FGameplayModifierEvaluatedData>& OutModifiers = ExecutionOutput.GetOutputModifiersRef();
 
 			const bool bApplyStackCountToEmittedMods = !ExecutionOutput.IsStackCountHandledManually();
 			const int32 SpecStackCount = SpecToUse.StackCount;
@@ -1688,8 +1710,7 @@ void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGa
 		return;
 	}
 
-	static TSet<FGameplayAttribute> AttributesToUpdate;
-	AttributesToUpdate.Reset();
+	TSet<FGameplayAttribute> AttributesToUpdate;
 
 	for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 	{
@@ -2046,7 +2067,7 @@ void FActiveGameplayEffectsContainer::ApplyModToAttribute(const FGameplayAttribu
 	}
 }
 
-FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey InPredictionKey)
+FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey& InPredictionKey)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ApplyGameplayEffectSpec);
 
@@ -2067,10 +2088,15 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	// Check if there's an active GE this application should stack upon
 	if (ExistingStackableGE)
 	{
-		// Don't allow prediction of stacking for now
 		if (!IsNetAuthority())
 		{
+			// Don't allow prediction of stacking for now
 			return nullptr;
+		}
+		else
+		{
+			// Server invalidates the prediction key for this GE since client is not predicting it
+			InPredictionKey = FPredictionKey();
 		}
 
 		FGameplayEffectSpec& ExistingSpec = ExistingStackableGE->Spec;
@@ -2286,6 +2312,8 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	if (InPredictionKey.IsLocalClientKey() == false || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
 	{
 		MarkItemDirty(*AppliedActiveGE);
+
+		ABILITY_LOG(Verbose, TEXT("Added GE: %s. ReplicationID: %d. Key: %d. PredictionLey: %d"), *AppliedActiveGE->Spec.Def->GetName(), AppliedActiveGE->ReplicationID, AppliedActiveGE->ReplicationKey, InPredictionKey.Current);
 	}
 	else
 	{
@@ -3058,6 +3086,31 @@ TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEf
 	return ReturnList;
 }
 
+float FActiveGameplayEffectsContainer::GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
+{
+	float ReturnTime = 0.f;
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (!Query.Matches(Effect))
+		{
+			continue;
+		}
+
+		float EndTime = Effect.GetEndTime();
+		if (EndTime <= UGameplayEffect::INFINITE_DURATION)
+		{
+			// This is an infinite duration effect, so this end time is indeterminate
+			return -1.f;
+		}
+
+		if (EndTime > ReturnTime)
+		{
+			ReturnTime = EndTime;
+		}
+	}
+	return ReturnTime;
+}
+
 void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsModifyActiveEffectStartTime);
@@ -3244,6 +3297,39 @@ void FActiveGameplayEffectsContainer::GrabDebugSnapshot(FVisualLogEntry* Snapsho
 	Snapshot->Status.Add(ActiveEffectsCategory);
 }
 #endif // ENABLE_VISUAL_LOG
+
+void FActiveGameplayEffectsContainer::DebugCyclicAggregatorBroadcasts(FAggregator* TriggeredAggregator)
+{
+	for (auto It = AttributeAggregatorMap.CreateIterator(); It; ++It)
+	{
+		FAggregatorRef AggregatorRef = It.Value();
+		FGameplayAttribute Attribute = It.Key();
+		if (FAggregator* Aggregator = AggregatorRef.Get())
+		{
+			if (Aggregator == TriggeredAggregator)
+			{
+				ABILITY_LOG(Warning, TEXT(" Attribute %s was the triggered aggregator (%s)"), *Attribute.GetName(), *Owner->GetPathName());
+			}
+			else if (Aggregator->IsBroadcastingDirty)
+			{
+				ABILITY_LOG(Warning, TEXT(" Attribute %s is broadcasting dirty (%s)"), *Attribute.GetName(), *Owner->GetPathName());
+			}
+			else
+			{
+				continue;
+			}
+
+			for (FActiveGameplayEffectHandle Handle : Aggregator->Dependents)
+			{
+				UAbilitySystemComponent* ASC = Handle.GetOwningAbilitySystemComponent();
+				if (ASC)
+				{
+					ABILITY_LOG(Warning, TEXT("  Dependant (%s) GE: %s"), *ASC->GetPathName(), *GetNameSafe(ASC->GetGameplayEffectDefForHandle(Handle)));
+				}
+			}
+		}
+	}
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -3756,3 +3842,4 @@ FScopedActiveGameplayEffectLock::~FScopedActiveGameplayEffectLock()
 {
 	Container.DecrementLock();
 }
+

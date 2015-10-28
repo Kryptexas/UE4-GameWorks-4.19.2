@@ -840,7 +840,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 bool FNavMeshPath::IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const
 {
 	return PathPoints.IsValidIndex(PathSegmentStartIndex)
-		&& FNavMeshNodeFlags(PathPoints[PathSegmentStartIndex].Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION;
+		&& FNavMeshNodeFlags(PathPoints[PathSegmentStartIndex].Flags).IsNavLink();
 }
 
 void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const

@@ -169,11 +169,13 @@ void UMaterialInterface::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 
 bool UMaterialInterface::GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const
 {
+	// is never called but because our system wants a UMaterialInterface instance we cannot use "virtual =0"
 	return false;
 }
 
 bool UMaterialInterface::GetScalarParameterValue(FName ParameterName, float& OutValue) const
 {
+	// is never called but because our system wants a UMaterialInterface instance we cannot use "virtual =0"
 	return false;
 }
 

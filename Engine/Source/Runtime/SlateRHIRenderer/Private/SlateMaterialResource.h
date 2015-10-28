@@ -21,7 +21,7 @@ public:
 	void UpdateRenderResource(FMaterialRenderProxy* Proxy) { RenderProxy = Proxy; }
 
 	/** @return The material render proxy */
-	FMaterialRenderProxy* GetRenderProxy() const { return RenderProxy; }
+	FMaterialRenderProxy* GetRenderProxy() const { return MaterialObject->GetRenderProxy(false, false); }
 
 	/** @return the material object */
 	const UMaterialInterface* GetMaterialObject() const { return MaterialObject; }

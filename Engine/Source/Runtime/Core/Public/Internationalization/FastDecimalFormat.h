@@ -39,8 +39,8 @@ namespace FastDecimalFormat
 namespace Internal
 {
 
-CORE_API FString IntegralToString(const bool bIsNegative, const uint64 InVal, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberFormattingOptions& InFormattingOptions);
-CORE_API FString FractionalToString(const double InVal, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberFormattingOptions& InFormattingOptions);
+CORE_API FString IntegralToString(const bool bIsNegative, const uint64 InVal, const FDecimalNumberFormattingRules& InFormattingRules, FNumberFormattingOptions InFormattingOptions);
+CORE_API FString FractionalToString(const double InVal, const FDecimalNumberFormattingRules& InFormattingRules, FNumberFormattingOptions InFormattingOptions);
 
 } // namespace Internal
 

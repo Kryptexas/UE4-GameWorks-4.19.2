@@ -2,6 +2,8 @@ Availability: Public
 Title:Setting Up Lifts
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:Create two types of lifts that move from point A to point B automatically.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 ---
@@ -84,7 +86,9 @@ In the following steps, we are going to create two lifts that move from one poin
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_TrackContextMenu.png)
 
-1. In the ![](MHT2_Lift1GroupName.png) **New Group Name** box, enter a name for the group (In this example, we named the group **Lift1**). 
+1. In the **New Group Name** box, enter a name for the group (In this example, we named the group **Lift1**). 
+
+	![](MHT2_Lift1GroupName.png)
 
 1. Minimize the Matinee window, then in the **Level Viewport** select the first cube created (the cube that is on the floor) so that it is highlighted. 
 
@@ -146,7 +150,7 @@ In the following steps, we are going to create two lifts that move from one poin
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	_nPqdhXIoAw
+	cDiagxqJAgI
 	[/PARAMLITERAL]
 	[/OBJECT]
 
@@ -262,7 +266,7 @@ In the following steps, we are going to create two lifts that move from one poin
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	SrnTCME2RVU
+	-6dlhjG9JP4
 	[/PARAMLITERAL]
 	[/OBJECT]
 	

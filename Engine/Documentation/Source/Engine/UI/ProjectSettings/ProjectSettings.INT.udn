@@ -7,16 +7,35 @@ Version: 4.9
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/ProjectSettings:title%](projectsettings_topic.png)
+		![%Engine/UI/ProjectSettings:title%](projectsettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/ProjectSettings:title%
+		%Engine/UI/ProjectSettings:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/ProjectSettings:description%
+		%Engine/UI/ProjectSettings:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/ProjectSettings]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/UI/ProjectSettings:title%](projectsettings_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/ProjectSettings:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/ProjectSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/ProjectSettings]

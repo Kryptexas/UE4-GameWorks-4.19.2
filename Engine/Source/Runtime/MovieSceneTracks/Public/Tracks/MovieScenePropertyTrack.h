@@ -5,25 +5,31 @@
 #include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.generated.h"
 
+
 /**
  * Base class for tracks that animate an object property
  */
 UCLASS( abstract )
-class MOVIESCENETRACKS_API UMovieScenePropertyTrack : public UMovieSceneTrack
+class MOVIESCENETRACKS_API UMovieScenePropertyTrack
+	: public UMovieSceneTrack
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** UMovieSceneTrack interface */
+
+	// UMovieSceneTrack interface
+
 	virtual FName GetTrackName() const override { return PropertyName; }
 	virtual void RemoveAllAnimationData() override;
-	virtual bool HasSection( UMovieSceneSection* Section ) const override;
-	virtual void AddSection( UMovieSceneSection* Section ) override;
-	virtual void RemoveSection( UMovieSceneSection* Section ) override;
+	virtual bool HasSection(const UMovieSceneSection& Section ) const override;
+	virtual void AddSection(UMovieSceneSection& Section) override;
+	virtual void RemoveSection(UMovieSceneSection& Section) override;
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
-	
+
+public:
+
 	/**
 	 * Sets the property name for this animatable property
 	 *
@@ -31,7 +37,7 @@ public:
 	 */
 	virtual void SetPropertyNameAndPath( FName InPropertyName, const FString& InPropertyPath );
 
-	/** @return the name of the property being animataed by this track */
+	/** @return the name of the property being animated by this track */
 	FName GetPropertyName() const { return PropertyName; }
 	
 	/** @return The property path for this track */
@@ -41,14 +47,16 @@ public:
 	void SetAsShowable() {bSectionsAreShowable = true;}
 
 protected:
+
 	/**
 	 * Finds a section at the current time.
 	 *
 	 * @param Time	The time relative to the owning movie scene where the section should be
 	 *
-	 * @return The found section, or NULL if it can't be found
+	 * @return The found section, or nullptr if it can't be found
 	 */
 	class UMovieSceneSection* FindOrAddSection(  float Time );
+
 protected:
 
 	/** Name of the property being changed */

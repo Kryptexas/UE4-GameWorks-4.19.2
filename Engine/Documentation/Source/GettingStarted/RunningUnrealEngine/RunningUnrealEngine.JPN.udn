@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2556992
+﻿INTSourceChangelist:2719403
 Availability:Public
-Title:アンリアル エンジンの実行
+Title:アンリアル エンジンを実行する
 Crumbs: %ROOT%, GettingStarted
 Description:特定のマップや実用的なインゲーム コマンドの起動方法など、エンジンをゲームまたはエディタとして実行する方法
+version:4.9
 
 %Globals:OSSelect%
 
@@ -11,7 +12,7 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 [EXCERPT:Main]
 
 
-本ページでは、 **開発** ビルド コンフィギュレーションにコンパイルされたプロジェクトで、エンジンを実行する方法を説明します。他のコンフィギュレーションにビルドされたプロジェクトを開くために
+本ページでは、 **開発** ビルド コンフィギュレーションにコンパイルされているプロジェクトでエンジンを実行する方法を説明します。他のコンフィギュレーションにビルドされたプロジェクトを開くために
 必要な `UE4Editor-*.exe` または `UE4-*.exe` を代用できます。バイナリの命名規則に関する詳細は、 [アンリアル エンジンのビルド](Programming/Development/BuildingUnrealEngine) ページを参照してください。
 
 ## エディタの実行
@@ -26,11 +27,11 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 
 エディタを実行するには、ゲームプロジェクトの名前を実行ファイルへ渡さなくてはいけません。
 
-[REGION:tip]
+[REGION:note]
 ユーザーのプロジェクトのデバッグ バージョンのモジュールを実行ファイルへ強制的に読み込ませるために、 `-debug` スイッチを追加することができます。 
 スイッチには全てのデバッグシンボルが含まれています。主な実行ファイルは常に **Development** コンフィギュレーションを使用してコンパイルするため、 
  Visual Studio からデバッグ作業を行う際もコンフィギュレーションを **Debug** に設定する必要があります。当然ながら、 
-実行ファイルを読み込むためには、まず **Debug** コンフィギュレーションに設定してモジュールをコンパイルしなくてはいけません。
+実行ファイルを読み込むためには、まず Debug コンフィギュレーションに設定してモジュールをコンパイルしなくてはいけません。
 [/REGION]
 
 [/PUBLISH:Rocket]
@@ -97,11 +98,11 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 
 1.	 UE4 ディレクトリ内の `\Engine\Binaries\Win64` ディレクトリへ移動します。
 
-1.	`UE4Editor.exe` ファイルを **右クリック** して **[Create shortcut]** を選択します。
+1.	`UE4Editor.exe` ファイルを **右クリック** して **[Create shortcut (ショートカットを作成)]** を選択します。
 
 1.	ゲームを実行、そしてエディタを起動する事実を反映させた名前へショートカット名を変更します。 **MyGameEditor.exe** などです。
 
-1.	新規に作成したショートカットを **右クリック** して、 **[Properties]** を選択します。
+1.	新規に作成したショートカットを **右クリック** して、**[Properties (プロパティ)]** を選択します。
 
 1.	引数として実行するゲームの名前を、 **Target** プロパティの最後に追加します。
 
@@ -131,11 +132,11 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 	[PARAM:content]
 	1.	`[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64` ディレクトリへ移動します。
 
-	1.	「UE4Editor.exe」ファイルを **右クリック** して **[Create shortcut]** を選択します。
+	1.	`UE4Editor.exe` ファイルを **右クリック** して **[Create shortcut (ショートカットを作成)]** を選択します。
 
 	1.	ゲームの実行、そしてエディタの起動を反映させた名前へショートカット名を変更します。 **MyProject - Editor.exe** などです。
 
-	1.	新規に作成したショートカットを **右クリック** して、 **[Properties]** を選択します。
+	1.	新規に作成したショートカットを **右クリック** して、**[Properties (プロパティ)]** を選択します。
 
 	1.	引数として実行するゲームの名前を、 **Target** プロパティの最後に追加します。
 
@@ -165,21 +166,22 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 
 エディタが起動時に直近のプロジェクトを開く設定になっている場合、引数なしでエディタの実行ファイルを実行するとプロジェクト ブラウザが起動します。実際の画像がこちらになります。 
 [新規プロジェクトの作成](Engine/Basics/Projects/Browser#新規プロジェクトの作成) 、[プロジェクトを開く](Engine/Basics/Projects/Browser#プロジェクトを開く) 、
-または [コンテンツ事例とサンプルゲーム](Resources) を開くことができます。
+または [コンテンツ サンプルとサンプルゲーム](Resources) を開くことができます。
 
 [/EXCERPT:RunEditor]
 
 ##クックされていないゲームの実行
 
-プロジェクトがアンリアル エディタへ読み込まれると、 **[Play In]** メニューからクックされていないゲームで [ゲームプレイをテストする](Engine/UI/LevelEditor/InEditorTesting#モード) ことができます。 
-独自のウィンドウでクックされていないゲームをプレイするには、レベルエディタツールバーの [**Play In** ドロップダウン メニュー](Engine/UI/LevelEditor/InEditorTesting#ツールバー) を使用して  
-[**New Window At** > **Default Playaer Start** モード](Engine/UI/LevelEditor/InEditorTesting#モード) を選択します。
+プロジェクトがアンリアル エディタへ読み込まれると、**[Play In]** メニューからクックされていないゲームで [ゲームプレイをテストする](Engine/UI/LevelEditor/InEditorTesting#モード) ことができます。 
+独自のウィンドウでクックされていないゲームをプレイするには、レベルエディタツールバーの [Play In ドロップダウン メニュー](Engine/UI/LevelEditor/InEditorTesting#ツールバー) を使用して  
+[New Window At > Default Playaer Start モード](Engine/UI/LevelEditor/InEditorTesting#モード) を選択します。
 
-**クリックして実物大表示にする**
+
 
 [REGION:lightbox]
 [![](Engine/UI/LevelEditor/InEditorTesting/PIE_newwindow.png)(w:300)](Engine/UI/LevelEditor/InEditorTesting/PIE_newwindow.png)
 [/REGION:lightbox]
+_クリックしてフルサイズ表示にする_
 
 以下のいずれかの方法でクックされていないゲームをエンジンの実行ファイルで実行すると、結果的に動作が同じになります。
 
@@ -250,11 +252,11 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 
 1.	 `UE4` ディレクトリ内の `\Engine\Binaries\Win64` ディレクトリへ移動します。
 
-1.	 `UE4Editor.exe` ファイルを **右クリック** して **[Create shortcut]** を選択します。
+1.	`UE4Editor.exe` ファイルを **右クリック** して **[Create shortcut (ショートカットを作成)]** を選択します。
 
 1.	ゲームを実行、そしてエディタを起動する事実を反映させた名前へショートカット名を変更します。 **MyGameUncooked.exe** などです。
 
-1.	新規に作成したショートカットを **右クリック** して、 **[Properties]** を選択します。
+1.	新規に作成したショートカットを **右クリック** して、**[Properties (プロパティ)]** を選択します。
 
 1.	引数として実行するゲームの名前を、 **Target** プロパティの最後に追加します。
 
@@ -287,11 +289,11 @@ Description:特定のマップや実用的なインゲーム コマンドの起�
 
 	1.	`[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64` ディレクトリへ移動します。
 
-	1.	**UE4Editor.exe** 実行ファイルを右クリックして **[Create shortcut]** を選択します。
+	1.	**UE4Editor.exe** 実行ファイルを右クリックして **[Create shortcut (ショートカットを作成)]** を選択します。
 
 	1.	実行するゲーム名を反映した名前へショートカット名を変更します。 **MyProject.exe** などです。
 
-	1.	新規に作成したショートカットを **右クリック** して、 **[Properties]** を選択、ショートカットのプロパティを表示します。
+	1.	新規に作成したショートカットを **右クリック** して、 **[Properties (プロパティ)]** を選択、ショートカットのプロパティを表示します。
 
 	1.	引数として実行するために **Target** プロパティの最後にフルパスをプロジェクトに追加します。
 

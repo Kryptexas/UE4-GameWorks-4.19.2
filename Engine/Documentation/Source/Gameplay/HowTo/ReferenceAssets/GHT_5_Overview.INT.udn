@@ -3,6 +3,9 @@ Title:Referencing Actors
 Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for Referencing Actors in Unreal Engine 4. 
 Version: 4.9
+Parent:Gameplay
+type:how-to
+order:5
 
 [EXCERPT:ReferenceOverview]
 By establishing reference to an **Actor**, you can access its **Properties**, **Variables**, **Events**, or **Functions** (if applicable) during gameplay through Blueprints or C++ and alter them to suit your gameplay needs. 

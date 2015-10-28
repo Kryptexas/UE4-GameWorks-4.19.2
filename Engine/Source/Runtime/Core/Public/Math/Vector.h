@@ -40,7 +40,7 @@ public:
 	{
 		if (ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FVector contains NaN: %s"), *ToString());
+			logOrEnsureNanError(TEXT("FVector contains NaN: %s"), *ToString());
 			*const_cast<FVector*>(this) = ZeroVector;
 		}
 	}

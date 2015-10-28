@@ -997,6 +997,13 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				GAreScreenMessagesEnabled = false;
 				HighResScreenshot();
 			}
+			else if(bAnyScreenshotsRequired && bBufferVisualizationDumpingRequired)
+			{
+				// request the screenshot early so we have the name setup that BufferVisualization can dump it's content
+				const bool bShowUI = false;
+				const bool bAddFilenameSuffix = true;
+				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
+			}
 	
 			if( SizeX > 0 && SizeY > 0 )
 			{

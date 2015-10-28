@@ -204,7 +204,7 @@ struct FMarkerSyncAnimPosition
 	float PositionBetweenMarkers;
 
 	/** Is this a valid Marker Sync Position */
-	bool IsValid() const { return !(PreviousMarkerName == NAME_None && NextMarkerName == NAME_None); }
+	bool IsValid() const { return (PreviousMarkerName != NAME_None && NextMarkerName != NAME_None); }
 
 	FMarkerSyncAnimPosition()
 	{}
@@ -214,6 +214,12 @@ struct FMarkerSyncAnimPosition
 		, NextMarkerName(InNextMarkerName)
 		, PositionBetweenMarkers(InAlpha)
 	{}
+
+	/** Debug output function*/
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("[PreviousMarker %s, NextMarker %s] : %0.2f "), *PreviousMarkerName.ToString(), *NextMarkerName.ToString(), PositionBetweenMarkers);
+	}
 };
 
 struct FPassedMarker
@@ -224,8 +230,8 @@ struct FPassedMarker
 };
 
 /**
- * Information about an animation asset that needs to be ticked
- */
+* Information about an animation asset that needs to be ticked
+*/
 USTRUCT()
 struct FAnimTickRecord
 {
@@ -234,23 +240,49 @@ struct FAnimTickRecord
 	UPROPERTY()
 	class UAnimationAsset* SourceAsset;
 
-	float* TimeAccumulator;
-	FMarkerTickRecord* MarkerTickRecord;
-
-	FVector BlendSpacePosition;	
-	FBlendFilter* BlendFilter;
-	TArray<FBlendSampleData>* BlendSampleDataCache;
+	float*  TimeAccumulator;
 	float PlayRateMultiplier;
 	float EffectiveBlendWeight;
 	bool bLooping;
-	
+
+	union
+	{
+		struct
+		{
+			float  BlendSpacePositionX;
+			float  BlendSpacePositionY;
+			FBlendFilter* BlendFilter;
+			TArray<FBlendSampleData>* BlendSampleDataCache;
+		} BlendSpace;
+
+		struct
+		{
+			float CurrentPosition;  // montage doesn't use accumulator, but this
+			float PreviousPosition;
+			float MoveDelta; // MoveDelta isn't always abs(CurrentPosition-PreviousPosition) because Montage can jump or repeat or loop
+			TArray<FPassedMarker>* MarkersPassedThisTick;
+		} Montage;
+	};
+
+	// marker sync related data
+	FMarkerTickRecord* MarkerTickRecord;
 	bool bCanUseMarkerSync;
+	float LeaderScore;
 
 public:
 	FAnimTickRecord()
-		: bCanUseMarkerSync(false)
+		: TimeAccumulator(nullptr)
+		, PlayRateMultiplier(1.f)
+		, EffectiveBlendWeight(0.f)
+		, bLooping(false)
+		, MarkerTickRecord(nullptr)
+		, bCanUseMarkerSync(false)
+		, LeaderScore(0.f)
 	{
 	}
+
+	/** This can be used with the Sort() function on a TArray of FAnimTickRecord to sort from higher leader score */
+	ENGINE_API bool operator <(const FAnimTickRecord& Other) const { return LeaderScore > Other.LeaderScore; }
 };
 
 class FMarkerTickContext
@@ -289,8 +321,27 @@ public:
 		return MarkerSyncStartPostion.IsValid();
 	}
 
+	bool IsMarkerSyncEndValid() const
+	{
+		// does it have proper end position
+		return MarkerSyncEndPostion.IsValid();
+		
+	}
 	TArray<FPassedMarker> MarkersPassedThisTick;
 
+	/** Debug output function */
+	FString  ToString() const
+	{
+		FString MarkerString;
+
+		for (const auto& ValidMarker : ValidMarkers)
+		{
+			MarkerString.Append(FString::Printf(TEXT("%s,"), *ValidMarker.ToString()));
+		}
+
+		return FString::Printf(TEXT(" - Sync Start Position : %s\n - Sync End Position : %s\n - Markers : %s"),
+			*MarkerSyncStartPostion.ToString(), *MarkerSyncEndPostion.ToString(), *MarkerString);
+	}
 private:
 	// Structure representing our sync position based on markers before tick
 	// This is used to allow new animations to play from the right marker position
@@ -334,6 +385,10 @@ public:
 	TArray<FAnimTickRecord> ActivePlayers;
 
 	// The current group leader
+	// @note : before ticking, this is invalid
+	// after ticking, this should contain the real leader
+	// during ticket, this list gets sorted by LeaderScore of AnimTickRecord,
+	// and it starts from 0 index, but if that fails due to invalid position, it will go to the next available leader
 	int32 GroupLeaderIndex;
 
 	// Valid marker names for this sync group
@@ -342,28 +397,40 @@ public:
 	// Can we use sync markers for ticking this sync group
 	bool bCanUseMarkerSync;
 
+	// This has latest Montage Leader Weight
+	float MontageLeaderWeight;
+
 	FMarkerTickContext MarkerTickContext;
 
 public:
 	FAnimGroupInstance()
 		: GroupLeaderIndex(INDEX_NONE)
 		, bCanUseMarkerSync(false)
+		, MontageLeaderWeight(0.f)
 	{
 	}
 
 	void Reset()
 	{
 		GroupLeaderIndex = INDEX_NONE;
-		ActivePlayers.Empty(ActivePlayers.Num());
+		ActivePlayers.Reset();
 		bCanUseMarkerSync = false;
+		MontageLeaderWeight = 0.f;
 	}
 
 	// Checks the last tick record in the ActivePlayers array to see if it's a better leader than the current candidate.
 	// This should be called once for each record added to ActivePlayers, after the record is setup.
 	ENGINE_API void TestTickRecordForLeadership(EAnimGroupRole::Type MembershipType);
+	// Checks the last tick record in the ActivePlayers array to see if we have a better leader for montage
+	// This is simple rule for higher weight becomes leader
+	// Only one from same sync group with highest weight will be leader
+	ENGINE_API void TestMontageTickRecordForLeadership();
+
+	// Called after leader has been ticked and decided
+	ENGINE_API void Finalize(const FAnimGroupInstance* PreviousGroup);
 
 	// Called after all tick records have been added but before assets are actually ticked
-	ENGINE_API void Finalize(const FAnimGroupInstance* PreviousGroup);
+	ENGINE_API void Prepare(const FAnimGroupInstance* PreviousGroup);
 };
 
 /** Utility struct to accumulate root motion. */

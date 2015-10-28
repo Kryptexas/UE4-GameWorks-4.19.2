@@ -70,7 +70,7 @@ void UPartyGameState::OnShutdown()
 	PartyStateRef = nullptr;
 }
 
-void UPartyGameState::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+/*static*/ void UPartyGameState::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	Super::AddReferencedObjects(InThis, Collector);
 

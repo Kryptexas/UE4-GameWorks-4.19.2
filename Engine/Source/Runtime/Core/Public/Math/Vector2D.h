@@ -481,7 +481,7 @@ public:
 	{
 		if (ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FVector contains NaN: %s"), *ToString());
+			logOrEnsureNanError(TEXT("FVector contains NaN: %s"), *ToString());
 			*this = FVector2D::ZeroVector;
 		}
 	}

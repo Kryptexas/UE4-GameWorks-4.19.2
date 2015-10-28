@@ -146,11 +146,11 @@ void AActor::OnRep_ReplicatedMovement()
 #if ENABLE_NAN_DIAGNOSTIC
 					if (ReplicatedMovement.Location.ContainsNaN())
 					{
-						ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Location"));
+						logOrEnsureNanError(TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Location"));
 					}
 					if (ReplicatedMovement.Rotation.ContainsNaN())
 					{
-						ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Rotation"));
+						logOrEnsureNanError(TEXT("AActor::OnRep_ReplicatedMovement found NaN in ReplicatedMovement.Rotation"));
 					}
 #endif
 

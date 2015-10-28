@@ -355,9 +355,6 @@ public:
 	/* Attached assets component for this skeleton */
 	UPROPERTY()
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
-
-	UPROPERTY()
-	TArray< struct FBoneReductionSetting > BoneReductionSettingsForLODs;
 #endif // WITH_EDITORONLY_DATA
 
 private:
@@ -425,31 +422,6 @@ public:
 	 * @param	(out) List of Direct Children
 	 */
 	ENGINE_API int32 GetChildBones(int32 ParentBoneIndex, TArray<int32> & Children) const;
-
-	/**
-	 * Remove Bone from the LOD
-	 *
-	 * @param	LODIndex	LOD to remove from
-	 * @param 	BoneIndex	Bone to remove
-	 */
-	ENGINE_API int32 RemoveBoneFromLOD(int32 LODIndex, int32 BoneIndex);
-	
-	/**
-	 * Return true if this bone is included in LOD. 
-	 * In other words, this returns true if it's not in BoneReductionSettingsForLODs
-	 *
-	 * @param	LODIndex	LOD to check
-	 * @param 	BoneIndex	Bone to check
-	 */
-	ENGINE_API bool IsBoneIncludedInLOD(int32 LODIndex, int32 BoneIndex);
-
-	/**
-	 * Add Bone back to the LOD
-	 *
-	 * @param	LODIndex	LOD to add back to 
-	 * @param 	BoneIndex	Bone to add back
-	 */	
-	ENGINE_API void AddBoneToLOD(int32 LODIndex, int32 BoneIndex);
 
 #endif
 

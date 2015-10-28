@@ -46,7 +46,7 @@ public:
 	{
 		if (Scale3D.ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
+			logOrEnsureNanError(TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
 			const_cast<FTransform*>(this)->Scale3D = FVector(1.f);
 		}
 	}
@@ -55,7 +55,7 @@ public:
 	{
 		if (Translation.ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Translation contains NaN: %s"), *Translation.ToString());
+			logOrEnsureNanError(TEXT("FTransform Translation contains NaN: %s"), *Translation.ToString());
 			const_cast<FTransform*>(this)->Translation = FVector::ZeroVector;
 		}
 	}
@@ -64,7 +64,7 @@ public:
 	{
 		if (Rotation.ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Rotation contains NaN: %s"), *Rotation.ToString());
+			logOrEnsureNanError(TEXT("FTransform Rotation contains NaN: %s"), *Rotation.ToString());
 			const_cast<FTransform*>(this)->Rotation = FQuat::Identity;			
 		}
 	}
@@ -81,7 +81,7 @@ public:
 		DiagnosticCheckNaN_All();
 		if (!IsValid())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform transform is not valid: %s"), *ToHumanReadableString());
+			logOrEnsureNanError(TEXT("FTransform transform is not valid: %s"), *ToHumanReadableString());
 		}
 		
 	}

@@ -53,7 +53,9 @@ public:
 
 	virtual ILauncherProfilePtr LoadProfile( FArchive& Archive ) override;
 
-	virtual void LoadSettings( ) override;
+	virtual ILauncherProfilePtr LoadJSONProfile(FString ProfileFile) override;
+
+	virtual void LoadSettings() override;
 
 	virtual FOnLauncherProfileManagerDeviceGroupAdded& OnDeviceGroupAdded( ) override
 	{
@@ -84,6 +86,8 @@ public:
 	virtual void RemoveProfile( const ILauncherProfileRef& Profile ) override;
 
 	virtual bool SaveProfile( const ILauncherProfileRef& Profile) override;
+
+	virtual bool SaveJSONProfile(const ILauncherProfileRef& Profile) override;
 
 	virtual void ChangeProfileName( const ILauncherProfileRef& Profile, FString Name) override;
 

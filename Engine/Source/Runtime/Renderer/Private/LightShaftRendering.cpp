@@ -717,10 +717,8 @@ bool ShouldRenderLightShaftsForLight(const FViewInfo& View, const FLightSceneInf
 }
 
 /** Renders light shafts. */
-FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput& Output)
 {
-	FLightShaftsOutput Output;
-
 	if (DoesViewFamilyAllowLightShafts(ViewFamily))
 	{
 		TRefCountPtr<IPooledRenderTarget> LightShafts0;
@@ -772,14 +770,11 @@ FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHI
 
 						//@todo - different views could have different result render targets
 						Output.LightShaftOcclusion = LightShafts1;
-						Output.bRendered = true;
 					}
 				}
 			}
 		}
 	}
-
-	return Output;
 }
 
 /*-----------------------------------------------------------------------------

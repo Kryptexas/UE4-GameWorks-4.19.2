@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2701609
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:プログラミング ガイド
 Crumbs:%ROOT%
 Description:プログラミングに関する情報をみてみましょう
+version:4.9
+parent:%ROOT%
+order:4
 
 [VAR:Params]
 [PARAM:image]
@@ -52,7 +55,7 @@ Description:プログラミングに関する情報をみてみましょう
 [/OBJECT]
 [/VAR]
 
-[VAR:Role]
+[VAR:TopicRole]
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
@@ -61,7 +64,7 @@ Description:プログラミングに関する情報をみてみましょう
 [/OBJECT]
 [/VAR]
 
-[VAR:TopicRole]
+[VAR:Role]
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]

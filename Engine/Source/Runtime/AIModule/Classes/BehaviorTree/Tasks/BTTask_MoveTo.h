@@ -4,6 +4,7 @@
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
 #include "BTTask_MoveTo.generated.h"
 
+class UAITask_MoveTo;
 class UNavigationQueryFilter;
 
 struct FBTMoveToTaskMemory
@@ -13,6 +14,8 @@ struct FBTMoveToTaskMemory
 
 	FDelegateHandle BBObserverDelegateHandle;
 	FVector PreviousGoalLocation;
+
+	TWeakObjectPtr<UAITask_MoveTo> Task;
 
 	uint8 bWaitingForPath : 1;
 };

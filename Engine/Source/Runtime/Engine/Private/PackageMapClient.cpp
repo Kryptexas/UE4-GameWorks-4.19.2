@@ -153,7 +153,7 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		static IConsoleVariable* LongLoadThreshholdCVAR = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.LongLoadThreshhold"));		
 		if (LongLoadThreshholdCVAR && ((float)LoadTime > LongLoadThreshholdCVAR->GetFloat()))
 		{
-			UE_LOG(LogNetPackageMap, Warning, TEXT("Long net serialize: %fms, Serialized Object %s"), (float)LoadTime * 1000.0f, *Object->GetName());
+			UE_LOG(LogNetPackageMap, Warning, TEXT("Long net serialize: %fms, Serialized Object %s"), (float)LoadTime * 1000.0f, *GetNameSafe(Object));
 		}
 #endif
 
@@ -1023,7 +1023,7 @@ bool UPackageMapClient::AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches
 	{
 		if (ExportBunch != nullptr)
 		{
-			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits()));
+			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits(), Connection));
 		}
 	}
 
@@ -1461,8 +1461,7 @@ void FNetGUIDCache::CleanReferences()
 	ObjectLookup.CountBytes( CountBytesAr );
 	NetGUIDLookup.CountBytes( CountBytesAr );
 
-	// Make this a warning to be a constant reminder that we need to ultimately free this memory when we find a solution
-	UE_LOG( LogNetPackageMap, Warning, TEXT( "FNetGUIDCache::CleanReferences: ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), ObjectLookup.Num(), NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
+	UE_LOG( LogNetPackageMap, Log, TEXT( "FNetGUIDCache::CleanReferences: ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), ObjectLookup.Num(), NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
 }
 
 bool FNetGUIDCache::SupportsObject( const UObject* Object ) const

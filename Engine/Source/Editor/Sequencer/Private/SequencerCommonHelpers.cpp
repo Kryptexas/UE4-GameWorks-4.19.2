@@ -15,9 +15,9 @@ void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayN
 		if (NodeToCheck->GetType() == ESequencerNode::Track)
 		{
 			TSharedPtr<FTrackNode> TrackNode = StaticCastSharedPtr<FTrackNode>(NodeToCheck);
-			TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
+			TArray<TSharedRef<FSequencerSectionKeyAreaNode>> KeyAreaNodes;
 			TrackNode->GetChildKeyAreaNodesRecursively(KeyAreaNodes);
-			for (TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes)
+			for (TSharedRef<FSequencerSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes)
 			{
 				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
 				{
@@ -29,7 +29,7 @@ void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayN
 		{
 			if (NodeToCheck->GetType() == ESequencerNode::KeyArea)
 			{
-				TSharedPtr<FSectionKeyAreaNode> KeyAreaNode = StaticCastSharedPtr<FSectionKeyAreaNode>(NodeToCheck);
+				TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode = StaticCastSharedPtr<FSequencerSectionKeyAreaNode>(NodeToCheck);
 				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
 				{
 					KeyAreas.Add(KeyArea);

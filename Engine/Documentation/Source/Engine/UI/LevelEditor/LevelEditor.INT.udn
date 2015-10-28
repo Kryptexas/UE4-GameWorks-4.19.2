@@ -3,6 +3,8 @@ Title:Level Editor
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:A guide that overviews the design and construction of game levels and environments.
 Version: 4.9
+parent:Engine/Editor
+order:3
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

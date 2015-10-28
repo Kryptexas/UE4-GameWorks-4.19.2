@@ -1,14 +1,51 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title:ブループリントエディタの虎の巻
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:ブループリント ショートカットおよび便利なアクションのリファレンス
+version:4.9
+parent:Engine/Blueprints
+order:1
+type:howto
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CheatSheet:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CheatSheet:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CheatSheet:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CheatSheet:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:2)]
 
-## 概要
-**ブループリント** エディタには生産性を高めるショートカットがたくさん組み込まれています。エディタを使っているうちに自然と身に付くものがほとんどですが、隠れているため理解しにくいものもあります。これらのアクションをもっと効果的に実行できるように、最も使用頻度の高いアクションとショートカットをこのページで紹介します。ショートカットの一覧は、以下からダウンロードできます。 
+**ブループリント エディタ** には生産性を高めるショートカットがたくさん組み込まれています。エディタを使っているうちに自然と身に付くものがほとんどですが、中には分かりにくいものもあります。これらのアクションをもっと効果的に実行できるように、最も使用頻度の高いアクションとショートカットをこのページで紹介します。ショートカットの一覧は、以下からダウンロードできます。 
 
-[Download (ダウンロード)] をクリックします [Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/White Version](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)
+ダウンロードするには以下をクリックします。[カラー](BlueprintCheatSheet-1989117414.pdf) | [白黒](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)
 
 ## グラフ アクション
 
@@ -115,7 +152,7 @@ Description:ブループリント ショートカットおよび便利なアク�
 | アクション | コマンド |
 | ------- | ---------- |
 | ピン固有コンテキスト メニュー | ピン上で **右クリック** |
-| 接続されたワイヤを強調 | ピン上に **マウス** を合わせる |
+| 接続されたワイヤを強調 | ピン上に**マウス** を合わせる |
 | 別のピンに接続 | **左クリック** + ピンへドラッグ |
 | ピンのアクションメニューをフィルタリング | **左クリック** + ピンへドラッグ |
 | 接続をすべて解除 | ピン上で **Alt + 左クリック** |

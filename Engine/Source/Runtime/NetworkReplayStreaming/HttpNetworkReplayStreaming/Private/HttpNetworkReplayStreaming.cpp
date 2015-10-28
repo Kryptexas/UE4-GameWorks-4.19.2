@@ -244,7 +244,7 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 		// Notify the http server that we want to start downloading a replay
 		const FString URL = FString::Printf( TEXT( "%sreplay/%s/startDownloading?user=%s" ), *ServerURL, *SessionName, *UserName );
 
-		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. URL: %s" ), *URL );
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. URL: %s" ), *URL );
 
 		HttpRequest->SetURL( URL );
 		HttpRequest->SetVerb( TEXT( "POST" ) );

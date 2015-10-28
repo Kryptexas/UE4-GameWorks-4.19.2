@@ -22,6 +22,8 @@ UExpandableArea::UExpandableArea(const FObjectInitializer& ObjectInitializer)
 	Style       = *ExpandableDefaults._Style;
 	BorderColor = ExpandableDefaults._BorderBackgroundColor.Get( FLinearColor::White );
 	BorderBrush = *ExpandableDefaults._BorderImage;
+	AreaPadding = ExpandableDefaults._Padding.Get();
+	HeaderPadding = ExpandableDefaults._HeaderPadding.Get();
 }
 
 bool UExpandableArea::GetIsExpanded() const
@@ -93,6 +95,7 @@ TSharedRef<SWidget> UExpandableArea::RebuildWidget()
 		.BorderBackgroundColor(BorderColor)
 		.MaxHeight(MaxHeight)
 		.Padding(AreaPadding)
+		.HeaderPadding(HeaderPadding)
 		.OnAreaExpansionChanged(BIND_UOBJECT_DELEGATE(FOnBooleanValueChanged, SlateExpansionChanged))
 		.HeaderContent()
 		[

@@ -827,7 +827,7 @@ public:
 		return ( Find(Item) != INDEX_NONE );
 	}
 
-	int32 Num()
+	int32 Num() const
 	{
 		return ArrayMax;
 	}

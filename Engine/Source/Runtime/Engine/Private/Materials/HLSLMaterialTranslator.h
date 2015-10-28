@@ -175,6 +175,8 @@ protected:
 	uint32 bNeedsParticleTime : 1;
 	/** true if the material uses particle motion blur. */
 	uint32 bUsesParticleMotionBlur : 1;
+	/** true if the material needs particle random value. */
+	uint32 bNeedsParticleRandom : 1;
 	/** true if the material uses spherical particle opacity. */
 	uint32 bUsesSphericalParticleOpacity : 1;
 	/** true if the material uses particle sub uvs. */
@@ -234,6 +236,7 @@ public:
 	,	bNeedsParticleDynamicParameter(false)
 	,	bNeedsParticleTime(false)
 	,	bUsesParticleMotionBlur(false)
+	,	bNeedsParticleRandom(false)
 	,	bUsesSphericalParticleOpacity(false)
 	,   bUsesParticleSubUVs(false)
 	,	bUsesLightmapUVs(false)
@@ -586,6 +589,11 @@ public:
 		if (bUsesParticleMotionBlur)
 		{
 			OutEnvironment.SetDefine(TEXT("USES_PARTICLE_MOTION_BLUR"), 1);
+		}
+
+		if (bNeedsParticleRandom)
+		{
+			OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_RANDOM"), 1);
 		}
 
 		if (bUsesSphericalParticleOpacity)
@@ -2067,6 +2075,17 @@ protected:
 		bUsesParticleMotionBlur = true;
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.MotionBlurFade"));
 	}
+
+	virtual int32 ParticleRandom() override
+	{
+		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
+		{
+			return NonVertexOrPixelShaderExpressionError();
+		}
+		bNeedsParticleRandom = true;
+		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.Random"));
+	}
+
 
 	virtual int32 ParticleDirection() override
 	{

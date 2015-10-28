@@ -109,9 +109,10 @@ void UAnimInstance::MakeSequenceTickRecord(FAnimTickRecord& TickRecord, class UA
 void UAnimInstance::MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, class UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const
 {
 	TickRecord.SourceAsset = BlendSpace;
-	TickRecord.BlendSpacePosition = BlendInput;
-	TickRecord.BlendSampleDataCache = &BlendSampleDataCache;
-	TickRecord.BlendFilter = &BlendFilter;
+	TickRecord.BlendSpace.BlendSpacePositionX = BlendInput.X;
+	TickRecord.BlendSpace.BlendSpacePositionY = BlendInput.Y;
+	TickRecord.BlendSpace.BlendSampleDataCache = &BlendSampleDataCache;
+	TickRecord.BlendSpace.BlendFilter = &BlendFilter;
 	TickRecord.TimeAccumulator = &CurrentTime;
 	TickRecord.MarkerTickRecord = &MarkerTickRecord;
 	TickRecord.PlayRateMultiplier = PlayRate;
@@ -119,6 +120,19 @@ void UAnimInstance::MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, class 
 	TickRecord.bLooping = bLooping;
 }
 
+// this is only used by montage marker based sync
+void UAnimInstance::MakeMontageTickRecord(FAnimTickRecord& TickRecord, class UAnimMontage* Montage, float CurrentPosition, float PreviousPosition, float MoveDelta, float Weight, TArray<FPassedMarker>& MarkersPassedThisTick, FMarkerTickRecord& MarkerTickRecord)
+{
+	TickRecord.SourceAsset = Montage;
+	TickRecord.Montage.CurrentPosition = CurrentPosition;
+	TickRecord.Montage.PreviousPosition = PreviousPosition;
+	TickRecord.Montage.MoveDelta = MoveDelta;
+	TickRecord.Montage.MarkersPassedThisTick = &MarkersPassedThisTick;
+	TickRecord.MarkerTickRecord = &MarkerTickRecord;
+	TickRecord.PlayRateMultiplier = 1.f; // we don't care here, this is alreayd applied in the montageinstance::Advance
+	TickRecord.EffectiveBlendWeight = Weight;
+	TickRecord.bLooping = false;
+}
 
 void UAnimInstance::SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord)
 {
@@ -352,6 +366,32 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 	// This is because branch points need to execute arbitrary code inside this call.
 	Montage_Advance(DeltaSeconds);
 
+	// now we know all montage has advanced
+	// time to test sync groups
+	for (auto& MontageInstance : MontageInstances)
+	{
+		if (MontageInstance->CanUseMarkerSync())
+		{
+			const int32 GroupIndexToUse = MontageInstance->GetSyncGroupIndex();
+
+			// that is public data, so if anybody decided to play with it
+			if (ensure (GroupIndexToUse != INDEX_NONE))
+			{
+				FAnimGroupInstance* SyncGroup;
+				FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(GroupIndexToUse, /*out*/ SyncGroup);
+				MakeMontageTickRecord(TickRecord, MontageInstance->Montage, MontageInstance->GetPosition(), 
+					MontageInstance->GetPreviousPosition(), MontageInstance->GetDeltaMoved(), MontageInstance->GetWeight(), 
+					MontageInstance->MarkersPassedThisTick, MontageInstance->MarkerTickRecord);
+
+				// Update the sync group if it exists
+				if (SyncGroup != NULL)
+				{
+					SyncGroup->TestMontageTickRecordForLeadership();
+				}
+			}
+		}
+	}
+
 	// update montage eval data
 	UpdateMontageEvaluationData();
 }
@@ -480,46 +520,76 @@ void UAnimInstance::TickAssetPlayerInstances(float DeltaSeconds)
 		if (SyncGroup.ActivePlayers.Num() > 0)
 		{
 			const FAnimGroupInstance* PreviousGroup = PreviousSyncGroups.IsValidIndex(GroupIndex) ? &PreviousSyncGroups[GroupIndex] : nullptr;
-			SyncGroup.Finalize(PreviousGroup);
-    
+			SyncGroup.Prepare(PreviousGroup);
+
+			UE_LOG(LogAnimMarkerSync, Log, TEXT("Ticking Group [%d] GroupLeader [%d]"), GroupIndex, SyncGroup.GroupLeaderIndex);
+
 			const bool bOnlyOneAnimationInGroup = SyncGroup.ActivePlayers.Num() == 1;
 
 			// Tick the group leader
 			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, SyncGroup.ValidMarkers);
-			FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[SyncGroup.GroupLeaderIndex];
+			// initialize to invalidate first
+			check(SyncGroup.GroupLeaderIndex == INDEX_NONE);
+			int32 GroupLeaderIndex = 0;
+			for (; GroupLeaderIndex < SyncGroup.ActivePlayers.Num(); ++GroupLeaderIndex)
 			{
+				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
+				// if it has leader score
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
 				FScopeCycleCounterUObject Scope(GroupLeader.SourceAsset);
 				GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
-			}
 
-			if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
-			{
-				ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
-			}
-    
-			SyncGroup.MarkerTickContext = TickContext.MarkerTickContext;
+				if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+				{
+					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
+				}
 
-			// Update everything else to follow the leader
-			if (SyncGroup.ActivePlayers.Num() > 1)
+				// if we're not using marker based sync, we don't care, get out
+				if (TickContext.CanUseMarkerPosition() == false)
+				{
+					SyncGroup.GroupLeaderIndex = GroupLeaderIndex;
+					break;
+				}
+				// otherwise, the new position should contain the valid position for end, otherwise, we don't know where to sync to
+				else if (TickContext.MarkerTickContext.IsMarkerSyncEndValid())
+				{
+					// if this leader contains correct position, break
+					SyncGroup.MarkerTickContext = TickContext.MarkerTickContext;
+					SyncGroup.GroupLeaderIndex = GroupLeaderIndex;
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("Previous Sync Group Makrer Tick Context :\n%s"), *SyncGroup.MarkerTickContext.ToString());
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("New Sync Group Makrer Tick Context :\n%s"), *TickContext.MarkerTickContext.ToString());
+					break;
+				}
+				else
+				{
+					SyncGroup.GroupLeaderIndex = GroupLeaderIndex;
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("Invalid position from Leader %d. Trying next leader"), GroupLeaderIndex);
+				}
+			} 
+
+			check(SyncGroup.GroupLeaderIndex != INDEX_NONE);
+			// we found leader
+			SyncGroup.Finalize(PreviousGroup);
+
+			// Update everything else to follow the leader, if there is more followers
+			if (SyncGroup.ActivePlayers.Num() > GroupLeaderIndex + 1)
 			{
+				// if we don't have a good leader, no reason to convert to follower
+				// tick as leader
 				TickContext.ConvertToFollower();
     
-				for (int32 TickIndex = 0; TickIndex < SyncGroup.ActivePlayers.Num(); ++TickIndex)
+				for (int32 TickIndex = GroupLeaderIndex + 1; TickIndex < SyncGroup.ActivePlayers.Num(); ++TickIndex)
 				{
-					if (TickIndex != SyncGroup.GroupLeaderIndex)
+					FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
 					{
-						FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
-						{
-							QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
-							FScopeCycleCounterUObject Scope(AssetPlayer.SourceAsset);
-							TickContext.RootMotionMovementParams.Clear();
-							AssetPlayer.SourceAsset->TickAssetPlayerInstance(AssetPlayer, this, TickContext);
-						}
-						if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
-						{
-							ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
-						}
+						QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+						FScopeCycleCounterUObject Scope(AssetPlayer.SourceAsset);
+						TickContext.RootMotionMovementParams.Clear();
+						AssetPlayer.SourceAsset->TickAssetPlayerInstance(AssetPlayer, this, TickContext);
+					}
+					if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+					{
+						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
 					}
 				}
 			}
@@ -875,13 +945,14 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 
 		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Player.SourceAsset))
 		{
-			if (bFullBlendspaceDisplay && Player.BlendSampleDataCache && Player.BlendSampleDataCache->Num() > 0)
+			if (bFullBlendspaceDisplay && Player.BlendSpace.BlendSampleDataCache && Player.BlendSpace.BlendSampleDataCache->Num() > 0)
 			{
-				TArray<FBlendSampleData> SampleData = *Player.BlendSampleDataCache;
+				TArray<FBlendSampleData> SampleData = *Player.BlendSpace.BlendSampleDataCache;
 				SampleData.Sort([](const FBlendSampleData& L, const FBlendSampleData& R) { return L.SampleDataIndex < R.SampleDataIndex; });
 
 				FIndenter BlendspaceIndent(Indent);
-				FString BlendspaceHeader = FString::Printf(TEXT("Blendspace Input (%.2f, %.2f, %.2f)"), Player.BlendSpacePosition.X, Player.BlendSpacePosition.Y, Player.BlendSpacePosition.Z);
+				const FVector BlendSpacePosition(Player.BlendSpace.BlendSpacePositionX, Player.BlendSpace.BlendSpacePositionY, 0.f);
+				FString BlendspaceHeader = FString::Printf(TEXT("Blendspace Input (%s)"), *BlendSpacePosition.ToString());
 				DisplayDebugManager.DrawString(BlendspaceHeader, Indent);
 
 				const TArray<FBlendSample>& BlendSamples = BlendSpace->GetBlendSamples();
@@ -1465,7 +1536,7 @@ void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNode
 #if DEBUGMONTAGEWEIGHT			
 			TotalDesiredWeight += EvalState->DesiredWeight;
 #endif
-			UE_LOG(LogAnimation, Verbose, TEXT("GetSlotWeight : Owner: %s, AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+			UE_LOG(LogAnimMontage, Verbose, TEXT("GetSlotWeight : Owner: %s, AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 						*GetNameSafe(GetOwningActor()), *EvalState.Montage->GetName(), EvalState.DesiredWeight, EvalState.MontageWeight);
 		}
 	}
@@ -1494,7 +1565,7 @@ void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNode
 		// this can happen when it's blending in OR when newer animation comes in with longer blendtime
 		// say #1 animation was blending out time with current blendtime 0.2 #2 animation was blending in with 0.2 (old) but got blend out with new blendtime 1.f
 		// #3 animation was blending in with the new blendtime 1.f, you'll have sum of #1, 2, 3 doesn't meet 1.f
-		UE_LOG(LogAnimation, Warning, TEXT("[%s] Montage has less weight. Blending in?(%f)"), *SlotNodeName.ToString(), TotalSum);
+		UE_LOG(LogAnimMontage, Warning, TEXT("[%s] Montage has less weight. Blending in?(%f)"), *SlotNodeName.ToString(), TotalSum);
 	}
 #endif
 
@@ -1666,7 +1737,11 @@ void UAnimInstance::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
 	// then warn users, this is invalid
 	if (SlotWeightTracker.Contains(SlotNodeName))
 	{
-		FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' already exists. Each slot node has to have unique name."), FText::FromString(SlotNodeName.ToString())));
+		UClass* InstanceClass = GetClass();
+
+		FString ClassNameString = InstanceClass ? InstanceClass->GetName() : FString("Unavailable");
+
+		FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' in animation instance class {1} already exists. Remove duplicates from the animation graph for this class."), FText::FromString(SlotNodeName.ToString()), FText::FromString(ClassNameString)));
 		return;
 	}
 
@@ -1889,7 +1964,7 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			{
 				FAnimMontageInstance* AnimMontageInstance = MontageInstances(I);
 				// print blending time and weight and montage name
-				UE_LOG(LogAnimation, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"), 
+				UE_LOG(LogAnimMontage, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"), 
 					I+1, *AnimMontageInstance->Montage->GetName(), AnimMontageInstance->GetDesiredWeight(), AnimMontageInstance->GetWeight(),  
 					AnimMontageInstance->GetBlendTime() );
 			}
@@ -1966,21 +2041,21 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	if (!bValidAsset)
 	{
 		// user warning
-		UE_LOG(LogAnimation, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
 		return 0.f;
 	}
 
 	if (SlotNodeName == NAME_None)
 	{
 		// user warning
-		UE_LOG(LogAnimation, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
+		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
 		return 0.f;
 	}
 
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("The Skeleton isn't compatible"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
 		return 0.f;
 	}
 
@@ -2021,21 +2096,21 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	if (!bValidAsset)
 	{
 		// user warning
-		UE_LOG(LogAnimation, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
 		return NULL;
 	}
 
 	if (SlotNodeName == NAME_None)
 	{
 		// user warning
-		UE_LOG(LogAnimation, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
+		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
 		return NULL;
 	}
 
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("The Skeleton isn't compatible"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
 		return NULL;
 	}
 
@@ -2172,13 +2247,13 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 
 			OnMontageStarted.Broadcast(MontageToPlay);
 
-			UE_LOG(LogAnimation, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+			UE_LOG(LogAnimMontage, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 						*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
 			return NewInstance->Montage->SequenceLength;
 		}
 		else
 		{
-			UE_LOG(LogAnimation, Warning, TEXT("Playing a Montage (%s) for the wrong Skeleton (%s) instead of (%s)."),
+			UE_LOG(LogAnimMontage, Warning, TEXT("Playing a Montage (%s) for the wrong Skeleton (%s) instead of (%s)."),
 				*GetNameSafe(MontageToPlay), *GetNameSafe(CurrentSkeleton), *GetNameSafe(MontageToPlay->GetSkeleton()));
 		}
 	}
@@ -2884,7 +2959,7 @@ FMarkerSyncAnimPosition UAnimInstance::GetSyncGroupPosition(FName InSyncGroupNam
 void UAnimInstance::UpdateMontageEvaluationData()
 {
 	MontageEvaluationData.Reset(MontageInstances.Num());
-	UE_LOG(LogAnimation, Verbose, TEXT("UpdateMontageEvaluationData Strting: Owner: %s"),	*GetNameSafe(GetOwningActor()));
+	UE_LOG(LogAnimMontage, Verbose, TEXT("UpdateMontageEvaluationData Strting: Owner: %s"),	*GetNameSafe(GetOwningActor()));
 
 	for (FAnimMontageInstance* MontageInstance : MontageInstances)
 	{
@@ -2892,7 +2967,7 @@ void UAnimInstance::UpdateMontageEvaluationData()
 		// because we don't want to evaluate them if 0 weight
 		if (MontageInstance->Montage && MontageInstance->GetWeight() > ZERO_ANIMWEIGHT_THRESH)
 		{
-			UE_LOG(LogAnimation, Verbose, TEXT("UpdateMontageEvaluationData : AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+			UE_LOG(LogAnimMontage, Verbose, TEXT("UpdateMontageEvaluationData : AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 						*MontageInstance->Montage->GetName(), MontageInstance->GetDesiredWeight(), MontageInstance->GetWeight());
 			MontageEvaluationData.Add(FMontageEvaluationState(MontageInstance->Montage, MontageInstance->GetWeight(), MontageInstance->GetDesiredWeight(), MontageInstance->GetPosition()));
 		}

@@ -902,7 +902,7 @@ void UDemoNetDriver::StopDemo()
 {
 	if ( !IsRecording() && !IsPlaying() )
 	{
-		UE_LOG( LogDemo, Warning, TEXT( "StopDemo: No demo is playing" ) );
+		UE_LOG( LogDemo, Log, TEXT( "StopDemo: No demo is playing" ) );
 		return;
 	}
 
@@ -989,7 +989,7 @@ void UDemoNetDriver::StopDemo()
 Demo Recording tick.
 -----------------------------------------------------------------------------*/
 
-static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool IsNetClient, APlayerController* SpectatorController)
+static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlayerController* SpectatorController, bool bMustReplicate )
 {
 	// RAII object to swap the Role and RemoteRole of an actor within a scope. Used for recording replays on a client.
 	class FScopedActorRoleSwap
@@ -1025,6 +1025,8 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 		&& (Actor == Connection->PlayerController || Cast<APlayerController>(Actor) == NULL)
 		)
 	*/
+	bool bReplicated = false;
+
 	if ( Actor != NULL )
 	{
 		// We need to swap roles if:
@@ -1067,6 +1069,7 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 				if (Channel->IsNetReady(0))
 				{
 					Channel->ReplicateActor();
+					bReplicated = true;
 				}
 			
 				// Close the channel if this actor shouldn't have one
@@ -1076,6 +1079,11 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 				}
 			}
 		}
+	}
+
+	if ( bMustReplicate && !bReplicated )
+	{
+		UE_LOG( LogDemo, Warning, TEXT( "DemoReplicateActor: bMustReplicate is true but bReplicated is false" ) );
 	}
 }
 
@@ -1186,7 +1194,7 @@ void UDemoNetDriver::SaveCheckpoint()
 	// It's important that we don't catch any new actors that the next frame will also catch, that will cause conflict with bOpen (the open will occur twice on the same channel)
 	if ( CheckpointConnection->ActorChannels.Contains( World->GetWorldSettings() ) )
 	{
-		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, false, SpectatorController );
+		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, SpectatorController, true );
 	}
 
 	for ( AActor* Actor : World->NetworkActors )
@@ -1194,7 +1202,7 @@ void UDemoNetDriver::SaveCheckpoint()
 		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
 		{
 			Actor->CallPreReplication( this );
-			DemoReplicateActor( Actor, CheckpointConnection, false, SpectatorController );
+			DemoReplicateActor( Actor, CheckpointConnection, SpectatorController, true );
 		}
 	}
 
@@ -1313,9 +1321,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	ClientDemoConnection->QueuedDemoPackets.Empty();
 
-	const bool IsNetClient = ( GetWorld()->GetNetDriver() != NULL && GetWorld()->GetNetDriver()->GetNetMode() == NM_Client );
-
-	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient, SpectatorController );
+	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], SpectatorController, false );
 
 	for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
 	{
@@ -1336,7 +1342,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		}
 
 		Actor->CallPreReplication( this );
-		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient, SpectatorController );
+		DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false );
 	}
 
 	// Make sure nothing is left over
@@ -2195,7 +2201,7 @@ void UDemoNetConnection::TrackSendForProfiler(const void* Data, int32 NumBytes)
 	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
 
 	// Track "socket send" even though we're not technically sending to a socket, to get more accurate information in the profiler.
-	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendToCore(TEXT("Unreal"), Data, NumBytes, NumPacketIdBits, NumBunchBits, NumAckBits, NumPaddingBits, 0));
+	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendToCore(TEXT("Unreal"), Data, NumBytes, NumPacketIdBits, NumBunchBits, NumAckBits, NumPaddingBits, this));
 }
 
 FString UDemoNetConnection::LowLevelDescribe()
@@ -2261,6 +2267,12 @@ bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 	// This may need to be tweaked or re-evaluated when we start recording demos on the client
 	return ( GetDriver()->DemoFrameNum > 2 || Super::ClientHasInitializedLevelFor( TestObject ) );
 }
+
+bool UDemoNetDriver::IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const
+{
+	return ( DemoFrameNum > 2 || Super::IsLevelInitializedForActor( InActor, InConnection ) );
+}
+
 
 /*-----------------------------------------------------------------------------
 	UDemoPendingNetGame.

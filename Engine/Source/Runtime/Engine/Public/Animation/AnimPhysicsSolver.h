@@ -65,6 +65,15 @@ enum class AnimPhysTwistAxis : uint8
 	AxisZ
 };
 
+UENUM()
+enum class AnimPhysCollisionType : uint8
+{
+	CoM UMETA(DisplayName="CoM", DisplayValue="CoM", ToolTip="Only limit the center of mass from crossing planes."),
+	CustomSphere UMETA(ToolTip="Use the specified sphere radius to collide with planes."),
+	InnerSphere UMETA(ToolTip="Use the largest sphere that fits entirely within the body extents to collide with planes."),
+	OuterSphere UMETA(ToolTip="Use the smallest sphere that wholely contains the body extents to collide with planes.")
+};
+
 struct ENGINE_API FAnimPhysShape
 {
 	/** Makes a box with the given extents
@@ -164,6 +173,24 @@ class ENGINE_API FAnimPhysState
 	const FAnimPhysState&    GetState() const { return *this; }
 };
 
+/** 
+  * Simple struct holding wind params passed into simulation
+  */
+struct FAnimPhysWindData
+{
+	// Scale for the final velocity
+	float BodyWindScale;
+
+	// Current wind speed
+	float WindSpeed;
+
+	// World space wind direction
+	FVector WindDirection;
+
+	// Mirrors APEX adaption, adds some randomness / billow
+	float WindAdaption;
+};
+
 /**
   * A collection of shapes grouped for simulation as a rigid body
   */
@@ -196,6 +223,12 @@ class ENGINE_API FAnimPhysRigidBody : public FAnimPhysState
 	FVector				StartPosition;
 	FQuat				StartOrientation;
 
+	// Whether to use wind forces on this body
+	bool				bWindEnabled;
+
+	// Per-body wind data (speed, direction etc.)
+	FAnimPhysWindData	WindData;
+
 	// Override angular damping for this body
 	bool				bAngularDampingOverriden;
 	float				AngularDamping;
@@ -213,6 +246,12 @@ class ENGINE_API FAnimPhysRigidBody : public FAnimPhysState
 	// Body center of mass (CoM of all shapes)
 	FVector				CenterOfMass;
 
+	// Collision Data (Only how we interact with planes currently)
+	AnimPhysCollisionType CollisionType;
+
+	// Radius to use when not using CoM collision mode
+	float SphereCollisionRadius;
+	
 	// Shapes contained within this body
 	TArray<FAnimPhysShape>		Shapes;
 };
@@ -465,6 +504,13 @@ public:
 	 *  @param LimitAngle Angle to limit the cone to
 	 */
 	static void ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody* FirstBody, const FVector& Normal0, FAnimPhysRigidBody* SecondBody, const FVector& Normal1, float LimitAngle);  // a hinge is a cone with 0 limitangle
+
+	/** Constrains the position of a body to one side of a plane placed at PlaneTransform (plane normal is Z axis)
+	*  @param LimitContainer Container to add limits to
+	*  @param Body The body to constrain to the plane
+	*  @param PlaneTransform Transform of the plane, with the normal facing along the Z axis of the orientation
+	*/
+	static void ConstrainPlanar(float DeltaTime, TArray<FAnimPhysLinearLimit>& LimitContainer, FAnimPhysRigidBody* Body, const FTransform& PlaneTransform);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Spring creation methods

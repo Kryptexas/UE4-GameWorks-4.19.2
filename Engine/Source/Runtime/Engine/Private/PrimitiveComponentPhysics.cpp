@@ -10,6 +10,7 @@
 
 DECLARE_CYCLE_STAT(TEXT("WeldPhysics"), STAT_WeldPhysics, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("UnweldPhysics"), STAT_UnweldPhysics, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("PrimComp SetCollisionProfileName"), STAT_PrimComp_SetCollisionProfileName, STATGROUP_Physics);
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -970,6 +971,8 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 // @todo : implement skeletalmeshcomponent version
 void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 {
+	SCOPE_CYCLE_COUNTER(STAT_PrimComp_SetCollisionProfileName);
+
 	ECollisionEnabled::Type OldCollisionEnabled = BodyInstance.GetCollisionEnabled();
 	BodyInstance.SetCollisionProfileName(InCollisionProfileName);
 	OnComponentCollisionSettingsChanged();

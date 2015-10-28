@@ -187,20 +187,9 @@ void MovieSceneToolHelpers::TrimSection(const TSet<TWeakObjectPtr<UMovieSceneSec
 {
 	for (auto Section : Sections)
 	{
-		if (Section.IsValid() && Section->IsTimeWithinSection(Time))
+		if (Section.IsValid())
 		{
-			Section->SetFlags( RF_Transactional );
-
-			Section->Modify();
-
-			if (bTrimLeft)
-			{
-				Section->SetStartTime(Time);
-			}
-			else
-			{
-				Section->SetEndTime(Time);
-			}
+			Section->TrimSection(Time, bTrimLeft);
 		}
 	}
 }
@@ -210,25 +199,9 @@ void MovieSceneToolHelpers::SplitSection(const TSet<TWeakObjectPtr<UMovieSceneSe
 {
 	for (auto Section : Sections)
 	{
-		if (Section.IsValid() && Section->IsTimeWithinSection(Time))
+		if (Section.IsValid())
 		{
-			Section->SetFlags( RF_Transactional );
-
-			Section->Modify();
-
-			float SectionEndTime = Section->GetEndTime();
-				
-			// Trim off the right
-			Section->SetEndTime(Time);
-
-			// Create a new section
-			UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>(Section->GetOuter() );
-			Track->Modify();
-
-			UMovieSceneSection* NewSection = DuplicateObject<UMovieSceneSection>(Section.Get(), Track);
-			Track->AddSection(NewSection);
-			NewSection->SetStartTime(Time);
-			NewSection->SetEndTime(SectionEndTime);
+			Section->SplitSection(Time);
 		}
 	}
 }

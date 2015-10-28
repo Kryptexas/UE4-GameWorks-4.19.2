@@ -232,8 +232,7 @@ void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectC
 			SubObjectsToSave.AddObject(DefaultScene->ComponentTemplate);
 		}
 
-		TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-		for ( auto SCSNode : SCSNodes )
+		for ( USCS_Node* SCSNode : Blueprint->SimpleConstructionScript->GetAllNodes() )
 		{
 			SubObjectsToSave.AddObject(SCSNode->ComponentTemplate);
 		}
@@ -605,23 +604,22 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 		// Ensure that variable names are valid and that there are no collisions with a parent class
 		Blueprint->SimpleConstructionScript->ValidateNodeVariableNames(MessageLog);
 
-		TArray<USCS_Node*> AllNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-		for (int32 NodeIdx=0; NodeIdx<AllNodes.Num(); NodeIdx++)
+		for (USCS_Node* Node : Blueprint->SimpleConstructionScript->GetAllNodes())
 		{
-			USCS_Node* Node = AllNodes[NodeIdx];
-			check(Node != NULL);
-
-			FName VarName = Node->GetVariableName();
-			if ((VarName != NAME_None) && (Node->ComponentTemplate != NULL))
+			if (Node)
 			{
-				FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentTemplate->GetClass(), false, false);
-				UProperty* NewProperty = CreateVariable(VarName, Type);
-				if (NewProperty != NULL)
+				FName VarName = Node->GetVariableName();
+				if ((VarName != NAME_None) && (Node->ComponentTemplate != NULL))
 				{
-					const FText CategoryName = Node->CategoryName.IsEmpty() ? FText::FromString(Blueprint->GetName()) : Node->CategoryName ;
+					FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentTemplate->GetClass(), false, false);
+					UProperty* NewProperty = CreateVariable(VarName, Type);
+					if (NewProperty != NULL)
+					{
+						const FText CategoryName = Node->CategoryName.IsEmpty() ? FText::FromString(Blueprint->GetName()) : Node->CategoryName ;
 					
-					NewProperty->SetMetaData(TEXT("Category"), *CategoryName.ToString());
-					NewProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_NonTransactional );
+						NewProperty->SetMetaData(TEXT("Category"), *CategoryName.ToString());
+						NewProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_NonTransactional );
+					}
 				}
 			}
 		}

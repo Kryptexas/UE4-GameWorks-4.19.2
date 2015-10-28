@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2694957
+﻿INTSourceChangelist:2694959
 Availability:Public
 Title: 블루프린트 유형
 Crumbs: %ROOT%, Engine/Blueprints
@@ -47,7 +47,7 @@ version: 4.9
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
 
-이에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Types/ClassBlueprint#Data-OnlyBlueprint) 문서를 참고하세요.
+이에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 문서를 참고하세요.
 
 ##블루프린트 인터페이스
 

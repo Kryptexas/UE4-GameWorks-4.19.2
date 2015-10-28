@@ -305,3 +305,122 @@ void AFunctionalTest::GoToObservationPoint()
 
 /** Returns SpriteComponent subobject **/
 UBillboardComponent* AFunctionalTest::GetSpriteComponent() { return SpriteComponent; }
+
+
+//////////////////////////////////////////////////////////////////////////
+
+FPerfStatsRecord::FPerfStatsRecord(FString InName)
+: Name(InName)
+, NumFrames(0.0f)
+, SumTimeSeconds(0.0f)
+{
+}
+
+FString FPerfStatsRecord::GetReportString() const
+{
+	return FString::Printf(TEXT("%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"),
+		*Name,
+		NumFrames,
+		SumTimeSeconds * 1000.0f,
+		FrameTimeTracker.GetMinValue(),
+		FrameTimeTracker.GetAvgValue(),
+		FrameTimeTracker.GetMaxValue(),
+		RenderThreadTimeTracker.GetMinValue(),
+		RenderThreadTimeTracker.GetAvgValue(),
+		RenderThreadTimeTracker.GetMaxValue(),
+		GameThreadTimeTracker.GetMinValue(),
+		GameThreadTimeTracker.GetAvgValue(),
+		GameThreadTimeTracker.GetMaxValue(),
+		GPUTimeTracker.GetMinValue(),
+		GPUTimeTracker.GetAvgValue(),
+		GPUTimeTracker.GetMaxValue());
+}
+
+void FPerfStatsRecord::Sample(AActor* Owner, float DeltaSeconds)
+{
+	check(Owner);
+
+	const FStatUnitData* StatUnitData = Owner->GetWorld()->GetGameViewport()->GetStatUnitData();
+	check(StatUnitData);
+
+	FrameTimeTracker.AddSample(StatUnitData->RawFrameTime);
+	GameThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGameThreadTime));
+	RenderThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GRenderThreadTime));
+	GPUTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGPUFrameTime));
+	NumFrames++;
+	SumTimeSeconds += DeltaSeconds;
+}
+
+UPerfStatsRecorder::UPerfStatsRecorder()
+: bRecording(false)
+{
+
+}
+
+void UPerfStatsRecorder::BeginRecording(FString RecordName)
+{
+	bRecording = true;
+	Records.Add(FPerfStatsRecord(RecordName));
+}
+
+void UPerfStatsRecorder::EndRecording()
+{
+	if (const FPerfStatsRecord* Record = GetCurrentRecord())
+	{
+		UE_LOG(LogFunctionalTest, Log, TEXT("Finished Perf Stats Record:\n%s"), *Record->GetReportString());
+	}
+	bRecording = false;
+}
+
+void UPerfStatsRecorder::Sample(AActor* Owner, float DeltaSeconds)
+{
+	int32 Index = Records.Num() - 1;
+	if (Index >= 0 && bRecording)
+	{
+		Records[Index].Sample(Owner, DeltaSeconds);
+	}
+}
+
+void UPerfStatsRecorder::WriteLogFile(const FString& CaptureDir, const FString& CaptureExtension)
+{
+	FString PathName = FPaths::ProfilingDir();
+	if (!CaptureDir.IsEmpty())
+	{
+		PathName = PathName + (CaptureDir + TEXT("/"));
+		IFileManager::Get().MakeDirectory(*PathName);
+	}
+
+	FString Extension = CaptureExtension;
+	if (Extension.IsEmpty())
+	{
+		Extension = TEXT("perf.csv");
+	}
+
+	const FString Filename = CreateProfileFilename(Extension, true);
+	const FString FilenameFull = PathName + Filename;
+
+	const FString LogHeader = TEXT("TestName,NumFrames,Duration,MinFrameTime,AvgFrameTime,MaxFrameTime,MinRT,AvgRT,MaxRT,MinGT,AvgGT,MaxGT,MinGPU,AvgGPU,MaxGPU\n");
+
+	FString FileContents = LogHeader;
+	for (FPerfStatsRecord& Record : Records)
+	{
+		FileContents += Record.GetReportString() + FString(TEXT("\n"));
+	}
+
+	FFileHelper::SaveStringToFile(FileContents, *FilenameFull);
+
+	UE_LOG(LogTemp, Display, TEXT("Finished test, wrote file to %s"), *FilenameFull);
+
+	Records.Empty();
+	bRecording = false;
+}
+
+const FPerfStatsRecord* UPerfStatsRecorder::GetCurrentRecord()const
+{
+	int32 Index = Records.Num() - 1;
+	if (Index >= 0 && bRecording)
+	{
+		return &Records[Index];
+	}
+	return nullptr;
+}

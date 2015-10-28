@@ -3,12 +3,19 @@
 #include "AIModulePrivate.h"
 #include "DataProviders/AIDataProvider_QueryParams.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Float.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
 
 //----------------------------------------------------------------------//
@@ -19,7 +26,7 @@ AActor* FEnvQueryResult::GetItemAsActor(int32 Index) const
 	if (Items.IsValidIndex(Index) &&
 		ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()))
 	{
-		UEnvQueryItemType_ActorBase* DefTypeOb = static_cast<UEnvQueryItemType_ActorBase*>(ItemType->GetDefaultObject());
+		UEnvQueryItemType_ActorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_ActorBase>();
 		return DefTypeOb->GetActor(RawData.GetData() + Items[Index].DataOffset);
 	}
 
@@ -31,7 +38,7 @@ FVector FEnvQueryResult::GetItemAsLocation(int32 Index) const
 	if (Items.IsValidIndex(Index) &&
 		ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = static_cast<UEnvQueryItemType_VectorBase*>(ItemType->GetDefaultObject());
+		UEnvQueryItemType_VectorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_VectorBase>();
 		return DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 	}
 
@@ -42,7 +49,7 @@ void FEnvQueryResult::GetAllAsActors(TArray<AActor*>& OutActors) const
 {
 	if (ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()) && Items.Num() > 0)
 	{
-		UEnvQueryItemType_ActorBase* DefTypeOb = static_cast<UEnvQueryItemType_ActorBase*>(ItemType->GetDefaultObject());
+		UEnvQueryItemType_ActorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_ActorBase>();
 		
 		OutActors.Reserve(OutActors.Num() + Items.Num());
 
@@ -57,7 +64,7 @@ void FEnvQueryResult::GetAllAsLocations(TArray<FVector>& OutLocations) const
 {
 	if (ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()) && Items.Num() > 0)
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = static_cast<UEnvQueryItemType_VectorBase*>(ItemType->GetDefaultObject());
+		UEnvQueryItemType_VectorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_VectorBase>();
 
 		OutLocations.Reserve(OutLocations.Num() + Items.Num());
 
@@ -375,6 +382,125 @@ void FAIDynamicParam::GenerateConfigurableParamsFromNamedValues(UObject &QueryOw
 		NewParam.ConfigureBBKey(QueryOwner);
 	}
 }
+
+//----------------------------------------------------------------------//
+// FEQSQueryExecutionParams
+//----------------------------------------------------------------------//
+FEQSParametrizedQueryExecutionRequest::FEQSParametrizedQueryExecutionRequest()
+	: bInitialized(false)
+{
+	//EQSQueryBlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(FEQSQueryExecutionParams, EQSQueryBlackboardKey), UEnvQuery::StaticClass());
+}
+
+void FEQSParametrizedQueryExecutionRequest::InitForOwnerAndBlackboard(UObject& Owner, UBlackboardData* BBAsset)
+{
+	if (bInitialized == true)
+	{
+		return;
+	}
+
+	bInitialized = true;
+
+	EQSQueryBlackboardKey.AddObjectFilter(&Owner, NAME_None, UEnvQuery::StaticClass());
+
+	if ((QueryConfig.Num() > 0 || bUseBBKeyForQueryTemplate) && BBAsset)
+	{
+		for (FAIDynamicParam& RuntimeParam : QueryConfig)
+		{
+			if (RuntimeParam.BBKey.NeedsResolving())
+			{
+				RuntimeParam.BBKey.ResolveSelectedKey(*BBAsset);
+			}
+		}
+
+		EQSQueryBlackboardKey.ResolveSelectedKey(*BBAsset);
+	}
+}
+
+int32 FEQSParametrizedQueryExecutionRequest::Execute(AActor& QueryOwner, const UBlackboardComponent* BlackboardComponent, FQueryFinishedSignature& QueryFinishedDelegate)
+{
+	if (bUseBBKeyForQueryTemplate)
+	{
+		check(BlackboardComponent);
+
+		// set QueryTemplate to contents of BB key
+		UObject* QueryTemplateObject = BlackboardComponent->GetValue<UBlackboardKeyType_Object>(EQSQueryBlackboardKey.GetSelectedKeyID());
+		QueryTemplate = Cast<UEnvQuery>(QueryTemplateObject);
+
+		UE_CVLOG(QueryTemplate == nullptr, &QueryOwner, LogBehaviorTree, Warning, TEXT("Trying to run EQS query configured to use BB key, but indicated key (%s) doesn't contain EQS template pointer")
+			, *EQSQueryBlackboardKey.SelectedKeyName.ToString());
+	}
+
+	if (QueryTemplate != nullptr)
+	{
+		FEnvQueryRequest QueryRequest(QueryTemplate, &QueryOwner);
+		if (QueryConfig.Num() > 0)
+		{
+			// resolve 
+			for (FAIDynamicParam& RuntimeParam : QueryConfig)
+			{
+				// check if given param requires runtime resolve, like reading from BB
+				if (RuntimeParam.BBKey.IsSet())
+				{
+					check(BlackboardComponent && "If BBKey.IsSet and there's no BB component then we\'re in the error land!");
+
+					// grab info from BB
+					switch (RuntimeParam.ParamType)
+					{
+					case EAIParamType::Float:
+					{
+						const float Value = BlackboardComponent->GetValue<UBlackboardKeyType_Float>(RuntimeParam.BBKey.GetSelectedKeyID());
+						QueryRequest.SetFloatParam(RuntimeParam.ParamName, Value);
+					}
+					break;
+					case EAIParamType::Int:
+					{
+						const int32 Value = BlackboardComponent->GetValue<UBlackboardKeyType_Int>(RuntimeParam.BBKey.GetSelectedKeyID());
+						QueryRequest.SetIntParam(RuntimeParam.ParamName, Value);
+					}
+					break;
+					case EAIParamType::Bool:
+					{
+						const bool Value = BlackboardComponent->GetValue<UBlackboardKeyType_Bool>(RuntimeParam.BBKey.GetSelectedKeyID());
+						QueryRequest.SetBoolParam(RuntimeParam.ParamName, Value);
+					}
+					break;
+					default:
+						checkNoEntry();
+						break;
+					}
+				}
+				else
+				{
+					QueryRequest.SetFloatParam(RuntimeParam.ParamName, RuntimeParam.Value);
+				}
+			}
+		}
+
+		return QueryRequest.Execute(RunMode, QueryFinishedDelegate);
+	}
+
+	return INDEX_NONE;
+}
+
+#if WITH_EDITOR
+void FEQSParametrizedQueryExecutionRequest::PostEditChangeProperty(UObject& Owner, FPropertyChangedEvent& PropertyChangedEvent)
+{
+	check(PropertyChangedEvent.MemberProperty);
+
+	if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FEQSParametrizedQueryExecutionRequest, QueryTemplate))
+	{
+		if (QueryTemplate)
+		{
+			QueryTemplate->CollectQueryParams(Owner, QueryConfig);
+		}
+		else
+		{
+			QueryConfig.Reset();
+		}
+	}
+}
+#endif // WITH_EDITOR
 
 //----------------------------------------------------------------------//
 // DEPRECATED

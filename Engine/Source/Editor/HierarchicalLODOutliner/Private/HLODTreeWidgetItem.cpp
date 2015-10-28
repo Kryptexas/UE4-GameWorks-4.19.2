@@ -68,7 +68,7 @@ namespace HLODOutliner
 		return FReply::Unhandled();
 	}
 
-	FReply HandleDrop(TWeakPtr<STableViewBase> Widget, const FDragDropEvent& DragDropEvent, IDropTarget& DropTarget, FDragValidationInfo& ValidationInfo, SHLODWidgetItem* DroppedWidget, bool bApplyDrop = false)
+	FReply HandleDrop(TWeakPtr<STableViewBase> Widget, const FDragDropEvent& DragDropEvent, IDropTarget& DropTarget, FDragValidationInfo& ValidationInfo, SHLODWidgetItem* DroppedWidget, bool bApplyDrop)
 	{
 		FDragDropPayload DraggedObjects;
 		// Validate now to make sure we don't doing anything we shouldn't

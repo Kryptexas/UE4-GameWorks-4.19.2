@@ -76,6 +76,15 @@ static TAutoConsoleVariable<int32> CVarSetBlackBordersEnabled(
 	TEXT("in pixels, 0:off"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarScreenshotDelegate(
+	TEXT("r.ScreenshotDelegate"),
+	1,
+	TEXT("ScreenshotDelegates prevent processing of incoming screenshot request and break some features. This allows to disable them.\n")
+	TEXT("Ideally we rework the delegate code to not make that needed.\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: delegates are on (default)"),
+	ECVF_Default);
+
 
 /**
  * Draw debug info on a game scene view.
@@ -1267,7 +1276,7 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 
 		if (bScreenshotSuccessful)
 		{
-			if (ScreenshotCapturedDelegate.IsBound())
+			if (ScreenshotCapturedDelegate.IsBound() && CVarScreenshotDelegate.GetValueOnGameThread())
 			{
 				ScreenshotCapturedDelegate.Broadcast(Size.X, Size.Y, Bitmap);
 			}

@@ -266,11 +266,17 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	return SpawnActor(Class, &Transform, SpawnParameters);
 }
 
+#include "GameFramework/SpawnActorTimer.h"
+
 AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, const FActorSpawnParameters& SpawnParameters )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpawnActorTime);
 	check( CurrentLevel ); 	
 	check(GIsEditor || (CurrentLevel == PersistentLevel));
+
+#if ENABLE_SPAWNACTORTIMER
+	FScopedSpawnActorTimer SpawnTimer(Class->GetFName(), SpawnParameters.bDeferConstruction ? ESpawnActorTimingType::SpawnActorDeferred : ESpawnActorTimingType::SpawnActorNonDeferred);
+#endif
 
 	// Make sure this class is spawnable.
 	if( !Class )
@@ -400,6 +406,10 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 	// actually make the actor object
 	AActor* const Actor = NewObject<AActor>(LevelToSpawnIn, Class, NewActorName, SpawnParameters.ObjectFlags, Template);
 	check(Actor);
+
+#if ENABLE_SPAWNACTORTIMER
+	SpawnTimer.SetActorName(Actor->GetFName());
+#endif
 
 #if WITH_EDITOR
 	Actor->ClearActorLabel(); // Clear label on newly spawned actors
@@ -765,6 +775,8 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 				// must be registered
 				TArray<FOverlapResult> Overlaps;
 				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, TestActor);
+				FCollisionResponseParams ResponseParams;
+				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				return World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
 			}
 			else
@@ -776,7 +788,9 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 		else
 		{
 			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, false, TestActor);
-			return World->OverlapAnyTestByChannel(TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params);
+			FCollisionResponseParams ResponseParams;
+			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
+			return World->OverlapAnyTestByChannel(TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params, ResponseParams);
 		}
 	}
 
@@ -810,6 +824,8 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 			{
 				// must be registered
 				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, TestActor);
+				FCollisionResponseParams ResponseParams;
+				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				bFoundBlockingHit = World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
 				bComputePenetrationAdjustment = false;
 			}
@@ -822,7 +838,9 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 		{
 			// overlap our shape
 			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, false, TestActor);
-			bFoundBlockingHit = World->OverlapMultiByChannel(Overlaps, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params);
+			FCollisionResponseParams ResponseParams;
+			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
+			bFoundBlockingHit = World->OverlapMultiByChannel(Overlaps, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params, ResponseParams);
 		}
 
 		// compute adjustment

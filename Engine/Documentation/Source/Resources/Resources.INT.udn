@@ -4,6 +4,8 @@ Crumbs:%ROOT%
 Description:Links to various example scenes, sample games, and tutorials.
 Navigation:topic
 Version: 4.9
+parent:%ROOT%
+order:7
 
 [VAR:Params]
 [PARAM:image]

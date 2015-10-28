@@ -321,15 +321,12 @@ void ExportPxConvexMesh(PxConvexMesh const * const ConvexMesh, const FTransform&
 	}
 
 	int32 StartVertOffset = VertexBuffer.Num() / 3;
+	const bool bNegX = LocalToWorld.GetDeterminant() < 0;
 
 	// get PhysX data
 	const PxVec3* PVertices = ConvexMesh->getVertices();
 	const PxU8* PIndexBuffer = ConvexMesh->getIndexBuffer();
 	const PxU32 NbPolygons = ConvexMesh->getNbPolygons();
-
-	const bool bFlipWinding = (LocalToWorld.GetDeterminant() < 0.f);
-	const int FirstIndex = bFlipWinding ? 1 : 2;
-	const int SecondIndex = bFlipWinding ? 2 : 1;
 
 #if SHOW_NAV_EXPORT_PREVIEW
 	UWorld* DebugWorld = FindEditorWorld();
@@ -360,19 +357,19 @@ void ExportPxConvexMesh(PxConvexMesh const * const ConvexMesh, const FTransform&
 		for(PxU32 j = 0; j < nbTris; ++j)
 		{
 			IndexBuffer.Add(StartVertOffset + 0 );
-			IndexBuffer.Add(StartVertOffset + j + FirstIndex);
-			IndexBuffer.Add(StartVertOffset + j + SecondIndex);
+			IndexBuffer.Add(StartVertOffset + j + 2);
+			IndexBuffer.Add(StartVertOffset + j + 1);
 
 #if SHOW_NAV_EXPORT_PREVIEW
 			if (DebugWorld)
 			{
 				FVector V0(VertexBuffer[(StartVertOffset + 0) * 3+0], VertexBuffer[(StartVertOffset + 0) * 3+1], VertexBuffer[(StartVertOffset + 0) * 3+2]);
-				FVector V1(VertexBuffer[(StartVertOffset + j + FirstIndex) * 3+0], VertexBuffer[(StartVertOffset + j + FirstIndex) * 3+1], VertexBuffer[(StartVertOffset + j + FirstIndex) * 3+2]);
-				FVector V2(VertexBuffer[(StartVertOffset + j + SecondIndex) * 3+0], VertexBuffer[(StartVertOffset + j + SecondIndex) * 3+1], VertexBuffer[(StartVertOffset + j + SecondIndex) * 3+2]);
+				FVector V1(VertexBuffer[(StartVertOffset + j + 2) * 3+0], VertexBuffer[(StartVertOffset + j + 2) * 3+1], VertexBuffer[(StartVertOffset + j + 2) * 3+2]);
+				FVector V2(VertexBuffer[(StartVertOffset + j + 1) * 3+0], VertexBuffer[(StartVertOffset + j + 1) * 3+1], VertexBuffer[(StartVertOffset + j + 1) * 3+2]);
 
-				DrawDebugLine(DebugWorld, V0, V1, bFlipWinding ? FColor::Red : FColor::Blue, true);
-				DrawDebugLine(DebugWorld, V1, V2, bFlipWinding ? FColor::Red : FColor::Blue, true);
-				DrawDebugLine(DebugWorld, V2, V0, bFlipWinding ? FColor::Red : FColor::Blue, true);
+				DrawDebugLine(DebugWorld, V0, V1, bNegX ? FColor::Red : FColor::Blue, true);
+				DrawDebugLine(DebugWorld, V1, V2, bNegX ? FColor::Red : FColor::Blue, true);
+				DrawDebugLine(DebugWorld, V2, V0, bNegX ? FColor::Red : FColor::Blue, true);
 			}
 #endif // SHOW_NAV_EXPORT_PREVIEW
 		}
@@ -696,13 +693,24 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodyConvexElements(UBodySetup& BodySetup,
 	const int32 ConvexCount = BodySetup.AggGeom.ConvexElems.Num();
 	FKConvexElem const * ConvexElem = BodySetup.AggGeom.ConvexElems.GetData();
 
+	const FTransform NegXScale(FQuat::Identity, FVector::ZeroVector, FVector(-1, 1, 1));
+
 	for(int32 i=0; i< ConvexCount; ++i, ++ConvexElem)
 	{
 		// Store index of first vertex in shape buffer
 		ShapeBuffer.Add(VertexBuffer.Num() / 3);
 
 		// Get verts/triangles from this hull.
-		ExportPxConvexMesh(ConvexElem->ConvexMesh, ConvexElem->Transform * LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
+		if (!ConvexElem->ConvexMesh && ConvexElem->ConvexMeshNegX)
+		{
+			// If there is only a NegX mesh (e.g. a mirrored volume), use it
+			ExportPxConvexMesh(ConvexElem->ConvexMeshNegX, NegXScale * ConvexElem->Transform * LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
+		}
+		else
+		{
+			// Otherwise use the regular mesh in the case that both exist
+			ExportPxConvexMesh(ConvexElem->ConvexMesh, ConvexElem->Transform * LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
+		}
 	}
 #endif // WITH_PHYSX
 }

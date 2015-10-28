@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2662759
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:アクタとジオメトリ
 Crumbs:%ROOT%, Engine
 Description:アクタの定義および配置と操作テクニックを含む、レベル デザインにおけるアクタの使用方法
 Navigation:topic
+parent:Engine/Editor
+order:5
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

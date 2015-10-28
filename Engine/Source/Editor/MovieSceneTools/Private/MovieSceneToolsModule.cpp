@@ -20,7 +20,7 @@
 #include "TransformTrackEditor.h"
 #include "ShotTrackEditor.h"
 #include "SlomoTrackEditor.h"
-#include "SubMovieSceneTrackEditor.h"
+#include "SubTrackEditor.h"
 #include "AudioTrackEditor.h"
 #include "SkeletalAnimationTrackEditor.h"
 #include "ParticleTrackEditor.h"
@@ -29,6 +29,7 @@
 #include "PathTrackEditor.h"
 #include "MaterialTrackEditor.h"
 #include "FadeTrackEditor.h"
+#include "SpawnTrackEditor.h"
 
 
 /**
@@ -62,10 +63,11 @@ public:
 		PathTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DPathTrackEditor::CreateTrackEditor ) );
 		ShotTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FShotTrackEditor::CreateTrackEditor ) );
 		SlomoTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSlomoTrackEditor::CreateTrackEditor ) );
-		SubMovieSceneTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSubMovieSceneTrackEditor::CreateTrackEditor ) );
+		SubTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSubTrackEditor::CreateTrackEditor ) );
 		TransformTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DTransformTrackEditor::CreateTrackEditor ) );
-		ComponentMaterialTrackCreatEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FComponentMaterialTrackEditor::CreateTrackEditor ) );
-		FadeTrackCreatEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FFadeTrackEditor::CreateTrackEditor ) );
+		ComponentMaterialTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FComponentMaterialTrackEditor::CreateTrackEditor ) );
+		FadeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FFadeTrackEditor::CreateTrackEditor ) );
+		SpawnTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSpawnTrackEditor::CreateTrackEditor ) );
 	}
 
 	virtual void ShutdownModule() override
@@ -94,10 +96,11 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( PathTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( ShotTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( SlomoTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( SubMovieSceneTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( SubTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( TransformTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( ComponentMaterialTrackCreatEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( FadeTrackCreatEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( ComponentMaterialTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( FadeTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( SpawnTrackCreateEditorHandle );
 	}
 
 private:
@@ -118,10 +121,11 @@ private:
 	FDelegateHandle PathTrackCreateEditorHandle;
 	FDelegateHandle ShotTrackCreateEditorHandle;
 	FDelegateHandle SlomoTrackCreateEditorHandle;
-	FDelegateHandle SubMovieSceneTrackCreateEditorHandle;
+	FDelegateHandle SubTrackCreateEditorHandle;
 	FDelegateHandle TransformTrackCreateEditorHandle;
-	FDelegateHandle ComponentMaterialTrackCreatEditorHandle;
-	FDelegateHandle FadeTrackCreatEditorHandle;
+	FDelegateHandle ComponentMaterialTrackCreateEditorHandle;
+	FDelegateHandle FadeTrackCreateEditorHandle;
+	FDelegateHandle SpawnTrackCreateEditorHandle;
 };
 
 

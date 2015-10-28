@@ -3,14 +3,36 @@ Title: Introduction to Blueprints
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:If you are just getting started with Blueprints, this provides a high-level overview of what they are and what they can do. 
 version: 4.9
+parent:Engine/Blueprints
+order:1
+type:reference
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](blueprint_topic.png)
+		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
 	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/GettingStarted:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/GettingStarted:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/GettingStarted]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/GettingStarted:title%

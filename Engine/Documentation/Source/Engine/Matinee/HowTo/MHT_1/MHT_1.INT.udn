@@ -21,7 +21,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. From the **Unreal Project Browser** window, create a **New Project** and use the **Blueprint Third Person** template. 
 
-	![](MHT1_CreateProject.png)(w:640)
+	![](MatineeHowTo.jpg)(w:640)
 
 1. Make sure that **Include starter content** is enabled. 
 
@@ -44,7 +44,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 	![](MHT1_DoorFrame.png)(w:480)
 
 	[Region:note]
-	If you do not see the **Props** folder, refer to the **Creating the Project** step and make sure that you enabled **Include starter content**.
+	If you do not see the **Props** folder, refer to the **Creating the Project** step and make sure that you enabled **Include Starter Content**.
 	[/Region]
 
 1. **Left-Click** on the **SM_DoorFrame** Static Mesh and drag-and-drop it into the **Level Viewport**. 

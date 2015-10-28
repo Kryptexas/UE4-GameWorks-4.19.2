@@ -472,3 +472,27 @@ struct FTCharArrayTester
 	NetConnection->Close(); \
 	PerfCountersIncrement(TEXT("ClosedConnectionsDueToSecurityViolations")); \
 }
+
+extern CORE_API int32 GEnsureOnNANDiagnostic;
+
+// Macro to either log an error or ensure on a NaN error.
+#if DO_CHECK
+namespace UE4Asserts_Private
+{
+	CORE_API void VARARGS InternalLogNANDiagnosticMessage(const TCHAR* FormattedMsg, ...); // UE_LOG(LogCore, Error, _FormatString_, ##__VA_ARGS__);
+}
+#define logOrEnsureNanError(_FormatString_, ...) \
+	if (!GEnsureOnNANDiagnostic)\
+	{\
+		if (UE4Asserts_Private::TrueOnFirstCallOnly([]{}))\
+		{\
+			UE4Asserts_Private::InternalLogNANDiagnosticMessage(_FormatString_, ##__VA_ARGS__); \
+		}\
+	}\
+	else\
+	{\
+		ensureMsgf(!GEnsureOnNANDiagnostic, _FormatString_, ##__VA_ARGS__); \
+	}
+#else
+#define logOrEnsureNanError(_FormatString_, ...)
+#endif // DO_CHECK

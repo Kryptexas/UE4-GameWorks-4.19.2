@@ -1,12 +1,48 @@
-﻿INTSourceChangelist:2677665
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリントのベスト プラクティス
 Crumbs:%ROOT%, Engine/Blueprints
 Description:ブループリントをいつ使用して、どのような設定がベストなのかを判断するためのヒントとトリック
-バージョン：4.9
+version: 4.9
+parent:Engine/Blueprints
+order:2
+type:howto
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](Engine/Blueprints/BestPractices_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/Blueprints/BestPractices_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2)]
-
 
 
 ブループリントを使って様々な事ができます。簡単なゲームやプロシージャルコンテントツールの作成、新機能のプロトタイピング、プログラマーが作成したゲームの微調整や磨き上げなどを

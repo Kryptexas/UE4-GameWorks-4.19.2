@@ -7,81 +7,8 @@
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimInstance.h"
 
-#define NOTIFY_TRIGGER_OFFSET KINDA_SMALL_NUMBER;
 
-float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type OffsetType)
-{
-	switch (OffsetType)
-	{
-	case EAnimEventTriggerOffsets::OffsetBefore:
-		{
-			return -NOTIFY_TRIGGER_OFFSET;
-			break;
-		}
-	case EAnimEventTriggerOffsets::OffsetAfter:
-		{
-			return NOTIFY_TRIGGER_OFFSET;
-			break;
-		}
-	case EAnimEventTriggerOffsets::NoOffset:
-		{
-			return 0.f;
-			break;
-		}
-	default:
-		{
-			check(false); // Unknown value supplied for OffsetType
-			break;
-		}
-	}
-	return 0.f;
-}
-
-/////////////////////////////////////////////////////
-// FAnimNotifyEvent
-
-void FAnimNotifyEvent::RefreshTriggerOffset(EAnimEventTriggerOffsets::Type PredictedOffsetType)
-{
-	if(PredictedOffsetType == EAnimEventTriggerOffsets::NoOffset || TriggerTimeOffset == 0.f)
-	{
-		TriggerTimeOffset = GetTriggerTimeOffsetForType(PredictedOffsetType);
-	}
-}
-
-void FAnimNotifyEvent::RefreshEndTriggerOffset( EAnimEventTriggerOffsets::Type PredictedOffsetType )
-{
-	if(PredictedOffsetType == EAnimEventTriggerOffsets::NoOffset || EndTriggerTimeOffset == 0.f)
-	{
-		EndTriggerTimeOffset = GetTriggerTimeOffsetForType(PredictedOffsetType);
-	}
-}
-
-float FAnimNotifyEvent::GetTriggerTime() const
-{
-	return GetTime() + TriggerTimeOffset;
-}
-
-float FAnimNotifyEvent::GetEndTriggerTime() const
-{
-	return GetTriggerTime() + GetDuration() + EndTriggerTimeOffset;
-}
-
-float FAnimNotifyEvent::GetDuration() const
-{
-	return NotifyStateClass ? EndLink.GetTime() - GetTime() : 0.0f;
-}
-
-void FAnimNotifyEvent::SetDuration(float NewDuration)
-{
-	Duration = NewDuration;
-	EndLink.SetTime(GetTime() + Duration);
-}
-
-void FAnimNotifyEvent::SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame /*= EAnimLinkMethod::Absolute*/)
-{
-	FAnimLinkableElement::SetTime(NewTime, ReferenceFrame);
-	SetDuration(Duration);
-}
+DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
 /////////////////////////////////////////////////////
 
@@ -313,6 +240,7 @@ void UAnimSequenceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class
 			{
 				// Advance time
 				FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
+				UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
 			}
 		}
 
@@ -328,6 +256,7 @@ void UAnimSequenceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class
 		else
 		{
 			CurrentTime = Context.GetAnimationPositionRatio() * SequenceLength;
+			UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normal advance) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
 		}
 
 
@@ -358,6 +287,7 @@ void UAnimSequenceBase::TickByMarkerAsFollower(FMarkerTickRecord &Instance, FMar
 	OutPreviousTime = CurrentTime;
 
 	AdvanceMarkerPhaseAsFollower(MarkerContext, MoveDelta, bLooping, CurrentTime, Instance.PreviousMarker, Instance.NextMarker);
+	UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping(%d) "), *GetName(), OutPreviousTime, CurrentTime, MoveDelta, bLooping ? 1 : 0);
 }
 
 void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarkerTickContext& MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const
@@ -374,6 +304,8 @@ void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarke
 	AdvanceMarkerPhaseAsLeader(bLooping, MoveDelta, MarkerContext.GetValidMarkerNames(), CurrentTime, Instance.PreviousMarker, Instance.NextMarker, MarkerContext.MarkersPassedThisTick);
 
 	MarkerContext.SetMarkerSyncEndPosition(GetMarkerSyncPositionfromMarkerIndicies(Instance.PreviousMarker.MarkerIndex, Instance.NextMarker.MarkerIndex, CurrentTime));
+
+	UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping(%d) "), *GetName(), OutPreviousTime, CurrentTime, MoveDelta, bLooping ? 1 : 0);
 }
 
 void UAnimSequenceBase::RefreshCacheData()

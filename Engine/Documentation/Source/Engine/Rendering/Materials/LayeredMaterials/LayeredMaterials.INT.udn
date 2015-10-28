@@ -2,6 +2,7 @@ Availability: Public
 Title:Layered Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:An introductory document on the Layered Materials technique in UE4.
+Version: 4.9
 
 [REGION:fullwidth]
 ![](LayeredMaterials.png)
@@ -9,7 +10,7 @@ Description:An introductory document on the Layered Materials technique in UE4.
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 Layered Materials can be thought of as "Materials within Materials." They provide a means to create a single Material that has a series of sub-Materials (or _layers_) that can be placed across the surface of your objects using per-pixel operations, such as masks. They are perfect for handling complex blending between unique surface types. In the image of the rockets above, the rocket on the far right is using separate Material Layers, including chrome, aluminum, and copper, and is blending between each material on a per-pixel basis. This effect is easily achieved with Layered Materials.
 
@@ -17,17 +18,17 @@ As a feature, Layered Materials exist as an extension of Material Functions. Fun
 
 ![](ChromeLayer.png)(w:600)
 
-In the image above, we have created a simple chrome material, entirely within a Material Function, via a Make Material Attributes node. This function can now be used as a Material Layer, and can be blended with other Material Layers.
+In the image above, we have created a simple chrome material, entirely within a Material Function, via a **Make Material Attributes** node. This function can now be used as a **Material Layer**, and can be blended with other Material Layers.
 
 It is important to realize that since Material Functions cannot be applied directly to a surface, you need to bring your Material Layer functions into a new Material, which can then be applied to your objects. The great thing about this is that you can bring in as many Material Layers as you wish, blending them together however you see fit.
 
 So, at a high level, the workflow goes like this:
 
 * Make your new Material and tweak it to perfection.
-* In the **Content Browser**, create a new Material Function and copy/paste all your Material Function nodes into it.
+* In the Content Browser, create a new Material Function and copy/paste all your Material Function nodes into it.
 * Connect your network to a new Make Material Attributes node, and connect it to the Function output.
 * Save the function.
-* Drag and drop the function from the **Content Browser** into the Material Editor. It is now a Material Layer.
+* Drag and drop the function from the Content Browser into the Material Editor. It is now a Material Layer.
 * Blend multiple Material Layers together using the Material Layer Blend functions.
 
 

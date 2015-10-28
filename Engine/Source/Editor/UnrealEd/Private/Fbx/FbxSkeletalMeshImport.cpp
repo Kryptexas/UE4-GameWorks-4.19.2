@@ -638,20 +638,23 @@ void UnFbx::FFbxImporter::BuildSkeletonSystem(TArray<FbxCluster*>& ClusterArray,
 	for (ClusterIndex = 0; ClusterIndex < ClusterArray.Num(); ClusterIndex++)
 	{
 		Link = ClusterArray[ClusterIndex]->GetLink();
-		Link = GetRootSkeleton(Link);
-		int32 LinkIndex;
-		for (LinkIndex=0; LinkIndex<RootLinks.Num(); LinkIndex++)
+		if (Link)
 		{
-			if (Link == RootLinks[LinkIndex])
+			Link = GetRootSkeleton(Link);
+			int32 LinkIndex;
+			for (LinkIndex = 0; LinkIndex < RootLinks.Num(); LinkIndex++)
 			{
-				break;
+				if (Link == RootLinks[LinkIndex])
+				{
+					break;
+				}
 			}
-		}
-		
-		// this link is a new root, add it
-		if (LinkIndex == RootLinks.Num())
-		{
-			RootLinks.Add(Link);
+
+			// this link is a new root, add it
+			if (LinkIndex == RootLinks.Num())
+			{
+				RootLinks.Add(Link);
+			}
 		}
 	}
 

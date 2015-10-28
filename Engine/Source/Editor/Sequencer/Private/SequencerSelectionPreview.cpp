@@ -4,7 +4,7 @@
 #include "SequencerSelectionPreview.h"
 #include "MovieSceneSection.h"
 
-void FSequencerSelectionPreview::SetSelectionState(FSelectedKey Key, ESelectionPreviewState InState)
+void FSequencerSelectionPreview::SetSelectionState(FSequencerSelectedKey Key, ESelectionPreviewState InState)
 {
 	if (InState == ESelectionPreviewState::Undefined)
 	{
@@ -28,7 +28,7 @@ void FSequencerSelectionPreview::SetSelectionState(UMovieSceneSection* Section, 
 	}
 }
 
-ESelectionPreviewState FSequencerSelectionPreview::GetSelectionState(FSelectedKey Key) const
+ESelectionPreviewState FSequencerSelectionPreview::GetSelectionState(FSequencerSelectedKey Key) const
 {
 	if (auto* State = DefinedKeyStates.Find(Key))
 	{

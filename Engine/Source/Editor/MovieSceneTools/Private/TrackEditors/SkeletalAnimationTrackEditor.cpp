@@ -83,29 +83,11 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 		FLinearColor(0.7f, 0.4f, 0.7f, 1.f)
 	);
 
-	// Darken the part that doesn't have animation
-	if (AnimSection->GetAnimationStartTime() > AnimSection->GetStartTime())
-	{
-		float StartDarkening = AnimSection->GetStartTime();
-		float EndDarkening = FMath::Min(AnimSection->GetAnimationStartTime(), AnimSection->GetEndTime());
-		
-		float StartPixels = TimeToPixelConverter.TimeToPixel(StartDarkening);
-		float EndPixels = TimeToPixelConverter.TimeToPixel(EndDarkening);
-
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId + 1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(StartPixels, 0), FVector2D(EndPixels - StartPixels, AllottedGeometry.Size.Y)),
-			FEditorStyle::GetBrush("WhiteTexture"),
-			SectionClippingRect,
-			DrawEffects,
-			FLinearColor(0.f, 0.f, 0.f, 0.3f)
-		);
-	}
-
 	// Add lines where the animation starts and ends/loops
-	float CurrentTime = AnimSection->GetAnimationStartTime();
-	while (CurrentTime < AnimSection->GetEndTime() && !FMath::IsNearlyZero(AnimSection->GetAnimationDuration()))
+	float CurrentTime = AnimSection->GetStartTime();
+	float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
+	float SeqLength = (AnimSection->GetSequenceLength() - (AnimSection->GetStartOffset() + AnimSection->GetEndOffset())) / AnimPlayRate;
+	while (CurrentTime < AnimSection->GetEndTime() && !FMath::IsNearlyZero(AnimSection->GetDuration()) && SeqLength > 0)
 	{
 		if (CurrentTime > AnimSection->GetStartTime())
 		{
@@ -124,7 +106,7 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 				DrawEffects
 			);
 		}
-		CurrentTime += AnimSection->GetAnimationDuration();
+		CurrentTime += SeqLength;
 	}
 
 	return LayerId+3;

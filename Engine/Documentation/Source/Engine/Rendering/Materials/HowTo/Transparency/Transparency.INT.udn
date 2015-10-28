@@ -5,6 +5,8 @@ Description:A How To Guide for using Transparency in your Materials
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/Functions/Reference/Opacity
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
+Version:4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:3)]
 
@@ -16,7 +18,7 @@ However inside of Unreal Engine 4(UE4), Transparency is used to describe if a su
 
 ## Transparency
 
-Transparency is the term used to describe a surface's ability to block or allow the passage of light. 
+**Transparency** is the term used to describe a surface's ability to block or allow the passage of light. 
 For example, a brick would be an object that has no Transparency while stained glass would be an object that has Transparency.
 Inside UE4, Transparency works by allowing pixels to not be 100% Opaque, or non see-through, but have some varying degree of Transparency, or see-through. 
  
@@ -187,11 +189,11 @@ Shader Complexity mode shows you how complex a given surface is to render by usi
 The more green that you see, the cheaper things are to render and the more red that you see, the more and more expensive things become to render. 
 To enable this view mode, all you have to do is the following.
 
-1. To enable **Shader Complexity**, use the **Left Mouse Button** to click on the **View Mode** option at the top of the Editor Viewport. Currently the **View Mode** is set to **Lit** the default. 
+1. To enable **Shader Complexity**, use the Left Mouse Button to click on the **View Mode** option at the top of the Editor Viewport. Currently the **View Mode** is set to **Lit** the default. 
 
 	![](Trans_SC_View_Mode.png)
 
-1. Once you click on the **View Mode** with the **Left Mouse Button**, a menu will appear. From the menu, select the **Shader Complexity** option.
+1. Once you click on the **View Mode** with the Left Mouse Button, a menu will appear. From the menu, select the **Shader Complexity** option.
 
 	![](Trans_Set_To_SC.png)
 
@@ -227,7 +229,7 @@ Notice how the smoke will be in front of the meshes and then all of a sudden it 
 To prevent this from happening, the **Translucency Sort Priority** needs to be set so that the VFX of the smoke will always render on top of other translucency in the scene.
 To change the **Translucency Sort Priority** on the VFX, do the following. 
 
-1. First select the object or objects that you want to render on top of all other Translucency in the level by clicking on them with the **Left Mouse Button**. For this example, we will be selecting the smoke VFX. 
+1. First select the object or objects that you want to render on top of all other Translucency in the level by clicking on them with the Left Mouse Button. For this example, we will be selecting the smoke VFX. 
 
 	![](Trans_Select_VFX.png)
 

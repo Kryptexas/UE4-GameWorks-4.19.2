@@ -35,8 +35,14 @@ struct ENGINE_API FCollisionQueryParams
 	/** Only fill in the PhysMaterial field of  */
 	bool bReturnPhysicalMaterial;
 
+	/** Whether to ignore blocking results. */
+	bool bIgnoreBlocks;
+
 	/** TArray typedef of components to ignore. */
 	typedef TArray<uint32, TInlineAllocator<NumInlinedActorComponents>> IgnoreComponentsArrayType;
+
+	/** Extra filtering done on the query. See declaration for filtering logic */
+	FMaskFilter IgnoreMask;
 
 private:
 
@@ -76,6 +82,8 @@ public:
 		bReturnFaceIndex = false;
 		bReturnPhysicalMaterial = false;
 		bComponentListUnique = true;
+		IgnoreMask = 0;
+		bIgnoreBlocks = false;
 	}
 
 	FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex=false, const AActor* InIgnoreActor=NULL);
@@ -255,14 +263,19 @@ struct ENGINE_API FCollisionObjectQueryParams
 	/** Set of object type queries that it is interested in **/
 	int32 ObjectTypesToQuery;
 
+	/** Extra filtering done during object query. See declaration for filtering logic */
+	FMaskFilter IgnoreMask;
+
 	FCollisionObjectQueryParams()
 		: ObjectTypesToQuery(0)
+		, IgnoreMask(0)
 	{
 	}
 
 	FCollisionObjectQueryParams(ECollisionChannel QueryChannel)
 	{
 		ObjectTypesToQuery = ECC_TO_BITFIELD(QueryChannel);
+		IgnoreMask = 0;
 	}
 
 	FCollisionObjectQueryParams(const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes)
@@ -273,6 +286,8 @@ struct ENGINE_API FCollisionObjectQueryParams
 		{
 			AddObjectTypesToQuery(UEngineTypes::ConvertToCollisionChannel((*Iter).GetValue()));
 		}
+
+		IgnoreMask = 0;
 	}
 
 	FCollisionObjectQueryParams(enum FCollisionObjectQueryParams::InitType QueryType)
@@ -289,6 +304,8 @@ struct ENGINE_API FCollisionObjectQueryParams
 			ObjectTypesToQuery = FCollisionQueryFlag::Get().GetAllDynamicObjectsQueryFlag();
 			break;
 		}
+
+		IgnoreMask = 0;
 		
 	};
 
@@ -297,6 +314,7 @@ struct ENGINE_API FCollisionObjectQueryParams
 	FCollisionObjectQueryParams(int32 InObjectTypesToQuery)
 	{
 		ObjectTypesToQuery = InObjectTypesToQuery;
+		IgnoreMask = 0;
 		DoVerify();
 	}
 

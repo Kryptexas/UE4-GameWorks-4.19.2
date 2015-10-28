@@ -17,7 +17,7 @@ UNiagaraMovieSceneSection::UNiagaraMovieSceneSection(const FObjectInitializer& O
 /*
  *  This is called when the user edits a track in the effect editor timeline
  */
-void INiagaraTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
+void INiagaraTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	// every track should have exactly one section, always
 	check(Track->GetAllSections().Num() == 1)

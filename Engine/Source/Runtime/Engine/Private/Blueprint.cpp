@@ -1228,8 +1228,7 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 				bMigratedOwner = true;
 			}
 
-			TArray<USCS_Node*> SCSNodes = SCS->GetAllNodes();
-			for (auto SCSNode : SCSNodes)
+			for (USCS_Node* SCSNode : SCS->GetAllNodes())
 			{
 				UActorComponent* Component = SCSNode ? SCSNode->ComponentTemplate : NULL;
 				if (Component && Component->GetOuter() == this)

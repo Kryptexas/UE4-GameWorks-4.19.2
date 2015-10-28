@@ -494,6 +494,7 @@ private:
 
 		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames ) const 
 		{
+			FScopeLock ScopeLock(&SynchronizationObject);
 			const TArray<FName>* Platforms = PlatformList.Find( Filename );
 			if ( Platforms == NULL )
 				return false;
@@ -508,6 +509,7 @@ private:
 
 		bool Exists(const FName& Filename)
 		{
+			FScopeLock ScopeLock(&SynchronizationObject);
 			const TArray<FName>* Platforms = PlatformList.Find(Filename);
 			if (Platforms == NULL)
 				return false;

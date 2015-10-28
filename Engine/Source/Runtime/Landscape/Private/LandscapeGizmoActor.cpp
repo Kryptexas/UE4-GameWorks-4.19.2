@@ -870,7 +870,7 @@ void ALandscapeGizmoActiveActor::SampleData(int32 SizeX, int32 SizeY)
 
 		GizmoTexture->TemporarilyDisableStreaming();
 		FUpdateTextureRegion2D Region(0, 0, 0, 0, TexSizeX, TexSizeY);
-		GizmoTexture->UpdateTextureRegions(0, 1, &Region, GizmoTexSizeX, sizeof(uint8), TexData, false);
+		GizmoTexture->UpdateTextureRegions(0, 1, &Region, GizmoTexSizeX, sizeof(uint8), TexData);
 		FlushRenderingCommands();
 		GizmoTexture->Source.UnlockMip(0);
 

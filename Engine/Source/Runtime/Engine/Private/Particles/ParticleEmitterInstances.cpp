@@ -628,7 +628,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 #if ENABLE_NAN_DIAGNOSTIC
 		if (SimulationToWorld.ContainsNaN())
 		{
-			ensure(!GEnsureOnNANDiagnostic);
+			logOrEnsureNanError(TEXT("FParticleEmitterInstance::UpdateTransforms() - SimulationToWorld contains NaN!"));
 			SimulationToWorld = FMatrix::Identity;
 		}
 #endif

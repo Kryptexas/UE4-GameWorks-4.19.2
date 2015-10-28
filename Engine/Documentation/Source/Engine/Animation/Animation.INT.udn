@@ -3,6 +3,8 @@ Title: Persona: Skeletal Mesh Animation
 Crumbs: %ROOT%, Engine
 Description:System for deforming skeletal meshes based on keyframed animation data and morph targets.
 Navigation:topic
+parent:Engine
+order:3
 
 [VAR:Topic]
 [OBJECT:Topic]

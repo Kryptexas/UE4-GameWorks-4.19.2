@@ -9,6 +9,7 @@
 #include "OnlineJsonSerializer.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
+#include "OnlineSubsystemNames.h"
 
 ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnline, Display, All);
 ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnlineGame, Display, All);
@@ -70,6 +71,15 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnConnectionStatusChanged, EOnlineServerCo
 typedef FOnConnectionStatusChanged::FDelegate FOnConnectionStatusChangedDelegate;
 
 /**
+ * Delegate fired when the PSN environment changes
+ *
+ * @param LastEnvironment - old online environment
+ * @param Environment - current online environment
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnOnlineEnvironmentChanged, EOnlineEnvironment::Type /*LastEnvironment*/, EOnlineEnvironment::Type /*Environment*/);
+typedef FOnOnlineEnvironmentChanged::FDelegate FOnOnlineEnvironmentChangedDelegate;
+
+/**
  *	OnlineSubsystem - Series of interfaces to support communicating with various web/platform layer services
  */
 class ONLINESUBSYSTEM_API IOnlineSubsystem
@@ -98,6 +108,46 @@ public:
   	}
 
 	/** 
+	 * Get the online subsystem based on current platform
+	 *
+	 * @param bAutoLoad - load the module if not already loaded
+	 *
+	 * @return pointer to the appropriate online subsystem
+	 */
+	static IOnlineSubsystem* GetByPlatform(bool bAutoLoad=true)
+	{
+		if (PLATFORM_PS4)
+		{
+			if (bAutoLoad || IOnlineSubsystem::IsLoaded(PS4_SUBSYSTEM))
+			{
+				return IOnlineSubsystem::Get(PS4_SUBSYSTEM);
+			}
+		}
+		else if (PLATFORM_XBOXONE)
+		{
+			if (bAutoLoad || IOnlineSubsystem::IsLoaded(LIVE_SUBSYSTEM))
+			{
+				return IOnlineSubsystem::Get(LIVE_SUBSYSTEM);
+			}
+		}
+		else if (PLATFORM_ANDROID)
+		{
+			if (bAutoLoad || IOnlineSubsystem::IsLoaded(GOOGLEPLAY_SUBSYSTEM))
+			{
+				return IOnlineSubsystem::Get(GOOGLEPLAY_SUBSYSTEM);
+			}
+		}
+		else if (PLATFORM_IOS)
+		{
+			if (bAutoLoad || IOnlineSubsystem::IsLoaded(IOS_SUBSYSTEM))
+			{
+				return IOnlineSubsystem::Get(IOS_SUBSYSTEM);
+			}
+		}
+		return nullptr;
+  	}
+
+	/** 
 	 * Destroy a single online subsystem instance
 	 * @param SubsystemName - Name of the online service to destroy
 	 */
@@ -106,6 +156,20 @@ public:
 		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
 		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName);
 		return OSSModule.DestroyOnlineSubsystem(SubsystemName);
+	}
+
+	/**
+	 * Unload the current default subsystem and attempt to reload the configured default subsystem
+	 * May be different if the fallback subsystem was created an startup
+	 *
+	 * **NOTE** This is intended for editor use only, attempting to use this at the wrong time can result
+	 * in unexpected crashes/behavior
+	 */
+	static void ReloadDefaultSubsystem()
+	{
+		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
+		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName);
+		return OSSModule.ReloadDefaultSubsystem();
 	}
 
 	/**
@@ -399,6 +463,19 @@ public:
 	 * @param ConnectionState current state of the connection
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnConnectionStatusChanged, EOnlineServerConnectionStatus::Type /*LastConnectionState*/, EOnlineServerConnectionStatus::Type /*ConnectionState*/);
+
+	/**
+	 * @return the current environment being used for the online platform
+	 */
+	virtual EOnlineEnvironment::Type GetOnlineEnvironment() const = 0;
+
+	/**
+	 * Delegate fired when the online environment changes
+	 *
+	 * @param LastEnvironment - old online environment
+	 * @param Environment - current online environment
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnOnlineEnvironmentChanged, EOnlineEnvironment::Type /*LastEnvironment*/, EOnlineEnvironment::Type /*Environment*/);
 };
 
 /** Public references to the online subsystem pointer should use this */

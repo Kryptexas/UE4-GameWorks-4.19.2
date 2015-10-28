@@ -5,7 +5,6 @@
 #include "StaticMeshResources.h"
 #include "SlateMeshData.h"
 
-
 static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FSlateMeshVertex>& OutSlateVerts, TArray<uint32>& OutIndexes)
 {
 	const FStaticMeshLODResources& LOD = DataSource.RenderData->LODResources[0];
@@ -16,18 +15,6 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 	}
 	else
 	{
-		// Populate Index data
-		{
-			FIndexArrayView SourceIndexes = LOD.IndexBuffer.GetArrayView();
-			const int32 NumIndexes = SourceIndexes.Num();
-			OutIndexes.Empty();
-			OutIndexes.Reserve(NumIndexes);
-			for (int32 i = 0; i < NumIndexes; ++i)
-			{
-				OutIndexes.Add(SourceIndexes[i]);
-			}
-		}
-
 		// Populate Vertex Data
 		{
 			const uint32 NumVerts = LOD.PositionVertexBuffer.GetNumVertices();
@@ -74,6 +61,38 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 				));
 			}
 		}
+
+		// Populate Index data
+		{
+			FIndexArrayView SourceIndexes = LOD.IndexBuffer.GetArrayView();
+			const int32 NumIndexes = SourceIndexes.Num();
+			OutIndexes.Empty();
+			OutIndexes.Reserve(NumIndexes);
+			for (int32 i = 0; i < NumIndexes; ++i)
+			{
+				OutIndexes.Add(SourceIndexes[i]);
+			}
+
+
+			// Sort the index buffer such that verts are drawn in Z-order.
+			// Assume that all triangles are coplanar with Z == SomeValue.
+			ensure(NumIndexes % 3 == 0);
+			for (int32 a = 0; a < NumIndexes; a += 3)
+			{
+				for (int32 b = 0; b < NumIndexes; b += 3)
+				{
+					const float VertADepth = LOD.PositionVertexBuffer.VertexPosition(OutIndexes[a]).Z;
+					const float VertBDepth = LOD.PositionVertexBuffer.VertexPosition(OutIndexes[b]).Z;
+					if ( VertADepth < VertBDepth )
+					{
+						// Swap the order in which triangles will be drawn
+						Swap(OutIndexes[a + 0], OutIndexes[b + 0]);
+						Swap(OutIndexes[a + 1], OutIndexes[b + 1]);
+						Swap(OutIndexes[a + 2], OutIndexes[b + 2]);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -87,6 +106,15 @@ USlateMeshData::USlateMeshData(const FObjectInitializer& ObjectInitializer)
 void USlateMeshData::InitFromStaticMesh(const UStaticMesh& InSourceMesh)
 {
 	Material = InSourceMesh.GetMaterial(0);
-	StaticMeshToSlateRenderData(InSourceMesh, VertexData, IndexData );
-	
+
+	ensureMsgf(Material != nullptr, TEXT("USlateMeshData::InitFromStaticMesh() expected %s to have a material assigned."), *InSourceMesh.GetFullName());
+
+	StaticMeshToSlateRenderData(InSourceMesh, VertexData, IndexData );	
+}
+
+UMaterialInstanceDynamic* USlateMeshData::ConvertToMaterialInstanceDynamic()
+{
+	UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(Material, this);
+	Material = NewMID;
+	return NewMID;
 }

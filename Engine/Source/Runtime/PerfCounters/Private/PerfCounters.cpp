@@ -84,7 +84,7 @@ bool FPerfCounters::Initialize()
 	return true;
 }
 
-FString FPerfCounters::ToJson() const
+FString FPerfCounters::GetAllCountersAsJson()
 {
 	FString JsonStr;
 	TSharedRef< TJsonWriter<> > Json = TJsonWriterFactory<>::Create(&JsonStr);
@@ -108,7 +108,7 @@ FString FPerfCounters::ToJson() const
 			}
 			else
 			{
-				// write an explict null since the callback is unbound and the implication is this would have been an object
+				// write an explicit null since the callback is unbound and the implication is this would have been an object
 				Json->WriteNull(It.Key);
 			}
 			break;
@@ -122,6 +122,20 @@ FString FPerfCounters::ToJson() const
 	Json->Close();
 	return JsonStr;
 }
+
+void FPerfCounters::ResetStatsForNextPeriod()
+{
+	UE_LOG(LogPerfCounters, Verbose, TEXT("Clearing perf counters."));
+	for (TMap<FString, FJsonVariant>::TIterator It(PerfCounterMap); It; ++It)
+	{
+		if (It.Value().Flags & IPerfCounters::Flags::Transient)
+		{
+			UE_LOG(LogPerfCounters, Verbose, TEXT("  Removed '%s'"), *It.Key());
+			It.RemoveCurrent();
+		}
+	}
+};
+
 
 static bool SendAsUtf8(FSocket* Conn, const FString& Message)
 {
@@ -231,15 +245,7 @@ bool FPerfCounters::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 
 	if (FParse::Command(&Cmd, TEXT("clear")))
 	{
-		UE_LOG(LogPerfCounters, Verbose, TEXT("Clearing perf counters."));
-		for (TMap<FString, FJsonVariant>::TIterator It(PerfCounterMap); It; ++It)
-		{
-			if (It.Value().Flags & IPerfCounters::Flags::Transient)
-			{
-				UE_LOG(LogPerfCounters, Verbose, TEXT("  Removed '%s'"), *It.Key());
-				It.RemoveCurrent();
-			}
-		}
+		ResetStatsForNextPeriod();
 		return true;
 	}
 
@@ -272,21 +278,14 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 			}
 			else if (Tokens[1].StartsWith(TEXT("/stats")))
 			{
-				Response.Body = ToJson();
+				Response.Body = GetAllCountersAsJson();
 
 				// retrieving stats resets them by default, unless ?peek parameter is passed
 				const int kStatsTokenLength = 6; // strlen("/stats");
 				FString TokenRemainder = Tokens[1].Mid(kStatsTokenLength);
 				if (TokenRemainder != TEXT("?peek"))
 				{
-					if (ExecCmdCallback.IsBound())
-					{
-						ExecCmdCallback.Execute(TEXT("perfcounters clear"), *GLog);
-					}
-					else
-					{
-						Exec(nullptr, TEXT("perfcounters clear"), *GLog);
-					}
+					ResetStatsForNextPeriod();
 				}
 			}
 			else if (Tokens[1].StartsWith(TEXT("/exec?c=")))

@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2678481
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:フォリッジ インスタンス化メッシュ
 Crumbs:%ROOT%, Engine
 Description:フォリッジまたは他のグラウンド カバー エフェクトとして使用するために、他のジオメトリのサーフェスでインスタンス化されたメッシュをレンダリングするシステム
 Version:4.9
 SkillLevel:Intermediate
+parent:Engine
+order:9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,9 +63,9 @@ SkillLevel:Intermediate
 
 フォリッジ ツールの実施例を見るには、 [](Resources\ContentExamples\Landscapes) の [フォリッジ](Resources\ContentExamples\Landscapes\1_3) にあるコンテンツ サンプルをご覧ください。
 
-## フォリッジ編集モード
+##フォリッジ編集モード
 
-フォリッジ ツールを使用するには、アンリアル エディタの左上隅にある **[Modes]** パネルの [Foliage] ボタンをクリックします。 
+フォリッジ ツールを使用するには、アンリアル エディタの左上隅にある **[Modes]** パネルの [Foliage] ボタン (**Shift+4**) をクリックします。 
 
 ![FoliageMode.png](FoliageMode.png)
  
@@ -107,11 +109,11 @@ SkillLevel:Intermediate
 
 ![](Foliage_Brush_Settings.png)
 
-**メッシュ** リストの上に、 メッシュ編集ツールが現在選択中のフォリッジ ツールに関連するプロパティを表示します。(全ての設定にそれぞれフォリッジ ツールが付いているわけではありません。)
+**メッシュ** リストの上に、メッシュ編集ツールが現在選択中のフォリッジ ツールに関連するプロパティを表示します。(全ての設定にそれぞれフォリッジ ツールが付いているわけではありません。)
 
 | アイテム | 説明 |
 | ---- | ----------- |
-| **Brush Size** | ブラシのサイズは、アンリアル単位によるブラシのサイズです。  | 
+| **Brush Size** | ブラシのサイズをアンリアル単位で決定します。 | 
 | **Paint Density** |  [INCLUDE:Engine/Foliage#PaintDensity] |
 | **Erase Density** |  [INCLUDE:Engine/Foliage#EraseDensity] |
 
@@ -150,7 +152,7 @@ SkillLevel:Intermediate
 [/REGION]
 
 ## フォリッジ ツール
-[Foliage] ウインドウの上部にあるツールバーから適切なボタンを選択すると、 5 つのツールを使用することができます。  
+[Foliage] ウインドウの上部にあるツールバーから適切なボタンを選択すると、5 つのツールを使用することができます。  
 
 | アイテム | 説明 |
 | --- | --- |
@@ -267,7 +269,7 @@ Fill ツールで消したいフォリッジメッシュを選べない場合は
 [/region]
 
 
-##カリング
+カリング
 
 フォリッジ インスタンスがクラスターとして単一のドローコールでレンダリングされるため、各クラスターは、オクルージョンに基づいてレンダリングの可否が決定されます。**End Cull Distance** パラメータに値が設定されていると、この距離を超えてもクラスターがカリングされます。ただし、クラスター全体が範囲外になると、メッシュのグループが突然消滅してしまうことになります。
 

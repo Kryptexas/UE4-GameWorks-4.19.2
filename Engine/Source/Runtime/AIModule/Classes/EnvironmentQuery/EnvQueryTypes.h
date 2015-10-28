@@ -8,6 +8,7 @@
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "EnvQueryTypes.generated.h"
 
+class AActor;
 class ARecastNavMesh;
 class UNavigationQueryFilter;
 class UEnvQueryTest;
@@ -15,6 +16,9 @@ class UEnvQueryGenerator;
 class UEnvQueryItemType_VectorBase;
 class UEnvQueryItemType_ActorBase;
 class UEnvQueryContext;
+class UEnvQuery;
+class UBlackboardData;
+class UBlackboardComponent;
 struct FEnvQueryInstance;
 struct FEnvQueryOptionInstance;
 struct FEnvQueryItemDetails;
@@ -72,7 +76,8 @@ namespace EEnvTestScoreEquation
 	{
 		Linear,
 		Square,
-		InverseLinear,	// For now...
+		InverseLinear,
+		SquareRoot,
 
 		Constant
 		// What other curve shapes should be supported?  At first I was thinking we'd have parametric (F*V^P + C), but
@@ -845,6 +850,28 @@ public:
 		INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 	}
 
+	/** AddItemData specialization for arrays if values */
+	template<typename TypeItem, typename TypeValue>
+	void AddItemData(TArray<TypeValue>& ItemCollection)
+	{
+		if (ItemCollection.Num() > 0)
+		{
+			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+
+			int32 DataOffset = RawData.AddUninitialized(ValueSize * ItemCollection.Num());
+			Items.Reserve(Items.Num() + ItemCollection.Num());
+
+			for (TypeValue& Item : ItemCollection)
+			{
+				TypeItem::SetValue(RawData.GetData() + DataOffset, Item);
+				Items.Add(FEnvQueryItem(DataOffset));
+				DataOffset += ValueSize;
+			}
+
+			INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+		}
+	}
+
 protected:
 
 	/** prepare item data after generator has finished */
@@ -1178,7 +1205,6 @@ namespace FEQSHelpers
 	AIMODULE_API const ANavigationData* FindNavigationDataForQuery(FEnvQueryInstance& QueryInstance);
 
 #if WITH_RECAST
-
 	DEPRECATED(4.8, "FindNavMeshForQuery is deprecated. Please use FindNavigationDataForQuery")
 	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
@@ -1201,7 +1227,49 @@ struct AIMODULE_API FAIDynamicParam
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EQS)
 	FBlackboardKeySelector BBKey;
 
+	FAIDynamicParam()
+	{
+		BBKey.AllowNoneAsValue(true);
+	}
+
 	void ConfigureBBKey(UObject &QueryOwner);
 
 	static void GenerateConfigurableParamsFromNamedValues(UObject &QueryOwner, TArray<FAIDynamicParam>& OutQueryConfig, TArray<FEnvNamedValue>& InQueryParams);
+};
+
+USTRUCT()
+struct FEQSParametrizedQueryExecutionRequest
+{
+	GENERATED_USTRUCT_BODY()
+
+	FEQSParametrizedQueryExecutionRequest();
+
+	UPROPERTY(Category = Node, EditAnywhere, meta = (EditCondition = "!bUseBBKeyForQueryTemplate"))
+	UEnvQuery* QueryTemplate;
+
+	UPROPERTY(Category = Node, EditAnywhere)
+	TArray<FAIDynamicParam> QueryConfig;
+	
+	/** blackboard key storing an EQS query template */
+	UPROPERTY(EditAnywhere, Category = Blackboard, meta = (EditCondition = "bUseBBKeyForQueryTemplate"))
+	FBlackboardKeySelector EQSQueryBlackboardKey;
+
+	/** determines which item will be stored (All = only first matching) */
+	UPROPERTY(Category = Node, EditAnywhere)
+	TEnumAsByte<EEnvQueryRunMode::Type> RunMode;
+
+	UPROPERTY()
+	uint32 bUseBBKeyForQueryTemplate : 1;
+
+	uint32 bInitialized : 1;
+
+	void InitForOwnerAndBlackboard(UObject& Owner, UBlackboardData* BBAsset);
+
+	bool IsValid() const { return bInitialized; }
+
+	int32 Execute(AActor& QueryOwner, const UBlackboardComponent* BlackboardComponent, FQueryFinishedSignature& QueryFinishedDelegate);
+
+#if WITH_EDITOR
+	void PostEditChangeProperty(UObject& Owner, struct FPropertyChangedEvent& PropertyChangedEvent);
+#endif // WITH_EDITOR
 };

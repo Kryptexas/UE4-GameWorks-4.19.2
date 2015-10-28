@@ -644,7 +644,7 @@ private:
 				  OUT bool& bAnyPaintAbleActorsUnderCursor);
 
 	/** Paints mesh vertices */
-	void PaintMeshVertices( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, FPrimitiveDrawInterface* PDI, const float VisualBiasDistance );
+	void PaintMeshVertices( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, FPrimitiveDrawInterface* PDI, const float VisualBiasDistance, const IMeshPaintGeometryAdapter& GeometryInfo );
 
 	/** Paints mesh texture */
 	void PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition, const IMeshPaintGeometryAdapter& GeometryInfo );
@@ -654,9 +654,6 @@ private:
 
 	/** Sets show flags for perspective viewports */
 	void SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport );
-
-	/** Gets the vertex from the mesh, taking spline modifications into account */
-	FVector GetMeshVertex( UStaticMeshComponent* StaticMeshComponent, FStaticMeshLODResources&, int32 );
 
 	/** Starts painting a texture */
 	void StartPaintingTexture(UMeshComponent* InMeshComponent, const IMeshPaintGeometryAdapter& GeometryInfo);
@@ -746,6 +743,13 @@ private:
 
 	/** Returns valid MeshComponents in the current selection */
 	TArray<UMeshComponent*> GetSelectedMeshComponents() const;
+
+	/** Finds an existing geometry adapter for the given component, or creates a new one */
+	IMeshPaintGeometryAdapter* FindOrAddGeometryAdapter(UMeshComponent* MeshComponent);
+
+	/** Removes stale geometry adapters from the cache (those associated with unselected components) */
+	void CleanStaleGeometryAdapters(const TArray<UMeshComponent*>& ValidComponents);
+
 private:
 
 	/** Whether we're currently painting */
@@ -799,6 +803,9 @@ private:
 
 	/** Map of settings for each StaticMeshComponent */
 	TMap< UMeshComponent*, StaticMeshSettings > StaticMeshSettingsMap;
+
+	/** Map from UMeshComponent to the associated MeshPaintAdapter */
+	TMap< UMeshComponent*, TSharedPtr<IMeshPaintGeometryAdapter> > ComponentToAdapterMap;
 
 	/** Used to store a flag that will tell the tick function to restore data to our rendertargets after they have been invalidated by a viewport resize. */
 	bool bDoRestoreRenTargets;

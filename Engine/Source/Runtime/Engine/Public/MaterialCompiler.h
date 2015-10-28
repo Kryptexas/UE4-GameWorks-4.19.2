@@ -94,6 +94,7 @@ public:
 	virtual int32 SphericalParticleOpacity(int32 Density) = 0;
 	virtual int32 ParticleRelativeTime() = 0;
 	virtual int32 ParticleMotionBlurFade() = 0;
+	virtual int32 ParticleRandom() = 0;
 	virtual int32 ParticleDirection() = 0;
 	virtual int32 ParticleSpeed() = 0;
 	virtual int32 ParticleSize() = 0;

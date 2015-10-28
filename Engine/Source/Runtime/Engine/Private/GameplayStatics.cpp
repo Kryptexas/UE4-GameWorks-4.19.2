@@ -640,8 +640,6 @@ UParticleSystemComponent* CreateParticleSystem(UParticleSystem* EmitterTemplate,
 	PSC->SetTemplate(EmitterTemplate);
 	PSC->bOverrideLODMethod = false;
 
-	PSC->RegisterComponentWithWorld(World);
-
 	return PSC;
 }
 
@@ -655,6 +653,9 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* Worl
 			PSC->SetAbsolute(true, true, true);
 			PSC->SetWorldLocationAndRotation(SpawnLocation, SpawnRotation);
 			PSC->SetRelativeScale3D(FVector(1.f));
+
+			PSC->RegisterComponentWithWorld(World);
+
 			PSC->ActivateSystem(true);
 			return PSC;
 		}
@@ -662,11 +663,30 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* Worl
 	return nullptr;
 }
 
+UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World, UParticleSystem* EmitterTemplate, const FTransform& SpawnTransform, bool bAutoDestroy)
+{
+	UParticleSystemComponent* PSC = nullptr;
+	if (World && EmitterTemplate)
+	{
+		PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
+
+		PSC->SetAbsolute(true, true, true);
+		PSC->SetWorldTransform(SpawnTransform);
+
+		PSC->RegisterComponentWithWorld(World);
+
+		PSC->ActivateSystem(true);
+	}
+	return PSC;
+}
+
+
 UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem* EmitterTemplate, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bAutoDestroy)
 {
+	UParticleSystemComponent* PSC = NULL;
 	if (EmitterTemplate)
 	{
-		if (!AttachToComponent)
+		if (AttachToComponent == NULL)
 		{
 			UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnEmitterAttached: NULL AttachComponent specified!"));
 		}

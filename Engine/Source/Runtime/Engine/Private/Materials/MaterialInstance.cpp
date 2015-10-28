@@ -992,6 +992,90 @@ bool UMaterialInstance::IsDependent(UMaterialInterface* TestDependency)
 	}
 }
 
+void UMaterialInstanceDynamic::CopyScalarAndVectorParameters(const UMaterialInterface& SourceMaterialToCopyFrom, ERHIFeatureLevel::Type FeatureLevel)
+{
+	check(IsInGameThread());
+
+	// We get the parameter list form the input material, this might be different from the base material
+	// because static (bool) parameters can cause some parameters to be hidden
+	FMaterialResource* MaterialResource = GetMaterialResource(FeatureLevel);
+
+	if(MaterialResource)
+	{
+		UMaterial* BaseMaterial = GetMaterial();
+
+		// first, clear out all the parameter values
+		ClearParameterValuesInternal();
+
+		// scalar
+		{
+			const TArray<TRefCountPtr<FMaterialUniformExpression> >& Array = MaterialResource->GetUniformScalarParameterExpressions();
+
+			for (int32 i = 0, Count = Array.Num(); i < Count; ++i)
+			{
+				const FMaterialUniformExpression* UniformExpression = Array[i];
+
+				// the array can have non scalar parameters in it, those we don't want to inetrpolate
+				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+				{
+					const FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<const FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+					float Value;
+
+					ScalarExpression->GetGameThreadNumberValue(&SourceMaterialToCopyFrom, Value);
+
+					FName ParameterName = ScalarExpression->GetParameterName();
+
+					FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(ScalarParameterValues, ParameterName);
+
+					if (!ParameterValue)
+					{
+						ParameterValue = new(ScalarParameterValues)FScalarParameterValue;
+						ParameterValue->ParameterName = ParameterName;
+					}
+
+					ParameterValue->ParameterValue = Value;
+				}
+			}
+		}
+
+		// vector
+		{
+			const TArray<TRefCountPtr<FMaterialUniformExpression> >& Array = MaterialResource->GetUniformVectorParameterExpressions();
+
+			for (int32 i = 0, Count = Array.Num(); i < Count; ++i)
+			{
+				const FMaterialUniformExpression* UniformExpression = Array[i];
+
+				// the array can have non vector parameters in it, those we don't want to inetrpolate
+				if (UniformExpression->GetType() == &FMaterialUniformExpressionVectorParameter::StaticType)
+				{
+					const FMaterialUniformExpressionVectorParameter* VectorExpression = static_cast<const FMaterialUniformExpressionVectorParameter*>(UniformExpression);
+
+					FLinearColor Value;
+
+					VectorExpression->GetGameThreadNumberValue(&SourceMaterialToCopyFrom, Value);
+
+					FName ParameterName = VectorExpression->GetParameterName();
+
+					FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(VectorParameterValues, ParameterName);
+
+					if (!ParameterValue)
+					{
+						ParameterValue = new(VectorParameterValues)FVectorParameterValue;
+						ParameterValue->ParameterName = ParameterName;
+					}
+
+					ParameterValue->ParameterValue = Value;
+				}
+			}
+		}
+
+		// now, init the resources
+		InitResources();
+	}
+}
+
 void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Source)
 {
 	if(Source)
@@ -2297,104 +2381,6 @@ FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProces
 		}
 	}
 }
-
-void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float Weight) const
-{
-	check(Weight > 0.0f && Weight <= 1.0f);
-
-	FFinalPostProcessSettings& Dest = View.FinalPostProcessSettings;
-
-	if(!Parent)
-	{
-		return;
-	}
-
-	UMaterial* Material = Parent->GetMaterial();
-
-	//	should we use UMaterial::GetDefaultMaterial(Domain) instead of skipping the material
-
-	if(!Material || Material->MaterialDomain != MD_PostProcess || !View.State)
-	{
-		return;
-	}
-
-	FBlendableEntry* Iterator = 0;
-
-	FPostProcessMaterialNode* PostProcessMaterialNode = IteratePostProcessMaterialNodes(Dest, Material, Iterator);
-
-	// is this the first one of this material?
-	if(!PostProcessMaterialNode)
-	{
-		// do we partly want to fade this one in.
-		if(Weight < 1.0f)
-		{
-			UMaterial* Base = Material->GetBaseMaterial();
-
-			UMaterialInstanceDynamic* MID = View.State->GetReusableMID(Base);
-
-			if(MID)
-			{
-				FPostProcessMaterialNode NewNode(MID, Base->BlendableLocation, Base->BlendablePriority);
-
-				// it's the first material, no blending needed
-				Dest.BlendableManager.PushBlendableData(1.0f, NewNode);
-
-				// can be optimized
-				PostProcessMaterialNode = IteratePostProcessMaterialNodes(Dest, Base, Iterator);
-			}
-		}
-	}
-
-	if(PostProcessMaterialNode)
-	{
-		UMaterialInstanceDynamic* DestMID = PostProcessMaterialNode->GetMID();
-		check(DestMID);
-
-		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
-		check(SrcMID);
-
-		// a material already exists, blend with existing ones
-		DestMID->K2_InterpolateMaterialInstanceParams(DestMID, SrcMID, Weight);
-		SetTonemapperPostprocessMaterialSettings(View, *DestMID);
-	}
-	else
-	{
-		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
-
-		if(MID)
-		{
-			SetTonemapperPostprocessMaterialSettings(View, *MID);
-
-			FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);
-
-			// it's the first material, no blending needed
-			Dest.BlendableManager.PushBlendableData(Weight, NewNode);
-		}
-	}
-}
-
-void UMaterialInstance::SetTonemapperPostprocessMaterialSettings(FSceneView& View, UMaterialInstanceDynamic& MID) const
-{
-	UMaterial* Material = Parent->GetMaterial();
-
-	if(Material->BlendableLocation == BL_ReplacingTonemapper)
-	{
-		// can expose more if needed
-		{
-			static FName Name("Engine.FilmWhitePoint");
-			MID.SetVectorParameterValue(Name, View.FinalPostProcessSettings.FilmWhitePoint);
-		}
-		{
-			static FName Name("Engine.FilmSaturation");
-			MID.SetScalarParameterValue(Name, View.FinalPostProcessSettings.FilmSaturation);
-		}
-		{
-			static FName Name("Engine.FilmContrast");
-			MID.SetScalarParameterValue(Name, View.FinalPostProcessSettings.FilmContrast);
-		}
-	}
-}
-
 
 void UMaterialInstance::AllMaterialsCacheResourceShadersForRendering()
 {

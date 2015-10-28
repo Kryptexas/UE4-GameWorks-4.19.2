@@ -18,6 +18,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
 
+DECLARE_CYCLE_STAT(TEXT("Char OnNetUpdateSimulatedPosition"), STAT_CharacterOnNetUpdateSimulatedPosition, STATGROUP_Character);
+
 FName ACharacter::MeshComponentName(TEXT("CharacterMesh0"));
 FName ACharacter::CharacterMovementComponentName(TEXT("CharMoveComp"));
 FName ACharacter::CapsuleComponentName(TEXT("CollisionCylinder"));
@@ -55,6 +57,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	CapsuleComponent->bDynamicObstacle = true;
 	RootComponent = CapsuleComponent;
 
+	bClientCheckEncroachmentOnNetUpdate = true;
 	JumpKeyHoldTime = 0.0f;
 	JumpMaxHoldTime = 0.0f;
 
@@ -108,6 +111,17 @@ void ACharacter::PostInitializeComponents()
 		{
 			BaseTranslationOffset = Mesh->RelativeLocation;
 			BaseRotationOffset = Mesh->RelativeRotation.Quaternion();
+
+#if ENABLE_NAN_DIAGNOSTIC
+			if (BaseRotationOffset.ContainsNaN())
+			{
+				logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in BaseRotationOffset! (%s)"), *BaseRotationOffset.ToString());
+			}
+			if (Mesh->RelativeRotation.ContainsNaN())
+			{
+				logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in Mesh->RelativeRotation! (%s)"), *Mesh->RelativeRotation.ToString());
+			}
+#endif
 
 			// force animation tick after movement component updates
 			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement)
@@ -952,32 +966,27 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 		const FQuat OldRotation = GetActorQuat();
 		MovementBaseUtility::GetMovementBaseTransform(ReplicatedBasedMovement.MovementBase, ReplicatedBasedMovement.BoneName, CharacterMovement->OldBaseLocation, CharacterMovement->OldBaseQuat);
 		const FVector NewLocation = CharacterMovement->OldBaseLocation + ReplicatedBasedMovement.Location;
+		FRotator NewRotation;
 
 		if (ReplicatedBasedMovement.HasRelativeRotation())
 		{
 			// Relative location, relative rotation
-			FRotator NewRotation = (FRotationMatrix(ReplicatedBasedMovement.Rotation) * FQuatRotationMatrix(CharacterMovement->OldBaseQuat)).Rotator();
+			NewRotation = (FRotationMatrix(ReplicatedBasedMovement.Rotation) * FQuatRotationMatrix(CharacterMovement->OldBaseQuat)).Rotator();
 			
 			// TODO: need a better way to not assume we only use Yaw.
 			NewRotation.Pitch = 0.f;
 			NewRotation.Roll = 0.f;
-
-			SetActorLocationAndRotation(NewLocation, NewRotation);	
 		}
 		else
 		{
 			// Relative location, absolute rotation
-			SetActorLocationAndRotation(NewLocation, ReplicatedBasedMovement.Rotation);
+			NewRotation = ReplicatedBasedMovement.Rotation;
 		}
 
 		// When position or base changes, movement mode will need to be updated. This assumes rotation changes don't affect that.
 		CharacterMovement->bJustTeleported |= (bBaseChanged || GetActorLocation() != OldLocation);
-
-		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
-		if (PredictionInterface)
-		{
-			PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
-		}
+		CharacterMovement->SmoothCorrection(OldLocation, OldRotation, NewLocation, NewRotation.Quaternion());
+		OnUpdateSimulatedPosition(OldLocation, OldRotation);
 	}
 }
 
@@ -1066,11 +1075,7 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 							CharacterMovement->SimulateRootMotion(DeltaTime, LocalRootMotionTransform);
 
 							// After movement correction, smooth out error in position if any.
-							INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
-							if (PredictionInterface)
-							{
-								PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
-							}
+							CharacterMovement->SmoothCorrection(OldLocation, OldRotation, GetActorLocation(), GetActorQuat());
 						}
 					}
 				}
@@ -1164,7 +1169,7 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove&
 				ServerRotation = RootMotionRepMove.RootMotion.Rotation;
 			}
 
-			UpdateSimulatedPosition(ServerLocation, ServerRotation);
+			SetActorLocationAndRotation(ServerLocation, ServerRotation);
 			bSuccess = true;
 		}
 		// If we received local space position, but can't resolve parent, then move can't be used. :(
@@ -1176,14 +1181,37 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove&
 	// Absolute position
 	else
 	{
-		UpdateSimulatedPosition(RootMotionRepMove.RootMotion.Location, RootMotionRepMove.RootMotion.Rotation);
+		SetActorLocationAndRotation(RootMotionRepMove.RootMotion.Location, RootMotionRepMove.RootMotion.Rotation);
 	}
 
+	CharacterMovement->bJustTeleported = true;
 	SetBase( ServerBase, ServerBaseBoneName );
 
 	return true;
 }
 
+void ACharacter::OnUpdateSimulatedPosition(const FVector& OldLocation, const FQuat& OldRotation)
+{
+	SCOPE_CYCLE_COUNTER(STAT_CharacterOnNetUpdateSimulatedPosition);
+
+	bSimGravityDisabled = false;
+	if (bClientCheckEncroachmentOnNetUpdate)
+	{	
+		// Only need to check for encroachment when teleported without any velocity.
+		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
+		// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
+		if (CharacterMovement->Velocity.IsZero() && (OldLocation != GetActorLocation() || CreationTime == GetWorld()->TimeSeconds))
+		{
+			if (GetWorld()->EncroachingBlockingGeometry(this, GetActorLocation(), GetActorRotation()))
+			{
+				bSimGravityDisabled = true;
+			}
+		}
+	}
+	CharacterMovement->bJustTeleported = true;
+}
+
+// Deprecated, remove
 void ACharacter::UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation)
 {
 	// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
@@ -1221,13 +1249,9 @@ void ACharacter::PostNetReceiveLocationAndRotation()
 		{
 			const FVector OldLocation = GetActorLocation();
 			const FQuat OldRotation = GetActorQuat();
-			UpdateSimulatedPosition(ReplicatedMovement.Location, ReplicatedMovement.Rotation);
-
-			INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
-			if (PredictionInterface)
-			{
-				PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
-			}
+		
+			CharacterMovement->SmoothCorrection(OldLocation, OldRotation, ReplicatedMovement.Location, ReplicatedMovement.Rotation.Quaternion());
+			OnUpdateSimulatedPosition(OldLocation, OldRotation);
 		}
 	}
 }
@@ -1308,20 +1332,28 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 bool ACharacter::IsPlayingRootMotion() const
 {
-	if (Mesh && Mesh->GetAnimInstance())
+	if (Mesh)
 	{
-		return	(Mesh->GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
-				(Mesh->GetAnimInstance()->GetRootMotionMontageInstance() != NULL);
+		const UAnimInstance* const AnimInstance = Mesh->GetAnimInstance();
+		if(AnimInstance)
+		{
+			return (AnimInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
+				   (AnimInstance->GetRootMotionMontageInstance() != NULL);
+		}
 	}
 	return false;
 }
 
 bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
 {
-	if (Mesh && Mesh->GetAnimInstance())
+	if (Mesh)
 	{
-		return	(Mesh->GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
-			(Mesh->GetAnimInstance()->GetRootMotionMontageInstance() != NULL);
+		const UAnimInstance* const AnimInstance = Mesh->GetAnimInstance();
+		if (AnimInstance)
+		{
+			return (AnimInstance->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
+				   (AnimInstance->GetRootMotionMontageInstance() != NULL);
+		}
 	}
 	return false;
 }
@@ -1401,13 +1433,3 @@ void ACharacter::ClientCheatGhost_Implementation()
 	}
 }
 
-/** Returns Mesh subobject **/
-USkeletalMeshComponent* ACharacter::GetMesh() const { return Mesh; }
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-UArrowComponent* ACharacter::GetArrowComponent() const { return ArrowComponent; }
-#endif
-/** Returns CharacterMovement subobject **/
-UCharacterMovementComponent* ACharacter::GetCharacterMovement() const { return CharacterMovement; }
-/** Returns CapsuleComponent subobject **/
-UCapsuleComponent* ACharacter::GetCapsuleComponent() const { return CapsuleComponent; }

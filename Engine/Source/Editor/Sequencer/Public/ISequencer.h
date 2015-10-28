@@ -49,24 +49,24 @@ public:
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer.
 	 * 
-	 * @param SubMovieSceneInstance	Sub-MovieScene instance to focus.
+	 * @param SequenceInstance	Sub-sequence instance to focus.
 	 */
-	virtual void FocusSubMovieScene(TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance) = 0;
+	virtual void FocusSequenceInstance(TSharedRef<FMovieSceneSequenceInstance> SequenceInstance) = 0;
 	
 	/**
 	 * Given a sub-movie scene section, returns the instance of the movie scene for that section.
 	 *
-	 * @param SubMovieSceneSection	The sub-movie scene section containing a movie scene to get the instance for.
+	 * @param Section The sub-movie scene section containing the sequence instance to get.
 	 * @return The instance for the sub-movie scene
 	 */
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetInstanceForSubMovieSceneSection(UMovieSceneSection& SubMovieSceneSection) const = 0;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
 
 	/**
 	 * Adds a movie scene as a section inside the current movie scene
 	 * 
-	 * @param SubMovieScene The movie scene to add.
+	 * @param Sequence The sequence to add.
 	 */
-	virtual void AddSubMovieScene(UMovieSceneSequence* SubMovieScene) = 0;
+	virtual void AddSubSequence(UMovieSceneSequence* Sequence) = 0;
 
 	/** @return Returns whether auto-key is enabled in this sequencer */
 	virtual bool GetAutoKeyEnabled() const = 0;
@@ -130,6 +130,23 @@ public:
 	 * @param bEnabled true if the viewport should be enabled, false if it should be disabled.
 	 */
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) = 0;
+
+	/*
+	 * Gets whether perspective viewport hijacking is enabled.
+	 */ 
+	virtual bool IsPerspectiveViewportPossessionEnabled() const { return true; }
+
+	/**
+	 * Sets whether perspective viewport camera cutting is enabled.
+	 *
+	 * @param bEnabled true if the viewport should be enabled, false if it should be disabled.
+	 */
+	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) = 0;
+
+	/*
+	 * Gets whether perspective viewport hijacking is enabled.
+	 */ 
+	virtual bool IsPerspectiveViewportCameraCutEnabled() const { return true; }
 
 	/**
 	 * Gets a handle to runtime information about the object being manipulated by a movie scene

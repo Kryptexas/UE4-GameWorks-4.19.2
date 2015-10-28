@@ -138,17 +138,20 @@ void UTextBlock::SynchronizeProperties()
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
 
-	MyTextBlock->SetText(TextBinding);
-	MyTextBlock->SetFont(Font);
-	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
-	MyTextBlock->SetShadowOffset(ShadowOffset);
-	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
-	MyTextBlock->SetAutoWrapText(AutoWrapText);
-	MyTextBlock->SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
-	MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
-	MyTextBlock->SetLineHeightPercentage(LineHeightPercentage);
-	MyTextBlock->SetMargin(Margin);
-	MyTextBlock->SetJustification(Justification);
+	if ( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetText( TextBinding );
+		MyTextBlock->SetFont( Font );
+		MyTextBlock->SetColorAndOpacity( ColorAndOpacityBinding );
+		MyTextBlock->SetShadowOffset( ShadowOffset );
+		MyTextBlock->SetShadowColorAndOpacity( ShadowColorAndOpacityBinding );
+		MyTextBlock->SetAutoWrapText( AutoWrapText );
+		MyTextBlock->SetWrapTextAt( WrapTextAt != 0 ? WrapTextAt : TAttribute<float>() );
+		MyTextBlock->SetMinDesiredWidth( MinDesiredWidth );
+		MyTextBlock->SetLineHeightPercentage( LineHeightPercentage );
+		MyTextBlock->SetMargin( Margin );
+		MyTextBlock->SetJustification( Justification );
+	}
 }
 
 FText UTextBlock::GetText() const

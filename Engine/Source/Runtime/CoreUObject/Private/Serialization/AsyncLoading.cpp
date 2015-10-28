@@ -550,9 +550,7 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
 		// Insert new package keeping descending priority order in AsyncPackages
 		int32 InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
 		{
-			// NOTE: Switched to < because we want newly inserted packages to go AFTER all existing packages of the 
-			//		 same priority. If this is too slow, we could probably do "LastIndexOfByPredicate" where we iterate backwards??
-			return Element->GetPriority() < Package->GetPriority();
+			return Element->GetPriority() <= Package->GetPriority();
 		});
 
 		InsertIndex = InsertIndex == INDEX_NONE ? AsyncPackages.Num() : InsertIndex;
@@ -1514,6 +1512,13 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 				continue;
 			}
 			
+
+			// Don't try to import a package that is in an import table that we know is an invalid entry
+			if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
+			{
+				continue;
+			}
+
 			// Our import package name is the import name
 			ImportDependencyPackages.Add(Import->ObjectName);
 		}

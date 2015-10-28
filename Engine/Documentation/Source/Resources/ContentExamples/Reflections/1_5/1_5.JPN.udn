@@ -1,13 +1,15 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2722008
+Availability:Public
 Title:1.5 - Screenspace  Reflections
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射のサンプル レベルの概要、1.5：Screenspace  Reflections
+Description:反射のサンプル レベルの概要、サンプル 1.5：Screenspace  Reflections
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

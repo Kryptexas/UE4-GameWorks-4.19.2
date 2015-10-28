@@ -463,6 +463,8 @@ private:
 	UPROPERTY()
 	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;
 
+	FMaskFilter MoveIgnoreMask;
+
 public:
 	/**
 	 * Determine whether a Character can step up onto this component.
@@ -506,6 +508,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ClearMoveIgnoreActors();
 
+	/** Set the mask filter we use when moving. */
+	void SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask);
+
+	/** Get the mask filter we use when moving. */
+	FMaskFilter GetMoveIgnoreMask() const { return MoveIgnoreMask; }
+
+	/** Set the mask filter checked when others move into us. */
+	void SetMaskFilterOnBodyInstance(FMaskFilter InMaskFilter) { BodyInstance.SetMaskFilter(InMaskFilter); }
+
+	/** Get the mask filter checked when others move into us. */
+	FMaskFilter GetMaskFilterOnBodyInstance(FMaskFilter InMaskFilter) const { return BodyInstance.GetMaskFilter(); }
 
 #if WITH_EDITOR
 	/** Override delegate used for checking the selection state of a component */

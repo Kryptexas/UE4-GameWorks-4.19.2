@@ -181,3 +181,8 @@ FPlatformUserId FOnlineIdentityGooglePlay::GetPlatformUserIdFromUniqueNetId(cons
 
 	return PLATFORMUSERID_NONE;
 }
+
+FString FOnlineIdentityGooglePlay::GetAuthType() const
+{
+	return TEXT("");
+}

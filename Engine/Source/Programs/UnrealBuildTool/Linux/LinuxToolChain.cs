@@ -353,7 +353,10 @@ namespace UnrealBuildTool
 			// this hides the "enumeration value 'XXXXX' not handled in switch [-Wswitch]" warnings - we should maybe remove this at some point and add UE_LOG(, Fatal, ) to default cases
 			Result += " -Wno-switch";
 			Result += " -Wno-unknown-pragmas";			// Slate triggers this (with its optimize on/off pragmas)
-			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
+			// needed to suppress warnings about using offsetof on non-POD types.
+			Result += " -Wno-invalid-offsetof";
+			// we use this feature to allow static FNames.
+			Result += " -Wno-gnu-string-literal-operator-template";
 
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{

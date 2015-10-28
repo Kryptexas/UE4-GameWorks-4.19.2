@@ -524,6 +524,13 @@ void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 	// Validate the graph
 	ValidateGraphIsWellFormed(ConsolidatedEventGraph);
 
+	// Validate that we have a skeleton
+	if ((AnimBlueprint->TargetSkeleton == nullptr) && !AnimBlueprint->bIsNewlyCreated)
+	{
+		MessageLog.Error(*LOCTEXT("NoSkeleton", "@@ - The skeleton asset for this animation Blueprint is missing, so it cannot be compiled!").ToString(), AnimBlueprint);
+		return;
+	}
+
 	// Build the raw node list
 	TArray<UAnimGraphNode_Base*> AnimNodeList;
 	ConsolidatedEventGraph->GetNodesOfClass<UAnimGraphNode_Base>(/*out*/ AnimNodeList);

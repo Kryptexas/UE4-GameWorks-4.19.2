@@ -5,6 +5,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "AVIWriter.h"
+#include "Engine/GameEngine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAVIWriter, Log, All);
 
@@ -177,30 +178,21 @@ public:
 
 public:
 
-	void StartCapture(FViewport* Viewport)
+	virtual void StartCapture(TWeakPtr<FSceneViewport> InViewport) override
 	{
-		if (bCapturing)
+		auto Viewport = InViewport.Pin();
+		if (bCapturing || !Viewport.IsValid())
 		{
 			return;
 		}
 
-		if (!Viewport)
-		{
-			Viewport = GEngine->GameViewport != NULL ? GEngine->GameViewport->Viewport : NULL;
-			if (!Viewport)
-			{
-				UE_LOG(LogAVIWriter, Error, TEXT( "ERROR - Could not get a valid viewport for capture!" ));
-				return;
-			}
-		}
-
-		if ( Viewport->GetSizeXY().GetMin() <= 0)
+		if ( Viewport->GetSize().GetMin() <= 0)
 		{
 			UE_LOG(LogAVIWriter, Error, TEXT( "ERROR - Attempting to record a 0 sized viewport!" ));
 			return;
 		}
 
-		CaptureViewport = Viewport;
+		CaptureViewport = InViewport;
 
 		// Initialize the COM library.
 		if (!FWindowsPlatformMisc::CoInitialize()) 
@@ -259,9 +251,6 @@ public:
 		if (!Options.CodecName.IsEmpty())
 		{
 			EncodingFilter = FindEncodingFilter(Options.CodecName);
-			EncodingFilter->AddRef();
-			EncodingFilter->AddRef();
-			EncodingFilter->AddRef();
 			EncodingFilter->AddRef();
 			if (EncodingFilter)
 			{
@@ -355,7 +344,7 @@ public:
 		Control->Stop();
 
 		bCapturing = false;
-		CaptureViewport = NULL;
+		CaptureViewport = nullptr;
 		FrameNumber = 0;
 
 		SAFE_RELEASE(EncodingFilter);
@@ -405,28 +394,21 @@ public:
 	
 public:
 	
-	void StartCapture(FViewport* Viewport)
+	virtual void StartCapture(TWeakPtr<FSceneViewport> InViewport) override
 	{
 		SCOPED_AUTORELEASE_POOL;
-		if (!bCapturing)
+
+		auto Viewport = InViewport.Pin();
+
+		if (!bCapturing && Viewport.IsValid())
 		{
-			if (!Viewport)
-			{
-				Viewport = GEngine->GameViewport != NULL ? GEngine->GameViewport->Viewport : NULL;
-				if (!Viewport)
-				{
-					UE_LOG(LogAVIWriter, Error, TEXT( "ERROR - Could not get a valid viewport for capture!" ));
-					return;
-				}
-			}
-			
-			if ( Viewport->GetSizeXY().GetMin() <= 0)
+			if ( Viewport->GetSize().GetMin() <= 0)
 			{
 				UE_LOG(LogAVIWriter, Error, TEXT( "ERROR - Attempting to record a 0 sized viewport!" ));
 				return;
 			}
 			
-			CaptureViewport = Viewport;
+			CaptureViewport = InViewport;
 			
 			// Attempt to make the dir if it doesn't exist.
 			TCHAR File[MAX_SPRINTF] = TEXT("");
@@ -454,16 +436,16 @@ public:
 				VideoSettings = [NSDictionary dictionaryWithObjectsAndKeys:
 								 AVVideoCodecJPEG, AVVideoCodecKey,
 								 [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithFloat:Options.CompressionQuality.GetValue()], AVVideoQualityKey, nil], AVVideoCompressionPropertiesKey,
-								 [NSNumber numberWithInt:Viewport->GetSizeXY().X], AVVideoWidthKey,
-								 [NSNumber numberWithInt:Viewport->GetSizeXY().Y], AVVideoHeightKey,
+								 [NSNumber numberWithInt:Viewport->GetSize().X], AVVideoWidthKey,
+								 [NSNumber numberWithInt:Viewport->GetSize().Y], AVVideoHeightKey,
 								 nil];
 			}
 			else
 			{
 				VideoSettings = [NSDictionary dictionaryWithObjectsAndKeys:
 								 AVVideoCodecH264, AVVideoCodecKey,
-								 [NSNumber numberWithInt:Viewport->GetSizeXY().X], AVVideoWidthKey,
-								 [NSNumber numberWithInt:Viewport->GetSizeXY().Y], AVVideoHeightKey,
+								 [NSNumber numberWithInt:Viewport->GetSize().X], AVVideoWidthKey,
+								 [NSNumber numberWithInt:Viewport->GetSize().Y], AVVideoHeightKey,
 								 nil];
 			}
 			AVFWriterInputRef = [[AVAssetWriterInput
@@ -511,7 +493,7 @@ public:
 			AVFPixelBufferAdaptorRef = nil;
 
 			bCapturing = false;
-			CaptureViewport = NULL;
+			CaptureViewport = nullptr;
 			FrameNumber = 0;
 		}
 	}
@@ -530,6 +512,12 @@ public:
 			uint32 WaitTimeMs = 100;
 			TArray<FCapturedFrame> PendingFrames = GetFrameData(WaitTimeMs);
 
+			auto Viewport = CaptureViewport.Pin();
+			if (!Viewport.IsValid())
+			{
+				break;
+			}
+
 			// Capture the frames that we have
 			for (auto& CurrentFrame : PendingFrames)
 			{
@@ -542,7 +530,7 @@ public:
 				CVPixelBufferPoolCreatePixelBuffer (NULL, AVFPixelBufferAdaptorRef.pixelBufferPool, &PixelBuffer);
 				if(!PixelBuffer)
 				{
-					CVPixelBufferCreate(kCFAllocatorDefault, CaptureViewport->GetSizeXY().X, CaptureViewport->GetSizeXY().Y, kCVPixelFormatType_32BGRA, NULL, &PixelBuffer);
+					CVPixelBufferCreate(kCFAllocatorDefault, Viewport->GetSize().X, Viewport->GetSize().Y, kCVPixelFormatType_32BGRA, NULL, &PixelBuffer);
 				}
 				check(PixelBuffer);
 				
@@ -788,35 +776,30 @@ FAVIWriter::~FAVIWriter()
 {
 }
 
-void FAVIWriter::Update(double FrameTimeSeconds)
+void FAVIWriter::Update(double FrameTimeSeconds, TArray<FColor> FrameData)
 {
-	if (!bCapturing)
+	if (bCapturing && FrameData.Num())
 	{
-		return;
-	}
+		double FrameLength = 1.0 / Options.CaptureFPS;
+		double FrameStart = FrameNumber * FrameLength;
+		FCapturedFrame Frame(FrameStart, FrameStart + FrameLength, FrameNumber, MoveTemp(FrameData));
 
-	TArray<FColor> Data;
-	CaptureViewport->ReadPixels(Data, FReadSurfaceDataFlags());
+		FEvent* SyncEvent = nullptr;
+		if (Options.bSynchronizeFrames)
+		{
+			SyncEvent = FPlatformProcess::GetSynchEventFromPool();
+			Frame.FrameProcessedEvent = SyncEvent;
+		}
 
-	double FrameLength = 1.0 / Options.CaptureFPS;
-	double FrameStart = FrameNumber * FrameLength;
-	FCapturedFrame Frame(FrameStart, FrameStart + FrameLength, FrameNumber, MoveTemp(Data));
+		// Add the frame
+		CapturedFrames->Add(MoveTemp(Frame));
+		FrameNumber++;
 
-	FEvent* SyncEvent = nullptr;
-	if (Options.bSynchronizeFrames)
-	{
-		SyncEvent = FPlatformProcess::GetSynchEventFromPool();
-		Frame.FrameProcessedEvent = SyncEvent;
-	}
-
-	// Add the frame
-	CapturedFrames->Add(MoveTemp(Frame));
-	FrameNumber++;
-
-	if (SyncEvent)
-	{
-		SyncEvent->Wait(MAX_uint32);
-		FPlatformProcess::ReturnSynchEventToPool(SyncEvent);
+		if (SyncEvent)
+		{
+			SyncEvent->Wait(MAX_uint32);
+			FPlatformProcess::ReturnSynchEventToPool(SyncEvent);
+		}
 	}
 }
 

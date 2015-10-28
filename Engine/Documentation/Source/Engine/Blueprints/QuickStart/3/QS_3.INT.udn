@@ -3,7 +3,9 @@ Title:3. Convert Your Actor to a Blueprint Class
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Make your launchpad reusable and scriptable by converting it to a Blueprint Class
 version: 4.9
-
+parent:Engine/Blueprints/QuickStart
+order:3
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]

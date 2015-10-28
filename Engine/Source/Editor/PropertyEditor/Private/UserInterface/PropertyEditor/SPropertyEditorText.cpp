@@ -19,6 +19,8 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 
 	bIsFNameProperty = Property->IsA<UNameProperty>();
 
+	bool bIsPassword = Property->GetBoolMetaData("PasswordField");
+
 	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
 	if(bIsMultiLine)
 	{
@@ -39,6 +41,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 				.AutoWrapText(true)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
+				.IsPassword( bIsPassword )
 			]
 		];
 
@@ -61,7 +64,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 				.OnTextChanged( this, &SPropertyEditorText::OnSingleLineTextChanged )
 				.SelectAllTextOnCommit( true )
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
-			
+				.IsPassword( bIsPassword )
 			]
 		];
 

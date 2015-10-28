@@ -37,7 +37,6 @@ public:
 	int32 NumCubeTextureExpressions;
 	int32 NumPerFrameScalarExpressions;
 	int32 NumPerFrameVectorExpressions;
-	FRHIUniformBufferLayout* DebugLayout;
 
 	FDebugUniformExpressionSet()
 		: NumVectorExpressions(0)
@@ -46,18 +45,12 @@ public:
 		, NumCubeTextureExpressions(0)
 		, NumPerFrameScalarExpressions(0)
 		, NumPerFrameVectorExpressions(0)
-		, DebugLayout(nullptr)
 	{
 	}
 
 	explicit FDebugUniformExpressionSet(const FUniformExpressionSet& InUniformExpressionSet)
 	{
 		InitFromExpressionSet(InUniformExpressionSet);
-	}
-
-	~FDebugUniformExpressionSet()
-	{
-		delete DebugLayout;
 	}
 
 	/** Initialize from a uniform expression set. */
@@ -69,7 +62,6 @@ public:
 		NumCubeTextureExpressions = InUniformExpressionSet.UniformCubeTextureExpressions.Num();
 		NumPerFrameScalarExpressions = InUniformExpressionSet.PerFrameUniformScalarExpressions.Num();
 		NumPerFrameVectorExpressions = InUniformExpressionSet.PerFrameUniformVectorExpressions.Num();
-		DebugLayout = InUniformExpressionSet.CreateDebugLayout();
 	}
 
 	/** Returns true if the number of uniform expressions matches those with which the debug set was initialized. */
@@ -101,7 +93,11 @@ inline FArchive& operator<<(FArchive& Ar, FDebugUniformExpressionSet& DebugExpre
 class RENDERER_API FMaterialShader : public FShader
 {
 public:
-	FMaterialShader() {}
+	static FName UniformBufferLayoutName;
+
+	FMaterialShader() : DebugUniformExpressionUBLayout(FRHIUniformBufferLayout::Zero)
+	{
+	}
 
 	FMaterialShader(const FMaterialShaderType::CompiledShaderInitializerType& Initializer);
 
@@ -173,8 +169,9 @@ private:
 
 	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
 
-	FDebugUniformExpressionSet DebugUniformExpressionSet;
-	FString DebugDescription;
+	FDebugUniformExpressionSet	DebugUniformExpressionSet;
+	FRHIUniformBufferLayout		DebugUniformExpressionUBLayout;
+	FString						DebugDescription;
 
 	/** If true, cached uniform expressions are allowed. */
 	static int32 bAllowCachedUniformExpressions;

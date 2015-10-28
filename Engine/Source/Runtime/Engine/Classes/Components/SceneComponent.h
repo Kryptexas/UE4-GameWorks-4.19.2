@@ -119,19 +119,17 @@ public:
 	UPROPERTY()
 	uint32 bRequiresCustomLocation:1;
 
+protected:
+
+	/** True if we have ever updated ComponentToWorld based on RelativeLocation/Rotation/Scale. Used at startup to make sure it is initialized. */
+	UPROPERTY(Transient)
+	uint32 bWorldToComponentUpdated : 1;
+
+public:
+
 	/** If RelativeLocation should be considered relative to the world, rather than the parent */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	uint32 bAbsoluteLocation:1;
-
-private:
-	// DEPRECATED
-	UPROPERTY()
-	uint32 bAbsoluteTranslation_DEPRECATED:1;
-
-	// Appends all descendants (recursively) of this scene component to the list of Children.  NOTE: It does NOT clear the list first.
-	void AppendDescendants(TArray<USceneComponent*>& Children) const;
-
-public:
 
 	/** If RelativeRotation should be considered relative to the world, rather than the parent */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
@@ -167,8 +165,6 @@ public:
 	uint32 bUseAttachParentBound:1;
 
 protected:
-	UPROPERTY(Transient)
-	uint32 bWorldToComponentUpdated:1;
 
 	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
 	uint32 bDisableDetachmentUpdateOverlaps:1;
@@ -177,6 +173,14 @@ protected:
 	uint32 bWantsOnUpdateTransform:1;
 
 private:
+
+	// DEPRECATED
+	UPROPERTY()
+	uint32 bAbsoluteTranslation_DEPRECATED : 1;
+
+	// Appends all descendants (recursively) of this scene component to the list of Children.  NOTE: It does NOT clear the list first.
+	void AppendDescendants(TArray<USceneComponent*>& Children) const;
+
 	/** Physics Volume in which this SceneComponent is located **/
 	UPROPERTY(transient)
 	TWeakObjectPtr<class APhysicsVolume> PhysicsVolume;
@@ -929,12 +933,20 @@ protected:
 	{
 		SocketName = Parent ? SocketName : AttachSocketName;
 		Parent = Parent ? Parent : AttachParent;
-		bool bGeneral = !Parent || bAbsoluteLocation || bAbsoluteRotation || bAbsoluteScale;
-		if (!bGeneral)
+		if (Parent)
 		{
-			return NewRelativeTransform * Parent->GetSocketTransform(AttachSocketName);
+			const bool bGeneral = bAbsoluteLocation || bAbsoluteRotation || bAbsoluteScale;
+			if (!bGeneral)
+			{
+				return NewRelativeTransform * Parent->GetSocketTransform(AttachSocketName);
+			}
+			
+			return CalcNewComponentToWorld_GeneralCase(NewRelativeTransform, Parent, SocketName);
 		}
-		return CalcNewComponentToWorld_GeneralCase(NewRelativeTransform, Parent, SocketName);
+		else
+		{
+			return NewRelativeTransform;
+		}
 	}
 
 	FTransform CalcNewComponentToWorld_GeneralCase(const FTransform& NewRelativeTransform, const USceneComponent* Parent, FName SocketName) const;
@@ -1150,6 +1162,72 @@ public:
 	TArray<USceneComponent*> AttachedInstanceComponents;
 };
 
+
+//////////////////////////////////////////////////////////////////////////
+
+/**
+ * Utility for temporarily changing the behavior of a SceneComponent to use absolute transforms, and then restore it to the behavior at the start of the scope.
+ */
+class ENGINE_API FScopedPreventAttachedComponentMove : private FNoncopyable
+{
+public:
+
+	/**
+	 * Init scoped behavior for a given Component.
+	 * Note that null is perfectly acceptable here (does nothing) as a simple way to toggle behavior at runtime without weird conditional compilation.
+	 */
+	FScopedPreventAttachedComponentMove(USceneComponent* Component)
+	: Owner(Component)
+	{
+		if (Component)
+		{
+			// Save old flags
+			bSavedAbsoluteLocation = Component->bAbsoluteLocation;
+			bSavedAbsoluteRotation = Component->bAbsoluteRotation;
+			bSavedAbsoluteScale = Component->bAbsoluteScale;
+			bSavedNonAbsoluteComponent = !(bSavedAbsoluteLocation && bSavedAbsoluteRotation && bSavedAbsoluteScale);
+		
+			// Use absolute (stay in world space no matter what parent does)
+			Component->bAbsoluteLocation = true;
+			Component->bAbsoluteRotation = true;
+			Component->bAbsoluteScale = true;
+
+			if (bSavedNonAbsoluteComponent && Component->GetAttachParent())
+			{
+				// Make RelativeLocation etc relative to the world.
+				Component->ConditionalUpdateComponentToWorld();
+				Component->RelativeLocation = Component->GetComponentLocation();
+				Component->RelativeRotation = Component->GetComponentRotation();
+				Component->RelativeScale3D = Component->GetComponentScale();
+			}
+		}
+		else
+		{
+			bSavedAbsoluteLocation = false;
+			bSavedAbsoluteRotation = false;
+			bSavedAbsoluteScale = false;
+		}
+	}
+
+	~FScopedPreventAttachedComponentMove();
+
+private:
+
+	USceneComponent* Owner;
+	uint32 bSavedAbsoluteLocation:1;
+	uint32 bSavedAbsoluteRotation:1;
+	uint32 bSavedAbsoluteScale:1;
+	uint32 bSavedNonAbsoluteComponent:1; // Whether any of the saved location/rotation/scale flags were false (or equivalently: not all were true).
+
+	// This class can only be created on the stack, otherwise the ordering constraints
+	// of the constructor and destructor between encapsulated scopes could be violated.
+	void*	operator new		(size_t);
+	void*	operator new[]		(size_t);
+	void	operator delete		(void *);
+	void	operator delete[]	(void*);
+};
+
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Enum that controls the scoping behavior of FScopedMovementUpdate.

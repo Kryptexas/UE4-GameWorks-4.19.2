@@ -3,9 +3,45 @@ Title:Blueprint Best Practices
 Crumbs:%ROOT%, Engine/Blueprints
 Description:Tips and tricks to help you make decisions about when to use Blueprints and how best to set them up.
 version: 4.9
+parent:Engine/Blueprints
+order:2
+type:howto
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](Engine/Blueprints/BestPractices_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/Blueprints/BestPractices_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2)]
-
 
 
 You can do many things with **Blueprints**. Everything from making a small game or procedural content tools, to prototyping new functionality, to tweaking and polishing things made by programmers,

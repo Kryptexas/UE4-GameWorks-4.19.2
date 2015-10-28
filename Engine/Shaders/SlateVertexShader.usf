@@ -93,7 +93,9 @@ VertexToPixelInterpolants Main(
 		#endif // HAS_MATERIAL_TEXCOORDS
 	#endif // NUM_MATERIAL_TEXCOORDS_VERTEX
 
-	WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+	#if HAS_SCREEN_POSITION
+		WorldPosition.xyz = GetMaterialWorldPositionOffset(VertexParameters);
+	#endif
 
 #endif // USE_MATERIALS
 

@@ -59,6 +59,8 @@ goto End
 :GetOutput
 set BaseOutputPath="%BaseFolder:"=%\%GameName:"=%\Content\Oodle"
 
+if not exist "%BaseOutputPath%" mkdir "%BaseOutputPath%"
+
 echo Type the desired name of the dictionary file. This will be placed in %GameName:"=%\Content\Oodle\
 set /p OutputFile=Dictionary file name: 
 echo.

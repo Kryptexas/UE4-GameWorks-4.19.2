@@ -135,16 +135,7 @@ Light Complexity shows the number of non-static lights affecting your geometry. 
 |**Number of Lights Affecting Surface**|**0**|**1**|**2**|**3**|**4**|**5+**|
 
 
-This color scheme is defined in BaseEngine.ini (or YourGameEngine.ini) and can be edited by searching the following lines.
-
-[REGION:code]
-+LightComplexityColors=(R=0,G=0,B=0,A=1)  
-+LightComplexityColors=(R=0,G=255,B=0,A=1)  
-+LightComplexityColors=(R=63,G=191,B=0,A=1)  
-+LightComplexityColors=(R=127,G=127,B=0,A=1)  
-+LightComplexityColors=(R=191,G=63,B=0,A=1)  
-+LightComplexityColors=(R=255,G=0,B=0,A=1)
-[/REGION]
+This color scheme is defined in the shader code.
 
 ## Shader Complexity
 

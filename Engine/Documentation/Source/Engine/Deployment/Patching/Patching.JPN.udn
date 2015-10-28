@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2652864
-Availability:Docs
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title:パッチ処理
 Crumbs:%ROOT%, Engine, Engine/Deployment
 Description:リリース後にプロジェクトを更新できる更新済みのコンテンツ パッケージの作成
@@ -50,9 +50,9 @@ Description:リリース後にプロジェクトを更新できる更新済み�
 1. コンテンツをクックしたいすべてのプラットフォームのボックスにチェックを入れます。Windows 用のテストの例なので、ここでは **[WindowsNoEditor]** を選びました。
 1. ローカリゼーションをクックしたいすべてのカルチャーのボックスにチェックを入れます。
 1. クック対象のすべてのマップのボックスにチェックを入れます。 
-[Region:tip]
-この設定により、クック対象のコンテンツが決定され、オリジナルのパッケージ ファイルと比較されます。 
-[/REGION]
+	[Region:tip]
+	この設定により、クック対象のコンテンツが決定され、オリジナルのパッケージ ファイルと比較されます。 
+	[/REGION]
 1. **Release/DLC/Patching Settings** では:
 	* 元となるパッチのバージョン番号を入力します。
 	* **[Generate Patch (パッチを生成)]** チェックボックスにチェックを入れます。
@@ -63,10 +63,10 @@ Description:リリース後にプロジェクトを更新できる更新済み�
 1. さらに **[Advanced Settings (詳細設定)]** でクッカー コンフィギュレーションを **Shipping (シッピング)** に設定します。
 
 #### Package (パッケージ) 
-* ビルドを **Package & store locally** に設定します。 
+1. ビルドを **Package & store locally** に設定します。 
 
 #### Deploy (デプロイ)
-* ビルドを **Do Not Deploy** に設定します。
+1. ビルドを **Do Not Deploy** に設定します。
 
 1. 上記をすべて設定したら、上部右端の **[Back (戻る)]** ボタンでプロファイルのメイン ウィンドウへ戻ります。 
 

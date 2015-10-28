@@ -395,7 +395,7 @@ private:
 
 
 	/** Dispatcher for CPU tasks */
-	class PxCpuDispatcher*			CPUDispatcher;
+	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
 	class FPhysXSimEventCallback*			SimEventCallback[PST_MAX];
 #if WITH_VEHICLE

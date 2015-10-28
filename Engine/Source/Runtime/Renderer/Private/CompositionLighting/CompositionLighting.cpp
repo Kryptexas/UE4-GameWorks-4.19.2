@@ -65,22 +65,22 @@ static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 	return Context.View.FinalPostProcessSettings.ContributingCubemaps.Num() != 0 && !IsSimpleDynamicLightingEnabled();
 }
 
-static bool IsLpvIndirectPassRequired(FPostprocessContext& Context)
+static bool IsLpvIndirectPassRequired(const FViewInfo& View)
 {
-	FScene* Scene = (FScene*)Context.View.Family->Scene;
+	FScene* Scene = (FScene*)View.Family->Scene;
 
-	const FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	const FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 	if(ViewState)
 	{
 		// This check should be inclusive to stereo views
 		const bool bIncludeStereoViews = true;
 
-		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(Context.View.GetFeatureLevel(), bIncludeStereoViews);
+		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel(), bIncludeStereoViews);
 
 		if(LightPropagationVolume)
 		{
-			const FLightPropagationVolumeSettings& LPVSettings = Context.View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+			const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
 
 			if(LPVSettings.LPVIntensity > 0.0f)
 			{
@@ -127,10 +127,11 @@ static uint32 ComputeAmbientOcclusionPassCount(FPostprocessContext& Context)
 
 	bool bEnabled = true;
 
-	if(!IsLpvIndirectPassRequired(Context))
+	if(!IsLpvIndirectPassRequired(Context.View))
 	{
 		bEnabled = Context.View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0 
 			&& Context.View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f 
+			&& !Context.View.Family->EngineShowFlags.ShaderComplexity 
 			&& (IsBasePassAmbientOcclusionRequired(Context) || IsAmbientCubemapPassRequired(Context) || IsReflectionEnvironmentActive(Context) || IsSkylightActive(Context) || Context.View.Family->EngineShowFlags.VisualizeBuffer )
 			&& !IsSimpleDynamicLightingEnabled();
 	}
@@ -358,7 +359,6 @@ void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdLi
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
-	if(IsLpvIndirectPassRequired(Context))
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 

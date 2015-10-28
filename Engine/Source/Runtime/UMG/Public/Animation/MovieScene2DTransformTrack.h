@@ -7,6 +7,7 @@
 #include "KeyParams.h"
 #include "MovieScene2DTransformTrack.generated.h"
 
+
 struct F2DTransformKey
 {
 	FWidgetTransform Value;
@@ -18,14 +19,19 @@ struct F2DTransformKey
  * Handles manipulation of 2D transforms in a movie scene
  */
 UCLASS( MinimalAPI )
-class UMovieScene2DTransformTrack : public UMovieScenePropertyTrack
+class UMovieScene2DTransformTrack
+	: public UMovieScenePropertyTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
 public:
-	/** UMovieSceneTrack interface */
+
+	// UMovieSceneTrack interface
+
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	
+public:
 
 	/**
 	 * Evaluates the track at the playback position

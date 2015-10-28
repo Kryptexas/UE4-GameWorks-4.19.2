@@ -41,8 +41,6 @@
 static const FName	ColumnID_BoneLabel( "BoneName" );
 static const FName	ColumnID_RetargetingLabel( "TranslationRetargeting" );
 static const FName  ColumnID_BlendProfileLabel( "BlendProfile" );
-// see if mesh reduction is supported
-static bool	bMeshReductionSupported = false;
 
 DECLARE_DELEGATE_RetVal_TwoParams(FReply, FOnDraggingBoneItem, const FGeometry&, const FPointerEvent&);
 
@@ -296,12 +294,31 @@ TSharedRef<ITableRow> FDisplayedMeshBoneInfo::MakeTreeRowWidget(
 		.OnDraggingItem( this, &FDisplayedMeshBoneInfo::OnDragDetected );
 }
 
+EVisibility FDisplayedMeshBoneInfo::GetLODIconVisibility() const
+{
+	if (bUseWhiteColor)
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Hidden;
+}
+
 void FDisplayedMeshBoneInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected )
 {
+	const FSlateBrush* LODIcon = FEditorStyle::GetBrush("SkeletonTree.LODBone");
+
+	Box->AddSlot()
+		.AutoWidth()
+		[
+			SNew(SImage)
+			.Image(LODIcon)
+			.Visibility(this, &FDisplayedMeshBoneInfo::GetLODIconVisibility)
+		];
+
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
-	const FSlateFontInfo TextFont = GetBoneTextFont( PreviewComponent );
-	const FLinearColor TextColor = GetBoneTextColor( PreviewComponent );
+	CacheLODChange(PreviewComponent);
 
 	FText ToolTip = GetBoneToolTip();
 
@@ -309,10 +326,10 @@ void FDisplayedMeshBoneInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizonta
 		.AutoWidth()
 		[
 			SNew( STextBlock )
-			.ColorAndOpacity(TextColor)
+			.ColorAndOpacity(this, &FDisplayedMeshBoneInfo::GetBoneTextColor)
 			.Text( FText::FromName(BoneName) )
 			.HighlightText( FilterText )
-			.Font(TextFont)
+			.Font(this, &FDisplayedMeshBoneInfo::GetBoneTextFont)
 			.ToolTipText( ToolTip )
 		];
 }
@@ -426,41 +443,51 @@ void FDisplayedMeshBoneInfo::SetBoneBlendProfileScale(float NewScale, bool bRecu
 	}
 }
 
-FSlateFontInfo FDisplayedMeshBoneInfo::GetBoneTextFont( UDebugSkelMeshComponent* PreviewComponent ) const
+FSlateFontInfo FDisplayedMeshBoneInfo::GetBoneTextFont() const
 {
-	if ( PreviewComponent )
+	if (bUseBoldFont)
+	{
+		return SkeletonTree.Pin()->BoldFont;
+	}
+	else
+	{
+		return SkeletonTree.Pin()->RegularFont;
+	}
+}
+
+void FDisplayedMeshBoneInfo::CacheLODChange(UDebugSkelMeshComponent* PreviewComponent)
+{
+	bUseBoldFont = false;
+	bUseWhiteColor = false;
+	if (PreviewComponent)
 	{
 		int32 BoneIndex = PreviewComponent->GetBoneIndex(BoneName);
 
-		if( BoneIndex != INDEX_NONE )
+		if (BoneIndex != INDEX_NONE)
 		{
-			if( SkeletonTree.Pin()->IsBoneWeighted( BoneIndex, PreviewComponent ) )
+			if (SkeletonTree.Pin()->IsBoneWeighted(BoneIndex, PreviewComponent))
 			{
 				//Bone is vertex weighted
-				FSlateFontInfo BoldFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10 );
-				return BoldFont;
+				bUseBoldFont = true;
+			}
+			if (SkeletonTree.Pin()->IsBoneRequired(BoneIndex, PreviewComponent))
+			{
+				bUseWhiteColor = true;
 			}
 		}
 	}
-
-	//Bone is not vertex weighted
-	FSlateFontInfo RegularFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
-	return RegularFont;
 }
 
-FLinearColor FDisplayedMeshBoneInfo::GetBoneTextColor( UDebugSkelMeshComponent* PreviewComponent ) const
+FSlateColor FDisplayedMeshBoneInfo::GetBoneTextColor() const
 {
-	if ( PreviewComponent )
+	if (bUseWhiteColor)
 	{
-		//Check whether this bone in skeleton bone tree is present in skeletal mesh's reference bone list.
-		int32 BoneIndex = PreviewComponent->GetBoneIndex(BoneName);
-		if( BoneIndex != INDEX_NONE )
-		{
-			return FLinearColor::White;
-		}
+		return FSlateColor(FLinearColor::White);
 	}
-
-	return FLinearColor::Gray;
+	else
+	{
+		return FSlateColor(FLinearColor::Gray);
+	}
 }
 
 FReply FDisplayedMeshBoneInfo::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -849,14 +876,8 @@ const FString SSkeletonTree::SocketCopyPasteHeader = TEXT( "SocketCopyPasteBuffe
 
 void SSkeletonTree::Construct(const FArguments& InArgs)
 {
-	static bool bMeshReductionSupportedInitialized = false;
-	if ( !bMeshReductionSupportedInitialized )
-	{
-		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-		IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
-		bMeshReductionSupported = MeshReduction && MeshReduction->IsSupported();
-		bMeshReductionSupportedInitialized = true;
-	}
+	BoldFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+	RegularFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
 
 	BoneFilter = EBoneFilter::All;
 	SocketFilter = ESocketFilter::Active;
@@ -881,6 +902,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 	SharedPersona->RegisterOnDeselectAll(FPersona::FOnAllDeselected::CreateSP( this, &SSkeletonTree::OnExternalDeselectAll ) );
 	SharedPersona->RegisterOnChangeSkeletonTree(FPersona::FOnSkeletonTreeChanged::CreateSP( this, &SSkeletonTree::PostUndo ) );
 	SharedPersona->RegisterOnBlendProfileSelected(FPersona::FOnBlendProfileSelected::CreateSP(this, &SSkeletonTree::OnBlendProfileSelectedExternal));
+	SharedPersona->RegisterOnLODChanged(FPersona::FOnLODChanged::CreateSP(this, &SSkeletonTree::OnLODSwitched));
 
 	// Register and bind all our menu commands
 	FSkeletonTreeCommands::Register();
@@ -992,6 +1014,8 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 	{
 		CreateTreeColumns();
 	}
+
+	OnLODSwitched();
 }
 
 SSkeletonTree::~SSkeletonTree()
@@ -1007,6 +1031,7 @@ SSkeletonTree::~SSkeletonTree()
 		SharedPersona->UnregisterOnChangeSkeletonTree( this );
 		SharedPersona->UnregisterOnCreateViewport( this );
 		SharedPersona->UnregisterOnBlendProfileSelected(this);
+		SharedPersona->UnregisterOnLODChanged(this);
 	}
 }
 
@@ -1037,6 +1062,12 @@ void SSkeletonTree::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::Mesh ) );
 
+	CommandList.MapAction(
+		MenuActions.ShowLODBones,
+		FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneFilter, EBoneFilter::LOD),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SSkeletonTree::IsBoneFilter, EBoneFilter::LOD));
+	
 	CommandList.MapAction(
 		MenuActions.ShowWeightedBones,
 		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::Weighted ),
@@ -1227,7 +1258,7 @@ void SSkeletonTree::CreateFromSkeleton( const TArray<FBoneNode>& SourceSkeleton,
 				int32 BoneMeshIndex = PreviewComponent->GetBoneIndex( BoneName );
 
 				// Remove non-mesh bones if we're filtering
-				if ( ( BoneFilter == EBoneFilter::Mesh || BoneFilter == EBoneFilter::Weighted ) &&
+				if ((BoneFilter == EBoneFilter::Mesh || BoneFilter == EBoneFilter::Weighted || BoneFilter == EBoneFilter::LOD ) &&
 					BoneMeshIndex == INDEX_NONE )
 				{
 					continue;
@@ -1235,6 +1266,12 @@ void SSkeletonTree::CreateFromSkeleton( const TArray<FBoneNode>& SourceSkeleton,
 
 				// Remove non-vertex-weighted bones if we're filtering
 				if ( BoneFilter == EBoneFilter::Weighted && !IsBoneWeighted( BoneMeshIndex, PreviewComponent ) )
+				{
+					continue;
+				}
+
+				// Remove non-vertex-weighted bones if we're filtering
+				if (BoneFilter == EBoneFilter::LOD && !IsBoneRequired(BoneMeshIndex, PreviewComponent))
 				{
 					continue;
 				}
@@ -1580,6 +1617,22 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 				}
 				MenuBuilder.EndSection();
 			}
+
+			MenuBuilder.BeginSection("SkeletonTreeBoneReductionForLOD", LOCTEXT("BoneReductionHeader", "LOD Bone Reduction"));
+			{
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("SkeletonTreeBoneReductionForLOD_RemoveSelectedFromLOD", "Remove Selected..."),
+					FText::GetEmpty(),
+					FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, LastCachedLODForPreviewMeshComponent, true)
+					);
+
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("SkeletonTreeBoneReductionForLOD_RemoveChildrenFromLOD", "Remove Children..."),
+					FText::GetEmpty(),
+					FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, LastCachedLODForPreviewMeshComponent, false)
+					);
+			}
+			MenuBuilder.EndSection();
 		}
 
 		if(BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Socket))
@@ -1643,53 +1696,24 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 	return MenuBuilder.MakeWidget();
 }
 
-/*
-void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton* Skeleton, bool bAdd)
+
+void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, int32 LODIndex, bool bIncludeSelected)
 {
-	if (bMeshReductionSupported)
-	{
-		int32 LODSettingIndex=0;
-		for(; LODSettingIndex<Skeleton->BoneReductionSettingsForLODs.Num(); ++LODSettingIndex)
-		{
-			if(Skeleton->BoneReductionSettingsForLODs[LODSettingIndex].BonesToRemove.Num() > 0)
-			{
-				if(bAdd)
-				{
-					FUIAction AddBonesToLOD1Action = FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::AddToLOD, LODSettingIndex+1));
-					MenuBuilder.AddMenuEntry
-						(FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FSlateIcon()
-						, AddBonesToLOD1Action
-						);
+	MenuBuilder.AddMenuEntry
+		(FText::FromString(FString::Printf(TEXT("From LOD %d and below"), LODIndex))
+		, FText::FromString(FString::Printf(TEXT("Remove Selected %s from current LOD %d and all lower LODs"), (bIncludeSelected) ? TEXT("bones") : TEXT("children"), LODIndex))
+		, FSlateIcon()
+		, FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::RemoveFromLOD, LODIndex, bIncludeSelected, true))
+		);
 
-				}
-				else
-				{
-					FUIAction RemoveBonesFromLOD1Action = FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::RemoveFromLOD, LODSettingIndex+1));
-					MenuBuilder.AddMenuEntry
-						(FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FSlateIcon()
-						, RemoveBonesFromLOD1Action
-						);
-				}
-			}
-		}
-
-		if(!bAdd)
-		{
-			FUIAction RemoveBonesFromLOD1Action = FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::RemoveFromLOD, LODSettingIndex+1));
-			MenuBuilder.AddMenuEntry
-				(FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-				, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-				, FSlateIcon()
-				, RemoveBonesFromLOD1Action
-				);
-		}
-	}
+	MenuBuilder.AddMenuEntry
+		(FText::FromString(FString::Printf(TEXT("From LOD %d only"), LODIndex))
+		, FText::FromString(FString::Printf(TEXT("Remove selected %s from current LOD %d only"), (bIncludeSelected) ? TEXT("bones") : TEXT("children"), LODIndex))
+		, FSlateIcon()
+		, FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::RemoveFromLOD, LODIndex, bIncludeSelected, false))
+		);
 }
-*/
+
 
 void SSkeletonTree::SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode)
 {
@@ -1707,43 +1731,65 @@ void SSkeletonTree::SetBoneTranslationRetargetingModeRecursive(EBoneTranslationR
 	FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
 }
 
-void SSkeletonTree::RemoveFromLOD(int32 LODIndex)
+void SSkeletonTree::RemoveFromLOD(int32 LODIndex, bool bIncludeSelected, bool bIncludeBelowLODs)
 {
-	if (bMeshReductionSupported)
+	// if users is okay
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent();
+
+	if (!PreviewComponent->SkeletalMesh)
 	{
-		const FScopedTransaction Transaction(LOCTEXT("RemoveBoneFromLOD", "Remove Selected Bones from LOD"));
-		TargetSkeleton->Modify();
-
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-		for ( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
-		{
-			FName BoneName = *static_cast<FName*>( (*ItemIt)->GetData() );
-			int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
-			TargetSkeleton->RemoveBoneFromLOD(LODIndex, BoneIndex);
-		}
-
-		FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
+		return;
 	}
-}
 
-void SSkeletonTree::AddToLOD(int32 LODIndex)
-{
-	if (bMeshReductionSupported)
+	// ask users you can't undo this change, and warn them
+	const FText Message(LOCTEXT("RemoveBonesFromLODWarning", "This action can't be undone. Would you like to continue?"));
+	if (FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes)
 	{
-		const FScopedTransaction Transaction(LOCTEXT("AddBoneToLOD", "Add Selected Bones to LOD"));
-		TargetSkeleton->Modify();
-
 		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+		const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
 
-		for ( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
+		TArray<FName> BonesToRemove;
+
+		for (auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt)
 		{
-			FName BoneName = *static_cast<FName*>( (*ItemIt)->GetData() );
-			int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
-			TargetSkeleton->AddBoneToLOD(LODIndex, BoneIndex);
+			FName BoneName = *static_cast<FName*>((*ItemIt)->GetData());
+			int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+			if (BoneIndex != INDEX_NONE)
+			{
+				if (bIncludeSelected)
+				{
+					PreviewComponent->SkeletalMesh->AddBoneToReductionSetting(LODIndex, BoneName);
+					BonesToRemove.AddUnique(BoneName);
+				}
+				else
+				{
+					for (int32 ChildIndex = BoneIndex + 1; ChildIndex < RefSkeleton.GetNum(); ++ChildIndex)
+					{
+						if (RefSkeleton.GetParentIndex(ChildIndex) == BoneIndex)
+						{
+							FName ChildBoneName = RefSkeleton.GetBoneName(ChildIndex);
+							PreviewComponent->SkeletalMesh->AddBoneToReductionSetting(LODIndex, ChildBoneName);
+							BonesToRemove.AddUnique(ChildBoneName);
+						}
+					}
+				}
+			}
 		}
 
-		FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
+		int32 TotalLOD = PreviewComponent->SkeletalMesh->LODInfo.Num();
+		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+
+		if (bIncludeBelowLODs)
+		{
+			for (int32 Index = LODIndex + 1; Index < TotalLOD; ++Index)
+			{
+				MeshUtilities.RemoveBonesFromMesh(PreviewComponent->SkeletalMesh, Index, &BonesToRemove);
+				PreviewComponent->SkeletalMesh->AddBoneToReductionSetting(Index, BonesToRemove);
+			}
+		}
+
+		// remove from current LOD
+		MeshUtilities.RemoveBonesFromMesh(PreviewComponent->SkeletalMesh, LODIndex, &BonesToRemove);
 	}
 }
 
@@ -2334,6 +2380,7 @@ TSharedRef< SWidget > SSkeletonTree::CreateBoneFilterMenu()
 	{
 		MenuBuilder.AddMenuEntry( Actions.ShowAllBones );
 		MenuBuilder.AddMenuEntry( Actions.ShowMeshBones );
+		MenuBuilder.AddMenuEntry(Actions.ShowLODBones);
 		MenuBuilder.AddMenuEntry( Actions.ShowWeightedBones );
 		MenuBuilder.AddMenuEntry( Actions.HideBones );
 	}
@@ -2402,6 +2449,7 @@ bool SSkeletonTree::IsSocketFilter( ESocketFilter::Type InSocketFilter ) const
 	return SocketFilter == InSocketFilter;
 }
 
+// @todo combine these two functions to one if not used by anywhere else
 bool SSkeletonTree::IsBoneWeighted( int32 MeshBoneIndex, UDebugSkelMeshComponent* PreviewComponent ) const
 {
 	// MeshBoneIndex must be an index into the mesh's skeleton, *not* the source skeleton!!!
@@ -2422,6 +2470,26 @@ bool SSkeletonTree::IsBoneWeighted( int32 MeshBoneIndex, UDebugSkelMeshComponent
 	return Index != INDEX_NONE;
 }
 
+bool SSkeletonTree::IsBoneRequired(int32 MeshBoneIndex, UDebugSkelMeshComponent* PreviewComponent) const
+{
+	// MeshBoneIndex must be an index into the mesh's skeleton, *not* the source skeleton!!!
+
+	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num())
+	{
+		// If there's no mesh, then this bone can't possibly be weighted!
+		return false;
+	}
+
+	//Get current LOD
+	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
+	FStaticLODModel& LODModel = PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+
+	//Check whether the bone is vertex weighted
+	int32 Index = LODModel.RequiredBones.Find(MeshBoneIndex);
+
+	return Index != INDEX_NONE;
+}
+
 FText SSkeletonTree::GetBoneFilterMenuTitle() const
 {
 	FText BoneFilterMenuText;
@@ -2434,6 +2502,10 @@ FText SSkeletonTree::GetBoneFilterMenuTitle() const
 
 	case EBoneFilter::Mesh:
 		BoneFilterMenuText = LOCTEXT( "BoneFilterMenuMesh", "Mesh Bones" );
+		break;
+
+	case EBoneFilter::LOD:
+		BoneFilterMenuText = LOCTEXT("BoneFilterMenuLOD", "LOD Bones");
 		break;
 
 	case EBoneFilter::Weighted:
@@ -2746,5 +2818,41 @@ void SSkeletonTree::RecursiveSetBlendProfileScales(float InScaleToSet)
 	}
 }
 
+void RecursiveSetLODChange(UDebugSkelMeshComponent* PreviewComponent, TSharedPtr<FDisplayedTreeRowInfo> TreeRow)
+{
+	if (TreeRow.Get()->GetType() == ESkeletonTreeRowType::Bone)
+	{
+		static_cast<FDisplayedMeshBoneInfo*>(TreeRow.Get())->CacheLODChange(PreviewComponent);
+	}
+	
+	for (auto& Child : TreeRow->Children)
+	{
+		RecursiveSetLODChange(PreviewComponent, Child);
+	}
+}
 
+void SSkeletonTree::OnLODSwitched()
+{
+	if (SkeletonTreeView.IsValid())
+	{
+		UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent();
+
+		if (PreviewComponent)
+		{
+			LastCachedLODForPreviewMeshComponent = PreviewComponent->PredictedLODLevel;
+
+			if (BoneFilter == EBoneFilter::Weighted || BoneFilter == EBoneFilter::LOD)
+			{
+				CreateFromSkeleton(TargetSkeleton->GetBoneTree());
+			}
+			else
+			{
+				for (auto ItemIt : SkeletonRowList)
+				{
+					RecursiveSetLODChange(PreviewComponent, ItemIt);
+				}
+			}
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE

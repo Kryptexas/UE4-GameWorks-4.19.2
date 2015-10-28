@@ -711,7 +711,10 @@ private:
 		const FVector2D Center = InParams.Geometry.AbsolutePosition + InParams.Geometry.Size*0.5f;
 
 		const FSlateBrush* MyBrush = FCoreStyle::Get().GetBrush("ColorWheel.HueValueCircle");
+		// @todo this is not the correct way to do this
 		FSlateShaderResourceProxy *ResourceProxy = FSlateDataPayload::ResourceManager->GetShaderResource(*MyBrush);
+		FSlateResourceHandle Handle = FSlateApplication::Get().GetRenderer()->GetResourceHandle( *MyBrush );
+
 		FVector2D UVCenter = FVector2D::ZeroVector;
 		FVector2D UVRadius = FVector2D(1,1);
 		if (ResourceProxy != nullptr)
@@ -764,7 +767,7 @@ private:
 			Indexes.Add( (i+1 > 12) ? (1) : (i+1) );
 		}
 
-		FSlateDrawElement::MakeCustomVerts(InParams.OutDrawElements, InParams.Layer, MyBrush, Verts, Indexes, nullptr);
+		FSlateDrawElement::MakeCustomVerts(InParams.OutDrawElements, InParams.Layer, Handle, Verts, Indexes, nullptr, 0, 0);
 
 		return InParams.Layer;
 	}

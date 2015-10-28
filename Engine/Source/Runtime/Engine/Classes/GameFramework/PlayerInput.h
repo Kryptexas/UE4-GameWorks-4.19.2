@@ -125,23 +125,23 @@ struct FInputActionKeyMapping
 	FName ActionName;
 
 	/** Key to bind it to. */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	FKey Key;
 
 	/** true if one of the Shift keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bShift:1;
 
 	/** true if one of the Ctrl keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bCtrl:1;
 
 	/** true if one of the Alt keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bAlt:1;
 
 	/** true if one of the Cmd keys must be down when the KeyEvent is received to be acknowledged */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	uint32 bCmd:1;
 
 	bool operator==(const FInputActionKeyMapping& Other) const
@@ -399,6 +399,9 @@ public:
 
 	/** Flushes the current key state. */
 	void FlushPressedKeys();
+
+	/** Flushes the current key state of the keys associated with the action name passed in */
+	void FlushPressedActionBindingKeys(FName ActionName);
 
 	/** Handles a key input event.  Returns true if there is an action that handles the specified key. */
 	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);

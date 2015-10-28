@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2662759
+﻿INTSourceChangelist:2723473
 Availability:Public
 Title:フォグシート＆ライトビーム
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -7,6 +7,7 @@ Related:Engine/Blueprints/Overview
 Related:Engine/Blueprints/UserGuide/Variables
 Related:Engine/Blueprints/UserGuide/UserConstructionScript
 Related:Engine/Rendering/Materials/MaterialInstances
+Version:4.9
 
 
 
@@ -34,7 +35,7 @@ Fog Sheet ブループリントは、上記のとおり、スタティック メ
 [![](FogSheetCS.png)](FogSheetCS.png)
 [/REGION]
 [/REGION]
-ブループリントの 3 つの特性 (_Components List_ 、 _Construction Script_ 、 _Event Graph_) はそれぞれエフェクト全体において異なる部分に役割があります。下表は、それぞれの特性の役割と、それらがどのように最終結果を作り出すのかを説明したものです。
+ブループリントの 3 つの特性 (_Components List_、_Construction Script_、_Event Graph_) はそれぞれエフェクト全体において異なる部分に役割があります。下表は、それぞれの特性の役割と、それらがどのように最終結果を作り出すのかを説明したものです。
 
 
 
@@ -124,7 +125,7 @@ Light Beam ブループリントは、ある光源の回転を追うことがで
 | **Brightness** | ライトビームの色に適用される輝度係数です。 |
 | **Fade Distance** |  プレイヤーとエフェクト間の距離です。プレイヤーが接近するとライトビームが弱まります。プレイヤーがシート ジオメトリに気がつかないようにします。 |
 | **Animated** | ライトビーム マテリアルをアニメートするかどうかを設定します。これによりビーム内に揺らめきエフェクトが生まれます。|
-| **Spot Light** | チェックしていない場合 (_false_ の場合) 、指向性ライトに平行の形状を使用します。チェックされている場合 (_true_ の場合) 、スポットライトにコーン形状を使用します。|
+| **Spot Light** | チェックしていない場合 (_false_ の場合)、指向性ライトに平行の形状を使用します。チェックされている場合 (_true_ の場合)、スポットライトにコーン形状を使用します。|
 | **Use Light For Rotation** | _Light_ プロパティに指定されたライトアクタの回転をライトが追う、または独立して回転するかを設定します。 |
 
 
@@ -139,18 +140,18 @@ _コンストラクション スクリプト_ は以下のタスクを実行し�
 * スタティック メッシュを使用してシート ジオメトリを作成する
 * **Size** 変数の配置を読み取り、 スタティック メッシュを適切にスケールするために使用する
 * シート ジオメトリに対し Material Instance Dynamic (MID) を作成し適用する
-* エクスポーズされた **[Details]** パネルのプロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
+* エクスポーズされた **[Details (詳細)]** パネルのプロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
 [/EXCERPT:FogSheetCS]
 
 
 [EXCERPT:LightBeamCS]
 _コンストラクション スクリプト_ は以下のタスクを実行します。
 * スタティック メッシュを使用してシート ジオメトリを作成する
-* **Length** 変数と **Width** 変数の配置を読み取り、 スタティック メッシュを適切にスケールするために使用する
+* **Length** 変数と **Width** 変数の配置を読み取り、スタティック メッシュを適切にスケールするために使用する
 * シート ジオメトリに対し Material Instance Dynamic (MID) を作成し適用する
 * 光源の回転を追うか、追う場合ジオメトリを合わせて回転させるかを設定する
 * プロファイルに使用する形状 (指向性ライトには平行、スポットライトにはコーン) を判断し、マテリアル マスク テクスチャを適切にスワップする
-* エクスポーズされた **[Details]** パネルのプロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
+* エクスポーズされた **[Details (詳細)]** パネルのプロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
 [/EXCERPT:LightBeamCS]
 
 

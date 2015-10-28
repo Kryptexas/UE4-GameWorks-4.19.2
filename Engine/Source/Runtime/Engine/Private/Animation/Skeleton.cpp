@@ -840,64 +840,6 @@ int32 USkeleton::ValidatePreviewAttachedObjects()
 	return NumBrokenAssets;
 }
 
-int32 USkeleton::RemoveBoneFromLOD(int32 LODIndex, int32 BoneIndex)
-{
-	// we don't remove from LOD 0
-	if (!LODIndex)
-	{
-		return 0;
-	}
-	
-	int32 NumOfLODSetting = BoneReductionSettingsForLODs.Num();
-	if (NumOfLODSetting < LODIndex)
-	{
-		BoneReductionSettingsForLODs.AddZeroed(LODIndex-NumOfLODSetting);
-	}
-
-	int32 TotalNumberAdded=0;
-	FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
-	if ( BoneReductionSettingsForLODs[LODIndex-1].Add(BoneName) )
-	{
-		++TotalNumberAdded;
-	}
-
-	// make sure to add all children
-	const int32 NumBones = ReferenceSkeleton.GetNum();
-	for(int32 ChildIndex=BoneIndex+1; ChildIndex<NumBones; ChildIndex++)
-	{
-		if( ReferenceSkeleton.BoneIsChildOf(ChildIndex, BoneIndex) )
-		{
-			BoneName = ReferenceSkeleton.GetBoneName(ChildIndex);
-			if ( BoneReductionSettingsForLODs[LODIndex-1].Add(BoneName) )
-			{
-				++TotalNumberAdded;
-			}
-		}
-	}
-
-	return TotalNumberAdded;
-}
-
-bool USkeleton::IsBoneIncludedInLOD(int32 LODIndex, int32 BoneIndex)
-{
-	if (LODIndex && BoneReductionSettingsForLODs.Num() >= LODIndex)
-	{
-		const FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
-		return BoneReductionSettingsForLODs[LODIndex-1].Contains(BoneName) == false;
-	}
-
-	return true;
-}
-
-void USkeleton::AddBoneToLOD(int32 LODIndex, int32 BoneIndex)
-{
-	if (LODIndex && BoneReductionSettingsForLODs.Num() >= LODIndex)
-	{
-		const FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
-		BoneReductionSettingsForLODs[LODIndex-1].Remove(BoneName);
-	}
-}
-
 #if WITH_EDITOR
 
 void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, bool bRemoveChildBones )

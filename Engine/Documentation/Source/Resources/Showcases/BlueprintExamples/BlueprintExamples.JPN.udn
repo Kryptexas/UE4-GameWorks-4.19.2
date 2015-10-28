@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613937
+﻿INTSourceChangelist:2723428
 Availability:Public
 Title:ブループリント
 Crumbs:%ROOT%, Resources,
@@ -9,6 +9,7 @@ Related:Resources/ContentExamples/Blueprints
 Related:Gameplay/Framework/Camera
 Related:Engine/Rendering/ParticleSystems
 Related:Engine/Rendering/Materials
+Version:4.9
 
 
 [VAR:Topic]
@@ -79,7 +80,7 @@ Related:Engine/Rendering/Materials
 
 ![](CommentaryBoxes.png)(w:700)
 
-先にエディタでレベル全体をプレイし、すべてのコメント ボックスを表示し、レベル内で各要素がどのように動作するかを調べることを推奨します。各ブループリントが何を行うかを把握したら、**[詳細]** パネルとブループリント エディタを調べて、その中のスクリプト処理を見てみます。
+先にエディタでレベル全体をプレイし、すべてのコメント ボックスを表示し、レベル内で各要素がどのように動作するかを調べることを推奨します。各ブループリントが何を行うかを把握したら、**[Details (詳細)]** パネルとブループリント エディタを調べて、その中のスクリプト処理を見てみます。
 
 
 ## ブループリントの基礎
@@ -87,7 +88,7 @@ Related:Engine/Rendering/Materials
 ブループリントの概念が未知のものならば、ブループリントとは何であるか、ブループリントはレベルで何を行うことができるかについて実際に理解するための支援が必要かもしれません。このような場合、[ブループリントのドキュメント](Engine/Blueprints) をお読みになることを強くお勧めします。 
 
 
-## 同梱されるサンプル
+## 同梱サンプル
 
 
 

@@ -345,13 +345,13 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		
 		GameViewportWindowPtr->SetContent(GameViewportWidgetRef);
 		GameViewportWindowPtr->SlatePrepass();
-
+		
 		SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
 
 		IMovieSceneCaptureInterface* MovieSceneCaptureImpl = StartupMovieCaptureHandle.IsValid() ? IMovieSceneCaptureModule::Get().RetrieveMovieSceneInterface(StartupMovieCaptureHandle) : nullptr;
 		if (MovieSceneCaptureImpl)
 		{
-			MovieSceneCaptureImpl->Initialize(SceneViewport.Get());
+			MovieSceneCaptureImpl->Initialize(SceneViewport.ToSharedRef());
 		}
 
 		// Move the registration of the game viewport to that messages are correctly received.
@@ -475,7 +475,6 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		if (MovieSceneCaptureImpl)
 		{
 			StartupMovieCaptureHandle = MovieSceneCaptureImpl->GetHandle();
-			GameInstance->InitialMapOverride = MovieSceneCaptureImpl->GetPackageName();
 		}
 	}
 #endif

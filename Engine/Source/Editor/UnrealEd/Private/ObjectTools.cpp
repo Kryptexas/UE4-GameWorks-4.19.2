@@ -1909,10 +1909,8 @@ namespace ObjectTools
 						UBlueprintGeneratedClass* UBGC = CurrentInstanceAsComponent->GetTypedOuter<UBlueprintGeneratedClass>();
 						if (UBGC && UBGC->SimpleConstructionScript)
 						{
-							TArray<USCS_Node*> SCSNodes = UBGC->SimpleConstructionScript->GetAllNodes();
-							for (int32 SCSNodeIndex = 0; SCSNodeIndex < SCSNodes.Num(); ++SCSNodeIndex)
+							for (USCS_Node* SCS_Node : UBGC->SimpleConstructionScript->GetAllNodes())
 							{
-								USCS_Node* SCS_Node = SCSNodes[SCSNodeIndex];
 								if (SCS_Node && SCS_Node->ComponentTemplate == CurrentInstanceAsComponent)
 								{
 									FSCSNodeToDelete DeleteNode;

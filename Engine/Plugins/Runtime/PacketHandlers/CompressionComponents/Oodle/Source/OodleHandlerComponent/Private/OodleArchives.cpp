@@ -78,14 +78,14 @@ void FPacketCaptureArchive::AppendPacketFile(FPacketCaptureArchive& InPacketFile
 
 	// For appending, only support 1MB packets
 	const uint32 BufferSize = 1048576;
-	void* ReadBuffer = new uint8[BufferSize];
+	uint8* ReadBuffer = new uint8[BufferSize];
 
 	// Iterate through all packets
 	while (InPacketFile.Tell() < InPacketFile.TotalSize())
 	{
 		uint32 PacketSize = BufferSize;
 
-		InPacketFile.SerializePacket(ReadBuffer, PacketSize);
+		InPacketFile.SerializePacket((void*)ReadBuffer, PacketSize);
 
 		if (InPacketFile.IsError())
 		{

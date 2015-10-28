@@ -166,7 +166,8 @@ void FAnimSegment::GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionE
 
 			// Get starting position, closest overlap.
 			float AnimStartPosition = ConvertTrackPosToAnimPos(bTrackPlayingBackwards ? FMath::Min(StartTrackPosition, SegmentEndPos) : FMath::Max(StartTrackPosition, SegmentStartPos));
-			check( (AnimStartPosition >= AnimStartTime) && (AnimStartPosition <= AnimEndTime) );
+			AnimStartPosition = FMath::Clamp(AnimStartPosition, AnimStartTime, AnimEndTime);
+			//check( (AnimStartPosition >= AnimStartTime) && (AnimStartPosition <= AnimEndTime) );
 			float TrackTimeToGo = FMath::Abs(EndTrackPosition - StartTrackPosition);
 
 			// The track can be playing backwards and the animation can be playing backwards, so we

@@ -3,7 +3,7 @@
 #pragma once
 
 /** FName declaration of Steam subsystem */
-#define GOOGLEPLAY_SUBSYSTEM FName(TEXT("GooglePlay"))
+
 
 #include "Engine.h"
 #include "CoreUObject.h"

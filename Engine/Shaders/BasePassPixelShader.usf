@@ -723,12 +723,14 @@ void Main(
 
 	// If we don't use this shading model the color should be black (don't generate shader code for unused data, don't do indirectlighting cache lighting with this color).
 	float3 SubsurfaceColor = 0;
-#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE || MATERIAL_SHADINGMODEL_CLOTH
 	{
 		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
 		SubsurfaceColor = SubsurfaceData.rgb * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
+#elif MATERIAL_SHADINGMODEL_CLOTH
+		SubsurfaceColor = SubsurfaceData.rgb;
 #endif
 		SubsurfaceProfile = SubsurfaceData.a;
 	}
@@ -928,6 +930,10 @@ void Main(
 			GBuffer.CustomData.xy = UnitVectorToOctahedron( MaterialParameters.WorldNormal ) * 0.5 + 0.5;
 			GBuffer.CustomData.z = saturate( GetMaterialCustomData1(MaterialParameters) );	// Roughness2
 			GBuffer.CustomData.w = saturate( GetMaterialCustomData0(MaterialParameters) );	// Opacity
+		#elif MATERIAL_SHADINGMODEL_CLOTH
+			GBuffer.ShadingModelID = SHADINGMODELID_CLOTH;
+			GBuffer.CustomData.rgb = SubsurfaceColor;
+			GBuffer.CustomData.a = saturate( GetMaterialCustomData0(MaterialParameters) );	// Cloth
 		#else
 			// missing shading model, compiler should report ShadingModelID is not set
 		#endif

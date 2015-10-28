@@ -3,6 +3,9 @@ Title:How to Replicate Actors
 Crumbs: %ROOT%, Gameplay
 Description:Guide for Replicating Actors in Multiplayer Games. 
 version: 4.9
+Parent:Gameplay
+type:how-to
+order:15
 
 The process of passing data or commands between Server and Clients is referred to as **Replication**, and Actor Replication is where the Server identifies and acknowledges if an Actor is set to use Replication or not. If the Actor is set to Replicate, the Server will tell the Client to create and maintain a Replicated copy of that Actor on the Client's machine. The Server always has the authoritative version of that Actor, while a Client (or multiple Clients) may have the approximate, replicated versions of that Actor. 
 

@@ -62,10 +62,10 @@ Version: 4.9
 
 ## Where can I get them?
 
-The easiest way to acquire IES Light Profiles is to simply head to a manufacturer's web site and download them, as almost all major lighting manufactures provide them free of charge. [**Lithonia Lighting**](http://www.lithonia.com/photometrics.aspx) and [**Phillips**](http://www.usa.lighting.philips.com/connect/tools_literature/photometric_data_1.wpd) for example, give a wide selection of light profiles for single lights. And they all document their lights very well, going so far as to base the profile on the type and color of the light emitter used and any variations in the light fixture.
+The easiest way to acquire IES Light Profiles is to simply head to a manufacturer's web site and download them, as almost all major lighting manufactures provide them free of charge. [Lithonia Lighting](http://www.lithonia.com/photometrics.aspx) and [Phillips](http://www.usa.lighting.philips.com/connect/tools_literature/photometric_data_1.wpd) for example, give a wide selection of light profiles for single lights. And they all document their lights very well, going so far as to base the profile on the type and color of the light emitter used and any variations in the light fixture.
 
 [REGION:tip]
-The nice thing about [**Lithonia Lighting**](http://www.lithonia.com/photometrics.aspx) is the website has a web browser profile viewer so you can see what you are getting, once you get down to the actual light you want.
+The nice thing about [Lithonia Lighting](http://www.lithonia.com/photometrics.aspx) is the website has a web browser profile viewer so you can see what you are getting, once you get down to the actual light you want.
 [/REGION]
 
 If you examine a profile in the Unreal Editor, they will be represented as a 1D texture (a gradient), however, they are not textures. They are ASCII files containing a wide array of meta data: 
@@ -110,6 +110,10 @@ _The IES Profile for a Lithonia TPG_1000S_PG21_M_
 1. Assign it to a **Point Light** in the scene by dragging the light profile into the **IES Texture** slot under **Light Profiles**.
 1. You can adjust the brightness of the profile by using the **IES Brightness Scale** slider.
 1. You can also tweak the "texture" that is created by **double-clicking** on it in the **Content Browser** to bring up the **Texture Properties**. 
+
+[Region:note]
+While IES Profiles can be used with lights with their mobility set to Static they cannot be directly assigned unless the mobility is Stationary or Movable. Using the IES Profile with pre-computed Static lighting can sometimes produce artifacts from the mask. It is recommeneded to only use these with Stationary and Movable lighting for the best results.
+[/Region]
 
 ## Spotlights
 

@@ -12,8 +12,11 @@ enum class EQoSEventParam : uint32
 	/** Time from initializing the QoS reporter module to the "ready" state of the game/program (e.g. login screen) */
 	StartupTime,
 
-	/** Sent regularly, includes a number of attributes */
+	/** Sent regularly, includes a number of attributes, different for client and server */
 	Heartbeat,
+
+	/** Sent regularly, contains server performance counters */
+	ServerPerfCounters,
 
 	MAX
 };
@@ -28,6 +31,8 @@ namespace EQoSEvents
 				return TEXT("StartupTime");
 			case EQoSEventParam::Heartbeat:
 				return TEXT("Heartbeat");
+			case EQoSEventParam::ServerPerfCounters:
+				return TEXT("ServerPerfCounters");
 			default:
 				break;
 		}
@@ -150,7 +155,7 @@ public:
 	/**
 	 * This function is expected to be called periodically to update ongoing tasks.
 	 */
-	static void Tick();
+	static void QOSREPORTER_API Tick();
 
 private:
 
@@ -158,6 +163,21 @@ private:
 	 * Sends heartbeat stats.
 	 */
 	static void SendHeartbeat();
+
+	/**
+	 * Adds server attributes for a heartbeat event.
+	 */
+	static void AddServerHeartbeatAttributes(TArray<FAnalyticsEventAttribute> & OutArray);
+
+	/**
+	 * Adds client attributes for a heartbeat event.
+	 */
+	static void AddClientHeartbeatAttributes(TArray<FAnalyticsEventAttribute> & OutArray);
+
+	/**
+	 * Returns application role (server, client)
+	 */
+	static FString GetApplicationRole();
 
 	/** Whether the module has been initialized. */
 	static bool bIsInitialized;

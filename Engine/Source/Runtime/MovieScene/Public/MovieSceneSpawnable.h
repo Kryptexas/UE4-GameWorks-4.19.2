@@ -19,11 +19,10 @@ public:
 	FMovieSceneSpawnable() { }
 
 	/** FMovieSceneSpawnable initialization constructor */
-	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject)
+	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass)
 		: Guid(FGuid::NewGuid())
 		, Name(InitName)
 		, GeneratedClass(InitClass)
-		, CounterpartGamePreviewObject(InitCounterpartGamePreviewObject)
 	{ }
 
 public:
@@ -32,7 +31,7 @@ public:
 	 * Get the Blueprint associated with the spawnable object.
 	 *
 	 * @return Blueprint class
-	 * @see GetCounterpartGamePreviewObject, GetGuid, GetName
+	 * @see GetGuid, GetName
 	 */
 	UClass* GetClass()
 	{
@@ -40,21 +39,10 @@ public:
 	}
 
 	/**
-	 * Get the game preview counterpart object for the spawnable object, if it has one.
-	 *
-	 * @return Counterpart object, or nullptr if it doesn't have one.
-	 * @see GetClass, GetGuid, GetName
-	 */
-	const FWeakObjectPtr& GetCounterpartGamePreviewObject() const
-	{
-		return CounterpartGamePreviewObject;
-	}
-
-	/**
 	 * Get the unique identifier of the spawnable object.
 	 *
 	 * @return Object GUID.
-	 * @see GetClass, GetCounterpartGamePreviewObject, GetName
+	 * @see GetClass, GetName
 	 */
 	const FGuid& GetGuid() const
 	{
@@ -65,7 +53,7 @@ public:
 	 * Get the name of the spawnable object.
 	 *
 	 * @return Object name.
-	 * @see GetClass, GetCounterpartGamePreviewObject, GetGuid
+	 * @see GetClass, GetGuid
 	 */
 	const FString& GetName() const
 	{
@@ -89,9 +77,4 @@ private:
 	// @todo sequencer: Could be weak object ptr here, IF blueprints that are inners are housekept properly without references
 	UPROPERTY()
 	UClass* GeneratedClass;
-
-	/** Optional transient weak pointer to the game preview object this spawnable was created to capture data for.  This is
-	    used in the editor when capturing keyframe data from a live simulation */
-	// @todo sequencer data: Should be editor only
-	FWeakObjectPtr CounterpartGamePreviewObject;
 };

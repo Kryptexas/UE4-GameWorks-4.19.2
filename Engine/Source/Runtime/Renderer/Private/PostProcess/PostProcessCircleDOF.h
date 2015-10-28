@@ -31,7 +31,7 @@ private:
 };
 
 
-// ePId_Input0: SceneColor
+// ePId_Input0: DOFInput or DOFInputTemporalAA
 class FRCPassPostProcessCircleDOFDilate : public TRenderingCompositePassBase<1, 1>
 {
 public:
@@ -49,7 +49,7 @@ public:
 
 
 // ePId_Input0: setup results for far
-// ePId_Input1: setup results for near
+// ePId_Input1: setup results for near, might have been processed by the dilate pass
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 class FRCPassPostProcessCircleDOF : public TRenderingCompositePassBase<2, 2>
 {
@@ -89,6 +89,9 @@ public:
 private:
 
 	bool bNearBlurEnabled;
+
+	template <uint32 NearBlurEnable, uint32 Quality>
+	FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
 };
 
 // to verify this can be used: http://www.radical.org/aov

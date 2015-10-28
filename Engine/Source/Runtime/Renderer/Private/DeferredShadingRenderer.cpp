@@ -1181,9 +1181,15 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// e.g. LPV indirect
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
-			GCompositionLighting.ProcessLpvIndirect(RHICmdList, Views[ViewIndex]);
-			ServiceLocalQueue();
+			FViewInfo& View = Views[ViewIndex]; 
+
+			if(IsLpvIndirectPassRequired(View))
+			{
+				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+				GCompositionLighting.ProcessLpvIndirect(RHICmdList, View);
+				ServiceLocalQueue();
+			}
 		}
 
 		TRefCountPtr<IPooledRenderTarget> DynamicBentNormalAO;
@@ -1220,7 +1226,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (ViewFamily.EngineShowFlags.LightShafts)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderLightShaftOcclusion);
-		LightShaftOutput = RenderLightShaftOcclusion(RHICmdList);
+		RenderLightShaftOcclusion(RHICmdList, LightShaftOutput);
 		ServiceLocalQueue();
 	}
 
@@ -1231,7 +1237,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		if (Scene->AtmosphericFog)
 		{
 			// Update RenderFlag based on LightShaftTexture is valid or not
-			if (LightShaftOutput.bRendered)
+			if (LightShaftOutput.LightShaftOcclusion)
 			{
 				Scene->AtmosphericFog->RenderFlag &= EAtmosphereRenderFlag::E_LightShaftMask;
 			}
@@ -1795,10 +1801,11 @@ public:
 		ProjectionScaleBias.Bind(Initializer.ParameterMap,TEXT("ProjectionScaleBias"));
 		SourceTexelOffsets01.Bind(Initializer.ParameterMap,TEXT("SourceTexelOffsets01"));
 		SourceTexelOffsets23.Bind(Initializer.ParameterMap,TEXT("SourceTexelOffsets23"));
+		MinMaxBlendParameter.Bind(Initializer.ParameterMap, TEXT("MinMaxBlend"));
 	}
 	FDownsampleSceneDepthPS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, float MinMaxBlend)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -1806,6 +1813,7 @@ public:
 		// Used to remap view space Z (which is stored in scene color alpha) into post projection z and w so we can write z/w into the downsized depth buffer
 		const FVector2D ProjectionScaleBiasValue(View.ViewMatrices.ProjMatrix.M[2][2], View.ViewMatrices.ProjMatrix.M[3][2]);
 		SetShaderValue(RHICmdList, GetPixelShader(), ProjectionScaleBias, ProjectionScaleBiasValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), MinMaxBlendParameter, MinMaxBlend);
 
 		FIntPoint BufferSize = SceneContext.GetBufferSizeXY();
 
@@ -1827,6 +1835,7 @@ public:
 		Ar << SourceTexelOffsets01;
 		Ar << SourceTexelOffsets23;
 		Ar << SceneTextureParameters;
+		Ar << MinMaxBlendParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -1834,6 +1843,7 @@ public:
 	FShaderParameter SourceTexelOffsets01;
 	FShaderParameter SourceTexelOffsets23;
 	FSceneTextureShaderParameters SceneTextureParameters;
+	FShaderParameter MinMaxBlendParameter;
 };
 
 IMPLEMENT_SHADER_TYPE(,FDownsampleSceneDepthPS,TEXT("DownsampleDepthPixelShader"),TEXT("Main"),SF_Pixel);
@@ -1856,8 +1866,9 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandLis
 
 
 
-/** Downsample the scene depth with a specified scale factor to a specified render target*/
-void FDeferredShadingSceneRenderer::DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor)
+/** Downsample the scene depth with a specified scale factor to a specified render target
+*/
+void FDeferredShadingSceneRenderer::DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor, float MinMaxFilterBlend)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	SetRenderTarget(RHICmdList, NULL, RenderTarget);
@@ -1875,8 +1886,7 @@ void FDeferredShadingSceneRenderer::DownsampleDepthSurface(FRHICommandList& RHIC
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI());
 
-	PixelShader->SetParameters(RHICmdList, View);
-
+	PixelShader->SetParameters(RHICmdList, View, MinMaxFilterBlend);
 	const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X * ScaleFactor);
 	const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y * ScaleFactor);
 	const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() * ScaleFactor);

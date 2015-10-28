@@ -10,6 +10,9 @@ DEFINE_LOG_CATEGORY(OodleHandlerComponentLog);
 #define OODLE_INI_SECTION TEXT("OodleHandlerComponent")
 
 
+// @todo #JohnB: Remove this when replacing the current dictionary serialization code
+#define STOPGAP_DICT_SERIALIZE 1
+
 // @todo #JohnB: Find a better solution than this, for handling the maximum packet size. This is far higher than it needs to be.
 #define MAX_OODLE_PACKET_SIZE 65535
 
@@ -52,6 +55,19 @@ struct OodleNetwork1_SavedStates_Header
 		, statecompacted_complen(0)
 	{
 	}
+
+	// Temporary serializer, prior to replacement of this code
+	void SerializeSavedStates(FArchive& InArc)
+	{
+		InArc << (uint32&)magic;
+		InArc << (uint32&)compressor;
+		InArc << (uint32&)ht_bits;
+		InArc << (uint32&)dic_size;
+		InArc << (uint32&)oodle_header_version;
+		InArc << (uint32&)dic_complen;
+		InArc << (uint32&)statecompacted_size;
+		InArc << (uint32&)statecompacted_complen;
+	}
 };
 
 // OODLE
@@ -67,11 +83,6 @@ OodleHandlerComponent::OodleHandlerComponent()
 	, Mode(EOodleHandlerMode::Release)
 	, ServerDictionary()
 	, ClientDictionary()
-#if 0
-	, Dictionary(NULL)
-	, SharedDictionaryData(NULL)
-	, CompressorState(NULL)
-#endif
 {
 	SetActive(true);
 }
@@ -133,7 +144,9 @@ OodleHandlerComponent::~OodleHandlerComponent()
 		free(ClientDictionary.CompressorState);
 	}
 
+#if UE4_OODLE_VER < 200
 	Oodle_Shutdown_NoThreads();
+#endif
 }
 
 void OodleHandlerComponent::InitFirstRunConfig()
@@ -339,6 +352,101 @@ void OodleHandlerComponent::Initialize()
 
 void OodleHandlerComponent::InitializeDictionary(FString FilePath, FOodleDictionary& OutDictionary)
 {
+	// @todo #JohnB: When rewriting, make sure to have proper error checking, for cases such as e.g. trying to load dictionary,
+	//					from past/incompatible Oodle version
+
+#if STOPGAP_DICT_SERIALIZE
+	TArray<uint8> FileInMemory;
+	FMemoryReader FileArc(FileInMemory);
+
+	// @todo #JohnB: Need a way to verify the state file, is actually a state file (do this once converting to FArchive)
+	if (FFileHelper::LoadFileToArray(FileInMemory, *FilePath))
+	{
+		// parse header :
+		OodleNetwork1_SavedStates_Header SavedDictionaryFileData;
+
+		SavedDictionaryFileData.SerializeSavedStates(FileArc);
+
+		if (SavedDictionaryFileData.magic == ON1_MAGIC && SavedDictionaryFileData.oodle_header_version == OODLE_HEADER_VERSION)
+		{
+			// this code only loads compressed states currently
+			check(SavedDictionaryFileData.compressor != -1);
+
+
+			S32 StateHTBits = SavedDictionaryFileData.ht_bits;
+			SINTa DictionarySize = SavedDictionaryFileData.dic_size;
+
+			SINTa DictionaryCompLen = SavedDictionaryFileData.dic_complen;
+			SINTa CompressorStateCompactedSize = SavedDictionaryFileData.statecompacted_size;
+			SINTa CompressorStateCompactedLength = SavedDictionaryFileData.statecompacted_complen;
+
+			SINTa SharedSize = OodleNetwork1_Shared_Size(StateHTBits);
+			SINTa CompressorStateSize = OodleNetwork1UDP_State_Size();
+
+			check(DictionarySize >= DictionaryCompLen);
+			check(CompressorStateCompactedSize >= CompressorStateCompactedLength);
+
+			check(CompressorStateCompactedSize > 0 && CompressorStateCompactedSize < OodleNetwork1UDP_StateCompacted_MaxSize());
+
+			check(FileArc.TotalSize() == (S64)sizeof(OodleNetwork1_SavedStates_Header) + DictionaryCompLen +
+					CompressorStateCompactedLength);
+
+			//OodleLog_Printf_v1("OodleNetwork1UDP Loading; dic comp %d , state %d->%d\n",DictionaryCompLen,
+			//						CompressorStateCompactedSize, CompressorStateCompactedLength);
+
+			//-------------------------------------------
+			// decompress Dictionary and CompressorStatecompacted
+
+			// @todo #JohnB: Security issue
+			OutDictionary.Dictionary = malloc(DictionarySize);
+
+			void * DictionaryCompressed = &FileInMemory[FileArc.Tell()];
+
+			SINTa DecompressedDictionarySize = OodleLZ_Decompress(DictionaryCompressed, DictionaryCompLen, OutDictionary.Dictionary,
+																	DictionarySize);
+
+			check(DecompressedDictionarySize == DictionarySize);
+
+			OodleNetwork1UDP_StateCompacted* UDPNewCompacted = (OodleNetwork1UDP_StateCompacted *)malloc(CompressorStateCompactedSize);
+
+			void * CompressorStatecompacted_comp_ptr = (U8 *)DictionaryCompressed + DictionaryCompLen;
+
+			SINTa decomp_statecompacted_size = OodleLZ_Decompress(CompressorStatecompacted_comp_ptr, CompressorStateCompactedLength,
+																	UDPNewCompacted, CompressorStateCompactedSize);
+
+			check(decomp_statecompacted_size == CompressorStateCompactedSize);
+
+			//----------------------------------------------
+			// Uncompact the "Compacted" state into a usable state
+
+			OutDictionary.CompressorState = (OodleNetwork1UDP_State *)malloc(CompressorStateSize);
+			check(OutDictionary.CompressorState != NULL);
+
+			OodleNetwork1UDP_State_Uncompact(OutDictionary.CompressorState, UDPNewCompacted);
+			free(UDPNewCompacted);
+
+			//----------------------------------------------
+			// fill out SharedDictionaryData from the dictionary
+
+			OutDictionary.SharedDictionaryData = (OodleNetwork1_Shared *)malloc(SharedSize);
+			check(OutDictionary.SharedDictionaryData != NULL);
+			OodleNetwork1_Shared_SetWindow(OutDictionary.SharedDictionaryData, StateHTBits, OutDictionary.Dictionary, (S32)DictionarySize);
+
+			//-----------------------------------------------------
+	
+			//SET_DWORD_STAT(STAT_Oodle_DicSize, DictionarySize);
+		}
+		else if (SavedDictionaryFileData.magic != ON1_MAGIC)
+		{
+			UE_LOG(OodleHandlerComponentLog, Warning, TEXT("OodleNetCompressor: state_file ON1_MAGIC mismatch"));
+		}
+		else //if (SavedDictionaryFileData->oodle_header_version != OODLE_HEADER_VERSION)
+		{
+			UE_LOG(OodleHandlerComponentLog, Warning,
+					TEXT("OodleNetCompressor: state_file OODLE_HEADER_VERSION mismatch. Was: %u, Expected: %u"),
+					(uint32)SavedDictionaryFileData.oodle_header_version, (uint32)OODLE_HEADER_VERSION);
+		}
+#else
 	TArray<uint8> FileInMemory;
 
 	// @todo #JohnB: Need a way to verify the state file, is actually a state file (do this once converting to FArchive)
@@ -425,6 +533,7 @@ void OodleHandlerComponent::InitializeDictionary(FString FilePath, FOodleDiction
 					TEXT("OodleNetCompressor: state_file OODLE_HEADER_VERSION mismatch. Was: %u, Expected: %u"),
 					(uint32)SavedDictionaryFileData->oodle_header_version, (uint32)OODLE_HEADER_VERSION);
 		}
+#endif
 	}
 	else
 	{
@@ -580,12 +689,18 @@ void FOodleComponentModuleInterface::StartupModule()
 
 #if PLATFORM_WINDOWS
 	{
+	#if UE4_OODLE_VER >= 200
+		OodleBinaryFile = TEXT("oo2core_1");
+	#else
+		OodleBinaryFile = FString::Printf(TEXT("oodle_%i"), UE4_OODLE_VER);
+	#endif
+
 	#if PLATFORM_64BITS
 		OodleBinaryPath += TEXT("Win64/");
-		OodleBinaryFile = TEXT("oodle_145_win64.dll");
+		OodleBinaryFile += TEXT("_win64.dll");
 	#else
 		OodleBinaryPath += TEXT("Win32/");
-		OodleBinaryFile = TEXT("oodle_145_win32.dll");
+		OodleBinaryFile += TEXT("_win32.dll");
 	#endif
 
 
@@ -595,30 +710,26 @@ void FOodleComponentModuleInterface::StartupModule()
 
 		FPlatformProcess::PopDllDirectory(*OodleBinaryPath);
 	}
-#else
-	// @todo #JohnB
 #endif
 
+#if !PLATFORM_LINUX
 	check(OodleDllHandle != NULL);
+#endif
 
 
+#if UE4_OODLE_VER < 200
 	OodleInitOptions Options;
 
 	Oodle_Init_GetDefaults_Minimal(OODLE_HEADER_VERSION, &Options);
-
-	// @todo #JohnB: Implement toggle for logfile (from config), and implement/test the log filename path (don't forget char conversion)
-	//Options.m_OodleInit_Log = true;
-	//Options.m_OodleInit_Log_Header = ?;
-	//Options.m_OodleInit_Log_FileName = ?;
-	//Options.m_OodleInit_Log_FlushEachWrite = FParse::Param(FCommandLine::Get(), TEXT("FORCELOGFLUSH"));
-
-	// @todo #JohnB: Consider threading in future
 	Oodle_Init_NoThreads(OODLE_HEADER_VERSION, &Options);
+#endif
 }
 
 void FOodleComponentModuleInterface::ShutdownModule()
 {
+#if UE4_OODLE_VER < 200
 	Oodle_Shutdown();
+#endif
 
 	if (OodleDllHandle != NULL)
 	{
@@ -629,6 +740,8 @@ void FOodleComponentModuleInterface::ShutdownModule()
 #else
 TSharedPtr<HandlerComponent> FOodleComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
+	UE_LOG(OodleHandlerComponentLog, Error, TEXT("Can't create OodleHandlerComponent instance - HAS_OODLE_SDK is false."));
+
 	return TSharedPtr<HandlerComponent>(NULL);
 }
 

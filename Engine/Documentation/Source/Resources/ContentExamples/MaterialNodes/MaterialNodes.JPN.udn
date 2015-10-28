@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2618843
+﻿INTSourceChangelist:2716874
 Availability:Public
 Title:マテリアル ノード
 Crumbs:%ROOT%, Resources
-Description: マテリアルノード サンプル レベルの概要
+Description: マテリアルノードのサンプル レベルの概要
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials\MaterialInputs
+Version:4.9
 
 [TOC(start:2 end:2)]
 
@@ -84,10 +87,4 @@ Description: マテリアルノード サンプル レベルの概要
 %Resources/ContentExamples/MaterialNodes/1_14:TopicCompact%
 [/REGION]
 [/EXCERPT:Topics]
-
-
-## 関連トピックと参考文献
-
-* [](Engine/Rendering/Materials)
-* [](Engine/Rendering/Materials\MaterialInputs)
 

@@ -1022,3 +1022,16 @@ static FAutoConsoleVariableRef CVarGEnsureOnNANDiagnostic(
 	TEXT( "If set to 1 NaN Diagnostic failures will result in ensures being emitted" )
 	);
 #endif
+
+#if DO_CHECK
+namespace UE4Asserts_Private
+{
+	void VARARGS InternalLogNANDiagnosticMessage(const TCHAR* FormattedMsg, ...)
+	{		
+		const int32 TempStrSize = 4096;
+		TCHAR TempStr[TempStrSize];
+		GET_VARARGS(TempStr, TempStrSize, TempStrSize - 1, FormattedMsg, FormattedMsg);
+		UE_LOG(LogCore, Error, TempStr);
+	}
+}
+#endif

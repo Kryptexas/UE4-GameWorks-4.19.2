@@ -99,6 +99,7 @@ public class UnrealEd : ModuleRules
                 "AppFramework",
 				"BlueprintGraph",
 				"OnlineSubsystem",
+				"OnlineSubsystemUtils",
 				"OnlineBlueprintSupport",
 				"DesktopPlatform",
 				"EditorStyle",

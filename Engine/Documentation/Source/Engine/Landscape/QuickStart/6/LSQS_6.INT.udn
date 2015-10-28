@@ -31,7 +31,7 @@ While the previous quick start tutorial for Landscape will get you up and runnin
 
 [INCLUDE:Engine/Landscape/Creation#RecommendedLSS]-->
 
-* When using the **Paint Tools**, you might find it easier to easier to paint over what you would like to erase than to try and erase it using **Shift** + **Left Mouse Button**.
+* When using the **Paint Tools**, you might find it easier to paint over what you would like to erase than to try and erase it using **Shift** + **Left Mouse Button**.
 * When using the **Alpha Brush**, remember that you can change what the pattern that the brush uses by selecting a different RGB channels from the **Texture Channel** drop down menu. This is very handy because you can pack up to three different Alpha patterns in a single texture.
 
 	![](T_Landscape_Tips_Tricks_00.png)

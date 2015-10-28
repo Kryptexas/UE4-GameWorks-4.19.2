@@ -100,8 +100,20 @@ class USCS_Node : public UObject
 	/** Returns an array containing this node and all children below it */
 	TArray<USCS_Node*> GetAllNodes();
 	
+	/** Returns an constant reference to the child nodes array of this node */
+	const TArray<USCS_Node*>& GetChildNodes() const { return ChildNodes; }
+
 	/** Adds the given node as a child node */
-	ENGINE_API void AddChildNode(USCS_Node* InNode);
+	ENGINE_API void AddChildNode(USCS_Node* InNode, bool bAddToAllNodes = true);
+
+	/** Removes the child node at the given index */
+	ENGINE_API void RemoveChildNode(USCS_Node* InNode, bool bRemoveFromAllNodes = true);
+
+	/** Removes the child node at the given index */
+	ENGINE_API void RemoveChildNodeAt(int32 ChildIndex, bool bRemoveFromAllNodes = true);
+
+	/** Moves a list of nodes from their current list to this node's ChildNode list */
+	ENGINE_API void MoveChildNodes(USCS_Node* SourceNode, int32 InsertLocation = INDEX_NONE);
 
 	/** Returns an array containing this node and all children below it */
 	TArray<const USCS_Node*> GetAllNodes() const;

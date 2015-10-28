@@ -84,6 +84,7 @@
 #include "Materials/MaterialExpressionParticleDirection.h"
 #include "Materials/MaterialExpressionParticleMacroUV.h"
 #include "Materials/MaterialExpressionParticleMotionBlurFade.h"
+#include "Materials/MaterialExpressionParticleRandom.h"
 #include "Materials/MaterialExpressionParticlePositionWS.h"
 #include "Materials/MaterialExpressionParticleRadius.h"
 #include "Materials/MaterialExpressionParticleRelativeTime.h"
@@ -9230,6 +9231,40 @@ int32 UMaterialExpressionParticleMotionBlurFade::Compile(class FMaterialCompiler
 void UMaterialExpressionParticleMotionBlurFade::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Particle Motion Blur Fade"));
+}
+
+/*------------------------------------------------------------------------------
+	Particle motion blur fade material expression.
+------------------------------------------------------------------------------*/
+UMaterialExpressionParticleRandom::UMaterialExpressionParticleRandom(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Particles;
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Particles);
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+	bShaderInputData = true;
+}
+
+int32 UMaterialExpressionParticleRandom::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	return Compiler->ParticleRandom();
+}
+
+void UMaterialExpressionParticleRandom::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Particle Random Value"));
 }
 
 /*------------------------------------------------------------------------------

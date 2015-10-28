@@ -18,12 +18,6 @@ public class MovieSceneCapture : ModuleRules
 			DynamicallyLoadedModuleNames.Add("ImageWrapper");
 		}
 
-		if (UEBuildConfiguration.bBuildEditor)
-		{
-			PrivateIncludePathModuleNames.Add("PropertyEditor");
-			DynamicallyLoadedModuleNames.Add("PropertyEditor");
-		}
-
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"LevelSequence",
@@ -43,15 +37,5 @@ public class MovieSceneCapture : ModuleRules
 				"SlateCore",
 			}
 		);
-
-		if (UEBuildConfiguration.bBuildEditor)
-		{
-			PrivateDependencyModuleNames.AddRange(
-				new string[] {
-					"EditorStyle",
-					"UnrealEd",
-				}
-			);
-		}
 	}
 }

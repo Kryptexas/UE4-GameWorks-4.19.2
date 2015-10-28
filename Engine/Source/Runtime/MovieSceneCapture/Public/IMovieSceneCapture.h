@@ -4,7 +4,7 @@
 
 #include "IMovieSceneCapture.generated.h"
 
-class FViewport;
+class FSceneViewport;
 struct FMovieSceneCaptureSettings;
 struct FMovieSceneCaptureHandle;
 
@@ -22,7 +22,7 @@ public:
 	GENERATED_BODY()
 
 	/** Initialize this capture object by binding it to the specified viewport */
-	virtual void Initialize(FViewport* Viewport) = 0;
+	virtual void Initialize(TWeakPtr<FSceneViewport> Viewport) = 0;
 
 	/** Shut down this movie capture */
 	virtual void Close() = 0;
@@ -32,7 +32,4 @@ public:
 
 	/** Access specific movie scene capture settings */
 	virtual const FMovieSceneCaptureSettings& GetSettings() const = 0;
-	
-	/** Get the name of a map package name that this capture wants to load */
-	virtual FString GetPackageName() const { return FString(); }
 };

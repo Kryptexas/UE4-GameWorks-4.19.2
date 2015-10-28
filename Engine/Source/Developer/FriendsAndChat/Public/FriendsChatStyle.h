@@ -7,7 +7,7 @@
 // Forward declarations
 namespace EChatMessageType
 {
-	enum Type : uint8;
+	enum Type : uint16;
 }
 
 /**

@@ -11,7 +11,15 @@ UCLASS( MinimalAPI )
 class UMovieSceneBoolSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
+
 public:
+
+	/** The default value to use when no keys are present */
+	UPROPERTY(EditAnywhere, Category="Curve")
+	bool DefaultValue;
+
+public:
+
 	/**
 	 * Updates this section
 	 *

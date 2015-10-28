@@ -7,15 +7,18 @@ DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMa
 
 FSlateShaderResourceManager* FSlateDataPayload::ResourceManager;
 
-void FSlateDataPayload::SetTextPayloadProperties( FSlateWindowElementList& ElementList, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint )
+void FSlateDataPayload::SetTextPayloadProperties( FSlateWindowElementList& ElementList, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint, const int32 InStartIndex, const int32 InEndIndex )
 {
 	Tint = InTint;
 	FontInfo = InFontInfo;
 	SIZE_T Count = InText.Len() + 1;
+	int32 StartIndex = FMath::Min<int32>(InStartIndex, Count - 1);
+	int32 EndIndex = FMath::Min<int32>(InEndIndex, Count - 1);
+	Count = 1 + ((EndIndex > StartIndex) ? EndIndex - StartIndex : 0);
 	ImmutableText = (TCHAR*)ElementList.Alloc(sizeof(TCHAR) * Count, ALIGNOF(TCHAR));
 	if (Count > 1)
 	{
-		FCString::Strcpy(ImmutableText, Count, InText.GetCharArray().GetData());
+		FCString::Strncpy(ImmutableText, InText.GetCharArray().GetData() + StartIndex, Count);
 		check(!ImmutableText[Count - 1]);
 	}
 	else
@@ -122,8 +125,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	//fixme, no reason to create a temp string here, add an overload for SetTextPayloadProperties instead
-	DrawElt.DataPayload.SetTextPayloadProperties(  ElementList, FString( EndIndex - StartIndex, *InText + StartIndex ), InFontInfo, InTint );
+	DrawElt.DataPayload.SetTextPayloadProperties( ElementList, InText, InFontInfo, InTint, StartIndex, EndIndex );
 }
 
 
@@ -177,14 +179,14 @@ void FSlateDrawElement::MakeDrawSpaceSpline( FSlateWindowElementList& ElementLis
 }
 
 
-void FSlateDrawElement::MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint, bool bAntialias )
+void FSlateDrawElement::MakeLines(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint, bool bAntialias, float Thickness)
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Line;
-	DrawElt.DataPayload.SetLinesPayloadProperties( Points, InTint, bAntialias, ESlateLineJoinType::Sharp );
+	DrawElt.DataPayload.SetLinesPayloadProperties( Points, InTint, bAntialias, ESlateLineJoinType::Sharp, Thickness );
 }
 
 
@@ -209,14 +211,19 @@ void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32
 	DrawElt.DataPayload.SetCustomDrawerPayloadProperties( CustomDrawer );
 }
 
-void FSlateDrawElement::MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateBrush* InBrush, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData)
+
+void FSlateDrawElement::MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateResourceHandle& InRenderResourceHandle, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData, uint32 InInstanceOffset, uint32 InNumInstances)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, FPaintGeometry(),/*Clip rect is ignored*/ FSlateRect(1,1,1,1), ESlateDrawEffect::None);
 	DrawElt.RenderTransform = FSlateRenderTransform();
 	DrawElt.ElementType = ET_CustomVerts;
-	DrawElt.DataPayload.SetCustomVertsPayloadProperties(InBrush, InVerts, InIndexes, InInstanceData);
+
+	FSlateShaderResourceProxy* RenderingProxy = InRenderResourceHandle.Data->Proxy;
+
+	DrawElt.DataPayload.SetCustomVertsPayloadProperties(RenderingProxy, InVerts, InIndexes, InInstanceData, InInstanceOffset, InNumInstances);
 }
 
 void FSlateDrawElement::MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle, const FVector2D& Offset)

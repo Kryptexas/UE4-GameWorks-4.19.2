@@ -21,6 +21,7 @@ namespace EAutomationAnalyticParam
 		MatineeName,
 		TimeStamp,
 		Platform,
+		Spec,
 		CL,
 		FPS,
 		BuildConfiguration,

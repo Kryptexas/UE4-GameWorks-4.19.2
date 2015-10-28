@@ -3,7 +3,7 @@ Title:Shading Models
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials,  Engine/Rendering/Materials/MaterialProperties
 Description:This document breaks down the Material Shading Models property options.
 Version: 4.9
-SkillLevel:Intermediate
+
 
 [TOC(start:2 end:2)]
 
@@ -101,7 +101,16 @@ The **Clear Coat** Shading Model can be used to better simulate multilayer mater
 In addition to this, the Clear Coat Shading Model can also be used with either a metal or nonmetal surfaces. In fact, it was specifically designed to model this second class of smooth colored films over a non-colored metal. 
 Some examples include acrylic or lacquer clear coats, and colored films over metals such as soda cans and car paint. 
 
-![](ClearCoat01.png)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Monte Carlo Reference](ClearCoat_0.png)(w:400)
+	[/PARAM]
+	[PARAM:after]
+	![UE4](ClearCoat_1.png)(w:400)
+	[/PARAM]
+[/OBJECT]
+
+
 [region:caption]
 (Note that the flecks were done in the material editor and are not part of the shading model)
 [/region]

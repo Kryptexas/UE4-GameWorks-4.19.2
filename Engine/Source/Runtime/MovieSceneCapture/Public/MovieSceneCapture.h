@@ -49,7 +49,7 @@ public:
 public:
 
 	// Begin IMovieSceneCaptureInterface
-	virtual void Initialize(FViewport* InViewport) override;
+	virtual void Initialize(TWeakPtr<FSceneViewport> InSceneViewport) override;
 	virtual void Close() override;
 	virtual FMovieSceneCaptureHandle GetHandle() const override { return Handle; }
 	const FMovieSceneCaptureSettings& GetSettings() const override { return Settings; }
@@ -87,8 +87,11 @@ protected:
 
 #if WITH_EDITOR
 	/** Implementation function that saves out a snapshot file from the specified color data */
-	void CaptureSnapshot(const TArray<FColor>& Colors);
+	void SaveFrameToFile(TArray<FColor> Colors);
 #endif
+
+	/** Prepare the slate renderer for a screenshot */
+	void PrepareForScreenshot();
 
 protected:
 
@@ -104,7 +107,7 @@ protected:
 protected:
 	
 	/** The viewport we are bound to */
-	FViewport* Viewport;
+	TWeakPtr<FSceneViewport> SceneViewport;
 	/** Our unique handle, used for external representation without having to link to the MovieSceneCapture module */
 	FMovieSceneCaptureHandle Handle;
 	/** Cached metrics for this capture operation */
@@ -113,6 +116,8 @@ protected:
 	TUniquePtr<FAVIWriter> AVIWriter;
 	/** Strategy used for capture (real-time/fixed-time-step) */
 	TSharedPtr<ICaptureStrategy> CaptureStrategy;
+	/** Scratch space for per-frame screenshots */
+	TArray<FColor> ScratchBuffer;
 };
 
 /** A strategy that employs a fixed frame time-step, and as such never drops a frame. Potentially accelerated.  */

@@ -6,6 +6,7 @@
 
 UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
+	, DefaultValue(false)
 {
 	SetIsInfinite(true);
 }
@@ -13,7 +14,7 @@ UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& Object
 
 bool UMovieSceneBoolSection::Eval( float Position ) const
 {
-	return !!BoolCurve.Evaluate(Position);
+	return !!BoolCurve.Evaluate(Position, DefaultValue ? 1 : 0);
 }
 
 

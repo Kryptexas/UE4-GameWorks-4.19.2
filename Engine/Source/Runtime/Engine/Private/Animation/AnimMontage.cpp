@@ -14,6 +14,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimStats.h"
 
+DEFINE_LOG_CATEGORY(LogAnimMontage);
 ///////////////////////////////////////////////////////////////////////////
 //
 UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
@@ -23,6 +24,7 @@ UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 	BlendIn.SetBlendTime(0.25f);
 	BlendOut.SetBlendTime(0.25f);
 	BlendOutTriggerTime = -1.f;
+	SyncSlotIndex = 0;
 }
 
 bool UAnimMontage::IsValidSlot(FName InSlotName) const
@@ -284,7 +286,7 @@ int32 UAnimMontage::AddAnimCompositeSection(FName InSectionName, float StartTime
 	// we already have that name
 	if ( GetSectionIndex(InSectionName)!=INDEX_NONE )
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("AnimCompositeSection : %s(%s) already exists. Choose different name."), 
+		UE_LOG(LogAnimMontage, Warning, TEXT("AnimCompositeSection : %s(%s) already exists. Choose different name."), 
 			*NewSection.SectionName.ToString(), *InSectionName.ToString());
 		return INDEX_NONE;
 	}
@@ -347,7 +349,7 @@ void UAnimMontage::PostLoad()
 
 		if(CurrentCalculatedLength != SequenceLength)
 		{
-			UE_LOG(LogAnimation, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for montage %s does not match the length stored in the asset, please resave the montage asset."), *GetName());
+			UE_LOG(LogAnimMontage, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for montage %s does not match the length stored in the asset, please resave the montage asset."), *GetName());
 			SequenceLength = CurrentCalculatedLength;
 		}
 	}
@@ -471,6 +473,9 @@ void UAnimMontage::PostLoad()
 		BlendOut.SetBlendTime(BlendOutTime_DEPRECATED);
 		BlendOutTime_DEPRECATED = -1.f;
 	}
+
+	// collect markers if it's valid
+	CollectMarkers();
 }
 
 void UAnimMontage::ConvertBranchingPointsToAnimNotifies()
@@ -591,7 +596,7 @@ void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMa
 	FAnimNotifyEvent** FoundNotifyEventPtr = TriggerTimes.Find(TickMarker.TriggerTime);
 	if (FoundNotifyEventPtr)
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Branching Point '%s' overlaps with '%s' at time: %f. One of them will not get triggered!"),
+		UE_LOG(LogAnimMontage, Warning, TEXT("Branching Point '%s' overlaps with '%s' at time: %f. One of them will not get triggered!"),
 			*Notifies[TickMarker.NotifyIndex].NotifyName.ToString(), *(*FoundNotifyEventPtr)->NotifyName.ToString(), TickMarker.TriggerTime);
 	}
 	else
@@ -670,6 +675,11 @@ void UAnimMontage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	if( PropertyName == FName(TEXT("Notifies")))
 	{
 		bAnimBranchingPointNeedsSort = true;
+	}
+
+	if (SyncGroup != NAME_None)
+	{
+		CollectMarkers();
 	}
 }
 #endif // WITH_EDITOR
@@ -818,7 +828,7 @@ bool UAnimMontage::HasValidSlotSetup() const
 				}
 				else
 				{
-					UE_LOG(LogAnimation, Warning, TEXT("Montage '%s' not properly setup. Slot named '%s' is already used in this Montage. All slots must be unique"),
+					UE_LOG(LogAnimMontage, Warning, TEXT("Montage '%s' not properly setup. Slot named '%s' is already used in this Montage. All slots must be unique"),
 						*GetFullName(), *CurrentSlotName.ToString());
 					return false;
 				}
@@ -828,7 +838,7 @@ bool UAnimMontage::HasValidSlotSetup() const
 				bool bDifferentGroupName = (CurrentSlotGroupName != MontageGroupName);
 				if (bDifferentGroupName)
 				{
-					UE_LOG(LogAnimation, Warning, TEXT("Montage '%s' not properly setup. Slot's group '%s' is different than the Montage's group '%s'. All slots must belong to the same group."),
+					UE_LOG(LogAnimMontage, Warning, TEXT("Montage '%s' not properly setup. Slot's group '%s' is different than the Montage's group '%s'. All slots must belong to the same group."),
 						*GetFullName(), *CurrentSlotGroupName.ToString(), *MontageGroupName.ToString());
 					return false;
 				}
@@ -839,6 +849,263 @@ bool UAnimMontage::HasValidSlotSetup() const
 	return true;
 }
 
+float UAnimMontage::CalculateSequenceLength()
+{
+	float CalculatedSequenceLength = 0.f;
+	for (auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
+	{
+		FSlotAnimationTrack& SlotAnimTrack = (*Iter);
+		if (SlotAnimTrack.AnimTrack.AnimSegments.Num() > 0)
+		{
+			CalculatedSequenceLength = FMath::Max(CalculatedSequenceLength, SlotAnimTrack.AnimTrack.GetLength());
+		}
+	}
+	return CalculatedSequenceLength;
+}
+
+const TArray<class UAnimMetaData*> UAnimMontage::GetSectionMetaData(FName SectionName, bool bIncludeSequence/*=true*/, FName SlotName /*= NAME_None*/)
+{
+	TArray<class UAnimMetaData*> MetadataList;
+	bool bShouldIIncludeSequence = bIncludeSequence;
+
+	for (int32 SectionIndex = 0; SectionIndex < CompositeSections.Num(); ++SectionIndex)
+	{
+		const auto& CurSection = CompositeSections[SectionIndex];
+		if (SectionName == NAME_None || CurSection.SectionName == SectionName)
+		{
+			// add to the list
+			MetadataList.Append(CurSection.GetMetaData());
+
+			if (bShouldIIncludeSequence)
+			{
+				if (SectionName == NAME_None)
+				{
+					for (auto& SlotIter : SlotAnimTracks)
+					{
+						if (SlotName == NAME_None || SlotIter.SlotName == SlotName)
+						{
+							// now add the animations within this section
+							for (auto& SegmentIter : SlotIter.AnimTrack.AnimSegments)
+							{
+								if (SegmentIter.AnimReference)
+								{
+									// only add unique here
+									TArray<UAnimMetaData*> RefMetadata = SegmentIter.AnimReference->GetMetaData();
+
+									for (auto& RefData : RefMetadata)
+									{
+										MetadataList.AddUnique(RefData);
+									}
+								}
+							}
+						}
+					}
+
+					// if section name == None, we only grab slots once
+					// otherwise, it will grab multiple times
+					bShouldIIncludeSequence = false;
+				}
+				else
+				{
+					float SectionStartTime = 0.f, SectionEndTime = 0.f;
+					GetSectionStartAndEndTime(SectionIndex, SectionStartTime, SectionEndTime);
+					for (auto& SlotIter : SlotAnimTracks)
+					{
+						if (SlotName == NAME_None || SlotIter.SlotName == SlotName)
+						{
+							// now add the animations within this section
+							for (auto& SegmentIter : SlotIter.AnimTrack.AnimSegments)
+							{
+								if (SegmentIter.IsIncluded(SectionStartTime, SectionEndTime))
+								{
+									if (SegmentIter.AnimReference)
+									{
+										// only add unique here
+										TArray<UAnimMetaData*> RefMetadata = SegmentIter.AnimReference->GetMetaData();
+
+										for (auto& RefData : RefMetadata)
+										{
+											MetadataList.AddUnique(RefData);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return MetadataList;
+}
+
+#if WITH_EDITOR
+bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
+{
+	for (auto Iter = SlotAnimTracks.CreateConstIterator(); Iter; ++Iter)
+	{
+		const FSlotAnimationTrack& Track = (*Iter);
+		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationSequences);
+	}
+	return (AnimationSequences.Num() > 0);
+}
+
+void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+{
+	for (auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
+	{
+		FSlotAnimationTrack& Track = (*Iter);
+		Track.AnimTrack.ReplaceReferredAnimations(ReplacementMap);
+	}
+}
+
+void UAnimMontage::UpdateLinkableElements()
+{
+	// Update all linkable elements
+	for (FCompositeSection& Section : CompositeSections)
+	{
+		Section.Update();
+	}
+
+	for (FAnimNotifyEvent& Notify : Notifies)
+	{
+		Notify.Update();
+		Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
+
+		Notify.EndLink.Update();
+		Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
+	}
+}
+
+ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx)
+{
+	FAnimSegment* UpdatedSegment = &SlotAnimTracks[SlotIdx].AnimTrack.AnimSegments[SegmentIdx];
+
+	for (FCompositeSection& Section : CompositeSections)
+	{
+		if (Section.GetSlotIndex() == SlotIdx && Section.GetSegmentIndex() == SegmentIdx)
+		{
+			// Update the link
+			Section.Update();
+		}
+	}
+
+	for (FAnimNotifyEvent& Notify : Notifies)
+	{
+		if (Notify.GetSlotIndex() == SlotIdx && Notify.GetSegmentIndex() == SegmentIdx)
+		{
+			Notify.Update();
+			Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
+		}
+
+		if (Notify.EndLink.GetSlotIndex() == SlotIdx && Notify.EndLink.GetSegmentIndex() == SegmentIdx)
+		{
+			Notify.EndLink.Update();
+			Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
+		}
+	}
+}
+
+#endif
+
+void UAnimMontage::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const
+{
+	// nothing has to happen here
+	// we just have to make sure we set Context data correct
+	if (ensure (Context.IsLeader()))
+	{
+		const float CurrentTime = Instance.Montage.CurrentPosition;
+		const float PreviousTime = Instance.Montage.PreviousPosition;
+		const float MoveDelta = Instance.Montage.MoveDelta;
+
+		Context.SetLeaderDelta(MoveDelta);
+		if (MoveDelta != 0.f)
+		{
+			if (Instance.bCanUseMarkerSync && Instance.MarkerTickRecord && Context.CanUseMarkerPosition())
+			{
+				FMarkerTickRecord* MarkerTickRecord = Instance.MarkerTickRecord;
+				FMarkerTickContext& MarkerTickContext = Context.MarkerTickContext;
+
+				if (MarkerTickRecord->IsValid())
+				{
+					MarkerTickContext.SetMarkerSyncStartPosition(GetMarkerSyncPositionfromMarkerIndicies(MarkerTickRecord->PreviousMarker.MarkerIndex, MarkerTickRecord->NextMarker.MarkerIndex, PreviousTime));
+
+				}
+				else
+				{
+					// only thing is that passed markers won't work in this frame. To do that, I have to figure out how it jumped from where to where, 
+					FMarkerPair PreviousMarker;
+					FMarkerPair NextMarker;
+					GetMarkerIndicesForTime(PreviousTime, false, MarkerTickContext.GetValidMarkerNames(), PreviousMarker, NextMarker);
+					MarkerTickContext.SetMarkerSyncStartPosition(GetMarkerSyncPositionfromMarkerIndicies(PreviousMarker.MarkerIndex, NextMarker.MarkerIndex, PreviousTime));
+				}
+
+				// @todo this won't work well once we start jumping
+				// only thing is that passed markers won't work in this frame. To do that, I have to figure out how it jumped from where to where, 
+				GetMarkerIndicesForTime(CurrentTime, false, MarkerTickContext.GetValidMarkerNames(), MarkerTickRecord->PreviousMarker, MarkerTickRecord->NextMarker);
+				MarkerTickContext.SetMarkerSyncEndPosition(GetMarkerSyncPositionfromMarkerIndicies(MarkerTickRecord->PreviousMarker.MarkerIndex, MarkerTickRecord->NextMarker.MarkerIndex, CurrentTime));
+
+				MarkerTickContext.MarkersPassedThisTick = *Instance.Montage.MarkersPassedThisTick;
+
+				UE_LOG(LogAnimMarkerSync, Log, TEXT("Montage Leading SyncGroup: %s(%s) Start [%s], End [%s]"),
+					*GetNameSafe(this), *SyncGroup.ToString(), *MarkerTickContext.GetMarkerSyncStartPosition().ToString(), *MarkerTickContext.GetMarkerSyncEndPosition().ToString());
+			}
+		}
+
+		Context.SetAnimationPositionRatio(CurrentTime / SequenceLength);
+	}
+}
+
+void UAnimMontage::CollectMarkers()
+{
+	MarkerData.AuthoredSyncMarkers.Reset();
+
+	// we want to make sure anim reference actually contains markers
+	if (SyncGroup != NAME_None && SlotAnimTracks.IsValidIndex(SyncSlotIndex))
+	{
+		const FAnimTrack& AnimTrack = SlotAnimTracks[SyncSlotIndex].AnimTrack;
+		for (const auto& Seg : AnimTrack.AnimSegments)
+		{
+			const UAnimSequence* Sequence = Cast<UAnimSequence>(Seg.AnimReference);
+			if (Sequence && Sequence->AuthoredSyncMarkers.Num() > 0)
+			{
+				// @todo this won't work well if you have starttime < end time and it does have negative playrate
+				for (const auto& Marker : Sequence->AuthoredSyncMarkers)
+				{
+					if (Marker.Time >= Seg.AnimStartTime && Marker.Time <= Seg.AnimEndTime)
+					{
+						const float TotalSegmentLength = (Seg.AnimEndTime - Seg.AnimStartTime)*Seg.AnimPlayRate;
+						// i don't think we can do negative in this case
+						ensure(TotalSegmentLength >= 0.f);
+
+						// now add to the list
+						for (int32 LoopCount = 0; LoopCount < Seg.LoopingCount; ++LoopCount)
+						{
+							FAnimSyncMarker NewMarker;
+
+							NewMarker.Time = Seg.StartPos + (Marker.Time - Seg.AnimStartTime)*Seg.AnimPlayRate + TotalSegmentLength*LoopCount;
+							NewMarker.MarkerName = Marker.MarkerName;
+							MarkerData.AuthoredSyncMarkers.Add(NewMarker);
+						}
+					}
+				}
+			}
+		}
+
+		MarkerData.CollectUniqueNames();
+	}
+}
+
+void UAnimMontage::GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const
+{
+	MarkerData.GetMarkerIndicesForTime(CurrentTime, bLooping, ValidMarkerNames, OutPrevMarker, OutNextMarker, SequenceLength);
+}
+
+FMarkerSyncAnimPosition UAnimMontage::GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const
+{
+	return MarkerData.GetMarkerSyncPositionfromMarkerIndicies(PrevMarker, NextMarker, CurrentTime, SequenceLength);
+}
 //////////////////////////////////////////////////////////////////////////////////////////////
 // MontageInstance
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -867,7 +1134,7 @@ void FAnimMontageInstance::InitializeBlend(const FAlphaBlend& InAlphaBlend)
 
 void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 {
-	UE_LOG(LogAnimation, Verbose, TEXT("Montage.Stop Before: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+	UE_LOG(LogAnimMontage, Verbose, TEXT("Montage.Stop Before: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 			*Montage->GetName(), GetDesiredWeight(), GetWeight());
 
 	// overwrite bInterrupted if it hasn't already interrupted
@@ -877,8 +1144,8 @@ void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 		bInterrupted = bInterrupt;
 	}
 
-	// if desired weight is > 0.f, turn that off
-	if (Blend.GetDesiredValue() > 0.f)
+	// if it hasn't stopped, stop now
+	if (IsStopped() == false)
 	{
 		// do not use default Montage->BlendOut 
 		// depending on situation, the BlendOut time can change 
@@ -921,7 +1188,7 @@ void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 		bPlaying = false;
 	}
 
-	UE_LOG(LogAnimation, Verbose, TEXT("Montage.Stop After: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+	UE_LOG(LogAnimMontage, Verbose, TEXT("Montage.Stop After: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 			*Montage->GetName(), GetDesiredWeight(), GetWeight());
 }
 
@@ -938,8 +1205,12 @@ void FAnimMontageInstance::Initialize(class UAnimMontage * InMontage)
 		Position = 0.f;
 		// initialize Blend
 		Blend.SetValueRange(0.f, 1.0f);
-
 		RefreshNextPrevSections();
+
+		if (AnimInstance.IsValid() && Montage->CanUseMarkerSync())
+		{
+			SyncGroupIndex = AnimInstance.Get()->GetSyncGroupIndexFromName(Montage->SyncGroup);
+		}
 	}
 }
 
@@ -1012,7 +1283,7 @@ void FAnimMontageInstance::Terminate()
 	Blend.SetCustomCurve(NULL);
 	Blend.SetBlendOption(EAlphaBlendOption::Linear);
 
-	UE_LOG(LogAnimation, Verbose, TEXT("Terminating: AnimMontage: %s"), *GetNameSafe(OldMontage));
+	UE_LOG(LogAnimMontage, Verbose, TEXT("Terminating: AnimMontage: %s"), *GetNameSafe(OldMontage));
 }
 
 bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEndOfSection)
@@ -1027,7 +1298,7 @@ bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEn
 		return true;
 	}
 
-	UE_LOG(LogAnimation, Warning, TEXT("JumpToSectionName %s bEndOfSection: %d failed for Montage %s"),
+	UE_LOG(LogAnimMontage, Warning, TEXT("JumpToSectionName %s bEndOfSection: %d failed for Montage %s"),
 		*SectionName.ToString(), bEndOfSection, *GetNameSafe(Montage));
 	return false;
 }
@@ -1065,7 +1336,7 @@ bool FAnimMontageInstance::SetNextSectionID(int32 const & SectionID, int32 const
 		return true;
 	}
 
-	UE_LOG(LogAnimation, Warning, TEXT("SetNextSectionName %s to %s failed for Montage %s"),
+	UE_LOG(LogAnimMontage, Warning, TEXT("SetNextSectionName %s to %s failed for Montage %s"),
 		*GetSectionNameFromID(SectionID).ToString(), *GetSectionNameFromID(NewNextSectionID).ToString(), *GetNameSafe(Montage));
 
 	return false;
@@ -1073,9 +1344,9 @@ bool FAnimMontageInstance::SetNextSectionID(int32 const & SectionID, int32 const
 
 void FAnimMontageInstance::OnMontagePositionChanged(FName const & ToSectionName) 
 {
-	if (bPlaying && (Blend.GetDesiredValue() == 0.f))
+	if (bPlaying && IsStopped())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Changing section on Montage (%s) to '%s' during blend out. This can cause incorrect visuals!"),
+		UE_LOG(LogAnimMontage, Warning, TEXT("Changing section on Montage (%s) to '%s' during blend out. This can cause incorrect visuals!"),
 			*GetNameSafe(Montage), *ToSectionName.ToString());
 
 		Play(PlayRate);
@@ -1240,8 +1511,10 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 		// from any point between now and last tick
 		NotifyWeight = FMath::Max(PreviousWeight, Blend.GetBlendedValue());
 
-		UE_LOG(LogAnimation, Verbose, TEXT("UpdateWeight: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f, PreviousWeight: %0.2f)"),
+		UE_LOG(LogAnimMontage, Verbose, TEXT("UpdateWeight: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f, PreviousWeight: %0.2f)"),
 			*Montage->GetName(), GetDesiredWeight(), GetWeight(), PreviousWeight);
+		UE_LOG(LogAnimMontage, Verbose, TEXT("Blending Info: BlendOption : %d, AlphaLerp : %0.2f, BlendTime: %0.2f"),
+			(int32)Blend.GetBlendOption(), Blend.GetAlpha(), Blend.GetBlendTime());
 	}
 }
 
@@ -1363,6 +1636,15 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 			float OriginalMoveDelta = DesiredDeltaMove;
 
+			DeltaMoved = 0.f;
+			PreviousPosition = Position;
+
+			bool bCanUseMarkerSync = CanUseMarkerSync();
+			if (bCanUseMarkerSync)
+			{
+				MarkersPassedThisTick.Reset();
+			}
+
 			while( bPlaying && (FMath::Abs(DesiredDeltaMove) > KINDA_SMALL_NUMBER) && ((OriginalMoveDelta * DesiredDeltaMove) > 0.f) )
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Advance_Iteration);
@@ -1399,12 +1681,18 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					// ActualDeltaPos == ActualDeltaMove since we break down looping in multiple steps. So we don't have to worry about time wrap around here.
 					const float ActualDeltaPos = PosInSection - PrevPosInSection;
 					const float ActualDeltaMove = ActualDeltaPos;
+					DeltaMoved += ActualDeltaMove;
 
 					// Decrease actual move from desired move. We'll take another iteration if there is anything left.
 					DesiredDeltaMove -= ActualDeltaMove;
 
 					float PrevPosition = Position;
 					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
+
+					if (bCanUseMarkerSync)
+					{
+						Montage->MarkerData.CollectMarkersInRange(PrevPosition, Position, MarkersPassedThisTick, ActualDeltaMove);
+					}
 
 					const float PositionBeforeFiringEvents = Position;
 
@@ -1437,8 +1725,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 						}
 					}
 
-					// If current section is last one, check to trigger a blend out.
-					if( NextSectionIndex == INDEX_NONE )
+					// If current section is last one, check to trigger a blend out and if it hasn't stopped yet, see if we should stop
+					if (NextSectionIndex == INDEX_NONE && !IsStopped())
 					{
 						const float DeltaPosToEnd = bPlayingForward ? (CurrentSectionLength - PosInSection) : PosInSection;
 						const float DeltaTimeToEnd = DeltaPosToEnd / FMath::Abs(CombinedPlayRate);
@@ -1504,7 +1792,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 	}
 
 	// If this Montage has no weight, it should be terminated.
-	if ((Blend.GetDesiredValue()<= ZERO_ANIMWEIGHT_THRESH) && (Blend.IsComplete()))
+	if (IsStopped() && (Blend.IsComplete()))
 	{
 		// nothing else to do
 		Terminate();
@@ -1790,168 +2078,13 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 	SkeletalMeshComponent->RefreshSlaveComponents();
 	SkeletalMeshComponent->UpdateComponentToWorld();
 	SkeletalMeshComponent->FinalizeBoneTransform();
+	SkeletalMeshComponent->MarkRenderTransformDirty();
+	SkeletalMeshComponent->MarkRenderDynamicDataDirty();
 }
-//////////////////////////////////////////////////
-//
-// AnimMontage
-//
-//////////////////////////////////////////////////
-float UAnimMontage::CalculateSequenceLength()
+
+bool FAnimMontageInstance::CanUseMarkerSync() const
 {
-	float CalculatedSequenceLength = 0.f;
-	for(auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
-	{
-		FSlotAnimationTrack& SlotAnimTrack = (*Iter);
-		if(SlotAnimTrack.AnimTrack.AnimSegments.Num() > 0)
-		{
-			CalculatedSequenceLength = FMath::Max(CalculatedSequenceLength, SlotAnimTrack.AnimTrack.GetLength());
-		}
-	}
-	return CalculatedSequenceLength;
+	// for now we only allow non-full weight and when blending out
+	return SyncGroupIndex != INDEX_NONE && IsStopped() && Blend.IsComplete() == false;
 }
 
-const TArray<class UAnimMetaData*> UAnimMontage::GetSectionMetaData(FName SectionName, bool bIncludeSequence/*=true*/, FName SlotName /*= NAME_None*/)
-{
-	TArray<class UAnimMetaData*> MetadataList;
-	bool bShouldIIncludeSequence = bIncludeSequence;
-	
-	for (int32 SectionIndex=0; SectionIndex<CompositeSections.Num(); ++SectionIndex)
-	{
-		const auto& CurSection = CompositeSections[SectionIndex];
-		if (SectionName == NAME_None || CurSection.SectionName == SectionName)
-		{
-			// add to the list
-			MetadataList.Append(CurSection.GetMetaData());
-
-			if (bShouldIIncludeSequence)
-			{
-				if (SectionName == NAME_None)
-				{
-					for(auto& SlotIter : SlotAnimTracks)
-					{
-						if(SlotName == NAME_None || SlotIter.SlotName ==  SlotName)
-						{
-							// now add the animations within this section
-							for(auto& SegmentIter : SlotIter.AnimTrack.AnimSegments)
-							{
-								if(SegmentIter.AnimReference)
-								{
-									// only add unique here
-									TArray<UAnimMetaData*> RefMetadata = SegmentIter.AnimReference->GetMetaData();
-
-									for (auto& RefData : RefMetadata)
-									{
-										MetadataList.AddUnique(RefData);
-									}
-								}
-							}
-						}
-					}
-
-					// if section name == None, we only grab slots once
-					// otherwise, it will grab multiple times
-					bShouldIIncludeSequence = false;
-				}
-				else
-				{
-					float SectionStartTime = 0.f, SectionEndTime = 0.f;
-					GetSectionStartAndEndTime(SectionIndex, SectionStartTime, SectionEndTime);
-					for(auto& SlotIter : SlotAnimTracks)
-					{
-						if(SlotName == NAME_None || SlotIter.SlotName ==  SlotName)
-						{
-							// now add the animations within this section
-							for(auto& SegmentIter : SlotIter.AnimTrack.AnimSegments)
-							{
-								if (SegmentIter.IsIncluded(SectionStartTime, SectionEndTime))
-								{
-									if(SegmentIter.AnimReference)
-									{
-										// only add unique here
-										TArray<UAnimMetaData*> RefMetadata = SegmentIter.AnimReference->GetMetaData();
-
-										for(auto& RefData : RefMetadata)
-										{
-											MetadataList.AddUnique(RefData);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return MetadataList;
-}
-
-#if WITH_EDITOR
-bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
-{
- 	for (auto Iter=SlotAnimTracks.CreateConstIterator(); Iter; ++Iter)
- 	{
- 		const FSlotAnimationTrack& Track = (*Iter);
- 		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationSequences);
- 	}
- 	return (AnimationSequences.Num() > 0);
-}
-
-void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
-{
-	for (auto Iter=SlotAnimTracks.CreateIterator(); Iter; ++Iter)
-	{
-		FSlotAnimationTrack& Track = (*Iter);
-		Track.AnimTrack.ReplaceReferredAnimations(ReplacementMap);
-	}
-}
-
-void UAnimMontage::UpdateLinkableElements()
-{
-	// Update all linkable elements
-	for(FCompositeSection& Section : CompositeSections)
-	{
-		Section.Update();
-	}
-
-	for(FAnimNotifyEvent& Notify : Notifies)
-	{
-		Notify.Update();
-		Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
-
-		Notify.EndLink.Update();
-		Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
-	}
-}
-
-ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx)
-{
-	FAnimSegment* UpdatedSegment = &SlotAnimTracks[SlotIdx].AnimTrack.AnimSegments[SegmentIdx];
-
-	for(FCompositeSection& Section : CompositeSections)
-	{
-		if(Section.GetSlotIndex() == SlotIdx && Section.GetSegmentIndex() == SegmentIdx)
-		{
-			// Update the link
-			Section.Update();
-		}
-	}
-
-	for(FAnimNotifyEvent& Notify : Notifies)
-	{
-		if(Notify.GetSlotIndex() == SlotIdx && Notify.GetSegmentIndex() == SegmentIdx)
-		{
-			Notify.Update();
-			Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
-		}
-
-		if(Notify.EndLink.GetSlotIndex() == SlotIdx && Notify.EndLink.GetSegmentIndex() == SegmentIdx)
-		{
-			Notify.EndLink.Update();
-			Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
-		}
-	}
-}
-
-#endif

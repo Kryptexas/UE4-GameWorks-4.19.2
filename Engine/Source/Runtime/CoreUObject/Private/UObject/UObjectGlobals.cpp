@@ -996,7 +996,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		{
 			// The linker is associated with a package that has already been loaded.
 			// Loading packages that have already been loaded is unsupported.
-			EndLoadAndCopyLocalizationGatherFlag();
+			EndLoadAndCopyLocalizationGatherFlag();			
 			return Result;
 		}
 

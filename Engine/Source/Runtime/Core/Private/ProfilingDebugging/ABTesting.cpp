@@ -12,6 +12,14 @@
 
 #if ENABLE_ABTEST
 
+
+#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#define ABTEST_LOG(_FormatString_, ...) FPlatformMisc::LowLevelOutputDebugStringf(_FormatString_ TEXT("\n"), ##__VA_ARGS__)
+#else
+#define ABTEST_LOG(_FormatString_, ...) UE_LOG(LogConsoleResponse, Display, _FormatString_, ##__VA_ARGS__)
+#endif
+
+
 static TAutoConsoleVariable<int32> CVarABTestHistory(
 	TEXT("abtest.HistoryNum"),
 	1000,
@@ -66,7 +74,7 @@ void FABTest::StartFrameLog()
 	TotalFrames = 0;
 	Spikes = 0;
 	bFrameLog = true;
-	UE_LOG(LogConsoleResponse, Display, TEXT("Starting frame log."));
+	ABTEST_LOG(TEXT("Starting frame log."));
 }
 
 void FABTest::FrameLogTick(double Delta)
@@ -82,7 +90,7 @@ void FABTest::FrameLogTick(double Delta)
 	}
 	if (TotalFrames > 0 && TotalFrames % 1000 == 0)
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%8d frames   %6.3fms/f    %8d spikes rejected "), TotalFrames, float(1000.0 * TotalTime / TotalFrames), Spikes);
+		ABTEST_LOG(TEXT("%8d frames   %6.3fms/f    %8d spikes rejected "), TotalFrames, float(1000.0 * TotalTime / TotalFrames), Spikes);
 	}
 }
 
@@ -97,7 +105,7 @@ const TCHAR* FABTest::TickAndGetCommand()
 	}
 	else if (bABTestActive && LastGCFrame != GLastGCFrame && !bABScopeTestActive) // reject GC frames for whole game tests
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Rejecting abtest frame because of GC."));
+		ABTEST_LOG(TEXT("Rejecting abtest frame because of GC."));
 	}
 	else if (bABTestActive)
 	{
@@ -159,8 +167,8 @@ const TCHAR* FABTest::TickAndGetCommand()
 		{
 			if (Counts[0] && Counts[1])
 			{
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("      %7.4fms  (%4d samples)  A = '%s'\n"), float(Totals[0]) / float(Counts[0]) / 1000.0f, Counts[0], *ABTestCmds[0]);
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("      %7.4fms  (%4d samples)  B = '%s'\n"), float(Totals[1]) / float(Counts[1]) / 1000.0f, Counts[1], *ABTestCmds[1]);
+				ABTEST_LOG(TEXT("      %7.4fms  (%4d samples)  A = '%s'"), float(Totals[0]) / float(Counts[0]) / 1000.0f, Counts[0], *ABTestCmds[0]);
+				ABTEST_LOG(TEXT("      %7.4fms  (%4d samples)  B = '%s'"), float(Totals[1]) / float(Counts[1]) / 1000.0f, Counts[1], *ABTestCmds[1]);
 
 				float Diff = (float(Totals[0]) / float(Counts[0]) / 1000.0f) - (float(Totals[1]) / float(Counts[1]) / 1000.0f);
 				bool bAIsFaster = false;
@@ -201,18 +209,18 @@ const TCHAR* FABTest::TickAndGetCommand()
 
 				if (bAIsFaster)
 				{
-					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("      A is %7.4fms faster than B;  %3.0f%% chance this is noise.\n"), Diff, fConf * 100.0f);
+					ABTEST_LOG(TEXT("      A is %7.4fms faster than B;  %3.0f%% chance this is noise."), Diff, fConf * 100.0f);
 				}
 				else
 				{
-					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("      B is %7.4fms faster than A;  %3.0f%% chance this is noise.\n"), Diff, fConf * 100.0f);
+					ABTEST_LOG(TEXT("      B is %7.4fms faster than A;  %3.0f%% chance this is noise."), Diff, fConf * 100.0f);
 				}
 
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("----------------"));
+				ABTEST_LOG(TEXT("----------------"));
 			}
 			else
 			{
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("No Samples?"));
+				ABTEST_LOG(TEXT("No Samples?"));
 			}
 			RemainingPrint = ReportNum;
 		}
@@ -294,9 +302,9 @@ void FABTest::ABTestCmdFunc(const TArray<FString>& Args)
 	}
 	else
 	{
-		UE_LOG(LogConsoleResponse, Display, TEXT("abtest command requires two (quoted) arguments or three args or 'stop' or 'scope'."));
-		UE_LOG(LogConsoleResponse, Display, TEXT("Example: abtest \"r.MyCVar 0\" \"r.MyCVar 1\""));
-		UE_LOG(LogConsoleResponse, Display, TEXT("Example: abtest r.MyCVar 0 1"));
+		ABTEST_LOG(TEXT("abtest command requires two (quoted) arguments or three args or 'stop' or 'scope'."));
+		ABTEST_LOG(TEXT("Example: abtest \"r.MyCVar 0\" \"r.MyCVar 1\""));
+		ABTEST_LOG(TEXT("Example: abtest r.MyCVar 0 1"));
 		return;
 	}
 	Get().Start(ABTestCmds, false);
@@ -306,13 +314,13 @@ void FABTest::Stop()
 {
 	if (bABTestActive)
 	{
-		UE_LOG(LogConsoleResponse, Display, TEXT("Running 'A' console command and stopping test."));
+		ABTEST_LOG(TEXT("Running 'A' console command and stopping test."));
 		SwitchTest(0);
 		bABTestActive = false;
 	}
 	else if (bFrameLog)
 	{
-		UE_LOG(LogConsoleResponse, Display, TEXT("Stopping frame log."));
+		ABTEST_LOG(TEXT("Stopping frame log."));
 		bFrameLog = false;
 	}
 	bABScopeTestActive = false;
@@ -358,7 +366,7 @@ void FABTest::Start(FString* InABTestCmds, bool bScopeTest)
 
 	bABTestActive = true;
 	SwitchTest(0);
-	UE_LOG(LogConsoleResponse, Display, TEXT("abtest started with A = '%s' and B = '%s'"), *ABTestCmds[0], *ABTestCmds[1]);
+	ABTEST_LOG(TEXT("abtest started with A = '%s' and B = '%s'"), *ABTestCmds[0], *ABTestCmds[1]);
 }
 
 const TCHAR* FABTest::SwitchTest(int32 Index)

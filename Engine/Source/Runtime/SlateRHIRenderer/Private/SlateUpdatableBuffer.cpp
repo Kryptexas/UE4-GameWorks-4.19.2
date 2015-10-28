@@ -44,9 +44,9 @@ FSlateUpdatableInstanceBuffer::~FSlateUpdatableInstanceBuffer()
 	FlushRenderingCommands();
 }
 
-void FSlateUpdatableInstanceBuffer::BindStreamSource(FRHICommandListImmediate& RHICmdList, int32 StreamIndex)
+void FSlateUpdatableInstanceBuffer::BindStreamSource(FRHICommandListImmediate& RHICmdList, int32 StreamIndex, uint32 InstanceOffset)
 {
-	RHICmdList.SetStreamSource(StreamIndex, InstanceBufferResource.VertexBufferRHI, sizeof(FVector4), 0);
+	RHICmdList.SetStreamSource(StreamIndex, InstanceBufferResource.VertexBufferRHI, sizeof(FVector4), InstanceOffset*sizeof(FVector4));
 }
 
 TSharedPtr<class FSlateInstanceBufferUpdate> FSlateUpdatableInstanceBuffer::BeginUpdate()
@@ -54,7 +54,7 @@ TSharedPtr<class FSlateInstanceBufferUpdate> FSlateUpdatableInstanceBuffer::Begi
 	return MakeShareable(new FSlateInstanceBufferUpdate(*this));
 }
 
-int32 FSlateUpdatableInstanceBuffer::GetNumInstances() const
+uint32 FSlateUpdatableInstanceBuffer::GetNumInstances() const
 {
 	return NumInstances;
 }
@@ -62,15 +62,19 @@ int32 FSlateUpdatableInstanceBuffer::GetNumInstances() const
 void FSlateUpdatableInstanceBuffer::UpdateRenderingData(int32 NumInstancesToUse)
 {
 	NumInstances = NumInstancesToUse;
-	// Enqueue a command to unlock the draw buffer after all windows have been drawn
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( SlateBeginDrawingWindowsCommand, 
-		FSlateUpdatableInstanceBuffer&, Self, *this,
-		int32, BufferIndex, FreeBufferIndex,
+	if (NumInstances > 0)
 	{
-		Self.UpdateRenderingData_RenderThread(RHICmdList, BufferIndex);
-	});
+		
+		// Enqueue a command to unlock the draw buffer after all windows have been drawn
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( SlateBeginDrawingWindowsCommand, 
+			FSlateUpdatableInstanceBuffer&, Self, *this,
+			int32, BufferIndex, FreeBufferIndex,
+		{
+			Self.UpdateRenderingData_RenderThread(RHICmdList, BufferIndex);
+		});
 	
-	FreeBufferIndex = (FreeBufferIndex + 1) % SlateRHIConstants::NumBuffers;
+		FreeBufferIndex = (FreeBufferIndex + 1) % SlateRHIConstants::NumBuffers;
+	}
 }
 
 TArray<FVector4>& FSlateUpdatableInstanceBuffer::GetBufferData()

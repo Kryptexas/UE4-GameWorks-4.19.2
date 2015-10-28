@@ -517,7 +517,10 @@ public partial class Project : CommandUtils
                 {
                     SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL"));
                 }
-            }
+
+				// Add config files.
+				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );
+			}
         }
         else
         {
@@ -824,8 +827,14 @@ public partial class Project : CommandUtils
 
     private static string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string PakName)
     {
-        string ReleaseVersionPath = CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
-        return ReleaseVersionPath;
+		if (Params.IsGeneratingPatch)
+		{
+			return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
+		}
+		else
+		{
+			return CombinePaths(Params.GetCreateReleaseVersionPath(SC), PakName);
+		}        
     }
 
 

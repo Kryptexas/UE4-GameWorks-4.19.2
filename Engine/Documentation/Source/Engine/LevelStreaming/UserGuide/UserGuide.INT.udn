@@ -1,6 +1,6 @@
-Availability: Public
+Availability: Docs
 Title:Level Streaming User Guide
-Crumbs:%ROOT%, Editor, Editor/LevelEditing, Engine/LevelStreaming
+Crumbs:
 Description:Guide to setting up real-time asynchronous streaming of levels.
 
 [REGION:todo]

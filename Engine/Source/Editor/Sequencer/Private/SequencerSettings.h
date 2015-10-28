@@ -4,6 +4,16 @@
 
 #include "SequencerSettings.generated.h"
 
+UENUM()
+enum ESequencerSpawnPosition
+{
+	/** Origin. */
+	SSP_Origin UMETA(DisplayName="Origin"),
+
+	/** Place in Front of Camera. */
+	SSP_PlaceInFrontOfCamera UMETA(DisplayName="Place in Front of Camera"),
+};
+
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
 class USequencerSettingsContainer : public UObject
@@ -63,6 +73,11 @@ public:
 	EMovieSceneKeyInterpolation GetKeyInterpolation() const;
 	/** Sets default key interpolation */
 	void SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation);
+
+	/** Get initial spawn position. */
+	ESequencerSpawnPosition GetSpawnPosition() const;
+	/** Set initial spawn position. */
+	void SetSpawnPosition(ESequencerSpawnPosition InSpawnPosition);
 
 	/** Gets whether or not to show frame numbers. */
 	bool GetShowFrameNumbers() const;
@@ -167,6 +182,9 @@ protected:
 
 	UPROPERTY( config )
 	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
+
+	UPROPERTY( config )
+	TEnumAsByte<ESequencerSpawnPosition> SpawnPosition;
 
 	UPROPERTY( config )
 	bool bShowFrameNumbers;

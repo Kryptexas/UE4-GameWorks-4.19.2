@@ -1311,6 +1311,8 @@ public:
 
 	/** OldClassName to NewClassName for ImportMap */
 	static TMap<FName, FName> ObjectNameRedirects;
+	/** Additional info for some ObjectName redirects to also redirect the class and class package  */
+	static TMap<FName, TPair<FName, FName>> ObjectNameClassRedirects;
 	/** OldClassName to NewClassName for ExportMap */
 	static TMap<FName, FName> ObjectNameRedirectsInstanceOnly;
 	/** Object name to NewClassName for export map */
@@ -1323,6 +1325,8 @@ public:
 	static TMap<FName, FName> StructNameRedirects;
 	/** Old plugin name to new plugin name mapping */
 	static TMap<FString, FString> PluginNameRedirects;
+	/** Packages that are known to be missing when verifying imports that we don't want a message about */
+	static TSet<FName> KnownMissingPackages;
 
 	/** Object name to required class and new name for load-time remapping */
 	struct FSubobjectRedirect

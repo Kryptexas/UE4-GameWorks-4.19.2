@@ -74,13 +74,8 @@ void FLevelSequenceActions::OpenAssetEditor(const TArray<UObject*>& InObjects, T
 			// Legacy upgrade
 			LevelSequence->ConvertPersistentBindingsToDefault(WorldContext);
 
-			// Create an edit instance for this level sequence that can only edit the default bindings in the current world
-			ULevelSequenceInstance* Instance = NewObject<ULevelSequenceInstance>(GetTransientPackage());
-			bool bCanInstanceBindings = false;
-			Instance->Initialize(LevelSequence, WorldContext, bCanInstanceBindings);
-
 			TSharedRef<FLevelSequenceEditorToolkit> Toolkit = MakeShareable(new FLevelSequenceEditorToolkit(Style));
-			Toolkit->Initialize(Mode, EditWithinLevelEditor, Instance, true);
+			Toolkit->Initialize(Mode, EditWithinLevelEditor, LevelSequence, true);
 		}
 	}
 }

@@ -71,6 +71,9 @@ class FPurchaseReceipt
 public:
 	struct FLineItemInfo
 	{
+		/** The platform identifier of this purchase type */
+		FString ItemName;
+
 		/** unique identifier representing this purchased item (the specific instance owned by this account) */
 		FUniqueEntitlementId UniqueId;
 

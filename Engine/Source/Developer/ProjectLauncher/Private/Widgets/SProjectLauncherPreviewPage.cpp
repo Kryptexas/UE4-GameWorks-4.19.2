@@ -868,7 +868,7 @@ FText SProjectLauncherPreviewPage::HandleCommandLineTextBlockText( ) const
 
 	if (SelectedProfile.IsValid())
 	{
-		const FString& CommandLine = SelectedProfile->GetDefaultLaunchRole()->GetCommandLine();
+		const FString& CommandLine = SelectedProfile->GetDefaultLaunchRole()->GetUATCommandLine();
 
 		if (CommandLine.IsEmpty())
 		{

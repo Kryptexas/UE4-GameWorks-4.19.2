@@ -3,7 +3,6 @@
 #pragma once
 
 /** FName declaration of IOS subsystem */
-#define IOS_SUBSYSTEM FName(TEXT("IOS"))
 
 #include "Core.h"
 #include "SocketSubsystem.h"

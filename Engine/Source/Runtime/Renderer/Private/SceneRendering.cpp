@@ -1527,8 +1527,10 @@ bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
 		return false;
 	}
 
-	if(View.Family->EngineShowFlags.VisualizeHDR)
+	if (View.Family->EngineShowFlags.VisualizeHDR ||
+		View.Family->EngineShowFlags.ShaderComplexity)
 	{
+		// certain visualize modes get obstructed too much
 		return false;
 	}
 

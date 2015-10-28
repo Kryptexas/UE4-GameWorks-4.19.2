@@ -6,7 +6,7 @@
 #include "Sequencer.h"
 #include "MovieSceneSection.h"
 
-TSharedPtr<IEditToolDragOperation> FSectionResizeHotspot::InitiateDrag(ISequencer& Sequencer)
+TSharedPtr<ISequencerEditToolDragOperation> FSectionResizeHotspot::InitiateDrag(ISequencer& Sequencer)
 {
 	const auto& SelectedSections = Sequencer.GetSelection().GetSelectedSections();
 	auto SectionHandles = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget())->GetSectionHandles(SelectedSections);

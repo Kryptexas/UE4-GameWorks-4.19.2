@@ -42,7 +42,7 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 

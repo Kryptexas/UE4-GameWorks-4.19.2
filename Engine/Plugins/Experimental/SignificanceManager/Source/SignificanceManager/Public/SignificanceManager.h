@@ -22,7 +22,7 @@ class SIGNIFICANCEMANAGER_API USignificanceManager : public UObject
 	GENERATED_BODY()
 
 public:
-	typedef TFunction<float(UObject*,const FTransform&)> FSignificanceFunction;
+	typedef TFunction<float(const UObject*,const FTransform&)> FSignificanceFunction;
 
 	struct FManagedObjectInfo
 	{
@@ -32,7 +32,7 @@ public:
 		{
 		}
 
-		FManagedObjectInfo(UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction)
+		FManagedObjectInfo(const UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction)
 			: Object(InObject)
 			, Tag(InTag)
 			, Significance(0.f)
@@ -40,12 +40,12 @@ public:
 		{
 		}
 
-		UObject* GetObject() const { return Object; }
+		const UObject* GetObject() const { return Object; }
 		FName GetTag() const { return Tag; }
 		float GetSignificance() const { return Significance; }
 
 	private:
-		UObject* Object;
+		const UObject* Object;
 		FName Tag;
 		float Significance;
 
@@ -67,10 +67,10 @@ public:
 	virtual void Update(const TArray<FTransform>& Viewpoints);
 
 	// Overridable function used to register an object as managed by the significance manager
-	virtual void RegisterObject(UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction);
+	virtual void RegisterObject(const UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction);
 
 	// Overridable function used to unregister an object as managed by the significance manager
-	virtual void UnregisterObject(UObject* Object);
+	virtual void UnregisterObject(const UObject* Object);
 
 	// Returns objects of specified tag, Tag must be specified or else an empty array will be returned
 	const TArray<const FManagedObjectInfo*>& GetManagedObjects(FName Tag) const;
@@ -79,14 +79,17 @@ public:
 	void GetManagedObjects(TArray<const FManagedObjectInfo*>& OutManagedObjects, bool bInSignificanceOrder = false) const;
 
 	// Returns the significance value for a given object, returns 0 if object is not managed
-	float GetSignificance(UObject* Object) const;
+	float GetSignificance(const UObject* Object) const;
+
+	// Returns true if the object is being tracked, placing the significance value in OutSignificance (or 0 if object is not managed)
+	bool QuerySignificance(const UObject* Object, float& OutSignificance) const;
 
 	// Returns the significance manager for the specified World
-	static USignificanceManager* Get(UWorld* World);
+	static USignificanceManager* Get(const UWorld* World);
 
 	// Templated convenience function to return a significance manager cast to a known type
 	template<class T>
-	static T* Get(UWorld* World)
+	static T* Get(const UWorld* World)
 	{
 		return CastChecked<T>(Get(World), ECastCheckedType::NullAllowed);
 	}
@@ -113,7 +116,7 @@ private:
 	TMap<FName, TArray<const FManagedObjectInfo*>> ManagedObjectsByTag;
 
 	// Reverse lookup map to find the tag for a given object
-	TMap<UObject*, FManagedObjectInfo*> ManagedObjects;
+	TMap<const UObject*, FManagedObjectInfo*> ManagedObjects;
 
 	// Game specific significance class to instantiate
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="SignificanceManager", DisplayName="Significance Manager Class"))
@@ -125,7 +128,7 @@ private:
 
 	// Map of worlds to their significance manager, only populated on CDO
 	UPROPERTY()
-	TMap<UWorld*, USignificanceManager*> WorldSignificanceManagers;
+	TMap<const UWorld*, USignificanceManager*> WorldSignificanceManagers;
 
 	// Callback function registered with global world delegates to instantiate significance manager when a game world is created
 	void OnWorldInit(UWorld* World, const UWorld::InitializationValues IVS);

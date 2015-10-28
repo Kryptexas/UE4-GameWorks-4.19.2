@@ -1,89 +1,89 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2612304
 Availability: Public
-Title:8. Animation Blueprint - Jump States
+Title:8.动画蓝图 - 跳跃状态
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:Moving on in our Animation Blueprint setup, here we set up the conditions for Jumping. 
+Description:继续我们的动画蓝图设置，在这里我们设置跳跃的条件。 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:title%")
+		[上一步] (Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
+		[人物动作概述](Gameplay\HowTo\CharacterMovement\Blueprints)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone:title%")
+		[下一步] (Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Next, we configure the **Jump** states inside the **State Machine**. We are going to have two Jump states, one for when the player is standing still and presses the Jump key and another for when the player is moving (Jogging, Crouch Walking, or Walking). We will use two different animations, one for stationary and one for movement. 
+接下来，我们配置**State Machine**内的**Jump**状态。我们将有两个跳跃状态，一个是当玩家站立不动并按下跳跃键时，另一个是当玩家活动时（慢跑、蹲走或行走）的状态。我们将使用两个不同的动画，一个用于静止，一个用于活动。 
 
-1.	In the State Machine graph, drag in the **Jump_From_Jog** animation from the **Asset Browser**. 
+1.	在状态机图形中，从**Asset Browser**拖入**Jump_From_Jog**动画。 
 
 	![](AnimBP_Jump1.png)
 
-1.	Create to/from **Transitions** between **Jog_BS** and **Jump_From_Jog**. 
+1.	创建**Jog_BS**和**Jump_From_Jog**间的到/从**Transitions**。 
 
-1.	Open the **Transition Rule** for **Jog_BS** to **Jump_From_Jog** and create the graph below. 
+1.	打开从**Jog_BS**到**Jump_From_Jog**的**Transition Rule**并创建以下图形。 
 
 	![](AnimBP_Jump2.png)
 
-1.	Return to the State Machine graph and open the **Transition Rule** for **Jump_From_Jog** to **Jog_BS**. 
+1.	返回状态机图形，并打开从**Jump_From_Jog**到**Jog_BS**的**Transition Rule**。 
 
-1.	Inside the **Transition Rule** graph, **Right-click** and add the **TimeRemaining for 'Jump_From_Jog'** node. 
+1.	在**Transition Rule**图形内，**Right-click**并添加**TimeRemaining for 'Jump_From_Jog'**节点。 
 
 	![](AnimBP_Jump3.png)
 
-1.	Finish the rule by recreating the graph below. 
+1.	重建以下图形，以完成规则​​。 
 
 	![](AnimBP_Jump4.png)
 
-	This allows us to check what the remaining time is on the Jump from Jog animation and if it is less than or equal to 0.1, we will allow the transition from the jump to the Jog Blend Space. This is a handy way of making sure that the jump animation has finished before transitioning to another state. 
+	这使我们能查看从慢跑到跳跃动画的剩余时间是多少，以及它是否小于或等于 0.1，我们将允许从跳跃到慢跑混合空间的过渡。这是确保跳跃动画在过渡到其它状态前已经完成的便利方式。 
 
-1.	Return to the State Machine graph and create to/from **Transitions** between **Walk_BS** and **Jump_From_Jog**. 
+1.	返回状态机图形，并创建**Walk_BS**和**Jump_From_Jog**间的到/从**Transitions**。 
 
 	![](AnimBP_Jump5.png)
 
-1.	Open the **Transition Rule** for **Walk_BS** to **Jump_From_Jog** and recreate the graph below. 
+1.	打开从**Walk_BS**到**Jump_From_Jog**的**Transition Rule**并重建以下图形。 
 
 	![](AnimBP_Jump6.png)
 
-1.	Return to the State Machine graph and open the **Transition Rule** for **Jump_From_Jog** to **Walk_BS**. 
+1.	返回状态机图形，并打开从**Jump_From_Jog**到**Walk_BS**的**Transition Rule**。 
 
-1.	Inside the **Transition Rule** recreate the graph below. 
+1.	在**Transition Rule**内重建以下图形。 
 
 	![](AnimBP_Jump7.png)
 
-1.	Return to the State Machine graph, then drag in the **Jump_From_Stand** animation from the **Asset Browser**. 
+1.	返回状态机图形，然后从**Asset Browser**拖入**Jump_From_Stand**动画。 
 
 	![](AnimBP_JumpStand1.png)
 
-1.	Create to/from **Transitions** between **Idle_Rifle_Hip** and **Jump_From_Stand**. 
+1.	创建**Idle_Rifle_Hip**和**Jump_From_Stand**间的到/从**Transitions**。 
 
-1.	Open the **Transition Rule** for **Idle_Rifle_Hip** to **Jump_From_Stand**. 
+1.	打开从**Idle_Rifle_Hip**到**Jump_From_Stand**的**Transition Rule**。 
 
 	![](AnimBP_JumpStand2.png)
 
-1.	Inside the **Transition Rule**, recreate the graph below. 
+1.	在**Transition Rule**内重建以下图形。 
 
 	![](AnimBP_JumpStand3.png)
 
-	Here we are checking to see if the player has pressed the jump key and that they are not currently crouched. 
+	在这里，我们检查玩家是否已按下跳跃键并且他们目前未蹲伏。 
 
-1.	Return to the State Machine Graph, then open the **Transition Rule** for **Jump_From_Stand** to **Idle_Rifle_Hip**.
+1.	返回状态机图形，然后打开从**Jump_From_Stand**到**Idle_Rifle_Hip**的**Transition Rule**。
 
-1.	Inside the **Transition Rule** recreate the graph below. 
+1.	在**Transition Rule**内重建以下图形。 
 
 	![](AnimBP_JumpStand4.png)
 
-	This will return the character to idle once the jump animation has finished. 
+	跳跃动画完成后，这将使人物返回闲置。 
 
-1.	**Compile** and **Save** the Animation Blueprint.
+1.	**Compile**并**Save**动画蓝图。
 
 %Steps%

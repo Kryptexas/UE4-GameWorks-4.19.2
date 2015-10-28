@@ -18,6 +18,7 @@ void FSlateMaterialShaderVS::ModifyCompilationEnvironment(EShaderPlatform Platfo
 	// Set defines based on what this shader will be used for
 	OutEnvironment.SetDefine( TEXT("USE_MATERIALS"), 1 );
 	OutEnvironment.SetDefine( TEXT("NUM_CUSTOMIZED_UVS"), Material->GetNumCustomizedUVs() );
+	OutEnvironment.SetDefine( TEXT("HAS_SCREEN_POSITION"), Material->HasVertexPositionOffsetConnected() );
 
 	FMaterialShader::ModifyCompilationEnvironment( Platform, Material, OutEnvironment );
 }

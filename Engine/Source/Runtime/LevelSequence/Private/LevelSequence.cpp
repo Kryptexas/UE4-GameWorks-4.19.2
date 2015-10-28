@@ -4,6 +4,7 @@
 #include "LevelSequence.h"
 #include "LevelSequenceObject.h"
 #include "MovieScene.h"
+#include "Engine/Blueprint.h"
 
 
 ULevelSequence::ULevelSequence(const FObjectInitializer& ObjectInitializer)
@@ -16,6 +17,25 @@ void ULevelSequence::Initialize()
 {
 	// @todo sequencer: gmp: fix me
 	MovieScene = NewObject<UMovieScene>(this, NAME_None, RF_Transactional);
+}
+
+bool ULevelSequence::Rename(const TCHAR* NewName, UObject* NewOuter, ERenameFlags Flags)
+{
+#if WITH_EDITOR
+	if (Super::Rename(NewName, NewOuter, Flags))
+	{
+		ForEachObjectWithOuter(MovieScene, [&](UObject* Object){
+			if (auto* Blueprint = Cast<UBlueprint>(Object))
+			{
+				Blueprint->RenameGeneratedClasses(nullptr, MovieScene, Flags);
+			}
+		}, false);
+
+		return true;
+	}
+#endif	//#if WITH_EDITOR
+	
+	return false;
 }
 
 void ULevelSequence::ConvertPersistentBindingsToDefault(UObject* FixupContext)
@@ -33,72 +53,32 @@ void ULevelSequence::ConvertPersistentBindingsToDefault(UObject* FixupContext)
 		{
 			FGuid ObjectId;
 			FGuid::Parse(Pair.Key, ObjectId);
-			DefaultObjectReferences.CreateBinding(ObjectId, Object, FixupContext);
+			ObjectReferences.CreateBinding(ObjectId, Object, FixupContext);
 		}
 	}
 	PossessedObjects_DEPRECATED.Empty();
 }
 
-void ULevelSequenceInstance::Initialize(ULevelSequence* InSequence, UObject* InContext, bool bInCanRemapBindings)
-{
-	LevelSequence = InSequence;
-	bCanRemapBindings = bInCanRemapBindings;
-
-	if (!bCanRemapBindings)
-	{
-		RemappedObjectReferences = FLevelSequenceObjectReferenceMap();
-	}
-
-	SetContext(InContext);
-}
-
-void ULevelSequenceInstance::SetContext(UObject* NewContext)
+void ULevelSequence::BindToContext(UObject* NewContext)
 {
 	ResolutionContext = NewContext;
 	CachedObjectBindings.Reset();
 }
 
-bool ULevelSequenceInstance::AllowsSpawnableObjects() const
+void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
-	return true;
-}
-
-void ULevelSequenceInstance::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
-{
-	UObject* Context = ResolutionContext.Get();
-
-	if (!Context)
+	if (UObject* Context = ResolutionContext.Get())
 	{
-		return;
-	}
-
-	if (!LevelSequence)
-	{
-		RemappedObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
-	}
-	else if (bCanRemapBindings && LevelSequence->DefaultObjectReferences.HasBinding(ObjectId))
-	{
-		RemappedObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
-	}
-	else
-	{
-		LevelSequence->DefaultObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
+		ObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
 	}
 }
 
-bool ULevelSequenceInstance::CanPossessObject(UObject& Object) const
+bool ULevelSequence::CanPossessObject(UObject& Object) const
 {
 	return Object.IsA<AActor>() || Object.IsA<UActorComponent>();
 }
 
-void ULevelSequenceInstance::DestroyAllSpawnedObjects()
-{
-	const bool DestroyAll = true;
-	SpawnOrDestroyObjects(DestroyAll);
-	SpawnedActors.Empty();
-}
-
-UObject* ULevelSequenceInstance::FindObject(const FGuid& ObjectId) const
+UObject* ULevelSequence::FindObject(const FGuid& ObjectId) const
 {
 	// If it's already cached, we can just return that
 	if (auto* WeakCachedObject = CachedObjectBindings.Find(ObjectId))
@@ -109,41 +89,27 @@ UObject* ULevelSequenceInstance::FindObject(const FGuid& ObjectId) const
 		}
 	}
 
-	// Look up the object from scratch
-	UObject* FoundObject = nullptr;
+	// search spawned objects
+	if (auto* SpawnedObject = SpawnedObjects.FindRef(ObjectId).Get())
+	{
+		return SpawnedObject;
+	}
 
-	// Otherwise we need to try and find it
 	UObject* Context = ResolutionContext.Get();
-	if (!FoundObject && Context)
-	{
-		if (!FoundObject && bCanRemapBindings)
-		{
-			// Attempt to resolve the object binding through the remapped bindings
-			FoundObject = RemappedObjectReferences.ResolveBinding(ObjectId, Context);
-		}
-		
-		if (LevelSequence)
-		{
-			// Attempt to resolve the object binding through the defaults
-			FoundObject = LevelSequence->DefaultObjectReferences.ResolveBinding(ObjectId, Context);
-		}
-	}
 
-	if (!FoundObject)
-	{
-		// Maybe it's a spawnable then?
-		FoundObject = SpawnedActors.FindRef(ObjectId).Get();
-	}
+	// Attempt to resolve the object binding through the remapped bindings
+	UObject* FoundObject = Context ? ObjectReferences.ResolveBinding(ObjectId, Context) : nullptr;
 
 	if (FoundObject)
 	{
+		// Cache the object if we found one
 		CachedObjectBindings.Add(ObjectId, FoundObject);
 	}
 
 	return FoundObject;
 }
 
-FGuid ULevelSequenceInstance::FindObjectId(UObject& Object) const
+FGuid ULevelSequence::FindObjectId(UObject& Object) const
 {
 	for (auto& Pair : CachedObjectBindings)
 	{
@@ -153,37 +119,23 @@ FGuid ULevelSequenceInstance::FindObjectId(UObject& Object) const
 		}
 	}
 
-	// search possessed objects
-	UObject* Context = ResolutionContext.Get();
-	if (Context)
+	// search spawned objects
+	for (auto& Pair : SpawnedObjects)
 	{
-		if (bCanRemapBindings)
+		if (Pair.Value.Get() == &Object)
 		{
-			// Search instances
-			FGuid ObjectId = RemappedObjectReferences.FindBindingId(&Object, Context);
-			if (ObjectId.IsValid())
-			{
-				return ObjectId;
-			}
-		}
-
-		// Search defaults
-		if (LevelSequence)
-		{
-			FGuid ObjectId = LevelSequence->DefaultObjectReferences.FindBindingId(&Object, Context);
-			if (ObjectId.IsValid())
-			{
-				return ObjectId;
-			}
+			return Pair.Key;
 		}
 	}
 
-	// search spawned objects
-	for (auto SpawnedActorPair : SpawnedActors)
+	// search possessed objects
+	if (UObject* Context = ResolutionContext.Get())
 	{
-		if (SpawnedActorPair.Value.Get() == &Object)
+		// Search instances
+		FGuid ObjectId = ObjectReferences.FindBindingId(&Object, Context);
+		if (ObjectId.IsValid())
 		{
-			return SpawnedActorPair.Key;
+			return ObjectId;
 		}
 	}
 
@@ -191,12 +143,12 @@ FGuid ULevelSequenceInstance::FindObjectId(UObject& Object) const
 	return FGuid();
 }
 
-UMovieScene* ULevelSequenceInstance::GetMovieScene() const
+UMovieScene* ULevelSequence::GetMovieScene() const
 {
-	return LevelSequence ? LevelSequence->MovieScene : nullptr;
+	return MovieScene;
 }
 
-UObject* ULevelSequenceInstance::GetParentObject(UObject* Object) const
+UObject* ULevelSequence::GetParentObject(UObject* Object) const
 {
 	UActorComponent* Component = Cast<UActorComponent>(Object);
 
@@ -208,133 +160,135 @@ UObject* ULevelSequenceInstance::GetParentObject(UObject* Object) const
 	return nullptr;
 }
 
-void ULevelSequenceInstance::SpawnOrDestroyObjects(bool DestroyAll)
+bool ULevelSequence::AllowsSpawnableObjects() const
 {
-	bool bAnyLevelActorsChanged = false;
+	return true;
+}
 
-	UMovieScene* MovieScene = GetMovieScene();
+UObject* ULevelSequence::SpawnObject(const FGuid& ObjectId)
+{
+	// Return an existing object relating to this object ID, if possible
+	UObject* ObjectPtr = SpawnedObjects.FindRef(ObjectId).Get();
+	if (ObjectPtr)
+	{
+		return ObjectPtr;
+	}
+
+	// Find the spawnable definition
+	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectId);
+	if (!Spawnable)
+	{
+		return nullptr;
+	}
+
+	UClass* SpawnableClass = Spawnable->GetClass();
+	if (!SpawnableClass || !SpawnableClass->IsChildOf(AActor::StaticClass()))
+	{
+		return nullptr;
+	}
+
+	AActor* ActorCDO = CastChecked<AActor>(SpawnableClass->ClassDefaultObject);
+
+	const FVector SpawnLocation = ActorCDO->GetRootComponent()->RelativeLocation;
+	const FRotator SpawnRotation = ActorCDO->GetRootComponent()->RelativeRotation;
+
+	// @todo sequencer: We should probably spawn these in a specific sub-level!
+	// World->CurrentLevel = ???;
+
+	const FName ActorName = NAME_None;
+
+	// Override the object flags so that RF_Transactional is not set.  Puppet actors are never transactional
+	// @todo sequencer: These actors need to avoid any transaction history.  However, RF_Transactional can currently be set on objects on the fly!
+	// NOTE: We are omitting RF_Transactional intentionally
+	const EObjectFlags ObjectFlags = RF_Transient;
+
+	// @todo sequencer livecapture: Consider using SetPlayInEditorWorld() and RestoreEditorWorld() here instead
 	
-	// remove any proxy actors that we no longer need
-	if (MovieScene != nullptr)
+	// @todo sequencer actors: We need to make sure puppet objects aren't copied into PIE/SIE sessions!  They should be omitted from that duplication!
+
+	// Spawn the puppet actor
+	FActorSpawnParameters SpawnInfo;
 	{
-		for (auto SpawnedActorPair : SpawnedActors)
+		SpawnInfo.Name = ActorName;
+		SpawnInfo.ObjectFlags = ObjectFlags;
+	}
+
+	FTransform SpawnTransform;
+	SpawnTransform.SetTranslation(SpawnLocation);
+	SpawnTransform.SetRotation(SpawnRotation.Quaternion());
+
+	//@todo: This is in place of SpawnActorAbsolute which doesn't exist yet in the Orion branch
+	FTransform NewTransform = SpawnTransform;
+	{
+		AActor* Template = SpawnInfo.Template;
+
+		if(!Template)
 		{
-			bool ShouldDestroyActor = true;
+			// Use class's default actor as a template.
+			Template = SpawnableClass->GetDefaultObject<AActor>();
+		}
 
-			if (!DestroyAll)
-			{
-				// figure out if we still need this proxy actor
-				for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
-				{
-					auto& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
-
-					if (Spawnable.GetGuid() == SpawnedActorPair.Key)
-					{
-						ShouldDestroyActor = false;
-						break;
-					}
-				}
-			}
-
-			if (!ShouldDestroyActor)
-			{
-				// Actor is no longer valid (probably the world was destroyed)
-				continue;
-			}
-
-			AActor* Actor = SpawnedActorPair.Value.Get();
-				
-			if (Actor == nullptr)
-			{
-				continue;
-			}
-
-			// destroy Actor
-			UWorld* World = Actor->GetWorld();
-
-			if (ensure(World != nullptr))
-			{
-				const bool bNetForce = false;
-				const bool bShouldModifyLevel = false;
-				const bool bWasDestroyed = World->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
-
-				if (bWasDestroyed)
-				{
-					bAnyLevelActorsChanged = true;
-					SpawnedActors.Remove(SpawnedActorPair.Key);
-				}
-				else
-				{
-					// @todo sequencer: At least one proxy actor couldn't be cleaned up!
-				}
-			}
+		USceneComponent* TemplateRootComponent = (Template)? Template->GetRootComponent() : NULL;
+		if(TemplateRootComponent)
+		{
+			TemplateRootComponent->UpdateComponentToWorld();
+			NewTransform = TemplateRootComponent->GetComponentToWorld().Inverse() * NewTransform;
 		}
 	}
 
-	if (!DestroyAll && (MovieScene != nullptr))
+
+
+	UObject* SpawnedObject = GWorld->SpawnActor(SpawnableClass, &NewTransform, SpawnInfo);
+	if (!SpawnedObject)
 	{
-		for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
+		return nullptr;
+	}
+	
+	SpawnedObjects.Add(ObjectId, SpawnedObject);
+	CachedObjectBindings.Add(ObjectId, SpawnedObject);
+
+	return SpawnedObject;
+}
+
+void ULevelSequence::DestroySpawnedObject(const FGuid& ObjectId)
+{
+	if (UObject* ObjectPtr = SpawnedObjects.FindRef(ObjectId).Get())
+	{
+		AActor* Actor = Cast<AActor>(ObjectPtr);
+		if (!ensure(Actor))
 		{
-			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
+			return;
+		}
 
-			// Do we already have a proxy for this spawnable?
-			if (SpawnedActors.Contains(Spawnable.GetGuid()))
-			{
-				continue;
-			}
-
-			UClass* GeneratedClass = Spawnable.GetClass();
-
-			if ((GeneratedClass == nullptr) || !GeneratedClass->IsChildOf(AActor::StaticClass()))
-			{
-				continue;
-			}
-
-			AActor* ActorCDO = CastChecked<AActor>(GeneratedClass->ClassDefaultObject);
-
-			const FVector SpawnLocation = ActorCDO->GetRootComponent()->RelativeLocation;
-			const FRotator SpawnRotation = ActorCDO->GetRootComponent()->RelativeRotation;
-
-			// @todo sequencer: We should probably spawn these in a specific sub-level!
-			// World->CurrentLevel = ???;
-
-			const FName ActorName = NAME_None;
-
-			// Override the object flags so that RF_Transactional is not set.  Puppet actors are never transactional
-			// @todo sequencer: These actors need to avoid any transaction history.  However, RF_Transactional can currently be set on objects on the fly!
-			const EObjectFlags ObjectFlags = RF_Transient;		// NOTE: We are omitting RF_Transactional intentionally
-
-			// @todo sequencer livecapture: Consider using SetPlayInEditorWorld() and RestoreEditorWorld() here instead
-						
-			// @todo sequencer actors: We need to make sure puppet objects aren't copied into PIE/SIE sessions!  They should be omitted from that duplication!
-
-			// Spawn the puppet actor
-			FActorSpawnParameters SpawnInfo;
-			{
-				SpawnInfo.Name = ActorName;
-				SpawnInfo.ObjectFlags = ObjectFlags;
-			}
-
-			AActor* NewActor = GWorld->SpawnActor(GeneratedClass, &SpawnLocation, &SpawnRotation, SpawnInfo);
-				
-			if (NewActor != nullptr)
-			{
-				// @todo sequencer: We're naming the actor based off of the spawnable's name.  Is that really what we want?
-				// @todo sequencer: gmp: fix me
-				//FActorLabelUtilities::SetActorLabelUnique(NewActor, Spawnable.GetName());
-				SpawnedActors.Add(Spawnable.GetGuid(), NewActor);
-			}
-			else
-			{
-				// Actor failed to spawn
-				// @todo sequencer: What should we do when this happens to one or more actors?
-			}
+		UWorld* World = Actor->GetWorld();
+		if (ensure(World))
+		{
+			const bool bNetForce = false;
+			const bool bShouldModifyLevel = false;
+			World->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
 		}
 	}
+
+	CachedObjectBindings.Remove(ObjectId);
+	SpawnedObjects.Remove(ObjectId);
+}
+
+void ULevelSequence::DestroyAllSpawnedObjects()
+{
+	// Use a key array to ensure we don't change the map while iterating it
+	TArray<FGuid> Keys;
+	Keys.Reserve(SpawnedObjects.Num());
+	SpawnedObjects.GenerateKeyArray(Keys);
+
+	for (auto& ObjectId : Keys)
+	{
+		DestroySpawnedObject(ObjectId);
+	}
+	SpawnedObjects.Reset();
 }
 
 #if WITH_EDITOR
-bool ULevelSequenceInstance::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
+bool ULevelSequence::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
 {
 	UObject* Object = FindObject(ObjectId);
 
@@ -355,23 +309,10 @@ bool ULevelSequenceInstance::TryGetObjectDisplayName(const FGuid& ObjectId, FTex
 	return true;
 }
 
-FText ULevelSequenceInstance::GetDisplayName() const
-{
-	return LevelSequence ? FText::FromName(LevelSequence->GetFName()) : Super::GetDisplayName();
-}
-
 #endif
 
-void ULevelSequenceInstance::UnbindPossessableObjects(const FGuid& ObjectId)
+void ULevelSequence::UnbindPossessableObjects(const FGuid& ObjectId)
 {
-	if (bCanRemapBindings && RemappedObjectReferences.HasBinding(ObjectId))
-	{
-		RemappedObjectReferences.RemoveBinding(ObjectId);
-	}
-	else if (LevelSequence)
-	{
-		LevelSequence->DefaultObjectReferences.RemoveBinding(ObjectId);
-	}
-
+	ObjectReferences.RemoveBinding(ObjectId);
 	CachedObjectBindings.Remove(ObjectId);
 }

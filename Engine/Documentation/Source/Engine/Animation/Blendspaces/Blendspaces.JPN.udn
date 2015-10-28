@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2663197
+﻿INTSourceChangelist:2725188
 Availability:Public
 Title:ブレンドスペース
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -33,7 +33,7 @@ Related:Engine/Content/Tools/MayaRiggingTool
 [/OBJECT]
 [/VAR]
 
-[TOC (start:2)]
+[TOC (start:2 end:2)]
 
 
 
@@ -171,6 +171,58 @@ Sample Data 配列にある各アイテムには以下のプロパティがあ�
 | -------- | ----------- |
 | **Animation** | ブレンドする AnimationSequence アセットです。 |
 | **Sample Value** | アニメーションが完全な影響力を持つ入力値 (ブレンドパラメータに対応するX、Y値) です。 |
+
+
+##Anim アセットの詳細
+
+Blend Space アセットをセットアップする場合、 **ペルソナ** の **Anim Asset Details (Anim アセットの詳細)** で設定可能なオプションがさらにあります。デフォルト設定では、ペルソナ エディタの **Animation** タブの左下隅に位置し、以下のプロパティがあります。 
+
+![](BlendSpaceDetails.png)
+
+### ブレンド スペース
+
+|---|---|
+|**Display Editor Vertically**| 1D Blend Space アセットのみで利用可能であり、ブレンド スペースのグラフ表示を垂直または水平の表示モードに切り替えます。|
+
+### 入力の補間
+
+|---|---|
+|**Axis to Scale Animation**| 	1D Blend Space アセットでは利用できません。これを使用すると (入力補間がある場合)、アニメーション速度 (スケーリング) を操作する軸を決めることができます。例えば、ロコモーション アニメーションではスピード軸がアニメーション速度 (スケーリング) を操作します。|
+|**Interpolation Params**| 3 つの軸すべての入力補間パラメータ。それぞれの軸入力で、補間時間とタイプを設定することで入力を補間する方法を決定します。 |
+
+### サンプル補間
+
+|---|---|
+|**Target Weight Interpolation Speed Per Sec**| ターゲット サンプルが設定された時にターゲットを捉える速さです。ターゲット ブレンディングを向上します。例えば、入力を補間する場合、左から右へ素早く移動する場合、前方補間しますが、ターゲット ウェイト補間を使用する場合、前方にスキップしますが、左右間を補間します。 |
+|**Per Bone Blend**| ボーン単位でターゲット ウェイト補間を定義します。各ボーン設定ごとに異なる速度をブレンドインします。
+
+### アニメーション通知
+
+|---|---|
+|**Notify Trigger Mode**| ブレンドスペースがどのアニメーション通知を発行するかを決めるために使用する現在のモードを割り当てます。All Animations (全ての通知イベントを発行)、HighestWeightedAnimation (Notify イベントは重み付けが最も高いアニメーションからのみ発行)、None (アニメーションから発行される通知イベントはありません) |
+
+### 加算設定
+
+|---|---|
+|**Preview Base Pose**| 加算ブレンドスペースのためのベース ポーズをプレビューします。|
+
+### Animation
+
+|---|---|
+|**Skeleton**| アセットを再生できるスケルトンへのポインタ (調整不可)|
+
+### メタデータ
+
+|---|---|
+|**Meta Data**| アセットと共に保存可能なメタ データです。このメタデータは Anim Meta Data クラスから派生したブループリントで利用可能なクラスです。カスタムのメタ データを Animation アセットに追加できます (Anim Sequence、 Anim Montage、 Anim Composite、 および Blendspace はすべてサポートされます)。C++ で Animation アセットからこうしたデータをクエリーできます。`GetMetaData()` メソッドを呼び出すか、Anim Montages で `GetSectionMetaData()` を使用します。
+
+###サムネイル
+
+|---|---|
+| **Orbit Pitch** | アセット周囲の軌道カメラのピッチ |
+| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) |
+| **Orbit Zoom** | アセットから境界の球体の距離のオフセット |
+
 
 
 

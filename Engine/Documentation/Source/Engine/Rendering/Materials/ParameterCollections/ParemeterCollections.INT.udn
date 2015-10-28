@@ -7,6 +7,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/HowTo/Instancing
 Related: Engine/Blueprints/UserGuide/Timelines
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -32,7 +33,7 @@ In the example above, global parameters are used to control the following aspect
 
 ## Creating and Editing Material Parameter Collections
 
-MaterialParameterCollections are created through the [**Content Browser**](Engine/Content/Browser) via the **New** menu 
+MaterialParameterCollections are created through the [Content Browser](Engine/Content/Browser) via the **New** menu 
 or the **Right-Click** context menu and can be edited and saved like any other assets.
 
 

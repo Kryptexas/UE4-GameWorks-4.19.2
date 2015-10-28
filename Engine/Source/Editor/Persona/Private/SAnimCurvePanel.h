@@ -109,6 +109,12 @@ public:
 	void DeleteTrack(USkeleton::AnimCurveUID Uid);
 
 	/**
+	 * Delete All Tracks
+	 *
+	 */
+	void DeleteAllTracks();
+
+	/**
 	 * Build and display curve track context menu for all tracks.
 	 *
 	 */

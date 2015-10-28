@@ -16,11 +16,6 @@ UNiagaraSequence::UNiagaraSequence(const FObjectInitializer& ObjectInitializer)
 /* UMovieSceneAnimation overrides
  *****************************************************************************/
 
-bool UNiagaraSequence::AllowsSpawnableObjects() const
-{
-	return false;
-}
-
 
 void UNiagaraSequence::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
@@ -30,11 +25,6 @@ void UNiagaraSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Pos
 bool UNiagaraSequence::CanPossessObject(UObject& Object) const
 {
 	return false;
-}
-
-
-void UNiagaraSequence::DestroyAllSpawnedObjects()
-{
 }
 
 
@@ -59,11 +49,6 @@ UMovieScene* UNiagaraSequence::GetMovieScene() const
 UObject* UNiagaraSequence::GetParentObject(UObject* Object) const
 {
 	return nullptr;
-}
-
-
-void UNiagaraSequence::SpawnOrDestroyObjects(bool DestroyAll)
-{
 }
 
 

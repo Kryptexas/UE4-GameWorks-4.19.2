@@ -39,21 +39,21 @@ void UMovieSceneSkeletalAnimationTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieSceneSkeletalAnimationTrack::HasSection( UMovieSceneSection* Section ) const
+bool UMovieSceneSkeletalAnimationTrack::HasSection(const UMovieSceneSection& Section ) const
 {
-	return AnimationSections.Find( Section ) != INDEX_NONE;
+	return AnimationSections.Contains(&Section);
 }
 
 
-void UMovieSceneSkeletalAnimationTrack::AddSection( UMovieSceneSection* Section)
+void UMovieSceneSkeletalAnimationTrack::AddSection(UMovieSceneSection& Section)
 {
-	AnimationSections.Add(Section);
+	AnimationSections.Add(&Section);
 }
 
 
-void UMovieSceneSkeletalAnimationTrack::RemoveSection( UMovieSceneSection* Section )
+void UMovieSceneSkeletalAnimationTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	AnimationSections.Remove( Section );
+	AnimationSections.Remove(&Section);
 }
 
 
@@ -65,33 +65,34 @@ bool UMovieSceneSkeletalAnimationTrack::IsEmpty() const
 
 TRange<float> UMovieSceneSkeletalAnimationTrack::GetSectionBoundaries() const
 {
-	TArray< TRange<float> > Bounds;
-	for (int32 i = 0; i < AnimationSections.Num(); ++i)
+	TArray<TRange<float>> Bounds;
+
+	for (auto Section : AnimationSections)
 	{
-		Bounds.Add(AnimationSections[i]->GetRange());
+		Bounds.Add(Section->GetRange());
 	}
+
 	return TRange<float>::Hull(Bounds);
 }
 
 
 void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
 {
-	// add the section
 	UMovieSceneSkeletalAnimationSection* NewSection = NewObject<UMovieSceneSkeletalAnimationSection>(this);
-	NewSection->InitialPlacement( AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows() );
-	NewSection->SetAnimationStartTime( KeyTime );
-	NewSection->SetAnimSequence(AnimSequence);
+	{
+		NewSection->InitialPlacement(AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows());
+		NewSection->SetAnimSequence(AnimSequence);
+	}
 
-	AddSection(NewSection);
+	AddSection(*NewSection);
 }
 
 
 UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
 {
-	for (int32 i = 0; i < AnimationSections.Num(); ++i)
+	for (auto Section : AnimationSections)
 	{
-		UMovieSceneSection* Section = AnimationSections[i];
-		if( Section->IsTimeWithinSection( Time ) )
+		if (Section->IsTimeWithinSection(Time))
 		{
 			return Section;
 		}

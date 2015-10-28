@@ -29,7 +29,7 @@ FGroupedKeyArea::FGroupedKeyArea(FSequencerDisplayNode& InNode, int32 InSectionI
 	: Section(nullptr)
 	, IndexKey(FString(), nullptr)
 {
-	TArray<TSharedRef<FSectionKeyAreaNode>> AllKeyAreaNodes;
+	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> AllKeyAreaNodes;
 	AllKeyAreaNodes.Reserve(36);
 	InNode.GetChildKeyAreaNodesRecursively(AllKeyAreaNodes);
 

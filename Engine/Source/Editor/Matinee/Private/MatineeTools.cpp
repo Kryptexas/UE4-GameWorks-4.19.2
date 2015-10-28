@@ -3945,7 +3945,9 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 	}
 
 	// Update ControllingActorViewInfo, so it is in sync with the updated viewport
+	bUpdatingCameraGuard = true;
 	InViewportClient->UpdateViewForLockedActor();
+	bUpdatingCameraGuard = false;
 }
 
 /** Restores a viewports' settings that were overridden by UpdateLevelViewport, where necessary. */
@@ -3992,6 +3994,12 @@ void FMatinee::RestoreLevelViewports()
 // If we are locking the camera to a particular actor - we update its location to match.
 void FMatinee::CamMoved(const FVector& NewCamLocation, const FRotator& NewCamRotation)
 {
+	// Don't update if we were in the middle of synchronizing the camera location.
+	if ( bUpdatingCameraGuard )
+	{
+		return;
+	}
+
 	// If cam not locked to something, do nothing.
 	AActor* ViewedActor = GetViewedActor();
 	if(ViewedActor)

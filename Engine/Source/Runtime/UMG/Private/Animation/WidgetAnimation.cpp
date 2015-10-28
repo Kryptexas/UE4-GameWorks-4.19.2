@@ -97,11 +97,6 @@ void UWidgetAnimation::Initialize(UUserWidget* InPreviewWidget)
 /* UMovieSceneAnimation overrides
  *****************************************************************************/
 
-bool UWidgetAnimation::AllowsSpawnableObjects() const
-{
-	return false;
-}
-
 
 void UWidgetAnimation::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {

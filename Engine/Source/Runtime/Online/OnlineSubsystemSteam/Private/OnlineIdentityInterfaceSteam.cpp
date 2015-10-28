@@ -220,3 +220,7 @@ FPlatformUserId FOnlineIdentitySteam::GetPlatformUserIdFromUniqueNetId(const FUn
 	return PLATFORMUSERID_NONE;
 }
 
+FString FOnlineIdentitySteam::GetAuthType() const
+{
+	return TEXT("");
+}

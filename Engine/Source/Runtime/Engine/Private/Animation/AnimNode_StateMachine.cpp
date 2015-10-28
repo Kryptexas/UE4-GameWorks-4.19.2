@@ -9,6 +9,8 @@
 #include "Animation/AnimStats.h"
 #include "Animation/BlendProfile.h"
 
+DECLARE_CYCLE_STAT(TEXT("StateMachine SetState"), Stat_StateMachineSetState, STATGROUP_Anim);
+
 //////////////////////////////////////////////////////////////////////////
 // FAnimationActiveTransitionEntry
 
@@ -812,6 +814,8 @@ void FAnimNode_StateMachine::SetStateInternal(int32 NewStateIndex)
 
 void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int32 NewStateIndex)
 {
+	SCOPE_CYCLE_COUNTER(Stat_StateMachineSetState);
+
 	if (NewStateIndex != CurrentState)
 	{
 		const int32 PrevStateIndex = CurrentState;

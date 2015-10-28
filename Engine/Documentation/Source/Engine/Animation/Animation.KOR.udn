@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title: 페르소나: 스켈레탈 메시 애니메이션
 Crumbs: %ROOT%, Engine
 Description:키프레임 애니메이션 데이터와 모프 타겟을 기반으로 스켈레탈 메시를 변형시키는 시스템입니다.
 Navigation:topic
+parent:Engine
+order:3
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -105,6 +107,7 @@ Navigation:topic
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
+		* [](Engine\Animation\NonLinearBlends "%Engine\Animation\NonLinearBlends:description%")
 	[/PARAM]
 [/OBJECT]
 
@@ -133,10 +136,14 @@ Navigation:topic
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
 		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
 		* **프로그래밍**		
-			* [](Programming/Animation "%Programming/Animation:description%")
+			* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
 		* **튜토리얼**		
 			* [](Engine/Animation/CharacterSetupOverview "%Engine/Animation/CharacterSetupOverview:description%")
 			* [](Engine/Animation/IKSetups "%Engine/Animation/IKSetups:description%")
 			* [](Engine/Animation/UsingMixamoContent "%Engine/Animation/UsingMixamoContent:description%")
 	[/PARAM]
 [/OBJECT]
+
+
+
+

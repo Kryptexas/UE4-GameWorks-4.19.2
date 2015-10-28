@@ -576,7 +576,7 @@ namespace UnrealBuildTool
 
 			// This experimental feature may help to improve iterative compile times when working on code, but is
 			// disabled by default until we test it sufficiently
-			bUseAdaptiveUnityBuild = false;
+			bUseAdaptiveUnityBuild = true;
 
 			bForceUnityBuild = false;
 

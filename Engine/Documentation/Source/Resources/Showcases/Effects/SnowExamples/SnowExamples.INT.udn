@@ -6,6 +6,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Related: Resources/ContentExamples/EffectsGallery/1_E
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 
 
@@ -21,7 +22,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 The following Particle Systems are the snow effects that were created for this example. You are encouraged to open these up in Cascade to see how each effect was assembled.
 
-For more information on Cascade and Particle Systems, please see [the Particle Systems documentation.](Engine/Rendering/ParticleSystems)
+For more information on Cascade and Particle Systems, please see the [Particle Systems](Engine/Rendering/ParticleSystems) documentation.
 
 ## Blizzard
 
@@ -35,11 +36,15 @@ The Blizzard effect is a [GPU Sprite Particle System](Engine/Rendering/ParticleS
 
 This property is useful for small translucent objects (in this case, _snowflakes_), as those will likely lose silhouette quality due to Unreal Engine's Temporal Antialiasing. **Enable Responsive AA** should only be used in these sorts of cases however, as it creates aliasing of the background. 
 
-[REGION:imagetable]
-| ![](WithEnable.png)(w:450)  | ![](WithoutEnable.png)(w:450)  |
-| :---: | :---: |
-| With _Enable Responsive AA_ | Without _Enable Responsive AA_ |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With Enable Responsive AA](WithEnable.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Without Enable Responsive AA](WithoutEnable.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 Large _unlit_ (i.e. _Emissive_) sprites generate widespread puffs of haze or fog, filling in the effect and adding a more complete sense of atmosphere. 
 

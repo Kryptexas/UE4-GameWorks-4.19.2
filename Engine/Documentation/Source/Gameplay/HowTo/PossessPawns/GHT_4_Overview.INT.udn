@@ -3,6 +3,9 @@ Title:Possessing Pawns
 Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for possessing different pawns in Unreal Engine 4. 
 Version: 4.9
+Parent:Gameplay
+type:how-to
+order:3
 
 If you want to switch between multiple Playable Characters in your game or you have a situation where you want a Character to enter and control a Vehicle (car, plane, tank, etc.) or other Pawn that has unique controls (like a mounted machine gun a player can control), you will want to take Possession of the Character or Pawn in order to pass input information to it. 
 

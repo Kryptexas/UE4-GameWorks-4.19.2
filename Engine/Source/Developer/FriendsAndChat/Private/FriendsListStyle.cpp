@@ -34,6 +34,12 @@ FFriendsListStyle& FFriendsListStyle::SetFriendItemButtonStyle(const FButtonStyl
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetActionMenuArrowBrush(const FSlateBrush& BrushStyle)
+{
+	ActionMenuArrowBrush = BrushStyle;
+	return *this;
+}
+
 FFriendsListStyle& FFriendsListStyle::SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListOpenButtonStyle = ButtonStyle;

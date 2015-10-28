@@ -1303,6 +1303,8 @@ void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
 
 float FRichCurve::Eval(float InTime, float InDefaultValue) const
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_RichCurve_Eval);
+
 	// Remap time if extrapolation is present and compute offset value to use if cycling 
 	float CycleValueOffset = 0;
 	RemapTimeValue(InTime, CycleValueOffset);
@@ -1352,7 +1354,7 @@ float FRichCurve::Eval(float InTime, float InDefaultValue) const
 			int32 step = count / 2;
 			int32 middle = first + step;
 
-			if (InTime > Keys[middle].Time)
+			if (InTime >= Keys[middle].Time)
 			{
 				first = middle + 1;
 				count -= step + 1;

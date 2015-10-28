@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2674679
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:サウンド キュー エディタ UI
 Crumbs: %ROOT%, Engine, Engine/Audio, Engine/Audio/SoundCues/Editor
@@ -25,33 +25,33 @@ version:4.9
 
 ##メニューバー
 
-###ファイル
+:::ファイル
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSave]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSaveOptions]
+%Shared/Editors/Common/EditorMenuItems:MenuFileSave%
+%Shared/Editors/Common/EditorMenuItems:MenuFileSaveOptions%
 
 
-###編集
+:::編集
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditUndo]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditSettings]
+%Shared/Editors/Common/EditorMenuItems:MenuEditUndo%
+%Shared/Editors/Common/EditorMenuItems:MenuEditSettings%
 
-###アセット
+:::アセット
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuAssetContentBrowser]
+%Shared/Editors/Common/EditorMenuItems:MenuAssetContentBrowser%
 
-### ウィンドウ
+:::ウィンドウ
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowToolbar]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowViewport]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowDetails]
+%Shared/Editors/Common/EditorMenuItems:MenuWindowToolbar%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowViewport%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowDetails%
 * **Palette** -  **[Palette]** パネルの表示を切り替えます。
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindow]
+%Shared/Editors/Common/EditorMenuItems:MenuWindow%
 
 
-### ヘルプ
+:::ヘルプ
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuHelp]
+%Shared/Editors/Common/EditorMenuItems:MenuHelp%
 
 ## ツールバー
 
@@ -82,7 +82,7 @@ version:4.9
 
 ![Sound node list](Engine/Audio\SoundCues\NodeReference\SoundCueEditor_NodeList.png)
 
-**[パレット]** には、オーディオ ノード グラフで利用可能なすべてのノードが表示されます。ノードを追加するには **[パレット]** からグラフにドラッグします。サウンド ノードを追加する上記以外の方法については、[オーディオノードグラフ](Engine/Audio\SoundCues\Editor#AudioNodeGraph（オーディオノードグラフ）) をご覧ください。
+**[パレット]** には、オーディオ ノード グラフで利用可能なすべてのノードが表示されます。ノードを追加するには **[パレット]** からグラフにドラッグします。サウンド ノードを追加する上記以外の方法については、[オーディオノードグラフ](Engine/Audio\SoundCues\Editor#オーディオノードグラフ) をご覧ください。
 
 [REGION:tip]
 以下の方法でオーディオ ノード グラフにコメントを追加することができます。**Add Comment** をグラフにドラッグするか、または **左マウスボタン** でノードの周囲でボックスをドラッグし、選択したノードを **右クリック** し、表示されるコンテキスト メニュー上で **Create Comment from Selection** をクリックします。

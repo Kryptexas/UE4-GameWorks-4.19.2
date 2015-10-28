@@ -44,21 +44,21 @@ void UMovieSceneAudioTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieSceneAudioTrack::HasSection( UMovieSceneSection* Section ) const
+bool UMovieSceneAudioTrack::HasSection(const UMovieSceneSection& Section) const
 {
-	return AudioSections.Find( Section ) != INDEX_NONE;
+	return AudioSections.Contains(&Section);
 }
 
 
-void UMovieSceneAudioTrack::AddSection( UMovieSceneSection* Section )
+void UMovieSceneAudioTrack::AddSection(UMovieSceneSection& Section)
 {
-	AudioSections.Add( Section );
+	AudioSections.Add(&Section);
 }
 
 
-void UMovieSceneAudioTrack::RemoveSection( UMovieSceneSection* Section )
+void UMovieSceneAudioTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	AudioSections.Remove( Section );
+	AudioSections.Remove(&Section);
 }
 
 

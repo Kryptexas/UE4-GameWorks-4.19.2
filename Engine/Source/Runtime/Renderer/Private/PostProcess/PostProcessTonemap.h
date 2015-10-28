@@ -41,7 +41,7 @@ class FRCPassPostProcessTonemap : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly = false);
+	FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly, bool bDoScreenPercentageInTonemapper);
 
 	// interface FRenderingCompositePass ---------
 
@@ -53,6 +53,11 @@ private:
 	bool bDoGammaOnly;
 	// set in constructor
 	uint32 ConfigIndexPC;
+	// used if ShouldDoScreenPercentageInTonemapper() is true, otherwise (0,0)
+	FIntPoint RenderTargetExtend;
+
+	// @return true: we did the upscale in this pass and don't need to run another one after it
+	bool ShouldDoScreenPercentageInTonemapper() const { return RenderTargetExtend != FIntPoint::ZeroValue; }
 
 	void SetShader(const FRenderingCompositePassContext& Context);
 };

@@ -393,7 +393,7 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 	AnimViewportClient->SetViewMode(AnimViewportClient->ConfigOption->ViewModeIndex);
 	UpdateShowFlagForMeshEdges();
 
-	UpdateViewportClientPlaybackScale();
+
 	OnSetTurnTableMode(SelectedTurnTableMode);
 	OnSetTurnTableSpeed(SelectedTurnTableSpeed);
 
@@ -1078,7 +1078,12 @@ bool SAnimationEditorViewportTabBody::IsShowingSky() const
 void SAnimationEditorViewportTabBody::OnSetPlaybackSpeed(int32 PlaybackSpeedMode)
 {
 	AnimationPlaybackSpeedMode = (EAnimationPlaybackSpeeds::Type)PlaybackSpeedMode;
-	UpdateViewportClientPlaybackScale();
+	
+	float PlaySpeed = EAnimationPlaybackSpeeds::Values[AnimationPlaybackSpeedMode];
+	if(LevelViewportClient->GetWorld())
+	{
+		LevelViewportClient->GetWorld()->GetWorldSettings()->TimeDilation = PlaySpeed;
+	}
 }
 
 bool SAnimationEditorViewportTabBody::IsPlaybackSpeedSelected(int32 PlaybackSpeedMode)
@@ -1486,18 +1491,6 @@ void SAnimationEditorViewportTabBody::RestoreData()
 		{
 			AnimViewportClient.Get().SetCameraFollow();
 		}
-	}
-}
-
-void SAnimationEditorViewportTabBody::UpdateViewportClientPlaybackScale()
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->SetPlaybackScale(EAnimationPlaybackSpeeds::Values[AnimationPlaybackSpeedMode]);
-
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if (PreviewComponent)
-	{
-		PreviewComponent->PlaybackSpeedScaling = EAnimationPlaybackSpeeds::Values[AnimationPlaybackSpeedMode];
 	}
 }
 

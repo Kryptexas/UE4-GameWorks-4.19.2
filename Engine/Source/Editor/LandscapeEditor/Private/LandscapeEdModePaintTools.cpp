@@ -165,6 +165,16 @@ public:
 			PaintStrength *= DeltaTime * 3.0f; // * 3.0f to partially compensate for impact of DeltaTime on slowing the tools down compared to the old framerate-dependent version
 		}
 
+		if (PaintStrength <= 0.0f)
+		{
+			return;
+		}
+
+		if (!bUseWeightTargetValue && !bUseClayBrush)
+		{
+			PaintStrength = FMath::Max(PaintStrength, 1.0f);
+		}
+
 		FPlane BrushPlane;
 		TArray<FVector> Normals;
 
@@ -379,39 +389,26 @@ public:
 			Y2 += 1;
 		}
 
+		this->Cache.CacheData(X1, Y1, X2, Y2);
+
+		TArray<typename ToolTarget::CacheClass::DataType> Data;
+		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
+
 		const float ToolStrength = FMath::Clamp<float>(UISettings->ToolStrength * Pressure, 0.0f, 1.0f);
 
 		// Apply the brush
 		if (UISettings->bDetailSmooth)
 		{
-			this->Cache.CacheData(X1, Y1, X2, Y2);
-
-			TArray<typename ToolTarget::CacheClass::DataType> Data;
-			this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
-
 			LowPassFilter<typename ToolTarget::CacheClass::DataType>(X1, Y1, X2, Y2, BrushInfo, Data, UISettings->DetailScale, ToolStrength);
-
-			this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		}
 		else
 		{
 			const int32 FilterRadius = UISettings->SmoothFilterKernelSize;
 
-			// Expand the cached area by the filter radius so we can run the filter at full size on the edge of the brush
-			const int32 CacheX1 = X1 - FilterRadius;
-			const int32 CacheY1 = Y1 - FilterRadius;
-			const int32 CacheX2 = X2 + FilterRadius;
-			const int32 CacheY2 = Y2 + FilterRadius;
-
-			this->Cache.CacheData(CacheX1, CacheY1, CacheX2, CacheY2);
-
-			TArray<typename ToolTarget::CacheClass::DataType> Data;
-			this->Cache.GetCachedData(CacheX1, CacheY1, CacheX2, CacheY2, Data);
-
 			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 			{
 				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
-				auto* DataScanline = Data.GetData() + (Y - CacheY1) * (CacheX2 - CacheX1 + 1) + (0 - CacheX1);
+				auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
 				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 				{
@@ -422,21 +419,34 @@ public:
 						// needs to be ~12 bits larger than ToolTarget::CacheClass::DataType (for max FilterRadius (31))
 						// the editor is 64-bit native so just go the whole hog :)
 						int64 FilterValue = 0;
+						int32 FilterSamplingNumber = 0;
 
-						const int32 SampleX1 = X - FilterRadius;
-						const int32 SampleY1 = Y - FilterRadius;
-						const int32 SampleX2 = X + FilterRadius;
-						const int32 SampleY2 = Y + FilterRadius;
+						const int32 XRadius = FMath::Min3<int32>(FilterRadius, X - BrushInfo.GetBounds().Min.X, BrushInfo.GetBounds().Max.X - X - 1);
+						const int32 YRadius = FMath::Min3<int32>(FilterRadius, Y - BrushInfo.GetBounds().Min.Y, BrushInfo.GetBounds().Max.Y - Y - 1);
 
-						const int32 FilterSamplingNumber = FMath::Square(FilterRadius + 1 + FilterRadius);
-
+						const int32 SampleX1 = X - XRadius; checkSlow(SampleX1 >= BrushInfo.GetBounds().Min.X);
+						const int32 SampleY1 = Y - YRadius; checkSlow(SampleY1 >= BrushInfo.GetBounds().Min.Y);
+						const int32 SampleX2 = X + XRadius; checkSlow(SampleX2 <  BrushInfo.GetBounds().Max.X);
+						const int32 SampleY2 = Y + YRadius; checkSlow(SampleY2 <  BrushInfo.GetBounds().Max.Y);
 						for (int32 SampleY = SampleY1; SampleY <= SampleY2; SampleY++)
 						{
-							auto* SampleDataScanline = Data.GetData() + (SampleY - CacheY1) * (CacheX2 - CacheX1 + 1) + (0 - CacheX1);
+							const float* SampleBrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, SampleY));
+							const float* SampleBrushScanline2 = BrushInfo.GetDataPtr(FIntPoint(0, Y + (Y - SampleY)));
+							auto* SampleDataScanline = Data.GetData() + (SampleY - Y1) * (X2 - X1 + 1) + (0 - X1);
 
 							for (int32 SampleX = SampleX1; SampleX <= SampleX2; SampleX++)
 							{
-								FilterValue += SampleDataScanline[SampleX];
+								// constrain sample to within the brush, symmetrically to prevent flattening bug
+								const float SampleBrushValue =
+									FMath::Min(
+										FMath::Min<float>(SampleBrushScanline [SampleX], SampleBrushScanline [X + (X - SampleX)]),
+										FMath::Min<float>(SampleBrushScanline2[SampleX], SampleBrushScanline2[X + (X - SampleX)])
+										);
+								if (SampleBrushValue > 0.0f)
+								{
+									FilterValue += SampleDataScanline[SampleX];
+									FilterSamplingNumber++;
+								}
 							}
 						}
 
@@ -446,10 +456,9 @@ public:
 					}
 				}
 			}
-
-			// TODO: only need to set the modified area, not the extra data we cached for the filter, but the interface to this takes an entire TArray
-			this->Cache.SetCachedData(CacheX1, CacheY1, CacheX2, CacheY2, Data, UISettings->PaintingRestriction);
 		}
+
+		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
 		this->Cache.Flush();
 	}
 };

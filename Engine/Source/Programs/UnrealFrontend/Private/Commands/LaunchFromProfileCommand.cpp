@@ -28,7 +28,7 @@ void FLaunchFromProfileCommand::Run(const FString& Params)
 	ITargetDeviceServicesModule& DeviceServiceModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices"));
 	ITargetDeviceProxyManagerRef DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
 
-	UE_LOG(LogUFECommands, Log, TEXT("Begin the process of launching a project using the provided profile."));
+	UE_LOG(LogUFECommands, Display, TEXT("Begin the process of launching a project using the provided profile."));
 	ILauncherRef LauncherRef = LauncherServicesModule.CreateLauncher();
 	ILauncherWorkerPtr LauncherWorkerPtr = LauncherRef->Launch(DeviceProxyManager, Profile.ToSharedRef());
 
@@ -40,7 +40,7 @@ void FLaunchFromProfileCommand::Run(const FString& Params)
 
 	TArray<ILauncherTaskPtr> TaskList;
 	int32 NumOfTasks = LauncherWorkerPtr->GetTasks(TaskList);	
-	UE_LOG(LogUFECommands, Log, TEXT("There are '%i' tasks to be completed."), NumOfTasks);
+	UE_LOG(LogUFECommands, Display, TEXT("There are '%i' tasks to be completed."), NumOfTasks);
 
 	// Holds the current element in the TaskList array.
 	int32 TaskIndex = 0;
@@ -59,7 +59,7 @@ void FLaunchFromProfileCommand::Run(const FString& Params)
 			if (CurrentTask->GetDesc() == TriggeredTask) continue;
 
 			TriggeredTask = *CurrentTask->GetDesc();
-			UE_LOG(LogUFECommands, Log, TEXT("Current Task is %s"), *TriggeredTask);
+			UE_LOG(LogUFECommands, Display, TEXT("Current Task is %s"), *TriggeredTask);
 			TaskIndex++;
 		}
 	}

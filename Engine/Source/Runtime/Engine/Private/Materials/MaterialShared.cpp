@@ -338,7 +338,7 @@ void FMaterial::FinishCompilation()
 	}
 }
 
-const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUniform2DTextureExpressions() const 
+const FMaterialShaderMap* FMaterial::GetShaderMapToUse() const 
 { 
 	const FMaterialShaderMap* ShaderMapToUse = NULL;
 
@@ -356,6 +356,13 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 		ShaderMapToUse = GetRenderingThreadShaderMap();
 	}
 
+	return ShaderMapToUse;
+}
+
+const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUniform2DTextureExpressions() const 
+{ 
+	const FMaterialShaderMap* ShaderMapToUse = GetShaderMapToUse();
+
 	if (ShaderMapToUse)
 	{
 		return ShaderMapToUse->GetUniformExpressionSet().Uniform2DTextureExpressions; 
@@ -367,19 +374,7 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 
 const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUniformCubeTextureExpressions() const 
 { 
-	const FMaterialShaderMap* ShaderMapToUse = NULL;
-
-	if (IsInGameThread())
-	{
-		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
-		// This allows querying what textures a material uses even when it is being asynchronously compiled
-		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
-	}
-	else 
-	{
-		check(IsInRenderingThread());
-		ShaderMapToUse = GetRenderingThreadShaderMap();
-	}
+	const FMaterialShaderMap* ShaderMapToUse = GetShaderMapToUse();
 
 	if (ShaderMapToUse)
 	{
@@ -392,19 +387,7 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 
 const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformVectorParameterExpressions() const 
 { 
-	const FMaterialShaderMap* ShaderMapToUse = NULL;
-
-	if (IsInGameThread())
-	{
-		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
-		// This allows querying what textures a material uses even when it is being asynchronously compiled
-		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
-	}
-	else 
-	{
-		check(IsInRenderingThread());
-		ShaderMapToUse = GetRenderingThreadShaderMap();
-	}
+	const FMaterialShaderMap* ShaderMapToUse = GetShaderMapToUse();
 
 	if (ShaderMapToUse)
 	{
@@ -417,19 +400,7 @@ const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformVe
 
 const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformScalarParameterExpressions() const 
 { 
-	const FMaterialShaderMap* ShaderMapToUse = NULL;
-
-	if (IsInGameThread())
-	{
-		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
-		// This allows querying what textures a material uses even when it is being asynchronously compiled
-		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
-	}
-	else 
-	{
-		check(IsInRenderingThread());
-		ShaderMapToUse = GetRenderingThreadShaderMap();
-	}
+	const FMaterialShaderMap* ShaderMapToUse = GetShaderMapToUse();
 
 	if (ShaderMapToUse)
 	{
@@ -863,6 +834,11 @@ bool FMaterialResource::IsMasked() const
 	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
 }
 
+bool FMaterialResource::IsDitherMasked() const 
+{
+	return Material->DitherOpacityMask;
+}
+
 bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion && IsTranslucentBlendMode(GetBlendMode()); }
 float FMaterialResource::GetTranslucencyDirectionalLightingIntensity() const { return Material->TranslucencyDirectionalLightingIntensity; }
 float FMaterialResource::GetTranslucentShadowDensityScale() const { return Material->TranslucentShadowDensityScale; }
@@ -1245,6 +1221,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_SSR"), ShouldDoSSR() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_BLOCK_GI"), ShouldBlockGI() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_DITHER_OPACITY_MASK"), IsDitherMasked() ? TEXT("1") : TEXT("0"));
 
 	{
 		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();
@@ -1266,6 +1243,7 @@ void FMaterial::SetupMaterialEnvironment(
 		case MSM_ClearCoat:			OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_CLEAR_COAT"),			TEXT("1")); break;
 		case MSM_TwoSidedFoliage:	OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE"),	TEXT("1")); break;
 		case MSM_Hair:				OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_HAIR"),				TEXT("1")); break;
+		case MSM_Cloth:				OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_CLOTH"),				TEXT("1")); break;
 		default: 
 			UE_LOG(LogMaterial, Warning, TEXT("Unknown material shading model: %u  Setting to MSM_DefaultLit"),(int32)GetShadingModel());
 			OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_DEFAULT_LIT"),TEXT("1"));

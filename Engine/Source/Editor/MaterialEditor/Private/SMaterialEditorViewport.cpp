@@ -69,6 +69,7 @@ FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialE
 	
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.SetSnap(0);
+	EngineShowFlags.SetSeparateTranslucency(true);
 
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;

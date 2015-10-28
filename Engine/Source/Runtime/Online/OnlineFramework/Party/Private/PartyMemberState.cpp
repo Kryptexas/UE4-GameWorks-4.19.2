@@ -5,7 +5,6 @@
 #include "PartyGameState.h"
 #include "Party.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
 UPartyMemberState::UPartyMemberState(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	MemberStateRefDef(nullptr),
@@ -61,4 +60,3 @@ void UPartyMemberState::Reset()
 		MemberStateRef->Reset();
 	}
 }
-PRAGMA_ENABLE_OPTIMIZATION

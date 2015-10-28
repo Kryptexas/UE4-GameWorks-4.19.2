@@ -231,7 +231,13 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetAutoFrameCurveEditor(); } ) );
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleShowCurveEditorCurveToolTips,
-		FExecuteAction::CreateLambda( [this]{ Settings->SetShowCurveEditorCurveToolTips( !Settings->GetShowCurveEditorCurveToolTips() ); } ),
+		FExecuteAction::CreateLambda( [this]{ 
+		Settings->SetShowCurveEditorCurveToolTips( !Settings->GetShowCurveEditorCurveToolTips() ); 
+		if (!Settings->GetShowCurveEditorCurveToolTips())
+		{
+			CurveToolTip.Reset();
+			SetToolTip(CurveToolTip);
+		} } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditorCurveToolTips(); } ) );
 

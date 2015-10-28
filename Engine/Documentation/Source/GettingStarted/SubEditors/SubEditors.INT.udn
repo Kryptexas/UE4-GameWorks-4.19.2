@@ -2,6 +2,7 @@ Availability: Public
 Title:Tools and Editors
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description:There are several different types of Editors contained within Unreal Engine 4, this page highlights each of them. 
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

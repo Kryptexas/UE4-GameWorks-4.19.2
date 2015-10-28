@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2662759
+﻿INTSourceChangelist:2723540
 Availability:Public
 Title:セキュリティ カメラ、アラーム、ドア
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -10,8 +10,11 @@ Related:Engine/Blueprints/UserGuide/UserConstructionScript
 Related:Engine/Blueprints/UserGuide/Components
 Related:Engine/Blueprints/UserGuide/Timelines
 Related:Gameplay/Framework/Pawn
+Version:4.9
 
+<div align= "center">
 ![](SecurityCameraAndDoorHeader.png)(w:600)
+</div>
 
 [EXCERPT:Overview]
 レベル内の Security Camera ブループリントは、プレイモードの間はプレイヤーと相互作用する設定になっています。再生中は、捜索パターンで前後にパンします。緑の捜索コーンがポーンにオーバーラップすると、ライトが赤くなり、カメラがプレイヤーの動きをトラックし始めます。プレイヤーが範囲から出て行くまでトラックし続けます。数秒後、捜索に戻ります。
@@ -80,8 +83,9 @@ Camera ブループリントは、プレイヤーと相互作用してアラー�
 
 
 ## Alarm ブループリント
-
+<div align= "center">
 ![](AlarmImage.png)
+</div>
 
 Alarm ブループリントは、プレイヤーがセキュリティ カメラの正面にステップインすることでアラームを始動させるビジュアル キューの役割をします。アクティベートすると、緑色から赤色に変わり、ビーコンライトがスピンを開始します。アラームが非アクティブになるまでスピンし続けます。
 
@@ -117,8 +121,9 @@ Alarm ブループリントは、プレイヤーがセキュリティ カメラ�
 
 
 ## Door ブループリント
-
+<div align= "center">
 ![](Door.png)
+</div>
 
 ドアは、アラームがセットされない限りは開いたままになるように設定されています。ただし、アラームがトリガされた瞬間、ドアはバタンと閉じられアラームが終了するまでは再度開かないようにアニメートされています。タイムラインを使ってドアをアニメートしていることに注目することが重要です。実際、ドアを開けるタイムラインと、ドアを閉めるタイムラインの 2 つが別々に存在します。こうすることで、ドアを開く速度と閉める速度を別々にすることができます。 
 

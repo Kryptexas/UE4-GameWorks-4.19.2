@@ -969,7 +969,7 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 		FSkelMeshSection& Section = LOD.Sections[SectionIndex];
 		FSkelMeshChunk& Chunk = LOD.Chunks[Section.ChunkIndex];
 
-		if (Chunk.HasExtraBoneInfluences())
+		if (LOD.VertexBufferGPUSkin.HasExtraBoneInfluences())
 		{
 			CalculateChunkBoneWeights<true>(DestVertex, LOD.VertexBufferGPUSkin, Chunk, BonesOfInterest);
 		}

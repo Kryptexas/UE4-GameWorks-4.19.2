@@ -113,8 +113,8 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 		for (TSharedPtr<FNiagaraSimulation> Emitter : EffectInstance->GetEmitters())
 		{
-			UEmitterMovieSceneTrack *Track = Cast<UEmitterMovieSceneTrack> (MovieScene->AddMasterTrack(UEmitterMovieSceneTrack::StaticClass()) );
-			 Track->SetEmitter(Emitter);
+			UEmitterMovieSceneTrack *Track = MovieScene->AddMasterTrack<UEmitterMovieSceneTrack>();
+			Track->SetEmitter(Emitter);
 		}
 	}
 

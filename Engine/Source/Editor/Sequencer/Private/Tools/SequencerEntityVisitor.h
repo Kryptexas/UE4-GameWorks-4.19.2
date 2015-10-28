@@ -5,7 +5,7 @@
 class FSequencerDisplayNode;
 class UMovieSceneSection;
 class IKeyArea;
-class FSectionKeyAreaNode;
+class FSequencerSectionKeyAreaNode;
 class ISequencerSection;
 
 /** Enum of different types of entities that are available in the sequencer */
@@ -75,7 +75,7 @@ private:
 	/** Handle visitation of a particular node, along with a set of sections */
 	void HandleNode(const ISequencerEntityVisitor& Visitor, FSequencerDisplayNode& InNode, TArray<TSharedRef<ISequencerSection>> InSections);
 	/** Handle visitation of a key area node */
-	void HandleKeyAreaNode(const ISequencerEntityVisitor& Visitor, FSectionKeyAreaNode& InKeyAreaNode, FSequencerDisplayNode& InOwnerNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
+	void HandleKeyAreaNode(const ISequencerEntityVisitor& Visitor, FSequencerSectionKeyAreaNode& InKeyAreaNode, FSequencerDisplayNode& InOwnerNode, const TArray<TSharedRef<ISequencerSection>>& InSections);
 	/** Handle visitation of a key area */
 	void HandleKeyArea(const ISequencerEntityVisitor& Visitor, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section);
 

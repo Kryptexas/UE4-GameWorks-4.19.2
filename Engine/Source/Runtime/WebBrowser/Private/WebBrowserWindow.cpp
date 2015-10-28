@@ -547,6 +547,17 @@ void FWebBrowserWindow::OnResetDialogState()
 	OnDismissAllDialogs().ExecuteIfBound();
 }
 
+void FWebBrowserWindow::OnRenderProcessTerminated(CefRequestHandler::TerminationStatus Status)
+{
+	if(bRecoverFromRenderProcessCrash)
+	{
+		bRecoverFromRenderProcessCrash = false;
+		NotifyDocumentError(); // Only attempt a single recovery at a time
+	}
+
+	bRecoverFromRenderProcessCrash = true;
+	Reload();
+}
 
 FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
@@ -829,6 +840,14 @@ void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 	if (! IsLoading)
 	{
 		bIsInitialized = true;
+
+		if (bRecoverFromRenderProcessCrash)
+		{
+			bRecoverFromRenderProcessCrash = false;
+			// Toggle hidden/visible state to get OnPaint calls from CEF.
+			SetIsHidden(true);
+			SetIsHidden(false);
+		}
 	}
 	
 	EWebBrowserDocumentState NewState = IsLoading

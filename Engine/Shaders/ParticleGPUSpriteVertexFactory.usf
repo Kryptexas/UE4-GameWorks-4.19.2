@@ -64,8 +64,13 @@ struct FVertexFactoryInterpolantsVSToPS
 	float4 ParticleSubUVs : PARTICLE_SUBUVS;
 #endif
 
+#if NEEDS_PARTICLE_RANDOM
+	/** X: SubImageLerp Y:RelativeTime Z:MotionBlurFade W:Random */
+	float4 Misc						: TEXCOORD4;
+#else
 	/** X: SubImageLerp Y:RelativeTime Z:MotionBlurFade */
 	float3 Misc						: TEXCOORD4;
+#endif
 
 #if NEEDS_PARTICLE_COLOR
 	/** Sprite color. */
@@ -127,6 +132,8 @@ struct FVertexFactoryIntermediates
 	float RelativeTime;
 	/** Amount to fade the sprite due to camera motion blur. */
 	float MotionBlurFade;
+	/** Random value per particle [0-1]. */
+	float Random;
 	/** Radius of the particle when represented by a sphere. */
 	float ParticleRadius;
 	/** Size of the particle. */
@@ -311,6 +318,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 #else // #if USES_PARTICLE_MOTION_BLUR
 	Intermediates.MotionBlurFade = 0.0f;
 #endif // #if USES_PARTICLE_MOTION_BLUR
+#if NEEDS_PARTICLE_RANDOM
+	Intermediates.Random = PseudoRandom(ParticleIndex.xy);
+#else
+	Intermediates.Random = 0.0f;
+#endif
+
 	Intermediates.ParticleRadius = .5f * min(Size.x, Size.y);
 	Intermediates.ParticleSize = Size;
 	return Intermediates;
@@ -364,6 +377,12 @@ FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsV
 #else // #if USES_PARTICLE_MOTION_BLUR
 	Result.Particle.MotionBlurFade = 1.0f;
 #endif // #if USES_PARTICLE_MOTION_BLUR
+
+#if NEEDS_PARTICLE_RANDOM
+	Result.Particle.Random = Interpolants.Misc.w;
+#else
+	Result.Particle.Random = 0.0f;
+#endif
 
 #if USE_PARTICLE_VELOCITY
 	Result.Particle.Velocity = Interpolants.ParticleVelocity;
@@ -435,6 +454,12 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 #else // #if USES_PARTICLE_MOTION_BLUR
 	Result.Particle.MotionBlurFade = 1.0f;
 #endif // #if USES_PARTICLE_MOTION_BLUR
+
+#if NEEDS_PARTICLE_RANDOM
+	Result.Particle.Random = Intermediates.Random;
+#else
+	Result.Particle.Random = 0.0f;
+#endif
 
 #if USE_PARTICLE_VELOCITY
 	Result.Particle.Velocity = Intermediates.ParticleVelocity;
@@ -539,6 +564,10 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS( FVertexFact
 	Interpolants.Misc.x = Intermediates.SubImageLerp;
 	Interpolants.Misc.y = Intermediates.RelativeTime;
 	Interpolants.Misc.z = Intermediates.MotionBlurFade;
+
+#if NEEDS_PARTICLE_RANDOM
+	Interpolants.Misc.w = Intermediates.Random;
+#endif
 
 #if NEEDS_PARTICLE_COLOR
 	Interpolants.Color = Intermediates.Color;

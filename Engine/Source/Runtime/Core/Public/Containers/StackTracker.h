@@ -69,7 +69,7 @@ public:
 	 * you must allocate the memory with FMemory::Malloc()
 	 * EntriesToIgnore are removed from the top of then stack, then we keep at most StackLen of the remaining entries.
 	 */
-	CORE_API void CaptureStackTrace(int32 EntriesToIgnore = 2, void* UserData = nullptr, int32 StackLen = MAX_int32);
+	CORE_API void CaptureStackTrace(int32 EntriesToIgnore = 2, void* UserData = nullptr, int32 StackLen = MAX_int32, bool bLookupStringsForAliasRemoval = false);
 
 	/**
 	 * Dumps capture stack trace summary to the passed in log.
@@ -89,6 +89,10 @@ private:
 	TArray<FCallStack> CallStacks;
 	/** Mapping from callstack CRC to index in callstack array. */
 	TMap<uint32,int32> CRCToCallStackIndexMap;
+	/** Mapping an address to an arbitrary alias of that address. Only used with bLookupStringsForAliasRemoval.*/
+	TMap<uint64,uint64> AliasMap;
+	/** Mapping an string to an arbitrary alias of that address. Only used with bLookupStringsForAliasRemoval.*/
+	TMap<FString,uint64> StringAliasMap;
 	/** Whether we are currently capturing or not, used to avoid re-entrancy. */
 	bool bAvoidCapturing;
 	/** Whether stack tracking is enabled. */

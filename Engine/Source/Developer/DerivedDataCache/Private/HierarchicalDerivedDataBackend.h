@@ -65,11 +65,7 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
-		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
-		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
-		Stat.AddTag(NAME_HierarchicalDDC, FString());
-
+		
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey))
@@ -88,13 +84,7 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData, FCacheStatRecord* Stats) override
 	{
-		const static FName NAME_GetCachedData = FName(TEXT("GetCachedData"));
-		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
-		const static FName NAME_DataSize = FName(TEXT("DataSize")); 
-		static FName NAME_Retrieved(TEXT("Retrieved"));
 
-		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
-		Stat.AddTag(NAME_HierarchicalDDC, FString());
 
 		Stats->StartTime = FPlatformTime::Seconds();
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
@@ -142,8 +132,7 @@ public:
 						}
 					}
 				}
-				Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), OutData.Num()));
-				Stat.AddTag(NAME_Retrieved, TEXT("true"));
+			
 				Stats->EndTime = FPlatformTime::Seconds();
 				Stats->PutDuration = Stats->EndTime - StartTime;
 				return true;
@@ -152,7 +141,6 @@ public:
 		Stats->EndTime = FPlatformTime::Seconds();
 		Stats->GetDuration = FPlatformTime::Seconds() - Stats->StartTime;
 		Stats->PutDuration = 0.;
-		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;
 	}
 	/**

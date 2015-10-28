@@ -44,6 +44,9 @@ class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 	UFUNCTION(BlueprintCallable, Category="Components|PoseableMesh")
 	void ResetBoneTransformByName(FName BoneName);
 
+	UFUNCTION(BlueprintCallable, Category="Components|PoseableMesh")
+	void CopyPoseFromSkeletalComponent(const USkeletalMeshComponent* InComponentToCopy);
+
 	//~ Begin USkinnedMeshComponent Interface
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
 	virtual bool AllocateTransformData() override;

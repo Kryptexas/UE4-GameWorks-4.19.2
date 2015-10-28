@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2669331
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:アニメーション カーブ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
@@ -41,7 +41,7 @@ TKAcNubFOH8
 キャラクターの頭には **Blush** と名前が付けられたパラメータで簡易なマテリアルが設定されています。こちらがマテリアルグラフです。
 
 [REGION:fullwidth]
-![](BlushMaterial.jpg)
+![](BlushMaterial.png)
 [/REGION]
 
 [REGION:note]

@@ -394,16 +394,16 @@ public:
 public:
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN()
+	FORCEINLINE void DiagnosticCheckNaN() const
 	{
 		if (ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FQuat contains NaN: %s"), *ToString());
-			*this = FQuat::Identity;
+			logOrEnsureNanError(TEXT("FQuat contains NaN: %s"), *ToString());
+			*const_cast<FQuat*>(this) = FQuat::Identity;
 		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() {}
+	FORCEINLINE void DiagnosticCheckNaN() const {}
 #endif
 
 public:
@@ -451,16 +451,33 @@ public:
 	static FORCEINLINE FQuat FastBilerp( const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY );
 
 
-	/** Spherical interpolation. Will correct alignment. Output is not normalized. */
-	static CORE_API FQuat Slerp( const FQuat &Quat1,const FQuat &Quat2, float Slerp );
+	/** Spherical interpolation. Will correct alignment. Result is NOT normalized. */
+	static CORE_API FQuat Slerp_NotNormalized( const FQuat &Quat1, const FQuat &Quat2, float Slerp );
+
+	/** Spherical interpolation. Will correct alignment. Result is normalized. */
+	static FORCEINLINE FQuat Slerp( const FQuat &Quat1, const FQuat &Quat2, float Slerp )
+	{
+		return Slerp_NotNormalized(Quat1, Quat2, Slerp).GetNormalized();
+	}
 
 	/**
 	 * Simpler Slerp that doesn't do any checks for 'shortest distance' etc.
 	 * We need this for the cubic interpolation stuff so that the multiple Slerps dont go in different directions.
+	 * Result is NOT normalized.
 	 */
-	static CORE_API FQuat SlerpFullPath( const FQuat &quat1, const FQuat &quat2, float Alpha );
+	static CORE_API FQuat SlerpFullPath_NotNormalized( const FQuat &quat1, const FQuat &quat2, float Alpha );
+
+	/**
+	 * Simpler Slerp that doesn't do any checks for 'shortest distance' etc.
+	 * We need this for the cubic interpolation stuff so that the multiple Slerps dont go in different directions.
+	 * Result is normalized.
+	 */
+	static FORCEINLINE FQuat SlerpFullPath( const FQuat &quat1, const FQuat &quat2, float Alpha )
+	{
+		return SlerpFullPath_NotNormalized(quat1, quat2, Alpha).GetNormalized();
+	}
 	
-	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. */
+	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized. */
 	static CORE_API FQuat Squad( const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha );
 
 	/** 
@@ -636,7 +653,7 @@ FORCEINLINE FQuat::FQuat( const FQuat& Q )
 
 FORCEINLINE FString FQuat::ToString() const
 {
-	return FString::Printf(TEXT("X=%3.3f Y=%3.3f Z=%3.3f W=%3.3f"), X, Y, Z, W);
+	return FString::Printf(TEXT("X=%.6f Y=%.6f Z=%.6f W=%.6f"), X, Y, Z, W);
 }
 
 

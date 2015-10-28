@@ -60,4 +60,9 @@ protected:
 
 	/** Allow base to add info to the node debug output */
 	void AddDebugNodeData(FString& OutDebugData);
+
+private:
+
+	// Resused bone transform array to avoid reallocating in skeletal controls
+	TArray<FBoneTransform> BoneTransforms;
 };

@@ -451,6 +451,33 @@ static bool IsCookingForNoEditorDataPlatform(FArchive& Ar)
 }
 
 /**
+ * Marks object as not for client or not for server based on its NeedsLoadForClient and NeedsLoadForServer overrides
+**/
+static void ConditionallyExcludeObjectForTarget(UObject* Obj, FArchive& Ar)
+{
+	const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(Ar.CookingTarget(), Ar.IsCooking());
+	UObject* Search = Obj;
+	do
+	{
+		if (!Search->NeedsLoadForClient())
+		{
+			Obj->Mark(OBJECTMARK_NotForClient);
+		}
+
+		if (!Search->NeedsLoadForServer())
+		{
+			Obj->Mark(OBJECTMARK_NotForServer);
+		}
+
+		if (Search->HasAnyFlags(RF_Public))
+		{
+			break;
+		}
+		Search = Search->GetOuter();
+	} while (Search && !Obj->HasAllMarks(ObjectMarks));
+}
+
+/**
  * Archive for tagging objects and names that must be exported
  * to the file.  It tags the objects passed to it, and recursively
  * tags all of the objects this object references.
@@ -563,29 +590,7 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 			// Once should not read the flags directly (other than at load) because the virtual methods are authoritative.
 
 			// if anything in the outer chain is NotFor, then we are also NotFor. Stop this search at public objects.
-
-			UObject* Search = Obj;
-
-			const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform( CookingTarget(), IsCooking() );
-
-			do
-			{
-				if( !Search->NeedsLoadForClient() ) 
-				{
-					Obj->Mark(OBJECTMARK_NotForClient);
-				}
-
-				if( !Search->NeedsLoadForServer() )
-				{
-					Obj->Mark(OBJECTMARK_NotForServer);
-				}
-
-				if (Search->HasAnyFlags(RF_Public))
-				{
-					break;
-				}
-				Search = Search->GetOuter();
-			} while (Search && !Obj->HasAllMarks(ObjectMarks));
+			ConditionallyExcludeObjectForTarget(Obj, *this);
 
 			{
 				bool bNeedsLoadForEditorGame = false;
@@ -839,6 +844,9 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 
 			if( !Obj->HasAnyMarks(OBJECTMARK_TagExp) )  
 			{
+				// if anything in the outer chain is NotFor, then we are also NotFor. Stop this search at public objects.
+				ConditionallyExcludeObjectForTarget(Obj, *this);
+
 				// mark this object as an import
 				if (!bIsEditorOnly)
 				{
@@ -3607,6 +3615,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				// Import objects & names.
 				TArray<FString> StringAssetReferencesMap;
 				{
+					const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
 					for(int32 Index = 0; Index < TagExpObjects.Num(); Index++)
@@ -3653,6 +3662,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							}
 						}
 #endif //WITH_EDITOR
+
+						if (Linker->IsCooking())
+						{
+							// Remove all dependencies that are not required for the cooking target platform
+							for (int32 DependencyIndex = ImportTagger.Dependencies.Num() - 1; DependencyIndex >= 0; DependencyIndex--)
+							{
+								UObject* DependencyObj = ImportTagger.Dependencies[DependencyIndex];
+								if (DependencyObj->HasAllMarks(ObjectMarks))
+								{
+									DependencyObj->UnMark(OBJECTMARK_TagImp);
+									ImportTagger.Dependencies.RemoveAtSwap(DependencyIndex);
+								}								
+							}
+						}
 
 						// add the list of dependencies to the dependency map
 						ObjectDependencies.Add(Obj, ImportTagger.Dependencies);
@@ -4044,14 +4067,31 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 #if WITH_EDITOR
 					FImportReplacementsHelper ImportReplacementsHelper(TagImpObjects);
 #endif //WITH_EDITOR
+
+					if (Linker->IsCooking())
+					{
+						const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
+						for (UObject* ObjImport : TagImpObjects)
+						{
+							if (ObjImport->HasAllMarks(ObjectMarks))
+							{
+								ObjImport->UnMark(OBJECTMARK_TagImp);
+							}
+						}
+					}
+
 					for(int32 Index = 0; Index < TagImpObjects.Num(); Index++)
 					{
 						UObject* Obj = TagImpObjects[Index];
-						check(Obj->HasAnyMarks(OBJECTMARK_TagImp));
+						check(Obj->HasAnyMarks(OBJECTMARK_TagImp) || Linker->IsCooking());
+						
 #if WITH_EDITOR
 						Obj = ImportReplacementsHelper.Handle(Obj, Linker->ImportMap);
 #endif //WITH_EDITOR
-						new(Linker->ImportMap)FObjectImport(Obj);
+						if (Obj->HasAnyMarks(OBJECTMARK_TagImp))
+						{
+							new( Linker->ImportMap )FObjectImport( Obj );
+						}
 					}
 				}
 

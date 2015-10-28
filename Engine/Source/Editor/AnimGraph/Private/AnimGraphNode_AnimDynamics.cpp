@@ -74,18 +74,6 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 				PDI->DrawLine(Origin, Origin + YAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Green, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
 				PDI->DrawLine(Origin, Origin + ZAxis * AnimDynamicsNodeConstants::TransformBasisScale, FLinearColor::Blue, SDPG_Foreground, AnimDynamicsNodeConstants::TransformLineWidth);
 
-				if (BoneIndex != INDEX_NONE)
-				{
-					// World space transform
-					const FTransform BoneTransform = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
-					FTransform ShapeTransform = BoneTransform;
-
-					FBox PrismLimits(ShapeTransform.GetTranslation() + FVector(-20.0f, -20.0f, -10.0f), ShapeTransform.GetTranslation() + FVector(20.0f, 20.0f, 10.0f));
-					FVector Point = PrismLimits.GetClosestPointTo(Body.Pose.Position);
-
-					PDI->DrawLine(Body.Pose.Position, Point, FLinearColor::Blue, SDPG_Foreground);
-				}
-
 				if (bShowLinearLimits)
 				{
 					DrawLinearLimits(PDI, BodyJointTransform, *ActivePreviewNode);
@@ -95,6 +83,30 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 				{
 					FTransform AngularLimitsTM(BodyJointTransform.GetRotation(), BodyTransform.GetTranslation() + LocalPinOffset);
 					DrawAngularLimits(PDI, AngularLimitsTM, *ActivePreviewNode);
+				}
+
+				if(bShowPlanarLimit && bShowCollisionSpheres && Body.CollisionType != AnimPhysCollisionType::CoM)
+				{
+					// Draw collision sphere
+					DrawWireSphere(PDI, BodyTransform, FLinearColor(FColor::Cyan), Body.SphereCollisionRadius, 24, SDPG_Foreground, 0.2f);
+				}
+			}
+
+			// Only draw the planar limit once
+			if(bShowPlanarLimit && ActivePreviewNode->PlanarLimits.Num() > 0)
+			{
+				for(FAnimPhysPlanarLimit& PlanarLimit : ActivePreviewNode->PlanarLimits)
+				{
+					FTransform LimitPlaneTransform = PlanarLimit.PlaneTransform;
+					const int32 LimitDrivingBoneIdx = PreviewSkelMeshComp->GetBoneIndex(PlanarLimit.DrivingBone.BoneName);
+
+					if(LimitDrivingBoneIdx != INDEX_NONE)
+					{
+						LimitPlaneTransform *= PreviewSkelMeshComp->GetSpaceBases()[LimitDrivingBoneIdx];
+					}
+
+					DrawPlane10x10(PDI, LimitPlaneTransform.ToMatrixNoScale(), 200.0f, FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f), GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
+					DrawDirectionalArrow(PDI, FRotationMatrix(FRotator(90.0f, 0.0f, 0.0f)) * LimitPlaneTransform.ToMatrixNoScale(), FLinearColor::Blue, 50.0f, 20.0f, SDPG_Foreground, 0.5f);
 				}
 			}
 		}

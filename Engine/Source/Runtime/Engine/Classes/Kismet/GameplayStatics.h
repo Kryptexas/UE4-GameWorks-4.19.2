@@ -280,6 +280,14 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true"))
 	static UParticleSystemComponent* SpawnEmitterAtLocation(UObject* WorldContextObject, class UParticleSystem* EmitterTemplate, FVector Location, FRotator Rotation = FRotator::ZeroRotator, bool bAutoDestroy = true);
 
+	/** Plays the specified effect at the given location and rotation, fire and forget. The system will go away when the effect is complete. Does not replicate.
+	 * @param World - The World to spawn in
+	 * @param EmitterTemplate - particle system to create
+	 * @param SpawnTransform - transform with which to place the effect in world space
+	 * @param bAutoDestroy - Whether the component will automatically be destroyed when the particle system completes playing or whether it can be reactivated
+	 */
+	static UParticleSystemComponent* SpawnEmitterAtLocation(UWorld* World, class UParticleSystem* EmitterTemplate, const FTransform& SpawnTransform, bool bAutoDestroy = true);
+
 	/** Plays the specified effect attached to and following the specified component. The system will go away when the effect is complete. Does not replicate.
 	* @param EmitterTemplate - particle system to create
 	 * @param AttachComponent - Component to attach to.

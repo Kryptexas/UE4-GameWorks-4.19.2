@@ -252,18 +252,18 @@ public:
 	{
 		if (Origin.ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("Origin contains NaN: %s"), *Origin.ToString());
+			logOrEnsureNanError(TEXT("Origin contains NaN: %s"), *Origin.ToString());
 			Origin = FVector::ZeroVector;
 		}
 		if (BoxExtent.ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
+			logOrEnsureNanError(TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
 			BoxExtent = FVector::ZeroVector;
 
 		}
 		if (FMath::IsNaN(SphereRadius) || !FMath::IsFinite(SphereRadius))
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+			logOrEnsureNanError(TEXT("SphereRadius contains NaN: %f"), SphereRadius);
 			SphereRadius = 0.f;
 		}
 	}

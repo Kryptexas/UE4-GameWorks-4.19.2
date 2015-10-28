@@ -15,7 +15,8 @@ public class MeshUtilities : ModuleRules
 				"RawMesh",
 				"RenderCore", // For FPackedNormal
 				"SlateCore",
-				"MaterialUtilities"
+				"MaterialUtilities", 
+                "MeshBoneReduction"
 			}
 		);
 

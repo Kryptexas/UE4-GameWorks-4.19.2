@@ -111,6 +111,11 @@ public:
 	virtual const FString& GetClientId() const = 0;
 
 	/**
+	 * @return id of the client app associated with the sender of the party invite 
+	 */
+	virtual int32 GetBuildId() const = 0;
+
+	/**
 	 * @return whether or not the party is accepting members
 	 */
 	virtual bool GetIsAcceptingMembers() const = 0;
@@ -363,6 +368,7 @@ enum class ECreatePartyCompletionResult
 enum class EJoinPartyCompletionResult
 {
 	UnknownClientFailure = -100,
+	BadBuild,
 	JoinInfoInvalid,
 	AlreadyJoiningParty,
 	AlreadyInParty,
@@ -415,6 +421,8 @@ enum class EKickMemberCompletionResult
 	UnknownInternalFailure = 0,
 	Succeeded = 1
 };
+
+enum class EInvitationResponse;
 
 // Completion delegates
 
@@ -624,7 +632,7 @@ PARTY_DECLARE_DELEGATETYPE(OnPartyInviteReceived);
  * @param SenderId - id of member that sent the invite
  * @param bWasAccepted - whether or not the invite was accepted
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(F_PREFIX(OnPartyInviteResponseReceived), const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*SenderId*/, bool /*bWasAccepted*/);
+DECLARE_MULTICAST_DELEGATE_FourParams(F_PREFIX(OnPartyInviteResponseReceived), const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*SenderId*/, const EInvitationResponse /*bWasAccepted*/);
 PARTY_DECLARE_DELEGATETYPE(OnPartyInviteResponseReceived);
 
 /**
@@ -1102,7 +1110,7 @@ public:
 	 * @param SenderId - id of member that sent the invite
 	 * @param bWasAccepted - true is the invite was accepted
 	 */
-	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnPartyInviteResponseReceived, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*SenderId*/, const bool /*bWasAccepted*/);
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnPartyInviteResponseReceived, const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/, const FUniqueNetId& /*SenderId*/, const EInvitationResponse /*bWasAccepted*/);
 
 	/**
 	 * Notification when a new reservation request is received
@@ -1129,6 +1137,38 @@ public:
 };
 
 typedef TSharedPtr<IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
+
+enum class EInvitationResponse
+{
+	UnknownFailure,
+	BadBuild,
+	Rejected,
+	Accepted
+};
+
+inline const TCHAR* ToString(EInvitationResponse Value)
+{
+	switch (Value)
+	{
+	case EInvitationResponse::UnknownFailure:
+	{
+		return TEXT("UnknownFailure");
+	}
+	case EInvitationResponse::BadBuild:
+	{
+		return TEXT("BadBuild");
+	}
+	case EInvitationResponse::Rejected:
+	{
+		return TEXT("Rejected");
+	}
+	case EInvitationResponse::Accepted:
+	{
+		return TEXT("Accepted");
+	}
+	}
+	return TEXT("");
+}
 
 inline const TCHAR* ToString(EMemberChangedReason Value)
 {

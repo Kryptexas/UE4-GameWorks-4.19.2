@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613460
+﻿INTSourceChangelist:2719348
 Availability:Public
 Title:アクタの配置
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -7,18 +7,19 @@ Related:Engine/Actors/Placement
 Related:Engine/UI/LevelEditor/Modes/PlaceMode
 Related:Engine/UI/ClassViewer
 Related:GettingStarted\HowTo\ManipulatingActors
+version:4.9
 
-最も基本的なレベルでは、 **アクタ** はレベルに配置可能なオブジェクトです。このページではアクタをレベル内に配置する様々な方法について説明します。 
+最も基本的なレベルでは、 **アクタ** はレベルに配置可能なオブジェクトです。このページではアクタをレベルに配置する様々な方法について説明します。 
 
 [TOC(start:2)]
 
 [REGION:note]
-この操作ガイドでは、新規プロジェクトを作成しました。これは、**Starter Content** を有効にした状態で（スターターコンテンツを含める） **Blueprint Third Person** テンプレートを使用して作成しました。これまでにテンプレートを使用してプロジェクトを作成したご経験がない場合や、スターター コンテンツを有効にする方法がわからない場合は、[](Engine/Basics/Projects/Browser) のページをご覧ください。このページには、プロジェクトを開く / 作成する、テンプレート、プロジェクト設定についての情報が掲載されています。 
+この操作ガイドでは、新規プロジェクトを作成しました。これは、**Starter Content** を有効にした状態で (スターターコンテンツを含める)、**Blueprint Third Person** テンプレートを使用して作成しました。これまでにテンプレートを使用してプロジェクトを作成したご経験がない場合や、スターター コンテンツを有効にする方法がわからない場合は、[](Engine/Basics/Projects/Browser) のページをご覧ください。このページには、プロジェクトを開く / 作成する、テンプレート、プロジェクト設定についての情報が掲載されています。 
 [/REGION]
 
 ## 配置モード
 
-このセクションでは [Place (配置モード)](Engine/UI/LevelEditor/Modes/PlaceMode) で **[Modes (モード)]** メニューからアクタを配置する方法について説明します。 
+このセクションでは [Place Mode (配置モード)](Engine/UI/LevelEditor/Modes/PlaceMode) で **[Modes (モード)]** メニューからアクタを配置する方法について説明します。 
 
 1. プロジェクトを開いた状態で画面の左上隅に **[Modes (モード)]** ウィンドウが表示されます。 
 
@@ -28,9 +29,9 @@ Related:GettingStarted\HowTo\ManipulatingActors
 
 	![](Place1.png)
 
-	**配置** モードの各タブに表示される各アクタはレベルにドラッグ & ドロップできます。 
+	配置モードの各タブに表示される各アクタはレベルにドラッグ & ドロップできます。 
 
-## コンテキストメニュー
+## コンテキスト メニュー
 
 このセクションではレベルの [コンテンツ ブラウザ](Engine/Content/Browser) から **コンテキスト メニュー** を使用してアクタを配置する方法について説明します。 
 
@@ -38,7 +39,7 @@ Related:GettingStarted\HowTo\ManipulatingActors
 
 	![](Place2.png)
 
-1.	**スターター コンテンツ** フォルダ上で **左ダブルクリック** して開きます。次に、 **Props** フォルダを開きます。 
+1.	**「Starter Content」** フォルダ上で **左ダブルクリック** して開きます。次に、 **「Props」** フォルダを開きます。 
 
 1.	**SM_Chair** アセット上で左クリックしてハイライトするようにします。 
 
@@ -63,7 +64,7 @@ Related:GettingStarted\HowTo\ManipulatingActors
 
 	![](Place2.png)
 
-1.	**スターター コンテンツ** フォルダ上で **左ダブルクリック** して開きます。次に、 **Props** フォルダを開きます。 
+1.	**「Starter Content」** フォルダ上で **左ダブルクリック** して開きます。次に、 **「Props」** フォルダを開きます。 
 
 1.	**SM_Couch** 上で **左クリック** して、レベル ビューポートに **ドラッグ＆ドロップ** します。 
 
@@ -77,7 +78,7 @@ Related:GettingStarted\HowTo\ManipulatingActors
 
 	![](Place6.png)
 
-	**クラスビューア** ウィンドウが開きます。 
+	**クラス ビューア** ウィンドウが開きます。 
 
 	![](Place7.png)
 

@@ -158,8 +158,6 @@ F3DTransformTrackEditor::F3DTransformTrackEditor( TSharedRef<ISequencer> InSeque
 
 F3DTransformTrackEditor::~F3DTransformTrackEditor()
 {
-	OnRelease();
-	F3DTransformTrackCommands::Unregister();
 }
 
 
@@ -170,6 +168,8 @@ void F3DTransformTrackEditor::OnRelease()
 
 	GEditor->OnBeginCameraMovement().RemoveAll( this );
 	GEditor->OnEndCameraMovement().RemoveAll( this );
+
+	F3DTransformTrackCommands::Unregister();
 }
 
 
@@ -248,32 +248,35 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 
 	USceneComponent* SceneComponentThatChanged = nullptr;
 
-	// The runtime binding
-	FGuid ObjectHandle;
+	// The runtime binding to the actor, since that's where transform tracks are always stored.
+	FGuid ActorHandle;
 
 	AActor* Actor = Cast<AActor>( &InObject );
 	if( Actor && Actor->GetRootComponent() )
 	{
 		// Get a handle bound to the key/section we are adding so we know what objects to change during playback
-		ObjectHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
+		ActorHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
 		SceneComponentThatChanged = Actor->GetRootComponent();
 	}
 
 	else
 	{
-		// If the object wasn't an actor attempt to get it directly as a scene component 
+		// If the object wasn't an actor attempt to get it directly as a scene component and then get the actor from there.
 		SceneComponentThatChanged = Cast<USceneComponent>( &InObject );
 		if( SceneComponentThatChanged )
 		{
-			ObjectHandle = Sequencer->GetHandleToObject( SceneComponentThatChanged, bCreateHandleIfMissing );
+			AActor* OwnerActor = Cast<AActor>(SceneComponentThatChanged->GetOuter());
+			if ( OwnerActor )
+			{
+				ActorHandle = Sequencer->GetHandleToObject( OwnerActor, bCreateHandleIfMissing );
+			}
 		}
-
 	}
 
-	if( SceneComponentThatChanged && ObjectHandle.IsValid() )
+	if( SceneComponentThatChanged && ActorHandle.IsValid() )
 	{
 		FName Transform("Transform");
-		if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform))
+		if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack<UMovieScene3DTransformTrack>(ActorHandle, Transform))
 		{
 			// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
 			FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
@@ -292,10 +295,10 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 			KeyParams.bAddKeyEvenIfUnchanged = false;
 			KeyParams.KeyInterpolation = Sequencer->GetKeyInterpolation();
 
-			if (CanKeyProperty(FCanKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::CanKeyPropertyInternal, ObjectHandle, TransformPair, KeyParams)))
+			if (CanKeyProperty(FCanKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::CanKeyPropertyInternal, ActorHandle, TransformPair, KeyParams)))
 			{
 				AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(),
-					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, KeyParams, F3DTransformTrackKey::Key_All));
+					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ActorHandle, TransformPair, KeyParams, F3DTransformTrackKey::Key_All));
 			}
 		}
 	}
@@ -494,10 +497,12 @@ void F3DTransformTrackEditor::AddTransform(FGuid ObjectBinding)
 	TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
 
 	UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>(TransformTrack->CreateNewSection());
-	TransformSection->SetStartTime(GetSequencer()->GetGlobalTime());
-	TransformSection->SetEndTime(GetSequencer()->GetGlobalTime());
-	TransformTrack->AddSection(TransformSection);
-	TransformTrack->SetAsShowable();
+	{
+		TransformSection->SetStartTime(GetSequencer()->GetGlobalTime());
+		TransformSection->SetEndTime(GetSequencer()->GetGlobalTime());
+		TransformTrack->AddSection(*TransformSection);
+		TransformTrack->SetAsShowable();
+	}
 	
 	AddKey(ObjectBinding, nullptr);
 	NotifyMovieSceneDataChanged();
@@ -507,7 +512,7 @@ void F3DTransformTrackEditor::AddTransform(FGuid ObjectBinding)
 bool F3DTransformTrackEditor::CanAddTransform(FGuid ObjectBinding) const
 {
 	FName Transform("Transform");
-	if (GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectBinding, Transform))
+	if (GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack<UMovieScene3DTransformTrack>(ObjectBinding, Transform))
 	{
 		return false;
 	}
@@ -564,26 +569,23 @@ void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject
 
 bool F3DTransformTrackEditor::CanKeyPropertyInternal(float KeyTime, FGuid ObjectHandle, FTransformDataPair TransformPair, FKeyParams KeyParams) const
 {
-	FName Transform("Transform");
-	if (ObjectHandle.IsValid())
+	if (!ObjectHandle.IsValid())
 	{
-		const UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
-
-		const UMovieSceneTrack* Track = MovieScene->FindTrack( UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform );
-
-		if (Track)
-		{
-			const UMovieScene3DTransformTrack* TransformTrack = CastChecked<UMovieScene3DTransformTrack>( Track );
-
-			FTransformKey TransformKey = GetTransformKey(TransformTrack, KeyTime, TransformPair, KeyParams);
-
-			if (TransformTrack->CanKeyTrack(TransformKey))
-			{
-				return true;
-			}
-		}
+		return false;
 	}
-	return false;
+
+	FName Transform("Transform");
+	const UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
+	const UMovieScene3DTransformTrack* TransformTrack = MovieScene->FindTrack<UMovieScene3DTransformTrack>(ObjectHandle, Transform);
+
+	if (TransformTrack == nullptr)
+	{
+		return false;
+	}
+
+	FTransformKey TransformKey = GetTransformKey(TransformTrack, KeyTime, TransformPair, KeyParams);
+
+	return TransformTrack->CanKeyTrack(TransformKey);
 }
 
 
@@ -592,7 +594,7 @@ ECheckBoxState F3DTransformTrackEditor::IsCameraLocked(TWeakObjectPtr<ACameraAct
 	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); ++i)
 	{		
 		FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[i];
-		if (LevelVC && LevelVC->IsPerspective() && LevelVC->GetViewMode() != VMI_Unknown && LevelVC->IsActorLocked(CameraActor.Get()))
+		if (LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() && LevelVC->GetViewMode() != VMI_Unknown && CameraActor.IsValid() && LevelVC->IsActorLocked(CameraActor.Get()))
 		{
 			return ECheckBoxState::Checked;
 		}
@@ -626,8 +628,10 @@ void F3DTransformTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState, 
 			}
 		}
 
-		if (LevelVC != nullptr)
+		if (LevelVC != nullptr && CameraActor.IsValid())
 		{
+			GetSequencer()->SetPerspectiveViewportCameraCutEnabled(false);
+			LevelVC->SetMatineeActorLock(nullptr);
 			LevelVC->SetActorLock(CameraActor.Get());
 			LevelVC->bLockedCameraView = true;
 			LevelVC->UpdateViewForLockedActor();
@@ -640,8 +644,9 @@ void F3DTransformTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState, 
 		for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); ++i)
 		{		
 			FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[i];
-			if (LevelVC && LevelVC->IsPerspective() && LevelVC->GetViewMode() != VMI_Unknown && LevelVC->IsActorLocked(CameraActor.Get()))
+			if (LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() && LevelVC->GetViewMode() != VMI_Unknown && CameraActor.IsValid() && LevelVC->IsActorLocked(CameraActor.Get()))
 			{
+				LevelVC->SetMatineeActorLock(nullptr);
 				LevelVC->SetActorLock(nullptr);
 				LevelVC->bLockedCameraView = false;
 				LevelVC->UpdateViewForLockedActor();
@@ -654,9 +659,13 @@ void F3DTransformTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState, 
 
 FText F3DTransformTrackEditor::GetLockCameraToolTip(TWeakObjectPtr<ACameraActor> CameraActor) const
 {
-	return IsCameraLocked(CameraActor) == ECheckBoxState::Checked ?
-		FText::Format(LOCTEXT("UnlockCamera", "Unlock {0} from Viewport"), FText::FromString(CameraActor.Get()->GetActorLabel())) :
-		FText::Format(LOCTEXT("LockCamera", "Lock {0} to Selected Viewport"), FText::FromString(CameraActor.Get()->GetActorLabel()));
+	if (CameraActor.IsValid())
+	{
+		return IsCameraLocked(CameraActor) == ECheckBoxState::Checked ?
+			FText::Format(LOCTEXT("UnlockCamera", "Unlock {0} from Viewport"), FText::FromString(CameraActor.Get()->GetActorLabel())) :
+			FText::Format(LOCTEXT("LockCamera", "Lock {0} to Selected Viewport"), FText::FromString(CameraActor.Get()->GetActorLabel()));
+	}
+	return FText();
 }
 
 

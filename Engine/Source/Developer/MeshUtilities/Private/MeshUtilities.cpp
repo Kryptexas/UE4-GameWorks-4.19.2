@@ -20,6 +20,7 @@
 #include "MaterialUtilities.h"
 
 #include "HierarchicalLODUtils.h"
+#include "MeshBoneReduction.h"
 
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
@@ -174,6 +175,7 @@ private:
 
 	virtual bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const override;
 
+	virtual bool RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const override;
 	// Need to call some members from this class, (which is internal to this module)
 	friend class FStaticMeshUtilityBuilder;
 };
@@ -3286,7 +3288,7 @@ public:
 	, Wedges(InWedges)
 	, Faces(InFaces)
 	, Points(InPoints)
-	, PointToOriginalMap(InPointToOriginalMap)
+	, PointToOriginalMap(InPointToOriginalMap)	
 	{
 		MikkTInterface.m_getNormal = MikkGetNormal_Skeletal;
 		MikkTInterface.m_getNumFaces = MikkGetNumFaces_Skeletal;
@@ -6320,6 +6322,14 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 		
 	}
+}
+
+bool FMeshUtilities::RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const
+{
+	IMeshBoneReductionModule& MeshBoneReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshBoneReductionModule>("MeshBoneReduction");
+	IMeshBoneReduction * MeshBoneReductionInterface = MeshBoneReductionModule.GetMeshBoneReductionInterface();
+
+	return MeshBoneReductionInterface->ReduceBoneCounts(SkeletalMesh, LODIndex, BoneNamesToRemove);
 }
 
 /*------------------------------------------------------------------------------

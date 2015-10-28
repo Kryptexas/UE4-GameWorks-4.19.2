@@ -5,7 +5,7 @@ Description:Information on the HLSLCC tool used to convert HLSL into GLSL.
 Version: 4.9
 
 
-This library compiles High Level Shading Language (HLSL) shader source code into a high-level intermediate representation, performs device-independent optimizations, and produces OpenGL Shading Language (GLSL) compatible source code. The library is largely based on the GLSL compiler from Mesa. The frontend has been heavily rewritten to parse HLSL and generate Mesa IR from the HLSL Abstract Syntax Tree (AST). The library leverages Mesa's IR optimization to simplify the code and finally generates GLSL source code from the Mesa IR. The GLSL generation is based on the work in glsl-optimizer.
+This library compiles **High Level Shading Language (HLSL)** shader source code into a high-level intermediate representation, performs device-independent optimizations, and produces **OpenGL Shading Language (GLSL)** compatible source code. The library is largely based on the GLSL compiler from Mesa. The frontend has been heavily rewritten to parse HLSL and generate Mesa IR from the HLSL **Abstract Syntax Tree (AST)**. The library leverages Mesa's IR optimization to simplify the code and finally generates GLSL source code from the Mesa IR. The GLSL generation is based on the work in glsl-optimizer.
 
 In addition to producing GLSL code, the compiler packs global uniforms in to an array for easy and efficient setting, provides a reflection mechanism to inform high level code which uniforms are required, and provides mapping information so that high level code may bind resources by index rather than by name at runtime.
 

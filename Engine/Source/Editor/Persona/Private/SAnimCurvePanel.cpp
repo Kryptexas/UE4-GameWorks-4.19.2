@@ -666,6 +666,15 @@ void SAnimCurvePanel::DeleteTrack(USkeleton::AnimCurveUID Uid)
 	}
 }
 
+void SAnimCurvePanel::DeleteAllTracks()
+{
+	const FScopedTransaction Transaction( LOCTEXT("AnimCurve_DeleteAllTracks", "Delete All Curves") );
+
+	Sequence->Modify(true);
+	Sequence->RawCurveData.DeleteAllCurveData();
+	UpdatePanel();
+}
+
 FReply SAnimCurvePanel::OnContextMenu()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
@@ -696,14 +705,27 @@ FReply SAnimCurvePanel::OnContextMenu()
 			],
 			FText()
 		);
-
-		FSlateApplication::Get().PushMenu(	SharedThis(this),
-			FWidgetPath(),
-			MenuBuilder.MakeWidget(),
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup) );
 	}
 	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("AnimCurvePanelOptions", LOCTEXT("OptionsHeading", "Options"));
+	{
+		FUIAction NewAction;
+		NewAction.ExecuteAction.BindSP(this, &SAnimCurvePanel::DeleteAllTracks);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("RemoveTracks", "Remove All Tracks"),
+			LOCTEXT("RemoveTracksTooltip", "Remove all tracks"),
+			FSlateIcon(),
+			NewAction);
+	}
+	MenuBuilder.EndSection();
+
+	FSlateApplication::Get().PushMenu(	SharedThis(this),
+		FWidgetPath(),
+		MenuBuilder.MakeWidget(),
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup) );
+
 
 	return FReply::Handled();
 }

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2695996
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリントのユーザーガイド：変数
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:ワールド内のオブジェクトやアクタの値またはリファレンスをもつプロパティ
 version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -159,7 +160,7 @@ version:4.9
 ![](HT21.png)
 [/REGION]
 
-**[Details (詳細)]** パネルの **Editable** 設定で変数を編集可能にすることもできます。または、**[MyBlueprint]** ウィンドウ内の変数の隣にある **閉じた目** の形のアイコンをクリックして行うこともできます。目のアイコンが閉じている場合、変数は編集不可に設定されています (これはデフォルト設定です)。目のアイコンが開いていると、変数は **Public** (または以下の画面のように **Editable**) に設定されます。 
+**[Details (詳細)]** パネルの **[Editable]** 設定で変数を編集可能にすることもできます。または、**[MyBlueprint]** ウィンドウ内の変数の隣にある **閉じた目** の形のアイコンをクリックして行うこともできます。目のアイコンが閉じている場合、変数は編集不可に設定されています (これはデフォルト設定です)。目のアイコンが開いていると、変数は **Public** (または以下の画面のように **Editable**) に設定されます。 
 
 変数を編集可能に設定したら、メイン エディタ ウィンドウの **[Details (詳細)]** パネルから変数の値を設定できます。 
 
@@ -187,7 +188,7 @@ version:4.9
 
 ![](HT26.png)
 
-上の画面では **LightColor** と呼ばれる変数があります。これは **[Expose on Spawn]** に設定される Linear Color プロパティです。この変数は **Set Light Color** ノードと **LightColor** 変数を使用してライトの色を決めるポイントライトのブループリントで実装されます。 
+上の画面では **LightColor** と呼ばれる変数があります。これは **[Expose on Spawn(スポーン時に公開)]** に設定される Linear Color プロパティです。この変数は **Set Light Color** ノードと **LightColor** 変数を使用してライトの色を決めるポイントライトのブループリントで実装されます。 
 
 以下は別のブループリント内で、Point Light ブループリントをスポーンするためにスクリプトを使用しています。**LightColor** 変数がスポーン時に公開するように設定されているため、この値を設定するオプションは **Spawn Actor from Class** ノードで利用できます。これにより、ゲームワールドでライトがスポーンするときの色を設定することができます。 
 
@@ -220,7 +221,7 @@ version:4.9
 
 ![](HT31.png)
 
-以下ではマチネを作成し、ブループリントを含むトラックを追加しました。マチネでブループリントにある Linear Color 変数を修正します。これは、**LinearColor Property Track** を追加して行います。 
+以下ではマチネを作成し、ブループリントを含むトラックを追加しました。マチネでブループリントにある Linear Color 変数を修正します。修正は、**LinearColor Property Track** を追加して行います。 
 
 ![](HT32.png)
 
@@ -241,17 +242,17 @@ version:4.9
 
 [EXCERPT:PromoteVariable]
 
-**Promote to Variable (変数化)** オプションを使用して変数を作成することもできます。 
+**[Promote to Variable (変数化)]** オプションを使用して変数を作成することもできます。 
 
 ブループリント ノード上の任意の入出力ピン上で **右クリック** して **[Promote to Variable]** オプションを選択します。 
 
 ![](HT38.png)
 
-**New Light Color** ピン上で右クリックして **Promote to Variable** を選択すると変数に **New Light Color** 値を代入することができます。 
+**New Light Color** ピン上で右クリックして **[Promote to Variable]** を選択すると変数に **New Light Color** 値を代入することができます。 
 
 ![](HT40.png)
 
-または入出力ピンをドラッグ して **[Promote to Variable]** オプションを選択することができます。 
+または入出力ピンをドラッグして **[Promote to Variable]** オプションを選択することができます。 
 
 ![](HT39.png)
 

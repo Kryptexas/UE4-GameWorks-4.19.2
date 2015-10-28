@@ -505,6 +505,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
+	/** This will give the world time that all effects matching this query will be finished. If multiple effects match, it returns the one that returns last.*/
+	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
+
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
 	/** Removes all active effects that contain any of the tags in Tags */
@@ -1140,6 +1143,8 @@ protected:
 	UFUNCTION()
 	void OnRep_GameplayEffects();
 
+	void DebugCyclicAggregatorBroadcasts(struct FAggregator* Aggregator);
+
 	// ---------------------------------------------
 	
 	// Acceleration map for all gameplay tags (OwnedGameplayTags from GEs and explicit GameplayCueTags)
@@ -1169,6 +1174,7 @@ protected:
 	friend struct FActiveGameplayCueContainer;
 	friend struct FGameplayAbilitySpec;
 	friend struct FGameplayAbilitySpecContainer;
+	friend struct FAggregator;
 
 private:
 	FDelegateHandle MonitoredTagChangedDelegatHandle;

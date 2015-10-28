@@ -6,6 +6,10 @@
 #include "AnimNode_SkeletalControlBase.h"
 #include "AnimNode_AnimDynamics.generated.h"
 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Wind Data Update"), STAT_AnimDynamicsWindData, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Wind Bone Evaluation"), STAT_AnimDynamicsBoneEval, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Anim Dynamics Sub-Steps"), STAT_AnimDynamicsSubSteps, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
+
 /** Supported angular constraint types */
 UENUM()
 enum class AnimPhysAngularConstraintType : uint8
@@ -130,6 +134,22 @@ struct FAnimPhysConstraintSetup
 };
 
 USTRUCT()
+struct FAnimPhysPlanarLimit
+{
+	GENERATED_BODY();
+
+	/** When using a driving bone, the plane transform will be relative to the bone transform */
+	UPROPERTY(EditAnywhere, Category=PlanarLimit)
+	FBoneReference DrivingBone;
+
+	/** Transform of the plane, this is either in component-space if no DrivinBone is specified
+	 *  or in bone-space if a driving bone is present.
+	 */
+	UPROPERTY(EditAnywhere, Category=PlanarLimit)
+	FTransform PlaneTransform;
+};
+
+USTRUCT()
 struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_BODY();
@@ -176,6 +196,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
 	float AngularSpringConstant;
 
+	/** Whether or not wind is enabled for the bodies in this simulation */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Wind)
+	bool bEnableWind;
+
+	/** Scale to apply to calculated wind velocities in the solver */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Wind)
+	float WindScale;
+
 	/** If true, the override value will be used for linear damping */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
 	bool bOverrideLinearDamping;
@@ -212,6 +240,20 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Constraint)
 	FAnimPhysConstraintSetup ConstraintSetup;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlanarLimit)
+	bool bUsePlanarLimit;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlanarLimit)
+	TArray<FAnimPhysPlanarLimit> PlanarLimits;
+
+	/** Resolution method for planar limits */
+	UPROPERTY(EditAnywhere, Category = PlanarLimit)
+	AnimPhysCollisionType CollisionType;
+
+	/** Radius to use if CollisionType is set to CustomSphere */
+	UPROPERTY(EditAnywhere, Category = PlanarLimit, meta = (UIMin = "1", ClampMin = "1"))
+	float SphereCollisionRadius;
+
 	// FAnimNode_SkeletalControlBase interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
@@ -223,7 +265,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	void InitPhysics(USkeletalMeshComponent* Component, FCSPose<FCompactPose>& MeshBases);
 	void TermPhysics();
 
-	void UpdateLimits(FCSPose<FCompactPose>& MeshBases);
+	void UpdateLimits(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases);
 
 	int32 GetNumBodies() const;
 	const FAnimPhysRigidBody& GetPhysBody(int32 BodyIndex) const;
@@ -250,8 +292,17 @@ private:
 	// Current amount of time debt
 	float TimeDebt;
 
+	// Cached physics settings. We cache these on initialise to avoid the cost of accessing UPhysicsSettings a lot each frame
+	float MaxPhysicsDeltaTime;
+	float MaxSubstepDeltaTime;
+	int32 MaxSubsteps;
+	//////////////////////////////////////////////////////////////////////////
+
 	// Active body list
 	TArray<FAnimPhysLinkedBody> Bodies;
+
+	// Pointers back to the base bodies to pass to the simulation
+	TArray<FAnimPhysRigidBody*> BaseBodyPtrs;
 
 	// List of current linear limits built for the current frame
 	TArray<FAnimPhysLinearLimit> LinearLimits;

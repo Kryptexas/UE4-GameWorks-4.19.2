@@ -100,6 +100,9 @@ public:
 	/** Assignment operator for string. */
 	FCrashProperty& operator=(const FString& NewValue);
 
+	/** Assignment operator for TCHAR*. */
+	FCrashProperty& operator=(const TCHAR* NewValue);
+
 	/** Assignment operator for arrays. */
 	FCrashProperty& operator=(const TArray<FString>& NewValue);
 

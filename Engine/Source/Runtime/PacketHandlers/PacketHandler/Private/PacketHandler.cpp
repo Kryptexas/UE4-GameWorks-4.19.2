@@ -5,6 +5,10 @@ IMPLEMENT_MODULE(FPacketHandlerComponentModuleInterface, PacketHandler);
 
 DEFINE_LOG_CATEGORY(PacketHandlerLog);
 
+
+// @todo #JohnB: For the moment, disable the reliability handler, while it is causing network trouble
+#define DISABLE_RELIABILITY_HANDLER 1
+
 // BUFFERED PACKET
 BufferedPacket::BufferedPacket()
 : Data(nullptr)
@@ -174,11 +178,13 @@ const ProcessedPacket PacketHandler::Outgoing(uint8* Packet, int32 Count)
 	{
 		case Handler::State::Uninitialized:
 		{
+#if !DISABLE_RELIABILITY_HANDLER
 			if (!ReliabilityComponent.IsValid())
 			{
 				ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
 				Add(ReliabilityComponent);
 			}
+#endif
 
 			// Have handlers to initialize other than reliability
 			if (HandlerComponents.Num() > 1)
@@ -248,11 +254,13 @@ const ProcessedPacket PacketHandler::Incoming(uint8* Packet, int32 Count)
 	{
 		case Handler::State::Uninitialized:
 		{
+#if !DISABLE_RELIABILITY_HANDLER
 			if (!ReliabilityComponent.IsValid())
 			{
 				ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
 				Add(ReliabilityComponent);
 			}
+#endif
 
 			if (HandlerComponents.Num() > 1)
 			{

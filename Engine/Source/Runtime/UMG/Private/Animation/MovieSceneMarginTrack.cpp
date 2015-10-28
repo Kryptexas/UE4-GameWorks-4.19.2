@@ -7,15 +7,12 @@
 #include "MovieSceneMarginTrackInstance.h"
 #include "MovieSceneCommonHelpers.h"
 
-UMovieSceneMarginTrack::UMovieSceneMarginTrack(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-}
 
 UMovieSceneSection* UMovieSceneMarginTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneMarginSection::StaticClass(), NAME_None, RF_Transactional);
 }
+
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneMarginTrack::CreateInstance()
 {
@@ -56,8 +53,9 @@ bool UMovieSceneMarginTrack::Eval( float Position, float LastPosition, FMargin& 
 		InOutMargin = MarginSection->Eval( Position, InOutMargin );
 	}
 
-	return Section != NULL;
+	return (Section != nullptr);
 }
+
 
 bool UMovieSceneMarginTrack::CanKeyTrack(float Time, const FMarginKey& MarginKey, FKeyParams KeyParams) const
 {

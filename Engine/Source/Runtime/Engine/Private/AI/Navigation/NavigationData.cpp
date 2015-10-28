@@ -178,6 +178,7 @@ void ANavigationData::PostInitProperties()
 		}
 
 		RenderingComp = ConstructRenderingComponent();
+		RootComponent = RenderingComp;
 	}
 }
 

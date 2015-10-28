@@ -16,7 +16,7 @@ namespace FEQSRenderingHelper
 		if (Items.IsValidIndex(Index) &&
 			ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 		{
-			UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
+			UEnvQueryItemType_VectorBase* DefTypeOb = ItemType->GetDefaultObject<UEnvQueryItemType_VectorBase>();
 			return DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 		return FVector::ZeroVector;

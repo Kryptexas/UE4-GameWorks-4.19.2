@@ -1447,7 +1447,7 @@ FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlue
 	if(Blueprint->SimpleConstructionScript)
 	{
 		// Remove any SCS variable nodes
-		TArray<USCS_Node*> AllSCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+		const TArray<USCS_Node*>& AllSCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
 		Writer->WriteArrayStart(FFindInBlueprintSearchTags::FiB_Components);
 		for (TFieldIterator<UProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 		{

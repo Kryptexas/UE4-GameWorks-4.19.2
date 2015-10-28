@@ -1367,7 +1367,7 @@ void FStaticLODModel::GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkInde
 		{
 			OutVertIndex = InVertIndex - VertCount;
 			bOutSoftVert = false;
-			bOutHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
+			bOutHasExtraBoneInfluences = VertexBufferGPUSkin.HasExtraBoneInfluences();
 			return;
 		}
 		VertCount += Chunk.GetNumRigidVertices();
@@ -1377,7 +1377,7 @@ void FStaticLODModel::GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkInde
 		{
 			OutVertIndex = InVertIndex - VertCount;
 			bOutSoftVert = true;
-			bOutHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
+			bOutHasExtraBoneInfluences = VertexBufferGPUSkin.HasExtraBoneInfluences();
 			return;
 		}
 		VertCount += Chunk.GetNumSoftVertices();
@@ -2769,7 +2769,8 @@ void USkeletalMesh::PostLoad()
 		}
 	}
 
-	for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
+	int32 TotalLODNum = LODInfo.Num();
+	for (int32 LodIndex = 0; LodIndex<TotalLODNum; LodIndex++)
 	{
 		FSkeletalMeshLODInfo& ThisLODInfo = LODInfo[LodIndex];
 		FStaticLODModel& ThisLODModel = ImportedResource->LODModels[LodIndex];
@@ -2791,6 +2792,26 @@ void USkeletalMesh::PostLoad()
 		{
 			check(ThisLODModel.Sections[SectionIndex].ChunkIndex == SectionIndex);
 		}
+
+#if WITH_EDITOR
+		if (ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED.Num() > 0)
+		{
+			for (auto& BoneToRemove : ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED)
+			{
+				AddBoneToReductionSetting(LodIndex, BoneToRemove.BoneName);
+			}
+
+			// since in previous system, we always removed from previous LOD, I'm adding this 
+			// here for previous LODs
+			for (int32 CurLodIndx = LodIndex + 1; CurLodIndx < TotalLODNum; ++CurLodIndx)
+			{
+				AddBoneToReductionSetting(CurLodIndx, ThisLODInfo.RemovedBones);
+			}
+
+			// we don't apply this change here, but this will be applied when you re-gen simplygon
+			ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED.Empty();
+		}
+#endif
 	}
 
 	// Revert to using 32 bit Float UVs on hardware that doesn't support rendering with 16 bit Float UVs 
@@ -3750,6 +3771,26 @@ bool USkeletalMesh::IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorresp
 	return false;
 }
 
+#if WITH_EDITOR
+void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames)
+{
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		for (auto& BoneName : BoneNames)
+		{
+			LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+		}
+	}
+}
+void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, FName BoneName)
+{
+	if (LODInfo.IsValidIndex(LODIndex))
+	{
+		LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+	}
+}
+
+#endif // WITH_EDITOR
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
 -----------------------------------------------------------------------------*/

@@ -1416,10 +1416,8 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 		if(BlueprintObj->SimpleConstructionScript)
 		{
 			// Remove any SCS variable nodes
-			TArray<USCS_Node*> AllSCSNodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
-			for(auto SCSNodeIt = AllSCSNodes.CreateConstIterator(); SCSNodeIt; ++SCSNodeIt)
+			for (USCS_Node* SCS_Node : BlueprintObj->SimpleConstructionScript->GetAllNodes())
 			{
-				USCS_Node* SCS_Node = *SCSNodeIt;
 				if(SCS_Node)
 				{
 					FBlueprintEditorUtils::RemoveVariableNodes(BlueprintObj, SCS_Node->VariableName);

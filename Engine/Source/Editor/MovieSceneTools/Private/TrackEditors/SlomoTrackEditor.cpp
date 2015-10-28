@@ -33,7 +33,7 @@ void FSlomoTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequenceInstance")))
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
 	{
 		return;
 	}
@@ -60,14 +60,15 @@ bool FSlomoTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 {
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	UMovieScene* MovieScene = GetFocusedMovieScene();
+
 	if (MovieScene == nullptr)
 	{
 		return;
 	}
 
-	UMovieSceneTrack* SlomoTrack = MovieScene->FindMasterTrack( UMovieSceneSlomoTrack::StaticClass() );
+	UMovieSceneTrack* SlomoTrack = MovieScene->FindMasterTrack<UMovieSceneSlomoTrack>();
+
 	if (SlomoTrack != nullptr)
 	{
 		return;
@@ -77,11 +78,13 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 
 	MovieScene->Modify();
 		
-	SlomoTrack = GetMasterTrack( UMovieSceneSlomoTrack::StaticClass() );
+	SlomoTrack = FindOrAddMasterTrack<UMovieSceneSlomoTrack>();
 	ensure(SlomoTrack);
 
-	SlomoTrack->AddSection(SlomoTrack->CreateNewSection());
+	UMovieSceneSection* NewSection = SlomoTrack->CreateNewSection();
+	ensure(NewSection);
 
+	SlomoTrack->AddSection(*NewSection);
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 

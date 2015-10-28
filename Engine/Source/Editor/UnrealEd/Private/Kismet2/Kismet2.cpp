@@ -1406,7 +1406,7 @@ public:
 			{
 				if (USceneComponent* TestRoot = Cast<USceneComponent>(TopLevelNode->ComponentTemplate))
 				{
-					for (USCS_Node* ChildNode : TopLevelNode->ChildNodes)
+					for (USCS_Node* ChildNode : TopLevelNode->GetChildNodes())
 					{
 						if (USceneComponent* ChildComponent = Cast<USceneComponent>(ChildNode->ComponentTemplate))
 						{

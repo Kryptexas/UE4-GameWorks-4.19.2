@@ -61,10 +61,9 @@ public:
 	 *
 	 * @param Name Name of the spawnable.
 	 * @param Blueprint	The blueprint to add.
-	 * @param CounterpartGamePreviewObject	Optional game preview object to map to this spawnable.  Only a weak pointer to this object is stored.
 	 * @return Guid of the newly-added spawnable.
 	 */
-	FGuid AddSpawnable(const FString& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject);
+	FGuid AddSpawnable(const FString& Name, UBlueprint* Blueprint);
 
 	/**
 	 * Removes a spawnable from this movie scene.
@@ -77,28 +76,12 @@ public:
 #endif //WITH_EDITOR
 
 	/**
-	 * Grabs a reference to a specific spawnable by index.
-	 *
-	 * @param Index of spawnable to return.
-	 * @return Returns the specified spawnable by index.
-	 */
-	FMovieSceneSpawnable& GetSpawnable(const int32 Index);
-
-	/**
 	 * Tries to locate a spawnable in this MovieScene for the specified spawnable GUID.
 	 *
 	 * @param Guid The spawnable guid to search for.
 	 * @return Spawnable object that was found (or nullptr if not found).
 	 */
 	FMovieSceneSpawnable* FindSpawnable(const FGuid& Guid);
-
-	/**
-	 * Tries to locate a spawnable for the specified game preview object (e.g. a PIE-world actor).
-	 *
-	 * @param GamePreviewObject The object to find a spawnable counterpart for.
-	 * @return Spawnable object that was found (or nullptr if not found).
-	 */
-	const FMovieSceneSpawnable* FindSpawnableForCounterpart(UObject* GamePreviewObject) const;
 
 	/**
 	 * Get the number of spawnable objects in this scene.
@@ -156,14 +139,16 @@ public:
 public:
 
 	/**
-	 * Finds a track.
+	 * Adds a track.
 	 *
-	 * @param TrackClass The class of the track to find.
-	 * @param ObjectGuid The runtime object guid that the track is bound to.
-	 * @param UniqueTypeName The unique name of the track to differentiate the one we are searching for from other tracks of the same class.
-	 * @return The found track or nullptr if one does not exist.
+	 * Note: The type should not already exist.
+	 *
+	 * @param TrackClass The class of the track to create.
+	 * @param ObjectGuid The runtime object guid that the type should bind to.
+	 * @param Type The newly created type.
+	 * @see  FindTrack, RemoveTrack
 	 */
-	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTypeName) const;
+	UMovieSceneTrack* AddTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid);
 
 	/**
 	 * Adds a track.
@@ -173,24 +158,50 @@ public:
 	 * @param TrackClass The class of the track to create.
 	 * @param ObjectGuid The runtime object guid that the type should bind to.
 	 * @param Type The newly created type.
+	 * @see FindTrack, RemoveTrack
 	 */
-	UMovieSceneTrack* AddTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid);
+	template<typename TrackClass>
+	TrackClass* AddTrack(const FGuid& ObjectGuid)
+	{
+		return Cast<TrackClass>(AddTrack(TrackClass::StaticClass(), ObjectGuid));
+	}
+
+	/**
+	 * Finds a track.
+	 *
+	 * @param TrackClass The class of the track to find.
+	 * @param ObjectGuid The runtime object guid that the track is bound to.
+	 * @param UniqueTypeName The unique name of the track to differentiate the one we are searching for from other tracks of the same class.
+	 * @return The found track or nullptr if one does not exist.
+	 * @see AddTrack, RemoveTrack
+	 */
+	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTypeName) const;
 	
+	/**
+	 * Finds a track.
+	 *
+	 * @param TrackClass The class of the track to find.
+	 * @param ObjectGuid The runtime object guid that the track is bound to.
+	 * @param UniqueTypeName The unique name of the track to differentiate the one we are searching for from other tracks of the same class.
+	 * @return The found track or nullptr if one does not exist.
+	 * @see AddTrack, RemoveTrack
+	 */
+	template<typename TrackClass>
+	TrackClass* FindTrack(const FGuid& ObjectGuid, FName UniqueTypeName) const
+	{
+		return Cast<TrackClass>(FindTrack(TrackClass::StaticClass(), ObjectGuid, UniqueTypeName));
+	}
+
 	/**
 	 * Removes a track.
 	 *
 	 * @param Track The track to remove.
 	 * @return true if anything was removed.
+	 * @see AddTrack, FindTrack
 	 */
-	bool RemoveTrack( UMovieSceneTrack* Track );
+	bool RemoveTrack(UMovieSceneTrack& Track);
 
-	/**
-	 * Finds a master track (one not bound to a runtime objects).
-	 *
-	 * @param TrackClass The class of the track to find.
-	 * @return The found track or nullptr if one does not exist.
-	 */
-	UMovieSceneTrack* FindMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass) const;
+public:
 
 	/**
 	 * Adds a master track.
@@ -199,9 +210,79 @@ public:
 	 *
 	 * @param TrackClass The class of the track to create
 	 * @param Type	The newly created type
+	 * @see FindMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
 	 */
 	UMovieSceneTrack* AddMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass);
 	
+	/**
+	 * Adds a master track.
+	 *
+	 * Note: The type should not already exist.
+	 *
+	 * @param TrackClass The class of the track to create
+	 * @param Type	The newly created type
+	 * @see FindMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
+	 */
+	template<typename TrackClass>
+	TrackClass* AddMasterTrack()
+	{
+		return Cast<TrackClass>(AddMasterTrack(TrackClass::StaticClass()));
+	}
+
+	/**
+	 * Finds a master track (one not bound to a runtime objects).
+	 *
+	 * @param TrackClass The class of the track to find.
+	 * @return The found track or nullptr if one does not exist.
+	 * @see AddMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
+	 */
+	UMovieSceneTrack* FindMasterTrack(TSubclassOf<UMovieSceneTrack> TrackClass) const;
+
+	/**
+	 * Finds a master track (one not bound to a runtime objects).
+	 *
+	 * @param TrackClass The class of the track to find.
+	 * @return The found track or nullptr if one does not exist.
+	 * @see AddMasterTrack, GetMasterTracks, IsMasterTrack, RemoveMasterTrack
+	 */
+	template<typename TrackClass>
+	TrackClass* FindMasterTrack() const
+	{
+		return Cast<TrackClass>(FindMasterTrack(TrackClass::StaticClass()));
+	}
+
+	/**
+	 * Get all master tracks.
+	 *
+	 * @return Track collection.
+	 * @see AddMasterTrack, FindMasterTrack, IsMasterTrack, RemoveMasterTrack
+	 */
+	const TArray<UMovieSceneTrack*>& GetMasterTracks() const
+	{
+		return MasterTracks;
+	}
+
+	/**
+	 * Check whether the specified track is a master track in this scene.
+	 *
+	 * @return true if the track is a master track, false otherwise.
+	 * @see AddMasterTrack, FindMasterTrack, GetMasterTracks, RemoveMasterTrack
+	 */
+	bool IsAMasterTrack(const UMovieSceneTrack& Track) const;
+
+	/**
+	 * Removes a master track.
+	 *
+	 * @param Track The track to remove.
+	 * @return true if anything was removed.
+	 * @see AddMasterTrack, FindMasterTrack, GetMasterTracks, IsMasterTrack
+	 */
+	bool RemoveMasterTrack(UMovieSceneTrack& Track);
+
+public:
+
+	// @todo sequencer: the following methods really shouldn't be here
+
 	/**
 	 * Adds a new shot track if it doesn't exist 
 	 * A shot track is a special kind of sub-movie scene track that allows for cutting between camera views
@@ -212,38 +293,11 @@ public:
 	 */
 	UMovieSceneTrack* AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass );
 	
-	/** @return The shot track if it exists */
+	/** @return The shot track if it exists. */
 	UMovieSceneTrack* GetShotTrack();
 
-	/**
-	 * Removes the shot track if it exists
-	 */
+	/** Removes the shot track if it exists. */
 	void RemoveShotTrack();
-
-	/**
-	 * Removes a master track.
-	 *
-	 * @param Track The track to remove.
-	 * @return true if anything was removed.
-	 */
-	bool RemoveMasterTrack( UMovieSceneTrack* Track );
-
-	/**
-	 * Check whether the specified track is a master track in this scene.
-	 *
-	 * @return true if the track is a master track, false otherwise.
-	 */
-	bool IsAMasterTrack(const UMovieSceneTrack& Track) const;
-
-	/**
-	 * Get all master tracks.
-	 *
-	 * @return Track collection.
-	 */
-	const TArray<UMovieSceneTrack*>& GetMasterTracks() const
-	{
-		return MasterTracks;
-	}
 
 public:
 

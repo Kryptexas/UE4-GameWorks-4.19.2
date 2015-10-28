@@ -104,17 +104,16 @@ static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
 	{
 	case EAxis::X:
 		return &Curves[0];
-		break;
+
 	case EAxis::Y:
 		return &Curves[1];
-		break;
+
 	case EAxis::Z:
 		return &Curves[2];
-		break;
+
 	default:
-		check( false );
-		return NULL;
-		break;
+		check(false);
+		return nullptr;
 	}
 }
 

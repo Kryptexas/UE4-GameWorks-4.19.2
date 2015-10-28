@@ -181,4 +181,6 @@ public:
 	bool IsNamedTaskInQueue( const FString& Name );
 
 	void AddNonQueuedGUIDForScrubbing(FNetworkGUID InGUID);
+
+	virtual bool IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const override;
 };

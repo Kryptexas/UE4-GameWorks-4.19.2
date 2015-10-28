@@ -100,6 +100,7 @@ private:
 	int32	NumPredictiveMods;
 
 	friend struct FAggregator;
+	friend struct FActiveGameplayEffectsContainer;
 	friend struct FScopedAggregatorOnDirtyBatch;	// Only outside class that gets to call BroadcastOnDirty()
 	friend class UAbilitySystemComponent;	// Only needed for DisplayDebug()
 };

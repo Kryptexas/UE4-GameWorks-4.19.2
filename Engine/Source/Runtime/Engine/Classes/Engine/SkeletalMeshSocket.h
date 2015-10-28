@@ -46,7 +46,7 @@ class USkeletalMeshSocket : public UObject
 	ENGINE_API bool GetSocketMatrix(FMatrix& OutMatrix, const class USkeletalMeshComponent* SkelComp) const;
 
 	/** returns FTransform of Socket local transform */
-	FTransform GetSocketLocalTransform() const;
+	ENGINE_API FTransform GetSocketLocalTransform() const;
 
 	/** Utility that returns the current transform for this socket. */
 	ENGINE_API FTransform GetSocketTransform( const class USkeletalMeshComponent* SkelComp ) const;

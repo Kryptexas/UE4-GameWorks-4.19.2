@@ -58,6 +58,11 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FButtonStyle FriendItemButtonStyle;
 	FFriendsListStyle& SetFriendItemButtonStyle(const FButtonStyle& ButtonStyle);
 
+	/** Optional content for the Add Friend button */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ActionMenuArrowBrush;
+	FFriendsListStyle& SetActionMenuArrowBrush(const FSlateBrush& BrushStyle);
+
 	/** Friends List Open Button style */
 	UPROPERTY( EditAnywhere, Category = Appearance )
 	FButtonStyle FriendListOpenButtonStyle;

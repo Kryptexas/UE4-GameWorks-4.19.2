@@ -39,21 +39,21 @@ void UMovieSceneParticleTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieSceneParticleTrack::HasSection( UMovieSceneSection* Section ) const
+bool UMovieSceneParticleTrack::HasSection(const UMovieSceneSection& Section) const
 {
-	return ParticleSections.Find( Section ) != INDEX_NONE;
+	return ParticleSections.Contains(&Section);
 }
 
 
-void UMovieSceneParticleTrack::AddSection( UMovieSceneSection* Section )
+void UMovieSceneParticleTrack::AddSection(UMovieSceneSection& Section)
 {
-	ParticleSections.Add( Section );
+	ParticleSections.Add(&Section);
 }
 
 
-void UMovieSceneParticleTrack::RemoveSection( UMovieSceneSection* Section )
+void UMovieSceneParticleTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	ParticleSections.Remove( Section );
+	ParticleSections.Remove(&Section);
 }
 
 

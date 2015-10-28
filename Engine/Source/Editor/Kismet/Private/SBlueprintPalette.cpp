@@ -1220,11 +1220,9 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 
 	if(BlueprintObj->SimpleConstructionScript != NULL)
 	{
-		TArray<USCS_Node*> Nodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
-		for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
+		for (USCS_Node* Node : BlueprintObj->SimpleConstructionScript->GetAllNodes())
 		{
-			USCS_Node* Node = *NodeIt;
-			if (Node->VariableName == OriginalName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
+			if (Node && Node->VariableName == OriginalName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
 			{
 				OutErrorMessage = LOCTEXT("RenameFailed_NotValid", "This name is reserved for engine use.");
 				return false;

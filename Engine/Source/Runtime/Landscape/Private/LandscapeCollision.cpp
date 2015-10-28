@@ -191,7 +191,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 
 				// Setup filtering
 				PxFilterData PQueryFilterData, PSimFilterData;
-				CreateShapeFilterData(GetCollisionObjectType(), GetUniqueID(), GetCollisionResponseToChannels(), 0, 0, PQueryFilterData, PSimFilterData, true, false, true);
+				CreateShapeFilterData(GetCollisionObjectType(), FMaskFilter(0), GetUniqueID(), GetCollisionResponseToChannels(), 0, 0, PQueryFilterData, PSimFilterData, true, false, true);
 
 				// Heightfield is used for simple and complex collision
 				PQueryFilterData.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
@@ -217,7 +217,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 						CollisionResponse.SetAllChannels(ECollisionResponse::ECR_Ignore);
 						CollisionResponse.SetResponse(ECollisionChannel::ECC_Visibility, ECR_Block);
 						PxFilterData PQueryFilterDataEd, PSimFilterDataEd;
-						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
+						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, FMaskFilter(0), GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
 
 						PQueryFilterDataEd.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
 						HeightFieldEdShapeSync->setQueryFilterData(PQueryFilterDataEd);
@@ -854,7 +854,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 
 				// Setup filtering
 				PxFilterData PQueryFilterData, PSimFilterData;
-				CreateShapeFilterData(GetCollisionObjectType(), GetUniqueID(), GetCollisionResponseToChannels(), 0, 0, PQueryFilterData, PSimFilterData, false, false, true);
+				CreateShapeFilterData(GetCollisionObjectType(), FMaskFilter(0), GetUniqueID(), GetCollisionResponseToChannels(), 0, 0, PQueryFilterData, PSimFilterData, false, false, true);
 
 				// Heightfield is used for simple and complex collision
 				PQueryFilterData.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
@@ -902,7 +902,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 						CollisionResponse.SetAllChannels(ECollisionResponse::ECR_Ignore);
 						CollisionResponse.SetResponse(ECollisionChannel::ECC_Visibility, ECR_Block);
 						PxFilterData PQueryFilterDataEd, PSimFilterDataEd;
-						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
+						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, FMaskFilter(0), GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
 
 						PQueryFilterDataEd.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
 						MeshShapeEdSync->setQueryFilterData(PQueryFilterDataEd);

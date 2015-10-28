@@ -22,7 +22,7 @@ Texture2D LensTexture;
 SamplerState LensTextureSampler;
 
 // Multiplier for separate translucency render target resolution
-float SeparateTranslucencyResMult;
+float4 SeparateTranslucencyResMult;
 
 // @return x:layer in front of focal plane, y: layer behind focal plane  1-x-y:layer in focus
 float2 ComputeLayerContributions(float Depth)
@@ -441,7 +441,10 @@ void MainRecombinePS(
 #endif
 
 #if RECOMBINE_METHOD == 2 || RECOMBINE_METHOD == 3
-	float4 SeparateTranslucency = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, PixelPosCenter * PostprocessInput2Size.zw * SeparateTranslucencyResMult.xxxx );
+	// sampling from pixel centers, so we need to offset if we're using lower resolution separate translucency
+	float Offset = 1.0-(1.0/SeparateTranslucencyResMult.xxxx);
+	float4 SeparateTranslucency = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, (PixelPosCenter+Offset) * PostprocessInput2Size.zw * SeparateTranslucencyResMult.xxxx );
+
 	// add RGB, darken by A (this allows to represent translucent and additive blending)
 	OutColor.rgb = OutColor.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;
 #endif

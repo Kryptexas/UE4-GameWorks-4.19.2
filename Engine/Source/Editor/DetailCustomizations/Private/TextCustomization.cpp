@@ -100,6 +100,7 @@ namespace
 
 		TSharedPtr<SHorizontalBox> HorizontalBox;
 
+		bool bIsPassword = PropertyHandle->GetBoolMetaData("PasswordField");
 		bIsMultiLine = PropertyHandle->GetBoolMetaData("MultiLine");
 		if(bIsMultiLine)
 		{
@@ -119,6 +120,7 @@ namespace
 						.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
 						.AutoWrapText(true)
 						.ModiferKeyForNewLine(EModifierKey::Shift)
+						.IsPassword(bIsPassword)
 					]
 				];
 
@@ -140,6 +142,7 @@ namespace
 						.OnTextCommitted_Lambda(OnTextCommitted)
 						.SelectAllTextOnCommit( true )
 						.IsReadOnly(this, &STextPropertyWidget::IsReadOnly)
+						.IsPassword(bIsPassword)
 
 					]
 				];

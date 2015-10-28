@@ -1198,9 +1198,8 @@ void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, UScene
 		USceneComponent* ParentSceneComponentOfChildren = (NewSceneComp != NULL) ? NewSceneComp : ParentComponent;
 
 		// If we made a component, go ahead and process our children
-		for (int32 NodeIdx = 0; NodeIdx < CurrentNode->ChildNodes.Num(); NodeIdx++)
+		for (USCS_Node* Node : CurrentNode->GetChildNodes())
 		{
-			USCS_Node* Node = CurrentNode->ChildNodes[NodeIdx];
 			check(Node != NULL);
 			InstanceComponents(Node, ParentSceneComponentOfChildren, NativeInstanceMap, OutComponents, ActualBPGC);
 		}

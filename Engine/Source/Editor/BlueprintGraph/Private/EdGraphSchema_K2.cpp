@@ -5323,7 +5323,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			UObject* Found = FindObject<UObject>(EventNode->GetOuter(), *ObjName.ToString());
 			if(Found)
 			{
-				Found->Rename(NULL, NULL, REN_DontCreateRedirectors | RenameFlags);
+				Found->Rename(NULL, NULL, REN_DontCreateRedirectors | RenameFlags | (Found->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects) ? REN_ForceNoResetLoaders : RF_NoFlags));
 			}
 
 			// Create a custom event node to replace the original event node imported from text
@@ -5410,7 +5410,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				check(Pin);
 
 				// Reparent the pin to the new custom event node
-				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags);
+				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags | (Pin->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects) ? REN_ForceNoResetLoaders : RF_NoFlags));
 
 				// Don't include execution or delegate output pins as user-defined pins
 				if(!bOriginalWasCustomEvent && !IsExecPin(*Pin) && !IsDelegateCategory(Pin->PinType.PinCategory))

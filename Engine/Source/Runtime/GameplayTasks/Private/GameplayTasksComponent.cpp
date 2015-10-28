@@ -7,6 +7,17 @@
 
 #define LOCTEXT_NAMESPACE "GameplayTasksComponent"
 
+namespace
+{
+	FORCEINLINE const TCHAR* GetGameplayTaskEventName(EGameplayTaskEvent Event)
+	{
+		/*static const UEnum* GameplayTaskEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskEvent"));
+		return GameplayTaskEventEnum->GetEnumText(static_cast<int32>(Event)).ToString();*/
+
+		return Event == EGameplayTaskEvent::Add ? TEXT("Add") : TEXT("Remove");
+	}
+}
+
 UGameplayTasksComponent::UGameplayTasksComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -238,8 +249,12 @@ void UGameplayTasksComponent::ProcessTaskEvents()
 	// TaskEvents array that the main loop is iterating over. It's a feature
 	for (int32 EventIndex = 0; EventIndex < TaskEvents.Num(); ++EventIndex)
 	{
+		UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("UGameplayTasksComponent::ProcessTaskEvents: %s event %s")
+			, *TaskEvents[EventIndex].RelatedTask.GetName(), GetGameplayTaskEventName(TaskEvents[EventIndex].Event));
+
 		if (TaskEvents[EventIndex].RelatedTask.IsPendingKill())
 		{
+			UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("%s is PendingKill"), *TaskEvents[EventIndex].RelatedTask.GetName());
 			// we should ignore it, but just in case run the removal code.
 			RemoveTaskFromPriorityQueue(TaskEvents[EventIndex].RelatedTask);
 			continue;
@@ -248,7 +263,14 @@ void UGameplayTasksComponent::ProcessTaskEvents()
 		switch (TaskEvents[EventIndex].Event)
 		{
 		case EGameplayTaskEvent::Add:
-			AddTaskToPriorityQueue(TaskEvents[EventIndex].RelatedTask);
+			if (TaskEvents[EventIndex].RelatedTask.TaskState != EGameplayTaskState::Finished)
+			{
+				AddTaskToPriorityQueue(TaskEvents[EventIndex].RelatedTask);
+			}
+			else
+			{
+				UE_VLOG(this, LogGameplayTasks, Error, TEXT("UGameplayTasksComponent::ProcessTaskEvents trying to add a finished task to priority queue!"));
+			}
 			break;
 		case EGameplayTaskEvent::Remove:
 			RemoveTaskFromPriorityQueue(TaskEvents[EventIndex].RelatedTask);

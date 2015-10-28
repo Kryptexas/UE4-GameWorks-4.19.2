@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ModuleManager.h"
+#include "Json.h"
 
 template <class CharType>
 struct TPrettyJsonPrintPolicy;
@@ -40,6 +41,17 @@ public:
 		Transient = (1 << 0)
 	};
 
+	struct FJsonVariant
+	{
+		enum { Null, String, Number, Callback } Format;
+		FString		StringValue;
+		double		NumberValue;
+		FProduceJsonCounterValue CallbackValue;
+		uint32		Flags;
+
+		FJsonVariant() : Format(Null), NumberValue(0) {}
+	};
+
 	virtual ~IPerfCounters() {};
 
 	/** Get the unique identifier for this perf counter instance */
@@ -59,6 +71,15 @@ public:
 
 	/** @return delegate called when an exec command is to be executed */
 	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() = 0;
+
+	/** @return all perf counters as they are stored, with minimum conversion */
+	virtual const TMap<FString, FJsonVariant>& GetAllCounters() = 0;
+
+	/** @return all perf counters as JSON */
+	virtual FString GetAllCountersAsJson() = 0;
+
+	/** Clears transient perf counters, essentially marking beginning of a new stats period */
+	virtual void ResetStatsForNextPeriod() = 0;
 
 public:
 
@@ -183,5 +204,5 @@ public:
 	 *
 	 * @return IPerfCounters object (should be explicitly deleted later), or nullptr if failed
 	 */
-	virtual IPerfCounters * CreatePerformanceCounters(const FString& UniqueInstanceId = TEXT("")) = 0;
+	virtual IPerfCounters* CreatePerformanceCounters(const FString& UniqueInstanceId = TEXT("")) = 0;
 };

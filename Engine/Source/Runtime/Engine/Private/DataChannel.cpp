@@ -19,12 +19,15 @@ DEFINE_LOG_CATEGORY(LogNetPlayerMovement);
 DEFINE_LOG_CATEGORY(LogNetTraffic);
 DEFINE_LOG_CATEGORY(LogRepTraffic);
 DEFINE_LOG_CATEGORY(LogNetDormancy);
+DEFINE_LOG_CATEGORY(LogNetFastTArray);
 DEFINE_LOG_CATEGORY(LogSecurity);
 DEFINE_LOG_CATEGORY_STATIC(LogNetPartialBunch, Warning, All);
 
+DECLARE_CYCLE_STAT(TEXT("ActorChan_ReceivedBunch"), Stat_ActorChanReceivedBunch, STATGROUP_Net);
+
 extern FAutoConsoleVariable CVarDoReplicationContextString;
 
-static TAutoConsoleVariable<int32> CVarNetReliableDebug(
+TAutoConsoleVariable<int32> CVarNetReliableDebug(
 	TEXT("net.Reliable.Debug"),
 	0,
 	TEXT("Print all reliable bunches sent over the network\n")
@@ -642,7 +645,7 @@ void UChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
 			*Bunch << MustBeMappedGuidsInLastBunch[i];
 		}
 
-		NETWORK_PROFILER(GNetworkProfiler.TrackMustBeMappedGuids(NumMustBeMappedGUIDs, Bunch->GetNumBits()));
+		NETWORK_PROFILER(GNetworkProfiler.TrackMustBeMappedGuids(NumMustBeMappedGUIDs, Bunch->GetNumBits(), Connection));
 
 		// Append the original bunch data at the end
 		Bunch->SerializeBits( TempBunch.GetData(), TempBunch.GetNumBits() );
@@ -662,7 +665,7 @@ void UActorChannel::AppendExportBunches( TArray<FOutBunch *>& OutExportBunches )
 	{
 		if (ExportBunch != nullptr)
 		{
-			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits()));
+			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits(), Connection));
 		}
 	}
 
@@ -1833,6 +1836,8 @@ bool UActorChannel::ProcessQueuedBunches()
 
 void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 {
+	SCOPE_CYCLE_COUNTER(Stat_ActorChanReceivedBunch);
+
 	check( !Closing );
 
 	if ( Broken || bTornOff )
@@ -2214,7 +2219,7 @@ bool UActorChannel::ReplicateActor()
 	}
 
 
-	NETWORK_PROFILER(GNetworkProfiler.TrackReplicateActor(Actor, RepFlags, FPlatformTime::Cycles() - ActorReplicateStartTime ));
+	NETWORK_PROFILER(GNetworkProfiler.TrackReplicateActor(Actor, RepFlags, FPlatformTime::Cycles() - ActorReplicateStartTime, Connection));
 
 	// -----------------------------
 	// Send if necessary
@@ -2386,7 +2391,7 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 
 	if ( IsActor )
 	{
-		NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
+		NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits, Connection));
 		return;
 	}
 
@@ -2416,7 +2421,7 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 	}
 #endif
 
-	NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
+	NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits, Connection));
 }
 
 void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete )
@@ -2443,7 +2448,7 @@ void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNet
 	Bunch << InvalidNetGUID;
 
 	// Since the subobject has been deleted, we don't have a valid object to pass to the profiler.
-	NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(nullptr, Bunch.GetNumBits() - NumStartingBits));
+	NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(nullptr, Bunch.GetNumBits() - NumStartingBits, Connection));
 }
 
 void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, const FClassNetCache* ClassCache )
@@ -2469,7 +2474,7 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, const FClas
 		Bunch.WriteIntWrapped(ClassCache->GetMaxIndex(), ClassCache->GetMaxIndex()+1);
 	}
 
-	NETWORK_PROFILER(GNetworkProfiler.TrackEndContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
+	NETWORK_PROFILER(GNetworkProfiler.TrackEndContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits, Connection));
 }
 
 UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDeleted)

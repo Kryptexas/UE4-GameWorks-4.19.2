@@ -3,6 +3,8 @@ Title:Basic How To's
 Crumbs: %ROOT%, GettingStarted
 Description: Several short How To guides provide step-by-step instructions to working with Unreal Engine 4. 
 version: 4.9
+parent:Engine/Editor
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

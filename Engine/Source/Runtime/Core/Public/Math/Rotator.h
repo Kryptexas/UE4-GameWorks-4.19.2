@@ -27,6 +27,19 @@ public:
 
 public:
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		if (ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("FRotator contains NaN: %s"), *ToString());
+			*const_cast<FRotator*>(this) = ZeroRotator;
+		}
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	/**
 	 * Default constructor (no initialization).
 	 */
@@ -410,12 +423,16 @@ FORCEINLINE FRotator operator*( float Scale, const FRotator& R )
 
 FORCEINLINE FRotator::FRotator( float InF ) 
 	:	Pitch(InF), Yaw(InF), Roll(InF) 
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 
 FORCEINLINE FRotator::FRotator( float InPitch, float InYaw, float InRoll )
 	:	Pitch(InPitch), Yaw(InYaw), Roll(InRoll) 
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 
 FORCEINLINE FRotator::FRotator(EForceInit)
@@ -444,6 +461,7 @@ FORCEINLINE FRotator FRotator::operator*( float Scale ) const
 FORCEINLINE FRotator FRotator::operator*= (float Scale)
 {
 	Pitch = Pitch*Scale; Yaw = Yaw*Scale; Roll = Roll*Scale;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -469,6 +487,7 @@ FORCEINLINE bool FRotator::operator!=( const FRotator& V ) const
 FORCEINLINE FRotator FRotator::operator+=( const FRotator& R )
 {
 	Pitch += R.Pitch; Yaw += R.Yaw; Roll += R.Roll;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -476,6 +495,7 @@ FORCEINLINE FRotator FRotator::operator+=( const FRotator& R )
 FORCEINLINE FRotator FRotator::operator-=( const FRotator& R )
 {
 	Pitch -= R.Pitch; Yaw -= R.Yaw; Roll -= R.Roll;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -523,6 +543,7 @@ FORCEINLINE FRotator FRotator::Add( float DeltaPitch, float DeltaYaw, float Delt
 	Yaw   += DeltaYaw;
 	Pitch += DeltaPitch;
 	Roll  += DeltaRoll;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -631,6 +652,7 @@ FORCEINLINE void FRotator::Normalize()
 	Yaw = NormalizeAxis(Yaw);
 	Roll = NormalizeAxis(Roll);
 #endif
+	DiagnosticCheckNaN();
 }
 
 FORCEINLINE FString FRotator::ToString() const
@@ -682,7 +704,7 @@ FORCEINLINE bool FRotator::InitFromString( const FString& InSourceString )
 
 	// The initialization is only successful if the X, Y, and Z values can all be parsed from the string
 	const bool bSuccessful = FParse::Value( *InSourceString, TEXT("P=") , Pitch ) && FParse::Value( *InSourceString, TEXT("Y="), Yaw ) && FParse::Value( *InSourceString, TEXT("R="), Roll );
-
+	DiagnosticCheckNaN();
 	return bSuccessful;
 }
 

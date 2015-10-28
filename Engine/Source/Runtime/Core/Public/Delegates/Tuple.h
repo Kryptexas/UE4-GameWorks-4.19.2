@@ -69,7 +69,7 @@ template <typename Indices, typename... Types>
 struct TTupleImpl;
 
 template <uint32... Indices, typename... Types>
-struct TTupleImpl<TIntegerSequence<Indices...>, Types...> : TTupleElement<Types, Indices>...
+struct TTupleImpl<TIntegerSequence<uint32, Indices...>, Types...> : TTupleElement<Types, Indices>...
 {
 	template <typename... ArgTypes>
 	explicit TTupleImpl(ArgTypes&&... Args)
@@ -105,7 +105,7 @@ struct TTupleImpl<TIntegerSequence<Indices...>, Types...> : TTupleElement<Types,
 	// Not strictly necessary, but some VC versions give a 'syntax error: <fake-expression>' error
 	// for empty tuples.
 	template <>
-	struct TTupleImpl<TIntegerSequence<>>
+	struct TTupleImpl<TIntegerSequence<uint32>>
 	{
 		explicit TTupleImpl()
 		{
@@ -144,11 +144,11 @@ struct TDecayedFrontOfParameterPackIsSameType
 };
 
 template <typename... Types>
-struct TTuple : TTupleImpl<TMakeIntegerSequence<sizeof...(Types)>, Types...>
+struct TTuple : TTupleImpl<TMakeIntegerSequence<uint32, sizeof...(Types)>, Types...>
 {
 	template <typename... ArgTypes, typename = typename TEnableIf<!TAnd<TBoolConstant<sizeof...(ArgTypes) == 1>, TDecayedFrontOfParameterPackIsSameType<TTuple, ArgTypes...>>::Value>::Type>
 	explicit TTuple(ArgTypes&&... Args)
-		: TTupleImpl<TMakeIntegerSequence<sizeof...(Types)>, Types...>(Forward<ArgTypes>(Args)...)
+		: TTupleImpl<TMakeIntegerSequence<uint32, sizeof...(Types)>, Types...>(Forward<ArgTypes>(Args)...)
 	{
 		// This constructor is disabled for TTuple because VC is incorrectly instantiating it as a move/copy constructor.
 	}

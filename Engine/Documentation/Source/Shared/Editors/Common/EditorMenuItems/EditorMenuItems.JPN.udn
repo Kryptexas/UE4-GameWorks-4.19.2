@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2735872
+Availability:Docs
 Title:共通のツールメニュー UI アイテム
 Description:複数のレベル エディタ ツールで共通のメニュー アイテムの説明のリポジトリ
 Crumbs:
@@ -6,14 +7,14 @@ Crumbs:
 
 
 [VAR:MenuFileSave]
-* **[Save (保存)]** - 現在、作業中のアセットを保存します。
+* **[Save]** - 現在、作業中のアセットを保存します。
 [/VAR]
 
 [VAR:MenuFileSaveOptions]
 * **[Open Asset]** - **Global Asset Picker** を開き、アセットを迅速に見つけて適切なエディタを開きます。
 * **[Save All]** - プロジェクトの全ての未保存のレベルとアセットを保存します。
 * **[Choose Files to Save ]** - プロジェクトで保存するレベルとアセットを選択するダイアログを表示します。
-* **[Connect To Source Control] ** - アンリアル エディタが統合できるソース コントロール システムを選択またはソース コントロール システムとインタラクションできるダイアログ ボックスを表示します。
+* **[Connect To Source Control]** - アンリアル エディタが統合できるソース コントロール システムを選択またはソース コントロール システムとインタラクションできるダイアログ ボックスを表示します。
 [/VAR]
 
 
@@ -127,8 +128,8 @@ Crumbs:
 
 
 
-[VAR:UITabTips]
+[EXCERPT:UITabTips]
 [REGION:tip]
 タブの右上隅にある小さな "X" をクリックすることで、どのパネルも閉じることができます。また、以下の手順でパネルを非表示にすることもできます。タブ上で **右クリック** して、表示されるコンテキスト メニューで **[Hide Tab]** をクリックします。閉じたパネルを再度表示するには、**[Window]** メニューでそのパネル名をクリックします。
 [/REGION]
-[/VAR]
+[/EXCERPT:UITabTips]

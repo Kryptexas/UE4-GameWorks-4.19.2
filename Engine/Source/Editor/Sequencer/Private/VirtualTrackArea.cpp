@@ -92,13 +92,13 @@ TOptional<FSectionHandle> FVirtualTrackArea::HitTestSection(FVector2D InPhysical
 	return TOptional<FSectionHandle>();
 }
 
-FSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition) const
+FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition) const
 {
 	TSharedPtr<FSequencerDisplayNode> Node = HitTestNode(InPhysicalPosition.Y);
 
 	if (!Node.IsValid())
 	{
-		return FSelectedKey();
+		return FSequencerSelectedKey();
 	}
 
 	const float KeyLeft  = PixelToTime(InPhysicalPosition.X - SequencerSectionConstants::KeySize.X/2);
@@ -107,10 +107,10 @@ FSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition) const
 	TArray<TSharedRef<IKeyArea>> KeyAreas;
 
 	// First check for a key area node on the hit-tested node
-	TSharedPtr<FSectionKeyAreaNode> KeyAreaNode;
+	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode;
 	switch (Node->GetType())
 	{
-		case ESequencerNode::KeyArea: 	KeyAreaNode = StaticCastSharedPtr<FSectionKeyAreaNode>(Node); break;
+		case ESequencerNode::KeyArea: 	KeyAreaNode = StaticCastSharedPtr<FSequencerSectionKeyAreaNode>(Node); break;
 		case ESequencerNode::Track:		KeyAreaNode = StaticCastSharedPtr<FTrackNode>(Node)->GetTopLevelKeyNode(); break;
 	}
 
@@ -150,10 +150,10 @@ FSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition) const
 			const float Time = KeyArea->GetKeyTime(Key);
 			if (Time >= KeyLeft && Time <= KeyRight)
 			{
-				return FSelectedKey(*KeyArea->GetOwningSection(), KeyArea, Key);
+				return FSequencerSelectedKey(*KeyArea->GetOwningSection(), KeyArea, Key);
 			}
 		}
 	}
 
-	return FSelectedKey();
+	return FSequencerSelectedKey();
 }

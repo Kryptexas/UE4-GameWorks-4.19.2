@@ -11,12 +11,12 @@ public:
 
 	FSlateUpdatableInstanceBuffer( int32 InstanceCount );
 	~FSlateUpdatableInstanceBuffer();
-	void BindStreamSource( FRHICommandListImmediate& RHICmdList, int32 StreamIndex);
+	void BindStreamSource(FRHICommandListImmediate& RHICmdList, int32 StreamIndex, uint32 InstanceOffset);
 
 private:
 	// BEGIN ISlateUpdatableInstanceBuffer
 	virtual TSharedPtr<class FSlateInstanceBufferUpdate> BeginUpdate() override;
-	virtual int32 GetNumInstances() const override;
+	virtual uint32 GetNumInstances() const override;
 	virtual void UpdateRenderingData(int32 NumInstancesToUse) override;
 	virtual TArray<FVector4>& GetBufferData() override;
 	// END ISlateUpdatableInstanceBuffer
@@ -25,7 +25,7 @@ private:
 private:
 	TArray<FVector4> BufferData[SlateRHIConstants::NumBuffers];
 	TSlateElementVertexBuffer<FVector4> InstanceBufferResource;
-	int32 NumInstances;
+	uint32 NumInstances;
 	int32 FreeBufferIndex;
 };
 

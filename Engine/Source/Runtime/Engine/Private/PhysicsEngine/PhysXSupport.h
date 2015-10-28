@@ -488,19 +488,6 @@ private:
 	int32 SceneType;
 };
 
-/** Used to dispatch physx tasks to task graph */
-class FPhysXCPUDispatcher : public PxCpuDispatcher
-{
-	virtual void submitTask(PxBaseTask& task ) override;
-	virtual PxU32 getWorkerCount() const override;
-};
-
-/** Used to dispatch physx tasks to the game thread */
-class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
-{
-	virtual void submitTask( PxBaseTask& task ) override;
-	virtual PxU32 getWorkerCount() const override;
-};
 
 #if WITH_APEX
 /**

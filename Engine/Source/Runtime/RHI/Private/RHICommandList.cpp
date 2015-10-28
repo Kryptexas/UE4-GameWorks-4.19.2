@@ -1725,6 +1725,16 @@ FVertexDeclarationRHIRef FDynamicRHI::CreateVertexDeclaration_RenderThread(class
 	return GDynamicRHI->RHICreateVertexDeclaration(Elements);
 }
 
+void FDynamicRHI::UpdateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
+{
+	if (GRHIThread)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateVertexDeclaration_WaitRHI);
+		RHICmdList.ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+	}
+	return GDynamicRHI->RHIUpdateTexture2D(Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
+}
+
 
 void FRHICommandListImmediate::UpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture)
 {

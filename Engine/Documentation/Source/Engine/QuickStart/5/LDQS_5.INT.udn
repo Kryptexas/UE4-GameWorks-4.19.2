@@ -3,11 +3,11 @@ Title:5 - Editing Placed Actors
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:This this step we will take the Actors we placed and edit their properties to give our level a more customized look. 
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/LightingAndShadows/LightTypes
 Related:Engine/Content/FBX/ImportOptions
-Related:
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]

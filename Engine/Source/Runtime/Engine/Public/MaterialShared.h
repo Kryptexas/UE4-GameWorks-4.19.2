@@ -52,7 +52,7 @@ extern void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InMaterialQu
 
 inline bool IsSubsurfaceShadingModel(EMaterialShadingModel ShadingModel)
 {
-	return ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile || ShadingModel == MSM_TwoSidedFoliage;
+	return ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile || ShadingModel == MSM_TwoSidedFoliage || ShadingModel == MSM_Cloth;
 }
 
 /**
@@ -243,8 +243,7 @@ public:
 
 	void SetParameterCollections(const TArray<class UMaterialParameterCollection*>& Collections);
 	void CreateBufferStruct();
-	ENGINE_API FRHIUniformBufferLayout* CreateDebugLayout() const;
-	const FUniformBufferStruct& GetUniformBufferStruct() const;
+	ENGINE_API const FUniformBufferStruct& GetUniformBufferStruct() const;
 
 	ENGINE_API FUniformBufferRHIRef CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const;
 
@@ -955,6 +954,7 @@ public:
 	virtual bool IsNonmetal() const { return false; }
 	virtual bool UseLmDirectionality() const { return true; }
 	virtual bool IsMasked() const = 0;
+	virtual bool IsDitherMasked() const { return false; }
 	virtual enum EBlendMode GetBlendMode() const = 0;
 	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
 	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
@@ -1134,6 +1134,10 @@ public:
 	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 protected:
+	
+	// shared code needed for GetUniformScalarParameterExpressions, GetUniformVectorParameterExpressions, GetUniformCubeTextureExpressions..
+	// @return can be 0
+	const FMaterialShaderMap* GetShaderMapToUse() const;
 
 	/**
 	* Fills the passed array with IDs of shader maps unfinished compilation jobs.
@@ -1536,6 +1540,7 @@ public:
 	ENGINE_API virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
 	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;
 	ENGINE_API virtual bool IsMasked() const override;
+	ENGINE_API virtual bool IsDitherMasked() const override;
 	ENGINE_API virtual FString GetFriendlyName() const override;
 	ENGINE_API virtual bool RequiresSynchronousCompilation() const override;
 	ENGINE_API virtual bool IsDefaultMaterial() const override;

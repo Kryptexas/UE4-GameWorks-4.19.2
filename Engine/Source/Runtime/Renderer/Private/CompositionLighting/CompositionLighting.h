@@ -18,6 +18,7 @@ public:
 
 	void ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList,  FViewInfo& View);
 
+	// only call if LPV is enabled
 	void ProcessLpvIndirect(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
 
 	void ProcessAfterLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View);

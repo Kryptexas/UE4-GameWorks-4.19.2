@@ -1184,35 +1184,58 @@ void UMaterialInterface::OverrideBlendableSettings(class FSceneView& View, float
 
 	FFinalPostProcessSettings& Dest = View.FinalPostProcessSettings;
 
-	const UMaterial* Material = GetMaterial();
+	const UMaterial* Base = GetMaterial();
 
 	//	should we use UMaterial::GetDefaultMaterial(Domain) instead of skipping the material
 
-	if(!Material || Material->MaterialDomain != MD_PostProcess || !View.State)
+	if(!Base || Base->MaterialDomain != MD_PostProcess || !View.State)
 	{
 		return;
 	}
 
 	FBlendableEntry* Iterator = 0;
 
-	FPostProcessMaterialNode* PostProcessMaterialNode = IteratePostProcessMaterialNodes(Dest, Material, Iterator);
+	FPostProcessMaterialNode* DestNode = IteratePostProcessMaterialNodes(Dest, Base, Iterator);
 
-	if(PostProcessMaterialNode)
+	// is this the first one of this material?
+	if(!DestNode)
 	{
-		// no blend needed
-		return;
-	}
-	else
-	{
-		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
+		UMaterialInstanceDynamic* InitialMID = View.State->GetReusableMID((UMaterialInterface*)this);
 
-		if(MID)
+		if(InitialMID)
 		{
-			FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);
+			// If the initial node is faded in partly we add the base material (it's assumed to be the neutral state, see docs)
+			// and then blend in the material instance (it it's the base there is no need for that)
+			const UMaterialInterface* SourceData = (Weight < 1.0f) ? Base : this;
 
-			// a material already exists, blend with existing ones
-			Dest.BlendableManager.PushBlendableData(Weight, NewNode);
+			InitialMID->CopyScalarAndVectorParameters(*SourceData, View.FeatureLevel);
+
+			FPostProcessMaterialNode InitialNode(InitialMID, Base->BlendableLocation, Base->BlendablePriority);
+
+			// no blending needed on this one
+			FPostProcessMaterialNode* InitialDestNode = Dest.BlendableManager.PushBlendableData(1.0f, InitialNode);
+
+			if(Weight < 1.0f && this != Base)
+			{
+				// We are not done, we still need to fade with SrcMID
+				DestNode = InitialDestNode;
+			}
 		}
+	}
+
+	if(DestNode)
+	{
+		// we apply this material on top of an existing one
+		UMaterialInstanceDynamic* DestMID = DestNode->GetMID();
+		check(DestMID);
+
+		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
+		check(SrcMID);
+
+		// Here we could check for Weight=1.0 and use copy instead of interpolate but that case quite likely not intended anyway.
+
+		// a material already exists, blend (Scalar and Vector parameters) with existing ones
+		DestMID->K2_InterpolateMaterialInstanceParams(DestMID, SrcMID, Weight);
 	}
 }
 
@@ -2569,7 +2592,9 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			return MaterialDomain == MD_Surface;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, OpacityMaskClipValue))
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, OpacityMaskClipValue) ||
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DitherOpacityMask)
+			)
 		{
 			return BlendMode == BLEND_Masked;
 		}
@@ -4110,10 +4135,10 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = (ShadingModel != (MSM_Unlit && (!bIsTranslucentBlendMode || !bIsNonDirectionalTranslucencyLightingMode))) || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
-		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage;
+		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage || ShadingModel == MSM_Cloth;
 		break;
 	case MP_CustomData0:
-		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Hair;
+		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Hair || ShadingModel == MSM_Cloth;
 		break;
 	case MP_CustomData1:
 		Active = ShadingModel == MSM_ClearCoat;

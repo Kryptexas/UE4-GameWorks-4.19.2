@@ -22,13 +22,6 @@ class UMovieSceneSequence
 public:
 
 	/**
-	 * Whether objects can be spawned at run-time.
-	 *
-	 * @return true if objects can be spawned by sequencer, false if only existing objects can be possessed.
-	 */
-	virtual bool AllowsSpawnableObjects() const PURE_VIRTUAL(UMovieSceneSequence::AllowsSpawnableObjects, return false;);
-
-	/**
 	 * Called when Sequencer has created an object binding for a possessable object
 	 * 
 	 * @param ObjectId The guid used to map to the possessable object.  Note the guid can be bound to multiple objects at once
@@ -44,13 +37,6 @@ public:
 	 * @return true if the object can be possessed, false otherwise.
 	 */
 	virtual bool CanPossessObject(UObject& Object) const PURE_VIRTUAL(UMovieSceneSequence::CanPossessObject, return false;);
-
-	/**
-	 * Destroy all objects that were spawned by this animation.
-	 *
-	 * @param SubMovieScene The (sub) movie scene to destroy objects for.
-	 */
-	virtual void DestroyAllSpawnedObjects() PURE_VIRTUAL(UMovieSceneSequence::DestroyAllSpawnedObjects,);
 
 	/**
 	 * Gets the possessed or spawned object for the specified identifier.
@@ -87,12 +73,33 @@ public:
 	virtual UObject* GetParentObject(UObject* Object) const PURE_VIRTUAL(UMovieSceneSequence::GetParentObject(), return nullptr;);
 
 	/**
-	 * Called to spawn or destroy objects for a movie instance.
+	 * Whether objects can be spawned at run-time.
 	 *
-	 * @param SubMovieScene The (sub) movie scene to spawn or destroy objects for.
-	 * @param DestroyAll If true, destroy all spawned objects for the instance, if false only destroy unused objects.
+	 * @return true if objects can be spawned by sequencer, false if only existing objects can be possessed.
 	 */
-	virtual void SpawnOrDestroyObjects(bool DestroyAll) PURE_VIRTUAL(UMovieSceneSequence::SpawnOrDestroyObjects,);
+	virtual bool AllowsSpawnableObjects() const { return false; }
+	
+	/**
+	 * Spawn an object relating to the specified object ID
+	 * 
+	 * @param ObjectId The ID of the object to spawn
+	 * @return The newly spawned or previously-spawned object, or nullptr
+	 */
+	virtual UObject* SpawnObject(const FGuid& ObjectId) { return nullptr; }
+
+	/**
+	 * Destroy a previously spawned object relating to the specified object ID
+	 * 
+	 * @param ObjectId The ID of the object to destroy
+	 */
+	virtual void DestroySpawnedObject(const FGuid& ObjectId) { }
+
+	/**
+	 * Destroy a previously spawned object relating to the specified GUID
+	 *
+	 * @return true if the object was destroyed, false otherwise
+	 */
+	virtual void DestroyAllSpawnedObjects() {}
 
 	/**
 	 * Unbinds all possessable objects from the provided GUID.

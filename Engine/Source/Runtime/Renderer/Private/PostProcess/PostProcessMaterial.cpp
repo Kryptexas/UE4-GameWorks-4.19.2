@@ -161,7 +161,9 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	
 	check(Material);
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessMaterial, TEXT("PostProcessMaterial Material=%s"), *Material->GetFriendlyName());
+	const FSceneView& View = Context.View;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessMaterial, TEXT("PostProcessMaterial %dx%d Material=%s"), View.ViewRect.Width(), View.ViewRect.Height(), *Material->GetFriendlyName());
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -171,7 +173,6 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 		return;
 	}
 
-	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	// hacky cast
@@ -198,9 +199,6 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
-	float ScaleX = 1.0f / InputDesc->Extent.X;
-	float ScaleY = 1.0f / InputDesc->Extent.Y;
 
 	const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
 	FPostProcessMaterialPS* PixelShader = MaterialShaderMap->GetShader<FPostProcessMaterialPS>();

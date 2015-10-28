@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2692165
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:Blueprint クラスを作成する
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
@@ -8,6 +8,10 @@ Related:Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening
 Related:Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI
 Related:Engine/Blueprints/Editor
 version:4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+type:howto
+order:1
 
 
 [TOC(start:2 end:2)]
@@ -137,16 +141,16 @@ version:4.9
 
 1. ブループリントの名前を入力し、保存先のフォルダを選択します。
 
-1. ブループリント作成ダイアログの一番上にある [Create [Path]/[Name]] をクリックすると、ブループリントが作成され、**ブループリント エディタ** で開きます。
+1. ブループリント作成ダイアログの一番上にある [Create [Path]/[Name] (パス/名前を作成)] をクリックすると、ブループリントが作成され、**ブループリント エディタ** で開きます。
 
 	![](class_viewer_create_complete.png)
 
-1. このエディタでブループリントを保存し、作成プロセスを完了するには、ブループリント エディタのツールバーで [保存](blueprint_editor_save.png) をクリックします。
+1. このエディタでブループリントを保存し、作成プロセスを完了するには、ブループリント エディタのツールバーで ![Save](blueprint_editor_save.png) をクリックします。
 
 
 
 また、ブループリントに対してベースとして使用したいクラス上で直接 **右クリック** しても、**クラスビューア** のブループリント作成にアクセスできます。 
-このブループリントの作成プロセスは、クラスの右側にある [下向き矢印アイコン](button_down_arrow.png) を使用した場合と同じです。
+このブループリントの作成プロセスは、クラスの右側にある ![下向き矢印アイコン](button_down_arrow.png) を使用した場合と同じです。
 
 ![](rtclick_class_viewer_bp.png)
 

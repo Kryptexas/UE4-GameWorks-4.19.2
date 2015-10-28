@@ -900,7 +900,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FRepl
 		// Send property.
 		Bunch.SerializeBits( TempBitWriter.GetData(), TempBitWriter.GetNumBits() );
 
-		NETWORK_PROFILER(GNetworkProfiler.TrackReplicateProperty(It, Bunch.GetNumBits() - NumStartingBits));
+		NETWORK_PROFILER(GNetworkProfiler.TrackReplicateProperty(It, Bunch.GetNumBits() - NumStartingBits, Connection));
 	}
 }
 

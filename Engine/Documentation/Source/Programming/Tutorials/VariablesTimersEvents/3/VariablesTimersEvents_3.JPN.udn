@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2621788
+﻿INTSourceChangelist:2728592
 Availability:Public
 Title:3.ブループリントで C++ コードを拡張およびオーバーライドする
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -7,7 +7,7 @@ version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:title%")
+		[前のステップ](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,7 +15,7 @@ version:4.9
 		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Programming\Tutorials\VariablesTimersEvents\4 "%Programming\Tutorials\VariablesTimersEvents\4:title%")
+		[次のステップ](Programming\Tutorials\VariablesTimersEvents\4 "%Programming\Tutorials\VariablesTimersEvents\4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -34,7 +34,7 @@ version:4.9
 
 	"Countdown1" のブループリント バージョンを表す新規アセットが作成されます。"Countdown1" もこの新規ブループリントのインスタンスと置き換えられるため、ブループリントを変更するとゲーム内の "Countdown1" に影響を及ぼします。
 
-1. **アンリアル エディタ** は **コンテンツ ブラウザ** に表示される新規アセットへ自動的に移動します。アセットを右クリックし、[Edit (編集) ...] を選択して、 **Blueprint Graph (ブループリントグラフ)**、 **Component (コンポーネント)** 階層、 **Default Values (デフォルト値)** を修正します。
+1. **アンリアル エディタ** は **コンテンツ ブラウザ** に表示される新規アセットへ自動的に移動します。アセットを **右クリック** し、[Edit (編集) ...] を選択して、 **Blueprint Graph (ブループリントグラフ)**、 **Component (コンポーネント)** 階層、 **Default Values (デフォルト値)** を修正します。
 
 	[![](BlueprintInContentBrowser.png)](BlueprintInContentBrowser.png)
 
@@ -44,7 +44,7 @@ version:4.9
 
 	[![](SelectEventGraph.png)](SelectEventGraph.png)
 
-	**イベントグラフ** ウィンドウの任意の場所を右クリックして、ビヘイビアを決定するイベントノードとして **CountdownHasFinished** 関数を追加することができます。
+	**イベントグラフ** ウィンドウの任意の場所を **右クリック** して、ビヘイビアを決定するイベントノードとして **CountdownHasFinished** 関数を追加することができます。
 
 	[![](SelectEvent.png)](SelectEvent.png)
 

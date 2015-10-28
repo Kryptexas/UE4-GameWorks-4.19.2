@@ -150,13 +150,70 @@ TArray<USCS_Node*> USCS_Node::GetAllNodes()
 	return AllNodes;
 }
 
-void USCS_Node::AddChildNode(USCS_Node* InNode)
+void USCS_Node::AddChildNode(USCS_Node* InNode, bool bAddToAllNodes)
 {
-	if(InNode != NULL && !ChildNodes.Contains(InNode))
+	if (InNode != NULL && !ChildNodes.Contains(InNode))
 	{
 		Modify();
 
 		ChildNodes.Add(InNode);
+		if (bAddToAllNodes)
+		{
+			FSCSAllNodesHelper::Add(GetSCS(), InNode);
+		}
+	}
+}
+
+void USCS_Node::RemoveChildNodeAt(int32 ChildIndex, bool bRemoveFromAllNodes)
+{
+	if (ChildIndex >= 0 && ChildIndex < ChildNodes.Num())
+	{
+		Modify();
+
+		USCS_Node* ChildNode = ChildNodes[ChildIndex];
+		ChildNodes.RemoveAt(ChildIndex);
+		if (bRemoveFromAllNodes)
+		{
+			FSCSAllNodesHelper::Remove(GetSCS(), ChildNode);
+		}
+	}
+}
+
+void USCS_Node::RemoveChildNode(USCS_Node* InNode, bool bRemoveFromAllNodes)
+{
+	Modify();
+	if (ChildNodes.Remove(InNode) != INDEX_NONE && bRemoveFromAllNodes)
+	{
+		FSCSAllNodesHelper::Remove(GetSCS(), InNode);
+	}
+}
+
+void USCS_Node::MoveChildNodes(USCS_Node* SourceNode, int32 InsertLocation)
+{
+	if (SourceNode)
+	{
+		Modify();
+		SourceNode->Modify();
+
+		USimpleConstructionScript* SourceSCS = SourceNode->GetSCS();
+		USimpleConstructionScript* MySCS = GetSCS();
+		if (SourceSCS != MySCS)
+		{
+			for (USCS_Node* SCSNode : SourceNode->ChildNodes)
+			{
+				FSCSAllNodesHelper::Remove(SourceSCS, SCSNode);
+				FSCSAllNodesHelper::Add(MySCS, SCSNode);
+			}
+		}
+		if (InsertLocation == INDEX_NONE)
+		{
+			ChildNodes.Append(SourceNode->ChildNodes);
+		}
+		else
+		{
+			ChildNodes.Insert(SourceNode->ChildNodes, InsertLocation);
+		}
+		SourceNode->ChildNodes.Empty();
 	}
 }
 

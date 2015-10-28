@@ -39,10 +39,10 @@ void UMaterialGraph::RebuildGraph()
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Opacity", "Opacity"), MP_Opacity ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("OpacityMask", "Opacity Mask"), MP_OpacityMask ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetNormalPinName(), MP_Normal ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldPositionOffset", "World Position Offset"), MP_WorldPositionOffset ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetWorldPositionOffsetPinName(), MP_WorldPositionOffset ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldDisplacement", "World Displacement"), MP_WorldDisplacement ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("TessellationMultiplier", "Tessellation Multiplier"), MP_TessellationMultiplier ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SubsurfaceColor", "Subsurface Color"), MP_SubsurfaceColor ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetSubsurfacePinName(), MP_SubsurfaceColor ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetCustomDataPinName(0), MP_CustomData0 ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetCustomDataPinName(1), MP_CustomData1 ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("AmbientOcclusion", "Ambient Occlusion"), MP_AmbientOcclusion ) );
@@ -482,6 +482,22 @@ FText UMaterialGraph::GetNormalPinName() const
 	return Material->GetShadingModel() == MSM_Hair ? LOCTEXT("Tangent", "Tangent") : LOCTEXT("Normal", "Normal");
 }
 
+FText UMaterialGraph::GetWorldPositionOffsetPinName() const
+{
+	return Material->IsUIMaterial() ? LOCTEXT("ScreenPosition", "Screen Position") : LOCTEXT("WorldPositionOffset", "World Position Offset");
+}
+
+FText UMaterialGraph::GetSubsurfacePinName() const
+{
+	switch (Material->GetShadingModel())
+	{
+	case MSM_Cloth:
+		return LOCTEXT("FuzzColor", "Fuzz Color");
+	default:
+		return LOCTEXT("SubsurfaceColor", "Subsurface Color");
+	}
+}
+
 FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
 {
 	if( Index == 0 )
@@ -492,6 +508,8 @@ FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
 			return LOCTEXT("ClearCoat", "Clear Coat");
 		case MSM_Hair:
 			return LOCTEXT("Backlit", "Backlit");
+		case MSM_Cloth:
+			return LOCTEXT("Cloth", "Cloth");
 		default:
 			return LOCTEXT("CustomData0", "Custom Data 0");
 		}

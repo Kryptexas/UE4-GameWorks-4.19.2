@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2602243
+﻿INTSourceChangelist:2714898
 Availability: Public
 Title:스켈레탈 메시 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:스켈레탈 메시 액터 만들고 사용하기 입니다.
 Related: Engine/Actors
 Related: Engine/Animation
+version: 4.9
 
 
 
@@ -91,7 +92,7 @@ Related: Engine/Animation
 
 ### 스켈레탈 메시 액터용 콜리전 만들기
 
-메시에 대한 피직스 애셋을 만들려면, 간단히 **콘텐츠 브라우저** 에서 메시에 **우클릭** 한 다음 **생성** -> **피직스 애셋 생성** 을 클릭하면 됩니다. 피직스 애셋 생성 방법에 대해 자세히 알아보려면 [](Engine/Physics/PhAT/UserGuide) 문서를 참고하세요.
+메시에 대한 피직스 애셋을 만들려면, 간단히 **콘텐츠 브라우저** 에서 메시에 **우클릭** 한 다음 **생성** -> **피직스 애셋 생성** 을 클릭하면 됩니다. 피직스 애셋 생성 방법에 대해 자세히 알아보려면 [](Engine/Physics/PhAT) 문서를 참고하세요.
 
 ![](SkeletalMeshActor_Create_Physics_Asset.png)
 
@@ -103,6 +104,7 @@ Related: Engine/Animation
 레벨에 스켈레탈 메시를 선택하고 **디테일** 패널 내 **Physics** 섹션 아래 있는 **Physics Asset Override** 섹션에 새로운 피직스 애셋을 제공해 주는 것으로 덮어쓰는 것도 가능합니다.
 
 ![](SkeletalMeshActor_Add_Physics_Assets_In_Level.png)
+
 
 
 

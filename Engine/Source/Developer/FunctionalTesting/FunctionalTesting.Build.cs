@@ -13,7 +13,8 @@ public class FunctionalTesting : ModuleRules
 				"Engine",
 				"Slate",
                 "MessageLog",
-                "AIModule"
+                "AIModule",
+                "RenderCore"
 			}
 			);
 

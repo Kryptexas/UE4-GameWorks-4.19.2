@@ -11,7 +11,7 @@ FMovieScene2DTransformTrackInstance::FMovieScene2DTransformTrackInstance( UMovie
 	PropertyBindings = MakeShareable(new FTrackInstancePropertyBindings(TransformTrack->GetPropertyName(), TransformTrack->GetPropertyPath()));
 }
 
-void FMovieScene2DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieScene2DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	for(UObject* Object : RuntimeObjects)
 	{
@@ -23,7 +23,7 @@ void FMovieScene2DTransformTrackInstance::Update( float Position, float LastPosi
 	}
 }
 
-void FMovieScene2DTransformTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
+void FMovieScene2DTransformTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	PropertyBindings->UpdateBindings(RuntimeObjects);
 }

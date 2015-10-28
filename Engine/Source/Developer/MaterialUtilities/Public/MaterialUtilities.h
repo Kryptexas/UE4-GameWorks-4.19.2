@@ -20,7 +20,7 @@ struct FFlattenMaterial
 		, EmissiveSize(0, 0)
 		, bTwoSided(false)
 		, BlendMode(BLEND_Opaque)
-		, EmissiveScale(1.0f)
+		, EmissiveScale(1.0f)		
 	{}
 
 	void ReleaseData()

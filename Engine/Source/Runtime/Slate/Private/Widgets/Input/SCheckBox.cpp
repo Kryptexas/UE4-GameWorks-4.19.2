@@ -221,6 +221,11 @@ void SCheckBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 }
 
 
+bool SCheckBox::IsInteractable() const
+{
+	return IsEnabled() && SupportsKeyboardFocus();
+}
+
 /**
  * Gets the check image to display for the current state of the check box
  * @return	The name of the image to display

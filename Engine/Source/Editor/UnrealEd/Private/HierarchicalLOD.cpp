@@ -48,11 +48,30 @@ void FHierarchicalLODBuilder::Build()
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
 
+	bool bVisibleLevelsWarning = false;
+
 	const TArray<ULevel*>& Levels = World->GetLevels();
 	for (const auto& LevelIter : Levels)
 	{
-		BuildClusters(LevelIter, true);
+		// Only build clusters for levels that are visible, and throw warning if any are hidden
+		if (LevelIter->bIsVisible)
+		{
+			BuildClusters(LevelIter, true);
+		}	
+	
+		bVisibleLevelsWarning |= !LevelIter->bIsVisible;	
 	}
+
+
+	// Fire map check warnings for hidden levels 
+	if (bVisibleLevelsWarning)
+	{
+		FMessageLog MapCheck("MapCheck");
+		MapCheck.Warning()
+			->AddToken(FUObjectToken::Create(WorldSetting))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be build for hidden levels.")));
+	}
+	
 }
 
 void FHierarchicalLODBuilder::PreviewBuild()
@@ -60,11 +79,27 @@ void FHierarchicalLODBuilder::PreviewBuild()
 	check(World);
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
+	bool bVisibleLevelsWarning = false;
 
 	const TArray<ULevel*>& Levels = World->GetLevels();
 	for (const auto& LevelIter : Levels)
 	{
-		BuildClusters(LevelIter, false);
+		// Only build clusters for levels that are visible
+		if (LevelIter->bIsVisible)
+		{
+			BuildClusters(LevelIter, false);
+		}
+
+		bVisibleLevelsWarning |= !LevelIter->bIsVisible;
+	}
+
+	// Fire map check warnings for hidden levels 
+	if (bVisibleLevelsWarning)
+	{
+		FMessageLog MapCheck("MapCheck");
+		MapCheck.Warning()
+			->AddToken(FUObjectToken::Create(WorldSetting))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be build for hidden levels.")));
 	}
 }
 
@@ -360,17 +395,47 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 
 void FHierarchicalLODBuilder::ClearHLODs()
 {
+	bool bVisibleLevelsWarning = false;
+
 	for (auto& Level : World->GetLevels())
 	{
-		DeleteLODActors(Level, false);
+		bVisibleLevelsWarning |= !Level->bIsVisible;
+		if (Level->bIsVisible)
+		{
+			DeleteLODActors(Level, false);
+		}
+	}
+
+
+	// Fire map check warnings for hidden levels 
+	if (bVisibleLevelsWarning)
+	{
+		FMessageLog MapCheck("MapCheck");
+		MapCheck.Warning()
+			->AddToken(FUObjectToken::Create(World->GetWorldSettings()))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be deleted for hidden levels.")));
 	}
 }
 
 void FHierarchicalLODBuilder::ClearPreviewBuild()
 {
+	bool bVisibleLevelsWarning = false;
 	for (auto& Level : World->GetLevels())
 	{
-		DeleteLODActors(Level, true);
+		bVisibleLevelsWarning |= !Level->bIsVisible;
+		if ( Level->bIsVisible )
+		{
+			DeleteLODActors(Level, true);
+		}		
+	}
+
+	// Fire map check warnings for hidden levels 
+	if (bVisibleLevelsWarning)
+	{
+		FMessageLog MapCheck("MapCheck");
+		MapCheck.Warning()
+			->AddToken(FUObjectToken::Create(World->GetWorldSettings()))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be deleted for hidden levels.")));
 	}
 }
 
@@ -379,9 +444,18 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
 
+	bool bVisibleLevelsWarning = false;
+
 	const TArray<ULevel*>& Levels = World->GetLevels();
 	for (const auto& LevelIter : Levels)
 	{
+		// Only meshes for clusters that are in a visible level
+		if (!LevelIter->bIsVisible)
+		{
+			bVisibleLevelsWarning = true;
+			continue;
+		}
+
 		FScopedSlowTask SlowTask(100, (LOCTEXT("HierarchicalLOD_BuildLODActorMeshes", "Building LODActor meshes")));
 		SlowTask.MakeDialog();
 
@@ -426,6 +500,16 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 			}
 		}		
 	}
+
+	// Fire map check warnings for hidden levels 
+	if (bVisibleLevelsWarning)
+	{
+		FMessageLog MapCheck("MapCheck");
+		MapCheck.Warning()
+			->AddToken(FUObjectToken::Create(WorldSetting))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be build for hidden levels.")));
+	}
+
 }
 
 void FHierarchicalLODBuilder::DeleteLODActors(ULevel* InLevel, const bool bPreviewOnly)
@@ -468,7 +552,7 @@ void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const ui
 	UPackage* AssetsOuter = LODActor->GetLevel()->GetOutermost();
 
 	const bool bResult = HierarchicalLODUtils::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);
-	check(bResult);
+	//check(bResult);
 }
 
 void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const int32 LODIdx, float HighestCost, int32 MinNumActors, const bool bCreateMeshes)

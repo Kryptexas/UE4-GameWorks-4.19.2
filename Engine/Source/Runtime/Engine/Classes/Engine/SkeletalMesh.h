@@ -215,8 +215,8 @@ struct FSkeletalMeshOptimizationSettings
 	UPROPERTY()
 	int32 MaxBonesPerVertex;
 
-	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	TArray<FBoneReference> BonesToRemove;
+	UPROPERTY()
+	TArray<FBoneReference> BonesToRemove_DEPRECATED;
 
 	/** Maximum number of bones that can be assigned to each vertex. */
 	UPROPERTY()
@@ -242,28 +242,6 @@ struct FSkeletalMeshOptimizationSettings
 	/** Equality operator. */
 	bool operator==(const FSkeletalMeshOptimizationSettings& Other) const
 	{
-		// first, check whether bones to remove are same or not
-		const TArray<FBoneReference>& TempBones1 = BonesToRemove.Num() > Other.BonesToRemove.Num() ? BonesToRemove : Other.BonesToRemove;
-		const TArray<FBoneReference>& TempBones2 = BonesToRemove.Num() > Other.BonesToRemove.Num() ? Other.BonesToRemove : BonesToRemove;
-
-		for (int32 Index = 0; Index < TempBones2.Num(); Index++)
-		{
-			if (TempBones1[Index].BoneName != TempBones2[Index].BoneName)
-			{
-				return false;
-			}
-		}
-
-		// check remained bones 
-		for (int32 Index = TempBones2.Num(); Index < TempBones1.Num(); Index++)
-		{
-			// if it has an actual bone name, these are not the same
-			if (TempBones1[Index].BoneName != FName("None"))
-			{
-				return false;
-			}
-		}
-
 		return ReductionMethod == Other.ReductionMethod
 			&& NumOfTrianglesPercentage == Other.NumOfTrianglesPercentage
 			&& MaxDeviationPercentage == Other.MaxDeviationPercentage
@@ -318,6 +296,10 @@ struct FSkeletalMeshLODInfo
 	/** Reduction settings to apply when building render data. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	FSkeletalMeshOptimizationSettings ReductionSettings;
+
+	/** This has been removed in editor. We could re-apply this in import time or by mesh reduction utilities*/
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+	TArray<FName> RemovedBones;
 
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
@@ -934,6 +916,8 @@ public:
 #if WITH_EDITOR
 	/** Trigger a physics build to ensure per poly collision is created */
 	ENGINE_API void BuildPhysicsData();
+	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
+	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
 #endif
 	
 

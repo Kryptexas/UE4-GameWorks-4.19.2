@@ -40,6 +40,7 @@ void UBoxComponent::UpdateBodySetup()
 		ShapeBodySetup = NewObject<UBodySetup>(this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		ShapeBodySetup->AggGeom.BoxElems.Add(FKBoxElem());
+		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
 	}
 
 	check(ShapeBodySetup->AggGeom.BoxElems.Num() == 1);

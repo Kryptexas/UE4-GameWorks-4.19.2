@@ -229,3 +229,8 @@ FPlatformUserId FOnlineIdentityIOS::GetPlatformUserIdFromUniqueNetId(const FUniq
 
 	return PLATFORMUSERID_NONE;
 }
+
+FString FOnlineIdentityIOS::GetAuthType() const
+{
+	return TEXT("");
+}

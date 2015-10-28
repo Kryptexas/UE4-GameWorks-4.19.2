@@ -85,6 +85,11 @@ class UMaterialInstanceDynamic : public UMaterialInstance
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "CopyParameterOverrides"), Category="Rendering|Material")
 	ENGINE_API void CopyParameterOverrides(UMaterialInstance* MaterialInstance);
-
+		
+	/**
+	 * Copy all interpolatable (scalar/vector) parameters from *SourceMaterialToCopyFrom to *this, using the current QualityLevel and given FeatureLevel
+	 * For runtime use. More specialized and efficient than CopyMaterialInstanceParameters().
+	 */
+	ENGINE_API void CopyScalarAndVectorParameters(const UMaterialInterface& SourceMaterialToCopyFrom, ERHIFeatureLevel::Type FeatureLevel);
 };
 

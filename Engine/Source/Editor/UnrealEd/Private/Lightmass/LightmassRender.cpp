@@ -49,6 +49,11 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->Constant(1.0f);
 	}
 
+	virtual int32 ParticleRandom() override
+	{
+		return Compiler->Constant(0.0f);
+	}
+
 	virtual int32 ParticleDirection() override
 	{
 		return Compiler->Constant3(0.0f, 0.0f, 0.0f);

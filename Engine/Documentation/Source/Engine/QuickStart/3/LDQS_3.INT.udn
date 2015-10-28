@@ -3,9 +3,10 @@ Title:3 - Create a New Level
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:In this step we will create a brand new level which we will use to build out our sample area in. 
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Levels
 Related:Engine/Content/Browser
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]

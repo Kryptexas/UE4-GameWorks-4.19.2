@@ -54,9 +54,31 @@ USignificanceManager::USignificanceManager()
 	}
 }
 
-USignificanceManager* USignificanceManager::Get(UWorld* World)
+/** Gets the instance of USignificanceManager that holds references to world significance managers */
+static USignificanceManager* GetSignificanceManagerSingleton()
+{
+	static struct FSingletonInit
+	{
+		FName SingletonName;
+		FSingletonInit()
+			: SingletonName(TEXT("SignificanceSingleton"))
+		{
+			// Construct root set object to hold manager references that exist outside of disregard for GC pool.
+			USignificanceManager* Singleton = Cast<USignificanceManager>(StaticFindObjectFast(USignificanceManager::StaticClass(), GetTransientPackage(), SingletonName));
+			if (!Singleton)
+			{
+				Singleton = NewObject<USignificanceManager>(GetTransientPackage(), SingletonName);
+			}
+			Singleton->AddToRoot();
+		}
+	} SingletonInit;
+	// Always find in memory (should be very quick). Don't store static references, this breaks hot-reload!
+	return CastChecked<USignificanceManager>(StaticFindObjectFast(USignificanceManager::StaticClass(), GetTransientPackage(), SingletonInit.SingletonName));
+}
+
+USignificanceManager* USignificanceManager::Get(const UWorld* World)
 { 
-	return GetDefault<USignificanceManager>()->WorldSignificanceManagers.FindRef(World); 
+	return GetSignificanceManagerSingleton()->WorldSignificanceManagers.FindRef(World);
 }
 
 void USignificanceManager::OnWorldInit(UWorld* World, const UWorld::InitializationValues IVS)
@@ -73,7 +95,7 @@ void USignificanceManager::OnWorldInit(UWorld* World, const UWorld::Initializati
 			USignificanceManager* ManagerToCreateDefault = SignificanceManagerClass->GetDefaultObject<USignificanceManager>();
 			if ((ManagerToCreateDefault->bCreateOnServer && !IsRunningClientOnly()) || (ManagerToCreateDefault->bCreateOnClient && !IsRunningDedicatedServer()))
 			{
-				WorldSignificanceManagers.Add(World, NewObject<USignificanceManager>(World, SignificanceManagerClass));
+				GetSignificanceManagerSingleton()->WorldSignificanceManagers.Add(World, NewObject<USignificanceManager>(World, SignificanceManagerClass));
 			}
 		}
 	}
@@ -81,14 +103,14 @@ void USignificanceManager::OnWorldInit(UWorld* World, const UWorld::Initializati
 
 void USignificanceManager::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)
 {
-	WorldSignificanceManagers.Remove(World);
+	GetSignificanceManagerSingleton()->WorldSignificanceManagers.Remove(World);
 }
 
 void USignificanceManager::BeginDestroy()
 {
 	Super::BeginDestroy();
 
-	for (const TPair<UObject*, FManagedObjectInfo*>& ObjectToObjectInfoPair : ManagedObjects)
+	for (const TPair<const UObject*, FManagedObjectInfo*>& ObjectToObjectInfoPair : ManagedObjects)
 	{
 		delete ObjectToObjectInfoPair.Value;
 	}
@@ -96,7 +118,7 @@ void USignificanceManager::BeginDestroy()
 	ManagedObjectsByTag.Reset();
 }
 
-void USignificanceManager::RegisterObject(UObject* Object, const FName Tag, FSignificanceFunction SignificanceFunction)
+void USignificanceManager::RegisterObject(const UObject* Object, const FName Tag, FSignificanceFunction SignificanceFunction)
 {
 	INC_DWORD_STAT(STAT_SignificanceManager_NumObjects);
 	SCOPE_CYCLE_COUNTER(STAT_SignificanceManager_RegisterObject);
@@ -154,7 +176,7 @@ void USignificanceManager::RegisterObject(UObject* Object, const FName Tag, FSig
 	}
 }
 
-void USignificanceManager::UnregisterObject(UObject* Object)
+void USignificanceManager::UnregisterObject(const UObject* Object)
 {
 	DEC_DWORD_STAT(STAT_SignificanceManager_NumObjects);
 	SCOPE_CYCLE_COUNTER(STAT_SignificanceManager_UnregisterObject);
@@ -200,7 +222,7 @@ void USignificanceManager::GetManagedObjects(TArray<const USignificanceManager::
 	}
 }
 
-float USignificanceManager::GetSignificance(UObject* Object) const
+float USignificanceManager::GetSignificance(const UObject* Object) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SignificanceManager_SignificanceCheck);
 	float Significance = 0.f;
@@ -209,6 +231,21 @@ float USignificanceManager::GetSignificance(UObject* Object) const
 		Significance = (*Info)->GetSignificance();
 	}
 	return Significance;
+}
+
+bool USignificanceManager::QuerySignificance(const UObject* Object, float& OutSignificance) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_SignificanceManager_SignificanceCheck);
+	if (FManagedObjectInfo* const* Info = ManagedObjects.Find(Object))
+	{
+		OutSignificance = (*Info)->GetSignificance();
+		return true;
+	}
+	else
+	{
+		OutSignificance = 0.0f;
+		return false;
+	}
 }
 
 void USignificanceManager::FManagedObjectInfo::UpdateSignificance(const TArray<FTransform>& InViewpoints)
@@ -240,9 +277,9 @@ void USignificanceManager::Update(const TArray<FTransform>& InViewpoints)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SignificanceManager_SignificanceUpdate);
 		//TODO: Consider parallel for
-		for (TPair<UObject*, FManagedObjectInfo*>& ObjectToObjectInfoPair : ManagedObjects)
+		for (TPair<const UObject*, FManagedObjectInfo*>& ObjectToObjectInfoPair : ManagedObjects)
 		{
-			UObject* Object = ObjectToObjectInfoPair.Key;
+			const UObject* Object = ObjectToObjectInfoPair.Key;
 			FManagedObjectInfo* ObjectInfo = ObjectToObjectInfoPair.Value;
 
 			checkSlow(Object->IsValidLowLevel());

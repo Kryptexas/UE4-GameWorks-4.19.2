@@ -1578,7 +1578,7 @@ void UParticleModuleLocationBoneSocket::Update(FParticleEmitterInstance* Owner, 
 		for(int32 SourceIndex = 0; SourceIndex < SourceLocations.Num(); ++SourceIndex)
 		{
 			int32 BoneIndex = SourceComponent->GetBoneIndex(SourceLocations[SourceIndex].BoneSocketName);
-			if (BoneIndex != INDEX_NONE)
+			if (BoneIndex != INDEX_NONE && SourceIndex < InstancePayload->BoneSocketVelocities.Num())
 			{
 				// Calculate the velocity
 				const FMatrix WorldBoneTM = SourceComponent->GetBoneMatrix(BoneIndex);
@@ -2663,7 +2663,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 
 		const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
 
-		return Chunk.HasExtraBoneInfluences()
+		return Model.VertexBufferGPUSkin.HasExtraBoneInfluences()
 			? VertInfluencedByActiveBoneTyped<true>(bSoftVertex, Model, Chunk, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
 			: VertInfluencedByActiveBoneTyped<false>(bSoftVertex, Model, Chunk, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}

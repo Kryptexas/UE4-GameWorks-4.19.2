@@ -13,6 +13,7 @@ bool FAutomationAnalytics::bIsInitialized;
 TSharedPtr<IAnalyticsProvider> FAutomationAnalytics::Analytics;
 TArray<FString> FAutomationAnalytics::AutomationEventNames;
 TArray<FString> FAutomationAnalytics::AutomationParamNames;
+FString FAutomationAnalytics::MachineSpec;
 
 /**
 * Automation analytics config log to initialize the automation analytics provider.
@@ -120,6 +121,12 @@ void FAutomationAnalytics::Initialize()
 			StartSessionAttributes.Emplace(TEXT("ProjectVersion"), ProjectSettings.ProjectVersion);*/
 
 			Analytics->StartSession(StartSessionAttributes);
+
+			MachineSpec = FParse::Param(FCommandLine::Get(), TEXT("60hzmin")) 
+				? TEXT("60hzmin")
+				: FParse::Param(FCommandLine::Get(), TEXT("30hzmin")) 
+				? TEXT("30hzmin") 
+				: TEXT("");
 		}
 	}
 	if (Analytics.IsValid())
@@ -172,6 +179,7 @@ void FAutomationAnalytics::InititalizeAnalyticParameterNames()
 	AutomationParamNames[EAutomationAnalyticParam::MatineeName] = TEXT("MatineeName");
 	AutomationParamNames[EAutomationAnalyticParam::TimeStamp] = TEXT("TimeStamp");
 	AutomationParamNames[EAutomationAnalyticParam::Platform] = TEXT("Platform");
+	AutomationParamNames[EAutomationAnalyticParam::Spec] = TEXT("Spec");
 	AutomationParamNames[EAutomationAnalyticParam::CL] = TEXT("CL");
 	AutomationParamNames[EAutomationAnalyticParam::FPS] = TEXT("FPS");
 	AutomationParamNames[EAutomationAnalyticParam::BuildConfiguration] = TEXT("BuildConfiguration");
@@ -223,6 +231,7 @@ void FAutomationAnalytics::SetInitialParameters(TArray<FAnalyticsEventAttribute>
 * @EventParam TimeStamp int32 The time in seconds when the test when the capture ended
 * @EventParam Platform string The platform in which the test is run on
 * @EventParam CL string The Changelist for the build
+* @EventParam Spec string The spec of the machine running the test
 * @EventParam MapName string The map that the test was run on
 * @EventParam MatineeName string The name of the matinee that fired the event
 * @EventParam FPS string 
@@ -244,6 +253,7 @@ void FAutomationAnalytics::FireEvent_FPSCapture(const FAutomationPerformanceSnap
 		TArray<FAnalyticsEventAttribute> ParamArray;
 		SetInitialParameters(ParamArray);
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::CL), PerfSnapshot.Changelist));
+		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::Spec), MachineSpec));
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::MapName), PerfSnapshot.MapName));
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::MatineeName), PerfSnapshot.MatineeName));
 		ParamArray.Add(FAnalyticsEventAttribute(GetAutomationParamName(EAutomationAnalyticParam::FPS), PerfSnapshot.AverageFPS));

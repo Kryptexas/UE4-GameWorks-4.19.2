@@ -2,13 +2,17 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimSequence.h"
+#include "AnimationUtils.h"
 
-
+#define LEADERSCORE_ALWAYSLEADER  	2.f
+#define LEADERSCORE_MONTAGE			3.f
 //////////////////////////////////////////////////////////////////////////
 // FAnimGroupInstance
 
 void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type MembershipType)
 {
+	// always set leader score if you have potential to be leader
+	// that way if the top leader fails, we'll continue to search next available leader
 	int32 TestIndex = ActivePlayers.Num() - 1;
 	FAnimTickRecord& Candidate = ActivePlayers[TestIndex];
 
@@ -16,16 +20,11 @@ void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type Member
 	{
 	case EAnimGroupRole::CanBeLeader:
 	case EAnimGroupRole::TransitionLeader:
-		// Set it if we're better than the current leader (or if there is no leader yet)
-		if ((GroupLeaderIndex == INDEX_NONE) || (ActivePlayers[GroupLeaderIndex].EffectiveBlendWeight < Candidate.EffectiveBlendWeight))
-		{
-			// This is a better leader
-			GroupLeaderIndex = TestIndex;
-		}
+		Candidate.LeaderScore = Candidate.EffectiveBlendWeight;
 		break;
 	case EAnimGroupRole::AlwaysLeader:
 		// Always set the leader index
-		GroupLeaderIndex = TestIndex;
+		Candidate.LeaderScore = LEADERSCORE_ALWAYSLEADER;
 		break;
 	default:
 	case EAnimGroupRole::AlwaysFollower:
@@ -34,16 +33,57 @@ void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type Member
 	}
 }
 
+void FAnimGroupInstance::TestMontageTickRecordForLeadership()
+{
+	int32 TestIndex = ActivePlayers.Num() - 1;
+	ensure(TestIndex <= 1);
+	FAnimTickRecord& Candidate = ActivePlayers[TestIndex];
+
+	// if the candidate has higher weight
+	if (Candidate.EffectiveBlendWeight > MontageLeaderWeight)
+	{
+		// if this is going to be leader, I'll clean ActivePlayers because we don't sync multi montages
+		const int32 LastIndex = TestIndex - 1;
+		if (LastIndex >= 0)
+		{
+			ActivePlayers.RemoveAt(TestIndex - 1, 1);
+		}
+
+		// at this time, it should only have one
+		ensure(ActivePlayers.Num() == 1);
+
+		// then override
+		// @note : leader weight doesn't applied WITHIN montages
+		// we still only contain one montage at a time, if this montage fails, next candidate will get the chance, not next weight montage
+		MontageLeaderWeight = Candidate.EffectiveBlendWeight;
+		Candidate.LeaderScore = LEADERSCORE_MONTAGE;
+	}
+}
+
 void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
 {
-	GroupLeaderIndex = FMath::Max(GroupLeaderIndex, 0);
+	if (!PreviousGroup || PreviousGroup->GroupLeaderIndex != GroupLeaderIndex || ValidMarkers != PreviousGroup->ValidMarkers
+		|| (PreviousGroup->MontageLeaderWeight > 0.f && MontageLeaderWeight == 0.f/*if montage disappears, we should reset as well*/))
+	{
+		UE_LOG(LogAnimMarkerSync, Log, TEXT("Resetting Marker Sync Groups"));
 
-	TArray<FName>* MarkerNames = ActivePlayers[GroupLeaderIndex].SourceAsset->GetUniqueMarkerNames();
+		for (int32 RecordIndex = GroupLeaderIndex + 1; RecordIndex < ActivePlayers.Num(); ++RecordIndex)
+		{
+			ActivePlayers[RecordIndex].MarkerTickRecord->Reset();
+		}
+	}
+}
+
+void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
+{
+	ActivePlayers.Sort();
+
+	TArray<FName>* MarkerNames = ActivePlayers[0].SourceAsset->GetUniqueMarkerNames();
 	if (MarkerNames)
 	{
 		// Group leader has markers, off to a good start
 		ValidMarkers = *MarkerNames;
-		ActivePlayers[GroupLeaderIndex].bCanUseMarkerSync = true;
+		ActivePlayers[0].bCanUseMarkerSync = true;
 		bCanUseMarkerSync = true;
 
 		//filter markers based on what exists in the other animations
@@ -73,7 +113,7 @@ void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
 				}
 			}
 
-			if (ActivePlayerIndex != GroupLeaderIndex && ValidMarkers.Num() > 0)
+			if (ActivePlayerIndex != 0 && ValidMarkers.Num() > 0)
 			{
 				TArray<FName>* PlayerMarkerNames = Candidate.SourceAsset->GetUniqueMarkerNames();
 				if ( PlayerMarkerNames ) // Let anims with no markers set use length scaling sync
@@ -94,14 +134,6 @@ void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
 		bCanUseMarkerSync = ValidMarkers.Num() > 0;
 
 		ValidMarkers.Sort();
-
-		if (!PreviousGroup || PreviousGroup->GroupLeaderIndex != GroupLeaderIndex || ValidMarkers != PreviousGroup->ValidMarkers)
-		{
-			for (FAnimTickRecord& TickRecord : ActivePlayers)
-			{
-				TickRecord.MarkerTickRecord->Reset();
-			}
-		}
 	}
 }
 

@@ -222,6 +222,20 @@ public:
 	virtual ELauncherProfileCookModes::Type GetCookMode() const = 0;
 
 	/**
+	* Loads the simple profile from the specified file.
+	*
+	* @return true if the profile was loaded, false otherwise.
+	*/
+	virtual bool Load(const FJsonObject& Object) = 0;
+
+	/**
+	* Saves the simple profile to the specified file.
+	*
+	* @return true if the profile was saved, false otherwise.
+	*/
+	virtual void Save(TJsonWriter<>& Writer) = 0;
+
+	/**
 	 * Updates the device name.
 	 *
 	 * @param InDeviceName The new device name.
@@ -383,12 +397,22 @@ public:
 	virtual bool IsValidForLaunch( ) = 0;
 
 	/**
+	* Loads the profile from a JSON file
+	*/
+	virtual bool Load(const FJsonObject& Object) = 0;
+
+	/**
 	 * Serializes the profile from or into the specified archive.
 	 *
 	 * @param Archive The archive to serialize from or into.
 	 * @return true if the profile was serialized, false otherwise.
 	 */
 	virtual bool Serialize( FArchive& Archive ) = 0;
+
+	/**
+	 * Saves the profile into a JSON file
+	 */
+	virtual void Save(TJsonWriter<>& Writer) = 0;
 
 	/** Sets all profile settings to their defaults. */
 	virtual void SetDefaults( ) = 0;

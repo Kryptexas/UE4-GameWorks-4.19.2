@@ -239,11 +239,7 @@ private:
 	FRenderCommandFence ReleaseFence;
 
 public:
-	//~ Begin Begin Interface IBlendableInterface
-	virtual ENGINE_API void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
-	//~ Begin End Interface IBlendableInterface
-
-	//~ Begin UMaterialInterface Interface.
+	// Begin UMaterialInterface interface.
 	virtual ENGINE_API UMaterial* GetMaterial() override;
 	virtual ENGINE_API const UMaterial* GetMaterial() const override;
 	virtual ENGINE_API const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
@@ -428,8 +424,6 @@ protected:
 
 	// to share code between PostLoad() and PostEditChangeProperty()
 	void PropagateDataToMaterialProxy();
-
-	void SetTonemapperPostprocessMaterialSettings(class FSceneView& View, UMaterialInstanceDynamic& MID) const;
 
 	/** Allow resource to access private members. */
 	friend class FMaterialInstanceResource;

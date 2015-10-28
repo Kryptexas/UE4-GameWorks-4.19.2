@@ -23,7 +23,7 @@ The Material Editor UI consists of a menu bar, a toolbar, and, by default, four 
 There is also an HLSL Code panel, but by default, it is not visible. To display it, on the **Window** menu, click **HLSL Code**. For more information, see [HLSL Code](#hlslcodepanel).
 [/REGION]
 
-%Shared/Editors/Common/EditorMenuItems:UITabTips%
+[INCLUDE:Shared/Editors/Common/EditorMenuItems#UITabTips]
 
 ## Menu Bar
 

@@ -395,6 +395,12 @@ struct FRawCurveTracks
 	 * Delete curve data 
 	 */
 	ENGINE_API bool DeleteCurveData(USkeleton::AnimCurveUID Uid, ESupportedCurveType SupportedCurveType = FloatType);
+
+	/**
+	 * Delete all curve data 
+	 */
+	ENGINE_API void DeleteAllCurveData(ESupportedCurveType SupportedCurveType = FloatType);
+
 	/**
 	 * Duplicate curve data
 	 * 

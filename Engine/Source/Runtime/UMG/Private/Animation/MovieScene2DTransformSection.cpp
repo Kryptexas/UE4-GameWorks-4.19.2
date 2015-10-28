@@ -4,11 +4,6 @@
 #include "MovieScene2DTransformSection.h"
 #include "MovieScene2DTransformTrack.h"
 
-UMovieScene2DTransformSection::UMovieScene2DTransformSection( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{
-
-}
 
 void UMovieScene2DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -25,6 +20,7 @@ void UMovieScene2DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandl
 	}
 }
 
+
 void UMovieScene2DTransformSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
@@ -38,6 +34,7 @@ void UMovieScene2DTransformSection::DilateSection( float DilationFactor, float O
 		Shear[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
 	}
 }
+
 
 void UMovieScene2DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -79,45 +76,50 @@ void UMovieScene2DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 	}
 }
 
+
 /**
  * Chooses an appropriate curve from an axis and a set of curves
  */
 static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
 {
-	switch( Axis )
+	switch(Axis)
 	{
 	case EAxis::X:
 		return &Curves[0];
-		break;
+
 	case EAxis::Y:
 		return &Curves[1];
-		break;
+
 	default:
-		check( false );
-		return NULL;
-		break;
+		check(false);
+		return nullptr;
 	}
 }
+
 
 FRichCurve& UMovieScene2DTransformSection::GetTranslationCurve(EAxis::Type Axis)
 {
 	return *ChooseCurve( Axis, Translation );
 }
 
+
 FRichCurve& UMovieScene2DTransformSection::GetRotationCurve()
 {
 	return Rotation;
 }
+
 
 FRichCurve& UMovieScene2DTransformSection::GetScaleCurve(EAxis::Type Axis)
 {
 	return *ChooseCurve(Axis, Scale);
 }
 
+
 FRichCurve& UMovieScene2DTransformSection::GetSheerCurve(EAxis::Type Axis)
 {
 	return *ChooseCurve(Axis, Shear);
 }
+
 
 FWidgetTransform UMovieScene2DTransformSection::Eval( float Position, const FWidgetTransform& DefaultValue ) const
 {
@@ -148,6 +150,7 @@ bool UMovieScene2DTransformSection::NewKeyIsNewData( float Time, const FWidgetTr
 
 	return false;
 }
+
 
 void UMovieScene2DTransformSection::AddKey( float Time, const struct F2DTransformKey& TransformKey, FKeyParams KeyParams )
 {

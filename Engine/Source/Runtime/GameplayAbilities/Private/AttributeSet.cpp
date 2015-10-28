@@ -485,3 +485,199 @@ void FAttributeSetInitter::ApplyAttributeDefault(UAbilitySystemComponent* Abilit
 
 	AbilitySystemComponent->ForceReplication();
 }
+
+// --------------------------------------------------------------------------------
+
+#if WITH_EDITOR
+
+struct FBadScalableFloat
+{
+	UObject* Asset;
+	UProperty* Property;
+
+	FString String;
+};
+
+static FBadScalableFloat GCurrentBadScalableFloat;
+static TArray<FBadScalableFloat> GCurrentBadScalableFloatList;
+
+
+static bool CheckForBadScalableFloats_r(void* Data, UStruct* Struct, UClass* Class);
+
+static bool CheckForBadScalableFloats_Prop_r(void* Data, UProperty* Prop, UClass* Class)
+{
+	void* InnerData = Prop->ContainerPtrToValuePtr<void>(Data);
+
+	UStructProperty* StructProperty = Cast<UStructProperty>(Prop);
+	if (StructProperty)
+	{
+		if (StructProperty->Struct == FScalableFloat::StaticStruct())
+		{
+			FScalableFloat* ThisScalableFloat = static_cast<FScalableFloat*>(InnerData);
+			if (ThisScalableFloat && ThisScalableFloat->IsValid() == false)
+			{
+				if (ThisScalableFloat->Curve.RowName == NAME_None)
+				{
+					// Just fix this case up here
+					ThisScalableFloat->Curve.CurveTable = nullptr;
+					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
+				}
+				else
+				{
+					GCurrentBadScalableFloat.Property = Prop;
+					GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
+
+					GCurrentBadScalableFloatList.Add(GCurrentBadScalableFloat);
+				}
+			}
+		}
+		else
+		{
+			CheckForBadScalableFloats_r(InnerData, StructProperty->Struct, Class);
+		}
+	}
+
+	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
+	if (ArrayProperty)
+	{
+		FScriptArrayHelper ArrayHelper(ArrayProperty, InnerData);
+		int32 n = ArrayHelper.Num();
+		for (int32 i=0; i < n; ++i)
+		{
+			void* ArrayData = ArrayHelper.GetRawPtr(i);			
+			CheckForBadScalableFloats_Prop_r(ArrayData, ArrayProperty->Inner, Class);
+		}
+	}
+
+	return false;
+}
+
+static bool	CheckForBadScalableFloats_r(void* Data, UStruct* Struct, UClass* Class)
+{
+	for (TFieldIterator<UProperty> FieldIt(Struct, EFieldIteratorFlags::IncludeSuper); FieldIt; ++FieldIt)
+	{
+		UProperty* Prop = *FieldIt;
+		CheckForBadScalableFloats_Prop_r(Data, Prop, Class);
+		
+	}
+
+	return false;
+}
+
+// -------------
+
+static bool FindClassesWithScalableFloat_r(const TArray<FString>& Args, UStruct* Struct, UClass* Class);
+
+static bool FindClassesWithScalableFloat_Prop_r(const TArray<FString>& Args, UProperty* Prop, UClass* Class)
+{
+	UStructProperty* StructProperty = Cast<UStructProperty>(Prop);
+	if (StructProperty)
+	{
+		if (StructProperty->Struct == FScalableFloat::StaticStruct())
+		{
+			return true;
+				
+		}
+		else
+		{
+			return FindClassesWithScalableFloat_r(Args, StructProperty->Struct, Class);
+		}
+	}
+
+	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
+	if (ArrayProperty)
+	{
+		return FindClassesWithScalableFloat_Prop_r(Args, ArrayProperty->Inner, Class);
+	}
+
+	return false;
+}
+
+static bool	FindClassesWithScalableFloat_r(const TArray<FString>& Args, UStruct* Struct, UClass* Class)
+{
+	for (TFieldIterator<UProperty> FieldIt(Struct, EFieldIteratorFlags::ExcludeSuper); FieldIt; ++FieldIt)
+	{
+		UProperty* Prop = *FieldIt;
+		if (FindClassesWithScalableFloat_Prop_r(Args, Prop, Class))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void	FindInvalidScalableFloats(const TArray<FString>& Args)
+{
+	GCurrentBadScalableFloatList.Empty();
+
+	TArray<UClass*>	ClassesWithScalableFloats;
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	{
+		UClass* ThisClass = *ClassIt;
+		if (FindClassesWithScalableFloat_r(Args, ThisClass, ThisClass))
+		{
+			ClassesWithScalableFloats.Add(ThisClass);
+			ABILITY_LOG(Warning, TEXT("Class has scalable float: %s"), *ThisClass->GetName());
+		}
+	}
+
+	for (UClass* ThisClass : ClassesWithScalableFloats)
+	{
+		UObjectLibrary* ObjLibrary = nullptr;
+		TArray<FAssetData> AssetDataList;
+		TArray<FString> Paths;
+		Paths.Add(TEXT("/Game/"));
+
+		{
+			FString PerfMessage = FString::Printf(TEXT("Loading %s via ObjectLibrary"), *ThisClass->GetName() );
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+			ObjLibrary = UObjectLibrary::CreateLibrary(ThisClass, true, true);
+
+			ObjLibrary->LoadBlueprintAssetDataFromPaths(Paths, true);
+			ObjLibrary->LoadAssetsFromAssetData();
+			ObjLibrary->GetAssetDataList(AssetDataList);
+
+			ABILITY_LOG( Warning, TEXT("Found: %d %s assets."), AssetDataList.Num(), *ThisClass->GetName());
+		}
+
+
+		for (FAssetData Data: AssetDataList)
+		{
+			UPackage* ThisPackage = Data.GetPackage();
+			UBlueprint* ThisBlueprint =  CastChecked<UBlueprint>(Data.GetAsset());
+			UClass* AssetClass = ThisBlueprint->GeneratedClass;
+			UObject* ThisCDO = AssetClass->GetDefaultObject();		
+		
+			FString PathName = ThisCDO->GetName();
+			PathName.RemoveFromStart(TEXT("Default__"));
+
+			GCurrentBadScalableFloat.Asset = ThisCDO;
+			
+						
+			//ABILITY_LOG( Warning, TEXT("Asset: %s "), *PathName	);
+			CheckForBadScalableFloats_r(ThisCDO, AssetClass, AssetClass);
+		}
+	}
+
+
+	ABILITY_LOG( Error, TEXT(""));
+	ABILITY_LOG( Error, TEXT(""));
+
+	for ( FBadScalableFloat& BadFoo : GCurrentBadScalableFloatList)
+	{
+		ABILITY_LOG( Error, TEXT("%s. %s. %s"), *BadFoo.Asset->GetFullName(), *BadFoo.Property->GetFullName(), *BadFoo.String );
+
+	}
+
+	ABILITY_LOG( Error, TEXT(""));
+	ABILITY_LOG( Error, TEXT("%d Errors total"), GCurrentBadScalableFloatList.Num() );
+}
+
+FAutoConsoleCommand FindInvalidScalableFloatsCommand(
+	TEXT("FindInvalidScalableFloats"), 
+	TEXT( "Searches for invalid scalable floats in all assets. Warning this is slow!" ), 
+	FConsoleCommandWithArgsDelegate::CreateStatic(FindInvalidScalableFloats)
+);
+
+#endif

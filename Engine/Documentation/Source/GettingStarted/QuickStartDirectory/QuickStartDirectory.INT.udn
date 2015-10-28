@@ -2,6 +2,7 @@ Availability:Public
 Title:Unreal Engine 4 Quick Start Directory
 Crumbs: %ROOT%, GettingStarted
 Description:All of the quick start guides available to help you get started with Unreal Engine, at a glance.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

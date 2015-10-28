@@ -36,6 +36,15 @@ FCrashProperty& FCrashProperty::operator=(const FString& NewValue)
 	return *this;
 }
 
+FCrashProperty& FCrashProperty::operator=(const TCHAR* NewValue)
+{
+	bSet = true;
+	CachedValue = NewValue;
+	Owner->SetCrashProperty( MainCategory, SecondCategory, CachedValue );
+	return *this;
+}
+
+
 FCrashProperty& FCrashProperty::operator=(const TArray<FString>& NewValue)
 {
 	bSet = true;
@@ -43,6 +52,7 @@ FCrashProperty& FCrashProperty::operator=(const TArray<FString>& NewValue)
 	Owner->SetCrashProperty( MainCategory, SecondCategory, CachedValue );
 	return *this;
 }
+
 
 FCrashProperty& FCrashProperty::operator=(const bool NewValue)
 {
@@ -121,7 +131,7 @@ void FPrimaryCrashProperties::Shutdown()
 
 void FPrimaryCrashProperties::UpdateIDs()
 {
-	const bool bAddPersonalData = FCrashReportClientConfig::Get().GetAllowToBeContacted();
+	const bool bAddPersonalData = FCrashReportClientConfig::Get().GetAllowToBeContacted() || FEngineBuildSettings::IsInternalBuild();
 	bAllowToBeContacted = bAddPersonalData;
 	if (bAddPersonalData)
 	{
@@ -134,7 +144,7 @@ void FPrimaryCrashProperties::UpdateIDs()
 	}
 
 	// Add real user name only if log files were allowed since the user name is in the log file and the user consented to sending this information.
-	const bool bSendUserName = FCrashReportClientConfig::Get().GetSendLogFile();
+	const bool bSendUserName = FCrashReportClientConfig::Get().GetSendLogFile() || FEngineBuildSettings::IsInternalBuild();
 	if (bSendUserName)
 	{
 		// Remove periods from user names to match AutoReporter user names

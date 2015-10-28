@@ -1388,8 +1388,16 @@ void UPrimitiveComponent::InitSweepCollisionParams(FCollisionQueryParams &OutPar
 	OutParams.bTraceAsyncScene = bCheckAsyncSceneOnMove;
 	OutParams.bTraceComplex = bTraceComplexOnMove;
 	OutParams.bReturnPhysicalMaterial = bReturnMaterialOnMove;
+	OutParams.IgnoreMask = GetMoveIgnoreMask();
 }
 
+void UPrimitiveComponent::SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask)
+{
+	if (ensure(InMoveIgnoreMask < 16)) // TODO: don't assert, and make this a nicer exposed value.
+	{
+		MoveIgnoreMask = InMoveIgnoreMask;
+	}
+}
 
 FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 {
@@ -2368,8 +2376,9 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					TArray<FOverlapResult> Overlaps;
 					// note this will optionally include overlaps with components in the same actor (depending on bIgnoreChildren). 
 					FComponentQueryParams Params(PrimitiveComponentStatics::UpdateOverlapsName, bIgnoreChildren ? MyActor : nullptr);
-					Params.bTraceAsyncScene = bCheckAsyncSceneOnMove;
-					Params.AddIgnoredActors(MoveIgnoreActors);
+					Params.bIgnoreBlocks = true;	//We don't care about blockers since we only route overlap events to real overlaps
+					FCollisionResponseParams ResponseParam;
+					InitSweepCollisionParams(Params, ResponseParam);
 					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentQuat(), Params);
 
 					for( int32 ResultIdx=0; ResultIdx<Overlaps.Num(); ResultIdx++ )
@@ -2377,7 +2386,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 						const FOverlapResult& Result = Overlaps[ResultIdx];
 
 						UPrimitiveComponent* const HitComp = Result.Component.Get();
-						if (!Result.bBlockingHit && HitComp && (HitComp != this) && HitComp->bGenerateOverlapEvents)
+						if (HitComp && (HitComp != this) && HitComp->bGenerateOverlapEvents)
 						{
 							if (!ShouldIgnoreOverlapResult(MyWorld, MyActor, *this, Result.GetActor(), *HitComp))
 							{

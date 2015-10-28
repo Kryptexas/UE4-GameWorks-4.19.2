@@ -24,21 +24,21 @@ void UMovieScene3DConstraintTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieScene3DConstraintTrack::HasSection( UMovieSceneSection* Section ) const
+bool UMovieScene3DConstraintTrack::HasSection(const UMovieSceneSection& Section) const
 {
-	return ConstraintSections.Find( Section ) != INDEX_NONE;
+	return ConstraintSections.Contains(&Section);
 }
 
 
-void UMovieScene3DConstraintTrack::AddSection( UMovieSceneSection* Section )
+void UMovieScene3DConstraintTrack::AddSection(UMovieSceneSection& Section)
 {
-	ConstraintSections.Add( Section );
+	ConstraintSections.Add(&Section);
 }
 
 
-void UMovieScene3DConstraintTrack::RemoveSection( UMovieSceneSection* Section )
+void UMovieScene3DConstraintTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	ConstraintSections.Remove( Section );
+	ConstraintSections.Remove(&Section);
 }
 
 

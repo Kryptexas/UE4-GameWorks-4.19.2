@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2701609
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ペルソナ：スケルタルメッシュのアニメーション
 Crumbs: %ROOT%, Engine
 Description:キーフレーム アニメーション データとモーフ ターゲットに基いてスケルタル メッシュを変形するシステム
 Navigation:topic
+parent:Engine
+order:3
 
 [VAR:Topic]
 [OBJECT:Topic]

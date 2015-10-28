@@ -313,3 +313,21 @@ struct FSlotNodeWeightInfo
 		TotalNodeWeight = 0.f;
 	}
 };
+
+USTRUCT()
+struct FMarkerSyncData
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Authored Sync markers */
+	UPROPERTY()
+	TArray<FAnimSyncMarker>		AuthoredSyncMarkers;
+
+	/** List of Unique marker names in this animation sequence */
+	TArray<FName>				UniqueMarkerNames;
+
+	void GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float SequenceLength) const;
+	FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime, float SequenceLength) const;
+	void CollectUniqueNames();
+	void CollectMarkersInRange(float PrevPosition, float NewPosition, TArray<FPassedMarker>& OutMarkersPassedThisTick, float TotalDeltaMove);
+};

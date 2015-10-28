@@ -107,10 +107,8 @@ static int32 SetDecedentMobility(USceneComponent const* SceneComponentObject, EC
 	if (SCSNode != NULL)
 	{
 		// gather children from the SCSNode
-		for (int32 ChildIndex = 0; ChildIndex < SCSNode->ChildNodes.Num(); ++ChildIndex)
+		for (USCS_Node* SCSChild : SCSNode->GetChildNodes())
 		{
-			USCS_Node* SCSChild = SCSNode->ChildNodes[ChildIndex];
-
 			USceneComponent* ChildSceneComponent = Cast<USceneComponent>(SCSChild->ComponentTemplate);
 			if (ChildSceneComponent != NULL)
 			{
@@ -343,6 +341,13 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 	SCOPE_CYCLE_COUNTER(STAT_UpdateComponentToWorld);
 	FScopeCycleCounterUObject ComponentScope(this);
 
+#if ENABLE_NAN_DIAGNOSTIC
+	if (RelativeRotationQuat.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("USceneComponent:UpdateComponentToWorldWithParent found NaN in parameter RelativeRotationQuat: %s"), *RelativeRotationQuat.ToString());
+	}
+#endif
+
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
 	if (Parent && !Parent->bWorldToComponentUpdated)
 	{
@@ -364,10 +369,18 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_XForm);
 		// Calculate the new ComponentToWorld transform
 		const FTransform RelativeTransform(RelativeRotationQuat, RelativeLocation, RelativeScale3D);
+#if ENABLE_NAN_DIAGNOSTIC
+		if (!RelativeTransform.IsValid())
+		{
+			logOrEnsureNanError(TEXT("USceneComponent:UpdateComponentToWorldWithParent found NaN/INF in new RelativeTransform: %s"), *RelativeTransform.ToString());
+		}
+#endif
 		NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent, SocketName);
 	}
 
+#if DO_CHECK
 	ensure(NewTransform.IsValid());
+#endif
 
 	// If transform has changed..
 	bool bHasChanged;
@@ -447,25 +460,32 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 			UpdateBounds();
 		}
 
-		// Call OnUpdateTransform if this components wants it
-		if(bWantsOnUpdateTransform)
+		// If registered, tell subsystems about the change in transform
+		if(bRegistered)
 		{
-			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_OnUpdateTransform);
-			OnUpdateTransform(bSkipPhysicsMove, Teleport);
-		}
+			// Call OnUpdateTransform if this components wants it
+			if(bWantsOnUpdateTransform)
+			{
+				//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_OnUpdateTransform);
+				OnUpdateTransform(bSkipPhysicsMove, Teleport);
+			}
 
-		// Flag render transform as dirty
-		MarkRenderTransformDirty();
+			// Flag render transform as dirty
+			MarkRenderTransformDirty();
+		}
 		
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_UpdateChildTransforms);
 			// Now go and update children
 			//Do not pass skip physics to children. This is only used when physics updates us, but in that case we really do need to update the attached children since they are kinematic
-			UpdateChildTransforms(false, Teleport);
+			if (AttachChildren.Num() > 0)
+			{
+				UpdateChildTransforms(false, Teleport);
+			}
 		}
 
 		// Refresh navigation
-		if (bNavigationRelevant)
+		if (bNavigationRelevant && bRegistered)
 		{
 			UpdateNavigationData();
 		}
@@ -482,9 +502,14 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_UpdateChildTransforms);
 			// Now go and update children
-			UpdateChildTransforms();
+			if (AttachChildren.Num() > 0)
+			{
+				UpdateChildTransforms();
+			}
 		}
 
+		// If registered, tell subsystems about the change in transform
+		if (bRegistered)
 		{
 			//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate_MarkRenderTransformDirty);
 			// Need to flag as dirty so new bounds are sent to render thread
@@ -767,8 +792,15 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 	bool NaN = NewRotation.ContainsNaN();
 	if (NaN)
 	{
-		UE_LOG(LogBlueprint, Error, TEXT("USceneComponent::SetRelativeLocationAndRotation contains NaN is NewRotation. %s "), *GetNameSafe( GetOwner() ) );
-		ensure(!GEnsureOnNANDiagnostic);
+		logOrEnsureNanError(TEXT("USceneComponent::SetRelativeLocationAndRotation contains NaN is NewRotation. %s "), *GetNameSafe(GetOwner()));
+	}
+	if (GEnsureOnNANDiagnostic)
+	{
+		const bool bIsNormalized = NewRotation.IsNormalized();
+		if (!bIsNormalized)
+		{
+			UE_LOG(LogSceneComponent, Warning, TEXT("USceneComponent::SetRelativeLocationAndRotation has unnormalized NewRotation (%s). %s"), *NewRotation.ToString(), *GetNameSafe(GetOwner()));
+		}
 	}
 #else
 	bool NaN = false;
@@ -1361,8 +1393,7 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 #if ENABLE_NAN_DIAGNOSTIC
 					if (SocketTransform.ContainsNaN())
 					{
-						UE_LOG(LogSceneComponent, Error, TEXT("Attaching particle to SocketTransform that contains NaN, earlying out"));
-						ensure(!GEnsureOnNANDiagnostic);
+						logOrEnsureNanError(TEXT("Attaching particle to SocketTransform that contains NaN, earlying out"));
 						return false;
 					}
 #endif
@@ -1370,8 +1401,7 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 #if ENABLE_NAN_DIAGNOSTIC
 					if (RelativeTM.ContainsNaN())
 					{
-						UE_LOG(LogSceneComponent, Error, TEXT("Attaching particle to RelativeTM that contains NaN, earlying out"));
-						ensure(!GEnsureOnNANDiagnostic);
+						logOrEnsureNanError(TEXT("Attaching particle to RelativeTM that contains NaN, earlying out"));
 						return false;
 					}
 #endif
@@ -1595,12 +1625,23 @@ void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, ETeleportType
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateChildTransforms);
 
+#if ENABLE_NAN_DIAGNOSTIC
+	if (!ComponentToWorld.IsValid())
+	{
+		logOrEnsureNanError(TEXT("USceneComponent::UpdateChildTransforms found NaN/INF in ComponentToWorld: %s"), *ComponentToWorld.ToString());
+	}
+#endif
+
 	for(int32 i=0; i<AttachChildren.Num(); i++)
 	{
 		USceneComponent* ChildComp = AttachChildren[i];
-		if(ChildComp != NULL)
+		if (ChildComp != NULL)
 		{
-			ChildComp->UpdateComponentToWorld(bSkipPhysicsMove, Teleport);
+			// Don't update the child if it uses a completely absolute (world-relative) scheme, unless it has never been updated.
+			if (!(ChildComp->bAbsoluteLocation && ChildComp->bAbsoluteRotation && ChildComp->bAbsoluteScale) || !ChildComp->bWorldToComponentUpdated)
+			{
+				ChildComp->UpdateComponentToWorld(bSkipPhysicsMove, Teleport);
+			}
 		}
 	}
 }
@@ -1936,6 +1977,14 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	checkSlow(bWorldToComponentUpdated);
 	FQuat NewRotationQuat(RotationQuat);
 
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRotationQuat.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("USceneComponent:InternalSetWorldLocationAndRotation found NaN in NewRotationQuat: %s"), *NewRotationQuat.ToString());
+		NewRotationQuat = FQuat::Identity;
+	}
+#endif
+
 	// If attached to something, transform into local space
 	if (AttachParent != NULL)
 	{
@@ -1957,6 +2006,14 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	{
 		RelativeLocation = NewLocation;
 		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes quat, if this is a new rotation. Then we'll use it below.
+		
+#if ENABLE_NAN_DIAGNOSTIC
+		if (RelativeRotation.ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("USceneComponent:InternalSetWorldLocationAndRotation found NaN in RelativeRotation: %s"), *RelativeRotation.ToString());
+			RelativeRotation = FRotator::ZeroRotator;
+		}
+#endif
 		UpdateComponentToWorldWithParent(AttachParent,AttachSocketName, bNoPhysics, RelativeRotationCache.GetCachedQuat(), Teleport);
 
 		// we need to call this even if this component itself is not navigation relevant
@@ -2377,6 +2434,42 @@ bool USceneComponent::CanEditChange( const UProperty* Property ) const
 	return bIsEditable;
 }
 #endif
+
+
+/**
+ * FScopedPreventAttachedComponentMove implementation
+ */
+
+FScopedPreventAttachedComponentMove::~FScopedPreventAttachedComponentMove()
+{
+	if (Owner)
+	{
+		Owner->bAbsoluteLocation = bSavedAbsoluteLocation;
+		Owner->bAbsoluteRotation = bSavedAbsoluteRotation;
+		Owner->bAbsoluteScale = bSavedAbsoluteScale;
+
+		if (bSavedNonAbsoluteComponent && Owner->GetAttachParent())
+		{
+			// Need to keep RelativeLocation/Rotation/Scale in sync. ComponentToWorld() will remain correct because child isn't moving.
+			const FTransform ParentToWorld = Owner->GetAttachParent()->GetSocketTransform(Owner->GetAttachSocketName());
+			const FTransform ChildRelativeTM = Owner->ComponentToWorld.GetRelativeTransform(ParentToWorld);
+
+			if (!bSavedAbsoluteLocation)
+			{
+				Owner->RelativeLocation = ChildRelativeTM.GetTranslation();
+			}
+			if (!bSavedAbsoluteRotation)
+			{
+				Owner->RelativeRotation = ChildRelativeTM.GetRotation().Rotator();
+			}
+			if (!bSavedAbsoluteScale)
+			{
+				Owner->RelativeScale3D = ChildRelativeTM.GetScale3D();
+			}
+		}
+	}
+}
+
 
 /**
  * FScopedMovementUpdate implementation

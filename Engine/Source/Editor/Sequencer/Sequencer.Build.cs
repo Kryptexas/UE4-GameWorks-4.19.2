@@ -6,7 +6,12 @@ public class Sequencer : ModuleRules
 {
 	public Sequencer(TargetInfo Target)
 	{
-		PrivateIncludePaths.Add("Editor/Sequencer/Private");
+		PrivateIncludePaths.AddRange(
+            new string[] {
+                "Editor/Sequencer/Private",
+                "Editor/Sequencer/Private/DisplayNodes",
+            }
+        );
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -22,6 +27,7 @@ public class Sequencer : ModuleRules
 				"MovieSceneTracks", 
 				"MovieSceneTools", 
 				"MovieSceneCapture", 
+                "MovieSceneCaptureDialog", 
 				"EditorWidgets", 
 				"SequencerWidgets",
 				"BlueprintGraph",

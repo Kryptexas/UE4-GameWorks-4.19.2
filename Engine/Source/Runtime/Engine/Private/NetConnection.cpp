@@ -24,6 +24,10 @@ static TAutoConsoleVariable<int32> CVarPingExcludeFrameTime( TEXT( "net.PingExcl
 static TAutoConsoleVariable<int32> CVarPingDisplayServerTime( TEXT( "net.PingDisplayServerTime" ), 0, TEXT( "Show server frame time" ) );
 #endif
 
+DECLARE_CYCLE_STAT(TEXT("NetConnection SendAcks"), Stat_NetConnectionSendAck, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("NetConnection Tick"), Stat_NetConnectionTick, STATGROUP_Net);
+
+
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
 -----------------------------------------------------------------------------*/
@@ -62,6 +66,10 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	CumulativeTime		( 0 )
 ,	AverageFrameTime	( 0 )
 ,	CountedFrames		( 0 )
+,	InBytes				( 0 )
+,	OutBytes			( 0 )
+,	InBytesPerSecond	( 0 )
+,	OutBytesPerSecond	( 0 )
 
 ,	SendBuffer			( 0 )
 ,	InPacketId			( -1 )
@@ -227,7 +235,7 @@ void UNetConnection::Close()
 {
 	if (Driver != NULL && State != USOCK_Closed)
 	{
-		NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("CLOSE"), *(GetName() + TEXT(" ") + LowLevelGetRemoteAddress())));
+		NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("CLOSE"), *(GetName() + TEXT(" ") + LowLevelGetRemoteAddress()), this));
 		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: %s, Channels: %i, Time: %s"), *Describe(), OpenChannels.Num(), *FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 
 		if (Channels[0] != NULL)
@@ -1169,6 +1177,8 @@ void UNetConnection::PurgeAcks()
 
 void UNetConnection::SendAck(int32 AckPacketId, bool FirstTime/*=1*/)
 {
+	SCOPE_CYCLE_COUNTER(Stat_NetConnectionSendAck);
+
 	ValidateSendBuffer();
 
 	if( !InternalAck )
@@ -1199,7 +1209,7 @@ void UNetConnection::SendAck(int32 AckPacketId, bool FirstTime/*=1*/)
 		AckData.WriteBit( 0 );
 #endif
 
-		NETWORK_PROFILER( GNetworkProfiler.TrackSendAck( AckData.GetNumBits() ) );
+		NETWORK_PROFILER( GNetworkProfiler.TrackSendAck( AckData.GetNumBits(), this ) );
 
 		WriteBitsToSendBuffer( AckData.GetData(), AckData.GetNumBits(), nullptr, 0, EWriteBitsDataType::Ack );
 
@@ -1364,6 +1374,8 @@ float UNetConnection::GetTimeoutValue()
 
 void UNetConnection::Tick()
 {
+	SCOPE_CYCLE_COUNTER(Stat_NetConnectionTick);
+
 	AssertValid();
 
 	// Lag simulation.
@@ -1425,6 +1437,9 @@ void UNetConnection::Tick()
 			AvgLag = LagAcc/LagCount;
 		}
 		BestLag = AvgLag;
+
+		InBytesPerSecond = FMath::TruncToInt(static_cast<float>(InBytes) / RealTime);
+		OutBytesPerSecond = FMath::TruncToInt(static_cast<float>(OutBytes) / RealTime);
 
 		// Init counters.
 		LagAcc = 0;

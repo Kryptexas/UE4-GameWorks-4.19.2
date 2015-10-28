@@ -414,6 +414,12 @@ void FUnrealEdMisc::OnInit()
 	{
 		FMessageLogInitializationOptions InitOptions;
 		InitOptions.bShowFilters = true;
+		MessageLogModule.RegisterLogListing("AssetCheck", LOCTEXT("AssetCheckLog", "Asset Check"), InitOptions);
+	}
+
+	{
+		FMessageLogInitializationOptions InitOptions;
+		InitOptions.bShowFilters = true;
 		MessageLogModule.RegisterLogListing("SlateStyleLog", LOCTEXT("SlateStyleLog", "Slate Style Log"), InitOptions );
 	}
 	FCompilerResultsLog::Register();

@@ -1146,6 +1146,7 @@ void UEngine::DumpFPSChartToAnalyticsParams(float TotalTime, float DeltaTime, in
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("BuildType"), EBuildConfigurations::ToString(FApp::GetBuildConfiguration())));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("DateStamp"), FDateTime::Now().ToString()));
 
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), FString::Printf(TEXT("%s"), FPlatformProperties::PlatformName())));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("OS"), FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor)));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU"), FString::Printf(TEXT("%s %s"), *FPlatformMisc::GetCPUVendor(), *FPlatformMisc::GetCPUBrand())));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPU"), FPlatformMisc::GetPrimaryGPUBrand()));

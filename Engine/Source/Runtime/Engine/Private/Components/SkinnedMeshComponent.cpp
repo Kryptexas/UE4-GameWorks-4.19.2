@@ -191,8 +191,6 @@ namespace FAnimUpdateRateManager
 
 	void AnimUpdateRateTick(FAnimUpdateRateParametersTracker* Tracker, float DeltaTime, bool bNeedsValidRootMotion)
 	{
-		const float RecentlyRenderedTime = (Tracker->RegisteredComponents[0]->GetWorld()->TimeSeconds - 1.f);
-
 		// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
 		bool bRecentlyRendered = false;
 		bool bPlayingRootMotion = false;
@@ -203,7 +201,7 @@ namespace FAnimUpdateRateManager
 
 		for (USkinnedMeshComponent* Component : SkinnedComponents)
 		{
-			bRecentlyRendered |= (Component->LastRenderTime > RecentlyRenderedTime);
+			bRecentlyRendered |= Component->bRecentlyRendered;
 			MaxDistanceFactor = FMath::Max(MaxDistanceFactor, Component->MaxDistanceFactor);
 			bPlayingRootMotion |= Component->IsPlayingRootMotion();
 			bUsingRootMotionFromEverything &= Component->IsPlayingRootMotionFromEverything();
@@ -952,7 +950,6 @@ FSkeletalMeshResource* USkinnedMeshComponent::GetSkeletalMeshResource() const
 	}
 	else if (SkeletalMesh)
 	{
-		ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
 		return SkeletalMesh->GetResourceForRendering();
 	}
 	else
@@ -2003,6 +2000,7 @@ void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateSh
 
 	bSkipUpdate = ((Counter % UpdateRate) > 0);
 	bSkipEvaluation = ((Counter % EvaluationRate) > 0);
+	check((bSkipEvaluation && bSkipUpdate) || (bSkipEvaluation && !bSkipUpdate) || (!bSkipEvaluation && !bSkipUpdate));
 
 	AdditionalTime = 0.f;
 

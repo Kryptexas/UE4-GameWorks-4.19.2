@@ -17,7 +17,7 @@ FMovieSceneFadeTrackInstance::FMovieSceneFadeTrackInstance(UMovieSceneFadeTrack&
 /* IMovieSceneTrackInstance interface
  *****************************************************************************/
 
-void FMovieSceneFadeTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneFadeTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	// Reset editor preview/fade
 	EMovieSceneViewportParams ViewportParams;
@@ -34,7 +34,7 @@ void FMovieSceneFadeTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 	Player.SetViewportSettings(ViewportParamsMap);
 }
 
-void FMovieSceneFadeTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneFadeTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	FLinearColor FadeColor = FLinearColor::Black;
 	bool bFadeAudio = false;

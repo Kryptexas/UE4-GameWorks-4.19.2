@@ -241,6 +241,9 @@ class ENGINE_API APlayerController : public AController
 
 	/** Is this player currently in cinematic mode?  Prevents rotation/movement/firing/etc */
 	uint32 bCinematicMode:1;
+	
+	/** When cinematic mode is true, signifies that this controller's pawn should be hidden */
+	uint32 bHidePawnInCinematicMode:1;
 
 	/** Whether this controller is using streaming volumes.  **/
 	uint32 bIsUsingStreamingVolumes:1;

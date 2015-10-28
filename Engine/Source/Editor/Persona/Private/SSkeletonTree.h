@@ -36,7 +36,8 @@ namespace EBoneFilter
 	{
 		All,
 		Mesh,
-		Weighted,
+		LOD, 
+		Weighted, /** only showing weighted bones of current LOD */
 		None,
 		Count
 	};
@@ -161,6 +162,9 @@ public:
 
 	virtual ~FDisplayedMeshBoneInfo() {}
 
+	/** Cache to use Bold Font or not */
+	void CacheLODChange(UDebugSkelMeshComponent* PreviewComponent);
+
 protected:
 	/** Hidden constructor, always use Make above */
 	FDisplayedMeshBoneInfo(const FName& InSource)
@@ -172,16 +176,23 @@ protected:
 
 private:
 	/** Gets the font for displaying bone text in the skeletal tree */
-	FSlateFontInfo GetBoneTextFont( UDebugSkelMeshComponent* PreviewComponent ) const;
+	FSlateFontInfo GetBoneTextFont() const;
 
 	/** Get the text color based on bone part of skeleton or part of mesh */
-	FLinearColor GetBoneTextColor( UDebugSkelMeshComponent* PreviewComponent ) const;
+	FSlateColor GetBoneTextColor() const;
+
+	/** visibility of the icon */
+	EVisibility GetLODIconVisibility() const;
 
 	/** Function that returns the current tooltip for this bone, depending on how it's used by the mesh */
 	FText GetBoneToolTip();
 
 	/** The actual bone data that we create Slate widgets to display */
 	FName BoneName;
+
+	/** use bold font */
+	bool bUseBoldFont;
+	bool bUseWhiteColor;
 
 	/** Create menu for Bone Translation Retargeting Mode. */
 	TSharedRef< SWidget > CreateBoneTranslationRetargetingModeMenu();
@@ -412,6 +423,7 @@ public:
 
 	/** Returns true if a bone has vertices weighted against it */
 	bool IsBoneWeighted( int32 MeshBoneIndex, UDebugSkelMeshComponent* PreviewComponent ) const;
+	bool IsBoneRequired(int32 MeshBoneIndex, UDebugSkelMeshComponent* PreviewComponent) const;
 
 	/** Called when the preview mesh is changed - simply rebuilds the skeleton tree for the new mesh */
 	void OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh);
@@ -431,19 +443,24 @@ public:
 	/** Set Bone Translation Retargeting Mode for bone selection, and their children. */
 	void SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
 
-	/** Remove the selected bones from LOD of LODIndex when using simplygon **/
-	void RemoveFromLOD(int32 LODIndex);
-	/** Add the selected bones to LOD of LODIndex when using simplygon **/
-	void AddToLOD(int32 LODIndex);
-
 	/** Sets a scale on the current blend profile */
 	void SetBlendProfileBoneScale(int32 InBoneIndex, float InNewScale, bool bRecurse);
 
 	/** Gets a scale from the currently selected blend profile */
 	float GetBlendProfileBoneScale(int32 InBoneIndex);
 
+	/** Remove the selected bones from LOD of LODIndex when using simplygon **/
+	void RemoveFromLOD(int32 LODIndex, bool bIncludeSelected, bool bIncludeBelowLODs);
+
+	/** Called when the preview mesh is changed - simply rebuilds the skeleton tree for the new mesh */
+	void OnLODSwitched();
+
 	/** Gets the currently selected blend profile */
 	UBlendProfile* GetSelectedBlendProfile();
+
+	/** Used by Skeleton Tree View */
+	FSlateFontInfo BoldFont;
+	FSlateFontInfo RegularFont;
 
 private:
 	/** Binds the commands in FSkeletonTreeCommands to functions in this class */
@@ -590,6 +607,9 @@ private:
 	/** Sets the blend scale for the selected bones and all of their children */
 	void RecursiveSetBlendProfileScales(float InScaleToSet);
 
+	/** Submenu creator handler for the given skeleton */
+	static void CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, int32 LODIndex, bool bIncludeSelected);
+
 private:
 	/** Pointer back to the kismet 2 tool that owns us */
 	TWeakPtr<FPersona> PersonaPtr;
@@ -639,4 +659,7 @@ private:
 
 	/** String used as a header for text based copy-paste of sockets */
 	static const FString SocketCopyPasteHeader;
+
+	/** Last Cached Preview Mesh Component LOD */
+	int32 LastCachedLODForPreviewMeshComponent;
 }; 

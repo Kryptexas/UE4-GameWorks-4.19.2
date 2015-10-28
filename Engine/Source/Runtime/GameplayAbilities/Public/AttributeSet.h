@@ -214,6 +214,14 @@ public:
 		return FString::Printf(TEXT("%.2f"), Value);
 	}
 
+	bool IsValid() const
+	{
+		// Error checking: checks if we have a curve table specified but no valid curve entry
+		GetValueAtLevel(1.f);
+		bool bInvalid = (Curve.CurveTable != nullptr && FinalCurve == nullptr);
+		return !bInvalid;
+	}
+
 	/** Equality/Inequality operators */
 	bool operator==(const FScalableFloat& Other) const;
 	bool operator!=(const FScalableFloat& Other) const;

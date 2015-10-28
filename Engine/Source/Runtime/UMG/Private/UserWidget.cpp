@@ -844,7 +844,7 @@ void UUserWidget::ListenForInputAction( FName ActionName, TEnumAsByte< EInputEve
 		}
 		else
 		{
-			FMessageLog( "PIE" ).Error( LOCTEXT( "GameNull", "Unable to listen to input actions without a player controller." ) );
+			FMessageLog("PIE").Info(FText::Format(LOCTEXT("NoInputListeningWithoutPlayerController", "Unable to listen to input actions without a player controller in {0}."), FText::FromName(GetClass()->GetFName())));
 		}
 	}
 
@@ -934,7 +934,10 @@ void UUserWidget::OnInputAction( FOnInputAction Callback )
 
 void UUserWidget::NativePaint( FPaintContext& InContext ) const
 {
-	OnPaint( InContext );
+	if ( bCanEverPaint )
+	{
+		OnPaint( InContext );
+	}
 }
 
 bool UUserWidget::NativeIsInteractable() const

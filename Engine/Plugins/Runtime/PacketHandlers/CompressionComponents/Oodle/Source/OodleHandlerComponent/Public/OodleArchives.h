@@ -5,8 +5,11 @@
 #if HAS_OODLE_SDK
 #include "ArchiveBase.h"
 
-#define CAPTURE_HEADER_MAGIC 0x41091CC4
-#define CAPTURE_FILE_VERSION 0x0001
+#define CAPTURE_HEADER_MAGIC	0x41091CC4
+#define CAPTURE_FILE_VERSION	0x00000001
+
+#define DICTIONARY_HEADER_MAGIC	0x1B1BACD4
+#define DICTIONARY_FILE_VERSION	0x00000001
 
 
 // @todo #JohnB: Add to the header, whether the capture file is an input or output capture type,
@@ -15,34 +18,21 @@
 
 
 /**
- * Archive for handling packet capture (.ucap) files
+ * @todo #JohnB
  */
-class FPacketCaptureArchive : public FArchiveProxy
+class FOodleArchiveBase : public FArchiveProxy
 {
 protected:
-	/** Capture file format version */
-	uint32 CaptureVersion;
-
 	/** Whether or not to flush immediately */
 	bool bImmediateFlush;
-
 
 public:
 	/**
 	 * Base constructor
 	 */
-	FPacketCaptureArchive(FArchive& InInnerArchive, bool bInDeleteInner=false)
+	FOodleArchiveBase(FArchive& InInnerArchive)
 		: FArchiveProxy(InInnerArchive)
 	{
-		if (IsSaving())
-		{
-			CaptureVersion = CAPTURE_FILE_VERSION;
-		}
-		else
-		{
-			CaptureVersion = 0;
-		}
-
 		bImmediateFlush = FParse::Param(FCommandLine::Get(), TEXT("FORCELOGFLUSH"));
 	}
 
@@ -52,6 +42,34 @@ public:
 	void DeleteInnerArchive()
 	{
 		delete (FArchive*)&InnerArchive;
+	}
+};
+
+
+/**
+ * Archive for handling packet capture (.ucap) files
+ */
+class FPacketCaptureArchive : public FOodleArchiveBase
+{
+protected:
+	/** Capture file format version */
+	uint32 CaptureVersion;
+
+public:
+	/**
+	 * Base constructor
+	 */
+	FPacketCaptureArchive(FArchive& InInnerArchive)
+		: FOodleArchiveBase(InInnerArchive)
+	{
+		if (IsSaving())
+		{
+			CaptureVersion = CAPTURE_FILE_VERSION;
+		}
+		else
+		{
+			CaptureVersion = 0;
+		}
 	}
 
 
@@ -77,6 +95,34 @@ public:
 	 */
 	void AppendPacketFile(FPacketCaptureArchive& InPacketFile);
 };
+
+
+// @todo #JohnB: Remove once complete
+/*
+	Values to include in header:
+		- Dictionary size (as relating to Oodle API methods)
+		- Hash table size (also relating to Oodle API)
+*/
+
+/**
+ * @todo #JohnB
+ */
+class FOodleDictionaryArchive : public FOodleArchiveBase
+{
+protected:
+	/** Dictionary file format version */
+	uint32 DictionaryVersion;
+
+public:
+	/**
+	 * Base constructor
+	 */
+	FOodleDictionaryArchive(FArchive& InInnerArchive)
+		: FOodleArchiveBase(InInnerArchive)
+	{
+	}
+};
+
 #endif
 
 

@@ -1730,6 +1730,8 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	MacroUVPosition = FVector(0.0f, 0.0f, 0.0f);
 
 	MacroUVRadius = 200.0f;
+	bAutoDeactivate = false;
+	MinTimeBetweenTicks = 0;
 }
 
 
@@ -2760,6 +2762,8 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	bWantsOnUpdateTransform = false;
 
 	SavedAutoAttachRelativeScale3D = FVector(1.f, 1.f, 1.f);
+	bAllEmittersFinished = false;
+	TimeSinceLastTick = 0;
 }
 
 #if WITH_EDITOR
@@ -2934,11 +2938,11 @@ void UParticleSystemComponent::OnRegister()
 				AttachParent = nullptr;
 				AttachSocketName = NAME_None;
 			}
-
-			SavedAutoAttachRelativeLocation = RelativeLocation;
-			SavedAutoAttachRelativeRotation = RelativeRotation;
-			SavedAutoAttachRelativeScale3D = RelativeScale3D;
 		}
+
+		SavedAutoAttachRelativeLocation = RelativeLocation;
+		SavedAutoAttachRelativeRotation = RelativeRotation;
+		SavedAutoAttachRelativeScale3D = RelativeScale3D;
 	}
 
 	Super::OnRegister();
@@ -3715,6 +3719,22 @@ public:
 
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	if( Template == nullptr)
+	{
+		return;
+	}
+	// control tick rate
+	// don't tick if enough time hasn't passed
+	if (TimeSinceLastTick + static_cast<uint32>(DeltaTime*1000.0f) < Template->MinTimeBetweenTicks)
+	{
+		TimeSinceLastTick += static_cast<uint32>(DeltaTime*1000.0f);
+		return;
+	}
+	// if enough time has passed, and some of it in previous frames, need to take that into account for DeltaTime
+	DeltaTime += TimeSinceLastTick / 1000.0f;
+	TimeSinceLastTick = 0;
+
+
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	SCOPE_CYCLE_COUNTER(STAT_PSysCompTickTime);
 
@@ -4499,19 +4519,30 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
 		// Auto attach if requested
+		const bool bWasAutoAttached = bDidAutoAttach;
 		bDidAutoAttach = false;
 		if (bAutoManageAttachment)
 		{
 			USceneComponent* NewParent = AutoAttachParent.Get();
 			if (NewParent)
 			{
-				SavedAutoAttachRelativeLocation = RelativeLocation;
-				SavedAutoAttachRelativeRotation = RelativeRotation;
-				SavedAutoAttachRelativeScale3D = RelativeScale3D;
+				const bool bAlreadyAttached = GetAttachParent() && (GetAttachParent() == NewParent) && (GetAttachSocketName() == AutoAttachSocketName) && GetAttachParent()->AttachChildren.Contains(this);
+				if (!bAlreadyAttached)
+				{
+					bDidAutoAttach = bWasAutoAttached;
+					CancelAutoAttachment(true);
+					SavedAutoAttachRelativeLocation = RelativeLocation;
+					SavedAutoAttachRelativeRotation = RelativeRotation;
+					SavedAutoAttachRelativeScale3D = RelativeScale3D;
+					AttachTo(NewParent, AutoAttachSocketName, AutoAttachLocationType);
+				}
 
-				AttachTo(NewParent, AutoAttachSocketName, AutoAttachLocationType);
 				bDidAutoAttach = true;
 				bFlagAsJustAttached = true;
+			}
+			else
+			{
+				CancelAutoAttachment(true);
 			}
 		}
 
@@ -4568,6 +4599,10 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 
 		// Flag the system as having been activated at least once
 		bHasBeenActivated = true;
+
+
+		// Clear tick time
+		TimeSinceLastTick = 0;
 
 		int32 DesiredLODLevel = 0;
 		bool bCalculateLODLevel = 

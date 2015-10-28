@@ -359,3 +359,8 @@ FPlatformUserId FOnlineIdentityAmazon::GetPlatformUserIdFromUniqueNetId(const FU
 
 	return PLATFORMUSERID_NONE;
 }
+
+FString FOnlineIdentityAmazon::GetAuthType() const
+{
+	return TEXT("");
+}

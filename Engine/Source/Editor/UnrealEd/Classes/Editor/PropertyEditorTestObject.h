@@ -238,6 +238,12 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(VisibleAnywhere, Category=AdvancedProperties)
 	UPrimitiveComponent* ObjectThatCannotBeChanged;
 
+	UPROPERTY(EditAnywhere, Category=AdvancedProperties, meta=(PasswordField=true))
+	FString StringPasswordProperty;
+
+	UPROPERTY(EditAnywhere, Category=AdvancedProperties, meta=(PasswordField=true))
+	FText TextPasswordProperty;
+
 	UPROPERTY(EditAnywhere, Category=SingleStruct, meta=(ShowOnlyInnerProperties))
 	FPropertyEditorTestBasicStruct ThisIsBrokenIfItsVisibleInADetailsView;
 

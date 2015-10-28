@@ -45,7 +45,7 @@ public:
 	{
 		if (VectorContainsNaNOrInfinite(Scale3D))
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized Scale3D contains NaN"));
+			logOrEnsureNanError(TEXT("FTransform Vectorized Scale3D contains NaN"));
 			const_cast<FTransform*>(this)->Scale3D = VectorSet_W0( VectorOne() );
 		}
 	}
@@ -54,7 +54,7 @@ public:
 	{
 		if (VectorContainsNaNOrInfinite(Translation))
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized Translation contains NaN"));
+			logOrEnsureNanError(TEXT("FTransform Vectorized Translation contains NaN"));
 			const_cast<FTransform*>(this)->Translation = VectorZero();
 		}
 	}
@@ -63,7 +63,7 @@ public:
 	{
 		if (VectorContainsNaNOrInfinite(Rotation))
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized Rotation contains NaN"));
+			logOrEnsureNanError(TEXT("FTransform Vectorized Rotation contains NaN"));
 			const_cast<FTransform*>(this)->Rotation = VectorSet_W1( VectorZero() );
 		}
 	}
@@ -80,7 +80,7 @@ public:
 		DiagnosticCheckNaN_All();
 		if (!IsValid())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("FTransform Vectorized transform is not valid: %s"), *ToHumanReadableString());
+			logOrEnsureNanError(TEXT("FTransform Vectorized transform is not valid: %s"), *ToHumanReadableString());
 		}
 		
 	}

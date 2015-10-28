@@ -21,19 +21,19 @@ void UMovieSceneMaterialTrack::RemoveAllAnimationData()
 	Sections.Empty();
 }
 
-bool UMovieSceneMaterialTrack::HasSection( UMovieSceneSection* Section ) const
+bool UMovieSceneMaterialTrack::HasSection(const UMovieSceneSection& Section) const
 {
-	return Sections.Contains( Section );
+	return Sections.Contains(&Section);
 }
 
-void UMovieSceneMaterialTrack::AddSection( UMovieSceneSection* Section )
+void UMovieSceneMaterialTrack::AddSection(UMovieSceneSection& Section)
 {
-	Sections.Add( Section );
+	Sections.Add(&Section);
 }
 
-void UMovieSceneMaterialTrack::RemoveSection( UMovieSceneSection* Section )
+void UMovieSceneMaterialTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	Sections.Remove( Section );
+	Sections.Remove(&Section);
 }
 
 bool UMovieSceneMaterialTrack::IsEmpty() const

@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
+#include "MovieSceneBoolSection.h"
 #include "SBoolCurveKeyEditor.h"
 
 #define LOCTEXT_NAMESPACE "BoolCurveKeyEditor"
@@ -22,7 +23,11 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 {
 	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
-	return !!Curve->Evaluate(CurrentTime) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+
+	UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>(OwningSection);
+	bool bChecked = BoolSection ? BoolSection->Eval(CurrentTime) : Curve->Evaluate(CurrentTime) != 0;
+	
+	return bChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)

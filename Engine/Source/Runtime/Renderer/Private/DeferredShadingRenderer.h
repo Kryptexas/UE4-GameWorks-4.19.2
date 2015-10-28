@@ -11,12 +11,8 @@
 class FLightShaftsOutput
 {
 public:
-	bool bRendered;
+	// 0 if not rendered
 	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusion;
-
-	FLightShaftsOutput() :
-		bRendered(false)
-	{}
 };
 
 /**
@@ -175,10 +171,10 @@ private:
 	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);
 
 	/** Renders the scene's fogging. */
-	bool RenderFog(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput);
+	bool RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput);
 
 	/** Renders the scene's atmosphere. */
-	void RenderAtmosphere(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput);
+	void RenderAtmosphere(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput);
 
 	/** Renders reflections that can be done in a deferred pass. */
 	void RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
@@ -238,7 +234,7 @@ private:
 	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the scene's light shafts */
-	FLightShaftsOutput RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList);
+	void RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput& Output);
 
 	void RenderLightShaftBloom(FRHICommandListImmediate& RHICmdList);
 
@@ -268,7 +264,7 @@ private:
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
 	/** Downsample the scene depth with a specified scale factor to a specified render target*/
-	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor);
+	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor, float MinMaxFilterBlend = 0.0f);
 
 	/** Renders one pass point light shadows. */
 	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);

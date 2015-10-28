@@ -132,6 +132,9 @@ class UBodySetup : public UObject
 	/** Indicates whether this setup has any cooked collision data. */
 	bool bHasCookedCollisionData;
 
+	/** Indicates that we will never use convex or trimesh shapes. This is an optimization to skip checking for binary data. */
+	bool bNeverNeedsCookedCollisionData;
+
 public:
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;

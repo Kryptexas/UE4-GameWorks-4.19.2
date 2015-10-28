@@ -481,17 +481,25 @@ namespace HLODOutliner
 		GEngine->OnHLODLevelsArrayChanged().RemoveAll(this);
 	}
 
-	void SHLODOutliner::ForceViewLODActor(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::ForceViewLODActor()
 	{
 		if (CurrentWorld)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("UndoAction_LODLevelForcedView", "LOD Level Forced View"));
-			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
 
-			if (ActorItem->LODActor.IsValid())
+			// This call came from a context menu
+			auto SelectedItems = TreeView->GetSelectedItems();
+
+			// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+			for (auto SelectedItem : SelectedItems)
 			{
-				ActorItem->LODActor->Modify();
-				ActorItem->LODActor->ToggleForceView();				
+				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
+
+				if (ActorItem->LODActor.IsValid())
+				{
+					ActorItem->LODActor->Modify();
+					ActorItem->LODActor->ToggleForceView();
+				}
 			}
 		}
 	}
@@ -600,96 +608,132 @@ namespace HLODOutliner
 		ForcedLODSliderValue = 0.0f;
 	}
 
-	void SHLODOutliner::CreateHierarchicalVolumeForActor(TSharedRef<ITreeItem> Item)
-	{
-		if (Item->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
+	void SHLODOutliner::CreateHierarchicalVolumeForActor()
+	{		
+		// This call came from a context menu
+		auto SelectedItems = TreeView->GetSelectedItems();
+
+		// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+		for (auto SelectedItem : SelectedItems)
 		{
-			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
+			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 			ALODActor* LODActor = ActorItem->LODActor.Get();
 
 			AHierarchicalLODVolume* Volume = HierarchicalLODUtils::CreateVolumeForLODActor(LODActor, CurrentWorld);
 			check(Volume);
-		}
+		}		
 	}
 
-	void SHLODOutliner::BuildLODActor(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::BuildLODActor()
 	{
 		if (CurrentWorld)
-		{			
-			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
-
-			auto Parent = ActorItem->GetParent();
-
-			ITreeItem::TreeItemType Type = Parent->GetTreeItemType();			
-			if (Type == ITreeItem::HierarchicalLODLevel)
+		{		
+			// This call came from a context menu
+			auto SelectedItems = TreeView->GetSelectedItems();
+			
+			// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+			for (auto SelectedItem : SelectedItems )
 			{
-				FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
-				CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
+				auto Parent = ActorItem->GetParent();
 
-				ResetLODLevelForcing();
-				FullRefresh();
-			}			
-		}
-	}
-
-	void SHLODOutliner::RebuildLODActor(TSharedRef<ITreeItem> Item)
-	{
-		if (CurrentWorld)
-		{
-			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
-
-			auto Parent = ActorItem->GetParent();
-
-			ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
-			if (Type == ITreeItem::HierarchicalLODLevel)
-			{
-				FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
-				ActorItem->LODActor->SetIsDirty(true);
-				CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
-
-				ResetLODLevelForcing();
-				FullRefresh();
+				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+				if (Type == ITreeItem::HierarchicalLODLevel)
+				{
+					FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
+					CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+				}
 			}
+
+			ResetLODLevelForcing();
+			FullRefresh();			
 		}
 	}
 
-	void SHLODOutliner::SelectLODActor(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::RebuildLODActor()
 	{
 		if (CurrentWorld)
 		{
-			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
+			// This call came from a context menu
+			auto SelectedItems = TreeView->GetSelectedItems();
 
-			if (ActorItem->LODActor.IsValid())
+			// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+			for (auto SelectedItem : SelectedItems)
 			{
-				EmptySelection();
-				StartSelection();
-				SelectActorInViewport(ActorItem->LODActor.Get(), 0);
-				EndSelection();
-			}			
+				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
+
+				auto Parent = ActorItem->GetParent();
+
+				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+				if (Type == ITreeItem::HierarchicalLODLevel)
+				{
+					FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
+					ActorItem->LODActor->SetIsDirty(true);
+					CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);			
+				}
+			}
+
+			ResetLODLevelForcing();
+			FullRefresh();
 		}
 	}
 
-	void SHLODOutliner::DeleteCluster(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::SelectLODActor()
+	{
+		if (CurrentWorld)
+		{
+			// This call came from a context menu
+			auto SelectedItems = TreeView->GetSelectedItems();
+
+			// Empty selection and setup for multi-selection
+			EmptySelection();
+			StartSelection();
+
+			// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+			for (auto SelectedItem : SelectedItems)
+			{
+				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
+
+				if (ActorItem->LODActor.IsValid())
+				{				
+					SelectActorInViewport(ActorItem->LODActor.Get(), 0);					
+				}
+			}
+			
+			// Done selecting actors
+			EndSelection();
+		}
+	}
+
+	void SHLODOutliner::DeleteCluster()
 	{
 		const FScopedTransaction Transaction(LOCTEXT("UndoAction_DestroyLODActor", "Delete LOD Actor"));
-		FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
+
+		// This call came from a context menu
+		auto SelectedItems = TreeView->GetSelectedItems();
 		
-		ALODActor* LODActor = ActorItem->LODActor.Get();
-		ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(LODActor);
-
-		LODActor->Modify();
-
-		if (ParentActor)
+		// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+		for (auto SelectedItem : SelectedItems)
 		{
-			ParentActor->Modify();
-		}
+			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 
-		HierarchicalLODUtils::DeleteLODActor(LODActor);
-		CurrentWorld->DestroyActor(LODActor);
+			ALODActor* LODActor = ActorItem->LODActor.Get();
+			ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(LODActor);
 
-		if (ParentActor && !ParentActor->HasValidSubActors())
-		{			
-			DestroyLODActor(ParentActor);
+			LODActor->Modify();
+
+			if (ParentActor)
+			{
+				ParentActor->Modify();
+			}
+
+			HierarchicalLODUtils::DeleteLODActor(LODActor);
+			CurrentWorld->DestroyActor(LODActor);
+
+			if (ParentActor && !ParentActor->HasValidSubActors())
+			{
+				DestroyLODActor(ParentActor);
+			}
 		}
 
 		ResetLODLevelForcing();
@@ -697,75 +741,112 @@ namespace HLODOutliner
 		FullRefresh();
 	}
 
-	void SHLODOutliner::RemoveStaticMeshActorFromCluster(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::RemoveStaticMeshActorFromCluster()
 	{
 		if (CurrentWorld)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("UndoAction_RemoveStaticMeshActorFromCluster", "Removed Static Mesh Actor From Cluster"));
-			FStaticMeshActorItem* ActorItem = (FStaticMeshActorItem*)(&Item.Get());
-			auto Parent = ActorItem->GetParent();
-			
-			ITreeItem::TreeItemType Type = Parent->GetTreeItemType();			
-			if (Type == ITreeItem::HierarchicalLODActor)
+
+			// This call came from a context menu
+			auto SelectedItems = TreeView->GetSelectedItems();
+
+			// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+			for (auto SelectedItem : SelectedItems)
 			{
-				FLODActorItem* ParentLODActorItem = (FLODActorItem*)(Parent.Get());
-				ParentLODActorItem->LODActor->Modify();
-				ActorItem->StaticMeshActor->Modify();
-				ParentLODActorItem->LODActor->RemoveSubActor(ActorItem->StaticMeshActor.Get());
+				FStaticMeshActorItem* ActorItem = (FStaticMeshActorItem*)(SelectedItem.Get());
+				auto Parent = ActorItem->GetParent();
 
-				PendingActions.Emplace(FOutlinerAction::RemoveItem, Item);
-
-				if (!ParentLODActorItem->LODActor->HasValidSubActors())
+				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+				if (Type == ITreeItem::HierarchicalLODActor)
 				{
-					DestroyLODActor(ParentLODActorItem->LODActor.Get());
-					PendingActions.Emplace(FOutlinerAction::RemoveItem, Parent);
+					FLODActorItem* ParentLODActorItem = (FLODActorItem*)(Parent.Get());
+					ParentLODActorItem->LODActor->Modify();
+					ActorItem->StaticMeshActor->Modify();
+					ParentLODActorItem->LODActor->RemoveSubActor(ActorItem->StaticMeshActor.Get());
+
+					PendingActions.Emplace(FOutlinerAction::RemoveItem, SelectedItem);
+
+					if (!ParentLODActorItem->LODActor->HasValidSubActors())
+					{
+						DestroyLODActor(ParentLODActorItem->LODActor.Get());
+						PendingActions.Emplace(FOutlinerAction::RemoveItem, Parent);
+					}
 				}
 			}
 		}
 	}
 
-	void SHLODOutliner::ExcludeFromClusterGeneration(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::ExcludeFromClusterGeneration()
 	{
 		const FScopedTransaction Transaction(LOCTEXT("UndoAction_ExcludeStaticMeshActorFromClusterGeneration", "Excluded StaticMeshActor From Cluster Generation"));
-		FStaticMeshActorItem* ActorItem = (FStaticMeshActorItem*)(&Item.Get());
-		ActorItem->StaticMeshActor->Modify();
-		ActorItem->StaticMeshActor->bEnableAutoLODGeneration = false;
-		RemoveStaticMeshActorFromCluster(Item);		
+		// This call came from a context menu
+		auto SelectedItems = TreeView->GetSelectedItems();
+
+		// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+		for (auto SelectedItem : SelectedItems)
+		{
+			FStaticMeshActorItem* ActorItem = (FStaticMeshActorItem*)(SelectedItem.Get());
+			ActorItem->StaticMeshActor->Modify();
+			ActorItem->StaticMeshActor->bEnableAutoLODGeneration = false;
+			RemoveStaticMeshActorFromCluster();
+		}		
 	}
 
-	void SHLODOutliner::RemoveLODActorFromCluster(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::RemoveLODActorFromCluster()
 	{
 		if (CurrentWorld)
 		{
-			const FScopedTransaction Transaction(LOCTEXT("UndoAction_RemoveLODActorFromCluster", "Removed LOD Actor From Cluster"));
-			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
-			auto Parent = ActorItem->GetParent();
+			// This call came from a context menu
+			auto SelectedItems = TreeView->GetSelectedItems();
 
-			ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
-			if (Type == ITreeItem::HierarchicalLODActor)
+			// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+			for (auto SelectedItem : SelectedItems)
 			{
-				FLODActorItem* ParentLODActorItem = (FLODActorItem*)(Parent.Get());
-				ParentLODActorItem->LODActor->Modify();
-				ActorItem->LODActor->Modify();
-				ParentLODActorItem->LODActor->RemoveSubActor(ActorItem->LODActor.Get());
+				const FScopedTransaction Transaction(LOCTEXT("UndoAction_RemoveLODActorFromCluster", "Removed LOD Actor From Cluster"));
+				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
+				auto Parent = ActorItem->GetParent();
 
-				PendingActions.Emplace(FOutlinerAction::RemoveItem, Item);
-
-				if (!ParentLODActorItem->LODActor->HasValidSubActors())
+				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+				if (Type == ITreeItem::HierarchicalLODActor)
 				{
-					DestroyLODActor(ParentLODActorItem->LODActor.Get());
-					PendingActions.Emplace(FOutlinerAction::RemoveItem, Parent);
+					FLODActorItem* ParentLODActorItem = (FLODActorItem*)(Parent.Get());
+					ParentLODActorItem->LODActor->Modify();
+					ActorItem->LODActor->Modify();
+					ParentLODActorItem->LODActor->RemoveSubActor(ActorItem->LODActor.Get());
+
+					PendingActions.Emplace(FOutlinerAction::RemoveItem, SelectedItem);
+
+					if (!ParentLODActorItem->LODActor->HasValidSubActors())
+					{
+						DestroyLODActor(ParentLODActorItem->LODActor.Get());
+						PendingActions.Emplace(FOutlinerAction::RemoveItem, Parent);
+					}
 				}
 			}
 		}
 	}
 
-	void SHLODOutliner::SelectContainedActors(TSharedRef<ITreeItem> Item)
+	void SHLODOutliner::SelectContainedActors()
 	{
-		FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
+		// This call came from a context menu
+		auto SelectedItems = TreeView->GetSelectedItems();
 
-		ALODActor* LODActor = ActorItem->LODActor.Get();
-		SelectLODActorAndContainedActorsInViewport(LODActor, 0);
+
+		// Empty selection and setup for multi-selection
+		EmptySelection();
+		StartSelection();
+
+		// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
+		for (auto SelectedItem : SelectedItems)
+		{
+			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
+
+			ALODActor* LODActor = ActorItem->LODActor.Get();
+			SelectLODActorAndContainedActorsInViewport(LODActor, 0);
+		}
+
+		// Done selecting actors
+		EndSelection();
 	}
 
 	void SHLODOutliner::DestroyLODActor(ALODActor* InActor)
@@ -931,11 +1012,31 @@ namespace HLODOutliner
 
 		FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>(), Extender);
 
-		const auto NumSelectedItems = TreeView->GetNumItemsSelected();
-		if (NumSelectedItems == 1 && TreeView->GetSelectedItems()[0]->GetTreeItemType() != ITreeItem::HierarchicalLODLevel)
+		// Multi-selection support, check if all selected items are of the same type, if so return the appropriate context menu
+		auto SelectedItems = TreeView->GetSelectedItems();
+		ITreeItem::TreeItemType Type = ITreeItem::Invalid;
+		bool bSameType = true;
+		for (int32 SelectedIndex = 0; SelectedIndex < SelectedItems.Num(); ++SelectedIndex)
+		{
+			if (SelectedIndex == 0)
+			{
+				Type = SelectedItems[SelectedIndex]->GetTreeItemType();
+			}
+			else
+			{
+				// Not all of the same types
+				if (SelectedItems[SelectedIndex]->GetTreeItemType() != Type)
+				{
+					bSameType = false; 
+					break;
+				}
+			}
+		}
+
+		// Currently no context menu actions for ITreeItem::HierarchicalLODLevel type
+		if (SelectedItems.Num() && bSameType && Type != ITreeItem::HierarchicalLODLevel)
 		{
 			TreeView->GetSelectedItems()[0]->GenerateContextMenu(MenuBuilder, *this);
-
 			return MenuBuilder.MakeWidget();
 		}
 
@@ -974,7 +1075,7 @@ namespace HLODOutliner
 		{
 			for (AHLODSelectionActor* BoundsActor : SelectionActors)
 			{
-				if (BoundsActor)
+				if (BoundsActor && BoundsActor->IsValidLowLevel())
 				{
 					CurrentWorld->DestroyActor(BoundsActor);
 				}
@@ -1065,7 +1166,7 @@ namespace HLODOutliner
 		if (Selection)
 		{
 			int32 NumSelected = Selection->Num();
-			// QQ changes this for multiple selection support?
+			// TODO changes this for multiple selection support
 			for (int32 SelectionIndex = 0; SelectionIndex < NumSelected; ++SelectionIndex)
 			{
 				AActor* Actor = Cast<AActor>(Selection->GetSelectedObject(SelectionIndex));
@@ -1109,12 +1210,12 @@ namespace HLODOutliner
 
 	void SHLODOutliner::OnLevelAdded(ULevel* InLevel, UWorld* InWorld)
 	{
-		//FullRefresh();
+		
 	}
 
 	void SHLODOutliner::OnLevelRemoved(ULevel* InLevel, UWorld* InWorld)
 	{
-		//FullRefresh();
+		
 	}
 
 	void SHLODOutliner::OnLevelActorsAdded(AActor* InActor)
@@ -1310,7 +1411,7 @@ namespace HLODOutliner
 
 				for (ULevel* Level : CurrentWorld->GetLevels())
 				{
-					for (AActor* Actor : Level->Actors)
+					if ( Level->bIsVisible ) for (AActor* Actor : Level->Actors)
 					{
 						if (Actor && Actor->IsA<ALODActor>())
 						{

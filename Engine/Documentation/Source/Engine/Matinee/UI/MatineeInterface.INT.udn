@@ -2,6 +2,8 @@ Availability: Public
 Title:Matinee Editor Reference
 Crumbs:%ROOT%, Engine, Engine/Matinee
 Description:Description of the user interface for Matinee.
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:2)]
 
@@ -135,7 +137,7 @@ What follows is a description of each of the toolbar buttons, from left to right
 
 ## Curve Editor
 
-The Curve Editor allows you to graphically visualize and edit the animations curves used by the tracks in the Matinee sequence. Tracks that have animation curves that can be edited in the Curve Editor in Matinee have the ![](curve_send_button.jpg) toggle button. Clicking this button will send that track's curve information to the Curve Editor where the curve will become visible and the track info will appear in the track list.
+The **Curve Editor** allows you to graphically visualize and edit the animations curves used by the tracks in the Matinee sequence. Tracks that have animation curves that can be edited in the Curve Editor in Matinee have the ![](curve_send_button.jpg) toggle button. Clicking this button will send that track's curve information to the Curve Editor where the curve will become visible and the track info will appear in the track list.
 
 ![Curve Editor](Matinee_CurveEditor.png)
 
@@ -148,7 +150,7 @@ You can also refer to the [](Engine\Matinee\HowTo\MHT_2) page for an example of 
 
 ## Track View
 
-The Track View contains a list of all the folders, groups, and tracks contained within the Matinee sequence and shows their keyframe information on a timeline where they can be edited. It consists of the following areas:
+The **Track View** contains a list of all the folders, groups, and tracks contained within the Matinee sequence and shows their keyframe information on a timeline where they can be edited. It consists of the following areas:
 
 ![Timeline Pane](Matinee_TimelinePanel_Callouts.png)
 
@@ -164,19 +166,19 @@ The Track View contains a list of all the folders, groups, and tracks contained 
 
 ![Group Tabs](Matinee_GroupTabs.png)
 
-The tabs across the top of the Timeline Pane show all the Group Tabs that exist in the current Matinee sequence. Group Tabs are a handy way of organizing groups and tracks based on their function. Their use is completely optional. For very simple sequences, you could simply leave all groups and tracks in the default _All_ tab. But with complex sequences, like those used to create in-game cinematics, you will do best to make use of these tabs as the number of groups and tracks in the sequence can quickly add up and become unwieldy to navigate. The _All_ tab will always show all the groups and tracks in the sequence so adding related tracks to a corresponding group tab can be a quick and easy way to find and edit those groups and tracks. You can create your own custom tabs in addition to those provided by default to further organize your groups and tracks based on any criteria you choose.
+The tabs across the top of the **Timeline** pane show all the Group Tabs that exist in the current Matinee sequence. Group Tabs are a handy way of organizing groups and tracks based on their function. Their use is completely optional. For very simple sequences, you could simply leave all groups and tracks in the default _All_ tab. But with complex sequences, like those used to create in-game cinematics, you will do best to make use of these tabs as the number of groups and tracks in the sequence can quickly add up and become unwieldy to navigate. The _All_ tab will always show all the groups and tracks in the sequence so adding related tracks to a corresponding group tab can be a quick and easy way to find and edit those groups and tracks. You can create your own custom tabs in addition to those provided by default to further organize your groups and tracks based on any criteria you choose.
 
 
 ### Group and Track List
 
 ![Group and Track List](Matinee_GroupsAndTracks.png)
 
-The Group and Track List shows all the groups and tracks in the currently selected group tab. It will be empty by default in a new Matinee sequence.
+The **Group** and **Track** list shows all the groups and tracks in the currently selected group tab. It will be empty by default in a new Matinee sequence.
 
 
 ### Timeline Info
 
-The Timeline Info Pane displays information about the timeline, including the current location of the time cursor and the total length of the current scene.
+The **Timeline Info** pane displays information about the timeline, including the current location of the time cursor and the total length of the current scene.
 
 (#Timeline)
 
@@ -184,14 +186,14 @@ The Timeline Info Pane displays information about the timeline, including the cu
 
 ![Timeline](Matinee_Timeline.png)
 
-The timeline is a graphical representation of all the keyframes for all the tracks in the seqence. It shows time along the bottom horizontally and also contains the start and end markers for the loop section (in green) and for the seqeunce itself (in red). Keys can be selected and modified directly in the timeline. Some keys are displayed simply as triangles while other keys are shown as triangles followed by a colored bar. These are keys for animations, sounds, etc. that have a specific duration. The colored bar shows the duration of the action the key is triggering.
+The **Timeline** is a graphical representation of all the keyframes for all the tracks in the seqence. It shows time along the bottom horizontally and also contains the start and end markers for the loop section (in green) and for the seqeunce itself (in red). Keys can be selected and modified directly in the timeline. Some keys are displayed simply as triangles while other keys are shown as triangles followed by a colored bar. These are keys for animations, sounds, etc. that have a specific duration. The colored bar shows the duration of the action the key is triggering.
 
 
 ## Details
 
 ![Properties Pane](Matinee_PropertiesPane.png)
 
-The Details panel is a standard Unreal Details window which displays the details of the currently selected folder, group, or track in the Timeline Pane's track list.
+The **Details** panel is a standard Unreal Details window which displays the details of the currently selected folder, group, or track in the Timeline Pane's track list.
 
 
 ## Controls

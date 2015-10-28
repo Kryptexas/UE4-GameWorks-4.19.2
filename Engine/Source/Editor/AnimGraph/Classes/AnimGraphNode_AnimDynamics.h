@@ -26,14 +26,25 @@ class UAnimGraphNode_AnimDynamics : public UAnimGraphNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, Category = Settings)
 	FAnimNode_AnimDynamics Node;
 
+	/** Preview the live physics object on the mesh */
 	UPROPERTY(EditAnywhere, Category = Preview)
 	bool bPreviewLive;
 
+	/** Show linear (prismatic) limits in the viewport */
 	UPROPERTY(EditAnywhere, Category = Preview)
 	bool bShowLinearLimits;
 
+	/** Show angular limit ranges in the viewport */
 	UPROPERTY(EditAnywhere, Category = Preview)
 	bool bShowAngularLimits;
+
+	/** Show planar limit info (actual plane, plane normal) in the viewport */
+	UPROPERTY(EditAnywhere, Category = Preview)
+	bool bShowPlanarLimit;
+
+	/** If planar limits are enabled and the collision mode isn't CoM, draw sphere collision sizes */
+	UPROPERTY(EditAnywhere, Category = Preview)
+	bool bShowCollisionSpheres;
 
 	UPROPERTY(Transient)
 	mutable USkeletalMeshComponent* LastPreviewComponent;

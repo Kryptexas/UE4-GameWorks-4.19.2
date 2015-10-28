@@ -177,7 +177,7 @@ class FChunkManifestGenerator
 	/**
 	* Get an array of Packages this package will import.
 	*/
-	bool GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type DependencyType);
+	bool GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type InDependencyType);
 
 	/**
 	 * Save a CSV dump of chunk asset information.

@@ -43,25 +43,10 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
-	virtual void PostInitProperties() override;
-	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 #endif //WITH_EDITOR
 
 	void InitializePlayer();
-
-private:
-
-	/** Instance of the level sequence we're using. Stored as a property so we can track live actor references. */
-	UPROPERTY(Instanced)
-	ULevelSequenceInstance* SequenceInstance;
-
-	/** Create the level sequence instance required to play back our sequence */
-	void CreateSequenceInstance();
-
-	/** Update the instance of our level sequence. */
-	void UpdateAnimationInstance();
 };

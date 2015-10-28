@@ -331,7 +331,7 @@ void SProjectLauncherSettings::HandleCloseActionExecute()
 	const ILauncherProfilePtr& LaunchProfile = Model->GetSelectedProfile();
 	if (LaunchProfile.IsValid())
 	{
-		Model->GetProfileManager()->SaveProfile(LaunchProfile.ToSharedRef());
+		Model->GetProfileManager()->SaveJSONProfile(LaunchProfile.ToSharedRef());
 		//@Todo: FIX! Very Heavy Handed! Will have to re factor the device group saving code, but branch is tonight and this is safe. 
 		Model->GetProfileManager()->SaveDeviceGroups();
 	}

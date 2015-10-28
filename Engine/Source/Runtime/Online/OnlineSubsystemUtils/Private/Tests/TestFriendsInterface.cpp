@@ -13,7 +13,9 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		OnlineSub->GetFriendsInterface().IsValid())
 	{
 		// don't affect default friends list for MCP
-		if (SubsystemName.Equals(TEXT("MCP"),ESearchCase::IgnoreCase))
+		FString McpSubsystemString;
+		MCP_SUBSYSTEM.ToString(McpSubsystemString);
+		if (SubsystemName.Equals(McpSubsystemString, ESearchCase::IgnoreCase))
 		{
 			FriendsListName = TEXT("TestFriends");
 		}

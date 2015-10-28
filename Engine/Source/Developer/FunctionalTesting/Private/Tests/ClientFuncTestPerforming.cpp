@@ -50,7 +50,7 @@ bool FStartFTestsOnMap::Update()
  */
 
 // create test base class
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FClientFunctionalTestingMapsBase, "Project.Maps.Client Functional Testing", (EAutomationTestFlags::ClientContext | EAutomationTestFlags::ProductFilter))
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FClientFunctionalTestingMapsBase, "Project.Maps.Client Functional Testing", (EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter))
 
 
 /** 
@@ -77,7 +77,7 @@ void FClientFunctionalTestingMapsBase::GetTests(TArray<FString>& OutBeautifiedNa
 				if (BaseFilename.Find(TEXT("FTEST_")) == 0)
 				{
 					OutBeautifiedNames.Add(BaseFilename);
-					OutTestCommands.Add(BaseFilename);
+					OutTestCommands.Add(Filename);
 				}
 			}
 		}
@@ -95,17 +95,7 @@ bool FClientFunctionalTestingMapsBase::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
 
-	bool bCanProceed = true;
-
-	{
-		check(GEngine->GetWorldContexts().Num() == 1);
-		check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
-		//Don't reload the map if it's already loaded
-		if (GEngine->GetWorldContexts()[0].World()->GetName() != MapName)
-		{
-			GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
-		}
-	}
+	bool bCanProceed = AutomationOpenMap(MapName);
 
 	if (bCanProceed)
 	{

@@ -492,7 +492,7 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 				if(SCS_Node->GetSCS() == SCS)
 				{
 					// Add the child into the parent's list of children
-					if(!SCS_Node->ChildNodes.Contains(SCS_ChildNode))
+					if(!SCS_Node->GetChildNodes().Contains(SCS_ChildNode))
 					{
 						SCS_Node->AddChildNode(SCS_ChildNode);
 					}
@@ -4026,11 +4026,8 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 						if(ParentBPStack[StackIndex]->SimpleConstructionScript)
 						{
 							// Attempt to locate an SCS node with a variable name that matches the name of the given component
-							TArray<USCS_Node*> AllNodes = ParentBPStack[StackIndex]->SimpleConstructionScript->GetAllNodes();
-							for (int32 i = 0; i < AllNodes.Num(); ++i)
+							for (USCS_Node* SCS_Node : ParentBPStack[StackIndex]->SimpleConstructionScript->GetAllNodes())
 							{
-								USCS_Node* SCS_Node = AllNodes[i];
-
 								check(SCS_Node != NULL);
 								if (SCS_Node->VariableName == ActorComponent->GetFName())
 								{
@@ -4587,9 +4584,9 @@ void SSCSEditor::SaveSCSNode( USCS_Node* Node )
 	{
 		Node->Modify();
 
-		for( int32 i=0; i<Node->ChildNodes.Num(); i++ )
+		for ( USCS_Node* ChildNode : Node->GetChildNodes() )
 		{
-			SaveSCSNode( Node->ChildNodes[i] );
+			SaveSCSNode( ChildNode );
 		}
 	}
 }
@@ -5303,9 +5300,9 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	}
 
 	// Recursively add the given SCS node's child nodes
-	for(int32 NodeIndex = 0; NodeIndex < InSCSNode->ChildNodes.Num(); ++NodeIndex)
+	for (USCS_Node* ChildNode : InSCSNode->GetChildNodes())
 	{
-		AddTreeNode(InSCSNode->ChildNodes[NodeIndex], NewNodePtr, bIsInheritedSCS);
+		AddTreeNode(ChildNode, NewNodePtr, bIsInheritedSCS);
 	}
 
 	return NewNodePtr;

@@ -572,12 +572,8 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 #if GPUSKIN_PASS_THROUGH
-		uint StreamOffset = GPUSkinCacheStreamFloatOffset + (Intermediates.VertexID * GPUSkinCacheStreamStride);
-		return mul(float4(	GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 0],
-							GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 1],
-							GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 2],
-							1),
-					PreviousLocalToWorld);
+	//#todo-rco: Currently have no information to calculate it, so return current World Position
+	return TransformLocalToTranslatedWorld(Intermediates.UnpackedPosition);
 #else
 	float4 PrevSkinPosInWorld = mul(float4(SkinPreviousPosition(Input, Intermediates),1), PreviousLocalToWorld);
 #if GPUSKIN_APEX_CLOTH

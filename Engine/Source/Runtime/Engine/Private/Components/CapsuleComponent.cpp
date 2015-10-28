@@ -170,6 +170,7 @@ void UCapsuleComponent::UpdateBodySetup()
 		ShapeBodySetup = NewObject<UBodySetup>(this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		ShapeBodySetup->AggGeom.SphylElems.Add(FKSphylElem());
+		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
 	}
 
 	check(ShapeBodySetup->AggGeom.SphylElems.Num() == 1);

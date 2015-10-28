@@ -2,6 +2,9 @@ Availability:Public
 Title:Programming Guide
 Crumbs: %ROOT%
 Description:Information for programmers developing with Unreal Engine.
+version: 4.9
+parent:%ROOT%
+order:4
 
 [VAR:Params]
 [PARAM:image]
@@ -51,7 +54,7 @@ Description:Information for programmers developing with Unreal Engine.
 [/OBJECT]
 [/VAR]
 
-[VAR:Role]
+[VAR:TopicRole]
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
@@ -60,7 +63,7 @@ programmer
 [/OBJECT]
 [/VAR]
 
-[VAR:TopicRole]
+[VAR:Role]
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]

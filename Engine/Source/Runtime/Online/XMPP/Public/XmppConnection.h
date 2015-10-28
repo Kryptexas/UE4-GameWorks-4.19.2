@@ -21,7 +21,7 @@ public:
 	FXmppServer() 
 		: ServerPort(5222) 
 		, bUseSSL(true)
-		, PingInterval(180.0f)
+		, PingInterval(60.0f)
 		, PingTimeout(30.0f)
 		, MaxPingRetries(1)
 	{}

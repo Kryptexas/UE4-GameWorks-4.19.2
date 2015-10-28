@@ -163,7 +163,7 @@ struct FBehaviorTreeParallelTask
 	const UBTTaskNode* TaskNode;
 
 	/** additional mode data used for context switching */
-	TEnumAsByte<EBTTaskStatus::Type> Status;
+	EBTTaskStatus::Type Status;
 
 	FBehaviorTreeParallelTask() : TaskNode(NULL) {}
 	FBehaviorTreeParallelTask(const UBTTaskNode* InTaskNode, EBTTaskStatus::Type InStatus) : TaskNode(InTaskNode), Status(InStatus) {}
@@ -462,7 +462,7 @@ protected:
 	static_assert(sizeof(uint8) == sizeof(FBlackboard::FKey), "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey-compatible type.");
 
 	// Requires BlueprintReadWrite so that blueprint creators (using MakeBlackboardKeySelector) can specify whether or not None is Allowed.
-	UPROPERTY(transient, EditAnywhere, BlueprintReadWrite, Category = Blackboard, Meta = (Tooltip = ""))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Blackboard, Meta = (Tooltip = ""))
 	uint32 bNoneIsAllowedValue:1;
 
 	/** find initial selection. Called when None is not a valid option for this key selector */

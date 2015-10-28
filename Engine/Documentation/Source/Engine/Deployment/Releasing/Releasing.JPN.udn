@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2652864
-Availability:Docs
+﻿INTSourceChangelist:2735872
+Availability:Public
 Title:プロジェクトをリリースする
 Crumbs:%ROOT%, Engine, Engine/Deployment
 Description:配布用にクック済みコンテンツでリリース番号を付けてプロジェクトを作成
@@ -44,10 +44,10 @@ Description:配布用にクック済みコンテンツでリリース番号を�
 1. さらに **[Advanced Settings (詳細設定)]** でクッカー コンフィギュレーションを **Shipping (シッピング)** に設定します。
 
 #### Package (パッケージ) 
-* ビルドを **Package & store locally** に設定します。 
+1. ビルドを **Package & store locally** に設定します。 
 
 #### Deploy (デプロイ)
-* ビルドを **Do Not Deploy** に設定します。
+1. ビルドを **Do Not Deploy** に設定します。
 
 1. 上記をすべて設定したら、上部右端の **[Back (戻る)]** ボタンでプロファイルのメイン ウィンドウへ戻ります。 
 

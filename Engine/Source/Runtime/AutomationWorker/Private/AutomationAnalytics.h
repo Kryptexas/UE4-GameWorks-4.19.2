@@ -50,6 +50,7 @@ private:
 	/** Array of Analytic Parameter names */
 	static TArray<FString> AutomationEventNames;
 	static TArray<FString> AutomationParamNames;
+	static FString MachineSpec;
 
 	static bool bIsInitialized;
 	/** This allows us to "opt-out" of engine automation analytics. We still create a session, but we don't send any automation events. */

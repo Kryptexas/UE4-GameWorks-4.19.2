@@ -305,3 +305,7 @@ FPlatformUserId FOnlineIdentityNull::GetPlatformUserIdFromUniqueNetId(const FUni
 	return PLATFORMUSERID_NONE;
 }
 
+FString FOnlineIdentityNull::GetAuthType() const
+{
+	return TEXT("");
+}

@@ -26,6 +26,7 @@
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
 DECLARE_CYCLE_STAT(TEXT("StartFinalPostprocessSettings"), STAT_StartFinalPostprocessSettings, STATGROUP_Engine);
+DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcessSettings, STATGROUP_Engine);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
@@ -192,6 +193,19 @@ static TAutoConsoleVariable<float> CVarSceneColorFringeMax(
 	-1.0f,
 	TEXT("Allows to clamp the postprocess setting (in percent, Scene chromatic aberration / color fringe to simulate an artifact that happens in real-world lens, mostly visible in the image corners)\n")
 	TEXT("-1: don't clamp (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarTonemapperQuality(
+	TEXT("r.Tonemapper.Quality"),
+	5,
+	TEXT("Defines the Tonemapper Quality in the range 0..5\n")
+	TEXT("Depending on the used settings we might pick a faster shader permutation\n")
+	TEXT(" 0: basic tonemapper only, lowest quality\n")
+	TEXT(" 1: + FilmContrast\n")
+	TEXT(" 2: + Vignette\n")
+	TEXT(" 3: + FilmShadowTintAmount\n")
+	TEXT(" 4: + Grain\n")
+	TEXT(" 5: + GrainJitter = full quality (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
@@ -861,6 +875,8 @@ bool FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRe
 // @param Weight 0..1
 void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, float Weight)
 {
+	SCOPE_CYCLE_COUNTER(STAT_OverridePostProcessSettings);
+
 	if(Weight <= 0.0f)
 	{
 		// no need to blend anything
@@ -1243,12 +1259,22 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-		if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+		if(CVar ? CVar->GetValueOnGameThread() > 1 : false)
 		{
 			// Turn off various features which won't work with mobile MSAA.
 			FinalPostProcessSettings.DepthOfFieldScale = 0.0f;
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
+		}
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality"));
+
+		int32 FringeQuality = CVar->GetValueOnGameThread();
+		if (FringeQuality <= 0)
+		{
+			FinalPostProcessSettings.SceneFringeIntensity = 0;
 		}
 	}
 
@@ -1266,6 +1292,36 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	if(!Family->EngineShowFlags.Bloom)
 	{
 		FinalPostProcessSettings.BloomIntensity = 0.0f;
+	}
+
+	// scale down tone mapper shader permutation
+	{
+		int32 Quality = CVarTonemapperQuality.GetValueOnGameThread();
+
+		if(Quality < 5)
+		{
+			FinalPostProcessSettings.FilmContrast = 0;
+		}
+
+		if(Quality < 4)
+		{
+			FinalPostProcessSettings.VignetteIntensity = 0;
+		}
+
+		if(Quality < 3)
+		{
+			FinalPostProcessSettings.FilmShadowTintAmount = 0;
+		}
+
+		if(Quality < 2)
+		{
+			FinalPostProcessSettings.GrainIntensity = 0;
+		}
+
+		if(Quality < 1)
+		{
+			FinalPostProcessSettings.GrainJitter = 0;
+		}
 	}
 
 	{

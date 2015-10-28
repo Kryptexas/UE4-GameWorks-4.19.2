@@ -32,21 +32,21 @@ void UMovieScenePropertyTrack::RemoveAllAnimationData()
 }
 
 
-bool UMovieScenePropertyTrack::HasSection( UMovieSceneSection* Section ) const 
+bool UMovieScenePropertyTrack::HasSection(const UMovieSceneSection& Section) const 
 {
-	return Sections.Contains( Section );
+	return Sections.Contains(&Section);
 }
 
 
-void UMovieScenePropertyTrack::AddSection( UMovieSceneSection* Section ) 
+void UMovieScenePropertyTrack::AddSection(UMovieSceneSection& Section) 
 {
-	Sections.Add( Section );
+	Sections.Add(&Section);
 }
 
 
-void UMovieScenePropertyTrack::RemoveSection( UMovieSceneSection* Section ) 
+void UMovieScenePropertyTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	Sections.Remove( Section );
+	Sections.Remove(&Section);
 }
 
 

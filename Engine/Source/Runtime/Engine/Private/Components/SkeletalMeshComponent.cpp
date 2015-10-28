@@ -72,6 +72,7 @@ public:
 	{
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
+			FScopeCycleCounterUObject ContextScope(Comp);
 			Comp->ParallelAnimationEvaluation();
 		}
 	}
@@ -1894,7 +1895,7 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 
 	if (ComponentToWorld.ContainsNaN())
 	{
-		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("SkeletalMeshComponent: ComponentToWorld contains NaN!"));
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent: ComponentToWorld contains NaN!"));
 		ComponentToWorld = FTransform::Identity;
 	}
 

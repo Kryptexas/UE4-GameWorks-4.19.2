@@ -1,23 +1,45 @@
-﻿INTSourceChangelist:2680907
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリント エディタ リファレンス
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:ブループリント エディタのインターフェース エレメントと基本的な操作手順の説明です。
+Description:ブループリント エディタのインターフェース エレメントと基本的な操作手順の説明です。 
 version:4.9
+parent:Engine/Blueprints
+order:4
+type:reference
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
+		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
 	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
+		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ブループリント エディタ
+		%Engine/Blueprints/Editor:title%
 	[/PARAM]
 	[PARAM:description]
-		ブループリント エディタ インターフェースと基本的な取扱説明の概要
+		%Engine/Blueprints/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Editor:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints/Editor]
@@ -29,6 +51,7 @@ version:4.9
 ![](blueprint_editor_example.png)
 [/REGION]
 
+[TOC (start:2)] 
 
 
 ブループリントのビジュアル スクリプティングは、多岐に渡る方法で UE4 のあらゆる場面で使用可能なシステムです。ブループリントは、レベルベースのイベントの操作、ゲーム内のアクタ用に内部でスクリプト化された動作の制御、または極めてリアルなゲーム キャラクター システム全体で複雑なアニメーションをコントロールするために使用します。これらのブループリント アプリケーションに対し、ブループリント スクリプトの編集場所に加えツールの利用箇所などは、作業目的によって多少異なります。つまり、UE4 内部にはブループリント エディタを実際に表示できる複数の場所と方法があることを意味します。しかし上述の違いに関係なく、ブループリント エディタは常に同じ主要タスクを実行します。ゲームのさまざまな側面を動作させるために、パワフルなビジュアル スクリプトの作成と編集を有効にします。

@@ -251,6 +251,7 @@ FPersona::FPersona()
 	, PreviewComponent(NULL)
 	, PersonaMeshDetailLayout(NULL)
 	, PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
+	, LastCachedLODForPreviewComponent(0)
 {
 	// Register to be notified when properties are edited
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPersona::OnPropertyChanged);
@@ -3043,6 +3044,12 @@ void FPersona::Tick(float DeltaTime)
 	{
 		// make sure you don't allow switch previewcomponent
 		Recorder.UpdateRecord(PreviewComponent, DeltaTime);
+	}
+
+	if (PreviewComponent && LastCachedLODForPreviewComponent != PreviewComponent->PredictedLODLevel)
+	{
+		OnLODChanged.Broadcast();
+		LastCachedLODForPreviewComponent = PreviewComponent->PredictedLODLevel;
 	}
 }
 

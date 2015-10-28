@@ -8,6 +8,7 @@
 #include "AnimationRuntime.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/BlendSpaceBase.h"
+#include "AnimationUtils.h"
 
 struct FSyncPattern
 {
@@ -166,7 +167,8 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 	// also now we don't have to worry about not following if DeltaTime = 0.f
 	{
 		// first filter input using blend filter
-		const FVector BlendInput = FilterInput(Instance.BlendFilter, Instance.BlendSpacePosition, DeltaTime);
+		const FVector BlendSpacePosition(Instance.BlendSpace.BlendSpacePositionX, Instance.BlendSpace.BlendSpacePositionY, 0.f);
+		const FVector BlendInput = FilterInput(Instance.BlendSpace.BlendFilter, BlendSpacePosition, DeltaTime);
 		EBlendSpaceAxis AxisToScale = GetAxisToScale();
 		if (AxisToScale != BSA_None)
 		{
@@ -174,21 +176,21 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 			// first use multiplier using new blendinput
 			// new filtered input is going to be used for sampling animation
 			// so we'll need to change playrate if you'd like to not slide foot
-			if ( !Instance.BlendSpacePosition.Equals(BlendInput) )  
+			if ( !BlendSpacePosition.Equals(BlendInput) )  
 			{
 				// apply speed change if you want, 
 				if (AxisToScale == BSA_X)
 				{
 					if (BlendInput.X != 0.f)
 					{
-						FilterMultiplier = Instance.BlendSpacePosition.X / BlendInput.X;
+						FilterMultiplier = BlendSpacePosition.X / BlendInput.X;
 					}
 				}
 				else if (AxisToScale == BSA_Y)
 				{
 					if (BlendInput.Y != 0.f)
 					{
-						FilterMultiplier = Instance.BlendSpacePosition.Y / BlendInput.Y;
+						FilterMultiplier = BlendSpacePosition.Y / BlendInput.Y;
 					}
 				}
 			}
@@ -217,23 +219,23 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 
 
 			MoveDelta *= FilterMultiplier;
-			UE_LOG(LogAnimation, Log, TEXT("BlendSpace(%s) - BlendInput(%s) : FilteredBlendInput(%s), FilterMultiplier(%0.2f)"), *GetName(), *Instance.BlendSpacePosition.ToString(), *BlendInput.ToString(), FilterMultiplier );
+			UE_LOG(LogAnimation, Log, TEXT("BlendSpace(%s) - BlendInput(%s) : FilteredBlendInput(%s), FilterMultiplier(%0.2f)"), *GetName(), *BlendSpacePosition.ToString(), *BlendInput.ToString(), FilterMultiplier );
 		}
 
-		check(Instance.BlendSampleDataCache);
+		check(Instance.BlendSpace.BlendSampleDataCache);
 
 		// For Target weight interpolation, we'll need to save old data, and interpolate to new data
 		TArray<FBlendSampleData>& OldSampleDataList = FBlendSpaceScratchData::Get().OldSampleDataList;
 		TArray<FBlendSampleData>& NewSampleDataList = FBlendSpaceScratchData::Get().NewSampleDataList;
 		check(!OldSampleDataList.Num() && !NewSampleDataList.Num()); // this must be called non-recursively
 
-		OldSampleDataList.Append(*Instance.BlendSampleDataCache);
+		OldSampleDataList.Append(*Instance.BlendSpace.BlendSampleDataCache);
 
 		// get sample data based on new input
 		// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
-		Instance.BlendSampleDataCache->Reset();
+		Instance.BlendSpace.BlendSampleDataCache->Reset();
 		// new sample data that will be used for evaluation
-		TArray<FBlendSampleData> & SampleDataList = *Instance.BlendSampleDataCache;
+		TArray<FBlendSampleData> & SampleDataList = *Instance.BlendSpace.BlendSampleDataCache;
 
 		// get sample data from blendspace
 		if (GetSamplesFromBlendInput(BlendInput, NewSampleDataList))
@@ -350,6 +352,7 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 					float CurrentTime = NormalizedCurrentTime * NewAnimLength;
 					FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, /*inout*/ CurrentTime, NewAnimLength);
 					NormalizedCurrentTime = NewAnimLength ? (CurrentTime / NewAnimLength) : 0.0f;
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f) "), *GetName(), NormalizedPreviousTime, NormalizedCurrentTime, MoveDelta);
 				}
 
 				Context.SetAnimationPositionRatio(NormalizedCurrentTime);
@@ -381,6 +384,7 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 				else
 				{
 					NormalizedCurrentTime =  Context.GetAnimationPositionRatio();
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f) "), *GetName(), NormalizedPreviousTime, NormalizedCurrentTime, MoveDelta);
 				}
 			}
 

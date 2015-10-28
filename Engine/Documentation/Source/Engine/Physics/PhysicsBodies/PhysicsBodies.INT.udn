@@ -55,7 +55,9 @@ The following links have information on Physics Bodies.
 		Essentials
 	[/PARAM]
 	[PARAM:links]
+		[PUBLISH:Docs]
 		* [](Engine/Physics/PhysicsBodies/Overview "%Engine/Physics/PhysicsBodies/Overview:description%")
+		[/PUBLISH:Docs]
 		<!-- * [](Engine/Physics/PhysicsBodies/HowTo "%Engine/Physics/PhysicsBodies/HowTo:description%") -->
 		* [](Engine/Physics/PhysicsBodies/Reference "%Engine/Physics/PhysicsBodies/Reference:description%")
 	[/PARAM]

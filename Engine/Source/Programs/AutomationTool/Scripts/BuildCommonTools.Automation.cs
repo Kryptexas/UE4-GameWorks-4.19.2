@@ -117,6 +117,12 @@ public class BuildCommonTools : BuildCommand
 			Agenda.AddTarget("UnrealCEFSubProcess", UnrealBuildTool.UnrealTargetPlatform.Mac, UnrealBuildTool.UnrealTargetConfiguration.Development, InAddArgs: "-CopyAppBundleBackToDevice");
 		}
 
+		// Linux binaries
+		if (Platforms.Contains(UnrealBuildTool.UnrealTargetPlatform.Linux))
+		{
+			Agenda.AddTarget("CrashReportClient", UnrealBuildTool.UnrealTargetPlatform.Linux, UnrealBuildTool.UnrealTargetConfiguration.Development);
+		}
+
 		// iOS binaries
 		if(Platforms.Contains(UnrealBuildTool.UnrealTargetPlatform.IOS))
 		{

@@ -664,8 +664,7 @@ void FBlueprintEditorUtils::PreloadConstructionScript(UBlueprint* Blueprint)
 
 		if (Blueprint->SimpleConstructionScript)
 		{
-			auto AllNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-			for (auto SCSNode : AllNodes)
+			for (USCS_Node* SCSNode : Blueprint->SimpleConstructionScript->GetAllNodes())
 			{
 				if (SCSNode)
 				{
@@ -773,7 +772,7 @@ UK2Node* FBlueprintEditorUtils::FindFirstCompilerRelevantNode(UEdGraphPin* FromP
 {
 	FCompilerRelevantNodeLinkArray RelevantNodeLinks;
 	GetCompilerRelevantNodeLinks(FromPin, RelevantNodeLinks);
-
+	
 	return RelevantNodeLinks.Num() > 0 ? RelevantNodeLinks[0].Node : nullptr;
 }
 
@@ -1943,13 +1942,12 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			if( SCSRootNode )
 			{
 				NewBPGC->SimpleConstructionScript = Cast<USimpleConstructionScript>(StaticDuplicateObject(SCSRootNode, NewBPGC, *SCSRootNode->GetName()));
-				TArray<USCS_Node*> AllNodes = NewBPGC->SimpleConstructionScript->GetAllNodes();
+				const TArray<USCS_Node*>& AllNodes = NewBPGC->SimpleConstructionScript->GetAllNodes();
 
 				// Duplicate all component templates
-				for(auto NodeIt = AllNodes.CreateIterator(); NodeIt; ++NodeIt)
+				for (USCS_Node* CurrentNode : AllNodes)
 				{
-					USCS_Node* CurrentNode = *NodeIt;
-					if(CurrentNode->ComponentTemplate)
+					if (CurrentNode && CurrentNode->ComponentTemplate)
 					{
 						UActorComponent* DuplicatedComponent = CastChecked<UActorComponent>(StaticDuplicateObject(CurrentNode->ComponentTemplate, NewBPGC, *CurrentNode->ComponentTemplate->GetName()));
 						OldToNewMap.Add(CurrentNode->ComponentTemplate, DuplicatedComponent);
@@ -2955,7 +2953,7 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 
 	if(USimpleConstructionScript* SimpleConstructionScript = Blueprint->SimpleConstructionScript)
 	{
-		auto Nodes = SimpleConstructionScript->GetAllNodes();
+		const TArray<USCS_Node*>& Nodes = SimpleConstructionScript->GetAllNodes();
 		if (Nodes.Num() > 1)
 		{
 			return false;
@@ -3352,13 +3350,11 @@ void FBlueprintEditorUtils::GetSCSVariableNameList(const UBlueprint* Blueprint, 
 {
 	if(Blueprint != NULL && Blueprint->SimpleConstructionScript != NULL)
 	{
-		TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-		for(int32 NodeIndex = 0; NodeIndex < SCSNodes.Num(); ++NodeIndex)
+		for (USCS_Node* SCS_Node : Blueprint->SimpleConstructionScript->GetAllNodes())
 		{
-			USCS_Node* SCS_Node = SCSNodes[NodeIndex];
-			if(SCS_Node != NULL)
+			if (SCS_Node != NULL)
 			{
-				FName VariableName = SCS_Node->GetVariableName();
+				const FName VariableName = SCS_Node->GetVariableName();
 				if(VariableName != NAME_None)
 				{
 					VariableNames.AddUnique(VariableName);
@@ -3395,7 +3391,7 @@ int32 FBlueprintEditorUtils::FindSCS_Node(const UBlueprint* Blueprint, const FNa
 {
 	if (Blueprint->SimpleConstructionScript)
 	{
-		TArray<USCS_Node*> AllSCS_Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+		const TArray<USCS_Node*>& AllSCS_Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
 	
 		for(int32 i=0; i<AllSCS_Nodes.Num(); i++)
 		{

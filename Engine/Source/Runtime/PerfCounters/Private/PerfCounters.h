@@ -3,7 +3,6 @@
 #pragma once
 
 #include "PerfCountersModule.h"
-#include "Json.h"
 
 class FSocket;
 
@@ -36,11 +35,10 @@ public:
 	virtual void SetString(const FString& Name, const FString& Value, uint32 Flags) override;
 	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback, uint32 Flags) override;
 	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() override { return ExecCmdCallback; }
+	virtual const TMap<FString, FJsonVariant>& GetAllCounters() override { return PerfCounterMap; }
+	virtual FString GetAllCountersAsJson() override;
+	virtual void ResetStatsForNextPeriod() override;
 	//~ Begin IPerfCounters Interface end
-
-private:
-	/** Convert all perf counters into a json type */
-	FString ToJson() const;
 
 private:
 	
@@ -100,17 +98,6 @@ private:
 	 * @return true if the response is valid, false otherwise
 	 */
 	bool ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Response);
-
-	struct FJsonVariant
-	{
-		enum { Null, String, Number, Callback } Format;
-		FString		StringValue;
-		double		NumberValue;
-		FProduceJsonCounterValue CallbackValue;
-		uint32		Flags;
-
-		FJsonVariant() : Format(Null), NumberValue(0) {}
-	};
 
 	/** Unique name of this instance */
 	FString UniqueInstanceId;

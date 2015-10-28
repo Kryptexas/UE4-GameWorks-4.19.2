@@ -158,6 +158,8 @@ FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, bool bInTraceComp
 	bReturnFaceIndex = false;
 	bReturnPhysicalMaterial = false;
 	bComponentListUnique = true;
+	IgnoreMask = 0;
+	bIgnoreBlocks = false;
 
 	AddIgnoredActor(InIgnoreActor);
 	if (InIgnoreActor != NULL)

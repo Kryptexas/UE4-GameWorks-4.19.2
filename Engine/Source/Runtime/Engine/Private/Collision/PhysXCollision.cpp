@@ -6,6 +6,7 @@
 #include "CollisionDebugDrawingPublic.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsFiltering.h"
 
 #if WITH_BOX2D
 #include "../PhysicsEngine2D/Box2DIntegration.h"
@@ -125,7 +126,7 @@ protected:
 FRaycastHelperBox2D_Base::EResponse FRaycastHelperBox2D_Base::CalcQueryHitType(b2Fixture* Fixture) const
 {
 	const b2Filter& FixtureFilterData = Fixture->GetFilterData();
-	const ECollisionChannel ShapeChannel = static_cast<ECollisionChannel>(FixtureFilterData.ObjectTypeAndFlags >> 24);
+	const ECollisionChannel ShapeChannel = GetCollisionChannel(FixtureFilterData.ObjectTypeAndFlags);
 	const uint32 ShapeBit = ECC_TO_BITFIELD(ShapeChannel);
 
 	EResponse Result = ResponseNone;
@@ -541,13 +542,23 @@ namespace ECollisionQuery
 PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilterData &PQueryFilter, const PxFilterData &PShapeFilter, bool bPreFilter)
 {
 	ECollisionQuery::Type QueryType = (ECollisionQuery::Type)PQueryFilter.word0;
-	ECollisionChannel const ShapeChannel = (ECollisionChannel)(PShapeFilter.word3 >> 24);
-	PxU32 const ShapeBit = ECC_TO_BITFIELD(ShapeChannel);
+	FMaskFilter QuerierMaskFilter;
+	const ECollisionChannel QuerierChannel = GetCollisionChannelAndExtraFilter(PQueryFilter.word3, QuerierMaskFilter);
+
+	FMaskFilter ShapeMaskFilter;
+	const ECollisionChannel ShapeChannel = GetCollisionChannelAndExtraFilter(PShapeFilter.word3, ShapeMaskFilter);
+
+	if ((QuerierMaskFilter & ShapeMaskFilter) != 0)	//If ignore mask hit something, ignore it
+	{
+		return PxSceneQueryHitType::eNONE;
+	}
+
+	const PxU32 ShapeBit = ECC_TO_BITFIELD(ShapeChannel);
 	if (QueryType == ECollisionQuery::ObjectQuery)
 	{
-		int32 const MultiTrace = (PQueryFilter.word3 >> 24);
+		const int32 MultiTrace = (int32) QuerierChannel;
 		// do I belong to one of objects of interest?
-		if ( ShapeBit & PQueryFilter.word1 )
+		if ( ShapeBit & PQueryFilter.word1)
 		{
 			if (bPreFilter)	//In the case of an object query we actually want to return all object types (or first in single case). So in PreFilter we have to trick physx by not blocking in the multi case, and blocking in the single case.
 			{
@@ -563,8 +574,6 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilte
 	else
 	{
 		// Then see if the channel wants to be blocked
-		ECollisionChannel const QuerierChannel = (ECollisionChannel)(PQueryFilter.word3 >> 24);
-
 		// @todo delete once we fix up object/trace APIs to work separate
 		PxU32 ShapeFlags = PShapeFilter.word3 & 0xFFFFFF;
 		bool bStaticShape = ((ShapeFlags & EPDF_StaticShape) != 0);
@@ -636,7 +645,7 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 		//UE_LOG(LogTemp, Log, TEXT("Ignoring Actor: %d"), ShapeFilter.word0);
 		return (PrefilterReturnValue = PxSceneQueryHitType::eNONE);
 	}
-
+	
 	// Shape : shape's Filter Data
 	// Querier : filterData that owns the trace
 	PxU32 ShapeFlags = ShapeFilter.word3 & 0xFFFFFF;
@@ -656,13 +665,18 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 		Result = PxSceneQueryHitType::eNONE;
 	}
 
+	if (Result == PxSceneQueryHitType::eBLOCK && bIgnoreBlocks)
+	{
+		Result = PxSceneQueryHitType::eNONE;
+	}
+
 #if ENABLE_PREFILTER_LOGGING
 	if (bLoggingEnabled)
 	{
 		FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(actor->userData);
 		if ( BodyInst && BodyInst->OwnerComponent.IsValid() )
 		{
-			ECollisionChannel QuerierChannel = (ECollisionChannel)(filterData.word3 >> 24);
+			ECollisionChannel QuerierChannel = GetCollisionChannel(filterData.word3);
 			UE_LOG(LogCollision, Log, TEXT("[PREFILTER] Result for Querier [CHANNEL: %d, FLAG: %x] %s[%s] [%d]"), 
 				(int32)QuerierChannel, QuerierFlags,
 				(BodyInst->OwnerComponent.Get()->GetOwner())? *BodyInst->OwnerComponent.Get()->GetOwner()->GetName():TEXT("NO OWNER"),
@@ -870,10 +884,10 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 			PxRaycastHit PHit;
 
 			// Create filter data used to filter collisions
-			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
+			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, false);
 			PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 			PxSceneQueryFlags POutputFlags = PxHitFlags();
-			FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
+			FPxQueryFilterCallback PQueryCallback(Params);
 			PQueryCallback.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 
 			FPhysScene* PhysScene = World->GetPhysicsScene();
@@ -943,10 +957,10 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			FScopedMultiSceneReadLock SceneLocks;
 
 			// Create filter data used to filter collisions
-			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
+			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, false);
 			PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 			PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-			FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
+			FPxQueryFilterCallback PQueryCallback(Params);
 			PQueryCallback.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 
 			PxVec3 PStart = U2PVector(Start);
@@ -991,7 +1005,17 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			if (bHaveBlockingHit) // If we got a hit
 			{
 				PxTransform PStartTM(U2PVector(Start));
-				ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, NULL, PStartTM, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
+				if (ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, NULL, PStartTM, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
+				{
+					bHaveBlockingHit = false;
+					UE_LOG(LogCollision, Error, TEXT("RaycastSingle resulted in a NaN/INF in PHit!"));
+#if ENABLE_NAN_DIAGNOSTIC
+					UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+					UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
+					UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
+					UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
+#endif
+				}
 			}
 		}
 #endif //WITH_PHYSX
@@ -1058,10 +1082,10 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 	{
 #if WITH_PHYSX
 		// Create filter data used to filter collisions
-		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
+		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, true);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-		FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
+		FPxQueryFilterCallback PQueryCallback(Params);
 
 		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
 		TTypeCompatibleBytes<PxRaycastHit> RawPHits[HIT_BUFFER_SIZE];
@@ -1170,7 +1194,17 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 
 		if (NumHits > 0)
 		{
-			ConvertRaycastResults(World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
+			if (ConvertRaycastResults(bBlockingHit, World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
+			{
+				// We don't need to change bBlockingHit, that's done by ConvertRaycastResults if it removed the blocking hit.
+				UE_LOG(LogCollision, Error, TEXT("RaycastMulti resulted in a NaN/INF in PHit!"));
+#if ENABLE_NAN_DIAGNOSTIC
+				UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+				UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
+				UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
+				UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
+#endif
+			}
 		}
 
 		bHaveBlockingHit = bBlockingHit;
@@ -1228,12 +1262,11 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
 		// Create filter data used to filter collisions
-		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
+		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, false);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 		PxSceneQueryFlags POutputFlags; 
 
-		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.GetIgnoredComponents());
-		PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
+		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params);
 		PQueryCallbackSweep.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 
 		PxTransform PStartTM(U2PVector(Start), PGeomRot);
@@ -1308,13 +1341,12 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
 		// Create filter data used to filter collisions
-		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
+		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, false);
 		//UE_LOG(LogCollision, Log, TEXT("PFilter: %x %x %x %x"), PFilter.word0, PFilter.word1, PFilter.word2, PFilter.word3);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.GetIgnoredComponents());
+		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params);
 		PQueryCallbackSweep.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
-		PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;	
 
 		PxTransform PStartTM(U2PVector(Start), PGeomRot);
 		PxVec3 PDir = U2PVector(Delta/DeltaMag);
@@ -1328,23 +1360,6 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 		PxSweepHit PHit;
 		bHaveBlockingHit = SyncScene->sweepSingle(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHit, PQueryFilterData, &PQueryCallbackSweep);
-
-		// Emergency NaN guarding. If we get a NaN back, act like there was no hit
-		if (PHit.position.isFinite() == false || PHit.normal.isFinite() == false)
-		{
-			bHaveBlockingHit = false;
-#if ENABLE_NAN_DIAGNOSTIC
-			UE_LOG(LogCollision, Error, TEXT("GeomSweepSingle resulted in a NaN/INF in PHit!"));
-			UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
-			UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
-			UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
-			UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
-
-			//convert to FVector will do further diagnostic and print as needed
-			FVector NanCheckVectorPosition = P2UVector(PHit.position);
-			FVector NanCheckVectorNormal = P2UVector(PHit.normal);
-#endif
-		}
 
 		if (!bHaveBlockingHit)
 		{
@@ -1378,7 +1393,17 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 		if(bHaveBlockingHit) // If we got a hit, convert it to unreal type
 		{
-			ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
+			if (ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
+			{
+				bHaveBlockingHit = false;
+				UE_LOG(LogCollision, Error, TEXT("GeomSweepSingle resulted in a NaN/INF in PHit!"));
+#if ENABLE_NAN_DIAGNOSTIC
+				UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+				UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
+				UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
+				UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
+#endif
+			}
 		}
 	}
 
@@ -1422,11 +1447,10 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 	const int32 InitialHitCount = OutHits.Num();
 
 	// Create filter data used to filter collisions
-	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
+	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, true);
 	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 	PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.GetIgnoredComponents());
-	PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
+	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params);
 
 	const FVector Delta = End - Start;
 	const float DeltaMag = Delta.Size();
@@ -1510,7 +1534,17 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 		// Convert all hits to unreal structs. This will remove any hits further than MinBlockDistance, and sort results.
 		if (NumHits > 0)
 		{
-			bBlockingHit |= AddSweepResults(World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial);
+			if (AddSweepResults(bBlockingHit, World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial) == EConvertQueryResult::Invalid)
+			{
+				// We don't need to change bBlockingHit, that's done by AddSweepResults if it removed the blocking hit.
+				UE_LOG(LogCollision, Error, TEXT("GeomSweepMulti resulted in a NaN/INF in PHit!"));
+#if ENABLE_NAN_DIAGNOSTIC				
+				UE_LOG(LogCollision, Error, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
+				UE_LOG(LogCollision, Error, TEXT("--------Start : %s"), *Start.ToString());
+				UE_LOG(LogCollision, Error, TEXT("--------End : %s"), *End.ToString());
+				UE_LOG(LogCollision, Error, TEXT("--------%s"), *Params.ToString());
+#endif
+			}
 		}
 	}
 
@@ -1591,9 +1625,9 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 	if (PGeom.getType()==PxGeometryType::eSPHERE || PGeom.getType()==PxGeometryType::eCAPSULE || PGeom.getType()==PxGeometryType::eBOX || PGeom.getType()==PxGeometryType::eCONVEXMESH )
 	{
 		// Create filter data used to filter collisions
-		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, InfoType != EQueryInfo::IsAnything);
+		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, Params, ObjectParams, InfoType != EQueryInfo::IsAnything);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-		FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
+		FPxQueryFilterCallback PQueryCallback(Params);
 		PQueryCallback.bIgnoreTouches = (InfoType == EQueryInfo::IsBlocking); // pre-filter to ignore touches and only get blocking hits, if that's what we're after.
 
 		// Enable scene locks, in case they are required
@@ -1824,18 +1858,13 @@ PxFilterData CreateObjectQueryFilterData(const bool bTraceComplex, const int32 M
 	// get object param bits
 	PNewData.word1 = ObjectParam.GetQueryBitfield();
 
-	// make sure it doesn't have flag beyond usage
-	// we only allow lower 24 bits for flag
-	// warn if that's used before setting MyChannel
-	check((PNewData.word3 & 0xFF000000) == 0);
-
 	// if 'nothing', then set no bits
-	PNewData.word3 |= (MultiTrace) << 24;
+	PNewData.word3 |= CreateChannelAndFilter((ECollisionChannel)MultiTrace, ObjectParam.IgnoreMask);
 
 	return PNewData;
 }
 
-PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer)
+PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const FCollisionQueryParams& Params)
 {
 	/**
 	 * Format for QueryData : 
@@ -1875,20 +1904,15 @@ PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTrace
 			PNewData.word2 |= CRC_TO_BITFIELD(i);
 		}
 	}
-
-	// make sure it doesn't have flag beyond usage
-	// we only allow lower 24 bits for flag
-	// warn if that's used before setting MyChannel
-	check((PNewData.word3 & 0xFF000000) == 0);
-
+	
 	// if 'nothing', then set no bits
-	PNewData.word3 |= (MyChannel) << 24;
+	PNewData.word3 |= CreateChannelAndFilter((ECollisionChannel)MyChannel, Params.IgnoreMask);
 
 	return PNewData;
 }
 
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
-PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace)
+PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const struct FCollisionQueryParams& QueryParam, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace)
 {
 	if (ObjectParam.IsValid() )
 	{
@@ -1896,7 +1920,7 @@ PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceCompl
 	}
 	else
 	{
-		return CreateTraceQueryFilterData(MyChannel, bTraceComplex, InCollisionResponseContainer);
+		return CreateTraceQueryFilterData(MyChannel, bTraceComplex, InCollisionResponseContainer, QueryParam);
 	}
 }
 

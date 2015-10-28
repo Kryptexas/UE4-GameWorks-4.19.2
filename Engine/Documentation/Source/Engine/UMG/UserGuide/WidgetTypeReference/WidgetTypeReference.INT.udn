@@ -46,6 +46,16 @@ There are a couple of options on how to allow Input from a user which are outlin
 | **Text Box (Multi-Line)** | Similar to the Text Box but allows a user to enter multiple lines of text instead of a single line. |
 
 
+## Optimization Widgets
+
+![](OptimizationWidgets.png)
+
+The widgets contained here are primiarly used for optimizating your UI for better performance. 
+
+| Option | Description |
+| -------- | ----------- |
+| [**Invalidation Box**](Engine\UMG\UserGuide\WidgetTypeReference\Invalidation) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\Invalidation#desc]|
+
 ## Panel Widgets
 
 ![](Panel.png)
@@ -58,6 +68,7 @@ The **Panel** category contains useful Widgets for controlling layouts and placi
 | **Grid Panel** | This is a panel that evenly divides up available space between all of its children widgets. |
 | **Horizontal Box** | Allows child widgets to be laid out in a flow horizontally. |
 | **Overlay** | Allows widgets to be stacked on top of each other and uses a simple flow layout for content on each layer.  |
+| **Safe Zone** | Pulls the platforms Safe Zone info and adds padding. |
 | **Scale Box** | Allows you to place content with a desired size and have it scale to meet the constraints placed on this box's allotted area. If you needed to have a background image scale to fill an area but not become distorted with different aspect rations, or if you need to auto fit some text to an area, this is the control for you. |
 | **Scroll Box** | An arbitrary scrollable collection of widgets. This is great for presenting 10-100 widgets in a list. This does not support virtualization. |
 | **Uniform Grid Panel** | A panel that evenly divides up available space between all of its children. |
@@ -81,6 +92,15 @@ The **Widgets** contained in the **Primitive** category provide additional metho
 | **Native Widget Host** |This is a container widget that can contain one child Slate widget. This should be used when all you need is to nest a native widget inside a UMG widget. |
 | **Spacer** |A spacer widget provides custom padding between other widgets. The spacer does not have a visual representation and is invisible in game.|
 | **Throbber** | An animated throbber widget that shows several zooming circles in a row (could be used to signify loading for example). |
+
+
+## User Created 
+
+![](UserCreatedWidgets.png)
+
+User Created Widgets are **Widget Blueprints** you have created that you can place inside another Widget Blueprint. This is useful for creating "parts" of UI elements as individual Widget Blueprints, then adding them together to construct your overall UI layout. 
+
+For example, you could create a _Player Health_ widget that contains display information for the player's health, an _Inventory_ widget that keeps track of the players collected items, an _Action Bar_ widget that allows the player to press a button and perform different actions or any number of other types of widgets, bringing them all together under one _GameHUD_ widget where those individual pieces are toggled on/off as needed (rather than constructing them all in a single Widget Blueprint). 
 
 
 

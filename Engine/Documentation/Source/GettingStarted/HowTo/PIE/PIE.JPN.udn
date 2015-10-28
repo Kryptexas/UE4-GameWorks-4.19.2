@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2662759
+﻿INTSourceChangelist:2719326
 Availability:Public
 Title:再生とシミュレーション
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -7,6 +7,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting
 Related:Engine/UI/LevelEditor/InEditorTesting/Settings
 Related:Engine/UI/LevelEditor/InEditorTesting/KeepSimulationChanges
 Related:Gameplay/HowTo/Networking/TestMultiplayer
+version:4.9
 
 
 [INCLUDE:Engine\UI\LevelEditor\InEditorTesting#overview]
@@ -68,8 +69,8 @@ Related:Gameplay/HowTo/Networking/TestMultiplayer
 1.	レベル エディタ ビューポートのテキスト上で **左クリック** して、**[Details (詳細)]**パネルでその **テキスト** 値を変更します。 
 
 	![](PIE_7.png)	
-
 	 **Enter** を押すと、テキストが確認されてレベル エディタ ビューポートのウィンドウで変更されます。 
+
 
 1.	 **[Possess (所有)]** ボタンをクリックして **メイン ツールバー** で、 **[Resume (再開)]** をクリックします。  
 
@@ -88,7 +89,8 @@ Related:Gameplay/HowTo/Networking/TestMultiplayer
 	[REGION:tip]
 	コンテキスト メニューを使用する代わりにアクタを選択し、 **K** キーを押して [Keep Simulation Changes (シミュレーション変更を維持)] を行うことができます。
 	[/REGION]
-1.	**Esc** を押して再生セッションを終了すると変更が保存されているのがわかります。 
+	1.	**Esc** を押して再生セッションを終了すると変更が保存されているのがわかります。 
+
 
 ### 再生モード
 

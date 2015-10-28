@@ -39,7 +39,7 @@ void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequenceInstance")))
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
 	{
 		return;
 	}
@@ -82,28 +82,23 @@ bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FEventTrackEditor::HandleAddEventTrackMenuEntryExecute()
 {
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
-	if (MovieScene == nullptr)
-	{
-		return;
-	}
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
 
-	UMovieSceneTrack* EventTrack = MovieScene->FindMasterTrack( UMovieSceneEventTrack::StaticClass() );
-	if (EventTrack != nullptr)
+	if (FocusedMovieScene == nullptr)
 	{
 		return;
 	}
 
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddEventTrack_Transaction", "Add Event Track"));
+	FocusedMovieScene->Modify();
+	
+	UMovieSceneTrack* NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneEventTrack>();
+	ensure(NewTrack);
 
-	MovieScene->Modify();
+	UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
+	ensure(NewSection);
 
-	EventTrack = GetMasterTrack( UMovieSceneEventTrack::StaticClass() );
-	ensure(EventTrack);
-
-	EventTrack->AddSection(EventTrack->CreateNewSection());
-
+	NewTrack->AddSection(*NewSection);
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 

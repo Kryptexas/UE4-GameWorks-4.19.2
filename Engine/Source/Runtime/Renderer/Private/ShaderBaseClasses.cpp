@@ -17,12 +17,16 @@ FAutoConsoleVariableRef FMaterialShader::CVarAllowCachedUniformExpressions(
 	TEXT("Allow uniform expressions to be cached."),
 	ECVF_RenderThreadSafe);
 
+FName FMaterialShader::UniformBufferLayoutName(TEXT("Material"));
+
 FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitializerType& Initializer)
 :	FShader(Initializer)
 ,	DebugUniformExpressionSet(Initializer.UniformExpressionSet)
+,	DebugUniformExpressionUBLayout(FRHIUniformBufferLayout::Zero)
 ,	DebugDescription(Initializer.DebugDescription)
 {
 	check(!DebugDescription.IsEmpty());
+	DebugUniformExpressionUBLayout.CopyFrom(Initializer.UniformExpressionSet.GetUniformBufferStruct().GetLayout());
 
 	// Bind the material uniform buffer parameter.
 	MaterialUniformBuffer.Bind(Initializer.ParameterMap,TEXT("Material"));
@@ -121,11 +125,57 @@ void FMaterialShader::SetParameters(
 	// Validate that the shader is being used for a material that matches the uniform expression set the shader was compiled for.
 	const FUniformExpressionSet& MaterialUniformExpressionSet = Material.GetRenderingThreadShaderMap()->GetUniformExpressionSet();
 
-#if NO_LOGGING == 0
-	
-	const bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
+	//#todo-rco: Enable always for now to get better logging on Test builds
+#if 1//NO_LOGGING == 0
+	bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
 		|| UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap();
-
+	if (!bUniformExpressionSetMismatch)
+	{
+		auto DumpUB = [](const FRHIUniformBufferLayout& Layout)
+		{
+			FString DebugName = Layout.GetDebugName().GetPlainNameString();
+			UE_LOG(LogShaders, Warning, TEXT("Layout %s, Hash %08x"), *DebugName, Layout.GetHash());
+			FString ResourcesString;
+			for (int32 Index = 0; Index < Layout.Resources.Num(); ++Index)
+			{
+				ResourcesString += FString::Printf(TEXT("%d "), Layout.Resources[Index]);
+			}
+			UE_LOG(LogShaders, Warning, TEXT("Layout CB Size %d Res Offs %d; %d Resources: %s"), Layout.ConstantBufferSize, Layout.ResourceOffset, Layout.Resources.Num(), *ResourcesString);
+		};
+		if (UniformExpressionCache->LocalUniformBuffer.IsValid())
+		{
+			if (UniformExpressionCache->LocalUniformBuffer.BypassUniform)
+			{
+				if (DebugUniformExpressionUBLayout.GetHash() != UniformExpressionCache->LocalUniformBuffer.BypassUniform->GetLayout().GetHash())
+				{
+					UE_LOG(LogShaders, Warning, TEXT("Material Expression UB mismatch!"));
+					DumpUB(DebugUniformExpressionUBLayout);
+					DumpUB(UniformExpressionCache->LocalUniformBuffer.BypassUniform->GetLayout());
+					bUniformExpressionSetMismatch = true;
+				}
+			}
+			else
+			{
+				if (DebugUniformExpressionUBLayout.GetHash() != UniformExpressionCache->LocalUniformBuffer.WorkArea->Layout->GetHash())
+				{
+					UE_LOG(LogShaders, Warning, TEXT("Material Expression UB mismatch!"));
+					DumpUB(DebugUniformExpressionUBLayout);
+					DumpUB(*UniformExpressionCache->LocalUniformBuffer.WorkArea->Layout);
+					bUniformExpressionSetMismatch = true;
+				}
+			}
+		}
+		else
+		{
+			if (DebugUniformExpressionUBLayout.GetHash() != UniformExpressionCache->UniformBuffer->GetLayout().GetHash())
+			{
+				UE_LOG(LogShaders, Warning, TEXT("Material Expression UB mismatch!"));
+				DumpUB(DebugUniformExpressionUBLayout);
+				DumpUB(UniformExpressionCache->UniformBuffer->GetLayout());
+				bUniformExpressionSetMismatch = true;
+			}
+		}
+	}
 	if (bUniformExpressionSetMismatch)
 	{
 		UE_LOG(
@@ -338,6 +388,24 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << LightAttenuation;
 	Ar << LightAttenuationSampler;
 	Ar << DebugUniformExpressionSet;
+	if (Ar.IsLoading())
+	{
+		FName LayoutName;
+		Ar << LayoutName;
+		FRHIUniformBufferLayout Layout(LayoutName);
+		Ar << Layout.ConstantBufferSize;
+		Ar << Layout.ResourceOffset;
+		Ar << Layout.Resources;
+		DebugUniformExpressionUBLayout.CopyFrom(Layout);
+	}
+	else
+	{
+		FName LayoutName = DebugUniformExpressionUBLayout.GetDebugName();
+		Ar << LayoutName;
+		Ar << DebugUniformExpressionUBLayout.ConstantBufferSize;
+		Ar << DebugUniformExpressionUBLayout.ResourceOffset;
+		Ar << DebugUniformExpressionUBLayout.Resources;
+	}
 	Ar << DebugDescription;
 	Ar << AtmosphericFogTextureParameters;
 	Ar << EyeAdaptation;

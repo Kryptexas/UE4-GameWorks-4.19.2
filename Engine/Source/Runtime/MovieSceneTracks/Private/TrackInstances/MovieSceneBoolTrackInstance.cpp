@@ -13,17 +13,20 @@ FMovieSceneBoolTrackInstance::FMovieSceneBoolTrackInstance( UMovieSceneBoolTrack
 }
 
 
-void FMovieSceneBoolTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneBoolTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
-		bool BoolValue = PropertyBindings->GetCurrentValue<bool>(Object);
-		InitBoolMap.Add(Object, BoolValue);
+		if (InitBoolMap.Find(Object) == nullptr)
+		{
+			bool BoolValue = PropertyBindings->GetCurrentValue<bool>(Object);
+			InitBoolMap.Add(Object, BoolValue);
+		}
 	}
 }
 
 
-void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	for( UObject* Object : RuntimeObjects )
 	{
@@ -44,7 +47,7 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 }
 
 
-void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	bool BoolValue = false;
 
@@ -58,7 +61,7 @@ void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, c
 }
 
 
-void FMovieSceneBoolTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
+void FMovieSceneBoolTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }

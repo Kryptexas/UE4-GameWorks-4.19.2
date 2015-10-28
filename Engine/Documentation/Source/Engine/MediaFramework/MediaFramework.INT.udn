@@ -5,6 +5,9 @@ Description:Overview of Media Playback functionality in Unreal Engine 4.
 Related: Engine/Blueprints
 Related: Engine/UMG
 Related: Engine/Rendering/Materials
+parent:Engine
+order:12
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -71,7 +74,7 @@ the **UMG UI Designer**.  This will cover most expected use cases, such as in-ga
 
 [REGION:warning]
 The Media Framework is not quite production ready yet and is still in the experimental stages. Some features may not work as expected, however we are currently working hard 
-to resolve those issues as well as add addition features and support. 
+to resolve those issues as well as add additional features and support. 
 [/REGION]
 
 ## What is Media Framework
@@ -130,7 +133,7 @@ Instead of clicking the **Create** button, you can also **Right-click** in the *
 
 	![](MediaPlay.png)
 
-1. Inside the Details panel, you may notice that a warning icon is present. 
+1. Inside the **Details** panel, you may notice that a warning icon is present. 
 
 	![](EpicMovieMediaFrameWorkFile.jpg)
 

@@ -509,7 +509,7 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 
 void FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
 {
-	UMovieSceneTrack* Track = GetMasterTrack( UMovieSceneAudioTrack::StaticClass() );
+	UMovieSceneTrack* Track = FindOrAddMasterTrack<UMovieSceneAudioTrack>();
 
 	auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
 	AudioTrack->AddNewSound( Sound, KeyTime );

@@ -49,6 +49,21 @@ public:
 	MOVIESCENE_API void RefreshInstance(class IMovieScenePlayer& Player);
 
 	/**
+	 * Spawn an object relating to the specified object ID
+	 * 
+	 * @param ObjectId The ID of the object to spawn
+	 * @return The newly spawned or previously-spawned object, or nullptr
+	 */
+	MOVIESCENE_API void SpawnObject(const FGuid& ObjectId);
+
+	/**
+	 * Destroy a previously spawned object relating to the specified object ID
+	 * 
+	 * @param ObjectId The ID of the object to destroy
+	 */
+	MOVIESCENE_API void DestroySpawnedObject(const FGuid& ObjectId);
+
+	/**
 	 * Get the sequence associated with this instance.
 	 *
 	 * @return The movie scene sequence object.
@@ -66,7 +81,7 @@ public:
 	 *
 	 * @return The time range.
 	 */
-	TRange<float> GetMovieSceneTimeRange() const
+	TRange<float> GetTimeRange() const
 	{
 		return TimeRange;
 	}

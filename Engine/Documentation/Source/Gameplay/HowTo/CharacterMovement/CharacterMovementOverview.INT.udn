@@ -3,6 +3,9 @@ Title:Setting Up Character Movement
 Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for Setting Up a Character with Character Movement in Unreal Engine 4. 
 Version: 4.9
+Parent:Gameplay
+type:how-to
+order:10
 
 To create **Character Movement**, several parts are needed, each working together to produce the end result of a character moving around in your game. You will need a character, inputs for that character, how the character responds to inputs from a player, animations for the character moving, transitions to and from animations, and the logic behind the transitioning between animations. 
 

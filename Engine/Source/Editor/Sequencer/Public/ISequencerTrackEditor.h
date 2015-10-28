@@ -95,6 +95,9 @@ public:
 	/** Called when the instance of this track editor is released */
 	virtual void OnRelease() = 0;
 
+	/** Allows the track editor to paint on a track area. */
+	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) = 0;
+
 	/**
 	 * Returns whether a track class is supported by this tool.
 	 *

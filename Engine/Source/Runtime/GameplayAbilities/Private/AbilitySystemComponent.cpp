@@ -303,13 +303,13 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToTar
 {
 	if (Target == nullptr)
 	{
-		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null Target. Context: %s"), *Context.ToString());
+		ABILITY_LOG(Log, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null Target. %s. Context: %s"), *GetFullName(), *Context.ToString());
 		return FActiveGameplayEffectHandle();
 	}
 
 	if (GameplayEffectClass == nullptr)
 	{
-		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null GameplayEffectClass. Context: %s"), *Context.ToString());
+		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget called with null GameplayEffectClass. %s. Context: %s"), *GetFullName(), *Context.ToString());
 		return FActiveGameplayEffectHandle();
 	}
 
@@ -960,6 +960,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
+	if (ActorAvatar == nullptr)
+	{
+		// No avatar actor to call this gameplaycue on.
+		return;
+	}
+
 	if (!Spec.Def)
 	{
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent Actor %s that has no gameplay effect!"), ActorAvatar ? *ActorAvatar->GetName() : TEXT("NULL"));
@@ -1007,9 +1013,11 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& GameplayCueParameters)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
-	AActor* ActorOwner = AbilityActorInfo->OwnerActor.Get();
-
-	UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, GameplayCueTag, EventType, GameplayCueParameters);
+	
+	if (ActorAvatar != nullptr)
+	{
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, GameplayCueTag, EventType, GameplayCueParameters);
+	}
 }
 
 void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext)
@@ -1063,7 +1071,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 			// Call on server here, clients get it from repnotify
 			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 		}
-		// Don't need to multicast broadcast this, ACtiveGameplayCues replication handles it
+		// Don't need to multicast broadcast this, ActiveGameplayCues replication handles it
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
@@ -1171,6 +1179,11 @@ TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(co
 TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffects(Query);
+}
+
+float UAbilitySystemComponent::GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffectsEndTime(Query);
 }
 
 void UAbilitySystemComponent::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
@@ -1367,6 +1380,11 @@ AActor* UAbilitySystemComponent::GetAvatarActor(const UGameplayTask* Task) const
 {
 	check(AbilityActorInfo.IsValid());
 	return AbilityActorInfo->AvatarActor.Get();
+}
+
+void UAbilitySystemComponent::DebugCyclicAggregatorBroadcasts(FAggregator* Aggregator)
+{
+	ActiveGameplayEffects.DebugCyclicAggregatorBroadcasts(Aggregator);
 }
 
 // ------------------------------------------------------------------------
@@ -1575,9 +1593,22 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				LevelString = FString::Printf(TEXT("Level: %.2f"), ActiveGE.Spec.GetLevel());
 			}
 
+			FString PredictionString;
+			if (ActiveGE.PredictionKey.IsValidKey())
+			{
+				if (ActiveGE.PredictionKey.WasLocallyGenerated() )
+				{
+					PredictionString = FString::Printf(TEXT("(Predicted and Waiting)"));
+				}
+				else
+				{
+					PredictionString = FString::Printf(TEXT("(Predicted and Caught Up)"));
+				}
+			}
+
 			Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128) : FColor::White);
 
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s %s"), *ASC_CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString, *LevelString), XPos + 4.f, YPos);
+			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s %s %s"), *ASC_CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString, *LevelString, *PredictionString), XPos + 4.f, YPos);
 			AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 
 			FGameplayTagContainer GrantedTags;

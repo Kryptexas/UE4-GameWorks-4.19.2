@@ -13,15 +13,11 @@
  */
 UCLASS(BlueprintType)
 class LEVELSEQUENCE_API ULevelSequence
-	: public UObject
+	: public UMovieSceneSequence
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-
-	/** Collection of possessed objects. */
-	UPROPERTY()
-	FLevelSequenceObjectReferenceMap DefaultObjectReferences;
 
 	/** Pointer to the movie scene that controls this animation. */
 	UPROPERTY()
@@ -35,84 +31,46 @@ public:
 	/** Convert old-style lazy object ptrs to new-style references using the specified context */
 	void ConvertPersistentBindingsToDefault(UObject* FixupContext);
 
-private:
-
-	/** Deprecated property housing old possessed object bindings */
-	UPROPERTY()
-	TMap<FString, FLevelSequenceObject> PossessedObjects_DEPRECATED;
-};
-
-
-/**
- * An instance of a ULevelSequence that supports resolution and remapping of object bindings.
- */
-UCLASS()
-class LEVELSEQUENCE_API ULevelSequenceInstance
-	: public UMovieSceneSequence
-{
 public:
 
-	GENERATED_BODY()
-	
 	/**
-	 * Initialize this instance. Safe to be called multiple times. Does not reset object re-mappings unless bInCanRemapBindings is false.
+	 * Bind this level sequence to an arbitrary context. For now we only support binding to a UWorld
 	 *
-	 * @param InSequence The level sequence to instantiate.
 	 * @param InContext The context to use for object binding resolution.
-	 * @param bInCanRemapBindings Whether this instance is permitted to remap object bindings or not.
 	 */
-	void Initialize(ULevelSequence* InSequence, UObject* InContext, bool bInCanRemapBindings);
-	
-	/**
-	 * Change this instance's context.
-	 *
-	 * @param NewContext The new context to use for object binding resolution.
-	 */
-	void SetContext(UObject* NewContext);
-
-	/**
-	 * Get the level sequence of which this is an instance
-	 *
-	 * @return this instance's parent level sequence
-	 */
-	ULevelSequence* GetLevelSequence()
-	{
-		return LevelSequence;
-	}
+	void BindToContext(UObject* InContext);
 
 public:
 
 	// UMovieSceneSequence interface
-
-	virtual bool AllowsSpawnableObjects() const override;
+	
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject) override;
 	virtual bool CanPossessObject(UObject& Object) const override;
-	virtual void DestroyAllSpawnedObjects() override;
 	virtual UObject* FindObject(const FGuid& ObjectId) const override;
 	virtual FGuid FindObjectId(UObject& Object) const override;
 	virtual UMovieScene* GetMovieScene() const override;
 	virtual UObject* GetParentObject(UObject* Object) const override;
-	virtual void SpawnOrDestroyObjects(bool DestroyAll) override;
 	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
+	virtual bool AllowsSpawnableObjects() const override;
+	virtual UObject* SpawnObject(const FGuid& ObjectId) override;
+	virtual void DestroySpawnedObject(const FGuid& ObjectId) override;
+	virtual void DestroyAllSpawnedObjects() override;
 
 #if WITH_EDITOR
 	virtual bool TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const override;
-	virtual FText GetDisplayName() const override;
 #endif
 
+	virtual bool Rename(const TCHAR* NewName = nullptr, UObject* NewOuter = nullptr, ERenameFlags Flags = REN_None) override;
+	
 private:
 
-	/** The level sequence we are instancing. */
-	UPROPERTY(transient)
-	ULevelSequence* LevelSequence;
-
-	/** Flag to specify whether this instance can remap bindings or not. */
+	/** Collection of possessed objects. */
 	UPROPERTY()
-	bool bCanRemapBindings;
+	FLevelSequenceObjectReferenceMap ObjectReferences;
 
-	/** Collection of re-mappings for possessed objects references. */
+	/** Deprecated property housing old possessed object bindings */
 	UPROPERTY()
-	FLevelSequenceObjectReferenceMap RemappedObjectReferences;
+	TMap<FString, FLevelSequenceObject> PossessedObjects_DEPRECATED;
 
 private:
 
@@ -122,6 +80,6 @@ private:
 	/** A transient map of cached object bindings */
 	mutable TMap<FGuid, TWeakObjectPtr<UObject>> CachedObjectBindings;
 
-	/** Collection of spawned proxy actors. */
-	TMap<FGuid, TWeakObjectPtr<AActor>> SpawnedActors;
+	/** A map of object ID -> spawned object */
+	TMap<FGuid, TWeakObjectPtr<UObject>> SpawnedObjects;
 };

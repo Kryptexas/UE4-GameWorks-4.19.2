@@ -231,6 +231,25 @@ bool FRawCurveTracks::DeleteCurveData(USkeleton::AnimCurveUID Uid, ESupportedCur
 	}
 }
 
+void FRawCurveTracks::DeleteAllCurveData(ESupportedCurveType SupportedCurveType /*= FloatType*/)
+{
+	switch(SupportedCurveType)
+	{
+#if WITH_EDITOR
+	case VectorType:
+		VectorCurves.Empty();
+		break;
+	case TransformType:
+		TransformCurves.Empty();
+		break;
+#endif // WITH_EDITOR
+	case FloatType:
+	default:
+		FloatCurves.Empty();
+		break;
+	}
+}
+
 bool FRawCurveTracks::AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags /*= ACF_DefaultCurve*/, ESupportedCurveType SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)

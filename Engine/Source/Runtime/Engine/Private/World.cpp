@@ -3706,7 +3706,7 @@ void UWorld::NotifyAcceptedConnection( UNetConnection* Connection )
 	check(NetDriver!=NULL);
 	check(NetDriver->ServerConnection==NULL);
 	UE_LOG(LogNet, Log, TEXT("NotifyAcceptedConnection: Name: %s, TimeStamp: %s, %s"), *GetName(), FPlatformTime::StrTimestamp(), *Connection->Describe() );
-	NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("OPEN"), *(GetName() + TEXT(" ") + Connection->LowLevelGetRemoteAddress())));
+	NETWORK_PROFILER( GNetworkProfiler.TrackEvent( TEXT( "OPEN" ), *( GetName() + TEXT( " " ) + Connection->LowLevelGetRemoteAddress() ), Connection ) );
 }
 
 bool UWorld::NotifyAcceptingChannel( UChannel* Channel )
@@ -3962,7 +3962,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				if (!ErrorMsg.IsEmpty())
 				{
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("RRELOGIN FAILURE"), *ErrorMsg));
+					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("RRELOGIN FAILURE"), *ErrorMsg, Connection));
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					Connection->FlushNet(true);
 					//@todo sz - can't close the connection here since it will leave the failure message 
@@ -3997,7 +3997,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Failed to connect.
 						UE_LOG(LogNet, Log, TEXT("Join failure: %s"), *ErrorMsg);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN FAILURE"), *ErrorMsg));
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN FAILURE"), *ErrorMsg, Connection));
 						FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 						Connection->FlushNet(true);
 						//@todo sz - can't close the connection here since it will leave the failure message 
@@ -4008,7 +4008,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Successfully in game.
 						UE_LOG(LogNet, Log, TEXT("Join succeeded: %s"), *Connection->PlayerController->PlayerState->PlayerName);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->PlayerName));
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->PlayerName, Connection));
 						// if we're in the middle of a transition or the client is in the wrong world, tell it to travel
 						FString LevelName;
 						FSeamlessTravelHandler &SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld( this );
@@ -4080,7 +4080,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				{
 					// if any splitscreen viewport fails to join, all viewports on that client also fail
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg));
+					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					Connection->FlushNet(true);
 					//@todo sz - can't close the connection here since it will leave the failure message 
@@ -4107,7 +4107,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Failed to connect.
 						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Join failure: %s"), *ErrorMsg);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOINSPLIT FAILURE"), *ErrorMsg));
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOINSPLIT FAILURE"), *ErrorMsg, Connection));
 						// remove the child connection
 						Connection->Children.Remove(ChildConn);
 						// if any splitscreen viewport fails to join, all viewports on that client also fail

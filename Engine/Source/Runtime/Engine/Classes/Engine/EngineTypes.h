@@ -222,6 +222,7 @@ enum EMaterialShadingModel
 	MSM_SubsurfaceProfile	UMETA(DisplayName="Subsurface Profile"),
 	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided"),
 	MSM_Hair				UMETA(DisplayName="Hair"),
+	MSM_Cloth				UMETA(DisplayName="Cloth"),
 	MSM_MAX,
 };
 
@@ -323,6 +324,24 @@ enum EMovementMode
 	MOVE_MAX		UMETA(Hidden),
 };
 
+
+/** Smoothing approach used by network interpolation for Characters. */
+UENUM(BlueprintType)
+enum class ENetworkSmoothingMode : uint8
+{
+	/** No smoothing, only change position as network position updates are received. */
+	Disabled		UMETA(DisplayName="Disabled"),
+
+	/** Linear interpolation from source to target. */
+	Linear			UMETA(DisplayName="Linear"),
+
+	/** Exponential. Faster as you are further from target. */
+	Exponential		UMETA(DisplayName="Exponential"),
+};
+
+/** This filter allows us to refine queries (channel, object) with an additional level of ignore by tagging entire classes of objects (e.g. "Red team", "Blue team")
+    If(QueryIgnoreMask & ShapeFilter != 0) filter out */
+typedef uint8 FMaskFilter;
 
 /** 
  * Enum indicating different type of objects for rigid-body collision purposes. 
@@ -1687,6 +1706,14 @@ struct ENGINE_API FHitResult
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
 		Time = 1.f;
+	}
+
+	explicit FHitResult(FVector Start, FVector End)
+	{
+		FMemory::Memzero(this, sizeof(FHitResult));
+		Time = 1.f;
+		TraceStart = Start;
+		TraceEnd = End;
 	}
 
 	/** Ctor for easily creating "fake" hits from limited data. */

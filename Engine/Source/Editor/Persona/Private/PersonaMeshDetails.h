@@ -215,23 +215,25 @@ private:
 	void OnLODCountChanged(int32 NewValue);
 	void OnLODCountCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	FText GetLODCountTooltip() const;
+	FText GetLODImportedText(int32 LODIndex) const;
 	/** apply LOD changes if the user modified LOD reduction settings */
 	FReply OnApplyChanges();
 	/** Removes the specified lod from the skeletal mesh */
 	FReply RemoveOneLOD(int32 LODIndex);
+	/** Remove Bones again */
+	FReply RemoveBones(int32 LODIndex);
 	/** hide properties which don't need to be showed to end users */
 	void HideUnnecessaryProperties(IDetailLayoutBuilder& DetailLayout);
-	/** clear "None" bones and remove already included bones */
-	void RefreshBonesToRemove(TArray<FBoneReference>& BonesToRemove, int32 LODIndex);
 
 public:
 
 	bool IsApplyNeeded() const;
 	bool IsGenerateAvailable() const;
-	void ApplyChanges(bool bForceUpdate);
+	void ApplyChanges(int32 DesiredLOD, const FSkeletalMeshOptimizationSettings& ReductionSettings);
+	void ApplyChanges();
 	FText GetApplyButtonText() const;
 
-	USkeletalMesh* GetMesh()
+	USkeletalMesh* GetMesh() const
 	{ 
 		if (PersonaPtr.IsValid())
 		{

@@ -6,6 +6,8 @@ Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
 Related: Engine/Rendering/Materials/LightingModels/SubSurface
 Related: Resources/ContentExamples/MaterialNodes/1_13
 Related: Resources/ContentExamples/MaterialNodes/1_7
+Version:4.9
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 
@@ -135,7 +137,9 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 
 	When completed, you should have something that looks like the following.
 
-	![](SSM_Light_Settings.png)
+	[REGION:lightbox]
+	[![](SSM_Light_Settings.png)(w:960)](SSM_Light_Settings.png)
+	[/REGION]
 
 1. With all of the lights added, we can now add a Static Mesh to test with. For this example, we will be using the following mesh. 
 

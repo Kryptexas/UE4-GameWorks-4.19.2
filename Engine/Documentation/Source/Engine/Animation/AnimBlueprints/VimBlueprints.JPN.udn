@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2658368
+﻿INTSourceChangelist:2728286
 Availability:Public
 Title:Animation ブループリント
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,7 +10,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
-バージョン：4.9
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -85,7 +85,15 @@ Animation ブループリントには、2 つの主要コンポーネントが�
 	[/PARAM]
 [/OBJECT]
 
+## 子 Animation ブループリントで作業する
 
+キャラクターと Animation ブループリントを作成し、設定する場合、類似キャラクターが複数存在するが、異なるステートで全く違うアニメーションを持つことがあるかもしれません。こうしたキャラクターそれぞれに Animation ブループリントを作成するのではなく、既存の Animation ブループリントの **子 Animation ブループリント** を使用して、置換したいアニメーション アセットをオーバーライドすることができます。子 Animation ブループリントはその親から何もかもを継承します。また、**Asset Override Editor (アセット オーバーライド エディタ)** を使用してどのアニメーションをオーバーライドするかを指定することもできます。 
+
+例えば、ひとつは人間でもうひとつはオオカミ人間という 2 種類の人間の形をしたキャラクターがあるとします。両方とも歩く、走る、ジャンプ、這うなどができます。しかし、その動きは全く異なる可能性があります。こうした動きの間での移動のロジックは同じですが、動き自体は異なります。2 種類の Animation ブループリントを作成しても問題ありませんが、時間を短縮するために子 Animation ブループリントを作成してどのアニメーションをオーバーライドするかを選択することができます。 
+
+[REGION:note]
+子 Animation ブループリントを作成し、オーバーライドする例の説明については、[](Engine/Animation/AnimHowTo/AnimBPOverride) をご覧ください。
+[/REGION]
 
 
 

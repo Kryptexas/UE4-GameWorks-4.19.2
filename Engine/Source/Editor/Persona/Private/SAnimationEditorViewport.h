@@ -323,9 +323,6 @@ private:
 	/** Tests to see if bone move mode buttons should be visibile */
 	EVisibility GetBoneMoveModeButtonVisibility() const;
 
-	/** Updates the viewport client with the users currently selected playback scale */
-	void UpdateViewportClientPlaybackScale();
-
 	/** Changes the currently selected LoD if the current one becomes invalid */
 	void OnLODChanged();
 

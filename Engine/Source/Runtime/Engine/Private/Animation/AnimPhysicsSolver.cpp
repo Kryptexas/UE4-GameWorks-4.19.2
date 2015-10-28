@@ -601,14 +601,6 @@ void FAnimPhys::ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysA
 	FVector JointMinAngles = FMath::DegreesToRadians<FVector>(InJointLimitMin);
 	FVector JointMaxAngles = FMath::DegreesToRadians<FVector>(InJointLimitMax);
 
-	if (JointMinAngles.X < JointMaxAngles.X &&
-		JointMinAngles.Y == 0.0f && JointMaxAngles.Y == 0.0f &&
-		JointMinAngles.Z == 0.0f && JointMaxAngles.Z == 0.0f)
-	{
-		FQuat cb = FQuat(0.0f, -1.0f, 0.0f, 1.0f).GetNormalized();
-		return ConstrainAngularRangeInternal(DeltaTime, LimitContainer, FirstBody, JointFrame0 * cb, SecondBody, JointFrame1 * cb, TwistAxis, FVector(0.0f, 0.0f, InJointLimitMin.X), FVector(0.0f, 0.0f, InJointLimitMax.X));
-	}
-
 	FQuat Rotation0to1 = JointFrame0.Inverse() * JointFrame1;
 
 	FVector WorldTwistAxis;
@@ -762,6 +754,25 @@ void FAnimPhys::ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit
 	LimitContainer.Add(FAnimPhysAngularLimit(FirstBody, SecondBody, Axis, TargetSpin, LimitAngle > 0.0f ? 0.0f : -MAX_flt, MAX_flt));
 }
 
+void FAnimPhys::ConstrainPlanar(float DeltaTime, TArray<FAnimPhysLinearLimit>& LimitContainer, FAnimPhysRigidBody* Body, const FTransform& PlaneTransform)
+{
+	FPlane LimitPlane(PlaneTransform.GetLocation(), PlaneTransform.GetUnitAxis(EAxis::Z));
+	float DistanceFromPlane = LimitPlane.PlaneDot(Body->Pose.Position);
+
+	// Reduce distance by radius if using a spherical collision method
+	if(Body->CollisionType != AnimPhysCollisionType::CoM)
+	{
+		DistanceFromPlane -= Body->SphereCollisionRadius;
+	}
+
+	float TargetSpeed = DistanceFromPlane / DeltaTime;
+
+	FVector Position0 = PlaneTransform.GetLocation();
+	FVector Position1 = FVector::ZeroVector;
+
+	LimitContainer.Add(FAnimPhysLinearLimit(nullptr, Body, Position0, Position1, LimitPlane.GetSafeNormal(), TargetSpeed, TargetSpeed, FVector2D(0.0f, MAX_flt)));
+}
+
 void FAnimPhys::CreateSpring(TArray<FAnimPhysSpring>& SpringContainer, FAnimPhysRigidBody* Body0, FVector Position0, FAnimPhysRigidBody* Body1, FVector Position1)
 {
 	FAnimPhysSpring NewSpring;
@@ -790,9 +801,25 @@ void FAnimPhys::InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBo
 	InBody->LinearMomentum *= LinearDampingLeftOver;
 	InBody->AngularMomentum *= AngularDampingLeftOver;
 
-	// #AnimDynamicsTodo - We can add to these vectors to bring in world / external forces into the sim
 	FVector Force = FVector(0.0f, 0.0f, UPhysicsSettings::Get()->DefaultGravityZ) * InBody->Mass * InBody->GravityScale;
 	FVector Torque(0.0f, 0.0f, 0.0f);
+
+	// Add wind forces
+	if(InBody->bWindEnabled)
+	{
+		// Multiplier for wind forces, we have a similar arbitrary scale in cloth wind, doing similar here
+		// so we get somewhat similar appearance between cloth and anim dynamics.
+		// #TODO Maybe put this and the cloth scale into physics settings?
+		static const float WindUnitScale = 250.0f;
+
+		// Wind velocity in body space
+		FVector WindVelocity = InBody->WindData.WindDirection * InBody->WindData.WindSpeed * WindUnitScale * InBody->WindData.BodyWindScale;
+
+		if(WindVelocity.SizeSquared() > SMALL_NUMBER)
+		{
+			Force += WindVelocity * InBody->WindData.WindAdaption;
+		}
+	}
 
 	InBody->LinearMomentum += Force * DeltaTime;
 	InBody->AngularMomentum += Torque * DeltaTime;
@@ -805,7 +832,6 @@ void FAnimPhys::InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBo
 void FAnimPhys::CalculateNextPose(float DeltaTime, FAnimPhysRigidBody* InBody)
 {
 	const bool bUseRKOrientIntegration = true;
-	const bool bReducePrecision = true;
 
 	// After an acceptable velocity and spin are computed, a forward euler update is applied to the position and orientation.
 	InBody->NextPosition = InBody->Pose.Position + InBody->LinearMomentum * InBody->InverseMass * DeltaTime;
@@ -816,7 +842,7 @@ void FAnimPhys::CalculateNextPose(float DeltaTime, FAnimPhysRigidBody* InBody)
 	}
 	else
 	{
-		InBody->NextOrientation = InBody->Pose.Orientation + DiffQ(InBody->Pose.Orientation, InBody->InverseTensorWithoutMass * InBody->InverseMass, InBody->AngularMomentum) * DeltaTime;
+		InBody->NextOrientation = (InBody->Pose.Orientation + DiffQ(InBody->Pose.Orientation, InBody->InverseTensorWithoutMass * InBody->InverseMass, InBody->AngularMomentum) * DeltaTime).GetNormalized();
 	}
 }
 
@@ -850,16 +876,20 @@ void FAnimPhys::PhysicsUpdate(float DeltaTime, TArray<FAnimPhysRigidBody*>& Bodi
 	
 	for (int32 Iteration = 0; Iteration < NumPreIterations; ++Iteration)
 	{
-		for (FAnimPhysLinearLimit& CurrentLimit : LinearLimits)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimDynamicsLinearPre);
-			CurrentLimit.Iter(DeltaTime);
+			for(FAnimPhysLinearLimit& CurrentLimit : LinearLimits)
+			{
+				CurrentLimit.Iter(DeltaTime);
+			}
 		}
 
-		for (FAnimPhysAngularLimit& CurrentLimit : AngularLimits)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimDynamicsAngularPre);
-			CurrentLimit.Iter(DeltaTime);
+			for(FAnimPhysAngularLimit& CurrentLimit : AngularLimits)
+			{
+				CurrentLimit.Iter(DeltaTime);
+			}
 		}
 	}
 
@@ -883,16 +913,20 @@ void FAnimPhys::PhysicsUpdate(float DeltaTime, TArray<FAnimPhysRigidBody*>& Bodi
 
 	for (int32 Iteration = 0; Iteration < NumPostIterations; ++Iteration)
 	{
-		for (FAnimPhysLinearLimit& CurrentLimit : LinearLimits)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimDynamicsLinearPost);
-			CurrentLimit.Iter(DeltaTime);
+			for(FAnimPhysLinearLimit& CurrentLimit : LinearLimits)
+			{
+				CurrentLimit.Iter(DeltaTime);
+			}
 		}
 
-		for (FAnimPhysAngularLimit& CurrentLimit : AngularLimits)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimDynamicsAngularPost);
-			CurrentLimit.Iter(DeltaTime);
+			for(FAnimPhysAngularLimit& CurrentLimit : AngularLimits)
+			{
+				CurrentLimit.Iter(DeltaTime);
+			}
 		}
 	}
 

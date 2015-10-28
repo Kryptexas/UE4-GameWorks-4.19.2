@@ -64,7 +64,7 @@ struct FAutoDestroyAnimationTicker
 
 ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, LevelSequenceInstance(nullptr)
+	, LevelSequence(nullptr)
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
 	, CurrentNumLoops(0)
@@ -74,9 +74,9 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 /* ULevelSequencePlayer interface
  *****************************************************************************/
 
-ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* LevelSequence, FLevelSequencePlaybackSettings Settings)
+ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* InLevelSequence, FLevelSequencePlaybackSettings Settings)
 {
-	if (LevelSequence == nullptr)
+	if (InLevelSequence == nullptr)
 	{
 		return nullptr;
 	}
@@ -87,11 +87,7 @@ ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* W
 	ULevelSequencePlayer* NewPlayer = NewObject<ULevelSequencePlayer>(GetTransientPackage(), NAME_None, RF_Transient);
 	check(NewPlayer != nullptr);
 
-	// Set up a new instance of the level sequence for the player
-	ULevelSequenceInstance* Instance = NewObject<ULevelSequenceInstance>(NewPlayer);
-	Instance->Initialize(LevelSequence, World, false);
-
-	NewPlayer->Initialize(Instance, World, Settings);
+	NewPlayer->Initialize(InLevelSequence, World, Settings);
 
 	// Automatically tick this player
 	GAnimationPlayerTicker.Add(NewPlayer);
@@ -122,16 +118,13 @@ void ULevelSequencePlayer::Stop()
 
 void ULevelSequencePlayer::Play()
 {
-	if ((LevelSequenceInstance == nullptr) || !World.IsValid())
+	if ((LevelSequence == nullptr) || !World.IsValid())
 	{
 		return;
 	}
 
 	// @todo Sequencer playback: Should we recreate the instance every time?
-	RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequenceInstance));
-
-	// @odo Sequencer Should we spawn actors here?
-	SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequence));
 	RootMovieSceneInstance->RefreshInstance(*this);
 
 	bIsPlaying = true;
@@ -168,12 +161,12 @@ void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 
 float ULevelSequencePlayer::GetLength() const
 {
-	if (!LevelSequenceInstance)
+	if (!LevelSequence)
 	{
 		return 0;
 	}
 
-	UMovieScene* MovieScene = LevelSequenceInstance->GetMovieScene();
+	UMovieScene* MovieScene = LevelSequence->GetMovieScene();
 	return MovieScene ? MovieScene->GetTimeRange().Size<float>() : 0;
 }
 
@@ -214,9 +207,10 @@ void ULevelSequencePlayer::OnCursorPositionChanged()
 /* ULevelSequencePlayer implementation
  *****************************************************************************/
 
-void ULevelSequencePlayer::Initialize(ULevelSequenceInstance* InLevelSequenceInstance, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings)
+void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings)
 {
-	LevelSequenceInstance = InLevelSequenceInstance;
+	LevelSequence = InLevelSequence;
+	LevelSequence->BindToContext(InWorld);
 
 	World = InWorld;
 	PlaybackSettings = Settings;
@@ -229,137 +223,12 @@ void ULevelSequencePlayer::Initialize(ULevelSequenceInstance* InLevelSequenceIns
 /* IMovieScenePlayer interface
  *****************************************************************************/
 
-void ULevelSequencePlayer::SpawnActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance)
-{
-	UWorld* WorldPtr = World.Get();
-
-	if (WorldPtr == nullptr)
-	{
-		return;
-	}
-
-	UMovieScene* MovieScene = MovieSceneInstance->GetSequence()->GetMovieScene();
-
-	if (MovieScene == nullptr)
-	{
-		return;
-	}
-
-	TArray<FSpawnedActorInfo>* FoundSpawnedActors = InstanceToSpawnedActorMap.Find(MovieSceneInstance);
-
-	if (FoundSpawnedActors != nullptr)
-	{
-		// Remove existing spawned actors for this movie
-		DestroyActorsForMovie( MovieSceneInstance );
-	}
-
-	TArray<FSpawnedActorInfo>& SpawnedActorList = InstanceToSpawnedActorMap.Add(MovieSceneInstance, TArray<FSpawnedActorInfo>());
-
-	for (auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
-	{
-		auto& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
-		UClass* GeneratedClass = Spawnable.GetClass();
-		
-		if ((GeneratedClass == nullptr) || !GeneratedClass->IsChildOf(AActor::StaticClass()))
-		{
-			continue;
-		}
-
-		AActor* ActorCDO = CastChecked<AActor>(GeneratedClass->ClassDefaultObject);
-		const FVector SpawnLocation = ActorCDO->GetRootComponent()->RelativeLocation;
-		const FRotator SpawnRotation = ActorCDO->GetRootComponent()->RelativeRotation;
-
-		FActorSpawnParameters SpawnInfo;
-		{
-			SpawnInfo.ObjectFlags = RF_NoFlags;
-		}
-
-		AActor* NewActor = WorldPtr->SpawnActor(GeneratedClass, &SpawnLocation, &SpawnRotation, SpawnInfo);
-
-		if (NewActor)
-		{	
-			// Actor was spawned OK!
-			FSpawnedActorInfo NewInfo;
-			{
-				NewInfo.RuntimeGuid = Spawnable.GetGuid();
-				NewInfo.SpawnedActor = NewActor;
-			}
-						
-			SpawnedActorList.Add(NewInfo);
-		}
-	}
-}
-
-
-void ULevelSequencePlayer::DestroyActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance)
-{
-	UWorld* WorldPtr = World.Get();
-
-	if (WorldPtr == nullptr)
-	{
-		return;
-	}
-
-	TArray<FSpawnedActorInfo>* SpawnedActors = InstanceToSpawnedActorMap.Find(MovieSceneInstance);
-
-	if (SpawnedActors == nullptr)
-	{
-		return;
-	}
-
-	TArray<FSpawnedActorInfo>& SpawnedActorsRef = *SpawnedActors;
-
-	for(int32 ActorIndex = 0; ActorIndex < SpawnedActors->Num(); ++ActorIndex)
-	{
-		AActor* Actor = SpawnedActorsRef[ActorIndex].SpawnedActor.Get();
-		
-		if (Actor != nullptr)
-		{
-			// @todo Sequencer figure this out.  Defaults to false.
-			const bool bNetForce = false;
-
-			// At runtime, level modification is not needed
-			const bool bShouldModifyLevel = false;
-			Actor->GetWorld()->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
-		}
-	}
-
-	InstanceToSpawnedActorMap.Remove(MovieSceneInstance);
-}
-
 
 void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
 {
-	// @todo sequencer runtime: Add support for individually spawning actors on demand when first requested?
-	//    This may be important to reduce the up-front hitch when spawning actors for the entire movie, but
-	//    may introduce smaller hitches during playback.  Needs experimentation.
-
-	const TArray<FSpawnedActorInfo>* SpawnedActors = InstanceToSpawnedActorMap.Find(MovieSceneInstance);
-
-	if ((SpawnedActors != nullptr) && (SpawnedActors->Num() > 0))
+	if (UObject* FoundObject = LevelSequence->FindObject(ObjectId))
 	{
-		// we have a spawned actor for this handle
-		const TArray<FSpawnedActorInfo>& SpawnedActorInfoRef = *SpawnedActors;
-
-		for (int32 SpawnedActorIndex = 0; SpawnedActorIndex < SpawnedActorInfoRef.Num(); ++SpawnedActorIndex)
-		{
-			const FSpawnedActorInfo ActorInfo = SpawnedActorInfoRef[SpawnedActorIndex];
-
-			if ((ActorInfo.RuntimeGuid == ObjectId) && ActorInfo.SpawnedActor.IsValid())
-			{
-				OutObjects.Add(ActorInfo.SpawnedActor.Get());
-			}
-		}
-	}
-	else
-	{
-		// otherwise, check whether we have one or more possessed actors that are mapped to this handle
-		UObject* FoundObject = LevelSequenceInstance->FindObject(ObjectId);
-
-		if (FoundObject != nullptr)
-		{
-			OutObjects.Add(FoundObject);
-		}
+		OutObjects.Add(FoundObject);
 	}
 }
 
@@ -381,17 +250,12 @@ EMovieScenePlayerStatus::Type ULevelSequencePlayer::GetPlaybackStatus() const
 	return bIsPlaying ? EMovieScenePlayerStatus::Playing : EMovieScenePlayerStatus::Stopped;
 }
 
-
 void ULevelSequencePlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd)
 {
-	SpawnActorsForMovie( InstanceToAdd );
 }
-
 
 void ULevelSequencePlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove)
 {
-	const bool bDestroyAll = true;
-	DestroyActorsForMovie( InstanceToRemove );
 }
 
 TSharedRef<FMovieSceneSequenceInstance> ULevelSequencePlayer::GetRootMovieSceneSequenceInstance() const

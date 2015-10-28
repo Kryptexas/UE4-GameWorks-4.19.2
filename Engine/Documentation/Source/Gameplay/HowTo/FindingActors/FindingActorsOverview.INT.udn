@@ -3,7 +3,9 @@ Title:Finding Actors
 Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for Finding Actors in your Scenes in Unreal Engine 4. 
 Version: 4.9
-
+Parent:Gameplay
+type:how-to
+order:11
 
 Once you start constructing your game and its levels, you may find that locating an individual Actor in your scene may be difficult. It is not uncommon to have hundreds of Actors in your scene ranging from level set pieces or geometry, to NPCs or enemies, to interactable objects or pick-ups and locating one Actor out of all those is like the old saying of "looking for a needle in a haystack". 
 

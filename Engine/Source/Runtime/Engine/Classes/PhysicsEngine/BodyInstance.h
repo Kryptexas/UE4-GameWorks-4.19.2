@@ -176,6 +176,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = Custom)
 	struct FCollisionResponse CollisionResponses;
 
+	/** Extra mask for filtering. Look at declaration for logic */
+	FMaskFilter MaskFilter;
+
 public:
 
 	/** If true Continuous Collision Detection (CCD) will be used for this component */
@@ -804,6 +807,12 @@ public:
 	 * @param InCollisionProfileName : New Profile Name
 	 */
 	void SetCollisionProfileName(FName InCollisionProfileName);
+
+	/** Updates the mask filter. */
+	void SetMaskFilter(FMaskFilter InMaskFilter);
+
+	/** Return the ignore mask filter. */
+	FORCEINLINE FMaskFilter GetMaskFilter() const { return MaskFilter; }
 
 	/** Get the current collision profile assigned to this body */
 	FORCEINLINE_DEBUGGABLE FName GetCollisionProfileName() const { return CollisionProfileName; }

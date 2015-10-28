@@ -2133,9 +2133,9 @@ Other improvements include:
 
     * *Notes when upgrading*:
 
-        * - If you have custom actors or blueprints with transform data on the root component that was previously ignored, you will see different results when spawning them with 4.9. In this case the best fix is likely to be simply zeroing out the transform data, since it was ignored before anyway.
+        * If you have custom actors or blueprints with transform data on the root component that was previously ignored, you will see different results when spawning them with 4.9. In this case the best fix is likely to be simply zeroing out the transform data, since it was ignored before anyway.
 
-        * - If you have added code somewhere to take this transform data into account before spawning, you will likely want to remove it, or else you will end up applying the transform twice.
+        * If you have added code somewhere to take this transform data into account before spawning, you will likely want to remove it, or else you will end up applying the transform twice.
 
 * New: A Remove Player analogue to Create Player is now available for use in Blueprints.
 

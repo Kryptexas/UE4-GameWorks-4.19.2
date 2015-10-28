@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Level Streaming User Guide
-Crumbs:%ROOT%, Editor, Editor/LevelEditing, Engine/LevelStreaming
-Description:Guide to setting up real-time asynchronous streaming of levels.
+﻿INTSourceChangelist:2735870
+Availability: Docs
+Title:레벨 스트리밍 사용 안내서
+Crumbs:
+Description:실시간 비동기 레벨 스트리밍 구성 안내입니다.
 
 [REGION:todo]
-	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+	이 글은 언리얼 엔진 3 문서를 변환한 것으로, 현재 검토중에 있습니다. 정보가 철지난 것일 수 있습니다.
 [/REGION]
 
 [TOC(start:2)]

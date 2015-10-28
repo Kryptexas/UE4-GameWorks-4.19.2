@@ -3,14 +3,15 @@
 #pragma once
 
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
-#include "SelectedKey.h"
 #include "EditorUndoClient.h"
+
 
 class UMovieScene;
 class IToolkitHost;
 class UMovieSceneSequence;
 class ISequencerObjectChangeListener;
 class IDetailKeyframeHandler;
+
 
 /**
  * Sequencer is the editing tool for MovieScene assets.
@@ -66,8 +67,8 @@ public:
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const override;
-	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance ) override;
-	TSharedRef<FMovieSceneSequenceInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const override;
+	virtual void FocusSequenceInstance( TSharedRef<FMovieSceneSequenceInstance> SequenceInstance ) override;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const override;
 	virtual bool GetAutoKeyEnabled() const override;
 	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) override;
 	virtual bool GetKeyAllEnabled() const override;
@@ -81,11 +82,12 @@ public:
 	virtual float GetGlobalTime() override;
 	virtual void SetGlobalTime(float Time) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
+	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
 	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) override;
 	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
 	virtual void NotifyMovieSceneDataChanged() override;
 	virtual void UpdateRuntimeInstances() override;
-	virtual void AddSubMovieScene(UMovieSceneSequence* SubMovieSceneSequence) override;
+	virtual void AddSubSequence(UMovieSceneSequence* Sequence) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual FSequencerSelection& GetSelection() override;
@@ -106,19 +108,13 @@ public:
 	/** Access the user-supplied settings object */
 	USequencerSettings* GetSettings() const { return Settings; }
 
-	bool IsPerspectiveViewportPosessionEnabled() const { return bPerspectiveViewportPossessionEnabled; }
+	bool IsPerspectiveViewportPossessionEnabled() const override { return bPerspectiveViewportPossessionEnabled; }
+	bool IsPerspectiveViewportCameraCutEnabled() const override { return bPerspectiveViewportCameraCutEnabled; }
 
 	/**
 	 * Pops the current focused movie scene from the stack.  The parent of this movie scene will be come the focused one
 	 */
-	void PopToMovieScene( TSharedRef<FMovieSceneSequenceInstance> SubMovieSceneInstance );
-
-	/**
-	 * Spawn (or destroy) puppet objects as needed to match the spawnables array in the MovieScene we're editing
-	 *
-	 * @param MovieSceneInstance	The movie scene instance to spawn or destroy puppet objects for
-	 */
-	void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance );
+	void PopToSequenceInstance( TSharedRef<FMovieSceneSequenceInstance> SequenceInstance );
 
 	/** 
 	 * Deletes the passed in sections
@@ -165,7 +161,7 @@ public:
 	 *
 	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
 	 */
-	virtual FGuid AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject ) ;
+	FGuid AddSpawnableForAssetOrClass( UObject* Object );
 
 	/**
 	 * Call when an asset is dropped into the sequencer. Will proprogate this
@@ -241,8 +237,6 @@ public:
 	virtual void AddOrUpdateMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd ) override;
 	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove ) override;
 
-	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance );
-
 	/** Called when an actor is dropped into Sequencer */
 	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );
 
@@ -274,7 +268,7 @@ public:
 	void AddSelectedObjects();
 
 	/** Called when a user executes the assign actor to track menu item */
-	void AssignActor(FGuid ObjectBinding, FObjectBindingNode* ObjectBindingNode);
+	void AssignActor(FGuid ObjectBinding, FSequencerObjectBindingNode* ObjectBindingNode);
 	bool CanAssignActor(FGuid ObjectBinding) const;
 
 	/** Called when a user executes the delete node menu item */
@@ -295,11 +289,6 @@ protected:
 
 	/** Reset data about a movie scene when pushing or popping a movie scene. */
 	void ResetPerMovieSceneData();
-
-	/**
-	 * Destroys spawnables for all movie scenes in the stack
-	 */
-	void DestroySpawnablesForAllSequences();
 
 	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
 	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
@@ -469,6 +458,12 @@ protected:
 	/** Called after a map has been opened. The sequencer editor mode needs to be enabled. */
 	void OnMapOpened(const FString& Filename, bool bLoadAsTemplate);
 
+	/** Called before a PIE session begins. */
+	void OnPreBeginPIE(bool bIsSimulating);
+
+	/** Called after a PIE session ends. */
+	void OnEndPIE(bool bIsSimulating);
+
 	/** Updates a viewport client from camera cut data */
 	void UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const;
 
@@ -477,7 +472,7 @@ private:
 	/** User-supplied settings object for this sequencer */
 	USequencerSettings* Settings;
 
-	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneSequenceInstance> > MovieSceneSectionToInstanceMap;
+	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneSequenceInstance> > SequenceInstanceBySection;
 
 	/** Command list for sequencer commands */
 	TSharedRef<FUICommandList> SequencerCommandBindings;
@@ -500,8 +495,13 @@ private:
 	/** The asset editor that created this Sequencer if any */
 	TWeakPtr<IToolkitHost> ToolkitHost;
 
-	/** Stack of movie scenes.  The first element is always the root movie scene.  The last element is the focused movie scene */
-	TArray< TSharedRef<FMovieSceneSequenceInstance> > MovieSceneStack;
+	/**
+	 * Stack of sequence instances.
+	 *
+	 * The first element is always the root instance.
+	 * The last element is the focused instance.
+	 */
+	TArray<TSharedRef<FMovieSceneSequenceInstance>> SequenceInstanceStack;
 
 	/** The time range target to be viewed */
 	TRange<float> TargetViewRange;
@@ -539,6 +539,7 @@ private:
 	bool bLoopingEnabled;
 
 	bool bPerspectiveViewportPossessionEnabled;
+	bool bPerspectiveViewportCameraCutEnabled;
 
 	/** True if this sequencer is being edited within the level editor */
 	bool bIsEditingWithinLevelEditor;

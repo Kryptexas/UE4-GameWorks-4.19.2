@@ -7,6 +7,10 @@ Related: Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening
 Related: Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI
 Related: Engine/Blueprints/Editor
 version: 4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+type:howto
+order:1
 
 
 [TOC(start:2 end:2)]

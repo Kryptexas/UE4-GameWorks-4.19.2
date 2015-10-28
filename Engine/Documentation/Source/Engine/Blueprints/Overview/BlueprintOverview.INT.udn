@@ -3,6 +3,9 @@ Title: Blueprint Overview
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: The Blueprint Overview page breaks down the anatomy of a Blueprint and the different types of Blueprints available. 
 version: 4.9
+parent:Engine/Blueprints
+order:2
+type:reference
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +50,8 @@ version: 4.9
 [TOC (start:2)]
 
 [INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
-Does that mean Blueprints are a replacement for UnrealScript? Yes and no. Gameplay programming and everything that UnrealScript 
+
+Does that mean Blueprints are a replacement for UnrealScript? Yes and no. Gameplay programming and everything that UnrealScript 
 was used for in the past can still be handled through code using C++. At the same time, while Blueprints are not meant as a replacement 
 for UnrealScript, they do serve many of the same purposes that UnrealScript handled, such as:
 

@@ -5,9 +5,16 @@
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
 
+#if WITH_EDITOR
+#include "FileHelpers.h"
+#endif
+
 #include "Matinee/MatineeActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationLatentCommand, Log, All);
+
+//declare static variable
+FOnEditorAutomationMapLoad AutomationCommon::OnEditorAutomationMapLoad;
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands
@@ -26,6 +33,36 @@ namespace AutomationCommon
 		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
 	}
 }
+
+
+bool AutomationOpenMap(const FString& MapName)
+{
+	bool bCanProceed = true;
+
+#if WITH_EDITOR
+	if (GIsEditor && AutomationCommon::OnEditorAutomationMapLoad.IsBound())
+	{
+		AutomationCommon::OnEditorAutomationMapLoad.Broadcast(MapName);
+	}
+	else
+#endif
+	{
+		//will happen on a subsequent frame
+		check(GEngine->GetWorldContexts().Num() == 1);
+		check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
+		//Don't reload the map if it's already loaded
+		if (GEngine->GetWorldContexts()[0].World()->GetName() != MapName)
+		{
+			GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
+		}
+
+		//Wait for map to load - need a better way to determine if loaded
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand());
+	}
+
+	return bCanProceed;
+}
+
 
 bool FWaitLatentCommand::Update()
 {
@@ -65,6 +102,38 @@ bool FRequestExitCommand::Update()
 	return true;
 }
 
+namespace
+{
+	// @todo this is a temporary solution. Once we know how to get test's hands on a proper world
+	// this function should be redone/removed
+	UWorld* GetAnyGameWorld()
+	{
+		UWorld* TestWorld = nullptr;
+		const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
+		for (const FWorldContext& Context : WorldContexts)
+		{
+			if (((Context.WorldType == EWorldType::PIE) || (Context.WorldType == EWorldType::Game)) && (Context.World() != NULL))
+			{
+				TestWorld = Context.World();
+				break;
+			}
+		}
+
+		return TestWorld;
+	}
+}
+
+bool FWaitForMapToLoadCommand::Update()
+{
+	//TODO - Is there a better way to see if the map is loaded?  Are Actors Initialized isn't right in Fortnite...
+	UWorld* TestWorld = GetAnyGameWorld();
+
+	if (TestWorld && TestWorld->AreActorsInitialized())
+	{
+		return true;
+	}
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...

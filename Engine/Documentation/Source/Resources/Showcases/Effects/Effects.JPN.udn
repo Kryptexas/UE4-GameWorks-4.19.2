@@ -1,12 +1,14 @@
-﻿Availability:Public
-Title:Particle Effects 
+﻿INTSourceChangelist:2723628
+Availability:Public
+Title:パーティクル エフェクト 
 Crumbs:%ROOT%, Resources,
-Description:UE4 に同梱されているエフェクトの使用例の概要
+Description:UE4 のエフェクト サンプルの概要
 Related:Engine/Rendering/ParticleSystems/Overview
 Related:Engine/Rendering/ParticleSystems
 Related:Engine/Rendering/ParticleSystems\Cascade
 Related:Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites
 Related:Engine/Rendering/ParticleSystems/Reference
+Version:4.9
 
 
 
@@ -61,12 +63,12 @@ Related:Engine/Rendering/ParticleSystems/Reference
 
 パーティクル エフェクトのサンプルでは多様な背景や基本エフェクトのデモを様々なパーティクルシステムで紹介します。このサンプルの目的は [GPU スプライト](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) パーティクルとその機能の使用法に注目しながら、圧倒的なリアリティをもたらす様々なビジュアル エフェクトを作成することです。
 
-## シーン処理の内訳
+## シーン処理の内容
 
-パーティクル エフェクトの使用例では、雪に覆われた極寒の山脈が登場する洞穴のレベルを紹介しています。洞穴内には苔に覆われた岩石層をつたって滝が流れ、洞穴底に豊かで流動的な水たまりが出来ています。神秘的で魅惑的に燃え上がる炎が不気味なライト効果を与えています。洞穴の外では険しい岩山を容赦ないブリザードが吹き抜けています。 
+このサンプルは、雪に覆われた極寒の山脈が登場する洞穴のレベルを紹介しています。洞穴内には苔に覆われた岩石層をつたって滝が流れ、洞穴底に豊かで流動的な水たまりが出来ています。神秘的で魅惑的に燃え上がる炎が不気味なライト効果を与えています。洞穴の外では険しい岩山を容赦ないブリザードが吹き抜けています。 
 
 
-##パーティクル システムの例
+##パーティクル システムのサンプル
 
 
 
@@ -77,7 +79,7 @@ Related:Engine/Rendering/ParticleSystems/Reference
 		![%Resources\Showcases\Effects\SnowExamples:title%](topic_Snow.png)
 	[/PARAM]
 	[PARAM:title]
-		雪の例
+		雪のサンプル
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Resources\Showcases\Effects\SnowExamples]
@@ -89,7 +91,7 @@ Related:Engine/Rendering/ParticleSystems/Reference
 		![%Resources\Showcases\Effects\WaterExamples:title%](topic_Water.png)
 	[/PARAM]
 	[PARAM:title]
-		水の例
+		水のサンプル
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Resources\Showcases\Effects\WaterExamples]
@@ -101,7 +103,7 @@ Related:Engine/Rendering/ParticleSystems/Reference
 		![%Resources\Showcases\Effects\FireExamples:title%](topic_Fire.png)
 	[/PARAM]
 	[PARAM:title]
-		火の例
+		火のサンプル
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Resources\Showcases\Effects\FireExamples]
@@ -114,17 +116,17 @@ Related:Engine/Rendering/ParticleSystems/Reference
 
 ##パーティクル サンプルの分析
 
-サンプルに含まれている文書では、ユーザーのプロジェクト開始を支援する目的で、各パーティクル システム エフェクトで実際に何が起きているかを紹介します。各エフェクトの作成方法について理解を深めたければ、それぞれをひも解いて、最終的にどのようにアセンブルされているかを見てみてください。文書では **コンテンツ ブラウザ** 内の各エフェクトへのフォルダパスを紹介しています。あるいは、ビューポートまたはワールド アウトライナーから興味のあるエフェクトを選択して **Ctrl+B** キーを押します。アクタ上で **右クリック** して（ビューポートまたはワールド アウトライナーの）コンテキストメニューから **[Show in Content Browser]** (コンテンツ ブラウザで表示) を選択します。
+サンプルに含まれているドキュメントでは、プロジェクト開始を支援するために、各パーティクル システム エフェクトで実際に何が起きているかを紹介します。各エフェクトの作成方法について理解を深めたければ、それぞれをひも解いて、最終的にどのようにアセンブルされているかを見てください。ドキュメント全体を通して **コンテンツ ブラウザ** 内の各エフェクトへのフォルダパスを紹介しています。あるいは、ビューポートまたはワールド アウトライナーから興味のあるエフェクトをクリックして **Ctrl+B** キーを押します。アクタ上で **右クリック** して (ビューポートまたはワールド アウトライナーの) コンテキスト メニューから **[Show in Content Browser (コンテンツ ブラウザで表示)]** を選択します。
 
 ![](FindInCB.png)
 
-**コンテンツ ブラウザ** のパーティクルシステムが選択されます。**コンテンツ ブラウザ** でアイコンをダブルクリックしてエフェクトを **Cascade** で開きます。これはアンリアル エンジン 4 が誇る強力なパーティクル編集システムです。
+コンテンツ ブラウザのパーティクルシステムが選択されます。コンテンツ ブラウザでアイコンを **ダブルクリック** してエフェクトを **Cascade** で開きます。これはアンリアル エンジン 4 が誇る強力なパーティクル編集システムです。
 
 ![](CascadeEditorOpen.png)(w:600)
 
 
 
-## レベルのマチネシーケンス
+## レベルのマチネ シーケンス
 
 このレベルでお見せするエフェクトの特別な楽しみとして、シネマティック フライスルーのマチネ シーケンスを紹介します。**スペースバー** をタップして、エディタの再生中にいつでもアクセスすることができます。  
 
@@ -154,7 +156,7 @@ Related:Engine/Rendering/ParticleSystems/Reference
 		![%Resources\Showcases\Effects\SnowExamples:title%](HalfTopic_Snow.png)
 	[/PARAM]
 	[PARAM:title]
-		雪の例
+		雪のサンプル
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Resources\Showcases\Effects\SnowExamples]
@@ -167,7 +169,7 @@ Related:Engine/Rendering/ParticleSystems/Reference
 		![%Resources\Showcases\Effects\WaterExamples:title%](HalfTopic_Water.png)
 	[/PARAM]
 	[PARAM:title]
-		水の例
+		水のサンプル
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Resources\Showcases\Effects\WaterExamples]
@@ -180,7 +182,7 @@ Related:Engine/Rendering/ParticleSystems/Reference
 		![%Resources\Showcases\Effects\FireExamples:title%](halfTopic_Fire.png)
 	[/PARAM]
 	[PARAM:title]
-		火の例
+		火のサンプル
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Resources\Showcases\Effects\FireExamples]

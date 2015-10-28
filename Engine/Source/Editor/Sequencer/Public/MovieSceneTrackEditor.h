@@ -130,17 +130,24 @@ public:
 		return Type;
 	}
 
-	UMovieSceneTrack* GetMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
+	/**
+	 * Find or add a master track of the specified type in the focused movie scene.
+	 *
+	 * @param TrackClass The class of the track to find or add.
+	 * @return The track.
+	 */
+	template<typename TrackClass>
+	TrackClass* FindOrAddMasterTrack()
 	{
 		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
-		UMovieSceneTrack* Type = MovieScene->FindMasterTrack( TrackClass );
+		TrackClass* MasterTrack = MovieScene->FindMasterTrack<TrackClass>();
 
-		if( !Type )
+		if (MasterTrack == nullptr)
 		{
-			Type = MovieScene->AddMasterTrack( TrackClass );
+			MasterTrack = MovieScene->AddMasterTrack<TrackClass>();
 		}
 
-		return Type;
+		return MasterTrack;
 	}
 
 
@@ -180,10 +187,29 @@ public:
 		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyEnabled();
 	}
 
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;
 	virtual void OnRelease() override { };
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) = 0;
+
+	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) override
+	{
+		return LayerId;
+	}
+
 	virtual bool SupportsType( TSubclassOf<class UMovieSceneTrack> TrackClass ) const = 0;
 	virtual void Tick(float DeltaTime) override { }
+
+protected:
+
+	/**
+	 * Gets the currently focused movie scene, if any.
+	 *
+	 * @result Focused movie scene, or nullptr if no movie scene is focused.
+	 */
+	UMovieScene* GetFocusedMovieScene() const
+	{
+		UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+		return FocusedSequence->GetMovieScene();
+	}
 
 private:
 

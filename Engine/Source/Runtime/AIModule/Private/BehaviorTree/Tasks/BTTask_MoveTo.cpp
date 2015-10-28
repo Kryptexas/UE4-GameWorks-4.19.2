@@ -13,6 +13,7 @@ UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer)
 {
 	NodeName = "Move To";
 	bNotifyTick = true;
+	bNotifyTaskFinished = true;
 
 	AcceptableRadius = GET_AI_CONFIG_VAR(AcceptanceRadius);
 	bStopOnOverlap = GET_AI_CONFIG_VAR(bFinishMoveOnGoalOverlap); 
@@ -49,6 +50,11 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 		if (ensure(BlackboardComp))
 		{
+			if (MyMemory->BBObserverDelegateHandle.IsValid())
+			{
+				UE_VLOG(MyController, LogBehaviorTree, Warning, TEXT("UBTTask_MoveTo::ExecuteTask \'%s\' Old BBObserverDelegateHandle is still valid! Removing old Observer."), *GetNodeName());
+				BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), MyMemory->BBObserverDelegateHandle);
+			}
 			MyMemory->BBObserverDelegateHandle = BlackboardComp->RegisterObserver(BlackboardKey.GetSelectedKeyID(), this, FOnBlackboardChangeNotification::CreateUObject(this, &UBTTask_MoveTo::OnBlackboardValueChange));
 		}
 	}
@@ -69,8 +75,20 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	{
 		if (GET_AI_CONFIG_VAR(bEnableBTAITasks))
 		{
-			UAITask_MoveTo* AIMoveTask = NewBTAITask<UAITask_MoveTo>(OwnerComp);
+			bool bTaskReusing = false;
+			UAITask_MoveTo* AIMoveTask = nullptr;
 
+			if (MyMemory->Task.IsValid())
+			{
+				AIMoveTask = MyMemory->Task.Get();
+				ensure(AIMoveTask->GetState() != EGameplayTaskState::Finished);
+				bTaskReusing = true;
+			}
+			else
+			{
+				AIMoveTask = NewBTAITask<UAITask_MoveTo>(OwnerComp);
+			}			
+			
 			if (AIMoveTask != nullptr)
 			{
 				bool bSetUp = false;
@@ -98,7 +116,21 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 
 				if (NodeResult == EBTNodeResult::InProgress)
 				{
-					AIMoveTask->ReadyForActivation();
+					/*WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);
+					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_RepathFailed);*/
+
+					if (bTaskReusing == false)
+					{
+						MyMemory->Task = AIMoveTask;
+						UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' task implementing move with task %s"), *GetNodeName(), *AIMoveTask->GetName());
+						AIMoveTask->ReadyForActivation();
+					}
+					else
+					{
+						ensure(AIMoveTask->IsActive());
+						UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s"), *GetNodeName(), *AIMoveTask->GetName());
+						AIMoveTask->PerformMove();
+					}
 				}
 			}
 		}
@@ -132,6 +164,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 			{
 				const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
 				MoveReq.SetGoalLocation(TargetLocation);
+				MyMemory->PreviousGoalLocation = TargetLocation;
 
 				RequestResult = MyController->MoveTo(MoveReq);
 			}
@@ -163,10 +196,22 @@ EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBla
 	{
 		return EBlackboardNotificationResult::RemoveObserver;
 	}
-	
+
 	uint8* RawMemory = BehaviorComp->GetNodeMemory(this, BehaviorComp->FindInstanceContainingNode(this));
 	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(RawMemory);
 
+	const EBTTaskStatus::Type TaskStatus = BehaviorComp->GetTaskStatus(this);
+	if (TaskStatus != EBTTaskStatus::Active)
+	{
+		UE_VLOG(BehaviorComp, LogBehaviorTree, Error, TEXT("BT MoveTo \'%s\' task observing BB entry while no longer being active!"), *GetNodeName());
+
+		// resetting BBObserverDelegateHandle without unregistering observer since 
+		// returning EBlackboardNotificationResult::RemoveObserver here will take care of that for us
+		MyMemory->BBObserverDelegateHandle.Reset();
+
+		return EBlackboardNotificationResult::RemoveObserver;
+	}
+	
 	// this means the move has already started. MyMemory->bWaitingForPath == true would mean we're waiting for right moment to start it anyway,
 	// so we don't need to do anything due to BB value change 
 	if (MyMemory != nullptr && MyMemory->bWaitingForPath == false && BehaviorComp->GetAIOwner() != nullptr)
@@ -184,13 +229,26 @@ EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBla
 
 		if (bUpdateMove)
 		{
-			StopWaitingForMessages(*BehaviorComp);
-			BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(TEXT("Updating move due to BB value change"), MyMemory->MoveRequestID, /*bResetVelocity=*/false, /*bSilent=*/true);
-			const EBTNodeResult::Type NodeResult = PerformMoveTask(*BehaviorComp, RawMemory);
-
-			if (NodeResult != EBTNodeResult::InProgress)
+			// don't abort move if using AI tasks - it will mess things up
+			if (GET_AI_CONFIG_VAR(bEnableBTAITasks) == false)
 			{
-				FinishLatentTask(*BehaviorComp, NodeResult);
+				StopWaitingForMessages(*BehaviorComp);
+				BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(TEXT("Updating move due to BB value change"), MyMemory->MoveRequestID, /*bResetVelocity=*/false, /*bSilent=*/true);
+			}
+
+			if (BehaviorComp->GetAIOwner()->ShouldPostponePathUpdates())
+			{
+				// NodeTick will take care of requesting move
+				MyMemory->bWaitingForPath = true;
+			}
+			else
+			{
+				const EBTNodeResult::Type NodeResult = PerformMoveTask(*BehaviorComp, RawMemory);
+
+				if (NodeResult != EBTNodeResult::InProgress)
+				{
+					FinishLatentTask(*BehaviorComp, NodeResult);
+				}
 			}
 		}
 	}
@@ -216,15 +274,21 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp,
 
 void UBTTask_MoveTo::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
 {
+	FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
+
 	if (bObserveBlackboardValue)
 	{
-		FBTMoveToTaskMemory* MyMemory = reinterpret_cast<FBTMoveToTaskMemory*>(NodeMemory);
 		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 		if (ensure(BlackboardComp) && MyMemory->BBObserverDelegateHandle.IsValid())
 		{
 			BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), MyMemory->BBObserverDelegateHandle);
-			MyMemory->BBObserverDelegateHandle.Reset();
 		}
+		MyMemory->BBObserverDelegateHandle.Reset();
+	}
+
+	if (GET_AI_CONFIG_VAR(bEnableBTAITasks))
+	{
+		MyMemory->Task = nullptr;
 	}
 
 	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);

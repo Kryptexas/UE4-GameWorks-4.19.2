@@ -7,6 +7,8 @@ Related: Engine\Paper2D\Sprites\RenderGeometry
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:2)]
 
@@ -53,6 +55,7 @@ Each of the **Tool Bar** options are described in the table below:
 | **Save** | Save the sprite being edited. |
 | **Find in CB** | Show the sprite being edited in the Content Browser. |
 | **Src Tex** | Toggles display of the entire texture that the sprite is referencing. |
+| **Add Box** | Adds an additional box polygon when editing collision or render geometry. |
 | **Add Polygon** | Adds an additional polygon when editing collision or render geometry. |
 | **Snap to pixel grid** | Snaps all vertices to the pixel grid when editing collision or render geometry. |
 
@@ -62,7 +65,6 @@ The **Mode Switching Toolbar** allows you to edit and affect how your Sprite app
  
 ![](modes.png)
 
-_Click the links below for additional documentation._
 
 | Mode | Description |
 | ---- | ----------- |
@@ -96,7 +98,7 @@ This shows all of the editable properties of the opened Sprite asset.
 
 ### Sprite List
 
-This shows all of the Sprites that share a common source texture. **Double-clicking** on another Sprite will switch the current asset being edited, which can be useful when adjusting a bunch of Sprites in a row. Another approach for bulk editing is to use the [**Property Matrix**](GettingStarted/HowTo/DetailsPanel#propertymatrix) context menu option on several selected assets in the **Content Browser**.
+This shows all of the Sprites that share a common source texture. **Double-clicking** on another Sprite will switch the current asset being edited, which can be useful when adjusting a bunch of Sprites in a row. Another approach for bulk editing is to use the [Property Matrix](GettingStarted/HowTo/DetailsPanel#propertymatrix) context menu option on several selected assets in the **Content Browser**.
 
 ![](sprite_list.png)
 
@@ -104,9 +106,9 @@ This shows all of the Sprites that share a common source texture. **Double-click
 
 Editing Sprites inside the **Sprite Editor** is done through either the properties inside the **Details** panel or by switching to one of the editing modes from the **Mode Switching Toolbar**. Additional documentation on each of the editing modes can be found on the following pages: 
 
-* For Sprite Source Region editing, see the [**Edit Source Region**](Engine\Paper2D\Sprites\RenderGeometry#definingthesourceregion) documentation. 
-* For Sprite Collision editing, see the [**Edit Collision**](Engine\Paper2D\Sprites\Collision) documentation. 
-* For Sprite Render Geometry editing, see the [**Edit RenderGeom**](Engine\Paper2D\Sprites\RenderGeometry) documentation. 
+* For Sprite Source Region editing, see the [Edit Source Region](Engine\Paper2D\Sprites\RenderGeometry#definingthesourceregion) documentation. 
+* For Sprite Collision editing, see the [Edit Collision](Engine\Paper2D\Sprites\Collision) documentation. 
+* For Sprite Render Geometry editing, see the [Edit RenderGeom](Engine\Paper2D\Sprites\RenderGeometry) documentation. 
 
 
 

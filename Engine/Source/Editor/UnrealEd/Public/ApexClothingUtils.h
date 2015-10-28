@@ -25,14 +25,18 @@ struct FSubmeshInfo
 	uint32 TriangleCount;
 	uint32 SimulVertexCount;
 	uint32 FixedVertexCount;
-
+	uint32 NumUsedBones;
+	int32  NumBoneSpheres;
 	bool operator==(const FSubmeshInfo& Other) const
 	{
 		return (SubmeshIndex		== Other.SubmeshIndex
 				&& VertexCount		== Other.VertexCount
 				&& TriangleCount	== Other.TriangleCount
 				&& SimulVertexCount == Other.SimulVertexCount
-				&& FixedVertexCount == Other.FixedVertexCount);
+				&& FixedVertexCount == Other.FixedVertexCount
+				&& NumUsedBones     == Other.NumUsedBones
+				&& NumBoneSpheres   == Other.NumBoneSpheres
+				);
 	}
 };
 

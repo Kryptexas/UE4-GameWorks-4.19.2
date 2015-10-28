@@ -29,6 +29,16 @@ struct FBoneTransform
 	{}
 };
 
+// Comparison Operator for Sorting.
+struct FCompareBoneTransformIndex
+{
+	FORCEINLINE bool operator()(const FBoneTransform& A, const FBoneTransform& B) const
+	{
+		return A.BoneIndex < B.BoneIndex;
+	}
+};
+
+
 template<class BoneIndexType>
 struct FBasePose
 {

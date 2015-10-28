@@ -1742,8 +1742,8 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 
 #if ENABLE_NAN_DIAGNOSTIC
 			DumpSpatializationState();
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
-				*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
+			//logOrEnsureNanError(TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
+			//	*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
 #endif
 		}
 #endif

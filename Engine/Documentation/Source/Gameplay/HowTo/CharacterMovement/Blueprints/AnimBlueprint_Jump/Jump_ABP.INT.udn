@@ -2,6 +2,8 @@ Availability: Public
 Title:8. Animation Blueprint - Jump States
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Moving on in our Animation Blueprint setup, here we set up the conditions for Jumping. 
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

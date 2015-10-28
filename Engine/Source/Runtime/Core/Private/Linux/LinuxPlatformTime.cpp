@@ -36,7 +36,7 @@ FCPUTime FLinuxTime::GetCPUTime()
 	static float CurrentCpuUtilizationNormalized = 0.0f;
 
 	struct timespec ts;
-	if (0 == clock_gettime(CLOCK_MONOTONIC, &ts))
+	if (0 == clock_gettime(CLOCK_MONOTONIC_RAW, &ts))
 	{
 		const double CurrentTimeNanoSec = static_cast<double>(ts.tv_sec) * 1e9 + static_cast<double>(ts.tv_nsec);
 
@@ -136,11 +136,11 @@ void FLinuxTime::CalibrateClock()
 		CallsPerSecondBenchmark(CLOCK_MONOTONIC_COARSE, TEXT("CLOCK_MONOTONIC_COARSE"))
 	};
 
-	// Warn if CLOCK_MONOTONIC cannot be called at least 2M times a second (<50k a frame) as this may affect tight loops
-	if (ClockRates[1] < 2000000)
+	// Warn if our current clock source cannot be called at least 2M times a second (<50k a frame) as this may affect tight loops
+	if (ClockRates[2] < 2000000)
 	{
-		UE_LOG(LogLinux, Warning, TEXT("CLOCK_MONOTONIC is too slow on this machine, performance may be affected."));
+		UE_LOG(LogLinux, Warning, TEXT("Current clock source (CLOCK_MONOTONIC_RAW) is too slow on this machine, performance may be affected."));
 	}
 
-	// @TODO: switch to some faster, but more coarse clock?
+	// @TODO: switch to whatever is faster and does not have zero deltas?
 }

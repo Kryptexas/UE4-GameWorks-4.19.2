@@ -37,6 +37,13 @@ static const uint64 Pow10Table[] = {
 
 static_assert(ARRAY_COUNT(Pow10Table) - 1 >= MaxFractionalPrintPrecision, "Pow10Table must at big enough to index any value up-to MaxFractionalPrintPrecision");
 
+void SanitizeNumberFormattingOptions(FNumberFormattingOptions& InOutFormattingOptions)
+{
+	// Ensure that the maximum limits are >= the minimum limits
+	InOutFormattingOptions.MaximumIntegralDigits = FMath::Max(InOutFormattingOptions.MinimumIntegralDigits, InOutFormattingOptions.MaximumIntegralDigits);
+	InOutFormattingOptions.MaximumFractionalDigits = FMath::Max(InOutFormattingOptions.MinimumFractionalDigits, InOutFormattingOptions.MaximumFractionalDigits);
+}
+
 int32 IntegralToString_UInt64ToString(
 	const uint64 InVal, 
 	const bool InUseGrouping, const uint8 InPrimaryGroupingSize, const uint8 InSecondaryGroupingSize, const TCHAR InGroupingSeparatorCharacter, 
@@ -203,8 +210,10 @@ FString BuildFinalString(const bool bIsNegative, const FDecimalNumberFormattingR
 	return FinalStr;
 }
 
-FString IntegralToString(const bool bIsNegative, const uint64 InVal, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberFormattingOptions& InFormattingOptions)
+FString IntegralToString(const bool bIsNegative, const uint64 InVal, const FDecimalNumberFormattingRules& InFormattingRules, FNumberFormattingOptions InFormattingOptions)
 {
+	SanitizeNumberFormattingOptions(InFormattingOptions);
+
 	// Deal with the integral part (produces a string of the integral part, inserting group separators if requested and required, and padding as needed)
 	TCHAR IntegralPartBuffer[MinRequiredIntegralBufferSize];
 	const int32 IntegralPartLen = IntegralToString_Common(InVal, InFormattingRules, InFormattingOptions, IntegralPartBuffer, ARRAY_COUNT(IntegralPartBuffer));
@@ -225,8 +234,10 @@ FString IntegralToString(const bool bIsNegative, const uint64 InVal, const FDeci
 	return BuildFinalString(bIsNegative, InFormattingRules, IntegralPartBuffer, IntegralPartLen, FractionalPartBuffer, FractionalPartLen);
 }
 
-FString FractionalToString(const double InVal, const FDecimalNumberFormattingRules& InFormattingRules, const FNumberFormattingOptions& InFormattingOptions)
+FString FractionalToString(const double InVal, const FDecimalNumberFormattingRules& InFormattingRules, FNumberFormattingOptions InFormattingOptions)
 {
+	SanitizeNumberFormattingOptions(InFormattingOptions);
+
 	if (FMath::IsNaN(InVal))
 	{
 		return InFormattingRules.NaNString;
@@ -255,6 +266,22 @@ FString FractionalToString(const double InVal, const FDecimalNumberFormattingRul
 	{
 		FractionalPartLen = IntegralToString_UInt64ToString(static_cast<uint64>(FractionalPart), false, 0, 0, ' ', 0, InFormattingOptions.MaximumFractionalDigits, FractionalPartBuffer, ARRAY_COUNT(FractionalPartBuffer));
 	
+		{
+			// Pad the fractional part with any leading zeros that may have been lost when the number was split
+			const int32 LeadingZerosToAdd = FMath::Min(InFormattingOptions.MaximumFractionalDigits - FractionalPartLen, MaxFractionalPrintPrecision - FractionalPartLen);
+			if (LeadingZerosToAdd > 0)
+			{
+				FMemory::Memmove(FractionalPartBuffer + LeadingZerosToAdd, FractionalPartBuffer, FractionalPartLen * sizeof(TCHAR));
+
+				for (int32 Index = 0; Index < LeadingZerosToAdd; ++Index)
+				{
+					FractionalPartBuffer[Index] = '0';
+				}
+
+				FractionalPartLen += LeadingZerosToAdd;
+			}
+		}
+
 		// Trim any trailing zeros back down to InFormattingOptions.MinimumFractionalDigits
 		while (FractionalPartLen > InFormattingOptions.MinimumFractionalDigits && FractionalPartBuffer[FractionalPartLen - 1] == '0')
 		{

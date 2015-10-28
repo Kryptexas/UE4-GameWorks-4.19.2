@@ -170,34 +170,31 @@ public:
 		OcclusionTextureSamplerParameter.Bind(Initializer.ParameterMap, TEXT("OcclusionTextureSampler"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 		AtmosphereTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 
-		if (OcclusionTextureParameter.IsBound())
+		if (LightShaftOcclusion)
 		{
-			if (LightShaftOcclusion)
-			{
-				SetTextureParameter(
-					RHICmdList, 
-					GetPixelShader(),
-					OcclusionTextureParameter, OcclusionTextureSamplerParameter,
-					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					LightShaftOcclusion->GetRenderTargetItem().ShaderResourceTexture
-					);
-			}
-			else
-			{
-				SetTextureParameter(
-					RHICmdList, 
-					GetPixelShader(),
-					OcclusionTextureParameter, OcclusionTextureSamplerParameter,
-					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					GWhiteTexture->TextureRHI
-					);
-			}
+			SetTextureParameter(
+				RHICmdList, 
+				GetPixelShader(),
+				OcclusionTextureParameter, OcclusionTextureSamplerParameter,
+				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+				LightShaftOcclusion->GetRenderTargetItem().ShaderResourceTexture
+				);
+		}
+		else
+		{
+			SetTextureParameter(
+				RHICmdList, 
+				GetPixelShader(),
+				OcclusionTextureParameter, OcclusionTextureSamplerParameter,
+				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+				GWhiteTexture->TextureRHI
+				);
 		}
 	}
 
@@ -342,7 +339,7 @@ void FSceneRenderer::InitAtmosphereConstants()
 
 FGlobalBoundShaderState AtmosphereBoundShaderState[EAtmosphereRenderFlag::E_RenderFlagMax];
 
-void SetAtmosphericFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
+void SetAtmosphericFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& View, const TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
 {
 	auto ShaderMap = View.ShaderMap;
 
@@ -382,7 +379,7 @@ void SetAtmosphericFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const 
 	PixelShader->SetParameters(RHICmdList, View, LightShaftOcclusion);
 }
 
-void FDeferredShadingSceneRenderer::RenderAtmosphere(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput)
+void FDeferredShadingSceneRenderer::RenderAtmosphere(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput)
 {
 	// Atmospheric fog?
 	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4 && Scene->HasAtmosphericFog())

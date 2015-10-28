@@ -40,7 +40,7 @@ We can open that Animation Sequence in Persona and look at it by **Double-clicki
 The character's head has a simple Material with a parameter named **Blush**. Here is a look at the Material Graph:
 
 [REGION:fullwidth]
-![](BlushMaterial.jpg)
+![](BlushMaterial.png)
 [/REGION]
 
 [REGION:note]

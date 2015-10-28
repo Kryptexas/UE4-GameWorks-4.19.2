@@ -67,7 +67,7 @@ FLevelSequenceEditorToolkit::~FLevelSequenceEditorToolkit()
 /* FLevelSequenceEditorToolkit interface
  *****************************************************************************/
 
-void FLevelSequenceEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequenceInstance* InLevelSequenceInstance, bool bEditWithinLevelEditor )
+void FLevelSequenceEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* InLevelSequence, bool bEditWithinLevelEditor )
 {
 	// create tab layout
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_LevelSequenceEditor")
@@ -81,17 +81,26 @@ void FLevelSequenceEditorToolkit::Initialize( const EToolkitMode::Type Mode, con
 				)
 		);
 
-	LevelSequenceInstance = InLevelSequenceInstance;
+	LevelSequence = InLevelSequence;
+
+	// Find the current editor world
+	for (auto& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::Editor)
+		{
+			LevelSequence->BindToContext(Context.World());
+		}
+	}
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = false;
 
-	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, LevelSequenceInstance);
+	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, LevelSequence);
 
 	// initialize sequencer
 	FSequencerInitParams SequencerInitParams;
 	{
-		SequencerInitParams.RootSequence = LevelSequenceInstance;
+		SequencerInitParams.RootSequence = LevelSequence;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 
@@ -219,10 +228,15 @@ void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute( UPrim
 				const FScopedTransaction Transaction( LOCTEXT( "AddComponentMaterialTrack", "Add component material track" ) );
 
 				UMovieScene* FocusedMovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-				FocusedMovieScene->Modify();
-				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( FocusedMovieScene->AddTrack( UMovieSceneComponentMaterialTrack::StaticClass(), ObjectHandle ) );
-				MaterialTrack->Modify();
-				MaterialTrack->SetMaterialIndex( MaterialIndex );
+				{
+					FocusedMovieScene->Modify();
+				}
+
+				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>(FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>(ObjectHandle));
+				{
+					MaterialTrack->Modify();
+					MaterialTrack->SetMaterialIndex( MaterialIndex );
+				}
 				
 				Sequencer->NotifyMovieSceneDataChanged();
 			}
@@ -265,7 +279,11 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 {
 	auto IsActorValidForPossession = [=](const AActor* Actor){
 		bool bCreateHandleIfMissing = false;
-		return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
+		if (Sequencer.IsValid())
+		{
+			return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
+		}
+		return true;
 	};
 
 	// Set up a menu entry to add the selected actor(s) to the sequencer
@@ -339,7 +357,7 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 
 void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
-	LevelSequenceInstance->SetContext(NewWorld);
+	LevelSequence->BindToContext(NewWorld);
 
 	Sequencer->NotifyMapChanged(NewWorld, MapChangeType);
 }

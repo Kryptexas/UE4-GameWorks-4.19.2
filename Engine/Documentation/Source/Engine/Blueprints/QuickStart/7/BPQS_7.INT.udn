@@ -3,8 +3,9 @@ Title:7. On Your Own!
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Add even more to your launchpad, and read more about Blueprints.
 version: 4.9
-
-
+parent:Engine/Blueprints/QuickStart
+order:7
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]

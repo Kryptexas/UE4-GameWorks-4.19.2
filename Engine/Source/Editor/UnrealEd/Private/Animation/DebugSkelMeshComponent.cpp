@@ -89,7 +89,6 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	bSkeletonSocketsVisible = true;
 
 	TurnTableSpeedScaling = 1.f;
-	PlaybackSpeedScaling = 1.f;
 	TurnTableMode = EPersonaTurnTableMode::Stopped;
 
 #if WITH_APEX_CLOTHING
@@ -720,8 +719,13 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (TurnTableMode == EPersonaTurnTableMode::Playing)
 	{
 		FRotator Rotation = GetRelativeTransform().Rotator();
-		// Take into account PlaybackSpeedScaling, so it doesn't affect turn table turn rate.
-		Rotation.Yaw += 36.f * TurnTableSpeedScaling * DeltaTime / FMath::Max(PlaybackSpeedScaling, KINDA_SMALL_NUMBER);
+		// Take into account time dilation, so it doesn't affect turn table turn rate.
+		float CurrentTimeDilation = 1.0f;
+		if(GetWorld())
+		{
+			CurrentTimeDilation = GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
+		}
+		Rotation.Yaw += 36.f * TurnTableSpeedScaling * DeltaTime / FMath::Max(CurrentTimeDilation, KINDA_SMALL_NUMBER);
 		SetRelativeRotation(Rotation);
 	}
 

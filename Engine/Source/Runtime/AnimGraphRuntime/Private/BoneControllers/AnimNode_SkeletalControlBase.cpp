@@ -56,7 +56,7 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 		ForwardedPose = Output.Pose;
 #endif // #if WITH_EDITORONLY_DATA
 
-		TArray<FBoneTransform> BoneTransforms;
+		BoneTransforms.Reset(BoneTransforms.Num());
 		EvaluateBoneTransforms(Component, Output.Pose, BoneTransforms);
 
 		checkSlow(!ContainsNaN(BoneTransforms));

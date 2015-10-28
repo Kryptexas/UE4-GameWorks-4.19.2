@@ -3,6 +3,48 @@ Title: Blueprint User Guide
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
 version: 4.9
+parent:Engine/Blueprints
+order:3
+type:reference
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [INCLUDE:Engine\Blueprints#intro]
 

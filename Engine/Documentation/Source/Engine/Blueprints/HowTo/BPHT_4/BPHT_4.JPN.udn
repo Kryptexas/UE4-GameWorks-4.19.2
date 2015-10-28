@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:2686156
-vailability:Public
+Availability:Public
 Title:4.情報をレベルから Character に渡す
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:Level ブループリント を使用して、スポーン ポイントの位置を取得して、その情報を Character ブループリントに渡してみましょう。 

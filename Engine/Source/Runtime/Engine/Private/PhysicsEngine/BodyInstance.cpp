@@ -40,6 +40,7 @@ DEFINE_STAT(STAT_StaticInitBodies);
 
 DECLARE_CYCLE_STAT(TEXT("UpdateBodyScale"), STAT_BodyInstanceUpdateBodyScale, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("CreatePhysicsShapesAndActors"), STAT_CreatePhysicsShapesAndActors, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("BodyInstance SetCollisionProfileName"), STAT_BodyInst_SetCollisionProfileName, STATGROUP_Physics);
 
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
@@ -215,6 +216,7 @@ FBodyInstance::FBodyInstance()
 	, SceneIndexSync(0)
 	, SceneIndexAsync(0)
 	, CollisionProfileName(UCollisionProfile::CustomCollisionProfileName)
+	, MaskFilter(0)
 	, bUseCCD(false)
 	, bNotifyRigidBodyCollision(false)
 	, bSimulatePhysics(false)
@@ -475,6 +477,8 @@ void FBodyInstance::SetObjectType(ECollisionChannel Channel)
 
 void FBodyInstance::SetCollisionProfileName(FName InCollisionProfileName)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BodyInst_SetCollisionProfileName);
+
 	if (CollisionProfileName != InCollisionProfileName)
 	{
 		CollisionProfileName = InCollisionProfileName;
@@ -482,6 +486,7 @@ void FBodyInstance::SetCollisionProfileName(FName InCollisionProfileName)
 		LoadProfileData(false);
 	}
 }
+
 
 bool FBodyInstance::DoesUseCollisionProfile() const
 {
@@ -498,6 +503,7 @@ void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bU
 {
 	if (CollisionEnabled != NewType)
 	{
+		ECollisionEnabled::Type OldType = CollisionEnabled;
 		InvalidateCollisionProfileName();
 		CollisionEnabled = NewType;
 		
@@ -506,6 +512,16 @@ void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bU
 		{
 			UpdatePhysicsFilterData();
 		}
+
+		// If we used to be QueryOnly we have to set our dynamic properties since they were skipped previously
+		if (OldType == ECollisionEnabled::QueryOnly)
+		{
+			ExecuteOnPhysicsReadWrite([&]
+			{
+				InitDynamicProperties_AssumesLocked();
+			});
+		}
+
 	}
 }
 
@@ -718,7 +734,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 			PxFilterData PComplexQueryData;
 			if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 			{
-				CreateShapeFilterData(BI->ObjectType, CompID, UseResponse, SkelMeshCompID, InstanceBodyIndex, PSimpleQueryData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotify, bPhysicsStatic);	//InstanceBodyIndex and CCD are determined by root body in case of welding
+				CreateShapeFilterData(BI->ObjectType, MaskFilter, CompID, UseResponse, SkelMeshCompID, InstanceBodyIndex, PSimpleQueryData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotify, bPhysicsStatic);	//InstanceBodyIndex and CCD are determined by root body in case of welding
 				PComplexQueryData = PSimpleQueryData;
 
 				// Build filterdata variations for complex and simple
@@ -834,6 +850,47 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 }
 #endif
 
+
+void FBodyInstance::SetMaskFilter(FMaskFilter InMaskFilter)
+{
+#if WITH_PHYSX
+
+	ExecuteOnPhysicsReadWrite([&]
+	{
+		if (PxRigidActor* PActor = GetPxRigidActor_AssumesLocked())
+		{
+
+			// Iterate over all shapes and assign new mask filter
+			TArray<PxShape*> AllShapes;
+			const int32 NumSyncShapes = GetAllShapes_AssumesLocked(AllShapes);
+
+			for (int32 ShapeIdx = 0; ShapeIdx < AllShapes.Num(); ShapeIdx++)
+			{
+				PxShape* PShape = AllShapes[ShapeIdx];
+				const FBodyInstance* BI = GetOriginalBodyInstance(PShape);
+				if (BI == this)	//only apply to shapes that came from our body
+				{
+					ExecuteOnPxShapeWrite(this, PShape, [&](PxShape* PGivenShape)
+					{
+						PxFilterData PQueryFilterData = PGivenShape->getQueryFilterData();
+						UpdateMaskFilter(PQueryFilterData.word3, InMaskFilter);
+						PGivenShape->setQueryFilterData(PQueryFilterData);
+
+						PxFilterData PSimFilterData = PGivenShape->getSimulationFilterData();
+						UpdateMaskFilter(PSimFilterData.word3, InMaskFilter);
+						PGivenShape->setSimulationFilterData(PSimFilterData);
+
+					});
+				}
+			}
+		}
+	});
+#endif
+
+	MaskFilter = InMaskFilter;
+
+}
+
 /** Update the filter data on the physics shapes, based on the owning component flags. */
 void FBodyInstance::UpdatePhysicsFilterData()
 {
@@ -945,7 +1002,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 		if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 		{
 			// Create the simulation/query filter data
-			FPhysicsFilterBuilder FilterBuilder(ObjectType, UseResponse);
+			FPhysicsFilterBuilder FilterBuilder(ObjectType, MaskFilter, UseResponse);
  			FilterBuilder.ConditionalSetFlags(EPDF_CCD, bUseCCD && !bPhysicsStatic);
 			FilterBuilder.ConditionalSetFlags(EPDF_ContactNotify, bUseNotifyRBCollision);
  			FilterBuilder.ConditionalSetFlags(EPDF_StaticShape, bPhysicsStatic);
@@ -1189,14 +1246,20 @@ struct FInitBodiesHelper
 			// Handle autowelding here to avoid extra work
 			if (!bCompileStatic && Instance->bAutoWeld)
 			{
-				UPrimitiveComponent * ParentPrimComponent = PrimitiveComp ? Cast<UPrimitiveComponent>(PrimitiveComp->AttachParent) : NULL;
-
-				//if we have a parent we will now do the weld and exit any further initialization
-				if (ParentPrimComponent && PrimitiveComp->GetWorld() && PrimitiveComp->GetWorld()->IsGameWorld())
+				ECollisionEnabled::Type CollisionType = Instance->GetCollisionEnabled();
+				if (CollisionType != ECollisionEnabled::QueryOnly)
 				{
-					if (PrimitiveComp->WeldToImplementation(ParentPrimComponent, PrimitiveComp->AttachSocketName, false))	//welded new simulated body so initialization is done
+					if (UPrimitiveComponent * ParentPrimComponent = PrimitiveComp ? Cast<UPrimitiveComponent>(PrimitiveComp->AttachParent) : NULL)
 					{
-						return false;
+						UWorld* World = PrimitiveComp->GetWorld();
+						if (World && World->IsGameWorld())
+						{
+							//if we have a parent we will now do the weld and exit any further initialization
+							if (PrimitiveComp->WeldToImplementation(ParentPrimComponent, PrimitiveComp->AttachSocketName, false))	//welded new simulated body so initialization is done
+							{
+								return false;
+							}
+						}
 					}
 				}
 			}
@@ -1382,32 +1445,36 @@ struct FInitBodiesHelper
 
 	void InitBodies_PhysX() 
 	{
-		TArray<PxActor*> PSyncActors;
-		TArray<PxActor*> PAsyncActors;
-		TArray<PxActor*> PDynamicActors;
+		static TArray<PxActor*> PSyncActors;
+		static TArray<PxActor*> PAsyncActors;
+		static TArray<PxActor*> PDynamicActors;
+		check(IsInGameThread());
+		check(PSyncActors.Num() == 0);
+		check(PAsyncActors.Num() == 0);
+		check(PDynamicActors.Num() == 0);
 
 		// Only static objects qualify for deferred addition
 		const bool bCanDefer = bCompileStatic;
 		bool bDynamicsUseAsync = false;
-		if (CreateShapesAndActors_PhysX(PSyncActors, PAsyncActors, PDynamicActors, bCanDefer, bDynamicsUseAsync) == false)
+		if (CreateShapesAndActors_PhysX(PSyncActors, PAsyncActors, PDynamicActors, bCanDefer, bDynamicsUseAsync))
 		{
-			return;
+			if (!bCompileStatic && !bCanDefer)
+			{
+				const bool bAddingToSyncScene = (PSyncActors.Num() || (PDynamicActors.Num() && !bDynamicsUseAsync)) && PSyncScene;
+				const bool bAddingToAsyncScene = (PAsyncActors.Num() || (PDynamicActors.Num() && bDynamicsUseAsync)) && PAsyncScene;
+
+				SCOPED_SCENE_WRITE_LOCK(bAddingToSyncScene ? PSyncScene : nullptr);
+				SCOPED_SCENE_WRITE_LOCK(bAddingToAsyncScene ? PAsyncScene : nullptr);
+
+				AddActorsToScene_PhysX_AssumesLocked(PSyncActors, PAsyncActors, PDynamicActors, bDynamicsUseAsync ? PAsyncScene : PSyncScene);
+			}
+
+			PhysScene->FlushDeferredActors();	//For now we do not actually defer over multiple frames. This needs better profiling to determine how useful it actually is.
 		}
 
-		if (!bCompileStatic && !bCanDefer)
-		{
-			const bool bAddingToSyncScene = (PSyncActors.Num() || (PDynamicActors.Num() && !bDynamicsUseAsync)) && PSyncScene;
-			const bool bAddingToAsyncScene = (PAsyncActors.Num() || (PDynamicActors.Num() && bDynamicsUseAsync)) && PAsyncScene;
-
-			SCOPED_SCENE_WRITE_LOCK(bAddingToSyncScene ? PSyncScene : nullptr);
-			SCOPED_SCENE_WRITE_LOCK(bAddingToAsyncScene ? PAsyncScene : nullptr);
-
-			AddActorsToScene_PhysX_AssumesLocked(PSyncActors, PAsyncActors, PDynamicActors, bDynamicsUseAsync ? PAsyncScene : PSyncScene);
-		}
-
-		PhysScene->FlushDeferredActors();	//For now we do not actually defer over multiple frames. This needs better profiling to determine how useful it actually is.
-
-
+		PSyncActors.Empty();
+		PAsyncActors.Empty();
+		PDynamicActors.Empty();
 	}
 #endif
 
@@ -3021,45 +3088,53 @@ UPhysicalMaterial* FBodyInstance::GetSimplePhysicalMaterial(const FBodyInstance*
 		ReturnPhysMaterial = BodyInstance->PhysMaterialOverride;
 		check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
 	}
-	// Component override
-	else if (OwnerComp.IsValid() && OwnerComp->BodyInstance.PhysMaterialOverride != NULL)
-	{
-		ReturnPhysMaterial = OwnerComp->BodyInstance.PhysMaterialOverride;
-		check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
-	}
-	// BodySetup
-	else if (BodySetupPtr.IsValid() && BodySetupPtr->PhysMaterial != NULL)
-	{
-		ReturnPhysMaterial = BodySetupPtr->PhysMaterial;
-		check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
-	}
 	else
 	{
-		// See if the Material has a PhysicalMaterial
-		UMeshComponent* MeshComp = Cast<UMeshComponent>(OwnerComp.Get());
-		UPhysicalMaterial* PhysMatFromMaterial = NULL;
-		if (MeshComp != NULL)
+		// Component override
+		UPrimitiveComponent* OwnerPrimComponent = OwnerComp.Get();
+		if (OwnerPrimComponent && OwnerPrimComponent->BodyInstance.PhysMaterialOverride != NULL)
 		{
-			UMaterialInterface* Material = MeshComp->GetMaterial(0);
-			if(Material != NULL)
-			{
-				PhysMatFromMaterial = Material->GetPhysicalMaterial();
-			}
-		}
-
-		if( PhysMatFromMaterial != NULL )
-		{
-			ReturnPhysMaterial = PhysMatFromMaterial;
+			ReturnPhysMaterial = OwnerComp->BodyInstance.PhysMaterialOverride;
 			check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
 		}
-		// fallback is default physical material
 		else
 		{
-			ReturnPhysMaterial = GEngine->DefaultPhysMaterial;
-			check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
+			// BodySetup
+			UBodySetup* BodySetupRawPtr = BodySetupPtr.Get();
+			if (BodySetupRawPtr && BodySetupRawPtr->PhysMaterial != NULL)
+			{
+				ReturnPhysMaterial = BodySetupPtr->PhysMaterial;
+				check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
+			}
+			else
+			{
+				// See if the Material has a PhysicalMaterial
+				UMeshComponent* MeshComp = Cast<UMeshComponent>(OwnerPrimComponent);
+				UPhysicalMaterial* PhysMatFromMaterial = NULL;
+				if (MeshComp != NULL)
+				{
+					UMaterialInterface* Material = MeshComp->GetMaterial(0);
+					if (Material != NULL)
+					{
+						PhysMatFromMaterial = Material->GetPhysicalMaterial();
+					}
+				}
+
+				if (PhysMatFromMaterial != NULL)
+				{
+					ReturnPhysMaterial = PhysMatFromMaterial;
+					check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
+				}
+				// fallback is default physical material
+				else
+				{
+					ReturnPhysMaterial = GEngine->DefaultPhysMaterial;
+					check(!ReturnPhysMaterial || ReturnPhysMaterial->IsValidLowLevel());
+				}
+			}
 		}
 	}
-
+	
 	return ReturnPhysMaterial;
 }
 
@@ -4498,6 +4573,13 @@ bool FBodyInstance::ValidateTransform(const FTransform &Transform, const FString
 #if WITH_PHYSX
 void FBodyInstance::InitDynamicProperties_AssumesLocked()
 {
+	//QueryOnly bodies cannot become simulated at runtime. To do this they must change their CollisionEnabled which recreates the physics state
+	//So early out to save a lot of useless work
+	if (GetCollisionEnabled() == ECollisionEnabled::QueryOnly)
+	{
+		return;
+	}
+	
 	if(PxRigidDynamic* RigidActor = GetPxRigidDynamic_AssumesLocked())
 	{
 		//A non simulated body may become simulated at runtime, so we need to compute its mass.
@@ -4653,7 +4735,7 @@ void FBodyInstance::GetFilterData_AssumesLocked(FShapeData& ShapeData, bool bFor
 			PxFilterData PSimpleQueryData;
 			PxFilterData PComplexQueryData;
 			int32 CompID = (OwnerComponentInst != nullptr) ? OwnerComponentInst->GetUniqueID() : 0;
-			CreateShapeFilterData(ObjectType, CompID, UseResponse, SkelMeshCompID, InstanceBodyIndex, PSimpleQueryData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotifyRBCollision, bPhysicsStatic);	//CCD is determined by root body in case of welding
+			CreateShapeFilterData(ObjectType, MaskFilter, CompID, UseResponse, SkelMeshCompID, InstanceBodyIndex, PSimpleQueryData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotifyRBCollision, bPhysicsStatic);	//CCD is determined by root body in case of welding
 			PComplexQueryData = PSimpleQueryData;
 			
 			// Set output sim data
@@ -4671,7 +4753,7 @@ void FBodyInstance::GetFilterData_AssumesLocked(FShapeData& ShapeData, bool bFor
 			{
 				PComplexQueryData.word3 |= EPDF_SimpleCollision;
 			}
-
+			
 			ShapeData.FilterData.QuerySimpleFilter = PSimpleQueryData;
 			ShapeData.FilterData.QueryComplexFilter = PComplexQueryData;
 		}

@@ -1,17 +1,18 @@
-﻿INTSourceChangelist:2347453
+﻿INTSourceChangelist:2726448
 Availability:Public
-Title:定型化されたレンダリング マテリアル
+Title:スタイライズド レンダリング マテリアル
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
-Description:UE4 に同梱されている定型化されたレンダリングのショーケースに使用されている特別なマテリアルの概要
+Description:UE4 に同梱のスタイライズド レンダリング ショーケースに使用されている特別なマテリアルの概要
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/MaterialInstances
 Related:Engine/Rendering/PostProcessEffects
+Version:4.9
 
-彩色された芸術作品の実現を印象付けるために、シーンのマテリアルにはある特別な技術を適用しています。重要な 2 つの例は、こずえ付近に表示されている「流動的な筆さばき」の効果と、常にプレイヤーの方向を向いている 2D スタイルのフォーリッジです。
+彩色された芸術作品の実現を印象付けるために、シーンのマテリアルにはある特別な技術を適用しています。重要な 2 つの例は、こずえ付近に表示されている「流動的なブラシ ストローク」の効果と、常にプレイヤーの方向を向いている 2D スタイルのフォリッジです。
 
 [INCLUDE:Resources/Showcases/Stylized#InstanceNote]
 
-### 流動的な筆さばきの効果を与えた木の葉
+### 流動的なブラシ ストローク効果を与えた木の葉
 
 [REGION:fullwidth]
 ![](TreeTopMaterial.png)
@@ -21,7 +22,7 @@ Related:Engine/Rendering/PostProcessEffects
 このマテリアルのネットワークを理解するには、コンテンツブラウザで **M_Tree_Leaf_Base_Solid** マテリアルを検索して開きます (**ダブルクリック**)。
 [/REGION]
 
-シーンに表示される木の上部付近に、葉のような印象を与える流動的な筆さばきの効果が表示されています。マスクされたマテリアルと、一時的なアンチエイリアス処理を組み合わせて実現しています。
+シーンに表示される木の上部付近に、葉のような印象を与える流動的なブラシ ストローク効果が表示されています。マスクされたマテリアルと、一時的なアンチエイリアス処理を組み合わせて実現しています。
 
 
 
@@ -34,21 +35,25 @@ Related:Engine/Rendering/PostProcessEffects
 
 これは DitherTemporalAA ノードを使用または未使用のツリーです。
 
-[REGION:imagetable]
-|![](DitheredStrokes.png)(%Dither%)|![](NonDitheredStrokes.png)(%Dither%)|
-|:---:|:---:|
-|DitherTemporalAA あり |Without DitherTemporalAA なし|
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With DitherTemporalAA](DitheredStrokes.png)(%Dither%)
+	[/PARAM]
+	[PARAM:after]
+	![Without DitherTemporalAA](NonDitheredStrokes.png)(%Dither%)
+	[/PARAM]
+[/OBJECT]
+
 
 [VAR:Dither]
-w:450
+w:600
 [/VAR]
 
 ただし、エンジン機能である **TemporalAA** の使用に必要な技術に留意してください。この機能は _初期設定でアクティブ_ になっています。**AA Method** プロパティ経由でポストプロセスのボリューム内にオーバーライドすることができます。これは _Misc_ カテゴリ配下にあります。
 
 ![](AAOverride.png)
 
-###フォーリッジのマテリアル
+###フォリッジのマテリアル
 
 ![](FoliageExample.png)
 

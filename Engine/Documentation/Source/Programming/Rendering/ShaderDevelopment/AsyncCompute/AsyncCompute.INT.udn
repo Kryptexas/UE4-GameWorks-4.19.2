@@ -4,8 +4,6 @@ Crumbs:%ROOT%, Programming, Programming/Rendering, Programming/Rendering/ShaderD
 Description:This is about AsyncCompute, a hardware feature that allows to interleave different GPU work to improve efficiency.
 Version: 4.9
 
-## Introduction
-
 The Rendering Hardware Interface (RHI) now supports asynchronous compute (**AsyncCompute**) for Xbox One. This is a good way to utilize unused GPU resources (Compute Units (CUs), registers and bandwidth),
 by running **dispatch()** calls asynchronously with the rendering. Async compute uses a separate context, and we provide RHI functions to
 synchronize the rendering and compute contexts.
@@ -16,7 +14,7 @@ Async compute has some restrictions:
  * Buffers with UAV counters are not supported (this is a limitation of the XDK, and will generate a D3D warning)
  * Async compute jobs do not show up in PIX GPU captures (although they do appear in Timing Captures)
    PIX only captures the graphics immediate context (this is a platform limitation).
- * Automatic pipeline flushes are not provided by the driver. You need to explicitly call **RHICSManualGpuFlush** if flushes are needed
+ * Automatic pipeline flushes are not provided by the driver. You need to explicitly call RHICSManualGpuFlush if flushes are needed
    (e.g. if one dispatch is dependent on the previous one)
 
 ## API
@@ -31,7 +29,7 @@ Async compute has some restrictions:
  * **RHIGraphicsWaitOnAsyncComputeJob**
    Inserts an command in the graphics immediate context to block until an async job is complete. Passing -1 causes this to early-out.
 
-Between calls to **RHIBeginAsyncComputeJob_DrawThread** and **RHIEndAsyncComputeJob_DrawThread**, the RHI will be in the async compute state.
+Between calls to RHIBeginAsyncComputeJob_DrawThread and RHIEndAsyncComputeJob_DrawThread, the RHI will be in the async compute state.
 During this time, supported RHI commands will be executed via the async compute context. Unsupported RHI functions will assert.
 
 ## Disabling/Enabling

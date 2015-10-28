@@ -28,6 +28,8 @@ AInfo::AInfo(const FObjectInitializer& ObjectInitializer)
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Info;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Info;
 		SpriteComponent->bIsScreenSizeScaled = true;	
+
+		RootComponent = SpriteComponent;
 	}
 #endif // WITH_EDITORONLY_DATA
 

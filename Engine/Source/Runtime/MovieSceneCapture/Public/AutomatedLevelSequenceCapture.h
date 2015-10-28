@@ -19,10 +19,6 @@ public:
 	UPROPERTY(EditAnywhere, Category=General, meta=(AllowedClasses="LevelSequence"))
 	FStringAssetReference LevelSequence;
 
-	/** The level to use for the capture */
-	UPROPERTY(EditAnywhere, Category=General, meta=(AllowedClasses="World"))
-	FStringAssetReference Level;
-
 	/** Specific playback settings */
 	UPROPERTY(config, EditAnywhere, Category="Playback Settings", meta=(ShowOnlyInnerProperties))
 	FLevelSequencePlaybackSettings PlaybackSettings;
@@ -33,15 +29,14 @@ public:
 
 public:
 	// UMovieSceneCapture interface
-	virtual FString GetPackageName() const override { return Level.ToString(); }
-	virtual void Initialize(FViewport* InViewport) override;
+	virtual void Initialize(TWeakPtr<FSceneViewport> InViewport) override;
 	virtual void CaptureFrame(float DeltaSeconds) override;
 
 private:
 
 	/** Animation instance created at runtime before we start capturing */
 	UPROPERTY(transient)
-	ULevelSequenceInstance* AnimationInstance;
+	ULevelSequence* AnimationInstance;
 
 	/** Animation player used to playback the animation at runtime */
 	UPROPERTY(transient)

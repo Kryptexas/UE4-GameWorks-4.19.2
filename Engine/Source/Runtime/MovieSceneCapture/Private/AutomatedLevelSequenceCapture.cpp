@@ -11,13 +11,12 @@ UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInit
 	PlaybackSettings.LoopCount = 0;
 }
 
-void UAutomatedLevelSequenceCapture::Initialize(FViewport* InViewport)
+void UAutomatedLevelSequenceCapture::Initialize(TWeakPtr<FSceneViewport> InViewport)
 {
 	if (ULevelSequence* LevelSequenceAsset = Cast<ULevelSequence>(LevelSequence.TryLoad()))
 	{
 		// Set up an instance of the asset for the current world, so we can resolve the bindings
-		AnimationInstance = NewObject<ULevelSequenceInstance>(this, "AnimationInstance");
-		AnimationInstance->Initialize(LevelSequenceAsset, GWorld, false);
+		AnimationInstance = DuplicateObject<ULevelSequence>(LevelSequenceAsset, this, TEXT("AnimationInstance"));
 
 		// Set up an animation player that can play back the instance
 		AnimationPlayback = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");

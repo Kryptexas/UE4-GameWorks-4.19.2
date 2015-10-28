@@ -31,6 +31,7 @@ void USphereComponent::UpdateBodySetup()
 		ShapeBodySetup = NewObject<UBodySetup>(this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		ShapeBodySetup->AggGeom.SphereElems.Add(FKSphereElem());
+		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
 	}
 
 	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);

@@ -7,20 +7,18 @@
 #include "MovieScene2DTransformTrackInstance.h"
 #include "MovieSceneCommonHelpers.h"
 
-UMovieScene2DTransformTrack::UMovieScene2DTransformTrack( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{
-}
 
 UMovieSceneSection* UMovieScene2DTransformTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieScene2DTransformSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieScene2DTransformTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieScene2DTransformTrackInstance( *this ) );
 }
+
 
 bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidgetTransform& InOutTransform) const
 {
@@ -38,7 +36,7 @@ bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidg
 		InOutTransform = TransformSection->Eval(Position, InOutTransform);
 	}
 
-	return Section != NULL;
+	return (Section != nullptr);
 }
 
 
@@ -57,6 +55,7 @@ bool UMovieScene2DTransformTrack::AddKeyToSection(float Time, const F2DTransform
 	}
 	return false;
 }
+
 
 bool UMovieScene2DTransformTrack::CanKeyTrack(float Time, const F2DTransformKey& TransformKey, FKeyParams KeyParams) const
 {

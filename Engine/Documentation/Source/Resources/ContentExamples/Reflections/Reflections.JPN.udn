@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2613796
+﻿INTSourceChangelist:2721906
 Availability:Public
 Title:反射のコンテンツ サンプル
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -9,6 +9,7 @@ Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+Version:4.9
 
 
 [REGION:banner]
@@ -46,12 +47,11 @@ Related:Engine/Rendering/PostProcessEffects
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
 
-**反射** コンテンツ サンプル マップでは、 Reflection Capture Actor を用いてレベル内で反射の見え方を調整する方法を示したサンプルが提供されています (アクタの エフェクト ボリュームあるいは半径内での反射の投影) 。 
+**反射** コンテンツ サンプル マップでは、 **Reflection Capture** アクタを用いてレベル内で反射の見え方を調整する方法を示したサンプルが提供されています (アクタの エフェクト ボリュームあるいは半径内での反射の投影) 。 
 サンプルでは、マテリアル の Roughness 、Metallic、Specular の各プロパティを使って、様々な反射の投影方法も説明しています。 
 
-反射設定の微調整の他、 Box Reflection アクタおよび更に使用頻度の更に*Sphere Reflection アクタの両方の使用方法が実現可能なサンプル エフェクトとして紹介されています。
+反射設定の微調整の他、 **Box Reflection** アクタおよび使用頻度が更に高い Sphere Reflection アクタの両方の使用方法が実現可能なサンプル エフェクトとして紹介されています。
 最後に、完全に動的なキューブマップのキャプチャあるいはフレームごとのシーン イメージのキャプチャに使用する Scene Capture メソッドが紹介されています。 
 
 
@@ -67,9 +67,9 @@ Related:Engine/Rendering/PostProcessEffects
 | **[1.2 メタル以外のマテリアルの反射](Resources\ContentExamples\Reflections\1_2)** | マテリアル の Roughness 値および Specular 値に合わせてオブジェクトを反射させるメタル以外のマテリアルです (Metallic プロパティは 0.0 ) 。 |
 | **[1.3 Box Reflection Capture アクタ](Resources\ContentExamples\Reflections\1_3)** | ボックス形状をしているインテリアと使用するのに便利な Box Reflection Capture アクタを使った反射を実演します。 |
 | **[1.4 Sphere Reflection Capture アクタ](Resources\ContentExamples\Reflections\1_4)** | 環境を反射させるために一般的に使われる Sphere Reflection Capture アクタです。 Box Reflection Capture よりブレンドしやすく柔軟性があります。 |
-| **[1.5 Screenspace Relfection (スクリーン空間の反射)(動的)](Resources\ContentExamples\Reflections\1_5)** | スクリーン上にあるものだけを反射する動的なポストプロセス エフェクトです。 |
+| **[1.5 Screenspace Reflection (スクリーン空間の反射)(動的)](Resources\ContentExamples\Reflections\1_5)** | スクリーン上にあるものだけを反射する動的なポストプロセス エフェクトです。 |
 | **[1.6 シーン キャプチャ キューブ](Resources\ContentExamples\Reflections\1_6)** | フレームごとにそれぞれの位置から完全に動的なキューブマップをキャプチャします (パフォーマンスに応じてコストがかかるので、特定にエフェクトをどうしても実現する必要のある場合のみ使うようにすべきです) 。 |
-| ** [1.7 シーンキャプチャ 2D](Resources\ContentExamples\Reflections\1_7)** | フレームごとのシーンのイメージをキャプチャし、 マテリアル 内にイメージを投影します (カメラからのイメージを受け取るテレビ画面のように機能し、セキュリティ カメラ エフェクトに使われる場合がほとんどです) 。 |
+| ** [1.7 シーンキャプチャ 2D](Resources\ContentExamples\Reflections\1_7)** | フレームごとのシーンのイメージをキャプチャし、マテリアル内にイメージを投影します (カメラからのイメージを受け取るテレビ画面のように機能し、セキュリティ カメラ エフェクトに使われる場合がほとんどです) 。 |
 
 
 

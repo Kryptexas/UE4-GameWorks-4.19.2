@@ -864,10 +864,11 @@ private:
 };
 
 
-FMaterialList::FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& InMaterialListDelegates )
+FMaterialList::FMaterialList(IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& InMaterialListDelegates, bool bInAllowCollapse /*= false*/)
 	: MaterialListDelegates( InMaterialListDelegates )
 	, DetailLayoutBuilder( InDetailLayoutBuilder )
 	, MaterialListBuilder( new FMaterialListBuilder )
+	, bAllowCollpase(bInAllowCollapse)
 {
 }
 
@@ -937,6 +938,15 @@ void FMaterialList::Tick( float DeltaTime )
 
 void FMaterialList::GenerateHeaderRowContent( FDetailWidgetRow& NodeRow )
 {
+	if (bAllowCollpase)
+	{
+		NodeRow.NameContent()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MaterialHeaderTitle", "Materials"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			];
+	}
 }
 
 void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )

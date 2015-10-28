@@ -486,12 +486,10 @@ FORCEINLINE_DEBUGGABLE FQuat FMath::BiLerp(const FQuat& P00, const FQuat& P10, c
 	FQuat Result;
 
 	Result = Lerp(
-		Lerp(P00,P10,FracX),
-		Lerp(P01,P11,FracX),
+		FQuat::Slerp_NotNormalized(P00,P10,FracX),
+		FQuat::Slerp_NotNormalized(P01,P11,FracX),
 		FracY
 		);
-
-	Result.Normalize();
 
 	return Result;
 }

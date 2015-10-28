@@ -858,10 +858,15 @@ namespace AutomationTool
 				{
 					BaseLogSubdir = BaseLogSubdir + "_" + CommandLine.Substring(0, Space);
 				}
-				else
-				{
-					BaseLogSubdir = BaseLogSubdir + "_" + CommandLine;
-				}
+                else if (CommandLine.Contains("-profile"))
+                {
+                    string PathToProfile = CommandLine.Substring(CommandLine.IndexOf('=') + 1);
+                    BaseLogSubdir = BaseLogSubdir + "_" + (Path.GetFileNameWithoutExtension(PathToProfile));
+                }
+                else
+                {
+                    BaseLogSubdir = BaseLogSubdir + "_" + CommandLine;
+                }
 			}
 			int Index = 0;
 

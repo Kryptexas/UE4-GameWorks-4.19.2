@@ -7,6 +7,7 @@
 #pragma once
 
 #include "UnrealClient.h"
+#include "SceneViewport.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMovieCapture, Warning, All);
 
@@ -133,7 +134,7 @@ protected:
 	FThreadSafeBool bCapturing;
 
 	/** The viewport we are capturing from */
-	FViewport* CaptureViewport;
+	TWeakPtr<FSceneViewport> CaptureViewport;
 
 	/** The current frame number */
 	int32 FrameNumber;
@@ -166,12 +167,14 @@ public:
 
 	uint32 GetWidth() const
 	{
-		return CaptureViewport ? CaptureViewport->GetSizeXY().X : 0;
+		auto Pin = CaptureViewport.Pin();
+		return Pin.IsValid() ? Pin->GetSize().X : 0;
 	}
 
 	uint32 GetHeight() const
 	{
-		return CaptureViewport ? CaptureViewport->GetSizeXY().Y : 0;
+		auto Pin = CaptureViewport.Pin();
+		return Pin.IsValid() ? Pin->GetSize().Y : 0;
 	}
 
 	int32 GetFrameNumber() const
@@ -184,15 +187,14 @@ public:
 		return bCapturing;
 	}
 
-	FViewport* GetViewport()
-	{
-		return CaptureViewport;
-	}
-
-	ENGINE_API void Update(double FrameTimeSeconds);
+	ENGINE_API void Update(double FrameTimeSeconds, TArray<FColor> FrameData);
 	
-	virtual void StartCapture(FViewport* Viewport = NULL) = 0;
+	virtual void StartCapture(TWeakPtr<FSceneViewport> Viewport) = 0;
 	virtual void StopCapture() = 0;
 	virtual void Close() = 0;
 	virtual void DropFrames(int32 NumFramesToDrop) = 0;
+
+protected:
+
+	void PrepareForScreenshot();
 };

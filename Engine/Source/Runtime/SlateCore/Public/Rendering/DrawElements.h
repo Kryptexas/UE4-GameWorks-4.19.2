@@ -46,7 +46,6 @@ public:
 	// Box Data
 	FVector2D RotationPoint;
 	float Angle;
-	ISlateUpdatableInstanceBuffer* InstanceData;
 
 	// Spline/Line Data
 	float Thickness;
@@ -79,6 +78,11 @@ public:
 	TArray<FSlateVertex> CustomVertsData;
 	TArray<SlateIndex> CustomVertsIndexData;
 
+	// Instancing support
+	ISlateUpdatableInstanceBuffer* InstanceData;
+	uint32 InstanceOffset;
+	uint32 NumInstances;
+
 	// Cached render data
 	class FSlateRenderDataHandle* CachedRenderData;
 	FVector2D CachedRenderDataOffset;
@@ -97,7 +101,6 @@ public:
 		, BrushResource(nullptr)
 		, ResourceProxy(nullptr)
 		, RotationPoint(FVector2D::ZeroVector)
-		, InstanceData(nullptr)
 		, ImmutableText(nullptr)
 		, ViewportRenderTargetTexture(nullptr)
 		, bViewportTextureAlphaOnly(false)
@@ -105,6 +108,13 @@ public:
 		, bGammaCorrect(false)
 		, bAllowBlending(false)
 		, CustomDrawer()
+		, InstanceData(nullptr)
+		, InstanceOffset(0)
+		, NumInstances(0)
+		//, CachedRenderDataOffset(FVector2D::ZeroVector)
+		//, LayerHandle(nullptr)
+		//, SegmentJoinType(ESlateLineJoinType::Sharp)
+		//, bAntialias(true)
 	{ }
 
 	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint, FSlateShaderResourceProxy* InResourceProxy = nullptr, ISlateUpdatableInstanceBuffer* InInstanceData = nullptr )
@@ -133,7 +143,7 @@ public:
 		Angle = InAngle;
 	}
 
-	void SetTextPayloadProperties( FSlateWindowElementList& DrawBuffer, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint );
+	void SetTextPayloadProperties( FSlateWindowElementList& DrawBuffer, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint, const int32 StartIndex = 0, const int32 EndIndex = MAX_int32 );
 
 	void SetGradientPayloadProperties( const TArray<FSlateGradientStop>& InGradientStops, EOrientation InGradientType, bool bInGammaCorrect )
 	{
@@ -153,10 +163,10 @@ public:
 		Thickness = InThickness;
 	}
 
-	void SetLinesPayloadProperties( const TArray<FVector2D>& InPoints, const FLinearColor& InTint, bool bInAntialias, ESlateLineJoinType::Type InJoinType )
+	void SetLinesPayloadProperties( const TArray<FVector2D>& InPoints, const FLinearColor& InTint, bool bInAntialias, ESlateLineJoinType::Type InJoinType, float InThickness )
 	{
 		Tint = InTint;
-		Thickness = 0.0f;
+		Thickness = InThickness;
 		Points = InPoints;
 		SegmentJoinType = InJoinType;
 		bAntialias = bInAntialias;
@@ -178,12 +188,14 @@ public:
 		CustomDrawer = InCustomDrawer;
 	}
 
-	void SetCustomVertsPayloadProperties(const FSlateBrush* InBrush, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData)
+	void SetCustomVertsPayloadProperties(const FSlateShaderResourceProxy* InRenderProxy, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData, uint32 InInstanceOffset, uint32 InNumInstances)
 	{
-		ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
+		ResourceProxy = InRenderProxy;
 		CustomVertsData = InVerts;
 		CustomVertsIndexData = InIndexes;
 		InstanceData = InInstanceData;
+		InstanceOffset = InInstanceOffset;
+		NumInstances = InNumInstances;
 	}
 
 	void SetCachedBufferPayloadProperties(FSlateRenderDataHandle* InRenderDataHandle, const FVector2D& Offset)
@@ -357,8 +369,10 @@ public:
 	 * @param InClippingRect           Parts of the element are clipped if it falls outside of this rectangle
 	 * @param InDrawEffects            Optional draw effects to apply
 	 * @param InTint                   Color to tint the element
+	 * @param bAntialias               Should antialiasing be applied to the line?
+	 * @param Thickness                The thickness of the line
 	 */
-	SLATECORE_API static void MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White, bool bAntialias = true );
+	SLATECORE_API static void MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White, bool bAntialias = true, float Thickness = 1.0f );
 
 	/**
 	 * Creates a viewport element which is useful for rendering custom data in a texture into Slate
@@ -384,7 +398,7 @@ public:
 	 */
 	SLATECORE_API static void MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer );
 	
-	SLATECORE_API static void MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateBrush* InBrush, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData);
+	SLATECORE_API static void MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateResourceHandle& InRenderResourceHandle, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData, uint32 InInstanceOffset, uint32 InNumInstances);
 
 	SLATECORE_API static void MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle, const FVector2D& Offset);
 
@@ -488,8 +502,8 @@ private:
 class FSlateElementBatch
 {
 public: 
-	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount=1, ISlateUpdatableInstanceBuffer* InstanceData=nullptr )
-		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, InstanceCount, InstanceData )
+	FSlateElementBatch(const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount = 0, uint32 InstanceOffset = 0, ISlateUpdatableInstanceBuffer* InstanceData = nullptr)
+		: BatchKey(InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, InstanceCount, InstanceOffset, InstanceData)
 		, ShaderResource(InShaderResource)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
@@ -542,6 +556,7 @@ public:
 	FVector2D GetCachedRenderDataOffset() const { return BatchKey.CachedRenderDataOffset; }
 	const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> GetLayerHandle() const { return BatchKey.LayerHandle; }
 	int32 GetInstanceCount() const{ return BatchKey.InstanceCount; }
+	uint32 GetInstanceOffset() const{ return BatchKey.InstanceOffset; }
 	const ISlateUpdatableInstanceBuffer* GetInstanceData() const { return BatchKey.InstanceData; }
 
 private:
@@ -558,9 +573,10 @@ private:
 		const ESlateDrawEffect::Type DrawEffects;
 		const TOptional<FShortRect> ScissorRect;
 		const int32 InstanceCount;
+		const uint32 InstanceOffset;
 		const ISlateUpdatableInstanceBuffer* InstanceData;
 
-		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, ISlateUpdatableInstanceBuffer* InInstanceBuffer)
+		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer)
 			: ShaderParams( InShaderParams )
 			, DrawFlags( InDrawFlags )
 			, ShaderType( InShaderType )
@@ -568,6 +584,7 @@ private:
 			, DrawEffects( InDrawEffects )
 			, ScissorRect( InScissorRect )
 			, InstanceCount( InInstanceCount )
+			, InstanceOffset( InInstanceOffset )
 			, InstanceData( InInstanceBuffer )
 		{
 		}
@@ -580,7 +597,8 @@ private:
 			, DrawPrimitiveType( ESlateDrawPrimitive::TriangleList )
 			, DrawEffects( ESlateDrawEffect::None )
 			, ScissorRect( InScissorRect )
-			, InstanceCount(1)
+			, InstanceCount(0)
+			, InstanceOffset(0)
 		{}
 
 		FBatchKey( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, FVector2D InCachedRenderDataOffset, const TOptional<FShortRect>& InScissorRect)
@@ -592,7 +610,8 @@ private:
 			, DrawPrimitiveType(ESlateDrawPrimitive::TriangleList)
 			, DrawEffects(ESlateDrawEffect::None)
 			, ScissorRect(InScissorRect)
-			, InstanceCount(1)
+			, InstanceCount(0)
+			, InstanceOffset(0)
 		{}
 
 		FBatchKey(TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> InLayerHandle, const TOptional<FShortRect>& InScissorRect)
@@ -603,7 +622,8 @@ private:
 			, DrawPrimitiveType(ESlateDrawPrimitive::TriangleList)
 			, DrawEffects(ESlateDrawEffect::None)
 			, ScissorRect(InScissorRect)
-			, InstanceCount(1)
+			, InstanceCount(0)
+			, InstanceOffset(0)
 		{}
 
 		bool operator==( const FBatchKey& Other ) const
@@ -618,6 +638,7 @@ private:
 				&& CachedRenderHandle == Other.CachedRenderHandle
 				&& LayerHandle == Other.LayerHandle
 				&& InstanceCount == Other.InstanceCount
+				&& InstanceOffset == Other.InstanceOffset
 				&& InstanceData == Other.InstanceData;
 		}
 
@@ -631,7 +652,9 @@ private:
 			RunningHash = HashCombine(GetTypeHash(InBatchKey.ShaderParams.PixelParams), RunningHash);
 			// NOTE: Assumes this type is 64 bits, no padding.
 			RunningHash = InBatchKey.ScissorRect.IsSet() ? HashCombine(GetTypeHash(*reinterpret_cast<const uint64*>(&InBatchKey.ScissorRect.GetValue())), RunningHash) : RunningHash;
-			RunningHash = InBatchKey.InstanceCount > 1 ? HashCombine( InBatchKey.InstanceCount, RunningHash ) : RunningHash;
+			const bool bHasInstances = InBatchKey.InstanceCount > 0;
+			RunningHash = bHasInstances ? HashCombine(InBatchKey.InstanceCount, RunningHash) : RunningHash;
+			RunningHash = bHasInstances ? HashCombine(InBatchKey.InstanceOffset, RunningHash) : RunningHash;
 			RunningHash = InBatchKey.InstanceData ? HashCombine( PointerHash(InBatchKey.InstanceData), RunningHash ) : RunningHash;
 
 			return RunningHash;
@@ -662,6 +685,7 @@ public:
 		, Texture( InBatch.GetShaderResource() )
 		, InstanceData( InBatch.GetInstanceData() )
 		, InstanceCount( InBatch.GetInstanceCount() )
+		, InstanceOffset(InBatch.GetInstanceOffset() )
 		, CustomDrawer( InBatch.GetCustomDrawer() )
 		, LayerHandle( InBatch.GetLayerHandle() )
 		, CachedRenderHandle( InRenderHandle )
@@ -694,6 +718,8 @@ public:
 
 	const int32 InstanceCount;
 
+	const uint32 InstanceOffset;
+
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
 
 	const TWeakPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> LayerHandle;
@@ -716,7 +742,7 @@ public:
 	const int32 IndexArrayIndex;
 	/** How far into the vertex buffer is this batch*/
 	const uint32 VertexOffset;
-	/** How far into the index buffer this batch is*/	
+	/** How far into the index buffer this batch is*/
 	const uint32 IndexOffset;
 	/** Number of vertices in the batch */
 	const uint32 NumVertices;

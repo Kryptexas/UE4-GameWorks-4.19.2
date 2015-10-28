@@ -3,7 +3,7 @@
 #include "MovieSceneCapturePCH.h"
 #include "LevelCapture.h"
 
-void ULevelCapture::Initialize(FViewport* InViewport)
+void ULevelCapture::Initialize(TWeakPtr<FSceneViewport> InViewport)
 {
 	Super::Initialize(InViewport);
 

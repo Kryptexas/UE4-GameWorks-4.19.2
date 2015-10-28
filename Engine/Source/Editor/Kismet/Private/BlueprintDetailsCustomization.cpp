@@ -942,11 +942,9 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 	if(VariableProperty && IsASCSVariable(VariableProperty) && Blueprint->SimpleConstructionScript != NULL)
 	{
-		TArray<USCS_Node*> Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-		for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
+		for (USCS_Node* Node : Blueprint->SimpleConstructionScript->GetAllNodes())
 		{
-			USCS_Node* Node = *NodeIt;
-			if (Node->VariableName == CachedVariableName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
+			if (Node && Node->VariableName == CachedVariableName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
 			{
 				VarNameEditableTextBox->SetError(LOCTEXT("ComponentVariableRenameFailed_NotValid", "This name is reserved for engine use."));
 				return;

@@ -685,6 +685,7 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 	}
 
 	UWorld* World = nullptr;
+#if WITH_EDITOR	
 	if (WorldContextHandle != NAME_None)
 	{
 		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
@@ -692,7 +693,9 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 		World = WorldContext.World();
 	}
 	else
+#endif
 	{
+		ensure(WorldContextHandle == NAME_None);
 		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 
 		if (GameEngine)
@@ -2407,6 +2410,11 @@ static TAutoConsoleVariable<int32> CVarLogGameThreadMallocChurn_StackIgnore(
 	2,
 	TEXT("Number of items to discard from the top of a stack frame."));
 
+static TAutoConsoleVariable<int32> CVarLogGameThreadMallocChurn_RemoveAliases(
+	TEXT("LogGameThreadMallocChurn.RemoveAliases"),
+	1,
+	TEXT("If > 0 then remove aliases from the counting process. This essentialy merges addresses that have the same human readable string. It is slower."));
+
 static TAutoConsoleVariable<int32> CVarLogGameThreadMallocChurn_StackLen(
 	TEXT("LogGameThreadMallocChurn.StackLen"),
 	3,
@@ -2480,7 +2488,7 @@ struct FScopedSampleMallocChurn
 	void CollectSample()
 	{
 		check(IsInGameThread());
-		GGameThreadMallocChurnTracker.CaptureStackTrace(CVarLogGameThreadMallocChurn_StackIgnore.GetValueOnGameThread(), nullptr, CVarLogGameThreadMallocChurn_StackLen.GetValueOnGameThread());
+		GGameThreadMallocChurnTracker.CaptureStackTrace(CVarLogGameThreadMallocChurn_StackIgnore.GetValueOnGameThread(), nullptr, CVarLogGameThreadMallocChurn_StackLen.GetValueOnGameThread(), CVarLogGameThreadMallocChurn_RemoveAliases.GetValueOnGameThread() > 0);
 	}
 	void PrintResultsAndReset()
 	{
@@ -3089,6 +3097,8 @@ bool FEngineLoop::AppInit( )
 	FModuleManager::Get().LoadModule(TEXT("HTTP"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
+	// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
+	IOnlineSubsystem::GetByPlatform();
 #endif
 
 	// Checks.

@@ -7,27 +7,18 @@
 #include "SequencerHotspots.h"
 #include "EditToolDragOperations.h"
 
-FReply FSequencerEditTool_Default::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		FSequencer& Sequencer = static_cast<FSequencer&>(GetSequencer());
-		Sequencer.GetSelection().EmptySelectedSections();
-		Sequencer.GetSelection().EmptySelectedKeys();
-	}
-	return FReply::Unhandled();
-}
 
 FSequencerEditTool_Movement::FSequencerEditTool_Movement(TSharedPtr<FSequencer> InSequencer, TSharedPtr<SSequencer> InSequencerWidget)
 	: Sequencer(InSequencer)
 	, SequencerWidget(InSequencerWidget)
-{
-}
+{ }
+
 
 ISequencer& FSequencerEditTool_Movement::GetSequencer() const
 {
 	return *Sequencer.Pin();
 }
+
 
 FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -45,7 +36,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 			{
 				if (DelayedDrag->Hotspot->GetType() == ESequencerHotspot::Key)
 				{
-					FSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
+					FSequencerSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
 					Sequencer.Pin()->SetGlobalTime(ThisKey.KeyArea->GetKeyTime(ThisKey.KeyHandle.GetValue()));
 				}
 			}
@@ -54,6 +45,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 	}
 	return FReply::Unhandled();
 }
+
 
 FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -90,7 +82,8 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 	return FReply::Unhandled();
 }
 
-TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
+
+TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 {
 	auto PinnedSequencer = Sequencer.Pin();
 	FSequencerSelection& Selection = PinnedSequencer->GetSelection();
@@ -130,7 +123,7 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 		// Moving key(s)?
 		else if (HotspotType == ESequencerHotspot::Key)
 		{
-			FSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
+			FSequencerSelectedKey& ThisKey = StaticCastSharedPtr<FKeyHotspot>(DelayedDrag->Hotspot)->Key;
 
 			// If it's not selected, we'll treat this as a unique drag
 			if (!Selection.IsSelected(ThisKey))
@@ -156,6 +149,7 @@ TSharedPtr<IEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
 	return nullptr;
 }
 
+
 FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	DelayedDrag.Reset();
@@ -172,16 +166,19 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 	return FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
 }
 
+
 void FSequencerEditTool_Movement::OnMouseCaptureLost()
 {
 	DelayedDrag.Reset();
 	DragOperation = nullptr;
 }
 
+
 FCursorReply FSequencerEditTool_Movement::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
 	return DragOperation.IsValid() ? FCursorReply::Cursor(EMouseCursor::CardinalCross) : FCursorReply::Cursor(EMouseCursor::Default);
 }
+
 
 FName FSequencerEditTool_Movement::GetIdentifier() const
 {

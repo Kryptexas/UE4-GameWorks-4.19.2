@@ -235,6 +235,133 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 		}
 
+		private static string ParseString(string Key, string Value)
+		{
+			if (!String.IsNullOrEmpty(Key))
+			{
+				if (Value == "true" || Value == "false")
+				{
+					return "-" + Key;
+				}
+				else
+				{
+					string param = "-" + Key + "=";
+					if (Value.Contains(" "))
+					{
+						param += "\"" + Value + "\"";
+					}
+					else
+					{
+						param += Value;
+					}
+					return param;
+				}
+			}
+			else
+			{
+				return Value;
+			}
+		}
+
+
+		private static string ParseList(string Key, List<object> Value)
+		{
+			string param = "-" + Key + "=";
+			bool bStart = true;
+			foreach (var Val in Value)
+			{
+				if (!bStart)
+				{
+					param += "+";
+				}
+				param += Val as string;
+				bStart = false;
+			}
+			return param;
+		}
+
+		private static void ParseDictionary(Dictionary<string, object> Value, List<string> Arguments)
+		{
+			foreach (var Pair in Value)
+			{
+				if ((Pair.Value as string) != null && !string.IsNullOrEmpty(Pair.Value as string))
+				{
+					Arguments.Add(ParseString(Pair.Key, Pair.Value as string));
+				}
+				else if (Pair.Value.GetType() == typeof(bool))
+				{
+					if ((bool)Pair.Value)
+					{
+						Arguments.Add("-" + Pair.Key);
+					}
+				}
+				else if ((Pair.Value as List<object>) != null)
+				{
+					Arguments.Add(ParseList(Pair.Key, Pair.Value as List<object>));
+				}
+				else if ((Pair.Value as Dictionary<string, object>) != null)
+				{
+					string param = "-" + Pair.Key + "=\"";
+					List<string> Args = new List<string>();
+					ParseDictionary(Pair.Value as Dictionary<string, object>, Args);
+					bool bStart = true;
+					foreach (var Arg in Args)
+					{
+						if (!bStart)
+						{
+							param += " ";
+						}
+						Arg.Replace("\"", "\'");
+						param += Arg;
+						bStart = false;
+					}
+					param += "\"";
+					Arguments.Add(param);
+				}
+			}
+		}
+
+		private static void ParseProfile(ref string[] CommandLine)
+		{
+			// find if there is a profile file to read
+			string Profile = "";
+			List<string> Arguments = new List<string>();
+			for (int Index = 0; Index < CommandLine.Length; ++Index)
+			{
+				if (CommandLine[Index].StartsWith("-profile="))
+				{
+					Profile = CommandLine[Index].Substring(CommandLine[Index].IndexOf('=') + 1);
+				}
+				else
+				{
+					Arguments.Add(CommandLine[Index]);
+				}
+			}
+
+			if (!string.IsNullOrEmpty(Profile))
+			{
+				if (File.Exists(Profile))
+				{
+					// find if the command has been specified
+					var text = File.ReadAllText(Profile);
+					var RawObject = fastJSON.JSON.Instance.Parse(text) as Dictionary<string, object>;
+					var Params = RawObject["scripts"] as List<object>;
+					foreach (var Script in Params)
+					{
+						string ScriptName = (Script as Dictionary<string, object>)["script"] as string;
+						if (!string.IsNullOrEmpty(ScriptName) && !Arguments.Contains(ScriptName))
+						{
+							Arguments.Add(ScriptName);
+						}
+						(Script as Dictionary<string, object>).Remove("script");
+						ParseDictionary((Script as Dictionary<string, object>), Arguments);
+					}
+				}
+			}
+
+			CommandLine = Arguments.ToArray();
+		}
+
 		/// <summary>
 		/// Parse the command line and create a list of commands to execute.
 		/// </summary>
@@ -245,6 +372,8 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		{
 			// Initialize global command line parameters
 			GlobalCommandLine.Init();
+
+			ParseProfile(ref CommandLine);
 
 			Log.TraceInformation("Parsing command line: {0}", String.Join(" ", CommandLine));
 

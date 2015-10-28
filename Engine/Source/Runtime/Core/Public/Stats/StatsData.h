@@ -874,6 +874,12 @@ struct FHudGroup
 
 	/** Counters aggregates. */
 	TArray<FComplexStatMessage> CountersAggregate;
+
+	/** Children stats that should not be used when adding up group cost **/
+	TSet<FName> BudgetIgnoreStats;
+
+	/** Expected group budget */
+	float TotalGroupBudget;
 };
 
 /**
@@ -891,6 +897,7 @@ struct FGameThreadHudData
 	TArray<FString> GroupDescriptions;
 	TMap<FPlatformMemory::EMemoryCounterRegion, int64> PoolCapacity;
 	TMap<FPlatformMemory::EMemoryCounterRegion, FString> PoolAbbreviation;
+	FString RootFilter;
 
 	/** Whether to display minimal stats for the raw stats mode. */
 	const bool bDrawOnlyRawStats;

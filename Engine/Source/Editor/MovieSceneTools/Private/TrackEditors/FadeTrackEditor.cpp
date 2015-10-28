@@ -33,7 +33,7 @@ void FFadeTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
 
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequenceInstance")))
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
 	{
 		return;
 	}
@@ -60,14 +60,15 @@ bool FFadeTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 {
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+	UMovieScene* MovieScene = GetFocusedMovieScene();
+
 	if (MovieScene == nullptr)
 	{
 		return;
 	}
 
-	UMovieSceneTrack* FadeTrack = MovieScene->FindMasterTrack( UMovieSceneFadeTrack::StaticClass() );
+	UMovieSceneTrack* FadeTrack = MovieScene->FindMasterTrack<UMovieSceneFadeTrack>();
+
 	if (FadeTrack != nullptr)
 	{
 		return;
@@ -76,12 +77,14 @@ void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddFadeTrack_Transaction", "Add Fade Track"));
 
 	MovieScene->Modify();
-		
-	FadeTrack = GetMasterTrack( UMovieSceneFadeTrack::StaticClass() );
+
+	FadeTrack = FindOrAddMasterTrack<UMovieSceneFadeTrack>();
 	ensure(FadeTrack);
 
-	FadeTrack->AddSection(FadeTrack->CreateNewSection());
+	UMovieSceneSection* NewSection = FadeTrack->CreateNewSection();
+	ensure(NewSection);
 
+	FadeTrack->AddSection(*NewSection);
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 

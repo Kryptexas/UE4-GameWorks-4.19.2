@@ -4,22 +4,8 @@
 #include "MovieSceneShotSection.h"
 
 
-UMovieSceneShotSection::UMovieSceneShotSection( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{ }
-
-
-void UMovieSceneShotSection::SetCameraGuid(const FGuid& InGuid)
-{
-	CameraGuid = InGuid;
-}
-
-
-FGuid UMovieSceneShotSection::GetCameraGuid() const
-{
-	return CameraGuid;
-}
-
+/* UMovieSceneShotSection interface
+ *****************************************************************************/
 
 void UMovieSceneShotSection::SetShotNameAndNumber(const FText& InDisplayName, int32 InShotNumber)
 {

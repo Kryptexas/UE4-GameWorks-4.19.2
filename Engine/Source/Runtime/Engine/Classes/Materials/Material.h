@@ -415,6 +415,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
 	uint32 DitheredLODTransition:1;
 
+	/** Dither opacity mask. When combined with Temporal AA this can be used as a form of limited translucency which supports all lighting features. */
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	uint32 DitherOpacityMask:1;
+
 	/** Number of customized UV inputs to display.  Unconnected customized UV inputs will just pass through the vertex UVs. */
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta=(ClampMin=0))
 	int32 NumCustomizedUVs;

@@ -618,7 +618,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Expiration)
 	TArray<TSubclassOf<UGameplayEffect>> RoutineExpirationEffectClasses;
 
-	void GetTargetEffects(TArray<const UGameplayEffect*>& OutEffects) const;
+	void GetTargetEffects(TArray<const UGameplayEffect*, TInlineAllocator<4> >& OutEffects) const;
 
 	// ------------------------------------------------
 	// Gameplay tag interface
@@ -1241,6 +1241,12 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 		return Spec.GetPeriod();
 	}
 
+	float GetEndTime() const
+	{
+		float Duration = GetDuration();		
+		return (Duration == UGameplayEffect::INFINITE_DURATION ? -1.f : Duration + StartWorldTime);
+	}
+
 	void CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, struct FActiveGameplayEffectsContainer& OwningContainer, bool bInvokeGameplayCueEvents = false);
 
 	void PrintAll() const;
@@ -1505,7 +1511,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
 	
-	FActiveGameplayEffect* ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey InPredictionKey);
+	FActiveGameplayEffect* ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey& InPredictionKey);
 
 	FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle);
 
@@ -1596,6 +1602,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
+	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
+
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
@@ -1622,6 +1630,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	void SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseBalue);
 
 	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies);
+
+	void DebugCyclicAggregatorBroadcasts(struct FAggregator* Aggregator);
 
 	// -------------------------------------------------------------------------------------------
 

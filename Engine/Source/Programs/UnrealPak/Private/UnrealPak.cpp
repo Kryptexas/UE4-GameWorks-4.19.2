@@ -1055,6 +1055,162 @@ bool ExtractFilesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPath, bo
 	}
 }
 
+void CreateDiffRelativePathMap(TArray<FString>& FileNames, const FString& RootPath, TMap<FName, FString>& OutMap)
+{
+	for (int32 i = 0; i < FileNames.Num(); ++i)
+	{
+		const FString& FullPath = FileNames[i];
+		FString RelativePath = FullPath.Mid(RootPath.Len());
+		OutMap.Add(FName(*RelativePath), FullPath);
+	}
+}
+
+bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
+{
+	int32 NumUniquePAK1 = 0;
+	int32 NumUniquePAK2 = 0;
+	int32 NumDifferentContents = 0;
+	int32 NumEqualContents = 0;
+
+	// Allow the suppression of unique file logging for one or both files
+	const bool bLogUniques = !FParse::Param(FCommandLine::Get(), TEXT("nouniques"));
+	const bool bLogUniques1 = bLogUniques && !FParse::Param(FCommandLine::Get(), TEXT("nouniquesfile1"));
+	const bool bLogUniques2 = bLogUniques && !FParse::Param(FCommandLine::Get(), TEXT("nouniquesfile2"));
+
+	FPakFile PakFile1(*InPakFilename1, FParse::Param(FCommandLine::Get(), TEXT("signed")));
+	FPakFile PakFile2(*InPakFilename2, FParse::Param(FCommandLine::Get(), TEXT("signed")));
+	if (PakFile1.IsValid() && PakFile2.IsValid())
+	{		
+		FArchive& PakReader1 = *PakFile1.GetSharedReader(NULL);
+		FArchive& PakReader2 = *PakFile2.GetSharedReader(NULL);
+
+		const int64 BufferSize = 8 * 1024 * 1024; // 8MB buffer for extracting
+		void* Buffer = FMemory::Malloc(BufferSize);
+		int64 CompressionBufferSize = 0;
+		uint8* PersistantCompressionBuffer = NULL;
+		int32 ErrorCount = 0;
+		int32 FileCount = 0;		
+		
+		//loop over pak1 entries.  compare against entry in pak2.
+		for (FPakFile::FFileIterator It(PakFile1); It; ++It, ++FileCount)
+		{
+			const FString& PAK1FileName = It.Filename();
+
+			//double check entry info and move pakreader into place
+			const FPakEntry& Entry1 = It.Info();
+			PakReader1.Seek(Entry1.Offset);
+
+			FPakEntry EntryInfo1;
+			EntryInfo1.Serialize(PakReader1, PakFile1.GetInfo().Version);
+
+			if (EntryInfo1 != Entry1)
+			{
+				UE_LOG(LogPakFile, Log, TEXT("PakEntry1 Invalid: %s"), *PAK1FileName);
+				continue;
+			}
+			
+			//see if entry exists in other pak							
+			const FPakEntry* Entry2 = PakFile2.Find(PakFile1.GetMountPoint() / PAK1FileName);
+			if (Entry2 == nullptr)
+			{
+				++NumUniquePAK1;
+				if (bLogUniques1)
+				{
+					UE_LOG(LogPakFile, Log, TEXT("Unique to first pak: %s"), *PAK1FileName);
+				}
+				continue;
+			}
+
+			//double check entry info and move pakreader into place
+			PakReader2.Seek(Entry2->Offset);
+			FPakEntry EntryInfo2;
+			EntryInfo2.Serialize(PakReader2, PakFile2.GetInfo().Version);
+			if (EntryInfo2 != *Entry2)
+			{
+				UE_LOG(LogPakFile, Log, TEXT("PakEntry2 Invalid: %s"), *PAK1FileName);
+				continue;;
+			}
+
+			//check sizes first as quick compare.
+			if (EntryInfo1.UncompressedSize != EntryInfo2.UncompressedSize)
+			{
+				UE_LOG(LogPakFile, Log, TEXT("Filesize different: %s, %i, %i"), *PAK1FileName, EntryInfo1.UncompressedSize, EntryInfo2.UncompressedSize);
+				continue;
+			}
+			
+			//serialize and memcompare the two entries
+			{
+				void* PAKDATA1 = FMemory::Malloc(EntryInfo1.UncompressedSize);
+				void* PAKDATA2 = FMemory::Malloc(EntryInfo2.UncompressedSize);
+				FBufferWriter PAKWriter1(PAKDATA1, EntryInfo1.UncompressedSize, false);
+				FBufferWriter PAKWriter2(PAKDATA2, EntryInfo2.UncompressedSize, false);
+
+				if (EntryInfo1.CompressionMethod == COMPRESS_None)
+				{
+					BufferedCopyFile(PAKWriter1, PakReader1, Entry1, Buffer, BufferSize);
+				}
+				else
+				{
+					UncompressCopyFile(PAKWriter1, PakReader1, Entry1, PersistantCompressionBuffer, CompressionBufferSize);
+				}
+
+				if (EntryInfo2.CompressionMethod == COMPRESS_None)
+				{
+					BufferedCopyFile(PAKWriter2, PakReader2, *Entry2, Buffer, BufferSize);
+				}
+				else
+				{
+					UncompressCopyFile(PAKWriter2, PakReader2, *Entry2, PersistantCompressionBuffer, CompressionBufferSize);
+				}
+
+				if (FMemory::Memcmp(PAKDATA1, PAKDATA2, EntryInfo1.UncompressedSize) != 0)
+				{
+					++NumDifferentContents;
+					UE_LOG(LogPakFile, Log, TEXT("Contents different: %s"), *PAK1FileName);
+				}
+				else
+				{
+					++NumEqualContents;
+				}
+				FMemory::Free(PAKDATA1);
+				FMemory::Free(PAKDATA2);
+			}			
+		}
+		
+		//check for files unique to the second pak.
+		for (FPakFile::FFileIterator It(PakFile2); It; ++It, ++FileCount)
+		{
+			const FPakEntry& Entry2 = It.Info();
+			PakReader2.Seek(Entry2.Offset);
+
+			FPakEntry EntryInfo2;
+			EntryInfo2.Serialize(PakReader2, PakFile2.GetInfo().Version);
+
+			if (EntryInfo2 == Entry2)
+			{
+				const FString& PAK2FileName = It.Filename();
+				const FPakEntry* Entry1 = PakFile1.Find(PakFile2.GetMountPoint() / PAK2FileName);
+				if (Entry1 == nullptr)
+				{
+					++NumUniquePAK2;
+					if (bLogUniques2)
+					{
+						UE_LOG(LogPakFile, Log, TEXT("Unique to second pak: %s"), *PAK2FileName);
+					}
+					continue;
+				}
+			}
+		}
+
+		FMemory::Free(Buffer);
+		Buffer = nullptr;
+	}
+
+	UE_LOG(LogPakFile, Log, TEXT("Comparison complete"));
+	UE_LOG(LogPakFile, Log, TEXT("Unique to first pak: %i, Unique to second pak: %i, Num Different: %i, NumEqual: %i"), NumUniquePAK1, NumUniquePAK2, NumDifferentContents, NumEqualContents);	
+	return true;
+}
+
 bool GenerateHashForFile( FString Filename, uint8 FileHash[16])
 {
 	FArchive* File = IFileManager::Get().CreateFileReader(*Filename);
@@ -1219,6 +1375,12 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			FString PakFilename = GetPakPath(ArgV[1], false);
 			Result = ListFilesInPak(*PakFilename);
 		}
+		else if (FParse::Param(FCommandLine::Get(), TEXT("Diff")))
+		{
+			FString PakFilename1 = GetPakPath(ArgV[1], false);
+			FString PakFilename2 = GetPakPath(ArgV[2], false);
+			Result = DiffFilesInPaks(*PakFilename1, *PakFilename2);
+		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("Extract")))
 		{
 			FString PakFilename = GetPakPath(ArgV[1], false);
@@ -1282,6 +1444,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			}
 		}
 	}
+	GLog->Flush();
 
 	return Result;
 }

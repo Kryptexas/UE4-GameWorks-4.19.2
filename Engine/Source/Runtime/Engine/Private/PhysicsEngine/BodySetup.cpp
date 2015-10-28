@@ -45,6 +45,7 @@ UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
 	bMeshCollideAll = false;
 	CollisionTraceFlag = CTF_UseDefault;
 	bHasCookedCollisionData = true;
+	bNeverNeedsCookedCollisionData = false;
 	bGenerateMirroredCollision = true;
 	bGenerateNonMirroredCollision = true;
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
@@ -108,6 +109,12 @@ void UBodySetup::CreatePhysicsMeshes()
 #if WITH_PHYSX
 	// Create meshes from cooked data if not already done
 	if(bCreatedPhysicsMeshes)
+	{
+		return;
+	}
+
+	// If we don't have any convex/trimesh data we can skip this whole function
+	if (bNeverNeedsCookedCollisionData)
 	{
 		return;
 	}
@@ -354,7 +361,7 @@ struct FAddShapesHelper
 	FVector Scale3DAbs;
 
 public:
-	void AddSpheresToRigidActor_AssumesLocked() const
+	FORCEINLINE_DEBUGGABLE void AddSpheresToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -385,7 +392,7 @@ public:
 		}
 	}
 
-	void AddBoxesToRigidActor_AssumesLocked() const
+	FORCEINLINE_DEBUGGABLE void AddBoxesToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -420,7 +427,7 @@ public:
 		}
 	}
 
-	void AddSphylsToRigidActor_AssumesLocked() const
+	FORCEINLINE_DEBUGGABLE void AddSphylsToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -466,7 +473,7 @@ public:
 		}
 	}
 
-	void AddConvexElemsToRigidActor_AssumesLocked() const
+	FORCEINLINE_DEBUGGABLE void AddConvexElemsToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -524,7 +531,7 @@ public:
 		}
 	}
 
-	void AddTriMeshToRigidActor_AssumesLocked() const
+	FORCEINLINE_DEBUGGABLE void AddTriMeshToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);

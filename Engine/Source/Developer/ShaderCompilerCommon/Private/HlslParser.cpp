@@ -1707,7 +1707,7 @@ check(0);
 
 	namespace Parser
 	{
-		bool Parse(const FString& Input, const FString& Filename, bool bDump)
+		bool Parse(const FString& Input, const FString& Filename/*, bool bDump*/, TCallback* Callback, void* CallbackData)
 		{
 			FLinearAllocator Allocator;
 			FHlslParser Parser(&Allocator);
@@ -1735,14 +1735,21 @@ check(0);
 				else
 				{
 					check(Result == EParseResult::Matched);
+/*
 					if (bDump && Node)
 					{
 						Node->Dump(0);
 					}
+*/
 					Nodes.Add(Node);
 				}
 
 				check(LastIndex != Parser.Scanner.GetCurrentTokenIndex());
+			}
+
+			if (bSuccess && Callback)
+			{
+				Callback(CallbackData, &Allocator, Nodes);
 			}
 
 			return bSuccess;

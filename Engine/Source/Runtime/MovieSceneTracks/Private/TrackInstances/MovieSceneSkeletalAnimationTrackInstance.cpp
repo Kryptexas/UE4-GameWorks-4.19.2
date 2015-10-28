@@ -20,14 +20,14 @@ FMovieSceneSkeletalAnimationTrackInstance::~FMovieSceneSkeletalAnimationTrackIns
 }
 
 
-void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	// @todo Sequencer gameplay update has a different code path than editor update for animation
 
 	for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 	{
 		IMatineeAnimInterface* AnimInterface = Cast<IMatineeAnimInterface>(RuntimeObjects[i]);
-		if (AnimInterface)
+		if (AnimInterface) 
 		{
 			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));
 			if (AnimSection && AnimSection->IsActive())
@@ -36,21 +36,20 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 				FName SlotName = FName("AnimationSlot");
 				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
 
-				float AnimDilationFactor = FMath::IsNearlyZero(AnimSection->GetAnimationDilationFactor()) ? 1.0f : AnimSection->GetAnimationDilationFactor();
+				float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
+				float AnimPosition = (Position - AnimSection->GetStartTime()) * AnimPlayRate;
+				float SeqLength = AnimSection->GetSequenceLength() - (AnimSection->GetStartOffset() + AnimSection->GetEndOffset());
 
-				float AnimPosition = (Position - AnimSection->GetAnimationStartTime()) * AnimDilationFactor;
-
-				// Looping if greater than first section
-				const bool bLooping = Position > (AnimSection->GetAnimationStartTime() + (AnimSection->GetAnimationSequenceLength() / AnimDilationFactor));
-
-				if (bLooping)
-				{
-					AnimPosition = FMath::Fmod(Position - AnimSection->GetAnimationStartTime(), AnimSection->GetAnimationSequenceLength() / AnimDilationFactor);
-					AnimPosition *= AnimDilationFactor;
-				}
+				AnimPosition = FMath::Fmod(AnimPosition, SeqLength);
+				AnimPosition += AnimSection->GetStartOffset();
 
 				// Clamp to end of section
 				AnimPosition = FMath::Clamp(AnimPosition, AnimPosition, AnimSection->GetEndTime());
+
+				if (AnimSection->GetReverse())
+				{
+					AnimPosition = (SeqLength - (AnimPosition - AnimSection->GetStartOffset())) + AnimSection->GetStartOffset();
+				}
 
 				if (GIsEditor && !GWorld->HasBegunPlay())
 				{

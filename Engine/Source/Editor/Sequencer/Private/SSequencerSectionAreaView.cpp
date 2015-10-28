@@ -101,7 +101,7 @@ void SSequencerSectionAreaView::GenerateSectionWidgets()
 		for ( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
 		{
 			Children.Add( 
-				SNew( SSection, SectionAreaNode.ToSharedRef(), SectionIndex ) 
+				SNew( SSequencerSection, SectionAreaNode.ToSharedRef(), SectionIndex ) 
 				.Visibility( this, &SSequencerSectionAreaView::GetSectionVisibility, Sections[SectionIndex]->GetSectionObject() )
 				);
 		}
@@ -135,7 +135,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 	int32 MaxRowIndex = 0;
 	for( int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex )
 	{
-		const TSharedRef<SSection>& Widget = Children[WidgetIndex];
+		const TSharedRef<SSequencerSection>& Widget = Children[WidgetIndex];
 
 		TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
 
@@ -150,7 +150,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 
 	for( int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex )
 	{
-		const TSharedRef<SSection>& Widget = Children[WidgetIndex];
+		const TSharedRef<SSequencerSection>& Widget = Children[WidgetIndex];
 
 		TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
 

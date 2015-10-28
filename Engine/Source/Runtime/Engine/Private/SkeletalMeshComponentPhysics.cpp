@@ -38,6 +38,8 @@
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
+DECLARE_CYCLE_STAT(TEXT("CreateClothing"), STAT_CreateClothing, STATGROUP_Physics);
+
 
 extern TAutoConsoleVariable<int32> CVarEnableClothPhysics;
 
@@ -626,6 +628,12 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRot.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("USkeletalMeshComponent::SetAllPhysicsRotation found NaN in parameter NewRot: %s"), *NewRot.ToString());
+	}
+#endif
 	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewRot
@@ -2057,6 +2065,8 @@ void USkeletalMeshComponent::RecreateClothingActors()
 */
 bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset, TArray<FVector>* BlendedDelta)
 {	
+	SCOPE_CYCLE_COUNTER(STAT_CreateClothing);
+
 	int32 ActorIndex = ClothingActors.AddZeroed();
 
 	UWorld* World = GetWorld();
@@ -3188,6 +3198,19 @@ void USkeletalMeshComponent::UpdateClothTransform()
 	}
 #endif // WITH_CLOTH_COLLISION_DETECTION
 
+//#if ENABLE_NAN_DIAGNOSTIC
+	if (ComponentToWorld.GetRotation().ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform found NaN in ComponentToWorld.GetRotation()"));
+		ComponentToWorld.SetRotation(FQuat(0.0f, 0.0f, 0.0f, 1.0f));
+	}
+	if (ComponentToWorld.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform still found NaN in ComponentToWorld (wasn't the rotation)"));
+		ComponentToWorld.SetIdentity();
+	}
+//#endif
+
 	physx::PxMat44 PxGlobalPose = U2PMatrix(ComponentToWorld.ToMatrixWithScale());
 
 	for(FClothingActor& ClothingActor : ClothingActors)
@@ -3784,6 +3807,8 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 	{
 		return;
 	}
+
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_GetUpdateClothSimulationData);
 
 	int32 NumClothingActors = ClothingActors.Num();
 

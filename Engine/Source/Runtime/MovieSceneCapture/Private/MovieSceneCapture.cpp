@@ -49,6 +49,10 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 		AdditionalCommandLineArguments.Append(Switch);
 		AdditionalCommandLineArguments.AppendChar(' ');
 	}
+	// the PIEVIACONSOLE parameter tells UGameEngine to add the auto-save dir to the paths array and repopulate the package file cache
+	// this is needed in order to support streaming levels as the streaming level packages will be loaded only when needed (thus
+	// their package names need to be findable by the package file caching system)
+	// (we add to EditorCommandLine because the URL is ignored by WindowsTools)
 	AdditionalCommandLineArguments += TEXT("-PIEVIACONSOLE -nomovie ");
 
 	// renderer overrides - hack
@@ -65,13 +69,64 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 	Handle = FUniqueMovieSceneCaptureHandle();
 }
 
-void UMovieSceneCapture::Initialize(FViewport* InViewport)
+void UMovieSceneCapture::Initialize(TWeakPtr<FSceneViewport> InSceneViewport)
 {
-	Viewport = InViewport;
+	SceneViewport = InSceneViewport;
+}
+
+void UMovieSceneCapture::PrepareForScreenshot()
+{
+	auto Viewport = SceneViewport.Pin();
+	if (!Viewport.IsValid())
+	{
+		return;
+	}
+
+	auto ViewportWidget = Viewport->GetViewportWidget().Pin();
+	if (!ViewportWidget.IsValid())
+	{
+		return;
+	}
+
+	auto& Application = FSlateApplication::Get();
+
+	// We can't screenshot the widget unless there's a valid window handle to draw it in.
+	TSharedPtr<SWindow> WidgetWindow = Application.FindWidgetWindow(ViewportWidget.ToSharedRef());
+	if (!WidgetWindow.IsValid())
+	{
+		return;
+	}
+
+	FWidgetPath WidgetPath;
+	FSlateApplication::Get().GeneratePathToWidgetChecked(ViewportWidget.ToSharedRef(), WidgetPath);
+
+	FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(ViewportWidget.ToSharedRef()).Get(FArrangedWidget::NullWidget);
+
+	FVector2D Position = ArrangedWidget.Geometry.AbsolutePosition;
+	FVector2D WindowPosition = WidgetWindow->GetPositionInScreen();
+
+	const int32 RelativePositionX = Position.X - WindowPosition.X;
+	const int32 RelativePositionY = Position.Y - WindowPosition.Y;
+
+	FVector2D Size = ArrangedWidget.Geometry.GetDrawSize();
+
+	FIntRect ScreenshotRect(
+		RelativePositionX,
+		RelativePositionY,
+		RelativePositionX + Size.X,
+		RelativePositionY + Size.Y);
+
+	Application.GetRenderer()->PrepareToTakeScreenshot(ScreenshotRect, &ScratchBuffer);
 }
 
 void UMovieSceneCapture::StartCapture()
 {
+	auto Viewport = SceneViewport.Pin();
+	if (!Viewport.IsValid())
+	{
+		return;
+	}
+
 	if (!CaptureStrategy.IsValid())
 	{
 		CaptureStrategy = MakeShareable(new FRealTimeCaptureStrategy(Settings.FrameRate));
@@ -90,10 +145,10 @@ void UMovieSceneCapture::StartCapture()
 		}
 	}
 
-	CachedMetrics.Width = Viewport->GetSizeXY().X;
-	CachedMetrics.Height = Viewport->GetSizeXY().Y;
+	CachedMetrics.Width = Viewport->GetSize().X;
+	CachedMetrics.Height = Viewport->GetSize().Y;
 
-	Viewport->SetMovieSceneCapture(Handle);
+	PrepareForScreenshot();
 
 	if (Settings.CaptureType == EMovieCaptureType::AVI)
 	{
@@ -115,15 +170,23 @@ void UMovieSceneCapture::StartCapture()
 
 void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 {
-	if (!CaptureStrategy.IsValid())
+	// Tell slate to capture the *next* frame
+	PrepareForScreenshot();
+
+	auto Viewport = SceneViewport.Pin();
+	if (!CaptureStrategy.IsValid() || !Viewport.IsValid() || !ScratchBuffer.Num())
 	{
 		return;
 	}
 
 	CachedMetrics.ElapsedSeconds += DeltaSeconds;
 
+	// By this point, the slate application has already populated our scratch buffer
 	if (CaptureStrategy->ShouldPresent(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame))
 	{
+		TArray<FColor> ThisFrameBuffer;
+		Swap(ThisFrameBuffer, ScratchBuffer);
+
 		uint32 NumDroppedFrames = CaptureStrategy->GetDroppedFrames(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
 		CachedMetrics.Frame += NumDroppedFrames;
 
@@ -133,14 +196,12 @@ void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 		if (AVIWriter)
 		{
 			AVIWriter->DropFrames(NumDroppedFrames);
-			AVIWriter->Update(CachedMetrics.ElapsedSeconds);
+			AVIWriter->Update(CachedMetrics.ElapsedSeconds, MoveTemp(ThisFrameBuffer));
 		}
 #if WITH_EDITOR
 		else
 		{
-			TArray<FColor> Data;
-			Viewport->ReadPixels(Data, FReadSurfaceDataFlags());
-			CaptureSnapshot(Data);
+			SaveFrameToFile(MoveTemp(ThisFrameBuffer));
 		}
 #endif
 	}
@@ -165,7 +226,7 @@ void UMovieSceneCapture::Close()
 }
 
 #if WITH_EDITOR
-void UMovieSceneCapture::CaptureSnapshot(const TArray<FColor>& Colors)
+void UMovieSceneCapture::SaveFrameToFile(TArray<FColor> Colors)
 {
 	if (Colors.Num() == 0)
 	{
@@ -192,14 +253,12 @@ void UMovieSceneCapture::CaptureSnapshot(const TArray<FColor>& Colors)
 	case EMovieCaptureType::PNG:
 		{
 			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-
-			TArray<FColor> FinalColors = Colors;
-			for (FColor& Color : FinalColors)
+			for (FColor& Color : Colors)
 			{
 				Color.A = 255;
 			}
 
-			if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&FinalColors[0], FinalColors.Num() * sizeof(FColor), CachedMetrics.Width, CachedMetrics.Height, ERGBFormat::BGRA, 8))
+			if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&Colors[0], Colors.Num() * sizeof(FColor), CachedMetrics.Width, CachedMetrics.Height, ERGBFormat::BGRA, 8))
 			{
 				FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(ImageCompressionQuality), *Filename);
 			}
@@ -262,7 +321,12 @@ FString UMovieSceneCapture::ResolveUniqueFilename()
 	FString BaseFilename = ResolveFileFormat(Settings.OutputDirectory.Path, Settings.OutputFormat);
 	FString ThisTry = BaseFilename + GetDefaultFileExtension();
 
-	if (IFileManager::Get().FileSize(*ThisTry) != -1)
+	if (!IFileManager::Get().DirectoryExists(*Settings.OutputDirectory.Path))
+	{
+		IFileManager::Get().MakeDirectory(*Settings.OutputDirectory.Path);
+	}
+
+	if (IFileManager::Get().FileSize(*ThisTry) == -1)
 	{
 		return ThisTry;
 	}

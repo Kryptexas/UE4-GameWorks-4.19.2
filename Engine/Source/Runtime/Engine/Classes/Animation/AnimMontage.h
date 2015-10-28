@@ -177,6 +177,12 @@ struct FAnimMontageInstance
 	UPROPERTY(transient)
 	float DefaultBlendTimeMultiplier;
 
+	// marker tick record
+	FMarkerTickRecord MarkerTickRecord;
+
+	// markers that passed in this tick
+	TArray<FPassedMarker> MarkersPassedThisTick;
+
 private:
 	// list of next sections per section - index of array is section id
 	UPROPERTY()
@@ -214,6 +220,15 @@ private:
 	// transient NotifyWeight   - Weight for spawned notifies, modified slightly to make sure
 	//                          - we spawn all notifies
 	float NotifyWeight;
+
+	// transient value of Delta Moved in the last frame known
+	float DeltaMoved;
+
+	// transient value of previous position before move
+	float PreviousPosition;
+
+	// sync group index
+	int32 SyncGroupIndex;
 public:
 	/** Montage to Montage Synchronization.
 	 *
@@ -238,6 +253,8 @@ public:
 	float GetWeight() const { return Blend.GetBlendedValue(); }
 	float GetDesiredWeight() const { return Blend.GetDesiredValue(); }
 	float GetBlendTime() const { return Blend.GetBlendTime(); }
+	int32 GetSyncGroupIndex() const { return SyncGroupIndex;  }
+
 private:
 	/** Followers this Montage will synchronize */
 	TArray<struct FAnimMontageInstance*> MontageSyncFollowers;
@@ -266,6 +283,9 @@ public:
 		, PlayRate(1.f)
 		, bInterrupted(false)
 		, PreviousWeight(0.f)
+		, DeltaMoved(0.f)
+		, PreviousPosition(0.f)
+		, SyncGroupIndex(INDEX_NONE)
 		, MontageSyncLeader(NULL)
 		, MontageSyncUpdateFrameCounter(INDEX_NONE)
 	{
@@ -280,6 +300,9 @@ public:
 		, PlayRate(1.f)
 		, bInterrupted(false)
 		, PreviousWeight(0.f)	
+		, DeltaMoved(0.f)
+		, PreviousPosition(0.f)
+		, SyncGroupIndex(INDEX_NONE)
 		, MontageSyncLeader(NULL)
 		, MontageSyncUpdateFrameCounter(INDEX_NONE)
 	{
@@ -304,12 +327,16 @@ public:
 
 	void Terminate();
 
+	/** return true if it can use marker sync */
+	bool CanUseMarkerSync() const;
+
 	/**
 	 *  Getters
 	 */
 	float GetPosition() const { return Position; };
 	float GetPlayRate() const { return PlayRate; }
-
+	float GetDeltaMoved() const { return DeltaMoved; }
+	float GetPreviousPosition() const { return PreviousPosition;  }
 	/** 
 	 * Setters
 	 */
@@ -385,6 +412,17 @@ class UAnimMontage : public UAnimCompositeBase
 	UPROPERTY(EditAnywhere, Category = BlendOption)
 	float BlendOutTriggerTime;
 
+	/** If you're using marker based sync for this montage, make sure to add sync group name. For now we only support one group */
+	UPROPERTY(EditAnywhere, Category = SyncGroup)
+	FName SyncGroup;
+
+	/** wip: until we have UI working */
+	UPROPERTY(EditAnywhere, Category = SyncGroup)
+	int32 SyncSlotIndex;
+
+	UPROPERTY()
+	struct FMarkerSyncData	MarkerData;
+
 	// composite section. 
 	UPROPERTY()
 	TArray<FCompositeSection> CompositeSections;
@@ -435,6 +473,10 @@ public:
 #if WITH_EDITOR
 	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const override;
 #endif // WITH_EDITOR
+	virtual void GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const override;
+	virtual FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const override;
+	virtual void TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
+	virtual TArray<FName>* GetUniqueMarkerNames() override { return &MarkerData.UniqueMarkerNames; }
 	//~ End AnimSequenceBase Interface
 
 #if WITH_EDITOR
@@ -590,4 +632,9 @@ public:
 	const FBranchingPointMarker* FindFirstBranchingPointMarker(float StartTrackPos, float EndTrackPos);
 	/** Filter out notifies from array that are marked as 'BranchingPoints' */
 	void FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*>& InAnimNotifies);
+
+	bool CanUseMarkerSync() const { return MarkerData.AuthoredSyncMarkers.Num() > 0; }
+
+	// update markers
+	void CollectMarkers();
 };

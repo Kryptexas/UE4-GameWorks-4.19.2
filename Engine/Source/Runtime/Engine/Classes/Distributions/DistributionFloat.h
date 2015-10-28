@@ -142,7 +142,7 @@ class UDistributionFloat : public UDistribution
 	/** @return true of this distribution can be baked into a FRawDistribution lookup table, otherwise false */
 	virtual bool CanBeBaked() const 
 	{
-		return true; 
+		return bCanBeBaked; 
 	}
 
 	/**

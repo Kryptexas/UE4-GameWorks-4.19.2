@@ -138,9 +138,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	// Handling GameplayCues at runtime:
 	// -------------------------------------------------------------
 
-	virtual void HandleGameplayCues(AActor* TargetActor, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	virtual void HandleGameplayCues(AActor* TargetActor, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
 
-	virtual void HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	virtual void HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
 
 	/** Force any instanced GameplayCueNotifies to stop */
 	virtual void EndGameplayCuesFor(AActor* TargetActor);

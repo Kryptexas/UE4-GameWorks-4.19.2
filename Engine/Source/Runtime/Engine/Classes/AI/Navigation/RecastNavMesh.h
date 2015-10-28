@@ -80,7 +80,7 @@ struct ENGINE_API FNavMeshNodeFlags
 	FNavMeshNodeFlags() : PathFlags(0), Area(0), AreaFlags(0) {}
 	FNavMeshNodeFlags(uint32 Flags) : PathFlags(Flags), Area(Flags >> 8), AreaFlags(Flags >> 16) {}
 	uint32 Pack() const { return PathFlags | ((uint32)Area << 8) | ((uint32)AreaFlags << 16); }
-	bool IsNavLink() const { return (PathFlags & 4) != 0;  }
+	bool IsNavLink() const { return (PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;  }
 };
 
 struct ENGINE_API FNavMeshPath : public FNavigationPath

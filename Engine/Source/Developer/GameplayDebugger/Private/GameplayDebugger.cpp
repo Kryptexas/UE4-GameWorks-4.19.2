@@ -608,10 +608,13 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 		if (!Replicator)
 		{
 			LocalPC->ClientMessage(TEXT("Enabling GameplayDebugger on server, please wait for replicated data..."));
-			const FString ServerCheatString = FString::Printf(TEXT("cheat EnableGDT %s"), *LocalPC->PlayerState->UniqueId.ToString());
-			UE_LOG(LogGameplayDebugger, Warning, TEXT("Sending to Server: %s"), *ServerCheatString);
-			LocalPC->ConsoleCommand(*ServerCheatString);
-			bHandled = true;
+			if (LocalPC->PlayerState)
+			{
+				const FString ServerCheatString = FString::Printf(TEXT("cheat EnableGDT %s"), *LocalPC->PlayerState->UniqueId.ToString());
+				UE_LOG(LogGameplayDebugger, Warning, TEXT("Sending to Server: %s"), *ServerCheatString);
+				LocalPC->ConsoleCommand(*ServerCheatString);
+				bHandled = true;
+			}
 		}
 		else if (!Replicator->IsToolCreated())
 		{

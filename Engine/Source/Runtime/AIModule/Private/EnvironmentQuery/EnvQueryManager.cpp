@@ -204,13 +204,18 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 	return QueryInstance;
 }
 
-void UEnvQueryManager::SilentlyRemoveAllQueriesByQuerier(const UObject& Querier)
+void UEnvQueryManager::RemoveAllQueriesByQuerier(const UObject& Querier, bool bExecuteFinishDelegate)
 {
 	for (int32 QueryIndex = RunningQueries.Num() - 1; QueryIndex >= 0; --QueryIndex)
 	{
 		const TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[QueryIndex];
 		if (QueryInstance.IsValid() == false || QueryInstance->Owner.IsValid() == false || QueryInstance->Owner.Get() == &Querier)
 		{
+			if (bExecuteFinishDelegate && QueryInstance->IsFinished() == false)
+			{
+				QueryInstance->MarkAsAborted();
+				QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
+			}
 			RunningQueries.RemoveAt(QueryIndex, 1, /*bAllowShrinking=*/false);
 		}
 	}

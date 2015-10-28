@@ -12,6 +12,14 @@
 #include "PostProcessing.h"
 #include "SceneUtils.h"
 
+static TAutoConsoleVariable<int32> CVarDepthOfFieldFarBlur(
+	TEXT("r.DepthOfField.FarBlur"),
+	1,
+	TEXT("Temporary hack affecting only CircleDOF\n")
+	TEXT(" 0: Off\n")
+	TEXT(" 1: On (default)"),
+	ECVF_RenderThreadSafe);
+
 
 float ComputeFocalLengthFromFov(const FSceneView& View)
 {
@@ -75,7 +83,7 @@ FVector4 CircleDofCoc(const FSceneView& View)
 }
 
 /** Encapsulates the Circle DOF setup pixel shader. */
-template <uint32 NearBlurEnable>
+template <uint32 FarBlurEnable>
 class FPostProcessCircleDOFSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessCircleDOFSetupPS, Global);
@@ -88,7 +96,7 @@ class FPostProcessCircleDOFSetupPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
+		OutEnvironment.SetDefine(TEXT("ENABLE_FAR_BLUR"), FarBlurEnable);
 	}
 
 	/** Default constructor. */
@@ -200,10 +208,9 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 
 	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 
-	if (bNearBlurEnabled)
+	if(CVarDepthOfFieldFarBlur.GetValueOnRenderThread())
 	{
 		static FGlobalBoundShaderState BoundShaderState;
-
 
 		TShaderMapRef< FPostProcessCircleDOFSetupPS<1> > PixelShader(ShaderMap);
 		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
@@ -443,8 +450,9 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFDilate::ComputeOutputDesc(EPa
 
 	Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOFDilate0") : TEXT("CircleDOFDilate1");
 
-	// more precision for additive blending and we need the alpha channel
-	Ret.Format = PF_FloatRGBA;
+//	Ret.Format = PF_FloatRGBA;
+	// we only use one channel, maybe using 4 channels would save memory as we reuse
+	Ret.Format = PF_R16F;
 
 	return Ret;
 }
@@ -532,6 +540,17 @@ public:
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+/*
+		{
+			FSamplerStateRHIParamRef Filters[] =
+			{
+				TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			};
+
+			PostprocessParameter.SetPS( ShaderRHI, Context, 0, false, Filters );
+		}
+*/
 
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
@@ -700,7 +719,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOF::ComputeOutputDesc(EPassOutp
 
 
 /** Encapsulates  the Circle DOF recombine pixel shader. */
-template <uint32 NearBlurEnable>
+template <uint32 NearBlurEnable, uint32 Quality>
 class FPostProcessCircleDOFRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessCircleDOFRecombinePS, Global);
@@ -714,6 +733,7 @@ class FPostProcessCircleDOFRecombinePS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
+		OutEnvironment.SetDefine(TEXT("QUALITY"), Quality);
 	}
 
 	/** Default constructor. */
@@ -770,10 +790,43 @@ public:
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, CircleDofParams, CircleDofCoc(Context. View));
 	}
+	
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessCircleDOF");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("MainCircleRecombinePS");
+	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFRecombinePS<0>,TEXT("PostProcessCircleDOF"),TEXT("MainCircleRecombinePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFRecombinePS<1>,TEXT("PostProcessCircleDOF"),TEXT("MainCircleRecombinePS"),SF_Pixel);
+
+// #define avoids a lot of code duplication
+#define VARIATION1(A, B) typedef FPostProcessCircleDOFRecombinePS<A, B> FPostProcessCircleDOFRecombinePS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFRecombinePS##A##B, SF_Pixel);
+
+	VARIATION1(0,0)			VARIATION1(1,0)
+	VARIATION1(0,1)			VARIATION1(1,1)
+
+#undef VARIATION1
+
+template <uint32 NearBlurEnable, uint32 Quality>
+FShader* FRCPassPostProcessCircleDOFRecombine::SetShaderTempl(const FRenderingCompositePassContext& Context)
+{
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessCircleDOFRecombinePS<NearBlurEnable, Quality> > PixelShader(Context.GetShaderMap());
+
+	static FGlobalBoundShaderState BoundShaderState;
+
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(Context);
+	
+	return *VertexShader;
+}
 
 void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
@@ -814,26 +867,25 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
+	check(CVar);
+	int32 DOFQualityCVarValue = CVar->GetValueOnRenderThread();
+	
+	// 0:normal / 1:slow but very high quality
+	uint32 Quality = DOFQualityCVarValue >= 3;
+
+	FShader* VertexShader = 0;
 
 	if (bNearBlurEnabled)
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-
-		TShaderMapRef< FPostProcessCircleDOFRecombinePS<1> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		PixelShader->SetParameters(Context);
+		if(Quality) VertexShader = SetShaderTempl<1, 1>(Context);
+		  else		VertexShader = SetShaderTempl<1, 0>(Context);
 	}
 	else
 	{
-		static FGlobalBoundShaderState BoundShaderState;
-
-		TShaderMapRef< FPostProcessCircleDOFRecombinePS<0> > PixelShader(ShaderMap);
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		PixelShader->SetParameters(Context);
+		if(Quality)	VertexShader = SetShaderTempl<0, 1>(Context);
+		  else		VertexShader = SetShaderTempl<0, 0>(Context);
 	}
-
-	VertexShader->SetParameters(Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -843,7 +895,7 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		TexSize,
-		*VertexShader,
+		VertexShader,
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);

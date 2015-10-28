@@ -7,18 +7,24 @@
 #include "MovieScenePropertyTrack.h"
 #include "MovieSceneBoolTrack.generated.h"
 
+
 /**
  * Handles manipulation of float properties in a movie scene
  */
 UCLASS( MinimalAPI )
-class UMovieSceneBoolTrack : public UMovieScenePropertyTrack
+class UMovieSceneBoolTrack
+	: public UMovieScenePropertyTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
-	/** UMovieSceneTrack interface */
+
+	// UMovieSceneTrack interface
+
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
+
+public:
 
 	/**
 	 * Adds a key to a section.  Will create the section if it doesn't exist

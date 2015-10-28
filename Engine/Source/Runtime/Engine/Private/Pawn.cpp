@@ -858,10 +858,12 @@ void APawn::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			NewControlRotation.Roll = CurrentRotation.Roll;
 		}
 
+#if ENABLE_NAN_DIAGNOSTIC
 		if (NewControlRotation.ContainsNaN())
 		{
-			ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
+			logOrEnsureNanError(TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
 		}
+#endif
 
 		SetActorRotation(NewControlRotation);
 	}
@@ -994,7 +996,7 @@ void APawn::PostNetReceiveLocationAndRotation()
 		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
 		{
-			PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
+			PredictionInterface->SmoothCorrection(OldLocation, OldRotation, ReplicatedMovement.Location, ReplicatedMovement.Rotation.Quaternion());
 		}
 	}
 }

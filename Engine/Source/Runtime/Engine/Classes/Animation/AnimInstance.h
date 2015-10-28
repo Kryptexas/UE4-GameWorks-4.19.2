@@ -366,6 +366,11 @@ public:
 		}
 	}
 
+	void Reset()
+	{
+		InternalCounter = INDEX_NONE;
+	}
+
 	void SynchronizeWith(const FGraphTraversalCounter& InMasterCounter)
 	{
 		InternalCounter = InMasterCounter.Get();
@@ -443,6 +448,7 @@ public:
 	// @todo document
 	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
 	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
+	void MakeMontageTickRecord(FAnimTickRecord& TickRecord, class UAnimMontage* Montage, float CurrentPosition, float PreviousPosition, float MoveDelta, float Weight, TArray<FPassedMarker>& MarkersPassedThisTick, FMarkerTickRecord& MarkerTickRecord);
 
 	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
 
@@ -814,6 +820,9 @@ public:
 	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
 	const FBakedAnimationStateMachine* GetMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
 
+	/** Returns the baked sync group index from the compile step */
+	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
+
 protected:
 
 	/** Gets the runtime instance of the specified state machine */
@@ -830,9 +839,6 @@ protected:
 
 	/** Gets the most relevant asset player in a specified state */
 	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex);
-
-	/** Returns the baked sync group index from the compile step */
-	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
 
 	//////////////////////////////////////////////////////////////////////////
 

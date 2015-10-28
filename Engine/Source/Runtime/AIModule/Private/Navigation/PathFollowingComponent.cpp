@@ -17,6 +17,12 @@
 
 #define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not
 
+#if UE_BUILD_TEST || UE_BUILD_SHIPPING
+#define SHIPPING_STATIC static
+#else
+#define SHIPPING_STATIC
+#endif // UE_BUILD_TEST || UE_BUILD_SHIPPING
+
 DEFINE_LOG_CATEGORY(LogPathFollowing);
 
 //----------------------------------------------------------------------//
@@ -589,6 +595,9 @@ void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationAct
 
 void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
+	SHIPPING_STATIC	const float PathPointAcceptanceRadius = GET_AI_CONFIG_VAR(PathfollowingRegularPathPointAcceptanceRadius);
+	SHIPPING_STATIC const float NavLinkAcceptanceRadius = GET_AI_CONFIG_VAR(PathfollowingNavLinkAcceptanceRadius);
+
 	int32 EndSegmentIndex = SegmentStartIndex + 1;
 	if (Path.IsValid() && Path->GetPathPoints().IsValidIndex(SegmentStartIndex) && Path->GetPathPoints().IsValidIndex(EndSegmentIndex))
 	{
@@ -615,7 +624,11 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 			SegmentEnd = *CurrentDestination;
 		}
 
-		CurrentAcceptanceRadius = (Path->GetPathPoints().Num() == (MoveSegmentEndIndex + 1)) ? AcceptanceRadius : 0.0f;
+		CurrentAcceptanceRadius = (Path->GetPathPoints().Num() == (MoveSegmentEndIndex + 1)) 
+			? AcceptanceRadius 
+			// pick appropriate value base on whether we're going to nav link or not
+			: (FNavMeshNodeFlags(PathPt1.Flags).IsNavLink() == false ? PathPointAcceptanceRadius : NavLinkAcceptanceRadius);
+
 		MoveSegmentDirection = (SegmentEnd - SegmentStart).GetSafeNormal();
 
 		// handle moving through custom nav links
@@ -1545,3 +1558,5 @@ void UPathFollowingComponent::OnWaitingPathTimeout()
 		AbortMove(TEXT("waiting timeout"), CurrentRequestId);
 	}
 }
+
+#undef SHIPPING_STATIC

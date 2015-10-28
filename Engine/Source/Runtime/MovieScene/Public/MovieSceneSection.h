@@ -5,11 +5,13 @@
 #include "KeyParams.h"
 #include "MovieSceneSection.generated.h"
 
+
 /**
  * Base class for movie scene sections
  */
 UCLASS( abstract, MinimalAPI )
-class UMovieSceneSection : public UObject
+class UMovieSceneSection
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:
@@ -17,17 +19,26 @@ public:
 	/**
 	 * @return The start time of the section
 	 */
-	float GetStartTime() const { return StartTime; }
+	float GetStartTime() const
+	{
+		return StartTime;
+	}
 
 	/**
 	 * @return The end time of the section
 	 */
-	float GetEndTime() const { return EndTime; }
+	float GetEndTime() const
+	{
+		return EndTime;
+	}
 	
 	/**
 	 * @return The size of the time range of the section
 	 */
-	float GetTimeSize() const {return EndTime - StartTime;}
+	float GetTimeSize() const
+	{
+		return EndTime - StartTime;
+	}
 
 	/**
 	 * Sets a new end time for this section
@@ -122,6 +133,22 @@ public:
 	}
 	
 	/**
+	 * Split a section in two at the split time
+	 *
+	 * @param SplitTime The time at which to split
+	 * @return The newly created split section
+	 */
+	virtual MOVIESCENE_API UMovieSceneSection* SplitSection(float SplitTime);
+
+	/**
+	 * Trim a section at the trim time
+	 *
+	 * @param TrimTime The time at which to trim
+	 * @param bTrimLeft Whether to trim left or right
+	 */
+	virtual MOVIESCENE_API void TrimSection(float TrimTime, bool bTrimLeft);
+
+	/**
 	 * Get the key handles for the keys on the curves within this section
 	 *
 	 * @param KeyHandles The key handles of the keys on the curves within this section
@@ -192,6 +219,7 @@ public:
 	bool IsInfinite() const { return bIsInfinite; }
 
 private:
+
 	/** The start time of the section */
 	UPROPERTY(EditAnywhere, Category="Section")
 	float StartTime;

@@ -75,6 +75,7 @@ public:
 	const TArray<FSlateMeshVertex>& GetVertexData() const { return VertexData; }
 	const TArray<uint32>& GetIndexData() const { return IndexData; }
 	UMaterialInterface* GetMaterial() const { return Material; }
+	UMaterialInstanceDynamic* ConvertToMaterialInstanceDynamic();
 
 protected:
 

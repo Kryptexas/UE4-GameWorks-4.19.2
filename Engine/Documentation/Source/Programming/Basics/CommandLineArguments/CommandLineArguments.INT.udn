@@ -23,7 +23,7 @@ These arguments are used to force the main editor executable (`UE4Editor.exe`) t
 These commands are not case sensitive.
 [/REGION]
 
-*Example:*
+Example:
 
       
 	UE4Editor.exe -game

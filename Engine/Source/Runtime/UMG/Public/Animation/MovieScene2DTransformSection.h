@@ -3,24 +3,30 @@
 #pragma once
 
 #include "MovieSceneSection.h"
-
 #include "MovieScene2DTransformSection.generated.h"
 
+
 struct FWidgetTransform;
+
 
 /**
  * A transform section
  */
 UCLASS(MinimalAPI)
-class UMovieScene2DTransformSection : public UMovieSceneSection
+class UMovieScene2DTransformSection
+	: public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
 public:
 
-	/** MovieSceneSection interface */
+	// UMovieSceneSection interface
+
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+
+public:
 
 	UMG_API FRichCurve& GetTranslationCurve( EAxis::Type Axis );
 
@@ -35,7 +41,9 @@ public:
 	bool NewKeyIsNewData( float Time, const FWidgetTransform& Transform, FKeyParams KeyParams ) const;
 
 	void AddKey( float Time, const struct F2DTransformKey& TransformKey, FKeyParams KeyParams );
+
 private:
+
 	/** Translation curves*/
 	UPROPERTY()
 	FRichCurve Translation[2];

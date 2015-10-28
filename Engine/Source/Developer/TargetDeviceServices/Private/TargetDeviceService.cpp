@@ -181,7 +181,7 @@ bool FTargetDeviceService::Start()
 
 		Running = true;
 	}
-
+		
 	return true;
 }
 
@@ -190,10 +190,12 @@ void FTargetDeviceService::Stop()
 {
 	if (Running)
 	{
-		// notify other services
+	
 		MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)));
+	    // Only stop the device if we care about device claiming
 
-		Running = false;
+		GConfig->GetBool(TEXT("/Script/Engine.Engine"), TEXT("DisableDeviceClaiming"), Running, GEngineIni);
+		
 	}
 }
 

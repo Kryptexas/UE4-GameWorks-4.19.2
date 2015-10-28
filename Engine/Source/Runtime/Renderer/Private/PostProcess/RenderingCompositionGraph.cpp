@@ -282,21 +282,17 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	check(Texture);
 	check(Texture->GetTexture2D());
 
-	FIntRect SourceRect;
+	FIntRect SourceRect = Context.View.ViewRect;
+
 	int32 MSAAXSamples = Texture->GetNumSamples();
-	if (GIsHighResScreenshot)
+
+	if (GIsHighResScreenshot && HighResScreenshotConfig.CaptureRegion.Area())
 	{
 		SourceRect = HighResScreenshotConfig.CaptureRegion;
-		if (SourceRect.Area() == 0)
-		{
-			SourceRect = Context.View.ViewRect;
-		}
-		else
-		{
-			SourceRect.Min.X *= MSAAXSamples;
-			SourceRect.Max.X *= MSAAXSamples;
-		}
 	}
+
+	SourceRect.Min.X *= MSAAXSamples;
+	SourceRect.Max.X *= MSAAXSamples;
 
 	FIntPoint DestSize(SourceRect.Width(), SourceRect.Height());
 

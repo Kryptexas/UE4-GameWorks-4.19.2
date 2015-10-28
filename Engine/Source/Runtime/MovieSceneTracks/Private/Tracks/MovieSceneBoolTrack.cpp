@@ -7,20 +7,17 @@
 #include "MovieSceneBoolTrackInstance.h"
 
 
-UMovieSceneBoolTrack::UMovieSceneBoolTrack( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{
-}
-
 UMovieSceneSection* UMovieSceneBoolTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneBoolSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneBoolTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneBoolTrackInstance( *this ) );
 }
+
 
 bool UMovieSceneBoolTrack::AddKeyToSection( float Time, bool Value, FKeyParams KeyParams)
 {
@@ -38,6 +35,7 @@ bool UMovieSceneBoolTrack::AddKeyToSection( float Time, bool Value, FKeyParams K
 	return false;
 }
 
+
 bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBool ) const
 {	
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
@@ -52,8 +50,9 @@ bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBoo
 		OutBool = CastChecked<UMovieSceneBoolSection>( Section )->Eval( Position );
 	}
 
-	return Section != NULL;
+	return (Section != nullptr);
 }
+
 
 bool UMovieSceneBoolTrack::CanKeyTrack(float Time, bool Value, FKeyParams KeyParams) const
 {

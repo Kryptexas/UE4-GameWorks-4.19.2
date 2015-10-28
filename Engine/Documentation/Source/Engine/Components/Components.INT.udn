@@ -1,8 +1,10 @@
 Availability:Public
 Title:Components
 Crumbs:%ROOT%, Engine
-Description: A compendium of the different types of Components designed to be used as sub-objects within an Actor.  
+Description: A compendium of the different types of Components designed to be used as sub-objects within an Actor.
 version: 4.9
+parent:Engine/Editor
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]

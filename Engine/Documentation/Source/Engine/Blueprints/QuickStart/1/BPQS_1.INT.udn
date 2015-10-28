@@ -3,24 +3,12 @@ Title:1. Required Project Setup
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Use the Side Scroller Blueprint Template as a jumping-off point for your game.
 version:4.9
+parent:Engine/Blueprints/QuickStart
+order:1
+type:multi-step
 
+[NAV]
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Blueprints/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
 
 ---
 
@@ -44,6 +32,6 @@ You should now see a side-scroller level, ready to jump in and start adding to.
 
 ---
 
-%Steps%
+[NAV]
 
 

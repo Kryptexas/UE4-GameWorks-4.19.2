@@ -31,7 +31,8 @@ public:
 		class USkeletalMesh* SkeletalMesh,
 		int32 LODIndex,
 		const struct FSkeletalMeshOptimizationSettings& Settings,
-		bool bCalcLODDistance
+		bool bCalcLODDistance,
+		bool bReregisterComponent = true
 		) = 0;
 	/**
 	 * Returns a unique string identifying both the reduction plugin itself and the version of the plugin.
@@ -266,4 +267,15 @@ public:
 
 
 	virtual bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const = 0;
+
+	/**
+	 * Remove Bones based on LODInfo setting
+	 *
+	 * @param SkeletalMesh	Mesh that needs bones to be removed
+	 * @param LODIndex		Desired LOD to remove bones [ 0 based ]
+	 * @param BoneNamesToRemove	List of bone names to remove
+	 *
+	 * @return true if success
+	 */
+	virtual bool RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const = 0;
 };

@@ -149,6 +149,9 @@ public:
 	/** Simple accessor to output modifiers of the execution */
 	void GetOutputModifiers(OUT TArray<FGameplayModifierEvaluatedData>& OutOutputModifiers) const;
 
+	/** Returns direct access to output modifiers of the execution (avoid copy) */
+	TArray<FGameplayModifierEvaluatedData>& GetOutputModifiersRef() { return OutputModifiers; }
+
 private:
 
 	/** Modifiers emitted by the execution */

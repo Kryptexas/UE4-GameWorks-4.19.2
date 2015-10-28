@@ -1665,6 +1665,9 @@ bool GetSubmeshInfoFromApexAsset(NxClothingAsset *ApexClothingAsset, uint32 LODI
 	// num of actual simulation vertices dynamically moving
 	int32 NumRealDynamicSimulVerts = 0;
 
+	physx::PxI32 NumBoneSpheres = 0;
+	verify(NxParameterized::getParamArraySize(*AssetParams, "boneSpheres", NumBoneSpheres));
+
 	if (NxParameterized::getParamRef(*AssetParams, ParameterName, PhysicalMeshParams))
 	{
 		if(PhysicalMeshParams != NULL)
@@ -1729,6 +1732,8 @@ bool GetSubmeshInfoFromApexAsset(NxClothingAsset *ApexClothingAsset, uint32 LODI
 				SubmeshInfo->SubmeshIndex = SubmeshIndex;
 				SubmeshInfo->SimulVertexCount = NumRealDynamicSimulVerts;
 				SubmeshInfo->FixedVertexCount = (VBCount - NumRenderVertsAffectedBySimul); 
+				SubmeshInfo->NumUsedBones     = ApexClothingAsset->getNumUsedBones();
+				SubmeshInfo->NumBoneSpheres   = NumBoneSpheres;
 			}
 		}
 	}

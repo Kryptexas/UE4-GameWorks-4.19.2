@@ -223,7 +223,7 @@ void FRCPassPostProcessVisualizeHDR::Process(FRenderingCompositePassContext& Con
 	FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
 	float X = 30;
-	float Y = 8;
+	float Y = 28;
 	const float YStep = 14;
 	const float ColumnWidth = 250;
 

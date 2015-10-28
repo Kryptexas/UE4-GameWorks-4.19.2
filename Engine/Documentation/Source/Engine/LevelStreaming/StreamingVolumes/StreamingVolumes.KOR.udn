@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSourceChangelist:2735870
+Availability: Docs
 Title:Level Streaming Volumes
-Crumbs:%ROOT%, Editor, Editor/LevelEditing, Engine/LevelStreaming
-Description:Guide to using volumes to control the streaming of levels based on the player's location.
+Crumbs:
+Description:플레이어 위치에 따라 레벨 스트리밍을 제어하는 볼륨 사용법 안내입니다.
 
 [REGION:todo]
-	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+	이 문서는 언리얼 엔진 3 문서를 변환한 것으로, 현재 검토중에 있습니다. 업데이트되면 번역 제공하도록 하겠습니다.
 [/REGION]
 
 [TOC(start:2)]

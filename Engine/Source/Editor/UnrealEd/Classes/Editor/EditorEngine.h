@@ -485,14 +485,6 @@ public:
 	UPROPERTY(config)
 	int32 BuildPlayDevice;
 
-	/** Enabled online PIE */
-	UPROPERTY(config)
-	bool bOnlinePIEEnabled;
-
-	/** Logins available for use when running PIE instances */
-	UPROPERTY(config)
-	TArray<FPIELoginInfo> PIELogins;
-
 	/** Maps world contexts to their slate data */
 	TMap<FName, FSlatePlayInEditorInfo>	SlatePlayInEditorMap;
 
@@ -2604,6 +2596,9 @@ private:
 	/** The Timer manager for all timer delegates */
 	TSharedPtr<class FTimerManager> TimerManager;
 
+	/** The output log -> message log redirector for use during PIE */
+	TSharedPtr<class FOutputLogErrorsToMessageLogProxy> OutputLogErrorsToMessageLogProxyPtr;
+
 	struct FPlayOnPCInfo
 	{
 		FProcHandle ProcessHandle;
@@ -2655,7 +2650,12 @@ protected:
 
 	void PlayUsingLauncher();
 
+public:
+
+	/** Save the currently loaded world ready for a play session */
 	void SaveWorldForPlay(TArray<FString>& SavedMapNames);
+
+protected:
 
 	/** Called when Matinee is opened */
 	virtual void OnOpenMatinee(){};
@@ -2731,6 +2731,8 @@ public:
 	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
 
 	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
+
+	void AutomationLoadMap(const FString& MapName);
 
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;

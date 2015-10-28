@@ -10,6 +10,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights
 Related: Engine/Rendering/LightingAndShadows/LightMobility/StaticLights
 Related: Engine/Rendering/LightingAndShadows/IESLightProfiles
 Related: Resources/ContentExamples/Lighting/4_2
+Version: 4.9
 
 [REGION:fullwidth]
 ![](RoomNightNoLights.png)

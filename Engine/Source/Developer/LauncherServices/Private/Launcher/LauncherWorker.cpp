@@ -191,7 +191,7 @@ static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxy
 				RoleCommands += TEXT(" -vsync");
 				bVsyncAdded = true;
 			}
-			RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetCommandLine());
+			RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetUATCommandLine());
 		}
 	}
 }

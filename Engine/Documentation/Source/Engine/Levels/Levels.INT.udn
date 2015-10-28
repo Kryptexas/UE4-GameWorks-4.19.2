@@ -8,7 +8,8 @@ Related: Engine/LevelStreaming
 Related: Resources/ContentExamples/LevelDesign
 SkillLevel: Beginner
 Version: 4.9
-
+parent:Engine/Editor
+order:4
 
 [VAR:Topic]
 [OBJECT:Topic]

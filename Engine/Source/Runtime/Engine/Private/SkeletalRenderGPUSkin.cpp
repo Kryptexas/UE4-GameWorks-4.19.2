@@ -25,6 +25,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "GPUSkinCache.h"
+#include "ShaderCompiler.h"
 #include "Animation/VertexAnim/VertexAnimBase.h"
 #include "Components/SkeletalMeshComponent.h"
 
@@ -197,6 +198,15 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	FDynamicSkelMeshObjectDataGPUSkin* NewDynamicData = FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin();		
 	NewDynamicData->InitDynamicSkelMeshObjectDataGPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
 
+	{
+		// Handle the case of skin caching shaders not done compiling before updates are finished/editor is loading
+		static bool bNeedToWait = GEnableGPUSkinCache != 0;
+		if (bNeedToWait && GShaderCompilingManager)
+		{
+			GShaderCompilingManager->ProcessAsyncResults(false, true);
+			bNeedToWait = false;
+		}
+	}
 
 	// queue a call to update this data
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -320,10 +330,10 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 		}
 	}
 
-	if(DataPresent)
+	if (DataPresent)
 	{
 		bool bGPUSkinCacheEnabled = GEnableGPUSkinCache && (FeatureLevel >= ERHIFeatureLevel::SM5);
-		for( int32 ChunkIdx=0; ChunkIdx < Chunks.Num(); ChunkIdx++ )
+		for (int32 ChunkIdx = 0; ChunkIdx < Chunks.Num(); ChunkIdx++)
 		{
 			const FSkelMeshChunk& Chunk = Chunks[ChunkIdx];
 
@@ -1125,28 +1135,33 @@ bool FDynamicSkelMeshObjectDataGPUSkin::ActiveVertexAnimsEqual( const TArray<FAc
 
 bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent)
 {
-	USkeletalMeshComponent * SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
+	USkeletalMeshComponent* SimMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
 
 #if WITH_APEX_CLOTHING
-	if(InMeshComponent->MasterPoseComponent.IsValid() && SkelMeshComponent && SkelMeshComponent->IsClothBoundToMasterComponent())
+	if (InMeshComponent->MasterPoseComponent.IsValid() && (SimMeshComponent && SimMeshComponent->IsClothBoundToMasterComponent()))
 	{
-		USkeletalMeshComponent* OriginalComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
-		SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent->MasterPoseComponent.Get());
+		USkeletalMeshComponent* SrcComponent = SimMeshComponent;
 
-		// If either component is invalid, don't attempt to update
-		if(!OriginalComponent || !SkelMeshComponent) return false;
+		// if I have master, override sim component
+		 SimMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent->MasterPoseComponent.Get());
 
-		ClothBlendWeight = OriginalComponent->ClothBlendWeight;
-		SkelMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData, OriginalComponent);
+		// IF we don't have sim component that is skeletalmeshcomponent, just ignore
+		 if (!SimMeshComponent)
+		 {
+			 return false;
+		 }
+
+		 ClothBlendWeight = SrcComponent->ClothBlendWeight;
+		 SimMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData, SrcComponent);
 
 		return true;
 	}
 #endif
 
-	if(SkelMeshComponent)
+	if (SimMeshComponent)
 	{
-		ClothBlendWeight = SkelMeshComponent->ClothBlendWeight;
-		SkelMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData);
+		ClothBlendWeight = SimMeshComponent->ClothBlendWeight;
+		SimMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData);
 		return true;
 	}
 	return false;

@@ -84,7 +84,6 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	, PersonaPtr( InPersonaPtr )
 	, bManipulating(false)
 	, bInTransaction(false)
-	, AnimationPlaybackScale(1.0f)
 	, GravityScaleSliderValue(0.25f)
 	, PrevWindStrength(0.0f)
 	, SelectedWindActor(NULL)
@@ -126,6 +125,7 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	ViewFOV = FMath::Clamp<float>(ConfigOption->ViewFOV, FOVMin, FOVMax);
 
 	EngineShowFlags.DisableAdvancedFeatures();
+	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	// set camera mode
@@ -746,7 +746,7 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 
 	if (!GIntraFrameDebuggingGameThread)
 	{
-		PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds*AnimationPlaybackScale);
+		PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds);
 	}
 
 	UDebugSkelMeshComponent* PreviewComp = PreviewSkelMeshComp.Get();

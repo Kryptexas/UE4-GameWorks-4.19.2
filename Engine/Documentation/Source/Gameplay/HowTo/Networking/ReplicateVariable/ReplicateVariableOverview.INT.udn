@@ -2,7 +2,10 @@ Availability: Public
 Title:Replicating Variables
 Crumbs: %ROOT%, Gameplay
 Description:Guide for Replicating Variables in Multiplayer Games.
-Version: 4.9 
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:17
 
 [EXCERPT:Overview]
 Just as [Actors](Gameplay\HowTo\Networking\ReplicateActor) and [Functions](Gameplay\HowTo\Networking\ReplicateFunction) can be replicated over the network, so can **Variables**. Variables that are important to gameplay should only be modified on the Network Authority (Server) and then replicated to Remote Machines (Clients) on a need-to-know basis. You do not want to allow Clients to define when variables can be changed, as this could lead to cheating (setting Health, Ammo, or Experience values for example). 

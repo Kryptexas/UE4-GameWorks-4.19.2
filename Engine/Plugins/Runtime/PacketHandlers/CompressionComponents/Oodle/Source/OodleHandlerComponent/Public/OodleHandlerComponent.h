@@ -2,6 +2,7 @@
 
 #pragma once
 
+// @todo #JohnB: Separate module-based header code, from other class implementations, so that you can setup the PCH.h file correctly
 #include "PacketHandler.h"
 #include "ModuleManager.h"
 #include "Core.h"
@@ -12,7 +13,11 @@ DECLARE_LOG_CATEGORY_EXTERN(OodleHandlerComponentLog, Log, All);
 #if HAS_OODLE_SDK
 #include "OodleArchives.h"
 
+#if UE4_OODLE_VER >= 200
+#include "oodle2.h"
+#else
 #include "oodle.h"
+#endif
 
 
 // Whether or not to utilize the Oodle-example-code based training and packet capture code (in the process of deprecation)

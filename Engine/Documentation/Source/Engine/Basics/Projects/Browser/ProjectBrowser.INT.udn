@@ -5,6 +5,8 @@ Description:Illustrates using the Project Browser to create new projects, open e
 Related: GettingStarted
 Related: GettingStarted/HowTo
 Related: Engine/Content/Packs
+Version: 4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -29,7 +31,7 @@ When you first run Unreal Editor, the **Project Browser** will appear.
 
 ![](ProjectBrowserBoth.png)(w:800)
 
-The **Project Browser** provides a jumping off point from which you can create projects, open your existing projects, or open sample content like sample games and Showcases.
+The Project Browser provides a jumping off point from which you can create projects, open your existing projects, or open sample content like sample games and Showcases.
 
 
 [REGION:tip]
@@ -57,7 +59,7 @@ You can also click on the **Browse...** button to navigate your computer and sel
 [REGION:tip]
 In the **Projects** tab, you can check the **Always load last project on startup** checkbox to automatically open your most recent project and skip the **Project Browser**. To change
 this setting in-editor: 
-1. Open the [**Editor Preferences**](Engine/UI/EditorSettings) window.
+1. Open the [Editor Preferences](Engine/UI/EditorSettings) window.
 1. Navigate to **General** > **Loading & Saving**.
 1. Under the **Startup** heading, toggle **Load the Most Recently Loaded Project at Startup**.
 [/REGION]
@@ -116,8 +118,8 @@ This tab also opens when you select **File** > **New Project** from within Unrea
 | ![](Mobile_Option.png) | Use this option if the game you are making is going to target Mobile devices. |
 | ![](Maximum_Quality_Option.png)| Use this option if the game you are making is going to target high end devices like Desktops or Consoles. |
 | ![](Scalable_Quality_Option.png)| Use this option if the game you are making is going to target Mobile devices. |
-|![](With_Starter_Content_Option.png) | Use this option if you want to include the [**Starter Content**](Engine/Content/Packs) with your game. |
-|![](Without_Starter_Content_Option.png) | Use this option if you do not want to include the [**Starter Content**](Engine/Content/Packs) with your game. |
+|![](With_Starter_Content_Option.png) | Use this option if you want to include the [Starter Content](Engine/Content/Packs) with your game. |
+|![](Without_Starter_Content_Option.png) | Use this option if you do not want to include the [Starter Content](Engine/Content/Packs) with your game. |
 
 [region:note]
 Please note that the Starter Content is not optimized for mobile devices and could cause performance issues if used with mobile devices. 

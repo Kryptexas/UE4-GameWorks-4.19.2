@@ -7,7 +7,7 @@ Version: 4.9
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
+		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -16,7 +16,7 @@ Version: 4.9
 		Editor Settings
 	[/PARAM]
 	[PARAM:description]
-		%Editor/EditorSettings:description%
+		%Engine/UI/EditorSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/EditorSettings]
@@ -26,7 +26,7 @@ Version: 4.9
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
+		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -35,7 +35,7 @@ Version: 4.9
 		Editor Settings
 	[/PARAM]
 	[PARAM:description]
-		%Editor/EditorSettings:description%
+		%Engine/UI/EditorSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/EditorSettings]

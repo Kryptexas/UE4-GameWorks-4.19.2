@@ -1454,6 +1454,9 @@ protected:
 	/**List of saved viewport clients' tansforms before entering Matinee editor*/
 	TArray< FMatineeViewSaveData > SavedViewportData;
 
+	/** Guard to prevent infinite looping on camera movement and update. */
+	bool bUpdatingCameraGuard;
+
 public:
 	/** Menu Helpers */
 	

@@ -71,10 +71,12 @@ private:
 
 void FQoSReporterModule::StartupModule()
 {
+	// FQoSReporter::Initialize() is expected to be called by game code with proper config
 }
 
 void FQoSReporterModule::ShutdownModule()
 {
+	FQoSReporter::Shutdown();
 }
 
 TSharedPtr<IAnalyticsProvider> FQoSReporterModule::CreateAnalyticsProvider(const FAnalytics::FProviderConfigurationDelegate& GetConfigValue) const

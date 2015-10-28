@@ -1431,7 +1431,7 @@ void SGraphPanel::Update()
 			}
 			else
 			{
-				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array. A node type has been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
+				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array of a graph in asset '%s'. A node type has been deleted without creating an ActiveClassRedirector to K2Node_DeadClass."), *GraphObj->GetOutermost()->GetName());
 			}
 		}
 

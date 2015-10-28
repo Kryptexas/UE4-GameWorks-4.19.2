@@ -272,3 +272,38 @@ void UPoseableMeshComponent::ResetBoneTransformByName(FName BoneName)
 		FFrame::KismetExecutionMessage(*Message, ELogVerbosity::Warning);
 	}
 }
+
+void UPoseableMeshComponent::CopyPoseFromSkeletalComponent(const USkeletalMeshComponent* InComponentToCopy)
+{
+	if(RequiredBones.IsValid())
+	{
+		if(this->SkeletalMesh == InComponentToCopy->SkeletalMesh)
+		{
+			check(LocalAtoms.Num() == InComponentToCopy->LocalAtoms.Num());
+
+			// Quick path, we know everything matches, just copy the local atoms
+			LocalAtoms = InComponentToCopy->LocalAtoms;
+		}
+		else
+		{
+			// The meshes don't match, search bone-by-bone (slow path)
+
+			// first set the localatoms to ref pose from our current mesh
+			LocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+
+			// Now overwrite any matching bones
+			const int32 NumSourceBones = InComponentToCopy->SkeletalMesh->RefSkeleton.GetNum();
+
+			for(int32 SourceBoneIndex = 0 ; SourceBoneIndex < NumSourceBones ; ++SourceBoneIndex)
+			{
+				const FName SourceBoneName = InComponentToCopy->GetBoneName(SourceBoneIndex);
+				const int32 TargetBoneIndex = GetBoneIndex(SourceBoneName);
+
+				if(TargetBoneIndex != INDEX_NONE)
+				{
+					LocalAtoms[TargetBoneIndex] = InComponentToCopy->LocalAtoms[SourceBoneIndex];
+				}
+			}
+		}
+	}
+}

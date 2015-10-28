@@ -122,7 +122,70 @@ void UPlayerInput::FlushPressedKeys()
 	}
 }
 
-bool UPlayerInput::InputKey( FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
+void UPlayerInput::FlushPressedActionBindingKeys(FName ActionName)
+{
+	//need an action name and a local player to move forward
+	APlayerController* PlayerController = (ActionName != NAME_None) ? GetOuterAPlayerController() : nullptr;
+	ULocalPlayer* LocalPlayer = PlayerController ? Cast<ULocalPlayer>(PlayerController->Player) : nullptr;
+	if (!LocalPlayer)
+	{
+		return;
+	}
+
+	//there can't be more than 32 keys...
+	TArray<FKey, TInlineAllocator<32>> AssociatedPressedKeys;
+
+	//grab the action key details
+	if (const FActionKeyDetails* KeyDetails = ActionKeyMap.Find(ActionName))
+	{
+		//go through the details
+		for (const FInputActionKeyMapping& KeyMapping : KeyDetails->Actions)
+		{
+			//grab out key state
+			if (const FKeyState* KeyState = KeyStateMap.Find(KeyMapping.Key))
+			{
+				//if the key is down, add it to the associated keys array
+				if (KeyState->bDown)
+				{
+					AssociatedPressedKeys.AddUnique(KeyMapping.Key);
+				}
+			}
+		}
+	}
+
+	//if there are no keys, nothing to do here
+	if (AssociatedPressedKeys.Num() > 0)
+	{
+		// we may have gotten here as a result of executing an input bind.  in order to ensure that the simulated IE_Released events
+		// we're about to fire are actually propagated to the game, we need to clear the bExecutingBindCommand flag
+		bExecutingBindCommand = false;
+
+		//go through all the keys, releasing them
+		for (const FKey& Key : AssociatedPressedKeys)
+		{
+			InputKey(Key, IE_Released, 0, Key.IsGamepadKey());
+		}
+
+		UWorld* World = GetWorld();
+		check(World);
+		float TimeSeconds = World->GetRealTimeSeconds();
+
+		//go through the details
+		for (const FKey& Key : AssociatedPressedKeys)
+		{
+			//grab out key state
+			if (FKeyState* KeyState = KeyStateMap.Find(Key))
+			{
+				KeyState->RawValue = FVector(0.f, 0.f, 0.f);
+				KeyState->bDown = false;
+				KeyState->bDownPrevious = false;
+				KeyState->LastUpDownTransitionTime = TimeSeconds;
+			}
+		}
+	}
+}
+
+bool UPlayerInput::InputKey(FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	// first event associated with this key, add it to the map
 	FKeyState& KeyState = KeyStateMap.FindOrAdd(Key);
@@ -833,7 +896,8 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 
 		for (uint8 EventIndex = 0; EventIndex < IE_MAX; ++EventIndex)
 		{
-			KeyState->EventCounts[EventIndex] = MoveTemp(KeyState->EventAccumulator[EventIndex]);
+			KeyState->EventCounts[EventIndex].Reset();
+			Exchange(KeyState->EventCounts[EventIndex], KeyState->EventAccumulator[EventIndex]);
 		}
 
 		if ( (KeyState->SampleCountAccumulator > 0) || Key.ShouldUpdateAxisWithoutSamples() )

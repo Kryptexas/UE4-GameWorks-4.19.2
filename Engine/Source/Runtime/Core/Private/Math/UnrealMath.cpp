@@ -176,6 +176,14 @@ FRotator FVector::ToOrientationRotator() const
 	// Find roll.
 	R.Roll = 0;
 
+#if ENABLE_NAN_DIAGNOSTIC
+	if (R.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("FVector::Rotation(): Rotator result %s contains NaN! Input FVector = %s"), *R.ToString(), *this->ToString());
+		R = FRotator::ZeroRotator;
+	}
+#endif
+
 	return R;
 }
 
@@ -191,6 +199,14 @@ FRotator FVector4::ToOrientationRotator() const
 
 	// Find roll.
 	R.Roll = 0;
+
+#if ENABLE_NAN_DIAGNOSTIC
+	if (R.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("FVector4::Rotation(): Rotator result %s contains NaN! Input FVector4 = %s"), *R.ToString(), *this->ToString());
+		R = FRotator::ZeroRotator;
+	}
+#endif
 
 	return R;
 }
@@ -305,6 +321,7 @@ void FVector::UnwindEuler()
 FRotator::FRotator(const FQuat& Quat)
 {
 	*this = Quat.Rotator();
+	DiagnosticCheckNaN();
 }
 
 
@@ -328,6 +345,8 @@ FRotator FRotator::GetInverse() const
 FQuat FRotator::Quaternion() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MathConvertRotatorToQuat);
+
+	DiagnosticCheckNaN();
 
 #if PLATFORM_ENABLE_VECTORINTRINSICS
 	const VectorRegister Angles = MakeVectorRegister(Pitch, Yaw, Roll, 0.0f);
@@ -375,6 +394,8 @@ FQuat FRotator::Quaternion() const
 	RotationQuat.Z =  CR*CP*SY - SR*SP*CY;
 	RotationQuat.W =  CR*CP*CY + SR*SP*SY;
 #endif // PLATFORM_ENABLE_VECTORINTRINSICS
+
+	RotationQuat.DiagnosticCheckNaN();
 
 	return RotationQuat;
 }
@@ -435,6 +456,7 @@ FRotator FMatrix::Rotator() const
 	const FVector		SYAxis	= FRotationMatrix( Rotator ).GetScaledAxis( EAxis::Y );
 	Rotator.Roll		= FMath::Atan2( ZAxis | SYAxis, YAxis | SYAxis ) * 180.f / PI;
 
+	Rotator.DiagnosticCheckNaN();
 	return Rotator;
 }
 
@@ -487,6 +509,7 @@ FRotator FQuat::Rotator() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MathConvertQuatToRotator);
 
+	DiagnosticCheckNaN();
 	const float SingularityTest = Z*X-W*Y;
 	const float YawY = 2.f*(W*Z+X*Y);
 	const float YawX = (1.f-2.f*(FMath::Square(Y) + FMath::Square(Z)));
@@ -520,6 +543,14 @@ FRotator FQuat::Rotator() const
 		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
 		RotatorFromQuat.Roll = FMath::Atan2(-2.f*(W*X+Y*Z), (1.f-2.f*(FMath::Square(X) + FMath::Square(Y)))) * RAD_TO_DEG;
 	}
+
+#if ENABLE_NAN_DIAGNOSTIC
+	if (RotatorFromQuat.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("FQuat::Rotator(): Rotator result %s contains NaN! Quat = %s, YawY = %.9f, YawX = %.9f"), *RotatorFromQuat.ToString(), *this->ToString(), YawY, YawX);
+		RotatorFromQuat = FRotator::ZeroRotator;
+	}
+#endif
 
 	return RotatorFromQuat;
 }
@@ -1091,7 +1122,7 @@ float FLinearColor::EvaluateBezier(const FLinearColor* ControlPoints, int32 NumP
 
 
 
-FQuat FQuat::Slerp(const FQuat& Quat1,const FQuat& Quat2, float Slerp)
+FQuat FQuat::Slerp_NotNormalized(const FQuat& Quat1,const FQuat& Quat2, float Slerp)
 {
 	// Get cosine of angle between quats.
 	const float RawCosom = 
@@ -1131,7 +1162,7 @@ FQuat FQuat::Slerp(const FQuat& Quat1,const FQuat& Quat2, float Slerp)
 	return Result;
 }
 
-FQuat FQuat::SlerpFullPath(const FQuat &quat1, const FQuat &quat2, float Alpha )
+FQuat FQuat::SlerpFullPath_NotNormalized(const FQuat &quat1, const FQuat &quat2, float Alpha )
 {
 	const float CosAngle = FMath::Clamp(quat1 | quat2, -1.f, 1.f);
 	const float Angle = FMath::Acos(CosAngle);
@@ -1154,10 +1185,10 @@ FQuat FQuat::SlerpFullPath(const FQuat &quat1, const FQuat &quat2, float Alpha )
 
 FQuat FQuat::Squad(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha)
 {
-	const FQuat Q1 = FQuat::SlerpFullPath(quat1, quat2, Alpha);
+	const FQuat Q1 = FQuat::SlerpFullPath_NotNormalized(quat1, quat2, Alpha);
 	//UE_LOG(LogUnrealMath, Log, TEXT("Q1: %f %f %f %f"), Q1.X, Q1.Y, Q1.Z, Q1.W);
 
-	const FQuat Q2 = FQuat::SlerpFullPath(tang1, tang2, Alpha);
+	const FQuat Q2 = FQuat::SlerpFullPath_NotNormalized(tang1, tang2, Alpha);
 	//UE_LOG(LogUnrealMath, Log, TEXT("Q2: %f %f %f %f"), Q2.X, Q2.Y, Q2.Z, Q2.W);
 
 	const FQuat Result = FQuat::SlerpFullPath(Q1, Q2, 2.f * Alpha * (1.f - Alpha));

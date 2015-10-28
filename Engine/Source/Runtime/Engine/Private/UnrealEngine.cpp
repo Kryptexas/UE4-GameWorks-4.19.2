@@ -125,7 +125,6 @@
 #endif
 
 #include "InstancedReferenceSubobjectHelper.h"
-
 #include "ABTesting.h"
 #include "Performance/EnginePerformanceTargets.h"
 
@@ -935,11 +934,26 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	UE_LOG(LogInit, Log, TEXT("Texture streaming: %s"), IStreamingManager::Get().IsTextureStreamingEnabled() ? TEXT("Enabled") : TEXT("Disabled") );
 
+	// Initialize the online subsystem as early as possible
 	IOnlineSubsystem* SubSystem = IOnlineSubsystem::Get();
-	if(SubSystem)
+	if (SubSystem != nullptr)
 	{
 		IOnlineExternalUIPtr ExternalUI = SubSystem->GetExternalUIInterface();
 		if(ExternalUI.IsValid())
+		{
+			FOnExternalUIChangeDelegate OnExternalUIChangeDelegate;
+			OnExternalUIChangeDelegate.BindUObject(this, &UEngine::OnExternalUIChange);
+
+			ExternalUI->AddOnExternalUIChangeDelegate_Handle(OnExternalUIChangeDelegate);
+		}
+	}
+	// Initialize the platform online subsystem as early as possible also
+	IOnlineSubsystem* SubSystemConsole = IOnlineSubsystem::GetByPlatform();
+	if (SubSystemConsole != nullptr &&
+		SubSystem != SubSystemConsole)
+	{
+		IOnlineExternalUIPtr ExternalUI = SubSystemConsole->GetExternalUIInterface();
+		if (ExternalUI.IsValid())
 		{
 			FOnExternalUIChangeDelegate OnExternalUIChangeDelegate;
 			OnExternalUIChangeDelegate.BindUObject(this, &UEngine::OnExternalUIChange);
@@ -1048,7 +1062,6 @@ void UEngine::PreExit()
 {
 	ShutdownRenderingCVarsCaching();
 	FEngineAnalytics::Shutdown();
-
 	if (ScreenSaverInhibitor)
 	{
 		// Resume the thread to avoid a deadlock while waiting for finish.
@@ -2712,12 +2725,12 @@ bool UEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& A
 {
 	if (!GMovieCaptureHandle.IsValid())
 	{
-		IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(GameViewport->Viewport);
-		if (CaptureInterface)
-		{
-			GMovieCaptureHandle = CaptureInterface->GetHandle();
-			return true;
-		}
+		// IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(GameViewport);
+		// if (CaptureInterface)
+		// {
+		// 	GMovieCaptureHandle = CaptureInterface->GetHandle();
+		// 	return true;
+		// }
 	}
 	return false;
 }

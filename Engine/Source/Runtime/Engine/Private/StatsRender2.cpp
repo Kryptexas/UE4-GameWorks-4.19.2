@@ -276,8 +276,9 @@ static void RightJustify(FCanvas* Canvas, int32 X, int32 Y, TCHAR const* Text, F
  * @param Indent Indentation of this cycles, used when rendering hierarchy
  * @param bStackStat If false, this is a non-stack cycle counter, don't render the call count column
  */
-static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas, int32 X, int32 Y, const int32 Indent, const bool bStackStat )
+static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas, int32 X, int32 Y, const int32 Indent, const bool bStackStat, float Budget, bool bIsBudgetIgnored)
 {
+	const bool bBudget = Budget >= 0.f;
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 	FColor Color = Globals.StatColor.ToFColor(true);
 
@@ -285,7 +286,7 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 
 	const bool bIsInitialized = Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64;
 
-	const int32 IndentWidth = Indent*8;
+	const int32 IndentWidth = (Indent + (bIsBudgetIgnored ? 1 : 0))*8;
 
 	if( bIsInitialized )
 	{
@@ -298,7 +299,7 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 		GEngine->GetStatValueColoration(CounterName, InMs, Color);
 
 		// the time of a "full bar" in ms
-		const float MaxMeter = FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS();
+		const float MaxMeter = bBudget ? Budget : FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS();
 
 		const int32 MeterWidth = Globals.AfterNameColumnOffset;
 
@@ -347,7 +348,7 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 	}
 	CurrX += Globals.InterColumnOffset;
 
-	if( bStackStat )
+	if( bStackStat && !bBudget)
 	{
 		// And the exclusive if asked
 		if( bIsInitialized )
@@ -365,6 +366,25 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 	return Globals.GetFontHeight();
 }
 
+
+static FString FormatStatValueFloat(const float Value)
+{
+	const float Frac = FMath::Frac(Value);
+	// #YRX_Stats: 2015-07-30 Move to stats thread, add support for int64 type, int32 may not be sufficient all the time.
+	const int32 Integer = FMath::FloorToInt(Value);
+	const FString IntString = FString::FormatAsNumber(Integer);
+	const FString FracString = FString::Printf(TEXT("%0.2f"), Frac);
+	const FString Result = FString::Printf(TEXT("%s.%s"), *IntString, *FracString.Mid(2));
+	return Result;
+}
+
+static FString FormatStatValueInt64(const int64 Value)
+{
+	const FString IntString = FString::FormatAsNumber((int32)Value);
+	return IntString;
+}
+
+
 /**
  * Renders the headings for grouped rendering
  *
@@ -374,16 +394,20 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
  *
  * @return the height of headings rendered
  */
-static int32 RenderGroupedHeadings(class FCanvas* Canvas,int X,int32 Y,const bool bIsHierarchy)
+static int32 RenderGroupedHeadings(class FCanvas* Canvas,int X,int32 Y,const bool bIsHierarchy, bool bBudget)
 {
 	// The heading looks like:
-	// Stat [32chars]    CallCount [8chars]    IncAvg [8chars]    IncMax [8chars]    ExcAvg [8chars]    ExcMax [8chars]
+	// Stat [32chars]	CallCount [8chars]	IncAvg [8chars]	IncMax [8chars]	ExcAvg [8chars]	ExcMax [8chars]
+	// If we are in budget mode ignore ExcAvg and ExcMax
 
 	static const TCHAR* CaptionFlat = TEXT("Cycle counters (flat)");
 	static const TCHAR* CaptionHier = TEXT("Cycle counters (hierarchy)");
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
-	Canvas->DrawShadowedString(X, Y, bIsHierarchy ? CaptionHier : CaptionFlat, Globals.StatFont, Globals.HeadingColor);
+	if(!bBudget)
+	{
+		Canvas->DrawShadowedString(X, Y, bIsHierarchy ? CaptionHier : CaptionFlat, Globals.StatFont, Globals.HeadingColor);
+	}
 
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 	RightJustify(Canvas, CurrX, Y, TEXT("CallCount"), Globals.HeadingColor);
@@ -394,10 +418,14 @@ static int32 RenderGroupedHeadings(class FCanvas* Canvas,int X,int32 Y,const boo
 	RightJustify(Canvas, CurrX, Y, TEXT("InclusiveMax"), Globals.HeadingColor);
 	CurrX += Globals.InterColumnOffset;
 
-	RightJustify(Canvas, CurrX, Y, TEXT("ExclusiveAvg"), Globals.HeadingColor);
-	CurrX += Globals.InterColumnOffset;
-	RightJustify(Canvas, CurrX, Y, TEXT("ExclusiveMax"), Globals.HeadingColor);
-	CurrX += Globals.InterColumnOffset;
+	if(!bBudget)
+	{
+		RightJustify(Canvas, CurrX, Y, TEXT("ExclusiveAvg"), Globals.HeadingColor);
+		CurrX += Globals.InterColumnOffset;
+		RightJustify(Canvas, CurrX, Y, TEXT("ExclusiveMax"), Globals.HeadingColor);
+		CurrX += Globals.InterColumnOffset;
+	}
+	
 
 	return Globals.GetFontHeight() + (Globals.GetFontHeight() / 3);
 }
@@ -414,7 +442,7 @@ static int32 RenderGroupedHeadings(class FCanvas* Canvas,int X,int32 Y,const boo
 static int32 RenderCounterHeadings(class FCanvas* Canvas,int32 X,int32 Y)
 {
 	// The heading looks like:
-	// Stat [32chars]    Value [8chars]    Average [8chars]
+	// Stat [32chars]	Value [8chars]	Average [8chars]
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
 	Canvas->DrawShadowedString(X, Y, TEXT("Counters"), Globals.StatFont, Globals.HeadingColor);
@@ -443,7 +471,7 @@ static int32 RenderCounterHeadings(class FCanvas* Canvas,int32 X,int32 Y)
 static int32 RenderMemoryHeadings(class FCanvas* Canvas,int32 X,int32 Y)
 {
 	// The heading looks like:
-	// Stat [32chars]    MemUsed [8chars]    PhysMem [8chars]
+	// Stat [32chars]	MemUsed [8chars]	PhysMem [8chars]
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
 	Canvas->DrawShadowedString(X, Y, TEXT("Memory Counters"), Globals.StatFont, Globals.HeadingColor);
@@ -462,23 +490,6 @@ static int32 RenderMemoryHeadings(class FCanvas* Canvas,int32 X,int32 Y)
 	RightJustify(Canvas, CurrX, Y, TEXT("Pool Capacity"), Globals.HeadingColor);
 
 	return Globals.GetFontHeight() + (Globals.GetFontHeight() / 3);
-}
-
-static FString FormatStatValueFloat( const float Value )
-{
-	const float Frac = FMath::Frac( Value );
-	// #YRX_Stats: 2015-07-30 Move to stats thread, add support for int64 type, int32 may not be sufficient all the time.
-	const int32 Integer = FMath::FloorToInt( Value );
-	const FString IntString = FString::FormatAsNumber( Integer );
-	const FString FracString = FString::Printf( TEXT( "%0.2f" ), Frac );
-	const FString Result = FString::Printf( TEXT( "%s.%s" ), *IntString, *FracString.Mid(2) ); 
-	return Result;
-}
-
-static FString FormatStatValueInt64( const int64 Value )
-{
-	const FString IntString = FString::FormatAsNumber( (int32)Value );
-	return IntString;	
 }
 
 // @param bAutoType true: automatically choose GB/MB/KB/... false: always use MB for easier comparisons
@@ -504,7 +515,7 @@ static FString GetMemoryString( double Value, bool bAutoType = true )
 	return FString::Printf( TEXT( "%.2f MB" ), float( Value / (1024.0 * 1024.0) ) );
 }
 
-static int32 RenderMemoryCounter(const FGameThreadHudData& ViewData, const FComplexStatMessage& All,class FCanvas* Canvas,int32 X,int32 Y)
+static int32 RenderMemoryCounter(const FGameThreadHudData& ViewData, const FComplexStatMessage& All,class FCanvas* Canvas,int32 X,int32 Y, float Budget, bool bIsBudgetIgnored)
 {
 	FPlatformMemory::EMemoryCounterRegion Region = FPlatformMemory::EMemoryCounterRegion(All.NameAndInfo.GetField<EMemoryRegion>());
 	// At this moment we only have memory stats that are marked as non frame stats, so can't be cleared every frame.
@@ -541,7 +552,7 @@ static int32 RenderMemoryCounter(const FGameThreadHudData& ViewData, const FComp
 	return Globals.GetFontHeight();
 }
 
-static int32 RenderCounter(const FGameThreadHudData& ViewData, const FComplexStatMessage& All,class FCanvas* Canvas,int32 X,int32 Y)
+static int32 RenderCounter(const FGameThreadHudData& ViewData, const FComplexStatMessage& All,class FCanvas* Canvas,int32 X,int32 Y, float Budget, bool bIsBudgetIgnored)
 {
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
@@ -549,7 +560,7 @@ static int32 RenderCounter(const FGameThreadHudData& ViewData, const FComplexSta
 	const bool bIsCycle = All.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle);
 	if( bIsCycle )
 	{
-		return RenderCycle( All, Canvas, X, Y, 0, false );
+		return RenderCycle( All, Canvas, X, Y, 0, false, Budget, bIsBudgetIgnored );
 	}
 
 	const bool bDisplayAll = All.NameAndInfo.GetFlag(EStatMetaFlags::ShouldClearEveryFrame);
@@ -606,35 +617,79 @@ void RenderHierCycles( FCanvas* Canvas, int32 X, int32& Y, const FHudGroup& HudG
 				Globals.BackgroundColors[RowIndex & 1], BackgroundTexture, true);
 		}
 
-		Y += RenderCycle( ComplexStat, Canvas, X, Y, Indent, true );
+		Y += RenderCycle( ComplexStat, Canvas, X, Y, Indent, true, -1.f, false );
 	}
 }
 
+
+int32 RenderGroupBudget(FCanvas* Canvas, int32 X, int32 Y, uint64 AvgTotalTime, uint64 MaxTotalTime, float GroupBudget)
+{
+	// The budget looks like:
+	// Stat [32chars]	Value [8chars]	Average [8chars]
+	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
+
+	const float AvgTotalMs = FPlatformTime::ToMilliseconds(AvgTotalTime);
+	const float MaxTotalMs = FPlatformTime::ToMilliseconds(MaxTotalTime);
+
+	FString BudgetString = FString::Printf(TEXT("Total (of %1.2f ms)"), GroupBudget);
+
+	Canvas->DrawShadowedString(X, Y, *BudgetString, Globals.StatFont, FLinearColor::Green);
+
+	int32 CurrX = X + Globals.AfterNameColumnOffset;
+	CurrX += Globals.InterColumnOffset;
+   
+	RightJustify(Canvas, CurrX, Y, *FString::Printf(TEXT("%1.2f ms"), AvgTotalMs) , AvgTotalMs > GroupBudget ? FLinearColor::Red : FLinearColor::Green);
+	
+	CurrX += Globals.InterColumnOffset;
+	RightJustify(Canvas, CurrX, Y, *FString::Printf(TEXT("%1.2f ms"), MaxTotalMs) , MaxTotalMs > GroupBudget ? FLinearColor::Red : FLinearColor::Green);
+	
+	return Globals.GetFontHeight();
+}
+
 template< typename T >
-void RenderArrayOfStats( FCanvas* Canvas, int32 X, int32& Y, const TArray<FComplexStatMessage>& Aggregates, const FGameThreadHudData& ViewData, const T& FunctionToCall )
+void RenderArrayOfStats( FCanvas* Canvas, int32 X, int32& Y, const TArray<FComplexStatMessage>& Aggregates, const FGameThreadHudData& ViewData, const TSet<FName>& IgnoreBudgetStats, float TotalGroupBudget, const T& FunctionToCall )
 {
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 	const FTexture* BackgroundTexture = Globals.GetBackgroundTexture();
+
+	const bool bBudget = TotalGroupBudget >= 0.f;
+	const int32 NumColumns = (int32)EStatRenderConsts::NUM_COLUMNS - (bBudget ? 2 : 0);
+	uint64 AvgTotalTime = 0;
+	uint64 MaxTotalTime = 0;
 
 	// Render all counters.
 	for( int32 RowIndex = 0; RowIndex < Aggregates.Num(); ++RowIndex )
 	{
 		const FComplexStatMessage& ComplexStat = Aggregates[RowIndex];
+		const bool bIsBudgetIgnored = IgnoreBudgetStats.Contains(ComplexStat.NameAndInfo.GetShortName());
+		if(bBudget && !bIsBudgetIgnored && ComplexStat.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration))
+		{
+			AvgTotalTime += ComplexStat.GetValue_Duration(EComplexStatField::IncAve);
+			MaxTotalTime += ComplexStat.GetValue_Duration(EComplexStatField::IncMax);
+		}
 
 		if (BackgroundTexture != nullptr)
 		{
-			Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + Globals.InterColumnOffset * (int32)EStatRenderConsts::NUM_COLUMNS, Globals.GetFontHeight(),
+			Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + Globals.InterColumnOffset * NumColumns, Globals.GetFontHeight(),
 				0, 0, 1, 1,
 				Globals.BackgroundColors[RowIndex & 1], BackgroundTexture, true);
 		}
 
-		Y += FunctionToCall( ViewData, ComplexStat, Canvas, X, Y );
+		Y += FunctionToCall( ViewData, ComplexStat, Canvas, X, Y, TotalGroupBudget, bIsBudgetIgnored );
+	}
+
+	if(bBudget)
+	{
+		Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + Globals.InterColumnOffset * NumColumns, Globals.GetFontHeight(),
+			0, 0, 1, 1,
+			Globals.BackgroundColors[0], BackgroundTexture, true);
+		Y += RenderGroupBudget(Canvas, X, Y, AvgTotalTime, MaxTotalTime, TotalGroupBudget);
 	}
 }
 
-static int32 RenderFlatCycle( const FGameThreadHudData& ViewData, const FComplexStatMessage& Item, class FCanvas* Canvas, int32 X, int32 Y )
+static int32 RenderFlatCycle( const FGameThreadHudData& ViewData, const FComplexStatMessage& Item, class FCanvas* Canvas, int32 X, int32 Y, float Budget, bool bIsBudgetIgnored )
 {
-	return RenderCycle( Item, Canvas, X, Y, 0, true );
+	return RenderCycle( Item, Canvas, X, Y, 0, true, Budget, bIsBudgetIgnored);
 }
 
 /**
@@ -666,18 +721,20 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 		// Render header.
 		const FName& GroupName = ViewData.GroupNames[GroupIndex];
 		const FString& GroupDesc = ViewData.GroupDescriptions[GroupIndex];
-		const FString GroupLongName = FString::Printf( TEXT("%s [%s]"), *GroupDesc, *GroupName.GetPlainNameString() );
+		const FString GroupLongName = !ViewData.RootFilter.IsEmpty() ? FString::Printf(TEXT("%s [%s] ROOT=%s"), *GroupDesc, *GroupName.GetPlainNameString(), *ViewData.RootFilter)
+																	   : FString::Printf(TEXT("%s [%s]"), *GroupDesc, *GroupName.GetPlainNameString());
+
 		Canvas->DrawShadowedString(X, Y, *GroupLongName, Globals.StatFont, Globals.GroupColor);
 		Y += Globals.GetFontHeight();
 
 		const FHudGroup& HudGroup = ViewData.HudGroups[GroupIndex];
 		const bool bHasHierarchy = !!HudGroup.HierAggregate.Num();
 		const bool bHasFlat = !!HudGroup.FlatAggregate.Num();
-
+		const bool bBudget = HudGroup.TotalGroupBudget >= 0.f;
 		if (bHasHierarchy || bHasFlat)
 		{
 			// Render grouped headings.
-			Y += RenderGroupedHeadings( Canvas, X, Y, bHasHierarchy );
+			Y += RenderGroupedHeadings( Canvas, X, Y, bHasHierarchy, bBudget );
 		}
 
 		// Render hierarchy.
@@ -690,7 +747,7 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 		// Render flat.
 		if( bHasFlat )
 		{
-			RenderArrayOfStats(Canvas,X,Y,HudGroup.FlatAggregate, ViewData, RenderFlatCycle);
+			RenderArrayOfStats(Canvas,X,Y,HudGroup.FlatAggregate, ViewData, HudGroup.BudgetIgnoreStats, HudGroup.TotalGroupBudget, RenderFlatCycle);
 			Y += Globals.GetFontHeight();
 		}
 
@@ -698,7 +755,7 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 		if( HudGroup.MemoryAggregate.Num() )
 		{
 			Y += RenderMemoryHeadings(Canvas,X,Y);
-			RenderArrayOfStats(Canvas,X,Y,HudGroup.MemoryAggregate, ViewData, RenderMemoryCounter);
+			RenderArrayOfStats(Canvas,X,Y,HudGroup.MemoryAggregate, ViewData, HudGroup.BudgetIgnoreStats, HudGroup.TotalGroupBudget, RenderMemoryCounter);
 			Y += Globals.GetFontHeight();
 		}
 
@@ -706,7 +763,7 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 		if( HudGroup.CountersAggregate.Num() )
 		{
 			Y += RenderCounterHeadings(Canvas,X,Y);
-			RenderArrayOfStats(Canvas,X,Y,HudGroup.CountersAggregate, ViewData, RenderCounter);
+			RenderArrayOfStats(Canvas,X,Y,HudGroup.CountersAggregate, ViewData, HudGroup.BudgetIgnoreStats, HudGroup.TotalGroupBudget, RenderCounter);
 			Y += Globals.GetFontHeight();
 		}
 	}

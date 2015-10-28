@@ -56,6 +56,8 @@ struct FMaterialParticleParameters
 	half RelativeTime;
 	/** Fade amount due to motion blur. */
 	half MotionBlurFade;
+	/** Random value per particle [0-1]. */
+	half Random;
 	/** XYZ: Direction, W: Speed. */
 	half4 Velocity;
 	/** Per-particle color. */
@@ -1053,6 +1055,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) return float3(0.2f, 0.6f, 0.5f); // Cyan
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE) return float3(0.2f, 0.2f, 0.8f); // Blue
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_HAIR) return float3(0.6f, 0.1f, 0.5f);
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_CLOTH) return float3(0.18f, 0.18f, 0.18f); 
 	else return float3(1.0f, 1.0f, 1.0f); // White
 #else
 	switch(GBuffer.ShadingModelID)
@@ -1065,6 +1068,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 		case SHADINGMODELID_SUBSURFACE_PROFILE: return float3(0.2f, 0.6f, 0.5f); // Cyan
 		case SHADINGMODELID_TWOSIDED_FOLIAGE: return float3(0.2f, 0.2f, 0.8f); // Cyan
 		case SHADINGMODELID_HAIR: return float3(0.6f, 0.1f, 0.5f);
+		case SHADINGMODELID_CLOTH: return float3(0.18f, 0.18f, 0.18f); // Brown
 		default: return float3(1.0f, 1.0f, 1.0f); // White
 	}
 #endif
@@ -1560,25 +1564,38 @@ void ClipLODTransition(float2 SvPosition)
 void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters) 
 {
 	ClipLODTransition(Parameters);
-	#if MATERIALBLENDING_MASKED
+	#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
+		clip(GetMaterialMaskInputRaw(Parameters) - 1.0f / 255.0f);
+	#elif MATERIALBLENDING_MASKED
 		clip(GetMaterialMask(Parameters)); 
 	#elif MATERIALBLENDING_TRANSLUCENT
 		clip(GetMaterialOpacity(Parameters) - 1.0f / 255.0f);
 	#endif
 }
 
+
+void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters)
+{
+	ClipLODTransition(Parameters);
+
 #if MATERIALBLENDING_MASKED
-	void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters)
-	{
-		ClipLODTransition(Parameters);
+	#if MATERIAL_DITHER_OPACITY_MASK
+		/*
+		5 value dither. Every value present in +
+		012
+		234
+		401
+		*/
+		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)View.TemporalAAParams.x ) % 5 ) / 5.0;
+		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + View.TemporalAAParams.x ) / 5 );
+		float Noise = frac( dot( float2( 171.0, 231.0 ) / 71, Parameters.SvPosition.xy ) );
+		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0) - 0.5;
+		clip( GetMaterialMask(Parameters) + Dither );
+	#else
 		clip(GetMaterialMask(Parameters));
-	}
-#else
-	void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters)
-	{
-		ClipLODTransition(Parameters);
-	}
+	#endif
 #endif
+}
 
 	#define FrontFaceSemantic SV_IsFrontFace
 	#define FIsFrontFace bool

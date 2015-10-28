@@ -138,7 +138,7 @@ typedef FSlateRotatedRect FSlateRotatedClipRectType;
 /** 
  * A struct which defines a basic vertex seen by the Slate vertex buffers and shaders
  */
-struct FSlateVertex
+struct SLATECORE_API FSlateVertex
 {
 	/** Texture coordinates.  The first 2 are in xy and the 2nd are in zw */
 	float TexCoords[4]; 
@@ -558,7 +558,7 @@ public:
 	virtual TSharedPtr<class FSlateInstanceBufferUpdate> BeginUpdate() = 0;
 
 	/** How many instances should we draw? */
-	virtual int32 GetNumInstances() const = 0;
+	virtual uint32 GetNumInstances() const = 0;
 
 private:
 	friend class FSlateInstanceBufferUpdate;
@@ -576,9 +576,6 @@ class FSlateInstanceBufferUpdate
 public:
 	/** Access the per-instance data for modiciation */
 	FORCEINLINE TArray<FVector4>& GetData(){ return Data; }
-	
-	/** Set number of instances; if it is not set, Data.Num() will be used instead.  */
-	void SetInstanceCount(int32 InCount){ InstanceCount = InCount; }
 	
 	/** Send an update to the render thread */
 	static void CommitUpdate(TSharedPtr<FSlateInstanceBufferUpdate>& UpdateToCommit)
@@ -601,19 +598,19 @@ private:
 	FSlateInstanceBufferUpdate(ISlateUpdatableInstanceBuffer& InBuffer)
 		: Buffer(InBuffer)
 		, Data(InBuffer.GetBufferData())
-		, InstanceCount(INDEX_NONE)
+		, InstanceCount(0)
 		, bWasCommitted(false)
 	{
 	}
 
 	void CommitUpdate_Internal()
 	{
-		Buffer.UpdateRenderingData(InstanceCount == INDEX_NONE ? Data.Num() : InstanceCount);
+		Buffer.UpdateRenderingData(Data.Num());
 		bWasCommitted = true;
 	}
 
 	ISlateUpdatableInstanceBuffer& Buffer;
 	TArray<FVector4>& Data;
-	int32 InstanceCount;
+	uint32 InstanceCount;
 	bool bWasCommitted;
 };

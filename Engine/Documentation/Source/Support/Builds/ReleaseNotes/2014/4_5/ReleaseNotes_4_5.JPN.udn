@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2400260
-Title:Unreal Engine 4.5 リリースノート
+﻿INTSourceChangelist:2735872
+Title:アンリアル エンジン 4.5 リリース ノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
+version:4.5
+order:5
 
 [TOC(start:2 end:2)]
 
@@ -14,7 +16,7 @@ Availability:Public
 | ---- | ---- |
 | **Labels** | [INCLUDE:#labels] |
 | **Built from Changelist #** | 2328018 (//depot/UE4-QA/Promotable-CL-2328018) |
-| **Branched from Changelist #** | 2326479 (//depot/UE4-Releases/4.4/Promotable-CL-2326479) |
+| **Branched from Changelist #** | 2326479 (//depot/UE4-Releases/4.5/Promotable-CL-2326479) |
 | **Branched from Changelist #** | 2304027 (//depot/UE4/Promotable-CL-2304027) |
 | **Visual Studio Version** | Microsoft Visual Studio 2013 12.0.21005.1 REL |
 | **Xcode Version** | 6.0.0 |
@@ -164,8 +166,8 @@ Twin Stick Shooter ブループリント テンプレートは、高速トップ
 
 ![](TwinStickTemp.png)
 
-
 一方のジョイスティックで移動し、もう一方であらゆる方向に発射できるツイン スティック用シューティングのためのシンプルなテンプレートです。
+
 
 ##### アーティスト テンプレート マップ
 [新たなマップ](https://docs.unrealengine.com/latest/INT/Engine/Content/Packs/index.html#advancedlightingmap) がテンプレート スターター コンテンツで利用できます。アーティストがさまざまな光源処理のセットアップを試し、コンテンツがどのように影響されるかを確かめることができるテスト用エリアが備わっています。
@@ -365,7 +367,7 @@ HDR カラーや 16 ビット ピクセル深度といったリッチフレー�
 
 #### アンリアル モーション グラフィック (UMG)
 * 新たなウィジェット - Scale Box (スケール ボックス)。スケーリングのオプションを保存しながら、アスペクト比を使ってコンテンツをスペースにフィットするようにスケーリングできるようになります。
-* 新たなウィジェット - Spin Box (スピン ボックス)。数値を直接入力し、クリック＆ドラッグで数値を変更できます。
+*新たなウィジェット - Spin Box (スピン ボックス)。数値を直接入力し、クリック＆ドラッグで数値を変更できます。
 * 新たなウィジェット - Grid (グリッド)。不均等にグリッド化されたアイテムを、複数の行と列のスパンをともなって、デザイナー内に配置できます。
 * 新たなウィジェット - Size Box (サイズ ボックス)。このウィジェットとそのコンテンツのための複数のサイズ ルールを指定できます。何らかのものを特定のサイズにしなければならない場合がありますが、このウィジェットはそれを可能にします。
 * 新たなウィジェット - String Combo Box (文字列コンボボックス)。文字列値のリストをコンボボックスに表示できます。
@@ -790,7 +792,7 @@ HDR カラーや 16 ビット ピクセル深度といったリッチフレー�
 * コンテンツ ブラウザのサムネイル上でのテキスト レンダリングを改善しました。
 * Switch ノードの洗練
 	* Name と String に Add Pin + ボタンが備わります。
-	* Enum を右クリックしても、[Remove Execution Pin (実行ピンを削除)] は表示されません。
+	* Enum を右クリックしても、[Remove Execution Pin  (実行ピンを削除)]は表示されません。
 	* すべての型の選択ボックスに、適切なデフォルト値が付きました。
 * AActor::EndPlay の修正
 	* スタンドアロン ゲームを終了するための EndPlay 呼び出しを追加します。
@@ -811,7 +813,7 @@ HDR カラーや 16 ビット ピクセル深度といったリッチフレー�
 * SAssetPickers によってビュー設定が保存されるようになりました。SAssetDialog によってそのアセット ピッカーのビュー設定が保存されます。
 * 新たな WorldAsset TAssetPtr を優先するために、ULevelStreaming::PackageName を非推奨にしました。これまで使用されてきた PackageName は、GetWorldAssetPackageName() と SetWorldAssetByPackageName() に置き換えられました。
 * 複数のレベルのアクタを選択すると、レベル ブラウザを通じて選択されたレベルにそれらを移動させることができるようになりました。移動先のレベルにまだそのアクタがない場合に限りアクタを移動させることができます。
-* 動的なマウント ポイントを削除する機能を追加しました。 OnContentPathMounted デリゲートにも、情報を追加しました。
+* 動的なマウント ポイントを削除する機能を追加しました。OnContentPathMounted デリゲートにも、情報を追加しました。
 * パッケージの保存時に TAssetPtr UProperties が文字列アセットの参照を正しくレポートするようになりました。また、空の値の文字列アセットの参照が、参照のリストに None を含まなくなりました。
 * エディタの SPathView 内でフォルダをクリックすると、そのフォルダ内でアセットを発見する優先順位が定まるようになりました。
 * コンテンツ ブラウザのエディタ設定である [Show only assets in selected folders] を削除しました。これは [フォルダを表示] に含意されているものであり、フォルダが追加された時に削除されるべきものでした。
@@ -990,7 +992,7 @@ HDR カラーや 16 ビット ピクセル深度といったリッチフレー�
 * クラッシュ レポート クライアントに分析を追加しました。
 
 **クラッシュ レポート ウェブサイト**
-*　ビルド バージョンまたはクラッシュ タイプによってバグをフィルタリングするためのオプションを追加しました。
+* ビルド バージョンまたはクラッシュ タイプによってバグをフィルタリングするためのオプションを追加しました。
 * MachineID/EpicID の表示機能を追加しました。
 * ErrorMessage をウェブサイトに追加しました。エラーメッセージには以下の値を含めることができます。すなわち、アサートからの説明、ensure からの説明、fatal error からの説明。あるいは、未処理の例外については空にすることができます。
 
@@ -1098,7 +1100,7 @@ SEditableText、SEditableTextBox、SMultiLineEditableText、SMultilineEditableTe
 * Android において GetCurrentThreadId を変更して、pthread_self() ではなく gettid() を使用して 64 ビットを扱うようにしました。
 * Android において重複したログ メッセージを削除しました。
 * Android のために x86 PhysX libs を更新しました。
-* Android において ICU を有効化しました。 Android のために ICU のビルド用スクリプトを追加しました。
+* Android において ICU を有効化しました。Android のために ICU のビルド用スクリプトを追加しました。
 * apk を再生成しなければならない回数を減らしました。コンテンツだけが変更された場合は、Launch On が格段に高速化されます。
 * システム フォントを読み込む機能を追加しました。
 * SoundMod を更新し、Android コード プロジェクトとともに機能するようにしました。

@@ -182,5 +182,7 @@ private:
 	FText GetBaseColorPinName() const;
 	FText GetMetallicPinName() const;
 	FText GetNormalPinName() const;
+	FText GetWorldPositionOffsetPinName() const;
+	FText GetSubsurfacePinName() const;
 	FText GetCustomDataPinName( uint32 Index ) const;
 };

@@ -9,16 +9,16 @@ Version: 4.9
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
+		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/ColorPicker:title%
+		%Engine/UI/ColorPicker:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/ColorPicker:description%
+		%Engine/UI/ColorPicker:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/ColorPicker]
@@ -28,16 +28,16 @@ Version: 4.9
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
+		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/ColorPicker:title%
+		%Engine/UI/ColorPicker:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/ColorPicker:description%
+		%Engine/UI/ColorPicker:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/ColorPicker]

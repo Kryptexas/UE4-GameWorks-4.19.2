@@ -130,6 +130,10 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 						WeightedScore = ScoringFactorValue * (NormalizedScoreForEquation * NormalizedScoreForEquation);
 						break;
 
+					case EEnvTestScoreEquation::SquareRoot:
+						WeightedScore = ScoringFactorValue * FMath::Sqrt(NormalizedScoreForEquation);
+						break;
+
 					case EEnvTestScoreEquation::Constant:
 						// I know, it's not "constant".  It's "Constant, or zero".  The tooltip should explain that.
 						WeightedScore = (NormalizedScoreForEquation > 0) ? ScoringFactorValue : 0.0f;
@@ -340,6 +344,7 @@ void UEnvQueryTest::UpdatePreviewData()
 	const int32 MaxSamples = 11;
 	static float SamplesLinear[MaxSamples] = { 0.0f };
 	static float SamplesSquare[MaxSamples] = { 0.0f };
+	static float SamplesSquareRoot[MaxSamples] = { 0.0f };
 	static float SamplesConstant[MaxSamples] = { 0.0f };
 	static bool bSamplesInitialized = false;
 
@@ -352,11 +357,12 @@ void UEnvQueryTest::UpdatePreviewData()
 			const float XValue = 1.0f * Idx / (MaxSamples - 1);
 			SamplesLinear[Idx] = XValue;
 			SamplesSquare[Idx] = XValue * XValue;
+			SamplesSquareRoot[Idx] = FMath::Sqrt(XValue);
 			SamplesConstant[Idx] = 0.5f;				// just for looks on preview, not the actual value
 		}
 	}
 
-	const float* AllSamples[] = { SamplesLinear, SamplesSquare, SamplesLinear, SamplesConstant };
+	const float* AllSamples[] = { SamplesLinear, SamplesSquare, SamplesLinear, SamplesSquareRoot, SamplesConstant };
 
 	int32 EquationType = (ScoringEquation >= ARRAY_COUNT(AllSamples)) ? EEnvTestScoreEquation::Constant : (EEnvTestScoreEquation::Type)ScoringEquation;
 	if (TestPurpose == EEnvTestPurpose::Filter)

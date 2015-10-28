@@ -161,11 +161,25 @@ which can be configured via defines for various temporal AA passes.
 #endif // HAS_INVERTED_Z_BUFFER
 	#endif	// AA_CROSS
 
+#if AA_DOF
+	// temp solution, BrianK knows
+	float4 ThisClip = float4((UV - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, PosN.z, 1);
+	float4 ThisTranslatedWorld = mul(ThisClip, View.ClipToTranslatedWorld);
+	ThisTranslatedWorld /= ThisTranslatedWorld.w;
+
+	float3 PrevTranslatedWorld = ThisTranslatedWorld.xyz + (View.PrevPreViewTranslation - View.PreViewTranslation);
+	float4 PrevClip = mul(float4(PrevTranslatedWorld, 1), View.PrevTranslatedWorldToClip);
+	float2 PrevScreen = PrevClip.xy / PrevClip.w;
+	//float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+
+	float2 BackN =  SvPositionToScreenPosition(SvPosition).xy - PrevScreen - (View.ViewToClip[2].xy - View.PrevProjection[2].xy);
+#else // AA_DOF	
 	// Camera motion for pixel or nearest pixel (in ScreenPos space).
 	float4 ThisClip = float4( PosN.xy, PosN.z, 1 );
 	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
 	float2 PrevScreen = PrevClip.xy / PrevClip.w;
 	float2 BackN = PosN.xy - PrevScreen;
+#endif // AA_DOF
 
 	float2 BackTemp = BackN * ViewportSize.xy;
 	#if AA_DYNAMIC
@@ -470,6 +484,7 @@ which can be configured via defines for various temporal AA passes.
 		float HistoryFactor = DistToClamp * HistoryAmount * (1.0 + HistoryBlur * HistoryAmount * 8.0);
 	#endif
 	float BlendFinal = saturate(HistoryFactor / (DistToClamp + LumaMax - LumaMin));
+	BlendFinal = 0.08;
 	#if RESPONSIVE
 		// Responsive forces 1/4 of new frame.
 		BlendFinal = 1.0/4.0;

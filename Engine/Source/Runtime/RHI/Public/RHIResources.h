@@ -181,11 +181,35 @@ struct FRHIUniformBufferLayout
 	{
 	}
 
+	enum EInit
+	{
+		Zero
+	};
+	explicit FRHIUniformBufferLayout(EInit) :
+		ConstantBufferSize(0),
+		ResourceOffset(0),
+		Name(FName()),
+		Hash(0),
+		bComputedHash(false)
+	{
+	}
+
+	void CopyFrom(const FRHIUniformBufferLayout& Source)
+	{
+		ConstantBufferSize = Source.ConstantBufferSize;
+		ResourceOffset = Source.ResourceOffset;
+		Resources = Source.Resources;
+		Name = Source.Name;
+		Hash = Source.Hash;
+		bComputedHash = Source.bComputedHash;
+	}
+
 	const FName GetDebugName() const { return Name; }
 
 private:
 	// for debugging / error message
-	const FName Name;
+	FName Name;
+
 	mutable uint32 Hash;
 	mutable bool bComputedHash;
 };

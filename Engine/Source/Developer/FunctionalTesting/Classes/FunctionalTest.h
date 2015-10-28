@@ -7,6 +7,110 @@
 
 class UBillboardComponent;
 
+// Used to measure a distribution
+struct FStatisticalFloat
+{
+public:
+	FStatisticalFloat()
+		: MinValue(0.0)
+		, MaxValue(0.0)
+		, Accumulator(0.0)
+		, NumSamples(0)
+	{
+	}
+
+	void AddSample(double Value)
+	{
+		if (NumSamples == 0)
+		{
+			MinValue = MaxValue = Value;
+		}
+		else
+		{
+			MinValue = FMath::Min(MinValue, Value);
+			MaxValue = FMath::Max(MaxValue, Value);
+		}
+		Accumulator += Value;
+		++NumSamples;
+	}
+
+	double GetMinValue() const
+	{
+		return MinValue;
+	}
+
+	double GetMaxValue() const
+	{
+		return MaxValue;
+	}
+
+	double GetAvgValue() const
+	{
+		return Accumulator / (double)NumSamples;
+	}
+
+	int32 GetCount() const
+	{
+		return NumSamples;
+	}
+
+private:
+	double MinValue;
+	double MaxValue;
+	double Accumulator;
+	int32 NumSamples;
+};
+
+/** A set of simple perf stats recorded over a period of frames. */
+struct FUNCTIONALTESTING_API FPerfStatsRecord
+{
+	FPerfStatsRecord(FString InName);
+
+	FString Name;
+	uint32 NumFrames;
+	uint32 SumTimeSeconds;
+	FStatisticalFloat FrameTimeTracker;
+	FStatisticalFloat GameThreadTimeTracker;
+	FStatisticalFloat RenderThreadTimeTracker;
+	FStatisticalFloat GPUTimeTracker;
+
+	void Sample(AActor* Owner, float DeltaSeconds);
+
+	FString GetReportString()const;
+};
+
+/** Simple class to record some basic performance stats during functional tests and write out the results. */
+UCLASS(Blueprintable)
+class FUNCTIONALTESTING_API UPerfStatsRecorder : public UObject
+{
+	GENERATED_BODY()
+
+	bool bRecording;
+	TArray<FPerfStatsRecord> Records;
+
+public:
+
+	UPerfStatsRecorder();
+
+	/** Adds a sample to the stats counters for the current performance stats record. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void Sample(AActor* Owner, float DeltaSeconds);
+	/** Begins recording a new named performance stats record. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void BeginRecording(FString RecordName);
+	/** Stops recording performance stats. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void EndRecording();
+	/** Writes the current set of performance stats records to a csv file in the profiling directory. An additional directory and an extension override can also be used. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void WriteLogFile(const FString& CaptureDir, const FString& CaptureExtension);
+	/** Returns true if this stats tracker is currently recording performance stats. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	FORCEINLINE bool IsRecording()const { return bRecording; }
+
+	const FPerfStatsRecord* GetCurrentRecord()const;
+};
+
 UENUM()
 namespace EFunctionalTestResult
 {

@@ -1517,6 +1517,13 @@ void FAudioDevice::SetListener( const int32 InViewportIndex, const FTransform& I
 											(ListenerTransform.GetTranslation() - Listeners[ InViewportIndex ].Transform.GetTranslation()) / InDeltaSeconds
 											: FVector::ZeroVector;
 
+#if ENABLE_NAN_DIAGNOSTIC
+	if (Listeners[InViewportIndex].Velocity.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("FAudioDevice::SetListener has detected a NaN in Listener Velocity"));
+	}
+#endif
+
 	Listeners[ InViewportIndex ].Transform = ListenerTransform;
 
 	Listeners[ InViewportIndex ].ApplyInteriorSettings(Volume, InteriorSettings);

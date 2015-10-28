@@ -3,6 +3,7 @@ Title:Blueprints User Guide: Variables
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: Properties that hold a value or reference an Object or Actor in the world.
 version: 4.9
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

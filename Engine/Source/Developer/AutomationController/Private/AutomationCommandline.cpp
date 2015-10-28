@@ -203,7 +203,7 @@ public:
 			else
 			{
 				AutomationTestState = EAutomationTestState::Complete;
-				OutputDevice->Log(TEXT("Not a valid flag to filter on! Valid options are: "));
+				OutputDevice->Logf(TEXT("%s is not a valid flag to filter on! Valid options are: "), *StringCommand);
 				TArray<FString> FlagNames;
 				FilterMaps.GetKeys(FlagNames);
 				for (int i = 0; i < FlagNames.Num(); i++)
@@ -300,6 +300,16 @@ public:
 		bool bHandled = false;
 		// Track whether we have a flag we care about passing through.
 		FString FlagToUse = "";
+
+		// Hackiest hack to ever hack a hack to get this test running.
+		if (FParse::Command(&Cmd, TEXT("RunPerfTests")))
+		{
+			Cmd = TEXT("Automation RunFilter Perf");
+		}
+		else if (FParse::Command(&Cmd, TEXT("RunProductTests")))
+		{
+			Cmd = TEXT("Automation RunFilter Product");
+		}
 //figure out if we are handling this request
 		if (FParse::Command(&Cmd, TEXT("Automation")))
 		{
@@ -314,6 +324,7 @@ public:
 
 			//assume we handle this
 			bHandled = true;
+			Init();
 
 			
 
@@ -336,6 +347,10 @@ public:
 					FlagToUse = TempCmd;
 					//only one of these should be used
 					StringCommand = TempCmd;
+					if (FilterMaps.Contains(FlagToUse))
+					{
+						AutomationController->SetRequestedTestFlags(FilterMaps[FlagToUse]);
+					}
 					AutomationCommandQueue.Add(EAutomationCommand::RunFilter);
 				}
 				else if (FParse::Command(&TempCmd, TEXT("RunAll")))
@@ -356,17 +371,7 @@ public:
 			}
 		}
 
-		//we have our orders, let's automate some testing
-		if (bHandled)
-		{
-			Init();
-			// Have to check for requested flags here. Post init, pre callback.
-			// Otherwise check fails if it's our first automation request of the day.
-			if (FilterMaps.Contains(FlagToUse))
-			{
-				AutomationController->SetRequestedTestFlags(FilterMaps[FlagToUse]);
-			}
-		}
+
 
 		// Shutdown our service
 		return bHandled;

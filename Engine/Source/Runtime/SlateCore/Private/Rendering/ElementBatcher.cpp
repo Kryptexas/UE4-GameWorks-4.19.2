@@ -1590,7 +1590,8 @@ void FSlateElementBatcher::AddCustomVerts(const FSlateDrawElement& DrawElement)
 			ESlateDrawEffect::None,
 			ESlateBatchDrawFlag::None,
 			DrawElement.GetScissorRect(),
-			InPayload.InstanceData == nullptr ? 1 : InPayload.InstanceData->GetNumInstances(),
+			InPayload.NumInstances,
+			InPayload.InstanceOffset,
 			InPayload.InstanceData
 		);
 

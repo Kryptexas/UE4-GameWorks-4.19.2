@@ -99,16 +99,19 @@ void AController::SetInitialLocationAndRotation(const FVector& NewLocation, cons
 
 FRotator AController::GetControlRotation() const
 {
+	ControlRotation.DiagnosticCheckNaN();
 	return ControlRotation;
 }
 
 void AController::SetControlRotation(const FRotator& NewRotation)
 {
+#if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
 	{
-		checkf(!GEnsureOnNANDiagnostic, TEXT("AController::SetControlRotation about to apply NaN-containing rotation! (%s)"), *NewRotation.ToString());
+		logOrEnsureNanError(TEXT("AController::SetControlRotation about to apply NaN-containing rotation! (%s)"), *NewRotation.ToString());
 		return;
 	}
+#endif
 	if (!ControlRotation.Equals(NewRotation, 1e-3f))
 	{
 		ControlRotation = NewRotation;

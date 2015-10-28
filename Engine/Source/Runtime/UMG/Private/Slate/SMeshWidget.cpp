@@ -77,43 +77,105 @@ void SMeshWidget::Construct(const FArguments& Args)
 {
 	if (Args._MeshData != nullptr)
 	{
-		SetMesh(*Args._MeshData);
-	}
-}
-
-void SMeshWidget::AddReferencedObjects( FReferenceCollector& Collector )
-{
-	if( Brush.IsValid() && Brush->GetResourceObject() )
-	{
-		UObject* ResourceObject = Brush->GetResourceObject();
-		Collector.AddReferencedObject( ResourceObject );
+		AddMesh(*Args._MeshData);
 	}
 }
 
 static const FVector2D DontCare(FVector2D(64, 64));
-void SMeshWidget::SetMesh(const USlateMeshData& InMeshData)
+uint32 SMeshWidget::AddMesh(const USlateMeshData& InMeshData)
 {	
-	Brush = MakeShareable(new FSlateMaterialBrush(*InMeshData.GetMaterial(), DontCare));
-	SlateMeshToSlateRenderData(InMeshData, VertexData, IndexData);
+	FRenderData& NewRenderData = RenderData[RenderData.Add(FRenderData())];
+	UMaterialInterface* MaterialFromMesh = InMeshData.GetMaterial();
+	if (MaterialFromMesh != nullptr)
+	{
+		NewRenderData.Brush = MakeShareable(new FSlateMaterialBrush(*MaterialFromMesh, DontCare));
+		NewRenderData.RenderingResourceHandle = FSlateApplication::Get().GetRenderer()->GetResourceHandle( *NewRenderData.Brush );
+	}
+	SlateMeshToSlateRenderData(InMeshData, NewRenderData.VertexData, NewRenderData.IndexData);
+	return RenderData.Num()-1;
+}
+
+
+void SMeshWidget::ClearRuns(int32 NumRuns)
+{
+	RenderRuns.Reset(NumRuns);
 }
 
 static const FName SlateRHIModuleName("SlateRHIRenderer");
-TSharedPtr<FSlateInstanceBufferUpdate> SMeshWidget::BeginPerInstanceBufferUpdate(int32 InitialSize)
+TSharedPtr<FSlateInstanceBufferUpdate> SMeshWidget::BeginPerInstanceBufferUpdate(uint32 MeshId, int32 InitialSize)
 {
-	if (!PerInstanceBuffer.IsValid())
+	if (!RenderData[MeshId].PerInstanceBuffer.IsValid())
 	{
-		PerInstanceBuffer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>(SlateRHIModuleName).CreateInstanceBuffer(InitialSize);
+		RenderData[MeshId].PerInstanceBuffer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>(SlateRHIModuleName).CreateInstanceBuffer(InitialSize);
 	}
 
-	return PerInstanceBuffer->BeginUpdate();
+	return RenderData[MeshId].PerInstanceBuffer->BeginUpdate();
 }
 
 
 int32 SMeshWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	if (Brush.IsValid() && VertexData.Num() > 0 && IndexData.Num() > 0)
+
+	if (RenderRuns.Num() > 0)
 	{
-		FSlateDrawElement::MakeCustomVerts(OutDrawElements, LayerId, Brush.Get(), VertexData, IndexData, PerInstanceBuffer.Get());
+		// We have multiple render runs. Assume that we have per-instance data.
+		for (int RunIndex = 0; RunIndex < RenderRuns.Num(); ++RunIndex)
+		{
+			const FRenderRun& Run = RenderRuns[RunIndex];
+			const FRenderData& RunRenderData = RenderData[Run.GetMeshIndex()];
+			if (RunRenderData.RenderingResourceHandle.IsValid() && RunRenderData.VertexData.Num() > 0 && RunRenderData.IndexData.Num() > 0 && RunRenderData.PerInstanceBuffer.IsValid())
+			{
+				ensure(Run.GetInstanceOffset() + Run.GetNumInstances() <= RunRenderData.PerInstanceBuffer->GetNumInstances());
+				FSlateDrawElement::MakeCustomVerts(OutDrawElements,
+					LayerId,
+					RunRenderData.RenderingResourceHandle,
+					RunRenderData.VertexData,
+					RunRenderData.IndexData,
+					RunRenderData.PerInstanceBuffer.Get(),
+					Run.GetInstanceOffset(),
+					Run.GetNumInstances());
+			}
+			else
+			{
+				UE_LOG(LogUMG, Warning, TEXT("SMeshWidget did not render a run because of one of these Brush: %s, InstanceBuffer: %s, NumVertexes: %d, NumIndexes: %d"),
+					RunRenderData.RenderingResourceHandle.IsValid() ? TEXT("valid") : TEXT("nullptr"),
+					RunRenderData.PerInstanceBuffer.IsValid() ? TEXT("valid") : TEXT("nullptr"),
+					RunRenderData.VertexData.Num(),
+					RunRenderData.IndexData.Num());
+			}
+		}
+	}
+	else
+	{
+		// We have no render runs. Render all the meshes in order they were added
+		for (int i = 0; i < RenderData.Num(); ++i)
+		{
+			const FRenderData& RunRenderData = RenderData[i];
+			if (RunRenderData.RenderingResourceHandle.IsValid() && RunRenderData.VertexData.Num() > 0 && RunRenderData.IndexData.Num() > 0)
+			{
+				if (RunRenderData.PerInstanceBuffer.IsValid())
+				{
+					// Drawing instanced widgets
+					const int32 NumInstances = RunRenderData.PerInstanceBuffer->GetNumInstances();
+					if (NumInstances > 0)
+					{
+						FSlateDrawElement::MakeCustomVerts(OutDrawElements, LayerId, RunRenderData.RenderingResourceHandle, RunRenderData.VertexData, RunRenderData.IndexData, RunRenderData.PerInstanceBuffer.Get(), 0, NumInstances);
+					}
+				}
+				else
+				{
+					// Drawing a single widget, no instancing
+					FSlateDrawElement::MakeCustomVerts(OutDrawElements, LayerId, RunRenderData.RenderingResourceHandle, RunRenderData.VertexData, RunRenderData.IndexData, nullptr, 0, 0);
+				}
+			}
+			else
+			{
+				UE_LOG(LogUMG, Warning, TEXT("SMeshWidget did not render a run because of one of these Brush: %s, NumVertexes: %d, NumIndexes: %d"),
+					RunRenderData.RenderingResourceHandle.IsValid() ? TEXT("valid") : TEXT("nullptr"),
+					RunRenderData.VertexData.Num(),
+					RunRenderData.IndexData.Num());
+			}
+		}
 	}
 
 	return LayerId;

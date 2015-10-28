@@ -7,6 +7,7 @@ Version:4.9
 Related:Engine/UI/LevelEditor/Viewports
 Related:Engine/Levels
 Related:Engine/UI/LevelEditor/Viewports/ViewportControls
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]

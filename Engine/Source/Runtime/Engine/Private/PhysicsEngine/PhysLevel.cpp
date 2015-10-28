@@ -144,7 +144,7 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 		}
 
 		//async scene
-		if (bShouldSimulatePhysics && !StartAsyncTickFunction.IsTickFunctionRegistered())
+		if (bShouldSimulatePhysics && !StartAsyncTickFunction.IsTickFunctionRegistered() && UPhysicsSettings::Get()->bEnableAsyncScene)
 		{
 			StartAsyncTickFunction.TickGroup = TG_StartCloth;
 			StartAsyncTickFunction.RegisterTickFunction(PersistentLevel);

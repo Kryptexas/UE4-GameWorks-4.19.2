@@ -54,11 +54,11 @@ public:
 	/**
 	 * Initialize the player.
 	 *
-	 * @param InLevelSequenceInstance The level sequence instance to play.
+	 * @param InLevelSequence The level sequence to play.
 	 * @param InWorld The world that the animation is played in.
 	 * @param Settings The desired playback settings
 	 */
-	void Initialize(ULevelSequenceInstance* InLevelSequenceInstance, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings);
+	void Initialize(ULevelSequence* InLevelSequence, UWorld* InWorld, const FLevelSequencePlaybackSettings& Settings);
 
 public:
 
@@ -125,9 +125,6 @@ public:
 protected:
 
 	// IMovieScenePlayer interface
-
-	virtual void SpawnActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance);
-	virtual void DestroyActorsForMovie(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance);
 	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<UObject*>& OutObjects) const override;
 	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
@@ -149,8 +146,8 @@ private:
 private:
 
 	/** The level sequence to play. */
-	UPROPERTY()
-	ULevelSequenceInstance* LevelSequenceInstance;
+	UPROPERTY(transient)
+	ULevelSequence* LevelSequence;
 
 	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
 	UPROPERTY()
@@ -168,18 +165,6 @@ private:
 	int32 CurrentNumLoops;
 
 private:
-
-	struct FSpawnedActorInfo
-	{
-		/** Identifier that maps this actor to a movie scene spawnable */
-		FGuid RuntimeGuid;
-
-		/** The spawned actor */
-		TWeakObjectPtr<AActor> SpawnedActor;
-	};
-
-	/** Maps spawnable GUIDs to their spawned actor in the world */
-	TMap<TWeakPtr<FMovieSceneSequenceInstance>, TArray<FSpawnedActorInfo>> InstanceToSpawnedActorMap;
 
 	/** The root movie scene instance to update when playing. */
 	TSharedPtr<FMovieSceneSequenceInstance> RootMovieSceneInstance;

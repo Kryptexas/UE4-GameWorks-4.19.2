@@ -19,6 +19,11 @@ void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Con
 	{
 		InitializationCounter.SynchronizeWith(Context.AnimInstance->InitializationCounter);
 
+		// Reset update counter here as Initialize can happen as part of a state machine update
+		// when the current state changes. This ensures that any subsequent updates that may 
+		// use this cached pose get properly updated.
+		UpdateCounter.Reset();
+
 		FAnimNode_Base::Initialize(Context);
 
 		// Initialize the subgraph

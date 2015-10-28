@@ -41,7 +41,7 @@ Version:4.9
 		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
 	[/PARAM]
 	[PARAM:title]
-		　%Resources/ContentExamples/Blueprints:title%
+		%Resources/ContentExamples/Blueprints:title%
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:Resources/ContentExamples/Blueprints]

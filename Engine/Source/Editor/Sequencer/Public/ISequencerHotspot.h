@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "ISequencerEditTool.h"
+
+class ISequencer;
+class ISequencerEditToolDragOperation;
+
 
 enum class ESequencerHotspot
 {
@@ -12,10 +15,11 @@ enum class ESequencerHotspot
 	SectionResize_R,
 };
 
+
 /** A sequencer hotspot is used to identify specific areas on the sequencer track area */ 
 struct ISequencerHotspot
 {
 	virtual ~ISequencerHotspot() { }
 	virtual ESequencerHotspot GetType() const = 0;
-	virtual TSharedPtr<IEditToolDragOperation> InitiateDrag(ISequencer&) { return nullptr; }
+	virtual TSharedPtr<ISequencerEditToolDragOperation> InitiateDrag(ISequencer&) = 0;
 };

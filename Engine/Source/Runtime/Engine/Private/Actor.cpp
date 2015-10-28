@@ -2584,8 +2584,15 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	}
 }
 
+#include "GameFramework/SpawnActorTimer.h"
+
 void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTransform)
 {
+#if ENABLE_SPAWNACTORTIMER
+	FScopedSpawnActorTimer SpawnTimer(GetClass()->GetFName(), ESpawnActorTimingType::FinishSpawning);
+	SpawnTimer.SetActorName(GetFName());
+#endif
+
 	if (ensure(!bHasFinishedSpawning))
 	{
 		bHasFinishedSpawning = true;
@@ -2935,7 +2942,7 @@ bool AActor::SetActorRotation(FRotator NewRotation)
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
 	{
-		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorRotation found NaN in FRotator NewRotation"));
+		logOrEnsureNanError(TEXT("AActor::SetActorRotation found NaN in FRotator NewRotation"));
 		NewRotation = FRotator::ZeroRotator;
 	}
 #endif
@@ -2952,7 +2959,7 @@ bool AActor::SetActorRotation(const FQuat& NewRotation)
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
 	{
-		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorRotation found NaN in FQuat NewRotation"));
+		logOrEnsureNanError(TEXT("AActor::SetActorRotation found NaN in FQuat NewRotation"));
 	}
 #endif
 	if (RootComponent)
@@ -2968,7 +2975,7 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotati
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
 	{
-		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorLocationAndRotation found NaN in FRotator NewRotation"));
+		logOrEnsureNanError(TEXT("AActor::SetActorLocationAndRotation found NaN in FRotator NewRotation"));
 		NewRotation = FRotator::ZeroRotator;
 	}
 #endif
@@ -2990,7 +2997,7 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRo
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
 	{
-		ensureMsgf(!GEnsureOnNANDiagnostic, TEXT("AActor::SetActorLocationAndRotation found NaN in FQuat NewRotation"));
+		logOrEnsureNanError(TEXT("AActor::SetActorLocationAndRotation found NaN in FQuat NewRotation"));
 	}
 #endif
 	if (RootComponent)

@@ -14,19 +14,11 @@ version: 4.9
 
 
 
-Typically in game animation, a character's collision capsule (or other shape) is driven through the scene by the controller. Data from this capsule is then used to drive animation. For instance, if the capsule is moving forward, the system then knows to play a running or walking animation on the character to give the appearance that the character is moving under its own power.
-
-However, this type of motion is not always ideal for every situation. In some cases, it makes sense for complex animations to actually drive the collision capsule, and not the other way around. This is where Root Motion handling becomes critical for your games.
+Typically in game animation, a character's collision capsule (or other shape) is driven through the scene by the controller. Data from this capsule is then used to drive animation. For instance, if the capsule is moving forward, the system then knows to play a running or walking animation on the character to give the appearance that the character is moving under its own power. However, this type of motion is not always ideal for every situation. In some cases, it makes sense for complex animations to actually drive the collision capsule, and not the other way around. This is where Root Motion handling becomes critical for your games.
 
 Consider, for example, a special attack from a player in which the mesh had been pre-animated to lunge forward. If all character motion was based off of the player capsule, such animations would cause the character to step outside the capsule, effectively losing collision. Once the animation had played out, the player would slide back to their collision location. This would be problematic, as the capsule is generally used as the center of all calculations. Characters outside their capsule will pass through geometry and would not react properly to their environment. Plus, the slide back to their capsule at the end of the animation would be unrealistic.
  
 For those new to the concept, it may not be readily apparent why proper Root Motion would be important from just reading a description. Below, we have a character that is performing a pre-animated attack in which he lunges forward and slams down a hammer. Be aware that the animation of the character moving forward was not handled in game - it was created that way by an animation artist.
-
-[REGION:warning]
-Early versions of the engine (Versions previous to 4.5) required the use of a AnimMontage (Please see the [AnimMontage documentation](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimMontage/index.html) for more information). 
-
-Since version 4.6, Root Motion is now handled per animation and can be toggled on/off in the animation's properties in Persona. To fully utilize Root Motion, your character will need an Animation Blueprint (More information can be found in the [Animation Blueprint documentation](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimBlueprints/index.html) ). Within the characters Animation Blueprint properties, the **Root Motion** section allows you to set which type of animations will have Root Motion applied to them. Please note that at the time of writing that you still need to use an AnimMontage for your Root Motion to be applied successfully. 
-[/REGION]
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -42,7 +34,7 @@ TKAcNubFOH8
 
 
 [REGION:tip]
-Another example of **Root Motion** applied to a character can be found on the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.9.
+See the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.9 for another example of Root Motion.
 [/REGION]
 
 
@@ -67,8 +59,52 @@ When you enable Root Motion, this red line will disappear. Instead, the characte
 ![](RootMotionAppliedBone.png)
 [/REGION]
 
-
 So, what does this mean? Now that the system is taking the Root Motion of the character's animation into account, it is then able to reapply that same motion to the character's collision capsule. This means that it can still have the exact same motion that the animator intended, but it can also respond properly to in-game collisions and other physics and gameplay events. We will see this in action in the section below.
+
+
+## Enabling Root Motion
+
+Root Motion can be enabled inside the **Anim Asset Details** panel of **Persona** for your [Animation Sequence](Engine\Animation\Sequences). 
+
+![](RootMotion.png)
+
+[REGION:warning]
+Early versions of the engine (Versions previous to 4.5) required the use of an [Animation Montage](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimMontage/index.html) to define Root Motion. Since version 4.6, Root Motion is now handled per Animation Sequence and can be toggled on/off in the animation's properties in Persona.
+For networked games however, Root Motion still requires the use of an Animation Montage, see [Root Motion from Montages Only](#rootmotionfrommontagesonly) below. 
+
+[/REGION]
+
+While defining if Root Motion is enabled in done inside the Animation Sequence, you will still need to determine how that sequence is handled inside of an [Animation Blueprint]( Engine/Animation/AnimBlueprints). There are several different ways in which you can handle Root Motion within Animation Blueprints. You can define this through the **Root Motion Mode** drop down menu inside the Anim Blueprint Editor inside Persona. 
+
+![](RootMotionMode.png)
+
+[REGION:note]
+Make sure that you are setting this inside the **Edit Defaults** tab and not the **Edit Preview**.
+[/REGION]
+
+The options are as follows: 
+
+| **Property** | **Description** |
+| --- | --- |
+| **No Root Motion Extraction** | Root Motion is left as is (applied to the root bone). |
+| **Ignore Root Motion** | Root Motion is extracted (and removed from the root bone), but not applied to the character.  |
+| **Root Motion from Everything** | See Below. |
+| **Root Motion from Montages Only** | See Below. |
+
+### Root Motion from Everything
+
+When this option is set as the Root Motion Mode, each animation asset (AnimSequence, Blendspace, AnimMontage, etc.) that contributes to the final character pose has its Root Motion extracted (if it has been set as containing Root Motion). Each piece of extracted Root Motion is blended based on the weight of the source assets contributing to the pose. 
+
+For example:
+
+![](FromEverything.png)
+
+In the image above, the Root Motion of **Jog_Loop_Fwd_RM** and **Jog_Loop_Right_RM** would each be blended together with a weight of 0.5. The resulting animation in this case is a character running diagonally forwards and right across a map. 
+
+### Root Motion from Montages Only
+
+This method is intended for network games which is the reason for its more restricted functionally. Because **Root Motion from Everything** is designed to be unrestricted, it is recommended that it only be used in games where animation isn’t replicated over a network.  
+
 
 
 ## Root Motion in Action
@@ -147,7 +183,10 @@ YuD29-Xr7Oc
 [/PARAMLITERAL]
 [/OBJECT]
 
+The physics state of the Character is taken into account during Root Motion. For example, if the character physics is Walking or Falling, then the Z-axis of Root Motion will be ignored, and gravity will be applied. Characters will fall, go down slopes or up stairs. If the character physics is Flying, then the full Root Motion is applied and gravity is ignored.
 
+
+<!-- This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
 ## Setting Up Root Motion
 
 Setting up Root Motion in UE4 is very easy, however, the steps will be slightly different depending on what version of UE4 you are using. At a high level, the process pre-4.6 includes:
@@ -251,13 +290,7 @@ PWB_mqjz3iA
 [/PARAMLITERAL]
 [/OBJECT]
 
-
-## Caveats and Considerations
-
-
-[INCLUDE:Engine/Animation/AnimMontage#MontageReplication]
-
-The physics state of the Character is taken into account during Root Motion. For example, if the character physics is Walking or Falling, then the Z-axis of Root Motion will be ignored, and gravity will be applied. Characters will fall, go down slopes or up stairs. If the character physics is Flying, then the full Root Motion is applied and gravity is ignored.
+-->
 
 
 

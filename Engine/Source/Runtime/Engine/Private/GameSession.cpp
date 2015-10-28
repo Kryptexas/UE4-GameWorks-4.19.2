@@ -23,21 +23,25 @@ static TAutoConsoleVariable<int32> CVarMaxPlayersOverride( TEXT( "net.MaxPlayers
  */
 APlayerController* GetPlayerControllerFromNetId(UWorld* World, const FUniqueNetId& PlayerNetId)
 {
-	// Iterate through the controller list looking for the net id
-	for(FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	if (PlayerNetId.IsValid())
 	{
-		APlayerController* PlayerController = *Iterator;
-		// Determine if this is a player with replication
-		if (PlayerController->PlayerState != NULL)
+		// Iterate through the controller list looking for the net id
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			// If the ids match, then this is the right player.
-			if (*PlayerController->PlayerState->UniqueId == PlayerNetId)
+			APlayerController* PlayerController = *Iterator;
+			// Determine if this is a player with replication
+			if (PlayerController->PlayerState != NULL)
 			{
-				return PlayerController;
+				// If the ids match, then this is the right player.
+				if (*PlayerController->PlayerState->UniqueId == PlayerNetId)
+				{
+					return PlayerController;
+				}
 			}
 		}
 	}
-	return NULL;
+
+	return nullptr;
 }
 
 AGameSession::AGameSession(const FObjectInitializer& ObjectInitializer)

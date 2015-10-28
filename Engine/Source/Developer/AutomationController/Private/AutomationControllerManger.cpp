@@ -79,8 +79,11 @@ void FAutomationControllerManager::RunTests( const bool bInIsLocalSession )
 
 #if WITH_EDITOR
 	FMessageLog AutomationTestingLog("AutomationTestingLog");
+	FString NewPageName = FString::Printf(TEXT("-----Test Run %d----"), ExecutionCount);
+	FText NewPageNameText = FText::FromString(*NewPageName);
 	AutomationTestingLog.Open();
-	AutomationTestingLog.Info(FText::FromString(TEXT("--------------------------NEW RUN-------------------")));
+	AutomationTestingLog.NewPage(NewPageNameText);
+	AutomationTestingLog.Info(NewPageNameText);
 #endif
 	//reset all tests
 	ReportManager.ResetForExecution(NumTestPasses);

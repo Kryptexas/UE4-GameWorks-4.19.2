@@ -24,33 +24,33 @@ For more information about the **Sound Cue Editor**, see [](Engine/Audio\SoundCu
 
 ## Menu Bar
 
-### File
+::: File
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSave]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSaveOptions]
+%Shared/Editors/Common/EditorMenuItems:MenuFileSave%
+%Shared/Editors/Common/EditorMenuItems:MenuFileSaveOptions%
 
 
-### Edit
+::: Edit
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditUndo]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditSettings]
+%Shared/Editors/Common/EditorMenuItems:MenuEditUndo%
+%Shared/Editors/Common/EditorMenuItems:MenuEditSettings%
 
-### Asset
+::: Asset
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuAssetContentBrowser]
+%Shared/Editors/Common/EditorMenuItems:MenuAssetContentBrowser%
 
-### Window
+::: Window
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowToolbar]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowViewport]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowDetails]
+%Shared/Editors/Common/EditorMenuItems:MenuWindowToolbar%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowViewport%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowDetails%
 * **Palette** - Toggles display of the **Palette** panel.
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindow]
+%Shared/Editors/Common/EditorMenuItems:MenuWindow%
 
 
-### Help
+::: Help
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuHelp]
+%Shared/Editors/Common/EditorMenuItems:MenuHelp%
 
 ## Toolbar
 

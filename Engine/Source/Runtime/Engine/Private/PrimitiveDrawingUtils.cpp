@@ -1353,29 +1353,6 @@ void ApplyViewModeOverrides(
 			Collector.RegisterOneFrameMaterialProxy(LODColorationMaterialInstance);
 		}
 	}
-	else if (EngineShowFlags.LightComplexity)
-	{
-		// Don't render unlit translucency when in 'light complexity' viewmode.
-		if (!Mesh.IsTranslucent(FeatureLevel) || Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit)
-		{
-			// Count the number of lights interacting with this primitive.
-			int32 NumDynamicLights = GetRendererModule().GetNumDynamicLightsAffectingPrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo(),Mesh.LCI);
-
-			// Get a colored material to represent the number of lights.
-			// Some component types (BSP) have multiple FLightCacheInterface's per component, so make sure the whole component represents the number of dominant lights affecting
-			NumDynamicLights = FMath::Min( NumDynamicLights, GEngine->LightComplexityColors.Num() - 1 );
-			const FColor Color = GEngine->LightComplexityColors[NumDynamicLights];
-
-			auto LightComplexityMaterialInstance = new FColoredMaterialRenderProxy(
-				GEngine->LevelColorationUnlitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-				Color
-				);
-
-			// Draw the mesh colored by light complexity.
-			Mesh.MaterialRenderProxy = LightComplexityMaterialInstance;
-			Collector.RegisterOneFrameMaterialProxy(LightComplexityMaterialInstance);
-		}
-	}
 	else if (!EngineShowFlags.Materials)
 	{
 		// Don't render unlit translucency when in 'lighting only' viewmode.

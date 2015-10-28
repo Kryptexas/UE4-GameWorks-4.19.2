@@ -71,7 +71,8 @@ public:
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, SeparateTranslucencyResMultParam, FVector4(STSP_CVar->GetInt() / 100.0f, STSP_CVar->GetInt() / 100.0f, STSP_CVar->GetInt() / 100.0f, STSP_CVar->GetInt() / 100.0f));
+		float Scale = STSP_CVar->GetInt() / 100.0f;
+		SetShaderValue(Context.RHICmdList, ShaderRHI, SeparateTranslucencyResMultParam, FVector4(Scale, Scale, Scale, Scale));
 
 		{
 			FVector4 DepthOfFieldParamValues[2];

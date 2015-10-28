@@ -3,6 +3,8 @@ Title: Engine Features
 Crumbs: %ROOT%
 Description:Complete guide to using the tools and systems that make up Unreal Engine.
 Navigation:topic
+parent:%ROOT%
+order:3
 
 [VAR:Params]
 [PARAM:image]
@@ -73,6 +75,15 @@ engine
 
 ## Browse Topics
 
+[DIR(end:"1" output:"topiccompact")]
+
+<!--
+## Table of Contents
+[DIR(end:"3" type:"list")]
+-->
+<!--
+## Browse Topics
+
 [REGION:topics third]
 %Engine/Rendering:topiccompact%
 %Engine/UMG:topiccompact%
@@ -90,6 +101,7 @@ engine
 %Engine/Performance:topiccompact%
 %Engine/Deployment:topiccompact%
 [/REGION]
+-->
 
 ## Table of Contents
 
@@ -506,9 +518,3 @@ engine
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-
-
-
-

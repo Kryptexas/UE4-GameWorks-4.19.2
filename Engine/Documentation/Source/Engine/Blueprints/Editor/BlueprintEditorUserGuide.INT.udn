@@ -1,22 +1,44 @@
 Availability:Public
 Title:Blueprint Editor Reference
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:The Blueprint Editor Reference page outlines the Blueprint Editor's Interface elements and its basic usage instructions.
+Description:The Blueprint Editor Reference page outlines the Blueprint Editor's Interface elements and its basic usage instructions. 
 version: 4.9
+parent:Engine/Blueprints
+order:4
+type:reference
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
+		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
 	[/PARAM]
 	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
+		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Blueprint Editor
+		%Engine/Blueprints/Editor:title%
 	[/PARAM]
 	[PARAM:description]
-		Overview of the Blueprint Editor interface and basic usage instructions.
+		%Engine/Blueprints/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor:title%](Engine/Blueprints/editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Editor:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints/Editor]
@@ -28,6 +50,7 @@ version: 4.9
 ![](blueprint_editor_example.png)
 [/REGION]
 
+[TOC (start:2)] 
 
 
 Blueprint visual scripting is a system that is used throughout UE4 in many different ways. Blueprints can drive level-based events, control internally scripted behaviors for in-game Actors, and even be used to control complex animations across highly realistic game character systems. For each of these Blueprint applications, the location where you edit that Blueprint script, as well as the tools available to you, will change slightly depending on your needs. This means that there are actually multiple places and different ways within UE4 that the Blueprint Editor can appear. However, no matter the differences, the Blueprint Editor always performs the same key task: it enables you to create and edit powerful visual scripts to drive various aspects of your game.

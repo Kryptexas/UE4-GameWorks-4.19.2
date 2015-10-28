@@ -57,7 +57,7 @@ bool IsDedicatedServerForGameplayCue()
 }
 
 
-void UGameplayCueManager::HandleGameplayCues(AActor* TargetActor, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+void UGameplayCueManager::HandleGameplayCues(AActor* TargetActor, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
 {
 	if (GameplayCueRunOnDedicatedServer == 0 && IsDedicatedServerForGameplayCue())
 	{
@@ -70,7 +70,7 @@ void UGameplayCueManager::HandleGameplayCues(AActor* TargetActor, const FGamepla
 	}
 }
 
-void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
 {
 	if (DisableGameplayCues)
 	{

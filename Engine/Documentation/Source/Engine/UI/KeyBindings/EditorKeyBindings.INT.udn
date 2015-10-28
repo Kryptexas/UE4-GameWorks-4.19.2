@@ -7,16 +7,16 @@ Version: 4.9
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
+		![%Engine/UI/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/KeyBindings:title%
+		%Engine/UI/KeyBindings:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/KeyBindings:description%
+		%Engine/UI/KeyBindings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/KeyBindings]
@@ -26,16 +26,16 @@ Version: 4.9
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
+		![%Engine/UI/KeyBindings:title%](Engine/UI/KeyBinding_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/KeyBindings:title%
+		%Engine/UI/KeyBindings:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/KeyBindings:description%
+		%Engine/UI/KeyBindings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/KeyBindings]

@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2720029
 Availability:Public
-Title:1.5 - PhysicsConstraints
+Title:1.5 - 物理コンストレイント
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理のサンプル レベルの概要、例 1.5:PhysicsContraints
+Description: 物理のサンプル レベルの概要、サンプル 1.5:PhysicsContraints
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Physics/PhAT/HowTo
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/Constraints/ConstraintsUserGuide
+Related:Engine/Physics/Collision
+Related:Engine/Physics/PhysicalMaterials/Reference
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -68,7 +75,10 @@ Description: 物理のサンプル レベルの概要、例 1.5:PhysicsContraint
 [/REGION]
 
 
-[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
+**物理コンストレイント** は基本的にジョイントの一種です。2 つのアクタを接続し (おそらく 1 つは物理的にシミュレーションします)、制限や力を適用することもできます。アンリアル エンジン 4 は、 
+非常に柔軟なデータ ドリブンのコンストレイント システムです。オプションを変更するだけで、デザイナーは様々なジョイントを作成することができます。エンジンにはデフォルトでいくつかの 
+ジョイント タイプ (ボールとソケット、ヒンジ、プリズマティック (直動) ) があります。こららの違いは設定だけです。どのタイプのジョイントから初めても、ご自由に独自のコンフィギュレーションをつくる 
+ことができます。
 
 コンテンツ サンプルでは、左から右へ動きます。
 

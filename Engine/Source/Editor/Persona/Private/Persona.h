@@ -562,6 +562,24 @@ public:
 		OnSectionsChanged.RemoveAll(Widget);
 	}
 
+	// Called when the notifies of the current animation are changed
+	typedef FSimpleMulticastDelegate::FDelegate FOnLODChanged;
+
+	/** Registers a delegate to be called when the skeleton anim notifies have been changed */
+	void RegisterOnLODChanged(const FOnLODChanged& Delegate)
+	{
+		OnLODChanged.Add(Delegate);
+	}
+
+	/** Unregisters a delegate to be called when the skeleton anim notifies have been changed */
+	void UnregisterOnLODChanged(SWidget* Widget)
+	{
+		OnLODChanged.RemoveAll(Widget);
+	}
+
+	/** Delegate for when the skeletons animation notifies have been changed */
+	FSimpleMulticastDelegate OnLODChanged;
+
 	/** Apply Compression to list of animations */
 	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 	/** Export to FBX files of the list of animations */
@@ -698,4 +716,7 @@ private:
 
 	/** Handle to the registered OnPropertyChangedHandle delegate */
 	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
+
+	/** Last Cached LOD value of Preview Mesh Component */
+	int32 LastCachedLODForPreviewComponent;
 };

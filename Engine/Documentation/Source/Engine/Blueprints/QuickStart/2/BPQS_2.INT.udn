@@ -3,7 +3,9 @@ Title:2. Construct your Launchpad
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Build your first launchpad in the level.
 version: 4.9
-
+parent:Engine/Blueprints/QuickStart
+order:2
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]

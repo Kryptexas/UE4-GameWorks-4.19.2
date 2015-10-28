@@ -59,7 +59,7 @@ void Main(
 	#if BASEPASS_ATMOSPHERIC_FOG
 	Output.BasePassInterpolants.VertexFog = CalculateVertexAtmosphericFog(WorldPosition.xyz, View.TranslatedWorldCameraOrigin);
 	#else
-	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, float4(View.TranslatedWorldCameraOrigin, 1));
+	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz - float4(View.TranslatedWorldCameraOrigin, 1));
 	#endif
 #endif
 

@@ -74,15 +74,15 @@ Incidentally, this means that if you want a Blueprint variable to be able to acc
 [EXCERPT:MakingAnInstance]
 There are two main methods that can be used to create an instance of a material in the editor. 
 
-Click the ![](button_NewCB.png) button in the [Content Browser](Engine/Content/Browser) and choose **MaterialInstanceConstant**.
+Click the **Add New** button in the [Content Browser](Engine/Content/Browser) and choose **Material Instance**.
 
 ![](NewMIC.png)
 
-Assign a name to the new Material Instance Constant.
+Assign a name to the new Material Instance.
 
 ![](NameMIC.png)
 
-**Double-click** your new Material Instance Constant. This opens the [Material Instance Editor](Engine/Rendering/Materials/MaterialInstances/Editor). Use the **Content Browser** to select and assign the Material to be instanced to the **Parent** property for the new Material Instance.
+**Double-click** your new Material Instance. This opens the [Material Instance Editor](Engine/Rendering/Materials/MaterialInstances/Editor). Use the **Content Browser** to select and assign the Material to be instanced to the **Parent** property for the new Material Instance.
 
 ![](MatInstEditorOpen.png)
 

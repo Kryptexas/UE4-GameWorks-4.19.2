@@ -1,22 +1,21 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2699793
 Availability: Public
-Title:Setting Up Input on an Actor
+Title:设置Actor的输入
 Crumbs: %ROOT%, Gameplay
-Description:A How To Guide to Setting up Input for an Actor in Unreal Engine 4. 
+Description:如何在虚幻引擎4中设置 Actor 的输入的操作指南。 
+版本: 4.9
 
-When developing your game, there may be instances when you want to allow the player to perform some form of **Input** on an Actor in your level. For example, perhaps you have a treasure chest that you want the player to be able to open when they approach it, or a light you want them to be able to turn on/off, or some other form of interactable object you want to affect in some way when the player presses a button. 
+在开发游戏时，你可能会希望让玩家在你的等级中执行某种形式的Actor**Input**。例如，也许你希望玩家在靠近一个藏宝箱时能打开它，或者你希望他们能打开/关闭一盏灯，或在玩家按下按钮时以某种方式影响一些其它形式的交互对象。 
 
-Setting up Input for an Actor gives you a level of control over how and when the Actor responds to player input. For more information, see the link provided in the **Setup** section below. 
+为Actor设置输入能让你在一定程度上控制Actor如何及何时响应玩家的输入。欲了解更多信息，请参见以下**Setup**部分提供的链接。 
 
-## Setup
+## 设置
 
-To learn more about **Setting up Input for an Actor** using Blueprints, follow the link below:
+要了解更多有关用蓝图**Setting up Input for an Actor**的信息，请遵循以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\ActorInput\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\ActorInput\Code)
-[/PUBLISH:Docs]
+
 [/REGION]
 
 

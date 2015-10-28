@@ -51,6 +51,8 @@ First bit of business is to create the layout of our Main Menu which we will do 
 
 	We are naming the widget for clarity and setting it to a variable so that we can access it as well as setting the **ZOrder** so that it appears on top of our image which we will set in a moment. 
 
+1.	Select the other **Vertical Box** and in the **Details** panel, rename it to **Options**, check the **isVariable** option and set **ZOrder** to **1**. 
+
 1.	Rename each of the **Buttons** as shown in the image below. 
 
 	![](Hierarchy5.png)

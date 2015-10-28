@@ -12,7 +12,7 @@ FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVecto
 }
 
 
-void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
@@ -21,20 +21,29 @@ void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeOb
 		{
 			case 2:
 			{
-				FVector2D VectorValue = PropertyBindings->GetCurrentValue<FVector2D>(Object);
-				InitVector2DMap.Add(Object, VectorValue);
+				if (InitVector2DMap.Find(Object) == nullptr)
+				{
+					FVector2D VectorValue = PropertyBindings->GetCurrentValue<FVector2D>(Object);
+					InitVector2DMap.Add(Object, VectorValue);
+				}
 				break;
 			}
 			case 3:
 			{
-				FVector VectorValue = PropertyBindings->GetCurrentValue<FVector>(Object);
-				InitVector3DMap.Add(Object, VectorValue);
+				if (InitVector3DMap.Find(Object) == nullptr)
+				{
+					FVector VectorValue = PropertyBindings->GetCurrentValue<FVector>(Object);
+					InitVector3DMap.Add(Object, VectorValue);
+				}
 				break;
 			}
 			case 4:
 			{
-				FVector4 VectorValue = PropertyBindings->GetCurrentValue<FVector4>(Object);
-				InitVector4DMap.Add(Object, VectorValue);
+				if (InitVector4DMap.Find(Object) == nullptr)
+				{
+					FVector4 VectorValue = PropertyBindings->GetCurrentValue<FVector4>(Object);
+					InitVector4DMap.Add(Object, VectorValue);
+				}
 				break;
 			}
 		}
@@ -42,7 +51,7 @@ void FMovieSceneVectorTrackInstance::SaveState(const TArray<UObject*>& RuntimeOb
 }
 
 
-void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 	for( UObject* Object : RuntimeObjects )
@@ -88,7 +97,7 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 }
 
 
-void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	FVector4 Vector;
 	if( VectorTrack->Eval( Position, LastPosition, Vector ) )
@@ -131,7 +140,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 }
 
 
-void FMovieSceneVectorTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
+void FMovieSceneVectorTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	PropertyBindings->UpdateBindings(RuntimeObjects);
 }

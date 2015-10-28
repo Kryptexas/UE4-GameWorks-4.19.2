@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2653552
+﻿INTSourceChangelist:2719849
 Availability:Public
 Title:1.3 - 変数のレプリケーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能のサンプル レベルの概要、1.3:変数のレプリケーション
+Description:ネットワーク機能のサンプル レベルの概要、サンプル 1.3:変数のレプリケーション
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

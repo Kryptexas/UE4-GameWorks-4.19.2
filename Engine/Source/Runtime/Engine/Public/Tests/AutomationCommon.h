@@ -4,6 +4,7 @@
 
 #include "HardwareInfo.h"
 #include "AutomationTest.h"
+#include "Delegate.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...
@@ -11,6 +12,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationTests, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnEditorAutomationMapLoad, const FString&);
 
 /** Common automation functions */
 namespace AutomationCommon
@@ -78,6 +81,12 @@ namespace AutomationCommon
 
 		OutScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
 	}
+
+	ENGINE_API extern FOnEditorAutomationMapLoad OnEditorAutomationMapLoad;
+	static FOnEditorAutomationMapLoad& OnEditorAutomationMapLoadDelegate()
+	{
+		return OnEditorAutomationMapLoad;
+	}
 }
 
 /**
@@ -88,6 +97,11 @@ struct WindowScreenshotParameters
 	FString ScreenshotName;
 	TSharedPtr<SWindow> CurrentWindow;
 };
+
+/**
+ * If Editor, Opens map and PIES.  If Game, transitions to map and waits for load
+ */
+ENGINE_API bool AutomationOpenMap(const FString& MapName);
 
 /**
  * Wait for the given amount of time
@@ -114,6 +128,10 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, Map
  */
 DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND( FRequestExitCommand );
 
+/**
+* Latent command to wait for map to complete loading
+*/
+DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 
 /**
 * Force a matinee to not loop and request that it play

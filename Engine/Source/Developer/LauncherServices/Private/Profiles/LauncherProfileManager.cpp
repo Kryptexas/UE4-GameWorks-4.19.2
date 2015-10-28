@@ -108,7 +108,7 @@ ILauncherProfileRef FLauncherProfileManager::AddNewProfile()
 
 	AddProfile(NewProfile);
 
-	SaveProfile(NewProfile);
+	SaveJSONProfile(NewProfile);
 
 	return NewProfile;
 }
@@ -229,6 +229,39 @@ ILauncherProfilePtr FLauncherProfileManager::LoadProfile( FArchive& Archive )
 	return nullptr;
 }
 
+ILauncherProfilePtr FLauncherProfileManager::LoadJSONProfile(FString ProfileFile)
+{
+	FLauncherProfile* Profile = new FLauncherProfile(AsShared());
+
+	FString FileContents;
+	if (!FFileHelper::LoadFileToString(FileContents, *ProfileFile))
+	{
+		return nullptr;
+	}
+
+	TSharedPtr<FJsonObject> Object;
+	TSharedRef<TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
+	if (!FJsonSerializer::Deserialize(Reader, Object) || !Object.IsValid())
+	{
+		return nullptr;
+	}
+
+	if (Profile->Load(*(Object.Get())))
+	{
+		ILauncherDeviceGroupPtr DeviceGroup = GetDeviceGroup(Profile->GetDeployedDeviceGroupId());
+		if (!DeviceGroup.IsValid())
+		{
+			DeviceGroup = AddNewDeviceGroup();
+		}
+		Profile->SetDeployedDeviceGroup(DeviceGroup);
+
+		return MakeShareable(Profile);
+	}
+
+	return nullptr;
+}
+
+
 
 void FLauncherProfileManager::LoadSettings( )
 {
@@ -297,6 +330,20 @@ bool FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
 	return false;
 }
 
+
+bool FLauncherProfileManager::SaveJSONProfile(const ILauncherProfileRef& Profile)
+{
+	if (Profile->GetId().IsValid())
+	{
+		FString Text;
+		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Text);
+		Profile->Save(Writer.Get());
+		Writer->Close();
+		return FFileHelper::SaveStringToFile(Text, *Profile->GetFilePath());
+	}
+	return false;
+}
+
 void FLauncherProfileManager::ChangeProfileName(const ILauncherProfileRef& Profile, FString Name)
 {
 	FString OldName = Profile->GetName();
@@ -304,7 +351,7 @@ void FLauncherProfileManager::ChangeProfileName(const ILauncherProfileRef& Profi
 
 	//change name and save to new location
 	Profile->SetName(Name);
-	if (SaveProfile(Profile))
+	if (SaveJSONProfile(Profile))
 	{
 		//delete the old profile if the location moved.  File names should be uppercase so this compare works on case sensitive and insensitive platforms
 		if (OldProfileFileName.Compare(Profile->GetFilePath()) != 0)
@@ -386,10 +433,10 @@ void FLauncherProfileManager::LoadProfiles( )
 
 	//load and move legacy profiles
 	{
-		IFileManager::Get().FindFiles(ProfileFileNames, *(GetLegacyProfileFolder() / TEXT("*.ulp")), true, false);
+		IFileManager::Get().FindFilesRecursive(ProfileFileNames, *GetLegacyProfileFolder(), TEXT("*.ulp"), true, false);
 		for (TArray<FString>::TConstIterator It(ProfileFileNames); It; ++It)
 		{
-			FString ProfileFilePath = GetLegacyProfileFolder() / *It;
+			FString ProfileFilePath = *It;
 			FArchive* ProfileFileReader = IFileManager::Get().CreateFileReader(*ProfileFilePath);
 
 			if (ProfileFileReader != nullptr)
@@ -397,7 +444,7 @@ void FLauncherProfileManager::LoadProfiles( )
 				ILauncherProfilePtr LoadedProfile = LoadProfile(*ProfileFileReader);
 				delete ProfileFileReader;
 
-				//resave profile to new location
+				//re-save profile to new location
 				if (LoadedProfile.IsValid())
 				{
 					SaveProfile(LoadedProfile.ToSharedRef());
@@ -409,31 +456,54 @@ void FLauncherProfileManager::LoadProfiles( )
 		}
 	}
 
+	//load and re-save legacy profiles
+	{
+		IFileManager::Get().FindFilesRecursive(ProfileFileNames, *FLauncherProfile::GetProfileFolder(), TEXT("*.ulp"), true, false);
+		for (TArray<FString>::TConstIterator It(ProfileFileNames); It; ++It)
+		{
+			FString ProfileFilePath = *It;
+			FArchive* ProfileFileReader = IFileManager::Get().CreateFileReader(*ProfileFilePath);
+
+			if (ProfileFileReader != nullptr)
+			{
+				ILauncherProfilePtr LoadedProfile = LoadProfile(*ProfileFileReader);
+				delete ProfileFileReader;
+
+				//re-save profile to the new format
+				if (LoadedProfile.IsValid())
+				{
+					if (ProfileFilePath.Contains("NotForLicensees"))
+					{
+						LoadedProfile->SetNotForLicensees();
+					}
+					SaveJSONProfile(LoadedProfile.ToSharedRef());
+				}
+
+				//delete legacy profile.
+				IFileManager::Get().Delete(*ProfileFilePath);
+			}
+		}
+	}
+
 	ProfileFileNames.Reset();
-	IFileManager::Get().FindFilesRecursive(ProfileFileNames, *FLauncherProfile::GetProfileFolder(), TEXT("*.ulp"), true, false);
+	IFileManager::Get().FindFilesRecursive(ProfileFileNames, *FLauncherProfile::GetProfileFolder(), TEXT("*.ulp2"), true, false);
 	
 	for (TArray<FString>::TConstIterator It(ProfileFileNames); It; ++It)
 	{
 		FString ProfileFilePath = *It;
-		FArchive* ProfileFileReader = IFileManager::Get().CreateFileReader(*ProfileFilePath);
+		ILauncherProfilePtr LoadedProfile = LoadJSONProfile(*ProfileFilePath);
 
-		if (ProfileFileReader != nullptr)
+		if (LoadedProfile.IsValid())
 		{
-			ILauncherProfilePtr LoadedProfile = LoadProfile(*ProfileFileReader);
-			delete ProfileFileReader;
-
-			if (LoadedProfile.IsValid())
+			if (ProfileFilePath.Contains("NotForLicensees"))
 			{
-				if (ProfileFilePath.Contains("NotForLicensees"))
-				{
-					LoadedProfile->SetNotForLicensees();
-				}
-				AddProfile(LoadedProfile.ToSharedRef());
+				LoadedProfile->SetNotForLicensees();
 			}
-			else
-			{
-				IFileManager::Get().Delete(*ProfileFilePath);
-			}
+			AddProfile(LoadedProfile.ToSharedRef());
+		}
+		else
+		{
+			IFileManager::Get().Delete(*ProfileFilePath);
 		}
 	}
 }
@@ -518,14 +588,11 @@ void FLauncherProfileManager::SaveSimpleProfiles()
 	for (TArray<ILauncherSimpleProfilePtr>::TIterator It(SimpleProfiles); It; ++It)
 	{
 		FString SimpleProfileFileName = FLauncherProfile::GetProfileFolder() / (*It)->GetDeviceName() + TEXT(".uslp");
-		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*SimpleProfileFileName);
-
-		if (ProfileFileWriter != nullptr)
-		{
-			(*It)->Serialize(*ProfileFileWriter);
-
-			delete ProfileFileWriter;
-		}
+		FString Text;
+		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Text);
+		(*It)->Save(Writer.Get());
+		Writer->Close();
+		FFileHelper::SaveStringToFile(Text, *SimpleProfileFileName);
 	}
 }
 
@@ -534,6 +601,6 @@ void FLauncherProfileManager::SaveProfiles( )
 {
 	for (TArray<ILauncherProfilePtr>::TIterator It(SavedProfiles); It; ++It)
 	{
-		SaveProfile((*It).ToSharedRef());
+		SaveJSONProfile((*It).ToSharedRef());
 	}
 }

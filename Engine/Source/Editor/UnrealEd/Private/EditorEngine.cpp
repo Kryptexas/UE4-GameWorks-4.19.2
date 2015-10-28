@@ -113,6 +113,11 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "PackageTools.h"
 
+#include "FileHelpers.h"
+#if !UE_BUILD_SHIPPING
+#include "AutomationCommon.h"
+#endif
+
 #include "PhysicsPublic.h"
 #include "Engine/CoreSettings.h"
 
@@ -248,6 +253,13 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bAllowMultiplePIEWorlds = true;
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
+
+#if !UE_BUILD_SHIPPING
+	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
+	{
+		AutomationCommon::OnEditorAutomationMapLoadDelegate().AddUObject(this, &UEditorEngine::AutomationLoadMap);
+	}
+#endif
 }
 
 
@@ -6443,6 +6455,85 @@ void UEditorEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type Fa
 	{
 		Super::HandleTravelFailure(InWorld, FailureType, ErrorString);
 	}
+}
+
+void UEditorEngine::AutomationLoadMap(const FString& MapName)
+{
+#if !UE_BUILD_SHIPPING
+	struct FFailedGameStartHandler
+	{
+		bool bCanProceed;
+
+		FFailedGameStartHandler()
+		{
+			bCanProceed = true;
+			FEditorDelegates::EndPIE.AddRaw(this, &FFailedGameStartHandler::OnEndPIE);
+		}
+
+		~FFailedGameStartHandler()
+		{
+			FEditorDelegates::EndPIE.RemoveAll(this);
+		}
+
+		bool CanProceed() const { return bCanProceed; }
+
+		void OnEndPIE(const bool bInSimulateInEditor)
+		{
+			bCanProceed = false;
+		}
+	};
+
+	bool bLoadAsTemplate = false;
+	bool bShowProgress = false;
+
+	bool bNeedLoadEditorMap = true;
+	bool bNeedPieStart = true;
+	bool bPieRunning = false;
+
+	//check existing worlds
+	const TIndirectArray<FWorldContext> WorldContexts = GEngine->GetWorldContexts();
+	for (auto& Context : WorldContexts)
+	{
+		if (Context.World())
+		{
+			if (Context.WorldType == EWorldType::PIE)
+			{
+				//don't quit!  This was triggered while pie was already running!
+				bNeedPieStart = !MapName.Contains(Context.World()->GetName());
+				bPieRunning = true;
+				break;
+			}
+			else if (Context.WorldType == EWorldType::Editor)
+			{
+				bNeedLoadEditorMap = !MapName.Contains(Context.World()->GetName());
+			}
+		}
+	}
+
+	if (bNeedLoadEditorMap)
+	{
+		if (bPieRunning)
+		{
+			GEditor->EndPlayMap();
+		}
+		FEditorFileUtils::LoadMap(*MapName, bLoadAsTemplate, bShowProgress);
+		bNeedPieStart = true;
+	}
+	// special precaution needs to be taken while triggering PIE since it can
+	// fail if there are BP compilation issues
+	if (bNeedPieStart)
+	{
+		FFailedGameStartHandler FailHandler;
+		GEditor->PlayInEditor(GWorld, /*bInSimulateInEditor=*/false);
+		//bCanProceed = FailHandler.CanProceed();
+	}
+
+	//should really be wait until the map is properly loaded....in PIE or gameplay....
+	if (bNeedPieStart)
+	{
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE 

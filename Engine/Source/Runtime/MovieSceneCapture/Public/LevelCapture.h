@@ -10,11 +10,5 @@ class MOVIESCENECAPTURE_API ULevelCapture : public UMovieSceneCapture
 {
 public:
 	GENERATED_BODY()
-
-	/** The level we want to load and capture */
-	UPROPERTY(EditAnywhere, Category="General", meta=(AllowedClasses="World"))
-	FStringAssetReference Level;
-
-	virtual FString GetPackageName() const override { return Level.ToString(); }
-	virtual void Initialize(FViewport* InViewport) override;
+	virtual void Initialize(TWeakPtr<FSceneViewport> InViewport) override;
 };

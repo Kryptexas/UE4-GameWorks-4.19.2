@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "MaterialUniformExpressions.h"
+#include "MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
@@ -236,57 +237,6 @@ static FShaderUniformBufferParameter* ConstructMaterialUniformBufferParameter()
 
 
 static FName MaterialLayoutName(TEXT("Material"));
-
-FRHIUniformBufferLayout* FUniformExpressionSet::CreateDebugLayout() const
-{
-	// Make sure FUniformExpressionSet::CreateBufferStruct() is in sync
-	uint32 NextMemberOffset = 0;
-	FRHIUniformBufferLayout* Layout = new FRHIUniformBufferLayout(MaterialLayoutName);
-	if (UniformVectorExpressions.Num())
-	{
-		const uint32 VectorArraySize = UniformVectorExpressions.Num() * sizeof(FVector4);
-		NextMemberOffset += VectorArraySize;
-	}
-
-	if (UniformScalarExpressions.Num())
-	{
-		const uint32 ScalarArraySize = (UniformScalarExpressions.Num() + 3) / 4 * sizeof(FVector4);
-		NextMemberOffset += ScalarArraySize;
-	}
-
-	Layout->ConstantBufferSize = NextMemberOffset;
-	Layout->ResourceOffset = Align(NextMemberOffset, 8);
-
-	for (int32 i = 0; i < Uniform2DTextureExpressions.Num(); ++i)
-	{
-		check((NextMemberOffset & 0x7) == 0);
-		Layout->Resources.Add(UBMT_TEXTURE);
-		NextMemberOffset += 8;
-		Layout->Resources.Add(UBMT_SAMPLER);
-		NextMemberOffset += 8;
-	}
-
-	for (int32 i = 0; i < UniformCubeTextureExpressions.Num(); ++i)
-	{
-		check((NextMemberOffset & 0x7) == 0);
-		Layout->Resources.Add(UBMT_TEXTURE);
-		NextMemberOffset += 8;
-		Layout->Resources.Add(UBMT_SAMPLER);
-		NextMemberOffset += 8;
-	}
-
-	// Wrap_WorldGroupSettings
-	Layout->Resources.Add(UBMT_SAMPLER);
-	NextMemberOffset += 8;
-
-	// Clamp_WorldGroupSettings
-	Layout->Resources.Add(UBMT_SAMPLER);
-	NextMemberOffset += 8;
-
-	const uint32 StructSize = Align(NextMemberOffset, UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-	Layout->GetHash();
-	return Layout;
-}
 
 void FUniformExpressionSet::CreateBufferStruct()
 {
@@ -561,6 +511,72 @@ bool FMaterialUniformExpressionTexture::IsIdentical(const FMaterialUniformExpres
 	FMaterialUniformExpressionTexture* OtherTextureExpression = (FMaterialUniformExpressionTexture*)OtherExpression;
 
 	return TextureIndex == OtherTextureExpression->TextureIndex;
+}
+
+void FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, FLinearColor& OutValue) const
+{
+	check(IsInGameThread());
+	checkSlow(SourceMaterialToCopyFrom);
+
+	const UMaterialInterface* It = SourceMaterialToCopyFrom;
+
+	for (;;)
+	{
+		const UMaterialInstance* MatInst = Cast<UMaterialInstance>(It);
+
+		if (MatInst)
+		{
+			const FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->VectorParameterValues, ParameterName);
+			if(ParameterValue)
+			{
+				OutValue = ParameterValue->ParameterValue;
+				break;
+			}
+
+			// go up the hierarchy
+			It = MatInst->Parent;
+		}
+		else
+		{
+			// we reached the base material
+			// get the copy form the base material
+			GetDefaultValue(OutValue);
+			break;
+		}
+	}
+}
+
+void FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, float& OutValue) const
+{
+	check(IsInGameThread());
+	checkSlow(SourceMaterialToCopyFrom);
+
+	const UMaterialInterface* It = SourceMaterialToCopyFrom;
+
+	for (;;)
+	{
+		const UMaterialInstance* MatInst = Cast<UMaterialInstance>(It);
+
+		if (MatInst)
+		{
+			const FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->ScalarParameterValues, ParameterName);
+			if(ParameterValue)
+			{
+				OutValue = ParameterValue->ParameterValue;
+				break;
+			}
+
+			// go up the hierarchy
+			It = MatInst->Parent;
+		}
+		else
+		{
+			// we reached the base material
+			// get the copy form the base material
+			GetDefaultValue(OutValue);
+			break;
+		}
+	}
 }
 
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTexture);

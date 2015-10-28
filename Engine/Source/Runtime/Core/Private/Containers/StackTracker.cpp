@@ -12,7 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogStackTracker, Log, All);
  * optionally stores a user data pointer that the tracker will take ownership of and delete upon reset
  * you must allocate the memory with FMemory::Malloc()
  */
-void FStackTracker::CaptureStackTrace(int32 EntriesToIgnore, void* UserData, int32 StackLen)
+void FStackTracker::CaptureStackTrace(int32 EntriesToIgnore, void* UserData, int32 StackLen, bool bLookupStringsForAliasRemoval)
 {
 	// Avoid re-rentrancy as the code uses TArray/TMap.
 	if( !bAvoidCapturing && bIsEnabled )
@@ -31,7 +31,47 @@ void FStackTracker::CaptureStackTrace(int32 EntriesToIgnore, void* UserData, int
 
 		// Skip first NUM_ENTRIES_TO_SKIP entries as they are inside this code
 		uint64* BackTrace = &FullBackTrace[EntriesToIgnore];
-		FMemory::Memzero(BackTrace + StackLen, Size - sizeof(uint64) * (MAX_BACKTRACE_DEPTH - StackLen));
+		if (StackLen < MAX_BACKTRACE_DEPTH)
+		{
+			FMemory::Memzero(BackTrace + StackLen, sizeof(uint64) * (MAX_BACKTRACE_DEPTH - StackLen));
+		}
+		if (bLookupStringsForAliasRemoval)
+		{
+			for (int32 Index = 0; Index < StackLen; Index++)
+			{
+				if (BackTrace[Index])
+				{
+					uint64* Existing = AliasMap.Find(BackTrace[Index]);
+					if (Existing)
+					{
+						BackTrace[Index] = *Existing;
+					}
+					else
+					{
+						ANSICHAR AddressInformation[512];
+						AddressInformation[0] = 0;
+						FPlatformStackWalk::ProgramCounterToHumanReadableString( 1, BackTrace[Index], AddressInformation, ARRAY_COUNT(AddressInformation)-1 );
+						FString Symbol(AddressInformation);
+						int32 Spot = Symbol.Find(TEXT(" - "));
+						if (Spot != INDEX_NONE)
+						{
+							Symbol = Symbol.RightChop(Spot + 3);
+						}
+						Existing = StringAliasMap.Find(Symbol);
+						if (Existing)
+						{
+							AliasMap.Add(BackTrace[Index], *Existing);
+							BackTrace[Index] = *Existing;
+						}
+						else
+						{
+							AliasMap.Add(BackTrace[Index], BackTrace[Index]);
+							StringAliasMap.Add(Symbol, BackTrace[Index]);
+						}
+					}
+				}
+			}
+		}
 		uint32 CRC = FCrc::MemCrc_DEPRECATED( BackTrace, MAX_BACKTRACE_DEPTH * sizeof(uint64) );
         
 		// Use index if found
