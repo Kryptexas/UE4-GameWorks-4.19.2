@@ -5,14 +5,16 @@
 #ifndef NET_SPDY_SPDY_HTTP_STREAM_H_
 #define NET_SPDY_SPDY_HTTP_STREAM_H_
 
+#include <stdint.h>
+
 #include <list>
 
 #include "base/basictypes.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
 #include "net/base/completion_callback.h"
-#include "net/base/net_log.h"
 #include "net/http/http_stream.h"
+#include "net/log/net_log.h"
 #include "net/spdy/spdy_read_queue.h"
 #include "net/spdy/spdy_session.h"
 #include "net/spdy/spdy_stream.h"
@@ -57,19 +59,26 @@ class NET_EXPORT_PRIVATE SpdyHttpStream : public SpdyStream::Delegate,
   void Close(bool not_reusable) override;
   HttpStream* RenewStreamForAuth() override;
   bool IsResponseBodyComplete() const override;
-  bool CanFindEndOfResponse() const override;
 
   // Must not be called if a NULL SpdySession was pssed into the
   // constructor.
   bool IsConnectionReused() const override;
 
   void SetConnectionReused() override;
-  bool IsConnectionReusable() const override;
-  int64 GetTotalReceivedBytes() const override;
+  bool CanReuseConnection() const override;
+  // Total number of bytes received over the network of SPDY data, headers, and
+  // push_promise frames associated with this stream, including the size of
+  // frame headers, after SSL decryption and not including proxy overhead.
+  int64_t GetTotalReceivedBytes() const override;
+  // Total number of bytes sent over the network of SPDY frames associated with
+  // this stream, including the size of frame headers, before SSL encryption and
+  // not including proxy overhead. Note that some SPDY frames such as pings are
+  // not associated with any stream, and are not included in this value.
+  int64_t GetTotalSentBytes() const override;
   bool GetLoadTimingInfo(LoadTimingInfo* load_timing_info) const override;
   void GetSSLInfo(SSLInfo* ssl_info) override;
   void GetSSLCertRequestInfo(SSLCertRequestInfo* cert_request_info) override;
-  bool IsSpdyHttpStream() const override;
+  bool GetRemoteEndpoint(IPEndPoint* endpoint) override;
   void Drain(HttpNetworkSession* session) override;
   void SetPriority(RequestPriority priority) override;
 
@@ -79,6 +88,7 @@ class NET_EXPORT_PRIVATE SpdyHttpStream : public SpdyStream::Delegate,
       const SpdyHeaderBlock& response_headers) override;
   void OnDataReceived(scoped_ptr<SpdyBuffer> buffer) override;
   void OnDataSent() override;
+  void OnTrailers(const SpdyHeaderBlock& trailers) override;
   void OnClose(int status) override;
 
  private:
@@ -118,7 +128,12 @@ class NET_EXPORT_PRIVATE SpdyHttpStream : public SpdyStream::Delegate,
   SpdyStreamId closed_stream_id_;
   bool closed_stream_has_load_timing_info_;
   LoadTimingInfo closed_stream_load_timing_info_;
-  int64 closed_stream_received_bytes_;
+  // After |stream_| has been closed, this keeps track of the total number of
+  // bytes received over the network for |stream_| while it was open.
+  int64_t closed_stream_received_bytes_;
+  // After |stream_| has been closed, this keeps track of the total number of
+  // bytes sent over the network for |stream_| while it was open.
+  int64_t closed_stream_sent_bytes_;
 
   // The request to send.
   const HttpRequestInfo* request_info_;

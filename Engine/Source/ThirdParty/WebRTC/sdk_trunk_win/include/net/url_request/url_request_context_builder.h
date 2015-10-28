@@ -21,22 +21,32 @@
 #include "base/files/file_path.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
+#include "base/memory/scoped_vector.h"
 #include "build/build_config.h"
 #include "net/base/net_export.h"
 #include "net/base/network_delegate.h"
 #include "net/dns/host_resolver.h"
+#include "net/http/http_network_session.h"
 #include "net/proxy/proxy_config_service.h"
 #include "net/proxy/proxy_service.h"
 #include "net/quic/quic_protocol.h"
 #include "net/socket/next_proto.h"
 
+namespace base {
+class SingleThreadTaskRunner;
+}
+
 namespace net {
 
+class ChannelIDService;
+class CookieStore;
 class FtpTransactionFactory;
 class HostMappingRules;
 class HttpAuthHandlerFactory;
+class HttpServerProperties;
 class ProxyConfigService;
 class URLRequestContext;
+class URLRequestInterceptor;
 
 class NET_EXPORT URLRequestContextBuilder {
  public:
@@ -64,14 +74,14 @@ class NET_EXPORT URLRequestContextBuilder {
     HttpNetworkSessionParams();
     ~HttpNetworkSessionParams();
 
-    // These fields mirror those in net::HttpNetworkSession::Params;
+    // These fields mirror those in HttpNetworkSession::Params;
     bool ignore_certificate_errors;
     HostMappingRules* host_mapping_rules;
     uint16 testing_fixed_http_port;
     uint16 testing_fixed_https_port;
     NextProtoVector next_protos;
     std::string trusted_spdy_proxy;
-    bool use_alternate_protocols;
+    bool use_alternative_services;
     bool enable_quic;
     QuicTagVector quic_connection_options;
   };
@@ -79,13 +89,22 @@ class NET_EXPORT URLRequestContextBuilder {
   URLRequestContextBuilder();
   ~URLRequestContextBuilder();
 
+  // Extracts the component pointers required to construct an HttpNetworkSession
+  // and copies them into the Params used to create the session. This function
+  // should be used to ensure that a context and its associated
+  // HttpNetworkSession are consistent.
+  static void SetHttpNetworkSessionComponents(
+      const URLRequestContext* context,
+      HttpNetworkSession::Params* params);
+
   // These functions are mutually exclusive.  The ProxyConfigService, if
   // set, will be used to construct a ProxyService.
-  void set_proxy_config_service(ProxyConfigService* proxy_config_service) {
-    proxy_config_service_.reset(proxy_config_service);
+  void set_proxy_config_service(
+      scoped_ptr<ProxyConfigService> proxy_config_service) {
+    proxy_config_service_ = proxy_config_service.Pass();
   }
-  void set_proxy_service(ProxyService* proxy_service) {
-    proxy_service_.reset(proxy_service);
+  void set_proxy_service(scoped_ptr<ProxyService> proxy_service) {
+    proxy_service_ = proxy_service.Pass();
   }
 
   // Call these functions to specify hard-coded Accept-Language
@@ -117,31 +136,30 @@ class NET_EXPORT URLRequestContextBuilder {
   }
 #endif
 
+  // Unlike the other setters, the builder does not take ownership of the
+  // NetLog.
   // TODO(mmenke):  Probably makes sense to get rid of this, and have consumers
   // set their own NetLog::Observers instead.
-  void set_net_log(NetLog* net_log) {
-    net_log_.reset(net_log);
-  }
+  void set_net_log(NetLog* net_log) { net_log_ = net_log; }
 
   // By default host_resolver is constructed with CreateDefaultResolver.
-  void set_host_resolver(HostResolver* host_resolver) {
-    host_resolver_.reset(host_resolver);
+  void set_host_resolver(scoped_ptr<HostResolver> host_resolver) {
+    host_resolver_ = host_resolver.Pass();
   }
 
   // Uses BasicNetworkDelegate by default. Note that calling Build will unset
   // any custom delegate in builder, so this must be called each time before
   // Build is called.
-  void set_network_delegate(NetworkDelegate* delegate) {
-    network_delegate_.reset(delegate);
+  void set_network_delegate(scoped_ptr<NetworkDelegate> delegate) {
+    network_delegate_ = delegate.Pass();
   }
-
 
   // Adds additional auth handler factories to be used in addition to what is
   // provided in the default |HttpAuthHandlerRegistryFactory|. The auth |scheme|
   // and |factory| are provided. The builder takes ownership of the factory and
   // Build() must be called after this method.
   void add_http_auth_handler_factory(const std::string& scheme,
-                                     net::HttpAuthHandlerFactory* factory) {
+                                     HttpAuthHandlerFactory* factory) {
     extra_http_auth_handlers_.push_back(SchemeFactory(scheme, factory));
   }
 
@@ -149,7 +167,7 @@ class NET_EXPORT URLRequestContextBuilder {
   void EnableHttpCache(const HttpCacheParams& params);
   void DisableHttpCache();
 
-  // Override default net::HttpNetworkSession::Params settings.
+  // Override default HttpNetworkSession::Params settings.
   void set_http_network_session_params(
       const HttpNetworkSessionParams& http_network_session_params) {
     http_network_session_params_ = http_network_session_params;
@@ -174,20 +192,52 @@ class NET_EXPORT URLRequestContextBuilder {
     throttling_enabled_ = throttling_enabled;
   }
 
-  void set_channel_id_enabled(bool enable) {
-    channel_id_enabled_ = enable;
+  void set_backoff_enabled(bool backoff_enabled) {
+    backoff_enabled_ = backoff_enabled;
   }
 
-  URLRequestContext* Build();
+  void SetCertVerifier(scoped_ptr<CertVerifier> cert_verifier);
+
+  void SetInterceptors(
+      ScopedVector<URLRequestInterceptor> url_request_interceptors);
+
+  // Override the default in-memory cookie store and channel id service.
+  // |cookie_store| must not be NULL. |channel_id_service| may be NULL to
+  // disable channel id for this context.
+  // Note that a persistent cookie store should not be used with an in-memory
+  // channel id service, and one cookie store should not be shared between
+  // multiple channel-id stores (or used both with and without a channel id
+  // store).
+  void SetCookieAndChannelIdStores(
+      const scoped_refptr<CookieStore>& cookie_store,
+      scoped_ptr<ChannelIDService> channel_id_service);
+
+  // Sets the task runner used to perform file operations. If not set, one will
+  // be created.
+  void SetFileTaskRunner(
+      const scoped_refptr<base::SingleThreadTaskRunner>& task_runner);
+
+  // Note that if SDCH is enabled without a policy object observing
+  // the SDCH manager and handling at least Get-Dictionary events, the
+  // result will be "Content-Encoding: sdch" advertisements, but no
+  // dictionaries fetches and no specific dictionaries advertised.
+  // SdchOwner in net/sdch/sdch_owner.h is a simple policy object.
+  void set_sdch_enabled(bool enable) { sdch_enabled_ = enable; }
+
+  // Sets a specific HttpServerProperties for use in the
+  // URLRequestContext rather than creating a default HttpServerPropertiesImpl.
+  void SetHttpServerProperties(
+      scoped_ptr<HttpServerProperties> http_server_properties);
+
+  scoped_ptr<URLRequestContext> Build();
 
  private:
   struct NET_EXPORT SchemeFactory {
-    SchemeFactory(const std::string& scheme,
-                  net::HttpAuthHandlerFactory* factory);
+    SchemeFactory(const std::string& scheme, HttpAuthHandlerFactory* factory);
     ~SchemeFactory();
 
     std::string scheme;
-    net::HttpAuthHandlerFactory* factory;
+    HttpAuthHandlerFactory* factory;
   };
 
   std::string accept_language_;
@@ -204,18 +254,25 @@ class NET_EXPORT URLRequestContextBuilder {
 #endif
   bool http_cache_enabled_;
   bool throttling_enabled_;
-  bool channel_id_enabled_;
+  bool backoff_enabled_;
+  bool sdch_enabled_;
 
+  scoped_refptr<base::SingleThreadTaskRunner> file_task_runner_;
   HttpCacheParams http_cache_params_;
   HttpNetworkSessionParams http_network_session_params_;
   base::FilePath transport_security_persister_path_;
-  scoped_ptr<NetLog> net_log_;
+  NetLog* net_log_;
   scoped_ptr<HostResolver> host_resolver_;
+  scoped_ptr<ChannelIDService> channel_id_service_;
   scoped_ptr<ProxyConfigService> proxy_config_service_;
   scoped_ptr<ProxyService> proxy_service_;
   scoped_ptr<NetworkDelegate> network_delegate_;
+  scoped_refptr<CookieStore> cookie_store_;
   scoped_ptr<FtpTransactionFactory> ftp_transaction_factory_;
   std::vector<SchemeFactory> extra_http_auth_handlers_;
+  scoped_ptr<CertVerifier> cert_verifier_;
+  ScopedVector<URLRequestInterceptor> url_request_interceptors_;
+  scoped_ptr<HttpServerProperties> http_server_properties_;
 
   DISALLOW_COPY_AND_ASSIGN(URLRequestContextBuilder);
 };

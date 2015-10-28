@@ -14,41 +14,46 @@
 
 #include <deque>
 
-#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/test/fake_network_pipe.h"
 #include "webrtc/transport.h"
 
 namespace webrtc {
 
+class Call;
 class Clock;
 class PacketReceiver;
 
 namespace test {
 
-class DirectTransport : public newapi::Transport {
+class DirectTransport : public Transport {
  public:
-  DirectTransport();
-  explicit DirectTransport(const FakeNetworkPipe::Config& config);
+  explicit DirectTransport(Call* send_call);
+  DirectTransport(const FakeNetworkPipe::Config& config, Call* send_call);
   ~DirectTransport();
 
   void SetConfig(const FakeNetworkPipe::Config& config);
 
   virtual void StopSending();
+  // TODO(holmer): Look into moving this to the constructor.
   virtual void SetReceiver(PacketReceiver* receiver);
 
-  virtual bool SendRtp(const uint8_t* data, size_t length) OVERRIDE;
-  virtual bool SendRtcp(const uint8_t* data, size_t length) OVERRIDE;
+  bool SendRtp(const uint8_t* data,
+               size_t length,
+               const PacketOptions& options) override;
+  bool SendRtcp(const uint8_t* data, size_t length) override;
 
  private:
   static bool NetworkProcess(void* transport);
   bool SendPackets();
 
-  scoped_ptr<CriticalSectionWrapper> lock_;
-  scoped_ptr<EventWrapper> packet_event_;
-  scoped_ptr<ThreadWrapper> thread_;
+  rtc::CriticalSection lock_;
+  Call* const send_call_;
+  rtc::scoped_ptr<EventWrapper> packet_event_;
+  rtc::scoped_ptr<ThreadWrapper> thread_;
   Clock* const clock_;
 
   bool shutting_down_;

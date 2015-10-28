@@ -30,8 +30,7 @@ class NET_EXPORT_PRIVATE CryptoFramerVisitorInterface {
   virtual void OnError(CryptoFramer* framer) = 0;
 
   // Called when a complete handshake message has been parsed.
-  virtual void OnHandshakeMessage(
-      const CryptoHandshakeMessage& message) = 0;
+  virtual void OnHandshakeMessage(const CryptoHandshakeMessage& message) = 0;
 };
 
 // A class for framing the crypto messages that are exchanged in a QUIC
@@ -104,7 +103,7 @@ class NET_EXPORT_PRIVATE CryptoFramer {
   uint16 num_entries_;
   // tags_and_lengths_ contains the tags that are currently being parsed and
   // their lengths.
-  std::vector<std::pair<QuicTag, size_t> > tags_and_lengths_;
+  std::vector<std::pair<QuicTag, size_t>> tags_and_lengths_;
   // Cumulative length of all values in the message currently being parsed.
   size_t values_len_;
 };

@@ -14,8 +14,8 @@
 #include <vector>
 #include <map>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module_typedefs.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/testsupport/gtest_prod_util.h"
 
 //
@@ -59,7 +59,7 @@ class Nack {
   // Factory method.
   static Nack* Create(int nack_threshold_packets);
 
-  ~Nack() {}
+  ~Nack();
 
   // Set a maximum for the size of the NACK list. If the last received packet
   // has sequence number of N, then NACK list will not contain any element

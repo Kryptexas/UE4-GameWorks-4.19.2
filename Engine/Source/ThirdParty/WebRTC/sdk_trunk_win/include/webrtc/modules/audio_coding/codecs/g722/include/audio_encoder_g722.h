@@ -11,54 +11,62 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_CODECS_G722_INCLUDE_AUDIO_ENCODER_G722_H_
 #define WEBRTC_MODULES_AUDIO_CODING_CODECS_G722_INCLUDE_AUDIO_ENCODER_G722_H_
 
+#include "webrtc/base/buffer.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/audio_coding/codecs/audio_encoder.h"
 #include "webrtc/modules/audio_coding/codecs/g722/include/g722_interface.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
-class AudioEncoderG722 : public AudioEncoder {
+struct CodecInst;
+
+class AudioEncoderG722 final : public AudioEncoder {
  public:
   struct Config {
-    Config() : payload_type(9), frame_size_ms(20), num_channels(1) {}
+    bool IsOk() const;
 
-    int payload_type;
-    int frame_size_ms;
-    int num_channels;
+    int payload_type = 9;
+    int frame_size_ms = 20;
+    int num_channels = 1;
   };
 
   explicit AudioEncoderG722(const Config& config);
-  virtual ~AudioEncoderG722();
+  explicit AudioEncoderG722(const CodecInst& codec_inst);
+  ~AudioEncoderG722() override;
 
-  virtual int sample_rate_hz() const OVERRIDE;
-  virtual int num_channels() const OVERRIDE;
-  virtual int Num10MsFramesInNextPacket() const OVERRIDE;
-  virtual int Max10MsFramesInAPacket() const OVERRIDE;
-
- protected:
-  virtual bool EncodeInternal(uint32_t timestamp,
-                              const int16_t* audio,
-                              size_t max_encoded_bytes,
-                              uint8_t* encoded,
-                              EncodedInfo* info) OVERRIDE;
+  size_t MaxEncodedBytes() const override;
+  int SampleRateHz() const override;
+  int NumChannels() const override;
+  int RtpTimestampRateHz() const override;
+  size_t Num10MsFramesInNextPacket() const override;
+  size_t Max10MsFramesInAPacket() const override;
+  int GetTargetBitrate() const override;
+  EncodedInfo EncodeInternal(uint32_t rtp_timestamp,
+                             const int16_t* audio,
+                             size_t max_encoded_bytes,
+                             uint8_t* encoded) override;
+  void Reset() override;
 
  private:
   // The encoder state for one channel.
   struct EncoderState {
     G722EncInst* encoder;
-    scoped_ptr<int16_t[]> speech_buffer;  // Queued up for encoding.
-    scoped_ptr<uint8_t[]> encoded_buffer;  // Already encoded.
+    rtc::scoped_ptr<int16_t[]> speech_buffer;   // Queued up for encoding.
+    rtc::Buffer encoded_buffer;                 // Already encoded.
     EncoderState();
     ~EncoderState();
   };
 
+  size_t SamplesPerChannel() const;
+
   const int num_channels_;
   const int payload_type_;
-  const int num_10ms_frames_per_packet_;
-  int num_10ms_frames_buffered_;
+  const size_t num_10ms_frames_per_packet_;
+  size_t num_10ms_frames_buffered_;
   uint32_t first_timestamp_in_buffer_;
-  const scoped_ptr<EncoderState[]> encoders_;
-  const scoped_ptr<uint8_t[]> interleave_buffer_;
+  const rtc::scoped_ptr<EncoderState[]> encoders_;
+  rtc::Buffer interleave_buffer_;
+  RTC_DISALLOW_COPY_AND_ASSIGN(AudioEncoderG722);
 };
 
 }  // namespace webrtc

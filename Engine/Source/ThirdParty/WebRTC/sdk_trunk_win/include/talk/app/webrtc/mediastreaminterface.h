@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -115,7 +115,16 @@ class MediaStreamTrackInterface : public rtc::RefCountInterface,
 // Interface for rendering VideoFrames from a VideoTrack
 class VideoRendererInterface {
  public:
-  virtual void SetSize(int width, int height) = 0;
+  // TODO(guoweis): Remove this function.  Obsolete. The implementation of
+  // VideoRendererInterface should be able to handle different frame size as
+  // well as pending rotation. If it can't apply the frame rotation by itself,
+  // it should call |frame|.GetCopyWithRotationApplied() to get a frame that has
+  // the rotation applied.
+  virtual void SetSize(int width, int height) {}
+
+  // |frame| may have pending rotation. For clients which can't apply rotation,
+  // |frame|->GetCopyWithRotationApplied() will return a frame that has the
+  // rotation applied.
   virtual void RenderFrame(const cricket::VideoFrame* frame) = 0;
 
  protected:
@@ -169,7 +178,7 @@ class AudioTrackSinkInterface {
                       int bits_per_sample,
                       int sample_rate,
                       int number_of_channels,
-                      int number_of_frames) = 0;
+                      size_t number_of_frames) = 0;
  protected:
   virtual ~AudioTrackSinkInterface() {}
 };

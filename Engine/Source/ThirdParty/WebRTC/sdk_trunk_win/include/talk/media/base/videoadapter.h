@@ -1,27 +1,29 @@
-// libjingle
-// Copyright 2010 Google Inc.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//  1. Redistributions of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
-//  3. The name of the author may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+/*
+ * libjingle
+ * Copyright 2010 Google Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #ifndef TALK_MEDIA_BASE_VIDEOADAPTER_H_  // NOLINT
 #define TALK_MEDIA_BASE_VIDEOADAPTER_H_
@@ -51,28 +53,14 @@ class VideoAdapter {
   int GetOutputNumPixels() const;
 
   const VideoFormat& input_format();
-  // Returns true if the adapter is dropping frames in calls to AdaptFrame.
+  // Returns true if the adapter will always return zero size from
+  // AdaptFrameResolution.
   bool drops_all_frames() const;
   const VideoFormat& output_format();
-  // If the parameter black is true, the adapted frames will be black.
-  void SetBlackOutput(bool black);
-  bool IsBlackOutput();
 
   // Return the adapted resolution given the input resolution. The returned
   // resolution will be 0x0 if the frame should be dropped.
   VideoFormat AdaptFrameResolution(int in_width, int in_height);
-
-  // Adapt the input frame from the input format to the output format. Return
-  // true and set the output frame to NULL if the input frame is dropped. Return
-  // true and set the out frame to output_frame_ if the input frame is adapted
-  // successfully. Return false otherwise.
-  // Note that, if no adaptation is required, |out_frame| will refer directly
-  // in_frame. If a copy is always required, the caller must do an explicit
-  // copy.
-  // If a copy has taken place, |output_frame_| is owned by the VideoAdapter
-  // and will remain usable until the adapter is destroyed or AdaptFrame is
-  // called again.
-  bool AdaptFrame(VideoFrame* in_frame, VideoFrame** out_frame);
 
   void set_scale_third(bool enable);
   bool scale_third() const { return scale_third_; }
@@ -89,7 +77,6 @@ class VideoAdapter {
   float FindScale(const float* scale_factors,
                   const float upbias, int width, int height,
                   int target_num_pixels);
-  bool StretchToOutputFrame(const VideoFrame* in_frame);
 
   VideoFormat input_format_;
   VideoFormat output_format_;
@@ -101,14 +88,11 @@ class VideoAdapter {
   int adaption_changes_;  // Number of changes in scale factor.
   size_t previous_width_;  // Previous adapter output width.
   size_t previous_height_;  // Previous adapter output height.
-  bool black_output_;  // Flag to tell if we need to black output_frame_.
-  bool is_black_;  // Flag to tell if output_frame_ is currently black.
-  int64 interval_next_frame_;
-  rtc::scoped_ptr<VideoFrame> output_frame_;
+  int64_t interval_next_frame_;
   // The critical section to protect the above variables.
   rtc::CriticalSection critical_section_;
 
-  DISALLOW_COPY_AND_ASSIGN(VideoAdapter);
+  RTC_DISALLOW_COPY_AND_ASSIGN(VideoAdapter);
 };
 
 // CoordinatedVideoAdapter adapts the video input to the encoder by coordinating
@@ -206,7 +190,7 @@ class CoordinatedVideoAdapter
   // Video formats that the server view requests, the CPU wants, and the encoder
   // wants respectively. The adapted output format is the minimum of these.
   int view_desired_num_pixels_;
-  int64 view_desired_interval_;
+  int64_t view_desired_interval_;
   int encoder_desired_num_pixels_;
   int cpu_desired_num_pixels_;
   CoordinatedVideoAdapter::AdaptReason adapt_reason_;
@@ -217,7 +201,7 @@ class CoordinatedVideoAdapter
   // adaptation is on), but only used if cpu_smoothing_ is set.
   float system_load_average_;
 
-  DISALLOW_COPY_AND_ASSIGN(CoordinatedVideoAdapter);
+  RTC_DISALLOW_COPY_AND_ASSIGN(CoordinatedVideoAdapter);
 };
 
 }  // namespace cricket

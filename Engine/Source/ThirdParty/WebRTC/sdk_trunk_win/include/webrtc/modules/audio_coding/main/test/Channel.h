@@ -50,13 +50,12 @@ class Channel : public AudioPacketizationCallback {
   Channel(int16_t chID = -1);
   ~Channel();
 
-  virtual int32_t SendData(
-      FrameType frameType,
-      uint8_t payloadType,
-      uint32_t timeStamp,
-      const uint8_t* payloadData,
-      size_t payloadSize,
-      const RTPFragmentationHeader* fragmentation) OVERRIDE;
+  int32_t SendData(FrameType frameType,
+                   uint8_t payloadType,
+                   uint32_t timeStamp,
+                   const uint8_t* payloadData,
+                   size_t payloadSize,
+                   const RTPFragmentationHeader* fragmentation) override;
 
   void RegisterReceiverACM(AudioCodingModule *acm);
 
@@ -66,7 +65,7 @@ class Channel : public AudioPacketizationCallback {
 
   void Stats(uint32_t* numPackets);
 
-  void Stats(uint8_t* payloadLenByte, uint32_t* payloadType);
+  void Stats(uint8_t* payloadType, uint32_t* payloadLenByte);
 
   void PrintStats(CodecInst& codecInst);
 
@@ -111,6 +110,8 @@ class Channel : public AudioPacketizationCallback {
   WebRtcRTPHeader _rtpInfo;
   bool _leftChannel;
   uint32_t _lastInTimestamp;
+  bool _useLastFrameSize;
+  uint32_t _lastFrameSizeSample;
   // FEC Test variables
   int16_t _packetLoss;
   bool _useFECTestWithPacketLoss;

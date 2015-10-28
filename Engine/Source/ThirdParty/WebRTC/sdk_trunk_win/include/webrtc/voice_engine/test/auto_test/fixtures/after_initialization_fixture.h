@@ -13,10 +13,13 @@
 
 #include <deque>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_types.h"
+#include "webrtc/modules/rtp_rtcp/source/byte_io.h"
+#include "webrtc/system_wrappers/interface/atomic32.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/system_wrappers/interface/sleep.h"
 #include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/voice_engine/test/auto_test/fixtures/before_initialization_fixture.h"
 
@@ -24,27 +27,45 @@ class TestErrorObserver;
 
 class LoopBackTransport : public webrtc::Transport {
  public:
-  LoopBackTransport(webrtc::VoENetwork* voe_network)
+  LoopBackTransport(webrtc::VoENetwork* voe_network, int channel)
       : crit_(webrtc::CriticalSectionWrapper::CreateCriticalSection()),
         packet_event_(webrtc::EventWrapper::Create()),
-        thread_(webrtc::ThreadWrapper::CreateThread(NetworkProcess, this)),
-        voe_network_(voe_network) {
-    unsigned int id;
-    thread_->Start(id);
+        thread_(webrtc::ThreadWrapper::CreateThread(NetworkProcess,
+                                                    this,
+                                                    "LoopBackTransport")),
+        channel_(channel),
+        voe_network_(voe_network),
+        transmitted_packets_(0) {
+    thread_->Start();
   }
 
   ~LoopBackTransport() { thread_->Stop(); }
 
-  virtual int SendPacket(int channel, const void* data, size_t len) OVERRIDE {
-    StorePacket(Packet::Rtp, channel, data, len);
-    return static_cast<int>(len);
+  bool SendRtp(const uint8_t* data,
+               size_t len,
+               const webrtc::PacketOptions& options) override {
+    StorePacket(Packet::Rtp, data, len);
+    return true;
   }
 
-  virtual int SendRTCPPacket(int channel,
-                             const void* data,
-                             size_t len) OVERRIDE {
-    StorePacket(Packet::Rtcp, channel, data, len);
-    return static_cast<int>(len);
+  bool SendRtcp(const uint8_t* data, size_t len) override {
+    StorePacket(Packet::Rtcp, data, len);
+    return true;
+  }
+
+  void WaitForTransmittedPackets(int32_t packet_count) {
+    enum {
+      kSleepIntervalMs = 10
+    };
+    int32_t limit = transmitted_packets_.Value() + packet_count;
+    while (transmitted_packets_.Value() < limit) {
+      webrtc::SleepMs(kSleepIntervalMs);
+    }
+  }
+
+  void AddChannel(uint32_t ssrc, int channel) {
+    webrtc::CriticalSectionScoped lock(crit_.get());
+    channels_[ssrc] = channel;
   }
 
  private:
@@ -52,22 +73,23 @@ class LoopBackTransport : public webrtc::Transport {
     enum Type { Rtp, Rtcp, } type;
 
     Packet() : len(0) {}
-    Packet(Type type, int channel, const void* data, size_t len)
-        : type(type), channel(channel), len(len) {
+    Packet(Type type, const void* data, size_t len)
+        : type(type), len(len) {
       assert(len <= 1500);
       memcpy(this->data, data, len);
     }
 
-    int channel;
     uint8_t data[1500];
     size_t len;
   };
 
-  void StorePacket(Packet::Type type, int channel,
+  void StorePacket(Packet::Type type,
                    const void* data,
                    size_t len) {
-    webrtc::CriticalSectionScoped lock(crit_.get());
-    packet_queue_.push_back(Packet(type, channel, data, len));
+    {
+      webrtc::CriticalSectionScoped lock(crit_.get());
+      packet_queue_.push_back(Packet(type, data, len));
+    }
     packet_event_->Set();
   }
 
@@ -78,7 +100,6 @@ class LoopBackTransport : public webrtc::Transport {
   bool SendPackets() {
     switch (packet_event_->Wait(10)) {
       case webrtc::kEventSignaled:
-        packet_event_->Reset();
         break;
       case webrtc::kEventTimeout:
         break;
@@ -89,32 +110,49 @@ class LoopBackTransport : public webrtc::Transport {
 
     while (true) {
       Packet p;
+      int channel = channel_;
       {
         webrtc::CriticalSectionScoped lock(crit_.get());
         if (packet_queue_.empty())
           break;
         p = packet_queue_.front();
         packet_queue_.pop_front();
+
+        if (p.type == Packet::Rtp) {
+          uint32_t ssrc =
+              webrtc::ByteReader<uint32_t>::ReadBigEndian(&p.data[8]);
+          if (channels_[ssrc] != 0)
+            channel = channels_[ssrc];
+        }
+        // TODO(pbos): Add RTCP SSRC muxing/demuxing if anything requires it.
       }
+
+      // Minimum RTP header size.
+      if (p.len < 12)
+        continue;
 
       switch (p.type) {
         case Packet::Rtp:
-          voe_network_->ReceivedRTPPacket(p.channel, p.data, p.len,
+          voe_network_->ReceivedRTPPacket(channel, p.data, p.len,
                                           webrtc::PacketTime());
           break;
         case Packet::Rtcp:
-          voe_network_->ReceivedRTCPPacket(p.channel, p.data, p.len);
+          voe_network_->ReceivedRTCPPacket(channel, p.data, p.len);
           break;
       }
+      ++transmitted_packets_;
     }
     return true;
   }
 
-  webrtc::scoped_ptr<webrtc::CriticalSectionWrapper> crit_;
-  webrtc::scoped_ptr<webrtc::EventWrapper> packet_event_;
-  webrtc::scoped_ptr<webrtc::ThreadWrapper> thread_;
+  const rtc::scoped_ptr<webrtc::CriticalSectionWrapper> crit_;
+  const rtc::scoped_ptr<webrtc::EventWrapper> packet_event_;
+  const rtc::scoped_ptr<webrtc::ThreadWrapper> thread_;
   std::deque<Packet> packet_queue_ GUARDED_BY(crit_.get());
+  const int channel_;
+  std::map<uint32_t, int> channels_ GUARDED_BY(crit_.get());
   webrtc::VoENetwork* const voe_network_;
+  webrtc::Atomic32 transmitted_packets_;
 };
 
 // This fixture initializes the voice engine in addition to the work
@@ -128,7 +166,7 @@ class AfterInitializationFixture : public BeforeInitializationFixture {
   virtual ~AfterInitializationFixture();
 
  protected:
-  webrtc::scoped_ptr<TestErrorObserver> error_observer_;
+  rtc::scoped_ptr<TestErrorObserver> error_observer_;
 };
 
 #endif  // SRC_VOICE_ENGINE_MAIN_TEST_AUTO_TEST_STANDARD_TEST_BASE_AFTER_INIT_H_

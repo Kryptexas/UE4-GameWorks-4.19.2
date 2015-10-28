@@ -95,9 +95,7 @@ class FilesystemInterface {
 
   // Returns a DirectoryIterator for a given pathname.
   // TODO: Do fancy abstracted stuff
-  virtual DirectoryIterator *IterateDirectory() {
-    return new DirectoryIterator();
-  }
+  virtual DirectoryIterator* IterateDirectory();
 
   // Opens a file. Returns an open StreamInterface if function succeeds.
   // Otherwise, returns NULL.
@@ -133,9 +131,7 @@ class FilesystemInterface {
 
   // This deletes the contents of a folder, recursively, and then deletes
   // the folder itself.
-  virtual bool DeleteFolderAndContents(const Pathname &folder) {
-    return DeleteFolderContents(folder) && DeleteEmptyFolder(folder);
-  }
+  virtual bool DeleteFolderAndContents(const Pathname& folder);
 
   // This will delete whatever is located at path, be it a file or a folder.
   // If it is a folder, it will delete it recursively by calling
@@ -238,7 +234,7 @@ class FilesystemInterface {
   // Delete the contents of the folder returned by GetAppTempFolder
   bool CleanAppTempFolder();
 
-  virtual bool GetDiskFreeSpace(const Pathname& path, int64 *freebytes) = 0;
+  virtual bool GetDiskFreeSpace(const Pathname& path, int64_t* freebytes) = 0;
 
   // Returns the absolute path of the current directory.
   virtual Pathname GetCurrentDirectory() = 0;
@@ -383,7 +379,7 @@ class Filesystem {
     return EnsureDefaultFilesystem()->CleanAppTempFolder();
   }
 
-  static bool GetDiskFreeSpace(const Pathname& path, int64 *freebytes) {
+  static bool GetDiskFreeSpace(const Pathname& path, int64_t* freebytes) {
     return EnsureDefaultFilesystem()->GetDiskFreeSpace(path, freebytes);
   }
 
@@ -411,7 +407,7 @@ class Filesystem {
   static FilesystemInterface* default_filesystem_;
 
   static FilesystemInterface *EnsureDefaultFilesystem();
-  DISALLOW_IMPLICIT_CONSTRUCTORS(Filesystem);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(Filesystem);
 };
 
 class FilesystemScope{
@@ -424,7 +420,7 @@ class FilesystemScope{
   }
  private:
   FilesystemInterface* old_fs_;
-  DISALLOW_IMPLICIT_CONSTRUCTORS(FilesystemScope);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(FilesystemScope);
 };
 
 // Generates a unique filename based on the input path.  If no path component

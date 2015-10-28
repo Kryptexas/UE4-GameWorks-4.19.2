@@ -6,7 +6,7 @@
 #define NET_SOCKET_UDP_SERVER_SOCKET_H_
 
 #include "net/base/completion_callback.h"
-#include "net/base/net_util.h"
+#include "net/base/ip_address_number.h"
 #include "net/udp/datagram_server_socket.h"
 #include "net/udp/udp_socket.h"
 
@@ -46,6 +46,12 @@ class NET_EXPORT UDPServerSocket : public DatagramServerSocket {
   int SetMulticastLoopbackMode(bool loopback) override;
   int SetDiffServCodePoint(DiffServCodePoint dscp) override;
   void DetachFromThread() override;
+
+#if defined(OS_WIN)
+  // Switch to use non-blocking IO. Must be called right after construction and
+  // before other calls.
+  void UseNonBlockingIO();
+#endif
 
  private:
   UDPSocket socket_;

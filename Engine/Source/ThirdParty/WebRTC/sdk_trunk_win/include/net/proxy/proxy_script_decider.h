@@ -15,9 +15,9 @@
 #include "net/base/address_list.h"
 #include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/dns/host_resolver.h"
 #include "net/dns/single_request_host_resolver.h"
+#include "net/log/net_log.h"
 #include "net/proxy/proxy_config.h"
 #include "net/proxy/proxy_resolver.h"
 #include "url/gurl.h"
@@ -72,12 +72,11 @@ class NET_EXPORT_PRIVATE ProxyScriptDecider {
   int Start(const ProxyConfig& config,
             const base::TimeDelta wait_delay,
             bool fetch_pac_bytes,
-            const net::CompletionCallback& callback);
+            const CompletionCallback& callback);
 
   const ProxyConfig& effective_config() const;
 
-  // TODO(eroman): Return a const-pointer.
-  ProxyResolverScriptData* script_data() const;
+  const scoped_refptr<ProxyResolverScriptData>& script_data() const;
 
   void set_quick_check_enabled(bool enabled) {
     quick_check_enabled_ = enabled;
@@ -101,8 +100,9 @@ class NET_EXPORT_PRIVATE ProxyScriptDecider {
     // Returns a Value representing the PacSource.  |effective_pac_url| must
     // be non-NULL and point to the URL derived from information contained in
     // |this|, if Type is not WPAD_DHCP.
-    base::Value* NetLogCallback(const GURL* effective_pac_url,
-                                NetLog::LogLevel log_level) const;
+    scoped_ptr<base::Value> NetLogCallback(
+        const GURL* effective_pac_url,
+        NetLogCaptureMode capture_mode) const;
 
     Type type;
     GURL url;  // Empty unless |type == PAC_SOURCE_CUSTOM|.
@@ -163,7 +163,7 @@ class NET_EXPORT_PRIVATE ProxyScriptDecider {
   ProxyScriptFetcher* proxy_script_fetcher_;
   DhcpProxyScriptFetcher* dhcp_proxy_script_fetcher_;
 
-  net::CompletionCallback callback_;
+  CompletionCallback callback_;
 
   size_t current_pac_source_index_;
 
@@ -185,7 +185,7 @@ class NET_EXPORT_PRIVATE ProxyScriptDecider {
   bool fetch_pac_bytes_;
 
   base::TimeDelta wait_delay_;
-  base::OneShotTimer<ProxyScriptDecider> wait_timer_;
+  base::OneShotTimer wait_timer_;
 
   // Whether to do DNS quick check
   bool quick_check_enabled_;
@@ -195,7 +195,7 @@ class NET_EXPORT_PRIVATE ProxyScriptDecider {
   scoped_refptr<ProxyResolverScriptData> script_data_;
 
   AddressList wpad_addresses_;
-  base::OneShotTimer<ProxyScriptDecider> quick_check_timer_;
+  base::OneShotTimer quick_check_timer_;
   scoped_ptr<SingleRequestHostResolver> host_resolver_;
   base::Time quick_check_start_time_;
 

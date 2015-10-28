@@ -10,10 +10,10 @@
 
 #include "base/basictypes.h"
 #include "base/compiler_specific.h"
+#include "net/base/ip_address_number.h"
 #include "net/base/ip_endpoint.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
-#include "net/base/net_util.h"
+#include "net/log/net_log.h"
 
 struct addrinfo;
 
@@ -29,7 +29,7 @@ class NET_EXPORT AddressList
   explicit AddressList(const IPEndPoint& endpoint);
 
   static AddressList CreateFromIPAddress(const IPAddressNumber& address,
-                                         uint16 port);
+                                         uint16_t port);
 
   static AddressList CreateFromIPAddressList(
       const IPAddressList& addresses,
@@ -39,7 +39,7 @@ class NET_EXPORT AddressList
   static AddressList CreateFromAddrinfo(const struct addrinfo* head);
 
   // Returns a copy of |list| with port on each element set to |port|.
-  static AddressList CopyWithPort(const AddressList& list, uint16 port);
+  static AddressList CopyWithPort(const AddressList& list, uint16_t port);
 
   // TODO(szym): Remove all three. http://crbug.com/126134
   const std::string& canonical_name() const {

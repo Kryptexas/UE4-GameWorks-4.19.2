@@ -12,18 +12,21 @@
 #define WEBRTC_MODULES_RTP_RTCP_SOURCE_RTCP_SENDER_H_
 
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/base/thread_annotations.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "webrtc/modules/rtp_rtcp/interface/receive_statistics.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
+#include "webrtc/modules/rtp_rtcp/source/rtcp_packet.h"
 #include "webrtc/modules/rtp_rtcp/source/rtcp_utility.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 #include "webrtc/modules/rtp_rtcp/source/tmmbr_help.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/transport.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -31,24 +34,22 @@ namespace webrtc {
 class ModuleRtpRtcpImpl;
 class RTCPReceiver;
 
-class NACKStringBuilder
-{
-public:
-    NACKStringBuilder();
-    ~NACKStringBuilder();
+class NACKStringBuilder {
+ public:
+  NACKStringBuilder();
+  ~NACKStringBuilder();
 
-    void PushNACK(uint16_t nack);
-    std::string GetResult();
+  void PushNACK(uint16_t nack);
+  std::string GetResult();
 
-private:
-    std::ostringstream _stream;
-    int _count;
-    uint16_t _prevNack;
-    bool _consecutive;
+ private:
+  std::ostringstream stream_;
+  int count_;
+  uint16_t prevNack_;
+  bool consecutive_;
 };
 
-class RTCPSender
-{
+class RTCPSender {
 public:
  struct FeedbackState {
    FeedbackState();
@@ -69,288 +70,256 @@ public:
    // Used when generating TMMBR.
    ModuleRtpRtcpImpl* module;
  };
- RTCPSender(int32_t id,
-            bool audio,
+
+ RTCPSender(bool audio,
             Clock* clock,
-            ReceiveStatistics* receive_statistics);
-    virtual ~RTCPSender();
+            ReceiveStatistics* receive_statistics,
+            RtcpPacketTypeCounterObserver* packet_type_counter_observer,
+            Transport* outgoing_transport);
+ virtual ~RTCPSender();
 
-    int32_t RegisterSendTransport(Transport* outgoingTransport);
+ RtcpMode Status() const;
+ void SetRTCPStatus(RtcpMode method);
 
-    RTCPMethod Status() const;
-    void SetRTCPStatus(RTCPMethod method);
+ bool Sending() const;
+ int32_t SetSendingStatus(const FeedbackState& feedback_state,
+                          bool enabled);  // combine the functions
 
-    bool Sending() const;
-    int32_t SetSendingStatus(const FeedbackState& feedback_state,
-                             bool enabled);  // combine the functions
+ int32_t SetNackStatus(bool enable);
 
-    int32_t SetNackStatus(bool enable);
+ void SetStartTimestamp(uint32_t start_timestamp);
 
-    void SetStartTimestamp(uint32_t start_timestamp);
+ void SetLastRtpTime(uint32_t rtp_timestamp, int64_t capture_time_ms);
 
-    void SetLastRtpTime(uint32_t rtp_timestamp,
-                        int64_t capture_time_ms);
+ void SetSSRC(uint32_t ssrc);
 
-    void SetSSRC(uint32_t ssrc);
+ void SetRemoteSSRC(uint32_t ssrc);
 
-    void SetRemoteSSRC(uint32_t ssrc);
+ int32_t SetCNAME(const char* cName);
 
-    int32_t SetCameraDelay(int32_t delayMS);
+ int32_t AddMixedCNAME(uint32_t SSRC, const char* c_name);
 
-    int32_t SetCNAME(const char cName[RTCP_CNAME_SIZE]);
+ int32_t RemoveMixedCNAME(uint32_t SSRC);
 
-    int32_t AddMixedCNAME(uint32_t SSRC, const char cName[RTCP_CNAME_SIZE]);
+ int64_t SendTimeOfSendReport(uint32_t sendReport);
 
-    int32_t RemoveMixedCNAME(uint32_t SSRC);
+ bool SendTimeOfXrRrReport(uint32_t mid_ntp, int64_t* time_ms) const;
 
-    int64_t SendTimeOfSendReport(uint32_t sendReport);
+ bool TimeToSendRTCPReport(bool sendKeyframeBeforeRTP = false) const;
 
-    bool SendTimeOfXrRrReport(uint32_t mid_ntp, int64_t* time_ms) const;
+ int32_t SendRTCP(const FeedbackState& feedback_state,
+                  RTCPPacketType packetType,
+                  int32_t nackSize = 0,
+                  const uint16_t* nackList = 0,
+                  bool repeat = false,
+                  uint64_t pictureID = 0);
 
-    bool TimeToSendRTCPReport(bool sendKeyframeBeforeRTP = false) const;
+ int32_t SendCompoundRTCP(const FeedbackState& feedback_state,
+                          const std::set<RTCPPacketType>& packetTypes,
+                          int32_t nackSize = 0,
+                          const uint16_t* nackList = 0,
+                          bool repeat = false,
+                          uint64_t pictureID = 0);
 
-    uint32_t LastSendReport(int64_t& lastRTCPTime);
+ bool REMB() const;
 
-    int32_t SendRTCP(
-        const FeedbackState& feedback_state,
-        uint32_t rtcpPacketTypeFlags,
-        int32_t nackSize = 0,
-        const uint16_t* nackList = 0,
-        bool repeat = false,
-        uint64_t pictureID = 0);
+ void SetREMBStatus(bool enable);
 
-    int32_t AddExternalReportBlock(
-            uint32_t SSRC,
-            const RTCPReportBlock* receiveBlock);
+ void SetREMBData(uint32_t bitrate, const std::vector<uint32_t>& ssrcs);
 
-    int32_t RemoveExternalReportBlock(uint32_t SSRC);
+ bool TMMBR() const;
 
-    /*
-    *  REMB
-    */
-    bool REMB() const;
+ void SetTMMBRStatus(bool enable);
 
-    void SetREMBStatus(bool enable);
+ int32_t SetTMMBN(const TMMBRSet* boundingSet, uint32_t maxBitrateKbit);
 
-    void SetREMBData(uint32_t bitrate, const std::vector<uint32_t>& ssrcs);
+ int32_t SetApplicationSpecificData(uint8_t subType,
+                                    uint32_t name,
+                                    const uint8_t* data,
+                                    uint16_t length);
+ int32_t SetRTCPVoIPMetrics(const RTCPVoIPMetric* VoIPMetric);
 
-    /*
-    *   TMMBR
-    */
-    bool TMMBR() const;
+ void SendRtcpXrReceiverReferenceTime(bool enable);
 
-    void SetTMMBRStatus(bool enable);
+ bool RtcpXrReceiverReferenceTime() const;
 
-    int32_t SetTMMBN(const TMMBRSet* boundingSet, uint32_t maxBitrateKbit);
+ void SetCsrcs(const std::vector<uint32_t>& csrcs);
 
-    /*
-    *   Extended jitter report
-    */
-    bool IJ() const;
-
-    void SetIJStatus(bool enable);
-
-    /*
-    *
-    */
-
-    int32_t SetApplicationSpecificData(uint8_t subType,
-                                       uint32_t name,
-                                       const uint8_t* data,
-                                       uint16_t length);
-
-    int32_t SetRTCPVoIPMetrics(const RTCPVoIPMetric* VoIPMetric);
-
-    void SendRtcpXrReceiverReferenceTime(bool enable);
-
-    bool RtcpXrReceiverReferenceTime() const;
-
-    void SetCsrcs(const std::vector<uint32_t>& csrcs);
-
-    void SetTargetBitrate(unsigned int target_bitrate);
-
-    void GetPacketTypeCounter(RtcpPacketTypeCounter* packet_counter) const;
+ void SetTargetBitrate(unsigned int target_bitrate);
+ bool SendFeedbackPacket(const rtcp::TransportFeedback& packet);
 
 private:
+ struct RtcpContext;
+
+ // The BuildResult indicates the outcome of a call to a builder method,
+ // constructing a part of an RTCP packet:
+ //
+ // kError
+ //   Building RTCP packet failed, propagate error out to caller.
+ // kAbort
+ //   The (partial) block being build should not be included. Reset current
+ //   buffer position to the state before the method call and proceed to the
+ //   next packet type.
+ // kTruncated
+ //   There is not enough room in the buffer to fit the data being constructed.
+ //   (IP packet is full). Proceed to the next packet type, and call this
+ //   method again when a new buffer has been allocated.
+ // TODO(sprang): Actually allocate multiple packets if needed.
+ // kSuccess
+ //   Data has been successfully placed in the buffer.
+
+ enum class BuildResult { kError, kAborted, kTruncated, kSuccess };
+
  int32_t SendToNetwork(const uint8_t* dataBuffer, size_t length);
 
- int32_t WriteAllReportBlocksToBuffer(uint8_t* rtcpbuffer,
-                                      int pos,
-                                      uint8_t& numberOfReportBlocks,
-                                      uint32_t NTPsec,
-                                      uint32_t NTPfrac)
-     EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
+ int32_t AddReportBlock(const RTCPReportBlock& report_block)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
 
-    int32_t WriteReportBlocksToBuffer(
-        uint8_t* rtcpbuffer,
-        int32_t position,
-        const std::map<uint32_t, RTCPReportBlock*>& report_blocks);
+ bool PrepareReport(const FeedbackState& feedback_state,
+                    uint32_t ssrc,
+                    StreamStatistician* statistician,
+                    RTCPReportBlock* report_block);
 
-    int32_t AddReportBlock(
-        uint32_t SSRC,
-        std::map<uint32_t, RTCPReportBlock*>* report_blocks,
-        const RTCPReportBlock* receiveBlock);
+ int PrepareRTCP(const FeedbackState& feedback_state,
+                 const std::set<RTCPPacketType>& packetTypes,
+                 int32_t nackSize,
+                 const uint16_t* nackList,
+                 bool repeat,
+                 uint64_t pictureID,
+                 uint8_t* rtcp_buffer,
+                 int buffer_size);
 
-    bool PrepareReport(const FeedbackState& feedback_state,
-                       StreamStatistician* statistician,
-                       RTCPReportBlock* report_block,
-                       uint32_t* ntp_secs, uint32_t* ntp_frac);
-
-    int32_t BuildSR(const FeedbackState& feedback_state,
-                    uint8_t* rtcpbuffer,
-                    int& pos,
-                    uint32_t NTPsec,
-                    uint32_t NTPfrac)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-
-    int32_t BuildRR(uint8_t* rtcpbuffer,
-                    int& pos,
-                    uint32_t NTPsec,
-                    uint32_t NTPfrac)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-
-    int PrepareRTCP(
-        const FeedbackState& feedback_state,
-        uint32_t packetTypeFlags,
-        int32_t nackSize,
-        const uint16_t* nackList,
-        bool repeat,
-        uint64_t pictureID,
-        uint8_t* rtcp_buffer,
-        int buffer_size);
-
-    bool ShouldSendReportBlocks(uint32_t rtcp_packet_type) const;
-
-    int32_t BuildExtendedJitterReport(uint8_t* rtcpbuffer,
-                                      int& pos,
-                                      uint32_t jitterTransmissionTimeOffset)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-
-    int32_t BuildSDEC(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildPLI(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildREMB(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildTMMBR(ModuleRtpRtcpImpl* module, uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildTMMBN(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildAPP(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildVoIPMetric(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildBYE(uint8_t* rtcpbuffer, int& pos)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildFIR(uint8_t* rtcpbuffer, int& pos, bool repeat)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildSLI(uint8_t* rtcpbuffer, int& pos, uint8_t pictureID)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildRPSI(uint8_t* rtcpbuffer,
-                      int& pos,
-                      uint64_t pictureID,
-                      uint8_t payloadType)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-
-    int32_t BuildNACK(uint8_t* rtcpbuffer,
-                      int& pos,
-                      int32_t nackSize,
-                      const uint16_t* nackList,
-                      std::string* nackString)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildReceiverReferenceTime(uint8_t* buffer,
-                                       int& pos,
-                                       uint32_t ntp_sec,
-                                       uint32_t ntp_frac)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
-    int32_t BuildDlrr(uint8_t* buffer,
-                      int& pos,
-                      const RtcpReceiveTimeInfo& info)
-        EXCLUSIVE_LOCKS_REQUIRED(_criticalSectionRTCPSender);
+ BuildResult BuildSR(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildRR(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildSDES(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildPLI(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildREMB(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildTMMBR(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildTMMBN(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildAPP(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildVoIPMetric(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildBYE(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildFIR(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildSLI(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildRPSI(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildNACK(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildReceiverReferenceTime(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ BuildResult BuildDlrr(RtcpContext* context)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
 
 private:
-    const int32_t            _id;
-    const bool               _audio;
-    Clock* const             _clock;
-    RTCPMethod               _method GUARDED_BY(_criticalSectionRTCPSender);
+ const bool audio_;
+ Clock* const clock_;
+ RtcpMode method_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    CriticalSectionWrapper* _criticalSectionTransport;
-    Transport*              _cbTransport GUARDED_BY(_criticalSectionTransport);
+ Transport* const transport_;
 
-    CriticalSectionWrapper* _criticalSectionRTCPSender;
-    bool                    _usingNack GUARDED_BY(_criticalSectionRTCPSender);
-    bool                    _sending GUARDED_BY(_criticalSectionRTCPSender);
-    bool                    _sendTMMBN GUARDED_BY(_criticalSectionRTCPSender);
-    bool                    _REMB GUARDED_BY(_criticalSectionRTCPSender);
-    bool                    _sendREMB GUARDED_BY(_criticalSectionRTCPSender);
-    bool                    _TMMBR GUARDED_BY(_criticalSectionRTCPSender);
-    bool                    _IJ GUARDED_BY(_criticalSectionRTCPSender);
+ rtc::scoped_ptr<CriticalSectionWrapper> critical_section_rtcp_sender_;
+ bool using_nack_ GUARDED_BY(critical_section_rtcp_sender_);
+ bool sending_ GUARDED_BY(critical_section_rtcp_sender_);
+ bool remb_enabled_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    int64_t        _nextTimeToSendRTCP GUARDED_BY(_criticalSectionRTCPSender);
+ int64_t next_time_to_send_rtcp_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    uint32_t start_timestamp_ GUARDED_BY(_criticalSectionRTCPSender);
-    uint32_t last_rtp_timestamp_ GUARDED_BY(_criticalSectionRTCPSender);
-    int64_t last_frame_capture_time_ms_ GUARDED_BY(_criticalSectionRTCPSender);
-    uint32_t _SSRC GUARDED_BY(_criticalSectionRTCPSender);
-    // SSRC that we receive on our RTP channel
-    uint32_t _remoteSSRC GUARDED_BY(_criticalSectionRTCPSender);
-    char _CNAME[RTCP_CNAME_SIZE] GUARDED_BY(_criticalSectionRTCPSender);
+ uint32_t start_timestamp_ GUARDED_BY(critical_section_rtcp_sender_);
+ uint32_t last_rtp_timestamp_ GUARDED_BY(critical_section_rtcp_sender_);
+ int64_t last_frame_capture_time_ms_ GUARDED_BY(critical_section_rtcp_sender_);
+ uint32_t ssrc_ GUARDED_BY(critical_section_rtcp_sender_);
+ // SSRC that we receive on our RTP channel
+ uint32_t remote_ssrc_ GUARDED_BY(critical_section_rtcp_sender_);
+ std::string cname_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    ReceiveStatistics* receive_statistics_
-        GUARDED_BY(_criticalSectionRTCPSender);
-    std::map<uint32_t, RTCPReportBlock*> internal_report_blocks_
-        GUARDED_BY(_criticalSectionRTCPSender);
-    std::map<uint32_t, RTCPReportBlock*> external_report_blocks_
-        GUARDED_BY(_criticalSectionRTCPSender);
-    std::map<uint32_t, RTCPUtility::RTCPCnameInformation*> _csrcCNAMEs
-        GUARDED_BY(_criticalSectionRTCPSender);
+ ReceiveStatistics* receive_statistics_
+     GUARDED_BY(critical_section_rtcp_sender_);
+ std::map<uint32_t, rtcp::ReportBlock> report_blocks_
+     GUARDED_BY(critical_section_rtcp_sender_);
+ std::map<uint32_t, std::string> csrc_cnames_
+     GUARDED_BY(critical_section_rtcp_sender_);
 
-    int32_t         _cameraDelayMS GUARDED_BY(_criticalSectionRTCPSender);
+ // Sent
+ uint32_t last_send_report_[RTCP_NUMBER_OF_SR] GUARDED_BY(
+     critical_section_rtcp_sender_);  // allow packet loss and RTT above 1 sec
+ int64_t last_rtcp_time_[RTCP_NUMBER_OF_SR] GUARDED_BY(
+     critical_section_rtcp_sender_);
 
-    // Sent
-    uint32_t _lastSendReport[RTCP_NUMBER_OF_SR] GUARDED_BY(
-        _criticalSectionRTCPSender);  // allow packet loss and RTT above 1 sec
-    int64_t _lastRTCPTime[RTCP_NUMBER_OF_SR] GUARDED_BY(
-        _criticalSectionRTCPSender);
+ // Sent XR receiver reference time report.
+ // <mid ntp (mid 32 bits of the 64 bits NTP timestamp), send time in ms>.
+ std::map<uint32_t, int64_t> last_xr_rr_
+     GUARDED_BY(critical_section_rtcp_sender_);
 
-    // Sent XR receiver reference time report.
-    // <mid ntp (mid 32 bits of the 64 bits NTP timestamp), send time in ms>.
-    std::map<uint32_t, int64_t> last_xr_rr_
-        GUARDED_BY(_criticalSectionRTCPSender);
+ // send CSRCs
+ std::vector<uint32_t> csrcs_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    // send CSRCs
-    std::vector<uint32_t> csrcs_ GUARDED_BY(_criticalSectionRTCPSender);
+ // Full intra request
+ uint8_t sequence_number_fir_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    // Full intra request
-    uint8_t         _sequenceNumberFIR GUARDED_BY(_criticalSectionRTCPSender);
+ // REMB
+ uint32_t remb_bitrate_ GUARDED_BY(critical_section_rtcp_sender_);
+ std::vector<uint32_t> remb_ssrcs_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    // REMB
-    uint32_t      _rembBitrate GUARDED_BY(_criticalSectionRTCPSender);
-    std::vector<uint32_t>  remb_ssrcs_ GUARDED_BY(_criticalSectionRTCPSender);
+ TMMBRHelp tmmbr_help_ GUARDED_BY(critical_section_rtcp_sender_);
+ uint32_t tmmbr_send_ GUARDED_BY(critical_section_rtcp_sender_);
+ uint32_t packet_oh_send_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    TMMBRHelp           _tmmbrHelp GUARDED_BY(_criticalSectionRTCPSender);
-    uint32_t      _tmmbr_Send GUARDED_BY(_criticalSectionRTCPSender);
-    uint32_t      _packetOH_Send GUARDED_BY(_criticalSectionRTCPSender);
+ // APP
+ uint8_t app_sub_type_ GUARDED_BY(critical_section_rtcp_sender_);
+ uint32_t app_name_ GUARDED_BY(critical_section_rtcp_sender_);
+ rtc::scoped_ptr<uint8_t[]> app_data_ GUARDED_BY(critical_section_rtcp_sender_);
+ uint16_t app_length_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    // APP
-    bool                 _appSend GUARDED_BY(_criticalSectionRTCPSender);
-    uint8_t        _appSubType GUARDED_BY(_criticalSectionRTCPSender);
-    uint32_t       _appName GUARDED_BY(_criticalSectionRTCPSender);
-    uint8_t*       _appData GUARDED_BY(_criticalSectionRTCPSender);
-    uint16_t       _appLength GUARDED_BY(_criticalSectionRTCPSender);
+ // True if sending of XR Receiver reference time report is enabled.
+ bool xr_send_receiver_reference_time_enabled_
+     GUARDED_BY(critical_section_rtcp_sender_);
 
-    // True if sending of XR Receiver reference time report is enabled.
-    bool xrSendReceiverReferenceTimeEnabled_
-        GUARDED_BY(_criticalSectionRTCPSender);
+ // XR VoIP metric
+ RTCPVoIPMetric xr_voip_metric_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    // XR VoIP metric
-    bool _xrSendVoIPMetric GUARDED_BY(_criticalSectionRTCPSender);
-    RTCPVoIPMetric _xrVoIPMetric GUARDED_BY(_criticalSectionRTCPSender);
+ RtcpPacketTypeCounterObserver* const packet_type_counter_observer_;
+ RtcpPacketTypeCounter packet_type_counter_
+     GUARDED_BY(critical_section_rtcp_sender_);
 
-    RtcpPacketTypeCounter packet_type_counter_
-        GUARDED_BY(_criticalSectionRTCPSender);
+ RTCPUtility::NackStats nack_stats_ GUARDED_BY(critical_section_rtcp_sender_);
 
-    RTCPUtility::NackStats nack_stats_ GUARDED_BY(_criticalSectionRTCPSender);
+ void SetFlag(RTCPPacketType type, bool is_volatile)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ void SetFlags(const std::set<RTCPPacketType>& types, bool is_volatile)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ bool IsFlagPresent(RTCPPacketType type) const
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ bool ConsumeFlag(RTCPPacketType type, bool forced = false)
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ bool AllVolatileFlagsConsumed() const
+     EXCLUSIVE_LOCKS_REQUIRED(critical_section_rtcp_sender_);
+ struct ReportFlag {
+   ReportFlag(RTCPPacketType type, bool is_volatile)
+       : type(type), is_volatile(is_volatile) {}
+   bool operator<(const ReportFlag& flag) const { return type < flag.type; }
+   bool operator==(const ReportFlag& flag) const { return type == flag.type; }
+   const RTCPPacketType type;
+   const bool is_volatile;
+ };
+
+ std::set<ReportFlag> report_flags_ GUARDED_BY(critical_section_rtcp_sender_);
+
+ typedef BuildResult (RTCPSender::*Builder)(RtcpContext*);
+ std::map<RTCPPacketType, Builder> builders_;
+
+ class PacketBuiltCallback;
 };
 }  // namespace webrtc
 

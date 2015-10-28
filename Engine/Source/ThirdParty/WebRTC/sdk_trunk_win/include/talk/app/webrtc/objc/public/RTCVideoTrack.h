@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -28,9 +28,17 @@
 #import "RTCMediaStreamTrack.h"
 
 @protocol RTCVideoRenderer;
+@class RTCPeerConnectionFactory;
+@class RTCVideoSource;
 
 // RTCVideoTrack is an ObjectiveC wrapper for VideoTrackInterface.
 @interface RTCVideoTrack : RTCMediaStreamTrack
+
+@property(nonatomic, readonly) RTCVideoSource* source;
+
+- (instancetype)initWithFactory:(RTCPeerConnectionFactory*)factory
+                         source:(RTCVideoSource*)source
+                        trackId:(NSString*)trackId;
 
 // Register a renderer that will render all frames received on this track.
 - (void)addRenderer:(id<RTCVideoRenderer>)renderer;

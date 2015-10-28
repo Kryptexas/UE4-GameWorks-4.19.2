@@ -12,7 +12,6 @@
 
 #include "base/basictypes.h"
 #include "net/base/net_export.h"
-#include "net/quic/crypto/cached_network_parameters.h"
 #include "net/quic/quic_bandwidth.h"
 #include "net/quic/quic_clock.h"
 #include "net/quic/quic_config.h"
@@ -22,12 +21,13 @@
 
 namespace net {
 
+class CachedNetworkParameters;
 class RttStats;
 
 class NET_EXPORT_PRIVATE SendAlgorithmInterface {
  public:
   // A sorted vector of packets.
-  typedef std::vector<std::pair<QuicPacketSequenceNumber, TransmissionInfo>>
+  typedef std::vector<std::pair<QuicPacketNumber, TransmissionInfo>>
       CongestionVector;
 
   static SendAlgorithmInterface* Create(
@@ -39,12 +39,15 @@ class NET_EXPORT_PRIVATE SendAlgorithmInterface {
 
   virtual ~SendAlgorithmInterface() {}
 
-  virtual void SetFromConfig(
-      const QuicConfig& config, bool is_server, bool using_pacing) = 0;
+  virtual void SetFromConfig(const QuicConfig& config,
+                             Perspective perspective) = 0;
 
   // Sets the number of connections to emulate when doing congestion control,
   // particularly for congestion avoidance.  Can be set any time.
   virtual void SetNumEmulatedConnections(int num_connections) = 0;
+
+  // Sets the maximum congestion window in bytes.
+  virtual void SetMaxCongestionWindow(QuicByteCount max_congestion_window) = 0;
 
   // Indicates an update to the congestion state, caused either by an incoming
   // ack or loss event timeout.  |rtt_updated| indicates whether a new
@@ -64,16 +67,13 @@ class NET_EXPORT_PRIVATE SendAlgorithmInterface {
   // Note: this function must be called for every packet sent to the wire.
   virtual bool OnPacketSent(QuicTime sent_time,
                             QuicByteCount bytes_in_flight,
-                            QuicPacketSequenceNumber sequence_number,
+                            QuicPacketNumber packet_number,
                             QuicByteCount bytes,
                             HasRetransmittableData is_retransmittable) = 0;
 
   // Called when the retransmission timeout fires.  Neither OnPacketAbandoned
   // nor OnPacketLost will be called for these packets.
   virtual void OnRetransmissionTimeout(bool packets_retransmitted) = 0;
-
-  // Called when the last retransmission timeout was spurious.
-  virtual void RevertRetransmissionTimeout() = 0;
 
   // Calculate the time until we can send the next packet.
   virtual QuicTime::Delta TimeUntilSend(
@@ -87,9 +87,6 @@ class NET_EXPORT_PRIVATE SendAlgorithmInterface {
   // What's the current estimated bandwidth in bytes per second.
   // Returns 0 when it does not have an estimate.
   virtual QuicBandwidth BandwidthEstimate() const = 0;
-
-  // Returns true if the current bandwidth estimate is reliable.
-  virtual bool HasReliableBandwidthEstimate() const = 0;
 
   // Get the send algorithm specific retransmission delay, called RTO in TCP,
   // Note 1: the caller is responsible for sanity checking this value.
@@ -116,9 +113,10 @@ class NET_EXPORT_PRIVATE SendAlgorithmInterface {
   virtual CongestionControlType GetCongestionControlType() const = 0;
 
   // Called by the Session when we get a bandwidth estimate from the client.
-  // Returns true if initial connection state is changed as a result.
-  virtual bool ResumeConnectionState(
-      const CachedNetworkParameters& cached_network_params) = 0;
+  // Uses the max bandwidth in the params if |max_bandwidth_resumption| is true.
+  virtual void ResumeConnectionState(
+      const CachedNetworkParameters& cached_network_params,
+      bool max_bandwidth_resumption) = 0;
 };
 
 }  // namespace net

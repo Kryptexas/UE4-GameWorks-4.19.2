@@ -5,10 +5,8 @@
 #ifndef NET_TOOLS_BALSA_STRING_PIECE_UTILS_H_
 #define NET_TOOLS_BALSA_STRING_PIECE_UTILS_H_
 
-#include <ctype.h>
-
-#include "base/port.h"
 #include "base/strings/string_piece.h"
+#include "base/strings/string_util.h"
 
 namespace net {
 
@@ -21,7 +19,7 @@ struct StringPieceCaseCompare {
     size_t hash_val = 0;
     for (base::StringPiece::const_iterator it = sp.begin();
          it != sp.end(); ++it) {
-      hash_val = 5 * hash_val + tolower(*it);
+      hash_val = 5 * hash_val + base::ToLowerASCII(*it);
     }
     return hash_val;
   }
@@ -32,7 +30,21 @@ struct StringPieceCaseCompare {
     size_t len2 = sp2.length();
     bool sp1_shorter = len1 < len2;
     size_t len = sp1_shorter ? len1 : len2;
-    int rv = _memicmp(sp1.data(), sp2.data(), len);
+
+    int rv = 0;
+    for (size_t i = 0; i < len; i++) {
+      char sp1_lower = base::ToLowerASCII(sp1[i]);
+      char sp2_lower = base::ToLowerASCII(sp2[i]);
+      if (sp1_lower < sp2_lower) {
+        rv = -1;
+        break;
+      }
+      if (sp1_lower > sp2_lower) {
+        rv = 1;
+        break;
+      }
+    }
+
     if (rv == 0) {
       return sp1_shorter;
     }
@@ -46,65 +58,19 @@ struct StringPieceCaseHash {
     size_t hash_val = 0;
     for (base::StringPiece::const_iterator it = sp.begin();
          it != sp.end(); ++it) {
-      hash_val = 5 * hash_val + tolower(*it);
+      hash_val = 5 * hash_val + base::ToLowerASCII(*it);
     }
     return hash_val;
   }
 };
 #endif  // COMPILER_MSVC
 
-struct StringPieceUtils {
-  static bool EqualIgnoreCase(const base::StringPiece& piece1,
-                              const base::StringPiece& piece2) {
-    base::StringPiece::const_iterator p1i = piece1.begin();
-    base::StringPiece::const_iterator p2i = piece2.begin();
-    if (piece1.empty() && piece2.empty()) {
-      return true;
-    } else if (piece1.size() != piece2.size()) {
-      return false;
-    }
-    while (p1i != piece1.end() && p2i != piece2.end()) {
-      if (tolower(*p1i) != tolower(*p2i))
-        return false;
-      ++p1i;
-      ++p2i;
-    }
-    return true;
-  }
-
-  static void RemoveWhitespaceContext(base::StringPiece* piece1) {
-    base::StringPiece::const_iterator c = piece1->begin();
-    base::StringPiece::const_iterator e = piece1->end();
-    while (c != e && isspace(*c)) {
-      ++c;
-    }
-    if (c == e) {
-      *piece1 = base::StringPiece(c, e-c);
-      return;
-    }
-    --e;
-    while (c != e &&isspace(*e)) {
-      --e;
-    }
-    ++e;
-    *piece1 = base::StringPiece(c, e-c);
-  }
-
-  static bool StartsWithIgnoreCase(const base::StringPiece& text,
-                                   const base::StringPiece& starts_with) {
-    if (text.size() < starts_with.size())
-      return false;
-    return EqualIgnoreCase(text.substr(0, starts_with.size()), starts_with);
-  }
-};
 struct StringPieceCaseEqual {
   bool operator()(const base::StringPiece& piece1,
                   const base::StringPiece& piece2) const {
-    return StringPieceUtils::EqualIgnoreCase(piece1, piece2);
+    return base::EqualsCaseInsensitiveASCII(piece1, piece2);
   }
 };
-
-
 
 }  // namespace net
 

@@ -22,6 +22,7 @@
 #undef Bool
 #endif
 
+#include <algorithm>
 #include <map>
 #include <vector>
 #include "webrtc/base/asyncsocket.h"
@@ -223,7 +224,7 @@ public:
     if ((SS_OPENING == state_) || (readable_data_.size() <= read_block_)) {
       return SR_BLOCK;
     }
-    size_t count = _min(buffer_len, readable_data_.size() - read_block_);
+    size_t count = std::min(buffer_len, readable_data_.size() - read_block_);
     memcpy(buffer, &readable_data_[0], count);
     size_t new_size = readable_data_.size() - count;
     // Avoid undefined access beyond the last element of the vector.
@@ -541,29 +542,33 @@ inline AssertionResult CmpHelperFileEq(const char* expected_expression,
 // order
 ///////////////////////////////////////////////////////////////////////////////
 
-#define BYTE_CAST(x) static_cast<uint8>((x) & 0xFF)
+#define BYTE_CAST(x) static_cast<uint8_t>((x)&0xFF)
 
 // Declare a N-bit integer as a little-endian sequence of bytes
-#define LE16(x) BYTE_CAST(((uint16)x) >>  0), BYTE_CAST(((uint16)x) >>  8)
+#define LE16(x) BYTE_CAST(((uint16_t)x) >> 0), BYTE_CAST(((uint16_t)x) >> 8)
 
-#define LE32(x) BYTE_CAST(((uint32)x) >>  0), BYTE_CAST(((uint32)x) >>  8), \
-                BYTE_CAST(((uint32)x) >> 16), BYTE_CAST(((uint32)x) >> 24)
+#define LE32(x) \
+  BYTE_CAST(((uint32_t)x) >> 0), BYTE_CAST(((uint32_t)x) >> 8), \
+      BYTE_CAST(((uint32_t)x) >> 16), BYTE_CAST(((uint32_t)x) >> 24)
 
-#define LE64(x) BYTE_CAST(((uint64)x) >>  0), BYTE_CAST(((uint64)x) >>  8), \
-                BYTE_CAST(((uint64)x) >> 16), BYTE_CAST(((uint64)x) >> 24), \
-                BYTE_CAST(((uint64)x) >> 32), BYTE_CAST(((uint64)x) >> 40), \
-                BYTE_CAST(((uint64)x) >> 48), BYTE_CAST(((uint64)x) >> 56)
+#define LE64(x) \
+  BYTE_CAST(((uint64_t)x) >> 0), BYTE_CAST(((uint64_t)x) >> 8),       \
+      BYTE_CAST(((uint64_t)x) >> 16), BYTE_CAST(((uint64_t)x) >> 24), \
+      BYTE_CAST(((uint64_t)x) >> 32), BYTE_CAST(((uint64_t)x) >> 40), \
+      BYTE_CAST(((uint64_t)x) >> 48), BYTE_CAST(((uint64_t)x) >> 56)
 
 // Declare a N-bit integer as a big-endian (Internet) sequence of bytes
-#define BE16(x) BYTE_CAST(((uint16)x) >>  8), BYTE_CAST(((uint16)x) >>  0)
+#define BE16(x) BYTE_CAST(((uint16_t)x) >> 8), BYTE_CAST(((uint16_t)x) >> 0)
 
-#define BE32(x) BYTE_CAST(((uint32)x) >> 24), BYTE_CAST(((uint32)x) >> 16), \
-                BYTE_CAST(((uint32)x) >>  8), BYTE_CAST(((uint32)x) >>  0)
+#define BE32(x) \
+  BYTE_CAST(((uint32_t)x) >> 24), BYTE_CAST(((uint32_t)x) >> 16), \
+      BYTE_CAST(((uint32_t)x) >> 8), BYTE_CAST(((uint32_t)x) >> 0)
 
-#define BE64(x) BYTE_CAST(((uint64)x) >> 56), BYTE_CAST(((uint64)x) >> 48), \
-                BYTE_CAST(((uint64)x) >> 40), BYTE_CAST(((uint64)x) >> 32), \
-                BYTE_CAST(((uint64)x) >> 24), BYTE_CAST(((uint64)x) >> 16), \
-                BYTE_CAST(((uint64)x) >>  8), BYTE_CAST(((uint64)x) >>  0)
+#define BE64(x) \
+  BYTE_CAST(((uint64_t)x) >> 56), BYTE_CAST(((uint64_t)x) >> 48),     \
+      BYTE_CAST(((uint64_t)x) >> 40), BYTE_CAST(((uint64_t)x) >> 32), \
+      BYTE_CAST(((uint64_t)x) >> 24), BYTE_CAST(((uint64_t)x) >> 16), \
+      BYTE_CAST(((uint64_t)x) >> 8), BYTE_CAST(((uint64_t)x) >> 0)
 
 // Declare a N-bit integer as a this-endian (local machine) sequence of bytes
 #ifndef BIG_ENDIAN

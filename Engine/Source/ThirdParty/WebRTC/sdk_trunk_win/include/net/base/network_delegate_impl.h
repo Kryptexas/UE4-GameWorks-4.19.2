@@ -5,6 +5,8 @@
 #ifndef NET_BASE_NETWORK_DELEGATE_IMPL_H_
 #define NET_BASE_NETWORK_DELEGATE_IMPL_H_
 
+#include <stdint.h>
+
 #include "base/strings/string16.h"
 #include "net/base/completion_callback.h"
 #include "net/base/network_delegate.h"
@@ -115,8 +117,26 @@ class NET_EXPORT NetworkDelegateImpl : public NetworkDelegate {
   // This corresponds to URLRequestDelegate::OnResponseStarted.
   void OnResponseStarted(URLRequest* request) override;
 
-  // Called every time we read raw bytes.
-  void OnRawBytesRead(const URLRequest& request, int bytes_read) override;
+  // Called when bytes are received from the network, such as after receiving
+  // headers or reading raw response bytes. This includes localhost requests.
+  // |bytes_received| is the number of bytes measured at the application layer
+  // that have been received over the network for this request since the last
+  // time OnNetworkBytesReceived was called. |bytes_received| will always be
+  // greater than 0.
+  // Currently, this is only implemented for HTTP transactions, and
+  // |bytes_received| does not include TLS overhead or TCP retransmits.
+  void OnNetworkBytesReceived(const URLRequest& request,
+                              int64_t bytes_received) override;
+
+  // Called when bytes are sent over the network, such as when sending request
+  // headers or uploading request body bytes. This includes localhost requests.
+  // |bytes_sent| is the number of bytes measured at the application layer that
+  // have been sent over the network for this request since the last time
+  // OnNetworkBytesSent was called. |bytes_sent| will always be greater than 0.
+  // Currently, this is only implemented for HTTP transactions, and |bytes_sent|
+  // does not include TLS overhead or TCP retransmits.
+  void OnNetworkBytesSent(const URLRequest& request,
+                          int64_t bytes_sent) override;
 
   // Indicates that the URL request has been completed or failed.
   // |started| indicates whether the request has been started. If false,
@@ -127,6 +147,13 @@ class NET_EXPORT NetworkDelegateImpl : public NetworkDelegate {
   // being deleted, so it's not safe to call any methods that may result in
   // a virtual method call.
   void OnURLRequestDestroyed(URLRequest* request) override;
+
+  // Called when the current job for |request| is orphaned. This is a temporary
+  // callback to diagnose https://crbug.com/289715 and may not be used for other
+  // purposes. Note that it may be called after OnURLRequestDestroyed.
+  //
+  // TODO(davidben): Remove this once data has been gathered.
+  void OnURLRequestJobOrphaned(URLRequest* request) override;
 
   // Corresponds to ProxyResolverJSBindings::OnError.
   void OnPACScriptError(int line_number, const base::string16& error) override;
@@ -172,17 +199,20 @@ class NET_EXPORT NetworkDelegateImpl : public NetworkDelegate {
   bool OnCanAccessFile(const URLRequest& request,
                        const base::FilePath& path) const override;
 
-  // Returns true if the given request may be rejected when the
-  // URLRequestThrottlerManager believes the server servicing the
-  // request is overloaded or down.
-  bool OnCanThrottleRequest(const URLRequest& request) const override;
-
   // Returns true if the given |url| has to be requested over connection that
   // is not tracked by the server. Usually is false, unless user privacy
   // settings block cookies from being get or set.
   bool OnCanEnablePrivacyMode(
       const GURL& url,
       const GURL& first_party_for_cookies) const override;
+
+  // Returns true if the embedder has enabled the "first-party" cookie
+  // experiment, and false otherwise.
+  //
+  // TODO(mkwst): Remove this once we decide whether or not we wish to ship
+  // first-party cookies and cookie prefixes. https://crbug.com/459154,
+  // https://crbug.com/541511
+  bool OnAreExperimentalCookieFeaturesEnabled() const override;
 
   // Called when the |referrer_url| for requesting |target_url| during handling
   // of the |request| is does not comply with the referrer policy (e.g. a

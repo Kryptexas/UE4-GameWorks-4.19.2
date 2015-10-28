@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -35,34 +35,39 @@ namespace webrtc {
 
 class FakeVideoTrackRenderer : public VideoRendererInterface {
  public:
-  explicit FakeVideoTrackRenderer(VideoTrackInterface* video_track)
-      : video_track_(video_track) {
+  FakeVideoTrackRenderer(VideoTrackInterface* video_track)
+      : video_track_(video_track), last_frame_(NULL) {
     video_track_->AddRenderer(this);
   }
   ~FakeVideoTrackRenderer() {
     video_track_->RemoveRenderer(this);
   }
 
-  // Implements VideoRendererInterface
-  virtual void SetSize(int width, int height) {
-    fake_renderer_.SetSize(width, height, 0);
-  }
+  virtual void RenderFrame(const cricket::VideoFrame* video_frame) override {
+    last_frame_ = const_cast<cricket::VideoFrame*>(video_frame);
+    if (!fake_renderer_.SetSize(static_cast<int>(video_frame->GetWidth()),
+                                static_cast<int>(video_frame->GetHeight()),
+                                0)) {
+      return;
+    }
 
-  virtual void RenderFrame(const cricket::VideoFrame* frame) {
-    fake_renderer_.RenderFrame(frame);
+    fake_renderer_.RenderFrame(video_frame);
   }
 
   int errors() const { return fake_renderer_.errors(); }
   int width() const { return fake_renderer_.width(); }
   int height() const { return fake_renderer_.height(); }
-  int num_set_sizes() const { return fake_renderer_.num_set_sizes(); }
   int num_rendered_frames() const {
     return fake_renderer_.num_rendered_frames();
   }
+  const cricket::VideoFrame* last_frame() const { return last_frame_; }
 
  private:
   cricket::FakeVideoRenderer fake_renderer_;
   rtc::scoped_refptr<VideoTrackInterface> video_track_;
+
+  // Weak reference for frame pointer comparison only.
+  cricket::VideoFrame* last_frame_;
 };
 
 }  // namespace webrtc

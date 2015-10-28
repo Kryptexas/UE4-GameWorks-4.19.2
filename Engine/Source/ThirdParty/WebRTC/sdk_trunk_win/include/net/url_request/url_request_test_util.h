@@ -5,6 +5,7 @@
 #ifndef NET_URL_REQUEST_URL_REQUEST_TEST_UTIL_H_
 #define NET_URL_REQUEST_URL_REQUEST_TEST_UTIL_H_
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <map>
@@ -14,8 +15,8 @@
 #include "base/compiler_specific.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
-#include "base/message_loop/message_loop_proxy.h"
 #include "base/path_service.h"
+#include "base/single_thread_task_runner.h"
 #include "base/strings/string16.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
@@ -70,7 +71,8 @@ class TestURLRequestContext : public URLRequestContext {
   }
 
   void set_http_network_session_params(
-      const HttpNetworkSession::Params& params) {
+      scoped_ptr<HttpNetworkSession::Params> params) {
+    http_network_session_params_ = params.Pass();
   }
 
   void SetSdchManager(scoped_ptr<SdchManager> sdch_manager) {
@@ -133,11 +135,16 @@ class TestDelegate : public URLRequest::Delegate {
   void set_cancel_in_received_data_pending(bool val) {
     cancel_in_rd_pending_ = val;
   }
+
   void set_quit_on_complete(bool val) { quit_on_complete_ = val; }
   void set_quit_on_redirect(bool val) { quit_on_redirect_ = val; }
+  // Enables quitting the message loop in response to auth requests, as opposed
+  // to returning credentials or cancelling the request.
+  void set_quit_on_auth_required(bool val) { quit_on_auth_required_ = val; }
   void set_quit_on_network_start(bool val) {
     quit_on_before_network_start_ = val;
   }
+
   void set_allow_certificate_errors(bool val) {
     allow_certificate_errors_ = val;
   }
@@ -196,6 +203,7 @@ class TestDelegate : public URLRequest::Delegate {
   bool cancel_in_rd_pending_;
   bool quit_on_complete_;
   bool quit_on_redirect_;
+  bool quit_on_auth_required_;
   bool quit_on_before_network_start_;
   bool allow_certificate_errors_;
   AuthCredentials credentials_;
@@ -265,8 +273,9 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
   void set_can_access_files(bool val) { can_access_files_ = val; }
   bool can_access_files() const { return can_access_files_; }
 
-  void set_can_throttle_requests(bool val) { can_throttle_requests_ = val; }
-  bool can_throttle_requests() const { return can_throttle_requests_; }
+  void set_experimental_cookie_features_enabled(bool val) {
+    experimental_cookie_features_enabled_ = val;
+  }
 
   void set_cancel_request_with_policy_violating_referrer(bool val) {
     cancel_request_with_policy_violating_referrer_ = val;
@@ -277,6 +286,10 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
   }
   int before_send_headers_count() const { return before_send_headers_count_; }
   int headers_received_count() const { return headers_received_count_; }
+  int64_t total_network_bytes_received() const {
+    return total_network_bytes_received_;
+  }
+  int64_t total_network_bytes_sent() const { return total_network_bytes_sent_; }
 
   // Last observed proxy in proxy header sent callback.
   HostPortPair last_observed_proxy() {
@@ -295,9 +308,9 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
   int OnBeforeSendHeaders(URLRequest* request,
                           const CompletionCallback& callback,
                           HttpRequestHeaders* headers) override;
-  void OnBeforeSendProxyHeaders(net::URLRequest* request,
-                                const net::ProxyInfo& proxy_info,
-                                net::HttpRequestHeaders* headers) override;
+  void OnBeforeSendProxyHeaders(URLRequest* request,
+                                const ProxyInfo& proxy_info,
+                                HttpRequestHeaders* headers) override;
   void OnSendHeaders(URLRequest* request,
                      const HttpRequestHeaders& headers) override;
   int OnHeadersReceived(
@@ -308,7 +321,10 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
       GURL* allowed_unsafe_redirect_url) override;
   void OnBeforeRedirect(URLRequest* request, const GURL& new_location) override;
   void OnResponseStarted(URLRequest* request) override;
-  void OnRawBytesRead(const URLRequest& request, int bytes_read) override;
+  void OnNetworkBytesReceived(const URLRequest& request,
+                              int64_t bytes_received) override;
+  void OnNetworkBytesSent(const URLRequest& request,
+                          int64_t bytes_sent) override;
   void OnCompleted(URLRequest* request, bool started) override;
   void OnURLRequestDestroyed(URLRequest* request) override;
   void OnPACScriptError(int line_number, const base::string16& error) override;
@@ -324,7 +340,7 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
                       CookieOptions* options) override;
   bool OnCanAccessFile(const URLRequest& request,
                        const base::FilePath& path) const override;
-  bool OnCanThrottleRequest(const URLRequest& request) const override;
+  bool OnAreExperimentalCookieFeaturesEnabled() const override;
   bool OnCancelURLRequestWithPolicyViolatingReferrerHeader(
       const URLRequest& request,
       const GURL& target_url,
@@ -349,6 +365,8 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
   int observed_before_proxy_headers_sent_callbacks_;
   int before_send_headers_count_;
   int headers_received_count_;
+  int64_t total_network_bytes_received_;
+  int64_t total_network_bytes_sent_;
   // Last observed proxy in before proxy header sent callback.
   HostPortPair last_observed_proxy_;
 
@@ -369,34 +387,9 @@ class TestNetworkDelegate : public NetworkDelegateImpl {
   bool has_load_timing_info_before_auth_;
 
   bool can_access_files_;  // true by default
-  bool can_throttle_requests_;  // true by default
+  bool experimental_cookie_features_enabled_;           // false by default
   bool cancel_request_with_policy_violating_referrer_;  // false by default
   bool will_be_intercepted_on_next_error_;
-};
-
-// Overrides the host used by the LocalHttpTestServer in
-// url_request_unittest.cc . This is used by the chrome_frame_net_tests due to
-// a mysterious bug when tests execute over the loopback adapter. See
-// http://crbug.com/114369 .
-class ScopedCustomUrlRequestTestHttpHost {
- public:
-  // Sets the host name to be used. The previous hostname will be stored and
-  // restored upon destruction. Note that if the lifetimes of two or more
-  // instances of this class overlap, they must be strictly nested.
-  explicit ScopedCustomUrlRequestTestHttpHost(const std::string& new_value);
-
-  ~ScopedCustomUrlRequestTestHttpHost();
-
-  // Returns the current value to be used by HTTP tests in
-  // url_request_unittest.cc .
-  static const std::string& value();
-
- private:
-  static std::string value_;
-  const std::string old_value_;
-  const std::string new_value_;
-
-  DISALLOW_COPY_AND_ASSIGN(ScopedCustomUrlRequestTestHttpHost);
 };
 
 //-----------------------------------------------------------------------------

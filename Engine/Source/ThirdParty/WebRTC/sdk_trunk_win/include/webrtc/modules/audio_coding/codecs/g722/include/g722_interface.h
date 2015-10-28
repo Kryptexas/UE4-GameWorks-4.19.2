@@ -73,7 +73,7 @@ int16_t WebRtcG722_EncoderInit(G722EncInst *G722enc_inst);
  * Return value               :  0 - Ok
  *                              -1 - Error
  */
-int16_t WebRtcG722_FreeEncoder(G722EncInst *G722enc_inst);
+int WebRtcG722_FreeEncoder(G722EncInst *G722enc_inst);
 
 
 
@@ -91,14 +91,13 @@ int16_t WebRtcG722_FreeEncoder(G722EncInst *G722enc_inst);
  * Output:
  *        - encoded           : The encoded data vector
  *
- * Return value               : >0 - Length (in bytes) of coded data
- *                              -1 - Error
+ * Return value               : Length (in bytes) of coded data
  */
 
-int16_t WebRtcG722_Encode(G722EncInst* G722enc_inst,
-                          const int16_t* speechIn,
-                          int16_t len,
-                          uint8_t* encoded);
+size_t WebRtcG722_Encode(G722EncInst* G722enc_inst,
+                         const int16_t* speechIn,
+                         size_t len,
+                         uint8_t* encoded);
 
 
 /****************************************************************************
@@ -114,22 +113,16 @@ int16_t WebRtcG722_Encode(G722EncInst* G722enc_inst,
  */
 int16_t WebRtcG722_CreateDecoder(G722DecInst **G722dec_inst);
 
-
 /****************************************************************************
  * WebRtcG722_DecoderInit(...)
  *
- * This function initializes a G729 instance
+ * This function initializes a G722 instance
  *
  * Input:
- *     - G729_decinst_t    : G729 instance, i.e. the user that should receive
- *                           be initialized
- *
- * Return value            :  0 - Ok
- *                           -1 - Error
+ *     - inst      : G722 instance
  */
 
-int16_t WebRtcG722_DecoderInit(G722DecInst *G722dec_inst);
-
+void WebRtcG722_DecoderInit(G722DecInst* inst);
 
 /****************************************************************************
  * WebRtcG722_FreeDecoder(...)
@@ -143,7 +136,7 @@ int16_t WebRtcG722_DecoderInit(G722DecInst *G722dec_inst);
  *                              -1 - Error
  */
 
-int16_t WebRtcG722_FreeDecoder(G722DecInst *G722dec_inst);
+int WebRtcG722_FreeDecoder(G722DecInst *G722dec_inst);
 
 
 /****************************************************************************
@@ -163,15 +156,14 @@ int16_t WebRtcG722_FreeDecoder(G722DecInst *G722dec_inst);
  *      - speechType        : 1 normal, 2 CNG (Since G722 does not have its own
  *                            DTX/CNG scheme it should always return 1)
  *
- * Return value             : >0 - Samples in decoded vector
- *                            -1 - Error
+ * Return value             : Samples in decoded vector
  */
 
-int16_t WebRtcG722_Decode(G722DecInst *G722dec_inst,
-                          int16_t *encoded,
-                          int16_t len,
-                          int16_t *decoded,
-                          int16_t *speechType);
+size_t WebRtcG722_Decode(G722DecInst *G722dec_inst,
+                         const uint8_t* encoded,
+                         size_t len,
+                         int16_t *decoded,
+                         int16_t *speechType);
 
 /****************************************************************************
  * WebRtcG722_Version(...)

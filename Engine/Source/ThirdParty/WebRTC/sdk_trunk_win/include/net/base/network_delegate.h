@@ -5,6 +5,8 @@
 #ifndef NET_BASE_NETWORK_DELEGATE_H_
 #define NET_BASE_NETWORK_DELEGATE_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "base/callback.h"
@@ -85,9 +87,12 @@ class NET_EXPORT NetworkDelegate : public base::NonThreadSafe {
   void NotifyBeforeRedirect(URLRequest* request,
                             const GURL& new_location);
   void NotifyResponseStarted(URLRequest* request);
-  void NotifyRawBytesRead(const URLRequest& request, int bytes_read);
+  void NotifyNetworkBytesReceived(const URLRequest& request,
+                                  int64_t bytes_received);
+  void NotifyNetworkBytesSent(const URLRequest& request, int64_t bytes_sent);
   void NotifyCompleted(URLRequest* request, bool started);
   void NotifyURLRequestDestroyed(URLRequest* request);
+  void NotifyURLRequestJobOrphaned(URLRequest* request);
   void NotifyPACScriptError(int line_number, const base::string16& error);
   AuthRequiredResponse NotifyAuthRequired(URLRequest* request,
                                           const AuthChallengeInfo& auth_info,
@@ -100,9 +105,13 @@ class NET_EXPORT NetworkDelegate : public base::NonThreadSafe {
                     CookieOptions* options);
   bool CanAccessFile(const URLRequest& request,
                      const base::FilePath& path) const;
-  bool CanThrottleRequest(const URLRequest& request) const;
   bool CanEnablePrivacyMode(const GURL& url,
                             const GURL& first_party_for_cookies) const;
+
+  // TODO(mkwst): Remove this once we decide whether or not we wish to ship
+  // first-party cookies and cookie prefixes. https://crbug.com/459154,
+  // https://crbug.com/541511
+  bool AreExperimentalCookieFeaturesEnabled() const;
 
   bool CancelURLRequestWithPolicyViolatingReferrerHeader(
       const URLRequest& request,
@@ -195,8 +204,26 @@ class NET_EXPORT NetworkDelegate : public base::NonThreadSafe {
   // This corresponds to URLRequestDelegate::OnResponseStarted.
   virtual void OnResponseStarted(URLRequest* request) = 0;
 
-  // Called every time we read raw bytes.
-  virtual void OnRawBytesRead(const URLRequest& request, int bytes_read) = 0;
+  // Called when bytes are received from the network, such as after receiving
+  // headers or reading raw response bytes. This includes localhost requests.
+  // |bytes_received| is the number of bytes measured at the application layer
+  // that have been received over the network for this request since the last
+  // time OnNetworkBytesReceived was called. |bytes_received| will always be
+  // greater than 0.
+  // Currently, this is only implemented for HTTP transactions, and
+  // |bytes_received| does not include TLS overhead or TCP retransmits.
+  virtual void OnNetworkBytesReceived(const URLRequest& request,
+                                      int64_t bytes_received) = 0;
+
+  // Called when bytes are sent over the network, such as when sending request
+  // headers or uploading request body bytes. This includes localhost requests.
+  // |bytes_sent| is the number of bytes measured at the application layer that
+  // have been sent over the network for this request since the last time
+  // OnNetworkBytesSent was called. |bytes_sent| will always be greater than 0.
+  // Currently, this is only implemented for HTTP transactions, and |bytes_sent|
+  // does not include TLS overhead or TCP retransmits.
+  virtual void OnNetworkBytesSent(const URLRequest& request,
+                                  int64_t bytes_sent) = 0;
 
   // Indicates that the URL request has been completed or failed.
   // |started| indicates whether the request has been started. If false,
@@ -207,6 +234,13 @@ class NET_EXPORT NetworkDelegate : public base::NonThreadSafe {
   // being deleted, so it's not safe to call any methods that may result in
   // a virtual method call.
   virtual void OnURLRequestDestroyed(URLRequest* request) = 0;
+
+  // Called when the current job for |request| is orphaned. This is a temporary
+  // callback to diagnose https://crbug.com/289715 and may not be used for other
+  // purposes. Note that it may be called after OnURLRequestDestroyed.
+  //
+  // TODO(davidben): Remove this once data has been gathered.
+  virtual void OnURLRequestJobOrphaned(URLRequest* request) = 0;
 
   // Corresponds to ProxyResolverJSBindings::OnError.
   virtual void OnPACScriptError(int line_number,
@@ -254,17 +288,20 @@ class NET_EXPORT NetworkDelegate : public base::NonThreadSafe {
   virtual bool OnCanAccessFile(const URLRequest& request,
                                const base::FilePath& path) const = 0;
 
-  // Returns true if the given request may be rejected when the
-  // URLRequestThrottlerManager believes the server servicing the
-  // request is overloaded or down.
-  virtual bool OnCanThrottleRequest(const URLRequest& request) const = 0;
-
   // Returns true if the given |url| has to be requested over connection that
   // is not tracked by the server. Usually is false, unless user privacy
   // settings block cookies from being get or set.
   virtual bool OnCanEnablePrivacyMode(
       const GURL& url,
       const GURL& first_party_for_cookies) const = 0;
+
+  // Returns true if the embedder has enabled the experimental features,
+  // and false otherwise.
+  //
+  // TODO(mkwst): Remove this once we decide whether or not we wish to ship
+  // first-party cookies and cookie prefixes. https://crbug.com/459154,
+  // https://crbug.com/541511
+  virtual bool OnAreExperimentalCookieFeaturesEnabled() const = 0;
 
   // Called when the |referrer_url| for requesting |target_url| during handling
   // of the |request| is does not comply with the referrer policy (e.g. a

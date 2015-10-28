@@ -20,7 +20,7 @@ class IOBuffer;
 
 namespace testing {
 
-class MockFileStream : public net::FileStream {
+class MockFileStream : public FileStream {
  public:
   explicit MockFileStream(const scoped_refptr<base::TaskRunner>& task_runner);
   MockFileStream(base::File file,
@@ -28,9 +28,7 @@ class MockFileStream : public net::FileStream {
   ~MockFileStream() override;
 
   // FileStream methods.
-  int Seek(base::File::Whence whence,
-           int64 offset,
-           const Int64CompletionCallback& callback) override;
+  int Seek(int64_t offset, const Int64CompletionCallback& callback) override;
   int Read(IOBuffer* buf,
            int buf_len,
            const CompletionCallback& callback) override;
@@ -48,7 +46,7 @@ class MockFileStream : public net::FileStream {
     async_error_ = false;
   }
   void clear_forced_error() {
-    forced_error_ = net::OK;
+    forced_error_ = OK;
     async_error_ = false;
   }
   int forced_error() const { return forced_error_; }
@@ -63,7 +61,7 @@ class MockFileStream : public net::FileStream {
 
  private:
   int ReturnError(int function_error) {
-    if (forced_error_ != net::OK) {
+    if (forced_error_ != OK) {
       int ret = forced_error_;
       clear_forced_error();
       return ret;
@@ -72,9 +70,9 @@ class MockFileStream : public net::FileStream {
     return function_error;
   }
 
-  int64 ReturnError64(int64 function_error) {
-    if (forced_error_ != net::OK) {
-      int64 ret = forced_error_;
+  int64_t ReturnError64(int64_t function_error) {
+    if (forced_error_ != OK) {
+      int64_t ret = forced_error_;
       clear_forced_error();
       return ret;
     }
@@ -85,12 +83,12 @@ class MockFileStream : public net::FileStream {
   // Wrappers for callbacks to make them honor ThrottleCallbacks and
   // ReleaseCallbacks.
   void DoCallback(const CompletionCallback& callback, int result);
-  void DoCallback64(const Int64CompletionCallback& callback, int64 result);
+  void DoCallback64(const Int64CompletionCallback& callback, int64_t result);
 
   // Depending on |async_error_|, either synchronously returns |forced_error_|
   // asynchronously calls |callback| with |async_error_|.
   int ErrorCallback(const CompletionCallback& callback);
-  int64 ErrorCallback64(const Int64CompletionCallback& callback);
+  int64_t ErrorCallback64(const Int64CompletionCallback& callback);
 
   int forced_error_;
   bool async_error_;

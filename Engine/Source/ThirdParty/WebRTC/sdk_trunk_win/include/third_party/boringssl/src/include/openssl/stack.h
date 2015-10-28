@@ -111,11 +111,6 @@ typedef struct stack_st {
 
 #define STACK_OF(type) struct stack_st_##type
 
-#define DEFINE_STACK_OF(type) \
-STACK_OF(type) {\
-  _STACK stack; \
-};
-
 #define DECLARE_STACK_OF(type) STACK_OF(type);
 
 /* The make_macros.sh script in this directory parses the following lines and
@@ -140,13 +135,14 @@ STACK_OF(type) {\
  * STACK_OF:GENERAL_NAMES
  * STACK_OF:GENERAL_SUBTREE
  * STACK_OF:MIME_HEADER
- * STACK_OF:PKCS7_SIGNER_INFO
  * STACK_OF:PKCS7_RECIP_INFO
+ * STACK_OF:PKCS7_SIGNER_INFO
  * STACK_OF:POLICYINFO
  * STACK_OF:POLICYQUALINFO
  * STACK_OF:POLICY_MAPPING
- * STACK_OF:SRTP_PROTECTION_PROFILE
+ * STACK_OF:RSA_additional_prime
  * STACK_OF:SSL_COMP
+ * STACK_OF:SSL_CUSTOM_EXTENSION
  * STACK_OF:STACK_OF_X509_NAME_ENTRY
  * STACK_OF:SXNETID
  * STACK_OF:X509
@@ -168,9 +164,10 @@ STACK_OF(type) {\
  * STACK_OF:X509_VERIFY_PARAM
  * STACK_OF:void
  *
- * We declare STACK_OF(SSL_CIPHER) differently; every SSL_CIPHER is const,
- * so the stack should return const pointers to retain type-checking.
+ * Some stacks contain only const structures, so the stack should return const
+ * pointers to retain type-checking.
  *
+ * CONST_STACK_OF:SRTP_PROTECTION_PROFILE
  * CONST_STACK_OF:SSL_CIPHER */
 
 
@@ -285,6 +282,13 @@ OPENSSL_EXPORT int sk_is_sorted(const _STACK *sk);
 /* sk_set_cmp_func sets the comparison function to be used by |sk| and returns
  * the previous one. */
 OPENSSL_EXPORT stack_cmp_func sk_set_cmp_func(_STACK *sk, stack_cmp_func comp);
+
+/* sk_deep_copy performs a copy of |sk| and of each of the non-NULL elements in
+ * |sk| by using |copy_func|. If an error occurs, |free_func| is used to free
+ * any copies already made and NULL is returned. */
+OPENSSL_EXPORT _STACK *sk_deep_copy(const _STACK *sk,
+                                    void *(*copy_func)(void *),
+                                    void (*free_func)(void *));
 
 
 #if defined(__cplusplus)

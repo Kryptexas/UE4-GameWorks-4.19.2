@@ -37,16 +37,24 @@ enum PacketFlags {
 };
 
 // Used to indicate channel's connection state.
-enum TransportChannelState { STATE_CONNECTING, STATE_COMPLETED, STATE_FAILED };
+enum TransportChannelState {
+  STATE_INIT,
+  STATE_CONNECTING,  // Will enter this state once a connection is created
+  STATE_COMPLETED,
+  STATE_FAILED
+};
 
 // A TransportChannel represents one logical stream of packets that are sent
 // between the two sides of a session.
+// TODO(deadbeef): This interface currently represents the unity of an ICE
+// transport and a DTLS transport. They need to be separated apart.
 class TransportChannel : public sigslot::has_slots<> {
  public:
-  explicit TransportChannel(const std::string& content_name, int component)
-      : content_name_(content_name),
+  TransportChannel(const std::string& transport_name, int component)
+      : transport_name_(transport_name),
         component_(component),
-        readable_(false), writable_(false) {}
+        writable_(false),
+        receiving_(false) {}
   virtual ~TransportChannel() {}
 
   // TODO(guoweis) - Make this pure virtual once all subclasses of
@@ -59,18 +67,20 @@ class TransportChannel : public sigslot::has_slots<> {
   // Returns the session id of this channel.
   virtual const std::string SessionId() const { return std::string(); }
 
-  const std::string& content_name() const { return content_name_; }
+  const std::string& transport_name() const { return transport_name_; }
   int component() const { return component_; }
 
-  // Returns the readable and states of this channel.  Each time one of these
-  // states changes, a signal is raised.  These states are aggregated by the
-  // TransportManager.
-  bool readable() const { return readable_; }
+  // Returns the states of this channel.  Each time one of these states changes,
+  // a signal is raised.  These states are aggregated by the TransportManager.
   bool writable() const { return writable_; }
-  sigslot::signal1<TransportChannel*> SignalReadableState;
+  bool receiving() const { return receiving_; }
+  DtlsTransportState dtls_state() const { return dtls_state_; }
   sigslot::signal1<TransportChannel*> SignalWritableState;
   // Emitted when the TransportChannel's ability to send has changed.
   sigslot::signal1<TransportChannel*> SignalReadyToSend;
+  sigslot::signal1<TransportChannel*> SignalReceivingState;
+  // Emitted when the DtlsTransportState has changed.
+  sigslot::signal1<TransportChannel*> SignalDtlsState;
 
   // Attempts to send the given packet.  The return value is < 0 on failure.
   // TODO: Remove the default argument once channel code is updated.
@@ -81,6 +91,9 @@ class TransportChannel : public sigslot::has_slots<> {
   // Sets a socket option on this channel.  Note that not all options are
   // supported by all transport types.
   virtual int SetOption(rtc::Socket::Option opt, int value) = 0;
+  // TODO(pthatcher): Once Chrome's MockTransportChannel implments
+  // this, remove the default implementation.
+  virtual bool GetOption(rtc::Socket::Option opt, int* value) { return false; }
 
   // Returns the most recent error that occurred on this channel.
   virtual int GetError() = 0;
@@ -97,26 +110,37 @@ class TransportChannel : public sigslot::has_slots<> {
   // Sets up the ciphers to use for DTLS-SRTP.
   virtual bool SetSrtpCiphers(const std::vector<std::string>& ciphers) = 0;
 
-  // Finds out which DTLS-SRTP cipher was negotiated
-  virtual bool GetSrtpCipher(std::string* cipher) = 0;
+  // Finds out which DTLS-SRTP cipher was negotiated.
+  // TODO(guoweis): Remove this once all dependencies implement this.
+  virtual bool GetSrtpCryptoSuite(std::string* cipher) {
+    return false;
+  }
 
-  // Gets a copy of the local SSL identity, owned by the caller.
-  virtual bool GetLocalIdentity(rtc::SSLIdentity** identity) const = 0;
+  // Finds out which DTLS cipher was negotiated.
+  // TODO(guoweis): Remove this once all dependencies implement this.
+  virtual bool GetSslCipherSuite(int* cipher) { return false; }
+
+  // Gets the local RTCCertificate used for DTLS.
+  virtual rtc::scoped_refptr<rtc::RTCCertificate>
+  GetLocalCertificate() const = 0;
 
   // Gets a copy of the remote side's SSL certificate, owned by the caller.
-  virtual bool GetRemoteCertificate(rtc::SSLCertificate** cert) const = 0;
+  virtual bool GetRemoteSSLCertificate(rtc::SSLCertificate** cert) const = 0;
 
   // Allows key material to be extracted for external encryption.
   virtual bool ExportKeyingMaterial(const std::string& label,
-      const uint8* context,
-      size_t context_len,
-      bool use_context,
-      uint8* result,
-      size_t result_len) = 0;
+                                    const uint8_t* context,
+                                    size_t context_len,
+                                    bool use_context,
+                                    uint8_t* result,
+                                    size_t result_len) = 0;
 
   // Signalled each time a packet is received on this channel.
   sigslot::signal5<TransportChannel*, const char*,
                    size_t, const rtc::PacketTime&, int> SignalReadPacket;
+
+  // Signalled each time a packet is sent on this channel.
+  sigslot::signal2<TransportChannel*, const rtc::SentPacket&> SignalSentPacket;
 
   // This signal occurs when there is a change in the way that packets are
   // being routed, i.e. to a different remote location. The candidate
@@ -130,21 +154,27 @@ class TransportChannel : public sigslot::has_slots<> {
   std::string ToString() const;
 
  protected:
-  // Sets the readable state, signaling if necessary.
-  void set_readable(bool readable);
+  // TODO(honghaiz): Remove this once chromium's unit tests no longer call it.
+  void set_readable(bool readable) { set_receiving(readable); }
 
   // Sets the writable state, signaling if necessary.
   void set_writable(bool writable);
 
+  // Sets the receiving state, signaling if necessary.
+  void set_receiving(bool receiving);
+
+  // Sets the DTLS state, signaling if necessary.
+  void set_dtls_state(DtlsTransportState state);
 
  private:
   // Used mostly for debugging.
-  std::string content_name_;
+  std::string transport_name_;
   int component_;
-  bool readable_;
   bool writable_;
+  bool receiving_;
+  DtlsTransportState dtls_state_ = DTLS_TRANSPORT_NEW;
 
-  DISALLOW_EVIL_CONSTRUCTORS(TransportChannel);
+  RTC_DISALLOW_COPY_AND_ASSIGN(TransportChannel);
 };
 
 }  // namespace cricket

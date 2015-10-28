@@ -12,10 +12,12 @@
 #define WEBRTC_MODULES_VIDEO_CODING_GENERIC_ENCODER_H_
 
 #include "webrtc/modules/video_coding/codecs/interface/video_codec_interface.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding_defines.h"
 
 #include <stdio.h>
 
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
 
 namespace webrtc {
 class CriticalSectionWrapper;
@@ -52,11 +54,14 @@ public:
     void SetPayloadType(uint8_t payloadType) { _payloadType = payloadType; };
     void SetInternalSource(bool internalSource) { _internalSource = internalSource; };
 
+    void SetRotation(VideoRotation rotation) { _rotation = rotation; }
+
 private:
     VCMPacketizationCallback* _sendCallback;
     media_optimization::MediaOptimization* _mediaOpt;
     uint8_t _payloadType;
     bool _internalSource;
+    VideoRotation _rotation;
 
     EncodedImageCallback* post_encode_callback_;
 
@@ -73,7 +78,9 @@ class VCMGenericEncoder
 {
     friend class VCMCodecDataBase;
 public:
-    VCMGenericEncoder(VideoEncoder& encoder, bool internalSource = false);
+    VCMGenericEncoder(VideoEncoder* encoder,
+                      VideoEncoderRateObserver* rate_observer,
+                      bool internalSource);
     ~VCMGenericEncoder();
     /**
     * Free encoder memory
@@ -92,13 +99,16 @@ public:
     * cameraFrameRate   : Request or information from the remote side
     * frameType         : The requested frame type to encode
     */
-    int32_t Encode(const I420VideoFrame& inputFrame,
+    int32_t Encode(const VideoFrame& inputFrame,
                    const CodecSpecificInfo* codecSpecificInfo,
                    const std::vector<FrameType>& frameTypes);
     /**
     * Set new target bitrate (bits/s) and framerate.
     * Return Value: new bit rate if OK, otherwise <0s.
     */
+    // TODO(tommi): We could replace BitRate and FrameRate below with a GetRates
+    // method that matches SetRates. For fetching current rates, we'd then only
+    // grab the lock once instead of twice.
     int32_t SetRates(uint32_t target_bitrate, uint32_t frameRate);
     /**
     * Set a new packet loss rate and a new round-trip time in milliseconds.
@@ -126,13 +136,22 @@ public:
 
     bool InternalSource() const;
 
+    void OnDroppedFrame();
+
+    bool SupportsNativeHandle() const;
+
+    int GetTargetFramerate();
+
 private:
-    VideoEncoder&               _encoder;
-    VideoCodecType              _codecType;
-    VCMEncodedFrameCallback*    _VCMencodedFrameCallback;
-    uint32_t                    _bitRate;
-    uint32_t                    _frameRate;
-    bool                        _internalSource;
+    VideoEncoder* const encoder_;
+    VideoEncoderRateObserver* const rate_observer_;
+    VCMEncodedFrameCallback*  vcm_encoded_frame_callback_;
+    uint32_t bit_rate_;
+    uint32_t frame_rate_;
+    const bool internal_source_;
+    mutable rtc::CriticalSection rates_lock_;
+    VideoRotation rotation_;
+    bool is_screenshare_;
 }; // end of VCMGenericEncoder class
 
 }  // namespace webrtc

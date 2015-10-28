@@ -14,27 +14,29 @@
 
 namespace net {
 
+class QuicSpdySession;
+
 // Headers in QUIC are sent as SPDY SYN_STREAM or SYN_REPLY frames
-// over a reserved reliable stream with the id 2.  Each endpoint (client
+// over a reserved reliable stream with the id 3.  Each endpoint (client
 // and server) will allocate an instance of QuicHeadersStream to send
 // and receive headers.
 class NET_EXPORT_PRIVATE QuicHeadersStream : public ReliableQuicStream {
  public:
-  explicit QuicHeadersStream(QuicSession* session);
+  explicit QuicHeadersStream(QuicSpdySession* session);
   ~QuicHeadersStream() override;
 
   // Writes |headers| for |stream_id| in a SYN_STREAM or SYN_REPLY
   // frame to the peer.  If |fin| is true, the fin flag will be set on
   // the SPDY frame.  Returns the size, in bytes, of the resulting
   // SPDY frame.
-  size_t WriteHeaders(
-      QuicStreamId stream_id,
-      const SpdyHeaderBlock& headers,
-      bool fin,
-      QuicAckNotifier::DelegateInterface* ack_notifier_delegate);
+  size_t WriteHeaders(QuicStreamId stream_id,
+                      const SpdyHeaderBlock& headers,
+                      bool fin,
+                      QuicPriority priority,
+                      QuicAckListenerInterface* ack_notifier_delegate);
 
   // ReliableQuicStream implementation
-  uint32 ProcessRawData(const char* data, uint32 data_len) override;
+  void OnDataAvailable() override;
   QuicPriority EffectivePriority() const override;
 
  private:
@@ -66,10 +68,24 @@ class NET_EXPORT_PRIVATE QuicHeadersStream : public ReliableQuicStream {
   // Returns true if the session is still connected.
   bool IsConnected();
 
+  QuicSpdySession* spdy_session_;
+
   // Data about the stream whose headers are being processed.
   QuicStreamId stream_id_;
   bool fin_;
   size_t frame_len_;
+
+  // Helper variable that caches the corresponding feature flag.
+  bool measure_headers_hol_blocking_time_;
+
+  // Timestamps used to measure HOL blocking, these are recorded by
+  // the sequencer approximate to the time of arrival off the wire.
+  // |cur_max_timestamp_| tracks the most recent arrival time of
+  // frames for current (at the headers stream level) processed
+  // stream's headers, and |prev_max_timestamp_| tracks the most
+  // recent arrival time of lower numbered streams.
+  QuicTime cur_max_timestamp_;
+  QuicTime prev_max_timestamp_;
 
   SpdyFramer spdy_framer_;
   scoped_ptr<SpdyFramerVisitor> spdy_framer_visitor_;

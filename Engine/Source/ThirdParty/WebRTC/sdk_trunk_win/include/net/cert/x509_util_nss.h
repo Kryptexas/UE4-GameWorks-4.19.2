@@ -12,7 +12,9 @@
 #include "net/base/net_export.h"
 #include "net/cert/x509_certificate.h"
 
+namespace base {
 class PickleIterator;
+}
 
 typedef struct CERTCertificateStr CERTCertificate;
 typedef struct CERTNameStr CERTName;
@@ -24,7 +26,7 @@ namespace net {
 
 namespace x509_util {
 
-#if defined(USE_NSS) || defined(OS_IOS)
+#if defined(USE_NSS_CERTS) || defined(OS_IOS)
 // Parses the Principal attribute from |name| and outputs the result in
 // |principal|.
 void ParsePrincipal(CERTName* name,
@@ -51,7 +53,7 @@ X509Certificate::OSCertHandles CreateOSCertHandlesFromBytes(
 // Reads a single certificate from |pickle_iter| and returns a platform-specific
 // certificate handle. Returns an invalid handle, NULL, on failure.
 X509Certificate::OSCertHandle ReadOSCertHandleFromPickle(
-    PickleIterator* pickle_iter);
+    base::PickleIterator* pickle_iter);
 
 // Sets |*size_bits| to be the length of the public key in bits, and sets
 // |*type| to one of the |PublicKeyType| values. In case of
@@ -90,7 +92,7 @@ bool IsCertificateIssuedBy(const std::vector<CERTCertificate*>& cert_chain,
 std::string GetUniqueNicknameForSlot(const std::string& nickname,
                                      const SECItem* subject,
                                      PK11SlotInfo* slot);
-#endif  // defined(USE_NSS) || defined(OS_IOS)
+#endif  // defined(USE_NSS_CERTS) || defined(OS_IOS)
 
 } // namespace x509_util
 

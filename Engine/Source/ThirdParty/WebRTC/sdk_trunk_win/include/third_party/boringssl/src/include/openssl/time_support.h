@@ -60,11 +60,13 @@
 
 #include <openssl/base.h>
 
-#include <time.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+
+/* Wrapper functions for time functions. */
 
 
 /* OPENSSL_gmtime wraps |gmtime_r|. See the manual page for that function. */

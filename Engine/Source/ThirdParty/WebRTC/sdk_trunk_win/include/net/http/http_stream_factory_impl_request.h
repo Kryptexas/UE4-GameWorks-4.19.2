@@ -7,10 +7,12 @@
 
 #include <set>
 #include "base/memory/scoped_ptr.h"
-#include "net/base/net_log.h"
 #include "net/http/http_stream_factory_impl.h"
+#include "net/log/net_log.h"
+#include "net/socket/connection_attempts.h"
 #include "net/socket/ssl_client_socket.h"
 #include "net/spdy/spdy_session_key.h"
+#include "net/ssl/ssl_failure_state.h"
 #include "url/gurl.h"
 
 namespace net {
@@ -32,6 +34,8 @@ class HttpStreamFactoryImpl::Request : public HttpStreamRequest {
   // The GURL from the HttpRequestInfo the started the Request.
   const GURL& url() const { return url_; }
 
+  const BoundNetLog& net_log() const { return net_log_; }
+
   // Called when the Job determines the appropriate |spdy_session_key| for the
   // Request. Note that this does not mean that SPDY is necessarily supported
   // for this SpdySessionKey, since we may need to wait for NPN to complete
@@ -44,11 +48,9 @@ class HttpStreamFactoryImpl::Request : public HttpStreamRequest {
   void AttachJob(HttpStreamFactoryImpl::Job* job);
 
   // Marks completion of the request. Must be called before OnStreamReady().
-  // |job_net_log| is the BoundNetLog of the Job that fulfilled this request.
   void Complete(bool was_npn_negotiated,
                 NextProto protocol_negotiated,
-                bool using_spdy,
-                const BoundNetLog& job_net_log);
+                bool using_spdy);
 
   // If this Request has a |spdy_session_key_|, remove this session from the
   // SpdySessionRequestMap.
@@ -59,6 +61,10 @@ class HttpStreamFactoryImpl::Request : public HttpStreamRequest {
                              scoped_ptr<HttpStream> stream,
                              const base::WeakPtr<SpdySession>& spdy_session,
                              bool direct);
+
+  // Called by an attached Job to record connection attempts made by the socket
+  // layer for this stream request.
+  void AddConnectionAttempts(const ConnectionAttempts& attempts);
 
   WebSocketHandshakeStreamBase::CreateHelper*
   websocket_handshake_stream_create_helper() {
@@ -76,7 +82,10 @@ class HttpStreamFactoryImpl::Request : public HttpStreamRequest {
                                        const SSLConfig& used_ssl_config,
                                        const ProxyInfo& used_proxy_info,
                                        WebSocketHandshakeStreamBase* stream);
-  void OnStreamFailed(Job* job, int status, const SSLConfig& used_ssl_config);
+  void OnStreamFailed(Job* job,
+                      int status,
+                      const SSLConfig& used_ssl_config,
+                      SSLFailureState ssl_failure_state);
   void OnCertificateError(Job* job,
                           int status,
                           const SSLConfig& used_ssl_config,
@@ -104,14 +113,17 @@ class HttpStreamFactoryImpl::Request : public HttpStreamRequest {
   bool was_npn_negotiated() const override;
   NextProto protocol_negotiated() const override;
   bool using_spdy() const override;
+  const ConnectionAttempts& connection_attempts() const override;
 
  private:
-  // Used to orphan all jobs in |jobs_| other than |job| which becomes "bound"
-  // to the request.
-  void OrphanJobsExcept(Job* job);
+  // Used to bind |job| to the request and orphan all other jobs in |jobs_|.
+  void BindJob(Job* job);
 
   // Used to orphan all jobs in |jobs_|.
   void OrphanJobs();
+
+  // Used to cancel all jobs in |jobs_|.
+  void CancelJobs();
 
   // Called when a Job succeeds.
   void OnJobSucceeded(Job* job);
@@ -133,6 +145,7 @@ class HttpStreamFactoryImpl::Request : public HttpStreamRequest {
   // Protocol negotiated with the server.
   NextProto protocol_negotiated_;
   bool using_spdy_;
+  ConnectionAttempts connection_attempts_;
 
   DISALLOW_COPY_AND_ASSIGN(Request);
 };

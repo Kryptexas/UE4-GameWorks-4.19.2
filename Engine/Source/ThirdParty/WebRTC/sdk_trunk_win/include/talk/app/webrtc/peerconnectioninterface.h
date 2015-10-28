@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -72,15 +72,23 @@
 #include <vector>
 
 #include "talk/app/webrtc/datachannelinterface.h"
+#include "talk/app/webrtc/dtlsidentitystore.h"
 #include "talk/app/webrtc/dtmfsenderinterface.h"
+#include "talk/app/webrtc/dtlsidentitystore.h"
 #include "talk/app/webrtc/jsep.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
+#include "talk/app/webrtc/rtpreceiverinterface.h"
+#include "talk/app/webrtc/rtpsenderinterface.h"
 #include "talk/app/webrtc/statstypes.h"
 #include "talk/app/webrtc/umametrics.h"
 #include "webrtc/base/fileutils.h"
+#include "webrtc/base/network.h"
+#include "webrtc/base/rtccertificate.h"
+#include "webrtc/base/sslstreamadapter.h"
 #include "webrtc/base/socketaddress.h"
 
 namespace rtc {
+class SSLIdentity;
 class Thread;
 }
 
@@ -121,7 +129,22 @@ class StatsObserver : public rtc::RefCountInterface {
 
 class MetricsObserverInterface : public rtc::RefCountInterface {
  public:
-  virtual void IncrementCounter(PeerConnectionMetricsCounter type) = 0;
+
+  // |type| is the type of the enum counter to be incremented. |counter|
+  // is the particular counter in that type. |counter_max| is the next sequence
+  // number after the highest counter.
+  virtual void IncrementEnumCounter(PeerConnectionEnumCounterType type,
+                                    int counter,
+                                    int counter_max) {}
+
+  // This is used to handle sparse counters like SSL cipher suites.
+  // TODO(guoweis): Remove the implementation once the dependency's interface
+  // definition is updated.
+  virtual void IncrementSparseEnumCounter(PeerConnectionEnumCounterType type,
+                                          int counter) {
+    IncrementEnumCounter(type, counter, 0 /* Ignored */);
+  }
+
   virtual void AddHistogramSample(PeerConnectionMetricsName type,
                                   int value) = 0;
 
@@ -170,10 +193,13 @@ class PeerConnectionInterface : public rtc::RefCountInterface {
     kIceConnectionFailed,
     kIceConnectionDisconnected,
     kIceConnectionClosed,
+    kIceConnectionMax,
   };
 
   struct IceServer {
+    // TODO(jbauch): Remove uri when all code using it has switched to urls.
     std::string uri;
+    std::vector<std::string> urls;
     std::string username;
     std::string password;
   };
@@ -195,16 +221,55 @@ class PeerConnectionInterface : public rtc::RefCountInterface {
     kBundlePolicyMaxCompat
   };
 
+  // https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-09#section-4.1.1
+  enum RtcpMuxPolicy {
+    kRtcpMuxPolicyNegotiate,
+    kRtcpMuxPolicyRequire,
+  };
+
+  enum TcpCandidatePolicy {
+    kTcpCandidatePolicyEnabled,
+    kTcpCandidatePolicyDisabled
+  };
+
+  enum ContinualGatheringPolicy {
+    GATHER_ONCE,
+    GATHER_CONTINUALLY
+  };
+
+  // TODO(hbos): Change into class with private data and public getters.
   struct RTCConfiguration {
+    static const int kUndefined = -1;
+    // Default maximum number of packets in the audio jitter buffer.
+    static const int kAudioJitterBufferMaxPackets = 50;
     // TODO(pthatcher): Rename this ice_transport_type, but update
     // Chromium at the same time.
     IceTransportsType type;
     // TODO(pthatcher): Rename this ice_servers, but update Chromium
     // at the same time.
     IceServers servers;
+    // A localhost candidate is signaled whenever a candidate with the any
+    // address is allocated.
+    bool enable_localhost_ice_candidate;
     BundlePolicy bundle_policy;
+    RtcpMuxPolicy rtcp_mux_policy;
+    TcpCandidatePolicy tcp_candidate_policy;
+    int audio_jitter_buffer_max_packets;
+    bool audio_jitter_buffer_fast_accelerate;
+    int ice_connection_receiving_timeout;
+    ContinualGatheringPolicy continual_gathering_policy;
+    std::vector<rtc::scoped_refptr<rtc::RTCCertificate>> certificates;
 
-    RTCConfiguration() : type(kAll), bundle_policy(kBundlePolicyBalanced) {}
+    RTCConfiguration()
+        : type(kAll),
+          enable_localhost_ice_candidate(false),
+          bundle_policy(kBundlePolicyBalanced),
+          rtcp_mux_policy(kRtcpMuxPolicyNegotiate),
+          tcp_candidate_policy(kTcpCandidatePolicyEnabled),
+          audio_jitter_buffer_max_packets(kAudioJitterBufferMaxPackets),
+          audio_jitter_buffer_fast_accelerate(false),
+          ice_connection_receiving_timeout(kUndefined),
+          continual_gathering_policy(GATHER_ONCE) {}
   };
 
   struct RTCOfferAnswerOptions {
@@ -271,6 +336,17 @@ class PeerConnectionInterface : public rtc::RefCountInterface {
   virtual rtc::scoped_refptr<DtmfSenderInterface> CreateDtmfSender(
       AudioTrackInterface* track) = 0;
 
+  // TODO(deadbeef): Make these pure virtual once all subclasses implement them.
+  virtual std::vector<rtc::scoped_refptr<RtpSenderInterface>> GetSenders()
+      const {
+    return std::vector<rtc::scoped_refptr<RtpSenderInterface>>();
+  }
+
+  virtual std::vector<rtc::scoped_refptr<RtpReceiverInterface>> GetReceivers()
+      const {
+    return std::vector<rtc::scoped_refptr<RtpReceiverInterface>>();
+  }
+
   virtual bool GetStats(StatsObserver* observer,
                         MediaStreamTrackInterface* track,
                         StatsOutputLevel level) = 0;
@@ -308,8 +384,22 @@ class PeerConnectionInterface : public rtc::RefCountInterface {
                                     SessionDescriptionInterface* desc) = 0;
   // Restarts or updates the ICE Agent process of gathering local candidates
   // and pinging remote candidates.
+  // TODO(deadbeef): Remove once Chrome is moved over to SetConfiguration.
   virtual bool UpdateIce(const IceServers& configuration,
-                         const MediaConstraintsInterface* constraints) = 0;
+                         const MediaConstraintsInterface* constraints) {
+    return false;
+  }
+  // Sets the PeerConnection's global configuration to |config|.
+  // Any changes to STUN/TURN servers or ICE candidate policy will affect the
+  // next gathering phase, and cause the next call to createOffer to generate
+  // new ICE credentials. Note that the BUNDLE and RTCP-multiplexing policies
+  // cannot be changed with this method.
+  // TODO(deadbeef): Make this pure virtual once all Chrome subclasses of
+  // PeerConnectionInterface implement it.
+  virtual bool SetConfiguration(
+      const PeerConnectionInterface::RTCConfiguration& config) {
+    return false;
+  }
   // Provides a remote candidate to the ICE Agent.
   // A copy of the |candidate| will be created and added to the remote
   // description. So the caller of this method still has the ownership of the
@@ -382,6 +472,9 @@ class PeerConnectionObserver {
   // All Ice candidates have been found.
   virtual void OnIceComplete() {}
 
+  // Called when the ICE connection receiving status changes.
+  virtual void OnIceConnectionReceivingChange(bool receiving) {}
+
  protected:
   // Dtor protected as objects shouldn't be deleted via this interface.
   ~PeerConnectionObserver() {}
@@ -421,50 +514,15 @@ class PortAllocatorFactoryInterface : public rtc::RefCountInterface {
       const std::vector<StunConfiguration>& stun_servers,
       const std::vector<TurnConfiguration>& turn_configurations) = 0;
 
+  // TODO(phoglund): Make pure virtual when Chrome's factory implements this.
+  // After this method is called, the port allocator should consider loopback
+  // network interfaces as well.
+  virtual void SetNetworkIgnoreMask(int network_ignore_mask) {
+  }
+
  protected:
   PortAllocatorFactoryInterface() {}
   ~PortAllocatorFactoryInterface() {}
-};
-
-// Used to receive callbacks of DTLS identity requests.
-class DTLSIdentityRequestObserver : public rtc::RefCountInterface {
- public:
-  virtual void OnFailure(int error) = 0;
-  virtual void OnSuccess(const std::string& der_cert,
-                         const std::string& der_private_key) = 0;
- protected:
-  virtual ~DTLSIdentityRequestObserver() {}
-};
-
-class DTLSIdentityServiceInterface {
- public:
-  // Asynchronously request a DTLS identity, including a self-signed certificate
-  // and the private key used to sign the certificate, from the identity store
-  // for the given identity name.
-  // DTLSIdentityRequestObserver::OnSuccess will be called with the identity if
-  // the request succeeded; DTLSIdentityRequestObserver::OnFailure will be
-  // called with an error code if the request failed.
-  //
-  // Only one request can be made at a time. If a second request is called
-  // before the first one completes, RequestIdentity will abort and return
-  // false.
-  //
-  // |identity_name| is an internal name selected by the client to identify an
-  // identity within an origin. E.g. an web site may cache the certificates used
-  // to communicate with differnent peers under different identity names.
-  //
-  // |common_name| is the common name used to generate the certificate. If the
-  // certificate already exists in the store, |common_name| is ignored.
-  //
-  // |observer| is the object to receive success or failure callbacks.
-  //
-  // Returns true if either OnFailure or OnSuccess will be called.
-  virtual bool RequestIdentity(
-      const std::string& identity_name,
-      const std::string& common_name,
-      DTLSIdentityRequestObserver* observer) = 0;
-
-  virtual ~DTLSIdentityServiceInterface() {}
 };
 
 // PeerConnectionFactoryInterface is the factory interface use for creating
@@ -482,10 +540,24 @@ class PeerConnectionFactoryInterface : public rtc::RefCountInterface {
    public:
     Options() :
       disable_encryption(false),
-      disable_sctp_data_channels(false) {
+      disable_sctp_data_channels(false),
+      disable_network_monitor(false),
+      network_ignore_mask(rtc::kDefaultNetworkIgnoreMask),
+      ssl_max_version(rtc::SSL_PROTOCOL_DTLS_10) {
     }
     bool disable_encryption;
     bool disable_sctp_data_channels;
+    bool disable_network_monitor;
+
+    // Sets the network types to ignore. For instance, calling this with
+    // ADAPTER_TYPE_ETHERNET | ADAPTER_TYPE_LOOPBACK will ignore Ethernet and
+    // loopback interfaces.
+    int network_ignore_mask;
+
+    // Sets the maximum supported protocol version. The highest version
+    // supported by both ends will be used for the connection, i.e. if one
+    // party supports DTLS 1.0 and the other DTLS 1.2, DTLS 1.0 will be used.
+    rtc::SSLProtocolVersion ssl_max_version;
   };
 
   virtual void SetOptions(const Options& options) = 0;
@@ -495,26 +567,25 @@ class PeerConnectionFactoryInterface : public rtc::RefCountInterface {
           const PeerConnectionInterface::RTCConfiguration& configuration,
           const MediaConstraintsInterface* constraints,
           PortAllocatorFactoryInterface* allocator_factory,
-          DTLSIdentityServiceInterface* dtls_identity_service,
+          rtc::scoped_ptr<DtlsIdentityStoreInterface> dtls_identity_store,
           PeerConnectionObserver* observer) = 0;
 
-  // TODO(mallinath) : Remove below versions after clients are updated
-  // to above method.
+  // TODO(hbos): Remove below version after clients are updated to above method.
   // In latest W3C WebRTC draft, PC constructor will take RTCConfiguration,
   // and not IceServers. RTCConfiguration is made up of ice servers and
   // ice transport type.
   // http://dev.w3.org/2011/webrtc/editor/webrtc.html
   inline rtc::scoped_refptr<PeerConnectionInterface>
       CreatePeerConnection(
-          const PeerConnectionInterface::IceServers& configuration,
+          const PeerConnectionInterface::IceServers& servers,
           const MediaConstraintsInterface* constraints,
           PortAllocatorFactoryInterface* allocator_factory,
-          DTLSIdentityServiceInterface* dtls_identity_service,
+          rtc::scoped_ptr<DtlsIdentityStoreInterface> dtls_identity_store,
           PeerConnectionObserver* observer) {
       PeerConnectionInterface::RTCConfiguration rtc_config;
-      rtc_config.servers = configuration;
+      rtc_config.servers = servers;
       return CreatePeerConnection(rtc_config, constraints, allocator_factory,
-                                  dtls_identity_service, observer);
+                                  dtls_identity_store.Pass(), observer);
   }
 
   virtual rtc::scoped_refptr<MediaStreamInterface>
@@ -549,6 +620,25 @@ class PeerConnectionFactoryInterface : public rtc::RefCountInterface {
   // TODO(grunell): Remove when Chromium has started to use AEC in each source.
   // http://crbug.com/264611.
   virtual bool StartAecDump(rtc::PlatformFile file) = 0;
+
+  // Stops logging the AEC dump.
+  virtual void StopAecDump() = 0;
+
+  // Starts RtcEventLog using existing file. Takes ownership of |file| and
+  // passes it on to VoiceEngine, which will take the ownership. If the
+  // operation fails the file will be closed. The logging will stop
+  // automatically after 10 minutes have passed, or when the StopRtcEventLog
+  // function is called.
+  // This function as well as the StopRtcEventLog don't really belong on this
+  // interface, this is a temporary solution until we move the logging object
+  // from inside voice engine to webrtc::Call, which will happen when the VoE
+  // restructuring effort is further along.
+  // TODO(ivoc): Move this into being:
+  //             PeerConnection => MediaController => webrtc::Call.
+  virtual bool StartRtcEventLog(rtc::PlatformFile file) = 0;
+
+  // Stops logging the RtcEventLog.
+  virtual void StopRtcEventLog() = 0;
 
  protected:
   // Dtor and ctor protected as objects shouldn't be created or deleted via

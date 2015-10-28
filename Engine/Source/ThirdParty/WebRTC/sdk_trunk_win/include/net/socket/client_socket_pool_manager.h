@@ -44,6 +44,12 @@ enum DefaultMaxValues { kDefaultMaxSocketsPerProxyServer = 32 };
 
 class NET_EXPORT_PRIVATE ClientSocketPoolManager {
  public:
+  enum SocketGroupType {
+    SSL_GROUP,     // For all TLS sockets.
+    NORMAL_GROUP,  // For normal HTTP sockets.
+    FTP_GROUP      // For FTP sockets (over an HTTP proxy).
+  };
+
   ClientSocketPoolManager();
   virtual ~ClientSocketPoolManager();
 
@@ -77,9 +83,8 @@ class NET_EXPORT_PRIVATE ClientSocketPoolManager {
       const HostPortPair& http_proxy) = 0;
   virtual SSLClientSocketPool* GetSocketPoolForSSLWithProxy(
       const HostPortPair& proxy_server) = 0;
-  // Creates a Value summary of the state of the socket pools. The caller is
-  // responsible for deleting the returned value.
-  virtual base::Value* SocketPoolInfoToValue() const = 0;
+  // Creates a Value summary of the state of the socket pools.
+  virtual scoped_ptr<base::Value> SocketPoolInfoToValue() const = 0;
 };
 
 // A helper method that uses the passed in proxy information to initialize a
@@ -89,15 +94,17 @@ class NET_EXPORT_PRIVATE ClientSocketPoolManager {
 // |resolution_callback| will be invoked after the the hostname is
 // resolved.  If |resolution_callback| does not return OK, then the
 // connection will be aborted with that value.
+// If |expect_spdy| is true, then after the SSL handshake is complete,
+// SPDY must have been negotiated or else it will be considered an error.
 int InitSocketHandleForHttpRequest(
-    const GURL& request_url,
+    ClientSocketPoolManager::SocketGroupType group_type,
+    const HostPortPair& endpoint,
     const HttpRequestHeaders& request_extra_headers,
     int request_load_flags,
     RequestPriority request_priority,
     HttpNetworkSession* session,
     const ProxyInfo& proxy_info,
-    bool force_spdy_over_ssl,
-    bool want_spdy_over_npn,
+    bool expect_spdy,
     const SSLConfig& ssl_config_for_origin,
     const SSLConfig& ssl_config_for_proxy,
     PrivacyMode privacy_mode,
@@ -116,14 +123,14 @@ int InitSocketHandleForHttpRequest(
 // connection will be aborted with that value.
 // This function uses WEBSOCKET_SOCKET_POOL socket pools.
 int InitSocketHandleForWebSocketRequest(
-    const GURL& request_url,
+    ClientSocketPoolManager::SocketGroupType group_type,
+    const HostPortPair& endpoint,
     const HttpRequestHeaders& request_extra_headers,
     int request_load_flags,
     RequestPriority request_priority,
     HttpNetworkSession* session,
     const ProxyInfo& proxy_info,
-    bool force_spdy_over_ssl,
-    bool want_spdy_over_npn,
+    bool expect_spdy,
     const SSLConfig& ssl_config_for_origin,
     const SSLConfig& ssl_config_for_proxy,
     PrivacyMode privacy_mode,
@@ -165,14 +172,14 @@ NET_EXPORT int InitSocketHandleForTlsConnect(
 // Similar to InitSocketHandleForHttpRequest except that it initiates the
 // desired number of preconnect streams from the relevant socket pool.
 int PreconnectSocketsForHttpRequest(
-    const GURL& request_url,
+    ClientSocketPoolManager::SocketGroupType group_type,
+    const HostPortPair& endpoint,
     const HttpRequestHeaders& request_extra_headers,
     int request_load_flags,
     RequestPriority request_priority,
     HttpNetworkSession* session,
     const ProxyInfo& proxy_info,
-    bool force_spdy_over_ssl,
-    bool want_spdy_over_npn,
+    bool expect_spdy,
     const SSLConfig& ssl_config_for_origin,
     const SSLConfig& ssl_config_for_proxy,
     PrivacyMode privacy_mode,

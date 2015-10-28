@@ -33,6 +33,8 @@ class Thread;
 
 class ThreadManager {
  public:
+  static const int kForever = -1;
+
   ThreadManager();
   ~ThreadManager();
 
@@ -66,7 +68,7 @@ class ThreadManager {
   DWORD key_;
 #endif
 
-  DISALLOW_COPY_AND_ASSIGN(ThreadManager);
+  RTC_DISALLOW_COPY_AND_ASSIGN(ThreadManager);
 };
 
 struct _SendMessage {
@@ -92,7 +94,7 @@ class Runnable {
   Runnable() {}
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Runnable);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Runnable);
 };
 
 // WARNING! SUBCLASSES MUST CALL Stop() IN THEIR DESTRUCTORS!  See ~Thread().
@@ -104,7 +106,7 @@ class Thread : public MessageQueue {
   // guarantee Stop() is explicitly called before the subclass is destroyed).
   // This is required to avoid a data race between the destructor modifying the
   // vtable, and the Thread::PreRun calling the virtual method Run().
-  virtual ~Thread();
+  ~Thread() override;
 
   static Thread* Current();
 
@@ -153,8 +155,9 @@ class Thread : public MessageQueue {
   // ProcessMessages occasionally.
   virtual void Run();
 
-  virtual void Send(MessageHandler *phandler, uint32 id = 0,
-      MessageData *pdata = NULL);
+  virtual void Send(MessageHandler* phandler,
+                    uint32_t id = 0,
+                    MessageData* pdata = NULL);
 
   // Convenience method to invoke a functor on another thread.  Caller must
   // provide the |ReturnT| template argument, which cannot (easily) be deduced.
@@ -165,15 +168,18 @@ class Thread : public MessageQueue {
   // See ScopedDisallowBlockingCalls for details.
   template <class ReturnT, class FunctorT>
   ReturnT Invoke(const FunctorT& functor) {
+    InvokeBegin();
     FunctorMessageHandler<ReturnT, FunctorT> handler(functor);
     Send(&handler);
+    InvokeEnd();
     return handler.result();
   }
 
   // From MessageQueue
-  virtual void Clear(MessageHandler *phandler, uint32 id = MQID_ANY,
-                     MessageList* removed = NULL);
-  virtual void ReceiveSends();
+  void Clear(MessageHandler* phandler,
+             uint32_t id = MQID_ANY,
+             MessageList* removed = NULL) override;
+  void ReceiveSends() override;
 
   // ProcessMessages will process I/O and dispatch messages until:
   //  1) cms milliseconds have elapsed (returns true)
@@ -259,6 +265,10 @@ class Thread : public MessageQueue {
   // Returns true if there is such a message.
   bool PopSendMessageFromThread(const Thread* source, _SendMessage* msg);
 
+  // Used for tracking performance of Invoke calls.
+  void InvokeBegin();
+  void InvokeEnd();
+
   std::list<_SendMessage> sendlist_;
   std::string name_;
   ThreadPriority priority_;
@@ -278,7 +288,7 @@ class Thread : public MessageQueue {
 
   friend class ThreadManager;
 
-  DISALLOW_COPY_AND_ASSIGN(Thread);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Thread);
 };
 
 // AutoThread automatically installs itself at construction
@@ -288,10 +298,10 @@ class Thread : public MessageQueue {
 class AutoThread : public Thread {
  public:
   explicit AutoThread(SocketServer* ss = 0);
-  virtual ~AutoThread();
+  ~AutoThread() override;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(AutoThread);
+  RTC_DISALLOW_COPY_AND_ASSIGN(AutoThread);
 };
 
 // Win32 extension for threads that need to use COM
@@ -305,7 +315,7 @@ class ComThread : public Thread {
   virtual void Run();
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(ComThread);
+  RTC_DISALLOW_COPY_AND_ASSIGN(ComThread);
 };
 #endif
 
@@ -323,7 +333,7 @@ class SocketServerScope {
  private:
   SocketServer* old_ss_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(SocketServerScope);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(SocketServerScope);
 };
 
 }  // namespace rtc

@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -28,11 +28,12 @@
 #ifndef TALK_APP_WEBRTC_VIDEOTRACKRENDERERS_H_
 #define TALK_APP_WEBRTC_VIDEOTRACKRENDERERS_H_
 
-#include <vector>
+#include <set>
 
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/media/base/videorenderer.h"
 #include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -55,19 +56,8 @@ class VideoTrackRenderers : public cricket::VideoRenderer {
   void SetEnabled(bool enable);
 
  private:
-  struct RenderObserver {
-    explicit RenderObserver(VideoRendererInterface* renderer)
-        : renderer_(renderer),
-          size_set_(false) {
-    }
-    VideoRendererInterface* renderer_;
-    bool size_set_;
-  };
-
-  int width_;
-  int height_;
   bool enabled_;
-  std::vector<RenderObserver> renderers_;
+  std::set<VideoRendererInterface*> renderers_;
 
   rtc::CriticalSection critical_section_;  // Protects the above variables
 };

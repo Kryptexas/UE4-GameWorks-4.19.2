@@ -26,14 +26,11 @@ class NET_EXPORT URLRequestThrottlerEntryInterface
 
   // Returns true when we have encountered server errors and are doing
   // exponential back-off, unless the request has load flags that mean
-  // it is likely to be user-initiated, or the NetworkDelegate returns
-  // false for |CanThrottleRequest(request)|.
+  // it is likely to be user-initiated.
   //
   // URLRequestHttpJob checks this method prior to every request; it
   // cancels requests if this method returns true.
-  virtual bool ShouldRejectRequest(
-      const URLRequest& request,
-      NetworkDelegate* network_delegate) const = 0;
+  virtual bool ShouldRejectRequest(const URLRequest& request) const = 0;
 
   // Calculates a recommended sending time for the next request and reserves it.
   // The sending time is not earlier than the current exponential back-off
@@ -51,9 +48,7 @@ class NET_EXPORT URLRequestThrottlerEntryInterface
   virtual base::TimeTicks GetExponentialBackoffReleaseTime() const = 0;
 
   // This method needs to be called each time a response is received.
-  virtual void UpdateWithResponse(
-      const std::string& host,
-      const URLRequestThrottlerHeaderInterface* response) = 0;
+  virtual void UpdateWithResponse(int status_code) = 0;
 
   // Lets higher-level modules, that know how to parse particular response
   // bodies, notify of receiving malformed content for the given URL. This will

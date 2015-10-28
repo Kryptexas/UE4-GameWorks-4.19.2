@@ -8,118 +8,188 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#ifndef WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_TEST_BWE_TEST_H_
+#define WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_TEST_BWE_TEST_H_
+
 #include <map>
 #include <string>
 #include <vector>
 #include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
+#include "webrtc/modules/remote_bitrate_estimator/test/bwe.h"
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_framework.h"
 
 namespace webrtc {
 
-struct RemoteBitrateEstimatorFactory;
-
 namespace testing {
 namespace bwe {
 
-struct BweTestConfig {
-  struct EstimatorConfig {
-    EstimatorConfig()
-        : debug_name(),
-          flow_id(0),
-          estimator_factory(NULL),
-          control_type(kMimdControl),
-          update_baseline(false),
-          plot_delay(true),
-          plot_estimate(true) {
-    }
-    EstimatorConfig(std::string debug_name,
-                    int flow_id,
-                    const RemoteBitrateEstimatorFactory* estimator_factory,
-                    bool plot_delay,
-                    bool plot_estimate)
-        : debug_name(debug_name),
-          flow_id(flow_id),
-          estimator_factory(estimator_factory),
-          control_type(kMimdControl),
-          update_baseline(false),
-          plot_delay(plot_delay),
-          plot_estimate(plot_estimate) {
-    }
-    EstimatorConfig(std::string debug_name,
-                    int flow_id,
-                    const RemoteBitrateEstimatorFactory* estimator_factory,
-                    RateControlType control_type,
-                    bool plot_delay,
-                    bool plot_estimate)
-        : debug_name(debug_name),
-          flow_id(flow_id),
-          estimator_factory(estimator_factory),
-          control_type(control_type),
-          update_baseline(false),
-          plot_delay(plot_delay),
-          plot_estimate(plot_estimate) {
-    }
-    EstimatorConfig(std::string debug_name,
-                    int flow_id,
-                    const RemoteBitrateEstimatorFactory* estimator_factory,
-                    RateControlType control_type,
-                    bool update_baseline)
-        : debug_name(debug_name),
-          flow_id(flow_id),
-          estimator_factory(estimator_factory),
-          control_type(control_type),
-          update_baseline(update_baseline),
-          plot_delay(false),
-          plot_estimate(false) {
-    }
-    std::string debug_name;
-    int flow_id;
-    const RemoteBitrateEstimatorFactory* estimator_factory;
-    RateControlType control_type;
-    bool update_baseline;
-    bool plot_delay;
-    bool plot_estimate;
-  };
+class BweReceiver;
+class PacketReceiver;
+class PacketSender;
 
-  std::vector<EstimatorConfig> estimator_configs;
+class PacketProcessorRunner {
+ public:
+  explicit PacketProcessorRunner(PacketProcessor* processor);
+  ~PacketProcessorRunner();
+
+  bool RunsProcessor(const PacketProcessor* processor) const;
+  void RunFor(int64_t time_ms, int64_t time_now_ms, Packets* in_out);
+
+ private:
+  void FindPacketsToProcess(const FlowIds& flow_ids, Packets* in, Packets* out);
+  void QueuePackets(Packets* batch, int64_t end_of_batch_time_us);
+
+  PacketProcessor* processor_;
+  Packets queue_;
 };
 
-class TestedEstimator;
-class PacketProcessorRunner;
-
-class BweTest : public PacketProcessorListener {
+class Link : public PacketProcessorListener {
  public:
-  BweTest();
-  virtual ~BweTest();
+  virtual ~Link() {}
 
-  virtual void AddPacketProcessor(PacketProcessor* processor, bool is_sender);
+  virtual void AddPacketProcessor(PacketProcessor* processor,
+                                  ProcessorType type);
   virtual void RemovePacketProcessor(PacketProcessor* processor);
 
+  void Run(int64_t run_for_ms, int64_t now_ms, Packets* packets);
+
+  const std::vector<PacketSender*>& senders() { return senders_; }
+  const std::vector<PacketProcessorRunner>& processors() { return processors_; }
+
+ private:
+  std::vector<PacketSender*> senders_;
+  std::vector<PacketReceiver*> receivers_;
+  std::vector<PacketProcessorRunner> processors_;
+};
+
+class BweTest {
+ public:
+  BweTest();
+  explicit BweTest(bool plot_capacity);
+  ~BweTest();
+
+  void RunChoke(BandwidthEstimatorType bwe_type,
+                std::vector<int> capacities_kbps);
+
+  void RunVariableCapacity1SingleFlow(BandwidthEstimatorType bwe_type);
+  void RunVariableCapacity2MultipleFlows(BandwidthEstimatorType bwe_type,
+                                         size_t num_flows);
+  void RunBidirectionalFlow(BandwidthEstimatorType bwe_type);
+  void RunSelfFairness(BandwidthEstimatorType bwe_type);
+  void RunRoundTripTimeFairness(BandwidthEstimatorType bwe_type);
+  void RunLongTcpFairness(BandwidthEstimatorType bwe_type);
+  void RunMultipleShortTcpFairness(BandwidthEstimatorType bwe_type,
+                                   std::vector<int> tcp_file_sizes_bytes,
+                                   std::vector<int64_t> tcp_starting_times_ms);
+  void RunPauseResumeFlows(BandwidthEstimatorType bwe_type);
+
+  void RunFairnessTest(BandwidthEstimatorType bwe_type,
+                       size_t num_media_flows,
+                       size_t num_tcp_flows,
+                       int64_t run_time_seconds,
+                       uint32_t capacity_kbps,
+                       int64_t max_delay_ms,
+                       int64_t rtt_ms,
+                       int64_t max_jitter_ms,
+                       const int64_t* offsets_ms);
+
+  void RunFairnessTest(BandwidthEstimatorType bwe_type,
+                       size_t num_media_flows,
+                       size_t num_tcp_flows,
+                       int64_t run_time_seconds,
+                       uint32_t capacity_kbps,
+                       int64_t max_delay_ms,
+                       int64_t rtt_ms,
+                       int64_t max_jitter_ms,
+                       const int64_t* offsets_ms,
+                       const std::string& title,
+                       const std::string& flow_name);
+
+  static std::vector<int> GetFileSizesBytes(int num_files);
+  static std::vector<int64_t> GetStartingTimesMs(int num_files);
+
  protected:
-  void SetupTestFromConfig(const BweTestConfig& config);
+  void SetUp();
+
   void VerboseLogging(bool enable);
   void RunFor(int64_t time_ms);
   std::string GetTestName() const;
 
- private:
-  typedef std::map<int, TestedEstimator*> EstimatorMap;
+  void PrintResults(double max_throughput_kbps,
+                    Stats<double> throughput_kbps,
+                    int flow_id,
+                    Stats<double> flow_delay_ms,
+                    Stats<double> flow_throughput_kbps);
 
+  void PrintResults(double max_throughput_kbps,
+                    Stats<double> throughput_kbps,
+                    std::map<int, Stats<double>> flow_delay_ms,
+                    std::map<int, Stats<double>> flow_throughput_kbps);
+
+  Link downlink_;
+  Link uplink_;
+
+ private:
   void FindPacketsToProcess(const FlowIds& flow_ids, Packets* in,
                             Packets* out);
-  void GiveFeedbackToAffectedSenders(int flow_id, TestedEstimator* estimator);
+  void GiveFeedbackToAffectedSenders(PacketReceiver* receiver);
 
   int64_t run_time_ms_;
   int64_t time_now_ms_;
   int64_t simulation_interval_ms_;
-  EstimatorMap estimators_;
-  Packets previous_packets_;
-  std::vector<PacketSender*> senders_;
-  std::vector<PacketProcessorRunner> processors_;
+  std::vector<Link*> links_;
+  Packets packets_;
+  bool plot_total_available_capacity_;
 
-  DISALLOW_COPY_AND_ASSIGN(BweTest);
+  RTC_DISALLOW_COPY_AND_ASSIGN(BweTest);
 };
+
+// Default Evaluation parameters:
+// Link capacity: 4000ms;
+// Queueing delay capacity: 300ms.
+// One-Way propagation delay: 50ms.
+// Jitter model: Truncated gaussian.
+// Maximum end-to-end jitter: 30ms = 2*standard_deviation.
+// Bottleneck queue type: Drop tail.
+// Path loss ratio: 0%.
+
+const int kOneWayDelayMs = 50;
+const int kMaxQueueingDelayMs = 300;
+const int kMaxCapacityKbps = 4000;
+const int kMaxJitterMs = 15;
+
+struct DefaultEvaluationFilter {
+  DefaultEvaluationFilter(PacketProcessorListener* listener, int flow_id)
+      : choke(listener, flow_id),
+        delay(listener, flow_id),
+        jitter(listener, flow_id) {
+    SetDefaultParameters();
+  }
+
+  DefaultEvaluationFilter(PacketProcessorListener* listener,
+                          const FlowIds& flow_ids)
+      : choke(listener, flow_ids),
+        delay(listener, flow_ids),
+        jitter(listener, flow_ids) {
+    SetDefaultParameters();
+  }
+
+  void SetDefaultParameters() {
+    delay.SetOneWayDelayMs(kOneWayDelayMs);
+    choke.set_max_delay_ms(kMaxQueueingDelayMs);
+    choke.set_capacity_kbps(kMaxCapacityKbps);
+    jitter.SetMaxJitter(kMaxJitterMs);
+  }
+
+  ChokeFilter choke;
+  DelayFilter delay;
+  JitterFilter jitter;
+};
+
 }  // namespace bwe
 }  // namespace testing
 }  // namespace webrtc
+
+#endif  // WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_TEST_BWE_TEST_H_

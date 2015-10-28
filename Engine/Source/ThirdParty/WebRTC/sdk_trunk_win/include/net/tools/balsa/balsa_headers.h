@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "base/logging.h"
-#include "base/port.h"
 #include "base/strings/string_piece.h"
 #include "net/tools/balsa/balsa_enums.h"
 #include "net/tools/balsa/string_piece_utils.h"
@@ -539,7 +538,7 @@ class BalsaHeaders {
       do {
         iterator_base::increment();
       } while (!AtEnd() &&
-               !StringPieceUtils::EqualIgnoreCase(key_, (**this).first));
+               !base::EqualsCaseInsensitiveASCII(key_, (**this).first));
       return *this;
     }
 
@@ -818,11 +817,14 @@ class BalsaHeaders {
 
   // Dump the textural representation of the header object to a string, which
   // is suitable for writing out to logs. All CRLF will be printed out as \n.
-  // This function can be called on a header object in any state. Raw header
-  // data will be printed out if the header object is not completely parsed,
-  // e.g., when there was an error in the middle of parsing.
-  // The header content is appended to the string; the original content is not
-  // cleared.
+  // This function can be called on a header object in any state. The header
+  // content is appended to the string; the original content is not cleared.
+  void DumpHeadersToString(std::string* str) const;
+
+  // Calls DumpHeadersToString to dump the textural representation of the header
+  // object to a string. Raw header data will be printed out if the header
+  // object is not completely parsed, e.g., when there was an error in the
+  // middle of parsing.
   void DumpToString(std::string* str) const;
 
   const base::StringPiece first_line() const {

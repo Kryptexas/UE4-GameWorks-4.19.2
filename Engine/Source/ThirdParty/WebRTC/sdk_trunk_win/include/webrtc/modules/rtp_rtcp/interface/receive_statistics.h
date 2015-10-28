@@ -35,9 +35,6 @@ class StreamStatistician {
 
   virtual uint32_t BitrateReceived() const = 0;
 
-  // Resets all statistics.
-  virtual void ResetStatistics() = 0;
-
   // Returns true if the packet with RTP header |header| is likely to be a
   // retransmitted packet, false otherwise.
   virtual bool IsRetransmitOfOldPacket(const RTPHeader& header,
@@ -61,7 +58,8 @@ class ReceiveStatistics : public Module {
                               bool retransmitted) = 0;
 
   // Increment counter for number of FEC packets received.
-  virtual void FecPacketReceived(uint32_t ssrc) = 0;
+  virtual void FecPacketReceived(const RTPHeader& header,
+                                 size_t packet_length) = 0;
 
   // Returns a map of all statisticians which have seen an incoming packet
   // during the last two seconds.
@@ -84,19 +82,20 @@ class ReceiveStatistics : public Module {
 
 class NullReceiveStatistics : public ReceiveStatistics {
  public:
-  virtual void IncomingPacket(const RTPHeader& rtp_header,
-                              size_t packet_length,
-                              bool retransmitted) OVERRIDE;
-  virtual void FecPacketReceived(uint32_t ssrc) OVERRIDE;
-  virtual StatisticianMap GetActiveStatisticians() const OVERRIDE;
-  virtual StreamStatistician* GetStatistician(uint32_t ssrc) const OVERRIDE;
-  virtual int64_t TimeUntilNextProcess() OVERRIDE;
-  virtual int32_t Process() OVERRIDE;
-  virtual void SetMaxReorderingThreshold(int max_reordering_threshold) OVERRIDE;
-  virtual void RegisterRtcpStatisticsCallback(RtcpStatisticsCallback* callback)
-      OVERRIDE;
-  virtual void RegisterRtpStatisticsCallback(
-      StreamDataCountersCallback* callback) OVERRIDE;
+  void IncomingPacket(const RTPHeader& rtp_header,
+                      size_t packet_length,
+                      bool retransmitted) override;
+  void FecPacketReceived(const RTPHeader& header,
+                         size_t packet_length) override;
+  StatisticianMap GetActiveStatisticians() const override;
+  StreamStatistician* GetStatistician(uint32_t ssrc) const override;
+  int64_t TimeUntilNextProcess() override;
+  int32_t Process() override;
+  void SetMaxReorderingThreshold(int max_reordering_threshold) override;
+  void RegisterRtcpStatisticsCallback(
+      RtcpStatisticsCallback* callback) override;
+  void RegisterRtpStatisticsCallback(
+      StreamDataCountersCallback* callback) override;
 };
 
 }  // namespace webrtc

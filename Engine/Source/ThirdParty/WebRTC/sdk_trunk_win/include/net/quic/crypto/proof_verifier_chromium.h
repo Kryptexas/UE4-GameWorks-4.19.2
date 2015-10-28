@@ -13,13 +13,14 @@
 #include "base/compiler_specific.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/cert/cert_verify_result.h"
 #include "net/cert/x509_certificate.h"
+#include "net/log/net_log.h"
 #include "net/quic/crypto/proof_verifier.h"
 
 namespace net {
 
+class CertPolicyEnforcer;
 class CertVerifier;
 class TransportSecurityState;
 
@@ -35,7 +36,7 @@ class NET_EXPORT_PRIVATE ProofVerifyDetailsChromium
   CertVerifyResult cert_verify_result;
 
   // pinning_failure_log contains a message produced by
-  // TransportSecurityState::DomainState::CheckPublicKeyPins in the event of a
+  // TransportSecurityState::PKPState::CheckPublicKeyPins in the event of a
   // pinning failure. It is a (somewhat) human-readable string.
   std::string pinning_failure_log;
 };
@@ -44,9 +45,10 @@ class NET_EXPORT_PRIVATE ProofVerifyDetailsChromium
 // ProofVerifierChromium needs in order to log correctly.
 struct ProofVerifyContextChromium : public ProofVerifyContext {
  public:
-  explicit ProofVerifyContextChromium(const BoundNetLog& net_log)
-      : net_log(net_log) {}
+  ProofVerifyContextChromium(int cert_verify_flags, const BoundNetLog& net_log)
+      : cert_verify_flags(cert_verify_flags), net_log(net_log) {}
 
+  int cert_verify_flags;
   BoundNetLog net_log;
 };
 
@@ -55,6 +57,7 @@ struct ProofVerifyContextChromium : public ProofVerifyContext {
 class NET_EXPORT_PRIVATE ProofVerifierChromium : public ProofVerifier {
  public:
   ProofVerifierChromium(CertVerifier* cert_verifier,
+                        CertPolicyEnforcer* cert_policy_enforcer,
                         TransportSecurityState* transport_security_state);
   ~ProofVerifierChromium() override;
 
@@ -79,6 +82,7 @@ class NET_EXPORT_PRIVATE ProofVerifierChromium : public ProofVerifier {
 
   // Underlying verifier used to verify certificates.
   CertVerifier* const cert_verifier_;
+  CertPolicyEnforcer* const cert_policy_enforcer_;
 
   TransportSecurityState* const transport_security_state_;
 

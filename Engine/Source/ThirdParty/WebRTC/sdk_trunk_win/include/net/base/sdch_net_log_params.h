@@ -8,24 +8,24 @@
 #include <string>
 
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/sdch_problem_codes.h"
+#include "net/log/net_log.h"
 
 class GURL;
 
 namespace net {
 
-NET_EXPORT base::Value* NetLogSdchResourceProblemCallback(
+NET_EXPORT scoped_ptr<base::Value> NetLogSdchResourceProblemCallback(
     SdchProblemCode problem,
-    NetLog::LogLevel log_level);
+    NetLogCaptureMode capture_mode);
 
 // If |is_error| is false, "net_error" field won't be added to the JSON and the
 // event won't be painted red in the netlog.
-NET_EXPORT base::Value* NetLogSdchDictionaryFetchProblemCallback(
+NET_EXPORT scoped_ptr<base::Value> NetLogSdchDictionaryFetchProblemCallback(
     SdchProblemCode problem,
     const GURL& url,
     bool is_error,
-    NetLog::LogLevel log_level);
+    NetLogCaptureMode capture_mode);
 
 }  // namespace net
 

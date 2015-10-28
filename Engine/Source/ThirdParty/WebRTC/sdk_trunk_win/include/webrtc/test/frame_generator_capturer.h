@@ -10,14 +10,17 @@
 #ifndef WEBRTC_VIDEO_ENGINE_TEST_COMMON_FRAME_GENERATOR_CAPTURER_H_
 #define WEBRTC_VIDEO_ENGINE_TEST_COMMON_FRAME_GENERATOR_CAPTURER_H_
 
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include <string>
+
+#include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/test/video_capturer.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
 class CriticalSectionWrapper;
-class EventWrapper;
+class EventTimerWrapper;
 class ThreadWrapper;
 
 namespace test {
@@ -26,41 +29,43 @@ class FrameGenerator;
 
 class FrameGeneratorCapturer : public VideoCapturer {
  public:
-  static FrameGeneratorCapturer* Create(VideoSendStreamInput* input,
+  static FrameGeneratorCapturer* Create(VideoCaptureInput* input,
                                         size_t width,
                                         size_t height,
                                         int target_fps,
                                         Clock* clock);
 
-  static FrameGeneratorCapturer* CreateFromYuvFile(VideoSendStreamInput* input,
-                                                   const char* file_name,
+  static FrameGeneratorCapturer* CreateFromYuvFile(VideoCaptureInput* input,
+                                                   const std::string& file_name,
                                                    size_t width,
                                                    size_t height,
                                                    int target_fps,
                                                    Clock* clock);
   virtual ~FrameGeneratorCapturer();
 
-  virtual void Start() OVERRIDE;
-  virtual void Stop() OVERRIDE;
+  void Start() override;
+  void Stop() override;
+  void ForceFrame();
 
   int64_t first_frame_capture_time() const { return first_frame_capture_time_; }
 
- private:
   FrameGeneratorCapturer(Clock* clock,
-                         VideoSendStreamInput* input,
+                         VideoCaptureInput* input,
                          FrameGenerator* frame_generator,
                          int target_fps);
   bool Init();
+
+ private:
   void InsertFrame();
   static bool Run(void* obj);
 
   Clock* const clock_;
   bool sending_;
 
-  scoped_ptr<EventWrapper> tick_;
-  scoped_ptr<CriticalSectionWrapper> lock_;
-  scoped_ptr<ThreadWrapper> thread_;
-  scoped_ptr<FrameGenerator> frame_generator_;
+  rtc::scoped_ptr<EventTimerWrapper> tick_;
+  rtc::CriticalSection lock_;
+  rtc::scoped_ptr<ThreadWrapper> thread_;
+  rtc::scoped_ptr<FrameGenerator> frame_generator_;
 
   int target_fps_;
 

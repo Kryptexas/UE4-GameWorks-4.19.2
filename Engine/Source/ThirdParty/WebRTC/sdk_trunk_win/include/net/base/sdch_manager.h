@@ -2,15 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// This file contains the SdchManager class and two nested classes
-// (Dictionary, DictionarySet). SdchManager::Dictionary contains all
-// of the information about an SDCH dictionary. The manager is
-// responsible for storing those dictionaries, and provides access to
-// them through DictionarySet objects. A DictionarySet is an object
-// whose lifetime is under the control of the consumer. It is a
-// reference to a set of dictionaries, and guarantees that none of
-// those dictionaries will be destroyed while the DictionarySet
-// reference is alive.
+// This file contains the SdchManager class and the DictionarySet
+// nested class.  The manager is responsible for storing all
+// SdchDictionarys, and provides access to them through DictionarySet
+// objects. A DictionarySet is an object whose lifetime is under the
+// control of the consumer. It is a reference to a set of
+// dictionaries, and guarantees that none of those dictionaries will
+// be destroyed while the DictionarySet reference is alive.
 
 #ifndef NET_BASE_SDCH_MANAGER_H_
 #define NET_BASE_SDCH_MANAGER_H_
@@ -20,18 +18,17 @@
 #include <string>
 #include <vector>
 
-#include "base/gtest_prod_util.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/observer_list.h"
 #include "base/threading/thread_checker.h"
-#include "base/time/time.h"
 #include "net/base/net_export.h"
+#include "net/base/sdch_dictionary.h"
 #include "net/base/sdch_problem_codes.h"
-#include "url/gurl.h"
+
+class GURL;
 
 namespace base {
-class Clock;
 class Value;
 }
 
@@ -55,96 +52,9 @@ class SdchObserver;
 // a DictionarySet object refers to it; see below.
 class NET_EXPORT SdchManager {
  public:
-  class Dictionary;
-  typedef std::map<std::string, scoped_refptr<base::RefCountedData<Dictionary>>>
+  typedef std::map<std::string,
+                   scoped_refptr<base::RefCountedData<SdchDictionary>>>
       DictionaryMap;
-
-  class NET_EXPORT_PRIVATE Dictionary {
-   public:
-    // Construct a vc-diff usable dictionary from the dictionary_text starting
-    // at the given offset. The supplied client_hash should be used to
-    // advertise the dictionary's availability relative to the suppplied URL.
-    Dictionary(const std::string& dictionary_text,
-               size_t offset,
-               const std::string& client_hash,
-               const std::string& server_hash,
-               const GURL& url,
-               const std::string& domain,
-               const std::string& path,
-               const base::Time& expiration,
-               const std::set<int>& ports);
-
-    ~Dictionary();
-
-    // Sdch filters can get our text to use in decoding compressed data.
-    const std::string& text() const { return text_; }
-
-    const GURL& url() const { return url_; }
-    const std::string& client_hash() const { return client_hash_; }
-    const std::string& server_hash() const { return server_hash_; }
-    const std::string& domain() const { return domain_; }
-    const std::string& path() const { return path_; }
-    const base::Time& expiration() const { return expiration_; }
-    const std::set<int>& ports() const { return ports_; }
-
-    // Security methods to check if we can establish a new dictionary with the
-    // given data, that arrived in response to get of dictionary_url.
-    static SdchProblemCode CanSet(const std::string& domain,
-                                  const std::string& path,
-                                  const std::set<int>& ports,
-                                  const GURL& dictionary_url);
-
-    // Security method to check if we can use a dictionary to decompress a
-    // target that arrived with a reference to this dictionary.
-    SdchProblemCode CanUse(const GURL& referring_url) const;
-
-    // Compare paths to see if they "match" for dictionary use.
-    static bool PathMatch(const std::string& path,
-                          const std::string& restriction);
-
-    // Compare domains to see if the "match" for dictionary use.
-    static bool DomainMatch(const GURL& url, const std::string& restriction);
-
-    // Is this dictionary expired?
-    bool Expired() const;
-
-    void SetClockForTesting(scoped_ptr<base::Clock> clock);
-
-   private:
-    friend class base::RefCountedData<Dictionary>;
-
-    // Private copy-constructor to support RefCountedData<>, which requires
-    // that an object stored in it be either DefaultConstructible or
-    // CopyConstructible
-    Dictionary(const Dictionary& rhs);
-
-    // The actual text of the dictionary.
-    std::string text_;
-
-    // Part of the hash of text_ that the client uses to advertise the fact that
-    // it has a specific dictionary pre-cached.
-    std::string client_hash_;
-
-    // Part of the hash of text_ that the server uses to identify the
-    // dictionary it wants used for decoding.
-    std::string server_hash_;
-
-    // The GURL that arrived with the text_ in a URL request to specify where
-    // this dictionary may be used.
-    const GURL url_;
-
-    // Metadate "headers" in before dictionary text contained the following:
-    // Each dictionary payload consists of several headers, followed by the text
-    // of the dictionary. The following are the known headers.
-    const std::string domain_;
-    const std::string path_;
-    const base::Time expiration_;  // Implied by max-age.
-    const std::set<int> ports_;
-
-    scoped_ptr<base::Clock> clock_;
-
-    void operator=(const Dictionary&) = delete;
-  };
 
   // A handle for one or more dictionaries which will keep the dictionaries
   // alive and accessible for the handle's lifetime.
@@ -155,22 +65,23 @@ class NET_EXPORT SdchManager {
     // Return a comma separated list of client hashes.
     std::string GetDictionaryClientHashList() const;
 
-    // Lookup a given dictionary based on server hash. Returned pointer
-    // is guaranteed to be valid for the lifetime of the DictionarySet.
-    // Returns NULL if hash is not a valid server hash for a dictionary
-    // named by DictionarySet.
-    const SdchManager::Dictionary* GetDictionary(const std::string& hash) const;
-
     bool Empty() const;
+
+    // Lookup the dictionary contents based on the server hash.  Returns
+    // a null pointer if the specified hash is not present in the dictionary
+    // set.
+    // The pointer is guaranteed to be valid as long as the DictionarySet
+    // is alive.
+    const std::string* GetDictionaryText(const std::string& server_hash) const;
 
    private:
     // A DictionarySet may only be constructed by the SdchManager.
     friend class SdchManager;
 
     DictionarySet();
-    void AddDictionary(const std::string& server_hash,
-                       const scoped_refptr<base::RefCountedData<
-                           SdchManager::Dictionary>>& dictionary);
+    void AddDictionary(
+        const std::string& server_hash,
+        const scoped_refptr<base::RefCountedData<SdchDictionary>>& dictionary);
 
     DictionaryMap dictionaries_;
 
@@ -185,16 +96,6 @@ class NET_EXPORT SdchManager {
 
   // Record stats on various errors.
   static void SdchErrorRecovery(SdchProblemCode problem);
-
-  // Enables or disables SDCH compression.
-  static void EnableSdchSupport(bool enabled);
-
-  static bool sdch_enabled() { return g_sdch_enabled_; }
-
-  // Enables or disables SDCH compression over secure connection.
-  static void EnableSecureSchemeSupport(bool enabled);
-
-  static bool secure_scheme_supported() { return g_secure_scheme_supported_; }
 
   // Briefly prevent further advertising of SDCH on this domain (if SDCH is
   // enabled). After enough calls to IsInSupportedDomain() the blacklisting
@@ -235,7 +136,9 @@ class NET_EXPORT SdchManager {
                                   const GURL& dictionary_url);
 
   // Send out appropriate events notifying observers that a dictionary
-  // was successfully used to decode a request.
+  // was successfully used to decode a request.  Note that this can happen
+  // after a dictionary has been deleted from the SdchManager (because
+  // DictionarySets retain references to deleted dictionaries).
   void OnDictionaryUsed(const std::string& server_hash);
 
   // Get a handle to the available dictionaries that might be used
@@ -269,7 +172,7 @@ class NET_EXPORT SdchManager {
 
   void SetAllowLatencyExperiment(const GURL& url, bool enable);
 
-  base::Value* SdchInfoToValue() const;
+  scoped_ptr<base::Value> SdchInfoToValue() const;
 
   // Add an SDCH dictionary to our list of availible
   // dictionaries. This addition will fail if addition is illegal
@@ -313,10 +216,6 @@ class NET_EXPORT SdchManager {
   // Support SDCH compression, by advertising in headers.
   static bool g_sdch_enabled_;
 
-  // Support SDCH compression for HTTPS requests and responses. When supported,
-  // HTTPS applicable dictionaries MUST have been acquired securely via HTTPS.
-  static bool g_secure_scheme_supported_;
-
   // A simple implementation of a RFC 3548 "URL safe" base64 encoder.
   static void UrlSafeBase64Encode(const std::string& input,
                                   std::string* output);
@@ -334,7 +233,7 @@ class NET_EXPORT SdchManager {
   // Assert list is empty on destruction since if there is an observer
   // that hasn't removed itself from the list, that observer probably
   // has a reference to the SdchManager.
-  ObserverList<SdchObserver, true> observers_;
+  base::ObserverList<SdchObserver, true> observers_;
 
   base::ThreadChecker thread_checker_;
 

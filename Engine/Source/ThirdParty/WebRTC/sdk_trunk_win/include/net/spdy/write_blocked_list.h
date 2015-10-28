@@ -8,14 +8,15 @@
 #include <algorithm>
 #include <deque>
 
+#include "base/containers/hash_tables.h"
 #include "base/logging.h"
 #include "net/spdy/spdy_protocol.h"
 
-namespace {
-class WriteBlockedListPeer;
-}
-
 namespace net {
+
+namespace test {
+class WriteBlockedListPeer;
+}  // namespace test
 
 const int kHighestPriority = 0;
 const int kLowestPriority = 7;
@@ -26,6 +27,8 @@ class WriteBlockedList {
   // 0(1) size lookup.  0(1) insert at front or back.
   typedef std::deque<IdType> BlockedList;
   typedef typename BlockedList::iterator iterator;
+
+  WriteBlockedList() {}
 
   static SpdyPriority ClampPriority(SpdyPriority priority) {
     if (priority < kHighestPriority) {
@@ -42,8 +45,9 @@ class WriteBlockedList {
   // Returns the priority of the highest priority list with sessions on it.
   SpdyPriority GetHighestPriorityWriteBlockedList() const {
     for (SpdyPriority i = 0; i <= kLowestPriority; ++i) {
-      if (write_blocked_lists_[i].size() > 0)
+      if (write_blocked_lists_[i].size() > 0) {
         return i;
+      }
     }
     LOG(DFATAL) << "No blocked streams";
     return kHighestPriority;
@@ -54,6 +58,7 @@ class WriteBlockedList {
     DCHECK(!write_blocked_lists_[priority].empty());
     IdType stream_id = write_blocked_lists_[priority].front();
     write_blocked_lists_[priority].pop_front();
+    stream_to_priority_.erase(stream_id);
     return stream_id;
   }
 
@@ -77,18 +82,49 @@ class WriteBlockedList {
   }
 
   void PushBack(IdType stream_id, SpdyPriority priority) {
-    write_blocked_lists_[ClampPriority(priority)].push_back(stream_id);
+    priority = ClampPriority(priority);
+    DVLOG(2) << "Adding stream " << stream_id << " at priority "
+             << static_cast<int>(priority);
+    bool should_insert_stream = true;
+    typename StreamToPriorityMap::iterator iter =
+        stream_to_priority_.find(stream_id);
+    if (iter != stream_to_priority_.end()) {
+      DVLOG(1) << "Stream " << stream_id << " already in write blocked list.";
+      if (iter->second == priority) {
+        // The stream is already in the write blocked list for the priority.
+        should_insert_stream = false;
+      } else {
+        // The stream is in a write blocked list for a different priority.
+        bool removed =
+            RemoveStreamFromWriteBlockedList(stream_id, iter->second);
+        DCHECK(removed);
+      }
+    }
+    if (should_insert_stream) {
+      stream_to_priority_[stream_id] = priority;
+      write_blocked_lists_[priority].push_back(stream_id);
+    }
   }
 
   bool RemoveStreamFromWriteBlockedList(IdType stream_id,
                                         SpdyPriority priority) {
+    typename StreamToPriorityMap::iterator iter =
+        stream_to_priority_.find(stream_id);
+    if (iter == stream_to_priority_.end()) {
+      // The stream is not present in the write blocked list.
+      return false;
+    } else if (iter->second == priority) {
+      stream_to_priority_.erase(iter);
+    } else {
+      // The stream is not present at the specified priority level.
+      return false;
+    }
     // We shouldn't really add a stream_id to a list multiple times,
     // but under some conditions it does happen. Doing a check in PushBack
     // would be too costly, so instead we check here to eliminate duplicates.
     bool found = false;
     iterator it = std::find(write_blocked_lists_[priority].begin(),
-                            write_blocked_lists_[priority].end(),
-                            stream_id);
+                            write_blocked_lists_[priority].end(), stream_id);
     while (it != write_blocked_lists_[priority].end()) {
       found = true;
       iterator next_it = write_blocked_lists_[priority].erase(it);
@@ -118,8 +154,12 @@ class WriteBlockedList {
   }
 
  private:
-  friend WriteBlockedListPeer;
+  friend class net::test::WriteBlockedListPeer;
+
+  typedef base::hash_map<IdType, SpdyPriority> StreamToPriorityMap;
+
   BlockedList write_blocked_lists_[kLowestPriority + 1];
+  StreamToPriorityMap stream_to_priority_;
 };
 
 }  // namespace net

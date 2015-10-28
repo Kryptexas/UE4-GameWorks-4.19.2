@@ -59,8 +59,6 @@
 
 #include <openssl/base.h>
 
-#include <openssl/asn1.h>
-#include <openssl/thread.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -81,7 +79,6 @@ int BN_BLINDING_convert(BIGNUM *n, BN_BLINDING *b, BN_CTX *ctx);
 int BN_BLINDING_invert(BIGNUM *n, BN_BLINDING *b, BN_CTX *ctx);
 int BN_BLINDING_convert_ex(BIGNUM *n, BIGNUM *r, BN_BLINDING *b, BN_CTX *);
 int BN_BLINDING_invert_ex(BIGNUM *n, const BIGNUM *r, BN_BLINDING *b, BN_CTX *);
-CRYPTO_THREADID *BN_BLINDING_thread_id(BN_BLINDING *);
 unsigned long BN_BLINDING_get_flags(const BN_BLINDING *);
 void BN_BLINDING_set_flags(BN_BLINDING *, unsigned long);
 BN_BLINDING *BN_BLINDING_create_param(
@@ -110,17 +107,6 @@ int RSA_padding_check_PKCS1_OAEP_mgf1(uint8_t *to, unsigned to_len,
                                       const EVP_MD *md, const EVP_MD *mgf1md);
 int RSA_padding_add_none(uint8_t *to, unsigned to_len, const uint8_t *from,
                          unsigned from_len);
-int RSA_padding_check_none(uint8_t *to, unsigned to_len, const uint8_t *from,
-                           unsigned from_len);
-
-/* RSA_verify_PKCS1_PSS_mgf1 */
-int RSA_verify_PKCS1_PSS_mgf1(RSA *rsa, const uint8_t *mHash,
-                              const EVP_MD *Hash, const EVP_MD *mgf1Hash,
-                              const uint8_t *EM, int sLen);
-
-int RSA_padding_add_PKCS1_PSS_mgf1(RSA *rsa, uint8_t *EM, const uint8_t *mHash,
-                                   const EVP_MD *Hash, const EVP_MD *mgf1Hash,
-                                   int sLen);
 
 /* RSA_private_transform calls either the method-specific |private_transform|
  * function (if given) or the generic one. See the comment for
@@ -128,20 +114,26 @@ int RSA_padding_add_PKCS1_PSS_mgf1(RSA *rsa, uint8_t *EM, const uint8_t *mHash,
 int RSA_private_transform(RSA *rsa, uint8_t *out, const uint8_t *in,
                           size_t len);
 
-typedef struct rsa_pss_params_st {
-  X509_ALGOR *hashAlgorithm;
-  X509_ALGOR *maskGenAlgorithm;
-  ASN1_INTEGER *saltLength;
-  ASN1_INTEGER *trailerField;
-} RSA_PSS_PARAMS;
 
-DECLARE_ASN1_FUNCTIONS(RSA_PSS_PARAMS)
+/* RSA_additional_prime contains information about the third, forth etc prime
+ * in a multi-prime RSA key. */
+typedef struct RSA_additional_prime_st {
+  BIGNUM *prime;
+  /* exp is d^{prime-1} mod prime */
+  BIGNUM *exp;
+  /* coeff is such that r×coeff ≡ 1 mod prime. */
+  BIGNUM *coeff;
 
-typedef struct rsa_oaep_params_st {
-  X509_ALGOR *hashFunc;
-  X509_ALGOR *maskGenFunc;
-  X509_ALGOR *pSourceFunc;
-} RSA_OAEP_PARAMS;
+  /* Values below here are not in the ASN.1 serialisation. */
+
+  /* r is the product of all primes (including p and q) prior to this one. */
+  BIGNUM *r;
+  /* method_mod is managed by the |RSA_METHOD|. */
+  BN_MONT_CTX *method_mod;
+} RSA_additional_prime;
+
+void RSA_additional_prime_free(RSA_additional_prime *ap);
+
 
 #if defined(__cplusplus)
 } /* extern C */

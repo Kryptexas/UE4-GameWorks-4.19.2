@@ -24,13 +24,13 @@ class SendSideBandwidthEstimation {
   SendSideBandwidthEstimation();
   virtual ~SendSideBandwidthEstimation();
 
-  void CurrentEstimate(uint32_t* bitrate, uint8_t* loss, int64_t* rtt) const;
+  void CurrentEstimate(int* bitrate, uint8_t* loss, int64_t* rtt) const;
 
   // Call periodically to update estimate.
   void UpdateEstimate(int64_t now_ms);
 
   // Call when we receive a RTCP message with TMMBR or REMB.
-  void UpdateReceiverEstimate(uint32_t bandwidth);
+  void UpdateReceiverEstimate(int64_t now_ms, uint32_t bandwidth);
 
   // Call when we receive a RTCP message with a ReceiveBlock.
   void UpdateReceiverBlock(uint8_t fraction_loss,
@@ -38,12 +38,9 @@ class SendSideBandwidthEstimation {
                            int number_of_packets,
                            int64_t now_ms);
 
-  void SetSendBitrate(uint32_t bitrate);
-  void SetMinMaxBitrate(uint32_t min_bitrate, uint32_t max_bitrate);
-  void SetMinBitrate(uint32_t min_bitrate);
-
- protected:
-  virtual bool ProbingExperimentIsEnabled() const;
+  void SetSendBitrate(int bitrate);
+  void SetMinMaxBitrate(int min_bitrate, int max_bitrate);
+  int GetMinBitrate() const;
 
  private:
   enum UmaState { kNoUpdate, kFirstDone, kDone };
@@ -54,7 +51,7 @@ class SendSideBandwidthEstimation {
 
   // Returns the input bitrate capped to the thresholds defined by the max,
   // min and incoming bandwidth.
-  uint32_t CapBitrateToThresholds(uint32_t bitrate);
+  uint32_t CapBitrateToThresholds(int64_t now_ms, uint32_t bitrate);
 
   // Updates history of min bitrates.
   // After this method returns min_bitrate_history_.front().second contains the
@@ -64,13 +61,15 @@ class SendSideBandwidthEstimation {
   std::deque<std::pair<int64_t, uint32_t> > min_bitrate_history_;
 
   // incoming filters
-  int accumulate_lost_packets_Q8_;
-  int accumulate_expected_packets_;
+  int lost_packets_since_last_loss_update_Q8_;
+  int expected_packets_since_last_loss_update_;
 
   uint32_t bitrate_;
   uint32_t min_bitrate_configured_;
   uint32_t max_bitrate_configured_;
+  int64_t last_low_bitrate_log_ms_;
 
+  bool has_decreased_since_last_fraction_loss_;
   int64_t time_last_receiver_block_ms_;
   uint8_t last_fraction_loss_;
   int64_t last_round_trip_time_ms_;

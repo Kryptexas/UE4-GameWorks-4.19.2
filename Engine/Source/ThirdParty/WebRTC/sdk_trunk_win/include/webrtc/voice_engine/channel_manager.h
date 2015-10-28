@@ -14,9 +14,10 @@
 #include <vector>
 
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/call/rtc_event_log.h"
 #include "webrtc/system_wrappers/interface/atomic32.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -52,15 +53,16 @@ class ChannelOwner {
 
   ChannelOwner& operator=(const ChannelOwner& other);
 
-  Channel* channel() { return channel_ref_->channel.get(); }
+  Channel* channel() const { return channel_ref_->channel.get(); }
   bool IsValid() { return channel_ref_->channel.get() != NULL; }
+  int use_count() const { return channel_ref_->ref_count.Value(); }
  private:
   // Shared instance of a Channel. Copying ChannelOwners increase the reference
   // count and destroying ChannelOwners decrease references. Channels are
   // deleted when no references to them are held.
   struct ChannelRef {
     ChannelRef(Channel* channel);
-    const scoped_ptr<Channel> channel;
+    const rtc::scoped_ptr<Channel> channel;
     Atomic32 ref_count;
   };
 
@@ -89,7 +91,7 @@ class ChannelManager {
     size_t iterator_pos_;
     std::vector<ChannelOwner> channels_;
 
-    DISALLOW_COPY_AND_ASSIGN(Iterator);
+    RTC_DISALLOW_COPY_AND_ASSIGN(Iterator);
   };
 
   // CreateChannel will always return a valid ChannelOwner instance. The channel
@@ -110,6 +112,9 @@ class ChannelManager {
 
   size_t NumOfChannels() const;
 
+  // Returns a pointer to the event log object stored within the ChannelManager.
+  RtcEventLog* GetEventLog() const;
+
  private:
   // Create a channel given a configuration, |config|.
   ChannelOwner CreateChannelInternal(const Config& config);
@@ -118,12 +123,13 @@ class ChannelManager {
 
   Atomic32 last_channel_id_;
 
-  scoped_ptr<CriticalSectionWrapper> lock_;
+  rtc::scoped_ptr<CriticalSectionWrapper> lock_;
   std::vector<ChannelOwner> channels_;
 
   const Config& config_;
+  rtc::scoped_ptr<RtcEventLog> event_log_;
 
-  DISALLOW_COPY_AND_ASSIGN(ChannelManager);
+  RTC_DISALLOW_COPY_AND_ASSIGN(ChannelManager);
 };
 }  // namespace voe
 }  // namespace webrtc

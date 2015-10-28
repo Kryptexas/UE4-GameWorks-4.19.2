@@ -14,7 +14,7 @@
 #include <string>
 
 #include "webrtc/base/constructormagic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -49,9 +49,9 @@ class AudioLoop {
   size_t next_index_;
   size_t loop_length_samples_;
   size_t block_length_samples_;
-  scoped_ptr<int16_t[]> audio_array_;
+  rtc::scoped_ptr<int16_t[]> audio_array_;
 
-  DISALLOW_COPY_AND_ASSIGN(AudioLoop);
+  RTC_DISALLOW_COPY_AND_ASSIGN(AudioLoop);
 };
 
 }  // namespace test

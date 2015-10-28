@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Functions used internally by filename_util, filename_util_icu and
-// filename_util_unsafe.
+// Functions used internally by filename_util, and filename_util_icu.
 
 #ifndef NET_BASE_FILENAME_UTIL_INTERNAL_H_
 #define NET_BASE_FILENAME_UTIL_INTERNAL_H_
@@ -26,8 +25,6 @@ void SanitizeGeneratedFileName(base::FilePath::StringType* filename,
                                bool replace_trailing);
 
 bool IsShellIntegratedExtension(const base::FilePath::StringType& extension);
-
-bool IsReservedName(const base::FilePath::StringType& filename);
 
 void EnsureSafeExtension(const std::string& mime_type,
                          bool ignore_extension,

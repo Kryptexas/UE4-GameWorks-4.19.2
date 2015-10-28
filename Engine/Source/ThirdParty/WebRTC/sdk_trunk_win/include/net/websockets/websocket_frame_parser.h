@@ -5,9 +5,11 @@
 #ifndef NET_WEBSOCKETS_WEBSOCKET_FRAME_PARSER_H_
 #define NET_WEBSOCKETS_WEBSOCKET_FRAME_PARSER_H_
 
+#include <stddef.h>
+#include <stdint.h>
 #include <vector>
 
-#include "base/basictypes.h"
+#include "base/macros.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/memory/scoped_vector.h"
@@ -75,7 +77,7 @@ class NET_EXPORT WebSocketFrameParser {
   WebSocketMaskingKey masking_key_;
 
   // Amount of payload data read so far for the current frame.
-  uint64 frame_offset_;
+  uint64_t frame_offset_;
 
   WebSocketError websocket_error_;
 

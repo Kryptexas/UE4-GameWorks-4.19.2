@@ -10,21 +10,18 @@
 
 #include "base/basictypes.h"
 #include "base/strings/string_piece.h"
-#include "net/base/io_buffer.h"
-#include "net/quic/quic_data_stream.h"
 #include "net/quic/quic_protocol.h"
-#include "net/tools/balsa/balsa_frame.h"
-#include "net/tools/balsa/balsa_headers.h"
+#include "net/quic/quic_spdy_stream.h"
+#include "net/spdy/spdy_framer.h"
 
 namespace net {
-
 namespace tools {
 
 class QuicClientSession;
 
 // All this does right now is send an SPDY request, and aggregate the
 // SPDY response.
-class QuicSpdyClientStream : public QuicDataStream {
+class QuicSpdyClientStream : public QuicSpdyStream {
  public:
   QuicSpdyClientStream(QuicStreamId id, QuicClientSession* session);
   ~QuicSpdyClientStream() override;
@@ -39,43 +36,57 @@ class QuicSpdyClientStream : public QuicDataStream {
 
   // ReliableQuicStream implementation called by the session when there's
   // data for us.
-  uint32 ProcessData(const char* data, uint32 data_len) override;
-
-  void OnFinRead() override;
+  void OnDataAvailable() override;
 
   // Serializes the headers and body, sends it to the server, and
   // returns the number of bytes sent.
-  ssize_t SendRequest(const BalsaHeaders& headers,
-                      base::StringPiece body,
-                      bool fin);
+  size_t SendRequest(const SpdyHeaderBlock& headers,
+                     base::StringPiece body,
+                     bool fin);
 
   // Sends body data to the server, or buffers if it can't be sent immediately.
   void SendBody(const std::string& data, bool fin);
+  // As above, but |delegate| will be notified once |data| is ACKed.
+  void SendBody(const std::string& data,
+                bool fin,
+                QuicAckListenerInterface* delegate);
 
   // Returns the response data.
   const std::string& data() { return data_; }
 
   // Returns whatever headers have been received for this stream.
-  const BalsaHeaders& headers() { return headers_; }
+  const SpdyHeaderBlock& headers() { return response_headers_; }
 
   size_t header_bytes_read() const { return header_bytes_read_; }
 
   size_t header_bytes_written() const { return header_bytes_written_; }
 
+  int response_code() const { return response_code_; }
+
   // While the server's set_priority shouldn't be called externally, the creator
   // of client-side streams should be able to set the priority.
-  using QuicDataStream::set_priority;
+  using QuicSpdyStream::set_priority;
+
+  void set_allow_bidirectional_data(bool value) {
+    allow_bidirectional_data_ = value;
+  }
+
+  bool allow_bidirectional_data() const { return allow_bidirectional_data_; }
 
  private:
-  int ParseResponseHeaders();
+  bool ParseResponseHeaders(const char* data, uint32 data_len);
 
-  BalsaHeaders headers_;
+  // The parsed headers received from the server.
+  SpdyHeaderBlock response_headers_;
+  // The parsed content-length, or -1 if none is specified.
+  int content_length_;
+  int response_code_;
   std::string data_;
-
-  scoped_refptr<GrowableIOBuffer> read_buf_;
-  bool response_headers_received_;
   size_t header_bytes_read_;
   size_t header_bytes_written_;
+  // When true allows the sending of a request to continue while the response is
+  // arriving.
+  bool allow_bidirectional_data_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicSpdyClientStream);
 };

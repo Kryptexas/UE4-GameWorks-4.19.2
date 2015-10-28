@@ -75,6 +75,9 @@ extern "C" {
 #endif
 
 
+/* Low-level operations on elliptic curves. */
+
+
 typedef struct ec_group_st EC_GROUP;
 typedef struct ec_point_st EC_POINT;
 
@@ -84,7 +87,7 @@ typedef enum {
 	/** the point is encoded as z||x, where the octet z specifies 
 	 *  which solution of the quadratic equation y is  */
 	POINT_CONVERSION_COMPRESSED = 2,
-	/** the point is encoded as z||x||y, where z is the octet 0x02  */
+	/** the point is encoded as z||x||y, where z is the octet 0x04  */
 	POINT_CONVERSION_UNCOMPRESSED = 4
 } point_conversion_form_t;
 
@@ -104,17 +107,14 @@ OPENSSL_EXPORT EC_GROUP *EC_GROUP_new_by_curve_name(int nid);
 /* EC_GROUP_free frees |group| and the data that it points to. */
 OPENSSL_EXPORT void EC_GROUP_free(EC_GROUP *group);
 
-/* EC_GROUP_copy sets |*dest| equal to |*src|. It returns one on success and
- * zero otherwise. */
-OPENSSL_EXPORT int EC_GROUP_copy(EC_GROUP *dest, const EC_GROUP *src);
-
 /* EC_GROUP_dup returns a fresh |EC_GROUP| which is equal to |a| or NULL on
  * error. */
 OPENSSL_EXPORT EC_GROUP *EC_GROUP_dup(const EC_GROUP *a);
 
-/* EC_GROUP_cmp returns one if |a| and |b| are the same group and zero
+/* EC_GROUP_cmp returns zero if |a| and |b| are the same group and non-zero
  * otherwise. */
-OPENSSL_EXPORT int EC_GROUP_cmp(const EC_GROUP *a, const EC_GROUP *b);
+OPENSSL_EXPORT int EC_GROUP_cmp(const EC_GROUP *a, const EC_GROUP *b,
+                                BN_CTX *ignored);
 
 /* EC_GROUP_get0_generator returns a pointer to the internal |EC_POINT| object
  * in |group| that specifies the generator for the group. */
@@ -220,7 +220,7 @@ OPENSSL_EXPORT int EC_POINT_get_affine_coordinates_GFp(const EC_GROUP *group,
                                                        BIGNUM *x, BIGNUM *y,
                                                        BN_CTX *ctx);
 
-/* EC_POINT_set_affine_coordinates sets the value of |p| to be (|x|, |y|). The
+/* EC_POINT_set_affine_coordinates_GFp sets the value of |p| to be (|x|, |y|). The
  * |ctx| argument may be used if not NULL. */
 OPENSSL_EXPORT int EC_POINT_set_affine_coordinates_GFp(const EC_GROUP *group,
                                                        EC_POINT *point,
@@ -265,7 +265,7 @@ OPENSSL_EXPORT int EC_POINT_add(const EC_GROUP *group, EC_POINT *r,
 OPENSSL_EXPORT int EC_POINT_dbl(const EC_GROUP *group, EC_POINT *r,
                                 const EC_POINT *a, BN_CTX *ctx);
 
-/* EC_POINT_dbl sets |a| equal to minus |a|. It returns one on success and zero
+/* EC_POINT_invert sets |a| equal to minus |a|. It returns one on success and zero
  * otherwise. If |ctx| is not NULL, it may be used. */
 OPENSSL_EXPORT int EC_POINT_invert(const EC_GROUP *group, EC_POINT *a,
                                    BN_CTX *ctx);
@@ -284,101 +284,81 @@ OPENSSL_EXPORT int EC_POINTs_mul(const EC_GROUP *group, EC_POINT *r,
                                  BN_CTX *ctx);
 
 
+/* Deprecated functions. */
+
+/* EC_GROUP_new_curve_GFp creates a new, arbitrary elliptic curve group based
+ * on the equation y² = x³ + a·x + b. It returns the new group or NULL on
+ * error.
+ *
+ * |EC_GROUP|s returned by this function will always compare as unequal via
+ * |EC_GROUP_cmp| (even to themselves). |EC_GROUP_get_curve_name| will always
+ * return |NID_undef|. */
+OPENSSL_EXPORT EC_GROUP *EC_GROUP_new_curve_GFp(const BIGNUM *p,
+                                                const BIGNUM *a,
+                                                const BIGNUM *b, BN_CTX *ctx);
+
+/* EC_GROUP_set_generator sets the generator for |group| to |generator|, which
+ * must have the given order and cofactor. This should only be used with
+ * |EC_GROUP| objects returned by |EC_GROUP_new_curve_GFp|. */
+OPENSSL_EXPORT int EC_GROUP_set_generator(EC_GROUP *group,
+                                          const EC_POINT *generator,
+                                          const BIGNUM *order,
+                                          const BIGNUM *cofactor);
+
+/* EC_GROUP_set_asn1_flag does nothing. */
+OPENSSL_EXPORT void EC_GROUP_set_asn1_flag(EC_GROUP *group, int flag);
+
+#define OPENSSL_EC_NAMED_CURVE 0
+
+typedef struct ec_method_st EC_METHOD;
+
+/* EC_GROUP_method_of returns NULL. */
+OPENSSL_EXPORT const EC_METHOD *EC_GROUP_method_of(const EC_GROUP *group);
+
+/* EC_METHOD_get_field_type returns NID_X9_62_prime_field. */
+OPENSSL_EXPORT int EC_METHOD_get_field_type(const EC_METHOD *meth);
+
+/* EC_GROUP_set_point_conversion_form aborts the process if |form| is not
+ * |POINT_CONVERSION_UNCOMPRESSED| and otherwise does nothing. */
+OPENSSL_EXPORT void EC_GROUP_set_point_conversion_form(
+    EC_GROUP *group, point_conversion_form_t form);
+
+
 /* Old code expects to get EC_KEY from ec.h. */
-#if !defined(OPENSSL_HEADER_EC_KEY_H)
 #include <openssl/ec_key.h>
-#endif
 
 
 #if defined(__cplusplus)
 }  /* extern C */
 #endif
 
-#define EC_F_ec_pre_comp_new 100
-#define EC_F_ec_GFp_mont_field_decode 101
-#define EC_F_ec_group_new_from_data 102
-#define EC_F_ec_GFp_simple_point_get_affine_coordinates 103
-#define EC_F_ec_GFp_simple_make_affine 104
-#define EC_F_EC_KEY_new_method 105
-#define EC_F_ec_GFp_mont_field_encode 106
-#define EC_F_EC_GROUP_new_by_curve_name 107
-#define EC_F_ec_group_new 108
-#define EC_F_ec_asn1_group2pkparameters 109
-#define EC_F_EC_POINT_set_compressed_coordinates_GFp 110
-#define EC_F_ec_GFp_mont_field_sqr 111
-#define EC_F_EC_POINT_make_affine 112
-#define EC_F_i2d_ECParameters 113
-#define EC_F_ec_wNAF_mul 114
-#define EC_F_EC_GROUP_copy 115
-#define EC_F_EC_POINT_cmp 116
-#define EC_F_ec_GFp_mont_field_mul 117
-#define EC_F_EC_POINT_dup 118
-#define EC_F_EC_POINT_invert 119
-#define EC_F_ec_GFp_simple_point_set_affine_coordinates 120
-#define EC_F_ec_GFp_simple_points_make_affine 121
-#define EC_F_i2o_ECPublicKey 122
-#define EC_F_EC_KEY_check_key 123
-#define EC_F_ec_wNAF_precompute_mult 124
-#define EC_F_EC_POINT_oct2point 125
-#define EC_F_EC_POINT_is_at_infinity 126
-#define EC_F_EC_POINT_get_affine_coordinates_GFp 127
-#define EC_F_ec_point_set_Jprojective_coordinates_GFp 128
-#define EC_F_o2i_ECPublicKey 129
-#define EC_F_ec_GFp_mont_field_set_to_one 130
-#define EC_F_ec_group_new_curve_GFp 131
-#define EC_F_EC_POINT_dbl 132
-#define EC_F_ec_asn1_pkparameters2group 133
-#define EC_F_i2d_ECPKParameters 134
-#define EC_F_EC_KEY_copy 135
-#define EC_F_EC_POINT_new 136
-#define EC_F_EC_POINT_point2oct 137
-#define EC_F_EC_POINT_copy 138
-#define EC_F_EC_POINT_is_on_curve 139
-#define EC_F_ec_GFp_simple_group_set_curve 140
-#define EC_F_i2d_ECPrivateKey 141
-#define EC_F_d2i_ECParameters 142
-#define EC_F_ec_GFp_mont_group_set_curve 143
-#define EC_F_EC_POINT_set_to_infinity 144
-#define EC_F_EC_POINTs_make_affine 145
-#define EC_F_compute_wNAF 146
-#define EC_F_ec_GFp_simple_point2oct 147
-#define EC_F_EC_GROUP_get_degree 148
-#define EC_F_ec_GFp_simple_group_check_discriminant 149
-#define EC_F_d2i_ECPKParameters 150
-#define EC_F_d2i_ECPrivateKey 151
-#define EC_F_ec_GFp_simple_oct2point 152
-#define EC_F_EC_POINT_set_affine_coordinates_GFp 153
-#define EC_F_EC_KEY_set_public_key_affine_coordinates 154
-#define EC_F_EC_KEY_generate_key 155
-#define EC_F_ec_GFp_simple_set_compressed_coordinates 156
-#define EC_F_EC_POINT_add 157
-#define EC_F_EC_GROUP_get_curve_GFp 158
-#define EC_R_PKPARAMETERS2GROUP_FAILURE 100
-#define EC_R_NON_NAMED_CURVE 101
-#define EC_R_COORDINATES_OUT_OF_RANGE 102
-#define EC_R_POINT_AT_INFINITY 103
-#define EC_R_NOT_INITIALIZED 104
-#define EC_R_MISSING_PRIVATE_KEY 105
-#define EC_R_GROUP2PKPARAMETERS_FAILURE 106
-#define EC_R_INVALID_ENCODING 107
-#define EC_R_BUFFER_TOO_SMALL 108
-#define EC_R_D2I_ECPKPARAMETERS_FAILURE 109
-#define EC_R_INVALID_FORM 110
-#define EC_R_INVALID_PRIVATE_KEY 111
-#define EC_R_INVALID_COMPRESSED_POINT 112
-#define EC_R_MISSING_PARAMETERS 113
-#define EC_R_INVALID_FIELD 114
-#define EC_R_INVALID_COMPRESSION_BIT 115
-#define EC_R_GF2M_NOT_SUPPORTED 116
-#define EC_R_POINT_IS_NOT_ON_CURVE 117
-#define EC_R_UNKNOWN_ORDER 118
-#define EC_R_UNKNOWN_GROUP 119
-#define EC_R_WRONG_ORDER 120
-#define EC_R_UNDEFINED_GENERATOR 121
-#define EC_R_INCOMPATIBLE_OBJECTS 122
-#define EC_R_I2D_ECPKPARAMETERS_FAILURE 123
-#define EC_R_EC_GROUP_NEW_BY_NAME_FAILURE 124
-#define EC_R_INVALID_GROUP_ORDER 125
-#define EC_R_SLOT_FULL 126
+#define EC_R_BUFFER_TOO_SMALL 100
+#define EC_R_COORDINATES_OUT_OF_RANGE 101
+#define EC_R_D2I_ECPKPARAMETERS_FAILURE 102
+#define EC_R_EC_GROUP_NEW_BY_NAME_FAILURE 103
+#define EC_R_GROUP2PKPARAMETERS_FAILURE 104
+#define EC_R_I2D_ECPKPARAMETERS_FAILURE 105
+#define EC_R_INCOMPATIBLE_OBJECTS 106
+#define EC_R_INVALID_COMPRESSED_POINT 107
+#define EC_R_INVALID_COMPRESSION_BIT 108
+#define EC_R_INVALID_ENCODING 109
+#define EC_R_INVALID_FIELD 110
+#define EC_R_INVALID_FORM 111
+#define EC_R_INVALID_GROUP_ORDER 112
+#define EC_R_INVALID_PRIVATE_KEY 113
+#define EC_R_MISSING_PARAMETERS 114
+#define EC_R_MISSING_PRIVATE_KEY 115
+#define EC_R_NON_NAMED_CURVE 116
+#define EC_R_NOT_INITIALIZED 117
+#define EC_R_PKPARAMETERS2GROUP_FAILURE 118
+#define EC_R_POINT_AT_INFINITY 119
+#define EC_R_POINT_IS_NOT_ON_CURVE 120
+#define EC_R_SLOT_FULL 121
+#define EC_R_UNDEFINED_GENERATOR 122
+#define EC_R_UNKNOWN_GROUP 123
+#define EC_R_UNKNOWN_ORDER 124
+#define EC_R_WRONG_ORDER 125
+#define EC_R_BIGNUM_OUT_OF_RANGE 126
+#define EC_R_WRONG_CURVE_PARAMETERS 127
 
 #endif  /* OPENSSL_HEADER_EC_H */

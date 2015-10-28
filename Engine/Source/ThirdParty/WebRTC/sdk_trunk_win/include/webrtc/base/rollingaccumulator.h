@@ -11,6 +11,7 @@
 #ifndef WEBRTC_BASE_ROLLINGACCUMULATOR_H_
 #define WEBRTC_BASE_ROLLINGACCUMULATOR_H_
 
+#include <algorithm>
 #include <vector>
 
 #include "webrtc/base/common.h"
@@ -99,7 +100,7 @@ class RollingAccumulator {
           "It shouldn't be possible for max_stale_ && count_ == 0");
       max_ = samples_[next_index_];
       for (size_t i = 1u; i < count_; i++) {
-        max_ = _max(max_, samples_[(next_index_ + i) % max_count()]);
+        max_ = std::max(max_, samples_[(next_index_ + i) % max_count()]);
       }
       max_stale_ = false;
     }
@@ -112,7 +113,7 @@ class RollingAccumulator {
           "It shouldn't be possible for min_stale_ && count_ == 0");
       min_ = samples_[next_index_];
       for (size_t i = 1u; i < count_; i++) {
-        min_ = _min(min_, samples_[(next_index_ + i) % max_count()]);
+        min_ = std::min(min_, samples_[(next_index_ + i) % max_count()]);
       }
       min_stale_ = false;
     }
@@ -164,7 +165,7 @@ class RollingAccumulator {
   mutable bool min_stale_;
   std::vector<T> samples_;
 
-  DISALLOW_COPY_AND_ASSIGN(RollingAccumulator);
+  RTC_DISALLOW_COPY_AND_ASSIGN(RollingAccumulator);
 };
 
 }  // namespace rtc

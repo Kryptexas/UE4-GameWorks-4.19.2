@@ -10,12 +10,11 @@
 #ifndef WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_TEST_STREAM_GENERATOR_H_
 #define WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_TEST_STREAM_GENERATOR_H_
 
-#include <string.h>
-
 #include <list>
 
 #include "webrtc/modules/video_coding/main/source/packet.h"
 #include "webrtc/modules/video_coding/main/test/test_util.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
@@ -28,24 +27,16 @@ const int kDefaultFramePeriodMs = 1000 / kDefaultFrameRate;
 
 class StreamGenerator {
  public:
-  StreamGenerator(uint16_t start_seq_num,
-                  uint32_t start_timestamp,
-                  int64_t current_time);
-  void Init(uint16_t start_seq_num,
-            uint32_t start_timestamp,
-            int64_t current_time);
+  StreamGenerator(uint16_t start_seq_num, int64_t current_time);
+  void Init(uint16_t start_seq_num, int64_t current_time);
 
+  // |time_ms| denotes the timestamp you want to put on the frame, and the unit
+  // is millisecond. GenerateFrame will translate |time_ms| into a 90kHz
+  // timestamp and put it on the frame.
   void GenerateFrame(FrameType type,
                      int num_media_packets,
                      int num_empty_packets,
-                     int64_t current_time);
-
-  VCMPacket GeneratePacket(uint16_t sequence_number,
-                           uint32_t timestamp,
-                           unsigned int size,
-                           bool first_packet,
-                           bool marker_bit,
-                           FrameType type);
+                     int64_t time_ms);
 
   bool PopPacket(VCMPacket* packet, int index);
   void DropLastPacket();
@@ -59,15 +50,21 @@ class StreamGenerator {
   int PacketsRemaining() const;
 
  private:
+  VCMPacket GeneratePacket(uint16_t sequence_number,
+                           uint32_t timestamp,
+                           unsigned int size,
+                           bool first_packet,
+                           bool marker_bit,
+                           FrameType type);
+
   std::list<VCMPacket>::iterator GetPacketIterator(int index);
 
   std::list<VCMPacket> packets_;
   uint16_t sequence_number_;
-  uint32_t timestamp_;
   int64_t start_time_;
-  uint8_t packet_buffer[kMaxPacketSize];
+  uint8_t packet_buffer_[kMaxPacketSize];
 
-  DISALLOW_COPY_AND_ASSIGN(StreamGenerator);
+  RTC_DISALLOW_COPY_AND_ASSIGN(StreamGenerator);
 };
 
 }  // namespace webrtc

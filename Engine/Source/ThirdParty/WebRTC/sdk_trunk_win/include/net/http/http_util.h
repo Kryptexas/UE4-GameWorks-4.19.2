@@ -24,22 +24,10 @@ namespace net {
 
 class NET_EXPORT HttpUtil {
  public:
-  // Returns the absolute path of the URL, to be used for the http request.
-  // The absolute path starts with a '/' and may contain a query.
-  static std::string PathForRequest(const GURL& url);
-
   // Returns the absolute URL, to be used for the http request. This url is
   // made up of the protocol, host, [port], path, [query]. Everything else
   // is stripped (username, password, reference).
   static std::string SpecForRequest(const GURL& url);
-
-  // Locates the next occurance of delimiter in line, skipping over quoted
-  // strings (e.g., commas will not be treated as delimiters if they appear
-  // within a quoted string).  Returns the offset of the found delimiter or
-  // line.size() if no delimiter was found.
-  static size_t FindDelimiter(const std::string& line,
-                              size_t search_start,
-                              char delimiter);
 
   // Parses the value of a Content-Type header.  The resulting mime_type and
   // charset values are normalized to lowercase.  The mime_type and charset
@@ -151,9 +139,18 @@ class NET_EXPORT HttpUtil {
   // 2616 defines the end-of-headers marker as a double CRLF; however, some
   // servers only send back LFs (e.g., Unix-based CGI scripts written using the
   // ASIS Apache module).  This function therefore accepts the pattern LF[CR]LF
-  // as end-of-headers (just like Mozilla).
+  // as end-of-headers (just like Mozilla). The first line of |buf| is
+  // considered the status line, even if empty.
   // The parameter |i| is the offset within |buf| to begin searching from.
   static int LocateEndOfHeaders(const char* buf, int buf_len, int i = 0);
+
+  // Same as |LocateEndOfHeaders|, but does not expect a status line, so can be
+  // used on multi-part responses or HTTP/1.x trailers.  As a result, if |buf|
+  // starts with a single [CR]LF,  it is considered an empty header list, as
+  // opposed to an empty status line above a header list.
+  static int LocateEndOfAdditionalHeaders(const char* buf,
+                                          int buf_len,
+                                          int i = 0);
 
   // Assemble "raw headers" in the format required by HttpResponseHeaders.
   // This involves normalizing line terminators, converting [CR]LF to \0 and
@@ -318,9 +315,22 @@ class NET_EXPORT HttpUtil {
   // calls to GetNext() or after the NameValuePairsIterator is destroyed.
   class NET_EXPORT NameValuePairsIterator {
    public:
+    // Whether or not values are optional. VALUES_OPTIONAL allows
+    // e.g. name1=value1;name2;name3=value3, whereas VALUES_NOT_OPTIONAL
+    // will treat it as a parse error because name2 does not have a
+    // corresponding equals sign.
+    enum OptionalValues { VALUES_OPTIONAL, VALUES_NOT_OPTIONAL };
+
+    NameValuePairsIterator(std::string::const_iterator begin,
+                           std::string::const_iterator end,
+                           char delimiter,
+                           OptionalValues optional_values);
+
+    // Treats values as not optional by default (VALUES_NOT_OPTIONAL).
     NameValuePairsIterator(std::string::const_iterator begin,
                            std::string::const_iterator end,
                            char delimiter);
+
     ~NameValuePairsIterator();
 
     // Advances the iterator to the next pair, if any.  Returns true if there
@@ -348,6 +358,8 @@ class NET_EXPORT HttpUtil {
                                                               value_end_);
     }
 
+    bool value_is_quoted() const { return value_is_quoted_; }
+
     // The value before unquoting (if any).
     std::string raw_value() const { return std::string(value_begin_,
                                                        value_end_); }
@@ -368,6 +380,10 @@ class NET_EXPORT HttpUtil {
     std::string unquoted_value_;
 
     bool value_is_quoted_;
+
+    // True if values are required for each name/value pair; false if a
+    // name is permitted to appear without a corresponding value.
+    bool values_optional_;
   };
 };
 

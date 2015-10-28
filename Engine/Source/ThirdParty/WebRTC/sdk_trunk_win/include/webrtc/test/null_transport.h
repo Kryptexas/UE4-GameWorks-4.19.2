@@ -17,10 +17,12 @@ namespace webrtc {
 class PacketReceiver;
 
 namespace test {
-class NullTransport : public newapi::Transport {
+class NullTransport : public Transport {
  public:
-  virtual bool SendRtp(const uint8_t* packet, size_t length) OVERRIDE;
-  virtual bool SendRtcp(const uint8_t* packet, size_t length) OVERRIDE;
+  bool SendRtp(const uint8_t* packet,
+               size_t length,
+               const PacketOptions& options) override;
+  bool SendRtcp(const uint8_t* packet, size_t length) override;
 };
 }  // namespace test
 }  // namespace webrtc

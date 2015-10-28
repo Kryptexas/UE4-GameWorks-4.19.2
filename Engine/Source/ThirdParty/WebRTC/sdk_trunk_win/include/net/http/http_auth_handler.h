@@ -9,8 +9,8 @@
 
 #include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/http/http_auth.h"
+#include "net/log/net_log.h"
 
 namespace net {
 
@@ -87,9 +87,7 @@ class NET_EXPORT_PRIVATE HttpAuthHandler {
   }
 
   // The challenge which was issued when creating the handler.
-  const std::string challenge() const {
-    return auth_challenge_;
-  }
+  const std::string& challenge() const { return auth_challenge_; }
 
   // Numeric rank based on the challenge's security level. Higher
   // numbers are better. Used by HttpAuth::ChooseBestChallenge().

@@ -13,45 +13,90 @@
 
 #include <vector>
 
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/modules/audio_coding/codecs/opus/interface/opus_interface.h"
 #include "webrtc/modules/audio_coding/codecs/audio_encoder.h"
 
 namespace webrtc {
 
-class AudioEncoderOpus : public AudioEncoder {
+struct CodecInst;
+
+class AudioEncoderOpus final : public AudioEncoder {
  public:
+  enum ApplicationMode {
+    kVoip = 0,
+    kAudio = 1,
+  };
+
   struct Config {
-    Config();
     bool IsOk() const;
-    int frame_size_ms;
-    int num_channels;
-    int payload_type;
+    int frame_size_ms = 20;
+    int num_channels = 1;
+    int payload_type = 120;
+    ApplicationMode application = kVoip;
+    int bitrate_bps = 64000;
+    bool fec_enabled = false;
+    int max_playback_rate_hz = 48000;
+    int complexity = kDefaultComplexity;
+    bool dtx_enabled = false;
+
+   private:
+#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS) || defined(WEBRTC_ARCH_ARM)
+    // If we are on Android, iOS and/or ARM, use a lower complexity setting as
+    // default, to save encoder complexity.
+    static const int kDefaultComplexity = 5;
+#else
+    static const int kDefaultComplexity = 9;
+#endif
   };
 
   explicit AudioEncoderOpus(const Config& config);
-  virtual ~AudioEncoderOpus() OVERRIDE;
+  explicit AudioEncoderOpus(const CodecInst& codec_inst);
+  ~AudioEncoderOpus() override;
 
-  virtual int sample_rate_hz() const OVERRIDE;
-  virtual int num_channels() const OVERRIDE;
-  virtual int Num10MsFramesInNextPacket() const OVERRIDE;
-  virtual int Max10MsFramesInAPacket() const OVERRIDE;
+  size_t MaxEncodedBytes() const override;
+  int SampleRateHz() const override;
+  int NumChannels() const override;
+  size_t Num10MsFramesInNextPacket() const override;
+  size_t Max10MsFramesInAPacket() const override;
+  int GetTargetBitrate() const override;
 
- protected:
-  virtual bool EncodeInternal(uint32_t timestamp,
-                              const int16_t* audio,
-                              size_t max_encoded_bytes,
-                              uint8_t* encoded,
-                              EncodedInfo* info) OVERRIDE;
+  EncodedInfo EncodeInternal(uint32_t rtp_timestamp,
+                             const int16_t* audio,
+                             size_t max_encoded_bytes,
+                             uint8_t* encoded) override;
+
+  void Reset() override;
+  bool SetFec(bool enable) override;
+
+  // Set Opus DTX. Once enabled, Opus stops transmission, when it detects voice
+  // being inactive. During that, it still sends 2 packets (one for content, one
+  // for signaling) about every 400 ms.
+  bool SetDtx(bool enable) override;
+
+  bool SetApplication(Application application) override;
+  void SetMaxPlaybackRate(int frequency_hz) override;
+  void SetProjectedPacketLossRate(double fraction) override;
+  void SetTargetBitrate(int target_bps) override;
+
+  // Getters for testing.
+  double packet_loss_rate() const { return packet_loss_rate_; }
+  ApplicationMode application() const { return config_.application; }
+  bool dtx_enabled() const { return config_.dtx_enabled; }
 
  private:
-  const int num_10ms_frames_per_packet_;
-  const int num_channels_;
-  const int payload_type_;
-  const int samples_per_10ms_frame_;
+  int Num10msFramesPerPacket() const;
+  int SamplesPer10msFrame() const;
+  bool RecreateEncoderInstance(const Config& config);
+
+  Config config_;
+  double packet_loss_rate_;
   std::vector<int16_t> input_buffer_;
   OpusEncInst* inst_;
   uint32_t first_timestamp_in_buffer_;
+  RTC_DISALLOW_COPY_AND_ASSIGN(AudioEncoderOpus);
 };
 
 }  // namespace webrtc
+
 #endif  // WEBRTC_MODULES_AUDIO_CODING_CODECS_OPUS_INTERFACE_AUDIO_ENCODER_OPUS_H_

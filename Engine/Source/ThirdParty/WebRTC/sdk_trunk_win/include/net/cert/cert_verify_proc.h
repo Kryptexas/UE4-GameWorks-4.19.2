@@ -38,6 +38,8 @@ class NET_EXPORT CertVerifyProc
   // |verify_result->cert_status|, and the error code for the most serious
   // error is returned.
   //
+  // |ocsp_response|, if non-empty, is a stapled OCSP response to use.
+  //
   // |flags| is bitwise OR'd of VerifyFlags:
   //
   // If VERIFY_REV_CHECKING_ENABLED is set in |flags|, online certificate
@@ -56,6 +58,7 @@ class NET_EXPORT CertVerifyProc
   // implementation.
   int Verify(X509Certificate* cert,
              const std::string& hostname,
+             const std::string& ocsp_response,
              int flags,
              CRLSet* crl_set,
              const CertificateList& additional_trust_anchors,
@@ -66,6 +69,11 @@ class NET_EXPORT CertVerifyProc
   // passed to Verify() is ignored when this returns false.
   virtual bool SupportsAdditionalTrustAnchors() const = 0;
 
+  // Returns true if the implementation supports passing a stapled OCSP response
+  // to the Verify() call. The |ocsp_response| parameter passed to Verify() is
+  // ignored when this returns false.
+  virtual bool SupportsOCSPStapling() const = 0;
+
  protected:
   CertVerifyProc();
   virtual ~CertVerifyProc();
@@ -73,11 +81,15 @@ class NET_EXPORT CertVerifyProc
  private:
   friend class base::RefCountedThreadSafe<CertVerifyProc>;
   FRIEND_TEST_ALL_PREFIXES(CertVerifyProcTest, DigiNotarCerts);
+  FRIEND_TEST_ALL_PREFIXES(CertVerifyProcTest, TestHasTooLongValidity);
 
   // Performs the actual verification using the desired underlying
-  // cryptographic library.
+  // cryptographic library. On entry, |verify_result->verified_cert|
+  // is set to |cert|, the unverified chain. If no chain is built, the
+  // value must be left untouched.
   virtual int VerifyInternal(X509Certificate* cert,
                              const std::string& hostname,
+                             const std::string& ocsp_response,
                              int flags,
                              CRLSet* crl_set,
                              const CertificateList& additional_trust_anchors,
@@ -98,6 +110,18 @@ class NET_EXPORT CertVerifyProc
       const std::string& common_name,
       const std::vector<std::string>& dns_names,
       const std::vector<std::string>& ip_addrs);
+
+  // The CA/Browser Forum's Baseline Requirements specify maximum validity
+  // periods (https://cabforum.org/Baseline_Requirements_V1.pdf):
+  //
+  // For certificates issued after 1 July 2012: 60 months.
+  // For certificates issued after 1 April 2015: 39 months.
+  //
+  // For certificates issued before the BRs took effect, there were no
+  // guidelines, but clamp them at a maximum of 10 year validity, with the
+  // requirement they expire within 7 years after the effective date of the BRs
+  // (i.e. by 1 July 2019).
+  static bool HasTooLongValidity(const X509Certificate& cert);
 
   DISALLOW_COPY_AND_ASSIGN(CertVerifyProc);
 };

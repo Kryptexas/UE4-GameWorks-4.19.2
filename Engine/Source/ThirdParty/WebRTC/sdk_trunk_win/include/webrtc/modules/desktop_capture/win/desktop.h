@@ -15,7 +15,7 @@
 #include <string>
 
 #include "webrtc/base/constructormagic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -56,7 +56,7 @@ class Desktop {
   // True if |desktop_| must be closed on teardown.
   bool own_;
 
-  DISALLOW_COPY_AND_ASSIGN(Desktop);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Desktop);
 };
 
 }  // namespace webrtc

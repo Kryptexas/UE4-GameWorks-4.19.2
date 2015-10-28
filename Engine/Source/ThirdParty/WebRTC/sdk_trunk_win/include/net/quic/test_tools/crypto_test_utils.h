@@ -16,6 +16,7 @@
 #include "net/quic/crypto/crypto_framer.h"
 #include "net/quic/quic_framer.h"
 #include "net/quic/quic_protocol.h"
+#include "net/quic/test_tools/quic_test_utils.h"
 
 namespace net {
 
@@ -31,6 +32,7 @@ class QuicCryptoServerConfig;
 class QuicCryptoServerStream;
 class QuicCryptoStream;
 class QuicRandom;
+class QuicServerId;
 
 namespace test {
 
@@ -57,10 +59,6 @@ class CryptoTestUtils {
   struct FakeClientOptions {
     FakeClientOptions();
 
-    // If dont_verify_certs is true then no ProofVerifier is set on the client.
-    // Thus no certificates will be requested or checked.
-    bool dont_verify_certs;
-
     // If channel_id_enabled is true then the client will attempt to send a
     // ChannelID.
     bool channel_id_enabled;
@@ -71,12 +69,15 @@ class CryptoTestUtils {
   };
 
   // returns: the number of client hellos that the client sent.
-  static int HandshakeWithFakeServer(PacketSavingConnection* client_conn,
+  static int HandshakeWithFakeServer(MockHelper* helper,
+                                     PacketSavingConnection* client_conn,
                                      QuicCryptoClientStream* client);
 
   // returns: the number of client hellos that the client sent.
-  static int HandshakeWithFakeClient(PacketSavingConnection* server_conn,
+  static int HandshakeWithFakeClient(MockHelper* helper,
+                                     PacketSavingConnection* server_conn,
                                      QuicCryptoServerStream* server,
+                                     const QuicServerId& server_id,
                                      const FakeClientOptions& options);
 
   // SetupCryptoServerConfigForTest configures |config| and |crypto_config|
@@ -163,13 +164,6 @@ class CryptoTestUtils {
   //       "SNI", "www.example.com",
   //       nullptr);
   static CryptoHandshakeMessage Message(const char* message_tag, ...);
-
-  // BuildMessage is the same as |Message|, but takes the variable arguments
-  // explicitly. TODO(rtenneti): Investigate whether it'd be better for
-  // Message() and BuildMessage() to return a CryptoHandshakeMessage* pointer
-  // instead, to avoid copying the return value.
-  static CryptoHandshakeMessage BuildMessage(const char* message_tag,
-                                             va_list ap);
 
   // ChannelIDSourceForTesting returns a ChannelIDSource that generates keys
   // deterministically based on the hostname given in the GetChannelIDKey call.

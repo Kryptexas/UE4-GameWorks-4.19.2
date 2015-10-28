@@ -23,31 +23,27 @@ namespace rtc {
 
 // SSLStreamAdapterHelper : A stream adapter which implements much
 // of the logic that is common between the known implementations
-// (NSS and OpenSSL)
+// (OpenSSL and previously NSS)
 class SSLStreamAdapterHelper : public SSLStreamAdapter {
  public:
-  explicit SSLStreamAdapterHelper(StreamInterface* stream)
-      : SSLStreamAdapter(stream),
-        state_(SSL_NONE),
-        role_(SSL_CLIENT),
-        ssl_error_code_(0),  // Not meaningful yet
-        ssl_mode_(SSL_MODE_TLS) {}
-
+  explicit SSLStreamAdapterHelper(StreamInterface* stream);
+  ~SSLStreamAdapterHelper() override;
 
   // Overrides of SSLStreamAdapter
-  virtual void SetIdentity(SSLIdentity* identity);
-  virtual void SetServerRole(SSLRole role = SSL_SERVER);
-  virtual void SetMode(SSLMode mode);
+  void SetIdentity(SSLIdentity* identity) override;
+  void SetServerRole(SSLRole role = SSL_SERVER) override;
+  void SetMode(SSLMode mode) override;
+  void SetMaxProtocolVersion(SSLProtocolVersion version) override;
 
-  virtual int StartSSLWithServer(const char* server_name);
-  virtual int StartSSLWithPeer();
+  int StartSSLWithServer(const char* server_name) override;
+  int StartSSLWithPeer() override;
 
-  virtual bool SetPeerCertificateDigest(const std::string& digest_alg,
-                                        const unsigned char* digest_val,
-                                        size_t digest_len);
-  virtual bool GetPeerCertificate(SSLCertificate** cert) const;
-  virtual StreamState GetState() const;
-  virtual void Close();
+  bool SetPeerCertificateDigest(const std::string& digest_alg,
+                                const unsigned char* digest_val,
+                                size_t digest_len) override;
+  bool GetPeerCertificate(SSLCertificate** cert) const override;
+  StreamState GetState() const override;
+  void Close() override;
 
  protected:
   // Internal helper methods
@@ -105,6 +101,9 @@ class SSLStreamAdapterHelper : public SSLStreamAdapter {
 
   // Do DTLS or not
   SSLMode ssl_mode_;
+
+  // Maximum allowed protocol version.
+  SSLProtocolVersion ssl_max_version_;
 
  private:
   // Go from state SSL_NONE to either SSL_CONNECTING or SSL_WAIT,

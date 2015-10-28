@@ -21,22 +21,66 @@
 #include <string>
 #include <vector>
 
+#include "webrtc/base/common.h"
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/modules/bitrate_controller/include/bitrate_controller.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/pacing/include/paced_sender.h"
+#include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_logging.h"
+#include "webrtc/modules/remote_bitrate_estimator/test/packet.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/system_wrappers/interface/clock.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/test/random.h"
 
 namespace webrtc {
+
+class RtcpBandwidthObserver;
+
 namespace testing {
 namespace bwe {
 
 class DelayCapHelper;
-class RateCounter;
 
+class RateCounter {
+ public:
+  RateCounter(int64_t window_size_ms)
+      : window_size_us_(1000 * window_size_ms),
+        recently_received_packets_(0),
+        recently_received_bytes_(0),
+        last_accumulated_us_(0),
+        window_() {}
 
-typedef std::vector<int> FlowIds;
+  RateCounter() : RateCounter(1000) {}
+
+  void UpdateRates(int64_t send_time_us, uint32_t payload_size);
+
+  int64_t window_size_ms() const { return (window_size_us_ + 500) / 1000; }
+  uint32_t packets_per_second() const;
+  uint32_t bits_per_second() const;
+
+  double BitrateWindowS() const;
+
+ private:
+  typedef std::pair<int64_t, uint32_t> TimeSizePair;
+
+  int64_t window_size_us_;
+  uint32_t recently_received_packets_;
+  uint32_t recently_received_bytes_;
+  int64_t last_accumulated_us_;
+  std::list<TimeSizePair> window_;
+};
+
+typedef std::set<int> FlowIds;
 const FlowIds CreateFlowIds(const int *flow_ids_array, size_t num_flow_ids);
+const FlowIds CreateFlowIdRange(int initial_value, int last_value);
+
+template <typename T>
+bool DereferencingComparator(const T* const& a, const T* const& b) {
+  assert(a != NULL);
+  assert(b != NULL);
+  return *a < *b;
+}
 
 template<typename T> class Stats {
  public:
@@ -69,9 +113,8 @@ template<typename T> class Stats {
       last_variance_count_ = data_.size();
       T mean = GetMean();
       variance_ = 0;
-      for (typename std::vector<T>::const_iterator it = data_.begin();
-          it != data_.end(); ++it) {
-        T diff = (*it - mean);
+      for (const auto& sample : data_) {
+        T diff = (sample - mean);
         variance_ += diff * diff;
       }
       assert(last_variance_count_ != 0);
@@ -130,105 +173,71 @@ template<typename T> class Stats {
   T max_;
 };
 
-class Random {
- public:
-  explicit Random(uint32_t seed);
-
-  // Return pseudo random number in the interval [0.0, 1.0].
-  float Rand();
-
-  // Normal Distribution.
-  int Gaussian(int mean, int standard_deviation);
-
-  // TODO(solenberg): Random from histogram.
-  // template<typename T> int Distribution(const std::vector<T> histogram) {
-
- private:
-  uint32_t a_;
-  uint32_t b_;
-
-  DISALLOW_IMPLICIT_CONSTRUCTORS(Random);
-};
-
-class Packet {
- public:
-  Packet();
-  Packet(int flow_id, int64_t send_time_us, size_t payload_size,
-         const RTPHeader& header);
-  Packet(int64_t send_time_us, uint32_t sequence_number);
-
-  bool operator<(const Packet& rhs) const;
-
-  int flow_id() const { return flow_id_; }
-  int64_t creation_time_us() const { return creation_time_us_; }
-  void set_send_time_us(int64_t send_time_us);
-  int64_t send_time_us() const { return send_time_us_; }
-  void SetAbsSendTimeMs(int64_t abs_send_time_ms);
-  size_t payload_size() const { return payload_size_; }
-  const RTPHeader& header() const { return header_; }
-
- private:
-  int flow_id_;
-  int64_t creation_time_us_;  // Time when the packet was created.
-  int64_t send_time_us_;   // Time the packet left last processor touching it.
-  size_t payload_size_;    // Size of the (non-existent, simulated) payload.
-  RTPHeader header_;       // Actual contents.
-};
-
-typedef std::list<Packet> Packets;
-typedef std::list<Packet>::iterator PacketsIt;
-typedef std::list<Packet>::const_iterator PacketsConstIt;
-
 bool IsTimeSorted(const Packets& packets);
 
 class PacketProcessor;
+
+enum ProcessorType { kSender, kReceiver, kRegular };
 
 class PacketProcessorListener {
  public:
   virtual ~PacketProcessorListener() {}
 
   virtual void AddPacketProcessor(PacketProcessor* processor,
-                                  bool is_sender) = 0;
+                                  ProcessorType type) = 0;
   virtual void RemovePacketProcessor(PacketProcessor* processor) = 0;
 };
 
 class PacketProcessor {
  public:
-  PacketProcessor(PacketProcessorListener* listener, bool is_sender);
-  PacketProcessor(PacketProcessorListener* listener, const FlowIds& flow_ids,
-                  bool is_sender);
+  PacketProcessor(PacketProcessorListener* listener,
+                  int flow_id,
+                  ProcessorType type);
+  PacketProcessor(PacketProcessorListener* listener,
+                  const FlowIds& flow_ids,
+                  ProcessorType type);
   virtual ~PacketProcessor();
 
   // Called after each simulation batch to allow the processor to plot any
   // internal data.
   virtual void Plot(int64_t timestamp_ms) {}
 
-  // Run simulation for |time_ms| micro seconds, consuming packets from, and
+  // Run simulation for |time_ms| milliseconds, consuming packets from, and
   // producing packets into in_out. The outgoing packet list must be sorted on
   // |send_time_us_|. The simulation time |time_ms| is optional to use.
   virtual void RunFor(int64_t time_ms, Packets* in_out) = 0;
 
   const FlowIds& flow_ids() const { return flow_ids_; }
 
+  uint32_t packets_per_second() const;
+  uint32_t bits_per_second() const;
+
+ protected:
+  RateCounter rate_counter_;
+
  private:
   PacketProcessorListener* listener_;
-  FlowIds flow_ids_;
+  const FlowIds flow_ids_;
 
-  DISALLOW_COPY_AND_ASSIGN(PacketProcessor);
+  RTC_DISALLOW_COPY_AND_ASSIGN(PacketProcessor);
 };
 
 class RateCounterFilter : public PacketProcessor {
  public:
-  explicit RateCounterFilter(PacketProcessorListener* listener);
   RateCounterFilter(PacketProcessorListener* listener,
-                    const std::string& name);
+                    int flow_id,
+                    const char* name,
+                    const std::string& plot_name);
   RateCounterFilter(PacketProcessorListener* listener,
                     const FlowIds& flow_ids,
-                    const std::string& name);
+                    const char* name,
+                    const std::string& plot_name);
+  RateCounterFilter(PacketProcessorListener* listener,
+                    const FlowIds& flow_ids,
+                    const char* name,
+                    int64_t start_plotting_time_ms,
+                    const std::string& plot_name);
   virtual ~RateCounterFilter();
-
-  uint32_t packets_per_second() const;
-  uint32_t bits_per_second() const;
 
   void LogStats();
   Stats<double> GetBitrateStats() const;
@@ -236,101 +245,117 @@ class RateCounterFilter : public PacketProcessor {
   virtual void RunFor(int64_t time_ms, Packets* in_out);
 
  private:
-  scoped_ptr<RateCounter> rate_counter_;
   Stats<double> packets_per_second_stats_;
   Stats<double> kbps_stats_;
   std::string name_;
+  int64_t start_plotting_time_ms_;
+  // Algorithm name if single flow, Total link utilization if all flows.
+  std::string plot_name_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(RateCounterFilter);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(RateCounterFilter);
 };
 
 class LossFilter : public PacketProcessor {
  public:
-  explicit LossFilter(PacketProcessorListener* listener);
+  LossFilter(PacketProcessorListener* listener, int flow_id);
+  LossFilter(PacketProcessorListener* listener, const FlowIds& flow_ids);
   virtual ~LossFilter() {}
 
   void SetLoss(float loss_percent);
   virtual void RunFor(int64_t time_ms, Packets* in_out);
 
  private:
-  Random random_;
+  test::Random random_;
   float loss_fraction_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(LossFilter);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(LossFilter);
 };
 
 class DelayFilter : public PacketProcessor {
  public:
-  explicit DelayFilter(PacketProcessorListener* listener);
+  DelayFilter(PacketProcessorListener* listener, int flow_id);
+  DelayFilter(PacketProcessorListener* listener, const FlowIds& flow_ids);
   virtual ~DelayFilter() {}
 
-  void SetDelay(int64_t delay_ms);
+  void SetOneWayDelayMs(int64_t one_way_delay_ms);
   virtual void RunFor(int64_t time_ms, Packets* in_out);
 
  private:
-  int64_t delay_us_;
+  int64_t one_way_delay_us_;
   int64_t last_send_time_us_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(DelayFilter);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(DelayFilter);
 };
 
 class JitterFilter : public PacketProcessor {
  public:
-  explicit JitterFilter(PacketProcessorListener* listener);
+  JitterFilter(PacketProcessorListener* listener, int flow_id);
+  JitterFilter(PacketProcessorListener* listener, const FlowIds& flow_ids);
   virtual ~JitterFilter() {}
 
-  void SetJitter(int64_t stddev_jitter_ms);
+  void SetMaxJitter(int64_t stddev_jitter_ms);
   virtual void RunFor(int64_t time_ms, Packets* in_out);
+  void set_reorderdering(bool reordering) { reordering_ = reordering; }
+  int64_t MeanUs();
 
  private:
-  Random random_;
+  test::Random random_;
   int64_t stddev_jitter_us_;
   int64_t last_send_time_us_;
+  bool reordering_;  // False by default.
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(JitterFilter);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(JitterFilter);
 };
 
+// Reorders two consecutive packets with a probability of reorder_percent.
 class ReorderFilter : public PacketProcessor {
  public:
-  explicit ReorderFilter(PacketProcessorListener* listener);
+  ReorderFilter(PacketProcessorListener* listener, int flow_id);
+  ReorderFilter(PacketProcessorListener* listener, const FlowIds& flow_ids);
   virtual ~ReorderFilter() {}
 
   void SetReorder(float reorder_percent);
   virtual void RunFor(int64_t time_ms, Packets* in_out);
 
  private:
-  Random random_;
+  test::Random random_;
   float reorder_fraction_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(ReorderFilter);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(ReorderFilter);
 };
 
 // Apply a bitrate choke with an infinite queue on the packet stream.
 class ChokeFilter : public PacketProcessor {
  public:
-  explicit ChokeFilter(PacketProcessorListener* listener);
+  ChokeFilter(PacketProcessorListener* listener, int flow_id);
   ChokeFilter(PacketProcessorListener* listener, const FlowIds& flow_ids);
   virtual ~ChokeFilter();
 
-  void SetCapacity(uint32_t kbps);
-  void SetMaxDelay(int max_delay_ms);
+  void set_capacity_kbps(uint32_t kbps);
+  void set_max_delay_ms(int64_t max_queueing_delay_ms);
+
+  uint32_t capacity_kbps();
+
   virtual void RunFor(int64_t time_ms, Packets* in_out);
 
   Stats<double> GetDelayStats() const;
 
  private:
-  uint32_t kbps_;
+  uint32_t capacity_kbps_;
   int64_t last_send_time_us_;
-  scoped_ptr<DelayCapHelper> delay_cap_helper_;
+  rtc::scoped_ptr<DelayCapHelper> delay_cap_helper_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(ChokeFilter);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(ChokeFilter);
 };
 
 class TraceBasedDeliveryFilter : public PacketProcessor {
  public:
-  explicit TraceBasedDeliveryFilter(PacketProcessorListener* listener);
+  TraceBasedDeliveryFilter(PacketProcessorListener* listener, int flow_id);
   TraceBasedDeliveryFilter(PacketProcessorListener* listener,
-                           const std::string& name);
+                           const FlowIds& flow_ids);
+  TraceBasedDeliveryFilter(PacketProcessorListener* listener,
+                           int flow_id,
+                           const char* name);
   virtual ~TraceBasedDeliveryFilter();
 
   // The file should contain nanosecond timestamps corresponding to the time
@@ -340,7 +365,7 @@ class TraceBasedDeliveryFilter : public PacketProcessor {
   virtual void Plot(int64_t timestamp_ms);
   virtual void RunFor(int64_t time_ms, Packets* in_out);
 
-  void SetMaxDelay(int max_delay_ms);
+  void set_max_delay_ms(int64_t max_delay_ms);
   Stats<double> GetDelayStats() const;
   Stats<double> GetBitrateStats() const;
 
@@ -352,55 +377,31 @@ class TraceBasedDeliveryFilter : public PacketProcessor {
   TimeList delivery_times_us_;
   TimeList::const_iterator next_delivery_it_;
   int64_t local_time_us_;
-  scoped_ptr<RateCounter> rate_counter_;
+  rtc::scoped_ptr<RateCounter> rate_counter_;
   std::string name_;
-  scoped_ptr<DelayCapHelper> delay_cap_helper_;
+  rtc::scoped_ptr<DelayCapHelper> delay_cap_helper_;
   Stats<double> packets_per_second_stats_;
   Stats<double> kbps_stats_;
 
-  DISALLOW_COPY_AND_ASSIGN(TraceBasedDeliveryFilter);
+  RTC_DISALLOW_COPY_AND_ASSIGN(TraceBasedDeliveryFilter);
 };
 
-class PacketSender : public PacketProcessor {
+class VideoSource {
  public:
-  struct Feedback {
-    uint32_t estimated_bps;
-  };
-
-  explicit PacketSender(PacketProcessorListener* listener);
-  PacketSender(PacketProcessorListener* listener, const FlowIds& flow_ids);
-  virtual ~PacketSender() {}
-
-  virtual uint32_t GetCapacityKbps() const { return 0; }
-
-  // Call GiveFeedback() with the returned interval in milliseconds, provided
-  // there is a new estimate available.
-  // Note that changing the feedback interval affects the timing of when the
-  // output of the estimators is sampled and therefore the baseline files may
-  // have to be regenerated.
-  virtual int GetFeedbackIntervalMs() const { return 1000; }
-  virtual void GiveFeedback(const Feedback& feedback) {}
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(PacketSender);
-};
-
-class VideoSender : public PacketSender {
- public:
-  VideoSender(int flow_id,
-              PacketProcessorListener* listener,
+  VideoSource(int flow_id,
               float fps,
               uint32_t kbps,
               uint32_t ssrc,
               int64_t first_frame_offset_ms);
-  virtual ~VideoSender() {}
+  virtual ~VideoSource() {}
 
+  virtual void RunFor(int64_t time_ms, Packets* in_out);
+
+  virtual int flow_id() const { return flow_id_; }
+  virtual void SetBitrateBps(int bitrate_bps) {}
+  uint32_t bits_per_second() const { return bits_per_second_; }
   uint32_t max_payload_size_bytes() const { return kMaxPayloadSizeBytes; }
-  uint32_t bytes_per_second() const { return bytes_per_second_; }
-
-  virtual uint32_t GetCapacityKbps() const OVERRIDE;
-
-  virtual void RunFor(int64_t time_ms, Packets* in_out) OVERRIDE;
+  int64_t GetTimeUntilNextFrameMs() const;
 
  protected:
   virtual uint32_t NextFrameSize();
@@ -410,103 +411,55 @@ class VideoSender : public PacketSender {
   const uint32_t kMaxPayloadSizeBytes;
   const uint32_t kTimestampBase;
   const double frame_period_ms_;
-  uint32_t bytes_per_second_;
+  uint32_t bits_per_second_;
   uint32_t frame_size_bytes_;
 
  private:
-  double next_frame_ms_;
-  double now_ms_;
+  const int flow_id_;
+  int64_t next_frame_ms_;
+  int64_t next_frame_rand_ms_;
+  int64_t now_ms_;
   RTPHeader prototype_header_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(VideoSender);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(VideoSource);
 };
 
-class AdaptiveVideoSender : public VideoSender {
+class AdaptiveVideoSource : public VideoSource {
  public:
-  AdaptiveVideoSender(int flow_id,
-                      PacketProcessorListener* listener,
+  AdaptiveVideoSource(int flow_id,
                       float fps,
                       uint32_t kbps,
                       uint32_t ssrc,
                       int64_t first_frame_offset_ms);
-  virtual ~AdaptiveVideoSender() {}
+  virtual ~AdaptiveVideoSource() {}
 
-  virtual int GetFeedbackIntervalMs() const OVERRIDE { return 100; }
-  virtual void GiveFeedback(const Feedback& feedback) OVERRIDE;
+  void SetBitrateBps(int bitrate_bps) override;
 
  private:
-  DISALLOW_IMPLICIT_CONSTRUCTORS(AdaptiveVideoSender);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(AdaptiveVideoSource);
 };
 
-class PeriodicKeyFrameSender : public AdaptiveVideoSender {
+class PeriodicKeyFrameSource : public AdaptiveVideoSource {
  public:
-  PeriodicKeyFrameSender(int flow_id,
-                         PacketProcessorListener* listener,
+  PeriodicKeyFrameSource(int flow_id,
                          float fps,
                          uint32_t kbps,
                          uint32_t ssrc,
                          int64_t first_frame_offset_ms,
                          int key_frame_interval);
-  virtual ~PeriodicKeyFrameSender() {}
+  virtual ~PeriodicKeyFrameSource() {}
 
  protected:
-  virtual uint32_t NextFrameSize() OVERRIDE;
-  virtual uint32_t NextPacketSize(uint32_t frame_size,
-                                  uint32_t remaining_payload) OVERRIDE;
+  uint32_t NextFrameSize() override;
+  uint32_t NextPacketSize(uint32_t frame_size,
+                          uint32_t remaining_payload) override;
 
  private:
   int key_frame_interval_;
   uint32_t frame_counter_;
   int compensation_bytes_;
   int compensation_per_frame_;
-  DISALLOW_IMPLICIT_CONSTRUCTORS(PeriodicKeyFrameSender);
-};
-
-class PacedVideoSender : public PacketSender, public PacedSender::Callback {
- public:
-  PacedVideoSender(PacketProcessorListener* listener,
-                   uint32_t kbps, AdaptiveVideoSender* source);
-  virtual ~PacedVideoSender() {}
-
-  virtual int GetFeedbackIntervalMs() const OVERRIDE { return 100; }
-  virtual void GiveFeedback(const Feedback& feedback) OVERRIDE;
-  virtual void RunFor(int64_t time_ms, Packets* in_out) OVERRIDE;
-
-  // Implements PacedSender::Callback.
-  virtual bool TimeToSendPacket(uint32_t ssrc,
-                                uint16_t sequence_number,
-                                int64_t capture_time_ms,
-                                bool retransmission) OVERRIDE;
-  virtual size_t TimeToSendPadding(size_t bytes) OVERRIDE;
-
- private:
-  class ProbingPacedSender : public PacedSender {
-   public:
-    ProbingPacedSender(Clock* clock,
-                       Callback* callback,
-                       int bitrate_kbps,
-                       int max_bitrate_kbps,
-                       int min_bitrate_kbps)
-        : PacedSender(clock,
-                      callback,
-                      bitrate_kbps,
-                      max_bitrate_kbps,
-                      min_bitrate_kbps) {}
-
-    virtual bool ProbingExperimentIsEnabled() const OVERRIDE { return true; }
-  };
-
-  void QueuePackets(Packets* batch, int64_t end_of_batch_time_us);
-
-  static const int64_t kInitialTimeMs = 0;
-  SimulatedClock clock_;
-  int64_t start_of_run_ms_;
-  ProbingPacedSender pacer_;
-  Packets pacer_queue_;
-  Packets queue_;
-  AdaptiveVideoSender* source_;
-
-  DISALLOW_IMPLICIT_CONSTRUCTORS(PacedVideoSender);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(PeriodicKeyFrameSource);
 };
 }  // namespace bwe
 }  // namespace testing

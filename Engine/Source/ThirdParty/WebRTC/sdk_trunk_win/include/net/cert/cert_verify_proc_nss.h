@@ -18,6 +18,7 @@ class NET_EXPORT_PRIVATE CertVerifyProcNSS : public CertVerifyProc {
   CertVerifyProcNSS();
 
   bool SupportsAdditionalTrustAnchors() const override;
+  bool SupportsOCSPStapling() const override;
 
  protected:
   ~CertVerifyProcNSS() override;
@@ -27,6 +28,7 @@ class NET_EXPORT_PRIVATE CertVerifyProcNSS : public CertVerifyProc {
   // CERTChainVerifyCallbackFunc in NSS's lib/certdb/certt.h.
   int VerifyInternalImpl(X509Certificate* cert,
                          const std::string& hostname,
+                         const std::string& ocsp_response,
                          int flags,
                          CRLSet* crl_set,
                          const CertificateList& additional_trust_anchors,
@@ -36,10 +38,20 @@ class NET_EXPORT_PRIVATE CertVerifyProcNSS : public CertVerifyProc {
  private:
   int VerifyInternal(X509Certificate* cert,
                      const std::string& hostname,
+                     const std::string& ocsp_response,
                      int flags,
                      CRLSet* crl_set,
                      const CertificateList& additional_trust_anchors,
                      CertVerifyResult* verify_result) override;
+
+  using CacheOCSPResponseFromSideChannelFunction =
+      SECStatus (*)(CERTCertDBHandle* handle,
+                    CERTCertificate* cert,
+                    PRTime time,
+                    const SECItem* encodedResponse,
+                    void* pwArg);
+  const CacheOCSPResponseFromSideChannelFunction
+      cache_ocsp_response_from_side_channel_;
 };
 
 }  // namespace net

@@ -42,10 +42,10 @@
 #include "net/base/load_timing_info.h"
 #include "net/base/net_errors.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/network_change_notifier.h"
 #include "net/base/priority_queue.h"
 #include "net/base/request_priority.h"
+#include "net/log/net_log.h"
 #include "net/socket/client_socket_handle.h"
 #include "net/socket/client_socket_pool.h"
 #include "net/socket/stream_socket.h"
@@ -136,7 +136,7 @@ class NET_EXPORT_PRIVATE ConnectJob {
   // TODO(akalin): Support reprioritization.
   const RequestPriority priority_;
   // Timer to abort jobs that take too long.
-  base::OneShotTimer<ConnectJob> timer_;
+  base::OneShotTimer timer_;
   Delegate* delegate_;
   scoped_ptr<StreamSocket> socket_;
   BoundNetLog net_log_;
@@ -183,7 +183,16 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
     Flags flags() const { return flags_; }
     const BoundNetLog& net_log() const { return net_log_; }
 
+    // TODO(eroman): Temporary until crbug.com/467797 is solved.
+    void CrashIfInvalid() const;
+
    private:
+    // TODO(eroman): Temporary until crbug.com/467797 is solved.
+    enum Liveness {
+      ALIVE = 0xCA11AB13,
+      DEAD = 0xDEADBEEF,
+    };
+
     ClientSocketHandle* const handle_;
     const CompletionCallback callback_;
     // TODO(akalin): Support reprioritization.
@@ -191,6 +200,9 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
     const bool ignore_limits_;
     const Flags flags_;
     const BoundNetLog net_log_;
+
+    // TODO(eroman): Temporary until crbug.com/467797 is solved.
+    Liveness liveness_ = ALIVE;
 
     DISALLOW_COPY_AND_ASSIGN(Request);
   };
@@ -314,8 +326,9 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
   bool CloseOneIdleConnectionInHigherLayeredPool();
 
   // See ClientSocketPool::GetInfoAsValue for documentation on this function.
-  base::DictionaryValue* GetInfoAsValue(const std::string& name,
-                                        const std::string& type) const;
+  scoped_ptr<base::DictionaryValue> GetInfoAsValue(
+      const std::string& name,
+      const std::string& type) const;
 
   base::TimeDelta ConnectionTimeout() const {
     return connect_job_factory_->ConnectionTimeout();
@@ -333,8 +346,6 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
   void OnIPAddressChanged() override;
 
  private:
-  friend class base::RefCounted<ClientSocketPoolBaseHelper>;
-
   // Entry for a persistent socket which became idle at time |start_time|.
   struct IdleSocket {
     IdleSocket() : socket(NULL) {}
@@ -383,7 +394,9 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
           static_cast<int>(idle_sockets_.size());
     }
 
-    bool IsStalledOnPoolMaxSockets(int max_sockets_per_group) const {
+    // Returns true if the group could make use of an additional socket slot, if
+    // it were given one.
+    bool CanUseAdditionalSocketSlot(int max_sockets_per_group) const {
       return HasAvailableSocketSlot(max_sockets_per_group) &&
           pending_requests_.size() > jobs_.size();
     }
@@ -448,7 +461,7 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
     void DecrementActiveSocketCount() { active_socket_count_--; }
 
     int unassigned_job_count() const { return unassigned_job_count_; }
-    const std::set<ConnectJob*>& jobs() const { return jobs_; }
+    const std::list<ConnectJob*>& jobs() const { return jobs_; }
     const std::list<IdleSocket>& idle_sockets() const { return idle_sockets_; }
     int active_socket_count() const { return active_socket_count_; }
     std::list<IdleSocket>* mutable_idle_sockets() { return &idle_sockets_; }
@@ -477,11 +490,11 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
     size_t unassigned_job_count_;
 
     std::list<IdleSocket> idle_sockets_;
-    std::set<ConnectJob*> jobs_;
+    std::list<ConnectJob*> jobs_;
     RequestQueue pending_requests_;
     int active_socket_count_;  // number of active sockets used by clients
     // A timer for when to start the backup job.
-    base::OneShotTimer<Group> backup_job_timer_;
+    base::OneShotTimer backup_job_timer_;
   };
 
   typedef std::map<std::string, Group*> GroupMap;
@@ -602,7 +615,7 @@ class NET_EXPORT_PRIVATE ClientSocketPoolBaseHelper
 
   // Timer used to periodically prune idle sockets that timed out or can't be
   // reused.
-  base::RepeatingTimer<ClientSocketPoolBaseHelper> timer_;
+  base::RepeatingTimer timer_;
 
   // The total number of idle sockets in the system.
   int idle_socket_count_;
@@ -700,17 +713,17 @@ class ClientSocketPoolBase {
   // long to leave an unused idle socket open before closing it.
   // |used_idle_socket_timeout| specifies how long to leave a previously used
   // idle socket open before closing it.
-  ClientSocketPoolBase(
-      HigherLayeredPool* self,
-      int max_sockets,
-      int max_sockets_per_group,
-      ClientSocketPoolHistograms* histograms,
-      base::TimeDelta unused_idle_socket_timeout,
-      base::TimeDelta used_idle_socket_timeout,
-      ConnectJobFactory* connect_job_factory)
-      : histograms_(histograms),
-        helper_(self, max_sockets, max_sockets_per_group,
-                unused_idle_socket_timeout, used_idle_socket_timeout,
+  ClientSocketPoolBase(HigherLayeredPool* self,
+                       int max_sockets,
+                       int max_sockets_per_group,
+                       base::TimeDelta unused_idle_socket_timeout,
+                       base::TimeDelta used_idle_socket_timeout,
+                       ConnectJobFactory* connect_job_factory)
+      : helper_(self,
+                max_sockets,
+                max_sockets_per_group,
+                unused_idle_socket_timeout,
+                used_idle_socket_timeout,
                 new ConnectJobFactoryAdaptor(connect_job_factory)) {}
 
   virtual ~ClientSocketPoolBase() {}
@@ -746,18 +759,14 @@ class ClientSocketPoolBase {
 
   // RequestSockets bundles up the parameters into a Request and then forwards
   // to ClientSocketPoolBaseHelper::RequestSockets().  Note that it assigns the
-  // priority to DEFAULT_PRIORITY and specifies the NO_IDLE_SOCKETS flag.
+  // priority to IDLE and specifies the NO_IDLE_SOCKETS flag.
   void RequestSockets(const std::string& group_name,
                       const scoped_refptr<SocketParams>& params,
                       int num_sockets,
                       const BoundNetLog& net_log) {
-    const Request request(NULL /* no handle */,
-                          CompletionCallback(),
-                          DEFAULT_PRIORITY,
+    const Request request(NULL /* no handle */, CompletionCallback(), IDLE,
                           internal::ClientSocketPoolBaseHelper::NO_IDLE_SOCKETS,
-                          params->ignore_limits(),
-                          params,
-                          net_log);
+                          params->ignore_limits(), params, net_log);
     helper_.RequestSockets(group_name, request, num_sockets);
   }
 
@@ -813,17 +822,13 @@ class ClientSocketPoolBase {
     return helper_.CleanupIdleSockets(force);
   }
 
-  base::DictionaryValue* GetInfoAsValue(const std::string& name,
+  scoped_ptr<base::DictionaryValue> GetInfoAsValue(const std::string& name,
                                         const std::string& type) const {
     return helper_.GetInfoAsValue(name, type);
   }
 
   base::TimeDelta ConnectionTimeout() const {
     return helper_.ConnectionTimeout();
-  }
-
-  ClientSocketPoolHistograms* histograms() const {
-    return histograms_;
   }
 
   void EnableConnectBackupJobs() { helper_.EnableConnectBackupJobs(); }
@@ -848,9 +853,9 @@ class ClientSocketPoolBase {
 
     explicit ConnectJobFactoryAdaptor(ConnectJobFactory* connect_job_factory)
         : connect_job_factory_(connect_job_factory) {}
-    virtual ~ConnectJobFactoryAdaptor() {}
+    ~ConnectJobFactoryAdaptor() override {}
 
-    virtual scoped_ptr<ConnectJob> NewConnectJob(
+    scoped_ptr<ConnectJob> NewConnectJob(
         const std::string& group_name,
         const internal::ClientSocketPoolBaseHelper::Request& request,
         ConnectJob::Delegate* delegate) const override {
@@ -866,8 +871,6 @@ class ClientSocketPoolBase {
     const scoped_ptr<ConnectJobFactory> connect_job_factory_;
   };
 
-  // Histograms for the pool
-  ClientSocketPoolHistograms* const histograms_;
   internal::ClientSocketPoolBaseHelper helper_;
 
   DISALLOW_COPY_AND_ASSIGN(ClientSocketPoolBase);

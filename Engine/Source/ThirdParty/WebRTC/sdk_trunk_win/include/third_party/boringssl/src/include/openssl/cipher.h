@@ -75,24 +75,39 @@ extern "C" {
 OPENSSL_EXPORT const EVP_CIPHER *EVP_rc4(void);
 
 OPENSSL_EXPORT const EVP_CIPHER *EVP_des_cbc(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_des_ecb(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_des_ede(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_des_ede_cbc(void);
 OPENSSL_EXPORT const EVP_CIPHER *EVP_des_ede3_cbc(void);
 
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_128_ecb(void);
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_128_cbc(void);
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_128_ctr(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_128_ofb(void);
 
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_256_ecb(void);
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_256_cbc(void);
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_256_ctr(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_256_ofb(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_256_xts(void);
 
 /* Deprecated AES-GCM implementations that set |EVP_CIPH_FLAG_CUSTOM_CIPHER|.
  * Use |EVP_aead_aes_128_gcm| and |EVP_aead_aes_256_gcm| instead. */
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_128_gcm(void);
 OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_256_gcm(void);
 
+/* Deprecated 192-bit version of AES. */
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_192_ecb(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_192_cbc(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_192_ctr(void);
+OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_192_gcm(void);
+
 /* EVP_enc_null returns a 'cipher' that passes plaintext through as
  * ciphertext. */
 OPENSSL_EXPORT const EVP_CIPHER *EVP_enc_null(void);
+
+/* EVP_rc2_cbc returns a cipher that implements 128-bit RC2 in CBC mode. */
+OPENSSL_EXPORT const EVP_CIPHER *EVP_rc2_cbc(void);
 
 /* EVP_rc2_40_cbc returns a cipher that implements 40-bit RC2 in CBC mode. This
  * is obviously very, very weak and is included only in order to read PKCS#12
@@ -117,8 +132,8 @@ OPENSSL_EXPORT void EVP_CIPHER_CTX_init(EVP_CIPHER_CTX *ctx);
  * |EVP_CIPHER_CTX_init| and returns it, or NULL on allocation failure. */
 OPENSSL_EXPORT EVP_CIPHER_CTX *EVP_CIPHER_CTX_new(void);
 
-/* EVP_CIPHER_CTX_cleanup frees any memory referenced by |ctx|. It returns one
- * on success and zero otherwise. */
+/* EVP_CIPHER_CTX_cleanup frees any memory referenced by |ctx|. It returns
+ * one. */
 OPENSSL_EXPORT int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CTX *ctx);
 
 /* EVP_CIPHER_CTX_free calls |EVP_CIPHER_CTX_cleanup| on |ctx| and then frees
@@ -230,7 +245,8 @@ OPENSSL_EXPORT const EVP_CIPHER *EVP_CIPHER_CTX_cipher(
     const EVP_CIPHER_CTX *ctx);
 
 /* EVP_CIPHER_CTX_nid returns a NID identifying the |EVP_CIPHER| underlying
- * |ctx| (e.g. |NID_rc4|). It will crash if no cipher has been configured. */
+ * |ctx| (e.g. |NID_aes_128_gcm|). It will crash if no cipher has been
+ * configured. */
 OPENSSL_EXPORT int EVP_CIPHER_CTX_nid(const EVP_CIPHER_CTX *ctx);
 
 /* EVP_CIPHER_CTX_block_size returns the block size, in bytes, of the cipher
@@ -283,12 +299,8 @@ OPENSSL_EXPORT int EVP_CIPHER_CTX_set_key_length(EVP_CIPHER_CTX *ctx, unsigned k
 /* Cipher accessors. */
 
 /* EVP_CIPHER_nid returns a NID identifing |cipher|. (For example,
- * |NID_rc4|.) */
+ * |NID_aes_128_gcm|.) */
 OPENSSL_EXPORT int EVP_CIPHER_nid(const EVP_CIPHER *cipher);
-
-/* EVP_CIPHER_name returns the short name for |cipher| or NULL if no name is
- * known. */
-OPENSSL_EXPORT const char *EVP_CIPHER_name(const EVP_CIPHER *cipher);
 
 /* EVP_CIPHER_block_size returns the block size, in bytes, for |cipher|, or one
  * if |cipher| is a stream cipher. */
@@ -333,6 +345,7 @@ OPENSSL_EXPORT int EVP_BytesToKey(const EVP_CIPHER *type, const EVP_MD *md,
 #define EVP_CIPH_OFB_MODE 0x4
 #define EVP_CIPH_CTR_MODE 0x5
 #define EVP_CIPH_GCM_MODE 0x6
+#define EVP_CIPH_XTS_MODE 0x7
 
 
 /* Cipher flags (for |EVP_CIPHER_flags|). */
@@ -484,67 +497,74 @@ typedef struct evp_cipher_info_st {
   unsigned char iv[EVP_MAX_IV_LENGTH];
 } EVP_CIPHER_INFO;
 
+struct evp_cipher_st {
+  /* type contains a NID identifing the cipher. (e.g. NID_aes_128_gcm.) */
+  int nid;
 
-/* Android compatibility section.
- *
- * These functions are declared, temporarily, for Android because
- * wpa_supplicant will take a little time to sync with upstream. Outside of
- * Android they'll have no definition. */
+  /* block_size contains the block size, in bytes, of the cipher, or 1 for a
+   * stream cipher. */
+  unsigned block_size;
 
-OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_192_ecb(void);
-OPENSSL_EXPORT const EVP_CIPHER *EVP_aes_192_cbc(void);
+  /* key_len contains the key size, in bytes, for the cipher. If the cipher
+   * takes a variable key size then this contains the default size. */
+  unsigned key_len;
+
+  /* iv_len contains the IV size, in bytes, or zero if inapplicable. */
+  unsigned iv_len;
+
+  /* ctx_size contains the size, in bytes, of the per-key context for this
+   * cipher. */
+  unsigned ctx_size;
+
+  /* flags contains the OR of a number of flags. See |EVP_CIPH_*|. */
+  uint32_t flags;
+
+  /* app_data is a pointer to opaque, user data. */
+  void *app_data;
+
+  int (*init)(EVP_CIPHER_CTX *ctx, const uint8_t *key, const uint8_t *iv,
+              int enc);
+
+  int (*cipher)(EVP_CIPHER_CTX *ctx, uint8_t *out, const uint8_t *in,
+                size_t inl);
+
+  /* cleanup, if non-NULL, releases memory associated with the context. It is
+   * called if |EVP_CTRL_INIT| succeeds. Note that |init| may not have been
+   * called at this point. */
+  void (*cleanup)(EVP_CIPHER_CTX *);
+
+  int (*ctrl)(EVP_CIPHER_CTX *, int type, int arg, void *ptr);
+};
 
 
 #if defined(__cplusplus)
 }  /* extern C */
 #endif
 
-#define CIPHER_F_EVP_CipherInit_ex 100
-#define CIPHER_F_EVP_EncryptFinal_ex 101
-#define CIPHER_F_EVP_DecryptFinal_ex 102
-#define CIPHER_F_EVP_CIPHER_CTX_ctrl 103
-#define CIPHER_F_aes_init_key 104
-#define CIPHER_F_aesni_init_key 105
-#define CIPHER_F_EVP_CIPHER_CTX_copy 106
-#define CIPHER_F_EVP_AEAD_CTX_open 107
-#define CIPHER_F_EVP_AEAD_CTX_init 108
-#define CIPHER_F_EVP_AEAD_CTX_seal 109
-#define CIPHER_F_aead_aes_gcm_seal 110
-#define CIPHER_F_aead_aes_gcm_open 111
-#define CIPHER_F_aead_aes_gcm_init 112
-#define CIPHER_F_aead_chacha20_poly1305_init 113
-#define CIPHER_F_aead_chacha20_poly1305_open 114
-#define CIPHER_F_aead_chacha20_poly1305_seal 115
-#define CIPHER_F_aead_rc4_md5_tls_init 116
-#define CIPHER_F_aead_rc4_md5_tls_seal 117
-#define CIPHER_F_aead_rc4_md5_tls_open 118
-#define CIPHER_F_aead_aes_key_wrap_seal 119
-#define CIPHER_F_aead_aes_key_wrap_init 120
-#define CIPHER_F_aead_aes_key_wrap_open 121
-#define CIPHER_F_EVP_CIPHER_CTX_set_key_length 122
-#define CIPHER_R_WRAP_MODE_NOT_ALLOWED 100
-#define CIPHER_R_AES_KEY_SETUP_FAILED 101
-#define CIPHER_R_INPUT_NOT_INITIALIZED 102
-#define CIPHER_R_DATA_NOT_MULTIPLE_OF_BLOCK_LENGTH 103
-#define CIPHER_R_INITIALIZATION_ERROR 104
-#define CIPHER_R_CTRL_NOT_IMPLEMENTED 105
-#define CIPHER_R_NO_CIPHER_SET 106
-#define CIPHER_R_BAD_DECRYPT 107
-#define CIPHER_R_WRONG_FINAL_BLOCK_LENGTH 108
-#define CIPHER_R_CTRL_OPERATION_NOT_IMPLEMENTED 109
-#define CIPHER_R_TAG_TOO_LARGE 110
-#define CIPHER_R_BAD_KEY_LENGTH 111
-#define CIPHER_R_BUFFER_TOO_SMALL 112
-#define CIPHER_R_OUTPUT_ALIASES_INPUT 113
-#define CIPHER_R_UNSUPPORTED_KEY_SIZE 114
-#define CIPHER_R_TOO_LARGE 115
-#define CIPHER_R_IV_TOO_LARGE 116
-#define CIPHER_R_INVALID_AD_SIZE 117
-#define CIPHER_R_INVALID_AD 118
-#define CIPHER_R_UNSUPPORTED_TAG_SIZE 119
-#define CIPHER_R_UNSUPPORTED_INPUT_SIZE 120
-#define CIPHER_R_UNSUPPORTED_AD_SIZE 121
-#define CIPHER_R_UNSUPPORTED_NONCE_SIZE 122
-#define CIPHER_R_INVALID_KEY_LENGTH 123
+#define CIPHER_R_AES_KEY_SETUP_FAILED 100
+#define CIPHER_R_BAD_DECRYPT 101
+#define CIPHER_R_BAD_KEY_LENGTH 102
+#define CIPHER_R_BUFFER_TOO_SMALL 103
+#define CIPHER_R_CTRL_NOT_IMPLEMENTED 104
+#define CIPHER_R_CTRL_OPERATION_NOT_IMPLEMENTED 105
+#define CIPHER_R_DATA_NOT_MULTIPLE_OF_BLOCK_LENGTH 106
+#define CIPHER_R_INITIALIZATION_ERROR 107
+#define CIPHER_R_INPUT_NOT_INITIALIZED 108
+#define CIPHER_R_INVALID_AD_SIZE 109
+#define CIPHER_R_INVALID_KEY_LENGTH 110
+#define CIPHER_R_INVALID_NONCE_SIZE 111
+#define CIPHER_R_INVALID_OPERATION 112
+#define CIPHER_R_IV_TOO_LARGE 113
+#define CIPHER_R_NO_CIPHER_SET 114
+#define CIPHER_R_OUTPUT_ALIASES_INPUT 115
+#define CIPHER_R_TAG_TOO_LARGE 116
+#define CIPHER_R_TOO_LARGE 117
+#define CIPHER_R_UNSUPPORTED_AD_SIZE 118
+#define CIPHER_R_UNSUPPORTED_INPUT_SIZE 119
+#define CIPHER_R_UNSUPPORTED_KEY_SIZE 120
+#define CIPHER_R_UNSUPPORTED_NONCE_SIZE 121
+#define CIPHER_R_UNSUPPORTED_TAG_SIZE 122
+#define CIPHER_R_WRONG_FINAL_BLOCK_LENGTH 123
+#define CIPHER_R_NO_DIRECTION_SET 124
 
 #endif  /* OPENSSL_HEADER_CIPHER_H */

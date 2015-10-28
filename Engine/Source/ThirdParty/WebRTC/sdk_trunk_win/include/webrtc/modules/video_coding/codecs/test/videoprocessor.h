@@ -13,7 +13,6 @@
 
 #include <string>
 
-#include "webrtc/common_video/interface/i420_video_frame.h"
 #include "webrtc/common_video/libyuv/include/scaler.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 #include "webrtc/modules/video_coding/codecs/interface/video_codec_interface.h"
@@ -22,6 +21,7 @@
 #include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/test/testsupport/frame_reader.h"
 #include "webrtc/test/testsupport/frame_writer.h"
+#include "webrtc/video_frame.h"
 
 namespace webrtc {
 namespace test {
@@ -146,6 +146,9 @@ class VideoProcessor {
   // encoder are regarded as zero size.
   virtual size_t EncodedFrameSize() = 0;
 
+  // Return the encoded frame type (key or delta).
+  virtual FrameType EncodedFrameType() = 0;
+
   // Return the number of dropped frames.
   virtual int NumberDroppedFrames() = 0;
 
@@ -163,26 +166,28 @@ class VideoProcessorImpl : public VideoProcessor {
                      const TestConfig& config,
                      Stats* stats);
   virtual ~VideoProcessorImpl();
-  virtual bool Init() OVERRIDE;
-  virtual bool ProcessFrame(int frame_number) OVERRIDE;
+  bool Init() override;
+  bool ProcessFrame(int frame_number) override;
 
  private:
   // Invoked by the callback when a frame has completed encoding.
   void FrameEncoded(const webrtc::EncodedImage& encodedImage);
   // Invoked by the callback when a frame has completed decoding.
-  void FrameDecoded(const webrtc::I420VideoFrame& image);
+  void FrameDecoded(const webrtc::VideoFrame& image);
   // Used for getting a 32-bit integer representing time
   // (checks the size is within signed 32-bit bounds before casting it)
   int GetElapsedTimeMicroseconds(const webrtc::TickTime& start,
                                  const webrtc::TickTime& stop);
   // Updates the encoder with the target bit rate and the frame rate.
-  virtual void SetRates(int bit_rate, int frame_rate) OVERRIDE;
+  void SetRates(int bit_rate, int frame_rate) override;
   // Return the size of the encoded frame in bytes.
-  virtual size_t EncodedFrameSize() OVERRIDE;
+  size_t EncodedFrameSize() override;
+  // Return the encoded frame type (key or delta).
+  FrameType EncodedFrameType() override;
   // Return the number of dropped frames.
-  virtual int NumberDroppedFrames() OVERRIDE;
+  int NumberDroppedFrames() override;
   // Return the number of spatial resizes.
-  virtual int NumberSpatialResizes() OVERRIDE;
+  int NumberSpatialResizes() override;
 
   webrtc::VideoEncoder* encoder_;
   webrtc::VideoDecoder* decoder_;
@@ -199,7 +204,7 @@ class VideoProcessorImpl : public VideoProcessor {
   // Keep track of the last successful frame, since we need to write that
   // when decoding fails:
   uint8_t* last_successful_frame_buffer_;
-  webrtc::I420VideoFrame source_frame_;
+  webrtc::VideoFrame source_frame_;
   // To keep track of if we have excluded the first key frame from packet loss:
   bool first_key_frame_has_been_excluded_;
   // To tell the decoder previous frame have been dropped due to packet loss:
@@ -207,6 +212,7 @@ class VideoProcessorImpl : public VideoProcessor {
   // If Init() has executed successfully.
   bool initialized_;
   size_t encoded_frame_size_;
+  FrameType encoded_frame_type_;
   int prev_time_stamp_;
   int num_dropped_frames_;
   int num_spatial_resizes_;
@@ -225,10 +231,10 @@ class VideoProcessorImpl : public VideoProcessor {
    public:
     explicit VideoProcessorEncodeCompleteCallback(VideoProcessorImpl* vp)
         : video_processor_(vp) {}
-    virtual int32_t Encoded(
+    int32_t Encoded(
         const webrtc::EncodedImage& encoded_image,
         const webrtc::CodecSpecificInfo* codec_specific_info,
-        const webrtc::RTPFragmentationHeader* fragmentation) OVERRIDE;
+        const webrtc::RTPFragmentationHeader* fragmentation) override;
 
    private:
     VideoProcessorImpl* video_processor_;
@@ -241,7 +247,7 @@ class VideoProcessorImpl : public VideoProcessor {
       explicit VideoProcessorDecodeCompleteCallback(VideoProcessorImpl* vp)
       : video_processor_(vp) {
     }
-    virtual int32_t Decoded(webrtc::I420VideoFrame& image) OVERRIDE;
+      int32_t Decoded(webrtc::VideoFrame& image) override;
 
    private:
     VideoProcessorImpl* video_processor_;

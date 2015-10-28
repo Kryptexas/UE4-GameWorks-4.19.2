@@ -11,9 +11,9 @@
 #ifndef WEBRTC_MODULES_UTILITY_SOURCE_CODER_H_
 #define WEBRTC_MODULES_UTILITY_SOURCE_CODER_H_
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -25,13 +25,9 @@ public:
     AudioCoder(uint32_t instanceID);
     ~AudioCoder();
 
-    int32_t SetEncodeCodec(
-        const CodecInst& codecInst,
-        ACMAMRPackingFormat amrFormat = AMRBandwidthEfficient);
+    int32_t SetEncodeCodec(const CodecInst& codecInst);
 
-    int32_t SetDecodeCodec(
-        const CodecInst& codecInst,
-        ACMAMRPackingFormat amrFormat = AMRBandwidthEfficient);
+    int32_t SetDecodeCodec(const CodecInst& codecInst);
 
     int32_t Decode(AudioFrame& decodedAudio, uint32_t sampFreqHz,
                    const int8_t* incomingPayload, size_t payloadLength);
@@ -42,16 +38,15 @@ public:
                    size_t& encodedLengthInBytes);
 
 protected:
-    virtual int32_t SendData(
-        FrameType frameType,
-        uint8_t payloadType,
-        uint32_t timeStamp,
-        const uint8_t* payloadData,
-        size_t payloadSize,
-        const RTPFragmentationHeader* fragmentation) OVERRIDE;
+ int32_t SendData(FrameType frameType,
+                  uint8_t payloadType,
+                  uint32_t timeStamp,
+                  const uint8_t* payloadData,
+                  size_t payloadSize,
+                  const RTPFragmentationHeader* fragmentation) override;
 
 private:
-    scoped_ptr<AudioCodingModule> _acm;
+ rtc::scoped_ptr<AudioCodingModule> _acm;
 
     CodecInst _receiveCodec;
 

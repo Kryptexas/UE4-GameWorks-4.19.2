@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -33,9 +33,9 @@
 #include "talk/app/webrtc/test/fakeconstraints.h"
 #include "talk/app/webrtc/test/fakevideotrackrenderer.h"
 #include "webrtc/base/sigslot.h"
-#include "webrtc/base/thread.h"
 
 namespace webrtc {
+class DtlsIdentityStoreInterface;
 class PortAllocatorFactoryInterface;
 }
 

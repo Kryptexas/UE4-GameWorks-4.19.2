@@ -14,6 +14,8 @@
 #ifndef NET_URL_REQUEST_URL_FETCHER_IMPL_H_
 #define NET_URL_REQUEST_URL_FETCHER_IMPL_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "base/basictypes.h"
@@ -45,6 +47,9 @@ class NET_EXPORT_PRIVATE URLFetcherImpl : public URLFetcher {
       uint64 range_offset,
       uint64 range_length,
       scoped_refptr<base::TaskRunner> file_task_runner) override;
+  void SetUploadStreamFactory(
+      const std::string& upload_content_type,
+      const CreateUploadStreamCallback& callback) override;
   void SetChunkedUpload(const std::string& upload_content_type) override;
   void AppendChunkToUpload(const std::string& data,
                            bool is_last_chunk) override;
@@ -77,6 +82,9 @@ class NET_EXPORT_PRIVATE URLFetcherImpl : public URLFetcher {
   HttpResponseHeaders* GetResponseHeaders() const override;
   HostPortPair GetSocketAddress() const override;
   bool WasFetchedViaProxy() const override;
+  bool WasCached() const override;
+  int64_t GetReceivedResponseContentLength() const override;
+  int64_t GetTotalReceivedBytes() const override;
   void Start() override;
   const GURL& GetOriginalURL() const override;
   const GURL& GetURL() const override;

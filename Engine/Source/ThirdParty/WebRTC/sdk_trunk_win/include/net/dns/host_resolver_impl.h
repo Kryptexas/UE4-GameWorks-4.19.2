@@ -8,12 +8,12 @@
 #include <map>
 
 #include "base/basictypes.h"
-#include "base/gtest_prod_util.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/memory/scoped_vector.h"
 #include "base/memory/weak_ptr.h"
 #include "base/threading/non_thread_safe.h"
 #include "base/time/time.h"
+#include "net/base/ip_address_number.h"
 #include "net/base/net_export.h"
 #include "net/base/network_change_notifier.h"
 #include "net/dns/host_cache.h"
@@ -134,8 +134,6 @@ class NET_EXPORT HostResolverImpl
                        AddressList* addresses,
                        const BoundNetLog& source_net_log) override;
   void CancelRequest(RequestHandle req) override;
-  void SetDefaultAddressFamily(AddressFamily address_family) override;
-  AddressFamily GetDefaultAddressFamily() const override;
   void SetDnsClientEnabled(bool enabled) override;
   HostCache* GetHostCache() override;
   base::Value* GetDnsConfigAsValue() const override;
@@ -162,9 +160,11 @@ class NET_EXPORT HostResolverImpl
   // Helper used by |Resolve()| and |ResolveFromCache()|.  Performs IP
   // literal, cache and HOSTS lookup (if enabled), returns OK if successful,
   // ERR_NAME_NOT_RESOLVED if either hostname is invalid or IP literal is
-  // incompatible, ERR_DNS_CACHE_MISS if entry was not found in cache and HOSTS.
+  // incompatible, ERR_DNS_CACHE_MISS if entry was not found in cache and
+  // HOSTS and is not localhost.
   int ResolveHelper(const Key& key,
                     const RequestInfo& info,
+                    const IPAddressNumber* ip_address,
                     AddressList* addresses,
                     const BoundNetLog& request_net_log);
 
@@ -172,6 +172,7 @@ class NET_EXPORT HostResolverImpl
   // succeeds, returns false otherwise.
   bool ResolveAsIP(const Key& key,
                    const RequestInfo& info,
+                   const IPAddressNumber* ip_address,
                    int* net_error,
                    AddressList* addresses);
 
@@ -189,6 +190,12 @@ class NET_EXPORT HostResolverImpl
                       const RequestInfo& info,
                       AddressList* addresses);
 
+  // If |key| is for a localhost name (RFC 6761), returns true and fills
+  // |addresses| with the loopback IP. Otherwise returns false.
+  bool ServeLocalhost(const Key& key,
+                      const RequestInfo& info,
+                      AddressList* addresses);
+
   // Callback from HaveOnlyLoopbackAddresses probe.
   void SetHaveOnlyLoopbackAddresses(bool result);
 
@@ -196,7 +203,13 @@ class NET_EXPORT HostResolverImpl
   // "effective" address family by inheriting the resolver's default address
   // family when the request leaves it unspecified.
   Key GetEffectiveKeyForRequest(const RequestInfo& info,
-                                const BoundNetLog& net_log) const;
+                                const IPAddressNumber* ip_number,
+                                const BoundNetLog& net_log);
+
+  // Probes IPv6 support and returns true if IPv6 support is enabled.
+  // Results are cached, i.e. when called repeatedly this method returns result
+  // from the first probe for some time before probing again.
+  virtual bool IsIPv6Reachable(const BoundNetLog& net_log);
 
   // Records the result in cache if cache is present.
   void CacheResult(const Key& key,
@@ -224,6 +237,9 @@ class NET_EXPORT HostResolverImpl
 
   // NetworkChangeNotifier::DNSObserver:
   void OnDNSChanged() override;
+  void OnInitialDNSConfigRead() override;
+
+  void UpdateDNSConfig(bool config_changed);
 
   // True if have a DnsClient with a valid DnsConfig.
   bool HaveDnsConfig() const;
@@ -256,9 +272,6 @@ class NET_EXPORT HostResolverImpl
 
   NetLog* net_log_;
 
-  // Address family to use when the request doesn't specify one.
-  AddressFamily default_address_family_;
-
   // If present, used by DnsTask and ServeFromHosts to resolve requests.
   scoped_ptr<DnsClient> dns_client_;
 
@@ -269,13 +282,12 @@ class NET_EXPORT HostResolverImpl
   // Number of consecutive failures of DnsTask, counted when fallback succeeds.
   unsigned num_dns_failures_;
 
-  // True if probing is done for each Request to set address family. When false,
-  // explicit setting in |default_address_family_| is used.
-  bool probe_ipv6_support_;
-
   // True if DnsConfigService detected that system configuration depends on
   // local IPv6 connectivity. Disables probing.
   bool use_local_ipv6_;
+
+  base::TimeTicks last_ipv6_probe_time_;
+  bool last_ipv6_probe_result_;
 
   // True iff ProcTask has successfully resolved a hostname known to have IPv6
   // addresses using ADDRESS_FAMILY_UNSPECIFIED. Reset on IP address change.

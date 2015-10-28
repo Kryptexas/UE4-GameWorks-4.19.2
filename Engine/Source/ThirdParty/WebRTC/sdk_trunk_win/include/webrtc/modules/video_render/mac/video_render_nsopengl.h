@@ -31,21 +31,18 @@
 class Trace;
 
 namespace webrtc {
-class EventWrapper;
+class EventTimerWrapper;
 class ThreadWrapper;
 class VideoRenderNSOpenGL;
 class CriticalSectionWrapper;
 
-class VideoChannelNSOpenGL : public VideoRenderCallback
-{
-
+class VideoChannelNSOpenGL : public VideoRenderCallback {
 public:
-
     VideoChannelNSOpenGL(NSOpenGLContext *nsglContext, int iId, VideoRenderNSOpenGL* owner);
     virtual ~VideoChannelNSOpenGL();
 
     // A new frame is delivered
-    virtual int DeliverFrame(const I420VideoFrame& videoFrame);
+    virtual int DeliverFrame(const VideoFrame& videoFrame);
 
     // Called when the incoming frame size and/or number of streams in mix
     // changes.
@@ -66,7 +63,7 @@ public:
 
     // ********** new module functions ************ //
     virtual int32_t RenderFrame(const uint32_t streamId,
-                                I420VideoFrame& videoFrame);
+                                const VideoFrame& videoFrame);
 
     // ********** new module helper functions ***** //
     int ChangeContext(NSOpenGLContext *nsglContext);
@@ -78,7 +75,7 @@ public:
 private:
 
     NSOpenGLContext* _nsglContext;
-    int _id;
+    const int _id;
     VideoRenderNSOpenGL* _owner;
     int32_t _width;
     int32_t _height;
@@ -125,7 +122,6 @@ public: // methods
 
     // ********** new module functions ************ //
     int ChangeWindow(CocoaRenderView* newWindowRef);
-    int32_t ChangeUniqueID(int32_t id);
     int32_t StartRender();
     int32_t StopRender();
     int32_t DeleteNSGLChannel(const uint32_t streamID);
@@ -170,8 +166,8 @@ private: // variables
     bool _fullScreen;
     int _id;
     CriticalSectionWrapper& _nsglContextCritSec;
-    ThreadWrapper* _screenUpdateThread;
-    EventWrapper* _screenUpdateEvent;
+    rtc::scoped_ptr<ThreadWrapper> _screenUpdateThread;
+    EventTimerWrapper* _screenUpdateEvent;
     NSOpenGLContext* _nsglContext;
     NSOpenGLContext* _nsglFullScreenContext;
     CocoaFullScreenWindow* _fullScreenWindow;
@@ -180,7 +176,6 @@ private: // variables
     int _windowHeight;
     std::map<int, VideoChannelNSOpenGL*> _nsglChannels;
     std::multimap<int, int> _zOrderToChannel;
-    unsigned int _threadID;
     bool _renderingIsPaused;
     NSView* _windowRefSuperView;
     NSRect _windowRefSuperViewFrame;

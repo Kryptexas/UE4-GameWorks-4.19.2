@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -36,8 +36,13 @@
 @property(nonatomic, assign, readonly)
     rtc::scoped_refptr<webrtc::PeerConnectionInterface> peerConnection;
 
-- (instancetype)initWithFactory:(webrtc::PeerConnectionFactoryInterface*)factory
-     iceServers:(const webrtc::PeerConnectionInterface::IceServers&)iceServers
-    constraints:(const webrtc::MediaConstraintsInterface*)constraints;
+- (instancetype)initWithFactory:(webrtc::PeerConnectionFactoryInterface *)factory
+                     iceServers:(const webrtc::PeerConnectionInterface::IceServers &)iceServers
+                    constraints:(const webrtc::MediaConstraintsInterface *)constraints;
+
+- (instancetype)initWithFactory:(webrtc::PeerConnectionFactoryInterface *)factory
+                         config:(const webrtc::PeerConnectionInterface::RTCConfiguration &)config
+                    constraints:(const webrtc::MediaConstraintsInterface *)constraints
+                       delegate:(id<RTCPeerConnectionDelegate>)delegate;
 
 @end

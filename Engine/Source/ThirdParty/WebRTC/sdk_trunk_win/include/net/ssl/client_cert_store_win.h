@@ -7,7 +7,6 @@
 
 #include "base/basictypes.h"
 #include "base/callback.h"
-#include "base/gtest_prod_util.h"
 #include "net/base/net_export.h"
 #include "net/ssl/client_cert_store.h"
 #include "net/ssl/ssl_cert_request_info.h"
@@ -17,12 +16,12 @@ namespace net {
 class NET_EXPORT ClientCertStoreWin : public ClientCertStore {
  public:
   ClientCertStoreWin();
-  virtual ~ClientCertStoreWin();
+  ~ClientCertStoreWin() override;
 
   // ClientCertStore:
-  virtual void GetClientCerts(const SSLCertRequestInfo& cert_request_info,
-                              CertificateList* selected_certs,
-                              const base::Closure& callback) override;
+  void GetClientCerts(const SSLCertRequestInfo& cert_request_info,
+                      CertificateList* selected_certs,
+                      const base::Closure& callback) override;
 
  private:
   friend class ClientCertStoreWinTestDelegate;

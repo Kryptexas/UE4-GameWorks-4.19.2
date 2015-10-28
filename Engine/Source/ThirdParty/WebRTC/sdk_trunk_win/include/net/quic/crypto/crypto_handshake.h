@@ -52,6 +52,8 @@ enum HandshakeFailureReason {
   SERVER_NONCE_NOT_UNIQUE_FAILURE = 10,
   // Server nonce's timestamp is not in the strike register's valid time range.
   SERVER_NONCE_INVALID_TIME_FAILURE = 11,
+  // The server requires handshake confirmation.
+  SERVER_NONCE_REQUIRED_FAILURE = 20,
 
   // Failure reasons for an invalid server config in CHLO.
   //
@@ -75,12 +77,15 @@ enum HandshakeFailureReason {
   // The source-address token has expired.
   SOURCE_ADDRESS_TOKEN_EXPIRED_FAILURE = 19,
 
-  MAX_FAILURE_REASON,
+  // The expected leaf certificate hash could not be validated.
+  INVALID_EXPECTED_LEAF_CERTIFICATE = 21,
+
+  MAX_FAILURE_REASON = 22,
 };
 
 // These errors will be packed into an uint32 and we don't want to set the most
 // significant bit, which may be misinterpreted as the sign bit.
-COMPILE_ASSERT(MAX_FAILURE_REASON <= 32, failure_reason_out_of_sync);
+static_assert(MAX_FAILURE_REASON <= 32, "failure reason out of sync");
 
 // A CrypterPair contains the encrypter and decrypter for an encryption level.
 struct NET_EXPORT_PRIVATE CrypterPair {
@@ -127,10 +132,20 @@ struct NET_EXPORT_PRIVATE QuicCryptoNegotiatedParameters {
 
   // Used when generating proof signature when sending server config updates.
   bool x509_ecdsa_supported;
+  bool x509_supported;
 
   // Used to generate cert chain when sending server config updates.
   std::string client_common_set_hashes;
   std::string client_cached_cert_hashes;
+};
+
+struct NET_EXPORT_PRIVATE QuicCryptoProof {
+  QuicCryptoProof();
+  ~QuicCryptoProof();
+
+  std::string signature;
+  // QuicCryptoProof does not take ownership of |certs|.
+  const std::vector<std::string>* certs;
 };
 
 // QuicCryptoConfig contains common configuration between clients and servers.

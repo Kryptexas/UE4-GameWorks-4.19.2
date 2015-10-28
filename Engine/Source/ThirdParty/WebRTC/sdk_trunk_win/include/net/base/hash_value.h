@@ -32,9 +32,6 @@ struct NET_EXPORT SHA256HashValue {
 enum HashValueTag {
   HASH_VALUE_SHA1,
   HASH_VALUE_SHA256,
-
-  // This must always be last.
-  HASH_VALUE_TAGS_COUNT
 };
 
 class NET_EXPORT HashValue {
@@ -117,7 +114,7 @@ class HashValuesEqual {
 // IsSHA1HashInSortedArray returns true iff |hash| is in |array|, a sorted
 // array of SHA1 hashes.
 bool IsSHA1HashInSortedArray(const SHA1HashValue& hash,
-                             const uint8* array,
+                             const uint8_t* array,
                              size_t array_byte_len);
 
 }  // namespace net

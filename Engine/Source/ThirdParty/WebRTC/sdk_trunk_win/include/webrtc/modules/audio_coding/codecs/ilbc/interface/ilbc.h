@@ -18,6 +18,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_CODECS_ILBC_MAIN_INTERFACE_ILBC_H_
 #define WEBRTC_MODULES_AUDIO_CODING_CODECS_ILBC_MAIN_INTERFACE_ILBC_H_
 
+#include <stddef.h>
+
 /*
  * Define the fixpoint numeric formats
  */
@@ -135,10 +137,10 @@ extern "C" {
    *                            -1 - Error
    */
 
-  int16_t WebRtcIlbcfix_Encode(IlbcEncoderInstance *iLBCenc_inst,
-                               const int16_t *speechIn,
-                               int16_t len,
-                               uint8_t* encoded);
+  int WebRtcIlbcfix_Encode(IlbcEncoderInstance *iLBCenc_inst,
+                           const int16_t *speechIn,
+                           size_t len,
+                           uint8_t* encoded);
 
   /****************************************************************************
    * WebRtcIlbcfix_DecoderInit(...)
@@ -157,8 +159,8 @@ extern "C" {
 
   int16_t WebRtcIlbcfix_DecoderInit(IlbcDecoderInstance *iLBCdec_inst,
                                     int16_t frameLen);
-  int16_t WebRtcIlbcfix_DecoderInit20Ms(IlbcDecoderInstance *iLBCdec_inst);
-  int16_t WebRtcIlbcfix_Decoderinit30Ms(IlbcDecoderInstance *iLBCdec_inst);
+  void WebRtcIlbcfix_DecoderInit20Ms(IlbcDecoderInstance* iLBCdec_inst);
+  void WebRtcIlbcfix_Decoderinit30Ms(IlbcDecoderInstance* iLBCdec_inst);
 
   /****************************************************************************
    * WebRtcIlbcfix_Decode(...)
@@ -180,21 +182,21 @@ extern "C" {
    *                            -1 - Error
    */
 
-  int16_t WebRtcIlbcfix_Decode(IlbcDecoderInstance *iLBCdec_inst,
-                               const int16_t* encoded,
-                               int16_t len,
-                               int16_t *decoded,
-                               int16_t *speechType);
-  int16_t WebRtcIlbcfix_Decode20Ms(IlbcDecoderInstance *iLBCdec_inst,
-                                   const int16_t *encoded,
-                                   int16_t len,
-                                   int16_t *decoded,
-                                   int16_t *speechType);
-  int16_t WebRtcIlbcfix_Decode30Ms(IlbcDecoderInstance *iLBCdec_inst,
-                                   const int16_t *encoded,
-                                   int16_t len,
-                                   int16_t *decoded,
-                                   int16_t *speechType);
+  int WebRtcIlbcfix_Decode(IlbcDecoderInstance* iLBCdec_inst,
+                           const uint8_t* encoded,
+                           size_t len,
+                           int16_t* decoded,
+                           int16_t* speechType);
+  int WebRtcIlbcfix_Decode20Ms(IlbcDecoderInstance* iLBCdec_inst,
+                               const uint8_t* encoded,
+                               size_t len,
+                               int16_t* decoded,
+                               int16_t* speechType);
+  int WebRtcIlbcfix_Decode30Ms(IlbcDecoderInstance* iLBCdec_inst,
+                               const uint8_t* encoded,
+                               size_t len,
+                               int16_t* decoded,
+                               int16_t* speechType);
 
   /****************************************************************************
    * WebRtcIlbcfix_DecodePlc(...)
@@ -210,13 +212,12 @@ extern "C" {
    * Output:
    *      - decoded           : The "decoded" vector
    *
-   * Return value             : >0 - Samples in decoded PLC vector
-   *                            -1 - Error
+   * Return value             : Samples in decoded PLC vector
    */
 
-  int16_t WebRtcIlbcfix_DecodePlc(IlbcDecoderInstance *iLBCdec_inst,
-                                  int16_t *decoded,
-                                  int16_t noOfLostFrames);
+  size_t WebRtcIlbcfix_DecodePlc(IlbcDecoderInstance *iLBCdec_inst,
+                                 int16_t *decoded,
+                                 size_t noOfLostFrames);
 
   /****************************************************************************
    * WebRtcIlbcfix_NetEqPlc(...)
@@ -232,13 +233,12 @@ extern "C" {
    * Output:
    *      - decoded           : The "decoded" vector (nothing in this case)
    *
-   * Return value             : >0 - Samples in decoded PLC vector
-   *                            -1 - Error
+   * Return value             : Samples in decoded PLC vector
    */
 
-  int16_t WebRtcIlbcfix_NetEqPlc(IlbcDecoderInstance *iLBCdec_inst,
-                                 int16_t *decoded,
-                                 int16_t noOfLostFrames);
+  size_t WebRtcIlbcfix_NetEqPlc(IlbcDecoderInstance *iLBCdec_inst,
+                                int16_t *decoded,
+                                size_t noOfLostFrames);
 
   /****************************************************************************
    * WebRtcIlbcfix_version(...)

@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -98,7 +98,7 @@ class JsepSessionDescription : public SessionDescriptionInterface {
   bool GetMediasectionIndex(const IceCandidateInterface* candidate,
                             size_t* index);
 
-  DISALLOW_COPY_AND_ASSIGN(JsepSessionDescription);
+  RTC_DISALLOW_COPY_AND_ASSIGN(JsepSessionDescription);
 };
 
 }  // namespace webrtc

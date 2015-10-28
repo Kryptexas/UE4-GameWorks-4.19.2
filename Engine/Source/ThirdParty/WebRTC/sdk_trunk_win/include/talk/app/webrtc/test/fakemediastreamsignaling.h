@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,7 +23,6 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #ifndef TALK_APP_WEBRTC_TEST_FAKEMEDIASTREAMSIGNALING_H_
@@ -86,51 +85,34 @@ class FakeMediaStreamSignaling : public webrtc::MediaStreamSignaling,
   }
 
   // Implements MediaStreamSignalingObserver.
-  virtual void OnAddRemoteStream(webrtc::MediaStreamInterface* stream) {
-  }
-  virtual void OnRemoveRemoteStream(webrtc::MediaStreamInterface* stream) {
-  }
-  virtual void OnAddDataChannel(webrtc::DataChannelInterface* data_channel) {
-  }
+  virtual void OnAddRemoteStream(webrtc::MediaStreamInterface* stream) {}
+  virtual void OnRemoveRemoteStream(webrtc::MediaStreamInterface* stream) {}
+  virtual void OnAddDataChannel(webrtc::DataChannelInterface* data_channel) {}
   virtual void OnAddLocalAudioTrack(webrtc::MediaStreamInterface* stream,
                                     webrtc::AudioTrackInterface* audio_track,
-                                    uint32 ssrc) {
-  }
+                                    uint32_t ssrc) {}
   virtual void OnAddLocalVideoTrack(webrtc::MediaStreamInterface* stream,
                                     webrtc::VideoTrackInterface* video_track,
-                                    uint32 ssrc) {
-  }
+                                    uint32_t ssrc) {}
   virtual void OnAddRemoteAudioTrack(webrtc::MediaStreamInterface* stream,
                                      webrtc::AudioTrackInterface* audio_track,
-                                     uint32 ssrc) {
-  }
-
+                                     uint32_t ssrc) {}
   virtual void OnAddRemoteVideoTrack(webrtc::MediaStreamInterface* stream,
                                      webrtc::VideoTrackInterface* video_track,
-                                     uint32 ssrc) {
-  }
-
+                                     uint32_t ssrc) {}
   virtual void OnRemoveRemoteAudioTrack(
       webrtc::MediaStreamInterface* stream,
-      webrtc::AudioTrackInterface* audio_track) {
-  }
-
+      webrtc::AudioTrackInterface* audio_track) {}
   virtual void OnRemoveRemoteVideoTrack(
       webrtc::MediaStreamInterface* stream,
-      webrtc::VideoTrackInterface* video_track) {
-  }
-
-  virtual void OnRemoveLocalAudioTrack(
-      webrtc::MediaStreamInterface* stream,
-      webrtc::AudioTrackInterface* audio_track,
-      uint32 ssrc) {
-  }
+      webrtc::VideoTrackInterface* video_track) {}
+  virtual void OnRemoveLocalAudioTrack(webrtc::MediaStreamInterface* stream,
+                                       webrtc::AudioTrackInterface* audio_track,
+                                       uint32_t ssrc) {}
   virtual void OnRemoveLocalVideoTrack(
       webrtc::MediaStreamInterface* stream,
-      webrtc::VideoTrackInterface* video_track) {
-  }
-  virtual void OnRemoveLocalStream(webrtc::MediaStreamInterface* stream) {
-  }
+      webrtc::VideoTrackInterface* video_track) {}
+  virtual void OnRemoveLocalStream(webrtc::MediaStreamInterface* stream) {}
 
  private:
   rtc::scoped_refptr<webrtc::MediaStreamInterface> CreateStream(

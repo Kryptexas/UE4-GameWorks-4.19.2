@@ -101,7 +101,7 @@ struct AecCore {
 
   int mult;  // sampling frequency multiple
   int sampFreq;
-  int num_bands;
+  size_t num_bands;
   uint32_t seed;
 
   float normal_mu;               // stepsize
@@ -126,7 +126,12 @@ struct AecCore {
   int flag_Hband_cn;     // for comfort noise
   float cn_scale_Hband;  // scale for comfort noise in H band
 
+  int delay_metrics_delivered;
   int delay_histogram[kHistorySizeBlocks];
+  int num_delay_values;
+  int delay_median;
+  int delay_std;
+  float fraction_poor_delays;
   int delay_logging_enabled;
   void* delay_estimator_farend;
   void* delay_estimator;
@@ -137,10 +142,11 @@ struct AecCore {
   int delay_correction_count;
   int shift_offset;
   float delay_quality_threshold;
+  int frame_count;
 
-  // 0 = reported delay mode disabled (signal based delay correction enabled).
-  // otherwise enabled
-  int reported_delay_enabled;
+  // 0 = delay agnostic mode (signal based delay correction) disabled.
+  // Otherwise enabled.
+  int delay_agnostic_enabled;
   // 1 = extended filter mode enabled, 0 = disabled.
   int extended_filter_enabled;
   // Runtime selection of number of filter partitions.
@@ -160,6 +166,7 @@ struct AecCore {
   rtc_WavWriter* nearFile;
   rtc_WavWriter* outFile;
   rtc_WavWriter* outLinearFile;
+  FILE* e_fft_file;
 #endif
 };
 

@@ -40,11 +40,10 @@ public:
 
     virtual ~MonitorModule();
 public:	// module
-    virtual int32_t ChangeUniqueId(int32_t id) OVERRIDE;
+ int64_t TimeUntilNextProcess() override;
 
-    virtual int64_t TimeUntilNextProcess() OVERRIDE;
+ int32_t Process() override;
 
-    virtual int32_t Process() OVERRIDE;
 private:
     MonitorObserver* _observerPtr;
     CriticalSectionWrapper&	_callbackCritSect;

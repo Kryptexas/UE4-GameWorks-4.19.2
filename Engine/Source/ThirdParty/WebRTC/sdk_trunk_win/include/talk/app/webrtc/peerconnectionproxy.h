@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -43,6 +43,10 @@ BEGIN_PROXY_MAP(PeerConnection)
   PROXY_METHOD1(void, RemoveStream, MediaStreamInterface*)
   PROXY_METHOD1(rtc::scoped_refptr<DtmfSenderInterface>,
                 CreateDtmfSender, AudioTrackInterface*)
+  PROXY_CONSTMETHOD0(std::vector<rtc::scoped_refptr<RtpSenderInterface>>,
+                     GetSenders)
+  PROXY_CONSTMETHOD0(std::vector<rtc::scoped_refptr<RtpReceiverInterface>>,
+                     GetReceivers)
   PROXY_METHOD3(bool, GetStats, StatsObserver*,
                 MediaStreamTrackInterface*,
                 StatsOutputLevel)
@@ -58,8 +62,9 @@ BEGIN_PROXY_MAP(PeerConnection)
                 SessionDescriptionInterface*)
   PROXY_METHOD2(void, SetRemoteDescription, SetSessionDescriptionObserver*,
                 SessionDescriptionInterface*)
-  PROXY_METHOD2(bool, UpdateIce, const IceServers&,
-                const MediaConstraintsInterface*)
+  PROXY_METHOD1(bool,
+                SetConfiguration,
+                const PeerConnectionInterface::RTCConfiguration&);
   PROXY_METHOD1(bool, AddIceCandidate, const IceCandidateInterface*)
   PROXY_METHOD1(void, RegisterUMAObserver, UMAObserver*)
   PROXY_METHOD0(SignalingState, signaling_state)

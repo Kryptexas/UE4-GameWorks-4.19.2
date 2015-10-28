@@ -61,7 +61,6 @@ class NET_EXPORT_PRIVATE QuicWriteBlockedList {
     SpdyPriority priority =
         base_write_blocked_list_.GetHighestPriorityWriteBlockedList();
     QuicStreamId id = base_write_blocked_list_.PopFront(priority);
-    blocked_streams_.erase(id);
     return id;
   }
 
@@ -80,14 +79,8 @@ class NET_EXPORT_PRIVATE QuicWriteBlockedList {
       return;
     }
 
-    if (blocked_streams_.find(stream_id) != blocked_streams_.end()) {
-      DVLOG(1) << "Stream " << stream_id << " already in write blocked list.";
-      return;
-    }
-
     base_write_blocked_list_.PushBack(
         stream_id, static_cast<SpdyPriority>(priority));
-    blocked_streams_.insert(stream_id);
     return;
   }
 
@@ -98,11 +91,6 @@ class NET_EXPORT_PRIVATE QuicWriteBlockedList {
   QuicWriteBlockedListBase base_write_blocked_list_;
   bool crypto_stream_blocked_;
   bool headers_stream_blocked_;
-
-  // Keep track of write blocked streams in a set for faster membership checking
-  // than iterating over the base_write_blocked_list_. The contents of this set
-  // should mirror the contents of base_write_blocked_list_.
-  std::set<QuicStreamId> blocked_streams_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicWriteBlockedList);
 };

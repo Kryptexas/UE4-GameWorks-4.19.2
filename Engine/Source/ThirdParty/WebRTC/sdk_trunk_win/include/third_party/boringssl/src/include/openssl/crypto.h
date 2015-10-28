@@ -17,7 +17,14 @@
 
 #include <openssl/base.h>
 
+/* Upstream OpenSSL defines |OPENSSL_malloc|, etc., in crypto.h rather than
+ * mem.h. */
 #include <openssl/mem.h>
+
+/* Upstream OpenSSL defines |CRYPTO_LOCK|, etc., in crypto.h rather than
+ * thread.h. */
+#include <openssl/thread.h>
+
 
 #if defined(__cplusplus)
 extern "C" {
@@ -33,13 +40,23 @@ extern "C" {
 OPENSSL_EXPORT void CRYPTO_library_init(void);
 
 
+/* Deprecated functions. */
+
+#define OPENSSL_VERSION_TEXT "BoringSSL"
+
+#define SSLEAY_VERSION 0
+
+/* SSLeay_version is a compatibility function that returns the string
+ * "BoringSSL". */
+OPENSSL_EXPORT const char *SSLeay_version(int unused);
+
+/* SSLeay is a compatibility function that returns OPENSSL_VERSION_NUMBER from
+ * base.h. */
+OPENSSL_EXPORT unsigned long SSLeay(void);
+
+
 #if defined(__cplusplus)
 }  /* extern C */
 #endif
-
-#define CRYPTO_F_CRYPTO_set_ex_data 100
-#define CRYPTO_F_get_class 101
-#define CRYPTO_F_get_new_index 102
-#define CRYPTO_F_get_func_pointers 103
 
 #endif  /* OPENSSL_HEADER_CRYPTO_H */

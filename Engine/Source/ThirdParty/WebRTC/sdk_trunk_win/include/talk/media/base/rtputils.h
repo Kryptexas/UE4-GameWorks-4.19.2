@@ -39,8 +39,8 @@ const size_t kMinRtcpPacketLen = 4;
 struct RtpHeader {
   int payload_type;
   int seq_num;
-  uint32 timestamp;
-  uint32 ssrc;
+  uint32_t timestamp;
+  uint32_t ssrc;
 };
 
 enum RtcpTypes {
@@ -53,28 +53,24 @@ enum RtcpTypes {
   kRtcpTypePSFB = 206,    // Payload-specific Feedback message payload type.
 };
 
-bool GetRtpVersion(const void* data, size_t len, int* version);
 bool GetRtpPayloadType(const void* data, size_t len, int* value);
 bool GetRtpSeqNum(const void* data, size_t len, int* value);
-bool GetRtpTimestamp(const void* data, size_t len, uint32* value);
-bool GetRtpSsrc(const void* data, size_t len, uint32* value);
+bool GetRtpTimestamp(const void* data, size_t len, uint32_t* value);
+bool GetRtpSsrc(const void* data, size_t len, uint32_t* value);
 bool GetRtpHeaderLen(const void* data, size_t len, size_t* value);
 bool GetRtcpType(const void* data, size_t len, int* value);
-bool GetRtcpSsrc(const void* data, size_t len, uint32* value);
+bool GetRtcpSsrc(const void* data, size_t len, uint32_t* value);
 bool GetRtpHeader(const void* data, size_t len, RtpHeader* header);
 
-// Assumes marker bit is 0.
-bool SetRtpHeaderFlags(
-    void* data, size_t len,
-    bool padding, bool extension, int csrc_count);
-bool SetRtpPayloadType(void* data, size_t len, int value);
-bool SetRtpSeqNum(void* data, size_t len, int value);
-bool SetRtpTimestamp(void* data, size_t len, uint32 value);
-bool SetRtpSsrc(void* data, size_t len, uint32 value);
+bool SetRtpSsrc(void* data, size_t len, uint32_t value);
 // Assumes version 2, no padding, no extensions, no csrcs.
 bool SetRtpHeader(void* data, size_t len, const RtpHeader& header);
 
 bool IsRtpPacket(const void* data, size_t len);
+
+// True if |payload type| is 0-127.
+bool IsValidRtpPayloadType(int payload_type);
+
 }  // namespace cricket
 
 #endif  // TALK_MEDIA_BASE_RTPUTILS_H_

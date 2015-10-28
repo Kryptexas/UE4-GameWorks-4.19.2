@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2014, Google Inc.
+ * Copyright 2014 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -81,6 +81,12 @@ typedef enum {
 // Called when a data buffer was successfully received.
 - (void)channel:(RTCDataChannel*)channel
     didReceiveMessageWithBuffer:(RTCDataBuffer*)buffer;
+
+@optional
+
+// Called when the buffered amount has changed.
+- (void)channel:(RTCDataChannel*)channel
+    didChangeBufferedAmount:(NSUInteger)amount;
 
 @end
 

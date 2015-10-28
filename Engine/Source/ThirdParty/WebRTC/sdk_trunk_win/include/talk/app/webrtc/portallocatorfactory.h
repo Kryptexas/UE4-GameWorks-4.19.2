@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2011, Google Inc.
+ * Copyright 2011 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -55,6 +55,8 @@ class PortAllocatorFactory : public PortAllocatorFactoryInterface {
   virtual cricket::PortAllocator* CreatePortAllocator(
       const std::vector<StunConfiguration>& stun,
       const std::vector<TurnConfiguration>& turn);
+
+  virtual void SetNetworkIgnoreMask(int network_ignore_mask);
 
  protected:
   explicit PortAllocatorFactory(rtc::Thread* worker_thread);
