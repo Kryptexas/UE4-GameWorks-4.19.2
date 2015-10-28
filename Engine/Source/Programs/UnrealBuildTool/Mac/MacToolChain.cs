@@ -124,7 +124,10 @@ namespace UnrealBuildTool
 			Result += " -Wno-tautological-compare";
 			// This will prevent the issue of warnings for unused private variables.
 			Result += " -Wno-unused-private-field";
-			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
+			// needed to suppress warnings about using offsetof on non-POD types.
+			Result += " -Wno-invalid-offsetof";
+			// we use this feature to allow static FNames.
+			Result += " -Wno-gnu-string-literal-operator-template";
 
 			if (MacOSSDKVersionFloat < 10.9f && MacOSSDKVersionFloat >= 10.11f)
 			{

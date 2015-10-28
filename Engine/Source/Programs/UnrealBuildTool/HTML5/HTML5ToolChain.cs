@@ -63,7 +63,10 @@ namespace UnrealBuildTool
 			// okay, in UE4, we'd fix the code for these, but in UE3, not worth it
 			Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
 			Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
-			Result += " -Wno-invalid-offsetof"; // too many warnings kills windows clang. 
+			// needed to suppress warnings about using offsetof on non-POD types.
+			Result += " -Wno-invalid-offsetof";
+			// we use this feature to allow static FNames.
+			Result += " -Wno-gnu-string-literal-operator-template";
 
 			if (bEnableShadowVariableWarning)
 			{
