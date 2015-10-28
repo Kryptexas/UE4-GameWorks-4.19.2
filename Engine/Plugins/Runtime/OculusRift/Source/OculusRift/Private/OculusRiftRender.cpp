@@ -14,6 +14,156 @@
 
 #include "SlateBasics.h"
 
+
+DEFINE_STAT(STAT_BeginRendering);
+DEFINE_STAT(STAT_FinishRendering);
+DEFINE_STAT(STAT_LatencyRender);
+DEFINE_STAT(STAT_LatencyTimewarp);
+DEFINE_STAT(STAT_LatencyPostPresent);
+DEFINE_STAT(STAT_ErrorRender);
+DEFINE_STAT(STAT_ErrorTimewarp);
+
+//-------------------------------------------------------------------------------------------------
+// FViewExtension
+//-------------------------------------------------------------------------------------------------
+
+void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
+{
+	check(IsInRenderingThread());
+	FViewExtension& RenderContext = *this;
+	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
+
+	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || !ViewFamily.RenderTarget->GetRenderTargetTexture())
+	{
+		return;
+	}
+	FSettings* FrameSettings = CurrentFrame->GetSettings();
+	RenderContext.ShowFlags = ViewFamily.EngineShowFlags;
+
+	FMemory::Memcpy(CurrentFrame->CurEyeRenderPose, CurrentFrame->EyeRenderPose);
+	FMemory::Memcpy(CurrentFrame->CurHeadPose, CurrentFrame->HeadPose);
+
+
+	if (FrameSettings->TexturePaddingPerEye != 0)
+	{
+		// clear the padding between two eyes
+		const int32 GapMinX = ViewFamily.Views[0]->ViewRect.Max.X;
+		const int32 GapMaxX = ViewFamily.Views[1]->ViewRect.Min.X;
+
+		const int ViewportSizeY = (ViewFamily.RenderTarget->GetRenderTargetTexture()) ? 
+			ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY() : ViewFamily.RenderTarget->GetSizeXY().Y;
+		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
+		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
+	}
+
+	check(ViewFamily.RenderTarget->GetRenderTargetTexture());
+	
+	FrameSettings->EyeLayer.EyeFov.Viewport[0] = ToOVRRecti(FrameSettings->EyeRenderViewport[0]);
+	FrameSettings->EyeLayer.EyeFov.Viewport[1] = ToOVRRecti(FrameSettings->EyeRenderViewport[1]);
+	
+	pPresentBridge->BeginRendering(RenderContext, ViewFamily.RenderTarget->GetRenderTargetTexture());
+
+	const double DisplayTime = ovr_GetPredictedDisplayTime(OvrSession, RenderContext.RenderFrame->FrameNumber);
+
+	RenderContext.bFrameBegun = true;
+
+	// Update FPS stats
+	FOculusRiftHMD* OculusRiftHMD = static_cast<FOculusRiftHMD*>(RenderContext.Delegate);
+
+	OculusRiftHMD->PerformanceStats.Frames++;
+	OculusRiftHMD->PerformanceStats.Seconds += DisplayTime;
+
+	if (RenderContext.ShowFlags.Rendering)
+	{
+		// Take new EyeRenderPose if bUpdateOnRT.
+		// if !bOrientationChanged && !bPositionChanged then we still need to use new eye pose (for timewarp)
+		if (FrameSettings->Flags.bUpdateOnRT || 
+			(!CurrentFrame->Flags.bOrientationChanged && !CurrentFrame->Flags.bPositionChanged))
+		{
+			// get latest orientation/position and cache it
+			CurrentFrame->GetHeadAndEyePoses(CurrentFrame->GetTrackingState(OvrSession), CurrentFrame->CurHeadPose, CurrentFrame->CurEyeRenderPose);
+		}
+	}
+}
+
+void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
+{
+	check(IsInRenderingThread());
+	FViewExtension& RenderContext = *this;
+	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
+
+	if (!CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
+	{
+		return;
+	}
+
+	const ovrEyeType eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? ovrEye_Left : ovrEye_Right;
+	if (RenderContext.ShowFlags.Rendering && CurrentFrame->Settings->Flags.bUpdateOnRT)
+	{
+		FQuat	CurrentEyeOrientation;
+		FVector	CurrentEyePosition;
+		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
+
+		FQuat ViewOrientation = View.ViewRotation.Quaternion();
+
+		// recalculate delta control orientation; it should match the one we used in CalculateStereoViewOffset on a game thread.
+		FVector GameEyePosition;
+		FQuat GameEyeOrient;
+
+		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[eyeIdx], GameEyeOrient, GameEyePosition);
+		const FQuat DeltaControlOrientation =  ViewOrientation * GameEyeOrient.Inverse();
+		// make sure we use the same viewrotation as we had on a game thread
+		check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
+
+		if (CurrentFrame->Flags.bOrientationChanged)
+		{
+			// Apply updated orientation to corresponding View at recalc matrices.
+			// The updated position will be applied from inside of the UpdateViewMatrix() call.
+			const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * CurrentEyeOrientation;
+			View.ViewRotation = FRotator(ViewOrientation * DeltaOrient);
+			
+			//UE_LOG(LogHMD, Log, TEXT("VIEWDLT: Yaw %.3f Pitch %.3f Roll %.3f"), DeltaOrient.Rotator().Yaw, DeltaOrient.Rotator().Pitch, DeltaOrient.Rotator().Roll);
+		}
+
+		if (!CurrentFrame->Flags.bPositionChanged)
+		{
+			// if no positional change applied then we still need to calculate proper stereo disparity.
+			// use the current head pose for this calculation instead of the one that was saved on a game thread.
+			FQuat HeadOrientation;
+			CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurHeadPose, HeadOrientation, View.BaseHmdLocation);
+		}
+
+		// The HMDPosition already has HMD orientation applied.
+		// Apply rotational difference between HMD orientation and ViewRotation
+		// to HMDPosition vector. 
+		const FVector DeltaPosition = CurrentEyePosition - View.BaseHmdLocation;
+		const FVector vEyePosition = DeltaControlOrientation.RotateVector(DeltaPosition) + CurrentFrame->Settings->PositionOffset;
+		View.ViewLocation += vEyePosition;
+
+		//UE_LOG(LogHMD, Log, TEXT("VDLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
+
+		if (CurrentFrame->Flags.bOrientationChanged || CurrentFrame->Flags.bPositionChanged)
+		{
+			View.UpdateViewMatrix();
+		}
+	}
+
+	FSettings* FrameSettings = CurrentFrame->GetSettings();
+	check(FrameSettings);
+	if (RenderContext.ShowFlags.Rendering)
+	{
+		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = CurrentFrame->CurEyeRenderPose[eyeIdx];
+	}
+	else
+	{
+		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = ovrPosef(OVR::Posef());
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+// FOculusRiftHMD
+//-------------------------------------------------------------------------------------------------
+
 bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
 {
 	check(Index == 0);
@@ -140,140 +290,6 @@ void FOculusRiftHMD::DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList
 void FOculusRiftHMD::DrawVisibleAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const
 {
 	DrawOcclusionMesh(RHICmdList, StereoPass, VisibleAreaMeshes);
-}
-
-void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
-{
-	check(IsInRenderingThread());
-	FViewExtension& RenderContext = *this;
-	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
-
-	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || !ViewFamily.RenderTarget->GetRenderTargetTexture())
-	{
-		return;
-	}
-	FSettings* FrameSettings = CurrentFrame->GetSettings();
-	RenderContext.ShowFlags = ViewFamily.EngineShowFlags;
-
-	RenderContext.CurHeadPose = CurrentFrame->HeadPose;
-
-	if (FrameSettings->TexturePaddingPerEye != 0)
-	{
-		// clear the padding between two eyes
-		const int32 GapMinX = ViewFamily.Views[0]->ViewRect.Max.X;
-		const int32 GapMaxX = ViewFamily.Views[1]->ViewRect.Min.X;
-
-		const int ViewportSizeY = (ViewFamily.RenderTarget->GetRenderTargetTexture()) ? 
-			ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY() : ViewFamily.RenderTarget->GetSizeXY().Y;
-		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
-		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
-	}
-
-	check(ViewFamily.RenderTarget->GetRenderTargetTexture());
-	
-	FrameSettings->EyeLayer.EyeFov.Viewport[0] = ToOVRRecti(FrameSettings->EyeRenderViewport[0]);
-	FrameSettings->EyeLayer.EyeFov.Viewport[1] = ToOVRRecti(FrameSettings->EyeRenderViewport[1]);
-	
-	pPresentBridge->BeginRendering(RenderContext, ViewFamily.RenderTarget->GetRenderTargetTexture());
-
-	ovr_GetFrameTiming(Hmd, RenderContext.RenderFrame->FrameNumber);
-
-	RenderContext.bFrameBegun = true;
-
-	if (RenderContext.ShowFlags.Rendering)
-	{
-		// get latest orientation/position and cache it
-		ovrTrackingState ts;
-		ovrPosef EyeRenderPose[2];
-		CurrentFrame->GetEyePoses(Hmd, EyeRenderPose, ts);
-
-		// Take new EyeRenderPose is bUpdateOnRT.
-		// if !bOrientationChanged && !bPositionChanged then we still need to use new eye pose (for timewarp)
-		if (FrameSettings->Flags.bUpdateOnRT ||
-			(!CurrentFrame->Flags.bOrientationChanged && !CurrentFrame->Flags.bPositionChanged))
-		{
-			RenderContext.CurHeadPose = ts.HeadPose.ThePose;
-			FMemory::Memcpy(RenderContext.CurEyeRenderPose, EyeRenderPose);
-		}
-		else
-		{
-			FMemory::Memcpy<ovrPosef[2]>(RenderContext.CurEyeRenderPose, CurrentFrame->EyeRenderPose);
-		}
-	}
-}
-
-void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
-{
-	check(IsInRenderingThread());
-	FViewExtension& RenderContext = *this;
-	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
-
-	if (!CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
-	{
-		return;
-	}
-
-	const ovrEyeType eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? ovrEye_Left : ovrEye_Right;
-	if (RenderContext.ShowFlags.Rendering && CurrentFrame->Settings->Flags.bUpdateOnRT)
-	{
-		FQuat	CurrentEyeOrientation;
-		FVector	CurrentEyePosition;
-		CurrentFrame->PoseToOrientationAndPosition(RenderContext.CurEyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
-
-		FQuat ViewOrientation = View.ViewRotation.Quaternion();
-
-		// recalculate delta control orientation; it should match the one we used in CalculateStereoViewOffset on a game thread.
-		FVector GameEyePosition;
-		FQuat GameEyeOrient;
-
-		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[eyeIdx], GameEyeOrient, GameEyePosition);
-		const FQuat DeltaControlOrientation =  ViewOrientation * GameEyeOrient.Inverse();
-		// make sure we use the same viewrotation as we had on a game thread
-		check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
-
-		if (CurrentFrame->Flags.bOrientationChanged)
-		{
-			// Apply updated orientation to corresponding View at recalc matrices.
-			// The updated position will be applied from inside of the UpdateViewMatrix() call.
-			const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * CurrentEyeOrientation;
-			View.ViewRotation = FRotator(ViewOrientation * DeltaOrient);
-			
-			//UE_LOG(LogHMD, Log, TEXT("VIEWDLT: Yaw %.3f Pitch %.3f Roll %.3f"), DeltaOrient.Rotator().Yaw, DeltaOrient.Rotator().Pitch, DeltaOrient.Rotator().Roll);
-		}
-
-		if (!CurrentFrame->Flags.bPositionChanged)
-		{
-			// if no positional change applied then we still need to calculate proper stereo disparity.
-			// use the current head pose for this calculation instead of the one that was saved on a game thread.
-			FQuat HeadOrientation;
-			CurrentFrame->PoseToOrientationAndPosition(RenderContext.CurHeadPose, HeadOrientation, View.BaseHmdLocation);
-		}
-
-		// The HMDPosition already has HMD orientation applied.
-		// Apply rotational difference between HMD orientation and ViewRotation
-		// to HMDPosition vector. 
-		const FVector DeltaPosition = CurrentEyePosition - View.BaseHmdLocation;
-		const FVector vEyePosition = DeltaControlOrientation.RotateVector(DeltaPosition) + CurrentFrame->Settings->PositionOffset;
-		View.ViewLocation += vEyePosition;
-
-		//UE_LOG(LogHMD, Log, TEXT("VDLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
-
-		if (CurrentFrame->Flags.bOrientationChanged || CurrentFrame->Flags.bPositionChanged)
-		{
-			View.UpdateViewMatrix();
-		}
-	}
-
-	FSettings* FrameSettings = CurrentFrame->GetSettings();
-	check(FrameSettings);
-	if (RenderContext.ShowFlags.Rendering)
-	{
-		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = RenderContext.CurEyeRenderPose[eyeIdx];
-	}
-	else
-	{
-		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = ovrPosef(OVR::Posef());
-	}
 }
 
 void FOculusRiftHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
@@ -512,7 +528,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			{
 				float latencies[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 				const int numOfEntries = sizeof(latencies) / sizeof(latencies[0]);
-				if (ovr_GetFloatArray(Hmd, "DK2Latency", latencies, numOfEntries) == numOfEntries)
+				if (ovr_GetFloatArray(OvrSession, "DK2Latency", latencies, numOfEntries) == numOfEntries)
 				{
 					Y += RowHeight;
 
@@ -647,6 +663,11 @@ void FOculusRiftHMD::ShutdownRendering()
 		pCustomPresent = NULL;
 	}
 }
+
+
+//-------------------------------------------------------------------------------------------------
+// FCustomPresent
+//-------------------------------------------------------------------------------------------------
 
 void FCustomPresent::SetRenderContext(FHMDViewExtension* InRenderContext)
 {

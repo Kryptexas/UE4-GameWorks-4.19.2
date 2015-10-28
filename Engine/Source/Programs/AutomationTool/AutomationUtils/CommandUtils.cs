@@ -2375,13 +2375,6 @@ namespace AutomationTool
 				throw new AutomationException("Can't sign '{0}', file or folder does not exist.", InPath);
 			}
 
-			// @todo: OS X 10.9.5/Xcode 6 can't sign libsteam_api.dylib, so we temporarily disable signing of the editor and games,
-			// which code sign individual files (contrary to the Launcher, which signs the whole app bundle)
-			if (CommandUtils.FileExists(InPath))
-			{
-				return;
-			}
-
 			// Executable extensions
 			List<string> Extensions = new List<string>();
 			Extensions.Add(".dylib");
@@ -2405,7 +2398,7 @@ namespace AutomationTool
 
 			string SignToolName = "/usr/bin/codesign";
 
-			string CodeSignArgs = String.Format("-f --deep -s \"{0}\" -v \"{1}\"", "Developer ID Application", InPath);
+			string CodeSignArgs = String.Format("-f --deep -s \"{0}\" -v \"{1}\" --no-strict", "Developer ID Application", InPath);
 
 			DateTime StartTime = DateTime.Now;
 

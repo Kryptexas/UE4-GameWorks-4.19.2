@@ -43,13 +43,16 @@ namespace
 			
 			if(UArrayProperty* TestArrayProperty = Cast<UArrayProperty>(TestProperty))
 			{
-				if(bExcludeObjectArrayProperties)
+				// We only use the Inner type if the flag is set. This is done for backwards-compatibility (some BPs may already rely on the previous behavior when the property value was allowed to be exposed).
+				if(bExcludeObjectArrayProperties && TestArrayProperty->Inner)
 				{
 					TestProperty = TestArrayProperty->Inner;
 				}
 			}
 
-			return IsSupportedPropertyType(TestProperty);
+			// Don't expose object properties (except for those containing class objects).
+			// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
+			return !TestProperty->IsA<UObjectProperty>() || TestProperty->IsA<UClassProperty>();
 		}
 
 		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property = nullptr) const override
@@ -58,15 +61,6 @@ namespace
 
 			// Move into the advanced view if the property metadata is set.
 			Pin->bAdvancedView = Property && Property->HasAnyPropertyFlags(CPF_AdvancedDisplay);
-		}
-
-		static bool IsSupportedPropertyType(const UProperty* InProperty)
-		{
-			// Don't expose object reference properties.
-			// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
-			return !InProperty->IsA<UClassProperty>()
-				&& !InProperty->IsA<UObjectProperty>()
-				&& !InProperty->IsA<UInterfaceProperty>();
 		}
 
 	private:
@@ -250,8 +244,8 @@ void UK2Node_GetClassDefaults::ValidateNodeDuringCompilation(class FCompilerResu
 				// Emit a warning for existing connections to potentially unsafe array property defaults. We do this rather than just implicitly breaking the connection (for compatibility).
 				if(auto ArrayProperty = Cast<UArrayProperty>(SourceClass->FindPropertyByName(FName(*Pin->PinName))))
 				{
-					// Even though array property defaults are copied, the copy could still contain a reference to an object that belongs to the CDO, which would potentially be unsafe to modify.
-					if(!FClassDefaultsOptionalPinManager::IsSupportedPropertyType(ArrayProperty->Inner))
+					// Even though array property defaults are copied, the copy could still contain a reference to a non-class object that belongs to the CDO, which would potentially be unsafe to modify.
+					if(ArrayProperty->Inner && ArrayProperty->Inner->IsA<UObjectProperty>() && !ArrayProperty->Inner->IsA<UClassProperty>())
 					{
 						MessageLog.Warning(*LOCTEXT("UnsafeConnectionWarning", "@@ has an unsafe connection to the @@ output pin that is not fully supported at this time. It should be disconnected to avoid potentially corrupting class defaults at runtime. If you need to keep this connection, make sure you're not changing the state of any elements in the array. Also note that if you recreate this node, it will not include this output pin.").ToString(), this, Pin);
 					}

@@ -6,6 +6,8 @@
 
 DEFINE_LOG_CATEGORY(LogCookingStats);
 
+#define ENABLE_COOKINGSTATS 0
+
 FCookingStats::FCookingStats()
 {
 	RunGuid = FName(*FString::Printf(TEXT("RunID%s"), *FGuid::NewGuid().ToString()));
@@ -27,6 +29,7 @@ void FCookingStats::AddTag(const FName& Key, const FName& Tag)
 
 void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const FString& TagValue)
 {
+#if ENABLE_COOKINGSTATS
 	FScopeLock ScopeLock(&SyncObject);
 	auto Value = KeyTags.Find(Key);
 
@@ -36,12 +39,13 @@ void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const FStrin
 	}
 
 	Value->Add(Tag, TagValue);
-
+#endif
 }
 
 
 bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString& OutValue) const
 {
+#if ENABLE_COOKINGSTATS
 	FScopeLock ScopeLock(&SyncObject);
 	auto Tags = KeyTags.Find(Key);
 
@@ -58,10 +62,14 @@ bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString&
 	}
 	OutValue = *Value;
 	return true;
+#else
+	return false;
+#endif
 }
 
 bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
 {
+#if ENABLE_COOKINGSTATS
 	FString Output;
 	FScopeLock ScopeLock(&SyncObject);
 
@@ -96,6 +104,7 @@ bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
 	}
 
 	FFileHelper::SaveStringToFile(Output, *Filename);
+#endif
 	return true;
 }
 

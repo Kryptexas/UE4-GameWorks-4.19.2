@@ -340,6 +340,13 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 			if (NodeIsNotTransient(CallSite))
 			{
 				UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(CallSite);
+				if (CallSiteBlueprint == nullptr)
+				{
+					// the node doesn't have a Blueprint in its outer chain, 
+					// probably signifying that it is part of a graph that has 
+					// been removed by the user (and moved off the Blueprint)
+					continue;
+				}
 
 				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FuncName);
 				const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());

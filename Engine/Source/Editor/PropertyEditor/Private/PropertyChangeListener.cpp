@@ -110,14 +110,21 @@ public:
 		bool bPropertyValid = true;
 		bool bChanged = false;
 
-		UArrayProperty* OuterArrayProperty = Cast<UArrayProperty>( Property->GetOuter() );
-		if ( OuterArrayProperty != NULL )
+		if ( PropertyValueAddresses.BaseAddress != nullptr && PropertyValueAddresses.Address != nullptr )
 		{
-			// make sure we're not trying to compare against an element that doesn't exist
-			if ( PropertyNodeRef.GetArrayIndex() >= FScriptArrayHelper::Num( PropertyValueAddresses.BaseAddress ) )
+			UArrayProperty* OuterArrayProperty = Cast<UArrayProperty>( Property->GetOuter() );
+			if ( OuterArrayProperty != NULL )
 			{
-				bPropertyValid = false;
+				// make sure we're not trying to compare against an element that doesn't exist
+				if ( PropertyNodeRef.GetArrayIndex() >= FScriptArrayHelper::Num( PropertyValueAddresses.BaseAddress ) )
+				{
+					bPropertyValid = false;
+				}
 			}
+		}
+		else
+		{
+			bPropertyValid = false;
 		}
 
 		if( bPropertyValid )

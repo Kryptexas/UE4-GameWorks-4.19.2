@@ -1966,9 +1966,13 @@ void FPersona::RefreshPreviewInstanceTrackCurves()
 
 void FPersona::PostUndo(bool bSuccess)
 {
+	DocumentManager->CleanInvalidTabs();
 	DocumentManager->RefreshAllTabs();
 
 	FBlueprintEditor::PostUndo(bSuccess);
+
+	// If we undid a node creation that caused us to clean up a tab/graph we need to refresh the UI state
+	RefreshEditors();
 
 	// PostUndo broadcast
 	OnPostUndo.Broadcast();	

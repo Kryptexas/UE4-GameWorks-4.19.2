@@ -3,6 +3,8 @@
 #include "UMGPrivatePCH.h"
 #include "UMGSequencePlayer.h"
 #include "MovieScene.h"
+#include "MovieSceneBinding.h"
+#include "MovieSceneTrack.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieScene.h"
 #include "WidgetAnimation.h"
@@ -23,7 +25,20 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	UMovieScene* MovieScene = Animation->GetMovieScene();
 
 	// Cache the time range of the sequence to determine when we stop
-	TimeRange = MovieScene->GetTimeRange();
+	// Get the range of all sections combined
+	TArray< TRange<float> > Bounds;
+
+	for (int32 TypeIndex = 0; TypeIndex < MovieScene->GetMasterTracks().Num(); ++TypeIndex)
+	{
+		Bounds.Add(MovieScene->GetMasterTracks()[TypeIndex]->GetSectionBoundaries());
+	}
+
+	for (int32 BindingIndex = 0; BindingIndex < MovieScene->GetBindings().Num(); ++BindingIndex)
+	{
+		Bounds.Add(MovieScene->GetBindings()[BindingIndex].GetTimeRange());
+	}
+
+	TimeRange = TRange<float>::Hull(Bounds);
 
 	UWidgetTree* WidgetTree = UserWidget.WidgetTree;
 

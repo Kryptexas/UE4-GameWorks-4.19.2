@@ -2537,15 +2537,19 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 				bNeedInitialize = InitNonNativeProperty(P, Obj);
 			}
 
-			if (bCopyTransientsFromClassDefaults && P->HasAnyPropertyFlags(CPF_Transient|CPF_DuplicateTransient|CPF_NonPIEDuplicateTransient))
+			bool IsTransient = P->HasAnyPropertyFlags(CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient);
+			if (!IsTransient || !P->ContainsInstancedObjectProperty())
 			{
-				// This is a duplicate. The value for all transient or non-duplicatable properties should be copied
-				// from the source class's defaults.
-				P->CopyCompleteValue_InContainer(Obj, ClassDefaults);
-			}
-			else if (P->IsInContainer(DefaultsClass))
-			{
-				P->CopyCompleteValue_InContainer(Obj, DefaultData);
+				if (bCopyTransientsFromClassDefaults && IsTransient)
+				{
+					// This is a duplicate. The value for all transient or non-duplicatable properties should be copied
+					// from the source class's defaults.
+					P->CopyCompleteValue_InContainer(Obj, ClassDefaults);
+				}
+				else if (P->IsInContainer(DefaultsClass))
+				{
+					P->CopyCompleteValue_InContainer(Obj, DefaultData);
+				}
 			}
 		}
 	}

@@ -27,5 +27,11 @@ public:
 	 */
 	virtual void SetChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) = 0;
 	virtual void SetChannelValues (int32 ControllerId, const FForceFeedbackValues &values) = 0;
+
+	/** If this device supports a haptic interface, implement this, and inherit the IHapticDevice interface */
+	virtual class IHapticDevice* GetHapticDevice()
+	{
+		return nullptr;
+	}
 };
 

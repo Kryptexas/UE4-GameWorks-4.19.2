@@ -6,7 +6,18 @@
 #include "MovieSceneSection.h"
 #include "Sequencer.h"
 
-void GetAllKeyAreaNodes( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TArray<TSharedRef<FSectionKeyAreaNode>>& KeyAreaNodes )
+struct FDisplayNodeAndKeyArea
+{
+	FDisplayNodeAndKeyArea( TSharedPtr<FSequencerDisplayNode> InDisplayNode, TSharedPtr<IKeyArea> InKeyArea )
+	{
+		DisplayNode = InDisplayNode;
+		KeyArea = InKeyArea;
+	}
+	TSharedPtr<FSequencerDisplayNode> DisplayNode;
+	TSharedPtr<IKeyArea> KeyArea;
+};
+
+void GetAllKeyAreas( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TArray<FDisplayNodeAndKeyArea>& DisplayNodesAndKeyAreas )
 {
 	TDoubleLinkedList<TSharedRef<FSequencerDisplayNode>> NodesToProcess;
 	for ( auto RootNode : InSequencerNodeTree->GetRootNodes() )
@@ -16,20 +27,35 @@ void GetAllKeyAreaNodes( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TAr
 
 	while ( NodesToProcess.Num() > 0 )
 	{
-		auto Node = NodesToProcess.GetHead();
-		if ( Node->GetValue()->GetType() == ESequencerNode::KeyArea )
+		TSharedRef<FSequencerDisplayNode> Node = NodesToProcess.GetHead()->GetValue();
+		NodesToProcess.RemoveNode( Node );
+		if ( Node->GetType() == ESequencerNode::Track )
 		{
-			KeyAreaNodes.Add( StaticCastSharedRef<FSectionKeyAreaNode>( Node->GetValue() ) );
+			TSharedRef<FTrackNode> TrackNode = StaticCastSharedRef<FTrackNode>( Node );
+			TSharedPtr<FSectionKeyAreaNode> TopLevelKeyNode = TrackNode->GetTopLevelKeyNode();
+			if ( TopLevelKeyNode.IsValid() )
+			{
+				for ( TSharedRef<IKeyArea> KeyArea : TopLevelKeyNode->GetAllKeyAreas() )
+				{
+					DisplayNodesAndKeyAreas.Add( FDisplayNodeAndKeyArea( TrackNode, KeyArea ) );
+				}
+			}
 		}
-		for ( auto ChildNode : Node->GetValue()->GetChildNodes() )
+		if ( Node->GetType() == ESequencerNode::KeyArea )
+		{
+			for ( TSharedRef<IKeyArea> KeyArea : StaticCastSharedRef<FSectionKeyAreaNode>( Node )->GetAllKeyAreas() )
+			{
+				DisplayNodesAndKeyAreas.Add( FDisplayNodeAndKeyArea( Node, KeyArea ) );
+			}
+		}
+		for ( auto ChildNode : Node->GetChildNodes() )
 		{
 			NodesToProcess.AddTail( ChildNode );
 		}
-		NodesToProcess.RemoveNode( Node );
 	}
 }
 
-FName BuildCurveName( TSharedPtr<FSectionKeyAreaNode> KeyAreaNode )
+FName BuildCurveName( TSharedPtr<FSequencerDisplayNode> KeyAreaNode )
 {
 	FString CurveName;
 	TSharedPtr<FSequencerDisplayNode> CurrentNameNode = KeyAreaNode;
@@ -46,36 +72,33 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 {
 	SequencerNodeTree = InSequencerNodeTree;
 
-	TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
-	GetAllKeyAreaNodes( SequencerNodeTree, KeyAreaNodes );
-	for ( TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes )
+	TArray<FDisplayNodeAndKeyArea> DisplayNodesAndKeyAreas;
+	GetAllKeyAreas( SequencerNodeTree, DisplayNodesAndKeyAreas );
+	for (const FDisplayNodeAndKeyArea& DisplayNodeAndKeyArea : DisplayNodesAndKeyAreas )
 	{
-		for ( TSharedRef<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas() )
+		FRichCurve* RichCurve = DisplayNodeAndKeyArea.KeyArea->GetRichCurve();
+		if ( RichCurve != nullptr )
 		{
-			FRichCurve* RichCurve = KeyArea->GetRichCurve();
-			if ( RichCurve != nullptr )
+			bool bAddCurve = false;
+			switch ( CurveVisibility )
 			{
-				bool bAddCurve = false;
-				switch ( CurveVisibility )
-				{
-				case ECurveEditorCurveVisibility::AllCurves:
-					bAddCurve = true;
-					break;
-				case ECurveEditorCurveVisibility::SelectedCurves:
-					bAddCurve = KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode);
-					break;
-				case ECurveEditorCurveVisibility::AnimatedCurves:
-					bAddCurve = RichCurve->GetNumKeys() > 0;
-					break;
-				}
-				
-				if ( bAddCurve )
-				{
-					FName CurveName = BuildCurveName(KeyAreaNode);
-					Curves.Add( FRichCurveEditInfo( RichCurve, CurveName ) );
-					ConstCurves.Add( FRichCurveEditInfoConst( RichCurve, CurveName ) );
-					EditInfoToSectionMap.Add( FRichCurveEditInfo( RichCurve, CurveName ), KeyArea->GetOwningSection() );
-				}
+			case ECurveEditorCurveVisibility::AllCurves:
+				bAddCurve = true;
+				break;
+			case ECurveEditorCurveVisibility::SelectedCurves:
+				bAddCurve = DisplayNodeAndKeyArea.DisplayNode->GetSequencer().GetSelection().IsSelected( DisplayNodeAndKeyArea.DisplayNode.ToSharedRef() );
+				break;
+			case ECurveEditorCurveVisibility::AnimatedCurves:
+				bAddCurve = RichCurve->GetNumKeys() > 0;
+				break;
+			}
+
+			if ( bAddCurve )
+			{
+				FName CurveName = BuildCurveName( DisplayNodeAndKeyArea.DisplayNode );
+				Curves.Add( FRichCurveEditInfo( RichCurve, CurveName ) );
+				ConstCurves.Add( FRichCurveEditInfoConst( RichCurve, CurveName ) );
+				EditInfoToSectionMap.Add( FRichCurveEditInfo( RichCurve, CurveName ), DisplayNodeAndKeyArea.KeyArea->GetOwningSection() );
 			}
 		}
 	}
@@ -85,19 +108,16 @@ TArray<FRichCurve*> FSequencerCurveOwner::GetSelectedCurves() const
 {
 	TArray<FRichCurve*> SelectedCurves;
 
-	TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
-	GetAllKeyAreaNodes( SequencerNodeTree, KeyAreaNodes );
-	for ( TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes )
+	TArray<FDisplayNodeAndKeyArea> DisplayNodesAndKeyAreas;
+	GetAllKeyAreas( SequencerNodeTree, DisplayNodesAndKeyAreas );
+	for ( const FDisplayNodeAndKeyArea& DisplayNodeAndKeyArea : DisplayNodesAndKeyAreas )
 	{
-		for ( TSharedRef<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas() )
+		FRichCurve* RichCurve = DisplayNodeAndKeyArea.KeyArea->GetRichCurve();
+		if ( RichCurve != nullptr )
 		{
-			FRichCurve* RichCurve = KeyArea->GetRichCurve();
-			if ( RichCurve != nullptr )
+			if (DisplayNodeAndKeyArea.DisplayNode->GetSequencer().GetSelection().IsSelected(DisplayNodeAndKeyArea.DisplayNode.ToSharedRef()))
 			{
-				if (KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode))
-				{
-					SelectedCurves.Add(RichCurve);
-				}
+				SelectedCurves.Add(RichCurve);
 			}
 		}
 	}

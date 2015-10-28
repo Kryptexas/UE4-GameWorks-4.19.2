@@ -1075,9 +1075,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Settings)
 	float NearClipPlane;
 
-	/** Can a runtime game/application report anonymous hardware survey statistics (such as display resolution and GPU model) back to Epic? */
-	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
-	uint32 bHardwareSurveyEnabled:1;
+	/** DEPRECATED - Can a runtime game/application report anonymous hardware survey statistics (such as display resolution and GPU model) back to Epic? */
+	UPROPERTY()
+	uint32 bHardwareSurveyEnabled_DEPRECATED:1;
 
 	/** Flag for completely disabling subtitles for localized sounds. */
 	UPROPERTY(EditAnywhere, config, Category=Subtitles)
@@ -1455,7 +1455,7 @@ public:
 
 	/** Extensions that can modify view parameters on the render thread. */
 	TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
-	
+
 	/** Reference to the Motion Control devices that are attached, if any */
 	TArray < class IMotionController*> MotionControllerDevices;
 
@@ -1665,7 +1665,7 @@ public:
 	bool HandleEnableAllScreenMessagesCommand( const TCHAR* Cmd, FOutputDevice& Ar );			
 	bool HandleToggleAllScreenMessagesCommand( const TCHAR* Cmd, FOutputDevice& Ar );			
 	bool HandleConfigHashCommand( const TCHAR* Cmd, FOutputDevice& Ar );						
-	bool HandleConfigMemCommand( const TCHAR* Cmd, FOutputDevice& Ar );							
+	bool HandleConfigMemCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 #endif // !UE_BUILD_SHIPPING
 
 	/** Update everything. */
@@ -2155,16 +2155,9 @@ protected:
 	 */
 	virtual bool InitializeHMDDevice();
 
-	/**
-	 *	Detects and initializes any motion controller devices
-	 *
-	 *	@return true if there are any initialized motion controllers, false otherwise
-	 */
 	virtual bool InitializeMotionControllers();
 
-	/**
-	 *	Record EngineAnalytics information for attached HMD devices
-	 */
+	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();
 
 	/**
@@ -2480,6 +2473,8 @@ public:
 
 	/** @return true if editor analytics are enabled */
 	virtual bool AreEditorAnalyticsEnabled() const { return false; }
+	/** @return true if in-game analytics are enabled */
+	bool AreGameAnalyticsEnabled() const;
 	virtual void CreateStartupAnalyticsAttributes( TArray<struct FAnalyticsEventAttribute>& StartSessionAttributes ) const {}
 	
 	/** @return true if the engine is autosaving a package */

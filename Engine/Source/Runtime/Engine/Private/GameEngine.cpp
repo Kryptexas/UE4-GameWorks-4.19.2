@@ -202,8 +202,8 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 
 	if (!IsRunningDedicatedServer() && ((ResolutionX <= 0) || (ResolutionY <= 0)))
 	{
-		// consume available desktop area
-		FDisplayMetrics DisplayMetrics;
+	// consume available desktop area
+	FDisplayMetrics DisplayMetrics;
 		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
 		
 		ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
@@ -417,7 +417,7 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	bUseSound = true;
 
-	bHardwareSurveyEnabled = true;
+	bHardwareSurveyEnabled_DEPRECATED = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
 
@@ -953,36 +953,36 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Tick the viewports.
-		if ( GameViewport != NULL && !bIdleMode )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
-			GameViewport->Tick(DeltaSeconds);
-		}
+	if ( GameViewport != NULL && !bIdleMode )
+	{
+		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
+		GameViewport->Tick(DeltaSeconds);
+	}
 	
 		UpdateTransitionType(Context.World());
 	
 		// fixme: this will only happen once due to the static bool, but still need to figure out how to handle this for multiple worlds
-		if (FPlatformProperties::SupportsWindowedMode())
+	if (FPlatformProperties::SupportsWindowedMode())
+	{
+		// Hide the splashscreen and show the game window
+		static bool bFirstTime = true;
+		if ( bFirstTime )
 		{
-			// Hide the splashscreen and show the game window
-			static bool bFirstTime = true;
-			if ( bFirstTime )
+			bFirstTime = false;
+			FPlatformSplash::Hide();
+			if ( GameViewportWindow.IsValid() )
 			{
-				bFirstTime = false;
-				FPlatformSplash::Hide();
-				if ( GameViewportWindow.IsValid() )
-				{
-					GameViewportWindow.Pin()->ShowWindow();
-					FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
-				}
+				GameViewportWindow.Pin()->ShowWindow();
+				FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
 			}
 		}
+	}
 
-		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
-		{
-			// Render everything.
-			RedrawViewports();
-		}
+	if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
+	{
+		// Render everything.
+		RedrawViewports();
+	}
 
 		// Block on async loading if requested.
 		if (Context.World()->bRequestedBlockOnAsyncLoading)
@@ -1004,16 +1004,16 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			AudioDevice->Update(!Context.World()->IsPaused());
 		}
 
-		if( GIsClient )
-		{
+	if( GIsClient )
+	{
 			// IStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
 			// Will need to take another look when trying to support multiple worlds.
 
-			// Update resource streaming after viewports have had a chance to update view information. Normal update.
+		// Update resource streaming after viewports have had a chance to update view information. Normal update.
 			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-				IStreamingManager::Get().Tick( DeltaSeconds );
-			}
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
+		IStreamingManager::Get().Tick( DeltaSeconds );
+	}
 
 			if ( Context.World()->bTriggerPostLoadMap )
 			{

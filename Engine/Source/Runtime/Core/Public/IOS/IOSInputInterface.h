@@ -4,6 +4,8 @@
 
 #import <CoreMotion/CoreMotion.h>
 
+#include "IInputInterface.h"
+
 enum TouchType
 {
 	TouchBegan,
@@ -22,7 +24,7 @@ struct TouchInput
 /**
  * Interface class for IOS input devices
  */
-class FIOSInputInterface : private FSelfRegisteringExec
+class FIOSInputInterface : private FSelfRegisteringExec, public IInputInterface
 {
 public:
 
@@ -47,6 +49,13 @@ public:
 	// Begin Exec Interface
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End Exec Interface
+
+	/**
+	* IForceFeedbackSystem implementation
+	*/
+	virtual void SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override;
+	virtual void SetLightColor(int32 ControllerId, FColor Color) override {}
 
 private:
 

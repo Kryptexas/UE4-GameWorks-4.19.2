@@ -704,7 +704,8 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 
 	FString LocalEngineDir = FPaths::EngineDir();
-	FString LocalGameDir = FPaths::GameDir();
+	FString RelativeLocalGameDir = FPaths::GameDir();
+	FString LocalGameDir = RelativeLocalGameDir;
 	if ( FPaths::IsProjectFilePathSet() )
 	{
 		LocalGameDir = FPaths::GetPath(FPaths::GetProjectFilePath()) + TEXT("/");
@@ -836,7 +837,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 			FString ConnectedContentFolder = ContentFolder;
 			ConnectedContentFolder.ReplaceInline(*LocalEngineDir, *ConnectedEngineDir);
-			ConnectedContentFolder.ReplaceInline(*LocalGameDir, *ConnectedGameDir);
+			ConnectedContentFolder.ReplaceInline(*RelativeLocalGameDir, *ConnectedGameDir);
 
 			ContentFolders.Add(ConnectedContentFolder);
 		}
@@ -863,7 +864,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		}
 	
 		// return the cached files and their timestamps
-		FixedTimes = FixupSandboxPathsForClient(Sandbox, VisitorForCacheDates.FileTimes, LocalEngineDir, LocalGameDir, bSendLowerCase);
+		FixedTimes = FixupSandboxPathsForClient(Sandbox, VisitorForCacheDates.FileTimes, ConnectedEngineDir, ConnectedGameDir, bSendLowerCase);
 		Out << FixedTimes;
 	}
 	return true;

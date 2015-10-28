@@ -45,9 +45,9 @@ public:
 	virtual bool PoseToOrientationAndPosition( const struct ovrPosef_& Pose, FQuat& OutOrientation, FVector& OutPosition ) const = 0;
 
 	/**
-	 * Returns current ovrHmd handle
+	 * Returns current ovrSession handle
 	 */
-	virtual struct ovrHmdStruct* GetHmd() = 0;
+	virtual struct ovrHmdStruct* GetSession() = 0;
 
 	/**
 	 * Returns current ovrTrackingState

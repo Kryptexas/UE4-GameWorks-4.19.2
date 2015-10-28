@@ -22,14 +22,24 @@
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	#include <OVR_Version.h>
-	#include <OVR_CAPI_0_7_0.h>
+	#include <OVR_CAPI_0_8_0.h>
 	#include <OVR_CAPI_Keys.h>
 	#include <Extras/OVR_Math.h>
+    #include <Extras/OVR_CAPI_Util.h>
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (pop)
 #endif
+
+DECLARE_STATS_GROUP(TEXT("OculusRiftHMD"), STATGROUP_OculusRiftHMD, STATCAT_Advanced);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("BeginRendering"), STAT_BeginRendering, STATGROUP_OculusRiftHMD, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("FinishRendering"), STAT_FinishRendering, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("LatencyRender"), STAT_LatencyRender, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("LatencyTimewarp"), STAT_LatencyTimewarp, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("LatencyPostPresent"), STAT_LatencyPostPresent, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("ErrorRender"), STAT_ErrorRender, STATGROUP_OculusRiftHMD, );
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("ErrorTimewarp"), STAT_ErrorTimewarp, STATGROUP_OculusRiftHMD, );
 
 struct FDistortionVertex;
 class FOculusRiftHMD;
@@ -97,6 +107,11 @@ namespace OculusRift
 		return OVR::Recti(rect.Min.X, rect.Min.Y, rect.Size().X, rect.Size().Y);
 	}
 
+
+//-------------------------------------------------------------------------------------------------
+// FSettings
+//-------------------------------------------------------------------------------------------------
+
 class FSettings : public FHMDSettings
 {
 public:
@@ -125,6 +140,8 @@ public:
 	unsigned				TrackingCaps;
 	unsigned				HmdCaps;
 
+	float					VsyncToNextVsync;
+
 	enum MirrorWindowModeType
 	{
 		eMirrorWindow_Distorted,
@@ -143,14 +160,43 @@ public:
 	float GetTexturePaddingPerEye() const { return TexturePaddingPerEye * GetActualScreenPercentage()/100.f; }
 };
 
+
+//-------------------------------------------------------------------------------------------------
+// FDetectHmd
+//-------------------------------------------------------------------------------------------------
+
+class FDetectHmd : public FRunnable
+{
+public:
+	FOculusRiftHMD* OculusRiftHMD;
+	TAutoPtr<FEvent> StopEvent;
+	TAutoPtr<FRunnableThread> RunnableThread;
+
+public:
+	FDetectHmd(FOculusRiftHMD* InOculusRiftHMD, bool bForced);
+	virtual ~FDetectHmd();
+	
+	void InitThread();
+	void ReleaseThread();	
+
+	// FRunnable overrides
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+};
+
+
+//-------------------------------------------------------------------------------------------------
+// FGameFrame
+//-------------------------------------------------------------------------------------------------
+
 class FGameFrame : public FHMDGameFrame
 {
 public:
-	ovrPosef				CurEyeRenderPose[2];// eye render pose read at the beginning of the frame
-	ovrTrackingState		CurTrackingState;	// tracking state read at the beginning of the frame
-
-	ovrPosef				EyeRenderPose[2];	// eye render pose actually used
-	ovrPosef				HeadPose;			// position of head actually used
+	ovrTrackingState	InitialTrackingState;		// tracking state at start of frame
+	ovrPosef			CurHeadPose;				// current head pose
+	ovrPosef			CurEyeRenderPose[2];		// current eye render poses
+	ovrPosef			HeadPose;					// position of head actually used
+	ovrPosef			EyeRenderPose[2];			// eye render pose actually used
 
 	FGameFrame();
 	virtual ~FGameFrame() {}
@@ -169,12 +215,18 @@ public:
 
 	void PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOrientation, FVector& OutPosition) const;
 
-	// Returns eye poses calculated from head pose. Head pose is available via ovrTrackingState.
-	void GetEyePoses(ovrHmd Hmd, ovrPosef outEyePoses[2], ovrTrackingState& outTrackingState) const;
+	// Returns tracking state for current frame
+	ovrTrackingState GetTrackingState(ovrSession InOvrSession) const;
+	// Returns HeadPose and EyePoses calculated from TrackingState
+	void GetHeadAndEyePoses(const ovrTrackingState& TrackingState, ovrPosef& outHeadPose, ovrPosef outEyePoses[2]) const;
 };
 
-// View extension class that contains all the rendering-specific data (also referred as 'RenderContext').
+
+//-------------------------------------------------------------------------------------------------
+// FViewExtension class that contains all the rendering-specific data (also referred as 'RenderContext').
 // Each call to RT will use an unique instance of this class, attached to ViewFamily.
+//-------------------------------------------------------------------------------------------------
+
 class FViewExtension : public FHMDViewExtension
 {
 public:
@@ -189,20 +241,23 @@ public:
 public:
 	class FCustomPresent* pPresentBridge;
 	IRendererModule*	RendererModule;
-	ovrHmd				Hmd;
-	ovrPosef			CurEyeRenderPose[2];// most recent eye render poses
-	ovrPosef			CurHeadPose;		// current position of head
+	ovrSession			OvrSession;
 
 	FEngineShowFlags	ShowFlags; // a copy of showflags
 	bool				bFrameBegun : 1;
 };
+
+
+//-------------------------------------------------------------------------------------------------
+// FCustomPresent 
+//-------------------------------------------------------------------------------------------------
 
 class FCustomPresent : public FRHICustomPresent
 {
 public:
 	FCustomPresent()
 		: FRHICustomPresent(nullptr)
-		, Hmd(nullptr)
+		, OvrSession(nullptr)
 		, MirrorTexture(nullptr)
 		, NeedToKillHmd(0)
 		, bInitialized(false)
@@ -230,7 +285,7 @@ public:
 	FViewExtension* GetRenderContext() const { return static_cast<FViewExtension*>(RenderContext.Get()); }
 	FSettings* GetFrameSetting() const { check(IsInRenderingThread()); return static_cast<FSettings*>(RenderContext->RenderFrame->GetSettings()); }
 
-	virtual void SetHmd(ovrHmd InHmd) { Hmd = InHmd; }
+	virtual void SetHmd(ovrSession InOvrSession) { OvrSession = InOvrSession; }
 
 	// marking textures invalid, that will force re-allocation of ones
 	void MarkTexturesInvalid();
@@ -254,7 +309,7 @@ protected:
 	void SetRenderContext(FHMDViewExtension* InRenderContext);
 
 protected: // data
-	ovrHmd				Hmd;
+	ovrSession			OvrSession;
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
 
 	// Mirror texture
@@ -267,6 +322,29 @@ protected: // data
 	bool				bNeedReAllocateMirrorTexture : 1;
 };
 
+
+//-------------------------------------------------------------------------------------------------
+// FPerformanceStats
+//-------------------------------------------------------------------------------------------------
+
+struct FPerformanceStats
+{
+	uint64 Frames;
+	double Seconds;
+
+	FPerformanceStats(uint32 InFrames = 0, double InSeconds = 0.0)
+		: Frames(InFrames)
+		, Seconds(InSeconds) 
+	{}
+
+	FPerformanceStats operator - (const FPerformanceStats& PerformanceStats) const
+	{
+		return FPerformanceStats(
+			Frames - PerformanceStats.Frames,
+			Seconds - PerformanceStats.Seconds);
+	}
+};
+
 } // namespace OculusRift
 
 using namespace OculusRift;
@@ -276,6 +354,7 @@ using namespace OculusRift;
  */
 class FOculusRiftHMD : public FHeadMountedDisplay
 {
+	friend class FDetectHmd;
 	friend class FViewExtension;
 	friend class UOculusFunctionLibrary;
 	friend class FOculusRiftPlugin;
@@ -363,7 +442,7 @@ public:
 
 	virtual FString GetVersionString() const override;
 
-	virtual bool IsHMDActive() override { return Hmd != nullptr; }
+	virtual bool IsHMDActive() override { return OvrSession != nullptr; }
 
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
@@ -376,11 +455,14 @@ protected:
 
 public:
 
+	float GetVsyncToNextVsync() const;
+	FPerformanceStats GetPerformanceStats() const;
+
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 	class D3D11Bridge : public FCustomPresent
 	{
 	public:
-		D3D11Bridge(ovrHmd Hmd);
+		D3D11Bridge(ovrSession InOvrSession);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
@@ -391,11 +473,11 @@ public:
 			Reset();
 		}
 
-		virtual void SetHmd(ovrHmd InHmd) override;
+		virtual void SetHmd(ovrSession InHmd) override;
 
 		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 	protected:
-		void Init(ovrHmd InHmd);
+		void Init(ovrSession InHmd);
 		void Reset_RenderThread();
 	protected: // data
 		TRefCountPtr<class FD3D11Texture2DSet>	ColorTextureSet;
@@ -408,7 +490,7 @@ public:
 	class OGLBridge : public FCustomPresent
 	{
 	public:
-		OGLBridge(ovrHmd Hmd);
+		OGLBridge(ovrSession InOvrSession);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
@@ -419,12 +501,12 @@ public:
 			Reset();
 		}
 
-		virtual void SetHmd(ovrHmd InHmd) override;
+		virtual void SetHmd(ovrSession InHmd) override;
 
 		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 
 	protected:
-		void Init(ovrHmd InHmd);
+		void Init(ovrSession InHmd);
 		void Reset_RenderThread();
 	protected: // data
 		TRefCountPtr<class FOpenGLTexture2DSet>	ColorTextureSet;
@@ -457,7 +539,9 @@ private:
 
 	void ReleaseDevice();
 
+#if 0
 	void SetupOcclusionMeshes();
+#endif
 
 	/**
 	 * Reads the device configuration, and sets up the stereoscopic rendering parameters
@@ -488,11 +572,12 @@ private:
 
 private: // data
 
+	TAutoPtr<FDetectHmd>		DetectHmd;
+	volatile int32				HmdDetected;
 	TRefCountPtr<FCustomPresent>pCustomPresent;
 	IRendererModule*			RendererModule;
-	ovrHmd						Hmd;
+	ovrSession					OvrSession;
 	ovrHmdDesc					HmdDesc;
-	ovrGraphicsLuid				Luid;
 
 	TWeakPtr<SWindow>			CachedWindow;
 	TWeakPtr<SWidget>			CachedViewportWidget;
@@ -506,6 +591,7 @@ private: // data
 		uint64 Raw;
 	} OCFlags;
 
+	FPerformanceStats			PerformanceStats;
 	FGameFrame* GetGameFrame()
 	{
 		return (FGameFrame*)(Frame.Get());

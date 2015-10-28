@@ -118,7 +118,9 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	const bool bGammaSpace = !IsMobileHDR();
 	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
-	const bool bRenderToScene = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View);
+	// ES2 requires that the back buffer and depth match dimensions.
+	// For the most part this is not the case when using scene captures. Thus scene captures always render to scene color target.
+	const bool bRenderToScene = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
 
 	if (bGammaSpace && !bRenderToScene)
 	{
@@ -234,9 +236,12 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 	FPostprocessContext Context(CompositeContext.Graph, View);
 
-	if (bDoUpscale)
-	{	// simple bilinear upscaling for ES2.
-		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(1));
+	const bool bBlitRequired = !bDoUpscale && !bDoEditorPrimitives;
+
+	if (bDoUpscale || bBlitRequired)
+	{	// blit from sceneRT to view family target, simple bilinear if upscaling otherwise point filtered.
+		uint32 UpscaleQuality = bDoUpscale ? 1 : 0;
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpscaleQuality));
 
 		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 		Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));

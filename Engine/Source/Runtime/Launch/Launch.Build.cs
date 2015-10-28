@@ -64,6 +64,13 @@ public class Launch : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
 				DynamicallyLoadedModuleNames.Add("ALAudio");
+
+				// CL 2712559 introduced dependency on Json module for everything that includes OnlineJsonSerializer.h
+				// (only relevant to debug since in other configurations functions get inlined)
+				if (Target.Configuration == UnrealTargetConfiguration.Debug)
+				{
+					PrivateDependencyModuleNames.Add("Json");
+				}                                        
 			}
 
 			PrivateIncludePathModuleNames.AddRange(
@@ -158,7 +165,7 @@ public class Launch : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PrivateDependencyModuleNames.Add("OpenGLDrv");
-			DynamicallyLoadedModuleNames.Add("IOSAudio");
+			PrivateDependencyModuleNames.Add("IOSAudio");
 			DynamicallyLoadedModuleNames.Add("IOSRuntimeSettings");
 			PublicFrameworks.Add("OpenGLES");
 			// this is weak for IOS8 support for CAMetalLayer that is in QuartzCore

@@ -109,6 +109,7 @@
 #include "GameFramework/OnlineSession.h"
 
 #include "InstancedReferenceSubobjectHelper.h"
+#include "Engine/EndUserSettings.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
 
@@ -1983,10 +1984,10 @@ bool UEngine::InitializeAudioDeviceManager()
 					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle, true);
 					if (NewAudioDevice)
 					{
-						AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
-					}
-					else
-					{
+							AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
+						}
+						else
+						{
 						ShutdownAudioDeviceManager();
 					}
 				}
@@ -5246,8 +5247,8 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		Ar.Log( TEXT("Objects:") );
 		Ar.Log( TEXT("") );
 
-		UClass*   CheckType     = NULL;
-		UClass*   MetaClass		= NULL;
+		UClass* CheckType = NULL;
+		UClass* MetaClass = NULL;
 		const bool bExportToFile = FParse::Param(Cmd,TEXT("FILE"));
 
 		// allow checking for any Outer, not just a UPackage
@@ -6067,7 +6068,7 @@ void UEngine::InitHardwareSurvey()
 {
 	bool bEnabled = true;
 #if !WITH_EDITORONLY_DATA
-	bEnabled = bHardwareSurveyEnabled;
+	bEnabled = AreGameAnalyticsEnabled();
 #endif
 
 	// The hardware survey costs time and we don't want to slow down debug builds.
@@ -6426,23 +6427,23 @@ void UEngine::UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRat
 	{
 		// Smooth the framerate if wanted. The code uses a simplistic running average. Other approaches, like reserving
 		// a percentage of time, ended up creating negative feedback loops in conjunction with GPU load and were abandonend.
-		if( DeltaTime < 0.0f )
-		{
+			if( DeltaTime < 0.0f )
+			{
 #if PLATFORM_ANDROID
-			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
-			DeltaTime = 0.01;
+				UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
+				DeltaTime = 0.01;
 #elif (UE_BUILD_SHIPPING && WITH_EDITOR)
-			// End users don't have access to the secure parts of UDN. The localized string points to the release notes,
-			// which should include a link to the AMD CPU drivers download site.
-			UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("CPU time drift detected! Please consult release notes on how to address this."));
+				// End users don't have access to the secure parts of UDN. The localized string points to the release notes,
+				// which should include a link to the AMD CPU drivers download site.
+				UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("CPU time drift detected! Please consult release notes on how to address this."));
 #else
-			// Send developers to the support list thread.
-			UE_LOG(LogEngine, Fatal, TEXT("Negative delta time! Please see https://udn.epicgames.com/lists/showpost.php?list=ue3bugs&id=4364"));
+				// Send developers to the support list thread.
+				UE_LOG(LogEngine, Fatal, TEXT("Negative delta time! Please see https://udn.epicgames.com/lists/showpost.php?list=ue3bugs&id=4364"));
 #endif
-		}
+			}
 
-		// Keep track of running average over 300 frames, clamping at min of 5 FPS for individual delta times.
-		RunningAverageDeltaTime = FMath::Lerp<float>( RunningAverageDeltaTime, FMath::Min<float>( DeltaTime, 0.2f ), 1 / 300.f );
+			// Keep track of running average over 300 frames, clamping at min of 5 FPS for individual delta times.
+			RunningAverageDeltaTime = FMath::Lerp<float>( RunningAverageDeltaTime, FMath::Min<float>( DeltaTime, 0.2f ), 1 / 300.f );
 	}
 }
 
@@ -7502,19 +7503,19 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		for (const FDebugClass& DebugClass : DebugClasses)
 		{
 			if (DebugClass.Class)
-			{
+		{
 				TArray<UObject*> DebugObjectsOfClass;
 				const bool bIncludeDerivedClasses = true;
 				GetObjectsOfClass(DebugClass.Class, DebugObjectsOfClass, bIncludeDerivedClasses);
 				for (UObject* Obj : DebugObjectsOfClass)
-				{
+			{
 					if (!Obj)
-					{
-						continue;
-					}
+				{
+					continue;
+				}
 
 					if (Obj->GetWorld() && Obj->GetWorld() != World)
-					{
+				{
 						continue;
 					}
 
@@ -10001,6 +10002,11 @@ UGameViewportClient* UEngine::GameViewportForWorld(const UWorld *InWorld) const
 	return (Context ? Context->GameViewport : NULL);
 }
 
+bool UEngine::AreGameAnalyticsEnabled() const
+{ 
+	return GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
+}
+
 FWorldContext* UEngine::GetWorldContextFromGameViewport(const UGameViewportClient *InViewport)
 {
 	for (FWorldContext& WorldContext : WorldList)
@@ -10202,16 +10208,16 @@ void UEngine::VerifyLoadMapWorldCleanup()
 		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::Preview);
 		if (!bIsPersistantWorldType && !WorldHasValidContext(World))
 		{
-			// Print some debug information...
-			UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());
-			StaticExec(World, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *World->GetPathName()));
-			TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( World, true, GARBAGE_COLLECTION_KEEPFLAGS );
-			FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
-			UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
-			// before asserting.
-			UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
+				// Print some debug information...
+				UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());
+				StaticExec(World, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *World->GetPathName()));
+				TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( World, true, GARBAGE_COLLECTION_KEEPFLAGS );
+				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
+				UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
+				// before asserting.
+				UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
+			}
 		}
-	}
 }
 
 
@@ -10579,19 +10585,19 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		if (Context.PendingLevelStreamingStatusUpdates.Num() > 0)
 		{
 			for (const FLevelStreamingStatus& PendingUpdate : Context.PendingLevelStreamingStatusUpdates)
-			{
+				{
 				ULevelStreaming** Found = Context.World()->StreamingLevels.FindByPredicate([&](ULevelStreaming* Level){
 					return Level && Level->GetWorldAssetPackageFName() == PendingUpdate.PackageName;
 				});
 
 				if (Found)
-				{
+					{
 					(*Found)->bShouldBeLoaded  = PendingUpdate.bShouldBeLoaded;
 					(*Found)->bShouldBeVisible = PendingUpdate.bShouldBeVisible;
 					(*Found)->LevelLODIndex    = PendingUpdate.LODIndex;
-				}
-				else
-				{
+						}
+						else
+						{
 					UE_LOG(LogStreaming, Log, TEXT("Unable to find streaming object %s"), *PendingUpdate.PackageName.ToString());
 				}
 			}

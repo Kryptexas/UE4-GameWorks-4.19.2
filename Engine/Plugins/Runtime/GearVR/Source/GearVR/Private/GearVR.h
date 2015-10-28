@@ -14,7 +14,7 @@
 #endif
 	
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
-#include "OVR.h"
+#include "OVR_Kernel.h"
 #include "VrApi.h"
 #include "VrApi_Android.h"
 PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
@@ -247,11 +247,21 @@ public:
 	void DoLeaveVRMode();
 
 	pid_t GetRenderThreadId() const { return RenderThreadId; }
-private:
-	void DicedBlit(uint32 SourceX, uint32 SourceY, uint32 DestX, uint32 DestY, uint32 Width, uint32 Height, uint32 NumXSteps, uint32 NumYSteps);
 
+	// Allocates a texture set and copies the texture into it.
+	// To turn it off, call with 'nullptr' param.
+	void SetLoadingIconTexture_RenderThread(FTextureRHIRef Texture);
+
+	// Sets/clears "loading icon mode"
+	void SetLoadingIconMode(bool bLoadingIconActive);
+	bool IsInLoadingIconMode() const;
+
+	// Forcedly renders the loading icon.
+	void RenderLoadingIcon_RenderThread(uint32 FrameIndex);
+	
 protected:
 	void SetRenderContext(FHMDViewExtension* InRenderContext);
+	void DoRenderLoadingIcon_RenderThread(int CpuLevel, int GpuLevel, pid_t GameTid);
 
 protected: // data
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
@@ -259,8 +269,12 @@ protected: // data
 
 	// should be accessed only on a RenderThread!
 	ovrFrameParms							FrameParms;
+	ovrFrameParms							LoadingIconParms;
 	ovrPerformanceParms						DefaultPerfParms;
 	TRefCountPtr<class FOpenGLTexture2DSet>	TextureSet;
+	ovrTextureSwapChain*					LoadingIconTextureSet;
+	FTextureRHIRef							SrcLoadingIconTexture;
+	bool									bLoadingIconIsActive;
 	int32									MinimumVsyncs;
 
 	ovrMobile*								OvrMobile;		// to be accessed only on RenderThread (or, when RT is suspended)
@@ -355,6 +369,10 @@ public:
 	float GetTemperatureInCelsius() const;
 	float GetBatteryLevel() const;
 
+	void SetLoadingIconTexture(FTextureRHIRef InTexture);
+	void SetLoadingIconMode(bool bActiveLoadingIcon);
+	void RenderLoadingIcon_RenderThread();
+	bool IsInLoadingIconMode() const;
 private:
 	FGearVR* getThis() { return this; }
 
@@ -428,6 +446,9 @@ private: // data
 		{
 			/** To perform delayed orientation and position reset */
 			uint64	NeedResetOrientationAndPosition : 1;
+
+			/** Is the app resumed or not */
+			uint64  bResumed : 1;
 		};
 		uint64 Raw;
 	} OCFlags;

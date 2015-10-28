@@ -6,18 +6,19 @@
 
 namespace DDCStats
 {
-
 	ICookingStats* GetCookingStats()
 	{
 		static ICookingStats* CookingStats = nullptr;
 		static bool bInitialized = false;
 		if (bInitialized == false)
 		{
+#if !DISABLE_COOKINGSTATS
 			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
 			if (CookingStatsModule)
 			{
 				CookingStats = &CookingStatsModule->Get();
 			}
+#endif
 			bInitialized = true;
 		}
 		return CookingStats;

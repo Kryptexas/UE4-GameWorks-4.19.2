@@ -373,8 +373,8 @@ void Main(
 		// Scene color alpha is not used yet so we set it to 0
 		OutColor.a = 0.0;
 
-		#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE 
-			if(GetHDR32bppEncodeMode() == HDR_ENCODE_NONE)
+		#if !OUTPUT_GAMMA_SPACE 
+			if (GetHDR32bppEncodeMode() == HDR_ENCODE_NONE)
 			{
 				// FP16 HDR stores Z in framebuffer alpha
 				OutColor.a = BasePassInterpolants.PixelPosition.w;

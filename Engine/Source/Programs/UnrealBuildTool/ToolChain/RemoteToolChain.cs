@@ -211,7 +211,12 @@ namespace UnrealBuildTool
 		{
 			base.ParseProjectSettings();
 
-			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
+			string EngineIniPath = UnrealBuildTool.GetUProjectPath();
+			if (String.IsNullOrEmpty(EngineIniPath))
+			{
+				EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
+			}
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", EngineIniPath);
 			string ServerName = RemoteServerName;
 			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RemoteServerName", out ServerName) && !String.IsNullOrEmpty(ServerName))
 			{

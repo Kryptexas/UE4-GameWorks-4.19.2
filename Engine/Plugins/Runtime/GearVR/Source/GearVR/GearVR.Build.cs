@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+using System.IO;
+
 namespace UnrealBuildTool.Rules
 {
 	public class GearVR : ModuleRules
@@ -10,7 +12,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"GearVR/Private",
 					"../../../../Source/Runtime/Renderer/Private",
-					"../../../../Source/Runtime/Launch/Private",
+//					"../../../../Source/Runtime/Launch/Private",
  					"../../../../Source/ThirdParty/Oculus/Common",
 					// ... add other private include paths required here ...
 				}
@@ -26,6 +28,7 @@ namespace UnrealBuildTool.Rules
 					"RenderCore",
 					"Renderer",
 					"ShaderCore",
+					"Launch",
 					"HeadMountedDisplay"
 				}
 				);
@@ -41,7 +44,11 @@ namespace UnrealBuildTool.Rules
 			if (Target.Platform == UnrealTargetPlatform.Android)
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVRMobile" });
+
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GearVR_APL.xml")));
 			}
+		
 		}
 	}
 }

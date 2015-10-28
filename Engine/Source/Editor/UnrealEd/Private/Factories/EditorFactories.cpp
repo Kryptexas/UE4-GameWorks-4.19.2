@@ -98,6 +98,7 @@
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "GameFramework/ForceFeedbackEffect.h"
+#include "GameFramework/HapticFeedbackEffect.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Camera/CameraAnim.h"
 #include "GameFramework/TouchInterface.h"
@@ -7106,6 +7107,24 @@ UForceFeedbackEffectFactory::UForceFeedbackEffectFactory(const FObjectInitialize
 UObject* UForceFeedbackEffectFactory::FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn )
 {
 	return NewObject<UForceFeedbackEffect>(InParent, InName, Flags);
+}
+
+/*-----------------------------------------------------------------------------
+	UHapticFeedbackEffectFactory implementation.
+-----------------------------------------------------------------------------*/
+UHapticFeedbackEffectFactory::UHapticFeedbackEffectFactory(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+
+	SupportedClass = UHapticFeedbackEffect::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* UHapticFeedbackEffectFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<UHapticFeedbackEffect>(InParent, InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------
