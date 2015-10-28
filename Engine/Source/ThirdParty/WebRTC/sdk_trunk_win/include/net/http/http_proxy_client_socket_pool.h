@@ -19,15 +19,14 @@
 #include "net/http/proxy_client_socket.h"
 #include "net/socket/client_socket_pool.h"
 #include "net/socket/client_socket_pool_base.h"
-#include "net/socket/client_socket_pool_histograms.h"
 #include "net/socket/ssl_client_socket.h"
 #include "net/spdy/spdy_session.h"
 
 namespace net {
 
-class HostResolver;
 class HttpAuthCache;
 class HttpAuthHandlerFactory;
+class HttpProxyClientSocketWrapper;
 class ProxyDelegate;
 class SSLClientSocketPool;
 class SSLSocketParams;
@@ -46,7 +45,6 @@ class NET_EXPORT_PRIVATE HttpProxySocketParams
   HttpProxySocketParams(
       const scoped_refptr<TransportSocketParams>& transport_params,
       const scoped_refptr<SSLSocketParams>& ssl_params,
-      const GURL& request_url,
       const std::string& user_agent,
       const HostPortPair& endpoint,
       HttpAuthCache* http_auth_cache,
@@ -61,7 +59,6 @@ class NET_EXPORT_PRIVATE HttpProxySocketParams
   const scoped_refptr<SSLSocketParams>& ssl_params() const {
     return ssl_params_;
   }
-  const GURL& request_url() const { return request_url_; }
   const std::string& user_agent() const { return user_agent_; }
   const HostPortPair& endpoint() const { return endpoint_; }
   HttpAuthCache* http_auth_cache() const { return http_auth_cache_; }
@@ -86,7 +83,6 @@ class NET_EXPORT_PRIVATE HttpProxySocketParams
   const scoped_refptr<TransportSocketParams> transport_params_;
   const scoped_refptr<SSLSocketParams> ssl_params_;
   SpdySessionPool* spdy_session_pool_;
-  const GURL request_url_;
   const std::string user_agent_;
   const HostPortPair endpoint_;
   HttpAuthCache* const http_auth_cache_;
@@ -118,39 +114,6 @@ class HttpProxyConnectJob : public ConnectJob {
   void GetAdditionalErrorState(ClientSocketHandle* handle) override;
 
  private:
-  enum State {
-    STATE_TCP_CONNECT,
-    STATE_TCP_CONNECT_COMPLETE,
-    STATE_SSL_CONNECT,
-    STATE_SSL_CONNECT_COMPLETE,
-    STATE_HTTP_PROXY_CONNECT,
-    STATE_HTTP_PROXY_CONNECT_COMPLETE,
-    STATE_SPDY_PROXY_CREATE_STREAM,
-    STATE_SPDY_PROXY_CREATE_STREAM_COMPLETE,
-    STATE_SPDY_PROXY_CONNECT_COMPLETE,
-    STATE_NONE,
-  };
-
-  void OnIOComplete(int result);
-
-  // Runs the state transition loop.
-  int DoLoop(int result);
-
-  // Connecting to HTTP Proxy
-  int DoTransportConnect();
-  int DoTransportConnectComplete(int result);
-  // Connecting to HTTPS Proxy
-  int DoSSLConnect();
-  int DoSSLConnectComplete(int result);
-
-  int DoHttpProxyConnect();
-  int DoHttpProxyConnectComplete(int result);
-
-  int DoSpdyProxyCreateStream();
-  int DoSpdyProxyCreateStreamComplete(int result);
-
-  void NotifyProxyDelegateOfCompletion(int result);
-
   // Begins the tcp connection and the optional Http proxy tunnel.  If the
   // request is not immediately servicable (likely), the request will return
   // ERR_IO_PENDING. An OK return from this function or the callback means
@@ -160,23 +123,13 @@ class HttpProxyConnectJob : public ConnectJob {
   // a standard net error code will be returned.
   int ConnectInternal() override;
 
-  scoped_refptr<HttpProxySocketParams> params_;
-  TransportClientSocketPool* const transport_pool_;
-  SSLClientSocketPool* const ssl_pool_;
+  void OnConnectComplete(int result);
 
-  State next_state_;
-  CompletionCallback callback_;
-  scoped_ptr<ClientSocketHandle> transport_socket_handle_;
-  scoped_ptr<ProxyClientSocket> transport_socket_;
-  bool using_spdy_;
-  // Protocol negotiated with the server.
-  NextProto protocol_negotiated_;
+  int HandleConnectResult(int result);
 
-  HttpResponseInfo error_response_info_;
+  scoped_ptr<HttpProxyClientSocketWrapper> client_socket_;
 
-  SpdyStreamRequest spdy_stream_request_;
-
-  base::WeakPtrFactory<HttpProxyConnectJob> weak_ptr_factory_;
+  scoped_ptr<HttpResponseInfo> error_response_info_;
 
   DISALLOW_COPY_AND_ASSIGN(HttpProxyConnectJob);
 };
@@ -187,14 +140,11 @@ class NET_EXPORT_PRIVATE HttpProxyClientSocketPool
  public:
   typedef HttpProxySocketParams SocketParams;
 
-  HttpProxyClientSocketPool(
-      int max_sockets,
-      int max_sockets_per_group,
-      ClientSocketPoolHistograms* histograms,
-      HostResolver* host_resolver,
-      TransportClientSocketPool* transport_pool,
-      SSLClientSocketPool* ssl_pool,
-      NetLog* net_log);
+  HttpProxyClientSocketPool(int max_sockets,
+                            int max_sockets_per_group,
+                            TransportClientSocketPool* transport_pool,
+                            SSLClientSocketPool* ssl_pool,
+                            NetLog* net_log);
 
   ~HttpProxyClientSocketPool() override;
 
@@ -229,14 +179,12 @@ class NET_EXPORT_PRIVATE HttpProxyClientSocketPool
   LoadState GetLoadState(const std::string& group_name,
                          const ClientSocketHandle* handle) const override;
 
-  base::DictionaryValue* GetInfoAsValue(
+  scoped_ptr<base::DictionaryValue> GetInfoAsValue(
       const std::string& name,
       const std::string& type,
       bool include_nested_pools) const override;
 
   base::TimeDelta ConnectionTimeout() const override;
-
-  ClientSocketPoolHistograms* histograms() const override;
 
   // LowerLayeredPool implementation.
   bool IsStalled() const override;
@@ -253,11 +201,9 @@ class NET_EXPORT_PRIVATE HttpProxyClientSocketPool
 
   class HttpProxyConnectJobFactory : public PoolBase::ConnectJobFactory {
    public:
-    HttpProxyConnectJobFactory(
-        TransportClientSocketPool* transport_pool,
-        SSLClientSocketPool* ssl_pool,
-        HostResolver* host_resolver,
-        NetLog* net_log);
+    HttpProxyConnectJobFactory(TransportClientSocketPool* transport_pool,
+                               SSLClientSocketPool* ssl_pool,
+                               NetLog* net_log);
 
     // ClientSocketPoolBase::ConnectJobFactory methods.
     scoped_ptr<ConnectJob> NewConnectJob(
@@ -270,7 +216,6 @@ class NET_EXPORT_PRIVATE HttpProxyClientSocketPool
    private:
     TransportClientSocketPool* const transport_pool_;
     SSLClientSocketPool* const ssl_pool_;
-    HostResolver* const host_resolver_;
     NetLog* net_log_;
     base::TimeDelta timeout_;
 

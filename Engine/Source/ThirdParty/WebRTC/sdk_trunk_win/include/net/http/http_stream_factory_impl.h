@@ -12,8 +12,8 @@
 #include "base/gtest_prod_util.h"
 #include "base/memory/ref_counted.h"
 #include "net/base/host_port_pair.h"
-#include "net/base/net_log.h"
 #include "net/http/http_stream_factory.h"
+#include "net/log/net_log.h"
 #include "net/proxy/proxy_server.h"
 #include "net/socket/ssl_client_socket.h"
 #include "net/spdy/spdy_session_key.h"
@@ -50,7 +50,6 @@ class NET_EXPORT_PRIVATE HttpStreamFactoryImpl : public HttpStreamFactory {
 
   void PreconnectStreams(int num_streams,
                          const HttpRequestInfo& info,
-                         RequestPriority priority,
                          const SSLConfig& server_ssl_config,
                          const SSLConfig& proxy_ssl_config) override;
   const HostMappingRules* GetHostMappingRules() const override;
@@ -75,9 +74,7 @@ class NET_EXPORT_PRIVATE HttpStreamFactoryImpl : public HttpStreamFactory {
       WebSocketHandshakeStreamBase::CreateHelper* create_helper,
       const BoundNetLog& net_log);
 
-  AlternateProtocolInfo GetAlternateProtocolRequestFor(
-      const GURL& original_url,
-      GURL* alternate_url);
+  AlternativeServiceVector GetAlternativeServicesFor(const GURL& original_url);
 
   // Detaches |job| from |request|.
   void OrphanJob(Job* job, const Request* request);

@@ -1,6 +1,6 @@
 /*
- * libjingle SCTP
- * Copyright 2012 Google Inc, and Robin Seggelmann
+ * libjingle
+ * Copyright 2012 Google Inc. and Robin Seggelmann
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -56,13 +56,15 @@ struct socket;
 namespace cricket {
 // The highest stream ID (Sid) that SCTP allows, and the number of streams we
 // tell SCTP we're going to use.
-const uint32 kMaxSctpSid = 1023;
+const uint32_t kMaxSctpSid = 1023;
 
 // This is the default SCTP port to use. It is passed along the wire and the
 // connectee and connector must be using the same port. It is not related to the
 // ports at the IP level. (Corresponds to: sockaddr_conn.sconn_port in
 // usrsctp.h)
 const int kSctpDefaultPort = 5000;
+
+class SctpDataMediaChannel;
 
 // A DataEngine that interacts with usrsctp.
 //
@@ -88,7 +90,7 @@ const int kSctpDefaultPort = 5000;
 //  14. SctpDataMediaChannel::SignalDataReceived(data)
 // [from the same thread, methods registered/connected to
 //  SctpDataMediaChannel are called with the recieved data]
-class SctpDataEngine : public DataEngineInterface {
+class SctpDataEngine : public DataEngineInterface, public sigslot::has_slots<> {
  public:
   SctpDataEngine();
   virtual ~SctpDataEngine();
@@ -97,9 +99,13 @@ class SctpDataEngine : public DataEngineInterface {
 
   virtual const std::vector<DataCodec>& data_codecs() { return codecs_; }
 
+  static int SendThresholdCallback(struct socket* sock, uint32_t sb_free);
+
  private:
   static int usrsctp_engines_count;
   std::vector<DataCodec> codecs_;
+
+  static SctpDataMediaChannel* GetChannelFromSocket(struct socket* sock);
 };
 
 // TODO(ldixon): Make into a special type of TypedMessageData.
@@ -128,7 +134,7 @@ class SctpDataMediaChannel : public DataMediaChannel,
     PPID_TEXT_LAST = 51
   };
 
-  typedef std::set<uint32> StreamSet;
+  typedef std::set<uint32_t> StreamSet;
 
   // Given a thread which will be used to post messages (received data) to this
   // SctpDataMediaChannel instance.
@@ -142,10 +148,12 @@ class SctpDataMediaChannel : public DataMediaChannel,
   // Unless SetReceive(true) is called, received packets will be discarded.
   virtual bool SetReceive(bool receive);
 
+  virtual bool SetSendParameters(const DataSendParameters& params);
+  virtual bool SetRecvParameters(const DataRecvParameters& params);
   virtual bool AddSendStream(const StreamParams& sp);
-  virtual bool RemoveSendStream(uint32 ssrc);
+  virtual bool RemoveSendStream(uint32_t ssrc);
   virtual bool AddRecvStream(const StreamParams& sp);
-  virtual bool RemoveRecvStream(uint32 ssrc);
+  virtual bool RemoveRecvStream(uint32_t ssrc);
 
   // Called when Sctp gets data. The data may be a notification or data for
   // OnSctpInboundData. Called from the worker thread.
@@ -163,34 +171,24 @@ class SctpDataMediaChannel : public DataMediaChannel,
   // Exposed to allow Post call from c-callbacks.
   rtc::Thread* worker_thread() const { return worker_thread_; }
 
-  // TODO(ldixon): add a DataOptions class to mediachannel.h
-  virtual bool SetOptions(int options) { return false; }
-  virtual int GetOptions() const { return 0; }
-
   // Many of these things are unused by SCTP, but are needed to fulfill
   // the MediaChannel interface.
-  // TODO(pthatcher): Cleanup MediaChannel interface, or at least
-  // don't try calling these and return false.  Right now, things
-  // don't work if we return false.
-  virtual bool SetMaxSendBandwidth(int bps) { return true; }
-  virtual bool SetRecvRtpHeaderExtensions(
-      const std::vector<RtpHeaderExtension>& extensions) { return true; }
-  virtual bool SetSendRtpHeaderExtensions(
-      const std::vector<RtpHeaderExtension>& extensions) { return true; }
-  virtual bool SetSendCodecs(const std::vector<DataCodec>& codecs);
-  virtual bool SetRecvCodecs(const std::vector<DataCodec>& codecs);
   virtual void OnRtcpReceived(rtc::Buffer* packet,
                               const rtc::PacketTime& packet_time) {}
   virtual void OnReadyToSend(bool ready) {}
 
+  void OnSendThresholdCallback();
   // Helper for debugging.
   void set_debug_name(const std::string& debug_name) {
     debug_name_ = debug_name;
   }
   const std::string& debug_name() const { return debug_name_; }
-
+  const struct socket* socket() const { return sock_; }
  private:
   sockaddr_conn GetSctpSockAddr(int port);
+
+  bool SetSendCodecs(const std::vector<DataCodec>& codecs);
+  bool SetRecvCodecs(const std::vector<DataCodec>& codecs);
 
   // Creates the socket and connects. Sets sending_ to true.
   bool Connect();
@@ -209,7 +207,7 @@ class SctpDataMediaChannel : public DataMediaChannel,
   // Adds a stream.
   bool AddStream(const StreamParams &sp);
   // Queues a stream for reset.
-  bool ResetStream(uint32 ssrc);
+  bool ResetStream(uint32_t ssrc);
 
   // Called by OnMessage to send packet on the network.
   void OnPacketFromSctpToNetwork(rtc::Buffer* buffer);

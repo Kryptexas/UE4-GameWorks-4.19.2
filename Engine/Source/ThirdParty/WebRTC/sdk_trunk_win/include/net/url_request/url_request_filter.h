@@ -7,16 +7,15 @@
 #include <map>
 #include <string>
 
-#include "base/callback.h"
 #include "base/containers/hash_tables.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/base/net_export.h"
-#include "net/url_request/url_request.h"
 #include "net/url_request/url_request_interceptor.h"
 
 class GURL;
 
 namespace net {
+class URLRequest;
 class URLRequestJob;
 class URLRequestInterceptor;
 
@@ -30,19 +29,19 @@ class URLRequestInterceptor;
 // URLRequestFilter::GetInstance()->AddUrlInterceptor(GURL("http://foo.com/"),
 //                                                    interceptor.Pass());
 //
+// The URLRequestFilter is implemented as a singleton that is not thread-safe,
+// and hence must only be used in test code where the network stack is used
+// from a single thread. It must only be accessed on that networking thread.
+// One exception is that during startup, before any message loops have been
+// created, interceptors may be added (the session restore tests rely on this).
 // If the URLRequestFilter::MaybeInterceptRequest can't find a handler for a
 // request, it returns NULL and lets the configured ProtocolHandler handle the
 // request.
 class NET_EXPORT URLRequestFilter : public URLRequestInterceptor {
  public:
-  static URLRequest::ProtocolFactory Factory;
-
   // Singleton instance for use.
   static URLRequestFilter* GetInstance();
 
-  void AddHostnameHandler(const std::string& scheme,
-                          const std::string& hostname,
-                          URLRequest::ProtocolFactory* factory);
   void AddHostnameInterceptor(
       const std::string& scheme,
       const std::string& hostname,
@@ -52,8 +51,6 @@ class NET_EXPORT URLRequestFilter : public URLRequestInterceptor {
 
   // Returns true if we successfully added the URL handler.  This will replace
   // old handlers for the URL if one existed.
-  bool AddUrlHandler(const GURL& url,
-                     URLRequest::ProtocolFactory* factory);
   bool AddUrlInterceptor(const GURL& url,
                          scoped_ptr<URLRequestInterceptor> interceptor);
 

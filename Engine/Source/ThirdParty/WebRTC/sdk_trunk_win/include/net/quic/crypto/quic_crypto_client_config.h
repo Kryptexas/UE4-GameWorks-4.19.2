@@ -6,6 +6,7 @@
 #define NET_QUIC_CRYPTO_QUIC_CRYPTO_CLIENT_CONFIG_H_
 
 #include <map>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -109,6 +110,32 @@ class NET_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
 
     void set_source_address_token(base::StringPiece token);
 
+    // Adds the connection ID to the queue of server-designated connection-ids.
+    void add_server_designated_connection_id(QuicConnectionId connection_id);
+
+    // If true, the crypto config contains at least one connection ID specified
+    // by the server, and the client should use one of these IDs when initiating
+    // the next connection.
+    bool has_server_designated_connection_id() const;
+
+    // This function should only be called when
+    // has_server_designated_connection_id is true.  Returns the next
+    // connection_id specified by the server and removes it from the
+    // queue of ids.
+    QuicConnectionId GetNextServerDesignatedConnectionId();
+
+    // Adds the servernonce to the queue of server nonces.
+    void add_server_nonce(const std::string& server_nonce);
+
+    // If true, the crypto config contains at least one server nonce, and the
+    // client should use one of these nonces.
+    bool has_server_nonce() const;
+
+    // This function should only be called when has_server_nonce is true.
+    // Returns the next server_nonce specified by the server and removes it
+    // from the queue of nonces.
+    std::string GetNextServerNonce();
+
     // SetProofVerifyDetails takes ownership of |details|.
     void SetProofVerifyDetails(ProofVerifyDetails* details);
 
@@ -145,10 +172,16 @@ class NET_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
     // scfg contains the cached, parsed value of |server_config|.
     mutable scoped_ptr<CryptoHandshakeMessage> scfg_;
 
+    // TODO(jokulik): Consider using a hash-set as extra book-keeping to ensure
+    // that no connection-id is added twice.  Also, consider keeping the server
+    // nonces and connection_ids together in one queue.
+    std::queue<QuicConnectionId> server_designated_connection_ids_;
+    std::queue<std::string> server_nonces_;
+
     DISALLOW_COPY_AND_ASSIGN(CachedState);
   };
 
-  QuicCryptoClientConfig();
+  explicit QuicCryptoClientConfig(ProofVerifier* proof_verifier);
   ~QuicCryptoClientConfig();
 
   // LookupOrCreate returns a CachedState for the given |server_id|. If no such
@@ -198,15 +231,14 @@ class NET_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
 
   // ProcessRejection processes a REJ message from a server and updates the
   // cached information about that server. After this, |IsComplete| may return
-  // true for that server's CachedState. If the rejection message contains
-  // state about a future handshake (i.e. an nonce value from the server), then
-  // it will be saved in |out_params|. |now| is used to judge whether the
-  // server config in the rejection message has expired. |is_https| is used to
-  // track reject reason for secure vs insecure QUIC.
+  // true for that server's CachedState. If the rejection message contains state
+  // about a future handshake (i.e. an nonce value from the server), then it
+  // will be saved in |out_params|. |now| is used to judge whether the server
+  // config in the rejection message has expired. |is_https| is used to track
+  // reject reason for secure vs insecure QUIC.
   QuicErrorCode ProcessRejection(const CryptoHandshakeMessage& rej,
                                  QuicWallTime now,
                                  CachedState* cached,
-                                 bool is_https,
                                  QuicCryptoNegotiatedParameters* out_params,
                                  std::string* error_details);
 
@@ -214,12 +246,14 @@ class NET_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
   // cached information about that server, writes the negotiated parameters to
   // |out_params| and returns QUIC_NO_ERROR. If |server_hello| is unacceptable
   // then it puts an error message in |error_details| and returns an error
-  // code. |negotiated_versions| contains the list of version, if any, that were
+  // code. |version| is the QUIC version for the current connection.
+  // |negotiated_versions| contains the list of version, if any, that were
   // present in a version negotiation packet previously recevied from the
   // server. The contents of this list will be compared against the list of
   // versions provided in the VER tag of the server hello.
   QuicErrorCode ProcessServerHello(const CryptoHandshakeMessage& server_hello,
                                    QuicConnectionId connection_id,
+                                   QuicVersion version,
                                    const QuicVersionVector& negotiated_versions,
                                    CachedState* cached,
                                    QuicCryptoNegotiatedParameters* out_params,
@@ -238,12 +272,6 @@ class NET_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
       std::string* error_details);
 
   ProofVerifier* proof_verifier() const;
-
-  // SetProofVerifier takes ownership of a |ProofVerifier| that clients are
-  // free to use in order to verify certificate chains from servers. If a
-  // ProofVerifier is set then the client will request a certificate chain from
-  // the server.
-  void SetProofVerifier(ProofVerifier* verifier);
 
   ChannelIDSource* channel_id_source() const;
 

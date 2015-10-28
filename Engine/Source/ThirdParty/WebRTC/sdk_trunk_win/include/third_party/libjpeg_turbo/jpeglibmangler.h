@@ -82,6 +82,7 @@
 #define jpeg_read_header chromium_jpeg_read_header
 #define jpeg_start_decompress chromium_jpeg_start_decompress
 #define jpeg_read_scanlines chromium_jpeg_read_scanlines
+#define jpeg_skip_scanlines chromium_jpeg_skip_scanlines
 #define jpeg_finish_decompress chromium_jpeg_finish_decompress
 #define jpeg_read_raw_data chromium_jpeg_read_raw_data
 #define jpeg_has_multiple_scans chromium_jpeg_has_multiple_scans
@@ -109,5 +110,7 @@
 #define jpeg_open_backing_store chromium_jpeg_open_backing_store
 #define jpeg_mem_init chromium_jpeg_mem_init
 #define jpeg_mem_term chromium_jpeg_mem_term
+#define jpeg_std_message_table chromium_jpeg_std_message_table
+#define jpeg_natural_order chromium_jpeg_natural_order
 
 #endif  // THIRD_PARTY_LIBJPEG_TURBO_JPEGLIBMANGLER_H_

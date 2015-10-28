@@ -11,7 +11,7 @@
 #include "base/basictypes.h"
 #include "base/time/time.h"
 #include "net/base/backoff_entry.h"
-#include "net/base/net_log.h"
+#include "net/log/net_log.h"
 #include "net/url_request/url_request_throttler_entry_interface.h"
 
 namespace net {
@@ -58,14 +58,6 @@ class NET_EXPORT URLRequestThrottlerEntry
   // Time after which the entry is considered outdated.
   static const int kDefaultEntryLifetimeMs;
 
-  // Name of the header that sites can use to opt out of exponential back-off
-  // throttling.
-  static const char kExponentialThrottlingHeader[];
-
-  // Value for exponential throttling header that can be used to opt out of
-  // exponential back-off throttling.
-  static const char kExponentialThrottlingDisableValue[];
-
   // The manager object's lifetime must enclose the lifetime of this object.
   URLRequestThrottlerEntry(URLRequestThrottlerManager* manager,
                            const std::string& url_id);
@@ -93,14 +85,11 @@ class NET_EXPORT URLRequestThrottlerEntry
   void DetachManager();
 
   // Implementation of URLRequestThrottlerEntryInterface.
-  bool ShouldRejectRequest(const URLRequest& request,
-                           NetworkDelegate* network_delegate) const override;
+  bool ShouldRejectRequest(const URLRequest& request) const override;
   int64 ReserveSendingTimeForNextRequest(
       const base::TimeTicks& earliest_time) override;
   base::TimeTicks GetExponentialBackoffReleaseTime() const override;
-  void UpdateWithResponse(
-      const std::string& host,
-      const URLRequestThrottlerHeaderInterface* response) override;
+  void UpdateWithResponse(int status_code) override;
   void ReceivedContentWasMalformed(int response_code) override;
 
  protected:
@@ -108,16 +97,12 @@ class NET_EXPORT URLRequestThrottlerEntry
 
   void Initialize();
 
-  // Returns true if the given response code is considered an error for
+  // Returns true if the given response code is considered a success for
   // throttling purposes.
-  bool IsConsideredError(int response_code);
+  bool IsConsideredSuccess(int response_code);
 
   // Equivalent to TimeTicks::Now(), virtual to be mockable for testing purpose.
   virtual base::TimeTicks ImplGetTimeNow() const;
-
-  // Used internally to handle the opt-out header.
-  void HandleThrottlingHeader(const std::string& header_value,
-                              const std::string& host);
 
   // Retrieves the back-off entry object we're using. Used to enable a
   // unit testing seam for dependency injection in tests.

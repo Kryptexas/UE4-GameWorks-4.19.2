@@ -14,9 +14,6 @@
 #include "net/cert/x509_cert_types.h"
 #include "net/ssl/signed_certificate_timestamp_and_status.h"
 
-class Pickle;
-class PickleIterator;
-
 namespace net {
 
 class X509Certificate;
@@ -48,6 +45,11 @@ class NET_EXPORT SSLInfo {
   // The SSL certificate.
   scoped_refptr<X509Certificate> cert;
 
+  // The SSL certificate as received by the client. Can be different
+  // from |cert|, which is the chain as built by the client during
+  // validation.
+  scoped_refptr<X509Certificate> unverified_cert;
+
   // Bitmask of status info of |cert|, representing, for example, known errors
   // and extended validation (EV) status.
   // See cert_status_flags.h for values.
@@ -57,6 +59,12 @@ class NET_EXPORT SSLInfo {
   // 0 means the connection is not encrypted.
   // -1 means the security strength is unknown.
   int security_bits;
+
+  // Security information of the SSL connection handshake.
+  // The meaning depends on the cipher used, see BoringSSL's |SSL_SESSION|'s
+  // key_exchange_info for more information.
+  // A zero indicates that the value is unknown.
+  int key_exchange_info;
 
   // Information about the SSL connection itself. See
   // ssl_connection_status_flags.h for values. The protocol version,
@@ -81,7 +89,7 @@ class NET_EXPORT SSLInfo {
   HashValueVector public_key_hashes;
 
   // pinning_failure_log contains a message produced by
-  // TransportSecurityState::DomainState::CheckPublicKeyPins in the event of a
+  // TransportSecurityState::PKPState::CheckPublicKeyPins in the event of a
   // pinning failure. It is a (somewhat) human-readable string.
   std::string pinning_failure_log;
 

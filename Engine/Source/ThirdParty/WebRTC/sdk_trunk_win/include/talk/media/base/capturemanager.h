@@ -32,9 +32,7 @@
 // The class employs reference counting on starting and stopping of capturing of
 // frames such that if anyone is still listening it will not be stopped. The
 // class also provides APIs for attaching VideoRenderers to a specific capturer
-// such that the VideoRenderers are fed frames directly from the capturer. In
-// addition, these frames can be altered before being sent to the capturers by
-// way of VideoProcessors.
+// such that the VideoRenderers are fed frames directly from the capturer.
 // CaptureManager is Thread-unsafe. This means that none of its APIs may be
 // called concurrently. Note that callbacks are called by the VideoCapturer's
 // thread which is normally a separate unmarshalled thread and thus normally
@@ -49,11 +47,11 @@
 #include "talk/media/base/capturerenderadapter.h"
 #include "talk/media/base/videocommon.h"
 #include "webrtc/base/sigslotrepeater.h"
+#include "webrtc/base/thread_checker.h"
 
 namespace cricket {
 
 class VideoCapturer;
-class VideoProcessor;
 class VideoRenderer;
 class VideoCapturerState;
 
@@ -64,7 +62,7 @@ class CaptureManager : public sigslot::has_slots<> {
     kForceRestart
   };
 
-  CaptureManager() {}
+  CaptureManager();
   virtual ~CaptureManager();
 
   virtual bool StartVideoCapture(VideoCapturer* video_capturer,
@@ -86,11 +84,6 @@ class CaptureManager : public sigslot::has_slots<> {
   virtual bool RemoveVideoRenderer(VideoCapturer* video_capturer,
                                    VideoRenderer* video_renderer);
 
-  virtual bool AddVideoProcessor(VideoCapturer* video_capturer,
-                                 VideoProcessor* video_processor);
-  virtual bool RemoveVideoProcessor(VideoCapturer* video_capturer,
-                                    VideoProcessor* video_processor);
-
   sigslot::repeater2<VideoCapturer*, CaptureState> SignalCapturerStateChange;
 
  private:
@@ -106,6 +99,7 @@ class CaptureManager : public sigslot::has_slots<> {
   VideoCapturerState* GetCaptureState(VideoCapturer* video_capturer) const;
   CaptureRenderAdapter* GetAdapter(VideoCapturer* video_capturer) const;
 
+  rtc::ThreadChecker thread_checker_;
   CaptureStates capture_states_;
 };
 

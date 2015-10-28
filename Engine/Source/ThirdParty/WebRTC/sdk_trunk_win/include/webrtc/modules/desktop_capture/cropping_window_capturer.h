@@ -11,10 +11,10 @@
 #ifndef WEBRTC_MODULES_DESKTOP_CAPTURE_CROPPING_WINDOW_CAPTURER_H_
 #define WEBRTC_MODULES_DESKTOP_CAPTURE_CROPPING_WINDOW_CAPTURER_H_
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/desktop_capture/desktop_capture_options.h"
 #include "webrtc/modules/desktop_capture/screen_capturer.h"
 #include "webrtc/modules/desktop_capture/window_capturer.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -28,19 +28,19 @@ class CroppingWindowCapturer : public WindowCapturer,
   virtual ~CroppingWindowCapturer();
 
   // DesktopCapturer implementation.
-  virtual void Start(DesktopCapturer::Callback* callback) OVERRIDE;
-  virtual void Capture(const DesktopRegion& region) OVERRIDE;
-  virtual void SetExcludedWindow(WindowId window) OVERRIDE;
+  void Start(DesktopCapturer::Callback* callback) override;
+  void Capture(const DesktopRegion& region) override;
+  void SetExcludedWindow(WindowId window) override;
 
   // WindowCapturer implementation.
-  virtual bool GetWindowList(WindowList* windows) OVERRIDE;
-  virtual bool SelectWindow(WindowId id) OVERRIDE;
-  virtual bool BringSelectedWindowToFront() OVERRIDE;
+  bool GetWindowList(WindowList* windows) override;
+  bool SelectWindow(WindowId id) override;
+  bool BringSelectedWindowToFront() override;
 
   // DesktopCapturer::Callback implementation, passed to |screen_capturer_| to
   // intercept the capture result.
-  virtual SharedMemory* CreateSharedMemory(size_t size) OVERRIDE;
-  virtual void OnCaptureCompleted(DesktopFrame* frame) OVERRIDE;
+  SharedMemory* CreateSharedMemory(size_t size) override;
+  void OnCaptureCompleted(DesktopFrame* frame) override;
 
  protected:
   explicit CroppingWindowCapturer(const DesktopCaptureOptions& options);
@@ -62,8 +62,8 @@ class CroppingWindowCapturer : public WindowCapturer,
  private:
   DesktopCaptureOptions options_;
   DesktopCapturer::Callback* callback_;
-  scoped_ptr<WindowCapturer> window_capturer_;
-  scoped_ptr<ScreenCapturer> screen_capturer_;
+  rtc::scoped_ptr<WindowCapturer> window_capturer_;
+  rtc::scoped_ptr<ScreenCapturer> screen_capturer_;
   WindowId selected_window_;
   WindowId excluded_window_;
 };

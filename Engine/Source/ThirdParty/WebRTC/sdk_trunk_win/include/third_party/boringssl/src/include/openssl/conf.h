@@ -79,19 +79,20 @@ extern "C" {
  *
  * Config files are representated by a |CONF|. */
 
-typedef struct {
+struct conf_value_st {
   char *section;
   char *name;
   char *value;
-} CONF_VALUE;
+};
 
 struct conf_st {
   LHASH_OF(CONF_VALUE) *data;
 };
 
 
-/* NCONF_new returns a fresh, empty |CONF|, or NULL on error. */
-CONF *NCONF_new(void);
+/* NCONF_new returns a fresh, empty |CONF|, or NULL on error. The |method|
+ * argument must be NULL. */
+CONF *NCONF_new(void *method);
 
 /* NCONF_free frees all the data owned by |conf| and then |conf| itself. */
 void NCONF_free(CONF *conf);
@@ -101,6 +102,10 @@ void NCONF_free(CONF *conf);
  * error, if |out_error_line| is not NULL, |*out_error_line| is set to the
  * number of the line that contained the error. */
 int NCONF_load(CONF *conf, const char *filename, long *out_error_line);
+
+/* NCONF_load_bio acts like |NCONF_load| but reads from |bio| rather than from
+ * a named file. */
+int NCONF_load_bio(CONF *conf, BIO *bio, long *out_error_line);
 
 /* NCONF_get_section returns a stack of values for a given section in |conf|.
  * If |section| is NULL, the default section is returned. It returns NULL on
@@ -120,7 +125,8 @@ const char *NCONF_get_string(const CONF *conf, const char *section,
  * the start and length of each member, optionally stripping leading and
  * trailing whitespace. This can be used to parse comma separated lists for
  * example. If |list_cb| returns <= 0, then the iteration is halted and that
- * value is returned immediately. Otherwise it returns one. */
+ * value is returned immediately. Otherwise it returns one. Note that |list_cb|
+ * may be called on an empty member. */
 int CONF_parse_list(const char *list, char sep, int remove_whitespace,
                     int (*list_cb)(const char *elem, int len, void *usr),
                     void *arg);
@@ -129,15 +135,11 @@ int CONF_parse_list(const char *list, char sep, int remove_whitespace,
 }  /* extern C */
 #endif
 
-#define CONF_F_CONF_parse_list 100
-#define CONF_F_str_copy 101
-#define CONF_F_def_load_bio 102
-#define CONF_F_NCONF_load 103
-#define CONF_R_MISSING_EQUAL_SIGN 100
-#define CONF_R_LIST_CANNOT_BE_NULL 101
-#define CONF_R_NO_CLOSE_BRACE 102
-#define CONF_R_VARIABLE_HAS_NO_VALUE 103
+#define CONF_R_LIST_CANNOT_BE_NULL 100
+#define CONF_R_MISSING_CLOSE_SQUARE_BRACKET 101
+#define CONF_R_MISSING_EQUAL_SIGN 102
+#define CONF_R_NO_CLOSE_BRACE 103
 #define CONF_R_UNABLE_TO_CREATE_NEW_SECTION 104
-#define CONF_R_MISSING_CLOSE_SQUARE_BRACKET 105
+#define CONF_R_VARIABLE_HAS_NO_VALUE 105
 
 #endif  /* OPENSSL_HEADER_THREAD_H */

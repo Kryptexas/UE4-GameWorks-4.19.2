@@ -14,6 +14,7 @@
 #include "base/basictypes.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
+#include "base/strings/string_split.h"
 #include "base/time/time.h"
 #include "net/base/cache_type.h"
 #include "net/base/completion_callback.h"
@@ -144,13 +145,18 @@ class NET_EXPORT Backend {
   virtual int DoomEntriesSince(base::Time initial_time,
                                const CompletionCallback& callback) = 0;
 
+  // Calculate the total size of the cache. The return value is the size in
+  // bytes or a net error code. If this method returns ERR_IO_PENDING,
+  // the |callback| will be invoked when the operation completes.
+  virtual int CalculateSizeOfAllEntries(
+      const CompletionCallback& callback) = 0;
+
   // Returns an iterator which will enumerate all entries of the cache in an
   // undefined order.
   virtual scoped_ptr<Iterator> CreateIterator() = 0;
 
   // Return a list of cache statistics.
-  virtual void GetStats(
-      std::vector<std::pair<std::string, std::string> >* stats) = 0;
+  virtual void GetStats(base::StringPairs* stats) = 0;
 
   // Called whenever an external cache in the system reuses the resource
   // referred to by |key|.

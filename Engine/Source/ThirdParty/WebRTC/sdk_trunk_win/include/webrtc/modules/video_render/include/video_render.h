@@ -52,15 +52,8 @@ public:
      */
     static void DestroyVideoRender(VideoRender* module);
 
-    /*
-     *   Change the unique identifier of this object
-     *
-     *   id      - new unique identifier of this video render module object
-     */
-    virtual int32_t ChangeUniqueId(const int32_t id) OVERRIDE = 0;
-
-    virtual int64_t TimeUntilNextProcess() OVERRIDE = 0;
-    virtual int32_t Process() OVERRIDE = 0;
+    int64_t TimeUntilNextProcess() override = 0;
+    int32_t Process() override = 0;
 
     /**************************************************************************
      *
@@ -163,13 +156,6 @@ public:
             RegisterRawFrameCallback(const uint32_t streamId,
                                      VideoRenderCallback* callbackObj) = 0;
 
-    /*
-     * This method is usefull to get last rendered frame for the stream specified
-     */
-    virtual int32_t
-            GetLastRenderedFrame(const uint32_t streamId,
-                                 I420VideoFrame &frame) const = 0;
-
     /**************************************************************************
      *
      *   Start/Stop
@@ -268,21 +254,15 @@ public:
     /*
      * Set a start image. The image is rendered before the first image has been delivered
      */
-    virtual int32_t
-            SetStartImage(const uint32_t streamId,
-                          const I420VideoFrame& videoFrame) = 0;
+    virtual int32_t SetStartImage(const uint32_t streamId,
+                                  const VideoFrame& videoFrame) = 0;
 
     /*
      * Set a timout image. The image is rendered if no videoframe has been delivered
      */
     virtual int32_t SetTimeoutImage(const uint32_t streamId,
-                                    const I420VideoFrame& videoFrame,
-                                    const uint32_t timeout)= 0;
-
-    virtual int32_t MirrorRenderStream(const int renderId,
-                                       const bool enable,
-                                       const bool mirrorXAxis,
-                                       const bool mirrorYAxis) = 0;
+                                    const VideoFrame& videoFrame,
+                                    const uint32_t timeout) = 0;
 };
 }  // namespace webrtc
 #endif  // WEBRTC_MODULES_VIDEO_RENDER_MAIN_INTERFACE_VIDEO_RENDER_H_

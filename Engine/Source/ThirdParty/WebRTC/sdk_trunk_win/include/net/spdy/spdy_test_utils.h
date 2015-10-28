@@ -9,12 +9,18 @@
 
 #include <string>
 
+#include "net/spdy/spdy_header_block.h"
 #include "net/spdy/spdy_protocol.h"
 
 namespace net {
 
 class HashValue;
 class TransportSecurityState;
+
+inline bool operator==(StringPiece x,
+                       const SpdyHeaderBlock::StringPieceProxy& y) {
+  return x == y.operator StringPiece();
+}
 
 namespace test {
 
@@ -36,6 +42,11 @@ void SetFrameLength(SpdyFrame* frame,
                     size_t length,
                     SpdyMajorVersion spdy_version);
 
+// Returns true if |a| and |b| are the same size, and contain the same
+// entries in the same positions.
+bool CompareSpdyHeaderBlocks(const SpdyHeaderBlock& a,
+                             const SpdyHeaderBlock& b);
+
 std::string a2b_hex(const char* hex_data);
 
 // Returns a SHA1 HashValue in which each byte has the value |label|.
@@ -52,7 +63,6 @@ void AddPin(TransportSecurityState* state,
             uint8_t backup_label);
 
 }  // namespace test
-
 }  // namespace net
 
 #endif  // NET_SPDY_TEST_UTILS_H_

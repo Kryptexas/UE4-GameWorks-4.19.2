@@ -29,10 +29,10 @@ namespace rtc {
 class MacCocoaSocketServer : public MacBaseSocketServer {
  public:
   explicit MacCocoaSocketServer();
-  virtual ~MacCocoaSocketServer();
+  ~MacCocoaSocketServer() override;
 
-  virtual bool Wait(int cms, bool process_io);
-  virtual void WakeUp();
+  bool Wait(int cms, bool process_io) override;
+  void WakeUp() override;
 
  private:
   MacCocoaSocketServerHelperRtc* helper_;
@@ -40,7 +40,7 @@ class MacCocoaSocketServer : public MacBaseSocketServer {
   // The count of how many times we're inside the NSApplication main loop.
   int run_count_;
 
-  DISALLOW_EVIL_CONSTRUCTORS(MacCocoaSocketServer);
+  RTC_DISALLOW_COPY_AND_ASSIGN(MacCocoaSocketServer);
 };
 
 }  // namespace rtc

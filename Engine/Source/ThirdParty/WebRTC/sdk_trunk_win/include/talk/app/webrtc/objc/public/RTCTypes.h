@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -36,6 +36,7 @@ typedef enum {
   RTCICEConnectionFailed,
   RTCICEConnectionDisconnected,
   RTCICEConnectionClosed,
+  RTCICEConnectionMax,
 } RTCICEConnectionState;
 
 // RTCICEGatheringState the states in webrtc::ICEGatheringState.

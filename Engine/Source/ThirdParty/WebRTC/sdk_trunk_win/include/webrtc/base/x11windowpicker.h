@@ -26,21 +26,22 @@ class XWindowEnumerator;
 class X11WindowPicker : public WindowPicker {
  public:
   X11WindowPicker();
-  ~X11WindowPicker();
+  ~X11WindowPicker() override;
 
   static bool IsDesktopElement(_XDisplay* display, Window window);
 
-  virtual bool Init();
-  virtual bool IsVisible(const WindowId& id);
-  virtual bool MoveToFront(const WindowId& id);
-  virtual bool GetWindowList(WindowDescriptionList* descriptions);
-  virtual bool GetDesktopList(DesktopDescriptionList* descriptions);
-  virtual bool GetDesktopDimensions(const DesktopId& id, int* width,
-                                    int* height);
-  uint8* GetWindowIcon(const WindowId& id, int* width, int* height);
-  uint8* GetWindowThumbnail(const WindowId& id, int width, int height);
+  bool Init() override;
+  bool IsVisible(const WindowId& id) override;
+  bool MoveToFront(const WindowId& id) override;
+  bool GetWindowList(WindowDescriptionList* descriptions) override;
+  bool GetDesktopList(DesktopDescriptionList* descriptions) override;
+  bool GetDesktopDimensions(const DesktopId& id,
+                            int* width,
+                            int* height) override;
+  uint8_t* GetWindowIcon(const WindowId& id, int* width, int* height);
+  uint8_t* GetWindowThumbnail(const WindowId& id, int width, int height);
   int GetNumDesktops();
-  uint8* GetDesktopThumbnail(const DesktopId& id, int width, int height);
+  uint8_t* GetDesktopThumbnail(const DesktopId& id, int width, int height);
 
  private:
   scoped_ptr<XWindowEnumerator> enumerator_;

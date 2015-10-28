@@ -24,11 +24,6 @@ struct QuicCryptoNegotiatedParameters;
 
 class NET_EXPORT_PRIVATE CryptoUtils {
  public:
-  enum Perspective {
-    SERVER,
-    CLIENT,
-  };
-
   // Generates the connection nonce. The nonce is formed as:
   //   <4 bytes> current time
   //   <8 bytes> |orbit| (or random if |orbit| is empty)
@@ -74,6 +69,10 @@ class NET_EXPORT_PRIVATE CryptoUtils {
                                    base::StringPiece context,
                                    size_t result_len,
                                    std::string* result);
+
+  // Computes the FNV-1a hash of the provided DER-encoded cert for use in the
+  // XLCT tag.
+  static uint64 ComputeLeafCertHash(const std::string& cert);
 
  private:
   DISALLOW_COPY_AND_ASSIGN(CryptoUtils);

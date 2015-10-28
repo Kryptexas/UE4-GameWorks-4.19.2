@@ -47,11 +47,13 @@
 #if defined(HAVE_SRTP) && defined(ENABLE_EXTERNAL_AUTH)
 
 #include "webrtc/base/basictypes.h"
+extern "C" {
 #ifdef SRTP_RELATIVE_PATH
 #include "auth.h"  // NOLINT
 #else
-#include "third_party/libsrtp/crypto/include/auth.h"
+#include "third_party/libsrtp/srtp/crypto/include/auth.h"
 #endif  // SRTP_RELATIVE_PATH
+}
 
 #define EXTERNAL_HMAC_SHA1 HMAC_SHA1 + 1
 #define HMAC_KEY_LENGTH 20
@@ -60,7 +62,7 @@
 // The pointer to the key  will be allocated in the external_hmac_init function.
 // This pointer is owned by srtp_t in a template context.
 typedef struct {
-  uint8 key[HMAC_KEY_LENGTH];
+  uint8_t key[HMAC_KEY_LENGTH];
   int key_length;
 } ExternalHmacContext;
 

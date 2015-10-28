@@ -19,7 +19,7 @@ namespace net {
 
 class NET_EXPORT_PRIVATE Cubic {
  public:
-  Cubic(const QuicClock* clock, QuicConnectionStats* stats);
+  explicit Cubic(const QuicClock* clock);
 
   void SetNumConnections(int num_connections);
 
@@ -38,6 +38,10 @@ class NET_EXPORT_PRIVATE Cubic {
   QuicPacketCount CongestionWindowAfterAck(QuicPacketCount current,
                                            QuicTime::Delta delay_min);
 
+  // Call on ack arrival when sender is unable to use the available congestion
+  // window. Resets Cubic state during quiescence.
+  void OnApplicationLimited();
+
  private:
   static const QuicTime::Delta MaxCubicTimeInterval() {
     return QuicTime::Delta::FromMilliseconds(30);
@@ -48,9 +52,6 @@ class NET_EXPORT_PRIVATE Cubic {
   float Alpha() const;
   float Beta() const;
 
-  // Update congestion control variables in QuicConnectionStats.
-  void UpdateCongestionControlStats(QuicPacketCount new_cubic_mode_cwnd,
-                                    QuicPacketCount new_reno_mode_cwnd);
   const QuicClock* clock_;
 
   // Number of connections to simulate.
@@ -58,6 +59,10 @@ class NET_EXPORT_PRIVATE Cubic {
 
   // Time when this cycle started, after last loss event.
   QuicTime epoch_;
+
+  // Time when sender went into application-limited period. Zero if not in
+  // application-limited period.
+  QuicTime app_limited_start_time_;
 
   // Time when we updated last_congestion_window.
   QuicTime last_update_time_;
@@ -84,9 +89,6 @@ class NET_EXPORT_PRIVATE Cubic {
 
   // Last congestion window in packets computed by cubic function.
   QuicPacketCount last_target_congestion_window_;
-
-  // QuicConnectionStats includes congestion control related stats.
-  QuicConnectionStats* stats_;
 
   DISALLOW_COPY_AND_ASSIGN(Cubic);
 };

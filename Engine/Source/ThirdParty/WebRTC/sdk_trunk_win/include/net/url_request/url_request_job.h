@@ -5,6 +5,8 @@
 #ifndef NET_URL_REQUEST_URL_REQUEST_JOB_H_
 #define NET_URL_REQUEST_URL_REQUEST_JOB_H_
 
+#include <stdint.h>
+
 #include <string>
 #include <vector>
 
@@ -19,6 +21,7 @@
 #include "net/base/request_priority.h"
 #include "net/base/upload_progress.h"
 #include "net/cookies/canonical_cookie.h"
+#include "net/socket/connection_attempts.h"
 #include "net/url_request/redirect_info.h"
 #include "net/url_request/url_request.h"
 #include "url/gurl.h"
@@ -28,7 +31,6 @@ namespace net {
 class AuthChallengeInfo;
 class AuthCredentials;
 class CookieOptions;
-class CookieStore;
 class Filter;
 class HttpRequestHeaders;
 class HttpResponseInfo;
@@ -109,8 +111,13 @@ class NET_EXPORT URLRequestJob
 
   virtual bool GetFullRequestHeaders(HttpRequestHeaders* headers) const;
 
-  // Get the number of bytes received from network.
-  virtual int64 GetTotalReceivedBytes() const;
+  // Get the number of bytes received from network. The values returned by this
+  // will never decrease over the lifetime of the URLRequestJob.
+  virtual int64_t GetTotalReceivedBytes() const;
+
+  // Get the number of bytes sent over the network. The values returned by this
+  // will never decrease over the lifetime of the URLRequestJob.
+  virtual int64_t GetTotalSentBytes() const;
 
   // Called to fetch the current load state for the job.
   virtual LoadState GetLoadState() const;
@@ -130,6 +137,11 @@ class NET_EXPORT URLRequestJob
   // each event blocked the request.  See FixupLoadTimingInfo in url_request.h
   // for more information on the difference.
   virtual void GetLoadTimingInfo(LoadTimingInfo* load_timing_info) const;
+
+  // Gets the remote endpoint that the network stack is currently fetching the
+  // URL from. Returns true and fills in |endpoint| if it is available; returns
+  // false and leaves |endpoint| unchanged if it is unavailable.
+  virtual bool GetRemoteEndpoint(IPEndPoint* endpoint) const;
 
   // Returns the cookie values included in the response, if applicable.
   // Returns true if applicable.
@@ -227,6 +239,11 @@ class NET_EXPORT URLRequestJob
   // canceled by an explicit NetworkDelegate::NotifyURLRequestDestroyed() call.
   virtual void NotifyURLRequestDestroyed();
 
+  // Populates |out| with the connection attempts made at the socket layer in
+  // the course of executing the URLRequestJob. Should be called after the job
+  // has failed or the response headers have been received.
+  virtual void GetConnectionAttempts(ConnectionAttempts* out) const;
+
   // Given |policy|, |referrer|, and |redirect_destination|, returns the
   // referrer URL mandated by |request|'s referrer policy.
   static GURL ComputeReferrerForRedirect(URLRequest::ReferrerPolicy policy,
@@ -252,9 +269,6 @@ class NET_EXPORT URLRequestJob
 
   // Delegates to URLRequest::Delegate.
   bool CanEnablePrivacyMode() const;
-
-  // Returns the cookie store to be used for the request.
-  CookieStore* GetCookieStore() const;
 
   // Notifies the job that the network is about to be used.
   void NotifyBeforeNetworkStart(bool* defer);
@@ -343,16 +357,13 @@ class NET_EXPORT URLRequestJob
   // Set the proxy server that was used, if any.
   void SetProxyServer(const HostPortPair& proxy_server);
 
-  // The number of bytes read before passing to the filter.
-  int prefilter_bytes_read() const { return prefilter_bytes_read_; }
+  // The number of bytes read before passing to the filter. This value reflects
+  // bytes read even when there is no filter.
+  int64 prefilter_bytes_read() const { return prefilter_bytes_read_; }
 
-  // The number of bytes read after passing through the filter.
-  int postfilter_bytes_read() const { return postfilter_bytes_read_; }
-
-  // Total number of bytes read from network (or cache) and typically handed
-  // to filter to process.  Used to histogram compression ratios, and error
-  // recovery scenarios in filters.
-  int64 filter_input_byte_count() const { return filter_input_byte_count_; }
+  // The number of bytes read after passing through the filter. This value
+  // reflects bytes read even when there is no filter.
+  int64 postfilter_bytes_read() const { return postfilter_bytes_read_; }
 
   // The request that initiated this job. This value MAY BE NULL if the
   // request was released by DetachRequest().
@@ -388,21 +399,26 @@ class NET_EXPORT URLRequestJob
   bool FilterHasData();
 
   // Subclasses may implement this method to record packet arrival times.
-  // The default implementation does nothing.
+  // The default implementation does nothing.  Only invoked when bytes have been
+  // read since the last invocation.
   virtual void UpdatePacketReadTimes();
 
   // Computes a new RedirectInfo based on receiving a redirect response of
   // |location| and |http_status_code|.
   RedirectInfo ComputeRedirectInfo(const GURL& location, int http_status_code);
 
+  // Notify the network delegate that more bytes have been received or sent over
+  // the network, if bytes have been received or sent since the previous
+  // notification.
+  void MaybeNotifyNetworkBytes();
+
   // Indicates that the job is done producing data, either it has completed
   // all the data or an error has been encountered. Set exclusively by
   // NotifyDone so that it is kept in sync with the request.
   bool done_;
 
-  int prefilter_bytes_read_;
-  int postfilter_bytes_read_;
-  int64 filter_input_byte_count_;
+  int64 prefilter_bytes_read_;
+  int64 postfilter_bytes_read_;
 
   // The data stream filter which is enabled on demand.
   scoped_ptr<Filter> filter_;
@@ -434,6 +450,16 @@ class NET_EXPORT URLRequestJob
 
   // The network delegate to use with this request, if any.
   NetworkDelegate* network_delegate_;
+
+  // The value from GetTotalReceivedBytes() the last time
+  // MaybeNotifyNetworkBytes() was called. Used to calculate how bytes have been
+  // newly received since the last notification.
+  int64_t last_notified_total_received_bytes_;
+
+  // The value from GetTotalSentBytes() the last time MaybeNotifyNetworkBytes()
+  // was called. Used to calculate how bytes have been newly sent since the last
+  // notification.
+  int64_t last_notified_total_sent_bytes_;
 
   base::WeakPtrFactory<URLRequestJob> weak_factory_;
 

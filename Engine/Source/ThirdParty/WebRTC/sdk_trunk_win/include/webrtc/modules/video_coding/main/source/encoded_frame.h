@@ -68,7 +68,11 @@ public:
     /**
     *   Get frame type
     */
-    webrtc::FrameType FrameType() const {return ConvertFrameType(_frameType);}
+    webrtc::FrameType FrameType() const { return _frameType; }
+    /**
+    *   Get frame rotation
+    */
+    VideoRotation rotation() const { return _rotation; }
     /**
     *   True if this frame is complete, false otherwise
     */
@@ -91,12 +95,6 @@ public:
 
     const RTPFragmentationHeader* FragmentationHeader() const;
 
-    static webrtc::FrameType ConvertFrameType(VideoFrameType frameType);
-    static VideoFrameType ConvertFrameType(webrtc::FrameType frameType);
-    static void ConvertFrameTypes(
-        const std::vector<webrtc::FrameType>& frame_types,
-        std::vector<VideoFrameType>* video_frame_types);
-
 protected:
     /**
     * Verifies that current allocated buffer size is larger than or equal to the input size.
@@ -104,7 +102,7 @@ protected:
     * is copied to the new buffer.
     * Buffer size is updated to minimumSize.
     */
-    void VerifyAndAllocate(const uint32_t minimumSize);
+    void VerifyAndAllocate(size_t minimumSize);
 
     void Reset();
 
@@ -116,6 +114,12 @@ protected:
     CodecSpecificInfo             _codecSpecificInfo;
     webrtc::VideoCodecType        _codec;
     RTPFragmentationHeader        _fragmentation;
+    VideoRotation                 _rotation;
+
+    // Video rotation is only set along with the last packet for each frame
+    // (same as marker bit). This |_rotation_set| is only for debugging purpose
+    // to ensure we don't set it twice for a frame.
+    bool                          _rotation_set;
 };
 
 }  // namespace webrtc

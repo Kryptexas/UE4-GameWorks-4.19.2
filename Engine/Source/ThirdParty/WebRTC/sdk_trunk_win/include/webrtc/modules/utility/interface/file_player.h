@@ -12,10 +12,10 @@
 #define WEBRTC_MODULES_UTILITY_INTERFACE_FILE_PLAYER_H_
 
 #include "webrtc/common_types.h"
-#include "webrtc/common_video/interface/i420_video_frame.h"
 #include "webrtc/engine_configurations.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/typedefs.h"
+#include "webrtc/video_frame.h"
 
 namespace webrtc {
 class FileCallback;
@@ -27,8 +27,7 @@ public:
     enum {MAX_AUDIO_BUFFER_IN_SAMPLES = 60*32};
     enum {MAX_AUDIO_BUFFER_IN_BYTES = MAX_AUDIO_BUFFER_IN_SAMPLES*2};
 
-    // Note: will return NULL for video file formats (e.g. AVI) if the flag
-    //       WEBRTC_MODULE_UTILITY_VIDEO is not defined.
+    // Note: will return NULL for unsupported formats.
     static FilePlayer* CreateFilePlayer(const uint32_t instanceID,
                                         const FileFormats fileFormat);
 
@@ -39,7 +38,7 @@ public:
     // channel).
     virtual int Get10msAudioFromFile(
         int16_t* outBuffer,
-        int& lengthInSamples,
+        size_t& lengthInSamples,
         int frequencyInHz) = 0;
 
     // Register callback for receiving file playing notifications.
@@ -94,15 +93,16 @@ public:
     virtual int32_t video_codec_info(VideoCodec& /*videoCodec*/) const
     {return -1;}
 
-    virtual int32_t GetVideoFromFile(I420VideoFrame& /*videoFrame*/)
-    { return -1;}
+    virtual int32_t GetVideoFromFile(VideoFrame& /*videoFrame*/) { return -1; }
 
     // Same as GetVideoFromFile(). videoFrame will have the resolution specified
     // by the width outWidth and height outHeight in pixels.
-    virtual int32_t GetVideoFromFile(I420VideoFrame& /*videoFrame*/,
+    virtual int32_t GetVideoFromFile(VideoFrame& /*videoFrame*/,
                                      const uint32_t /*outWidth*/,
-                                     const uint32_t /*outHeight*/)
-    {return -1;}
+                                     const uint32_t /*outHeight*/) {
+      return -1;
+    }
+
 protected:
     virtual ~FilePlayer() {}
 

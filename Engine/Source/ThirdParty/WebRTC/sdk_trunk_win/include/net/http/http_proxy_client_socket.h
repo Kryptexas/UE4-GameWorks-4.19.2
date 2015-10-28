@@ -5,6 +5,8 @@
 #ifndef NET_HTTP_HTTP_PROXY_CLIENT_SOCKET_H_
 #define NET_HTTP_HTTP_PROXY_CLIENT_SOCKET_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "base/basictypes.h"
@@ -12,22 +14,19 @@
 #include "net/base/completion_callback.h"
 #include "net/base/host_port_pair.h"
 #include "net/base/load_timing_info.h"
-#include "net/base/net_log.h"
 #include "net/http/http_auth_controller.h"
 #include "net/http/http_request_headers.h"
 #include "net/http/http_request_info.h"
 #include "net/http/http_response_info.h"
 #include "net/http/proxy_client_socket.h"
+#include "net/log/net_log.h"
 #include "net/socket/ssl_client_socket.h"
-
-class GURL;
 
 namespace net {
 
 class AddressList;
 class ClientSocketHandle;
 class GrowableIOBuffer;
-class HttpAuthCache;
 class HttpStream;
 class HttpStreamParser;
 class IOBuffer;
@@ -39,12 +38,10 @@ class HttpProxyClientSocket : public ProxyClientSocket {
   // by the time Connect() is called.  If tunnel is true then on Connect()
   // this socket will establish an Http tunnel.
   HttpProxyClientSocket(ClientSocketHandle* transport_socket,
-                        const GURL& request_url,
                         const std::string& user_agent,
                         const HostPortPair& endpoint,
                         const HostPortPair& proxy_server,
-                        HttpAuthCache* http_auth_cache,
-                        HttpAuthHandlerFactory* http_auth_handler_factory,
+                        HttpAuthController* http_auth_controller,
                         bool tunnel,
                         bool using_spdy,
                         NextProto protocol_negotiated,
@@ -75,6 +72,10 @@ class HttpProxyClientSocket : public ProxyClientSocket {
   bool WasNpnNegotiated() const override;
   NextProto GetNegotiatedProtocol() const override;
   bool GetSSLInfo(SSLInfo* ssl_info) override;
+  void GetConnectionAttempts(ConnectionAttempts* out) const override;
+  void ClearConnectionAttempts() override {}
+  void AddConnectionAttempts(const ConnectionAttempts& attempts) override {}
+  int64_t GetTotalReceivedBytes() const override;
 
   // Socket implementation.
   int Read(IOBuffer* buf,
@@ -99,8 +100,6 @@ class HttpProxyClientSocket : public ProxyClientSocket {
     STATE_READ_HEADERS_COMPLETE,
     STATE_DRAIN_BODY,
     STATE_DRAIN_BODY_COMPLETE,
-    STATE_TCP_RESTART,
-    STATE_TCP_RESTART_COMPLETE,
     STATE_DONE,
   };
 
@@ -110,7 +109,7 @@ class HttpProxyClientSocket : public ProxyClientSocket {
   static const int kDrainBodyBufferSize = 1024;
 
   int PrepareForAuthRestart();
-  int DidDrainBodyForAuthRestart(bool keep_alive);
+  int DidDrainBodyForAuthRestart();
 
   void LogBlockedTunnelResponse() const;
 
@@ -126,8 +125,6 @@ class HttpProxyClientSocket : public ProxyClientSocket {
   int DoReadHeadersComplete(int result);
   int DoDrainBody();
   int DoDrainBodyComplete(int result);
-  int DoTCPRestart();
-  int DoTCPRestartComplete(int result);
 
   CompletionCallback io_callback_;
   State next_state_;

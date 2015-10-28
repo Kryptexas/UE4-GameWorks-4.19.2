@@ -6,7 +6,9 @@
 #define NET_WEBSOCKETS_WEBSOCKET_EXTENSION_PARSER_H_
 
 #include <string>
+#include <vector>
 
+#include "base/compiler_specific.h"
 #include "base/strings/string_piece.h"
 #include "net/base/net_export.h"
 #include "net/websockets/websocket_extension.h"
@@ -18,38 +20,42 @@ class NET_EXPORT_PRIVATE WebSocketExtensionParser {
   WebSocketExtensionParser();
   ~WebSocketExtensionParser();
 
-  // Parses the given string as a WebSocket extension header value.
-  // This parser assumes some preprocesses are made.
-  //  - The parser parses single extension at a time. This means that
-  //    the parser parses |extension| in RFC6455 9.1, not |extension-list|.
-  //  - There is no newline characters in the input. LWS-concatenation must
-  //    have already been done.
-  void Parse(const char* data, size_t size);
-  void Parse(const std::string& data) {
-    Parse(data.data(), data.size());
+  // Parses the given string as a Sec-WebSocket-Extensions header value.
+  //
+  // There must be no newline characters in the input. LWS-concatenation must
+  // have already been done before calling this method.
+  //
+  // Returns true if the method was successful (no syntax error was found).
+  bool Parse(const char* data, size_t size);
+  bool Parse(const std::string& data) {
+    return Parse(data.data(), data.size());
   }
 
-  bool has_error() const { return has_error_; }
-  const WebSocketExtension& extension() const { return extension_; }
+  // Returns the result of the last Parse() method call.
+  const std::vector<WebSocketExtension>& extensions() const {
+    return extensions_;
+  }
 
  private:
-  void Consume(char c);
-  void ConsumeExtension(WebSocketExtension* extension);
-  void ConsumeExtensionParameter(WebSocketExtension::Parameter* parameter);
-  void ConsumeToken(base::StringPiece* token);
-  void ConsumeQuotedToken(std::string* token);
+  WARN_UNUSED_RESULT bool Consume(char c);
+  WARN_UNUSED_RESULT bool ConsumeExtension(WebSocketExtension* extension);
+  WARN_UNUSED_RESULT bool ConsumeExtensionParameter(
+      WebSocketExtension::Parameter* parameter);
+  WARN_UNUSED_RESULT bool ConsumeToken(base::StringPiece* token);
+  WARN_UNUSED_RESULT bool ConsumeQuotedToken(std::string* token);
   void ConsumeSpaces();
-  bool Lookahead(char c);
-  bool ConsumeIfMatch(char c);
+  WARN_UNUSED_RESULT bool Lookahead(char c);
+  WARN_UNUSED_RESULT bool ConsumeIfMatch(char c);
   size_t UnconsumedBytes() const { return end_ - current_; }
 
   static bool IsControl(char c);
   static bool IsSeparator(char c);
 
+  // The current position in the input string.
   const char* current_;
+  // The pointer of the end of the input string.
   const char* end_;
-  bool has_error_;
-  WebSocketExtension extension_;
+  std::vector<WebSocketExtension> extensions_;
 
   DISALLOW_COPY_AND_ASSIGN(WebSocketExtensionParser);
 };

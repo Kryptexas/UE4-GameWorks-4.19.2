@@ -7,16 +7,24 @@
 
 #include <map>
 #include <string>
+#include <vector>
+
 #include "base/basictypes.h"
 #include "base/containers/mru_cache.h"
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 #include "net/base/host_port_pair.h"
+#include "net/base/ip_address_number.h"
 #include "net/base/net_export.h"
 #include "net/quic/quic_bandwidth.h"
+#include "net/quic/quic_server_id.h"
 #include "net/socket/next_proto.h"
 #include "net/spdy/spdy_framer.h"  // TODO(willchan): Reconsider this.
 #include "net/spdy/spdy_protocol.h"
+
+namespace base {
+class Value;
+}
 
 namespace net {
 
@@ -60,9 +68,8 @@ enum AlternateProtocol {
   NPN_SPDY_MINIMUM_VERSION = DEPRECATED_NPN_SPDY_2,
   NPN_SPDY_3,
   NPN_SPDY_3_1,
-  NPN_SPDY_4_14,  // HTTP/2 draft-14
-  NPN_SPDY_4_15,  // HTTP/2 draft-15
-  NPN_SPDY_MAXIMUM_VERSION = NPN_SPDY_4_15,
+  NPN_HTTP_2,     // HTTP/2
+  NPN_SPDY_MAXIMUM_VERSION = NPN_HTTP_2,
   QUIC,
   ALTERNATE_PROTOCOL_MAXIMUM_VALID_VERSION = QUIC,
   UNINITIALIZED_ALTERNATE_PROTOCOL,
@@ -85,36 +92,91 @@ NET_EXPORT AlternateProtocol AlternateProtocolFromString(
 NET_EXPORT_PRIVATE AlternateProtocol AlternateProtocolFromNextProto(
     NextProto next_proto);
 
-struct NET_EXPORT AlternateProtocolInfo {
-  AlternateProtocolInfo(uint16 port,
-                        AlternateProtocol protocol,
-                        double probability)
-      : port(port),
-        protocol(protocol),
-        probability(probability),
-        is_broken(false) {}
+// (protocol, host, port) triple as defined in
+// https://tools.ietf.org/id/draft-ietf-httpbis-alt-svc-06.html
+struct NET_EXPORT AlternativeService {
+  AlternativeService()
+      : protocol(UNINITIALIZED_ALTERNATE_PROTOCOL), host(), port(0) {}
 
-  AlternateProtocolInfo(uint16 port,
-                        AlternateProtocol protocol,
-                        double probability,
-                        bool is_broken)
-      : port(port),
-        protocol(protocol),
-        probability(probability),
-        is_broken(is_broken) {}
+  AlternativeService(AlternateProtocol protocol,
+                     const std::string& host,
+                     uint16 port)
+      : protocol(protocol), host(host), port(port) {}
 
-  bool Equals(const AlternateProtocolInfo& other) const {
-    return port == other.port &&
-        protocol == other.protocol &&
-        probability == other.probability;
+  AlternativeService(AlternateProtocol protocol,
+                     const HostPortPair& host_port_pair)
+      : protocol(protocol),
+        host(host_port_pair.host()),
+        port(host_port_pair.port()) {}
+
+  AlternativeService(const AlternativeService& alternative_service) = default;
+  AlternativeService& operator=(const AlternativeService& alternative_service) =
+      default;
+
+  HostPortPair host_port_pair() const { return HostPortPair(host, port); }
+
+  bool operator==(const AlternativeService& other) const {
+    return protocol == other.protocol && host == other.host &&
+           port == other.port;
+  }
+
+  bool operator!=(const AlternativeService& other) const {
+    return !this->operator==(other);
+  }
+
+  bool operator<(const AlternativeService& other) const {
+    if (protocol != other.protocol)
+      return protocol < other.protocol;
+    if (host != other.host)
+      return host < other.host;
+    return port < other.port;
   }
 
   std::string ToString() const;
 
-  uint16 port;
   AlternateProtocol protocol;
+  std::string host;
+  uint16 port;
+};
+
+struct NET_EXPORT AlternativeServiceInfo {
+  AlternativeServiceInfo() : alternative_service(), probability(0.0) {}
+
+  AlternativeServiceInfo(const AlternativeService& alternative_service,
+                         double probability,
+                         base::Time expiration)
+      : alternative_service(alternative_service),
+        probability(probability),
+        expiration(expiration) {}
+
+  AlternativeServiceInfo(AlternateProtocol protocol,
+                         const std::string& host,
+                         uint16 port,
+                         double probability,
+                         base::Time expiration)
+      : alternative_service(protocol, host, port),
+        probability(probability),
+        expiration(expiration) {}
+
+  AlternativeServiceInfo(
+      const AlternativeServiceInfo& alternative_service_info) = default;
+  AlternativeServiceInfo& operator=(
+      const AlternativeServiceInfo& alternative_service_info) = default;
+
+  bool operator==(const AlternativeServiceInfo& other) const {
+    return alternative_service == other.alternative_service &&
+           probability == other.probability && expiration == other.expiration;
+  }
+
+  bool operator!=(const AlternativeServiceInfo& other) const {
+    return !this->operator==(other);
+  }
+
+  std::string ToString() const;
+
+  AlternativeService alternative_service;
   double probability;
-  bool is_broken;
+  base::Time expiration;
 };
 
 struct NET_EXPORT SupportsQuic {
@@ -134,23 +196,41 @@ struct NET_EXPORT SupportsQuic {
 struct NET_EXPORT ServerNetworkStats {
   ServerNetworkStats() : bandwidth_estimate(QuicBandwidth::Zero()) {}
 
+  bool operator==(const ServerNetworkStats& other) const {
+    return srtt == other.srtt && bandwidth_estimate == other.bandwidth_estimate;
+  }
+
+  bool operator!=(const ServerNetworkStats& other) const {
+    return !this->operator==(other);
+  }
+
   base::TimeDelta srtt;
   QuicBandwidth bandwidth_estimate;
 };
 
-typedef base::MRUCache<
-    HostPortPair, AlternateProtocolInfo> AlternateProtocolMap;
+typedef std::vector<AlternativeService> AlternativeServiceVector;
+typedef std::vector<AlternativeServiceInfo> AlternativeServiceInfoVector;
+typedef base::MRUCache<HostPortPair, AlternativeServiceInfoVector>
+    AlternativeServiceMap;
 typedef base::MRUCache<HostPortPair, SettingsMap> SpdySettingsMap;
-typedef std::map<HostPortPair, SupportsQuic> SupportsQuicMap;
 typedef base::MRUCache<HostPortPair, ServerNetworkStats> ServerNetworkStatsMap;
+typedef base::MRUCache<QuicServerId, std::string> QuicServerInfoMap;
+
+// Persist 5 QUIC Servers. This is mainly used by cronet.
+const int kMaxQuicServersToPersist = 5;
 
 extern const char kAlternateProtocolHeader[];
+extern const char kAlternativeServiceHeader[];
 
 // The interface for setting/retrieving the HTTP server properties.
 // Currently, this class manages servers':
-// * SPDY support (based on NPN results)
-// * Alternate-Protocol support
-// * Spdy Settings (like CWND ID field)
+// * SPDY support (based on NPN results).
+// * alternative service support.
+// * SPDY Settings (like CWND ID field).
+// * QUIC data (like ServerNetworkStats and QuicServerInfo).
+//
+// Embedders must ensure that HttpServerProperites is completely initialized
+// before the first request is issued.
 class NET_EXPORT HttpServerProperties {
  public:
   HttpServerProperties() {}
@@ -162,8 +242,12 @@ class NET_EXPORT HttpServerProperties {
   // Deletes all data.
   virtual void Clear() = 0;
 
-  // Returns true if |server| supports SPDY.
-  virtual bool SupportsSpdy(const HostPortPair& server) = 0;
+  // Returns true if |server| supports a network protocol which honors
+  // request prioritization.
+  virtual bool SupportsRequestPriority(const HostPortPair& server) = 0;
+
+  // Returns the value set by SetSupportsSpdy(). If not set, returns false.
+  virtual bool GetSupportsSpdy(const HostPortPair& server) = 0;
 
   // Add |server| into the persistent store. Should only be called from IO
   // thread.
@@ -183,43 +267,72 @@ class NET_EXPORT HttpServerProperties {
   virtual void MaybeForceHTTP11(const HostPortPair& server,
                                 SSLConfig* ssl_config) = 0;
 
-  // Returns true if |server| has an Alternate-Protocol header.
-  virtual bool HasAlternateProtocol(const HostPortPair& server) = 0;
+  // Return all alternative services for |origin| with probability greater than
+  // or equal to the threshold, including broken ones.
+  // Returned alternative services never have empty hostnames.
+  virtual AlternativeServiceVector GetAlternativeServices(
+      const HostPortPair& origin) = 0;
 
-  // Returns the Alternate-Protocol and port for |server|.
-  // HasAlternateProtocol(server) must be true.
-  virtual AlternateProtocolInfo GetAlternateProtocol(
-      const HostPortPair& server) = 0;
+  // Set a single alternative service for |origin|.  Previous alternative
+  // services for |origin| are discarded.
+  // |alternative_service.host| may be empty.
+  // Return true if |alternative_service_map_| is changed.
+  virtual bool SetAlternativeService(
+      const HostPortPair& origin,
+      const AlternativeService& alternative_service,
+      double alternative_probability,
+      base::Time expiration) = 0;
 
-  // Sets the Alternate-Protocol for |server|.
-  virtual void SetAlternateProtocol(const HostPortPair& server,
-                                    uint16 alternate_port,
-                                    AlternateProtocol alternate_protocol,
-                                    double probability) = 0;
+  // Set alternative services for |origin|.  Previous alternative services for
+  // |origin| are discarded.
+  // Hostnames in |alternative_service_info_vector| may be empty.
+  // Return true if |alternative_service_map_| is changed.
+  virtual bool SetAlternativeServices(
+      const HostPortPair& origin,
+      const AlternativeServiceInfoVector& alternative_service_info_vector) = 0;
 
-  // Sets the Alternate-Protocol for |server| to be BROKEN.
-  virtual void SetBrokenAlternateProtocol(const HostPortPair& server) = 0;
+  // Marks |alternative_service| as broken.
+  // |alternative_service.host| must not be empty.
+  virtual void MarkAlternativeServiceBroken(
+      const AlternativeService& alternative_service) = 0;
 
-  // Returns true if Alternate-Protocol for |server| was recently BROKEN.
-  virtual bool WasAlternateProtocolRecentlyBroken(
-      const HostPortPair& server) = 0;
+  // Marks |alternative_service| as recently broken.
+  // |alternative_service.host| must not be empty.
+  virtual void MarkAlternativeServiceRecentlyBroken(
+      const AlternativeService& alternative_service) = 0;
 
-  // Confirms that Alternate-Protocol for |server| is working.
-  virtual void ConfirmAlternateProtocol(const HostPortPair& server) = 0;
+  // Returns true iff |alternative_service| is currently broken.
+  // |alternative_service.host| must not be empty.
+  virtual bool IsAlternativeServiceBroken(
+      const AlternativeService& alternative_service) const = 0;
 
-  // Clears the Alternate-Protocol for |server|.
-  virtual void ClearAlternateProtocol(const HostPortPair& server) = 0;
+  // Returns true iff |alternative_service| was recently broken.
+  // |alternative_service.host| must not be empty.
+  virtual bool WasAlternativeServiceRecentlyBroken(
+      const AlternativeService& alternative_service) = 0;
 
-  // Returns all Alternate-Protocol mappings.
-  virtual const AlternateProtocolMap& alternate_protocol_map() const = 0;
+  // Confirms that |alternative_service| is working.
+  // |alternative_service.host| must not be empty.
+  virtual void ConfirmAlternativeService(
+      const AlternativeService& alternative_service) = 0;
 
-  // Sets the threshold to be used when evaluating Alternate-Protocol
-  // advertisments. Only advertisements with a with a probability
-  // greater than |threshold| will be honored. |threshold| must be
-  // between 0 and 1 inclusive. Hence, a threshold of 0 implies that
-  // all advertisements will be honored.
-  virtual void SetAlternateProtocolProbabilityThreshold(
-      double threshold) = 0;
+  // Clear all alternative services for |origin|.
+  virtual void ClearAlternativeServices(const HostPortPair& origin) = 0;
+
+  // Returns all alternative service mappings.
+  // Returned alternative services may have empty hostnames.
+  virtual const AlternativeServiceMap& alternative_service_map() const = 0;
+
+  // Returns all alternative service mappings as human readable strings.
+  // Empty alternative service hostnames will be printed as such.
+  virtual scoped_ptr<base::Value> GetAlternativeServiceInfoAsValue() const = 0;
+
+  // Sets the threshold to be used when evaluating alternative service
+  // advertisments. Only advertisements with a probability greater than or equal
+  // to |threshold| will be honored. |threshold| must be between 0.0 and 1.0
+  // inclusive. Hence, a threshold of 0.0 implies that all advertisements will
+  // be honored.
+  virtual void SetAlternativeServiceProbabilityThreshold(double threshold) = 0;
 
   // Gets a reference to the SettingsMap stored for a host.
   // If no settings are stored, returns an empty SettingsMap.
@@ -242,16 +355,12 @@ class NET_EXPORT HttpServerProperties {
   // Returns all persistent SPDY settings.
   virtual const SpdySettingsMap& spdy_settings_map() const = 0;
 
-  // TODO(rtenneti): Make SupportsQuic a global (instead of per host_port_pair).
-  virtual SupportsQuic GetSupportsQuic(
-      const HostPortPair& host_port_pair) const = 0;
+  virtual bool GetSupportsQuic(IPAddressNumber* last_address) const = 0;
 
-  virtual void SetSupportsQuic(const HostPortPair& host_port_pair,
-                               bool used_quic,
-                               const std::string& address) = 0;
+  virtual void SetSupportsQuic(bool used_quic,
+                               const IPAddressNumber& last_address) = 0;
 
-  virtual const SupportsQuicMap& supports_quic_map() const = 0;
-
+  // Sets |stats| for |host_port_pair|.
   virtual void SetServerNetworkStats(const HostPortPair& host_port_pair,
                                      ServerNetworkStats stats) = 0;
 
@@ -259,6 +368,18 @@ class NET_EXPORT HttpServerProperties {
       const HostPortPair& host_port_pair) = 0;
 
   virtual const ServerNetworkStatsMap& server_network_stats_map() const = 0;
+
+  // Save QuicServerInfo (in std::string form) for the given |server_id|.
+  // Returns true if the value has changed otherwise it returns false.
+  virtual bool SetQuicServerInfo(const QuicServerId& server_id,
+                                 const std::string& server_info) = 0;
+
+  // Get QuicServerInfo (in std::string form) for the given |server_id|.
+  virtual const std::string* GetQuicServerInfo(
+      const QuicServerId& server_id) = 0;
+
+  // Returns all persistent QuicServerInfo objects.
+  virtual const QuicServerInfoMap& quic_server_info_map() const = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(HttpServerProperties);

@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -78,15 +78,16 @@ class DtmfSender
       DtmfProviderInterface* provider);
 
   // Implements DtmfSenderInterface.
-  virtual void RegisterObserver(DtmfSenderObserverInterface* observer) OVERRIDE;
-  virtual void UnregisterObserver() OVERRIDE;
-  virtual bool CanInsertDtmf() OVERRIDE;
-  virtual bool InsertDtmf(const std::string& tones, int duration,
-                          int inter_tone_gap) OVERRIDE;
-  virtual const AudioTrackInterface* track() const OVERRIDE;
-  virtual std::string tones() const OVERRIDE;
-  virtual int duration() const OVERRIDE;
-  virtual int inter_tone_gap() const OVERRIDE;
+  void RegisterObserver(DtmfSenderObserverInterface* observer) override;
+  void UnregisterObserver() override;
+  bool CanInsertDtmf() override;
+  bool InsertDtmf(const std::string& tones,
+                  int duration,
+                  int inter_tone_gap) override;
+  const AudioTrackInterface* track() const override;
+  std::string tones() const override;
+  int duration() const override;
+  int inter_tone_gap() const override;
 
  protected:
   DtmfSender(AudioTrackInterface* track,
@@ -115,7 +116,7 @@ class DtmfSender
   int duration_;
   int inter_tone_gap_;
 
-  DISALLOW_COPY_AND_ASSIGN(DtmfSender);
+  RTC_DISALLOW_COPY_AND_ASSIGN(DtmfSender);
 };
 
 // Define proxy for DtmfSenderInterface.

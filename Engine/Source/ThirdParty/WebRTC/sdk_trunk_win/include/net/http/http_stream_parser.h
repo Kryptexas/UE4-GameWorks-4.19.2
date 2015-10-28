@@ -5,6 +5,8 @@
 #ifndef NET_HTTP_HTTP_STREAM_PARSER_H_
 #define NET_HTTP_HTTP_STREAM_PARSER_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "base/basictypes.h"
@@ -14,8 +16,8 @@
 #include "base/strings/string_piece.h"
 #include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/upload_progress.h"
+#include "net/log/net_log.h"
 
 namespace net {
 
@@ -73,9 +75,19 @@ class NET_EXPORT_PRIVATE HttpStreamParser {
 
   void SetConnectionReused();
 
-  bool IsConnectionReusable() const;
+  // Returns true if the underlying connection can be reused.
+  // The connection can be reused if:
+  // * It's still connected.
+  // * The response headers indicate the connection can be kept alive.
+  // * The end of the response can be found.
+  //
+  // Note that if response headers have yet to be received, this will return
+  // false.
+  bool CanReuseConnection() const;
 
-  int64 received_bytes() const { return received_bytes_; }
+  int64_t received_bytes() const { return received_bytes_; }
+
+  int64_t sent_bytes() const { return sent_bytes_; }
 
   void GetSSLInfo(SSLInfo* ssl_info);
 
@@ -160,14 +172,17 @@ class NET_EXPORT_PRIVATE HttpStreamParser {
   // found, parse them with DoParseResponseHeaders().  Return the offset for
   // the end of the headers, or -1 if the complete headers were not found, or
   // with a net::Error if we encountered an error during parsing.
-  int ParseResponseHeaders();
+  int FindAndParseResponseHeaders();
 
   // Parse the headers into response_.  Returns OK on success or a net::Error on
   // failure.
-  int DoParseResponseHeaders(int end_of_header_offset);
+  int ParseResponseHeaders(int end_of_header_offset);
 
   // Examine the parsed headers to try to determine the response body size.
   void CalculateResponseBodySize();
+
+  // Uploads statistics about status line compliance with RFC 7230.
+  void ValidateStatusLine(const std::string& status_line);
 
   // Next state of the request, when the current one completes.
   State io_state_;
@@ -196,7 +211,10 @@ class NET_EXPORT_PRIVATE HttpStreamParser {
 
   // The amount of received data.  If connection is reused then intermediate
   // value may be bigger than final.
-  int64 received_bytes_;
+  int64_t received_bytes_;
+
+  // The amount of sent data.
+  int64_t sent_bytes_;
 
   // The parsed response headers.  Owned by the caller of SendRequest.  This
   // cannot be safely accessed after reading the final set of headers, as the

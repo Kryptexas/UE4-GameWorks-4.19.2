@@ -12,7 +12,7 @@ public class WebRTC : ModuleRules
 		Type = ModuleType.External;
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32) &&
-			WindowsPlatform.GetVisualStudioCompilerVersionName() == "2013") // @todo samz - VS2012 libs
+			(WindowsPlatform.GetVisualStudioCompilerVersionName() == "2013" || WindowsPlatform.GetVisualStudioCompilerVersionName() == "2015")) // @todo samz - VS2012 libs
 		{
 			WebRtcSdkPlatform = "win";
 		}

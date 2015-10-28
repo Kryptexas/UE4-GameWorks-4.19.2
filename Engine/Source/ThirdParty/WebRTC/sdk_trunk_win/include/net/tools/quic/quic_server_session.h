@@ -16,7 +16,7 @@
 #include "base/memory/scoped_ptr.h"
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
-#include "net/quic/quic_session.h"
+#include "net/quic/quic_spdy_session.h"
 
 namespace net {
 
@@ -50,11 +50,13 @@ class QuicServerSessionVisitor {
       QuicConnectionId connection_id) {}
 };
 
-class QuicServerSession : public QuicSession {
+class QuicServerSession : public QuicSpdySession {
  public:
+  // |crypto_config| must outlive the session.
   QuicServerSession(const QuicConfig& config,
                     QuicConnection* connection,
-                    QuicServerSessionVisitor* visitor);
+                    QuicServerSessionVisitor* visitor,
+                    const QuicCryptoServerConfig* crypto_config);
 
   // Override the base class to notify the owner of the connection close.
   void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
@@ -66,7 +68,7 @@ class QuicServerSession : public QuicSession {
 
   ~QuicServerSession() override;
 
-  virtual void InitializeSession(const QuicCryptoServerConfig& crypto_config);
+  void Initialize() override;
 
   const QuicCryptoServerStream* crypto_stream() const {
     return crypto_stream_.get();
@@ -75,29 +77,54 @@ class QuicServerSession : public QuicSession {
   // Override base class to process FEC config received from client.
   void OnConfigNegotiated() override;
 
-  void set_serving_region(std::string serving_region) {
+  bool UsingStatelessRejectsIfPeerSupported() {
+    if (GetCryptoStream() == nullptr) {
+      return false;
+    }
+    return GetCryptoStream()->use_stateless_rejects_if_peer_supported();
+  }
+
+  bool PeerSupportsStatelessRejects() {
+    if (GetCryptoStream() == nullptr) {
+      return false;
+    }
+    return GetCryptoStream()->peer_supports_stateless_rejects();
+  }
+
+  void set_serving_region(const std::string& serving_region) {
     serving_region_ = serving_region;
+  }
+
+  void set_use_stateless_rejects_if_peer_supported(
+      bool use_stateless_rejects_if_peer_supported) {
+    DCHECK(GetCryptoStream() != nullptr);
+    GetCryptoStream()->set_use_stateless_rejects_if_peer_supported(
+        use_stateless_rejects_if_peer_supported);
   }
 
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
-  QuicDataStream* CreateOutgoingDataStream() override;
+  QuicSpdyStream* CreateIncomingDynamicStream(QuicStreamId id) override;
+  QuicSpdyStream* CreateOutgoingDynamicStream() override;
   QuicCryptoServerStream* GetCryptoStream() override;
 
   // If we should create an incoming stream, returns true. Otherwise
   // does error handling, including communicating the error to the client and
   // possibly closing the connection, and returns false.
-  virtual bool ShouldCreateIncomingDataStream(QuicStreamId id);
+  virtual bool ShouldCreateIncomingDynamicStream(QuicStreamId id);
 
   virtual QuicCryptoServerStream* CreateQuicCryptoServerStream(
-      const QuicCryptoServerConfig& crypto_config);
+      const QuicCryptoServerConfig* crypto_config);
 
  private:
   friend class test::QuicServerSessionPeer;
 
+  const QuicCryptoServerConfig* crypto_config_;
   scoped_ptr<QuicCryptoServerStream> crypto_stream_;
   QuicServerSessionVisitor* visitor_;
+
+  // Whether bandwidth resumption is enabled for this connection.
+  bool bandwidth_resumption_enabled_;
 
   // The most recent bandwidth estimate sent to the client.
   QuicBandwidth bandwidth_estimate_sent_to_client_;
@@ -110,7 +137,7 @@ class QuicServerSession : public QuicSession {
   QuicTime last_scup_time_;
 
   // Number of packets sent to the peer, at the time we last sent a SCUP.
-  int64 last_scup_sequence_number_;
+  int64 last_scup_packet_number_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicServerSession);
 };

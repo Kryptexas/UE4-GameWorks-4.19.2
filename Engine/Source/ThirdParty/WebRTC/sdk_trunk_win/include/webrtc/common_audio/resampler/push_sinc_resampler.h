@@ -12,56 +12,63 @@
 #define WEBRTC_COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_
 
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_audio/resampler/sinc_resampler.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
 // A thin wrapper over SincResampler to provide a push-based interface as
-// required by WebRTC.
+// required by WebRTC. SincResampler uses a pull-based interface, and will
+// use SincResamplerCallback::Run() to request data upon a call to Resample().
+// These Run() calls will happen on the same thread Resample() is called on.
 class PushSincResampler : public SincResamplerCallback {
  public:
   // Provide the size of the source and destination blocks in samples. These
   // must correspond to the same time duration (typically 10 ms) as the sample
   // ratio is inferred from them.
-  PushSincResampler(int source_frames, int destination_frames);
-  virtual ~PushSincResampler();
+  PushSincResampler(size_t source_frames, size_t destination_frames);
+  ~PushSincResampler() override;
 
   // Perform the resampling. |source_frames| must always equal the
   // |source_frames| provided at construction. |destination_capacity| must be
   // at least as large as |destination_frames|. Returns the number of samples
   // provided in destination (for convenience, since this will always be equal
   // to |destination_frames|).
-  int Resample(const int16_t* source, int source_frames,
-               int16_t* destination, int destination_capacity);
-  int Resample(const float* source,
-               int source_frames,
-               float* destination,
-               int destination_capacity);
+  size_t Resample(const int16_t* source, size_t source_frames,
+                  int16_t* destination, size_t destination_capacity);
+  size_t Resample(const float* source,
+                  size_t source_frames,
+                  float* destination,
+                  size_t destination_capacity);
 
-  // Implements SincResamplerCallback.
-  virtual void Run(int frames, float* destination) OVERRIDE;
-
-  SincResampler* get_resampler_for_testing() { return resampler_.get(); }
+  // Delay due to the filter kernel. Essentially, the time after which an input
+  // sample will appear in the resampled output.
   static float AlgorithmicDelaySeconds(int source_rate_hz) {
     return 1.f / source_rate_hz * SincResampler::kKernelSize / 2;
   }
 
+ protected:
+  // Implements SincResamplerCallback.
+  void Run(size_t frames, float* destination) override;
+
  private:
-  scoped_ptr<SincResampler> resampler_;
-  scoped_ptr<float[]> float_buffer_;
+  friend class PushSincResamplerTest;
+  SincResampler* get_resampler_for_testing() { return resampler_.get(); }
+
+  rtc::scoped_ptr<SincResampler> resampler_;
+  rtc::scoped_ptr<float[]> float_buffer_;
   const float* source_ptr_;
   const int16_t* source_ptr_int_;
-  const int destination_frames_;
+  const size_t destination_frames_;
 
   // True on the first call to Resample(), to prime the SincResampler buffer.
   bool first_pass_;
 
   // Used to assert we are only requested for as much data as is available.
-  int source_available_;
+  size_t source_available_;
 
-  DISALLOW_COPY_AND_ASSIGN(PushSincResampler);
+  RTC_DISALLOW_COPY_AND_ASSIGN(PushSincResampler);
 };
 
 }  // namespace webrtc

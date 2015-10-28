@@ -18,10 +18,10 @@
 #ifndef WEBRTC_MODULES_INTERFACE_VIDEO_PROCESSING_H
 #define WEBRTC_MODULES_INTERFACE_VIDEO_PROCESSING_H
 
-#include "webrtc/common_video/interface/i420_video_frame.h"
 #include "webrtc/modules/interface/module.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/video_processing/main/interface/video_processing_defines.h"
+#include "webrtc/video_frame.h"
 
 /**
    The module is largely intended to process video streams, except functionality
@@ -76,7 +76,7 @@ class VideoProcessingModule : public Module {
 
      \return Pointer to a VPM object.
   */
-  static VideoProcessingModule* Create(int32_t id);
+  static VideoProcessingModule* Create();
 
   /**
      Destroys a VPM object.
@@ -89,12 +89,12 @@ class VideoProcessingModule : public Module {
   /**
      Not supported.
   */
-  virtual int64_t TimeUntilNextProcess() OVERRIDE { return -1; }
+  int64_t TimeUntilNextProcess() override { return -1; }
 
   /**
      Not supported.
   */
-  virtual int32_t Process() OVERRIDE { return -1; }
+  int32_t Process() override { return -1; }
 
   /**
      Resets all processing components to their initial states. This should be
@@ -114,8 +114,7 @@ class VideoProcessingModule : public Module {
 
      \return 0 on success, -1 on failure.
   */
-  static int32_t GetFrameStats(FrameStats* stats,
-                               const I420VideoFrame& frame);
+  static int32_t GetFrameStats(FrameStats* stats, const VideoFrame& frame);
 
   /**
      Checks the validity of a FrameStats struct. Currently, valid implies only
@@ -137,15 +136,6 @@ class VideoProcessingModule : public Module {
   static void ClearFrameStats(FrameStats* stats);
 
   /**
-     Enhances the color of an image through a constant mapping. Only the
-     chrominance is altered. Has a fixed-point implementation.
-
-     \param[in,out] frame
-         Pointer to the video frame.
-  */
-  static int32_t ColorEnhancement(I420VideoFrame* frame);
-
-  /**
      Increases/decreases the luminance value.
 
      \param[in,out] frame
@@ -157,7 +147,7 @@ class VideoProcessingModule : public Module {
 
      \return 0 on success, -1 on failure.
   */
-  static int32_t Brighten(I420VideoFrame* frame, int delta);
+  static int32_t Brighten(VideoFrame* frame, int delta);
 
   /**
      Detects and removes camera flicker from a video stream. Every frame from
@@ -174,7 +164,7 @@ class VideoProcessingModule : public Module {
 
      \return 0 on success, -1 on failure.
   */
-  virtual int32_t Deflickering(I420VideoFrame* frame, FrameStats* stats) = 0;
+  virtual int32_t Deflickering(VideoFrame* frame, FrameStats* stats) = 0;
 
   /**
      Detects if a video frame is excessively bright or dark. Returns a
@@ -189,7 +179,7 @@ class VideoProcessingModule : public Module {
 
      \return A member of BrightnessWarning on success, -1 on error
   */
-  virtual int32_t BrightnessDetection(const I420VideoFrame& frame,
+  virtual int32_t BrightnessDetection(const VideoFrame& frame,
                                       const FrameStats& stats) = 0;
 
   /**
@@ -223,6 +213,8 @@ class VideoProcessingModule : public Module {
   virtual int32_t SetTargetResolution(uint32_t width,
                                       uint32_t height,
                                       uint32_t frame_rate) = 0;
+
+  virtual void SetTargetFramerate(int frame_rate) {}
 
   /**
   Get decimated(target) frame rate
@@ -259,8 +251,8 @@ class VideoProcessingModule : public Module {
 
   \return VPM_OK on success, a negative value on error (see error codes)
   */
-  virtual int32_t PreprocessFrame(const I420VideoFrame& frame,
-                                  I420VideoFrame** processed_frame) = 0;
+  virtual int32_t PreprocessFrame(const VideoFrame& frame,
+                                  VideoFrame** processed_frame) = 0;
 
   /**
   Return content metrics for the last processed frame

@@ -14,7 +14,9 @@
 #include "net/socket/next_proto.h"
 #include "net/ssl/ssl_info.h"
 
+namespace base {
 class Pickle;
+}
 
 namespace net {
 
@@ -37,7 +39,7 @@ class NET_EXPORT HttpResponseInfo {
     CONNECTION_INFO_HTTP1 = 1,
     CONNECTION_INFO_DEPRECATED_SPDY2 = 2,
     CONNECTION_INFO_SPDY3 = 3,
-    // CONNECTION_INFO_HTTP2 = 4,  // TODO(bnc):  This will be HTTP/2.
+    CONNECTION_INFO_HTTP2 = 4,  // HTTP/2.
     CONNECTION_INFO_QUIC1_SPDY3 = 5,
     CONNECTION_INFO_HTTP2_14 = 6,  // HTTP/2 draft-14.
     CONNECTION_INFO_HTTP2_15 = 7,  // HTTP/2 draft-15.
@@ -52,12 +54,17 @@ class NET_EXPORT HttpResponseInfo {
   // that would prevent us from doing a bunch of forward declaration.
 
   // Initializes from the representation stored in the given pickle.
-  bool InitFromPickle(const Pickle& pickle, bool* response_truncated);
+  bool InitFromPickle(const base::Pickle& pickle, bool* response_truncated);
 
   // Call this method to persist the response info.
-  void Persist(Pickle* pickle,
+  void Persist(base::Pickle* pickle,
                bool skip_transient_headers,
                bool response_truncated) const;
+
+  // Whether QUIC is used or not.
+  bool DidUseQuic() const {
+    return connection_info == CONNECTION_INFO_QUIC1_SPDY3;
+  }
 
   // The following is only defined if the request_time member is set.
   // If this resource was found in the cache, then this bool is set, and
@@ -99,6 +106,11 @@ class NET_EXPORT HttpResponseInfo {
   // used since.
   bool unused_since_prefetch;
 
+  // True if this resource is stale and requires async revalidation.
+  // This value is not persisted by Persist(); it is only ever set when the
+  // response is retrieved from the cache.
+  bool async_revalidation_required;
+
   // Remote address of the socket which fetched this resource.
   //
   // NOTE: If the response was served from the cache (was_cached is true),
@@ -132,7 +144,9 @@ class NET_EXPORT HttpResponseInfo {
   // challenge, client certificate request is not part of an HTTP response.
   scoped_refptr<SSLCertRequestInfo> cert_request_info;
 
-  // The SSL connection info (if HTTPS).
+  // The SSL connection info (if HTTPS). Note that when a response is
+  // served from cache, not every field is present. See
+  // HttpResponseInfo::InitFromPickle().
   SSLInfo ssl_info;
 
   // The parsed response headers and status line.

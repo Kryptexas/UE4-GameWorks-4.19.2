@@ -20,6 +20,7 @@
 #ifdef __APPLE__
 .macro GLOBAL_FUNCTION name
 .global _\name
+.private_extern _\name
 .endm
 .macro DEFINE_FUNCTION name
 _\name:
@@ -29,12 +30,17 @@ bl _\name
 .endm
 .macro GLOBAL_LABEL name
 .global _\name
+.private_extern _\name
 .endm
 #else
 .macro GLOBAL_FUNCTION name
 .global \name
+.hidden \name
 .endm
 .macro DEFINE_FUNCTION name
+#if defined(__linux__) && defined(__ELF__)
+.type \name,%function
+#endif
 \name:
 .endm
 .macro CALL_FUNCTION name
@@ -42,6 +48,7 @@ bl \name
 .endm
 .macro GLOBAL_LABEL name
 .global \name
+.hidden \name
 .endm
 #endif
 

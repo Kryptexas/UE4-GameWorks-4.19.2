@@ -27,6 +27,7 @@ class NET_EXPORT URLRequestSimpleJob : public URLRangeRequestJob {
   URLRequestSimpleJob(URLRequest* request, NetworkDelegate* network_delegate);
 
   void Start() override;
+  void Kill() override;
   bool ReadRawData(IOBuffer* buf, int buf_size, int* bytes_read) override;
   bool GetMimeType(std::string* mime_type) const override;
   bool GetCharset(std::string* charset) override;
@@ -57,16 +58,22 @@ class NET_EXPORT URLRequestSimpleJob : public URLRangeRequestJob {
                                 scoped_refptr<base::RefCountedMemory>* data,
                                 const CompletionCallback& callback) const;
 
+  // Returns the task runner used by ReadRawData. This method is virtual so
+  // that it can be overridden in tests.
+  virtual base::TaskRunner* GetTaskRunner() const;
+
   void StartAsync();
 
  private:
   void OnGetDataCompleted(int result);
+  void OnReadCompleted(int bytes_read);
 
   HttpByteRange byte_range_;
   std::string mime_type_;
   std::string charset_;
   scoped_refptr<base::RefCountedMemory> data_;
-  int64 data_offset_;
+  int64 next_data_offset_;
+  scoped_refptr<base::TaskRunner> task_runner_;
   base::WeakPtrFactory<URLRequestSimpleJob> weak_factory_;
 };
 

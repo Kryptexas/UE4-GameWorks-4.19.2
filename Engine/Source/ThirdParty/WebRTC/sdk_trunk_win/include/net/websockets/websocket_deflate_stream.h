@@ -5,9 +5,10 @@
 #ifndef NET_WEBSOCKETS_WEBSOCKET_DEFLATE_STREAM_H_
 #define NET_WEBSOCKETS_WEBSOCKET_DEFLATE_STREAM_H_
 
+#include <stddef.h>
 #include <string>
 
-#include "base/basictypes.h"
+#include "base/macros.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/memory/scoped_vector.h"
 #include "net/base/completion_callback.h"
@@ -21,6 +22,7 @@ class GURL;
 
 namespace net {
 
+class WebSocketDeflateParameters;
 class WebSocketDeflatePredictor;
 
 // WebSocketDeflateStream is a WebSocketStream subclass.
@@ -40,8 +42,7 @@ class WebSocketDeflatePredictor;
 class NET_EXPORT_PRIVATE WebSocketDeflateStream : public WebSocketStream {
  public:
   WebSocketDeflateStream(scoped_ptr<WebSocketStream> stream,
-                         WebSocketDeflater::ContextTakeOverMode mode,
-                         int client_window_bits,
+                         const WebSocketDeflateParameters& params,
                          scoped_ptr<WebSocketDeflatePredictor> predictor);
   ~WebSocketDeflateStream() override;
 

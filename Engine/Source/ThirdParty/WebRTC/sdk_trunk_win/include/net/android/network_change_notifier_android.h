@@ -6,13 +6,14 @@
 #define NET_ANDROID_NETWORK_CHANGE_NOTIFIER_ANDROID_H_
 
 #include "base/android/jni_android.h"
-#include "base/basictypes.h"
 #include "base/compiler_specific.h"
+#include "base/macros.h"
 #include "net/android/network_change_notifier_delegate_android.h"
 #include "net/base/network_change_notifier.h"
 
 namespace net {
 
+struct DnsConfig;
 class NetworkChangeNotifierAndroidTest;
 class NetworkChangeNotifierFactoryAndroid;
 
@@ -42,17 +43,28 @@ class NET_EXPORT_PRIVATE NetworkChangeNotifierAndroid
     : public NetworkChangeNotifier,
       public NetworkChangeNotifierDelegateAndroid::Observer {
  public:
-  virtual ~NetworkChangeNotifierAndroid();
+  ~NetworkChangeNotifierAndroid() override;
 
   // NetworkChangeNotifier:
-  virtual ConnectionType GetCurrentConnectionType() const override;
+  ConnectionType GetCurrentConnectionType() const override;
   // Requires ACCESS_WIFI_STATE permission in order to provide precise WiFi link
   // speed.
-  virtual double GetCurrentMaxBandwidth() const override;
+  void GetCurrentMaxBandwidthAndConnectionType(
+      double* max_bandwidth_mbps,
+      ConnectionType* connection_type) const override;
+  void GetCurrentConnectedNetworks(NetworkList* network_list) const override;
+  ConnectionType GetCurrentNetworkConnectionType(
+      NetworkHandle network) const override;
+  NetworkHandle GetCurrentDefaultNetwork() const override;
 
   // NetworkChangeNotifierDelegateAndroid::Observer:
-  virtual void OnConnectionTypeChanged() override;
-  virtual void OnMaxBandwidthChanged(double max_bandwidth_mbps) override;
+  void OnConnectionTypeChanged() override;
+  void OnMaxBandwidthChanged(double max_bandwidth_mbps,
+                             ConnectionType type) override;
+  void OnNetworkConnected(NetworkHandle network) override;
+  void OnNetworkSoonToDisconnect(NetworkHandle network) override;
+  void OnNetworkDisconnected(NetworkHandle network) override;
+  void OnNetworkMadeDefault(NetworkHandle network) override;
 
   static bool Register(JNIEnv* env);
 
@@ -66,8 +78,8 @@ class NET_EXPORT_PRIVATE NetworkChangeNotifierAndroid
 
   class DnsConfigServiceThread;
 
-  explicit NetworkChangeNotifierAndroid(
-      NetworkChangeNotifierDelegateAndroid* delegate);
+  NetworkChangeNotifierAndroid(NetworkChangeNotifierDelegateAndroid* delegate,
+                               const DnsConfig* dns_config_for_testing);
 
   static NetworkChangeCalculatorParams NetworkChangeCalculatorParamsAndroid();
 

@@ -72,6 +72,7 @@
 
 #include <openssl/bn.h>
 #include <openssl/ex_data.h>
+#include <openssl/thread.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -80,8 +81,6 @@ extern "C" {
 
 /* Use default functions for poin2oct, oct2point and compressed coordinates */
 #define EC_FLAGS_DEFAULT_OCT 0x1
-
-typedef struct ec_method_st EC_METHOD;
 
 struct ec_method_st {
   /* Various method flags */
@@ -205,35 +204,14 @@ struct ec_group_st {
   /* The following members are handled by the method functions,
    * even if they appear generic */
 
-  BIGNUM field; /* Field specification.
-                 * For curves over GF(p), this is the modulus;
-                 * for curves over GF(2^m), this is the
-                 * irreducible polynomial defining the field. */
+  BIGNUM field; /* For curves over GF(p), this is the modulus. */
 
-  int poly[6]; /* Field specification for curves over GF(2^m).
-                * The irreducible f(t) is then of the form:
-                *     t^poly[0] + t^poly[1] + ... + t^poly[k]
-                * where m = poly[0] > poly[1] > ... > poly[k] = 0.
-                * The array is terminated with poly[k+1]=-1.
-                * All elliptic curve irreducibles have at most 5
-                * non-zero terms. */
-
-  BIGNUM a, b; /* Curve coefficients.
-                * (Here the assumption is that BIGNUMs can be used
-                * or abused for all kinds of fields, not just GF(p).)
-                * For characteristic  > 3,  the curve is defined
-                * by a Weierstrass equation of the form
-                *     y^2 = x^3 + a*x + b.
-                * For characteristic  2,  the curve is defined by
-                * an equation of the form
-                *     y^2 + x*y = x^3 + a*x^2 + b. */
+  BIGNUM a, b; /* Curve coefficients. */
 
   int a_is_minus3; /* enable optimized point arithmetics for special case */
 
-  void *field_data1; /* method-specific (e.g., Montgomery structure) */
-  void *field_data2; /* method-specific */
-  int (*field_mod_func)(BIGNUM *, const BIGNUM *, const BIGNUM *,
-                        BN_CTX *); /* method-specific */
+  BN_MONT_CTX *mont; /* Montgomery structure. */
+  BIGNUM *one; /* The value one */
 } /* EC_GROUP */;
 
 struct ec_point_st {
@@ -250,6 +228,7 @@ struct ec_point_st {
 } /* EC_POINT */;
 
 EC_GROUP *ec_group_new(const EC_METHOD *meth);
+int ec_group_copy(EC_GROUP *dest, const EC_GROUP *src);
 
 int ec_wNAF_mul(const EC_GROUP *group, EC_POINT *r, const BIGNUM *scalar,
                 size_t num, const EC_POINT *points[], const BIGNUM *scalars[],
@@ -329,6 +308,20 @@ int ec_point_set_Jprojective_coordinates_GFp(const EC_GROUP *group,
                                              const BIGNUM *y, const BIGNUM *z,
                                              BN_CTX *ctx);
 
+void ec_GFp_nistp_points_make_affine_internal(
+    size_t num, void *point_array, size_t felem_size, void *tmp_felems,
+    void (*felem_one)(void *out), int (*felem_is_zero)(const void *in),
+    void (*felem_assign)(void *out, const void *in),
+    void (*felem_square)(void *out, const void *in),
+    void (*felem_mul)(void *out, const void *in1, const void *in2),
+    void (*felem_inv)(void *out, const void *in),
+    void (*felem_contract)(void *out, const void *in));
+
+void ec_GFp_nistp_recode_scalar_bits(uint8_t *sign, uint8_t *digit, uint8_t in);
+
+const EC_METHOD *EC_GFp_nistp224_method(void);
+const EC_METHOD *EC_GFp_nistp256_method(void);
+
 struct ec_key_st {
   int version;
 
@@ -340,7 +333,7 @@ struct ec_key_st {
   unsigned int enc_flag;
   point_conversion_form_t conv_form;
 
-  int references;
+  CRYPTO_refcount_t references;
   int flags;
 
   ECDSA_METHOD *ecdsa_meth;

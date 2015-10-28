@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "webrtc/base/thread_annotations.h"
+#include "webrtc/base/thread_checker.h"
 #include "webrtc/modules/video_coding/main/source/codec_database.h"
 #include "webrtc/modules/video_coding/main/source/frame_buffer.h"
 #include "webrtc/modules/video_coding/main/source/generic_decoder.h"
@@ -24,6 +25,7 @@
 #include "webrtc/modules/video_coding/main/source/media_optimization.h"
 #include "webrtc/modules/video_coding/main/source/receiver.h"
 #include "webrtc/modules/video_coding/main/source/timing.h"
+#include "webrtc/modules/video_coding/utility/include/qp_parser.h"
 #include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 
@@ -32,8 +34,6 @@ namespace webrtc {
 class EncodedFrameObserver;
 
 namespace vcm {
-
-class DebugRecorder;
 
 class VCMProcessTimer {
  public:
@@ -55,25 +55,38 @@ class VideoSender {
  public:
   typedef VideoCodingModule::SenderNackMode SenderNackMode;
 
-  VideoSender(Clock* clock, EncodedImageCallback* post_encode_callback);
+  VideoSender(Clock* clock,
+              EncodedImageCallback* post_encode_callback,
+              VideoEncoderRateObserver* encoder_rate_observer,
+              VCMQMSettingsCallback* qm_settings_callback);
 
   ~VideoSender();
 
-  int32_t InitializeSender();
-
   // Register the send codec to be used.
+  // This method must be called on the construction thread.
   int32_t RegisterSendCodec(const VideoCodec* sendCodec,
                             uint32_t numberOfCores,
                             uint32_t maxPayloadSize);
+  // Non-blocking access to the currently active send codec configuration.
+  // Must be called from the same thread as the VideoSender instance was
+  // created on.
+  const VideoCodec& GetSendCodec() const;
 
-  int32_t SendCodec(VideoCodec* currentSendCodec) const;
-  VideoCodecType SendCodec() const;
+  // Get a copy of the currently configured send codec.
+  // This method acquires a lock to copy the current configuration out,
+  // so it can block and the returned information is not guaranteed to be
+  // accurate upon return.  Consider using GetSendCodec() instead and make
+  // decisions on that thread with regards to the current codec.
+  int32_t SendCodecBlocking(VideoCodec* currentSendCodec) const;
+
+  // Same as SendCodecBlocking.  Try to use GetSendCodec() instead.
+  VideoCodecType SendCodecBlocking() const;
+
   int32_t RegisterExternalEncoder(VideoEncoder* externalEncoder,
                                   uint8_t payloadType,
                                   bool internalSource);
 
   int32_t CodecConfigParameters(uint8_t* buffer, int32_t size) const;
-  int32_t SentFrameCount(VCMFrameCount* frameCount);
   int Bitrate(unsigned int* bitrate) const;
   int FrameRate(unsigned int* framerate) const;
 
@@ -83,24 +96,15 @@ class VideoSender {
 
   int32_t RegisterTransportCallback(VCMPacketizationCallback* transport);
   int32_t RegisterSendStatisticsCallback(VCMSendStatisticsCallback* sendStats);
-  int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings);
   int32_t RegisterProtectionCallback(VCMProtectionCallback* protection);
-  int32_t SetVideoProtection(VCMVideoProtection videoProtection, bool enable);
+  void SetVideoProtection(VCMVideoProtection videoProtection);
 
-  int32_t AddVideoFrame(const I420VideoFrame& videoFrame,
+  int32_t AddVideoFrame(const VideoFrame& videoFrame,
                         const VideoContentMetrics* _contentMetrics,
                         const CodecSpecificInfo* codecSpecificInfo);
 
   int32_t IntraFrameRequest(int stream_index);
   int32_t EnableFrameDropper(bool enable);
-
-  int SetSenderNackMode(SenderNackMode mode);
-  int SetSenderReferenceSelection(bool enable);
-  int SetSenderFEC(bool enable);
-  int SetSenderKeyFramePeriod(int periodMs);
-
-  int StartDebugRecording(const char* file_name_utf8);
-  void StopDebugRecording();
 
   void SuspendBelowMinBitrate();
   bool VideoSuspended() const;
@@ -109,23 +113,39 @@ class VideoSender {
   int32_t Process();
 
  private:
-  Clock* clock_;
+  struct EncoderParameters {
+    uint32_t target_bitrate;
+    uint8_t loss_rate;
+    int64_t rtt;
+    uint32_t input_frame_rate;
+    bool updated;
+  };
 
-  scoped_ptr<DebugRecorder> recorder_;
+  void SetEncoderParameters(EncoderParameters params)
+      EXCLUSIVE_LOCKS_REQUIRED(send_crit_);
 
-  scoped_ptr<CriticalSectionWrapper> process_crit_sect_;
-  CriticalSectionWrapper* _sendCritSect;
+  Clock* const clock_;
+
+  rtc::scoped_ptr<CriticalSectionWrapper> process_crit_sect_;
+  mutable rtc::CriticalSection send_crit_;
   VCMGenericEncoder* _encoder;
   VCMEncodedFrameCallback _encodedFrameCallback;
   std::vector<FrameType> _nextFrameTypes;
   media_optimization::MediaOptimization _mediaOpt;
-  VCMSendStatisticsCallback* _sendStatsCallback;
-  VCMCodecDataBase _codecDataBase;
-  bool frame_dropper_enabled_;
+  VCMSendStatisticsCallback* _sendStatsCallback GUARDED_BY(process_crit_sect_);
+  VCMCodecDataBase _codecDataBase GUARDED_BY(send_crit_);
+  bool frame_dropper_enabled_ GUARDED_BY(send_crit_);
   VCMProcessTimer _sendStatsTimer;
 
-  VCMQMSettingsCallback* qm_settings_callback_;
+  // Must be accessed on the construction thread of VideoSender.
+  VideoCodec current_codec_;
+  rtc::ThreadChecker main_thread_;
+
+  VCMQMSettingsCallback* const qm_settings_callback_;
   VCMProtectionCallback* protection_callback_;
+
+  rtc::CriticalSection params_lock_;
+  EncoderParameters encoder_params_ GUARDED_BY(params_lock_);
 };
 
 class VideoReceiver {
@@ -135,7 +155,6 @@ class VideoReceiver {
   VideoReceiver(Clock* clock, EventFactory* event_factory);
   ~VideoReceiver();
 
-  int32_t InitializeReceiver();
   int32_t RegisterReceiveCodec(const VideoCodec* receiveCodec,
                                int32_t numberOfCores,
                                bool requireKeyFrame);
@@ -182,27 +201,18 @@ class VideoReceiver {
   int32_t Process();
 
   void RegisterPreDecodeImageCallback(EncodedImageCallback* observer);
+  void TriggerDecoderShutdown();
 
  protected:
   int32_t Decode(const webrtc::VCMEncodedFrame& frame)
       EXCLUSIVE_LOCKS_REQUIRED(_receiveCritSect);
   int32_t RequestKeyFrame();
   int32_t RequestSliceLossIndication(const uint64_t pictureID) const;
-  int32_t NackList(uint16_t* nackList, uint16_t* size);
 
  private:
-  enum VCMKeyRequestMode {
-    kKeyOnError,    // Normal mode, request key frames on decoder error
-    kKeyOnKeyLoss,  // Request key frames on decoder error and on packet loss
-                    // in key frames.
-    kKeyOnLoss,     // Request key frames on decoder error and on packet loss
-                    // in any frame
-  };
-
   Clock* const clock_;
-  scoped_ptr<CriticalSectionWrapper> process_crit_sect_;
+  rtc::scoped_ptr<CriticalSectionWrapper> process_crit_sect_;
   CriticalSectionWrapper* _receiveCritSect;
-  bool _receiverInited GUARDED_BY(_receiveCritSect);
   VCMTiming _timing;
   VCMReceiver _receiver;
   VCMDecodedFrameCallback _decodedFrameCallback;
@@ -220,7 +230,6 @@ class VideoReceiver {
   FILE* _bitStreamBeforeDecoder;
 #endif
   VCMFrameBuffer _frameFromFile;
-  VCMKeyRequestMode _keyRequestMode;
   bool _scheduleKeyRequest GUARDED_BY(process_crit_sect_);
   size_t max_nack_list_size_ GUARDED_BY(process_crit_sect_);
   EncodedImageCallback* pre_decode_image_callback_ GUARDED_BY(_receiveCritSect);
@@ -229,6 +238,7 @@ class VideoReceiver {
   VCMProcessTimer _receiveStatsTimer;
   VCMProcessTimer _retransmissionTimer;
   VCMProcessTimer _keyRequestTimer;
+  QpParser qp_parser_;
 };
 
 }  // namespace vcm

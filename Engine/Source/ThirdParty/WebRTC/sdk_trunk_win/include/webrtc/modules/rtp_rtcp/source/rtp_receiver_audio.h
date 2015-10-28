@@ -13,11 +13,11 @@
 
 #include <set>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_receiver.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_receiver_strategy.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -28,8 +28,7 @@ class CriticalSectionWrapper;
 class RTPReceiverAudio : public RTPReceiverStrategy,
                          public TelephoneEventHandler {
  public:
-  RTPReceiverAudio(const int32_t id,
-                   RtpData* data_callback,
+  RTPReceiverAudio(RtpData* data_callback,
                    RtpAudioFeedback* incoming_messages_callback);
   virtual ~RTPReceiverAudio() {}
 
@@ -53,32 +52,30 @@ class RTPReceiverAudio : public RTPReceiverStrategy,
                       uint32_t* frequency,
                       bool* cng_payload_type_has_changed);
 
-  virtual int32_t ParseRtpPacket(WebRtcRTPHeader* rtp_header,
-                                 const PayloadUnion& specific_payload,
-                                 bool is_red,
-                                 const uint8_t* packet,
-                                 size_t payload_length,
-                                 int64_t timestamp_ms,
-                                 bool is_first_packet) OVERRIDE;
+  int32_t ParseRtpPacket(WebRtcRTPHeader* rtp_header,
+                         const PayloadUnion& specific_payload,
+                         bool is_red,
+                         const uint8_t* packet,
+                         size_t payload_length,
+                         int64_t timestamp_ms,
+                         bool is_first_packet) override;
 
-  int GetPayloadTypeFrequency() const OVERRIDE;
+  int GetPayloadTypeFrequency() const override;
 
-  virtual RTPAliveType ProcessDeadOrAlive(uint16_t last_payload_length) const
-      OVERRIDE;
+  RTPAliveType ProcessDeadOrAlive(uint16_t last_payload_length) const override;
 
-  virtual bool ShouldReportCsrcChanges(uint8_t payload_type) const OVERRIDE;
+  bool ShouldReportCsrcChanges(uint8_t payload_type) const override;
 
-  virtual int32_t OnNewPayloadTypeCreated(
+  int32_t OnNewPayloadTypeCreated(
       const char payload_name[RTP_PAYLOAD_NAME_SIZE],
       int8_t payload_type,
-      uint32_t frequency) OVERRIDE;
+      uint32_t frequency) override;
 
-  virtual int32_t InvokeOnInitializeDecoder(
+  int32_t InvokeOnInitializeDecoder(
       RtpFeedback* callback,
-      int32_t id,
       int8_t payload_type,
       const char payload_name[RTP_PAYLOAD_NAME_SIZE],
-      const PayloadUnion& specific_payload) const OVERRIDE;
+      const PayloadUnion& specific_payload) const override;
 
   // We do not allow codecs to have multiple payload types for audio, so we
   // need to override the default behavior (which is to do nothing).
@@ -94,10 +91,9 @@ class RTPReceiverAudio : public RTPReceiverStrategy,
   // statistics. In addition we sometimes need to tweak the frequency.
   void CheckPayloadChanged(int8_t payload_type,
                            PayloadUnion* specific_payload,
-                           bool* should_reset_statistics,
-                           bool* should_discard_changes) OVERRIDE;
+                           bool* should_discard_changes) override;
 
-  int Energy(uint8_t array_of_energy[kRtpCsrcSize]) const OVERRIDE;
+  int Energy(uint8_t array_of_energy[kRtpCsrcSize]) const override;
 
  private:
 
@@ -107,8 +103,6 @@ class RTPReceiverAudio : public RTPReceiverStrategy,
       size_t payload_length,
       const AudioPayload& audio_specific,
       bool is_red);
-
-  int32_t id_;
 
   uint32_t last_received_frequency_;
 

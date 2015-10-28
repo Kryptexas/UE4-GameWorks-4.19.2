@@ -16,7 +16,6 @@
 #include "base/basictypes.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/quic/congestion_control/send_algorithm_interface.h"
-#include "net/quic/crypto/cached_network_parameters.h"
 #include "net/quic/quic_bandwidth.h"
 #include "net/quic/quic_config.h"
 #include "net/quic/quic_protocol.h"
@@ -37,29 +36,28 @@ class NET_EXPORT_PRIVATE PacingSender : public SendAlgorithmInterface {
 
   // SendAlgorithmInterface methods.
   void SetFromConfig(const QuicConfig& config,
-                     bool is_server,
-                     bool using_pacing) override;
-  bool ResumeConnectionState(
-      const CachedNetworkParameters& cached_network_params) override;
+                     Perspective perspective) override;
+  void ResumeConnectionState(
+      const CachedNetworkParameters& cached_network_params,
+      bool max_bandwidth_resumption) override;
   void SetNumEmulatedConnections(int num_connections) override;
+  void SetMaxCongestionWindow(QuicByteCount max_congestion_window) override;
   void OnCongestionEvent(bool rtt_updated,
                          QuicByteCount bytes_in_flight,
                          const CongestionVector& acked_packets,
                          const CongestionVector& lost_packets) override;
   bool OnPacketSent(QuicTime sent_time,
                     QuicByteCount bytes_in_flight,
-                    QuicPacketSequenceNumber sequence_number,
+                    QuicPacketNumber packet_number,
                     QuicByteCount bytes,
                     HasRetransmittableData is_retransmittable) override;
   void OnRetransmissionTimeout(bool packets_retransmitted) override;
-  void RevertRetransmissionTimeout() override;
   QuicTime::Delta TimeUntilSend(
       QuicTime now,
       QuicByteCount bytes_in_flight,
       HasRetransmittableData has_retransmittable_data) const override;
   QuicBandwidth PacingRate() const override;
   QuicBandwidth BandwidthEstimate() const override;
-  bool HasReliableBandwidthEstimate() const override;
   QuicTime::Delta RetransmissionDelay() const override;
   QuicByteCount GetCongestionWindow() const override;
   bool InSlowStart() const override;
@@ -72,7 +70,8 @@ class NET_EXPORT_PRIVATE PacingSender : public SendAlgorithmInterface {
   scoped_ptr<SendAlgorithmInterface> sender_;  // Underlying sender.
   // The estimated system alarm granularity.
   const QuicTime::Delta alarm_granularity_;
-  // Configured size of the burst coming out of quiescence.
+  // Configured maximum size of the burst coming out of quiescence.  The burst
+  // is never larger than the current CWND in packets.
   const uint32 initial_packet_burst_;
   // Number of unpaced packets to be sent before packets are delayed.
   uint32 burst_tokens_;

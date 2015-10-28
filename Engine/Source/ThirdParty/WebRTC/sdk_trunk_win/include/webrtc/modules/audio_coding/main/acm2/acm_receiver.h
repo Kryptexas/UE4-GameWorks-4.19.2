@@ -11,8 +11,10 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_ACM2_ACM_RECEIVER_H_
 #define WEBRTC_MODULES_AUDIO_CODING_MAIN_ACM2_ACM_RECEIVER_H_
 
+#include <map>
 #include <vector>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/base/thread_annotations.h"
 #include "webrtc/common_audio/vad/include/webrtc_vad.h"
 #include "webrtc/engine_configurations.h"
@@ -23,7 +25,6 @@
 #include "webrtc/modules/audio_coding/main/acm2/initial_delay_manager.h"
 #include "webrtc/modules/audio_coding/neteq/interface/neteq.h"
 #include "webrtc/modules/interface/module_common_types.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -39,11 +40,12 @@ class Nack;
 class AcmReceiver {
  public:
   struct Decoder {
-    bool registered;
+    int acm_codec_id;
     uint8_t payload_type;
     // This field is meaningful for codecs where both mono and
     // stereo versions are registered under the same ID.
     int channels;
+    int sample_rate_hz;
   };
 
   // Constructor of the class
@@ -91,20 +93,24 @@ class AcmReceiver {
   // Adds a new codec to the NetEq codec database.
   //
   // Input:
-  //   - acm_codec_id        : ACM codec ID.
+  //   - acm_codec_id        : ACM codec ID; -1 means external decoder.
   //   - payload_type        : payload type.
-  //   - audio_decoder       : pointer to a decoder object. If it is NULL
-  //                           then NetEq will internally create the decoder
-  //                           object. Otherwise, NetEq will store this pointer
-  //                           as the decoder corresponding with the given
-  //                           payload type. NetEq won't acquire the ownership
-  //                           of this pointer. It is up to the client of this
-  //                           class (ACM) to delete it. By providing
-  //                           |audio_decoder| ACM will have control over the
-  //                           decoder instance of the codec. This is essential
-  //                           for a codec like iSAC which encoder/decoder
-  //                           encoder has to know about decoder (bandwidth
-  //                           estimator that is updated at decoding time).
+  //   - sample_rate_hz      : sample rate.
+  //   - audio_decoder       : pointer to a decoder object. If it's null, then
+  //                           NetEq will internally create a decoder object
+  //                           based on the value of |acm_codec_id| (which
+  //                           mustn't be -1). Otherwise, NetEq will use the
+  //                           given decoder for the given payload type. NetEq
+  //                           won't take ownership of the decoder; it's up to
+  //                           the caller to delete it when it's no longer
+  //                           needed.
+  //
+  //                           Providing an existing decoder object here is
+  //                           necessary for external decoders, but may also be
+  //                           used for built-in decoders if NetEq doesn't have
+  //                           all the info it needs to construct them properly
+  //                           (e.g. iSAC, where the decoder needs to be paired
+  //                           with an encoder).
   //
   // Return value             : 0 if OK.
   //                           <0 if NetEq returned an error.
@@ -112,6 +118,7 @@ class AcmReceiver {
   int AddCodec(int acm_codec_id,
                uint8_t payload_type,
                int channels,
+               int sample_rate_hz,
                AudioDecoder* audio_decoder);
 
   //
@@ -171,27 +178,12 @@ class AcmReceiver {
   int current_sample_rate_hz() const;
 
   //
-  // Sets the playout mode.
-  //
-  // Input:
-  //   - mode                 : an enumerator specifying the playout mode.
-  //
-  void SetPlayoutMode(AudioPlayoutMode mode);
-
-  //
-  // Get the current playout mode.
-  //
-  // Return value             : The current playout mode.
-  //
-  AudioPlayoutMode PlayoutMode() const;
-
-  //
   // Get the current network statistics from NetEq.
   //
   // Output:
   //   - statistics           : The current network statistics.
   //
-  void NetworkStatistics(ACMNetworkStatistics* statistics);
+  void GetNetworkStatistics(NetworkStatistics* statistics);
 
   //
   // Enable post-decoding VAD.
@@ -246,12 +238,6 @@ class AcmReceiver {
   // returned.
   //
   int last_audio_codec_id() const;  // TODO(turajs): can be inline.
-
-  //
-  // Return the payload-type of the last non-CNG/non-DTMF RTP packet. If no
-  // non-CNG/non-DTMF packet is received -1 is returned.
-  //
-  int last_audio_payload_type() const;  // TODO(turajs): can be inline.
 
   //
   // Get the audio codec associated with the last non-CNG/non-DTMF received
@@ -312,35 +298,35 @@ class AcmReceiver {
   void GetDecodingCallStatistics(AudioDecodingCallStats* stats) const;
 
  private:
-  int PayloadType2CodecIndex(uint8_t payload_type) const;
-
   bool GetSilence(int desired_sample_rate_hz, AudioFrame* frame)
       EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
   int GetNumSyncPacketToInsert(uint16_t received_squence_number);
 
-  int RtpHeaderToCodecIndex(
-      const RTPHeader& rtp_header, const uint8_t* payload) const;
+  const Decoder* RtpHeaderToDecoder(const RTPHeader& rtp_header,
+                                    const uint8_t* payload) const
+      EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
   uint32_t NowInTimestamp(int decoder_sampling_rate) const;
 
   void InsertStreamOfSyncPackets(InitialDelayManager::SyncStream* sync_stream);
 
-  scoped_ptr<CriticalSectionWrapper> crit_sect_;
+  rtc::scoped_ptr<CriticalSectionWrapper> crit_sect_;
   int id_;  // TODO(henrik.lundin) Make const.
-  int last_audio_decoder_ GUARDED_BY(crit_sect_);
+  const Decoder* last_audio_decoder_ GUARDED_BY(crit_sect_);
   AudioFrame::VADActivity previous_audio_activity_ GUARDED_BY(crit_sect_);
   int current_sample_rate_hz_ GUARDED_BY(crit_sect_);
   ACMResampler resampler_ GUARDED_BY(crit_sect_);
   // Used in GetAudio, declared as member to avoid allocating every 10ms.
   // TODO(henrik.lundin) Stack-allocate in GetAudio instead?
-  scoped_ptr<int16_t[]> audio_buffer_ GUARDED_BY(crit_sect_);
-  scoped_ptr<int16_t[]> last_audio_buffer_ GUARDED_BY(crit_sect_);
-  scoped_ptr<Nack> nack_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<int16_t[]> audio_buffer_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<int16_t[]> last_audio_buffer_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<Nack> nack_ GUARDED_BY(crit_sect_);
   bool nack_enabled_ GUARDED_BY(crit_sect_);
   CallStatistics call_stats_ GUARDED_BY(crit_sect_);
   NetEq* neteq_;
-  Decoder decoders_[ACMCodecDB::kMaxNumCodecs];
+  // Decoders map is keyed by payload type
+  std::map<uint8_t, Decoder> decoders_ GUARDED_BY(crit_sect_);
   bool vad_enabled_;
   Clock* clock_;  // TODO(henrik.lundin) Make const if possible.
   bool resampled_last_output_frame_ GUARDED_BY(crit_sect_);
@@ -348,15 +334,15 @@ class AcmReceiver {
   // Indicates if a non-zero initial delay is set, and the receiver is in
   // AV-sync mode.
   bool av_sync_;
-  scoped_ptr<InitialDelayManager> initial_delay_manager_;
+  rtc::scoped_ptr<InitialDelayManager> initial_delay_manager_;
 
   // The following are defined as members to avoid creating them in every
   // iteration. |missing_packets_sync_stream_| is *ONLY* used in InsertPacket().
   // |late_packets_sync_stream_| is only used in GetAudio(). Both of these
   // member variables are allocated only when we AV-sync is enabled, i.e.
   // initial delay is set.
-  scoped_ptr<InitialDelayManager::SyncStream> missing_packets_sync_stream_;
-  scoped_ptr<InitialDelayManager::SyncStream> late_packets_sync_stream_;
+  rtc::scoped_ptr<InitialDelayManager::SyncStream> missing_packets_sync_stream_;
+  rtc::scoped_ptr<InitialDelayManager::SyncStream> late_packets_sync_stream_;
 };
 
 }  // namespace acm2

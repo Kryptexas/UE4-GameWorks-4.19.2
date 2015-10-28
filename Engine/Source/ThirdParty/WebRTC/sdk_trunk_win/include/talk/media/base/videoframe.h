@@ -30,16 +30,10 @@
 
 #include "webrtc/base/basictypes.h"
 #include "webrtc/base/stream.h"
+#include "webrtc/common_video/interface/video_frame_buffer.h"
+#include "webrtc/common_video/rotation.h"
 
 namespace cricket {
-
-// Simple rotation constants.
-enum {
-  ROTATION_0 = 0,
-  ROTATION_90 = 90,
-  ROTATION_180 = 180,
-  ROTATION_270 = 270
-};
 
 // Represents a YUV420 (a.k.a. I420) video frame.
 class VideoFrame {
@@ -48,53 +42,71 @@ class VideoFrame {
   virtual ~VideoFrame() {}
 
   virtual bool InitToBlack(int w, int h, size_t pixel_width,
-                           size_t pixel_height, int64_t elapsed_time,
-                           int64_t time_stamp) = 0;
+                           size_t pixel_height, int64_t time_stamp) = 0;
   // Creates a frame from a raw sample with FourCC |format| and size |w| x |h|.
   // |h| can be negative indicating a vertically flipped image.
   // |dw| is destination width; can be less than |w| if cropping is desired.
   // |dh| is destination height, like |dw|, but must be a positive number.
   // Returns whether the function succeeded or failed.
-  virtual bool Reset(uint32 fourcc, int w, int h, int dw, int dh, uint8 *sample,
-                     size_t sample_size, size_t pixel_width,
-                     size_t pixel_height, int64_t elapsed_time,
-                     int64_t time_stamp, int rotation) = 0;
+
+  virtual bool Reset(uint32_t fourcc,
+                     int w,
+                     int h,
+                     int dw,
+                     int dh,
+                     uint8_t* sample,
+                     size_t sample_size,
+                     size_t pixel_width,
+                     size_t pixel_height,
+                     int64_t time_stamp,
+                     webrtc::VideoRotation rotation,
+                     bool apply_rotation) = 0;
 
   // Basic accessors.
+  // Note this is the width and height without rotation applied.
   virtual size_t GetWidth() const = 0;
   virtual size_t GetHeight() const = 0;
+
   size_t GetChromaWidth() const { return (GetWidth() + 1) / 2; }
   size_t GetChromaHeight() const { return (GetHeight() + 1) / 2; }
   size_t GetChromaSize() const { return GetUPitch() * GetChromaHeight(); }
   // These can return NULL if the object is not backed by a buffer.
-  virtual const uint8 *GetYPlane() const = 0;
-  virtual const uint8 *GetUPlane() const = 0;
-  virtual const uint8 *GetVPlane() const = 0;
-  virtual uint8 *GetYPlane() = 0;
-  virtual uint8 *GetUPlane() = 0;
-  virtual uint8 *GetVPlane() = 0;
+  virtual const uint8_t* GetYPlane() const = 0;
+  virtual const uint8_t* GetUPlane() const = 0;
+  virtual const uint8_t* GetVPlane() const = 0;
+  virtual uint8_t* GetYPlane() = 0;
+  virtual uint8_t* GetUPlane() = 0;
+  virtual uint8_t* GetVPlane() = 0;
 
-  virtual int32 GetYPitch() const = 0;
-  virtual int32 GetUPitch() const = 0;
-  virtual int32 GetVPitch() const = 0;
+  virtual int32_t GetYPitch() const = 0;
+  virtual int32_t GetUPitch() const = 0;
+  virtual int32_t GetVPitch() const = 0;
 
   // Returns the handle of the underlying video frame. This is used when the
   // frame is backed by a texture. The object should be destroyed when it is no
   // longer in use, so the underlying resource can be freed.
   virtual void* GetNativeHandle() const = 0;
 
+  // Returns the underlying video frame buffer. This function is ok to call
+  // multiple times, but the returned object will refer to the same memory.
+  virtual rtc::scoped_refptr<webrtc::VideoFrameBuffer> GetVideoFrameBuffer()
+      const = 0;
+
   // For retrieving the aspect ratio of each pixel. Usually this is 1x1, but
   // the aspect_ratio_idc parameter of H.264 can specify non-square pixels.
   virtual size_t GetPixelWidth() const = 0;
   virtual size_t GetPixelHeight() const = 0;
 
-  virtual int64_t GetElapsedTime() const = 0;
   virtual int64_t GetTimeStamp() const = 0;
-  virtual void SetElapsedTime(int64_t elapsed_time) = 0;
   virtual void SetTimeStamp(int64_t time_stamp) = 0;
 
   // Indicates the rotation angle in degrees.
-  virtual int GetRotation() const = 0;
+  // TODO(guoweis): Remove this function, rename GetVideoRotation and remove the
+  // skeleton implementation of GetRotation once chrome is updated.
+  virtual int GetRotation() const { return GetVideoRotation(); }
+  virtual webrtc::VideoRotation GetVideoRotation() const {
+    return webrtc::kVideoRotation_0;
+  }
 
   // Make a shallow copy of the frame. The frame buffer itself is not copied.
   // Both the current and new VideoFrame will share a single reference-counted
@@ -102,9 +114,12 @@ class VideoFrame {
   virtual VideoFrame *Copy() const = 0;
 
   // Since VideoFrame supports shallow copy and the internal frame buffer might
-  // be shared, in case VideoFrame needs exclusive access of the frame buffer,
-  // user can call MakeExclusive() to make sure the frame buffer is exclusive
-  // accessable to the current object.  This might mean a deep copy of the frame
+  // be shared, this function can be used to check exclusive ownership.
+  virtual bool IsExclusive() const = 0;
+
+  // In case VideoFrame needs exclusive access of the frame buffer, user can
+  // call MakeExclusive() to make sure the frame buffer is exclusively
+  // accessible to the current object.  This might mean a deep copy of the frame
   // buffer if it is currently shared by other objects.
   virtual bool MakeExclusive() = 0;
 
@@ -112,50 +127,56 @@ class VideoFrame {
   // sufficient size. Returns the frame's actual size, regardless of whether
   // it was written or not (like snprintf). If there is insufficient space,
   // nothing is written.
-  virtual size_t CopyToBuffer(uint8 *buffer, size_t size) const = 0;
+  virtual size_t CopyToBuffer(uint8_t* buffer, size_t size) const;
 
   // Writes the frame into the given planes, stretched to the given width and
   // height. The parameter "interpolate" controls whether to interpolate or just
   // take the nearest-point. The parameter "crop" controls whether to crop this
   // frame to the aspect ratio of the given dimensions before stretching.
-  virtual bool CopyToPlanes(
-      uint8* dst_y, uint8* dst_u, uint8* dst_v,
-      int32 dst_pitch_y, int32 dst_pitch_u, int32 dst_pitch_v) const;
+  virtual bool CopyToPlanes(uint8_t* dst_y,
+                            uint8_t* dst_u,
+                            uint8_t* dst_v,
+                            int32_t dst_pitch_y,
+                            int32_t dst_pitch_u,
+                            int32_t dst_pitch_v) const;
 
   // Writes the frame into the target VideoFrame.
   virtual void CopyToFrame(VideoFrame* target) const;
+
+  // Return a copy of frame which has its pending rotation applied. The
+  // ownership of the returned frame is held by this frame.
+  virtual const VideoFrame* GetCopyWithRotationApplied() const = 0;
 
   // Writes the frame into the given stream and returns the StreamResult.
   // See webrtc/base/stream.h for a description of StreamResult and error.
   // Error may be NULL. If a non-success value is returned from
   // StreamInterface::Write(), we immediately return with that value.
-  virtual rtc::StreamResult Write(rtc::StreamInterface *stream,
-                                        int *error);
+  virtual rtc::StreamResult Write(rtc::StreamInterface* stream,
+                                  int* error) const;
 
   // Converts the I420 data to RGB of a certain type such as ARGB and ABGR.
   // Returns the frame's actual size, regardless of whether it was written or
   // not (like snprintf). Parameters size and stride_rgb are in units of bytes.
   // If there is insufficient space, nothing is written.
-  virtual size_t ConvertToRgbBuffer(uint32 to_fourcc, uint8 *buffer,
-                                    size_t size, int stride_rgb) const;
+  virtual size_t ConvertToRgbBuffer(uint32_t to_fourcc,
+                                    uint8_t* buffer,
+                                    size_t size,
+                                    int stride_rgb) const;
 
   // Writes the frame into the given planes, stretched to the given width and
   // height. The parameter "interpolate" controls whether to interpolate or just
   // take the nearest-point. The parameter "crop" controls whether to crop this
   // frame to the aspect ratio of the given dimensions before stretching.
-  virtual void StretchToPlanes(
-      uint8 *y, uint8 *u, uint8 *v, int32 pitchY, int32 pitchU, int32 pitchV,
-      size_t width, size_t height, bool interpolate, bool crop) const;
-
-  // Writes the frame into the given frame buffer, stretched to the given width
-  // and height, provided that it is of sufficient size. Returns the frame's
-  // actual size, regardless of whether it was written or not (like snprintf).
-  // If there is insufficient space, nothing is written. The parameter
-  // "interpolate" controls whether to interpolate or just take the
-  // nearest-point. The parameter "crop" controls whether to crop this frame to
-  // the aspect ratio of the given dimensions before stretching.
-  virtual size_t StretchToBuffer(size_t w, size_t h, uint8 *buffer, size_t size,
-                                 bool interpolate, bool crop) const;
+  virtual void StretchToPlanes(uint8_t* y,
+                               uint8_t* u,
+                               uint8_t* v,
+                               int32_t pitchY,
+                               int32_t pitchU,
+                               int32_t pitchV,
+                               size_t width,
+                               size_t height,
+                               bool interpolate,
+                               bool crop) const;
 
   // Writes the frame into the target VideoFrame, stretched to the size of that
   // frame. The parameter "interpolate" controls whether to interpolate or just
@@ -175,7 +196,10 @@ class VideoFrame {
   virtual bool SetToBlack();
 
   // Tests if sample is valid.  Returns true if valid.
-  static bool Validate(uint32 fourcc, int w, int h, const uint8 *sample,
+  static bool Validate(uint32_t fourcc,
+                       int w,
+                       int h,
+                       const uint8_t* sample,
                        size_t sample_size);
 
   // Size of an I420 image of given dimensions when stored as a frame buffer.
@@ -187,8 +211,8 @@ class VideoFrame {
   // Creates an empty frame.
   virtual VideoFrame *CreateEmptyFrame(int w, int h, size_t pixel_width,
                                        size_t pixel_height,
-                                       int64_t elapsed_time,
                                        int64_t time_stamp) const = 0;
+  virtual void SetRotation(webrtc::VideoRotation rotation) = 0;
 };
 
 }  // namespace cricket

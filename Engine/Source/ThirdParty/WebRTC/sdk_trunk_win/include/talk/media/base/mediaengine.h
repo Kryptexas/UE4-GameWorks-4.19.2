@@ -32,8 +32,6 @@
 #include <CoreAudio/CoreAudio.h>
 #endif
 
-#include <limits.h>
-
 #include <string>
 #include <vector>
 
@@ -42,7 +40,6 @@
 #include "talk/media/base/mediacommon.h"
 #include "talk/media/base/videocapturer.h"
 #include "talk/media/base/videocommon.h"
-#include "talk/media/base/videoprocessor.h"
 #include "talk/media/base/voiceprocessor.h"
 #include "talk/media/devices/devicemanager.h"
 #include "webrtc/base/fileutils.h"
@@ -51,6 +48,11 @@
 #if defined(GOOGLE_CHROME_BUILD) || defined(CHROMIUM_BUILD)
 #define DISABLE_MEDIA_ENGINE_FACTORY
 #endif
+
+namespace webrtc {
+class Call;
+class VoiceEngine;
+}
 
 namespace cricket {
 
@@ -62,9 +64,6 @@ class VideoCapturer;
 // proper synchronization between both media types.
 class MediaEngineInterface {
  public:
-  // Default value to be used for SetAudioDelayOffset().
-  static const int kDefaultAudioDelayOffset;
-
   virtual ~MediaEngineInterface() {}
 
   // Initialization
@@ -72,36 +71,31 @@ class MediaEngineInterface {
   virtual bool Init(rtc::Thread* worker_thread) = 0;
   // Shuts down the engine.
   virtual void Terminate() = 0;
-  // Returns what the engine is capable of, as a set of Capabilities, above.
-  virtual int GetCapabilities() = 0;
+  // TODO(solenberg): Remove once VoE API refactoring is done.
+  virtual webrtc::VoiceEngine* GetVoE() = 0;
 
   // MediaChannel creation
   // Creates a voice media channel. Returns NULL on failure.
-  virtual VoiceMediaChannel *CreateChannel() = 0;
+  virtual VoiceMediaChannel* CreateChannel(
+      webrtc::Call* call,
+      const AudioOptions& options) = 0;
   // Creates a video media channel, paired with the specified voice channel.
   // Returns NULL on failure.
   virtual VideoMediaChannel* CreateVideoChannel(
-      const VideoOptions& options,
-      VoiceMediaChannel* voice_media_channel) = 0;
-
-  // Creates a soundclip object for playing sounds on. Returns NULL on failure.
-  virtual SoundclipMedia *CreateSoundclip() = 0;
+      webrtc::Call* call,
+      const VideoOptions& options) = 0;
 
   // Configuration
   // Gets global audio options.
   virtual AudioOptions GetAudioOptions() const = 0;
   // Sets global audio options. "options" are from AudioOptions, above.
   virtual bool SetAudioOptions(const AudioOptions& options) = 0;
-  // Sets the value used by the echo canceller to offset delay values obtained
-  // from the OS.
-  virtual bool SetAudioDelayOffset(int offset) = 0;
   // Sets the default (maximum) codec/resolution and encoder option to capture
   // and encode video.
   virtual bool SetDefaultVideoEncoderConfig(const VideoEncoderConfig& config)
       = 0;
 
   // Device selection
-  // TODO(tschmelcher): Add method for selecting the soundclip device.
   virtual bool SetSoundDevices(const Device* in_device,
                                const Device* out_device) = 0;
 
@@ -111,14 +105,8 @@ class MediaEngineInterface {
   // Sets the current speaker volume, as a value between 0 and 255.
   virtual bool SetOutputVolume(int level) = 0;
 
-  // Local monitoring
   // Gets the current microphone level, as a value between 0 and 10.
   virtual int GetInputLevel() = 0;
-  // Starts or stops the local microphone. Useful if local mic info is needed
-  // prior to a call being connected; the mic will be started automatically
-  // when a VoiceMediaChannel starts sending.
-  virtual bool SetLocalMonitor(bool enable) = 0;
-  // Installs a callback for raw frames from the local camera.
 
   virtual const std::vector<AudioCodec>& audio_codecs() = 0;
   virtual const std::vector<RtpHeaderExtension>&
@@ -134,18 +122,14 @@ class MediaEngineInterface {
   // Starts AEC dump using existing file.
   virtual bool StartAecDump(rtc::PlatformFile file) = 0;
 
-  // Voice processors for effects.
-  virtual bool RegisterVoiceProcessor(uint32 ssrc,
-                                      VoiceProcessor* video_processor,
-                                      MediaProcessorDirection direction) = 0;
-  virtual bool UnregisterVoiceProcessor(uint32 ssrc,
-                                        VoiceProcessor* video_processor,
-                                        MediaProcessorDirection direction) = 0;
+  // Stops recording AEC dump.
+  virtual void StopAecDump() = 0;
 
-  virtual VideoFormat GetStartCaptureFormat() const = 0;
+  // Starts RtcEventLog using existing file.
+  virtual bool StartRtcEventLog(rtc::PlatformFile file) = 0;
 
-  virtual sigslot::repeater2<VideoCapturer*, CaptureState>&
-      SignalVideoCaptureStateChange() = 0;
+  // Stops recording an RtcEventLog.
+  virtual void StopRtcEventLog() = 0;
 };
 
 
@@ -172,35 +156,27 @@ class MediaEngineFactory {
 template<class VOICE, class VIDEO>
 class CompositeMediaEngine : public MediaEngineInterface {
  public:
-  CompositeMediaEngine() {}
   virtual ~CompositeMediaEngine() {}
   virtual bool Init(rtc::Thread* worker_thread) {
     if (!voice_.Init(worker_thread))
       return false;
-    if (!video_.Init(worker_thread)) {
-      voice_.Terminate();
-      return false;
-    }
-    SignalVideoCaptureStateChange().repeat(video_.SignalCaptureStateChange);
+    video_.Init();
     return true;
   }
   virtual void Terminate() {
-    video_.Terminate();
     voice_.Terminate();
   }
 
-  virtual int GetCapabilities() {
-    return (voice_.GetCapabilities() | video_.GetCapabilities());
+  virtual webrtc::VoiceEngine* GetVoE() {
+    return voice_.GetVoE();
   }
-  virtual VoiceMediaChannel *CreateChannel() {
-    return voice_.CreateChannel();
+  virtual VoiceMediaChannel* CreateChannel(webrtc::Call* call,
+                                           const AudioOptions& options) {
+    return voice_.CreateChannel(call, options);
   }
-  virtual VideoMediaChannel* CreateVideoChannel(const VideoOptions& options,
-                                                VoiceMediaChannel* channel) {
-    return video_.CreateChannel(options, channel);
-  }
-  virtual SoundclipMedia *CreateSoundclip() {
-    return voice_.CreateSoundclip();
+  virtual VideoMediaChannel* CreateVideoChannel(webrtc::Call* call,
+                                                const VideoOptions& options) {
+    return video_.CreateChannel(call, options);
   }
 
   virtual AudioOptions GetAudioOptions() const {
@@ -208,9 +184,6 @@ class CompositeMediaEngine : public MediaEngineInterface {
   }
   virtual bool SetAudioOptions(const AudioOptions& options) {
     return voice_.SetOptions(options);
-  }
-  virtual bool SetAudioDelayOffset(int offset) {
-    return voice_.SetDelayOffset(offset);
   }
   virtual bool SetDefaultVideoEncoderConfig(const VideoEncoderConfig& config) {
     return video_.SetDefaultEncoderConfig(config);
@@ -230,9 +203,6 @@ class CompositeMediaEngine : public MediaEngineInterface {
 
   virtual int GetInputLevel() {
     return voice_.GetInputLevel();
-  }
-  virtual bool SetLocalMonitor(bool enable) {
-    return voice_.SetLocalMonitor(enable);
   }
   virtual const std::vector<AudioCodec>& audio_codecs() {
     return voice_.codecs();
@@ -258,28 +228,19 @@ class CompositeMediaEngine : public MediaEngineInterface {
     return voice_.StartAecDump(file);
   }
 
-  virtual bool RegisterVoiceProcessor(uint32 ssrc,
-                                      VoiceProcessor* processor,
-                                      MediaProcessorDirection direction) {
-    return voice_.RegisterProcessor(ssrc, processor, direction);
+  virtual void StopAecDump() {
+    voice_.StopAecDump();
   }
-  virtual bool UnregisterVoiceProcessor(uint32 ssrc,
-                                        VoiceProcessor* processor,
-                                        MediaProcessorDirection direction) {
-    return voice_.UnregisterProcessor(ssrc, processor, direction);
+
+  virtual bool StartRtcEventLog(rtc::PlatformFile file) {
+    return voice_.StartRtcEventLog(file);
   }
-  virtual VideoFormat GetStartCaptureFormat() const {
-    return video_.GetStartCaptureFormat();
-  }
-  virtual sigslot::repeater2<VideoCapturer*, CaptureState>&
-      SignalVideoCaptureStateChange() {
-    return signal_state_change_;
-  }
+
+  virtual void StopRtcEventLog() { voice_.StopRtcEventLog(); }
 
  protected:
   VOICE voice_;
   VIDEO video_;
-  sigslot::repeater2<VideoCapturer*, CaptureState> signal_state_change_;
 };
 
 // NullVoiceEngine can be used with CompositeMediaEngine in the case where only
@@ -288,15 +249,10 @@ class NullVoiceEngine {
  public:
   bool Init(rtc::Thread* worker_thread) { return true; }
   void Terminate() {}
-  int GetCapabilities() { return 0; }
   // If you need this to return an actual channel, use FakeMediaEngine instead.
-  VoiceMediaChannel* CreateChannel() {
-    return NULL;
+  VoiceMediaChannel* CreateChannel(const AudioOptions& options) {
+    return nullptr;
   }
-  SoundclipMedia* CreateSoundclip() {
-    return NULL;
-  }
-  bool SetDelayOffset(int offset) { return true; }
   AudioOptions GetOptions() const { return AudioOptions(); }
   bool SetOptions(const AudioOptions& options) { return true; }
   bool SetDevices(const Device* in_device, const Device* out_device) {
@@ -308,19 +264,14 @@ class NullVoiceEngine {
   }
   bool SetOutputVolume(int level) { return true; }
   int GetInputLevel() { return 0; }
-  bool SetLocalMonitor(bool enable) { return true; }
   const std::vector<AudioCodec>& codecs() { return codecs_; }
   const std::vector<RtpHeaderExtension>& rtp_header_extensions() {
     return rtp_header_extensions_;
   }
   void SetLogging(int min_sev, const char* filter) {}
   bool StartAecDump(rtc::PlatformFile file) { return false; }
-  bool RegisterProcessor(uint32 ssrc,
-                         VoiceProcessor* voice_processor,
-                         MediaProcessorDirection direction) { return true; }
-  bool UnregisterProcessor(uint32 ssrc,
-                           VoiceProcessor* voice_processor,
-                           MediaProcessorDirection direction) { return true; }
+  bool StartRtcEventLog(rtc::PlatformFile file) { return false; }
+  void StopRtcEventLog() {}
 
  private:
   std::vector<AudioCodec> codecs_;
@@ -333,9 +284,9 @@ class NullVideoEngine {
  public:
   bool Init(rtc::Thread* worker_thread) { return true; }
   void Terminate() {}
-  int GetCapabilities() { return 0; }
   // If you need this to return an actual channel, use FakeMediaEngine instead.
   VideoMediaChannel* CreateChannel(
+      const VideoOptions& options,
       VoiceMediaChannel* voice_media_channel) {
     return NULL;
   }
@@ -348,9 +299,7 @@ class NullVideoEngine {
     return rtp_header_extensions_;
   }
   void SetLogging(int min_sev, const char* filter) {}
-  VideoFormat GetStartCaptureFormat() const { return VideoFormat(); }
 
-  sigslot::signal2<VideoCapturer*, CaptureState> SignalCaptureStateChange;
  private:
   std::vector<VideoCodec> codecs_;
   std::vector<RtpHeaderExtension> rtp_header_extensions_;

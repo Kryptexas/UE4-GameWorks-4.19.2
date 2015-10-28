@@ -11,13 +11,13 @@
 #ifndef WEBRTC_VOICE_ENGINE_TRANSMIT_MIXER_H
 #define WEBRTC_VOICE_ENGINE_TRANSMIT_MIXER_H
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_audio/resampler/include/push_resampler.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/audio_processing/typing_detection.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/utility/interface/file_player.h"
 #include "webrtc/modules/utility/interface/file_recorder.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/voice_engine/include/voe_base.h"
 #include "webrtc/voice_engine/level_indicator.h"
 #include "webrtc/voice_engine/monitor_module.h"
@@ -51,7 +51,7 @@ public:
         AudioProcessing* audioProcessingModule);
 
     int32_t PrepareDemux(const void* audioSamples,
-                         uint32_t nSamples,
+                         size_t nSamples,
                          uint8_t  nChannels,
                          uint32_t samplesPerSec,
                          uint16_t totalDelayMS,
@@ -173,7 +173,7 @@ private:
     void GetSendCodecInfo(int* max_sample_rate, int* max_channels);
 
     void GenerateAudioFrame(const int16_t audioSamples[],
-                            int nSamples,
+                            size_t nSamples,
                             int nChannels,
                             int samplesPerSec);
     int32_t RecordAudioToFile(uint32_t mixingFrequency);
@@ -229,7 +229,6 @@ private:
     int32_t _remainingMuteMicTimeMs;
     bool stereo_codec_;
     bool swap_stereo_channels_;
-    scoped_ptr<int16_t[]> mono_buffer_;
 };
 
 }  // namespace voe

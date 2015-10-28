@@ -37,6 +37,7 @@ class NET_EXPORT CanonicalCookie {
                   const base::Time& last_access,
                   bool secure,
                   bool httponly,
+                  bool firstpartyonly,
                   CookiePriority priority);
 
   // This constructor does canonicalization but not validation.
@@ -68,9 +69,10 @@ class NET_EXPORT CanonicalCookie {
                                  const base::Time& expiration,
                                  bool secure,
                                  bool http_only,
+                                 bool first_party_only,
                                  CookiePriority priority);
 
-  const std::string& Source() const { return source_; }
+  const GURL& Source() const { return source_; }
   const std::string& Name() const { return name_; }
   const std::string& Value() const { return value_; }
   const std::string& Domain() const { return domain_; }
@@ -81,6 +83,7 @@ class NET_EXPORT CanonicalCookie {
   const base::Time& ExpiryDate() const { return expiry_date_; }
   bool IsSecure() const { return secure_; }
   bool IsHttpOnly() const { return httponly_; }
+  bool IsFirstPartyOnly() const { return first_party_only_; }
   CookiePriority Priority() const { return priority_; }
   bool IsDomainCookie() const {
     return !domain_.empty() && domain_[0] == '.'; }
@@ -125,30 +128,33 @@ class NET_EXPORT CanonicalCookie {
 
   std::string DebugString() const;
 
-  // Returns a duplicate of this cookie.
-  CanonicalCookie* Duplicate() const;
-
-  // Returns the cookie source when cookies are set for |url|. This function
-  // is public for unit test purposes only.
-  static std::string GetCookieSourceFromURL(const GURL& url);
   static std::string CanonPath(const GURL& url, const ParsedCookie& pc);
   static base::Time CanonExpiration(const ParsedCookie& pc,
                                     const base::Time& current,
                                     const base::Time& server_time);
 
- private:
-  // NOTE: When any new members are added below, the implementation of
-  // Duplicate() must be updated to copy the new member accordingly.
+  // Cookie ordering methods.
 
+  // Returns true if the cookie is less than |other|, considering only name,
+  // domain and path. In particular, two equivalent cookies (see IsEquivalent())
+  // are identical for PartialCompare().
+  bool PartialCompare(const CanonicalCookie& other) const;
+
+  // Returns true if the cookie is less than |other|, considering all fields.
+  // FullCompare() is consistent with PartialCompare(): cookies sorted using
+  // FullCompare() are also sorted with respect to PartialCompare().
+  bool FullCompare(const CanonicalCookie& other) const;
+
+ private:
   // The source member of a canonical cookie is the origin of the URL that tried
-  // to set this cookie, minus the port number if any.  This field is not
-  // persistent though; its only used in the in-tab cookies dialog to show the
-  // user the source URL. This is used for both allowed and blocked cookies.
+  // to set this cookie.  This field is not persistent though; its only used in
+  // the in-tab cookies dialog to show the user the source URL. This is used for
+  // both allowed and blocked cookies.
   // When a CanonicalCookie is constructed from the backing store (common case)
   // this field will be null.  CanonicalCookie consumers should not rely on
   // this field unless they guarantee that the creator of those
   // CanonicalCookies properly initialized the field.
-  std::string source_;
+  GURL source_;
   std::string name_;
   std::string value_;
   std::string domain_;
@@ -158,10 +164,8 @@ class NET_EXPORT CanonicalCookie {
   base::Time last_access_date_;
   bool secure_;
   bool httponly_;
+  bool first_party_only_;
   CookiePriority priority_;
-  // NOTE: When any new members are added above this comment, the
-  // implementation of Duplicate() must be updated to copy the new member
-  // accordingly.
 };
 
 typedef std::vector<CanonicalCookie> CookieList;

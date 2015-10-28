@@ -83,6 +83,8 @@ class SpdySM : public BufferedSpdyFramerVisitorInterface, public SMInterface {
   void OnHeaders(SpdyStreamId stream_id,
                  bool has_priority,
                  SpdyPriority priority,
+                 SpdyStreamId parent_stream_id,
+                 bool exclusive,
                  bool fin,
                  const SpdyHeaderBlock& headers) override;
 
@@ -102,6 +104,11 @@ class SpdySM : public BufferedSpdyFramerVisitorInterface, public SMInterface {
                          size_t len,
                          bool fin) override;
 
+  // Called when padding is received (padding length field or padding octets).
+  // |stream_id| The stream receiving data.
+  // |len| The number of padding octets.
+  void OnStreamPadding(SpdyStreamId stream_id, size_t len) override;
+
   // Called when a SETTINGS frame is received.
   // |clear_persisted| True if the respective flag is set on the SETTINGS frame.
   void OnSettings(bool clear_persisted) override {}
@@ -118,11 +125,11 @@ class SpdySM : public BufferedSpdyFramerVisitorInterface, public SMInterface {
 
   // Called when a GOAWAY frame has been parsed.
   void OnGoAway(SpdyStreamId last_accepted_stream_id,
-                SpdyGoAwayStatus status) override {}
+                SpdyGoAwayStatus status,
+                StringPiece debug_data) override {}
 
   // Called when a WINDOW_UPDATE frame has been parsed.
-  void OnWindowUpdate(SpdyStreamId stream_id,
-                      uint32 delta_window_size) override {}
+  void OnWindowUpdate(SpdyStreamId stream_id, int delta_window_size) override {}
 
   // Called when a PUSH_PROMISE frame has been parsed.
   void OnPushPromise(SpdyStreamId stream_id,

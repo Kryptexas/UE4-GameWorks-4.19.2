@@ -12,15 +12,15 @@
 
 #include <string>
 
+#include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/audio_device/include/fake_audio_device.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
 class Clock;
-class CriticalSectionWrapper;
-class EventWrapper;
+class EventTimerWrapper;
 class FileWrapper;
 class ModuleFileUtility;
 class ThreadWrapper;
@@ -33,12 +33,12 @@ class FakeAudioDevice : public FakeAudioDeviceModule {
 
   virtual ~FakeAudioDevice();
 
-  virtual int32_t Init() OVERRIDE;
-  virtual int32_t RegisterAudioCallback(AudioTransport* callback) OVERRIDE;
+  int32_t Init() override;
+  int32_t RegisterAudioCallback(AudioTransport* callback) override;
 
-  virtual bool Playing() const OVERRIDE;
-  virtual int32_t PlayoutDelay(uint16_t* delay_ms) const OVERRIDE;
-  virtual bool Recording() const OVERRIDE;
+  bool Playing() const override;
+  int32_t PlayoutDelay(uint16_t* delay_ms) const override;
+  bool Recording() const override;
 
   void Start();
   void Stop();
@@ -48,7 +48,7 @@ class FakeAudioDevice : public FakeAudioDeviceModule {
   void CaptureAudio();
 
   static const uint32_t kFrequencyHz = 16000;
-  static const uint32_t kBufferSizeBytes = 2 * kFrequencyHz;
+  static const size_t kBufferSizeBytes = 2 * kFrequencyHz;
 
   AudioTransport* audio_callback_;
   bool capturing_;
@@ -57,11 +57,11 @@ class FakeAudioDevice : public FakeAudioDeviceModule {
   int64_t last_playout_ms_;
 
   Clock* clock_;
-  scoped_ptr<EventWrapper> tick_;
-  scoped_ptr<CriticalSectionWrapper> lock_;
-  scoped_ptr<ThreadWrapper> thread_;
-  scoped_ptr<ModuleFileUtility> file_utility_;
-  scoped_ptr<FileWrapper> input_stream_;
+  rtc::scoped_ptr<EventTimerWrapper> tick_;
+  mutable rtc::CriticalSection lock_;
+  rtc::scoped_ptr<ThreadWrapper> thread_;
+  rtc::scoped_ptr<ModuleFileUtility> file_utility_;
+  rtc::scoped_ptr<FileWrapper> input_stream_;
 };
 }  // namespace test
 }  // namespace webrtc

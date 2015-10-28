@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,6 +29,7 @@
 #define TALK_APP_WEBRTC_DATACHANNEL_H_
 
 #include <deque>
+#include <set>
 #include <string>
 
 #include "talk/app/webrtc/datachannelinterface.h"
@@ -83,6 +84,28 @@ struct InternalDataChannelInit : public DataChannelInit {
   OpenHandshakeRole open_handshake_role;
 };
 
+// Helper class to allocate unique IDs for SCTP DataChannels
+class SctpSidAllocator {
+ public:
+  // Gets the first unused odd/even id based on the DTLS role. If |role| is
+  // SSL_CLIENT, the allocated id starts from 0 and takes even numbers;
+  // otherwise, the id starts from 1 and takes odd numbers.
+  // Returns false if no id can be allocated.
+  bool AllocateSid(rtc::SSLRole role, int* sid);
+
+  // Attempts to reserve a specific sid. Returns false if it's unavailable.
+  bool ReserveSid(int sid);
+
+  // Indicates that |sid| isn't in use any more, and is thus available again.
+  void ReleaseSid(int sid);
+
+ private:
+  // Checks if |sid| is available to be assigned to a new SCTP data channel.
+  bool IsSidAvailable(int sid) const;
+
+  std::set<int> used_sids_;
+};
+
 // DataChannel is a an implementation of the DataChannelInterface based on
 // libjingle's data engine. It provides an implementation of unreliable or
 // reliabledata channels. Currently this class is specifically designed to use
@@ -114,25 +137,20 @@ class DataChannel : public DataChannelInterface,
   virtual std::string label() const { return label_; }
   virtual bool reliable() const;
   virtual bool ordered() const { return config_.ordered; }
-  virtual uint16 maxRetransmitTime() const {
+  virtual uint16_t maxRetransmitTime() const {
     return config_.maxRetransmitTime;
   }
-  virtual uint16 maxRetransmits() const {
-    return config_.maxRetransmits;
-  }
+  virtual uint16_t maxRetransmits() const { return config_.maxRetransmits; }
   virtual std::string protocol() const { return config_.protocol; }
   virtual bool negotiated() const { return config_.negotiated; }
   virtual int id() const { return config_.id; }
-  virtual uint64 buffered_amount() const;
+  virtual uint64_t buffered_amount() const;
   virtual void Close();
   virtual DataState state() const { return state_; }
   virtual bool Send(const DataBuffer& buffer);
 
   // rtc::MessageHandler override.
   virtual void OnMessage(rtc::Message* msg);
-
-  // Called if the underlying data engine is closing.
-  void OnDataEngineClose();
 
   // Called when the channel's ready to use.  That can happen when the
   // underlying DataMediaChannel becomes ready, or when this channel is a new
@@ -143,6 +161,7 @@ class DataChannel : public DataChannelInterface,
   void OnDataReceived(cricket::DataChannel* channel,
                       const cricket::ReceiveDataParams& params,
                       const rtc::Buffer& payload);
+  void OnStreamClosedRemotely(uint32_t sid);
 
   // The remote peer request that this channel should be closed.
   void RemotePeerRequestClose();
@@ -153,21 +172,29 @@ class DataChannel : public DataChannelInterface,
   // be called once.
   void SetSctpSid(int sid);
   // Called when the transport channel is created.
+  // Only needs to be called for SCTP data channels.
   void OnTransportChannelCreated();
+  // Called when the transport channel is destroyed.
+  void OnTransportChannelDestroyed();
 
   // The following methods are for RTP only.
 
   // Set the SSRC this channel should use to send data on the
   // underlying data engine. |send_ssrc| == 0 means that the channel is no
   // longer part of the session negotiation.
-  void SetSendSsrc(uint32 send_ssrc);
+  void SetSendSsrc(uint32_t send_ssrc);
   // Set the SSRC this channel should use to receive data from the
   // underlying data engine.
-  void SetReceiveSsrc(uint32 receive_ssrc);
+  void SetReceiveSsrc(uint32_t receive_ssrc);
 
   cricket::DataChannelType data_channel_type() const {
     return data_channel_type_;
   }
+
+  // Emitted when state transitions to kClosed.
+  // In the case of SCTP channels, this signal can be used to tell when the
+  // channel's sid is free.
+  sigslot::signal1<DataChannel*> SignalClosed;
 
  protected:
   DataChannel(DataChannelProviderInterface* client,
@@ -204,11 +231,20 @@ class DataChannel : public DataChannelInterface,
     size_t byte_count_;
   };
 
+  // The OPEN(_ACK) signaling state.
+  enum HandshakeState {
+    kHandshakeInit,
+    kHandshakeShouldSendOpen,
+    kHandshakeShouldSendAck,
+    kHandshakeWaitingForAck,
+    kHandshakeReady
+  };
+
   bool Init(const InternalDataChannelInit& config);
   void DoClose();
   void UpdateState();
   void SetState(DataState state);
-  void DisconnectFromTransport();
+  void DisconnectFromProvider();
 
   void DeliverQueuedReceivedData();
 
@@ -226,28 +262,18 @@ class DataChannel : public DataChannelInterface,
   DataState state_;
   cricket::DataChannelType data_channel_type_;
   DataChannelProviderInterface* provider_;
-  bool waiting_for_open_ack_;
-  bool was_ever_writable_;
+  HandshakeState handshake_state_;
   bool connected_to_provider_;
   bool send_ssrc_set_;
   bool receive_ssrc_set_;
-  uint32 send_ssrc_;
-  uint32 receive_ssrc_;
+  bool writable_;
+  uint32_t send_ssrc_;
+  uint32_t receive_ssrc_;
   // Control messages that always have to get sent out before any queued
   // data.
   PacketQueue queued_control_data_;
   PacketQueue queued_received_data_;
   PacketQueue queued_send_data_;
-};
-
-class DataChannelFactory {
- public:
-  virtual rtc::scoped_refptr<DataChannel> CreateDataChannel(
-      const std::string& label,
-      const InternalDataChannelInit* config) = 0;
-
- protected:
-  virtual ~DataChannelFactory() {}
 };
 
 // Define proxy for DataChannelInterface.
@@ -257,13 +283,13 @@ BEGIN_PROXY_MAP(DataChannel)
   PROXY_CONSTMETHOD0(std::string, label)
   PROXY_CONSTMETHOD0(bool, reliable)
   PROXY_CONSTMETHOD0(bool, ordered)
-  PROXY_CONSTMETHOD0(uint16, maxRetransmitTime)
-  PROXY_CONSTMETHOD0(uint16, maxRetransmits)
+  PROXY_CONSTMETHOD0(uint16_t, maxRetransmitTime)
+  PROXY_CONSTMETHOD0(uint16_t, maxRetransmits)
   PROXY_CONSTMETHOD0(std::string, protocol)
   PROXY_CONSTMETHOD0(bool, negotiated)
   PROXY_CONSTMETHOD0(int, id)
   PROXY_CONSTMETHOD0(DataState, state)
-  PROXY_CONSTMETHOD0(uint64, buffered_amount)
+  PROXY_CONSTMETHOD0(uint64_t, buffered_amount)
   PROXY_METHOD0(void, Close)
   PROXY_METHOD1(bool, Send, const DataBuffer&)
 END_PROXY()

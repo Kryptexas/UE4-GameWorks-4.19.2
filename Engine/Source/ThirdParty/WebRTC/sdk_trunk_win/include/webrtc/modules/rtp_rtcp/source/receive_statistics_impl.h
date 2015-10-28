@@ -15,9 +15,9 @@
 
 #include <algorithm>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/rtp_rtcp/source/bitrate.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -30,21 +30,20 @@ class StreamStatisticianImpl : public StreamStatistician {
                          StreamDataCountersCallback* rtp_callback);
   virtual ~StreamStatisticianImpl() {}
 
-  virtual bool GetStatistics(RtcpStatistics* statistics, bool reset) OVERRIDE;
-  virtual void GetDataCounters(size_t* bytes_received,
-                               uint32_t* packets_received) const OVERRIDE;
-  virtual void GetReceiveStreamDataCounters(
-      StreamDataCounters* data_counters) const OVERRIDE;
-  virtual uint32_t BitrateReceived() const OVERRIDE;
-  virtual void ResetStatistics() OVERRIDE;
-  virtual bool IsRetransmitOfOldPacket(const RTPHeader& header,
-                                       int64_t min_rtt) const OVERRIDE;
-  virtual bool IsPacketInOrder(uint16_t sequence_number) const OVERRIDE;
+  bool GetStatistics(RtcpStatistics* statistics, bool reset) override;
+  void GetDataCounters(size_t* bytes_received,
+                       uint32_t* packets_received) const override;
+  void GetReceiveStreamDataCounters(
+      StreamDataCounters* data_counters) const override;
+  uint32_t BitrateReceived() const override;
+  bool IsRetransmitOfOldPacket(const RTPHeader& header,
+                               int64_t min_rtt) const override;
+  bool IsPacketInOrder(uint16_t sequence_number) const override;
 
   void IncomingPacket(const RTPHeader& rtp_header,
                       size_t packet_length,
                       bool retransmitted);
-  void FecPacketReceived();
+  void FecPacketReceived(const RTPHeader& header, size_t packet_length);
   void SetMaxReorderingThreshold(int max_reordering_threshold);
   void ProcessBitrate();
   virtual void LastReceiveTimeNtp(uint32_t* secs, uint32_t* frac) const;
@@ -62,7 +61,7 @@ class StreamStatisticianImpl : public StreamStatistician {
   void NotifyRtcpCallback() LOCKS_EXCLUDED(stream_lock_.get());
 
   Clock* clock_;
-  scoped_ptr<CriticalSectionWrapper> stream_lock_;
+  rtc::scoped_ptr<CriticalSectionWrapper> stream_lock_;
   Bitrate incoming_bitrate_;
   uint32_t ssrc_;
   int max_reordering_threshold_;  // In number of packets or sequence numbers.
@@ -85,9 +84,6 @@ class StreamStatisticianImpl : public StreamStatistician {
   size_t received_packet_overhead_;
   StreamDataCounters receive_counters_;
 
-  // Stored counter values. Includes sum of reset counter values for the stream.
-  StreamDataCounters stored_sum_receive_counters_;
-
   // Counter values when we sent the last report.
   uint32_t last_report_inorder_packets_;
   uint32_t last_report_old_packets_;
@@ -107,35 +103,36 @@ class ReceiveStatisticsImpl : public ReceiveStatistics,
   ~ReceiveStatisticsImpl();
 
   // Implement ReceiveStatistics.
-  virtual void IncomingPacket(const RTPHeader& header,
-                              size_t packet_length,
-                              bool retransmitted) OVERRIDE;
-  virtual void FecPacketReceived(uint32_t ssrc) OVERRIDE;
-  virtual StatisticianMap GetActiveStatisticians() const OVERRIDE;
-  virtual StreamStatistician* GetStatistician(uint32_t ssrc) const OVERRIDE;
-  virtual void SetMaxReorderingThreshold(int max_reordering_threshold) OVERRIDE;
+  void IncomingPacket(const RTPHeader& header,
+                      size_t packet_length,
+                      bool retransmitted) override;
+  void FecPacketReceived(const RTPHeader& header,
+                         size_t packet_length) override;
+  StatisticianMap GetActiveStatisticians() const override;
+  StreamStatistician* GetStatistician(uint32_t ssrc) const override;
+  void SetMaxReorderingThreshold(int max_reordering_threshold) override;
 
   // Implement Module.
-  virtual int32_t Process() OVERRIDE;
-  virtual int64_t TimeUntilNextProcess() OVERRIDE;
+  int32_t Process() override;
+  int64_t TimeUntilNextProcess() override;
 
-  virtual void RegisterRtcpStatisticsCallback(RtcpStatisticsCallback* callback)
-      OVERRIDE;
+  void RegisterRtcpStatisticsCallback(
+      RtcpStatisticsCallback* callback) override;
 
-  virtual void RegisterRtpStatisticsCallback(
-      StreamDataCountersCallback* callback) OVERRIDE;
+  void RegisterRtpStatisticsCallback(
+      StreamDataCountersCallback* callback) override;
 
  private:
-  virtual void StatisticsUpdated(const RtcpStatistics& statistics,
-                                 uint32_t ssrc) OVERRIDE;
-  virtual void CNameChanged(const char* cname, uint32_t ssrc) OVERRIDE;
-  virtual void DataCountersUpdated(const StreamDataCounters& counters,
-                                   uint32_t ssrc) OVERRIDE;
+  void StatisticsUpdated(const RtcpStatistics& statistics,
+                         uint32_t ssrc) override;
+  void CNameChanged(const char* cname, uint32_t ssrc) override;
+  void DataCountersUpdated(const StreamDataCounters& counters,
+                           uint32_t ssrc) override;
 
   typedef std::map<uint32_t, StreamStatisticianImpl*> StatisticianImplMap;
 
   Clock* clock_;
-  scoped_ptr<CriticalSectionWrapper> receive_statistics_lock_;
+  rtc::scoped_ptr<CriticalSectionWrapper> receive_statistics_lock_;
   int64_t last_rate_update_ms_;
   StatisticianImplMap statisticians_;
 

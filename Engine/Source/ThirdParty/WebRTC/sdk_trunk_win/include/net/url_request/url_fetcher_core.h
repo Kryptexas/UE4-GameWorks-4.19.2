@@ -5,6 +5,8 @@
 #ifndef NET_URL_REQUEST_URL_FETCHER_CORE_H_
 #define NET_URL_REQUEST_URL_FETCHER_CORE_H_
 
+#include <stdint.h>
+
 #include <set>
 #include <string>
 
@@ -20,6 +22,7 @@
 #include "net/http/http_request_headers.h"
 #include "net/url_request/url_fetcher.h"
 #include "net/url_request/url_request.h"
+#include "net/url_request/url_request_context_getter_observer.h"
 #include "net/url_request/url_request_status.h"
 #include "url/gurl.h"
 
@@ -36,9 +39,9 @@ class URLFetcherResponseWriter;
 class URLRequestContextGetter;
 class URLRequestThrottlerEntryInterface;
 
-class URLFetcherCore
-    : public base::RefCountedThreadSafe<URLFetcherCore>,
-      public URLRequest::Delegate {
+class URLFetcherCore : public base::RefCountedThreadSafe<URLFetcherCore>,
+                       public URLRequest::Delegate,
+                       public URLRequestContextGetterObserver {
  public:
   URLFetcherCore(URLFetcher* fetcher,
                  const GURL& original_url,
@@ -68,6 +71,9 @@ class URLFetcherCore
                          uint64 range_offset,
                          uint64 range_length,
                          scoped_refptr<base::TaskRunner> file_task_runner);
+  void SetUploadStreamFactory(
+      const std::string& upload_content_type,
+      const URLFetcher::CreateUploadStreamCallback& callback);
   void SetChunkedUpload(const std::string& upload_content_type);
   // Adds a block of data to be uploaded in a POST body. This can only be
   // called after Start().
@@ -105,11 +111,14 @@ class URLFetcherCore
   HttpResponseHeaders* GetResponseHeaders() const;
   HostPortPair GetSocketAddress() const;
   bool WasFetchedViaProxy() const;
+  bool WasCached() const;
   const GURL& GetOriginalURL() const;
   const GURL& GetURL() const;
   const URLRequestStatus& GetStatus() const;
   int GetResponseCode() const;
   const ResponseCookies& GetCookies() const;
+  int64_t GetReceivedResponseContentLength() const;
+  int64_t GetTotalReceivedBytes() const;
   // Reports that the received content was malformed (i.e. failed parsing
   // or validation). This makes the throttling logic that does exponential
   // back-off when servers are having problems treat the current request as
@@ -130,6 +139,9 @@ class URLFetcherCore
   void OnCertificateRequested(URLRequest* request,
                               SSLCertRequestInfo* cert_request_info) override;
 
+  // Overridden from URLRequestContextGetterObserver:
+  void OnContextShuttingDown() override;
+
   URLFetcherDelegate* delegate() const { return delegate_; }
   static void CancelAll();
   static int GetNumFetcherCores();
@@ -139,6 +151,7 @@ class URLFetcherCore
  private:
   friend class base::RefCountedThreadSafe<URLFetcherCore>;
 
+  // TODO(mmenke):  Remove this class.
   class Registry {
    public:
     Registry();
@@ -174,6 +187,10 @@ class URLFetcherCore
   void DidFinishWriting(int result);
   void RetryOrCompleteUrlFetch();
 
+  // Cancels the URLRequest and informs the delegate that it failed with the
+  // specified error. Must be called on network thread.
+  void CancelRequestAndInformDelegate(int result);
+
   // Deletes the request, removes it from the registry, and removes the
   // destruction observer.
   void ReleaseRequest();
@@ -203,6 +220,9 @@ class URLFetcherCore
   void InformDelegateDownloadProgressInDelegateThread(int64 current,
                                                       int64 total);
 
+  // Check if any upload data is set or not.
+  void AssertHasNoUploadData() const;
+
   URLFetcher* fetcher_;              // Corresponding fetcher object
   GURL original_url_;                // The URL we were asked to fetch
   GURL url_;                         // The URL we eventually wound up at
@@ -230,6 +250,9 @@ class URLFetcherCore
   HttpRequestHeaders extra_request_headers_;
   scoped_refptr<HttpResponseHeaders> response_headers_;
   bool was_fetched_via_proxy_;
+  bool was_cached_;
+  int64_t received_response_content_length_;
+  int64_t total_received_bytes_;
   HostPortPair socket_address_;
 
   bool upload_content_set_;          // SetUploadData has been called
@@ -239,6 +262,8 @@ class URLFetcherCore
                                      // to be uploaded.
   uint64 upload_range_length_;       // The length of the part of file to be
                                      // uploaded.
+  URLFetcher::CreateUploadStreamCallback
+      upload_stream_factory_;        // Callback to create HTTP POST payload.
   std::string upload_content_type_;  // MIME type of POST payload
   std::string referrer_;             // HTTP Referer header value and policy
   URLRequest::ReferrerPolicy referrer_policy_;
@@ -301,8 +326,7 @@ class URLFetcherCore
 
   // Timer to poll the progress of uploading for POST and PUT requests.
   // When crbug.com/119629 is fixed, scoped_ptr is not necessary here.
-  scoped_ptr<base::RepeatingTimer<URLFetcherCore> >
-      upload_progress_checker_timer_;
+  scoped_ptr<base::RepeatingTimer> upload_progress_checker_timer_;
   // Number of bytes sent so far.
   int64 current_upload_bytes_;
   // Number of bytes received so far.

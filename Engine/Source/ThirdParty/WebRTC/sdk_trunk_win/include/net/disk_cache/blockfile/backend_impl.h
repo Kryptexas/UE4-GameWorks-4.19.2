@@ -73,6 +73,7 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   int SyncDoomAllEntries();
   int SyncDoomEntriesBetween(base::Time initial_time,
                              base::Time end_time);
+  int SyncCalculateSizeOfAllEntries();
   int SyncDoomEntriesSince(base::Time initial_time);
   int SyncOpenNextEntry(Rankings::Iterator* iterator, Entry** next_entry);
   void SyncEndEnumeration(scoped_ptr<Rankings::Iterator> iterator);
@@ -249,7 +250,7 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   void TrimDeletedListForTest(bool empty);
 
   // Only intended for testing
-  base::RepeatingTimer<BackendImpl>* GetTimerForTest();
+  base::RepeatingTimer* GetTimerForTest();
 
   // Performs a simple self-check, and returns the number of dirty items
   // or an error code (negative value).
@@ -275,6 +276,7 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
                          const CompletionCallback& callback) override;
   int DoomEntriesSince(base::Time initial_time,
                        const CompletionCallback& callback) override;
+  int CalculateSizeOfAllEntries(const CompletionCallback& callback) override;
   // NOTE: The blockfile Backend::Iterator::OpenNextEntry method does not modify
   // the last_used field of the entry, and therefore it does not impact the
   // eviction ranking of the entry. However, an enumeration will go through all
@@ -395,7 +397,7 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   net::NetLog* net_log_;
 
   Stats stats_;  // Usage statistics.
-  scoped_ptr<base::RepeatingTimer<BackendImpl> > timer_;  // Usage timer.
+  scoped_ptr<base::RepeatingTimer> timer_;  // Usage timer.
   base::WaitableEvent done_;  // Signals the end of background work.
   scoped_refptr<TraceObject> trace_object_;  // Initializes internal tracing.
   base::WeakPtrFactory<BackendImpl> ptr_factory_;

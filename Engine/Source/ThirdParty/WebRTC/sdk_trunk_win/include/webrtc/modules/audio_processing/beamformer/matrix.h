@@ -12,13 +12,13 @@
 #define WEBRTC_MODULES_AUDIO_PROCESSING_BEAMFORMER_MATRIX_H_
 
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <vector>
 
 #include "webrtc/base/checks.h"
 #include "webrtc/base/constructormagic.h"
-#include "webrtc/modules/audio_processing/channel_buffer.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/scoped_ptr.h"
 
 namespace {
 
@@ -76,7 +76,7 @@ class Matrix {
 
   // Copies |data| into the new Matrix.
   Matrix(const T* data, int num_rows, int num_columns)
-      : num_rows_(num_rows), num_columns_(num_columns) {
+      : num_rows_(0), num_columns_(0) {
     CopyFrom(data, num_rows, num_columns);
     scratch_data_.resize(num_rows_ * num_columns_);
     scratch_elements_.resize(num_rows_);
@@ -91,18 +91,13 @@ class Matrix {
 
   // Copy |data| into the Matrix. The current data is lost.
   void CopyFrom(const T* const data, int num_rows, int num_columns) {
-    num_rows_ = num_rows;
-    num_columns_ = num_columns;
-    size_t size = num_rows_ * num_columns_;
-
-    data_.assign(data, data + size);
-    elements_.resize(num_rows_);
-    for (int i = 0; i < num_rows_; ++i) {
-      elements_[i] = &data_[i * num_columns_];
-    }
+    Resize(num_rows, num_columns);
+    memcpy(&data_[0], data, num_rows_ * num_columns_ * sizeof(data_[0]));
   }
 
-  Matrix& CopyFromColumn(const T* const* src, int column_index, int num_rows) {
+  Matrix& CopyFromColumn(const T* const* src,
+                         size_t column_index,
+                         int num_rows) {
     Resize(1, num_rows);
     for (int i = 0; i < num_columns_; ++i) {
       data_[i] = src[i][column_index];
@@ -112,9 +107,11 @@ class Matrix {
   }
 
   void Resize(int num_rows, int num_columns) {
-    num_rows_ = num_rows;
-    num_columns_ = num_columns;
-    Resize();
+    if (num_rows != num_rows_ || num_columns != num_columns_) {
+      num_rows_ = num_rows;
+      num_columns_ = num_columns;
+      Resize();
+    }
   }
 
   // Accessors and mutators.
@@ -124,7 +121,7 @@ class Matrix {
   const T* const* elements() const { return &elements_[0]; }
 
   T Trace() {
-    CHECK_EQ(num_rows_, num_columns_);
+    RTC_CHECK_EQ(num_rows_, num_columns_);
 
     T trace = 0;
     for (int i = 0; i < num_rows_; ++i) {
@@ -136,14 +133,13 @@ class Matrix {
   // Matrix Operations. Returns *this to support method chaining.
   Matrix& Transpose() {
     CopyDataToScratch();
-    std::swap(num_rows_, num_columns_);
-    Resize();
+    Resize(num_columns_, num_rows_);
     return Transpose(scratch_elements());
   }
 
   Matrix& Transpose(const Matrix& operand) {
-    CHECK_EQ(operand.num_rows_, num_columns_);
-    CHECK_EQ(operand.num_columns_, num_rows_);
+    RTC_CHECK_EQ(operand.num_rows_, num_columns_);
+    RTC_CHECK_EQ(operand.num_columns_, num_rows_);
 
     return Transpose(operand.elements());
   }
@@ -164,8 +160,8 @@ class Matrix {
   }
 
   Matrix& Add(const Matrix& operand) {
-    CHECK_EQ(num_rows_, operand.num_rows_);
-    CHECK_EQ(num_columns_, operand.num_columns_);
+    RTC_CHECK_EQ(num_rows_, operand.num_rows_);
+    RTC_CHECK_EQ(num_columns_, operand.num_columns_);
 
     for (size_t i = 0; i < data_.size(); ++i) {
       data_[i] += operand.data_[i];
@@ -180,8 +176,8 @@ class Matrix {
   }
 
   Matrix& Subtract(const Matrix& operand) {
-    CHECK_EQ(num_rows_, operand.num_rows_);
-    CHECK_EQ(num_columns_, operand.num_columns_);
+    RTC_CHECK_EQ(num_rows_, operand.num_rows_);
+    RTC_CHECK_EQ(num_columns_, operand.num_columns_);
 
     for (size_t i = 0; i < data_.size(); ++i) {
       data_[i] -= operand.data_[i];
@@ -196,8 +192,8 @@ class Matrix {
   }
 
   Matrix& PointwiseMultiply(const Matrix& operand) {
-    CHECK_EQ(num_rows_, operand.num_rows_);
-    CHECK_EQ(num_columns_, operand.num_columns_);
+    RTC_CHECK_EQ(num_rows_, operand.num_rows_);
+    RTC_CHECK_EQ(num_columns_, operand.num_columns_);
 
     for (size_t i = 0; i < data_.size(); ++i) {
       data_[i] *= operand.data_[i];
@@ -212,8 +208,8 @@ class Matrix {
   }
 
   Matrix& PointwiseDivide(const Matrix& operand) {
-    CHECK_EQ(num_rows_, operand.num_rows_);
-    CHECK_EQ(num_columns_, operand.num_columns_);
+    RTC_CHECK_EQ(num_rows_, operand.num_rows_);
+    RTC_CHECK_EQ(num_columns_, operand.num_columns_);
 
     for (size_t i = 0; i < data_.size(); ++i) {
       data_[i] /= operand.data_[i];
@@ -267,19 +263,18 @@ class Matrix {
   }
 
   Matrix& Multiply(const Matrix& lhs, const Matrix& rhs) {
-    CHECK_EQ(lhs.num_columns_, rhs.num_rows_);
-    CHECK_EQ(num_rows_, lhs.num_rows_);
-    CHECK_EQ(num_columns_, rhs.num_columns_);
+    RTC_CHECK_EQ(lhs.num_columns_, rhs.num_rows_);
+    RTC_CHECK_EQ(num_rows_, lhs.num_rows_);
+    RTC_CHECK_EQ(num_columns_, rhs.num_columns_);
 
     return Multiply(lhs.elements(), rhs.num_rows_, rhs.elements());
   }
 
   Matrix& Multiply(const Matrix& rhs) {
-    CHECK_EQ(num_columns_, rhs.num_rows_);
+    RTC_CHECK_EQ(num_columns_, rhs.num_rows_);
 
     CopyDataToScratch();
-    num_columns_ = rhs.num_columns_;
-    Resize();
+    Resize(num_rows_, rhs.num_columns_);
     return Multiply(scratch_elements(), rhs.num_rows_, rhs.elements());
   }
 
@@ -365,7 +360,7 @@ class Matrix {
     return *this;
   }
 
-  DISALLOW_COPY_AND_ASSIGN(Matrix);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Matrix);
 };
 
 }  // namespace webrtc

@@ -26,6 +26,8 @@ namespace webrtc {
 // forward declarations
 struct CodecInst;
 struct WebRtcRTPHeader;
+class AudioDecoder;
+class AudioEncoder;
 class AudioFrame;
 class RTPFragmentationHeader;
 
@@ -44,46 +46,21 @@ class AudioPacketizationCallback {
                            const RTPFragmentationHeader* fragmentation) = 0;
 };
 
-// Callback class used for inband Dtmf detection
-class AudioCodingFeedback {
- public:
-  virtual ~AudioCodingFeedback() {}
-
-  virtual int32_t IncomingDtmf(const uint8_t digit_dtmf,
-                               const bool end) = 0;
-};
-
 // Callback class used for reporting VAD decision
 class ACMVADCallback {
  public:
   virtual ~ACMVADCallback() {}
 
-  virtual int32_t InFrameType(int16_t frameType) = 0;
+  virtual int32_t InFrameType(FrameType frame_type) = 0;
 };
 
-// Callback class used for reporting receiver statistics
-class ACMVQMonCallback {
- public:
-  virtual ~ACMVQMonCallback() {}
-
-  virtual int32_t NetEqStatistics(
-      const int32_t id,  // current ACM id
-      const uint16_t MIUsValid,  // valid voice duration in ms
-      const uint16_t MIUsReplaced,  // concealed voice duration in ms
-      const uint8_t eventFlags,  // concealed voice flags
-      const uint16_t delayMS) = 0;  // average delay in ms
-};
-
-class AudioCodingModule: public Module {
+class AudioCodingModule {
  protected:
   AudioCodingModule() {}
 
  public:
   struct Config {
-    Config()
-        : id(0),
-          neteq_config(),
-          clock(Clock::GetRealTimeClock()) {}
+    Config() : id(0), neteq_config(), clock(Clock::GetRealTimeClock()) {}
 
     int id;
     NetEq::Config neteq_config;
@@ -99,7 +76,8 @@ class AudioCodingModule: public Module {
   //
   static AudioCodingModule* Create(int id);
   static AudioCodingModule* Create(int id, Clock* clock);
-  virtual ~AudioCodingModule() {};
+  static AudioCodingModule* Create(const Config& config);
+  virtual ~AudioCodingModule() = default;
 
   ///////////////////////////////////////////////////////////////////////////
   //   Utility functions
@@ -191,31 +169,6 @@ class AudioCodingModule: public Module {
   //
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t InitializeSender()
-  // Any encoder-related state of ACM will be initialized to the
-  // same state when ACM is created. This will not interrupt or
-  // effect decoding functionality of ACM. ACM will lose all the
-  // encoding-related settings by calling this function.
-  // For instance, a send codec has to be registered again.
-  //
-  // Return value:
-  //   -1 if failed to initialize,
-  //    0 if succeeded.
-  //
-  virtual int32_t InitializeSender() = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t ResetEncoder()
-  // This API resets the states of encoder. All the encoder settings, such as
-  // send-codec or VAD/DTX, will be preserved.
-  //
-  // Return value:
-  //   -1 if failed to initialize,
-  //    0 if succeeded.
-  //
-  virtual int32_t ResetEncoder() = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
   // int32_t RegisterSendCodec()
   // Registers a codec, specified by |send_codec|, as sending codec.
   // This API can be called multiple of times to register Codec. The last codec
@@ -244,6 +197,11 @@ class AudioCodingModule: public Module {
   //
   virtual int32_t RegisterSendCodec(const CodecInst& send_codec) = 0;
 
+  // Registers |external_speech_encoder| as encoder. The new encoder will
+  // replace any previously registered speech encoder (internal or external).
+  virtual void RegisterExternalSendCodec(
+      AudioEncoder* external_speech_encoder) = 0;
+
   ///////////////////////////////////////////////////////////////////////////
   // int32_t SendCodec()
   // Get parameters for the codec currently registered as send codec.
@@ -268,33 +226,10 @@ class AudioCodingModule: public Module {
   virtual int32_t SendFrequency() const = 0;
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t Bitrate()
-  // Get encoding bit-rate in bits per second.
-  //
-  // Return value:
-  //   positive; encoding rate in bits/sec,
-  //   -1 if an error is happened.
-  //
-  virtual int32_t SendBitrate() const = 0;
+  // Sets the bitrate to the specified value in bits/sec. If the value is not
+  // supported by the codec, it will choose another appropriate value.
+  virtual void SetBitRate(int bitrate_bps) = 0;
 
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t SetReceivedEstimatedBandwidth()
-  // Set available bandwidth [bits/sec] of the up-link channel.
-  // This information is used for traffic shaping, and is currently only
-  // supported if iSAC is the send codec.
-  //
-  // Input:
-  //   -bw                 : bandwidth in bits/sec estimated for
-  //                         up-link.
-  // Return value
-  //   -1 if error occurred in setting the bandwidth,
-  //    0 bandwidth is set successfully.
-  //
-  // TODO(henrik.lundin) Unused. Remove?
-  virtual int32_t SetReceivedEstimatedBandwidth(
-      const int32_t bw) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
   // int32_t RegisterTransportCallback()
   // Register a transport callback which will be called to deliver
   // the encoded buffers whenever Process() is called and a
@@ -315,9 +250,12 @@ class AudioCodingModule: public Module {
 
   ///////////////////////////////////////////////////////////////////////////
   // int32_t Add10MsData()
-  // Add 10MS of raw (PCM) audio data to the encoder. If the sampling
+  // Add 10MS of raw (PCM) audio data and encode it. If the sampling
   // frequency of the audio does not match the sampling frequency of the
-  // current encoder ACM will resample the audio.
+  // current encoder ACM will resample the audio. If an encoded packet was
+  // produced, it will be delivered via the callback object registered using
+  // RegisterTransportCallback, and the return value from this function will
+  // be the number of bytes encoded.
   //
   // Input:
   //   -audio_frame        : the input audio frame, containing raw audio
@@ -326,10 +264,8 @@ class AudioCodingModule: public Module {
   //                         AudioFrame.
   //
   // Return value:
-  //      0   successfully added the frame.
-  //     -1   some error occurred and data is not added.
-  //   < -1   to add the frame to the buffer n samples had to be
-  //          overwritten, -n is the return value in this case.
+  //   >= 0   number of bytes encoded.
+  //     -1   some error occurred.
   //
   virtual int32_t Add10MsData(const AudioFrame& audio_frame) = 0;
 
@@ -466,39 +402,6 @@ class AudioCodingModule: public Module {
                             ACMVADMode* vad_mode) const = 0;
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t ReplaceInternalDTXWithWebRtc()
-  // Used to replace codec internal DTX scheme with WebRtc.
-  //
-  // Input:
-  //   -use_webrtc_dtx     : if false (default) the codec built-in DTX/VAD
-  //                         scheme is used, otherwise the internal DTX is
-  //                         replaced with WebRtc DTX/VAD.
-  //
-  // Return value:
-  //   -1 if failed to replace codec internal DTX with WebRtc,
-  //    0 if succeeded.
-  //
-  virtual int32_t ReplaceInternalDTXWithWebRtc(
-      const bool use_webrtc_dtx = false) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t IsInternalDTXReplacedWithWebRtc()
-  // Get status if the codec internal DTX is replaced with WebRtc DTX.
-  // This should always be true if codec does not have an internal DTX.
-  //
-  // Output:
-  //   -uses_webrtc_dtx    : is set to true if the codec internal DTX is
-  //                         replaced with WebRtc DTX/VAD, otherwise it is set
-  //                         to false.
-  //
-  // Return value:
-  //   -1 if failed to determine if codec internal DTX is replaced with WebRtc,
-  //    0 if succeeded.
-  //
-  virtual int32_t IsInternalDTXReplacedWithWebRtc(
-      bool* uses_webrtc_dtx) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
   // int32_t RegisterVADCallback()
   // Call this method to register a callback function which is called
   // any time that ACM encounters an empty frame. That is a frame which is
@@ -534,17 +437,6 @@ class AudioCodingModule: public Module {
   virtual int32_t InitializeReceiver() = 0;
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t ResetDecoder()
-  // This API resets the states of decoders. ACM will not lose any
-  // decoder-related settings, such as registered codecs.
-  //
-  // Return value:
-  //   -1 if failed to initialize,
-  //    0 if succeeded.
-  //
-  virtual int32_t ResetDecoder() = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
   // int32_t ReceiveFrequency()
   // Get sampling frequency of the last received payload.
   //
@@ -577,8 +469,12 @@ class AudioCodingModule: public Module {
   //   -1 if failed to register the codec
   //    0 if the codec registered successfully.
   //
-  virtual int32_t RegisterReceiveCodec(
-      const CodecInst& receive_codec) = 0;
+  virtual int RegisterReceiveCodec(const CodecInst& receive_codec) = 0;
+
+  virtual int RegisterExternalReceiveCodec(int rtp_payload_type,
+                                           AudioDecoder* external_decoder,
+                                           int sample_rate_hz,
+                                           int num_channels) = 0;
 
   ///////////////////////////////////////////////////////////////////////////
   // int32_t UnregisterReceiveCodec()
@@ -694,31 +590,6 @@ class AudioCodingModule: public Module {
   virtual int LeastRequiredDelayMs() const = 0;
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t SetDtmfPlayoutStatus()
-  // Configure DTMF playout, i.e. whether out-of-band
-  // DTMF tones are played or not.
-  //
-  // Input:
-  //   -enable             : if true to enable playout out-of-band DTMF tones,
-  //                         false to disable.
-  //
-  // Return value:
-  //   -1 if the method fails, e.g. DTMF playout is not supported.
-  //    0 if the status is set successfully.
-  //
-  virtual int32_t SetDtmfPlayoutStatus(const bool enable) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // bool DtmfPlayoutStatus()
-  // Get Dtmf playout status.
-  //
-  // Return value:
-  //   true if out-of-band Dtmf tones are played,
-  //   false if playout of Dtmf tones is disabled.
-  //
-  virtual bool DtmfPlayoutStatus() const = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
   // int32_t PlayoutTimestamp()
   // The send timestamp of an RTP packet is associated with the decoded
   // audio of the packet in question. This function returns the timestamp of
@@ -733,56 +604,6 @@ class AudioCodingModule: public Module {
   //
   // TODO(tlegrand): Change function to return the timestamp.
   virtual int32_t PlayoutTimestamp(uint32_t* timestamp) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t DecoderEstimatedBandwidth()
-  // Get the estimate of the Bandwidth, in bits/second, based on the incoming
-  // stream. This API is useful in one-way communication scenarios, where
-  // the bandwidth information is sent in an out-of-band fashion.
-  // Currently only supported if iSAC is registered as a receiver.
-  //
-  // Return value:
-  //   >0 bandwidth in bits/second.
-  //   -1 if failed to get a bandwidth estimate.
-  //
-  virtual int32_t DecoderEstimatedBandwidth() const = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t SetPlayoutMode()
-  // Call this API to set the playout mode. Playout mode could be optimized
-  // for i) voice, ii) FAX or iii) streaming. In Voice mode, NetEQ is
-  // optimized to deliver highest audio quality while maintaining a minimum
-  // delay. In FAX mode, NetEQ is optimized to have few delay changes as
-  // possible and maintain a constant delay, perhaps large relative to voice
-  // mode, to avoid PLC. In streaming mode, we tolerate a little more delay
-  // to achieve better jitter robustness.
-  //
-  // Input:
-  //   -mode               : playout mode. Possible inputs are:
-  //                         "voice",
-  //                         "fax" and
-  //                         "streaming".
-  //
-  // Return value:
-  //   -1 if failed to set the mode,
-  //    0 if succeeding.
-  //
-  virtual int32_t SetPlayoutMode(const AudioPlayoutMode mode) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // AudioPlayoutMode PlayoutMode()
-  // Get playout mode, i.e. whether it is speech, FAX or streaming. See
-  // audio_coding_module_typedefs.h for definition of AudioPlayoutMode.
-  //
-  // Return value:
-  //   voice:       is for voice output,
-  //   fax:         a mode that is optimized for receiving FAX signals.
-  //                In this mode NetEq tries to maintain a constant high
-  //                delay to avoid PLC if possible.
-  //   streaming:   a mode that is suitable for streaming. In this mode we
-  //                accept longer delay to improve jitter robustness.
-  //
-  virtual AudioPlayoutMode PlayoutMode() const = 0;
 
   ///////////////////////////////////////////////////////////////////////////
   // int32_t PlayoutData10Ms(
@@ -812,67 +633,20 @@ class AudioCodingModule: public Module {
   //
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t SetISACMaxRate()
-  // Set the maximum instantaneous rate of iSAC. For a payload of B bits
-  // with a frame-size of T sec the instantaneous rate is B/T bits per
-  // second. Therefore, (B/T < |max_rate_bps|) and
-  // (B < |max_payload_len_bytes| * 8) are always satisfied for iSAC payloads,
-  // c.f SetISACMaxPayloadSize().
+  // int SetOpusApplication()
+  // Sets the intended application if current send codec is Opus. Opus uses this
+  // to optimize the encoding for applications like VOIP and music. Currently,
+  // two modes are supported: kVoip and kAudio.
   //
   // Input:
-  //   -max_rate_bps       : maximum instantaneous bit-rate given in bits/sec.
+  //   - application            : intended application.
   //
   // Return value:
-  //   -1 if failed to set the maximum rate.
-  //    0 if the maximum rate is set successfully.
+  //   -1 if current send codec is not Opus or error occurred in setting the
+  //      Opus application mode.
+  //    0 if the Opus application mode is successfully set.
   //
-  virtual int SetISACMaxRate(int max_rate_bps) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t SetISACMaxPayloadSize()
-  // Set the maximum payload size of iSAC packets. No iSAC payload,
-  // regardless of its frame-size, may exceed the given limit. For
-  // an iSAC payload of size B bits and frame-size T seconds we have;
-  // (B < |max_payload_len_bytes| * 8) and (B/T < |max_rate_bps|), c.f.
-  // SetISACMaxRate().
-  //
-  // Input:
-  //   -max_payload_len_bytes : maximum payload size in bytes.
-  //
-  // Return value:
-  //   -1 if failed to set the maximum  payload-size.
-  //    0 if the given length is set successfully.
-  //
-  virtual int SetISACMaxPayloadSize(int max_payload_len_bytes) = 0;
-
-  ///////////////////////////////////////////////////////////////////////////
-  // int32_t ConfigISACBandwidthEstimator()
-  // Call this function to configure the bandwidth estimator of ISAC.
-  // During the adaptation of bit-rate, iSAC automatically adjusts the
-  // frame-size (either 30 or 60 ms) to save on RTP header. The initial
-  // frame-size can be specified by the first argument. The configuration also
-  // regards the initial estimate of bandwidths. The estimator starts from
-  // this point and converges to the actual bottleneck. This is given by the
-  // second parameter. Furthermore, it is also possible to control the
-  // adaptation of frame-size. This is specified by the last parameter.
-  //
-  // Input:
-  //   -init_frame_size_ms : initial frame-size in milliseconds. For iSAC-wb
-  //                         30 ms and 60 ms (default) are acceptable values,
-  //                         and for iSAC-swb 30 ms is the only acceptable
-  //                         value. Zero indicates default value.
-  //   -init_rate_bps      : initial estimate of the bandwidth. Values
-  //                         between 10000 and 58000 are acceptable.
-  //   -enforce_srame_size : if true, the frame-size will not be adapted.
-  //
-  // Return value:
-  //   -1 if failed to configure the bandwidth estimator,
-  //    0 if the configuration was successfully applied.
-  //
-  virtual int32_t ConfigISACBandwidthEstimator(
-      int init_frame_size_ms,
-      int init_rate_bps,
-      bool enforce_frame_size = false) = 0;
+  virtual int SetOpusApplication(OpusApplicationMode application) = 0;
 
   ///////////////////////////////////////////////////////////////////////////
   // int SetOpusMaxPlaybackRate()
@@ -886,16 +660,37 @@ class AudioCodingModule: public Module {
   // Return value:
   //   -1 if current send codec is not Opus or
   //      error occurred in setting the maximum playback rate,
-  //    0 maximum bandwidth is set successfully.
+  //    0 if maximum bandwidth is set successfully.
   //
   virtual int SetOpusMaxPlaybackRate(int frequency_hz) = 0;
+
+  ///////////////////////////////////////////////////////////////////////////
+  // EnableOpusDtx()
+  // Enable the DTX, if current send codec is Opus.
+  //
+  // Return value:
+  //   -1 if current send codec is not Opus or error occurred in enabling the
+  //      Opus DTX.
+  //    0 if Opus DTX is enabled successfully.
+  //
+  virtual int EnableOpusDtx() = 0;
+
+  ///////////////////////////////////////////////////////////////////////////
+  // int DisableOpusDtx()
+  // If current send codec is Opus, disables its internal DTX.
+  //
+  // Return value:
+  //   -1 if current send codec is not Opus or error occurred in disabling DTX.
+  //    0 if Opus DTX is disabled successfully.
+  //
+  virtual int DisableOpusDtx() = 0;
 
   ///////////////////////////////////////////////////////////////////////////
   //   statistics
   //
 
   ///////////////////////////////////////////////////////////////////////////
-  // int32_t  NetworkStatistics()
+  // int32_t  GetNetworkStatistics()
   // Get network statistics. Note that the internal statistics of NetEq are
   // reset by this call.
   //
@@ -906,8 +701,8 @@ class AudioCodingModule: public Module {
   //   -1 if failed to set the network statistics,
   //    0 if statistics are set successfully.
   //
-  virtual int32_t NetworkStatistics(
-      ACMNetworkStatistics* network_statistics) = 0;
+  virtual int32_t GetNetworkStatistics(
+      NetworkStatistics* network_statistics) = 0;
 
   //
   // Set an initial delay for playout.
@@ -954,186 +749,6 @@ class AudioCodingModule: public Module {
   virtual std::vector<uint16_t> GetNackList(
       int64_t round_trip_time_ms) const = 0;
 
-  virtual void GetDecodingCallStatistics(
-      AudioDecodingCallStats* call_stats) const = 0;
-};
-
-class AudioEncoder;
-class ReceiverInfo;
-
-class AudioCoding {
- public:
-  struct Config {
-    Config()
-        : neteq_config(),
-          clock(Clock::GetRealTimeClock()),
-          transport(NULL),
-          vad_callback(NULL),
-          play_dtmf(true),
-          initial_playout_delay_ms(0),
-          playout_channels(1),
-          playout_frequency_hz(32000) {}
-
-    AudioCodingModule::Config ToOldConfig() const {
-      AudioCodingModule::Config old_config;
-      old_config.id = 0;
-      old_config.neteq_config = neteq_config;
-      old_config.clock = clock;
-      return old_config;
-    }
-
-    NetEq::Config neteq_config;
-    Clock* clock;
-    AudioPacketizationCallback* transport;
-    ACMVADCallback* vad_callback;
-    bool play_dtmf;
-    int initial_playout_delay_ms;
-    int playout_channels;
-    int playout_frequency_hz;
-  };
-
-  static AudioCoding* Create(const Config& config);
-  virtual ~AudioCoding() {};
-
-  // Registers a codec, specified by |send_codec|, as sending codec.
-  // This API can be called multiple times. The last codec registered overwrites
-  // the previous ones. Returns true if successful, false if not.
-  //
-  // Note: If a stereo codec is registered as send codec, VAD/DTX will
-  // automatically be turned off, since it is not supported for stereo sending.
-  virtual bool RegisterSendCodec(AudioEncoder* send_codec) = 0;
-
-  // Temporary solution to be used during refactoring:
-  // |encoder_type| should be from the anonymous enum in acm2::ACMCodecDB.
-  virtual bool RegisterSendCodec(int encoder_type,
-                                 uint8_t payload_type,
-                                 int frame_size_samples = 0) = 0;
-
-  // Returns the encoder object currently in use. This is the same as the
-  // codec that was registered in the latest call to RegisterSendCodec().
-  virtual const AudioEncoder* GetSenderInfo() const = 0;
-
-  // Temporary solution to be used during refactoring.
-  virtual const CodecInst* GetSenderCodecInst() = 0;
-
-  // Adds 10 ms of raw (PCM) audio data to the encoder. If the sampling
-  // frequency of the audio does not match the sampling frequency of the
-  // current encoder, ACM will resample the audio.
-  //
-  // Return value:
-  //      0   successfully added the frame.
-  //     -1   some error occurred and data is not added.
-  //   < -1   to add the frame to the buffer n samples had to be
-  //          overwritten, -n is the return value in this case.
-  // TODO(henrik.lundin): Make a better design for the return values. This one
-  // is just a copy of the old API.
-  virtual int Add10MsAudio(const AudioFrame& audio_frame) = 0;
-
-  // Returns a combined info about the currently used decoder(s).
-  virtual const ReceiverInfo* GetReceiverInfo() const = 0;
-
-  // Registers a codec, specified by |receive_codec|, as receiving codec.
-  // This API can be called multiple times. If registering with a payload type
-  // that was already registered in a previous call, the latest call will
-  // override previous calls. Returns true if successful, false if not.
-  virtual bool RegisterReceiveCodec(AudioDecoder* receive_codec) = 0;
-
-  // Temporary solution:
-  // |decoder_type| should be from the anonymous enum in acm2::ACMCodecDB.
-  virtual bool RegisterReceiveCodec(int decoder_type, uint8_t payload_type) = 0;
-
-  // The following two methods both inserts a new packet to the receiver.
-  // InsertPacket takes an RTP header input in |rtp_info|, while InsertPayload
-  // only requires a payload type and a timestamp. The latter assumes that the
-  // payloads come in the right order, and without any losses. In both cases,
-  // |incoming_payload| contains the RTP payload after the RTP header. Return
-  // true if successful, false if not.
-  virtual bool InsertPacket(const uint8_t* incoming_payload,
-                            size_t payload_len_bytes,
-                            const WebRtcRTPHeader& rtp_info) = 0;
-
-  // TODO(henrik.lundin): Remove this method?
-  virtual bool InsertPayload(const uint8_t* incoming_payload,
-                             size_t payload_len_byte,
-                             uint8_t payload_type,
-                             uint32_t timestamp) = 0;
-
-  // These two methods set a minimum and maximum jitter buffer delay in
-  // milliseconds. The pupose is mainly to adjust the delay to synchronize
-  // audio and video. The preferred jitter buffer size, computed by NetEq based
-  // on the current channel conditions, is clamped from below and above by these
-  // two methods. The given delay limits must be non-negative, less than
-  // 10000 ms, and the minimum must be strictly smaller than the maximum.
-  // Further, the maximum must be at lest one frame duration. If these
-  // conditions are not met, false is returned. Giving the value 0 effectively
-  // unsets the minimum or maximum delay limits.
-  // Note that calling these methods is optional. If not called, NetEq will
-  // determine the optimal buffer size based on the network conditions.
-  virtual bool SetMinimumPlayoutDelay(int time_ms) = 0;
-
-  virtual bool SetMaximumPlayoutDelay(int time_ms) = 0;
-
-  // Returns the current value of the jitter buffer's preferred latency. This
-  // is computed based on inter-arrival times and playout mode of NetEq. The
-  // actual target delay is this value clamped from below and above by the
-  // values specified through SetMinimumPlayoutDelay() and
-  // SetMaximumPlayoutDelay(), respectively, if provided.
-  // TODO(henrik.lundin) Rename to PreferredDelayMs?
-  virtual int LeastRequiredDelayMs() const = 0;
-
-  // The send timestamp of an RTP packet is associated with the decoded
-  // audio of the packet in question. This function returns the timestamp of
-  // the latest audio delivered by Get10MsAudio(). Returns false if no timestamp
-  // can be provided, true otherwise.
-  virtual bool PlayoutTimestamp(uint32_t* timestamp) = 0;
-
-  // Delivers 10 ms of audio in |audio_frame|. Returns true if successful,
-  // false otherwise.
-  virtual bool Get10MsAudio(AudioFrame* audio_frame) = 0;
-
-  // Returns the network statistics. Note that the internal statistics of NetEq
-  // are reset by this call. Returns true if successful, false otherwise.
-  virtual bool NetworkStatistics(ACMNetworkStatistics* network_statistics) = 0;
-
-  // Enables NACK and sets the maximum size of the NACK list. If NACK is already
-  // enabled then the maximum NACK list size is modified accordingly. Returns
-  // true if successful, false otherwise.
-  //
-  // If the sequence number of last received packet is N, the sequence numbers
-  // of NACK list are in the range of [N - |max_nack_list_size|, N).
-  //
-  // |max_nack_list_size| should be positive and less than or equal to
-  // |Nack::kNackListSizeLimit|.
-  virtual bool EnableNack(size_t max_nack_list_size) = 0;
-
-  // Disables NACK.
-  virtual void DisableNack() = 0;
-
-
-  // Temporary solution to be used during refactoring.
-  // If DTX is enabled and the codec does not have internal DTX/VAD
-  // WebRtc VAD will be automatically enabled and |enable_vad| is ignored.
-  //
-  // If DTX is disabled but VAD is enabled no DTX packets are sent,
-  // regardless of whether the codec has internal DTX/VAD or not. In this
-  // case, WebRtc VAD is running to label frames as active/in-active.
-  //
-  // NOTE! VAD/DTX is not supported when sending stereo.
-  //
-  // Return true if successful, false otherwise.
-  virtual bool SetVad(bool enable_dtx,
-                      bool enable_vad,
-                      ACMVADMode vad_mode) = 0;
-
-  // Returns a list of packets to request retransmission of.
-  // |round_trip_time_ms| is an estimate of the round-trip-time (in
-  // milliseconds). Missing packets which will be decoded sooner than the
-  // round-trip-time (with respect to the time this API is called) will not be
-  // included in the list.
-  // |round_trip_time_ms| must be non-negative.
-  virtual std::vector<uint16_t> GetNackList(int round_trip_time_ms) const = 0;
-
-  // Returns the timing statistics for calls to Get10MsAudio.
   virtual void GetDecodingCallStatistics(
       AudioDecodingCallStats* call_stats) const = 0;
 };

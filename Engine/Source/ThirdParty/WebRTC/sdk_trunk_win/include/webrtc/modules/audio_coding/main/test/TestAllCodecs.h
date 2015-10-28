@@ -11,10 +11,10 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_TESTALLCODECS_H_
 #define WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_TESTALLCODECS_H_
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/audio_coding/main/test/ACMTest.h"
 #include "webrtc/modules/audio_coding/main/test/Channel.h"
 #include "webrtc/modules/audio_coding/main/test/PCMFile.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -28,13 +28,12 @@ class TestPack : public AudioPacketizationCallback {
 
   void RegisterReceiverACM(AudioCodingModule* acm);
 
-  virtual int32_t SendData(
-      FrameType frame_type,
-      uint8_t payload_type,
-      uint32_t timestamp,
-      const uint8_t* payload_data,
-      size_t payload_size,
-      const RTPFragmentationHeader* fragmentation) OVERRIDE;
+  int32_t SendData(FrameType frame_type,
+                   uint8_t payload_type,
+                   uint32_t timestamp,
+                   const uint8_t* payload_data,
+                   size_t payload_size,
+                   const RTPFragmentationHeader* fragmentation) override;
 
   size_t payload_size();
   uint32_t timestamp_diff();
@@ -55,7 +54,7 @@ class TestAllCodecs : public ACMTest {
   explicit TestAllCodecs(int test_mode);
   ~TestAllCodecs();
 
-  virtual void Perform() OVERRIDE;
+  void Perform() override;
 
  private:
   // The default value of '-1' indicates that the registration is based only on
@@ -70,8 +69,8 @@ class TestAllCodecs : public ACMTest {
   void DisplaySendReceiveCodec();
 
   int test_mode_;
-  scoped_ptr<AudioCodingModule> acm_a_;
-  scoped_ptr<AudioCodingModule> acm_b_;
+  rtc::scoped_ptr<AudioCodingModule> acm_a_;
+  rtc::scoped_ptr<AudioCodingModule> acm_b_;
   TestPack* channel_a_to_b_;
   PCMFile infile_a_;
   PCMFile outfile_b_;

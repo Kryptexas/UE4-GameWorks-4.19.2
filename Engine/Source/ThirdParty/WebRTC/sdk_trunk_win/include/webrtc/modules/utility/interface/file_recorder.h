@@ -12,13 +12,12 @@
 #define WEBRTC_MODULES_UTILITY_INTERFACE_FILE_RECORDER_H_
 
 #include "webrtc/common_types.h"
-#include "webrtc/common_video/interface/i420_video_frame.h"
 #include "webrtc/engine_configurations.h"
-#include "webrtc/modules/audio_coding/main/interface/audio_coding_module_typedefs.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/media_file/interface/media_file_defines.h"
 #include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/typedefs.h"
+#include "webrtc/video_frame.h"
 
 namespace webrtc {
 
@@ -26,8 +25,7 @@ class FileRecorder
 {
 public:
 
-    // Note: will return NULL for video file formats (e.g. AVI) if the flag
-    //       WEBRTC_MODULE_UTILITY_VIDEO is not defined.
+    // Note: will return NULL for unsupported formats.
     static FileRecorder* CreateFileRecorder(const uint32_t instanceID,
                                             const FileFormats fileFormat);
 
@@ -41,14 +39,12 @@ public:
     virtual int32_t StartRecordingAudioFile(
         const char* fileName,
         const CodecInst& codecInst,
-        uint32_t notification,
-        ACMAMRPackingFormat amrFormat = AMRFileStorage) = 0;
+        uint32_t notification) = 0;
 
     virtual int32_t StartRecordingAudioFile(
         OutStream& destStream,
         const CodecInst& codecInst,
-        uint32_t notification,
-        ACMAMRPackingFormat amrFormat = AMRFileStorage) = 0;
+        uint32_t notification) = 0;
 
     // Stop recording.
     // Note: this API is for both audio and video.
@@ -75,12 +71,10 @@ public:
         const char* fileName,
         const CodecInst& audioCodecInst,
         const VideoCodec& videoCodecInst,
-        ACMAMRPackingFormat amrFormat = AMRFileStorage,
         bool videoOnly = false) = 0;
 
     // Record the video frame in videoFrame to AVI file.
-    virtual int32_t RecordVideoToFile(
-        const I420VideoFrame& videoFrame) = 0;
+    virtual int32_t RecordVideoToFile(const VideoFrame& videoFrame) = 0;
 
 protected:
     virtual ~FileRecorder() {}

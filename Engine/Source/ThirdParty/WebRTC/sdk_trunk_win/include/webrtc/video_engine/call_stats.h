@@ -14,8 +14,8 @@
 #include <list>
 
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/interface/module.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -32,8 +32,8 @@ class CallStats : public Module {
   ~CallStats();
 
   // Implements Module, to use the process thread.
-  virtual int64_t TimeUntilNextProcess() OVERRIDE;
-  virtual int32_t Process() OVERRIDE;
+  int64_t TimeUntilNextProcess() override;
+  int32_t Process() override;
 
   // Returns a RtcpRttStats to register at a statistics provider. The object
   // has the same lifetime as the CallStats instance.
@@ -58,9 +58,9 @@ class CallStats : public Module {
 
  private:
   // Protecting all members.
-  scoped_ptr<CriticalSectionWrapper> crit_;
+  rtc::scoped_ptr<CriticalSectionWrapper> crit_;
   // Observer receiving statistics updates.
-  scoped_ptr<RtcpRttStats> rtcp_rtt_stats_;
+  rtc::scoped_ptr<RtcpRttStats> rtcp_rtt_stats_;
   // The last time 'Process' resulted in statistic update.
   int64_t last_process_time_;
   // The last RTT in the statistics update (zero if there is no valid estimate).
@@ -73,7 +73,7 @@ class CallStats : public Module {
   // Observers getting stats reports.
   std::list<CallStatsObserver*> observers_;
 
-  DISALLOW_COPY_AND_ASSIGN(CallStats);
+  RTC_DISALLOW_COPY_AND_ASSIGN(CallStats);
 };
 
 }  // namespace webrtc

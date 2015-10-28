@@ -10,7 +10,6 @@
 #include "base/basictypes.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
-#include "base/profiler/scoped_tracker.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
 #include "net/base/host_port_pair.h"
@@ -18,7 +17,7 @@
 #include "net/dns/single_request_host_resolver.h"
 #include "net/socket/client_socket_pool.h"
 #include "net/socket/client_socket_pool_base.h"
-#include "net/socket/client_socket_pool_histograms.h"
+#include "net/socket/connection_attempts.h"
 
 namespace net {
 
@@ -169,6 +168,7 @@ class NET_EXPORT_PRIVATE TransportConnectJob : public ConnectJob {
 
   // ConnectJob methods.
   LoadState GetLoadState() const override;
+  void GetAdditionalErrorState(ClientSocketHandle* handle) override;
 
   // Rolls |addrlist| forward until the first IPv4 address, if any.
   // WARNING: this method should only be used to implement the prefer-IPv4 hack.
@@ -197,6 +197,8 @@ class NET_EXPORT_PRIVATE TransportConnectJob : public ConnectJob {
   // Otherwise, it returns a net error code.
   int ConnectInternal() override;
 
+  void CopyConnectionAttemptsFromSockets();
+
   TransportConnectJobHelper helper_;
 
   scoped_ptr<StreamSocket> transport_socket_;
@@ -204,10 +206,20 @@ class NET_EXPORT_PRIVATE TransportConnectJob : public ConnectJob {
   scoped_ptr<StreamSocket> fallback_transport_socket_;
   scoped_ptr<AddressList> fallback_addresses_;
   base::TimeTicks fallback_connect_start_time_;
-  base::OneShotTimer<TransportConnectJob> fallback_timer_;
+  base::OneShotTimer fallback_timer_;
 
   // Track the interval between this connect and previous connect.
   ConnectInterval interval_between_connects_;
+
+  int resolve_result_;
+
+  // Used in the failure case to save connection attempts made on the main and
+  // fallback sockets and pass them on in |GetAdditionalErrorState|. (In the
+  // success case, connection attempts are passed through the returned socket;
+  // attempts are copied from the other socket, if one exists, into it before
+  // it is returned.)
+  ConnectionAttempts connection_attempts_;
+  ConnectionAttempts fallback_connection_attempts_;
 
   DISALLOW_COPY_AND_ASSIGN(TransportConnectJob);
 };
@@ -219,7 +231,6 @@ class NET_EXPORT_PRIVATE TransportClientSocketPool : public ClientSocketPool {
   TransportClientSocketPool(
       int max_sockets,
       int max_sockets_per_group,
-      ClientSocketPoolHistograms* histograms,
       HostResolver* host_resolver,
       ClientSocketFactory* client_socket_factory,
       NetLog* net_log);
@@ -248,12 +259,11 @@ class NET_EXPORT_PRIVATE TransportClientSocketPool : public ClientSocketPool {
   int IdleSocketCountInGroup(const std::string& group_name) const override;
   LoadState GetLoadState(const std::string& group_name,
                          const ClientSocketHandle* handle) const override;
-  base::DictionaryValue* GetInfoAsValue(
+  scoped_ptr<base::DictionaryValue> GetInfoAsValue(
       const std::string& name,
       const std::string& type,
       bool include_nested_pools) const override;
   base::TimeDelta ConnectionTimeout() const override;
-  ClientSocketPoolHistograms* histograms() const override;
 
   // HigherLayeredPool implementation.
   bool IsStalled() const override;
@@ -320,18 +330,7 @@ void TransportConnectJobHelper::SetOnIOComplete(T* job) {
 
 template <class T>
 void TransportConnectJobHelper::OnIOComplete(T* job, int result) {
-  // TODO(vadimt): Remove ScopedTracker below once crbug.com/436634 is fixed.
-  tracked_objects::ScopedTracker tracking_profile(
-      FROM_HERE_WITH_EXPLICIT_FUNCTION(
-          "436634 TransportConnectJobHelper::OnIOComplete"));
-
   result = this->DoLoop(job, result);
-
-  // TODO(vadimt): Remove ScopedTracker below once crbug.com/436634 is fixed.
-  tracked_objects::ScopedTracker tracking_profile1(
-      FROM_HERE_WITH_EXPLICIT_FUNCTION(
-          "436634 TransportConnectJobHelper::OnIOComplete1"));
-
   if (result != ERR_IO_PENDING)
     job->NotifyDelegateOfCompletion(result);  // Deletes |job| and |this|
 }

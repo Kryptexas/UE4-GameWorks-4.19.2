@@ -11,6 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_AEC_INCLUDE_ECHO_CANCELLATION_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_AEC_INCLUDE_ECHO_CANCELLATION_H_
 
+#include <stddef.h>
+
 #include "webrtc/typedefs.h"
 
 // Errors
@@ -64,19 +66,10 @@ extern "C" {
 
 /*
  * Allocates the memory needed by the AEC. The memory needs to be initialized
- * separately using the WebRtcAec_Init() function.
- *
- * Inputs                       Description
- * -------------------------------------------------------------------
- * void**  aecInst              Pointer to the AEC instance to be created
- *                              and initialized
- *
- * Outputs                      Description
- * -------------------------------------------------------------------
- * int32_t return               0: OK
- *                             -1: error
+ * separately using the WebRtcAec_Init() function. Returns a pointer to the
+ * object or NULL on error.
  */
-int32_t WebRtcAec_Create(void** aecInst);
+void* WebRtcAec_Create();
 
 /*
  * This function releases the memory allocated by WebRtcAec_Create().
@@ -84,13 +77,8 @@ int32_t WebRtcAec_Create(void** aecInst);
  * Inputs                       Description
  * -------------------------------------------------------------------
  * void*        aecInst         Pointer to the AEC instance
- *
- * Outputs                      Description
- * -------------------------------------------------------------------
- * int32_t      return          0: OK
- *                             -1: error
  */
-int32_t WebRtcAec_Free(void* aecInst);
+void WebRtcAec_Free(void* aecInst);
 
 /*
  * Initializes an AEC instance.
@@ -125,7 +113,7 @@ int32_t WebRtcAec_Init(void* aecInst, int32_t sampFreq, int32_t scSampFreq);
  */
 int32_t WebRtcAec_BufferFarend(void* aecInst,
                                const float* farend,
-                               int16_t nrOfSamples);
+                               size_t nrOfSamples);
 
 /*
  * Runs the echo canceller on an 80 or 160 sample blocks of data.
@@ -152,9 +140,9 @@ int32_t WebRtcAec_BufferFarend(void* aecInst,
  */
 int32_t WebRtcAec_Process(void* aecInst,
                           const float* const* nearend,
-                          int num_bands,
+                          size_t num_bands,
                           float* const* out,
-                          int16_t nrOfSamples,
+                          size_t nrOfSamples,
                           int16_t msInSndCardBuf,
                           int32_t skew);
 
@@ -211,17 +199,22 @@ int WebRtcAec_GetMetrics(void* handle, AecMetrics* metrics);
  *
  * Inputs                       Description
  * -------------------------------------------------------------------
- * void*      handle            Pointer to the AEC instance
+ * void*   handle               Pointer to the AEC instance
  *
  * Outputs                      Description
  * -------------------------------------------------------------------
- * int*       median            Delay median value.
- * int*       std               Delay standard deviation.
+ * int*    median               Delay median value.
+ * int*    std                  Delay standard deviation.
+ * float*  fraction_poor_delays Fraction of the delay estimates that may
+ *                              cause the AEC to perform poorly.
  *
- * int        return             0: OK
+ * int     return                0: OK
  *                              -1: error
  */
-int WebRtcAec_GetDelayMetrics(void* handle, int* median, int* std);
+int WebRtcAec_GetDelayMetrics(void* handle,
+                              int* median,
+                              int* std,
+                              float* fraction_poor_delays);
 
 /*
  * Gets the last error code.

@@ -11,19 +11,20 @@
 #ifndef NET_URL_REQUEST_SDCH_DICTIONARY_FETCHER_H_
 #define NET_URL_REQUEST_SDCH_DICTIONARY_FETCHER_H_
 
-#include <queue>
-#include <set>
 #include <string>
 
+#include "base/macros.h"
+#include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
-#include "base/memory/weak_ptr.h"
 #include "base/threading/non_thread_safe.h"
 #include "net/base/sdch_manager.h"
 #include "net/url_request/url_fetcher_delegate.h"
 #include "net/url_request/url_request.h"
+#include "url/gurl.h"
 
 namespace net {
 
+class BoundNetLog;
 class URLRequest;
 class URLRequestThrottlerEntryInterface;
 
@@ -37,22 +38,28 @@ class NET_EXPORT SdchDictionaryFetcher : public URLRequest::Delegate,
  public:
   typedef base::Callback<void(const std::string& dictionary_text,
                               const GURL& dictionary_url,
-                              const BoundNetLog& net_log)>
+                              const BoundNetLog& net_log,
+                              bool was_from_cache)>
       OnDictionaryFetchedCallback;
 
   // The consumer must guarantee that |*context| outlives this object.
-  // |callback| will be called on successful dictionary fetch
-  // requested through Schedule().  |callback| will not be called
-  // after object destruction.
-  SdchDictionaryFetcher(URLRequestContext* context,
-                        const OnDictionaryFetchedCallback& callback);
+  explicit SdchDictionaryFetcher(URLRequestContext* context);
   ~SdchDictionaryFetcher() override;
 
-  // Request a new dictionary fetch.
-  void Schedule(const GURL& dictionary_url);
+  // Request a new dictionary fetch.  The callback will be called
+  // only if the dictionary is successfully fetched. Returns true if a
+  // request for |dictionary_url| has been scheduled, and false otherwise.
+  virtual bool Schedule(const GURL& dictionary_url,
+                        const OnDictionaryFetchedCallback& callback);
+
+  // Request a dictionary fetch from cache only.  The callback will be called
+  // only if the dictionary is successfully fetched. Returns true if a request
+  // for |dictionary_url| has been scheduled, and false otherwise.
+  virtual bool ScheduleReload(const GURL& dictionary_url,
+                              const OnDictionaryFetchedCallback& callback);
 
   // Cancel any in-progress requests.
-  void Cancel();
+  virtual void Cancel();
 
   // Implementation of URLRequest::Delegate methods.
   void OnResponseStarted(URLRequest* request) override;
@@ -61,55 +68,51 @@ class NET_EXPORT SdchDictionaryFetcher : public URLRequest::Delegate,
  private:
   enum State {
     STATE_NONE,
-    STATE_IDLE,
-    STATE_REQUEST_STARTED,
-    STATE_REQUEST_READING,
+    STATE_SEND_REQUEST,
+    STATE_SEND_REQUEST_COMPLETE,
+    STATE_READ_BODY,
+    STATE_READ_BODY_COMPLETE,
     STATE_REQUEST_COMPLETE,
   };
 
+  class UniqueFetchQueue;
+
+  // Schedule implementation. Returns true if a request for |dictionary_url| has
+  // been added to the queue, and false otherwise.
+  bool ScheduleInternal(const GURL& dictionary_url,
+                        bool reload,
+                        const OnDictionaryFetchedCallback& callback);
+
+  // Null out the current request and push the state machine to the
+  // next request, if any.
+  void ResetRequest();
+
   // State machine implementation.
   int DoLoop(int rv);
-  int DoDispatchRequest(int rv);
-  int DoRequestStarted(int rv);
-  int DoRead(int rv);
+  int DoSendRequest(int rv);
+  int DoSendRequestComplete(int rv);
+  int DoReadBody(int rv);
+  int DoReadBodyComplete(int rv);
   int DoCompleteRequest(int rv);
 
   State next_state_;
   bool in_loop_;
 
   // A queue of URLs that are being used to download dictionaries.
-  std::queue<GURL> fetch_queue_;
+  scoped_ptr<UniqueFetchQueue> fetch_queue_;
 
-  // The request and buffer used for getting the current dictionary
-  // Both are null when a fetch is not in progress.
+  // The request, buffer, and consumer supplied data used for getting
+  // the current dictionary.  All are null when a fetch is not in progress.
   scoped_ptr<URLRequest> current_request_;
   scoped_refptr<IOBuffer> buffer_;
+  OnDictionaryFetchedCallback current_callback_;
 
   // The currently accumulating dictionary.
   std::string dictionary_;
 
-  // Althought the SDCH spec does not preclude a server from using a single URL
-  // to load several distinct dictionaries (by telling a client to load a
-  // dictionary from an URL several times), current implementations seem to have
-  // that 1-1 relationship (i.e., each URL points at a single dictionary, and
-  // the dictionary content does not change over time, and hence is not worth
-  // trying to load more than once). In addition, some dictionaries prove
-  // unloadable only after downloading them (because they are too large?  ...or
-  // malformed?). As a protective element, Chromium will *only* load a
-  // dictionary at most once from a given URL (so that it doesn't waste
-  // bandwidth trying repeatedly).
-  // The following set lists all the dictionary URLs that we've tried to load,
-  // so that we won't try to load from an URL more than once.
-  // TODO(jar): Try to augment the SDCH proposal to include this restiction.
-  std::set<GURL> attempted_load_;
-
   // Store the URLRequestContext associated with the owning SdchManager for
   // use while fetching.
   URLRequestContext* const context_;
-
-  const OnDictionaryFetchedCallback dictionary_fetched_callback_;
-
-  base::WeakPtrFactory<SdchDictionaryFetcher> weak_factory_;
 
   DISALLOW_COPY_AND_ASSIGN(SdchDictionaryFetcher);
 };

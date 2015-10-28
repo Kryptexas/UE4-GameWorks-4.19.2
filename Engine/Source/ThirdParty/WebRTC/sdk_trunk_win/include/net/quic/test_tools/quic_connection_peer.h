@@ -26,7 +26,6 @@ class QuicPacketGenerator;
 class QuicPacketWriter;
 class QuicReceivedPacketManager;
 class QuicSentPacketManager;
-class ReceiveAlgorithmInterface;
 class SendAlgorithmInterface;
 
 namespace test {
@@ -36,16 +35,13 @@ class QuicConnectionPeer {
  public:
   static void SendAck(QuicConnection* connection);
 
-  static void SetReceiveAlgorithm(QuicConnection* connection,
-                                  ReceiveAlgorithmInterface* receive_algorithm);
-
   static void SetSendAlgorithm(QuicConnection* connection,
                                SendAlgorithmInterface* send_algorithm);
 
-  static QuicAckFrame* CreateAckFrame(QuicConnection* connection);
+  static void PopulateAckFrame(QuicConnection* connection, QuicAckFrame* ack);
 
-  static QuicStopWaitingFrame* CreateStopWaitingFrame(
-      QuicConnection* connection);
+  static void PopulateStopWaitingFrame(QuicConnection* connection,
+                                       QuicStopWaitingFrame* stop_waiting);
 
   static QuicConnectionVisitorInterface* GetVisitor(
       QuicConnection* connection);
@@ -57,33 +53,21 @@ class QuicConnectionPeer {
   static QuicSentPacketManager* GetSentPacketManager(
       QuicConnection* connection);
 
-  static QuicReceivedPacketManager* GetReceivedPacketManager(
-      QuicConnection* connection);
-
   static QuicTime::Delta GetNetworkTimeout(QuicConnection* connection);
-
-  static bool IsSavedForRetransmission(
-      QuicConnection* connection,
-      QuicPacketSequenceNumber sequence_number);
-
-  static bool IsRetransmission(QuicConnection* connection,
-                               QuicPacketSequenceNumber sequence_number);
 
   static QuicPacketEntropyHash GetSentEntropyHash(
       QuicConnection* connection,
-      QuicPacketSequenceNumber sequence_number);
+      QuicPacketNumber packet_number);
 
-  static QuicPacketEntropyHash PacketEntropy(
-      QuicConnection* connection,
-      QuicPacketSequenceNumber sequence_number);
+  static QuicPacketEntropyHash PacketEntropy(QuicConnection* connection,
+                                             QuicPacketNumber packet_number);
 
   static QuicPacketEntropyHash ReceivedEntropyHash(
       QuicConnection* connection,
-      QuicPacketSequenceNumber sequence_number);
+      QuicPacketNumber packet_number);
 
-  static bool IsServer(QuicConnection* connection);
-
-  static void SetIsServer(QuicConnection* connection, bool is_server);
+  static void SetPerspective(QuicConnection* connection,
+                             Perspective perspective);
 
   static void SetSelfAddress(QuicConnection* connection,
                              const IPEndPoint& self_address);
@@ -104,10 +88,12 @@ class QuicConnectionPeer {
 
   static QuicAlarm* GetAckAlarm(QuicConnection* connection);
   static QuicAlarm* GetPingAlarm(QuicConnection* connection);
+  static QuicAlarm* GetFecAlarm(QuicConnection* connection);
   static QuicAlarm* GetResumeWritesAlarm(QuicConnection* connection);
   static QuicAlarm* GetRetransmissionAlarm(QuicConnection* connection);
   static QuicAlarm* GetSendAlarm(QuicConnection* connection);
   static QuicAlarm* GetTimeoutAlarm(QuicConnection* connection);
+  static QuicAlarm* GetMtuDiscoveryAlarm(QuicConnection* connection);
 
   static QuicPacketWriter* GetWriter(QuicConnection* connection);
   // If |owns_writer| is true, takes ownership of |writer|.
@@ -118,15 +104,19 @@ class QuicConnectionPeer {
   static QuicEncryptedPacket* GetConnectionClosePacket(
       QuicConnection* connection);
 
-  static void SetSupportedVersions(QuicConnection* connection,
-                                   QuicVersionVector versions);
-
   static QuicPacketHeader* GetLastHeader(QuicConnection* connection);
 
-  static void SetSequenceNumberOfLastSentPacket(
-      QuicConnection* connection, QuicPacketSequenceNumber number);
+  static void SetPacketNumberOfLastSentPacket(QuicConnection* connection,
+                                              QuicPacketNumber number);
 
   static QuicConnectionStats* GetStats(QuicConnection* connection);
+
+  static QuicPacketCount GetPacketsBetweenMtuProbes(QuicConnection* connection);
+
+  static void SetPacketsBetweenMtuProbes(QuicConnection* connection,
+                                         QuicPacketCount packets);
+  static void SetNextMtuProbeAt(QuicConnection* connection,
+                                QuicPacketNumber number);
 
  private:
   DISALLOW_COPY_AND_ASSIGN(QuicConnectionPeer);

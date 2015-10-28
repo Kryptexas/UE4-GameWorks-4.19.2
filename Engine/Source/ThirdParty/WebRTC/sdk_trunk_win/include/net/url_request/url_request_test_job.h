@@ -53,7 +53,7 @@ class NET_EXPORT_PRIVATE URLRequestTestJob : public URLRequestJob {
   // url. The headers should include the HTTP status line and be formatted as
   // expected by HttpResponseHeaders.
   URLRequestTestJob(URLRequest* request,
-                    net::NetworkDelegate* network_delegate,
+                    NetworkDelegate* network_delegate,
                     const std::string& response_headers,
                     const std::string& response_data,
                     bool auto_advance);
@@ -105,7 +105,8 @@ class NET_EXPORT_PRIVATE URLRequestTestJob : public URLRequestJob {
   RequestPriority priority() const { return priority_; }
 
   // Create a protocol handler for callers that don't subclass.
-  static URLRequestJobFactory::ProtocolHandler* CreateProtocolHandler();
+  static scoped_ptr<URLRequestJobFactory::ProtocolHandler>
+  CreateProtocolHandler();
 
   // Job functions
   void SetPriority(RequestPriority priority) override;

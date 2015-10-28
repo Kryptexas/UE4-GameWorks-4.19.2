@@ -86,11 +86,13 @@ class SimpleClient {
   // if the given address has port 0.
   virtual void Bind(IPEndPoint* local_address) = 0;
 
+  virtual void MigrateSocket(const IPAddressNumber& new_host) = 0;
+
   // Returns the local socket address of the client fd. Call only when
   // connected.
-  // To get the local IPAdress, use LocalSocketAddress().host().
-  // To get the local port, use LocalSocketAddress.port().
-  virtual IPEndPoint LocalSocketAddress() const = 0;
+  // To get the local IPAdress, use local_address().host().
+  // To get the local port, use local_address.port().
+  virtual IPEndPoint local_address() const = 0;
 
   // Returns the serialized message that would be sent by any of the HTTPMessage
   // functions above.

@@ -4,7 +4,7 @@
 
 // This file declares a HttpTransactionFactory implementation that can be
 // layered on top of another HttpTransactionFactory to add HTTP caching.  The
-// caching logic follows RFC 2616 (any exceptions are called out in the code).
+// caching logic follows RFC 7234 (any exceptions are called out in the code).
 //
 // The HttpCache takes a disk_cache::Backend as a parameter, and uses that for
 // the cache storage.
@@ -15,7 +15,6 @@
 #define NET_HTTP_HTTP_CACHE_H_
 
 #include <list>
-#include <map>
 #include <set>
 #include <string>
 
@@ -72,11 +71,6 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   enum Mode {
     // Normal mode just behaves like a standard web cache.
     NORMAL = 0,
-    // Record mode caches everything for purposes of offline playback.
-    RECORD,
-    // Playback mode replays from a cache without considering any
-    // standard invalidations.
-    PLAYBACK,
     // Disables reads and writes from the cache.
     // Equivalent to setting LOAD_DISABLE_CACHE on every request.
     DISABLE
@@ -132,23 +126,26 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   static const int kPrefetchReuseMins = 5;
 
   // The disk cache is initialized lazily (by CreateTransaction) in this case.
-  // The HttpCache takes ownership of the |backend_factory|.
-  HttpCache(const net::HttpNetworkSession::Params& params,
-            BackendFactory* backend_factory);
-
-  // The disk cache is initialized lazily (by CreateTransaction) in this case.
   // Provide an existing HttpNetworkSession, the cache can construct a
   // network layer with a shared HttpNetworkSession in order for multiple
   // network layers to share information (e.g. authentication data). The
   // HttpCache takes ownership of the |backend_factory|.
-  HttpCache(HttpNetworkSession* session, BackendFactory* backend_factory);
+  //
+  // The HttpCache must be destroyed before the HttpNetworkSession.
+  //
+  // If |set_up_quic_server_info| is true, configures the cache to track
+  // information about servers supporting QUIC.
+  HttpCache(HttpNetworkSession* session,
+            BackendFactory* backend_factory,
+            bool set_up_quic_server_info);
 
   // Initialize the cache from its component parts. The lifetime of the
   // |network_layer| and |backend_factory| are managed by the HttpCache and
   // will be destroyed using |delete| when the HttpCache is destroyed.
   HttpCache(HttpTransactionFactory* network_layer,
             NetLog* net_log,
-            BackendFactory* backend_factory);
+            BackendFactory* backend_factory,
+            bool set_up_quic_server_info);
 
   ~HttpCache() override;
 
@@ -162,7 +159,7 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   // |callback| will be notified when the operation completes. The pointer that
   // receives the |backend| must remain valid until the operation completes.
   int GetBackend(disk_cache::Backend** backend,
-                 const net::CompletionCallback& callback);
+                 const CompletionCallback& callback);
 
   // Returns the current backend (can be NULL).
   disk_cache::Backend* GetCurrentBackend() const;
@@ -176,6 +173,7 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   // referenced by |url|, as long as the entry's |expected_response_time| has
   // not changed. This method returns without blocking, and the operation will
   // be performed asynchronously without any completion notification.
+  // Takes ownership of |buf|.
   void WriteMetadata(const GURL& url,
                      RequestPriority priority,
                      base::Time expected_response_time,
@@ -204,9 +202,6 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   // referred to by |url| and |http_method|.
   void OnExternalCacheHit(const GURL& url, const std::string& http_method);
 
-  // Initializes the Infinite Cache, if selected by the field trial.
-  void InitializeInfiniteCache(const base::FilePath& path);
-
   // Causes all transactions created after this point to effectively bypass
   // the cache lock whenever there is lock contention.
   void BypassLockForTest() {
@@ -217,16 +212,6 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   // when attempting to conditionalize a network request.
   void FailConditionalizationForTest() {
     fail_conditionalization_for_test_ = true;
-  }
-
-  bool use_stale_while_revalidate() const {
-    return use_stale_while_revalidate_;
-  }
-
-  // Enable stale_while_revalidate functionality for testing purposes.
-  void set_use_stale_while_revalidate_for_testing(
-      bool use_stale_while_revalidate) {
-    use_stale_while_revalidate_ = use_stale_while_revalidate;
   }
 
   // HttpTransactionFactory implementation:
@@ -265,11 +250,9 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   friend class Transaction;
   friend class ViewCacheHelper;
   struct PendingOp;  // Info for an entry under construction.
-  class AsyncValidation;  // Encapsulates a single async revalidation.
 
   typedef std::list<Transaction*> TransactionList;
   typedef std::list<WorkItem*> WorkItemList;
-  typedef std::map<std::string, AsyncValidation*> AsyncValidationMap;
 
   struct ActiveEntry {
     explicit ActiveEntry(disk_cache::Entry* entry);
@@ -293,7 +276,7 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   // Creates the |backend| object and notifies the |callback| when the operation
   // completes. Returns an error code.
   int CreateBackend(disk_cache::Backend** backend,
-                    const net::CompletionCallback& callback);
+                    const CompletionCallback& callback);
 
   // Makes sure that the backend creation is complete before allowing the
   // provided transaction to use the object. Returns an error code.  |trans|
@@ -404,15 +387,6 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   // Resumes processing the pending list of |entry|.
   void ProcessPendingQueue(ActiveEntry* entry);
 
-  // Called by Transaction to perform an asynchronous revalidation. Creates a
-  // new independent transaction as a copy of the original.
-  void PerformAsyncValidation(const HttpRequestInfo& original_request,
-                              const BoundNetLog& net_log);
-
-  // Remove the AsyncValidation with url |url| from the |async_validations_| set
-  // and delete it.
-  void DeleteAsyncValidation(const std::string& url);
-
   // Events (called via PostTask) ---------------------------------------------
 
   void OnProcessPendingQueue(ActiveEntry* entry);
@@ -445,13 +419,7 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   bool bypass_lock_for_test_;
   bool fail_conditionalization_for_test_;
 
-  // true if the implementation of Cache-Control: stale-while-revalidate
-  // directive is enabled (either via command-line flag or experiment).
-  bool use_stale_while_revalidate_;
-
   Mode mode_;
-
-  scoped_ptr<QuicServerInfoFactoryAdaptor> quic_server_info_factory_;
 
   scoped_ptr<HttpTransactionFactory> network_layer_;
 
@@ -469,9 +437,6 @@ class NET_EXPORT HttpCache : public HttpTransactionFactory,
   PendingOpsMap pending_ops_;
 
   scoped_ptr<PlaybackCacheMap> playback_cache_map_;
-
-  // The async validations currently in progress, keyed by URL.
-  AsyncValidationMap async_validations_;
 
   // A clock that can be swapped out for testing.
   scoped_ptr<base::Clock> clock_;

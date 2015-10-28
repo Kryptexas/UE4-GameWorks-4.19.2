@@ -11,6 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_NS_INCLUDE_NOISE_SUPPRESSION_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_NS_INCLUDE_NOISE_SUPPRESSION_H_
 
+#include <stddef.h>
+
 #include "webrtc/typedefs.h"
 
 typedef struct NsHandleT NsHandle;
@@ -20,20 +22,9 @@ extern "C" {
 #endif
 
 /*
- * This function creates an instance to the noise suppression structure
- *
- * Input:
- *      - NS_inst       : Pointer to noise suppression instance that should be
- *                        created
- *
- * Output:
- *      - NS_inst       : Pointer to created noise suppression instance
- *
- * Return value         :  0 - Ok
- *                        -1 - Error
+ * This function creates an instance of the floating point Noise Suppression.
  */
-int WebRtcNs_Create(NsHandle** NS_inst);
-
+NsHandle* WebRtcNs_Create();
 
 /*
  * This function frees the dynamic memory of a specified noise suppression
@@ -41,12 +32,8 @@ int WebRtcNs_Create(NsHandle** NS_inst);
  *
  * Input:
  *      - NS_inst       : Pointer to NS instance that should be freed
- *
- * Return value         :  0 - Ok
- *                        -1 - Error
  */
-int WebRtcNs_Free(NsHandle* NS_inst);
-
+void WebRtcNs_Free(NsHandle* NS_inst);
 
 /*
  * This function initializes a NS instance and has to be called before any other
@@ -107,7 +94,7 @@ void WebRtcNs_Analyze(NsHandle* NS_inst, const float* spframe);
  */
 void WebRtcNs_Process(NsHandle* NS_inst,
                      const float* const* spframe,
-                     int num_bands,
+                     size_t num_bands,
                      float* const* outframe);
 
 /* Returns the internally used prior speech probability of the current frame.

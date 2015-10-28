@@ -5,9 +5,10 @@
 #ifndef NET_WEBSOCKETS_WEBSOCKET_TEST_UTIL_H_
 #define NET_WEBSOCKETS_WEBSOCKET_TEST_UTIL_H_
 
+#include <stdint.h>
 #include <string>
 
-#include "base/basictypes.h"
+#include "base/macros.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/url_request/url_request_test_util.h"
 #include "net/websockets/websocket_stream.h"
@@ -25,52 +26,49 @@ class Origin;
 namespace net {
 
 class BoundNetLog;
-class DeterministicMockClientSocketFactory;
-class DeterministicSocketData;
-class URLRequestContext;
-class WebSocketHandshakeStreamCreateHelper;
+class MockClientSocketFactory;
+class ProxyService;
+class SequencedSocketData;
 struct SSLSocketDataProvider;
+class URLRequestContext;
 
 class LinearCongruentialGenerator {
  public:
-  explicit LinearCongruentialGenerator(uint32 seed);
-  uint32 Generate();
+  explicit LinearCongruentialGenerator(uint32_t seed);
+  uint32_t Generate();
 
  private:
-  uint64 current_;
+  uint64_t current_;
 };
-
-// Alternate version of WebSocketStream::CreateAndConnectStream() for testing
-// use only. The differences are the use of a |create_helper| argument in place
-// of |requested_subprotocols| and taking |timer| as the handshake timeout
-// timer. Implemented in websocket_stream.cc.
-NET_EXPORT_PRIVATE extern scoped_ptr<WebSocketStreamRequest>
-    CreateAndConnectStreamForTesting(
-        const GURL& socket_url,
-        scoped_ptr<WebSocketHandshakeStreamCreateHelper> create_helper,
-        const url::Origin& origin,
-        URLRequestContext* url_request_context,
-        const BoundNetLog& net_log,
-        scoped_ptr<WebSocketStream::ConnectDelegate> connect_delegate,
-        scoped_ptr<base::Timer> timer);
 
 // Generates a standard WebSocket handshake request. The challenge key used is
 // "dGhlIHNhbXBsZSBub25jZQ==". Each header in |extra_headers| must be terminated
 // with "\r\n".
-extern std::string WebSocketStandardRequest(const std::string& path,
-                                            const std::string& origin,
-                                            const std::string& extra_headers);
+std::string WebSocketStandardRequest(const std::string& path,
+                                     const std::string& host,
+                                     const url::Origin& origin,
+                                     const std::string& extra_headers);
+
+// Generates a standard WebSocket handshake request. The challenge key used is
+// "dGhlIHNhbXBsZSBub25jZQ==". |cookies| must be empty or terminated with
+// "\r\n". Each header in |extra_headers| must be terminated with "\r\n".
+std::string WebSocketStandardRequestWithCookies(
+    const std::string& path,
+    const std::string& host,
+    const url::Origin& origin,
+    const std::string& cookies,
+    const std::string& extra_headers);
 
 // A response with the appropriate accept header to match the above challenge
 // key. Each header in |extra_headers| must be terminated with "\r\n".
-extern std::string WebSocketStandardResponse(const std::string& extra_headers);
+std::string WebSocketStandardResponse(const std::string& extra_headers);
 
-// This class provides a convenient way to construct a
-// DeterministicMockClientSocketFactory for WebSocket tests.
-class WebSocketDeterministicMockClientSocketFactoryMaker {
+// This class provides a convenient way to construct a MockClientSocketFactory
+// for WebSocket tests.
+class WebSocketMockClientSocketFactoryMaker {
  public:
-  WebSocketDeterministicMockClientSocketFactoryMaker();
-  ~WebSocketDeterministicMockClientSocketFactoryMaker();
+  WebSocketMockClientSocketFactoryMaker();
+  ~WebSocketMockClientSocketFactoryMaker();
 
   // Tell the factory to create a socket which expects |expect_written| to be
   // written, and responds with |return_to_read|. The test will fail if the
@@ -83,7 +81,7 @@ class WebSocketDeterministicMockClientSocketFactoryMaker {
 
   // A low-level interface to permit arbitrary expectations to be added. The
   // mock sockets will be created in the same order that they were added.
-  void AddRawExpectations(scoped_ptr<DeterministicSocketData> socket_data);
+  void AddRawExpectations(scoped_ptr<SequencedSocketData> socket_data);
 
   // Allow an SSL socket data provider to be added. You must also supply a mock
   // transport socket for it to use. If the mock SSL handshake fails then the
@@ -94,13 +92,13 @@ class WebSocketDeterministicMockClientSocketFactoryMaker {
       scoped_ptr<SSLSocketDataProvider> ssl_socket_data);
 
   // Call to get a pointer to the factory, which remains owned by this object.
-  DeterministicMockClientSocketFactory* factory();
+  MockClientSocketFactory* factory();
 
  private:
   struct Detail;
   scoped_ptr<Detail> detail_;
 
-  DISALLOW_COPY_AND_ASSIGN(WebSocketDeterministicMockClientSocketFactoryMaker);
+  DISALLOW_COPY_AND_ASSIGN(WebSocketMockClientSocketFactoryMaker);
 };
 
 // This class encapsulates the details of creating a
@@ -116,20 +114,27 @@ struct WebSocketTestURLRequestContextHost {
     maker_.SetExpectations(expect_written, return_to_read);
   }
 
-  void AddRawExpectations(scoped_ptr<DeterministicSocketData> socket_data);
+  void AddRawExpectations(scoped_ptr<SequencedSocketData> socket_data);
 
   // Allow an SSL socket data provider to be added.
   void AddSSLSocketDataProvider(
       scoped_ptr<SSLSocketDataProvider> ssl_socket_data);
+
+  // Allow a proxy to be set. Usage:
+  //   SetProxyConfig("proxy1:8000");
+  // Any syntax accepted by net::ProxyConfig::ParseFromString() will work.
+  // Do not call after GetURLRequestContext() has been called.
+  void SetProxyConfig(const std::string& proxy_rules);
 
   // Call after calling one of SetExpections() or AddRawExpectations(). The
   // returned pointer remains owned by this object.
   TestURLRequestContext* GetURLRequestContext();
 
  private:
-  WebSocketDeterministicMockClientSocketFactoryMaker maker_;
+  WebSocketMockClientSocketFactoryMaker maker_;
   TestURLRequestContext url_request_context_;
   TestNetworkDelegate network_delegate_;
+  scoped_ptr<ProxyService> proxy_service_;
   bool url_request_context_initialized_;
 
   DISALLOW_COPY_AND_ASSIGN(WebSocketTestURLRequestContextHost);

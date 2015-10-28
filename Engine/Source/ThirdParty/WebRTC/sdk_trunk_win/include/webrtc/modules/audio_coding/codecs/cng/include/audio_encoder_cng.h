@@ -13,77 +13,83 @@
 
 #include <vector>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_audio/vad/include/vad.h"
 #include "webrtc/modules/audio_coding/codecs/audio_encoder.h"
 #include "webrtc/modules/audio_coding/codecs/cng/include/webrtc_cng.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
+// Deleter for use with scoped_ptr.
+struct CngInstDeleter {
+  void operator()(CNG_enc_inst* ptr) const { WebRtcCng_FreeEnc(ptr); }
+};
+
 class Vad;
 
-class AudioEncoderCng : public AudioEncoder {
+class AudioEncoderCng final : public AudioEncoder {
  public:
   struct Config {
-    Config();
     bool IsOk() const;
 
-    int sample_rate_hz;
-    int num_channels;
-    int payload_type;
+    int num_channels = 1;
+    int payload_type = 13;
     // Caller keeps ownership of the AudioEncoder object.
-    AudioEncoder* speech_encoder;
-    Vad::Aggressiveness vad_mode;
-    int sid_frame_interval_ms;
-    int num_cng_coefficients;
+    AudioEncoder* speech_encoder = nullptr;
+    Vad::Aggressiveness vad_mode = Vad::kVadNormal;
+    int sid_frame_interval_ms = 100;
+    int num_cng_coefficients = 8;
     // The Vad pointer is mainly for testing. If a NULL pointer is passed, the
     // AudioEncoderCng creates (and destroys) a Vad object internally. If an
     // object is passed, the AudioEncoderCng assumes ownership of the Vad
     // object.
-    Vad* vad;
+    Vad* vad = nullptr;
   };
 
   explicit AudioEncoderCng(const Config& config);
+  ~AudioEncoderCng() override;
 
-  virtual ~AudioEncoderCng();
-
-  virtual int sample_rate_hz() const OVERRIDE;
-  virtual int num_channels() const OVERRIDE;
-  virtual int Num10MsFramesInNextPacket() const OVERRIDE;
-  virtual int Max10MsFramesInAPacket() const OVERRIDE;
-
- protected:
-  virtual bool EncodeInternal(uint32_t timestamp,
-                              const int16_t* audio,
-                              size_t max_encoded_bytes,
-                              uint8_t* encoded,
-                              EncodedInfo* info) OVERRIDE;
+  size_t MaxEncodedBytes() const override;
+  int SampleRateHz() const override;
+  int NumChannels() const override;
+  int RtpTimestampRateHz() const override;
+  size_t Num10MsFramesInNextPacket() const override;
+  size_t Max10MsFramesInAPacket() const override;
+  int GetTargetBitrate() const override;
+  EncodedInfo EncodeInternal(uint32_t rtp_timestamp,
+                             const int16_t* audio,
+                             size_t max_encoded_bytes,
+                             uint8_t* encoded) override;
+  void Reset() override;
+  bool SetFec(bool enable) override;
+  bool SetDtx(bool enable) override;
+  bool SetApplication(Application application) override;
+  void SetMaxPlaybackRate(int frequency_hz) override;
+  void SetProjectedPacketLossRate(double fraction) override;
+  void SetTargetBitrate(int target_bps) override;
 
  private:
-  // Deleter for use with scoped_ptr. E.g., use as
-  //   scoped_ptr<CNG_enc_inst, CngInstDeleter> cng_inst_;
-  struct CngInstDeleter {
-    inline void operator()(CNG_enc_inst* ptr) const { WebRtcCng_FreeEnc(ptr); }
-  };
-
-  bool EncodePassive(uint8_t* encoded, size_t* encoded_bytes);
-
-  bool EncodeActive(size_t max_encoded_bytes,
-                    uint8_t* encoded,
-                    EncodedInfo* info);
+  EncodedInfo EncodePassive(size_t frames_to_encode,
+                            size_t max_encoded_bytes,
+                            uint8_t* encoded);
+  EncodedInfo EncodeActive(size_t frames_to_encode,
+                           size_t max_encoded_bytes,
+                           uint8_t* encoded);
+  size_t SamplesPer10msFrame() const;
 
   AudioEncoder* speech_encoder_;
-  const int sample_rate_hz_;
-  const int num_channels_;
   const int cng_payload_type_;
   const int num_cng_coefficients_;
+  const int sid_frame_interval_ms_;
   std::vector<int16_t> speech_buffer_;
-  uint32_t first_timestamp_in_buffer_;
-  int frames_in_buffer_;
+  std::vector<uint32_t> rtp_timestamps_;
   bool last_frame_active_;
-  scoped_ptr<Vad> vad_;
-  scoped_ptr<CNG_enc_inst, CngInstDeleter> cng_inst_;
+  rtc::scoped_ptr<Vad> vad_;
+  rtc::scoped_ptr<CNG_enc_inst, CngInstDeleter> cng_inst_;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(AudioEncoderCng);
 };
 
 }  // namespace webrtc
+
 #endif  // WEBRTC_MODULES_AUDIO_CODING_CODECS_CNG_INCLUDE_AUDIO_ENCODER_CNG_H_

@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -63,7 +63,7 @@ class JsepIceCandidate : public IceCandidateInterface {
   int sdp_mline_index_;
   cricket::Candidate candidate_;
 
-  DISALLOW_COPY_AND_ASSIGN(JsepIceCandidate);
+  RTC_DISALLOW_COPY_AND_ASSIGN(JsepIceCandidate);
 };
 
 // Implementation of IceCandidateCollection.

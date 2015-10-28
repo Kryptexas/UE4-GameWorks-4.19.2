@@ -14,8 +14,9 @@
 #include <queue>
 
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -75,7 +76,7 @@ class FakeNetworkPipe {
   size_t sent_packets() { return sent_packets_; }
 
  private:
-  scoped_ptr<CriticalSectionWrapper> lock_;
+  mutable rtc::CriticalSection lock_;
   PacketReceiver* packet_receiver_;
   std::queue<NetworkPacket*> capacity_link_;
   std::queue<NetworkPacket*> delay_link_;
@@ -90,7 +91,7 @@ class FakeNetworkPipe {
 
   int64_t next_process_time_;
 
-  DISALLOW_COPY_AND_ASSIGN(FakeNetworkPipe);
+  RTC_DISALLOW_COPY_AND_ASSIGN(FakeNetworkPipe);
 };
 
 }  // namespace webrtc

@@ -10,6 +10,7 @@
 #include "base/basictypes.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/base/ip_endpoint.h"
+#include "net/quic/proto/cached_network_parameters.pb.h"
 #include "net/quic/quic_framer.h"
 #include "net/quic/quic_packet_creator.h"
 #include "net/quic/quic_protocol.h"
@@ -47,55 +48,61 @@ class MockableQuicClient : public QuicClient {
 
   ~MockableQuicClient() override;
   QuicPacketWriter* CreateQuicPacketWriter() override;
-  QuicConnectionId GenerateConnectionId() override;
+  QuicConnectionId GenerateNewConnectionId() override;
   void UseWriter(QuicPacketWriterWrapper* writer);
   void UseConnectionId(QuicConnectionId connection_id);
+  void SendCachedNetworkParamaters(
+      const CachedNetworkParameters& cached_network_params) {
+    cached_network_paramaters_ = cached_network_params;
+  }
 
  private:
   QuicConnectionId override_connection_id_;  // ConnectionId to use, if nonzero
   QuicPacketWriterWrapper* test_writer_;
+  CachedNetworkParameters cached_network_paramaters_;
 
   DISALLOW_COPY_AND_ASSIGN(MockableQuicClient);
 };
 
 // A toy QUIC client used for testing, mostly following the SimpleClient APIs.
-class QuicTestClient : public SimpleClient,
-                       public QuicDataStream::Visitor {
+class QuicTestClient : public SimpleClient, public QuicSpdyStream::Visitor {
  public:
   QuicTestClient(IPEndPoint server_address,
                  const std::string& server_hostname,
-                 bool secure,
                  const QuicVersionVector& supported_versions);
   QuicTestClient(IPEndPoint server_address,
                  const std::string& server_hostname,
-                 bool secure,
                  const QuicConfig& config,
                  const QuicVersionVector& supported_versions);
 
   ~QuicTestClient() override;
 
-  // ExpectCertificates controls whether the server is expected to provide
-  // certificates. The certificates, if any, are not verified, but the common
-  // name is recorded and available with |cert_common_name()|.
-  void ExpectCertificates(bool on);
-
   // Sets the |user_agent_id| of the |client_|.
   void SetUserAgentID(const std::string& user_agent_id);
 
   // Wraps data in a quic packet and sends it.
-  ssize_t SendData(std::string data, bool last_data);
+  ssize_t SendData(const std::string& data, bool last_data);
+  // As above, but |delegate| will be notified when |data| is ACKed.
+  ssize_t SendData(const std::string& data,
+                   bool last_data,
+                   QuicAckListenerInterface* delegate);
 
   // From SimpleClient
   // Clears any outstanding state and sends a simple GET of 'uri' to the
   // server.  Returns 0 if the request failed and no bytes were written.
   ssize_t SendRequest(const std::string& uri) override;
+  // Sends requests for all the urls and waits for the responses.  To process
+  // the individual responses as they are returned, the caller should use the
+  // set the response_listener on the client().
+  void SendRequestsAndWaitForResponses(
+      const std::vector<std::string>& url_list);
   ssize_t SendMessage(const HTTPMessage& message) override;
   std::string SendCustomSynchronousRequest(const HTTPMessage& message) override;
   std::string SendSynchronousRequest(const std::string& uri) override;
   void Connect() override;
   void ResetConnection() override;
   void Disconnect() override;
-  IPEndPoint LocalSocketAddress() const override;
+  IPEndPoint local_address() const override;
   void ClearPerRequestState() override;
   void WaitForResponseForMs(int timeout_ms) override;
   void WaitForInitialResponseForMs(int timeout_ms) override;
@@ -117,14 +124,15 @@ class QuicTestClient : public SimpleClient,
   // DFATAL if called by users of SimpleClient.
   ssize_t SendAndWaitForResponse(const void* buffer, size_t size) override;
   void Bind(IPEndPoint* local_address) override;
+  void MigrateSocket(const IPAddressNumber& new_host) override;
   std::string SerializeMessage(const HTTPMessage& message) override;
   IPAddressNumber bind_to_address() const override;
   void set_bind_to_address(IPAddressNumber address) override;
   const IPEndPoint& address() const override;
   size_t requests_sent() const override;
 
-  // From QuicDataStream::Visitor
-  void OnClose(QuicDataStream* stream) override;
+  // From QuicSpdyStream::Visitor
+  void OnClose(QuicSpdyStream* stream) override;
 
   // Configures client_ to take ownership of and use the writer.
   // Must be called before initial connect.
@@ -135,6 +143,14 @@ class QuicTestClient : public SimpleClient,
 
   // Returns nullptr if the maximum number of streams have already been created.
   QuicSpdyClientStream* GetOrCreateStream();
+
+  // Calls GetorCreateStream(), sends the request on the stream, and
+  // stores the reuest in case it needs to be resent.  If |headers| is
+  // null, only the body will be sent on the stream.
+  ssize_t GetOrCreateStreamAndSendRequest(const BalsaHeaders* headers,
+                                          StringPiece body,
+                                          bool fin,
+                                          QuicAckListenerInterface* delegate);
 
   QuicRstStreamErrorCode stream_error() { return stream_error_; }
   QuicErrorCode connection_error();
@@ -160,14 +176,43 @@ class QuicTestClient : public SimpleClient,
 
   EpollServer* epoll_server() { return &epoll_server_; }
 
+  void set_allow_bidirectional_data(bool value) {
+    allow_bidirectional_data_ = value;
+  }
+
+  bool allow_bidirectional_data() const { return allow_bidirectional_data_; }
+
  protected:
   QuicTestClient();
 
-  void Initialize(bool secure);
+  void Initialize();
 
   void set_client(MockableQuicClient* client) { client_.reset(client); }
 
  private:
+  class TestClientDataToResend : public QuicClient::QuicDataToResend {
+   public:
+    TestClientDataToResend(BalsaHeaders* headers,
+                           StringPiece body,
+                           bool fin,
+                           QuicTestClient* test_client,
+                           QuicAckListenerInterface* delegate)
+        : QuicClient::QuicDataToResend(headers, body, fin),
+          test_client_(test_client),
+          delegate_(delegate) {}
+
+    ~TestClientDataToResend() override {}
+
+    void Resend() override;
+
+   protected:
+    QuicTestClient* test_client_;
+    QuicAckListenerInterface* delegate_;
+  };
+
+  // Given a uri, creates a simple HTTPMessage request message for testing.
+  static void FillInRequest(const std::string& uri, HTTPMessage* message);
+
   EpollServer epoll_server_;
   scoped_ptr<MockableQuicClient> client_;  // The actual client
   QuicSpdyClientStream* stream_;
@@ -176,7 +221,7 @@ class QuicTestClient : public SimpleClient,
 
   bool response_complete_;
   bool response_headers_complete_;
-  BalsaHeaders headers_;
+  mutable BalsaHeaders headers_;
   QuicPriority priority_;
   std::string response_;
   uint64 bytes_read_;
@@ -187,7 +232,6 @@ class QuicTestClient : public SimpleClient,
   int64 response_body_size_;
   // True if we tried to connect already since the last call to Disconnect().
   bool connect_attempted_;
-  bool secure_;
   // The client will auto-connect exactly once before sending data.  If
   // something causes a connection reset, it will not automatically reconnect
   // unless auto_reconnect_ is true.
@@ -196,9 +240,9 @@ class QuicTestClient : public SimpleClient,
   bool buffer_body_;
   // FEC policy for data sent by this client.
   FecPolicy fec_policy_;
-  // proof_verifier_ points to a RecordingProofVerifier that is owned by
-  // client_.
-  ProofVerifier* proof_verifier_;
+  // When true allows the sending of a request to continue while the response is
+  // arriving.
+  bool allow_bidirectional_data_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicTestClient);
 };

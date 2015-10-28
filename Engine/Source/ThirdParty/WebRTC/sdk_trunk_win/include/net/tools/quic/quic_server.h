@@ -4,6 +4,9 @@
 //
 // A toy server, which listens on a specified address for QUIC traffic and
 // handles incoming responses.
+//
+// Note that this server is intended to verify correctness of the client and is
+// in no way expected to be performant.
 
 #ifndef NET_TOOLS_QUIC_QUIC_SERVER_H_
 #define NET_TOOLS_QUIC_QUIC_SERVER_H_
@@ -13,11 +16,12 @@
 #include "net/base/ip_endpoint.h"
 #include "net/quic/crypto/quic_crypto_server_config.h"
 #include "net/quic/quic_config.h"
+#include "net/quic/quic_connection_helper.h"
 #include "net/quic/quic_framer.h"
 #include "net/tools/epoll_server/epoll_server.h"
+#include "net/tools/quic/quic_default_packet_writer.h"
 
 namespace net {
-
 namespace tools {
 
 namespace test {
@@ -26,11 +30,13 @@ class QuicServerPeer;
 
 class ProcessPacketInterface;
 class QuicDispatcher;
+class QuicPacketReader;
 
 class QuicServer : public EpollCallbackInterface {
  public:
-  QuicServer();
-  QuicServer(const QuicConfig& config,
+  explicit QuicServer(ProofSource* proof_source);
+  QuicServer(ProofSource* proof_source,
+             const QuicConfig& config,
              const QuicVersionVector& supported_versions);
 
   ~QuicServer() override;
@@ -50,26 +56,10 @@ class QuicServer : public EpollCallbackInterface {
   void OnEvent(int fd, EpollEvent* event) override;
   void OnUnregistration(int fd, bool replaced) override {}
 
-  // Reads a packet from the given fd, and then passes it off to
-  // the QuicDispatcher.  Returns true if a packet is read, false
-  // otherwise.
-  // If packets_dropped is non-null, the socket is configured to track
-  // dropped packets, and some packets are read, it will be set to the number of
-  // dropped packets.
-  static bool ReadAndDispatchSinglePacket(int fd, int port,
-                                          ProcessPacketInterface* processor,
-                                          QuicPacketCount* packets_dropped);
-
   void OnShutdown(EpollServer* eps, int fd) override {}
 
   void SetStrikeRegisterNoStartupPeriod() {
     crypto_config_.set_strike_register_no_startup_period();
-  }
-
-  // SetProofSource sets the ProofSource that will be used to verify the
-  // server's certificate, and takes ownership of |source|.
-  void SetProofSource(ProofSource* source) {
-    crypto_config_.SetProofSource(source);
   }
 
   bool overflow_supported() { return overflow_supported_; }
@@ -79,6 +69,8 @@ class QuicServer : public EpollCallbackInterface {
   int port() { return port_; }
 
  protected:
+  virtual QuicDefaultPacketWriter* CreateWriter(int fd);
+
   virtual QuicDispatcher* CreateQuicDispatcher();
 
   const QuicConfig& config() const { return config_; }
@@ -89,6 +81,8 @@ class QuicServer : public EpollCallbackInterface {
     return supported_versions_;
   }
   EpollServer* epoll_server() { return &epoll_server_; }
+
+  QuicDispatcher* dispatcher() { return dispatcher_.get(); }
 
  private:
   friend class net::tools::test::QuicServerPeer;
@@ -131,9 +125,7 @@ class QuicServer : public EpollCallbackInterface {
   // skipped as necessary).
   QuicVersionVector supported_versions_;
 
-  // Size of flow control receive window to advertise to clients on new
-  // connections.
-  uint32 server_initial_flow_control_receive_window_;
+  scoped_ptr<QuicPacketReader> packet_reader_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicServer);
 };

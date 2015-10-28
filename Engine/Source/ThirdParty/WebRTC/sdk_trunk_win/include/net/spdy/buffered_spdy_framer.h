@@ -8,7 +8,6 @@
 #include <string>
 
 #include "base/basictypes.h"
-#include "base/gtest_prod_util.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/base/net_export.h"
 #include "net/socket/next_proto.h"
@@ -51,6 +50,8 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramerVisitorInterface {
   virtual void OnHeaders(SpdyStreamId stream_id,
                          bool has_priority,
                          SpdyPriority priority,
+                         SpdyStreamId parent_stream_id,
+                         bool exclusive,
                          bool fin,
                          const SpdyHeaderBlock& headers) = 0;
 
@@ -70,6 +71,11 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramerVisitorInterface {
                                  const char* data,
                                  size_t len,
                                  bool fin) = 0;
+
+  // Called when padding is received (padding length field or padding octets).
+  // |stream_id| The stream receiving data.
+  // |len| The number of padding octets.
+  virtual void OnStreamPadding(SpdyStreamId stream_id, size_t len) = 0;
 
   // Called when a SETTINGS frame is received.
   // |clear_persisted| True if the respective flag is set on the SETTINGS frame.
@@ -94,11 +100,12 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramerVisitorInterface {
 
   // Called when a GOAWAY frame has been parsed.
   virtual void OnGoAway(SpdyStreamId last_accepted_stream_id,
-                        SpdyGoAwayStatus status) = 0;
+                        SpdyGoAwayStatus status,
+                        base::StringPiece debug_data) = 0;
 
   // Called when a WINDOW_UPDATE frame has been parsed.
   virtual void OnWindowUpdate(SpdyStreamId stream_id,
-                              uint32 delta_window_size) = 0;
+                              int delta_window_size) = 0;
 
   // Called when a PUSH_PROMISE frame has been parsed.
   virtual void OnPushPromise(SpdyStreamId stream_id,
@@ -147,6 +154,8 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramer
   void OnHeaders(SpdyStreamId stream_id,
                  bool has_priority,
                  SpdyPriority priority,
+                 SpdyStreamId parent_stream_id,
+                 bool exclusive,
                  bool fin,
                  bool end) override;
   bool OnControlFrameHeaderData(SpdyStreamId stream_id,
@@ -156,6 +165,7 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramer
                          const char* data,
                          size_t len,
                          bool fin) override;
+  void OnStreamPadding(SpdyStreamId stream_id, size_t len) override;
   void OnSettings(bool clear_persisted) override;
   void OnSetting(SpdySettingsIds id, uint8 flags, uint32 value) override;
   void OnSettingsAck() override;
@@ -164,8 +174,8 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramer
   void OnRstStream(SpdyStreamId stream_id, SpdyRstStreamStatus status) override;
   void OnGoAway(SpdyStreamId last_accepted_stream_id,
                 SpdyGoAwayStatus status) override;
-  void OnWindowUpdate(SpdyStreamId stream_id,
-                      uint32 delta_window_size) override;
+  bool OnGoAwayFrameData(const char* goaway_data, size_t len) override;
+  void OnWindowUpdate(SpdyStreamId stream_id, int delta_window_size) override;
   void OnPushPromise(SpdyStreamId stream_id,
                      SpdyStreamId promised_stream_id,
                      bool end) override;
@@ -195,9 +205,9 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramer
                              SpdyRstStreamStatus status) const;
   SpdyFrame* CreateSettings(const SettingsMap& values) const;
   SpdyFrame* CreatePingFrame(SpdyPingId unique_id, bool is_ack) const;
-  SpdyFrame* CreateGoAway(
-      SpdyStreamId last_accepted_stream_id,
-      SpdyGoAwayStatus status) const;
+  SpdyFrame* CreateGoAway(SpdyStreamId last_accepted_stream_id,
+                          SpdyGoAwayStatus status,
+                          base::StringPiece debug_data) const;
   SpdyFrame* CreateHeaders(SpdyStreamId stream_id,
                            SpdyControlFlags flags,
                            SpdyPriority priority,
@@ -271,11 +281,21 @@ class NET_EXPORT_PRIVATE BufferedSpdyFramer
     SpdyStreamId promised_stream_id;
     bool has_priority;
     SpdyPriority priority;
+    SpdyStreamId parent_stream_id;
+    bool exclusive;
     uint8 credential_slot;
     bool fin;
     bool unidirectional;
   };
   scoped_ptr<ControlFrameFields> control_frame_fields_;
+
+  // Collection of fields of a GOAWAY frame that this class needs to buffer.
+  struct GoAwayFields {
+    SpdyStreamId last_accepted_stream_id;
+    SpdyGoAwayStatus status;
+    std::string debug_data;
+  };
+  scoped_ptr<GoAwayFields> goaway_fields_;
 
   DISALLOW_COPY_AND_ASSIGN(BufferedSpdyFramer);
 };

@@ -32,15 +32,16 @@ class QuicDispatcherPeer {
       QuicDispatcher* dispatcher,
       QuicDispatcher::PacketWriterFactory* packet_writer_factory);
 
-  static QuicEpollConnectionHelper* GetHelper(QuicDispatcher* dispatcher);
-
-  static QuicConnection* CreateQuicConnection(
-      QuicDispatcher* dispatcher,
-      QuicConnectionId connection_id,
-      const IPEndPoint& server,
-      const IPEndPoint& client);
+  static QuicConnectionHelperInterface* GetHelper(QuicDispatcher* dispatcher);
 
   static QuicDispatcher::WriteBlockedList* GetWriteBlockedList(
+      QuicDispatcher* dispatcher);
+
+  // Get the dispatcher's record of the last error reported to its framer
+  // visitor's OnError() method.  Then set that record to QUIC_NO_ERROR.
+  static QuicErrorCode GetAndClearLastError(QuicDispatcher* dispatcher);
+
+  static const QuicDispatcher::SessionMap& session_map(
       QuicDispatcher* dispatcher);
 
  private:

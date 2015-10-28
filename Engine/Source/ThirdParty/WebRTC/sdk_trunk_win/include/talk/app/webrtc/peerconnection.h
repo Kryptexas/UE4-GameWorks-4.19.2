@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2012, Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,27 +30,45 @@
 
 #include <string>
 
-#include "talk/app/webrtc/mediastreamsignaling.h"
+#include "talk/app/webrtc/dtlsidentitystore.h"
 #include "talk/app/webrtc/peerconnectionfactory.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
+#include "talk/app/webrtc/rtpreceiverinterface.h"
+#include "talk/app/webrtc/rtpsenderinterface.h"
 #include "talk/app/webrtc/statscollector.h"
 #include "talk/app/webrtc/streamcollection.h"
 #include "talk/app/webrtc/webrtcsession.h"
 #include "webrtc/base/scoped_ptr.h"
 
 namespace webrtc {
-class MediaStreamHandlerContainer;
+
+class RemoteMediaStreamFactory;
 
 typedef std::vector<PortAllocatorFactoryInterface::StunConfiguration>
     StunConfigurations;
 typedef std::vector<PortAllocatorFactoryInterface::TurnConfiguration>
     TurnConfigurations;
 
-// PeerConnectionImpl implements the PeerConnection interface.
-// It uses MediaStreamSignaling and WebRtcSession to implement
-// the PeerConnection functionality.
+// Populates |session_options| from |rtc_options|, and returns true if options
+// are valid.
+bool ConvertRtcOptionsForOffer(
+    const PeerConnectionInterface::RTCOfferAnswerOptions& rtc_options,
+    cricket::MediaSessionOptions* session_options);
+
+// Populates |session_options| from |constraints|, and returns true if all
+// mandatory constraints are satisfied.
+bool ParseConstraintsForAnswer(const MediaConstraintsInterface* constraints,
+                               cricket::MediaSessionOptions* session_options);
+
+// Parses the URLs for each server in |servers| to build |stun_config| and
+// |turn_config|.
+bool ParseIceServers(const PeerConnectionInterface::IceServers& servers,
+                     StunConfigurations* stun_config,
+                     TurnConfigurations* turn_config);
+
+// PeerConnection implements the PeerConnectionInterface interface.
+// It uses WebRtcSession to implement the PeerConnection functionality.
 class PeerConnection : public PeerConnectionInterface,
-                       public MediaStreamSignalingObserver,
                        public IceObserver,
                        public rtc::MessageHandler,
                        public sigslot::has_slots<> {
@@ -61,111 +79,136 @@ class PeerConnection : public PeerConnectionInterface,
       const PeerConnectionInterface::RTCConfiguration& configuration,
       const MediaConstraintsInterface* constraints,
       PortAllocatorFactoryInterface* allocator_factory,
-      DTLSIdentityServiceInterface* dtls_identity_service,
+      rtc::scoped_ptr<DtlsIdentityStoreInterface> dtls_identity_store,
       PeerConnectionObserver* observer);
-  virtual rtc::scoped_refptr<StreamCollectionInterface> local_streams();
-  virtual rtc::scoped_refptr<StreamCollectionInterface> remote_streams();
-  virtual bool AddStream(MediaStreamInterface* local_stream);
-  virtual void RemoveStream(MediaStreamInterface* local_stream);
+  rtc::scoped_refptr<StreamCollectionInterface> local_streams() override;
+  rtc::scoped_refptr<StreamCollectionInterface> remote_streams() override;
+  bool AddStream(MediaStreamInterface* local_stream) override;
+  void RemoveStream(MediaStreamInterface* local_stream) override;
 
-  virtual rtc::scoped_refptr<DtmfSenderInterface> CreateDtmfSender(
-      AudioTrackInterface* track);
+  virtual WebRtcSession* session() { return session_.get(); }
 
-  virtual rtc::scoped_refptr<DataChannelInterface> CreateDataChannel(
+  rtc::scoped_refptr<DtmfSenderInterface> CreateDtmfSender(
+      AudioTrackInterface* track) override;
+
+  std::vector<rtc::scoped_refptr<RtpSenderInterface>> GetSenders()
+      const override;
+  std::vector<rtc::scoped_refptr<RtpReceiverInterface>> GetReceivers()
+      const override;
+
+  rtc::scoped_refptr<DataChannelInterface> CreateDataChannel(
       const std::string& label,
-      const DataChannelInit* config);
-  virtual bool GetStats(StatsObserver* observer,
-                        webrtc::MediaStreamTrackInterface* track,
-                        StatsOutputLevel level);
+      const DataChannelInit* config) override;
+  bool GetStats(StatsObserver* observer,
+                webrtc::MediaStreamTrackInterface* track,
+                StatsOutputLevel level) override;
 
-  virtual SignalingState signaling_state();
+  SignalingState signaling_state() override;
 
   // TODO(bemasc): Remove ice_state() when callers are removed.
-  virtual IceState ice_state();
-  virtual IceConnectionState ice_connection_state();
-  virtual IceGatheringState ice_gathering_state();
+  IceState ice_state() override;
+  IceConnectionState ice_connection_state() override;
+  IceGatheringState ice_gathering_state() override;
 
-  virtual const SessionDescriptionInterface* local_description() const;
-  virtual const SessionDescriptionInterface* remote_description() const;
+  const SessionDescriptionInterface* local_description() const override;
+  const SessionDescriptionInterface* remote_description() const override;
 
   // JSEP01
-  virtual void CreateOffer(CreateSessionDescriptionObserver* observer,
-                           const MediaConstraintsInterface* constraints);
-  virtual void CreateOffer(CreateSessionDescriptionObserver* observer,
-                           const RTCOfferAnswerOptions& options);
-  virtual void CreateAnswer(CreateSessionDescriptionObserver* observer,
-                            const MediaConstraintsInterface* constraints);
-  virtual void SetLocalDescription(SetSessionDescriptionObserver* observer,
-                                   SessionDescriptionInterface* desc);
-  virtual void SetRemoteDescription(SetSessionDescriptionObserver* observer,
-                                    SessionDescriptionInterface* desc);
-  // TODO(mallinath) : Deprecated version, remove after all clients are updated.
-  virtual bool UpdateIce(const IceServers& configuration,
-                         const MediaConstraintsInterface* constraints);
-  virtual bool UpdateIce(
-      const PeerConnectionInterface::RTCConfiguration& config);
-  virtual bool AddIceCandidate(const IceCandidateInterface* candidate);
+  void CreateOffer(CreateSessionDescriptionObserver* observer,
+                   const MediaConstraintsInterface* constraints) override;
+  void CreateOffer(CreateSessionDescriptionObserver* observer,
+                   const RTCOfferAnswerOptions& options) override;
+  void CreateAnswer(CreateSessionDescriptionObserver* observer,
+                    const MediaConstraintsInterface* constraints) override;
+  void SetLocalDescription(SetSessionDescriptionObserver* observer,
+                           SessionDescriptionInterface* desc) override;
+  void SetRemoteDescription(SetSessionDescriptionObserver* observer,
+                            SessionDescriptionInterface* desc) override;
+  bool SetConfiguration(
+      const PeerConnectionInterface::RTCConfiguration& config) override;
+  bool AddIceCandidate(const IceCandidateInterface* candidate) override;
 
-  virtual void RegisterUMAObserver(UMAObserver* observer);
+  void RegisterUMAObserver(UMAObserver* observer) override;
 
-  virtual void Close();
+  void Close() override;
+
+  // Virtual for unit tests.
+  virtual const std::vector<rtc::scoped_refptr<DataChannel>>&
+  sctp_data_channels() const {
+    return sctp_data_channels_;
+  };
 
  protected:
-  virtual ~PeerConnection();
+  ~PeerConnection() override;
 
  private:
-  // Implements MessageHandler.
-  virtual void OnMessage(rtc::Message* msg);
+  struct TrackInfo {
+    TrackInfo() : ssrc(0) {}
+    TrackInfo(const std::string& stream_label,
+              const std::string track_id,
+              uint32_t ssrc)
+        : stream_label(stream_label), track_id(track_id), ssrc(ssrc) {}
+    std::string stream_label;
+    std::string track_id;
+    uint32_t ssrc;
+  };
+  typedef std::vector<TrackInfo> TrackInfos;
 
-  // Implements MediaStreamSignalingObserver.
-  virtual void OnAddRemoteStream(MediaStreamInterface* stream) OVERRIDE;
-  virtual void OnRemoveRemoteStream(MediaStreamInterface* stream) OVERRIDE;
-  virtual void OnAddDataChannel(DataChannelInterface* data_channel) OVERRIDE;
-  virtual void OnAddRemoteAudioTrack(MediaStreamInterface* stream,
-                                     AudioTrackInterface* audio_track,
-                                     uint32 ssrc) OVERRIDE;
-  virtual void OnAddRemoteVideoTrack(MediaStreamInterface* stream,
-                                     VideoTrackInterface* video_track,
-                                     uint32 ssrc) OVERRIDE;
-  virtual void OnRemoveRemoteAudioTrack(
-      MediaStreamInterface* stream,
-      AudioTrackInterface* audio_track) OVERRIDE;
-  virtual void OnRemoveRemoteVideoTrack(
-      MediaStreamInterface* stream,
-      VideoTrackInterface* video_track) OVERRIDE;
-  virtual void OnAddLocalAudioTrack(MediaStreamInterface* stream,
-                                    AudioTrackInterface* audio_track,
-                                    uint32 ssrc) OVERRIDE;
-  virtual void OnAddLocalVideoTrack(MediaStreamInterface* stream,
-                                    VideoTrackInterface* video_track,
-                                    uint32 ssrc) OVERRIDE;
-  virtual void OnRemoveLocalAudioTrack(
-      MediaStreamInterface* stream,
-      AudioTrackInterface* audio_track,
-      uint32 ssrc) OVERRIDE;
-  virtual void OnRemoveLocalVideoTrack(
-      MediaStreamInterface* stream,
-      VideoTrackInterface* video_track) OVERRIDE;
-  virtual void OnRemoveLocalStream(MediaStreamInterface* stream);
+  struct RemotePeerInfo {
+    RemotePeerInfo()
+        : msid_supported(false),
+          default_audio_track_needed(false),
+          default_video_track_needed(false) {}
+    // True if it has been discovered that the remote peer support MSID.
+    bool msid_supported;
+    // The remote peer indicates in the session description that audio will be
+    // sent but no MSID is given.
+    bool default_audio_track_needed;
+    // The remote peer indicates in the session description that video will be
+    // sent but no MSID is given.
+    bool default_video_track_needed;
+
+    bool IsDefaultMediaStreamNeeded() {
+      return !msid_supported &&
+             (default_audio_track_needed || default_video_track_needed);
+    }
+  };
+
+  // Implements MessageHandler.
+  void OnMessage(rtc::Message* msg) override;
+
+  void CreateAudioReceiver(MediaStreamInterface* stream,
+                           AudioTrackInterface* audio_track,
+                           uint32_t ssrc);
+  void CreateVideoReceiver(MediaStreamInterface* stream,
+                           VideoTrackInterface* video_track,
+                           uint32_t ssrc);
+  void DestroyAudioReceiver(MediaStreamInterface* stream,
+                            AudioTrackInterface* audio_track);
+  void DestroyVideoReceiver(MediaStreamInterface* stream,
+                            VideoTrackInterface* video_track);
+  void CreateAudioSender(MediaStreamInterface* stream,
+                         AudioTrackInterface* audio_track,
+                         uint32_t ssrc);
+  void CreateVideoSender(MediaStreamInterface* stream,
+                         VideoTrackInterface* video_track,
+                         uint32_t ssrc);
+  void DestroyAudioSender(MediaStreamInterface* stream,
+                          AudioTrackInterface* audio_track,
+                          uint32_t ssrc);
+  void DestroyVideoSender(MediaStreamInterface* stream,
+                          VideoTrackInterface* video_track);
 
   // Implements IceObserver
-  virtual void OnIceConnectionChange(IceConnectionState new_state);
-  virtual void OnIceGatheringChange(IceGatheringState new_state);
-  virtual void OnIceCandidate(const IceCandidateInterface* candidate);
-  virtual void OnIceComplete();
+  void OnIceConnectionChange(IceConnectionState new_state) override;
+  void OnIceGatheringChange(IceGatheringState new_state) override;
+  void OnIceCandidate(const IceCandidateInterface* candidate) override;
+  void OnIceComplete() override;
+  void OnIceConnectionReceivingChange(bool receiving) override;
 
   // Signals from WebRtcSession.
-  void OnSessionStateChange(cricket::BaseSession* session,
-                            cricket::BaseSession::State state);
+  void OnSessionStateChange(WebRtcSession* session, WebRtcSession::State state);
   void ChangeSignalingState(SignalingState signaling_state);
-
-  bool DoInitialize(IceTransportsType type,
-                    const StunConfigurations& stun_config,
-                    const TurnConfigurations& turn_config,
-                    const MediaConstraintsInterface* constraints,
-                    PortAllocatorFactoryInterface* allocator_factory,
-                    DTLSIdentityServiceInterface* dtls_identity_service,
-                    PeerConnectionObserver* observer);
 
   rtc::Thread* signaling_thread() const {
     return factory_->signaling_thread();
@@ -173,16 +216,138 @@ class PeerConnection : public PeerConnectionInterface,
 
   void PostSetSessionDescriptionFailure(SetSessionDescriptionObserver* observer,
                                         const std::string& error);
+  void PostCreateSessionDescriptionFailure(
+      CreateSessionDescriptionObserver* observer,
+      const std::string& error);
 
   bool IsClosed() const {
     return signaling_state_ == PeerConnectionInterface::kClosed;
   }
 
+  // Returns a MediaSessionOptions struct with options decided by |options|,
+  // the local MediaStreams and DataChannels.
+  virtual bool GetOptionsForOffer(
+      const PeerConnectionInterface::RTCOfferAnswerOptions& rtc_options,
+      cricket::MediaSessionOptions* session_options);
+
+  // Returns a MediaSessionOptions struct with options decided by
+  // |constraints|, the local MediaStreams and DataChannels.
+  virtual bool GetOptionsForAnswer(
+      const MediaConstraintsInterface* constraints,
+      cricket::MediaSessionOptions* session_options);
+
+  // Makes sure a MediaStream Track is created for each StreamParam in
+  // |streams|. |media_type| is the type of the |streams| and can be either
+  // audio or video.
+  // If a new MediaStream is created it is added to |new_streams|.
+  void UpdateRemoteStreamsList(
+      const std::vector<cricket::StreamParams>& streams,
+      cricket::MediaType media_type,
+      StreamCollection* new_streams);
+
+  // Triggered when a remote track has been seen for the first time in a remote
+  // session description. It creates a remote MediaStreamTrackInterface
+  // implementation and triggers CreateAudioReceiver or CreateVideoReceiver.
+  void OnRemoteTrackSeen(const std::string& stream_label,
+                         const std::string& track_id,
+                         uint32_t ssrc,
+                         cricket::MediaType media_type);
+
+  // Triggered when a remote track has been removed from a remote session
+  // description. It removes the remote track with id |track_id| from a remote
+  // MediaStream and triggers DestroyAudioReceiver or DestroyVideoReceiver.
+  void OnRemoteTrackRemoved(const std::string& stream_label,
+                            const std::string& track_id,
+                            cricket::MediaType media_type);
+
+  // Finds remote MediaStreams without any tracks and removes them from
+  // |remote_streams_| and notifies the observer that the MediaStreams no longer
+  // exist.
+  void UpdateEndedRemoteMediaStreams();
+
+  void MaybeCreateDefaultStream();
+
+  // Set the MediaStreamTrackInterface::TrackState to |kEnded| on all remote
+  // tracks of type |media_type|.
+  void EndRemoteTracks(cricket::MediaType media_type);
+
+  // Loops through the vector of |streams| and finds added and removed
+  // StreamParams since last time this method was called.
+  // For each new or removed StreamParam, OnLocalTrackSeen or
+  // OnLocalTrackRemoved is invoked.
+  void UpdateLocalTracks(const std::vector<cricket::StreamParams>& streams,
+                         cricket::MediaType media_type);
+
+  // Triggered when a local track has been seen for the first time in a local
+  // session description.
+  // This method triggers CreateAudioSender or CreateVideoSender if the rtp
+  // streams in the local SessionDescription can be mapped to a MediaStreamTrack
+  // in a MediaStream in |local_streams_|
+  void OnLocalTrackSeen(const std::string& stream_label,
+                        const std::string& track_id,
+                        uint32_t ssrc,
+                        cricket::MediaType media_type);
+
+  // Triggered when a local track has been removed from a local session
+  // description.
+  // This method triggers DestroyAudioSender or DestroyVideoSender if a stream
+  // has been removed from the local SessionDescription and the stream can be
+  // mapped to a MediaStreamTrack in a MediaStream in |local_streams_|.
+  void OnLocalTrackRemoved(const std::string& stream_label,
+                           const std::string& track_id,
+                           uint32_t ssrc,
+                           cricket::MediaType media_type);
+
+  void UpdateLocalRtpDataChannels(const cricket::StreamParamsVec& streams);
+  void UpdateRemoteRtpDataChannels(const cricket::StreamParamsVec& streams);
+  void UpdateClosingRtpDataChannels(
+      const std::vector<std::string>& active_channels,
+      bool is_local_update);
+  void CreateRemoteRtpDataChannel(const std::string& label,
+                                  uint32_t remote_ssrc);
+
+  // Creates channel and adds it to the collection of DataChannels that will
+  // be offered in a SessionDescription.
+  rtc::scoped_refptr<DataChannel> InternalCreateDataChannel(
+      const std::string& label,
+      const InternalDataChannelInit* config);
+
+  // Checks if any data channel has been added.
+  bool HasDataChannels() const;
+
+  void AllocateSctpSids(rtc::SSLRole role);
+  void OnSctpDataChannelClosed(DataChannel* channel);
+
+  // Notifications from WebRtcSession relating to BaseChannels.
+  void OnVoiceChannelDestroyed();
+  void OnVideoChannelDestroyed();
+  void OnDataChannelCreated();
+  void OnDataChannelDestroyed();
+  // Called when the cricket::DataChannel receives a message indicating that a
+  // webrtc::DataChannel should be opened.
+  void OnDataChannelOpenMessage(const std::string& label,
+                                const InternalDataChannelInit& config);
+
+  std::vector<rtc::scoped_refptr<RtpSenderInterface>>::iterator
+  FindSenderForTrack(MediaStreamTrackInterface* track);
+  std::vector<rtc::scoped_refptr<RtpReceiverInterface>>::iterator
+  FindReceiverForTrack(MediaStreamTrackInterface* track);
+
+  TrackInfos* GetRemoteTracks(cricket::MediaType media_type);
+  TrackInfos* GetLocalTracks(cricket::MediaType media_type);
+  const TrackInfo* FindTrackInfo(const TrackInfos& infos,
+                                 const std::string& stream_label,
+                                 const std::string track_id) const;
+
+  // Returns the specified SCTP DataChannel in sctp_data_channels_,
+  // or nullptr if not found.
+  DataChannel* FindDataChannelBySid(int sid) const;
+
   // Storing the factory as a scoped reference pointer ensures that the memory
   // in the PeerConnectionFactoryImpl remains available as long as the
   // PeerConnection is running. It is passed to PeerConnection as a raw pointer.
   // However, since the reference counting is done in the
-  // PeerConnectionFactoryInteface all instances created using the raw pointer
+  // PeerConnectionFactoryInterface all instances created using the raw pointer
   // will refer to the same reference count.
   rtc::scoped_refptr<PeerConnectionFactory> factory_;
   PeerConnectionObserver* observer_;
@@ -194,9 +359,35 @@ class PeerConnection : public PeerConnectionInterface,
   IceGatheringState ice_gathering_state_;
 
   rtc::scoped_ptr<cricket::PortAllocator> port_allocator_;
+  rtc::scoped_ptr<MediaControllerInterface> media_controller_;
+
+  // Streams added via AddStream.
+  rtc::scoped_refptr<StreamCollection> local_streams_;
+  // Streams created as a result of SetRemoteDescription.
+  rtc::scoped_refptr<StreamCollection> remote_streams_;
+
+  // These lists store track info seen in local/remote descriptions.
+  TrackInfos remote_audio_tracks_;
+  TrackInfos remote_video_tracks_;
+  TrackInfos local_audio_tracks_;
+  TrackInfos local_video_tracks_;
+
+  SctpSidAllocator sid_allocator_;
+  // label -> DataChannel
+  std::map<std::string, rtc::scoped_refptr<DataChannel>> rtp_data_channels_;
+  std::vector<rtc::scoped_refptr<DataChannel>> sctp_data_channels_;
+
+  RemotePeerInfo remote_info_;
+  rtc::scoped_ptr<RemoteMediaStreamFactory> remote_stream_factory_;
+
+  std::vector<rtc::scoped_refptr<RtpSenderInterface>> senders_;
+  std::vector<rtc::scoped_refptr<RtpReceiverInterface>> receivers_;
+
+  // The session_ scoped_ptr is declared at the bottom of PeerConnection
+  // because its destruction fires signals (such as VoiceChannelDestroyed)
+  // which will trigger some final actions in PeerConnection...
   rtc::scoped_ptr<WebRtcSession> session_;
-  rtc::scoped_ptr<MediaStreamSignaling> mediastream_signaling_;
-  rtc::scoped_ptr<MediaStreamHandlerContainer> stream_handler_container_;
+  // ... But stats_ depends on session_ so it should be destroyed even earlier.
   rtc::scoped_ptr<StatsCollector> stats_;
 };
 
