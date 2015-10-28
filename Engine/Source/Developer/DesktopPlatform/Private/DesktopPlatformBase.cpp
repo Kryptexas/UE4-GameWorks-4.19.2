@@ -1163,7 +1163,9 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 		FString VCVarsBat;
 
 #if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1800
+	#if _MSC_VER >= 1900
+		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
+	#elif _MSC_VER >= 1800
 		FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 	#else
 		FPlatformMisc::GetVSComnTools(11, VCVarsBat);
