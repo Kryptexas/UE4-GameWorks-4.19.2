@@ -564,6 +564,10 @@ public class HTML5Platform : Platform
 		}
 
 		Task.WaitAll(UploadTasks.ToArray());
+
+		string URL = "http://" + BucketName + ".s3.amazonaws.com/" + FolderName + "/" + SC.ShortProjectName + ".html";
+		Log("Your project's shareable link is: " + URL);
+
 		Log("Upload Tasks finished.");
 	}
 
