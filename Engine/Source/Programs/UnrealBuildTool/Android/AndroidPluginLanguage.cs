@@ -514,7 +514,7 @@ namespace UnrealBuildTool.Android
 			StringBuilder Text = new StringBuilder();
 			foreach (var Variable in Context.BoolVariables)
 			{
-				Text.AppendLine(string.Format("\tbool {0} = {1}", Variable.Key, Variable.Value));
+				Text.AppendLine(string.Format("\tbool {0} = {1}", Variable.Key, Variable.Value.ToString().ToLower()));
 			}
 			foreach (var Variable in Context.IntVariables)
 			{
@@ -582,7 +582,7 @@ namespace UnrealBuildTool.Android
 				}
 
 				// Replace the variable, or skip past it
-				Result = Result.Substring(0, Idx) + Value.ToString() + Result.Substring(EndIdx + 1);
+				Result = Result.Substring(0, Idx) + Value.ToString().ToLower() + Result.Substring(EndIdx + 1);
 			}
 			for (int Idx = Result.IndexOf("$I("); Idx != -1; Idx = Result.IndexOf("$I(", Idx))
 			{
@@ -677,7 +677,12 @@ namespace UnrealBuildTool.Android
 
 		private bool StringToBool(string Input)
 		{
-			return (Input == null) ? false : !(Input.Equals("0") || Input.Equals("false") || Input.Equals("off") || Input.Equals("no"));
+			if (Input == null)
+			{
+				return false;
+			}
+			Input = Input.ToLower();
+			return !(Input.Equals("0") || Input.Equals("false") || Input.Equals("off") || Input.Equals("no"));
 		}
 
 		private int StringToInt(string Input, XElement Node)
