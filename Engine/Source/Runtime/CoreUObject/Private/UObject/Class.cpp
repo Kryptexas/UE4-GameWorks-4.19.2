@@ -3356,6 +3356,7 @@ void UClass::SetSuperStruct(UStruct* NewSuperStruct)
 #if UCLASS_FAST_ISA_IMPL & 2
 	FFastIndexingClassTree::Unregister(this);
 #endif
+	ClearFunctionMapsCaches();
 	Super::SetSuperStruct(NewSuperStruct);
 #if UCLASS_FAST_ISA_IMPL & 2
 	FFastIndexingClassTree::Register(this);
