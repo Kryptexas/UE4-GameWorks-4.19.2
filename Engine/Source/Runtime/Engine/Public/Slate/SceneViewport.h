@@ -9,6 +9,8 @@
 /** Called in FSceneViewport::ResizeFrame after ResizeViewport*/
 DECLARE_DELEGATE_OneParam( FOnSceneViewportResize, FVector2D );
 
+class SViewport;
+
 /**
  * A viewport for use with Slate SViewport widgets.
  */

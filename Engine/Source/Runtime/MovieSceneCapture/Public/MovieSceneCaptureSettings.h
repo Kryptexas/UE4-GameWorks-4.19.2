@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
 #include "MovieSceneCaptureSettings.generated.h"
 
 UENUM()

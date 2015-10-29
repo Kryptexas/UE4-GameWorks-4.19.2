@@ -21,10 +21,15 @@
 #include "HierarchicalLODUtilities.h"
 #include "MeshBoneReduction.h"
 #include "MeshMergeData.h"
+#include "Editor/EditorPerProjectUserSettings.h"
 
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
 #include "kDOP.h"
+#endif
+
+#if WITH_EDITOR
+#include "Editor.h"
 #endif
 
 /*------------------------------------------------------------------------------
@@ -6665,7 +6670,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	MainTask.EnterProgressFrame(20);
 
 	FRawMeshExt MergedMesh;
-	memset(&MergedMesh, NULL, sizeof(MergedMesh));
+	FMemory::Memset(&MergedMesh, INDEX_NONE, sizeof(MergedMesh));
 	
 	if (InSettings.bMergeMaterials)
 	{

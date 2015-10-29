@@ -1681,14 +1681,9 @@ void FMaterialUtilities::FullyLoadMaterialStatic(UMaterialInterface* Material)
 	// Now load all used textures.
 	TArray<UTexture*> Textures;
 	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, ERHIFeatureLevel::SM5, true);
-	for (int32 i = 0; i < Textures.Num(); ++i)
+	for (UTexture* Texture : Textures)
 	{
-		UTexture* Texture = Textures[i];
-		FLinkerLoad* Linker = Material->GetLinker();
-		if (Linker)
-		{
-			Linker->Preload(Texture);
-		}
+		Linker->Preload(Texture);
 	}
 }
 

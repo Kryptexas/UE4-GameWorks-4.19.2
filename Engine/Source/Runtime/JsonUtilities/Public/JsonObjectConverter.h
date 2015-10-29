@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Json.h"
+
 /** Class that handles converting Json objects to and from UStructs */
 class JSONUTILITIES_API FJsonObjectConverter
 {

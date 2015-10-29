@@ -3,10 +3,11 @@
 #pragma once
 
 #include "ModuleInterface.h"
-
+#include "SkeletalMeshTypes.h"
 
 typedef FIntPoint FMeshIdAndLOD;
 struct FFlattenMaterial;
+struct FReferenceSkeleton;
 
 /**
  * Mesh reduction interface.

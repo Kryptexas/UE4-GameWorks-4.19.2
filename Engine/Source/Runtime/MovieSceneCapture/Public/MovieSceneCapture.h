@@ -7,6 +7,7 @@
 #include "MovieSceneCaptureHandle.h"
 #include "MovieScene.h"
 #include "AVIWriter.h"
+#include "Tickable.h"
 #include "MovieSceneCapture.generated.h"
 
 /** Interface that defines when to capture or drop frames */

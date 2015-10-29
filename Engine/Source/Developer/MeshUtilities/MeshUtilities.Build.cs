@@ -30,12 +30,6 @@ public class MeshUtilities : ModuleRules
 			}
 		);
 
-        DynamicallyLoadedModuleNames.AddRange(
-            new string[] {
-                "SimplygonSwarm"
-            }
-        );
-
         AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
 		AddThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
 		AddThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
@@ -48,6 +42,12 @@ public class MeshUtilities : ModuleRules
 
 		if (UEBuildConfiguration.bCompileSimplygon == true)
 		{
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+                "SimplygonSwarm"
+            }
+			);
+
 			AddThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
 		}
 	}

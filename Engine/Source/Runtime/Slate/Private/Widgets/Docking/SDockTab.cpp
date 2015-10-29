@@ -751,3 +751,8 @@ FVector2D SDockTab::GetAnimatedScale() const
 	static FVector2D FullyClosed = FVector2D(1.0f, 0.0f);
 	return FMath::Lerp(FullyClosed, FullyOpen, SpawnAnimCurve.GetLerp());
 }
+
+void SDockTab::UpdateActivationTime()
+{
+	LastActivationTime = FSlateApplication::Get().GetCurrentTime();
+}

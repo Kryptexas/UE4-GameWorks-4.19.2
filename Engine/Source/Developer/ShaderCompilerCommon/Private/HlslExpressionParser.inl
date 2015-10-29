@@ -27,8 +27,8 @@ namespace CrossCompiler
 
 		FSymbolScope(FLinearAllocator* InAllocator, FSymbolScope* InParent) :
 			Parent(InParent),
-			Children(InAllocator),
-			Name(nullptr)
+			Name(nullptr),
+			Children(InAllocator)
 		{
 		}
 		~FSymbolScope() {}
@@ -422,8 +422,8 @@ namespace CrossCompiler
 					}
 					TypeString += OuterNamespace->String;
 					TypeString += TEXT("::");
-					auto* Token1 = Scanner.PeekToken(1);
-					if (Token1 && Token1->Token == EHlslToken::ColonColon)
+					auto* Token3 = Scanner.PeekToken(1);
+					if (Token3 && Token3->Token == EHlslToken::ColonColon)
 					{
 						continue;
 					}

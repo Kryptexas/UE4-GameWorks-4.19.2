@@ -93,8 +93,8 @@ struct FRemoveUnusedOutputs
 	FRemoveUnusedOutputs(const TArray<FString>& InSystemOutputs, const TArray<FString>& InUsedOutputs, CrossCompiler::FLinearAllocator* InAllocator = nullptr) :
 		SystemOutputs(InSystemOutputs),
 		UsedOutputs(InUsedOutputs),
-		Allocator(InAllocator),
-		bSuccess(false)
+		bSuccess(false),
+		Allocator(InAllocator)
 	{
 	}
 

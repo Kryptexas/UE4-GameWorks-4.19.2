@@ -584,7 +584,6 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 		else if (MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
 		{
 			TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
-			FScrubRangeToScreen RangeToScreen(LocalViewRange, MyGeometry.Size);
 
 			DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().X );
 
@@ -592,6 +591,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 			{
 				if ( DistanceDragged > FSlateApplication::Get().GetDragTriggerDistance() )
 				{
+					FScrubRangeToScreen RangeToScreen(LocalViewRange, MyGeometry.Size);
 					const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
 
 					TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
@@ -742,20 +742,20 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 		static FLinearColor TickColor(0.f, 0.f, 0.f, 0.3f);
 		
 		// Draw major tick lines in the section area
-		FDrawTickArgs Args;
-		Args.AllottedGeometry = AllottedGeometry;
-		Args.bMirrorLabels = false;
-		Args.bOnlyDrawMajorTicks = true;
-		Args.TickColor = TickColor;
-		Args.ClippingRect = MyClippingRect;
-		Args.DrawEffects = DrawEffects;
+		FDrawTickArgs DrawTickArgs;
+		DrawTickArgs.AllottedGeometry = AllottedGeometry;
+		DrawTickArgs.bMirrorLabels = false;
+		DrawTickArgs.bOnlyDrawMajorTicks = true;
+		DrawTickArgs.TickColor = TickColor;
+		DrawTickArgs.ClippingRect = MyClippingRect;
+		DrawTickArgs.DrawEffects = DrawEffects;
 		// Draw major ticks under sections
-		Args.StartLayer = LayerId-1;
+		DrawTickArgs.StartLayer = LayerId-1;
 		// Draw the tick the entire height of the section area
-		Args.TickOffset = 0.0f;
-		Args.MajorTickHeight = AllottedGeometry.Size.Y;
+		DrawTickArgs.TickOffset = 0.0f;
+		DrawTickArgs.MajorTickHeight = AllottedGeometry.Size.Y;
 
-		DrawTicks( OutDrawElements, RangeToScreen, Args );
+		DrawTicks( OutDrawElements, RangeToScreen, DrawTickArgs );
 	}
 
 	if( Args.bDisplayScrubPosition )

@@ -95,22 +95,22 @@ bool FMeshProxyTool::RunMerge(const FString& PackageName)
 		
 		FCreateProxyDelegate ProxyDelegate;
 		ProxyDelegate.BindLambda(
-			[](const FGuid Guid, TArray<UObject*>& AssetsToSync)
+			[](const FGuid Guid, TArray<UObject*>& InAssetsToSync)
 		{
 			//Update the asset registry that a new static mash and material has been created
-			if (AssetsToSync.Num())
+			if (InAssetsToSync.Num())
 			{
 				FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-				int32 AssetCount = AssetsToSync.Num();
+				int32 AssetCount = InAssetsToSync.Num();
 				for (int32 AssetIndex = 0; AssetIndex < AssetCount; AssetIndex++)
 				{
-					AssetRegistry.AssetCreated(AssetsToSync[AssetIndex]);
-					GEditor->BroadcastObjectReimported(AssetsToSync[AssetIndex]);
+					AssetRegistry.AssetCreated(InAssetsToSync[AssetIndex]);
+					GEditor->BroadcastObjectReimported(InAssetsToSync[AssetIndex]);
 				}
 
 				//Also notify the content browser that the new assets exists
 				FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-				ContentBrowserModule.Get().SyncBrowserToAssets(AssetsToSync, true);
+				ContentBrowserModule.Get().SyncBrowserToAssets(InAssetsToSync, true);
 			}
 		});		
 

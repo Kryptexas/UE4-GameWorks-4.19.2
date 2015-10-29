@@ -5,14 +5,14 @@
 #include "SlateIcon.h"
 #include "WorkspaceItem.h"
 
-
+class FMenuBuilder;
+class FMultiBox;
 class FTabManager;
 class SDockingArea;
 class SDockTab;
 class SDockingTabStack;
 class SWindow;
 struct FTabMatcher;
-
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(
 	FOnActiveTabChanged,

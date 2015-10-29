@@ -88,7 +88,7 @@ public:
 
 	~FPropertyTrackEditor()
 	{
-		TSharedPtr<ISequencer> Sequencer = GetSequencer();
+		TSharedPtr<ISequencer> Sequencer = this->GetSequencer();
 		if ( Sequencer.IsValid() )
 		{
 			ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
@@ -110,10 +110,11 @@ public:
 
 	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL ) override
 	{
-		ISequencerObjectChangeListener& ObjectChangeListener = GetSequencer()->GetObjectChangeListener();
+		TSharedPtr<ISequencer> Sequencer = this->GetSequencer();
+		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
 
 		TArray<UObject*> OutObjects;
-		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
+		Sequencer->GetRuntimeObjects( Sequencer->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
 		for ( int32 i = 0; i < OutObjects.Num(); ++i )
 		{
 			ObjectChangeListener.TriggerAllPropertiesChanged( OutObjects[i] );
@@ -124,7 +125,7 @@ public:
 	{
 		TSharedRef<FPropertySection> PropertySection = MakePropertySectionInterface( SectionObject, Track );
 		OnSetIntermediateValueFromPropertyChange.AddSP( PropertySection, &FPropertySection::SetIntermediateValueForTrack );
-		GetSequencer()->OnGlobalTimeChanged().AddSP( PropertySection, &FPropertySection::ClearIntermediateValue );
+		this->GetSequencer()->OnGlobalTimeChanged().AddSP( PropertySection, &FPropertySection::ClearIntermediateValue );
 		return PropertySection;
 	}
 
@@ -159,7 +160,7 @@ private:
 	/** Adds a callback for property changes for the supplied property type name. */
 	void AddWatchedPropertyType( FName WatchedPropertyTypeName )
 	{
-		GetSequencer()->GetObjectChangeListener().GetOnAnimatablePropertyChanged( WatchedPropertyTypeName ).AddRaw( this, &FPropertyTrackEditor<TrackType, SectionType, KeyDataType>::OnAnimatedPropertyChanged );
+		this->GetSequencer()->GetObjectChangeListener().GetOnAnimatablePropertyChanged( WatchedPropertyTypeName ).AddRaw( this, &FPropertyTrackEditor<TrackType, SectionType, KeyDataType>::OnAnimatedPropertyChanged );
 		WatchedPropertyTypeNames.Add( WatchedPropertyTypeName );
 	}
 
@@ -188,7 +189,7 @@ private:
 	*/
 	virtual void OnAnimatedPropertyChanged( const FPropertyChangedParams& PropertyChangedParams )
 	{
-		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams ) );
+		this->AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams ) );
 	}
 
 	/** Adds a key based on a property change. */
@@ -198,19 +199,19 @@ private:
 		GenerateKeysFromPropertyChanged( PropertyChangedParams, KeysForPropertyChange );
 
 		TSubclassOf<UMovieSceneTrack> CustomizedClass = GetCustomizedTrackClass( PropertyChangedParams.PropertyPath.Last() );
-		TSubclassOf<UMovieSceneTrack> TrackClass = CustomizedClass != nullptr ? CustomizedClass : TrackType::StaticClass();
+		TSubclassOf<UMovieSceneTrack> TrackClass = (*CustomizedClass != nullptr ? *CustomizedClass : TrackType::StaticClass());
 
 		// If the track class has been customized for this property then it's possible this track editor doesn't support it, 
 		// also check for track editors which should only be used for customization.
-		if ( SupportsType( TrackClass ) && ( ForCustomizedUseOnly() == false || CustomizedClass != nullptr) )
+		if ( SupportsType( TrackClass ) && ( ForCustomizedUseOnly() == false || *CustomizedClass != nullptr) )
 		{
-			FOnInitializeNewTrack OnInitializeNewTrack;
+			typename FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>::FOnInitializeNewTrack OnInitializeNewTrack;
 			OnInitializeNewTrack.BindLambda( [&](TrackType* NewTrack) { InitializeNewTrack( NewTrack, PropertyChangedParams ); } );
 
-			FOnSetIntermediateValue OnSetIntermediateValue;
+			typename FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>::FOnSetIntermediateValue OnSetIntermediateValue;
 			OnSetIntermediateValue.BindSP( this, &FPropertyTrackEditor::SetIntermediateValueFromPropertyChange, PropertyChangedParams );
 
-			return AddKeysToObjects( PropertyChangedParams.ObjectsThatChanged, KeyTime, KeysForPropertyChange, PropertyChangedParams.KeyParams,
+			return this->AddKeysToObjects( PropertyChangedParams.ObjectsThatChanged, KeyTime, KeysForPropertyChange, PropertyChangedParams.KeyParams,
 				TrackClass, PropertyChangedParams.PropertyPath.Last()->GetFName(), OnInitializeNewTrack, OnSetIntermediateValue );
 		}
 		else
