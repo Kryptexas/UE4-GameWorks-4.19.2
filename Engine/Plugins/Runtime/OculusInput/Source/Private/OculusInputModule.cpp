@@ -2,6 +2,7 @@
 
 #include "OculusInput.h"
 #include "IOculusInputPlugin.h"
+#include "IOculusRiftPlugin.h"
 
 #if OCULUS_TOUCH_SUPPORTED_PLATFORMS
 
