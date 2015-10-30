@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
+#include "AndroidInputInterface.h"
 #include "AndroidApplication.h"
 #include <android/log.h>
 #include <cpu-features.h>
