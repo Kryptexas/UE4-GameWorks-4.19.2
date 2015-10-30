@@ -1040,8 +1040,8 @@ void FBodyInstanceCustomizationHelper::CustomizeDetails( IDetailLayoutBuilder& D
 		{
 			TSharedPtr<IPropertyHandle> ChildProp = BodyInstanceHandler->GetChildHandle(ChildIdx);
 
-			FName Category = FObjectEditorUtils::GetCategoryFName(ChildProp->GetProperty());
-			if(ChildProp->IsCustomized() == false && Category == FName(TEXT("Physics")))	//add the rest of the physics properties
+			FName CategoryName = FObjectEditorUtils::GetCategoryFName(ChildProp->GetProperty());
+			if(ChildProp->IsCustomized() == false && CategoryName == FName(TEXT("Physics")))	//add the rest of the physics properties
 			{
 				PhysicsCategory.AddProperty(ChildProp);
 			}
