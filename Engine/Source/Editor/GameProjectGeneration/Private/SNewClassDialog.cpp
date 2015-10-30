@@ -791,6 +791,9 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 		ParentClassListView->SetSelection(ParentClassItemsSource[0], ESelectInfo::Direct);
 	}
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
 void SNewClassDialog::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	// Every few seconds, the class name/path is checked for validity in case the disk contents changed and the location is now valid or invalid.

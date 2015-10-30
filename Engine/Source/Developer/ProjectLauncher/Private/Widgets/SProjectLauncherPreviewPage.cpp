@@ -786,6 +786,8 @@ void SProjectLauncherPreviewPage::Construct( const FArguments& InArgs, const FPr
 			]
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 void SProjectLauncherPreviewPage::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	RefreshDeviceProxyList();

@@ -758,6 +758,8 @@ void SFiltersAndPresets::Construct( const FArguments& InArgs )
 	CreateGroupByOptionsSources();
 	RecreateSortByOptionsSources();
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 
 void SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate()
 {

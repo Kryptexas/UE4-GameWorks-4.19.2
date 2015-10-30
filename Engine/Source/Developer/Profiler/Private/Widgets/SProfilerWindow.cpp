@@ -312,6 +312,7 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SProfilerWindow::ProfilerManager_OnViewModeChanged );
 	GraphPanel->ProfilerMiniView = ProfilerMiniView;
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SProfilerWindow::ManageEventGraphTab( const FGuid ProfilerInstanceID, const bool bCreateFakeTab, const FString TabName )
 {
