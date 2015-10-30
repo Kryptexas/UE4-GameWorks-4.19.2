@@ -22,8 +22,9 @@ id<MTLDevice> GMetalDevice = nil;
 + (bool)IsA7DeviceOnIOS9
 {
 #ifdef __IPHONE_9_0
+    NSArray* versionArray = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
     FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
-    return Device == FPlatformMisc::IOS_IPhone5S || Device == FPlatformMisc::IOS_IPadAir2 || Device == FPlatformMisc::IOS_IPadMini2;
+    return (Device == FPlatformMisc::IOS_IPhone5S || Device == FPlatformMisc::IOS_IPadAir2 || Device == FPlatformMisc::IOS_IPadMini2) && [[versionArray objectAtIndex:0] intValue] == 9;
 #else
     return false;
 #endif
