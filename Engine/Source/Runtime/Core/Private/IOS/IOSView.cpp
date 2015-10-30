@@ -19,6 +19,26 @@ id<MTLDevice> GMetalDevice = nil;
 
 @synthesize SwapCount, OnScreenColorRenderBuffer, OnScreenColorRenderBufferMSAA;
 
++ (bool)IsA7DeviceOnIOS9
+{
+#ifdef __IPHONE_9_0
+    FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
+    return Device == FPlatformMisc::IOS_IPhone5S || Device == FPlatformMisc::IOS_IPadAir2 || Device == FPlatformMisc::IOS_IPadMini2;
+#else
+    return false;
+#endif
+}
+
++ (bool)IsIPhone6DeviceOnIOS8
+{
+#ifdef __IPHONE_9_0
+    NSArray* versionArray = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
+    return [[versionArray objectAtIndex:0] intValue] == 8;
+#else
+    return false;
+#endif
+}
+
 /**
  * @return The Layer Class for the window
  */
@@ -32,7 +52,7 @@ id<MTLDevice> GMetalDevice = nil;
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetalMRT"), bSupportsMetalMRT, GEngineIni);
 
 	// does commandline override?
-	bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("ES2"));
+	bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("ES2")) || [FIOSView IsA7DeviceOnIOS9] || [FIOSView IsIPhone6DeviceOnIOS8];
 
 	bool bTriedToInit = false;
 

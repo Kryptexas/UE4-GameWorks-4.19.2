@@ -43,6 +43,9 @@
 	bool bIsUsingMetal;
 }
 
++ (bool)IsA7DeviceOnIOS9;
++ (bool)IsIPhone6DeviceOnIOS8;
+
 //// SHARED FUNCTIONALITY
 @property (nonatomic) GLuint SwapCount;
 
