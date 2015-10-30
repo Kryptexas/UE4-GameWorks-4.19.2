@@ -2418,7 +2418,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 	
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().AddNewLocalVariable,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::OnAddNewLocalVariable),
-		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::InEditingMode),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanAddNewLocalVariable),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FBlueprintEditor::NewDocument_IsVisibleForType, CGT_NewLocalVariable));
 
@@ -6912,6 +6912,17 @@ void FBlueprintEditor::OnAddNewVariable()
 	{
 		RenameNewlyAddedAction(VarName);
 	}
+}
+
+bool FBlueprintEditor::CanAddNewLocalVariable() const
+{
+	if (InEditingMode())
+	{
+		UEdGraph* TargetGraph = FBlueprintEditorUtils::GetTopLevelGraph(FocusedGraphEdPtr.Pin()->GetCurrentGraph());
+
+		return TargetGraph->GetSchema()->GetGraphType(TargetGraph) == GT_Function;
+	}
+	return false;
 }
 
 void FBlueprintEditor::OnAddNewLocalVariable()
