@@ -275,6 +275,15 @@ void ULandscapeComponent::UpdateMaterialInstances()
 
 	if (CombinationMaterialInstance != NULL)
 	{
+		// not having the context recreate the render state because we will manually do it for only this component
+		FMaterialUpdateContext Context(FMaterialUpdateContext::EOptions::Default & ~FMaterialUpdateContext::EOptions::RecreateRenderStates);
+
+		if (bRenderStateCreated)
+		{
+			DestroyRenderState_Concurrent();
+			FlushRenderingCommands();
+		}
+
 		// Create the instance for this component, that will use the layer combination instance.
 		if (MaterialInstance == NULL || GetOutermost() != MaterialInstance->GetOutermost())
 		{
@@ -286,6 +295,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		MaterialInstance->Modify();
 
 		MaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
+		Context.AddMaterialInstance(MaterialInstance); // must be done after SetParent
 
 		FLinearColor Masks[4];
 		Masks[0] = FLinearColor(1.0f, 0.0f, 0.0f, 0.0f);
@@ -3210,11 +3220,12 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 				GetLandscapeInfo()->UpdateLayerInfoMap(/*this*/);
 
 				// Clear the parents out of combination material instances
-				for (TMap<FString, UMaterialInstanceConstant*>::TIterator It(MaterialInstanceConstantMap); It; ++It)
+				for (const auto& MICPair : MaterialInstanceConstantMap)
 				{
-					It.Value()->BasePropertyOverrides.bOverride_BlendMode = false;
-					It.Value()->SetParentEditorOnly(nullptr);
-					MaterialUpdateContext.AddMaterial(It.Value()->GetMaterial());
+					UMaterialInstanceConstant* MaterialInstance = MICPair.Value;
+					MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = false;
+					MaterialInstance->SetParentEditorOnly(nullptr);
+					MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
 				}
 
 				// Remove our references to any material instances
@@ -3361,11 +3372,12 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		ChangedMaterial = true;
 
 		// Clear the parents out of combination material instances
-		for (TMap<FString, UMaterialInstanceConstant*>::TIterator It(MaterialInstanceConstantMap); It; ++It)
+		for (const auto& MICPair : MaterialInstanceConstantMap)
 		{
-			It.Value()->BasePropertyOverrides.bOverride_BlendMode = false;
-			It.Value()->SetParentEditorOnly(nullptr);
-			MaterialUpdateContext.AddMaterial(It.Value()->GetMaterial());
+			UMaterialInstanceConstant* MaterialInstance = MICPair.Value;
+			MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = false;
+			MaterialInstance->SetParentEditorOnly(nullptr);
+			MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
 		}
 
 		// Remove our references to any material instances
@@ -3438,10 +3450,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			LandscapeEdit.RecalculateNormals();
 		}
 
+		// We cannot iterate the XYtoComponentMap directly because reregistering components modifies the array.
 		TArray<ULandscapeComponent*> AllComponents;
 		Info->XYtoComponentMap.GenerateValueArray(AllComponents);
-
-		// We cannot iterate the XYtoComponentMap directly because reregistering components modifies the array.
 		for (auto It = AllComponents.CreateIterator(); It; ++It)
 		{
 			ULandscapeComponent* Comp = *It;
