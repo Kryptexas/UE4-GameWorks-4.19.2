@@ -88,7 +88,7 @@ void FVisualStudioSourceCodeAccessor::RefreshAvailability()
 
 #if _MSC_VER >= 1900
 	AddVisualStudioVersion(14); // Visual Studio 2015
-#elif
+#else
 	AddVisualStudioVersion(12); // Visual Studio 2013
 #endif
 }
