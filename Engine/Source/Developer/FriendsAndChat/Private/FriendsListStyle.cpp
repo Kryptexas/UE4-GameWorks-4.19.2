@@ -175,12 +175,6 @@ FFriendsListStyle& FFriendsListStyle::SetFriendsListBackground(const FSlateBrush
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetFriendListActionFontColor(const FLinearColor& Color)
-{
-	FriendListActionFontColor = Color;
-	return *this;
-}
-
 FFriendsListStyle& FFriendsListStyle::SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& TextStyle)
 {
 	AddFriendEditableTextStyle = TextStyle;
@@ -202,18 +196,6 @@ FFriendsListStyle& FFriendsListStyle::SetAddFriendButtonSize(const FVector2D& Va
 FFriendsListStyle& FFriendsListStyle::SetUserHeaderPadding(const FMargin& Margin)
 {
 	UserHeaderPadding = Margin;
-	return *this;
-}
-
-FFriendsListStyle& FFriendsListStyle::SetFriendsListWidth(const float InWidth)
-{
-	FriendsListWidth = InWidth;
-	return *this;
-}
-
-FFriendsListStyle& FFriendsListStyle::SetHasUserHeader(bool InHasUserHeader)
-{
-	HasUserHeader = InHasUserHeader;
 	return *this;
 }
 

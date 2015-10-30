@@ -33,6 +33,8 @@ DEFINE_STAT(STAT_XmppMucOpRequests);
 
 #if WITH_XMPP_JINGLE
 
+#define XMPP_RESOURCE_VERSION 2
+
 /**
  * Thread to create the xmpp pump/connection
  * Spawned during login and destroyed on logout
@@ -650,7 +652,11 @@ void FXmppConnectionJingle::SetServer(const FXmppServer& InServer)
 	// in order to ensure unique connections from user/client combination
 	// add random number to the client resource identifier
 	ServerConfig = InServer;
-	ServerConfig.ClientResource += FString(TEXT("-")) + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+	
+	ServerConfig.ClientResource  = FString::Printf(TEXT("V%u"), XMPP_RESOURCE_VERSION) + FString(TEXT(":"));
+	ServerConfig.ClientResource += ServerConfig.AppId + FString(TEXT(":"));
+	ServerConfig.ClientResource += ServerConfig.Platform + FString(TEXT(":"));
+	ServerConfig.ClientResource += FGuid::NewGuid().ToString(EGuidFormats::Digits);
 }
 
 const FXmppServer& FXmppConnectionJingle::GetServer() const

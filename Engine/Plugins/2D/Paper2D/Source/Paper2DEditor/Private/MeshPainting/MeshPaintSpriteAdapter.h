@@ -16,6 +16,7 @@ public:
 	static void InitializeAdapterGlobals() {}
 
 	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) override;
+	virtual bool InitializeMeshData() override { return true; }
 	virtual void OnAdded() override {}
 	virtual void OnRemoved() override {}
 	virtual int32 GetNumTexCoords() const override;

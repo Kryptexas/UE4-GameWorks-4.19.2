@@ -608,6 +608,15 @@ uint32 FSceneView::GetViewKey() const
 	return 0;
 }
 
+uint32 FSceneView::GetOcclusionFrameCounter() const
+{
+	if (State)
+	{
+		return State->GetOcclusionFrameCounter();
+	}
+	return MAX_uint32;
+}
+
 
 void FSceneView::UpdateViewMatrix()
 {

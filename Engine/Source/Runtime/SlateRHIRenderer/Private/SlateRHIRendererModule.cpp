@@ -60,11 +60,11 @@ public:
 		return MakeShareable( new FSlateRHIRenderer( ResourceManager, FontCache, FontMeasure ) );
 	}
 
-	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer() override
+	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer(bool bUseGammaCorrection) override
 	{
 		ConditionalCreateResources();
 
-		return MakeShareable( new FSlate3DRenderer( ResourceManager, FontCache ) );
+		return MakeShareable( new FSlate3DRenderer( ResourceManager, FontCache, bUseGammaCorrection ) );
 	}
 
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override

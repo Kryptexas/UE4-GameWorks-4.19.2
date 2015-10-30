@@ -160,10 +160,6 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FFriendsListStyle& SetFriendsListBackground(const FSlateBrush& InBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FLinearColor FriendListActionFontColor;
-	FFriendsListStyle& SetFriendListActionFontColor(const FLinearColor& InColor);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
 	FEditableTextBoxStyle AddFriendEditableTextStyle;
 	FFriendsListStyle& SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle);
 
@@ -180,14 +176,6 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FFriendsListStyle& SetUserHeaderPadding(const FMargin& InUserHeaderPadding);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	float FriendsListWidth;
-	FFriendsListStyle& SetFriendsListWidth(const float FriendsListLength);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	bool HasUserHeader;
-	FFriendsListStyle& SetHasUserHeader(bool InHasUserHeader);
-
-	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush BackBrush;
 	FFriendsListStyle& SetBackBrush(const FSlateBrush& Brush);
 
@@ -202,6 +190,48 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush SettingsBrush;
 	FFriendsListStyle& SetSettingsBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin BackButtonMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin HeaderButtonMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendsListMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin BackButtonContentMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendsListNoFriendsMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendsListHeaderMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendsListHeaderCountMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin HeaderButtonContentMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendItemMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendItemStatusMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendItemPresenceMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ConfirmationBorderMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ConfirmationButtonMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ConfirmationButtonContentMargin;
 
 
 // Clan Settings

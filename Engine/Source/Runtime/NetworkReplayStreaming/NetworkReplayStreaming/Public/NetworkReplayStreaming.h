@@ -47,7 +47,7 @@ public:
 /** Struct to store information about a stream, returned from search results. */
 struct FNetworkReplayStreamInfo
 {
-	FNetworkReplayStreamInfo() : SizeInBytes( 0 ), LengthInMS( 0 ), NumViewers( 0 ), bIsLive( false ), Changelist( 0 ) {}
+	FNetworkReplayStreamInfo() : SizeInBytes( 0 ), LengthInMS( 0 ), NumViewers( 0 ), bIsLive( false ), Changelist( 0 ), bShouldKeep( false ) {}
 
 	/** The name of the stream (generally this is auto generated, refer to friendly name for UI) */
 	FString Name;
@@ -72,6 +72,9 @@ struct FNetworkReplayStreamInfo
 
 	/** The changelist of the replay */
 	int32 Changelist;
+
+	/** Debug feature that allows us to mark replays to not be deleted. True if this replay has been marked as such */
+	bool bShouldKeep;
 };
 
 namespace ENetworkReplayError
@@ -199,6 +202,12 @@ public:
 	 * @param Delegate A delegate that will be executed if bound when the list of streams is available
 	 */
 	virtual void EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate ) = 0;
+
+	/**
+	* Retrieves the streams that are available for viewing. May execute asynchronously.
+	* Allows the caller to pass in a custom list of query parameters
+	*/
+	virtual void EnumerateStreams( const FNetworkReplayVersion& InReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate ) = 0;
 
 	/**
 	 * Retrieves the streams that have been recently viewed. May execute asynchronously.

@@ -23,19 +23,28 @@ public:
 /**
  * 
  */
-class FWidgetRenderer
+class UMG_API FWidgetRenderer
 {
 public:
-	FWidgetRenderer();
+	FWidgetRenderer(bool bUseGammaCorrection = false);
 	~FWidgetRenderer();
+
+	bool GetIsPrepassNeeded() const { return bPrepassNeeded; }
+	void SetIsPrepassNeeded(bool bInPrepassNeeded) { bPrepassNeeded = bInPrepassNeeded; }
 
 	ISlate3DRenderer* GetSlateRenderer();
 
-	UTextureRenderTarget2D* DrawWidget(TSharedRef<SWidget>& Widget, FVector2D DrawSize);
-	void DrawWidget(UTextureRenderTarget2D* RenderTarget, TSharedRef<SWidget>& Widget, FVector2D DrawSize, float DeltaTime);
-	void DrawWindow(UTextureRenderTarget2D* RenderTarget, TSharedRef<FHittestGrid> HitTestGrid, TSharedRef<SWindow> Window, FVector2D DrawSize, float DeltaTime);
+	static UTextureRenderTarget2D* CreateTargetFor(FVector2D DrawSize, TextureFilter InFilter, bool bUseGammaCorrection);
+
+	UTextureRenderTarget2D* DrawWidget(const TSharedRef<SWidget>& Widget, FVector2D DrawSize);
+	void DrawWidget(UTextureRenderTarget2D* RenderTarget, const TSharedRef<SWidget>& Widget, FVector2D DrawSize, float DeltaTime);
+	void DrawWindow(UTextureRenderTarget2D* RenderTarget, TSharedRef<FHittestGrid> HitTestGrid, TSharedRef<SWindow> Window, float Scale, FVector2D DrawSize, float DeltaTime);
 
 private:
 	/** The slate 3D renderer used to render the user slate widget */
 	TSharedPtr<ISlate3DRenderer> Renderer;
+	/** Prepass Needed when drawing the widget? */
+	bool bPrepassNeeded;
+	/** Is gamma space needed? */
+	bool bUseGammaSpace;
 };

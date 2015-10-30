@@ -22,22 +22,26 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	{
 		static FName FuncName = FName(TEXT("K2_ShouldAbilityRespondToEvent"));
 		UFunction* ShouldRespondFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintShouldAbilityRespondToEvent = ShouldRespondFunction && ShouldRespondFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		bHasBlueprintShouldAbilityRespondToEvent = ShouldRespondFunction && ensure(ShouldRespondFunction->GetOuter()) && ShouldRespondFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 	}
 	{
 		static FName FuncName = FName(TEXT("K2_CanActivateAbility"));
 		UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintCanUse = CanActivateFunction && CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		bHasBlueprintCanUse = CanActivateFunction && ensure(CanActivateFunction->GetOuter()) && CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 	}
 	{
 		static FName FuncName = FName(TEXT("K2_ActivateAbility"));
 		UFunction* ActivateFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintActivate = ActivateFunction && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		// FIXME: temp to work around crash
+		if (ActivateFunction && ActivateFunction->IsValidLowLevelFast())
+		{
+			bHasBlueprintActivate = ActivateFunction && ensure(ActivateFunction->GetOuter()) && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		}
 	}
 	{
 		static FName FuncName = FName(TEXT("K2_ActivateAbilityFromEvent"));
 		UFunction* ActivateFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintActivateFromEvent = ActivateFunction && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		bHasBlueprintActivateFromEvent = ActivateFunction && ensure(ActivateFunction->GetOuter()) && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 	}
 	
 #if WITH_EDITOR
@@ -866,9 +870,20 @@ FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingGameplayEffectSpec(const 
 	return FGameplayEffectSpecHandle(nullptr);
 }
 
+int32 AbilitySystemShowMakeOutgoingGameplayEffectSpecs = 0;
+static FAutoConsoleVariableRef CVarAbilitySystemShowMakeOutgoingGameplayEffectSpecs(TEXT("AbilitySystem.ShowClientMakeOutgoingSpecs"), AbilitySystemShowMakeOutgoingGameplayEffectSpecs, TEXT("Displays all GameplayEffect specs created on non authority clients"), ECVF_Default );
+
 FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level) const
 {
 	check(ActorInfo);
+
+	
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (AbilitySystemShowMakeOutgoingGameplayEffectSpecs && HasAuthority(&ActivationInfo) == false)
+	{
+		ABILITY_LOG(Warning, TEXT("%s, MakeOutgoingGameplayEffectSpec: %s"), *ActorInfo->AbilitySystemComponent->GetFullName(),  *GameplayEffectClass->GetName()); 
+	}
+#endif
 
 	FGameplayEffectSpecHandle NewHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(GameplayEffectClass, Level, GetEffectContext(Handle, ActorInfo));
 	if (NewHandle.IsValid())
@@ -1051,12 +1066,21 @@ void UGameplayAbility::OnTaskActivated(UGameplayTask& Task)
 
 void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
 {
-	TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
+	TArray<UGameplayTask*, TInlineAllocator<8> > NamedTasks;
+
+	for (UGameplayTask* Task : ActiveTasks)
+	{
+		if (Task && Task->GetInstanceName() == InstanceName)
+		{
+			NamedTasks.Add(Task);
+		}
+	}
+	
 	for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 	{
-		if (NamedTasks[i].IsValid())
+		UGameplayTask* CurrentTask = NamedTasks[i];
+		if (CurrentTask && CurrentTask->IsPendingKill() == false)
 		{
-			UGameplayTask* CurrentTask = NamedTasks[i].Get();
 			CurrentTask->ExternalConfirm(bEndTask);
 		}
 	}
@@ -1064,30 +1088,58 @@ void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTa
 
 void UGameplayAbility::EndOrCancelTasksByInstanceName()
 {
+	// Static array for avoiding memory allocations
+	TArray<UGameplayTask*, TInlineAllocator<8> > NamedTasks;
+
+	// Call Endtask on everything in EndTaskInstanceNames list
 	for (int32 j = 0; j < EndTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = EndTaskInstanceNames[j];
-		TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
+		NamedTasks.Reset();
+
+		// Find every current task that needs to end before ending any
+		for (UGameplayTask* Task : ActiveTasks)
+		{
+			if (Task && Task->GetInstanceName() == InstanceName)
+			{
+				NamedTasks.Add(Task);
+			}
+		}
+		
+		// End each one individually. Not ending a task may do "anything" including killing other tasks or the ability itself
 		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
-			if (NamedTasks[i].IsValid())
+			UGameplayTask* CurrentTask = NamedTasks[i];
+			if (CurrentTask && CurrentTask->IsPendingKill() == false)
 			{
-				UGameplayTask* CurrentTask = NamedTasks[i].Get();
 				CurrentTask->EndTask();
 			}
 		}
 	}
 	EndTaskInstanceNames.Empty();
 
+
+	// Call ExternalCancel on everything in CancelTaskInstanceNames list
 	for (int32 j = 0; j < CancelTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = CancelTaskInstanceNames[j];
-		TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
+		NamedTasks.Reset();
+		
+		// Find every current task that needs to cancel before cancelling any
+		for (UGameplayTask* Task : ActiveTasks)
+		{
+			if (Task && Task->GetInstanceName() == InstanceName)
+			{
+				NamedTasks.Add(Task);
+			}
+		}
+
+		// Cancel each one individually.  Not canceling a task may do "anything" including killing other tasks or the ability itself
 		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
-			if (NamedTasks[i].IsValid())
+			UGameplayTask* CurrentTask = NamedTasks[i];
+			if (CurrentTask && CurrentTask->IsPendingKill() == false)
 			{
-				UGameplayTask* CurrentTask = NamedTasks[i].Get();
 				CurrentTask->ExternalCancel();
 			}
 		}
@@ -1421,6 +1473,12 @@ TArray<FActiveGameplayEffectHandle> UGameplayAbility::K2_ApplyGameplayEffectToTa
 TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayAbilityTargetDataHandle Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, float GameplayEffectLevel, int32 Stacks) const
 {
 	TArray<FActiveGameplayEffectHandle> EffectHandles;
+
+	if (HasAuthority(&ActivationInfo) == false && UAbilitySystemGlobals::Get().ShouldPredictTargetGameplayEffects() == false)
+	{
+		// Early out to avoid making effect specs that we can't apply
+		return EffectHandles;
+	}
 
 	// This batches all created cues together
 	FScopedGameplayCueSendContext GameplayCueSendContext;

@@ -481,7 +481,7 @@ void FAutomationControllerManager::AddPingResult( const FMessageAddress& Respond
 void FAutomationControllerManager::UpdateTests( )
 {
 	static const float CheckTestInterval = 1.0f;
-	static const float GameInstanceLostTimer = 50.0f;
+	static const float GameInstanceLostTimer = 200.0f;
 
 	CheckTestTimer += FPlatformTime::Seconds() - LastTimeUpdateTicked;
 	LastTimeUpdateTicked = FPlatformTime::Seconds();

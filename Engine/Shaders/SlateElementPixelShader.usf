@@ -305,9 +305,15 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 	if (any(ClipTest < 0))
 	{
 		// Shows red where any pixels discarded because part of the element was clipped
-		OutColor *= float4(1,0,0,1) ;
+		OutColor *= float4(1,0,0,1);
 	}
 #endif
+
+
+#if !PRE_MULTIPLIED_ALPHA
+	OutColor.rgb = OutColor.rgb * OutColor.a;
+#endif
+
 
 	return OutColor;
 }

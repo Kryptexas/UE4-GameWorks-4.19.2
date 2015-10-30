@@ -91,9 +91,35 @@ public:
 
 
 	/**
-	 * @todo #JohnB
+	 * Initializes FOodleDictionary data, from the specified dictionary file
+	 *
+	 * @param FilePath		The dictionary file path
+	 * @param OutDictionary	The FOodleDictionary struct to write to
 	 */
 	void InitializeDictionary(FString FilePath, FOodleDictionary& OutDictionary);
+
+	/**
+	 * Resolves and returns the default dictionary file paths.
+	 *
+	 * @param OutServerDictionary	The server dictionary path
+	 * @param OutClientDictionary	The client dictionary path
+	 * @param bFailFatal			Whether or not failure to set the dictionary paths, should be fatal
+	 * @return						Whether or not the dictionary paths were successfully set
+	 */
+	bool GetDictionaryPaths(FString& OutServerDictionary, FString& OutClientDictionary, bool bFailFatal=true);
+
+#if !UE_BUILD_SHIPPING
+	/**
+	 * Searches the game directory for alternate/fallback dictionary files, using the *.udic file extension.
+	 * NOTE: This is non-shipping-only, as release games MUST have well-determined dictionary files (for net-binary-compatibility)
+	 *
+	 * @param OutServerDictionary	The server dictionary path
+	 * @param OutClientDictionary	The client dictionary path
+	 * @param bTestOnly				Whether this is being used to test for presence of alternate dictionaries (disables some logging)
+	 * @return						Whether or not alternate dictionaries were found
+	 */
+	bool FindFallbackDictionaries(FString& OutServerDictionary, FString& OutClientDictionary, bool bTestOnly=false);
+#endif
 
 	/* Initializes the handler component */
 	virtual void Initialize() override;
@@ -125,6 +151,14 @@ protected:
 	FPacketCaptureArchive* OutPacketLog;
 #endif
 
+
+	/** Whether or not Oodle is enabled */
+	bool bEnableOodle;
+
+#if !UE_BUILD_SHIPPING
+	/** Search for dictionary files and use them if present - switching mode to Release in process - don't use in shipping */
+	bool bUseDictionaryIfPresent;
+#endif
 
 	/* 
 	* Modes of the component

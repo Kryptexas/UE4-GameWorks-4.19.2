@@ -655,11 +655,14 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 			if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 			{
 				UpdateRenderTarget();
+				
+				const float DrawScale = 1.0f;
 
 				WidgetRenderer->DrawWindow(
 					RenderTarget,
 					HitTestGrid.ToSharedRef(),
 					SlateWidget.ToSharedRef(),
+					DrawScale,
 					DrawSize,
 					DeltaTime);
 			}

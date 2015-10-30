@@ -2487,6 +2487,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 	check(NumSubsections > 0);
 	check(SubsectionSizeQuads > 0);
 
+	const int32 NewComponentSizeQuads = NumSubsections * SubsectionSizeQuads;
+
 	ALandscape* Landscape = NULL;
 
 	ULandscapeInfo* LandscapeInfo = CurrentToolTarget.LandscapeInfo.Get();
@@ -2499,8 +2501,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 			const int32 OldVertsX = OldMaxX - OldMinX + 1;
 			const int32 OldVertsY = OldMaxY - OldMinY + 1;
-			const int32 NewVertsX = NumComponentsX * NumSubsections * SubsectionSizeQuads + 1;
-			const int32 NewVertsY = NumComponentsY * NumSubsections * SubsectionSizeQuads + 1;
+			const int32 NewVertsX = NumComponentsX * NewComponentSizeQuads + 1;
+			const int32 NewVertsY = NumComponentsY * NewComponentSizeQuads + 1;
 
 			FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
 			TArray<uint16> HeightData;
@@ -2508,8 +2510,14 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			FVector LandscapeOffset = FVector::ZeroVector;
 			float LandscapeScaleFactor = 1.0f;
 
+			int32 NewMinX, NewMinY, NewMaxX, NewMaxY;
 			if (bResample)
 			{
+				NewMinX = OldMinX / LandscapeInfo->ComponentSizeQuads * NewComponentSizeQuads;
+				NewMinY = OldMinY / LandscapeInfo->ComponentSizeQuads * NewComponentSizeQuads;
+				NewMaxX = NewMinX + NewVertsX - 1;
+				NewMaxY = NewMinY + NewVertsY - 1;
+
 				HeightData.AddZeroed(OldVertsX * OldVertsY * sizeof(uint16));
 
 				// GetHeightData alters its args, so make temp copies to avoid screwing things up
@@ -2535,14 +2543,14 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 					}
 				}
 
-				LandscapeScaleFactor = (float)OldLandscapeProxy->ComponentSizeQuads / (NumSubsections * SubsectionSizeQuads);
+				LandscapeScaleFactor = (float)OldLandscapeProxy->ComponentSizeQuads / NewComponentSizeQuads;
 			}
 			else
 			{
-				const int32 NewMinX = OldMinX + (OldVertsX - NewVertsX) / 2;
-				const int32 NewMinY = OldMinY + (OldVertsY - NewVertsY) / 2;
-				const int32 NewMaxX = NewMinX + NewVertsX - 1;
-				const int32 NewMaxY = NewMinY + NewVertsY - 1;
+				NewMinX = OldMinX + (OldVertsX - NewVertsX) / 2;
+				NewMinY = OldMinY + (OldVertsY - NewVertsY) / 2;
+				NewMaxX = NewMinX + NewVertsX - 1;
+				NewMaxY = NewMinY + NewVertsY - 1;
 				const int32 RequestedMinX = FMath::Max(OldMinX, NewMinX);
 				const int32 RequestedMinY = FMath::Max(OldMinY, NewMinY);
 				const int32 RequestedMaxX = FMath::Min(OldMaxX, NewMaxX);
@@ -2577,7 +2585,12 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 					}
 				}
 
+				// offset landscape to component boundary
 				LandscapeOffset = FVector(NewMinX - OldMinX, NewMinY - OldMinY, 0) * OldLandscapeProxy->GetActorScale();
+				NewMinX = 0;
+				NewMinY = 0;
+				NewMaxX = NewVertsX - 1;
+				NewMaxY = NewVertsY - 1;
 			}
 
 			const FVector Location = OldLandscapeProxy->GetActorLocation() + LandscapeOffset;
@@ -2588,7 +2601,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 			Landscape->LandscapeMaterial = OldLandscapeProxy->LandscapeMaterial;
 			Landscape->CollisionMipLevel = OldLandscapeProxy->CollisionMipLevel;
-			Landscape->Import(FGuid::NewGuid(), NewVertsX, NewVertsY, NumSubsections*SubsectionSizeQuads, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos);
+			Landscape->Import(FGuid::NewGuid(), NewMinX, NewMinY, NewMaxX, NewMaxY, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, ELandscapeImportAlphamapType::Additive);
 
 			Landscape->MaxLODLevel = OldLandscapeProxy->MaxLODLevel;
 			Landscape->ExportLOD = OldLandscapeProxy->ExportLOD;

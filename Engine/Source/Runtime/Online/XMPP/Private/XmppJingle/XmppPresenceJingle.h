@@ -52,7 +52,7 @@ public:
 	virtual ~FXmppPresenceJingle();
 
 	static void ConvertFromPresence(buzz::PresenceStatus& OutStatus, const FXmppUserPresence& InPresence);
-	static void ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus);
+	static void ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid);
 
 private:
 

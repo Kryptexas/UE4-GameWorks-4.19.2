@@ -930,17 +930,18 @@ ALandscapeProxy* FWorldTileModel::ImportLandscapeTile(const FLandscapeImportSett
 	// Cache pointer to landscape in the level model
 	Landscape = LandscapeProxy;
 
-	// Create landscape components	
+	// Create landscape components
 	LandscapeProxy->Import(
-		Settings.LandscapeGuid, 
-		Settings.SizeX, 
-		Settings.SizeY, 
-		Settings.ComponentSizeQuads, 
-		Settings.SectionsPerComponent, 
-		Settings.QuadsPerSection, 
-		Settings.HeightData.GetData(), 
-		*Settings.HeightmapFilename, 
-		Settings.ImportLayers);
+		Settings.LandscapeGuid,
+		0, 0,
+		Settings.SizeX - 1,
+		Settings.SizeY - 1,
+		Settings.SectionsPerComponent,
+		Settings.QuadsPerSection,
+		Settings.HeightData.GetData(),
+		*Settings.HeightmapFilename,
+		Settings.ImportLayers,
+		Settings.ImportLayerType);
 
 	return LandscapeProxy;
 }

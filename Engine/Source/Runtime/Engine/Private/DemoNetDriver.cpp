@@ -160,8 +160,7 @@ public:
 			Driver->DemoCurrentTime = OldTimeInSeconds;
 
 			// Call delegate if any
-			Driver->OnGotoTimeDelegate.ExecuteIfBound( false );
-			Driver->OnGotoTimeDelegate.Unbind();
+			Driver->NotifyGotoTimeFinished(false);
 
 			GotoCheckpointSkipExtraTimeInMS = -2;	// So tick can detect failure case
 			return;
@@ -1593,14 +1592,15 @@ void UDemoNetDriver::SkipTimeInternal( const float SecondsToSkip, const bool InF
 
 void UDemoNetDriver::GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate)
 {
+	OnGotoTimeDelegate_Transient = InOnGotoTimeDelegate;
+
 	if ( IsNamedTaskInQueue( TEXT( "FGotoTimeInSecondsTask" ) ) )
 	{
-		InOnGotoTimeDelegate.ExecuteIfBound( false );
+		NotifyGotoTimeFinished(false);
 		return;		// Don't allow scrubbing if we already are
 	}
 
 	AddReplayTask( new FGotoTimeInSecondsTask( this, TimeInSeconds ) );
-	OnGotoTimeDelegate = InOnGotoTimeDelegate;
 }
 
 void UDemoNetDriver::JumpToEndOfLiveReplay()
@@ -1723,10 +1723,9 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 	// Reset the never-queue GUID list, we'll rebuild it
 	NonQueuedGUIDsForScrubbing.Reset();
 
-	const auto FastForwardTotalSeconds = FPlatformTime::Seconds() - StartTime;
+	const float FastForwardTotalSeconds = FPlatformTime::Seconds() - StartTime;
 
-	OnGotoTimeDelegate.ExecuteIfBound( true );
-	OnGotoTimeDelegate.Unbind();
+	NotifyGotoTimeFinished(true);
 
 	UE_LOG( LogDemo, Log, TEXT( "Fast forward took %.2f seconds." ), FastForwardTotalSeconds );
 }
@@ -2277,6 +2276,20 @@ bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 bool UDemoNetDriver::IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const
 {
 	return ( DemoFrameNum > 2 || Super::IsLevelInitializedForActor( InActor, InConnection ) );
+}
+
+void UDemoNetDriver::NotifyGotoTimeFinished(bool bWasSuccessful)
+{
+	// execute and clear the transient delegate
+	OnGotoTimeDelegate_Transient.ExecuteIfBound(bWasSuccessful);
+	OnGotoTimeDelegate_Transient.Unbind();
+
+	// execute and keep the permanent delegate
+	// call only when successful
+	if (bWasSuccessful)
+	{
+		OnGotoTimeDelegate.Broadcast();
+	}
 }
 
 

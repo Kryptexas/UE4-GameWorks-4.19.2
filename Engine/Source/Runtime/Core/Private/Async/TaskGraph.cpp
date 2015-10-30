@@ -242,7 +242,7 @@ static FAutoConsoleVariableRef CVarMaxTasksToStartOnDequeue(
 	ECVF_Cheat
 	);
 
-static int32 GAllAnyThreadTasksFromGameHiPri = 0;
+int32 GAllAnyThreadTasksFromGameHiPri = 1;
 static FAutoConsoleVariableRef CVarAllAnyThreadTasksFromGameHiPri(
 	TEXT("TaskGraph.AllAnyThreadTasksFromGameHiPri"),
 	GAllAnyThreadTasksFromGameHiPri,
@@ -1354,22 +1354,9 @@ public:
 			TASKGRAPH_SCOPE_CYCLE_COUNTER(3, STAT_TaskGraph_QueueTask_AnyThread);
 			if (FPlatformProcess::SupportsMultithreading())
 			{
-				ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread;
-				if (GAllAnyThreadTasksFromGameHiPri || !GFastSchedulerLatched)
-				{
-				    if (ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown) == ENamedThreads::AnyThread)
-				    {
-					    CurrentThreadIfKnown = GetCurrentThread();
-				    }
-				    else
-				    {
-					    CurrentThreadIfKnown = ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown);
-					    checkThreadGraph(CurrentThreadIfKnown == GetCurrentThread());
-				    }
-				}
 				{
 					TASKGRAPH_SCOPE_CYCLE_COUNTER(4, STAT_TaskGraph_QueueTask_IncomingAnyThreadTasks_Push);
-					if ((GAllAnyThreadTasksFromGameHiPri && CurrentThreadIfKnown == ENamedThreads::GameThread) ||  ENamedThreads::GetPriority(Task->ThreadToExecuteOn))
+					if (ENamedThreads::GetPriority(Task->ThreadToExecuteOn))
 					{
 						IncomingAnyThreadTasksHiPri.Push(Task);
 					}
@@ -1387,6 +1374,16 @@ public:
 				}
 				else
 				{
+					ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread;
+					if (ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown) == ENamedThreads::AnyThread)
+					{
+						CurrentThreadIfKnown = GetCurrentThread();
+					}
+					else
+					{
+						CurrentThreadIfKnown = ENamedThreads::GetThreadIndex(InCurrentThreadIfKnown);
+						checkThreadGraph(CurrentThreadIfKnown == GetCurrentThread());
+					}
 					FTaskThreadBase* TempTarget;
 					{
 						TASKGRAPH_SCOPE_CYCLE_COUNTER(5, STAT_TaskGraph_QueueTask_StalledUnnamedThreads_Pop);
@@ -2403,7 +2400,7 @@ void FGraphEvent::DispatchSubsequents(TArray<FBaseGraphTask*>& NewTasks, ENamedT
 			STAT_FNullGraphTask_DontCompleteUntil,
 			STATGROUP_TaskGraphTasks);
 
-		TGraphTask<FNullGraphTask>::CreateTask(FGraphEventRef(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_DontCompleteUntil));
+		TGraphTask<FNullGraphTask>::CreateTask(FGraphEventRef(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_DontCompleteUntil), ENamedThreads::HiPri(ENamedThreads::AnyThread));
 		return;
 	}
 
@@ -2588,10 +2585,10 @@ static void TaskGraphBenchmark(const TArray<FString>& Args)
 		Tasks.Reserve(1000);
 		for (int32 Index = 0; Index < 1000; Index++)
 		{
-			Tasks.Emplace(TGraphTask<FNullGraphTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId()));
+			Tasks.Emplace(TGraphTask<FNullGraphTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread));
 		}
 		QueueTime = FPlatformTime::Seconds();
-		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId());
+		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 		JoinTime = FPlatformTime::Seconds();
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Join, ENamedThreads::GameThread_Local);
 		EndTime = FPlatformTime::Seconds();
@@ -2605,11 +2602,11 @@ static void TaskGraphBenchmark(const TArray<FString>& Args)
 		ParallelFor(1000, 
 			[&Tasks](int32 Index)
 			{
-				Tasks[Index] = TGraphTask<FNullGraphTask>::CreateTask().ConstructAndDispatchWhenReady(TStatId());
+				Tasks[Index] = TGraphTask<FNullGraphTask>::CreateTask().ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 			}
 		);
 		QueueTime = FPlatformTime::Seconds();
-		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId());
+		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 		JoinTime = FPlatformTime::Seconds();
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Join, ENamedThreads::GameThread_Local);
 		EndTime = FPlatformTime::Seconds();
@@ -2628,14 +2625,14 @@ static void TaskGraphBenchmark(const TArray<FString>& Args)
 			ENamedThreads::Type CurrentThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
 			for (int32 InnerIndex = 0; InnerIndex < 100; InnerIndex++)
 			{
-				InnerTasks[InnerIndex] = TGraphTask<FNullGraphTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(TStatId());
+				InnerTasks[InnerIndex] = TGraphTask<FNullGraphTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 			}
 			// join the above tasks
-			Tasks[Index] = TGraphTask<FNullGraphTask>::CreateTask(&InnerTasks, CurrentThread).ConstructAndDispatchWhenReady(TStatId());
+			Tasks[Index] = TGraphTask<FNullGraphTask>::CreateTask(&InnerTasks, CurrentThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 		}
 		);
 		QueueTime = FPlatformTime::Seconds();
-		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId());
+		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 		JoinTime = FPlatformTime::Seconds();
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Join, ENamedThreads::GameThread_Local);
 		EndTime = FPlatformTime::Seconds();
@@ -2654,14 +2651,14 @@ static void TaskGraphBenchmark(const TArray<FString>& Args)
 			ENamedThreads::Type CurrentThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
 			for (int32 InnerIndex = 0; InnerIndex < 10; InnerIndex++)
 			{
-				InnerTasks[InnerIndex] = TGraphTask<FNullGraphTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(TStatId());
+				InnerTasks[InnerIndex] = TGraphTask<FNullGraphTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 			}
 			// join the above tasks
-			Tasks[Index] = TGraphTask<FNullGraphTask>::CreateTask(&InnerTasks, CurrentThread).ConstructAndDispatchWhenReady(TStatId());
+			Tasks[Index] = TGraphTask<FNullGraphTask>::CreateTask(&InnerTasks, CurrentThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 		}
 		);
 		QueueTime = FPlatformTime::Seconds();
-		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId());
+		FGraphEventRef Join = TGraphTask<FNullGraphTask>::CreateTask(&Tasks, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TStatId(), ENamedThreads::AnyThread);
 		JoinTime = FPlatformTime::Seconds();
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Join, ENamedThreads::GameThread_Local);
 		EndTime = FPlatformTime::Seconds();

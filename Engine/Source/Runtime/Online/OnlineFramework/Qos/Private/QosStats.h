@@ -129,24 +129,24 @@ private:
 	};
 
 	// Events
-	static const FString FQosDatacenterStats::QosStats_DatacenterEvent;
+	static const FString QosStats_DatacenterEvent;
 
 	// Common attribution
-	static const FString FQosDatacenterStats::QosStats_SessionId;
-	static const FString FQosDatacenterStats::QosStats_Version;
+	static const FString QosStats_SessionId;
+	static const FString QosStats_Version;
 
 	// Header stats
-	static const FString FQosDatacenterStats::QosStats_Timestamp;
-	static const FString FQosDatacenterStats::QosStats_TotalTime;
+	static const FString QosStats_Timestamp;
+	static const FString QosStats_TotalTime;
 
 	// Qos stats
-	static const FString FQosDatacenterStats::QosStats_DeterminationType;
-	static const FString FQosDatacenterStats::QosStats_DatacenterId;
-	static const FString FQosDatacenterStats::QosStats_NumRegions;
-	static const FString FQosDatacenterStats::QosStats_RegionDetails;
-	static const FString FQosDatacenterStats::QosStats_NumResults;
-	static const FString FQosDatacenterStats::QosStats_NumSuccessCount;
-	static const FString FQosDatacenterStats::QosStats_SearchDetails;
+	static const FString QosStats_DeterminationType;
+	static const FString QosStats_DatacenterId;
+	static const FString QosStats_NumRegions;
+	static const FString QosStats_RegionDetails;
+	static const FString QosStats_NumResults;
+	static const FString QosStats_NumSuccessCount;
+	static const FString QosStats_SearchDetails;
 
 	/** Version of the stats for separation */
 	int32 StatsVersion;

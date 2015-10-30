@@ -15,6 +15,7 @@ TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("
 void FClothManagerData::PrepareCloth(float DeltaTime, FTickFunction& TickFunction)
 {
 #if WITH_APEX_CLOTHING
+	const bool bParallelCloth = !!CVarParallelCloth.GetValueOnAnyThread() && !PhysSingleThreadedMode();
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FClothManager_PrepareCloth);
 	if (SkeletalMeshComponents.Num())
 	{
@@ -23,7 +24,7 @@ void FClothManagerData::PrepareCloth(float DeltaTime, FTickFunction& TickFunctio
 		for (USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
 		{
 			FClothSimulationContext& ClothSimulationContext = SkeletalMeshComponent->InternalClothSimulationContext;
-			if (bParallelCloth)
+			if(bParallelCloth)
 			{
 				SkeletalMeshComponent->ParallelTickClothing(DeltaTime, ClothSimulationContext);
 			}else
@@ -76,7 +77,7 @@ void FClothManager::SetupClothTickFunction(bool bTickClothSim)
 	check(IsInGameThread());
 	check(!IsPreparingClothAsync());
 
-	bool bTickOnAny = !!CVarParallelCloth.GetValueOnGameThread();
+	bool bTickOnAny = !!CVarParallelCloth.GetValueOnGameThread() && !PhysSingleThreadedMode();
 	StartIgnorePhysicsClothTickFunction.bRunOnAnyThread = bTickOnAny;
 	StartClothTickFunction.bRunOnAnyThread = bTickOnAny;
 

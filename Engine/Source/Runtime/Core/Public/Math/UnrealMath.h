@@ -470,7 +470,7 @@ inline FString FMath::FormatIntToHumanReadable(int32 Val)
 template<class U>
 FORCEINLINE_DEBUGGABLE FRotator FMath::Lerp( const FRotator& A, const FRotator& B, const U& Alpha)
 {
-	return A + (B - A).GetNormalized() * Alpha;
+	return (A * (1 - Alpha) + B * Alpha).GetNormalized();
 }
 
 

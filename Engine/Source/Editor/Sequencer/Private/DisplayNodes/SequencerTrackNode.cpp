@@ -169,3 +169,9 @@ ESequencerNode::Type FTrackNode::GetType() const
 {
 	return ESequencerNode::Track;
 }
+
+void FTrackNode::BuildContextMenu( FMenuBuilder& MenuBuilder )
+{
+	AssociatedEditor.BuildTrackContextMenu( MenuBuilder, AssociatedType.Get() );
+	FSequencerDisplayNode::BuildContextMenu( MenuBuilder );
+}

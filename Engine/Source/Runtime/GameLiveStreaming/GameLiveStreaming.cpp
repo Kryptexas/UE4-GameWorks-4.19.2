@@ -200,16 +200,32 @@ void FGameLiveStreaming::StartBroadcastingGame( const FGameBroadcastConfig& Game
 			{
 				for( int32 TextureIndex = 0; TextureIndex < 2; ++TextureIndex )
 				{
-					FRHIResourceCreateInfo CreateInfo;
-					ReadbackTextures[ TextureIndex ] = RHICreateTexture2D(
-						BroadcastConfig.VideoBufferWidth,
-						BroadcastConfig.VideoBufferHeight,
-						PF_B8G8R8A8,
-						1,
-						1,
-						TexCreate_CPUReadback,
-						CreateInfo
-						);
+					ReadbackTextures[ TextureIndex ] = nullptr;
+				}
+				ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+					FWebMRecordCreateBufers,
+					int32,InVideoWidth,BroadcastConfig.VideoBufferWidth,
+					int32,InVideoHeight,BroadcastConfig.VideoBufferHeight,
+					FTexture2DRHIRef*,InReadbackTextures,ReadbackTextures,
+				{
+					for (int32 TextureIndex = 0; TextureIndex < 2; ++TextureIndex)
+					{
+						FRHIResourceCreateInfo CreateInfo;
+						InReadbackTextures[ TextureIndex ] = RHICreateTexture2D(
+							InVideoWidth,
+							InVideoHeight,
+							PF_B8G8R8A8,
+							1,
+							1,
+							TexCreate_CPUReadback,
+							CreateInfo
+							);
+					}
+				});
+				FlushRenderingCommands();
+				for (int32 TextureIndex = 0; TextureIndex < 2; ++TextureIndex)
+				{
+					check(ReadbackTextures[TextureIndex].GetReference());
 				}
 	
 				ReadbackTextureIndex = 0;

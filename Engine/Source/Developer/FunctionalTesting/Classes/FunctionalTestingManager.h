@@ -27,6 +27,9 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnSetupTests;
+
+	UPROPERTY(BlueprintAssignable)
+	FFunctionalTestEventSignature OnTestsComplete;
 	
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContext", CallableWithoutWorldContext ) )
 	/** Triggers in sequence all functional tests found on the level.
@@ -76,4 +79,15 @@ protected:
 
 private:
 	FTimerHandle TriggerFirstValidTestTimerHandle;
+};
+
+UCLASS(abstract, Blueprintable, MinimalAPI)
+class APhasedAutomationActorBase : public AActor
+{
+	GENERATED_BODY()
+
+public:
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Automation")
+	void OnFunctionalTestingComplete();
 };

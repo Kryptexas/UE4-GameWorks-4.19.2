@@ -328,6 +328,7 @@ public:
 	bool bBalanceCommands;
 	// see r.RHICmdSpewParallelListBalance
 	bool bSpewBalance;
+	bool bBalanceCommandsWithLastFrame;
 public:
 	TArray<FRHICommandList*,SceneRenderingAllocator> CommandLists;
 	TArray<FGraphEventRef,SceneRenderingAllocator> Events;

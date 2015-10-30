@@ -329,6 +329,11 @@ void FNullNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName
 
 void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate )
 {
+	EnumerateStreams( ReplayVersion, UserString, MetaString, TArray< FString >(), Delegate );
+}
+
+void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate )
+{
 	// Simply returns a stream for each folder in the Saved/Demos directory
 	const FString WildCardPath = GetDemoPath() + TEXT( "*" );
 
@@ -337,18 +342,18 @@ void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 
 	TArray<FNetworkReplayStreamInfo> Results;
 
-	for (const FString& Directory : DirectoryNames)
+	for ( const FString& Directory : DirectoryNames )
 	{
 		// Assume there will be one file with a .demo extension in the directory
-		const FString FullDemoFilePath = GetDemoFilename(Directory);
+		const FString FullDemoFilePath = GetDemoFilename( Directory );
 
 		FNetworkReplayStreamInfo Info;
 		Info.SizeInBytes = IFileManager::Get().FileSize( *FullDemoFilePath );
-		
+
 		// Read stored info for this replay
 		FNullReplayInfo StoredReplayInfo = ReadReplayInfo( Directory );
-		
-		if (!StoredReplayInfo.bIsValid)
+
+		if ( !StoredReplayInfo.bIsValid )
 		{
 			continue;
 		}
@@ -368,11 +373,11 @@ void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 			Info.LengthInMS = StoredReplayInfo.LengthInMS;
 			Info.FriendlyName = StoredReplayInfo.FriendlyName;
 
-			Results.Add(Info);
+			Results.Add( Info );
 		}
 	}
 
-	Delegate.ExecuteIfBound(Results);
+	Delegate.ExecuteIfBound( Results );
 }
 
 void FNullNetworkReplayStreamer::AddUserToReplay(const FString& UserString)

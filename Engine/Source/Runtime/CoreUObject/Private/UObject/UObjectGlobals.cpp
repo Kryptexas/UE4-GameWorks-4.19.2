@@ -944,11 +944,20 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 		for (auto Dependency : PackageDependencies)
 		{
-			if (!InDependencyTracker.Contains(Dependency) && FindObjectFast<UPackage>(NULL, Dependency, false, false) == nullptr)
+			if (!InDependencyTracker.Contains(Dependency) && FindObjectFast<UPackage>(nullptr, Dependency, false, false) == nullptr)
 			{
 				InDependencyTracker.Add(Dependency);
 				LoadPackageInternal(InOuter, *Dependency.ToString(), LoadFlags, nullptr, InDependencyTracker, InAssetRegistry);
 			}
+		}
+
+		// Check that the package we are going to load hasn't somehow been loaded behind our backs
+		// while loading a dependency. In some cases, circular dependencies can mean this happens
+		// and so there is no need to carry on any further.
+		Result = FindObjectFast<UPackage>(nullptr, InLongPackageName, false, false);
+		if (Result != nullptr)
+		{
+			return Result;
 		}
 	}
 
@@ -1131,6 +1140,20 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 	return Result;
 }
 
+bool IsPlatformFileCompatibleWithDependencyPreloading()
+{
+	static bool bResultCached = false;
+	static bool bResult = true;
+	if (!bResultCached)
+	{
+		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+		const TCHAR* PlatformFileType = PlatformFile.GetName();
+		bResultCached = true;
+		bResult = (FCString::Stricmp(TEXT("StreamingFile"), PlatformFileType) != 0) && (FCString::Stricmp(TEXT("NetworkFile"), PlatformFileType) != 0);
+	}
+	return bResult;
+}
+
 UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker)
 {
 	IAssetRegistryInterface* AssetRegistry = nullptr;
@@ -1139,8 +1162,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 	static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 	
 	if (bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
-	{
-		AssetRegistry = IAssetRegistryInterface::GetPtr();
+	{		
+		if (IsPlatformFileCompatibleWithDependencyPreloading())
+		{
+			AssetRegistry = IAssetRegistryInterface::GetPtr();
+		}
 	}
 #endif
 

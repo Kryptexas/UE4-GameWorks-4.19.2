@@ -56,6 +56,8 @@ int32 UOodleTrainerCommandlet::Main(const FString& Params)
 
 			if (!bAlreadyEnabled)
 			{
+				GConfig->SetBool(TEXT("PacketHandlerComponents"), TEXT("bEnabled"), true, GEngineIni);
+
 				Components.Add(TEXT("OodleHandlerComponent"));
 				GConfig->SetArray(TEXT("PacketHandlerComponents"), TEXT("Components"), Components, GEngineIni);
 

@@ -19,10 +19,12 @@ void SVirtualWindow::Construct(const FArguments& InArgs)
 	SetContent(SNullWidget::NullWidget);
 }
 
-FWidgetRenderer::FWidgetRenderer()
+FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection)
+	: bPrepassNeeded(true)
+	, bUseGammaSpace(bUseGammaCorrection)
 {
 #if !UE_SERVER
-	Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
+	Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer(bUseGammaSpace);
 #endif
 }
 
@@ -35,18 +37,26 @@ ISlate3DRenderer* FWidgetRenderer::GetSlateRenderer()
 	return Renderer.Get();
 }
 
-UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(TSharedRef<SWidget>& Widget, FVector2D DrawSize)
+UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& Widget, FVector2D DrawSize)
 {
-	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>();
-	RenderTarget->ClearColor = FLinearColor::Transparent;
-	RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
+	UTextureRenderTarget2D* RenderTarget = FWidgetRenderer::CreateTargetFor(DrawSize, TF_Bilinear, bUseGammaSpace);
 
 	DrawWidget(RenderTarget, Widget, DrawSize, 0);
 
 	return RenderTarget;
 }
 
-void FWidgetRenderer::DrawWidget(UTextureRenderTarget2D* RenderTarget, TSharedRef<SWidget>& Widget, FVector2D DrawSize, float DeltaTime)
+UTextureRenderTarget2D* FWidgetRenderer::CreateTargetFor(FVector2D DrawSize, TextureFilter InFilter, bool bUseGammaCorrection)
+{
+	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>();
+	RenderTarget->Filter = InFilter;
+	RenderTarget->ClearColor = FLinearColor::Transparent;
+	const bool bIsLinearSpace = !bUseGammaCorrection;
+	RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, bIsLinearSpace);
+	return RenderTarget;
+}
+
+void FWidgetRenderer::DrawWidget(UTextureRenderTarget2D* RenderTarget, const TSharedRef<SWidget>& Widget, FVector2D DrawSize, float DeltaTime)
 {
 	TSharedRef<SVirtualWindow> Window = SNew(SVirtualWindow).Size(DrawSize);
 	TSharedRef<FHittestGrid> HitTestGrid = MakeShareable(new FHittestGrid());
@@ -54,21 +64,30 @@ void FWidgetRenderer::DrawWidget(UTextureRenderTarget2D* RenderTarget, TSharedRe
 	Window->SetContent(Widget);
 	Window->Resize(DrawSize);
 
-	DrawWindow(RenderTarget, HitTestGrid, Window, DrawSize, DeltaTime);
+	DrawWindow(RenderTarget, HitTestGrid, Window, 1, DrawSize, DeltaTime);
 }
 
-void FWidgetRenderer::DrawWindow(UTextureRenderTarget2D* RenderTarget, TSharedRef<FHittestGrid> HitTestGrid, TSharedRef<SWindow> Window, FVector2D DrawSize, float DeltaTime)
+void FWidgetRenderer::DrawWindow(
+	UTextureRenderTarget2D* RenderTarget,
+	TSharedRef<FHittestGrid> HitTestGrid,
+	TSharedRef<SWindow> Window,
+	float Scale,
+	FVector2D DrawSize,
+	float DeltaTime)
 {
 #if !UE_SERVER
-	FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize, FSlateLayoutTransform());
+	FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize * (1 / Scale), FSlateLayoutTransform(Scale));
 
 	if ( !bFoldTick )
 	{
 		Window->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
 	}
 
-	// Ticking can cause geometry changes.  Recompute
-	Window->SlatePrepass();
+	if ( bPrepassNeeded )
+	{
+		// Ticking can cause geometry changes.  Recompute
+		Window->SlatePrepass(Scale);
+	}
 
 	// Prepare the test grid 
 	HitTestGrid->ClearGridForNewFrame(WindowGeometry.GetClippingRect());

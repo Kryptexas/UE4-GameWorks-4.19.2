@@ -49,9 +49,9 @@ struct FPartyDetails
 		return PartyJoinInfo->GetLeaderId();
 	}
 
-	inline const FString& GetClientId() const
+	inline const FString& GetAppId() const
 	{
-		return PartyJoinInfo->GetClientId();
+		return PartyJoinInfo->GetAppId();
 	}
 
 	FString ToString() const
@@ -60,7 +60,7 @@ struct FPartyDetails
 			TEXT("PartyId: %s LeaderId: %s ResKey: %s Client: %s"), 
 			*GetPartyId()->ToDebugString(), 
 			*GetLeaderId()->ToDebugString(),
-			*GetClientId());
+			*GetAppId());
 	}
 
 	TSharedRef<const IOnlinePartyJoinInfo> PartyJoinInfo;

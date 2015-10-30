@@ -89,6 +89,7 @@ public:
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual ESequencerNode::Type GetType() const override;
+	virtual void BuildContextMenu( FMenuBuilder& MenuBuilder );
 
 private:
 

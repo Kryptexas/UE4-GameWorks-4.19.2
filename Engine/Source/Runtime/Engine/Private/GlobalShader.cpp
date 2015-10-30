@@ -690,13 +690,14 @@ void BeginRecompileGlobalShaders(const TArray<FShaderType*>& OutdatedShaderTypes
 			{
 				UE_LOG(LogShaders, Log, TEXT("Flushing Global Shader %s"), CurrentGlobalShaderType->GetName());
 				GlobalShaderMap->RemoveShaderType(CurrentGlobalShaderType);
-				
-				//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
-				for(TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList());It;It.Next())
-				{
-					BeginUpdateResourceRHI(*It);
-				}
+			
 			}
+		}
+
+		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
+		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList());It;It.Next())
+		{
+			BeginUpdateResourceRHI(*It);
 		}
 
 		VerifyGlobalShaders(ShaderPlatform, false);

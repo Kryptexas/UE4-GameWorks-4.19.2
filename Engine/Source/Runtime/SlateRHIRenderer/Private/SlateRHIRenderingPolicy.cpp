@@ -12,6 +12,8 @@
 #include "SlateMaterialResource.h"
 #include "Rendering/DrawElements.h"
 #include "SlateUpdatableBuffer.h"
+#include "SlateElementIndexBuffer.h"
+#include "SlateElementVertexBuffer.h"
 
 DECLARE_CYCLE_STAT(TEXT("Update Buffers RT"), STAT_SlateUpdateBufferRTTime, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("PreFill Buffers RT"), STAT_SlatePreFullBufferRTTime, STATGROUP_Slate);
@@ -22,134 +24,12 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROU
 DECLARE_MEMORY_STAT(TEXT("Vertex Buffer Memory"), STAT_SlateVertexBufferMemory, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMemory, STATGROUP_SlateMemory);
 
-FSlateElementIndexBuffer::FSlateElementIndexBuffer()
-	: BufferSize(0)	 
-	, MinBufferSize(0)
-	, BufferUsageSize(0)
-{
-
-}
-
-FSlateElementIndexBuffer::~FSlateElementIndexBuffer()
-{
-
-}
-
-void FSlateElementIndexBuffer::Init( int32 MinNumIndices )
-{
-	MinBufferSize = sizeof(SlateIndex) * FMath::Max( MinNumIndices, 200 );
-
-	if ( IsInRenderingThread() )
-	{
-		InitResource();
-	}
-	else
-	{
-		BeginInitResource(this);
-	}
-}
-
-void FSlateElementIndexBuffer::Destroy()
-{
-	if ( IsInRenderingThread() )
-	{
-		ReleaseResource();
-	}
-	else
-	{
-		BeginReleaseResource(this);
-	}
-}
-
-
-/** Initializes the index buffers RHI resource. */
-void FSlateElementIndexBuffer::InitDynamicRHI()
-{
-	checkSlow( IsInRenderingThread() );
-
-	check( MinBufferSize > 0 );
-
-	BufferSize = MinBufferSize;
-
-	FRHIResourceCreateInfo CreateInfo;
-	IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), MinBufferSize, BUF_Dynamic, CreateInfo );
-	check( IsValidRef(IndexBufferRHI) );
-}
-
-/** Resizes the buffer to the passed in size.  Preserves internal data */
-void FSlateElementIndexBuffer::ResizeBuffer( int32 NewSizeBytes )
-{
-	checkSlow( IsInRenderingThread() );
-
-	int32 FinalSize = FMath::Max( NewSizeBytes, MinBufferSize );
-
-	if( FinalSize != 0 && FinalSize != BufferSize )
-	{
-		IndexBufferRHI.SafeRelease();
-		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), FinalSize, BUF_Dynamic, CreateInfo );
-		check(IsValidRef(IndexBufferRHI));
-
-		BufferSize = FinalSize;
-	}
-}
-
-void FSlateElementIndexBuffer::PreFillBuffer(int32 RequiredIndexCount, bool bShrinkToMinSize)
-{
-	//SCOPE_CYCLE_COUNTER( STAT_SlatePreFullBufferRTTime );
-
-	checkSlow(IsInRenderingThread());
-
-	if (RequiredIndexCount > 0)
-	{
-		int32 RequiredBufferSize = RequiredIndexCount*sizeof(SlateIndex);
-
-		// resize if needed
-		if (RequiredBufferSize > GetBufferSize() || bShrinkToMinSize)
-		{
-			// Use array resize techniques for the vertex buffer
-			ResizeBuffer(RequiredBufferSize);
-		}
-
-		BufferUsageSize = RequiredBufferSize;		
-	}
-}
-
-void* FSlateElementIndexBuffer::LockBuffer_RenderThread(int32 NumIndices)
-{
-	uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
-	return RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
-}
-
-void FSlateElementIndexBuffer::UnlockBuffer_RenderThread()
-{
-	RHIUnlockIndexBuffer( IndexBufferRHI );
-}
-
-void* FSlateElementIndexBuffer::LockBuffer_RHIThread(int32 NumIndices)
-{
-	uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
-	return GDynamicRHI->RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
-}
-
-void FSlateElementIndexBuffer::UnlockBuffer_RHIThread()
-{
-	GDynamicRHI->RHIUnlockIndexBuffer( IndexBufferRHI );
-}
-
-/** Releases the index buffers RHI resource. */
-void FSlateElementIndexBuffer::ReleaseDynamicRHI()
-{
-	IndexBufferRHI.SafeRelease();
-	BufferSize = 0;
-}
-
 FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateRHIResourceManager> InResourceManager )
 	: FSlateRenderingPolicy(0)
 	, ResourceManager( InResourceManager )
 	, FontCache( InFontCache )
-	, CurrentBufferIndex(0)
 	, bGammaCorrect(true)
+	, CurrentBufferIndex(0)
 {
 	InitResources();
 };
@@ -192,49 +72,11 @@ void FSlateRHIRenderingPolicy::ReleaseResources()
 		VertexBuffers[BufferIndex].Destroy();
 		IndexBuffers[BufferIndex].Destroy();
 	}
-
-	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
-	{
-		FSlateRenderDataHandle* Handle = BufferIt.Key();
-		FCachedRenderBuffers* Buffer = BufferIt.Value();
-
-		Handle->Disconnect();
-
-		Buffer->VertexBuffer.Destroy();
-		Buffer->IndexBuffer.Destroy();
-	}
-
-	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
-	{
-		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
-		for ( FCachedRenderBuffers* PooledBuffer : Pool )
-		{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-		}
-	}
 }
 
 void FSlateRHIRenderingPolicy::DeleteReleasedResources()
 {
-	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
-	{
-		FCachedRenderBuffers* Buffer = BufferIt.Value();
-		delete Buffer;
-	}
-
-	CachedBuffers.Empty();
-
-	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
-	{
-		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
-		for ( FCachedRenderBuffers* PooledBuffer : Pool )
-		{
-			delete PooledBuffer;
-		}
-	}
-
-	CachedBufferPool.Empty();
+	
 }
 
 void FSlateRHIRenderingPolicy::BeginDrawingWindows()
@@ -265,29 +107,29 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 		TotalIndexBufferUsage += IndexBuffers[BufferIndex].GetBufferUsageSize();
 	}
 
-	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
-	{
-		FCachedRenderBuffers* PooledBuffer = BufferIt.Value();
+	//for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
+	//{
+	//	FCachedRenderBuffers* PooledBuffer = BufferIt.Value();
 
-		TotalVertexBufferMemory += PooledBuffer->VertexBuffer.GetBufferSize();
-		TotalVertexBufferUsage += PooledBuffer->VertexBuffer.GetBufferUsageSize();
+	//	TotalVertexBufferMemory += PooledBuffer->VertexBuffer.GetBufferSize();
+	//	TotalVertexBufferUsage += PooledBuffer->VertexBuffer.GetBufferUsageSize();
 
-		TotalIndexBufferMemory += PooledBuffer->IndexBuffer.GetBufferSize();
-		TotalIndexBufferUsage += PooledBuffer->IndexBuffer.GetBufferUsageSize();
-	}
+	//	TotalIndexBufferMemory += PooledBuffer->IndexBuffer.GetBufferSize();
+	//	TotalIndexBufferUsage += PooledBuffer->IndexBuffer.GetBufferUsageSize();
+	//}
 
-	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
-	{
-		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
-		for ( FCachedRenderBuffers* PooledBuffer : Pool )
-		{
-			TotalVertexBufferMemory += PooledBuffer->VertexBuffer.GetBufferSize();
-			TotalVertexBufferUsage += PooledBuffer->VertexBuffer.GetBufferUsageSize();
+	//for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
+	//{
+	//	TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
+	//	for ( FCachedRenderBuffers* PooledBuffer : Pool )
+	//	{
+	//		TotalVertexBufferMemory += PooledBuffer->VertexBuffer.GetBufferSize();
+	//		TotalVertexBufferUsage += PooledBuffer->VertexBuffer.GetBufferUsageSize();
 
-			TotalIndexBufferMemory += PooledBuffer->IndexBuffer.GetBufferSize();
-			TotalIndexBufferUsage += PooledBuffer->IndexBuffer.GetBufferUsageSize();
-		}
-	}
+	//		TotalIndexBufferMemory += PooledBuffer->IndexBuffer.GetBufferSize();
+	//		TotalIndexBufferUsage += PooledBuffer->IndexBuffer.GetBufferUsageSize();
+	//	}
+	//}
 
 	SET_MEMORY_STAT( STAT_SlateVertexBufferMemory, TotalVertexBufferMemory );
 	SET_MEMORY_STAT( STAT_SlateIndexBufferMemory, TotalIndexBufferMemory );
@@ -333,77 +175,19 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
-	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
-	if ( Buffers == nullptr )
-	{
-		// Rather than having a global pool, we associate the pools with a particular layout cacher.
-		// If we don't do this, all buffers eventually become as larger as the largest buffer, and it
-		// would be much better to keep the pools coherent with the sizes typically associated with
-		// a particular caching panel.
-		const ILayoutCache* LayoutCacher = RenderHandle->GetCacher();
-		TArray< FCachedRenderBuffers* >& Pool = CachedBufferPool.FindOrAdd(LayoutCacher);
-
-		// If the cached buffer pool is empty, time to create a new one!
-		if ( Pool.Num() == 0 )
-		{
-			Buffers = new FCachedRenderBuffers();
-			Buffers->VertexBuffer.Init(200);
-			Buffers->IndexBuffer.Init(200);
-		}
-		else
-		{
-			// If we found one in the pool, lets use it!
-			Buffers = Pool[0];
-			Pool.RemoveAtSwap(0, 1, false);
-		}
-
-		CachedBuffers.Add(&RenderHandle.Get(), Buffers);
-	}
+	FCachedRenderBuffers* Buffers = ResourceManager->FindOrCreateCachedBuffersForHandle(RenderHandle);
 
 	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, Buffers->VertexBuffer, Buffers->IndexBuffer);
 }
 
 void FSlateRHIRenderingPolicy::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
 {
-	// Should only be called by the rendering thread
-	check(IsInRenderingThread());
-	check(InRenderHandle);
-
-	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(InRenderHandle);
-	if ( ensure(PooledBuffer != nullptr) )
-	{
-		const ILayoutCache* LayoutCacher = InRenderHandle->GetCacher();
-		TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(LayoutCacher);
-		if ( Pool )
-		{
-			Pool->Add(PooledBuffer);
-		}
-		else
-		{
-			// The buffer pool may have already been released, so lets just delete this buffer.
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
-		}
-		
-		CachedBuffers.Remove(InRenderHandle);
-	}
+	ResourceManager->ReleaseCachedRenderData(InRenderHandle);
 }
 
 void FSlateRHIRenderingPolicy::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 {
-	TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(Cacher);
-	if ( Pool )
-	{
-		for ( FCachedRenderBuffers* PooledBuffer : *Pool )
-		{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
-		}
-
-		CachedBufferPool.Remove(Cacher);
-	}
+	ResourceManager->ReleaseCachingResourcesFor(Cacher);
 }
 
 void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer)
@@ -613,7 +397,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 			if ( RenderHandle )
 			{
-				FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(RenderHandle);
+				FCachedRenderBuffers* Buffers = ResourceManager->FindCachedBuffersForHandle(RenderHandle);
 				if ( Buffers != nullptr )
 				{
 					VertexBuffer = &Buffers->VertexBuffer;
@@ -677,9 +461,13 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				GlobalVertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f );
 #if !DEBUG_OVERDRAW
 				RHICmdList.SetBlendState(
-					(RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending)
+					( RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending )
 					? TStaticBlendState<>::GetRHI()
-					: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI()
+#if SLATE_PRE_MULTIPLY
+					: TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
+#else
+					: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
+#endif
 					);
 #else
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
@@ -853,82 +641,113 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 FSlateElementPS* FSlateRHIRenderingPolicy::GetTexturePixelShader( ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects )
 {
-	FSlateElementPS* PixelShader = NULL;
+	FSlateElementPS* PixelShader = nullptr;
 	const auto FeatureLevel = GMaxRHIFeatureLevel;
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
+#define PixelShaderLookupTable(FullEffects, LimitedEffects)	\
+	switch ( ShaderType )																							\
+	{																							\
+	default:																							\
+	case ESlateShader::Default:																							\
+		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, FullEffects> >(ShaderMap);									\
+		break;									\
+	case ESlateShader::Border:									\
+		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, FullEffects> >(ShaderMap);									\
+		break;									\
+	case ESlateShader::Font:									\
+		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, LimitedEffects> >(ShaderMap);									\
+		break;									\
+	case ESlateShader::LineSegment:									\
+		PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, LimitedEffects> >(ShaderMap);									\
+		break;									\
+	}
+
 #if !DEBUG_OVERDRAW
-	const bool bDrawDisabled = (DrawEffects & ESlateDrawEffect::DisabledEffect) != 0;
-	const bool bUseTextureAlpha = (DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha) == 0;
-	if( bDrawDisabled )
+	
+	const bool bPreMultipliedAlpha = ( DrawEffects & ESlateDrawEffect::PreMultipliedAlpha ) != 0;
+
+	if ( bPreMultipliedAlpha )
 	{
-		switch( ShaderType )
-		{
-		default:
-		case ESlateShader::Default:
-			if( bUseTextureAlpha )
-			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, true> >(ShaderMap);
-			}
-			else
-			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, false> >(ShaderMap);
-			}
-			break;
-		case ESlateShader::Border:
-			if( bUseTextureAlpha )
-			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, true> >(ShaderMap);
-			}
-			else
-			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, false> >(ShaderMap);
-			}
-			break;
-		case ESlateShader::Font:
-			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, true> >(ShaderMap);
-			break;
-		case ESlateShader::LineSegment:
-			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, true> >(ShaderMap);
-			break;
-		}
+		PixelShader = *TShaderMapRef<FSlatePreMultiplyPassThroughPS>(ShaderMap);
 	}
 	else
 	{
-		switch( ShaderType )
+		const bool bDrawDisabled = ( DrawEffects & ESlateDrawEffect::DisabledEffect ) != 0;
+		const bool bUseTextureAlpha = ( DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha ) == 0;
+
+		if ( bDrawDisabled )
 		{
-		default:
-		case ESlateShader::Default:
-			if( bUseTextureAlpha )
+			switch ( ShaderType )
 			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, true> >(ShaderMap);
+			default:
+			case ESlateShader::Default:
+				if ( bUseTextureAlpha )
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, true> >(ShaderMap);
+				}
+				else
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, true, false> >(ShaderMap);
+				}
+				break;
+			case ESlateShader::Border:
+				if ( bUseTextureAlpha )
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, true> >(ShaderMap);
+				}
+				else
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, true, false> >(ShaderMap);
+				}
+				break;
+			case ESlateShader::Font:
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, true> >(ShaderMap);
+				break;
+			case ESlateShader::LineSegment:
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, true> >(ShaderMap);
+				break;
 			}
-			else
+		}
+		else
+		{
+			switch ( ShaderType )
 			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, false> >(ShaderMap);
+			default:
+			case ESlateShader::Default:
+				if ( bUseTextureAlpha )
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, true> >(ShaderMap);
+				}
+				else
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Default, false, false> >(ShaderMap);
+				}
+				break;
+			case ESlateShader::Border:
+				if ( bUseTextureAlpha )
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, true> >(ShaderMap);
+				}
+				else
+				{
+					PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, false> >(ShaderMap);
+				}
+				break;
+			case ESlateShader::Font:
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, false> >(ShaderMap);
+				break;
+			case ESlateShader::LineSegment:
+				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, false> >(ShaderMap);
+				break;
 			}
-			break;
-		case ESlateShader::Border:
-			if( bUseTextureAlpha )
-			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, true> >(ShaderMap);
-			}
-			else
-			{
-				PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Border, false, false> >(ShaderMap);
-			}
-			break;
-		case ESlateShader::Font:
-			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::Font, false> >(ShaderMap);
-			break;
-		case ESlateShader::LineSegment:
-			PixelShader = *TShaderMapRef<TSlateElementPS<ESlateShader::LineSegment, false> >(ShaderMap);
-			break;
 		}
 	}
 #else
 	PixelShader = *TShaderMapRef<FSlateDebugOverdrawPS>(ShaderMap);
 #endif
+
+#undef PixelShaderLookupTable
 
 	return PixelShader;
 }

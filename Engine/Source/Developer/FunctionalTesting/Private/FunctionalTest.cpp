@@ -78,6 +78,9 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 		return;
 	}
 
+	//Do not collect garbage during the test. We force GC at the end.
+	GetWorld()->DelayGarbageCollection();
+
 	TotalTime += DeltaSeconds;
 	if (TimeLimit > 0.f && TotalTime > TimeLimit)
 	{
@@ -93,6 +96,9 @@ bool AFunctionalTest::StartTest(const TArray<FString>& Params)
 {
 	FailureMessage = TEXT("");
 	
+	//Do not collect garbage during the test. We force GC at the end.
+	GetWorld()->DelayGarbageCollection();
+
 	TotalTime = 0.f;
 	if (TimeLimit > 0)
 	{
@@ -117,6 +123,9 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 		// ignore
 		return;
 	}
+
+	//Force GC at the end of every test.
+	GetWorld()->ForceGarbageCollection();
 
 	Result = TestResult;
 
@@ -235,6 +244,16 @@ void AFunctionalTest::GatherRelevantActors(TArray<AActor*>& OutActors) const
 	OutActors.Append(DebugGatherRelevantActors());
 }
 
+void AFunctionalTest::AddRerun(FName Reason)
+{
+	RerunCauses.Add(Reason);
+}
+
+FName AFunctionalTest::GetCurrentRerunReason()const
+{
+	return CurrentRerunCause;
+}
+
 void AFunctionalTest::RegisterAutoDestroyActor(AActor* ActorToAutoDestroy)
 {
 	AutoDestroyActors.AddUnique(ActorToAutoDestroy);
@@ -311,77 +330,178 @@ UBillboardComponent* AFunctionalTest::GetSpriteComponent() { return SpriteCompon
 
 FPerfStatsRecord::FPerfStatsRecord(FString InName)
 : Name(InName)
-, NumFrames(0.0f)
-, SumTimeSeconds(0.0f)
 {
 }
 
 FString FPerfStatsRecord::GetReportString() const
 {
-	return FString::Printf(TEXT("%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"),
+	return FString::Printf(TEXT("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"),
 		*Name,
-		NumFrames,
-		SumTimeSeconds * 1000.0f,
-		FrameTimeTracker.GetMinValue(),
-		FrameTimeTracker.GetAvgValue(),
-		FrameTimeTracker.GetMaxValue(),
-		RenderThreadTimeTracker.GetMinValue(),
-		RenderThreadTimeTracker.GetAvgValue(),
-		RenderThreadTimeTracker.GetMaxValue(),
-		GameThreadTimeTracker.GetMinValue(),
-		GameThreadTimeTracker.GetAvgValue(),
-		GameThreadTimeTracker.GetMaxValue(),
-		GPUTimeTracker.GetMinValue(),
-		GPUTimeTracker.GetAvgValue(),
-		GPUTimeTracker.GetMaxValue());
+		Record.FrameTimeTracker.GetMinValue() - Baseline.FrameTimeTracker.GetMinValue(),
+		Record.FrameTimeTracker.GetAvgValue() - Baseline.FrameTimeTracker.GetAvgValue(),
+		Record.FrameTimeTracker.GetMaxValue() - Baseline.FrameTimeTracker.GetMaxValue(),
+		Record.RenderThreadTimeTracker.GetMinValue() - Baseline.RenderThreadTimeTracker.GetMinValue(),
+		Record.RenderThreadTimeTracker.GetAvgValue() - Baseline.RenderThreadTimeTracker.GetAvgValue(),
+		Record.RenderThreadTimeTracker.GetMaxValue() - Baseline.RenderThreadTimeTracker.GetMaxValue(),
+		Record.GameThreadTimeTracker.GetMinValue() - Baseline.GameThreadTimeTracker.GetMinValue(),
+		Record.GameThreadTimeTracker.GetAvgValue() - Baseline.GameThreadTimeTracker.GetAvgValue(),
+		Record.GameThreadTimeTracker.GetMaxValue() - Baseline.GameThreadTimeTracker.GetMaxValue(),
+		Record.GPUTimeTracker.GetMinValue() - Baseline.GPUTimeTracker.GetMinValue(),
+		Record.GPUTimeTracker.GetAvgValue() - Baseline.GPUTimeTracker.GetAvgValue(),
+		Record.GPUTimeTracker.GetMaxValue() - Baseline.GPUTimeTracker.GetMaxValue());
 }
 
-void FPerfStatsRecord::Sample(AActor* Owner, float DeltaSeconds)
+FString FPerfStatsRecord::GetBaselineString() const
 {
-	check(Owner);
+	return FString::Printf(TEXT("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"),
+		*Name,
+		Baseline.FrameTimeTracker.GetMinValue(),
+		Baseline.FrameTimeTracker.GetAvgValue(),
+		Baseline.FrameTimeTracker.GetMaxValue(),
+		Baseline.RenderThreadTimeTracker.GetMinValue(),
+		Baseline.RenderThreadTimeTracker.GetAvgValue(),
+		Baseline.RenderThreadTimeTracker.GetMaxValue(),
+		Baseline.GameThreadTimeTracker.GetMinValue(),
+		Baseline.GameThreadTimeTracker.GetAvgValue(),
+		Baseline.GameThreadTimeTracker.GetMaxValue(),
+		Baseline.GPUTimeTracker.GetMinValue(),
+		Baseline.GPUTimeTracker.GetAvgValue(),
+		Baseline.GPUTimeTracker.GetMaxValue());
+}
 
-	const FStatUnitData* StatUnitData = Owner->GetWorld()->GetGameViewport()->GetStatUnitData();
+FString FPerfStatsRecord::GetRecordString() const
+{
+	return FString::Printf(TEXT("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"),
+		*Name,
+		Record.FrameTimeTracker.GetMinValue(),
+		Record.FrameTimeTracker.GetAvgValue(),
+		Record.FrameTimeTracker.GetMaxValue(),
+		Record.RenderThreadTimeTracker.GetMinValue(),
+		Record.RenderThreadTimeTracker.GetAvgValue(),
+		Record.RenderThreadTimeTracker.GetMaxValue(),
+		Record.GameThreadTimeTracker.GetMinValue(),
+		Record.GameThreadTimeTracker.GetAvgValue(),
+		Record.GameThreadTimeTracker.GetMaxValue(),
+		Record.GPUTimeTracker.GetMinValue(),
+		Record.GPUTimeTracker.GetAvgValue(),
+		Record.GPUTimeTracker.GetMaxValue());
+}
+
+void FPerfStatsRecord::GetGPUTimes(double& OutMin, double& OutMax, double& OutAvg)const
+{
+	OutMin = Record.GPUTimeTracker.GetMinValue() - Baseline.GPUTimeTracker.GetMinValue();
+	OutMax = Record.GPUTimeTracker.GetMaxValue() - Baseline.GPUTimeTracker.GetMaxValue();
+	OutAvg = Record.GPUTimeTracker.GetAvgValue() - Baseline.GPUTimeTracker.GetAvgValue();
+}
+
+void FPerfStatsRecord::GetGameThreadTimes(double& OutMin, double& OutMax, double& OutAvg)const
+{
+	OutMin = Record.GameThreadTimeTracker.GetMinValue() - Baseline.GameThreadTimeTracker.GetMinValue();
+	OutMax = Record.GameThreadTimeTracker.GetMaxValue() - Baseline.GameThreadTimeTracker.GetMaxValue();
+	OutAvg = Record.GameThreadTimeTracker.GetAvgValue() - Baseline.GameThreadTimeTracker.GetAvgValue();
+}
+
+void FPerfStatsRecord::GetRenderThreadTimes(double& OutMin, double& OutMax, double& OutAvg)const
+{
+	OutMin = Record.RenderThreadTimeTracker.GetMinValue() - Baseline.RenderThreadTimeTracker.GetMinValue();
+	OutMax = Record.RenderThreadTimeTracker.GetMaxValue() - Baseline.RenderThreadTimeTracker.GetMaxValue();
+	OutAvg = Record.RenderThreadTimeTracker.GetAvgValue() - Baseline.RenderThreadTimeTracker.GetAvgValue();
+}
+
+void FPerfStatsRecord::Sample(UWorld* World, float DeltaSeconds, bool bBaseline)
+{
+	check(World);
+
+	const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
 	check(StatUnitData);
 
-	FrameTimeTracker.AddSample(StatUnitData->RawFrameTime);
-	GameThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGameThreadTime));
-	RenderThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GRenderThreadTime));
-	GPUTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGPUFrameTime));
-	NumFrames++;
-	SumTimeSeconds += DeltaSeconds;
+	if (bBaseline)
+	{
+		Baseline.FrameTimeTracker.AddSample(StatUnitData->RawFrameTime);
+		Baseline.GameThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGameThreadTime));
+		Baseline.RenderThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GRenderThreadTime));
+		Baseline.GPUTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGPUFrameTime));
+		Baseline.NumFrames++;
+		Baseline.SumTimeSeconds += DeltaSeconds;
+	}
+	else
+	{
+		Record.FrameTimeTracker.AddSample(StatUnitData->RawFrameTime);
+		Record.GameThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGameThreadTime));
+		Record.RenderThreadTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GRenderThreadTime));
+		Record.GPUTimeTracker.AddSample(FPlatformTime::ToMilliseconds(GGPUFrameTime));
+		Record.NumFrames++;
+		Record.SumTimeSeconds += DeltaSeconds;
+	}
 }
 
-UPerfStatsRecorder::UPerfStatsRecorder()
-: bRecording(false)
+UAutomationPerformaceHelper::UAutomationPerformaceHelper()
+: bRecordingBasicStats(false)
+, bRecordingBaselineBasicStats(false)
+, bRecordingCPUCapture(false)
+, bRecordingStatsFile(false)
 {
-
 }
 
-void UPerfStatsRecorder::BeginRecording(FString RecordName)
+void UAutomationPerformaceHelper::BeginRecordingBaseline(FString RecordName)
 {
-	bRecording = true;
+	bRecordingBasicStats = true;
+	bRecordingBaselineBasicStats = true;
 	Records.Add(FPerfStatsRecord(RecordName));
+	GEngine->SetEngineStat(GetOuter()->GetWorld(), GetOuter()->GetWorld()->GetGameViewport(), TEXT("Unit"), true);
 }
 
-void UPerfStatsRecorder::EndRecording()
+void UAutomationPerformaceHelper::EndRecordingBaseline()
+{
+	bRecordingBaselineBasicStats = false;
+	bRecordingBasicStats = false;
+}
+
+void UAutomationPerformaceHelper::BeginRecording(FString RecordName)
+{
+	//Ensure we're recording engine stats.
+	GEngine->SetEngineStat(GetOuter()->GetWorld(), GetOuter()->GetWorld()->GetGameViewport(), TEXT("Unit"), true);
+	bRecordingBasicStats = true;
+	bRecordingBaselineBasicStats = false;
+	//We recorded a baseline for this so continue adding real stats to this one.
+	if (GetCurrentRecord()->Name != RecordName)
+	{
+		Records.Add(FPerfStatsRecord(RecordName));
+	}
+	
+	//We should have a previously baselined record or have just added one.
+	check(Records.Num() > 0);
+}
+
+void UAutomationPerformaceHelper::EndRecording()
 {
 	if (const FPerfStatsRecord* Record = GetCurrentRecord())
 	{
 		UE_LOG(LogFunctionalTest, Log, TEXT("Finished Perf Stats Record:\n%s"), *Record->GetReportString());
 	}
-	bRecording = false;
+	bRecordingBasicStats = false;
 }
 
-void UPerfStatsRecorder::Sample(AActor* Owner, float DeltaSeconds)
+void UAutomationPerformaceHelper::Tick(float DeltaSeconds)
+{
+	if (bRecordingBasicStats)
+	{
+		Sample(DeltaSeconds);
+	}
+
+	//Other stats need ticking?
+}
+
+void UAutomationPerformaceHelper::Sample(float DeltaSeconds)
 {
 	int32 Index = Records.Num() - 1;
-	if (Index >= 0 && bRecording)
+	if (Index >= 0 && bRecordingBasicStats)
 	{
-		Records[Index].Sample(Owner, DeltaSeconds);
+		Records[Index].Sample(GetOuter()->GetWorld(), DeltaSeconds, bRecordingBaselineBasicStats);
 	}
 }
 
-void UPerfStatsRecorder::WriteLogFile(const FString& CaptureDir, const FString& CaptureExtension)
+void UAutomationPerformaceHelper::WriteLogFile(const FString& CaptureDir, const FString& CaptureExtension)
 {
 	FString PathName = FPaths::ProfilingDir();
 	if (!CaptureDir.IsEmpty())
@@ -396,31 +516,148 @@ void UPerfStatsRecorder::WriteLogFile(const FString& CaptureDir, const FString& 
 		Extension = TEXT("perf.csv");
 	}
 
-	const FString Filename = CreateProfileFilename(Extension, true);
+	const FString Filename = OutputFileBase + Extension;
 	const FString FilenameFull = PathName + Filename;
 
-	const FString LogHeader = TEXT("TestName,NumFrames,Duration,MinFrameTime,AvgFrameTime,MaxFrameTime,MinRT,AvgRT,MaxRT,MinGT,AvgGT,MaxGT,MinGPU,AvgGPU,MaxGPU\n");
+	const FString LogHeader = TEXT("TestName,MinFrameTime,AvgFrameTime,MaxFrameTime,MinRT,AvgRT,MaxRT,MinGT,AvgGT,MaxGT,MinGPU,AvgGPU,MaxGPU\n");
 
-	FString FileContents = LogHeader;
+	FString AdjustedTable;
 	for (FPerfStatsRecord& Record : Records)
 	{
-		FileContents += Record.GetReportString() + FString(TEXT("\n"));
+		AdjustedTable += Record.GetReportString() + FString(TEXT("\n"));
 	}
+	FString RecordTable;
+	for (FPerfStatsRecord& Record : Records)
+	{
+		RecordTable += Record.GetRecordString() + FString(TEXT("\n"));
+	}
+	FString BaselineTable;
+	for (FPerfStatsRecord& Record : Records)
+	{
+		BaselineTable += Record.GetBaselineString() + FString(TEXT("\n"));
+	}
+
+	FString FileContents = FString::Printf(TEXT("Adjusted Results\n%s%s\nRaw Results\n%s%s\nBaseline Results\n%s%s\n"), *LogHeader, *AdjustedTable, *LogHeader, *RecordTable, *LogHeader, *BaselineTable);
 
 	FFileHelper::SaveStringToFile(FileContents, *FilenameFull);
 
 	UE_LOG(LogTemp, Display, TEXT("Finished test, wrote file to %s"), *FilenameFull);
 
 	Records.Empty();
-	bRecording = false;
+	bRecordingBasicStats = false;
+	bRecordingBaselineBasicStats = false;
 }
 
-const FPerfStatsRecord* UPerfStatsRecorder::GetCurrentRecord()const
+bool UAutomationPerformaceHelper::IsRecording()const 
+{
+	return bRecordingBasicStats;
+}
+
+void UAutomationPerformaceHelper::OnBeginTests()
+{
+	OutputFileBase = CreateProfileFilename(TEXT(""), true);
+	StartOfTestingTime = FDateTime::Now().ToString();
+}
+
+void UAutomationPerformaceHelper::OnAllTestsComplete()
+{
+	if (bRecordingBaselineBasicStats)
+	{
+		EndRecordingBaseline();
+	}
+
+	if (bRecordingBasicStats)
+	{
+		EndRecording();
+	}
+
+	if (bRecordingCPUCapture)
+	{
+		StopCPUProfiling();
+	}
+
+	if (bRecordingStatsFile)
+	{
+		EndStatsFile();
+	}
+
+	if (Records.Num() > 0)
+	{
+		WriteLogFile(TEXT(""), TEXT("perf.csv"));
+	}
+}
+
+bool UAutomationPerformaceHelper::IsCurrentRecordWithinGPUBudget(float InMaxTimeBudget, float InAvgTimeBudget)const
+{
+	double Min, Max, Avg;
+	bool bInBudget = true;
+	if (const FPerfStatsRecord* Curr = GetCurrentRecord())
+	{
+		Curr->GetGPUTimes(Min, Max, Avg);
+		bInBudget = Max < InMaxTimeBudget && (InAvgTimeBudget < 0.0f || Avg < InAvgTimeBudget);
+	}
+	return bInBudget;
+}
+
+bool UAutomationPerformaceHelper::IsCurrentRecordWithinGameThreadBudget(float InMaxTimeBudget, float InAvgTimeBudget)const
+{
+	double Min, Max, Avg;
+	bool bInBudget = true;
+	if (const FPerfStatsRecord* Curr = GetCurrentRecord())
+	{
+		Curr->GetGameThreadTimes(Min, Max, Avg);
+		bInBudget = Max < InMaxTimeBudget && (InAvgTimeBudget < 0.0f || Avg < InAvgTimeBudget);
+	}
+	return bInBudget;
+}
+
+bool UAutomationPerformaceHelper::IsCurrentRecordWithinRenderThreadBudget(float InMaxTimeBudget, float InAvgTimeBudget)const
+{
+	double Min, Max, Avg;
+	bool bInBudget = true;
+	if (const FPerfStatsRecord* Curr = GetCurrentRecord())
+	{
+		Curr->GetRenderThreadTimes(Min, Max, Avg);
+		bInBudget = Max < InMaxTimeBudget && (InAvgTimeBudget < 0.0f || Avg < InAvgTimeBudget);
+	}
+	return bInBudget;
+}
+
+const FPerfStatsRecord* UAutomationPerformaceHelper::GetCurrentRecord()const
 {
 	int32 Index = Records.Num() - 1;
-	if (Index >= 0 && bRecording)
+	if (Index >= 0)
 	{
 		return &Records[Index];
 	}
 	return nullptr;
+}
+
+void UAutomationPerformaceHelper::StartCPUProfiling()
+{
+	UE_LOG(LogFunctionalTest, Log, TEXT("START PROFILING..."));
+	ExternalProfiler.StartProfiler(false);
+}
+
+void UAutomationPerformaceHelper::StopCPUProfiling()
+{
+	UE_LOG(LogFunctionalTest, Log, TEXT("STOP PROFILING..."));
+	ExternalProfiler.StopProfiler();
+}
+
+void UAutomationPerformaceHelper::TriggerGPUTrace()
+{
+	// Need to look at Razor GPU to work out what can be done here.
+}
+
+void UAutomationPerformaceHelper::BeginStatsFile(const FString& RecordName)
+{
+	FString MapName = GetOuter()->GetWorld()->GetMapName();
+	FString Cmd = FString::Printf(TEXT("Stat StartFile %s-%s/%s.ue4stats"), *MapName, *StartOfTestingTime, *RecordName);
+	GEngine->Exec(GetOuter()->GetWorld(), *Cmd);
+}
+
+void UAutomationPerformaceHelper::EndStatsFile()
+{
+	GEngine->Exec(GetOuter()->GetWorld(), TEXT("Stat StopFile"));
 }

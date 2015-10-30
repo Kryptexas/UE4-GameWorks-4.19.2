@@ -300,6 +300,11 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	Intermediates.ParticleWorldPosition = ParticleWorldPosition;
 	Intermediates.VertexWorldPosition = VertexWorldPosition;
 
+#if USE_SPHERICAL_NORMALS
+	// Recenter the particle position for GENERATE_SPHERICAL_PARTICLE_NORMALS to use the right center.
+	Intermediates.ParticleWorldPosition += Size.x * (EmitterUniforms.PivotOffset.x + .5) * TangentRight + Size.y * (EmitterUniforms.PivotOffset.y + .5) * TangentUp;
+#endif
+
 #if USE_PARTICLE_LIGHTING_OFFSET
 	// Hash function based on the particle ID to generate a uniformly distributed 3d offset
 	float3 RandomParticleOffset = frac((ParticleIndex.x + 10) * (ParticleIndex.y + 10) * float3(1341.456345, 2633.578, 5623.983)) * 2 - 1;

@@ -7,6 +7,14 @@
 
 class UBillboardComponent;
 
+//Experimental effort at automated cpu captures from the functional testing.
+class FFunctionalTestExternalProfiler : public FScopedExternalProfilerBase
+{
+public:
+	void StartProfiler(const bool bWantPause){ StartScopedTimer(bWantPause); }
+	void StopProfiler(){StopScopedTimer();}
+}; 
+
 // Used to measure a distribution
 struct FStatisticalFloat
 {
@@ -61,41 +69,77 @@ private:
 	int32 NumSamples;
 };
 
-/** A set of simple perf stats recorded over a period of frames. */
-struct FUNCTIONALTESTING_API FPerfStatsRecord
+struct FStatsData
 {
-	FPerfStatsRecord(FString InName);
+	FStatsData() :NumFrames(0), SumTimeSeconds(0.0f){}
 
-	FString Name;
 	uint32 NumFrames;
 	uint32 SumTimeSeconds;
 	FStatisticalFloat FrameTimeTracker;
 	FStatisticalFloat GameThreadTimeTracker;
 	FStatisticalFloat RenderThreadTimeTracker;
 	FStatisticalFloat GPUTimeTracker;
-
-	void Sample(AActor* Owner, float DeltaSeconds);
-
-	FString GetReportString()const;
 };
 
-/** Simple class to record some basic performance stats during functional tests and write out the results. */
+/** A set of simple perf stats recorded over a period of frames. */
+struct FUNCTIONALTESTING_API FPerfStatsRecord
+{
+	FPerfStatsRecord(FString InName);
+
+	FString Name;
+
+	/** Stats data for the period we're interested in timing. */
+	FStatsData Record;
+	/** Stats data for the baseline. */
+	FStatsData Baseline;
+
+	void Sample(UWorld* Owner, float DeltaSeconds, bool bBaseline);
+
+	FString GetReportString()const;
+	FString GetBaselineString()const;
+	FString GetRecordString()const;
+
+	void GetGPUTimes(double& OutMin, double& OutMax, double& OutAvg)const;
+	void GetGameThreadTimes(double& OutMin, double& OutMax, double& OutAvg)const;
+	void GetRenderThreadTimes(double& OutMin, double& OutMax, double& OutAvg)const;
+};
+
+
+/** 
+ * Class for use with functional tests which provides various performance measuring features. 
+ * Recording of basic, unintrusive performance stats.
+ * Automatic captures using external CPU and GPU profilers.
+ * Triggering and ending of writing full stats to a file.
+*/
 UCLASS(Blueprintable)
-class FUNCTIONALTESTING_API UPerfStatsRecorder : public UObject
+class FUNCTIONALTESTING_API UAutomationPerformaceHelper : public UObject
 {
 	GENERATED_BODY()
 
-	bool bRecording;
 	TArray<FPerfStatsRecord> Records;
-
+	bool bRecordingBasicStats;
+	bool bRecordingBaselineBasicStats;
+	bool bRecordingCPUCapture;
+	bool bRecordingStatsFile;
 public:
 
-	UPerfStatsRecorder();
+	UAutomationPerformaceHelper();
+
+	//Begin basic stat recording
+
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void Tick(float DeltaSeconds);
 
 	/** Adds a sample to the stats counters for the current performance stats record. */
 	UFUNCTION(BlueprintCallable, Category = Perf)
-	void Sample(AActor* Owner, float DeltaSeconds);
-	/** Begins recording a new named performance stats record. */
+	void Sample(float DeltaSeconds);
+	/** Begins recording a new named performance stats record. We start by recording the baseline */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void BeginRecordingBaseline(FString RecordName);
+	/** Stops recording the baseline and moves to the main record. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void EndRecordingBaseline();
+	/** Begins recording a new named performance stats record. We start by recording the baseline. */
 	UFUNCTION(BlueprintCallable, Category = Perf)
 	void BeginRecording(FString RecordName);
 	/** Stops recording performance stats. */
@@ -106,9 +150,49 @@ public:
 	void WriteLogFile(const FString& CaptureDir, const FString& CaptureExtension);
 	/** Returns true if this stats tracker is currently recording performance stats. */
 	UFUNCTION(BlueprintCallable, Category = Perf)
-	FORCEINLINE bool IsRecording()const { return bRecording; }
+	bool IsRecording()const;
+
+	/** Does any init work across all tests.. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void OnBeginTests();
+	/** Does any final work needed as all tests are complete. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void OnAllTestsComplete();
 
 	const FPerfStatsRecord* GetCurrentRecord()const;
+
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	bool IsCurrentRecordWithinGPUBudget(float InMaxTimeBudget, float InAvgTimeBudget = -1.0f)const;
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	bool IsCurrentRecordWithinGameThreadBudget(float InMaxTimeBudget, float InAvgTimeBudget = -1.0f)const;
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	bool IsCurrentRecordWithinRenderThreadBudget(float InMaxTimeBudget, float InAvgTimeBudget = -1.0f)const;
+	//End basic stats recording.
+
+	// Automatic traces capturing 
+
+	/** Communicates with external profiler to being a CPU capture. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void StartCPUProfiling();
+	/** Communicates with external profiler to end a CPU capture. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void StopCPUProfiling();
+	/** Communicates with an external GPU profiler to trigger a GPU trace. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void TriggerGPUTrace();
+	/** Begins recording stats to a file. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void BeginStatsFile(const FString& RecordName);
+	/** Ends recording stats to a file. */
+	UFUNCTION(BlueprintCallable, Category = Perf)
+	void EndStatsFile();
+
+	FFunctionalTestExternalProfiler ExternalProfiler;
+
+	/** The path and base name for all output files. */
+	FString OutputFileBase;
+	
+	FString StartOfTestingTime;
 };
 
 UENUM()
@@ -184,6 +268,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=FunctionalTesting)
 	uint32 bIsEnabled:1;
 
+	/** List of causes we need a re-run. */
+	TArray<FName> RerunCauses;
+	/** Cause of the current rerun if we're in a named rerun. */
+	FName CurrentRerunCause;
+
 public:
 
 	virtual bool StartTest(const TArray<FString>& Params = TArray<FString>());
@@ -208,6 +297,14 @@ public:
 	bool OnWantsReRunCheck() const;
 
 	virtual bool WantsToRunAgain() const { return false; }
+
+	/** Causes the test to be rerun for a specific named reason. */
+	UFUNCTION(BlueprintCallable, Category = "FunctionalTesting")
+	void AddRerun(FName Reason);
+
+	/** Returns the current re-run reason if we're in a named re-run. */
+	UFUNCTION(BlueprintCallable, Category = "FunctionalTesting")
+	FName GetCurrentRerunReason()const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "FunctionalTesting")
 	FString OnAdditionalTestFinishedMessageRequest(EFunctionalTestResult::Type TestResult) const;

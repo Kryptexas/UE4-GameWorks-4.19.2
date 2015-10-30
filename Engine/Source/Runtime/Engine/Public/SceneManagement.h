@@ -155,6 +155,10 @@ public:
 	 * returns a unique key for the view state, non-zero
 	 */
 	virtual uint32 GetViewKey() const = 0;
+	/** 
+	 * returns the occlusion frame counter 
+	 */
+	virtual uint32 GetOcclusionFrameCounter() const = 0;
 protected:
 	// Don't allow direct deletion of the view state, Destroy should be called instead.
 	virtual ~FSceneViewStateInterface() {}

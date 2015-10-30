@@ -13,6 +13,8 @@ public:
 	static void InitializeAdapterGlobals();
 
 	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) override;
+	virtual ~FMeshPaintGeometryAdapterForStaticMeshes();
+	virtual bool InitializeMeshData() override;
 	virtual void OnAdded() override;
 	virtual void OnRemoved() override;
 	virtual int32 GetNumTexCoords() const override;
@@ -28,6 +30,9 @@ public:
 	virtual FVector GetMeshVertex(int32 Index) const override;
 
 protected:
+
+	void OnPostMeshBuild(UStaticMesh* StaticMesh);
+
 	struct FStaticMeshReferencers
 	{
 		FStaticMeshReferencers()
@@ -56,6 +61,7 @@ protected:
 
 	UStaticMeshComponent* StaticMeshComponent;
 	FStaticMeshLODResources* LODModel;
+	int32 PaintingMeshLODIndex;
 	int32 UVChannelIndex;
 	FIndexArrayView Indices;
 };

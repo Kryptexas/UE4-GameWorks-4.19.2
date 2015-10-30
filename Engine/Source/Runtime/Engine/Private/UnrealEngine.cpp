@@ -7479,6 +7479,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 		if (GEngine->bEnableOnScreenDebugMessagesDisplay && GEngine->bEnableOnScreenDebugMessages)
 		{
+			const int32 MaxYPos = CanvasObject ? CanvasObject->SizeY : 700;
 			if (GEngine->PriorityScreenMessages.Num() > 0)
 			{
 				FCanvasTextItem MessageTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
@@ -7486,7 +7487,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				for (int32 PrioIndex = GEngine->PriorityScreenMessages.Num() - 1; PrioIndex >= 0; PrioIndex--)
 				{
 					FScreenMessageString& Message = GEngine->PriorityScreenMessages[PrioIndex];
-					if (YPos < 700)
+					if (YPos < MaxYPos)
 					{
 						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
 						MessageTextItem.SetColor( Message.DisplayColor );
@@ -7509,7 +7510,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				for (TMap<int32, FScreenMessageString>::TIterator MsgIt(GEngine->ScreenMessages); MsgIt; ++MsgIt)
 				{
 					FScreenMessageString& Message = MsgIt.Value();
-					if (YPos < 700)
+					if (YPos < MaxYPos)
 					{
 						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
 						MessageTextItem.SetColor( Message.DisplayColor );

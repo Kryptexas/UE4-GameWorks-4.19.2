@@ -417,12 +417,57 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 	return Result;
 }
 
-void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TMap<FName, int32>& InDependencyTracker)
+void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry)
+{
+	InDependencyTracker.Add(InPackage->GetPackageName());
+
+	if (InNewPriority > InPackage->GetPriority())
+	{
+		AsyncPackages.Remove(InPackage);
+		InPackage->SetPriority(InNewPriority);
+
+		// Reduce loading counters ready for InsertPackage to increment them again
+		AsyncLoadingCounter.Decrement();
+		AsyncPackagesCounter.Decrement();
+
+		InsertPackage(InPackage, InAssetRegistry != nullptr ? EAsyncPackageInsertMode::InsertAfterMatchingPriorities : EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
+	}
+
+	if (InAssetRegistry)
+	{
+		TArray<FName> Dependencies;
+		InAssetRegistry->GetDependencies(InPackage->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
+
+		for (FName DependencyName : Dependencies)
+		{
+			if (!InDependencyTracker.Contains(DependencyName))
+			{
+				int32 PackageIndex = FindPackageByName(AsyncPackages, DependencyName);
+
+				if (PackageIndex >= 0)
+				{
+					FAsyncPackage* DependencyPackage = AsyncPackages[PackageIndex];
+					UpdateExistingPackagePriorities(DependencyPackage, InNewPriority, InDependencyTracker, InAssetRegistry);
+				}
+			}
+		}
+	}
+}
+
+void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry)
 {
 	check(!InDependencyTracker.Contains(InRequest->Name));
+	InDependencyTracker.Add(InRequest->Name);
+
 	FAsyncPackage* Package = FindExistingPackageAndAddCompletionCallback(InRequest, AsyncPackages);
 
-	if (!Package)
+	if (Package)
+	{
+		// The package is already sitting in the queue. Make sure the its priority, and the priority of all its
+		// dependencies is at least as high as the priority of this request
+		UpdateExistingPackagePriorities(Package, InRequest->Priority, InDependencyTracker, InAssetRegistry);
+	}
+	else
 	{
 		// [BLOCKING] LoadedPackages are accessed on the main thread too, so lock to be able to add a completion callback
 #if THREADSAFE_UOBJECTS
@@ -452,13 +497,10 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 		Package->SetDependencyRootPackage(InRootPackage);
 
 #if !WITH_EDITOR
-		if (GPreloadPackageDependencies != 0)
-		{
-			auto AssetRegistry = IAssetRegistryInterface::GetPtr();
-			if (AssetRegistry)
+		if (InAssetRegistry)
 			{
 				TArray<FName> Dependencies;
-				AssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
+			InAssetRegistry->GetDependencies(Package->GetPackageName(), Dependencies, EAssetRegistryDependencyType::Hard);
 
 				if (InRootPackage == nullptr)
 				{
@@ -467,27 +509,19 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 
 				for (auto DependencyName : Dependencies)
 				{
-					if (!InDependencyTracker.Contains(DependencyName))
-					{
-						// Try and find the package in memory first
-						UPackage* ClassPackage = FindObjectFast<UPackage>( NULL, DependencyName, false, false );
-
-						if (ClassPackage == nullptr)
+				if (!InDependencyTracker.Contains(DependencyName) && FindObjectFast<UPackage>(nullptr, DependencyName, false, false ) == nullptr)
 						{
 							QueuedPackagesCounter.Increment();
 							const int32 RequestID = GPackageRequestID.Increment();
 							FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
 							FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
-							InDependencyTracker.Add(InRequest->Name);
-							ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker);
-						}
-					}
+					ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker, InAssetRegistry);
 				}
 			}
 		}
 #endif
 		// Add to queue according to priority.
-		InsertPackage(Package);
+		InsertPackage(Package, InAssetRegistry != nullptr ? EAsyncPackageInsertMode::InsertAfterMatchingPriorities : EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
 
 		// For all other cases this is handled in FindExistingPackageAndAddCompletionCallback
 		const int32 QueuedPackagesCount = QueuedPackagesCounter.Decrement();
@@ -515,13 +549,20 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 
 	if (QueueCopy.Num() > 0)
 	{
+		IAssetRegistryInterface* AssetRegistry = nullptr;
+		
+		if (GPreloadPackageDependencies && IsPlatformFileCompatibleWithDependencyPreloading())
+		{
+			AssetRegistry = IAssetRegistryInterface::GetPtr();
+		}
+		
 		double Timer = 0;
 		{
 			SCOPE_SECONDS_COUNTER(Timer);
 			for (FAsyncPackageDesc* PackageRequest : QueueCopy)
 			{
 				DependencyTracker.Reset();
-				ProcessAsyncPackageRequest(PackageRequest, nullptr, DependencyTracker);
+				ProcessAsyncPackageRequest(PackageRequest, nullptr, DependencyTracker, AssetRegistry);
 				delete PackageRequest;
 			}
 		}
@@ -533,7 +574,7 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 	return NumCreated;
 }
 
-void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
+void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, EAsyncPackageInsertMode InsertMode)
 {
 	checkSlow(IsInAsyncLoadThread());
 
@@ -547,11 +588,31 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package)
 #if THREADSAFE_UOBJECTS
 		FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
 #endif
+		int32 InsertIndex = -1;
+
+		switch (InsertMode)
+		{
+		case EAsyncPackageInsertMode::InsertAfterMatchingPriorities:
+			{
+				InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
+				{
+					return Element->GetPriority() < Package->GetPriority();
+				});
+
+				break;
+			}
+
+		case EAsyncPackageInsertMode::InsertBeforeMatchingPriorities:
+			{
 		// Insert new package keeping descending priority order in AsyncPackages
-		int32 InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
+				InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
 		{
 			return Element->GetPriority() <= Package->GetPriority();
 		});
+
+				break;
+			}
+		};
 
 		InsertIndex = InsertIndex == INDEX_NONE ? AsyncPackages.Num() : InsertIndex;
 
@@ -1500,80 +1561,80 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 		}
 		if (ImportDependencyPackages.Num() == 0)
 		{
-			while (Import->OuterIndex.IsImport())
-			{
-				Import = &Linker->Imp(Import->OuterIndex);
-			}
-			check(Import->OuterIndex.IsNull());
+		while (Import->OuterIndex.IsImport())
+		{
+			Import = &Linker->Imp(Import->OuterIndex);
+		}
+		check(Import->OuterIndex.IsNull());
 
-			// @todo: why do we need this? some UFunctions have null outer in the linker.
-			if (Import->ClassName != NAME_Package)
-			{
-				continue;
-			}
-			
+		// @todo: why do we need this? some UFunctions have null outer in the linker.
+		if (Import->ClassName != NAME_Package)
+		{
+			continue;
+		}
 
-			// Don't try to import a package that is in an import table that we know is an invalid entry
-			if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
-			{
-				continue;
-			}
 
-			// Our import package name is the import name
+		// Don't try to import a package that is in an import table that we know is an invalid entry
+		if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
+		{
+			continue;
+		}
+
+		// Our import package name is the import name
 			ImportDependencyPackages.Add(Import->ObjectName);
 		}
 
 		for (const FName& ImportPackageFName : ImportDependencyPackages)
 		{
-			// Handle circular dependencies - try to find existing packages.
-			UPackage* ExistingPackage = dynamic_cast<UPackage*>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, ImportPackageFName, true));
-			if (ExistingPackage && !(ExistingPackage->PackageFlags & PKG_CompiledIn) && !ExistingPackage->bHasBeenFullyLoaded)//!ExistingPackage->HasAnyFlags(RF_WasLoaded))
+		// Handle circular dependencies - try to find existing packages.
+		UPackage* ExistingPackage = dynamic_cast<UPackage*>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, ImportPackageFName, true));
+		if (ExistingPackage && !(ExistingPackage->PackageFlags & PKG_CompiledIn) && !ExistingPackage->bHasBeenFullyLoaded)//!ExistingPackage->HasAnyFlags(RF_WasLoaded))
+		{
+			// The import package already exists. Check if it's currently being streamed as well. If so, make sure
+			// we add all dependencies that don't yet have linkers created otherwise we risk that if the current package
+			// doesn't depend on any other packages that have not yet started streaming, creating imports is going
+			// to load packages blocking the main thread.
+			int32 PendingAsyncPackageIndex = FAsyncLoadingThread::Get().FindAsyncPackage(ImportPackageFName);
+			if (PendingAsyncPackageIndex != INDEX_NONE)
 			{
-				// The import package already exists. Check if it's currently being streamed as well. If so, make sure
-				// we add all dependencies that don't yet have linkers created otherwise we risk that if the current package
-				// doesn't depend on any other packages that have not yet started streaming, creating imports is going
-				// to load packages blocking the main thread.
-				int32 PendingAsyncPackageIndex = FAsyncLoadingThread::Get().FindAsyncPackage(ImportPackageFName);
-				if (PendingAsyncPackageIndex != INDEX_NONE)
+				FAsyncPackage& PendingPackage = *FAsyncLoadingThread::Get().GetPackage(PendingAsyncPackageIndex);
+				FLinkerLoad* PendingPackageLinker = PendingPackage.Linker;
+				if (PendingPackageLinker == nullptr || !PendingPackageLinker->HasFinishedInitialization())
 				{
-					FAsyncPackage& PendingPackage = *FAsyncLoadingThread::Get().GetPackage(PendingAsyncPackageIndex);
-					FLinkerLoad* PendingPackageLinker = PendingPackage.Linker;
-					if (PendingPackageLinker == nullptr || !PendingPackageLinker->HasFinishedInitialization())
-					{
-						// Add this import to the dependency list.
-						AddUniqueLinkerDependencyPackage(AsyncQueueIndex, PendingPackage);
-					}
-					else
-					{
-						UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Linker exists for %s"), *Desc.NameToLoad.ToString(), *ImportPackageFName.ToString());
-						// Only keep a reference to this package so that its linker doesn't go away too soon
-						PendingPackage.DependencyRefCount.Increment();
-						ReferencedImports.Add(&PendingPackage);
-						// Check if we need to add its dependencies too.
-						TSet<FAsyncPackage*> SearchedPackages;
-						AddDependencyTree(AsyncQueueIndex, PendingPackage, SearchedPackages);
-					}
-				}
-			}
-
-			if (!ExistingPackage && ContainsDependencyPackage(PendingImportedPackages, ImportPackageFName) == INDEX_NONE)
-			{
-				const FString ImportPackageName(Import->ObjectName.ToString());
-				// The package doesn't exist and this import is not in the dependency list so add it now.
-				if (!FPackageName::IsShortPackageName(ImportPackageName))
-				{
-					UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Loading %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
-					AddImportDependency(AsyncQueueIndex, ImportPackageFName);
+					// Add this import to the dependency list.
+					AddUniqueLinkerDependencyPackage(AsyncQueueIndex, PendingPackage);
 				}
 				else
 				{
-					// This usually means there's a reference to a script package from another project
-					UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Short package name in imports list: %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
+					UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Linker exists for %s"), *Desc.NameToLoad.ToString(), *ImportPackageFName.ToString());
+					// Only keep a reference to this package so that its linker doesn't go away too soon
+					PendingPackage.DependencyRefCount.Increment();
+					ReferencedImports.Add(&PendingPackage);
+					// Check if we need to add its dependencies too.
+					TSet<FAsyncPackage*> SearchedPackages;
+					AddDependencyTree(AsyncQueueIndex, PendingPackage, SearchedPackages);
 				}
 			}
-
-			UpdateLoadPercentage();
 		}
+
+		if (!ExistingPackage && ContainsDependencyPackage(PendingImportedPackages, ImportPackageFName) == INDEX_NONE)
+			{
+			const FString ImportPackageName(Import->ObjectName.ToString());
+			// The package doesn't exist and this import is not in the dependency list so add it now.
+			if (!FPackageName::IsShortPackageName(ImportPackageName))
+			{
+				UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Loading %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
+				AddImportDependency(AsyncQueueIndex, ImportPackageFName);
+			}
+			else
+			{
+				// This usually means there's a reference to a script package from another project
+				UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Short package name in imports list: %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
+			}
+		}
+
+		UpdateLoadPercentage();
+	}
 	}
 
 	if (PendingImportedPackages.Num())

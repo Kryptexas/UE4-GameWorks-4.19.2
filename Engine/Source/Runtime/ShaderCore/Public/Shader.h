@@ -560,23 +560,23 @@ public:
 	}
 	
 	// Accessors.
-	FShaderType* GetType() const { return Type; }
-	uint32 GetNumInstructions() const { return Resource->NumInstructions; }
-	uint32 GetNumTextureSamplers() const { return Resource->NumTextureSamplers; }
-	const TArray<uint8>& GetCode() const { return Resource->Code; }
-	const FShaderTarget GetTarget() const { return Target; }
+	inline FShaderType* GetType() const { return Type; }
+	inline uint32 GetNumInstructions() const { return Resource->NumInstructions; }
+	inline uint32 GetNumTextureSamplers() const { return Resource->NumTextureSamplers; }
+	inline const TArray<uint8>& GetCode() const { return Resource->Code; }
+	inline const FShaderTarget GetTarget() const { return Target; }
 	inline FSHAHash GetOutputHash() const { return OutputHash; }
 	FShaderId GetId() const;
-	FVertexFactoryType* GetVertexFactoryType() const { return VFType; }
-	FSHAHash GetMaterialShaderMapHash() const { return MaterialShaderMapHash; }
-	int32 GetNumRefs() const { return NumRefs; }
+	inline FVertexFactoryType* GetVertexFactoryType() const { return VFType; }
+	inline FSHAHash GetMaterialShaderMapHash() const { return MaterialShaderMapHash; }
+	inline int32 GetNumRefs() const { return NumRefs; }
 
 	inline FShaderResourceId GetResourceId() const
 	{
 		return Resource->GetId();
 	}
 
-	uint32 GetSizeBytes() const
+	inline uint32 GetSizeBytes() const
 	{
 		return GetTypeSize() + GetAllocatedSize();
 	}
@@ -1001,14 +1001,6 @@ private:
 class SHADERCORE_API FShaderPipelineType
 {
 public:
-	const FShaderType* const VertexShader;
-	const FShaderType* const HullShader;
-	const FShaderType* const DomainShader;
-	const FShaderType* const GeometryShader;
-	const FShaderType* const PixelShader;
-	const TCHAR* const Name;
-	FName TypeName;
-
 	FShaderPipelineType(
 		const TCHAR* InName,
 		const FShaderType* InVertexShader,
@@ -1018,14 +1010,21 @@ public:
 		const FShaderType* InPixelShader);
 	virtual ~FShaderPipelineType();
 
-	bool HasTessellation() const { return HullShader != nullptr; }
-	bool HasGeometry() const { return GeometryShader != nullptr; }
-	bool HasPixelShader() const { return PixelShader != nullptr; }
+	FORCEINLINE bool HasTessellation() const { return AllStages[SF_Domain] != nullptr; }
+	FORCEINLINE bool HasGeometry() const { return AllStages[SF_Geometry] != nullptr; }
+	FORCEINLINE bool HasPixelShader() const { return AllStages[SF_Pixel] != nullptr; }
 
-	FName GetFName() const { return TypeName; }
+	FORCEINLINE const FShaderType* GetShader(EShaderFrequency Frequency) const
+	{
+		check(Frequency < SF_NumFrequencies);
+		return AllStages[Frequency];
+	}
 
-	// Returns an array of valid stages, sorted from PS->GS->DS->HS->VS
-	const TArray<const FShaderType*>& GetStages() const { return Stages; }
+	FORCEINLINE FName GetFName() const { return TypeName; }
+	FORCEINLINE TCHAR const* GetName() const { return Name; }
+
+	// Returns an array of valid stages, sorted from PS->GS->DS->HS->VS, no gaps if missing stages
+	FORCEINLINE const TArray<const FShaderType*>& GetStages() const { return Stages; }
 
 	static TLinkedList<FShaderPipelineType*>*& GetTypeList();
 
@@ -1039,11 +1038,27 @@ public:
 	/** Serializes a shader type reference by name. */
 	SHADERCORE_API friend FArchive& operator<<(FArchive& Ar, const FShaderPipelineType*& Ref);
 
+	/** Hashes a pointer to a shader type. */
+	friend uint32 GetTypeHash(FShaderPipelineType* Ref) { return Ref ? Ref->HashIndex : 0; }
+	friend uint32 GetTypeHash(const FShaderPipelineType* Ref) { return Ref ? Ref->HashIndex : 0; }
+
+	// Check if this pipeline is built of specific types
+	bool IsGlobalTypePipeline() const { return Stages[0]->GetGlobalShaderType() != nullptr; }
+	bool IsMaterialTypePipeline() const { return Stages[0]->GetMaterialShaderType() != nullptr; }
+	bool IsMeshMaterialTypePipeline() const { return Stages[0]->GetMeshMaterialShaderType() != nullptr; }
+
 protected:
-	TLinkedList<FShaderPipelineType*> GlobalListLink;
+	const TCHAR* const Name;
+	FName TypeName;
 
 	// Pipeline Stages, ordered from lowest (usually PS) to highest (VS). Guaranteed at least one stage (for VS).
 	TArray<const FShaderType*> Stages;
+
+	const FShaderType* AllStages[SF_NumFrequencies];
+
+	TLinkedList<FShaderPipelineType*> GlobalListLink;
+
+	uint32 HashIndex;
 
 	static bool bInitialized;
 };
@@ -1177,7 +1192,7 @@ public:
 	 * @param bHandleShaderKeyChanges - whether to serialize the data necessary to detect and gracefully handle shader key changes between saving and loading
 	 */
 	void SerializeInline(FArchive& Ar, bool bInlineShaderResource, bool bHandleShaderKeyChanges)
-	{		
+	{
 		if (Ar.IsSaving())
 		{
 			int32 NumShaders = Shaders.Num();
@@ -1224,6 +1239,9 @@ public:
 				Ar << EndOffset;
 				Ar.Seek(EndOffset);
 			}
+
+			int32 NumPipelines = 0;
+			Ar << NumPipelines;
 		}
 
 		if (Ar.IsLoading())
@@ -1277,6 +1295,9 @@ public:
 					Ar.Seek(EndOffset);
 				}
 			}
+
+			int32 NumPipelines = 0;
+			Ar << NumPipelines;
 		}
 	}
 

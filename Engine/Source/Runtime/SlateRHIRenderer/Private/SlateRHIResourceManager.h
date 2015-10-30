@@ -3,6 +3,8 @@
 #pragma once
 
 #include "TextureAtlas.h"
+#include "SlateElementIndexBuffer.h"
+#include "SlateElementVertexBuffer.h"
 
 class FSlateDynamicTextureResource;
 class FSlateUTextureResource;
@@ -58,6 +60,13 @@ private:
 	MaterialResourceMap MaterialMap;
 
 	int32 LastExpiredMaterialNumMarker;
+};
+
+
+struct FCachedRenderBuffers
+{
+	TSlateElementVertexBuffer<FSlateVertex> VertexBuffer;
+	FSlateElementIndexBuffer IndexBuffer;
 };
 
 
@@ -143,6 +152,14 @@ public:
 	virtual bool LoadTexture( const FName& TextureName, const FString& ResourcePath, uint32& Width, uint32& Height, TArray<uint8>& DecodedImage );
 	virtual bool LoadTexture( const FSlateBrush& InBrush, uint32& Width, uint32& Height, TArray<uint8>& DecodedImage );
 
+	FCachedRenderBuffers* FindCachedBuffersForHandle(const FSlateRenderDataHandle* RenderHandle) const
+	{
+		return CachedBuffers.FindRef(RenderHandle);
+	}
+
+	FCachedRenderBuffers* FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle);
+	void ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle);
+	void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
 
 	/**
 	 * Releases rendering resources
@@ -224,5 +241,11 @@ private:
 	FIntPoint MaxAltasedTextureSize;
 	/** Needed for displaying an error texture when we end up with bad resources. */
 	UTexture* BadResourceTexture;
+
+	typedef TMap< FSlateRenderDataHandle*, FCachedRenderBuffers* > TCachedBufferMap;
+	TCachedBufferMap CachedBuffers;
+
+	typedef TMap< const ILayoutCache*, TArray< FCachedRenderBuffers* > > TCachedBufferPoolMap;
+	TCachedBufferPoolMap CachedBufferPool;
 };
 

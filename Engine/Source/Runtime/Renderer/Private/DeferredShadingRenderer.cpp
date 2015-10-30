@@ -1057,20 +1057,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	ServiceLocalQueue();
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
-	{
-		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
-		SceneContext.BeginRenderingSceneColor(RHICmdList);
-		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
-	}
+	  {
+		  // clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
+		  SceneContext.BeginRenderingSceneColor(RHICmdList);
+		  RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+	  }
 
-	SceneContext.DBufferA.SafeRelease();
-	SceneContext.DBufferB.SafeRelease();
-	SceneContext.DBufferC.SafeRelease();
+	  SceneContext.DBufferA.SafeRelease();
+	  SceneContext.DBufferB.SafeRelease();
+	  SceneContext.DBufferC.SafeRelease();
 
-	// only temporarily available after early z pass and until base pass
-	check(!SceneContext.DBufferA);
-	check(!SceneContext.DBufferB);
-	check(!SceneContext.DBufferC);
+	  // only temporarily available after early z pass and until base pass
+	  check(!SceneContext.DBufferA);
+	  check(!SceneContext.DBufferB);
+	  check(!SceneContext.DBufferC);
 
 	if (bRequiresFarZQuadClear)
 	{
@@ -1082,7 +1082,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 		bRequiresFarZQuadClear = false;
 	}
-
+	
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_ResolveDepth_After_Basepass);
 		SceneContext.ResolveSceneDepthTexture(RHICmdList);
@@ -1548,13 +1548,11 @@ static TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasksPrePass(
 	0,
 	TEXT("Wait for completion of parallel render thread tasks at the end of the pre pass.  A more granular version of r.RHICmdFlushRenderThreadTasks. If either r.RHICmdFlushRenderThreadTasks or r.RHICmdFlushRenderThreadTasksPrePass is > 0 we will flush."));
 
-
 void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList)
 {
 	FPrePassParallelCommandListSet ParallelCommandListSet(View, ParentCmdList, 
 		CVarRHICmdPrePassDeferredContexts.GetValueOnRenderThread() > 0, 
 		CVarRHICmdFlushRenderThreadTasksPrePass.GetValueOnRenderThread() == 0  && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0);
-
 
 	// Draw the static occluder primitives using a depth drawing policy.
 	{
@@ -1704,10 +1702,10 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 				FViewInfo& View = Views[ViewIndex];
 				RenderBasePassViewParallel(View, RHICmdList);
 			}
-			bDirty = true; // assume dirty since we are not going to wait
-			if (FVelocityRendering::OutputsToGBuffer())
-			{
-				GPrevPerBoneMotionBlur.EndAppendFence(RHICmdList);
+				bDirty = true; // assume dirty since we are not going to wait
+				if (FVelocityRendering::OutputsToGBuffer())
+				{
+					GPrevPerBoneMotionBlur.EndAppendFence(RHICmdList);
 			}
 		}
 		else

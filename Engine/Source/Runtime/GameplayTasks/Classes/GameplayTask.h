@@ -364,9 +364,9 @@ struct FGameplayTaskInstanceNamePredicate
 		InstanceName = DesiredInstanceName;
 	}
 
-	bool operator()(const TWeakObjectPtr<UGameplayTask> A) const
+	bool operator()(const UGameplayTask* A) const
 	{
-		return (A.IsValid() && !A.Get()->GetInstanceName().IsNone() && A.Get()->GetInstanceName().IsValid() && (A.Get()->GetInstanceName() == InstanceName));
+		return (A && !A->GetInstanceName().IsNone() && A->GetInstanceName().IsValid() && (A->GetInstanceName() == InstanceName));
 	}
 
 	FName InstanceName;
@@ -380,9 +380,9 @@ struct FGameplayTaskInstanceClassPredicate
 		TaskClass = Class;
 	}
 
-	bool operator()(const TWeakObjectPtr<UGameplayTask> A) const
+	bool operator()(const UGameplayTask* A) const
 	{
-		return (A.IsValid() && (A.Get()->GetClass() == TaskClass));
+		return (A && (A->GetClass() == TaskClass));
 	}
 
 	TSubclassOf<UGameplayTask> TaskClass;

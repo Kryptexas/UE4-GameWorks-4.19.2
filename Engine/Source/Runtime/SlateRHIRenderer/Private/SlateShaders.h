@@ -8,6 +8,7 @@
 #include "ShaderParameters.h"
 #include "UniformBuffer.h"
 #include "ShaderParameterUtils.h"
+#include "Rendering/RenderingCommon.h"
 
 extern uint32 GSlateShaderColorVisionDeficiencyType;
 
@@ -137,7 +138,7 @@ public:
 
 	/**
 	 * Sets the display gamma.
- 	 *
+	 *
 	 * @param DisplayGamma The display gamma to use
 	 */
 	void SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma)
@@ -169,7 +170,7 @@ private:
 /** 
  * Pixel shader types for all elements
  */
-template<ESlateShader::Type ShaderType,bool bDrawDisabledEffect,bool bUseTextureAlpha=true> 
+template<ESlateShader::Type ShaderType, bool bDrawDisabledEffect, bool bUseTextureAlpha=true>
 class TSlateElementPS : public FSlateElementPS
 {
 	DECLARE_SHADER_TYPE( TSlateElementPS, Global );
@@ -193,10 +194,11 @@ public:
 	{
 		// Set defines based on what this shader will be used for
 		OutEnvironment.SetDefine(TEXT("SHADER_TYPE"), (uint32)ShaderType);
-		OutEnvironment.SetDefine(TEXT("DRAW_DISABLED_EFFECT"), (uint32)(bDrawDisabledEffect ? 1 : 0));
-		OutEnvironment.SetDefine(TEXT("USE_TEXTURE_ALPHA"), (uint32)(bUseTextureAlpha ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("DRAW_DISABLED_EFFECT"), (uint32)( bDrawDisabledEffect ? 1 : 0 ));
+		OutEnvironment.SetDefine(TEXT("USE_TEXTURE_ALPHA"), (uint32)( bUseTextureAlpha ? 1 : 0 ));
 		OutEnvironment.SetDefine(TEXT("COLOR_VISION_DEFICIENCY_TYPE"), GSlateShaderColorVisionDeficiencyType);
 		OutEnvironment.SetDefine(TEXT("USE_MATERIALS"), (uint32)0);
+		OutEnvironment.SetDefine(TEXT("PRE_MULTIPLIED_ALPHA"), (uint32)0);
 
 		FSlateElementPS::ModifyCompilationEnvironment( Platform, OutEnvironment );
 	}
@@ -208,6 +210,33 @@ public:
 	}
 private:
 
+};
+
+/** Simple passthrough for Premultiplied alpha */
+class FSlatePreMultiplyPassThroughPS : public TSlateElementPS<ESlateShader::Default, false, true>
+{
+	DECLARE_SHADER_TYPE(FSlatePreMultiplyPassThroughPS, Global);
+public:
+
+	FSlatePreMultiplyPassThroughPS()
+	{
+	}
+
+	/** Constructor.  Binds all parameters used by the shader */
+	FSlatePreMultiplyPassThroughPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: TSlateElementPS<ESlateShader::Default, false, true>(Initializer)
+	{
+	}
+
+	/**
+	* Modifies the compilation of this shader
+	*/
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		TSlateElementPS<ESlateShader::Default, false, true>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+
+		OutEnvironment.SetDefine(TEXT("PRE_MULTIPLIED_ALPHA"), (uint32)1);
+	}
 };
 
 /** 

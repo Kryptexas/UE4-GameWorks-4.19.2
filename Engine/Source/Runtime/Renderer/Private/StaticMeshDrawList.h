@@ -181,11 +181,14 @@ private:
 
 		TStaticMeshDrawList* DrawList;
 
+		uint32 VisibleCount;
+
 		/** Initialization constructor. */
 		FDrawingPolicyLink(TStaticMeshDrawList* InDrawList, const DrawingPolicyType& InDrawingPolicy, ERHIFeatureLevel::Type InFeatureLevel) :
 			DrawingPolicy(InDrawingPolicy),
 			FeatureLevel(InFeatureLevel),
-			DrawList(InDrawList)
+			DrawList(InDrawList),
+			VisibleCount(0)
 		{
 			CreateBoundShaderState();
 		}
@@ -366,6 +369,9 @@ private:
 	
 	/** All drawing policy element sets in the draw list, hashed by drawing policy. */
 	TDrawingPolicySet DrawingPolicySet;
+
+	uint32 FrameNumberForVisibleCount;
+	uint32 ViewStateUniqueId;
 };
 
 /** Helper struct for sorting */

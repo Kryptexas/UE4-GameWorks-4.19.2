@@ -11,7 +11,7 @@
 class FMeshPaintGeometryAdapterForSplineMeshes : public FMeshPaintGeometryAdapterForStaticMeshes
 {
 public:
-	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) override;
+	virtual bool InitializeMeshData() override;
 	virtual FVector GetMeshVertex(int32 Index) const override;
 
 protected:

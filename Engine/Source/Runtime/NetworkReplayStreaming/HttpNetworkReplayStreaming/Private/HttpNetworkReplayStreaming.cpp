@@ -9,7 +9,7 @@ static TAutoConsoleVariable<FString> CVarMetaFilterOverride( TEXT( "httpReplay.M
 class FNetworkReplayListItem : public FOnlineJsonSerializable
 {
 public:
-	FNetworkReplayListItem() {}
+	FNetworkReplayListItem() : SizeInBytes( 0 ), DemoTimeInMs( 0 ), NumViewers( 0 ), bIsLive( false ), Changelist( 0 ), bShouldKeep( false ) {}
 	virtual ~FNetworkReplayListItem() {}
 
 	FString		AppName;
@@ -21,6 +21,7 @@ public:
 	int32		NumViewers;
 	bool		bIsLive;
 	int32		Changelist;
+	bool		bShouldKeep;
 
 	// FOnlineJsonSerializable
 	BEGIN_ONLINE_JSON_SERIALIZER
@@ -33,6 +34,7 @@ public:
 		ONLINE_JSON_SERIALIZE( "NumViewers",	NumViewers );
 		ONLINE_JSON_SERIALIZE( "bIsLive",		bIsLive );
 		ONLINE_JSON_SERIALIZE( "Changelist",	Changelist );
+		ONLINE_JSON_SERIALIZE( "shouldKeep",	bShouldKeep );
 	END_ONLINE_JSON_SERIALIZER
 };
 
@@ -542,9 +544,7 @@ void FHttpNetworkReplayStreamer::SearchEvents(const FString& EventGroup, const F
 	HttpRequest->SetURL(FString::Printf(TEXT("%sevent?group=%s"), *ServerURL, *EventGroup));
 	HttpRequest->SetVerb(TEXT("GET"));
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished);
-
-	EnumerateStreamsDelegate = Delegate;
+	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished, Delegate);
 
 	AddRequestToQueue(EQueuedHttpRequestType::EnumeratingSessions, HttpRequest);
 }
@@ -995,12 +995,11 @@ void FHttpNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName
 
 void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& InReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate )
 {
-	if ( IsHttpRequestInFlight() )
-	{
-		Delegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );
-		return;
-	}
+	EnumerateStreams( InReplayVersion, UserString, MetaString, TArray< FString >(), Delegate );
+}
 
+void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& InReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate )
+{
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Build base URL
@@ -1031,34 +1030,30 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 		URL += FString::Printf( TEXT( "&user=%s" ), *UserString );
 	}
 
+	// Add any extra parms now
+	for ( int i = 0; i < ExtraParms.Num(); i++ )
+	{
+		URL += FString::Printf( TEXT( "&%s" ), *ExtraParms[i] );
+	}
+
 	HttpRequest->SetURL( URL );
 
 	HttpRequest->SetVerb( TEXT( "GET" ) );
 
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished );
-
-	EnumerateStreamsDelegate = Delegate;
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished, Delegate );
 
 	AddRequestToQueue( EQueuedHttpRequestType::EnumeratingSessions, HttpRequest );
 }
 
 void FHttpNetworkReplayStreamer::EnumerateRecentStreams( const FNetworkReplayVersion& InReplayVersion, const FString& InRecentViewer, const FOnEnumerateStreamsComplete& Delegate )
 {
-	if ( IsHttpRequestInFlight() )
-	{
-		Delegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );
-		return;
-	}
-
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Enumerate all of the sessions
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay?app=%s&version=%u&cl=%u&recent=%s" ), *ServerURL, *InReplayVersion.AppString, InReplayVersion.NetworkVersion, InReplayVersion.Changelist, *InRecentViewer ) );
 	HttpRequest->SetVerb( TEXT( "GET" ) );
 
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished );
-
-	EnumerateStreamsDelegate = Delegate;
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished, Delegate );
 
 	AddRequestToQueue( EQueuedHttpRequestType::EnumeratingSessions, HttpRequest );
 }
@@ -1547,7 +1542,7 @@ void FHttpNetworkReplayStreamer::HttpRefreshViewerFinished( FHttpRequestPtr Http
 	}
 }
 
-void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnEnumerateStreamsComplete Delegate )
 {
 	check( InFlightHttpRequest.IsValid() );
 	check( InFlightHttpRequest->Request == HttpRequest );
@@ -1567,7 +1562,7 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 		if ( !ReplayList.FromJson( JsonString ) )
 		{
 			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished. FromJson FAILED" ) );
-			EnumerateStreamsDelegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );		// FIXME: Notify failure here
+			Delegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );		// FIXME: Notify failure here
 			return;
 		}
 
@@ -1583,19 +1578,18 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 			NewStream.NumViewers	= ReplayList.Replays[i].NumViewers;
 			NewStream.bIsLive		= ReplayList.Replays[i].bIsLive;
 			NewStream.Changelist	= ReplayList.Replays[i].Changelist;
+			NewStream.bShouldKeep	= ReplayList.Replays[i].bShouldKeep;
 
 			Streams.Add( NewStream );
 		}
 
-		EnumerateStreamsDelegate.ExecuteIfBound( Streams );
+		Delegate.ExecuteIfBound( Streams );
 	}
 	else
 	{
 		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
-		EnumerateStreamsDelegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );		// FIXME: Notify failure here
+		Delegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );		// FIXME: Notify failure here
 	}
-
-	EnumerateStreamsDelegate = FOnEnumerateStreamsComplete();
 }
 
 void FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )

@@ -771,6 +771,11 @@ public:
 	 */
 	uint32 GetViewKey() const;
 
+	/** 
+	 * returns a the occlusion frame counter or MAX_uint32 if there is no view state
+	 */
+	uint32 GetOcclusionFrameCounter() const;
+
 	/** Allow things like HMD displays to update the view matrix at the last minute, to minimize perceived latency */
 	void UpdateViewMatrix();
 

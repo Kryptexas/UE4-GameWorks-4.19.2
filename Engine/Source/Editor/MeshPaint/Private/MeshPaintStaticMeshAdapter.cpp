@@ -18,15 +18,38 @@ bool FMeshPaintGeometryAdapterForStaticMeshes::Construct(UMeshComponent* InCompo
 	{
 		if (StaticMeshComponent->StaticMesh != nullptr)
 		{
-			if (InPaintingMeshLODIndex < StaticMeshComponent->StaticMesh->GetNumLODs())
-			{
-				LODModel = &(StaticMeshComponent->StaticMesh->RenderData->LODResources[InPaintingMeshLODIndex]);
-				UVChannelIndex = InUVChannelIndex;
-				Indices = LODModel->IndexBuffer.GetArrayView();
-
-				return (UVChannelIndex >= 0) && (UVChannelIndex < (int32)LODModel->VertexBuffer.GetNumTexCoords());
-			}
+			PaintingMeshLODIndex = InPaintingMeshLODIndex;
+			UVChannelIndex = InUVChannelIndex;
+			StaticMeshComponent->StaticMesh->OnPostMeshBuild().AddRaw(this, &FMeshPaintGeometryAdapterForStaticMeshes::OnPostMeshBuild);
+			const bool bSuccess = InitializeMeshData();
+			return bSuccess;
 		}
+	}
+
+	return false;
+}
+
+FMeshPaintGeometryAdapterForStaticMeshes::~FMeshPaintGeometryAdapterForStaticMeshes()
+{
+	if (StaticMeshComponent != nullptr && StaticMeshComponent->StaticMesh != nullptr)
+	{
+		StaticMeshComponent->StaticMesh->OnPostMeshBuild().RemoveAll(this);
+	}
+}
+
+void FMeshPaintGeometryAdapterForStaticMeshes::OnPostMeshBuild(UStaticMesh* StaticMesh)
+{
+	InitializeMeshData();
+}
+
+bool FMeshPaintGeometryAdapterForStaticMeshes::InitializeMeshData()
+{
+	if (PaintingMeshLODIndex < StaticMeshComponent->StaticMesh->GetNumLODs())
+	{
+		LODModel = &(StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex]);
+		Indices = LODModel->IndexBuffer.GetArrayView();
+
+		return (UVChannelIndex >= 0) && (UVChannelIndex < (int32)LODModel->VertexBuffer.GetNumTexCoords());
 	}
 
 	return false;

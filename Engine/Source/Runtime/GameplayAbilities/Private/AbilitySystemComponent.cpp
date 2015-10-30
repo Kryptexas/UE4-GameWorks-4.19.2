@@ -1371,7 +1371,7 @@ void UAbilitySystemComponent::OnPeriodicGameplayEffectExecuteOnSelf(UAbilitySyst
 	OnPeriodicGameplayEffectExecuteDelegateOnSelf.Broadcast(Source, SpecExecuted, ActiveHandle);
 }
 
-TArray<TWeakObjectPtr<UGameplayTask> >&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
+TArray<UGameplayTask*>&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
 {
 	return Ability->ActiveTasks;
 }
@@ -1723,7 +1723,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 					Canvas->SetDrawColor(FColor::White);
 					for (auto TaskPtr : Instance->ActiveTasks)
 					{
-						UGameplayTask* Task = TaskPtr.Get();
+						UGameplayTask* Task = TaskPtr;
 						if (Task)
 						{
 							YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s"), *Task->GetDebugString()), XPos + 7.f, YPos);

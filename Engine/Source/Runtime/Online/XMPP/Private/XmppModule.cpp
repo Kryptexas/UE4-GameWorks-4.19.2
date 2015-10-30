@@ -51,7 +51,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FXmppServer XmppServer;
 	XmppServer.bUseSSL = true;
-	XmppServer.ClientResource = TEXT("ue_xmpp_test");
+	XmppServer.AppId = TEXT("ue_xmpp_test");
 
 	//@todo sz1 - for debug only
 	FString ConfigOverride;

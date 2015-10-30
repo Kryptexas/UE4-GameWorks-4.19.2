@@ -87,6 +87,8 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		UE_LOG(LogFunctionalTest, Warning, TEXT("Functional tests are already running, aborting."));
 		return true;
 	}
+	
+	WorldContext->GetWorld()->ForceGarbageCollection(true);
 
 	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
@@ -105,6 +107,12 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 	}
 	else
 	{
+		for (TActorIterator<APhasedAutomationActorBase> It(WorldContext->GetWorld()); It; ++It)
+		{
+			APhasedAutomationActorBase* PAA = (*It);
+			Manager->OnTestsComplete.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingComplete);
+		}
+
 		for (TActorIterator<AFunctionalTest> It(WorldContext->GetWorld()); It; ++It)
 		{
 			AFunctionalTest* Test = (*It);
@@ -210,12 +218,21 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 
 	if (FTest->OnWantsReRunCheck() == false && FTest->WantsToRunAgain() == false)
 	{
-		TestsLeft.RemoveSingle(FTest);
-		/*if (bDiscardSuccessfulTests && FTest->IsSuccessful())
+		//We can also do named reruns. These are lower priority than those triggered above.
+		//These names can be querried by phases to alter behviour in re-runs.
+		if (FTest->RerunCauses.Num() > 0)
 		{
+			FTest->CurrentRerunCause = FTest->RerunCauses.Pop();
+		}
+		else
+		{
+			TestsLeft.RemoveSingle(FTest);
+			/*if (bDiscardSuccessfulTests && FTest->IsSuccessful())
+			{
 			AllTests.RemoveSingle(FTest);
-		}*/
-		FTest->CleanUp();
+			}*/
+			FTest->CleanUp();
+		}
 	}
 
 	if (TestsLeft.Num() > 0 || TestReproStrings.Num() > 0)
@@ -259,6 +276,7 @@ void UFunctionalTestingManager::AllTestsDone()
 	}
 	else
 	{
+		OnTestsComplete.Broadcast();
 		bFinished = true;
 		UE_LOG(LogFunctionalTest, Log, TEXT("DONE."));
 		RemoveFromRoot();

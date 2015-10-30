@@ -1517,10 +1517,10 @@ static void SetupLandscapeImportLayers(const FTiledLandscapeImportSettings& InIm
 				ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, FILEREAD_Silent);
 			}
 		}
-		
+
 		LayerImportInfo.LayerInfo = GetLandscapeLayerInfoObject(LayerImportInfo.LayerName, ContentPath);
 		LayerImportInfo.LayerInfo->bNoWeightBlend = LayerSettings.bNoBlendWeight;
-						
+
 		OutLayerInfo.Add(LayerImportInfo);
 	}
 }
@@ -1606,7 +1606,8 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 			// Setup layers list for importing
 			SetupLandscapeImportLayers(ImportSettings, GetWorld()->GetOutermost()->GetName(), TileIndex, TileImportSettings.ImportLayers);
-						
+			TileImportSettings.ImportLayerType = ELandscapeImportAlphamapType::Additive;
+
 			if (ReadRawFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
 			{
 				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();

@@ -390,8 +390,74 @@ namespace HotReloadDefs
 
 IMPLEMENT_MODULE(FHotReloadModule, HotReload);
 
+namespace
+{
+	/**
+	 * Gets editor runs directory.
+	 */
+	FString GetEditorRunsDir()
+	{
+		FString TempDir = FPaths::EngineIntermediateDir();
+
+		return FPaths::Combine(*TempDir, TEXT("EditorRuns"));
+	}
+
+	/**
+	 * Creates a file that informs UBT that the editor is currently running.
+	 */
+	void CreateFileThatIndicatesEditorRunIfNeeded()
+	{
+#if WITH_EDITOR
+		IPlatformFile& FS = IPlatformFile::GetPlatformPhysical();
+
+		FString EditorRunsDir = GetEditorRunsDir();
+		FString FileName = FPaths::Combine(*EditorRunsDir, *FString::Printf(TEXT("%d"), FPlatformProcess::GetCurrentProcessId()));
+
+		if (FS.FileExists(*FileName))
+		{
+			if (!GIsEditor)
+			{
+				FS.DeleteFile(*FileName);
+			}
+		}
+		else
+		{
+			if (GIsEditor)
+			{
+				if (!FS.CreateDirectory(*EditorRunsDir))
+				{
+					return;
+				}
+
+				delete FS.OpenWrite(*FileName); // Touch file.
+			}
+		}
+#endif // WITH_EDITOR
+	}
+
+	/**
+	 * Deletes file left by CreateFileThatIndicatesEditorRunIfNeeded function.
+	 */
+	void DeleteFileThatIndicatesEditorRunIfNeeded()
+	{
+#if WITH_EDITOR
+		IPlatformFile& FS = IPlatformFile::GetPlatformPhysical();
+
+		FString EditorRunsDir = GetEditorRunsDir();
+		FString FileName = FPaths::Combine(*EditorRunsDir, *FString::Printf(TEXT("%d"), FPlatformProcess::GetCurrentProcessId()));
+
+		if (FS.FileExists(*FileName))
+		{
+			FS.DeleteFile(*FileName);
+		}
+#endif // WITH_EDITOR
+	}
+}
+
 void FHotReloadModule::StartupModule()
 {
+	CreateFileThatIndicatesEditorRunIfNeeded();
+
 	bIsHotReloadingFromEditor = false;
 
 #if WITH_ENGINE
@@ -414,6 +480,8 @@ void FHotReloadModule::ShutdownModule()
 {
 	FTicker::GetCoreTicker().RemoveTicker(TickerDelegateHandle);
 	ShutdownHotReloadWatcher();
+
+	DeleteFileThatIndicatesEditorRunIfNeeded();
 }
 
 bool FHotReloadModule::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar )

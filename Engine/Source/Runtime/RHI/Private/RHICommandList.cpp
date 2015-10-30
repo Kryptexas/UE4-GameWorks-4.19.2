@@ -268,7 +268,7 @@ public:
 		{
 			Prereq.Add(RHIThreadTask);
 		}
-		RHIThreadTask = TGraphTask<FExecuteRHIThreadTask>::CreateTask(&Prereq, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(RHICmdList);
+		RHIThreadTask = TGraphTask<FExecuteRHIThreadTask>::CreateTask(&Prereq, CurrentThread).ConstructAndDispatchWhenReady(RHICmdList);
 	}
 };
 
@@ -924,110 +924,113 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 			{
 				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
 			}
-		}
-		else
-		{
-			IRHICommandContextContainer* ContextContainer = nullptr;
-			if (GRHISupportsParallelRHIExecute && CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() > 0)
-			{
-				ContextContainer = RHIGetCommandContextContainer();
-			}
-			if (ContextContainer)
-			{
-				bool bMerge = !!CVarRHICmdMergeSmallDeferredContexts.GetValueOnRenderThread();
-
-				int32 EffectiveThreads = 0;
-				int32 Start = 0;
-				// this is pretty silly but we need to know the number of jobs in advance, so we run the merge logic twice
-				while (Start < Num)
-				{
-					int32 Last = Start;
-					int32 DrawCnt = NumDrawsIfKnown[Start];
-
-					if (bMerge && DrawCnt >= 0)
-					{
-						while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
-						{
-							Last++;
-							DrawCnt += NumDrawsIfKnown[Last];
-						}
-					}
-					check(Last >= Start);
-					Start = Last + 1;
-					EffectiveThreads++;
-				} 
-				Start = 0;
-				int32 ThreadIndex = 0;
-
-				while (Start < Num)       
-				{    
-					int32 Last = Start;
-					int32 DrawCnt = NumDrawsIfKnown[Start];
-					int32 TotalMem = bSpewMerge ? CmdLists[Start]->GetUsedMemory() : 0;   // the memory is only accurate if we are spewing because otherwise it isn't done yet!
-
-					if (bMerge && DrawCnt >= 0)
-					{
-						while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
-						{
-							Last++;
-							DrawCnt += NumDrawsIfKnown[Last];
-							TotalMem += bSpewMerge ? CmdLists[Start]->GetUsedMemory() : 0;   // the memory is only accurate if we are spewing because otherwise it isn't done yet!
-						}
-					}
-
-					check(Last >= Start);
-
-					if (!ContextContainer) 
-					{
-						ContextContainer = RHIGetCommandContextContainer();
-					}
-					check(ContextContainer);
-
-					FGraphEventArray Prereq;
-					FRHICommandListBase** RHICmdLists = (FRHICommandListBase**)Alloc(sizeof(FRHICommandListBase*) * (1 + Last - Start), ALIGNOF(FRHICommandListBase*));
-					for (int32 Index = Start; Index <= Last; Index++)
-					{
-						FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
-						FRHICommandList* CmdList = CmdLists[Index];
-						RHICmdLists[Index - Start] = CmdList;
-						if (AnyThreadCompletionEvent.GetReference())
-						{
-							Prereq.Add(AnyThreadCompletionEvent);
-							AllOutstandingTasks.Add(AnyThreadCompletionEvent);
-							WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
-						}
-					}
-					UE_CLOG(bSpewMerge, LogTemp, Display, TEXT("Parallel translate %d->%d    %dKB mem   %d draws (-1 = unknown)"), Start, Last, FMath::DivideAndRoundUp(TotalMem, 1024), DrawCnt);
-
-					// this is used to ensure that any old buffer locks are completed before we start any parallel translates
-					if (RHIThreadBufferLockFence.GetReference())
-					{
-						Prereq.Add(RHIThreadBufferLockFence);
-					}
-
-					FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(&Prereq, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[0], 1 + Last - Start, ContextContainer);
-
-					AllOutstandingTasks.Add(TranslateCompletionEvent);
-					new (AllocCommand<FRHICommandWaitForAndSubmitSubListParallel>()) FRHICommandWaitForAndSubmitSubListParallel(TranslateCompletionEvent, ContextContainer, EffectiveThreads, ThreadIndex++);
-					if (GRHIThread)
-					{
-						FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
-					}
-
-					ContextContainer = nullptr;
-					Start = Last + 1;
-				}
-				check(EffectiveThreads == ThreadIndex);
-			}
-		}
-
 #if !UE_BUILD_SHIPPING
-		if (CVarRHICmdFlushOnQueueParallelSubmit.GetValueOnRenderThread())
-		{
-			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
-		}
+			if (CVarRHICmdFlushOnQueueParallelSubmit.GetValueOnRenderThread())
+			{
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+			}
 #endif
-		return;
+			return;
+		}
+		IRHICommandContextContainer* ContextContainer = nullptr;
+		if (GRHISupportsParallelRHIExecute && CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() > 0)
+		{
+			ContextContainer = RHIGetCommandContextContainer();
+		}
+		if (ContextContainer)
+		{
+			bool bMerge = !!CVarRHICmdMergeSmallDeferredContexts.GetValueOnRenderThread();
+
+			int32 EffectiveThreads = 0;
+			int32 Start = 0;
+			// this is pretty silly but we need to know the number of jobs in advance, so we run the merge logic twice
+			while (Start < Num)
+			{
+				int32 Last = Start;
+				int32 DrawCnt = NumDrawsIfKnown[Start];
+
+				if (bMerge && DrawCnt >= 0)
+				{
+					while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
+					{
+						Last++;
+						DrawCnt += NumDrawsIfKnown[Last];
+					}
+				}
+				check(Last >= Start);
+				Start = Last + 1;
+				EffectiveThreads++;
+			} 
+			Start = 0;
+			int32 ThreadIndex = 0;
+
+			while (Start < Num)       
+			{    
+				int32 Last = Start;
+				int32 DrawCnt = NumDrawsIfKnown[Start];
+				int32 TotalMem = bSpewMerge ? CmdLists[Start]->GetUsedMemory() : 0;   // the memory is only accurate if we are spewing because otherwise it isn't done yet!
+
+				if (bMerge && DrawCnt >= 0)
+				{
+					while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
+					{
+						Last++;
+						DrawCnt += NumDrawsIfKnown[Last];
+						TotalMem += bSpewMerge ? CmdLists[Start]->GetUsedMemory() : 0;   // the memory is only accurate if we are spewing because otherwise it isn't done yet!
+					}
+				}
+
+				check(Last >= Start);
+
+				if (!ContextContainer) 
+				{
+					ContextContainer = RHIGetCommandContextContainer();
+				}
+				check(ContextContainer);
+
+				FGraphEventArray Prereq;
+				FRHICommandListBase** RHICmdLists = (FRHICommandListBase**)Alloc(sizeof(FRHICommandListBase*) * (1 + Last - Start), ALIGNOF(FRHICommandListBase*));
+				for (int32 Index = Start; Index <= Last; Index++)
+				{
+					FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
+					FRHICommandList* CmdList = CmdLists[Index];
+					RHICmdLists[Index - Start] = CmdList;
+					if (AnyThreadCompletionEvent.GetReference())
+					{
+						Prereq.Add(AnyThreadCompletionEvent);
+						AllOutstandingTasks.Add(AnyThreadCompletionEvent);
+						WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
+					}
+				}
+				UE_CLOG(bSpewMerge, LogTemp, Display, TEXT("Parallel translate %d->%d    %dKB mem   %d draws (-1 = unknown)"), Start, Last, FMath::DivideAndRoundUp(TotalMem, 1024), DrawCnt);
+
+				// this is used to ensure that any old buffer locks are completed before we start any parallel translates
+				if (RHIThreadBufferLockFence.GetReference())
+				{
+					Prereq.Add(RHIThreadBufferLockFence);
+				}
+
+				FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(&Prereq, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[0], 1 + Last - Start, ContextContainer);
+
+				AllOutstandingTasks.Add(TranslateCompletionEvent);
+				new (AllocCommand<FRHICommandWaitForAndSubmitSubListParallel>()) FRHICommandWaitForAndSubmitSubListParallel(TranslateCompletionEvent, ContextContainer, EffectiveThreads, ThreadIndex++);
+				if (GRHIThread)
+				{
+					FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
+				}
+
+				ContextContainer = nullptr;
+				Start = Last + 1;
+			}
+			check(EffectiveThreads == ThreadIndex);
+#if !UE_BUILD_SHIPPING
+			if (CVarRHICmdFlushOnQueueParallelSubmit.GetValueOnRenderThread())
+			{
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+			}
+#endif
+			return;
+		}
 	}
 	for (int32 Index = 0; Index < Num; Index++)
 	{

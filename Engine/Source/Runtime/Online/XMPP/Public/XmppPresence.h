@@ -63,8 +63,10 @@ public:
 	bool bIsAvailable;
 	/** time when presence was sent by the user */
 	FDateTime SentTime;
-	/** client id user is logged in from */
-	FString ClientResource;
+	/** app id user is logged in from */
+	FString AppId;
+	/** platform associated with this client */
+	FString Platform;
 	/** string that will be parsed for further displayed presence info */
 	FString StatusStr;
 };

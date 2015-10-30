@@ -843,15 +843,7 @@ void FGameplayEffectSpec::GetAllAssetTags(OUT FGameplayTagContainer& Container) 
 
 void FGameplayEffectSpec::SetSetByCallerMagnitude(FName DataName, float Magnitude)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	const float* CurrentValue = SetByCallerMagnitudes.Find(DataName);
-	if (CurrentValue)
-	{
-		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetMagnitude called on Data %s for Def %s when this magnitude was already set. Current Value: %.2f"), *DataName.ToString(), *Def->GetName(), *CurrentValue);
-	}
-#endif
-
-	SetByCallerMagnitudes.Add(DataName) = Magnitude;
+	SetByCallerMagnitudes.FindOrAdd(DataName) = Magnitude;
 }
 
 float FGameplayEffectSpec::GetSetByCallerMagnitude(FName DataName, bool WarnIfNotFound, float DefaultIfNotFound) const

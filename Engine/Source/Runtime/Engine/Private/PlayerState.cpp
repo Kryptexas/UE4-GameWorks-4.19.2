@@ -190,11 +190,14 @@ void APlayerState::OnRep_PlayerName()
 
 void APlayerState::OnRep_bIsInactive()
 {
-	// remove and re-add from the GameState so it's in the right list
-	GetWorld()->GameState->RemovePlayerState(this);
-	GetWorld()->GameState->AddPlayerState(this);
+	// remove and re-add from the GameState so it's in the right list  
+	UWorld* World = GetWorld();
+	if (ensure(World && World->GameState))
+	{
+		World->GameState->RemovePlayerState(this);
+		World->GameState->AddPlayerState(this);
+	}
 }
-
 
 bool APlayerState::ShouldBroadCastWelcomeMessage(bool bExiting)
 {
@@ -203,14 +206,15 @@ bool APlayerState::ShouldBroadCastWelcomeMessage(bool bExiting)
 
 void APlayerState::Destroyed()
 {
-	if ( GetWorld()->GameState != NULL )
+	UWorld* World = GetWorld();
+	if (World->GameState != NULL)
 	{
-		GetWorld()->GameState->RemovePlayerState(this);
+		World->GameState->RemovePlayerState(this);
 	}
 
 	if( ShouldBroadCastWelcomeMessage(true) )
 	{
-		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
 			APlayerController* PlayerController = *Iterator;
 			if( PlayerController )

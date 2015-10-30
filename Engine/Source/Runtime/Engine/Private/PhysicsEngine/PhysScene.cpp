@@ -156,7 +156,7 @@ public:
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return ENamedThreads::AnyThreadGame();
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
@@ -563,7 +563,7 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 	{
 		//we have valid scene and subtime so enqueue task
 		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager());
-		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
+		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThreadGame();
 
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SubstepSimulationImp"),
 			STAT_FSimpleDelegateGraphTask_SubstepSimulationImp,
@@ -801,7 +801,7 @@ void FPhysScene::UpdateKinematicsOnDeferredSkelMeshes()
 		check(SkelComp->bDeferredKinematicUpdate); // Should be true if in map!
 
 		// Perform kinematic updates
-		SkelComp->UpdateKinematicBonesToAnim(SkelComp->GetSpaceBases(), Info.TeleportType, Info.bNeedsSkinning, true);
+		SkelComp->UpdateKinematicBonesToAnim(SkelComp->GetSpaceBases(), Info.TeleportType, Info.bNeedsSkinning, EAllowKinematicDeferral::DisallowDeferral);
 
 		// Clear deferred flag
 		SkelComp->bDeferredKinematicUpdate = false; 
@@ -943,9 +943,8 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 	if (!bTaskOutstanding)
 	{
-		check(IsInGameThread());
-		static TArray<FBaseGraphTask*> NewTasks;
-		InOutCompletionEvent->DispatchSubsequents(NewTasks, ENamedThreads::GameThread); // nothing to do, so nothing to wait for
+		TArray<FBaseGraphTask*> NewTasks;
+		InOutCompletionEvent->DispatchSubsequents(NewTasks, ENamedThreads::AnyThread); // nothing to do, so nothing to wait for
 	}
 #if WITH_SUBSTEPPING
 	bSubstepping = UPhysicsSettings::Get()->bSubstepping;
@@ -966,6 +965,8 @@ void FPhysScene::KillVisualDebugger()
 
 void FPhysScene::WaitPhysScenes()
 {
+	check(IsInGameThread());
+
 	FGraphEventArray ThingsToComplete;
 	if (PhysicsSceneCompletion.GetReference())
 	{
@@ -1004,6 +1005,9 @@ void FPhysScene::WaitClothScene()
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FPhysScene_WaitClothScene);
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
 	}
+	
+	PhysicsSubsceneCompletion[PST_Cloth] = nullptr;
+	bPhysXSceneExecuting[PST_Cloth] = false;
 }
 
 void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, EPhysicsSceneType SceneType)
@@ -1067,8 +1071,12 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	}
 #endif // WITH_PHYSX
 
+    if(SceneType != PST_Cloth)	//Cloth potentially runs this code off the game thread where setting to null is not thread safe. For cloth we do it in a later game thread sync point
+	{
 	PhysicsSubsceneCompletion[SceneType] = NULL;
 	bPhysXSceneExecuting[SceneType] = false;
+	}
+	
 }
 #if WITH_PHYSX
 void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
@@ -1318,7 +1326,7 @@ void FPhysScene::StartFrame()
 				STATGROUP_TaskGraphTasks);
 
 			PhysicsSceneCompletion = TGraphTask<FNullGraphTask>::CreateTask(&FinishPrerequisites, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				GET_STATID(STAT_FNullGraphTask_ProcessPhysScene_Join), PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread);
+				GET_STATID(STAT_FNullGraphTask_ProcessPhysScene_Join), PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThreadGame());
 		}
 		else
 		{
@@ -1343,7 +1351,7 @@ void FPhysScene::StartCloth()
 		{
 			if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
 			{
-				ENamedThreads::Type CurrentThread = CVarParallelCloth.GetValueOnAnyThread() ? ENamedThreads::AnyThread : ENamedThreads::GameThread;
+				ENamedThreads::Type CurrentThread = (CVarParallelCloth.GetValueOnAnyThread() && !PhysSingleThreadedMode()) ? ENamedThreads::AnyThreadGame() : ENamedThreads::GameThread;
 				DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Cloth"),
 				STAT_FDelegateGraphTask_ProcessPhysScene_Cloth,
 					STATGROUP_TaskGraphTasks);
@@ -1352,7 +1360,7 @@ void FPhysScene::StartCloth()
 					FDelegateGraphTask::CreateAndDispatchWhenReady(
 					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth),
 					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Cloth), PhysicsSubsceneCompletion[PST_Cloth],
-					CurrentThread, ENamedThreads::GameThread
+					CurrentThread, CurrentThread
 					)
 					);
 			}

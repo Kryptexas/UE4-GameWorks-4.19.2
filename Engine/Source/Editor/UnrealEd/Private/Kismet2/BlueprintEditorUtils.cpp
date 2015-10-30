@@ -4660,17 +4660,17 @@ void FBlueprintEditorUtils::SetDefaultValueOnUserDefinedStructProperty(UBlueprin
 		{
 			FStructOnScope StructData(UserDefinedStruct);
 
-			// Create the default value for the property
+		// Create the default value for the property
 			FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct, StructData.GetStructMemory());
 
-			// Export the default value as a string so we can store it with the variable description
-			FString DefaultValueString;
+		// Export the default value as a string so we can store it with the variable description
+		FString DefaultValueString;
 			FBlueprintEditorUtils::PropertyValueToString_Direct(VariableProperty, StructData.GetStructMemory(), DefaultValueString);
 
-			// Set the default value
-			InOutVariableDescription->DefaultValue = DefaultValueString;
-		}
+		// Set the default value
+		InOutVariableDescription->DefaultValue = DefaultValueString;
 	}
+}
 }
 
 bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName InNewVarName, const FEdGraphPinType& InNewVarType, const FString& DefaultValue/*= FString()*/)

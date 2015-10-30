@@ -3,6 +3,7 @@
 #include "CrashReportClientApp.h"
 #include "WindowsErrorReport.h"
 #include "CrashDebugHelperModule.h"
+#include "CrashReportUtil.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <ShlObj.h>

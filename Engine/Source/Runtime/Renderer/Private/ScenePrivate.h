@@ -870,6 +870,10 @@ public:
 	{
 		return UniqueID;
 	}
+	uint32 GetOcclusionFrameCounter() const
+	{
+		return OcclusionFrameCounter;
+	}
 
 
 

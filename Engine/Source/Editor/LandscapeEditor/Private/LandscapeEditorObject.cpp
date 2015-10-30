@@ -74,6 +74,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, NewLandscape_Scale(100, 100, 100)
 	, ImportLandscape_Width(0)
 	, ImportLandscape_Height(0)
+	, ImportLandscape_AlphamapType(ELandscapeImportAlphamapType::Additive)
 
 	// Brush Settings:
 	, BrushRadius(2048.0f)
@@ -282,6 +283,10 @@ void ULandscapeEditorObject::Load()
 	GConfig->GetString(TEXT("LandscapeEdit"), TEXT("NewLandscapeMaterialName"), NewLandscapeMaterialName, GEditorPerProjectIni);
 	NewLandscape_Material = LoadObject<UMaterialInterface>(NULL, *NewLandscapeMaterialName, NULL, LOAD_NoWarn);
 
+	int32 AlphamapType = (uint8)ImportLandscape_AlphamapType;
+	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ImportLandscape_AlphamapType"), AlphamapType, GEditorPerProjectIni);
+	ImportLandscape_AlphamapType = (ELandscapeImportAlphamapType)AlphamapType;
+
 	RefreshImportLayersList();
 }
 
@@ -351,6 +356,8 @@ void ULandscapeEditorObject::Save()
 
 	const FString NewLandscapeMaterialName = (NewLandscape_Material != NULL) ? NewLandscape_Material->GetPathName() : FString();
 	GConfig->SetString(TEXT("LandscapeEdit"), TEXT("NewLandscapeMaterialName"), *NewLandscapeMaterialName, GEditorPerProjectIni);
+
+	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("ImportLandscape_AlphamapType"), (uint8)ImportLandscape_AlphamapType, GEditorPerProjectIni);
 }
 
 // Region

@@ -114,9 +114,15 @@ private:
 struct FVirtualPointerPosition
 {
 	FVirtualPointerPosition()
-	: CurrentCursorPosition(FVector2D::ZeroVector)
-	, LastCursorPosition(FVector2D::ZeroVector)
+		: CurrentCursorPosition(FVector2D::ZeroVector)
+		, LastCursorPosition(FVector2D::ZeroVector)
 	{}
+
+	FVirtualPointerPosition(const FVector2D& InCurrentCursorPosition, const FVector2D& InLastCursorPosition)
+		: CurrentCursorPosition(InCurrentCursorPosition)
+		, LastCursorPosition(InLastCursorPosition)
+	{}
+
 	FVector2D CurrentCursorPosition;
 	FVector2D LastCursorPosition;
 };

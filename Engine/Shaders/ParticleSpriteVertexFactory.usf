@@ -432,6 +432,11 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #if USE_PARTICLE_POSITION
 	float ParticleRadius = .5f * min(Input.SizeRotSubImage.x, Input.SizeRotSubImage.y);
 	Intermediates.PositionAndSize = float4(ParticleWorldPosition.xyz, ParticleRadius);
+
+#if GENERATE_SPHERICAL_PARTICLE_NORMALS
+	// Recenter the particle position for GENERATE_SPHERICAL_PARTICLE_NORMALS to use the right center.
+	Intermediates.PositionAndSize.xyz += Size.x * (SpriteVF.PivotOffset.x + .5) * Right + Size.y * (SpriteVF.PivotOffset.y + .5) * Up;
+#endif
 #endif
 
 #if USE_PARTICLE_VELOCITY

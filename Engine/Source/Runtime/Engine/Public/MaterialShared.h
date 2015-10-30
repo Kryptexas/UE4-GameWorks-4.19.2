@@ -353,7 +353,8 @@ namespace EMaterialShaderMapUsage
 		MaterialExportNormal,
 		MaterialExportMetallic,
 		MaterialExportRoughness,
-		MaterialExportAO
+		MaterialExportAO,
+		MaterialExportEmissive,
 	};
 }
 

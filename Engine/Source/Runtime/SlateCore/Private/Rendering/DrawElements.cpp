@@ -193,6 +193,15 @@ void FSlateDrawElement::MakeLines(FSlateWindowElementList& ElementList, uint32 I
 void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, bool bGammaCorrect, bool bAllowBlending, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
+
+	// If we don't allow blending, the shader needs to know it needs to treat the incoming
+	// source data as already pre-multiplied, so it doesn't attempt to multiply through using
+	// the alpha.
+	if ( !bAllowBlending )
+	{
+		InDrawEffects |= ESlateDrawEffect::PreMultipliedAlpha;
+	}
+
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);

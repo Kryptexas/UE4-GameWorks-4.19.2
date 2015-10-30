@@ -69,6 +69,12 @@ public:
 	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track) = 0;
 
 	/**
+	 * Builds the context menu for the track.
+	 * @param MenuBuilder The menu builder to use to build the track menu. 
+	 */
+	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) = 0;
+
+	/**
 	 * Called when an asset is dropped into Sequencer. Can potentially consume the asset
 	 * so it doesn't get added as a spawnable.
 	 *

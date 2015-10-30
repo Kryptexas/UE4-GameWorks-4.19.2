@@ -11,6 +11,7 @@ class IMeshPaintGeometryAdapter
 {
 public:
 	virtual bool Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) = 0;
+	virtual bool InitializeMeshData() = 0;
 	virtual void OnAdded() = 0;
 	virtual void OnRemoved() = 0;
 	virtual int32 GetNumTexCoords() const = 0;

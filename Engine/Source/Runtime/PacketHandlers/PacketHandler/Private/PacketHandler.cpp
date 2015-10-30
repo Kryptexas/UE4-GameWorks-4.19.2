@@ -31,6 +31,7 @@ PacketHandler::PacketHandler()
 : Time(0.f)
 , State(Handler::State::Uninitialized)
 , ReliabilityComponent(NULL)
+, bEnabled(false)
 {
 	OutgoingPacket.SetAllowResize(true);
 	OutgoingPacket.AllowAppend(true);
@@ -60,92 +61,103 @@ void PacketHandler::Tick(float DeltaTime)
 
 void PacketHandler::Initialize(Handler::Mode InMode)
 {
-	struct ComponentAndOptions
+	GConfig->GetBool(TEXT("PacketHandlerComponents"), TEXT("bEnabled"), bEnabled, GEngineIni);
+
+	if (!bEnabled && FParse::Param(FCommandLine::Get(), TEXT("PacketHandler")))
 	{
-		FString ComponentName;
-		FString Options;
-	};
-
-	Mode = InMode;
-
-
-	TArray<FString> Components;
-	TArray<ComponentAndOptions> ComponentsArray;
-
-	GConfig->GetArray(TEXT("PacketHandlerComponents"), TEXT("Components"), Components, GEngineIni);
-
-	for (FString CurComponent : Components)
-	{
-		if (CurComponent.IsEmpty())
-		{
-			continue;
-		}
-
-
-		int CurIndex = ComponentsArray.Add(ComponentAndOptions());
-
-		for (int32 i=0; i<CurComponent.Len(); i++)
-		{
-			TCHAR c = CurComponent[i];
-
-			// Parsing Options
-			if (c == '(')
-			{
-				// Skip '('
-				++i;
-
-				// Parse until end of options
-				for (; i<CurComponent.Len(); i++)
-				{
-					c = CurComponent[i];
-
-					// End of options
-					if (c == ')')
-					{
-						break;
-					}
-					// Append char to options
-					else
-					{
-						ComponentsArray[CurIndex].Options.AppendChar(c);
-					}
-				}
-			}
-			// Append char to component name if not whitespace
-			else if (c != ' ')
-			{
-				ComponentsArray[CurIndex].ComponentName.AppendChar(c);
-			}
-		}
+		UE_LOG(PacketHandlerLog, Log, TEXT("Force-enabling packet handler from commandline."));
+		bEnabled = true;
 	}
 
-	for (int32 i=0; i<ComponentsArray.Num(); i++)
+	if (bEnabled)
 	{
-		// Skip adding reliability component as it is added automatically in the handler
-		if(ComponentsArray[i].ComponentName == TEXT("ReliabilityHandlerComponent"))
+		struct ComponentAndOptions
 		{
-			continue;
-		}
+			FString ComponentName;
+			FString Options;
+		};
+
+		Mode = InMode;
 
 
-		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*ComponentsArray[i].ComponentName));
+		TArray<FString> Components;
+		TArray<ComponentAndOptions> ComponentsArray;
 
-		if(Interface.IsValid())
+		GConfig->GetArray(TEXT("PacketHandlerComponents"), TEXT("Components"), Components, GEngineIni);
+
+		for (FString CurComponent : Components)
 		{
-			TSharedPtr<FPacketHandlerComponentModuleInterface> PacketHandlerInterface =
-				StaticCastSharedPtr<FPacketHandlerComponentModuleInterface>(Interface);
-
-			if(PacketHandlerInterface.IsValid())
+			if (CurComponent.IsEmpty())
 			{
-				UE_LOG(PacketHandlerLog, Log, TEXT("Loading PacketHandler component: %s (%s)"), *ComponentsArray[i].ComponentName,
-						*ComponentsArray[i].Options);
+				continue;
+			}
 
-				Add(PacketHandlerInterface->CreateComponentInstance(ComponentsArray[i].Options));
+
+			int CurIndex = ComponentsArray.Add(ComponentAndOptions());
+
+			for (int32 i=0; i<CurComponent.Len(); i++)
+			{
+				TCHAR c = CurComponent[i];
+
+				// Parsing Options
+				if (c == '(')
+				{
+					// Skip '('
+					++i;
+
+					// Parse until end of options
+					for (; i<CurComponent.Len(); i++)
+					{
+						c = CurComponent[i];
+
+						// End of options
+						if (c == ')')
+						{
+							break;
+						}
+						// Append char to options
+						else
+						{
+							ComponentsArray[CurIndex].Options.AppendChar(c);
+						}
+					}
+				}
+				// Append char to component name if not whitespace
+				else if (c != ' ')
+				{
+					ComponentsArray[CurIndex].ComponentName.AppendChar(c);
+				}
 			}
 		}
-		else
+
+		for (int32 i=0; i<ComponentsArray.Num(); i++)
 		{
-			UE_LOG(PacketHandlerLog, Warning, TEXT("Unable to Load Module: %s"), *ComponentsArray[i].ComponentName);
+			// Skip adding reliability component as it is added automatically in the handler
+			if(ComponentsArray[i].ComponentName == TEXT("ReliabilityHandlerComponent"))
+			{
+				continue;
+			}
+
+
+			TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*ComponentsArray[i].ComponentName));
+
+			if(Interface.IsValid())
+			{
+				TSharedPtr<FPacketHandlerComponentModuleInterface> PacketHandlerInterface =
+					StaticCastSharedPtr<FPacketHandlerComponentModuleInterface>(Interface);
+
+				if(PacketHandlerInterface.IsValid())
+				{
+					UE_LOG(PacketHandlerLog, Log, TEXT("Loading PacketHandler component: %s (%s)"), *ComponentsArray[i].ComponentName,
+							*ComponentsArray[i].Options);
+
+					Add(PacketHandlerInterface->CreateComponentInstance(ComponentsArray[i].Options));
+				}
+			}
+			else
+			{
+				UE_LOG(PacketHandlerLog, Warning, TEXT("Unable to Load Module: %s"), *ComponentsArray[i].ComponentName);
+			}
 		}
 	}
 }

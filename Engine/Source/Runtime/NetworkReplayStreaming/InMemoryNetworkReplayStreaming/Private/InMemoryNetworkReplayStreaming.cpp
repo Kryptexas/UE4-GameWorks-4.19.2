@@ -196,9 +196,14 @@ void FInMemoryNetworkReplayStreamer::DeleteFinishedStream( const FString& Stream
 
 void FInMemoryNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate )
 {
+	EnumerateStreams( ReplayVersion, UserString, MetaString, TArray< FString >(), Delegate );
+}
+
+void FInMemoryNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate )
+{
 	TArray<FNetworkReplayStreamInfo> Results;
 
-	for (const auto& StreamPair : OwningFactory->Replays)
+	for ( const auto& StreamPair : OwningFactory->Replays )
 	{
 		// Check version. NetworkVersion and changelist of 0 will ignore version check.
 		const bool NetworkVersionMatches = ReplayVersion.NetworkVersion == StreamPair.Value->NetworkVersion;
@@ -209,14 +214,14 @@ void FInMemoryNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersi
 
 		if ( NetworkVersionPasses && ChangelistPasses )
 		{
-			Results.Add(StreamPair.Value->StreamInfo);
+			Results.Add( StreamPair.Value->StreamInfo );
 		}
 	}
 
-	Delegate.ExecuteIfBound(Results);
+	Delegate.ExecuteIfBound( Results );
 }
 
-void FInMemoryNetworkReplayStreamer::AddUserToReplay(const FString& UserString)
+void FInMemoryNetworkReplayStreamer::AddUserToReplay( const FString& UserString )
 {
 	UE_LOG(LogMemoryReplay, Log, TEXT("FInMemoryNetworkReplayStreamer::AddUserToReplay is currently unsupported."));
 }

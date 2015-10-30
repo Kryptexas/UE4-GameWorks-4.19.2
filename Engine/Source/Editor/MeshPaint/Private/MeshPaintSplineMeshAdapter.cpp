@@ -10,9 +10,9 @@
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForSplineMeshes
 
-bool FMeshPaintGeometryAdapterForSplineMeshes::Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex)
+bool FMeshPaintGeometryAdapterForSplineMeshes::InitializeMeshData()
 {
-	bool bResult = FMeshPaintGeometryAdapterForStaticMeshes::Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex);
+	bool bResult = FMeshPaintGeometryAdapterForStaticMeshes::InitializeMeshData();
 
 	if (bResult)
 	{

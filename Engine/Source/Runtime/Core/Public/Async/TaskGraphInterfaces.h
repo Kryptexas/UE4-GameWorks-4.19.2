@@ -26,6 +26,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("FTriggerEventGraphTask"), STAT_FTriggerEventGrap
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ParallelFor"), STAT_ParallelFor, STATGROUP_TaskGraphTasks, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ParallelForTask"), STAT_ParallelForTask, STATGROUP_TaskGraphTasks, CORE_API);
 
+extern CORE_API int32 GAllAnyThreadTasksFromGameHiPri;
+
 namespace ENamedThreads
 {
 	enum Type
@@ -92,6 +94,11 @@ namespace ENamedThreads
 	FORCEINLINE Type HiPri(Type ThreadAndIndex)
 	{
 		return Type(ThreadAndIndex | HighPriority);
+	}
+
+	FORCEINLINE Type AnyThreadGame()
+	{
+		return Type(AnyThread | (GAllAnyThreadTasksFromGameHiPri ? HighPriority : 0));
 	}
 }
 
@@ -1139,7 +1146,7 @@ public:
 	 *	@param StatId The stat id for this task.
 	 *	@param InDesiredThread; Thread to run on, can be ENamedThreads::AnyThread
 	**/
-	FNullGraphTask(const TStatId& StatId, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+	FNullGraphTask(const TStatId& StatId, ENamedThreads::Type InDesiredThread)
 		: FCustomStatIDGraphTaskBase(StatId)
 		, DesiredThread(InDesiredThread)
 	{
@@ -1193,7 +1200,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return ENamedThreads::HiPri(ENamedThreads::AnyThread);
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }

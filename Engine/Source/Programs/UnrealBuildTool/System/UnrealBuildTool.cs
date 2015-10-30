@@ -2143,31 +2143,38 @@ namespace UnrealBuildTool
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeExecutablePaths");
 				}
 
-				var EditorProcessFilename = EditorProcessFilenames[0].FullName;
-				var EditorProcessName = Path.GetFileNameWithoutExtension(EditorProcessFilename);
-				var EditorProcesses = BuildHostPlatform.Current.GetProcessesByName(EditorProcessName);
-				var BinariesPath = Path.GetFullPath(Path.GetDirectoryName(EditorProcessFilename));
-				var PerProjectBinariesPath = (TargetDesc.ProjectFile != null) ? Path.Combine(TargetDesc.ProjectFile.Directory.FullName, BinariesPath.Substring(BinariesPath.LastIndexOf("Binaries"))) : "";
-				bIsRunning = EditorProcesses.FirstOrDefault(EditorProc =>
+				var Processes = BuildHostPlatform.Current.GetProcesses();
+                var RootDir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Modules.First().FullyQualifiedName), "..", "..", "..");
+                var EditorRunsDir = Path.Combine(RootDir, "Engine", "Intermediate", "EditorRuns");
+
+                if (!Directory.Exists(EditorRunsDir))
+                {
+                    return false;
+                }
+
+                var EditorRunsFiles = new DirectoryInfo(EditorRunsDir).GetFiles();
+
+                var NormalizedProcFileName = Path.GetFullPath(EditorProcessFilenames[0].ToString()).TrimEnd(Path.DirectorySeparatorChar).TrimEnd(Path.AltDirectorySeparatorChar).ToLowerInvariant();
+
+				foreach(var File in EditorRunsFiles)
+				{
+					int PID;
+					BuildHostPlatform.ProcessInfo Proc = null;
+					if (!Int32.TryParse(File.Name, out PID) || (Proc = Processes.FirstOrDefault(P => P.PID == PID)) == default(BuildHostPlatform.ProcessInfo))
 					{
-						if (!Path.GetFullPath(EditorProc.Filename).StartsWith(BinariesPath, StringComparison.InvariantCultureIgnoreCase))
-						{
-							return false;
-						}
+						// Delete stale files (it may happen if editor crashes).
+						File.Delete();
+						continue;
+					}
 
-						if (PerProjectBinariesPath.Equals(BinariesPath, StringComparison.InvariantCultureIgnoreCase))
-						{
-							return false;
-						}
-
-						var Modules = BuildHostPlatform.Current.GetProcessModules(EditorProc.PID, EditorProc.Filename);
-						if (!Modules.Any(Module => Module.StartsWith(PerProjectBinariesPath)))
-						{
-							return false;
-						}
-
-						return true;
-					}) != default(BuildHostPlatform.ProcessInfo);
+                    // Don't break here to allow clean-up of other stale files.
+                    if (!bIsRunning)
+                    {
+                        // Otherwise check if the path matches.
+                        var FileProcName = Path.GetFullPath(Proc.Filename).TrimEnd(Path.DirectorySeparatorChar).TrimEnd(Path.AltDirectorySeparatorChar).ToLowerInvariant();
+                        bIsRunning = NormalizedProcFileName == FileProcName;
+                    }
+				}
 			}
 			return bIsRunning;
 		}

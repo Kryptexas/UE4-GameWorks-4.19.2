@@ -29,14 +29,7 @@ TSharedRef<SWidget> UInvalidationBox::RebuildWidget()
 		SNew(SInvalidationPanel)
 		.CacheRelativeTransforms(CacheRelativeTransforms);
 
-	if ( IsDesignTime() )
-	{
-		MyInvalidationPanel->SetCanCache(false);
-	}
-	else
-	{
-		MyInvalidationPanel->SetCanCache(bCanCache);
-	}
+	MyInvalidationPanel->SetCanCache(IsDesignTime() ? false : bCanCache);
 
 	if ( GetChildrenCount() > 0 )
 	{

@@ -278,6 +278,13 @@ struct FAssetEditorOrbitCameraPosition
 	FRotator CamOrbitRotation;
 };
 
+#if WITH_EDITOR
+/** delegate type for pre mesh build events */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreMeshBuild, class UStaticMesh*);
+/** delegate type for pre mesh build events */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshBuild, class UStaticMesh*);
+#endif
+
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -628,6 +635,12 @@ public:
 
 	ENGINE_API void GenerateLodsInPackage();
 
+	/** Get multicast delegate broadcast prior to mesh building */
+	FOnPreMeshBuild& OnPreMeshBuild() { return PreMeshBuild; }
+
+	/** Get multicast delegate broadcast after mesh building */
+	FOnPostMeshBuild& OnPostMeshBuild() { return PostMeshBuild; }
+
 private:
 	/**
 	 * Converts legacy LODDistance in the source models to Display Factor
@@ -646,5 +659,9 @@ private:
 
 	/** Calculates the extended bounds */
 	void CalculateExtendedBounds();
+
+	FOnPreMeshBuild PreMeshBuild;
+	FOnPostMeshBuild PostMeshBuild;
+
 #endif // #if WITH_EDITOR
 };

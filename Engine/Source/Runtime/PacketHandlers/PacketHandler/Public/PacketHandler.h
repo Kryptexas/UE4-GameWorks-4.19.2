@@ -101,6 +101,10 @@ public:
 	/* Gets a packet from the the buffered packet queue for sending */
 	BufferedPacket* GetQueuedPacket();
 
+
+	/** Whether or not the PacketHandler system is enabled */
+	bool bEnabled;
+
 	/* Mode of the handler, Client or Server */
 	Handler::Mode Mode;
 

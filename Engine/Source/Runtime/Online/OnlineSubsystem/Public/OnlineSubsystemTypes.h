@@ -1017,12 +1017,16 @@ struct FCloudFileHeader
 {	
 	/** Hash value, if applicable, of the given file contents */
     FString Hash;
+	/** The hash algorithm used to sign this file */
+	FName HashType;
 	/** Filename as downloaded */
     FString DLName;
 	/** Logical filename, maps to the downloaded filename */
     FString FileName;
 	/** File size */
     int32 FileSize;
+	/** The full URL to download the file if it is stored in a CDN or separate host site */
+	FString URL;
 
     /** Constructors */
     FCloudFileHeader() :
@@ -1034,6 +1038,21 @@ struct FCloudFileHeader
 		FileName(InFileName),
 		FileSize(InFileSize)
 	{}
+
+	bool operator==(const FCloudFileHeader& Other) const
+	{
+		return FileSize == Other.FileSize &&
+			Hash == Other.Hash &&
+			HashType == Other.HashType &&
+			DLName == Other.DLName &&
+			FileName == Other.FileName &&
+			URL == Other.URL;
+	}
+
+	bool operator<(const FCloudFileHeader& Other) const
+	{
+		return FileName.Compare(Other.FileName, ESearchCase::IgnoreCase) < 0;
+	}
 };
 
 /** Holds the data used in downloading a file asynchronously from the online service */

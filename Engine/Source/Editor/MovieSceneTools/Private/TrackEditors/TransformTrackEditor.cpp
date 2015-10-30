@@ -14,6 +14,7 @@
 #include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "TransformTrackEditor.h"
+#include "Matinee/InterpTrackMove.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieScene_TransformTrack"
@@ -241,6 +242,64 @@ bool F3DTransformTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type )
 {
 	// We support animatable transforms
 	return Type == UMovieScene3DTransformTrack::StaticClass();
+}
+
+
+void PasteInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack )
+{
+	float KeyTime = MoveTrack->GetKeyframeTime( 0 );
+	UMovieScene3DTransformSection* Section = Cast<UMovieScene3DTransformSection>(TransformTrack->FindOrAddSection( KeyTime ));
+	float SectionMin = Section->GetStartTime();
+	float SectionMax = Section->GetEndTime();
+
+	FRichCurve& TranslationXCurve = Section->GetTranslationCurve( EAxis::X );
+	FRichCurve& TranslationYCurve = Section->GetTranslationCurve( EAxis::Y );
+	FRichCurve& TranslationZCurve = Section->GetTranslationCurve( EAxis::Z );
+	for ( const auto& Point : MoveTrack->PosTrack.Points )
+	{
+		MatineeImportTools::SetOrAddKey( TranslationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
+		MatineeImportTools::SetOrAddKey( TranslationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
+		MatineeImportTools::SetOrAddKey( TranslationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
+		SectionMin = FMath::Min( SectionMin, Point.InVal );
+		SectionMax = FMath::Max( SectionMax, Point.InVal );
+	}
+
+	FRichCurve& RotationXCurve = Section->GetRotationCurve( EAxis::X );
+	FRichCurve& RotationYCurve = Section->GetRotationCurve( EAxis::Y );
+	FRichCurve& RotationZCurve = Section->GetRotationCurve( EAxis::Z );
+	for ( const auto& Point : MoveTrack->EulerTrack.Points )
+	{
+		MatineeImportTools::SetOrAddKey( RotationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
+		MatineeImportTools::SetOrAddKey( RotationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
+		MatineeImportTools::SetOrAddKey( RotationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
+		SectionMin = FMath::Min( SectionMin, Point.InVal );
+		SectionMax = FMath::Max( SectionMax, Point.InVal );
+	}
+
+	Section->SetStartTime( SectionMin );
+	Section->SetEndTime( SectionMax );
+}
+
+
+void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
+{
+	UInterpTrackMove* MoveTrack = nullptr;
+	for ( UObject* CopyPasteObject : GUnrealEd->MatineeCopyPasteBuffer )
+	{
+		MoveTrack = Cast<UInterpTrackMove>( CopyPasteObject );
+		if ( MoveTrack != nullptr )
+		{
+			break;
+		}
+	}
+	UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>( Track );
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT( "Sequencer", "PasteMatineeTrack", "Paste Matinee Move Track" ),
+		NSLOCTEXT( "Sequencer", "PasteMatineeTrackTooltip", "Pastes keys from a Matinee move track into this track." ),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateStatic( &PasteInterpMoveTrack, MoveTrack, TransformTrack ),
+			FCanExecuteAction::CreateLambda( [=]()->bool { return MoveTrack != nullptr && MoveTrack->GetNumKeys() > 0 && TransformTrack != nullptr; } ) ) );
 }
 
 

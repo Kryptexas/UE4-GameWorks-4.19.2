@@ -14,9 +14,13 @@
 #define DEBUG_USING_CONSOLE	0
 
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerInputVersion = 4;
+const int32 ShaderCompileWorkerInputVersion = 5;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerOutputVersion = 2;
+const int32 ShaderCompileWorkerOutputVersion = 3;
+// this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
+const int32 ShaderCompileWorkerSingleJobHeader = 'S';
+// this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
+const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 
 double LastCompileTime = 0.0;
 
@@ -223,8 +227,6 @@ private:
 
 	void ProcessInputFromArchive(FArchive* InputFilePtr, TArray<FJobResult>& OutJobResults)
 	{
-		int32 NumBatches = 0;
-
 		FArchive& InputFile = *InputFilePtr;
 		int32 InputVersion;
 		InputFile << InputVersion;
@@ -235,31 +237,49 @@ private:
 
 		VerifyFormatVersions(ReceivedFormatVersionMap);
 
-		InputFile << NumBatches;
-
-		// Flush cache, to make sure we load the latest version of the input file.
-		// (Otherwise quick changes to a shader file can result in the wrong output.)
-		FlushShaderFileCache();
-
-		for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
+		// Individual jobs
 		{
-			// Deserialize the job's inputs.
-			FShaderCompilerInput CompilerInput;
-			InputFile << CompilerInput;
+			int32 SingleJobHeader = ShaderCompileWorkerSingleJobHeader;
+			InputFile << SingleJobHeader;
+			checkf(ShaderCompileWorkerSingleJobHeader == SingleJobHeader, TEXT("Exiting due to ShaderCompilerWorker expecting job header %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, SingleJobHeader);
 
-			if (IsValidRef(CompilerInput.SharedEnvironment))
+			int32 NumBatches = 0;
+			InputFile << NumBatches;
+
+			// Flush cache, to make sure we load the latest version of the input file.
+			// (Otherwise quick changes to a shader file can result in the wrong output.)
+			FlushShaderFileCache();
+
+			for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
 			{
-				// Merge the shared environment into the per-shader environment before calling into the compile function
-				CompilerInput.Environment.Merge(*CompilerInput.SharedEnvironment);
-			}
+				// Deserialize the job's inputs.
+				FShaderCompilerInput CompilerInput;
+				InputFile << CompilerInput;
 
-			// Process the job.
-			FShaderCompilerOutput CompilerOutput;
-			ProcessCompilationJob(CompilerInput,CompilerOutput,WorkingDirectory);
+				if (IsValidRef(CompilerInput.SharedEnvironment))
+				{
+					// Merge the shared environment into the per-shader environment before calling into the compile function
+					CompilerInput.Environment.Merge(*CompilerInput.SharedEnvironment);
+				}
 
-			// Serialize the job's output.
+				// Process the job.
+				FShaderCompilerOutput CompilerOutput;
+				ProcessCompilationJob(CompilerInput, CompilerOutput, WorkingDirectory);
+
+				// Serialize the job's output.
 			FJobResult& JobResult = *new(OutJobResults) FJobResult;
-			JobResult.CompilerOutput = CompilerOutput;
+				JobResult.CompilerOutput = CompilerOutput;
+			}
+		}
+
+		// Shader pipeline jobs
+		{
+			int32 PipelineJobHeader = ShaderCompileWorkerPipelineJobHeader;
+			InputFile << PipelineJobHeader;
+			checkf(ShaderCompileWorkerPipelineJobHeader == PipelineJobHeader, TEXT("Exiting due to ShaderCompilerWorker expecting pipeline job header %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, PipelineJobHeader);
+
+			int32 NumPipelines = 0;
+			InputFile << NumPipelines;
 		}
 	}
 
@@ -330,13 +350,26 @@ private:
 		OutputFile << ErrorStringLength;
 		OutputFile << ErrorStringLength;
 
-		int32 NumBatches = JobResults.Num();
-		OutputFile << NumBatches;
-
-		for (int32 ResultIndex = 0; ResultIndex < JobResults.Num(); ResultIndex++)
 		{
-			FJobResult& JobResult = JobResults[ResultIndex];
-			OutputFile << JobResult.CompilerOutput;
+			int32 SingleJobHeader = ShaderCompileWorkerSingleJobHeader;
+			OutputFile << SingleJobHeader;
+
+			int32 NumBatches = JobResults.Num();
+			OutputFile << NumBatches;
+
+			for (int32 ResultIndex = 0; ResultIndex < JobResults.Num(); ResultIndex++)
+			{
+				FJobResult& JobResult = JobResults[ResultIndex];
+				OutputFile << JobResult.CompilerOutput;
+			}
+		}
+
+		{
+			int32 PipelineJobHeader = ShaderCompileWorkerPipelineJobHeader;
+			OutputFile << PipelineJobHeader;
+
+			int32 NumPipelines = 0;
+			OutputFile << NumPipelines;
 		}
 	}
 

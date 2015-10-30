@@ -83,6 +83,12 @@ struct FAsyncPackage
 		return Desc.Priority;
 	}
 
+	/** Returns package loading priority. */
+	FORCEINLINE void SetPriority(TAsyncLoadPriority InPriority)
+	{
+		Desc.Priority = InPriority;
+	}
+
 	/** Returns true if loading has failed */
 	FORCEINLINE bool HasLoadFailed() const
 	{

@@ -750,6 +750,15 @@ private:
 	/** Removes stale geometry adapters from the cache (those associated with unselected components) */
 	void CleanStaleGeometryAdapters(const TArray<UMeshComponent*>& ValidComponents);
 
+	/** Removes all geometry adapters from the cache */
+	void RemoveAllGeometryAdapters();
+
+	/** Called when an asset is about to be imported */
+	void OnPreImportAsset(UFactory* Factory, UClass* Class, UObject* Object, const FName& Name, const TCHAR* Type);
+
+	/** Called when an asset is about to be reimported */
+	void OnPreReimportAsset(UObject* Object);
+
 private:
 
 	/** Whether we're currently painting */

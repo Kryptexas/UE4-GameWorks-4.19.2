@@ -865,8 +865,12 @@ void UAnimInstance::BindNativeDelegates()
 					{
 						if(TransitionExit.CanTakeDelegateIndex != INDEX_NONE)
 						{
-							const FAnimationTransitionBetweenStates& Transition = StateMachine->GetTransitionInfo(TransitionExit.TransitionIndex);
-							if(StateMachine->GetStateInfo(Transition.NextState).StateName == Binding.NextStateName)
+							// In case the state machine hasn't been initilized, we need to re-get the desc
+							const FBakedAnimationStateMachine* MachineDesc = GetMachineDescription(AnimBlueprintGeneratedClass, StateMachine);
+							const FAnimationTransitionBetweenStates& Transition = MachineDesc->Transitions[TransitionExit.TransitionIndex];
+							const FBakedAnimationState& BakedState = MachineDesc->States[Transition.NextState];
+							
+							if(BakedState.StateName == Binding.NextStateName)
 							{
 								FAnimNode_TransitionResult* ResultNode = GetNodeFromPropertyIndex<FAnimNode_TransitionResult>(this, AnimBlueprintGeneratedClass, TransitionExit.CanTakeDelegateIndex);
 								if(ResultNode)
@@ -3233,6 +3237,33 @@ const FBakedAnimationStateMachine* UAnimInstance::GetStateMachineInstanceDesc(FN
 	}
 
 	return nullptr;
+}
+
+int32 UAnimInstance::GetStateMachineIndex(FName MachineName)
+{
+	if(UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>((UObject*)GetClass()))
+	{
+		for(int32 MachineIndex = 0; MachineIndex < AnimBlueprintClass->AnimNodeProperties.Num(); MachineIndex++)
+		{
+			UStructProperty* Property = AnimBlueprintClass->AnimNodeProperties[AnimBlueprintClass->AnimNodeProperties.Num() - 1 - MachineIndex];
+			if(Property && Property->Struct == FAnimNode_StateMachine::StaticStruct())
+			{
+				FAnimNode_StateMachine* StateMachine = Property->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
+				if(StateMachine)
+				{
+					if(const FBakedAnimationStateMachine* MachineDescription = GetMachineDescription(AnimBlueprintClass, StateMachine))
+					{
+						if(MachineDescription->MachineName == MachineName)
+						{
+							return MachineIndex;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return INDEX_NONE;
 }
 
 FAnimNode_Base* UAnimInstance::GetCheckedNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType)

@@ -1266,7 +1266,7 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 
 		// Apply Root Motion rotation after movement is complete.
 		const FQuat RootMotionRotationQuat = WorldSpaceRootMotionTransform.GetRotation();
-		if( !RootMotionRotationQuat.Equals(FQuat::Identity) )
+		if( !RootMotionRotationQuat.IsIdentity() )
 		{
 			const FQuat NewActorRotationQuat = RootMotionRotationQuat * UpdatedComponent->GetComponentQuat();
 			MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
@@ -1817,7 +1817,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		{
 			const FQuat OldActorRotationQuat = UpdatedComponent->GetComponentQuat();
 			const FQuat RootMotionRotationQuat = RootMotionParams.RootMotionTransform.GetRotation();
-			if( !RootMotionRotationQuat.Equals(FQuat::Identity) )
+			if( !RootMotionRotationQuat.IsIdentity() )
 			{
 				const FQuat NewActorRotationQuat = RootMotionRotationQuat * OldActorRotationQuat;
 				MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
@@ -6294,13 +6294,22 @@ void UCharacterMovementComponent::SmoothClientPosition_UpdateVisuals()
 	{
 		if (NetworkSmoothingMode == ENetworkSmoothingMode::Linear)
 		{
-			UpdatedComponent->SetRelativeRotation(ClientData->MeshRotationOffset);
-			// TODO: maybe we can just adjust the mesh RelativeLocation before moving the capsule above, so it's a single update?
-			const FVector NewRelTranslation = UpdatedComponent->GetComponentToWorld().InverseTransformVectorNoScale(ClientData->MeshTranslationOffset) + CharacterOwner->GetBaseTranslationOffset();
-			CharacterOwner->GetMesh()->SetRelativeLocation(NewRelTranslation);
+			// Adjust capsule rotation and mesh location. Optimized to trigger only one transform chain update.
+			// If we know the rotation is changing that will update children, so it's sufficient to set RelativeLocation directly on the mesh.
+			const FVector NewRelLocation = ClientData->MeshRotationOffset.UnrotateVector(ClientData->MeshTranslationOffset) + CharacterOwner->GetBaseTranslationOffset();
+			if (!UpdatedComponent->GetComponentQuat().Equals(ClientData->MeshRotationOffset, SCENECOMPONENT_QUAT_TOLERANCE))
+			{
+				CharacterOwner->GetMesh()->RelativeLocation = NewRelLocation;
+				UpdatedComponent->SetWorldRotation(ClientData->MeshRotationOffset);
+			}
+			else
+			{
+				CharacterOwner->GetMesh()->SetRelativeLocation(NewRelLocation);
+			}
 		}
 		else if (NetworkSmoothingMode == ENetworkSmoothingMode::Exponential)
 		{
+			// Adjust mesh location and rotation
 			const FVector NewRelTranslation = UpdatedComponent->GetComponentToWorld().InverseTransformVectorNoScale(ClientData->MeshTranslationOffset) + CharacterOwner->GetBaseTranslationOffset();
 			const FQuat NewRelRotation = ClientData->MeshRotationOffset * CharacterOwner->GetBaseRotationOffset();
 			CharacterOwner->GetMesh()->SetRelativeLocationAndRotation(NewRelTranslation, NewRelRotation);

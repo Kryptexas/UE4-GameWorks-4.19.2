@@ -44,7 +44,7 @@ public:
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return ENamedThreads::AnyThreadGame();
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
@@ -452,7 +452,7 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 	ParallelBlendPhysicsCompletionTask.SafeRelease();
 }
 
-void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, bool bNoDefer)
+void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, EAllowKinematicDeferral DeferralAllowed)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -491,7 +491,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 	}
 
 	// If we are only using bodies for physics, don't need to move them right away, can defer until simulation (unless told not to)
-	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && !bNoDefer)
+	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && DeferralAllowed == EAllowKinematicDeferral::AllowDeferral)
 	{
 		PhysScene->MarkForPreSimKinematicUpdate(this, Teleport, bNeedsSkinning);
 		return;

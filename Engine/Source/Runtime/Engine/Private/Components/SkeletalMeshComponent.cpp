@@ -61,7 +61,7 @@ public:
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return ENamedThreads::AnyThreadGame();
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
@@ -640,9 +640,17 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 			NotTicked.Reset();
 		}
 	}
-	else if (CVarSpewAnimRateOptimization.GetValueOnGameThread())
+	else
 	{
-		NotTicked.Increment();
+		if (AnimScriptInstance)
+		{
+			AnimScriptInstance->OnUROSkipTickAnimation();
+		}
+
+		if (CVarSpewAnimRateOptimization.GetValueOnGameThread())
+		{
+			NotTicked.Increment();
+		}
 	}
 }
 
@@ -745,18 +753,11 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 #endif
 		FTransform::Multiply(SpaceBase, LocalTransformsData + BoneIndex, ParentSpaceBase);
 
+		SpaceBase->NormalizeRotation();
+
 		checkSlow(SpaceBase->IsRotationNormalized());
 		checkSlow(!SpaceBase->ContainsNaN());
 	}
-
-	/**
-	 * Normalize rotations.
-	 * We want to remove any loss of precision due to accumulation of error.
-	 * i.e. A componentSpace transform is the accumulation of all of its local space parents. The further down the chain, the greater the error.
-	 * SpaceBases are used by external systems, we feed this to PhysX, send this to gameplay through bone and socket queries, etc.
-	 * So this is a good place to make sure all transforms are normalized.
-	 */
-	FAnimationRuntime::NormalizeRotations(DestSpaceBases);
 }
 
 /** Takes sorted array Base and then adds any elements from sorted array Insert which is missing from it, preserving order.
@@ -1309,17 +1310,14 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	{
 		SCOPE_CYCLE_COUNTER(STAT_InterpolateSkippedFrames);
 
+		if (AnimScriptInstance)
+		{
+			AnimScriptInstance->OnUROPreInterpolation();
+		}
+
 		const float Alpha = AnimUpdateRateParams->GetInterpolationAlpha();
 		FAnimationRuntime::LerpBoneTransforms(LocalAtoms, CachedLocalAtoms, Alpha, RequiredBones);
-		if (bDoubleBufferedBlendSpaces)
-		{
-			// We need to prep our space bases for interp (TODO: Would a new Lerp function that took
-			// separate input and output be quicker than current copy + lerp in place?)
-			TArray<FTransform>& LocalEditableSpaceBases = GetEditableSpaceBases();
-			LocalEditableSpaceBases.Reset();
-			LocalEditableSpaceBases.Append(GetSpaceBases());
-		}
-		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
+		FillSpaceBases(SkeletalMesh, LocalAtoms, GetEditableSpaceBases());
 
 		// interpolate curve
 		EvaluationContext.Curve.BlendWith(CachedCurve, Alpha);

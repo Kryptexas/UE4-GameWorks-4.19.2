@@ -472,6 +472,10 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(NonTransactional)
 	TArray<uint16> ImportLandscape_Data;
 
+	// Whether the imported alpha maps are to be interpreted as "layered" or "additive" (UE4 uses additive internally)
+	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, EditFixedSize, meta=(DisplayName="Layer Alphamap Type", ShowForTools="NewLandscape"))
+	ELandscapeImportAlphamapType ImportLandscape_AlphamapType;
+
 	// The landscape layers that will be created. Only layer names referenced in the material assigned above are shown here. Modify the material to add more layers.
 	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, EditFixedSize, meta=(DisplayName="Layers", ShowForTools="NewLandscape"))
 	TArray<FLandscapeImportLayer> ImportLandscape_Layers;

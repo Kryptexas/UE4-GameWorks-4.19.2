@@ -8,7 +8,7 @@ struct FVector2D;
 class FSlateRect;
 enum class EPopupMethod : uint8;
 
-
+#define SLATE_PRE_MULTIPLY 1
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
 
 #if SLATE_USE_32BIT_INDICES
@@ -58,9 +58,11 @@ namespace ESlateDrawEffect
 	/** No effect applied */
 	const Type None = 0;
 	/** Draw the element with a disabled effect */
-	const Type DisabledEffect = 1<<0;
+	const Type DisabledEffect = 1 << 0;
 	/** Don't read from texture alpha channel */
-	const Type IgnoreTextureAlpha = 1<<2;
+	const Type IgnoreTextureAlpha = 1 << 1;
+	/** If this is provided, we will not perform pre-multiply of alpha of the source texture in the slate pixel shader, expecting it to already be the case. */
+	const Type PreMultipliedAlpha = 1 << 2;
 };
 
 

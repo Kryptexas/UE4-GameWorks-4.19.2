@@ -588,7 +588,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	{
 		if ( UObject* ResourceObject = InBrush.GetResourceObject() )
 		{
-			if ( !(ResourceObject->IsA<UTexture2D>() || ResourceObject->IsA<UTexture2DDynamic>()) )
+			if ( !ResourceObject->IsA<UTexture>() )
 			{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				static TSet<UObject*> FailedTextures;
@@ -796,6 +796,81 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 	}
 }
 
+FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle)
+{
+	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
+	if ( Buffers == nullptr )
+	{
+		// Rather than having a global pool, we associate the pools with a particular layout cacher.
+		// If we don't do this, all buffers eventually become as larger as the largest buffer, and it
+		// would be much better to keep the pools coherent with the sizes typically associated with
+		// a particular caching panel.
+		const ILayoutCache* LayoutCacher = RenderHandle->GetCacher();
+		TArray< FCachedRenderBuffers* >& Pool = CachedBufferPool.FindOrAdd(LayoutCacher);
+
+		// If the cached buffer pool is empty, time to create a new one!
+		if ( Pool.Num() == 0 )
+		{
+			Buffers = new FCachedRenderBuffers();
+			Buffers->VertexBuffer.Init(200);
+			Buffers->IndexBuffer.Init(200);
+		}
+		else
+		{
+			// If we found one in the pool, lets use it!
+			Buffers = Pool[0];
+			Pool.RemoveAtSwap(0, 1, false);
+		}
+
+		CachedBuffers.Add(&RenderHandle.Get(), Buffers);
+	}
+
+	return Buffers;
+}
+
+void FSlateRHIResourceManager::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
+{
+	// Should only be called by the rendering thread
+	check(IsInRenderingThread());
+	check(InRenderHandle);
+
+	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(InRenderHandle);
+	if ( ensure(PooledBuffer != nullptr) )
+	{
+		const ILayoutCache* LayoutCacher = InRenderHandle->GetCacher();
+		TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(LayoutCacher);
+		if ( Pool )
+		{
+			Pool->Add(PooledBuffer);
+		}
+		else
+		{
+			// The buffer pool may have already been released, so lets just delete this buffer.
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
+
+		CachedBuffers.Remove(InRenderHandle);
+	}
+}
+
+void FSlateRHIResourceManager::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
+{
+	TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(Cacher);
+	if ( Pool )
+	{
+		for ( FCachedRenderBuffers* PooledBuffer : *Pool )
+		{
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
+
+		CachedBufferPool.Remove(Cacher);
+	}
+}
+
 void FSlateRHIResourceManager::ReleaseResources()
 {
 	checkSlow( IsThreadSafeForSlateRendering() );
@@ -811,6 +886,27 @@ void FSlateRHIResourceManager::ReleaseResources()
 	}
 
 	DynamicResourceMap.ReleaseResources();
+
+	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
+	{
+		FSlateRenderDataHandle* Handle = BufferIt.Key();
+		FCachedRenderBuffers* Buffer = BufferIt.Value();
+
+		Handle->Disconnect();
+
+		Buffer->VertexBuffer.Destroy();
+		Buffer->IndexBuffer.Destroy();
+	}
+
+	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
+	{
+		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
+		for ( FCachedRenderBuffers* PooledBuffer : Pool )
+		{
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+		}
+	}
 
 	// Note the base class has texture proxies only which do not need to be released
 }
@@ -841,6 +937,25 @@ void FSlateRHIResourceManager::DeleteResources()
 
 	// Clean up mapping to texture
 	ClearTextureMap();
+
+	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
+	{
+		FCachedRenderBuffers* Buffer = BufferIt.Value();
+		delete Buffer;
+	}
+
+	CachedBuffers.Empty();
+
+	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
+	{
+		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
+		for ( FCachedRenderBuffers* PooledBuffer : Pool )
+		{
+			delete PooledBuffer;
+		}
+	}
+
+	CachedBufferPool.Empty();
 }
 
 void FSlateRHIResourceManager::ReloadTextures()

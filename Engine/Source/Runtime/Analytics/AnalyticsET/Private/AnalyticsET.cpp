@@ -250,7 +250,7 @@ bool FAnalyticsProviderET::StartSession(const TArray<FAnalyticsEventAttribute>& 
 	AppendedAttributes.Emplace(TEXT("Platform"), FString(FPlatformProperties::IniPlatformName()));
 
 	RecordEvent(TEXT("SessionStart"), AppendedAttributes);
-	bSessionInProgress = !UserID.IsEmpty();
+	bSessionInProgress = true;
 	return bSessionInProgress;
 }
 
@@ -262,9 +262,10 @@ void FAnalyticsProviderET::EndSession()
 	if (bSessionInProgress)
 	{
 		RecordEvent(TEXT("SessionEnd"), TArray<FAnalyticsEventAttribute>());
+	}
 		FlushEvents();
 		SessionID.Empty();
-	}
+
 	bSessionInProgress = false;
 }
 
@@ -288,61 +289,62 @@ void FAnalyticsProviderET::FlushEvents()
 
 		if (!UseLegacyProtocol)
 		{
-			TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
+		TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
+		JsonWriter->WriteObjectStart();
+		JsonWriter->WriteArrayStart(TEXT("Events"));
+		for (int32 EventIdx = 0; EventIdx < CachedEvents.Num(); EventIdx++)
+		{
+			const FAnalyticsEventEntry& Entry = CachedEvents[EventIdx];
+			// event entry
 			JsonWriter->WriteObjectStart();
-			JsonWriter->WriteArrayStart(TEXT("Events"));
-			for (int32 EventIdx = 0; EventIdx < CachedEvents.Num(); EventIdx++)
+			JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
+			FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
+			JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
+			JsonWriter->WriteValue(TEXT("IsEditor"), FString::FromInt(GIsEditor));
+			if (Entry.Attributes.Num() > 0)
 			{
-				const FAnalyticsEventEntry& Entry = CachedEvents[EventIdx];
-				// event entry
-				JsonWriter->WriteObjectStart();
-				JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
-				FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
-				JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
-				JsonWriter->WriteValue(TEXT("IsEditor"), FString::FromInt(GIsEditor));
-				if (Entry.Attributes.Num() > 0)
+				// optional attributes for this event
+				for (int32 AttrIdx = 0; AttrIdx < Entry.Attributes.Num(); AttrIdx++)
 				{
-					// optional attributes for this event
-					for (int32 AttrIdx = 0; AttrIdx < Entry.Attributes.Num(); AttrIdx++)
-					{
 						const FAnalyticsEventAttribute& Attr = Entry.Attributes[AttrIdx];
-						JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
-					}
+					JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
 				}
-				JsonWriter->WriteObjectEnd();
 			}
-			JsonWriter->WriteArrayEnd();
 			JsonWriter->WriteObjectEnd();
-			JsonWriter->Close();
+		}
+		JsonWriter->WriteArrayEnd();
+		JsonWriter->WriteObjectEnd();
+		JsonWriter->Close();
 
-			FString URLPath = FString::Printf(TEXT("CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s"),
-				*FPlatformHttp::UrlEncode(SessionID),
-				*FPlatformHttp::UrlEncode(APIKey),
-				*FPlatformHttp::UrlEncode(AppVersion),
-				*FPlatformHttp::UrlEncode(UserID));
+		FString URLPath = FString::Printf(TEXT("CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s"),
+			*FPlatformHttp::UrlEncode(SessionID),
+			*FPlatformHttp::UrlEncode(APIKey),
+			*FPlatformHttp::UrlEncode(AppVersion),
+			*FPlatformHttp::UrlEncode(UserID));
 
-			// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
-			// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
+		// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
+		// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
 			UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s. Payload:%s"),
 				*APIKey,
-				*SessionID,
-				*APIKey,
-				*AppVersion,
-				*UserID,
-				*Payload);
+			*SessionID,
+			*APIKey,
+			*AppVersion,
+			*UserID,
+			*Payload);
 
-			// Create/send Http request for an event
-			TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-			HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+		// Create/send Http request for an event
+		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+		HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
 
-			HttpRequest->SetURL(APIServer + URLPath);
-			HttpRequest->SetVerb(TEXT("POST"));
-			HttpRequest->SetContentAsString(Payload);
-			if (!bInDestructor)
-			{
-				HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestComplete);
-			}
-			HttpRequest->ProcessRequest();
+		HttpRequest->SetURL(APIServer + URLPath);
+		HttpRequest->SetVerb(TEXT("POST"));
+		HttpRequest->SetContentAsString(Payload);
+		// Don't set a response callback if we are in our destructor, as the instance will no longer be there to call.
+		if (!bInDestructor)
+		{
+			HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestComplete);
+		}
+ 		HttpRequest->ProcessRequest();
 		}
 		else
 		{

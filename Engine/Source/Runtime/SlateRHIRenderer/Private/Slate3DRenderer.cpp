@@ -4,13 +4,13 @@
 #include "Slate3DRenderer.h"
 #include "ElementBatcher.h"
 
-FSlate3DRenderer::FSlate3DRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache )
+FSlate3DRenderer::FSlate3DRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, bool bUseGammaCorrection )
 	: ResourceManager( InResourceManager.ToSharedRef() )
 	, FontCache( InFontCache.ToSharedRef() )
 {
 
 	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager ) );
-	RenderTargetPolicy->SetUseGammaCorrection( false );
+	RenderTargetPolicy->SetUseGammaCorrection( bUseGammaCorrection );
 
 	ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderTargetPolicy.ToSharedRef()));
 }
@@ -83,8 +83,14 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 
 void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& RHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& InDrawBuffer )
 {
-	FSlateBatchData& BatchData = InDrawBuffer.GetWindowElementLists()[0]->GetBatchData();
-	FElementBatchMap& RootBatchMap = InDrawBuffer.GetWindowElementLists()[0]->GetRootDrawLayer().GetElementBatchMap();
+	checkSlow(InDrawBuffer.GetWindowElementLists().Num() == 1);
+
+	FSlateWindowElementList& WindowElementList = *InDrawBuffer.GetWindowElementLists()[0].Get();
+
+	FSlateBatchData& BatchData = WindowElementList.GetBatchData();
+	FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
+
+	WindowElementList.PreDraw_ParallelThread();
 
 	BatchData.CreateRenderBatches(RootBatchMap);
 	RenderTargetPolicy->BeginDrawingWindows();
@@ -120,9 +126,16 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 		);
 	}
 
+	for ( TSharedPtr<FSlateWindowElementList>& ElementList : InDrawBuffer.GetWindowElementLists() )
+	{
+		ElementList->PostDraw_ParallelThread();
+	}
+
 	InDrawBuffer.Unlock();
 
 	RenderTargetPolicy->EndDrawingWindows();
 
 	RHICmdList.CopyToResolveTarget(RenderTargetResource->GetTextureRHI(), RTResource, true, FResolveParams());
+	
+
 }

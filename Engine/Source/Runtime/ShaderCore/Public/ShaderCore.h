@@ -419,6 +419,9 @@ struct FShaderCompilerInput
 	// e.g. BasePassPixelShader, ReflectionEnvironmentShaders, SlateElementPixelShader, PostProcessCombineLUTs
 	FString SourceFilename;
 	FString EntryPointName;
+	bool bCompilingForShaderPipeline;
+	bool bIncludeUsedOutputs;
+	TArray<FString> UsedOutputs;
 	// Dump debug path (up to platform) e.g. "D:/MMittring-Z3941-A/UE4-Orion/OrionGame/Saved/ShaderDebugInfo/PCD3D_SM5"
 	FString DumpDebugInfoRootPath;
 	// only used if enabled by r.DumpShaderDebugInfo (platform/groupname) e.g. ""
@@ -449,7 +452,6 @@ struct FShaderCompilerInput
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerInput& Input)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-
 		Ar << Input.Target;
 		{
 			FString ShaderFormatString(Input.ShaderFormat.ToString());
@@ -459,6 +461,9 @@ struct FShaderCompilerInput
 		Ar << Input.SourceFilePrefix;
 		Ar << Input.SourceFilename;
 		Ar << Input.EntryPointName;
+		Ar << Input.bCompilingForShaderPipeline;
+		Ar << Input.bIncludeUsedOutputs;
+		Ar << Input.UsedOutputs;
 		Ar << Input.DumpDebugInfoRootPath;
 		Ar << Input.DumpDebugInfoPath;
 		Ar << Input.DebugGroupName;
@@ -781,6 +786,8 @@ struct FShaderCompilerOutput
 	:	NumInstructions(0)
 	,	NumTextureSamplers(0)
 	,	bSucceeded(false)
+	,	bFailedRemovingUnused(false)
+	,	bSupportsQueryingUsedAttributes(false)
 	{
 	}
 
@@ -792,14 +799,19 @@ struct FShaderCompilerOutput
 	uint32 NumInstructions;
 	uint32 NumTextureSamplers;
 	bool bSucceeded;
+	bool bFailedRemovingUnused;
+	bool bSupportsQueryingUsedAttributes;
+	TArray<FString> UsedAttributes;
 
 	/** Generates OutputHash from the compiler output. */
 	SHADERCORE_API void GenerateOutputHash();
 	
-	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerOutput& Output)
+	friend FArchive& operator<<(FArchive& Ar, FShaderCompilerOutput& Output)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-		return Ar << Output.ParameterMap << Output.Errors << Output.Target << Output.ShaderCode << Output.NumInstructions << Output.NumTextureSamplers << Output.bSucceeded;
+		Ar << Output.ParameterMap << Output.Errors << Output.Target << Output.ShaderCode << Output.NumInstructions << Output.NumTextureSamplers << Output.bSucceeded;
+		Ar << Output.bFailedRemovingUnused << Output.bSupportsQueryingUsedAttributes << Output.UsedAttributes;
+		return Ar;
 	}
 };
 

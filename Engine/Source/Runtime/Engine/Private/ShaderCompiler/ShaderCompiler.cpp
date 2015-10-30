@@ -16,6 +16,15 @@
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
+// this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
+const int32 ShaderCompileWorkerInputVersion = 5;
+// this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
+const int32 ShaderCompileWorkerOutputVersion = 3;
+// this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
+const int32 ShaderCompileWorkerSingleJobHeader = 'S';
+// this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
+const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
+
 // Set to 1 to debug ShaderCompilerWorker.exe. Set a breakpoint in LaunchWorker() to get the cmd-line.
 #define DEBUG_SHADERCOMPILEWORKER 0
 
@@ -169,21 +178,36 @@ static inline void GetFormatVersionMap(TMap<FString, uint16>& OutFormatVersionMa
 // Serialize Queued Job information
 static bool DoWriteTasks(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
-	int32 ShaderCompileWorkerInputVersion = 4;
-	TransferFile << ShaderCompileWorkerInputVersion;
+	int32 InputVersion = ShaderCompileWorkerInputVersion;
+	TransferFile << InputVersion;
 
 	static TMap<FString, uint16> FormatVersionMap;
 	GetFormatVersionMap(FormatVersionMap);
 
 	TransferFile << FormatVersionMap;
 
-	int32 NumBatches = QueuedJobs.Num();
-	TransferFile << NumBatches;
-
-	// Serialize all the batched jobs
-	for (int32 JobIndex = 0; JobIndex < QueuedJobs.Num(); JobIndex++)
+	// Write individual shader jobs
 	{
-		TransferFile << QueuedJobs[JobIndex]->Input;
+		int32 SingleJobHeader = ShaderCompileWorkerSingleJobHeader;
+		TransferFile << SingleJobHeader;
+
+		int32 NumBatches = QueuedJobs.Num();
+		TransferFile << NumBatches;
+
+		// Serialize all the batched jobs
+		for (int32 JobIndex = 0; JobIndex < QueuedJobs.Num(); JobIndex++)
+		{
+			TransferFile << QueuedJobs[JobIndex]->Input;
+		}
+	}
+
+	// Write shader pipeline jobs
+	{
+		int32 PipelineJobHeader = ShaderCompileWorkerPipelineJobHeader;
+		TransferFile << PipelineJobHeader;
+
+		int32 NumBatches = 0;
+		TransferFile << NumBatches;
 	}
 
 	return TransferFile.Close();
@@ -192,24 +216,28 @@ static bool DoWriteTasks(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive&
 // Process results from Worker Process
 static void DoReadTaskResults(const TArray<FShaderCompileJob*>& QueuedJobs, FArchive& OutputFile)
 {
-	const int32 OutputVersion = 2;
-	int32 ShaderCompileWorkerOutputVersion;
-	OutputFile << ShaderCompileWorkerOutputVersion;
+	int32 OutputVersion = ShaderCompileWorkerOutputVersion;
+	OutputFile << OutputVersion;
+
+	auto ModalErrorOrLog = [&](const FString& Text)
+		{
+			if (FPlatformProperties::SupportsWindowedMode())
+			{
+				UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
+				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
+				FPlatformMisc::RequestExit(false);
+				return;
+			}
+			else
+			{
+				UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
+			}
+		};
 
 	if (ShaderCompileWorkerOutputVersion != OutputVersion)
 	{
 		FString Text = FString::Printf(TEXT("Expecting ShaderCompilerWorker output version %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerOutputVersion, OutputVersion);
-		if (FPlatformProperties::SupportsWindowedMode())
-		{
-			UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
-			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
-			FPlatformMisc::RequestExit(false);
-			return;
-		}
-		else
-		{
-			UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
-		}
+		ModalErrorOrLog(Text);
 	}
 
 	int32 ErrorCode;
@@ -251,23 +279,52 @@ static void DoReadTaskResults(const TArray<FShaderCompileJob*>& QueuedJobs, FArc
 		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed! \n %s \n %s"), ExceptionInfo.GetData(), Callstack.GetData());
 	}
 
-	int32 NumJobs;
-	OutputFile << NumJobs;
-	checkf(NumJobs == QueuedJobs.Num(), TEXT("Worker returned %u jobs, %u expected"), NumJobs, QueuedJobs.Num());
+	auto ReadSingleJob = [&](FShaderCompileJob* CurrentJob)
+		{
+			check(!CurrentJob->bFinalized);
+			CurrentJob->bFinalized = true;
 
-	for (int32 JobIndex = 0; JobIndex < NumJobs; JobIndex++)
+			// Deserialize the shader compilation output.
+			OutputFile << CurrentJob->Output;
+
+			// Generate a hash of the output and cache it
+			// The shader processing this output will use it to search for existing FShaderResources
+			CurrentJob->Output.GenerateOutputHash();
+			CurrentJob->bSucceeded = CurrentJob->Output.bSucceeded;
+	};
+
+	// Read single jobs
 	{
-		FShaderCompileJob* CurrentJob = QueuedJobs[JobIndex];
-		check(!CurrentJob->bFinalized);
-		CurrentJob->bFinalized = true;
+		int32 SingleJobHeader = -1;
+		OutputFile << SingleJobHeader;
+		if (SingleJobHeader != ShaderCompileWorkerSingleJobHeader)
+		{
+			FString Text = FString::Printf(TEXT("Expecting ShaderCompilerWorker Single Jobs %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, SingleJobHeader);
+			ModalErrorOrLog(Text);
+		}
 
-		// Deserialize the shader compilation output.
-		OutputFile << CurrentJob->Output;
+		int32 NumJobs;
+		OutputFile << NumJobs;
+		checkf(NumJobs == QueuedJobs.Num(), TEXT("Worker returned %u single jobs, %u expected"), NumJobs, QueuedJobs.Num());
+		for (int32 JobIndex = 0; JobIndex < NumJobs; JobIndex++)
+		{
+			auto* CurrentJob = QueuedJobs[JobIndex];
+			ReadSingleJob(CurrentJob);
+		}
+	}
 
-		// Generate a hash of the output and cache it
-		// The shader processing this output will use it to search for existing FShaderResources
-		CurrentJob->Output.GenerateOutputHash();
-		CurrentJob->bSucceeded = CurrentJob->Output.bSucceeded;
+	// Pipeline jobs
+	{
+		int32 PipelineJobHeader = -1;
+		OutputFile << PipelineJobHeader;
+		if (PipelineJobHeader != ShaderCompileWorkerPipelineJobHeader)
+		{
+			FString Text = FString::Printf(TEXT("Expecting ShaderCompilerWorker Pipeline Jobs %d, got %d instead! Forgot to build ShaderCompilerWorker?"), ShaderCompileWorkerPipelineJobHeader, PipelineJobHeader);
+			ModalErrorOrLog(Text);
+		}
+
+		int32 NumJobs;
+		OutputFile << NumJobs;
 	}
 }
 
@@ -1161,22 +1218,28 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			TArray<FMaterial*> MaterialsArray = *Materials;
 			bool bSuccess = true;
 
+			auto CheckSingleJob = [&](FShaderCompileJob* SingleJob)
+				{
+					if (SingleJob->bSucceeded)
+					{
+						check(SingleJob->Output.ShaderCode.GetShaderCodeSize() > 0);
+					}
+
+					if (GShowShaderWarnings || !SingleJob->bSucceeded)
+					{
+						for (int32 ErrorIndex = 0; ErrorIndex < SingleJob->Output.Errors.Num(); ErrorIndex++)
+						{
+							Errors.AddUnique(SingleJob->Output.Errors[ErrorIndex].StrippedErrorMessage);
+						}
+					}
+				};
+
 			for (int32 JobIndex = 0; JobIndex < ResultArray.Num(); JobIndex++)
 			{
 				FShaderCompileJob& CurrentJob = *ResultArray[JobIndex];
 				bSuccess = bSuccess && CurrentJob.bSucceeded;
 
-				if (CurrentJob.bSucceeded)
-				{
-					check(CurrentJob.Output.ShaderCode.GetShaderCodeSize() > 0);
-				}
-				else 
-				{
-					for (int32 ErrorIndex = 0; ErrorIndex < CurrentJob.Output.Errors.Num(); ErrorIndex++)
-					{
-						Errors.AddUnique(CurrentJob.Output.Errors[ErrorIndex].StrippedErrorMessage);
-					}
-				}
+				CheckSingleJob(&CurrentJob);
 			}
 
 			bool bShaderMapComplete = true;
@@ -1811,6 +1874,8 @@ void GlobalBeginCompileShader(
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
 	Input.SourceFilename = SourceFilename;
 	Input.EntryPointName = FunctionName;
+	Input.bCompilingForShaderPipeline = false;
+	Input.bIncludeUsedOutputs = false;
 	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
 	// asset material name or "Global"
 	Input.DebugGroupName = DebugGroupName;

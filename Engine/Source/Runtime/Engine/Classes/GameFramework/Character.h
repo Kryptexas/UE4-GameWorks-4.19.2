@@ -319,7 +319,7 @@ public:
 	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
 
 	/** @return Saved rotation offset of mesh. */
-	const FQuat& GetBaseRotationOffset() const { return BaseRotationOffset; }
+	const virtual FQuat GetBaseRotationOffset() const { return BaseRotationOffset; }
 
 	//~ Begin INavAgentInterface Interface
 	virtual FVector GetNavAgentLocation() const override;

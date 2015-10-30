@@ -3,6 +3,7 @@
 #pragma once
 #include "GenericPlatformCrashContext.h"
 #include "UnrealString.h"
+#include "XmlFile.h"
 
 struct FPrimaryCrashProperties;
 

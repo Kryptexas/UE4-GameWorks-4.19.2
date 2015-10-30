@@ -136,6 +136,14 @@ public:
 	FORCEINLINE bool Equals(const FQuat& Q, float Tolerance=KINDA_SMALL_NUMBER) const;
 
 	/**
+	 * Checks whether this Quaternion is an Identity Quaternion.
+	 * Assumes Quaternion tested is normalized.
+	 *
+	 * @return true if Quaternion is a normalized Identity Quaternion.
+	 */
+	FORCEINLINE bool IsIdentity() const;
+
+	/**
 	 * Subtracts another quaternion from this.
 	 * This is a component-wise subtraction; composing quaternions should be done via multiplication.
 	 *
@@ -726,6 +734,10 @@ FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 #endif // PLATFORM_ENABLE_VECTORINTRINSICS
 }
 
+FORCEINLINE bool FQuat::IsIdentity() const
+{
+	return ((W * W) > ((1.f - DELTA) * (1.f - DELTA)));
+}
 
 FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)
 {

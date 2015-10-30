@@ -1454,7 +1454,7 @@ static void ConvertToChatMember(FXmppChatMember& OutChatMember, const buzz::Xmpp
 	if (InChatMemberJingle.presence() != NULL)
 	{
 		//@todo sz1
-		//FXmppPresenceJingle::ConvertToPresence(OutChatMember.UserPresence, *InChatMemberJingle.presence());
+		//FXmppPresenceJingle::ConvertToPresence(OutChatMember.UserPresence, *InChatMemberJingle.presence(), OutChatMember.MemberJid);
 	}
 }
 

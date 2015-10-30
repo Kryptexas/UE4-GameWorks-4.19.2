@@ -22,12 +22,6 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetLargeFriendsFontStyle(const FFrie
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendActionFontStyle(const FFriendsFontStyle& FontStyle)
-{
-	FriendActionFontStyle = FontStyle;
-	return *this;
-}
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListStyle(const FFriendsListStyle& InFriendsListStyle)
 {
 	FriendsListStyle = InFriendsListStyle;

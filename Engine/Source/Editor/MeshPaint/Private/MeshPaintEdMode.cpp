@@ -13,6 +13,7 @@
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "AssetToolsModule.h"
 #include "EditorSupportDelegates.h"
+#include "EditorReimportHandler.h"
 
 //Slate dependencies
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -157,6 +158,10 @@ void FEdModeMeshPaint::Enter()
 
 	}
 
+	// Catch assets if they are about to be (re)imported
+	FEditorDelegates::OnAssetPreImport.AddSP(this, &FEdModeMeshPaint::OnPreImportAsset);
+	FReimportManager::Instance()->OnPreReimport().AddSP(this, &FEdModeMeshPaint::OnPreReimportAsset);
+
 	// Initialize adapter globals
 	FMeshPaintAdapterFactory::InitializeAdapterGlobals();
 
@@ -243,11 +248,7 @@ void FEdModeMeshPaint::Exit()
 	}
 
 	// Remove all adapters
-	for (const auto& Pair : ComponentToAdapterMap)
-	{
-		Pair.Value->OnRemoved();
-	}
-	ComponentToAdapterMap.Empty();
+	RemoveAllGeometryAdapters();
 
 	PaintTargetData.Empty();
 
@@ -261,6 +262,10 @@ void FEdModeMeshPaint::Exit()
 	{
 		EndTransaction();
 	}
+
+	// Unbind delegates
+	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);
+	FEditorDelegates::OnAssetPreImport.RemoveAll(this);
 
 	// Call parent implementation
 	FEdMode::Exit();
@@ -961,6 +966,35 @@ void FEdModeMeshPaint::CleanStaleGeometryAdapters(const TArray<UMeshComponent*>&
 		}
 	}
 }
+
+void FEdModeMeshPaint::RemoveAllGeometryAdapters()
+{
+	// Remove all components from the map
+	for (auto It = ComponentToAdapterMap.CreateIterator(); It; ++It)
+	{
+		It.Value()->OnRemoved();
+		It.RemoveCurrent();
+	}
+}
+
+void FEdModeMeshPaint::OnPreImportAsset(UFactory* Factory, UClass* Class, UObject* Object, const FName& Name, const TCHAR* Type)
+{
+	if (Class->IsChildOf(UStaticMesh::StaticClass()))
+	{
+		// Remove all geometry adapters to force them all to be recached next time they're required
+		RemoveAllGeometryAdapters();
+	}
+}
+
+void FEdModeMeshPaint::OnPreReimportAsset(UObject* Object)
+{
+	if (Object->IsA(UStaticMesh::StaticClass()))
+	{
+		// Remove all geometry adapters to force them all to be recached next time they're required
+		RemoveAllGeometryAdapters();
+	}
+}
+
 
 /** Paint the mesh that impacts the specified ray */
 void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
@@ -2831,21 +2865,23 @@ bool FEdModeMeshPaint::Select( AActor* InActor, bool bInSelected )
 		}
 		else
 		{
-			check(!ComponentToAdapterMap.Contains(MeshComponent));
-			TSharedPtr<IMeshPaintGeometryAdapter> GeomInfo = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
-			ComponentToAdapterMap.Add(MeshComponent, GeomInfo);
-			GeomInfo->OnAdded();
+			if (!ComponentToAdapterMap.Contains(MeshComponent))
+			{
+				TSharedPtr<IMeshPaintGeometryAdapter> GeomInfo = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintingMeshLODIndex, /*TODO: Shouldn't be part of the construction contract: FMeshPaintSettings::Get().UVChannel*/ 0);
+				ComponentToAdapterMap.Add(MeshComponent, GeomInfo);
+				GeomInfo->OnAdded();
 
-			if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
-			{
-				SetAllTextureOverrides(*GeomInfo.Get(), MeshComponent);
-			}
-			else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
-			{
-				//Painting is done on LOD0 so force the mesh to render only LOD0.
-				ApplyOrRemoveForceBestLOD(*GeomInfo.Get(), MeshComponent, /*bApply=*/ true);
+				if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture)
 				{
-					FComponentReregisterContext ReregisterContext(MeshComponent);
+					SetAllTextureOverrides(*GeomInfo.Get(), MeshComponent);
+				}
+				else if (FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors)
+				{
+					//Painting is done on LOD0 so force the mesh to render only LOD0.
+					ApplyOrRemoveForceBestLOD(*GeomInfo.Get(), MeshComponent, /*bApply=*/ true);
+					{
+						FComponentReregisterContext ReregisterContext(MeshComponent);
+					}
 				}
 			}
 		}

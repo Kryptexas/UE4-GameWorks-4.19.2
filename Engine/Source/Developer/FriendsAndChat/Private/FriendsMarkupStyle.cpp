@@ -21,3 +21,10 @@ FFriendsMarkupStyle& FFriendsMarkupStyle::SetMarkupTextStyle(const FTextBlockSty
 	MarkupTextStyle = InTextStyle;
 	return *this;
 }
+
+FFriendsMarkupStyle& FFriendsMarkupStyle::SetTipBackgroundBrush(const FSlateBrush& Value)
+{
+	MarkupBackground = Value;
+	return *this;
+}
+

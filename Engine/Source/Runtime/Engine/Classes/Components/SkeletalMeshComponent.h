@@ -243,6 +243,13 @@ namespace EAnimationMode
 	};
 }
 
+/** Enum for indicating whether kinematic updates can be deferred */
+enum class EAllowKinematicDeferral
+{
+	AllowDeferral,
+	DisallowDeferral
+};
+
 /**
 * Tick function that prepares for cloth tick
 **/
@@ -1075,9 +1082,9 @@ public:
 	 *	transform based on the animated transform.
 	 *	@param	Teleport		Whether movement is a 'teleport' (ie infers no physics velocity, but moves simulating bodies) or not
 	 *	@param	bNeedsSkinning	Whether we may need  to send new triangle data for per-poly skeletal mesh collision
-	 *	@perem	bNoDefer		Whether we can defer actual update of bodies (if 'physics only' collision)
+	 *	@perem	AllowDeferral	Whether we can defer actual update of bodies (if 'physics only' collision)
 	 */
-	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, bool bNoDefer = false);
+	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning, EAllowKinematicDeferral DeferralAllowed = EAllowKinematicDeferral::AllowDeferral);
 
 	DEPRECATED(4.9, "bForceUpdate is no longer used. Please use Teleport")
 	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)

@@ -132,14 +132,15 @@ static TAutoConsoleVariable<int32> CVarRHICmdSpewParallelListBalance(
 	0,
 	TEXT("For debugging, spews the size of the parallel command lists. This stalls and otherwise wrecks performance.\n")
 	TEXT(" 0: off (default)\n")
-	TEXT(" 1: enabled"));
+	TEXT(" 1: enabled (default)"));
 
 static TAutoConsoleVariable<int32> CVarRHICmdBalanceParallelLists(
 	TEXT("r.RHICmdBalanceParallelLists"),
 	1,
 	TEXT("Allows to enable a preprocess of the drawlists to try to balance the load equally among the command lists.\n")
 	TEXT(" 0: off \n")
-	TEXT(" 1: enabled (default)"));
+	TEXT(" 1: enabled")
+	TEXT(" 2: experiemental, uses previous frame results (does not do anything in split screen etc)"));
 
 static TAutoConsoleVariable<int32> CVarRHICmdMinCmdlistForParallelSubmit(
 	TEXT("r.RHICmdMinCmdlistForParallelSubmit"),
@@ -162,7 +163,9 @@ FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICo
 	Width = CVarRHICmdWidth.GetValueOnRenderThread();
 	MinDrawsPerCommandList = CVarRHICmdMinDrawsPerParallelCmdList.GetValueOnRenderThread();
 	bSpewBalance = !!CVarRHICmdSpewParallelListBalance.GetValueOnRenderThread();
-	bBalanceCommands = !!CVarRHICmdBalanceParallelLists.GetValueOnRenderThread();
+	int32 IntBalance = CVarRHICmdBalanceParallelLists.GetValueOnRenderThread();
+	bBalanceCommands = !!IntBalance;
+	bBalanceCommandsWithLastFrame = IntBalance > 1;
 	CommandLists.Reserve(Width * 8);
 	Events.Reserve(Width * 8);
 	NumDrawsIfKnown.Reserve(Width * 8);
@@ -235,6 +238,8 @@ void FParallelCommandListSet::Dispatch()
 	CommandLists.Reset();
 	Snapshot = nullptr;
 	Events.Reset();
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FParallelCommandListSet_Dispatch_ServiceLocalQueue);
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
 }
 
 FParallelCommandListSet::~FParallelCommandListSet()

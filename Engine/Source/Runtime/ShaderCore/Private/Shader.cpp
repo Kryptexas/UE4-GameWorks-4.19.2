@@ -944,39 +944,52 @@ void FShader::VerifyBoundUniformBufferParameters()
 
 bool FShaderPipelineType::bInitialized = false;
 
-FShaderPipelineType::FShaderPipelineType(const TCHAR* InName, const FShaderType* InVertexShader, const FShaderType* InHullShader, const FShaderType* InDomainShader, const FShaderType* InGeometryShader, const FShaderType* InPixelShader) :
-	VertexShader(InVertexShader),
-	HullShader(InHullShader),
-	DomainShader(InDomainShader),
-	GeometryShader(InGeometryShader),
-	PixelShader(InPixelShader),
+FShaderPipelineType::FShaderPipelineType(
+	const TCHAR* InName,
+	const FShaderType* InVertexShader,
+	const FShaderType* InHullShader,
+	const FShaderType* InDomainShader,
+	const FShaderType* InGeometryShader,
+	const FShaderType* InPixelShader) :
 	Name(InName),
 	TypeName(Name),
 	GlobalListLink(this)
 {
 	checkf(Name && *Name, TEXT("Shader Pipeline Type requires a valid Name!"));
 
-	checkf(VertexShader, TEXT("A Shader Pipeline always requires a Vertex Shader"));
+	checkf(InVertexShader, TEXT("A Shader Pipeline always requires a Vertex Shader"));
 
-	checkf((HullShader == nullptr && DomainShader == nullptr) || (HullShader != nullptr && DomainShader != nullptr), TEXT("Both Hull & Domain shaders are needed for tessellation on Pipeline %s"), Name);
+	checkf((InHullShader == nullptr && InDomainShader == nullptr) || (InHullShader != nullptr && InDomainShader != nullptr), TEXT("Both Hull & Domain shaders are needed for tessellation on Pipeline %s"), Name);
 
 	//make sure the name is shorter than the maximum serializable length
 	check(FCString::Strlen(InName) < NAME_SIZE);
 
-	if (PixelShader)
+	FMemory::Memzero(AllStages);
+
+	if (InPixelShader)
 	{
-		Stages.Add(PixelShader);
+		Stages.Add(InPixelShader);
+		AllStages[SF_Pixel] = InPixelShader;
 	}
-	if (GeometryShader)
+	if (InGeometryShader)
 	{
-		Stages.Add(GeometryShader);
+		Stages.Add(InGeometryShader);
+		AllStages[SF_Geometry] = InGeometryShader;
 	}
-	if (DomainShader)
+	if (InDomainShader)
 	{
-		Stages.Add(DomainShader);
-		Stages.Add(HullShader);
+		Stages.Add(InDomainShader);
+		AllStages[SF_Domain] = InDomainShader;
+
+		Stages.Add(InHullShader);
+		AllStages[SF_Hull] = InHullShader;
 	}
-	Stages.Add(VertexShader);
+	Stages.Add(InVertexShader);
+	AllStages[SF_Vertex] = InVertexShader;
+
+	static uint32 TypeHashCounter = 0;
+	++TypeHashCounter;
+	HashIndex = TypeHashCounter;
 
 	GlobalListLink.LinkHead(GetTypeList());
 	GetNameToTypeMap().Add(FName(InName), this);
@@ -1017,6 +1030,13 @@ void FShaderPipelineType::Initialize()
 	for (TLinkedList<FShaderPipelineType*>::TIterator It(FShaderPipelineType::GetTypeList()); It; It.Next())
 	{
 		const auto* PipelineType = *It;
+
+		// Validate stages
+		for (int32 Index = 0; Index < SF_NumFrequencies; ++Index)
+		{
+			check(!PipelineType->AllStages[Index] || PipelineType->AllStages[Index]->GetFrequency() == (EShaderFrequency)Index);
+		}
+
 		auto& Stages = PipelineType->GetStages();
 
 		// #todo-rco: Do we allow mix/match of global/mesh/material stages?

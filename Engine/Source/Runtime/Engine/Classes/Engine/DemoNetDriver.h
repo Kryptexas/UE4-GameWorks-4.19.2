@@ -8,7 +8,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
 
-DECLARE_DELEGATE_OneParam(FOnGotoTimeDelegate, const bool);
+DECLARE_MULTICAST_DELEGATE(FOnGotoTimeMCDelegate);
+DECLARE_DELEGATE_OneParam(FOnGotoTimeDelegate, const bool /* bWasSuccessful */);
 
 class UDemoNetDriver;
 
@@ -89,7 +90,8 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 
 	void		LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 GotoCheckpointSkipExtraTimeInMS );
 
-	FOnGotoTimeDelegate OnGotoTimeDelegate;
+	/** Public delegate for external systems to be notified when scrubbing is complete. Only called for successful scrub. */
+	FOnGotoTimeMCDelegate OnGotoTimeDelegate;
 
 private:
 	bool		bIsFastForwarding;
@@ -106,6 +108,9 @@ private:
 	TSharedPtr< FQueuedReplayTask >				ActiveReplayTask;
 	TSharedPtr< FQueuedReplayTask >				ActiveScrubReplayTask;
 
+	/** Set via GotoTimeInSeconds, only fired once (at most). Called for successful or failed scrub. */
+	FOnGotoTimeDelegate OnGotoTimeDelegate_Transient;
+	
 public:
 
 	// UNetDriver interface.
@@ -120,13 +125,19 @@ public:
 	virtual bool IsAvailable() const override { return true; }
 	void SkipTime(const float InTimeToSkip);
 	void SkipTimeInternal( const float SecondsToSkip, const bool InFastForward, const bool InIsForCheckpoint );
-	bool InitConnectInternal( FString& Error );
+	bool InitConnectInternal(FString& Error);
 	virtual bool ShouldClientDestroyTearOffActors() const override;
 	virtual bool ShouldSkipRepNotifies() const override;
 	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const override;
 	virtual FNetworkGUID GetGUIDForActor(const AActor* InActor) const override;
 	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const override;
 
+	/** 
+	 * Scrubs playback to the given time. 
+	 * 
+	 * @param TimeInSeconds
+	 * @param InOnGotoTimeDelegate		Delegate to call when finished. Will be called only once at most.
+	*/
 	void GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate = FOnGotoTimeDelegate());
 
 	bool IsRecording();
@@ -183,4 +194,7 @@ public:
 	void AddNonQueuedGUIDForScrubbing(FNetworkGUID InGUID);
 
 	virtual bool IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const override;
+
+	/** Called when a "go to time" operation is completed. */
+	void NotifyGotoTimeFinished(bool bWasSuccessful);
 };

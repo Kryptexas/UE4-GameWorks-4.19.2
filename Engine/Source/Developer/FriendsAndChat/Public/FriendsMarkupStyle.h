@@ -48,5 +48,8 @@ struct FRIENDSANDCHAT_API FFriendsMarkupStyle
 	FTextBlockStyle MarkupTextStyle;
 	FFriendsMarkupStyle& SetMarkupTextStyle(const FTextBlockStyle& InTextStyle);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush MarkupBackground;
+	FFriendsMarkupStyle& SetTipBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
 };
 

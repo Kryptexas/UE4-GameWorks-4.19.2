@@ -108,7 +108,7 @@ public:
 	/**
 	 * @return id of the client app associated with the sender of the party invite 
 	 */
-	virtual const FString& GetClientId() const = 0;
+	virtual const FString& GetAppId() const = 0;
 
 	/**
 	 * @return id of the client app associated with the sender of the party invite 

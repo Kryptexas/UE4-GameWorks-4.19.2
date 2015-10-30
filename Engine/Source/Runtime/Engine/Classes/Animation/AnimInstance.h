@@ -825,6 +825,9 @@ public:
 
 protected:
 
+	/** Gets the index of the state machine matching MachineName */
+	int32 GetStateMachineIndex(FName MachineName);
+
 	/** Gets the runtime instance of the specified state machine */
 	FAnimNode_StateMachine* GetStateMachineInstance(int32 MachineIndex);
 
@@ -929,6 +932,9 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface
+
+	virtual void OnUROSkipTickAnimation() {}
+	virtual void OnUROPreInterpolation() {}
 
 	// Animation phase trigger
 	// start with initialize

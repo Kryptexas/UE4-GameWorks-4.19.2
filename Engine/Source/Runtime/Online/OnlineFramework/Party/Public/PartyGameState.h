@@ -165,6 +165,8 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ Begin UObject Interface end
 
+	void SetInitMemberFunctor( TFunction<void( TSharedPtr<FOnlinePartyMember>, UPartyMemberState* )>&& InFunctor );
+
 	/**
 	 * Notification that the game is about to travel to another map/server
 	 */
@@ -610,6 +612,8 @@ private:
 
 	/** Scratch copy of child USTRUCT for handling replication comparisons */
 	FPartyState* PartyStateRefScratch;
+
+	TFunction<void( TSharedPtr<FOnlinePartyMember>, UPartyMemberState* )> InitMemberFunctor;
 
 	friend UParty;
 	friend UPartyMemberState;

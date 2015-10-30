@@ -460,6 +460,13 @@ COREUOBJECT_API int32 GetNumAsyncPackages();
 COREUOBJECT_API bool IsLoading();
 
 /**
+* Determines whether the current platform file is compatible with dependency preloading
+*
+* @return true if we can use dependency preloading
+*/
+COREUOBJECT_API bool IsPlatformFileCompatibleWithDependencyPreloading();
+
+/**
  * State of the async package after the last tick.
  */
 namespace EAsyncPackageState

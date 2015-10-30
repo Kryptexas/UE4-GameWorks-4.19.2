@@ -16,8 +16,8 @@ const FString DefaultPresenceKey = "RichPresence";
 /** Custom presence data that is not seen by users but can be polled */
 const FString CustomPresenceDataKey = "CustomData";
 
-/** Id of the client that sent the presence update */
-const FString DefaultClientIdKey = "ClientId";
+/** Name of the client that sent the presence update */
+const FString DefaultAppIdKey = "AppId";
 
 /** Override Id of the client to set the presence state to */
 const FString OverrideClientIdKey = "OverrideClientId";

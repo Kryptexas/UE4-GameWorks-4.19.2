@@ -53,6 +53,7 @@ public:
 		TArray<uint16>						HeightData;
 		TArray<FLandscapeImportLayerInfo>	ImportLayers;
 		FString								HeightmapFilename;
+		ELandscapeImportAlphamapType		ImportLayerType;
 	};
 	
 	/**

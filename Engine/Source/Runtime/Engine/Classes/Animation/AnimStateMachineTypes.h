@@ -276,7 +276,11 @@ public:
 	{}
 
 	// Finds a state by name or INDEX_NONE if no such state exists
-	ENGINE_API int32 FindStateIndex(FName StateName) const;
+	ENGINE_API int32 FindStateIndex(const FName& StateName) const;
+
+	// Find the index of a transition from StateNameFrom to StateNameTo
+	ENGINE_API int32 FindTransitionIndex(const FName& InStateNameFrom, const FName& InStateNameTo) const;
+	ENGINE_API int32 FindTransitionIndex(const int32 InStateIdxFrom, const int32 InStateIdxTo) const;
 };
 
 UCLASS()

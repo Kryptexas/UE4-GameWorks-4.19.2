@@ -291,7 +291,7 @@ class FTickTaskSequencer
 		}
 		FORCEINLINE ENamedThreads::Type GetDesiredThread()
 		{
-			return ENamedThreads::HiPri(ENamedThreads::AnyThread);
+			return ENamedThreads::AnyThread;
 		}
 		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
 		{ 
@@ -366,7 +366,7 @@ public:
 		UseContext.Thread = ENamedThreads::GameThread;
 		if (TickFunction->bRunOnAnyThread && bAllowConcurrentTicks && bIsOriginalTickGroup)
 		{
-			UseContext.Thread = ENamedThreads::AnyThread;
+			UseContext.Thread = ENamedThreads::AnyThreadGame();
 		}
 
 		TickFunction->TaskPointer = TGraphTask<FTickFunctionTask>::CreateTask(Prerequisites, TickContext.Thread).ConstructAndHold(TickFunction, &UseContext, bLogTicks, bLogTicksShowPrerequistes);

@@ -1123,7 +1123,7 @@ protected:
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
 		
-	TArray<TWeakObjectPtr<UGameplayTask> >&	GetAbilityActiveTasks(UGameplayAbility* Ability);
+	TArray<UGameplayTask*>&	GetAbilityActiveTasks(UGameplayAbility* Ability);
 	// --------------------------------------------
 	
 	// Contains all of the gameplay effects that are currently active on this component
