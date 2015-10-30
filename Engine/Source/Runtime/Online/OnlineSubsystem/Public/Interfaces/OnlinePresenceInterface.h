@@ -19,6 +19,9 @@ const FString CustomPresenceDataKey = "CustomData";
 /** Id of the client that sent the presence update */
 const FString DefaultClientIdKey = "ClientId";
 
+/** Override Id of the client to set the presence state to */
+const FString OverrideClientIdKey = "OverrideClientId";
+
 /** Id of the session for the presence update. @todo samz - SessionId on presence data should be FUniqueNetId not uint64 */
 const FString DefaultSessionIdKey = "SessionId";
 
