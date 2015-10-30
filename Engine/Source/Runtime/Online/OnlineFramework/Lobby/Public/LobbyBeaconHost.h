@@ -123,7 +123,8 @@ protected:
 	void ProcessJoinServer(ALobbyBeaconClient* ClientActor);
 
 	/**
-	 * Handle a request from a client to set their hero id
+	 * Handle a request to disconnect a given client from the lobby beacon
+	 * Notifies the owning beacon host to do its own cleanup
 	 *
 	 * @param ClientActor client that is making the request
 	 */

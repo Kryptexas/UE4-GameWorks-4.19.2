@@ -243,12 +243,17 @@ bool ALobbyBeaconClient::ServerNotifyJoiningServer_Validate()
 void ALobbyBeaconClient::ServerNotifyJoiningServer_Implementation()
 {
 	UE_LOG(LogBeacon, Log, TEXT("ServerNotifyJoiningGame"));
-
 	ALobbyBeaconHost* BeaconHost = Cast<ALobbyBeaconHost>(GetBeaconOwner());
 	if (BeaconHost)
 	{
 		BeaconHost->ProcessJoinServer(this);
 	}
+}
+
+void ALobbyBeaconClient::ClientAckJoiningServer_Implementation()
+{
+	UE_LOG(LogBeacon, Log, TEXT("ClientAckJoiningServer"));
+	OnJoiningGameAck().ExecuteIfBound();
 }
 
 bool ALobbyBeaconClient::ServerKickPlayer_Validate(const FUniqueNetIdRepl& PlayerToKick, const FText& Reason)

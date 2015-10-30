@@ -717,10 +717,11 @@ bool APartyBeaconHost::DoesSessionMatch(const FString& SessionId) const
 
 void APartyBeaconHost::ProcessReservationRequest(APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationRequest)
 {
-	UE_LOG(LogBeacon, Verbose, TEXT("ProcessReservationRequest %s SessionId %s PartyLeader: %s from (%s)"), 
+	UE_LOG(LogBeacon, Verbose, TEXT("ProcessReservationRequest %s SessionId %s PartyLeader: %s PartySize: %d from (%s)"), 
 		Client ? *Client->GetName() : TEXT("NULL"), 
 		*SessionId,
 		ReservationRequest.PartyLeader.IsValid() ? *ReservationRequest.PartyLeader->ToString() : TEXT("INVALID"),
+		ReservationRequest.PartyMembers.Num(),
 		Client ? *Client->GetNetConnection()->LowLevelDescribe() : TEXT("NULL"));
 
 	if (Client)
@@ -731,16 +732,24 @@ void APartyBeaconHost::ProcessReservationRequest(APartyBeaconClient* Client, con
 			Result = AddPartyReservation(ReservationRequest);
 		}
 
+		UE_LOG(LogBeacon, Verbose, TEXT("ProcessReservationRequest result: %s"), EPartyReservationResult::ToString(Result));
+		if (UE_LOG_ACTIVE(LogBeacon, Verbose) &&
+			(Result != EPartyReservationResult::ReservationAccepted))
+		{
+			DumpReservations();
+		}
+
 		Client->ClientReservationResponse(Result);
 	}
 }
 
 void APartyBeaconHost::ProcessReservationUpdateRequest(APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationUpdateRequest)
 {
-	UE_LOG(LogBeacon, Verbose, TEXT("ProcessReservationUpdateRequest %s SessionId %s PartyLeader: %s from (%s)"),
+	UE_LOG(LogBeacon, Verbose, TEXT("ProcessReservationUpdateRequest %s SessionId %s PartyLeader: %s PartySize: %d from (%s)"),
 		Client ? *Client->GetName() : TEXT("NULL"),
 		*SessionId,
 		ReservationUpdateRequest.PartyLeader.IsValid() ? *ReservationUpdateRequest.PartyLeader->ToString() : TEXT("INVALID"),
+		ReservationUpdateRequest.PartyMembers.Num(),
 		Client ? *Client->GetNetConnection()->LowLevelDescribe() : TEXT("NULL"));
 
 	if (Client)
@@ -749,6 +758,13 @@ void APartyBeaconHost::ProcessReservationUpdateRequest(APartyBeaconClient* Clien
 		if (DoesSessionMatch(SessionId))
 		{
 			Result = UpdatePartyReservation(ReservationUpdateRequest);
+		}
+
+		UE_LOG(LogBeacon, Verbose, TEXT("ProcessReservationUpdateRequest result: %s"), EPartyReservationResult::ToString(Result));
+		if (UE_LOG_ACTIVE(LogBeacon, Verbose) &&
+			(Result != EPartyReservationResult::ReservationAccepted))
+		{
+			DumpReservations();
 		}
 
 		Client->ClientReservationResponse(Result);
@@ -765,6 +781,13 @@ void APartyBeaconHost::ProcessCancelReservationRequest(APartyBeaconClient* Clien
 	if (Client)
 	{
 		EPartyReservationResult::Type Result = RemovePartyReservation(PartyLeader);
+		UE_LOG(LogBeacon, Verbose, TEXT("ProcessCancelReservationRequest result: %s"), EPartyReservationResult::ToString(Result));
+		if (UE_LOG_ACTIVE(LogBeacon, Verbose) &&
+			(Result != EPartyReservationResult::ReservationRequestCanceled))
+		{
+			DumpReservations();
+		}
+
 		Client->ClientReservationResponse(Result);
 	}
 }

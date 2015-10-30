@@ -207,9 +207,10 @@ void ALobbyBeaconHost::KickPlayer(ALobbyBeaconClient* ClientActor, const FText& 
 void ALobbyBeaconHost::ProcessJoinServer(ALobbyBeaconClient* ClientActor)
 {
 	ALobbyBeaconPlayerState* Player = LobbyState->GetPlayer(ClientActor);
-	if (Player)
+	if (Player && Player->bInLobby)
 	{
 		Player->bInLobby = false;
+		ClientActor->ClientAckJoiningServer();
 	}
 }
 
@@ -285,7 +286,7 @@ void ALobbyBeaconHost::NotifyClientDisconnected(AOnlineBeaconClient* LeavingClie
 			check(GameMode);
 			check(GameMode->GameSession);
 
-			// Notify the sesssion (updates reservation beacon, unregisters the player, etc)
+			// Notify the session (updates reservation beacon, unregisters the player, etc)
 			GameMode->GameSession->NotifyLogout(GameSessionName, Player->UniqueId);
 			HandlePlayerLogout(Player->UniqueId);
 		}

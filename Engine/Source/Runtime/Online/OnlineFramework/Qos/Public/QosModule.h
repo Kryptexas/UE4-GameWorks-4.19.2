@@ -4,18 +4,15 @@
 
 #include "ModuleManager.h"
 
-/** Logging related to parties */
-LOBBY_API DECLARE_LOG_CATEGORY_EXTERN(LogLobby, Display, All);
+class FQosInterface;
 
-/** Lobby module stats */
-DECLARE_STATS_GROUP(TEXT("Lobby"), STATGROUP_Lobby, STATCAT_Advanced);
-/** Total async thread time */
-//DECLARE_CYCLE_STAT_EXTERN(TEXT("LobbyStat1"), STAT_LobbyStat, STATGROUP_Lobby, Lobby_API);
+/** Logging related to parties */
+QOS_API DECLARE_LOG_CATEGORY_EXTERN(LogQos, Display, All);
 
 /**
- * Module for lobbies via online beacon
+ * Module for QoS service utilities
  */
-class FLobbyModule : 
+class FQosModule : 
 	public IModuleInterface, public FSelfRegisteringExec
 {
 
@@ -30,9 +27,9 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline FLobbyModule& Get()
+	static inline FQosModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked<FLobbyModule>("Lobby");
+		return FModuleManager::LoadModuleChecked<FQosModule>("Qos");
 	}
 
 	/**
@@ -42,23 +39,29 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded("Lobby");
+		return FModuleManager::Get().IsModuleLoaded("Qos");
 	}
+
+	FQosInterface* GetQosInterface();
 
 private:
 
 	// IModuleInterface
 
 	/**
-	 * Called when lobby module is loaded
-	 * Initialize platform specific parts of Lobby handling
+	 * Called when voice module is loaded
+	 * Initialize platform specific parts of template handling
 	 */
 	virtual void StartupModule() override;
 	
 	/**
-	 * Called when lobby module is unloaded
-	 * Shutdown platform specific parts of Lobby handling
+	 * Called when voice module is unloaded
+	 * Shutdown platform specific parts of template handling
 	 */
 	virtual void ShutdownModule() override;
+
+private:
+
+	FQosInterface* QosInterface;
 };
 

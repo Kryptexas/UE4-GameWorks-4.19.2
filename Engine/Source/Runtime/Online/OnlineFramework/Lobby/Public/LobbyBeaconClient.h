@@ -109,8 +109,11 @@ class LOBBY_API ALobbyBeaconClient : public AOnlineBeaconClient
 	FOnLobbyPlayerJoined& OnPlayerJoined() { return PlayerJoinedDelegate; }
 	/** @return delegate fired when an existing player leaves the lobby */
 	FOnLobbyPlayerLeft& OnPlayerLeft() { return PlayerLeftDelegate; }
-	/** @return delegate fired when actually joining a game */
+	/** @return delegate fired when this player is told to join the game by the server */
 	FOnJoiningGame& OnJoiningGame() { return JoiningGame; }
+	/** @return delegate fired when the server acknowledges the client request to join the server */
+	FOnJoiningGame& OnJoiningGameAck() { return JoiningGameAck; }
+	
 
 	/** @return true if this client is correctly logged in to the beacon, false otherwise */
 	bool IsLoggedIn() const { return bLoggedIn; }
@@ -135,9 +138,10 @@ protected:
 	FOnLobbyPlayerJoined PlayerJoinedDelegate;
 	/** Delegate broadcast when an existing player leaves (clientside) */
 	FOnLobbyPlayerLeft PlayerLeftDelegate;
-	/** Delegate broadcast when this player is joining the game (clientside) */
+	/** Delegate broadcast when this player is told to join the game by the server (clientside) */
 	FOnJoiningGame JoiningGame;
-
+	/** Delegate broadcast when the server acknowledges the client request to join the server (clientside) */
+	FOnJoiningGame JoiningGameAck;
 	/**
 	 * Set the lobby state for this client beacon
 	 * 
@@ -171,6 +175,12 @@ protected:
 	 */
 	UFUNCTION(server, reliable, WithValidation)
 	virtual void ServerNotifyJoiningServer();
+
+	/**
+	 * Acknowledge that client is traveling
+	 */
+	UFUNCTION(client, reliable)
+	virtual void ClientAckJoiningServer();
 
 	/**
 	 * Make a request to kick a given player
