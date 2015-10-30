@@ -1371,19 +1371,20 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 		const FViewInfo& View = Views[ViewIndex];
 
 		// Determine the size of the subject's bounding sphere in this view.
-		const FVector4 ScreenPosition = View.WorldToScreen(OriginalBounds.Origin);
+		const FVector ShadowViewOrigin = View.ViewMatrices.ViewOrigin;
+		float ShadowViewDistFromBounds = (OriginalBounds.Origin - ShadowViewOrigin).Size();
 		const float ScreenRadius = View.ShadowViewMatrices.ScreenScale *
 			OriginalBounds.SphereRadius /
-			FMath::Max(ScreenPosition.W,1.0f);
+			FMath::Max(ShadowViewDistFromBounds, 1.0f);
 		// Early catch for invalid CalculateShadowFadeAlpha()
-		checkf(ScreenRadius >= 0.0f, TEXT("View.ShadowViewMatrices.ScreenScale %f, OriginalBounds.SphereRadius %f, ScreenPosition.W %f"), View.ShadowViewMatrices.ScreenScale, OriginalBounds.SphereRadius, ScreenPosition.W);
+		checkf(ScreenRadius >= 0.0f, TEXT("View.ShadowViewMatrices.ScreenScale %f, OriginalBounds.SphereRadius %f, ShadowViewDistFromBounds %f"), View.ShadowViewMatrices.ScreenScale, OriginalBounds.SphereRadius, ShadowViewDistFromBounds);
 
 		const float ScreenPercent = FMath::Max(
 			1.0f / 2.0f * View.ShadowViewMatrices.ProjectionScale.X,
 			1.0f / 2.0f * View.ShadowViewMatrices.ProjectionScale.Y
 			) *
 			OriginalBounds.SphereRadius /
-			FMath::Max(ScreenPosition.W,1.0f);
+			FMath::Max(ShadowViewDistFromBounds, 1.0f);
 
 		MaxScreenPercent = FMath::Max(MaxScreenPercent, ScreenPercent);
 
