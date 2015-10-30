@@ -2096,6 +2096,7 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 		]
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SMeshPaint::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {

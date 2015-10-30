@@ -176,6 +176,7 @@ static_assert(_MSC_VER >= 1800, "Visual Studio 2013 or later is required to comp
 #pragma warning(disable : 4180) // qualifier applied to function type has no meaning; ignored
 #pragma warning(disable : 4121) // 'symbol' : alignment of a member was sensitive to packing
 #pragma warning(disable : 4345) // behavior change: an object of POD type constructed with an initializer of the form () will be default-initialized
+#pragma warning(disable : 4464) // relative include path contains '..'                                            
 
 #if UE_BUILD_DEBUG
 // xstring.h causes this warning in debug builds
