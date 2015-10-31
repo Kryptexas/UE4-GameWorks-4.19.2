@@ -7,6 +7,9 @@
 #include "MovieScene3DConstraintTrackInstance.h"
 
 
+#define LOCTEXT_NAMESPACE "MovieScene3DConstraintTrack"
+
+
 UMovieScene3DConstraintTrack::UMovieScene3DConstraintTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 { }
@@ -59,3 +62,14 @@ TRange<float> UMovieScene3DConstraintTrack::GetSectionBoundaries() const
 
 	return TRange<float>::Hull(Bounds);
 }
+
+
+#if WITH_EDITORONLY_DATA
+FText UMovieScene3DConstraintTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Constraint");
+}
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

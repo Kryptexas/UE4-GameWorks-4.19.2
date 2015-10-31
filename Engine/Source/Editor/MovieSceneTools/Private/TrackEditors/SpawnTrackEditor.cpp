@@ -8,15 +8,17 @@
 
 #define LOCTEXT_NAMESPACE "FSpawnTrackEditor"
 
+
 TSharedRef<ISequencerTrackEditor> FSpawnTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
 	return MakeShareable(new FSpawnTrackEditor(InSequencer));
 }
 
+
 FSpawnTrackEditor::FSpawnTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: FBoolPropertyTrackEditor(InSequencer)
-{
-}
+{ }
+
 
 UMovieSceneTrack* FSpawnTrackEditor::AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<UMovieSceneTrack> TrackClass, FName UniqueTypeName)
 {
@@ -30,6 +32,7 @@ UMovieSceneTrack* FSpawnTrackEditor::AddTrack(UMovieScene* FocusedMovieScene, co
 
 	return NewTrack;
 }
+
 
 void FSpawnTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
@@ -51,21 +54,25 @@ void FSpawnTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, c
 	);
 }
 
+
 bool FSpawnTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {
 	return (Type == UMovieSceneSpawnTrack::StaticClass());
 }
 
+
 void FSpawnTrackEditor::HandleAddSpawnTrackMenuEntryExecute(FGuid ObjectBinding)
 {
 	FScopedTransaction AddSpawnTrackTransaction(LOCTEXT("AddSpawnTrack_Transaction", "Add Spawn Track"));
-	AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectBinding, UMovieSceneSpawnTrack::StaticClass(), "Spawned");
+	AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectBinding, UMovieSceneSpawnTrack::StaticClass(), NAME_None);
 	NotifyMovieSceneDataChanged();
 }
 
+
 bool FSpawnTrackEditor::CanAddSpawnTrack(FGuid ObjectBinding) const
 {
-	return !GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack<UMovieSceneSpawnTrack>(ObjectBinding, "Spawned");
+	return !GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack<UMovieSceneSpawnTrack>(ObjectBinding);
 }
+
 
 #undef LOCTEXT_NAMESPACE

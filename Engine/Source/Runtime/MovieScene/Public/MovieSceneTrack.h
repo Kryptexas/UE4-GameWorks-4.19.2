@@ -8,28 +8,17 @@
 class UMovieSceneSection;
 class FMovieSceneSequenceInstance;
 
+
 /**
  * Base class for a track in a Movie Scene
  */
-UCLASS( abstract, MinimalAPI )
+UCLASS(abstract, MinimalAPI)
 class UMovieSceneTrack
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
-
-	/**
-	 * @return The name that makes this track unique from other track of the same class.
-	 */
-	virtual FName GetTrackName() const PURE_VIRTUAL (UMovieSceneTrack::GetTrackName, return NAME_None;)
-
-	/**
-	 * Called when all the sections of the track need to be retrieved.
-	 * 
-	 * @return List of all the sections in the track.
-	 */
-	virtual const TArray<UMovieSceneSection*>& GetAllSections() const PURE_VIRTUAL(UMovieSceneTrack::GetAllSections, static TArray<UMovieSceneSection*> Empty; return Empty;);
 
 	/**
 	 * Creates a runtime instance of this class.
@@ -40,9 +29,9 @@ public:
 	virtual TSharedPtr<class IMovieSceneTrackInstance> CreateInstance() PURE_VIRTUAL(UMovieSceneTrack::CreateInstance, check(false); return nullptr;);
 
 	/**
-	 * Removes animation data.
+	 * @return The name that makes this track unique from other track of the same class.
 	 */
-	virtual void RemoveAllAnimationData() {}
+	virtual FName GetTrackName() const { return NAME_None; }
 
 	/**
 	 * @return Whether or not this track has any data in it.
@@ -50,24 +39,19 @@ public:
 	virtual bool IsEmpty() const PURE_VIRTUAL(UMovieSceneTrack::IsEmpty, return true;);
 
 	/**
-	 * @return Whether or not this track supports multiple row indices.
+	 * Removes animation data.
 	 */
-	virtual bool SupportsMultipleRows() const { return false; }
+	virtual void RemoveAllAnimationData() { }
 
 	/**
-	 * Generates a new section suitable for use with this track.
-	 *
-	 * @return a new section suitable for use with this track.
+	 * @return Whether or not this track supports multiple row indices.
 	 */
-	virtual class UMovieSceneSection* CreateNewSection() PURE_VIRTUAL(UMovieSceneTrack::CreateNewSection, return nullptr;);
-	
-	/**
-	 * Checks to see if the section is in this track.
-	 *
-	 * @param Section The section to query for.
-	 * @return True if the section is in this track.
-	 */
-	virtual bool HasSection(const UMovieSceneSection& Section) const PURE_VIRTUAL(UMovieSceneSection::HasSection, return false;);
+	virtual bool SupportsMultipleRows() const
+	{
+		return false;
+	}
+
+public:
 
 	/**
 	 * Add a section to this track.
@@ -77,11 +61,18 @@ public:
 	virtual void AddSection(UMovieSceneSection& Section) PURE_VIRTUAL(UMovieSceneSection::AddSection,);
 
 	/**
-	 * Removes a section from this track.
+	 * Generates a new section suitable for use with this track.
 	 *
-	 * @param Section The section to remove.
+	 * @return a new section suitable for use with this track.
 	 */
-	virtual void RemoveSection(UMovieSceneSection& Section) PURE_VIRTUAL(UMovieSceneSection::RemoveSection,);
+	virtual class UMovieSceneSection* CreateNewSection() PURE_VIRTUAL(UMovieSceneTrack::CreateNewSection, return nullptr;);
+	
+	/**
+	 * Called when all the sections of the track need to be retrieved.
+	 * 
+	 * @return List of all the sections in the track.
+	 */
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const PURE_VIRTUAL(UMovieSceneTrack::GetAllSections, static TArray<UMovieSceneSection*> Empty; return Empty;);
 
 	/**
 	 * Gets the section boundaries of this track.
@@ -89,6 +80,30 @@ public:
 	 * @return The range of time boundaries.
 	 */
 	virtual TRange<float> GetSectionBoundaries() const PURE_VIRTUAL(UMovieSceneTrack::GetSectionBoundaries, return TRange<float>::Empty(););
+
+	/**
+	 * Checks to see if the section is in this track.
+	 *
+	 * @param Section The section to query for.
+	 * @return True if the section is in this track.
+	 */
+	virtual bool HasSection(const UMovieSceneSection& Section) const PURE_VIRTUAL(UMovieSceneSection::HasSection, return false;);
+
+	/**
+	 * Removes a section from this track.
+	 *
+	 * @param Section The section to remove.
+	 */
+	virtual void RemoveSection(UMovieSceneSection& Section) PURE_VIRTUAL(UMovieSceneSection::RemoveSection,);
+
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Get the track's display name.
+	 *
+	 * @return Display name text.
+	 */
+	virtual FText GetDisplayName() const PURE_VIRTUAL(UMovieSceneTrack::GetDisplayName, return FText::FromString(TEXT("Unnamed Track")););
+#endif
 
 #if WITH_EDITOR
 	/**

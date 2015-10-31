@@ -532,6 +532,8 @@ class IAnalyticsProvider;
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
 DECLARE_DELEGATE(FEndStreamingPauseDelegate);
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FEngineHitchDetectedDelegate, float /*HitchDurationInSeconds*/);
+
 
 /**
  * Abstract base class of all Engine classes, responsible for management of systems critical to editor or game systems.
@@ -2007,6 +2009,9 @@ public:
 	* @param	InMapName	Name of the map (Or Global)
 	*/
 	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
+
+	/** Delegate called when FPS charting detects a hitch (it is not triggered if a capture isn't in progress). */
+	FEngineHitchDetectedDelegate OnHitchDetectedDelegate;
 
 private:
 

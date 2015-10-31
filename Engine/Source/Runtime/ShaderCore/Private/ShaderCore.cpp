@@ -243,6 +243,9 @@ static void GetAllShaderSourceFiles( TArray<FString>& ShaderSourceFiles )
 			AddShaderSourceFileEntry(ShaderSourceFiles,ShaderFilename);
 		}
 	}
+
+	//#todo-rco: No need to loop through Shader Pipeline Types (yet)
+
 	// also always add the MaterialTemplate.usf shader file
 	AddShaderSourceFileEntry(ShaderSourceFiles,FString(TEXT("MaterialTemplate")));
 	AddShaderSourceFileEntry(ShaderSourceFiles,FString(TEXT("Common")));
@@ -594,6 +597,15 @@ void FlushShaderFileCache()
 	{
 		TMap<FString, TArray<const TCHAR*> > ShaderFileToUniformBufferVariables;
 		BuildShaderFileToUniformBufferMap(ShaderFileToUniformBufferVariables);
+
+		for (TLinkedList<FShaderPipelineType*>::TConstIterator It(FShaderPipelineType::GetTypeList()); It; It.Next())
+		{
+			const auto& Stages = It->GetStages();
+			for (const FShaderType* ShaderType : Stages)
+			{
+				((FShaderType*)ShaderType)->FlushShaderFileCache(ShaderFileToUniformBufferVariables);
+			}
+		}
 
 		for(TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())
 		{

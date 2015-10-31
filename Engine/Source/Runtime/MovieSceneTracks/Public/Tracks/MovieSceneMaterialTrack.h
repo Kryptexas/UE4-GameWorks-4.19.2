@@ -116,7 +116,10 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-	virtual FName GetTrackName() const override { return TrackName; }
+
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDisplayName() const override;
+#endif
 
 public:
 
@@ -127,14 +130,9 @@ public:
 	void SetMaterialIndex(int32 InMaterialIndex) 
 	{
 		MaterialIndex = InMaterialIndex;
-		TrackName = *FString::Printf(TEXT("Material Element %i"), MaterialIndex);
 	}
 
 private:
-
-	/** The name of this track .*/
-	UPROPERTY()
-	FName TrackName;
 
 	/** The index of this material this track is animating. */
 	UPROPERTY()

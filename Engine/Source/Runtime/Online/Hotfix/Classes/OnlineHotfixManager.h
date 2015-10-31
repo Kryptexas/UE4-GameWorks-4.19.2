@@ -167,7 +167,14 @@ public:
 	UPROPERTY(Config)
 	FString OSSName;
 
+	/** Tells the factory method which class to contruct */
+	UPROPERTY(Config)
+	FString HotfixManagerClassName;
+
 	/** Starts the fetching of hotfix data from the OnlineTitleFileInterface that is registered for this game */
 	UFUNCTION(BlueprintCallable, Category="Hotfix")
 	void StartHotfixProcess();
+
+	/** Factory method that returns the configured hotfix manager */
+	static UOnlineHotfixManager* Get(UWorld* World);
 };

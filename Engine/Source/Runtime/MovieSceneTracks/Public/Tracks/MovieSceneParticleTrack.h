@@ -2,21 +2,38 @@
 
 #pragma once
 
-#include "MovieScene.h"
-#include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "MovieSceneParticleTrack.generated.h"
+
+
+class UMovieSceneSection;
+
 
 /**
  * Handles triggering of particle emitters
  */
-UCLASS( MinimalAPI )
-class UMovieSceneParticleTrack : public UMovieSceneTrack
+UCLASS(MinimalAPI)
+class UMovieSceneParticleTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** UMovieSceneTrack interface */
-	virtual FName GetTrackName() const override;
+
+	/**
+	 * Get the track's particle sections.
+	 *
+	 * @return Particle sections collection.
+	 */
+	virtual TArray<UMovieSceneSection*> GetAllParticleSections() const
+	{
+		return ParticleSections;
+	}
+
+public:
+
+	// UMovieSceneTrack interface
+
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual void RemoveAllAnimationData() override;
 	virtual bool HasSection(const UMovieSceneSection& Section) const override;
@@ -25,13 +42,11 @@ public:
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
-	
-	virtual void AddNewSection( float SectionTime );
-
-	virtual TArray<UMovieSceneSection*> GetAllParticleSections() const {return ParticleSections;}
+	virtual void AddNewSection(float SectionTime);
 
 private:
-	/** List of all particle sections */
+
+	/** List of all particle sections. */
 	UPROPERTY()
 	TArray<UMovieSceneSection*> ParticleSections;
 };

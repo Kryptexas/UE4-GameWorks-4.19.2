@@ -12,11 +12,11 @@ FMovieSceneSpawnTrackInstance::FMovieSceneSpawnTrackInstance(UMovieSceneSpawnTra
 	Track = &InTrack;
 }
 
-void FMovieSceneSpawnTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneSpawnTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
 {
 	if (!SequenceInstance.GetTimeRange().Contains(Position))
 	{
-		SequenceInstance.DestroySpawnedObject(Track->GetObject());
+		SequenceInstance.DestroySpawnedObject(Track->GetObject(), Player);
 		return;
 	}
 
@@ -26,13 +26,13 @@ void FMovieSceneSpawnTrackInstance::Update(float Position, float LastPosition, c
 		// Spawn the object if needed
 		if (bIsSpawned && RuntimeObjects.Num() == 0)
 		{
-			SequenceInstance.SpawnObject(Track->GetObject());
+			SequenceInstance.SpawnObject(Track->GetObject(), Player);
 		}
 
 		// Destroy the object if needed
 		if (!bIsSpawned && RuntimeObjects.Num() != 0)
 		{
-			SequenceInstance.DestroySpawnedObject(Track->GetObject());
+			SequenceInstance.DestroySpawnedObject(Track->GetObject(), Player);
 		}
 	}
 }
@@ -41,11 +41,11 @@ void FMovieSceneSpawnTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 {
 	if (RuntimeObjects.Num())
 	{
-		SequenceInstance.DestroySpawnedObject(Track->GetObject());
+		SequenceInstance.DestroySpawnedObject(Track->GetObject(), Player);
 	}
 }
 
 void FMovieSceneSpawnTrackInstance::ClearInstance(IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	SequenceInstance.DestroySpawnedObject(Track->GetObject());
+	SequenceInstance.DestroySpawnedObject(Track->GetObject(), Player);
 }

@@ -8,10 +8,9 @@
 
 class UWorld;
 class FUniqueNetId;
-class FOnlinePartyInfo;
+class FOnlineParty;
 class FOnlinePartyData;
 struct FPartyConfiguration;
-typedef FUniqueNetId FOnlinePartyId;
 typedef FUniqueNetIdRepl FOnlinePartyIdRepl;
 class FOnlineSessionSearchResult;
 class UParty;
@@ -107,9 +106,9 @@ class PARTY_API UPartyGameState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject Interface
 
 private:
 
@@ -133,21 +132,21 @@ private:
 	 * 
 	 * @param NewPartyType new party type
 	 */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPartyTypeChanged, EPartyType /* NewPartyType */);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnClientPartyTypeChanged, EPartyType /* NewPartyType */);
 
 	/**
 	 * Delegate fired when a join via presence permissions change
 	 * 
 	 * @param bLeaderFriendsOnly only leader friends can join
 	 */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLeaderFriendsOnlyChanged, bool /* bLeaderFriendsOnly */);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnClientLeaderFriendsOnlyChanged, bool /* bLeaderFriendsOnly */);
 
 	/**
 	 * Delegate fired when a invite permissions change
 	 * 
 	 * @param bLeaderInviteOnly only leader invites are allowed
 	 */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLeaderInvitesOnlyChanged, bool /* bLeaderInviteOnly */);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnClientLeaderInvitesOnlyChanged, bool /* bLeaderInviteOnly */);
 
 protected:
 
@@ -160,11 +159,17 @@ protected:
 
 public:
 
-	//~ Begin UObject Interface begin
+	// UObject interface begin
 	virtual UWorld* GetWorld() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ Begin UObject Interface end
+	// UObject interface end
 
+	
+	/** 
+	 * Allows external systems an opportunity to initialize newly created PartyMemberStates before being entered into the party system
+	 * 
+	 * @param InFunctor a TFunction to call immediately after allocation. 
+	 */
 	void SetInitMemberFunctor( TFunction<void( TSharedPtr<FOnlinePartyMember>, UPartyMemberState* )>&& InFunctor );
 
 	/**
@@ -181,6 +186,9 @@ public:
 	 * Unregister delegates and clear out shared pointers to MCP objects
 	 */
 	virtual void OnShutdown();
+
+	/** @return the party id of this party */
+	FOnlinePartyTypeId GetPartyTypeId() const;
 
 	/** @return the party id of this party */
 	TSharedPtr<const FOnlinePartyId> GetPartyId() const;
@@ -235,16 +243,11 @@ public:
 	void SetAcceptingMembers(bool bIsAcceptingMembers, EJoinPartyDenialReason DenialReason);
 
 	/**
-	 * Calculate the possible joinability state of this party
-	 * check the values from left to right in order of precedence
+	 * Check if you have permission to send invites to this party
 	 *
-	 * @param bFriendJoinable [out] is the party joinable by friends via presence (doesn't require invite)
-	 * @param bInviteOnly [out] is the party joinable via explicit invites
-	 * @param bAllowInvites [out] are invites possible (use with bInviteOnly to determine if invites are available right now)
-	 *
-	 * @return true if the out params are valid, false otherwise
+	 * @return true if you have permission
 	 */
-	bool GetJoinability(bool& bFriendJoinable, bool& bInviteOnly, bool& bAllowInvites) const;
+	bool CanInvite() const;
 
 	/** @return the party leader for this party */
 	TSharedPtr<const FUniqueNetId> GetPartyLeader() const;
@@ -280,12 +283,12 @@ public:
 	void GetAllPartyMembers(TArray<UPartyMemberState*>& PartyMembers) const;
 
 	template< typename TPartyMemberState >
-	void GetTypedPartyMembers( TArray< TPartyMemberState* >& PartyMembers ) const
+	void GetTypedPartyMembers(TArray< TPartyMemberState* >& PartyMembers) const
 	{
-		PartyMembers.Empty( PartyMembersState.Num() );
-		for ( auto Iter = PartyMembersState.CreateConstIterator(); Iter; ++Iter )
+		PartyMembers.Empty(PartyMembersState.Num());
+		for (auto Iter = PartyMembersState.CreateConstIterator(); Iter; ++Iter)
 		{
-			PartyMembers.Add( Cast< TPartyMemberState >( Iter.Value() ) );
+			PartyMembers.Add(Cast< TPartyMemberState >(Iter.Value()));
 		}
 	}
 
@@ -295,11 +298,11 @@ public:
 	FOnPartyMemberDataChanged& OnPartyMemberDataChanged() { return PartyMemberDataChanged; }
 
 	/** @return delegate fired when the party type has changed */
-	FOnPartyTypeChanged& OnPartyTypeChanged() { return PartyTypeChanged; }
+	FOnClientPartyTypeChanged& OnClientPartyTypeChanged() { return ClientPartyTypeChanged; }
 	/** @return delegate fired when the leader based join permissions have changed */
-	FOnLeaderFriendsOnlyChanged& OnLeaderFriendsOnlyChanged() { return LeaderFriendsOnlyChanged; }
+	FOnClientLeaderFriendsOnlyChanged& OnClientLeaderFriendsOnlyChanged() { return ClientLeaderFriendsOnlyChanged; }
 	/** @return delegate fired when the leader based invite permissions have changed */
-	FOnLeaderInvitesOnlyChanged& OnLeaderInvitesOnlyChanged() { return LeaderInvitesOnlyChanged; }
+	FOnClientLeaderInvitesOnlyChanged& OnClientLeaderInvitesOnlyChanged() { return ClientLeaderInvitesOnlyChanged; }
 	
 protected:
 
@@ -317,17 +320,17 @@ protected:
 	 * Initialize a party that is newly created and a local player owns it
 	 *
 	 * @param LocalUserID party owner/leader (may change later if user promotes another leader)
-	 * @param InPartyInfo reference to the basic party info from the interface
+	 * @param InParty reference to the basic party info from the interface
 	 */
-	void InitFromCreate(const FUniqueNetId& LocalUserId, TSharedPtr<FOnlinePartyInfo>& InPartyInfo);
+	void InitFromCreate(const FUniqueNetId& LocalUserId, TSharedPtr<const FOnlineParty>& InParty);
 
 	/**
 	 * Initialize a party that has been joined and a local player is simply a member
 	 *
 	 * @param LocalUserID local primary player that joined the party
-	 * @param InPartyInfo reference to the basic party info from the interface
+	 * @param InParty reference to the basic party info from the interface
 	 */
-	void InitFromJoin(const FUniqueNetId& LocalUserId, TSharedPtr<FOnlinePartyInfo>& InPartyInfo);
+	void InitFromJoin(const FUniqueNetId& LocalUserId, TSharedPtr<const FOnlineParty>& InParty);
 
 protected:
 
@@ -336,11 +339,11 @@ protected:
 	const UScriptStruct* PartyStateRefDef;
 
 	/**
-	* Pointer to child USTRUCT that holds the current state of party member (set via InitPartyMemberState)
-	*
-	* Cached data for the party, only modifiable by the party leader
-	* Reference to the data structure defined in a child class
-	*/
+	 * Pointer to child USTRUCT that holds the current state of party member (set via InitPartyMemberState)
+	 *
+	 * Cached data for the party, only modifiable by the party leader
+	 * Reference to the data structure defined in a child class
+	 */
 	FPartyState* PartyStateRef;
 
 	/** User who created or joined this room (not the party leader) */
@@ -355,7 +358,7 @@ protected:
 	bool bDebugAcceptingMembers;
 
 	/** Reference to party info within OSS */
-	TSharedPtr<FOnlinePartyInfo> PartyInfo;
+	TSharedPtr<const FOnlineParty> OssParty;
 
 	/** Is leader promotion available at the moment */
 	bool bPromotionLockoutState;
@@ -404,14 +407,14 @@ protected:
 	/**
 	 * Delegates for party visibility/presence/invite permission changes
 	 */
-	FOnPartyTypeChanged PartyTypeChanged;
-	FOnLeaderFriendsOnlyChanged LeaderFriendsOnlyChanged;
-	FOnLeaderInvitesOnlyChanged LeaderInvitesOnlyChanged;
+	FOnClientPartyTypeChanged ClientPartyTypeChanged;
+	FOnClientLeaderFriendsOnlyChanged ClientLeaderFriendsOnlyChanged;
+	FOnClientLeaderInvitesOnlyChanged ClientLeaderInvitesOnlyChanged;
 
 	/**
 	 * Common initialization for a newly instantiated party
 	 */
-	void Init(const FUniqueNetId& LocalUserId, TSharedPtr<FOnlinePartyInfo>& InPartyInfo);
+	void Init(const FUniqueNetId& LocalUserId, TSharedPtr<const FOnlineParty>& InParty);
 
 	/** Register for game related delegates that affect the party */
 	virtual void RegisterFrontendDelegates();
@@ -468,7 +471,7 @@ protected:
 	 * @param bResetAccessKey should the update reset the access key (invalidates existing invites/presence)
 	 */
 	void UpdatePartyConfig(bool bResetAccessKey = false);
-	void OnUpdatePartyConfigComplete(const FUniqueNetId& LocalUserId, bool bWasSuccessful, const FOnlinePartyId& InPartyId, const FString& Error);
+	void OnUpdatePartyConfigComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EUpdateConfigCompletionResult);
 
 	/**
 	 * Called for all existing party members when a party configuration setting changes
@@ -535,7 +538,7 @@ protected:
 	void HandleRemovedFromParty(EMemberExitedReason Reason);
 
 	/** Party leader delegates */
-	void OnPartyMemberPromoted(const FUniqueNetId& LocalUserId, bool bWasSuccessful, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const FString& Error);
+	void OnPartyMemberPromoted(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EPromoteMemberCompletionResult Result);
 	void OnPartyMemberKicked(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EKickMemberCompletionResult Result);
 
 	/**

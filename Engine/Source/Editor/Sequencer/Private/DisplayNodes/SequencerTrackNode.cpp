@@ -5,28 +5,31 @@
 #include "ISequencerSection.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "Sequencer.h"
 #include "ISequencerTrackEditor.h"
+
 
 namespace SequencerNodeConstants
 {
 	extern const float CommonPadding;
 }
 
+
 /* FTrackNode structors
  *****************************************************************************/
 
-FTrackNode::FTrackNode(FName NodeName, UMovieSceneTrack& InAssociatedType, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree)
-	: FSequencerDisplayNode(NodeName, InParentNode, InParentTree)
+FSequencerTrackNode::FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree)
+	: FSequencerDisplayNode(InAssociatedTrack.GetTrackName(), InParentNode, InParentTree)
 	, AssociatedEditor(InAssociatedEditor)
-	, AssociatedType(&InAssociatedType)
+	, AssociatedTrack(&InAssociatedTrack)
 { }
 
 
 /* FTrackNode interface
  *****************************************************************************/
 
-void FTrackNode::SetSectionAsKeyArea(TSharedRef<IKeyArea>& KeyArea)
+void FSequencerTrackNode::SetSectionAsKeyArea(TSharedRef<IKeyArea>& KeyArea)
 {
 	if( !TopLevelKeyNode.IsValid() )
 	{
@@ -38,7 +41,7 @@ void FTrackNode::SetSectionAsKeyArea(TSharedRef<IKeyArea>& KeyArea)
 }
 
 
-int32 FTrackNode::GetMaxRowIndex() const
+int32 FSequencerTrackNode::GetMaxRowIndex() const
 {
 	int32 MaxRowIndex = 0;
 
@@ -51,9 +54,9 @@ int32 FTrackNode::GetMaxRowIndex() const
 }
 
 
-void FTrackNode::FixRowIndices()
+void FSequencerTrackNode::FixRowIndices()
 {
-	if (AssociatedType->SupportsMultipleRows())
+	if (AssociatedTrack->SupportsMultipleRows())
 	{
 		// remove any empty track rows by waterfalling down sections to be as compact as possible
 		TArray< TArray< TSharedRef<ISequencerSection> > > TrackIndices;
@@ -93,7 +96,21 @@ void FTrackNode::FixRowIndices()
 /* FSequencerDisplayNode interface
  *****************************************************************************/
 
-TSharedRef<SWidget> FTrackNode::GenerateEditWidgetForOutliner()
+void FSequencerTrackNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
+{
+	AssociatedEditor.BuildTrackContextMenu(MenuBuilder, AssociatedTrack.Get());
+	FSequencerDisplayNode::BuildContextMenu(MenuBuilder );
+}
+
+
+bool FSequencerTrackNode::CanRenameNode() const
+{
+	UMovieSceneTrack* Track = AssociatedTrack.Get();
+	return (Track != nullptr) && Track->IsA(UMovieSceneNameableTrack::StaticClass());
+}
+
+
+TSharedRef<SWidget> FSequencerTrackNode::GenerateEditWidgetForOutliner()
 {
 	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode = GetTopLevelKeyNode();
 
@@ -120,7 +137,7 @@ TSharedRef<SWidget> FTrackNode::GenerateEditWidgetForOutliner()
 			ObjectBinding = StaticCastSharedPtr<FSequencerObjectBindingNode>(ParentNode)->GetObjectBinding();
 		}
 
-		TSharedPtr<SWidget> EditWidget = AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedType.Get());
+		TSharedPtr<SWidget> EditWidget = AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get());
 		if (EditWidget.IsValid())
 		{
 			return EditWidget.ToSharedRef();
@@ -131,7 +148,7 @@ TSharedRef<SWidget> FTrackNode::GenerateEditWidgetForOutliner()
 }
 
 
-void FTrackNode::GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSectionKeyAreaNode>>& OutNodes) const
+void FSequencerTrackNode::GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSectionKeyAreaNode>>& OutNodes) const
 {
 	FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(OutNodes);
 
@@ -142,16 +159,13 @@ void FTrackNode::GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSec
 }
 
 
-FText FTrackNode::GetDisplayName() const
+FText FSequencerTrackNode::GetDisplayName() const
 {
-	// @todo sequencer: is there a better way to get the section interface name for the animation outliner?
-	return (TopLevelKeyNode.IsValid() && Sections.Num() > 0)
-		? Sections[0]->GetDisplayName()
-		: FText::FromName(NodeName);
+	return AssociatedTrack->GetDisplayName();
 }
 
 
-float FTrackNode::GetNodeHeight() const
+float FSequencerTrackNode::GetNodeHeight() const
 {
 	return (Sections.Num() > 0)
 		? Sections[0]->GetSectionHeight() * (GetMaxRowIndex() + 1)
@@ -159,19 +173,24 @@ float FTrackNode::GetNodeHeight() const
 }
 
 
-FNodePadding FTrackNode::GetNodePadding() const
+FNodePadding FSequencerTrackNode::GetNodePadding() const
 {
 	return FNodePadding(SequencerNodeConstants::CommonPadding);
 }
 
 
-ESequencerNode::Type FTrackNode::GetType() const
+ESequencerNode::Type FSequencerTrackNode::GetType() const
 {
 	return ESequencerNode::Track;
 }
 
-void FTrackNode::BuildContextMenu( FMenuBuilder& MenuBuilder )
+
+void FSequencerTrackNode::SetDisplayName(const FText& DisplayName)
 {
-	AssociatedEditor.BuildTrackContextMenu( MenuBuilder, AssociatedType.Get() );
-	FSequencerDisplayNode::BuildContextMenu( MenuBuilder );
+	auto NameableTrack = Cast<UMovieSceneNameableTrack>(AssociatedTrack.Get());
+
+	if (NameableTrack != nullptr)
+	{
+		NameableTrack->SetDisplayName(DisplayName);
+	}
 }

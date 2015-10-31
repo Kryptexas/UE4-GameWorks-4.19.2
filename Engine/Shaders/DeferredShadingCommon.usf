@@ -213,6 +213,8 @@ float Decode71(float Scalar, out uint Mask)
 #define SHADINGMODELID_TWOSIDED_FOLIAGE		6
 #define SHADINGMODELID_HAIR					7
 #define SHADINGMODELID_CLOTH				8
+#define SHADINGMODELID_EYE					9
+#define SHADINGMODELID_NUM					10
 #define SHADINGMODELID_MASK					0xF					
 
 // The flags are defined so that 0 value has no effect!

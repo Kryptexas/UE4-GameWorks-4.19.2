@@ -14,7 +14,7 @@ TSharedRef<ISequencerTrackEditor> FVisibilityPropertyTrackEditor::CreateTrackEdi
 
 TSharedRef<FPropertySection> FVisibilityPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
-	return MakeShareable(new FVisibilityPropertySection( SectionObject, Track.GetTrackName(), GetSequencer().Get() ));
+	return MakeShareable(new FVisibilityPropertySection(SectionObject, Track.GetDisplayName(), GetSequencer().Get()));
 }
 
 

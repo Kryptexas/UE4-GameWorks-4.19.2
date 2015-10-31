@@ -267,18 +267,7 @@ struct ENGINE_API FBlendedCurve
 
 	/** Initialize Curve Data from following data */
 	void InitFrom(const class USkeleton* Skeleton);
-	void InitFrom(const FBlendedCurve& InCurveToInitFrom)
-	{
-		// make sure this doesn't happen
-		if (ensure(&InCurveToInitFrom != this))
-		{
-			UIDList.Reset();
-			UIDList.Append(InCurveToInitFrom.UIDList);
-			Elements.Reset();
-			Elements.AddZeroed(UIDList.Num());
-			bInitialized = true;
-		}
-	}
+	void InitFrom(const FBlendedCurve& InCurveToInitFrom);
 
 	/** Set value of InUID to InValue */
 	void Set(USkeleton::AnimCurveUID InUid, float InValue, int32 InFlags);

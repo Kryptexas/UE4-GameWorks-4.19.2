@@ -222,7 +222,7 @@ void Circle4Samples(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV
 
 	// Fixed maximum search size (in terms of Circle of Confusion radius).
 	// Higher than 8 is too noizy for 4 samples.
-	float Coc = 8.0 * CircleDofParams.w;
+	float Coc = 8.0 * View.CircleDOFParams.w;
 
 	float LocalRand = RandomOffset.x + InRand;
 

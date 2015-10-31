@@ -66,14 +66,6 @@ const TArray<UMovieSceneSection*>& UMovieSceneShotTrack::GetAllSections() const
 }
 
 
-FName UMovieSceneShotTrack::GetTrackName() const
-{
-	static const FName UniqueName("Shots");
-
-	return UniqueName;
-}
-
-
 void UMovieSceneShotTrack::RemoveSection(UMovieSceneSection& Section)
 {
 	Sections.Remove(&Section);
@@ -82,6 +74,14 @@ void UMovieSceneShotTrack::RemoveSection(UMovieSceneSection& Section)
 
 	// @todo Sequencer: The movie scene owned by the section is now abandoned.  Should we offer to delete it?  
 }
+
+
+#if WITH_EDITORONLY_DATA
+FText UMovieSceneShotTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Shots");
+}
+#endif
 
 
 #if WITH_EDITOR

@@ -319,6 +319,7 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 				if (DeltaSeconds > (LastDeltaSeconds * HitchMultiplierAmount))
 				{
 					// We have a hitch!
+					OnHitchDetectedDelegate.Broadcast(DeltaSeconds);
 					
 					// Track the hitch by bucketing it based on time severity
 					const int32 HitchBucketCount = STAT_FPSChart_LastHitchBucketStat - STAT_FPSChart_FirstHitchStat;

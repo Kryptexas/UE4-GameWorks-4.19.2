@@ -7,11 +7,14 @@
 #include "ISequencerSection.h"
 #include "ISequencerTrackEditor.h"
 #include "MovieScene.h"
+#include "MovieSceneTrack.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneSequence.h"
 
 
 class ISequencerSection;
+class UMovieSceneTrack;
+
 
 /** Delegate for adding keys for a property
  * float - The time at which to add the key.
@@ -125,23 +128,22 @@ public:
 		bool bWasCreated;
 	};
 
-	FFindOrCreateTrackResult FindOrCreateTrackForObject( const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName, bool bCreateTrackIfMissing = true )
+	FFindOrCreateTrackResult FindOrCreateTrackForObject( const FGuid& ObjectHandle, TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName = NAME_None, bool bCreateTrackIfMissing = true )
 	{
 		FFindOrCreateTrackResult Result;
 		bool bTrackExisted;
 
-		check( UniqueTypeName != NAME_None );
-
 		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
-		Result.Track = MovieScene->FindTrack( TrackClass, ObjectHandle, UniqueTypeName );
+		Result.Track = MovieScene->FindTrack( TrackClass, ObjectHandle, PropertyName );
 		bTrackExisted = Result.Track != nullptr;
 
-		if( !Result.Track && bCreateTrackIfMissing )
+		if (!Result.Track && bCreateTrackIfMissing)
 		{
-			Result.Track = AddTrack( MovieScene, ObjectHandle, TrackClass, UniqueTypeName );
+			Result.Track = AddTrack(MovieScene, ObjectHandle, TrackClass, PropertyName);
 		}
 
 		Result.bWasCreated = bTrackExisted == false && Result.Track != nullptr;
+
 		return Result;
 	}
 

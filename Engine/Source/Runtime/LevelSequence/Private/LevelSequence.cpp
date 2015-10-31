@@ -4,6 +4,7 @@
 #include "LevelSequence.h"
 #include "LevelSequenceObject.h"
 #include "MovieScene.h"
+#include "MovieSceneCommonHelpers.h"
 #include "Engine/Blueprint.h"
 
 
@@ -67,9 +68,33 @@ void ULevelSequence::BindToContext(UObject* NewContext)
 
 void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
-	if (UObject* Context = ResolutionContext.Get())
+	
+	UObject* Context = ResolutionContext.Get();
+
+	// Always use the parent as a context when there is a parent spawnable
+	UObject* ParentObject = GetParentObject(&PossessedObject);
+	FGuid ParentId = ParentObject ? FindObjectId(*ParentObject) : FGuid();
+
+	FMovieSceneSpawnable* ParentSpawnable = ParentId.IsValid() ? MovieScene->FindSpawnable(ParentId) : nullptr;
+	if (ParentSpawnable)
+	{
+		Context = ParentObject;
+	}
+
+	if (Context)
 	{
 		ObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
+
+		MovieSceneHelpers::SetRuntimeObjectMobility(&PossessedObject);
+
+		// Ensure that we report possessables to their parent spawnable, if necessary
+		FMovieScenePossessable* ChildPossessable = MovieScene->FindPossessable(ObjectId);
+
+		if (ParentSpawnable && ensureMsgf(ChildPossessable, TEXT("Object being possessed without a corresponding possessable")))
+		{
+			ParentSpawnable->AddChildPossessable(ObjectId);
+			ChildPossessable->SetParentSpawnable(ParentId);
+		}
 	}
 }
 
@@ -96,6 +121,13 @@ UObject* ULevelSequence::FindObject(const FGuid& ObjectId) const
 	}
 
 	UObject* Context = ResolutionContext.Get();
+
+	// Always use the parent as a context when possible
+	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectId);
+	if (Possessable && Possessable->GetParentSpawnable().IsValid())
+	{
+		Context = FindObject(Possessable->GetParentSpawnable());
+	}
 
 	// Attempt to resolve the object binding through the remapped bindings
 	UObject* FoundObject = Context ? ObjectReferences.ResolveBinding(ObjectId, Context) : nullptr;
@@ -187,11 +219,6 @@ UObject* ULevelSequence::SpawnObject(const FGuid& ObjectId)
 		return nullptr;
 	}
 
-	AActor* ActorCDO = CastChecked<AActor>(SpawnableClass->ClassDefaultObject);
-
-	const FVector SpawnLocation = ActorCDO->GetRootComponent()->RelativeLocation;
-	const FRotator SpawnRotation = ActorCDO->GetRootComponent()->RelativeRotation;
-
 	// @todo sequencer: We should probably spawn these in a specific sub-level!
 	// World->CurrentLevel = ???;
 
@@ -214,8 +241,13 @@ UObject* ULevelSequence::SpawnObject(const FGuid& ObjectId)
 	}
 
 	FTransform SpawnTransform;
-	SpawnTransform.SetTranslation(SpawnLocation);
-	SpawnTransform.SetRotation(SpawnRotation.Quaternion());
+
+	AActor* ActorCDO = CastChecked<AActor>(SpawnableClass->ClassDefaultObject);
+	if (USceneComponent* RootComponent = ActorCDO->GetRootComponent())
+	{
+		SpawnTransform.SetTranslation(RootComponent->RelativeLocation);
+		SpawnTransform.SetRotation(RootComponent->RelativeRotation.Quaternion());
+	}
 
 	//@todo: This is in place of SpawnActorAbsolute which doesn't exist yet in the Orion branch
 	FTransform NewTransform = SpawnTransform;
@@ -236,8 +268,6 @@ UObject* ULevelSequence::SpawnObject(const FGuid& ObjectId)
 		}
 	}
 
-
-
 	UObject* SpawnedObject = GWorld->SpawnActor(SpawnableClass, &NewTransform, SpawnInfo);
 	if (!SpawnedObject)
 	{
@@ -246,6 +276,8 @@ UObject* ULevelSequence::SpawnObject(const FGuid& ObjectId)
 	
 	SpawnedObjects.Add(ObjectId, SpawnedObject);
 	CachedObjectBindings.Add(ObjectId, SpawnedObject);
+
+	MovieSceneHelpers::SetRuntimeObjectMobility(SpawnedObject);
 
 	return SpawnedObject;
 }

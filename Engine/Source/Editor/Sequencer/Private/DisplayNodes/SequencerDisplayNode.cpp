@@ -16,7 +16,9 @@
 #include "GroupedKeyArea.h"
 #include "ObjectEditorUtils.h"
 
+
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
+
 
 namespace SequencerNodeConstants
 {
@@ -24,9 +26,12 @@ namespace SequencerNodeConstants
 	const float CommonPadding = 4.f;
 }
 
-class SSequencerObjectTrack : public SLeafWidget
+
+class SSequencerObjectTrack
+	: public SLeafWidget
 {
 public:
+
 	SLATE_BEGIN_ARGS(SSequencerObjectTrack) {}
 		/** The view range of the section area */
 		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
@@ -46,6 +51,7 @@ public:
 	}
 
 private:
+
 	/** Collects all key times from the root node */
 	void CollectAllKeyTimes(TArray<float>& OutKeyTimes) const;
 
@@ -53,11 +59,14 @@ private:
 	void AddKeyTime(float NewTime, TArray<float>& OutKeyTimes) const;
 
 private:
+
 	/** Root node of this track view panel */
 	TSharedPtr<FSequencerDisplayNode> RootNode;
+
 	/** The current view range */
 	TAttribute< TRange<float> > ViewRange;
 };
+
 
 int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
@@ -69,8 +78,8 @@ int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Al
 	for (int32 i = 0; i < OutKeyTimes.Num(); ++i)
 	{
 		float KeyPosition = TimeToPixelConverter.TimeToPixel(OutKeyTimes[i]);
-
 		static const FVector2D KeyMarkSize = FVector2D(3.f, 21.f);
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId+1,
@@ -85,15 +94,17 @@ int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Al
 	return LayerId+1;
 }
 
+
 FVector2D SSequencerObjectTrack::ComputeDesiredSize( float ) const
 {
 	// Note: X Size is not used
 	return FVector2D( 100.0f, RootNode->GetNodeHeight() );
 }
 
+
 void SSequencerObjectTrack::CollectAllKeyTimes(TArray<float>& OutKeyTimes) const
 {
-	TArray< TSharedRef<FSequencerSectionKeyAreaNode> > OutNodes;
+	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> OutNodes;
 	RootNode->GetChildKeyAreaNodesRecursively(OutNodes);
 
 	for (int32 i = 0; i < OutNodes.Num(); ++i)
@@ -110,19 +121,20 @@ void SSequencerObjectTrack::CollectAllKeyTimes(TArray<float>& OutKeyTimes) const
 	}
 }
 
+
 void SSequencerObjectTrack::AddKeyTime(float NewTime, TArray<float>& OutKeyTimes) const
 {
 	// @todo Sequencer It might be more efficient to add each key and do the pruning at the end
-	for (int32 i = 0; i < OutKeyTimes.Num(); ++i)
+	for (float& KeyTime : OutKeyTimes)
 	{
-		if (FMath::IsNearlyEqual(OutKeyTimes[i], NewTime))
+		if (FMath::IsNearlyEqual(KeyTime, NewTime))
 		{
 			return;
 		}
 	}
+
 	OutKeyTimes.Add(NewTime);
 }
-
 
 
 FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
@@ -130,9 +142,8 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	, ParentTree( InParentTree )
 	, NodeName( InNodeName )
 	, bExpanded( false )
-{
-	
-}
+{ }
+
 
 void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom)
 {
@@ -142,13 +153,14 @@ void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom
 	VirtualBottom = InVirtualBottom;
 }
 
+
 void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode)
 {
 	ChildNodes.Add(ObjectBindingNode);
 }
 
 
-bool FSequencerDisplayNode::Traverse_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
+bool FSequencerDisplayNode::Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
 {
 	for (auto& Child : GetChildNodes())
 	{
@@ -161,7 +173,8 @@ bool FSequencerDisplayNode::Traverse_ChildFirst(TFunctionRef<bool(FSequencerDisp
 	return bIncludeThisNode ? InPredicate(*this) : true;
 }
 
-bool FSequencerDisplayNode::Traverse_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
+
+bool FSequencerDisplayNode::Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
 {
 	if (bIncludeThisNode && !InPredicate(*this))
 	{
@@ -179,7 +192,8 @@ bool FSequencerDisplayNode::Traverse_ParentFirst(TFunctionRef<bool(FSequencerDis
 	return true;
 }
 
-bool FSequencerDisplayNode::TraverseVisible_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
+
+bool FSequencerDisplayNode::TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
 {
 	// If the item is not expanded, its children ain't visible
 	if (IsExpanded())
@@ -203,7 +217,7 @@ bool FSequencerDisplayNode::TraverseVisible_ChildFirst(TFunctionRef<bool(FSequen
 }
 
 
-bool FSequencerDisplayNode::TraverseVisible_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode)
+bool FSequencerDisplayNode::TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
 {
 	if (bIncludeThisNode && !IsHidden() && !InPredicate(*this))
 	{
@@ -225,110 +239,126 @@ bool FSequencerDisplayNode::TraverseVisible_ParentFirst(TFunctionRef<bool(FSeque
 	return true;
 }
 
+
 TSharedRef<FSequencerSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
 {
 	TSharedPtr<FSequencerSectionCategoryNode> CategoryNode;
 
 	// See if there is an already existing category node to use
-	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
+	for (const TSharedRef<FSequencerDisplayNode>& Node : ChildNodes)
 	{
-		TSharedRef<FSequencerDisplayNode>& ChildNode = ChildNodes[ChildIndex];
-		if( ChildNode->GetNodeName() == CategoryName && ChildNode->GetType() == ESequencerNode::Category )
+		if ((Node->GetNodeName() == CategoryName) && (Node->GetType() == ESequencerNode::Category))
 		{
-			CategoryNode = StaticCastSharedRef<FSequencerSectionCategoryNode>( ChildNode );
+			CategoryNode = StaticCastSharedRef<FSequencerSectionCategoryNode>(Node);
 		}
 	}
 
-	if( !CategoryNode.IsValid() )
+	if (!CategoryNode.IsValid())
 	{
 		// No existing category found, make a new one
-		CategoryNode = MakeShareable( new FSequencerSectionCategoryNode( CategoryName, DisplayLabel, SharedThis( this ), ParentTree ) );
-		ChildNodes.Add( CategoryNode.ToSharedRef() );
+		CategoryNode = MakeShareable(new FSequencerSectionCategoryNode(CategoryName, DisplayLabel, SharedThis(this), ParentTree));
+		ChildNodes.Add(CategoryNode.ToSharedRef());
 	}
 
 	return CategoryNode.ToSharedRef();
 }
 
-TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor )
-{
-	TSharedPtr<FTrackNode> SectionNode;
 
-	// See if there is an already existing section node to use
-	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
+TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddSectionAreaNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
+{
+	TSharedPtr<FSequencerTrackNode> SectionNode;
+
+	// see if there is an already existing section node to use
+	for (const TSharedRef<FSequencerDisplayNode>& Node : ChildNodes)
 	{
-		TSharedRef<FSequencerDisplayNode>& ChildNode = ChildNodes[ChildIndex];
-		if( ChildNode->GetNodeName() == SectionName && ChildNode->GetType() == ESequencerNode::Track )
+		if (Node->GetType() != ESequencerNode::Track)
 		{
-			SectionNode = StaticCastSharedRef<FTrackNode>( ChildNode );
+			continue;
+		}
+
+		SectionNode = StaticCastSharedRef<FSequencerTrackNode>(Node);
+
+		if (SectionNode->GetTrack() != &AssociatedTrack)
+		{
+			SectionNode.Reset();
+		}
+		else
+		{
+			break;
 		}
 	}
 
-	if( !SectionNode.IsValid() )
+	if (!SectionNode.IsValid())
 	{
 		// No existing node found make a new one
-		SectionNode = MakeShareable( new FTrackNode( SectionName, AssociatedTrack, AssociatedEditor, SharedThis( this ), ParentTree ) );
+		SectionNode = MakeShareable(new FSequencerTrackNode(AssociatedTrack, AssociatedEditor, SharedThis(this), ParentTree));
 		ChildNodes.Add( SectionNode.ToSharedRef() );
 	}
 
 	// The section node type has to match
-	check( SectionNode->GetTrack() == &AssociatedTrack );
+	check(SectionNode->GetTrack() == &AssociatedTrack);
 
 	return SectionNode.ToSharedRef();
 }
 
-void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& DisplayName, TSharedRef<IKeyArea> KeyArea )
+
+void FSequencerDisplayNode::AddKeyAreaNode(FName KeyAreaName, const FText& DisplayName, TSharedRef<IKeyArea> KeyArea)
 {
 	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode;
 
 	// See if there is an already existing key area node to use
-	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
+	for (const TSharedRef<FSequencerDisplayNode>& Node : ChildNodes)
 	{
-		TSharedRef<FSequencerDisplayNode>& ChildNode = ChildNodes[ChildIndex];
-		if( ChildNode->GetNodeName() == KeyAreaName && ChildNode->GetType() == ESequencerNode::KeyArea )
+		if ((Node->GetNodeName() == KeyAreaName) && (Node->GetType() == ESequencerNode::KeyArea))
 		{
-			KeyAreaNode = StaticCastSharedRef<FSequencerSectionKeyAreaNode>( ChildNode );
+			KeyAreaNode = StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node);
 		}
 	}
 
-	if( !KeyAreaNode.IsValid() )
+	if (!KeyAreaNode.IsValid())
 	{
 		// No existing node found make a new one
 		KeyAreaNode = MakeShareable( new FSequencerSectionKeyAreaNode( KeyAreaName, DisplayName, SharedThis( this ), ParentTree ) );
-		ChildNodes.Add( KeyAreaNode.ToSharedRef() );
+		ChildNodes.Add(KeyAreaNode.ToSharedRef());
 	}
 
-	KeyAreaNode->AddKeyArea( KeyArea );
+	KeyAreaNode->AddKeyArea(KeyArea);
 }
+
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow)
 {
-	return SNew( SAnimationOutlinerTreeNode, SharedThis( this ), InRow );
+	auto NewWidget = SNew(SAnimationOutlinerTreeNode, SharedThis(this), InRow);
+	TreeNodeWidgetPtr = NewWidget;
+
+	return NewWidget;
 }
+
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateEditWidgetForOutliner()
 {
 	return SNew(SSpacer);
 }
 
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea( const TAttribute< TRange<float> >& ViewRange )
+
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea(const TAttribute< TRange<float> >& ViewRange)
 {
-	if( GetType() == ESequencerNode::Track )
+	if (GetType() == ESequencerNode::Track)
 	{
-		return 
-			SNew( SSequencerSectionAreaView, SharedThis( this ) )
-			.ViewRange( ViewRange );
+		return SNew(SSequencerSectionAreaView, SharedThis(this))
+			.ViewRange(ViewRange);
 	}
-	else if (GetType() == ESequencerNode::Object)
+	
+	if (GetType() == ESequencerNode::Object)
 	{
 		return SNew(SSequencerObjectTrack, SharedThis(this))
-			.ViewRange( ViewRange );
+			.ViewRange(ViewRange);
 	}
-	else
-	{
-		// Currently only section areas display widgets
-		return SNullWidget::NullWidget;
-	}
+
+	// currently only section areas display widgets
+	return SNullWidget::NullWidget;
 }
+
 
 TSharedPtr<FSequencerDisplayNode> FSequencerDisplayNode::GetSectionAreaAuthority() const
 {
@@ -345,14 +375,17 @@ TSharedPtr<FSequencerDisplayNode> FSequencerDisplayNode::GetSectionAreaAuthority
 			Authority = Authority->GetParent();
 		}
 	}
+
 	return Authority;
 }
+
 
 FString FSequencerDisplayNode::GetPathName() const
 {
 	// First get our parent's path
 	FString PathName;
-	if( ParentNode.IsValid() )
+
+	if (ParentNode.IsValid())
 	{
 		PathName = ParentNode.Pin()->GetPathName() + TEXT(".");
 	}
@@ -363,57 +396,76 @@ FString FSequencerDisplayNode::GetPathName() const
 	return PathName;
 }
 
+
 TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	// @todo sequencer replace with UI Commands instead of faking it
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, nullptr);
 
 	BuildContextMenu(MenuBuilder);
 
 	return MenuBuilder.MakeWidget();
 }
 
+
 void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
-	TSharedRef<FSequencerDisplayNode> NodeToBeDeleted = SharedThis(this);
+	TSharedRef<FSequencerDisplayNode> ThisNode = SharedThis(this);
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("DeleteNode", "Delete"),
 		LOCTEXT("DeleteNodeTooltip", "Delete this or selected nodes"),
 		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, NodeToBeDeleted)));
+		FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode))
+	);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("RenameNode", "Rename"),
+		LOCTEXT("RenameNodeTooltip", "Rename this node"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeExecute, ThisNode),
+			FCanExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute, ThisNode)
+		)
+	);
 }
+
 
 void FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<FSequencerSectionKeyAreaNode> >& OutNodes) const
 {
-	for (int32 i = 0; i < ChildNodes.Num(); ++i)
+	for (const TSharedRef<FSequencerDisplayNode>& Node : ChildNodes)
 	{
-		if (ChildNodes[i]->GetType() == ESequencerNode::KeyArea)
+		if (Node->GetType() == ESequencerNode::KeyArea)
 		{
-			OutNodes.Add(StaticCastSharedRef<FSequencerSectionKeyAreaNode>(ChildNodes[i]));
+			OutNodes.Add(StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node));
 		}
-		ChildNodes[i]->GetChildKeyAreaNodesRecursively(OutNodes);
+
+		Node->GetChildKeyAreaNodesRecursively(OutNodes);
 	}
 }
+
 
 void FSequencerDisplayNode::SetExpansionState(bool bInExpanded)
 {
 	bExpanded = bInExpanded;
 
 	// Expansion state has changed, save it to the movie scene now
-	ParentTree.SaveExpansionState( *this, bExpanded );
+	ParentTree.SaveExpansionState(*this, bExpanded);
 }
+
 
 bool FSequencerDisplayNode::IsExpanded() const
 {
 	return ParentTree.HasActiveFilter() ? true : bExpanded;
 }
 
+
 bool FSequencerDisplayNode::IsHidden() const
 {
 	return ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared());
 }
+
 
 TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectionIndex)
 {
@@ -422,13 +474,16 @@ TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectio
 		KeyGroupings.SetNum(InSectionIndex + 1);
 	}
 
-	if (!KeyGroupings[InSectionIndex].IsValid())
+	auto& KeyGroup = KeyGroupings[InSectionIndex];
+
+	if (!KeyGroup.IsValid())
 	{
-		KeyGroupings[InSectionIndex] = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
+		KeyGroup = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
 	}
 
-	return KeyGroupings[InSectionIndex].ToSharedRef();
+	return KeyGroup.ToSharedRef();
 }
+
 
 TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSectionIndex)
 {
@@ -437,16 +492,35 @@ TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSec
 		KeyGroupings.SetNum(InSectionIndex + 1);
 	}
 
-	if (!KeyGroupings[InSectionIndex].IsValid())
+	auto& KeyGroup = KeyGroupings[InSectionIndex];
+
+	if (!KeyGroup.IsValid())
 	{
-		KeyGroupings[InSectionIndex] = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
+		KeyGroup = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
 	}
 	else
 	{
-		*KeyGroupings[InSectionIndex] = FGroupedKeyArea(*this, InSectionIndex);
+		*KeyGroup = FGroupedKeyArea(*this, InSectionIndex);
 	}
 
-	return KeyGroupings[InSectionIndex].ToSharedRef();
+	return KeyGroup.ToSharedRef();
+}
+
+
+void FSequencerDisplayNode::HandleContextMenuRenameNodeExecute(TSharedRef<FSequencerDisplayNode> NodeToBeRenamed)
+{
+	TSharedPtr<SAnimationOutlinerTreeNode> TreeNodeWidget = TreeNodeWidgetPtr.Pin();
+
+	if (TreeNodeWidget.IsValid())
+	{
+		TreeNodeWidget->EnterRenameMode();
+	}
+}
+
+
+bool FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute(TSharedRef<FSequencerDisplayNode> NodeToBeRenamed) const
+{
+	return NodeToBeRenamed->CanRenameNode();
 }
 
 

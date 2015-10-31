@@ -50,7 +50,7 @@ void FMovieScene3DTransformTrackInstance::RestoreState(const TArray<UObject*>& R
 }
 
 
-void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
+void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
 {
 	FVector Translation;
 	FRotator Rotation;
@@ -64,9 +64,16 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 
 			if (SceneComponent != nullptr)
 			{
-				SceneComponent->SetRelativeLocationAndRotation(Translation, Rotation);
-
-				SceneComponent->SetRelativeScale3D(Scale);
+				if (UpdatePass == MSUP_PreUpdate)
+				{
+					SceneComponent->ResetRelativeTransform();
+				}
+				else if (UpdatePass == MSUP_Update)
+				{
+					SceneComponent->AddRelativeLocation(Translation);
+					SceneComponent->AddRelativeRotation(Rotation);
+					SceneComponent->SetRelativeScale3D(Scale);
+				}
 			}
 		}
 	}

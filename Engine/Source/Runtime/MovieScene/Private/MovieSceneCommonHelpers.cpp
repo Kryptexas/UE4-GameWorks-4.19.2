@@ -10,18 +10,17 @@ TArray<UMovieSceneSection*> MovieSceneHelpers::GetTraversedSections( const TArra
 	TArray<UMovieSceneSection*> TraversedSections;
 
 	bool bPlayingBackwards = CurrentTime - PreviousTime < 0.0f;
-	
 	float MaxTime = bPlayingBackwards ? PreviousTime : CurrentTime;
 	float MinTime = bPlayingBackwards ? CurrentTime : PreviousTime;
 
-	TRange<float> SliderRange(MinTime, MaxTime);
+	TRange<float> TraversedRange(MinTime, TRangeBound<float>::Inclusive(MaxTime));
 
-	for( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
+	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
 		UMovieSceneSection* Section = Sections[SectionIndex];
-		if( Section->GetStartTime() == CurrentTime || SliderRange.Overlaps( TRange<float>( Section->GetRange() ) ) )
+		if ((Section->GetStartTime() == CurrentTime) || TraversedRange.Overlaps(TRange<float>(Section->GetRange())))
 		{
-			TraversedSections.Add( Section );
+			TraversedSections.Add(Section);
 		}
 	}
 
@@ -35,7 +34,7 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 	{
 		UMovieSceneSection* Section = Sections[SectionIndex];
 
-		//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
+		//@todo sequencer: There can be multiple sections overlapping in time. Returning instantly does not account for that.
 		if( Section->IsTimeWithinSection( Time ) && Section->IsActive() )
 		{
 			return Section;
@@ -61,7 +60,7 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 
 		if (Section->IsActive())
 		{
-			//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
+			//@todo sequencer: There can be multiple sections overlapping in time. Returning instantly does not account for that.
 			if( Section->IsTimeWithinSection( Time ) )
 			{
 				return Section;

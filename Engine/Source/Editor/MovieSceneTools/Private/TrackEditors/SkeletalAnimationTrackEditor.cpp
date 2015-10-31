@@ -29,15 +29,12 @@ namespace SkeletalAnimationEditorConstants
 }
 
 
+#define LOCTEXT_NAMESPACE "FSkeletalAnimationTrackEditor"
+
+
 FSkeletalAnimationSection::FSkeletalAnimationSection( UMovieSceneSection& InSection )
 	: Section( InSection )
-{
-}
-
-
-FSkeletalAnimationSection::~FSkeletalAnimationSection()
-{
-}
+{ }
 
 
 UMovieSceneSection* FSkeletalAnimationSection::GetSectionObject()
@@ -48,7 +45,7 @@ UMovieSceneSection* FSkeletalAnimationSection::GetSectionObject()
 
 FText FSkeletalAnimationSection::GetDisplayName() const
 {
-	return NSLOCTEXT("FAnimationSection", "AnimationSection", "Animation");
+	return LOCTEXT("AnimationSection", "Animation");
 }
 
 
@@ -59,7 +56,7 @@ FText FSkeletalAnimationSection::GetSectionTitle() const
 	{
 		return FText::FromString( AnimSection->GetAnimSequence()->GetName() );
 	}
-	return NSLOCTEXT("FAnimationSection", "NoAnimationSection", "No Animation");
+	return LOCTEXT("NoAnimationSection", "No Animation");
 }
 
 
@@ -120,13 +117,7 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 
 FSkeletalAnimationTrackEditor::FSkeletalAnimationTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
-{
-}
-
-
-FSkeletalAnimationTrackEditor::~FSkeletalAnimationTrackEditor()
-{
-}
+{ }
 
 
 TSharedRef<ISequencerTrackEditor> FSkeletalAnimationTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
@@ -156,8 +147,8 @@ void FSkeletalAnimationTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* Add
 	if (AnimSequence)
 	{
 		TArray<UObject*> OutObjects;
-		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
+		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence) );
 	}
 }
@@ -176,8 +167,8 @@ bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid
 			if (Skeleton && Skeleton == AnimSequence->GetSkeleton())
 			{
 				TArray<UObject*> OutObjects;
-				GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
+				GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 				AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence));
 
 				return true;
@@ -208,45 +199,50 @@ void FSkeletalAnimationTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& Me
 			if (AssetDataList.Num())
 			{
 				MenuBuilder.AddSubMenu(
-					NSLOCTEXT("Sequencer", "AddAnimation", "Animation"), NSLOCTEXT("Sequencer", "AddAnimationTooltip", "Adds an animation track."),
-					FNewMenuDelegate::CreateRaw(this, &FSkeletalAnimationTrackEditor::BuildAnimationSubMenu, ObjectBinding, Skeleton));
+					LOCTEXT("AddAnimation", "Animation"), NSLOCTEXT("Sequencer", "AddAnimationTooltip", "Adds an animation track."),
+					FNewMenuDelegate::CreateRaw(this, &FSkeletalAnimationTrackEditor::BuildAnimationSubMenu, ObjectBinding, Skeleton)
+				);
 			}
 		}
 	}
 }
 
+
 void FSkeletalAnimationTrackEditor::BuildAnimationSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding, USkeleton* Skeleton)
 {
 	FAssetPickerConfig AssetPickerConfig;
-	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw( this, &FSkeletalAnimationTrackEditor::OnAnimationAssetSelected, ObjectBinding);
-	AssetPickerConfig.bAllowNullSelection = false;
-	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-
-	// Filter config
-	AssetPickerConfig.Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
-	AssetPickerConfig.Filter.TagsAndValues.Add(TEXT("Skeleton"), FAssetData(Skeleton).GetExportTextName());
+	{
+		AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw( this, &FSkeletalAnimationTrackEditor::OnAnimationAssetSelected, ObjectBinding);
+		AssetPickerConfig.bAllowNullSelection = false;
+		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+		AssetPickerConfig.Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
+		AssetPickerConfig.Filter.TagsAndValues.Add(TEXT("Skeleton"), FAssetData(Skeleton).GetExportTextName());
+	}
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	TSharedPtr<SBox> MenuEntry = SNew(SBox)
-	.WidthOverride(300.0f)
-	.HeightOverride(300.f)
-	[
-		ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-	];
+		.WidthOverride(300.0f)
+		.HeightOverride(300.f)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		];
+
 	MenuBuilder.AddWidget(MenuEntry.ToSharedRef(), FText::GetEmpty(), true);
 }
+
 
 void FSkeletalAnimationTrackEditor::OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding)
 {
 	UObject* SelectedObject = AssetData.GetAsset();
+
 	if (SelectedObject && SelectedObject->IsA(UAnimSequence::StaticClass()))
 	{
 		UAnimSequence* AnimSequence = CastChecked<UAnimSequence>(AssetData.GetAsset());
-
 		AddKey(ObjectBinding, AnimSequence);
 	}
 }
+
 
 bool FSkeletalAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, class UAnimSequence* AnimSequence )
 {
@@ -263,7 +259,7 @@ bool FSkeletalAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<
 		bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
-			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieSceneSkeletalAnimationTrack::StaticClass(), FName( "Animation" ) );
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneSkeletalAnimationTrack::StaticClass());
 			UMovieSceneTrack* Track = TrackResult.Track;
 			bTrackCreated |= TrackResult.bWasCreated;
 
@@ -309,3 +305,6 @@ USkeleton* FSkeletalAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FG
 
 	return Skeleton;
 }
+
+
+#undef LOCTEXT_NAMESPACE

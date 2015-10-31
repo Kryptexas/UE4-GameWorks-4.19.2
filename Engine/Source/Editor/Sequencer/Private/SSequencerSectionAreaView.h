@@ -3,7 +3,7 @@
 #pragma once
 
 class FSequencerSectionKeyAreaNode;
-class FTrackNode;
+class FSequencerTrackNode;
 
 /**
  * Visualizes a section area and its children                                        
@@ -53,7 +53,7 @@ private:
 	FSequencer& GetSequencer() const;
 private:
 	/** The node containing the sections we are viewing/manipulating */
-	TSharedPtr<FTrackNode> SectionAreaNode;
+	TSharedPtr<FSequencerTrackNode> SectionAreaNode;
 	/** The current view range */
 	TAttribute< TRange<float> > ViewRange;
 	/** Background brush of the section area */

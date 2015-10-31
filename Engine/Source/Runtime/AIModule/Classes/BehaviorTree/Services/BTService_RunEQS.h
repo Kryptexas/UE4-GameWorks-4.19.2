@@ -14,7 +14,7 @@ struct FBTEQSServiceMemory
 	int32 RequestID;
 };
 
-UCLASS(hidecategories=(Service))
+UCLASS()
 class AIMODULE_API UBTService_RunEQS : public UBTService_BlackboardBase
 {
 	GENERATED_BODY()

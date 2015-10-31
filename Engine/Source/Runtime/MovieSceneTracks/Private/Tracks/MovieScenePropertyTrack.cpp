@@ -12,7 +12,7 @@ UMovieScenePropertyTrack::UMovieScenePropertyTrack( const FObjectInitializer& Ob
 
 void UMovieScenePropertyTrack::SetPropertyNameAndPath( FName InPropertyName, const FString& InPropertyPath )
 {
-	check( InPropertyName != NAME_None && !InPropertyPath.IsEmpty() );
+	check((InPropertyName != NAME_None) && !InPropertyPath.IsEmpty());
 
 	PropertyName = InPropertyName;
 	PropertyPath = InPropertyPath;
@@ -22,6 +22,20 @@ void UMovieScenePropertyTrack::SetPropertyNameAndPath( FName InPropertyName, con
 const TArray<UMovieSceneSection*>& UMovieScenePropertyTrack::GetAllSections() const
 {
 	return Sections;
+}
+
+
+#if WITH_EDITORONLY_DATA
+FText UMovieScenePropertyTrack::GetDisplayName() const
+{
+	return FText::FromName(PropertyName);
+}
+#endif
+
+
+FName UMovieScenePropertyTrack::GetTrackName() const
+{
+	return PropertyName;
 }
 
 

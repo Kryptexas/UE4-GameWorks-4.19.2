@@ -2,21 +2,30 @@
 
 #pragma once
 
+
 /**
-* A movie scene section for material parameters.
-*/
-class FMaterialParameterSection : public FPropertySection
+ * A movie scene section for material parameters.
+ */
+class FMaterialParameterSection
+	: public FPropertySection
 {
 public:
-	FMaterialParameterSection( UMovieSceneSection& InSectionObject, FName SectionName )
-		: FPropertySection( InSectionObject, SectionName ) {}
 
-	// ISequencerSection interface.
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
-	virtual bool RequestDeleteCategory( const TArray<FName>& CategoryNamePath ) override;
-	virtual bool RequestDeleteKeyArea( const TArray<FName>& KeyAreaNamePath ) override;
+	FMaterialParameterSection(UMovieSceneSection& InSectionObject, const FText& SectionName)
+		: FPropertySection(InSectionObject, SectionName)
+	{ }
 
-	// FPropertySection interface.
+public:
+
+	// FPropertySection interface
 	virtual void SetIntermediateValue(FPropertyChangedParams PropertyChangedParams) override { }
 	virtual void ClearIntermediateValue() override { }
+
+public:
+
+	// ISequencerSection interface
+
+	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;
+	virtual bool RequestDeleteCategory(const TArray<FName>& CategoryNamePath) override;
+	virtual bool RequestDeleteKeyArea(const TArray<FName>& KeyAreaNamePath) override;
 };

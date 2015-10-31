@@ -414,6 +414,11 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "RadioButton", BasicRadioButtonStyle );
 	}
 
+	// SEditableLabel defaults...
+	{
+		Style->Set("EditableLabel.EditIcon", new IMAGE_BRUSH("Icons/ellipsis_12x", Icon12x12));
+	}
+
 	// SEditableText defaults...
 	{
 		FSlateBrush* SelectionBackground = new BOX_BRUSH( "Common/EditableTextSelectionBackground",  FMargin(4.f/16.f) );

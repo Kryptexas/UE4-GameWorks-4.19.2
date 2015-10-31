@@ -118,12 +118,6 @@ TRange<float> UMovieSceneEventTrack::GetSectionBoundaries() const
 }
 
 
-FName UMovieSceneEventTrack::GetTrackName() const
-{
-	return TrackName;
-}
-
-
 bool UMovieSceneEventTrack::HasSection(const UMovieSceneSection& Section) const
 {
 	return Sections.Contains(&Section);

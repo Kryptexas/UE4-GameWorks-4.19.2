@@ -62,7 +62,7 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 {
 	if (InNode.GetType() == ESequencerNode::Track)
 	{
-		HandleNode(Visitor, InNode, static_cast<FTrackNode&>(InNode).GetSections());
+		HandleNode(Visitor, InNode, static_cast<FSequencerTrackNode&>(InNode).GetSections());
 	}
 
 	if (InNode.IsExpanded())
@@ -107,7 +107,7 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 		}
 		else if (InNode.GetType() == ESequencerNode::Track)
 		{
-			TSharedPtr<FSequencerSectionKeyAreaNode> SectionKeyNode = static_cast<FTrackNode&>(InNode).GetTopLevelKeyNode();
+			TSharedPtr<FSequencerSectionKeyAreaNode> SectionKeyNode = static_cast<FSequencerTrackNode&>(InNode).GetTopLevelKeyNode();
 			if (SectionKeyNode.IsValid())
 			{
 				HandleKeyAreaNode(Visitor, *SectionKeyNode, InNode, InSections);

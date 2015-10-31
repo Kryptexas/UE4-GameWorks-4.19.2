@@ -55,14 +55,14 @@ protected:
 	 * @param NewKeys The new keys to add.
 	 * @param KeyParams The parameters to control keyframing behavior.
 	 * @param TrackClass The class of track which should be created if specified in the parameters.
-	 * @param TrackName The name which should be used to look up existing tracks, and which should be used to create new tracks.
+	 * @param PropertyName The name of the property to add keys for.
 	 * @param OnInitializeNewTrack A delegate which allows for custom initialization for new tracks.  This is called after the 
 	 *        track is created, but before any sections or keys have been added.
 	 * @param OnSetIntermediateValue A delegate which is called when the key params specify that keying should only happen when
 	 * 		  auto-keying is on, but auto-keying is off.  This allows handling the changed but not keyed intermediate value.
 	 */
 	bool AddKeysToObjects(TArray<UObject*> ObjectsToKey, float KeyTime, const TArray<KeyDataType> NewKeys, FKeyParams KeyParams,
-		TSubclassOf<UMovieSceneTrack> TrackClass, FName TrackName, FOnInitializeNewTrack OnIntializeNewTrack, FOnSetIntermediateValue OnSetIntermediateValue )
+		TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName, FOnInitializeNewTrack OnIntializeNewTrack, FOnSetIntermediateValue OnSetIntermediateValue )
 	{
 		bool bHandleCreated = false;
 		bool bTrackCreatedOrModified = false;
@@ -75,7 +75,7 @@ protected:
 
 			if ( ObjectHandle.IsValid() )
 			{
-				bTrackCreatedOrModified |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, KeyParams, TrackClass, TrackName, OnIntializeNewTrack, OnSetIntermediateValue );
+				bTrackCreatedOrModified |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, KeyParams, TrackClass, PropertyName, OnIntializeNewTrack, OnSetIntermediateValue );
 			}
 		}
 		return bHandleCreated || bTrackCreatedOrModified;
@@ -84,13 +84,13 @@ protected:
 
 private:
 
-	bool AddKeysToHandle( FGuid ObjectHandle, float KeyTime, const TArray<KeyDataType> NewKeys, FKeyParams KeyParams, TSubclassOf<UMovieSceneTrack> TrackClass, FName TrackName, FOnInitializeNewTrack OnIntializeNewTrack, FOnSetIntermediateValue OnSetIntermediateValue )
+	bool AddKeysToHandle( FGuid ObjectHandle, float KeyTime, const TArray<KeyDataType> NewKeys, FKeyParams KeyParams, TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName, FOnInitializeNewTrack OnIntializeNewTrack, FOnSetIntermediateValue OnSetIntermediateValue )
 	{
 		bool bTrackCreated = false;
 		bool bTrackModified = false;
 
 		// Try to find an existing Track, and if one doesn't exist check the key params and create one if requested.
-		FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, TrackClass, TrackName, KeyParams.bCreateTrackIfMissing );
+		FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, TrackClass, PropertyName, KeyParams.bCreateTrackIfMissing );
 		TrackType* Track = CastChecked<TrackType>( TrackResult.Track, ECastCheckedType::NullAllowed );
 		bTrackCreated = TrackResult.bWasCreated;
 

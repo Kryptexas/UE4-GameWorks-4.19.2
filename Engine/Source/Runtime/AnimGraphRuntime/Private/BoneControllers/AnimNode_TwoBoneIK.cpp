@@ -4,6 +4,9 @@
 #include "BoneControllers/AnimNode_TwoBoneIK.h"
 #include "AnimationRuntime.h"
 
+DECLARE_CYCLE_STAT(TEXT("TwoBoneIK Eval"), STAT_TwoBoneIK_Eval, STATGROUP_Anim);
+
+
 /////////////////////////////////////////////////////
 // FAnimNode_TwoBoneIK
 
@@ -33,6 +36,8 @@ void FAnimNode_TwoBoneIK::GatherDebugData(FNodeDebugData& DebugData)
 
 void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TwoBoneIK_Eval);
+
 	check(OutBoneTransforms.Num() == 0);
 
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();

@@ -3,6 +3,9 @@
 #include "NiagaraSequencer.h"
 
 
+#define LOCTEXT_NAMESPACE "EmitterMovieSceneTrack"
+
+
 UEmitterMovieSceneTrack::UEmitterMovieSceneTrack(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -17,7 +20,7 @@ UNiagaraMovieSceneSection::UNiagaraMovieSceneSection(const FObjectInitializer& O
 /*
  *  This is called when the user edits a track in the effect editor timeline
  */
-void INiagaraTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void INiagaraTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	// every track should have exactly one section, always
 	check(Track->GetAllSections().Num() == 1)
@@ -29,3 +32,14 @@ void INiagaraTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjec
 	Track->GetEmitter()->GetProperties()->StartTime = Section->GetStartTime();
 	Track->GetEmitter()->GetProperties()->EndTime = Section->GetEndTime();
 }
+
+
+#if WITH_EDITORONLY_DATA
+FText UEmitterMovieSceneTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Emitter");
+}
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

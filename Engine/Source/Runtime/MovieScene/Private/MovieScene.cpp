@@ -122,6 +122,16 @@ bool UMovieScene::RemovePossessable( const FGuid& PossessableGuid )
 		{	
 			Modify();
 
+			// Remove the parent-child link for a parent spawnable/child possessable if necessary
+			if (CurPossesable.GetParentSpawnable().IsValid())
+			{
+				FMovieSceneSpawnable* ParentSpawnable = FindSpawnable(CurPossesable.GetParentSpawnable());
+				if (ParentSpawnable)
+				{
+					ParentSpawnable->RemoveChildPossessable(PossessableGuid);
+				}
+			}
+
 			// Found it!
 			Possessables.RemoveAt( PossesableIter.GetIndex() );
 
@@ -187,17 +197,48 @@ FMovieScenePossessable& UMovieScene::GetPossessable( const int32 Index )
 }
 
 
+FText UMovieScene::GetObjectDisplayName(const FGuid& ObjectId)
+{
+#if WITH_EDITORONLY_DATA
+	FText& Result = ObjectsToDisplayNames.FindOrAdd(ObjectId.ToString());
+
+	if (!Result.IsEmpty())
+	{
+		return Result;
+	}
+
+	FMovieSceneSpawnable* Spawnable = FindSpawnable(ObjectId);
+
+	if (Spawnable != nullptr)
+	{
+		Result = FText::FromString(Spawnable->GetName());
+		return Result;
+	}
+
+	FMovieScenePossessable* Possessable = FindPossessable(ObjectId);
+
+	if (Possessable != nullptr)
+	{
+		Result = FText::FromString(Possessable->GetName());
+		return Result;
+	}
+#endif
+	return FText::GetEmpty();
+}
+
+
 TRange<float> UMovieScene::GetPlaybackRange() const
 {
 	check(PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound());
 	return PlaybackRange;
 }
 
+
 void UMovieScene::SetPlaybackRange(float Start, float End)
 {
 	if (ensure(End >= Start))
 	{
-		PlaybackRange = TRange<float>(Start, End);
+		PlaybackRange = TRange<float>(Start, TRangeBound<float>::Inclusive(End));
 
 #if WITH_EDITORONLY_DATA
 		if (EditorData.WorkingRange.IsEmpty())
@@ -235,29 +276,27 @@ TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 }
 
 
-UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTrackName ) const
+UMovieSceneTrack* UMovieScene::FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, const FName& TrackName) const
 {
-	UMovieSceneTrack* FoundTrack = nullptr;
-	
-	check(UniqueTrackName != NAME_None);
 	check(ObjectGuid.IsValid());
 	
 	for (const auto& Binding : ObjectBindings)
 	{
-		if (Binding.GetObjectGuid() == ObjectGuid) 
+		if (Binding.GetObjectGuid() != ObjectGuid) 
 		{
-			for (const auto& Track : Binding.GetTracks())
+			continue;
+		}
+
+		for (const auto& Track : Binding.GetTracks())
+		{
+			if ((Track->GetClass() == TrackClass) && (Track->GetTrackName() == TrackName))
 			{
-				if ((Track->GetClass() == TrackClass) && (Track->GetTrackName() == UniqueTrackName))
-				{
-					FoundTrack = Track;
-					break;
-				}
+				return Track;
 			}
 		}
 	}
 	
-	return FoundTrack;
+	return nullptr;
 }
 
 
@@ -383,6 +422,7 @@ bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack& Track) const
 	return false;
 }
 
+
 void UMovieScene::UpgradeTimeRanges()
 {
 	// Legacy upgrade for playback ranges:
@@ -395,7 +435,7 @@ void UMovieScene::UpgradeTimeRanges()
 	if (InTime_DEPRECATED != FLT_MAX && OutTime_DEPRECATED != -FLT_MAX)
 	{
 		// Finite range already defined in old data
-		PlaybackRange = TRange<float>(InTime_DEPRECATED, OutTime_DEPRECATED);
+		PlaybackRange = TRange<float>(InTime_DEPRECATED, TRangeBound<float>::Inclusive(OutTime_DEPRECATED));
 	}
 	else if (PlaybackRange.IsEmpty())
 	{
@@ -421,7 +461,12 @@ void UMovieScene::UpgradeTimeRanges()
 			}
 		}
 
-		PlaybackRange = TRange<float>(0.f, MaxBound);
+		PlaybackRange = TRange<float>(0.f, TRangeBound<float>::Inclusive(MaxBound));
+	}
+	else if (PlaybackRange.GetUpperBound().IsExclusive())
+	{
+		// playback ranges are now always inclusive
+		PlaybackRange = TRange<float>(PlaybackRange.GetLowerBound(), TRangeBound<float>::Inclusive(PlaybackRange.GetUpperBoundValue()));
 	}
 
 	// PlaybackRange must always be defined to a finite range

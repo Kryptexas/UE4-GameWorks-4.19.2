@@ -157,6 +157,11 @@ public:
 	 */
 	static void QOSREPORTER_API Tick();
 
+	/**
+	 * This function is expected to be called periodically to update ongoing tasks.
+	 */
+	static FGuid QOSREPORTER_API GetQoSReporterInstanceId();
+
 private:
 
 	/**
@@ -181,6 +186,9 @@ private:
 
 	/** Whether the module has been initialized. */
 	static bool bIsInitialized;
+
+	/** Unique identifier for this QoS reporter instance (only changed on module initialization) */
+	static FGuid InstanceId;
 
 	/** Chosen analytics provider. */
 	static TSharedPtr<IAnalyticsProvider> Analytics;

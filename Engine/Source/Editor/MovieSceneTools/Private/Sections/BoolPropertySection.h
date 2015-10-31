@@ -8,7 +8,7 @@
 class FBoolPropertySection : public FPropertySection
 {
 public:
-	FBoolPropertySection( UMovieSceneSection& InSectionObject, FName SectionName, ISequencer* InSequencer )
+	FBoolPropertySection( UMovieSceneSection& InSectionObject, const FText& SectionName, ISequencer* InSequencer )
 		: FPropertySection( InSectionObject, SectionName )
 		, Sequencer( InSequencer ) {}
 

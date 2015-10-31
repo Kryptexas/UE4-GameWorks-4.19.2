@@ -67,11 +67,10 @@ void UParty::OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful)
 		UE_LOG(LogParty, Log, TEXT("Party cleanup on logout"));
 		for (const auto& PartyKeyValue : JoinedParties)
 		{
-			const FString& PartyId = PartyKeyValue.Key;
 			UPartyGameState* Party = PartyKeyValue.Value;
 			if (Party)
 			{
-				UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *PartyId);
+				UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *(Party->GetPartyId()->ToDebugString()));
 				Party->HandleRemovedFromParty(EMemberExitedReason::Left);
 			}
 		}
@@ -89,11 +88,10 @@ void UParty::OnLoginStatusChanged(int32 LocalUserNum, ELoginStatus::Type OldStat
 			UE_LOG(LogParty, Log, TEXT("Party cleanup on logout"));
 			for (const auto& PartyKeyValue : JoinedParties)
 			{
-				const FString& PartyId = PartyKeyValue.Key;
 				UPartyGameState* Party = PartyKeyValue.Value;
 				if (Party)
 				{
-					UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *PartyId);
+					UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *(Party->GetPartyId()->ToDebugString()));
 					Party->HandleRemovedFromParty(EMemberExitedReason::Left);
 				}
 			}
@@ -101,6 +99,8 @@ void UParty::OnLoginStatusChanged(int32 LocalUserNum, ELoginStatus::Type OldStat
 			JoinedParties.Empty();
 		}
 	}
+
+	PendingPartyJoin.Reset();
 }
 
 void UParty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -210,24 +210,39 @@ void UParty::NotifyPreClientTravel()
 
 UPartyGameState* UParty::GetParty(const FOnlinePartyId& InPartyId) const
 {
-	if (InPartyId.IsValid())
+	UPartyGameState* ResultPtr = nullptr;
+
+	for (auto& JoinedParty : JoinedParties)
 	{
-		UPartyGameState* const * PartyPtr = JoinedParties.Find(InPartyId.ToString());
-		return PartyPtr ? *PartyPtr : nullptr;
+		TSharedPtr<const FOnlinePartyId> PartyId = JoinedParty.Value->GetPartyId();
+		if (*PartyId == InPartyId)
+		{
+			ResultPtr = JoinedParty.Value;
+			break;
+		}
 	}
+
+	return ResultPtr;
+}
+
+UPartyGameState* UParty::GetParty(const FOnlinePartyTypeId InPartyTypeId) const
+{
+	UPartyGameState* ResultPtr = nullptr;
+
+	UPartyGameState* const * PartyPtr = JoinedParties.Find(InPartyTypeId);
+	ResultPtr = PartyPtr ? *PartyPtr : nullptr;
 	
-	return nullptr;
+	return ResultPtr;
 }
 
 UPartyGameState* UParty::GetPersistentParty() const
 {
-	if (PersistentPartyId.IsValid())
-	{
-		UPartyGameState* const * PartyPtr = JoinedParties.Find(PersistentPartyId->ToString());
-		return PartyPtr ? *PartyPtr : nullptr;
-	}
+	UPartyGameState* ResultPtr = nullptr;
 
-	return nullptr;
+	UPartyGameState* const * PartyPtr = JoinedParties.Find(IOnlinePartySystem::GetPrimaryPartyTypeId());
+	ResultPtr = PartyPtr ? *PartyPtr : nullptr;
+
+	return ResultPtr;
 }
 
 void UParty::PartyConfigChangedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const TSharedRef<FPartyConfiguration>& InPartyConfig)
@@ -368,6 +383,7 @@ void UParty::PartyMemberExitedInternal(const FUniqueNetId& InLocalUserId, const 
 		else
 		{
 			UPartyGameState* PartyState = GetParty(InPartyId);
+			FOnlinePartyTypeId PartyTypeId = PartyState->GetPartyTypeId();
 			if (!PartyState)
 			{
 				UE_LOG(LogParty, Warning, TEXT("[%s]: Missing party state during local player exit."), *InPartyId.ToString());
@@ -382,7 +398,7 @@ void UParty::PartyMemberExitedInternal(const FUniqueNetId& InLocalUserId, const 
 				PartyState->HandleRemovedFromParty(InReason);
 			}
 
-			JoinedParties.Remove(InPartyId.ToString());
+			JoinedParties.Remove(PartyTypeId);
 		}
 
 		// If the removal was the persistent party, make sure we are in a good state
@@ -426,23 +442,102 @@ void UParty::PartyPromotionLockoutStateChangedInternal(const FUniqueNetId& Local
 	}
 }
 
-void UParty::CreatePartyInternal(const FUniqueNetId& InUserId, const FPartyConfiguration& InPartyConfig, const FOnCreatePartyComplete& InCompletionDelegate)
+void UParty::CreatePartyInternal(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const FPartyConfiguration& InPartyConfig, const UPartyDelegates::FOnCreateUPartyComplete& InCompletionDelegate)
 {
+	ECreatePartyCompletionResult Result = ECreatePartyCompletionResult::UnknownClientFailure;
+	FString ErrorMsg;
+
 	UWorld* World = GetWorld();
 	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
 	if (PartyInt.IsValid())
 	{
-		PartyInt->CreateParty(InUserId, InPartyConfig, InCompletionDelegate);
+		FOnCreatePartyComplete CompletionDelegate;
+		CompletionDelegate.BindUObject(this, &ThisClass::OnCreatePartyInternalComplete, InPartyTypeId, InCompletionDelegate);
+		PartyInt->CreateParty(InUserId, InPartyTypeId, InPartyConfig, CompletionDelegate);
+		Result = ECreatePartyCompletionResult::Succeeded;
 	}
 	else
 	{
-		FString ErrorStr(TEXT("No party interface during CreateParty()"));
-		InCompletionDelegate.ExecuteIfBound(InUserId, InUserId, ECreatePartyCompletionResult::UnknownClientFailure);
+		Result = ECreatePartyCompletionResult::UnknownClientFailure;
+		ErrorMsg = FString::Printf(TEXT("No party interface during JoinParty()"));
+	}
+
+	if (Result != ECreatePartyCompletionResult::Succeeded)
+	{
+		UE_LOG(LogParty, Warning, TEXT("%s"), *ErrorMsg);
+		InCompletionDelegate.ExecuteIfBound(InUserId, Result);
 	}
 }
 
-void UParty::JoinPartyInternal(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate)
+void UParty::OnCreatePartyInternalComplete(const FUniqueNetId& LocalUserId, const TSharedPtr<const FOnlinePartyId>& InPartyId, const ECreatePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnCreateUPartyComplete InCompletionDelegate)
 {
+	bool bWasSuccessful = Result == ECreatePartyCompletionResult::Succeeded;
+
+	FString PartyIdDebugString = InPartyId.IsValid() ? InPartyId->ToDebugString() : TEXT("Invalid");
+
+	UE_LOG(LogParty, Display, TEXT("OnCreatePartyInternalComplete() %s %d %s"), *PartyIdDebugString, bWasSuccessful, ToString(Result));
+
+	ECreatePartyCompletionResult LocalResult = Result;
+	if (bWasSuccessful)
+	{
+		UWorld* World = GetWorld();
+		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+		if (PartyInt.IsValid())
+		{
+			TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(LocalUserId, InPartyTypeId);
+			if (Party.IsValid())
+			{
+				TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(InPartyTypeId);
+				if (PartyGameStateClass != nullptr)
+				{
+					UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
+
+					// Add right away so future delegate broadcasts have this available
+					JoinedParties.Add(InPartyTypeId, NewParty);
+
+					// Initialize and trigger delegates
+					NewParty->InitFromCreate(LocalUserId, Party);
+
+					LocalResult = ECreatePartyCompletionResult::Succeeded;
+				}
+				else
+				{
+					LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
+				}
+			}
+			else
+			{
+				LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
+			}
+		}
+		else
+		{
+			LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
+		}
+
+		if (LocalResult != ECreatePartyCompletionResult::Succeeded)
+		{
+			bWasSuccessful = false;
+		}
+	}
+
+
+	if (!bWasSuccessful)
+	{
+		if (LocalResult != ECreatePartyCompletionResult::Succeeded)
+		{
+			UE_LOG(LogParty, Warning, TEXT("Error when creating party %s error=%s"), *PartyIdDebugString, ToString(LocalResult));
+		}
+	}
+
+	InCompletionDelegate.ExecuteIfBound(LocalUserId, LocalResult);
+}
+
+void UParty::JoinPartyInternal(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate)
+{
+	EJoinPartyCompletionResult Result = EJoinPartyCompletionResult::UnknownClientFailure;
+	FString ErrorMsg;
+
 	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
 	if (PartyInt.IsValid())
 	{
@@ -452,227 +547,348 @@ void UParty::JoinPartyInternal(const FUniqueNetId& InUserId, const FPartyDetails
 			// High level party data check
 			UPartyGameState* PartyState = GetParty(PartyId);
 			// Interface level party data check should not be out of sync
-			const TSharedPtr<FOnlinePartyInfo>& PartyInfo = PartyInt->GetPartyInfo(InUserId, PartyId);
+			TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(InUserId, PartyId);
 			if (!PartyState)
 			{
-				if (!PartyInfo.IsValid())
+				if (!Party.IsValid())
 				{
-					PartyInt->JoinParty(InUserId, *(InPartyDetails.PartyJoinInfo), InCompletionDelegate);
+					FOnJoinPartyComplete CompletionDelegate;
+					CompletionDelegate.BindUObject(this, &ThisClass::OnJoinPartyInternalComplete, InPartyDetails.GetPartyTypeId(), InCompletionDelegate);
+					PartyInt->JoinParty(InUserId, *(InPartyDetails.PartyJoinInfo), CompletionDelegate);
+					Result = EJoinPartyCompletionResult::Succeeded;
 				}
 				else
 				{
-					UE_LOG(LogParty, Verbose, TEXT("Already joining party %s, not joining again."), *InPartyDetails.GetPartyId()->ToString());
-					InCompletionDelegate.ExecuteIfBound(InUserId, *InPartyDetails.GetPartyId(), EJoinPartyCompletionResult::AlreadyJoiningParty, 0);
+					Result = EJoinPartyCompletionResult::AlreadyJoiningParty;
+					ErrorMsg = FString::Printf(TEXT("Already joining party %s, not joining again."), *InPartyDetails.GetPartyId()->ToString());
 				}
 			}
 			else
 			{
-				ensure(PartyInfo.IsValid());
-				UE_LOG(LogParty, Verbose, TEXT("Already in party %s, not joining again."), *InPartyDetails.GetPartyId()->ToString());
-				InCompletionDelegate.ExecuteIfBound(InUserId, *InPartyDetails.GetPartyId(), EJoinPartyCompletionResult::AlreadyInParty, 0);
+				Result = EJoinPartyCompletionResult::AlreadyInParty;
+				ErrorMsg = FString::Printf(TEXT("Already in party %s, not joining again."), *InPartyDetails.GetPartyId()->ToString());
 			}
 		}
 		else
 		{
-			UE_LOG(LogParty, Verbose, TEXT("Invalid party details, cannot join. Details: %s"), *InPartyDetails.ToString());
-			InCompletionDelegate.ExecuteIfBound(InUserId, *InPartyDetails.GetPartyId(), EJoinPartyCompletionResult::JoinInfoInvalid, 0);
+			Result = EJoinPartyCompletionResult::JoinInfoInvalid;
+			ErrorMsg = FString::Printf(TEXT("Invalid party details, cannot join. Details: %s"), *InPartyDetails.ToString());
 		}
 	}
 	else
 	{
-		UE_LOG(LogParty, Verbose, TEXT("No party interface during JoinParty()"));
-		InCompletionDelegate.ExecuteIfBound(InUserId, *InPartyDetails.GetPartyId(), EJoinPartyCompletionResult::UnknownClientFailure, 0);
+		Result = EJoinPartyCompletionResult::UnknownClientFailure;
+		ErrorMsg = FString::Printf(TEXT("No party interface during JoinParty()"));
 	}
-}
 
-void UParty::LeavePartyInternal(const FUniqueNetId& InUserId, const FOnlinePartyId& InPartyId, const FOnLeavePartyComplete& InCompletionDelegate)
-{
-	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
-	if (PartyInt.IsValid() && InPartyId.IsValid())
+	if (Result != EJoinPartyCompletionResult::Succeeded)
 	{
-		UPartyGameState* PartyState = GetParty(InPartyId);
-		if (PartyState)
-		{
-			PartyState->HandleLeavingParty();
-			PartyInt->LeaveParty(InUserId, InPartyId, InCompletionDelegate);
-		}
-		else
-		{
-			FString ErrorStr(TEXT("Party not found in LeaveParty()"));
-			InCompletionDelegate.ExecuteIfBound(InUserId, InUserId, ELeavePartyCompletionResult::UnknownClientFailure);
-		}
-	}
-	else
-	{
-		FString ErrorStr(TEXT("No party interface during LeaveParty()"));
-		InCompletionDelegate.ExecuteIfBound(InUserId, InUserId, ELeavePartyCompletionResult::UnknownClientFailure);
+		UE_LOG(LogParty, Warning, TEXT("%s"), *ErrorMsg);
+		InCompletionDelegate.ExecuteIfBound(InUserId, Result, 0);
 	}
 }
 
-void UParty::CreateParty(const FUniqueNetId& InUserId, const FPartyConfiguration& InPartyConfig, const FOnCreatePartyComplete& InCompletionDelegate)
+void UParty::OnJoinPartyInternalComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate)
 {
-	FOnCreatePartyComplete CompletionDelegate;
-	CompletionDelegate.BindUObject(this, &ThisClass::OnCreatePartyComplete, InCompletionDelegate);
-	CreatePartyInternal(InUserId, InPartyConfig, CompletionDelegate);
-}
+	bool bWasSuccessful = Result == EJoinPartyCompletionResult::Succeeded;
 
-void UParty::OnCreatePartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ECreatePartyCompletionResult Result, FOnCreatePartyComplete InCompletionDelegate)
-{
-	UE_LOG(LogParty, Display, TEXT("OnCreatePartyComplete() %s %s"), *InPartyId.ToString(), ToString(Result));
-
-	ECreatePartyCompletionResult LocalResult = Result;
-	if (Result == ECreatePartyCompletionResult::Succeeded)
-	{
-		UWorld* World = GetWorld();
-		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
-		if (PartyInt.IsValid())
-		{
-			TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInt->GetPartyInfo(LocalUserId, InPartyId);
-			if (PartyInfo.IsValid())
-			{
-				FVariantData PartyConfigType;
-				PartyInfo->Config->ClientConfigData.GetAttribute(PARTY_CONFIG_TYPE, PartyConfigType);
-				if (PartyConfigType.GetType() == EOnlineKeyValuePairDataType::Int32)
-				{
-					int32 PartyType = 0;
-					PartyConfigType.GetValue(PartyType);
-
-					TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(PartyType);
-					if (PartyGameStateClass != nullptr)
-					{
-						UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
-
-						// Add right away so future delegate broadcasts have this available
-						JoinedParties.Add(InPartyId.ToString(), NewParty);
-
-						// Initialize and trigger delegates
-						NewParty->InitFromCreate(LocalUserId, PartyInfo);
-					}
-					else
-					{
-						UE_LOG(LogParty, Warning, TEXT("No valid party class when creating party %s"), *InPartyId.ToString());
-						LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
-					}
-				}
-				else
-				{
-					UE_LOG(LogParty, Warning, TEXT("Invalid party config type when creating party %s"), *InPartyId.ToString());
-					LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
-				}
-			}
-			else
-			{
-				UE_LOG(LogParty, Warning, TEXT("Invalid PartyInfo when creating party %s"), *InPartyId.ToString());
-				LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
-			}
-		}
-	}
-
-	InCompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, LocalResult);
-}
-
-void UParty::JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate)
-{
-	FOnJoinPartyComplete CompletionDelegate;
-	CompletionDelegate.BindUObject(this, &ThisClass::OnJoinPartyComplete, InCompletionDelegate);
-	JoinPartyInternal(InUserId, InPartyDetails, CompletionDelegate);
-}
-
-void UParty::OnJoinPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, EJoinPartyCompletionResult Result, int32 DeniedResultCode, FOnJoinPartyComplete CompletionDelegate)
-{
-	UE_LOG(LogParty, Display, TEXT("OnJoinPartyComplete() %s %s."), *InPartyId.ToString(), ToString(Result));
+	FString PartyIdDebugString = InPartyId.ToDebugString();
+	UE_LOG(LogParty, Display, TEXT("OnJoinPartyInternalComplete() %s %d %s."), *PartyIdDebugString, bWasSuccessful, ToString(Result));
 
 	EJoinPartyCompletionResult LocalResult = Result;
-	FString ErrorString;
-	if (Result == EJoinPartyCompletionResult::Succeeded)
+	if (bWasSuccessful)
 	{
 		UWorld* World = GetWorld();
 		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
 		if (PartyInt.IsValid())
 		{
-			TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInt->GetPartyInfo(LocalUserId, InPartyId);
-			if (PartyInfo.IsValid())
+			TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(LocalUserId, InPartyTypeId);
+			if (Party.IsValid())
 			{
-				FVariantData PartyConfigType;
-				PartyInfo->Config->ClientConfigData.GetAttribute(PARTY_CONFIG_TYPE, PartyConfigType);
-				if (PartyConfigType.GetType() == EOnlineKeyValuePairDataType::Int32)
+				TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(InPartyTypeId);
+				if (PartyGameStateClass != nullptr)
 				{
-					int32 PartyType = 0;
-					PartyConfigType.GetValue(PartyType);
+					UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
 
-					TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(PartyType);
-					if (PartyGameStateClass != nullptr)
-					{
-						UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
+					// Add right away so future delegate broadcasts have this available
+					JoinedParties.Add(InPartyTypeId, NewParty);
 
-						// Add right away so future delegate broadcasts have this available
-						JoinedParties.Add(InPartyId.ToString(), NewParty);
-
-						// Initialize and trigger delegates
-						NewParty->InitFromJoin(LocalUserId, PartyInfo);
-					}
-					else
-					{
-						LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
-						ErrorString = FString::Printf(TEXT("No valid party class when joining party %s"), *InPartyId.ToString());
-					}
+					// Initialize and trigger delegates
+					NewParty->InitFromJoin(LocalUserId, Party);
 				}
 				else
 				{
-					LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
-					ErrorString = FString::Printf(TEXT("Invalid party config type when joining party %s"), *InPartyId.ToString());
+					LocalResult = EJoinPartyCompletionResult::AlreadyInPartyOfSpecifiedType;
 				}
 			}
 			else
 			{
 				LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
-				ErrorString = FString::Printf(TEXT("Invalid PartyInfo when joining party %s"), *InPartyId.ToString());
 			}
 		}
 		else
 		{
 			LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
-			ErrorString = FString::Printf(TEXT("No party interface when joining party %s"), *InPartyId.ToString());
+		}
+
+		if (LocalResult != EJoinPartyCompletionResult::Succeeded)
+		{
+			bWasSuccessful = false;
+		}
+	}
+
+	if (!bWasSuccessful)
+	{
+		if (LocalResult != EJoinPartyCompletionResult::Succeeded)
+		{
+			UE_LOG(LogParty, Warning, TEXT("Error when joining party %s error=%s"), *PartyIdDebugString, ToString(LocalResult));
+		}
+	}
+
+	int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
+	CompletionDelegate.ExecuteIfBound(LocalUserId, LocalResult, OutDeniedResultCode);
+}
+
+void UParty::LeavePartyInternal(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate)
+{
+	ELeavePartyCompletionResult Result = ELeavePartyCompletionResult::UnknownClientFailure;
+	FString ErrorMsg;
+
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
+	if (PartyInt.IsValid())
+	{
+		TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(InUserId, InPartyTypeId);
+		TSharedPtr<const FOnlinePartyId> PartyId = Party.IsValid() ? Party->PartyId : TSharedPtr<const FOnlinePartyId>();
+
+		UPartyGameState* PartyState = PartyId.IsValid() ? GetParty(*PartyId) : nullptr;
+		if (PartyState)
+		{
+			PartyState->HandleLeavingParty();
+			FOnLeavePartyComplete CompletionDelegate;
+			CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePartyInternalComplete, InPartyTypeId, InCompletionDelegate);
+			PartyInt->LeaveParty(InUserId, *PartyId, CompletionDelegate);
+			Result = ELeavePartyCompletionResult::Succeeded;
+		}
+		else
+		{
+			Result = ELeavePartyCompletionResult::UnknownClientFailure;
+			ErrorMsg = FString::Printf(TEXT("Party not found in LeaveParty()"));
 		}
 	}
 	else
 	{
-		ErrorString = ToString(LocalResult);
+		Result = ELeavePartyCompletionResult::UnknownClientFailure;
+		ErrorMsg = FString::Printf(TEXT("No party interface during JoinParty()"));
 	}
 
-	if (LocalResult != EJoinPartyCompletionResult::Succeeded)
+	if (Result != ELeavePartyCompletionResult::Succeeded)
 	{
-		UE_LOG(LogParty, Warning, TEXT("%s"), *ErrorString);
+		UE_LOG(LogParty, Warning, TEXT("%s"), *ErrorMsg);
+		InCompletionDelegate.ExecuteIfBound(InUserId, Result);
 	}
-
-	int32 OutDeniedResultCode = (LocalResult == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
-
-	CompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, LocalResult, OutDeniedResultCode);
 }
 
-void UParty::LeaveParty(const FUniqueNetId& InUserId, const FOnlinePartyId& InPartyId, const FOnLeavePartyComplete& InCompletionDelegate)
+void UParty::OnLeavePartyInternalComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate)
 {
-	FOnLeavePartyComplete CompletionDelegate;
-	CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePartyComplete, InCompletionDelegate);
-	LeavePartyInternal(InUserId, InPartyId, CompletionDelegate);
-}
+	FString PartyIdDebugString = InPartyId.ToDebugString();
+	UE_LOG(LogParty, Display, TEXT("OnLeavePartyComplete() %s %d %s."), *PartyIdDebugString, Result == ELeavePartyCompletionResult::Succeeded, ToString(Result));
 
-void UParty::OnLeavePartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, FOnLeavePartyComplete CompletionDelegate)
-{
-	UE_LOG(LogParty, Display, TEXT("OnLeavePartyComplete() %s %d %s."), *InPartyId.ToString(), Result == ELeavePartyCompletionResult::Succeeded, ToString(Result));
-
-	UPartyGameState* PartyState = GetParty(InPartyId);
+	UPartyGameState* PartyState = GetParty(InPartyTypeId);
 	if (PartyState)
 	{
 		PartyState->HandleRemovedFromParty(EMemberExitedReason::Left);
-		JoinedParties.Remove(InPartyId.ToString());
+		JoinedParties.Remove(InPartyTypeId);
 	}
 	else
 	{
-		UE_LOG(LogParty, Warning, TEXT("OnLeavePartyComplete: Missing party state %s"), *InPartyId.ToString());
+		UE_LOG(LogParty, Warning, TEXT("OnLeavePartyComplete: Missing party state %s"), *PartyIdDebugString);
 	}
-	
-	CompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, Result);
+
+	CompletionDelegate.ExecuteIfBound(LocalUserId, Result);
+}
+
+void UParty::CreateParty(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const FPartyConfiguration& InPartyConfig, const UPartyDelegates::FOnCreateUPartyComplete& InCompletionDelegate)
+{
+	UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate;
+	CompletionDelegate.BindUObject(this, &ThisClass::OnCreatePartyComplete, InPartyTypeId, InCompletionDelegate);
+	CreatePartyInternal(InUserId, InPartyTypeId, InPartyConfig, CompletionDelegate);
+}
+
+void UParty::OnCreatePartyComplete(const FUniqueNetId& LocalUserId, const ECreatePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnCreateUPartyComplete InCompletionDelegate)
+{
+	bool bWasSuccessful = Result == ECreatePartyCompletionResult::Succeeded;
+
+	UE_LOG(LogParty, Display, TEXT("OnCreatePartyComplete() type(0x%08x) %d %s"), InPartyTypeId.GetValue(), bWasSuccessful, ToString(Result));
+
+	InCompletionDelegate.ExecuteIfBound(LocalUserId, Result);
+}
+
+EOnCreatePartyCompleteInternalResult UParty::OnCreatePartyCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId InPartyTypeId)
+{
+	EOnCreatePartyCompleteInternalResult ReturnResult = EOnCreatePartyCompleteInternalResult::UnknownFailure;
+
+	UWorld* World = GetWorld();
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+	if (PartyInt.IsValid())
+	{
+		TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(LocalUserId, InPartyTypeId);
+		if (Party.IsValid())
+		{
+			TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(InPartyTypeId);
+			if (PartyGameStateClass != nullptr)
+			{
+				UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
+
+				// Add right away so future delegate broadcasts have this available
+				JoinedParties.Add(InPartyTypeId, NewParty);
+
+				// Initialize and trigger delegates
+				NewParty->InitFromCreate(LocalUserId, Party);
+
+				ReturnResult = EOnCreatePartyCompleteInternalResult::Success;
+			}
+			else
+			{
+				ReturnResult = EOnCreatePartyCompleteInternalResult::InvalidPartyType;
+			}
+		}
+		else
+		{
+			ReturnResult = EOnCreatePartyCompleteInternalResult::InvalidParty;
+		}
+	}
+	else
+	{
+		ReturnResult = EOnCreatePartyCompleteInternalResult::InvalidSystemInterface;
+	}
+
+	return ReturnResult;
+}
+
+void UParty::JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate)
+{
+	UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate;
+	CompletionDelegate.BindUObject(this, &ThisClass::OnJoinPartyComplete, InPartyDetails.GetPartyTypeId(), InCompletionDelegate);
+	JoinPartyInternal(InUserId, InPartyDetails, CompletionDelegate);
+}
+
+void UParty::OnJoinPartyComplete(const FUniqueNetId& LocalUserId, EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnJoinUPartyComplete InCompletionDelegate)
+{
+	bool bWasSuccessful = Result == EJoinPartyCompletionResult::Succeeded;
+
+	UE_LOG(LogParty, Display, TEXT("OnJoinPartyComplete() type(0x%08x) %d %s"), InPartyTypeId.GetValue(), bWasSuccessful, ToString(Result));
+
+	InCompletionDelegate.ExecuteIfBound(LocalUserId, Result, DeniedResultCode);
+
+	//bool bWasSuccessful = Result == EJoinPartyCompletionResult::Succeeded;
+
+	//FString PartyIdDebugString = InPartyId.ToDebugString();
+	//UE_LOG(LogParty, Display, TEXT("OnJoinPartyComplete() %s %d %s."), *PartyIdDebugString, bWasSuccessful, ToString(Result));
+
+	//EJoinPartyCompletionResult LocalResult = Result;
+	//if (bWasSuccessful)
+	//{
+	//	EOnJoinPartyCompleteInternalResult InternalResult = OnJoinPartyCompleteInternal(LocalUserId, InPartyId);
+
+	//	if (InternalResult != EOnJoinPartyCompleteInternalResult::Success)
+	//	{
+	//		LocalResult = EJoinPartyCompletionResult::UnknownClientFailure;
+	//		UE_LOG(LogParty, Warning, TEXT("Error when joining party %s error=%s"), *PartyIdDebugString, ToString(InternalResult));
+	//	}
+	//}
+
+	//int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
+	//CompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, LocalResult, OutDeniedResultCode);
+}
+
+EOnJoinPartyCompleteInternalResult UParty::OnJoinPartyCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId InPartyTypeId)
+{
+	EOnJoinPartyCompleteInternalResult ReturnResult = EOnJoinPartyCompleteInternalResult::UnknownFailure;
+
+	UWorld* World = GetWorld();
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+	if (PartyInt.IsValid())
+	{
+		TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(LocalUserId, InPartyTypeId);
+		if (Party.IsValid())
+		{
+			TSubclassOf<UPartyGameState>* PartyGameStateClass = PartyClasses.Find(InPartyTypeId);
+			if (PartyGameStateClass != nullptr)
+			{
+				UPartyGameState* NewParty = NewObject<UPartyGameState>(this, *PartyGameStateClass);
+
+				// Add right away so future delegate broadcasts have this available
+				JoinedParties.Add(InPartyTypeId, NewParty);
+
+				// Initialize and trigger delegates
+				NewParty->InitFromJoin(LocalUserId, Party);
+
+				ReturnResult = EOnJoinPartyCompleteInternalResult::Success;
+			}
+			else
+			{
+				ReturnResult = EOnJoinPartyCompleteInternalResult::InvalidPartyType;
+			}
+		}
+		else
+		{
+			ReturnResult = EOnJoinPartyCompleteInternalResult::InvalidParty;
+		}
+	}
+	else
+	{
+		ReturnResult = EOnJoinPartyCompleteInternalResult::InvalidSystemInterface;
+	}
+
+	return ReturnResult;
+}
+
+void UParty::LeaveParty(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate)
+{
+	UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
+	CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePartyComplete, InPartyTypeId, InCompletionDelegate);
+	LeavePartyInternal(InUserId, InPartyTypeId, CompletionDelegate);
+}
+
+void UParty::OnLeavePartyComplete(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnLeaveUPartyComplete InCompletionDelegate)
+{
+	bool bWasSuccessful = Result == ELeavePartyCompletionResult::Succeeded;
+
+	UE_LOG(LogParty, Display, TEXT("OnLeavePartyComplete() type(0x%08x) %d %s"), InPartyTypeId.GetValue(), bWasSuccessful, ToString(Result));
+
+	InCompletionDelegate.ExecuteIfBound(LocalUserId, Result);
+	//FString PartyIdDebugString = InPartyId.ToDebugString();
+	//UE_LOG(LogParty, Display, TEXT("OnLeavePartyComplete() %s %d %s."), *PartyIdDebugString, Result == ELeavePartyCompletionResult::Succeeded, ToString(Result));
+
+	//ELeavePartyCompletionResult LocalResult = Result;
+	//EOnLeavePartyCompleteInternalResult InternalResult = OnLeavePartyCompleteInternal(LocalUserId, InPartyId);
+
+	//if (InternalResult != EOnLeavePartyCompleteInternalResult::Success)
+	//{
+	//	LocalResult = ELeavePartyCompletionResult::UnknownClientFailure;
+	//	UE_LOG(LogParty, Warning, TEXT("Error when leaving party %s error=%s"), *PartyIdDebugString, ToString(InternalResult));
+	//}
+
+	//CompletionDelegate.ExecuteIfBound(LocalUserId, InPartyId, LocalResult);
+}
+
+EOnLeavePartyCompleteInternalResult UParty::OnLeavePartyCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId InPartyTypeId)
+{
+	EOnLeavePartyCompleteInternalResult ReturnResult = EOnLeavePartyCompleteInternalResult::UnknownFailure;
+
+	UPartyGameState* PartyState = GetParty(InPartyTypeId);
+	if (PartyState)
+	{
+		PartyState->HandleRemovedFromParty(EMemberExitedReason::Left);
+		JoinedParties.Remove(InPartyTypeId);
+		ReturnResult = EOnLeavePartyCompleteInternalResult::Success;
+	}
+	else
+	{
+		ReturnResult = EOnLeavePartyCompleteInternalResult::InvalidPartyState;
+	}
+
+	return ReturnResult;
 }
 
 void UParty::GetDefaultPersistentPartySettings(EPartyType& PartyType, bool& bLeaderFriendsOnly, bool& bLeaderInvitesOnly)
@@ -691,20 +907,40 @@ void UParty::GetPersistentPartyConfiguration(FPartyConfiguration& PartyConfig)
 
 	bool bIsPrivate = (PartyType == EPartyType::Private);
 
-	PartyConfig.Permissions = bIsPrivate ? EPartyPermissions::Private : EPartyPermissions::Public;
-	PartyConfig.bIsAcceptingMembers = bIsPrivate ? false : true;
-	PartyConfig.bPresenceParty = true;
-	PartyConfig.bShouldPublishToPresence = !bIsPrivate;
-	PartyConfig.bCanNonLeaderPublishToPresence = !bIsPrivate && !bLeaderFriendsOnly;
-	PartyConfig.bCanNonLeaderInviteToParty = !bLeaderInvitesOnly;
+	PartySystemPermissions::EPresencePermissions PresencePermissions;
+	if (bLeaderFriendsOnly)
+	{
+		if (bIsPrivate)
+		{
+			PresencePermissions = PartySystemPermissions::FriendsInviteOnly;
+		}
+		else
+		{
+			PresencePermissions = PartySystemPermissions::FriendsOnly;
+		}
+	}
+	else
+	{
+		if (bIsPrivate)
+		{
+			PresencePermissions = PartySystemPermissions::PublicInviteOnly;
+		}
+		else
+		{
+			PresencePermissions = PartySystemPermissions::Public;
+		}
+	}
 
-	PartyConfig.ClientConfigData.SetAttribute(PARTY_CONFIG_TYPE, (int32)EPartyConfigType::PersistentParty);
+	PartyConfig.JoinRequestAction = EJoinRequestAction::Manual;
+	PartyConfig.bIsAcceptingMembers = bIsPrivate ? false : true;
+	PartyConfig.bShouldRemoveOnDisconnection = true;
+	PartyConfig.PresencePermissions = PresencePermissions;
+	PartyConfig.InvitePermissions = bLeaderInvitesOnly ? PartySystemPermissions::EInvitePermissions::Leader : PartySystemPermissions::EInvitePermissions::Anyone;
 
 	PartyConfig.MaxMembers = DefaultMaxPartySize;
-	PartyConfig.bShouldRemoveOnDisconnection = true;
 }
 
-void UParty::CreatePersistentParty(const FUniqueNetId& InUserId, const FOnCreatePartyComplete& InCompletionDelegate)
+void UParty::CreatePersistentParty(const FUniqueNetId& InUserId, const UPartyDelegates::FOnCreateUPartyComplete& InCompletionDelegate)
 {
 	if (PersistentPartyId.IsValid())
 	{
@@ -716,19 +952,49 @@ void UParty::CreatePersistentParty(const FUniqueNetId& InUserId, const FOnCreate
 	FPartyConfiguration PartyConfig;
 	GetPersistentPartyConfiguration(PartyConfig);
 
-	FOnCreatePartyComplete CompletionDelegate;
+	UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate;
 	CompletionDelegate.BindUObject(this, &ThisClass::OnCreatePersistentPartyComplete, InCompletionDelegate);
-	CreatePartyInternal(InUserId, PartyConfig, CompletionDelegate);
+	CreatePartyInternal(InUserId, IOnlinePartySystem::GetPrimaryPartyTypeId(), PartyConfig, CompletionDelegate);
 }
 
-void UParty::OnCreatePersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ECreatePartyCompletionResult Result, FOnCreatePartyComplete CompletionDelegate)
+void UParty::OnCreatePersistentPartyComplete(const FUniqueNetId& LocalUserId, const ECreatePartyCompletionResult Result, UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate)
 {
-	if (Result == ECreatePartyCompletionResult::Succeeded)
+	bool bWasSuccessful = Result == ECreatePartyCompletionResult::Succeeded;
+
+	TSharedPtr<const FOnlineParty> Party;
+	TSharedPtr<const FOnlinePartyId> PartyId;
+	
+	UWorld* World = GetWorld();
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+	if (PartyInt.IsValid())
 	{
-		PersistentPartyId = InPartyId.AsShared();
+		if (bWasSuccessful)
+		{
+			Party = PartyInt->GetParty(LocalUserId, IOnlinePartySystem::GetPrimaryPartyTypeId());
+			if (Party.IsValid())
+			{
+				PartyId = Party->PartyId;
+				PersistentPartyId = PartyId;
+			}
+		}
 	}
 
-	OnCreatePartyComplete(LocalUserId, InPartyId, Result, CompletionDelegate);
+	FString PartyIdDebugString = PartyId.IsValid() ? PartyId->ToDebugString() : TEXT("Invalid");
+
+	UE_LOG(LogParty, Display, TEXT("OnCreatePersistentPartyComplete() %s %d %s"), *PartyIdDebugString, bWasSuccessful, ToString(Result));
+
+	//ECreatePartyCompletionResult LocalResult = Result;
+	//if (bWasSuccessful)
+	//{
+	//	EOnCreatePartyCompleteInternalResult InternalResult = OnCreatePartyCompleteInternal(LocalUserId, IOnlinePartySystem::GetPrimaryPartyTypeId());
+	//	if (InternalResult != EOnCreatePartyCompleteInternalResult::Success)
+	//	{
+	//		LocalResult = ECreatePartyCompletionResult::UnknownClientFailure;
+	//		UE_LOG(LogParty, Warning, TEXT("Error when creating persistent party %s error=%s"), *PartyIdDebugString, ToString(InternalResult));
+	//	}
+	//}
+
+	CompletionDelegate.ExecuteIfBound(LocalUserId, Result);
 
 	if (Result == ECreatePartyCompletionResult::Succeeded)
 	{
@@ -760,7 +1026,7 @@ void UParty::OnCreatePersistentPartyComplete(const FUniqueNetId& LocalUserId, co
 	}
 }
 
-void UParty::JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate)
+void UParty::JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate)
 {
 	if (PersistentPartyId.IsValid())
 	{
@@ -769,19 +1035,50 @@ void UParty::JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetai
 
 	PersistentPartyId = nullptr;
 
-	FOnJoinPartyComplete CompletionDelegate;
+	UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate;
 	CompletionDelegate.BindUObject(this, &ThisClass::OnJoinPersistentPartyComplete, InCompletionDelegate);
 	JoinPartyInternal(InUserId, InPartyDetails, CompletionDelegate);
 }
 
-void UParty::OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, EJoinPartyCompletionResult Result, int32 DeniedResultCode, FOnJoinPartyComplete CompletionDelegate)
+void UParty::OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, EJoinPartyCompletionResult Result, int32 DeniedResultCode, UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate)
 {
-	if (Result == EJoinPartyCompletionResult::Succeeded)
+	bool bWasSuccessful = (Result == EJoinPartyCompletionResult::Succeeded);
+
+	TSharedPtr<const FOnlineParty> Party;
+	TSharedPtr<const FOnlinePartyId> PartyId;
+
+	UWorld* World = GetWorld();
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+	if (PartyInt.IsValid())
 	{
-		PersistentPartyId = InPartyId.AsShared();
+		if (bWasSuccessful)
+		{
+			Party = PartyInt->GetParty(LocalUserId, IOnlinePartySystem::GetPrimaryPartyTypeId());
+			if (Party.IsValid())
+			{
+				PartyId = Party->PartyId;
+				PersistentPartyId = PartyId;
+			}
+		}
 	}
 
-	OnJoinPartyComplete(LocalUserId, InPartyId, Result, DeniedResultCode, CompletionDelegate);
+	FString PartyIdDebugString = PartyId.IsValid() ? PartyId->ToDebugString() : TEXT("Invalid");
+
+	UE_LOG(LogParty, Display, TEXT("OnJoinPersistentPartyComplete() %s %d %s"), *PartyIdDebugString, bWasSuccessful, ToString(Result));
+
+	//EJoinPartyCompletionResult LocalResult = Result;
+	//if (bWasSuccessful)
+	//{
+	//	EOnJoinPartyCompleteInternalResult InternalResult = OnJoinPartyCompleteInternal(LocalUserId, IOnlinePartySystem::GetPrimaryPartyTypeId());
+	//	if (InternalResult != EOnJoinPartyCompleteInternalResult::Success)
+	//	{
+	//		LocalResult = EJoinPartyCompletionResult::UnknownInternalFailure;
+	//		UE_LOG(LogParty, Warning, TEXT("Error when creating persistent party %s error=%s"), *PartyIdDebugString, ToString(InternalResult));
+	//	}
+	//}
+
+	int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
+	CompletionDelegate.ExecuteIfBound(LocalUserId, Result, OutDeniedResultCode);
 
 	if (Result == EJoinPartyCompletionResult::Succeeded)
 	{
@@ -808,7 +1105,6 @@ void UParty::OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, cons
 	{
 		if (Result != EJoinPartyCompletionResult::AlreadyJoiningParty)
 		{
-			UWorld* World = GetWorld();
 			if (World)
 			{
 				// Try to get back to a good state
@@ -829,17 +1125,17 @@ void UParty::HandleJoinPersistentPartyFailure()
 	RestorePersistentPartyState();
 }
 
-void UParty::LeavePersistentParty(const FUniqueNetId& InUserId, const FOnLeavePartyComplete& InCompletionDelegate)
+void UParty::LeavePersistentParty(const FUniqueNetId& InUserId, const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate)
 {
-	FOnLeavePartyComplete CompletionDelegate;
-	CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyComplete, InCompletionDelegate);
-
 	if (PersistentPartyId.IsValid())
 	{
+		UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
+		CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyComplete, InCompletionDelegate);
+
 		if (!bLeavingPersistentParty)
 		{
 			bLeavingPersistentParty = true;
-			LeavePartyInternal(InUserId, *PersistentPartyId, CompletionDelegate);
+			LeavePartyInternal(InUserId, IOnlinePartySystem::GetPrimaryPartyTypeId(), CompletionDelegate);
 		}
 		else
 		{
@@ -850,80 +1146,87 @@ void UParty::LeavePersistentParty(const FUniqueNetId& InUserId, const FOnLeavePa
 	{
 		UE_LOG(LogParty, Warning, TEXT("No party during LeavePersistentParty()"));
 		// mark this as true so the ensure works in the delegate
-		bLeavingPersistentParty = true;
-		CompletionDelegate.ExecuteIfBound(InUserId, InUserId, ELeavePartyCompletionResult::UnknownClientFailure);
+		InCompletionDelegate.ExecuteIfBound(InUserId, ELeavePartyCompletionResult::UnknownClientFailure);
 	}
 }
 
-void UParty::OnLeavePersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, FOnLeavePartyComplete CompletionDelegate)
+void UParty::OnLeavePersistentPartyComplete(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result, UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate)
 {
 	ensure(bLeavingPersistentParty);
-	ensure(!PersistentPartyId.IsValid() || *PersistentPartyId == InPartyId);
+	//ensure(!PersistentPartyId.IsValid());
 	bLeavingPersistentParty = false;
+
+	bool bWasSuccessful = (Result == ELeavePartyCompletionResult::Succeeded);
+
+	UE_LOG(LogParty, Display, TEXT("OnLeavePersistentPartyComplete() %d %s"), bWasSuccessful, ToString(Result));
 
 	// This might be the last reference of the party id, transfer the shared pointer for this brief period of time
 	// PersistentPartyId is expected to be null now as far as external code is concerned
-	TSharedPtr<const FOnlinePartyId> TempPartyId = PersistentPartyId.IsValid() ? PersistentPartyId : nullptr;
+	TSharedPtr<const FOnlinePartyId> TempPartyId = PersistentPartyId;
 	PersistentPartyId = nullptr;
-	OnLeavePartyComplete(LocalUserId, InPartyId, Result, CompletionDelegate);
 
-	TArray<FOnLeavePartyComplete> DelegatesCopy = LeavePartyCompleteDelegates;
+	//EOnLeavePartyCompleteInternalResult InternalResult = OnLeavePartyCompleteInternal(LocalUserId, IOnlinePartySystem::GetPrimaryPartyTypeId());
+	//ELeavePartyCompletionResult LocalResult = Result;
+	//if (InternalResult != EOnLeavePartyCompleteInternalResult::Success)
+	//{
+	//	LocalResult = ELeavePartyCompletionResult::UnknownClientFailure;
+	//}
+
+	CompletionDelegate.ExecuteIfBound(LocalUserId, Result);
+
+	TArray<UPartyDelegates::FOnLeaveUPartyComplete> DelegatesCopy = LeavePartyCompleteDelegates;
 	LeavePartyCompleteDelegates.Empty();
 
 	// fire delegates for any/all LeavePersistentParty calls made while this one was in flight
-	for (const FOnLeavePartyComplete& ExtraDelegate : DelegatesCopy)
+	for (const UPartyDelegates::FOnLeaveUPartyComplete& ExtraDelegate : DelegatesCopy)
 	{
-		ExtraDelegate.ExecuteIfBound(LocalUserId, InPartyId, Result);
+		ExtraDelegate.ExecuteIfBound(LocalUserId, Result);
 	}
 }
 
 void UParty::RestorePersistentPartyState()
 {
-	if (!GIsRequestingExit)
+	if (!bLeavingPersistentParty)
 	{
-		if (!bLeavingPersistentParty)
+		UWorld* World = GetWorld();
+		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+		if (PartyInt.IsValid())
 		{
-			UWorld* World = GetWorld();
-			IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
-			if (PartyInt.IsValid())
+			UGameInstance* GameInstance = GetGameInstance();
+			check(GameInstance);
+
+			TSharedPtr<const FUniqueNetId> LocalUserId = GameInstance->GetPrimaryPlayerUniqueId();
+			check(LocalUserId.IsValid() && LocalUserId->IsValid());
+
+			UPartyGameState* PersistentParty = GetPersistentParty();
+
+			// Check for existing party and create a new one if necessary
+			bool bFoundExistingPersistentParty = PersistentParty ? true : false;
+			if (bFoundExistingPersistentParty)
 			{
-				UGameInstance* GameInstance = GetGameInstance();
-				check(GameInstance);
-
-				TSharedPtr<const FUniqueNetId> LocalUserId = GameInstance->GetPrimaryPlayerUniqueId();
-				check(LocalUserId.IsValid() && LocalUserId->IsValid());
-
-				UPartyGameState* PersistentParty = GetPersistentParty();
-
-				// Check for existing party and create a new one if necessary
-				bool bFoundExistingPersistentParty = PersistentParty ? true : false;
-				if (bFoundExistingPersistentParty)
+				// In a party already, make sure the UI is aware of its state
+				if (PersistentParty->ResetForFrontend())
 				{
-					// In a party already, make sure the UI is aware of its state
-					if (PersistentParty->ResetForFrontend())
-					{
-						OnPartyResetForFrontend().Broadcast(PersistentParty);
-					}
-					else
-					{
-						// There was an issue resetting the party, so leave 
-						LeaveAndRestorePersistentParty();
-					}
+					OnPartyResetForFrontend().Broadcast(PersistentParty);
 				}
 				else
 				{
-					PersistentPartyId = nullptr;
-
-					// Create a new party
-					FOnCreatePartyComplete CompletionDelegate;
-					CreatePersistentParty(*LocalUserId, CompletionDelegate);
+					// There was an issue resetting the party, so leave 
+					LeaveAndRestorePersistentParty();
 				}
 			}
+			else
+			{
+				PersistentPartyId = nullptr;
+
+				// Create a new party
+				CreatePersistentParty(*LocalUserId);
+			}
 		}
-		else
-		{
-			UE_LOG(LogParty, Verbose, TEXT("Can't RestorePersistentPartyState while leaving party, ignoring"));
-		}
+	}
+	else
+	{
+		UE_LOG(LogParty, Verbose, TEXT("Can't RestorePersistentPartyState while leaving party, ignoring"));
 	}
 }
 
@@ -978,8 +1281,7 @@ void UParty::KickFromPersistentParty()
 			if (ensure(LocalUserId.IsValid() && LocalUserId->IsValid()))
 			{
 				// Leave the party (restored in frontend)
-				FOnLeavePartyComplete CompletionDelegate;
-				LeavePersistentParty(*LocalUserId, CompletionDelegate);
+				LeavePersistentParty(*LocalUserId);
 			}
 		}
 		else
@@ -1015,7 +1317,7 @@ void UParty::LeaveAndRestorePersistentPartyInternal()
 	TSharedPtr<const FUniqueNetId> PrimaryUserId = GameInstance->GetPrimaryPlayerUniqueId();
 	check(PrimaryUserId.IsValid() && PrimaryUserId->IsValid());
 
-	FOnLeavePartyComplete CompletionDelegate;
+	UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
 	CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyAndRestore);
 
 	// Unset this here, wouldn't be here if we were unable to call LeaveAndRestorePersistentParty, it will be reset inside
@@ -1024,39 +1326,38 @@ void UParty::LeaveAndRestorePersistentPartyInternal()
 	LeavePersistentParty(*PrimaryUserId, CompletionDelegate);
 }
 
-void UParty::OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const ELeavePartyCompletionResult Result)
+void UParty::OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result)
 {
-	UE_LOG(LogParty, Display, TEXT("OnLeavePersistentPartyAndRestore [%s] Result: %s"), *PartyId.ToString(), ToString(Result));
+	UE_LOG(LogParty, Display, TEXT("OnLeavePersistentPartyAndRestore Result: %s"), ToString(Result));
+
 	RestorePersistentPartyState();
 }
 
-bool UParty::ProcessPendingPartyInvites()
+void UParty::AddPendingPartyJoin(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& JoinCompleteDelegate)
 {
-	if (PendingPartyInvite.IsValid() && PendingPartyInvite->IsValid())
+	if (LocalUserId.IsValid() && PartyDetails.IsValid())
+	{
+		if (!PendingPartyJoin.IsValid())
+		{
+			PendingPartyJoin = MakeShareable(new FPendingPartyJoin(LocalUserId.AsShared(), PartyDetails, JoinCompleteDelegate));
+		}
+	}
+}
+
+bool UParty::ProcessPendingPartyJoin()
+{
+	if (PendingPartyJoin.IsValid() )
 	{
 		// Copy the values out because PendingPartyInvite is going to be remade inside this function
-		TSharedRef<const FUniqueNetId> LocalUserId = PendingPartyInvite->LocalUserId;
-		FPartyDetails PartyDetails = PendingPartyInvite->PartyDetails;
-		FOnJoinPartyComplete JoinCompleteDelegate = PendingPartyInvite->JoinCompleteDelegate;
-		HandlePendingInvite(*LocalUserId, PartyDetails, JoinCompleteDelegate);
+		TSharedRef<const FUniqueNetId> LocalUserId = PendingPartyJoin->LocalUserId;
+		FPartyDetails PartyDetails = PendingPartyJoin->PartyDetails;
+
+		HandlePendingJoin();
+
 		return true;
 	}
 
 	return false;
-}
-
-void UParty::HandlePendingInvite(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const FOnJoinPartyComplete& JoinCompleteDelegate)
-{
-	if (LocalUserId.IsValid() && PartyDetails.IsValid())
-	{
-		// Setup the invite for processing
-		PendingPartyInvite = MakeShareable(new FPendingPartyInvite(LocalUserId.AsShared(), PartyDetails, JoinCompleteDelegate));
-
-		UWorld* World = GetWorld();
-		check(World);
-
-		JoinCompleteDelegate.ExecuteIfBound(LocalUserId, *PartyDetails.GetPartyId(), EJoinPartyCompletionResult::UnknownClientFailure, 0);
-	}
 }
 
 UWorld* UParty::GetWorld() const

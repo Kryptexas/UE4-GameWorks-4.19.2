@@ -120,7 +120,7 @@ public:
 	{
 	}
 
-	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
 	{
 	}
 
@@ -146,34 +146,58 @@ class UEmitterMovieSceneTrack
 	GENERATED_UCLASS_BODY()
 public:
 
-	/** UMovieSceneTrack interface */
-	virtual FName GetTrackName() const override { return *Emitter->GetProperties()->EmitterName; }
+	TSharedPtr<FNiagaraSimulation> GetEmitter()
+	{
+		return Emitter;
+	}
+
 	void SetEmitter(TSharedPtr<FNiagaraSimulation> InEmitter)
 	{
-		if (InEmitter.IsValid())
+		if (!InEmitter.IsValid())
 		{
-			Emitter = InEmitter;
-			if (const UNiagaraEmitterProperties* EmitterProps = InEmitter->GetProperties().Get())
-			{
-				UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->EmitterName);
-				Section->SetEmitterProps(EmitterProps);
+			return;
+		}
 
+		Emitter = InEmitter;
+
+		if (const UNiagaraEmitterProperties* EmitterProps = InEmitter->GetProperties().Get())
+		{
+			UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->EmitterName);
+			{
+				Section->SetEmitterProps(EmitterProps);
 				Section->SetStartTime(EmitterProps->StartTime);
 				Section->SetEndTime(EmitterProps->EndTime);
 				Section->SetEmitterName(FText::FromString(EmitterProps->EmitterName));
-
-				Sections.Add(Section);
 			}
+
+			Sections.Add(Section);
 		}
 	}
 
-	virtual void RemoveAllAnimationData() override	{};
-	virtual bool HasSection(const UMovieSceneSection& Section) const override { return false; }
-	virtual bool IsEmpty() const override { return false; }
-	virtual TSharedPtr<class IMovieSceneTrackInstance> CreateInstance()
+public:
+
+	// UMovieSceneTrack interface
+
+	virtual void RemoveAllAnimationData() override
+	{
+		// do nothing
+	};
+
+	virtual bool HasSection(const UMovieSceneSection& Section) const override
+	{
+		return false;
+	}
+
+	virtual bool IsEmpty() const override
+	{
+		return false;
+	}
+
+	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance()
 	{
 		return MakeShareable(new INiagaraTrackInstance(this));
 	}
+
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override
 	{
 		return Sections;
@@ -184,9 +208,12 @@ public:
 		return TRange<float>(0, FLT_MAX);
 	}
 
-	TSharedPtr<FNiagaraSimulation> GetEmitter() { return Emitter; }
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDisplayName() const override;
+#endif
 
 private:
+
 	TSharedPtr<FNiagaraSimulation> Emitter;
 	TArray<UMovieSceneSection*> Sections;
 };

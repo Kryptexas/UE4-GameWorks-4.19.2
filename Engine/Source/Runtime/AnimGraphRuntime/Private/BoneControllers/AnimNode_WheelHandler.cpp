@@ -102,7 +102,7 @@ void FAnimNode_WheelHandler::InitializeBoneReferences(const FBoneContainer& Requ
 	WheelSimulators.Sort([](FWheelSimulator L, FWheelSimulator R) { return L.BoneReference.BoneIndex < R.BoneReference.BoneIndex; });
 }
 
-void FAnimNode_WheelHandler::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_WheelHandler::UpdateInternal(const FAnimationUpdateContext& Context)
 {
 	if(VehicleSimComponent)
 	{
@@ -125,7 +125,7 @@ void FAnimNode_WheelHandler::Update(const FAnimationUpdateContext& Context)
 		}
 	}
 
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 }
 
 void FAnimNode_WheelHandler::Initialize(const FAnimationInitializeContext& Context)

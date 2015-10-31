@@ -17,7 +17,9 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FParticleTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~FParticleTrackEditor();
+
+	/** Virtual destructor. */
+	virtual ~FParticleTrackEditor() { }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer.

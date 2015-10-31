@@ -10,6 +10,9 @@
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
+DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, STATGROUP_Anim);
+
+
 /////////////////////////////////////////////////////
 
 UAnimSequenceBase::UAnimSequenceBase(const FObjectInitializer& ObjectInitializer)
@@ -477,6 +480,7 @@ uint8* UAnimSequenceBase::FindArrayProperty(const TCHAR* PropName, UArrayPropert
 /** Add curve data to Instance at the time of CurrentTime **/
 void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime ) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_EvalCurveData);
 	RawCurveData.EvaluateCurveData(OutCurve, CurrentTime);
 }
 

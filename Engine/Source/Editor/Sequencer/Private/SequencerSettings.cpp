@@ -12,7 +12,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	SpawnPosition = SSP_Origin;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
-	bLockInOutToStartEndRange = false;
 	bIsSnapEnabled = true;
 	TimeSnapInterval = .05f;
 	bSnapKeyTimesToInterval = true;
@@ -27,6 +26,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
+	bLooping = false;
 }
 
 bool USequencerSettings::GetAutoKeyEnabled() const
@@ -123,20 +123,6 @@ void USequencerSettings::SetShowRangeSlider(bool InbShowRangeSlider)
 	if ( bShowRangeSlider != InbShowRangeSlider )
 	{
 		bShowRangeSlider = InbShowRangeSlider;
-		SaveConfig();
-	}
-}
-
-bool USequencerSettings::GetLockInOutToStartEndRange() const
-{
-	return bLockInOutToStartEndRange;
-}
-
-void USequencerSettings::SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange)
-{
-	if ( bLockInOutToStartEndRange != InbLockInOutToStartEndRange )
-	{
-		bLockInOutToStartEndRange = InbLockInOutToStartEndRange;
 		SaveConfig();
 	}
 }
@@ -325,6 +311,20 @@ void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
 	}
 }
 
+bool USequencerSettings::IsLooping() const
+{
+	return bLooping;
+}
+
+void USequencerSettings::SetLooping(bool bInLooping)
+{
+	if (bLooping != bInLooping)
+	{
+		bLooping = bInLooping;
+		SaveConfig();
+	}
+}
+
 bool USequencerSettings::GetShowCurveEditorCurveToolTips() const
 {
 	return bShowCurveEditorCurveToolTips;
@@ -358,5 +358,4 @@ ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectIniti
 	bKeyInterpPropertiesOnly = true;
 	TimeSnapInterval = 0.033334f;
 	bShowRangeSlider = true;
-	bLockInOutToStartEndRange = true;
 }

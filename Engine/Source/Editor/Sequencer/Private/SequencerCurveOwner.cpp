@@ -31,7 +31,7 @@ void GetAllKeyAreas( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TArray<
 		NodesToProcess.RemoveNode( Node );
 		if ( Node->GetType() == ESequencerNode::Track )
 		{
-			TSharedRef<FTrackNode> TrackNode = StaticCastSharedRef<FTrackNode>( Node );
+			TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>( Node );
 			TSharedPtr<FSequencerSectionKeyAreaNode> TopLevelKeyNode = TrackNode->GetTopLevelKeyNode();
 			if ( TopLevelKeyNode.IsValid() )
 			{

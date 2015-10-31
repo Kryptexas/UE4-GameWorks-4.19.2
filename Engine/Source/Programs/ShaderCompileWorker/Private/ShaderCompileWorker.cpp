@@ -122,7 +122,8 @@ public:
 
 		while(true)
 		{
-			TArray<FJobResult> JobResults;
+			TArray<FJobResult> SingleJobResults;
+			TArray<FPipelineJobResult> PipelineJobResults;
 
 			// Read & Process Input
 			{
@@ -135,7 +136,7 @@ public:
 				UE_LOG(LogShaders, Log, TEXT("Processing shader"));
 				LastCompileTime = FPlatformTime::Seconds();
 
-				ProcessInputFromArchive(InputFilePtr, JobResults);
+				ProcessInputFromArchive(InputFilePtr, SingleJobResults, PipelineJobResults);
 
 				// Close the input file.
 				delete InputFilePtr;
@@ -144,7 +145,7 @@ public:
 			// Prepare for output
 			FArchive* OutputFilePtr = CreateOutputArchive();
 			check(OutputFilePtr);
-			WriteToOutputArchive(OutputFilePtr, JobResults);
+			WriteToOutputArchive(OutputFilePtr, SingleJobResults, PipelineJobResults);
 
 			// Close the output file.
 			delete OutputFilePtr;
@@ -169,6 +170,12 @@ private:
 	struct FJobResult
 	{
 		FShaderCompilerOutput CompilerOutput;
+	};
+
+	struct FPipelineJobResult
+	{
+		FString PipelineName;
+		TArray<FJobResult> SingleJobs;
 	};
 
 	const int32 ParentProcessId;
@@ -225,7 +232,7 @@ private:
 		}
 	}
 
-	void ProcessInputFromArchive(FArchive* InputFilePtr, TArray<FJobResult>& OutJobResults)
+	void ProcessInputFromArchive(FArchive* InputFilePtr, TArray<FJobResult>& OutSingleJobResults, TArray<FPipelineJobResult>& OutPipelineJobResults)
 	{
 		FArchive& InputFile = *InputFilePtr;
 		int32 InputVersion;
@@ -267,7 +274,7 @@ private:
 				ProcessCompilationJob(CompilerInput, CompilerOutput, WorkingDirectory);
 
 				// Serialize the job's output.
-			FJobResult& JobResult = *new(OutJobResults) FJobResult;
+				FJobResult& JobResult = *new(OutSingleJobResults) FJobResult;
 				JobResult.CompilerOutput = CompilerOutput;
 			}
 		}
@@ -280,6 +287,78 @@ private:
 
 			int32 NumPipelines = 0;
 			InputFile << NumPipelines;
+
+			for (int32 Index = 0; Index < NumPipelines; ++Index)
+			{
+				FPipelineJobResult& PipelineJob = *new(OutPipelineJobResults) FPipelineJobResult;
+
+				InputFile << PipelineJob.PipelineName;
+
+				int32 NumStages = 0;
+				InputFile << NumStages;
+
+				TArray<FShaderCompilerInput> CompilerInputs;
+				CompilerInputs.AddDefaulted(NumStages);
+
+				for (int32 StageIndex = 0; StageIndex < NumStages; ++StageIndex)
+				{
+					// Deserialize the job's inputs.
+					InputFile << CompilerInputs[StageIndex];
+
+					if (IsValidRef(CompilerInputs[StageIndex].SharedEnvironment))
+					{
+						// Merge the shared environment into the per-shader environment before calling into the compile function
+						CompilerInputs[StageIndex].Environment.Merge(*CompilerInputs[StageIndex].SharedEnvironment);
+					}
+				}
+
+				ProcessShaderPipelineCompilationJob(PipelineJob, CompilerInputs);
+			}
+		}
+	}
+
+	void ProcessShaderPipelineCompilationJob(FPipelineJobResult& PipelineJob, TArray<FShaderCompilerInput>& CompilerInputs)
+	{
+		checkf(CompilerInputs.Num() > 0, TEXT("Exiting due to Pipeline %s having zero jobs!"), *PipelineJob.PipelineName);
+
+		// Process the job.
+		FShaderCompilerOutput FirstCompilerOutput;
+		CompilerInputs[0].bCompilingForShaderPipeline = true;
+		CompilerInputs[0].bIncludeUsedOutputs = false;
+		ProcessCompilationJob(CompilerInputs[0], FirstCompilerOutput, WorkingDirectory);
+
+		// Serialize the job's output.
+		FJobResult& JobResult = *new(PipelineJob.SingleJobs) FJobResult;
+		JobResult.CompilerOutput = FirstCompilerOutput;
+
+		bool bEnableRemovingUnused = true;
+
+		//#todo-rco: Only remove for pure VS & PS stages
+		for (int32 Index = 0; Index < CompilerInputs.Num(); ++Index)
+		{
+			auto Stage = CompilerInputs[Index].Target.Frequency;
+			if (Stage != SF_Vertex && Stage != SF_Pixel)
+			{
+				bEnableRemovingUnused = false;
+				break;
+			}
+		}
+
+		for (int32 Index = 1; Index < CompilerInputs.Num(); ++Index)
+		{
+			if (bEnableRemovingUnused && PipelineJob.SingleJobs.Last().CompilerOutput.bSupportsQueryingUsedAttributes)
+			{
+				CompilerInputs[Index].bIncludeUsedOutputs = true;
+				CompilerInputs[Index].bCompilingForShaderPipeline = true;
+				CompilerInputs[Index].UsedOutputs = PipelineJob.SingleJobs.Last().CompilerOutput.UsedAttributes;
+			}
+
+			FShaderCompilerOutput CompilerOutput;
+			ProcessCompilationJob(CompilerInputs[Index], CompilerOutput, WorkingDirectory);
+
+			// Serialize the job's output.
+			FJobResult& JobResult = *new(PipelineJob.SingleJobs) FJobResult;
+			JobResult.CompilerOutput = CompilerOutput;
 		}
 	}
 
@@ -336,7 +415,7 @@ private:
 		return OutputFilePtr;
 	}
 
-	void WriteToOutputArchive(FArchive* OutputFilePtr, TArray<FJobResult>& JobResults)
+	void WriteToOutputArchive(FArchive* OutputFilePtr, TArray<FJobResult>& SingleJobResults, TArray<FPipelineJobResult>& PipelineJobResults)
 	{
 		FArchive& OutputFile = *OutputFilePtr;
 
@@ -354,12 +433,12 @@ private:
 			int32 SingleJobHeader = ShaderCompileWorkerSingleJobHeader;
 			OutputFile << SingleJobHeader;
 
-			int32 NumBatches = JobResults.Num();
+			int32 NumBatches = SingleJobResults.Num();
 			OutputFile << NumBatches;
 
-			for (int32 ResultIndex = 0; ResultIndex < JobResults.Num(); ResultIndex++)
+			for (int32 ResultIndex = 0; ResultIndex < SingleJobResults.Num(); ResultIndex++)
 			{
-				FJobResult& JobResult = JobResults[ResultIndex];
+				FJobResult& JobResult = SingleJobResults[ResultIndex];
 				OutputFile << JobResult.CompilerOutput;
 			}
 		}
@@ -367,9 +446,21 @@ private:
 		{
 			int32 PipelineJobHeader = ShaderCompileWorkerPipelineJobHeader;
 			OutputFile << PipelineJobHeader;
+			int32 NumBatches = PipelineJobResults.Num();
+			OutputFile << NumBatches;
 
-			int32 NumPipelines = 0;
-			OutputFile << NumPipelines;
+			for (int32 ResultIndex = 0; ResultIndex < PipelineJobResults.Num(); ResultIndex++)
+			{
+				auto& PipelineJob = PipelineJobResults[ResultIndex];
+				OutputFile << PipelineJob.PipelineName;
+				int32 NumStageJobs = PipelineJob.SingleJobs.Num();
+				OutputFile << NumStageJobs;
+				for (int32 Index = 0; Index < NumStageJobs; ++Index)
+				{
+					FJobResult& JobResult = PipelineJob.SingleJobs[Index];
+					OutputFile << JobResult.CompilerOutput;
+				}
+			}
 		}
 	}
 

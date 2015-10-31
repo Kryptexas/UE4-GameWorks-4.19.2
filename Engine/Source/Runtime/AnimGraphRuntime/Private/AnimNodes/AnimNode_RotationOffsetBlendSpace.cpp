@@ -20,7 +20,11 @@ void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesCo
 
 void FAnimNode_RotationOffsetBlendSpace::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_BlendSpacePlayer::UpdateAssetPlayer(Context);
+	if (IsLODEnabled(Context.AnimInstance, LODThreshold))
+	{
+		FAnimNode_BlendSpacePlayer::UpdateAssetPlayer(Context);
+	}
+
 	BasePose.Update(Context);
 }
 
@@ -29,15 +33,18 @@ void FAnimNode_RotationOffsetBlendSpace::Evaluate(FPoseContext& Context)
 	// Evaluate base pose
 	BasePose.Evaluate(Context);
 
-	// Evaluate MeshSpaceRotation additive blendspace
-	FPoseContext MeshSpaceRotationAdditivePoseContext(Context);
-	FAnimNode_BlendSpacePlayer::Evaluate(MeshSpaceRotationAdditivePoseContext);
+	if (IsLODEnabled(Context.AnimInstance, LODThreshold))
+	{
+		// Evaluate MeshSpaceRotation additive blendspace
+		FPoseContext MeshSpaceRotationAdditivePoseContext(Context);
+		FAnimNode_BlendSpacePlayer::Evaluate(MeshSpaceRotationAdditivePoseContext);
 
-	// Accumulate poses together
-	FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, 1.f);
+		// Accumulate poses together
+		FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, 1.f);
 
-	// Resulting rotations are not normalized, so normalize here.
-	Context.Pose.NormalizeRotations();
+		// Resulting rotations are not normalized, so normalize here.
+		Context.Pose.NormalizeRotations();
+	}
 }
 
 void FAnimNode_RotationOffsetBlendSpace::GatherDebugData(FNodeDebugData& DebugData)
@@ -51,5 +58,6 @@ void FAnimNode_RotationOffsetBlendSpace::GatherDebugData(FNodeDebugData& DebugDa
 }
 
 FAnimNode_RotationOffsetBlendSpace::FAnimNode_RotationOffsetBlendSpace()
+	: LODThreshold(INDEX_NONE)
 {
 }

@@ -22,9 +22,9 @@ FAnimNode_Trail::FAnimNode_Trail()
 	TrailRelaxRichCurve->AddKey(1.f, 5.f);
 }
 
-void FAnimNode_Trail::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_Trail::UpdateInternal(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 
 	ThisTimstep = Context.GetDeltaTime();
 }

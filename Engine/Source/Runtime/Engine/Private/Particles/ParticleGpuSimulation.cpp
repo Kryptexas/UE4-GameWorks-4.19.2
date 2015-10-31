@@ -466,6 +466,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FGPUSpriteEmitterDynamicUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, AxisLockRight )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, AxisLockUp )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, DynamicColor)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, MacroUVParameters )
 END_UNIFORM_BUFFER_STRUCT( FGPUSpriteEmitterDynamicUniformParameters )
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGPUSpriteEmitterDynamicUniformParameters,TEXT("EmitterDynamicUniforms"));
@@ -473,9 +474,9 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGPUSpriteEmitterDynamicUniformParameters,TEXT("
 typedef TUniformBufferRef<FGPUSpriteEmitterDynamicUniformParameters> FGPUSpriteEmitterDynamicUniformBufferRef;
 
 /**
- * Shader parameters for the particle vertex factory.
+ * Vertex shader parameters for the particle vertex factory.
  */
-class FGPUSpriteVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+class FGPUSpriteVertexFactoryShaderParametersVS : public FVertexFactoryShaderParameters
 {
 public:
 	virtual void Bind( const FShaderParameterMap& ParameterMap ) override
@@ -528,6 +529,22 @@ private:
 	/** Texture containing curves from which attributes are sampled. */
 	FShaderResourceParameter CurveTexture;
 	FShaderResourceParameter CurveTextureSampler;
+};
+
+/**
+ * Pixel shader parameters for the particle vertex factory.
+ */
+class FGPUSpriteVertexFactoryShaderParametersPS : public FVertexFactoryShaderParameters
+{
+public:
+	virtual void Bind( const FShaderParameterMap& ParameterMap ) override {}
+
+	virtual void Serialize(FArchive& Ar) override {}
+
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
+	virtual uint32 GetSize() const override { return sizeof(*this); }
+
+private:
 };
 
 /**
@@ -643,14 +660,22 @@ public:
 	 */
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 	{
-		return ShaderFrequency == SF_Vertex ? new FGPUSpriteVertexFactoryShaderParameters() : NULL;
+		if (ShaderFrequency == SF_Vertex)
+		{
+			return new FGPUSpriteVertexFactoryShaderParametersVS();
+		}
+		else if (ShaderFrequency == SF_Pixel)
+		{
+			return new FGPUSpriteVertexFactoryShaderParametersPS();
+		}
+		return NULL;
 	}
 };
 
 /**
  * Set vertex factory shader parameters.
  */
-void FGPUSpriteVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
+void FGPUSpriteVertexFactoryShaderParametersVS::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
 	FGPUSpriteVertexFactory* GPUVF = (FGPUSpriteVertexFactory*)VertexFactory;
 	FVertexShaderRHIParamRef VertexShader = Shader->GetVertexShader();
@@ -667,6 +692,13 @@ void FGPUSpriteVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdLis
 	SetTextureParameter(RHICmdList, VertexShader, VelocityTexture, VelocityTextureSampler, SamplerStatePoint, GPUVF->VelocityTextureRHI );
 	SetTextureParameter(RHICmdList, VertexShader, AttributesTexture, AttributesTextureSampler, SamplerStatePoint, GPUVF->AttributesTextureRHI );
 	SetTextureParameter(RHICmdList, VertexShader, CurveTexture, CurveTextureSampler, SamplerStateLinear, GParticleCurveTexture.GetCurveTexture() );
+}
+
+void FGPUSpriteVertexFactoryShaderParametersPS::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
+{
+	FGPUSpriteVertexFactory* GPUVF = (FGPUSpriteVertexFactory*)VertexFactory;
+	FPixelShaderRHIParamRef PixelShader = Shader->GetPixelShader();
+	SetUniformBufferParameter(RHICmdList, PixelShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterDynamicUniformParameters>(), GPUVF->EmitterDynamicUniformBuffer );
 }
 
 IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory,"ParticleGPUSpriteVertexFactory",true,false,true,false,false);
@@ -2626,6 +2658,8 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/** Tile vector field in z axis? */
 	uint32 bLocalVectorFieldTileZ : 1;
 
+	/** Current MacroUV override settings */
+	FMacroUVOverride MacroUVOverride;
 
 	/** Constructor. */
 	explicit FGPUSpriteDynamicEmitterData( const UParticleModuleRequired* InRequiredModule )
@@ -2736,11 +2770,17 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 			if (Simulation->SimulationIndex != INDEX_NONE
 				&& Simulation->VertexBuffer.ParticleCount > 0)
 			{
+				FGPUSpriteEmitterDynamicUniformParameters PerViewDynamicParameters = EmitterDynamicParameters;
+				FVector2D ObjectNDCPosition;
+				FVector2D ObjectMacroUVScales;
+				Proxy->GetObjectPositionAndScale(*View,ObjectNDCPosition, ObjectMacroUVScales);
+				PerViewDynamicParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y); 
+
 				FGPUSpriteEmitterDynamicUniformBufferRef LocalDynamicUniformBuffer;
-				// Create view agnostic render data.  Do here rather than in CreateRenderThreadResources because in some cases Render can be called before CreateRenderThreadResources
+				// Do here rather than in CreateRenderThreadResources because in some cases Render can be called before CreateRenderThreadResources
 				{
 					// Create per-emitter uniform buffer for dynamic parameters
-					LocalDynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(EmitterDynamicParameters, UniformBuffer_SingleFrame);
+					LocalDynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(PerViewDynamicParameters, UniformBuffer_SingleFrame);
 				}
 
 				if (bUseLocalSpace == false)
@@ -2850,6 +2890,10 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		static FDynamicEmitterReplayDataBase DummyData;
 		return DummyData;
 	}
+
+	/** Returns the current macro uv override. */
+	virtual const FMacroUVOverride& GetMacroUVOverride() const { return MacroUVOverride; }
+
 };
 
 /*-----------------------------------------------------------------------------
@@ -3078,6 +3122,10 @@ public:
 			ColorOverLife.W = EmitterInfo.DynamicAlpha.GetValue(0.0f,Component);
 		}
 		DynamicData->EmitterDynamicParameters.DynamicColor = ColorOverLife * ColorScaleOverLife;
+
+		DynamicData->MacroUVOverride.bOverride = LODLevel->RequiredModule->bOverrideSystemMacroUV;
+		DynamicData->MacroUVOverride.Radius = LODLevel->RequiredModule->MacroUVRadius;
+		DynamicData->MacroUVOverride.Position = LODLevel->RequiredModule->MacroUVPosition;
 
 		const bool bSimulateGPUParticles = 
 			FXConsoleVariables::bFreezeGPUSimulation == false &&

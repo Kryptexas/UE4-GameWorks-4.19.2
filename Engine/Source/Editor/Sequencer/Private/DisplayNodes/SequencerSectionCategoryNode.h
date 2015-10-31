@@ -33,10 +33,12 @@ public:
 
 	// FSequencerDisplayNode interface
 
+	virtual bool CanRenameNode() const override;
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual ESequencerNode::Type GetType() const override;
+	virtual void SetDisplayName(const FText& DisplayName) override;
 
 private:
 

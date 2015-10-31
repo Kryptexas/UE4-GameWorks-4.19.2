@@ -3,14 +3,14 @@
 #pragma once
 
 class ISequencerSection;
-class FTrackNode;
+class FSequencerTrackNode;
 
 
 class FSequencerSectionLayoutBuilder
 	: public ISectionLayoutBuilder
 {
 public:
-	FSequencerSectionLayoutBuilder( TSharedRef<FTrackNode> InRootNode );
+	FSequencerSectionLayoutBuilder( TSharedRef<FSequencerTrackNode> InRootNode );
 
 public:
 
@@ -24,7 +24,7 @@ public:
 private:
 
 	/** Root node of the tree */
-	TSharedRef<FTrackNode> RootNode;
+	TSharedRef<FSequencerTrackNode> RootNode;
 
 	/** The current node that other nodes are added to */
 	TSharedRef<FSequencerDisplayNode> CurrentNode;

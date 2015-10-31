@@ -27,12 +27,12 @@ FAutoConsoleVariableRef CVarSkeletalMeshLODBias(
 	);
 
 static TAutoConsoleVariable<int32> CVarEnableAnimRateOptimization(
-	TEXT("EnableAnimRateOptimization"),
+	TEXT("a.URO.Enable"),
 	1,
 	TEXT("True to anim rate optimization."));
 
 static TAutoConsoleVariable<int32> CVarDrawAnimRateOptimization(
-	TEXT("DrawAnimRateOptimization"),
+	TEXT("a.URO.Draw"),
 	0,
 	TEXT("True to draw color coded boxes for anim rate."));
 
@@ -2005,7 +2005,7 @@ void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateSh
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.
 	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);
-	bInterpolateSkippedFrames = bNewInterpSkippedFrames || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1);
+	bInterpolateSkippedFrames = (bNewInterpSkippedFrames && (EvaluationRate < MaxEvalRateForInterpolation)) || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1);
 
 	// Make sure we don't overflow. we don't need very large numbers.
 	const uint32 Counter = (GFrameCounter + UpdateRateShift)% MAX_uint8;

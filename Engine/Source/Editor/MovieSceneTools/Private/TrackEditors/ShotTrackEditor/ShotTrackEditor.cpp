@@ -114,23 +114,23 @@ TSharedPtr<SWidget> FShotTrackEditor::BuildOutlinerEditWidget(const FGuid& Objec
 	];
 
 	EditBox.Get()->AddSlot()
-	.VAlign(VAlign_Center)
-	.HAlign(HAlign_Right)
-	.AutoWidth()
-	.Padding(4, 0, 0, 0)
-	[
-		SNew(SCheckBox)
-		.IsChecked(this, &FShotTrackEditor::IsCameraLocked)
-		.OnCheckStateChanged(this, &FShotTrackEditor::OnLockCameraClicked)
-		.ToolTipText(this, &FShotTrackEditor::GetLockCameraToolTip)
-		.ForegroundColor(FLinearColor::White)
-		.CheckedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
-		.CheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
-		.CheckedPressedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
-		.UncheckedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
-		.UncheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
-		.UncheckedPressedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
-	];
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		.AutoWidth()
+		.Padding(4, 0, 0, 0)
+		[
+			SNew(SCheckBox)
+				.IsChecked(this, &FShotTrackEditor::IsCameraLocked)
+				.OnCheckStateChanged(this, &FShotTrackEditor::OnLockCameraClicked)
+				.ToolTipText(this, &FShotTrackEditor::GetLockCameraToolTip)
+				.ForegroundColor(FLinearColor::White)
+				.CheckedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
+				.CheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
+				.CheckedPressedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
+				.UncheckedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
+				.UncheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
+				.UncheckedPressedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
+		];
 
 	return EditBox.ToSharedRef();
 }
@@ -164,21 +164,9 @@ void FShotTrackEditor::Tick(float DeltaTime)
 
 bool FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
-	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
-	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
-	UMovieSceneTrack* Track = MovieScene->GetShotTrack();
-
-	if (!Track)
-	{
-		Track = MovieScene->AddShotTrack(UMovieSceneShotTrack::StaticClass());
-	}
-
-	UMovieSceneShotTrack* ShotTrack = CastChecked<UMovieSceneShotTrack>(Track);
-
-	// Get the current path of the movie scene the shot is in
+	UMovieSceneShotTrack* ShotTrack = FindOrCreateShotTrack();
 	const TArray<UMovieSceneSection*>& AllSections = ShotTrack->GetAllSections();
 
-	// Find where the section will be inserted
 	int32 SectionIndex = FindIndexForNewShot(AllSections, KeyTime);
 	const int32 ShotNumber = GenerateShotNumber(*ShotTrack, SectionIndex);
 	FString ShotName = FString::Printf(TEXT("Shot_%04d"), ShotNumber);
@@ -186,6 +174,20 @@ bool FShotTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 	ShotTrack->AddNewShot(ObjectGuid, KeyTime, FText::FromString(ShotName), ShotNumber);
 
 	return true;
+}
+
+
+UMovieSceneShotTrack* FShotTrackEditor::FindOrCreateShotTrack()
+{
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+	UMovieSceneTrack* ShotTrack = FocusedMovieScene->GetShotTrack();
+
+	if (ShotTrack == nullptr)
+	{
+		ShotTrack = FocusedMovieScene->AddShotTrack(UMovieSceneShotTrack::StaticClass());
+	}
+
+	return CastChecked<UMovieSceneShotTrack>(ShotTrack);
 }
 
 
@@ -297,16 +299,7 @@ bool FShotTrackEditor::HandleAddShotTrackMenuEntryCanExecute() const
 
 void FShotTrackEditor::HandleAddShotTrackMenuEntryExecute()
 {
-	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
-
-	if ((FocusedMovieScene == nullptr) || (FocusedMovieScene->GetShotTrack() != nullptr))
-	{
-		return;
-	}
-
-	UMovieSceneTrack* NewTrack = FocusedMovieScene->AddShotTrack(UMovieSceneShotTrack::StaticClass());
-	ensure(NewTrack);
-
+	FindOrCreateShotTrack();
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 

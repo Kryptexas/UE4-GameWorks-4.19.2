@@ -18,7 +18,7 @@ public:
 	/** FMovieSceneSpawnable default constructor */
 	FMovieSceneSpawnable() { }
 
-	/** FMovieSceneSpawnable initialization constructor */
+/** FMovieSceneSpawnable initialization constructor */
 	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass)
 		: Guid(FGuid::NewGuid())
 		, Name(InitName)
@@ -60,6 +60,34 @@ public:
 		return Name;
 	}
 
+	/**
+	 * Report the specified GUID as being an inner possessable dependency for this spawnable
+	 *
+	 * @param PossessableGuid The guid pertaining to the inner possessable
+	 */
+	void AddChildPossessable(const FGuid& PossessableGuid)
+	{
+		ChildPossessables.AddUnique(PossessableGuid);
+	}
+
+	/**
+	 * Remove the specified GUID from this spawnables list of dependent possessables
+	 *
+	 * @param PossessableGuid The guid pertaining to the inner possessable
+	 */
+	void RemoveChildPossessable(const FGuid& PossessableGuid)
+	{
+		ChildPossessables.Remove(PossessableGuid);
+	}
+
+	/**
+	 * @return const access to the child possessables set
+	 */
+	const TArray<FGuid>& GetChildPossessables() const
+	{
+		return ChildPossessables;
+	}
+
 private:
 
 	/** Unique identifier of the spawnable object. */
@@ -77,4 +105,9 @@ private:
 	// @todo sequencer: Could be weak object ptr here, IF blueprints that are inners are housekept properly without references
 	UPROPERTY()
 	UClass* GeneratedClass;
+
+	/** Set of GUIDs to possessable object bindings that are bound to an object inside this spawnable */
+	// @todo sequencer: This should be a TSet, but they don't duplicate correctly atm
+	UPROPERTY()
+	TArray<FGuid> ChildPossessables;
 };

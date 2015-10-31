@@ -66,13 +66,13 @@ private:
 	void OnTransformChanged( UObject& InObject );
 
 	/** Delegate for camera button lock state */
-	ECheckBoxState IsCameraLocked(TWeakObjectPtr<ACameraActor> CameraActor) const; 
+	ECheckBoxState IsCameraLocked(FGuid ObjectGuid) const; 
 
 	/** Delegate for locked camera button */
-	void OnLockCameraClicked(ECheckBoxState CheckBoxState, TWeakObjectPtr<ACameraActor> CameraActor);
+	void OnLockCameraClicked(ECheckBoxState CheckBoxState, FGuid ObjectGuid);
 
 	/** Delegate for camera button lock tooltip */
-	FText GetLockCameraToolTip(TWeakObjectPtr<ACameraActor> CameraActor) const; 
+	FText GetLockCameraToolTip(FGuid ObjectGuid) const; 
 
 	/** Tries to get an actor and root scene component from an object which can be either an actor or a component. */
 	void GetActorAndSceneComponentFromObject(UObject* Object, AActor*& OutActor, USceneComponent*& OutSceneComponent);
@@ -134,7 +134,8 @@ private:
 	void SetIntermediateValueFromTransformChange( UMovieSceneTrack* Track, FTransformData TransformData );
 
 private:
-	static FName TransformTrackName;
+
+	static FName TransformPropertyName;
 
 	/** Mapping of objects to their existing transform data (for comparing against new transform data) */
 	TMap< TWeakObjectPtr<UObject>, FTransformData > ObjectToExistingTransform;

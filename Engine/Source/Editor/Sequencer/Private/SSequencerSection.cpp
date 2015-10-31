@@ -29,7 +29,7 @@ void SSequencerSection::EnableLayoutRegeneration()
 }
 
 
-void SSequencerSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> SectionNode, int32 InSectionIndex )
+void SSequencerSection::Construct( const FArguments& InArgs, TSharedRef<FSequencerTrackNode> SectionNode, int32 InSectionIndex )
 {
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;

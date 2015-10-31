@@ -21,7 +21,7 @@ TSharedRef<ISequencerSection> FMaterialTrackEditor::MakeSectionInterface( UMovie
 	UMovieSceneMaterialParameterSection* ParameterSection = Cast<UMovieSceneMaterialParameterSection>(&SectionObject);
 	checkf( ParameterSection != nullptr, TEXT("Unsupported section type.") );
 
-	return MakeShareable(new FMaterialParameterSection( *ParameterSection, ParameterSection->GetFName()));
+	return MakeShareable(new FMaterialParameterSection( *ParameterSection, FText::FromName(ParameterSection->GetFName())));
 }
 
 

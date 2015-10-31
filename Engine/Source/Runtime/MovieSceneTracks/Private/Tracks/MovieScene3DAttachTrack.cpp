@@ -7,15 +7,12 @@
 #include "MovieScene3DAttachTrackInstance.h"
 
 
+#define LOCTEXT_NAMESPACE "MovieScene3DAttachTrack"
+
+
 UMovieScene3DAttachTrack::UMovieScene3DAttachTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 { }
-
-
-FName UMovieScene3DAttachTrack::GetTrackName() const
-{
-	return FName("Attach");
-}
 
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DAttachTrack::CreateInstance()
@@ -24,12 +21,24 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DAttachTrack::CreateInstance()
 }
 
 
-void UMovieScene3DAttachTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FGuid& ConstraintId)
+void UMovieScene3DAttachTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FName SocketName, const FGuid& ConstraintId)
 {
 	// add the section
 	UMovieScene3DAttachSection* NewSection = NewObject<UMovieScene3DAttachSection>(this);
 	NewSection->AddAttach(KeyTime, ConstraintEndTime, ConstraintId);
 	NewSection->InitialPlacement( ConstraintSections, KeyTime, ConstraintEndTime, SupportsMultipleRows() );
+	NewSection->AttachSocketName = SocketName;
 
 	ConstraintSections.Add(NewSection);
 }
+
+
+#if WITH_EDITORONLY_DATA
+FText UMovieScene3DAttachTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Attach");
+}
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

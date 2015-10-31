@@ -30,6 +30,7 @@ public class MovieSceneTools : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "ActorPickerMode",
 				"MovieScene",
 				"MovieSceneTracks",
 				"BlueprintGraph",
@@ -46,6 +47,7 @@ public class MovieSceneTools : ModuleRules
 			new string[] {
 				"AssetTools",
 				"Sequencer",
+				"SceneOutliner",
 				"PropertyEditor"
 			}
 		);
@@ -53,8 +55,11 @@ public class MovieSceneTools : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
+				"SceneOutliner",
 				"PropertyEditor"
 			}
 		);
+
+        bFasterWithoutUnity = true;
 	}
 }

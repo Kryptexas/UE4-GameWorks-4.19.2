@@ -9,7 +9,7 @@
 	"EngineVersion" : "4.4.0",
 	"Description" : "Realtime network compression using Oodle technology",
 	"Category" : "Networking",
-	"EnabledByDefault" : false,
+	"EnabledByDefault" : true,
     "IsBetaVersion": false,
 	
 	"Modules" :

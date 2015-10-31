@@ -10,7 +10,9 @@ public class Hotfix : ModuleRules
 			new string[] { 
 				"Core",
 				"CoreUObject",
+				"Engine",
 				"OnlineSubsystem",
+				"OnlineSubsystemUtils",
 			}
 			);
     }

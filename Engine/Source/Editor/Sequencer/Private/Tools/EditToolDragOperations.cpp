@@ -69,7 +69,7 @@ TOptional<FSequencerSnapField::FSnapResult> SnapToInterval(const TArray<float>& 
 /** How many pixels near the mouse has to be before snapping occurs */
 const float PixelSnapWidth = 10.f;
 
-TRange<float> GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FTrackNode> SequencerNode)
+TRange<float> GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FSequencerTrackNode> SequencerNode)
 {
 	// Find the borders of where you can drag to
 	float LowerBound = -FLT_MAX, UpperBound = FLT_MAX;

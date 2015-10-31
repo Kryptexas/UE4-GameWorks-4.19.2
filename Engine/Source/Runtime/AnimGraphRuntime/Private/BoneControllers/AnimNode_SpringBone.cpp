@@ -38,9 +38,9 @@ void FAnimNode_SpringBone::CacheBones(const FAnimationCacheBonesContext& Context
 	FAnimNode_SkeletalControlBase::CacheBones(Context);
 }
 
-void FAnimNode_SpringBone::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SpringBone::UpdateInternal(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 
 	RemainingTime += Context.GetDeltaTime();
 

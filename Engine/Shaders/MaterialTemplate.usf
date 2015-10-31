@@ -9,6 +9,7 @@
 
 // for MaterialExpressionDepthOfFieldFunction
 #include "DepthOfFieldCommon.usf"
+#include "CircleDOFCommon.usf"
 #include "GlobalDistanceFieldShared.usf"
 
 #if USES_SPEEDTREE
@@ -621,6 +622,11 @@ float MaterialExpressionDepthOfFieldFunction(float SceneDepth, int FunctionValue
 	{
 		return CalcUnfocusedPercentCustomBound(SceneDepth, 0, 1);
 	}
+	else if(FunctionValueIndex == 3) // TDOF_CircleOfConfusionRadius
+	{
+		// * 2 to compensate for half res
+		return DepthToCoc(SceneDepth) * 2.0f;
+	}
 	return 0;
 }
 
@@ -1055,7 +1061,8 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) return float3(0.2f, 0.6f, 0.5f); // Cyan
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE) return float3(0.2f, 0.2f, 0.8f); // Blue
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_HAIR) return float3(0.6f, 0.1f, 0.5f);
-	else if (GBuffer.ShadingModelID == SHADINGMODELID_CLOTH) return float3(0.18f, 0.18f, 0.18f); 
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_CLOTH) return float3(0.7f, 1.0f, 1.0f); 
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_EYE) return float3(0.3f, 1.0f, 1.0f); 
 	else return float3(1.0f, 1.0f, 1.0f); // White
 #else
 	switch(GBuffer.ShadingModelID)
@@ -1068,7 +1075,8 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 		case SHADINGMODELID_SUBSURFACE_PROFILE: return float3(0.2f, 0.6f, 0.5f); // Cyan
 		case SHADINGMODELID_TWOSIDED_FOLIAGE: return float3(0.2f, 0.2f, 0.8f); // Cyan
 		case SHADINGMODELID_HAIR: return float3(0.6f, 0.1f, 0.5f);
-		case SHADINGMODELID_CLOTH: return float3(0.18f, 0.18f, 0.18f); // Brown
+		case SHADINGMODELID_CLOTH: return float3(0.7f, 1.0f, 1.0f);
+		case SHADINGMODELID_EYE: return float3(0.3f, 1.0f, 1.0f);
 		default: return float3(1.0f, 1.0f, 1.0f); // White
 	}
 #endif

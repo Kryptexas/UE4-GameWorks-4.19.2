@@ -117,3 +117,11 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneComponentMaterialTrack::CreateIn
 {
 	return MakeShareable( new FMovieSceneComponentMaterialTrackInstance( *this ) );
 }
+
+
+#if WITH_EDITORONLY_DATA
+FText UMovieSceneComponentMaterialTrack::GetDisplayName() const
+{
+	return FText::FromString(FString::Printf(TEXT("Material Element %i"), MaterialIndex));
+}
+#endif

@@ -24,8 +24,8 @@ class FSubSection
 {
 public:
 
-	FSubSection(TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSection, FName SectionName)
-		: DisplayName(NSLOCTEXT("FSubSection", "DisplayName", "Scenes"))
+	FSubSection(TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSection, const FText& InDisplayName)
+		: DisplayName(InDisplayName)
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
 	{
@@ -209,12 +209,6 @@ private:
 };
 
 
-#undef LOCTEXT_NAMESPACE
-
-
-#define LOCTEXT_NAMESPACE "FSubTrackEditor"
-
-
 /* FSubTrackEditor structors
  *****************************************************************************/
 
@@ -254,7 +248,7 @@ TSharedRef<ISequencerTrackEditor> FSubTrackEditor::CreateTrackEditor(TSharedRef<
 
 TSharedRef<ISequencerSection> FSubTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
 {
-	return MakeShareable(new FSubSection(GetSequencer(), SectionObject, Track.GetTrackName()));
+	return MakeShareable(new FSubSection(GetSequencer(), SectionObject, Track.GetDisplayName()));
 }
 
 
@@ -329,20 +323,22 @@ void FSubTrackEditor::HandleAddSubTrackMenuEntryExecute()
 		return;
 	}
 
-	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddSubTrack_Transaction", "Add Sub Track"));
+	const FScopedTransaction Transaction(LOCTEXT("AddSubTrack_Transaction", "Add Sub Track"));
 	FocusedMovieScene->Modify();
 
-	UMovieSceneTrack* NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneSubTrack>();
+	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneSubTrack>();
 	ensure(NewTrack);
 
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 
 
-bool FSubTrackEditor::HandleSequenceAdded(float KeyTime, class UMovieSceneSequence* Sequence)
+bool FSubTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence)
 {
 	auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
 	SubTrack->AddSequence(*Sequence, KeyTime);
+	SubTrack->SetDisplayName(LOCTEXT("SubTrackName", "Sequences"));
+
 	return true;
 }
 

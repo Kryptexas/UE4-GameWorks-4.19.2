@@ -13,7 +13,7 @@ TSharedRef<ISequencerTrackEditor> FFloatPropertyTrackEditor::CreateTrackEditor( 
 
 TSharedRef<FPropertySection> FFloatPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
-	return MakeShareable(new FFloatPropertySection( SectionObject, Track.GetTrackName() ));
+	return MakeShareable(new FFloatPropertySection(SectionObject, Track.GetDisplayName()));
 }
 
 

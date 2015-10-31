@@ -10,6 +10,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 
+class FShaderCompileJob;
 class FShaderPipelineCompileJob;
 
 /** Stores all of the common information used to compile a shader or pipeline. */
@@ -34,6 +35,8 @@ public:
 
 	virtual FShaderCompileJob* GetSingleShaderJob() { return nullptr; }
 	virtual const FShaderCompileJob* GetSingleShaderJob() const { return nullptr; }
+	virtual FShaderPipelineCompileJob* GetShaderPipelineJob() { return nullptr; }
+	virtual const FShaderPipelineCompileJob* GetShaderPipelineJob() const { return nullptr; }
 };
 
 
@@ -56,13 +59,40 @@ public:
 	{
 	}
 
-	~FShaderCompileJob()
-	{
-	}
-
 	virtual FShaderCompileJob* GetSingleShaderJob() override { return this; }
 	virtual const FShaderCompileJob* GetSingleShaderJob() const override { return this; }
+};
 
+class FShaderPipelineCompileJob : public FShaderCommonCompileJob
+{
+public:
+	TArray<FShaderCommonCompileJob*> StageJobs;
+	bool bFailedRemovingUnused;
+
+	/** Shader pipeline that this shader belongs to, may (currently) be NULL */
+	const FShaderPipelineType* ShaderPipeline;
+
+	FShaderPipelineCompileJob(uint32 InId, const FShaderPipelineType* InShaderPipeline, int32 NumStages) :
+		FShaderCommonCompileJob(InId),
+		bFailedRemovingUnused(false),
+		ShaderPipeline(InShaderPipeline)
+	{
+		check(InShaderPipeline && InShaderPipeline->GetName());
+		check(NumStages > 0);
+		StageJobs.Empty(NumStages);
+	}
+
+	~FShaderPipelineCompileJob()
+	{
+		for (int32 Index = 0; Index < StageJobs.Num(); ++Index)
+		{
+			delete StageJobs[Index];
+		}
+		StageJobs.Reset();
+	}
+
+	virtual FShaderPipelineCompileJob* GetShaderPipelineJob() override { return this; }
+	virtual const FShaderPipelineCompileJob* GetShaderPipelineJob() const override { return this; }
 };
 
 class FShaderCompileThreadRunnableBase : public FRunnable
@@ -165,7 +195,7 @@ private:
 	 */
 	class FShaderBatch
 	{
-		TArray<FShaderCompileJob*> Jobs;
+		TArray<FShaderCommonCompileJob*> Jobs;
 		bool bTransferFileWritten;
 
 	public:
@@ -200,12 +230,12 @@ private:
 		{
 			return Jobs.Num();
 		}
-		inline const TArray<FShaderCompileJob*>& GetJobs() const
+		inline const TArray<FShaderCommonCompileJob*>& GetJobs() const
 		{
 			return Jobs;
 		}
 
-		void AddJob(FShaderCompileJob* Job);
+		void AddJob(FShaderCommonCompileJob* Job);
 		
 		void WriteTransferFile();
 	};
@@ -251,7 +281,7 @@ struct FShaderMapCompileResults
 	int32 NumJobsQueued;
 	bool bAllJobsSucceeded;
 	bool bApplyCompletedShaderMapForRendering;
-	TArray<FShaderCompileJob*> FinishedJobs;
+	TArray<FShaderCommonCompileJob*> FinishedJobs;
 };
 
 /** Results for a single compiled and finalized shader map. */
@@ -283,7 +313,7 @@ private:
 	/** Tracks whether we are compiling while the game is running.  If true, we need to throttle down shader compiling CPU usage to avoid starving the runtime threads. */
 	bool bCompilingDuringGame;
 	/** Queue of tasks that haven't been assigned to a worker yet. */
-	TArray<FShaderCompileJob*> CompileQueue;
+	TArray<FShaderCommonCompileJob*> CompileQueue;
 	/** Map from shader map Id to the compile results for that map, used to gather compiled results. */
 	TMap<int32, FShaderMapCompileResults> ShaderMapJobs;
 	/** Number of jobs currently being compiled.  This includes CompileQueue and any jobs that have been assigned to workers but aren't complete yet. */
@@ -401,7 +431,7 @@ public:
 	 * Adds shader jobs to be asynchronously compiled. 
 	 * FinishCompilation or ProcessAsyncResults must be used to get the results.
 	 */
-	ENGINE_API void AddJobs(TArray<FShaderCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency);
+	ENGINE_API void AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency);
 
 	/**
 	* Removes all outstanding compile jobs for the passed shader maps.
@@ -457,7 +487,7 @@ extern void GlobalBeginCompileShader(
 	const TCHAR* FunctionName,
 	FShaderTarget Target,
 	FShaderCompileJob* NewJob,
-	TArray<FShaderCompileJob*>& NewJobs,
+	TArray<FShaderCommonCompileJob*>& NewJobs,
 	bool bAllowDevelopmentShaderCompile = true
 	);
 

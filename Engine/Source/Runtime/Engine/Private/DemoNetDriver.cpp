@@ -2100,12 +2100,12 @@ AActor* UDemoNetDriver::GetActorForGUID(FNetworkGUID InGUID) const
 
 }
 
-void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor* Actor)
+void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor const* Actor)
 {
-	auto FoundChannel = ServerConnection->ActorChannels.Find(Actor);
+	UActorChannel const* const* const FoundChannel = ServerConnection->ActorChannels.Find(Actor);
 	if (FoundChannel != nullptr && *FoundChannel != nullptr)
 	{
-		FNetworkGUID ActorGUID = (*FoundChannel)->ActorNetGUID;
+		FNetworkGUID const ActorGUID = (*FoundChannel)->ActorNetGUID;
 		NonQueuedGUIDsForScrubbing.Add(ActorGUID);
 	}
 }

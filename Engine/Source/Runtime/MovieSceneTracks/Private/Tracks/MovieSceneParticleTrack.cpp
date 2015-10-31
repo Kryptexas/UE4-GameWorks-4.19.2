@@ -15,12 +15,6 @@ UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FObjectInitializer& Ob
 { }
 
 
-FName UMovieSceneParticleTrack::GetTrackName() const
-{
-	return FName("ParticleSystem");
-}
-
-
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneParticleTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneParticleTrackInstance( *this ) ); 
@@ -72,6 +66,7 @@ TRange<float> UMovieSceneParticleTrack::GetSectionBoundaries() const
 	}
 	return TRange<float>::Hull(Bounds);
 }
+
 
 void UMovieSceneParticleTrack::AddNewSection( float SectionTime )
 {

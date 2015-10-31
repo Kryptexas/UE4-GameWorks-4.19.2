@@ -13,6 +13,12 @@ namespace SequencerSectionCategoryNodeConstants
 /* FSequencerDisplayNode interface
  *****************************************************************************/
 
+bool FSequencerSectionCategoryNode::CanRenameNode() const
+{
+	return false;
+}
+
+
 FText FSequencerSectionCategoryNode::GetDisplayName() const
 {
 	return DisplayName;
@@ -34,4 +40,10 @@ FNodePadding FSequencerSectionCategoryNode::GetNodePadding() const
 ESequencerNode::Type FSequencerSectionCategoryNode::GetType() const
 {
 	return ESequencerNode::Category;
+}
+
+
+void FSequencerSectionCategoryNode::SetDisplayName(const FText& DisplayName)
+{
+	check(false);
 }

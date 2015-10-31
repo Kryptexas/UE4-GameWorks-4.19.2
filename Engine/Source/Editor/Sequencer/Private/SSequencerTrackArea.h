@@ -41,9 +41,7 @@ class SSequencerTrackArea
 public:
 
 	SLATE_BEGIN_ARGS( SSequencerTrackArea )
-	{ }		
-		/** Lock the in/out to the start/end range */
-		SLATE_ATTRIBUTE( bool, LockInOutToStartEndRange )
+	{ }
 	SLATE_END_ARGS()
 
 	/** Construct this widget */
@@ -108,7 +106,4 @@ private:
 
 	/** Keep a hold of the size of the area so we can maintain zoom levels. */
 	TOptional<FVector2D> SizeLastFrame;
-
-	/** Whether to lock the in/out to the start/end range. */
-	TAttribute<bool> bLockInOutToStartEndRange;
 };

@@ -94,7 +94,7 @@ private:
 	 * @param Track	The type to get sections from
 	 * @param SectionAreaNode	The section area which section interfaces belong to
 	 */
-	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FTrackNode>& SectionAreaNode );
+	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FSequencerTrackNode>& SectionAreaNode );
 
 	/**
 	 * Creates a new object binding node and any parent binding nodes.

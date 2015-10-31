@@ -1243,6 +1243,23 @@ struct FParticleDataContainer
 	void Free();
 };
 
+struct FMacroUVOverride
+{
+	FMacroUVOverride() : bOverride(false), Radius(0.f), Position(0.f,0.f,0.f) {}
+
+	bool	bOverride;
+	float   Radius;
+	FVector Position;
+
+	friend FORCEINLINE FArchive& operator<<(FArchive& Ar, FMacroUVOverride& O)
+	{
+		Ar << O.bOverride;
+		Ar << O.Radius;
+		Ar << O.Position;
+		return Ar;
+	}
+};
+
 /** Source data base class for all emitter types */
 struct FDynamicEmitterReplayDataBase
 {
@@ -1261,10 +1278,7 @@ struct FDynamicEmitterReplayDataBase
 	int32 SortMode;
 
 	/** MacroUV (override) data **/
-	bool   bOverrideSystemMacroUV;
-	float   MacroUVRadius;
-	FVector MacroUVPosition;
-
+	FMacroUVOverride MacroUVOverride;
 
 	/** Constructor */
 	FDynamicEmitterReplayDataBase()
@@ -1272,10 +1286,7 @@ struct FDynamicEmitterReplayDataBase
 		  ActiveParticleCount( 0 ),
 		  ParticleStride( 0 ),
 		  Scale( FVector( 1.0f ) ),
-		  SortMode(0),	// Default to PSORTMODE_None
-		  bOverrideSystemMacroUV(0),
-		  MacroUVRadius(0.f),
-		  MacroUVPosition(0.f,0.f,0.f)
+		  SortMode(0)	// Default to PSORTMODE_None		  
 	{
 	}
 
@@ -1333,9 +1344,7 @@ struct FDynamicEmitterReplayDataBase
 
 		Ar << Scale;
 		Ar << SortMode;
-		Ar << bOverrideSystemMacroUV;
-		Ar << MacroUVRadius;
-		Ar << MacroUVPosition;
+		Ar << MacroUVOverride;
 	}
 
 };
@@ -1405,6 +1414,9 @@ struct FDynamicEmitterDataBase
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const = 0;
+
+	/** Returns the current macro uv override. Specialized by FGPUSpriteDynamicEmitterData  */
+	virtual const FMacroUVOverride& GetMacroUVOverride() const { return GetSource().MacroUVOverride; }
 
 	/** true if this emitter is currently selected */
 	uint32	bSelected:1;

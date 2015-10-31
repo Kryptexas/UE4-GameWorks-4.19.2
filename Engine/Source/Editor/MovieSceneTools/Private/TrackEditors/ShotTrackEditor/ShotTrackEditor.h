@@ -50,6 +50,9 @@ protected:
 	/** Delegate for AnimatablePropertyChanged in AddKey */
 	bool AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
 
+	/** Find or create a shot track in the currently focused movie scene. */
+	UMovieSceneShotTrack* FindOrCreateShotTrack();
+
 	/** Finds the index in the ShotSections array where a new shot should be inserted */
 	int32 FindIndexForNewShot(const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime) const;
 

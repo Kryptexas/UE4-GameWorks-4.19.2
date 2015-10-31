@@ -270,6 +270,9 @@ struct FBakedAnimationStateMachine
 	UPROPERTY()
 	TArray<FAnimationTransitionBetweenStates> Transitions;
 
+	// Cached StatID for this state machine
+	STAT(mutable TStatId StatID;)
+
 public:
 	FBakedAnimationStateMachine()
 		: InitialState(INDEX_NONE)
@@ -281,6 +284,18 @@ public:
 	// Find the index of a transition from StateNameFrom to StateNameTo
 	ENGINE_API int32 FindTransitionIndex(const FName& InStateNameFrom, const FName& InStateNameTo) const;
 	ENGINE_API int32 FindTransitionIndex(const int32 InStateIdxFrom, const int32 InStateIdxTo) const;
+
+#if STATS
+	/** Get the StatID for timing this state machine */
+	FORCEINLINE TStatId GetStatID() const
+	{
+		if (!StatID.IsValidStat())
+		{
+			StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Anim>(MachineName);
+		}
+		return StatID;
+	}
+#endif // STATS
 };
 
 UCLASS()

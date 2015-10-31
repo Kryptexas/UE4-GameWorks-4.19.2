@@ -377,3 +377,8 @@ bool AActor::IsSupportedForNetworking() const
 {
 	return true;		// All actors are supported for networking
 }
+
+void AActor::OnRep_Owner()
+{
+
+}

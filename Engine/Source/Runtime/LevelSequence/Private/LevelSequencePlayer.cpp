@@ -68,7 +68,6 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
 	, CurrentNumLoops(0)
-	, bAutoPlayNextFrame(false)
 { }
 
 
@@ -130,10 +129,7 @@ void ULevelSequencePlayer::Play()
 
 	bIsPlaying = true;
 
-	if (RootMovieSceneInstance.IsValid())
-	{
-		RootMovieSceneInstance->Update(TimeCursorPosition + SequenceStartOffset, TimeCursorPosition + SequenceStartOffset, *this);
-	}
+	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
 }
 
 void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
@@ -154,10 +150,7 @@ void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 	TimeCursorPosition = NewPlaybackPosition;
 	OnCursorPositionChanged();
 
-	if (RootMovieSceneInstance.IsValid())
-	{
-		RootMovieSceneInstance->Update(TimeCursorPosition + SequenceStartOffset, LastTimePosition + SequenceStartOffset, *this);
-	}
+	UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
 }
 
 float ULevelSequencePlayer::GetLength() const
@@ -226,7 +219,6 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 /* IMovieScenePlayer interface
  *****************************************************************************/
 
-
 void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
 {
 	if (UObject* FoundObject = LevelSequence->FindObject(ObjectId))
@@ -236,8 +228,43 @@ void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInsta
 }
 
 
-void ULevelSequencePlayer::UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const
+void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const
 {
+	// skip missing player controller
+	APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
+
+	if (PC == nullptr)
+	{
+		return;
+	}
+
+	// skip same view target
+	AActor* ViewTarget = PC->GetViewTarget();
+
+	if (CameraObject == ViewTarget)
+	{
+		return;
+	}
+
+	// skip unlocking if the current view target differs
+	ACameraActor* UnlockIfCameraActor = Cast<ACameraActor>(UnlockIfCameraObject);
+
+	if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
+	{
+		return;
+	}
+
+	// override the player controller's view target
+	ACameraActor* CameraActor = Cast<ACameraActor>(CameraObject);
+
+	FViewTargetTransitionParams TransitionParams;
+	PC->SetViewTarget(CameraActor, TransitionParams);
+
+	if (PC->PlayerCameraManager)
+	{
+		PC->PlayerCameraManager->bClientSimulatingViewTarget = (CameraActor != nullptr);
+		PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+	}
 }
 
 void ULevelSequencePlayer::SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap)
@@ -268,13 +295,6 @@ TSharedRef<FMovieSceneSequenceInstance> ULevelSequencePlayer::GetRootMovieSceneS
 
 void ULevelSequencePlayer::Update(const float DeltaSeconds)
 {
-	if (bAutoPlayNextFrame)
-	{
-		Play();
-		bAutoPlayNextFrame = false;
-		return;
-	}
-
 	float LastTimePosition = TimeCursorPosition;
 
 	if (bIsPlaying)
@@ -283,13 +303,16 @@ void ULevelSequencePlayer::Update(const float DeltaSeconds)
 		OnCursorPositionChanged();
 	}
 
-	if(RootMovieSceneInstance.IsValid())
-	{
-		RootMovieSceneInstance->Update(TimeCursorPosition + SequenceStartOffset, LastTimePosition + SequenceStartOffset, *this);
-	}
+	UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
 }
 
-void ULevelSequencePlayer::AutoPlayNextFrame()
+void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition)
 {
-	bAutoPlayNextFrame = true;
+	if(RootMovieSceneInstance.IsValid())
+	{
+		RootMovieSceneInstance->Update(CurrentPosition + SequenceStartOffset, PreviousPosition + SequenceStartOffset, *this);
+#if WITH_EDITOR
+		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
+#endif
+	}
 }

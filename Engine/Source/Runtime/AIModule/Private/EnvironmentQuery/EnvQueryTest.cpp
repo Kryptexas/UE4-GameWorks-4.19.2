@@ -93,6 +93,13 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 
 	if (MinScore != MaxScore)
 	{
+		if (bDefineSweetSpot)
+		{
+			SweetSpotValue.BindData(QueryOwner, QueryInstance.QueryID);
+		}
+		const float BestValue = bDefineSweetSpot ? SweetSpotValue.GetValue() : MaxScore;
+		const float ValueSpan = FMath::Max(FMath::Abs(BestValue - MinScore), FMath::Abs(BestValue - MaxScore));
+
 		for (int32 ItemIndex = 0; ItemIndex < QueryInstance.ItemDetails.Num(); ItemIndex++, DetailInfo++)
 		{
 			if (QueryInstance.Items[ItemIndex].IsValid() == false)
@@ -106,7 +113,8 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 			if (TestValue != UEnvQueryTypes::SkippedItemValue)
 			{
 				const float ClampedScore = FMath::Clamp(TestValue, MinScore, MaxScore);
-				const float NormalizedScore = (ClampedScore - MinScore) / (MaxScore - MinScore);
+				const float NormalizedScore = (ValueSpan - FMath::Abs(BestValue - ClampedScore)) / ValueSpan;
+
 				// TODO? Add an option to invert the normalized score before applying an equation.
  				const float NormalizedScoreForEquation = /*bMirrorNormalizedScore ? (1.0f - NormalizedScore) :*/ NormalizedScore;
 				switch (ScoringEquation)

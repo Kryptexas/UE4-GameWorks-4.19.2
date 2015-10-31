@@ -3,6 +3,9 @@
 #pragma once
 
 
+class UMovieSceneSequence;
+
+
 /**
  * Tools for animatable property types such as floats ands vectors
  */
@@ -57,5 +60,5 @@ private:
 	void HandleAddSubTrackMenuEntryExecute();
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
-	bool HandleSequenceAdded(float KeyTime, class UMovieSceneSequence* Sequence);
+	bool HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);
 };

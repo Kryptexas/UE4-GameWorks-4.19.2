@@ -3,8 +3,8 @@
 #include "LevelSequenceEditorPCH.h"
 #include "LevelSequenceProjectSettings.h"
 
+
 ULevelSequenceProjectSettings::ULevelSequenceProjectSettings()
-	: DefaultStartTime(1.f/30)	// Default to frame 1 of a 30fps movie
+	: DefaultStartTime(0.f)
 	, DefaultDuration(5.f)
-{
-}
+{ }

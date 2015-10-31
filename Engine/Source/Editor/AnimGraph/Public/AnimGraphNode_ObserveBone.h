@@ -37,6 +37,7 @@ protected:
 	virtual FVector GetWidgetLocation(const USkeletalMeshComponent* SkelComp, struct FAnimNode_SkeletalControlBase* AnimNode) override;
 	virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
 	virtual FName FindSelectedBone() override;
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
 	// End of UAnimGraphNode_SkeletalControlBase interface
 };
 

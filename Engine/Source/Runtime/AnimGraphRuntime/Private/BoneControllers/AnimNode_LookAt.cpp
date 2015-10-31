@@ -197,9 +197,9 @@ void FAnimNode_LookAt::InitializeBoneReferences(const FBoneContainer& RequiredBo
 	LookAtBone.Initialize(RequiredBones);
 }
 
-void FAnimNode_LookAt::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_LookAt::UpdateInternal(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 
 	AccumulatedInterpoolationTime = FMath::Clamp(AccumulatedInterpoolationTime+Context.GetDeltaTime(), 0.f, InterpolationTime);;
 }

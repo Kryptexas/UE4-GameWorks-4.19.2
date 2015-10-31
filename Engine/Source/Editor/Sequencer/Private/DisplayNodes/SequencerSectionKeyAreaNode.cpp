@@ -4,6 +4,7 @@
 #include "IKeyArea.h"
 #include "Sequencer.h"
 
+
 /* FSectionKeyAreaNode interface
  *****************************************************************************/
 
@@ -15,6 +16,12 @@ void FSequencerSectionKeyAreaNode::AddKeyArea(TSharedRef<IKeyArea> KeyArea)
 
 /* FSequencerDisplayNode interface
  *****************************************************************************/
+
+bool FSequencerSectionKeyAreaNode::CanRenameNode() const
+{
+	return false;
+}
+
 
 TSharedRef<SWidget> FSequencerSectionKeyAreaNode::GenerateEditWidgetForOutliner()
 {
@@ -55,4 +62,10 @@ FNodePadding FSequencerSectionKeyAreaNode::GetNodePadding() const
 ESequencerNode::Type FSequencerSectionKeyAreaNode::GetType() const
 {
 	return ESequencerNode::KeyArea;
+}
+
+
+void FSequencerSectionKeyAreaNode::SetDisplayName(const FText& DisplayName)
+{
+	check(false);
 }

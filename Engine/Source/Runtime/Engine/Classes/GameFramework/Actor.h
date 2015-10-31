@@ -218,6 +218,9 @@ protected:
 	 */
 	virtual bool HasNetOwner() const;
 
+	UFUNCTION()
+	virtual void OnRep_Owner();
+
 private:
 	/**
 	 * Describes how much control the remote machine has over the actor.
@@ -229,7 +232,7 @@ private:
 	 * Owner of this Actor, used primarily for replication (bNetUseOwnerRelevancy & bOnlyRelevantToOwner) and visibility (PrimitiveComponent bOwnerNoSee and bOnlyOwnerSee)
 	 * @see SetOwner(), GetOwner()
 	 */
-	UPROPERTY(replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_Owner)
 	AActor* Owner;
 
 public:

@@ -587,8 +587,8 @@ void ReflectionEnvironmentTiledDeferredMain(
 	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
 	
 	uint2 PixelPos = DispatchThreadId.xy + ViewDimensions.xy;
-	float2 UV = (float2(DispatchThreadId.xy) + .5f) / (ViewDimensions.zw - ViewDimensions.xy);
-	float2 ScreenPosition = float2(2.0f, -2.0f) * UV + float2(-1.0f, 1.0f);
+	float2 ViewportUV = (float2(DispatchThreadId.xy) + .5f) / (ViewDimensions.zw - ViewDimensions.xy);
+	float2 ScreenPosition = float2(2.0f, -2.0f) * ViewportUV + float2(-1.0f, 1.0f);
 	float SceneDepth = CalcSceneDepth(PixelPos);
 
 	float MinTileZ;

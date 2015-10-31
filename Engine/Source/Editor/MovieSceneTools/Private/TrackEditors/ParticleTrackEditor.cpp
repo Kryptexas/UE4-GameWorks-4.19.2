@@ -31,6 +31,9 @@ namespace AnimatableParticleEditorConstants
 }
 
 
+#define LOCTEXT_NAMESPACE "FParticleTrackEditor"
+
+
 FParticleSection::FParticleSection( UMovieSceneSection& InSection, TSharedRef<ISequencer>InOwningSequencer )
 	: Section( InSection )
 	, OwningSequencer( InOwningSequencer )
@@ -56,7 +59,7 @@ UMovieSceneSection* FParticleSection::GetSectionObject()
 
 FText FParticleSection::GetDisplayName() const
 {
-	return NSLOCTEXT( "FParticleSection", "Emitter", "Emitter" );
+	return LOCTEXT("Emitter", "Emitter");
 }
 
 float FParticleSection::GetSectionHeight() const
@@ -217,13 +220,7 @@ const FSlateBrush* FParticleSection::GetKeyBrush( FKeyHandle KeyHandle ) const
 
 FParticleTrackEditor::FParticleTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
-{
-}
-
-
-FParticleTrackEditor::~FParticleTrackEditor()
-{
-}
+{ }
 
 
 TSharedRef<ISequencerTrackEditor> FParticleTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
@@ -254,21 +251,23 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("Sequencer", "AddParticleTrack", "Particle Track"),
-			NSLOCTEXT("Sequencer", "TriggerParticlesTooltip", "Adds a track for controlling particle emitter state."),
+			LOCTEXT("AddParticleTrack", "Particle Track"),
+			LOCTEXT("TriggerParticlesTooltip", "Adds a track for controlling particle emitter state."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FParticleTrackEditor::AddParticleKey, ObjectBinding))
-			);
+		);
 	}
 }
+
 
 void FParticleTrackEditor::AddParticleKey( const FGuid ObjectGuid )
 {
 	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
 
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
 	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects ) );
 }
+
 
 bool FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects )
 {
@@ -282,17 +281,24 @@ bool FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*>
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;
 		bHandleCreated |= HandleResult.bWasCreated;
+
 		if (ObjectHandle.IsValid())
 		{
-			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieSceneParticleTrack::StaticClass(), FName( "ParticleSystem" ) );
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneParticleTrack::StaticClass());
 			UMovieSceneTrack* Track = TrackResult.Track;
 			bTrackCreated |= TrackResult.bWasCreated;
-			if ( bTrackCreated && ensure(Track))
+
+			if (bTrackCreated && ensure(Track))
 			{
-				Cast<UMovieSceneParticleTrack>(Track)->AddNewSection( KeyTime );
+				UMovieSceneParticleTrack* ParticleTrack = Cast<UMovieSceneParticleTrack>(Track);
+				ParticleTrack->AddNewSection(KeyTime);
+				ParticleTrack->SetDisplayName(LOCTEXT("TrackName", "Particle System"));
 			}
 		}
 	}
 
 	return bHandleCreated || bTrackCreated;
 }
+
+
+#undef LOCTEXT_NAMESPACE

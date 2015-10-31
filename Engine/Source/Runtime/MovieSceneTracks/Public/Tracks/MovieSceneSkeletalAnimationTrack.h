@@ -7,6 +7,9 @@
 #include "MovieSceneSkeletalAnimationTrack.generated.h"
 
 
+class UMovieSceneSection;
+
+
 /**
  * Handles animation of skeletal mesh actors
  */
@@ -18,9 +21,16 @@ class UMovieSceneSkeletalAnimationTrack
 
 public:
 
+	/** Adds a new animation to this track */
+	virtual void AddNewAnimation(float KeyTime, class UAnimSequence* AnimSequence);
+
+	/** Gets the animation section at a certain time, or NULL if there is none */
+	UMovieSceneSection* GetAnimSectionAtTime(float Time);
+
+public:
+
 	// UMovieSceneTrack interface
 
-	virtual FName GetTrackName() const override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual void RemoveAllAnimationData() override;
 	virtual bool HasSection(const UMovieSceneSection& Section ) const override;
@@ -31,13 +41,9 @@ public:
 	virtual bool SupportsMultipleRows() const override { return true; }
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 
-public:
-
-	/** Adds a new animation to this track */
-	virtual void AddNewAnimation(float KeyTime, class UAnimSequence* AnimSequence);
-
-	/** Gets the animation section at a certain time, or NULL if there is none */
-	class UMovieSceneSection* GetAnimSectionAtTime(float Time);
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDisplayName() const override;
+#endif
 
 private:
 

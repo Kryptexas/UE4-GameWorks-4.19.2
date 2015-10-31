@@ -44,6 +44,7 @@ protected:
 
 	// UAnimGraphNode_SkeletalControlBase protected interface
 	virtual FText GetControllerDescription() const override;
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
 	// End of UAnimGraphNode_SkeletalControlBase protected interface
 
 	// Should non-curve mapping values be shown (multiplier, range)?

@@ -17,7 +17,7 @@ public:
 	FSkeletalAnimationTrackEditor( TSharedRef<ISequencer> InSequencer );
 
 	/** Virtual destructor. */
-	virtual ~FSkeletalAnimationTrackEditor();
+	virtual ~FSkeletalAnimationTrackEditor() { }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -64,7 +64,7 @@ public:
 	FSkeletalAnimationSection( UMovieSceneSection& InSection );
 
 	/** Virtual destructor. */
-	virtual ~FSkeletalAnimationSection();
+	virtual ~FSkeletalAnimationSection() { }
 
 public:
 

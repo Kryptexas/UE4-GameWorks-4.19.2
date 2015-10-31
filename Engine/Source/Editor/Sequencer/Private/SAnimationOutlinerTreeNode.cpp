@@ -9,6 +9,7 @@
 #include "MovieSceneCommonHelpers.h"
 #include "Engine/Selection.h"
 #include "IKeyArea.h"
+#include "SEditableLabel.h"
 #include "SSequencerTreeView.h"
 
 
@@ -29,10 +30,11 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont") :
 		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.BoldFont");
 
-	TSharedRef<SWidget> TextWidget = 
-		SNew( STextBlock )
-		.Text(this, &SAnimationOutlinerTreeNode::GetDisplayName )
-		.Font( NodeFont );
+	EditableLabel = SNew(SEditableLabel)
+		.CanEdit(this, &SAnimationOutlinerTreeNode::HandleNodeLabelCanEdit)
+		.Font(NodeFont)
+		.OnTextChanged(this, &SAnimationOutlinerTreeNode::HandleNodeLabelTextChanged)
+		.Text(this, &SAnimationOutlinerTreeNode::GetDisplayName);
 
 	auto NodeHeight = [=]() -> FOptionalSize { return DisplayNode->GetNodeHeight(); };
 
@@ -64,7 +66,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.VAlign( VAlign_Center )
 				.FillWidth(3)
 				[
-					TextWidget
+					EditableLabel.ToSharedRef()
 				]
 
 				// Editor slot
@@ -157,6 +159,12 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 	[
 		FinalWidget
 	];
+}
+
+
+void SAnimationOutlinerTreeNode::EnterRenameMode()
+{
+	EditableLabel->EnterTextMode();
 }
 
 
@@ -300,97 +308,98 @@ void SAnimationOutlinerTreeNode::GetAllDescendantNodes(TSharedPtr<FSequencerDisp
 
 FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && DisplayNode->IsSelectable() )
+	if (!DisplayNode->IsSelectable())
 	{
-		FSequencer& Sequencer = DisplayNode->GetSequencer();
-		bool bSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
+		return FReply::Unhandled();
+	}
 
-		TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes;
-		AffectedNodes.Add(DisplayNode.ToSharedRef());
+	if ((MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton) &&
+		(MouseEvent.GetEffectingButton() != EKeys::RightMouseButton))
+	{
+		return FReply::Unhandled();
+	}
 
-		Sequencer.GetSelection().SuspendBroadcast();
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	bool bSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
 
-		if (MouseEvent.IsShiftDown())
+	TArray<TSharedPtr<FSequencerDisplayNode> > AffectedNodes;
+	AffectedNodes.Add(DisplayNode.ToSharedRef());
+
+	Sequencer.GetSelection().SuspendBroadcast();
+
+	if (MouseEvent.IsShiftDown())
+	{
+		FSequencerNodeTree& ParentTree = DisplayNode->GetParentTree();
+
+		const TArray< TSharedRef<FSequencerDisplayNode> >RootNodes = ParentTree.GetRootNodes();
+
+		// Get all nodes in order
+		TArray<TSharedRef<FSequencerDisplayNode> > AllNodes;
+		for (int32 i = 0; i < RootNodes.Num(); ++i)
 		{
-			FSequencerNodeTree& ParentTree = DisplayNode->GetParentTree();
+			GetAllDescendantNodes(RootNodes[i], AllNodes);
+		}
 
-			const TArray< TSharedRef<FSequencerDisplayNode> >RootNodes = ParentTree.GetRootNodes();
+		int32 FirstIndexToSelect = INT32_MAX;
+		int32 LastIndexToSelect = INT32_MIN;
 
-			// Get all nodes in order
-			TArray<TSharedRef<FSequencerDisplayNode> > AllNodes;
-			for (int32 i = 0; i < RootNodes.Num(); ++i)
+		for (int32 ChildIndex = 0; ChildIndex < AllNodes.Num(); ++ChildIndex)
+		{
+			TSharedRef<FSequencerDisplayNode> ChildNode = AllNodes[ChildIndex];
+
+			if (ChildNode == DisplayNode.ToSharedRef() || Sequencer.GetSelection().IsSelected(ChildNode))
 			{
-				GetAllDescendantNodes(RootNodes[i], AllNodes);
+				if (ChildIndex < FirstIndexToSelect)
+				{
+					FirstIndexToSelect = ChildIndex;
+				}
+
+				if (ChildIndex > LastIndexToSelect)
+				{
+					LastIndexToSelect = ChildIndex;
+				}
 			}
+		}
 
-			int32 FirstIndexToSelect = INT32_MAX;
-			int32 LastIndexToSelect = INT32_MIN;
-
-			for (int32 ChildIndex = 0; ChildIndex < AllNodes.Num(); ++ChildIndex)
+		if (FirstIndexToSelect != INT32_MAX && LastIndexToSelect != INT32_MIN)
+		{
+			for (int32 ChildIndex = FirstIndexToSelect; ChildIndex <= LastIndexToSelect; ++ChildIndex)
 			{
 				TSharedRef<FSequencerDisplayNode> ChildNode = AllNodes[ChildIndex];
 
-				if (ChildNode == DisplayNode.ToSharedRef() || Sequencer.GetSelection().IsSelected(ChildNode))
+				if (!Sequencer.GetSelection().IsSelected(ChildNode))
 				{
-					if (ChildIndex < FirstIndexToSelect)
-					{
-						FirstIndexToSelect = ChildIndex;
-					}
-
-					if (ChildIndex > LastIndexToSelect)
-					{
-						LastIndexToSelect = ChildIndex;
-					}
-				}
-			}
-
-			if (FirstIndexToSelect != INT32_MAX && LastIndexToSelect != INT32_MIN)
-			{
-				for (int32 ChildIndex = FirstIndexToSelect; ChildIndex <= LastIndexToSelect; ++ChildIndex)
-				{
-					TSharedRef<FSequencerDisplayNode> ChildNode = AllNodes[ChildIndex];
-
-					if (!Sequencer.GetSelection().IsSelected(ChildNode))
-					{
-						Sequencer.GetSelection().AddToSelection(ChildNode);
-						AffectedNodes.Add(ChildNode);
-					}
+					Sequencer.GetSelection().AddToSelection(ChildNode);
+					AffectedNodes.Add(ChildNode);
 				}
 			}
 		}
-		else if( MouseEvent.IsControlDown() )
+	}
+	else if( MouseEvent.IsControlDown() )
+	{
+		// Toggle selection when control is down
+		if (bSelected)
 		{
-			// Toggle selection when control is down
-			if (bSelected)
-			{
-				Sequencer.GetSelection().RemoveFromSelection(DisplayNode.ToSharedRef());
-			}
-			else
-			{
-				Sequencer.GetSelection().AddToSelection(DisplayNode.ToSharedRef());
-			}
+			Sequencer.GetSelection().RemoveFromSelection(DisplayNode.ToSharedRef());
 		}
 		else
 		{
-			// Deselect the other nodes and select this node.
-			Sequencer.GetSelection().EmptySelectedOutlinerNodes();
 			Sequencer.GetSelection().AddToSelection(DisplayNode.ToSharedRef());
 		}
-
-		OnSelectionChanged( AffectedNodes );
-
-		Sequencer.GetSelection().ResumeBroadcast();
-		Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().Broadcast();
-
-		return FReply::Handled();
 	}
-
-	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	else
 	{
-		return FReply::Handled();
+		// Deselect the other nodes and select this node.
+		Sequencer.GetSelection().EmptySelectedOutlinerNodes();
+		Sequencer.GetSelection().AddToSelection(DisplayNode.ToSharedRef());
 	}
 
-	return FReply::Unhandled();
+	OnSelectionChanged( AffectedNodes );
+
+	Sequencer.GetSelection().ResumeBroadcast();
+	Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().Broadcast();
+
+	return FReply::Handled();
 }
 
 
@@ -460,6 +469,18 @@ EVisibility SAnimationOutlinerTreeNode::GetExpanderVisibility() const
 FText SAnimationOutlinerTreeNode::GetDisplayName() const
 {
 	return DisplayNode->GetDisplayName();
+}
+
+
+bool SAnimationOutlinerTreeNode::HandleNodeLabelCanEdit() const
+{
+	return DisplayNode->CanRenameNode();
+}
+
+
+void SAnimationOutlinerTreeNode::HandleNodeLabelTextChanged(const FText& NewLabel)
+{
+	DisplayNode->SetDisplayName(NewLabel);
 }
 
 

@@ -100,9 +100,6 @@ private:
 
 	TArray<FNetworkGUID> NonQueuedGUIDsForScrubbing;
 
-	// If a channel is associated with Actor, adds the channel's GUID to the list of GUIDs excluded from queuing bunches during scrubbing.
-	void		AddNonQueuedActorForScrubbing(AActor* Actor);
-
 	// Replay tasks
 	TArray< TSharedPtr< FQueuedReplayTask > >	QueuedReplayTasks;
 	TSharedPtr< FQueuedReplayTask >				ActiveReplayTask;
@@ -191,6 +188,9 @@ public:
 	bool ProcessReplayTasks();
 	bool IsNamedTaskInQueue( const FString& Name );
 
+	/** If a channel is associated with Actor, adds the channel's GUID to the list of GUIDs excluded from queuing bunches during scrubbing. */
+	void AddNonQueuedActorForScrubbing(AActor const* Actor);
+	/** Adds the channel's GUID to the list of GUIDs excluded from queuing bunches during scrubbing. */
 	void AddNonQueuedGUIDForScrubbing(FNetworkGUID InGUID);
 
 	virtual bool IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const override;

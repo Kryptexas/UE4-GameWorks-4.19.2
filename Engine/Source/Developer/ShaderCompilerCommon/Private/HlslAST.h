@@ -108,6 +108,9 @@ namespace CrossCompiler
 			virtual FParameterDeclarator* AsParameterDeclarator() { return nullptr; }
 			virtual FUnaryExpression* AsUnaryExpression() { return nullptr; }
 
+			// Returns true if the expression can be evaluated to a constant int
+			virtual bool GetConstantIntValue(int32& OutValue) const { return false; }
+
 			/* Callers of this ralloc-based new need not call delete. It's
 			* easier to just ralloc_free 'ctx' (or any of its ancestors). */
 			static void* operator new(SIZE_T Size, FLinearAllocator* Allocator)
@@ -335,6 +338,7 @@ namespace CrossCompiler
 
 			virtual void Write(FASTWriter& Writer) const override;
 			virtual FUnaryExpression* AsUnaryExpression() override { return this; }
+			virtual bool GetConstantIntValue(int32& OutValue) const override;
 
 			bool IsConstant() const
 			{
@@ -377,6 +381,7 @@ namespace CrossCompiler
 			FBinaryExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, const FSourceInfo& InInfo);
 
 			virtual void Write(FASTWriter& Writer) const override;
+			virtual bool GetConstantIntValue(int32& OutValue) const override;
 		};
 
 		struct FFunctionExpression : public FExpression

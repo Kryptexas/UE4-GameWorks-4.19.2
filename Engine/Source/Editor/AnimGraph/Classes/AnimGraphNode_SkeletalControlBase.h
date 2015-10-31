@@ -27,6 +27,7 @@ public:
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;
 	virtual void CreateOutputPins() override;
+	virtual void ValidateAnimNodePostCompile(FCompilerResultsLog& MessageLog, UAnimBlueprintGeneratedClass* CompiledClass, int32 CompiledNodeIndex) override;
 	// End of UAnimGraphNode_Base interface
 
 	// Draw function for supporting visualization
@@ -130,4 +131,6 @@ protected:
 		}
 		CompileNodeValue = InValue;
 	}
+
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const PURE_VIRTUAL(UAnimGraphNode_SkeletalControlBase::GetNode, return nullptr;);
 };

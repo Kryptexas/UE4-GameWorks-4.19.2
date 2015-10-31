@@ -263,7 +263,7 @@ void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, i
 		// Add this object if it hasn't already been possessed
 		if (!ObjectGuid.IsValid() || !FocussedMovieScene->FindPossessable(ObjectGuid))
 		{
-			ObjectGuid = FocussedMovieScene->AddPossessable(ThisActor->GetName(), ThisActor->GetClass());
+			ObjectGuid = FocussedMovieScene->AddPossessable(ThisActor->GetActorLabel(), ThisActor->GetClass());
 			FocussedSequence->BindPossessableObject(ObjectGuid, *ThisActor);
 		}
 

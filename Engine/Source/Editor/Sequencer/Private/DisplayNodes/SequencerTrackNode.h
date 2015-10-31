@@ -13,7 +13,7 @@ class ISequencerSection;
 /**
  * Represents an area to display Sequencer sections (possibly on multiple lines).
  */
-class FTrackNode
+class FSequencerTrackNode
 	: public FSequencerDisplayNode
 {
 public:
@@ -21,13 +21,12 @@ public:
 	/**
 	 * Create and initialize a new instance.
 	 * 
-	 * @param InNodeName The name identifier of then node.
 	 * @param InAssociatedType The track that this node represents.
 	 * @param InAssociatedEditor The track editor for the track that this node represents.
 	 * @param InParentNode The parent of this node, or nullptr if this is a root node.
 	 * @param InParentTree The tree this node is in.
 	 */
-	FTrackNode(FName NodeName, UMovieSceneTrack& InAssociatedType, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree);
+	FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree);
 
 public:
 
@@ -70,7 +69,7 @@ public:
 	/** @return the track associated with this section */
 	UMovieSceneTrack* GetTrack() const
 	{
-		return AssociatedType.Get();
+		return AssociatedTrack.Get();
 	}
 
 	/** Gets the greatest row index of all the sections we have */
@@ -83,13 +82,15 @@ public:
 
 	// FSequencerDisplayNode interface
 
+	virtual void BuildContextMenu( FMenuBuilder& MenuBuilder );
+	virtual bool CanRenameNode() const override;
 	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 	virtual void GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSectionKeyAreaNode>>& OutNodes) const override;
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual ESequencerNode::Type GetType() const override;
-	virtual void BuildContextMenu( FMenuBuilder& MenuBuilder );
+	virtual void SetDisplayName(const FText& DisplayName) override;
 
 private:
 
@@ -97,7 +98,7 @@ private:
 	ISequencerTrackEditor& AssociatedEditor;
 
 	/** The type associated with the sections in this node */
-	TWeakObjectPtr<UMovieSceneTrack> AssociatedType;
+	TWeakObjectPtr<UMovieSceneTrack> AssociatedTrack;
 
 	/** All of the sequencer sections in this node */
 	TArray<TSharedRef<ISequencerSection>> Sections;

@@ -27,16 +27,16 @@ class PARTY_API UPartyMemberState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject Interface
 
 	/** Unique id of this party member */
 	UPROPERTY(Transient)
 	FUniqueNetIdRepl UniqueId;
 
 	/** Display name of this party member */
-	UPROPERTY(BlueprintReadOnly, Transient, Category = PartyMemberState )
+	UPROPERTY(BlueprintReadOnly, Transient, Category = PartyMemberState)
 	FText DisplayName;
 
 	/** @return the party this member is associated with */
@@ -78,13 +78,13 @@ protected:
 
 private:
 	
+
 	/** Scratch copy of child USTRUCT for handling replication comparisons */
 	FPartyMemberRepState* MemberStateRefScratch;
 
 	/** Have we announced this player joining the game locally */
 	UPROPERTY(Transient)
 	bool bHasAnnouncedJoin;
-
 
 	friend UPartyGameState;
 };

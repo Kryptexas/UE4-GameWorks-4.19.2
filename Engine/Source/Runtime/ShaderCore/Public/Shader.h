@@ -346,6 +346,9 @@ public:
 	 */ 
 	FSHAHash MaterialShaderMapHash;
 
+	/** Shader Pipeline linked to this shader, needed since a single shader might be used on different Pipelines. */
+	const FShaderPipelineType* ShaderPipeline;
+
 	/** 
 	 * Vertex factory type that the shader was created for, 
 	 * This is needed in the Id since a single shader type will be compiled for multiple vertex factories within a material shader map.
@@ -380,7 +383,7 @@ public:
 	{}
 
 	/** Creates an Id for the given material, vertex factory, shader type and target. */
-	SHADERCORE_API FShaderId(const FSHAHash& InMaterialShaderMapHash, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, FShaderTarget InTarget);
+	SHADERCORE_API FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipelineType* InShaderPipeline, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, FShaderTarget InTarget);
 
 	friend inline uint32 GetTypeHash( const FShaderId& Id )
 	{
@@ -390,6 +393,7 @@ public:
 	friend bool operator==(const FShaderId& X, const FShaderId& Y)
 	{
 		return X.MaterialShaderMapHash == Y.MaterialShaderMapHash
+			&& X.ShaderPipeline == Y.ShaderPipeline
 			&& X.VertexFactoryType == Y.VertexFactoryType
 			&& X.VFSourceHash == Y.VFSourceHash
 			&& ((X.VFSerializationHistory == NULL && Y.VFSerializationHistory == NULL)
@@ -424,6 +428,8 @@ public:
 	 * Will be the empty string for global shaders.
 	 */
 	FString VertexFactoryTypeName;
+
+	FString ShaderPipelineName;
 
 	/** Used to detect changes to the vertex factory source files. */
 	FSHAHash VFSourceHash;
@@ -469,6 +475,7 @@ public:
 		const FSHAHash& OutputHash;
 		FShaderResource* Resource;
 		FSHAHash MaterialShaderMapHash;
+		const FShaderPipelineType* ShaderPipeline;
 		FVertexFactoryType* VertexFactoryType;
 
 		CompiledShaderInitializerType(
@@ -476,6 +483,7 @@ public:
 			const FShaderCompilerOutput& CompilerOutput,
 			FShaderResource* InResource,
 			const FSHAHash& InMaterialShaderMapHash,
+			const FShaderPipelineType* InShaderPipeline,
 			FVertexFactoryType* InVertexFactoryType
 			):
 			Type(InType),
@@ -485,6 +493,7 @@ public:
 			OutputHash(CompilerOutput.OutputHash),
 			Resource(InResource),
 			MaterialShaderMapHash(InMaterialShaderMapHash),
+			ShaderPipeline(InShaderPipeline),
 			VertexFactoryType(InVertexFactoryType)
 		{}
 	};
@@ -568,6 +577,7 @@ public:
 	inline FSHAHash GetOutputHash() const { return OutputHash; }
 	FShaderId GetId() const;
 	inline FVertexFactoryType* GetVertexFactoryType() const { return VFType; }
+	inline const FShaderPipelineType* GetShaderPipelineType() const { return ShaderPipeline; }
 	inline FSHAHash GetMaterialShaderMapHash() const { return MaterialShaderMapHash; }
 	inline int32 GetNumRefs() const { return NumRefs; }
 
@@ -710,6 +720,9 @@ private:
 	/** Hash of the material shader map this shader belongs to, stored so that an FShaderId can be constructed from this shader. */
 	FSHAHash MaterialShaderMapHash;
 
+	/** Shader pipeline this shader belongs to, stored so that an FShaderId can be constructed from this shader. */
+	const FShaderPipelineType* ShaderPipeline;
+
 	/** Vertex factory type this shader was created for, stored so that an FShaderId can be constructed from this shader. */
 	FVertexFactoryType* VFType;
 
@@ -764,6 +777,9 @@ public:
 
 	/** Gets a list of FShaderTypes whose source file no longer matches what that type was compiled with */
 	static void GetOutdatedTypes(TArray<FShaderType*>& OutdatedShaderTypes, TArray<const FVertexFactoryType*>& OutdatedFactoryTypes);
+
+	/** Returns true if the source file no longer matches what that type was compiled with */
+	bool GetOutdatedCurrentType(TArray<FShaderType*>& OutdatedShaderTypes, TArray<const FVertexFactoryType*>& OutdatedFactoryTypes) const;
 
 	/** Initialize FShaderType static members, this must be called before any shader types are created. */
 	static void Initialize(const TMap<FString, TArray<const TCHAR*> >& ShaderFileToUniformBufferVariables);
@@ -1001,13 +1017,15 @@ private:
 class SHADERCORE_API FShaderPipelineType
 {
 public:
+	// Set bInShouldShadersToIndividualMap to false if you want to skip adding the FShaderTypes from the shadermap individual shader type list
 	FShaderPipelineType(
 		const TCHAR* InName,
 		const FShaderType* InVertexShader,
 		const FShaderType* InHullShader,
 		const FShaderType* InDomainShader,
 		const FShaderType* InGeometryShader,
-		const FShaderType* InPixelShader);
+		const FShaderType* InPixelShader,
+		bool bInShouldAddShadersToIndividualMap = true);
 	virtual ~FShaderPipelineType();
 
 	FORCEINLINE bool HasTessellation() const { return AllStages[SF_Domain] != nullptr; }
@@ -1035,6 +1053,8 @@ public:
 	static void Initialize();
 	static void Uninitialize();
 
+	static TArray<const FShaderPipelineType*> GetShaderPipelineTypesByFilename(const TCHAR* Filename);
+
 	/** Serializes a shader type reference by name. */
 	SHADERCORE_API friend FArchive& operator<<(FArchive& Ar, const FShaderPipelineType*& Ref);
 
@@ -1046,6 +1066,10 @@ public:
 	bool IsGlobalTypePipeline() const { return Stages[0]->GetGlobalShaderType() != nullptr; }
 	bool IsMaterialTypePipeline() const { return Stages[0]->GetMaterialShaderType() != nullptr; }
 	bool IsMeshMaterialTypePipeline() const { return Stages[0]->GetMeshMaterialShaderType() != nullptr; }
+	bool ShouldAddShadersToIndividualMap() const { return bAddShadersToIndividualMap; }
+
+	/** Gets a list of FShaderTypes & PipelineTypes whose source file no longer matches what that type was compiled with */
+	static void GetOutdatedTypes(TArray<FShaderType*>& OutdatedShaderTypes, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& OutdatedFactoryTypes);
 
 protected:
 	const TCHAR* const Name;
@@ -1059,6 +1083,7 @@ protected:
 	TLinkedList<FShaderPipelineType*> GlobalListLink;
 
 	uint32 HashIndex;
+	bool bAddShadersToIndividualMap;
 
 	static bool bInitialized;
 };
@@ -1070,26 +1095,30 @@ class FShaderTypeDependency
 public:
 
 	FShaderTypeDependency() :
-		ShaderType(NULL)
+		ShaderType(nullptr),
+		ShaderPipelineType(nullptr)
 	{}
 
 	/** Shader type */
 	FShaderType* ShaderType;
+
+	const FShaderPipelineType* ShaderPipelineType;
 
 	/** Used to detect changes to the shader source files. */
 	FSHAHash SourceHash;
 
 	friend FArchive& operator<<(FArchive& Ar,class FShaderTypeDependency& Ref)
 	{
-		Ar << Ref.ShaderType << Ref.SourceHash;
+		Ar << Ref.ShaderType << Ref.ShaderPipelineType << Ref.SourceHash;
 		return Ar;
 	}
 
 	bool operator==(const FShaderTypeDependency& Reference) const
 	{
-		return ShaderType == Reference.ShaderType && SourceHash == Reference.SourceHash;
+		return ShaderType == Reference.ShaderType && ShaderPipelineType == Reference.ShaderPipelineType && SourceHash == Reference.SourceHash;
 	}
 };
+
 
 /** Used to compare two shader types by name. */
 class FCompareShaderTypes
@@ -1107,12 +1136,172 @@ public:
 	}
 };
 
+
+/** Used to compare two shader pipeline types by name. */
+class FCompareShaderPipelineNameTypes
+{
+public:
+	/*FORCEINLINE*/ bool operator()(const FShaderPipelineType& A, const FShaderPipelineType& B) const
+	{
+		//#todo-rco: Avoid this by adding an FNullShaderPipelineType
+		bool bNullA = &A == nullptr;
+		bool bNullB = &B == nullptr;
+		if (bNullA && bNullB)
+		{
+			return false;
+		}
+		else if (bNullA)
+		{
+			return true;
+		}
+		else if (bNullB)
+		{
+			return false;
+		}
+
+
+		int32 AL = FCString::Strlen(A.GetName());
+		int32 BL = FCString::Strlen(B.GetName());
+		if (AL == BL)
+		{
+			return FCString::Strncmp(A.GetName(), B.GetName(), AL) > 0;
+		}
+		return AL > BL;
+	}
+};
+
+/** Used to compare two shader pipeline types by name. */
+class FCompareShaderPipelineTypes
+{
+public:
+	FORCEINLINE bool operator()(const FShaderPipelineType& A, const FShaderPipelineType& B) const
+	{
+		int32 AL = FCString::Strlen(A.GetName());
+		int32 BL = FCString::Strlen(B.GetName());
+		if (AL == BL)
+		{
+			int32 Result = FCString::Strncmp(A.GetName(), B.GetName(), AL);
+			if (Result != 0)
+			{
+				return Result > 0;
+			}
+
+			const auto& PipeA = A.GetStages();
+			const auto& PipeB = B.GetStages();
+
+			if (PipeA.Num() != PipeB.Num())
+			{
+				return PipeA.Num() > PipeB.Num();
+			}
+
+			bool bResult = false;
+			FCompareShaderTypes Comparator;
+			for (int32 Index = 0; Index < PipeA.Num(); ++Index)
+			{
+				bResult = Comparator(*PipeA[Index], *PipeB[Index]);
+				if (bResult != 0)
+				{
+					break;
+				}
+			}
+
+			return bResult;
+		}
+		return AL > BL;
+	}
+};
+
+// A Shader Pipeline instance with compiled stages
+class SHADERCORE_API FShaderPipeline : public FRefCountedObject
+{
+public:
+	const FShaderPipelineType* PipelineType;
+	TRefCountPtr<FShader> VertexShader;
+	TRefCountPtr<FShader> HullShader;
+	TRefCountPtr<FShader> DomainShader;
+	TRefCountPtr<FShader> GeometryShader;
+	TRefCountPtr<FShader> PixelShader;
+
+	FShaderPipeline(
+		const FShaderPipelineType* InPipelineType,
+		FShader* InVertexShader,
+		FShader* InHullShader,
+		FShader* InDomainShader,
+		FShader* InGeometryShader,
+		FShader* InPixelShader);
+
+	FShaderPipeline(const FShaderPipelineType* InPipelineType, const TArray<FShader*>& InStages);
+
+	// Find a shader inside the pipeline
+	template<typename ShaderType>
+	ShaderType* GetShader()
+	{
+		if (PixelShader && PixelShader->GetType() == &ShaderType::StaticType)
+		{
+			return (ShaderType*)PixelShader;
+		}
+		else if (VertexShader && VertexShader->GetType() == &ShaderType::StaticType)
+		{
+			return (ShaderType*)VertexShader;
+		}
+		else if (GeometryShader && GeometryShader->GetType() == &ShaderType::StaticType)
+		{
+			return (ShaderType*)GeometryShader;
+		}
+		else if (HullShader)
+		{
+			if (HullShader->GetType() == &ShaderType::StaticType)
+			{
+				return (ShaderType*)HullShader;
+			}
+			else if (DomainShader && DomainShader->GetType() == &ShaderType::StaticType)
+			{
+				return (ShaderType*)DomainShader;
+			}
+		}
+
+		return nullptr;
+	}
+
+	FShader* GetShader(EShaderFrequency Frequency)
+	{
+		switch (Frequency)
+		{
+		case SF_Vertex: return VertexShader;
+		case SF_Domain: return DomainShader;
+		case SF_Hull: return HullShader;
+		case SF_Geometry: return GeometryShader;
+		case SF_Pixel: return PixelShader;
+		default: check(0);
+		}
+
+		return nullptr;
+	}
+
+	const FShader* GetShader(EShaderFrequency Frequency) const
+	{
+		switch (Frequency)
+		{
+		case SF_Vertex: return VertexShader;
+		case SF_Domain: return DomainShader;
+		case SF_Hull: return HullShader;
+		case SF_Geometry: return GeometryShader;
+		case SF_Pixel: return PixelShader;
+		default: check(0);
+		}
+
+		return nullptr;
+	}
+
+	void Validate();
+};
+
+
 /** A collection of shaders of different types, but the same meta type. */
 template<typename ShaderMetaType>
 class TShaderMap
 {
 public:
-
 	/** Default constructor. */
 	TShaderMap() {}
 
@@ -1121,7 +1310,7 @@ public:
 	ShaderType* GetShader() const
 	{
 		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(&ShaderType::StaticType);
-		checkf(ShaderRef != NULL && *ShaderRef != NULL, TEXT("Failed to find shader type %s"), ShaderType::StaticType.GetName());
+		checkf(ShaderRef != NULL && *ShaderRef != nullptr, TEXT("Failed to find shader type %s"), ShaderType::StaticType.GetName());
 		return (ShaderType*)((*ShaderRef)->GetShaderChecked());
 	}
 
@@ -1129,14 +1318,14 @@ public:
 	FShader* GetShader(FShaderType* ShaderType) const
 	{
 		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(ShaderType);
-		return ShaderRef ? (*ShaderRef)->GetShaderChecked() : NULL;
+		return ShaderRef ? (*ShaderRef)->GetShaderChecked() : nullptr;
 	}
 
 	/** Finds the shader with the given type. */
 	bool HasShader(FShaderType* Type) const
 	{
 		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(Type);
-		return ShaderRef != NULL && *ShaderRef != NULL;
+		return ShaderRef != nullptr && *ShaderRef != nullptr;
 	}
 
 	inline const TMap<FShaderType*,TRefCountPtr<FShader> >& GetShaders() const
@@ -1144,10 +1333,10 @@ public:
 		return Shaders;
 	}
 
-	void AddShader(FShaderType* Type,FShader* Shader)
+	void AddShader(FShaderType* Type, FShader* Shader)
 	{
 		check(Type);
-		Shaders.Add((FShaderType*)Type,Shader);
+		Shaders.Add(Type, Shader);
 	}
 
 	/**
@@ -1159,8 +1348,18 @@ public:
 		Shaders.Remove(Type);
 	}
 
+
+	void RemoveShaderPipelineType(const FShaderPipelineType* ShaderPipelineType)
+	{
+		auto* Found = ShaderPipelines.Find(ShaderPipelineType);
+		if (Found)
+		{
+			ShaderPipelines.Remove(ShaderPipelineType);
+		}
+	}
+
 	/** Builds a list of the shaders in a shader map. */
-	void GetShaderList(TMap<FShaderId,FShader*>& OutShaders) const
+	void GetShaderList(TMap<FShaderId, FShader*>& OutShaders) const
 	{
 		for(TMap<FShaderType*,TRefCountPtr<FShader> >::TConstIterator ShaderIt(Shaders);ShaderIt;++ShaderIt)
 		{
@@ -1183,6 +1382,15 @@ public:
 			}
 		}
 
+		for (auto Pair : ShaderPipelines)
+		{
+			const FShaderPipeline* Pipeline = Pair.Value;
+			for (const FShaderType* ShaderType : Pair.Key->GetStages())
+			{
+				MaxTextureSamplers = FMath::Max(MaxTextureSamplers, Pipeline->GetShader(ShaderType->GetFrequency())->GetNumTextureSamplers());
+			}
+		}
+
 		return MaxTextureSamplers;
 	}
 
@@ -1200,48 +1408,72 @@ public:
 
 			// Sort the shaders by type name before saving, to make sure the saved result is binary equivalent to what is generated on other machines, 
 			// Which is a requirement of the Derived Data Cache.
-			TMap<FShaderType*, TRefCountPtr<FShader> > SortedShaders = Shaders;
+			auto SortedShaders = Shaders;
 			SortedShaders.KeySort(FCompareShaderTypes());
 
-			for (TMap<FShaderType*,TRefCountPtr<FShader> >::TIterator It(SortedShaders); It; ++It)
-			{
-				FShader* CurrentShader = It.Value();
-				FShaderType* Type = It.Key();
+			auto SerializedShaderForSaving = [&](FShader* CurrentShader)
+				{
+					int32 SkipOffset = Ar.Tell();
 
+					{
+#if WITH_EDITOR
+						FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+#endif
+						// Serialize a placeholder value, we will overwrite this with an offset to the end of the shader
+						Ar << SkipOffset;
+					}
+
+					if (bHandleShaderKeyChanges)
+					{
+						FSelfContainedShaderId SelfContainedKey = CurrentShader->GetId();
+						Ar << SelfContainedKey;
+					}
+
+					CurrentShader->SerializeBase(Ar, bInlineShaderResource);
+
+					// Get the offset to the end of the shader's serialized data
+					int32 EndOffset = Ar.Tell();
+					// Seek back to the placeholder and write the end offset
+					// This allows us to skip over the shader's serialized data at load time without knowing how to deserialize it
+					// Which can happen with shaders that were available at cook time, but not on the target platform (shaders in editor module for example)
+					Ar.Seek(SkipOffset);
+					Ar << EndOffset;
+					Ar.Seek(EndOffset);
+				};
+
+			for (TMap<FShaderType*, TRefCountPtr<FShader> >::TIterator ShaderIt(SortedShaders); ShaderIt; ++ShaderIt)
+			{
+				FShaderType* Type = ShaderIt.Key();
 				check(Type);
 				checkSlow(FName(Type->GetName()) != NAME_None);
 
 				Ar << Type;
-				int32 SkipOffset = Ar.Tell();
-
-				{
-#if WITH_EDITOR
-					FArchive::FScopeSetDebugSerializationFlags S(Ar,DSF_IgnoreDiff);
-#endif
-					// Serialize a placeholder value, we will overwrite this with an offset to the end of the shader
-					Ar << SkipOffset;
-				}
-
-				if (bHandleShaderKeyChanges)
-				{
-					FSelfContainedShaderId SelfContainedKey = CurrentShader->GetId();
-					Ar << SelfContainedKey;
-				}
-
-				CurrentShader->SerializeBase(Ar, bInlineShaderResource);
-
-				// Get the offset to the end of the shader's serialized data
-				int32 EndOffset = Ar.Tell();
-				// Seek back to the placeholder and write the end offset
-				// This allows us to skip over the shader's serialized data at load time without knowing how to deserialize it
-				// Which can happen with shaders that were available at cook time, but not on the target platform (shaders in editor module for example)
-				Ar.Seek(SkipOffset);
-				Ar << EndOffset;
-				Ar.Seek(EndOffset);
+				FShader* CurrentShader = ShaderIt.Value();
+				SerializedShaderForSaving(CurrentShader);
 			}
 
-			int32 NumPipelines = 0;
+			int32 NumPipelines = ShaderPipelines.Num();
 			Ar << NumPipelines;
+			// Sort the shader pipelines by type name before saving, to make sure the saved result is binary equivalent to what is generated on other machines, Which is a requirement of the Derived Data Cache.
+			auto SortedPipelines = ShaderPipelines;
+			SortedPipelines.KeySort(FCompareShaderPipelineNameTypes());
+			for (TMap<const FShaderPipelineType*, TRefCountPtr<FShaderPipeline> >::TConstIterator PipelineIt(SortedPipelines); PipelineIt; ++PipelineIt)
+			{
+				FShaderPipeline* CurrentPipeline = PipelineIt.Value();
+				const FShaderPipelineType* PipelineType = CurrentPipeline->PipelineType;
+				Ar << PipelineType;
+
+				auto& PipelineStages = PipelineType->GetStages();
+				int32 NumStages = PipelineStages.Num();
+				Ar << NumStages;
+				for (int32 Index = 0; Index < NumStages; ++Index)
+				{
+					auto* Shader = CurrentPipeline->GetShader(PipelineStages[Index]->GetFrequency());
+					FShaderType* Type = Shader->GetType();
+					Ar << Type;
+					SerializedShaderForSaving(Shader);
+				}
+			}
 		}
 
 		if (Ar.IsLoading())
@@ -1249,60 +1481,101 @@ public:
 			int32 NumShaders = 0;
 			Ar << NumShaders;
 
-			for (int32 ShaderIndex = 0; ShaderIndex < NumShaders; ShaderIndex++)
-			{
-				FShaderType* Type = NULL;
-				Ar << Type;
-
-				int32 EndOffset = 0;
-				Ar << EndOffset;
-
-				FSelfContainedShaderId SelfContainedKey;
-
-				if (bHandleShaderKeyChanges)
+			auto SerializeShaderForLoad = [&](FShaderType* Type) -> FShader*
 				{
-					Ar << SelfContainedKey;
-				}
+					int32 EndOffset = 0;
+					Ar << EndOffset;
 
-				if (Type 
-					// If we are handling shader key changes, only create the shader if the serialized key matches the key the shader would have if created
-					// This allows serialization changes between the save and load to be safely handled
-					&& (!bHandleShaderKeyChanges || SelfContainedKey.IsValid()))
-				{
-					FShader* Shader = Type->ConstructForDeserialization();
-					check(Shader != NULL);
-					Shader->SerializeBase(Ar, bInlineShaderResource);
+					FSelfContainedShaderId SelfContainedKey;
 
-					TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
-
-					if (ExistingShader.IsValid())
+					if (bHandleShaderKeyChanges)
 					{
-						delete Shader;
-						Shader = ExistingShader.GetReference();
+						Ar << SelfContainedKey;
+					}
+
+					FShader* Shader = nullptr;
+					if (Type
+						// If we are handling shader key changes, only create the shader if the serialized key matches the key the shader would have if created
+						// This allows serialization changes between the save and load to be safely handled
+						&& (!bHandleShaderKeyChanges || SelfContainedKey.IsValid()))
+					{
+						Shader = Type->ConstructForDeserialization();
+						check(Shader != nullptr);
+						Shader->SerializeBase(Ar, bInlineShaderResource);
+
+						TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
+
+						if (ExistingShader.IsValid())
+						{
+							delete Shader;
+							Shader = ExistingShader.GetReference();
+						}
+						else
+						{
+							// Register the shader now that it is valid, so that it can be reused
+							Shader->Register();
+						}
 					}
 					else
 					{
-						// Register the shader now that it is valid, so that it can be reused
-						Shader->Register();
+						// Skip over this shader's serialized data if the type doesn't exist
+						// This can happen with shader types in modules that were loaded during cooking but not at run time (editor)
+						Ar.Seek(EndOffset);
 					}
+					return Shader;
+				};
 
-					AddShader(Shader->GetType(), Shader);
-				}
-				else
+			for (int32 ShaderIndex = 0; ShaderIndex < NumShaders; ShaderIndex++)
+			{
+				FShaderType* Type = nullptr;
+				Ar << Type;
+
+				FShader* Shader = SerializeShaderForLoad(Type);
+				if (Shader)
 				{
-					// Skip over this shader's serialized data if the type doesn't exist
-					// This can happen with shader types in modules that were loaded during cooking but not at run time (editor)
-					Ar.Seek(EndOffset);
+					AddShader(Shader->GetType(), Shader);
 				}
 			}
 
 			int32 NumPipelines = 0;
 			Ar << NumPipelines;
+			for (int32 PipelineIndex = 0; PipelineIndex < NumPipelines; ++PipelineIndex)
+			{
+				const FShaderPipelineType* ShaderPipelineType = nullptr;
+				Ar << ShaderPipelineType;
+				int32 NumStages = 0;
+				Ar << NumStages;
+				TArray<FShader*> ShaderStages;
+				for (int32 Index = 0; Index < NumStages; ++Index)
+				{
+					FShaderType* Type = nullptr;
+					Ar << Type;
+					FShader* Shader = SerializeShaderForLoad(Type);
+					if (Shader)
+					{
+						ShaderStages.Add(Shader);
+					}
+				}
+
+				if (ShaderStages.Num() == ShaderPipelineType->GetStages().Num())
+				{
+					FShaderPipeline* ShaderPipeline = new FShaderPipeline(ShaderPipelineType, ShaderStages);
+					AddShaderPipeline(ShaderPipelineType, ShaderPipeline);
+				}
+				else
+				{
+					//#todo-rco: Log that the # of stages changed for this pipeline
+					for (FShader* Shader : ShaderStages)
+					{
+						delete Shader;
+					}
+				}
+			}
 		}
 	}
 
 	/** @return true if the map is empty */
-	bool IsEmpty()
+	bool IsEmpty() const
 	{
 		return Shaders.Num() == 0;
 	}
@@ -1312,15 +1585,37 @@ public:
 	{
 		return Shaders.Num();
 	}
-	
+
+	/** @return The number of shader pipelines in the map. */
+	uint32 GetNumShaderPipelines() const
+	{
+		return ShaderPipelines.Num();
+	}
+
 	/** clears out all shaders held in the map */
 	void Empty()
 	{
 		Shaders.Empty();
+		ShaderPipelines.Empty();
+	}
+
+	// Returns nullptr if not found
+	FShaderPipeline* GetShaderPipeline(const FShaderPipelineType* PipelineType) const
+	{
+		auto* Found = ShaderPipelines.Find(PipelineType);
+		return Found ? *Found : nullptr;
+	}
+
+	void AddShaderPipeline(const FShaderPipelineType* Type, FShaderPipeline* ShaderPipeline)
+	{
+		check(Type);
+		check(!ShaderPipeline || ShaderPipeline->PipelineType == Type);
+		ShaderPipelines.Add(Type, ShaderPipeline);
 	}
 
 protected:
-	TMap<FShaderType*,TRefCountPtr<FShader> > Shaders;
+	TMap<FShaderType*, TRefCountPtr<FShader> > Shaders;
+	TMap<const FShaderPipelineType*, TRefCountPtr<FShaderPipeline> > ShaderPipelines;
 };
 
 /** A reference which is initialized with the requested shader type from a shader map. */

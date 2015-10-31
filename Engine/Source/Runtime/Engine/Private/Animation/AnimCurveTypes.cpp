@@ -5,6 +5,9 @@
 #include "Animation/AnimInstance.h"
 #include "AnimationRuntime.h"
 
+DECLARE_CYCLE_STAT(TEXT("BlendedCurve InitFrom"), STAT_BlendedCurve_InitFrom, STATGROUP_Anim);
+
+
 /////////////////////////////////////////////////////
 // FFloatCurve
 
@@ -573,6 +576,8 @@ void FBlendedCurve::Override(const FBlendedCurve& CurveToOverrideFrom)
 
 void FBlendedCurve::InitFrom(const USkeleton* Skeleton)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BlendedCurve_InitFrom);
+
 	if(const FSmartNameMapping* Mapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
 	{
 		Mapping->FillUidArray(UIDList);
@@ -582,6 +587,21 @@ void FBlendedCurve::InitFrom(const USkeleton* Skeleton)
 
 	// no name, means no curve
 	bInitialized = true;
+}
+
+void FBlendedCurve::InitFrom(const FBlendedCurve& InCurveToInitFrom)
+{
+	SCOPE_CYCLE_COUNTER(STAT_BlendedCurve_InitFrom);
+
+	// make sure this doesn't happen
+	if (ensure(&InCurveToInitFrom != this))
+	{
+		UIDList.Reset();
+		UIDList.Append(InCurveToInitFrom.UIDList);
+		Elements.Reset();
+		Elements.AddZeroed(UIDList.Num());
+		bInitialized = true;
+	}
 }
 
 FBlendedCurve::FBlendedCurve(const class UAnimInstance* AnimInstance)

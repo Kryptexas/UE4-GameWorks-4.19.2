@@ -316,7 +316,8 @@ const FAnimationTransitionBetweenStates& FAnimNode_StateMachine::GetTransitionIn
 
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
-	if (FBakedAnimationStateMachine* Machine = GetMachineDescription())
+	FBakedAnimationStateMachine* Machine = GetMachineDescription();
+	if (Machine != nullptr)
 	{
 		if (Machine->States.Num() == 0)
 		{
@@ -337,6 +338,10 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 	}
 
 	SCOPE_CYCLE_COUNTER(STAT_AnimStateMachineUpdate);
+#if	STATS
+	// Record name of state machine we are updating
+	FScopeCycleCounter MachineNameCycleCounter(Machine->GetStatID());
+#endif // STATS
 
 	bool bFoundValidTransition = false;
 	int32 TransitionCountThisFrame = 0;

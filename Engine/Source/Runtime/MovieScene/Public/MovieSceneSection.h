@@ -72,9 +72,9 @@ public:
 		// Use the single value constructor for zero sized ranges because it creates a range that is inclusive on both upper and lower
 		// bounds which isn't considered "empty".  Use the standard constructor for non-zero sized ranges so that they work well when
 		// calculating overlap with other non-zero sized ranges.
-		return StartTime == EndTime 
-			? TRange<float>(StartTime) 
-			: TRange<float>(StartTime, EndTime);
+		return (StartTime == EndTime)
+			? TRange<float>(StartTime)
+			: TRange<float>(StartTime, TRangeBound<float>::Inclusive(EndTime));
 	}
 	
 	/**

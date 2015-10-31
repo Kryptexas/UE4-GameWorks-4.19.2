@@ -391,8 +391,8 @@ int32 FSequencerTimeSliderController::DrawPlaybackRange(const FGeometry& Allotte
 
 	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
 
-	float PlaybackRangeL = RangeToScreen.InputToLocalX(PlaybackRange.GetLowerBoundValue());
-	float PlaybackRangeR = RangeToScreen.InputToLocalX(PlaybackRange.GetUpperBoundValue());
+	float PlaybackRangeL = RangeToScreen.InputToLocalX(PlaybackRange.GetLowerBoundValue()) - 1;
+	float PlaybackRangeR = RangeToScreen.InputToLocalX(PlaybackRange.GetUpperBoundValue()) + 1;
 
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
@@ -517,7 +517,7 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> Widg
 					NewValue = LastRange[1];
 				}
 
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(DownValue, NewValue), EViewRangeInterpolation::Immediate, false);
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(DownValue, NewValue), EViewRangeInterpolation::Immediate);
 						
 				if( !TimeSliderArgs.ViewRange.IsBound() )
 				{	
@@ -576,8 +576,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				float NewViewOutputMin = LocalViewRangeMin - InputDelta.X;
 				float NewViewOutputMax = LocalViewRangeMax - InputDelta.X;
 
-				const bool bMaintainRange = true;
-				ClampViewRange(NewViewOutputMin, NewViewOutputMax, bMaintainRange);
+				ClampViewRange(NewViewOutputMin, NewViewOutputMax);
 				SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Immediate);
 			}
 		}
@@ -793,53 +792,26 @@ float FSequencerTimeSliderController::FrameToTime(int32 Frame) const
 	return SequencerHelpers::FrameToTime(Frame, FrameRate);
 }
 
-void FSequencerTimeSliderController::ClampViewRange(float& NewRangeMin, float& NewRangeMax, bool bMaintainRange)
+void FSequencerTimeSliderController::ClampViewRange(float& NewRangeMin, float& NewRangeMax)
 {
-	// If locked, clamp the new range to clamp range
-	if (TimeSliderArgs.Settings->GetShowRangeSlider() && TimeSliderArgs.Settings->GetLockInOutToStartEndRange())
+	bool bNeedsClampSet = false;
+	float NewClampRangeMin = TimeSliderArgs.ClampRange.Get().GetLowerBoundValue();
+	if ( NewRangeMin < TimeSliderArgs.ClampRange.Get().GetLowerBoundValue() )
 	{
-		if (bMaintainRange)
-		{
-			if ( NewRangeMin < TimeSliderArgs.ClampRange.Get().GetLowerBoundValue() )
-			{
-				NewRangeMin = TimeSliderArgs.ClampRange.Get().GetLowerBoundValue();
-				NewRangeMax = NewRangeMin + (TimeSliderArgs.ViewRange.Get().GetUpperBoundValue() - TimeSliderArgs.ViewRange.Get().GetLowerBoundValue());
-			}
-	
-			else if ( NewRangeMax > TimeSliderArgs.ClampRange.Get().GetUpperBoundValue() )
-			{
-				NewRangeMax = TimeSliderArgs.ClampRange.Get().GetUpperBoundValue();
-				NewRangeMin = NewRangeMax - (TimeSliderArgs.ViewRange.Get().GetUpperBoundValue() - TimeSliderArgs.ViewRange.Get().GetLowerBoundValue());
-			}
-		}
-		else
-		{
-			NewRangeMin = FMath::Clamp(NewRangeMin, TimeSliderArgs.ClampRange.Get().GetLowerBoundValue(), TimeSliderArgs.ClampRange.Get().GetUpperBoundValue());
-			NewRangeMax = FMath::Clamp(NewRangeMax, TimeSliderArgs.ClampRange.Get().GetLowerBoundValue(), TimeSliderArgs.ClampRange.Get().GetUpperBoundValue());
-		}
+		NewClampRangeMin = NewRangeMin;
+		bNeedsClampSet = true;
 	}
-	// Otherwise, grow the clamp range to the new range
-	else
-	{
-		bool bNeedsClampSet = false;
-		float NewClampRangeMin = TimeSliderArgs.ClampRange.Get().GetLowerBoundValue();
-		if ( NewRangeMin < TimeSliderArgs.ClampRange.Get().GetLowerBoundValue() )
-		{
-			NewClampRangeMin = NewRangeMin;
-			bNeedsClampSet = true;
-		}
-	
-		float NewClampRangeMax = TimeSliderArgs.ClampRange.Get().GetUpperBoundValue();
-		if ( NewRangeMax > TimeSliderArgs.ClampRange.Get().GetUpperBoundValue() )
-		{
-			NewClampRangeMax = NewRangeMax;
-			bNeedsClampSet = true;
-		}
 
-		if (bNeedsClampSet)
-		{
-			SetClampRange(NewClampRangeMin, NewClampRangeMax);
-		}
+	float NewClampRangeMax = TimeSliderArgs.ClampRange.Get().GetUpperBoundValue();
+	if ( NewRangeMax > TimeSliderArgs.ClampRange.Get().GetUpperBoundValue() )
+	{
+		NewClampRangeMax = NewRangeMax;
+		bNeedsClampSet = true;
+	}
+
+	if (bNeedsClampSet)
+	{
+		SetClampRange(NewClampRangeMin, NewClampRangeMax);
 	}
 }
 
@@ -847,7 +819,7 @@ void FSequencerTimeSliderController::SetViewRange( float NewRangeMin, float NewR
 {
 	const TRange<float> NewRange(NewRangeMin, NewRangeMax);
 
-	TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound( NewRange, Interpolation, false );
+	TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound( NewRange, Interpolation );
 
 	if( !TimeSliderArgs.ViewRange.IsBound() )
 	{	
@@ -882,8 +854,7 @@ bool FSequencerTimeSliderController::ZoomByDelta( float InDelta, float MousePosi
 
 	if( FMath::Abs( OutputChange ) > 0.01f && NewViewOutputMin < NewViewOutputMax )
 	{
-		const bool bMaintainRange = false;
-		ClampViewRange(NewViewOutputMin, NewViewOutputMax, bMaintainRange);
+		ClampViewRange(NewViewOutputMin, NewViewOutputMax);
 		SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);
 		return true;
 	}
@@ -904,8 +875,7 @@ void FSequencerTimeSliderController::PanByDelta( float InDelta )
 	float NewViewOutputMin = CurrentMin + InDelta;
 	float NewViewOutputMax = CurrentMax + InDelta;
 
-	const bool bMaintainRange = true;
-	ClampViewRange(NewViewOutputMin, NewViewOutputMax, bMaintainRange);
+	ClampViewRange(NewViewOutputMin, NewViewOutputMax);
 	SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);
 }
 

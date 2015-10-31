@@ -23,6 +23,15 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_ApplyAdditive : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	FInputScaleBias AlphaScaleBias;
 
+	/* 
+	 * Max LOD that this node is allowed to run
+	 * For example if you have LODThreadhold to be 2, it will run until LOD 2 (based on 0 index)
+	 * when the component LOD becomes 3, it will stop update/evaluate
+	 * currently transition would be issue and that has to be re-visited
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Performance, meta=(DisplayName="LOD Threshold"))
+	int32 LODThreshold;
+
 public:	
 	FAnimNode_ApplyAdditive();
 
@@ -33,4 +42,5 @@ public:
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
 };

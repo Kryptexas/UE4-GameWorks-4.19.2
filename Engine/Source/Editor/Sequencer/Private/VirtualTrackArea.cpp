@@ -50,14 +50,14 @@ TSharedPtr<FSequencerDisplayNode> FVirtualTrackArea::HitTestNode(float InPhysica
 	return TreeView.HitTestNode(InPhysicalPosition);
 }
 
-TSharedPtr<FTrackNode> GetParentTrackNode(FSequencerDisplayNode& In)
+TSharedPtr<FSequencerTrackNode> GetParentTrackNode(FSequencerDisplayNode& In)
 {
 	FSequencerDisplayNode* Current = &In;
 	while(Current && Current->GetType() != ESequencerNode::Object)
 	{
 		if (Current->GetType() == ESequencerNode::Track)
 		{
-			return StaticCastSharedRef<FTrackNode>(Current->AsShared());
+			return StaticCastSharedRef<FSequencerTrackNode>(Current->AsShared());
 		}
 		Current = Current->GetParent().Get();
 	}
@@ -71,7 +71,7 @@ TOptional<FSectionHandle> FVirtualTrackArea::HitTestSection(FVector2D InPhysical
 
 	if (Node.IsValid())
 	{
-		TSharedPtr<FTrackNode> TrackNode = GetParentTrackNode(*Node);
+		TSharedPtr<FSequencerTrackNode> TrackNode = GetParentTrackNode(*Node);
 
 		if (TrackNode.IsValid())
 		{
@@ -111,7 +111,7 @@ FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition
 	switch (Node->GetType())
 	{
 		case ESequencerNode::KeyArea: 	KeyAreaNode = StaticCastSharedPtr<FSequencerSectionKeyAreaNode>(Node); break;
-		case ESequencerNode::Track:		KeyAreaNode = StaticCastSharedPtr<FTrackNode>(Node)->GetTopLevelKeyNode(); break;
+		case ESequencerNode::Track:		KeyAreaNode = StaticCastSharedPtr<FSequencerTrackNode>(Node)->GetTopLevelKeyNode(); break;
 	}
 
 	if (KeyAreaNode.IsValid())
@@ -128,7 +128,7 @@ FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition
 	// Failing that, and the node is collapsed, we check for key groupings
 	else if (!Node->IsExpanded())
 	{
-		TSharedPtr<FTrackNode> TrackNode = GetParentTrackNode(*Node);
+		TSharedPtr<FSequencerTrackNode> TrackNode = GetParentTrackNode(*Node);
 		const TArray< TSharedRef<ISequencerSection> >& Sections = TrackNode->GetSections();
 
 		for ( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )

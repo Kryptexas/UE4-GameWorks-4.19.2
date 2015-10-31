@@ -75,20 +75,29 @@ void FMovieSceneSequenceInstance::RestoreState(class IMovieScenePlayer& Player)
 
 void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, class IMovieScenePlayer& Player )
 {
-	// Update  shot track
-	TArray<UObject*> NoObjects;
-	if( ShotTrackInstance.IsValid() )
-	{
-		ShotTrackInstance->Update( Position, LastPosition, NoObjects, Player, *this );
-	}
+	UpdateInternal(Position, LastPosition, Player, MSUP_PreUpdate);
+	UpdateInternal(Position, LastPosition, Player, MSUP_Update);
+	UpdateInternal(Position, LastPosition, Player, MSUP_PostUpdate);
+}
 
-	// Update each master track
+void FMovieSceneSequenceInstance::UpdateInternal( float Position, float LastPosition, class IMovieScenePlayer& Player, EMovieSceneUpdatePass UpdatePass )
+{
+	// Refresh time range so that spawnables can be created if they fall within the playback range, or destroyed if not
+	UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
+	TimeRange = MovieScene->GetPlaybackRange();
+
+	TArray<UObject*> NoObjects;
+
+	// update each master track
 	for( FMovieSceneInstanceMap::TIterator It( MasterTrackInstances ); It; ++It )
 	{
-		It.Value()->Update( Position, LastPosition, NoObjects, Player, *this );
+		if (It.Value()->HasUpdatePasses() & UpdatePass)
+		{
+			It.Value()->Update( Position, LastPosition, NoObjects, Player, *this, UpdatePass);
+		}
 	}
 
-	// Update tracks bound to objects
+	// update tracks bound to objects
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
 	for(; ObjectIt; ++ObjectIt )
 	{
@@ -96,7 +105,19 @@ void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, cl
 		
 		for( FMovieSceneInstanceMap::TIterator It = ObjectBindingInstance.TrackInstances.CreateIterator(); It; ++It )
 		{
-			It.Value()->Update( Position, LastPosition, ObjectBindingInstance.RuntimeObjects, Player, *this );
+			if (It.Value()->HasUpdatePasses() & UpdatePass)
+			{
+				It.Value()->Update( Position, LastPosition, ObjectBindingInstance.RuntimeObjects, Player, *this, UpdatePass );
+			}
+		}
+	}
+
+	// update shot track last to make sure spawnable cameras are there, and to override sub-shots
+	if (ShotTrackInstance.IsValid())
+	{
+		if (ShotTrackInstance->HasUpdatePasses() & UpdatePass)
+		{
+			ShotTrackInstance->Update(Position, LastPosition, NoObjects, Player, *this, UpdatePass );
 		}
 	}
 }
@@ -109,15 +130,13 @@ void FMovieSceneSequenceInstance::RefreshInstance( IMovieScenePlayer& Player )
 
 	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
 
-	TSharedRef<FMovieSceneSequenceInstance> ThisInstance = AsShared();
-
-	FMovieSceneInstanceMap ShotTrackInstanceMap;
-	// Only if root movie scene. Any sub-movie scene that has a shot track is ignored
-	if( ShotTrack && Player.GetRootMovieSceneSequenceInstance() == ThisInstance )
+	if (ShotTrack != nullptr)
 	{
-		if( ShotTrackInstance.IsValid() )
+		FMovieSceneInstanceMap ShotTrackInstanceMap;
+
+		if (ShotTrackInstance.IsValid())
 		{
-			ShotTrackInstanceMap.Add(  ShotTrack, ShotTrackInstance );
+			ShotTrackInstanceMap.Add(ShotTrack, ShotTrackInstance);
 		}
 
 		TArray<UObject*> Objects;
@@ -125,11 +144,11 @@ void FMovieSceneSequenceInstance::RefreshInstance( IMovieScenePlayer& Player )
 		Tracks.Add(ShotTrack);
 		RefreshInstanceMap(Tracks, Objects, ShotTrackInstanceMap, Player);
 
-		ShotTrackInstance = ShotTrackInstanceMap.FindRef( ShotTrack );
+		ShotTrackInstance = ShotTrackInstanceMap.FindRef(ShotTrack);
 	}
-	else if( !ShotTrack && ShotTrackInstance.IsValid() )
+	else if(ShotTrackInstance.IsValid())
 	{
-		ShotTrackInstance->ClearInstance( Player, *this );
+		ShotTrackInstance->ClearInstance(Player, *this);
 		ShotTrackInstance.Reset();
 	}
 
@@ -179,7 +198,7 @@ struct FTrackInstanceEvalSorter
 {
 	bool operator()( const TSharedPtr<IMovieSceneTrackInstance> A, const TSharedPtr<IMovieSceneTrackInstance> B ) const
 	{
-		return A->EvalOrder() > B->EvalOrder();
+		return A->EvalOrder() < B->EvalOrder();
 	}
 };
 
@@ -234,31 +253,85 @@ void FMovieSceneSequenceInstance::RefreshInstanceMap( const TArray<UMovieSceneTr
 	TrackInstances.ValueSort(FTrackInstanceEvalSorter());
 }
 
-void FMovieSceneSequenceInstance::SpawnObject(const FGuid& ObjectId)
+void FMovieSceneSequenceInstance::UpdateObjectBinding(const FGuid& ObjectId, IMovieScenePlayer& Player)
+{
+	UMovieSceneSequence* Sequence = MovieSceneSequence.Get();
+	auto* BindingInstance = ObjectBindingInstances.Find(ObjectId);
+
+	if (!BindingInstance || !Sequence)
+	{
+		return;
+	}
+
+	// Update the runtime objects
+	BindingInstance->RuntimeObjects.Reset();
+	Player.GetRuntimeObjects(SharedThis(this), BindingInstance->ObjectGuid, BindingInstance->RuntimeObjects);
+
+	const FMovieSceneBinding* ObjectBinding = Sequence->GetMovieScene()->GetBindings().FindByPredicate([&](const FMovieSceneBinding& In){
+		return In.GetObjectGuid() == ObjectId;
+	});
+
+	// Refresh the instance map, if we found the binding itself
+	if (ObjectBinding)
+	{
+		RefreshInstanceMap(ObjectBinding->GetTracks(), BindingInstance->RuntimeObjects, BindingInstance->TrackInstances, Player);
+	}
+}
+
+void FMovieSceneSequenceInstance::SpawnObject(const FGuid& ObjectId, IMovieScenePlayer& Player)
 {
 	UMovieSceneSequence* Sequence = GetSequence();
 	auto* BindingInstance = ObjectBindingInstances.Find(ObjectId);
 
-	if (Sequence && BindingInstance)
+	if (!Sequence || !BindingInstance)
 	{
-		BindingInstance->RuntimeObjects.Reset();
+		return;
+	}
 
-		// Spawn the object, and add it to the instance's runtime objects array
-		if (UObject* SpawnedObject = Sequence->SpawnObject(ObjectId))
+	// Reset the runtime objects for the binding instance
+	BindingInstance->RuntimeObjects.Reset();
+
+	// Attempt to spawn the object
+	UObject* SpawnedObject = Sequence->SpawnObject(ObjectId);
+	if (!SpawnedObject)
+	{
+		return;
+	}
+
+	// Add it to the instance's runtime objects array, and update any child possessable binding instances
+	BindingInstance->RuntimeObjects.Emplace(SpawnedObject);
+
+	FMovieSceneSpawnable* Spawnable = Sequence->GetMovieScene()->FindSpawnable(ObjectId);
+	if (Spawnable)
+	{
+		for (const FGuid& Child : Spawnable->GetChildPossessables())
 		{
-			BindingInstance->RuntimeObjects.Emplace(SpawnedObject);
+			UpdateObjectBinding(Child, Player);
 		}
 	}
 }
 
-void FMovieSceneSequenceInstance::DestroySpawnedObject(const FGuid& ObjectId)
+void FMovieSceneSequenceInstance::DestroySpawnedObject(const FGuid& ObjectId, IMovieScenePlayer& Player)
 {
 	UMovieSceneSequence* Sequence = GetSequence();
 	auto* BindingInstance = ObjectBindingInstances.Find(ObjectId);
 	
-	if (Sequence && BindingInstance)
+	if (!Sequence || !BindingInstance)
 	{
-		Sequence->DestroySpawnedObject(ObjectId);
-		BindingInstance->RuntimeObjects.Reset();
+		return;
+	}
+
+	// Destroy the object
+	Sequence->DestroySpawnedObject(ObjectId);
+	BindingInstance->RuntimeObjects.Reset();
+
+	// Update any child possessable object bindings
+	FMovieSceneSpawnable* Spawnable = Sequence->GetMovieScene()->FindSpawnable(ObjectId);
+	if (Spawnable)
+	{
+		for (const FGuid& Child : Spawnable->GetChildPossessables())
+		{
+			UpdateObjectBinding(Child, Player);
+		}
 	}
 }

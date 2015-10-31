@@ -6,6 +6,9 @@
 #include "MovieSceneSlomoTrackInstance.h"
 
 
+#define LOCTEXT_NAMESPACE "MovieSceneSlomoTrack"
+
+
 /* UMovieSceneEventTrack interface
  *****************************************************************************/
 
@@ -21,7 +24,14 @@ UMovieSceneSection* UMovieSceneSlomoTrack::CreateNewSection()
 }
 
 
-FName UMovieSceneSlomoTrack::GetTrackName() const
+#if WITH_EDITORONLY_DATA
+
+FText UMovieSceneSlomoTrack::GetDisplayName() const
 {
-	return FName("Play Rate");
+	return LOCTEXT("TrackName", "Play Rate");
 }
+
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

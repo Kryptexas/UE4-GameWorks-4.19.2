@@ -10,7 +10,7 @@
 class FVisibilityPropertySection : public FBoolPropertySection
 {
 public:
-	FVisibilityPropertySection( UMovieSceneSection& InSectionObject, FName SectionName, ISequencer* InSequencer )
+	FVisibilityPropertySection( UMovieSceneSection& InSectionObject, const FText& SectionName, ISequencer* InSequencer )
 		: FBoolPropertySection( InSectionObject, SectionName, InSequencer )
 	{
 		DisplayName = FText::FromString( TEXT( "Visible" ) );

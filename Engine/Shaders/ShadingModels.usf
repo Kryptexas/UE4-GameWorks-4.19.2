@@ -664,6 +664,68 @@ float3 SubsurfaceShadingTwoSided( float3 SubsurfaceColor, float3 L, float3 V, ha
 	return NoL * GGX * SubsurfaceColor;
 }
 
+float3 EyeShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N )
+{
+	float3 H = normalize(V + L);
+	float VoH = saturate( dot(V, H) );
+
+	float3 F = F_Schlick( GBuffer.SpecularColor, VoH );
+
+	//
+	// Cornea Reflectance - Use geo normal
+	//
+	float CNoL = saturate( dot(N, L) );
+	float CNoV = max( dot(N, V), 1e-5 );	// constant to prevent NaN
+	float CNoH = saturate( dot(N, H) );
+	
+	// Generalized microfacet specular
+	float D = D_GGX( LobeRoughness[1], CNoH ) * LobeEnergy[1];
+	float Vis = Vis_SmithJointApprox( LobeRoughness[1], CNoV, CNoL );
+
+	// Cornea Specular - Covers the whole surface
+	float3 CorneaSpecular;
+	CorneaSpecular = D * Vis * F;
+
+	return CorneaSpecular;
+}
+
+float3 EyeSubsurfaceShading(  FGBufferData GBuffer, float3 L, float3 V, half3 N )
+{
+	// Need to make sure we are getting the correct Diffuse color intensity
+	float3 SubsurfaceColor = GBuffer.DiffuseColor * PI;
+
+	float  IrisDistance = GBuffer.CustomData.w;
+	float  IrisMask = GBuffer.CustomData.z;
+
+	float3 IrisNormal;
+	IrisNormal = OctahedronToUnitVector( GBuffer.CustomData.xy * 2 - 1 );
+
+	// Blend in the negative intersection normal to create some concavity
+	// Not great as it ties the concavity to the convexity of the cornea surface
+	// No good justification for that. On the other hand, if we're just looking to
+	// introduce some concavity, this does the job.
+	IrisNormal = normalize(lerp(IrisNormal, -N, IrisMask*IrisDistance));
+
+	// Use IrisNormal only within the Iris
+	IrisNormal = lerp(N, IrisNormal, IrisMask);
+
+	// http://blog.stevemcauley.com/2011/12/03/energy-conserving-wrapped-diffuse/
+	float Wrap = 0.5;
+	float INoL = saturate( ( dot(IrisNormal, L) + Wrap ) / Square( 1 + Wrap ) );
+
+	// GGX scatter distribution
+	float VoL = saturate( dot(V, -L) );
+	float a = 0.6;
+	float a2 = a * a;
+	float d = ( VoL * a2 - VoL ) * VoL + 1;	// 2 mad
+	float GGX = (a2 / PI) / (d * d);		// 2 mul, 1 rcp
+	
+	float3 rawResult = INoL * GGX * SubsurfaceColor;
+
+	// Covers whole object
+	return rawResult;
+}
+
 Texture2D		PreIntegratedBRDF;
 SamplerState	PreIntegratedBRDFSampler;
 
@@ -693,6 +755,8 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 			return ClearCoatShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N );
 		case SHADINGMODELID_CLOTH:
 			return ClothShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N );
+		case SHADINGMODELID_EYE:
+			return EyeShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N );
 		default:
 			return 0;
 	}
@@ -712,6 +776,8 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, flo
 			return SubsurfaceShadingTwoSided( SubsurfaceColor, L, V, N );
 		case SHADINGMODELID_HAIR:
 			return HairShading( GBuffer, L, V, N, Shadow, Random );
+		case SHADINGMODELID_EYE:
+			return EyeSubsurfaceShading( GBuffer, L, V, N );
 		default:
 			return 0;
 	}

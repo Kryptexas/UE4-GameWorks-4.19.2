@@ -80,8 +80,8 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				FString PackageFile(FilesInPackageFolder[FileIndex]);
 				FPaths::MakeStandardFilename(PackageFile);
 				PackageNames.Add( *PackageFile );
-                bExplicitPackages = true;
             }
+			bExplicitPackages = true;
         }
 	}
 

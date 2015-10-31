@@ -2,8 +2,10 @@
 
 #pragma once
 
+
 class IKeyArea;
 class ISequencerSection;
+class SAnimationOutlinerTreeNode;
 class SSequencerTreeViewRow;
 class FGroupedKeyArea;
 
@@ -13,14 +15,18 @@ class FGroupedKeyArea;
  */
 struct FNodePadding
 {
-	FNodePadding(float InUniform) : Top(InUniform), Bottom(InUniform) {}
-	FNodePadding(float InTop, float InBottom) : Top(InTop), Bottom(InBottom) {}
+	FNodePadding(float InUniform) : Top(InUniform), Bottom(InUniform) { }
+	FNodePadding(float InTop, float InBottom) : Top(InTop), Bottom(InBottom) { }
 	
 	/** @return The sum total of the separate padding values */
-	float Combined() const { return Top + Bottom; }
+	float Combined() const
+	{
+		return Top + Bottom;
+	}
 
 	/** Padding to be applied to the top of the node */
 	float Top;
+
 	/** Padding to be applied to the bottom of the node */
 	float Bottom;
 };
@@ -49,15 +55,20 @@ class FSequencerDisplayNode
 	: public TSharedFromThis<FSequencerDisplayNode>
 {
 public:
-	virtual ~FSequencerDisplayNode(){}
+
 	/**
-	 * Constructor
+	 * Create and initialize a new instance.
 	 * 
 	 * @param InNodeName	The name identifier of then node
-	 * @param InParentNode	The parent of this node or NULL if this is a root node
+	 * @param InParentNode	The parent of this node or nullptr if this is a root node
 	 * @param InParentTree	The tree this node is in
 	 */
 	FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
+
+	/** Virtual destructor. */
+	virtual ~FSequencerDisplayNode(){}
+
+public:
 
 	/**
 	* Adds an object binding node to this node.
@@ -77,11 +88,10 @@ public:
 	/**
 	 * Adds a new section area for this node.
 	 * 
-	 * @param SectionName		Name of the section area
 	 * @param AssociatedTrack	The track associated with sections in this node
 	 * @param AssociatedEditor	The track editor for the associated track
 	 */
-	TSharedRef<class FTrackNode> AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor );
+	TSharedRef<class FSequencerTrackNode> AddSectionAreaNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor );
 
 	/**
 	 * Adds a key area to this node
@@ -98,7 +108,10 @@ public:
 	virtual ESequencerNode::Type GetType() const = 0;
 
 	/** @return Whether or not this node can be selected */
-	virtual bool IsSelectable() const { return true; }
+	virtual bool IsSelectable() const
+	{
+		return true;
+	}
 
 	/**
 	 * @return The desired height of the node when displayed
@@ -111,9 +124,23 @@ public:
 	virtual FNodePadding GetNodePadding() const = 0;
 
 	/**
+	 * Whether the node can be renamed.
+	 *
+	 * @return true if this node can be renamed, false otherwise.
+	 */
+	virtual bool CanRenameNode() const = 0;
+
+	/**
 	 * @return The localized display name of this node
 	 */
 	virtual FText GetDisplayName() const = 0;
+
+	/**
+	 * Set the node's display name.
+	 *
+	 * @param DisplayName the display name to set.
+	 */
+	virtual void SetDisplayName(const FText& DisplayName) = 0;
 
 	/**
 	 * Generates a container widget for tree display in the animation outliner portion of the track area
@@ -135,7 +162,7 @@ public:
 	 * @param ViewRange	The range of time in the sequencer that we are displaying
 	 * @return Generated outliner widget
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForSectionArea( const TAttribute< TRange<float> >& ViewRange );
+	virtual TSharedRef<SWidget> GenerateWidgetForSectionArea( const TAttribute<TRange<float>>& ViewRange );
 
 	/**
 	 * Get the display node that is ultimately responsible for constructing a section area widget for this node.
@@ -157,49 +184,62 @@ public:
 	/**
 	 * @return The name of the node (for identification purposes)
 	 */
-	FName GetNodeName() const { return NodeName; }
+	FName GetNodeName() const
+	{
+		return NodeName;
+	}
 
 	/**
 	 * @return The number of child nodes belonging to this node
 	 */
-	uint32 GetNumChildren() const { return ChildNodes.Num(); }
+	uint32 GetNumChildren() const
+	{
+		return ChildNodes.Num();
+	}
 
 	/**
 	 * @return A List of all Child nodes belonging to this node
 	 */
-	const TArray< TSharedRef<FSequencerDisplayNode> >& GetChildNodes() const { return ChildNodes; }
+	const TArray<TSharedRef<FSequencerDisplayNode>>& GetChildNodes() const
+	{
+		return ChildNodes;
+	}
 
 	/**
 	 * Iterate this entire node tree, child first.
+	 *
 	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool Traverse_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
+	bool Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Iterate this entire node tree, parent first.
+	 *
 	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool Traverse_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
+	bool Traverse_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Iterate any visible portions of this node's sub-tree, child first.
+	 *
 	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool TraverseVisible_ChildFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
+	bool TraverseVisible_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Iterate any visible portions of this node's sub-tree, parent first.
+	 *
 	 * @param 	InPredicate			Predicate to call for each node, returning whether to continue iteration or not
 	 * @param 	bIncludeThisNode	Whether to include this node in the iteration, or just children
 	 * @return  true where the client prematurely exited the iteration, false otherwise
 	 */
-	bool TraverseVisible_ParentFirst(TFunctionRef<bool(FSequencerDisplayNode&)> InPredicate, bool bIncludeThisNode = true);
+	bool TraverseVisible_ParentFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode = true);
 
 	/**
 	 * Sorts the child nodes with the supplied predicate
@@ -208,6 +248,7 @@ public:
 	void SortChildNodes(const PREDICATE_CLASS& Predicate)
 	{
 		ChildNodes.StableSort(Predicate);
+
 		for (TSharedRef<FSequencerDisplayNode> ChildNode : ChildNodes)
 		{
 			ChildNode->SortChildNodes(Predicate);
@@ -217,16 +258,25 @@ public:
 	/**
 	 * @return The parent of this node                                                              
 	 */
-	TSharedPtr<FSequencerDisplayNode> GetParent() const { return ParentNode.Pin(); }
+	TSharedPtr<FSequencerDisplayNode> GetParent() const
+	{
+		return ParentNode.Pin();
+	}
 	
 	/** Gets the sequencer that owns this node */
-	FSequencer& GetSequencer() const { return ParentTree.GetSequencer(); }
+	FSequencer& GetSequencer() const
+	{
+		return ParentTree.GetSequencer();
+	}
 	
 	/** Gets the parent tree that this node is in */
-	FSequencerNodeTree& GetParentTree() const { return ParentTree; }
+	FSequencerNodeTree& GetParentTree() const
+	{
+		return ParentTree;
+	}
 
 	/** Gets all the key area nodes recursively, including this node if applicable */
-	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSequencerSectionKeyAreaNode> >& OutNodes) const;
+	virtual void GetChildKeyAreaNodesRecursively(TArray<TSharedRef<class FSequencerSectionKeyAreaNode>>& OutNodes) const;
 
 	/**
 	 * Set whether this node is expanded or not
@@ -247,10 +297,16 @@ public:
 	void Initialize(float InVirtualTop, float InVirtualBottom);
 
 	/** @return this node's virtual offset from the top of the tree, irrespective of expansion states */
-	float GetVirtualTop() const { return VirtualTop; }
+	float GetVirtualTop() const
+	{
+		return VirtualTop;
+	}
 	
 	/** @return this node's virtual offset plus its virtual height, irrespective of expansion states */
-	float GetVirtualBottom() const { return VirtualBottom; }
+	float GetVirtualBottom() const
+	{
+		return VirtualBottom;
+	}
 
 	/** Get the key grouping for the specified section index, ensuring it is fully up to date */
 	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(int32 InSectionIndex);
@@ -258,21 +314,29 @@ public:
 	/** Get the key grouping for the specified section index */
 	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
 
+private:
+
+	/** Callback for executing a "Rename Node" context menu action. */
+	void HandleContextMenuRenameNodeExecute(TSharedRef<FSequencerDisplayNode> NodeToBeRenamed);
+
+	/** Callback for determining whether a "Rename Node" context menu action can execute. */
+	bool HandleContextMenuRenameNodeCanExecute(TSharedRef<FSequencerDisplayNode> NodeToBeRenamed) const;
+
 protected:
 
-	/** The virtual offset of this item from the top of the tree, irrespective of expansion states */
+	/** The virtual offset of this item from the top of the tree, irrespective of expansion states. */
 	float VirtualTop;
 
-	/** The virtual offset + virtual heightof this item, irrespective of expansion states */
+	/** The virtual offset + virtual height of this item, irrespective of expansion states. */
 	float VirtualBottom;
 
 protected:
 
 	/** The parent of this node*/
-	TWeakPtr< FSequencerDisplayNode > ParentNode;
+	TWeakPtr<FSequencerDisplayNode > ParentNode;
 
 	/** List of children belonging to this node */
-	TArray< TSharedRef<FSequencerDisplayNode > > ChildNodes;
+	TArray<TSharedRef<FSequencerDisplayNode>> ChildNodes;
 
 	/** Parent tree that this node is in */
 	FSequencerNodeTree& ParentTree;
@@ -284,5 +348,8 @@ protected:
 	bool bExpanded;
 
 	/** Transient grouped keys for this node */
-	TArray< TSharedPtr<FGroupedKeyArea> > KeyGroupings;
+	TArray<TSharedPtr<FGroupedKeyArea>> KeyGroupings;
+
+	/** The outliner tree node widget that belongs to this display node. */
+	TWeakPtr<SAnimationOutlinerTreeNode> TreeNodeWidgetPtr;
 };

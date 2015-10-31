@@ -59,6 +59,10 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
 	int32 FrameRate;
 
+	/** An explicit number of frames to capture, or 0 if unspecified. Not exposed on UI - calculated internally */
+	UPROPERTY()
+	int32 FrameCount;
+
 	/** The resolution at which to capture */
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, meta=(ShowOnlyInnerProperties))
 	FCaptureResolution Resolution;

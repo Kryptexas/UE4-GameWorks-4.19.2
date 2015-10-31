@@ -21,7 +21,7 @@ FMovieSceneSkeletalAnimationTrackInstance::~FMovieSceneSkeletalAnimationTrackIns
 }
 
 
-void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
+void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
 {
 	// @todo Sequencer gameplay update has a different code path than editor update for animation
 

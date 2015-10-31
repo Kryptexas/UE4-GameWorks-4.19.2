@@ -66,9 +66,9 @@ void FAnimNode_AnimDynamics::Initialize(const FAnimationInitializeContext& Conte
 	TimeDebt = 0.0f;
 }
 
-void FAnimNode_AnimDynamics::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_AnimDynamics::UpdateInternal(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 
 	NextTimeStep = Context.GetDeltaTime();
 }

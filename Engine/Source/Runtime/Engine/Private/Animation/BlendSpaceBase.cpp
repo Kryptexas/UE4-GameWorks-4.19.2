@@ -10,6 +10,8 @@
 #include "Animation/BlendSpaceBase.h"
 #include "AnimationUtils.h"
 
+DECLARE_CYCLE_STAT(TEXT("BlendSpace GetAnimPose"), STAT_BlendSpace_GetAnimPose, STATGROUP_Anim);
+
 struct FSyncPattern
 {
 	// The markers that make up this patter
@@ -552,7 +554,6 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 
 		if (OldSample.PerBoneBlendData.Num()!=PerBoneBlend.Num())
 		{
-			OldSample.PerBoneBlendData.Empty(PerBoneBlend.Num());
 			OldSample.PerBoneBlendData.Init(OldSample.TotalWeight, PerBoneBlend.Num());
 		}
 
@@ -623,7 +624,6 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 
 		if (OldSample.PerBoneBlendData.Num()!=PerBoneBlend.Num())
 		{
-			OldSample.PerBoneBlendData.Empty(PerBoneBlend.Num());
 			OldSample.PerBoneBlendData.Init(OldSample.TotalWeight, PerBoneBlend.Num());
 		}
 
@@ -1168,6 +1168,9 @@ void UBlendSpaceBase::FillupGridElements(const TArray<FVector> & PointList, cons
 
 void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BlendSpace_GetAnimPose);
+	FScopeCycleCounterUObject BlendSpaceScope(this);
+
 	if(BlendSampleDataCache.Num() == 0)
 	{
 		OutPose.ResetToRefPose();

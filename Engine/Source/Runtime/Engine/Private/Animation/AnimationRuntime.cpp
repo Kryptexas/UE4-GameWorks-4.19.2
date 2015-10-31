@@ -19,6 +19,12 @@
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);
 
+DECLARE_CYCLE_STAT(TEXT("ConvertPoseToMeshRot"), STAT_ConvertPoseToMeshRot, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("ConvertMeshRotPoseToLocalSpace"), STAT_ConvertMeshRotPoseToLocalSpace, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("AccumulateMeshSpaceRotAdditiveToLocalPose"), STAT_AccumulateMeshSpaceRotAdditiveToLocalPose, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("BlendPosesPerBoneFilter"), STAT_BlendPosesPerBoneFilter, STATGROUP_Anim);
+
+
 /////////////////////////////////////////////////////////
 // Templated Transform Blend Functionality
 
@@ -435,6 +441,8 @@ void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FC
 
 void FAnimationRuntime::ConvertPoseToMeshRotation(FCompactPose& LocalPose)
 {
+	SCOPE_CYCLE_COUNTER(STAT_ConvertPoseToMeshRot);
+
 	// Convert all rotations to mesh space
 	// only the root bone doesn't have a parent. So skip it to save a branch in the iteration.
 	for (FCompactPoseBoneIndex BoneIndex(1); BoneIndex < LocalPose.GetNumBones(); ++BoneIndex)
@@ -448,6 +456,8 @@ void FAnimationRuntime::ConvertPoseToMeshRotation(FCompactPose& LocalPose)
 
 void FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(FCompactPose& Pose)
 {
+	SCOPE_CYCLE_COUNTER(STAT_ConvertMeshRotPoseToLocalSpace);
+
 	// Convert all rotations to mesh space
 	// only the root bone doesn't have a parent. So skip it to save a branch in the iteration.
 	for (FCompactPoseBoneIndex BoneIndex(Pose.GetNumBones()-1); BoneIndex > 0; --BoneIndex)
@@ -503,6 +513,8 @@ void FAnimationRuntime::AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose,
 
 void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AccumulateMeshSpaceRotAdditiveToLocalPose);
+
 	if (Weight > ZERO_ANIMWEIGHT_THRESH)
 	{
 		// Convert base pose from local space to mesh space rotation.
@@ -979,6 +991,8 @@ void FAnimationRuntime::BlendPosesPerBoneFilter(
 	bool bMeshSpaceRotationBlending, 
 	ECurveBlendOption::Type CurveBlendOption)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BlendPosesPerBoneFilter);
+
 	ensure(OutPose.GetNumBones() == BasePose.GetNumBones());
 
 	if (BlendPoses.Num() != 0)

@@ -8,10 +8,7 @@
 #include "MovieSceneSubTrackInstance.h"
 
 
-namespace MovieSceneSubTrackConstants
-{
-	const FName TrackName("SubSequences");
-}
+#define LOCTEXT_NAMESPACE "MovieSceneSubTrack"
 
 
 /* UMovieSceneSubTrack interface
@@ -101,12 +98,6 @@ const TArray<UMovieSceneSection*>& UMovieSceneSubTrack::GetAllSections() const
 }
 
 
-FName UMovieSceneSubTrack::GetTrackName() const
-{
-	return MovieSceneSubTrackConstants::TrackName;
-}
-
-
 TRange<float> UMovieSceneSubTrack::GetSectionBoundaries() const
 {
 	TArray<TRange<float>> Bounds;
@@ -148,3 +139,6 @@ bool UMovieSceneSubTrack::SupportsMultipleRows() const
 {
 	return true;
 }
+
+
+#undef LOCTEXT_NAMESPACE

@@ -8,16 +8,16 @@
 UENUM()
 enum EMaterialVectorCoordTransformSource
 {
-	/** Tangent space */
+	/** Tangent space (relative to the surface) */
 	TRANSFORMSOURCE_Tangent UMETA(DisplayName="Tangent Space"),
 	
-	/** Local space */
+	/** Local space (relative to the rendered object, = object space) */
 	TRANSFORMSOURCE_Local UMETA(DisplayName="Local Space"),
 	
-	/** World space */
+	/** World space, a unit is 1cm */
 	TRANSFORMSOURCE_World UMETA(DisplayName="World Space"),
 	
-	/** View space (differs from camera space in the shadow passes) */
+	/** View space (relative to the camera/eye, = camera space, differs from camera space in the shadow passes) */
 	TRANSFORMSOURCE_View UMETA(DisplayName="View Space"),
 
 	/** Camera space */
@@ -29,16 +29,16 @@ enum EMaterialVectorCoordTransformSource
 UENUM()
 enum EMaterialVectorCoordTransform
 {
-	/** Tangent space */
+	/** Tangent space (relative to the surface) */
 	TRANSFORM_Tangent UMETA(DisplayName="Tangent Space"),
 	
-	/** Local space */
+	/** Local space (relative to the rendered object, = object space) */
 	TRANSFORM_Local UMETA(DisplayName="Local Space"),
 	
-	/** World space */
+	/** World space, a unit is 1cm */
 	TRANSFORM_World UMETA(DisplayName="World Space"),
 	
-	/** View space (differs from camera space in the shadow passes) */
+	/** View space (relative to the camera/eye, = camera space, differs from camera space in the shadow passes) */
 	TRANSFORM_View UMETA(DisplayName="View Space"),
 
 	/** Camera space */
@@ -63,7 +63,6 @@ class UMaterialExpressionTransform : public UMaterialExpression
 	/** Destination coordinate space of the FVector */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTransform, meta=(DisplayName = "Destination"))
 	TEnumAsByte<enum EMaterialVectorCoordTransform> TransformType;
-
 
 	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;

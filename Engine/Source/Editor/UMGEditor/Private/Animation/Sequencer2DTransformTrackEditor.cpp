@@ -18,7 +18,7 @@ class F2DTransformSection
 {
 public:
 
-	F2DTransformSection( UMovieSceneSection& InSectionObject, FName SectionName )
+	F2DTransformSection( UMovieSceneSection& InSectionObject, const FText& SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
@@ -112,7 +112,7 @@ TSharedRef<FPropertySection> F2DTransformTrackEditor::MakePropertySectionInterfa
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
 	UClass* SectionClass = SectionObject.GetOuter()->GetClass();
-	return MakeShareable( new F2DTransformSection( SectionObject, Track.GetTrackName() ) );
+	return MakeShareable(new F2DTransformSection(SectionObject, Track.GetDisplayName()));
 }
 
 

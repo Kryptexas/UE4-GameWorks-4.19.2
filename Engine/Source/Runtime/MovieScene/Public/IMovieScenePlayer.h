@@ -61,10 +61,10 @@ public:
 	/**
 	 * Updates the perspective viewports with the actor to view through
 	 *
-	 * @param ObjectToViewThrough	The object, probably a camera, that the viewports should lock to
-	 * @param bNewCameraCut			If true this is a new camera cut
+	 * @param CameraObject The object, probably a camera, that the viewports should lock to
+	 * @param UnlockIfCameraObject If this is not nullptr, release actor lock only if currently locked to this object.
 	 */
-	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const = 0;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr) const = 0;
 
 	/*
 	 * Set the perspective viewport settings

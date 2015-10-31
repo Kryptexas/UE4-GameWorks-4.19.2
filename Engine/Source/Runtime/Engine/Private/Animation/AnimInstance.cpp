@@ -52,6 +52,7 @@ DEFINE_STAT(STAT_AnimMontageInstance_Advance);
 DEFINE_STAT(STAT_AnimMontageInstance_TickBranchPoints);
 DEFINE_STAT(STAT_AnimMontageInstance_Advance_Iteration);
 DEFINE_STAT(STAT_UpdateCurves);
+DEFINE_STAT(STAT_LocalBlendCSBoneTransforms);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Init Time"), STAT_AnimInitTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimInitTime);
@@ -63,6 +64,9 @@ DEFINE_STAT(STAT_SkinPerPolyVertices);
 DEFINE_STAT(STAT_UpdateTriMeshVertices);
 
 DEFINE_STAT(STAT_AnimGameThreadTime);
+
+DECLARE_CYCLE_STAT(TEXT("TickAssetPlayerInstances"), STAT_TickAssetPlayerInstances, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("TickAssetPlayerInstance"), STAT_TickAssetPlayerInstance, STATGROUP_Anim);
 
 
 #define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
@@ -506,7 +510,7 @@ void UAnimInstance::UpdateAnimationInternal(float DeltaSeconds)
 
 void UAnimInstance::TickAssetPlayerInstances(float DeltaSeconds)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstances);
+	SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstances);
 
 	// Handle all players inside sync groups
 	TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[GetSyncGroupWriteIndex()];
@@ -535,7 +539,7 @@ void UAnimInstance::TickAssetPlayerInstances(float DeltaSeconds)
 			{
 				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
 				// if it has leader score
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+				SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstance);
 				FScopeCycleCounterUObject Scope(GroupLeader.SourceAsset);
 				GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
 
@@ -582,7 +586,7 @@ void UAnimInstance::TickAssetPlayerInstances(float DeltaSeconds)
 				{
 					FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
 					{
-						QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+						SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstance);
 						FScopeCycleCounterUObject Scope(AssetPlayer.SourceAsset);
 						TickContext.RootMotionMovementParams.Clear();
 						AssetPlayer.SourceAsset->TickAssetPlayerInstance(AssetPlayer, this, TickContext);
@@ -607,7 +611,7 @@ void UAnimInstance::TickAssetPlayerInstances(float DeltaSeconds)
 		const bool bOnlyOneAnimationInGroup = true;
 		FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, ValidMarkers);
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
+			SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstance);
 			FScopeCycleCounterUObject Scope(AssetPlayerToTick.SourceAsset);
 			AssetPlayerToTick.SourceAsset->TickAssetPlayerInstance(AssetPlayerToTick, this, TickContext);
 		}
@@ -2709,6 +2713,11 @@ int32 UAnimInstance::Montage_GetNextSectionID(UAnimMontage const* const Montage,
 	}
 
 	return INDEX_NONE;
+}
+
+bool UAnimInstance::IsAnyMontagePlaying() const
+{
+	return (MontageInstances.Num() > 0);
 }
 
 UAnimMontage* UAnimInstance::GetCurrentActiveMontage()

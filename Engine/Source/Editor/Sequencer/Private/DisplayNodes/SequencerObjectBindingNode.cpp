@@ -5,8 +5,10 @@
 #include "Sequencer.h"
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
+#include "MovieSceneTrack.h"
 #include "ObjectEditorUtils.h"
 #include "AssetEditorManager.h"
+
 
 #define LOCTEXT_NAMESPACE "FObjectBindingNode"
 
@@ -16,94 +18,50 @@ namespace SequencerNodeConstants
 	extern const float CommonPadding;
 }
 
-FText FSequencerObjectBindingNode::GetDisplayName() const
+
+void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UProperty*>& PropertyPath, FSequencer& Sequencer, TArray<TArray<UProperty*>>& KeyablePropertyPaths)
 {
-	FText DisplayName;
-	return GetSequencer().GetFocusedMovieSceneSequence()->TryGetObjectDisplayName(ObjectBinding, DisplayName) ?
-		DisplayName : DefaultDisplayName;
+	//@todo need to resolve this between UMG and the level editor sequencer
+	const bool bRecurseAllProperties = Sequencer.IsLevelEditorSequencer();
+
+	for (TFieldIterator<UProperty> PropertyIterator(PropertySource); PropertyIterator; ++PropertyIterator)
+	{
+		UProperty* Property = *PropertyIterator;
+
+		if (Property && !Property->HasAnyPropertyFlags(CPF_Deprecated))
+		{
+			PropertyPath.Add(Property);
+
+			bool bIsPropertyKeyable = Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath));
+			if (bIsPropertyKeyable)
+			{
+				KeyablePropertyPaths.Add(PropertyPath);
+			}
+
+			if (!bIsPropertyKeyable || bRecurseAllProperties)
+			{
+				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+				if (StructProperty != nullptr)
+				{
+					GetKeyablePropertyPaths(Class, StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+				}
+			}
+
+			PropertyPath.RemoveAt(PropertyPath.Num() - 1);
+		}
+	}
 }
 
 
-float FSequencerObjectBindingNode::GetNodeHeight() const
+struct PropertyMenuData
 {
-	return SequencerLayoutConstants::ObjectNodeHeight;
-}
+	FString MenuName;
+	TArray<UProperty*> PropertyPath;
+};
 
 
-FNodePadding FSequencerObjectBindingNode::GetNodePadding() const
-{
-	return FNodePadding(SequencerNodeConstants::CommonPadding * 2, 0.f);
-}
-
-
-ESequencerNode::Type FSequencerObjectBindingNode::GetType() const
-{
-	return ESequencerNode::Object;
-}
-
-
-const UClass* FSequencerObjectBindingNode::GetClassForObjectBinding()
-{
-	FSequencer& ParentSequencer = GetSequencer();
-
-	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
-
-	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
-	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectBinding);
-	
-	// should exist, but also shouldn't be both a spawnable and a possessable
-	check((Spawnable != NULL) ^ (Possessable != NULL));
-	check((NULL == Spawnable) || (NULL != Spawnable->GetClass())  );
-	const UClass* ObjectClass = Spawnable ? Spawnable->GetClass()->GetSuperClass() : Possessable->GetPossessedObjectClass();
-
-	return ObjectClass;
-}
-
-
-TSharedRef<SWidget> FSequencerObjectBindingNode::GenerateEditWidgetForOutliner()
-{
-	// Create a container edit box
-	TSharedPtr<class SHorizontalBox> EditBox;
-	SAssignNew(EditBox, SHorizontalBox);	
-
-	// Add the property combo box
-	EditBox.Get()->AddSlot()
-	[
-		SNew(SComboButton)
-		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
-		.OnGetMenuContent(this, &FSequencerObjectBindingNode::OnGetAddTrackMenuContent)
-		.ContentPadding(FMargin(2, 0))
-		.ButtonContent()
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.8"))
-				.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
-			]
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(4, 0, 0, 0)
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
-				.Text(LOCTEXT("AddTrackButton", "Track"))
-			]
-		]
-	];
-
-	const UClass* ObjectClass = GetClassForObjectBinding();
-
-	GetSequencer().BuildObjectBindingEditButtons(EditBox, ObjectBinding, ObjectClass);
-
-	return EditBox.ToSharedRef();
-}
-
+/* FSequencerDisplayNode interface
+ *****************************************************************************/
 
 void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
@@ -150,48 +108,171 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 }
 
 
-void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UProperty*>& PropertyPath, FSequencer& Sequencer, TArray<TArray<UProperty*>>& KeyablePropertyPaths)
+bool FSequencerObjectBindingNode::CanRenameNode() const
 {
-	//@todo need to resolve this between UMG and the level editor sequencer
-	const bool bRecurseAllProperties = Sequencer.IsLevelEditorSequencer();
+	return true;
+}
 
-	for (TFieldIterator<UProperty> PropertyIterator(PropertySource); PropertyIterator; ++PropertyIterator)
+
+TSharedRef<SWidget> FSequencerObjectBindingNode::GenerateEditWidgetForOutliner()
+{
+	// Create a container edit box
+	TSharedPtr<class SHorizontalBox> EditBox;
+	SAssignNew(EditBox, SHorizontalBox);	
+
+	// Add the property combo box
+	EditBox.Get()->AddSlot()
+	[
+		SNew(SComboButton)
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
+			.OnGetMenuContent(this, &FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMenuContent)
+			.ContentPadding(FMargin(2, 0))
+			.ButtonContent()
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.8"))
+							.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4, 0, 0, 0)
+					[
+						SNew(STextBlock)
+							.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
+							.Text(LOCTEXT("AddTrackButton", "Track"))
+					]
+			]
+	];
+
+	const UClass* ObjectClass = GetClassForObjectBinding();
+
+	GetSequencer().BuildObjectBindingEditButtons(EditBox, ObjectBinding, ObjectClass);
+
+	return EditBox.ToSharedRef();
+}
+
+
+FText FSequencerObjectBindingNode::GetDisplayName() const
+{
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
+
+	if (MovieScene != nullptr)
 	{
-		UProperty* Property = *PropertyIterator;
+		return MovieScene->GetObjectDisplayName(ObjectBinding);
+	}
 
-		if (Property && !Property->HasAnyPropertyFlags(CPF_Deprecated))
-		{
-			PropertyPath.Add(Property);
+	return DefaultDisplayName;
+}
 
-			bool bIsPropertyKeyable = Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath));
-			if (bIsPropertyKeyable)
-			{
-				KeyablePropertyPaths.Add(PropertyPath);
-			}
 
-			if (!bIsPropertyKeyable || bRecurseAllProperties)
-			{
-				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-				if (StructProperty != nullptr)
-				{
-					GetKeyablePropertyPaths(Class, StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
-				}
-			}
+float FSequencerObjectBindingNode::GetNodeHeight() const
+{
+	return SequencerLayoutConstants::ObjectNodeHeight;
+}
 
-			PropertyPath.RemoveAt(PropertyPath.Num() - 1);
-		}
+
+FNodePadding FSequencerObjectBindingNode::GetNodePadding() const
+{
+	return FNodePadding(SequencerNodeConstants::CommonPadding * 2, 0.f);
+}
+
+
+ESequencerNode::Type FSequencerObjectBindingNode::GetType() const
+{
+	return ESequencerNode::Object;
+}
+
+
+void FSequencerObjectBindingNode::SetDisplayName(const FText& DisplayName)
+{
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
+
+	if (MovieScene != nullptr)
+	{
+		MovieScene->SetObjectDisplayName(ObjectBinding, DisplayName);
 	}
 }
 
 
-struct PropertyMenuData
-{
-	FString MenuName;
-	TArray<UProperty*> PropertyPath;
-};
+/* FSequencerObjectBindingNode implementation
+ *****************************************************************************/
 
+void FSequencerObjectBindingNode::AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyableProperties, int32 PropertyNameIndexStart, int32 PropertyNameIndexEnd)
+{
+	TArray<PropertyMenuData> KeyablePropertyMenuData;
+
+	for (auto KeyableProperty : KeyableProperties)
+	{
+		TArray<FString> PropertyNames;
+		if (PropertyNameIndexEnd == -1)
+		{
+			PropertyNameIndexEnd = KeyableProperty.Num();
+		}
+
+		//@todo
+		if (PropertyNameIndexStart >= KeyableProperty.Num())
+		{
+			continue;
+		}
+
+		for (int32 PropertyNameIndex = PropertyNameIndexStart; PropertyNameIndex < PropertyNameIndexEnd; ++PropertyNameIndex)
+		{
+			PropertyNames.Add(KeyableProperty[PropertyNameIndex]->GetDisplayNameText().ToString());
+		}
+
+		PropertyMenuData KeyableMenuData;
+		{
+			KeyableMenuData.PropertyPath = KeyableProperty;
+			KeyableMenuData.MenuName = FString::Join( PropertyNames, TEXT( "." ) );
+		}
+
+		KeyablePropertyMenuData.Add(KeyableMenuData);
+	}
+
+	// Sort on the menu name
+	KeyablePropertyMenuData.Sort([](const PropertyMenuData& A, const PropertyMenuData& B)
+	{
+		int32 CompareResult = A.MenuName.Compare(B.MenuName);
+		return CompareResult < 0;
+	});
+
+	// Add menu items
+	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); ++MenuDataIndex)
+	{
+		FUIAction AddTrackMenuAction(FExecuteAction::CreateSP(this, &FSequencerObjectBindingNode::HandlePropertyMenuItemExecute, KeyablePropertyMenuData[MenuDataIndex].PropertyPath));
+		AddTrackMenuBuilder.AddMenuEntry(FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName), FText(), FSlateIcon(), AddTrackMenuAction);
+	}
+}
+
+
+const UClass* FSequencerObjectBindingNode::GetClassForObjectBinding()
+{
+	FSequencer& ParentSequencer = GetSequencer();
+
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
+	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
+	FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectBinding);
 	
-TSharedRef<SWidget> FSequencerObjectBindingNode::OnGetAddTrackMenuContent()
+	// should exist, but also shouldn't be both a spawnable and a possessable
+	check((Spawnable != nullptr) ^ (Possessable != nullptr));
+	check((nullptr == Spawnable) || (nullptr != Spawnable->GetClass())  );
+	const UClass* ObjectClass = Spawnable ? Spawnable->GetClass()->GetSuperClass() : Possessable->GetPossessedObjectClass();
+
+	return ObjectClass;
+}
+
+
+/* FSequencerObjectBindingNode callbacks
+ *****************************************************************************/
+
+TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMenuContent()
 {
 	FSequencer& Sequencer = GetSequencer();
 
@@ -274,7 +355,7 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::OnGetAddTrackMenuContent()
 			AddTrackMenuBuilder.AddSubMenu(
 				FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName),
 				FText::GetEmpty(), 
-				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddPropertyMenuItemsWithCategories, KeyableSubMenuPropertyPaths));
+				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::HandleAddTrackSubMenuNew, KeyableSubMenuPropertyPaths));
 
 			++MenuDataIndex;
 		}
@@ -285,7 +366,7 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::OnGetAddTrackMenuContent()
 }
 
 
-void FSequencerObjectBindingNode::AddPropertyMenuItemsWithCategories(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyablePropertyPaths)
+void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyablePropertyPaths)
 {
 	// [PostProcessSettings] [Bloom1Tint] [X]
 	// [PostProcessSettings] [Bloom1Tint] [Y]
@@ -357,55 +438,7 @@ void FSequencerObjectBindingNode::AddPropertyMenuItemsWithCategories(FMenuBuilde
 }
 
 
-void FSequencerObjectBindingNode::AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyableProperties, int32 PropertyNameIndexStart, int32 PropertyNameIndexEnd)
-{
-	TArray<PropertyMenuData> KeyablePropertyMenuData;
-
-	for (auto KeyableProperty : KeyableProperties)
-	{
-		TArray<FString> PropertyNames;
-		if (PropertyNameIndexEnd == -1)
-		{
-			PropertyNameIndexEnd = KeyableProperty.Num();
-		}
-
-		//@todo
-		if (PropertyNameIndexStart >= KeyableProperty.Num())
-		{
-			continue;
-		}
-
-		for (int32 PropertyNameIndex = PropertyNameIndexStart; PropertyNameIndex < PropertyNameIndexEnd; ++PropertyNameIndex)
-		{
-			PropertyNames.Add(KeyableProperty[PropertyNameIndex]->GetDisplayNameText().ToString());
-		}
-
-		PropertyMenuData KeyableMenuData;
-		{
-			KeyableMenuData.PropertyPath = KeyableProperty;
-			KeyableMenuData.MenuName = FString::Join( PropertyNames, TEXT( "." ) );
-		}
-
-		KeyablePropertyMenuData.Add(KeyableMenuData);
-	}
-
-	// Sort on the menu name
-	KeyablePropertyMenuData.Sort([](const PropertyMenuData& A, const PropertyMenuData& B)
-	{
-		int32 CompareResult = A.MenuName.Compare(B.MenuName);
-		return CompareResult < 0;
-	});
-
-	// Add menu items
-	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); ++MenuDataIndex)
-	{
-		FUIAction AddTrackMenuAction( FExecuteAction::CreateSP( this, &FSequencerObjectBindingNode::AddTrackForProperty, KeyablePropertyMenuData[MenuDataIndex].PropertyPath ) );
-		AddTrackMenuBuilder.AddMenuEntry( FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName), FText(), FSlateIcon(), AddTrackMenuAction );
-	}
-}
-
-
-void FSequencerObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
+void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
 	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequence()->FindObject(ObjectBinding);

@@ -1104,7 +1104,7 @@ public:
 	/**
 	 * Go through every material, flush the specified types and re-initialize the material's shader maps.
 	 */
-	ENGINE_API static void UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform);
+	ENGINE_API static void UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform);
 
 	/** 
 	 * Backs up all material shaders to memory through serialization, organized by FMaterialShaderMap. 

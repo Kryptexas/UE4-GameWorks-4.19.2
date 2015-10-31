@@ -19,7 +19,8 @@ class FMarginPropertySection
 	: public FPropertySection
 {
 public:
-	FMarginPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
+
+	FMarginPropertySection( UMovieSceneSection& InSectionObject, const FText& SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
@@ -74,7 +75,7 @@ TSharedRef<FPropertySection> FMarginTrackEditor::MakePropertySectionInterface( U
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
 	UClass* SectionClass = SectionObject.GetOuter()->GetClass();
-	return MakeShareable( new FMarginPropertySection( SectionObject, Track.GetTrackName() ) );
+	return MakeShareable(new FMarginPropertySection(SectionObject, Track.GetDisplayName()));
 }
 
 

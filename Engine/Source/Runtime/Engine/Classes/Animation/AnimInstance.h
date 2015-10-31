@@ -646,6 +646,9 @@ public:
 	/** Get next sectionID for given section ID */
 	int32 Montage_GetNextSectionID(UAnimMontage const * const Montage, int32 const & CurrentSectionID) const;
 
+	/** Returns true if any montage is playing currently. Doesn't mean it's active though, it could be blending out. */
+	bool IsAnyMontagePlaying() const;
+
 	/** Get a current Active Montage in this AnimInstance. 
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
 	UAnimMontage * GetCurrentActiveMontage();

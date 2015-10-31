@@ -351,6 +351,17 @@ namespace CrossCompiler
 			}
 		}
 
+		bool FUnaryExpression::GetConstantIntValue(int32& OutValue) const
+		{
+			if (IsConstant())
+			{
+				OutValue = (int32)GetUintConstantValue();
+				return true;
+			}
+
+			return false;
+		}
+
 		FBinaryExpression::FBinaryExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, const FSourceInfo& InInfo) :
 			FExpression(InAllocator, InOperator, E0, E1, nullptr, InInfo)
 		{
@@ -387,6 +398,42 @@ namespace CrossCompiler
 				}
 				break;
 			}
+		}
+
+		bool FBinaryExpression::GetConstantIntValue(int32& OutValue) const
+		{
+			int32 LHS = 0;
+			int32 RHS = 0;
+			if (!SubExpressions[0]->GetConstantIntValue(LHS) || !SubExpressions[1]->GetConstantIntValue(RHS))
+			{
+				return false;
+			}
+
+			switch (Operator)
+			{
+			default:
+				return false;
+
+			case EOperators::LogicOr:	OutValue = LHS || RHS; break;
+			case EOperators::LogicAnd:	OutValue = LHS && RHS; break;
+			case EOperators::BitOr:		OutValue = LHS | RHS; break;
+			case EOperators::BitXor:	OutValue = LHS ^ RHS; break;
+			case EOperators::BitAnd:	OutValue = LHS ^ RHS; break;
+			case EOperators::Equal:		OutValue = LHS == RHS; break;
+			case EOperators::NEqual:	OutValue = LHS != RHS; break;
+			case EOperators::Less:		OutValue = LHS < RHS; break;
+			case EOperators::Greater:	OutValue = LHS > RHS; break;
+			case EOperators::LEqual:	OutValue = LHS <= RHS; break;
+			case EOperators::GEqual:	OutValue = LHS >= RHS; break;
+			case EOperators::LShift:	OutValue = LHS << RHS; break;
+			case EOperators::RShift:	OutValue = LHS >> RHS; break;
+			case EOperators::Add:		OutValue = LHS + RHS; break;
+			case EOperators::Sub:		OutValue = LHS - RHS; break;
+			case EOperators::Mul:		OutValue = LHS * RHS; break;
+			case EOperators::Div:		OutValue = LHS / RHS; break;
+			case EOperators::Mod:		OutValue = LHS % RHS; break;
+			}
+			return true;
 		}
 
 		FExpressionStatement::FExpressionStatement(FLinearAllocator* InAllocator, FExpression* InExpr, const FSourceInfo& InInfo) :

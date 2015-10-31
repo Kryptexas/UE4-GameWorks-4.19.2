@@ -6,6 +6,13 @@
 class IMovieScenePlayer;
 class FMovieSceneSequenceInstance;
 
+enum EMovieSceneUpdatePass
+{
+	MSUP_PreUpdate = 0x00000001,
+	MSUP_Update = 0x00000002,
+	MSUP_PostUpdate = 0x00000004
+};
+
 /**
  * A track instance holds the live objects for a track.  
  */
@@ -35,9 +42,15 @@ public:
 	 * @param LastPosition		The previous playback position
 	 * @param RuntimeObjects	Runtime objects bound to this instance (if any)
 	 * @param Player			The playback interface.  Contains state and some other functionality for runtime playback
+	 * @param UpdatePass        Which update pass
 	 */
-	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
+	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) = 0;
 	
+	/*
+	 * Which update passes does this track instance evaluate in?
+	 */
+	virtual EMovieSceneUpdatePass HasUpdatePasses() { return MSUP_Update; }
+
 	/**
 	 * Refreshes the current instance
 	 */

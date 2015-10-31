@@ -396,4 +396,36 @@ uint64 FGPUTiming::GTimingFrequency = 0;
 /** Whether the static variables have been initialized. */
 bool FGPUTiming::GAreGlobalsInitialized = false;
 
+
+
+float FWindowedGPUTimer::GetElapsedAverage(FRHICommandListImmediate& RHICmdList, float &OutAvgTimeInSeconds)
+{
+	if (QueriesFinished < StartQueries.Num())
+	{
+		return 0.0f;
+	}
+
+	float TotalTime = 0;
+
+	// Grab the queries in our window (specified number of frames old) and calculate total time as an average of the winow size
+	//
+	for (int32 i = StartQueries.Num() - WindowSize; i < StartQueries.Num(); i++)
+	{
+		uint64 StartTime, EndTime;
+		bool StartSucceeded = RHICmdList.GetRenderQueryResult(StartQueries[i], StartTime, false);
+		bool EndSucceeded = RHICmdList.GetRenderQueryResult(EndQueries[i], EndTime, false);
+
+		// figure out what the failure rate of the queries is; they fail because the GPU hasn't finished them when we
+		// try to get the data, so if the failure rate is too high, number of frames behind needs to be increased
+		QueriesFailed += StartSucceeded&&EndSucceeded ? -1 : 1;
+		QueriesFailed = FMath::Max<int32>(0, QueriesFailed);
+		TotalTime += (EndTime - StartTime) / 1000000.0f;
+	}
+
+	float FailRate = static_cast<float>(QueriesFailed) / WindowSize;
+	OutAvgTimeInSeconds = TotalTime / WindowSize;
+
+	return FailRate;
+}
+
 #undef LOCTEXT_NAMESPACE

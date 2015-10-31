@@ -89,11 +89,6 @@ public:
 	/** Sets whether or not to show frame numbers. */
 	void SetShowRangeSlider(bool InbShowRangeSlider);
 
-	/** Gets whether or not the in and out are bounded by start and end when scrolling. */
-	bool GetLockInOutToStartEndRange() const;
-	/** Sets whether or not the in and out are bounded by start and end when scrolling. */
-	void SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange);
-
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
 	/** Sets whether or not snapping is enabled. */
@@ -163,6 +158,11 @@ public:
 	bool GetShowCurveEditorCurveToolTips() const;
 	/** Sets whether or not to show curve tool tips in the curve editor. */
 	void SetShowCurveEditorCurveToolTips(bool InbShowCurveEditorCurveToolTips);
+	
+	/** Gets the loop mode. */
+	bool IsLooping() const;
+	/** Sets the loop mode. */
+	void SetLooping(bool bInLooping);
 
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
@@ -191,9 +191,6 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowRangeSlider;
-
-	UPROPERTY( config )
-	bool bLockInOutToStartEndRange;
 
 	UPROPERTY( config )
 	bool bIsSnapEnabled;
@@ -236,6 +233,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowCurveEditorCurveToolTips;
+
+	UPROPERTY( config )
+	bool bLooping;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

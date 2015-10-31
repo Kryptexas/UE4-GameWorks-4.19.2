@@ -86,6 +86,26 @@ public:
 		return PossessedObjectClass;
 	}
 
+	/**
+	 * Get the guid of this possessable's parent spawnable
+	 *
+	 * @return The guid.
+	 */
+	const FGuid& GetParentSpawnable() const
+	{
+		return ParentSpawnableGuid;
+	}
+
+	/**
+	 * Set the guid of this possessable's parent spawnable
+	 *
+	 * @param InParentSpawnableGuid The guid of this possessable's parent spawnable.
+	 */
+	void SetParentSpawnable(const FGuid& InParentSpawnableGuid)
+	{
+		ParentSpawnableGuid = InParentSpawnableGuid;
+	}
+
 private:
 
 	/** Unique identifier of the possessable object. */
@@ -106,4 +126,8 @@ private:
 	// possessable object available.
 	UPROPERTY()
 	UClass* PossessedObjectClass;
+
+	/** GUID relating to this possessable's parent spawnable, if applicable. */
+	UPROPERTY()
+	FGuid ParentSpawnableGuid;
 };

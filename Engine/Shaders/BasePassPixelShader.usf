@@ -934,6 +934,14 @@ void Main(
 			GBuffer.ShadingModelID = SHADINGMODELID_CLOTH;
 			GBuffer.CustomData.rgb = SubsurfaceColor;
 			GBuffer.CustomData.a = saturate( GetMaterialCustomData0(MaterialParameters) );	// Cloth
+		#elif MATERIAL_SHADINGMODEL_EYE
+			GBuffer.ShadingModelID = SHADINGMODELID_EYE;
+			#if NUM_MATERIAL_OUTPUTS_GETTANGENTOUTPUT > 0
+				float3 Tangent = GetTangentOutput0(MaterialParameters);
+				GBuffer.CustomData.xy = UnitVectorToOctahedron( normalize(Tangent) ) * 0.5 + 0.5;
+			#endif
+			GBuffer.CustomData.z = saturate( GetMaterialCustomData0(MaterialParameters) );	// Iris Mask
+			GBuffer.CustomData.w = saturate( GetMaterialCustomData1(MaterialParameters) );	// Iris Distance
 		#else
 			// missing shading model, compiler should report ShadingModelID is not set
 		#endif

@@ -11,7 +11,7 @@
 struct FKeyHotspot
 	: ISequencerHotspot
 {
-	FKeyHotspot(FSequencerSelectedKey InKey, TSharedPtr<FTrackNode> InTrackNode)
+	FKeyHotspot(FSequencerSelectedKey InKey, TSharedPtr<FSequencerTrackNode> InTrackNode)
 		: Key(InKey)
 		, TrackNode(MoveTemp(InTrackNode))
 	{ }
@@ -23,21 +23,21 @@ struct FKeyHotspot
 	FSequencerSelectedKey Key;
 
 	/** The track node that holds the section the key is contained in */
-	TSharedPtr<FTrackNode> TrackNode;
+	TSharedPtr<FSequencerTrackNode> TrackNode;
 };
 
 
 /** Structure used to encapsulate a section and its track node */
 struct FSectionHandle
 {
-	FSectionHandle(TSharedPtr<FTrackNode> InTrackNode, int32 InSectionIndex)
+	FSectionHandle(TSharedPtr<FSequencerTrackNode> InTrackNode, int32 InSectionIndex)
 		: SectionIndex(InSectionIndex), TrackNode(MoveTemp(InTrackNode))
 	{ }
 
 	UMovieSceneSection* GetSectionObject() const { return TrackNode->GetSections()[SectionIndex]->GetSectionObject(); }
 
 	int32 SectionIndex;
-	TSharedPtr<FTrackNode> TrackNode;
+	TSharedPtr<FSequencerTrackNode> TrackNode;
 };
 
 

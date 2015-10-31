@@ -328,6 +328,61 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		return;
 	}
 
+	FString EntryPointName = Input.EntryPointName;
+
+	Output.bFailedRemovingUnused = false;
+	if (Input.Target.Frequency == SF_Vertex && Input.bCompilingForShaderPipeline)
+	{
+		static TArray<FString> VertexSystemOutputs;
+		if (VertexSystemOutputs.Num() == 0)
+		{
+			VertexSystemOutputs.Add(TEXT("SV_POSITION"));
+			VertexSystemOutputs.Add(TEXT("SV_Position"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance0"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance1"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance2"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance3"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance4"));
+			VertexSystemOutputs.Add(TEXT("SV_ClipDistance5"));
+			VertexSystemOutputs.Add(TEXT("SV_CullDistance0"));
+			VertexSystemOutputs.Add(TEXT("SV_CullDistance1"));
+			VertexSystemOutputs.Add(TEXT("SV_CullDistance2"));
+			VertexSystemOutputs.Add(TEXT("SV_CullDistance3"));
+			VertexSystemOutputs.Add(TEXT("SV_CullDistance4"));
+			VertexSystemOutputs.Add(TEXT("SV_CullDistance5"));
+			VertexSystemOutputs.Add(TEXT("SV_Coverage"));
+			VertexSystemOutputs.Add(TEXT("SV_Depth"));
+			VertexSystemOutputs.Add(TEXT("SV_DomainLocation"));
+			VertexSystemOutputs.Add(TEXT("SV_IsFrontFace"));
+			VertexSystemOutputs.Add(TEXT("SV_OutputControlPointID"));
+			VertexSystemOutputs.Add(TEXT("SV_RenderTargetArrayIndex"));
+			VertexSystemOutputs.Add(TEXT("SV_SampleIndex"));
+			VertexSystemOutputs.Add(TEXT("SV_ViewportArrayIndex"));
+			VertexSystemOutputs.Add(TEXT("SV_TessFactor"));
+			VertexSystemOutputs.Add(TEXT("SV_InstanceID"));
+			VertexSystemOutputs.Add(TEXT("SV_PrimitiveID"));
+			VertexSystemOutputs.Add(TEXT("SV_VertexID"));
+		}
+
+		TArray<FString> Errors;
+		if (RemoveUnusedOutputs(PreprocessedShaderSource, VertexSystemOutputs, Input.UsedOutputs, Input.EntryPointName, Errors))
+		{
+			EntryPointName += FString(TEXT("__OPTIMIZED"));
+		}
+		else
+		{
+			UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused outputs [%s]!"), *Input.DumpDebugInfoPath);
+			for (int32 Index = 0; Index < Errors.Num(); ++Index)
+			{
+				FShaderCompilerError NewError;
+				NewError.StrippedErrorMessage = Errors[Index];
+				Output.Errors.Add(NewError);
+			}
+			Output.bFailedRemovingUnused = true;
+		}
+	}
+
 	if (!RemoveUniformBuffersFromSource(PreprocessedShaderSource))
 	{
 		return;
@@ -395,7 +450,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				TCHAR_TO_ANSI(*Input.SourceFilename),
 				/*pDefines=*/ NULL,
 				/*pInclude=*/ NULL,
-				TCHAR_TO_ANSI(*Input.EntryPointName),
+				TCHAR_TO_ANSI(*EntryPointName),
 				TCHAR_TO_ANSI(ShaderProfile),
 				CompileFlags,
 				0,
@@ -456,15 +511,16 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				delete FileWriter;
 			}
 
-			const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile, CompileFlags);
+			const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
 
-			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *Input.EntryPointName, ShaderProfile, CompileFlags);
+			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
 		}
 
 		int32 NumInterpolants = 0;
 		TIndirectArray<FString> InterpolantNames;
+		TArray<FString> ShaderInputs;
 		if (SUCCEEDED(Result))
 		{
 			Output.bSucceeded = true;
@@ -486,6 +542,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			uint32 NumCBs = 0;
 			uint32 NumUAVs = 0;
 			TArray<FString> UniformBufferNames;
+			TArray<FString> ShaderOutputs;
 
 			TBitArray<> UsedUniformBufferSlots;
 			UsedUniformBufferSlots.Init(false,32);
@@ -499,7 +556,21 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 					if (ParamDesc.SystemValueType == D3D_NAME_UNDEFINED && ParamDesc.Mask != 0)
 					{
 						++NumInterpolants;
-						new(InterpolantNames) FString(FString::Printf(TEXT("%s%d"),ANSI_TO_TCHAR(ParamDesc.SemanticName),ParamDesc.SemanticIndex));
+						new(InterpolantNames) FString(FString::Printf(TEXT("%s%d"), ANSI_TO_TCHAR(ParamDesc.SemanticName),ParamDesc.SemanticIndex));
+						ShaderOutputs.Add(*InterpolantNames.Last());
+					}
+				}
+			}
+			else if (Input.Target.Frequency == SF_Pixel)
+			{
+				for (uint32 Index = 0; Index < ShaderDesc.InputParameters; ++Index)
+				{
+					D3D11_SIGNATURE_PARAMETER_DESC ParamDesc;
+					Reflector->GetInputParameterDesc(Index, &ParamDesc);
+					if (ParamDesc.SystemValueType == D3D_NAME_UNDEFINED && ParamDesc.ReadWriteMask != 0)
+					{
+						FString UsedInput = FString::Printf(TEXT("%s%d"), ANSI_TO_TCHAR(ParamDesc.SemanticName), ParamDesc.SemanticIndex);
+						ShaderInputs.Add(UsedInput);
 					}
 				}
 			}
@@ -714,6 +785,12 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, SRT.ShaderResourceViewMap);
 				BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, SRT.SamplerMap);
 				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);
+			}
+
+			if (Input.Target.Frequency == SF_Pixel && Input.bCompilingForShaderPipeline)
+			{
+				Output.bSupportsQueryingUsedAttributes = true;
+				Output.UsedAttributes = ShaderInputs;
 			}
 
 			FMemoryWriter Ar(Output.ShaderCode.GetWriteAccess(), true);

@@ -10,16 +10,46 @@
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"
 
 
+/* UMovieSceneSkeletalAnimationTrack structors
+ *****************************************************************************/
+
 UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 { }
 
 
-FName UMovieSceneSkeletalAnimationTrack::GetTrackName() const
+/* UMovieSceneSkeletalAnimationTrack interface
+ *****************************************************************************/
+
+void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
 {
-	return FName("Animation");
+	UMovieSceneSkeletalAnimationSection* NewSection = NewObject<UMovieSceneSkeletalAnimationSection>(this);
+	{
+		NewSection->InitialPlacement(AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows());
+		NewSection->SetAnimSequence(AnimSequence);
+	}
+
+	AddSection(*NewSection);
 }
 
+
+UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
+{
+	for (auto Section : AnimationSections)
+	{
+		if (Section->IsTimeWithinSection(Time))
+		{
+			return Section;
+		}
+	}
+
+	UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( AnimationSections, Time );
+	return NearestSection;
+}
+
+
+/* UMovieSceneTrack interface
+ *****************************************************************************/
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSkeletalAnimationTrack::CreateInstance()
 {
@@ -76,30 +106,14 @@ TRange<float> UMovieSceneSkeletalAnimationTrack::GetSectionBoundaries() const
 }
 
 
-void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
-{
-	UMovieSceneSkeletalAnimationSection* NewSection = NewObject<UMovieSceneSkeletalAnimationSection>(this);
-	{
-		NewSection->InitialPlacement(AnimationSections, KeyTime, KeyTime + AnimSequence->SequenceLength, SupportsMultipleRows());
-		NewSection->SetAnimSequence(AnimSequence);
-	}
+#if WITH_EDITORONLY_DATA
 
-	AddSection(*NewSection);
+FText UMovieSceneSkeletalAnimationTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Animation");
 }
 
-
-UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
-{
-	for (auto Section : AnimationSections)
-	{
-		if (Section->IsTimeWithinSection(Time))
-		{
-			return Section;
-		}
-	}
-
-	return nullptr;
-}
+#endif
 
 
 #undef LOCTEXT_NAMESPACE

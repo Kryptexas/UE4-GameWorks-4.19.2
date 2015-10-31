@@ -20,6 +20,7 @@ class FMaterial;
 class FMaterialRenderProxy;
 class FMeshMaterialShaderMap;
 class FMeshMaterialShaderType;
+class FShaderCommonCompileJob;
 class FShaderCompileJob;
 class FShaderType;
 class FShaderTypeDependency;
@@ -52,7 +53,9 @@ extern void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InMaterialQu
 
 inline bool IsSubsurfaceShadingModel(EMaterialShadingModel ShadingModel)
 {
-	return ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile || ShadingModel == MSM_TwoSidedFoliage || ShadingModel == MSM_Cloth;
+	return ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || 
+		ShadingModel == MSM_SubsurfaceProfile || ShadingModel == MSM_TwoSidedFoliage || 
+		ShadingModel == MSM_Cloth;
 }
 
 /**
@@ -422,7 +425,7 @@ public:
 	~FMaterialShaderMapId()
 	{ }
 
-	ENGINE_API void SetShaderDependencies(const TArray<FShaderType*>& ShaderTypes, const TArray<FVertexFactoryType*>& VFTypes);
+	ENGINE_API void SetShaderDependencies(const TArray<FShaderType*>& ShaderTypes, const TArray<const FShaderPipelineType*>& ShaderPipelineTypes, const TArray<FVertexFactoryType*>& VFTypes);
 
 	void Serialize(FArchive& Ar);
 
@@ -489,7 +492,7 @@ public:
 		const FMaterial* Material,
 		FShaderCompilerEnvironment* MaterialEnvironment,
 		EShaderPlatform Platform,
-		TArray<FShaderCompileJob*>& NewJobs
+		TArray<FShaderCommonCompileJob*>& NewJobs
 		);
 
 	/**
@@ -525,6 +528,12 @@ public:
 	 */
 	void FlushShadersByShaderType(FShaderType* ShaderType);
 
+		/**
+	 * Removes all entries in the cache with exceptions based on a shader type
+	 * @param ShaderType - The shader type to flush
+	 */
+	void FlushShadersByShaderPipelineType(const FShaderPipelineType* ShaderPipelineType);
+
 	// Accessors.
 	FVertexFactoryType* GetVertexFactoryType() const { return VertexFactoryType; }
 
@@ -549,9 +558,12 @@ public:
 	static FMaterialShaderMap* FindId(const FMaterialShaderMapId& ShaderMapId, EShaderPlatform Platform);
 
 	/** Flushes the given shader types from any loaded FMaterialShaderMap's. */
-	static void FlushShaderTypes(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush);
+	static void FlushShaderTypes(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush);
 
-	static void FixupShaderTypes(EShaderPlatform Platform, const TMap<FShaderType*, FString>& ShaderTypeNames, const TMap<FVertexFactoryType*, FString>& VertexFactoryTypeNames);
+	static void FixupShaderTypes(EShaderPlatform Platform, 
+		const TMap<FShaderType*, FString>& ShaderTypeNames,
+		const TMap<const FShaderPipelineType*, FString>& ShaderPipelineTypeNames,
+		const TMap<FVertexFactoryType*, FString>& VertexFactoryTypeNames);
 
 	/** 
 	 * Attempts to load the shader map for the given material from the Derived Data Cache.
@@ -581,7 +593,7 @@ public:
 		);
 
 	/** Sorts the incoming compiled jobs into the appropriate mesh shader maps, and finalizes this shader map so that it can be used for rendering. */
-	bool ProcessCompilationResults(const TArray<FShaderCompileJob*>& InCompilationResults, int32& ResultIndex, float& TimeBudget);
+	bool ProcessCompilationResults(const TArray<FShaderCommonCompileJob*>& InCompilationResults, int32& ResultIndex, float& TimeBudget);
 
 	/**
 	 * Checks whether the material shader map is missing any shader types necessary for the given material.
@@ -602,7 +614,7 @@ public:
 	bool TryToAddToExistingCompilationTask(FMaterial* Material);
 
 	/** Builds a list of the shaders in a shader map. */
-	ENGINE_API void GetShaderList(TMap<FShaderId,FShader*>& OutShaders) const;
+	ENGINE_API void GetShaderList(TMap<FShaderId, FShader*>& OutShaders) const;
 
 	/** Registers a material shader map in the global map so it can be used by materials. */
 	void Register(EShaderPlatform InShaderPlatform);
@@ -623,6 +635,12 @@ public:
 	 * @param ShaderType - The shader type to flush
 	 */
 	void FlushShadersByShaderType(FShaderType* ShaderType);
+
+	/**
+	 * Removes all entries in the cache with exceptions based on a shader pipeline type
+	 * @param ShaderPipelineType - The shader pipeline type to flush
+	 */
+	void FlushShadersByShaderPipelineType(const FShaderPipelineType* ShaderPipelineType);
 
 	/**
 	 * Removes all entries in the cache with exceptions based on a vertex factory type
@@ -682,7 +700,7 @@ public:
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 
-	uint32 GetNumInstructionsForShader(const FShaderType* ShaderType) const;
+	uint32 GetMaxNumInstructionsForShader(const FShaderType* ShaderType) const;
 
 	bool IsValidForRendering() const
 	{
@@ -759,6 +777,8 @@ private:
 
 	/** Debug information about how the material shader map was compiled. */
 	FString DebugDescription;
+
+	FShader* ProcessCompilationResultsForSingleJob(class FShaderCompileJob* SingleJob, const FShaderPipelineType* ShaderPipeline, const FSHAHash& MaterialShaderMapHash);
 
 	/** Initializes OrderedMeshShaderMaps from the contents of MeshShaderMaps. */
 	void InitOrderedMeshShaderMaps();
@@ -1181,7 +1201,7 @@ protected:
 	virtual FGuid GetMaterialId() const = 0;
 	
 	/** Produces arrays of any shader and vertex factory type that this material is dependent on. */
-	ENGINE_API void GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FShaderType*>& OutShaderTypes, TArray<FVertexFactoryType*>& OutVFTypes) const;
+	ENGINE_API void GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FShaderType*>& OutShaderTypes, TArray<const FShaderPipelineType*>& OutShaderPipelineTypes, TArray<FVertexFactoryType*>& OutVFTypes) const;
 
 private:
 

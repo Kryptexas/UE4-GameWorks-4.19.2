@@ -38,7 +38,7 @@ struct FCachedMetrics
 };
 
 /** Class responsible for capturing scene data */
-UCLASS(config=EditorSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class MOVIESCENECAPTURE_API UMovieSceneCapture : public UObject, public IMovieSceneCaptureInterface
 {
 public:
@@ -103,8 +103,8 @@ protected:
 
 private:
 
-	/** Internal function that calls the virtual */
-	void OnPreWorldTickInternal(ELevelTick TickType, float DeltaSeconds) {}
+	/** Called when this movie scene capture has stopped */
+	virtual void OnCaptureStopped() {}
 
 protected:
 
@@ -151,8 +151,8 @@ protected:
 	TSharedPtr<ICaptureStrategy> CaptureStrategy;
 	/** Scratch space for per-frame screenshots */
 	TArray<FColor> ScratchBuffer;
-	/** Whether we need to capture this frame or not, set to true during a frame to capture it, then processed on the proceeding frame */
-	bool bHasOutstandingFrame;
+	/** Running count of how many frames we're waiting to capture from slate */
+	int32 OutstandingFrameCount;
 	/** The delta of the last frame */
 	float LastFrameDelta;
 	/** Whether we have started capturing or not */

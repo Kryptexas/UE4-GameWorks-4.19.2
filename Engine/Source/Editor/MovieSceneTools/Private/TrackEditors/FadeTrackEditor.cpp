@@ -74,7 +74,7 @@ void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 		return;
 	}
 
-	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddFadeTrack_Transaction", "Add Fade Track"));
+	const FScopedTransaction Transaction(LOCTEXT("AddFadeTrack_Transaction", "Add Fade Track"));
 
 	MovieScene->Modify();
 
@@ -85,6 +85,7 @@ void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 	ensure(NewSection);
 
 	FadeTrack->AddSection(*NewSection);
+
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 

@@ -4,7 +4,7 @@
 #include "SequencerSectionLayoutBuilder.h"
 
 
-FSequencerSectionLayoutBuilder::FSequencerSectionLayoutBuilder( TSharedRef<FTrackNode> InRootNode )
+FSequencerSectionLayoutBuilder::FSequencerSectionLayoutBuilder( TSharedRef<FSequencerTrackNode> InRootNode )
 	: RootNode( InRootNode )
 	, CurrentNode( InRootNode )
 {}

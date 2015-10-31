@@ -85,6 +85,7 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 	ensure(NewSection);
 
 	SlomoTrack->AddSection(*NewSection);
+
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 

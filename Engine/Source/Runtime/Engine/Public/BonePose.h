@@ -7,7 +7,7 @@
 #include "BoneIndices.h"
 #include "CustomBoneIndexArray.h"
 #include "AnimEncoding.h"
-
+#include "Animation/AnimStats.h"
 
 struct FCompactPose;
 
@@ -552,6 +552,8 @@ void FCSPose<PoseType>::SafeSetCSBoneTransforms(const TArray<struct FBoneTransfo
 template<class PoseType>
 void FCSPose<PoseType>::LocalBlendCSBoneTransforms(const TArray<struct FBoneTransform>& BoneTransforms, float Alpha)
 {
+	SCOPE_CYCLE_COUNTER(STAT_LocalBlendCSBoneTransforms);
+
 	// if Alpha is small enough, skip
 	if (Alpha < ZERO_ANIMWEIGHT_THRESH)
 	{

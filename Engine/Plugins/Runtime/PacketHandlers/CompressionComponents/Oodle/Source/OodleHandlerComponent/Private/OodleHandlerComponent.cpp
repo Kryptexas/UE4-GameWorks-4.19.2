@@ -892,7 +892,7 @@ void FOodleComponentModuleInterface::StartupModule()
 	GOodleSaveDir = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Oodle")));
 
 
-	// Load the Oodle library
+	// Load the Oodle library (NOTE: Path mirrored in Oodle.Build.cs)
 	FString OodleBinaryPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/NotForLicensees/Oodle/");
 	FString OodleBinaryFile;
 

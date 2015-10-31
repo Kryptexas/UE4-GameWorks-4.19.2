@@ -3,7 +3,9 @@
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimationGraphSchema.h"
-
+#include "Animation/AnimationSettings.h"
+#include "CompilerResultsLog.h"
+#include "AnimNode_SkeletalControlBase.h"
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SkeletalControlBase
 
@@ -348,4 +350,15 @@ bool UAnimGraphNode_SkeletalControlBase::IsPinShown(const FString& PinName) cons
 	return false;
 }
 
+void UAnimGraphNode_SkeletalControlBase::ValidateAnimNodePostCompile(FCompilerResultsLog& MessageLog, UAnimBlueprintGeneratedClass* CompiledClass, int32 CompiledNodeIndex)
+{
+	if (UAnimationSettings::Get()->bEnablePerformanceLog)
+	{
+		const FAnimNode_SkeletalControlBase* Node = GetNode();
+		if (Node && Node->LODThreshold < 0)
+		{
+			MessageLog.Warning(TEXT("@@ contains no LOD Threshold."), this);
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE

@@ -104,24 +104,13 @@ void FMovieSceneSubTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjec
 }
 
 
-void FMovieSceneSubTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneSubTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) 
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubTrack->GetAllSections();
 	TArray<UMovieSceneSection*> TraversedSections = MovieSceneHelpers::GetTraversedSections(AllSections, Position, LastPosition);
 
 	for (const auto Section : TraversedSections)
 	{
-		const TRange<float>& SectionRange = Section->GetRange();
-
-		// skip inactive sections
-		if (!SectionRange.Overlaps((LastPosition <= Position)
-				? TRange<float>(LastPosition, Position)
-				: TRange<float>(Position, LastPosition)
-			))
-		{
-			continue;
-		}
-
 		// skip sections with invalid time scale
 		UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>(Section);
 

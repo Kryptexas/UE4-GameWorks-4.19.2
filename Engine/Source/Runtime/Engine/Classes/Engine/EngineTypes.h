@@ -223,6 +223,7 @@ enum EMaterialShadingModel
 	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided"),
 	MSM_Hair				UMETA(DisplayName="Hair"),
 	MSM_Cloth				UMETA(DisplayName="Cloth"),
+	MSM_Eye					UMETA(DisplayName="Eye"),
 	MSM_MAX,
 };
 
@@ -1984,6 +1985,10 @@ public:
 	UPROPERTY()
 	TArray<float> BaseVisibleDistanceFactorThesholds;
 
+	/** Max Evaluation Rate allowed for interpolation to be enabled. Beyond, interpolation will be turned off. */
+	UPROPERTY()
+	int32 MaxEvalRateForInterpolation;
+
 public:
 
 	/** Default constructor. */
@@ -1998,6 +2003,7 @@ public:
 		, AdditionalTime(0.f)
 		, ThisTickDelta(0.f)
 		, BaseNonRenderedUpdateRate(4)
+		, MaxEvalRateForInterpolation(4)
 	{ 
 		BaseVisibleDistanceFactorThesholds.Add(0.4f);
 		BaseVisibleDistanceFactorThesholds.Add(0.2f);

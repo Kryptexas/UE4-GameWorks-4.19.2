@@ -20,6 +20,7 @@
 #include "SequencerSectionCategoryNode.h"
 #include "SequencerSectionKeyAreaNode.h"
 #include "SequencerTrackNode.h"
+#include "Sequencer.h"
 #include "ISectionLayoutBuilder.h"
 #include "ITimeSlider.h"
 #include "SSequencer.h"

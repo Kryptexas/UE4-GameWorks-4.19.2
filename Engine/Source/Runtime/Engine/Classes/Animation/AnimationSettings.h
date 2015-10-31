@@ -79,6 +79,9 @@ class ENGINE_API UAnimationSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Compression)
 	bool bTryIntervalKeyRemoval;
 
+	UPROPERTY(config, EditAnywhere, Category = Performance)
+	bool bEnablePerformanceLog;
+
 public:
 	static UAnimationSettings * Get() { return CastChecked<UAnimationSettings>(UAnimationSettings::StaticClass()->GetDefaultObject()); }
 

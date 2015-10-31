@@ -1363,4 +1363,53 @@ typedef FString FNotificationTransportId;
 /**
 * Id of a party instance
 */
-typedef FUniqueNetId FOnlinePartyId;
+class FOnlinePartyId : public IOnlinePlatformData, public TSharedFromThis<FOnlinePartyId>
+{
+protected:
+	/** Hidden on purpose */
+	FOnlinePartyId()
+	{
+	}
+
+	/** Hidden on purpose */
+	FOnlinePartyId(const FOnlinePartyId& Src)
+	{
+	}
+
+	/** Hidden on purpose */
+	FOnlinePartyId& operator=(const FOnlinePartyId& Src)
+	{
+		return *this;
+	}
+
+public:
+	virtual ~FOnlinePartyId() {}
+};
+
+/**
+* Id of a party's type
+*/
+class FOnlinePartyTypeId
+{
+public:
+	typedef uint32 TInternalType;
+	explicit FOnlinePartyTypeId(const TInternalType InValue = 0) : Value(InValue) {}
+	FOnlinePartyTypeId(const FOnlinePartyTypeId& Other) : Value(Other.Value) {}
+
+	bool operator==(const FOnlinePartyTypeId Rhs) const { return Value == Rhs.Value; }
+	bool operator!=(const FOnlinePartyTypeId Rhs) const { return Value != Rhs.Value; }
+
+	TInternalType GetValue() const { return Value; }
+
+	friend bool IsValid(const FOnlinePartyTypeId Value);
+
+protected:
+	TInternalType Value;
+};
+
+inline bool IsValid(const FOnlinePartyTypeId Id) { return Id.GetValue() != 0; }
+
+inline uint32 GetTypeHash(const FOnlinePartyTypeId Id)
+{
+	return Id.GetValue();
+}

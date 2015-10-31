@@ -71,7 +71,7 @@ FKeyAreaLayout::FKeyAreaLayout(FSequencerDisplayNode& InNode, int32 InSectionInd
 		FSequencerDisplayNode* LayoutNode = &InNode;
 		if (InNode.GetType() == ESequencerNode::Track)
 		{
-			TSharedPtr<FSequencerDisplayNode> KeyAreaNode = static_cast<FTrackNode&>(InNode).GetTopLevelKeyNode();
+			TSharedPtr<FSequencerDisplayNode> KeyAreaNode = static_cast<FSequencerTrackNode&>(InNode).GetTopLevelKeyNode();
 			if (KeyAreaNode.IsValid())
 			{
 				LayoutNode = KeyAreaNode.Get();

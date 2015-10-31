@@ -598,14 +598,13 @@ struct FRemoveUnusedOutputs
 
 			for (int32 Index = 0; Index < A->ArraySize.Num(); ++Index)
 			{
-				FUnaryExpression* UnaryA = A->ArraySize[Index]->AsUnaryExpression();
-				if (!UnaryA || !UnaryA->IsConstant())
+				int32 DimA = 0;
+				if (!A->ArraySize[Index]->GetConstantIntValue(DimA))
 				{
 					Errors.Add(FString::Printf(TEXT("Array %s is not a compile-time constant expression!"), A->Identifier));
 					return false;
 				}
 
-				uint32 DimA = UnaryA->GetUintConstantValue();
 				OutLength = DimA;
 			}
 		}

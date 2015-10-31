@@ -21,6 +21,12 @@
 #define USE_SLERP 0
 #define LOCTEXT_NAMESPACE "AnimSequence"
 
+DECLARE_CYCLE_STAT(TEXT("AnimSeq GetBonePose"), STAT_AnimSeq_GetBonePose, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("BlendedCurve InitFrom"), STAT_BlendedCurve_InitFrom, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("Build Anim Track Pairs"), STAT_BuildAnimTrackPairs, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("Extract Pose From Anim Data"), STAT_ExtractPoseFromAnimData, STATGROUP_Anim);
+
+
 /////////////////////////////////////////////////////
 // FRawAnimSequenceTrackNativeDeprecated
 
@@ -978,7 +984,7 @@ struct FGetBonePoseScratchArea : public TThreadSingleton<FGetBonePoseScratchArea
 
 void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE);
+	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_GetBonePose);
 
 	USkeleton* MySkeleton = GetSkeleton();
 	if (!MySkeleton)
@@ -1084,74 +1090,80 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	// this is not guaranteed for AnimSequences though... If Root is not animated, Track will not exist.
 	const bool bFirstTrackIsRootBone = (GetSkeletonIndexFromTrackIndex(0) == 0);
 
-	// Handle root bone separately if it is track 0. so we start w/ Index 1.
-	for (int32 TrackIndex = (bFirstTrackIsRootBone ? 1 : 0); TrackIndex < NumTracks; TrackIndex++)
 	{
-		const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
-		// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
-		if (SkeletonBoneIndex != INDEX_NONE)
-		{
-			const FCompactPoseBoneIndex BoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
-			//Nasty, we break our type safety, code in the lower levels should be adjusted for this
-			const int32 CompactPoseBoneIndex = BoneIndex.GetInt();
-			if (CompactPoseBoneIndex != INDEX_NONE)
-			{
-				RotationScalePairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+		SCOPE_CYCLE_COUNTER(STAT_BuildAnimTrackPairs);
 
-				// Skip extracting translation component for EBoneTranslationRetargetingMode::Skeleton.
-				switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+		// Handle root bone separately if it is track 0. so we start w/ Index 1.
+		for (int32 TrackIndex = (bFirstTrackIsRootBone ? 1 : 0); TrackIndex < NumTracks; TrackIndex++)
+		{
+			const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
+			// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
+			if (SkeletonBoneIndex != INDEX_NONE)
+			{
+				const FCompactPoseBoneIndex BoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
+				//Nasty, we break our type safety, code in the lower levels should be adjusted for this
+				const int32 CompactPoseBoneIndex = BoneIndex.GetInt();
+				if (CompactPoseBoneIndex != INDEX_NONE)
 				{
-				case EBoneTranslationRetargetingMode::Animation:
-					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-					break;
-				case EBoneTranslationRetargetingMode::AnimationScaled:
-					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-					AnimScaleRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
-					break;
-				case EBoneTranslationRetargetingMode::AnimationRelative:
-					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-					AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
-					break;
+					RotationScalePairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+
+					// Skip extracting translation component for EBoneTranslationRetargetingMode::Skeleton.
+					switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+					{
+					case EBoneTranslationRetargetingMode::Animation:
+						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+						break;
+					case EBoneTranslationRetargetingMode::AnimationScaled:
+						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+						AnimScaleRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+						break;
+					case EBoneTranslationRetargetingMode::AnimationRelative:
+						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+						AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+						break;
+					}
 				}
 			}
 		}
 	}
 
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE_FORREALZ);
-	// Handle Root Bone separately
-	if (bFirstTrackIsRootBone)
 	{
-		const int32 TrackIndex = 0;
-		FCompactPoseBoneIndex RootBone(0);
-		FTransform& RootAtom = OutPose[RootBone];
+		SCOPE_CYCLE_COUNTER(STAT_ExtractPoseFromAnimData);
+		// Handle Root Bone separately
+		if (bFirstTrackIsRootBone)
+		{
+			const int32 TrackIndex = 0;
+			FCompactPoseBoneIndex RootBone(0);
+			FTransform& RootAtom = OutPose[RootBone];
 
-		AnimationFormat_GetBoneAtom(
-			RootAtom,
-			*this,
-			TrackIndex,
-			ExtractionContext.CurrentTime);
+			AnimationFormat_GetBoneAtom(
+				RootAtom,
+				*this,
+				TrackIndex,
+				ExtractionContext.CurrentTime);
 
-		// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
-		RetargetBoneTransform(RootAtom, 0, RootBone, RequiredBones);
-	}
+			// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
+			RetargetBoneTransform(RootAtom, 0, RootBone, RequiredBones);
+		}
 
-	if (RotationScalePairs.Num() > 0)
-	{
-		// get the remaining bone atoms
-		OutPose.PopulateFromAnimation( //@TODO:@ANIMATION: Nasty hack, be good to not have this function on the pose
-			*this,
-			RotationScalePairs,
-			TranslationPairs,
-			RotationScalePairs,
-			ExtractionContext.CurrentTime);
+		if (RotationScalePairs.Num() > 0)
+		{
+			// get the remaining bone atoms
+			OutPose.PopulateFromAnimation( //@TODO:@ANIMATION: Nasty hack, be good to not have this function on the pose
+				*this,
+				RotationScalePairs,
+				TranslationPairs,
+				RotationScalePairs,
+				ExtractionContext.CurrentTime);
 
-		/*AnimationFormat_GetAnimationPose(
-			*((FTransformArray*)&OutAtoms), 
-			RotationScalePairs,
-			TranslationPairs,
-			RotationScalePairs,
-			*this,
-			ExtractionContext.CurrentTime);*/
+			/*AnimationFormat_GetAnimationPose(
+				*((FTransformArray*)&OutAtoms), 
+				RotationScalePairs,
+				TranslationPairs,
+				RotationScalePairs,
+				*this,
+				ExtractionContext.CurrentTime);*/
+		}
 	}
 
 	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.

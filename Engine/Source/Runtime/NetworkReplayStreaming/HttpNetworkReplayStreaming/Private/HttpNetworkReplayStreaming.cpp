@@ -688,8 +688,9 @@ bool FQueuedHttpRequestAddEvent::PreProcess( const FString& ServerURL, const FSt
 
 	if ( !Name.IsEmpty() )
 	{
-		// Update existing event
-		Request->SetURL( FString::Printf( TEXT( "%sevent/%s" ), *ServerURL, *Name ) );
+		// Add or update existing event
+		const FString EventName = SessionName + TEXT( "_" ) + Name;
+		Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event/%s?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *EventName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
 	}
 	else
 	{

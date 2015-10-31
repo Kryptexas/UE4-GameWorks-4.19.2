@@ -316,6 +316,13 @@ float3 ImageBasedLightingMIS( FGBufferData GBuffer, float3 V, float3 N, uint2 Ra
 				}
 				else
 #endif
+#if USE_EYE
+				BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_EYE )
+				{
+					Shading = EyeShading( GBuffer, GBuffer.Roughness, 1, L, V, N, 1 );
+				}
+				else
+#endif
 				{
 					Shading = StandardShading( GBuffer, GBuffer.Roughness, L, V, N );
 				}

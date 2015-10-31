@@ -20,12 +20,6 @@ UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectIn
 { }
 
 
-FName UMovieSceneAudioTrack::GetTrackName() const
-{
-	return AudioTrackConstants::UniqueTrackName;
-}
-
-
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
@@ -135,6 +129,12 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
 	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(*this);
+}
+
+
+bool UMovieSceneAudioTrack::SupportsMultipleRows() const
+{
+	return true;
 }
 
 

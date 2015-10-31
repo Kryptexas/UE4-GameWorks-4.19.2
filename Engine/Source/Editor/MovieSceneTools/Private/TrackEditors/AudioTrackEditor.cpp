@@ -29,6 +29,9 @@
 #include "Sound/SoundCue.h"
 
 
+#define LOCTEXT_NAMESPACE "FAudioTrackEditor"
+
+
 namespace AnimatableAudioEditorConstants
 {
 	// @todo Sequencer Allow this to be customizable
@@ -466,6 +469,19 @@ TSharedRef<ISequencerTrackEditor> FAudioTrackEditor::CreateTrackEditor( TSharedR
 }
 
 
+void FAudioTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddTrack", "Audio Track"),
+		LOCTEXT("AddTooltip", "Adds a new master audio track that can play sounds."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Tracks.Audio"),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FAudioTrackEditor::HandleAddAudioTrackMenuEntryExecute)
+		)
+	);
+}
+
+
 bool FAudioTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneAudioTrack::StaticClass();
@@ -511,6 +527,8 @@ bool FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
 
 	auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
 	AudioTrack->AddNewSound( Sound, KeyTime );
+	AudioTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
+
 	return true;
 }
 
@@ -528,14 +546,18 @@ bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, T
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;
 		bHandleCreated |= HandleResult.bWasCreated;
+
 		if (ObjectHandle.IsValid())
 		{
-			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneAudioTrack::StaticClass());
 			UMovieSceneTrack* Track = TrackResult.Track;
 			bTrackCreated |= TrackResult.bWasCreated;
+
 			if (ensure(Track))
 			{
-				Cast<UMovieSceneAudioTrack>(Track)->AddNewSound( Sound, KeyTime );
+				auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
+				AudioTrack->AddNewSound(Sound, KeyTime);
+				AudioTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
 				bTrackModified = true;
 			}
 		}
@@ -543,3 +565,30 @@ bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, T
 
 	return bHandleCreated || bTrackCreated || bTrackModified;
 }
+
+
+/* FAudioTrackEditor callbacks
+ *****************************************************************************/
+
+void FAudioTrackEditor::HandleAddAudioTrackMenuEntryExecute()
+{
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+
+	if (FocusedMovieScene == nullptr)
+	{
+		return;
+	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddAudioTrack_Transaction", "Add Audio Track"));
+	FocusedMovieScene->Modify();
+	
+	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneAudioTrack>();
+	ensure(NewTrack);
+
+	NewTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
+
+	GetSequencer()->NotifyMovieSceneDataChanged();
+}
+
+
+#undef LOCTEXT_NAMESPACE

@@ -2,21 +2,28 @@
 
 #pragma once
 
+
 /**
-* An implementation of float property sections
-*/
-class FFloatPropertySection : public FPropertySection
+ * An implementation of float property sections
+ */
+class FFloatPropertySection
+	: public FPropertySection
 {
 public:
-	FFloatPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
-		: FPropertySection( InSectionObject, SectionName ) {}
 
-	// FPropertyInterface 
+	FFloatPropertySection(UMovieSceneSection& InSectionObject, const FText& SectionName)
+		: FPropertySection(InSectionObject, SectionName)
+	{ }
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
-	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
+public:
+
+	// FPropertySection interface 
+
+	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;
+	virtual void SetIntermediateValue(FPropertyChangedParams PropertyChangedParams) override;
 	virtual void ClearIntermediateValue() override;
 
 private:
+
 	mutable TSharedPtr<FFloatCurveKeyArea> KeyArea;
 };

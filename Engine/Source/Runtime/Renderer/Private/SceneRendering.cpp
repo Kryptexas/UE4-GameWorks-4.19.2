@@ -15,6 +15,7 @@
 #include "FXSystem.h"
 #include "SceneViewExtension.h"
 #include "PostProcessBusyWait.h"
+#include "PostProcessCircleDOF.h"
 #include "SceneUtils.h"
 #include "LightGrid.h"
 
@@ -825,6 +826,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 								(((float)ViewRect.Max.X / BufferSize.X) - OneScenePixelUVSize.X) , 
 								(((float)ViewRect.Max.Y / BufferSize.Y) - OneScenePixelUVSize.Y) );
 	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
+	ViewUniformShaderParameters.CircleDOFParams = CircleDofHalfCoc(*this);
 
 	FScene* Scene = (FScene*)Family->Scene;
 	ERHIFeatureLevel::Type FeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();

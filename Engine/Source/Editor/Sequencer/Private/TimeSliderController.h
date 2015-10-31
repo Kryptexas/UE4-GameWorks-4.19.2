@@ -70,9 +70,8 @@ public:
 	 *
 	 * @param NewRangeMin		The new lower bound of the range
 	 * @param NewRangeMax		The new upper bound of the range
-	 * @param bMaintainRange	Maintain the current range size if 
 	 */	
-	void ClampViewRange(float& NewRangeMin, float& NewRangeMax, bool bMaintainRange);
+	void ClampViewRange(float& NewRangeMin, float& NewRangeMax);
 
 	/**
 	 * Set a new range based on a min, max and an interpolation mode

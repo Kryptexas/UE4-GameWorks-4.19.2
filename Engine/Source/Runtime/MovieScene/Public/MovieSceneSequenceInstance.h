@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IMovieSceneTrackInstance.h"
 
 class IMovieSceneTrackInstance;
 class UMovieSceneTrack;
@@ -52,16 +53,18 @@ public:
 	 * Spawn an object relating to the specified object ID
 	 * 
 	 * @param ObjectId The ID of the object to spawn
+	 * @param Player The movie scene player responsible for this instance
 	 * @return The newly spawned or previously-spawned object, or nullptr
 	 */
-	MOVIESCENE_API void SpawnObject(const FGuid& ObjectId);
+	MOVIESCENE_API void SpawnObject(const FGuid& ObjectId, IMovieScenePlayer& Player);
 
 	/**
 	 * Destroy a previously spawned object relating to the specified object ID
 	 * 
 	 * @param ObjectId The ID of the object to destroy
+	 * @param Player The movie scene player responsible for this instance
 	 */
-	MOVIESCENE_API void DestroySpawnedObject(const FGuid& ObjectId);
+	MOVIESCENE_API void DestroySpawnedObject(const FGuid& ObjectId, IMovieScenePlayer& Player);
 
 	/**
 	 * Get the sequence associated with this instance.
@@ -89,6 +92,11 @@ public:
 protected:
 
 	void RefreshInstanceMap(const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, class IMovieScenePlayer& Player);
+
+	void UpdateInternal(float Position, float LastPosition, class IMovieScenePlayer& Player, EMovieSceneUpdatePass UpdatePass);
+
+	/** Update the object binding instance for the specified object */
+	void UpdateObjectBinding(const FGuid& ObjectId, IMovieScenePlayer& Player);
 
 private:
 

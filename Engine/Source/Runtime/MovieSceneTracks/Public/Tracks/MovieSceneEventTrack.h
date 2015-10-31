@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "MovieSceneEventTrack.generated.h"
 
 
@@ -11,7 +11,7 @@
  */
 UCLASS(MinimalAPI)
 class UMovieSceneEventTrack
-	: public UMovieSceneTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_BODY()
 
@@ -21,7 +21,6 @@ public:
 	UMovieSceneEventTrack()
 		: bFireEventsWhenForwards(true)
 		, bFireEventsWhenBackwards(true)
-		, TrackName("Events")
 	{ }
 
 public:
@@ -54,7 +53,6 @@ public:
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
-	virtual FName GetTrackName() const override;
 	virtual bool HasSection(const UMovieSceneSection& Section) const override;
 	virtual bool IsEmpty() const override;
 	virtual void RemoveAllAnimationData() override;
@@ -73,8 +71,4 @@ private:
 	/** The track's sections. */
 	UPROPERTY()
 	TArray<UMovieSceneSection*> Sections;
-
-	/** Name of this track. */
-	UPROPERTY()
-	FName TrackName;
 };

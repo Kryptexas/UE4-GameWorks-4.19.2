@@ -2623,9 +2623,9 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->SubImages_Horizontal = LODLevel->RequiredModule->SubImages_Horizontal;
 		NewReplayData->SubImages_Vertical = LODLevel->RequiredModule->SubImages_Vertical;
 
-		NewReplayData->bOverrideSystemMacroUV = LODLevel->RequiredModule->bOverrideSystemMacroUV;
-		NewReplayData->MacroUVRadius = LODLevel->RequiredModule->MacroUVRadius;
-		NewReplayData->MacroUVPosition = LODLevel->RequiredModule->MacroUVPosition;
+		NewReplayData->MacroUVOverride.bOverride = LODLevel->RequiredModule->bOverrideSystemMacroUV;
+		NewReplayData->MacroUVOverride.Radius = LODLevel->RequiredModule->MacroUVRadius;
+		NewReplayData->MacroUVOverride.Position = LODLevel->RequiredModule->MacroUVPosition;
         
 		NewReplayData->bLockAxis = false;
 		if (Module_AxisLock && (Module_AxisLock->bEnabled == true))

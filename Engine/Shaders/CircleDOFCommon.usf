@@ -5,12 +5,13 @@
 =============================================================================*/
 
 
-// {radius, depth blur amp, depth blur radius, ViewPortScale}
-float4 CircleDofParams;
 
-// CircleDOF: Compute circle of confusion size in pixels.
+// CircleDOF: Compute circle of confusion size in half res pixels.
 float DepthToCoc(float SceneDepth) 
 {
+	// {radius, depth blur amp, depth blur radius, ViewPortScale}
+	float4 CircleDofParams = View.CircleDOFParams;
+
 	// We intentionally don't do the DepthOfFieldFocalRegion as it breaks realism.
 
 	float Focus = View.DepthOfFieldFocalDistance;

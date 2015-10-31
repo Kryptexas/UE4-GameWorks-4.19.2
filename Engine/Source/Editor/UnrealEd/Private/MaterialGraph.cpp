@@ -510,6 +510,8 @@ FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
 			return LOCTEXT("Backlit", "Backlit");
 		case MSM_Cloth:
 			return LOCTEXT("Cloth", "Cloth");
+		case MSM_Eye:
+			return LOCTEXT("IrisMask", "Iris Mask");
 		default:
 			return LOCTEXT("CustomData0", "Custom Data 0");
 		}
@@ -520,6 +522,8 @@ FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
 		{
 		case MSM_ClearCoat:
 			return LOCTEXT("ClearCoatRoughness", "Clear Coat Roughness");
+		case MSM_Eye:
+			return LOCTEXT("IrisDistance", "Iris Distance");
 		default:
 			return LOCTEXT("CustomData1", "Custom Data 1");
 		}

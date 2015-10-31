@@ -28,6 +28,7 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	OutputDirectory.Path = FPaths::VideoCaptureDir();
 	OutputFormat = NSLOCTEXT("MovieCapture", "DefaultFormat", "{world}_{width}x{height}").ToString();
 	FrameRate = 24;
+	FrameCount = 0;
 	CaptureType = EMovieCaptureType::AVI;
 	bUseCompression = true;
 	CompressionQuality = 1.f;
@@ -61,7 +62,7 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 
 	Handle = FUniqueMovieSceneCaptureHandle();
 
-	bHasOutstandingFrame = false;
+	OutstandingFrameCount = 0;
 	LastFrameDelta = 0.f;
 	bCapturing = false;
 }
@@ -99,7 +100,7 @@ void UMovieSceneCapture::PrepareForScreenshot()
 		return;
 	}
 
-	bHasOutstandingFrame = true;
+	++OutstandingFrameCount;
 
 	FWidgetPath WidgetPath;
 	FSlateApplication::Get().GeneratePathToWidgetChecked(ViewportWidget.ToSharedRef(), WidgetPath);
@@ -125,10 +126,10 @@ void UMovieSceneCapture::PrepareForScreenshot()
 
 void UMovieSceneCapture::Tick(float DeltaSeconds)
 {
-	if (bHasOutstandingFrame)
+	if (OutstandingFrameCount > 0)
 	{
 		CaptureFrame(LastFrameDelta);
-		bHasOutstandingFrame = false;
+		--OutstandingFrameCount;
 	}
 	LastFrameDelta = DeltaSeconds;
 }
@@ -215,6 +216,10 @@ void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 			SaveFrameToFile(MoveTemp(ThisFrameBuffer));
 		}
 #endif
+		if (Settings.FrameCount != 0 && CachedMetrics.Frame >= Settings.FrameCount)
+		{
+			StopCapture();
+		}
 	}
 }
 
@@ -224,6 +229,7 @@ void UMovieSceneCapture::StopCapture()
 
 	if (bCapturing)
 	{
+		OutstandingFrameCount = 0;
 		bCapturing = false;
 
 		CaptureStrategy->OnStop();
@@ -234,6 +240,8 @@ void UMovieSceneCapture::StopCapture()
 			AVIWriter->StopCapture();
 			AVIWriter.Reset();
 		}
+
+		OnCaptureStopped();
 	}
 }
 

@@ -215,6 +215,9 @@ private:
 	/** Handles checking whether the details view is enabled. */
 	bool HandleDetailsViewEnabled() const;
 
+	/** Handles determining the visibility of the details view selection tip. */
+	EVisibility HandleDetailsViewTipVisibility() const;
+
 	/** Handles determining the visibility of the details view. */
 	EVisibility HandleDetailsViewVisibility() const;
 
@@ -290,9 +293,6 @@ private:
 
 	/** Get the visibility of the track area */
 	EVisibility GetTrackAreaVisibility() const;
-
-	/** Get the lock in/out to start/end range value */
-	bool GetLockInOutToStartEndRange() const;
 
 	/**
 	 * Called when one or more assets are dropped into the widget

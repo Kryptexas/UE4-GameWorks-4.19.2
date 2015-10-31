@@ -28,10 +28,10 @@ BufferedPacket::~BufferedPacket()
 
 // PACKET HANDLER
 PacketHandler::PacketHandler()
-: Time(0.f)
+: bEnabled(false)
+, Time(0.f)
 , State(Handler::State::Uninitialized)
 , ReliabilityComponent(NULL)
-, bEnabled(false)
 {
 	OutgoingPacket.SetAllowResize(true);
 	OutgoingPacket.AllowAppend(true);

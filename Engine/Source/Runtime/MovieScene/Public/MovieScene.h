@@ -179,25 +179,25 @@ public:
 	 *
 	 * @param TrackClass The class of the track to find.
 	 * @param ObjectGuid The runtime object guid that the track is bound to.
-	 * @param UniqueTypeName The unique name of the track to differentiate the one we are searching for from other tracks of the same class.
+	 * @param TrackName The name of the track to differentiate the one we are searching for from other tracks of the same class.
 	 * @return The found track or nullptr if one does not exist.
 	 * @see AddTrack, RemoveTrack
 	 */
-	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTypeName) const;
+	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, const FName& TrackName) const;
 	
 	/**
 	 * Finds a track.
 	 *
 	 * @param TrackClass The class of the track to find.
 	 * @param ObjectGuid The runtime object guid that the track is bound to.
-	 * @param UniqueTypeName The unique name of the track to differentiate the one we are searching for from other tracks of the same class.
+	 * @param TrackName The name of the track to differentiate the one we are searching for from other tracks of the same class (optional).
 	 * @return The found track or nullptr if one does not exist.
 	 * @see AddTrack, RemoveTrack
 	 */
 	template<typename TrackClass>
-	TrackClass* FindTrack(const FGuid& ObjectGuid, FName UniqueTypeName) const
+	TrackClass* FindTrack(const FGuid& ObjectGuid, const FName& TrackName = NAME_None) const
 	{
-		return Cast<TrackClass>(FindTrack(TrackClass::StaticClass(), ObjectGuid, UniqueTypeName));
+		return Cast<TrackClass>(FindTrack(TrackClass::StaticClass(), ObjectGuid, TrackName));
 	}
 
 	/**
@@ -310,6 +310,13 @@ public:
 public:
 
 	/**
+	 * Returns all sections and their associated binding data.
+	 *
+	 * @return A list of sections with object bindings and names.
+	 */
+	TArray<UMovieSceneSection*> GetAllSections() const;
+
+	/**
 	 * @return All object bindings.
 	 */
 	const TArray<FMovieSceneBinding>& GetBindings() const
@@ -317,15 +324,36 @@ public:
 		return ObjectBindings;
 	}
 
+	/**
+	 * Get the display name of the object with the specified identifier.
+	 *
+	 * @param ObjectId The object identifier.
+	 * @result The object's display name.
+	 */
+	FText GetObjectDisplayName(const FGuid& ObjectId);
+
+	/**
+	 * @return The playback time range of this movie scene, relative to its 0-time offset.
+	 */
+	TRange<float> GetPlaybackRange() const;
+
 	/*
 	* Replace an existing binding with another 
 	*/
 	void ReplaceBinding(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name);
 
 	/**
-	 * @return The playback time range of this movie scene, relative to its 0-time offset.
+	 * Get the display name of the object with the specified identifier.
+	 *
+	 * @param ObjectId The object identifier.
+	 * @result The object's display name.
 	 */
-	TRange<float> GetPlaybackRange() const;
+	void SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName)
+	{
+#if WITH_EDITORONLY_DATA
+		ObjectsToDisplayNames.Add(ObjectId.ToString(), DisplayName);
+#endif
+	}
 
 	/**
 	 * Set the start and end playback positions (playback range) for this movie scene
@@ -334,13 +362,6 @@ public:
 	 * @param End The offset from 0-time to end playback of this movie scene
 	 */
 	void SetPlaybackRange(float Start, float End);
-
-	/**
-	 * Returns all sections and their associated binding data.
-	 *
-	 * @return A list of sections with object bindings and names.
-	 */
-	TArray<UMovieSceneSection*> GetAllSections() const;
 
 public:
 	
@@ -402,6 +423,10 @@ private:
 	UMovieSceneTrack* ShotTrack;
 
 #if WITH_EDITORONLY_DATA
+	/** Maps object GUIDs to user defined display names. */
+	UPROPERTY()
+	TMap<FString, FText> ObjectsToDisplayNames;
+
 	/** Editor only data that needs to be saved between sessions for editing but has no runtime purpose */
 	UPROPERTY()
 	FMovieSceneEditorData EditorData;
@@ -415,10 +440,13 @@ private:
 	
 	UPROPERTY()
 	float InTime_DEPRECATED;
+
 	UPROPERTY()
 	float OutTime_DEPRECATED;
+
 	UPROPERTY()
 	float StartTime_DEPRECATED;
+
 	UPROPERTY()
 	float EndTime_DEPRECATED;
 };

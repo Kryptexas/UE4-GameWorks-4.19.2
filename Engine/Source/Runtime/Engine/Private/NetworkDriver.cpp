@@ -203,13 +203,51 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	// Reset queued bunch amortization timer
 	ProcessQueuedBunchesCurrentFrameMilliseconds = 0.0f;
 
-#if STATS
+#if USE_SERVER_PERF_COUNTERS || STATS
 	const double CurrentRealtimeSeconds = FPlatformTime::Seconds();
 
-	// Update network stats (only main game net driver for now)
+	// Update network stats (only main game net driver for now) if stats or perf counters are used
 	if (NetDriverName == NAME_GameNetDriver && 
 		 CurrentRealtimeSeconds - StatUpdateTime > StatPeriod && ( ClientConnections.Num() > 0 || ServerConnection != NULL ) )
 	{
+		int32 ClientInBytesMax = 0;
+		int32 ClientInBytesMin = 0;
+		int32 ClientInBytesAvg = 0;
+		int32 ClientOutBytesMax = 0;
+		int32 ClientOutBytesMin = 0;
+		int32 ClientOutBytesAvg = 0;
+		int NumClients = 0;
+
+		// these need to be updated even if we are not collecting stats, since they get reported to analytics/QoS
+		for (UNetConnection * Client : ClientConnections)
+		{
+			if (Client)
+			{
+				ClientInBytesMax = FMath::Max(ClientInBytesMax, Client->InBytesPerSecond);
+				if (ClientInBytesMin == 0 || Client->InBytesPerSecond < ClientInBytesMin)
+				{
+					ClientInBytesMin = Client->InBytesPerSecond;
+				}
+				ClientInBytesAvg += Client->InBytesPerSecond;
+
+				ClientOutBytesMax = FMath::Max(ClientOutBytesMax, Client->OutBytesPerSecond);
+				if (ClientOutBytesMin == 0 || Client->OutBytesPerSecond < ClientOutBytesMin)
+				{
+					ClientOutBytesMin = Client->OutBytesPerSecond;
+				}
+				ClientOutBytesAvg += Client->OutBytesPerSecond;
+
+				++NumClients;
+			}
+		}
+
+		if (NumClients > 1)
+		{
+			ClientInBytesAvg /= NumClients;
+			ClientOutBytesAvg /= NumClients;
+		}
+
+#if STATS
 		int32 Ping = 0;
 		int32 NumOpenChannels = 0;
 		int32 NumActorChannels = 0;
@@ -220,13 +258,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 UnAckCount = 0;
 		int32 PendingCount = 0;
 		int32 NetSaturated = 0;
-		int32 ClientInBytesMax = 0;
-		int32 ClientInBytesMin = 0;
-		int32 ClientInBytesAvg = 0;
-		int32 ClientOutBytesMax = 0;
-		int32 ClientOutBytesMin = 0;
-		int32 ClientOutBytesAvg = 0;
-		int NumClients = 0;
 
 		if (FThreadStats::IsCollectingData())
 		{
@@ -302,42 +333,56 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 
 				NetSaturated = Connection->IsNetReady(false) ? 0 : 1;
 			}
-
-			for (UNetConnection * Client : ClientConnections)
-			{
-				if (Client)
-				{
-					ClientInBytesMax = FMath::Max(ClientInBytesMax, Client->InBytesPerSecond);
-					if (ClientInBytesMin == 0 || Client->InBytesPerSecond < ClientInBytesMin)
-					{
-						ClientInBytesMin = Client->InBytesPerSecond;
-					}
-					ClientInBytesAvg += Client->InBytesPerSecond;
-
-					ClientOutBytesMax = FMath::Max(ClientOutBytesMax, Client->OutBytesPerSecond);
-					if (ClientOutBytesMin == 0 || Client->OutBytesPerSecond < ClientOutBytesMin)
-					{
-						ClientOutBytesMin = Client->OutBytesPerSecond;
-					}
-					ClientOutBytesAvg += Client->OutBytesPerSecond;
-
-					++NumClients;
-				}
-			}
-
-			if (NumClients > 1)
-			{
-				ClientInBytesAvg /= NumClients;
-				ClientOutBytesAvg /= NumClients;
-			}
 		}
+
+		// Copy the net status values over
+		SET_DWORD_STAT(STAT_Ping, Ping);
+		SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
+
+		SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
+		SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
+		SET_DWORD_STAT(STAT_InRate, InBytes);
+		SET_DWORD_STAT(STAT_OutRate, OutBytes);
+		SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
+		SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
+		SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
+		SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
+		SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
+		SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
+
+		SET_DWORD_STAT(STAT_NetNumClients, NumClients);
+		SET_DWORD_STAT(STAT_InPackets, InPackets);
+		SET_DWORD_STAT(STAT_OutPackets, OutPackets);
+		SET_DWORD_STAT(STAT_InBunches, InBunches);
+		SET_DWORD_STAT(STAT_OutBunches, OutBunches);
+
+		SET_DWORD_STAT(STAT_NetGUIDInRate, NetGUIDInBytes);
+		SET_DWORD_STAT(STAT_NetGUIDOutRate, NetGUIDOutBytes);
+
+		SET_DWORD_STAT(STAT_VoicePacketsSent, VoicePacketsSent);
+		SET_DWORD_STAT(STAT_VoicePacketsRecv, VoicePacketsRecv);
+		SET_DWORD_STAT(STAT_VoiceBytesSent, VoiceBytesSent);
+		SET_DWORD_STAT(STAT_VoiceBytesRecv, VoiceBytesRecv);
+
+		SET_DWORD_STAT(STAT_PercentInVoice, VoiceInPercent);
+		SET_DWORD_STAT(STAT_PercentOutVoice, VoiceOutPercent);
+
+		SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
+		SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
+		SET_DWORD_STAT(STAT_NumActors, NumActors);
+		SET_DWORD_STAT(STAT_NumActorChannelsReadyDormant, NumActorChannelsReadyDormant);
+		SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
+		SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
+		SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
+		SET_DWORD_STAT(STAT_NetSaturated, NetSaturated);
+#endif // STATS
 
 #if USE_SERVER_PERF_COUNTERS
 		IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
 		if (PerfCounters)
 		{
 			// Update total connections
-			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num(), IPerfCounters::Flags::Transient);
+			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num());
 
 			const int kNumBuckets = 8;	// evenly spaced with increment of 30 ms; last bucket collects all off-scale pings as well
 			if (ClientConnections.Num() > 0)
@@ -380,7 +425,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 					}
 				}
 
-				PerfCounters->Set(TEXT("AvgPing"), AvgPing / PingCount);
+				PerfCounters->Set(TEXT("AvgPing"), AvgPing / PingCount, IPerfCounters::Flags::Transient);
 				float CurrentMaxPing = PerfCounters->Get(TEXT("MaxPing"), MaxPing);
 				PerfCounters->Set(TEXT("MaxPing"), FMath::Max(MaxPing, CurrentMaxPing), IPerfCounters::Flags::Transient);
 				float CurrentMinPing = PerfCounters->Get(TEXT("MinPing"), MinPing);
@@ -409,7 +454,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			}
 			else
 			{
-				PerfCounters->Set(TEXT("AvgPing"), 0.0f);
+				PerfCounters->Set(TEXT("NumConnections"), 0);
+
+				PerfCounters->Set(TEXT("AvgPing"), 0.0f, IPerfCounters::Flags::Transient);
 				PerfCounters->Set(TEXT("MaxPing"), -FLT_MAX, IPerfCounters::Flags::Transient);
 				PerfCounters->Set(TEXT("MinPing"), FLT_MAX, IPerfCounters::Flags::Transient);
 
@@ -419,50 +466,19 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 					PerfCounters->Set(FString::Printf(TEXT("PingBucket%d"), BucketIdx), 0.0f, IPerfCounters::Flags::Transient);
 				}
 			}
+
+			// set the per connection stats (these are calculated earlier).
+			// Note that NumClients may be != NumConnections. Also, if NumClients is 0, the rest of counters should be 0 as well
+			PerfCounters->Set(TEXT("NumClients"), NumClients);
+			PerfCounters->Set(TEXT("InRateClientMax"), ClientInBytesMax);
+			PerfCounters->Set(TEXT("InRateClientMin"), ClientInBytesMin);
+			PerfCounters->Set(TEXT("InRateClientAvg"), ClientInBytesAvg);
+			PerfCounters->Set(TEXT("OutRateClientMax"), ClientOutBytesMax);
+			PerfCounters->Set(TEXT("OutRateClientMin"), ClientOutBytesMin);
+			PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
 		}
 #endif // USE_SERVER_PERF_COUNTERS
 
-		// Copy the net status values over
-		SET_DWORD_STAT(STAT_Ping, Ping);
-		SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
-
-		SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
-		SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
-		SET_DWORD_STAT(STAT_InRate, InBytes);
-		SET_DWORD_STAT(STAT_OutRate, OutBytes);
-		SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
-		SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
-		SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
-		SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
-		SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
-		SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
-
-		SET_DWORD_STAT(STAT_NetNumClients, NumClients);
-		SET_DWORD_STAT(STAT_InPackets, InPackets);
-		SET_DWORD_STAT(STAT_OutPackets, OutPackets);
-		SET_DWORD_STAT(STAT_InBunches, InBunches);
-		SET_DWORD_STAT(STAT_OutBunches, OutBunches);
-
-		SET_DWORD_STAT(STAT_NetGUIDInRate, NetGUIDInBytes);
-		SET_DWORD_STAT(STAT_NetGUIDOutRate, NetGUIDOutBytes);
-
-		SET_DWORD_STAT(STAT_VoicePacketsSent, VoicePacketsSent);
-		SET_DWORD_STAT(STAT_VoicePacketsRecv, VoicePacketsRecv);
-		SET_DWORD_STAT(STAT_VoiceBytesSent, VoiceBytesSent);
-		SET_DWORD_STAT(STAT_VoiceBytesRecv, VoiceBytesRecv);
-
-		SET_DWORD_STAT(STAT_PercentInVoice, VoiceInPercent);
-		SET_DWORD_STAT(STAT_PercentOutVoice, VoiceOutPercent);
-
-		SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
-		SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
-		SET_DWORD_STAT(STAT_NumActors, NumActors);
-		SET_DWORD_STAT(STAT_NumActorChannelsReadyDormant, NumActorChannelsReadyDormant);
-		SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
-		SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
-		SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
-		SET_DWORD_STAT(STAT_NetSaturated, NetSaturated);
-		
 		// Reset everything
 		InBytes = 0;
 		OutBytes = 0;
@@ -482,7 +498,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		VoiceOutPercent = 0;
 		StatUpdateTime = CurrentRealtimeSeconds;
 	}
-#endif // STATS
+#endif // (USE_SERVER_PERF_COUNTERS) || STATS
 
 	// Poll all sockets.
 	if( ServerConnection )

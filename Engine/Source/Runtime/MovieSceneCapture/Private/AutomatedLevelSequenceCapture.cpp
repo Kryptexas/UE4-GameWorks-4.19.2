@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneCapturePCH.h"
+
 #include "LevelSequencePlayer.h"
 #include "AutomatedLevelSequenceCapture.h"
 #include "ErrorCodes.h"
@@ -9,9 +10,17 @@
 UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInitializer& Init)
 	: Super(Init)
 {
+#if WITH_EDITORONLY_DATA == 0
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		checkf(false, TEXT("Automated level sequence captures can only be used in editor builds."));
+	}
+#else
 	bStageSequence = false;
-	bWasPlaying = false;
+#endif
 }
+
+#if WITH_EDITORONLY_DATA
 
 void UAutomatedLevelSequenceCapture::SetLevelSequenceAsset(FString AssetPath)
 {
@@ -85,33 +94,46 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 			Value += DeltaSeconds;
 			if (Value >= PrerollAmount)
 			{
-				Actor->SequencePlayer->Play();
+				if (!OnPlayerUpdatedBinding.IsValid())
+				{
+					// Bind to the event so we know when to capture a frame
+					OnPlayerUpdatedBinding = Actor->SequencePlayer->OnSequenceUpdated().AddUObject(this, &UAutomatedLevelSequenceCapture::SequenceUpdated);
+				}
+
 				StartCapture();
-				PrepareForScreenshot();
+				Actor->SequencePlayer->Play();
 
 				PrerollTime.Reset();
 			}
 		}
 
-		// If the sequence is playing, we need to capture the frame. Ensure we get the last frame if the sequence was stopped this frame.
-		else if (Actor->SequencePlayer->IsPlaying() || bWasPlaying)
-		{
-			PrepareForScreenshot();
-		}
-
 		// Otherwise we can quit if we've processed all the frames
-		else if (!bHasOutstandingFrame)
+		else if (OutstandingFrameCount == 0)
 		{
-			Close();
-			FPlatformMisc::RequestExit(0);
+			StopCapture();
 		}
-
-		bWasPlaying = Actor->SequencePlayer->IsPlaying();
 	}
 }
-#if WITH_EDITOR
+
+void UAutomatedLevelSequenceCapture::OnCaptureStopped()
+{
+	Close();
+	FPlatformMisc::RequestExit(0);
+}
+
+void UAutomatedLevelSequenceCapture::SequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime)
+{
+	// Grab this frame
+	PrepareForScreenshot();
+	if (!Player.IsPlaying())
+	{
+		Player.OnSequenceUpdated().Remove(OnPlayerUpdatedBinding);
+	}
+}
+
 void UAutomatedLevelSequenceCapture::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	LevelSequenceActorId = LevelSequenceActor.GetUniqueID().GetGuid();
 }
+
 #endif

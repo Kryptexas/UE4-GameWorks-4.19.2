@@ -6628,11 +6628,11 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 	FVector MacroUVPosition = DynamicData->SystemPositionForMacroUVs;
    
 	uint32 Index = DynamicData->EmitterIndex;
-	const FDynamicEmitterReplayDataBase& EmitterData = DynamicData->DynamicEmitterDataArray[Index]->GetSource();
-	if (EmitterData.bOverrideSystemMacroUV)
+	const FMacroUVOverride& MacroUVOverride = DynamicData->DynamicEmitterDataArray[Index]->GetMacroUVOverride();
+	if (MacroUVOverride.bOverride)
 	{
-		MacroUVRadius = EmitterData.MacroUVRadius;
-		MacroUVPosition = GetLocalToWorld().TransformVector(EmitterData.MacroUVPosition);
+		MacroUVRadius = MacroUVOverride.Radius;
+		MacroUVPosition = GetLocalToWorld().TransformVector(MacroUVOverride.Position);
 
 		if (MacroUVPosition.ContainsNaN())
 		{

@@ -3224,14 +3224,14 @@ void UMaterial::CancelOutstandingCompilation()
 }
 #endif
 
-void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform)
+void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform)
 {
 	// Create a material update context so we can safely update materials.
 	{
 		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::Default, ShaderPlatform);
 
 		// Go through all material shader maps and flush the appropriate shaders
-		FMaterialShaderMap::FlushShaderTypes(ShaderTypesToFlush, VFTypesToFlush);
+		FMaterialShaderMap::FlushShaderTypes(ShaderTypesToFlush, ShaderPipelineTypesToFlush, VFTypesToFlush);
 
 		// There should be no references to the given material shader types at this point
 		// If there still are shaders of the given types, they may be reused when we call CacheResourceShaders instead of compiling new shaders
@@ -4138,10 +4138,10 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage || ShadingModel == MSM_Cloth;
 		break;
 	case MP_CustomData0:
-		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Hair || ShadingModel == MSM_Cloth;
+		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Hair || ShadingModel == MSM_Cloth || ShadingModel == MSM_Eye;
 		break;
 	case MP_CustomData1:
-		Active = ShadingModel == MSM_ClearCoat;
+		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Eye;
 		break;
 	case MP_TessellationMultiplier:
 	case MP_WorldDisplacement:

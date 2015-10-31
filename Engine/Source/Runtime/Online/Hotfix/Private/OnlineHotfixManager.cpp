@@ -3,8 +3,30 @@
 #include "HotfixPrivatePCH.h"
 #include "OnlineHotfixManager.h"
 #include "Internationalization.h"
+#include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY(LogHotfixManager);
+
+FName NAME_HotfixManager(TEXT("HotfixManager"));
+
+struct FHotfixManagerExec :
+	public FSelfRegisteringExec
+{
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
+	{
+		if (FParse::Command(&Cmd, TEXT("HOTFIX")))
+		{
+			UOnlineHotfixManager* HotfixManager = UOnlineHotfixManager::Get(InWorld);
+			if (HotfixManager != nullptr)
+			{
+				HotfixManager->StartHotfixProcess();
+			}
+			return true;
+		}
+		return false;
+	}
+};
+static FHotfixManagerExec HotfixManagerExec;
 
 UOnlineHotfixManager::UOnlineHotfixManager() :
 	Super()
@@ -14,6 +36,31 @@ UOnlineHotfixManager::UOnlineHotfixManager() :
 	// So we only try to apply files for this platform
 	PlatformPrefix = ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
 	PlatformPrefix += TEXT("_");
+}
+
+UOnlineHotfixManager* UOnlineHotfixManager::Get(UWorld* World)
+{
+	UOnlineHotfixManager* DefaultObject = UOnlineHotfixManager::StaticClass()->GetDefaultObject<UOnlineHotfixManager>();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(World, DefaultObject->OSSName.Len() > 0 ? FName(*DefaultObject->OSSName) : NAME_None);
+	if (OnlineSub != nullptr)
+	{
+		UOnlineHotfixManager* HotfixManager = Cast<UOnlineHotfixManager>(OnlineSub->GetNamedInterface(NAME_HotfixManager));
+		if (HotfixManager == nullptr)
+		{
+			FString HotfixManagerClassName = DefaultObject->HotfixManagerClassName;
+			UClass* HotfixManagerClass = LoadClass<UOnlineHotfixManager>(nullptr, *HotfixManagerClassName, nullptr, LOAD_None, nullptr);
+			if (HotfixManagerClass == nullptr)
+			{
+				// Just use the default class if it couldn't load what was specified
+				HotfixManagerClass = UOnlineHotfixManager::StaticClass();
+			}
+			// Create it and store it
+			HotfixManager = NewObject<UOnlineHotfixManager>(GetTransientPackage(), HotfixManagerClass);
+			OnlineSub->SetNamedInterface(NAME_HotfixManager, HotfixManager);
+			return HotfixManager;
+		}
+	}
+	return nullptr;
 }
 
 void UOnlineHotfixManager::Init()

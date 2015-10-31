@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieSceneSpawnTrack.generated.h"
+
+
+class UMovieSceneSection;
+
 
 /**
  * Handles when a spawnable should be spawned and destroyed
@@ -20,45 +23,13 @@ public:
 
 public:
 
-	// UMovieSceneTrack interface
-	virtual UMovieSceneSection* CreateNewSection() override;
+	/** Evaluate whether the controlled object should currently be spawned or not */
+	bool Eval(float Position, float LastPostion, bool& bOutSpawned) const;
 
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-	
-	virtual FName GetTrackName() const override
+	/** Get the object identifier that this spawn track controls */
+	const FGuid& GetObject() const
 	{
-		static FName Name = "Spawned";
-		return Name;
-	}
-
-	virtual bool HasSection(const UMovieSceneSection& Section ) const override
-	{
-		return Sections.ContainsByPredicate([&](const UMovieSceneSection* In){ return In == &Section; });
-	}
-
-	virtual void AddSection(UMovieSceneSection& Section) override
-	{
-		Sections.Add(&Section);
-	}
-
-	virtual void RemoveSection(UMovieSceneSection& Section) override
-	{
-		Sections.RemoveAll([&](const UMovieSceneSection* In){ return In == &Section; });
-	}
-
-	virtual bool IsEmpty() const override
-	{
-		return Sections.Num() == 0;
-	}
-
-	virtual TRange<float> GetSectionBoundaries() const override
-	{
-		return TRange<float>::All();
-	}
-
-	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override
-	{
-		return Sections;
+		return ObjectGuid;
 	}
 
 	/** Set the object identifier that this spawn track controls */
@@ -67,14 +38,22 @@ public:
 		ObjectGuid = InGuid;
 	}
 
-	/** Get the object identifier that this spawn track controls */
-	const FGuid& GetObject() const
-	{
-		return ObjectGuid;
-	}
+public:
 
-	/** Evaluate whether the controlled object should currently be spawned or not */
-	bool Eval(float Position, float LastPostion, bool& bOutSpawned) const;
+	// UMovieSceneTrack interface
+
+	virtual UMovieSceneSection* CreateNewSection() override;
+	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
+	virtual bool HasSection(const UMovieSceneSection& Section ) const override;
+	virtual void AddSection(UMovieSceneSection& Section) override;
+	virtual void RemoveSection(UMovieSceneSection& Section) override;
+	virtual bool IsEmpty() const override;
+	virtual TRange<float> GetSectionBoundaries() const override;
+	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
+
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDisplayName() const override;
+#endif
 
 protected:
 

@@ -1611,6 +1611,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Advance);
+	FScopeCycleCounterUObject MontageScope(Montage);
 
 	if( IsValid() )
 	{

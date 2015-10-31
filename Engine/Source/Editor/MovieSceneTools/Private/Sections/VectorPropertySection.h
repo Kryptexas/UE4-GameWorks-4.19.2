@@ -2,14 +2,19 @@
 
 #pragma once
 
+
 /**
-* An implementation of vector property sections
-*/
+ * An implementation of vector property sections.
+ */
 class FVectorPropertySection : public FPropertySection
 {
 public:
-	FVectorPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
-		: FPropertySection( InSectionObject, SectionName ) {}
+
+	FVectorPropertySection(UMovieSceneSection& InSectionObject, const FText& SectionName)
+		: FPropertySection( InSectionObject, SectionName )
+	{ }
+
+public:
 
 	// FPropertySectionInterface
 
@@ -18,6 +23,7 @@ public:
 	virtual void ClearIntermediateValue() override;
 
 private:
+
 	mutable TSharedPtr<FFloatCurveKeyArea> XKeyArea;
 	mutable TSharedPtr<FFloatCurveKeyArea> YKeyArea;
 	mutable TSharedPtr<FFloatCurveKeyArea> ZKeyArea;

@@ -71,7 +71,7 @@ void SSequencerSectionAreaView::Construct( const FArguments& InArgs, TSharedRef<
 	ViewRange = InArgs._ViewRange;
 
 	check( Node->GetType() == ESequencerNode::Track );
-	SectionAreaNode = StaticCastSharedRef<FTrackNode>( Node );
+	SectionAreaNode = StaticCastSharedRef<FSequencerTrackNode>( Node );
 
 	BackgroundBrush = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
 

@@ -9,6 +9,7 @@
 #if WITH_PERFCOUNTERS
 	#include "PerfCountersModule.h"
 #endif // WITH_PERFCOUNTERS
+#include "PerfCountersHelpers.h"
 
 #ifndef WITH_QOSREPORTER
 	#error "WITH_QOSREPORTER should be defined in Build.cs file"
@@ -16,6 +17,7 @@
 
 bool FQoSReporter::bIsInitialized;
 TSharedPtr<IAnalyticsProvider> FQoSReporter::Analytics;
+FGuid FQoSReporter::InstanceId;
 
 /**
 * External code should bind this delegate if QoS reporting is desired,
@@ -81,6 +83,10 @@ void FQoSReporter::Initialize()
 		FName(*DefaultEngineAnalyticsConfig.Execute(TEXT("ProviderModuleName"), true)),
 		DefaultEngineAnalyticsConfig);
 
+	// add a unique id
+	InstanceId = FGuid::NewGuid();
+	FPlatformMisc::CreateGuid(InstanceId);
+
 	// check if Configs override the heartbeat interval
 	
 	float ConfigHeartbeatInterval = 0.0;
@@ -102,6 +108,11 @@ void FQoSReporter::Shutdown()
 
 	Analytics.Reset();
 	bIsInitialized = false;
+}
+
+FGuid FQoSReporter::GetQoSReporterInstanceId()
+{
+	return InstanceId;
 }
 
 double FQoSReporter::ModuleInitializationTime = FPlatformTime::Seconds();
@@ -126,6 +137,7 @@ void FQoSReporter::ReportStartupCompleteEvent()
 
 double FQoSReporter::HeartbeatInterval = 300;
 double FQoSReporter::LastHeartbeatTimestamp = 0;
+extern ENGINE_API float GAverageFPS;
 
 void FQoSReporter::Tick()
 {
@@ -134,12 +146,30 @@ void FQoSReporter::Tick()
 		return;
 	}
 
+	static double PreviousTickTime = FPlatformTime::Seconds();
 	double CurrentTime = FPlatformTime::Seconds();
+
 	if (HeartbeatInterval > 0 && CurrentTime - LastHeartbeatTimestamp > HeartbeatInterval)
 	{
 		SendHeartbeat();
 		LastHeartbeatTimestamp = CurrentTime;
 	}
+
+	// detect too long pauses between ticks
+	const double kTooLongPauseBetweenTicksInSeconds = 0.25f;	// 4 fps	- correct perfcounter name below if changing this value and make sure analytics is on the same page
+	const double DeltaBetweenTicks = CurrentTime - PreviousTickTime;
+	static int TimesHappened = 0;
+	if (DeltaBetweenTicks > kTooLongPauseBetweenTicksInSeconds)
+	{
+		++TimesHappened;
+
+		PerfCountersIncrement(TEXT("HitchesAbove250msec"));
+
+		UE_LOG(LogQoSReporter, Warning, TEXT("QoS reporter could not tick for %f sec (longer than threshold of %f sec) - happened %d time(s), average FPS is %f. Sending heartbeats might have been affected"),
+			DeltaBetweenTicks, kTooLongPauseBetweenTicksInSeconds, TimesHappened, GAverageFPS);
+	}
+
+	PreviousTickTime = CurrentTime;
 }
 
 void FQoSReporter::SendHeartbeat()
@@ -148,6 +178,8 @@ void FQoSReporter::SendHeartbeat()
 
 	TArray<FAnalyticsEventAttribute> ParamArray;
 	ParamArray.Add(FAnalyticsEventAttribute(TEXT("Role"), GetApplicationRole()));
+	ParamArray.Add(FAnalyticsEventAttribute(TEXT("SystemId"), FPlatformMisc::GetOperatingSystemId()));
+	ParamArray.Add(FAnalyticsEventAttribute(TEXT("InstanceId"), InstanceId.ToString()));
 
 	if (IsRunningDedicatedServer())
 	{
@@ -170,14 +202,20 @@ void FQoSReporter::AddServerHeartbeatAttributes(TArray<FAnalyticsEventAttribute>
 	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
 	if (PerfCounters)
 	{
-		FString PerfCountersJSON = PerfCounters->GetAllCountersAsJson();
-
 		const TMap<FString, IPerfCounters::FJsonVariant>& PerfCounterMap = PerfCounters->GetAllCounters();
 		int NumAddedCounters = 0;
+		// we want to skip reporting average FPS if there are no human players
+		bool bShouldSkipAverageFPS = (PerfCounters->Get("NumClients", 0) == 0);
 
 		// only add string and number values
 		for (const auto& It : PerfCounterMap)
 		{
+			// do not report average FPS unless there are actual people playing
+			if (bShouldSkipAverageFPS && It.Key == TEXT("AverageFPS"))
+			{
+				continue;
+			}
+
 			const IPerfCounters::FJsonVariant& JsonValue = It.Value;
 			switch (JsonValue.Format)
 			{
@@ -232,7 +270,6 @@ void FQoSReporter::AddServerHeartbeatAttributes(TArray<FAnalyticsEventAttribute>
 
 void FQoSReporter::AddClientHeartbeatAttributes(TArray<FAnalyticsEventAttribute> & OutArray)
 {
-	extern ENGINE_API float GAverageFPS;
 	OutArray.Add(FAnalyticsEventAttribute(TEXT("AverageFPS"), GAverageFPS));
 }
 

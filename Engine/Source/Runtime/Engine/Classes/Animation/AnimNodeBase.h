@@ -517,4 +517,11 @@ struct ENGINE_API FAnimNode_Base
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}
+
+protected:
+	/** return true if eanbled, otherwise, return false. This is utility function that can be used per node level */
+	bool IsLODEnabled(UAnimInstance* AnimInstace, int32 InLODThreshold)
+	{
+		return (InLODThreshold == INDEX_NONE || AnimInstace->GetOwningComponent()->PredictedLODLevel <= InLODThreshold);
+	}
 };

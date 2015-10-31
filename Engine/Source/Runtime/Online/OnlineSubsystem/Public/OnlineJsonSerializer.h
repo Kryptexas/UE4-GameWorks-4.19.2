@@ -10,10 +10,10 @@
 #define BEGIN_ONLINE_JSON_SERIALIZER \
 	virtual void Serialize(FOnlineJsonSerializerBase& Serializer, bool bFlatObject) override \
 	{ \
-		if (!bFlatObject) Serializer.StartObject();
+		if (!bFlatObject) { Serializer.StartObject(); }
 
 #define END_ONLINE_JSON_SERIALIZER \
-		if (!bFlatObject) Serializer.EndObject(); \
+		if (!bFlatObject) { Serializer.EndObject(); } \
 	}
 
 #define ONLINE_JSON_SERIALIZE(JsonName, JsonValue) \

@@ -34,7 +34,6 @@ struct FLevelSequencePlaybackSettings
 	float PlayRate;
 };
 
-
 /**
  * ULevelSequencePlayer is used to actually "play" an level sequence asset at runtime.
  *
@@ -126,7 +125,7 @@ protected:
 
 	// IMovieScenePlayer interface
 	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<UObject*>& OutObjects) const override;
-	virtual void UpdateCameraCut(UObject* ObjectToViewThrough, bool bNewCameraCut) const override;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
@@ -142,6 +141,9 @@ public:
 	void AutoPlayNextFrame();
 
 private:
+
+	/** Update the movie scene instance from the specified previous position, to the specified time position */
+	void UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition);
 
 	/** Called when the cursor position has changed to implement looping */
 	void OnCursorPositionChanged();
@@ -178,6 +180,17 @@ private:
 	/** The world this player will spawn actors in, if needed */
 	TWeakObjectPtr<UWorld> World;
 
-	/** If true, the sequence will begin playing when it is next updated */
-	bool bAutoPlayNextFrame;
+#if WITH_EDITOR
+public:
+
+	/** An event that is broadcast each time this level sequence player is updated */
+	DECLARE_EVENT_ThreeParams( ULevelSequencePlayer, FOnLevelSequencePlayerUpdated, const ULevelSequencePlayer&, float /*current time*/, float /*previous time*/ );
+	FOnLevelSequencePlayerUpdated& OnSequenceUpdated() const { return OnLevelSequencePlayerUpdate; }
+
+private:
+
+	/** The event that will be broadcast every time the sequence is updated */
+	mutable FOnLevelSequencePlayerUpdated OnLevelSequencePlayerUpdate;
+
+#endif
 };

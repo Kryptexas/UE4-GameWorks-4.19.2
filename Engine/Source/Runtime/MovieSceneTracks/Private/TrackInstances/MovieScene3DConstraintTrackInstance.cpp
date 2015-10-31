@@ -53,7 +53,7 @@ void FMovieScene3DConstraintTrackInstance::RestoreState(const TArray<UObject*>& 
 }
 
 
-void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
+void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
 {
 	UMovieScene3DConstraintSection* FirstConstraintSection = nullptr;
 

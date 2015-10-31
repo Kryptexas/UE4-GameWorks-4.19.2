@@ -256,7 +256,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 
 	// FAnimNode_SkeletalControlBase interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_SkeletalControlBase interface

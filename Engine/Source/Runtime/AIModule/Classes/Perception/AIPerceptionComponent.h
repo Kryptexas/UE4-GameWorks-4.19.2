@@ -203,7 +203,7 @@ public:
 	FORCEINLINE TActorPerceptionContainer::TIterator GetPerceptualDataIterator() { return TActorPerceptionContainer::TIterator(PerceptualData); }
 	FORCEINLINE TActorPerceptionContainer::TConstIterator GetPerceptualDataConstIterator() const { return TActorPerceptionContainer::TConstIterator(PerceptualData); }
 
-	void GetHostileActors(TArray<AActor*>& OutActors) const;
+	virtual void GetHostileActors(TArray<AActor*>& OutActors) const;
 
 	// @note Will stop on first age 0 stimulus
 	const FActorPerceptionInfo* GetFreshestTrace(const FAISenseID Sense) const;

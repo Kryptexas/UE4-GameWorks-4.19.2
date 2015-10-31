@@ -4,6 +4,8 @@
 
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
+#include "Animation/AnimationSettings.h"
+#include "CompilerResultsLog.h"
 #include "AnimGraphNode_ApplyMeshSpaceAdditive.h"
 
 /////////////////////////////////////////////////////
@@ -37,4 +39,14 @@ FString UAnimGraphNode_ApplyMeshSpaceAdditive::GetNodeCategory() const
 	//@TODO: TEXT("Apply additive to normal pose"), TEXT("Apply additive pose"));
 }
 
+void UAnimGraphNode_ApplyMeshSpaceAdditive::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
+{
+	if (UAnimationSettings::Get()->bEnablePerformanceLog)
+	{
+		if (Node.LODThreshold < 0)
+		{
+			MessageLog.Warning(TEXT("@@ contains no LOD Threshold."), this);
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE

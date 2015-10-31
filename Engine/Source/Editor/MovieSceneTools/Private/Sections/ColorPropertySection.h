@@ -21,7 +21,7 @@ public:
 	 * @param InTrack The track that owns the section.
 	 */
 	FColorPropertySection(UMovieSceneSection& InSectionObject, ISequencer* InSequencer, UMovieSceneTrack& InTrack)
-		: FPropertySection(InSectionObject, InTrack.GetTrackName())
+		: FPropertySection(InSectionObject, InTrack.GetDisplayName())
 		, Sequencer(InSequencer)
 		, Track(*Cast<UMovieSceneColorTrack>(&InTrack))
 	{ }

@@ -8,22 +8,12 @@
 
 class UWorld;
 class FUniqueNetId;
-typedef FUniqueNetId FOnlinePartyId;
 typedef FUniqueNetIdRepl FOnlinePartyIdRepl;
 class UPartyGameState;
 class UGameInstance;
 class IOnlinePartyJoinInfo;
 
 enum class EPartyType : uint8;
-
-#define PARTY_CONFIG_TYPE TEXT("PARTY_CONFIG_TYPE")
-enum class EPartyConfigType : uint8
-{
-	// Social "persistent" party
-	PersistentParty = 0,
-	// Transient team association
-	TeamParty
-};
 
 /**
  * Holds the basic information needed to join a party
@@ -36,20 +26,25 @@ struct FPartyDetails
 
 	bool IsValid() const
 	{
-		return !PartyJoinInfo->IsInvalidForJoin();
+		return PartyJoinInfo->IsValid();
 	}
 
-	inline const TSharedRef<const FOnlinePartyId>& GetPartyId() const
+	const TSharedRef<const FOnlinePartyId>& GetPartyId() const
 	{
 		return PartyJoinInfo->GetPartyId();
 	}
 
-	inline const TSharedRef<const FUniqueNetId>& GetLeaderId() const
+	const FOnlinePartyTypeId GetPartyTypeId() const
+	{
+		return PartyJoinInfo->GetPartyTypeId();
+	}
+
+	const TSharedRef<const FUniqueNetId>& GetLeaderId() const
 	{
 		return PartyJoinInfo->GetLeaderId();
 	}
 
-	inline const FString& GetAppId() const
+	const FString& GetAppId() const
 	{
 		return PartyJoinInfo->GetAppId();
 	}
@@ -66,6 +61,35 @@ struct FPartyDetails
 	TSharedRef<const IOnlinePartyJoinInfo> PartyJoinInfo;
 	bool bAcceptInvite;
 };
+
+///////////////////////////////////////////////////////////////////
+// Completion delegates
+///////////////////////////////////////////////////////////////////
+namespace UPartyDelegates
+{
+	/**
+	 * Party creation async task completed callback
+	 *
+	 * @param LocalUserId - id of user that initiated the request
+	 * @param Result - result of the operation
+	 */
+	DECLARE_DELEGATE_TwoParams(FOnCreateUPartyComplete, const FUniqueNetId& /*LocalUserId*/, const ECreatePartyCompletionResult /*Result*/);
+	/**
+	 * Party join async task completed callback
+	 *
+	 * @param LocalUserId - id of user that initiated the request
+	 * @param Result - result of the operation
+	 * @param NotApprovedReason - client defined value describing why you were not approved
+	 */
+	DECLARE_DELEGATE_ThreeParams(FOnJoinUPartyComplete, const FUniqueNetId& /*LocalUserId*/, const EJoinPartyCompletionResult /*Result*/, const int32 /*NotApprovedReason*/);
+	/**
+	 * Party leave async task completed callback
+	 *
+	 * @param LocalUserId - id of user that initiated the request
+	 * @param Result - result of the operation
+	 */
+	DECLARE_DELEGATE_TwoParams(FOnLeaveUPartyComplete, const FUniqueNetId& /*LocalUserId*/, const ELeavePartyCompletionResult /*Result*/);
+}
 
 /**
  * High level singleton for the management of parties, all parties are contained within
@@ -139,10 +163,11 @@ public:
 	 * Create a generic party
 	 *
 	 * @param InUserId user creating the party (should be primary player)
+	 * @param InPartyTypeId desired party type
 	 * @param InPartyConfig desired party configuration
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	void CreateParty(const FUniqueNetId& InUserId, const FPartyConfiguration& InPartyConfig, const FOnCreatePartyComplete& InCompletionDelegate);
+	void CreateParty(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const FPartyConfiguration& InPartyConfig, const UPartyDelegates::FOnCreateUPartyComplete& InCompletionDelegate);
 
 	/**
 	 * Join a generic party
@@ -151,7 +176,7 @@ public:
 	 * @param InPartyDetails credentials for the party to join
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	void JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate);
+	void JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate);
 
 	/**
 	 * Leave a generic party
@@ -160,7 +185,7 @@ public:
 	 * @param InPartyId id of the party to leave
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	void LeaveParty(const FUniqueNetId& InUserId, const FOnlinePartyId& InPartyId, const FOnLeavePartyComplete& InCompletionDelegate);
+	void LeaveParty(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate);
 	
 	/**
 	 * Create a persistent party (party that will hold users for the duration of app)
@@ -168,7 +193,7 @@ public:
 	 * @param InUserId user creating the party (should be primary player)
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	virtual void CreatePersistentParty(const FUniqueNetId& InUserId, const FOnCreatePartyComplete& InCompletionDelegate);
+	virtual void CreatePersistentParty(const FUniqueNetId& InUserId, const UPartyDelegates::FOnCreateUPartyComplete& InCompletionDelegate = UPartyDelegates::FOnCreateUPartyComplete());
 
 	/**
 	 * Join a persistent party (party that will hold users for the duration of app)
@@ -177,7 +202,7 @@ public:
 	 * @param InPartyDetails credentials for the party to join
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	virtual void JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate);
+	virtual void JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate = UPartyDelegates::FOnJoinUPartyComplete());
 
 	/**
 	 * Leave a persistent party, a new one will need to be created for the given user afterward
@@ -185,7 +210,7 @@ public:
 	 * @param InUserId user creating the party (should be primary player)
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	virtual void LeavePersistentParty(const FUniqueNetId& InUserId, const FOnLeavePartyComplete& InCompletionDelegate);
+	virtual void LeavePersistentParty(const FUniqueNetId& InUserId, const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate = UPartyDelegates::FOnLeaveUPartyComplete());
 
 	/**
 	 * Reestablish all party state and information upon returning to the main menu
@@ -209,7 +234,7 @@ public:
 	 *
 	 * @return true if a pending invite is available and a join will be attempted, false otherwise
 	 */
-	bool ProcessPendingPartyInvites();
+	bool ProcessPendingPartyJoin();
 
 	/**
 	 * Take ownership of a pending invite and do what is necessary to get the game to a point where it can be used
@@ -218,7 +243,8 @@ public:
 	 * @param PartyDetails party details used for the join
 	 * @param JoinCompleteDelegate delegate to call once the pending invite has been joined or in all failure cases
 	 */
-	virtual void HandlePendingInvite(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const FOnJoinPartyComplete& JoinCompleteDelegate);
+	void AddPendingPartyJoin(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& JoinCompleteDelegate);
+	//void AddPendingPartyJoin(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const FOnJoinPartyComplete& JoinCompleteDelegate);
 
 	/**
 	 * Is any local player in the given party
@@ -255,6 +281,9 @@ public:
 	/** @return the party state for a given party */
 	UPartyGameState* GetParty(const FOnlinePartyId& InPartyId) const;
 
+	/** @return the party state for a given party type */
+	UPartyGameState* GetParty(const FOnlinePartyTypeId InPartyTypeId) const;
+
 	/** @return the party state for the persistent party */
 	UPartyGameState* GetPersistentParty() const;
 
@@ -267,33 +296,37 @@ public:
 
 protected:
 
-	/** Pending party invite */
-	struct FPendingPartyInvite
+	/** Pending party join */
+	struct FPendingPartyJoin : public TSharedFromThis<FPendingPartyJoin>
 	{
-		FPendingPartyInvite(
-			TSharedRef<const FUniqueNetId> InLocalUserId,
-			const FPartyDetails& InPartyDetails,
-			const FOnJoinPartyComplete& InJoinCompleteDelegate)
+		FPendingPartyJoin(TSharedRef<const FUniqueNetId> InLocalUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InDelegate)
 			: LocalUserId(InLocalUserId)
 			, PartyDetails(InPartyDetails)
-			, JoinCompleteDelegate(InJoinCompleteDelegate)
-		{}
+			, Delegate(InDelegate)
+		{
+			
+			ensure(LocalUserId->IsValid());
+		}
 
 		/** user that sent the invite */
 		TSharedRef<const FUniqueNetId> LocalUserId;
 		/** details about party to join */
 		FPartyDetails PartyDetails;
-		/** delegate to call when the join for this party invite has been completed */
-		FOnJoinPartyComplete JoinCompleteDelegate;
-		/** @return true if info is available to attempt a game join */
-		inline bool IsValid() const
-		{
-			return PartyDetails.IsValid();
-		}
+
+		UPartyDelegates::FOnJoinUPartyComplete Delegate;
 	};
 
 	/** game invite info that is available to join via an accepted game invite */
-	TSharedPtr<FPendingPartyInvite> PendingPartyInvite;
+	TSharedPtr<FPendingPartyJoin> PendingPartyJoin;
+
+	/**
+	* Take ownership of a pending invite and do what is necessary to get the game to a point where it can be used
+	*
+	* @param LocalUserId who the invite is to
+	* @param PartyDetails party details used for the join
+	* @param JoinCompleteDelegate delegate to call once the pending invite has been joined or in all failure cases
+	*/
+	virtual void HandlePendingJoin() PURE_VIRTUAL(UParty::HandlePendingJoin, )
 
 	/**
 	 * Party configuration
@@ -306,7 +339,7 @@ public:
 protected:
 
 	/** Mapping of party types to party classes, up to game to define relationship */
-	TMap<int32, TSubclassOf<UPartyGameState>> PartyClasses;
+	TMap<FOnlinePartyTypeId, TSubclassOf<UPartyGameState>> PartyClasses;
 
 	UPROPERTY(Config)
 	int32 DefaultMaxPartySize;
@@ -337,11 +370,11 @@ private:
 	UPROPERTY()
 	bool bLeavingPersistentParty;
 	/** Array of leave persistent party delegates gathered while already leaving a persistent party */
-	TArray<FOnLeavePartyComplete> LeavePartyCompleteDelegates;
+	TArray<UPartyDelegates::FOnLeaveUPartyComplete> LeavePartyCompleteDelegates;
 	/** Id of the current persistent party, only one and it should always be valid except while transferring between parties */
 	TSharedPtr<const FOnlinePartyId> PersistentPartyId;
 	/** Mapping of all known joined parties */
-	TMap<FString, UPartyGameState*> JoinedParties;
+	TMap<FOnlinePartyTypeId, UPartyGameState*> JoinedParties;
 
 	/** Delegate when parties are joined */
 	FOnPartyUpdate PartyJoinedDelegates;
@@ -394,24 +427,35 @@ private:
 	/**
 	 * Common calls for managing parties
 	 */
-	void CreatePartyInternal(const FUniqueNetId& InUserId, const FPartyConfiguration& InPartyConfig, const FOnCreatePartyComplete& InCompletionDelegate);
-	void JoinPartyInternal(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate);
-	void LeavePartyInternal(const FUniqueNetId& InUserId, const FOnlinePartyId& InPartyId, const FOnLeavePartyComplete& InCompletionDelegate);
+	void CreatePartyInternal(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const FPartyConfiguration& InPartyConfig, const UPartyDelegates::FOnCreateUPartyComplete& InCompletionDelegate);
+	void JoinPartyInternal  (const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate);
+	void LeavePartyInternal(const FUniqueNetId& InUserId, const FOnlinePartyTypeId InPartyTypeId, const UPartyDelegates::FOnLeaveUPartyComplete& InCompletionDelegate);
 
 	/**
 	 * Delegates for managing parties
 	 */
-	void OnCreatePartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ECreatePartyCompletionResult Result, FOnCreatePartyComplete CompletionDelegate);
-	void OnJoinPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, FOnJoinPartyComplete CompletionDelegate);
-	void OnLeavePartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, FOnLeavePartyComplete CompletionDelegate);
+	void OnCreatePartyComplete(const FUniqueNetId& LocalUserId, const ECreatePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate);
+	void OnJoinPartyComplete(const FUniqueNetId& LocalUserId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate);
+	void OnLeavePartyComplete(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate);
 	void HandleJoinPersistentPartyFailure();
+
+	void OnCreatePartyInternalComplete(const FUniqueNetId& LocalUserId, const TSharedPtr<const FOnlinePartyId>& InPartyId, const ECreatePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate);
+	void OnJoinPartyInternalComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate);
+	void OnLeavePartyInternalComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate);
+
+	/**
+	 * Internal helpers for delegates
+	 */
+	enum class EOnCreatePartyCompleteInternalResult OnCreatePartyCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId InPartyTypeId);
+	enum class EOnJoinPartyCompleteInternalResult   OnJoinPartyCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId InPartyTypeId);
+	enum class EOnLeavePartyCompleteInternalResult  OnLeavePartyCompleteInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId InPartyTypeId);
 
 	/**
 	 * Delegates for managing persistent parties
 	 */
-	void OnCreatePersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ECreatePartyCompletionResult Result, FOnCreatePartyComplete CompletionDelegate);
-	void OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, FOnJoinPartyComplete CompletionDelegate);
-	void OnLeavePersistentPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, FOnLeavePartyComplete CompletionDelegate);
+	void OnCreatePersistentPartyComplete(const FUniqueNetId& LocalUserId, const ECreatePartyCompletionResult Result, UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate);
+	void OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate);
+	void OnLeavePersistentPartyComplete(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result, UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate);
 
 	/**
 	 * Party state management delegates 
@@ -435,7 +479,7 @@ private:
 	 * Error handling to restore persistent party after leaving a different one
 	 */
 	void LeaveAndRestorePersistentPartyInternal();
-	void OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const ELeavePartyCompletionResult Result);
+	void OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult Result);
 
 	/**
 	 * Delegate handles
@@ -470,3 +514,100 @@ protected:
 
 };
 
+enum class EOnCreatePartyCompleteInternalResult
+{
+	UnknownFailure,
+	InvalidSystemInterface,
+	InvalidPartyId,
+	InvalidParty,
+	InvalidPartyType,
+	Success
+};
+
+enum class EOnJoinPartyCompleteInternalResult
+{
+	UnknownFailure,
+	InvalidSystemInterface,
+	InvalidParty,
+	InvalidPartyType,
+	Success
+};
+
+enum class EOnLeavePartyCompleteInternalResult
+{
+	UnknownFailure,
+	InvalidPartyState,
+	Success
+};
+
+inline const TCHAR* ToString(EOnCreatePartyCompleteInternalResult Value)
+{
+	switch (Value)
+	{
+	case EOnCreatePartyCompleteInternalResult::UnknownFailure:
+	{
+		return TEXT("UnknownFailure");
+	}
+	case EOnCreatePartyCompleteInternalResult::InvalidSystemInterface:
+	{
+		return TEXT("InvalidSystemInterface");
+	}
+	case EOnCreatePartyCompleteInternalResult::InvalidPartyId:
+	{
+		return TEXT("InvalidPartyId");
+	}
+	case EOnCreatePartyCompleteInternalResult::InvalidParty:
+	{
+		return TEXT("InvalidParty");
+	}
+	case EOnCreatePartyCompleteInternalResult::Success:
+	{
+		return TEXT("Success");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(EOnJoinPartyCompleteInternalResult Value)
+{
+	switch (Value)
+	{
+	case EOnJoinPartyCompleteInternalResult::UnknownFailure:
+	{
+		return TEXT("UnknownFailure");
+	}
+	case EOnJoinPartyCompleteInternalResult::InvalidSystemInterface:
+	{
+		return TEXT("InvalidSystemInterface");
+	}
+	case EOnJoinPartyCompleteInternalResult::InvalidParty:
+	{
+		return TEXT("InvalidParty");
+	}
+	case EOnJoinPartyCompleteInternalResult::Success:
+	{
+		return TEXT("Success");
+	}
+	}
+	return TEXT("");
+}
+
+inline const TCHAR* ToString(EOnLeavePartyCompleteInternalResult Value)
+{
+	switch (Value)
+	{
+	case EOnLeavePartyCompleteInternalResult::UnknownFailure:
+	{
+		return TEXT("UnknownFailure");
+	}
+	case EOnLeavePartyCompleteInternalResult::InvalidPartyState:
+	{
+		return TEXT("InvalidPartyState");
+	}
+	case EOnLeavePartyCompleteInternalResult::Success:
+	{
+		return TEXT("Success");
+	}
+	}
+	return TEXT("");
+}

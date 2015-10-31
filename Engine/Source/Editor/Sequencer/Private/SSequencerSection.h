@@ -12,7 +12,7 @@ public:
 	{}
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<FTrackNode> SectionNode, int32 SectionIndex );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencerTrackNode> SectionNode, int32 SectionIndex );
 
 	TSharedPtr<ISequencerSection> GetSectionInterface() const { return SectionInterface; }
 
@@ -206,7 +206,7 @@ private:
 	/** Interface to section data */
 	TSharedPtr<ISequencerSection> SectionInterface;
 	/** Section area where this section resides */
-	TSharedPtr<FTrackNode> ParentSectionArea;
+	TSharedPtr<FSequencerTrackNode> ParentSectionArea;
 	/** Cached layout generated each tick */
 	TOptional<FKeyAreaLayout> Layout;
 	/** The currently pressed key if any */

@@ -17,6 +17,7 @@ public:
 
 	GENERATED_BODY()
 
+#if WITH_EDITORONLY_DATA
 	/** Set the level sequence asset that we are to record. We will spawn a new actor at runtime for this asset for playback. */
 	void SetLevelSequenceAsset(FString InAssetPath);
 
@@ -34,10 +35,19 @@ public:
 public:
 	// UMovieSceneCapture interface
 	virtual void Initialize(TWeakPtr<FSceneViewport> InViewport) override;
-#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-	
+
+private:
+
+	/** Called when this capture has stopped */
+	virtual void OnCaptureStopped() override;
+
+	/** Called when the level sequence has updated the world */
+	void SequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime);
+
+	/** Delegate binding for the above callback */
+	FDelegateHandle OnPlayerUpdatedBinding;
+
 private:
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -57,6 +67,6 @@ private:
 	/** Transient amount of time that has passed since the level was started. When >= Settings.Preroll, playback will start  */
 	TOptional<float> PrerollTime;
 
-	/** Flag specifying whether the sequence was playing last frame or not */
-	bool bWasPlaying;
+#endif
 };
+

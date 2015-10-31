@@ -27,6 +27,7 @@ public:
 protected:
 	//~ Begin UAnimGraphNode_SkeletalControlBase Interface
 	virtual FText GetControllerDescription() const override;
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
 	//~ End UAnimGraphNode_SkeletalControlBase Interface
 
 private:

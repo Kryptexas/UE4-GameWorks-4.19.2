@@ -21,10 +21,10 @@ public:
 	 * @param InParentNode The parent of this node, or nullptr if this is a root node.
 	 * @param InParentTree The tree this node is in.
 	 */
-	FSequencerObjectBindingNode(FName NodeName, const FString& InObjectName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree)
+	FSequencerObjectBindingNode(FName NodeName, const FText& InDisplayName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree)
 		: FSequencerDisplayNode(NodeName, InParentNode, InParentTree)
 		, ObjectBinding(InObjectBinding)
-		, DefaultDisplayName(FText::FromString(InObjectName))
+		, DefaultDisplayName(InDisplayName)
 	{ }
 
 public:
@@ -41,24 +41,26 @@ public:
 	// FSequencerDisplayNode interface
 
 	virtual void BuildContextMenu(FMenuBuilder& MenuBuilder) override;
+	virtual bool CanRenameNode() const override;
 	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual ESequencerNode::Type GetType() const override;
+	virtual void SetDisplayName(const FText& DisplayName) override;
 
-private:
-
-	TSharedRef<SWidget> OnGetAddTrackMenuContent();
-
-	void AddPropertyMenuItemsWithCategories(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyablePropertyPath);
+protected:
 
 	void AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyableProperties, int32 PropertyNameIndexStart = 0, int32 PropertyNameIndexEnd = -1);
 
-	void AddTrackForProperty(TArray<UProperty*> PropertyPath);
-
 	/** Get class for object binding */
 	const UClass* GetClassForObjectBinding();
+
+private:
+
+	TSharedRef<SWidget> HandleAddTrackComboButtonGetMenuContent();
+	void HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyablePropertyPath);
+	void HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath);
 
 private:
 
