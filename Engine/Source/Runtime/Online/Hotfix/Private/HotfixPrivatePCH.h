@@ -4,4 +4,5 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
+#include "Engine.h"
 #include "Online.h"
