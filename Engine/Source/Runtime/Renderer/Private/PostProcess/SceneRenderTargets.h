@@ -154,6 +154,8 @@ public:
 	/** Destruct all snapshots */
 	void DestroyAllSnapshots();
 
+	static TAutoConsoleVariable<int32> CVarSetSeperateTranslucencyEnabled;
+
 protected:
 	/** Constructor */
 	FSceneRenderTargets(): 

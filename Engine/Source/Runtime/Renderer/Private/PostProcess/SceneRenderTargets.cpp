@@ -1402,7 +1402,7 @@ const FTexture2DRHIRef& FSceneRenderTargets::GetEditorPrimitivesDepth(FRHIComman
 	return (const FTexture2DRHIRef&)EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture;
 }
 
-static TAutoConsoleVariable<int32> CVarSetSeperateTranslucencyEnabled(
+TAutoConsoleVariable<int32> FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled(
 	TEXT("r.SeparateTranslucency"),
 	1,
 	TEXT("Allows to disable the separate translucency feature (all translucency is rendered in separate RT and composited\n")
@@ -1412,9 +1412,8 @@ static TAutoConsoleVariable<int32> CVarSetSeperateTranslucencyEnabled(
 	ECVF_RenderThreadSafe);
 
 bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) const
-{
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SeparateTranslucency"));
-	int32 Value = CVar->GetValueOnRenderThread();
+{	
+	int32 Value = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
 	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
 		&& View.Family->EngineShowFlags.PostProcessing
