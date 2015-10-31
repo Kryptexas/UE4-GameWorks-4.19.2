@@ -34,7 +34,8 @@ id<MTLDevice> GMetalDevice = nil;
 {
 #ifdef __IPHONE_9_0
     NSArray* versionArray = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
-    return [[versionArray objectAtIndex:0] intValue] == 8;
+    FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
+   return Device == FPlatformMisc::IOS_IPhone6 && [[versionArray objectAtIndex:0] intValue] == 8;
 #else
     return false;
 #endif
