@@ -349,8 +349,9 @@ void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const cla
 		PrepareGPUSimulation(RHICmdList);
 
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDepthBuffer, CollisionView, NULL, SceneDepthTexture, GBufferATexture);
-		SortGPUParticles(RHICmdList);
 
 		FinalizeGPUSimulation(RHICmdList);
+
+		SortGPUParticles(RHICmdList);		
 	}
 }
