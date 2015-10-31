@@ -1799,6 +1799,43 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Parses the argument list for any number of parameters.
+		/// </summary>
+		/// <param name="ArgList">Argument list.</param>
+		/// <param name="Param">Param to read its value.</param>
+		/// <returns>Returns an array of values for this parameter (or an empty array if one was not found.</returns>
+		public static string[] ParseParamValues(object[] ArgList, string Param)
+		{
+			string ParamEquals = Param;
+			if (!ParamEquals.EndsWith("="))
+			{
+				ParamEquals += "=";
+			}
+
+			List<string> Values = new List<string>();
+			foreach (object Arg in ArgList)
+			{
+				string ArgStr = Arg.ToString();
+				if (ArgStr.StartsWith(ParamEquals, StringComparison.InvariantCultureIgnoreCase))
+				{
+					Values.Add(ArgStr.Substring(ParamEquals.Length));
+				}
+			}
+			return Values.ToArray();
+		}
+
+		/// <summary>
+		/// Parses the argument list for any number of parameters.
+		/// </summary>
+		/// <param name="ArgList">Argument list.</param>
+		/// <param name="Param">Param to read its value.</param>
+		/// <returns>Returns an array of values for this parameter (or an empty array if one was not found.</returns>
+		public string[] ParseParamValues(string Param)
+		{
+			return ParseParamValues(Params, Param);
+		}
+
+		/// <summary>
 		/// Parses the command's Params list for a parameter and reads its value. 
 		/// Ex. ParseParamValue(Args, "map=")
 		/// </summary>

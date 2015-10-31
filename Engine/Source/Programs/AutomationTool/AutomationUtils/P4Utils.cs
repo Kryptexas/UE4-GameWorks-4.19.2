@@ -2595,11 +2595,18 @@ namespace AutomationTool
             SpecInput += "Options: " + ClientSpec.Options.ToString().ToLowerInvariant().Replace(",", "") + Environment.NewLine;
             SpecInput += "SubmitOptions: " + ClientSpec.SubmitOptions.ToString().ToLowerInvariant().Replace(",", "") + Environment.NewLine;
             SpecInput += "LineEnd: " + ClientSpec.LineEnd.ToString().ToLowerInvariant() + Environment.NewLine;
-            SpecInput += "View:" + Environment.NewLine;
-            foreach (var Mapping in ClientSpec.View)
-            {
-                SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
-            }
+			if(ClientSpec.Stream != null)
+			{
+				SpecInput += "Stream: " + ClientSpec.Stream + Environment.NewLine;
+			}
+			else
+			{
+				SpecInput += "View:" + Environment.NewLine;
+				foreach (var Mapping in ClientSpec.View)
+				{
+					SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
+				}
+			}
 			if (AllowSpew) CommandUtils.LogLog(SpecInput);
             LogP4("client -i", SpecInput, AllowSpew: AllowSpew, WithClient: false);
             return ClientSpec;
