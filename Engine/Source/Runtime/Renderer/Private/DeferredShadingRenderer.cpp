@@ -1279,7 +1279,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			GetRendererModule().RenderPostOpaqueExtensions(View, RHICmdList, SceneContext);
 		}
 
-		SceneContext.FinishRenderingSceneColor(RHICmdList, false);
+		SceneContext.FinishRenderingSceneColor(RHICmdList, true);
 	}
 
 	// No longer needed, release
@@ -1904,4 +1904,6 @@ void FDeferredShadingSceneRenderer::DownsampleDepthSurface(FRHICommandList& RHIC
 		SceneContext.GetBufferSizeXY(),
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
+
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTarget);
 }
