@@ -34,10 +34,10 @@ void FActorPickerTrackEditor::ShowActorSubMenu(FMenuBuilder& MenuBuilder, FGuid 
 {
 	struct Local
 	{
-		static FReply OnInteractiveActorPickerClicked(FActorPickerTrackEditor* ActorPickerTrackEditor, FGuid ObjectBinding, UMovieSceneSection* Section)
+		static FReply OnInteractiveActorPickerClicked(FActorPickerTrackEditor* ActorPickerTrackEditor, FGuid InObjectBinding, UMovieSceneSection* InSection)
 		{
 			FSlateApplication::Get().DismissAllMenus();
-			ActorPickerTrackEditor->PickActorInteractive(ObjectBinding, Section);
+			ActorPickerTrackEditor->PickActorInteractive(InObjectBinding, InSection);
 			return FReply::Handled();
 		}
 	};

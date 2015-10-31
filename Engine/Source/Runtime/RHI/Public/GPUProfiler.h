@@ -241,8 +241,8 @@ public:
 	}
 
 	FWindowedGPUTimer(uint32 BufferSize, uint32 FramesBehind, FRHICommandListImmediate& RHICmdList)
-		:QueriesFinished(0)
-		, QueriesFailed(0)
+		: QueriesFailed(0)
+		, QueriesFinished(0)
 	{
 		StartQueries.AddZeroed(BufferSize);
 		EndQueries.AddZeroed(BufferSize);
