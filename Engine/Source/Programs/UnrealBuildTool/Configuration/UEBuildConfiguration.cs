@@ -290,6 +290,12 @@ namespace UnrealBuildTool
 		public static string PreferredSubPlatform = "";
 
 		/// <summary>
+		/// Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
+		/// </summary>
+		[XmlConfig]
+		public static bool bEditorDependsOnShaderCompileWorker;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -330,6 +336,7 @@ namespace UnrealBuildTool
 			bSkipLinkingWhenNothingToCompile = false;
 			bCompileCEF3 = true;
 			PreferredSubPlatform = "";
+			bEditorDependsOnShaderCompileWorker = true;
 		}
 
 		/// <summary>
