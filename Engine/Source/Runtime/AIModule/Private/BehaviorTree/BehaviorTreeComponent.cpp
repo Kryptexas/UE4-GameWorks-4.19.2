@@ -1524,7 +1524,7 @@ void UBehaviorTreeComponent::UnregisterParallelTask(const UBTTaskNode* TaskNode,
 				UE_VLOG(GetOwner(), LogBehaviorTree, Verbose, TEXT("Parallel task: %s removed from active list"),
 					*UBehaviorTreeTypes::DescribeNodeHelper(TaskNode));
 
-				InstanceInfo.ParallelTasks.RemoveAt(TaskIndex);
+				InstanceInfo.ParallelTasks.RemoveAt(TaskIndex, /*Count=*/1, /*bAllowShrinking=*/false);
 				bShouldUpdate = true;
 				break;
 			}
@@ -2052,7 +2052,7 @@ void UBehaviorTreeComponent::StoreDebuggerExecutionStep(EBTExecutionSnap::Type S
 	UBehaviorTreeManager* ManagerCDO = (UBehaviorTreeManager*)UBehaviorTreeManager::StaticClass()->GetDefaultObject();
 	while (DebuggerSteps.Num() >= ManagerCDO->MaxDebuggerSteps)
 	{
-		DebuggerSteps.RemoveAt(0);
+		DebuggerSteps.RemoveAt(0, /*Count=*/1, /*bAllowShrinking=*/false);
 	}
 	DebuggerSteps.Add(CurrentStep);
 #endif
