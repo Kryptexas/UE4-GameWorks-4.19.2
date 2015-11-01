@@ -20,13 +20,6 @@ partial class GUBP
 		public bool bForceIncrementalCompile;
         public JobInfo JobInfo;
 
-		// Included for compatibility with //UE4/Main import
-		[Obsolete]
-		public bool bPreflightBuild
-		{
-			get { return JobInfo.IsPreflight; }
-		}
-
 		public Dictionary<string, GUBPNode> GUBPNodes = new Dictionary<string, GUBPNode>();
 		public Dictionary<string, GUBPAggregateNode> GUBPAggregates = new Dictionary<string, GUBPAggregateNode>();
 

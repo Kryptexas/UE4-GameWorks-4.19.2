@@ -20,20 +20,6 @@ partial class GUBP
         public List<string> AllDependencyBuildProducts = null;
         public string AgentSharingGroup = "";
 
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public virtual string GameNameIfAnyForTempStorage()
-		{
-			return "";
-		}
-
-		// Included for compatibility during //UE4/Main import
-		[Obsolete]
-		public virtual string RootIfAnyForTempStorage()
-		{
-			return "";
-		}
-
         public virtual string GetFullName()
         {
             throw new AutomationException("Unimplemented GetFullName.");
