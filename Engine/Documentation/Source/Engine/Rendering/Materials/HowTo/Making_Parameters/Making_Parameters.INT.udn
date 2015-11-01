@@ -6,6 +6,8 @@ Related: Engine/Rendering/Materials/ExpressionReference/Parameters
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/Materials/ParameterCollections
 Related: Engine/Matinee/HowTo/MHT_6
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC(start:2)]
 
@@ -89,7 +91,7 @@ Where the real power of Material Parameters comes into play is when you use them
 
 1. First find and add the following type and amount of Material Parameter Expression nodes to the Material Graph.
 
-	* **  Vector Parameter ** x 1
+	* ** Vector Parameter ** x 1
 	* ** Scalar Node** x 2
 	
 	[OBJECT:EmbeddedVideo]
@@ -110,9 +112,9 @@ Where the real power of Material Parameters comes into play is when you use them
 
 1. Next, make sure that all the Parameter nodes have names and default values. For this example, we are using the following names and default values.
 
-	* ** Base_Color** R:1.0 G:0.0 B:0.0
-	* ** Metallic** 0.0
-	* ** Roughness** 0.5
+	* **Base_Color** R:1.0 G:0.0 B:0.0
+	* **Metallic** 0.0
+	* **Roughness** 0.5
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

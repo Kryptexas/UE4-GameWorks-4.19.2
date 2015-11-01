@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597598
+﻿INTSourceChangelist:2688489
 Availability: Public
 Title:머티리얼 에디터 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:셰이더 제작용 머티리얼 에디터 사용 안내서입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -74,7 +75,7 @@ Description:셰이더 제작용 머티리얼 에디터 사용 안내서입니다
 둘러놓으면 네트워크 전체를 설명하기에 딱 좋습니다.
 
 코멘트는 그래프에 마우스 커서를 띄운 상태로 **C** 키를 눌러 언제든지 만들 수 있습니다. 그래프의 빈 부분에 우클릭한 후 
-**새 코멘트** 를 선택해도 됩니다.
+맥락 메뉴에서 **코멘트 추가** 를 선택해도 됩니다.
 
 코멘트 자체는 코멘트 박스 위에 말풍선으로 표시됩니다. 이 텍스트는 그래프의 줌 레벨에 따라 크기가 변하지 않으므로,
 아주 멀리서 보는 상태에서도 설명을 읽을 수 있을 것입니다.

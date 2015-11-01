@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2669315
+﻿INTSourceChangelist:2743682
 Availability:Public
 Title: 엔진 기능
 Crumbs: %ROOT%
 Description:언리얼 엔진을 이루는 툴과 시스템 사용법 안내서 전집입니다.
 Navigation:topic
+parent:%ROOT%
+order:3
 
 [VAR:Params]
 [PARAM:image]
@@ -74,6 +76,15 @@ engine
 
 ## 주제별 탐색
 
+[DIR(end:"1" output:"topiccompact" parent:"Engine" org:"hierarchy")]
+
+<!--
+## Table of Contents
+[DIR(end:"3" type:"list")]
+-->
+<!--
+## Browse Topics
+
 [REGION:topics third]
 %Engine/Rendering:topiccompact%
 %Engine/UMG:topiccompact%
@@ -91,6 +102,7 @@ engine
 %Engine/Performance:topiccompact%
 %Engine/Deployment:topiccompact%
 [/REGION]
+-->
 
 ## 목차
 
@@ -507,9 +519,3 @@ engine
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-
-
-
-

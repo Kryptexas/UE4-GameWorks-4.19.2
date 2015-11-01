@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2743761
+Availability:Public
 Title:エンジン機能のサンプル
 Crumbs:%ROOT%, Resources
 Description:特定の課題に対する機能やアプローチをフルシーンで実演します
@@ -50,16 +51,17 @@ Version:4.9
 [/EXCERPT:Showcases]
 
 [REGION:topics third]
-%Resources/ContentExamples:TopicCompact%
 %Resources/Showcases/Infiltrator:topiccompact%
+%Resources/ContentExamples:TopicCompact%
+%Engine/OpenWorldTools:TopicCompact%
 %watertopic%
 %featurestopic%
 %Resources/Showcases/MatineeFightScene:topiccompact%
-%Resources/Showcases/Effects:TopicCompact%
 %Resources/Showcases/Reflections:TopicCompact%
 %Resources/Showcases/RealisticRendering:TopicCompact%
-%Resources/Showcases/Stylized:TopicCompact%
+%Resources/Showcases/Effects:TopicCompact%
 %Resources/Showcases/BlueprintExamples:TopicCompact%
+%Resources/Showcases/Stylized:TopicCompact%
 [/REGION]
 
 [VAR:watertopic]

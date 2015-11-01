@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2472995
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:サンプルとチュートリアル
 Crumbs:%ROOT%
 Description:各種サンプルシーン、ゲームサンプル、チュートリアルをみてみましょう。
 Navigation:topic
+Version:4.9
+parent:%ROOT%
+order:7
 
 [VAR:Params]
 [PARAM:image]
@@ -44,7 +47,7 @@ resources
 [/OBJECT]
 [/VAR]
 
-アンリアル エンジン 4 およびアンリアル エンジン 4 で作成できるアセットの様々な使用方法を分かりやすくするために、皆様がダウンロードし、直接使って分解もできる、学習用リソース集をご用意いたました。
+アンリアル エンジン 4 およびアンリアル エンジン 4 で作成可能なアセットの使い方を分かりやすく学習できる学習用リソースです。ダウンロードして、実際にあれこれ使ってみて、分析してみましょう。
 
 [REGION:topics third]
 %Videos:topic%

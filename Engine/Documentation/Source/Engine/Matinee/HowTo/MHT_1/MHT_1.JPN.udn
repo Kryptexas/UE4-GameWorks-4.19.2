@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2517729
+﻿INTSourceChangelist:2739011
 Availability:Public
 Title:ドアの設定
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:マチネで自動的に開閉するドアを設定する 
+Version:4.9
+SkillLevel:Beginner
 
 
 ---
@@ -20,7 +22,7 @@ Description:マチネで自動的に開閉するドアを設定する
 
 1. **[Unreal Project Browser]** ウィンドウから **新規プロジェクト** を作成し、**Blueprint Third Person** テンプレートを使用します。 
 
-	![](MHT1_CreateProject.png)(w:640)
+	![](MatineeHowTo.jpg)(w:640)
 
 1. **[Include starter content]** を必ず有効にしてください。 
 
@@ -38,43 +40,49 @@ Description:マチネで自動的に開閉するドアを設定する
 	[/PARAM]
 [/OBJECT]
 
-1. **コンテンツブラウザ** 内で **「Props」** フォルダを探して選択し、**SM_DoorFrame** スタティックメッシュを見つけます。 
+1. **コンテンツブラウザ** で **「Props」** フォルダを探して選択し、**SM_DoorFrame** スタティックメッシュを見つけます。 
 
 	![](MHT1_DoorFrame.png)(w:480)
 
-	_注記:**Props** フォルダが見つからない場合、**プロジェクト作成** のステップを参照し、**[Include starter content]** が有効になっているかを確認してください。_
+	[Region:note]
+	注記:**Props** フォルダが見つからない場合、**プロジェクト作成** のステップを参照し、**[Include starter content]** が有効になっているかを確認してください。
+	[/Region]
 
 1. **SM_DoorFrame** スタティックメッシュ上で **左クリック** して、**レベル ビューポート** にドラッグ＆ドロップします。 
 
-	![](MHT1_DragFrame.png)(w:640)
+	![](MHT_DoorFrameDragIn.jpg)(w:640)
 
-1. また、**「Props」** フォルダで **SM_Door** スタティックメッシュを探して、**レベル ビューポート** にドラッグ＆ドロップします。 
+1. また、「Props」 フォルダで **SM_Door** スタティックメッシュを探して、レベル ビューポートにドラッグ＆ドロップします。 
 
-	![](MHT1_DragDoor.png)(w:640)
+	![](MHT_DoorDragIn.jpg)(w:640)
 
-1. **コンテンツ ブラウザ** で再度 **SM_Door** スタティックメッシュを探し、その上で **ダブルクリック** し、**スタティックメッシュ** ビューアで開きます。 
+1. コンテンツ ブラウザで再度 SM_Door スタティックメッシュを探し、その上で **ダブルクリック** し、**スタティックメッシュ** ビューアで開きます。 
 
-1. **[詳細]** パネル内の検索フィールドで **Collision** と入力し、**Collision Complexity** 設定を **Use Complex Collision as Simple** に設定します。 
+1. **[Details (詳細)]** パネルの検索フィールドで **Collision** と入力し、**Collision Complexity** 設定を **Use Complex Collision as Simple** に設定します。 
 
-	![](MHT1_DoorCollision.png)
+	![](MHT_CollisionComplexity.jpg)
 
-	_注記:上記のステップでは、コリジョンを確実に適用させるようにします。_
+	[Region:note]
+	上記のステップでは、ドアにコリジョンを確実に適用させるようにします。
+	[/Region]
 
-1. **レベル ビューポート** で **SM_Door** が選択されている状態で **[詳細]** パネルを探します。**Transform** と **Rotation** 設定で **Z** 値を **-180** に設定します。 
+1. レベル ビューポートで **SM_Door** が選択されている状態で [詳細] パネルを探します。**Transform** と **Rotation** 設定で **Z** 値を **-180** に設定します。 
 
 	![](MHT1_RotateDoor.png)(w:640)
 
-	_注記： これは -179.99 に自動調整されますが、問題ありません。_
+	[Region:note]
+	 これは -179.99 に自動調整されますが、問題ありません。
+	[/Region]
 
-1. **Translation** (平行移動) ウィジェットを使用して、ドアフレーム内にドアを配置します。 
+1. **Translation (平行移動)** ウィジェットを使用して、ドアフレーム内にドアを配置します。 
 
 	![](MHT1_MoveDoor.png)(h:300) ![](MHT1_MoveDoor2.png)(w:310 h:300)
 
-1. **[モード]** メニュー内の **Basic** タブで **Box Trigger** を探し、**レベル ビューポート** のドアフレーム内にドラッグ＆ドロップします。
+1. **[モード]** メニュー内の **[Basic]** タブで **Box Trigger** を探し、レベル ビューポートのドアフレーム内にドラッグ＆ドロップします。
 
-	![](MHT1_DragTrigger.png)(w:640)
+	![](MHT_DragInBoxTrigger.jpg)(w:640)
 
-1. **TriggerBox** を選択し、**Shape** セクションの **詳細** パネルで **Box Extent** の **X** 値を探し、**140** に設定します。 
+1. **[TriggerBox (トリガーボックス)]** を選択し、**[Shape]** セクションの **[詳細]** パネルで **Box Extent** の **X** 値を探し、**140** に変更します。 
 
 	![](MHT1_TriggerBoxSize.png)(w:760)
 
@@ -84,22 +92,22 @@ Description:マチネで自動的に開閉するドアを設定する
 	プレイヤーがどの方向から **TriggerBox** に入るかに応じて異なる方向に開くドアの **ブループリント** を使用した例については、[](Resources\ContentExamples\Blueprints_Advanced\2_4) のコンテンツ サンプルを参照してください。 
 	[/REGION]
 
-1. これでドアとトリガーが配置されました。次に、それを開閉するために **マチネ** アクタを追加します。 
+1. これでドアとトリガーが配置されました。次に、それを開閉するために **Matinee** アクタを追加します。 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		マチネ アクタを追加する
+		Matinee アクタを追加する
 	[/PARAM]
 	[PARAM:description]
-	このステップでは **マチネ** アクタを追加し、**キーフレーム** を設定しドアを開閉します。 
+	このステップでは **Matinee** アクタを追加し、**キーフレーム** を設定しドアを開閉します。 
 	[/PARAM]
 [/OBJECT]
 
-1. **ツールバー** メニューから、**[マチネ]** を選択し、**[Add Matinee]** ボタンをクリックします。 
+1. **ツールバー** メニューから、**[マチネ]** を選択し、**[Add Matinee (マチネ追加)]** ボタンをクリックします。 
 
-	![](MHT1_AddMatinee.png)(w:760)
+	![](MHT_AddMatinee.jpg)(w:760)
 
-1. **マチネ** の undo 警告メッセージが表示されます。**Continue** ボタンをクリックします。 
+1. マチネ の undo 警告メッセージが表示されます。**Continue (続ける)** ボタンをクリックします。 
 
 	![](MHT1_MatineeWarning.png)
 
@@ -111,23 +119,25 @@ Description:マチネで自動的に開閉するドアを設定する
 
 	_クリックしてフルサイズで表示_
 
-1. **[トラック]** ウィンドウ (**All** の下の空のセクション) で **右クリック** し、コンテキストメニューから **Add New Empty Group** を選択します。 
+1. **[トラック]** ウィンドウ (**All** の下の空きセクション) で **右クリック** し、コンテキストメニューから **[Add New Empty Group]** を選択します。 
 
 	![](MHT1_TrackContextMenu.png)
 
-1. ![](MHT1_GroupName.png) が表示されたら、グループの **New Group Name** を入力します (この例では **Door** という名前を使用します)。 
+1. グループの **New Group Name** の入力を促すウィンドウが表示されたら、グループの名前を入力します (この例では **Door** という名前を使用します)。 
 
-1. **マチネ** ウィンドウを最小化します。次に **メイン エディタ** で **ワールド アウトライナー** ウィンドウを探し、**SM_Door** を選択してハイライトさせます。 
+1. マチネ ウィンドウを最小化します。次に **メイン エディタ** で **ワールド アウトライナー** ウィンドウを探し、**SM_Door** を選択してハイライトさせます。 
 
 	![](MHT1_SelectDoor.png)
 
-1. **マチネ** ウィンドウに戻り、Group (Door) で **右クリック** してコンテキスト メニューを表示します。次に、**アクタ** を選択し、**Add Selected Actors** を選択します。 
+1. マチネ ウィンドウに戻り、Group (Door) 上で **右クリック** してコンテキスト メニューを表示します。次に、**アクタ** を選択し、**[Add Selected Actors (選択したアクタを追加)]** を選択します。 
 
 	![](MHT1_AddDoorToGroup.png)
 
-	_注記:これで、**SM_Door** アクタが **Door** グループに追加されます。_
+	[Region:note]
+	これで、**SM_Door** アクタが **Door** グループに追加されます。
+	[/Region]
 
-1. 再度、Group (Door) で **右クリック** してコンテキスト メニューを表示します。次に、 **Add New Movement Track** を選択します。 
+1. 再度、Group (Door) 上で **右クリック** してコンテキスト メニューを表示します。次に、 **[Add New Movement Track (新規移動トラックを追加)]** を選択します。 
 
 	![](MHT1_AddMovementTrack.png)
 
@@ -141,19 +151,19 @@ Description:マチネで自動的に開閉するドアを設定する
 
 	![](MHT1_AddKey.png)(w:780)
 
-1. **マチネ** ウィンドウを最小化し、**レベル ビューポート** に戻ります。**SM_Door** を選択したままの状態で、**E** キーを押して **Rotation** モードに入ります。 
+1. マチネ ウィンドウを最小化して、レベル ビューポートに戻ります。**SM_Door** を選択したままの状態で、**E** キーを押して **[Rotation]** モードに入ります。 
 
 	![](MHT1_RotateWidget.png)
 
-1. **回転** ウィジェットの **青い** 円弧を左クリックして (ウィジェットが変化します)、それを右に **-90.0** 度回転させます。 
+1. **回転** ウィジェットの **青い** 円弧を **左クリック** して (ウィジェットが変化します)、それを右に **-90.0** 度回転させます。 
 
 	![](MHT1_DoorOpen.png)
 
-1. **マチネ** ウィンドウに戻り、 ![](MHT1_EndPoint.png) **End Marker** で左クリックして、それを左に **0.50** 動かします。 
+1. マチネ ウィンドウに戻り、赤い矢印の **End Marker** 上で **左クリック** して、それを左に **0.50** 動かします。 
 
 	![](MHT1_EndPointMoved.png)
 
-1. **マチネ** シーケンスのセットアップが完了しました。次のステップでは、**マチネ** を **トリガー** に接続して終了します。 
+1. マチネ シーケンスのセットアップが完了しました。次のステップでは、マチネ を **トリガー** に接続して終了します。 
 
 
 [OBJECT:TopicList]
@@ -167,25 +177,25 @@ Description:マチネで自動的に開閉するドアを設定する
 
 1. **[ツールバー]** メニューから、**ブループリント** を選択し、**[Open Level Blueprint]** ボタンをクリックします。 
 
-	![](MHT1_LevelBluerpint.png)(w:720)
+	![](MHT_OpenLvlBlueprint.jpg)(w:720)
 
-1. **レベル ブループリント** を最小化し、**レベル ビューポート** または **ワールド アウトライナー** で、**マチネ アクタ** 上で左クリックして選択します。 
+1. **Level ブループリント** を最小化し、**レベル ビューポート** または **ワールド アウトライナー** で、**Matinee アクタ** 上で左クリックして選択します。 
 
 	![](MHT1_MatineeSceneOutliner.png)
 
-1. **レベル ブループリント** ウィンドウを開き、**イベント グラフ** で **右クリック** します。次に、コンテキスト メニューで **Add Reference to MatineeActor** オプションを選択します。 
+1. **Level ブループリント** ウィンドウを開き、**イベントグラフ** で **右クリック** し、そのコンテキスト メニューで **[Add Reference to MatineeActor (Matinee アクタへの参照を追加)]** オプションを選択します。 
 
-	![](MHT1_AddMatineeToBP.png)
+	![](MHT_MatineeReference.jpg)
 
-1. これで、**MatineeActor** が **レベル ブループリント** の **イベント グラフ** に追加されます。 
+1. これで、**Matineeアクタ** が **Level ブループリント** の **イベントグラフ** に追加されます。 
 
 	![](MHT1_MatineeAddedToBP.png)
 
-1. **レベル ブループリント** を最小化し、**レベル ビューポート** または **ワールド アウトライナー** で、**トリガー ボックス** 上で左クリックして選択します。 
+1. **Level ブループリント** を最小化し、**レベル ビューポート** または **ワールド アウトライナー** で、**トリガー ボックス** 上で左クリックして選択します。 
 
 	![](MHT1_TriggerBoxSceneOutliner.png)
 
-1. **レベル ブループリント** ウィンドウを開き、**イベント グラフ** で **右クリック** します。次に、**Add Event for TriggerBox** と **コリジョン** の下にあるコンテキスト メニューで **Add OnActorBeginOverlap** オプションを選択します。 
+1. **Level ブループリント** ウィンドウを開き、**イベントグラフ** で **右クリック** します。次に、**Add Event for TriggerBox** と **コリジョン** の下にあるコンテキスト メニューで **[Add OnActorBeginOverlap]** オプションを選択します。 
 
 	![](MHT1_AddOnBeginOverlap.png)
 
@@ -193,11 +203,11 @@ Description:マチネで自動的に開閉するドアを設定する
 
 	![](MHT1_AddOnEndOverlap.png)
 
-1. **イベント グラフ** で **MatineeActor** ノードを探し、**左クリック** して、出力ピン (青い円) をドラッグしてコンテキスト メニューを表示します。次に、検索フィールドに **Play** と入力し、**Play** オプションを選択します。 
+1. **イベントグラフ** で **MatineeActor** ノードを探し、**左クリック** して、出力ピン (青い円) から **ドラッグ ** してコンテキスト メニューを表示します。次に、検索欄に **Play** と入力し、**[Play] ** オプションを選択します。 
 
 	![](MHT1_DragOffPlay.png)(w:720)
 
-1. **MatineeActor** ノードを再度ドラッグして、コンテキスト メニューの検索フィールドで **Reverse** と入力し、**Reverse** オプションを選択します。 
+1. **MatineeActor** ノードを再度ドラッグして、コンテキスト メニューの検索欄で **Reverse** と入力し、**Reverse** オプションを選択します。 
 
 	![](MHT1_DragOffReverse.png)(w:720)
 
@@ -209,15 +219,25 @@ Description:マチネで自動的に開閉するドアを設定する
 
 	![](MHT1_BlueprintConnected.png)(w:720)
 
-1. **Level Blueprint のツールバー** メニューで **Compile** ボタンをクリックします。 
+1. **Level ブループリントのツールバー** メニューで **Compile** ボタンをクリックします。 
 
 	![](MHT1_ClickCompile.png)
 
-1. これでブループリントが完成し、**TriggerBox** が **マチネ** アクタに接続されました。 
+1. これでブループリントが完成し、**TriggerBox** が Matinee アクタに接続されました。 
 
-1. **レベル ブループリント** を最小化し、 ![](MHT1_PlayButton.png) **Play** ボタンをクリックして、エディタで再生します。 
+1. Level ブループリントを最小化し、メインツールバーにある **Play** ボタンをクリックして、エディタで再生します。 
 
-	![](MHT1_SimpleDoor.gif)(w:480 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Z2son2Wcgbo
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ---
 

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714898
 Availability: Public
-Title:Physics Asset Properties Reference
+Title:피직스 애셋 프로퍼티 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
-Description:A listing of properties and descriptions for Physics Bodies, Physics Constraints, and Physics Assets accessible in the Physics Asset Tool.
+Description:피직스 애셋 툴에서 접근할 수 있는 피직스 바디, 피직스 컨스트레인트, 피직스 애셋 관련 프로퍼티 목록과 설명입니다.
 Version: 4.9
 
 [VAR:Topic]
@@ -49,18 +49,18 @@ Version: 4.9
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties you will find while working in the Physics Asset Tool.
+이 글은 피직스 애셋 툴 작업 도중 찾을 수 있는 프로퍼티 목록 참고서입니다.
 
-## Properties
+## 프로퍼티
 
-Below are the properties for Physics Asset Tool, separated into 3 expandable sections based on what is selected in the viewport.
+아래는 피직스 애셋 툴의 프로퍼티를 뷰포트에 선택된 것을 토대로 크게 3 섹션으로 나눈 것입니다.
 
 [OBJECT:modulesection]
 	[PARAMLITERAL:id]
 		PhatP
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics Asset Tool Properties
+		Physics Asset Tool Properties (피직스 애셋 툴 프로퍼티)
 	[/PARAM]
 	[PARAM:content]
 		%c1%
@@ -69,14 +69,14 @@ Below are the properties for Physics Asset Tool, separated into 3 expandable sec
 
 [VAR:c1]
 
-When no Physics Body or Physics Constraint is selected (regardless of mode), the properties for the Physics Asset Tool are show in the Details panel.
+(모드와 상관없이) 피직스 바디 또는 피직스 컨스트레인트가 선택된 것이 없으면, 피직스 애셋 툴의 프로퍼티가 디테일 패널에 표시됩니다.
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		Anim1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Anim
+		Anim (애님)
 	[/PARAM]
 	[PARAM:content]
 		%p11%
@@ -88,7 +88,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Sim1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Simulation
+		Simulation (시뮬레이션)
 	[/PARAM]
 	[PARAM:content]
 		%p12%
@@ -100,7 +100,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		MousS
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Mouse Spring
+		Mouse Spring (마우스 스프링)
 	[/PARAM]
 	[PARAM:content]
 		%p13%
@@ -109,7 +109,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		Poke
+		Poke (찌르기)
 	[/PARAMLITERAL]
 	[PARAM:heading]
 		Poking
@@ -124,7 +124,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Adv
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Advanced
+		Advanced (고급)
 	[/PARAM]
 	[PARAM:content]
 		%p15%
@@ -136,7 +136,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 		Draw
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Drawing
+		Drawing (그리기)
 	[/PARAM]
 	[PARAM:content]
 		%p16%
@@ -150,7 +150,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Physics Blend** || %doxygen:UPhATSimOptions::PhysicsBlend% |
 | **Update Joints from Animation** || |
@@ -165,7 +165,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 |**Floor Gap** || %doxygen:UPhATSimOptions::FloorGap% |
 |**Grav Scale** || %doxygen:UPhATSimOptions::GravScale% |
@@ -180,7 +180,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 |**Handle Linear Damping** || %doxygen:UPhATSimOptions::HandleLinearDamping% |
 |**Handle Linear Stiffness** || %doxygen:UPhATSimOptions::HandleLinearStiffness% |
@@ -196,7 +196,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef4.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Poke Strength** || %doxygen:UPhATSimOptions::PokeStrength% |
 [/REGION]
@@ -208,7 +208,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef5.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Show Constraints as Points** || %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
 | **Show Names in Hierarchy** || %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
@@ -221,7 +221,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 ![](PhATDef6.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Constraint Draw Size** || %doxygen:UPhATSimOptions::ConstraintDrawSize% |
 [/REGION]
@@ -289,7 +289,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Bone Name** || %doxygen:UBodySetup::BoneName% |
 | **Consider for Bounds** || %doxygen:UBodySetup::bConsiderForBounds% |
@@ -302,7 +302,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Mass in KG** || Mass of the body in KG. |
 | **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
@@ -318,7 +318,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody2_adv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
 | **Center of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
@@ -343,7 +343,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
 | **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
@@ -355,7 +355,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATBody3_adv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
 [/REGION]
@@ -370,7 +370,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		ConsM
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Constraint Mode
+		Constraint Mode (컨스트레인트 모드)
 	[/PARAM]
 	[PARAM:content]
 		%c3%
@@ -379,14 +379,14 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 
 [VAR:c3]
 
-When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the Details panel will display the properties for that Physics Body.
+피직스 애셋 툴이 바디 모드에 있고 피직스 바디가 선택되면, 디테일 패널에는 그 피직스 바디에 대한 프로퍼티가 표시됩니다.
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		Cons2
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Constraint
+		Constraint (컨스트레인트)
 	[/PARAM]
 	[PARAM:content]
 		%p31%
@@ -398,7 +398,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Line1
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Linear Limits
+		Linear Limits (선형 제한)
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p2%
@@ -410,7 +410,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Proj2
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Projection
+		Projection (투사)
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p3%
@@ -422,7 +422,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Angu2
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Angular Limits
+		Angular Limits (각형 제한)
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p4%
@@ -434,7 +434,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Lmoto
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Linear Motor
+		Linear Motor (선형 모터)
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p5%
@@ -446,7 +446,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 		Amoto
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Angular Motor
+		Angular Motor (각형 모터)
 	[/PARAM]
 	[PARAM:content]
 		%Engine/Physics/Constraints/ConstraintsReference:p6%
@@ -460,7 +460,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 ![](PhATCon1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Joint Name** || %doxygen:FConstraintInstance::JointName% |
 | **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |

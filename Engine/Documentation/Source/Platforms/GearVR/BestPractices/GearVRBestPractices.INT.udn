@@ -117,10 +117,10 @@ In the following section we will cover what you need to be concerned with when m
 
 ### Content Hard limits
 Due to certain hardware restrictions on mobile devices the following restrictions must be adhered to when creating content. 
-Failing to follow these restrictions will result in your project now working.
+Failing to follow these restrictions will result in your project not working.
 
 * All mesh types can have up to but not over 65,000 vertices due to the lack of 32 bit index support on mobile hardware.
-* Skeletal Meshes can have up to but not 75 bones.
+* Skeletal Meshes can have up to but not over 75 bones.
 
 ### Mesh Considerations
 When creating Meshes to use with your Gear VR Project the following information needs to be kept in mind to ensure that what you are creating will work with the Gear VR Headset. 
@@ -129,14 +129,14 @@ When creating Meshes to use with your Gear VR Project the following information 
 * Make sure to make use of [Static Mesh LODs](Engine/Content/FBX/StaticMeshes) whenever possible.
 * Keep an eye on your 3D meshes polygon count and try and keep it as [Low Poly](https://en.wikipedia.org/wiki/Low_poly) as possible.
 * Make sure that all static models have a 2nd UV set so they can make use of [Light Mapping](Engine/Content/Types/StaticMeshes/LightmapUnwrapping).
-* Whenever possible try and make use if [Imposter Sprites](Engine/Content/Tools/RenderToTextureTools/3) to replace far away Static Meshes as they are much cheaper to render.
+* Whenever possible try and make use of [Imposter Sprites](Engine/Content/Tools/RenderToTextureTools/3) to replace far away Static Meshes as they are much cheaper to render.
 
 ### Texture Considerations
 When creating Textures to use with your Gear VR Project the following information needs to be kept in mind to ensure that what you are creating will not be detrimental to your projects overall performance. 
 
 * Textures use the [ECT2](http://en.wikipedia.org/wiki/Ericsson_Texture_Compression) Texture compression format.
 * Textures can not be bigger than 2048 pixels in either the X or Y dimension.
-* Textures sizes must be in a power of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+* Textures sizes must be in a power of 2 (For example, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
 * Loading up to 512 MB of Textures into memory is possible with the Gear VR however it is recommended that you do not load more that 128 MB of Textures into memory.
 * Use square Textures whenever possible as them make a more efficient use of memory. 
 * Wherever possible try and use [Texture Atlasing](http://en.wikipedia.org/wiki/Texture_atlas) to reduce the number of Textures needed in memory.

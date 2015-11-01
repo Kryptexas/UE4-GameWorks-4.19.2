@@ -2,6 +2,8 @@ Availability: Public
 Title:How to Set Up Inputs in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SetUpInput
 Description:A How To Guide for Setting Up Inputs in Blueprints.
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC (start:2 end:2)]
 
@@ -13,7 +15,7 @@ On this page, you will create a simple character and set it up to receive input,
 
 In this section, we will create a character that we can assign input to (if you already have a **Character Blueprint**, you can skip this step). 
 
-_For this example, we are using the **Blank** project template with **Starter Content** enabled._
+_For this example, we are using the **Blank** project template with **Starter Content** included._
 
 1.	Inside your project, under **Shapes**, **Right-click** on the **Shape_NarrowCapsule** shape and select **Asset Actions** - **Create Blueprint Using**. 
 

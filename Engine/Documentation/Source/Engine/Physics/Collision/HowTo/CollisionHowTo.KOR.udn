@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2744832
 Availability: Public
-Title:Collision How To's
+Title:콜리전 비법
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:콜리전 지오메트리 생성 및 구성 방법 안내입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -30,14 +30,16 @@ Description:Content guide to creating and setting up collision geometry.
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		How To...
+		비법
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/Collision/HowTo/AddConvexHulls "%Engine/Physics/Collision/HowTo/AddConvexHulls:description%")
 		* [](Engine/Physics/Collision/HowTo/AddSimpleCollision "%Engine/Physics/Collision/HowTo/AddSimpleCollision:description%")
 		* [](Engine/Physics/Collision/HowTo/AddDOP "%Engine/Physics/Collision/HowTo/AddDOP:description%")
 		* [](Engine/Physics/Collision/HowTo/AddCustomCollisionType "%Engine/Physics/Collision/HowTo/AddCustomCollisionType:description%")
+		[PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/AddCustomTraceType "%Engine/Physics/Collision/HowTo/AddCustomTraceType:description%")
+		[/PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/PreviewCollision "%Engine/Physics/Collision/HowTo/PreviewCollision:description%")
 	[/PARAM]
 [/OBJECT]

@@ -52,8 +52,7 @@ A vehicle in Unreal Engine 4 is composed of a number of assets:
 
 [REGION:note]
 This document will cover the Blueprint setup required to make a functioning vehicle in Unreal Engine 4, and assumes you already have a vehicle asset to work with. See the 
-[
-](Engine/Physics/Vehicles/VehcileContentCreation) for more information on setting up the Skeletal Mesh and Physics Asset.
+[](Engine/Physics/Vehicles/VehcileContentCreation) for more information on setting up the Skeletal Mesh and Physics Asset.
 [/REGION]
 
 ## Creating the Vehicle Blueprint

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714891
 Availability: Public
-Title:Review Collision in Your Game
+Title:게임에서 콜리전 검토
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:콜리전 지오메트리 생성 및 구성 안내입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,17 +26,17 @@ Description:Content guide to creating and setting up collision geometry.
 
 
 
-Here are a couple of console commands you can use while in game to give you information on the collision in your game.
+게임 내에서 콜리전 관련 정보 확인을 위한 콘솔 명령 몇 가지입니다.
 
-1. Run your game.
-1. Hit the **`** (back tick/tilda key) to bring up the console input box.
-1. Enter one of the following commands:
+1. 게임을 실행합니다.
+1. **`** (역 어포스트러피/물결표) 키를 눌러 콘솔 입력 창을 띄웁니다.
+1. 다음 명령 중 하나를 입력합니다:
 
-	* **show COLLISION** - This will draw all collision models and blocking volumes in use in the level. 
+	* **show COLLISION** - 레벨에 사용중인 콜리전 모델 및 블로킹 볼륨 전부를 그립니다.
 
 		![](Engine/Physics/Collision/HowTo/COLREF_showCollision.png)(w:900)
 
-	* **stat game** - This shows you various useful stats on how long different types of collision are taking.
+	* **stat game** - 여러가지 유형의 콜리전에 걸리는 다양한 통계를 표시합니다.
 
 		![](Engine/Physics/Collision/HowTo/Collision_StatGame.png)(w:900)
 

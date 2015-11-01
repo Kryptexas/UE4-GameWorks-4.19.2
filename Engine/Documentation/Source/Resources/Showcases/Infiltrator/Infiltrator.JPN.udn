@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Infiltrator Demo
+﻿INTSourceChangelist:2695309
+Availability:Public
+Title:Infiltrator デモ
 Crumbs:%ROOT%, Resources,
-Description:An overview of the real time Infiltrator Demo
-Related: Engine/Matinee
-Related: Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials
-Related: Engine/Rendering/ParticleSystems
-Related: Engine/Animation
-Related: Engine/Content/Tools/MayaRiggingTool
-Version: 4.9
-Skilllevel: Intermediate
+Description:Infiltrator デモの概要
+Related:Engine/Matinee
+Related:Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials
+Related:Engine/Rendering/ParticleSystems
+Related:Engine/Animation
+Related:Engine/Content/Tools/MayaRiggingTool
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,75 +52,75 @@ Skilllevel: Intermediate
 
 ![](Infiltrator_Page_Header.png)
 
-First shown at GDC 2013, Infiltrator showcases Unreal Engine 4's (UE4) PBR and cinematic capabilities at the time. 
-The project is full of expert-level content to help you learn about all the different aspects of what goes into creating a AAA-quality scene. 
-In the following document we will high light some of the UE4 specific tools that were used to create the Infiltrator demo.
+Infiltrator は GDC 2013 で初登場し、アンリアル エンジン 4 (UE4) PBR とシネマティクス性能を同時に披露しました。 
+プロジェクトにはプロ級コンテンツが豊富に入っており、トップクラスの品質を誇るシーンを織りなす様々な特性をすべて学習することができます。 
+Infiltrator デモの作成に使う UE4 専用ツールのいくつかに焦点をあてて紹介していきます。
 
 [region:note]
-Please note, if you use the Infiltrator assets in a new project with reference lighting, you'll have to make a few tweaks to make the Infiltrator content match your content.
+リファレンス ライティングのある新規プロジェクトで Infiltrator のアセットを使用する場合は、Infiltrator のコンテンツがそのコンテンツに合うように、若干調整する必要があることに留意してください。
 [/region]
 
-## Location
-You can find and download the Infiltrator project from the **Engine Features Samples** section of the **Learn Tab** in the Epic Games Launcher. 
+##位置
+Infiltrator プロジェクトは、エピック ゲームス ランチャーの **[Learn Tab (学習タブ)]** にある **[Engine Features Samples]** セクションからダウンロードすることができます。 
 
  ![](Infiltrator_Launcher_Location.png)
 
 
-## Tools Used
-The Infiltrator demo makes uses of almost all of the tools UE4 has to offer. 
-In the following section we will highlight some of these tools as well as provide links to documentation for further reading.
+## 使用するツール
+Infiltrator デモは、UE4 が提供しているほとんどすべてのツールで活用することができます。 
+以下のセクションでは、詳細ドキュメントへのリンクと合わせてこれらのツールの説明をします。
 
-### Matinee 
+### マチネ 
 
 ![](Infiltrator_Matinee.png)
 
-The Matinee Cinematic Tool provides the ability to animate the properties of Actors over time, to create either dynamic game play or cinematic in-game sequences. 
-Matinee is the main tool used to bring the Infiltrator demo from an idea into reality. 
-For more information about Matinee and how to use it, make sure to check out [](Engine/Matinee).
+マチネ シネマティクス ツールは、動的なゲームプレイあるいはシネマティックなインゲームを作成するために、時間の経過と共にアクタのプロパティをアニメートすることができるアニメーション ツールです。 
+マチネは、Infiltrator デモをアイデアから現実化するために使用する主要ツールです。 
+マチネの詳細および使用方法については、[](Engine/Matinee) でご確認ください。
 
 
-### Material Editor
+### マテリアル エディタ
 
 ![](Infiltrator_Material_Graph_Whole.png)
 
-As with any Unreal-based project the Material Editor was used to create all of the Materials that are being used. 
-However Infiltrator make use of a new way of thinking about how to apply Materials to objects. 
-Instead of using a single Material, Infiltrator uses Material Layers which allow you to mix and match different Materials together instead of just Textures. 
-To learn more about creating, setting up, and using Layered Materials, see [](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials).
+アンリアル ベースのプロジェクトと同様に、マテリアル エディタは使用するマテリアルのすべてを作成するために使用します。 
+ただし Infiltrator では、マテリアルのオブジェクトへの適用方法について新しい考え方をしています。 
+マテリアルをたったひとつだけ使用するのではなく、Infiltrator はテクスチャだけでなく、異なるマテリアルを混ぜてマッチさせるマテリアル レイヤーを使うのです。 
+レイヤー マテリアルの作成、設定、使用法王については、[](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials) をご覧ください。
 
-### Cascade Particle Editor
+###カスケード パーティクル エディタ
 
 ![](Infiltrator_Cascade_Editor.png)
 
- The Cascade Particle Editor allows artist to quickly and easily create incredible visual effects ranging from smoke and sparks to effects for pick ups or things the player should be aware of. 
- All of the effects you see in Infiltrator were created using the Cascade Particle Editor. 
- For a complete overview of all the features Cascade offers, check out [](Engine/Rendering/ParticleSystems).
+ カスケード パーティクル エディタ を使えば、アーティストは、煙や火花から、ピックアップやプレイヤーが気づくべきもののエフェクトに至る素晴らしいエフェクトを、速く簡単に作成することができます。 
+ Infiltrator で確認できるエフェクトはすべて、カスケード パーティクル エディタを使って作成されました。 
+ カスケードが提供する機能の完全リストは、 [](Engine/Rendering/ParticleSystems) でご覧いただけます。
 
 
-### Persona Animation System
+### ペルソナ アニメーション システム
 
 ![](Infiltrator_Animation_Tools.png)
 
- UE4's Persona Animation System allows users to create animations for their project using a wide variety of animation data. 
- From using skeletal-based animations to morph-based animations, the animation system enables both simple and complex animation across a wide variety of different characters. 
- For details on how to incorporate animation into your project, please see [](Engine/Animation).
+ UE4 の ペルソナ アニメーション システムを使えば、ユーザーはアニメーション データを豊富に使って、プロジェクト用のアニメーションを作成することができます。 
+ アニメーション システムでスケルタル ベースからモーフ ベースに至るアニメーションを使うことで、様々な種類のキャラクターに対して、簡単なものから複雑なものまでアニメーションを作成することができます。 
+ アニメーションをプロジェクトに組み込む方法については [](Engine/Animation) をご覧くだしあ。
 
 
-### Maya Animation Rigging Toolset (A.R.T)
+### Maya アニメーション リギング ツール (A.R.T)
 
 ![](Infiltrator_ART_Tools.jpg)(h:550)
 
-The Maya Animation Rigging Toolset, or A.R.T for short, is a comprehensive toolset that takes a character through skeleton creation, skeleton placement, and rig creation, as well as many animation tools to speed up animator workflow.
- If you would like to learn more about the A.R.T tools and how to install and use them, check out the [Animation Rigging Toolset](Engine/Content/Tools/MayaRiggingTool) guide.
+Maya アニメーション リギング ツール (略して A.R.T) は、アニメーターのワークフローを迅速化する多くのアニメーションツールだけでなく、キャラクターのスケルトン作成、配置、リグの作成などかできる総合ツールセットです。
+ A.R.T ツールの詳細およびインストールと使用方法については、[アニメーション リギング ツールセット](Engine/Content/Tools/MayaRiggingTool) ガイドをご覧ください。
 
 
-## Infiltrator Matinee Breakdown
+## Infiltrator マチネの詳細
 
-To access the Infiltrator cinematic you will need to first go to the Main Toolbar and open the Matinee sequence label **Cinematic**. 
+Infiltrator シネマティクスにアクセスするには、まずメイン ツールバーの **[Cinematic]** というマチネ シーケンス ラベルを開きます。 
 
 ![](Infiltrator_Open_Cinematic.png)
 
-After the Infiltrator cinematic Matinee has been opened you can play the cinematic using the Play, Loop, Stop, or Reverse buttons or by scrubbing the Timeline. 
+Inflitrator シネマティクス マチネが開いたら、[Play (再生)]、[Loop (ループ)]、[Stop (停止)]、[Reverse (逆再生)] の各ボタン、あるいはタイムテーブルをスクラブ再生してシネマティクスを再生することができます。 
 
 ![](Infiltrator_Matinee_Scrub.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632917
+﻿INTSourceChangelist:2719402
 Availability:Public
 Title:アンリアル エンジンのインストール方法
 Description:アンリアル エンジンのインストール手順
@@ -9,12 +9,8 @@ Related:Engine/Content/QuickStart
 Related:Programming/QuickStart
 Related:Engine/QuickStart
 Related:Support/Builds
-バージョン：4.8
-
-[REGION:warning]
-現時点では、Linux 用のアンリアル エンジンのバイナリ インストーラは提供しておりません。  
-しかし、Linux ユーザーは、 [](GettingStarted/DownloadingUnrealEngine) のドキュメントを参照して、ソースからアンリアル エンジンをコンパイルすることができます。
-[/REGION]
+Version:4.9
+SkillLevel:Beginner
 
 このクイックスタートの最後まで進むと、以下ができるようになります。
 
@@ -26,39 +22,15 @@ Related:Support/Builds
 
 ![](InstallationGoal.png)
 
-_エピック ゲームズのランチャーで会員登録者は、UE4 の更新をダウンロードし、インストールすることができます (例、上の図)。_
-
-## エピック ゲームズのアカウントを作成する
-
-(#Bookmark1)
+会員登録者はエピック ゲームズのランチャーで、UE4 の更新をダウンロードし、インストールすることができます。
 
 [REGION:warning]
 エピック ゲームズのアカウントを既にお持ちの場合は、スキップして先に進み、[インストーラをダウンロードして実行する](#Bookmark2) について学習しましょう。
 [/REGION]
 
-エピック ゲームズのランチャーを実行するには、有効なエピック ゲームズのアカウントをお持ちになっている必要があります。
+(#Bookmark1)
 
-1.	[UnrealEngine.com](https://www.unrealengine.com/what-is-unreal-engine-4) に **ナビゲート (移動)** します。
-
-1.	**[Get Unreal]** ボタン (以下の図) をクリックします。
-
-	![](UnrealWebsite.png)
-
-1.	**'Join the Community'** フォームに **入力** し、**Sign Up** ボタン (以下の図) を **クリック** します。
-
-	![](SignupScreen.png)
-
-	[REGION:note]
-	登録前に [Terms of Service (サービス利用規約)](http://epicgames.com/tos) を必ずお読みください。
-	[/REGION]
-
-1.	 [EULA (エンドユーザー ライセンス契約書)](https://www.unrealengine.com/eula) を **お読みになってから**、**[Accept (合意)]** ボタン (以下の図) をクリックするようにしてください。
-
-	![](EULA.png)
-
-	[REGION:note]
-	EULA の条件についてさらに疑問点がある場合は、弊社の [EULA FAQ](https://www.unrealengine.com/faq#legal) をご覧ください。
-	[/REGION]
+[INCLUDE:GettingStarted/AccountSetup#epicAccount]
 
 ## インストーラをダウンロードして実行する
 
@@ -79,17 +51,17 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	インストーラを入手するには、**[Download]** ボタンを **クリック** します (以下の図)。
-	
-		![](Download_Screen.png)
-	
-	1.	ダウンロードが完了したら、インストーラを **実行** します (以下の図)。
-	
-		![](RunInstaller.png)
-	
+	1.	インストーラを入手するには、**[Download]** ボタンを **クリック** します。
+
+	![](Download_Screen.png)
+
+	1.	ダウンロードが完了したら、インストーラを **実行** します。
+
+	![](RunInstaller.png)
+
 	1.	**[Epic Games Launcher Setup (エピック ゲームズのランチャー セットアップ)]** ダイアログ ボックスが表示されたら、**[Install]** ボタンを **クリック** します。
-	
-		![](RunEpicLauncherSetup.png)
+
+	![](RunEpicLauncherSetup.png)
 	[/PARAM]
 [/OBJECT]
 
@@ -104,14 +76,14 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	インストーラを入手するには、**[Download]** ボタンを **クリック** します (以下の図)。
+	1.	インストーラを入手するには、**[Download]** ボタンを **クリック** します。
 
-	![](Download_Screen.png)
+		![](Download_Screen.png)
 
-	1.新しい **Finder Window** を開くには、**Finder** で `EpicGamesLauncher.dmg` アイコンを **ダブルクリック** します。
+	1.	新しい **Finder Window** を開くには、**Finder** で `EpicGamesLauncher.dmg` アイコンを **ダブルクリック** します。
 
-	1.	**[Epic Games Launcher]** アイコンを **「Applications」** フォルダ (以下の図) に **ドラッグ** します。
-	
+	1.	**[Epic Games Launcher]** アイコンを **「Applications」** フォルダに **ドラッグ** します。
+
 		![](InstallEpicLaucherMac.png)	
 	[/PARAM]
 [/OBJECT]
@@ -129,7 +101,7 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 	[PARAM:content]
 	現時点では、Linux 用のアンリアル エンジンのバイナリ インストーラは提供しておりません。
 	[REGION:tip]
-	しかし、Linux ユーザーは、 [](GettingStarted/DownloadingUnrealEngine) のドキュメントを参照して、ソースからアンリアル エンジンをコンパイルすることができます。
+	Linux ユーザーは、 [](GettingStarted/DownloadingUnrealEngine) のドキュメントを参照して、ソースからアンリアル エンジンをコンパイルすることができます。
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -138,7 +110,7 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 
 (#Bookmark3)
 
-セットアップ プログラムがマシンに Epic Games Launcher をインストールしたら、エピック ゲームズのアカウントの認証情報を使用してログインします (以下の図)。
+セットアップ プログラムがマシンに Epic Games Launcher をインストールしたら、エピック ゲームズのアカウントの認証情報を使用してログインします。
 
 ![](EpicSignIn.png)
 
@@ -155,15 +127,15 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 アンリアルエンジンの各バージョンのインストールには、およそ 8 GB のディスク容量が必要となります。十分な空き容量があることを確認してからインストールを開始してください。
 [/REGION]
 
-1.	Epic Games Launcher Loading Screen (以下の図) 内の **[Unreal Engine]** タブを **クリック** します。
+1.	Epic Games Launcher Loading Screen 内の [Unreal Engine] タブを **クリック** します。
 
 	![](LauncherLoadScreen.png)
 
-1.	アンリアル エンジンの最新バージョンをダウンロードし、インストールするには、**[Install Engine]** ボタンを **クリック** します (以下の図参照)。
+1.	アンリアル エンジンの最新バージョンをダウンロードし、インストールするには、[Install Engine] ボタンを **クリック** します。
 
 	![](InstallEngine.png)
 
-1.	 [EULA (エンド ユーザー ライセンス契約書)](https://www.unrealengine.com/eula) を **お読みになってから**、**[Accept]** ボタン (以下の図) をクリックするようにしてください。
+1.	 [EULA (エンドユーザー ライセンス契約書)](https://www.unrealengine.com/eula) を お読みになってから、[Accept (合意)] ボタンをクリックするようにしてください。
 
 	![](AcceptEULALauncher.png)
 
@@ -177,7 +149,7 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 
 (#Bookmark5)
 
-エピック ゲームズのランチャーでアンリアル エンジンのダウンロードとインストールが成功したら、 **Launch (起動)** ボタン (以下参照) を **クリック** することができます。
+エピック ゲームズのランチャーでアンリアル エンジンのダウンロードとインストールが成功したら、 Launch (起動) ボタンを **クリック** することができます。
 
 ![](LaunchUE4.png)
 
@@ -191,6 +163,7 @@ _エピック ゲームズのランチャーで会員登録者は、UE4 の更�
 
 これで、アンリアル エンジンの使用を開始する準備が整いました。
 
+<!--Deprecated as it is redundant with the Related Topics section directly below it.
 ## アンリアル エンジンの使用を開始する
 
 [](GettingStarted) のドキュメントを参照してアンリアル エンジンの使用方法を学習しましょう！
@@ -201,9 +174,9 @@ UE4 の使用について取り急ぎ学習したい場合は、以下のチュ�
 *	[](Engine/QuickStart)
 
 
-[REGION:tip]
+[REGION:note]
 UE4 のエディタ内ヘルプ機能は、疑問点を解消するのに優れた場所です。
-[/REGION]
+[/REGION]-->
 <!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 
@@ -287,7 +260,7 @@ UE4 のエディタ内ヘルプ機能は、疑問点を解消するのに優れ�
 
 [/EXCERPT:Windows]
 [EXCERPT:MacOS]
-1. Finder にある `Rocket.dmg` アイコンをダブルクリックして開きます。 **License Agreement（ライセンス契約）** に同意後、新しい **Finder Window** が開きます。
+1. Finder にある `Rocket.dmg` アイコンをダブルクリックして開きます。**License Agreement (ライセンス契約)** に同意後、新しい **Finder Window** が開きます。
 1. **RocketEditor** アイコンを **Applications** フォルダへドラッグします。
 
 	![](ue4_mac_install.png)

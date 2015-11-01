@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Examples of implementing physics for 2D games. 
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
+Version: 4.9
+SkillLevel: Intermediate
 
 This page provides an example of applying physics to sprites in 2D games. 
 

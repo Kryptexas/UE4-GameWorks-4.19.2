@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714891
 Availability: Public
-Title:Static Mesh Collision Reference
+Title:스태틱 메시 콜리전 레퍼런스
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:콜리전 지오메트리 생성 및 구성 방법 안내입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]

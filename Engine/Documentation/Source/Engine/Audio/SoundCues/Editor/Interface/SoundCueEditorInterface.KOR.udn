@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2187501
+﻿INTSourceChangelist:2735872
 Availability: Public
 Title:사운드 큐 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Audio, Engine/Audio/SoundCues/Editor
 Description:사운드 큐 노드기반 오디오 애셋의 구성 및 편집을 위한 툴 사용 안내서입니다.
-
+version: 4.9
 [TOC(start:2)]
 
 
 
-## 개요
 
 사운드 큐 에디터는 다음과 같은 구역으로 나뉘어 있습니다:
 
@@ -26,33 +25,33 @@ Description:사운드 큐 노드기반 오디오 애셋의 구성 및 편집을 
 
 ## 메뉴 바
 
-### 파일
+::: 파일
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSave]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSaveOptions]
-
-
-### 편집
-
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditUndo]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditSettings]
-
-### 애셋
-
-[Include:Shared/Editors/Common/EditorMenuItems#MenuAssetContentBrowser]
-
-### 창
-
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowToolbar]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowViewport]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowDetails]
-* **팔레트** - **팔레트** 패널 표시를 토글합니다.
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindow]
+%Shared/Editors/Common/EditorMenuItems:MenuFileSave%
+%Shared/Editors/Common/EditorMenuItems:MenuFileSaveOptions%
 
 
-### 도움말
+::: 편집
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuHelp]
+%Shared/Editors/Common/EditorMenuItems:MenuEditUndo%
+%Shared/Editors/Common/EditorMenuItems:MenuEditSettings%
+
+::: 애셋
+
+%Shared/Editors/Common/EditorMenuItems:MenuAssetContentBrowser%
+
+::: 창
+
+%Shared/Editors/Common/EditorMenuItems:MenuWindowToolbar%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowViewport%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowDetails%
+* **Palette** - Toggles display of the **Palette** panel.
+%Shared/Editors/Common/EditorMenuItems:MenuWindow%
+
+
+::: 도움말
+
+%Shared/Editors/Common/EditorMenuItems:MenuHelp%
 
 ## 툴바
 

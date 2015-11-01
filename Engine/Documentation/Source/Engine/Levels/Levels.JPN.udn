@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637291
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:レベル
 Crumbs: %ROOT%, Engine
@@ -7,6 +7,10 @@ Related:Engine/UI/LevelEditor
 Related:Engine/Actors
 Related:Engine/Levelstreaming
 Related:Resources/ContentExamples/LevelDesign
+SkillLevel:Beginner
+Version:4.9
+parent:Engine/Editor
+order:4
 
 [VAR:Topic]
 [OBJECT:Topic]

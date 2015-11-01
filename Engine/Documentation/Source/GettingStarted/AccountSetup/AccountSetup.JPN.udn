@@ -1,39 +1,39 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2640630
 Availability:NoPublish
-Title:Setting Up Your Epic Games Account
+Title:エピック ゲームズのアカウントのセットアップ
 Crumbs: %ROOT%, GettingStarted
-Description:How to set up an Epic Games account.
-Related: GettingStarted/RecommendedSpecifications
-Related: Support/Builds
-Version: 4.8
-SkillLevel: Beginner
+Description:エピック ゲームズのアカウントをセットアっプする方法
+Related:GettingStarted/RecommendedSpecifications
+Related:Support/Builds
+Version:4.8
+SkillLevel:Beginner
 
 [EXCERPT:epicAccount]
 
-## Creating an Epic Games Account
+## エピック ゲームズのアカウントを作成する
 
-In order to run the Epic Games Launcher, you need to have a valid Epic Games account.
+エピック ゲームズのランチャーを実行するには、有効なエピック ゲームズのアカウントをお持ちになっている必要があります。
 
-1.	**Navigate** to [UnrealEngine.com](https://www.unrealengine.com/what-is-unreal-engine-4).
+1.	[UnrealEngine.com](https://www.unrealengine.com/what-is-unreal-engine-4) に **ナビゲート (移動)** します。
 
-1.	**Click** the **Get Unreal** button (pictured below).
+1.	**[Get Unreal]** ボタン (以下の図) をクリックします。
 
 	![](UnrealWebsite.png)
 
-1.	**Fill-out** our **'Join the Community'** form and **click** the **Sign Up** button (pictured below).
+1.	**'Join the Community'** フォームに **入力** し、**Sign Up** ボタン (以下の図) を **クリック** します。
 
 	![](SignupScreen.png)
 
 	[REGION:note]
-	Make sure to read through our [terms of service](http://epicgames.com/tos) prior to signing up.
+	登録前に [Terms of Service (サービス利用規約)](http://epicgames.com/tos) を必ずお読みください。
 	[/REGION]
 
-1.	**Read** our [Unreal Engine End User License Agreement](https://www.unrealengine.com/eula) (EULA) prior to **clicking** the **Accept** button (pictured below).
+1.	 [EULA (エンドユーザー ライセンス契約書)](https://www.unrealengine.com/eula) を **お読みになってから**、**[Accept (合意)]** ボタン (以下の図) をクリックするようにしてください。
 
 	![](EULA.png)
 
 	[REGION:note]
-	Refer to our [EULA FAQ](https://www.unrealengine.com/faq#legal) if you have additional questions about the EULA's terms and conditions.
+	EULA の条件についてさらに疑問点がある場合は、弊社の [EULA FAQ](https://www.unrealengine.com/faq#legal) をご覧ください。
 	[/REGION]
 
 [/EXCERPT:epicAccount]

@@ -4,6 +4,9 @@ Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:How to attach objects to sockets defined in a Paper 2D Sprite. 
 Related: Engine\Paper2D\Sprites
 Related: Engine\Paper2D\Flipbooks
+Version: 4.9
+SkillLevel: Intermediate
+
 
 
 On this page you will learn how to add sockets to sprites then access those sockets from within a Blueprint which you can attach an object to. You can spawn particle effects from sprite sockets (such as a character on fire), attach a weapon to a character's hand (like a gun or sword) or any number of different items that you want to spawn and attach to a sprite's socket. 

@@ -2,6 +2,8 @@
 Title: Getting Started: Developing HTML5 Projects
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:Setting up for development for the HTML5 platform.
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:3)]
 
@@ -127,7 +129,7 @@ Please refer to [http://kripken.github.io/emscripten-site/docs/getting_started/d
 
 1. [Install Python 2.7](https://www.python.org/download/releases/2.7/)
 
-	Any version of Python **2.7** will do. As of this writing, 2.7.9 is the latest 2.7 release. Do not use Python 3.X.
+	Any version of Python **2.7** will do. As of this writing, 2.7.10 is the latest 2.7 release. **Do not use Python 3.X**.
 
 1. Update your `Engine\Config\HTML5\HTML5Engine.ini` file:
 

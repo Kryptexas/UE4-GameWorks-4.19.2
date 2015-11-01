@@ -5,6 +5,8 @@ Description:A How To Guide for using the Fresnel Material node.
 Related: Engine/Rendering/Materials/Functions/Reference/VectorOps
 Related: Engine/Rendering/Materials/Editor/Interface
 Related: Engine/Rendering/Materials/ExpressionReference/Utility
+Version: 4.9
+SkillLevel: Advanced
 
 
 [TOC(start:2 end:3)]
@@ -21,7 +23,7 @@ This way, the artist has more control over the look and feel of the effect and c
 
 ## Fresnel 
 
-Fresnel is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. 
+**Fresnel** is the term used to describe how the light you see reflects at different intensities based off of the angle you are viewing it from. 
 For example, if you are standing over a pool looking straight down at the pool, you will not see a lot of reflections in the water. 
 As you start to move your head so that the water in the pool becomes more and more parallel to your eye level, you will begin to notice more and more reflections in the water. 
 
@@ -44,7 +46,7 @@ While these two Material Expressions have the same name and do the same thing, t
 
 ### Fresnel Utility
 
-The Fresnel that is found under **Utility** is the one that is used in this How - To and is the simplest one out of the two to setup and use. 
+The Fresnel that is found under **Utility** is the one that is used in this How-to and is the simplest one out of the two to setup and use. 
 It is **highly recommended** that you use this version to begin with and then move on to the other once you better understand how the node functions.
 
 ![](FN_Fresnel_Node.png)
