@@ -1623,27 +1623,16 @@ namespace UnrealBuildTool
 				{
 					if (BuildConfiguration.bUseUBTMakefiles)
 					{
-						// If we're building UHT without a Mutex, we'll need to assume that we're building the same targets and that no caches
-						// should be invalidated for this run.  This is important when UBT is invoked from within UBT in order to compile
-						// UHT.  In that (very common) case we definitely don't want to have to rebuild our cache from scratch.
-						bool bMustAssumeSameTargets = false;
+						// Only the modular editor and game targets will share build products.  Unfortunately, we can't determine at
+						// at this point whether we're dealing with modular or monolithic game binaries, so we opt to always invalidate
+						// cached includes if the target we're switching to is either a game target (has project file) or "UE4Editor".
+						bool bMightHaveSharedBuildProducts = 
+							ProjectFile != null ||	// Is this a game? (has a .uproject file for the target)
+							TargetDescs[ 0 ].TargetName.Equals( "UE4Editor", StringComparison.InvariantCultureIgnoreCase );	// Is the engine?
+						if( bMightHaveSharedBuildProducts )
+						{
+							bool bIsBuildingSameTargetsAsLastTime = false;
 
-						if (TargetDescs[0].TargetName.Equals("UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase))
-						{
-							int NoMutexArgumentIndex;
-							if (Utils.ParseCommandLineFlag(Arguments, "-NoMutex", out NoMutexArgumentIndex))
-							{
-								bMustAssumeSameTargets = true;
-							}
-						}
-
-						bool bIsBuildingSameTargetsAsLastTime = false;
-						if (bMustAssumeSameTargets)
-						{
-							bIsBuildingSameTargetsAsLastTime = true;
-						}
-						else
-						{
 							string TargetCollectionName = MakeTargetCollectionName(TargetDescs);
 
 							string LastBuiltTargetsFileName = bIsHotReload ? "HotReloadLastBuiltTargets.txt" : "LastBuiltTargets.txt";
@@ -1663,7 +1652,6 @@ namespace UnrealBuildTool
 								Directory.CreateDirectory(Path.GetDirectoryName(LastBuiltTargetsFilePath));
 								File.WriteAllText(LastBuiltTargetsFilePath, TargetCollectionName, Encoding.UTF8);
 							}
-
 
 							if (!bIsBuildingSameTargetsAsLastTime)
 							{
