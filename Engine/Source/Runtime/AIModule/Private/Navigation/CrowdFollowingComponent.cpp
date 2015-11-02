@@ -300,13 +300,19 @@ void UCrowdFollowingComponent::Initialize()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
-		CrowdManager->RegisterAgent(IAgent);
+		RegisterWithCrowdManager(*CrowdManager);
 	}
 	else
 	{
 		bEnableCrowdSimulation = false;
 	}
+}
+
+void UCrowdFollowingComponent::RegisterWithCrowdManager(UCrowdManager& CrowdManager)
+{
+	bEnableCrowdSimulation = true;
+	ICrowdAgentInterface* IAgent = CastChecked<ICrowdAgentInterface>(this);
+	CrowdManager.RegisterAgent(IAgent);
 }
 
 void UCrowdFollowingComponent::Cleanup()
@@ -581,7 +587,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 	FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
 	FAbstractNavigationPath* DirectPath = Path->CastPath<FAbstractNavigationPath>();
-	if (NavMeshPath)
+	if (NavMeshPath && ensure(MyNavData))
 	{
 #if WITH_RECAST
 		if (NavMeshPath->PathCorridor.IsValidIndex(PathStartIndex) == false)

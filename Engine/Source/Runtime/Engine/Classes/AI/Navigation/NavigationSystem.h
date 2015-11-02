@@ -32,6 +32,7 @@ class ANavMeshBoundsVolume;
 class FNavDataGenerator;
 class AWorldSettings;
 struct FNavigationRelevantData;
+class UNavigationSystem;
 #if WITH_EDITOR
 class FEdMode;
 #endif // WITH_EDITOR
@@ -43,6 +44,8 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const UClass* /*AreaClass
 
 /** Delegate to let interested parties know that Nav Data has been registered */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataGenerigEvent, ANavigationData*, NavData);
+
+DECLARE_MULTICAST_DELEGATE(FOnNavigationInitDone);
 
 namespace NavigationDebugDrawing
 {
@@ -240,6 +243,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Transient, meta = (displayname = OnNavigationGenerationFinished))
 	FOnNavDataGenerigEvent OnNavigationGenerationFinishedDelegate;
+
+	FOnNavigationInitDone OnNavigationInitDone;
 	
 private:
 	TWeakObjectPtr<UCrowdManager> CrowdManager;

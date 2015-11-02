@@ -100,6 +100,9 @@ void FCrowdAvoidanceSamplingPattern::AddSampleWithMirror(float AngleInDegrees, f
 	AddSample(-AngleInDegrees, NormalizedRadius);
 }
 
+//----------------------------------------------------------------------//
+// UCrowdManager
+//----------------------------------------------------------------------//
 UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MyNavData = NULL;
@@ -186,6 +189,27 @@ void UCrowdManager::BeginDestroy()
 #endif
 
 	Super::BeginDestroy();
+}
+
+void UCrowdManager::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	UWorld* World = GetWorld();
+
+	if (World)
+	{
+		// if there were pawns hand-placed on the map we need to register them here
+		// since CrowdManager wasn't around when they tried to register themselves
+		for (TObjectIterator<UCrowdFollowingComponent> It; It; ++It)
+		{
+			const AActor* Owner = It->GetOwner();
+			if (Owner && Owner->GetWorld() == World)
+			{
+				It->RegisterWithCrowdManager(*this);
+			}
+		}
+	}
 }
 
 void UCrowdManager::Tick(float DeltaTime)
@@ -1200,6 +1224,12 @@ void UCrowdManager::UpdateNavData()
 		UNavigationSystem* NavSys = Cast<UNavigationSystem>(GetOuter());
 		if (NavSys)
 		{
+			if (OnNavInitHandle.IsValid())
+			{
+				NavSys->OnNavigationInitDone.Remove(OnNavInitHandle);
+				OnNavInitHandle.Reset();
+			}
+
 			for (int32 Idx = 0; Idx < NavSys->NavDataSet.Num(); Idx++)
 			{
 				ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(NavSys->NavDataSet[Idx]);
@@ -1211,6 +1241,13 @@ void UCrowdManager::UpdateNavData()
 
 					break;
 				}
+			}
+
+			if (MyNavData == nullptr)
+			{
+				// this means we're still missing navigation data, we'll need to ask NavigationSystem to
+				// ping us when there are some
+				OnNavInitHandle = NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdManager::UpdateNavData);
 			}
 		}
 	}

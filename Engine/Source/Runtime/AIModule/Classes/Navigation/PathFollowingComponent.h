@@ -489,6 +489,9 @@ protected:
 	/** set move focus in AI owner */
 	void UpdateMoveFocus();
 
+	/** Updates cached MyNavData */
+	virtual void RecacheNavigationData();
+
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;
 	
