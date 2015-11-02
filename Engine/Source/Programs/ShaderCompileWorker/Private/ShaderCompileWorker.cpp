@@ -328,8 +328,10 @@ private:
 		ProcessCompilationJob(CompilerInputs[0], FirstCompilerOutput, WorkingDirectory);
 
 		// Serialize the job's output.
-		FJobResult& JobResult = *new(PipelineJob.SingleJobs) FJobResult;
-		JobResult.CompilerOutput = FirstCompilerOutput;
+		{
+			FJobResult& JobResult = *new(PipelineJob.SingleJobs) FJobResult;
+			JobResult.CompilerOutput = FirstCompilerOutput;
+		}
 
 		bool bEnableRemovingUnused = true;
 
