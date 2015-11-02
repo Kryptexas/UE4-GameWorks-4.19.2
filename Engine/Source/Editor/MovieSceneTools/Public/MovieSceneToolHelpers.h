@@ -5,7 +5,7 @@
 #include "ISequencer.h"
 #include "ISequencerSection.h"
 #include "IKeyArea.h"
-
+#include "MovieSceneSection.h"
 
 /**
  * A key area for float keys
