@@ -403,7 +403,7 @@ void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::
 
 EVisibility SCommentBubble::GetToggleButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility Visibility = EVisibility::Hidden;
 
 	if( OpacityValue > 0.f && !GraphNode->bCommentBubbleVisible )
 	{
