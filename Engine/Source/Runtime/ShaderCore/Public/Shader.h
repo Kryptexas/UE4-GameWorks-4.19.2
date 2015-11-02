@@ -1109,7 +1109,12 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar,class FShaderTypeDependency& Ref)
 	{
-		Ar << Ref.ShaderType << Ref.ShaderPipelineType << Ref.SourceHash;
+		Ar << Ref.ShaderType;
+		if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
+		{
+			Ar << Ref.ShaderPipelineType;
+		}
+		Ar << Ref.SourceHash;
 		return Ar;
 	}
 
