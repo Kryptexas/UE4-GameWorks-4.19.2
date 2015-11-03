@@ -584,10 +584,10 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -build");
 	}
 
-	// we can include the crash reporter for any non-code projects or internal builds (we don't have the symbols to interpret external builds of code-based projects)
-	if (PackagingSettings->IncludeCrashReporter && (!bProjectHasCode || FEngineBuildSettings::IsInternalBuild()) && bTargetPlatformCanUseCrashReporter)
+	// Whether to include the crash reporter.
+	if (PackagingSettings->IncludeCrashReporter && bTargetPlatformCanUseCrashReporter)
 	{
-		OptionalParams += TEXT(" -CrashReporter");
+		OptionalParams += TEXT( " -CrashReporter" );
 	}
 
 	if (PackagingSettings->bBuildHttpChunkInstallData)
