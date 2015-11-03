@@ -9,32 +9,11 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/strings/string_piece.h"
 #include "net/base/net_export.h"
+#include "net/spdy/spdy_headers_handler_interface.h"
 #include "net/spdy/spdy_prefixed_buffer_reader.h"
 #include "net/spdy/spdy_protocol.h"
 
 namespace net {
-
-// A handler class for SPDY headers.
-class SpdyHeadersHandlerInterface {
- public:
-  virtual ~SpdyHeadersHandlerInterface() {}
-
-  // A callback method which notifies when the parser starts handling a new
-  // SPDY headers block, this method also notifies on the number of headers in
-  // the block.
-  virtual void OnHeaderBlock(SpdyStreamId stream_id,
-                             uint32_t num_of_headers) = 0;
-
-  // A callback method which notifies on a SPDY header key value pair.
-  virtual void OnHeader(SpdyStreamId stream_id,
-                        base::StringPiece key,
-                        base::StringPiece value) = 0;
-
-  // A callback method which notifies when the parser finishes handling a SPDY
-  // headers block. Also notifies on the total number of bytes in this block.
-  virtual void OnHeaderBlockEnd(SpdyStreamId stream_id,
-                                size_t header_bytes_parsed) = 0;
-};
 
 namespace test {
 
@@ -65,7 +44,7 @@ class NET_EXPORT_PRIVATE SpdyHeadersBlockParser {
                                      const char* headers_data,
                                      size_t len);
   enum ParserError {
-    OK,
+    NO_PARSER_ERROR,
     // Set when parsing failed due to insufficient data.
     // This error is recoverable, by passing in new data.
     NEED_MORE_DATA,
@@ -75,8 +54,12 @@ class NET_EXPORT_PRIVATE SpdyHeadersBlockParser {
     HEADER_BLOCK_TOO_LARGE,
     // Set when a header key or value exceeds |kMaximumFieldLength|.
     HEADER_FIELD_TOO_LARGE,
+    // Set when the parser is given an unexpected stream ID.
+    UNEXPECTED_STREAM_ID,
   };
   ParserError get_error() const { return error_; }
+
+  SpdyMajorVersion spdy_version() const { return spdy_version_; }
 
   // Returns the size in bytes of a length field in a SPDY header.
   static size_t LengthFieldSizeForVersion(SpdyMajorVersion spdy_version);
@@ -138,6 +121,8 @@ class NET_EXPORT_PRIVATE SpdyHeadersBlockParser {
   SpdyStreamId stream_id_;
 
   ParserError error_;
+
+  const SpdyMajorVersion spdy_version_;
 };
 
 }  // namespace net

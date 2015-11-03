@@ -10,6 +10,7 @@
 #include "base/compiler_specific.h"
 #include "base/containers/hash_tables.h"
 #include "base/memory/weak_ptr.h"
+#include "base/strings/string_split.h"
 #include "net/disk_cache/disk_cache.h"
 #include "net/disk_cache/memory/mem_rankings.h"
 
@@ -79,9 +80,9 @@ class NET_EXPORT_PRIVATE MemBackendImpl : public Backend {
                          const CompletionCallback& callback) override;
   int DoomEntriesSince(base::Time initial_time,
                        const CompletionCallback& callback) override;
+  int CalculateSizeOfAllEntries(const CompletionCallback& callback) override;
   scoped_ptr<Iterator> CreateIterator() override;
-  void GetStats(
-      std::vector<std::pair<std::string, std::string>>* stats) override {}
+  void GetStats(base::StringPairs* stats) override {}
   void OnExternalCacheHit(const std::string& key) override;
 
  private:

@@ -5,6 +5,8 @@
 #ifndef NET_QUIC_QUIC_DATA_READER_H_
 #define NET_QUIC_QUIC_DATA_READER_H_
 
+#include <cstddef>
+
 #include "base/basictypes.h"
 #include "base/strings/string_piece.h"
 #include "net/base/int128.h"
@@ -44,20 +46,10 @@ class NET_EXPORT_PRIVATE QuicDataReader {
   // Returns true on success, false otherwise.
   bool ReadUInt32(uint32* result);
 
-  // Reads a 48-bit unsigned integer into the given output parameter.
-  // Forwards the internal iterator on success.
-  // Returns true on success, false otherwise.
-  bool ReadUInt48(uint64* result);
-
   // Reads a 64-bit unsigned integer into the given output parameter.
   // Forwards the internal iterator on success.
   // Returns true on success, false otherwise.
   bool ReadUInt64(uint64* result);
-
-  // Reads a 128-bit unsigned integer into the given output parameter.
-  // Forwards the internal iterator on success.
-  // Returns true on success, false otherwise.
-  bool ReadUInt128(uint128* result);
 
   // Reads a 16-bit unsigned float into the given output parameter.
   // Forwards the internal iterator on success.

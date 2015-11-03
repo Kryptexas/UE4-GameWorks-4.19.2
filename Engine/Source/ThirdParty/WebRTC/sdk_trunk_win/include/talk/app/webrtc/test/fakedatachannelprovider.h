@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,6 +25,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef TALK_APP_WEBRTC_TEST_FAKEDATACHANNELPROVIDER_H_
+#define TALK_APP_WEBRTC_TEST_FAKEDATACHANNELPROVIDER_H_
+
 #include "talk/app/webrtc/datachannel.h"
 
 class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
@@ -36,16 +39,16 @@ class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
         transport_error_(false) {}
   virtual ~FakeDataChannelProvider() {}
 
-  virtual bool SendData(const cricket::SendDataParams& params,
-                        const rtc::Buffer& payload,
-                        cricket::SendDataResult* result) OVERRIDE {
+  bool SendData(const cricket::SendDataParams& params,
+                const rtc::Buffer& payload,
+                cricket::SendDataResult* result) override {
     ASSERT(ready_to_send_ && transport_available_);
     if (send_blocked_) {
       *result = cricket::SDR_BLOCK;
       return false;
     }
 
-    if (transport_error_ || payload.length() == 0) {
+    if (transport_error_ || payload.size() == 0) {
       *result = cricket::SDR_ERROR;
       return false;
     }
@@ -54,7 +57,7 @@ class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
     return true;
   }
 
-  virtual bool ConnectDataChannel(webrtc::DataChannel* data_channel) OVERRIDE {
+  bool ConnectDataChannel(webrtc::DataChannel* data_channel) override {
     ASSERT(connected_channels_.find(data_channel) == connected_channels_.end());
     if (!transport_available_) {
       return false;
@@ -64,14 +67,13 @@ class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
     return true;
   }
 
-  virtual void DisconnectDataChannel(
-      webrtc::DataChannel* data_channel) OVERRIDE {
+  void DisconnectDataChannel(webrtc::DataChannel* data_channel) override {
     ASSERT(connected_channels_.find(data_channel) != connected_channels_.end());
     LOG(LS_INFO) << "DataChannel disconnected " << data_channel;
     connected_channels_.erase(data_channel);
   }
 
-  virtual void AddSctpDataStream(int sid) OVERRIDE {
+  void AddSctpDataStream(int sid) override {
     ASSERT(sid >= 0);
     if (!transport_available_) {
       return;
@@ -80,25 +82,27 @@ class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
     recv_ssrcs_.insert(sid);
   }
 
-  virtual void RemoveSctpDataStream(int sid) OVERRIDE {
+  void RemoveSctpDataStream(int sid) override {
     ASSERT(sid >= 0);
     send_ssrcs_.erase(sid);
     recv_ssrcs_.erase(sid);
   }
 
-  virtual bool ReadyToSendData() const OVERRIDE {
-    return ready_to_send_;
-  }
+  bool ReadyToSendData() const override { return ready_to_send_; }
 
   // Set true to emulate the SCTP stream being blocked by congestion control.
   void set_send_blocked(bool blocked) {
     send_blocked_ = blocked;
     if (!blocked) {
-      std::set<webrtc::DataChannel*>::iterator it;
-      for (it = connected_channels_.begin();
-           it != connected_channels_.end();
-           ++it) {
-        (*it)->OnChannelReady(true);
+      // Take a snapshot of the connected channels and check to see whether
+      // each value is still in connected_channels_ before calling
+      // OnChannelReady().  This avoids problems where the set gets modified
+      // in response to OnChannelReady().
+      for (webrtc::DataChannel *ch : std::set<webrtc::DataChannel*>(
+               connected_channels_.begin(), connected_channels_.end())) {
+        if (connected_channels_.count(ch)) {
+          ch->OnChannelReady(true);
+        }
       }
     }
   }
@@ -136,11 +140,11 @@ class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
     return connected_channels_.find(data_channel) != connected_channels_.end();
   }
 
-  bool IsSendStreamAdded(uint32 stream) const {
+  bool IsSendStreamAdded(uint32_t stream) const {
     return send_ssrcs_.find(stream) != send_ssrcs_.end();
   }
 
-  bool IsRecvStreamAdded(uint32 stream) const {
+  bool IsRecvStreamAdded(uint32_t stream) const {
     return recv_ssrcs_.find(stream) != recv_ssrcs_.end();
   }
 
@@ -151,6 +155,7 @@ class FakeDataChannelProvider : public webrtc::DataChannelProviderInterface {
   bool ready_to_send_;
   bool transport_error_;
   std::set<webrtc::DataChannel*> connected_channels_;
-  std::set<uint32> send_ssrcs_;
-  std::set<uint32> recv_ssrcs_;
+  std::set<uint32_t> send_ssrcs_;
+  std::set<uint32_t> recv_ssrcs_;
 };
+#endif  // TALK_APP_WEBRTC_TEST_FAKEDATACHANNELPROVIDER_H_

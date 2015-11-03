@@ -27,7 +27,7 @@ class OutputWavFile : public AudioSink {
   OutputWavFile(const std::string& file_name, int sample_rate_hz)
       : wav_writer_(file_name, sample_rate_hz, 1) {}
 
-  virtual bool WriteArray(const int16_t* audio, size_t num_samples) OVERRIDE {
+  bool WriteArray(const int16_t* audio, size_t num_samples) override {
     wav_writer_.WriteSamples(audio, num_samples);
     return true;
   }
@@ -35,7 +35,7 @@ class OutputWavFile : public AudioSink {
  private:
   WavWriter wav_writer_;
 
-  DISALLOW_COPY_AND_ASSIGN(OutputWavFile);
+  RTC_DISALLOW_COPY_AND_ASSIGN(OutputWavFile);
 };
 
 }  // namespace test

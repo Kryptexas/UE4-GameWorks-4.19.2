@@ -103,6 +103,10 @@ NET_ERROR(BLOCKED_ENROLLMENT_CHECK_PENDING, -24)
 // retry or a redirect, but the upload stream doesn't support that operation.
 NET_ERROR(UPLOAD_STREAM_REWIND_NOT_SUPPORTED, -25)
 
+// The request failed because the URLRequestContext is shutting down, or has
+// been shut down.
+NET_ERROR(CONTEXT_SHUT_DOWN, -26)
+
 // A connection was closed (corresponding to a TCP FIN).
 NET_ERROR(CONNECTION_CLOSED, -100)
 
@@ -201,9 +205,6 @@ NET_ERROR(SSL_BAD_RECORD_MAC_ALERT, -126)
 
 // The proxy requested authentication (for tunnel establishment).
 NET_ERROR(PROXY_AUTH_REQUESTED, -127)
-
-// A known TLS strict server didn't offer the renegotiation extension.
-NET_ERROR(SSL_UNSAFE_NEGOTIATION, -128)
 
 // The SSL server attempted to use a weak ephemeral Diffie-Hellman key.
 NET_ERROR(SSL_WEAK_SERVER_EPHEMERAL_DH_KEY, -129)
@@ -340,6 +341,28 @@ NET_ERROR(SSL_CLIENT_AUTH_CERT_BAD_FORMAT, -164)
 // minimum fallback version, and thus fallback failed.
 NET_ERROR(SSL_FALLBACK_BEYOND_MINIMUM_VERSION, -165)
 
+// Resolving a hostname to an IP address list included the IPv4 address
+// "127.0.53.53". This is a special IP address which ICANN has recommended to
+// indicate there was a name collision, and alert admins to a potential
+// problem.
+NET_ERROR(ICANN_NAME_COLLISION, -166)
+
+// The SSL server presented a certificate which could not be decoded. This is
+// not a certificate error code as no X509Certificate object is available. This
+// error is fatal.
+NET_ERROR(SSL_SERVER_CERT_BAD_FORMAT, -167)
+// Certificate Transparency: Received a signed tree head that failed to parse.
+NET_ERROR(CT_STH_PARSING_FAILED, -168)
+// Certificate Transparency: Received a signed tree head whose JSON parsing was
+// OK but was missing some of the fields.
+NET_ERROR(CT_STH_INCOMPLETE, -169)
+
+// The attempt to reuse a connection to send proxy auth credentials failed
+// before the AuthController was used to generate credentials. The caller should
+// reuse the controller with a new connection. This error is only used
+// internally by the network stack.
+NET_ERROR(UNABLE_TO_REUSE_CONNECTION_FOR_PROXY_AUTH, -170)
+
 // Certificate error codes
 //
 // The values of certificate error codes must be consecutive.
@@ -347,8 +370,8 @@ NET_ERROR(SSL_FALLBACK_BEYOND_MINIMUM_VERSION, -165)
 // The server responded with a certificate whose common name did not match
 // the host name.  This could mean:
 //
-// 1. An attacker has redirected our traffic to his server and is
-//    presenting a certificate for which he knows the private key.
+// 1. An attacker has redirected our traffic to their server and is
+//    presenting a certificate for which they know the private key.
 //
 // 2. The server is misconfigured and responding with the wrong cert.
 //
@@ -363,7 +386,7 @@ NET_ERROR(CERT_COMMON_NAME_INVALID, -200)
 // The server responded with a certificate that, by our clock, appears to
 // either not yet be valid or to have expired.  This could mean:
 //
-// 1. An attacker is presenting an old certificate for which he has
+// 1. An attacker is presenting an old certificate for which they have
 //    managed to obtain the private key.
 //
 // 2. The server is misconfigured and is not presenting a valid cert.
@@ -376,7 +399,7 @@ NET_ERROR(CERT_DATE_INVALID, -201)
 // we don't trust.  The could mean:
 //
 // 1. An attacker has substituted the real certificate for a cert that
-//    contains his public key and is signed by his cousin.
+//    contains their public key and is signed by their cousin.
 //
 // 2. The server operator has a legitimate certificate from a CA we don't
 //    know about, but should trust.
@@ -440,13 +463,16 @@ NET_ERROR(CERT_WEAK_KEY, -211)
 // The certificate claimed DNS names that are in violation of name constraints.
 NET_ERROR(CERT_NAME_CONSTRAINT_VIOLATION, -212)
 
+// The certificate's validity period is too long.
+NET_ERROR(CERT_VALIDITY_TOO_LONG, -213)
+
 // Add new certificate error codes here.
 //
 // Update the value of CERT_END whenever you add a new certificate error
 // code.
 
 // The value immediately past the last certificate error code.
-NET_ERROR(CERT_END, -213)
+NET_ERROR(CERT_END, -214)
 
 // The URL is invalid.
 NET_ERROR(INVALID_URL, -300)
@@ -600,8 +626,9 @@ NET_ERROR(RESPONSE_HEADERS_TRUNCATED, -357)
 // to read any requests sent, so they may be resent.
 NET_ERROR(QUIC_HANDSHAKE_FAILED, -358)
 
-// An https resource was requested over an insecure QUIC connection.
-NET_ERROR(REQUEST_FOR_SECURE_RESOURCE_OVER_INSECURE_QUIC, -359)
+// Obsolete.  Kept here to avoid reuse, as the old error can still appear on
+// histograms.
+// NET_ERROR(REQUEST_FOR_SECURE_RESOURCE_OVER_INSECURE_QUIC, -359)
 
 // Transport security is inadequate for the SPDY version.
 NET_ERROR(SPDY_INADEQUATE_TRANSPORT_SECURITY, -360)
@@ -623,6 +650,18 @@ NET_ERROR(HTTP_1_1_REQUIRED, -365)
 
 // HTTP_1_1_REQUIRED error code received on HTTP/2 session to proxy.
 NET_ERROR(PROXY_HTTP_1_1_REQUIRED, -366)
+
+// The PAC script terminated fatally and must be reloaded.
+NET_ERROR(PAC_SCRIPT_TERMINATED, -367)
+
+// The certificate offered by the alternative server is not valid for the
+// origin, a violation of HTTP Alternative Services specification Section 2.1,
+// https://tools.ietf.org/id/draft-ietf-httpbis-alt-svc-06.html#host_auth.
+NET_ERROR(ALTERNATIVE_CERT_NOT_VALID_FOR_ORIGIN, -368)
+
+// Request is throttled because of a Backoff header.
+// See: crbug.com/486891.
+NET_ERROR(TEMPORARY_BACKOFF, -369)
 
 // The cache does not have the requested entry.
 NET_ERROR(CACHE_MISS, -400)
@@ -661,6 +700,10 @@ NET_ERROR(CACHE_CHECKSUM_MISMATCH, -408)
 
 // Internal error code for the HTTP cache. The cache lock timeout has fired.
 NET_ERROR(CACHE_LOCK_TIMEOUT, -409)
+
+// Received a challenge after the transaction has read some data, and the
+// credentials aren't available.  There isn't a way to get them at that point.
+NET_ERROR(CACHE_AUTH_FAILURE_AFTER_READ, -410)
 
 // The server's response was insecure (e.g. there was a cert error).
 NET_ERROR(INSECURE_RESPONSE, -501)
@@ -737,8 +780,7 @@ NET_ERROR(PKCS12_IMPORT_UNSUPPORTED, -709)
 // Key generation failed.
 NET_ERROR(KEY_GENERATION_FAILED, -710)
 
-// Server-bound certificate generation failed.
-NET_ERROR(ORIGIN_BOUND_CERT_GENERATION_FAILED, -711)
+// Error -711 was removed (ORIGIN_BOUND_CERT_GENERATION_FAILED)
 
 // Failure to export private key.
 NET_ERROR(PRIVATE_KEY_EXPORT_FAILED, -712)

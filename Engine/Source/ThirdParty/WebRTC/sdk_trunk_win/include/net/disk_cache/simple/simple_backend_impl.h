@@ -16,6 +16,7 @@
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/strings/string_split.h"
 #include "base/task_runner.h"
 #include "base/time/time.h"
 #include "net/base/cache_type.h"
@@ -104,9 +105,9 @@ class NET_EXPORT_PRIVATE SimpleBackendImpl : public Backend,
                          const CompletionCallback& callback) override;
   int DoomEntriesSince(base::Time initial_time,
                        const CompletionCallback& callback) override;
+  int CalculateSizeOfAllEntries(const CompletionCallback& callback) override;
   scoped_ptr<Iterator> CreateIterator() override;
-  void GetStats(
-      std::vector<std::pair<std::string, std::string>>* stats) override;
+  void GetStats(base::StringPairs* stats) override;
   void OnExternalCacheHit(const std::string& key) override;
 
  private:
@@ -138,6 +139,10 @@ class NET_EXPORT_PRIVATE SimpleBackendImpl : public Backend,
                          base::Time end_time,
                          const CompletionCallback& callback,
                          int result);
+
+  // Calculates the size of the entire cache. Invoked when the index is ready.
+  void IndexReadyForSizeCalculation(const CompletionCallback& callback,
+                                    int result);
 
   // Try to create the directory if it doesn't exist. This must run on the IO
   // thread.

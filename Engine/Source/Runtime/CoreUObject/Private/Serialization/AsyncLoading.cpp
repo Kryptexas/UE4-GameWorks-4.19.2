@@ -1770,6 +1770,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 	LastTypeOfWorkPerformed = TEXT("postloading_gamethread");
 
 	TArray<UObject*>& ObjLoadedInPostLoad = FUObjectThreadContext::Get().ObjLoaded;
+	TArray<UObject*> ObjLoadedInPostLoadLocal;
 
 	while (DeferredPostLoadIndex < DeferredPostLoadObjects.Num() && 
 		!AsyncLoadingThread.IsAsyncLoadingSuspended() &&
@@ -1788,18 +1789,29 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 			// There's no going back to the async tick loop from here.
 			UE_LOG(LogStreaming, Warning, TEXT("Detected %d objects loaded in PostLoad while streaming, this may cause hitches as we're blocking async loading to pre-load them."), ObjLoadedInPostLoad.Num());
 			
-			// Make sure all objects loaded in PostLoad get post-loaded too
-			DeferredPostLoadObjects.Append(ObjLoadedInPostLoad);
+			// Copy to local array because ObjLoadedInPostLoad can change while we're iterating over it
+			ObjLoadedInPostLoadLocal.Append(ObjLoadedInPostLoad);
+			ObjLoadedInPostLoad.Reset();
 
-			// Preload (aka serialize) the objects loaded in PostLoad.
-			for (UObject* PreLoadObject : ObjLoadedInPostLoad)
+			while (ObjLoadedInPostLoadLocal.Num())
 			{
-				if (PreLoadObject && PreLoadObject->GetLinker())
+				// Make sure all objects loaded in PostLoad get post-loaded too
+				DeferredPostLoadObjects.Append(ObjLoadedInPostLoadLocal);
+
+				// Preload (aka serialize) the objects loaded in PostLoad.
+				for (UObject* PreLoadObject : ObjLoadedInPostLoadLocal)
 				{
-					PreLoadObject->GetLinker()->Preload(PreLoadObject);
+					if (PreLoadObject && PreLoadObject->GetLinker())
+					{
+						PreLoadObject->GetLinker()->Preload(PreLoadObject);
+					}
 				}
-			}
-			ObjLoadedInPostLoad.Empty();
+
+				// Other objects could've been loaded while we were preloading, continue until we've processed all of them.
+				ObjLoadedInPostLoadLocal.Reset();
+				ObjLoadedInPostLoadLocal.Append(ObjLoadedInPostLoad);
+				ObjLoadedInPostLoad.Reset();
+			}			
 		}
 
 		LastObjectWorkWasPerformedOn = Object;		

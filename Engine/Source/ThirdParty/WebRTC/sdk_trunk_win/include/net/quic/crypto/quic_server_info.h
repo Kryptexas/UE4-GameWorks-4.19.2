@@ -45,6 +45,10 @@ class NET_EXPORT_PRIVATE QuicServerInfo {
   // but, obviously, a callback will never be made.
   virtual int WaitForDataReady(const CompletionCallback& callback) = 0;
 
+  // Reset's WaitForDataReady callback. This method shouldn't have any side
+  // effects (could be called even if HttpCache doesn't exist).
+  virtual void ResetWaitForDataReadyCallback() = 0;
+
   // Cancel's WaitForDataReady callback. |callback| passed in WaitForDataReady
   // will not be called.
   virtual void CancelWaitForDataReadyCallback() = 0;
@@ -103,11 +107,16 @@ class NET_EXPORT_PRIVATE QuicServerInfo {
   // fields will be set to something sane in any case.
   bool Parse(const std::string& data);
   std::string Serialize();
+
   State state_;
 
   // Time when WaitForDataReady was called and when it has finished.
   base::TimeTicks wait_for_data_start_time_;
   base::TimeTicks wait_for_data_end_time_;
+
+  // This is the QUIC server (hostname, port, is_https, privacy_mode) tuple for
+  // which we restore the crypto_config.
+  const QuicServerId server_id_;
 
  private:
   // ParseInner is a helper function for Parse.
@@ -115,10 +124,6 @@ class NET_EXPORT_PRIVATE QuicServerInfo {
 
   // SerializeInner is a helper function for Serialize.
   std::string SerializeInner() const;
-
-  // This is the QUIC server (hostname, port, is_https, privacy_mode) tuple for
-  // which we restore the crypto_config.
-  const QuicServerId server_id_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicServerInfo);
 };

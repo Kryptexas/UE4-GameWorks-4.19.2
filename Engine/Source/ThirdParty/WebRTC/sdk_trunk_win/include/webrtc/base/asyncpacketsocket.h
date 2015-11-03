@@ -22,24 +22,23 @@ namespace rtc {
 // extension, including the information needed to update the authentication tag
 // after changing the value.
 struct PacketTimeUpdateParams {
-  PacketTimeUpdateParams()
-      : rtp_sendtime_extension_id(-1), srtp_auth_tag_len(-1),
-        srtp_packet_index(-1) {
-  }
+  PacketTimeUpdateParams();
+  ~PacketTimeUpdateParams();
 
   int rtp_sendtime_extension_id;    // extension header id present in packet.
   std::vector<char> srtp_auth_key;  // Authentication key.
   int srtp_auth_tag_len;            // Authentication tag length.
-  int64 srtp_packet_index;          // Required for Rtp Packet authentication.
+  int64_t srtp_packet_index;        // Required for Rtp Packet authentication.
 };
 
 // This structure holds meta information for the packet which is about to send
 // over network.
 struct PacketOptions {
-  PacketOptions() : dscp(DSCP_NO_CHANGE) {}
-  explicit PacketOptions(DiffServCodePoint dscp) : dscp(dscp) {}
+  PacketOptions() : dscp(DSCP_NO_CHANGE), packet_id(-1) {}
+  explicit PacketOptions(DiffServCodePoint dscp) : dscp(dscp), packet_id(-1) {}
 
   DiffServCodePoint dscp;
+  int packet_id;  // 16 bits, -1 represents "not set".
   PacketTimeUpdateParams packet_time_params;
 };
 
@@ -47,19 +46,19 @@ struct PacketOptions {
 // received by socket.
 struct PacketTime {
   PacketTime() : timestamp(-1), not_before(-1) {}
-  PacketTime(int64 timestamp, int64 not_before)
-      : timestamp(timestamp), not_before(not_before) {
-  }
+  PacketTime(int64_t timestamp, int64_t not_before)
+      : timestamp(timestamp), not_before(not_before) {}
 
-  int64 timestamp;  // Receive time after socket delivers the data.
-  int64 not_before; // Earliest possible time the data could have arrived,
-                    // indicating the potential error in the |timestamp| value,
-                    // in case the system, is busy. For example, the time of
-                    // the last select() call.
-                    // If unknown, this value will be set to zero.
+  int64_t timestamp;   // Receive time after socket delivers the data.
+
+  // Earliest possible time the data could have arrived, indicating the
+  // potential error in the |timestamp| value, in case the system, is busy. For
+  // example, the time of the last select() call.
+  // If unknown, this value will be set to zero.
+  int64_t not_before;
 };
 
-inline PacketTime CreatePacketTime(int64 not_before) {
+inline PacketTime CreatePacketTime(int64_t not_before) {
   return PacketTime(TimeMicros(), not_before);
 }
 
@@ -75,8 +74,8 @@ class AsyncPacketSocket : public sigslot::has_slots<> {
     STATE_CONNECTED
   };
 
-  AsyncPacketSocket() { }
-  virtual ~AsyncPacketSocket() { }
+  AsyncPacketSocket();
+  ~AsyncPacketSocket() override;
 
   // Returns current local address. Address may be set to NULL if the
   // socket is not bound yet (GetState() returns STATE_BINDING).
@@ -111,6 +110,9 @@ class AsyncPacketSocket : public sigslot::has_slots<> {
                    const SocketAddress&,
                    const PacketTime&> SignalReadPacket;
 
+  // Emitted each time a packet is sent.
+  sigslot::signal2<AsyncPacketSocket*, const SentPacket&> SignalSentPacket;
+
   // Emitted when the socket is currently able to send.
   sigslot::signal1<AsyncPacketSocket*> SignalReadyToSend;
 
@@ -132,7 +134,7 @@ class AsyncPacketSocket : public sigslot::has_slots<> {
   sigslot::signal2<AsyncPacketSocket*, AsyncPacketSocket*> SignalNewConnection;
 
  private:
-  DISALLOW_EVIL_CONSTRUCTORS(AsyncPacketSocket);
+  RTC_DISALLOW_COPY_AND_ASSIGN(AsyncPacketSocket);
 };
 
 }  // namespace rtc

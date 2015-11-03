@@ -5,6 +5,8 @@
 #ifndef NET_URL_REQUEST_URL_REQUEST_H_
 #define NET_URL_REQUEST_URL_REQUEST_H_
 
+#include <stdint.h>
+
 #include <string>
 #include <vector>
 
@@ -21,14 +23,14 @@
 #include "net/base/load_states.h"
 #include "net/base/load_timing_info.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/network_delegate.h"
 #include "net/base/request_priority.h"
 #include "net/base/upload_progress.h"
 #include "net/cookies/canonical_cookie.h"
-#include "net/cookies/cookie_store.h"
 #include "net/http/http_request_headers.h"
 #include "net/http/http_response_info.h"
+#include "net/log/net_log.h"
+#include "net/socket/connection_attempts.h"
 #include "net/url_request/url_request_status.h"
 #include "url/gurl.h"
 
@@ -81,14 +83,6 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   typedef URLRequestJob* (ProtocolFactory)(URLRequest* request,
                                            NetworkDelegate* network_delegate,
                                            const std::string& scheme);
-
-  // HTTP request/response header IDs (via some preprocessor fun) for use with
-  // SetRequestHeaderById and GetResponseHeaderById.
-  enum {
-#define HTTP_ATOM(x) HTTP_ ## x,
-#include "net/http/http_atom_list.h"
-#undef HTTP_ATOM
-  };
 
   // Referrer policies (see set_referrer_policy): During server redirects, the
   // referrer header might be cleared, if the protocol changes from HTTPS to
@@ -269,6 +263,11 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   //          a security check, an attacker might try to get around this check
   //          by starting from some page that redirects to the
   //          host-to-be-attacked.
+  //
+  // TODO(mkwst): Convert this to a 'url::Origin'. Several callsites are using
+  // this value as a proxy for the "top-level frame URL", which is simply
+  // incorrect and fragile. We don't need the full URL for any //net checks,
+  // so we should drop the pieces we don't need.
   const GURL& first_party_for_cookies() const {
     return first_party_for_cookies_;
   }
@@ -288,12 +287,6 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   // should only be assigned an uppercase value.
   const std::string& method() const { return method_; }
   void set_method(const std::string& method);
-
-  // Determines the new method of the request afer following a redirect.
-  // |method| is the method used to arrive at the redirect,
-  // |http_status_code| is the status code associated with the redirect.
-  static std::string ComputeMethodForRedirect(const std::string& method,
-                                              int http_status_code);
 
   // The referrer URL for the request.  This header may actually be suppressed
   // from the underlying network request for security reasons (e.g., a HTTPS
@@ -317,10 +310,14 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   void EnableChunkedUpload();
 
   // Appends the given bytes to the request's upload data to be sent
-  // immediately via chunked transfer encoding. When all data has been sent,
-  // call MarkEndOfChunks() to indicate the end of upload data.
+  // immediately via chunked transfer encoding. When all data has been added,
+  // set |is_last_chunk| to true to indicate the end of upload data.  All chunks
+  // but the last must have |bytes_len| > 0.
   //
   // This method may be called only after calling EnableChunkedUpload().
+  //
+  // Despite the name of this method, over-the-wire chunk boundaries will most
+  // likely not match the "chunks" appended with this function.
   void AppendChunkToUpload(const char* bytes,
                            int bytes_len,
                            bool is_last_chunk);
@@ -334,11 +331,9 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   // Returns true if the request has a non-empty message body to upload.
   bool has_upload() const;
 
-  // Set an extra request header by ID or name, or remove one by name.  These
-  // methods may only be called before Start() is called, or before a new
-  // redirect in the request chain.
-  void SetExtraRequestHeaderById(int header_id, const std::string& value,
-                                 bool overwrite);
+  // Set or remove a extra request header.  These methods may only be called
+  // before Start() is called, or between receiving a redirect and trying to
+  // follow it.
   void SetExtraRequestHeaderByName(const std::string& name,
                                    const std::string& value, bool overwrite);
   void RemoveRequestHeaderByName(const std::string& name);
@@ -368,8 +363,16 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   bool GetFullRequestHeaders(HttpRequestHeaders* headers) const;
 
   // Gets the total amount of data received from network after SSL decoding and
-  // proxy handling.
-  int64 GetTotalReceivedBytes() const;
+  // proxy handling. Pertains only to the last URLRequestJob issued by this
+  // URLRequest, i.e. reset on redirects, but not reset when multiple roundtrips
+  // are used for range requests or auth.
+  int64_t GetTotalReceivedBytes() const;
+
+  // Gets the total amount of data sent over the network before SSL encoding and
+  // proxy handling. Pertains only to the last URLRequestJob issued by this
+  // URLRequest, i.e. reset on redirects, but not reset when multiple roundtrips
+  // are used for range requests or auth.
+  int64_t GetTotalSentBytes() const;
 
   // Returns the current load state for the request. The returned value's
   // |param| field is an optional parameter describing details related to the
@@ -377,8 +380,8 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   LoadStateWithParam GetLoadState() const;
 
   // Returns a partial representation of the request's state as a value, for
-  // debugging.  Caller takes ownership of returned value.
-  base::Value* GetStateAsValue() const;
+  // debugging.
+  scoped_ptr<base::Value> GetStateAsValue() const;
 
   // Logs information about the what external object currently blocking the
   // request.  LogUnblocked must be called before resuming the request.  This
@@ -401,18 +404,12 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   // chunked, size is set to zero, but position will not be.
   UploadProgress GetUploadProgress() const;
 
-  // Get response header(s) by ID or name.  These methods may only be called
+  // Get response header(s) by name.  This method may only be called
   // once the delegate's OnResponseStarted method has been called.  Headers
   // that appear more than once in the response are coalesced, with values
   // separated by commas (per RFC 2616). This will not work with cookies since
   // comma can be used in cookie values.
-  // TODO(darin): add API to enumerate response headers.
-  void GetResponseHeaderById(int header_id, std::string* value);
   void GetResponseHeaderByName(const std::string& name, std::string* value);
-
-  // Get all response headers, \n-delimited and \n\0-terminated.  This includes
-  // the response status line.  Restrictions on GetResponseHeaders apply.
-  void GetAllResponseHeaders(std::string* headers);
 
   // The time when |this| was constructed.
   base::TimeTicks creation_time() const { return creation_time_; }
@@ -462,6 +459,18 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   // LoadTimingInfo only contains ConnectTiming information and socket IDs for
   // non-cached HTTP responses.
   void GetLoadTimingInfo(LoadTimingInfo* load_timing_info) const;
+
+  // Gets the remote endpoint of the most recent socket that the network stack
+  // used to make this request.
+  //
+  // Note that GetSocketAddress returns the |socket_address| field from
+  // HttpResponseInfo, which is only populated once the response headers are
+  // received, and can return cached values for cache revalidation requests.
+  // GetRemoteEndpoint will only return addresses from the current request.
+  //
+  // Returns true and fills in |endpoint| if the endpoint is available; returns
+  // false and leaves |endpoint| unchanged if it is unavailable.
+  bool GetRemoteEndpoint(IPEndPoint* endpoint) const;
 
   // Returns the cookie values included in the response, if the request is one
   // that can have cookies.  Returns true if the request is a cookie-bearing
@@ -617,6 +626,10 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   void set_received_response_content_length(int64 received_content_length) {
     received_response_content_length_ = received_content_length;
   }
+
+  // The number of bytes in the raw response body (before any decompression,
+  // etc.). This is only available after the final Read completes. Not available
+  // for FTP responses.
   int64 received_response_content_length() const {
     return received_response_content_length_;
   }
@@ -627,14 +640,17 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
     return proxy_server_;
   }
 
+  // Gets the connection attempts made in the process of servicing this
+  // URLRequest. Only guaranteed to be valid if called after the request fails
+  // or after the response headers are received.
+  void GetConnectionAttempts(ConnectionAttempts* out) const;
+
  protected:
   // Allow the URLRequestJob class to control the is_pending() flag.
   void set_is_pending(bool value) { is_pending_ = value; }
 
   // Allow the URLRequestJob class to set our status too
   void set_status(const URLRequestStatus& value) { status_ = value; }
-
-  CookieStore* cookie_store() const { return cookie_store_.get(); }
 
   // Allow the URLRequestJob to redirect this request.  Returns OK if
   // successful, otherwise an error code is returned.
@@ -658,13 +674,12 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
 
   // URLRequests are always created by calling URLRequestContext::CreateRequest.
   //
-  // If no cookie store or network delegate are passed in, will use the ones
-  // from the URLRequestContext.
+  // If no network delegate is passed in, will use the ones from the
+  // URLRequestContext.
   URLRequest(const GURL& url,
              RequestPriority priority,
              Delegate* delegate,
              const URLRequestContext* context,
-             CookieStore* cookie_store,
              NetworkDelegate* network_delegate);
 
   // Resumes or blocks a request paused by the NetworkDelegate::OnBeforeRequest
@@ -832,16 +847,13 @@ class NET_EXPORT URLRequest : NON_EXPORTED_BASE(public base::NonThreadSafe),
   // populated during Start(), and the rest are populated in OnResponseReceived.
   LoadTimingInfo load_timing_info_;
 
-  scoped_ptr<const base::debug::StackTrace> stack_trace_;
-
   // Keeps track of whether or not OnBeforeNetworkStart has been called yet.
   bool notified_before_network_start_;
 
-  // The cookie store to be used for this request.
-  scoped_refptr<CookieStore> cookie_store_;
-
   // The proxy server used for this request, if any.
   HostPortPair proxy_server_;
+
+  scoped_ptr<const base::debug::StackTrace> stack_trace_;
 
   DISALLOW_COPY_AND_ASSIGN(URLRequest);
 };

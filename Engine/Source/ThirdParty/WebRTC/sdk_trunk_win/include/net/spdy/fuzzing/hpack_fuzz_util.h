@@ -11,8 +11,8 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/strings/string_piece.h"
 #include "net/base/net_export.h"
-#include "net/spdy/hpack_decoder.h"
-#include "net/spdy/hpack_encoder.h"
+#include "net/spdy/hpack/hpack_decoder.h"
+#include "net/spdy/hpack/hpack_encoder.h"
 
 namespace net {
 
@@ -31,8 +31,7 @@ class NET_EXPORT_PRIVATE HpackFuzzUtil {
   static void InitializeGeneratorContext(GeneratorContext* context);
 
   // Generates a header set from the generator context.
-  static std::map<std::string, std::string> NextGeneratedHeaderSet(
-      GeneratorContext* context);
+  static SpdyHeaderBlock NextGeneratedHeaderSet(GeneratorContext* context);
 
   // Samples a size from the exponential distribution with mean |mean|,
   // upper-bounded by |sanity_bound|.

@@ -11,9 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ_NETEQ_IMPL_H_
 #define WEBRTC_MODULES_AUDIO_CODING_NETEQ_NETEQ_IMPL_H_
 
-#include <vector>
-
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/base/thread_annotations.h"
 #include "webrtc/modules/audio_coding/neteq/audio_multi_vector.h"
 #include "webrtc/modules/audio_coding/neteq/defines.h"
@@ -22,7 +21,6 @@
 #include "webrtc/modules/audio_coding/neteq/random_vector.h"
 #include "webrtc/modules/audio_coding/neteq/rtcp.h"
 #include "webrtc/modules/audio_coding/neteq/statistics_calculator.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -73,16 +71,16 @@ class NetEqImpl : public webrtc::NetEq {
             PreemptiveExpandFactory* preemptive_expand_factory,
             bool create_components = true);
 
-  virtual ~NetEqImpl();
+  ~NetEqImpl() override;
 
   // Inserts a new packet into NetEq. The |receive_timestamp| is an indication
   // of the time when the packet was received, and should be measured with
   // the same tick rate as the RTP timestamp of the current payload.
   // Returns 0 on success, -1 on failure.
-  virtual int InsertPacket(const WebRtcRTPHeader& rtp_header,
-                           const uint8_t* payload,
-                           size_t length_bytes,
-                           uint32_t receive_timestamp) OVERRIDE;
+  int InsertPacket(const WebRtcRTPHeader& rtp_header,
+                   const uint8_t* payload,
+                   size_t length_bytes,
+                   uint32_t receive_timestamp) override;
 
   // Inserts a sync-packet into packet queue. Sync-packets are decoded to
   // silence and are intended to keep AV-sync intact in an event of long packet
@@ -93,8 +91,8 @@ class NetEqImpl : public webrtc::NetEq {
   // type, i.e. they cannot have DTMF or CNG payload type, nor a codec change
   // can be implied by inserting a sync-packet.
   // Returns kOk on success, kFail on failure.
-  virtual int InsertSyncPacket(const WebRtcRTPHeader& rtp_header,
-                               uint32_t receive_timestamp) OVERRIDE;
+  int InsertSyncPacket(const WebRtcRTPHeader& rtp_header,
+                       uint32_t receive_timestamp) override;
 
   // Instructs NetEq to deliver 10 ms of audio data. The data is written to
   // |output_audio|, which can hold (at least) |max_length| elements.
@@ -104,106 +102,103 @@ class NetEqImpl : public webrtc::NetEq {
   // the samples are interleaved.
   // The speech type is written to |type|, if |type| is not NULL.
   // Returns kOK on success, or kFail in case of an error.
-  virtual int GetAudio(size_t max_length, int16_t* output_audio,
-                       int* samples_per_channel, int* num_channels,
-                       NetEqOutputType* type) OVERRIDE;
+  int GetAudio(size_t max_length,
+               int16_t* output_audio,
+               size_t* samples_per_channel,
+               int* num_channels,
+               NetEqOutputType* type) override;
 
   // Associates |rtp_payload_type| with |codec| and stores the information in
   // the codec database. Returns kOK on success, kFail on failure.
-  virtual int RegisterPayloadType(enum NetEqDecoder codec,
-                                  uint8_t rtp_payload_type) OVERRIDE;
+  int RegisterPayloadType(enum NetEqDecoder codec,
+                          uint8_t rtp_payload_type) override;
 
   // Provides an externally created decoder object |decoder| to insert in the
   // decoder database. The decoder implements a decoder of type |codec| and
-  // associates it with |rtp_payload_type|. Returns kOK on success, kFail on
-  // failure.
-  virtual int RegisterExternalDecoder(AudioDecoder* decoder,
-                                      enum NetEqDecoder codec,
-                                      uint8_t rtp_payload_type) OVERRIDE;
+  // associates it with |rtp_payload_type|. The decoder will produce samples
+  // at the rate |sample_rate_hz|. Returns kOK on success, kFail on failure.
+  int RegisterExternalDecoder(AudioDecoder* decoder,
+                              enum NetEqDecoder codec,
+                              uint8_t rtp_payload_type,
+                              int sample_rate_hz) override;
 
   // Removes |rtp_payload_type| from the codec database. Returns 0 on success,
   // -1 on failure.
-  virtual int RemovePayloadType(uint8_t rtp_payload_type) OVERRIDE;
+  int RemovePayloadType(uint8_t rtp_payload_type) override;
 
-  virtual bool SetMinimumDelay(int delay_ms) OVERRIDE;
+  bool SetMinimumDelay(int delay_ms) override;
 
-  virtual bool SetMaximumDelay(int delay_ms) OVERRIDE;
+  bool SetMaximumDelay(int delay_ms) override;
 
-  virtual int LeastRequiredDelayMs() const OVERRIDE;
+  int LeastRequiredDelayMs() const override;
 
-  virtual int SetTargetDelay() OVERRIDE { return kNotImplemented; }
+  int SetTargetDelay() override;
 
-  virtual int TargetDelay() OVERRIDE { return kNotImplemented; }
+  int TargetDelay() override;
 
-  virtual int CurrentDelay() OVERRIDE { return kNotImplemented; }
+  int CurrentDelayMs() const override;
 
   // Sets the playout mode to |mode|.
   // Deprecated.
   // TODO(henrik.lundin) Delete.
-  virtual void SetPlayoutMode(NetEqPlayoutMode mode) OVERRIDE;
+  void SetPlayoutMode(NetEqPlayoutMode mode) override;
 
   // Returns the current playout mode.
   // Deprecated.
   // TODO(henrik.lundin) Delete.
-  virtual NetEqPlayoutMode PlayoutMode() const OVERRIDE;
+  NetEqPlayoutMode PlayoutMode() const override;
 
   // Writes the current network statistics to |stats|. The statistics are reset
   // after the call.
-  virtual int NetworkStatistics(NetEqNetworkStatistics* stats) OVERRIDE;
-
-  // Writes the last packet waiting times (in ms) to |waiting_times|. The number
-  // of values written is no more than 100, but may be smaller if the interface
-  // is polled again before 100 packets has arrived.
-  virtual void WaitingTimes(std::vector<int>* waiting_times) OVERRIDE;
+  int NetworkStatistics(NetEqNetworkStatistics* stats) override;
 
   // Writes the current RTCP statistics to |stats|. The statistics are reset
   // and a new report period is started with the call.
-  virtual void GetRtcpStatistics(RtcpStatistics* stats) OVERRIDE;
+  void GetRtcpStatistics(RtcpStatistics* stats) override;
 
   // Same as RtcpStatistics(), but does not reset anything.
-  virtual void GetRtcpStatisticsNoReset(RtcpStatistics* stats) OVERRIDE;
+  void GetRtcpStatisticsNoReset(RtcpStatistics* stats) override;
 
   // Enables post-decode VAD. When enabled, GetAudio() will return
   // kOutputVADPassive when the signal contains no speech.
-  virtual void EnableVad() OVERRIDE;
+  void EnableVad() override;
 
   // Disables post-decode VAD.
-  virtual void DisableVad() OVERRIDE;
+  void DisableVad() override;
 
-  virtual bool GetPlayoutTimestamp(uint32_t* timestamp) OVERRIDE;
+  bool GetPlayoutTimestamp(uint32_t* timestamp) override;
 
-  virtual int SetTargetNumberOfChannels() OVERRIDE { return kNotImplemented; }
+  int SetTargetNumberOfChannels() override;
 
-  virtual int SetTargetSampleRate() OVERRIDE { return kNotImplemented; }
+  int SetTargetSampleRate() override;
 
   // Returns the error code for the last occurred error. If no error has
   // occurred, 0 is returned.
-  virtual int LastError() const OVERRIDE;
+  int LastError() const override;
 
   // Returns the error code last returned by a decoder (audio or comfort noise).
   // When LastError() returns kDecoderErrorCode or kComfortNoiseErrorCode, check
   // this method to get the decoder's error code.
-  virtual int LastDecoderError() OVERRIDE;
+  int LastDecoderError() override;
 
   // Flushes both the packet buffer and the sync buffer.
-  virtual void FlushBuffers() OVERRIDE;
+  void FlushBuffers() override;
 
-  virtual void PacketBufferStatistics(int* current_num_packets,
-                                      int* max_num_packets) const OVERRIDE;
+  void PacketBufferStatistics(int* current_num_packets,
+                              int* max_num_packets) const override;
 
   // Get sequence number and timestamp of the latest RTP.
   // This method is to facilitate NACK.
-  virtual int DecodedRtpInfo(int* sequence_number,
-                             uint32_t* timestamp) const OVERRIDE;
+  int DecodedRtpInfo(int* sequence_number, uint32_t* timestamp) const override;
 
   // This accessor method is only intended for testing purposes.
   const SyncBuffer* sync_buffer_for_test() const;
 
  protected:
   static const int kOutputSizeMs = 10;
-  static const int kMaxFrameSize = 2880;  // 60 ms @ 48 kHz.
+  static const size_t kMaxFrameSize = 2880;  // 60 ms @ 48 kHz.
   // TODO(hlundin): Provide a better value for kSyncBufferSize.
-  static const int kSyncBufferSize = 2 * kMaxFrameSize;
+  static const size_t kSyncBufferSize = 2 * kMaxFrameSize;
 
   // Inserts a new packet into NetEq. This is used by the InsertPacket method
   // above. Returns 0 on success, otherwise an error code.
@@ -223,7 +218,7 @@ class NetEqImpl : public webrtc::NetEq {
   // Returns 0 on success, otherwise an error code.
   int GetAudioInternal(size_t max_length,
                        int16_t* output,
-                       int* samples_per_channel,
+                       size_t* samples_per_channel,
                        int* num_channels) EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
   // Provides a decision to the GetAudioInternal method. The decision what to
@@ -248,9 +243,14 @@ class NetEqImpl : public webrtc::NetEq {
              AudioDecoder::SpeechType* speech_type)
       EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
+  // Sub-method to Decode(). Performs codec internal CNG.
+  int DecodeCng(AudioDecoder* decoder, int* decoded_length,
+                AudioDecoder::SpeechType* speech_type)
+      EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
+
   // Sub-method to Decode(). Performs the actual decoding.
   int DecodeLoop(PacketList* packet_list,
-                 Operations* operation,
+                 const Operations& operation,
                  AudioDecoder* decoder,
                  int* decoded_length,
                  AudioDecoder::SpeechType* speech_type)
@@ -276,7 +276,8 @@ class NetEqImpl : public webrtc::NetEq {
   int DoAccelerate(int16_t* decoded_buffer,
                    size_t decoded_length,
                    AudioDecoder::SpeechType speech_type,
-                   bool play_dtmf) EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
+                   bool play_dtmf,
+                   bool fast_accelerate) EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
   // Sub-method which calls the PreemptiveExpand class to perform the
   // preemtive expand operation.
@@ -294,7 +295,8 @@ class NetEqImpl : public webrtc::NetEq {
 
   // Calls the audio decoder to generate codec-internal comfort noise when
   // no packet was received.
-  void DoCodecInternalCng() EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
+  void DoCodecInternalCng(const int16_t* decoded_buffer, size_t decoded_length)
+      EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
   // Calls the DtmfToneGenerator class to generate DTMF tones.
   int DoDtmf(const DtmfEvent& dtmf_event, bool* play_dtmf)
@@ -315,7 +317,7 @@ class NetEqImpl : public webrtc::NetEq {
   // |required_samples| samples. The packets are inserted into |packet_list|.
   // Returns the number of samples that the packets in the list will produce, or
   // -1 in case of an error.
-  int ExtractPackets(int required_samples, PacketList* packet_list)
+  int ExtractPackets(size_t required_samples, PacketList* packet_list)
       EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
   // Resets various variables and objects to new values based on the sample rate
@@ -334,47 +336,50 @@ class NetEqImpl : public webrtc::NetEq {
   // Creates DecisionLogic object with the mode given by |playout_mode_|.
   virtual void CreateDecisionLogic() EXCLUSIVE_LOCKS_REQUIRED(crit_sect_);
 
-  const scoped_ptr<CriticalSectionWrapper> crit_sect_;
-  const scoped_ptr<BufferLevelFilter> buffer_level_filter_
+  const rtc::scoped_ptr<CriticalSectionWrapper> crit_sect_;
+  const rtc::scoped_ptr<BufferLevelFilter> buffer_level_filter_
       GUARDED_BY(crit_sect_);
-  const scoped_ptr<DecoderDatabase> decoder_database_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<DelayManager> delay_manager_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<DelayPeakDetector> delay_peak_detector_
+  const rtc::scoped_ptr<DecoderDatabase> decoder_database_
       GUARDED_BY(crit_sect_);
-  const scoped_ptr<DtmfBuffer> dtmf_buffer_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<DtmfToneGenerator> dtmf_tone_generator_
+  const rtc::scoped_ptr<DelayManager> delay_manager_ GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<DelayPeakDetector> delay_peak_detector_
       GUARDED_BY(crit_sect_);
-  const scoped_ptr<PacketBuffer> packet_buffer_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<PayloadSplitter> payload_splitter_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<TimestampScaler> timestamp_scaler_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<PostDecodeVad> vad_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<ExpandFactory> expand_factory_ GUARDED_BY(crit_sect_);
-  const scoped_ptr<AccelerateFactory> accelerate_factory_
+  const rtc::scoped_ptr<DtmfBuffer> dtmf_buffer_ GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<DtmfToneGenerator> dtmf_tone_generator_
       GUARDED_BY(crit_sect_);
-  const scoped_ptr<PreemptiveExpandFactory> preemptive_expand_factory_
+  const rtc::scoped_ptr<PacketBuffer> packet_buffer_ GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<PayloadSplitter> payload_splitter_
+      GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<TimestampScaler> timestamp_scaler_
+      GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<PostDecodeVad> vad_ GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<ExpandFactory> expand_factory_ GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<AccelerateFactory> accelerate_factory_
+      GUARDED_BY(crit_sect_);
+  const rtc::scoped_ptr<PreemptiveExpandFactory> preemptive_expand_factory_
       GUARDED_BY(crit_sect_);
 
-  scoped_ptr<BackgroundNoise> background_noise_ GUARDED_BY(crit_sect_);
-  scoped_ptr<DecisionLogic> decision_logic_ GUARDED_BY(crit_sect_);
-  scoped_ptr<AudioMultiVector> algorithm_buffer_ GUARDED_BY(crit_sect_);
-  scoped_ptr<SyncBuffer> sync_buffer_ GUARDED_BY(crit_sect_);
-  scoped_ptr<Expand> expand_ GUARDED_BY(crit_sect_);
-  scoped_ptr<Normal> normal_ GUARDED_BY(crit_sect_);
-  scoped_ptr<Merge> merge_ GUARDED_BY(crit_sect_);
-  scoped_ptr<Accelerate> accelerate_ GUARDED_BY(crit_sect_);
-  scoped_ptr<PreemptiveExpand> preemptive_expand_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<BackgroundNoise> background_noise_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<DecisionLogic> decision_logic_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<AudioMultiVector> algorithm_buffer_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<SyncBuffer> sync_buffer_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<Expand> expand_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<Normal> normal_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<Merge> merge_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<Accelerate> accelerate_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<PreemptiveExpand> preemptive_expand_ GUARDED_BY(crit_sect_);
   RandomVector random_vector_ GUARDED_BY(crit_sect_);
-  scoped_ptr<ComfortNoise> comfort_noise_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<ComfortNoise> comfort_noise_ GUARDED_BY(crit_sect_);
   Rtcp rtcp_ GUARDED_BY(crit_sect_);
   StatisticsCalculator stats_ GUARDED_BY(crit_sect_);
   int fs_hz_ GUARDED_BY(crit_sect_);
   int fs_mult_ GUARDED_BY(crit_sect_);
-  int output_size_samples_ GUARDED_BY(crit_sect_);
-  int decoder_frame_length_ GUARDED_BY(crit_sect_);
+  size_t output_size_samples_ GUARDED_BY(crit_sect_);
+  size_t decoder_frame_length_ GUARDED_BY(crit_sect_);
   Modes last_mode_ GUARDED_BY(crit_sect_);
-  scoped_ptr<int16_t[]> mute_factor_array_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<int16_t[]> mute_factor_array_ GUARDED_BY(crit_sect_);
   size_t decoded_buffer_length_ GUARDED_BY(crit_sect_);
-  scoped_ptr<int16_t[]> decoded_buffer_ GUARDED_BY(crit_sect_);
+  rtc::scoped_ptr<int16_t[]> decoded_buffer_ GUARDED_BY(crit_sect_);
   uint32_t playout_timestamp_ GUARDED_BY(crit_sect_);
   bool new_codec_ GUARDED_BY(crit_sect_);
   uint32_t timestamp_ GUARDED_BY(crit_sect_);
@@ -387,6 +392,7 @@ class NetEqImpl : public webrtc::NetEq {
   int decoder_error_code_ GUARDED_BY(crit_sect_);
   const BackgroundNoiseMode background_noise_mode_ GUARDED_BY(crit_sect_);
   NetEqPlayoutMode playout_mode_ GUARDED_BY(crit_sect_);
+  bool enable_fast_accelerate_ GUARDED_BY(crit_sect_);
 
   // These values are used by NACK module to estimate time-to-play of
   // a missing packet. Occasionally, NetEq might decide to decode more
@@ -399,7 +405,7 @@ class NetEqImpl : public webrtc::NetEq {
   uint32_t decoded_packet_timestamp_ GUARDED_BY(crit_sect_);
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(NetEqImpl);
+  RTC_DISALLOW_COPY_AND_ASSIGN(NetEqImpl);
 };
 
 }  // namespace webrtc

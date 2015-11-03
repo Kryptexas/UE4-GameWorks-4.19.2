@@ -1,27 +1,30 @@
-// libjingle
-// Copyright 2004 Google Inc.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//  1. Redistributions of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
-//  3. The name of the author may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+/*
+ * libjingle
+ * Copyright 2004 Google Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 //
 // This file contains two classes, VideoRecorder and FileVideoCapturer.
 // VideoRecorder records the captured frames into a file. The file stores a
@@ -68,12 +71,14 @@ class VideoRecorder {
   rtc::FileStream video_file_;
   bool write_header_;
 
-  DISALLOW_COPY_AND_ASSIGN(VideoRecorder);
+  RTC_DISALLOW_COPY_AND_ASSIGN(VideoRecorder);
 };
 
 // Simulated video capturer that periodically reads frames from a file.
 class FileVideoCapturer : public VideoCapturer {
  public:
+  static const int kForever = -1;
+
   FileVideoCapturer();
   virtual ~FileVideoCapturer();
 
@@ -91,7 +96,7 @@ class FileVideoCapturer : public VideoCapturer {
   }
 
   // Set how many times to repeat reading the file. Repeat forever if the
-  // parameter is rtc::kForever(-1); no repeat if the parameter is 0 or
+  // parameter is kForever; no repeat if the parameter is 0 or
   // less than -1.
   void set_repeat(int repeat) { repeat_ = repeat; }
 
@@ -117,7 +122,7 @@ class FileVideoCapturer : public VideoCapturer {
 
  protected:
   // Override virtual methods of parent class VideoCapturer.
-  virtual bool GetPreferredFourccs(std::vector<uint32>* fourccs);
+  virtual bool GetPreferredFourccs(std::vector<uint32_t>* fourccs);
 
   // Read the frame header from the file stream, video_file_.
   rtc::StreamResult ReadFrameHeader(CapturedFrame* frame);
@@ -141,14 +146,13 @@ class FileVideoCapturer : public VideoCapturer {
   rtc::FileStream video_file_;
   CapturedFrame captured_frame_;
   // The number of bytes allocated buffer for captured_frame_.data.
-  uint32 frame_buffer_size_;
+  uint32_t frame_buffer_size_;
   FileReadThread* file_read_thread_;
   int repeat_;  // How many times to repeat the file.
-  int64 start_time_ns_;  // Time when the file video capturer starts.
-  int64 last_frame_timestamp_ns_;  // Timestamp of last read frame.
+  int64_t last_frame_timestamp_ns_;  // Timestamp of last read frame.
   bool ignore_framerate_;
 
-  DISALLOW_COPY_AND_ASSIGN(FileVideoCapturer);
+  RTC_DISALLOW_COPY_AND_ASSIGN(FileVideoCapturer);
 };
 
 }  // namespace cricket

@@ -37,22 +37,26 @@ class NATInternalSocketFactory {
 // from a socket factory, given to the constructor.
 class NATSocketFactory : public SocketFactory, public NATInternalSocketFactory {
  public:
-  NATSocketFactory(SocketFactory* factory, const SocketAddress& nat_addr);
+  NATSocketFactory(SocketFactory* factory, const SocketAddress& nat_udp_addr,
+                   const SocketAddress& nat_tcp_addr);
 
   // SocketFactory implementation
-  virtual Socket* CreateSocket(int type);
-  virtual Socket* CreateSocket(int family, int type);
-  virtual AsyncSocket* CreateAsyncSocket(int type);
-  virtual AsyncSocket* CreateAsyncSocket(int family, int type);
+  Socket* CreateSocket(int type) override;
+  Socket* CreateSocket(int family, int type) override;
+  AsyncSocket* CreateAsyncSocket(int type) override;
+  AsyncSocket* CreateAsyncSocket(int family, int type) override;
 
   // NATInternalSocketFactory implementation
-  virtual AsyncSocket* CreateInternalSocket(int family, int type,
-      const SocketAddress& local_addr, SocketAddress* nat_addr);
+  AsyncSocket* CreateInternalSocket(int family,
+                                    int type,
+                                    const SocketAddress& local_addr,
+                                    SocketAddress* nat_addr) override;
 
  private:
   SocketFactory* factory_;
-  SocketAddress nat_addr_;
-  DISALLOW_EVIL_CONSTRUCTORS(NATSocketFactory);
+  SocketAddress nat_udp_addr_;
+  SocketAddress nat_tcp_addr_;
+  RTC_DISALLOW_COPY_AND_ASSIGN(NATSocketFactory);
 };
 
 // Creates sockets that will send traffic through a NAT depending on what
@@ -89,10 +93,11 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
     Translator(NATSocketServer* server, NATType type,
                const SocketAddress& int_addr, SocketFactory* ext_factory,
                const SocketAddress& ext_addr);
+    ~Translator();
 
     SocketFactory* internal_factory() { return internal_factory_.get(); }
-    SocketAddress internal_address() const {
-      return nat_server_->internal_address();
+    SocketAddress internal_udp_address() const {
+      return nat_server_->internal_udp_address();
     }
     SocketAddress internal_tcp_address() const {
       return SocketAddress();  // nat_server_->internal_tcp_address();
@@ -128,32 +133,27 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   void RemoveTranslator(const SocketAddress& ext_ip);
 
   // SocketServer implementation
-  virtual Socket* CreateSocket(int type);
-  virtual Socket* CreateSocket(int family, int type);
+  Socket* CreateSocket(int type) override;
+  Socket* CreateSocket(int family, int type) override;
 
-  virtual AsyncSocket* CreateAsyncSocket(int type);
-  virtual AsyncSocket* CreateAsyncSocket(int family, int type);
+  AsyncSocket* CreateAsyncSocket(int type) override;
+  AsyncSocket* CreateAsyncSocket(int family, int type) override;
 
-  virtual void SetMessageQueue(MessageQueue* queue) {
-    msg_queue_ = queue;
-    server_->SetMessageQueue(queue);
-  }
-  virtual bool Wait(int cms, bool process_io) {
-    return server_->Wait(cms, process_io);
-  }
-  virtual void WakeUp() {
-    server_->WakeUp();
-  }
+  void SetMessageQueue(MessageQueue* queue) override;
+  bool Wait(int cms, bool process_io) override;
+  void WakeUp() override;
 
   // NATInternalSocketFactory implementation
-  virtual AsyncSocket* CreateInternalSocket(int family, int type,
-      const SocketAddress& local_addr, SocketAddress* nat_addr);
+  AsyncSocket* CreateInternalSocket(int family,
+                                    int type,
+                                    const SocketAddress& local_addr,
+                                    SocketAddress* nat_addr) override;
 
  private:
   SocketServer* server_;
   MessageQueue* msg_queue_;
   TranslatorMap nats_;
-  DISALLOW_EVIL_CONSTRUCTORS(NATSocketServer);
+  RTC_DISALLOW_COPY_AND_ASSIGN(NATSocketServer);
 };
 
 // Free-standing NAT helper functions.

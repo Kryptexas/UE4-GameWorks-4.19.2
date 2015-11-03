@@ -19,16 +19,12 @@
 #include "webrtc/common_types.h"
 #include "webrtc/modules/interface/module.h"
 #include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
 class Clock;
-
-enum RateControlType {
-  kMimdControl,
-  kAimdControl
-};
 
 // RemoteBitrateObserver is used to signal changes in bitrate estimates for
 // the incoming streams.
@@ -65,7 +61,13 @@ struct ReceiveBandwidthEstimatorStats {
 
 class RemoteBitrateEstimator : public CallStatsObserver, public Module {
  public:
+  static const int kDefaultMinBitrateBps = 30000;
   virtual ~RemoteBitrateEstimator() {}
+
+  virtual void IncomingPacketFeedbackVector(
+      const std::vector<PacketInfo>& packet_feedback_vector) {
+    assert(false);
+  }
 
   // Called for each incoming packet. Updates the incoming payload bitrate
   // estimate and the over-use detector. If an over-use is detected the
@@ -74,7 +76,8 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   // Note that |arrival_time_ms| can be of an arbitrary time base.
   virtual void IncomingPacket(int64_t arrival_time_ms,
                               size_t payload_size,
-                              const RTPHeader& header) = 0;
+                              const RTPHeader& header,
+                              bool was_paced) = 0;
 
   // Removes all data for |ssrc|.
   virtual void RemoveStream(unsigned int ssrc) = 0;
@@ -88,33 +91,13 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   // Returns true if the statistics are available.
   virtual bool GetStats(ReceiveBandwidthEstimatorStats* output) const = 0;
 
+  virtual void SetMinBitrate(int min_bitrate_bps) = 0;
+
  protected:
-  static const int64_t kProcessIntervalMs = 1000;
+  static const int64_t kProcessIntervalMs = 500;
   static const int64_t kStreamTimeOutMs = 2000;
 };
 
-struct RemoteBitrateEstimatorFactory {
-  RemoteBitrateEstimatorFactory() {}
-  virtual ~RemoteBitrateEstimatorFactory() {}
-
-  virtual RemoteBitrateEstimator* Create(
-      RemoteBitrateObserver* observer,
-      Clock* clock,
-      RateControlType control_type,
-      uint32_t min_bitrate_bps) const;
-};
-
-struct AbsoluteSendTimeRemoteBitrateEstimatorFactory
-    : public RemoteBitrateEstimatorFactory {
-  AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
-  virtual ~AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
-
-  virtual RemoteBitrateEstimator* Create(
-      RemoteBitrateObserver* observer,
-      Clock* clock,
-      RateControlType control_type,
-      uint32_t min_bitrate_bps) const;
-};
 }  // namespace webrtc
 
 #endif  // WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_

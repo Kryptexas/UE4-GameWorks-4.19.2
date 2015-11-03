@@ -25,36 +25,6 @@
 enum { kMaxNackListSize = 250 };
 enum { kMaxPacketAgeToNack = 450 };
 
-// Class used for passing command line arguments to tests
-class CmdArgs {
- public:
-  CmdArgs();
-
-  std::string codecName;
-  webrtc::VideoCodecType codecType;
-  int width;
-  int height;
-  int bitRate;
-  int frameRate;
-  int packetLoss;
-  int rtt;
-  int protectionMode;
-  int camaEnable;
-  std::string inputFile;
-  std::string outputFile;
-  std::string fv_outputfile;
-  int testNum;
-};
-
-int MTRxTxTest(CmdArgs& args);
-double NormalDist(double mean, double stdDev);
-
-struct RtpPacket {
-  uint8_t data[1650]; // max packet size
-  size_t length;
-  int64_t receiveTime;
-};
-
 class NullEvent : public webrtc::EventWrapper {
  public:
   virtual ~NullEvent() {}
@@ -87,21 +57,30 @@ class FileOutputFrameReceiver : public webrtc::VCMReceiveCallback {
   virtual ~FileOutputFrameReceiver();
 
   // VCMReceiveCallback
-  virtual int32_t FrameToRender(webrtc::I420VideoFrame& video_frame);
+  virtual int32_t FrameToRender(webrtc::VideoFrame& video_frame);
 
  private:
   std::string out_filename_;
-  uint32_t ssrc_;
   FILE* out_file_;
   FILE* timing_file_;
   int width_;
   int height_;
   int count_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(FileOutputFrameReceiver);
+  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(FileOutputFrameReceiver);
 };
 
-// Codec type conversion
-webrtc::RtpVideoCodecTypes ConvertCodecType(const char* plname);
+class CmdArgs {
+ public:
+  CmdArgs();
+
+  std::string codecName;
+  webrtc::VideoCodecType codecType;
+  int width;
+  int height;
+  int rtt;
+  std::string inputFile;
+  std::string outputFile;
+};
 
 #endif

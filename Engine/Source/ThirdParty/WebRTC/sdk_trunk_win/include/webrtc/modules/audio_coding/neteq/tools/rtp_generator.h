@@ -54,7 +54,7 @@ class RtpGenerator {
   double drift_factor_;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(RtpGenerator);
+  RTC_DISALLOW_COPY_AND_ASSIGN(RtpGenerator);
 };
 
 class TimestampJumpRtpGenerator : public RtpGenerator {
@@ -70,12 +70,12 @@ class TimestampJumpRtpGenerator : public RtpGenerator {
 
   uint32_t GetRtpHeader(uint8_t payload_type,
                         size_t payload_length_samples,
-                        WebRtcRTPHeader* rtp_header) OVERRIDE;
+                        WebRtcRTPHeader* rtp_header) override;
 
  private:
   uint32_t jump_from_timestamp_;
   uint32_t jump_to_timestamp_;
-  DISALLOW_COPY_AND_ASSIGN(TimestampJumpRtpGenerator);
+  RTC_DISALLOW_COPY_AND_ASSIGN(TimestampJumpRtpGenerator);
 };
 
 }  // namespace test

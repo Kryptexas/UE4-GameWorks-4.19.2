@@ -277,8 +277,8 @@ namespace UnrealBuildTool
 							// Visual Studio 2015 is not supported by the Android debugger we currently furnish
 							if (SupportedPlatform == UnrealTargetPlatform.Android)
 							{
-								Log.TraceInformation("Forcing Visual Studio max version to 2013 projects for Android compatibility (use '-2015' to override.)");
-								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
+								Log.TraceInformation("Android debugging may not be available (requires Visual Studio max version of 2013, use '-2013' to override.)");
+//								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
 							}
 
 							// Reduce the Visual Studio version to the max supported by each platform we plan to include.

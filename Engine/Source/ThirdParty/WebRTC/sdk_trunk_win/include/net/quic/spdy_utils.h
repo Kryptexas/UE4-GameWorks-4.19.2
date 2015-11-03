@@ -8,14 +8,16 @@
 #include <string>
 
 #include "net/base/net_export.h"
+#include "net/quic/quic_protocol.h"
 #include "net/spdy/spdy_framer.h"
 
 namespace net {
 
-const SpdyMajorVersion kDefaultSpdyMajorVersion = SPDY3;
-
 class NET_EXPORT_PRIVATE SpdyUtils {
  public:
+  static SpdyHeaderBlock ConvertSpdy3ResponseHeadersToSpdy4(
+      SpdyHeaderBlock response_headers);
+
   static std::string SerializeUncompressedHeaders(
       const SpdyHeaderBlock& headers);
 

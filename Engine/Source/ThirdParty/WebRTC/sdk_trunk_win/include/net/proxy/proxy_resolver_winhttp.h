@@ -6,46 +6,27 @@
 #define NET_PROXY_PROXY_RESOLVER_WINHTTP_H_
 
 #include "base/compiler_specific.h"
-#include "net/proxy/proxy_resolver.h"
+#include "net/base/net_export.h"
+#include "net/proxy/proxy_resolver_factory.h"
 #include "url/gurl.h"
-
-typedef void* HINTERNET;  // From winhttp.h
 
 namespace net {
 
-// An implementation of ProxyResolver that uses WinHTTP and the system
+// An implementation of ProxyResolverFactory that uses WinHTTP and the system
 // proxy settings.
-class NET_EXPORT_PRIVATE ProxyResolverWinHttp : public ProxyResolver {
+class NET_EXPORT_PRIVATE ProxyResolverFactoryWinHttp
+    : public ProxyResolverFactory {
  public:
-  ProxyResolverWinHttp();
-  virtual ~ProxyResolverWinHttp();
+  ProxyResolverFactoryWinHttp();
 
-  // ProxyResolver implementation:
-  virtual int GetProxyForURL(const GURL& url,
-                             ProxyInfo* results,
-                             const net::CompletionCallback& /*callback*/,
-                             RequestHandle* /*request*/,
-                             const BoundNetLog& /*net_log*/) override;
-  virtual void CancelRequest(RequestHandle request) override;
-
-  virtual LoadState GetLoadState(RequestHandle request) const override;
-
-  virtual void CancelSetPacScript() override;
-
-  virtual int SetPacScript(
-      const scoped_refptr<ProxyResolverScriptData>& script_data,
-      const net::CompletionCallback& /*callback*/) override;
+  int CreateProxyResolver(
+      const scoped_refptr<ProxyResolverScriptData>& pac_script,
+      scoped_ptr<ProxyResolver>* resolver,
+      const CompletionCallback& callback,
+      scoped_ptr<Request>* request) override;
 
  private:
-  bool OpenWinHttpSession();
-  void CloseWinHttpSession();
-
-  // Proxy configuration is cached on the session handle.
-  HINTERNET session_handle_;
-
-  GURL pac_url_;
-
-  DISALLOW_COPY_AND_ASSIGN(ProxyResolverWinHttp);
+  DISALLOW_COPY_AND_ASSIGN(ProxyResolverFactoryWinHttp);
 };
 
 }  // namespace net

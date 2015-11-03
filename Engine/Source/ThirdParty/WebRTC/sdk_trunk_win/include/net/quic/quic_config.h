@@ -118,10 +118,6 @@ class NET_EXPORT_PRIVATE QuicNegotiableTag : public QuicNegotiableValue {
   // msg doesn't contain tag |name_|.
   void set(const QuicTagVector& possible_values, QuicTag default_value);
 
-  // Returns the negotiated tag if |negotiated_| is true, otherwise returns
-  // |default_value_| (used to set default values before negotiation finishes).
-  QuicTag GetTag() const;
-
   // Serialises |name_| and vector (either possible or negotiated) to |out|. If
   // |negotiated_| is true then |negotiated_tag_| is serialised, otherwise
   // |possible_values_| is serialised.
@@ -182,39 +178,6 @@ class NET_EXPORT_PRIVATE QuicFixedUint32 : public QuicConfigValue {
 };
 
 // Stores tag from CHLO or SHLO messages that are not negotiated.
-class NET_EXPORT_PRIVATE QuicFixedTag : public QuicConfigValue {
- public:
-  QuicFixedTag(QuicTag name, QuicConfigPresence presence);
-  ~QuicFixedTag() override;
-
-  bool HasSendValue() const;
-
-  QuicTag GetSendValue() const;
-
-  void SetSendValue(QuicTag value);
-
-  bool HasReceivedValue() const;
-
-  QuicTag GetReceivedValue() const;
-
-  void SetReceivedValue(QuicTag value);
-
-  // If has_send_value is true, serialises |tag_| and |send_value_| to |out|.
-  void ToHandshakeMessage(CryptoHandshakeMessage* out) const override;
-
-  // Sets |value_| to the corresponding value from |client_hello_| if it exists.
-  QuicErrorCode ProcessPeerHello(const CryptoHandshakeMessage& peer_hello,
-                                 HelloType hello_type,
-                                 std::string* error_details) override;
-
- private:
-  QuicTag send_value_;
-  bool has_send_value_;
-  QuicTag receive_value_;
-  bool has_receive_value_;
-};
-
-// Stores tag from CHLO or SHLO messages that are not negotiated.
 class NET_EXPORT_PRIVATE QuicFixedTagVector : public QuicConfigValue {
  public:
   QuicFixedTagVector(QuicTag name, QuicConfigPresence presence);
@@ -256,20 +219,27 @@ class NET_EXPORT_PRIVATE QuicConfig {
   QuicConfig();
   ~QuicConfig();
 
-  void SetCongestionFeedback(const QuicTagVector& congestion_feedback,
-                             QuicTag default_congestion_feedback);
-
-  QuicTag CongestionFeedback() const;
-
   void SetConnectionOptionsToSend(const QuicTagVector& connection_options);
 
   bool HasReceivedConnectionOptions() const;
+
+  // Sets initial received connection options.  All received connection options
+  // will be initialized with these fields. Initial received options may only be
+  // set once per config, prior to the setting of any other options.  If options
+  // have already been set (either by previous calls or via handshake), this
+  // function does nothing and returns false.
+  bool SetInitialReceivedConnectionOptions(const QuicTagVector& tags);
 
   QuicTagVector ReceivedConnectionOptions() const;
 
   bool HasSendConnectionOptions() const;
 
   QuicTagVector SendConnectionOptions() const;
+
+  // Returns true if the client is sending or the server has received a
+  // connection option.
+  bool HasClientSentConnectionOption(QuicTag tag,
+                                     Perspective perspective) const;
 
   void SetIdleConnectionStateLifetime(
       QuicTime::Delta max_idle_connection_state_lifetime,
@@ -353,8 +323,6 @@ class NET_EXPORT_PRIVATE QuicConfig {
   // Sets socket receive buffer to transmit to the peer.
   void SetSocketReceiveBufferToSend(uint32 window_bytes);
 
-  uint32 GetSocketReceiveBufferToSend() const;
-
   bool HasReceivedSocketReceiveBuffer() const;
 
   uint32 ReceivedSocketReceiveBuffer() const;
@@ -385,8 +353,6 @@ class NET_EXPORT_PRIVATE QuicConfig {
   // Maximum number of undecryptable packets stored before CHLO/SHLO.
   size_t max_undecryptable_packets_;
 
-  // Congestion control feedback type.
-  QuicNegotiableTag congestion_feedback_;
   // Connection options.
   QuicFixedTagVector connection_options_;
   // Idle connection state lifetime

@@ -11,6 +11,7 @@
 #ifndef WEBRTC_VOICE_ENGINE_CHANNEL_H_
 #define WEBRTC_VOICE_ENGINE_CHANNEL_H_
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_audio/resampler/include/push_resampler.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module.h"
@@ -22,7 +23,6 @@
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp.h"
 #include "webrtc/modules/utility/interface/file_player.h"
 #include "webrtc/modules/utility/interface/file_recorder.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/voice_engine/dtmf_inband.h"
 #include "webrtc/voice_engine/dtmf_inband_queue.h"
 #include "webrtc/voice_engine/include/voe_audio_processing.h"
@@ -51,13 +51,12 @@ class FileWrapper;
 class ProcessThread;
 class ReceiveStatistics;
 class RemoteNtpTimeEstimator;
-class RtpDump;
+class RtcEventLog;
 class RTPPayloadRegistry;
 class RtpReceiver;
 class RTPReceiverAudio;
 class RtpRtcp;
 class TelephoneEventHandler;
-class ViENetwork;
 class VoEMediaProcess;
 class VoERTPObserver;
 class VoiceEngineObserver;
@@ -68,10 +67,11 @@ struct SenderInfo;
 
 namespace voe {
 
+class OutputMixer;
 class Statistics;
 class StatisticsProxy;
 class TransmitMixer;
-class OutputMixer;
+class VoERtcpObserver;
 
 // Helper class to simplify locking scheme for members that are accessed from
 // multiple threads.
@@ -148,7 +148,7 @@ class ChannelState {
     }
 
 private:
-    scoped_ptr<CriticalSectionWrapper> lock_;
+ rtc::scoped_ptr<CriticalSectionWrapper> lock_;
     State state_;
 };
 
@@ -163,14 +163,20 @@ class Channel:
     public MixerParticipant // supplies output mixer with audio frames
 {
 public:
+    friend class VoERtcpObserver;
+
     enum {KNumSocketThreads = 1};
     enum {KNumberOfSocketBuffers = 8};
     virtual ~Channel();
     static int32_t CreateChannel(Channel*& channel,
                                  int32_t channelId,
                                  uint32_t instanceId,
+                                 RtcEventLog* const event_log,
                                  const Config& config);
-    Channel(int32_t channelId, uint32_t instanceId, const Config& config);
+    Channel(int32_t channelId,
+            uint32_t instanceId,
+            RtcEventLog* const event_log,
+            const Config& config);
     int32_t Init();
     int32_t SetEngineInformation(
         Statistics& engineStatistics,
@@ -199,12 +205,14 @@ public:
     int32_t GetSendCodec(CodecInst& codec);
     int32_t GetRecCodec(CodecInst& codec);
     int32_t SetSendCodec(const CodecInst& codec);
+    void SetBitRate(int bitrate_bps);
     int32_t SetVADStatus(bool enableVAD, ACMVADMode mode, bool disableDTX);
     int32_t GetVADStatus(bool& enabledVAD, ACMVADMode& mode, bool& disabledDTX);
     int32_t SetRecPayloadType(const CodecInst& codec);
     int32_t GetRecPayloadType(CodecInst& codec);
     int32_t SetSendCNPayloadType(int type, PayloadFrequencies frequency);
     int SetOpusMaxPlaybackRate(int frequency_hz);
+    int SetOpusDtx(bool enable_dtx);
 
     // VoENetwork
     int32_t RegisterExternalTransport(Transport& transport);
@@ -271,11 +279,10 @@ public:
     // VoEVideoSync
     bool GetDelayEstimate(int* jitter_buffer_delay_ms,
                           int* playout_buffer_delay_ms) const;
-    int least_required_delay_ms() const { return least_required_delay_ms_; }
+    int LeastRequiredDelayMs() const;
     int SetInitialPlayoutDelay(int delay_ms);
     int SetMinimumPlayoutDelay(int delayMs);
     int GetPlayoutTimestamp(unsigned int& timestamp);
-    void UpdatePlayoutTimestamp(bool rtcp);
     int SetInitTimestamp(unsigned int timestamp);
     int SetInitSequenceNumber(short sequenceNumber);
 
@@ -335,71 +342,56 @@ public:
     int SetCodecFECStatus(bool enable);
     bool GetCodecFECStatus();
     void SetNACKStatus(bool enable, int maxNumberOfPackets);
-    int StartRTPDump(const char fileNameUTF8[1024], RTPDirections direction);
-    int StopRTPDump(RTPDirections direction);
-    bool RTPDumpIsActive(RTPDirections direction);
-    // Takes ownership of the ViENetwork.
-    void SetVideoEngineBWETarget(ViENetwork* vie_network, int video_channel);
 
     // From AudioPacketizationCallback in the ACM
-    virtual int32_t SendData(
-        FrameType frameType,
-        uint8_t payloadType,
-        uint32_t timeStamp,
-        const uint8_t* payloadData,
-        size_t payloadSize,
-        const RTPFragmentationHeader* fragmentation) OVERRIDE;
+    int32_t SendData(FrameType frameType,
+                     uint8_t payloadType,
+                     uint32_t timeStamp,
+                     const uint8_t* payloadData,
+                     size_t payloadSize,
+                     const RTPFragmentationHeader* fragmentation) override;
 
     // From ACMVADCallback in the ACM
-    virtual int32_t InFrameType(int16_t frameType) OVERRIDE;
+    int32_t InFrameType(FrameType frame_type) override;
 
     int32_t OnRxVadDetected(int vadDecision);
 
     // From RtpData in the RTP/RTCP module
-    virtual int32_t OnReceivedPayloadData(
-        const uint8_t* payloadData,
-        size_t payloadSize,
-        const WebRtcRTPHeader* rtpHeader) OVERRIDE;
-    virtual bool OnRecoveredPacket(const uint8_t* packet,
-                                   size_t packet_length) OVERRIDE;
+    int32_t OnReceivedPayloadData(const uint8_t* payloadData,
+                                  size_t payloadSize,
+                                  const WebRtcRTPHeader* rtpHeader) override;
+    bool OnRecoveredPacket(const uint8_t* packet,
+                           size_t packet_length) override;
 
     // From RtpFeedback in the RTP/RTCP module
-    virtual int32_t OnInitializeDecoder(
-        int32_t id,
-        int8_t payloadType,
-        const char payloadName[RTP_PAYLOAD_NAME_SIZE],
-        int frequency,
-        uint8_t channels,
-        uint32_t rate) OVERRIDE;
-    virtual void OnIncomingSSRCChanged(int32_t id,
-                                       uint32_t ssrc) OVERRIDE;
-    virtual void OnIncomingCSRCChanged(int32_t id,
-                                       uint32_t CSRC, bool added) OVERRIDE;
-    virtual void ResetStatistics(uint32_t ssrc) OVERRIDE;
+    int32_t OnInitializeDecoder(int8_t payloadType,
+                                const char payloadName[RTP_PAYLOAD_NAME_SIZE],
+                                int frequency,
+                                uint8_t channels,
+                                uint32_t rate) override;
+    void OnIncomingSSRCChanged(uint32_t ssrc) override;
+    void OnIncomingCSRCChanged(uint32_t CSRC, bool added) override;
 
     // From RtpAudioFeedback in the RTP/RTCP module
-    virtual void OnPlayTelephoneEvent(int32_t id,
-                                      uint8_t event,
-                                      uint16_t lengthMs,
-                                      uint8_t volume) OVERRIDE;
+    void OnPlayTelephoneEvent(uint8_t event,
+                              uint16_t lengthMs,
+                              uint8_t volume) override;
 
     // From Transport (called by the RTP/RTCP module)
-    virtual int SendPacket(int /*channel*/,
-                           const void *data,
-                           size_t len) OVERRIDE;
-    virtual int SendRTCPPacket(int /*channel*/,
-                               const void *data,
-                               size_t len) OVERRIDE;
+    bool SendRtp(const uint8_t* data,
+                 size_t len,
+                 const PacketOptions& packet_options) override;
+    bool SendRtcp(const uint8_t* data, size_t len) override;
 
     // From MixerParticipant
-    virtual int32_t GetAudioFrame(int32_t id, AudioFrame& audioFrame) OVERRIDE;
-    virtual int32_t NeededFrequency(int32_t id) OVERRIDE;
+    int32_t GetAudioFrame(int32_t id, AudioFrame* audioFrame) override;
+    int32_t NeededFrequency(int32_t id) const override;
 
     // From FileCallback
-    virtual void PlayNotification(int32_t id, uint32_t durationMs) OVERRIDE;
-    virtual void RecordNotification(int32_t id, uint32_t durationMs) OVERRIDE;
-    virtual void PlayFileEnded(int32_t id) OVERRIDE;
-    virtual void RecordFileEnded(int32_t id) OVERRIDE;
+    void PlayNotification(int32_t id, uint32_t durationMs) override;
+    void RecordNotification(int32_t id, uint32_t durationMs) override;
+    void PlayFileEnded(int32_t id) override;
+    void RecordFileEnded(int32_t id) override;
 
     uint32_t InstanceId() const
     {
@@ -444,29 +436,38 @@ public:
     // does not go through transmit_mixer and APM.
     void Demultiplex(const int16_t* audio_data,
                      int sample_rate,
-                     int number_of_frames,
+                     size_t number_of_frames,
                      int number_of_channels);
     uint32_t PrepareEncodeAndSend(int mixingFrequency);
     uint32_t EncodeAndSend();
 
-    // From BitrateObserver (called by the RTP/RTCP module).
-    void OnNetworkChanged(const uint32_t bitrate_bps,
-                          const uint8_t fraction_lost,  // 0 - 255.
-                          const int64_t rtt);
+    // Associate to a send channel.
+    // Used for obtaining RTT for a receive-only channel.
+    void set_associate_send_channel(const ChannelOwner& channel) {
+      assert(_channelId != channel.channel()->ChannelId());
+      CriticalSectionScoped lock(assoc_send_channel_lock_.get());
+      associate_send_channel_ = channel;
+    }
+
+    // Disassociate a send channel if it was associated.
+    void DisassociateSendChannel(int channel_id);
+
+protected:
+    void OnIncomingFractionLoss(int fraction_lost);
 
 private:
     bool ReceivePacket(const uint8_t* packet, size_t packet_length,
                        const RTPHeader& header, bool in_order);
-    bool HandleEncapsulation(const uint8_t* packet,
-                             size_t packet_length,
-                             const RTPHeader& header);
+    bool HandleRtxPacket(const uint8_t* packet,
+                         size_t packet_length,
+                         const RTPHeader& header);
     bool IsPacketInOrder(const RTPHeader& header) const;
     bool IsPacketRetransmitted(const RTPHeader& header, bool in_order) const;
     int ResendPackets(const uint16_t* sequence_numbers, int length);
     int InsertInbandDtmfTone();
     int32_t MixOrReplaceAudioWithFile(int mixingFrequency);
     int32_t MixAudioWithFile(AudioFrame& audioFrame, int mixingFrequency);
-    int32_t SendPacketRaw(const void *data, size_t len, bool RTCP);
+    void UpdatePlayoutTimestamp(bool rtcp);
     void UpdatePacketDelay(uint32_t timestamp,
                            uint16_t sequenceNumber);
     void RegisterReceiveCodecsToRTPModule();
@@ -476,7 +477,7 @@ private:
                                   unsigned char id);
 
     int32_t GetPlayoutFrequency();
-    int64_t GetRTT() const;
+    int64_t GetRTT(bool allow_associate_channel) const;
 
     CriticalSectionWrapper& _fileCritSect;
     CriticalSectionWrapper& _callbackCritSect;
@@ -486,20 +487,19 @@ private:
 
     ChannelState channel_state_;
 
-    scoped_ptr<RtpHeaderParser> rtp_header_parser_;
-    scoped_ptr<RTPPayloadRegistry> rtp_payload_registry_;
-    scoped_ptr<ReceiveStatistics> rtp_receive_statistics_;
-    scoped_ptr<StatisticsProxy> statistics_proxy_;
-    scoped_ptr<RtpReceiver> rtp_receiver_;
+    RtcEventLog* const event_log_;
+
+    rtc::scoped_ptr<RtpHeaderParser> rtp_header_parser_;
+    rtc::scoped_ptr<RTPPayloadRegistry> rtp_payload_registry_;
+    rtc::scoped_ptr<ReceiveStatistics> rtp_receive_statistics_;
+    rtc::scoped_ptr<StatisticsProxy> statistics_proxy_;
+    rtc::scoped_ptr<RtpReceiver> rtp_receiver_;
     TelephoneEventHandler* telephone_event_handler_;
-    scoped_ptr<RtpRtcp> _rtpRtcpModule;
-    scoped_ptr<AudioCodingModule> audio_coding_;
-    RtpDump& _rtpDumpIn;
-    RtpDump& _rtpDumpOut;
+    rtc::scoped_ptr<RtpRtcp> _rtpRtcpModule;
+    rtc::scoped_ptr<AudioCodingModule> audio_coding_;
     AudioLevel _outputAudioLevel;
     bool _externalTransport;
     AudioFrame _audioFrame;
-    scoped_ptr<int16_t[]> mono_recording_audio_;
     // Downsamples to the codec rate if necessary.
     PushResampler<int16_t> input_resampler_;
     FilePlayer* _inputFilePlayerPtr;
@@ -521,16 +521,16 @@ private:
 
     // Timestamp of the audio pulled from NetEq.
     uint32_t jitter_buffer_playout_timestamp_;
-    uint32_t playout_timestamp_rtp_;
+    uint32_t playout_timestamp_rtp_ GUARDED_BY(video_sync_lock_);
     uint32_t playout_timestamp_rtcp_;
-    uint32_t playout_delay_ms_;
+    uint32_t playout_delay_ms_ GUARDED_BY(video_sync_lock_);
     uint32_t _numberOfDiscardedPackets;
     uint16_t send_sequence_number_;
     uint8_t restored_packet_[kVoiceEngineMaxIpPacketSizeBytes];
 
-    scoped_ptr<CriticalSectionWrapper> ts_stats_lock_;
+    rtc::scoped_ptr<CriticalSectionWrapper> ts_stats_lock_;
 
-    scoped_ptr<rtc::TimestampWrapAroundHandler> rtp_ts_wraparound_handler_;
+    rtc::scoped_ptr<rtc::TimestampWrapAroundHandler> rtp_ts_wraparound_handler_;
     // The rtp timestamp of the first played out audio frame.
     int64_t capture_start_rtp_time_stamp_;
     // The capture ntp time (in local timebase) of the first played out audio
@@ -547,7 +547,7 @@ private:
     CriticalSectionWrapper* _callbackCritSectPtr; // owned by base
     Transport* _transportPtr; // WebRtc socket or external transport
     RMSLevel rms_level_;
-    scoped_ptr<AudioProcessing> rx_audioproc_; // far end AudioProcessing
+    rtc::scoped_ptr<AudioProcessing> rx_audioproc_;  // far end AudioProcessing
     VoERxVadCallback* _rxVadObserverPtr;
     int32_t _oldVadDecision;
     int32_t _sendFrameType; // Send data is voice, 1-voice, 0-otherwise
@@ -568,23 +568,22 @@ private:
     bool _includeAudioLevelIndication;
     // VoENetwork
     AudioFrame::SpeechType _outputSpeechType;
-    ViENetwork* vie_network_;
-    int video_channel_;
     // VoEVideoSync
-    uint32_t _average_jitter_buffer_delay_us;
-    int least_required_delay_ms_;
+    rtc::scoped_ptr<CriticalSectionWrapper> video_sync_lock_;
+    uint32_t _average_jitter_buffer_delay_us GUARDED_BY(video_sync_lock_);
     uint32_t _previousTimestamp;
-    uint16_t _recPacketDelayMs;
+    uint16_t _recPacketDelayMs GUARDED_BY(video_sync_lock_);
     // VoEAudioProcessing
     bool _RxVadDetection;
     bool _rxAgcIsEnabled;
     bool _rxNsIsEnabled;
     bool restored_packet_in_use_;
     // RtcpBandwidthObserver
-    scoped_ptr<BitrateController> bitrate_controller_;
-    scoped_ptr<RtcpBandwidthObserver> rtcp_bandwidth_observer_;
-    scoped_ptr<BitrateObserver> send_bitrate_observer_;
-    scoped_ptr<NetworkPredictor> network_predictor_;
+    rtc::scoped_ptr<VoERtcpObserver> rtcp_observer_;
+    rtc::scoped_ptr<NetworkPredictor> network_predictor_;
+    // An associated send channel.
+    rtc::scoped_ptr<CriticalSectionWrapper> assoc_send_channel_lock_;
+    ChannelOwner associate_send_channel_ GUARDED_BY(assoc_send_channel_lock_);
 };
 
 }  // namespace voe

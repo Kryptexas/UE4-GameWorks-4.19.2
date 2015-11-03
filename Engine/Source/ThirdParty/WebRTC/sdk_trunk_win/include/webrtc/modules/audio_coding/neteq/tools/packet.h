@@ -14,8 +14,8 @@
 #include <list>
 
 #include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_types.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -103,7 +103,7 @@ class Packet {
   void CopyToHeader(RTPHeader* destination) const;
 
   RTPHeader header_;
-  scoped_ptr<uint8_t[]> payload_memory_;
+  rtc::scoped_ptr<uint8_t[]> payload_memory_;
   const uint8_t* payload_;            // First byte after header.
   const size_t packet_length_bytes_;  // Total length of packet.
   size_t payload_length_bytes_;  // Length of the payload, after RTP header.
@@ -114,7 +114,7 @@ class Packet {
   double time_ms_;     // Used to denote a packet's arrival time.
   bool valid_header_;  // Set by the RtpHeaderParser.
 
-  DISALLOW_COPY_AND_ASSIGN(Packet);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Packet);
 };
 
 }  // namespace test

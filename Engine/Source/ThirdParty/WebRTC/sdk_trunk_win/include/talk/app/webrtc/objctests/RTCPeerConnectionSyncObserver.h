@@ -1,6 +1,6 @@
 /*
  * libjingle
- * Copyright 2013, Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -54,6 +54,7 @@
 - (void)expectMessage:(NSData*)message isBinary:(BOOL)isBinary;
 
 // Wait until all registered expectations above have been observed.
-- (void)waitForAllExpectationsToBeSatisfied;
+// Return false if expectations aren't met within |timeoutSeconds|.
+- (BOOL)waitForAllExpectationsToBeSatisfiedWithTimeout:(NSTimeInterval)timeout;
 
 @end

@@ -12,15 +12,18 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/time/time.h"
 #include "net/base/completion_callback.h"
+#include "net/base/ip_endpoint.h"
 #include "net/base/load_states.h"
 #include "net/base/load_timing_info.h"
 #include "net/base/net_errors.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/request_priority.h"
 #include "net/http/http_response_info.h"
+#include "net/log/net_log.h"
 #include "net/socket/client_socket_pool.h"
+#include "net/socket/connection_attempts.h"
 #include "net/socket/stream_socket.h"
+#include "net/ssl/ssl_failure_state.h"
 
 namespace net {
 
@@ -133,8 +136,14 @@ class NET_EXPORT ClientSocketHandle {
   void set_ssl_error_response_info(const HttpResponseInfo& ssl_error_state) {
     ssl_error_response_info_ = ssl_error_state;
   }
+  void set_ssl_failure_state(SSLFailureState ssl_failure_state) {
+    ssl_failure_state_ = ssl_failure_state;
+  }
   void set_pending_http_proxy_connection(ClientSocketHandle* connection) {
     pending_http_proxy_connection_.reset(connection);
+  }
+  void set_connection_attempts(const ConnectionAttempts& attempts) {
+    connection_attempts_ = attempts;
   }
 
   // Only valid if there is no |socket_|.
@@ -148,8 +157,15 @@ class NET_EXPORT ClientSocketHandle {
   const HttpResponseInfo& ssl_error_response_info() const {
     return ssl_error_response_info_;
   }
+  SSLFailureState ssl_failure_state() const { return ssl_failure_state_; }
   ClientSocketHandle* release_pending_http_proxy_connection() {
     return pending_http_proxy_connection_.release();
+  }
+  // If the connection failed, returns the connection attempts made. (If it
+  // succeeded, they will be returned through the socket instead; see
+  // |StreamSocket::GetConnectionAttempts|.)
+  const ConnectionAttempts& connection_attempts() {
+    return connection_attempts_;
   }
 
   StreamSocket* socket() { return socket_.get(); }
@@ -199,7 +215,9 @@ class NET_EXPORT ClientSocketHandle {
   int pool_id_;  // See ClientSocketPool::ReleaseSocket() for an explanation.
   bool is_ssl_error_;
   HttpResponseInfo ssl_error_response_info_;
+  SSLFailureState ssl_failure_state_;
   scoped_ptr<ClientSocketHandle> pending_http_proxy_connection_;
+  std::vector<ConnectionAttempt> connection_attempts_;
   base::TimeTicks init_time_;
   base::TimeDelta setup_time_;
 

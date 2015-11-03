@@ -24,6 +24,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef TALK_MEDIA_WEBRTC_CONSTANTS_H_
 #define TALK_MEDIA_WEBRTC_CONSTANTS_H_
 
@@ -32,18 +33,11 @@ namespace cricket {
 extern const int kVideoMtu;
 extern const int kVideoRtpBufferSize;
 
-extern const char kVp8CodecName[];
-extern const char kVp9CodecName[];
 extern const char kH264CodecName[];
 
-extern const int kDefaultVideoMaxWidth;
-extern const int kDefaultVideoMaxHeight;
-extern const int kDefaultVideoMaxFramerate;
 extern const int kMinVideoBitrate;
 extern const int kStartVideoBitrate;
 extern const int kMaxVideoBitrate;
-
-extern const int kCpuMonitorPeriodMs;
 
 }  // namespace cricket
 

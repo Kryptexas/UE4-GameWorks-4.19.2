@@ -20,6 +20,7 @@
 
 #include "base/containers/hash_tables.h"
 #include "base/logging.h"
+#include "base/macros.h"
 
 // This holds a list of pair<Key, Value> items.  This list is what gets
 // traversed, and it's iterators from this list that we return from
@@ -124,23 +125,28 @@ class linked_hash_map {
     return 1;
   }
 
-  // Erases values with the provided iterator. If the provided iterator is
-  // invalid or there is inconsistency between the map and list, a CHECK() error
-  // will occur.
-  void erase(iterator position) {
+  // Erases the item that 'position' points to. Returns an iterator that points
+  // to the item that comes immediately after the deleted item in the list, or
+  // end().
+  // If the provided iterator is invalid or there is inconsistency between the
+  // map and list, a CHECK() error will occur.
+  iterator erase(iterator position) {
     typename MapType::iterator found = map_.find(position->first);
     CHECK(found->second == position)
         << "Inconsisent iterator for map and list, or the iterator is invalid.";
 
-    list_.erase(position);
     map_.erase(found);
+    return list_.erase(position);
   }
 
-  // Erases values between first and last, not including last.
-  void erase(iterator first, iterator last) {
+  // Erases all the items in the range [first, last).  Returns an iterator that
+  // points to the item that comes immediately after the last deleted item in
+  // the list, or end().
+  iterator erase(iterator first, iterator last) {
     while (first != last && first != end()) {
-      erase(first++);
+      first = erase(first);
     }
+    return first;
   }
 
   // Finds the element with the given key.  Returns an iterator to the
@@ -227,6 +233,10 @@ class linked_hash_map {
 
   // The list component, used for maintaining insertion order
   ListType list_;
+
+  // |map_| contains iterators to |list_|, therefore a default copy constructor
+  // or copy assignment operator would result in an inconsistent state.
+  DISALLOW_COPY_AND_ASSIGN(linked_hash_map);
 };
 
 #endif  // UTIL_GTL_LINKED_HASH_MAP_H_

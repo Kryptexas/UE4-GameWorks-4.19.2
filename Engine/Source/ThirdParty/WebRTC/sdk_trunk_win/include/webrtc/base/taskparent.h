@@ -25,7 +25,7 @@ class TaskParent {
  public:
   TaskParent(Task *derived_instance, TaskParent *parent);
   explicit TaskParent(TaskRunner *derived_instance);
-  virtual ~TaskParent() { }
+  virtual ~TaskParent();
 
   TaskParent *GetParent() { return parent_; }
   TaskRunner *GetRunner() { return runner_; }
@@ -53,7 +53,7 @@ class TaskParent {
   bool child_error_;
   typedef std::set<Task *> ChildSet;
   scoped_ptr<ChildSet> children_;
-  DISALLOW_EVIL_CONSTRUCTORS(TaskParent);
+  RTC_DISALLOW_COPY_AND_ASSIGN(TaskParent);
 };
 
 

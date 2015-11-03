@@ -248,32 +248,35 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 
 	USceneComponent* SceneComponentThatChanged = nullptr;
 
-	// The runtime binding
-	FGuid ObjectHandle;
+	// The runtime binding to the actor, since that's where transform tracks are always stored.
+	FGuid ActorHandle;
 
 	AActor* Actor = Cast<AActor>( &InObject );
 	if( Actor && Actor->GetRootComponent() )
 	{
 		// Get a handle bound to the key/section we are adding so we know what objects to change during playback
-		ObjectHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
+		ActorHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
 		SceneComponentThatChanged = Actor->GetRootComponent();
 	}
 
 	else
 	{
-		// If the object wasn't an actor attempt to get it directly as a scene component 
+		// If the object wasn't an actor attempt to get it directly as a scene component and then get the actor from there.
 		SceneComponentThatChanged = Cast<USceneComponent>( &InObject );
 		if( SceneComponentThatChanged )
 		{
-			ObjectHandle = Sequencer->GetHandleToObject( SceneComponentThatChanged, bCreateHandleIfMissing );
+			AActor* OwnerActor = Cast<AActor>(SceneComponentThatChanged->GetOuter());
+			if ( OwnerActor )
+			{
+				ActorHandle = Sequencer->GetHandleToObject( OwnerActor, bCreateHandleIfMissing );
+			}
 		}
-
 	}
 
-	if( SceneComponentThatChanged && ObjectHandle.IsValid() )
+	if( SceneComponentThatChanged && ActorHandle.IsValid() )
 	{
 		FName Transform("Transform");
-		if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform))
+		if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ActorHandle, Transform))
 		{
 			// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
 			FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
@@ -292,10 +295,10 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 			KeyParams.bAddKeyEvenIfUnchanged = false;
 			KeyParams.KeyInterpolation = Sequencer->GetKeyInterpolation();
 
-			if (CanKeyProperty(FCanKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::CanKeyPropertyInternal, ObjectHandle, TransformPair, KeyParams)))
+			if (CanKeyProperty(FCanKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::CanKeyPropertyInternal, ActorHandle, TransformPair, KeyParams)))
 			{
 				AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(),
-					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, KeyParams, F3DTransformTrackKey::Key_All));
+					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ActorHandle, TransformPair, KeyParams, F3DTransformTrackKey::Key_All));
 			}
 		}
 	}

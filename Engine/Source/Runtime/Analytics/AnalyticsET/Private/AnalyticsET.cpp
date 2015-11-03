@@ -248,7 +248,7 @@ bool FAnalyticsProviderET::StartSession(const TArray<FAnalyticsEventAttribute>& 
 	AppendedAttributes.Emplace(TEXT("Platform"), FString(FPlatformProperties::IniPlatformName()));
 
 	RecordEvent(TEXT("SessionStart"), AppendedAttributes);
-	bSessionInProgress = !UserID.IsEmpty();
+	bSessionInProgress = true;
 	return bSessionInProgress;
 }
 
@@ -260,9 +260,10 @@ void FAnalyticsProviderET::EndSession()
 	if (bSessionInProgress)
 	{
 		RecordEvent(TEXT("SessionEnd"), TArray<FAnalyticsEventAttribute>());
-		FlushEvents();
-		SessionID.Empty();
 	}
+	FlushEvents();
+	SessionID.Empty();
+
 	bSessionInProgress = false;
 }
 
@@ -334,6 +335,7 @@ void FAnalyticsProviderET::FlushEvents()
 		HttpRequest->SetURL(APIServer + URLPath);
 		HttpRequest->SetVerb(TEXT("POST"));
 		HttpRequest->SetContentAsString(Payload);
+		// Don't set a response callback if we are in our destructor, as the instance will no longer be there to call.
 		if (!bInDestructor)
 		{
 			HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestComplete);
@@ -371,13 +373,9 @@ FString FAnalyticsProviderET::GetSessionID() const
 
 bool FAnalyticsProviderET::SetSessionID(const FString& InSessionID)
 {
-	if (bSessionInProgress)
-	{
-		SessionID = InSessionID;
-		UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
-		return true;
-	}
-	return false;
+	SessionID = InSessionID;
+	UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
+	return true;
 }
 
 /** Helper to log any ET event. Used by all the LogXXX functions. */

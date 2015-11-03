@@ -66,7 +66,7 @@ extern "C"
  */
 int WebRtcAgc_AddFarend(void* agcInst,
                         const int16_t* inFar,
-                        int16_t samples);
+                        size_t samples);
 
 /*
  * This function processes a 10 ms frame of microphone speech to determine
@@ -90,8 +90,8 @@ int WebRtcAgc_AddFarend(void* agcInst,
  */
 int WebRtcAgc_AddMic(void* agcInst,
                      int16_t* const* inMic,
-                     int16_t num_bands,
-                     int16_t samples);
+                     size_t num_bands,
+                     size_t samples);
 
 /*
  * This function replaces the analog microphone with a virtual one.
@@ -118,8 +118,8 @@ int WebRtcAgc_AddMic(void* agcInst,
  */
 int WebRtcAgc_VirtualMic(void* agcInst,
                          int16_t* const* inMic,
-                         int16_t num_bands,
-                         int16_t samples,
+                         size_t num_bands,
+                         size_t samples,
                          int32_t micLevelIn,
                          int32_t* micLevelOut);
 
@@ -159,8 +159,8 @@ int WebRtcAgc_VirtualMic(void* agcInst,
  */
 int WebRtcAgc_Process(void* agcInst,
                       const int16_t* const* inNear,
-                      int16_t num_bands,
-                      int16_t samples,
+                      size_t num_bands,
+                      size_t samples,
                       int16_t* const* out,
                       int32_t inMicLevel,
                       int32_t* outMicLevel,
@@ -200,24 +200,18 @@ int WebRtcAgc_set_config(void* agcInst, WebRtcAgcConfig config);
 int WebRtcAgc_get_config(void* agcInst, WebRtcAgcConfig* config);
 
 /*
- * This function creates an AGC instance, which will contain the state
- * information for one (duplex) channel.
- *
- * Return value             : AGC instance if successful
- *                          : 0 (i.e., a NULL pointer) if unsuccessful
+ * This function creates and returns an AGC instance, which will contain the
+ * state information for one (duplex) channel.
  */
-int WebRtcAgc_Create(void **agcInst);
+void* WebRtcAgc_Create();
 
 /*
  * This function frees the AGC instance created at the beginning.
  *
  * Input:
  *      - agcInst           : AGC instance.
- *
- * Return value             :  0 - Ok
- *                            -1 - Error
  */
-int WebRtcAgc_Free(void *agcInst);
+void WebRtcAgc_Free(void* agcInst);
 
 /*
  * This function initializes an AGC instance.

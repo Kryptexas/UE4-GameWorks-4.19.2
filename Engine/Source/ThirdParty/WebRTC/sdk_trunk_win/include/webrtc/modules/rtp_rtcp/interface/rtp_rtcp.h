@@ -11,6 +11,7 @@
 #ifndef WEBRTC_MODULES_RTP_RTCP_INTERFACE_RTP_RTCP_H_
 #define WEBRTC_MODULES_RTP_RTCP_INTERFACE_RTP_RTCP_H_
 
+#include <set>
 #include <vector>
 
 #include "webrtc/modules/interface/module.h"
@@ -18,11 +19,13 @@
 
 namespace webrtc {
 // Forward declarations.
-class PacedSender;
 class ReceiveStatistics;
 class RemoteBitrateEstimator;
 class RtpReceiver;
 class Transport;
+namespace rtcp {
+class TransportFeedback;
+}
 
 class RtpRtcp : public Module {
  public:
@@ -52,18 +55,20 @@ class RtpRtcp : public Module {
     *  paced_sender             - Spread any bursts of packets into smaller
     *                             bursts to minimize packet loss.
     */
-    int32_t id;
     bool audio;
+    bool receiver_only;
     Clock* clock;
-    RtpRtcp* default_module;
     ReceiveStatistics* receive_statistics;
     Transport* outgoing_transport;
     RtcpIntraFrameObserver* intra_frame_callback;
     RtcpBandwidthObserver* bandwidth_callback;
+    TransportFeedbackObserver* transport_feedback_callback;
     RtcpRttStats* rtt_stats;
+    RtcpPacketTypeCounterObserver* rtcp_packet_type_counter_observer;
     RtpAudioFeedback* audio_messages;
     RemoteBitrateEstimator* remote_bitrate_estimator;
-    PacedSender* paced_sender;
+    RtpPacketSender* paced_sender;
+    TransportSequenceNumberAllocator* transport_sequence_number_allocator;
     BitrateStatisticsObserver* send_bitrate_observer;
     FrameCountObserver* send_frame_count_observer;
     SendSideDelayObserver* send_side_delay_observer;
@@ -195,7 +200,8 @@ class RtpRtcp : public Module {
     */
     virtual void SetSequenceNumber(uint16_t seq) = 0;
 
-    virtual void SetRtpStateForSsrc(uint32_t ssrc,
+    // Returns true if the ssrc matched this module, false otherwise.
+    virtual bool SetRtpStateForSsrc(uint32_t ssrc,
                                     const RtpState& rtp_state) = 0;
     virtual bool GetRtpStateForSsrc(uint32_t ssrc, RtpState* rtp_state) = 0;
 
@@ -234,7 +240,12 @@ class RtpRtcp : public Module {
 
     // Sets the payload type to use when sending RTX packets. Note that this
     // doesn't enable RTX, only the payload type is set.
-    virtual void SetRtxSendPayloadType(int payload_type) = 0;
+    virtual void SetRtxSendPayloadType(int payload_type,
+                                       int associated_payload_type) = 0;
+
+    // Gets the payload type pair of (RTX, associated) to use when sending RTX
+    // packets.
+    virtual std::pair<int, int> RtxSendPayloadType() const = 0;
 
     /*
     *   sends kRtcpByeCode when going from true to false
@@ -301,9 +312,6 @@ class RtpRtcp : public Module {
 
     virtual size_t TimeToSendPadding(size_t bytes) = 0;
 
-    virtual bool GetSendSideDelay(int* avg_send_delay_ms,
-                                  int* max_send_delay_ms) const = 0;
-
     // Called on generation of new statistics after an RTP send.
     virtual void RegisterSendChannelRtpStatisticsCallback(
         StreamDataCountersCallback* callback) = 0;
@@ -319,21 +327,21 @@ class RtpRtcp : public Module {
     /*
     *    Get RTCP status
     */
-    virtual RTCPMethod RTCP() const = 0;
+    virtual RtcpMode RTCP() const = 0;
 
     /*
     *   configure RTCP status i.e on(compound or non- compound)/off
     *
     *   method  - RTCP method to use
     */
-    virtual void SetRTCPStatus(RTCPMethod method) = 0;
+    virtual void SetRTCPStatus(RtcpMode method) = 0;
 
     /*
     *   Set RTCP CName (i.e unique identifier)
     *
     *   return -1 on failure else 0
     */
-    virtual int32_t SetCNAME(const char cName[RTCP_CNAME_SIZE]) = 0;
+    virtual int32_t SetCNAME(const char* c_name) = 0;
 
     /*
     *   Get remote CName
@@ -360,8 +368,7 @@ class RtpRtcp : public Module {
     *
     *   return -1 on failure else 0
     */
-    virtual int32_t AddMixedCNAME(uint32_t SSRC,
-                                  const char cName[RTCP_CNAME_SIZE]) = 0;
+    virtual int32_t AddMixedCNAME(uint32_t SSRC, const char* c_name) = 0;
 
     /*
     *   RemoveMixedCNAME
@@ -383,12 +390,20 @@ class RtpRtcp : public Module {
 
     /*
     *   Force a send of a RTCP packet
-    *   normal SR and RR are triggered via the process function
+    *   periodic SR and RR are triggered via the process function
     *
     *   return -1 on failure else 0
     */
-    virtual int32_t SendRTCP(
-        uint32_t rtcpPacketType = kRtcpReport) = 0;
+    virtual int32_t SendRTCP(RTCPPacketType rtcpPacketType) = 0;
+
+    /*
+    *   Force a send of a RTCP packet with more than one packet type.
+    *   periodic SR and RR are triggered via the process function
+    *
+    *   return -1 on failure else 0
+    */
+    virtual int32_t SendCompoundRTCP(
+        const std::set<RTCPPacketType>& rtcpPacketTypes) = 0;
 
     /*
     *    Good state of RTP receiver inform sender
@@ -401,13 +416,6 @@ class RtpRtcp : public Module {
     *    6 least significant bits of pictureID
     */
     virtual int32_t SendRTCPSliceLossIndication(uint8_t pictureID) = 0;
-
-    /*
-    *   Reset RTP data counters for the sending side
-    *
-    *   return -1 on failure else 0
-    */
-    virtual int32_t ResetSendDataCountersRTP() = 0;
 
     /*
     *   Statistics of the amount of data sent
@@ -426,6 +434,14 @@ class RtpRtcp : public Module {
         StreamDataCounters* rtx_counters) const = 0;
 
     /*
+     *  Get packet loss statistics for the RTP stream.
+     */
+    virtual void GetRtpPacketLossStats(
+        bool outgoing,
+        uint32_t ssrc,
+        struct RtpPacketLossStats* loss_stats) const = 0;
+
+    /*
     *   Get received RTCP sender info
     *
     *   return -1 on failure else 0
@@ -439,28 +455,6 @@ class RtpRtcp : public Module {
     */
     virtual int32_t RemoteRTCPStat(
         std::vector<RTCPReportBlock>* receiveBlocks) const = 0;
-
-    /*
-    *   Set received RTCP report block
-    *
-    *   return -1 on failure else 0
-    */
-    virtual int32_t AddRTCPReportBlock(uint32_t SSRC,
-                                       const RTCPReportBlock* receiveBlock) = 0;
-
-    /*
-    *   RemoveRTCPReportBlock
-    *
-    *   return -1 on failure else 0
-    */
-    virtual int32_t RemoveRTCPReportBlock(uint32_t SSRC) = 0;
-
-    /*
-    *   Get number of sent and received RTCP packet types.
-    */
-    virtual void GetRtcpPacketTypeCounters(
-        RtcpPacketTypeCounter* packets_sent,
-        RtcpPacketTypeCounter* packets_received) const = 0;
 
     /*
     *   (APP) Application specific data
@@ -495,13 +489,6 @@ class RtpRtcp : public Module {
 
     virtual void SetREMBData(uint32_t bitrate,
                              const std::vector<uint32_t>& ssrcs) = 0;
-
-    /*
-    *   (IJ) Extended jitter report.
-    */
-    virtual bool IJ() const = 0;
-
-    virtual void SetIJStatus(bool enable) = 0;
 
     /*
     *   (TMMBR) Temporary Max Media Bit Rate
@@ -555,6 +542,8 @@ class RtpRtcp : public Module {
         RtcpStatisticsCallback* callback) = 0;
     virtual RtcpStatisticsCallback*
         GetRtcpStatisticsCallback() = 0;
+    // BWE feedback packets.
+    virtual bool SendFeedbackPacket(const rtcp::TransportFeedback& packet) = 0;
 
     /**************************************************************************
     *
@@ -569,16 +558,6 @@ class RtpRtcp : public Module {
     *   return -1 on failure else 0
     */
     virtual int32_t SetAudioPacketSize(uint16_t packetSizeSamples) = 0;
-
-    /*
-    *   SendTelephoneEventActive
-    *
-    *   return true if we currently send a telephone event and 100 ms after an
-    *   event is sent used to prevent the telephone event tone to be recorded
-    *   by the microphone and send inband just after the tone has ended.
-    */
-    virtual bool SendTelephoneEventActive(
-        int8_t& telephoneEvent) const = 0;
 
     /*
     *   Send a TelephoneEvent tone using RFC 2833 (4733)
@@ -621,33 +600,21 @@ class RtpRtcp : public Module {
     ***************************************************************************/
 
     /*
-    *   Set the estimated camera delay in MS
-    *
-    *   return -1 on failure else 0
-    */
-     virtual int32_t SetCameraDelay(int32_t delayMS) = 0;
-
-    /*
     *   Set the target send bitrate
     */
-    virtual void SetTargetSendBitrate(
-        const std::vector<uint32_t>& stream_bitrates) = 0;
+    virtual void SetTargetSendBitrate(uint32_t bitrate_bps) = 0;
 
     /*
     *   Turn on/off generic FEC
-    *
-    *   return -1 on failure else 0
     */
-    virtual int32_t SetGenericFECStatus(bool enable,
-                                        uint8_t payloadTypeRED,
-                                        uint8_t payloadTypeFEC) = 0;
+    virtual void SetGenericFECStatus(bool enable,
+                                     uint8_t payload_type_red,
+                                     uint8_t payload_type_fec) = 0;
 
     /*
     *   Get generic FEC setting
-    *
-    *   return -1 on failure else 0
     */
-    virtual int32_t GenericFECStatus(bool& enable,
+    virtual void GenericFECStatus(bool& enable,
                                      uint8_t& payloadTypeRED,
                                      uint8_t& payloadTypeFEC) = 0;
 

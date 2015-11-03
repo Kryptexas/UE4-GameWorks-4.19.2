@@ -6,6 +6,7 @@
 #define NET_QUIC_TEST_TOOLS_QUIC_STREAM_SEQUENCER_PEER_H_
 
 #include "base/basictypes.h"
+#include "net/quic/quic_frame_list.h"
 #include "net/quic/quic_protocol.h"
 
 namespace net {
@@ -16,8 +17,10 @@ namespace test {
 
 class QuicStreamSequencerPeer {
  public:
-  static std::map<QuicStreamOffset, std::string>* GetBufferedFrames(
-      QuicStreamSequencer* sequencer);
+  static size_t GetNumBufferedBytes(QuicStreamSequencer* sequencer);
+
+  static bool FrameOverlapsBufferedData(QuicFrameList* buffer,
+                                        const QuicStreamFrame& frame);
 
   static QuicStreamOffset GetCloseOffset(QuicStreamSequencer* sequencer);
 

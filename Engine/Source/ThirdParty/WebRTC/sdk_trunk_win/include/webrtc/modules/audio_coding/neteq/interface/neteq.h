@@ -13,7 +13,7 @@
 
 #include <string.h>  // Provide access to size_t.
 
-#include <vector>
+#include <string>
 
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/common_types.h"
@@ -33,14 +33,24 @@ struct NetEqNetworkStatistics {
   uint16_t packet_loss_rate;  // Loss rate (network + late) in Q14.
   uint16_t packet_discard_rate;  // Late loss rate in Q14.
   uint16_t expand_rate;  // Fraction (of original stream) of synthesized
-                         // speech inserted through expansion (in Q14).
+                         // audio inserted through expansion (in Q14).
+  uint16_t speech_expand_rate;  // Fraction (of original stream) of synthesized
+                                // speech inserted through expansion (in Q14).
   uint16_t preemptive_rate;  // Fraction of data inserted through pre-emptive
                              // expansion (in Q14).
   uint16_t accelerate_rate;  // Fraction of data removed through acceleration
                              // (in Q14).
+  uint16_t secondary_decoded_rate;  // Fraction of data coming from secondary
+                                    // decoding (in Q14).
   int32_t clockdrift_ppm;  // Average clock-drift in parts-per-million
                            // (positive or negative).
-  int added_zero_samples;  // Number of zero samples added in "off" mode.
+  size_t added_zero_samples;  // Number of zero samples added in "off" mode.
+  // Statistics for packet waiting times, i.e., the time between a packet
+  // arrives until it is decoded.
+  int mean_waiting_time_ms;
+  int median_waiting_time_ms;
+  int min_waiting_time_ms;
+  int max_waiting_time_ms;
 };
 
 enum NetEqOutputType {
@@ -75,14 +85,18 @@ class NetEq {
           // |max_delay_ms| has the same effect as calling SetMaximumDelay().
           max_delay_ms(2000),
           background_noise_mode(kBgnOff),
-          playout_mode(kPlayoutOn) {}
+          playout_mode(kPlayoutOn),
+          enable_fast_accelerate(false) {}
 
-    int sample_rate_hz;  // Initial vale. Will change with input data.
+    std::string ToString() const;
+
+    int sample_rate_hz;  // Initial value. Will change with input data.
     bool enable_audio_classifier;
-    int max_packets_in_buffer;
+    size_t max_packets_in_buffer;
     int max_delay_ms;
     BackgroundNoiseMode background_noise_mode;
     NetEqPlayoutMode playout_mode;
+    bool enable_fast_accelerate;
   };
 
   enum ReturnCodes {
@@ -156,7 +170,7 @@ class NetEq {
   // The speech type is written to |type|, if |type| is not NULL.
   // Returns kOK on success, or kFail in case of an error.
   virtual int GetAudio(size_t max_length, int16_t* output_audio,
-                       int* samples_per_channel, int* num_channels,
+                       size_t* samples_per_channel, int* num_channels,
                        NetEqOutputType* type) = 0;
 
   // Associates |rtp_payload_type| with |codec| and stores the information in
@@ -166,11 +180,12 @@ class NetEq {
 
   // Provides an externally created decoder object |decoder| to insert in the
   // decoder database. The decoder implements a decoder of type |codec| and
-  // associates it with |rtp_payload_type|. Returns kOK on success,
-  // kFail on failure.
+  // associates it with |rtp_payload_type|. The decoder will produce samples
+  // at the rate |sample_rate_hz|. Returns kOK on success, kFail on failure.
   virtual int RegisterExternalDecoder(AudioDecoder* decoder,
                                       enum NetEqDecoder codec,
-                                      uint8_t rtp_payload_type) = 0;
+                                      uint8_t rtp_payload_type,
+                                      int sample_rate_hz) = 0;
 
   // Removes |rtp_payload_type| from the codec database. Returns 0 on success,
   // -1 on failure.
@@ -200,8 +215,8 @@ class NetEq {
   // Not implemented.
   virtual int TargetDelay() = 0;
 
-  // Not implemented.
-  virtual int CurrentDelay() = 0;
+  // Returns the current total delay (packet buffer and sync buffer) in ms.
+  virtual int CurrentDelayMs() const = 0;
 
   // Sets the playout mode to |mode|.
   // Deprecated. Set the mode in the Config struct passed to the constructor.
@@ -216,11 +231,6 @@ class NetEq {
   // Writes the current network statistics to |stats|. The statistics are reset
   // after the call.
   virtual int NetworkStatistics(NetEqNetworkStatistics* stats) = 0;
-
-  // Writes the last packet waiting times (in ms) to |waiting_times|. The number
-  // of values written is no more than 100, but may be smaller if the interface
-  // is polled again before 100 packets has arrived.
-  virtual void WaitingTimes(std::vector<int>* waiting_times) = 0;
 
   // Writes the current RTCP statistics to |stats|. The statistics are reset
   // and a new report period is started with the call.
@@ -271,7 +281,7 @@ class NetEq {
   NetEq() {}
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(NetEq);
+  RTC_DISALLOW_COPY_AND_ASSIGN(NetEq);
 };
 
 }  // namespace webrtc

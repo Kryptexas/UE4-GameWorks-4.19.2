@@ -17,7 +17,6 @@
 
 namespace webrtc {
 class AudioMixerOutputReceiver;
-class AudioMixerStatusReceiver;
 class MixerParticipant;
 class Trace;
 
@@ -40,37 +39,30 @@ public:
     virtual ~AudioConferenceMixer() {}
 
     // Module functions
-    virtual int32_t ChangeUniqueId(const int32_t id) OVERRIDE = 0;
-    virtual int64_t TimeUntilNextProcess() OVERRIDE = 0;
-    virtual int32_t Process() OVERRIDE = 0;
+    int64_t TimeUntilNextProcess() override = 0;
+    int32_t Process() override = 0;
 
     // Register/unregister a callback class for receiving the mixed audio.
     virtual int32_t RegisterMixedStreamCallback(
-        AudioMixerOutputReceiver& receiver) = 0;
+        AudioMixerOutputReceiver* receiver) = 0;
     virtual int32_t UnRegisterMixedStreamCallback() = 0;
 
-    // Register/unregister a callback class for receiving status information.
-    virtual int32_t RegisterMixerStatusCallback(
-        AudioMixerStatusReceiver& mixerStatusCallback,
-        const uint32_t amountOf10MsBetweenCallbacks) = 0;
-    virtual int32_t UnRegisterMixerStatusCallback() = 0;
-
     // Add/remove participants as candidates for mixing.
-    virtual int32_t SetMixabilityStatus(MixerParticipant& participant,
+    virtual int32_t SetMixabilityStatus(MixerParticipant* participant,
                                         bool mixable) = 0;
-    // mixable is set to true if a participant is a candidate for mixing.
-    virtual int32_t MixabilityStatus(MixerParticipant& participant,
-                                     bool& mixable) = 0;
+    // Returns true if a participant is a candidate for mixing.
+    virtual bool MixabilityStatus(
+        const MixerParticipant& participant) const = 0;
 
     // Inform the mixer that the participant should always be mixed and not
     // count toward the number of mixed participants. Note that a participant
     // must have been added to the mixer (by calling SetMixabilityStatus())
     // before this function can be successfully called.
-    virtual int32_t SetAnonymousMixabilityStatus(MixerParticipant& participant,
-                                                 const bool mixable) = 0;
-    // mixable is set to true if the participant is mixed anonymously.
-    virtual int32_t AnonymousMixabilityStatus(MixerParticipant& participant,
-                                              bool& mixable) = 0;
+    virtual int32_t SetAnonymousMixabilityStatus(
+        MixerParticipant* participant, bool mixable) = 0;
+    // Returns true if the participant is mixed anonymously.
+    virtual bool AnonymousMixabilityStatus(
+        const MixerParticipant& participant) const = 0;
 
     // Set the minimum sampling frequency at which to mix. The mixing algorithm
     // may still choose to mix at a higher samling frequency to avoid

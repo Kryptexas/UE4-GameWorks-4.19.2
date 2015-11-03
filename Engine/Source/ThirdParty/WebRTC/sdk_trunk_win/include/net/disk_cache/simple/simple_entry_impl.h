@@ -14,10 +14,10 @@
 #include "base/threading/thread_checker.h"
 #include "net/base/cache_type.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/disk_cache/disk_cache.h"
 #include "net/disk_cache/simple/simple_entry_format.h"
 #include "net/disk_cache/simple/simple_entry_operation.h"
+#include "net/log/net_log.h"
 
 namespace base {
 class TaskRunner;
@@ -266,7 +266,7 @@ class NET_EXPORT_PRIVATE SimpleEntryImpl : public Entry,
                              int result);
 
   // Called after validating the checksums on an entry. Passes through the
-  // original result if successful, propogates the error if the checksum does
+  // original result if successful, propagates the error if the checksum does
   // not validate.
   void ChecksumOperationComplete(
       int stream_index,
@@ -337,6 +337,10 @@ class NET_EXPORT_PRIVATE SimpleEntryImpl : public Entry,
   // write. For each stream, |crc32s_[index]| is the crc32 of that stream from
   // [0 .. |crc32s_end_offset_|). If |crc32s_end_offset_[index] == 0| then the
   // value of |crc32s_[index]| is undefined.
+  // Note at this can only be done in the current implementation in the case of
+  // a single entry reader that reads serially through the entire file.
+  // Extending this to multiple readers is possible, but isn't currently worth
+  // it; see http://crbug.com/488076#c3 for details.
   int32 crc32s_end_offset_[kSimpleEntryStreamCount];
   uint32 crc32s_[kSimpleEntryStreamCount];
 

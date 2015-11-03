@@ -9,12 +9,13 @@
 #include <keyt.h>
 #include <nspr.h>
 #include <nss.h>
+#include <stdint.h>
 
 #include "base/memory/scoped_ptr.h"
 #include "net/base/completion_callback.h"
 #include "net/base/host_port_pair.h"
-#include "net/base/net_log.h"
 #include "net/base/nss_memio.h"
+#include "net/log/net_log.h"
 #include "net/socket/ssl_server_socket.h"
 #include "net/ssl/ssl_config_service.h"
 
@@ -66,6 +67,10 @@ class SSLServerSocketNSS : public SSLServerSocket {
   bool WasNpnNegotiated() const override;
   NextProto GetNegotiatedProtocol() const override;
   bool GetSSLInfo(SSLInfo* ssl_info) override;
+  void GetConnectionAttempts(ConnectionAttempts* out) const override;
+  void ClearConnectionAttempts() override {}
+  void AddConnectionAttempts(const ConnectionAttempts& attempts) override {}
+  int64_t GetTotalReceivedBytes() const override;
 
  private:
   enum State {

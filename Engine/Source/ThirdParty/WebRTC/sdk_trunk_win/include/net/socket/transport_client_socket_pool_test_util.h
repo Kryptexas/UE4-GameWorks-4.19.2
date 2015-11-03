@@ -17,7 +17,7 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/time/time.h"
 #include "net/base/address_list.h"
-#include "net/base/net_log.h"
+#include "net/log/net_log.h"
 #include "net/socket/client_socket_factory.h"
 #include "net/socket/client_socket_handle.h"
 #include "net/socket/stream_socket.h"
@@ -62,6 +62,9 @@ class MockTransportClientSocketFactory : public ClientSocketFactory {
     MOCK_DELAYED_FAILING_CLIENT_SOCKET,
     // A stalled socket that never connects at all.
     MOCK_STALLED_CLIENT_SOCKET,
+    // A stalled socket that never connects at all, but returns a failing
+    // ConnectionAttempt in |GetConnectionAttempts|.
+    MOCK_STALLED_FAILING_CLIENT_SOCKET,
     // A socket that can be triggered to connect explicitly, asynchronously.
     MOCK_TRIGGERABLE_CLIENT_SOCKET,
   };

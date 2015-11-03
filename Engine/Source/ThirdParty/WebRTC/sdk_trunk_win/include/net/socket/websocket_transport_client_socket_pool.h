@@ -17,7 +17,7 @@
 #include "base/time/time.h"
 #include "base/timer/timer.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
+#include "net/log/net_log.h"
 #include "net/socket/client_socket_pool.h"
 #include "net/socket/client_socket_pool_base.h"
 #include "net/socket/transport_client_socket_pool.h"
@@ -25,7 +25,6 @@
 namespace net {
 
 class ClientSocketFactory;
-class ClientSocketPoolHistograms;
 class HostResolver;
 class NetLog;
 class WebSocketEndpointLockManager;
@@ -101,7 +100,7 @@ class NET_EXPORT_PRIVATE WebSocketTransportConnectJob : public ConnectJob {
   scoped_ptr<WebSocketTransportConnectSubJob> ipv4_job_;
   scoped_ptr<WebSocketTransportConnectSubJob> ipv6_job_;
 
-  base::OneShotTimer<WebSocketTransportConnectJob> fallback_timer_;
+  base::OneShotTimer fallback_timer_;
   TransportConnectJobHelper::ConnectionLatencyHistogram race_result_;
   ClientSocketHandle* const handle_;
   CompletionCallback callback_;
@@ -118,7 +117,6 @@ class NET_EXPORT_PRIVATE WebSocketTransportClientSocketPool
  public:
   WebSocketTransportClientSocketPool(int max_sockets,
                                      int max_sockets_per_group,
-                                     ClientSocketPoolHistograms* histograms,
                                      HostResolver* host_resolver,
                                      ClientSocketFactory* client_socket_factory,
                                      NetLog* net_log);
@@ -154,12 +152,11 @@ class NET_EXPORT_PRIVATE WebSocketTransportClientSocketPool
   int IdleSocketCountInGroup(const std::string& group_name) const override;
   LoadState GetLoadState(const std::string& group_name,
                          const ClientSocketHandle* handle) const override;
-  base::DictionaryValue* GetInfoAsValue(
+  scoped_ptr<base::DictionaryValue> GetInfoAsValue(
       const std::string& name,
       const std::string& type,
       bool include_nested_pools) const override;
   base::TimeDelta ConnectionTimeout() const override;
-  ClientSocketPoolHistograms* histograms() const override;
 
   // HigherLayeredPool implementation.
   bool IsStalled() const override;
@@ -228,7 +225,6 @@ class NET_EXPORT_PRIVATE WebSocketTransportClientSocketPool
   PendingConnectsMap pending_connects_;
   StalledRequestQueue stalled_request_queue_;
   StalledRequestMap stalled_request_map_;
-  ClientSocketPoolHistograms* const histograms_;
   NetLog* const pool_net_log_;
   ClientSocketFactory* const client_socket_factory_;
   HostResolver* const host_resolver_;

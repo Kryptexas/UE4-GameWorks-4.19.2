@@ -17,6 +17,7 @@
 #include <string>
 
 #include "base/strings/string16.h"
+#include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
 #include "net/http/http_auth.h"
 
@@ -70,57 +71,39 @@ class SSPILibrary {
 class SSPILibraryDefault : public SSPILibrary {
  public:
   SSPILibraryDefault() {}
-  virtual ~SSPILibraryDefault() {}
+  ~SSPILibraryDefault() override {}
 
-  virtual SECURITY_STATUS AcquireCredentialsHandle(LPWSTR pszPrincipal,
-                                                   LPWSTR pszPackage,
-                                                   unsigned long fCredentialUse,
-                                                   void* pvLogonId,
-                                                   void* pvAuthData,
-                                                   SEC_GET_KEY_FN pGetKeyFn,
-                                                   void* pvGetKeyArgument,
-                                                   PCredHandle phCredential,
-                                                   PTimeStamp ptsExpiry) {
-    return ::AcquireCredentialsHandle(pszPrincipal, pszPackage, fCredentialUse,
-                                      pvLogonId, pvAuthData, pGetKeyFn,
-                                      pvGetKeyArgument, phCredential,
-                                      ptsExpiry);
-  }
+  SECURITY_STATUS AcquireCredentialsHandle(LPWSTR pszPrincipal,
+                                           LPWSTR pszPackage,
+                                           unsigned long fCredentialUse,
+                                           void* pvLogonId,
+                                           void* pvAuthData,
+                                           SEC_GET_KEY_FN pGetKeyFn,
+                                           void* pvGetKeyArgument,
+                                           PCredHandle phCredential,
+                                           PTimeStamp ptsExpiry) override;
 
-  virtual SECURITY_STATUS InitializeSecurityContext(PCredHandle phCredential,
-                                                    PCtxtHandle phContext,
-                                                    SEC_WCHAR* pszTargetName,
-                                                    unsigned long fContextReq,
-                                                    unsigned long Reserved1,
-                                                    unsigned long TargetDataRep,
-                                                    PSecBufferDesc pInput,
-                                                    unsigned long Reserved2,
-                                                    PCtxtHandle phNewContext,
-                                                    PSecBufferDesc pOutput,
-                                                    unsigned long* contextAttr,
-                                                    PTimeStamp ptsExpiry) {
-    return ::InitializeSecurityContext(phCredential, phContext, pszTargetName,
-                                       fContextReq, Reserved1, TargetDataRep,
-                                       pInput, Reserved2, phNewContext, pOutput,
-                                       contextAttr, ptsExpiry);
-  }
+  SECURITY_STATUS InitializeSecurityContext(PCredHandle phCredential,
+                                            PCtxtHandle phContext,
+                                            SEC_WCHAR* pszTargetName,
+                                            unsigned long fContextReq,
+                                            unsigned long Reserved1,
+                                            unsigned long TargetDataRep,
+                                            PSecBufferDesc pInput,
+                                            unsigned long Reserved2,
+                                            PCtxtHandle phNewContext,
+                                            PSecBufferDesc pOutput,
+                                            unsigned long* contextAttr,
+                                            PTimeStamp ptsExpiry) override;
 
-  virtual SECURITY_STATUS QuerySecurityPackageInfo(LPWSTR pszPackageName,
-                                                   PSecPkgInfoW *pkgInfo) {
-    return ::QuerySecurityPackageInfo(pszPackageName, pkgInfo);
-  }
+  SECURITY_STATUS QuerySecurityPackageInfo(LPWSTR pszPackageName,
+                                           PSecPkgInfoW* pkgInfo) override;
 
-  virtual SECURITY_STATUS FreeCredentialsHandle(PCredHandle phCredential) {
-    return ::FreeCredentialsHandle(phCredential);
-  }
+  SECURITY_STATUS FreeCredentialsHandle(PCredHandle phCredential) override;
 
-  virtual SECURITY_STATUS DeleteSecurityContext(PCtxtHandle phContext) {
-    return ::DeleteSecurityContext(phContext);
-  }
+  SECURITY_STATUS DeleteSecurityContext(PCtxtHandle phContext) override;
 
-  virtual SECURITY_STATUS FreeContextBuffer(PVOID pvContextBuffer) {
-    return ::FreeContextBuffer(pvContextBuffer);
-  }
+  SECURITY_STATUS FreeContextBuffer(PVOID pvContextBuffer) override;
 };
 
 class NET_EXPORT_PRIVATE HttpAuthSSPI {
@@ -138,19 +121,36 @@ class NET_EXPORT_PRIVATE HttpAuthSSPI {
   HttpAuth::AuthorizationResult ParseChallenge(
       HttpAuthChallengeTokenizer* tok);
 
-  // Generates an authentication token for the service specified by the
-  // Service Principal Name |spn| and stores the value in |*auth_token|.
-  // If the return value is not |OK|, then the value of |*auth_token| is
-  // unspecified. ERR_IO_PENDING is not a valid return code.
+  // Generates an authentication token.
+  //
+  // The return value is an error code. The authentication token will be
+  // returned in |*auth_token|. If the result code is not |OK|, the value of
+  // |*auth_token| is unspecified.
+  //
+  // If the operation cannot be completed synchronously, |ERR_IO_PENDING| will
+  // be returned and the real result code will be passed to the completion
+  // callback.  Otherwise the result code is returned immediately from this
+  // call.
+  //
+  // If the HttpAuthSPPI object is deleted before completion then the callback
+  // will not be called.
+  //
+  // If no immediate result is returned then |auth_token| must remain valid
+  // until the callback has been called.
+  //
+  // |spn| is the Service Principal Name of the server that the token is
+  // being generated for.
+  //
   // If this is the first round of a multiple round scheme, credentials are
-  // obtained using |*credentials|. If |credentials| is NULL, the credentials
-  // for the currently logged in user are used instead.
+  // obtained using |*credentials|. If |credentials| is NULL, the default
+  // credentials are used instead.
   int GenerateAuthToken(const AuthCredentials* credentials,
                         const std::string& spn,
-                        std::string* auth_token);
+                        std::string* auth_token,
+                        const CompletionCallback& callback);
 
   // Delegation is allowed on the Kerberos ticket. This allows certain servers
-  // to act as the user, such as an IIS server retrieiving data from a
+  // to act as the user, such as an IIS server retrieving data from a
   // Kerberized MSSQL server.
   void Delegate();
 

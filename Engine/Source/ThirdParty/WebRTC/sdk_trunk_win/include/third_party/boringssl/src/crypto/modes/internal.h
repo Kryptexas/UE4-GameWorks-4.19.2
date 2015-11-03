@@ -121,6 +121,9 @@ extern "C" {
 #endif
 #elif defined(_MSC_VER)
 #if _MSC_VER >= 1300
+#pragma warning(push, 3)
+#include <intrin.h>
+#pragma warning(pop)
 #pragma intrinsic(_byteswap_uint64, _byteswap_ulong)
 #define BSWAP8(x) _byteswap_uint64((uint64_t)(x))
 #define BSWAP4(x) _byteswap_ulong((uint32_t)(x))
@@ -168,11 +171,6 @@ struct gcm128_context {
   unsigned int mres, ares;
   block128_f block;
   void *key;
-};
-
-struct xts128_context {
-  void *key1, *key2;
-  block128_f block1, block2;
 };
 
 struct ccm128_context {

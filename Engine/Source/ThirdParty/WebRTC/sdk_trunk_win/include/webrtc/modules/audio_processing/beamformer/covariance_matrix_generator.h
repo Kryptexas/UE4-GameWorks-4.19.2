@@ -12,6 +12,7 @@
 #define WEBRTC_MODULES_AUDIO_PROCESSING_BEAMFORMER_COVARIANCE_MATRIX_GENERATOR_H_
 
 #include "webrtc/modules/audio_processing/beamformer/complex_matrix.h"
+#include "webrtc/modules/audio_processing/beamformer/array_util.h"
 
 namespace webrtc {
 
@@ -20,50 +21,31 @@ namespace webrtc {
 // |num_input_channels| x |num_input_channels|.
 class CovarianceMatrixGenerator {
  public:
-  // Generates the covariance matrix of the target. The boxcar implementation
-  // suppresses some high-frequency distortion caused by narrow high-frequency
-  // suppression bands turning on/off too quickly. WARNING: The target angle is
-  // assumed to be 0.
-  static void Boxcar(float wave_number,
-                     int num_input_channels,
-                     float mic_spacing,
-                     float half_width,
-                     ComplexMatrix<float>* mat);
-
   // A uniform covariance matrix with a gap at the target location. WARNING:
   // The target angle is assumed to be 0.
-  static void GappedUniformCovarianceMatrix(float wave_number,
-                                            float num_input_channels,
-                                            float mic_spacing,
-                                            float gap_half_width,
-                                            ComplexMatrix<float>* mat);
+  static void UniformCovarianceMatrix(float wave_number,
+                                      const std::vector<Point>& geometry,
+                                      ComplexMatrix<float>* mat);
 
   // The covariance matrix of a source at the given angle.
   static void AngledCovarianceMatrix(float sound_speed,
                                      float angle,
-                                     int frequency_bin,
-                                     int fft_size,
-                                     int num_freq_bins,
+                                     size_t frequency_bin,
+                                     size_t fft_size,
+                                     size_t num_freq_bins,
                                      int sample_rate,
-                                     int num_input_channels,
-                                     float mic_spacing,
+                                     const std::vector<Point>& geometry,
                                      ComplexMatrix<float>* mat);
-
-  // A base-case covariance matrix for when the frequency is 0 Hertz.
-  static void DCCovarianceMatrix(int num_input_channels,
-                                 float half_width,
-                                 ComplexMatrix<float>* mat);
 
   // Calculates phase shifts that, when applied to a multichannel signal and
   // added together, cause constructive interferernce for sources located at
   // the given angle.
-  static void PhaseAlignmentMasks(int frequency_bin,
-                                  int fft_size,
+  static void PhaseAlignmentMasks(size_t frequency_bin,
+                                  size_t fft_size,
                                   int sample_rate,
                                   float sound_speed,
-                                  float mic_spacing,
-                                  int num_input_channels,
-                                  float sin_angle,
+                                  const std::vector<Point>& geometry,
+                                  float angle,
                                   ComplexMatrix<float>* mat);
 };
 

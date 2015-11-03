@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "base/basictypes.h"
-#include "base/gtest_prod_util.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
 #include "net/base/host_port_pair.h"
@@ -52,13 +51,12 @@ class NET_EXPORT SpdySessionPool
       SSLConfigService* ssl_config_service,
       const base::WeakPtr<HttpServerProperties>& http_server_properties,
       TransportSecurityState* transport_security_state,
-      bool force_single_domain,
       bool enable_compression,
       bool enable_ping_based_connection_checking,
       NextProto default_protocol,
-      size_t stream_initial_recv_window_size,
+      size_t session_max_recv_window_size,
+      size_t stream_max_recv_window_size,
       size_t initial_max_concurrent_streams,
-      size_t max_concurrent_streams_limit,
       SpdySessionPool::TimeFunc time_func,
       const std::string& trusted_spdy_proxy);
   ~SpdySessionPool() override;
@@ -109,7 +107,7 @@ class NET_EXPORT SpdySessionPool
   // Close only the currently existing SpdySessions with |error|.
   // Let any new ones created while this method is running continue to
   // live.
-  void CloseCurrentSessions(net::Error error);
+  void CloseCurrentSessions(Error error);
 
   // Close only the currently existing SpdySessions that are idle.
   // Let any new ones created while this method is running continue to
@@ -120,9 +118,8 @@ class NET_EXPORT SpdySessionPool
   // closing the current ones.
   void CloseAllSessions();
 
-  // Creates a Value summary of the state of the spdy session pool. The caller
-  // responsible for deleting the returned value.
-  base::Value* SpdySessionPoolInfoToValue() const;
+  // Creates a Value summary of the state of the spdy session pool.
+  scoped_ptr<base::Value> SpdySessionPoolInfoToValue() const;
 
   base::WeakPtr<HttpServerProperties> http_server_properties() {
     return http_server_properties_;
@@ -158,10 +155,6 @@ class NET_EXPORT SpdySessionPool
 
   // Returns true iff |session| is in |available_sessions_|.
   bool IsSessionAvailable(const base::WeakPtr<SpdySession>& session) const;
-
-  // Returns a normalized version of the given key suitable for lookup
-  // into |available_sessions_|.
-  const SpdySessionKey& NormalizeListKey(const SpdySessionKey& key) const;
 
   // Map the given key to the given session. There must not already be
   // a mapping for |key|.
@@ -208,21 +201,18 @@ class NET_EXPORT SpdySessionPool
   // A map of IPEndPoint aliases for sessions.
   AliasMap aliases_;
 
-  static bool g_force_single_domain;
-
   const scoped_refptr<SSLConfigService> ssl_config_service_;
   HostResolver* const resolver_;
 
   // Defaults to true. May be controlled via SpdySessionPoolPeer for tests.
   bool verify_domain_authentication_;
   bool enable_sending_initial_data_;
-  bool force_single_domain_;
   bool enable_compression_;
   bool enable_ping_based_connection_checking_;
   const NextProto default_protocol_;
-  size_t stream_initial_recv_window_size_;
+  size_t session_max_recv_window_size_;
+  size_t stream_max_recv_window_size_;
   size_t initial_max_concurrent_streams_;
-  size_t max_concurrent_streams_limit_;
   TimeFunc time_func_;
 
   // This SPDY proxy is allowed to push resources from origins that are

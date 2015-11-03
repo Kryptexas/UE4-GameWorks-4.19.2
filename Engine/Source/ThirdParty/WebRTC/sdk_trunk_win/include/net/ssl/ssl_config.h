@@ -5,7 +5,8 @@
 #ifndef NET_SSL_SSL_CONFIG_H_
 #define NET_SSL_SSL_CONFIG_H_
 
-#include "base/basictypes.h"
+#include <stdint.h>
+
 #include "base/memory/ref_counted.h"
 #include "net/base/net_export.h"
 #include "net/cert/x509_certificate.h"
@@ -21,25 +22,23 @@ namespace net {
 // The most significant byte is |major|, and the least significant byte
 // is |minor|.
 enum {
-  SSL_PROTOCOL_VERSION_SSL3 = 0x0300,
   SSL_PROTOCOL_VERSION_TLS1 = 0x0301,
   SSL_PROTOCOL_VERSION_TLS1_1 = 0x0302,
   SSL_PROTOCOL_VERSION_TLS1_2 = 0x0303,
 };
 
 // Default minimum protocol version.
-NET_EXPORT extern const uint16 kDefaultSSLVersionMin;
+NET_EXPORT extern const uint16_t kDefaultSSLVersionMin;
 
-// For maximum supported protocol version, use
-// SSLClientSocket::GetMaxSupportedSSLVersion().
+// Default maximum protocol version.
+NET_EXPORT extern const uint16_t kDefaultSSLVersionMax;
 
 // Default minimum protocol version that it's acceptable to fallback to.
-NET_EXPORT extern const uint16 kDefaultSSLVersionFallbackMin;
+NET_EXPORT extern const uint16_t kDefaultSSLVersionFallbackMin;
 
 // A collection of SSL-related configuration settings.
 struct NET_EXPORT SSLConfig {
   // Default to revocation checking.
-  // Default to SSL 3.0 ~ default_version_max() on.
   SSLConfig();
   ~SSLConfig();
 
@@ -52,6 +51,11 @@ struct NET_EXPORT SSLConfig {
   // of X509Certificate.
   bool IsAllowedBadCert(const base::StringPiece& der_cert,
                         CertStatus* cert_status) const;
+
+  // Returns the set of flags to use for certificate verification, which is a
+  // bitwise OR of CertVerifier::VerifyFlags that represent this SSLConfig's
+  // configuration.
+  int GetCertVerifyFlags() const;
 
   // rev_checking_enabled is true if online certificate revocation checking is
   // enabled (i.e. OCSP and CRL fetching).
@@ -70,10 +74,9 @@ struct NET_EXPORT SSLConfig {
   bool rev_checking_required_local_anchors;
 
   // The minimum and maximum protocol versions that are enabled.
-  // SSL 3.0 is 0x0300, TLS 1.0 is 0x0301, TLS 1.1 is 0x0302, and so on.
   // (Use the SSL_PROTOCOL_VERSION_xxx enumerators defined above.)
-  // SSL 2.0 is not supported. If version_max < version_min, it means no
-  // protocol versions are enabled.
+  // SSL 2.0 and SSL 3.0 are not supported. If version_max < version_min, it
+  // means no protocol versions are enabled.
   uint16 version_min;
   uint16 version_max;
 
@@ -106,16 +109,17 @@ struct NET_EXPORT SSLConfig {
   // disable TLS_ECDH_ECDSA_WITH_RC4_128_SHA, specify 0xC002.
   std::vector<uint16> disabled_cipher_suites;
 
+  // Enables deprecated cipher suites. Currently, RC4 is deprecated.
+  bool enable_deprecated_cipher_suites;
+
   bool channel_id_enabled;   // True if TLS channel ID extension is enabled.
   bool false_start_enabled;  // True if we'll use TLS False Start.
   // True if the Certificate Transparency signed_certificate_timestamp
   // TLS extension is enabled.
   bool signed_cert_timestamps_enabled;
 
-  // require_forward_secrecy, if true, causes only (EC)DHE cipher suites to be
-  // enabled. NOTE: this only applies to server sockets currently, although
-  // that could be extended if needed.
-  bool require_forward_secrecy;
+  // If true, causes only ECDHE cipher suites to be enabled.
+  bool require_ecdhe;
 
   // TODO(wtc): move the following members to a new SSLParams structure.  They
   // are not SSL configuration settings.
@@ -150,13 +154,27 @@ struct NET_EXPORT SSLConfig {
   // NOTE: Only used by NSS.
   bool cert_io_enabled;
 
-  // The list of application level protocols supported. If set, this will
-  // enable Next Protocol Negotiation (if supported). The order of the
-  // protocols doesn't matter expect for one case: if the server supports Next
-  // Protocol Negotiation, but there is no overlap between the server's and
-  // client's protocol sets, then the first protocol in this list will be
-  // requested by the client.
-  NextProtoVector next_protos;
+  // The list of application level protocols supported with ALPN (Application
+  // Layer Protocol Negotation), in decreasing order of preference.  Protocols
+  // will be advertised in this order during TLS handshake.
+  NextProtoVector alpn_protos;
+
+  // The list of application level protocols supported with NPN (Next Protocol
+  // Negotiation).  The last item on the list is selected if there is no overlap
+  // between |npn_protos| and the protocols supported by the server, otherwise
+  // server preference is observed and the order of |npn_protos| is irrelevant.
+  // Note that due to NSS limitations, ports which use NSS will use
+  // |alpn_protos| for both ALPN and NPN. However, if |npn_protos| is empty, NPN
+  // will still be disabled.
+  // TODO(bnc): Deprecate NPN, see https://crbug.com/526713.
+  NextProtoVector npn_protos;
+
+  // True if renegotiation should be allowed for the default application-level
+  // protocol when the peer negotiates neither ALPN nor NPN.
+  bool renego_allowed_default;
+
+  // The list of application-level protocols to enable renegotiation for.
+  NextProtoVector renego_allowed_for_protos;
 
   scoped_refptr<X509Certificate> client_cert;
 };

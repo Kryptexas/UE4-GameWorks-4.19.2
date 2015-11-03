@@ -34,11 +34,6 @@ public:
 
     virtual ~ModuleVideoRenderImpl();
 
-    /*
-     *   Change the unique identifier of this object
-     */
-    virtual int32_t ChangeUniqueId(const int32_t id);
-
     virtual int64_t TimeUntilNextProcess();
     virtual int32_t Process();
 
@@ -113,9 +108,6 @@ public:
     virtual int32_t
             RegisterRawFrameCallback(const uint32_t streamId,
                                      VideoRenderCallback* callbackObj);
-
-    virtual int32_t GetLastRenderedFrame(const uint32_t streamId,
-                                         I420VideoFrame &frame) const;
 
     virtual int32_t SetExpectedRenderDelay(uint32_t stream_id,
                                            int32_t delay_ms);
@@ -201,16 +193,11 @@ public:
                             const float right, const float bottom);
 
     virtual int32_t SetStartImage(const uint32_t streamId,
-                                  const I420VideoFrame& videoFrame);
+                                  const VideoFrame& videoFrame);
 
     virtual int32_t SetTimeoutImage(const uint32_t streamId,
-                                    const I420VideoFrame& videoFrame,
+                                    const VideoFrame& videoFrame,
                                     const uint32_t timeout);
-
-    virtual int32_t MirrorRenderStream(const int renderId,
-                                       const bool enable,
-                                       const bool mirrorXAxis,
-                                       const bool mirrorYAxis);
 
 private:
     int32_t _id;

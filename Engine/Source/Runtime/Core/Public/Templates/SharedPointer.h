@@ -489,7 +489,7 @@ class TSharedPtr
 
 	// TSharedPtr of one mode to a type which has a TSharedFromThis only of another mode is illegal.
 	// A type which does not inherit TSharedFromThis at all is ok.
-	static_assert(ObjectTypeHasSameModeSharedFromThis || !ObjectTypeHasOppositeModeSharedFromThis, "You cannot use a TSharedPtr of one mode with a type which inherits TSharedFromThis of another mode.");
+	static_assert( TSharedPtr::ObjectTypeHasSameModeSharedFromThis || !TSharedPtr::ObjectTypeHasOppositeModeSharedFromThis, "You cannot use a TSharedPtr of one mode with a type which inherits TSharedFromThis of another mode.");
 
 public:
 

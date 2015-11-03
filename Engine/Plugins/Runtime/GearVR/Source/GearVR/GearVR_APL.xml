@@ -60,7 +60,7 @@
 		</if>
 		
 		<!-- entitlements check if package GearVR for distribution and removing OSIGs -->
-		<setBoolAnd result="bEntitlementCheck" arg1="$B(bRemoveOSIG)" argb2="$B(bGearDistribution)"/>
+		<setBoolAnd result="bEntitlementCheck" arg1="$B(bRemoveOSIG)" arg2="$B(bGearDistribution)"/>
 	</init>
 
 	<!-- optional updates applied to AndroidManifest.xml -->

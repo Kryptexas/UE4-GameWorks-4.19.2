@@ -21,8 +21,8 @@
 // as well as providing a per-fd-registered summary of
 // events. Note that enabling this code vastly slows
 // down operations, and uses substantially more
-// memory. For these reasons, it should only be enabled when doing
-// developer debugging at his/her workstation.
+// memory. For these reasons, it should only be enabled by developers doing
+// development at their workstations.
 //
 // A structure called 'EventRecorder' will exist when
 // the macro is defined. See the EventRecorder class interface
@@ -487,11 +487,6 @@ class EpollServer {
   void CallReadyListCallbacks();
 
  protected:
-  virtual int GetFlags(int fd);
-  inline int SetFlags(int fd, int flags) {
-    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-  }
-
   virtual void SetNonblocking(int fd);
 
   // This exists here so that we can override this function in unittests

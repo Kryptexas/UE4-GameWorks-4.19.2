@@ -63,6 +63,9 @@ struct NET_EXPORT_PRIVATE DnsSystemSettings {
     RegDword level;
   };
 
+  DnsSystemSettings();
+  ~DnsSystemSettings();
+
   // Filled in by GetAdapterAddresses. Note that the alternative
   // GetNetworkParams does not include IPv6 addresses.
   scoped_ptr<IP_ADAPTER_ADDRESSES, base::FreeDeleter> addresses;
@@ -117,7 +120,7 @@ ConfigParseWinResult NET_EXPORT_PRIVATE ConvertSettingsToDnsConfig(
 class NET_EXPORT_PRIVATE DnsConfigServiceWin : public DnsConfigService {
  public:
   DnsConfigServiceWin();
-  virtual ~DnsConfigServiceWin();
+  ~DnsConfigServiceWin() override;
 
  private:
   class Watcher;
@@ -125,8 +128,8 @@ class NET_EXPORT_PRIVATE DnsConfigServiceWin : public DnsConfigService {
   class HostsReader;
 
   // DnsConfigService:
-  virtual void ReadNow() override;
-  virtual bool StartWatching() override;
+  void ReadNow() override;
+  bool StartWatching() override;
 
   void OnConfigChanged(bool succeeded);
   void OnHostsChanged(bool succeeded);

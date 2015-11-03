@@ -79,9 +79,18 @@ void FVisualStudioSourceCodeAccessor::Startup()
 	// Cache this so we don't have to do it on a background thread
 	GetSolutionPath();
 
-	// Preferential order of VS versions
+	RefreshAvailability();
+}
+
+void FVisualStudioSourceCodeAccessor::RefreshAvailability()
+{
+	Locations.Reset();
+
+#if _MSC_VER >= 1900
 	AddVisualStudioVersion(14); // Visual Studio 2015
+#else
 	AddVisualStudioVersion(12); // Visual Studio 2013
+#endif
 }
 
 void FVisualStudioSourceCodeAccessor::Shutdown()

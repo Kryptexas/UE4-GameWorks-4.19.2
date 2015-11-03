@@ -10,7 +10,7 @@
 #include "base/memory/scoped_ptr.h"
 #include "net/base/ip_endpoint.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
+#include "net/log/net_log.h"
 #include "net/socket/server_socket.h"
 #include "net/socket/tcp_socket.h"
 
@@ -26,6 +26,11 @@ class NET_EXPORT_PRIVATE TCPServerSocket : public ServerSocket {
   int GetLocalAddress(IPEndPoint* address) const override;
   int Accept(scoped_ptr<StreamSocket>* socket,
              const CompletionCallback& callback) override;
+
+  // Detachs from the current thread, to allow the socket to be transferred to
+  // a new thread. Should only be called when the object is no longer used by
+  // the old thread.
+  void DetachFromThread();
 
  private:
   // Converts |accepted_socket_| and stores the result in

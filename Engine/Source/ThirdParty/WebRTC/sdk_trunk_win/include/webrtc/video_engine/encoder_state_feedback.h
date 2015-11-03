@@ -15,9 +15,10 @@
 #define WEBRTC_VIDEO_ENGINE_ENCODER_STATE_FEEDBACK_H_
 
 #include <map>
+#include <vector>
 
 #include "webrtc/base/constructormagic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -34,8 +35,8 @@ class EncoderStateFeedback {
   EncoderStateFeedback();
   ~EncoderStateFeedback();
 
-  // Adds an encoder to receive feedback for a unique ssrc.
-  bool AddEncoder(uint32_t ssrc, ViEEncoder* encoder);
+  // Adds an encoder to receive feedback for a set of SSRCs.
+  void AddEncoder(const std::vector<uint32_t>& ssrc, ViEEncoder* encoder);
 
   // Removes a registered ViEEncoder.
   void RemoveEncoder(const ViEEncoder* encoder);
@@ -54,15 +55,15 @@ class EncoderStateFeedback {
  private:
   typedef std::map<uint32_t,  ViEEncoder*> SsrcEncoderMap;
 
-  scoped_ptr<CriticalSectionWrapper> crit_;
+  rtc::scoped_ptr<CriticalSectionWrapper> crit_;
 
   // Instance registered at the class requesting new key frames.
-  scoped_ptr<EncoderStateFeedbackObserver> observer_;
+  rtc::scoped_ptr<EncoderStateFeedbackObserver> observer_;
 
   // Maps a unique ssrc to the given encoder.
   SsrcEncoderMap encoders_;
 
-  DISALLOW_COPY_AND_ASSIGN(EncoderStateFeedback);
+  RTC_DISALLOW_COPY_AND_ASSIGN(EncoderStateFeedback);
 };
 
 }  // namespace webrtc

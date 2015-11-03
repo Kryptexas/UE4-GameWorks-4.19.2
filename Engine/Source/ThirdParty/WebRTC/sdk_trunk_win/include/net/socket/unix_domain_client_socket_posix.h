@@ -5,6 +5,8 @@
 #ifndef NET_SOCKET_UNIX_DOMAIN_CLIENT_SOCKET_POSIX_H_
 #define NET_SOCKET_UNIX_DOMAIN_CLIENT_SOCKET_POSIX_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "base/basictypes.h"
@@ -12,13 +14,13 @@
 #include "base/memory/scoped_ptr.h"
 #include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
+#include "net/log/net_log.h"
 #include "net/socket/socket_descriptor.h"
 #include "net/socket/stream_socket.h"
 
 namespace net {
 
-class SocketLibevent;
+class SocketPosix;
 struct SockaddrStorage;
 
 // A client socket that uses unix domain socket as the transport layer.
@@ -28,9 +30,9 @@ class NET_EXPORT UnixDomainClientSocket : public StreamSocket {
   // to connect to a server socket.
   UnixDomainClientSocket(const std::string& socket_path,
                          bool use_abstract_namespace);
-  // Builds a client socket with socket libevent which is already connected.
+  // Builds a client socket with SocketPosix which is already connected.
   // UnixDomainServerSocket uses this after it accepts a connection.
-  explicit UnixDomainClientSocket(scoped_ptr<SocketLibevent> socket);
+  explicit UnixDomainClientSocket(scoped_ptr<SocketPosix> socket);
 
   ~UnixDomainClientSocket() override;
 
@@ -55,6 +57,10 @@ class NET_EXPORT UnixDomainClientSocket : public StreamSocket {
   bool WasNpnNegotiated() const override;
   NextProto GetNegotiatedProtocol() const override;
   bool GetSSLInfo(SSLInfo* ssl_info) override;
+  void GetConnectionAttempts(ConnectionAttempts* out) const override;
+  void ClearConnectionAttempts() override {}
+  void AddConnectionAttempts(const ConnectionAttempts& attempts) override {}
+  int64_t GetTotalReceivedBytes() const override;
 
   // Socket implementation.
   int Read(IOBuffer* buf,
@@ -74,7 +80,7 @@ class NET_EXPORT UnixDomainClientSocket : public StreamSocket {
  private:
   const std::string socket_path_;
   const bool use_abstract_namespace_;
-  scoped_ptr<SocketLibevent> socket_;
+  scoped_ptr<SocketPosix> socket_;
   // This net log is just to comply StreamSocket::NetLog(). It throws away
   // everything.
   BoundNetLog net_log_;

@@ -10,6 +10,7 @@
 #ifndef WEBRTC_VIDEO_ENGINE_TEST_COMMON_VCM_CAPTURER_H_
 #define WEBRTC_VIDEO_ENGINE_TEST_COMMON_VCM_CAPTURER_H_
 
+#include "webrtc/base/criticalsection.h"
 #include "webrtc/common_types.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 #include "webrtc/modules/video_capture/include/video_capture.h"
@@ -20,24 +21,26 @@ namespace test {
 
 class VcmCapturer : public VideoCapturer, public VideoCaptureDataCallback {
  public:
-  static VcmCapturer* Create(VideoSendStreamInput* input, size_t width,
-                             size_t height, size_t target_fps);
+  static VcmCapturer* Create(VideoCaptureInput* input,
+                             size_t width,
+                             size_t height,
+                             size_t target_fps);
   virtual ~VcmCapturer();
 
-  virtual void Start() OVERRIDE;
-  virtual void Stop() OVERRIDE;
+  void Start() override;
+  void Stop() override;
 
-  virtual void OnIncomingCapturedFrame(
-      const int32_t id, I420VideoFrame& frame) OVERRIDE;  // NOLINT
-  virtual void OnCaptureDelayChanged(const int32_t id, const int32_t delay)
-      OVERRIDE;
+  void OnIncomingCapturedFrame(const int32_t id,
+                               const VideoFrame& frame) override;  // NOLINT
+  void OnCaptureDelayChanged(const int32_t id, const int32_t delay) override;
 
  private:
-  explicit VcmCapturer(VideoSendStreamInput* input);
+  explicit VcmCapturer(VideoCaptureInput* input);
   bool Init(size_t width, size_t height, size_t target_fps);
   void Destroy();
 
-  bool started_;
+  rtc::CriticalSection crit_;
+  bool started_ GUARDED_BY(crit_);
   VideoCaptureModule* vcm_;
   VideoCaptureCapability capability_;
 };

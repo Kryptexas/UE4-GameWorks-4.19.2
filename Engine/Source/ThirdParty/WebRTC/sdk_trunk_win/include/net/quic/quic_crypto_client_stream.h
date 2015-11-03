@@ -20,11 +20,19 @@ class QuicClientSessionBase;
 
 namespace test {
 class CryptoTestUtils;
-class QuicClientSessionPeer;
+class QuicChromiumClientSessionPeer;
 }  // namespace test
 
 class NET_EXPORT_PRIVATE QuicCryptoClientStream : public QuicCryptoStream {
  public:
+  // kMaxClientHellos is the maximum number of times that we'll send a client
+  // hello. The value 3 accounts for:
+  //   * One failure due to an incorrect or missing source-address token.
+  //   * One failure due the server's certificate chain being unavailible and
+  //     the server being unwilling to send it without a valid source-address
+  //     token.
+  static const int kMaxClientHellos = 3;
+
   QuicCryptoClientStream(const QuicServerId& server_id,
                          QuicClientSessionBase* session,
                          ProofVerifyContext* verify_context,
@@ -91,7 +99,7 @@ class NET_EXPORT_PRIVATE QuicCryptoClientStream : public QuicCryptoStream {
   };
 
   friend class test::CryptoTestUtils;
-  friend class test::QuicClientSessionPeer;
+  friend class test::QuicChromiumClientSessionPeer;
 
   enum State {
     STATE_IDLE,
@@ -208,6 +216,11 @@ class NET_EXPORT_PRIVATE QuicCryptoClientStream : public QuicCryptoStream {
   bool verify_ok_;
   std::string verify_error_details_;
   scoped_ptr<ProofVerifyDetails> verify_details_;
+
+  // True if the server responded to a previous CHLO with a stateless
+  // reject.  Used for book-keeping between the STATE_RECV_REJ,
+  // STATE_VERIFY_PROOF*, and subsequent STATE_SEND_CHLO state.
+  bool stateless_reject_received_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicCryptoClientStream);
 };

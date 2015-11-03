@@ -9,6 +9,11 @@ class FCodeLiteSourceCodeAccessor : public ISourceCodeAccessor
 public:
 
 	/**
+	 * TODO: NickD(?), implement.
+	 */
+	virtual void RefreshAvailability() override {}
+
+	/**
 	 * Can we access source code.
 	 */
 	virtual bool CanAccessSourceCode() const override;

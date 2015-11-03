@@ -404,7 +404,7 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 							[
 								// repository path text box
 								SNew(SEditableTextBox)
-								.ToolTipText(LOCTEXT("BasedOnReleaseVersionTextBoxTooltip", "Release version to base the next release / dlc / patch on."))
+								.ToolTipText(LOCTEXT("BasedOnReleaseVersionTextBoxTooltip", "Release version to base the next release / DLC / patch on."))
 								.Text(this, &SProjectLauncherCookByTheBookSettings::HandleBasedOnReleaseVersionNameTextBlockText)
 								.OnTextCommitted(this, &SProjectLauncherCookByTheBookSettings::HandleBasedOnReleaseVersionNameCommitted)
 							]
@@ -443,11 +443,11 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 							.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleBuildDLCCheckBoxIsChecked)
 							.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleBuildDLCCheckBoxCheckStateChanged)
 							.Padding(FMargin(4.0f, 0.0f))
-							.ToolTipText(LOCTEXT("BuildDLCCheckBoxTooltip", "If checked, dlc will be built without the content released with the original game."))
+							.ToolTipText(LOCTEXT("BuildDLCCheckBoxTooltip", "If checked, DLC will be built without the content released with the original game."))
 							.Content()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("BuildDLCCheckBoxText", "Build dlc"))
+								.Text(LOCTEXT("BuildDLCCheckBoxText", "Build DLC"))
 							]
 						]
 
@@ -457,7 +457,7 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 						.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 						[
 							SNew(SProjectLauncherFormLabel)
-							.LabelText(LOCTEXT("DLCNameTextBoxLabel", "Name of the dlc to build."))
+							.LabelText(LOCTEXT("DLCNameTextBoxLabel", "Name of the DLC to build."))
 						]
 
 					+ SVerticalBox::Slot()
@@ -487,7 +487,7 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 							.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxIsChecked)
 							.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxCheckStateChanged)
 							.Padding(FMargin(4.0f, 0.0f))
-							.ToolTipText(LOCTEXT("HandleDLCIncludeEngineContentCheckBoxTooltip", "If checked, dlc will include engine content which was not included in original release, if not checked will error when accessing content from engine directory."))
+							.ToolTipText(LOCTEXT("HandleDLCIncludeEngineContentCheckBoxTooltip", "If checked, DLC will include engine content which was not included in original release, if not checked will error when accessing content from engine directory."))
 							.Content()
 							[
 								SNew(STextBlock)

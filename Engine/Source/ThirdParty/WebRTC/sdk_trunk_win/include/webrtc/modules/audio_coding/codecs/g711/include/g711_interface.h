@@ -34,13 +34,13 @@ extern "C" {
  * Output:
  *      - encoded            : The encoded data vector
  *
- * Return value              : >0 - Length (in bytes) of coded data
- *                             -1 - Error
+ * Return value              : Length (in bytes) of coded data.
+ *                             Always equal to len input parameter.
  */
 
-int16_t WebRtcG711_EncodeA(int16_t* speechIn,
-                           int16_t len,
-                           int16_t* encoded);
+size_t WebRtcG711_EncodeA(const int16_t* speechIn,
+                          size_t len,
+                          uint8_t* encoded);
 
 /****************************************************************************
  * WebRtcG711_EncodeU(...)
@@ -55,13 +55,13 @@ int16_t WebRtcG711_EncodeA(int16_t* speechIn,
  * Output:
  *      - encoded            : The encoded data vector
  *
- * Return value              : >0 - Length (in bytes) of coded data
- *                             -1 - Error
+ * Return value              : Length (in bytes) of coded data.
+ *                             Always equal to len input parameter.
  */
 
-int16_t WebRtcG711_EncodeU(int16_t* speechIn,
-                           int16_t len,
-                           int16_t* encoded);
+size_t WebRtcG711_EncodeU(const int16_t* speechIn,
+                          size_t len,
+                          uint8_t* encoded);
 
 /****************************************************************************
  * WebRtcG711_DecodeA(...)
@@ -82,10 +82,10 @@ int16_t WebRtcG711_EncodeU(int16_t* speechIn,
  *                             -1 - Error
  */
 
-int16_t WebRtcG711_DecodeA(int16_t* encoded,
-                           int16_t len,
-                           int16_t* decoded,
-                           int16_t* speechType);
+size_t WebRtcG711_DecodeA(const uint8_t* encoded,
+                          size_t len,
+                          int16_t* decoded,
+                          int16_t* speechType);
 
 /****************************************************************************
  * WebRtcG711_DecodeU(...)
@@ -106,27 +106,10 @@ int16_t WebRtcG711_DecodeA(int16_t* encoded,
  *                             -1 - Error
  */
 
-int16_t WebRtcG711_DecodeU(int16_t* encoded,
-                           int16_t len,
-                           int16_t* decoded,
-                           int16_t* speechType);
-
-/****************************************************************************
- * WebRtcG711_DurationEst(...)
- *
- * This function estimates the duration of a G711 packet in samples.
- *
- * Input:
- *      - payload            : Encoded data
- *      - payloadLengthBytes : Bytes in encoded vector
- *
- * Return value              : The duration of the packet in samples, which is
- *                             just payload_length_bytes, since G.711 uses one
- *                             byte per sample.
- */
-
-int WebRtcG711_DurationEst(const uint8_t* payload,
-                           int payload_length_bytes);
+size_t WebRtcG711_DecodeU(const uint8_t* encoded,
+                          size_t len,
+                          int16_t* decoded,
+                          int16_t* speechType);
 
 /**********************************************************************
 * WebRtcG711_Version(...)

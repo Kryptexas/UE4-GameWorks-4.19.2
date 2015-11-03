@@ -9,13 +9,23 @@
 
 #include "base/gtest_prod_util.h"
 #include "base/native_library.h"
+#include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
 #include "net/http/http_auth.h"
 
-#if defined(OS_MACOSX) && defined(MAC_OS_X_VERSION_10_9) && \
+#if defined(OS_MACOSX)
+// The OSX 10.9+ SDKs mark the functions in Kereberos.framework as deprecated,
+// so the warnings must be manually suppressed.
+#if defined(MAC_OS_X_VERSION_10_9) && \
     MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9
-// Including gssapi.h directly is deprecated in the 10.9 SDK.
-#include <GSS/gssapi.h>
+#define GSSKRB_APPLE_DEPRECATED(x)
+#endif
+
+// Chrome supports OSX 10.6, which doesn't have access to GSS.framework. Chrome
+// always dlopens libgssapi_krb5.dylib, which is provided by
+// Kerberos.framework. On OSX 10.7+ this is an ABI compatible shim that loads
+// GSS.framework.
+#include <Kerberos/gssapi.h>
 #elif defined(OS_FREEBSD)
 #include <gssapi/gssapi.h>
 #else
@@ -237,19 +247,35 @@ class NET_EXPORT_PRIVATE HttpAuthGSSAPI {
       HttpAuthChallengeTokenizer* tok);
 
   // Generates an authentication token.
-  // The return value is an error code. If it's not |OK|, the value of
+  //
+  // The return value is an error code. The authentication token will be
+  // returned in |*auth_token|. If the result code is not |OK|, the value of
   // |*auth_token| is unspecified.
+  //
+  // If the operation cannot be completed synchronously, |ERR_IO_PENDING| will
+  // be returned and the real result code will be passed to the completion
+  // callback.  Otherwise the result code is returned immediately from this
+  // call.
+  //
+  // If the HttpAuthGSSAPI object is deleted before completion then the callback
+  // will not be called.
+  //
+  // If no immediate result is returned then |auth_token| must remain valid
+  // until the callback has been called.
+  //
   // |spn| is the Service Principal Name of the server that the token is
   // being generated for.
+  //
   // If this is the first round of a multiple round scheme, credentials are
   // obtained using |*credentials|. If |credentials| is NULL, the default
   // credentials are used instead.
   int GenerateAuthToken(const AuthCredentials* credentials,
                         const std::string& spn,
-                        std::string* auth_token);
+                        std::string* auth_token,
+                        const CompletionCallback& callback);
 
   // Delegation is allowed on the Kerberos ticket. This allows certain servers
-  // to act as the user, such as an IIS server retrieiving data from a
+  // to act as the user, such as an IIS server retrieving data from a
   // Kerberized MSSQL server.
   void Delegate();
 

@@ -16,7 +16,7 @@
 #include "net/base/address_family.h"
 #include "net/base/completion_callback.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
+#include "net/log/net_log.h"
 
 namespace net {
 
@@ -28,7 +28,7 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
                                 public base::win::ObjectWatcher::Delegate  {
  public:
   TCPSocketWin(NetLog* net_log, const NetLog::Source& source);
-  virtual ~TCPSocketWin();
+  ~TCPSocketWin() override;
 
   int Open(AddressFamily family);
 
@@ -73,6 +73,11 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   bool SetKeepAlive(bool enable, int delay);
   bool SetNoDelay(bool no_delay);
 
+  // Gets the estimated RTT. Returns false if the RTT is
+  // unavailable. May also return false when estimated RTT is 0.
+  bool GetEstimatedRoundTripTime(base::TimeDelta* out_rtt) const
+      WARN_UNUSED_RESULT;
+
   void Close();
 
   // Setter/Getter methods for TCP FastOpen socket option.
@@ -81,6 +86,11 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   void EnableTCPFastOpenIfSupported() {}
 
   bool IsValid() const { return socket_ != INVALID_SOCKET; }
+
+  // Detachs from the current thread, to allow the socket to be transferred to
+  // a new thread. Should only be called when the object is no longer used by
+  // the old thread.
+  void DetachFromThread();
 
   // Marks the start/end of a series of connect attempts for logging purpose.
   //
@@ -101,7 +111,7 @@ class NET_EXPORT TCPSocketWin : NON_EXPORTED_BASE(public base::NonThreadSafe),
   class Core;
 
   // base::ObjectWatcher::Delegate implementation.
-  virtual void OnObjectSignaled(HANDLE object) override;
+  void OnObjectSignaled(HANDLE object) override;
 
   int AcceptInternal(scoped_ptr<TCPSocketWin>* socket,
                      IPEndPoint* address);

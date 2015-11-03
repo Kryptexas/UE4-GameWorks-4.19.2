@@ -6,11 +6,11 @@
 #define NET_ANDROID_NETWORK_LIBRARY_H_
 
 #include <jni.h>
+#include <stdint.h>
 
 #include <string>
 #include <vector>
 
-#include "base/basictypes.h"
 #include "net/android/cert_verify_result_android.h"
 #include "net/base/mime_util.h"
 #include "net/base/net_export.h"
@@ -30,7 +30,7 @@ void VerifyX509CertChain(const std::vector<std::string>& cert_chain,
 
 // Adds a certificate as a root trust certificate to the trust manager.
 // |cert| is DER encoded certificate, |len| is its length in bytes.
-void AddTestRootCertificate(const uint8* cert, size_t len);
+void AddTestRootCertificate(const uint8_t* cert, size_t len);
 
 // Removes all root certificates added by |AddTestRootCertificate| calls.
 void ClearTestRootCertificates();
@@ -44,14 +44,14 @@ void ClearTestRootCertificates();
 // i2d_PKCS8_PRIV_KEY_INFO(EVP_PKEY2PKCS8(pkey)), which is a different
 // format than what i2d_PrivateKey() returns, so don't use it either.
 //
-bool StoreKeyPair(const uint8* public_key,
+bool StoreKeyPair(const uint8_t* public_key,
                   size_t public_len,
-                  const uint8* private_key,
+                  const uint8_t* private_key,
                   size_t private_len);
 
 // Helper used to pass the DER-encoded bytes of an X.509 certificate or
 // a PKCS#12 archive holding a private key to the CertInstaller activity.
-NET_EXPORT void StoreCertificate(net::CertificateMimeType cert_type,
+NET_EXPORT void StoreCertificate(CertificateMimeType cert_type,
                                  const void* data,
                                  size_t data_len);
 
@@ -72,6 +72,14 @@ NET_EXPORT std::string GetTelephonyNetworkCountryIso();
 // Returns MCC+MNC (mobile country code + mobile network code) as
 // the numeric name of the current registered operator.
 NET_EXPORT std::string GetTelephonyNetworkOperator();
+
+// Returns MCC+MNC (mobile country code + mobile network code) as
+// the numeric name of the current SIM operator.
+NET_EXPORT std::string GetTelephonySimOperator();
+
+// Returns true if the device is roaming on the currently active network. When
+// true, it suggests that use of data may incur extra costs.
+NET_EXPORT bool GetIsRoaming();
 
 // Register JNI methods
 NET_EXPORT bool RegisterNetworkLibrary(JNIEnv* env);

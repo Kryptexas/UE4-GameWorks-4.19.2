@@ -11,11 +11,21 @@
 #ifndef WEBRTC_MODULES_INTERFACE_VIDEO_CODING_H_
 #define WEBRTC_MODULES_INTERFACE_VIDEO_CODING_H_
 
-#include "webrtc/common_video/interface/i420_video_frame.h"
+#if defined(WEBRTC_WIN)
+// This is a workaround on Windows due to the fact that some Windows
+// headers define CreateEvent as a macro to either CreateEventW or CreateEventA.
+// This can cause problems since we use that name as well and could
+// declare them as one thing here whereas in another place a windows header
+// may have been included and then implementing CreateEvent() causes compilation
+// errors.  So for consistency, we include the main windows header here.
+#include <windows.h>
+#endif
+
 #include "webrtc/modules/interface/module.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/video_coding/main/interface/video_coding_defines.h"
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
+#include "webrtc/video_frame.h"
 
 namespace webrtc
 {
@@ -71,7 +81,10 @@ public:
         kReferenceSelection
     };
 
-    static VideoCodingModule* Create();
+    static VideoCodingModule* Create(
+        Clock* clock,
+        VideoEncoderRateObserver* encoder_rate_observer,
+        VCMQMSettingsCallback* qm_settings_callback);
 
     static VideoCodingModule* Create(Clock* clock, EventFactory* event_factory);
 
@@ -106,18 +119,10 @@ public:
     *   Sender
     */
 
-    // Any encoder-related state of VCM will be initialized to the
-    // same state as when the VCM was created. This will not interrupt
-    // or effect decoding functionality of VCM. VCM will lose all the
-    // encoding-related settings by calling this function.
-    // For instance, a send codec has to be registered again.
-    //
-    // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
-    virtual int32_t InitializeSender() = 0;
-
     // Registers a codec to be used for encoding. Calling this
     // API multiple times overwrites any previously registered codecs.
+    //
+    // NOTE: Must be called on the thread that constructed the VCM instance.
     //
     // Input:
     //      - sendCodec      : Settings for the codec to be registered.
@@ -127,24 +132,43 @@ public:
     //                                to have. Usually MTU - overhead.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterSendCodec(const VideoCodec* sendCodec,
                                             uint32_t numberOfCores,
                                             uint32_t maxPayloadSize) = 0;
 
+    // Get the current send codec in use.
+    //
+    // If a codec has not been set yet, the |id| property of the return value
+    // will be 0 and |name| empty.
+    //
+    // NOTE: This method intentionally does not hold locks and minimizes data
+    // copying.  It must be called on the thread where the VCM was constructed.
+    virtual const VideoCodec& GetSendCodec() const = 0;
+
+    // DEPRECATED: Use GetSendCodec() instead.
+    //
     // API to get the current send codec in use.
     //
     // Input:
     //      - currentSendCodec : Address where the sendCodec will be written.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
+    //
+    // NOTE: The returned codec information is not guaranteed to be current when
+    // the call returns.  This method acquires a lock that is aligned with
+    // video encoding, so it should be assumed to be allowed to block for
+    // several milliseconds.
     virtual int32_t SendCodec(VideoCodec* currentSendCodec) const = 0;
 
+    // DEPRECATED: Use GetSendCodec() instead.
+    //
     // API to get the current send codec type
     //
     // Return value      : Codec type, on success.
     //                     kVideoCodecUnknown, on error or if no send codec is set
+    // NOTE: Same notes apply as for SendCodec() above.
     virtual VideoCodecType SendCodec() const = 0;
 
     // Register an external encoder object. This can not be used together with
@@ -156,10 +180,10 @@ public:
     //      - payloadType     : The payload type bound which this encoder is bound to.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterExternalEncoder(VideoEncoder* externalEncoder,
-                                                  uint8_t payloadType,
-                                                  bool internalSource = false) = 0;
+                                            uint8_t payloadType,
+                                            bool internalSource = false) = 0;
 
     // API to get codec config parameters to be sent out-of-band to a receiver.
     //
@@ -208,7 +232,7 @@ public:
     //                                scenario
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t SetReceiveChannelParameters(int64_t rtt) = 0;
 
     // Register a transport callback which will be called to deliver the encoded data and
@@ -218,7 +242,7 @@ public:
     //      - transport  : The callback object to register.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterTransportCallback(VCMPacketizationCallback* transport) = 0;
 
     // Register video output information callback which will be called to deliver information
@@ -229,19 +253,9 @@ public:
     //      - outputInformation  : The callback object to register.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterSendStatisticsCallback(
                                      VCMSendStatisticsCallback* sendStats) = 0;
-
-    // Register a video quality settings callback which will be called when
-    // frame rate/dimensions need to be updated for video quality optimization
-    //
-    // Input:
-    //      - videoQMSettings  : The callback object to register.
-    //
-    // Return value      : VCM_OK, on success.
-    //                     < 0,         on error
-    virtual int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings) = 0;
 
     // Register a video protection callback which will be called to deliver
     // the requested FEC rate and NACK status (on/off).
@@ -250,7 +264,7 @@ public:
     //      - protection  : The callback object to register.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterProtectionCallback(VCMProtectionCallback* protection) = 0;
 
     // Enable or disable a video protection method.
@@ -261,7 +275,7 @@ public:
     //                           it should be disabled.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t SetVideoProtection(VCMVideoProtection videoProtection,
                                        bool enable) = 0;
 
@@ -275,16 +289,16 @@ public:
     //      - codecSpecificInfo : Extra codec information, e.g., pre-parsed in-band signaling.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t AddVideoFrame(
-        const I420VideoFrame& videoFrame,
+        const VideoFrame& videoFrame,
         const VideoContentMetrics* contentMetrics = NULL,
         const CodecSpecificInfo* codecSpecificInfo = NULL) = 0;
 
     // Next frame encoded should be an intra frame (keyframe).
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t IntraFrameRequest(int stream_index) = 0;
 
     // Frame Dropper enable. Can be used to disable the frame dropping when the encoder
@@ -296,26 +310,13 @@ public:
     //      - enable            : True to enable the setting, false to disable it.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t EnableFrameDropper(bool enable) = 0;
 
-    // Sent frame counters
-    virtual int32_t SentFrameCount(VCMFrameCount& frameCount) const = 0;
 
     /*
     *   Receiver
     */
-
-    // The receiver state of the VCM will be initialized to the
-    // same state as when the VCM was created. This will not interrupt
-    // or effect the send side functionality of VCM. VCM will lose all the
-    // decoding-related settings by calling this function. All frames
-    // inside the jitter buffer are flushed and the delay is reset.
-    // For instance, a receive codec has to be registered again.
-    //
-    // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
-    virtual int32_t InitializeReceiver() = 0;
 
     // Register possible receive codecs, can be called multiple times for different codecs.
     // The module will automatically switch between registered codecs depending on the
@@ -328,7 +329,7 @@ public:
     //                            to be decoded until the first key frame has been decoded.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterReceiveCodec(const VideoCodec* receiveCodec,
                                          int32_t numberOfCores,
                                          bool requireKeyFrame = false) = 0;
@@ -345,10 +346,10 @@ public:
     //                                 object can make sure to render at a given time in ms.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterExternalDecoder(VideoDecoder* externalDecoder,
-                                                  uint8_t payloadType,
-                                                  bool internalRenderTiming) = 0;
+                                            uint8_t payloadType,
+                                            bool internalRenderTiming) = 0;
 
     // Register a receive callback. Will be called whenever there is a new frame ready
     // for rendering.
@@ -359,7 +360,7 @@ public:
     //                                 De-register with a NULL pointer.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterReceiveCallback(VCMReceiveCallback* receiveCallback) = 0;
 
     // Register a receive statistics callback which will be called to deliver information
@@ -370,7 +371,7 @@ public:
     //      - receiveStats  : The callback object to register.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterReceiveStatisticsCallback(
                                VCMReceiveStatisticsCallback* receiveStats) = 0;
 
@@ -382,7 +383,7 @@ public:
     //      - decoderTiming  : The callback object to register.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterDecoderTimingCallback(
         VCMDecoderTimingCallback* decoderTiming) = 0;
 
@@ -395,7 +396,7 @@ public:
     //                                 De-register with a NULL pointer.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t RegisterFrameTypeCallback(
                                   VCMFrameTypeCallback* frameTypeCallback) = 0;
 
@@ -406,7 +407,7 @@ public:
     //              - callback      : The callback to be registered in the VCM.
     //
     // Return value     : VCM_OK,     on success.
-    //                    <0,              on error.
+    //                    <0,         on error.
     virtual int32_t RegisterPacketRequestCallback(
                                         VCMPacketRequestCallback* callback) = 0;
 
@@ -415,7 +416,7 @@ public:
     // Should be called as often as possible to get the most out of the decoder.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t Decode(uint16_t maxWaitTimeMs = 200) = 0;
 
     // Registers a callback which conveys the size of the render buffer.
@@ -425,7 +426,7 @@ public:
     // Reset the decoder state to the initial state.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t ResetDecoder() = 0;
 
     // API to get the codec which is currently used for decoding by the module.
@@ -434,7 +435,7 @@ public:
     //      - currentReceiveCodec      : Settings for the codec to be registered.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t ReceiveCodec(VideoCodec* currentReceiveCodec) const = 0;
 
     // API to get the codec type currently used for decoding by the module.
@@ -453,7 +454,7 @@ public:
     //      - rtpInfo              : The parsed header.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t IncomingPacket(const uint8_t* incomingPayload,
                                    size_t payloadLength,
                                    const WebRtcRTPHeader& rtpInfo) = 0;
@@ -466,7 +467,7 @@ public:
     //      - minPlayoutDelayMs   : Additional delay in ms.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t SetMinimumPlayoutDelay(uint32_t minPlayoutDelayMs) = 0;
 
     // Set the time required by the renderer to render a frame.
@@ -475,7 +476,7 @@ public:
     //      - timeMS        : The time in ms required by the renderer to render a frame.
     //
     // Return value      : VCM_OK, on success.
-    //                     < 0,         on error.
+    //                     < 0,    on error.
     virtual int32_t SetRenderDelay(uint32_t timeMS) = 0;
 
     // The total delay desired by the VCM. Can be less than the minimum
@@ -493,38 +494,6 @@ public:
 
 
     // Robustness APIs
-
-    // Set the sender RTX/NACK mode.
-    // Input:
-    //      - mode       : the selected NACK mode.
-    //
-    // Return value      : VCM_OK, on success;
-    //                     < 0, on error.
-    virtual int SetSenderNackMode(SenderNackMode mode) = 0;
-
-    // Set the sender reference picture selection (RPS) mode.
-    // Input:
-    //      - enable     : true or false, for enable and disable, respectively.
-    //
-    // Return value      : VCM_OK, on success;
-    //                     < 0, on error.
-    virtual int SetSenderReferenceSelection(bool enable) = 0;
-
-    // Set the sender forward error correction (FEC) mode.
-    // Input:
-    //      - enable     : true or false, for enable and disable, respectively.
-    //
-    // Return value      : VCM_OK, on success;
-    //                     < 0, on error.
-    virtual int SetSenderFEC(bool enable) = 0;
-
-    // Set the key frame period, or disable periodic key frames (I-frames).
-    // Input:
-    //      - periodMs   : period in ms; <= 0 to disable periodic key frames.
-    //
-    // Return value      : VCM_OK, on success;
-    //                     < 0, on error.
-    virtual int SetSenderKeyFramePeriod(int periodMs) = 0;
 
     // Set the receiver robustness mode. The mode decides how the receiver
     // responds to losses in the stream. The type of counter-measure (soft or
@@ -563,12 +532,6 @@ public:
     // delayed by at least desired_delay_ms.
     virtual int SetMinReceiverDelay(int desired_delay_ms) = 0;
 
-    // Enables recording of debugging information.
-    virtual int StartDebugRecording(const char* file_name_utf8) = 0;
-
-    // Disables recording of debugging information.
-    virtual int StopDebugRecording() = 0;
-
     // Lets the sender suspend video when the rate drops below
     // |threshold_bps|, and turns back on when the rate goes back up above
     // |threshold_bps| + |window_bps|.
@@ -582,6 +545,8 @@ public:
         EncodedImageCallback* observer) = 0;
     virtual void RegisterPostEncodeImageCallback(
         EncodedImageCallback* post_encode_callback) = 0;
+    // Releases pending decode calls, permitting faster thread shutdown.
+    virtual void TriggerDecoderShutdown() = 0;
 };
 
 }  // namespace webrtc

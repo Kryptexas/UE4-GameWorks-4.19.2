@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/rtp_rtcp/source/rtcp_utility.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/typedefs.h"
@@ -23,8 +24,8 @@
 namespace webrtc {
 namespace rtcp {
 
-enum { kCommonFbFmtLength = 12 };
-enum { kReportBlockLength = 24 };
+static const int kCommonFbFmtLength = 12;
+static const int kReportBlockLength = 24;
 
 class Dlrr;
 class RawPacket;
@@ -64,24 +65,67 @@ class RtcpPacket {
 
   void Append(RtcpPacket* packet);
 
-  RawPacket Build() const;
+  // Callback used to signal that an RTCP packet is ready. Note that this may
+  // not contain all data in this RtcpPacket; if a packet cannot fit in
+  // max_length bytes, it will be fragmented and multiple calls to this
+  // callback will be made.
+  class PacketReadyCallback {
+   public:
+    PacketReadyCallback() {}
+    virtual ~PacketReadyCallback() {}
 
-  void Build(uint8_t* packet, size_t* length, size_t max_length) const;
+    virtual void OnPacketReady(uint8_t* data, size_t length) = 0;
+  };
+
+  // Convenience method mostly used for test. Max length of IP_PACKET_SIZE is
+  // used, will cause assertion error if fragmentation occurs.
+  rtc::scoped_ptr<RawPacket> Build() const;
+
+  // Returns true if all calls to Create succeeded. A buffer of size
+  // IP_PACKET_SIZE will be allocated and reused between calls to callback.
+  bool Build(PacketReadyCallback* callback) const;
+
+  // Returns true if all calls to Create succeeded. Provided buffer reference
+  // will be used for all calls to callback.
+  bool BuildExternalBuffer(uint8_t* buffer,
+                           size_t max_length,
+                           PacketReadyCallback* callback) const;
+
+  // Size of this packet in bytes (including headers, excluding nested packets).
+  virtual size_t BlockLength() const = 0;
 
  protected:
-  RtcpPacket() : kHeaderLength(4) {}
+  RtcpPacket() {}
 
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const = 0;
+  virtual bool Create(uint8_t* packet,
+                      size_t* index,
+                      size_t max_length,
+                      PacketReadyCallback* callback) const = 0;
 
-  const size_t kHeaderLength;
+  static void CreateHeader(uint8_t count_or_format,
+                           uint8_t packet_type,
+                           size_t block_length,  // Size in 32bit words - 1.
+                           uint8_t* buffer,
+                           size_t* pos);
+
+  bool OnBufferFull(uint8_t* packet,
+                    size_t* index,
+                    RtcpPacket::PacketReadyCallback* callback) const;
+
+  size_t HeaderLength() const;
+
+  static const size_t kHeaderLength = 4;
 
  private:
-  void CreateAndAddAppended(
-      uint8_t* packet, size_t* length, size_t max_length) const;
+  bool CreateAndAddAppended(uint8_t* packet,
+                            size_t* index,
+                            size_t max_length,
+                            PacketReadyCallback* callback) const;
 
   std::vector<RtcpPacket*> appended_packets_;
 };
+
+// TODO(sprang): Move RtcpPacket subclasses out to separate files.
 
 class Empty : public RtcpPacket {
  public:
@@ -90,11 +134,15 @@ class Empty : public RtcpPacket {
   virtual ~Empty() {}
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
+
+  size_t BlockLength() const override;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Empty);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Empty);
 };
 
 // From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
@@ -201,14 +249,16 @@ class SenderReport : public RtcpPacket {
   void WithOctetCount(uint32_t octet_count) {
     sr_.SenderOctetCount = octet_count;
   }
-  void WithReportBlock(ReportBlock* block);
+  bool WithReportBlock(const ReportBlock& block);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfReportBlocks = 0x1f };
+  static const int kMaxNumberOfReportBlocks = 0x1f;
 
   size_t BlockLength() const {
     const size_t kSrHeaderLength = 8;
@@ -220,7 +270,7 @@ class SenderReport : public RtcpPacket {
   RTCPUtility::RTCPPacketSR sr_;
   std::vector<RTCPUtility::RTCPPacketReportBlockItem> report_blocks_;
 
-  DISALLOW_COPY_AND_ASSIGN(SenderReport);
+  RTC_DISALLOW_COPY_AND_ASSIGN(SenderReport);
 };
 
 //
@@ -247,14 +297,16 @@ class ReceiverReport : public RtcpPacket {
   void From(uint32_t ssrc) {
     rr_.SenderSSRC = ssrc;
   }
-  void WithReportBlock(ReportBlock* block);
+  bool WithReportBlock(const ReportBlock& block);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfReportBlocks = 0x1f };
+  static const int kMaxNumberOfReportBlocks = 0x1F;
 
   size_t BlockLength() const {
     const size_t kRrHeaderLength = 8;
@@ -264,7 +316,7 @@ class ReceiverReport : public RtcpPacket {
   RTCPUtility::RTCPPacketRR rr_;
   std::vector<RTCPUtility::RTCPPacketReportBlockItem> report_blocks_;
 
-  DISALLOW_COPY_AND_ASSIGN(ReceiverReport);
+  RTC_DISALLOW_COPY_AND_ASSIGN(ReceiverReport);
 };
 
 // Transmission Time Offsets in RTP Streams (RFC 5450).
@@ -292,14 +344,16 @@ class Ij : public RtcpPacket {
 
   virtual ~Ij() {}
 
-  void WithJitterItem(uint32_t jitter);
+  bool WithJitterItem(uint32_t jitter);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfIjItems = 0x1f };
+  static const int kMaxNumberOfIjItems = 0x1f;
 
   size_t BlockLength() const {
     return kHeaderLength + 4 * ij_items_.size();
@@ -307,7 +361,7 @@ class Ij : public RtcpPacket {
 
   std::vector<uint32_t> ij_items_;
 
-  DISALLOW_COPY_AND_ASSIGN(Ij);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Ij);
 };
 
 // Source Description (SDES) (RFC 3550).
@@ -342,7 +396,7 @@ class Sdes : public RtcpPacket {
 
   virtual ~Sdes() {}
 
-  void WithCName(uint32_t ssrc, std::string cname);
+  bool WithCName(uint32_t ssrc, const std::string& cname);
 
   struct Chunk {
     uint32_t ssrc;
@@ -351,17 +405,19 @@ class Sdes : public RtcpPacket {
   };
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfChunks = 0x1f };
+  static const int kMaxNumberOfChunks = 0x1f;
 
   size_t BlockLength() const;
 
   std::vector<Chunk> chunks_;
 
-  DISALLOW_COPY_AND_ASSIGN(Sdes);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Sdes);
 };
 
 //
@@ -389,14 +445,19 @@ class Bye : public RtcpPacket {
   void From(uint32_t ssrc) {
     bye_.SenderSSRC = ssrc;
   }
-  void WithCsrc(uint32_t csrc);
+
+  bool WithCsrc(uint32_t csrc);
+
+  // TODO(sprang): Add support for reason field?
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfCsrcs = 0x1f - 1 };
+  static const int kMaxNumberOfCsrcs = 0x1f - 1;  // First item is sender SSRC.
 
   size_t BlockLength() const {
     size_t source_count = 1 + csrcs_.size();
@@ -406,7 +467,7 @@ class Bye : public RtcpPacket {
   RTCPUtility::RTCPPacketBYE bye_;
   std::vector<uint32_t> csrcs_;
 
-  DISALLOW_COPY_AND_ASSIGN(Bye);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Bye);
 };
 
 // Application-Defined packet (APP) (RFC 3550).
@@ -452,8 +513,10 @@ class App : public RtcpPacket {
   }
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
   size_t BlockLength() const {
@@ -463,7 +526,7 @@ class App : public RtcpPacket {
   uint32_t ssrc_;
   RTCPUtility::RTCPPacketAPP app_;
 
-  DISALLOW_COPY_AND_ASSIGN(App);
+  RTC_DISALLOW_COPY_AND_ASSIGN(App);
 };
 
 // RFC 4585: Feedback format.
@@ -502,8 +565,10 @@ class Pli : public RtcpPacket {
   }
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
   size_t BlockLength() const {
@@ -512,7 +577,7 @@ class Pli : public RtcpPacket {
 
   RTCPUtility::RTCPPacketPSFBPLI pli_;
 
-  DISALLOW_COPY_AND_ASSIGN(Pli);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Pli);
 };
 
 // Slice loss indication (SLI) (RFC 4585).
@@ -553,8 +618,10 @@ class Sli : public RtcpPacket {
   }
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
   size_t BlockLength() const {
@@ -565,7 +632,7 @@ class Sli : public RtcpPacket {
   RTCPUtility::RTCPPacketPSFBSLI sli_;
   RTCPUtility::RTCPPacketPSFBSLIItem sli_item_;
 
-  DISALLOW_COPY_AND_ASSIGN(Sli);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Sli);
 };
 
 // Generic NACK (RFC 4585).
@@ -594,19 +661,19 @@ class Nack : public RtcpPacket {
   void WithList(const uint16_t* nack_list, int length);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
+
+  size_t BlockLength() const override;
 
  private:
-  size_t BlockLength() const {
-    size_t fci_length = 4 * nack_fields_.size();
-    return kCommonFbFmtLength + fci_length;
-  }
 
   RTCPUtility::RTCPPacketRTPFBNACK nack_;
   std::vector<RTCPUtility::RTCPPacketRTPFBNACKItem> nack_fields_;
 
-  DISALLOW_COPY_AND_ASSIGN(Nack);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Nack);
 };
 
 // Reference picture selection indication (RPSI) (RFC 4585).
@@ -644,8 +711,10 @@ class Rpsi : public RtcpPacket {
   void WithPictureId(uint64_t picture_id);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
   size_t BlockLength() const {
@@ -656,7 +725,7 @@ class Rpsi : public RtcpPacket {
   uint8_t padding_bytes_;
   RTCPUtility::RTCPPacketPSFBRPSI rpsi_;
 
-  DISALLOW_COPY_AND_ASSIGN(Rpsi);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Rpsi);
 };
 
 // Full intra request (FIR) (RFC 5104).
@@ -691,8 +760,10 @@ class Fir : public RtcpPacket {
   }
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
   size_t BlockLength() const {
@@ -740,8 +811,10 @@ class Tmmbr : public RtcpPacket {
   }
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
   size_t BlockLength() const {
@@ -752,7 +825,7 @@ class Tmmbr : public RtcpPacket {
   RTCPUtility::RTCPPacketRTPFBTMMBR tmmbr_;
   RTCPUtility::RTCPPacketRTPFBTMMBRItem tmmbr_item_;
 
-  DISALLOW_COPY_AND_ASSIGN(Tmmbr);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Tmmbr);
 };
 
 // Temporary Maximum Media Stream Bit Rate Notification (TMMBN) (RFC 5104).
@@ -778,14 +851,17 @@ class Tmmbn : public RtcpPacket {
   void From(uint32_t ssrc) {
     tmmbn_.SenderSSRC = ssrc;
   }
-  void WithTmmbr(uint32_t ssrc, uint32_t bitrate_kbps, uint16_t overhead);
+  // Max 50 TMMBR can be added per TMMBN.
+  bool WithTmmbr(uint32_t ssrc, uint32_t bitrate_kbps, uint16_t overhead);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfTmmbrs = 50 };
+  static const int kMaxNumberOfTmmbrs = 50;
 
   size_t BlockLength() const {
     const size_t kFciLen = 8;
@@ -795,7 +871,7 @@ class Tmmbn : public RtcpPacket {
   RTCPUtility::RTCPPacketRTPFBTMMBN tmmbn_;
   std::vector<RTCPUtility::RTCPPacketRTPFBTMMBRItem> tmmbn_items_;
 
-  DISALLOW_COPY_AND_ASSIGN(Tmmbn);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Tmmbn);
 };
 
 // Receiver Estimated Max Bitrate (REMB) (draft-alvestrand-rmcat-remb).
@@ -836,11 +912,13 @@ class Remb : public RtcpPacket {
   }
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfSsrcs = 0xff };
+  static const int kMaxNumberOfSsrcs = 0xff;
 
   size_t BlockLength() const {
     return (remb_item_.NumberOfSSRCs + 5) * 4;
@@ -849,7 +927,7 @@ class Remb : public RtcpPacket {
   RTCPUtility::RTCPPacketPSFBAPP remb_;
   RTCPUtility::RTCPPacketPSFBREMBItem remb_item_;
 
-  DISALLOW_COPY_AND_ASSIGN(Remb);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Remb);
 };
 
 // From RFC 3611: RTP Control Protocol Extended Reports (RTCP XR).
@@ -878,18 +956,22 @@ class Xr : public RtcpPacket {
   void From(uint32_t ssrc) {
     xr_header_.OriginatorSSRC = ssrc;
   }
-  void WithRrtr(Rrtr* rrtr);
-  void WithDlrr(Dlrr* dlrr);
-  void WithVoipMetric(VoipMetric* voip_metric);
+
+  // Max 50 items of each of {Rrtr, Dlrr, VoipMetric} allowed per Xr.
+  bool WithRrtr(Rrtr* rrtr);
+  bool WithDlrr(Dlrr* dlrr);
+  bool WithVoipMetric(VoipMetric* voip_metric);
 
  protected:
-  virtual void Create(
-      uint8_t* packet, size_t* length, size_t max_length) const OVERRIDE;
+  bool Create(uint8_t* packet,
+              size_t* index,
+              size_t max_length,
+              RtcpPacket::PacketReadyCallback* callback) const override;
 
  private:
-  enum { kMaxNumberOfRrtrBlocks = 50 };
-  enum { kMaxNumberOfDlrrBlocks = 50 };
-  enum { kMaxNumberOfVoipMetricBlocks = 50 };
+  static const int kMaxNumberOfRrtrBlocks = 50;
+  static const int kMaxNumberOfDlrrBlocks = 50;
+  static const int kMaxNumberOfVoipMetricBlocks = 50;
 
   size_t BlockLength() const {
     const size_t kXrHeaderLength = 8;
@@ -913,7 +995,7 @@ class Xr : public RtcpPacket {
   std::vector<DlrrBlock> dlrr_blocks_;
   std::vector<RTCPUtility::RTCPPacketXRVOIPMetricItem> voip_metric_blocks_;
 
-  DISALLOW_COPY_AND_ASSIGN(Xr);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Xr);
 };
 
 // Receiver Reference Time Report Block (RFC 3611).
@@ -946,7 +1028,7 @@ class Rrtr {
   friend class Xr;
   RTCPUtility::RTCPPacketXRReceiverReferenceTimeItem rrtr_block_;
 
-  DISALLOW_COPY_AND_ASSIGN(Rrtr);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Rrtr);
 };
 
 // DLRR Report Block (RFC 3611).
@@ -971,15 +1053,16 @@ class Dlrr {
   Dlrr() {}
   ~Dlrr() {}
 
-  void WithDlrrItem(uint32_t ssrc, uint32_t last_rr, uint32_t delay_last_rr);
+  // Max 100 DLRR Items can be added per DLRR report block.
+  bool WithDlrrItem(uint32_t ssrc, uint32_t last_rr, uint32_t delay_last_rr);
 
  private:
   friend class Xr;
-  enum { kMaxNumberOfDlrrItems = 100 };
+  static const int kMaxNumberOfDlrrItems = 100;
 
   std::vector<RTCPUtility::RTCPPacketXRDLRRReportBlockItem> dlrr_block_;
 
-  DISALLOW_COPY_AND_ASSIGN(Dlrr);
+  RTC_DISALLOW_COPY_AND_ASSIGN(Dlrr);
 };
 
 // VoIP Metrics Report Block (RFC 3611).
@@ -1049,7 +1132,7 @@ class VoipMetric {
   friend class Xr;
   RTCPUtility::RTCPPacketXRVOIPMetricItem metric_;
 
-  DISALLOW_COPY_AND_ASSIGN(VoipMetric);
+  RTC_DISALLOW_COPY_AND_ASSIGN(VoipMetric);
 };
 
 // Class holding a RTCP packet.
@@ -1058,27 +1141,24 @@ class VoipMetric {
 //  RawPacket raw_packet(buffer, length);
 //
 // To access the raw packet:
-//  raw_packet.buffer();         - pointer to the raw packet
-//  raw_packet.buffer_length();  - the length of the raw packet
+//  raw_packet.Buffer();         - pointer to the raw packet
+//  raw_packet.BufferLength();   - the length of the raw packet
 
 class RawPacket {
  public:
-  RawPacket(const uint8_t* packet, size_t length) {
-    assert(length <= IP_PACKET_SIZE);
-    memcpy(buffer_, packet, length);
-    buffer_length_ = length;
-  }
+  explicit RawPacket(size_t buffer_length);
+  RawPacket(const uint8_t* packet, size_t packet_length);
 
-  const uint8_t* buffer() {
-    return buffer_;
-  }
-  size_t buffer_length() const {
-    return buffer_length_;
-  }
+  const uint8_t* Buffer() const;
+  uint8_t* MutableBuffer();
+  size_t BufferLength() const;
+  size_t Length() const;
+  void SetLength(size_t length);
 
  private:
-  size_t buffer_length_;
-  uint8_t buffer_[IP_PACKET_SIZE];
+  const size_t buffer_length_;
+  size_t length_;
+  rtc::scoped_ptr<uint8_t[]> buffer_;
 };
 
 }  // namespace rtcp

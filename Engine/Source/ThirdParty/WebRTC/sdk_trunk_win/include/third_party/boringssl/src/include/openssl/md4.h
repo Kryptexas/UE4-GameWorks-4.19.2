@@ -1,4 +1,5 @@
-/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com) * All rights reserved.
+/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
+ * All rights reserved.
  *
  * This package is an SSL implementation written
  * by Eric Young (eay@cryptsoft.com).
@@ -71,7 +72,7 @@ extern "C" {
 /* MD4_DIGEST_LENGTH is the length of an MD4 digest. */
 #define MD4_DIGEST_LENGTH 16
 
-/* MD41_Init initialises |md4| and returns one. */
+/* MD4_Init initialises |md4| and returns one. */
 OPENSSL_EXPORT int MD4_Init(MD4_CTX *md4);
 
 /* MD4_Update adds |len| bytes from |data| to |md4| and returns one. */

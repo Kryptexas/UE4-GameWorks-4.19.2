@@ -11,9 +11,8 @@
 #ifndef WEBRTC_MODULES_VIDEO_RENDER_MAIN_INTERFACE_VIDEO_RENDER_DEFINES_H_
 #define WEBRTC_MODULES_VIDEO_RENDER_MAIN_INTERFACE_VIDEO_RENDER_DEFINES_H_
 
-// Includes
 #include "webrtc/common_types.h"
-#include "webrtc/common_video/interface/i420_video_frame.h"
+#include "webrtc/common_video/interface/incoming_video_stream.h"
 #include "webrtc/modules/interface/module_common_types.h"
 
 namespace webrtc
@@ -43,20 +42,6 @@ enum VideoRenderError
     kRenderPerformanceAlarm = 1
 };
 
-// The object a module user uses to send new frames to the renderer
-// One object is used for each incoming stream
-class VideoRenderCallback
-{
-public:
-    virtual int32_t RenderFrame(const uint32_t streamId,
-                                I420VideoFrame& videoFrame) = 0;
-
-protected:
-    virtual ~VideoRenderCallback()
-    {
-    }
-};
-
 // Feedback class to be implemented by module user
 class VideoRenderFeedback
 {
@@ -78,14 +63,6 @@ enum StretchMode
     kStretchMatchWidth = 3,
     kStretchMatchHeight = 4,
     kStretchNone = 5
-};
-
-enum Rotation
-{
-    kRotation0 = 0,
-    kRotation90 = 1,
-    kRotation180 = 2,
-    kRotation270 = 3
 };
 
 }  // namespace webrtc

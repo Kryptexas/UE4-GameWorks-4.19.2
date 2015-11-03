@@ -5,6 +5,8 @@
 #ifndef NET_SPDY_SPDY_STREAM_H_
 #define NET_SPDY_SPDY_STREAM_H_
 
+#include <stdint.h>
+
 #include <deque>
 #include <string>
 #include <vector>
@@ -14,11 +16,10 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/memory/scoped_vector.h"
 #include "base/memory/weak_ptr.h"
-#include "net/base/bandwidth_metrics.h"
 #include "net/base/io_buffer.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/request_priority.h"
+#include "net/log/net_log.h"
 #include "net/socket/ssl_client_socket.h"
 #include "net/spdy/spdy_buffer.h"
 #include "net/spdy/spdy_framer.h"
@@ -32,7 +33,6 @@ namespace net {
 class AddressList;
 class IPEndPoint;
 struct LoadTimingInfo;
-class SSLCertRequestInfo;
 class SSLInfo;
 class SpdySession;
 
@@ -56,10 +56,15 @@ enum SpdySendStatus {
 };
 
 // Returned by SpdyStream::OnResponseHeadersUpdated() to indicate
-// whether the current response headers are complete or not.
+// whether the current response headers are complete or not, or whether
+// trailers have been received. TRAILERS_RECEIVED denotes the state where
+// headers are received after DATA frames. TRAILERS_RECEIVED is only used for
+// SPDY_REQUEST_RESPONSE_STREAM, and this state also implies that the response
+// headers are complete.
 enum SpdyResponseHeadersStatus {
   RESPONSE_HEADERS_ARE_INCOMPLETE,
-  RESPONSE_HEADERS_ARE_COMPLETE
+  RESPONSE_HEADERS_ARE_COMPLETE,
+  TRAILERS_RECEIVED,
 };
 
 // The SpdyStream is used by the SpdySession to represent each stream known
@@ -121,8 +126,6 @@ class NET_EXPORT_PRIVATE SpdyStream {
     //     before any data is received; any deviation from this is
     //     treated as a protocol error.
     //
-    // TODO(akalin): Treat headers received after data has been
-    // received as a protocol error for non-bidirectional streams.
     // TODO(jgraettinger): This should be at the semantic (HTTP) rather
     // than stream layer. Streams shouldn't have a notion of header
     // completeness. Move to SpdyHttpStream/SpdyWebsocketStream.
@@ -140,6 +143,11 @@ class NET_EXPORT_PRIVATE SpdyStream {
     // Called when data is sent. Must not cause the stream to be
     // closed.
     virtual void OnDataSent() = 0;
+
+    // Called when trailers are received. Note that trailers HEADER frame will
+    // have END_STREAM flag set according to section 8.1 of the HTTP/2 RFC,
+    // so this will be followed by OnClose.
+    virtual void OnTrailers(const SpdyHeaderBlock& trailers) = 0;
 
     // Called when SpdyStream is closed. No other delegate functions
     // will be called after this is called, and the delegate must not
@@ -163,7 +171,7 @@ class NET_EXPORT_PRIVATE SpdyStream {
              const GURL& url,
              RequestPriority priority,
              int32 initial_send_window_size,
-             int32 initial_recv_window_size,
+             int32 max_recv_window_size,
              const BoundNetLog& net_log);
 
   ~SpdyStream();
@@ -262,10 +270,10 @@ class NET_EXPORT_PRIVATE SpdyStream {
   // If stream flow control is turned off, this must not be called.
   void IncreaseRecvWindowSize(int32 delta_window_size);
 
-  // Called by OnDataReceived (which is in turn called by the session)
-  // to decrease this stream's receive window size by
-  // |delta_window_size|, which must be at least 1 and must not cause
-  // this stream's receive window size to go negative.
+  // Called by OnDataReceived or OnPaddingConsumed (which are in turn called by
+  // the session) to decrease this stream's receive window size by
+  // |delta_window_size|, which must be at least 1.  May close the stream on
+  // flow control error.
   //
   // If stream flow control is turned off or the stream is not active,
   // this must not be called.
@@ -315,9 +323,14 @@ class NET_EXPORT_PRIVATE SpdyStream {
   //          the stream is being closed.
   void OnDataReceived(scoped_ptr<SpdyBuffer> buffer);
 
-  // Called by the SpdySession when a frame has been successfully and
-  // completely written. |frame_size| is the total size of the frame
-  // in bytes, including framing overhead.
+  // Called by the SpdySession when padding is consumed to allow for the stream
+  // receiving window to be updated.
+  void OnPaddingConsumed(size_t len);
+
+  // Called by the SpdySession when a frame has been successfully and completely
+  // written. |frame_size| is the total size of the logical frame in bytes,
+  // including framing overhead.  For fragmented headers, this is the total size
+  // of the HEADERS or PUSH_PROMISE frame and subsequent CONTINUATION frames.
   void OnFrameWriteComplete(SpdyFrameType frame_type, size_t frame_size);
 
   // SYN_STREAM-specific write handler invoked by OnFrameWriteComplete().
@@ -375,10 +388,6 @@ class NET_EXPORT_PRIVATE SpdyStream {
                   bool* was_npn_negotiated,
                   NextProto* protocol_negotiated);
 
-  // Fills SSL Certificate Request info |cert_request_info| and returns
-  // true when SSL is in use.
-  bool GetSSLCertRequestInfo(SSLCertRequestInfo* cert_request_info);
-
   // If the stream is stalled on sending data, but the session is not
   // stalled on sending data and |send_window_size_| is positive, then
   // set |send_stalled_by_flow_control_| to false and unstall the data
@@ -414,11 +423,11 @@ class NET_EXPORT_PRIVATE SpdyStream {
 
   int response_status() const { return response_status_; }
 
-  void IncrementRawReceivedBytes(size_t received_bytes) {
-    raw_received_bytes_ += received_bytes;
-  }
+  void AddRawReceivedBytes(size_t received_bytes);
+  void AddRawSentBytes(size_t sent_bytes);
 
   int64 raw_received_bytes() const { return raw_received_bytes_; }
+  int64_t raw_sent_bytes() const { return raw_sent_bytes_; }
 
   bool GetLoadTimingInfo(LoadTimingInfo* load_timing_info) const;
 
@@ -498,13 +507,25 @@ class NET_EXPORT_PRIVATE SpdyStream {
   const GURL url_;
   const RequestPriority priority_;
 
-  // Flow control variables.
   bool send_stalled_by_flow_control_;
-  int32 send_window_size_;
-  int32 recv_window_size_;
-  int32 unacked_recv_window_bytes_;
 
-  ScopedBandwidthMetrics metrics_;
+  // Current send window size.
+  int32 send_window_size_;
+
+  // Maximum receive window size.  Each time a WINDOW_UPDATE is sent, it
+  // restores the receive window size to this value.
+  int32 max_recv_window_size_;
+
+  // Sum of |session_unacked_recv_window_bytes_| and current receive window
+  // size.
+  // TODO(bnc): Rename or change semantics so that |window_size_| is actual
+  // window size.
+  int32 recv_window_size_;
+
+  // When bytes are consumed, SpdyIOBuffer destructor calls back to SpdySession,
+  // and this member keeps count of them until the corresponding WINDOW_UPDATEs
+  // are sent.
+  int32 unacked_recv_window_bytes_;
 
   const base::WeakPtr<SpdySession> session_;
 
@@ -551,6 +572,9 @@ class NET_EXPORT_PRIVATE SpdyStream {
   // Number of bytes that have been received on this stream, including frame
   // overhead and headers.
   int64 raw_received_bytes_;
+  // Number of bytes that have been sent on this stream, including frame
+  // overhead and headers.
+  int64_t raw_sent_bytes_;
 
   // Number of data bytes that have been sent/received on this stream, not
   // including frame overhead. Note that this does not count headers.

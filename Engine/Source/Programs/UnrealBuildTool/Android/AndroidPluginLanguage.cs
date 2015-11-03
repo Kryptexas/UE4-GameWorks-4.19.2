@@ -436,7 +436,7 @@ namespace UnrealBuildTool.Android
 			XDoc = XDocument.Parse("<root xmlns:android=\"http://schemas.android.com/apk/res/android\"></root>");
 			foreach (string Basename in XMLFiles)
 			{
-				string Filename = Path.Combine(PathPrefix, Basename);
+				string Filename = Path.Combine(PathPrefix, Basename.Replace("\\", "/"));
 				Log.TraceInformation("\nAPL: {0}", Filename);
 				if (File.Exists(Filename))
 				{
@@ -514,7 +514,7 @@ namespace UnrealBuildTool.Android
 			StringBuilder Text = new StringBuilder();
 			foreach (var Variable in Context.BoolVariables)
 			{
-				Text.AppendLine(string.Format("\tbool {0} = {1}", Variable.Key, Variable.Value));
+				Text.AppendLine(string.Format("\tbool {0} = {1}", Variable.Key, Variable.Value.ToString().ToLower()));
 			}
 			foreach (var Variable in Context.IntVariables)
 			{
@@ -582,7 +582,7 @@ namespace UnrealBuildTool.Android
 				}
 
 				// Replace the variable, or skip past it
-				Result = Result.Substring(0, Idx) + Value.ToString() + Result.Substring(EndIdx + 1);
+				Result = Result.Substring(0, Idx) + Value.ToString().ToLower() + Result.Substring(EndIdx + 1);
 			}
 			for (int Idx = Result.IndexOf("$I("); Idx != -1; Idx = Result.IndexOf("$I(", Idx))
 			{
@@ -677,7 +677,12 @@ namespace UnrealBuildTool.Android
 
 		private bool StringToBool(string Input)
 		{
-			return (Input == null) ? false : !(Input.Equals("0") || Input.Equals("false") || Input.Equals("off") || Input.Equals("no"));
+			if (Input == null)
+			{
+				return false;
+			}
+			Input = Input.ToLower();
+			return !(Input.Equals("0") || Input.Equals("false") || Input.Equals("off") || Input.Equals("no"));
 		}
 
 		private int StringToInt(string Input, XElement Node)
@@ -1106,6 +1111,10 @@ namespace UnrealBuildTool.Android
 								}
 								else
 								{
+									if (CurrentElement.Name.ToString().Equals(Tag))
+									{
+										AddAttribute(CurrentElement, Name, Value);
+									}
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
 									{
 										AddAttribute(WorkNode, Name, Value);
@@ -1139,6 +1148,10 @@ namespace UnrealBuildTool.Android
 								}
 								else
 								{
+									if (CurrentElement.Name.ToString().Equals(Tag))
+									{
+										RemoveAttribute(CurrentElement, Name);
+									}
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
 									{
 										RemoveAttribute(WorkNode, Name);
@@ -1304,6 +1317,10 @@ namespace UnrealBuildTool.Android
 								}
 								else
 								{
+									if (CurrentElement.Name.ToString().Equals(Tag))
+									{
+										CurrentElement.Add(new XElement(Element));
+									}
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
 									{
 										WorkNode.Add(new XElement(Element));
@@ -1336,6 +1353,10 @@ namespace UnrealBuildTool.Android
 								}
 								else
 								{
+									if (CurrentElement.Name.ToString().Equals(Tag))
+									{
+										AddElements(CurrentElement, Node);
+									}
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
 									{
 										AddElements(WorkNode, Node);

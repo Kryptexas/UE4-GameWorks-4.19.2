@@ -90,7 +90,7 @@ class StunRequest : public rtc::MessageHandler {
   const StunMessage* msg() const;
 
   // Time elapsed since last send (in ms)
-  uint32 Elapsed() const;
+  uint32_t Elapsed() const;
 
  protected:
   int count_;
@@ -105,7 +105,10 @@ class StunRequest : public rtc::MessageHandler {
   virtual void OnResponse(StunMessage* response) {}
   virtual void OnErrorResponse(StunMessage* response) {}
   virtual void OnTimeout() {}
-  virtual int GetNextDelay();
+  // Called when the message is sent.
+  virtual void OnSent();
+  // Returns the next delay for resends.
+  virtual int resend_delay();
 
  private:
   void set_manager(StunRequestManager* manager);
@@ -115,7 +118,7 @@ class StunRequest : public rtc::MessageHandler {
 
   StunRequestManager* manager_;
   StunMessage* msg_;
-  uint32 tstamp_;
+  uint32_t tstamp_;
 
   friend class StunRequestManager;
 };

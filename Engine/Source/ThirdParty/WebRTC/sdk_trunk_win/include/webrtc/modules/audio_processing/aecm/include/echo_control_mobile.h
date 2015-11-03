@@ -42,18 +42,9 @@ extern "C" {
 /*
  * Allocates the memory needed by the AECM. The memory needs to be
  * initialized separately using the WebRtcAecm_Init() function.
- *
- * Inputs                           Description
- * -------------------------------------------------------------------
- * void**  aecmInst                 Pointer to the AECM instance to be
- *                                  created and initialized
- *
- * Outputs                          Description
- * -------------------------------------------------------------------
- * int32_t return                   0: OK
- *                                 -1: error
+ * Returns a pointer to the instance and a nullptr at failure.
  */
-int32_t WebRtcAecm_Create(void **aecmInst);
+void* WebRtcAecm_Create();
 
 /*
  * This function releases the memory allocated by WebRtcAecm_Create()
@@ -61,13 +52,8 @@ int32_t WebRtcAecm_Create(void **aecmInst);
  * Inputs                       Description
  * -------------------------------------------------------------------
  * void*    aecmInst            Pointer to the AECM instance
- *
- * Outputs                      Description
- * -------------------------------------------------------------------
- * int32_t  return              0: OK
- *                             -1: error
  */
-int32_t WebRtcAecm_Free(void *aecmInst);
+void WebRtcAecm_Free(void* aecmInst);
 
 /*
  * Initializes an AECM instance.
@@ -101,7 +87,7 @@ int32_t WebRtcAecm_Init(void* aecmInst, int32_t sampFreq);
  */
 int32_t WebRtcAecm_BufferFarend(void* aecmInst,
                                 const int16_t* farend,
-                                int16_t nrOfSamples);
+                                size_t nrOfSamples);
 
 /*
  * Runs the AECM on an 80 or 160 sample blocks of data.
@@ -132,7 +118,7 @@ int32_t WebRtcAecm_Process(void* aecmInst,
                            const int16_t* nearendNoisy,
                            const int16_t* nearendClean,
                            int16_t* out,
-                           int16_t nrOfSamples,
+                           size_t nrOfSamples,
                            int16_t msInSndCardBuf);
 
 /*

@@ -9,6 +9,7 @@
 #include <keyt.h>
 #include <nspr.h>
 #include <nss.h>
+#include <stdint.h>
 
 #include <string>
 #include <vector>
@@ -20,18 +21,15 @@
 #include "net/base/completion_callback.h"
 #include "net/base/host_port_pair.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/nss_memio.h"
+#include "net/cert/cert_verifier.h"
 #include "net/cert/cert_verify_result.h"
 #include "net/cert/ct_verify_result.h"
 #include "net/cert/x509_certificate.h"
+#include "net/log/net_log.h"
 #include "net/socket/ssl_client_socket.h"
 #include "net/ssl/channel_id_service.h"
 #include "net/ssl/ssl_config_service.h"
-
-namespace base {
-class SequencedTaskRunner;
-}
 
 namespace net {
 
@@ -41,7 +39,6 @@ class CertVerifier;
 class ChannelIDService;
 class CTVerifier;
 class ClientSocketHandle;
-class SingleRequestCertVerifier;
 class TransportSecurityState;
 class X509Certificate;
 
@@ -54,25 +51,15 @@ class SSLClientSocketNSS : public SSLClientSocket {
   // authentication is requested, the host_and_port field of SSLCertRequestInfo
   // will be populated with |host_and_port|.  |ssl_config| specifies
   // the SSL settings.
-  //
-  // Because calls to NSS may block, such as due to needing to access slow
-  // hardware or needing to synchronously unlock protected tokens, calls to
-  // NSS may optionally be run on a dedicated thread. If synchronous/blocking
-  // behaviour is desired, for performance or compatibility, the current task
-  // runner should be supplied instead.
-  SSLClientSocketNSS(base::SequencedTaskRunner* nss_task_runner,
-                     scoped_ptr<ClientSocketHandle> transport_socket,
+  SSLClientSocketNSS(scoped_ptr<ClientSocketHandle> transport_socket,
                      const HostPortPair& host_and_port,
                      const SSLConfig& ssl_config,
                      const SSLClientSocketContext& context);
   ~SSLClientSocketNSS() override;
 
   // SSLClientSocket implementation.
-  std::string GetSessionCacheKey() const override;
-  bool InSessionCache() const override;
-  void SetHandshakeCompletionCallback(const base::Closure& callback) override;
   void GetSSLCertRequestInfo(SSLCertRequestInfo* cert_request_info) override;
-  NextProtoStatus GetNextProto(std::string* proto) override;
+  NextProtoStatus GetNextProto(std::string* proto) const override;
 
   // SSLSocket implementation.
   int ExportKeyingMaterial(const base::StringPiece& label,
@@ -95,6 +82,10 @@ class SSLClientSocketNSS : public SSLClientSocket {
   bool WasEverUsed() const override;
   bool UsingTCPFastOpen() const override;
   bool GetSSLInfo(SSLInfo* ssl_info) override;
+  void GetConnectionAttempts(ConnectionAttempts* out) const override;
+  void ClearConnectionAttempts() override {}
+  void AddConnectionAttempts(const ConnectionAttempts& attempts) override {}
+  int64_t GetTotalReceivedBytes() const override;
 
   // Socket implementation.
   int Read(IOBuffer* buf,
@@ -105,12 +96,10 @@ class SSLClientSocketNSS : public SSLClientSocket {
             const CompletionCallback& callback) override;
   int SetReceiveBufferSize(int32 size) override;
   int SetSendBufferSize(int32 size) override;
-  ChannelIDService* GetChannelIDService() const override;
 
- protected:
   // SSLClientSocket implementation.
-  scoped_refptr<X509Certificate> GetUnverifiedServerCertificateChain()
-      const override;
+  ChannelIDService* GetChannelIDService() const override;
+  SSLFailureState GetSSLFailureState() const override;
 
  private:
   // Helper class to handle marshalling any NSS interaction to and from the
@@ -157,8 +146,12 @@ class SSLClientSocketNSS : public SSLClientSocket {
   // the |ssl_info|.signed_certificate_timestamps list.
   void AddSCTInfoToSSLInfo(SSLInfo* ssl_info) const;
 
-  // The task runner used to perform NSS operations.
-  scoped_refptr<base::SequencedTaskRunner> nss_task_runner_;
+  // Move last protocol to first place: SSLConfig::next_protos has protocols in
+  // decreasing order of preference with NPN fallback protocol at the end, but
+  // NSS moves the first one to the last place before sending them in ALPN, and
+  // uses the first one as a fallback for NPN.
+  static void ReorderNextProtos(NextProtoVector* next_protos);
+
   scoped_ptr<ClientSocketHandle> transport_;
   HostPortPair host_and_port_;
   SSLConfig ssl_config_;
@@ -170,7 +163,7 @@ class SSLClientSocketNSS : public SSLClientSocket {
   CertVerifyResult server_cert_verify_result_;
 
   CertVerifier* const cert_verifier_;
-  scoped_ptr<SingleRequestCertVerifier> verifier_;
+  scoped_ptr<CertVerifier::Request> cert_verifier_request_;
 
   // Certificate Transparency: Verifier and result holder.
   ct::CTVerifyResult ct_verify_result_;
@@ -188,6 +181,9 @@ class SSLClientSocketNSS : public SSLClientSocket {
   bool completed_handshake_;
 
   State next_handshake_state_;
+
+  // True if the socket has been disconnected.
+  bool disconnected_;
 
   // The NSS SSL state machine. This is owned by |core_|.
   // TODO(rsleevi): http://crbug.com/130616 - Remove this member once

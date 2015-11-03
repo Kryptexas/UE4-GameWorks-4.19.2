@@ -6,6 +6,7 @@
 #define NET_HTTP_PARTIAL_DATA_H_
 
 #include "base/basictypes.h"
+#include "base/memory/weak_ptr.h"
 #include "net/base/completion_callback.h"
 #include "net/http/http_byte_range.h"
 #include "net/http/http_request_headers.h"
@@ -96,13 +97,17 @@ class PartialData {
   // cache that provides the right arguments for the current range. When the IO
   // operation completes, OnCacheReadCompleted() must be called with the result
   // of the operation.
-  int CacheRead(disk_cache::Entry* entry, IOBuffer* data, int data_len,
-                const net::CompletionCallback& callback);
+  int CacheRead(disk_cache::Entry* entry,
+                IOBuffer* data,
+                int data_len,
+                const CompletionCallback& callback);
 
   // Writes |data_len| bytes to cache. This is basically a wrapper around the
   // API of the cache that provides the right arguments for the current range.
-  int CacheWrite(disk_cache::Entry* entry, IOBuffer* data, int data_len,
-                 const net::CompletionCallback& callback);
+  int CacheWrite(disk_cache::Entry* entry,
+                 IOBuffer* data,
+                 int data_len,
+                 const CompletionCallback& callback);
 
   // This method should be called when CacheRead() finishes the read, to update
   // the internal state about the current range.
@@ -115,12 +120,11 @@ class PartialData {
   bool initial_validation() const { return initial_validation_; }
 
  private:
-  class Core;
   // Returns the length to use when scanning the cache.
   int GetNextRangeLen();
 
   // Completion routine for our callback.
-  void GetAvailableRangeCompleted(int result, int64 start);
+  void GetAvailableRangeCompleted(int64* start, int result);
 
   int64 current_range_start_;
   int64 current_range_end_;
@@ -135,8 +139,8 @@ class PartialData {
   bool sparse_entry_;
   bool truncated_;  // We have an incomplete 200 stored.
   bool initial_validation_;  // Only used for truncated entries.
-  Core* core_;
   CompletionCallback callback_;
+  base::WeakPtrFactory<PartialData> weak_factory_;
 
   DISALLOW_COPY_AND_ASSIGN(PartialData);
 };

@@ -27,13 +27,13 @@ class MockCertVerifier : public CertVerifier {
   // CertVerifier implementation
   int Verify(X509Certificate* cert,
              const std::string& hostname,
+             const std::string& ocsp_response,
              int flags,
              CRLSet* crl_set,
              CertVerifyResult* verify_result,
              const CompletionCallback& callback,
-             RequestHandle* out_req,
+             scoped_ptr<Request>* out_req,
              const BoundNetLog& net_log) override;
-  void CancelRequest(RequestHandle req) override;
 
   // Sets the default return value for Verify() for certificates/hosts that do
   // not have explicit results added via the AddResult*() methods.

@@ -5,6 +5,7 @@
 #ifndef NET_PROXY_PROXY_SERVICE_H_
 #define NET_PROXY_PROXY_SERVICE_H_
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -16,8 +17,8 @@
 #include "net/base/completion_callback.h"
 #include "net/base/load_states.h"
 #include "net/base/net_export.h"
-#include "net/base/net_log.h"
 #include "net/base/network_change_notifier.h"
+#include "net/log/net_log.h"
 #include "net/proxy/proxy_config_service.h"
 #include "net/proxy/proxy_info.h"
 #include "net/proxy/proxy_server.h"
@@ -35,6 +36,7 @@ class DhcpProxyScriptFetcher;
 class HostResolver;
 class NetworkDelegate;
 class ProxyResolver;
+class ProxyResolverFactory;
 class ProxyResolverScriptData;
 class ProxyScriptDecider;
 class ProxyScriptFetcher;
@@ -90,11 +92,10 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
                               base::TimeDelta* next_delay) const = 0;
   };
 
-  // The instance takes ownership of |config_service| and |resolver|.
   // |net_log| is a possibly NULL destination to send log events to. It must
   // remain alive for the lifetime of this ProxyService.
-  ProxyService(ProxyConfigService* config_service,
-               ProxyResolver* resolver,
+  ProxyService(scoped_ptr<ProxyConfigService> config_service,
+               scoped_ptr<ProxyResolverFactory> resolver_factory,
                NetLog* net_log);
 
   ~ProxyService() override;
@@ -125,7 +126,7 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
   int ResolveProxy(const GURL& url,
                    int load_flags,
                    ProxyInfo* results,
-                   const net::CompletionCallback& callback,
+                   const CompletionCallback& callback,
                    PacRequest** pac_request,
                    NetworkDelegate* network_delegate,
                    const BoundNetLog& net_log);
@@ -163,18 +164,19 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
 
   // Explicitly trigger proxy fallback for the given |results| by updating our
   // list of bad proxies to include the first entry of |results|, and,
-  // optionally, another bad proxy. Will retry after |retry_delay| if positive,
-  // and will use the default proxy retry duration otherwise. Proxies marked as
-  // bad will not be retried until |retry_delay| has passed. Returns true if
-  // there will be at least one proxy remaining in the list after fallback and
-  // false otherwise. This method should be used to add proxies to the bad
-  // proxy list only for reasons other than a network error. If a proxy needs
-  // to be added to the bad proxy list because a network error was encountered
-  // when trying to connect to it, use |ReconsiderProxyAfterError|.
-  bool MarkProxiesAsBadUntil(const ProxyInfo& results,
-                             base::TimeDelta retry_delay,
-                             const ProxyServer& another_bad_proxy,
-                             const BoundNetLog& net_log);
+  // additional bad proxies (can be none). Will retry after |retry_delay| if
+  // positive, and will use the default proxy retry duration otherwise. Proxies
+  // marked as bad will not be retried until |retry_delay| has passed. Returns
+  // true if there will be at least one proxy remaining in the list after
+  // fallback and false otherwise. This method should be used to add proxies to
+  // the bad proxy list only for reasons other than a network error. If a proxy
+  // needs to be added to the bad proxy list because a network error was
+  // encountered when trying to connect to it, use |ReconsiderProxyAfterError|.
+  bool MarkProxiesAsBadUntil(
+      const ProxyInfo& results,
+      base::TimeDelta retry_delay,
+      const std::vector<ProxyServer>& additional_bad_proxies,
+      const BoundNetLog& net_log);
 
   // Called to report that the last proxy connection succeeded.  If |proxy_info|
   // has a non empty proxy_retry_info map, the proxies that have been tried (and
@@ -191,18 +193,18 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
 
   // Sets the ProxyScriptFetcher and DhcpProxyScriptFetcher dependencies. This
   // is needed if the ProxyResolver is of type ProxyResolverWithoutFetch.
-  // ProxyService takes ownership of both objects.
+  // ProxyService takes ownership of proxy_script_fetcher.
   void SetProxyScriptFetchers(
       ProxyScriptFetcher* proxy_script_fetcher,
-      DhcpProxyScriptFetcher* dhcp_proxy_script_fetcher);
+      scoped_ptr<DhcpProxyScriptFetcher> dhcp_proxy_script_fetcher);
   ProxyScriptFetcher* GetProxyScriptFetcher() const;
 
   // Tells this ProxyService to start using a new ProxyConfigService to
   // retrieve its ProxyConfig from. The new ProxyConfigService will immediately
   // be queried for new config info which will be used for all subsequent
-  // ResolveProxy calls. ProxyService takes ownership of
-  // |new_proxy_config_service|.
-  void ResetConfigService(ProxyConfigService* new_proxy_config_service);
+  // ResolveProxy calls.
+  void ResetConfigService(
+      scoped_ptr<ProxyConfigService> new_proxy_config_service);
 
   // Returns the last configuration fetched from ProxyConfigService.
   const ProxyConfig& fetched_config() {
@@ -232,36 +234,37 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
   // Same as CreateProxyServiceUsingV8ProxyResolver, except it uses system
   // libraries for evaluating the PAC script if available, otherwise skips
   // proxy autoconfig.
-  static ProxyService* CreateUsingSystemProxyResolver(
-      ProxyConfigService* proxy_config_service,
+  static scoped_ptr<ProxyService> CreateUsingSystemProxyResolver(
+      scoped_ptr<ProxyConfigService> proxy_config_service,
       size_t num_pac_threads,
       NetLog* net_log);
 
   // Creates a ProxyService without support for proxy autoconfig.
-  static ProxyService* CreateWithoutProxyResolver(
-      ProxyConfigService* proxy_config_service,
+  static scoped_ptr<ProxyService> CreateWithoutProxyResolver(
+      scoped_ptr<ProxyConfigService> proxy_config_service,
       NetLog* net_log);
 
   // Convenience methods that creates a proxy service using the
   // specified fixed settings.
-  static ProxyService* CreateFixed(const ProxyConfig& pc);
-  static ProxyService* CreateFixed(const std::string& proxy);
+  static scoped_ptr<ProxyService> CreateFixed(const ProxyConfig& pc);
+  static scoped_ptr<ProxyService> CreateFixed(const std::string& proxy);
 
   // Creates a proxy service that uses a DIRECT connection for all requests.
-  static ProxyService* CreateDirect();
+  static scoped_ptr<ProxyService> CreateDirect();
   // |net_log|'s lifetime must exceed ProxyService.
-  static ProxyService* CreateDirectWithNetLog(NetLog* net_log);
+  static scoped_ptr<ProxyService> CreateDirectWithNetLog(NetLog* net_log);
 
   // This method is used by tests to create a ProxyService that returns a
   // hardcoded proxy fallback list (|pac_string|) for every URL.
   //
   // |pac_string| is a list of proxy servers, in the format that a PAC script
   // would return it. For example, "PROXY foobar:99; SOCKS fml:2; DIRECT"
-  static ProxyService* CreateFixedFromPacResult(const std::string& pac_string);
+  static scoped_ptr<ProxyService> CreateFixedFromPacResult(
+      const std::string& pac_string);
 
   // Creates a config service appropriate for this platform that fetches the
   // system proxy settings.
-  static ProxyConfigService* CreateSystemProxyConfigService(
+  static scoped_ptr<ProxyConfigService> CreateSystemProxyConfigService(
       const scoped_refptr<base::SingleThreadTaskRunner>& io_task_runner,
       const scoped_refptr<base::SingleThreadTaskRunner>& file_task_runner);
 
@@ -283,8 +286,6 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
     quick_check_enabled_ = value;
   }
 
-  bool quick_check_enabled() const { return quick_check_enabled_; }
-
  private:
   FRIEND_TEST_ALL_PREFIXES(ProxyServiceTest, UpdateConfigAfterFailedAutodetect);
   FRIEND_TEST_ALL_PREFIXES(ProxyServiceTest, UpdateConfigFromPACToDirect);
@@ -292,11 +293,7 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
   class InitProxyResolver;
   class ProxyScriptDeciderPoller;
 
-  // TODO(eroman): change this to a std::set. Note that this requires updating
-  // some tests in proxy_service_unittest.cc such as:
-  //   ProxyServiceTest.InitialPACScriptDownload
-  // which expects requests to finish in the order they were added.
-  typedef std::vector<scoped_refptr<PacRequest> > PendingRequests;
+  typedef std::set<scoped_refptr<PacRequest>> PendingRequests;
 
   enum State {
     STATE_NONE,
@@ -335,7 +332,7 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
   int ResolveProxyHelper(const GURL& url,
                          int load_flags,
                          ProxyInfo* results,
-                         const net::CompletionCallback& callback,
+                         const CompletionCallback& callback,
                          PacRequest** pac_request,
                          NetworkDelegate* network_delegate,
                          const BoundNetLog& net_log);
@@ -362,7 +359,9 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
                               NetworkDelegate* network_delegate,
                               ProxyInfo* result,
                               int result_code,
-                              const BoundNetLog& net_log);
+                              const BoundNetLog& net_log,
+                              base::TimeTicks start_time,
+                              bool script_executed);
 
   // Start initialization using |fetched_config_|.
   void InitializeUsingLastFetchedConfig();
@@ -387,6 +386,7 @@ class NET_EXPORT ProxyService : public NetworkChangeNotifier::IPAddressObserver,
       ProxyConfigService::ConfigAvailability availability) override;
 
   scoped_ptr<ProxyConfigService> config_service_;
+  scoped_ptr<ProxyResolverFactory> resolver_factory_;
   scoped_ptr<ProxyResolver> resolver_;
 
   // We store the proxy configuration that was last fetched from the

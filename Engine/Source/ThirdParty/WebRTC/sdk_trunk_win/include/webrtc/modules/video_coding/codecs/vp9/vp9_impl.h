@@ -13,7 +13,9 @@
 #define WEBRTC_MODULES_VIDEO_CODING_CODECS_VP9_IMPL_H_
 
 #include "webrtc/modules/video_coding/codecs/vp9/include/vp9.h"
+#include "webrtc/modules/video_coding/codecs/vp9/vp9_frame_buffer_pool.h"
 
+#include "vpx/svc_context.h"
 #include "vpx/vpx_decoder.h"
 #include "vpx/vpx_encoder.h"
 
@@ -25,24 +27,28 @@ class VP9EncoderImpl : public VP9Encoder {
 
   virtual ~VP9EncoderImpl();
 
-  virtual int Release() OVERRIDE;
+  int Release() override;
 
-  virtual int InitEncode(const VideoCodec* codec_settings,
-                         int number_of_cores,
-                         size_t max_payload_size) OVERRIDE;
+  int InitEncode(const VideoCodec* codec_settings,
+                 int number_of_cores,
+                 size_t max_payload_size) override;
 
-  virtual int Encode(const I420VideoFrame& input_image,
-                     const CodecSpecificInfo* codec_specific_info,
-                     const std::vector<VideoFrameType>* frame_types) OVERRIDE;
+  int Encode(const VideoFrame& input_image,
+             const CodecSpecificInfo* codec_specific_info,
+             const std::vector<FrameType>* frame_types) override;
 
-  virtual int RegisterEncodeCompleteCallback(EncodedImageCallback* callback)
-  OVERRIDE;
+  int RegisterEncodeCompleteCallback(EncodedImageCallback* callback) override;
 
-  virtual int SetChannelParameters(uint32_t packet_loss, int64_t rtt) OVERRIDE;
+  int SetChannelParameters(uint32_t packet_loss, int64_t rtt) override;
 
-  virtual int SetRates(uint32_t new_bitrate_kbit, uint32_t frame_rate) OVERRIDE;
+  int SetRates(uint32_t new_bitrate_kbit, uint32_t frame_rate) override;
+
+  void OnDroppedFrame() override {}
 
  private:
+  // Determine number of encoder threads to use.
+  int NumberOfThreads(int width, int height, int number_of_cores);
+
   // Call encoder initialize function and set control settings.
   int InitAndSetControlSettings(const VideoCodec* inst);
 
@@ -50,7 +56,13 @@ class VP9EncoderImpl : public VP9Encoder {
                              const vpx_codec_cx_pkt& pkt,
                              uint32_t timestamp);
 
-  int GetEncodedPartitions(const I420VideoFrame& input_image);
+  bool SetSvcRates();
+
+  virtual int GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt);
+
+  // Callback function for outputting packets per spatial layer.
+  static void EncoderOutputCodedPacketCallback(vpx_codec_cx_pkt* pkt,
+                                               void* user_data);
 
   // Determine maximum target for Intra frames
   //
@@ -71,6 +83,14 @@ class VP9EncoderImpl : public VP9Encoder {
   vpx_codec_ctx_t* encoder_;
   vpx_codec_enc_cfg_t* config_;
   vpx_image_t* raw_;
+  SvcInternal_t svc_internal_;
+  const VideoFrame* input_image_;
+  GofInfoVP9 gof_;       // Contains each frame's temporal information for
+                         // non-flexible mode.
+  uint8_t tl0_pic_idx_;  // Only used in non-flexible mode.
+  size_t gof_idx_;       // Only used in non-flexible mode.
+  uint8_t num_temporal_layers_;
+  uint8_t num_spatial_layers_;
 };
 
 
@@ -80,25 +100,25 @@ class VP9DecoderImpl : public VP9Decoder {
 
   virtual ~VP9DecoderImpl();
 
-  virtual int InitDecode(const VideoCodec* inst, int number_of_cores) OVERRIDE;
+  int InitDecode(const VideoCodec* inst, int number_of_cores) override;
 
-  virtual int Decode(const EncodedImage& input_image,
-                     bool missing_frames,
-                     const RTPFragmentationHeader* fragmentation,
-                     const CodecSpecificInfo* codec_specific_info,
-                     int64_t /*render_time_ms*/) OVERRIDE;
+  int Decode(const EncodedImage& input_image,
+             bool missing_frames,
+             const RTPFragmentationHeader* fragmentation,
+             const CodecSpecificInfo* codec_specific_info,
+             int64_t /*render_time_ms*/) override;
 
-  virtual int RegisterDecodeCompleteCallback(DecodedImageCallback* callback)
-  OVERRIDE;
+  int RegisterDecodeCompleteCallback(DecodedImageCallback* callback) override;
 
-  virtual int Release() OVERRIDE;
+  int Release() override;
 
-  virtual int Reset() OVERRIDE;
+  int Reset() override;
 
  private:
   int ReturnFrame(const vpx_image_t* img, uint32_t timeStamp);
 
-  I420VideoFrame decoded_image_;
+  // Memory pool used to share buffers between libvpx and webrtc.
+  Vp9FrameBufferPool frame_buffer_pool_;
   DecodedImageCallback* decode_complete_callback_;
   bool inited_;
   vpx_codec_ctx_t* decoder_;

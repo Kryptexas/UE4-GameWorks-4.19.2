@@ -10,8 +10,9 @@
 #include "base/basictypes.h"
 #include "base/compiler_specific.h"
 #include "net/base/address_family.h"
+#include "net/base/ip_address_number.h"
 #include "net/base/net_export.h"
-#include "net/base/net_util.h"
+#include "net/base/sys_addrinfo.h"
 
 struct sockaddr;
 
@@ -24,11 +25,11 @@ class NET_EXPORT IPEndPoint {
  public:
   IPEndPoint();
   ~IPEndPoint();
-  IPEndPoint(const IPAddressNumber& address, uint16 port);
+  IPEndPoint(const IPAddressNumber& address, uint16_t port);
   IPEndPoint(const IPEndPoint& endpoint);
 
   const IPAddressNumber& address() const { return address_; }
-  uint16 port() const { return port_; }
+  uint16_t port() const { return port_; }
 
   // Returns AddressFamily of the address.
   AddressFamily GetFamily() const;
@@ -53,9 +54,8 @@ class NET_EXPORT IPEndPoint {
   bool FromSockAddr(const struct sockaddr* address, socklen_t address_length)
       WARN_UNUSED_RESULT;
 
-  // Returns value as a string (e.g. "127.0.0.1:80"). Returns empty
-  // string if the address is invalid, and cannot not be converted to a
-  // string.
+  // Returns value as a string (e.g. "127.0.0.1:80"). The IP address must be
+  // valid.
   std::string ToString() const;
 
   // As above, but without port.
@@ -66,7 +66,7 @@ class NET_EXPORT IPEndPoint {
 
  private:
   IPAddressNumber address_;
-  uint16 port_;
+  uint16_t port_;
 };
 
 }  // namespace net

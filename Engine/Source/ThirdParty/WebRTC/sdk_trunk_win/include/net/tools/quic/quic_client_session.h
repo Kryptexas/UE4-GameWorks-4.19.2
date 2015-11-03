@@ -25,14 +25,14 @@ namespace tools {
 
 class QuicClientSession : public QuicClientSessionBase {
  public:
-  QuicClientSession(const QuicConfig& config, QuicConnection* connection);
+  QuicClientSession(const QuicConfig& config,
+                    QuicConnection* connection,
+                    const QuicServerId& server_id,
+                    QuicCryptoClientConfig* crypto_config);
   ~QuicClientSession() override;
 
-  void InitializeSession(const QuicServerId& server_id,
-                         QuicCryptoClientConfig* config);
-
   // QuicSession methods:
-  QuicSpdyClientStream* CreateOutgoingDataStream() override;
+  QuicSpdyClientStream* CreateOutgoingDynamicStream() override;
   QuicCryptoClientStream* GetCryptoStream() override;
 
   // QuicClientSessionBase methods:
@@ -48,12 +48,26 @@ class QuicClientSession : public QuicClientSessionBase {
   // than the number of round-trips needed for the handshake.
   int GetNumSentClientHellos() const;
 
+  void set_respect_goaway(bool respect_goaway) {
+    respect_goaway_ = respect_goaway;
+  }
+
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
+  QuicSpdyStream* CreateIncomingDynamicStream(QuicStreamId id) override;
+
+  // Unlike CreateOutgoingDynamicStream, which applies a bunch of sanity checks,
+  // this simply returns a new QuicSpdyClientStream. This may be used by
+  // subclasses which want to use a subclass of QuicSpdyClientStream for streams
+  // but wish to use the sanity checks in CreateOutgoingDynamicStream.
+  virtual QuicSpdyClientStream* CreateClientStream();
 
  private:
   scoped_ptr<QuicCryptoClientStream> crypto_stream_;
+
+  // If this is set to false, the client will ignore server GOAWAYs and allow
+  // the creation of streams regardless of the high chance they will fail.
+  bool respect_goaway_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicClientSession);
 };

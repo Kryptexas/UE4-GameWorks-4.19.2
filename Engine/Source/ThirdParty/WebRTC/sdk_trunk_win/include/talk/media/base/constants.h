@@ -48,10 +48,17 @@ extern const char kRedCodecName[];
 extern const char kUlpfecCodecName[];
 
 // Codec parameters
-extern const int kWildcardPayloadType;
 extern const char kCodecParamAssociatedPayloadType[];
 
 extern const char kOpusCodecName[];
+extern const char kIsacCodecName[];
+extern const char kL16CodecName[];
+extern const char kG722CodecName[];
+extern const char kIlbcCodecName[];
+extern const char kPcmuCodecName[];
+extern const char kPcmaCodecName[];
+extern const char kCnCodecName[];
+extern const char kDtmfCodecName[];
 
 // Attribute parameters
 extern const char kCodecParamPTime[];
@@ -61,6 +68,7 @@ extern const char kCodecParamMinPTime[];
 extern const char kCodecParamSPropStereo[];
 extern const char kCodecParamStereo[];
 extern const char kCodecParamUseInbandFec[];
+extern const char kCodecParamUseDtx[];
 extern const char kCodecParamMaxAverageBitrate[];
 extern const char kCodecParamMaxPlaybackRate[];
 extern const char kCodecParamSctpProtocol[];
@@ -80,6 +88,7 @@ extern const int kOpusDefaultMinPTime;
 extern const int kOpusDefaultSPropStereo;
 extern const int kOpusDefaultStereo;
 extern const int kOpusDefaultUseInbandFec;
+extern const int kOpusDefaultUseDtx;
 extern const int kOpusDefaultMaxPlaybackRate;
 
 // Prefered values in this code base. Note that they may differ from the default
@@ -122,22 +131,50 @@ extern const char kGoogleSctpDataCodecName[];
 
 extern const char kComfortNoiseCodecName[];
 
-// Extension header for audio levels, as defined in
+// Header extension for audio levels, as defined in
 // http://tools.ietf.org/html/draft-ietf-avtext-client-to-mixer-audio-level-03
 extern const int kRtpAudioLevelHeaderExtensionDefaultId;
 extern const char kRtpAudioLevelHeaderExtension[];
 
-// Extension header for RTP timestamp offset, see RFC 5450 for details:
+// Header extension for RTP timestamp offset, see RFC 5450 for details:
 // http://tools.ietf.org/html/rfc5450
 extern const int kRtpTimestampOffsetHeaderExtensionDefaultId;
 extern const char kRtpTimestampOffsetHeaderExtension[];
 
-// Extension header for absolute send time, see url for details:
+// Header extension for absolute send time, see url for details:
 // http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
 extern const int kRtpAbsoluteSenderTimeHeaderExtensionDefaultId;
 extern const char kRtpAbsoluteSenderTimeHeaderExtension[];
 
+// Header extension for coordination of video orientation, see url for details:
+// http://www.etsi.org/deliver/etsi_ts/126100_126199/126114/12.07.00_60/
+// ts_126114v120700p.pdf
+extern const int kRtpVideoRotationHeaderExtensionDefaultId;
+extern const char kRtpVideoRotationHeaderExtension[];
+// We don't support 6 bit CVO. Added here for testing purpose.
+extern const char kRtpVideoRotation6BitsHeaderExtensionForTesting[];
+
+// Header extension for transport sequence number, see url for details:
+// http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions
+extern const int kRtpTransportSequenceNumberHeaderExtensionDefaultId;
+extern const char kRtpTransportSequenceNumberHeaderExtension[];
+
 extern const int kNumDefaultUnsignalledVideoRecvStreams;
+
+extern const char kVp8CodecName[];
+extern const char kVp9CodecName[];
+extern const char kH264CodecName[];
+
+extern const int kDefaultVp8PlType;
+extern const int kDefaultVp9PlType;
+extern const int kDefaultH264PlType;
+extern const int kDefaultRedPlType;
+extern const int kDefaultUlpfecType;
+extern const int kDefaultRtxVp8PlType;
+
+extern const int kDefaultVideoMaxWidth;
+extern const int kDefaultVideoMaxHeight;
+extern const int kDefaultVideoMaxFramerate;
 }  // namespace cricket
 
 #endif  // TALK_MEDIA_BASE_CONSTANTS_H_

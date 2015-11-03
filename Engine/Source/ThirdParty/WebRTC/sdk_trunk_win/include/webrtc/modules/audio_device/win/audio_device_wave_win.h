@@ -13,12 +13,13 @@
 
 #include "webrtc/modules/audio_device/audio_device_generic.h"
 #include "webrtc/modules/audio_device/win/audio_mixer_manager_win.h"
+#include "webrtc/system_wrappers/interface/thread_wrapper.h"
 
 #pragma comment( lib, "winmm.lib" )
 
 namespace webrtc {
+class EventTimerWrapper;
 class EventWrapper;
-class ThreadWrapper;
 
 const uint32_t TIMER_PERIOD_MS = 2;
 const uint32_t REC_CHECK_TIME_PERIOD_MS = 4;
@@ -211,7 +212,7 @@ private:
     AudioDeviceBuffer*                      _ptrAudioBuffer;
 
     CriticalSectionWrapper&                 _critSect;
-    EventWrapper&                           _timeEvent;
+    EventTimerWrapper&                      _timeEvent;
     EventWrapper&                           _recStartEvent;
     EventWrapper&                           _playStartEvent;
 
@@ -221,8 +222,7 @@ private:
     HANDLE                                  _hShutdownSetVolumeEvent;
     HANDLE                                  _hSetCaptureVolumeEvent;
 
-    ThreadWrapper*                          _ptrThread;
-    uint32_t                                _threadID;
+    rtc::scoped_ptr<ThreadWrapper>          _ptrThread;
 
     CriticalSectionWrapper&                 _critSectCb;
 

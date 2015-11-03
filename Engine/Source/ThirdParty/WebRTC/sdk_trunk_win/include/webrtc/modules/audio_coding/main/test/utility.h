@@ -115,32 +115,19 @@ void PrintCodecs();
 
 bool FixedPayloadTypeCodec(const char* payloadName);
 
-class DTMFDetector : public AudioCodingFeedback {
- public:
-  DTMFDetector();
-  ~DTMFDetector();
-  // used for inband DTMF detection
-  int32_t IncomingDtmf(const uint8_t digitDtmf, const bool toneEnded);
-  void PrintDetectedDigits();
-
- private:
-  uint32_t _toneCntr[1000];
-
-};
-
 class VADCallback : public ACMVADCallback {
  public:
   VADCallback();
   ~VADCallback() {
   }
 
-  int32_t InFrameType(int16_t frameType);
+  int32_t InFrameType(FrameType frame_type);
 
   void PrintFrameTypes();
   void Reset();
 
  private:
-  uint32_t _numFrameTypes[6];
+  uint32_t _numFrameTypes[5];
 };
 
 void UseLegacyAcm(webrtc::Config* config);

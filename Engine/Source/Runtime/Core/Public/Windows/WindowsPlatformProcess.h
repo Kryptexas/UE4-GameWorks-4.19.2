@@ -138,6 +138,7 @@ public:
 	static const TCHAR* UserName(bool bOnlyAlphaNumeric = true);
 	static void SetCurrentWorkingDirectoryToBaseDir();
 	static FString GetCurrentWorkingDirectory();
+	static const FString ShaderWorkingDir();
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
 	static FString GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration);
 	static const TCHAR* GetModuleExtension();

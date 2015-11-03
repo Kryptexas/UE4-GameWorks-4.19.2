@@ -27,8 +27,6 @@ class VPMFramePreprocessor {
   VPMFramePreprocessor();
   ~VPMFramePreprocessor();
 
-  int32_t ChangeUniqueId(const int32_t id);
-
   void Reset();
 
   // Enable temporal decimation.
@@ -43,6 +41,9 @@ class VPMFramePreprocessor {
   int32_t SetTargetResolution(uint32_t width, uint32_t height,
                               uint32_t frame_rate);
 
+  // Set target frame rate.
+  void SetTargetFramerate(int frame_rate);
+
   // Update incoming frame rate/dimension.
   void UpdateIncomingframe_rate();
 
@@ -54,8 +55,8 @@ class VPMFramePreprocessor {
   uint32_t DecimatedHeight() const;
 
   // Preprocess output:
-  int32_t PreprocessFrame(const I420VideoFrame& frame,
-                          I420VideoFrame** processed_frame);
+  int32_t PreprocessFrame(const VideoFrame& frame,
+                          VideoFrame** processed_frame);
   VideoContentMetrics* ContentMetrics() const;
 
  private:
@@ -63,9 +64,8 @@ class VPMFramePreprocessor {
   // we can compute new content metrics every |kSkipFrameCA| frames.
   enum { kSkipFrameCA = 2 };
 
-  int32_t id_;
   VideoContentMetrics* content_metrics_;
-  I420VideoFrame resampled_frame_;
+  VideoFrame resampled_frame_;
   VPMSpatialResampler* spatial_resampler_;
   VPMContentAnalysis* ca_;
   VPMVideoDecimator* vd_;

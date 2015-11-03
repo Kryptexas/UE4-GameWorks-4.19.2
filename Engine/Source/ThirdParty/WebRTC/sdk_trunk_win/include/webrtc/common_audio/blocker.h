@@ -11,8 +11,9 @@
 #ifndef WEBRTC_INTERNAL_BEAMFORMER_BLOCKER_H_
 #define WEBRTC_INTERNAL_BEAMFORMER_BLOCKER_H_
 
-#include "webrtc/modules/audio_processing/channel_buffer.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/common_audio/audio_ring_buffer.h"
+#include "webrtc/common_audio/channel_buffer.h"
 
 namespace webrtc {
 
@@ -24,7 +25,7 @@ class BlockerCallback {
   virtual ~BlockerCallback() {}
 
   virtual void ProcessBlock(const float* const* input,
-                            int num_frames,
+                            size_t num_frames,
                             int num_input_channels,
                             int num_output_channels,
                             float* const* output) = 0;
@@ -57,44 +58,49 @@ class BlockerCallback {
 //
 // A small amount of delay is added to the first received chunk to deal with
 // the difference in chunk/block sizes. This delay is <= chunk_size.
+//
+// Ownership of window is retained by the caller.  That is, Blocker makes a
+// copy of window and does not attempt to delete it.
 class Blocker {
  public:
-  Blocker(int chunk_size,
-          int block_size,
+  Blocker(size_t chunk_size,
+          size_t block_size,
           int num_input_channels,
           int num_output_channels,
           const float* window,
-          int shift_amount,
+          size_t shift_amount,
           BlockerCallback* callback);
 
   void ProcessChunk(const float* const* input,
-                    int num_frames,
+                    size_t chunk_size,
                     int num_input_channels,
                     int num_output_channels,
                     float* const* output);
 
  private:
-  const int chunk_size_;
-  const int block_size_;
+  const size_t chunk_size_;
+  const size_t block_size_;
   const int num_input_channels_;
   const int num_output_channels_;
 
   // The number of frames of delay to add at the beginning of the first chunk.
-  const int initial_delay_;
+  const size_t initial_delay_;
 
   // The frame index into the input buffer where the first block should be read
   // from. This is necessary because shift_amount_ is not necessarily a
   // multiple of chunk_size_, so blocks won't line up at the start of the
   // buffer.
-  int frame_offset_;
+  size_t frame_offset_;
 
   // Since blocks nearly always overlap, there are certain blocks that require
   // frames from the end of one chunk and the beginning of the next chunk. The
   // input and output buffers are responsible for saving those frames between
   // calls to ProcessChunk().
   //
-  // Both contain |initial delay| + |chunk_size| frames.
-  ChannelBuffer<float> input_buffer_;
+  // Both contain |initial delay| + |chunk_size| frames. The input is a fairly
+  // standard FIFO, but due to the overlap-add it's harder to use an
+  // AudioRingBuffer for the output.
+  AudioRingBuffer input_buffer_;
   ChannelBuffer<float> output_buffer_;
 
   // Space for the input block (can't wrap because of windowing).
@@ -103,11 +109,11 @@ class Blocker {
   // Space for the output block (can't wrap because of overlap/add).
   ChannelBuffer<float> output_block_;
 
-  scoped_ptr<float[]> window_;
+  rtc::scoped_ptr<float[]> window_;
 
   // The amount of frames between the start of contiguous blocks. For example,
   // |shift_amount_| = |block_size_| / 2 for a Hann window.
-  int shift_amount_;
+  size_t shift_amount_;
 
   BlockerCallback* callback_;
 };

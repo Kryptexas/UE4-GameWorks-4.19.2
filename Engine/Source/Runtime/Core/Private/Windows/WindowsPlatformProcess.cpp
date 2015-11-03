@@ -860,6 +860,12 @@ FString FWindowsPlatformProcess::GetCurrentWorkingDirectory()
 	return CurrentDirectory;
 }
 
+const FString FWindowsPlatformProcess::ShaderWorkingDir()
+{
+	return (FString(FPlatformProcess::UserTempDir()) / TEXT("UnrealShaderWorkingDir/"));
+}
+
+
 const TCHAR* FWindowsPlatformProcess::ExecutableName(bool bRemoveExtension)
 {
 	static TCHAR Result[512]=TEXT("");

@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "base/gtest_prod_util.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/memory/scoped_vector.h"
 #include "base/threading/non_thread_safe.h"
@@ -50,7 +49,7 @@ class NET_EXPORT_PRIVATE NameServerClassifier {
   ~NameServerClassifier();
 
   NameServersType GetNameServersType(
-      const std::vector<net::IPEndPoint>& nameservers) const;
+      const std::vector<IPEndPoint>& nameservers) const;
 
  private:
   struct NameServerTypeRule;
@@ -157,7 +156,7 @@ class NET_EXPORT_PRIVATE DnsConfigService
     DNS_CONFIG_WATCH_MAX,
   };
 
- // Immediately attempts to read the current configuration.
+  // Immediately attempts to read the current configuration.
   virtual void ReadNow() = 0;
   // Registers system watchers. Returns true iff succeeds.
   virtual bool StartWatching() = 0;
@@ -204,7 +203,7 @@ class NET_EXPORT_PRIVATE DnsConfigService
   base::TimeTicks last_sent_empty_time_;
 
   // Started in Invalidate*, cleared in On*Read.
-  base::OneShotTimer<DnsConfigService> timer_;
+  base::OneShotTimer timer_;
 
   NameServerClassifier classifier_;
 

@@ -26,7 +26,6 @@ class DictionaryValue;
 namespace net {
 
 class ClientSocketHandle;
-class ClientSocketPoolHistograms;
 class StreamSocket;
 
 // ClientSocketPools are layered. This defines an interface for lower level
@@ -90,7 +89,7 @@ class NET_EXPORT ClientSocketPool : public LowerLayeredPool {
   // StreamSocket was reused, then ClientSocketPool will call
   // |handle|->set_reused(true).  In either case, the socket will have been
   // allocated and will be connected.  A client might want to know whether or
-  // not the socket is reused in order to request a new socket if he encounters
+  // not the socket is reused in order to request a new socket if it encounters
   // an error with the reused socket.
   //
   // If ERR_IO_PENDING is returned, then the callback will be used to notify the
@@ -159,20 +158,16 @@ class NET_EXPORT ClientSocketPool : public LowerLayeredPool {
                                  const ClientSocketHandle* handle) const = 0;
 
   // Retrieves information on the current state of the pool as a
-  // DictionaryValue.  Caller takes possession of the returned value.
+  // DictionaryValue.
   // If |include_nested_pools| is true, the states of any nested
   // ClientSocketPools will be included.
-  virtual base::DictionaryValue* GetInfoAsValue(
+  virtual scoped_ptr<base::DictionaryValue> GetInfoAsValue(
       const std::string& name,
       const std::string& type,
       bool include_nested_pools) const = 0;
 
   // Returns the maximum amount of time to wait before retrying a connect.
   static const int kMaxConnectRetryIntervalMs = 250;
-
-  // The set of histograms specific to this pool.  We can't use the standard
-  // UMA_HISTOGRAM_* macros because they are callsite static.
-  virtual ClientSocketPoolHistograms* histograms() const = 0;
 
   static base::TimeDelta unused_idle_socket_timeout();
   static void set_unused_idle_socket_timeout(base::TimeDelta timeout);

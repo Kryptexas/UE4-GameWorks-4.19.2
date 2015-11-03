@@ -39,6 +39,12 @@ class NET_EXPORT_PRIVATE QuicPacketWriter {
   // Records that the socket has become writable, for example when an EPOLLOUT
   // is received or an asynchronous write completes.
   virtual void SetWritable() = 0;
+
+  // Returns the maximum size of the packet which can be written using this
+  // writer for the supplied peer address.  This size may actually exceed the
+  // size of a valid QUIC packet.
+  virtual QuicByteCount GetMaxPacketSize(
+      const IPEndPoint& peer_address) const = 0;
 };
 
 }  // namespace net

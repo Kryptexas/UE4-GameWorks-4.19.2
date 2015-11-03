@@ -125,7 +125,6 @@ void FOculusInput::SendControllerEvents()
 	const float ButtonRepeatDelay = 0.1f;
 	const float AnalogButtonPressThreshold = TriggerThreshold;
 
-	check(IOculusRiftPlugin::IsAvailable());
 	IOculusRiftPlugin& OculusRiftPlugin = IOculusRiftPlugin::Get();
 	ovrSession OvrSession = OculusRiftPlugin.GetSession();
 	UE_CLOG(OVR_DEBUG_LOGGING, LogOcInput, Log, TEXT("SendControllerEvents: OvrSession = %p"), OvrSession);

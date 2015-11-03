@@ -6,40 +6,19 @@
 #define NET_PROXY_PROXY_RESOLVER_V8_H_
 
 #include "base/compiler_specific.h"
+#include "base/memory/ref_counted.h"
 #include "base/memory/scoped_ptr.h"
+#include "base/strings/string16.h"
 #include "net/base/net_export.h"
-#include "net/proxy/proxy_resolver.h"
 
-namespace gin {
-class IsolateHolder;
-}  // namespace gin
-
-namespace v8 {
-class HeapStatistics;
-class Isolate;
-}  // namespace v8
+class GURL;
 
 namespace net {
+class ProxyInfo;
+class ProxyResolverScriptData;
 
-// Implementation of ProxyResolver that uses V8 to evaluate PAC scripts.
-//
-// ----------------------------------------------------------------------------
-// !!! Important note on threading model:
-// ----------------------------------------------------------------------------
-// There can be only one instance of V8 running at a time. To enforce this
-// constraint, ProxyResolverV8 holds a v8::Locker during execution. Therefore
-// it is OK to run multiple instances of ProxyResolverV8 on different threads,
-// since only one will be running inside V8 at a time.
-//
-// It is important that *ALL* instances of V8 in the process be using
-// v8::Locker. If not there can be race conditions between the non-locked V8
-// instances and the locked V8 instances used by ProxyResolverV8 (assuming they
-// run on different threads).
-//
-// This is the case with the V8 instance used by chromium's renderer -- it runs
-// on a different thread from ProxyResolver (renderer thread vs PAC thread),
-// and does not use locking since it expects to be alone.
-class NET_EXPORT_PRIVATE ProxyResolverV8 : public ProxyResolver {
+// A synchronous ProxyResolver-like that uses V8 to evaluate PAC scripts.
+class NET_EXPORT_PRIVATE ProxyResolverV8 {
  public:
   // Interface for the javascript bindings.
   class NET_EXPORT_PRIVATE JSBindings {
@@ -74,31 +53,13 @@ class NET_EXPORT_PRIVATE ProxyResolverV8 : public ProxyResolver {
   };
 
   // Constructs a ProxyResolverV8.
-  ProxyResolverV8();
+  static int Create(const scoped_refptr<ProxyResolverScriptData>& script_data,
+                    JSBindings* bindings,
+                    scoped_ptr<ProxyResolverV8>* resolver);
 
-  ~ProxyResolverV8() override;
+  ~ProxyResolverV8();
 
-  JSBindings* js_bindings() const { return js_bindings_; }
-  void set_js_bindings(JSBindings* js_bindings) { js_bindings_ = js_bindings; }
-
-  // ProxyResolver implementation:
-  int GetProxyForURL(const GURL& url,
-                     ProxyInfo* results,
-                     const net::CompletionCallback& /*callback*/,
-                     RequestHandle* /*request*/,
-                     const BoundNetLog& net_log) override;
-  void CancelRequest(RequestHandle request) override;
-  LoadState GetLoadState(RequestHandle request) const override;
-  void CancelSetPacScript() override;
-  int SetPacScript(const scoped_refptr<ProxyResolverScriptData>& script_data,
-                   const net::CompletionCallback& /*callback*/) override;
-
-  // Create an isolate to use for the proxy resolver. If the embedder invokes
-  // this method multiple times, it must be invoked in a thread safe manner,
-  // e.g. always from the same thread.
-  static void EnsureIsolateCreated();
-
-  static v8::Isolate* GetDefaultIsolate();
+  int GetProxyForURL(const GURL& url, ProxyInfo* results, JSBindings* bindings);
 
   // Get total/ued heap memory usage of all v8 instances used by the proxy
   // resolver.
@@ -106,16 +67,12 @@ class NET_EXPORT_PRIVATE ProxyResolverV8 : public ProxyResolver {
   static size_t GetUsedHeapSize();
 
  private:
-  static gin::IsolateHolder* g_proxy_resolver_isolate_;
-
-  // Context holds the Javascript state for the most recently loaded PAC
-  // script. It corresponds with the data from the last call to
-  // SetPacScript().
+  // Context holds the Javascript state for the PAC script.
   class Context;
 
-  scoped_ptr<Context> context_;
+  explicit ProxyResolverV8(scoped_ptr<Context> context);
 
-  JSBindings* js_bindings_;
+  scoped_ptr<Context> context_;
 
   DISALLOW_COPY_AND_ASSIGN(ProxyResolverV8);
 };

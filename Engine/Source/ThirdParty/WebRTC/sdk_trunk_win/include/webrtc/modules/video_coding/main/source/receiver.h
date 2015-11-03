@@ -23,27 +23,24 @@ namespace webrtc {
 class Clock;
 class VCMEncodedFrame;
 
-enum VCMNackStatus {
-  kNackOk,
-  kNackKeyFrameRequest
-};
-
-enum VCMReceiverState {
-  kReceiving,
-  kPassive,
-  kWaitForPrimaryDecode
-};
-
 class VCMReceiver {
  public:
   VCMReceiver(VCMTiming* timing,
               Clock* clock,
-              EventFactory* event_factory,
-              bool master);
+              EventFactory* event_factory);
+
+  // Using this constructor, you can specify a different event factory for the
+  // jitter buffer. Useful for unit tests when you want to simulate incoming
+  // packets, in which case the jitter buffer's wait event is different from
+  // that of VCMReceiver itself.
+  VCMReceiver(VCMTiming* timing,
+              Clock* clock,
+              rtc::scoped_ptr<EventWrapper> receiver_event,
+              rtc::scoped_ptr<EventWrapper> jitter_buffer_event);
+
   ~VCMReceiver();
 
   void Reset();
-  int32_t Initialize();
   void UpdateRtt(int64_t rtt);
   int32_t InsertPacket(const VCMPacket& packet,
                        uint16_t frame_width,
@@ -63,9 +60,7 @@ class VCMReceiver {
                        int max_packet_age_to_nack,
                        int max_incomplete_time_ms);
   VCMNackMode NackMode() const;
-  VCMNackStatus NackList(uint16_t* nackList, uint16_t size,
-                         uint16_t* nack_list_length);
-  VCMReceiverState State() const;
+  std::vector<uint16_t> NackList(bool* request_key_frame);
 
   // Receiver video delay.
   int SetMinReceiverDelay(int desired_delay_ms);
@@ -81,18 +76,15 @@ class VCMReceiver {
 
   void RegisterStatsCallback(VCMReceiveStatisticsCallback* callback);
 
- private:
-  static int32_t GenerateReceiverId();
+  void TriggerDecoderShutdown();
 
+ private:
   CriticalSectionWrapper* crit_sect_;
-  Clock* clock_;
+  Clock* const clock_;
   VCMJitterBuffer jitter_buffer_;
   VCMTiming* timing_;
-  scoped_ptr<EventWrapper> render_wait_event_;
-  VCMReceiverState state_;
+  rtc::scoped_ptr<EventWrapper> render_wait_event_;
   int max_video_delay_ms_;
-
-  static int32_t receiver_id_counter_;
 };
 
 }  // namespace webrtc

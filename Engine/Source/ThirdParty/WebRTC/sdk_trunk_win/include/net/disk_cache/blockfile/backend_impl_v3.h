@@ -188,6 +188,7 @@ class NET_EXPORT_PRIVATE BackendImplV3 : public Backend {
                          const CompletionCallback& callback) override;
   int DoomEntriesSince(base::Time initial_time,
                        const CompletionCallback& callback) override;
+  int CalculateSizeOfAllEntries(const CompletionCallback& callback) override;
   scoped_ptr<Iterator> CreateIterator() override;
   void GetStats(StatsItems* stats) override;
   void OnExternalCacheHit(const std::string& key) override;
@@ -271,7 +272,7 @@ class NET_EXPORT_PRIVATE BackendImplV3 : public Backend {
   net::NetLog* net_log_;
 
   Stats stats_;  // Usage statistics.
-  scoped_ptr<base::RepeatingTimer<BackendImplV3> > timer_;  // Usage timer.
+  scoped_ptr<base::RepeatingTimer> timer_;   // Usage timer.
   scoped_refptr<TraceObject> trace_object_;  // Initializes internal tracing.
   base::WeakPtrFactory<BackendImplV3> ptr_factory_;
 

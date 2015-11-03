@@ -851,6 +851,7 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 				FVector LightPosition = Source.bUseLocalSpace ? FVector(InLocalToWorld.TransformPosition(ParticlePosition)) : ParticlePosition;
 				
 				// Calculate light positions per-view if we are using a camera offset.
+				/*	disabling camera offset on lights for now; it's not reliably working and does more harm than good
 				if (Source.CameraPayloadOffset != 0)
 				{
 					//Reserve mem for the indices into the per view data.
@@ -888,7 +889,7 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 						OutParticleLights.PerViewData.Add(PerViewData);
 					}
 				}
-				else
+				else*/
 				{
 					//Add index of this light into the per view data if needed.
 					if (OutParticleLights.InstancePerViewDataIndices.Num() != 0)

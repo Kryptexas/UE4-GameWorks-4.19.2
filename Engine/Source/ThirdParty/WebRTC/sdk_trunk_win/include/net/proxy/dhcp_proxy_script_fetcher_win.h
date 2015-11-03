@@ -10,7 +10,6 @@
 
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_vector.h"
-#include "base/message_loop/message_loop_proxy.h"
 #include "base/threading/non_thread_safe.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
@@ -35,11 +34,11 @@ class NET_EXPORT_PRIVATE DhcpProxyScriptFetcherWin
   // |url_request_context|. |url_request_context| must remain valid for
   // the lifetime of DhcpProxyScriptFetcherWin.
   explicit DhcpProxyScriptFetcherWin(URLRequestContext* url_request_context);
-  virtual ~DhcpProxyScriptFetcherWin();
+  ~DhcpProxyScriptFetcherWin() override;
 
   // DhcpProxyScriptFetcher implementation.
   int Fetch(base::string16* utf16_text,
-            const net::CompletionCallback& callback) override;
+            const CompletionCallback& callback) override;
   void Cancel() override;
   const GURL& GetPacURL() const override;
   std::string GetFetcherName() const override;
@@ -63,7 +62,6 @@ class NET_EXPORT_PRIVATE DhcpProxyScriptFetcherWin
       : public base::RefCountedThreadSafe<AdapterQuery> {
    public:
     AdapterQuery();
-    virtual ~AdapterQuery();
 
     // This is the method that runs on the worker pool thread.
     void GetCandidateAdapterNames();
@@ -76,6 +74,9 @@ class NET_EXPORT_PRIVATE DhcpProxyScriptFetcherWin
     // Virtual method introduced to allow unit testing.
     virtual bool ImplGetCandidateAdapterNames(
         std::set<std::string>* adapter_names);
+
+    friend class base::RefCountedThreadSafe<AdapterQuery>;
+    virtual ~AdapterQuery();
 
    private:
     // This is constructed on the originating thread, then used on the
@@ -148,7 +149,7 @@ class NET_EXPORT_PRIVATE DhcpProxyScriptFetcherWin
   int num_pending_fetchers_;
 
   // Lets our client know we're done. Not valid in states START or DONE.
-  net::CompletionCallback callback_;
+  CompletionCallback callback_;
 
   // Pointer to string we will write results to. Not valid in states
   // START and DONE.
@@ -157,7 +158,7 @@ class NET_EXPORT_PRIVATE DhcpProxyScriptFetcherWin
   // PAC URL retrieved from DHCP, if any. Valid only in state STATE_DONE.
   GURL pac_url_;
 
-  base::OneShotTimer<DhcpProxyScriptFetcherWin> wait_timer_;
+  base::OneShotTimer wait_timer_;
 
   URLRequestContext* const url_request_context_;
 

@@ -11,8 +11,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_INCLUDE_MOCK_AUDIO_PROCESSING_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_INCLUDE_MOCK_AUDIO_PROCESSING_H_
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/audio_processing/include/audio_processing.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
@@ -48,6 +48,8 @@ class MockEchoCancellation : public EchoCancellation {
       bool());
   MOCK_METHOD2(GetDelayMetrics,
       int(int* median, int* std));
+  MOCK_METHOD3(GetDelayMetrics,
+      int(int* median, int* std, float* fraction_poor_delays));
   MOCK_CONST_METHOD0(aec_core,
       struct AecCore*());
 };
@@ -184,6 +186,8 @@ class MockAudioProcessing : public AudioProcessing {
           ChannelLayout input_layout,
           ChannelLayout output_layout,
           ChannelLayout reverse_layout));
+  MOCK_METHOD1(Initialize,
+      int(const ProcessingConfig& processing_config));
   MOCK_METHOD1(SetExtraOptions,
       void(const Config& config));
   MOCK_METHOD1(set_sample_rate_hz,
@@ -210,17 +214,28 @@ class MockAudioProcessing : public AudioProcessing {
       int(AudioFrame* frame));
   MOCK_METHOD7(ProcessStream,
       int(const float* const* src,
-          int samples_per_channel,
+          size_t samples_per_channel,
           int input_sample_rate_hz,
           ChannelLayout input_layout,
           int output_sample_rate_hz,
           ChannelLayout output_layout,
           float* const* dest));
+  MOCK_METHOD4(ProcessStream,
+               int(const float* const* src,
+                   const StreamConfig& input_config,
+                   const StreamConfig& output_config,
+                   float* const* dest));
   MOCK_METHOD1(AnalyzeReverseStream,
       int(AudioFrame* frame));
+  MOCK_METHOD1(ProcessReverseStream, int(AudioFrame* frame));
   MOCK_METHOD4(AnalyzeReverseStream,
-      int(const float* const* data, int frames, int sample_rate_hz,
+      int(const float* const* data, size_t frames, int sample_rate_hz,
           ChannelLayout input_layout));
+  MOCK_METHOD4(ProcessReverseStream,
+               int(const float* const* src,
+                   const StreamConfig& input_config,
+                   const StreamConfig& output_config,
+                   float* const* dest));
   MOCK_METHOD1(set_stream_delay_ms,
       int(int delay));
   MOCK_CONST_METHOD0(stream_delay_ms,
@@ -241,6 +256,7 @@ class MockAudioProcessing : public AudioProcessing {
       int(FILE* handle));
   MOCK_METHOD0(StopDebugRecording,
       int());
+  MOCK_METHOD0(UpdateHistogramsOnCallEnd, void());
   virtual MockEchoCancellation* echo_cancellation() const {
     return echo_cancellation_.get();
   }
@@ -264,13 +280,13 @@ class MockAudioProcessing : public AudioProcessing {
   }
 
  private:
-  scoped_ptr<MockEchoCancellation> echo_cancellation_;
-  scoped_ptr<MockEchoControlMobile> echo_control_mobile_;
-  scoped_ptr<MockGainControl> gain_control_;
-  scoped_ptr<MockHighPassFilter> high_pass_filter_;
-  scoped_ptr<MockLevelEstimator> level_estimator_;
-  scoped_ptr<MockNoiseSuppression> noise_suppression_;
-  scoped_ptr<MockVoiceDetection> voice_detection_;
+  rtc::scoped_ptr<MockEchoCancellation> echo_cancellation_;
+  rtc::scoped_ptr<MockEchoControlMobile> echo_control_mobile_;
+  rtc::scoped_ptr<MockGainControl> gain_control_;
+  rtc::scoped_ptr<MockHighPassFilter> high_pass_filter_;
+  rtc::scoped_ptr<MockLevelEstimator> level_estimator_;
+  rtc::scoped_ptr<MockNoiseSuppression> noise_suppression_;
+  rtc::scoped_ptr<MockVoiceDetection> voice_detection_;
 };
 
 }  // namespace webrtc

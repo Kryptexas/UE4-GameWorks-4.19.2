@@ -46,9 +46,6 @@ static inline double get_time() {
   QueryPerformanceFrequency(&f);
   return static_cast<double>(t.QuadPart) / static_cast<double>(f.QuadPart);
 }
-
-#define random rand
-#define srandom srand
 #else
 static inline double get_time() {
   struct timeval t;
@@ -58,29 +55,93 @@ static inline double get_time() {
 }
 #endif
 
-static inline void MemRandomize(uint8* dst, int len) {
-  int i;
+extern int fastrand_seed;
+inline int fastrand() {
+  fastrand_seed = fastrand_seed * 214013 + 2531011;
+  return (fastrand_seed >> 16) & 0xffff;
+}
+
+static inline void MemRandomize(uint8* dst, int64 len) {
+  int64 i;
   for (i = 0; i < len - 1; i += 2) {
-    *reinterpret_cast<uint16*>(dst) = random();
+    *reinterpret_cast<uint16*>(dst) = fastrand();
     dst += 2;
   }
   for (; i < len; ++i) {
-    *dst++ = random();
+    *dst++ = fastrand();
   }
 }
 
-class libyuvTest : public ::testing::Test {
+class LibYUVColorTest : public ::testing::Test {
  protected:
-  libyuvTest();
-
-  const int rotate_max_w_;
-  const int rotate_max_h_;
+  LibYUVColorTest();
 
   int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
   int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
   int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
   int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
   int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
+  int disable_cpu_flags_;  // Default 0.  Use -1 for benchmarking.
+};
+
+class LibYUVConvertTest : public ::testing::Test {
+ protected:
+  LibYUVConvertTest();
+
+  int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
+  int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
+  int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
+  int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
+  int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
+  int disable_cpu_flags_;  // Default 0.  Use -1 for benchmarking.
+};
+
+class LibYUVScaleTest : public ::testing::Test {
+ protected:
+  LibYUVScaleTest();
+
+  int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
+  int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
+  int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
+  int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
+  int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
+  int disable_cpu_flags_;  // Default 0.  Use -1 for benchmarking.
+};
+
+class LibYUVRotateTest : public ::testing::Test {
+ protected:
+  LibYUVRotateTest();
+
+  int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
+  int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
+  int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
+  int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
+  int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
+  int disable_cpu_flags_;  // Default 0.  Use -1 for benchmarking.
+};
+
+class LibYUVPlanarTest : public ::testing::Test {
+ protected:
+  LibYUVPlanarTest();
+
+  int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
+  int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
+  int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
+  int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
+  int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
+  int disable_cpu_flags_;  // Default 0.  Use -1 for benchmarking.
+};
+
+class LibYUVBaseTest : public ::testing::Test {
+ protected:
+  LibYUVBaseTest();
+
+  int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
+  int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
+  int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
+  int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
+  int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
+  int disable_cpu_flags_;  // Default 0.  Use -1 for benchmarking.
 };
 
 #endif  // UNIT_TEST_UNIT_TEST_H_  NOLINT

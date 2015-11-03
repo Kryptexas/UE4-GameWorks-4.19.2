@@ -8,11 +8,12 @@
 #include <bitset>
 
 #include "net/base/ip_endpoint.h"
-#include "net/base/net_log.h"
 #include "net/base/network_change_notifier.h"
+#include "net/base/socket_performance_watcher.h"
+#include "net/log/net_log.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
-#include "net/quic/quic_session.h"
+#include "net/quic/quic_spdy_session.h"
 
 namespace net {
 namespace test {
@@ -27,7 +28,11 @@ class CertVerifyResult;
 class NET_EXPORT_PRIVATE QuicConnectionLogger
     : public QuicConnectionDebugVisitor {
  public:
-  QuicConnectionLogger(QuicSession* session, const BoundNetLog& net_log);
+  QuicConnectionLogger(
+      QuicSpdySession* session,
+      const char* const connection_description,
+      scoped_ptr<SocketPerformanceWatcher> socket_performance_watcher,
+      const BoundNetLog& net_log);
 
   ~QuicConnectionLogger() override;
 
@@ -36,7 +41,7 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
 
   // QuicConnectionDebugVisitorInterface
   void OnPacketSent(const SerializedPacket& serialized_packet,
-                    QuicPacketSequenceNumber original_sequence_number,
+                    QuicPacketNumber original_packet_number,
                     EncryptionLevel level,
                     TransmissionType transmission_type,
                     const QuicEncryptedPacket& packet,
@@ -44,15 +49,14 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
   void OnPacketReceived(const IPEndPoint& self_address,
                         const IPEndPoint& peer_address,
                         const QuicEncryptedPacket& packet) override;
+  void OnUnauthenticatedHeader(const QuicPacketHeader& header) override;
   void OnIncorrectConnectionId(QuicConnectionId connection_id) override;
   void OnUndecryptablePacket() override;
-  void OnDuplicatePacket(QuicPacketSequenceNumber sequence_number) override;
+  void OnDuplicatePacket(QuicPacketNumber packet_number) override;
   void OnProtocolVersionMismatch(QuicVersion version) override;
   void OnPacketHeader(const QuicPacketHeader& header) override;
   void OnStreamFrame(const QuicStreamFrame& frame) override;
   void OnAckFrame(const QuicAckFrame& frame) override;
-  void OnCongestionFeedbackFrame(
-      const QuicCongestionFeedbackFrame& frame) override;
   void OnStopWaitingFrame(const QuicStopWaitingFrame& frame) override;
   void OnRstStreamFrame(const QuicRstStreamFrame& frame) override;
   void OnConnectionCloseFrame(const QuicConnectionCloseFrame& frame) override;
@@ -67,6 +71,7 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
                        base::StringPiece payload) override;
   void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
   void OnSuccessfulVersionNegotiation(const QuicVersion& version) override;
+  void OnRttChanged(QuicTime::Delta rtt) const override;
 
   void OnCryptoHandshakeMessageReceived(
       const CryptoHandshakeMessage& message);
@@ -77,14 +82,17 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
                                  int num_duplicate_frames_received);
   void OnCertificateVerified(const CertVerifyResult& result);
 
+  // Returns connection's overall packet loss rate in fraction.
+  float ReceivedPacketLossRate() const;
+
  private:
   friend class test::QuicConnectionLoggerPeer;
 
   // Do a factory get for a histogram for recording data, about individual
-  // packet sequence numbers, that was gathered in the vectors
+  // packet numbers, that was gathered in the vectors
   // received_packets_ and received_acks_. |statistic_name| identifies which
   // element of data is recorded, and is used to form the histogram name.
-  base::HistogramBase* GetPacketSequenceNumberHistogram(
+  base::HistogramBase* GetPacketNumberHistogram(
       const char* statistic_name) const;
   // Do a factory get for a histogram to record a 6-packet loss-sequence as a
   // sample. The histogram will record the 64 distinct possible combinations.
@@ -98,7 +106,7 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
   base::HistogramBase* Get21CumulativeHistogram(const char* which_21) const;
   // Add samples associated with a |bit_mask_of_packets| to the given histogram
   // that was provided by Get21CumulativeHistogram().  The LSB of that mask
-  // corresponds to the oldest packet sequence number in the series of packets,
+  // corresponds to the oldest packet number in the series of packets,
   // and the bit in the 2^20 position corresponds to the most recently received
   // packet.  Of the maximum of 21 bits that are valid (correspond to packets),
   // only the most significant |valid_bits_in_mask| are processed.
@@ -115,20 +123,29 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
   void RecordLossHistograms() const;
 
   BoundNetLog net_log_;
-  QuicSession* session_;  // Unowned.
-  // The last packet sequence number received.
-  QuicPacketSequenceNumber last_received_packet_sequence_number_;
+  QuicSpdySession* session_;  // Unowned.
+  // The last packet number received.
+  QuicPacketNumber last_received_packet_number_;
   // The size of the most recently received packet.
   size_t last_received_packet_size_;
-  // The largest packet sequence number received.  In the case where a packet is
+  // The size of the previously received packet.
+  size_t previous_received_packet_size_;
+  // The timestamp of last packet sent.
+  QuicTime last_packet_sent_time_;
+  // The largest packet number received.  In the case where a packet is
   // received late (out of order), this value will not be updated.
-  QuicPacketSequenceNumber largest_received_packet_sequence_number_;
-  // The largest packet sequence number which the peer has failed to
+  QuicPacketNumber largest_received_packet_number_;
+  // The largest packet number which the peer has failed to
   // receive, according to the missing packet set in their ack frames.
-  QuicPacketSequenceNumber largest_received_missing_packet_sequence_number_;
-  // Number of times that the current received packet sequence number is
-  // smaller than the last received packet sequence number.
+  QuicPacketNumber largest_received_missing_packet_number_;
+  // Number of times that the current received packet number is
+  // smaller than the last received packet number.
   size_t num_out_of_order_received_packets_;
+  // Number of times that the current received packet number is
+  // smaller than the last received packet number and where the
+  // size of the current packet is larger than the size of the previous
+  // packet.
+  size_t num_out_of_order_large_received_packets_;
   // The number of times that OnPacketHeader was called.
   // If the network replicates packets, then this number may be slightly
   // different from the real number of distinct packets received.
@@ -155,8 +172,8 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
   int num_blocked_frames_received_;
   // Count of the number of BLOCKED frames sent.
   int num_blocked_frames_sent_;
-  // Vector of inital packets status' indexed by packet sequence numbers, where
-  // false means never received.  Zero is not a valid packet sequence number, so
+  // Vector of inital packets status' indexed by packet numbers, where
+  // false means never received.  Zero is not a valid packet number, so
   // that offset is never used, and we'll track 150 packets.
   std::bitset<151> received_packets_;
   // Vector to indicate which of the initial 150 received packets turned out to
@@ -166,6 +183,9 @@ class NET_EXPORT_PRIVATE QuicConnectionLogger
   // The available type of connection (WiFi, 3G, etc.) when connection was first
   // used.
   const char* const connection_description_;
+  // Receives notifications regarding the performance of the underlying socket
+  // for the QUIC connection. May be null.
+  const scoped_ptr<SocketPerformanceWatcher> socket_performance_watcher_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicConnectionLogger);
 };
