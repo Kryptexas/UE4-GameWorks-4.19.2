@@ -489,6 +489,14 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			case AMOTION_EVENT_ACTION_OUTSIDE:
 				type = TouchEnded;
 				break;
+			case AMOTION_EVENT_ACTION_SCROLL:
+			case AMOTION_EVENT_ACTION_HOVER_ENTER:
+			case AMOTION_EVENT_ACTION_HOVER_MOVE:
+			case AMOTION_EVENT_ACTION_HOVER_EXIT:
+				return 0;
+			default:
+				UE_LOG(LogAndroid, Verbose, TEXT("Unknown AMOTION_EVENT %d ignored"), actionType);
+				return 0;
 			}
 
 			size_t pointerCount = AMotionEvent_getPointerCount(event);
