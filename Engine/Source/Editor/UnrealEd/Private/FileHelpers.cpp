@@ -22,6 +22,7 @@
 #include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
+#include "Dialogs/DlgPickPath.h"
 
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Runtime/AssetRegistry/Public/AssetData.h"
@@ -311,6 +312,9 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 		break;
 	case FI_Import:
 		Result = TEXT("Unreal Text (*.t3d)|*.t3d|All Files|*.*");
+		break;
+	case FI_ImportScene:
+		Result = TEXT("FBX (*.fbx)|*.fbx|All Files|*.*");
 		break;
 
 	case FI_Export:
@@ -914,28 +918,69 @@ bool FEditorFileUtils::SaveAs(ULevel* InLevel)
  * Presents the user with a file dialog for importing.
  * If the import is not a merge (bMerging is false), AskSaveChanges() is called first.
  */
-void FEditorFileUtils::Import()
+void FEditorFileUtils::Import(bool bImportScene)
 {
 	TArray<FString> OpenedFiles;
 	FString DefaultLocation(GetDefaultDirectory());
 
-	if( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Import", "Import").ToString(), GetFilterString(FI_Import), DefaultLocation, EFileDialogFlags::None, OpenedFiles ) )
+	bool OpenFileSucceed = false;
+	if (bImportScene)
 	{
-		Import( OpenedFiles[0] );
+		OpenFileSucceed = FileDialogHelpers::OpenFiles(NSLOCTEXT("UnrealEd", "ImportScene", "Import Scene").ToString(), GetFilterString(FI_ImportScene), DefaultLocation, EFileDialogFlags::None, OpenedFiles);
+	}
+	else
+	{
+		OpenFileSucceed = FileDialogHelpers::OpenFiles(NSLOCTEXT("UnrealEd", "Import", "Import").ToString(), GetFilterString(FI_Import), DefaultLocation, EFileDialogFlags::None, OpenedFiles);
+	}
+	if( OpenFileSucceed )
+	{
+		Import(OpenedFiles[0], bImportScene);
 	}
 }
 
-void FEditorFileUtils::Import(const FString& InFilename)
+void FEditorFileUtils::Import(const FString& InFilename, bool bImportScene)
 {
 	const FScopedBusyCursor BusyCursor;
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("MapFilename"), FText::FromString( FPaths::GetCleanFilename(InFilename) ) );
-	GWarn->BeginSlowTask( FText::Format( NSLOCTEXT("UnrealEd", "ImportingMap_F", "Importing map: {MapFilename}..." ), Args ), true );
+	if (bImportScene)
+	{
+		//Ask a root content path to the user
+		//The default path should be the current content browser path
+		//FString DefaultAsset = FPackageName::GetLongPackagePath(Owner->GetOutermost()->GetName()) + TEXT("/") + Owner->GetName() + TEXT("_ExternalCurve");
+		TSharedRef<SDlgPickPath> PickContentPathDlg =
+			SNew(SDlgPickPath)
+			.Title(LOCTEXT("FbxChooseImportRootContentPath", "Choose Location for importing the fbx scene content"));
 
-	GUnrealEd->Exec( GWorld, *FString::Printf( TEXT("MAP IMPORTADD FILE=\"%s\""), *InFilename ) );
+		FString Path = "";
+		if (PickContentPathDlg->ShowModal() == EAppReturnType::Cancel)
+		{
+			return;
+		}
+		Path = PickContentPathDlg->GetPath().ToString();
+		UFactory *FbxSceneFactory = NULL;
+		//Search the UFbxSceneImportFactory instance
+		for (TObjectIterator<UClass> It; It; ++It)
+		{
+			if (It->IsChildOf(UFbxSceneImportFactory::StaticClass()))
+			{
+				FbxSceneFactory = It->GetDefaultObject<UFactory>();
+				break;
+			}
+		}
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		TArray<FString> Files;
+		Files.Add(InFilename);
+		AssetToolsModule.Get().ImportAssets(Files, Path, FbxSceneFactory);
+	}
+	else
+	{
+		Args.Add(TEXT("MapFilename"), FText::FromString(FPaths::GetCleanFilename(InFilename)));
+		GWarn->BeginSlowTask(FText::Format(NSLOCTEXT("UnrealEd", "ImportingMap_F", "Importing map: {MapFilename}..."), Args), true);
+		GUnrealEd->Exec(GWorld, *FString::Printf(TEXT("MAP IMPORTADD FILE=\"%s\""), *InFilename));
 
-	GWarn->EndSlowTask();
+		GWarn->EndSlowTask();
+	}
 
 	GUnrealEd->RedrawLevelEditingViewports();
 
@@ -1086,20 +1131,26 @@ bool FEditorFileUtils::AddCheckoutPackageItems(bool bCheckDirty, TArray<UPackage
 				}
 				else
 				{
-					// File has already been made writable, just allow it to be saved without prompting
-					OutPackagesNotNeedingCheckout->Add(CurPackage);
+					if (OutPackagesNotNeedingCheckout)
+					{
+						// File has already been made writable, just allow it to be saved without prompting
+						OutPackagesNotNeedingCheckout->Add(CurPackage);
+					}
 				}
 			}
 			else
 			{
-				const FText Tooltip = SourceControlState.IsValid() ? SourceControlState->GetDisplayTooltip() : NSLOCTEXT("PackagesDialogModule", "Dlg_NotCheckedOutTip", "Not checked out");
+				// Provided it's not in the list to not prompt any more, add it to the dialog
+				if (!PackagesNotToPromptAnyMore.Contains(CurPackage->GetName()))
+				{
+					const FText Tooltip = SourceControlState.IsValid() ? SourceControlState->GetDisplayTooltip() : NSLOCTEXT("PackagesDialogModule", "Dlg_NotCheckedOutTip", "Not checked out");
 
-				bHavePackageToCheckOut = true;
-				//Add this package to the dialog if its not checked out, in the source control depot, dirty(if we are checking), and read only
-				//This package could also be marked for delete, which we will treat as SCC_ReadOnly until it is time to check it out. At that time, we will revert it.
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
-				PackagesNotToPromptAnyMore.Remove(CurPackage->GetName());
-				bPackagesAdded = true;
+					bHavePackageToCheckOut = true;
+					//Add this package to the dialog if its not checked out, in the source control depot, dirty(if we are checking), and read only
+					//This package could also be marked for delete, which we will treat as SCC_ReadOnly until it is time to check it out. At that time, we will revert it.
+					CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
+					bPackagesAdded = true;
+				}
 			}
 		}
 		else if (bPkgReadOnly && bFoundFile && (IsCheckOutSelectedDisabled() || !bCareAboutReadOnly))
@@ -3304,8 +3355,8 @@ void FEditorFileUtils::FindAllSubmittableConfigFiles(TMap<FString, TSharedPtr<cl
 
 	for (const FString& ConfigFilename : ConfigFilenames)
 	{
-		// Only check files which are intended to be under source control
-		if (FPaths::GetCleanFilename(ConfigFilename) != TEXT("DefaultEditorPerProjectUserSettings.ini"))
+		// Only check files which are intended to be under source control. Ignore all user config files.
+		if (FPaths::GetCleanFilename(ConfigFilename) != TEXT("DefaultEditorPerProjectUserSettings.ini") && !FPaths::GetCleanFilename(ConfigFilename).StartsWith(TEXT("User")))
 		{
 			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilename, EStateCacheUsage::Use);
 

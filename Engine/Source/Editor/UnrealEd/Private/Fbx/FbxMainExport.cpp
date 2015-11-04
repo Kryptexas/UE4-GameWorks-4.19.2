@@ -187,7 +187,10 @@ void FFbxExporter::WriteToFile(const TCHAR* Filename)
 
 	// We export using FBX 2013 format because many users are still on that version and FBX 2014 files has compatibility issues with
 	// normals when importing to an earlier version of the plugin
-	Exporter->SetFileExportVersion(FBX_FILE_VERSION_7300, FbxSceneRenamer::eNone );
+	if (!Exporter->SetFileExportVersion(FBX_2013_00_COMPATIBLE, FbxSceneRenamer::eNone))
+	{
+		UE_LOG(LogFbx, Warning, TEXT("Call to KFbxExporter::SetFileExportVersion(FBX_2013_00_COMPATIBLE) to export 2013 fbx file format failed.\n"));
+	}
 
 	// Initialize the exporter by providing a filename.
 	if( !Exporter->Initialize(TCHAR_TO_UTF8(Filename), FileFormat, SdkManager->GetIOSettings()) )
@@ -662,7 +665,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	int32 LODIndex = StaticMeshComponent->ForcedLodModel-1;
 
 	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
-
+	FString FbxMeshName = StaticMesh->GetName().Replace(TEXT("-"), TEXT("_"));
 	FColorVertexBuffer* ColorBuffer = NULL;
 	
 	if (LODIndex != INDEX_NONE && LODIndex < StaticMeshComponent->LODData.Num())
@@ -671,7 +674,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	}
 
 	FbxNode* FbxActor = ExportActor(Actor, InMatineeActor);
-	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxNodeName, FbxActor, -1, ColorBuffer);
+	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
 }
 
 struct FBSPExportData
@@ -1877,7 +1880,7 @@ void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, 
 FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int32 ExportLOD, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel /*= -1*/, const FColorVertexBuffer* ColorBuffer /*= NULL*/, const TArray<UMaterialInterface*>* MaterialOrderOverride /*= NULL*/)
 {
 	FbxMesh* Mesh = nullptr;
-	if (ExportLOD == 0 && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
+	if ((ExportLOD == 0 || ExportLOD == -1) && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
 	{
 		Mesh = FbxMeshes.FindRef(StaticMesh);
 	}
@@ -2156,12 +2159,34 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			}
 		}
 
-		if (ExportLOD == 0 && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
+		if ((ExportLOD == 0 || ExportLOD == -1) && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
 		{
 			FbxMeshes.Add(StaticMesh, Mesh);
 		}
 	}
+	else
+	{
+		//Materials in fbx are store in the node and not in the mesh, so even if the mesh was already export
+		//we have to find and assign the mesh material.
+		const FStaticMeshLODResources& RenderMesh = StaticMesh->GetLODForExport(ExportLOD);
+		const int32 PolygonsCount = RenderMesh.Sections.Num();
+		uint32 AccountedTriangles = 0;
+		for (int32 PolygonsIndex = 0; PolygonsIndex < PolygonsCount; ++PolygonsIndex)
+		{
+			const FStaticMeshSection& Polygons = RenderMesh.Sections[PolygonsIndex];
+			FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
+			UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
+			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+			if (!FbxMaterial)
+			{
+				FbxMaterial = CreateDefaultMaterial();
+			}
+			FbxActor->AddMaterial(FbxMaterial);
+		}
+	}
+
+	//Set the original meshes in case it was already existing
 	FbxActor->SetNodeAttribute(Mesh);
 
 	return FbxActor;

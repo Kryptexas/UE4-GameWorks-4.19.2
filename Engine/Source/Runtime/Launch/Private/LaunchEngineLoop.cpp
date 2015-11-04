@@ -1375,10 +1375,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		EKeys::Initialize();
 		FCoreStyle::ResetToDefault();
 	}
-
-#if !UE_SERVER
-	FEngineFontServices::Create();
-#endif
 	
 	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
 
@@ -1481,6 +1477,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 		GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
 	}
+
+	// Create the engine font services now that the Slate renderer is ready
+	FEngineFontServices::Create();
 #endif
 
 	SlowTask.EnterProgressFrame(10);

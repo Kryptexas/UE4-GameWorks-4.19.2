@@ -89,7 +89,7 @@ public:
 	{
 		ConditionalCreateResources();
 
-		return MakeShareable( new FSlateNullRenderer(FontCache, FontMeasure) );
+		return MakeShareable( new FSlateNullRenderer(SlateFontServices.ToSharedRef()) );
 	}
 
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override
@@ -103,20 +103,16 @@ public:
 private:
 	void ConditionalCreateResources()
 	{
-		if (!FontCache.IsValid())
+		if (!SlateFontServices.IsValid())
 		{
-			FontCache = MakeShareable(new FSlateFontCache(MakeShareable(new FSlateNullFontAtlasFactory)));
-		}
+			const TSharedRef<FSlateFontCache> FontCache = MakeShareable(new FSlateFontCache(MakeShareable(new FSlateNullFontAtlasFactory)));
 
-		if (!FontMeasure.IsValid())
-		{
-			FontMeasure = FSlateFontMeasure::Create(FontCache.ToSharedRef());
+			SlateFontServices = MakeShareable(new FSlateFontServices(FontCache, FontCache));
 		}
 	}
 
 private:
-	TSharedPtr<FSlateFontCache> FontCache;
-	TSharedPtr<FSlateFontMeasure> FontMeasure;
+	TSharedPtr<FSlateFontServices> SlateFontServices;
 };
 
 

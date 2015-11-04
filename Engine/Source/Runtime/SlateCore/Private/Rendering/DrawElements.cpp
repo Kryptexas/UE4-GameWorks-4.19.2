@@ -151,6 +151,16 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.DataPayload.SetTextPayloadProperties(  ElementList, InText.ToString(), InFontInfo, InTint );
 }
 
+void FSlateDrawElement::MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
+{
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
+	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
+	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
+	DrawElt.ElementType = ET_ShapedText;
+	DrawElt.DataPayload.SetShapedTextPayloadProperties(InShapedGlyphSequence, InTint);
+}
+
 void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, bool bGammaCorrect )
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )

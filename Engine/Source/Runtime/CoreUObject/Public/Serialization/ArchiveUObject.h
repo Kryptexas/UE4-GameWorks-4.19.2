@@ -1076,6 +1076,8 @@ public:
 	 */
 	void SerializeSearchObject()
 	{
+		ReplacedReferences.Empty();
+
 		if (SearchObject != NULL && !SerializedObjects.Find(SearchObject)
 		&&	(ReplacementMap.Num() > 0 || bNullPrivateReferences))
 		{
@@ -1110,7 +1112,7 @@ public:
 	/**
 	 * Returns the number of times the object was referenced
 	 */
-	int64 GetCount()
+	int64 GetCount() const
 	{
 		return Count;
 	}
@@ -1119,6 +1121,11 @@ public:
 	 * Returns a reference to the object this archive is operating on
 	 */
 	const UObject* GetSearchObject() const { return SearchObject; }
+
+	/**
+	 * Returns a reference to the replaced references map
+	 */
+	const TMap<UObject*, TArray<UProperty*>>& GetReplacedReferences() const { return ReplacedReferences; }
 
 	/**
 	 * Serializes the reference to the object
@@ -1132,8 +1139,9 @@ public:
 			if ( ReplaceWith != NULL )
 			{
 				Obj = *ReplaceWith;
+				ReplacedReferences.FindOrAdd(Obj).AddUnique(GetSerializedProperty());
 				Count++;
-			} 
+			}
 			// A->IsIn(A) returns false, but we don't want to NULL that reference out, so extra check here.
 			else if ( Obj == SearchObject || Obj->IsIn(SearchObject) )
 			{
@@ -1200,6 +1208,9 @@ protected:
 
 	/** List of objects that have already been serialized */
 	TSet<UObject*> SerializedObjects;
+
+	/** Map of referencing objects to referencing properties */
+	TMap<UObject*, TArray<UProperty*>> ReplacedReferences;
 
 	/**
 	 * Whether references to non-public objects not contained within the SearchObject

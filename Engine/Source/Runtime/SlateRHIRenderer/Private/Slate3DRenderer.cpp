@@ -4,12 +4,11 @@
 #include "Slate3DRenderer.h"
 #include "ElementBatcher.h"
 
-FSlate3DRenderer::FSlate3DRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, bool bUseGammaCorrection )
-	: ResourceManager( InResourceManager.ToSharedRef() )
-	, FontCache( InFontCache.ToSharedRef() )
+FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection )
+	: SlateFontServices( InSlateFontServices )
+	, ResourceManager( InResourceManager )
 {
-
-	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager ) );
+	RenderTargetPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices, ResourceManager ) );
 	RenderTargetPolicy->SetUseGammaCorrection( bUseGammaCorrection );
 
 	ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderTargetPolicy.ToSharedRef()));
@@ -50,6 +49,8 @@ FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 {
 	check( IsInGameThread() );
+
+	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetGameThreadFontCache();
 
 	// Need to flush the font cache before we add the elements below to avoid the flush potentially 
 	// deleting the texture resources that will be needed by the render thread
@@ -137,6 +138,4 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 	RenderTargetPolicy->EndDrawingWindows();
 
 	RHICmdList.CopyToResolveTarget(RenderTargetResource->GetTextureRHI(), RTResource, true, FResolveParams());
-	
-
 }

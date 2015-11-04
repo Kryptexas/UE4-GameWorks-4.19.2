@@ -1313,6 +1313,14 @@ void FSlateApplication::Tick()
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
 
 	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
+
+	if (Renderer.IsValid())
+	{
+		// Release any temporary material or texture resources we may have cached and are reporting to prevent
+		// GC on those resources.  We don't need to force it, we just need to let the ones used last frame to
+		// be queued up to be released.
+		Renderer->ReleaseAccessedResources(/* Flush State */ false);
+	}
 	
 	{
 		const float DeltaTime = GetDeltaTime();
@@ -2098,13 +2106,13 @@ void FSlateApplication::UnregisterGameViewport()
 
 void FSlateApplication::FlushRenderState()
 {
-	// Flush any render commands because we're about to release shader accesses and not keep them alive.
-	Renderer->FlushCommands();
-
-	// Release any temporary material or texture resources we may have cached and are reporting to prevent
-	// GC on those resources.  If the game viewport is being unregistered, we need to flush these resources
-	// to allow for them to be GC'ed.
-	Renderer->ReleaseAccessedResources();
+	if ( Renderer.IsValid() )
+	{
+		// Release any temporary material or texture resources we may have cached and are reporting to prevent
+		// GC on those resources.  If the game viewport is being unregistered, we need to flush these resources
+		// to allow for them to be GC'ed.
+		Renderer->ReleaseAccessedResources(/* Flush State */ true);
+	}
 }
 
 TSharedPtr<SViewport> FSlateApplication::GetGameViewport() const

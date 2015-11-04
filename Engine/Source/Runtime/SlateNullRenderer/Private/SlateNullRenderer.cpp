@@ -2,10 +2,9 @@
 
 #include "SlateNullRendererPrivatePCH.h"
 
-FSlateNullRenderer::FSlateNullRenderer(const TSharedPtr<FSlateFontCache>& InFontCache, const TSharedPtr<FSlateFontMeasure>& InFontMeasure)
+FSlateNullRenderer::FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices)
+	: FSlateRenderer(InSlateFontServices)
 {
-	FontCache = InFontCache;
-	FontMeasure = InFontMeasure;
 }
 
 void FSlateNullRenderer::Initialize()

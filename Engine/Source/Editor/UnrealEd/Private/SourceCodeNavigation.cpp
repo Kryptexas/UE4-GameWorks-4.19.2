@@ -1555,6 +1555,12 @@ void FSourceCodeNavigation::DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownlo
 	}
 }
 
+void FSourceCodeNavigation::RefreshCompilerAvailability()
+{
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	return SourceCodeAccessModule.GetAccessor().RefreshAvailability();
+}
+
 bool FSourceCodeNavigation::IsCompilerAvailable()
 {
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
