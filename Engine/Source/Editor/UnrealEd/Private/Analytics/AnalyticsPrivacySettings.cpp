@@ -31,7 +31,7 @@ FText UAnalyticsPrivacySettings::GetFalseStateTooltip() const
 
 FText UAnalyticsPrivacySettings::GetFalseStateDescription() const
 {
-	return LOCTEXT("FalseStateDescription", "By opting out you have chosen to not send Editor usage data to Epic Games. Please consider opting in to help improve Unreal Engine. Epic Games will never sell or trade individual usage data to/with third party organizations. If you enable this feature, we will collect information about how you use the editor, when you use the editor, the type of projects you are creating, how you interact with the various editor components and we perform occasional checks on the type of hardware/OS you are using.");
+	return LOCTEXT("FalseStateDescription", "By opting out you have chosen to not send Editor usage data to Epic Games. Please consider opting in to help improve Unreal Engine. Epic Games will never sell or trade individual usage data to / with third party organizations. If you enable this feature, we will collect information about how you use the editor, when you use the editor, the type of projects you are creating, how you interact with the various editor components and we would perform occasional checks on the type of hardware/OS you are using.");
 };
 
 FText UAnalyticsPrivacySettings::GetTrueStateLabel() const
@@ -46,7 +46,7 @@ FText UAnalyticsPrivacySettings::GetTrueStateTooltip() const
 
 FText UAnalyticsPrivacySettings::GetTrueStateDescription() const
 {
-	return LOCTEXT("TrueStateDescription", "By opting in you have chosen to send Editor usage data to Epic Games. Thank you for helping to improve Unreal Engine. Epic Games will never sell or trade individual usage data to/with third party organizations. We will collect information about how you use the editor, when you use the editor, the type of projects you are creating, how you interact with the various editor components and we perform occasional checks on the type of hardware/OS you are using.");
+	return LOCTEXT("TrueStateDescription", "By opting in you have chosen to send Editor usage data to Epic Games. Thank you for helping to improve Unreal Engine. Epic Games will never sell or trade individual usage data to / with third party organizations. We will collect information about how you use the editor, when you use the editor, the type of projects you are creating, how you interact with the various editor components and we perform occasional checks on the type of hardware/OS you are using.");
 };
 
 FString UAnalyticsPrivacySettings::GetAdditionalInfoUrl() const
