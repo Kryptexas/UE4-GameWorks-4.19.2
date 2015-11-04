@@ -4254,7 +4254,7 @@ void FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FP
 	{
 		//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(PointerEvent.GetPointerIndex());
 		FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &PointerEvent );
-		if ( ensureMsgf(MouseCaptorPath.Widgets.Num() > 0, TEXT("A window had a widget with mouse capture. That entire window has been dismissed before the mouse up could be processed.")) )
+		if ( MouseCaptorPath.Widgets.Num() > 0 )
 		{
 #if PLATFORM_MAC
 			NSWindow* ActiveNativeWindow = [NSApp keyWindow];
