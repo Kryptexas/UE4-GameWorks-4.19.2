@@ -8,6 +8,8 @@
 #include "Fbx/SFbxSceneListView.h"
 #include "Factories/FbxSceneImportFactory.h"
 
+class IDetailsView;
+
 class SFbxSceneOptionWindow : public SCompoundWidget
 {
 public:

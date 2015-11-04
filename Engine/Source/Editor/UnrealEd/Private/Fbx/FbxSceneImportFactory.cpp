@@ -6,13 +6,14 @@
 #include "SSkeletonWidget.h"
 #include "Dialogs/DlgPickPath.h"
 
-#include "FbxImporter.h"
 #include "AssetSelection.h"
 
+#include "FbxImporter.h"
 #include "FbxErrors.h"
 #include "AssetRegistryModule.h"
 #include "Engine/StaticMesh.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "PackageTools.h"
 
 #include "FbxSceneOptionWindow.h"
 #include "MainFrame.h"
@@ -21,6 +22,8 @@
 #include "Kismet2/KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FBXSceneImportFactory"
+
+using namespace UnFbx;
 
 //////////////////////////////////////////////////////////////////////////
 // TODO list
