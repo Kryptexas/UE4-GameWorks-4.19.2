@@ -428,30 +428,6 @@ public:
 	 */
 	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
 
-	/** 
-	 *	Checks the state of the named value, treating it as a lock.
-	 *  Locks the value and returns true if the lock was available.
-	 *  Note: The key->value store is user-specific, but may be used to share data between different applications for the same user
-	 *
-	 *  @param	InStoreId				The name used to identify the store you want to use (eg, MyGame)
-	 *	@param	InSectionName			The section that this key->value pair is placed within (can contain / separators, eg UserDetails/AccountInfo)
-	 *	@param	InLockName				The name of the key to treat as a lock
-	 *	@param	InTimeout				Timeout that will be written to the lock value if obtained successfully
-	 *	@return	bool					true if the lock was obtained, false it was locked
-	 */
-	static bool GetStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName, FTimespan InTimeout);
-
-	/** 
-	 *	Unlocks the named value, treating it as a lock.
-	 *  Warning, this should only be called on values locked successfully with GetStoredLock().
-	 *  Note: The key->value store is user-specific, but may be used to share data between different applications for the same user
-	 *
-	 *  @param	InStoreId				The name used to identify the store you want to use (eg, MyGame)
-	 *	@param	InSectionName			The section that this key->value pair is placed within (can contain / separators, eg UserDetails/AccountInfo)
-	 *	@param	InLockName				The name of the key to treat as a locky
-	 */
-	static void ReleaseStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName);
-
 	/**
   	 *	Deletes value for the given section and key in the platform specific key->value store
 	 *  Note: The key->value store is user-specific, but may be used to share data between different applications for the same user

@@ -556,3 +556,19 @@ struct CORE_API FGenericPlatformProcess
 	#include "PThreadCriticalSection.h"
 	typedef FPThreadsCriticalSection FCriticalSection;
 #endif
+
+/** Platforms that don't need a working FSystemWideCriticalSection can just typedef this one */
+class FSystemWideCriticalSectionNotImplemented
+{
+public:
+	explicit FSystemWideCriticalSectionNotImplemented(const FString& Name, FTimespan Timeout = FTimespan::Zero());
+	~FSystemWideCriticalSectionNotImplemented() {}
+
+	bool IsValid() const { return false; }
+	void Release() {}
+
+private:
+	FSystemWideCriticalSectionNotImplemented();
+	FSystemWideCriticalSectionNotImplemented(const FSystemWideCriticalSectionNotImplemented&);
+	FSystemWideCriticalSectionNotImplemented& operator=(const FSystemWideCriticalSectionNotImplemented&);
+};

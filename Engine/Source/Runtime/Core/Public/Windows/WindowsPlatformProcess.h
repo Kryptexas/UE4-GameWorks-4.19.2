@@ -210,3 +210,4 @@ inline bool FProcHandle::Close()
 #include "WindowsCriticalSection.h"
 
 typedef FWindowsCriticalSection FCriticalSection;
+typedef FWindowsSystemWideCriticalSection FSystemWideCriticalSection;

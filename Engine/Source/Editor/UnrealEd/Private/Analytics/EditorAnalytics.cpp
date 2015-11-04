@@ -15,19 +15,20 @@
 namespace EditorAnalyticsDefs
 {
 	static const FTimespan SessionRecordExpiration(30, 0, 0, 0);	// 30 days
-	static const FTimespan SessionRecordTimeout(0, 3, 0);			// 30 minutes
-	static const FTimespan SessionRecordLockTimeout(0, 0, 30);		// 30 seconds
+	static const FTimespan SessionRecordTimeout(0, 30, 0);			// 30 minutes
+	static const FTimespan GlobalLockWaitTimeout(0, 0, 0, 0, 500);	// 1/2 second
 	static const FString StoreId(TEXT("Epic Games"));
 	static const FString CrashSessionToken(TEXT("Crashed"));
 	static const FString DebuggerSessionToken(TEXT("Debugger"));
 	static const FString AbnormalSessionToken(TEXT("AbnormalShutdown"));
 	static const FString SessionRecordListSection(TEXT("List"));
 	static const FString SessionRecordSectionPrefix(TEXT("Unreal Engine/Editor Sessions/"));
-	static const FString EditorSessionsVersionString(TEXT("1_0"));
+	static const FString EditorSessionsVersionString(TEXT("1_1"));
 	static const FString CrashStoreKey(TEXT("IsCrash"));
 	static const FString EngineVersionStoreKey(TEXT("EngineVersion"));
 	static const FString TimestampStoreKey(TEXT("Timestamp"));
 	static const FString DebuggerStoreKey(TEXT("IsDebugger"));
+	static const FString GlobalLockName(TEXT("UE4_EditorAnalytics_Lock"));
 	static const FString FalseValueString(TEXT("0"));
 	static const FString TrueValueString(TEXT("1"));
 }
@@ -41,7 +42,7 @@ public:
 		, bEditorCrashed(false)
 	{}
 
-	void Initialize()
+	void Initialize(bool bWaitForLock = true)
 	{
 		if (!FEngineAnalytics::IsAvailable())
 		{
@@ -50,50 +51,55 @@ public:
 
 		TArray<FSessionRecord> SessionRecordsToReport;
 
-		// Get list of sessions in storage
-		if (BeginReadWriteRecords())
 		{
-			TArray<FSessionRecord> SessionRecordsToDelete;
+			// Scoped lock
+			FSystemWideCriticalSection StoredValuesLock(EditorAnalyticsDefs::GlobalLockName, bWaitForLock ? EditorAnalyticsDefs::GlobalLockWaitTimeout : FTimespan::Zero());
 
-			// Attempt check each stored session
-			for (FSessionRecord& Record : SessionRecords)
+			// Get list of sessions in storage
+			if (StoredValuesLock.IsValid() && BeginReadWriteRecords())
 			{
-				FTimespan RecordAge = FDateTime::UtcNow() - Record.Timestamp;
+				TArray<FSessionRecord> SessionRecordsToDelete;
 
-				if (Record.bCrashed)
+				// Attempt check each stored session
+				for (FSessionRecord& Record : SessionRecords)
 				{
-					// Crashed sessions
-					SessionRecordsToReport.Add(Record);
-					SessionRecordsToDelete.Add(Record);
+					FTimespan RecordAge = FDateTime::UtcNow() - Record.Timestamp;
+
+					if (Record.bCrashed)
+					{
+						// Crashed sessions
+						SessionRecordsToReport.Add(Record);
+						SessionRecordsToDelete.Add(Record);
+					}
+					else if (RecordAge > EditorAnalyticsDefs::SessionRecordExpiration)
+					{
+						// Delete expired session records
+						SessionRecordsToDelete.Add(Record);
+					}
+					else if (RecordAge > EditorAnalyticsDefs::SessionRecordTimeout)
+					{
+						// Timed out sessions
+						SessionRecordsToReport.Add(Record);
+						SessionRecordsToDelete.Add(Record);
+					}
 				}
-				else if(RecordAge > EditorAnalyticsDefs::SessionRecordExpiration)
+
+				for (FSessionRecord& DeletingRecord : SessionRecordsToDelete)
 				{
-					// Delete expired session records
-					SessionRecordsToDelete.Add(Record);
+					DeleteStoredRecord(DeletingRecord);
 				}
-				else if (RecordAge > EditorAnalyticsDefs::SessionRecordTimeout)
-				{
-					// Timed out sessions
-					SessionRecordsToReport.Add(Record);
-					SessionRecordsToDelete.Add(Record);
-				}
+
+				// Create a session record for this session
+				CreateAndWriteRecordForSession();
+
+				// Update and release list of sessions in storage
+				EndReadWriteRecords();
+
+				// Register for crash callbacks
+				FCoreDelegates::OnHandleSystemError.AddRaw(this, &FSessionManager::OnCrashing);
+
+				bInitialized = true;
 			}
-
-			for (FSessionRecord& DeletingRecord : SessionRecordsToDelete)
-			{
-				DeleteStoredRecord(DeletingRecord);
-			}
-
-			// Create a session record for this session
-			CreateAndWriteRecordForSession();
-
-			// Update and release list of sessions in storage
-			EndReadWriteRecords();
-
-			// Register for crash callbacks
-			FCoreDelegates::OnHandleSystemError.AddRaw(this, &FSessionManager::OnCrashing);
-
-			bInitialized = true;
 		}
 
 		for (FSessionRecord& ReportingSession : SessionRecordsToReport)
@@ -113,7 +119,8 @@ public:
 		if (!bInitialized)
 		{
 			// Try late initialization
-			Initialize();
+			const bool bWaitForLock = false;
+			Initialize(bWaitForLock);
 		}
 
 		// Update timestamp in the session record for this session 
@@ -161,12 +168,6 @@ private:
 
 		// Lock and read the list of sessions in storage
 		FString ListSectionName = GetStoreSectionString(EditorAnalyticsDefs::SessionRecordListSection);
-
-		if (!FPlatformMisc::GetStoredLock(EditorAnalyticsDefs::StoreId, ListSectionName, TEXT("Lock"), EditorAnalyticsDefs::SessionRecordLockTimeout))
-		{
-			// Locked - let this return failed and the heartbeat will attempt to retry
-			return false;
-		}
 
 		// Write list to SessionRecords member
 		FString SessionListString;
@@ -229,9 +230,6 @@ private:
 
 		FString ListSectionName = GetStoreSectionString(EditorAnalyticsDefs::SessionRecordListSection);
 		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, ListSectionName, TEXT("SessionList"), SessionListString);
-
-		// Unlock the list of sessions in storage
-		FPlatformMisc::ReleaseStoredLock(EditorAnalyticsDefs::StoreId, ListSectionName, TEXT("Lock"));
 
 		// Clear SessionRecords member
 		SessionRecords.Empty();

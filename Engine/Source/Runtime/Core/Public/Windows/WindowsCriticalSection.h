@@ -68,3 +68,22 @@ public:
 		LeaveCriticalSection(&CriticalSection);
 	}
 };
+
+/** System-Wide Critical Section for windows using mutex */
+class CORE_API FWindowsSystemWideCriticalSection
+{
+public:
+	explicit FWindowsSystemWideCriticalSection(const FString& InName, FTimespan InTimeout = FTimespan::Zero());
+	~FWindowsSystemWideCriticalSection();
+
+	bool IsValid() const;
+	void Release();
+
+private:
+	FWindowsSystemWideCriticalSection();
+	FWindowsSystemWideCriticalSection(const FWindowsSystemWideCriticalSection&);
+	FWindowsSystemWideCriticalSection& operator=(const FWindowsSystemWideCriticalSection&);
+
+private:
+	HANDLE Mutex;
+};

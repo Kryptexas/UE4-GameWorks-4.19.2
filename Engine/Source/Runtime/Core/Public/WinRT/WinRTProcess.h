@@ -39,3 +39,4 @@ typedef FWinRTProcess FPlatformProcess;
 #include "../WinRT/WinRTCriticalSection.h"
 typedef FWinRTCriticalSection FCriticalSection;
 
+typedef FSystemWideCriticalSectionNotImplemented FSystemWideCriticalSection;

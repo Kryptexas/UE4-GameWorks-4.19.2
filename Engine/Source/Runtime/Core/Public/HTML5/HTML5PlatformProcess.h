@@ -65,3 +65,5 @@ public:
 };
 
 typedef FHTML5CriticalSection FCriticalSection;
+
+typedef FSystemWideCriticalSectionNotImplemented FSystemWideCriticalSection;

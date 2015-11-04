@@ -1198,3 +1198,50 @@ FString FLinuxPlatformProcess::FProcEnumInfo::GetName() const
 {
 	return FPaths::GetCleanFilename(GetFullPath());
 }
+
+
+FLinuxSystemWideCriticalSection::FLinuxSystemWideCriticalSection(const FString& Name, FTimespan Timeout)
+{
+	check(InName.Len() > 0)
+	check(InTimeout >= FTimespan::Zero())
+	check(InTimeout.GetTotalSeconds() < (double)FLT_MAX)
+
+	const FString LockPath = FString(FLinuxPlatformProcess::ApplicationSettingsDir()) / Name;
+	FString NormalizedFilepath(LockPath);
+	NormalizedFilepath.ReplaceInline(TEXT("\\"), TEXT("/"));
+
+	// Attempt to open a file with O_EXLOCK (equivalent of atomic open() + flock())
+	FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+	if (FileHandle == -1 && Timeout != FTimespan::Zero())
+	{
+		FDateTime ExpireTime = FDateTime::UtcNow() + Timeout;
+		const float RetrySeconds = FMath::Min((float)Timeout.GetTotalSeconds(), 0.25f);
+
+		do
+		{
+			// retry until timeout
+			FLinuxPlatformProcess::Sleep(RetrySeconds);
+			FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		} while (FileHandle == -1 && FDateTime::UtcNow() < ExpireTime);
+	}
+}
+
+FLinuxSystemWideCriticalSection::~FLinuxSystemWideCriticalSection()
+{
+	Release();
+}
+
+bool FLinuxSystemWideCriticalSection::IsValid() const
+{
+	return FileHandle != -1;
+}
+
+void FLinuxSystemWideCriticalSection::Release()
+{
+	if (IsValid())
+	{
+		close(FileHandle);
+		FileHandle = -1;
+	}
+}

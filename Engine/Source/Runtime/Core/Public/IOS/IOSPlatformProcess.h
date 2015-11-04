@@ -53,3 +53,4 @@ public:
 
 typedef FIOSPlatformAffinity FPlatformAffinity;
 
+typedef FSystemWideCriticalSectionNotImplemented FSystemWideCriticalSection;
