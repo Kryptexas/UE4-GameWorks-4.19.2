@@ -310,12 +310,6 @@ void FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 		}
 	}
 
-	// todo: what is this doing?
-	FT_BBox GlyphBox;
-	FT_Glyph Glyph;
-	FT_Get_Glyph( Slot, &Glyph );
-	FT_Glyph_Get_CBox( Glyph, FT_GLYPH_BBOX_PIXELS, &GlyphBox );
-
 	const int32 Height = static_cast<int32>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(Face->height, Face->size->metrics.y_scale)) * InScale);
 
 	// Set measurement info for this character
@@ -338,8 +332,6 @@ void FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 	{
 		FT_Bitmap_Done(FTLibrary->GetLibrary(), Bitmap);
 	}
-
-	FT_Done_Glyph(Glyph);
 }
 
 FT_Face FSlateFontRenderer::GetFontFace(const FFontData& InFontData) const

@@ -536,10 +536,14 @@ FSlateFontCache::FSlateFontCache( TSharedRef<ISlateFontAtlasFactory> InFontAtlas
 	, bFlushRequested( false )
 {
 	UE_LOG(LogSlate, Log, TEXT("SlateFontCache - WITH_FREETYPE: %d, WITH_HARFBUZZ: %d"), WITH_FREETYPE, WITH_HARFBUZZ);
+
+	FInternationalization::Get().OnCultureChanged().AddRaw(this, &FSlateFontCache::FlushCache);
 }
 
 FSlateFontCache::~FSlateFontCache()
-{	
+{
+	FInternationalization::Get().OnCultureChanged().RemoveAll(this);
+
 	// Make sure things get destroyed in the correct order
 	TextShaper.Reset();
 	FontRenderer.Reset();

@@ -877,14 +877,15 @@ FText FText::FormatInternal(FText Pattern, TArray< struct FFormatArgumentData > 
 	}
 
 	FFormatArgumentValue TmpArgumentValue;
-	auto GetArgumentValue = [&Arguments, &TmpArgumentValue](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
+	FFormatArgumentValue* TmpArgumentValuePtr = &TmpArgumentValue; // Need to do this to avoid the error "address of stack memory associated with local variable 'TmpArgumentValue' returned"
+	auto GetArgumentValue = [&Arguments, &TmpArgumentValuePtr](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
 	{
 		for (const auto& Arg : Arguments)
 		{
 			if (ArgumentName.NameLen == Arg.ArgumentName.Len() && FCString::Strnicmp(ArgumentName.NamePtr, *Arg.ArgumentName, ArgumentName.NameLen) == 0)
 			{
-				TmpArgumentValue = FFormatArgumentValue(Arg.ArgumentValue);
-				return &TmpArgumentValue;
+				(*TmpArgumentValuePtr) = FFormatArgumentValue(Arg.ArgumentValue);
+				return TmpArgumentValuePtr;
 			}
 		}
 		return nullptr;

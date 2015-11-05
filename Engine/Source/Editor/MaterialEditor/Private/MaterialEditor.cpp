@@ -470,8 +470,11 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 			// If this is an empty functions, create an output by default and start previewing it
 			if (GraphEditor.IsValid())
 			{
+				check(!bMaterialDirty);
 				UMaterialExpression* Expression = CreateNewMaterialExpression(UMaterialExpressionFunctionOutput::StaticClass(), FVector2D(200, 300), false, true);
 				SetPreviewExpression(Expression);
+				// This shouldn't count as having dirtied the material, so reset the flag
+				bMaterialDirty = false;
 			}
 		}
 		else
