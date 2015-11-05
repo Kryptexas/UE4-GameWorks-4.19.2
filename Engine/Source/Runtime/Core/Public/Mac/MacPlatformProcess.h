@@ -141,7 +141,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 class FMacSystemWideCriticalSection
 {
 public:
-	explicit FMacSystemWideCriticalSection(const FString& Name, FTimespan Timeout = FTimespan::Zero());
+	explicit FMacSystemWideCriticalSection(const FString& InName, FTimespan InTimeout = FTimespan::Zero());
 	~FMacSystemWideCriticalSection();
 
 	bool IsValid() const;

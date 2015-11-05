@@ -1105,23 +1105,23 @@ FRunnableThread* FMacPlatformProcess::CreateRunnableThread()
 }
 
 
-FMacSystemWideCriticalSection::FMacSystemWideCriticalSection(const FString& Name, FTimespan Timeout)
+FMacSystemWideCriticalSection::FMacSystemWideCriticalSection(const FString& InName, FTimespan InTimeout)
 {
 	check(InName.Len() > 0)
 	check(InTimeout >= FTimespan::Zero())
 	check(InTimeout.GetTotalSeconds() < (double)FLT_MAX)
 
-	const FString LockPath = FString(FMacPlatformProcess::ApplicationSettingsDir()) / Name;
+	const FString LockPath = FString(FMacPlatformProcess::ApplicationSettingsDir()) / InName;
 	FString NormalizedFilepath(LockPath);
 	NormalizedFilepath.ReplaceInline(TEXT("\\"), TEXT("/"));
 
 	// Attempt to open a file with O_EXLOCK (equivalent of atomic open() + flock())
 	FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
-	if (FileHandle == -1 && Timeout != FTimespan::Zero())
+	if (FileHandle == -1 && InTimeout != FTimespan::Zero())
 	{
-		FDateTime ExpireTime = FDateTime::UtcNow() + Timeout;
-		const float RetrySeconds = FMath::Min((float)Timeout.GetTotalSeconds(), 0.25f);
+		FDateTime ExpireTime = FDateTime::UtcNow() + InTimeout;
+		const float RetrySeconds = FMath::Min((float)InTimeout.GetTotalSeconds(), 0.25f);
 
 		do
 		{

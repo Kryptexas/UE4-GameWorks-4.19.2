@@ -299,7 +299,7 @@ inline bool FProcHandle::Close()
 class FLinuxSystemWideCriticalSection
 {
 public:
-	explicit FLinuxSystemWideCriticalSection(const FString& Name, FTimespan Timeout = FTimespan::Zero());
+	explicit FLinuxSystemWideCriticalSection(const FString& InName, FTimespan InTimeout = FTimespan::Zero());
 	~FLinuxSystemWideCriticalSection();
 
 	bool IsValid() const;
