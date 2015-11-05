@@ -1,7 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "FbxImporter.h"
+#include "Widgets/Input/STextComboBox.h"
 #include "SFbxSceneListView.h"
+#include "FbxSceneOptionWindow.h"
 #include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "SFbxSceneStaticMeshListView"
