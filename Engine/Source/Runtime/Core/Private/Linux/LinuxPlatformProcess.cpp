@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/ioctl.h> // ioctl
+#include <sys/file.h>
 #include <asm/ioctls.h> // FIONREAD
 #include "LinuxApplication.h" // FLinuxApplication::IsForeground()
 
@@ -1210,8 +1211,8 @@ FLinuxSystemWideCriticalSection::FLinuxSystemWideCriticalSection(const FString& 
 	FString NormalizedFilepath(LockPath);
 	NormalizedFilepath.ReplaceInline(TEXT("\\"), TEXT("/"));
 
-	// Attempt to open a file with O_EXLOCK (equivalent of atomic open() + flock())
-	FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	// Attempt to open a file and then lock with flock (NOTE: not an atomic operation, but best we can do)
+	FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	if (FileHandle == -1 && InTimeout != FTimespan::Zero())
 	{
@@ -1222,8 +1223,12 @@ FLinuxSystemWideCriticalSection::FLinuxSystemWideCriticalSection(const FString& 
 		{
 			// retry until timeout
 			FLinuxPlatformProcess::Sleep(RetrySeconds);
-			FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		} while (FileHandle == -1 && FDateTime::UtcNow() < ExpireTime);
+	}
+	if (FileHandle != -1)
+	{
+		flock(FileHandle, LOCK_EX);
 	}
 }
 
@@ -1241,6 +1246,7 @@ void FLinuxSystemWideCriticalSection::Release()
 {
 	if (IsValid())
 	{
+		flock(FileHandle, LOCK_UN);
 		close(FileHandle);
 		FileHandle = -1;
 	}
