@@ -104,6 +104,7 @@ void SAutomationHistoryCell::RebuildContentArea()
 		];
 	}
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SAutomationHistoryCell::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
