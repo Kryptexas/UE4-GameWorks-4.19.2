@@ -787,7 +787,8 @@ void FSlateRHIResourceManager::LoadStyleResources( const ISlateStyle& Style )
 
 void FSlateRHIResourceManager::BeginReleasingAccessedResources(bool bImmediatelyFlush)
 {
-	if ( IsThreadSafeForSlateRendering() )
+	// IsInGameThread returns true when you're in the slate loading thread
+	if ( IsInGameThread() && !IsInSlateThread() )
 	{
 		if ( CurrentAccessedUObject )
 		{
@@ -796,8 +797,8 @@ void FSlateRHIResourceManager::BeginReleasingAccessedResources(bool bImmediately
 			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UpdateSlateUTextureResource,
 				FSlateRHIResourceManager*, InManager, this,
 				{
-					TSet<UObject*>* Objects;
-					check(InManager->DirtyAccessedObjectSets.Dequeue(Objects));
+					TSet<UObject*>* Objects = nullptr;
+					InManager->DirtyAccessedObjectSets.Dequeue(Objects);
 					InManager->CleanAccessedObjectSets.Enqueue(Objects);
 				});
 
