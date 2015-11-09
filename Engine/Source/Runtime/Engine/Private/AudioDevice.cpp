@@ -2199,6 +2199,12 @@ void FAudioDevice::ProcessingPendingActiveSoundStops()
 
 void FAudioDevice::AddSoundToStop(FActiveSound* SoundToStop)
 {
+	const UPTRINT AudioComponentIndex = SoundToStop->GetAudioComponentIndex();
+	if (AudioComponentIndex > 0)
+	{
+		AudioComponentToActiveSoundMap.Remove(AudioComponentIndex);
+	}
+
 	check(SoundToStop);
 	bool bIsAlreadyInSet = false;
 	PendingSoundsToStop.Add(SoundToStop, &bIsAlreadyInSet);
@@ -2247,13 +2253,6 @@ void FAudioDevice::RemoveActiveSound(FActiveSound* ActiveSound)
 
 	int32 NumRemoved = ActiveSounds.Remove(ActiveSound);
 	check(NumRemoved == 1);
-
-	const UPTRINT AudioComponentIndex = ActiveSound->GetAudioComponentIndex();
-	if (AudioComponentIndex > 0)
-	{
-		AudioComponentToActiveSoundMap.Remove(AudioComponentIndex);
-	}
-
 }
 
 bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )

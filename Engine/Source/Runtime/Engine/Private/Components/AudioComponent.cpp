@@ -29,6 +29,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	PitchModulationMin = 1.f;
 	PitchModulationMax = 1.f;
 	HighFrequencyGainMultiplier = 1.0f;
+	ActiveCount = 0;
 }
 
 FString UAudioComponent::GetDetailedInfoInternal( void ) const
@@ -135,6 +136,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		bAutoDestroy = bCurrentAutoDestroy;
 	}
 
+	// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
+	++ActiveCount;
+
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
 	{
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
@@ -192,9 +196,6 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			{
 				NewActiveSound.CurrentAdjustVolumeMultiplier = FadeVolumeLevel;
 			}
-
-			FName SoundName = NewActiveSound.Sound->GetFName();
-			UE_LOG(LogTemp, Log, TEXT("Playing ActiveSound: %s"), *SoundName.GetPlainNameString());
 
 			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
 			AudioDevice->AddNewActiveSound(NewActiveSound);
@@ -284,6 +285,9 @@ void UAudioComponent::Stop()
 {
 	if (bIsActive)
 	{
+		// Set this to immediately be inactive
+		bIsActive = false;
+
 		UE_LOG(LogAudio, Verbose, TEXT( "%g: Stopping AudioComponent : '%s' with Sound: '%s'" ), GetWorld() ? GetWorld()->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "nullptr" ) );
 
 		// TODO - Audio Threading. This call would be a task
@@ -296,8 +300,11 @@ void UAudioComponent::Stop()
 
 void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 {
+	check(ActiveCount > 0);
+	--ActiveCount;
+
 	// Mark inactive before calling destroy to avoid recursion
-	bIsActive = false;
+	bIsActive = (ActiveCount > 0);
 
 	if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
 	{

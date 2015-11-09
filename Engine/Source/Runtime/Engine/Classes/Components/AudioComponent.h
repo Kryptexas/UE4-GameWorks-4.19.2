@@ -310,6 +310,9 @@ private:
 
 	/** Utility function called by Play and FadeIn to start a sound playing. */
 	void PlayInternal(const float StartTime = 0.f, const float FadeInDuration = 0.f, const float FadeVolumeLevel = 1.f);
+
+	/** A count of how many times we've started playing */
+	int32 ActiveCount;
 };
 
 
