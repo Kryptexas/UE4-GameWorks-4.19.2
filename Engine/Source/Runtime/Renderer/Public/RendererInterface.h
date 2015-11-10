@@ -62,7 +62,8 @@ public:
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
-		uint16 InNumMips = 1)
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
 	{
 		check(InExtent.X);
 		check(InExtent.Y);
@@ -80,6 +81,7 @@ public:
 		NewDesc.TargetableFlags = InTargetableFlags;
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTexture2D");
+		NewDesc.AutoWritable = InAutowritable;
 		check(NewDesc.Is2DTexture());
 		return NewDesc;
 	}
@@ -97,7 +99,8 @@ public:
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
-		uint16 InNumMips = 1)
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
 	{
 		check(InSizeX);
 		check(InSizeY);
@@ -115,6 +118,7 @@ public:
 		NewDesc.TargetableFlags = InTargetableFlags;
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTextureVolume");
+		NewDesc.AutoWritable = InAutowritable;
 		check(NewDesc.Is3DTexture());
 		return NewDesc;
 	}
@@ -131,7 +135,8 @@ public:
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
 		uint32 InArraySize = 1,
-		uint16 InNumMips = 1)
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
 	{
 		check(InExtent);
 
@@ -149,6 +154,7 @@ public:
 		NewDesc.TargetableFlags = InTargetableFlags;
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTextureCube");
+		NewDesc.AutoWritable = InAutowritable;
 		check(NewDesc.IsCubemap());
 
 		return NewDesc;

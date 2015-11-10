@@ -76,7 +76,10 @@ void FAnimNode_SaveCachedPose::GatherDebugData(FNodeDebugData& DebugData)
 	FString DebugLine = DebugData.GetNodeName(this);
 	DebugData.AddDebugItem(DebugLine);
 
-	if (!DebugDataCounter.IsSynchronizedWith(DebugData.AnimInstance->DebugDataCounter))
+	// we need to fix SaveCachePose to collect the highest weight branch, not the first one,
+	// for it to be useful in debug.
+	if(false)
+// 	if (!DebugDataCounter.IsSynchronizedWith(DebugData.AnimInstance->DebugDataCounter))
 	{
 		DebugDataCounter.SynchronizeWith(DebugData.AnimInstance->DebugDataCounter);
 		Pose.GatherDebugData(DebugData);

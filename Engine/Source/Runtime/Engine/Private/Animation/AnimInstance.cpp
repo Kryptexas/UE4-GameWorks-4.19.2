@@ -674,7 +674,7 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 	return
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
-		IsRunningDedicatedServer() ||
+		GetWorld()->IsServer() ||
 		!bCanUseParallelUpdateAnimation ||
 		DeltaSeconds == 0.0f ||
 		RootMotionMode == ERootMotionMode::RootMotionFromEverything;

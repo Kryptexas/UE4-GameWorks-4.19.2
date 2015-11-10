@@ -51,6 +51,9 @@ public:
 
 	// Begin IMovieSceneCaptureInterface
 	virtual void Initialize(TWeakPtr<FSceneViewport> InSceneViewport) override;
+	virtual void SetupFrameRange() override
+	{
+	}
 	virtual void Close() override;
 	virtual FMovieSceneCaptureHandle GetHandle() const override { return Handle; }
 	const FMovieSceneCaptureSettings& GetSettings() const override { return Settings; }
@@ -151,6 +154,8 @@ protected:
 	TSharedPtr<ICaptureStrategy> CaptureStrategy;
 	/** Scratch space for per-frame screenshots */
 	TArray<FColor> ScratchBuffer;
+	/** The number of frames to capture.  If this is zero, we'll capture the entire sequence. */
+	int32 FrameCount;
 	/** Running count of how many frames we're waiting to capture from slate */
 	int32 OutstandingFrameCount;
 	/** The delta of the last frame */
@@ -159,6 +164,10 @@ protected:
 	bool bCapturing;
 	/** Class responsible for ticking this instance */
 	TUniquePtr<FTicker> Ticker;
+	/** Frame number index offset when saving out frames.  This is used to allow the frame numbers on disk to match
+	    what they would be in the authoring application, rather than a simple 0-based sequential index */
+	int32 FrameNumberOffset;
+
 };
 
 /** A strategy that employs a fixed frame time-step, and as such never drops a frame. Potentially accelerated.  */

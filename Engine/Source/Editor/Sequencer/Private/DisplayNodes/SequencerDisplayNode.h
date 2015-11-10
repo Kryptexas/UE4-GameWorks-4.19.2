@@ -138,9 +138,9 @@ public:
 	/**
 	 * Set the node's display name.
 	 *
-	 * @param DisplayName the display name to set.
+	 * @param NewDisplayName the display name to set.
 	 */
-	virtual void SetDisplayName(const FText& DisplayName) = 0;
+	virtual void SetDisplayName(const FText& NewDisplayName) = 0;
 
 	/**
 	 * Generates a container widget for tree display in the animation outliner portion of the track area

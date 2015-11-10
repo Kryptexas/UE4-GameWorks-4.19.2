@@ -922,14 +922,8 @@ void Main(
 			GBuffer.CustomData.a = Opacity;
 		#elif MATERIAL_SHADINGMODEL_HAIR
 			GBuffer.ShadingModelID = SHADINGMODELID_HAIR;
-			#if NUM_MATERIAL_OUTPUTS_GETTANGENTOUTPUT > 0
-				float3 Tangent = GetTangentOutput0(MaterialParameters);
-				Tangent = normalize( TransformTangentVectorToWorld( MaterialParameters.TangentToWorld, Tangent ) );
-				GBuffer.WorldNormal = Tangent;
-			#endif
 			GBuffer.CustomData.xy = UnitVectorToOctahedron( MaterialParameters.WorldNormal ) * 0.5 + 0.5;
-			GBuffer.CustomData.z = saturate( GetMaterialCustomData1(MaterialParameters) );	// Roughness2
-			GBuffer.CustomData.w = saturate( GetMaterialCustomData0(MaterialParameters) );	// Opacity
+			GBuffer.CustomData.z = saturate( GetMaterialCustomData0(MaterialParameters) );	// Backlit
 		#elif MATERIAL_SHADINGMODEL_CLOTH
 			GBuffer.ShadingModelID = SHADINGMODELID_CLOTH;
 			GBuffer.CustomData.rgb = SubsurfaceColor;

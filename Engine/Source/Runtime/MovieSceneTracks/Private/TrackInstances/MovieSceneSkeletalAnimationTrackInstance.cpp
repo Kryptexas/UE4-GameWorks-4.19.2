@@ -59,7 +59,6 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 				Position -= 1 / 1000.0f;
 
 				int32 ChannelIndex = 0;
-				FName SlotName = FName("AnimationSlot");
 				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
 
 				float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
@@ -80,12 +79,12 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 				if (GIsEditor && !GWorld->HasBegunPlay())
 				{
 					AnimInterface->PreviewBeginAnimControl(nullptr);
-					AnimInterface->PreviewSetAnimPosition(SlotName, ChannelIndex, AnimSequence, AnimPosition, true, false, 0.f);
+					AnimInterface->PreviewSetAnimPosition(AnimSection->GetSlotName(), ChannelIndex, AnimSequence, AnimPosition, true, false, 0.f);
 				}
 				else
 				{
 					AnimInterface->BeginAnimControl(nullptr);
-					AnimInterface->SetAnimPosition(SlotName, ChannelIndex, AnimSequence, AnimPosition, true, false);
+					AnimInterface->SetAnimPosition(AnimSection->GetSlotName(), ChannelIndex, AnimSequence, AnimPosition, true, false);
 				}
 			}
 		}

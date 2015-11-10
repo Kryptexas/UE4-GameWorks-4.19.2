@@ -126,6 +126,42 @@ void MovieSceneHelpers::SetRuntimeObjectMobility(UObject* Object, EComponentMobi
 	}
 }
 
+void MovieSceneHelpers::SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation)
+{
+	switch (InKeyInterpolation)
+	{
+		case EMovieSceneKeyInterpolation::Auto:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
+
+		case EMovieSceneKeyInterpolation::User:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_User);
+			break;
+
+		case EMovieSceneKeyInterpolation::Break:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Break);
+			break;
+
+		case EMovieSceneKeyInterpolation::Linear:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Linear);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
+
+		case EMovieSceneKeyInterpolation::Constant:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Constant);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
+
+		default:
+			InCurve.SetKeyInterpMode(InKeyHandle, RCIM_Cubic);
+			InCurve.SetKeyTangentMode(InKeyHandle, RCTM_Auto);
+			break;
+	}
+}
+
 FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
     : PropertyPath( InPropertyPath )
 	, PropertyName( InPropertyName )

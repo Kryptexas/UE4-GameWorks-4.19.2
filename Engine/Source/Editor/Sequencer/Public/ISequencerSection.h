@@ -10,7 +10,7 @@ namespace SequencerSectionConstants
 	const float SectionDragStartDistance = 5.0f;
 
 	/** The size of each key */
-	const FVector2D KeySize(11.0f, 11.0f);
+	const FVector2D KeySize(12.0f, 12.0f);
 
 	const float DefaultSectionGripSize = 7.0f;
 

@@ -174,6 +174,17 @@ void ULevelSequencePlayer::SetPlayRate(float PlayRate)
 	PlaybackSettings.PlayRate = PlayRate;
 }
 
+void ULevelSequencePlayer::SetPlaybackRange( const float NewStartTime, const float NewEndTime )
+{
+	if( LevelSequence != nullptr )
+	{
+		UMovieScene* MovieScene = LevelSequence->GetMovieScene();
+		if( MovieScene != nullptr )
+		{
+			MovieScene->SetPlaybackRange( NewStartTime, NewEndTime );
+		}
+	}
+}
 
 void ULevelSequencePlayer::OnCursorPositionChanged()
 {
@@ -205,8 +216,6 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 {
 	LevelSequence = InLevelSequence;
 	LevelSequence->BindToContext(InWorld);
-
-	SequenceStartOffset = LevelSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue();
 
 	World = InWorld;
 	PlaybackSettings = Settings;
@@ -310,6 +319,7 @@ void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float
 {
 	if(RootMovieSceneInstance.IsValid())
 	{
+		const float SequenceStartOffset = LevelSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue();
 		RootMovieSceneInstance->Update(CurrentPosition + SequenceStartOffset, PreviousPosition + SequenceStartOffset, *this);
 #if WITH_EDITOR
 		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);

@@ -2,19 +2,30 @@
 
 #pragma once
 
-/** Information for how to draw each key */
+#include "Curves/CurveBase.h"
+#include "KeyParams.h"
+
+
+class UMovieSceneSection;
+
+
+/**
+ * Information for how to draw each key.
+ */
 struct FKeyDrawingInfo
 {
 	FKeyDrawingInfo()
-		: Brush( NULL )
-		, Size( FVector2D::ZeroVector )
-	{}
+		: Brush(nullptr)
+		, Size(FVector2D::ZeroVector)
+	{ }
 
 	/** The brush to use for each key */
 	const FSlateBrush* Brush;
+
 	/** The size of each key */
 	const FVector2D Size;
 };
+
 
 /**
  * Interface that should be implemented for the UI portion of a key area within a section
@@ -22,7 +33,9 @@ struct FKeyDrawingInfo
 class IKeyArea
 {
 public:
-	virtual ~IKeyArea() {}
+
+	/** Virtual destructor. */
+	virtual ~IKeyArea() { }
 
 	/** @return The array of unsorted key handles in the key area */
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const = 0;
@@ -50,7 +63,7 @@ public:
 	 * @param DeltaPosition	The delta position of the key
 	 * @return The handle of the key
 	 */
-	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) = 0;
+	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) = 0;
 	
 	/**
 	 * Deletes a key
@@ -136,5 +149,3 @@ public:
 	*/
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) = 0;
 };
-
-

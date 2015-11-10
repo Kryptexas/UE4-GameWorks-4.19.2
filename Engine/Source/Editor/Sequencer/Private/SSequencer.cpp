@@ -100,12 +100,17 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 	FSequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<FSequencerWidgetsModule>( "SequencerWidgets" );
 
+	OnBeginPlaybackRangeDrag = InArgs._OnBeginPlaybackRangeDrag;
+	OnEndPlaybackRangeDrag = InArgs._OnEndPlaybackRangeDrag;
+
 	FTimeSliderArgs TimeSliderArgs;
 	{
 		TimeSliderArgs.ViewRange = InArgs._ViewRange;
 		TimeSliderArgs.ClampRange = InArgs._ClampRange;
 		TimeSliderArgs.PlaybackRange = InArgs._PlaybackRange;
 		TimeSliderArgs.OnPlaybackRangeChanged = InArgs._OnPlaybackRangeChanged;
+		TimeSliderArgs.OnBeginPlaybackRangeDrag = OnBeginPlaybackRangeDrag;
+		TimeSliderArgs.OnEndPlaybackRangeDrag = OnEndPlaybackRangeDrag;
 		TimeSliderArgs.OnViewRangeChanged = InArgs._OnViewRangeChanged;
 		TimeSliderArgs.OnClampRangeChanged = InArgs._OnClampRangeChanged;
 		TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
@@ -411,6 +416,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 							[
 								// details view panel
 								SNew(SVerticalBox)
+								.Visibility(this, &SSequencer::HandleDetailsViewVisibility)
 
 								+ SVerticalBox::Slot()
 									.AutoHeight()
@@ -744,10 +750,9 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		TSharedPtr<FSequencer> PinnedSequencer = Sequencer.Pin();
 
 		// Menu entry for the start position
-		auto OnStartComitted = [=](float NewValue, ETextCommit::Type){
-			TRange<float> Range = PinnedSequencer->GetPlaybackRange();
-			NewValue = FMath::Min(NewValue, Range.GetUpperBoundValue());
-			PinnedSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->SetPlaybackRange(NewValue, Range.GetUpperBoundValue());
+		auto OnStartChanged = [=](float NewValue){
+			float Upper = PinnedSequencer->GetPlaybackRange().GetUpperBoundValue();
+			PinnedSequencer->SetPlaybackRange(TRange<float>(FMath::Min(NewValue, Upper), Upper));
 		};
 		MenuBuilder.AddWidget(
 			SNew(SHorizontalBox)
@@ -761,9 +766,15 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 				SNew(SSpinBox<float>)
 				.TypeInterface(NumericTypeInterface)
 				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
-				.OnValueCommitted_Lambda(OnStartComitted)
-				.OnValueChanged_Lambda([=](float NewValue){
-					OnStartComitted(NewValue, ETextCommit::Default);
+				.OnValueCommitted_Lambda([=](float Value, ETextCommit::Type){ OnStartChanged(Value); })
+				.OnValueChanged_Lambda(OnStartChanged)
+				.OnBeginSliderMovement(OnBeginPlaybackRangeDrag)
+				.OnEndSliderMovement_Lambda([=](float Value){ OnStartChanged(Value); OnEndPlaybackRangeDrag.ExecuteIfBound(); })
+				.MinValue_Lambda([=]() -> float {
+					return PinnedSequencer->GetViewRange().GetLowerBoundValue(); 
+				})
+				.MaxValue_Lambda([=]() -> float {
+					return PinnedSequencer->GetPlaybackRange().GetUpperBoundValue(); 
 				})
 				.Value_Lambda([=]() -> float {
 					return PinnedSequencer->GetPlaybackRange().GetLowerBoundValue();
@@ -772,10 +783,9 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 			LOCTEXT("PlaybackStartLabel", "Start"));
 
 		// Menu entry for the end position
-		auto OnEndComitted = [=](float NewValue, ETextCommit::Type){
-			TRange<float> Range = PinnedSequencer->GetPlaybackRange();
-			NewValue = FMath::Max(NewValue, Range.GetLowerBoundValue());
-			PinnedSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->SetPlaybackRange(Range.GetLowerBoundValue(), NewValue);
+		auto OnEndChanged = [=](float NewValue){
+			float Lower = PinnedSequencer->GetPlaybackRange().GetLowerBoundValue();
+			PinnedSequencer->SetPlaybackRange(TRange<float>(Lower, FMath::Max(NewValue, Lower)));
 		};
 		MenuBuilder.AddWidget(
 			SNew(SHorizontalBox)
@@ -789,9 +799,15 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 				SNew(SSpinBox<float>)
 				.TypeInterface(NumericTypeInterface)
 				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
-				.OnValueCommitted_Lambda(OnEndComitted)
-				.OnValueChanged_Lambda([=](float NewValue){
-					OnEndComitted(NewValue, ETextCommit::Default);
+				.OnValueCommitted_Lambda([=](float Value, ETextCommit::Type){ OnEndChanged(Value); })
+				.OnValueChanged_Lambda(OnEndChanged)
+				.OnBeginSliderMovement(OnBeginPlaybackRangeDrag)
+				.OnEndSliderMovement_Lambda([=](float Value){ OnEndChanged(Value); OnEndPlaybackRangeDrag.ExecuteIfBound(); })
+				.MinValue_Lambda([=]() -> float {
+					return PinnedSequencer->GetPlaybackRange().GetLowerBoundValue(); 
+				})
+				.MaxValue_Lambda([=]() -> float {
+					return PinnedSequencer->GetViewRange().GetUpperBoundValue(); 
 				})
 				.Value_Lambda([=]() -> float {
 					return PinnedSequencer->GetPlaybackRange().GetUpperBoundValue();
@@ -1324,6 +1340,7 @@ TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<U
 {
 	TArray<FSectionHandle> SectionHandles;
 
+	// @todo sequencer: this is potentially slow as it traverses the entire tree - there's scope for optimization here
 	for (auto& Node : SequencerNodeTree->GetRootNodes())
 	{
 		Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode) {

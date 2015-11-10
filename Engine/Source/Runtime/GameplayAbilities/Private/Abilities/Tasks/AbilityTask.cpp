@@ -7,6 +7,7 @@
 UAbilityTask::UAbilityTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	WaitState = EAbilityTaskWaitState::WaitingOnGame;
 }
 
 FGameplayAbilitySpecHandle UAbilityTask::GetAbilitySpecHandle() const
@@ -53,5 +54,25 @@ bool UAbilityTask::IsLocallyControlled() const
 
 bool UAbilityTask::CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate)
 {
-	return AbilitySystemComponent->CallOrAddReplicatedDelegate(Event, GetAbilitySpecHandle(), GetActivationPredictionKey(), Delegate);
+	if (!AbilitySystemComponent->CallOrAddReplicatedDelegate(Event, GetAbilitySpecHandle(), GetActivationPredictionKey(), Delegate))
+	{
+		SetWaitingOnRemotePlayerData();
+		return false;
+	}
+	return true;
+}
+
+void UAbilityTask::SetWaitingOnRemotePlayerData()
+{
+	UGameplayAbility* MyAbility = Ability.Get();
+	if (MyAbility && IsPendingKill() == false && AbilitySystemComponent.IsValid())
+	{
+		WaitState = EAbilityTaskWaitState::WaitingOnUser;
+		MyAbility->NotifyAbilityTaskWaitingOnPlayerData(this);
+	}
+}
+
+bool UAbilityTask::IsWaitingOnRemotePlayerdata() const
+{
+	return (WaitState == EAbilityTaskWaitState::WaitingOnUser);
 }

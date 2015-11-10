@@ -10,7 +10,6 @@
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
 #include "MovieSceneCommonHelpers.h"
-#include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "ActorEditorUtils.h"
 #include "GameFramework/WorldSettings.h"

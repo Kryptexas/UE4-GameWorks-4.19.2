@@ -989,26 +989,7 @@ void FAnimBlueprintCompiler::ProcessStateMachine(UAnimGraphNode_StateMachineBase
 			}
 
 			// Handle automatic time remaining rules
-			Rule.StateSequencePlayerToQueryIndex = INDEX_NONE;
-			if (TransitionNode->bAutomaticRuleBasedOnSequencePlayerInState)
-			{
-				if (UObject* SourceSequencePlayer = SimplePlayerStatesMap.FindRef(BakedState.StateRootNodeIndex))
-				{
-					//@TODO: This should be easier than it is... (the nodes are cloned so the pointers don't natrually match)
-					for (const auto& Pair : AllocatedAnimNodeIndices)
-					{
-						if (MessageLog.FindSourceObject(Pair.Key) == SourceSequencePlayer)
-						{
-							Rule.StateSequencePlayerToQueryIndex = Pair.Value;
-						}
-					}
-				}
-
-				if (Rule.StateSequencePlayerToQueryIndex == INDEX_NONE)
-				{
-					MessageLog.Error(*LOCTEXT("CantAutomaticallyDefineTransitionRule", "@@ must contain a single sequence player in order to use bAutomaticRuleBasedOnSequencePlayerInState on @@").ToString(), StateNode, TransitionNode);
-				}
-			}
+			Rule.bAutomaticRemainingTimeRule = TransitionNode->bAutomaticRuleBasedOnSequencePlayerInState;
 
 			// Handle custom transition graphs
 			Rule.CustomResultNodeIndex = INDEX_NONE;

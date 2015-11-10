@@ -164,14 +164,6 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// UObject interface end
 
-	
-	/** 
-	 * Allows external systems an opportunity to initialize newly created PartyMemberStates before being entered into the party system
-	 * 
-	 * @param InFunctor a TFunction to call immediately after allocation. 
-	 */
-	void SetInitMemberFunctor( TFunction<void( TSharedPtr<FOnlinePartyMember>, UPartyMemberState* )>&& InFunctor );
-
 	/**
 	 * Notification that the game is about to travel to another map/server
 	 */
@@ -615,8 +607,6 @@ private:
 
 	/** Scratch copy of child USTRUCT for handling replication comparisons */
 	FPartyState* PartyStateRefScratch;
-
-	TFunction<void( TSharedPtr<FOnlinePartyMember>, UPartyMemberState* )> InitMemberFunctor;
 
 	friend UParty;
 	friend UPartyMemberState;

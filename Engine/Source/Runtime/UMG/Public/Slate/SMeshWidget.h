@@ -2,7 +2,7 @@
 
 #pragma once
 
-class USlateMeshData;
+class USlateVectorArtData;
 
 
 /**
@@ -17,7 +17,7 @@ public:
 		: _MeshData(nullptr)
 	{}
 		/** The StaticMesh asset that should be drawn. */
-		SLATE_ARGUMENT(USlateMeshData*, MeshData)
+		SLATE_ARGUMENT(USlateVectorArtData*, MeshData)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& Args);
@@ -27,7 +27,7 @@ public:
 	 *
 	 * @return the Index of the mesh data that was added; cache this value for use with @see FRenderRun.
 	 */
-	uint32 AddMesh(const USlateMeshData& InMeshData);
+	uint32 AddMesh(USlateVectorArtData& InMeshData);
 
 	/** Discard any previous runs and reserve space for new render runs if needed. */
 	void ClearRuns(int32 NumRuns);

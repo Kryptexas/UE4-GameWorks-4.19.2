@@ -6,7 +6,7 @@
 #include "MovieSceneMarginSection.h"
 #include "PropertySection.h"
 #include "ISectionLayoutBuilder.h"
-#include "MovieSceneToolHelpers.h"
+#include "FloatCurveKeyArea.h"
 
 
 FName FMarginTrackEditor::LeftName( "Left" );

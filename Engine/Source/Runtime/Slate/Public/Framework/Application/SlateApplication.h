@@ -6,6 +6,7 @@
 #include "MenuStack.h"
 #include "SlateDelegates.h"
 #include "SlateApplicationBase.h"
+#include "NavigationConfig.h"
 
 
 class SToolTip;
@@ -81,7 +82,6 @@ class SLATE_API FPopupSupport
 	TArray<FClickSubscriber> ClickZoneNotifications;
 
 };
-
 
 class SLATE_API FSlateApplication
 	: public FSlateApplicationBase
@@ -221,6 +221,8 @@ public:
 
 	/** Returns true if this slate application is ready to display windows. */
 	bool CanDisplayWindows() const;
+
+	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const override;
 	
 	/**
 	 * Adds a modal window to the application.  
@@ -941,6 +943,8 @@ public:
 
 public:
 
+	void SetNavigationConfig( FNavigationConfig&& Config );
+
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
 
@@ -1649,4 +1653,7 @@ private:
 
 	TMap< const ILayoutCache*, FCacheElementPools* > CachedElementLists;
 	TArray< FCacheElementPools* > ReleasedCachedElementLists;
+
+	/** Configured fkeys to control navigation */
+	FNavigationConfig NavigationConfig;
 };

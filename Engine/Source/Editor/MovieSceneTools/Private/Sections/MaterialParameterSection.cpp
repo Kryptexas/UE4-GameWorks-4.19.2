@@ -3,10 +3,13 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MaterialParameterSection.h"
 #include "MovieSceneMaterialParameterSection.h"
+#include "FloatCurveKeyArea.h"
+
 
 #define LOCTEXT_NAMESPACE "MaterialParameterSection"
 
 DECLARE_DELEGATE(FLayoutParameterDelegate);
+
 
 struct FIndexAndLayoutParameterDelegate
 {
@@ -19,6 +22,7 @@ struct FIndexAndLayoutParameterDelegate
 	}
 };
 
+
 void LayoutScalarParameter( ISectionLayoutBuilder* LayoutBuilder, FScalarParameterNameAndCurve* ScalarParameterNameAndCurve, UMovieSceneMaterialParameterSection* ParameterSection )
 {
 	LayoutBuilder->AddKeyArea(
@@ -26,6 +30,7 @@ void LayoutScalarParameter( ISectionLayoutBuilder* LayoutBuilder, FScalarParamet
 		FText::FromName( ScalarParameterNameAndCurve->ParameterName ),
 		MakeShareable( new FFloatCurveKeyArea( &ScalarParameterNameAndCurve->ParameterCurve, ParameterSection ) ) );
 }
+
 
 void LayoutVectorParameter( ISectionLayoutBuilder* LayoutBuilder, FVectorParameterNameAndCurves* VectorParameterNameAndCurves, UMovieSceneMaterialParameterSection* ParameterSection )
 {
@@ -42,6 +47,7 @@ void LayoutVectorParameter( ISectionLayoutBuilder* LayoutBuilder, FVectorParamet
 	}
 	LayoutBuilder->PopCategory();
 }
+
 
 void FMaterialParameterSection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
 {
@@ -77,6 +83,7 @@ void FMaterialParameterSection::GenerateSectionLayout( class ISectionLayoutBuild
 	}
 }
 
+
 bool FMaterialParameterSection::RequestDeleteCategory( const TArray<FName>& CategoryNamePath )
 {
 	const FScopedTransaction Transaction( LOCTEXT( "DeleteVectorParameter", "Delete vector parameter" ) );
@@ -84,6 +91,7 @@ bool FMaterialParameterSection::RequestDeleteCategory( const TArray<FName>& Cate
 	ParameterSection->Modify();
 	return ParameterSection->RemoveVectorParameter( CategoryNamePath[0] );
 }
+
 
 bool FMaterialParameterSection::RequestDeleteKeyArea( const TArray<FName>& KeyAreaNamePath )
 {
@@ -97,5 +105,6 @@ bool FMaterialParameterSection::RequestDeleteKeyArea( const TArray<FName>& KeyAr
 	}
 	return false;
 }
+
 
 #undef LOCTEXT_NAMESPACE

@@ -1005,9 +1005,6 @@ void FPhysScene::WaitClothScene()
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FPhysScene_WaitClothScene);
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
 	}
-	
-	PhysicsSubsceneCompletion[PST_Cloth] = nullptr;
-	bPhysXSceneExecuting[PST_Cloth] = false;
 }
 
 void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, EPhysicsSceneType SceneType)
@@ -1071,12 +1068,8 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	}
 #endif // WITH_PHYSX
 
-    if(SceneType != PST_Cloth)	//Cloth potentially runs this code off the game thread where setting to null is not thread safe. For cloth we do it in a later game thread sync point
-	{
 	PhysicsSubsceneCompletion[SceneType] = NULL;
 	bPhysXSceneExecuting[SceneType] = false;
-	}
-	
 }
 #if WITH_PHYSX
 void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
@@ -1360,7 +1353,7 @@ void FPhysScene::StartCloth()
 					FDelegateGraphTask::CreateAndDispatchWhenReady(
 					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth),
 					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Cloth), PhysicsSubsceneCompletion[PST_Cloth],
-					CurrentThread, CurrentThread
+					CurrentThread, ENamedThreads::GameThread
 					)
 					);
 			}

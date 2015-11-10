@@ -407,7 +407,7 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 			}
 		}
 
-		if (SkippedLevels.Len() > 0)
+		if (SkippedLevels.Len() > 0 && !IsRunningCommandlet())
 		{
 			// Warn when some levels are not visible and therefore will not be built, because that indicates that only a partial build will be done,
 			// Lighting will still be unbuilt for some areas when playing through the level.
@@ -827,7 +827,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 			if (bRebuildDirtyGeometryForLighting)
 			{
 				// This will go ahead and clean up lighting on all dirty levels (not just this one)
-				UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build automatically rebuilding geometry."));
+				UE_LOG(LogStaticLightingSystem, Warning, TEXT("WARNING: Lighting build automatically rebuilding geometry.") );
 				GEditor->Exec(World, TEXT("MAP REBUILD ALLDIRTYFORLIGHTING"));
 			}
 		}
@@ -2181,7 +2181,7 @@ void FStaticLightingSystem::UpdateLightingBuild()
 	}
 	else if ( CurrentBuildStage == FStaticLightingSystem::AutoApplyingImport )
 	{
-		if ( CanAutoApplyLighting() )
+		if ( CanAutoApplyLighting() || IsRunningCommandlet() )
 		{
 			bool bAutpApplyFailed = false;
 			FStaticLightingManager::Get()->SendBuildDoneNotification( bAutpApplyFailed );

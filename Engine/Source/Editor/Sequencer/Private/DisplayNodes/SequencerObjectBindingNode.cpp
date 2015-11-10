@@ -94,12 +94,11 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			if (ObjectClass->IsChildOf(AActor::StaticClass()))
 			{
 				FFormatNamedArguments Args;
-				MenuBuilder.AddMenuEntry(
+
+				MenuBuilder.AddSubMenu(
 					FText::Format( LOCTEXT("Assign Actor ", "Assign Actor"), Args),
-					FText::Format( LOCTEXT("AssignActorTooltip", "Assign the selected actor to this track"), Args ),
-					FSlateIcon(),
-					FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::AssignActor, ObjectBinding, this),
-								FCanExecuteAction::CreateSP(&GetSequencer(), &FSequencer::CanAssignActor, ObjectBinding)) );
+					FText::Format( LOCTEXT("AssignActorTooltip", "Assign an actor to this track"), Args ),
+					FNewMenuDelegate::CreateRaw(&GetSequencer(), &FSequencer::AssignActor, ObjectBinding));
 			}
 		}
 	}
@@ -190,13 +189,13 @@ ESequencerNode::Type FSequencerObjectBindingNode::GetType() const
 }
 
 
-void FSequencerObjectBindingNode::SetDisplayName(const FText& DisplayName)
+void FSequencerObjectBindingNode::SetDisplayName(const FText& NewDisplayName)
 {
 	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	if (MovieScene != nullptr)
 	{
-		MovieScene->SetObjectDisplayName(ObjectBinding, DisplayName);
+		MovieScene->SetObjectDisplayName(ObjectBinding, NewDisplayName);
 	}
 }
 

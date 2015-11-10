@@ -182,16 +182,16 @@ struct FBXImportOptions
 
 struct FbxMeshInfo
 {
-	const char* Name;
+	FString Name;
 	uint64 UniqueId;
 	int32 FaceNum;
 	int32 VertexNum;
 	bool bTriangulated;
 	int32 MaterialNum;
 	bool bIsSkelMesh;
-	const char* SkeletonRoot;
+	FString SkeletonRoot;
 	int32 SkeletonElemNum;
-	const char* LODGroup;
+	FString LODGroup;
 	int32 LODLevel;
 	int32 MorphNum;
 };
@@ -514,6 +514,7 @@ public:
 
 	//help
 	ANSICHAR* MakeName(const ANSICHAR* name);
+	FString MakeString(const ANSICHAR* Name);
 	FName MakeNameForMesh(FString InName, FbxObject* FbxObject);
 
 	// meshes

@@ -100,9 +100,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Reset Handler
 	Handler.Reset(NULL);
 
-#if ENABLER_HANDLERS == 1
 	Handler = MakeUnique<PacketHandler>();
-#endif
 
 	if(Handler.IsValid())
 	{
@@ -169,12 +167,10 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 {
 	Driver = InDriver;
 
-#if ENABLER_HANDLERS == 1
 	if (!Handler.IsValid())
 	{
 		Handler = MakeUnique<PacketHandler>();
 	}
-#endif
 
 	// We won't be sending any packets, so use a default size
 	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;

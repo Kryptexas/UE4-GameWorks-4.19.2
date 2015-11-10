@@ -65,6 +65,9 @@ private:
 	 */
 	void OnTransformChanged( UObject& InObject );
 
+	/** Delegate for camera button visible state */
+	EVisibility IsCameraVisible(FGuid ObjectGuid) const;
+
 	/** Delegate for camera button lock state */
 	ECheckBoxState IsCameraLocked(FGuid ObjectGuid) const; 
 

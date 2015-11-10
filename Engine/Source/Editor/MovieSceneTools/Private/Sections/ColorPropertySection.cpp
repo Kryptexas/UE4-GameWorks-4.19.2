@@ -5,6 +5,7 @@
 #include "MovieSceneColorSection.h"
 #include "ColorPropertySection.h"
 #include "MovieSceneSequence.h"
+#include "FloatCurveKeyArea.h"
 
 
 void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const

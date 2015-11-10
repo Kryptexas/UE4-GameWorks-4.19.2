@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using AutomationTool;
 using UnrealBuildTool;
 using System.Runtime.InteropServices;
 
-enum ResourceType
+public enum ResourceType
 {
 	Icon = 3,
 	RawData = 10,
@@ -16,7 +15,7 @@ enum ResourceType
 	Version = 16,
 }
 
-class IconResource
+public class IconResource
 {
 	public byte Width;
 	public byte Height;
@@ -41,7 +40,7 @@ class IconResource
 	}
 }
 
-class GroupIconResource
+public class GroupIconResource
 {
 	public IconResource[] Icons;
 
@@ -161,7 +160,7 @@ class GroupIconResource
 	}
 }
 
-class ModuleResourceLibary : IDisposable
+public class ModuleResourceLibary : IDisposable
 {
 	const uint LOAD_LIBRARY_AS_DATAFILE = 0x00000002; 
 
@@ -228,7 +227,7 @@ class ModuleResourceLibary : IDisposable
 	}
 }
 
-class ModuleResourceUpdate : IDisposable
+public class ModuleResourceUpdate : IDisposable
 {
 	[DllImport("kernel32.dll", SetLastError=true)]
 	static extern IntPtr BeginUpdateResource(string pFileName, [MarshalAs(UnmanagedType.Bool)]bool bDeleteExistingResources);

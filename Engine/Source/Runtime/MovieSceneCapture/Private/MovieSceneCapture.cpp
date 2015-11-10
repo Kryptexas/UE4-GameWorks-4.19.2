@@ -26,18 +26,26 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	: Resolution(1280, 720)
 {
 	OutputDirectory.Path = FPaths::VideoCaptureDir();
+	FPaths::MakePlatformFilename( OutputDirectory.Path );
+
+	bCreateTemporaryCopiesOfLevels = false;
+	bUseRelativeFrameNumbers = false;
+	GameModeOverride = nullptr;
 	OutputFormat = NSLOCTEXT("MovieCapture", "DefaultFormat", "{world}_{width}x{height}").ToString();
 	FrameRate = 24;
-	FrameCount = 0;
+	bUseCustomStartFrame = false;
+	StartFrame = 0;
+	bUseCustomEndFrame = false;
+	EndFrame = 1;
 	CaptureType = EMovieCaptureType::AVI;
 	bUseCompression = true;
 	CompressionQuality = 1.f;
 	bEnableTextureStreaming = true;
 	bCinematicMode = true;
-	bAllowMovement = true;
-	bAllowTurning = true;
-	bShowPlayer = true;
-	bShowHUD = true;
+	bAllowMovement = false;
+	bAllowTurning = false;
+	bShowPlayer = false;
+	bShowHUD = false;
 }
 
 UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
@@ -54,21 +62,94 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 		InheritedCommandLineArguments.AppendChar(' ');
 	}
 
-	// the PIEVIACONSOLE parameter tells UGameEngine to add the auto-save dir to the paths array and repopulate the package file cache
-	// this is needed in order to support streaming levels as the streaming level packages will be loaded only when needed (thus
-	// their package names need to be findable by the package file caching system)
-	// (we add to EditorCommandLine because the URL is ignored by WindowsTools)
-	AdditionalCommandLineArguments += TEXT("-PIEVIACONSOLE -NoLoadingScreen ");
+	AdditionalCommandLineArguments += TEXT("-NoLoadingScreen");
 
 	Handle = FUniqueMovieSceneCaptureHandle();
 
+	FrameCount = 0;
 	OutstandingFrameCount = 0;
 	LastFrameDelta = 0.f;
 	bCapturing = false;
+	FrameNumberOffset = 0;
 }
 
 void UMovieSceneCapture::Initialize(TWeakPtr<FSceneViewport> InSceneViewport)
 {
+	// Apply command-line overrides
+	{
+		FString OutputPathOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieFolder=" ), OutputPathOverride ) )
+		{
+			Settings.OutputDirectory.Path = OutputPathOverride;
+		}
+
+		FString OutputNameOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieName=" ), OutputNameOverride ) )
+		{
+			Settings.OutputFormat = OutputNameOverride;
+		}
+
+		bool bOverrideRelativeFrameNumbers;
+		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieRelativeFrames=" ), bOverrideRelativeFrameNumbers ) )
+		{
+			Settings.bUseRelativeFrameNumbers = bOverrideRelativeFrameNumbers;
+		}
+
+		bool bOverrideCinematicMode;
+		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieCinematicMode=" ), bOverrideCinematicMode ) )
+		{
+			Settings.bCinematicMode = bOverrideCinematicMode;
+		}
+
+		FString FormatOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieFormat=" ), FormatOverride ) )
+		{
+			if( FormatOverride.Equals( TEXT( "AVI" ), ESearchCase::IgnoreCase ) )
+			{
+				Settings.CaptureType = EMovieCaptureType::AVI;
+			}
+			else if( FormatOverride.Equals( TEXT( "BMP" ), ESearchCase::IgnoreCase ) )
+			{
+				Settings.CaptureType = EMovieCaptureType::BMP;
+			}
+			else if( FormatOverride.Equals( TEXT( "PNG" ), ESearchCase::IgnoreCase ) )
+			{
+				Settings.CaptureType = EMovieCaptureType::PNG;
+			}
+			else if( FormatOverride.Equals( TEXT( "JPG" ), ESearchCase::IgnoreCase ) || FormatOverride.Equals( TEXT( "JPEG" ), ESearchCase::IgnoreCase ) )
+			{
+				Settings.CaptureType = EMovieCaptureType::JPEG;
+			}
+		}
+
+		int32 StartFrameOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieStartFrame=" ), StartFrameOverride ) )
+		{
+			Settings.bUseCustomStartFrame = true;
+			Settings.StartFrame = StartFrameOverride;
+		}
+
+		int32 EndFrameOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieEndFrame=" ), EndFrameOverride ) )
+		{
+			Settings.bUseCustomEndFrame = true;
+			Settings.EndFrame = EndFrameOverride;
+		}
+
+		int32 FrameRateOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieFrameRate=" ), FrameRateOverride ) )
+		{
+			Settings.FrameRate = FrameRateOverride;
+		}
+
+		int32 QualityOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieQuality=" ), QualityOverride ) )
+		{
+			Settings.CompressionQuality = FMath::TruncToFloat( FMath::Clamp( QualityOverride, 0, 100 ) ) / 100.0f;
+			Settings.bUseCompression = QualityOverride <= 0.99f;
+		}
+	}
+
 	SceneViewport = InSceneViewport;
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
@@ -126,11 +207,7 @@ void UMovieSceneCapture::PrepareForScreenshot()
 
 void UMovieSceneCapture::Tick(float DeltaSeconds)
 {
-	if (OutstandingFrameCount > 0)
-	{
-		CaptureFrame(LastFrameDelta);
-		--OutstandingFrameCount;
-	}
+	CaptureFrame(LastFrameDelta);
 	LastFrameDelta = DeltaSeconds;
 }
 
@@ -186,10 +263,12 @@ void UMovieSceneCapture::StartCapture()
 void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 {
 	auto Viewport = SceneViewport.Pin();
-	if (!CaptureStrategy.IsValid() || !Viewport.IsValid() || !ScratchBuffer.Num())
+	if (OutstandingFrameCount == 0 || !CaptureStrategy.IsValid() || !Viewport.IsValid() || !ScratchBuffer.Num())
 	{
 		return;
 	}
+	
+	--OutstandingFrameCount;
 
 	CachedMetrics.ElapsedSeconds += DeltaSeconds;
 
@@ -198,12 +277,12 @@ void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 	{
 		TArray<FColor> ThisFrameBuffer;
 		Swap(ThisFrameBuffer, ScratchBuffer);
+		ScratchBuffer.Reset();
 
 		uint32 NumDroppedFrames = CaptureStrategy->GetDroppedFrames(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
 		CachedMetrics.Frame += NumDroppedFrames;
 
 		CaptureStrategy->OnPresent(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
-		++CachedMetrics.Frame;
 		
 		if (AVIWriter)
 		{
@@ -216,7 +295,8 @@ void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 			SaveFrameToFile(MoveTemp(ThisFrameBuffer));
 		}
 #endif
-		if (Settings.FrameCount != 0 && CachedMetrics.Frame >= Settings.FrameCount)
+		++CachedMetrics.Frame;
+		if (FrameCount != 0 && CachedMetrics.Frame >= FrameCount)
 		{
 			StopCapture();
 		}
@@ -313,7 +393,7 @@ const TCHAR* UMovieSceneCapture::GetDefaultFileExtension() const
 	{
 		case EMovieCaptureType::BMP:	return TEXT(".bmp");
 		case EMovieCaptureType::PNG:	return TEXT(".png");
-		case EMovieCaptureType::JPEG:	return TEXT(".jpeg");
+		case EMovieCaptureType::JPEG:	return TEXT(".jpg");
 #if PLATFORM_MAC
 		default:						return TEXT(".mov");
 #else
@@ -326,7 +406,7 @@ FString UMovieSceneCapture::ResolveFileFormat(const FString& Folder, const FStri
 {
 	TMap<FString, FStringFormatArg> Mappings;
 	Mappings.Add(TEXT("fps"), FString::Printf(TEXT("%d"), Settings.FrameRate));
-	Mappings.Add(TEXT("frame"), FString::Printf(TEXT("%04d"), CachedMetrics.Frame));
+	Mappings.Add(TEXT("frame"), FString::Printf(TEXT("%04d"), Settings.bUseRelativeFrameNumbers ? CachedMetrics.Frame : CachedMetrics.Frame + FrameNumberOffset));
 	Mappings.Add(TEXT("width"), FString::Printf(TEXT("%d"), CachedMetrics.Width));
 	Mappings.Add(TEXT("height"), FString::Printf(TEXT("%d"), CachedMetrics.Height));
 	Mappings.Add(TEXT("world"), GWorld->GetName());
@@ -345,13 +425,14 @@ FString UMovieSceneCapture::ResolveFileFormat(const FString& Folder, const FStri
 
 FString UMovieSceneCapture::ResolveUniqueFilename()
 {
-	FString BaseFilename = ResolveFileFormat(Settings.OutputDirectory.Path, Settings.OutputFormat);
-	FString ThisTry = BaseFilename + GetDefaultFileExtension();
-
-	if (!IFileManager::Get().DirectoryExists(*Settings.OutputDirectory.Path))
+	if( !IFileManager::Get().DirectoryExists( *Settings.OutputDirectory.Path ) )
 	{
-		IFileManager::Get().MakeDirectory(*Settings.OutputDirectory.Path);
+		IFileManager::Get().MakeDirectory( *Settings.OutputDirectory.Path );
 	}
+
+	const FString BaseFilename = ResolveFileFormat( Settings.OutputDirectory.Path, Settings.OutputFormat );
+
+	FString ThisTry = BaseFilename + GetDefaultFileExtension();
 
 	if (Settings.bOverwriteExisting)
 	{
@@ -370,10 +451,10 @@ FString UMovieSceneCapture::ResolveUniqueFilename()
 		return ThisTry;
 	}
 
-	uint32 Index = 2;
+	int32 DuplicateIndex = 1;
 	for (;;)
 	{
-		ThisTry = BaseFilename + FString::Printf(TEXT(" %02d"), Index) + GetDefaultFileExtension();
+		ThisTry = BaseFilename + FString::Printf(TEXT("_(%d)"), DuplicateIndex) + GetDefaultFileExtension();
 
 		// If the file doesn't exist, we can use that, else, increment the index and try again
 		if (IFileManager::Get().FileSize(*ThisTry) == -1)
@@ -381,7 +462,7 @@ FString UMovieSceneCapture::ResolveUniqueFilename()
 			return ThisTry;
 		}
 
-		++Index;
+		++DuplicateIndex;
 	}
 
 	return ThisTry;

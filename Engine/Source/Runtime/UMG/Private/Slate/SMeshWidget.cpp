@@ -5,12 +5,12 @@
 #include "SMeshWidget.h"
 #include "SlateMaterialBrush.h"
 #include "Runtime/SlateRHIRenderer/Public/Interfaces/ISlateRHIRendererModule.h"
-#include "SlateMeshData.h"
+#include "SlateVectorArtData.h"
 
 
 
 /** Populate OutSlateVerts and OutIndexes with data from this static mesh such that Slate can render it. */
-static void SlateMeshToSlateRenderData(const USlateMeshData& DataSource, TArray<FSlateVertex>& OutSlateVerts, TArray<SlateIndex>& OutIndexes)
+static void SlateMeshToSlateRenderData(const USlateVectorArtData& DataSource, TArray<FSlateVertex>& OutSlateVerts, TArray<SlateIndex>& OutIndexes)
 {
 	// Populate Index data
 	{
@@ -82,8 +82,10 @@ void SMeshWidget::Construct(const FArguments& Args)
 }
 
 static const FVector2D DontCare(FVector2D(64, 64));
-uint32 SMeshWidget::AddMesh(const USlateMeshData& InMeshData)
+uint32 SMeshWidget::AddMesh(USlateVectorArtData& InMeshData)
 {	
+	InMeshData.EnsureValidData();
+
 	FRenderData& NewRenderData = RenderData[RenderData.Add(FRenderData())];
 	UMaterialInterface* MaterialFromMesh = InMeshData.GetMaterial();
 	if (MaterialFromMesh != nullptr)

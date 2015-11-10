@@ -75,6 +75,8 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 		else
 		{
 			Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
+
+			MovieSceneHelpers::SetKeyInterpolation(*Curve, CurrentKeyHandle, Sequencer->GetKeyInterpolation());
 		}
 
 		if (OwningSection->GetStartTime() > CurrentTime)

@@ -126,34 +126,7 @@ void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Va
 
 		if (!InCurve.IsKeyHandleValid(ExistingKeyHandle) && InCurve.IsKeyHandleValid(NewKeyHandle))
 		{
-			// Set the default key interpolation only if a new key was created
-			switch (Interpolation)
-			{
-				case EMovieSceneKeyInterpolation::Auto:
-					InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
-					InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
-					break;
-				case EMovieSceneKeyInterpolation::User:
-					InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
-					InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_User);
-					break;
-				case EMovieSceneKeyInterpolation::Break:
-					InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
-					InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Break);
-					break;
-				case EMovieSceneKeyInterpolation::Linear:
-					InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Linear);
-					InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
-					break;
-				case EMovieSceneKeyInterpolation::Constant:
-					InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Constant);
-					InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
-					break;
-				default:
-					InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
-					InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
-					break;
-			}
+			MovieSceneHelpers::SetKeyInterpolation(InCurve, NewKeyHandle, Interpolation);
 		}
 	}
 }

@@ -36,6 +36,7 @@ public:
 	// UMovieSceneCapture interface
 	virtual void Initialize(TWeakPtr<FSceneViewport> InViewport) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void SetupFrameRange() override;
 
 private:
 

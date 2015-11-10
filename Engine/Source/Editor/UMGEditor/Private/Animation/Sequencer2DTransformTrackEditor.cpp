@@ -6,12 +6,14 @@
 #include "MovieScene2DTransformTrack.h"
 #include "PropertySection.h"
 #include "ISectionLayoutBuilder.h"
-#include "MovieSceneToolHelpers.h"
+#include "FloatCurveKeyArea.h"
+
 
 FName F2DTransformTrackEditor::TranslationName( "Translation" );
 FName F2DTransformTrackEditor::ScaleName( "Scale" );
 FName F2DTransformTrackEditor::ShearName( "Shear" );
 FName F2DTransformTrackEditor::AngleName( "Angle" );
+
 
 class F2DTransformSection
 	: public FPropertySection

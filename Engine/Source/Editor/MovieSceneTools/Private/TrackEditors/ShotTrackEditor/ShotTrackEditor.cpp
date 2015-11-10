@@ -10,7 +10,6 @@
 #include "ScopedTransaction.h"
 #include "ISequencerObjectChangeListener.h"
 #include "IKeyArea.h"
-#include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "ShotTrackEditor.h"
 #include "CommonMovieSceneTools.h"
@@ -120,6 +119,7 @@ TSharedPtr<SWidget> FShotTrackEditor::BuildOutlinerEditWidget(const FGuid& Objec
 		.Padding(4, 0, 0, 0)
 		[
 			SNew(SCheckBox)
+				.IsFocusable(false)
 				.IsChecked(this, &FShotTrackEditor::IsCameraLocked)
 				.OnCheckStateChanged(this, &FShotTrackEditor::OnLockCameraClicked)
 				.ToolTipText(this, &FShotTrackEditor::GetLockCameraToolTip)
@@ -426,7 +426,6 @@ void FShotTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState)
 	}
 	else
 	{
-		// TODO: MaxC, is this right?
 		GetSequencer()->UpdateCameraCut(nullptr, nullptr);
 		GetSequencer()->SetPerspectiveViewportCameraCutEnabled(false);
 	}

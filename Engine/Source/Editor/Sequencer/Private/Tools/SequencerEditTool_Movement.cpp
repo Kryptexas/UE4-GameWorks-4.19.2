@@ -162,6 +162,31 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 		// Only return handled if we actually started a drag
 		return FReply::Handled().ReleaseMouseCapture();
 	}
+	else if (Hotspot.IsValid())
+	{
+		PerformHotspotSelection(MouseEvent);
+
+		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+		{
+			TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
+			if (MenuContent.IsValid())
+			{
+				FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
+				FSlateApplication::Get().PushMenu(
+					OwnerWidget.AsShared(),
+					WidgetPath,
+					MenuContent.ToSharedRef(),
+					MouseEvent.GetScreenSpacePosition(),
+					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+					);
+
+				return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly).ReleaseMouseCapture();
+			}
+		}
+
+		return FReply::Handled().ReleaseMouseCapture();
+	}
 
 	return FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
 }
@@ -176,7 +201,20 @@ void FSequencerEditTool_Movement::OnMouseCaptureLost()
 
 FCursorReply FSequencerEditTool_Movement::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
-	return DragOperation.IsValid() ? FCursorReply::Cursor(EMouseCursor::CardinalCross) : FCursorReply::Cursor(EMouseCursor::Default);
+	if (DragOperation.IsValid())
+	{
+		return FCursorReply::Cursor(EMouseCursor::CardinalCross);
+	}
+
+	if (Hotspot.IsValid())
+	{
+		FCursorReply Reply = Hotspot->GetCursor();
+		if (Reply.IsEventHandled())
+		{
+			return Reply;
+		}
+	}
+	return FCursorReply::Cursor(EMouseCursor::Default);
 }
 
 

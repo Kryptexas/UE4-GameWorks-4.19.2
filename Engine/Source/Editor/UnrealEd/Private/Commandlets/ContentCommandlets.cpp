@@ -30,7 +30,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 // for UResavePackagesCommandlet::PerformAdditionalOperations building lighting code
 #include "Engine/WorldComposition.h"
 #include "LightingBuildOptions.h"
-
+// For preloading FFindInBlueprintSearchManager
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 
 /**-----------------------------------------------------------------------------
  *	UResavePackages commandlet.
@@ -63,6 +64,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 	{
 		FString Package;
 		FString PackageFolder;
+		FString Maps;
 		const FString& CurrentSwitch = Switches[ SwitchIdx ];
 		if( FParse::Value( *CurrentSwitch, TEXT( "PACKAGE="), Package ) )
 		{
@@ -82,7 +84,29 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				PackageNames.Add( *PackageFile );
             }
 			bExplicitPackages = true;
-        }
+		}
+		else if (FParse::Value(*CurrentSwitch, TEXT("MAP="), Maps))
+		{
+			// Allow support for -MAP=Value1+Value2+Value3
+			for (int32 PlusIdx = Maps.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = Maps.Find(TEXT("+")))
+			{
+				const FString NextMap = Maps.Left(PlusIdx);
+				if (NextMap.Len() > 0)
+				{
+					FString MapFile;
+					FPackageName::SearchForPackageOnDisk(NextMap, NULL, &MapFile, false);
+					PackageNames.Add(*MapFile);
+					bExplicitPackages = true;
+				}
+
+				Maps = Maps.Right(Maps.Len() - (PlusIdx + 1));
+			}
+			FString MapFile;
+			FPackageName::SearchForPackageOnDisk(Maps, NULL, &MapFile, false);
+			PackageNames.Add(*MapFile);
+			bExplicitPackages = true;
+		}
+
 	}
 
 	// ... if not, load in all packages
@@ -96,6 +120,11 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		else if ( Switches.Contains(TEXT("MAPSONLY")) )
 		{
 			PackageFilter |= NORMALIZE_ExcludeContentPackages;
+		}
+
+		if (Switches.Contains(TEXT("PROJECTONLY")))
+		{
+			PackageFilter |= NORMALIZE_ExcludeEnginePackages;
 		}
 
 		if ( Switches.Contains(TEXT("SkipDeveloperFolders")) || Switches.Contains(TEXT("NODEV")) )
@@ -443,7 +472,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 									VerboseMessage(TEXT("Post CheckOut"));
 
-									FString PackageName(FPaths::GetBaseFilename(Filename));
+									FString PackageName(FPackageName::FilenameToLongPackageName(Filename));
 									FilesToSubmit.Add(*PackageName);
 								}
 							}
@@ -544,6 +573,9 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 		UE_LOG(LogContentCommandlet, Display, TEXT( "Restricted to packages containing %s" ), *PackageSubstring );
 	}
 
+	// Avoid crash saving blueprint
+	FFindInBlueprintSearchManager::Get();
+
 	// Iterate over all packages.
 	for( int32 PackageIndex = 0; PackageIndex < PackageNames.Num(); PackageIndex++ )
 	{
@@ -602,7 +634,19 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 
 FText UResavePackagesCommandlet::GetChangelistDescription() const
 {
-	return NSLOCTEXT("ContentCmdlets", "ChangelistDescription", "Resave Deprecated Packages");
+	FText ChangelistDescription;
+
+	static bool bBuildLighting = FParse::Param(FCommandLine::Get(), TEXT("buildlighting")) == true;
+	if (bBuildLighting)
+	{
+		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionBuildLighting", "Rebuild lightmaps.");
+	}
+	else
+	{
+		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescription", "Resave Deprecated Packages");
+	}
+
+	return ChangelistDescription;
 }
 
 
@@ -660,97 +704,68 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 
 	if (bBuildLighting)
 	{
-		TArray<FString> CmdLineMapEntries;
-		for (const FString& Switch : Switches)
+		static bool bHasLoadedStartupPackages = false;
+		if (bHasLoadedStartupPackages == false)
 		{
-			auto GetSwitchValueElements = [&Switch](const FString SwitchKey) -> TArray < FString >
-			{
-				TArray<FString> ValueElements;
-				if (Switch.StartsWith(SwitchKey + TEXT("=")) == true)
-				{
-					FString ValuesList = Switch.Right(Switch.Len() - (SwitchKey + TEXT("=")).Len());
-
-					// Allow support for -KEY=Value1+Value2+Value3 as well as -KEY=Value1 -KEY=Value2
-					for (int32 PlusIdx = ValuesList.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = ValuesList.Find(TEXT("+")))
-					{
-						const FString ValueElement = ValuesList.Left(PlusIdx);
-						ValueElements.Add(ValueElement);
-
-						ValuesList = ValuesList.Right(ValuesList.Len() - (PlusIdx + 1));
-					}
-					ValueElements.Add(ValuesList);
-				}
-				return ValueElements;
-			};
-
-			CmdLineMapEntries += GetSwitchValueElements(TEXT("MAP"));
+			// make sure all possible script/startup packages are loaded
+			bHasLoadedStartupPackages = FStartupPackages::LoadAll();
 		}
 
-		// If specific maps were specified, then only continue if we are processing one that was required.
-		bool bShouldBuildLightmapsForWorld = CmdLineMapEntries.Num() == 0 || CmdLineMapEntries.Contains(World->GetMapName());
-		if (bShouldBuildLightmapsForWorld)
+		World->AddToRoot();
+		if (!World->bIsWorldInitialized)
 		{
-			World->AddToRoot();
-			if (!World->bIsWorldInitialized)
-			{
-				UWorld::InitializationValues IVS;
-				IVS.RequiresHitProxies(false);
-				IVS.ShouldSimulatePhysics(false);
-				IVS.EnableTraceCollision(false);
-				IVS.CreateNavigation(false);
-				IVS.CreateAISystem(false);
-				IVS.AllowAudioPlayback(false);
-				IVS.CreatePhysicsScene(false);
+			UWorld::InitializationValues IVS;
+			IVS.RequiresHitProxies(false);
+			IVS.ShouldSimulatePhysics(false);
+			IVS.EnableTraceCollision(false);
+			IVS.CreateNavigation(false);
+			IVS.CreateAISystem(false);
+			IVS.AllowAudioPlayback(false);
+			IVS.CreatePhysicsScene(false);
 
-				World->InitWorld(IVS);
-				World->PersistentLevel->UpdateModelComponents();
-				World->UpdateWorldComponents(true, false);
-			}
-
-			// load all the sublevels
-
-			if (World->StreamingLevels.Num())
-			{
-				//World->LoadSecondaryLevels(true, &PreviouslyCookedPackages);
-				World->LoadSecondaryLevels(true, NULL);
-			}
-
-			GWorld = World;
-
-			TArray<FString> SubPackages;
-
-			// force load all of the map to be loaded so we can get good rebuilt lighting 
-			if (World->WorldComposition)
-			{
-				World->WorldComposition->CollectTilesToCook(SubPackages);
-			}
-
-			for (const auto& SubPackage : SubPackages)
-			{
-				UPackage* Package = LoadPackage(nullptr, *SubPackage, 0);
-				check(Package->IsFullyLoaded());
-			}
-
-			GRedirectCollector.ResolveStringAssetReference();
-
-
-			FLightingBuildOptions LightingOptions;
-
-			int32 QualityLevel = Quality_Production;
-			GConfig->GetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), QualityLevel, GEditorPerProjectIni);
-			QualityLevel = FMath::Clamp<int32>(QualityLevel, Quality_Preview, Quality_Production);
-			
-			LightingOptions.QualityLevel = (ELightingBuildQuality)QualityLevel;
-
-			GEditor->BuildLighting(LightingOptions);
-			while (GEditor->IsLightingBuildCurrentlyRunning())
-			{
-				GEditor->UpdateBuildLighting();
-			}
-
-			World->RemoveFromRoot();
+			World->InitWorld(IVS);
+			World->PersistentLevel->UpdateModelComponents();
+			World->UpdateWorldComponents(true, false);
 		}
 
+		// load all the sublevels
+
+		if (World->StreamingLevels.Num())
+		{
+			//World->LoadSecondaryLevels(true, &PreviouslyCookedPackages);
+			World->LoadSecondaryLevels(true, NULL);
+		}
+
+		GWorld = World;
+
+		TArray<FString> SubPackages;
+
+		// force load all of the map to be loaded so we can get good rebuilt lighting 
+		if (World->WorldComposition)
+		{
+			World->WorldComposition->CollectTilesToCook(SubPackages);
+		}
+
+		for (const auto& SubPackage : SubPackages)
+		{
+			UPackage* Package = LoadPackage(nullptr, *SubPackage, 0);
+			check(Package->IsFullyLoaded());
+		}
+
+		GRedirectCollector.ResolveStringAssetReference();
+
+
+		FLightingBuildOptions LightingOptions;
+		// Always build on production
+		LightingOptions.QualityLevel = Quality_Production;
+
+		GEditor->BuildLighting(LightingOptions);
+		while (GEditor->IsLightingBuildCurrentlyRunning())
+		{
+			GEditor->UpdateBuildLighting();
+		}
+
+		World->RemoveFromRoot();
 	}
 }
 

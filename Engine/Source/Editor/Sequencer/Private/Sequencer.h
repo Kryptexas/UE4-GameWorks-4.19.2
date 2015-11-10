@@ -286,8 +286,8 @@ public:
 	void AddSelectedObjects();
 
 	/** Called when a user executes the assign actor to track menu item */
-	void AssignActor(FGuid ObjectBinding, FSequencerObjectBindingNode* ObjectBindingNode);
-	bool CanAssignActor(FGuid ObjectBinding) const;
+	void AssignActor(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
+	void DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
 
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
@@ -357,6 +357,12 @@ protected:
 
 	/** Called when the user has finished scrubbing */
 	void OnEndScrubbing();
+
+	/** Called when the user has begun dragging the play range */
+	void OnBeginPlaybackRangeDrag();
+
+	/** Called when the user has finished dragging the play range */
+	void OnEndPlaybackRangeDrag();
 
 public:
 

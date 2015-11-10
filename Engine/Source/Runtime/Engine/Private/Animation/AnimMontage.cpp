@@ -25,6 +25,9 @@ UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 	BlendOut.SetBlendTime(0.25f);
 	BlendOutTriggerTime = -1.f;
 	SyncSlotIndex = 0;
+
+	BlendInTime_DEPRECATED = -1.f;
+	BlendOutTime_DEPRECATED = -1.f;
 }
 
 bool UAnimMontage::IsValidSlot(FName InSlotName) const
@@ -462,13 +465,13 @@ void UAnimMontage::PostLoad()
 	}
 
 	// fix up blending time deprecated variable
-	if (BlendInTime_DEPRECATED == -1.f)
+	if (BlendInTime_DEPRECATED != -1.f)
 	{
 		BlendIn.SetBlendTime(BlendInTime_DEPRECATED);
 		BlendInTime_DEPRECATED = -1.f;
 	}
 
-	if(BlendOutTime_DEPRECATED == -1.f)
+	if(BlendOutTime_DEPRECATED != -1.f)
 	{
 		BlendOut.SetBlendTime(BlendOutTime_DEPRECATED);
 		BlendOutTime_DEPRECATED = -1.f;
@@ -1013,7 +1016,8 @@ void UAnimMontage::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAni
 {
 	// nothing has to happen here
 	// we just have to make sure we set Context data correct
-	if (ensure (Context.IsLeader()))
+	//if (ensure (Context.IsLeader()))
+	if ((Context.IsLeader()))
 	{
 		const float CurrentTime = Instance.Montage.CurrentPosition;
 		const float PreviousTime = Instance.Montage.PreviousPosition;

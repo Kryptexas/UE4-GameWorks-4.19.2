@@ -479,6 +479,24 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 	ElapsedTime += Context.GetDeltaTime();
 }
 
+FAnimNode_AssetPlayerBase* FAnimNode_StateMachine::GetRelevantAssetPlayerFromState(const FAnimationUpdateContext& Context, const FBakedAnimationState& StateInfo)
+{
+	FAnimNode_AssetPlayerBase* ResultPlayer = nullptr;
+	float MaxWeight = 0.0f;
+	for (const int32& PlayerIdx : StateInfo.PlayerNodeIndices)
+	{
+		if (FAnimNode_AssetPlayerBase* Player = Context.AnimInstance->GetNodeFromIndex<FAnimNode_AssetPlayerBase>(PlayerIdx))
+		{
+			if (!Player->bIgnoreForRelevancyTest && (Player->GetCachedBlendWeight() > MaxWeight))
+			{
+				MaxWeight = Player->GetCachedBlendWeight();
+				ResultPlayer = Player;
+			}
+		}
+	}
+	return ResultPlayer;
+}
+
 bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& Context, const FBakedAnimationState& StateInfo, /*out*/ FAnimationPotentialTransition& OutPotentialTransition, /*out*/ TArray<int32, TInlineAllocator<4>>& OutVisitedStateIndices)
 {
 	// There is a possibility we'll revisit states connected through conduits,
@@ -530,33 +548,24 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 			// attempt to evaluate native rule
 			ResultNode->bCanEnterTransition = ResultNode->NativeTransitionDelegate.Execute();
 		}
-		else
+		else if (TransitionRule.bAutomaticRemainingTimeRule)
 		{
-			bool bStillCallEvaluate = true;
-
-			if (TransitionRule.StateSequencePlayerToQueryIndex != INDEX_NONE)
+			bool bCanEnterTransition = false;
+			if (FAnimNode_AssetPlayerBase* RelevantPlayer = GetRelevantAssetPlayerFromState(Context, StateInfo))
 			{
-				// Simple automatic rule
-				FAnimNode_SequencePlayer* SequencePlayer = GetNodeFromPropertyIndex<FAnimNode_SequencePlayer>(Context.AnimInstance, AnimBlueprintClass, TransitionRule.StateSequencePlayerToQueryIndex);
-				if ((SequencePlayer != nullptr) && (SequencePlayer->Sequence != nullptr))
+				if (UAnimationAsset* AnimAsset = RelevantPlayer->GetAnimAsset())
 				{
-					const float SequenceLength = SequencePlayer->Sequence->GetMaxCurrentTime();
-					const float PlayerTime = SequencePlayer->GetAccumulatedTime();
-					const float PlayerTimeLeft = SequenceLength - PlayerTime;
-
+					const float AnimTimeRemaining = AnimAsset->GetMaxCurrentTime() - RelevantPlayer->GetAccumulatedTime();
 					const FAnimationTransitionBetweenStates& TransitionInfo = GetTransitionInfo(TransitionRule.TransitionIndex);
-
-					ResultNode->bCanEnterTransition = (PlayerTimeLeft <= TransitionInfo.CrossfadeDuration);
-
-					bStillCallEvaluate = false;
+					bCanEnterTransition = (AnimTimeRemaining <= TransitionInfo.CrossfadeDuration);
 				}
 			}
-
-			if (bStillCallEvaluate)
-			{
-				// Execute it and see if we can take this rule
-				ResultNode->EvaluateGraphExposedInputs.Execute(Context);
-			}
+			ResultNode->bCanEnterTransition = bCanEnterTransition;
+		}			
+		else 
+		{
+			// Execute it and see if we can take this rule
+			ResultNode->EvaluateGraphExposedInputs.Execute(Context);
 		}
 
 		if (ResultNode->bCanEnterTransition == TransitionRule.bDesiredTransitionReturnValue)

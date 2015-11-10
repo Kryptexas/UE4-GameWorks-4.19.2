@@ -31,7 +31,7 @@ void UMovieSceneEventSection::TriggerEvents(ALevelScriptActor* LevelScriptActor,
 	{
 		for (const auto& Key : Keys)
 		{
-			if ((Key.Time > LastPosition) && (Key.Time <= Position))
+			if ((Key.Time >= LastPosition) && (Key.Time <= Position))
 			{
 				TriggerEvent(Key.Value, LevelScriptActor);
 			}
@@ -43,7 +43,7 @@ void UMovieSceneEventSection::TriggerEvents(ALevelScriptActor* LevelScriptActor,
 		{
 			const auto& Key = Keys[KeyIndex];
 
-			if ((Key.Time >= Position) && (Key.Time < LastPosition))
+			if ((Key.Time >= Position) && (Key.Time <= LastPosition))
 			{
 				TriggerEvent(Key.Value, LevelScriptActor);
 			}

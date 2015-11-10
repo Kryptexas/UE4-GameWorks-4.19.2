@@ -49,6 +49,9 @@
 #include "MovieSceneCaptureDialogModule.h"
 #include "AutomatedLevelSequenceCapture.h"
 
+#include "SceneOutlinerModule.h"
+#include "SceneOutlinerPublicTypes.h"
+
 #define LOCTEXT_NAMESPACE "Sequencer"
 
 DEFINE_LOG_CATEGORY(LogSequencer);
@@ -115,6 +118,8 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			.ClampRange( this, &FSequencer::GetClampRange )
 			.PlaybackRange( this, &FSequencer::GetPlaybackRange )
 			.OnPlaybackRangeChanged( this, &FSequencer::SetPlaybackRange )
+			.OnBeginPlaybackRangeDrag( this, &FSequencer::OnBeginPlaybackRangeDrag )
+			.OnEndPlaybackRangeDrag( this, &FSequencer::OnEndPlaybackRangeDrag )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
 			.OnBeginScrubbing( this, &FSequencer::OnBeginScrubbing )
 			.OnEndScrubbing( this, &FSequencer::OnEndScrubbing )
@@ -574,6 +579,8 @@ void FSequencer::SetPlaybackRange(TRange<float> InNewPlaybackRange)
 {
 	if (ensure(InNewPlaybackRange.HasLowerBound() && InNewPlaybackRange.HasUpperBound() && !InNewPlaybackRange.IsDegenerate()))
 	{
+		const FScopedTransaction Transaction(LOCTEXT("SetPlaybackRange_Transaction", "Set playback range"));
+
 		UMovieScene* FocussedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 		FocussedMovieScene->SetPlaybackRange(InNewPlaybackRange.GetLowerBoundValue(), InNewPlaybackRange.GetUpperBoundValue());
 	}
@@ -978,14 +985,10 @@ FReply FSequencer::OnPlay(bool bTogglePlay)
 	}
 	else
 	{
-		TRange<float> TimeBounds = GetTimeBounds();
-		if (!TimeBounds.IsEmpty())
-		{
-			PlaybackState = EMovieScenePlayerStatus::Playing;
-			
-			// Make sure Slate ticks during playback
-			SequencerWidget->RegisterActiveTimerForPlayback();
-		}
+		PlaybackState = EMovieScenePlayerStatus::Playing;
+		
+		// Make sure Slate ticks during playback
+		SequencerWidget->RegisterActiveTimerForPlayback();
 	}
 
 	return FReply::Handled();
@@ -1039,22 +1042,14 @@ FReply FSequencer::OnStepBackward()
 FReply FSequencer::OnStepToEnd()
 {
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
-	TRange<float> TimeBounds = GetTimeBounds();
-	if (!TimeBounds.IsEmpty())
-	{
-		SetGlobalTime(TimeBounds.GetUpperBoundValue());
-	}
+	SetGlobalTime(GetPlaybackRange().GetUpperBoundValue());
 	return FReply::Handled();
 }
 
 FReply FSequencer::OnStepToBeginning()
 {
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
-	TRange<float> TimeBounds = GetTimeBounds();
-	if (!TimeBounds.IsEmpty())
-	{
-		SetGlobalTime(TimeBounds.GetLowerBoundValue());
-	}
+	SetGlobalTime(GetPlaybackRange().GetLowerBoundValue());
 	return FReply::Handled();
 }
 
@@ -1084,16 +1079,20 @@ void FSequencer::SetGlobalTimeLooped(float InTime)
 	}
 	else
 	{
+
 		TRange<float> TimeBounds = GetTimeBounds();
-		if (InTime > TimeBounds.GetUpperBoundValue())
+		TRange<float> WorkingRange = GetClampRange();
+
+		// Stop if we hit the playback range end
+		if (GetGlobalTime() < TimeBounds.GetUpperBoundValue() && InTime >= TimeBounds.GetUpperBoundValue())
 		{
 			InTime = TimeBounds.GetUpperBoundValue();
 			PlaybackState = EMovieScenePlayerStatus::Stopped;
 		}
-		else if (InTime < TimeBounds.GetLowerBoundValue())
+		// Jump to the start of the working range if necessary
+		else if (InTime < WorkingRange.GetLowerBoundValue())
 		{
-			InTime = TimeBounds.GetLowerBoundValue();
-			PlaybackState = EMovieScenePlayerStatus::Stopped;
+			InTime = WorkingRange.GetLowerBoundValue();
 		}
 	}
 
@@ -1153,7 +1152,7 @@ TRange<float> FSequencer::GetTimeBounds() const
 		return TRange<float>( -100000.0f, 100000.0f );
 	}
 	
-	return FocusedSequence->GetMovieScene()->GetEditorData().WorkingRange;
+	return FocusedSequence->GetMovieScene()->GetPlaybackRange();
 }
 
 void FSequencer::SetViewRange(TRange<float> NewViewRange, EViewRangeInterpolation Interpolation)
@@ -1207,6 +1206,8 @@ void FSequencer::OnClampRangeChanged( TRange<float> NewClampRange )
 
 void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing )
 {
+	bool bClampToViewRange = true;
+
 	if (PlaybackState == EMovieScenePlayerStatus::Scrubbing)
 	{
 		if (!bScrubbing)
@@ -1215,6 +1216,9 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 		}
 		else if (IsAutoScrollEnabled())
 		{
+			// Clamp to the view range when not auto-scrolling
+			bClampToViewRange = false;
+	
 			UpdateAutoScroll(NewScrubPosition);
 			
 			// When scrubbing, we animate auto-scrolled scrub position in Tick()
@@ -1223,11 +1227,11 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 				return;
 			}
 		}
-		else
-		{
-			// Clamp to the view range when not auto-scrolling
-			NewScrubPosition = FMath::Clamp(NewScrubPosition, TargetViewRange.GetLowerBoundValue(), TargetViewRange.GetUpperBoundValue());
-		}
+	}
+
+	if (bClampToViewRange)
+	{
+		NewScrubPosition = FMath::Clamp(NewScrubPosition, TargetViewRange.GetLowerBoundValue(), TargetViewRange.GetUpperBoundValue());
 	}
 
 	SetGlobalTimeDirectly( NewScrubPosition );
@@ -1244,6 +1248,16 @@ void FSequencer::OnEndScrubbing()
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
 	AutoscrubOffset.Reset();
 	StopAutoscroll();
+}
+
+void FSequencer::OnBeginPlaybackRangeDrag()
+{
+	GEditor->BeginTransaction(LOCTEXT("SetPlaybackRange_Transaction", "Set playback range"));
+}
+
+void FSequencer::OnEndPlaybackRangeDrag()
+{
+	GEditor->EndTransaction();
 }
 
 void FSequencer::StartAutoscroll(float UnitsPerS)
@@ -1909,12 +1923,59 @@ void FSequencer::DeleteSelectedItems()
 	}
 }
 
-void FSequencer::AssignActor(FGuid InObjectBinding, FSequencerObjectBindingNode* ObjectBindingNode)
+void FSequencer::AssignActor(FMenuBuilder& MenuBuilder, FGuid InObjectBinding)
 {
-	if (ObjectBindingNode != nullptr)
+	UMovieSceneSequence* OwnerSequence = GetFocusedMovieSceneSequence();
+	UObject* RuntimeObject = OwnerSequence->FindObject(InObjectBinding);
+
+	auto IsActorValidForAssignment = [=](const AActor* InActor, UObject* CurrentObject){
+		return CurrentObject != InActor;
+	};
+
+	using namespace SceneOutliner;
+
+	// Set up a menu entry to assign an actor to the object binding node
+	FInitializationOptions InitOptions;
 	{
-		// Get the first selected actor as the actor to replace with
-		AActor* Actor = GEditor->GetSelectedActors()->GetTop<AActor>();
+		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
+
+		// We hide the header row to keep the UI compact.
+		InitOptions.bShowHeaderRow = false;
+		InitOptions.bShowSearchBox = true;
+		InitOptions.bShowCreateNewFolder = false;
+		// Only want the actor label column
+		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
+
+		// Only display actors that are not possessed already
+		InitOptions.Filters->AddFilterPredicate( FActorFilterPredicate::CreateLambda( IsActorValidForAssignment, RuntimeObject ) );
+	}
+
+	// actor selector to allow the user to choose an actor
+	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
+	TSharedRef< SWidget > MiniSceneOutliner =
+		SNew( SVerticalBox )
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.MaxHeight(400.0f)
+		[
+			SceneOutlinerModule.CreateSceneOutliner(
+				InitOptions,
+				FOnActorPicked::CreateLambda([=](AActor* Actor){
+					// Create a new binding for this actor
+					FSlateApplication::Get().DismissAllMenus();
+					DoAssignActor(&Actor, 1, InObjectBinding);
+				})
+			)
+		];
+	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
+	MenuBuilder.EndSection();
+}
+
+void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid InObjectBinding)
+{
+	if (NumActors > 0)
+	{
+		AActor* Actor = InActors[0];
 		if (Actor != nullptr)
 		{
 			FScopedTransaction AssignActor( NSLOCTEXT("Sequencer", "AssignActor", "Assign Actor") );
@@ -1982,11 +2043,6 @@ void FSequencer::AssignActor(FGuid InObjectBinding, FSequencerObjectBindingNode*
 			NotifyMovieSceneDataChanged();
 		}
 	}
-}
-
-bool FSequencer::CanAssignActor(FGuid ObjectBinding) const
-{
-	return GEditor->GetSelectedActors()->Num() > 0;
 }
 
 void FSequencer::DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted)
@@ -2433,32 +2489,28 @@ void FSequencer::BindSequencerCommands()
 			UAutomatedLevelSequenceCapture* MovieSceneCapture = NewObject<UAutomatedLevelSequenceCapture>(GetTransientPackage(), UAutomatedLevelSequenceCapture::StaticClass(), NAME_None, RF_Transient);
 			MovieSceneCapture->LoadConfig();
 
-			bool bFoundActor = false;
-
 			// Attempt to find a level sequence actor in the world that references this asset
 			for (auto It = TActorIterator<ALevelSequenceActor>(GWorld); It; ++It)
 			{
 				if (It->LevelSequence == GetCurrentAsset())
 				{
 					MovieSceneCapture->SetLevelSequenceActor(*It);
-					bFoundActor = true;
+					break;
 				}
 			}
 
-			if (!bFoundActor)
-			{
-				MovieSceneCapture->SetLevelSequenceAsset(GetCurrentAsset()->GetPathName());
-			}
+			MovieSceneCapture->SetLevelSequenceAsset(GetCurrentAsset()->GetPathName());
 
 			if (CanShowFrameNumbers())
 			{
 				MovieSceneCapture->Settings.FrameRate = FMath::RoundToInt(1.f / Settings->GetTimeSnapInterval());
-				// We always add 1 to the number of frames we want to capture, because we want to capture both the start and end frames (which if the play range is 0, would still yield a single frame)
-				MovieSceneCapture->Settings.FrameCount = FMath::RoundToInt((GetPlaybackRange().GetUpperBoundValue() - GetPlaybackRange().GetLowerBoundValue()) * MovieSceneCapture->Settings.FrameRate) + 1;
-			}
-			else
-			{
-				MovieSceneCapture->Settings.FrameCount = 0;
+				MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
+
+				const int32 SequenceStartFrame = FMath::RoundToInt( GetPlaybackRange().GetLowerBoundValue() * MovieSceneCapture->Settings.FrameRate );
+				const int32 SequenceEndFrame = FMath::Max( SequenceStartFrame, FMath::RoundToInt( GetPlaybackRange().GetUpperBoundValue() * MovieSceneCapture->Settings.FrameRate ) );
+
+				MovieSceneCapture->Settings.StartFrame = SequenceStartFrame;
+				MovieSceneCapture->Settings.EndFrame = SequenceEndFrame;
 			}
 
 			IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);

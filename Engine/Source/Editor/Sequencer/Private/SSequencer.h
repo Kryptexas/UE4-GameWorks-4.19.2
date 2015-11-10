@@ -97,6 +97,12 @@ public:
 		/** Called when the user changes the playback range */
 		SLATE_EVENT( FOnRangeChanged, OnPlaybackRangeChanged )
 
+		/** Called when the user has begun dragging the playback range */
+		SLATE_EVENT( FSimpleDelegate, OnBeginPlaybackRangeDrag )
+
+		/** Called when the user has finished dragging the playback range */
+		SLATE_EVENT( FSimpleDelegate, OnEndPlaybackRangeDrag )
+
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 
@@ -409,4 +415,10 @@ private:
 	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
+	/** Called when the user has begun dragging the playback range */
+	FSimpleDelegate OnBeginPlaybackRangeDrag;
+
+	/** Called when the user has finished dragging the playback range */
+	FSimpleDelegate OnEndPlaybackRangeDrag;
+
 };

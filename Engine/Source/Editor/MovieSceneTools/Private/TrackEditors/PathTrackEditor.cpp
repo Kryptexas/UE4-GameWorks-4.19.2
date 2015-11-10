@@ -8,14 +8,13 @@
 #include "MovieScene3DPathSection.h"
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
-#include "IKeyArea.h"
 #include "MovieSceneCommonHelpers.h"
-#include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "PathTrackEditor.h"
 #include "ActorEditorUtils.h"
 #include "Components/SplineComponent.h"
 #include "ActorPickerTrackEditor.h"
+#include "FloatCurveKeyArea.h"
 
 
 #define LOCTEXT_NAMESPACE "FPathTrackEditor"

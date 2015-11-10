@@ -238,6 +238,8 @@ void UMovieScene::SetPlaybackRange(float Start, float End)
 {
 	if (ensure(End >= Start))
 	{
+		Modify();
+		
 		PlaybackRange = TRange<float>(Start, TRangeBound<float>::Inclusive(End));
 
 #if WITH_EDITORONLY_DATA

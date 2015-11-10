@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "KeyParams.h"
+
 class MOVIESCENE_API MovieSceneHelpers
 {
 public:
@@ -41,6 +43,15 @@ public:
 	 * @param Mobility The mobility of the runtime object
 	 */
 	static void SetRuntimeObjectMobility(UObject* Object, EComponentMobility::Type ComponentMobility = EComponentMobility::Movable);
+
+	/*
+	 * Set the key interpolation
+	 *
+	 * @param InCurve The curve that contains the key handle to set
+	 * @param InKeyHandle The key handle to set
+	 * @param InInterpolation The interpolation to set
+	 */
+	static void SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation);
 };
 
 /**

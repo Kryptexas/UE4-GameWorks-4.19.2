@@ -11,10 +11,11 @@
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
-#include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "TransformTrackEditor.h"
+#include "MatineeImportTools.h"
 #include "Matinee/InterpTrackMove.h"
+#include "FloatCurveKeyArea.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieScene_TransformTrack"
@@ -245,42 +246,6 @@ bool F3DTransformTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type )
 }
 
 
-void PasteInterpMoveTrack( UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack )
-{
-	float KeyTime = MoveTrack->GetKeyframeTime( 0 );
-	UMovieScene3DTransformSection* Section = Cast<UMovieScene3DTransformSection>(TransformTrack->FindOrAddSection( KeyTime ));
-	float SectionMin = Section->GetStartTime();
-	float SectionMax = Section->GetEndTime();
-
-	FRichCurve& TranslationXCurve = Section->GetTranslationCurve( EAxis::X );
-	FRichCurve& TranslationYCurve = Section->GetTranslationCurve( EAxis::Y );
-	FRichCurve& TranslationZCurve = Section->GetTranslationCurve( EAxis::Z );
-	for ( const auto& Point : MoveTrack->PosTrack.Points )
-	{
-		MatineeImportTools::SetOrAddKey( TranslationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
-		MatineeImportTools::SetOrAddKey( TranslationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
-		MatineeImportTools::SetOrAddKey( TranslationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
-		SectionMin = FMath::Min( SectionMin, Point.InVal );
-		SectionMax = FMath::Max( SectionMax, Point.InVal );
-	}
-
-	FRichCurve& RotationXCurve = Section->GetRotationCurve( EAxis::X );
-	FRichCurve& RotationYCurve = Section->GetRotationCurve( EAxis::Y );
-	FRichCurve& RotationZCurve = Section->GetRotationCurve( EAxis::Z );
-	for ( const auto& Point : MoveTrack->EulerTrack.Points )
-	{
-		MatineeImportTools::SetOrAddKey( RotationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
-		MatineeImportTools::SetOrAddKey( RotationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
-		MatineeImportTools::SetOrAddKey( RotationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
-		SectionMin = FMath::Min( SectionMin, Point.InVal );
-		SectionMax = FMath::Max( SectionMax, Point.InVal );
-	}
-
-	Section->SetStartTime( SectionMin );
-	Section->SetEndTime( SectionMax );
-}
-
-
 void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
 {
 	UInterpTrackMove* MoveTrack = nullptr;
@@ -298,7 +263,7 @@ void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, 
 		NSLOCTEXT( "Sequencer", "PasteMatineeTrackTooltip", "Pastes keys from a Matinee move track into this track." ),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateStatic( &PasteInterpMoveTrack, MoveTrack, TransformTrack ),
+			FExecuteAction::CreateStatic( &FMatineeImportTools::CopyInterpMoveTrack, GetSequencer().ToSharedRef(), MoveTrack, TransformTrack ),
 			FCanExecuteAction::CreateLambda( [=]()->bool { return MoveTrack != nullptr && MoveTrack->GetNumKeys() > 0 && TransformTrack != nullptr; } ) ) );
 }
 
@@ -456,26 +421,6 @@ void F3DTransformTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerC
 
 void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectGuid, const UClass* ObjectClass)
 {
-	TArray<UObject*> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
-	TWeakObjectPtr<ACameraActor> CameraActor;
-
-	for (UObject* Object : OutObjects)
-	{
-		ACameraActor* Actor = Cast<ACameraActor>( Object );
-		if (Actor)
-		{
-			CameraActor = Actor;
-			break;
-		}
-	}
-
-	if (!CameraActor.IsValid())
-	{
-		return;
-	}
-
 	// If this is a camera track, add a button to lock the viewport to the camera
 	EditBox.Get()->AddSlot()
 		.VAlign(VAlign_Center)
@@ -483,7 +428,9 @@ void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizont
 		.AutoWidth()
 		.Padding(4, 0, 0, 0)
 		[
-			SNew(SCheckBox)
+			SNew(SCheckBox)		
+				.IsFocusable(false)
+				.Visibility(this, &F3DTransformTrackEditor::IsCameraVisible, ObjectGuid)
 				.IsChecked(this, &F3DTransformTrackEditor::IsCameraLocked, ObjectGuid)
 				.OnCheckStateChanged(this, &F3DTransformTrackEditor::OnLockCameraClicked, ObjectGuid)
 				.ToolTipText(this, &F3DTransformTrackEditor::GetLockCameraToolTip, ObjectGuid)
@@ -527,6 +474,23 @@ bool F3DTransformTrackEditor::CanAddTransformTrackForActorHandle( FGuid ObjectBi
 	return true;
 }
 
+EVisibility
+F3DTransformTrackEditor::IsCameraVisible(FGuid ObjectGuid) const
+{
+	TArray<UObject*> OutObjects;
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
+
+	for (UObject* Object : OutObjects)
+	{
+		ACameraActor* Actor = Cast<ACameraActor>( Object );
+		if (Actor)
+		{
+			return EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Hidden;
+}
 
 ECheckBoxState F3DTransformTrackEditor::IsCameraLocked(FGuid ObjectGuid) const
 {
@@ -747,15 +711,20 @@ bool F3DTransformTrackEditor::OnAddTransformKeys( float Time, AActor* ActorToKey
 	TArray<UObject*> ObjectsToKey;
 	ObjectsToKey.Add(ActorToKey);
 	
-	FOnSetIntermediateValue OnSetIntermediateValue;
-	OnSetIntermediateValue.BindRaw( this, &F3DTransformTrackEditor::SetIntermediateValueFromTransformChange, CurrentTransform );
-
-	FOnInitializeNewTrack OnInitializeNewTrack;
-	OnInitializeNewTrack.BindLambda([this](UMovieScene3DTransformTrack* NewTrack) {
-		NewTrack->SetPropertyNameAndPath(TransformPropertyName, TransformPropertyName.ToString());
-	});
-	
-	return AddKeysToObjects(ObjectsToKey, Time, *Keys, KeyParams, UMovieScene3DTransformTrack::StaticClass(), TransformPropertyName, OnInitializeNewTrack, OnSetIntermediateValue);
+	return AddKeysToObjects(
+		ObjectsToKey,
+		Time,
+		*Keys,
+		KeyParams,
+		UMovieScene3DTransformTrack::StaticClass(),
+		TransformPropertyName,
+		[this](UMovieScene3DTransformTrack* NewTrack) {
+			NewTrack->SetPropertyNameAndPath(TransformPropertyName, TransformPropertyName.ToString());
+		},
+		[&](UMovieScene3DTransformTrack* NewTrack) {
+			SetIntermediateValueFromTransformChange(NewTrack, CurrentTransform);
+		}
+	);
 }
 
 

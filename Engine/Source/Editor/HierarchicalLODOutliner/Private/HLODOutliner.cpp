@@ -869,23 +869,27 @@ namespace HLODOutliner
 	{
 		if (CurrentWorld)
 		{
-			auto Level = CurrentWorld->GetCurrentLevel();
-			for (auto Actor : Level->Actors)
+			// Loop over all (streaming-)levels in the world
+			for (ULevel* Level : CurrentWorld->GetLevels())
 			{
-				ALODActor* LODActor = Cast<ALODActor>(Actor);
-				if (LODActor)
+				// For each LOD actor in the world update the drawing/transition distance
+				for (AActor* Actor : Level->Actors)
 				{
-					if (LODActor->LODLevel == LODLevelIndex + 1)
+					ALODActor* LODActor = Cast<ALODActor>(Actor);
+					if (LODActor)
 					{
-						if (!LODActor->IsDirty() && LODActor->GetStaticMeshComponent())
+						if (LODActor->LODLevel == LODLevelIndex + 1)
 						{
-							// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axi)
-							static const float FOVRad = 90.0f * (float)PI / 360.0f;
-							static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);						
-							FBoxSphereBounds Bounds = LODActor->GetStaticMeshComponent()->CalcBounds(FTransform());
-							LODActor->LODDrawDistance = FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(Bounds.SphereRadius, LODLevelTransitionScreenSizes[LODLevelIndex], ProjectionMatrix);
-							LODActor->UpdateSubActorLODParents();
-						}						
+							if (!LODActor->IsDirty() && LODActor->GetStaticMeshComponent())
+							{
+								// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axi)
+								static const float FOVRad = 90.0f * (float)PI / 360.0f;
+								static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
+								FBoxSphereBounds Bounds = LODActor->GetStaticMeshComponent()->CalcBounds(FTransform());
+								LODActor->LODDrawDistance = FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(Bounds.SphereRadius, LODLevelTransitionScreenSizes[LODLevelIndex], ProjectionMatrix);
+								LODActor->UpdateSubActorLODParents();
+							}
+						}
 					}
 				}
 			}

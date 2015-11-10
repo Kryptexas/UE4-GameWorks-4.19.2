@@ -30,6 +30,8 @@ public:
 		: BufferUsage(UniformBuffer_MultiFrame)
 	{
 		Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+		FMemory::Memzero(Contents, sizeof(TBufferStruct));
+		bEverUpdated = false;
 	}
 
 	~TUniformBuffer()
@@ -40,8 +42,7 @@ public:
 	/** Sets the contents of the uniform buffer. */
 	void SetContents(const TBufferStruct& NewContents)
 	{
-		check(IsInRenderingThread());
-		FMemory::Memcpy(Contents,&NewContents,sizeof(TBufferStruct));
+		SetContentsNoUpdate(NewContents);
 		UpdateRHI();
 	}
 	
@@ -57,13 +58,29 @@ public:
 	}
 
 	// Accessors.
-	FUniformBufferRHIParamRef GetUniformBufferRHI() const { return UniformBufferRHI; }
+	FUniformBufferRHIParamRef GetUniformBufferRHI() const 
+	{ 
+		ensureMsgf(bEverUpdated, TEXT("Caching UB before it was updated with valid data!"));
+		return UniformBufferRHI;
+	}
 
 	EUniformBufferUsage BufferUsage;
+
+protected:
+
+	/** Sets the contents of the uniform buffer. Used within calls to InitDynamicRHI */
+	void SetContentsNoUpdate(const TBufferStruct& NewContents)
+	{
+		check(IsInRenderingThread());
+		FMemory::Memcpy(Contents, &NewContents, sizeof(TBufferStruct));
+		bEverUpdated = true;
+	}
+
 private:
 
 	FUniformBufferRHIRef UniformBufferRHI;
 	uint8* Contents;
+	bool bEverUpdated;
 };
 
 /** A reference to a uniform buffer RHI resource with a specific structure. */

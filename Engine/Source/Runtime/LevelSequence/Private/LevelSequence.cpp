@@ -145,7 +145,7 @@ FGuid ULevelSequence::FindObjectId(UObject& Object) const
 {
 	for (auto& Pair : CachedObjectBindings)
 	{
-		if (Pair.Value == &Object)
+		if (Pair.Value.Get() == &Object)
 		{
 			return Pair.Key;
 		}

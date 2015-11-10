@@ -23,7 +23,6 @@ void FAnimNode_SkeletalControlBase::CacheBones(const FAnimationCacheBonesContext
 
 void FAnimNode_SkeletalControlBase::UpdateInternal(const FAnimationUpdateContext& Context)
 {
-	EvaluateGraphExposedInputs.Execute(Context);
 }
 
 void FAnimNode_SkeletalControlBase::Update(const FAnimationUpdateContext& Context)
@@ -32,6 +31,8 @@ void FAnimNode_SkeletalControlBase::Update(const FAnimationUpdateContext& Contex
 
 	if (IsLODEnabled(Context.AnimInstance, LODThreshold))
 	{
+		EvaluateGraphExposedInputs.Execute(Context);
+
 		// Apply the skeletal control if it's valid
 		const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 		if ((ActualAlpha >= ZERO_ANIMWEIGHT_THRESH) && IsValidToEvaluate(Context.AnimInstance->CurrentSkeleton, Context.AnimInstance->RequiredBones))

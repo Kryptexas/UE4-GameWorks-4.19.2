@@ -81,7 +81,7 @@ void FSlateDrawElement::MakeBox(
 	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
 
 	// Ignore invalid rendering handles.
-	if ( !InRenderingHandle.Data.IsValid() )
+	if ( !InRenderingHandle.IsValid() )
 	{
 		return;
 	}

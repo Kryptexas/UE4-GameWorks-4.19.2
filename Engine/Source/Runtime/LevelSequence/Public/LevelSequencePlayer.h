@@ -121,6 +121,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetPlayRate(float PlayRate);
 
+	/**
+	 * Sets the range in time to be played back by this player, overriding the default range stored in the asset
+	 *
+	 * @param	NewStartTime	The new starting time for playback
+	 * @param	NewEndTime		The new ending time for playback.  Must be larger than the start time.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void SetPlaybackRange( const float NewStartTime, const float NewEndTime );
+
 protected:
 
 	// IMovieScenePlayer interface
@@ -170,9 +179,6 @@ private:
 	int32 CurrentNumLoops;
 
 private:
-
-	/** The offset from 0 that the sequence we're playing starts */
-	float SequenceStartOffset;
 
 	/** The root movie scene instance to update when playing. */
 	TSharedPtr<FMovieSceneSequenceInstance> RootMovieSceneInstance;

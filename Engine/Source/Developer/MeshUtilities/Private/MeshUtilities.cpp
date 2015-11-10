@@ -6670,7 +6670,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	MainTask.EnterProgressFrame(20);
 
 	FRawMeshExt MergedMesh;
-	FMemory::Memset(&MergedMesh, INDEX_NONE, sizeof(MergedMesh));
+	FMemory::Memset(&MergedMesh, 0, sizeof(MergedMesh));
 	
 	if (InSettings.bMergeMaterials)
 	{

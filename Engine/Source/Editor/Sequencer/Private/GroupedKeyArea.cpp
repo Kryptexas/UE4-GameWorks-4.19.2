@@ -163,7 +163,7 @@ FLinearColor FGroupedKeyArea::GetKeyTint(FKeyHandle InHandle) const
 
 const FSlateBrush* FGroupedKeyArea::GetBrush(FKeyHandle InHandle) const
 {
-	static const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("Sequencer.Key");
+	static const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("Sequencer.KeyDiamond");
 	static const FSlateBrush* PartialKeyBrush = FEditorStyle::GetBrush("Sequencer.PartialKey");
 
 	const auto* Group = FindGroup(InHandle);

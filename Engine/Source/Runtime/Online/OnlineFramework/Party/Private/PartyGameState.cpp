@@ -300,11 +300,6 @@ UPartyMemberState* UPartyGameState::CreateNewPartyMember(const FUniqueNetId& InM
 				NewPartyMemberState = NewObject<UPartyMemberState>(this, PartyMemberStateClass);
 				NewPartyMemberState->UniqueId.SetUniqueNetId(PartyMember->GetUserId());
 				NewPartyMemberState->DisplayName = FText::FromString(PartyMember->GetDisplayName());
-
-				if ( InitMemberFunctor )
-				{
-					InitMemberFunctor( PartyMember, NewPartyMemberState );
-				}
 			}
 			else
 			{
@@ -322,11 +317,6 @@ UPartyMemberState* UPartyGameState::CreateNewPartyMember(const FUniqueNetId& InM
 	}
 
 	return NewPartyMemberState;
-}
-
-void UPartyGameState::SetInitMemberFunctor( TFunction<void( TSharedPtr<FOnlinePartyMember>, UPartyMemberState* )>&& InFunctor )
-{
-	InitMemberFunctor = MoveTemp( InFunctor );
 }
 
 void UPartyGameState::HandlePartyConfigChanged( const TSharedRef<FPartyConfiguration>& InPartyConfig )

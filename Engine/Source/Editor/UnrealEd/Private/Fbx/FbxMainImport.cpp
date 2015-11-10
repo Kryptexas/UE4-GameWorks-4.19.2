@@ -491,30 +491,33 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 				FbxNode* GeoNode = Geometry->GetNode();
 				SceneInfo.TotalGeometryNum++;
 				FbxMesh* Mesh = (FbxMesh*)Geometry;
-				SceneInfo.MeshInfo.AddUninitialized();
+				SceneInfo.MeshInfo.AddZeroed(1);
 				FbxMeshInfo& MeshInfo = SceneInfo.MeshInfo.Last();
 				if(Geometry->GetName()[0] != '\0')
 					MeshInfo.Name = MakeName(Geometry->GetName());
 				else
-					MeshInfo.Name = MakeName(GeoNode->GetName());
+					MeshInfo.Name = MakeString(GeoNode ? GeoNode->GetName() : "None");
 				MeshInfo.bTriangulated = Mesh->IsTriangleMesh();
-				MeshInfo.MaterialNum = GeoNode->GetMaterialCount();
+				MeshInfo.MaterialNum = GeoNode? GeoNode->GetMaterialCount() : 0;
 				MeshInfo.FaceNum = Mesh->GetPolygonCount();
 				MeshInfo.VertexNum = Mesh->GetControlPointsCount();
 				
 				// LOD info
 				MeshInfo.LODGroup = NULL;
-				FbxNode* ParentNode = GeoNode->GetParent();
-				if ( ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+				if (GeoNode)
 				{
-					FbxNodeAttribute* LODGroup = ParentNode->GetNodeAttribute();
-					MeshInfo.LODGroup = MakeName(ParentNode->GetName());
-					for (int32 LODIndex = 0; LODIndex < ParentNode->GetChildCount(); LODIndex++)
+					FbxNode* ParentNode = GeoNode->GetParent();
+					if (ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 					{
-						if ( GeoNode == ParentNode->GetChild(LODIndex))
+						FbxNodeAttribute* LODGroup = ParentNode->GetNodeAttribute();
+						MeshInfo.LODGroup = MakeString(ParentNode->GetName());
+						for (int32 LODIndex = 0; LODIndex < ParentNode->GetChildCount(); LODIndex++)
 						{
-							MeshInfo.LODLevel = LODIndex;
-							break;
+							if (GeoNode == ParentNode->GetChild(LODIndex))
+							{
+								MeshInfo.LODLevel = LODIndex;
+								break;
+							}
 						}
 					}
 				}
@@ -544,7 +547,7 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 						}
 					}
 
-					MeshInfo.SkeletonRoot = Link ? MakeName(Link->GetName()) : MakeName("None");
+					MeshInfo.SkeletonRoot = MakeString(Link ? Link->GetName() : ("None"));
 					MeshInfo.SkeletonElemNum = Link ? Link->GetChildCount(true) : 0;
 
 					if (Link)
@@ -988,6 +991,11 @@ ANSICHAR* FFbxImporter::MakeName(const ANSICHAR* Name)
 	}
 
 	return TmpName;
+}
+
+FString FFbxImporter::MakeString(const ANSICHAR* Name)
+{
+	return FString(ANSI_TO_TCHAR(Name));
 }
 
 FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)

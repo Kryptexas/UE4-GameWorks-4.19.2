@@ -3,7 +3,7 @@
 #include "UMGPrivatePCH.h"
 #include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
-#include "SlateMeshData.h"
+#include "SlateVectorArtData.h"
 
 static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FSlateMeshVertex>& OutSlateVerts, TArray<uint32>& OutIndexes)
 {
@@ -97,24 +97,57 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 }
 
 
-USlateMeshData::USlateMeshData(const FObjectInitializer& ObjectInitializer)
+USlateVectorArtData::USlateVectorArtData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
 }
 
-void USlateMeshData::InitFromStaticMesh(const UStaticMesh& InSourceMesh)
+const TArray<FSlateMeshVertex>& USlateVectorArtData::GetVertexData() const
 {
-	Material = InSourceMesh.GetMaterial(0);
-
-	ensureMsgf(Material != nullptr, TEXT("USlateMeshData::InitFromStaticMesh() expected %s to have a material assigned."), *InSourceMesh.GetFullName());
-
-	StaticMeshToSlateRenderData(InSourceMesh, VertexData, IndexData );	
+	return VertexData;
 }
 
-UMaterialInstanceDynamic* USlateMeshData::ConvertToMaterialInstanceDynamic()
+const TArray<uint32>& USlateVectorArtData::GetIndexData() const
+{
+	return IndexData;
+}
+
+UMaterialInterface* USlateVectorArtData::GetMaterial() const
+{
+	return Material;
+}
+
+UMaterialInstanceDynamic* USlateVectorArtData::ConvertToMaterialInstanceDynamic()
 {
 	UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(Material, this);
 	Material = NewMID;
 	return NewMID;
 }
+
+void USlateVectorArtData::EnsureValidData()
+{
+#if WITH_EDITORONLY_DATA
+	if (VertexData.Num() == 0 || IndexData.Num() == 0 || Material == nullptr)
+	{
+		InitFromStaticMesh(*MeshAsset);
+	}
+#endif
+}
+
+void USlateVectorArtData::PreSave()
+{
+	Super::PreSave();
+	EnsureValidData();
+}
+
+#if WITH_EDITORONLY_DATA
+void USlateVectorArtData::InitFromStaticMesh(const UStaticMesh& InSourceMesh)
+{
+	Material = InSourceMesh.GetMaterial(0);
+
+	ensureMsgf(Material != nullptr, TEXT("USlateVectorArtData::InitFromStaticMesh() expected %s to have a material assigned."), *InSourceMesh.GetFullName());
+
+	StaticMeshToSlateRenderData(InSourceMesh, VertexData, IndexData);
+}
+#endif

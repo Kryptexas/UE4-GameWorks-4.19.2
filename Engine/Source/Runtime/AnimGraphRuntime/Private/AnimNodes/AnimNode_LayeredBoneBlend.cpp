@@ -60,6 +60,7 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 	// initialize children
 	BasePose.Update(Context);
 
+	bHasRelevantPoses = false;
 	const int NumPoses = BlendPoses.Num();
 	if ( NumPoses > 0 )
 	{
@@ -67,6 +68,7 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 		{
 			if (BlendWeights[ChildIndex] > ZERO_ANIMWEIGHT_THRESH)
 			{
+				bHasRelevantPoses = true;
 				BlendPoses[ChildIndex].Update(Context);
 			}
 		}
@@ -78,7 +80,7 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 	ANIM_MT_SCOPE_CYCLE_COUNTER(BlendPosesInGraph, Output.AnimInstance->IsRunningParallelEvaluation());
 
 	const int NumPoses = BlendPoses.Num();
-	if (NumPoses == 0)
+	if ((NumPoses == 0) || !bHasRelevantPoses)
 	{
 		BasePose.Evaluate(Output);
 	}

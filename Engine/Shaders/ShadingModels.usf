@@ -691,8 +691,13 @@ float3 EyeShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy
 
 float3 EyeSubsurfaceShading(  FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
-	// Need to make sure we are getting the correct Diffuse color intensity
-	float3 SubsurfaceColor = GBuffer.DiffuseColor * PI;
+	float3 H = normalize(V + L);
+	float VoH = saturate( dot(V, H) );
+
+	// F_Schlick
+	float F0 = GBuffer.SpecularColor;
+	float Fc = Pow5( 1 - VoH );
+	float F = Fc + (1 - Fc) * F0;
 
 	float  IrisDistance = GBuffer.CustomData.w;
 	float  IrisMask = GBuffer.CustomData.z;
@@ -708,19 +713,13 @@ float3 EyeSubsurfaceShading(  FGBufferData GBuffer, float3 L, float3 V, half3 N 
 
 	// Use IrisNormal only within the Iris
 	IrisNormal = lerp(N, IrisNormal, IrisMask);
+	IrisNormal = normalize( IrisNormal );
 
 	// http://blog.stevemcauley.com/2011/12/03/energy-conserving-wrapped-diffuse/
-	float Wrap = 0.5;
+	float Wrap = 0.1;
 	float INoL = saturate( ( dot(IrisNormal, L) + Wrap ) / Square( 1 + Wrap ) );
-
-	// GGX scatter distribution
-	float VoL = saturate( dot(V, -L) );
-	float a = 0.6;
-	float a2 = a * a;
-	float d = ( VoL * a2 - VoL ) * VoL + 1;	// 2 mad
-	float GGX = (a2 / PI) / (d * d);		// 2 mul, 1 rcp
 	
-	float3 rawResult = INoL * GGX * SubsurfaceColor;
+	float3 rawResult = (1 - F) * INoL * GBuffer.DiffuseColor / PI;
 
 	// Covers whole object
 	return rawResult;
