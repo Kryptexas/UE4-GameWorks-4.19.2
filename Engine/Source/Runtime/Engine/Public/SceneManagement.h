@@ -999,16 +999,16 @@ public:
 
 	/**
 	 * Updates the decal proxy's cached transform.
-	 * @param InComponentToWorld - The new component-to-world transform.
+	 * @param InComponentToWorldIncludingDecalSize - The new component-to-world transform including the DecalSize
 	 */
-	void SetTransform(const FTransform& InComponentToWorld);
+	void SetTransformIncludingDecalSize(const FTransform& InComponentToWorldIncludingDecalSize);
 
 	/** Pointer back to the game thread decal component. */
 	const UDecalComponent* Component;
 
 	UMaterialInterface* DecalMaterial;
 
-	/** Used to compute the projection matrix on the render thread side  */
+	/** Used to compute the projection matrix on the render thread side, includes the DecalSize  */
 	FTransform ComponentTrans;
 
 	/** 

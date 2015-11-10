@@ -1052,10 +1052,10 @@ void FScene::UpdateDecalTransform(UDecalComponent* Decal)
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			UpdateTransformCommand,
 			FDeferredDecalProxy*,DecalSceneProxy,Decal->SceneProxy,
-			FTransform,ComponentToWorld,Decal->GetComponentToWorld(),
+			FTransform,ComponentToWorldIncludingDecalSize,Decal->GetTransformIncludingDecalSize(),
 		{
 			// Update the primitive's transform.
-			DecalSceneProxy->SetTransform(ComponentToWorld);
+			DecalSceneProxy->SetTransformIncludingDecalSize(ComponentToWorldIncludingDecalSize);
 		});
 	}
 }

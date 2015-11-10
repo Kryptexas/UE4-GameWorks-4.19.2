@@ -1137,12 +1137,10 @@ void UGameplayStatics::DeactivateReverbEffect(UObject* WorldContextObject, FName
 
 UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, FVector DecalSize, UWorld* World, AActor* Actor, float LifeSpan)
 {
-	const FMatrix DecalInternalTransform = FRotationMatrix(FRotator(0.f, 90.0f, -90.0f));
-
 	UDecalComponent* DecalComp = NewObject<UDecalComponent>((Actor ? Actor : (UObject*)World));
 	DecalComp->bAllowAnyoneToDestroyMe = true;
 	DecalComp->DecalMaterial = DecalMaterial;
-	DecalComp->RelativeScale3D = DecalInternalTransform.TransformVector(DecalSize);
+	DecalComp->DecalSize = DecalSize;
 	DecalComp->bAbsoluteScale = true;
 	DecalComp->RegisterComponentWithWorld(World);
 
