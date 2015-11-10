@@ -42,7 +42,8 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	BLUEPRINTGRAPH_API virtual bool CanDuplicateNode() const override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;
 	virtual FString CreateUniquePinName(FString SourcePinName) const override;
-	// End UEdGraphNode interface
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	// End UEdGraphNode Interface
 
 	// Begin UK2Node interface.
 	BLUEPRINTGRAPH_API virtual bool IsNodeSafeToIgnore() const override;
@@ -57,7 +58,15 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false) override;
 	virtual bool CanUseRefParams() const override { return true; }
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
-	// End UK2Node_EditablePinBase interface
+	// End UK2Node_EditablePinBase Interface
+
+protected:
+	/**
+	* Handles any work needed to be done after fixing up all wildcard pins during reconstruction
+	*
+	* @param bInAllWildcardPinsUnlinked	TRUE if all wildcard pins were unlinked
+	*/
+	virtual void PostFixupAllWildcardPins(bool bInAllWildcardPinsUnlinked) {}
 public:
 	// The input pins of this tunnel go to the output pins of InputSinkNode (can be NULL).
 	BLUEPRINTGRAPH_API virtual UK2Node_Tunnel* GetInputSink() const;
