@@ -682,8 +682,6 @@ public:
 		}
 	}
 
-	void VerifyBoundUniformBufferParameters();
-
 	/** Checks that the shader is valid by asserting the canary value is set as expected. */
 	inline void CheckShaderIsValid() const;
 
@@ -740,9 +738,6 @@ private:
 
 	/** The number of references to this shader. */
 	mutable uint32 NumRefs;
-
-	/** The shader's element id in the shader code map. */
-	FSetElementId CodeMapId;
 
 	/** Transient value used to track when this shader's automatically bound uniform buffer parameters were set last. */
 	mutable uint32 SetParametersId;
@@ -1237,31 +1232,33 @@ public:
 
 	FShaderPipeline(const FShaderPipelineType* InPipelineType, const TArray<FShader*>& InStages);
 
+	virtual ~FShaderPipeline();
+
 	// Find a shader inside the pipeline
 	template<typename ShaderType>
 	ShaderType* GetShader()
 	{
 		if (PixelShader && PixelShader->GetType() == &ShaderType::StaticType)
 		{
-			return (ShaderType*)PixelShader;
+			return (ShaderType*)PixelShader.GetReference();
 		}
 		else if (VertexShader && VertexShader->GetType() == &ShaderType::StaticType)
 		{
-			return (ShaderType*)VertexShader;
+			return (ShaderType*)VertexShader.GetReference();
 		}
 		else if (GeometryShader && GeometryShader->GetType() == &ShaderType::StaticType)
 		{
-			return (ShaderType*)GeometryShader;
+			return (ShaderType*)GeometryShader.GetReference();
 		}
 		else if (HullShader)
 		{
 			if (HullShader->GetType() == &ShaderType::StaticType)
 			{
-				return (ShaderType*)HullShader;
+				return (ShaderType*)HullShader.GetReference();
 			}
 			else if (DomainShader && DomainShader->GetType() == &ShaderType::StaticType)
 			{
-				return (ShaderType*)DomainShader;
+				return (ShaderType*)DomainShader.GetReference();
 			}
 		}
 
@@ -1272,11 +1269,11 @@ public:
 	{
 		switch (Frequency)
 		{
-		case SF_Vertex: return VertexShader;
-		case SF_Domain: return DomainShader;
-		case SF_Hull: return HullShader;
-		case SF_Geometry: return GeometryShader;
-		case SF_Pixel: return PixelShader;
+		case SF_Vertex: return VertexShader.GetReference();
+		case SF_Domain: return DomainShader.GetReference();
+		case SF_Hull: return HullShader.GetReference();
+		case SF_Geometry: return GeometryShader.GetReference();
+		case SF_Pixel: return PixelShader.GetReference();
 		default: check(0);
 		}
 
@@ -1287,15 +1284,43 @@ public:
 	{
 		switch (Frequency)
 		{
-		case SF_Vertex: return VertexShader;
-		case SF_Domain: return DomainShader;
-		case SF_Hull: return HullShader;
-		case SF_Geometry: return GeometryShader;
-		case SF_Pixel: return PixelShader;
+		case SF_Vertex: return VertexShader.GetReference();
+		case SF_Domain: return DomainShader.GetReference();
+		case SF_Hull: return HullShader.GetReference();
+		case SF_Geometry: return GeometryShader.GetReference();
+		case SF_Pixel: return PixelShader.GetReference();
 		default: check(0);
 		}
 
 		return nullptr;
+	}
+
+	inline TArray<FShader*> GetShaders() const
+	{
+		TArray<FShader*> Shaders;
+
+		if (PixelShader)
+		{
+			Shaders.Add(PixelShader.GetReference());
+		}
+		if (GeometryShader)
+		{
+			Shaders.Add(GeometryShader.GetReference());
+		}
+		if (HullShader)
+		{
+			Shaders.Add(DomainShader.GetReference());
+			Shaders.Add(HullShader.GetReference());
+		}
+
+		Shaders.Add(VertexShader.GetReference());
+
+		return Shaders;
+	}
+
+	inline uint32 GetSizeBytes() const
+	{
+		return sizeof(*this);
 	}
 
 	void Validate();
@@ -1375,6 +1400,15 @@ public:
 		}
 	}
 
+	/** Builds a list of the shader pipelines in a shader map. */
+	void GetShaderPipelineList(TArray<FShaderPipeline*>& OutShaderPipelines) const
+	{
+		for (auto Pair : ShaderPipelines)
+		{
+			OutShaderPipelines.Add(Pair.Value);
+		}
+	}
+
 	uint32 GetMaxTextureSamplersShaderMap() const
 	{
 		uint32 MaxTextureSamplers = 0;
@@ -1399,6 +1433,80 @@ public:
 		return MaxTextureSamplers;
 	}
 
+	inline void SerializeShaderForSaving(FShader* CurrentShader, FArchive& Ar, bool bHandleShaderKeyChanges, bool bInlineShaderResource)
+	{
+		int32 SkipOffset = Ar.Tell();
+
+		{
+#if WITH_EDITOR
+			FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+#endif
+			// Serialize a placeholder value, we will overwrite this with an offset to the end of the shader
+			Ar << SkipOffset;
+		}
+
+		if (bHandleShaderKeyChanges)
+		{
+			FSelfContainedShaderId SelfContainedKey = CurrentShader->GetId();
+			Ar << SelfContainedKey;
+		}
+
+		CurrentShader->SerializeBase(Ar, bInlineShaderResource);
+
+		// Get the offset to the end of the shader's serialized data
+		int32 EndOffset = Ar.Tell();
+		// Seek back to the placeholder and write the end offset
+		// This allows us to skip over the shader's serialized data at load time without knowing how to deserialize it
+		// Which can happen with shaders that were available at cook time, but not on the target platform (shaders in editor module for example)
+		Ar.Seek(SkipOffset);
+		Ar << EndOffset;
+		Ar.Seek(EndOffset);
+	}
+
+	inline FShader* SerializeShaderForLoad(FShaderType* Type, FArchive& Ar, bool bHandleShaderKeyChanges, bool bInlineShaderResource)
+	{
+		int32 EndOffset = 0;
+		Ar << EndOffset;
+
+		FSelfContainedShaderId SelfContainedKey;
+
+		if (bHandleShaderKeyChanges)
+		{
+			Ar << SelfContainedKey;
+		}
+
+		FShader* Shader = nullptr;
+		if (Type
+			// If we are handling shader key changes, only create the shader if the serialized key matches the key the shader would have if created
+			// This allows serialization changes between the save and load to be safely handled
+			&& (!bHandleShaderKeyChanges || SelfContainedKey.IsValid()))
+		{
+			Shader = Type->ConstructForDeserialization();
+			check(Shader != nullptr);
+			Shader->SerializeBase(Ar, bInlineShaderResource);
+
+			TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
+
+			if (ExistingShader.IsValid())
+			{
+				delete Shader;
+				Shader = ExistingShader.GetReference();
+			}
+			else
+			{
+				// Register the shader now that it is valid, so that it can be reused
+				Shader->Register();
+			}
+		}
+		else
+		{
+			// Skip over this shader's serialized data if the type doesn't exist
+			// This can happen with shader types in modules that were loaded during cooking but not at run time (editor)
+			Ar.Seek(EndOffset);
+		}
+		return Shader;
+	}
+
 	/** 
 	 * Used to serialize a shader map inline in a material in a package. 
 	 * @param bInlineShaderResource - whether to inline the shader resource's serializations
@@ -1416,36 +1524,6 @@ public:
 			auto SortedShaders = Shaders;
 			SortedShaders.KeySort(FCompareShaderTypes());
 
-			auto SerializedShaderForSaving = [&](FShader* CurrentShader)
-				{
-					int32 SkipOffset = Ar.Tell();
-
-					{
-#if WITH_EDITOR
-						FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
-#endif
-						// Serialize a placeholder value, we will overwrite this with an offset to the end of the shader
-						Ar << SkipOffset;
-					}
-
-					if (bHandleShaderKeyChanges)
-					{
-						FSelfContainedShaderId SelfContainedKey = CurrentShader->GetId();
-						Ar << SelfContainedKey;
-					}
-
-					CurrentShader->SerializeBase(Ar, bInlineShaderResource);
-
-					// Get the offset to the end of the shader's serialized data
-					int32 EndOffset = Ar.Tell();
-					// Seek back to the placeholder and write the end offset
-					// This allows us to skip over the shader's serialized data at load time without knowing how to deserialize it
-					// Which can happen with shaders that were available at cook time, but not on the target platform (shaders in editor module for example)
-					Ar.Seek(SkipOffset);
-					Ar << EndOffset;
-					Ar.Seek(EndOffset);
-				};
-
 			for (TMap<FShaderType*, TRefCountPtr<FShader> >::TIterator ShaderIt(SortedShaders); ShaderIt; ++ShaderIt)
 			{
 				FShaderType* Type = ShaderIt.Key();
@@ -1454,7 +1532,7 @@ public:
 
 				Ar << Type;
 				FShader* CurrentShader = ShaderIt.Value();
-				SerializedShaderForSaving(CurrentShader);
+				SerializeShaderForSaving(CurrentShader, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 			}
 
 			int32 NumPipelines = ShaderPipelines.Num();
@@ -1476,7 +1554,7 @@ public:
 					auto* Shader = CurrentPipeline->GetShader(PipelineStages[Index]->GetFrequency());
 					FShaderType* Type = Shader->GetType();
 					Ar << Type;
-					SerializedShaderForSaving(Shader);
+					SerializeShaderForSaving(Shader, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 				}
 			}
 		}
@@ -1486,56 +1564,12 @@ public:
 			int32 NumShaders = 0;
 			Ar << NumShaders;
 
-			auto SerializeShaderForLoad = [&](FShaderType* Type) -> FShader*
-				{
-					int32 EndOffset = 0;
-					Ar << EndOffset;
-
-					FSelfContainedShaderId SelfContainedKey;
-
-					if (bHandleShaderKeyChanges)
-					{
-						Ar << SelfContainedKey;
-					}
-
-					FShader* Shader = nullptr;
-					if (Type
-						// If we are handling shader key changes, only create the shader if the serialized key matches the key the shader would have if created
-						// This allows serialization changes between the save and load to be safely handled
-						&& (!bHandleShaderKeyChanges || SelfContainedKey.IsValid()))
-					{
-						Shader = Type->ConstructForDeserialization();
-						check(Shader != nullptr);
-						Shader->SerializeBase(Ar, bInlineShaderResource);
-
-						TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
-
-						if (ExistingShader.IsValid())
-						{
-							delete Shader;
-							Shader = ExistingShader.GetReference();
-						}
-						else
-						{
-							// Register the shader now that it is valid, so that it can be reused
-							Shader->Register();
-						}
-					}
-					else
-					{
-						// Skip over this shader's serialized data if the type doesn't exist
-						// This can happen with shader types in modules that were loaded during cooking but not at run time (editor)
-						Ar.Seek(EndOffset);
-					}
-					return Shader;
-				};
-
 			for (int32 ShaderIndex = 0; ShaderIndex < NumShaders; ShaderIndex++)
 			{
 				FShaderType* Type = nullptr;
 				Ar << Type;
 
-				FShader* Shader = SerializeShaderForLoad(Type);
+				FShader* Shader = SerializeShaderForLoad(Type, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 				if (Shader)
 				{
 					AddShader(Shader->GetType(), Shader);
@@ -1555,7 +1589,7 @@ public:
 				{
 					FShaderType* Type = nullptr;
 					Ar << Type;
-					FShader* Shader = SerializeShaderForLoad(Type);
+					FShader* Shader = SerializeShaderForLoad(Type, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 					if (Shader)
 					{
 						ShaderStages.Add(Shader);
@@ -1616,6 +1650,28 @@ public:
 		check(Type);
 		check(!ShaderPipeline || ShaderPipeline->PipelineType == Type);
 		ShaderPipelines.Add(Type, ShaderPipeline);
+	}
+
+	uint32 GetMaxNumInstructionsForShader(const FShaderType* ShaderType) const
+	{
+		uint32 MaxNumInstructions = 0;
+		auto* FoundShader = Shaders.Find(ShaderType);
+		if (FoundShader && *FoundShader)
+		{
+			MaxNumInstructions = FMath::Max(MaxNumInstructions, (*FoundShader)->GetNumInstructions());
+		}
+
+		for (auto& Pair : ShaderPipelines)
+		{
+			FShaderPipeline* Pipeline = Pair.Value;
+			auto* Shader = Pipeline->GetShader(ShaderType->GetFrequency());
+			if (Shader)
+			{
+				MaxNumInstructions = FMath::Max(MaxNumInstructions, Shader->GetNumInstructions());
+			}
+		}
+
+		return MaxNumInstructions;
 	}
 
 protected:
@@ -1854,6 +1910,13 @@ extern SHADERCORE_API FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeN
 /** Helper function to dispatch a compute shader while checking that parameters have been set correctly. */
 extern SHADERCORE_API void DispatchComputeShader(
 	FRHICommandList& RHICmdList,
+	FShader* Shader,
+	uint32 ThreadGroupCountX,
+	uint32 ThreadGroupCountY,
+	uint32 ThreadGroupCountZ);
+
+extern SHADERCORE_API void DispatchComputeShader(
+	FRHIAsyncComputeCommandListImmediate& RHICmdList,
 	FShader* Shader,
 	uint32 ThreadGroupCountX,
 	uint32 ThreadGroupCountY,

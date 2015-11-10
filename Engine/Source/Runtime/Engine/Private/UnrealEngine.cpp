@@ -54,6 +54,7 @@
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
+#include "RHICommandList.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -211,17 +212,6 @@ enum EGametypeContentReferencerTypes
 	GametypeContent_LocalizedReferencerIndex,
 	MAX_ReferencerIndex
 };
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	/** 
-	 *	A global to allow turning off the 'NOT RUNNING IN HD' warning.
-	 *	Is enabled by default - and is *not* stored in an ini file 
-	 *	so it will always show up when you launch in non-HD mode.
-	 *
-	 *	Disable via the console command "TOGGLEHDWARNING"
-	 */
-	bool GbWarn_NotRunningInHD = true;
-#endif
 
 /** Whether texture memory has been corrupted because we ran out of memory in the pool. */
 bool GIsTextureMemoryCorrupted = false;
@@ -2481,6 +2471,10 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleToggleRHIThreadCommand( Cmd, Ar );
 	}
+	else if (FParse::Command(&Cmd, TEXT("ToggleAsyncCompute")))
+	{
+		return HandleToggleAsyncComputeCommand(Cmd, Ar);
+	}
 	else if( FParse::Command(&Cmd,TEXT("RecompileShaders")) )				    
 	{
 		return HandleRecompileShadersCommand( Cmd, Ar );
@@ -3242,6 +3236,38 @@ bool UEngine::HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar 
 	}
 	return true;
 }
+
+bool UEngine::HandleToggleAsyncComputeCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	if (GDynamicRHI)
+	{
+		bool bWasAsyncCompute = GEnableAsyncCompute;
+		bool bWasThreadedRendering = GIsThreadedRendering;
+		if (bWasThreadedRendering)
+		{
+			StopRenderingThread();
+		}
+		
+		GEnableAsyncCompute = !bWasAsyncCompute;
+
+		if (GEnableAsyncCompute)
+		{
+			FRHICommandListExecutor::GetImmediateAsyncComputeCommandList().SetComputeContext(RHIGetDefaultAsyncComputeContext());
+		}
+		else
+		{
+			FRHICommandListExecutor::GetImmediateAsyncComputeCommandList().SetContext(RHIGetDefaultContext());
+		}		
+
+		if (bWasThreadedRendering)
+		{
+			StartRenderingThread();
+		}
+		Ar.Logf(TEXT("AsyncCompute is now %s."), GEnableAsyncCompute ? TEXT("active") : TEXT("inactive"));
+	}	
+	return true;
+}
+
 
 bool UEngine::HandleRecompileShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {

@@ -2188,7 +2188,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		}
 		else
 		{
-		// Increment stencil on front-facing zfail, decrement on back-facing zfail.
+			// Increment stencil on front-facing zfail, decrement on back-facing zfail.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 			false,CF_DepthNearOrEqual,
 			true,CF_Always,SO_Keep,SO_Increment,SO_Keep,
@@ -2246,7 +2246,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		{
 			// Use zfail stenciling when the camera is inside the frustum or the near plane is potentially clipping, 
 			// Because zfail handles these cases while zpass does not.
-			// zfail stenciling is somewhat slower than zpass because on xbox 360 HiZ will be disabled when setting up stencil.
+			// zfail stenciling is somewhat slower than zpass because on modern GPUs HiZ will be disabled when setting up stencil.
 			// Increment stencil on front-facing zfail, decrement on back-facing zfail.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 				false,CF_DepthNearOrEqual,
@@ -2258,7 +2258,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		else
 		{
 			// Increment stencil on front-facing zpass, decrement on back-facing zpass.
-			// HiZ will be enabled on xbox 360 which will save a little GPU time.
+			// HiZ will be enabled on modern GPUs which will save a little GPU time.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 				false,CF_DepthNearOrEqual,
 				true,CF_Always,SO_Keep,SO_Keep,SO_Increment,
@@ -3365,6 +3365,8 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 	return true;
 }
 
+extern int32 GCapsuleShadows;
+
 /**
  * Used by RenderLights to render shadows to the attenuation buffer.
  *
@@ -3380,6 +3382,8 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 	// Find the projected shadows cast by this light.
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
+	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> CapsuleShadows;
+
 	for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
 	{
 		FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.AllProjectedShadows[ShadowIndex];
@@ -3427,7 +3431,15 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			{
 				INC_DWORD_STAT(STAT_PerObjectShadows);
 			}
-			Shadows.Add(ProjectedShadowInfo);
+
+			if (GCapsuleShadows && ProjectedShadowInfo->bCapsuleShadow)
+			{
+				CapsuleShadows.Add(ProjectedShadowInfo);
+			}
+			else
+			{
+				Shadows.Add(ProjectedShadowInfo);
+			}
 		}
 	}
 
@@ -3493,7 +3505,9 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{
 				FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
-				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow && !ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
+				if (ProjectedShadowInfo->bAllocated 
+					&& !ProjectedShadowInfo->bTranslucentShadow 
+					&& !ProjectedShadowInfo->CascadeSettings.bRayTracedDistanceField)
 				{
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets);
 				}
@@ -3568,6 +3582,8 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		bAttenuationBufferDirty |= RenderOnePassPointLightShadows(RHICmdList, LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume);
+
+		bAttenuationBufferDirty |= RenderCapsuleDirectShadows(*LightSceneInfo, RHICmdList, CapsuleShadows);
 	}
 
 	return bAttenuationBufferDirty;

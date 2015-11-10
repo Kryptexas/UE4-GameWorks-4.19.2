@@ -1624,7 +1624,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors, true));
+			const bool bUseQuadComplexityColors = View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity; // Quad Complexity also sets ShaderComplexity
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(bUseQuadComplexityColors ? GEngine->QuadComplexityColors : GEngine->ShaderComplexityColors, true));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
@@ -1737,27 +1738,27 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 		if(!bScreenPercentageIsDone)
 		{
-			// 0=none..1=full
-			FRCPassPostProcessUpscale::PaniniParams PaniniConfig;
+		// 0=none..1=full
+		FRCPassPostProcessUpscale::PaniniParams PaniniConfig;
 
 			if (View.IsPerspectiveProjection() && !GEngine->StereoRenderingDevice.IsValid())
-			{
-				PaniniConfig.D = FMath::Max(CVarUpscalePaniniD.GetValueOnRenderThread(), 0.0f);
-				PaniniConfig.S = CVarUpscalePaniniS.GetValueOnRenderThread();
-				PaniniConfig.ScreenFit = FMath::Max(CVarUpscalePaniniScreenFit.GetValueOnRenderThread(), 0.0f);
-			}
+		{
+			PaniniConfig.D = FMath::Max(CVarUpscalePaniniD.GetValueOnRenderThread(), 0.0f);
+			PaniniConfig.S = CVarUpscalePaniniS.GetValueOnRenderThread();
+			PaniniConfig.ScreenFit = FMath::Max(CVarUpscalePaniniScreenFit.GetValueOnRenderThread(), 0.0f);
+		}
 
-			// Do not use upscale if SeparateRenderTarget is in use!
+		// Do not use upscale if SeparateRenderTarget is in use!
 			if ((PaniniConfig.D > 0.01f || View.UnscaledViewRect != View.ViewRect) &&
 				(bHMDWantsUpscale || !View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget)))
-			{
-				int32 UpscaleQuality = CVarUpscaleQuality.GetValueOnRenderThread();
-				UpscaleQuality = FMath::Clamp(UpscaleQuality, 0, 3);
-				FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpscaleQuality, PaniniConfig));
-				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput)); // Bilinear sampling.
-				Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput)); // Point sampling.
-				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			}
+		{
+			int32 UpscaleQuality = CVarUpscaleQuality.GetValueOnRenderThread();
+			UpscaleQuality = FMath::Clamp(UpscaleQuality, 0, 3);
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpscaleQuality, PaniniConfig));
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput)); // Bilinear sampling.
+			Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput)); // Point sampling.
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+		}
 
 			// not needed but more correct
 			bScreenPercentageIsDone = true;
@@ -2149,8 +2150,9 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
+			const bool bUseQuadComplexityColors = View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity; // Quad Complexity also sets ShaderComplexity
 			// Legend is costly so we don't do it for ES2, ideally we make a shader permutation
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors, false));
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(bUseQuadComplexityColors ? GEngine->QuadComplexityColors : GEngine->ShaderComplexityColors, false));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}

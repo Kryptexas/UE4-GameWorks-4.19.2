@@ -61,12 +61,6 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
-#define WITH_GPA (1)
-#if WITH_GPA
-	#define GPA_WINDOWS 1
-	#include <GPUPerfAPI/Gpa.h>
-#endif
-
 void FD3D11DynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) 
 {  
 }
@@ -78,26 +72,6 @@ void FD3D11DynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
 void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
 { 
 }
-
-void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
-{
-	#if WITH_GPA
-		char Str[256];
-		if(GpaBegin(Str, Hash, bCompute, (void*)Direct3DDevice))
-		{
-			OutputDebugStringA(Str);
-		}
-	#endif
-}
-
-void FD3D11DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
-{
-	#if WITH_GPA
-		GpaEnd(Hash, bCompute);
-	#endif
-}
-
-
 
 // Vertex state.
 void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
@@ -895,11 +869,12 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 									LastFrameWritten != CurrentFrame || 
 									!bDepthWrite;
 
-		ensureMsgf(bAccessValid, TEXT("DepthTarget %s is not GPU writable."), *NewDepthStencilTargetRHI->Texture->GetName().ToString());		
+		ensureMsgf(bAccessValid, TEXT("DepthTarget '%s' is not GPU writable."), *NewDepthStencilTargetRHI->Texture->GetName().ToString());		
 
 		//switch to writable state if this is the first render of the frame.  Don't switch if it's a later render and this is a depth test only situation
 		if (!bAccessValid || (bReadable && bDepthWrite))
 		{
+			DUMP_TRANSITION(NewDepthStencilTargetRHI->Texture->GetName(), EResourceTransitionAccess::EWritable);
 			NewDepthStencilTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
 		}
 
@@ -928,10 +903,11 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 				const uint32 LastFrameWritten = NewRenderTarget->GetLastFrameWritten();
 				const bool bReadable = CurrentAccess == EResourceTransitionAccess::EReadable;
 				const bool bAccessValid = !bReadable || LastFrameWritten != CurrentFrame;
-				ensureMsgf(bAccessValid, TEXT("RenderTarget %s is not GPU writable."), *NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName().ToString());
+				ensureMsgf(bAccessValid, TEXT("RenderTarget '%s' is not GPU writable."), *NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName().ToString());
 								
 				if (!bAccessValid || bReadable)
 				{
+					DUMP_TRANSITION(NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName(), EResourceTransitionAccess::EWritable);
 					NewRenderTarget->SetCurrentGPUAccess(EResourceTransitionAccess::EWritable);
 				}
 				NewRenderTarget->SetDirty(true, CurrentFrame);
@@ -1063,11 +1039,19 @@ void FD3D11DynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 
 void FD3D11DynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
+	// Here convert to FUnorderedAccessViewRHIParamRef* in order to call RHISetRenderTargets
+	FUnorderedAccessViewRHIParamRef UAVs[MaxSimultaneousUAVs] = {};
+	for (int32 UAVIndex = 0; UAVIndex < RenderTargetsInfo.NumUAVs; ++UAVIndex)
+	{
+		UAVs[UAVIndex] = RenderTargetsInfo.UnorderedAccessView[UAVIndex].GetReference();
+	}
+
 	this->RHISetRenderTargets(RenderTargetsInfo.NumColorRenderTargets,
 		RenderTargetsInfo.ColorRenderTarget,
 		&RenderTargetsInfo.DepthStencilRenderTarget,
-		0,
-		nullptr);
+		RenderTargetsInfo.NumUAVs,
+		UAVs);
+
 	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
 	{
 		FLinearColor ClearColors[MaxSimultaneousRenderTargets];
@@ -2073,25 +2057,6 @@ void FD3D11DynamicRHI::RHIBindClearMRTValues(bool bClearColor, bool bClearDepth,
 	// Not necessary for d3d.
 }
 
-
-// Functions to yield and regain rendering control from D3D
-
-void FD3D11DynamicRHI::RHISuspendRendering()
-{
-	// Not supported
-}
-
-void FD3D11DynamicRHI::RHIResumeRendering()
-{
-	// Not supported
-}
-
-bool FD3D11DynamicRHI::RHIIsRenderingSuspended()
-{
-	// Not supported
-	return false;
-}
-
 // Blocks the CPU until the GPU catches up and goes idle.
 void FD3D11DynamicRHI::RHIBlockUntilGPUIdle()
 {
@@ -2174,29 +2139,30 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 
 		if (RenderTarget)
 		{
+
 			FD3D11BaseShaderResource* Resource = nullptr;
 			FD3D11Texture2D* SourceTexture2D = static_cast<FD3D11Texture2D*>(RenderTarget->GetTexture2D());
-			if(SourceTexture2D)
+			if (SourceTexture2D)
 			{
 				Resource = SourceTexture2D;
 			}
 			FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(RenderTarget->GetTextureCube());
-			if(SourceTextureCube)
+			if (SourceTextureCube)
 			{
 				Resource = SourceTextureCube;
 			}
 			FD3D11Texture3D* SourceTexture3D = static_cast<FD3D11Texture3D*>(RenderTarget->GetTexture3D());
-			if(SourceTexture3D)
+			if (SourceTexture3D)
 			{
 				Resource = SourceTexture3D;
 			}
-
+			DUMP_TRANSITION(RenderTarget->GetName(), TransitionType);
 			Resource->SetCurrentGPUAccess(TransitionType);
 		}
 	}
 }
 
-void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs)
+void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteFence)
 {
 	for (int32 i = 0; i < NumUAVs; ++i)
 	{
@@ -2212,5 +2178,10 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 				}
 			}
 		}
-	}	
+	}
+
+	if (WriteFence)
+	{
+		WriteFence->WriteFence();
+	}
 }

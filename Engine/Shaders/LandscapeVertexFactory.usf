@@ -9,8 +9,7 @@
 #define ES2_MAXLOD	5
 
 // Set by FLightMapTexturePolicy
-float4 LightMapCoordinateScaleBias;
-float4 ShadowMapCoordinateScaleBias;
+#include "UniformBuffers/PrecomputedLightingBuffer.usf"
 
 /* SM4+:
    x = unused
@@ -721,19 +720,19 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 
 #if NEEDS_LIGHTMAP_COORDINATE
 	#if (ES2_PROFILE || ES3_1_PROFILE)
-		Interpolants.LightMapCoordinate[0].xy = LandscapeTexCoords.LightMapCoordinate * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
+		Interpolants.LightMapCoordinate[0].xy = LandscapeTexCoords.LightMapCoordinate * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.LightMapCoordinateScaleBias.zw;
 		Interpolants.LightMapCoordinate[0].y *= 0.5;
 		Interpolants.LightMapCoordinate[1].xy = Interpolants.LightMapCoordinate[0].xy;
 		Interpolants.LightMapCoordinate[1].y += 0.5;
 		#if STATICLIGHTING_TEXTUREMASK
-			Interpolants.ShadowMapCoordinate.xy	= LandscapeTexCoords.LightMapCoordinate.xy * ShadowMapCoordinateScaleBias.xy + ShadowMapCoordinateScaleBias.zw;
+			Interpolants.ShadowMapCoordinate.xy	= LandscapeTexCoords.LightMapCoordinate.xy * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.zw;
 		#else
 			Interpolants.ShadowMapCoordinate.xy = 0;
 		#endif
 	#else
-		Interpolants.LightMapCoordinate.xy		= LandscapeTexCoords.LightMapCoordinate.xy * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
+		Interpolants.LightMapCoordinate.xy		= LandscapeTexCoords.LightMapCoordinate.xy * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.LightMapCoordinateScaleBias.zw;
 		#if STATICLIGHTING_TEXTUREMASK
-			Interpolants.LightMapCoordinate.zw	= LandscapeTexCoords.LightMapCoordinate.xy * ShadowMapCoordinateScaleBias.xy + ShadowMapCoordinateScaleBias.zw;
+			Interpolants.LightMapCoordinate.zw	= LandscapeTexCoords.LightMapCoordinate.xy * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.zw;
 		#else
 			Interpolants.LightMapCoordinate.zw = 0;
 		#endif

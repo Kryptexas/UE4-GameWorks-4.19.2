@@ -807,6 +807,9 @@ enum EViewModeIndex
 	VMI_VertexDensities = 17,
 	/** Colored according to the current LOD index. */
 	VMI_LODColoration = 18,
+	/** Colored according to the quad coverage. */
+	VMI_QuadComplexity = 19,
+
 	VMI_Max UMETA(Hidden),
 
 	VMI_Unknown = 255 UMETA(Hidden),

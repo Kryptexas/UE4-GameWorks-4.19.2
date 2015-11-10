@@ -4245,6 +4245,12 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 
 	bIsCPUSkinned = MeshObject->IsCPUSkinned();
 
+	bCastCapsuleDirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleDirectShadow;
+	bCastCapsuleIndirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleIndirectShadow;
+
+	// Force inset shadows if capsule shadows are requested, as they can't be supported with full scene shadows
+	bCastInsetShadow = bCastInsetShadow || bCastCapsuleDirectShadow;
+
 	const USkeletalMeshComponent* SkeletalMeshComponent = Cast<const USkeletalMeshComponent>(Component);
 	if(SkeletalMeshComponent && SkeletalMeshComponent->bPerBoneMotionBlur)
 	{
@@ -4493,7 +4499,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 	{
 		return;
 	}	
-	MeshObject->PreGDMECallback();
+	MeshObject->PreGDMECallback(ViewFamily.FrameNumber);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -4708,6 +4714,17 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	}
 }
 
+bool FSkeletalMeshSceneProxy::HasDistanceFieldRepresentation() const
+{
+	return CastsDynamicShadow() && CastsCapsuleIndirectShadow();
+}
+
+void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FSphere>& SphereShapes, TArray<FCapsuleShape>& CapsuleShapes) const 
+{
+	SphereShapes.Append(MeshObject->ShadowSphereShapes);
+	CapsuleShapes.Append(MeshObject->ShadowCapsuleShapes);
+}
+
 /**
  * Returns the world transform to use for drawing.
  * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
@@ -4737,6 +4754,7 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 	Result.bDynamicRelevance = true;
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
+	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);
 	return Result;
 }
@@ -4875,6 +4893,8 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	SectionIndexPreview = -1;
 #endif // WITH_EDITORONLY_DATA
 	bPerBoneMotionBlur = true;
+	bCastCapsuleDirectShadow = false;
+	bCastCapsuleIndirectShadow = false;
 
 	bDoubleBufferedBlendSpaces = true;
 	bReInitAnimationOnSetSkeletalMeshCalls = true;

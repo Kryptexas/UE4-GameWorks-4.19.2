@@ -117,6 +117,13 @@ FSceneRenderTargets& FSceneRenderTargets::Get(FRHICommandListImmediate& RHICmdLi
 	return SceneRenderTargetsSingleton;
 }
 
+FSceneRenderTargets& FSceneRenderTargets::Get(FRHIAsyncComputeCommandListImmediate& RHICmdList)
+{
+	check(IsInRenderingThread() && !RHICmdList.GetRenderThreadContext(FRHICommandListBase::ERenderThreadContext::SceneRenderTargets)
+		&& !FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local)); // if we are processing tasks on the local queue, it is assumed this are in support of async tasks, which cannot use the current state of the render targets. This can be relaxed if needed.
+	return SceneRenderTargetsSingleton;
+}
+
 FSceneRenderTargets& FSceneRenderTargets::Get_Todo_PassContext()
 {
 	check(IsInRenderingThread()
@@ -176,6 +183,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, LightAccumulation(GRenderTargetPool.MakeSnapshot(SnapshotSource.LightAccumulation))
 	, DirectionalOcclusion(GRenderTargetPool.MakeSnapshot(SnapshotSource.DirectionalOcclusion))
 	, SceneDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.SceneDepthZ))
+	, LightingChannels(GRenderTargetPool.MakeSnapshot(SnapshotSource.LightingChannels))
 	, SceneAlphaCopy(GRenderTargetPool.MakeSnapshot(SnapshotSource.SceneAlphaCopy))
 	, AuxiliarySceneDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.AuxiliarySceneDepthZ))
 	, SmallDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.SmallDepthZ))
@@ -189,6 +197,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, DBufferB(GRenderTargetPool.MakeSnapshot(SnapshotSource.DBufferB))
 	, DBufferC(GRenderTargetPool.MakeSnapshot(SnapshotSource.DBufferC))
 	, ScreenSpaceAO(GRenderTargetPool.MakeSnapshot(SnapshotSource.ScreenSpaceAO))
+	, QuadOverdrawBuffer(GRenderTargetPool.MakeSnapshot(SnapshotSource.QuadOverdrawBuffer))
 	, CustomDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.CustomDepth))
 	, CustomStencilSRV(SnapshotSource.CustomStencilSRV)
 	, ShadowDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.ShadowDepthZ))
@@ -230,6 +239,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bGBuffersFastCleared(SnapshotSource.bGBuffersFastCleared)	
 	, bSceneDepthCleared(SnapshotSource.bSceneDepthCleared)	
 	, bSnapshot(true)
+	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
 {
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
 	SnapshotArray(TranslucencyShadowTransmission, SnapshotSource.TranslucencyShadowTransmission);
@@ -475,7 +485,7 @@ int32 FSceneRenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction Color
 	}
 	else
 	{
-		OutVelocityRTIndex = -1;
+	OutVelocityRTIndex = -1;
 	}
 
 	OutRenderTargets[MRTCount++] = FRHIRenderTargetView(GBufferD->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
@@ -491,7 +501,7 @@ int32 FSceneRenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction Color
 	return MRTCount;
 }
 
-void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, const FLinearColor& ClearColor/*=(0,0,0,1)*/)
+void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, bool bBindQuadOverdrawBuffers, const FLinearColor& ClearColor/*=(0,0,0,1)*/)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor);
 
@@ -544,6 +554,24 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 			bSceneDepthCleared = true;			
 		}		
 
+		if (bBindQuadOverdrawBuffers && AllowRuntimeQuadOverdraw(CurrentFeatureLevel))
+		{
+			if (QuadOverdrawBuffer.IsValid() && QuadOverdrawBuffer->GetRenderTargetItem().UAV.IsValid())
+			{
+				QuadOverdrawIndex = 7; // As defined in QuadOverdraw.usf
+
+				// Increase the rendertarget count in order to control the bound slot of the UAV.
+				check(Info.NumColorRenderTargets <= QuadOverdrawIndex);
+				Info.NumColorRenderTargets = QuadOverdrawIndex;
+				Info.UnorderedAccessView[Info.NumUAVs++] = QuadOverdrawBuffer->GetRenderTargetItem().UAV;
+
+				// Clear to default value
+				const uint32 ClearValue[4] = { 0, 0, 0, 0 };
+				RHICmdList.ClearUAV(QuadOverdrawBuffer->GetRenderTargetItem().UAV, ClearValue);
+				RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToGfx, QuadOverdrawBuffer->GetRenderTargetItem().UAV);
+			}
+		}
+
 		// set the render target
 		RHICmdList.SetRenderTargetsAndClear(Info);
 		if (bShaderClear)
@@ -584,11 +612,13 @@ void FSceneRenderTargets::FinishRenderingGBuffer(FRHICommandListImmediate& RHICm
 		 // When the basepass outputs to the velocity buffer, don't resolve it yet if selective outputs are enabled, as it will be resolved after the velocity pass.
 		if (i != VelocityRTIndex || !UseSelectiveBasePassOutputs())
 		{
-			RHICmdList.CopyToResolveTarget(RenderTargets[i].Texture, RenderTargets[i].Texture, true, ResolveParams);
-		}
+		RHICmdList.CopyToResolveTarget(RenderTargets[i].Texture, RenderTargets[i].Texture, true, ResolveParams);
+	}
 	}
 	FTextureRHIParamRef DepthSurface = GetSceneDepthSurface();
 	RHICmdList.CopyToResolveTarget(DepthSurface, DepthSurface, true, ResolveParams);
+
+	QuadOverdrawIndex = INDEX_NONE;
 }
 
 int32 FSceneRenderTargets::GetNumGBufferTargets() const
@@ -1472,6 +1502,7 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets(FRHICommandLis
 	AllocSceneColor(RHICmdList);
 	AllocateCommonDepthTargets(RHICmdList);
 	AllocateReflectionTargets(RHICmdList);
+	AllocateDebugViewModeTargets(RHICmdList);
 
 	EPixelFormat Format = GetSceneColor()->GetDesc().Format;
 
@@ -1593,6 +1624,28 @@ void FSceneRenderTargets::AllocateReflectionTargets(FRHICommandList& RHICmdList)
 	}
 }
 
+void FSceneRenderTargets::AllocateDebugViewModeTargets(FRHICommandList& RHICmdList)
+{
+	// If the shader/quad complexity shader need a quad overdraw buffer to be bind, allocate it.
+	if (AllowRuntimeQuadOverdraw(CurrentFeatureLevel) && AllowDebugViewmodes())
+	{
+		FIntPoint QuadOverdrawSize;
+		QuadOverdrawSize.X = 2 * FMath::Max<uint32>((BufferSize.X + 1) / 2, 1); // The size is time 2 since left side is QuadDescriptor, and right side QuadComplexity.
+		QuadOverdrawSize.Y = FMath::Max<uint32>((BufferSize.Y + 1) / 2, 1);
+
+		FPooledRenderTargetDesc QuadOverdrawDesc = FPooledRenderTargetDesc::Create2DDesc(
+			QuadOverdrawSize, 
+			PF_R32_UINT,
+			FClearValueBinding::None,
+			0,
+			TexCreate_ShaderResource | TexCreate_RenderTargetable | TexCreate_UAV,
+			false
+			);
+
+		GRenderTargetPool.FindFreeElement(RHICmdList, QuadOverdrawDesc, QuadOverdrawBuffer, TEXT("QuadOverdrawBuffer"));
+	}
+}
+
 void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList)
 {
 	if (!SceneDepthZ)
@@ -1602,6 +1655,7 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		Desc.Flags |= TexCreate_FastVRAM;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneDepthZ, TEXT("SceneDepthZ"));
+		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
 	}
 
 	// When targeting DX Feature Level 10, create an auxiliary texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
@@ -1610,6 +1664,16 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.AutoWritable = false;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
+	}
+}
+
+void FSceneRenderTargets::AllocateLightingChannelTexture(FRHICommandList& RHICmdList)
+{
+	if (!LightingChannels)
+	{
+		// Only need 3 bits for lighting channels
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_R16_UINT, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightingChannels, TEXT("LightingChannels"));
 	}
 }
 
@@ -1675,9 +1739,16 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		// Create the screen space ambient occlusion buffer
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+
+			if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
+			{
+				// UAV is only needed to support "r.AmbientOcclusion.Compute"
+				// todo: ideally this should be only UAV or RT, not both
+				Desc.TargetableFlags |= TexCreate_UAV;
+			}
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ScreenSpaceAO, TEXT("ScreenSpaceAO"));
 		}
-
+		
 		{
 			for (int32 RTSetIndex = 0; RTSetIndex < NumTranslucentVolumeRenderTargetSets; RTSetIndex++)
 			{
@@ -1735,6 +1806,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 	}
 
 	AllocateReflectionTargets(RHICmdList);
+	AllocateDebugViewModeTargets(RHICmdList);
 
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
@@ -1835,12 +1907,15 @@ void FSceneRenderTargets::ReleaseAllTargets()
 
 	SceneAlphaCopy.SafeRelease();
 	SceneDepthZ.SafeRelease();
+	SceneStencilSRV.SafeRelease();
+	LightingChannels.SafeRelease();
 	AuxiliarySceneDepthZ.SafeRelease();
 	SmallDepthZ.SafeRelease();
 	DBufferA.SafeRelease();
 	DBufferB.SafeRelease();
 	DBufferC.SafeRelease();
 	ScreenSpaceAO.SafeRelease();
+	QuadOverdrawBuffer.SafeRelease();
 	LightAttenuation.SafeRelease();
 	LightAccumulation.SafeRelease();
 	DirectionalOcclusion.SafeRelease();
@@ -2132,9 +2207,9 @@ void FSceneTextureShaderParameters::Bind(const FShaderParameterMap& ParameterMap
 	DirectionalOcclusionTexture.Bind(ParameterMap, TEXT("DirectionalOcclusionTexture"));
 }
 
-template< typename ShaderRHIParamRef >
+template< typename ShaderRHIParamRef, typename TRHICmdList >
 void FSceneTextureShaderParameters::Set(
-	FRHICommandList& RHICmdList,
+	TRHICmdList& RHICmdList,
 	const ShaderRHIParamRef& ShaderRHI,
 	const FSceneView& View,
 	ESceneRenderTargetsMode::Type TextureMode,
@@ -2250,7 +2325,7 @@ void FSceneTextureShaderParameters::Set(
 	else if (TextureMode == ESceneRenderTargetsMode::DontSet)
 	{
 		// Verify that none of these were bound if we were told not to set them
-		checkSlow(!SceneColorTextureParameter.IsBound()
+		ensure(!SceneColorTextureParameter.IsBound()
 			&& !SceneDepthTextureParameter.IsBound()
 			&& !SceneColorSurfaceParameter.IsBound()
 			&& !SceneDepthSurfaceParameter.IsBound()
@@ -2260,7 +2335,7 @@ void FSceneTextureShaderParameters::Set(
 	{
 		// Verify that none of these were bound if we were told not to set them
 		// ignore SceneDepthTextureNonMS
-		checkSlow(!SceneColorTextureParameter.IsBound()
+		ensure(!SceneColorTextureParameter.IsBound()
 			&& !SceneDepthTextureParameter.IsBound()
 			&& !SceneColorSurfaceParameter.IsBound()
 			&& !SceneDepthSurfaceParameter.IsBound());
@@ -2364,8 +2439,8 @@ void FDeferredPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMa
 
 bool IsDBufferEnabled();
 
-template< typename ShaderRHIParamRef >
-void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode) const
+template< typename ShaderRHIParamRef, typename TRHICmdList >
+void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode) const
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	// This is needed on PC ES2 for SceneAlphaCopy, probably should be refactored for performance.
@@ -2443,20 +2518,28 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 	}
 }
 
-#define IMPLEMENT_DEFERRED_PARAMETERS_SET( ShaderRHIParamRef ) \
-	template void FDeferredPixelShaderParameters::Set< ShaderRHIParamRef >( \
-		FRHICommandList& RHICmdList,				\
+#define IMPLEMENT_DEFERRED_PARAMETERS_SET( ShaderRHIParamRef, TRHICmdList ) \
+	template void FDeferredPixelShaderParameters::Set< ShaderRHIParamRef, TRHICmdList >(\
+		TRHICmdList& RHICmdList,				\
 		const ShaderRHIParamRef ShaderRHI,			\
 		const FSceneView& View,						\
 		ESceneRenderTargetsMode::Type TextureMode	\
 	) const;
 
-IMPLEMENT_DEFERRED_PARAMETERS_SET( FVertexShaderRHIParamRef );
-IMPLEMENT_DEFERRED_PARAMETERS_SET( FHullShaderRHIParamRef );
-IMPLEMENT_DEFERRED_PARAMETERS_SET( FDomainShaderRHIParamRef );
-IMPLEMENT_DEFERRED_PARAMETERS_SET( FGeometryShaderRHIParamRef );
-IMPLEMENT_DEFERRED_PARAMETERS_SET( FPixelShaderRHIParamRef );
-IMPLEMENT_DEFERRED_PARAMETERS_SET( FComputeShaderRHIParamRef );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FVertexShaderRHIParamRef, FRHICommandList );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FHullShaderRHIParamRef, FRHICommandList );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FDomainShaderRHIParamRef, FRHICommandList );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FGeometryShaderRHIParamRef, FRHICommandList );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FPixelShaderRHIParamRef, FRHICommandList );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FComputeShaderRHIParamRef, FRHICommandList );
+
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FVertexShaderRHIParamRef, FRHICommandListImmediate);
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FHullShaderRHIParamRef, FRHICommandListImmediate);
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FDomainShaderRHIParamRef, FRHICommandListImmediate);
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FGeometryShaderRHIParamRef, FRHICommandListImmediate);
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FPixelShaderRHIParamRef, FRHICommandListImmediate);
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FComputeShaderRHIParamRef, FRHICommandListImmediate);
+IMPLEMENT_DEFERRED_PARAMETERS_SET(FComputeShaderRHIParamRef, FRHIAsyncComputeCommandListImmediate );
 
 FArchive& operator<<(FArchive& Ar,FDeferredPixelShaderParameters& Parameters)
 {

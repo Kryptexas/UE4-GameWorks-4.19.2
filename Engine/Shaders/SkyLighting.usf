@@ -60,13 +60,6 @@ void SkyLightDiffusePS(
 		}
 		#endif
 
-		/*
-		float OcclusionExponent = 1;
-		// Maintain integral of .5 for orthogonal contrast and brightness
-		float NormalizationConstant = .5f * (OcclusionExponent + 1);
-		SkyVisibility = NormalizationConstant * pow(SkyVisibility, OcclusionExponent);
-		*/
-
 		float ContrastCurve = 1 / (1 + exp(-ContrastAndNormalizeMulAdd.x * (SkyVisibility * 10 - 5)));
 		SkyVisibility = saturate(ContrastCurve * ContrastAndNormalizeMulAdd.y + ContrastAndNormalizeMulAdd.z);
 		

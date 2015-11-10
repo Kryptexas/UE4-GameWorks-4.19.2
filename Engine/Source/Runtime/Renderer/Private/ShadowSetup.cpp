@@ -379,6 +379,7 @@ FProjectedShadowInfo::FProjectedShadowInfo()
 	, bWholeSceneShadow(false)
 	, bReflectiveShadowmap(false)
 	, bTranslucentShadow(false)
+	, bCapsuleShadow(false)
 	, bPreShadow(false)
 	, bSelfShadowOnly(false)
 	, LightSceneInfo(0)
@@ -407,6 +408,7 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 	ResolutionX = InResolutionX;
 	MaxScreenPercent = InMaxScreenPercent;
 	bDirectionalLight = InLightSceneInfo->Proxy->GetLightType() == LightType_Directional;
+	bCapsuleShadow = InParentSceneInfo->Proxy->CastsCapsuleDirectShadow() && !bInPreShadow;
 	bTranslucentShadow = bInTranslucentShadow;
 	bPreShadow = bInPreShadow;
 	bSelfShadowOnly = InParentSceneInfo->Proxy->CastsSelfShadowOnly();
@@ -1425,7 +1427,9 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 		&& bSubjectIsVisible 
 		// Only objects with dynamic lighting should create a preshadow
 		// Unless we're in the editor and need to preview an object without built lighting
-		&& (!PrimitiveSceneInfo->Proxy->HasStaticLighting() || !Interaction->IsShadowMapped());
+		&& (!PrimitiveSceneInfo->Proxy->HasStaticLighting() || !Interaction->IsShadowMapped())
+		// Disable preshadows from directional lights for primitives that use single sample shadowing, the shadow factor will be written into the precomputed shadow mask in the GBuffer instead
+		&& !(PrimitiveSceneInfo->Proxy->UseSingleSampleShadowFromStationaryLights() && LightSceneInfo->Proxy->GetLightType() == LightType_Directional);
 
 	if (bRenderPreShadow && ShouldUseCachePreshadows())
 	{
@@ -2559,4 +2563,6 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 
 	// Generate mesh element arrays from shadow primitive arrays
 	GatherShadowDynamicMeshElements();
+
+	CreateIndirectCapsuleShadows();
 }

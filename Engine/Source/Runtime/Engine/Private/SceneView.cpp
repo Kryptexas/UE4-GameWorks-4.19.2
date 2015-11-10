@@ -1828,6 +1828,26 @@ ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
 	}
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+ENGINE_API EQuadOverdrawMode FSceneViewFamily::GetQuadOverdrawMode() const
+{
+	if (EngineShowFlags.ShaderComplexity)
+	{
+		if (EngineShowFlags.QuadComplexity)
+		{
+			// This can be used to visualize the QOM_ShaderComplexityBleeding mode.
+			// return EngineShowFlags.QuadOverhead ? QOM_ShaderComplexityBleeding : QOM_QuadComplexity;
+			return QOM_QuadComplexity;
+		}
+		else if (EngineShowFlags.QuadOverhead)
+		{
+			return QOM_ShaderComplexityContained;
+		}
+	}
+	return QOM_None;
+};
+#endif
+
 FSceneViewFamilyContext::~FSceneViewFamilyContext()
 {
 	// Cleanup the views allocated for this view family.

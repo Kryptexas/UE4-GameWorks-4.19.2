@@ -296,8 +296,6 @@ public:
 	FShaderParameter PrevViewProjMatrix;
 	FShaderParameter TextureViewMad;
 	FShaderParameter MotionBlurParameters;
-	FShaderResourceParameter BoneMatrices0;
-	FShaderResourceParameter BoneMatrices1;
 
 	/** Initialization constructor. */
 	FPostProcessMotionBlurPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -308,15 +306,13 @@ public:
 		PrevViewProjMatrix.Bind(Initializer.ParameterMap, TEXT("PrevViewProjMatrix"));
 		TextureViewMad.Bind(Initializer.ParameterMap, TEXT("TextureViewMad"));
 		MotionBlurParameters.Bind(Initializer.ParameterMap, TEXT("MotionBlurParameters"));
-		BoneMatrices0.Bind(Initializer.ParameterMap,TEXT("BoneMatrices0"));
-		BoneMatrices1.Bind(Initializer.ParameterMap,TEXT("BoneMatrices1"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << PrevViewProjMatrix << TextureViewMad << MotionBlurParameters << BoneMatrices0 << BoneMatrices1;
+		Ar << PostprocessParameter << DeferredParameters << PrevViewProjMatrix << TextureViewMad << MotionBlurParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -408,9 +404,6 @@ public:
 				- MaxVelocity * 2 * AspectRatio);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, MotionBlurParameters, MotionBlurParametersValue);
 		}
-
-		SetSRVParameter(Context.RHICmdList, ShaderRHI, BoneMatrices0, GPrevPerBoneMotionBlur.GetBoneDataVertexBuffer(0)->BoneBuffer.VertexBufferSRV);
-		SetSRVParameter(Context.RHICmdList, ShaderRHI, BoneMatrices1, GPrevPerBoneMotionBlur.GetBoneDataVertexBuffer(1)->BoneBuffer.VertexBufferSRV);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -678,6 +671,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlurRecombine::ComputeOutputDesc
 	Ret.Reset();
 	// we don't need the alpha channel and 32bit is faster and costs less memory
 	Ret.Format = PF_FloatRGB;
+	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("MotionBlurRecombine");
 
 	return Ret;
@@ -1551,26 +1545,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	Canvas.DrawShadowedString(X, Y += YStep, TEXT("ViewMatrix:"), GetStatsFont(), FLinearColor(1, 1, 0));
 	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
 
-	for(uint32 BufferId = 0; BufferId < 2; ++BufferId)
-	{
-		const TCHAR* Usage = TEXT("unused");
-
-		if(BufferId == GPrevPerBoneMotionBlur.GetReadBufferIndex())
-		{
-			Usage = TEXT("read"); 
-		}
-		else if(BufferId == GPrevPerBoneMotionBlur.GetWriteBufferIndex())
-		{
-			Usage = TEXT("write"); 
-		}
-
-		Line = FString::Printf(TEXT("BoneBuffer %d: %s"), BufferId, Usage);
-		// LeftTop.y + (LinesPerBuffer + GapBetweenBuffers) * Scale
-		Canvas.DrawShadowedString(4, 98 + BufferId * (48 + 8) * 3, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
-	}
-
 	Canvas.Flush_RenderThread(Context.RHICmdList);
-
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

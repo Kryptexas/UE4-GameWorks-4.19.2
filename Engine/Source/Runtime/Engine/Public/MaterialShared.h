@@ -496,13 +496,6 @@ public:
 		);
 
 	/**
-	 * Creates shaders for all of the compile jobs and caches them in this shader map.
-	 * @param Material - The material to compile shaders for.
-	 * @param CompilationResults - The compile results that were enqueued by BeginCompile.
-	 */
-	void FinishCompile(uint32 ShaderMapId, const FUniformExpressionSet& UniformExpressionSet, const FSHAHash& MaterialShaderMapHash, const TArray<FShaderCompileJob*>& CompilationResults, const FString& InDebugDescription);
-
-	/**
 	 * Checks whether a material shader map is missing any shader types necessary for the given material.
 	 * May be called with a NULL FMeshMaterialShaderMap, which is equivalent to a FMeshMaterialShaderMap with no shaders cached.
 	 * @param MeshShaderMap - The FMeshMaterialShaderMap to check for the necessary shaders.
@@ -540,6 +533,8 @@ public:
 private:
 	/** The vertex factory type these shaders are for. */
 	FVertexFactoryType* VertexFactoryType;
+
+	static bool IsMeshShaderComplete(const FMeshMaterialShaderMap* MeshShaderMap, EShaderPlatform Platform, const FMaterial* Material, const FMeshMaterialShaderType* ShaderType, const FShaderPipelineType* Pipeline, FVertexFactoryType* InVertexFactoryType, bool bSilent);
 };
 
 /**
@@ -615,6 +610,9 @@ public:
 
 	/** Builds a list of the shaders in a shader map. */
 	ENGINE_API void GetShaderList(TMap<FShaderId, FShader*>& OutShaders) const;
+
+	/** Builds a list of the shader pipelines in a shader map. */
+	ENGINE_API void GetShaderPipelineList(TArray<FShaderPipeline*>& OutShaderPipelines) const;
 
 	/** Registers a material shader map in the global map so it can be used by materials. */
 	void Register(EShaderPlatform InShaderPlatform);
@@ -700,8 +698,6 @@ public:
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 
-	uint32 GetMaxNumInstructionsForShader(const FShaderType* ShaderType) const;
-
 	bool IsValidForRendering() const
 	{
 		return bCompilationFinalized && bCompiledSuccessfully && !bDeletedThroughDeferredCleanup;
@@ -779,6 +775,8 @@ private:
 	FString DebugDescription;
 
 	FShader* ProcessCompilationResultsForSingleJob(class FShaderCompileJob* SingleJob, const FShaderPipelineType* ShaderPipeline, const FSHAHash& MaterialShaderMapHash);
+
+	bool IsMaterialShaderComplete(const FMaterial* Material, const FMaterialShaderType* ShaderType, const FShaderPipelineType* Pipeline, bool bSilent);
 
 	/** Initializes OrderedMeshShaderMaps from the contents of MeshShaderMaps. */
 	void InitOrderedMeshShaderMaps();

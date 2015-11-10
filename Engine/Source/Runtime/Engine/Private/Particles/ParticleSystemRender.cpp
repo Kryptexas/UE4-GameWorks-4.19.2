@@ -6707,6 +6707,7 @@ FPrimitiveViewRelevance FParticleSystemSceneProxy::GetViewRelevance(const FScene
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Particles;
 	Result.bShadowRelevance = IsShadowCast(View);
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
+	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 	Result.bDynamicRelevance = true;
 	Result.bHasSimpleLights = true;
 	if (!View->Family->EngineShowFlags.Wireframe && View->Family->EngineShowFlags.Materials)
@@ -6749,6 +6750,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer() const
 			GetBounds(),
 			GetLocalBounds(),
 			ReceivesDecals(),
+			false,
 			false,
 			false,
 			UseEditorDepthTest(),

@@ -28,15 +28,16 @@ public:
 
 	TUniformBuffer()
 		: BufferUsage(UniformBuffer_MultiFrame)
+		, Contents(nullptr)
 	{
-		Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-		FMemory::Memzero(Contents, sizeof(TBufferStruct));
-		bEverUpdated = false;
 	}
 
 	~TUniformBuffer()
 	{
-		FMemory::Free(Contents);
+		if (Contents)
+		{
+			FMemory::Free(Contents);
+		}
 	}
 
 	/** Sets the contents of the uniform buffer. */
@@ -45,12 +46,16 @@ public:
 		SetContentsNoUpdate(NewContents);
 		UpdateRHI();
 	}
-	
+
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
 	{
 		check(IsInRenderingThread());
-		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
+		UniformBufferRHI.SafeRelease();
+		if (Contents)
+		{
+			UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
+		}
 	}
 	virtual void ReleaseDynamicRHI() override
 	{
@@ -60,8 +65,8 @@ public:
 	// Accessors.
 	FUniformBufferRHIParamRef GetUniformBufferRHI() const 
 	{ 
-		ensureMsgf(bEverUpdated, TEXT("Caching UB before it was updated with valid data!"));
-		return UniformBufferRHI;
+		check(UniformBufferRHI.GetReference()); // you are trying to use a UB that was never filled with anything
+		return UniformBufferRHI; 
 	}
 
 	EUniformBufferUsage BufferUsage;
@@ -72,15 +77,17 @@ protected:
 	void SetContentsNoUpdate(const TBufferStruct& NewContents)
 	{
 		check(IsInRenderingThread());
-		FMemory::Memcpy(Contents, &NewContents, sizeof(TBufferStruct));
-		bEverUpdated = true;
+		if (!Contents)
+		{
+			Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+		}
+		FMemory::Memcpy(Contents,&NewContents,sizeof(TBufferStruct));
 	}
 
 private:
 
 	FUniformBufferRHIRef UniformBufferRHI;
 	uint8* Contents;
-	bool bEverUpdated;
 };
 
 /** A reference to a uniform buffer RHI resource with a specific structure. */

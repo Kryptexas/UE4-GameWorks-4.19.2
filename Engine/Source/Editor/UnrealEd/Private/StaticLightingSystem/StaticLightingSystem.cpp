@@ -41,6 +41,7 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "Engine/LevelStreaming.h"
 #include "Engine/Selection.h"
 #include "Components/SkyLightComponent.h"
+#include "Components/LightmassPortalComponent.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 
@@ -364,6 +365,13 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 		GLightmapTotalSize = 0;
 		GLightmapTotalStreamingSize = 0;
 
+		GNumShadowmapTotalTexels = 0;
+		GNumShadowmapTextures = 0;
+		GNumShadowmapMappedTexels = 0;
+		GNumShadowmapUnmappedTexels = 0;
+		GShadowmapTotalSize = 0;
+		GShadowmapTotalStreamingSize = 0;
+
 		for( TObjectIterator<UPrimitiveComponent> It ; It ; ++It )
 		{
 			UPrimitiveComponent* Component = *It;
@@ -503,11 +511,12 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 		{
 			FLightmassStatistics::FScopedGather GatherStatScope(LightmassStatistics.GatherLightingInfoTime);
 
-#if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
-			// Clear reference to the selected lightmap
-			GCurrentSelectedLightmapSample.Lightmap = NULL;
-			GDebugStaticLightingInfo = FDebugLightingOutput();
-#endif
+			if (IsTexelDebuggingEnabled())
+			{
+				// Clear reference to the selected lightmap
+				GCurrentSelectedLightmapSample.Lightmap = NULL;
+				GDebugStaticLightingInfo = FDebugLightingOutput();
+			}
 			
 			GatherStaticLightingInfo(bRebuildDirtyGeometryForLighting, bForceNoPrecomputedLighting);
 		}
@@ -1885,6 +1894,15 @@ void FStaticLightingSystem::GatherScene()
 		if (World->ContainsActor(LMDetailVolume) && !LMDetailVolume->IsPendingKill())
 		{
 			LightmassExporter->AddCharacterIndirectDetailVolume(LMDetailVolume);
+		}
+	}
+
+	for( TObjectIterator<ULightmassPortalComponent> It ; It ; ++It )
+	{
+		ULightmassPortalComponent* LMPortal = *It;
+		if (LMPortal->GetOwner() && World->ContainsActor(LMPortal->GetOwner()) && !LMPortal->IsPendingKill())
+		{
+			LightmassExporter->AddPortal(LMPortal);
 		}
 	}
 

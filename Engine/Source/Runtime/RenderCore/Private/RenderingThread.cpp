@@ -546,6 +546,7 @@ void StartRenderingThread()
 	check(!GRHIThread)
 	if (GUseRHIThread)
 	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);		
 		if (!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RHIThread))
 		{
 			FRHIThread::Get().Start();

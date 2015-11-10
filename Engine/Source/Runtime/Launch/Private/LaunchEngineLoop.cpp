@@ -70,12 +70,6 @@
 	#include "AutomationWorker.h"
 #endif
 
-	/** 
-	 *	Function to free up the resources in GPrevPerBoneMotionBlur
-	 *	Should only be called at application exit
-	 */
-	ENGINE_API void MotionBlur_Free();
-
 #endif  //WITH_ENGINE
 
 #if WITH_EDITOR
@@ -1375,7 +1369,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		EKeys::Initialize();
 		FCoreStyle::ResetToDefault();
 	}
-	
+
 	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
 
 	SlowTask.EnterProgressFrame(10);
@@ -2280,7 +2274,6 @@ void FEngineLoop::Exit()
 
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
-	MotionBlur_Free();
 
 	// Stop the rendering thread.
 	StopRenderingThread();
@@ -2510,6 +2503,14 @@ void FEngineLoop::Tick()
 #endif
 	// Ensure we aren't starting a frame while loading or playing a loading movie
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
+
+	FExternalProfiler* ActiveProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+	if (ActiveProfiler)
+	{
+		ActiveProfiler->FrameSync();
+	}
+
+	SCOPED_NAMED_EVENT(FEngineLoopTick, FColor::Red);
 
 	// early in the Tick() to get the callbacks for cvar changes called
 	{

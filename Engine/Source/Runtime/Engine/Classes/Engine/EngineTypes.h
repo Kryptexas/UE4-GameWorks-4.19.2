@@ -188,6 +188,38 @@ namespace ETranslucentSortPolicy
 	};
 }
 
+USTRUCT()
+struct FLightingChannels
+{
+	GENERATED_USTRUCT_BODY()
+
+	FLightingChannels() :
+		bChannel0(true),
+		bChannel1(false),
+		bChannel2(false)
+	{}
+
+	/** Default channel for all primitives and lights. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
+	bool bChannel0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
+	bool bChannel1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Channels)
+	bool bChannel2;
+};
+
+inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)
+{
+	// Note: this is packed into 3 bits of a stencil channel
+	return (uint8)((Value.bChannel0 ? 1 : 0) | (Value.bChannel1 << 1) | (Value.bChannel2 << 2));
+}
+
+inline uint8 GetDefaultLightingChannelMask()
+{
+	return 1;
+}
 
 /** Controls the way that the width scale property affects animation trails. */
 UENUM()
@@ -1734,7 +1766,7 @@ struct ENGINE_API FHitResult
 
 	/** Ctor for easily creating "fake" hits from limited data. */
 	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm);
-
+ 
 	/** Reset hit result while optionally saving TraceStart and TraceEnd. */
 	FORCEINLINE void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
 	{
@@ -2587,7 +2619,7 @@ struct FMeshProxySettings
 	/** Angle at which a hard edge is introduced between faces */
 	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (DisplayName = "Hard Edge Angle"))
 	float HardAngleThreshold;
-
+	
 	/** Lightmap resolution */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 LightMapResolution;

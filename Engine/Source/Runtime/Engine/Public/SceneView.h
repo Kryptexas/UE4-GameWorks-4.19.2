@@ -351,6 +351,17 @@ enum ETranslucencyVolumeCascade
 	TVC_MAX,
 };
 
+/** 
+ * Enumeration for different Quad Overdraw visualization mode.
+ */
+enum EQuadOverdrawMode
+{
+	QOM_None,						// No quad overdraw.
+	QOM_QuadComplexity,				// Show quad overdraw only.
+	QOM_ShaderComplexityContained,	// Show shader complexity with quad overdraw scaling the PS instruction count.
+	QOM_ShaderComplexityBleeding	// Show shader complexity with quad overdraw bleeding the PS instruction count over the quad.
+};
+
 /** The uniform shader parameters associated with a view. */
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,TranslatedWorldToClip)
@@ -977,6 +988,12 @@ public:
 	ENGINE_API ERHIFeatureLevel::Type GetFeatureLevel() const;
 
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	ENGINE_API EQuadOverdrawMode GetQuadOverdrawMode() const;
+#else
+	FORCEINLINE EQuadOverdrawMode GetQuadOverdrawMode() const { return QOM_None; }
+#endif
 };
 
 /**

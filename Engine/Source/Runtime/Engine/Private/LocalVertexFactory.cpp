@@ -21,6 +21,13 @@ void FLocalVertexFactoryShaderParameters::Serialize(FArchive& Ar)
 
 void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
+	if (BatchElement.bUserDataIsColorVertexBuffer)
+	{
+		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
+		check(OverrideColorVertexBuffer);
+		static_cast<const FLocalVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+	}
+	//QUICK_SCOPE_CYCLE_COUNTER(STAT_FLocalVertexFactoryShaderParameters_SetMesh_SlowTree);
 	if (View.Family != NULL && View.Family->Scene != NULL)
 	{
 		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
@@ -111,6 +118,7 @@ void FLocalVertexFactory::InitRHI()
 		FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 0, VET_Color);
 		Elements.Add(AccessStreamComponent(NullColorComponent,3));
 	}
+	ColorStreamIndex = Elements.Last().StreamIndex;
 
 	if(Data.TextureCoordinates.Num())
 	{

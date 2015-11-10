@@ -542,6 +542,13 @@ public:
 	FGlobalDistanceFieldClipmapState GlobalDistanceFieldClipmapState[GMaxGlobalDistanceFieldClipmaps];
 	int32 GlobalDistanceFieldUpdateIndex;
 
+	FVertexBufferRHIRef IndirectShadowSphereShapesVertexBuffer;
+	FShaderResourceViewRHIRef IndirectShadowSphereShapesSRV;
+	FVertexBufferRHIRef IndirectShadowCapsuleShapesVertexBuffer;
+	FShaderResourceViewRHIRef IndirectShadowCapsuleShapesSRV;
+	FVertexBufferRHIRef IndirectShadowLightDirectionVertexBuffer;
+	FShaderResourceViewRHIRef IndirectShadowLightDirectionSRV;
+
 	// Is DOFHistoryRT set from DepthOfField?
 	bool bDOFHistory;
 	// Is DOFHistoryRT2 set from DepthOfField?
@@ -550,7 +557,7 @@ public:
 	FTemporalLODState TemporalLODState;
 
 	// call after SetupTemporalAA()
-	uint32 GetCurrentTemporalAASampleIndex() const
+	virtual uint32 GetCurrentTemporalAASampleIndex() const
 	{
 		return TemporalAASampleIndex;
 	}
@@ -658,7 +665,7 @@ public:
 	 *							visible and unoccluded since this time will be discarded.
 	 * @param MinQueryTime - The pending occlusion queries older than this will be discarded.
 	 */
-	void TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList, float MinHistoryTime, float MinQueryTime, int32 FrameNumber);
+	void TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList, float CurrentTime, float MinHistoryTime, float MinQueryTime, int32 FrameNumber);
 
 	/**
 	 * Checks whether a shadow is occluded this frame.
@@ -760,6 +767,13 @@ public:
 		{
 			GlobalDistanceFieldClipmapState[CascadeIndex].VolumeTexture.SafeRelease();
 		}
+
+		IndirectShadowSphereShapesVertexBuffer.SafeRelease();
+		IndirectShadowSphereShapesSRV.SafeRelease();
+		IndirectShadowCapsuleShapesVertexBuffer.SafeRelease();
+		IndirectShadowCapsuleShapesSRV.SafeRelease();
+		IndirectShadowLightDirectionVertexBuffer.SafeRelease();
+		IndirectShadowLightDirectionSRV.SafeRelease();
 	}
 
 	// FSceneViewStateInterface
@@ -1298,7 +1312,8 @@ private:
 		const FIndirectLightingCacheBlock& Block, 
 		TArray<float>& AccumulatedWeight, 
 		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
-		TArray<FVector>& AccumulatedSkyBentNormal);
+		FVector& CenterSkyBentNormal,
+		float& CenterDirectionalLightShadowing);
 
 	/** 
 	 * Normalizes, adjusts for SH ringing, and encodes SH samples into a texture format.
@@ -1309,12 +1324,10 @@ private:
 		const FIndirectLightingCacheBlock& Block, 
 		const TArray<float>& AccumulatedWeight, 
 		const TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
-		const TArray<FVector>& AccumulatedSkyBentNormal,
 		TArray<FFloat16Color>& Texture0Data,
 		TArray<FFloat16Color>& Texture1Data,
 		TArray<FFloat16Color>& Texture2Data,
-		FSHVectorRGB2& SingleSample,
-		FVector& SkyBentNormal);
+		FSHVectorRGB2& SingleSample);
 
 	/** Helper that calculates an effective world position min and size given a bounds. */
 	void CalculateBlockPositionAndSize(const FBoxSphereBounds& Bounds, int32 TexelSize, FVector& OutMin, FVector& OutSize) const;
@@ -1492,17 +1505,7 @@ public:
 	/** masked depth draw list */
 	TStaticMeshDrawList<FDepthDrawingPolicy> MaskedDepthDrawList;
 	/** Base pass draw list - no light map */
-	TStaticMeshDrawList<TBasePassDrawingPolicy<FNoLightMapPolicy> > BasePassNoLightMapDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassDrawingPolicy<FCachedVolumeIndirectLightingPolicy> > BasePassCachedVolumeIndirectLightingDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassDrawingPolicy<FCachedPointIndirectLightingPolicy> > BasePassCachedPointIndirectLightingDrawList[EBasePass_MAX];
-	/** Base pass draw list - no light map */
-	TStaticMeshDrawList<TBasePassDrawingPolicy<FSimpleDynamicLightingPolicy> > BasePassSimpleDynamicLightingDrawList[EBasePass_MAX];
-	/** Base pass draw list - HQ light maps */
-	TStaticMeshDrawList<TBasePassDrawingPolicy< TLightMapPolicy<HQ_LIGHTMAP> > > BasePassHighQualityLightMapDrawList[EBasePass_MAX];
-	/** Base pass draw list - HQ light maps */
-	TStaticMeshDrawList<TBasePassDrawingPolicy< TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP> > > BasePassDistanceFieldShadowMapLightMapDrawList[EBasePass_MAX];
-	/** Base pass draw list - LQ light maps */
-	TStaticMeshDrawList<TBasePassDrawingPolicy< TLightMapPolicy<LQ_LIGHTMAP> > > BasePassLowQualityLightMapDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> > BasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
 	/** Base pass draw list - self shadowed translucency*/
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> > BasePassSelfShadowedTranslucencyDrawList[EBasePass_MAX];
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> > BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[EBasePass_MAX];
@@ -1527,16 +1530,7 @@ public:
 	TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& GetBasePassDrawList(EBasePassDrawListType DrawType);
 
 	/** Forward shading base pass draw lists */
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FNoLightMapPolicy,0> > BasePassForForwardShadingNoLightMapDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< TLightMapPolicy<LQ_LIGHTMAP>,0 > >								BasePassForForwardShadingLowQualityLightMapDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>,0 > >		BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FSimpleDirectionalLightAndSHIndirectPolicy,0 > >				BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FSimpleDirectionalLightAndSHDirectionalIndirectPolicy,0 > >	BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy,0 > >	BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FMovableDirectionalLightLightingPolicy,0 > >					BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FMovableDirectionalLightCSMLightingPolicy,0 > >				BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FMovableDirectionalLightWithLightmapLightingPolicy,0> >		BasePassForForwardShadingMovableDirectionalLightLightmapDrawList[EBasePass_MAX];
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FMovableDirectionalLightCSMWithLightmapLightingPolicy,0> >		BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FUniformLightMapPolicy,0> > BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_MAX];
 
 	/** Maps a light-map type to the appropriate base pass draw list. */
 	template<typename LightMapPolicyType>
@@ -1576,6 +1570,9 @@ public:
 
 	/** Whether the early Z pass was force enabled when static draw lists were built. */
 	int32 StaticDrawListsEarlyZPassMode;
+
+	/** Whether the ShaderPipelines were enabled when the static draw lists were built. */
+	int32 StaticDrawShaderPipelines;
 
 	/** True if a change to SkyLight / Lighting has occurred that requires static draw lists to be updated. */
 	bool bScenesPrimitivesNeedStaticMeshElementUpdate;	

@@ -1374,6 +1374,11 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportT
 #endif
 	}
 
+	if (MeshObject)
+	{
+		MeshObject->UpdateShadowShapes(this);
+	}
+
 #if WITH_APEX_CLOTHING
 	if(ClothingActors.Num() > 0)
 	{

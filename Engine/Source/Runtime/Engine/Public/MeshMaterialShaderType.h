@@ -15,12 +15,6 @@
 class FMeshMaterialShaderType : public FShaderType
 {
 public:
-
-	/**
-	* Finds a FMeshMaterialShaderType by name.
-	*/
-	static FMeshMaterialShaderType* GetTypeByName(const FString& TypeName);
-
 	struct CompiledShaderInitializerType : FMaterialShaderType::CompiledShaderInitializerType
 	{
 		FVertexFactoryType* VertexFactoryType;

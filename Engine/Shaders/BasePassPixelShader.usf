@@ -9,7 +9,7 @@
 #include "BasePassCommon.usf"
 #include "Material.usf"
 #include "VertexFactory.usf"
-#include "LightmapCommon.usf"
+#include "LightmapCommon.usf"  
 #include "ReflectionEnvironmentShared.usf"
 #include "BRDF.usf"
 #include "Random.usf"
@@ -35,12 +35,6 @@ Texture2D		HZBTexture;
 SamplerState	HZBSampler;
 Texture2D		PrevSceneColor;
 SamplerState	PrevSceneColorSampler;
-
-// 2nd order SH indirect lighting interpolated from the indirect lighting cache for the whole object
-// Used to apply precomputed lighting to translucency
-float4 IndirectLightingSHCoefficients[3];
-// Bent normal sky shadowing interpolated from the indirect lighting cache for the whole object
-float4 PointSkyBentNormal;
 
 #ifndef COMPILER_GLSL
 	#define COMPILER_GLSL 0
@@ -301,22 +295,6 @@ float3 GetTranslucencyLighting(
 	return InterpolatedLighting;
 }
 
-/** Stores the SH ambient term and Coefficient3.x. */
-Texture3D IndirectLightingCacheTexture0;
-/** Stores Coefficient1 and Coefficient3.y. */
-Texture3D IndirectLightingCacheTexture1;
-/** Stores Coefficient2 and Coefficient3.z. */
-Texture3D IndirectLightingCacheTexture2;
-SamplerState IndirectLightingCacheTextureSampler0;
-SamplerState IndirectLightingCacheTextureSampler1;
-SamplerState IndirectLightingCacheTextureSampler2;
-
-/** Add and Scale to convert world space position into indirect lighting cache volume texture UVs. */
-float3 IndirectlightingCachePrimitiveAdd;
-float3 IndirectlightingCachePrimitiveScale;
-float3 IndirectlightingCacheMinUV;
-float3 IndirectlightingCacheMaxUV;
-
 /** Computes sky diffuse lighting, including precomputed shadowing. */
 void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuseLighting, out float3 OutSubsurfaceLighting)
 {
@@ -344,8 +322,8 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 			#elif CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
 
 				// Bent normal from the indirect lighting cache - one value for the whole object
-				float3 NormalizedBentNormal = PointSkyBentNormal.xyz;
-				SkyVisibility = PointSkyBentNormal.w;
+				float3 NormalizedBentNormal = PrecomputedLightingBuffer.PointSkyBentNormal.xyz;
+				SkyVisibility = PrecomputedLightingBuffer.PointSkyBentNormal.w;
 
 			#endif
 
@@ -402,11 +380,11 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	#if CACHED_VOLUME_INDIRECT_LIGHTING
 	
 		// Compute volume teture UVs from world position
-		float3 VolumeUVs = MaterialParameters.AbsoluteWorldPosition * IndirectlightingCachePrimitiveScale + IndirectlightingCachePrimitiveAdd;
+		float3 VolumeUVs = MaterialParameters.AbsoluteWorldPosition * PrecomputedLightingBuffer.IndirectLightingCachePrimitiveScale + PrecomputedLightingBuffer.IndirectLightingCachePrimitiveAdd;
 		// Clamp UV to be within the valid region
 		// Pixels outside of the object's bounding box would read garbage otherwise
-		VolumeUVs = clamp(VolumeUVs, IndirectlightingCacheMinUV, IndirectlightingCacheMaxUV);
-		float4 Vector0 = Texture3DSample(IndirectLightingCacheTexture0, IndirectLightingCacheTextureSampler0, VolumeUVs);
+		VolumeUVs = clamp(VolumeUVs, PrecomputedLightingBuffer.IndirectLightingCacheMinUV, PrecomputedLightingBuffer.IndirectLightingCacheMaxUV);
+		float4 Vector0 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture0, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0, VolumeUVs);
 
 		// For debugging
 		#define AMBIENTONLY 0
@@ -416,8 +394,8 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 		#else
 
-			float4 Vector1 = Texture3DSample(IndirectLightingCacheTexture1, IndirectLightingCacheTextureSampler1, VolumeUVs);
-			float4 Vector2 = Texture3DSample(IndirectLightingCacheTexture2, IndirectLightingCacheTextureSampler2, VolumeUVs);
+			float4 Vector1 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture1, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1, VolumeUVs);
+			float4 Vector2 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture2, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2, VolumeUVs);
 
 			// Construct the SH environment
 			FTwoBandSHVectorRGB CachedSH;
@@ -441,9 +419,9 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
 
 			FOneBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0].x;
-			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1].x;
-			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
+			PointIndirectLighting.R.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[0].x;
+			PointIndirectLighting.G.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[1].x;
+			PointIndirectLighting.B.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[2].x;
 
 			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(1);
 			OutDiffuseLighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
@@ -456,9 +434,9 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 		#else
 
 			FTwoBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0];
-			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1];
-			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2];
+			PointIndirectLighting.R.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[0];
+			PointIndirectLighting.G.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[1];
+			PointIndirectLighting.B.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[2];
 
 			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
 			// Compute diffuse lighting which takes the normal into account

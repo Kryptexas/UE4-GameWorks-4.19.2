@@ -555,6 +555,7 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 		// Find the visible primitives.
 		InitViews(RHICmdList);
 		::RenderHitProxies(RHICmdList, this, HitProxyRT);
+		ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 	}
 #endif
 }

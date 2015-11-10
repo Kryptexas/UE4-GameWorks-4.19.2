@@ -24,7 +24,8 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bool bInOverrideWithShaderComplexity,
 	bool bInTwoSidedOverride,
 	bool bInDitheredLODTransitionOverride,
-	bool bInWireframeOverride
+	bool bInWireframeOverride,
+	EQuadOverdrawMode InQuadOverdrawMode
 	):
 	VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
@@ -32,7 +33,8 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bIsDitheredLODTransitionMaterial(InMaterialResource.IsDitheredLODTransition() || bInDitheredLODTransitionOverride),
 	bIsWireframeMaterial(InMaterialResource.IsWireframe() || bInWireframeOverride),
 	//convert from signed bool to unsigned uint32
-	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false)
+	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false),
+	QuadOverdrawMode((uint32)InQuadOverdrawMode)
 {
 	// using this saves a virtual function call
 	bool bMaterialResourceIsTwoSided = InMaterialResource.IsTwoSided();

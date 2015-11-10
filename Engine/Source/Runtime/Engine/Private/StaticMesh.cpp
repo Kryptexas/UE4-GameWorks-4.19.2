@@ -361,7 +361,7 @@ int32 FStaticMeshLODResources::GetNumTexCoords() const
 void FStaticMeshLODResources::InitVertexFactory(
 	FLocalVertexFactory& InOutVertexFactory,
 	UStaticMesh* InParentMesh,
-	FColorVertexBuffer* InOverrideColorVertexBuffer
+	bool bInOverrideColorVertexBuffer
 	)
 {
 	check( InParentMesh != NULL );
@@ -370,13 +370,13 @@ void FStaticMeshLODResources::InitVertexFactory(
 	{
 		FLocalVertexFactory* VertexFactory;
 		FStaticMeshLODResources* LODResources;
-		FColorVertexBuffer* OverrideColorVertexBuffer;
+		bool bOverrideColorVertexBuffer;
 		UStaticMesh* Parent;
 	} Params;
 
 	Params.VertexFactory = &InOutVertexFactory;
 	Params.LODResources = this;
-	Params.OverrideColorVertexBuffer = InOverrideColorVertexBuffer;
+	Params.bOverrideColorVertexBuffer = bInOverrideColorVertexBuffer;
 	Params.Parent = InParentMesh;
 
 	// Initialize the static mesh's vertex factory.
@@ -406,19 +406,29 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			// Use the "override" color vertex buffer if one was supplied.  Otherwise, the color vertex stream
 			// associated with the static mesh is used.
-			FColorVertexBuffer* LODColorVertexBuffer = &Params.LODResources->ColorVertexBuffer;
-			if( Params.OverrideColorVertexBuffer != NULL )
-			{
-				LODColorVertexBuffer = Params.OverrideColorVertexBuffer;
-			}
-			if( LODColorVertexBuffer->GetNumVertices() > 0 )
+			if (Params.bOverrideColorVertexBuffer)
 			{
 				Data.ColorComponent = FVertexStreamComponent(
-					LODColorVertexBuffer,
+					&GNullColorVertexBuffer,
 					0,	// Struct offset to color
-					LODColorVertexBuffer->GetStride(),
-					VET_Color
+					sizeof(FColor), //asserted elsewhere
+					VET_Color,
+					false, // not instanced
+					true // set in SetMesh
 					);
+			}
+			else 
+			{
+				FColorVertexBuffer* LODColorVertexBuffer = &Params.LODResources->ColorVertexBuffer;
+				if (LODColorVertexBuffer->GetNumVertices() > 0)
+				{
+					Data.ColorComponent = FVertexStreamComponent(
+						LODColorVertexBuffer,
+						0,	// Struct offset to color
+						LODColorVertexBuffer->GetStride(),
+						VET_Color
+						);
+				}
 			}
 
 			Data.TextureCoordinates.Empty();
@@ -558,8 +568,11 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 		BeginInitResource(&AdjacencyIndexBuffer);
 	}
 
-	InitVertexFactory(VertexFactory, Parent, NULL);
+	InitVertexFactory(VertexFactory, Parent, false);
 	BeginInitResource(&VertexFactory);
+
+	InitVertexFactory(VertexFactoryOverrideColorVertexBuffer, Parent, true);
+	BeginInitResource(&VertexFactoryOverrideColorVertexBuffer);
 
 	if (DistanceFieldData)
 	{
@@ -617,6 +630,7 @@ void FStaticMeshLODResources::ReleaseResources()
 
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
+	BeginReleaseResource(&VertexFactoryOverrideColorVertexBuffer);
 
 	if (DistanceFieldData)
 	{
@@ -791,13 +805,13 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			Section.bCastShadow = Info.bCastShadow;
 		}
 
-		if (LODIndex == 0)
+		if (Owner->bAutoComputeLODScreenSize)
 		{
-			ScreenSize[LODIndex] = 1.0f;
-		}
-		else if (Owner->bAutoComputeLODScreenSize)
-		{
-			if(LOD.MaxDeviation <= 0.0f)
+			if (LODIndex == 0)
+			{
+				ScreenSize[LODIndex] = 1.0f;
+			}
+			else if(LOD.MaxDeviation <= 0.0f)
 			{
 				ScreenSize[LODIndex] = 1.0f / (MaxLODs * LODIndex);
 			}

@@ -17,24 +17,6 @@ static inline bool ShouldCacheMeshShader(const FMeshMaterialShaderType* ShaderTy
 }
 
 /**
-* Finds a FMeshMaterialShaderType by name.
-*/
-FMeshMaterialShaderType* FMeshMaterialShaderType::GetTypeByName(const FString& TypeName)
-{
-	//#todo-rco: Unused?
-	for(TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())
-	{
-		FString CurrentTypeName = FString(It->GetName());
-		FMeshMaterialShaderType* CurrentType = It->GetMeshMaterialShaderType();
-		if (CurrentType && CurrentTypeName == TypeName)
-		{
-			return CurrentType;
-		}
-	}
-	return NULL;
-}
-
-/**
  * Enqueues a compilation for a new shader of this type.
  * @param Platform - The platform to compile for.
  * @param Material - The material to link the shader with.
@@ -74,6 +56,7 @@ void FMeshMaterialShaderType::BeginCompileShader(
 		Material->GetFriendlyName(),
 		VertexFactoryType,
 		this,
+		ShaderPipeline,
 		GetShaderFilename(),
 		GetFunctionName(),
 		FShaderTarget(GetFrequency(),Platform),
@@ -249,34 +232,32 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 	return NumShadersPerVF;
 }
 
-/**
- * Creates shaders for all of the compile jobs and caches them in this shader map.
- * @param Material - The material to compile shaders for.
- * @param CompilationResults - The compile results that were enqueued by BeginCompile.
- */
-void FMeshMaterialShaderMap::FinishCompile(uint32 ShaderMapId, const FUniformExpressionSet& UniformExpressionSet, const FSHAHash& MaterialShaderMapHash, const TArray<FShaderCompileJob*>& CompilationResults, const FString& InDebugDescription)
+inline bool FMeshMaterialShaderMap::IsMeshShaderComplete(const FMeshMaterialShaderMap* MeshShaderMap, EShaderPlatform Platform, const FMaterial* Material, const FMeshMaterialShaderType* ShaderType, const FShaderPipelineType* Pipeline, FVertexFactoryType* InVertexFactoryType, bool bSilent)
 {
-	//#todo-rco: Unused?
-	// Find the matching FMeshMaterialShaderType for each compile job
-	for (int32 JobIndex = 0; JobIndex < CompilationResults.Num(); JobIndex++)
+	// If we should cache this shader then the map is empty IF
+	//		The shadermap is empty
+	//		OR If it doesn't have a pipeline and needs one
+	//		OR it's not in the shadermap
+	if (ShouldCacheMeshShader(ShaderType, Platform, Material, InVertexFactoryType) &&
+		(!MeshShaderMap || (Pipeline && !MeshShaderMap->GetShaderPipeline(Pipeline)) || (!Pipeline && !MeshShaderMap->HasShader((FShaderType*)ShaderType))))
 	{
-		const FShaderCompileJob& CurrentJob = *CompilationResults[JobIndex];
-		if (CurrentJob.Id == ShaderMapId && CurrentJob.VFType == VertexFactoryType)
+		if (!bSilent)
 		{
-			for(TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
+			if (Pipeline)
 			{
-				FMeshMaterialShaderType* MeshMaterialShaderType = ShaderTypeIt->GetMeshMaterialShaderType();
-				if (*ShaderTypeIt == CurrentJob.ShaderType && MeshMaterialShaderType != NULL)
-				{
-					//#todo-rco: Pipeline?
-					FShader* Shader = MeshMaterialShaderType->FinishCompileShader(UniformExpressionSet, MaterialShaderMapHash, CurrentJob, nullptr, InDebugDescription);
-					check(Shader);
-					AddShader(MeshMaterialShaderType,Shader);
-				}
+				UE_LOG(LogShaders, Warning, TEXT("Incomplete material %s, missing pipeline %s from %s."), *Material->GetFriendlyName(), Pipeline->GetName(), InVertexFactoryType->GetName());
+			}
+			else
+			{
+				UE_LOG(LogShaders, Warning, TEXT("Incomplete material %s, missing %s from %s."), *Material->GetFriendlyName(), ShaderType->GetName(), InVertexFactoryType->GetName());
 			}
 		}
+		return false;
 	}
-}
+
+	return true;
+};
+
 
 bool FMeshMaterialShaderMap::IsComplete(
 	const FMeshMaterialShaderMap* MeshShaderMap,
@@ -286,33 +267,6 @@ bool FMeshMaterialShaderMap::IsComplete(
 	bool bSilent
 	)
 {
-	auto IsMeshShaderComplete = [&](const FMeshMaterialShaderType* ShaderType, const FShaderPipelineType* Pipeline) -> bool
-		{
-			// If we should cache this shader then the map is empty IF
-			//		The shadermap is empty
-			//		OR If it doesn't have a pipeline and needs one
-			//		OR it's not in the shadermap
-			//#todo-rco: Remove cast
-			if (ShouldCacheMeshShader(ShaderType, Platform, Material, InVertexFactoryType) &&
-				(!MeshShaderMap || (Pipeline && !MeshShaderMap->GetShaderPipeline(Pipeline)) || (!Pipeline && !MeshShaderMap->HasShader((FShaderType*)ShaderType))))
-			{
-				if (!bSilent)
-				{
-					if (Pipeline)
-					{
-						UE_LOG(LogShaders, Warning, TEXT("Incomplete material %s, missing pipeline %s from %s."), *Material->GetFriendlyName(), Pipeline->GetName(), InVertexFactoryType->GetName());
-					}
-					else
-					{
-						UE_LOG(LogShaders, Warning, TEXT("Incomplete material %s, missing %s from %s."), *Material->GetFriendlyName(), ShaderType->GetName(), InVertexFactoryType->GetName());
-					}
-				}
-				return false;
-			}
-
-			return true;
-		};
-
 	// Iterate over all pipeline types
 	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList());ShaderPipelineIt;ShaderPipelineIt.Next())
 	{
@@ -342,7 +296,7 @@ bool FMeshMaterialShaderMap::IsComplete(
 			for (int32 Index = 0; Index < Stages.Num(); ++Index)
 			{
 				auto* ShaderType = Stages[Index]->GetMeshMaterialShaderType();
-				if (ShaderType && !IsMeshShaderComplete(ShaderType, ShaderPipelineType))
+				if (ShaderType && !IsMeshShaderComplete(MeshShaderMap, Platform, Material, ShaderType, ShaderPipelineType, InVertexFactoryType, bSilent))
 				{
 					return false;
 				}
@@ -354,7 +308,7 @@ bool FMeshMaterialShaderMap::IsComplete(
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FMeshMaterialShaderType* ShaderType = ShaderTypeIt->GetMeshMaterialShaderType();
-		if (ShaderType && !IsMeshShaderComplete(ShaderType, nullptr))
+		if (ShaderType && !IsMeshShaderComplete(MeshShaderMap, Platform, Material, ShaderType, nullptr, InVertexFactoryType, bSilent))
 		{
 			return false;
 		}

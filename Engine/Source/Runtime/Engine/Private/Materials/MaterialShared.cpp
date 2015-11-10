@@ -43,6 +43,20 @@ void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InQualityLevel, FSt
 	MaterialQualityLevelNames[(int32)InQualityLevel].ToString(OutName);
 }
 
+static inline SIZE_T AddShaderSize(FShader* Shader, TSet<FShaderResourceId>& UniqueShaderResourceIds)
+{
+	SIZE_T ResourceSize = 0;
+	FShaderResourceId ResourceId = Shader->GetResourceId();
+	bool bCountedResource = false;
+	UniqueShaderResourceIds.Add(ResourceId, &bCountedResource);
+	if (!bCountedResource)
+	{
+		ResourceSize += Shader->GetResourceSizeBytes();
+	}
+	ResourceSize += Shader->GetSizeBytes();
+	return ResourceSize;
+}
+
 int32 FMaterialCompiler::Errorf(const TCHAR* Format,...)
 {
 	TCHAR	ErrorText[2048];
@@ -934,7 +948,7 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 					FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
 					if (ShaderType)
 					{
-						int32 NumInstructions = MaterialShaderMap->GetMaxNumInstructionsForShader(ShaderType);
+						int32 NumInstructions = MeshShaderMap->GetMaxNumInstructionsForShader(ShaderType);
 						if (NumInstructions > 0)
 						{
 							//if the shader was found, add it to the output arrays
@@ -1036,6 +1050,7 @@ SIZE_T FMaterialResource::GetResourceSizeInclusive()
 	SIZE_T ResourceSize = 0;
 	TSet<const FMaterialShaderMap*> UniqueShaderMaps;
 	TMap<FShaderId, FShader*> UniqueShaders;
+	TArray<FShaderPipeline*> ShaderPipelines;
 	TSet<FShaderResourceId> UniqueShaderResourceIds;
 
 	ResourceSize += sizeof(FMaterialResource);
@@ -1048,6 +1063,7 @@ SIZE_T FMaterialResource::GetResourceSizeInclusive()
 		{
 			ResourceSize += MaterialShaderMap->GetSizeBytes();
 			MaterialShaderMap->GetShaderList(UniqueShaders);
+			MaterialShaderMap->GetShaderPipelineList(ShaderPipelines);
 		}
 	}
 
@@ -1056,18 +1072,24 @@ SIZE_T FMaterialResource::GetResourceSizeInclusive()
 		auto* Shader = KeyValue.Value;
 		if (Shader)
 		{
-			FShaderResourceId ResourceId = Shader->GetResourceId();
-			bool bCountedResource = false;
-			UniqueShaderResourceIds.Add(ResourceId, &bCountedResource);
-			if (!bCountedResource)
-			{
-				ResourceSize += Shader->GetResourceSizeBytes();
-			}
-			ResourceSize += Shader->GetSizeBytes();
+			ResourceSize += AddShaderSize(Shader, UniqueShaderResourceIds);
 		}
 	}
 
-	//#todo-rco: Pipelines
+	for (FShaderPipeline* Pipeline : ShaderPipelines)
+	{
+		if (Pipeline)
+		{
+			for (FShader* Shader : Pipeline->GetShaders())
+			{
+				if (Shader)
+				{
+					ResourceSize += AddShaderSize(Shader, UniqueShaderResourceIds);
+				}
+			}
+			ResourceSize += Pipeline->GetSizeBytes();
+		}
+	}
 
 	return ResourceSize;
 }

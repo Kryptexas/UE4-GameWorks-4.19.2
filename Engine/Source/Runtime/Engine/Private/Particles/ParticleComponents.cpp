@@ -189,7 +189,7 @@ static void ResetAllParticleComponents()
 	}
 }
 static FAutoConsoleCommand GResetAllParticleComponentsCmd(
-	TEXT("fx.RestartAll"),
+	TEXT("FX.RestartAll"),
 	TEXT("Restarts all particle system components"),
 	FConsoleCommandDelegate::CreateStatic(ResetAllParticleComponents)
 	);
@@ -2940,10 +2940,10 @@ void UParticleSystemComponent::OnRegister()
 			}
 		}
 
-		SavedAutoAttachRelativeLocation = RelativeLocation;
-		SavedAutoAttachRelativeRotation = RelativeRotation;
-		SavedAutoAttachRelativeScale3D = RelativeScale3D;
-	}
+			SavedAutoAttachRelativeLocation = RelativeLocation;
+			SavedAutoAttachRelativeRotation = RelativeRotation;
+			SavedAutoAttachRelativeScale3D = RelativeScale3D;
+		}
 
 	Super::OnRegister();
 
@@ -4531,9 +4531,9 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				{
 					bDidAutoAttach = bWasAutoAttached;
 					CancelAutoAttachment(true);
-					SavedAutoAttachRelativeLocation = RelativeLocation;
-					SavedAutoAttachRelativeRotation = RelativeRotation;
-					SavedAutoAttachRelativeScale3D = RelativeScale3D;
+				SavedAutoAttachRelativeLocation = RelativeLocation;
+				SavedAutoAttachRelativeRotation = RelativeRotation;
+				SavedAutoAttachRelativeScale3D = RelativeScale3D;
 					AttachTo(NewParent, AutoAttachSocketName, AutoAttachLocationType);
 				}
 

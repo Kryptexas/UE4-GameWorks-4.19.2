@@ -973,32 +973,6 @@ void FShader::FinishCleanup()
 	delete this;
 }
 
-void FShader::VerifyBoundUniformBufferParameters()
-{
-	// Support being called on a NULL pointer
-// TODO: doesn't work with uniform buffer parameters on helper structs like FDeferredPixelShaderParameters
-	//@todo parallelrendering
-	if (0)//&&this)
-	{
-		for (int32 StructIndex = 0; StructIndex < UniformBufferParameters.Num(); StructIndex++)
-		{
-			const FShaderUniformBufferParameter& UniformParameter = *UniformBufferParameters[StructIndex];
-
-			if (UniformParameter.SetParametersId != SetParametersId)
-			{
-				// Log an error when a shader was used for rendering but did not have all of its uniform buffers set
-				// This can have false positives, for example when sharing state between draw calls with the same shader, the SetParametersId logic will break down
-				// Also if the uniform buffer is compiled into the shader but not actually used due to control flow, failing to set that parameter will cause this error
-				UE_LOG(LogShaders, Error, TEXT("Automatically bound uniform buffer parameter %s %s was not set before used for rendering in shader %s!"), 
-					UniformBufferParameterStructs[StructIndex]->GetStructTypeName(), 
-					UniformBufferParameterStructs[StructIndex]->GetShaderVariableName(),
-					GetType()->GetName());
-			}
-		}
-
-		SetParametersId++;
-	}
-}
 
 bool FShaderPipelineType::bInitialized = false;
 
@@ -1247,6 +1221,10 @@ FShaderPipeline::FShaderPipeline(const FShaderPipelineType* InPipelineType, cons
 	Validate();
 }
 
+FShaderPipeline::~FShaderPipeline()
+{
+}
+
 void FShaderPipeline::Validate()
 {
 	for (const FShaderType* Stage : PipelineType->GetStages())
@@ -1293,21 +1271,21 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 	ShaderTypeViewer.AddColumn(TEXT("Average instructions"));
 	ShaderTypeViewer.AddColumn(TEXT("Size"));
 	ShaderTypeViewer.AddColumn(TEXT("AvgSizePerInstance"));
+	ShaderTypeViewer.AddColumn(TEXT("Pipelines"));
 	ShaderTypeViewer.CycleRow();
-
-	//#todo-rco: Pipelines
 
 	for( TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next() )
 	{
 		const FShaderType* Type = *It;
-		if(Type->GetNumShaders())
+		if (Type->GetNumShaders())
 		{
 			// Calculate the average instruction count and total size of instances of this shader type.
 			float AverageNumInstructions	= 0.0f;
 			int32 NumInitializedInstructions	= 0;
 			int32 Size						= 0;
 			int32 NumShaders					= 0;
-			for(TMap<FShaderId,FShader*>::TConstIterator ShaderIt(Type->ShaderIdMap);ShaderIt;++ShaderIt)
+			int32 NumPipelines = 0;
+			for (TMap<FShaderId,FShader*>::TConstIterator ShaderIt(Type->ShaderIdMap);ShaderIt;++ShaderIt)
 			{
 				const FShader* Shader = ShaderIt.Value();
 				// Skip shaders that don't match frequency.
@@ -1320,6 +1298,12 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 				{
 					continue;
 				}
+
+				if (Shader->GetShaderPipelineType())
+				{
+					++NumPipelines;
+				}
+
 				NumInitializedInstructions += Shader->GetNumInstructions();
 				Size += Shader->GetCode().Num();
 				NumShaders++;
@@ -1335,6 +1319,7 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 				ShaderTypeViewer.AddColumn(TEXT("%.1f"),AverageNumInstructions);
 				ShaderTypeViewer.AddColumn(TEXT("%u"),Size);
 				ShaderTypeViewer.AddColumn(TEXT("%.1f"),Size / (float)NumShaders);
+				ShaderTypeViewer.AddColumn(TEXT("%d"), NumPipelines);
 				ShaderTypeViewer.CycleRow();
 
 				TotalShaderCount += NumShaders;
@@ -1352,6 +1337,7 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 	ShaderTypeViewer.AddColumn(TEXT("%u"),TotalInstructionCount);
 	ShaderTypeViewer.AddColumn(TEXT("%u"),TotalSize);
 	ShaderTypeViewer.AddColumn(TEXT("0"));
+	ShaderTypeViewer.AddColumn(TEXT("-"));
 	ShaderTypeViewer.CycleRow();
 
 	// Write an average row.
@@ -1360,6 +1346,7 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 	ShaderTypeViewer.AddColumn(TEXT("%.1f"),(float)TotalInstructionCount / TotalShaderCount);
 	ShaderTypeViewer.AddColumn(TEXT("%.1f"),TotalSize / (float)TotalShaderCount);
 	ShaderTypeViewer.AddColumn(TEXT("%.1f"),TotalSizePerType / TotalTypeCount);
+	ShaderTypeViewer.AddColumn(TEXT("-"));
 	ShaderTypeViewer.CycleRow();
 #endif
 }
@@ -1369,7 +1356,9 @@ FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName)
 {
 	for(TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
-		if(!FCString::Stricmp(ShaderTypeIt->GetName(),ShaderTypeName))
+		const TCHAR* LocalName = ShaderTypeIt->GetName();
+
+		if(!FCString::Stricmp(LocalName, ShaderTypeName))
 		{
 			return *ShaderTypeIt;
 		}
@@ -1385,10 +1374,18 @@ void DispatchComputeShader(
 	uint32 ThreadGroupCountY,
 	uint32 ThreadGroupCountZ)
 {
-	Shader->VerifyBoundUniformBufferParameters();
 	RHICmdList.DispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
 
+void DispatchComputeShader(
+	FRHIAsyncComputeCommandListImmediate& RHICmdList,
+	FShader* Shader,
+	uint32 ThreadGroupCountX,
+	uint32 ThreadGroupCountY,
+	uint32 ThreadGroupCountZ)
+{
+	RHICmdList.DispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+}
 
 void DispatchIndirectComputeShader(
 	FRHICommandList& RHICmdList,
@@ -1396,7 +1393,6 @@ void DispatchIndirectComputeShader(
 	FVertexBufferRHIParamRef ArgumentBuffer,
 	uint32 ArgumentOffset)
 {
-	Shader->VerifyBoundUniformBufferParameters();
 	RHICmdList.DispatchIndirectComputeShader(ArgumentBuffer, ArgumentOffset);
 }
 

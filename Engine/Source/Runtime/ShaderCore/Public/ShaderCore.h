@@ -845,6 +845,11 @@ extern SHADERCORE_API void GetShaderIncludes(const TCHAR* Filename, TArray<FStri
  */
 extern SHADERCORE_API const class FSHAHash& GetShaderFileHash(const TCHAR* Filename);
 
+/**
+ * Calculates a Hash for the list of filenames if it does not already exist in the Hash cache.
+ */
+extern SHADERCORE_API const class FSHAHash& GetShaderFilesHash(const TArray<FString>& Filenames);
+
 extern void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& ShaderFileToUniformBufferVariables);
 
 /**

@@ -17,6 +17,11 @@ class ENGINE_API FLocalVertexFactory : public FVertexFactory
 	DECLARE_VERTEX_FACTORY_TYPE(FLocalVertexFactory);
 public:
 
+	FLocalVertexFactory()
+		: ColorStreamIndex(-1)
+	{
+	}
+
 	struct DataType : public FVertexFactory::DataType
 	{
 		/** The stream to read the vertex position from. */
@@ -63,8 +68,16 @@ public:
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
+	FORCEINLINE_DEBUGGABLE void SetColorOverrideStream(FRHICommandList& RHICmdList, const FVertexBuffer* ColorVertexBuffer) const
+	{
+		checkf(ColorVertexBuffer->IsInitialized(), TEXT("Color Vertex buffer was not initialized! Name %s"), *ColorVertexBuffer->GetFriendlyName());
+		checkf(IsInitialized() && Data.ColorComponent.bSetByVertexFactoryInSetMesh && ColorStreamIndex > 0, TEXT("Per-mesh colors with bad stream setup! Name %s"), *ColorVertexBuffer->GetFriendlyName());
+		RHICmdList.SetStreamSource(ColorStreamIndex, ColorVertexBuffer->VertexBufferRHI, Data.ColorComponent.Stride, 0);
+	}
+
 protected:
 	DataType Data;
+	int32 ColorStreamIndex;
 };
 
 /**

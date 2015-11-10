@@ -27,6 +27,17 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 
 #pragma warning(pop)
 
+static int32 GD3DAllowRemoveUnused = 0;
+static FAutoConsoleVariableRef CVarD3DUseExternalShaderCompiler(
+	TEXT("r.D3DRemoveUnusedInterpolators"),
+	GD3DAllowRemoveUnused,
+	TEXT("Enables removing unused interpolators mode when compiling pipelines for D3D.\n")
+	TEXT(" 0: Disable (default)\n")
+	TEXT(" 1: Enable)"),
+	ECVF_Default
+	);
+
+
 /**
  * TranslateCompilerFlag - translates the platform-independent compiler flags into D3DX defines
  * @param CompilerFlag - the platform-independent compiler flag to translate
@@ -331,7 +342,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 	FString EntryPointName = Input.EntryPointName;
 
 	Output.bFailedRemovingUnused = false;
-	if (Input.Target.Frequency == SF_Vertex && Input.bCompilingForShaderPipeline)
+	if (GD3DAllowRemoveUnused && Input.Target.Frequency == SF_Vertex && Input.bCompilingForShaderPipeline)
 	{
 		static TArray<FString> VertexSystemOutputs;
 		if (VertexSystemOutputs.Num() == 0)
@@ -787,7 +798,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);
 			}
 
-			if (Input.Target.Frequency == SF_Pixel && Input.bCompilingForShaderPipeline)
+			if (GD3DAllowRemoveUnused && Input.Target.Frequency == SF_Pixel && Input.bCompilingForShaderPipeline)
 			{
 				Output.bSupportsQueryingUsedAttributes = true;
 				Output.UsedAttributes = ShaderInputs;

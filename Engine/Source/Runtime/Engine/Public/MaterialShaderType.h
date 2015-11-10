@@ -41,12 +41,6 @@ extern ENGINE_API void DumpMaterialStats( EShaderPlatform Platform );
 class FMaterialShaderType : public FShaderType
 {
 public:
-
-	/**
-	 * Finds a FMaterialShaderType by name.
-	 */
-	static FMaterialShaderType* GetTypeByName(const FString& TypeName);
-
 	struct CompiledShaderInitializerType : FGlobalShaderType::CompiledShaderInitializerType
 	{
 		const FUniformExpressionSet& UniformExpressionSet;
@@ -96,6 +90,7 @@ public:
 		uint32 ShaderMapId,
 		const FMaterial* Material,
 		FShaderCompilerEnvironment* MaterialEnvironment,
+		const FShaderPipelineType* ShaderPipeline,
 		EShaderPlatform Platform,
 		TArray<FShaderCommonCompileJob*>& NewJobs
 		);

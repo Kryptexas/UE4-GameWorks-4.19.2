@@ -483,6 +483,7 @@ extern void GlobalBeginCompileShader(
 	const FString& DebugGroupName,
 	class FVertexFactoryType* VFType,
 	class FShaderType* ShaderType,
+	const class FShaderPipelineType* ShaderPipelineType,
 	const TCHAR* SourceFilename,
 	const TCHAR* FunctionName,
 	FShaderTarget Target,
