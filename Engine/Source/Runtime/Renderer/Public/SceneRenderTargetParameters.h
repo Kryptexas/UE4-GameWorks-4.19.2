@@ -63,7 +63,7 @@ class FDeferredPixelShaderParameters
 public:
 	void Bind(const FShaderParameterMap& ParameterMap);
 
-	template< typename ShaderRHIParamRef, typename TRHICmdList = FRHICommandList >
+	template< typename ShaderRHIParamRef, typename TRHICmdList >
 	void Set(
 		TRHICmdList& RHICmdList,
 		const ShaderRHIParamRef ShaderRHI,

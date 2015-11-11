@@ -127,13 +127,13 @@ public:
 		return Ar << Parameter.SRVParameter << Parameter.UAVParameter;
 	}
 
-	template<typename TShaderRHIRef, typename TRHICmdList = FRHICommandList>
+	template<typename TShaderRHIRef, typename TRHICmdList>
 	inline void SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBuffer& RWBuffer) const;
 
-	template<typename TShaderRHIRef, typename TRHICmdList = FRHICommandList>
+	template<typename TShaderRHIRef, typename TRHICmdList>
 	inline void SetTexture(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FTextureRHIParamRef Texture, FUnorderedAccessViewRHIParamRef UAV) const;
 
-	template<typename TRHICmdList = FRHICommandList>
+	template<typename TRHICmdList>
 	inline void UnsetUAV(TRHICmdList& RHICmdList, FComputeShaderRHIParamRef ComputeShader) const;
 
 private:

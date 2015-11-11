@@ -168,7 +168,7 @@ inline void SetPixelShaderBool(
 /**
  * Sets the value of a shader texture parameter.  Template'd on shader type
  */
-template<typename ShaderTypeRHIParamRef, typename TRHICmdList = FRHICommandList>
+template<typename ShaderTypeRHIParamRef, typename TRHICmdList>
 FORCEINLINE void SetTextureParameter(
 	TRHICmdList& RHICmdList,
 	ShaderTypeRHIParamRef Shader,
@@ -209,7 +209,7 @@ FORCEINLINE void SetTextureParameter(
 /**
  * Sets the value of a shader texture parameter. Template'd on shader type.
  */
-template<typename ShaderTypeRHIParamRef, typename TRHICmdList = FRHICommandList>
+template<typename ShaderTypeRHIParamRef, typename TRHICmdList>
 FORCEINLINE void SetTextureParameter(
 	TRHICmdList& RHICmdList,
 	ShaderTypeRHIParamRef Shader,
@@ -249,7 +249,7 @@ FORCEINLINE void SetTextureParameter(
  * Sets the value of a shader surface parameter (e.g. to access MSAA samples).
  * Template'd on shader type (e.g. pixel shader or compute shader).
  */
-template<typename ShaderTypeRHIParamRef, typename TRHICmdList = FRHICommandList>
+template<typename ShaderTypeRHIParamRef, typename TRHICmdList>
 FORCEINLINE void SetTextureParameter(
 	TRHICmdList& RHICmdList,
 	ShaderTypeRHIParamRef Shader,
@@ -270,7 +270,7 @@ FORCEINLINE void SetTextureParameter(
 /**
  * Sets the value of a shader sampler parameter. Template'd on shader type.
  */
-template<typename ShaderTypeRHIParamRef, typename TRHICmdList = FRHICommandList>
+template<typename ShaderTypeRHIParamRef, typename TRHICmdList>
 FORCEINLINE void SetSamplerParameter(
 	TRHICmdList& RHICmdList,
 	ShaderTypeRHIParamRef Shader,
@@ -292,7 +292,7 @@ FORCEINLINE void SetSamplerParameter(
  * Sets the value of a shader resource view parameter
  * Template'd on shader type (e.g. pixel shader or compute shader).
  */
-template<typename ShaderTypeRHIParamRef, typename TRHICmdList = FRHICommandList>
+template<typename ShaderTypeRHIParamRef, typename TRHICmdList>
 FORCEINLINE void SetSRVParameter(
 	TRHICmdList& RHICmdList,
 	ShaderTypeRHIParamRef Shader,
@@ -313,7 +313,7 @@ FORCEINLINE void SetSRVParameter(
 /**
  * Sets the value of a unordered access view parameter
  */
-template<typename TRHICmdList = FRHICommandList>
+template<typename TRHICmdList>
 FORCEINLINE void SetUAVParameter(
 TRHICmdList& RHICmdList,
 	FComputeShaderRHIParamRef ComputeShader,
@@ -395,7 +395,7 @@ inline void SetLocalUniformBufferParameter(
 }
 
 /** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
-template<typename TShaderRHIRef, typename TRHICmdList = FRHICommandList>
+template<typename TShaderRHIRef, typename TRHICmdList>
 inline void SetUniformBufferParameter(
 	TRHICmdList& RHICmdList,
 	TShaderRHIRef Shader,
@@ -412,7 +412,7 @@ inline void SetUniformBufferParameter(
 }
 
 /** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
-template<typename TShaderRHIRef, typename TBufferStruct, typename TRHICmdList = FRHICommandList>
+template<typename TShaderRHIRef, typename TBufferStruct, typename TRHICmdList>
 inline void SetUniformBufferParameter(
 	TRHICmdList& RHICmdList,
 	TShaderRHIRef Shader,
@@ -429,7 +429,7 @@ inline void SetUniformBufferParameter(
 }
 
 /** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
-template<typename TShaderRHIRef, typename TBufferStruct, typename TRHICmdList = FRHICommandList>
+template<typename TShaderRHIRef, typename TBufferStruct, typename TRHICmdList>
 inline void SetUniformBufferParameter(
 	TRHICmdList& RHICmdList,
 	TShaderRHIRef Shader,

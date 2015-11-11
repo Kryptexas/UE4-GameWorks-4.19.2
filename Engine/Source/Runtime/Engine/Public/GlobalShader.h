@@ -119,7 +119,7 @@ public:
 
 	ENGINE_API FGlobalShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	
-	template<typename ShaderRHIParamRef, typename TRHICmdList = FRHICommandList>
+	template<typename ShaderRHIParamRef, typename TRHICmdList>
 	void SetParameters(TRHICmdList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View)
 	{
 		CheckShaderIsValid();
