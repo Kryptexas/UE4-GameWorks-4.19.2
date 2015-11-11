@@ -3231,6 +3231,7 @@ TSharedRef<SWidget> SSCS_RowWidget_Separator::GenerateWidgetForColumn(const FNam
 //////////////////////////////////////////////////////////////////////////
 // SSCSEditor
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSCSEditor::Construct( const FArguments& InArgs )
 {
 	EditorMode = InArgs._EditorMode;

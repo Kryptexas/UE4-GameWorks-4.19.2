@@ -51,6 +51,8 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual int32 GetCurrentPathElement() const override { return LastPathPolyIndex; }
 	// PathFollowingComponent END
 
+	void RegisterWithCrowdManager(UCrowdManager& CrowdManager);
+
 	/** update params in crowd manager */
 	void UpdateCrowdAgentParams() const;
 

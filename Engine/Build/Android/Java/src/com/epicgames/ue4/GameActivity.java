@@ -249,23 +249,40 @@ public class GameActivity extends NativeActivity
 
 		// create splashscreen dialog (if launched by SplashActivity)
 		Bundle intentBundle = getIntent().getExtras();
-		if (intentBundle != null && intentBundle.getString("UseSplashScreen") != null)
+		if (intentBundle != null)
 		{
-			try {
-				// try to get the splash theme (can't use R.style.UE4SplashTheme since we don't know the package name until runtime)
-				int SplashThemeId = getResources().getIdentifier("UE4SplashTheme", "style", getPackageName());
-				mSplashDialog = new Dialog(this, SplashThemeId);
-				mSplashDialog.setCancelable(false);
-				mSplashDialog.show();
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-			try {
-				noActionAnimID = getResources().getIdentifier("noaction", "anim", getPackageName());
-			}
-			catch (Exception e) {
-				e.printStackTrace();
+			ShouldHideUI = intentBundle.getString("ShouldHideUI") != null;
+			if (intentBundle.getString("UseSplashScreen") != null)
+			{
+				try {
+					// try to get the splash theme (can't use R.style.UE4SplashTheme since we don't know the package name until runtime)
+					int SplashThemeId = getResources().getIdentifier("UE4SplashTheme", "style", getPackageName());
+					mSplashDialog = new Dialog(this, SplashThemeId);
+					mSplashDialog.setCancelable(false);
+					if (ShouldHideUI)
+					{
+						View decorView = mSplashDialog.getWindow().getDecorView(); 
+						// only do this on KitKat and above
+						if(android.os.Build.VERSION.SDK_INT >= 19) {
+							decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+														| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+														| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+														| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+														| View.SYSTEM_UI_FLAG_FULLSCREEN
+														| View.SYSTEM_UI_FLAG_IMMERSIVE);  // NOT sticky.. will be set to sticky later! 
+						}
+					}
+					mSplashDialog.show();
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					noActionAnimID = getResources().getIdentifier("noaction", "anim", getPackageName());
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		

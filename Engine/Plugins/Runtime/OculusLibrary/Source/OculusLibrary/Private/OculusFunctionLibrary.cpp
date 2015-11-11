@@ -8,7 +8,9 @@
 
 #define OCULUS_SUPPORTED_PLATFORMS (OCULUS_RIFT_SUPPORTED_PLATFORMS || GEARVR_SUPPORTED_PLATFORMS)
 
-#include "HeadMountedDisplayCommon.h"
+#if OCULUS_SUPPORTED_PLATFORMS
+	#include "HeadMountedDisplayCommon.h"
+#endif //OCULUS_SUPPORTED_PLATFORMS
 
 UOculusFunctionLibrary::UOculusFunctionLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

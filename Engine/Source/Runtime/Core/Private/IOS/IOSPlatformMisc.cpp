@@ -120,17 +120,6 @@ bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& I
 	return false;
 }
 
-bool FIOSPlatformMisc::GetStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName, FTimespan InTimeout)
-{
-	// No Implementation (currently only used by editor code so not needed on iOS)
-	return false;
-}
-
-void FIOSPlatformMisc::ReleaseStoredLock(const FString& InStoreId, const FString& InSectionName, const FString& InLockName)
-{
-	// No Implementation (currently only used by editor code so not needed on iOS)
-}
-
 bool FIOSPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
 {
 	// No Implementation (currently only used by editor code so not needed on iOS)

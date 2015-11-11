@@ -677,9 +677,9 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime )
 {
 	float LastTime = ScrubPosition;
 
-	if (!Settings->GetAutoScrollEnabled())
+	UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
+	if ( !Settings->GetAutoScrollEnabled() && ( FocusedMovieScene->InTime != FLT_MAX && FocusedMovieScene->OutTime != -FLT_MAX ) )
 	{
-		UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 		NewTime = FMath::Clamp(NewTime, FocusedMovieScene->InTime, FocusedMovieScene->OutTime);
 	}
 
@@ -1276,9 +1276,12 @@ void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInter
 			ZoomAnimation.JumpToEnd();
 		}
 
-		// Synchronize the in and out time of the focused movie scene
-		FocusedMovieScene->InTime = NewViewRange.GetLowerBoundValue();
-		FocusedMovieScene->OutTime = NewViewRange.GetUpperBoundValue();
+		// Synchronize the in and out time of the focused movie scene if they have been set.
+		if ( FocusedMovieScene->InTime != FLT_MAX && FocusedMovieScene->OutTime != -FLT_MAX )
+		{
+			FocusedMovieScene->InTime = NewViewRange.GetLowerBoundValue();
+			FocusedMovieScene->OutTime = NewViewRange.GetUpperBoundValue();
+		}
 	}
 }
 

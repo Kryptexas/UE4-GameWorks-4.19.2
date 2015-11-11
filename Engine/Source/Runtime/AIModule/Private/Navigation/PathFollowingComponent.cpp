@@ -473,6 +473,11 @@ void UPathFollowingComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 
 void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveComp)
 {
+	if (MoveComp == MovementComp)
+	{
+		return;
+	}
+
 	MovementComp = MoveComp;
 	MyNavData = NULL;
 
@@ -485,6 +490,25 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 		if (GetWorld() && GetWorld()->GetNavigationSystem())
 		{	
 			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+			if (MyNavData == nullptr)
+			{
+				GetWorld()->GetNavigationSystem()->OnNavigationInitDone.AddUObject(this, &UPathFollowingComponent::RecacheNavigationData);
+			}
+		}
+	}
+}
+
+void UPathFollowingComponent::RecacheNavigationData()
+{
+	if (MovementComp != NULL)
+	{
+		const FNavAgentProperties& NavAgentProps = MovementComp->GetNavAgentPropertiesRef();
+
+		if (ensure(GetWorld() && GetWorld()->GetNavigationSystem()))
+		{
+			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+			// we should get something by now!
+			ensure(MyNavData);
 		}
 	}
 }

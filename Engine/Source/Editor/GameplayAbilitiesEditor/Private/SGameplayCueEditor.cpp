@@ -1046,12 +1046,13 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 
 	UpdateGameplayCueListItems();
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
 TSharedRef<SGameplayCueEditor> SGameplayCueEditor::New()
 {
 	return MakeShareable(new SGameplayCueEditorImpl());
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE

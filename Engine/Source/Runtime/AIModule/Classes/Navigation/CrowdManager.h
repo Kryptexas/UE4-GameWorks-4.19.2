@@ -157,6 +157,7 @@ class AIMODULE_API UCrowdManager : public UObject
 
 	virtual void Tick(float DeltaTime);
 	virtual void BeginDestroy() override;
+	virtual void PostInitProperties() override;
 
 	/** adds new agent to crowd */
 	void RegisterAgent(ICrowdAgentInterface* Agent);
@@ -277,6 +278,9 @@ protected:
 
 	/** agents registered in crowd manager */
 	TMap<ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
+
+	/** stores handle to delegate navigation system will call when it has initized */
+	FDelegateHandle OnNavInitHandle;
 
 #if WITH_RECAST
 	/** crowd manager */

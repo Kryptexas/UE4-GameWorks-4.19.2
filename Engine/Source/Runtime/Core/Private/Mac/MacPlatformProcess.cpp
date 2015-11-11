@@ -1103,3 +1103,51 @@ FRunnableThread* FMacPlatformProcess::CreateRunnableThread()
 {
 	return new FRunnableThreadMac();
 }
+
+
+FMacSystemWideCriticalSection::FMacSystemWideCriticalSection(const FString& InName, FTimespan InTimeout)
+{
+	check(InName.Len() > 0)
+	check(InTimeout >= FTimespan::Zero())
+	check(InTimeout.GetTotalSeconds() < (double)FLT_MAX)
+
+	const FString LockPath = FString(FMacPlatformProcess::ApplicationSettingsDir()) / InName;
+	FString NormalizedFilepath(LockPath);
+	NormalizedFilepath.ReplaceInline(TEXT("\\"), TEXT("/"));
+
+	// Attempt to open a file with O_EXLOCK (equivalent of atomic open() + flock())
+	FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+	if (FileHandle == -1 && InTimeout != FTimespan::Zero())
+	{
+		FDateTime ExpireTime = FDateTime::UtcNow() + InTimeout;
+		const float RetrySeconds = FMath::Min((float)InTimeout.GetTotalSeconds(), 0.25f);
+
+		do
+		{
+			// retry until timeout
+			FMacPlatformProcess::Sleep(RetrySeconds);
+			FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		}
+		while (FileHandle == -1 && FDateTime::UtcNow() < ExpireTime);
+	}
+}
+
+FMacSystemWideCriticalSection::~FMacSystemWideCriticalSection()
+{
+	Release();
+}
+
+bool FMacSystemWideCriticalSection::IsValid() const
+{
+	return FileHandle != -1;
+}
+
+void FMacSystemWideCriticalSection::Release()
+{
+	if (IsValid())
+	{
+		close(FileHandle);
+		FileHandle = -1;
+	}
+}

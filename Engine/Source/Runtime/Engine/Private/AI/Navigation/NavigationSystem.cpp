@@ -714,6 +714,8 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 			}
 		}
 	}
+
+	OnNavigationInitDone.Broadcast();
 }
 
 void UNavigationSystem::RegisterNavigationDataInstances()

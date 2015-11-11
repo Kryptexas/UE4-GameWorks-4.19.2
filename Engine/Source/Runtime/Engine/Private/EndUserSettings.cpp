@@ -31,7 +31,7 @@ FText UEndUserSettings::GetFalseStateTooltip() const
 
 FText UEndUserSettings::GetFalseStateDescription() const
 {
-	return LOCTEXT("FalseStateDescription", "You have defaulted your users' settings to not send anonymous usage data to Epic Games. You can allow users to opt-in by adding this setting to your game UI and calling UEndUserSettings::SetSendAnonymousUsageDataToEpic() with their choice. Please consider defaulting this to true or allowing users to switch it on to help improve Unreal Engine. Epic Games will never sell or trade individual usage data to/with third party organizations. When permitted, we collect information about your users' game sessions, the game they're playing and for how long they play. Their information is sent anonymously. Their information is only sent when they run your product, it is encrypted and sent to our servers.");
+	return LOCTEXT("FalseStateDescription", "You have defaulted your users' settings to not send anonymous usage data to Epic Games. You can allow users to opt-in by adding this setting to your game UI and calling UEndUserSettings::SetSendAnonymousUsageDataToEpic() with their choice. Please consider defaulting this to true or allowing users to switch it on to help improve Unreal Engine. Epic Games will never sell or trade individual usage data to / with third party organizations. When permitted, we collect information about your users' game sessions, the game they're playing and for how long they play. Their information would be encrypted and sent anonymously, and only when they run your product.");
 };
 
 FText UEndUserSettings::GetTrueStateLabel() const
@@ -46,7 +46,7 @@ FText UEndUserSettings::GetTrueStateTooltip() const
 
 FText UEndUserSettings::GetTrueStateDescription() const
 {
-	return LOCTEXT("TrueStateDescription", "You have defaulted your users' settings to send anonymous usage data to Epic Games. You can allow users to opt-out by adding this setting to your game UI and calling UEndUserSettings::SetSendAnonymousUsageDataToEpic() with their choice. Thank you for helping to improve Unreal Engine. Epic Games will never sell or trade individual usage data to/with third party organizations. We will collect information about your users' game sessions, the game they're playing and for how long they play. Their information is sent anonymously. Their information is only sent when they run your product, it is encrypted and sent to our servers.");
+	return LOCTEXT("TrueStateDescription", "You have defaulted your users' settings to send anonymous usage data to Epic Games. You can allow users to opt-out by adding this setting to your game UI and calling UEndUserSettings::SetSendAnonymousUsageDataToEpic() with their choice. Thank you for helping to improve Unreal Engine. Epic Games will never sell or trade individual usage data to / with third party organizations. We will collect information about your users' game sessions, the game they're playing and for how long they play. Their information is sent anonymously. Their information is only sent when they run your product, it is encrypted and sent to our servers.");
 };
 
 FString UEndUserSettings::GetAdditionalInfoUrl() const

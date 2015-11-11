@@ -16,18 +16,21 @@ namespace EditorAnalyticsDefs
 {
 	static const FTimespan SessionRecordExpiration(30, 0, 0, 0);	// 30 days
 	static const FTimespan SessionRecordTimeout(0, 30, 0);			// 30 minutes
-	static const FTimespan SessionRecordLockTimeout(0, 0, 30);		// 30 seconds
+	static const FTimespan GlobalLockWaitTimeout(0, 0, 0, 0, 500);	// 1/2 second
 	static const FString StoreId(TEXT("Epic Games"));
 	static const FString CrashSessionToken(TEXT("Crashed"));
+	static const FString DebuggerSessionToken(TEXT("Debugger"));
 	static const FString AbnormalSessionToken(TEXT("AbnormalShutdown"));
 	static const FString SessionRecordListSection(TEXT("List"));
 	static const FString SessionRecordSectionPrefix(TEXT("Unreal Engine/Editor Sessions/"));
-	static const FString EditorSessionsVersionString(TEXT("1_0"));
+	static const FString EditorSessionsVersionString(TEXT("1_1"));
 	static const FString CrashStoreKey(TEXT("IsCrash"));
 	static const FString EngineVersionStoreKey(TEXT("EngineVersion"));
 	static const FString TimestampStoreKey(TEXT("Timestamp"));
-	static const FString CrashedFalse(TEXT("F"));
-	static const FString CrashedTrue(TEXT("T"));
+	static const FString DebuggerStoreKey(TEXT("IsDebugger"));
+	static const FString GlobalLockName(TEXT("UE4_EditorAnalytics_Lock"));
+	static const FString FalseValueString(TEXT("0"));
+	static const FString TrueValueString(TEXT("1"));
 }
 
 /* Handles writing session records to platform's storage to track crashed and timed-out editor sessions */
@@ -39,7 +42,7 @@ public:
 		, bEditorCrashed(false)
 	{}
 
-	void Initialize()
+	void Initialize(bool bWaitForLock = true)
 	{
 		if (!FEngineAnalytics::IsAvailable())
 		{
@@ -48,50 +51,55 @@ public:
 
 		TArray<FSessionRecord> SessionRecordsToReport;
 
-		// Get list of sessions in storage
-		if (BeginReadWriteRecords())
 		{
-			TArray<FSessionRecord> SessionRecordsToDelete;
+			// Scoped lock
+			FSystemWideCriticalSection StoredValuesLock(EditorAnalyticsDefs::GlobalLockName, bWaitForLock ? EditorAnalyticsDefs::GlobalLockWaitTimeout : FTimespan::Zero());
 
-			// Attempt check each stored session
-			for (FSessionRecord& Record : SessionRecords)
+			// Get list of sessions in storage
+			if (StoredValuesLock.IsValid() && BeginReadWriteRecords())
 			{
-				FTimespan RecordAge = FDateTime::UtcNow() - Record.Timestamp;
+				TArray<FSessionRecord> SessionRecordsToDelete;
 
-				if (Record.bCrashed)
+				// Attempt check each stored session
+				for (FSessionRecord& Record : SessionRecords)
 				{
-					// Crashed sessions
-					SessionRecordsToReport.Add(Record);
-					SessionRecordsToDelete.Add(Record);
+					FTimespan RecordAge = FDateTime::UtcNow() - Record.Timestamp;
+
+					if (Record.bCrashed)
+					{
+						// Crashed sessions
+						SessionRecordsToReport.Add(Record);
+						SessionRecordsToDelete.Add(Record);
+					}
+					else if (RecordAge > EditorAnalyticsDefs::SessionRecordExpiration)
+					{
+						// Delete expired session records
+						SessionRecordsToDelete.Add(Record);
+					}
+					else if (RecordAge > EditorAnalyticsDefs::SessionRecordTimeout)
+					{
+						// Timed out sessions
+						SessionRecordsToReport.Add(Record);
+						SessionRecordsToDelete.Add(Record);
+					}
 				}
-				else if(RecordAge > EditorAnalyticsDefs::SessionRecordExpiration)
+
+				for (FSessionRecord& DeletingRecord : SessionRecordsToDelete)
 				{
-					// Delete expired session records
-					SessionRecordsToDelete.Add(Record);
+					DeleteStoredRecord(DeletingRecord);
 				}
-				else if (RecordAge > EditorAnalyticsDefs::SessionRecordTimeout)
-				{
-					// Timed out sessions
-					SessionRecordsToReport.Add(Record);
-					SessionRecordsToDelete.Add(Record);
-				}
+
+				// Create a session record for this session
+				CreateAndWriteRecordForSession();
+
+				// Update and release list of sessions in storage
+				EndReadWriteRecords();
+
+				// Register for crash callbacks
+				FCoreDelegates::OnHandleSystemError.AddRaw(this, &FSessionManager::OnCrashing);
+
+				bInitialized = true;
 			}
-
-			for (FSessionRecord& DeletingRecord : SessionRecordsToDelete)
-			{
-				DeleteStoredRecord(DeletingRecord);
-			}
-
-			// Create a session record for this session
-			CreateAndWriteRecordForSession();
-
-			// Update and release list of sessions in storage
-			EndReadWriteRecords();
-
-			// Register for crash callbacks
-			FCoreDelegates::OnHandleSystemError.AddRaw(this, &FSessionManager::OnCrashing);
-
-			bInitialized = true;
 		}
 
 		for (FSessionRecord& ReportingSession : SessionRecordsToReport)
@@ -111,7 +119,8 @@ public:
 		if (!bInitialized)
 		{
 			// Try late initialization
-			Initialize();
+			const bool bWaitForLock = false;
+			Initialize(bWaitForLock);
 		}
 
 		// Update timestamp in the session record for this session 
@@ -135,6 +144,7 @@ public:
 				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::CrashStoreKey);
 				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::EngineVersionStoreKey);
 				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::TimestampStoreKey);
+				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::DebuggerStoreKey);
 			}
 
 			bInitialized = false;
@@ -148,6 +158,7 @@ private:
 		FString EngineVersion;
 		FDateTime Timestamp;
 		bool bCrashed;
+		bool bIsDebugger;
 	};
 
 private:
@@ -157,12 +168,6 @@ private:
 
 		// Lock and read the list of sessions in storage
 		FString ListSectionName = GetStoreSectionString(EditorAnalyticsDefs::SessionRecordListSection);
-
-		if (!FPlatformMisc::GetStoredLock(EditorAnalyticsDefs::StoreId, ListSectionName, TEXT("Lock"), EditorAnalyticsDefs::SessionRecordLockTimeout))
-		{
-			// Locked - let this return failed and the heartbeat will attempt to retry
-			return false;
-		}
 
 		// Write list to SessionRecords member
 		FString SessionListString;
@@ -180,16 +185,19 @@ private:
 			FString IsCrashString;
 			FString EngineVersionString;
 			FString TimestampString;
+			FString IsDebuggerString;
 
 			if (FPlatformMisc::GetStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::CrashStoreKey, IsCrashString) &&
 				FPlatformMisc::GetStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::EngineVersionStoreKey, EngineVersionString) &&
-				FPlatformMisc::GetStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::TimestampStoreKey, TimestampString))
+				FPlatformMisc::GetStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::TimestampStoreKey, TimestampString) &&
+				FPlatformMisc::GetStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::DebuggerStoreKey, IsDebuggerString))
 			{
 				FSessionRecord NewRecord;
 				NewRecord.SessionId = SessionId;
 				NewRecord.EngineVersion = EngineVersionString;
 				NewRecord.Timestamp = StringToTimestamp(TimestampString);
-				NewRecord.bCrashed = IsCrashString == EditorAnalyticsDefs::CrashedTrue;
+				NewRecord.bCrashed = IsCrashString == EditorAnalyticsDefs::TrueValueString;
+				NewRecord.bIsDebugger = IsDebuggerString == EditorAnalyticsDefs::TrueValueString;
 
 				SessionRecords.Add(NewRecord);
 			}
@@ -199,6 +207,7 @@ private:
 				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::CrashStoreKey);
 				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::EngineVersionStoreKey);
 				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::TimestampStoreKey);
+				FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::DebuggerStoreKey);
 			}
 		}
 
@@ -222,9 +231,6 @@ private:
 		FString ListSectionName = GetStoreSectionString(EditorAnalyticsDefs::SessionRecordListSection);
 		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, ListSectionName, TEXT("SessionList"), SessionListString);
 
-		// Unlock the list of sessions in storage
-		FPlatformMisc::ReleaseStoredLock(EditorAnalyticsDefs::StoreId, ListSectionName, TEXT("Lock"));
-
 		// Clear SessionRecords member
 		SessionRecords.Empty();
 	}
@@ -238,6 +244,7 @@ private:
 		FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::CrashStoreKey);
 		FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::EngineVersionStoreKey);
 		FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::TimestampStoreKey);
+		FPlatformMisc::DeleteStoredValue(EditorAnalyticsDefs::StoreId, SectionName, EditorAnalyticsDefs::DebuggerStoreKey);
 
 		// Remove the session record from SessionRecords list
 		SessionRecords.RemoveAll([&SessionId](const FSessionRecord& X){ return X.SessionId == SessionId; });
@@ -266,10 +273,13 @@ private:
 			SessionIdString = SessionId.ToString(EGuidFormats::DigitsWithHyphensInBraces);
 		}
 
+		FString ShutdownTypeString = Record.bCrashed ? EditorAnalyticsDefs::CrashSessionToken :
+			(Record.bIsDebugger ? EditorAnalyticsDefs::DebuggerSessionToken : EditorAnalyticsDefs::AbnormalSessionToken);
+
 		TArray< FAnalyticsEventAttribute > AbnormalShutdownAttributes;
 		AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("SessionId"), SessionIdString));
 		AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("EngineVersion"), Record.EngineVersion));
-		AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("ShutdownType"), Record.bCrashed ? EditorAnalyticsDefs::CrashSessionToken : EditorAnalyticsDefs::AbnormalSessionToken));
+		AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("ShutdownType"), ShutdownTypeString));
 		AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(FString("Timestamp"), Record.Timestamp.ToIso8601()));
 
 		FEditorAnalytics::ReportEvent(TEXT("Editor.AbnormalShutdown"), PlatformName, bHasCode, AbnormalShutdownAttributes);
@@ -291,11 +301,15 @@ private:
 		CurrentSession.EngineVersion = GEngineVersion.ToString(EVersionComponent::Changelist);
 		CurrentSession.Timestamp = FDateTime::UtcNow();
 		CurrentSession.bCrashed = false;
+		CurrentSession.bIsDebugger = FPlatformMisc::IsDebuggerPresent();
 		CurrentSessionSectionName = GetStoreSectionString(CurrentSession.SessionId);
 
-		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::CrashStoreKey, EditorAnalyticsDefs::CrashedFalse);
+		FString IsDebuggerString = CurrentSession.bIsDebugger ? EditorAnalyticsDefs::TrueValueString : EditorAnalyticsDefs::FalseValueString;
+
+		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::CrashStoreKey, EditorAnalyticsDefs::FalseValueString);
 		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::EngineVersionStoreKey, CurrentSession.EngineVersion);
 		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::TimestampStoreKey, TimestampToString(CurrentSession.Timestamp));
+		FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::DebuggerStoreKey, IsDebuggerString);
 
 		SessionRecords.Add(CurrentSession);
 	}
@@ -306,7 +320,7 @@ private:
 		{
 			bEditorCrashed = true;
 
-			FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::CrashStoreKey, EditorAnalyticsDefs::CrashedTrue);
+			FPlatformMisc::SetStoredValue(EditorAnalyticsDefs::StoreId, CurrentSessionSectionName, EditorAnalyticsDefs::CrashStoreKey, EditorAnalyticsDefs::TrueValueString);
 		}
 	}
 

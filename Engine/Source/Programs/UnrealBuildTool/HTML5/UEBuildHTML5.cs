@@ -21,6 +21,12 @@ namespace UnrealBuildTool
 		 */
 		protected override bool PlatformSupportsAutoSDKs()
 		{
+			return true;
+		}
+
+		// platforms can choose if they prefer a correct the the AutoSDK install over the manual install.
+		protected override bool PreferAutoSDK()
+		{
 			return false;
 		}
 		

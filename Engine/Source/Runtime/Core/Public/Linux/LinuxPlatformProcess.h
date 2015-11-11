@@ -292,3 +292,26 @@ inline bool FProcHandle::Close()
 	}
 	return false;
 }
+
+/**
+  * Linux implementation of the FSystemWideCriticalSection. Uses exclusive file locking.
+  **/
+class FLinuxSystemWideCriticalSection
+{
+public:
+	explicit FLinuxSystemWideCriticalSection(const FString& InName, FTimespan InTimeout = FTimespan::Zero());
+	~FLinuxSystemWideCriticalSection();
+
+	bool IsValid() const;
+	void Release();
+
+private:
+	FLinuxSystemWideCriticalSection();
+	FLinuxSystemWideCriticalSection(const FLinuxSystemWideCriticalSection&);
+	FLinuxSystemWideCriticalSection& operator=(const FLinuxSystemWideCriticalSection&);
+
+private:
+	int32 FileHandle;
+};
+
+typedef FLinuxSystemWideCriticalSection FSystemWideCriticalSection;

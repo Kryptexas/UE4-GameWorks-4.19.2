@@ -24,8 +24,8 @@ public:
 };
 
 /**
-* Mac implementation of the Process OS functions
-**/
+ * Mac implementation of the Process OS functions
+ **/
 struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 {
 	struct FProcEnumInfo;
@@ -135,5 +135,26 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static const TCHAR* UserLogsDir();
 };
 
-typedef FMacPlatformProcess FPlatformProcess;
+/**
+ * Mac implementation of the FSystemWideCriticalSection. Uses exclusive file locking.
+ **/
+class FMacSystemWideCriticalSection
+{
+public:
+	explicit FMacSystemWideCriticalSection(const FString& InName, FTimespan InTimeout = FTimespan::Zero());
+	~FMacSystemWideCriticalSection();
 
+	bool IsValid() const;
+	void Release();
+
+private:
+	FMacSystemWideCriticalSection();
+	FMacSystemWideCriticalSection(const FMacSystemWideCriticalSection&);
+	FMacSystemWideCriticalSection& operator=(const FMacSystemWideCriticalSection&);
+
+private:
+	int32 FileHandle;
+};
+
+typedef FMacPlatformProcess FPlatformProcess;
+typedef FMacSystemWideCriticalSection FSystemWideCriticalSection;
