@@ -61,6 +61,24 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
+int32 GEnableDX11TransitionChecks = 0;
+static FAutoConsoleVariableRef CVarDX11TransitionChecks(
+	TEXT("r.TransitionChecksEnableDX11"),
+	GEnableDX11TransitionChecks,
+	TEXT("Enables transition checks in the DX11 RHI."),
+	ECVF_Default
+	);
+
+void FD3D11BaseShaderResource::SetDirty(bool bInDirty, uint32 CurrentFrame)
+{
+	bDirty = bInDirty;
+	if (bDirty)
+	{
+		LastFrameWritten = CurrentFrame;
+	}
+	ensureMsgf((GEnableDX11TransitionChecks == 0) || !(CurrentGPUAccess == EResourceTransitionAccess::EReadable && bDirty), TEXT("ShaderResource is dirty, but set to Readable."));
+}
+
 void FD3D11DynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) 
 {  
 }
@@ -354,7 +372,7 @@ void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 		//check it's safe for r/w for this UAV
 		const EResourceTransitionAccess CurrentUAVAccess = UAV->Resource->GetCurrentGPUAccess();
 		const bool UAVDirty = UAV->Resource->IsDirty();
-		ensureMsgf(!UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
+		ensureMsgf((GEnableDX11TransitionChecks == 0) || !UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
 
 		//UAVs always dirty themselves. If a shader wanted to just read, it should use an SRV.
 		UAV->Resource->SetDirty(true, PresentCounter);
@@ -379,7 +397,7 @@ void FD3D11DynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 		//check it's safe for r/w for this UAV
 		const EResourceTransitionAccess CurrentUAVAccess = UAV->Resource->GetCurrentGPUAccess();
 		const bool UAVDirty = UAV->Resource->IsDirty();
-		ensureMsgf(!UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
+		ensureMsgf((GEnableDX11TransitionChecks == 0) || !UAVDirty || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier), TEXT("UAV: %i is in unsafe state for GPU R/W: %s, Dirty: %i"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess], (int32)UAVDirty);
 
 		//UAVs always dirty themselves. If a shader wanted to just read, it should use an SRV.
 		UAV->Resource->SetDirty(true, PresentCounter);
@@ -869,7 +887,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 									LastFrameWritten != CurrentFrame || 
 									!bDepthWrite;
 
-		ensureMsgf(bAccessValid, TEXT("DepthTarget '%s' is not GPU writable."), *NewDepthStencilTargetRHI->Texture->GetName().ToString());		
+		ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessValid, TEXT("DepthTarget '%s' is not GPU writable."), *NewDepthStencilTargetRHI->Texture->GetName().ToString());
 
 		//switch to writable state if this is the first render of the frame.  Don't switch if it's a later render and this is a depth test only situation
 		if (!bAccessValid || (bReadable && bDepthWrite))
@@ -903,7 +921,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 				const uint32 LastFrameWritten = NewRenderTarget->GetLastFrameWritten();
 				const bool bReadable = CurrentAccess == EResourceTransitionAccess::EReadable;
 				const bool bAccessValid = !bReadable || LastFrameWritten != CurrentFrame;
-				ensureMsgf(bAccessValid, TEXT("RenderTarget '%s' is not GPU writable."), *NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName().ToString());
+				ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessValid, TEXT("RenderTarget '%s' is not GPU writable."), *NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName().ToString());
 								
 				if (!bAccessValid || bReadable)
 				{
@@ -985,7 +1003,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 				const EResourceTransitionAccess CurrentUAVAccess = RHIUAV->Resource->GetCurrentGPUAccess();
 				const bool UAVDirty = RHIUAV->Resource->IsDirty();
 				const bool bAccessPass = (CurrentUAVAccess == EResourceTransitionAccess::ERWBarrier && !UAVDirty) || (CurrentUAVAccess == EResourceTransitionAccess::ERWNoBarrier);
-				ensureMsgf(bAccessPass, TEXT("UAV: %i is in unsafe state for GPU R/W: %s"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess]);
+				ensureMsgf((GEnableDX11TransitionChecks == 0) || bAccessPass, TEXT("UAV: %i is in unsafe state for GPU R/W: %s"), UAVIndex, *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)CurrentUAVAccess]);
 
 				//UAVs get set to dirty.  If the shader just wanted to read it should have used an SRV.
 				RHIUAV->Resource->SetDirty(true, PresentCounter);
