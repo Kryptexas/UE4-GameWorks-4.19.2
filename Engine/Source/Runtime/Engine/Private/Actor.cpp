@@ -1379,6 +1379,11 @@ void AActor::OnRep_AttachmentReplication()
 	else
 	{
 		DetachRootComponentFromParent();
+
+		// Handle the case where an object was both detached and moved on the server in the same frame.
+		// Calling this extraneously does not hurt but will properly fire events if the movement state changed while attached.
+		// This is needed because client side movement is ignored when attached
+		OnRep_ReplicatedMovement();
 	}
 }
 
