@@ -504,22 +504,8 @@ fi
 if [[ $ALL -eq 1 ]]; then
   build_all
 else
-  # detect the OS and only build on non-Ubuntu
-  BUILD_LND=true
-  if [ -e /etc/os-release ]; then
-    source /etc/os-release
-    if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]]; then
-        # assuming reasonably new version. FIXME: should check
-        BUILD_LND=false
-    fi
-  fi
-
-  if [ "$BUILD_LND" = true ]; then
-    echo "You run some non-Ubuntu Linux distro. We have to build LinuxNativeDialogs for your OS."
-    Run BuildLND
-  else
-    echo "You run Ubuntu or its fork. All dependencies have been already prebuilt."
-  fi
+  # we need ot build hlslcc locally because using a different STL results in badness
+  Run BuildHLSLCC
 fi
 
 echo
