@@ -1572,6 +1572,7 @@ void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* 
 				{
 					FSpeedTreeWindComputation* WindComputation = new FSpeedTreeWindComputation;
 					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
+					WindComputation->UniformBuffer.SetContentsToZero();
 					WindComputation->UniformBuffer.InitResource();
 					Scene->SpeedTreeWindComputationMap.Add(StaticMesh, WindComputation);
 				}

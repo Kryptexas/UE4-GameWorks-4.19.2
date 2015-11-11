@@ -46,6 +46,16 @@ public:
 		SetContentsNoUpdate(NewContents);
 		UpdateRHI();
 	}
+	/** Sets the contents of the uniform buffer to all zeros. */
+	void SetContentsToZero()
+	{
+		if (!Contents)
+		{
+			Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct), UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+		}
+		FMemory::Memzero(Contents, sizeof(TBufferStruct));
+		UpdateRHI();
+	}
 
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
