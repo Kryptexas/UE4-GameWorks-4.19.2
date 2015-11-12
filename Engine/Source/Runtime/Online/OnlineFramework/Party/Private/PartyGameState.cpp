@@ -337,17 +337,30 @@ void UPartyGameState::HandlePartyMemberJoined(const FUniqueNetId& InMemberId)
  	FUniqueNetIdRepl MemberId(IdRef);
  	if (MemberId.IsValid())
 	{
-		UPartyMemberState* PartyMemberState = CreateNewPartyMember(InMemberId);
-		if (ensure(PartyMemberState))
+		UPartyMemberState** NewPartyMemberPtr = PartyMembersState.Find(MemberId);
+		UPartyMemberState* NewPartyMember = NewPartyMemberPtr ? *NewPartyMemberPtr : nullptr;
+		if (!NewPartyMember)
 		{
-			PartyMembersState.Add(MemberId, PartyMemberState);
+			NewPartyMember = CreateNewPartyMember(InMemberId);
+			if (NewPartyMember)
+			{
+				PartyMembersState.Add(MemberId, NewPartyMember);
+			}
+		}
 
-			UParty* Party = GetPartyOuter();
-			check(Party);
-			Party->OnPartyMemberJoined().Broadcast(this, MemberId);
-			PartyMemberState->bHasAnnouncedJoin = true;
-			UpdateAcceptingMembers();
-		}	
+		if (ensure(NewPartyMember))
+		{
+			if (!NewPartyMember->bHasAnnouncedJoin)
+			{
+				// Both local and remote players will announce joins
+				UParty* Party = GetPartyOuter();
+				check(Party);
+				Party->OnPartyMemberJoined().Broadcast(this, MemberId);
+				NewPartyMember->bHasAnnouncedJoin = true;
+			}
+		}
+
+		UpdateAcceptingMembers();
 	}
 }
 
@@ -447,45 +460,44 @@ void UPartyGameState::HandlePartyMemberDataReceived(const FUniqueNetId& InMember
 	if (PartyInt.IsValid())
 	{
 		FUniqueNetIdRepl UniqueId(InMemberId.AsShared());
-		UPartyMemberState** CurrentPartyMemberDataPtr = PartyMembersState.Find(UniqueId);
-		UPartyMemberState* CurrentPartyMemberData = CurrentPartyMemberDataPtr ? *CurrentPartyMemberDataPtr : nullptr;
-		if (!CurrentPartyMemberData)
+		UPartyMemberState** CurrentPartyMemberPtr = PartyMembersState.Find(UniqueId);
+		UPartyMemberState* CurrentPartyMember = CurrentPartyMemberPtr ? *CurrentPartyMemberPtr : nullptr;
+		if (!CurrentPartyMember)
 		{
-			CurrentPartyMemberData = CreateNewPartyMember(InMemberId);
-			if (CurrentPartyMemberData)
+			CurrentPartyMember = CreateNewPartyMember(InMemberId);
+			if (CurrentPartyMember)
 			{
-				PartyMembersState.Add(UniqueId, CurrentPartyMemberData);
+				PartyMembersState.Add(UniqueId, CurrentPartyMember);
 			}
 		}
 
-		if (ensure(CurrentPartyMemberData))
+		if (ensure(CurrentPartyMember))
 		{
-			if (!CurrentPartyMemberData->bHasAnnouncedJoin)
+			if (!CurrentPartyMember->bHasAnnouncedJoin)
 			{
 				// Both local and remote players will announce joins
 				UParty* Party = GetPartyOuter();
 				check(Party);
 				Party->OnPartyMemberJoined().Broadcast(this, UniqueId);
-				CurrentPartyMemberData->bHasAnnouncedJoin = true;
+				CurrentPartyMember->bHasAnnouncedJoin = true;
 			}
 
-			check(CurrentPartyMemberData->MemberStateRefDef && CurrentPartyMemberData->MemberStateRefScratch);
+			check(CurrentPartyMember->MemberStateRefDef && CurrentPartyMember->MemberStateRefScratch);
 
 			// Copy out the old data
-			ensure(CurrentPartyMemberData->MemberStateRefDef->GetCppStructOps()->Copy(CurrentPartyMemberData->MemberStateRefScratch, CurrentPartyMemberData->MemberStateRef, 1));
-			if (FVariantDataConverter::VariantMapToUStruct(InPartyMemberData->KeyValAttrs, CurrentPartyMemberData->MemberStateRefDef, CurrentPartyMemberData->MemberStateRef, 0, CPF_Transient | CPF_RepSkip))
+			ensure(CurrentPartyMember->MemberStateRefDef->GetCppStructOps()->Copy(CurrentPartyMember->MemberStateRefScratch, CurrentPartyMember->MemberStateRef, 1));
+			if (FVariantDataConverter::VariantMapToUStruct(InPartyMemberData->KeyValAttrs, CurrentPartyMember->MemberStateRefDef, CurrentPartyMember->MemberStateRef, 0, CPF_Transient | CPF_RepSkip))
 			{
 				// Broadcast property changes
-				CurrentPartyMemberData->ComparePartyMemberData(*CurrentPartyMemberData->MemberStateRefScratch);
-				OnPartyMemberDataChanged().Broadcast(CurrentPartyMemberData->UniqueId, CurrentPartyMemberData);
+				CurrentPartyMember->ComparePartyMemberData(*CurrentPartyMember->MemberStateRefScratch);
+				OnPartyMemberDataChanged().Broadcast(CurrentPartyMember->UniqueId, CurrentPartyMember);
 			}
 			else
 			{
 				UE_LOG(LogParty, Warning, TEXT("[%s] Failed to serialize party member data!"), *InMemberId.ToString());
-				ensure(CurrentPartyMemberData->MemberStateRefDef->GetCppStructOps()->Copy(CurrentPartyMemberData->MemberStateRef, CurrentPartyMemberData->MemberStateRefScratch, 1));
+				ensure(CurrentPartyMember->MemberStateRefDef->GetCppStructOps()->Copy(CurrentPartyMember->MemberStateRef, CurrentPartyMember->MemberStateRefScratch, 1));
 			}
 		}
-
 	}
 }
 

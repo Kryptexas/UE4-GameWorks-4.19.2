@@ -408,16 +408,18 @@ COREUOBJECT_API void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimi
 COREUOBJECT_API FName MakeUniqueObjectName( UObject* Outer, UClass* Class, FName BaseName=NAME_None );
 
 /**
- * Given an actor label string, generates an FName that can be used as an object name for that label.
- * The generated name isn't guaranteed to be unique.  If the object's current name is already satisfactory, then
- * that name will be returned.
+ * Given a display label string, generates an FName slug that is a valid FName for that label.
+ * If the object's current name is already satisfactory, then that name will be returned.
+ * For example, "[MyObject]: Object Label" becomes "MyObjectObjectLabel" FName slug.
+ * 
+ * Note: The generated name isn't guaranteed to be unique.
  *
- * @param	ActorLabel	The label string to convert to an FName
- * @param	CurrentObjectName	The object's current name, or NAME_None if it has no name yet
+ * @param DisplayLabel The label string to convert to an FName
+ * @param CurrentObjectName The object's current name, or NAME_None if it has no name yet
  *
- * @return	The generated actor object name
+ * @return	The generated object name
  */
-COREUOBJECT_API FName MakeObjectNameFromActorLabel( const FString& InActorLabel, const FName CurrentObjectName );
+COREUOBJECT_API FName MakeObjectNameFromDisplayLabel(const FString& DisplayLabel, const FName CurrentObjectName);
 
 /**
  * Returns whether an object is referenced, not counting the one

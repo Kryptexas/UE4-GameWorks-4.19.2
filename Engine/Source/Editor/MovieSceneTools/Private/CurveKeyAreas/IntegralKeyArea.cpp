@@ -2,7 +2,7 @@
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "IntegralKeyArea.h"
-
+#include "MovieSceneClipboard.h"
 
 /* IKeyArea interface
  *****************************************************************************/
@@ -35,6 +35,12 @@ TArray<FKeyHandle> FIntegralCurveKeyAreaBase::AddKeyUnique(float Time, EMovieSce
 void FIntegralCurveKeyAreaBase::DeleteKey(FKeyHandle KeyHandle)
 {
 	Curve.DeleteKey(KeyHandle);
+}
+
+
+FLinearColor FIntegralCurveKeyAreaBase::GetColor()
+{
+	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
 }
 
 

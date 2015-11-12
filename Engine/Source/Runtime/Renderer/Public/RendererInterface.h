@@ -548,6 +548,8 @@ public:
 	/** Sets the buffer size of the render targets. */
 	virtual void SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY) = 0;
 
+	virtual void InitializeSystemTextures(FRHICommandListImmediate& RHICmdList) = 0;
+
 	/** Draws a tile mesh element with the specified view. */
 	virtual void DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, bool bIsHitTesting, const class FHitProxyId& HitProxyId) = 0;
 

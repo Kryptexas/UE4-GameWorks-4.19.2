@@ -68,7 +68,10 @@ void UMovieSceneMaterialTrack::AddScalarParameterKey( FName ParameterName, float
 		NearestSection->SetEndTime( Time );
 		Sections.Add( NearestSection );
 	}
-	NearestSection->AddScalarParameterKey(ParameterName, Time, Value);
+	if (NearestSection->TryModify())
+	{
+		NearestSection->AddScalarParameterKey(ParameterName, Time, Value);	
+	}
 }
 
 void UMovieSceneMaterialTrack::AddVectorParameterKey( FName ParameterName, float Time, FLinearColor Value )
@@ -81,7 +84,10 @@ void UMovieSceneMaterialTrack::AddVectorParameterKey( FName ParameterName, float
 		NearestSection->SetEndTime( Time );
 		Sections.Add( NearestSection );
 	}
-	NearestSection->AddVectorParameterKey( ParameterName, Time, Value );
+	if (NearestSection->TryModify())
+	{
+		NearestSection->AddVectorParameterKey( ParameterName, Time, Value );
+	}
 }
 
 void UMovieSceneMaterialTrack::Eval( float Position, TArray<FScalarParameterNameAndValue>& OutScalarValues, TArray<FVectorParameterNameAndValue>& OutVectorValues ) const

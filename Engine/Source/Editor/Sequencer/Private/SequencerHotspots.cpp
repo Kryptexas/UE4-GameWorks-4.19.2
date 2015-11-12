@@ -7,20 +7,20 @@
 #include "MovieSceneSection.h"
 #include "SequencerContextMenus.h"
 
-void FKeyHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& InSequencer)
+void FKeyHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& InSequencer, float MouseDownTime)
 {
 	FSequencer& Sequencer = static_cast<FSequencer&>(InSequencer);
 	FKeyContextMenu::BuildMenu(MenuBuilder, Sequencer);
 }
 
-void FSectionHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& InSequencer)
+void FSectionHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& InSequencer, float MouseDownTime)
 {
 	FSequencer& Sequencer = static_cast<FSequencer&>(InSequencer);
 
 	TSharedPtr<ISequencerSection> SectionInterface = Section.TrackNode->GetSections()[Section.SectionIndex];
 	SectionInterface->BuildSectionContextMenu(MenuBuilder);
 
-	FSectionContextMenu::BuildMenu(MenuBuilder, Sequencer);
+	FSectionContextMenu::BuildMenu(MenuBuilder, Sequencer, MouseDownTime);
 }
 
 TSharedPtr<ISequencerEditToolDragOperation> FSectionResizeHotspot::InitiateDrag(ISequencer& Sequencer)

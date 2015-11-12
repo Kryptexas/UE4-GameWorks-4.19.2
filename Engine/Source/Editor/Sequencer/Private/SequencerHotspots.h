@@ -18,7 +18,7 @@ struct FKeyHotspot
 
 	virtual ESequencerHotspot GetType() const override { return ESequencerHotspot::Key; }
 	virtual TSharedPtr<ISequencerEditToolDragOperation> InitiateDrag(ISequencer&) override { return nullptr; }
-	virtual void PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer) override;
+	virtual void PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer, float MouseDownTime) override;
 
 	/** The key itself */
 	FSequencerSelectedKey Key;
@@ -57,7 +57,7 @@ struct FSectionHotspot
 
 	virtual ESequencerHotspot GetType() const override { return ESequencerHotspot::Section; }
 	virtual TSharedPtr<ISequencerEditToolDragOperation> InitiateDrag(ISequencer&) override { return nullptr; }
-	virtual void PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer) override;
+	virtual void PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer, float MouseDownTime) override;
 
 	/** Handle to the section */
 	FSectionHandle Section;

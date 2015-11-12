@@ -219,7 +219,7 @@ void FNameCurve::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FKeyHandle FNameCurve::FindKey(float KeyTime) const
+FKeyHandle FNameCurve::FindKey(float KeyTime, float KeyTimeTolerance) const
 {
 	int32 Start = 0;
 	int32 End = Keys.Num()-1;
@@ -230,7 +230,7 @@ FKeyHandle FNameCurve::FindKey(float KeyTime) const
 		int32 TestPos = Start + (End-Start) / 2;
 		float TestKeyTime = Keys[TestPos].Time;
 
-		if (TestKeyTime == KeyTime)
+		if (FMath::IsNearlyEqual(TestKeyTime, KeyTime, KeyTimeTolerance))
 		{
 			return GetKeyHandle(TestPos);
 		}
@@ -732,7 +732,7 @@ float FRichCurve::GetKeyTime(FKeyHandle KeyHandle) const
 }
 
 
-FKeyHandle FRichCurve::FindKey(float KeyTime) const
+FKeyHandle FRichCurve::FindKey(float KeyTime, float KeyTimeTolerance) const
 {
 	int32 Start = 0;
 	int32 End = Keys.Num()-1;
@@ -743,7 +743,7 @@ FKeyHandle FRichCurve::FindKey(float KeyTime) const
 		int32 TestPos = Start + (End-Start) / 2;
 		float TestKeyTime = Keys[TestPos].Time;
 
-		if (TestKeyTime == KeyTime)
+		if (FMath::IsNearlyEqual(TestKeyTime, KeyTime, KeyTimeTolerance))
 		{
 			return GetKeyHandle(TestPos);
 		}

@@ -414,6 +414,32 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 	TSharedRef<FSequencerDisplayNode> ThisNode = SharedThis(this);
 
 	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ToggleNodeActive", "Active"),
+		LOCTEXT("ToggleNodeActiveTooltip", "Set this node or selected nodes active/inactive"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeActive),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(&GetSequencer(), &FSequencer::IsNodeActive)
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+	);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ToggleNodeLock", "Locked"),
+		LOCTEXT("ToggleNodeLockTooltip", "Lock or unlock this node or selected nodes"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeLocked),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(&GetSequencer(), &FSequencer::IsNodeLocked)
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+	);
+
+	MenuBuilder.AddMenuEntry(
 		LOCTEXT("DeleteNode", "Delete"),
 		LOCTEXT("DeleteNodeTooltip", "Delete this or selected nodes"),
 		FSlateIcon(),

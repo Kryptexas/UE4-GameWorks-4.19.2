@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "IKeyArea.h"
-
+#include "NamedKeyArea.h"
+#include "ClipboardTypes.h"
 
 /**
  * A key area for FName curves.
  */
 class MOVIESCENETOOLS_API FNameCurveKeyArea
-	: public IKeyArea
+	: public FNamedKeyArea
 {
 public:
 
@@ -32,6 +32,7 @@ public:
 	virtual bool CanCreateKeyEditor() override;
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 	virtual void DeleteKey(FKeyHandle KeyHandle) override;
+	virtual FLinearColor GetColor() override;
 	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle Keyhandle) const override;
 	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override;
@@ -44,6 +45,8 @@ public:
 	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override;
 	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override;
 	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override;
+	virtual void CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const override;
+	virtual void PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment) override;
 
 protected:
 

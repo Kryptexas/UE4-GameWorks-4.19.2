@@ -15,6 +15,7 @@ struct ICaptureStrategy
 {
 	virtual ~ICaptureStrategy(){}
 	
+	virtual void OnWarmup() = 0;
 	virtual void OnStart() = 0;
 	virtual void OnStop() = 0;
 	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) = 0;
@@ -81,6 +82,10 @@ public:
 
 	/** Access this object's cached metrics */
 	const FCachedMetrics& GetMetrics() const { return CachedMetrics; }
+
+	/** Starts warming up.  May be optionally called before StartCapture().  This can be used to start rendering frames early, before
+	    any files are written out */
+	void StartWarmup();
 
 	/** Initialize the capture */
 	void StartCapture();
@@ -175,6 +180,7 @@ struct MOVIESCENECAPTURE_API FFixedTimeStepCaptureStrategy : ICaptureStrategy
 {
 	FFixedTimeStepCaptureStrategy(uint32 InTargetFPS);
 
+	virtual void OnWarmup() override;
 	virtual void OnStart() override;
 	virtual void OnStop() override;
 	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) override;	
@@ -190,6 +196,7 @@ struct MOVIESCENECAPTURE_API FRealTimeCaptureStrategy : ICaptureStrategy
 {
 	FRealTimeCaptureStrategy(uint32 InTargetFPS);
 
+	virtual void OnWarmup() override;
 	virtual void OnStart() override;
 	virtual void OnStop() override;
 	virtual void OnPresent(double CurrentTimeSeconds, uint32 FrameIndex) override;

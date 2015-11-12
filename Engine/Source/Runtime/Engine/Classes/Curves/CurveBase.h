@@ -247,9 +247,10 @@ public:
 	 * Finds a key a the specified time.
 	 *
 	 * @param KeyTime The time at which to find the key.
+	 * @param KeyTimeTolerance The key time tolerance to use for equality.
 	 * @return A handle to the key, or invalid key handle if not found.
 	 */
-	FKeyHandle FindKey(float KeyTime) const;
+	FKeyHandle FindKey(float KeyTime, float KeyTimeTolerance = KINDA_SMALL_NUMBER) const;
 
 	/**
 	 * Get a key.
@@ -543,7 +544,7 @@ public:
 	float GetKeyTime(FKeyHandle KeyHandle) const;
 
 	/** Finds a key a the specified time */
-	FKeyHandle FindKey( float KeyTime ) const;
+	FKeyHandle FindKey( float KeyTime, float KeyTimeTolerance = KINDA_SMALL_NUMBER ) const;
 
 	/** Set the value of the specified key */
 	void SetKeyValue(FKeyHandle KeyHandle, float NewValue, bool bAutoSetTangents=true);

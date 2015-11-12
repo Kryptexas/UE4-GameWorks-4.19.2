@@ -302,7 +302,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 				.HasCloseButton(true)
 				.SupportsMaximize(false)
 				.SupportsMinimize(false)
-				.ClientSize(FVector2D(350, 650));
+				.ClientSize(FVector2D(500, 700));
 
 			TSharedPtr<SDockTab> OwnerTab = TabManager->GetOwnerTab();
 			TSharedPtr<SWindow> RootWindow = OwnerTab.IsValid() ? OwnerTab->GetParentWindow() : TSharedPtr<SWindow>();

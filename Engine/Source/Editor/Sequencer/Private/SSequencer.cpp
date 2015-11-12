@@ -35,6 +35,8 @@
 #include "IDetailsView.h"
 #include "PropertyEditorModule.h"
 #include "SSequencerShotFilterOverlay.h"
+#include "GenericCommands.h"
+#include "SequencerContextMenus.h"
 #include "SSequencerTreeViewBox.h"
 #include "NumericTypeInterface.h"
 #include "NumericUnitTypeInterface.inl"
@@ -467,6 +469,22 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 			return true;
 		}),
 		FIsActionChecked::CreateSP(this, &SSequencer::IsEditToolEnabled, FName("Selection"))
+	);
+
+	SequencerCommandBindings->MapAction(
+		FGenericCommands::Get().Paste,
+		FExecuteAction::CreateSP(this, &SSequencer::Paste),
+		FCanExecuteAction::CreateLambda([&]{
+			return Sequencer.Pin()->GetClipboardStack().Num() != 0;
+		})
+	);
+
+	SequencerCommandBindings->MapAction(
+		FSequencerCommands::Get().PasteFromHistory,
+		FExecuteAction::CreateSP(this, &SSequencer::PasteFromHistory),
+		FCanExecuteAction::CreateLambda([&]{
+			return Sequencer.Pin()->GetClipboardStack().Num() != 0;
+		})
 	);
 }
 
@@ -1584,5 +1602,114 @@ FVirtualTrackArea SSequencer::GetVirtualTrackArea() const
 	return FVirtualTrackArea(*Sequencer.Pin(), *TreeView.Get(), TrackArea->GetCachedGeometry());
 }
 
+FPasteContextMenuArgs SSequencer::GeneratePasteArgs(float PasteAtTime, TSharedPtr<FMovieSceneClipboard> Clipboard)
+{
+	TSharedPtr<FSequencer> SequencerPinned = Sequencer.Pin();
+	if (Settings->GetIsSnapEnabled())
+	{
+		PasteAtTime = Settings->SnapTimeToInterval(PasteAtTime);
+	}
+
+	// Open a paste menu at the current mouse position
+	FSlateApplication& Application = FSlateApplication::Get();
+	FVector2D LocalMousePosition = TrackArea->GetCachedGeometry().AbsoluteToLocal(Application.GetCursorPos());
+
+	FVirtualTrackArea VirtualTrackArea = GetVirtualTrackArea();
+
+	// Paste into the currently selected sections, or hit test the mouse position as a last resort
+	TArray<TSharedRef<FSequencerDisplayNode>> PasteIntoNodes;
+	{
+		TSet<TWeakObjectPtr<UMovieSceneSection>> Sections = SequencerPinned->GetSelection().GetSelectedSections();
+		for (const FSequencerSelectedKey& Key : SequencerPinned->GetSelection().GetSelectedKeys())
+		{
+			Sections.Add(Key.Section);
+		}
+
+		for (const FSectionHandle& Handle : GetSectionHandles(Sections))
+		{
+			PasteIntoNodes.Add(Handle.TrackNode.ToSharedRef());
+		}
+	}
+
+	if (PasteIntoNodes.Num() == 0)
+	{
+		TSharedPtr<FSequencerDisplayNode> Node = VirtualTrackArea.HitTestNode(LocalMousePosition.Y);
+		if (Node.IsValid())
+		{
+			PasteIntoNodes.Add(Node.ToSharedRef());
+		}
+	}
+
+	return FPasteContextMenuArgs::PasteInto(MoveTemp(PasteIntoNodes), PasteAtTime, Clipboard);
+}
+
+void SSequencer::Paste()
+{
+	TSharedPtr<FPasteContextMenu> ContextMenu;
+
+	TSharedPtr<FSequencer> SequencerPinned = Sequencer.Pin();
+	if (SequencerPinned->GetClipboardStack().Num() != 0)
+	{
+		FPasteContextMenuArgs Args = GeneratePasteArgs(SequencerPinned->GetGlobalTime(), SequencerPinned->GetClipboardStack().Last());
+		ContextMenu = FPasteContextMenu::CreateMenu(*SequencerPinned, Args);
+	}
+
+	if (!ContextMenu.IsValid() || !ContextMenu->IsValidPaste())
+	{
+		return;
+	}
+	else if (ContextMenu->AutoPaste())
+	{
+		return;
+	}
+
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Sequencer.Pin()->GetCommandBindings());
+
+	ContextMenu->PopulateMenu(MenuBuilder);
+
+	FWidgetPath Path;
+	FSlateApplication::Get().FindPathToWidget(AsShared(), Path);
+	
+	FSlateApplication::Get().PushMenu(
+		AsShared(),
+		Path,
+		MenuBuilder.MakeWidget(),
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+		);
+}
+
+void SSequencer::PasteFromHistory()
+{
+	TSharedPtr<FSequencer> SequencerPinned = Sequencer.Pin();
+	if (SequencerPinned->GetClipboardStack().Num() == 0)
+	{
+		return;
+	}
+
+	FPasteContextMenuArgs Args = GeneratePasteArgs(SequencerPinned->GetGlobalTime());
+	TSharedPtr<FPasteFromHistoryContextMenu> ContextMenu = FPasteFromHistoryContextMenu::CreateMenu(*SequencerPinned, Args);
+
+	if (ContextMenu.IsValid())
+	{
+		const bool bShouldCloseWindowAfterMenuSelection = true;
+		FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, SequencerPinned->GetCommandBindings());
+
+		ContextMenu->PopulateMenu(MenuBuilder);
+
+		FWidgetPath Path;
+		FSlateApplication::Get().FindPathToWidget(AsShared(), Path);
+		
+		FSlateApplication::Get().PushMenu(
+			AsShared(),
+			Path,
+			MenuBuilder.MakeWidget(),
+			FSlateApplication::Get().GetCursorPos(),
+			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+			);
+	}
+}
 
 #undef LOCTEXT_NAMESPACE
+

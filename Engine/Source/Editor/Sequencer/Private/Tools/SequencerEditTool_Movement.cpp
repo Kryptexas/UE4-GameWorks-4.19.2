@@ -162,33 +162,40 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 		// Only return handled if we actually started a drag
 		return FReply::Handled().ReleaseMouseCapture();
 	}
-	else if (Hotspot.IsValid())
+
+	FReply Reply = FReply::Unhandled();
+
+	if (Hotspot.IsValid())
 	{
 		PerformHotspotSelection(MouseEvent);
-
-		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
-		{
-			TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
-			if (MenuContent.IsValid())
-			{
-				FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
-
-				FSlateApplication::Get().PushMenu(
-					OwnerWidget.AsShared(),
-					WidgetPath,
-					MenuContent.ToSharedRef(),
-					MouseEvent.GetScreenSpacePosition(),
-					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
-					);
-
-				return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly).ReleaseMouseCapture();
-			}
-		}
-
-		return FReply::Handled().ReleaseMouseCapture();
+		Reply = FReply::Handled();
 	}
 
-	return FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
+	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
+		if (MenuContent.IsValid())
+		{
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
+			FSlateApplication::Get().PushMenu(
+				OwnerWidget.AsShared(),
+				WidgetPath,
+				MenuContent.ToSharedRef(),
+				MouseEvent.GetScreenSpacePosition(),
+				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+				);
+
+			return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly).ReleaseMouseCapture();
+		}
+	}
+
+	if (!Reply.IsEventHandled())
+	{
+		Reply = FSequencerEditTool_Default::OnMouseButtonUp(OwnerWidget, MyGeometry, MouseEvent);
+	}
+
+	return Reply;
 }
 
 

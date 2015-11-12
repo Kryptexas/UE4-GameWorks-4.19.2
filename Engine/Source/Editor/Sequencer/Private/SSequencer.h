@@ -367,6 +367,18 @@ private:
 	/** Gets paint options for painting the playback range on sequencer */
 	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
 
+public:
+
+	/** Open the paste menu */
+	void Paste();
+	
+	/** Open the paste from history menu */
+	void PasteFromHistory();
+
+	/** Generate a paste menu args structure */
+	struct FPasteContextMenuArgs GeneratePasteArgs(float PasteAtTime, TSharedPtr<FMovieSceneClipboard> Clipboard = nullptr);
+
+
 private:
 
 	/** Holds the details view. */
@@ -420,5 +432,4 @@ private:
 
 	/** Called when the user has finished dragging the playback range */
 	FSimpleDelegate OnEndPlaybackRangeDrag;
-
 };

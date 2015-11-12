@@ -662,15 +662,45 @@ namespace EpicGames.MCP.Automation
 	public abstract class CloudStorageBase
 	{
 		private static readonly object LockObj = new object();
-		private static CloudStorageBase Handler = null;
+		private static Dictionary<string, CloudStorageBase> Handlers = new Dictionary<string, CloudStorageBase>();
+		private const string DEFAULT_INSTANCE_NAME = "DefaultInstance";
 
+		/// <summary>
+		/// Gets the default instance of CloudStorageBase
+		/// </summary>
+		/// <returns>A default instance of CloudStorageBase. The first time each instance is returned, it will require initialization with its Init() method.</returns>
 		public static CloudStorageBase Get()
 		{
-			if (Handler == null)
+			return GetByNameImpl(DEFAULT_INSTANCE_NAME); // Identifier for the default cloud storage
+		}
+
+		/// <summary>
+		/// Gets an instance of CloudStorageBase.
+		/// Multiple calls with the same instance name will return the same object.
+		/// </summary>
+		/// <param name="InstanceName">The name of the object to return</param>
+		/// <returns>An instance of CloudStorageBase. The first time each instance is returned, it will require initialization with its Init() method.</returns>
+		public static CloudStorageBase GetByName(string InstanceName)
+		{
+			if (InstanceName == DEFAULT_INSTANCE_NAME)
+			{
+				CommandUtils.LogWarning("CloudStorageBase.GetByName called with {0}. This will return the same instance as Get().", DEFAULT_INSTANCE_NAME);
+			}
+			return GetByNameImpl(InstanceName);
+		}
+
+		private  static CloudStorageBase GetByNameImpl(string InstanceName)
+		{
+			CloudStorageBase Result = null;
+			if (!Handlers.TryGetValue(InstanceName, out Result))
 			{
 				lock (LockObj)
 				{
-					if (Handler == null)
+					if (Handlers.ContainsKey(InstanceName))
+					{
+						Result = Handlers[InstanceName];
+					}
+					else
 					{
 						Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 						foreach (var Dll in LoadedAssemblies)
@@ -680,19 +710,20 @@ namespace EpicGames.MCP.Automation
 							{
 								if (PotentialConfigType != typeof(CloudStorageBase) && typeof(CloudStorageBase).IsAssignableFrom(PotentialConfigType))
 								{
-									Handler = Activator.CreateInstance(PotentialConfigType) as CloudStorageBase;
+									Result = Activator.CreateInstance(PotentialConfigType) as CloudStorageBase;
+									Handlers.Add(InstanceName, Result);
 									break;
 								}
 							}
 						}
 					}
 				}
-				if (Handler == null)
+				if (Result == null)
 				{
-					throw new AutomationException("Attempt to use CloudStorageBase.Get() and it doesn't appear that there are any modules that implement this class.");
+					throw new AutomationException("Could not find any modules which provide an implementation of CloudStorageBase.");
 				}
 			}
-			return Handler;
+			return Result;
 		}
 
 		/// <summary>

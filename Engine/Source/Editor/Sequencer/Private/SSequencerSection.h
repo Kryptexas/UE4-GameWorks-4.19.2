@@ -101,6 +101,15 @@ private:
 	 */
 	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const;
 
+
+public:
+
+	/** Indicate that the current key selection should throb the specified number of times. A single throb takes 0.2s. */
+	static void ThrobSelection(int32 ThrobCount = 1);
+
+	/** Get a value between 0 and 1 that indicicates the amount of throb-scale to apply to the currently selected keys */
+	static float GetSelectionThrobValue();
+
 private:
 	/** Interface to section data */
 	TSharedPtr<ISequencerSection> SectionInterface;
@@ -112,4 +121,6 @@ private:
 	int32 SectionIndex;
 	/** Cached parent geometry to pass down to any section interfaces that need it during tick */
 	FGeometry ParentGeometry;
+	/** The end time for a throbbing animation for selected keys */
+	static double SelectionThrobEndTime;
 };

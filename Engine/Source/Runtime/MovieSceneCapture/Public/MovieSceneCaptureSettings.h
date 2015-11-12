@@ -38,7 +38,7 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	GENERATED_BODY()
 
 	/** The directory to output the captured file(s) in */
-	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay, meta=(RelativePath))
+	UPROPERTY(config, EditAnywhere, Category=General, meta=(RelativePath))
 	FDirectoryPath OutputDirectory;
 
 	/** Whether to save temporary copies of all of the levels before capturing the movie.  This allows you to record movies of temporary work, or work that isn't yet saved, but it will take much longer for capturing to begin. */
@@ -72,22 +72,6 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
 	int32 FrameRate;
 
-	/** When enabled, the StartFrame setting will override the default starting frame number */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay )
-	bool bUseCustomStartFrame;
-
-	/** Frame number to start capturing.  The frame number range depends on whether the bUseRelativeFrameNumbers option is enabled. */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay, meta=(EditCondition="bUseCustomStartFrame") )
-	int32 StartFrame;
-
-	/** When enabled, the EndFrame setting will override the default ending frame number */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay )
-	bool bUseCustomEndFrame;
-
-	/** Frame number to end capturing.  The frame number range depends on whether the bUseRelativeFrameNumbers option is enabled. */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay, meta=(EditCondition="bUseCustomEndFrame") )
-	int32 EndFrame;
-
 	/** The resolution at which to capture */
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, meta=(ShowOnlyInnerProperties))
 	FCaptureResolution Resolution;
@@ -108,8 +92,8 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay)
 	FString Codec;
 	
-	/** Whether to enable texture streaming whilst capturing */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
+	/** Whether to texture streaming should be enabled while capturing.  Turning off texture streaming may cause much more memory to be used, but also reduces the chance of blurry textures in your captured video. */
+	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay)
 	bool bEnableTextureStreaming;
 
 	/** Whether to enable cinematic mode whilst capturing */

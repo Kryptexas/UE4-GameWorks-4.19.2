@@ -466,19 +466,20 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	 * Normally 1 - scales real time passage.
 	 * Warning - most use cases should use GetEffectiveTimeDilation() instead of reading from this directly
 	 */
-	UPROPERTY(replicated)
+	UPROPERTY(transient, replicated)
 	float TimeDilation;
 
-	// additional TimeDilation used by Matinee slomo track
-	UPROPERTY(replicated)
+	// Additional time dilation used by Matinee (or Sequencer) slomo track.  Transient because this is often 
+	// temporarily modified by the editor when previewing slow motion effects, yet we don't want it saved or loaded from level packages.
+	UPROPERTY(transient, replicated)
 	float MatineeTimeDilation;
 
 	// Additional TimeDilation used to control demo playback speed
-	UPROPERTY()
+	UPROPERTY(transient)
 	float DemoPlayTimeDilation;
 
 	// If paused, FName of person pausing the game.
-	UPROPERTY(replicated)
+	UPROPERTY(transient, replicated)
 	class APlayerState* Pauser;
 
 	/** when this flag is set, more time is allocated to background loading (replicated) */

@@ -18,8 +18,10 @@ UMovieSceneEventSection::UMovieSceneEventSection()
 
 void UMovieSceneEventSection::AddKey(float Time, const FName& EventName, FKeyParams KeyParams)
 {
-	Modify();
-	Events.UpdateOrAddKey(Time, EventName);
+	if (TryModify())
+	{
+		Events.UpdateOrAddKey(Time, EventName);
+	}
 }
 
 

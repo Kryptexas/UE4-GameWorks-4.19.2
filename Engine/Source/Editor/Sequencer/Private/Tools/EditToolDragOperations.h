@@ -32,7 +32,7 @@ public:
 protected:
 
 	/** begin a new scoped transaction for this drag */
-	void BeginTransaction( const TArray< FSectionHandle >& Sections, const FText& TransactionDesc );
+	void BeginTransaction( TArray< FSectionHandle >& Sections, const FText& TransactionDesc );
 
 	/** End an existing scoped transaction if one exists */
 	void EndTransaction();
@@ -155,4 +155,7 @@ private:
 
 	/** Snap field used to assist in snapping calculations */
 	TOptional<FSequencerSnapField> SnapField;
+
+	/** The set of sections being modified */
+	TSet<UMovieSceneSection*> ModifiedSections;
 };

@@ -7,7 +7,10 @@
 
 
 class UMovieSceneSection;
-
+class FMovieSceneClipboardBuilder;
+class FMovieSceneClipboardKeyTrack;
+struct FMovieSceneClipboardEnvironment;
+struct FSequencerPasteEnvironment;
 
 /**
  * Information for how to draw each key.
@@ -30,7 +33,7 @@ struct FKeyDrawingInfo
 /**
  * Interface that should be implemented for the UI portion of a key area within a section
  */
-class IKeyArea
+class IKeyArea : public TSharedFromThis<IKeyArea>
 {
 public:
 
@@ -145,7 +148,41 @@ public:
 	virtual bool CanCreateKeyEditor() = 0;
 
 	/**
-	* Creates a key editor for this key area for use in the animation outliner.
-	*/
+	 * Creates a key editor for this key area for use in the animation outliner.
+	 */
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) = 0;
+
+	/**
+	 * Copy keys from this key area
+	 *
+	 * @param ClipboardBuilder	Clipboard builder to add keys to
+	 * @param KeyMask			Predicate to be called to check whether a key should be copied
+	 */
+	virtual void CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const = 0;
+
+	/**
+	 * Paste keys into this key area
+	 *
+	 * @param KeyTrack			Container of keys to paste into this area
+	 * @param SrcEnvironment		The source environment the cliboard originated from
+	 * @param DstEnvironment		The new environment to paste in
+	 */
+	virtual void PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment) = 0;
+
+	/**
+	 * Give this key area a specific name
+	 */
+	virtual void SetName(FName Name) = 0;
+
+	/**
+	 * Get this area's name, or None if not set
+	 */
+	virtual FName GetName() const = 0;
+
+	/**
+	 * Get the key area's color.
+	 *
+	 * @return Key area color.
+	 */
+	virtual FLinearColor GetColor() = 0;
 };

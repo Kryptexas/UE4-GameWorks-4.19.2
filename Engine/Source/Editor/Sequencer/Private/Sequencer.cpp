@@ -44,8 +44,10 @@
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "LevelEditor.h"
 #include "IMenu.h"
+#include "MovieSceneClipboard.h"
+#include "SequencerClipboardReconciler.h"
 #include "STextEntryPopup.h"
-
+#include "SequencerHotspots.h"
 #include "MovieSceneCaptureDialogModule.h"
 #include "AutomatedLevelSequenceCapture.h"
 
@@ -139,6 +141,9 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			GEditor->GetActorRecordingState().AddSP(this, &FSequencer::GetActorRecordingState);
 
 			ActivateDetailKeyframeHandler();
+				
+			FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+			EditModule.OnPropertyEditorOpened().AddSP(this, &FSequencer::OnPropertyEditorOpened);
 		}
 
 		// Create tools and bind them to this sequencer
@@ -218,7 +223,15 @@ void FSequencer::Close()
 			GLevelEditorModeTools().DeactivateMode( FSequencerEdMode::EM_SequencerMode );
 		}
 	}
-	DeactivateDetailKeyframeHandler();
+
+	if( bIsEditingWithinLevelEditor )
+	{
+		DeactivateDetailKeyframeHandler();
+			
+		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");			
+		EditModule.OnPropertyEditorOpened().RemoveAll(this);
+	}
+
 	SequencerWidget.Reset();
 }
 
@@ -365,7 +378,7 @@ void FSequencer::DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection>>& 
 
 	for (const auto Section : Sections)
 	{
-		if (!Section.IsValid())
+		if (!Section.IsValid() || Section->IsLocked())
 		{
 			continue;
 		}
@@ -400,9 +413,11 @@ void FSequencer::DeleteSelectedKeys()
 	{
 		if (Key.IsValid())
 		{
-			Key.Section->Modify();
-			Key.KeyArea->DeleteKey(Key.KeyHandle.GetValue());
-			bAnythingRemoved = true;
+			if (Key.Section->TryModify())
+			{
+				Key.KeyArea->DeleteKey(Key.KeyHandle.GetValue());
+				bAnythingRemoved = true;
+			}
 		}
 	}
 
@@ -430,10 +445,12 @@ void FSequencer::SetInterpTangentMode(ERichCurveInterpMode InterpMode, ERichCurv
 	{
 		if (Key.IsValid())
 		{
-			Key.Section->Modify();
-			Key.KeyArea->SetKeyInterpMode(Key.KeyHandle.GetValue(), InterpMode);
-			Key.KeyArea->SetKeyTangentMode(Key.KeyHandle.GetValue(), TangentMode);
-			bAnythingChanged = true;
+			if (Key.Section->TryModify())
+			{
+				Key.KeyArea->SetKeyInterpMode(Key.KeyHandle.GetValue(), InterpMode);
+				Key.KeyArea->SetKeyTangentMode(Key.KeyHandle.GetValue(), TangentMode);
+				bAnythingChanged = true;
+			}
 		}
 	}
 
@@ -476,18 +493,20 @@ void FSequencer::SnapToFrame()
 	{
 		if (Key.IsValid())
 		{
-			Key.Section->Modify();
-			float NewKeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
+			if (Key.Section->TryModify())
+			{
+				float NewKeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
 
-			// Convert to frame
-			float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
-			int32 NewFrame = SequencerHelpers::TimeToFrame(NewKeyTime, FrameRate);
+				// Convert to frame
+				float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+				int32 NewFrame = SequencerHelpers::TimeToFrame(NewKeyTime, FrameRate);
 
-			// Convert back to time
-			NewKeyTime = SequencerHelpers::FrameToTime(NewFrame, FrameRate);
+				// Convert back to time
+				NewKeyTime = SequencerHelpers::FrameToTime(NewFrame, FrameRate);
 
-			Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
-			bAnythingChanged = true;
+				Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
+				bAnythingChanged = true;
+			}
 		}
 	}
 
@@ -1715,6 +1734,11 @@ void FSequencer::DeactivateDetailKeyframeHandler()
 	}
 }
 
+void FSequencer::OnPropertyEditorOpened()
+{
+	ActivateDetailKeyframeHandler();
+}
+
 void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut(FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject) const
 {
 	ACameraActor* CameraActor = Cast<ACameraActor>(InCameraObject);
@@ -2080,6 +2104,82 @@ void FSequencer::DeleteSelectedNodes()
 	}
 }
 
+void FSequencer::ToggleNodeActive()
+{
+	bool bIsActive = !IsNodeActive();
+
+	const FScopedTransaction Transaction( NSLOCTEXT("Sequencer", "ToggleNodeActive", "Toggle Node Active") );
+
+	for (auto OutlinerNode : Selection.GetSelectedOutlinerNodes())
+	{
+		TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
+		SequencerHelpers::GetAllSections(OutlinerNode, Sections);
+
+		for (auto Section : Sections)
+		{
+			Section->SetIsActive(bIsActive);
+		}
+	}
+}
+
+bool FSequencer::IsNodeActive() const
+{
+	// Active only if all are active
+	for (auto OutlinerNode : Selection.GetSelectedOutlinerNodes())
+	{
+		TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
+		SequencerHelpers::GetAllSections(OutlinerNode, Sections);
+
+		for (auto Section : Sections)
+		{
+			if (!Section->IsActive())
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+void FSequencer::ToggleNodeLocked()
+{
+	bool bIsLocked = !IsNodeLocked();
+
+	const FScopedTransaction Transaction( NSLOCTEXT("Sequencer", "ToggleNodeLocked", "Toggle Node Locked") );
+
+	for (auto OutlinerNode : Selection.GetSelectedOutlinerNodes())
+	{
+		TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
+		SequencerHelpers::GetAllSections(OutlinerNode, Sections);
+
+		for (auto Section : Sections)
+		{
+			Section->SetIsLocked(bIsLocked);
+		}
+	}
+}
+
+bool FSequencer::IsNodeLocked() const
+{
+	// Locked only if all are locked
+	int NumSections = 0;
+	for (auto OutlinerNode : Selection.GetSelectedOutlinerNodes())
+	{
+		TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
+		SequencerHelpers::GetAllSections(OutlinerNode, Sections);
+
+		for (auto Section : Sections)
+		{
+			if (!Section->IsLocked())
+			{
+				return false;
+			}
+			++NumSections;
+		}
+	}
+	return NumSections > 0;
+}
+
 void FSequencer::TogglePlay()
 {
 	OnPlay();
@@ -2215,11 +2315,83 @@ void FSequencer::OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Typ
 		{
 			if (Key.IsValid())
 			{
-				Key.Section->Modify();
-				Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
+				if (Key.Section->TryModify())
+				{
+					Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
+				}
 			}
 		}
 	}
+}
+
+TArray<TSharedPtr<FMovieSceneClipboard>> GClipboardStack;
+
+void FSequencer::CopySelectedKeys()
+{
+	TOptional<float> CopyRelativeTo;
+	
+	// Copy relative to the current key hotspot, if applicable
+	TSharedPtr<ISequencerHotspot> Hotspot = SequencerWidget->GetEditTool().GetHotspot();
+	if (Hotspot.IsValid() && Hotspot->GetType() == ESequencerHotspot::Key)
+	{
+		FKeyHotspot* KeyHotspot = StaticCastSharedPtr<FKeyHotspot>(Hotspot).Get();
+		if (KeyHotspot->Key.KeyArea.IsValid() && KeyHotspot->Key.KeyHandle.IsSet())
+		{
+			CopyRelativeTo = KeyHotspot->Key.KeyArea->GetKeyTime(KeyHotspot->Key.KeyHandle.GetValue());
+		}
+	}
+
+	FMovieSceneClipboardBuilder Builder;
+
+	// Map selected keys to their key areas
+	TMap<const IKeyArea*, TArray<FKeyHandle>> KeyAreaMap;
+	for (const FSequencerSelectedKey& Key : Selection.GetSelectedKeys())
+	{
+		if (Key.KeyHandle.IsSet())
+		{
+			KeyAreaMap.FindOrAdd(Key.KeyArea.Get()).Add(Key.KeyHandle.GetValue());
+		}
+	}
+
+	// Serialize each key area to the clipboard
+	for (auto& Pair : KeyAreaMap)
+	{
+		Pair.Key->CopyKeys(Builder, [&](FKeyHandle Handle, const IKeyArea&){
+			return Pair.Value.Contains(Handle);
+		});
+	}
+
+
+	TSharedRef<FMovieSceneClipboard> Clipboard = MakeShareable( new FMovieSceneClipboard(Builder.Commit(CopyRelativeTo)) );
+	
+	GClipboardStack.Push(Clipboard);
+
+	if (GClipboardStack.Num() > 10)
+	{
+		GClipboardStack.RemoveAt(0, 1);
+	}
+}
+
+void FSequencer::CutSelectedKeys()
+{
+	FScopedTransaction CutKeysTransaction( LOCTEXT("CutSelectedKeys_Transaction", "Cut Selected Keys") );
+	CopySelectedKeys();
+	DeleteSelectedKeys();
+}
+
+const TArray<TSharedPtr<FMovieSceneClipboard>>& FSequencer::GetClipboardStack() const
+{
+	return GClipboardStack;
+}
+
+void FSequencer::OnClipboardUsed(TSharedPtr<FMovieSceneClipboard> Clipboard)
+{
+	Clipboard->GetEnvironment().DateTime = FDateTime::Now();
+
+	// Last entry in the stack should be the most up-to-date
+	GClipboardStack.Sort([](const TSharedPtr<FMovieSceneClipboard>& A, const TSharedPtr<FMovieSceneClipboard>& B){
+		return A->GetEnvironment().DateTime < B->GetEnvironment().DateTime;
+	});
 }
 
 void FSequencer::GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted)
@@ -2481,6 +2653,34 @@ void FSequencer::BindSequencerCommands()
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditor(); } ) );
 
+	auto CanCutOrCopy = [this]{
+		UMovieSceneTrack* Track = nullptr;
+		for (FSequencerSelectedKey Key : Selection.GetSelectedKeys())
+		{
+			if (!Track)
+			{
+				Track = Key.Section->GetTypedOuter<UMovieSceneTrack>();
+			}
+			if (!Track || Track != Key.Section->GetTypedOuter<UMovieSceneTrack>())
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	SequencerCommandBindings->MapAction(
+		FGenericCommands::Get().Cut,
+		FExecuteAction::CreateSP(this, &FSequencer::CutSelectedKeys),
+		FCanExecuteAction::CreateLambda(CanCutOrCopy)
+	);
+
+	SequencerCommandBindings->MapAction(
+		FGenericCommands::Get().Copy,
+		FExecuteAction::CreateSP(this, &FSequencer::CopySelectedKeys),
+		FCanExecuteAction::CreateLambda(CanCutOrCopy)
+	);
+
 	SequencerCommandBindings->MapAction( Commands.RenderMovie,
 		FExecuteAction::CreateLambda([this]{
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
@@ -2509,8 +2709,8 @@ void FSequencer::BindSequencerCommands()
 				const int32 SequenceStartFrame = FMath::RoundToInt( GetPlaybackRange().GetLowerBoundValue() * MovieSceneCapture->Settings.FrameRate );
 				const int32 SequenceEndFrame = FMath::Max( SequenceStartFrame, FMath::RoundToInt( GetPlaybackRange().GetUpperBoundValue() * MovieSceneCapture->Settings.FrameRate ) );
 
-				MovieSceneCapture->Settings.StartFrame = SequenceStartFrame;
-				MovieSceneCapture->Settings.EndFrame = SequenceEndFrame;
+				MovieSceneCapture->StartFrame = SequenceStartFrame;
+				MovieSceneCapture->EndFrame = SequenceEndFrame;
 			}
 
 			IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);

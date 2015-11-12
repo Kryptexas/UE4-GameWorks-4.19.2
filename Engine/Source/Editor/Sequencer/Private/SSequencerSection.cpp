@@ -12,6 +12,7 @@
 #include "SequencerHotspots.h"
 #include "ScopedTransaction.h"
 
+double SSequencerSection::SelectionThrobEndTime = 0;
 
 /** When 0, regeneration of dynamic key layouts is enabled, when non-zero, such behaviour is disabled */
 FThreadSafeCounter LayoutRegenerationLock;
@@ -143,41 +144,42 @@ FSequencerSelectedKey SSequencerSection::CreateKeyUnderMouse( const FVector2D& M
 			}
 
 			FScopedTransaction CreateKeyTransaction(NSLOCTEXT("Sequencer", "CreateKey_Transaction", "Create Key"));
-			Section.Modify();
-
-			// If the pressed key exists, offset the new key and look for it in the newly laid out key areas
-			if (InPressedKey.IsValid())
+			if (Section.TryModify())
 			{
-				// Offset by 1 pixel worth of time
-				const float TimeFuzz = (GetSequencer().GetViewRange().GetUpperBoundValue() - GetSequencer().GetViewRange().GetLowerBoundValue()) / ParentGeometry.GetLocalSize().X;
-
-				TArray<FKeyHandle> KeyHandles = KeyArea->AddKeyUnique(KeyTime+TimeFuzz, GetSequencer().GetKeyInterpolation(), KeyTime);
-
-				Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
-
-				// Look specifically for the key with the offset key time
-				for (const FKeyAreaLayoutElement& NewElement : Layout->GetElements())
+				// If the pressed key exists, offset the new key and look for it in the newly laid out key areas
+				if (InPressedKey.IsValid())
 				{
-					TSharedPtr<IKeyArea> NewKeyArea = NewElement.GetKeyArea();
+					// Offset by 1 pixel worth of time
+					const float TimeFuzz = (GetSequencer().GetViewRange().GetUpperBoundValue() - GetSequencer().GetViewRange().GetLowerBoundValue()) / ParentGeometry.GetLocalSize().X;
 
-					for (auto KeyHandle : KeyHandles)
+					TArray<FKeyHandle> KeyHandles = KeyArea->AddKeyUnique(KeyTime+TimeFuzz, GetSequencer().GetKeyInterpolation(), KeyTime);
+
+					Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+
+					// Look specifically for the key with the offset key time
+					for (const FKeyAreaLayoutElement& NewElement : Layout->GetElements())
 					{
-						for (auto UnsortedKeyHandle : NewKeyArea->GetUnsortedKeyHandles())
+						TSharedPtr<IKeyArea> NewKeyArea = NewElement.GetKeyArea();
+
+						for (auto KeyHandle : KeyHandles)
 						{
-							if (FMath::IsNearlyEqual(KeyTime+TimeFuzz, NewKeyArea->GetKeyTime(UnsortedKeyHandle), KINDA_SMALL_NUMBER))
+							for (auto UnsortedKeyHandle : NewKeyArea->GetUnsortedKeyHandles())
 							{
-								return FSequencerSelectedKey(Section, NewKeyArea, UnsortedKeyHandle);
+								if (FMath::IsNearlyEqual(KeyTime+TimeFuzz, NewKeyArea->GetKeyTime(UnsortedKeyHandle), KINDA_SMALL_NUMBER))
+								{
+									return FSequencerSelectedKey(Section, NewKeyArea, UnsortedKeyHandle);
+								}
 							}
 						}
 					}
 				}
-			}
-			else
-			{
-				KeyArea->AddKeyUnique(KeyTime, GetSequencer().GetKeyInterpolation());
-				Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+				else
+				{
+					KeyArea->AddKeyUnique(KeyTime, GetSequencer().GetKeyInterpolation());
+					Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
 						
-				return GetKeyUnderMouse(MousePosition, AllottedGeometry);
+					return GetKeyUnderMouse(MousePosition, AllottedGeometry);
+				}
 			}
 		}
 	}
@@ -224,7 +226,8 @@ FSequencer& SSequencerSection::GetSequencer() const
 int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
-	bool bEnabled = bParentEnabled && SectionObject.IsActive();
+	const bool bEnabled = bParentEnabled && SectionObject.IsActive();
+	const bool bLocked = SectionObject.IsLocked();
 	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
@@ -238,6 +241,21 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	DrawSectionHandles(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, DrawEffects, SelectionColor);
 	DrawSelectionBorder(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, DrawEffects, SelectionColor);
 	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle, bEnabled );
+
+	if (bLocked)
+	{
+		static const FName SelectionBorder("Sequencer.Section.LockedBorder");
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			PostSectionLayer+1,
+			AllottedGeometry.ToPaintGeometry(),
+			FEditorStyle::GetBrush(SelectionBorder),
+			MyClippingRect,
+			DrawEffects,
+			FLinearColor::Red
+		);
+	}
 
 	// Section name with drop shadow
 	FText SectionTitle = SectionInterface->GetSectionTitle();
@@ -309,6 +327,8 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			* FLinearColor(.25, .25, .25, 1);  // Make the color a little darker since it's not very visible next to white key frames.
 	}
 
+	const float ThrobScaleValue = GetSelectionThrobValue();
+
 	// draw all keys in each key area
 	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
 
@@ -347,7 +367,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			BackgroundBrush,
 			MyClippingRect,
 			DrawEffects,
-			FLinearColor(0.1f, 0.1f, 0.1f, 0.7f)
+			KeyArea->GetColor()
 		); 
 
 		const int32 KeyLayer = LayerId + 1;
@@ -471,6 +491,9 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			// draw border
 			float KeyPosition = TimeToPixelConverter.TimeToPixel(KeyTime);
 
+			static FVector2D ThrobAmount(12.f, 12.f);
+			const FVector2D KeySize = bSelected ? SequencerSectionConstants::KeySize + ThrobAmount * ThrobScaleValue : SequencerSectionConstants::KeySize;
+
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				// always draw selected keys on top of other keys
@@ -478,10 +501,10 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 				// Center the key along Y.  Ensure the middle of the key is at the actual key time
 				KeyAreaGeometry.ToPaintGeometry(
 					FVector2D(
-						KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X / 2.0f),
-						((KeyAreaGeometry.Size.Y / 2.0f) - (SequencerSectionConstants::KeySize.Y / 2.0f))
+						KeyPosition - FMath::CeilToFloat(KeySize.X / 2.0f),
+						((KeyAreaGeometry.Size.Y / 2.0f) - (KeySize.Y / 2.0f))
 					),
-					SequencerSectionConstants::KeySize
+					KeySize
 				),
 				KeyBrush,
 				MyClippingRect,
@@ -497,10 +520,10 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 				// Center the key along Y.  Ensure the middle of the key is at the actual key time
 				KeyAreaGeometry.ToPaintGeometry(
 					FVector2D(
-						KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X / 2.0f - BrushBorderWidth),
-						((KeyAreaGeometry.Size.Y / 2.0f) - (SequencerSectionConstants::KeySize.Y / 2.0f - BrushBorderWidth))
+						KeyPosition - FMath::CeilToFloat(KeySize.X / 2.0f - BrushBorderWidth),
+						((KeyAreaGeometry.Size.Y / 2.0f) - (KeySize.Y / 2.0f - BrushBorderWidth))
 					),
-					SequencerSectionConstants::KeySize - 2.0f * BrushBorderWidth
+					KeySize - 2.0f * BrushBorderWidth
 				),
 				KeyBrush,
 				MyClippingRect,
@@ -644,13 +667,17 @@ FReply SSequencerSection::OnMouseButtonDown( const FGeometry& MyGeometry, const 
 
 		if (NewKey.IsValid())
 		{
+			HoveredKey = NewKey;
+
 			Sequencer.GetSelection().EmptySelectedKeys();
 			Sequencer.GetSelection().AddToSelection(NewKey);
 
 			// Pass the event to the tool to copy the hovered key and move it
 			auto& EditTool = GetSequencer().GetEditTool();
 			EditTool.SetHotspot( MakeShareable( new FKeyHotspot(NewKey, ParentSectionArea) ) );
-			return FReply::Handled();
+
+			// Return unhandled so that the EditTool can handle the mouse down based on the newly created keyframe and prepare to move it
+			return FReply::Unhandled();
 		}
 	}
 
@@ -713,4 +740,28 @@ void SSequencerSection::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	SCompoundWidget::OnMouseLeave( MouseEvent );
 	GetSequencer().GetEditTool().SetHotspot(nullptr);
+}
+
+static float ThrobDurationSeconds = .5f;
+void SSequencerSection::ThrobSelection(int32 ThrobCount)
+{
+	SelectionThrobEndTime = FPlatformTime::Seconds() + ThrobCount*ThrobDurationSeconds;
+}
+
+float EvaluateThrob(float Alpha)
+{
+	return .5f - FMath::Cos(FMath::Pow(Alpha, 0.5f) * 2 * PI) * .5f;
+}
+
+float SSequencerSection::GetSelectionThrobValue()
+{
+	double CurrentTime = FPlatformTime::Seconds();
+
+	if (SelectionThrobEndTime > CurrentTime)
+	{
+		float Difference = SelectionThrobEndTime - CurrentTime;
+		return EvaluateThrob(1.f - FMath::Fmod(Difference, ThrobDurationSeconds));
+	}
+
+	return 0.f;
 }

@@ -68,9 +68,6 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 				AnimPosition = FMath::Fmod(AnimPosition, SeqLength);
 				AnimPosition += AnimSection->GetStartOffset();
 
-				// Clamp to end of section
-				AnimPosition = FMath::Clamp(AnimPosition, AnimPosition, AnimSection->GetEndTime());
-
 				if (AnimSection->GetReverse())
 				{
 					AnimPosition = (SeqLength - (AnimPosition - AnimSection->GetStartOffset())) + AnimSection->GetStartOffset();

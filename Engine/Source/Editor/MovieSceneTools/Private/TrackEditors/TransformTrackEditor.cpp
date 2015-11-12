@@ -54,19 +54,23 @@ public:
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
+		static const FLinearColor BlueKeyAreaColor(0.0f, 0.0f, 0.7f, 0.2f);
+		static const FLinearColor GreenKeyAreaColor(0.0f, 0.7f, 0.0f, 0.2f);
+		static const FLinearColor RedKeyAreaColor(0.7f, 0.0f, 0.0f, 0.2f);
+
 		UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>( &Section );
 
-		TranslationXKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetTranslationCurve( EAxis::X ), TransformSection ) );
-		TranslationYKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetTranslationCurve( EAxis::Y ), TransformSection ) );
-		TranslationZKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetTranslationCurve( EAxis::Z ), TransformSection ) );
+		TranslationXKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetTranslationCurve(EAxis::X), TransformSection, RedKeyAreaColor));
+		TranslationYKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetTranslationCurve(EAxis::Y), TransformSection, GreenKeyAreaColor));
+		TranslationZKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetTranslationCurve(EAxis::Z), TransformSection, BlueKeyAreaColor));
 
-		RotationXKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetRotationCurve( EAxis::X ), TransformSection ) );
-		RotationYKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetRotationCurve( EAxis::Y ), TransformSection ) );
-		RotationZKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetRotationCurve( EAxis::Z ), TransformSection ) );
+		RotationXKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetRotationCurve(EAxis::X), TransformSection, RedKeyAreaColor));
+		RotationYKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetRotationCurve(EAxis::Y), TransformSection, GreenKeyAreaColor));
+		RotationZKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetRotationCurve(EAxis::Z), TransformSection, BlueKeyAreaColor));
 
-		ScaleXKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetScaleCurve( EAxis::X ), TransformSection ) );
-		ScaleYKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetScaleCurve( EAxis::Y ), TransformSection ) );
-		ScaleZKeyArea = MakeShareable( new FFloatCurveKeyArea( &TransformSection->GetScaleCurve( EAxis::Z ), TransformSection ) );
+		ScaleXKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetScaleCurve(EAxis::X), TransformSection, RedKeyAreaColor));
+		ScaleYKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetScaleCurve(EAxis::Y), TransformSection, GreenKeyAreaColor));
+		ScaleZKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetScaleCurve(EAxis::Z), TransformSection, BlueKeyAreaColor));
 
 		// This generates the tree structure for the transform section
 		LayoutBuilder.PushCategory( "Location", NSLOCTEXT("FTransformSection", "LocationArea", "Location") );

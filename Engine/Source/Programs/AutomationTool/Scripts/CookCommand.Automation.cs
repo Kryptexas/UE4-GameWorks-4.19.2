@@ -298,12 +298,20 @@ public partial class Project : CommandUtils
             try
             {
                 Directory.Delete(TemporaryPakPath, true);
+            }
+            catch(Exception Ex)
+            {
+                Log("Failed deleting temporary directories "+TemporaryPakPath+" continuing. "+ Ex.GetType().ToString());
+            }
+            try
+            {
                 Directory.Delete(TemporaryFilesPath, true);
             }
-            catch(Exception )
+            catch (Exception Ex)
             {
-                Log("Failed deleting temporary directories "+TemporaryPakPath+" "+TemporaryFilesPath+" continuing.");
+                Log("Failed deleting temporary directories " + TemporaryFilesPath + " continuing. " + Ex.GetType().ToString());
             }
+
             try
             {
 
@@ -322,7 +330,8 @@ public partial class Project : CommandUtils
                     CurrentPlatform.ExtractPackage(Params, Params.DiffCookedContentPath, TemporaryPakPath);
 
                     // find the pak file
-                    PakFiles = Directory.EnumerateFiles(TemporaryPakPath, "*.pak", SearchOption.AllDirectories).ToList();
+                    PakFiles.AddRange( Directory.EnumerateFiles(TemporaryPakPath, Params.ShortProjectName+"*.pak", SearchOption.AllDirectories));
+                    PakFiles.AddRange( Directory.EnumerateFiles(TemporaryPakPath, "pakchunk*.pak", SearchOption.AllDirectories));
                 }
 
                 string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
@@ -361,8 +370,14 @@ public partial class Project : CommandUtils
                     Log("Extracting pak " + Name + " for comparision to location " + TemporaryFilesPath);
 
                     string UnrealPakParams = Name + " -Extract " + " " + TemporaryFilesPath;
-
-                    RunAndLog(CmdEnv, UnrealPakExe, UnrealPakParams, Options: ERunOptions.Default | ERunOptions.UTF8Output | ERunOptions.LoggingOfRunDuration);
+                    try
+                    {
+                        RunAndLog(CmdEnv, UnrealPakExe, UnrealPakParams, Options: ERunOptions.Default | ERunOptions.UTF8Output | ERunOptions.LoggingOfRunDuration);
+                    }
+                    catch(Exception Ex)
+                    {
+                        Log("Pak failed to extract because of " + Ex.GetType().ToString());
+                    }
                 }
 
                 const string RootFailedContentDirectory = "\\\\epicgames.net\\root\\Developers\\Daniel.Lamb";

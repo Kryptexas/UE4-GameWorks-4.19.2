@@ -703,6 +703,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 				PSC->SetRelativeLocationAndRotation(Location, Rotation);
 			}
 			PSC->SetRelativeScale3D(FVector(1.f));
+			PSC->RegisterComponentWithWorld(AttachToComponent->GetWorld());
 			PSC->ActivateSystem(true);
 		}
 	}

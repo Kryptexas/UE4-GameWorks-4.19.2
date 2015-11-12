@@ -30,15 +30,12 @@ void ULevelCapture::Tick(float DeltaSeconds)
 	AActor* PrerequisiteActorPtr = PrerequisiteActor.Get();
 	if (!PrerequisiteActorId.IsValid() || (PrerequisiteActorPtr && PrerequisiteActorPtr->HasActorBegunPlay()))
 	{
-		if( !Settings.bUseCustomStartFrame || GetMetrics().Frame >= Settings.StartFrame )
+		if (!bCapturing)
 		{
-			if (!bCapturing)
-			{
-				StartCapture();
-			}
-
-			PrepareForScreenshot();
+			StartCapture();
 		}
+
+		PrepareForScreenshot();
 	}
 }
 

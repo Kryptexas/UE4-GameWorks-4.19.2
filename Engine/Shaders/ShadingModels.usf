@@ -667,32 +667,24 @@ float3 SubsurfaceShadingTwoSided( float3 SubsurfaceColor, float3 L, float3 V, ha
 float3 EyeShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N )
 {
 	float3 H = normalize(V + L);
+	float NoL = saturate( dot(N, L) );
+	float NoV = max( dot(N, V), 1e-5 );	// constant to prevent NaN
+	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
-
-	float3 F = F_Schlick( GBuffer.SpecularColor, VoH );
-
-	//
-	// Cornea Reflectance - Use geo normal
-	//
-	float CNoL = saturate( dot(N, L) );
-	float CNoV = max( dot(N, V), 1e-5 );	// constant to prevent NaN
-	float CNoH = saturate( dot(N, H) );
 	
 	// Generalized microfacet specular
-	float D = D_GGX( LobeRoughness[1], CNoH ) * LobeEnergy[1];
-	float Vis = Vis_SmithJointApprox( LobeRoughness[1], CNoV, CNoL );
+	float D = D_GGX( LobeRoughness[1], NoH ) * LobeEnergy[1];
+	float Vis = Vis_SmithJointApprox( LobeRoughness[1], NoV, NoL );
+	float3 F = F_Schlick( GBuffer.SpecularColor, VoH );
 
-	// Cornea Specular - Covers the whole surface
-	float3 CorneaSpecular;
-	CorneaSpecular = D * Vis * F;
-
-	return CorneaSpecular;
+	return D * Vis * F;
 }
 
-float3 EyeSubsurfaceShading(  FGBufferData GBuffer, float3 L, float3 V, half3 N )
+float3 EyeSubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
 	float3 H = normalize(V + L);
 	float VoH = saturate( dot(V, H) );
+	float NoV = max( dot(N, V), 1e-5 );
 
 	// F_Schlick
 	float F0 = GBuffer.SpecularColor;
@@ -709,20 +701,18 @@ float3 EyeSubsurfaceShading(  FGBufferData GBuffer, float3 L, float3 V, half3 N 
 	// Not great as it ties the concavity to the convexity of the cornea surface
 	// No good justification for that. On the other hand, if we're just looking to
 	// introduce some concavity, this does the job.
-	IrisNormal = normalize(lerp(IrisNormal, -N, IrisMask*IrisDistance));
+	float3 CausticNormal = normalize(lerp(IrisNormal, -N, IrisMask*IrisDistance));
 
-	// Use IrisNormal only within the Iris
-	IrisNormal = lerp(N, IrisNormal, IrisMask);
-	IrisNormal = normalize( IrisNormal );
+	float NoL = saturate( dot( IrisNormal, L ) );
+	float Power = lerp( 12, 1, NoL );
+	float Caustic = 0.5 + 0.5 * ( Power + 1 ) * pow( saturate( dot( CausticNormal, L ) ), Power );
+	float Iris = NoL * Caustic;
 
 	// http://blog.stevemcauley.com/2011/12/03/energy-conserving-wrapped-diffuse/
-	float Wrap = 0.1;
-	float INoL = saturate( ( dot(IrisNormal, L) + Wrap ) / Square( 1 + Wrap ) );
+	float Wrap = 0.15;
+	float Sclera = saturate( ( dot(N, L) + Wrap ) / Square( 1 + Wrap ) );
 	
-	float3 rawResult = (1 - F) * INoL * GBuffer.DiffuseColor / PI;
-
-	// Covers whole object
-	return rawResult;
+	return (1 - F) * lerp( Sclera, Iris, IrisMask ) * GBuffer.DiffuseColor / PI;
 }
 
 Texture2D		PreIntegratedBRDF;

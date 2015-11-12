@@ -3,7 +3,8 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "FloatCurveKeyArea.h"
 #include "SFloatCurveKeyEditor.h"
-
+#include "MovieSceneClipboard.h"
+#include "SequencerClipboardReconciler.h"
 
 /* IKeyArea interface
  *****************************************************************************/
@@ -86,6 +87,12 @@ void FFloatCurveKeyArea::DeleteKey(FKeyHandle KeyHandle)
 	{
 		Curve->DeleteKey(KeyHandle);
 	}
+}
+
+
+FLinearColor FFloatCurveKeyArea::GetColor()
+{
+	return Color;
 }
 
 
@@ -193,4 +200,70 @@ void FFloatCurveKeyArea::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTange
 void FFloatCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
 {
 	Curve->SetKeyTime(KeyHandle, NewKeyTime);
+}
+
+void FFloatCurveKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const
+{
+	const UMovieSceneSection* Section = const_cast<FFloatCurveKeyArea*>(this)->GetOwningSection();
+	UMovieSceneTrack* Track = Section ? Section->GetTypedOuter<UMovieSceneTrack>() : nullptr;
+	if (!Track)
+	{
+		return;
+	}
+
+	FMovieSceneClipboardKeyTrack* KeyTrack = nullptr;
+
+	for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+	{
+		FKeyHandle Handle = It.Key();
+		if (KeyMask(Handle, *this))
+		{
+			if (!KeyTrack)
+			{
+				KeyTrack = &ClipboardBuilder.FindOrAddKeyTrack<FRichCurveKey>(GetName(), *Track);
+			}
+
+			FRichCurveKey Key = Curve->GetKey(Handle);
+			KeyTrack->AddKey(Key.Time, Key);
+		}
+	}
+}
+
+void FFloatCurveKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment)
+{
+	float PasteAt = DstEnvironment.CardinalTime;
+
+	KeyTrack.IterateKeys([&](const FMovieSceneClipboardKey& Key){
+		UMovieSceneSection* Section = GetOwningSection();
+		if (!Section)
+		{
+			return true;
+		}
+
+		if (Section->TryModify())
+		{
+			float Time = PasteAt + Key.GetTime();
+			if (Section->GetStartTime() > Time)
+			{
+				Section->SetStartTime(Time);
+			}
+			if (Section->GetEndTime() < Time)
+			{
+				Section->SetEndTime(Time);
+			}
+
+			FRichCurveKey NewKey = Key.GetValue<FRichCurveKey>();
+
+			// Rich curve keys store their time internally, so we need to ensure they are set up correctly here (if there's been some conversion, for instance)
+			NewKey.Time = Time;
+
+			FKeyHandle KeyHandle = Curve->UpdateOrAddKey(Time, NewKey.Value);
+			// Ensure the rest of the key properties are added
+			Curve->GetKey(KeyHandle) = NewKey;
+
+			DstEnvironment.ReportPastedKey(KeyHandle, *this);
+		}
+
+		return true;
+	});
 }

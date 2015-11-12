@@ -24,6 +24,7 @@ DEFINE_LOG_CATEGORY(LogSecurity);
 DEFINE_LOG_CATEGORY_STATIC(LogNetPartialBunch, Warning, All);
 
 DECLARE_CYCLE_STAT(TEXT("ActorChan_ReceivedBunch"), Stat_ActorChanReceivedBunch, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("ActorChan_CleanUp"), Stat_ActorChanCleanUp, STATGROUP_Net);
 
 extern FAutoConsoleVariable CVarDoReplicationContextString;
 
@@ -1521,6 +1522,8 @@ void UActorChannel::DestroyActorAndComponents()
 
 bool UActorChannel::CleanUp( const bool bForDestroy )
 {
+	SCOPE_CYCLE_COUNTER(Stat_ActorChanCleanUp);
+
 	checkf(Connection != nullptr, TEXT("UActorChannel::CleanUp: Connection is null!"));
 	checkf(Connection->Driver != nullptr, TEXT("UActorChannel::CleanUp: Connection->Driver is null!"));
 

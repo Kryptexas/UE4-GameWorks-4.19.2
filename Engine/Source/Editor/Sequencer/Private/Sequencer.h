@@ -4,6 +4,7 @@
 
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "EditorUndoClient.h"
+#include "MovieSceneClipboard.h"
 
 
 class FMenuBuilder;
@@ -293,10 +294,32 @@ public:
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
 
+	/** Called when a user executes the active node menu item */
+	void ToggleNodeActive();
+	bool IsNodeActive() const;
+
+	/** Called when a user executes the locked node menu item */
+	void ToggleNodeLocked();
+	bool IsNodeLocked() const;
+
 	/** Called when a user executes the set key time for selected keys */
 	bool CanSetKeyTime() const;
 	void SetKeyTime(const bool bUseFrames);
 	void OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, const bool bUseFrames);
+
+public:
+
+	/** Copy the selected keys to the clipboard */
+	void CopySelectedKeys();
+
+	/** Copy the selected keys to the clipboard, then delete them as part of an undoable transaction */
+	void CutSelectedKeys();
+
+	/** Get the in-memory clipboard stack */
+	const TArray<TSharedPtr<FMovieSceneClipboard>>& GetClipboardStack() const;
+
+	/** Promote a clipboard to the top of the clipboard stack, and update its timestamp */
+	void OnClipboardUsed(TSharedPtr<FMovieSceneClipboard> Clipboard);
 
 public:
 
@@ -456,6 +479,7 @@ protected:
 
 	void ActivateDetailKeyframeHandler();
 	void DeactivateDetailKeyframeHandler();
+	void OnPropertyEditorOpened();
 
 	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;

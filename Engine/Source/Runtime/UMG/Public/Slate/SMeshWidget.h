@@ -10,7 +10,7 @@ class USlateVectorArtData;
  * The Mesh's material is used.
  * Hardware instancing is supported.
  */
-class UMG_API SMeshWidget : public SLeafWidget
+class UMG_API SMeshWidget : public SLeafWidget, public FGCObject
 {
 public:
 	SLATE_BEGIN_ARGS(SMeshWidget)
@@ -45,14 +45,22 @@ public:
 		RenderRuns.Add(FRenderRun(InMeshIndex, InInstanceOffset, InNumInstances));
 	}
 
-	/** Begin an update to the per instance buffer. Enables hardware instancing. */
+	/** Enable hardware instancing */
+	void EnableInstancing(uint32 MeshId, int32 InitialSize);
+	/** Begin an update to the per instance buffer. Automatically enables hardware instancing. */
 	TSharedPtr<FSlateInstanceBufferUpdate> BeginPerInstanceBufferUpdate(uint32 MeshId, int32 InitialSize);
+	/** Begin an update to the per instance buffer. Use */
+	TSharedPtr<FSlateInstanceBufferUpdate> BeginPerInstanceBufferUpdateConst(uint32 MeshId) const;
 
 protected:
 	// BEGIN SLeafWidget interface
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	// END SLeafWidget interface
+
+	// ~ FGCObject
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// ~ FGCObject
 
 private:
 

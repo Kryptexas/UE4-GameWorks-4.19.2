@@ -485,7 +485,7 @@ protected:
 	 * @param InMemberId id of the leaving member
 	 * @param Reason reason the member left
 	 */
-	void HandlePartyMemberLeft(const FUniqueNetId& InMemberId, EMemberExitedReason Reason);
+	virtual void HandlePartyMemberLeft(const FUniqueNetId& InMemberId, EMemberExitedReason Reason);
 
 	/**
 	 * Called for all existing party members when an existing member is promoted to leader

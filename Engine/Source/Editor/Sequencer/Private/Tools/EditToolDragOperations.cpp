@@ -111,18 +111,25 @@ int32 FEditToolDragOperation::OnPaint(const FGeometry& AllottedGeometry, const F
 	return LayerId;
 }
 
-void FEditToolDragOperation::BeginTransaction( const TArray< FSectionHandle >& Sections, const FText& TransactionDesc )
+void FEditToolDragOperation::BeginTransaction( TArray< FSectionHandle >& Sections, const FText& TransactionDesc )
 {
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
 	Transaction.Reset( new FScopedTransaction(TransactionDesc) );
 
-	for (auto& Handle : Sections)
+	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); )
 	{
-		UMovieSceneSection* SectionObj = Handle.GetSectionObject();
+		UMovieSceneSection* SectionObj = Sections[SectionIndex].GetSectionObject();
 
 		SectionObj->SetFlags( RF_Transactional );
 		// Save the current state of the section
-		SectionObj->Modify();
+		if (SectionObj->TryModify())
+		{
+			++SectionIndex;
+		}
+		else
+		{
+			Sections.RemoveAt(SectionIndex);
+		}
 	}
 }
 
@@ -450,11 +457,12 @@ void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 	SnapField = FSequencerSnapField(Sequencer, SnapCandidates);
 
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
-	BeginTransaction( TArray< FSectionHandle >(), NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
+	TArray<FSectionHandle> DummySections;
+	BeginTransaction( DummySections, NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
 
 	const float MouseTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
-
-	TSet<UMovieSceneSection*> ModifiedSections;
+	
+	ModifiedSections.Empty();
 	for( FSequencerSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
@@ -467,10 +475,11 @@ void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 			OwningSection->SetFlags( RF_Transactional );
 
 			// Save the current state of the section
-			OwningSection->Modify();
-
-			// Section has been modified
-			ModifiedSections.Add( OwningSection );
+			if (OwningSection->TryModify())
+			{
+				// Section has been modified
+				ModifiedSections.Add( OwningSection );
+			}
 		}
 	}
 }
@@ -520,6 +529,11 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 	{
 		UMovieSceneSection* Section = SelectedKey.Section;
 
+		if (!ModifiedSections.Contains(Section))
+		{
+			continue;
+		}
+
 		TSharedPtr<IKeyArea>& KeyArea = SelectedKey.KeyArea;
 
 		float NewKeyTime = MouseTime + RelativeOffsets.FindRef(SelectedKey);
@@ -560,6 +574,7 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 
 void FMoveKeys::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
+	ModifiedSections.Empty();
 	EndTransaction();
 	SSequencerSection::EnableLayoutRegeneration();
 }

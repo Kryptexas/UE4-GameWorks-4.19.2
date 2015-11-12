@@ -2,19 +2,21 @@
 
 #pragma once
 
-#include "IKeyArea.h"
+#include "NamedKeyArea.h"
+#include "ClipboardTypes.h"
 
 
 /**
  * A key area for float keys
  */
 class MOVIESCENETOOLS_API FFloatCurveKeyArea
-	: public IKeyArea
+	: public FNamedKeyArea
 {
 public:
 
-	FFloatCurveKeyArea(FRichCurve* InCurve, UMovieSceneSection* InOwningSection)
-		: Curve(InCurve)
+	FFloatCurveKeyArea(FRichCurve* InCurve, UMovieSceneSection* InOwningSection, const FLinearColor& InColor = FLinearColor(0.1f, 0.1f, 0.1f, 0.7f))
+		: Color(InColor)
+		, Curve(InCurve)
 		, OwningSection(InOwningSection)
 	{ }
 
@@ -38,6 +40,7 @@ public:
 	virtual bool CanCreateKeyEditor() override;
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 	virtual void DeleteKey(FKeyHandle KeyHandle) override;
+	virtual FLinearColor GetColor() override;
 	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const override;
 	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override;
@@ -50,8 +53,13 @@ public:
 	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override;
 	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override;
 	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override;
+	virtual void CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const override;
+	virtual void PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment) override;
 
 private:
+
+	/** The key area's color. */
+	FLinearColor Color;
 
 	/** The curve which provides the keys for this key area. */
 	FRichCurve* Curve;

@@ -88,8 +88,11 @@ bool FMaterialParameterSection::RequestDeleteCategory( const TArray<FName>& Cate
 {
 	const FScopedTransaction Transaction( LOCTEXT( "DeleteVectorParameter", "Delete vector parameter" ) );
 	UMovieSceneMaterialParameterSection* ParameterSection = Cast<UMovieSceneMaterialParameterSection>( &SectionObject );
-	ParameterSection->Modify();
-	return ParameterSection->RemoveVectorParameter( CategoryNamePath[0] );
+	if (ParameterSection->TryModify())
+	{
+		return ParameterSection->RemoveVectorParameter( CategoryNamePath[0] );
+	}
+	return false;
 }
 
 
@@ -100,8 +103,10 @@ bool FMaterialParameterSection::RequestDeleteKeyArea( const TArray<FName>& KeyAr
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "DeleteScalarParameter", "Delete scalar parameter" ) );
 		UMovieSceneMaterialParameterSection* ParameterSection = Cast<UMovieSceneMaterialParameterSection>( &SectionObject );
-		ParameterSection->Modify();
-		return ParameterSection->RemoveScalarParameter( KeyAreaNamePath[0] );
+		if (ParameterSection->TryModify())
+		{
+			return ParameterSection->RemoveScalarParameter( KeyAreaNamePath[0] );
+		}
 	}
 	return false;
 }

@@ -104,13 +104,22 @@ void SMeshWidget::ClearRuns(int32 NumRuns)
 }
 
 static const FName SlateRHIModuleName("SlateRHIRenderer");
-TSharedPtr<FSlateInstanceBufferUpdate> SMeshWidget::BeginPerInstanceBufferUpdate(uint32 MeshId, int32 InitialSize)
+void SMeshWidget::EnableInstancing(uint32 MeshId, int32 InitialSize)
 {
 	if (!RenderData[MeshId].PerInstanceBuffer.IsValid())
 	{
 		RenderData[MeshId].PerInstanceBuffer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>(SlateRHIModuleName).CreateInstanceBuffer(InitialSize);
 	}
+}
 
+TSharedPtr<FSlateInstanceBufferUpdate> SMeshWidget::BeginPerInstanceBufferUpdate(uint32 MeshId, int32 InitialSize)
+{
+	EnableInstancing(MeshId, InitialSize);
+	return BeginPerInstanceBufferUpdateConst( MeshId );
+}
+
+TSharedPtr<FSlateInstanceBufferUpdate> SMeshWidget::BeginPerInstanceBufferUpdateConst(uint32 MeshId) const
+{
 	return RenderData[MeshId].PerInstanceBuffer->BeginUpdate();
 }
 
@@ -190,3 +199,16 @@ FVector2D SMeshWidget::ComputeDesiredSize(float) const
 }
 
 
+
+
+void SMeshWidget::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	for (const FRenderData& SomeRenderData : RenderData)
+	{
+		if (SomeRenderData.Brush.IsValid())
+		{
+			UObject* ResourceObject = SomeRenderData.Brush->GetResourceObject();
+			Collector.AddReferencedObject(ResourceObject);
+		}
+	}
+}

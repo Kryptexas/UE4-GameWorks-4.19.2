@@ -88,6 +88,12 @@ public:
 	/** Convert the static mesh data into slate vector art on demand. Does nothing in a cooked build. */
 	void EnsureValidData();
 
+	FVector2D GetDesiredSize() const;
+
+	FVector2D GetExtentMin() const;
+
+	FVector2D GetExtentMax() const;
+
 private:
 	// ~ UObject Interface
 	virtual void PreSave() override;
@@ -100,6 +106,10 @@ private:
 	/** The mesh data asset from which the vector art is sourced */
 	UPROPERTY(EditAnywhere, Category="Vector Art" )
 	UStaticMesh* MeshAsset;
+
+	/** The material which we are using, or the material from with the MIC was constructed. */
+	UPROPERTY(Transient)
+	UMaterialInterface* SourceMaterial;
 #endif
 
 	/** @see GetVertexData() */
@@ -113,4 +123,10 @@ private:
 	/** @see GetMaterial() */
 	UPROPERTY()
 	UMaterialInterface* Material;
+
+	UPROPERTY()
+	FVector2D ExtentMin;
+
+	UPROPERTY()
+	FVector2D ExtentMax;
 };

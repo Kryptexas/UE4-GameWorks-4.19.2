@@ -32,6 +32,11 @@ void FRendererModule::SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY
 	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
 }
 
+void FRendererModule::InitializeSystemTextures(FRHICommandListImmediate& RHICmdList)
+{
+	GSystemTextures.InitializeTextures(RHICmdList, GMaxRHIFeatureLevel);
+}
+
 void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
 {
 	// Create an FViewInfo so we can initialize its RHI resources

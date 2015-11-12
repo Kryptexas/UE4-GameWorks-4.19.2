@@ -635,7 +635,7 @@ void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMak
 	{
 		// Generate an object name for the actor's label
 		const FName OldActorName = GetFName();
-		FName NewActorName = MakeObjectNameFromActorLabel( GetActorLabel(), OldActorName );
+		FName NewActorName = MakeObjectNameFromDisplayLabel( GetActorLabel(), OldActorName );
 
 		// Has anything changed?
 		if( OldActorName != NewActorName )

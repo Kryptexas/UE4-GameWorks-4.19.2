@@ -388,7 +388,57 @@ bool FGroupedKeyArea::CanCreateKeyEditor()
 	return false;
 }
 
+
+void FGroupedKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const
+{
+	const FIndexEntry* IndexEntry = GlobalIndex.Find(IndexKey);
+	if (!IndexEntry)
+	{
+		return;
+	}
+
+	// Since we are a group of nested key areas, we test the key mask for our key handles, and forward on the results to each key area
+
+	// Using ptr as map key is fine here as we know they will not change
+	TMap<const IKeyArea*, TSet<FKeyHandle>> AllValidHandles;
+
+	for (auto& Pair : IndexEntry->HandleToGroup)
+	{
+		if (!KeyMask(Pair.Key, *this) || !Groups.IsValidIndex(Pair.Value))
+		{
+			continue;
+		}
+
+		const FKeyGrouping& Group = Groups[Pair.Value];
+		for (const FKeyGrouping::FKeyIndex& KeyIndex : Group.Keys)
+		{
+			const IKeyArea& KeyArea = KeyAreas[KeyIndex.AreaIndex].Get();
+			AllValidHandles.FindOrAdd(&KeyArea).Add(KeyIndex.KeyHandle);
+		}
+	}
+
+	for (auto& Pair : AllValidHandles)
+	{
+		Pair.Key->CopyKeys(ClipboardBuilder, [&](FKeyHandle Handle, const IKeyArea&){
+			return Pair.Value.Contains(Handle);
+		});
+	}
+}
+
+
 TSharedRef<SWidget> FGroupedKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
 	return SNullWidget::NullWidget;
+}
+
+
+FLinearColor FGroupedKeyArea::GetColor()
+{
+	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
+}
+
+
+void FGroupedKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment)
+{
+	checkf(false, TEXT("Pasting into grouped key areas is not supported, and should not be used. Iterate child tracks instead."));
 }

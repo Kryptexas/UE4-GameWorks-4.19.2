@@ -86,7 +86,7 @@ private:
 
 		for (int32 Index = 0; Index < Handlers.Num(); ++Index)
 		{
-			if (!Handlers[Index])
+			if (!Handlers[Index] || CapturedIndex == Index)
 			{
 				continue;
 			}

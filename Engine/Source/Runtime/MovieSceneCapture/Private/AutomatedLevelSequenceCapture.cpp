@@ -16,7 +16,15 @@ UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInit
 		checkf(false, TEXT("Automated level sequence captures can only be used in editor builds."));
 	}
 #else
-	bStageSequence = false;
+	bUseCustomStartFrame = false;
+	StartFrame = 0;
+	bUseCustomEndFrame = false;
+	EndFrame = 1;
+	WarmUpFrameCount = 0;
+	DelayBeforeWarmUp = 0.0f;
+
+	RemainingDelaySeconds = 0.0f;
+	RemainingWarmUpFrames = 0;
 #endif
 }
 
@@ -44,16 +52,30 @@ void UAutomatedLevelSequenceCapture::Initialize(TWeakPtr<FSceneViewport> InViewp
 			LevelSequenceActorId = FGuid();
 		}
 
-		float PrerollOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MoviePrerollSeconds=" ), PrerollOverride ) )
+		int32 StartFrameOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieStartFrame=" ), StartFrameOverride ) )
 		{
-			PrerollAmount = PrerollOverride;
+			bUseCustomStartFrame = true;
+			StartFrame = StartFrameOverride;
 		}
 
-		bool bStageSequenceOverride;
-		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MoviePreStage=" ), bStageSequenceOverride ) )
+		int32 EndFrameOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieEndFrame=" ), EndFrameOverride ) )
 		{
-			bStageSequence = bStageSequenceOverride;
+			bUseCustomEndFrame = true;
+			EndFrame = EndFrameOverride;
+		}
+
+		int32 WarmUpFrameCountOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieWarmUpFrames=" ), WarmUpFrameCountOverride ) )
+		{
+			WarmUpFrameCount = WarmUpFrameCountOverride;
+		}
+
+		float DelayBeforeWarmUpOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieDelayBeforeWarmUp=" ), DelayBeforeWarmUpOverride ) )
+		{
+			DelayBeforeWarmUp = DelayBeforeWarmUpOverride;
 		}
 	}
 
@@ -100,8 +122,9 @@ void UAutomatedLevelSequenceCapture::Initialize(TWeakPtr<FSceneViewport> InViewp
 			OnPlayerUpdatedBinding = Actor->SequencePlayer->OnSequenceUpdated().AddUObject( this, &UAutomatedLevelSequenceCapture::SequenceUpdated );
 		}
 	}
-	
-	PrerollTime = 0.f;
+
+	CaptureState = ELevelSequenceCaptureState::DelayBeforeWarmUp;
+	RemainingDelaySeconds = FMath::Max( 0.0f, DelayBeforeWarmUp );
 	CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
 
 	Super::Initialize(InViewport);
@@ -119,7 +142,6 @@ void UAutomatedLevelSequenceCapture::SetupFrameRange()
 			UMovieScene* MovieScene = LevelSequence->GetMovieScene();
 			if( MovieScene != nullptr )
 			{
-				// We always add 1 to the number of frames we want to capture, because we want to capture both the start and end frames (which if the play range is 0, would still yield a single frame)
 				const int32 SequenceStartFrame = FMath::RoundToInt( MovieScene->GetPlaybackRange().GetLowerBoundValue() * Settings.FrameRate );
 				const int32 SequenceEndFrame = FMath::Max( SequenceStartFrame, FMath::RoundToInt( MovieScene->GetPlaybackRange().GetUpperBoundValue() * Settings.FrameRate ) );
 
@@ -127,21 +149,32 @@ void UAutomatedLevelSequenceCapture::SetupFrameRange()
 				int32 PlaybackStartFrame = SequenceStartFrame;
 				int32 PlaybackEndFrame = SequenceEndFrame;
 
-				if( Settings.bUseCustomStartFrame )
+				if( bUseCustomStartFrame )
 				{
-					PlaybackStartFrame = Settings.bUseRelativeFrameNumbers ? ( SequenceStartFrame + Settings.StartFrame ) : Settings.StartFrame;
+					PlaybackStartFrame = Settings.bUseRelativeFrameNumbers ? ( SequenceStartFrame + StartFrame ) : StartFrame;
 				}
-
-				if( Settings.bUseCustomEndFrame )
-				{
-					PlaybackEndFrame = FMath::Max( PlaybackStartFrame, Settings.bUseRelativeFrameNumbers ? ( SequenceEndFrame + Settings.EndFrame ) : Settings.EndFrame );
-				}
-
-				this->FrameCount = ( PlaybackEndFrame - PlaybackStartFrame ) + 1;
 
 				if( !Settings.bUseRelativeFrameNumbers )
 				{
+					// NOTE: The frame number will be an offset from the first frame that we start capturing on, not the frame
+					// that we start playback at (in the case of WarmUpFrameCount being non-zero).  So we'll cache out frame
+					// number offset before adjusting for the warm up frames.
 					this->FrameNumberOffset = PlaybackStartFrame;
+				}
+
+				if( bUseCustomEndFrame )
+				{
+					PlaybackEndFrame = FMath::Max( PlaybackStartFrame, Settings.bUseRelativeFrameNumbers ? ( SequenceEndFrame + EndFrame ) : EndFrame );
+				}
+
+				// We always add 1 to the number of frames we want to capture, because we want to capture both the start and end frames (which if the play range is 0, would still yield a single frame)
+				this->FrameCount = ( PlaybackEndFrame - PlaybackStartFrame ) + 1;
+
+				RemainingWarmUpFrames = FMath::Max( WarmUpFrameCount, 0 );
+				if( RemainingWarmUpFrames > 0 )
+				{
+					// We were asked to playback additional frames before we start capturing
+					PlaybackStartFrame -= RemainingWarmUpFrames;
 				}
 
 				// Override the movie scene's playback range
@@ -182,36 +215,63 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 
 	if (Actor && Actor->SequencePlayer)
 	{
-		// First off, check if we need to stage the sequence
-		if (bStageSequence)
+		// First off we'll stage the sequence.  This just means we'll play the first frame of the animation
+		// and then pause it immediately
+		if( CaptureState == ELevelSequenceCaptureState::Staging )
 		{
 			Actor->SequencePlayer->Play();
 			Actor->SequencePlayer->Pause();
-			bStageSequence = false;
+
+			CaptureState = ELevelSequenceCaptureState::DelayBeforeWarmUp;
 		}
 
-		// Then handle any preroll
-		if (PrerollTime.IsSet())
+		// Then we'll just wait a little bit.  We'll delay the specified number of seconds before capturing to allow any
+		// textures to stream in or post processing effects to settle.
+		if( CaptureState == ELevelSequenceCaptureState::DelayBeforeWarmUp )
 		{
-			float& Value = PrerollTime.GetValue();
-			Value += DeltaSeconds;
-			if (Value >= PrerollAmount)
+			RemainingDelaySeconds -= DeltaSeconds;
+			if( RemainingDelaySeconds <= 0.0f )
 			{
-				Actor->SequencePlayer->Play();
+				RemainingDelaySeconds = 0.0f;
 
+				// Start warming up.  Even if we're not capturing yet, this will make sure we're rendering at a
+				// fixed frame rate.
+				StartWarmup();
+
+				// Wait a frame to go by after we've set the fixed time step, so that the animation starts
+				// playback at a consistent time
+				CaptureState = ELevelSequenceCaptureState::ReadyToWarmUp;
+			}
+		}
+		else if( CaptureState == ELevelSequenceCaptureState::ReadyToWarmUp )
+		{
+			Actor->SequencePlayer->Play();
+			CaptureState = ELevelSequenceCaptureState::WarmingUp;
+		}
+
+
+		if( CaptureState == ELevelSequenceCaptureState::WarmingUp )
+		{
+			// Count down our warm up frames
+			if( RemainingWarmUpFrames == 0 )
+			{
+				CaptureState = ELevelSequenceCaptureState::FinishedWarmUp;
+
+				// It's time to start capturing!
 				StartCapture();
-
-				PrerollTime.Reset();
+			}
+			else
+			{
+				// Not ready to capture just yet
+				--RemainingWarmUpFrames;
 			}
 		}
 
-		if( !PrerollTime.IsSet() )
+
+		if( bAnyFramesToCapture && OutstandingFrameCount == 0 )
 		{
-			if( bAnyFramesToCapture && OutstandingFrameCount == 0 )
-			{
-				// If we hit this, then we've rendered out the last frame and can stop!
-				StopCapture();
-			}
+			// If we hit this, then we've rendered out the last frame and can stop!
+			StopCapture();
 		}
 	}
 }

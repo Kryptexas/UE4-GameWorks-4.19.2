@@ -1466,6 +1466,17 @@ void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr
 	check( GotoCheckpointDelegate.IsBound() );
 	check( DownloadCheckpointIndex >= 0 );
 
+	// If we get here after StopStreaming was called, then assume this operation should be cancelled
+	// A more correct fix would be to actually cancel this in-flight request when StopStreaming is called
+	// But for now, this is a safe change, and can co-exist with the more proper fix
+	if ( bStopStreamingCalled )
+	{
+		GotoCheckpointDelegate	= FOnCheckpointReadyDelegate();
+		DownloadCheckpointIndex = -1;
+		LastGotoTimeInMS		= -1;
+		return;
+	}
+
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		if ( HttpResponse->GetContent().Num() == 0 )

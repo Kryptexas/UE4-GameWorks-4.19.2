@@ -10,8 +10,20 @@ UMovieSceneSection::UMovieSceneSection( const FObjectInitializer& ObjectInitiali
 	, EndTime(0.0f)
 	, RowIndex(0)
 	, bIsActive(true)
+	, bIsLocked(false)
 	, bIsInfinite(false)
 { }
+
+bool
+UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
+{
+	if (IsLocked())
+	{
+		return false;
+	}
+
+	return Modify(bAlwaysMarkDirty);
+}
 
 
 const UMovieSceneSection* UMovieSceneSection::OverlapsWithSections(const TArray<UMovieSceneSection*>& Sections, int32 TrackDelta, float TimeDelta) const
@@ -75,25 +87,29 @@ UMovieSceneSection* UMovieSceneSection::SplitSection(float SplitTime)
 	}
 
 	SetFlags(RF_Transactional);
-	Modify();
 
-	float SectionEndTime = GetEndTime();
+	if (TryModify())
+	{
+		float SectionEndTime = GetEndTime();
 				
-	// Trim off the right
-	SetEndTime(SplitTime);
+		// Trim off the right
+		SetEndTime(SplitTime);
 
-	// Create a new section
-	UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>(GetOuter());
-	Track->Modify();
+		// Create a new section
+		UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>(GetOuter());
+		Track->Modify();
 
-	UMovieSceneSection* NewSection = DuplicateObject<UMovieSceneSection>(this, Track);
-	ensure(NewSection);
+		UMovieSceneSection* NewSection = DuplicateObject<UMovieSceneSection>(this, Track);
+		ensure(NewSection);
 
-	NewSection->SetStartTime(SplitTime);
-	NewSection->SetEndTime(SectionEndTime);
-	Track->AddSection(*NewSection);
+		NewSection->SetStartTime(SplitTime);
+		NewSection->SetEndTime(SectionEndTime);
+		Track->AddSection(*NewSection);
 
-	return NewSection;
+		return NewSection;
+	}
+
+	return nullptr;
 }
 
 
@@ -102,15 +118,16 @@ void UMovieSceneSection::TrimSection(float TrimTime, bool bTrimLeft)
 	if (IsTimeWithinSection(TrimTime))
 	{
 		SetFlags(RF_Transactional);
-		Modify();
-
-		if (bTrimLeft)
+		if (TryModify())
 		{
-			SetStartTime(TrimTime);
-		}
-		else
-		{
-			SetEndTime(TrimTime);
+			if (bTrimLeft)
+			{
+				SetStartTime(TrimTime);
+			}
+			else
+			{
+				SetEndTime(TrimTime);
+			}
 		}
 	}
 }
@@ -119,21 +136,25 @@ void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Va
 {
 	if (IsTimeWithinSection(Time))
 	{
-		Modify();
-		FKeyHandle ExistingKeyHandle = InCurve.FindKey(Time);
-			
-		FKeyHandle NewKeyHandle = InCurve.UpdateOrAddKey(Time, Value, bUnwindRotation);
-
-		if (!InCurve.IsKeyHandleValid(ExistingKeyHandle) && InCurve.IsKeyHandleValid(NewKeyHandle))
+		if (TryModify())
 		{
-			MovieSceneHelpers::SetKeyInterpolation(InCurve, NewKeyHandle, Interpolation);
+			FKeyHandle ExistingKeyHandle = InCurve.FindKey(Time);
+				
+			FKeyHandle NewKeyHandle = InCurve.UpdateOrAddKey(Time, Value, bUnwindRotation);
+
+			if (!InCurve.IsKeyHandleValid(ExistingKeyHandle) && InCurve.IsKeyHandleValid(NewKeyHandle))
+			{
+				MovieSceneHelpers::SetKeyInterpolation(InCurve, NewKeyHandle, Interpolation);
+			}
 		}
 	}
 }
 
 void UMovieSceneSection::SetCurveDefault(FRichCurve& InCurve, float Value)
 {
-	Modify();
-	InCurve.SetDefaultValue(Value);
+	if (TryModify())
+	{
+		InCurve.SetDefaultValue(Value);
+	}
 }
 

@@ -2,7 +2,7 @@
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "NameCurveKeyArea.h"
-
+#include "SequencerClipboardReconciler.h"
 
 /* IKeyArea interface
  *****************************************************************************/
@@ -47,6 +47,12 @@ TSharedRef<SWidget> FNameCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 void FNameCurveKeyArea::DeleteKey(FKeyHandle KeyHandle)
 {
 	Curve.DeleteKey(KeyHandle);
+}
+
+
+FLinearColor FNameCurveKeyArea::GetColor()
+{
+	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
 }
 
 
@@ -127,4 +133,62 @@ void FNameCurveKeyArea::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangen
 void FNameCurveKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
 {
 	Curve.SetKeyTime(KeyHandle, NewKeyTime);
+}
+
+void FNameCurveKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const
+{
+	const UMovieSceneSection* Section = const_cast<FNameCurveKeyArea*>(this)->GetOwningSection();
+	UMovieSceneTrack* Track = Section ? Section->GetTypedOuter<UMovieSceneTrack>() : nullptr;
+	if (!Track)
+	{
+		return;
+	}
+
+	FMovieSceneClipboardKeyTrack* KeyTrack = nullptr;
+
+	for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
+	{
+		FKeyHandle Handle = It.Key();
+		if (KeyMask(Handle, *this))
+		{
+			FNameCurveKey Key = Curve.GetKey(Handle);
+			if (!KeyTrack)
+			{
+				KeyTrack = &ClipboardBuilder.FindOrAddKeyTrack<FName>(GetName(), *Track);
+			}
+
+			KeyTrack->AddKey(Key.Time, Key.Value);
+		}
+	}
+}
+
+void FNameCurveKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment)
+{
+	float PasteAt = DstEnvironment.CardinalTime;
+
+	KeyTrack.IterateKeys([&](const FMovieSceneClipboardKey& Key){
+		UMovieSceneSection* Section = GetOwningSection();
+		if (!Section)
+		{
+			return true;
+		}
+
+		if (Section->TryModify())
+		{		
+			float Time = PasteAt + Key.GetTime();
+			if (Section->GetStartTime() > Time)
+			{
+				Section->SetStartTime(Time);
+			}
+			if (Section->GetEndTime() < Time)
+			{
+				Section->SetEndTime(Time);
+			}
+
+			FKeyHandle KeyHandle = Curve.UpdateOrAddKey(Time, Key.GetValue<FName>());
+			DstEnvironment.ReportPastedKey(KeyHandle, *this);
+		}
+			
+		return true;
+	});
 }

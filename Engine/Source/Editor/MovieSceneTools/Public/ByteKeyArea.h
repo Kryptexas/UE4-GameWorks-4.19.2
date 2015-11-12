@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IntegralKeyArea.h"
-
+#include "ClipboardTypes.h"
 
 /** A key area for displaying and editing byte curves. */
 class FByteKeyArea

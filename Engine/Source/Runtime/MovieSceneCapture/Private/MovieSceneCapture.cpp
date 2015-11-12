@@ -31,12 +31,8 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	bCreateTemporaryCopiesOfLevels = false;
 	bUseRelativeFrameNumbers = false;
 	GameModeOverride = nullptr;
-	OutputFormat = NSLOCTEXT("MovieCapture", "DefaultFormat", "{world}_{width}x{height}").ToString();
+	OutputFormat = NSLOCTEXT("MovieCapture", "DefaultFormat", "{world}_{frame}").ToString();
 	FrameRate = 24;
-	bUseCustomStartFrame = false;
-	StartFrame = 0;
-	bUseCustomEndFrame = false;
-	EndFrame = 1;
 	CaptureType = EMovieCaptureType::AVI;
 	bUseCompression = true;
 	CompressionQuality = 1.f;
@@ -89,6 +85,12 @@ void UMovieSceneCapture::Initialize(TWeakPtr<FSceneViewport> InSceneViewport)
 			Settings.OutputFormat = OutputNameOverride;
 		}
 
+		bool bOverrideOverwriteExisting;
+		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieOverwriteExisting=" ), bOverrideOverwriteExisting ) )
+		{
+			Settings.bOverwriteExisting = bOverrideOverwriteExisting;
+		}
+
 		bool bOverrideRelativeFrameNumbers;
 		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieRelativeFrames=" ), bOverrideRelativeFrameNumbers ) )
 		{
@@ -120,20 +122,6 @@ void UMovieSceneCapture::Initialize(TWeakPtr<FSceneViewport> InSceneViewport)
 			{
 				Settings.CaptureType = EMovieCaptureType::JPEG;
 			}
-		}
-
-		int32 StartFrameOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieStartFrame=" ), StartFrameOverride ) )
-		{
-			Settings.bUseCustomStartFrame = true;
-			Settings.StartFrame = StartFrameOverride;
-		}
-
-		int32 EndFrameOverride;
-		if( FParse::Value( FCommandLine::Get(), TEXT( "-MovieEndFrame=" ), EndFrameOverride ) )
-		{
-			Settings.bUseCustomEndFrame = true;
-			Settings.EndFrame = EndFrameOverride;
 		}
 
 		int32 FrameRateOverride;
@@ -211,6 +199,16 @@ void UMovieSceneCapture::Tick(float DeltaSeconds)
 	LastFrameDelta = DeltaSeconds;
 }
 
+void UMovieSceneCapture::StartWarmup()
+{
+	check( !bCapturing );
+	if( !CaptureStrategy.IsValid() )
+	{
+		CaptureStrategy = MakeShareable( new FRealTimeCaptureStrategy( Settings.FrameRate ) );
+	}
+	CaptureStrategy->OnWarmup();
+}
+
 void UMovieSceneCapture::StartCapture()
 {
 	auto Viewport = SceneViewport.Pin();
@@ -226,6 +224,7 @@ void UMovieSceneCapture::StartCapture()
 		CaptureStrategy = MakeShareable(new FRealTimeCaptureStrategy(Settings.FrameRate));
 	}
 
+	check( CaptureStrategy.IsValid() );
 	CaptureStrategy->OnStart();
 
 	CachedMetrics.ElapsedSeconds = 0;
@@ -473,6 +472,12 @@ FFixedTimeStepCaptureStrategy::FFixedTimeStepCaptureStrategy(uint32 InTargetFPS)
 {
 }
 
+void FFixedTimeStepCaptureStrategy::OnWarmup()
+{
+	FApp::SetFixedDeltaTime(1.0 / TargetFPS);
+	FApp::SetUseFixedTimeStep(true);
+}
+
 void FFixedTimeStepCaptureStrategy::OnStart()
 {
 	FApp::SetFixedDeltaTime(1.0 / TargetFPS);
@@ -500,6 +505,10 @@ int32 FFixedTimeStepCaptureStrategy::GetDroppedFrames(double CurrentTimeSeconds,
 
 FRealTimeCaptureStrategy::FRealTimeCaptureStrategy(uint32 InTargetFPS)
 	: NextPresentTimeS(0), FrameLength(1.0 / InTargetFPS)
+{
+}
+
+void FRealTimeCaptureStrategy::OnWarmup()
 {
 }
 

@@ -147,6 +147,9 @@ public:
 	/** Open a panel that enables exporting the sequence to a movie */
 	TSharedPtr< FUICommandInfo > RenderMovie;
 
+	/** Paste from the sequencer clipboard history */
+	TSharedPtr< FUICommandInfo > PasteFromHistory;
+
 	/**
 	 * Initialize commands
 	 */

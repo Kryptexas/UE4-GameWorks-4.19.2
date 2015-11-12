@@ -671,7 +671,7 @@ void UParty::LeavePartyInternal(const FUniqueNetId& InUserId, const FOnlineParty
 		}
 		else
 		{
-			Result = ELeavePartyCompletionResult::UnknownClientFailure;
+			Result = ELeavePartyCompletionResult::UnknownParty;
 			ErrorMsg = FString::Printf(TEXT("Party not found in LeaveParty()"));
 		}
 	}
@@ -1146,7 +1146,7 @@ void UParty::LeavePersistentParty(const FUniqueNetId& InUserId, const UPartyDele
 	{
 		UE_LOG(LogParty, Warning, TEXT("No party during LeavePersistentParty()"));
 		// mark this as true so the ensure works in the delegate
-		InCompletionDelegate.ExecuteIfBound(InUserId, ELeavePartyCompletionResult::UnknownClientFailure);
+		InCompletionDelegate.ExecuteIfBound(InUserId, ELeavePartyCompletionResult::UnknownParty);
 	}
 }
 

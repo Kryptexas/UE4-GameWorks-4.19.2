@@ -6,6 +6,8 @@
 /////////////////////////////////////////////////////
 // FAnimNode_Trail
 
+DECLARE_CYCLE_STAT(TEXT("Trail Eval"), STAT_Trail_Eval, STATGROUP_Anim);
+
 FAnimNode_Trail::FAnimNode_Trail()
 	: ChainLength(2)
 	, ChainBoneAxis(EAxis::X)
@@ -43,6 +45,8 @@ void FAnimNode_Trail::GatherDebugData(FNodeDebugData& DebugData)
 
 void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Trail_Eval);
+
 	check(OutBoneTransforms.Num() == 0);
 
 	if( ChainBoneIndices.Num() <= 0 )

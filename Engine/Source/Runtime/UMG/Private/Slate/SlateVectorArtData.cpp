@@ -5,8 +5,11 @@
 #include "StaticMeshResources.h"
 #include "SlateVectorArtData.h"
 
-static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FSlateMeshVertex>& OutSlateVerts, TArray<uint32>& OutIndexes)
+static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FSlateMeshVertex>& OutSlateVerts, TArray<uint32>& OutIndexes, FVector2D& OutExtentMin, FVector2D& OutExtentMax )
 {
+	OutExtentMin = FVector2D(FLT_MAX, FLT_MAX);
+	OutExtentMax = FVector2D(-FLT_MAX, -FLT_MAX);
+
 	const FStaticMeshLODResources& LOD = DataSource.RenderData->LODResources[0];
 	const int32 NumSections = LOD.Sections.Num();
 	if (NumSections > 1)
@@ -32,6 +35,10 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 			{
 				// Copy Position
 				const FVector& Position = LOD.PositionVertexBuffer.VertexPosition(i);
+				OutExtentMin.X = FMath::Min(Position.X, OutExtentMin.X);
+				OutExtentMin.Y = FMath::Min(Position.Y, OutExtentMin.Y);
+				OutExtentMax.X = FMath::Max(Position.X, OutExtentMax.X);
+				OutExtentMax.Y = FMath::Max(Position.Y, OutExtentMax.Y);
 				
 				// Copy Color
 				FColor Color = (LOD.ColorVertexBuffer.GetNumVertices() > 0) ? LOD.ColorVertexBuffer.VertexColor(i) : FColor::White;
@@ -120,18 +127,24 @@ UMaterialInterface* USlateVectorArtData::GetMaterial() const
 
 UMaterialInstanceDynamic* USlateVectorArtData::ConvertToMaterialInstanceDynamic()
 {
-	UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(Material, this);
-	Material = NewMID;
-	return NewMID;
+	EnsureValidData();
+	UMaterialInstanceDynamic* ExistingMID = Cast<UMaterialInstanceDynamic>(Material);
+	if (ExistingMID == nullptr)
+	{
+		UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(Material, this);
+		Material = NewMID;
+		return NewMID;
+	}
+	else
+	{
+		return ExistingMID;
+	}
 }
 
 void USlateVectorArtData::EnsureValidData()
 {
 #if WITH_EDITORONLY_DATA
-	if (VertexData.Num() == 0 || IndexData.Num() == 0 || Material == nullptr)
-	{
-		InitFromStaticMesh(*MeshAsset);
-	}
+	InitFromStaticMesh(*MeshAsset);
 #endif
 }
 
@@ -144,10 +157,29 @@ void USlateVectorArtData::PreSave()
 #if WITH_EDITORONLY_DATA
 void USlateVectorArtData::InitFromStaticMesh(const UStaticMesh& InSourceMesh)
 {
-	Material = InSourceMesh.GetMaterial(0);
+	if (SourceMaterial != InSourceMesh.GetMaterial(0))
+	{
+		SourceMaterial = InSourceMesh.GetMaterial(0);
+		Material = SourceMaterial;
+	}
 
 	ensureMsgf(Material != nullptr, TEXT("USlateVectorArtData::InitFromStaticMesh() expected %s to have a material assigned."), *InSourceMesh.GetFullName());
 
-	StaticMeshToSlateRenderData(InSourceMesh, VertexData, IndexData);
+	StaticMeshToSlateRenderData(InSourceMesh, VertexData, IndexData, ExtentMin, ExtentMax);
 }
 #endif
+
+FVector2D USlateVectorArtData::GetDesiredSize() const
+{
+	return GetExtentMax() - GetExtentMin();
+}
+
+FVector2D USlateVectorArtData::GetExtentMin() const
+{
+	return ExtentMin;
+}
+
+FVector2D USlateVectorArtData::GetExtentMax() const
+{
+	return ExtentMax;
+}

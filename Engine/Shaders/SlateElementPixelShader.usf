@@ -310,7 +310,7 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 #endif
 
 
-#if !PRE_MULTIPLIED_ALPHA
+#if !PRE_MULTIPLIED_ALPHA && !MATERIALBLENDING_ADDITIVE && !MATERIALBLENDING_TRANSLUCENT
 	OutColor.rgb = OutColor.rgb * OutColor.a;
 #endif
 

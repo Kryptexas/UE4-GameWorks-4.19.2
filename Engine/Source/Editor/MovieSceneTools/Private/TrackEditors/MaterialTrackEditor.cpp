@@ -154,10 +154,6 @@ void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneM
 		float ParameterValue;
 		Material->GetScalarParameterValue(ParameterName, ParameterValue);
 		MaterialTrack->Modify();
-		for ( UMovieSceneSection* Section : MaterialTrack->GetAllSections() )
-		{
-			Section->Modify();
-		}
 		MaterialTrack->AddScalarParameterKey(ParameterName, KeyTime, ParameterValue);
 	}
 	NotifyMovieSceneDataChanged();
@@ -176,10 +172,6 @@ void FMaterialTrackEditor::AddVectorParameter( FGuid ObjectBinding, UMovieSceneM
 		FLinearColor ParameterValue;
 		Material->GetVectorParameterValue( ParameterName, ParameterValue );
 		MaterialTrack->Modify();
-		for ( UMovieSceneSection* Section : MaterialTrack->GetAllSections() )
-		{
-			Section->Modify();
-		}
 		MaterialTrack->AddVectorParameterKey( ParameterName, KeyTime, ParameterValue );
 	}
 	NotifyMovieSceneDataChanged();

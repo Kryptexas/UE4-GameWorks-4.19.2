@@ -217,7 +217,7 @@ void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute( UPrim
 			for ( UMovieSceneTrack* Track : Binding.GetTracks() )
 			{
 				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( Track );
-				if ( MaterialTrack->GetMaterialIndex() == MaterialIndex )
+				if ( MaterialTrack != nullptr && MaterialTrack->GetMaterialIndex() == MaterialIndex )
 				{
 					bHasMaterialTrack = true;
 					break;

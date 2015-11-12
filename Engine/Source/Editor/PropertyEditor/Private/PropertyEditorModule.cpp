@@ -241,6 +241,8 @@ TSharedRef<IDetailsView> FPropertyEditorModule::CreateDetailView( const FDetails
 		.DetailsViewArgs( DetailsViewArgs );
 
 	AllDetailViews.Add( DetailView );
+
+	PropertyEditorOpened.Broadcast();
 	return DetailView;
 }
 

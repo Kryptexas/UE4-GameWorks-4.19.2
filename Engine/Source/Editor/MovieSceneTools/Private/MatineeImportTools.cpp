@@ -94,25 +94,26 @@ void FMatineeImportTools::CopyInterpFloatTrack( TSharedRef<ISequencer> Sequencer
 		FloatTrack->AddSection( *Section );
 		bSectionCreated = true;
 	}
-	Section->Modify();
-
-	float SectionMin = Section->GetStartTime();
-	float SectionMax = Section->GetEndTime();
-
-	FRichCurve& FloatCurve = Section->GetFloatCurve();
-	for ( const auto& Point : MatineeFloatTrack->FloatTrack.Points )
+	if (Section->TryModify())
 	{
-		FMatineeImportTools::SetOrAddKey( FloatCurve, Point.InVal, Point.OutVal, Point.ArriveTangent, Point.LeaveTangent, Point.InterpMode );
-		SectionMin = FMath::Min( SectionMin, Point.InVal );
-		SectionMax = FMath::Max( SectionMax, Point.InVal );
-	}
+		float SectionMin = Section->GetStartTime();
+		float SectionMax = Section->GetEndTime();
 
-	Section->SetStartTime( SectionMin );
-	Section->SetEndTime( SectionMax );
+		FRichCurve& FloatCurve = Section->GetFloatCurve();
+		for ( const auto& Point : MatineeFloatTrack->FloatTrack.Points )
+		{
+			FMatineeImportTools::SetOrAddKey( FloatCurve, Point.InVal, Point.OutVal, Point.ArriveTangent, Point.LeaveTangent, Point.InterpMode );
+			SectionMin = FMath::Min( SectionMin, Point.InVal );
+			SectionMax = FMath::Max( SectionMax, Point.InVal );
+		}
 
-	if ( bSectionCreated )
-	{
-		Sequencer->NotifyMovieSceneDataChanged();
+		Section->SetStartTime( SectionMin );
+		Section->SetEndTime( SectionMax );
+
+		if ( bSectionCreated )
+		{
+			Sequencer->NotifyMovieSceneDataChanged();
+		}
 	}
 }
 
@@ -135,43 +136,45 @@ void FMatineeImportTools::CopyInterpMoveTrack( TSharedRef<ISequencer> Sequencer,
 		TransformTrack->AddSection( *Section );
 		bSectionCreated = true;
 	}
-	Section->Modify();
 
-	float SectionMin = Section->GetStartTime();
-	float SectionMax = Section->GetEndTime();
-
-	FRichCurve& TranslationXCurve = Section->GetTranslationCurve( EAxis::X );
-	FRichCurve& TranslationYCurve = Section->GetTranslationCurve( EAxis::Y );
-	FRichCurve& TranslationZCurve = Section->GetTranslationCurve( EAxis::Z );
-
-	for ( const auto& Point : MoveTrack->PosTrack.Points )
+	if (Section->TryModify())
 	{
-		FMatineeImportTools::SetOrAddKey( TranslationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
-		FMatineeImportTools::SetOrAddKey( TranslationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
-		FMatineeImportTools::SetOrAddKey( TranslationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
-		SectionMin = FMath::Min( SectionMin, Point.InVal );
-		SectionMax = FMath::Max( SectionMax, Point.InVal );
-	}
+		float SectionMin = Section->GetStartTime();
+		float SectionMax = Section->GetEndTime();
 
-	FRichCurve& RotationXCurve = Section->GetRotationCurve( EAxis::X );
-	FRichCurve& RotationYCurve = Section->GetRotationCurve( EAxis::Y );
-	FRichCurve& RotationZCurve = Section->GetRotationCurve( EAxis::Z );
+		FRichCurve& TranslationXCurve = Section->GetTranslationCurve( EAxis::X );
+		FRichCurve& TranslationYCurve = Section->GetTranslationCurve( EAxis::Y );
+		FRichCurve& TranslationZCurve = Section->GetTranslationCurve( EAxis::Z );
 
-	for ( const auto& Point : MoveTrack->EulerTrack.Points )
-	{
-		FMatineeImportTools::SetOrAddKey( RotationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
-		FMatineeImportTools::SetOrAddKey( RotationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
-		FMatineeImportTools::SetOrAddKey( RotationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
-		SectionMin = FMath::Min( SectionMin, Point.InVal );
-		SectionMax = FMath::Max( SectionMax, Point.InVal );
-	}
+		for ( const auto& Point : MoveTrack->PosTrack.Points )
+		{
+			FMatineeImportTools::SetOrAddKey( TranslationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( TranslationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( TranslationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
+			SectionMin = FMath::Min( SectionMin, Point.InVal );
+			SectionMax = FMath::Max( SectionMax, Point.InVal );
+		}
 
-	Section->SetStartTime( SectionMin );
-	Section->SetEndTime( SectionMax );
+		FRichCurve& RotationXCurve = Section->GetRotationCurve( EAxis::X );
+		FRichCurve& RotationYCurve = Section->GetRotationCurve( EAxis::Y );
+		FRichCurve& RotationZCurve = Section->GetRotationCurve( EAxis::Z );
 
-	if ( bSectionCreated )
-	{
-		Sequencer->NotifyMovieSceneDataChanged();
+		for ( const auto& Point : MoveTrack->EulerTrack.Points )
+		{
+			FMatineeImportTools::SetOrAddKey( RotationXCurve, Point.InVal, Point.OutVal.X, Point.ArriveTangent.X, Point.LeaveTangent.X, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( RotationYCurve, Point.InVal, Point.OutVal.Y, Point.ArriveTangent.Y, Point.LeaveTangent.Y, Point.InterpMode );
+			FMatineeImportTools::SetOrAddKey( RotationZCurve, Point.InVal, Point.OutVal.Z, Point.ArriveTangent.Z, Point.LeaveTangent.Z, Point.InterpMode );
+			SectionMin = FMath::Min( SectionMin, Point.InVal );
+			SectionMax = FMath::Max( SectionMax, Point.InVal );
+		}
+
+		Section->SetStartTime( SectionMin );
+		Section->SetEndTime( SectionMax );
+
+		if ( bSectionCreated )
+		{
+			Sequencer->NotifyMovieSceneDataChanged();
+		}
 	}
 }
 
@@ -191,29 +194,31 @@ void FMatineeImportTools::CopyInterpParticleTrack( TSharedRef<ISequencer> Sequen
 		ParticleTrack->AddSection( *Section );
 		bSectionCreated = true;
 	}
-	Section->Modify();
 
-	float SectionMin = Section->GetStartTime();
-	float SectionMax = Section->GetEndTime();
-
-	FIntegralCurve& ParticleCurve = Section->GetParticleCurve();
-	for ( const auto& Key : MatineeToggleTrack->ToggleTrack )
+	if (Section->TryModify())
 	{
-		EParticleKey::Type ParticleKey;
-		if ( TryConvertMatineeToggleToOutParticleKey( Key.ToggleAction, ParticleKey ) )
+		float SectionMin = Section->GetStartTime();
+		float SectionMax = Section->GetEndTime();
+
+		FIntegralCurve& ParticleCurve = Section->GetParticleCurve();
+		for ( const auto& Key : MatineeToggleTrack->ToggleTrack )
 		{
-			ParticleCurve.AddKey( Key.Time, (int32)ParticleKey, ParticleCurve.FindKey( Key.Time ) );
+			EParticleKey::Type ParticleKey;
+			if ( TryConvertMatineeToggleToOutParticleKey( Key.ToggleAction, ParticleKey ) )
+			{
+				ParticleCurve.AddKey( Key.Time, (int32)ParticleKey, ParticleCurve.FindKey( Key.Time ) );
+			}
+			SectionMin = FMath::Min( SectionMin, Key.Time );
+			SectionMax = FMath::Max( SectionMax, Key.Time );
 		}
-		SectionMin = FMath::Min( SectionMin, Key.Time );
-		SectionMax = FMath::Max( SectionMax, Key.Time );
-	}
 
-	Section->SetStartTime( SectionMin );
-	Section->SetEndTime( SectionMax );
+		Section->SetStartTime( SectionMin );
+		Section->SetEndTime( SectionMax );
 
-	if ( bSectionCreated )
-	{
-		Sequencer->NotifyMovieSceneDataChanged();
+		if ( bSectionCreated )
+		{
+			Sequencer->NotifyMovieSceneDataChanged();
+		}
 	}
 }
 

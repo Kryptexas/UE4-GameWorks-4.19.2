@@ -4,6 +4,9 @@
 #include "SequencerEditTool_Default.h"
 #include "Sequencer.h"
 #include "SequencerHotspots.h"
+#include "SequencerContextMenus.h"
+#include "CommonMovieSceneTools.h"
+#include "VirtualTrackArea.h"
 
 
 FReply FSequencerEditTool_Default::OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -89,23 +92,36 @@ void FSequencerEditTool_Default::PerformHotspotSelection(const FPointerEvent& Mo
 
 TSharedPtr<SWidget> FSequencerEditTool_Default::OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (!Hotspot.IsValid())
-	{
-		return nullptr;
-	}
-
-	ISequencer& Sequencer = GetSequencer();
-
 	// @todo sequencer replace with UI Commands instead of faking it
 
-	if (Hotspot->GetType() == ESequencerHotspot::Section || Hotspot->GetType() == ESequencerHotspot::Key)
+	FSequencer& Sequencer = static_cast<FSequencer&>(GetSequencer());
+	FVector2D MouseDownPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+	// Attempt to paste into either the current node selection, or the clicked on track
+	TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
+	const float PasteAtTime = SequencerWidget->GetVirtualTrackArea().PixelToTime(MouseDownPos.X);
+
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Sequencer.GetCommandBindings());
+
+	if (Hotspot.IsValid())
 	{
-		const bool bShouldCloseWindowAfterMenuSelection = true;
-		FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
+		if (Hotspot->GetType() == ESequencerHotspot::Section || Hotspot->GetType() == ESequencerHotspot::Key)
+		{
+			Hotspot->PopulateContextMenu(MenuBuilder, Sequencer, PasteAtTime);
 
-		Hotspot->PopulateContextMenu(MenuBuilder, Sequencer);
+			return MenuBuilder.MakeWidget();
+		}
+	}
+	else if (Sequencer.GetClipboardStack().Num() != 0)
+	{
+		TSharedPtr<FPasteContextMenu> PasteMenu = FPasteContextMenu::CreateMenu(Sequencer, SequencerWidget->GeneratePasteArgs(PasteAtTime));
+		if (PasteMenu.IsValid() && PasteMenu->IsValidPaste())
+		{
+			PasteMenu->PopulateMenu(MenuBuilder);
 
-		return MenuBuilder.MakeWidget();
+			return MenuBuilder.MakeWidget();
+		}
 	}
 
 	return nullptr;

@@ -65,6 +65,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		FString Package;
 		FString PackageFolder;
 		FString Maps;
+		FString File;
 		const FString& CurrentSwitch = Switches[ SwitchIdx ];
 		if( FParse::Value( *CurrentSwitch, TEXT( "PACKAGE="), Package ) )
 		{
@@ -105,6 +106,39 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 			FPackageName::SearchForPackageOnDisk(Maps, NULL, &MapFile, false);
 			PackageNames.Add(*MapFile);
 			bExplicitPackages = true;
+		}
+		else if (FParse::Value(*CurrentSwitch, TEXT("FILE="), File))
+		{
+			FString Text;
+			if (FFileHelper::LoadFileToString(Text, *File))
+			{
+				TArray<FString> Lines;
+
+				// Remove all carriage return characters.
+				Text.ReplaceInline(TEXT("\r"), TEXT(""));
+				// Read all lines
+				Text.ParseIntoArray(Lines, TEXT("\n"), true);
+
+				for (auto Line : Lines)
+				{
+					FString PackageFile;
+					if (FPackageName::SearchForPackageOnDisk(Line, NULL, &PackageFile, false))
+					{
+						PackageNames.Add(*PackageFile);
+					}
+					else
+					{
+						UE_LOG(LogContentCommandlet, Error, TEXT("Failed to find package %s"), *Line);
+					}
+				}
+
+				bExplicitPackages = true;
+				UE_LOG(LogContentCommandlet, Display, TEXT("Loaded %d Packages from %s"), PackageNames.Num(), *File);
+			}
+			else
+			{
+				UE_LOG(LogContentCommandlet, Error, TEXT("Failed to load file %s"), *File);
+			}
 		}
 
 	}
