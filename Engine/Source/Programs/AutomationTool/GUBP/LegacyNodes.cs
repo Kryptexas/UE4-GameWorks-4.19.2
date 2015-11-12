@@ -2654,6 +2654,7 @@ partial class GUBP
 			//LocalizationBranchSuffix = InLocalizationBranchSuffix;
 
 			AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            AddDependency(ToolsNode.StaticGetFullName(HostPlatform));
 		}
 
 		public override void DoBuild(GUBP bp)
