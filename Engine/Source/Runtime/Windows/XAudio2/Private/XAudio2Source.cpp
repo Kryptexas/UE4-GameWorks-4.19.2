@@ -246,6 +246,12 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 
 	ReadMorePCMData(2, DataReadMode);
 
+	if (DataReadMode == EDataReadMode::Synchronous)
+	{
+		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
+									 Source->SubmitSourceBuffer(&XAudio2Buffers[2]));
+	}
+
 	bResourcesNeedFreeing = true;
 }
 
@@ -1550,6 +1556,9 @@ void FSpatializationHelper::Init()
 	Emitter.CurveDistanceScaler = 1.0f;
 	Emitter.DopplerScaler = 1.0f;
 
+	// Zero the matrix coefficients
+	FMemory::Memzero(MatrixCoefficients, sizeof(float)*ARRAY_COUNT(MatrixCoefficients));
+
 	DSPSettings.SrcChannelCount = UE4_XAUDIO3D_INPUTCHANNELS;
 	DSPSettings.DstChannelCount = SPEAKER_COUNT;
 	DSPSettings.pMatrixCoefficients = MatrixCoefficients;
@@ -1711,6 +1720,17 @@ void FSpatializationHelper::DumpSpatializationState() const
 
 void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes  )
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	OrientFront.DiagnosticCheckNaN(TEXT("FSpatializationHelper: OrientFront"));
+	ListenerPosition.DiagnosticCheckNaN(TEXT("FSpatializationHelper: ListenerPosition"));
+	EmitterPosition.DiagnosticCheckNaN(TEXT("FSpatializationHelper: EmitterPosition"));
+	if (!FMath::IsFinite(OmniRadius))
+	{
+		const FString NaNorINF = FMath::IsNaN(OmniRadius) ? TEXT("NaN") : TEXT("INF");
+		UE_LOG(LogXAudio2, Warning, TEXT("OmniRadius generated a %s: %f"), *NaNorINF, OmniRadius);
+	}
+#endif
+
 	uint32 CalculateFlags = X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER | X3DAUDIO_CALCULATE_REVERB;
 
 	Listener.OrientFront.x = OrientFront.X;
@@ -1745,6 +1765,8 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 			//logOrEnsureNanError(TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
 			//	*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
 #endif
+			// Zero the coefficients so we don't continue getting bad values
+			FMemory::Memzero(MatrixCoefficients, sizeof(float)*ARRAY_COUNT(MatrixCoefficients));
 		}
 #endif
 	}

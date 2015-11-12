@@ -372,7 +372,7 @@ static bool IsEditorOnlyStruct(UStruct* InStruct)
 	{
 		UPackage* StructPackage = Struct->GetOutermost();
 		check(StructPackage);
-		if (StructPackage->PackageFlags & PKG_EditorOnly)
+		if (StructPackage->HasAnyPackageFlags(PKG_EditorOnly))
 		{
 			return true;
 		}
@@ -424,7 +424,7 @@ static bool IsEditorOnlyObject(UObject* InObject)
 	{
 		Package = InObject->GetOutermost();
 	}
-	if (Package && (Package->PackageFlags & PKG_EditorOnly))
+	if (Package && Package->HasAnyPackageFlags(PKG_EditorOnly))
 	{
 		bResult = true;
 	}
@@ -3260,7 +3260,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("Package loaded by editor-only properties: %s. Package will not be saved."), *InOuter->GetName());
 				return ESavePackageResult::ReferencedOnlyByEditorOnlyData;
 			}
-			else if (InOuter->PackageFlags & PKG_EditorOnly)
+			else if (InOuter->HasAnyPackageFlags(PKG_EditorOnly))
 			{
 				UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("Package marked as editor-only: %s. Package will not be saved."), *InOuter->GetName());
 				return ESavePackageResult::ReferencedOnlyByEditorOnlyData;
@@ -3388,7 +3388,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 			return ESavePackageResult::Error;
 		}
 
-		bool FilterEditorOnly = (InOuter->PackageFlags & PKG_FilterEditorOnly) != 0;
+		const bool FilterEditorOnly = InOuter->HasAnyPackageFlags(PKG_FilterEditorOnly);
 		// store a list of additional packages to cook when this is cooked (ie streaming levels)
 		TArray<FString> AdditionalPackagesToCook;
 
@@ -3513,7 +3513,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				TSet<UObject*> DependenciesReferencedByNonRedirectors;
 		
 				/** If true, we are going to compress the package to memory to save a little time */
-				bool bCompressFromMemory = !!(InOuter->PackageFlags & PKG_StoreCompressed);
+				const bool bCompressFromMemory = InOuter->HasAnyPackageFlags(PKG_StoreCompressed);
 
 				/** If true, we are going to save to disk async to save time. */
 				bool bSaveAsync = !!(SaveFlags & SAVE_Async);
@@ -4278,8 +4278,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UPackage* Package = dynamic_cast<UPackage*>(Object);
 						if (Package != NULL)
 						{
-							Linker->ExportMap[i].PackageFlags = Package->PackageFlags;
-							if (!(Package->PackageFlags & PKG_ServerSideOnly))
+							Linker->ExportMap[i].PackageFlags = Package->GetPackageFlags();
+							if (!Package->HasAnyPackageFlags(PKG_ServerSideOnly))
 							{
 								Linker->ExportMap[i].PackageGuid = Package->GetGuid();
 							}
@@ -4704,7 +4704,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				Linker->LinkerRoot->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
 				
 				// Update package flags from package, in case serialization has modified package flags.
-				Linker->Summary.PackageFlags  = Linker->LinkerRoot->PackageFlags & ~PKG_NewlyCreated;
+				Linker->Summary.PackageFlags = Linker->LinkerRoot->GetPackageFlags() & ~PKG_NewlyCreated;
 
 				Linker->Seek(0);
 				*Linker << Linker->Summary;
@@ -4763,7 +4763,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UE_LOG_COOK_TIME(TEXT("CompressFromMemory"));
 					}
 					// Compress the temporarily file to destination.
-					else if( InOuter->PackageFlags & PKG_StoreCompressed )
+					else if( InOuter->HasAnyPackageFlags(PKG_StoreCompressed) )
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
@@ -4772,7 +4772,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UE_LOG_COOK_TIME(TEXT("CompressFromTempFile"));
 					}
 					// Fully compress package in one "block".
-					else if( InOuter->PackageFlags & PKG_StoreFullyCompressed )
+					else if( InOuter->HasAnyPackageFlags(PKG_StoreFullyCompressed) )
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Full-package compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
@@ -4806,7 +4806,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					}
 
 					// Make sure to clean up any stale .uncompressed_size files.
-					if( !(InOuter->PackageFlags & PKG_StoreFullyCompressed) )
+					if( !InOuter->HasAnyPackageFlags(PKG_StoreFullyCompressed) )
 					{
 						IFileManager::Get().Delete( *(NewPath + TEXT(".uncompressed_size")) );
 					}
@@ -4907,7 +4907,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		if( Success == true )
 		{
 			// Package has been save, so unmark NewlyCreated flag.
-			InOuter->PackageFlags &= ~PKG_NewlyCreated;
+			InOuter->ClearPackageFlags(PKG_NewlyCreated);
 
 			// send a message that the package was saved
 			UPackage::PackageSavedEvent.Broadcast(Filename, InOuter);

@@ -634,7 +634,7 @@ public:
 	}
 
 	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true) const;
+	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr) const;
 
 	/** Gets the old-skool flat grouped exclusive stats. These merge threads, etc and so generally the condensed callstack is less confusing. **/
 	void GetExclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true) const;
@@ -862,6 +862,9 @@ struct FHudGroup
 {
 	/** Array of all flat aggregates for the last n frames. */
 	TArray<FComplexStatMessage> FlatAggregate;
+
+	/** Array of all flat aggregates for the last n frames broken down by thread. */
+	TMap<FName, TArray<FComplexStatMessage>> FlatAggregateThreadBreakdown;
 	
 	/** Array of all aggregates for the last n frames. */
 	TArray<FComplexStatMessage> HierAggregate;
@@ -879,7 +882,7 @@ struct FHudGroup
 	TSet<FName> BudgetIgnoreStats;
 
 	/** Expected group budget */
-	float TotalGroupBudget;
+	TMap<FName, float> ThreadBudgetMap;
 };
 
 /**

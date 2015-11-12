@@ -464,6 +464,8 @@ void AGameplayDebuggingReplicator::EnableTool()
 		{
 			// simulate key press
 			GDC->OnActivationKeyPressed();
+			ClientEnableTargetSelection(true, LocalPlayerOwner);
+			GetDebugComponent()->SelectTargetToDebug();
 			GDC->OnActivationKeyReleased();
 		}
 	}

@@ -1335,7 +1335,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		FScopeCycleCounterUObject ConstructorScope(Package, GET_STATID(STAT_FAsyncPackage_CreateLinker));
 
 		// Set package specific data 
-		Package->PackageFlags |= Desc.PackageFlags;
+		Package->SetPackageFlags(Desc.PackageFlags);
 #if WITH_EDITOR
 		Package->PIEInstanceID = Desc.PIEInstanceID;
 #endif
@@ -1561,18 +1561,18 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 		}
 		if (ImportDependencyPackages.Num() == 0)
 		{
-		while (Import->OuterIndex.IsImport())
-		{
-			Import = &Linker->Imp(Import->OuterIndex);
-		}
-		check(Import->OuterIndex.IsNull());
+			while (Import->OuterIndex.IsImport())
+			{
+				Import = &Linker->Imp(Import->OuterIndex);
+			}
+			check(Import->OuterIndex.IsNull());
 
-		// @todo: why do we need this? some UFunctions have null outer in the linker.
-		if (Import->ClassName != NAME_Package)
-		{
-			continue;
-		}
-
+			// @todo: why do we need this? some UFunctions have null outer in the linker.
+			if (Import->ClassName != NAME_Package)
+			{
+				continue;
+			}
+			
 
 		// Don't try to import a package that is in an import table that we know is an invalid entry
 		if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
@@ -1580,61 +1580,61 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 			continue;
 		}
 
-		// Our import package name is the import name
+			// Our import package name is the import name
 			ImportDependencyPackages.Add(Import->ObjectName);
 		}
 
 		for (const FName& ImportPackageFName : ImportDependencyPackages)
 		{
-		// Handle circular dependencies - try to find existing packages.
-		UPackage* ExistingPackage = dynamic_cast<UPackage*>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, ImportPackageFName, true));
-		if (ExistingPackage && !(ExistingPackage->PackageFlags & PKG_CompiledIn) && !ExistingPackage->bHasBeenFullyLoaded)//!ExistingPackage->HasAnyFlags(RF_WasLoaded))
-		{
-			// The import package already exists. Check if it's currently being streamed as well. If so, make sure
-			// we add all dependencies that don't yet have linkers created otherwise we risk that if the current package
-			// doesn't depend on any other packages that have not yet started streaming, creating imports is going
-			// to load packages blocking the main thread.
-			int32 PendingAsyncPackageIndex = FAsyncLoadingThread::Get().FindAsyncPackage(ImportPackageFName);
-			if (PendingAsyncPackageIndex != INDEX_NONE)
+			// Handle circular dependencies - try to find existing packages.
+			UPackage* ExistingPackage = dynamic_cast<UPackage*>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, ImportPackageFName, true));
+			if (ExistingPackage && !ExistingPackage->HasAnyPackageFlags(PKG_CompiledIn) && !ExistingPackage->bHasBeenFullyLoaded)//!ExistingPackage->HasAnyFlags(RF_WasLoaded))
 			{
-				FAsyncPackage& PendingPackage = *FAsyncLoadingThread::Get().GetPackage(PendingAsyncPackageIndex);
-				FLinkerLoad* PendingPackageLinker = PendingPackage.Linker;
-				if (PendingPackageLinker == nullptr || !PendingPackageLinker->HasFinishedInitialization())
+				// The import package already exists. Check if it's currently being streamed as well. If so, make sure
+				// we add all dependencies that don't yet have linkers created otherwise we risk that if the current package
+				// doesn't depend on any other packages that have not yet started streaming, creating imports is going
+				// to load packages blocking the main thread.
+				int32 PendingAsyncPackageIndex = FAsyncLoadingThread::Get().FindAsyncPackage(ImportPackageFName);
+				if (PendingAsyncPackageIndex != INDEX_NONE)
 				{
-					// Add this import to the dependency list.
-					AddUniqueLinkerDependencyPackage(AsyncQueueIndex, PendingPackage);
+					FAsyncPackage& PendingPackage = *FAsyncLoadingThread::Get().GetPackage(PendingAsyncPackageIndex);
+					FLinkerLoad* PendingPackageLinker = PendingPackage.Linker;
+					if (PendingPackageLinker == nullptr || !PendingPackageLinker->HasFinishedInitialization())
+					{
+						// Add this import to the dependency list.
+						AddUniqueLinkerDependencyPackage(AsyncQueueIndex, PendingPackage);
+					}
+					else
+					{
+						UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Linker exists for %s"), *Desc.NameToLoad.ToString(), *ImportPackageFName.ToString());
+						// Only keep a reference to this package so that its linker doesn't go away too soon
+						PendingPackage.DependencyRefCount.Increment();
+						ReferencedImports.Add(&PendingPackage);
+						// Check if we need to add its dependencies too.
+						TSet<FAsyncPackage*> SearchedPackages;
+						AddDependencyTree(AsyncQueueIndex, PendingPackage, SearchedPackages);
+					}
+				}
+			}
+
+			if (!ExistingPackage && ContainsDependencyPackage(PendingImportedPackages, ImportPackageFName) == INDEX_NONE)
+			{
+				const FString ImportPackageName(Import->ObjectName.ToString());
+				// The package doesn't exist and this import is not in the dependency list so add it now.
+				if (!FPackageName::IsShortPackageName(ImportPackageName))
+				{
+					UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Loading %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
+					AddImportDependency(AsyncQueueIndex, ImportPackageFName);
 				}
 				else
 				{
-					UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Linker exists for %s"), *Desc.NameToLoad.ToString(), *ImportPackageFName.ToString());
-					// Only keep a reference to this package so that its linker doesn't go away too soon
-					PendingPackage.DependencyRefCount.Increment();
-					ReferencedImports.Add(&PendingPackage);
-					// Check if we need to add its dependencies too.
-					TSet<FAsyncPackage*> SearchedPackages;
-					AddDependencyTree(AsyncQueueIndex, PendingPackage, SearchedPackages);
+					// This usually means there's a reference to a script package from another project
+					UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Short package name in imports list: %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
 				}
 			}
-		}
 
-		if (!ExistingPackage && ContainsDependencyPackage(PendingImportedPackages, ImportPackageFName) == INDEX_NONE)
-			{
-			const FString ImportPackageName(Import->ObjectName.ToString());
-			// The package doesn't exist and this import is not in the dependency list so add it now.
-			if (!FPackageName::IsShortPackageName(ImportPackageName))
-			{
-				UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Loading %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
-				AddImportDependency(AsyncQueueIndex, ImportPackageFName);
-			}
-			else
-			{
-				// This usually means there's a reference to a script package from another project
-				UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Short package name in imports list: %s"), *Desc.NameToLoad.ToString(), *ImportPackageName);
-			}
+			UpdateLoadPercentage();
 		}
-
-		UpdateLoadPercentage();
-	}
 	}
 
 	if (PendingImportedPackages.Num())

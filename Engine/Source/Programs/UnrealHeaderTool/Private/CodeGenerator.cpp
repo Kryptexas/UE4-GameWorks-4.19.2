@@ -1208,8 +1208,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(UPackage* InPac
 		GeneratedFunctionText.Logf(TEXT("#endif\r\n"));
 	}
 
-	GeneratedFunctionText.Logf(TEXT("\t\t\tReturnPackage->PackageFlags |= PKG_CompiledIn | 0x%08X;\r\n"), InPackage->PackageFlags & (PKG_ClientOptional | PKG_ServerSideOnly | PKG_EditorOnly));
-	TheFlagAudit.Add(InPackage, TEXT("PackageFlags"), InPackage->PackageFlags);
+	GeneratedFunctionText.Logf(TEXT("\t\t\tReturnPackage->SetPackageFlags(PKG_CompiledIn | 0x%08X);\r\n"), InPackage->GetPackageFlags() & (PKG_ClientOptional | PKG_ServerSideOnly | PKG_EditorOnly));
+	TheFlagAudit.Add(InPackage, TEXT("PackageFlags"), InPackage->GetPackageFlags());
 	{
 		FGuid Guid;
 
@@ -5412,12 +5412,11 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 		// Set some package flags for indicating that this package contains script
 		// NOTE: We do this even if we didn't have to create the package, because CoreUObject is compiled into UnrealHeaderTool and we still
 		//       want to make sure our flags get set
-		Package->PackageFlags |= PKG_ContainsScript;
-		Package->PackageFlags &= ~(PKG_ClientOptional | PKG_ServerSideOnly);
-		Package->PackageFlags |= PKG_Compiling;
+		Package->SetPackageFlags(PKG_ContainsScript | PKG_Compiling);
+		Package->ClearPackageFlags(PKG_ClientOptional | PKG_ServerSideOnly);
 		if (Module.ModuleType == EBuildModuleType::Editor)
 		{
-			Package->PackageFlags |= PKG_EditorOnly;
+			Package->SetPackageFlags(PKG_EditorOnly);
 		}
 
 		GPackageToManifestModuleMap.Add(Package, &Module);

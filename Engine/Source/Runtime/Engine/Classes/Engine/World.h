@@ -417,12 +417,10 @@ struct FEndClothSimulationFunction : public FTickFunction
 };
 
 /* Struct of optional parameters passed to SpawnActor function(s). */
+PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing bNoCollisionFail
 struct ENGINE_API FActorSpawnParameters
 {
 	FActorSpawnParameters();
-
-	// Assignment operator overriden to allow disabling of deprecation warning when copying bNoCollisionFail
-	FActorSpawnParameters& operator=(const FActorSpawnParameters& Other);
 
 	/* A name to assign as the Name of the Actor being spawned. If no value is specified, the name of the spawned Actor will be automatically generated using the form [Class]_[Number]. */
 	FName Name;
@@ -461,6 +459,7 @@ struct ENGINE_API FActorSpawnParameters
 	/* Flags used to describe the spawned actor/object instance. */
 	EObjectFlags ObjectFlags;		
 };
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 
 /**
@@ -488,10 +487,6 @@ struct ENGINE_API FWorldAsyncTraceState
 
 	/** Used as counter for Buffer swap for DataBuffer. Right now it's only 2, but it can change. */
 	int32 CurrentFrame;
-
-	/** Next available index for each pool - used as ID for each trace query **/
-	int32 NextAvailableTraceIndex;
-	int32 NextAvailableOverlapIndex;
 };
 
 #if WITH_EDITOR

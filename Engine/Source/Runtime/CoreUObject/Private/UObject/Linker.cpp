@@ -477,7 +477,7 @@ FLinkerLoad* GetPackageLinker
 		if ( (GIsEditor && !DoesNativePackageExist) || (!GIsEditor && !DoesLocalizedPackageExist && !DoesNativePackageExist) )
 		{
 			// In memory-only packages have no linker and this is ok.
-			if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_InMemoryOnly) && !FLinkerLoad::KnownMissingPackages.Contains(InOuter->GetFName()))
+			if (!(LoadFlags & LOAD_AllowDll) && !InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) && !FLinkerLoad::KnownMissingPackages.Contains(InOuter->GetFName()))
 			{
 				FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 				FFormatNamedArguments Arguments;
@@ -508,7 +508,7 @@ FLinkerLoad* GetPackageLinker
 			else
 			{
 				// In memory-only packages have no linker and this is ok.
-				if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_InMemoryOnly))
+				if (!(LoadFlags & LOAD_AllowDll) && !InOuter->HasAnyPackageFlags(PKG_InMemoryOnly))
 				{
 					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 					FFormatNamedArguments Arguments;
@@ -539,7 +539,7 @@ FLinkerLoad* GetPackageLinker
 		UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName);
 		if (ExistingPackage)
 		{
-			if (!ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_InMemoryOnly))
+			if (!ExistingPackage->GetOuter() && ExistingPackage->HasAnyPackageFlags(PKG_InMemoryOnly))
 			{
 				// This is a memory-only in package and so it has no linker and this is ok.
 				return nullptr;
@@ -556,11 +556,11 @@ FLinkerLoad* GetPackageLinker
 		{
 			if (!FLinkerLoad::KnownMissingPackages.Contains(InLongPackageName))
 			{
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
 
-				// try to recover from this instead of throwing, it seems recoverable just by doing this
-				LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
+			// try to recover from this instead of throwing, it seems recoverable just by doing this
+			LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
 			}
 			return nullptr;
 		}
@@ -588,7 +588,7 @@ FLinkerLoad* GetPackageLinker
 		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageName));
 		if (FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
-			FilenamePkg->PackageFlags |= PKG_PlayInEditor;
+			FilenamePkg->SetPackageFlags(PKG_PlayInEditor);
 		}
 
 		// If no package specified, use package from file.

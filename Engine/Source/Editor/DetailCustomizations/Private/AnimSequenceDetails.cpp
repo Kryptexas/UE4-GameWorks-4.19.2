@@ -493,7 +493,7 @@ void SAnimationRefPoseViewport::InitSkeleton()
 		{
 			UAnimSingleNodeInstance * Preview = PreviewComponent->PreviewInstance;
 			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh();
-			if((Preview == NULL || Preview->CurrentAsset != AnimRef) || PreviewComponent->SkeletalMesh != PreviewSkeletalMesh)
+			if((Preview == NULL || Preview->GetCurrentAsset() != AnimRef) || PreviewComponent->SkeletalMesh != PreviewSkeletalMesh)
 			{
 				PreviewComponent->SetSkeletalMesh(PreviewSkeletalMesh);
 				PreviewComponent->EnablePreview(true, AnimRef, NULL);

@@ -471,7 +471,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 				}
 
 				// Skip assets that were loaded for diffing
-				if ( InMemoryPackage->PackageFlags & PKG_ForDiffing )
+				if (InMemoryPackage->HasAnyPackageFlags(PKG_ForDiffing))
 				{
 					return;
 				}
@@ -548,7 +548,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 				}
 
 				// This asset is in memory and passes all filters
-				FAssetData* AssetData = new (OutAssetData)FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs(), InMemoryPackage->PackageFlags);
+				FAssetData* AssetData = new (OutAssetData)FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs(), InMemoryPackage->GetPackageFlags());
 			}
 		};
 
@@ -1270,7 +1270,7 @@ void FAssetRegistry::AssetCreated(UObject* NewAsset)
 		UPackage* NewPackage = NewAsset->GetOutermost();
 
 		// Mark this package as newly created.
-		NewPackage->PackageFlags |= PKG_NewlyCreated;
+		NewPackage->SetPackageFlags(PKG_NewlyCreated);
 
 		const FString NewPackageName = NewPackage->GetName();
 		const FString Filename = FPackageName::LongPackageNameToFilename(NewPackageName, FPackageName::GetAssetPackageExtension());

@@ -587,7 +587,8 @@ void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 	#else
 	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor;
 	#endif
-	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || bAllowScriptExecution)) || HasAnyFlags(RF_ClassDefaultObject)) && !IsGarbageCollecting() )
+	UWorld* MyWorld = GetWorld();
+	if( ((MyWorld && (MyWorld->AreActorsInitialized() || bAllowScriptExecution)) || HasAnyFlags(RF_ClassDefaultObject)) && !IsGarbageCollecting() )
 	{
 #if !UE_BUILD_SHIPPING
 		if (!ProcessEventDelegate.IsBound() || !ProcessEventDelegate.Execute(this, Function, Parameters))
@@ -877,7 +878,8 @@ void AActor::GetComponentsBoundingCylinder(float& OutCollisionRadius, float& Out
 	if(IsTemplate())
 	{
 		// Editor code calls this function on default objects when placing them in the viewport, so no components will be registered in those cases.
-		if (!GetWorld() || !GetWorld()->IsGameWorld())
+		UWorld* MyWorld = GetWorld();
+		if (!MyWorld || !MyWorld->IsGameWorld())
 		{
 			bIgnoreRegistration = true;
 		}
@@ -1639,7 +1641,8 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 		return;
 	}
 	
-	UNetDriver* NetDriver = GEngine->FindNamedNetDriver(GetWorld(), NetDriverName);
+	UWorld* MyWorld = GetWorld();
+	UNetDriver* NetDriver = GEngine->FindNamedNetDriver(MyWorld, NetDriverName);
 	if (NetDriver)
 	{
 		NetDormancy = NewDormancy;
@@ -1648,7 +1651,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 		if (NewDormancy <= DORM_Awake)
 		{
 			// Since we are coming out of dormancy, make sure we are on the network actor list
-			GetWorld()->AddNetworkActor( this );
+			MyWorld->AddNetworkActor( this );
 
 			NetDriver->FlushActorDormancy(this);
 		}
@@ -1732,9 +1735,9 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (bActorHasBegunPlay)
+	if (ActorHasBegunPlay == EActorBeginPlayState::HasBegunPlay)
 	{
-		bActorHasBegunPlay = false;
+		ActorHasBegunPlay = EActorBeginPlayState::HasNotBegunPlay;
 
 		// Dispatch the blueprint events
 		ReceiveEndPlay(EndPlayReason);
@@ -2662,7 +2665,7 @@ void AActor::PostActorConstruction()
 				FRotator AdjustedRotation = GetActorRotation();
 				if (World->FindTeleportSpot(this, AdjustedLocation, AdjustedRotation))
 				{
-					SetActorLocationAndRotation(AdjustedLocation, AdjustedRotation);
+					SetActorLocationAndRotation(AdjustedLocation, AdjustedRotation, false, nullptr, ETeleportType::TeleportPhysics);
 				}
 			}
 			break;
@@ -2673,7 +2676,7 @@ void AActor::PostActorConstruction()
 				FRotator AdjustedRotation = GetActorRotation();
 				if (World->FindTeleportSpot(this, AdjustedLocation, AdjustedRotation))
 				{
-					SetActorLocationAndRotation(AdjustedLocation, AdjustedRotation);
+					SetActorLocationAndRotation(AdjustedLocation, AdjustedRotation, false, nullptr, ETeleportType::TeleportPhysics);
 				}
 				else
 				{
@@ -2739,9 +2742,12 @@ void AActor::SetReplicates(bool bInReplicates)
 { 
 	if (Role == ROLE_Authority || bInReplicates == false)
 	{
-		if (bReplicates == false && bInReplicates == true && GetWorld() != NULL)		// GetWorld will return NULL on CDO, FYI
+		if (bReplicates == false && bInReplicates == true)
 		{
-			GetWorld()->AddNetworkActor(this);
+			if (UWorld* MyWorld = GetWorld())		// GetWorld will return NULL on CDO, FYI
+			{
+				MyWorld->AddNetworkActor(this);
+			}
 		}
 
 		RemoteRole = (bInReplicates ? ROLE_SimulatedProxy : ROLE_None);
@@ -2787,9 +2793,13 @@ void AActor::PostNetInit()
 	}
 	check(RemoteRole == ROLE_Authority);
 
-	if (!HasActorBegunPlay() && GetWorld() && GetWorld()->HasBegunPlay())
+	if (!HasActorBegunPlay())
 	{
-		BeginPlay();
+		const UWorld* MyWorld = GetWorld();
+		if (MyWorld && MyWorld->HasBegunPlay())
+		{
+			BeginPlay();
+		}
 	}
 
 	UpdateOverlaps();
@@ -2816,7 +2826,7 @@ void AActor::SwapRolesForReplay()
 
 void AActor::BeginPlay()
 {
-	ensure(!bActorHasBegunPlay);
+	ensure(ActorHasBegunPlay == EActorBeginPlayState::HasNotBegunPlay);
 	SetLifeSpan( InitialLifeSpan );
 	RegisterAllActorTickFunctions(true, false); // Components are done below.
 
@@ -2841,9 +2851,10 @@ void AActor::BeginPlay()
 		}
 	}
 
+	ActorHasBegunPlay = EActorBeginPlayState::BeginningPlay;
 	ReceiveBeginPlay();
 
-	bActorHasBegunPlay = true;
+	ActorHasBegunPlay = EActorBeginPlayState::HasBegunPlay;
 }
 
 void AActor::EnableInput(APlayerController* PlayerController)
@@ -3867,27 +3878,28 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 	TInlineComponentArray<USceneComponent*> Components;
 	GetComponents(Components);
 
+	UWorld* MyWorld = GetWorld();
+
 	for(int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 	{
 		USceneComponent const* const Component = Components[ComponentIndex]; 
 
-			FVector const Loc = Component->GetComponentLocation();
-			FRotator const Rot = Component->GetComponentRotation();
+		FVector const Loc = Component->GetComponentLocation();
+		FRotator const Rot = Component->GetComponentRotation();
 
-			// draw coord system at component loc
-			DrawDebugCoordinateSystem(GetWorld(), Loc, Rot, 10.f);
+		// draw coord system at component loc
+		DrawDebugCoordinateSystem(MyWorld, Loc, Rot, 10.f);
 
-			// draw line from me to my parent
-			USceneComponent const* const ParentComponent = Cast<USceneComponent>(Component->AttachParent);
-			if (ParentComponent)
-			{
-				DrawDebugLine(GetWorld(), ParentComponent->GetComponentLocation(), Loc, BaseColor);
-			}
-
-			// draw component name
-			DrawDebugString(GetWorld(), Loc+FVector(0,0,32), *Component->GetName());
+		// draw line from me to my parent
+		USceneComponent const* const ParentComponent = Cast<USceneComponent>(Component->AttachParent);
+		if (ParentComponent)
+		{
+			DrawDebugLine(MyWorld, ParentComponent->GetComponentLocation(), Loc, BaseColor);
 		}
 
+		// draw component name
+		DrawDebugString(MyWorld, Loc+FVector(0,0,32), *Component->GetName());
+	}
 }
 
 

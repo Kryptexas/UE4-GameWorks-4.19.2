@@ -3749,17 +3749,13 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 	}
 
 	UObject* Base = InBase;
-	if ( !Base && InOuter && InOuter->PackageFlags & PKG_ContainsMap )
+	if ( !Base && InOuter && InOuter->HasAnyPackageFlags(PKG_ContainsMap) )
 	{
 		Base = UWorld::FindWorldInPackage(InOuter);
 	}
 
 	// Record the package flags before OnPreSaveWorld. They will be used in OnPostSaveWorld.
-	uint32 OriginalPackageFlags = 0;
-	if ( InOuter )
-	{
-		OriginalPackageFlags = InOuter->PackageFlags;
-	}
+	const uint32 OriginalPackageFlags = (InOuter ? InOuter->GetPackageFlags() : 0);
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -3911,7 +3907,7 @@ void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
 			// PIE prefix detected, mark package.
 			if( World->GetName().StartsWith( PLAYWORLD_PACKAGE_PREFIX ) )
 			{
-				World->GetOutermost()->PackageFlags |= PKG_PlayInEditor;
+				World->GetOutermost()->SetPackageFlags(PKG_PlayInEditor);
 			}
 		}
 		else
@@ -3980,10 +3976,10 @@ void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 Orig
 		{
 			// Restore original value of PKG_PlayInEditor if we changed it during PIE saving
 			const bool bOriginallyPIE = (OriginalPackageFlags & PKG_PlayInEditor) != 0;
-			const bool bCurrentlyPIE = (WorldPackage->PackageFlags & PKG_PlayInEditor) != 0;
+			const bool bCurrentlyPIE = (WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor));
 			if ( !bOriginallyPIE && bCurrentlyPIE )
 			{
-				WorldPackage->PackageFlags &= ~PKG_PlayInEditor;
+				WorldPackage->ClearPackageFlags(PKG_PlayInEditor);
 			}
 		}
 		else

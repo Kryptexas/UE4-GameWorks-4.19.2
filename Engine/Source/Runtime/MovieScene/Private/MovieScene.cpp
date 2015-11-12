@@ -160,7 +160,7 @@ bool UMovieScene::ReplacePossessable( const FGuid& OldGuid, const FGuid& NewGuid
 			Possessable.SetGuid(NewGuid);
 			Possessable.SetName(NewName);
 
-			ReplaceBinding(OldGuid, NewGuid, NewName);
+			ReplaceBinding( OldGuid, NewGuid, NewName );
 			bAnythingReplaced = true;
 
 			break;
@@ -210,28 +210,28 @@ FText UMovieScene::GetObjectDisplayName(const FGuid& ObjectId)
 	FMovieSceneSpawnable* Spawnable = FindSpawnable(ObjectId);
 
 	if (Spawnable != nullptr)
-	{
+		{
 		Result = FText::FromString(Spawnable->GetName());
 		return Result;
-	}
+		}
 
 	FMovieScenePossessable* Possessable = FindPossessable(ObjectId);
 
 	if (Possessable != nullptr)
-	{
+		{
 		Result = FText::FromString(Possessable->GetName());
 		return Result;
 	}
 #endif
 	return FText::GetEmpty();
-}
+		}
 
 
 TRange<float> UMovieScene::GetPlaybackRange() const
 {
 	check(PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound());
 	return PlaybackRange;
-}
+	}
 
 
 void UMovieScene::SetPlaybackRange(float Start, float End)
@@ -280,12 +280,12 @@ TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 
 UMovieSceneTrack* UMovieScene::FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, const FName& TrackName) const
 {
-	check(ObjectGuid.IsValid());
+	check( ObjectGuid.IsValid() );
 	
 	for (const auto& Binding : ObjectBindings)
 	{
 		if (Binding.GetObjectGuid() != ObjectGuid) 
-		{
+	{
 			continue;
 		}
 
@@ -310,14 +310,14 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 
 	for (auto& Binding : ObjectBindings)
 	{
-		if (Binding.GetObjectGuid() == ObjectGuid) 
+		if( Binding.GetObjectGuid() == ObjectGuid ) 
 		{
 			Modify();
 
 			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
 			ensure(CreatedType);
 
-			Binding.AddTrack(*CreatedType);
+			Binding.AddTrack( *CreatedType );
 		}
 	}
 
@@ -353,7 +353,7 @@ UMovieSceneTrack* UMovieScene::FindMasterTrack( TSubclassOf<UMovieSceneTrack> Tr
 
 	for (const auto Track : MasterTracks)
 	{
-		if (Track->GetClass() == TrackClass)
+		if( Track->GetClass() == TrackClass )
 		{
 			FoundTrack = Track;
 			break;
@@ -377,7 +377,7 @@ class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrac
 
 UMovieSceneTrack* UMovieScene::AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
-	if (!ShotTrack)
+	if( !ShotTrack )
 	{
 		Modify();
 		ShotTrack = NewObject<UMovieSceneTrack>(this, TrackClass, FName("Shots"), RF_Transactional);
@@ -395,7 +395,7 @@ UMovieSceneTrack* UMovieScene::GetShotTrack()
 
 void UMovieScene::RemoveShotTrack()
 {
-	if (ShotTrack)
+	if( ShotTrack )
 	{
 		Modify();
 		ShotTrack = nullptr;
@@ -413,7 +413,7 @@ bool UMovieScene::RemoveMasterTrack(UMovieSceneTrack& Track)
 
 bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack& Track) const
 {
-	for (const UMovieSceneTrack* MasterTrack : MasterTracks)
+	for ( const UMovieSceneTrack* MasterTrack : MasterTracks)
 	{
 		if (&Track == MasterTrack)
 		{

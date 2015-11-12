@@ -105,11 +105,11 @@ private:
  * Use this to include a body of code in profiler's captured session using 'Resume' and 'Pause' cues.  It
  * can safely be embedded within another 'timer' or 'excluder' scope.
  */
-class ExternalProfilerIncluder : public FScopedExternalProfilerBase
+class FExternalProfilerIncluder : public FScopedExternalProfilerBase
 {
 public:
 	/** Constructor */
-	ExternalProfilerIncluder()
+	FExternalProfilerIncluder()
 	{
 		// 'Timer' scopes will always 'resume' VTune
 		const bool bWantPause = false;
@@ -117,7 +117,7 @@ public:
 	}
 
 	/** Destructor */
-	~ExternalProfilerIncluder()
+	~FExternalProfilerIncluder()
 	{
 		StopScopedTimer();
 	}
@@ -149,5 +149,5 @@ public:
 
 };
 
-#define SCOPE_PROFILER_INCLUDER(X) ExternalProfilerIncluder ExternalProfilerIncluder_##X;
+#define SCOPE_PROFILER_INCLUDER(X) FExternalProfilerIncluder ExternalProfilerIncluder_##X;
 #define SCOPE_PROFILER_EXCLUDER(X) FExternalProfilerExcluder ExternalProfilerExcluder_##X;

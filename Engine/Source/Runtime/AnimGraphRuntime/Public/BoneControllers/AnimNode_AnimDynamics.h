@@ -6,8 +6,9 @@
 #include "AnimNode_SkeletalControlBase.h"
 #include "AnimNode_AnimDynamics.generated.h"
 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Overall"), STAT_AnimDynamicsOverall, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Wind Data Update"), STAT_AnimDynamicsWindData, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Wind Bone Evaluation"), STAT_AnimDynamicsBoneEval, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Bone Evaluation"), STAT_AnimDynamicsBoneEval, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Anim Dynamics Sub-Steps"), STAT_AnimDynamicsSubSteps, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
 
 /** Supported angular constraint types */
@@ -278,6 +279,9 @@ protected:
 	// End of FAnimNode_SkeletalControlBase protected interface
 
 private:
+	void HandleGameThreadPreUpdateEvent(const UAnimInstance* InAnimInstance);
+
+private:
 
 	// We can't get clean bone positions unless we are in the evaluate step.
 	// Requesting an init or reinit sets this flag for us to pick up during evaluate
@@ -291,6 +295,9 @@ private:
 
 	// Current amount of time debt
 	float TimeDebt;
+
+	// Current time dilation
+	float CurrentTimeDilation;
 
 	// Cached physics settings. We cache these on initialise to avoid the cost of accessing UPhysicsSettings a lot each frame
 	float MaxPhysicsDeltaTime;

@@ -4484,6 +4484,12 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		}
 	}
 
+	if (Token.Matches(TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS")) || Token.Matches(TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS")))
+	{
+		// Skip these macros
+		return true;
+	}
+
 	// Ignore C++ declaration / function definition. 
 	return SkipDeclaration(Token);
 }

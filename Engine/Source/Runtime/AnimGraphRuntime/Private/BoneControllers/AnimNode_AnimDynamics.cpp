@@ -2,7 +2,9 @@
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimNode_AnimDynamics.h"
+#include "Animation/AnimInstanceProxy.h"
 
+DEFINE_STAT(STAT_AnimDynamicsOverall);
 DEFINE_STAT(STAT_AnimDynamicsWindData);
 DEFINE_STAT(STAT_AnimDynamicsBoneEval);
 DEFINE_STAT(STAT_AnimDynamicsSubSteps);
@@ -42,8 +44,9 @@ void FAnimNode_AnimDynamics::Initialize(const FAnimationInitializeContext& Conte
 {
 	FAnimNode_SkeletalControlBase::Initialize(Context);
 
-	USkeletalMeshComponent* SkelMeshComponent = Context.AnimInstance->GetSkelMeshComponent();
-	FBoneContainer& RequiredBones = Context.AnimInstance->RequiredBones;
+	Context.AnimInstanceProxy->AddGameThreadPreUpdateEvent(FGameThreadPreUpdateEvent::CreateRaw(this, &FAnimNode_AnimDynamics::HandleGameThreadPreUpdateEvent));
+
+	FBoneContainer& RequiredBones = Context.AnimInstanceProxy->GetRequiredBones();
 
 	BoundBone.Initialize(RequiredBones);
 
@@ -75,6 +78,8 @@ void FAnimNode_AnimDynamics::UpdateInternal(const FAnimationUpdateContext& Conte
 
 void FAnimNode_AnimDynamics::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimDynamicsOverall);
+
 	int32 RestrictToLOD = CVarRestrictLod.GetValueOnAnyThread();
 	bool bEnabledForLod = RestrictToLOD >= 0 ? SkelComp->PredictedLODLevel == RestrictToLOD : true;
 
@@ -129,12 +134,6 @@ void FAnimNode_AnimDynamics::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 				{
 					Body->bWindEnabled = false;
 				}
-			}
-			
-			float CurrentTimeDilation = 1.0f;
-			if(UAnimInstance* AnimationInstance = SkelComp->GetAnimInstance())
-			{
-				CurrentTimeDilation = AnimationInstance->CurrentTimeDilation;
 			}
 
 			if (CVarEnableAdaptiveSubstep.GetValueOnAnyThread() == 1)
@@ -550,4 +549,12 @@ void FAnimNode_AnimDynamics::UpdateLimits(USkeletalMeshComponent* SkelComp, FCSP
 			NewSpring.bApplyLinear = bLinearSpring;
 		}
 	}
+}
+
+void FAnimNode_AnimDynamics::HandleGameThreadPreUpdateEvent(const UAnimInstance* InAnimInstance)
+{
+	const USkeletalMeshComponent* SkelComp = InAnimInstance->GetSkelMeshComponent();
+	const UWorld* World = SkelComp->GetWorld();
+	check(World->GetWorldSettings());
+	CurrentTimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
 }

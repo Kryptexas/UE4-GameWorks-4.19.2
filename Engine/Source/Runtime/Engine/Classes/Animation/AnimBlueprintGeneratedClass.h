@@ -144,6 +144,7 @@ public:
 
 	void ResetNodeVisitSites();
 	void RecordNodeVisit(int32 TargetNodeIndex, int32 SourceNodeIndex, float BlendWeight);
+	void RecordNodeVisitArray(const TArray<FNodeVisit>& Nodes);
 #endif
 };
 
@@ -296,13 +297,13 @@ public:
 };
 
 template<typename NodeType>
-NodeType* GetNodeFromPropertyIndex(UAnimInstance* AnimInstance, const UAnimBlueprintGeneratedClass* AnimBlueprintClass, int32 PropertyIndex)
+NodeType* GetNodeFromPropertyIndex(UObject* AnimInstanceObject, const UAnimBlueprintGeneratedClass* AnimBlueprintClass, int32 PropertyIndex)
 {
 	if (PropertyIndex != INDEX_NONE)
 	{
 		UStructProperty* NodeProperty = AnimBlueprintClass->AnimNodeProperties[AnimBlueprintClass->AnimNodeProperties.Num() - 1 - PropertyIndex]; //@TODO: Crazysauce
 		check(NodeProperty->Struct == NodeType::StaticStruct());
-		return NodeProperty->ContainerPtrToValuePtr<NodeType>(AnimInstance);
+		return NodeProperty->ContainerPtrToValuePtr<NodeType>(AnimInstanceObject);
 	}
 
 	return NULL;

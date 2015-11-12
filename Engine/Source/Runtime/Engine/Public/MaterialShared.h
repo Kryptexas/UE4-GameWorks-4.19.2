@@ -358,6 +358,8 @@ namespace EMaterialShaderMapUsage
 		MaterialExportRoughness,
 		MaterialExportAO,
 		MaterialExportEmissive,
+		MaterialExportOpacity,
+		MaterialExportSubSurfaceColor
 	};
 }
 

@@ -191,10 +191,8 @@ struct ENGINE_API FWaveInstance
 	float				Volume;
 	/** Current volume multiplier - used to zero the volume without stopping the source */
 	float				VolumeMultiplier;
-	/** Current priority (deprecated) */
-	float				PlayPriority;
-	/** A priority value that scales with volume (post all gain stages) and is used to determin voice playback priority. */
-	float				VolumeWeightedPriorityScale;
+	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
+	float				Priority;
 	/** Voice center channel volume */
 	float				VoiceCenterChannelVolume;
 	/** Volume of the radio filter effect */

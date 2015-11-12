@@ -1012,7 +1012,7 @@ ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 Segmen
 
 #endif
 
-void UAnimMontage::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const
+void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const
 {
 	// nothing has to happen here
 	// we just have to make sure we set Context data correct
@@ -1850,7 +1850,7 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 		}
 
 		// Queue all these notifies.
-		AnimInstance->AddAnimNotifies(Notifies, NotifyWeight);
+		AnimInstance->NotifyQueue.AddAnimNotifies(Notifies, NotifyWeight);
 	}
 
 	// Update active state branching points, before we handle the immediate tick marker.
@@ -1958,18 +1958,18 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 		UAnimSingleNodeInstance* SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
 		if(SingleNodeInst)
 		{
-			if(SingleNodeInst->CurrentAsset != InAnimSequence)
+			if(SingleNodeInst->GetCurrentAsset() != InAnimSequence)
 			{
 				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
 				SingleNodeInst->SetPosition(0.0f);
-				SingleNodeInst->bPlaying = false;
+				SingleNodeInst->SetPlaying(false);
 			}
 
-			if(SingleNodeInst->bLooping!=bLooping)
+			if(SingleNodeInst->IsLooping()!=bLooping)
 			{
 				SingleNodeInst->SetLooping(bLooping);
 			}
-			if(SingleNodeInst->CurrentTime != InPosition)
+			if(SingleNodeInst->GetCurrentTime() != InPosition)
 			{
 				SingleNodeInst->SetPosition(InPosition);
 			}
@@ -2025,7 +2025,7 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 	UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
 	if(SingleNodeInst)
 	{
-		if(SingleNodeInst->CurrentAsset != InAnimSequence)
+		if(SingleNodeInst->GetCurrentAsset() != InAnimSequence)
 		{
 			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
 		}

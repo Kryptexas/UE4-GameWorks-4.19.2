@@ -2783,7 +2783,7 @@ bool FEditorFileUtils::SaveDirtyContentPackages(TArray<UClass*>& SaveContentClas
 		// Don't try to save "Transient" package.
 		bShouldIgnorePackage |= Package == GetTransientPackage();
 		// Ignore PIE packages.
-		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
+		bShouldIgnorePackage |= Package->HasAnyPackageFlags(PKG_PlayInEditor);
 		// Ignore packages that haven't been modified.
 		bShouldIgnorePackage |= !Package->IsDirty();
 
@@ -2908,7 +2908,7 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 				if ( CurPackage != GetTransientPackage() )
 				{
 					// Never save compiled in packages
-					if ( (CurPackage->PackageFlags & PKG_CompiledIn) == 0 )
+					if (CurPackage->HasAnyPackageFlags(PKG_CompiledIn) == false)
 					{
 						if (UncheckedPackages.Contains(TWeakObjectPtr<UPackage>(CurPackage)))
 						{
@@ -2985,7 +2985,7 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 				if ( CurPackage != GetTransientPackage() )
 				{
 					// Never save compiled in packages
-					if ( (CurPackage->PackageFlags & PKG_CompiledIn) == 0 )
+					if (CurPackage->HasAnyPackageFlags(PKG_CompiledIn) == false)
 					{
 						FilteredPackages.Add( CurPackage );
 					}
@@ -3414,7 +3414,7 @@ void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages
 	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
 	{
 		UPackage* WorldPackage = WorldIt->GetOutermost();
-		if (WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0
+		if (WorldPackage->IsDirty() && (WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor) == false)
 			&& !WorldPackage->HasAnyFlags(RF_Transient))
 		{
 			// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
@@ -3438,7 +3438,7 @@ void FEditorFileUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackag
 		// Don't try to save packages with the RF_Transient flag.
 		bShouldIgnorePackage |= Package->HasAnyFlags(RF_Transient);
 		// Ignore PIE packages.
-		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
+		bShouldIgnorePackage |= Package->HasAnyPackageFlags(PKG_PlayInEditor);
 		// Ignore packages that haven't been modified.
 		bShouldIgnorePackage |= !Package->IsDirty();
 

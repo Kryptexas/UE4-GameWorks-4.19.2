@@ -168,7 +168,7 @@ class UDirectionalLightComponent : public ULightComponent
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
 	void SetLightShaftOverrideDirection(FVector NewValue);
 
-	//~ Begin ULightComponent Interface.
+	//~ Begin ULightComponent Interface
 	virtual FVector4 GetLightPosition() const override;
 	virtual ELightComponentType GetLightType() const override;
 	virtual FLightmassLightSettings GetLightmassSettings() const override
@@ -183,6 +183,7 @@ class UDirectionalLightComponent : public ULightComponent
 	{
 		return bUsedAsAtmosphereSunLight;
 	}
+	//~ End ULightComponent Interface
 
 	//~ Begin UObject Interface
 #if WITH_EDITOR

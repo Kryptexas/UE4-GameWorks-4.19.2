@@ -200,6 +200,8 @@ struct ENGINE_API FNetViewer
 	FNetViewer(UNetConnection* InConnection, float DeltaSeconds);
 };
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
 USTRUCT()
 struct ENGINE_API FHierarchicalSimplification
 {
@@ -252,25 +254,18 @@ struct ENGINE_API FHierarchicalSimplification
 		MergeSetting.bGenerateLightMapUV = true;
 	}
 
+private:
 
-
-	FHierarchicalSimplification& operator=(const FHierarchicalSimplification& Other)
+	// This function exists to force the compiler generated operators to be instantiated while the deprecation warning
+	// pragmas are disabled so no warnings are thrown when used elsewhere and the compiler is forced to generate them
+	void DummyFunction() const
 	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		
-		TransitionScreenSize = Other.TransitionScreenSize;
-		DrawDistance = Other.DrawDistance;
-		bSimplifyMesh = Other.bSimplifyMesh;
-		ProxySetting = Other.ProxySetting;
-		MergeSetting = Other.MergeSetting;
-		DesiredBoundRadius = Other.DesiredBoundRadius;
-		DesiredFillingPercentage = Other.DesiredFillingPercentage;
-		MinNumberOfActorsToBuild = Other.MinNumberOfActorsToBuild;
-		return *this;
-
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	};	
+		FHierarchicalSimplification ASP1, ASP2;
+		ASP1 = ASP2;
+	}
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 /**
  * Actor containing all script accessible world properties.

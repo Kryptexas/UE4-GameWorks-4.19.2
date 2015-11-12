@@ -569,7 +569,7 @@ namespace EditorUtilities
 {
 	AActor* GetEditorWorldCounterpartActor( AActor* Actor )
 	{
-		const bool bIsSimActor = !!( Actor->GetOutermost()->PackageFlags & PKG_PlayInEditor );
+		const bool bIsSimActor = Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
 		if( bIsSimActor && GEditor->PlayWorld != NULL )
 		{
 			// Do we have a counterpart in the editor world?
@@ -600,7 +600,7 @@ namespace EditorUtilities
 
 	AActor* GetSimWorldCounterpartActor( AActor* Actor )
 	{
-		const bool bIsSimActor = !!( Actor->GetOutermost()->PackageFlags & PKG_PlayInEditor );
+		const bool bIsSimActor = Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
 		if( !bIsSimActor && GEditor->EditorWorld != NULL )
 		{
 			// Do we have a counterpart in the sim world?
@@ -826,7 +826,7 @@ namespace EditorUtilities
 			for (int32 ArrayIndex = 0; ArrayIndex < PropertyArrayDim; ArrayIndex++)
 			{
 				UObject* const SourceObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(InSourcePtr, ArrayIndex);
-				if (SourceObjectPropertyValue && SourceObjectPropertyValue->GetOutermost()->PackageFlags & PKG_PlayInEditor)
+				if (SourceObjectPropertyValue && SourceObjectPropertyValue->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 				{
 					// Not all the code paths below actually copy the object, but even if they don't we need to claim that they
 					// did, as copying a reference to an object in a PIE world leads to crashes

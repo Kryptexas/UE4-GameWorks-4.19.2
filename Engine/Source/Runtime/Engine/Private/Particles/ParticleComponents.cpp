@@ -6157,32 +6157,40 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 		.DoNotCreateDefaultSubobject(TEXT("ArrowComponent0"))
 	)
 {
-	DistFromCamera = 90.0f;
 	InitialLifeSpan = 10.0f;
 	BaseFOV = 80.0f;
 	bDestroyOnSystemFinish = true;
 
+	// default transform is a 180 yaw to flip the system around to face the camera
+	// and 90 units pushed out
+	// (we assume it by default that the effect was authored facing down the +X, due to legacy reasons)
+	RelativeTransform = FTransform( 
+		FRotator(0.f, 180.f, 0.f),
+		FVector(90.f, 0.f, 0.f)
+		);
+
 	GetParticleSystemComponent()->bOnlyOwnerSee = true;
 	GetParticleSystemComponent()->SecondsBeforeInactive = 0.0f;
+
+	// this property is deprecated, give it the sentinel value to indicate it doesn't need to be migrated
+	DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
 }
 
 void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
 {
-	FRotationMatrix M(CamRot);
-
-	// the particle is FACING X being parallel to the Y axis.  So we just flip the entire thing to face toward the player who is looking down X
-	const FVector& X = M.GetScaledAxis( EAxis::X );
-	M.SetAxis(0, -X);
-	M.SetAxis(1, -M.GetScaledAxis( EAxis::Y ));
-
-	const FRotator& NewRot = M.Rotator();
-
+	// adjust for FOV
 	// base dist uses BaseFOV which is set on the indiv camera lens effect class
-	const float DistAdjustedForFOV = DistFromCamera * ( FMath::Tan(float(BaseFOV*0.5f*PI/180.f)) / FMath::Tan(float(CamFOVDeg*0.5f*PI/180.f)) );
+	FTransform RelativeTransformAdjustedForFOV = RelativeTransform;
+	FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
+	AdjustedRelativeLoc.X *= FMath::Tan(BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
+	RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
 
-	//UE_LOG(LogParticles, Warning, TEXT("DistAdjustedForFOV: %f  BaseFOV: %f  CamFOVDeg: %f"), DistAdjustedForFOV, BaseFOV, CamFOVDeg );
+	FTransform const CameraToWorld(CamRot, CamLoc);
 
-	SetActorLocationAndRotation( CamLoc + X * DistAdjustedForFOV, NewRot, false );
+	// RelativeTransform is "effect to camera"
+	FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
+
+	SetActorTransform(EffectToWorld);
 }
 
 void AEmitterCameraLensEffectBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -6208,10 +6216,28 @@ void AEmitterCameraLensEffectBase::PostInitializeComponents()
 	ActivateLensEffect();
 }
 
+void AEmitterCameraLensEffectBase::PostLoad()
+{
+	Super::PostLoad();
+
+	// using TNumericLimits<float>::Max() as a sentinel value to indicate this deprecated data has been 
+	// migrated to the new format
+	if (DistFromCamera_DEPRECATED != TNumericLimits<float>::Max())
+	{
+		// copy old data into the new transform
+		FVector Loc = RelativeTransform.GetLocation();
+		Loc.X = DistFromCamera_DEPRECATED;
+		RelativeTransform.SetLocation(Loc);
+
+		// don't copy again (just in case this gets saved, which is shouldn't)
+		DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
+	}
+}
+
 void AEmitterCameraLensEffectBase::ActivateLensEffect()
 {
 	// only play the camera effect on clients
-	UWorld* World = GetWorld();
+	UWorld const* const World = GetWorld();
 	check(World);
 	if( GetNetMode() != NM_DedicatedServer )
 	{

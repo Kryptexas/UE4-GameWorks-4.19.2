@@ -138,7 +138,7 @@ public:
 
 protected:
 	// The state machine description this is an instance of
-	FBakedAnimationStateMachine* PRIVATE_MachineDescription;
+	const FBakedAnimationStateMachine* PRIVATE_MachineDescription;
 
 	// The current state within the state machine
 	UPROPERTY()
@@ -199,7 +199,7 @@ public:
 
 protected:
 	// Tries to get the instance information for the state machine
-	FBakedAnimationStateMachine* GetMachineDescription();
+	const FBakedAnimationStateMachine* GetMachineDescription() const;
 
 	void SetState(const FAnimationBaseContext& Context, int32 NewStateIndex);
 	void SetStateInternal(int32 NewStateIndex);
@@ -232,5 +232,5 @@ protected:
 	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(const FAnimationUpdateContext& Context, const FBakedAnimationState& StateInfo);
 
 public:
-	friend class UAnimInstance;
+	friend struct FAnimInstanceProxy;
 };

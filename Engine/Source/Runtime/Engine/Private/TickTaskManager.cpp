@@ -49,7 +49,6 @@ static TAutoConsoleVariable<int32> CVarAllowConcurrentQueue(
 static bool GCanDemoteInto[TG_MAX] =
 {
 	true,		// 	TG_PrePhysics,
-	false,		// 	TG_DuringAnimation,
 	true,		// 	TG_StartPhysics,
 	false,		// 	TG_DuringPhysics,
 	true,		// 	TG_EndPhysics,

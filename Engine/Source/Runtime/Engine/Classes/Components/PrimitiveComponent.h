@@ -720,6 +720,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentEndTouchOverSignature OnInputTouchLeave;
 
+	/** Scale the bounds of this object, used for frustum culling. Useful for features like WorldPositionOffset. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetBoundsScale(float NewBoundsScale=1.f);
+
 	/**
 	 * Returns the material used by the element at the specified index
 	 * @param ElementIndex - The element to access the material of.

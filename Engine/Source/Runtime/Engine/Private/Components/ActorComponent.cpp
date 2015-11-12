@@ -868,10 +868,10 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		}
 	}
 
-	if (MyOwner && MyOwner->HasActorBegunPlay() && !bHasBegunPlay)
+	if (MyOwner && (MyOwner->HasActorBegunPlay() || MyOwner->IsActorBeginningPlay()))
 	{
 		RegisterAllComponentTickFunctions(true);
-		if (bWantsBeginPlay)
+		if (bWantsBeginPlay && !bHasBegunPlay)
 		{
 			BeginPlay();
 		}

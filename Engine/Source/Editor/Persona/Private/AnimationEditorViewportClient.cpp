@@ -911,7 +911,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	if( PreviewInstance )
 	{
 		// see if you have anim sequence that has transform curves
-		UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset);
+		UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset());
 		if ( Sequence && Sequence->DoesNeedRebake() )
 		{
 			InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");

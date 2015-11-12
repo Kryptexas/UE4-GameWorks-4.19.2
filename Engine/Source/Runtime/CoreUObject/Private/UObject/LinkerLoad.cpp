@@ -1138,10 +1138,14 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		if( LinkerRootPackage )
 		{
 			// Preserve PIE package flag
-			uint32 PIEFlag = (LinkerRootPackage->PackageFlags & PKG_PlayInEditor);
+			uint32 NewPackageFlags = Summary.PackageFlags;
+			if (LinkerRootPackage->HasAnyPackageFlags(PKG_PlayInEditor))
+			{
+				NewPackageFlags |= PKG_PlayInEditor;
+			}
 			
 			// Propagate package flags
-			LinkerRootPackage->PackageFlags = (Summary.PackageFlags | PIEFlag);
+			LinkerRootPackage->SetPackageFlagsTo(NewPackageFlags);
 
 			// Propagate package folder name
 			LinkerRootPackage->SetFolderName(*Summary.FolderName);
@@ -2450,7 +2454,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 		// if we couldn't create the package or it is 
 		// to be linked to any other package's ImportMaps
-		if ( !TmpPkg || (TmpPkg->PackageFlags&PKG_Compiling) != 0 )
+		if ( !TmpPkg || TmpPkg->HasAnyPackageFlags(PKG_Compiling) )
 		{
 			return false;
 		}
@@ -2493,7 +2497,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			}
 
 			auto* Package = dynamic_cast<UPackage*>(Top->XObject);
-			if (Package && (Package->PackageFlags & PKG_InMemoryOnly))
+			if (Package && Package->HasAnyPackageFlags(PKG_InMemoryOnly))
 			{
 				// This is an import to a memory-only package, just search for it in the package.
 				TmpPkg = Package;
@@ -2669,7 +2673,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 	}
 
 	bool bCameFromMemoryOnlyPackage = false;
-	if (!Pkg && TmpPkg && (TmpPkg->PackageFlags & PKG_InMemoryOnly))
+	if (!Pkg && TmpPkg && TmpPkg->HasAnyPackageFlags(PKG_InMemoryOnly))
 	{
 		Pkg = TmpPkg; // this is a package that exists in memory only, so that is the package to search regardless of FindIfFail
 		bCameFromMemoryOnlyPackage = true;
@@ -3095,7 +3099,7 @@ void FLinkerLoad::Preload( UObject* Object )
 	check(Object);
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	bool const bIsNonNativeObject = !(Object->GetOutermost()->PackageFlags & PKG_CompiledIn);
+	bool const bIsNonNativeObject = !Object->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn);
 	// we can determine that this is a blueprint class/struct by checking if it 
 	// is a class/struct object AND if it is not native (blueprint 
 	// structs/classes are the only asset package structs/classes we have)
@@ -3757,7 +3761,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		// if we are loading objects just to verify an object reference during script compilation,
 		if (!GVerifyObjectReferencesOnly
 		||	(ObjectLoadFlags&RF_ClassDefaultObject) != 0					// only load this object if it's a class default object
-		||	(LinkerRoot->PackageFlags&PKG_ContainsScript) != 0		// or we're loading an existing package and it's a script package
+		||	LinkerRoot->HasAnyPackageFlags(PKG_ContainsScript)		// or we're loading an existing package and it's a script package
 		||	ThisParent->IsTemplate(RF_ClassDefaultObject)			// or if its a subobject template in a CDO
 		||	LoadClass->IsChildOf(UField::StaticClass())				// or if it is a UField
 		||	LoadClass->IsChildOf(UObjectRedirector::StaticClass()))	// or if its a redirector to another object
@@ -3937,7 +3941,7 @@ bool FLinkerLoad::IsImportNative(const int32 Index) const
 		else if (UPackage* ExistingPackage = FindObject<UPackage>(/*Outer =*/nullptr, *Import.ObjectName.ToString()))
 		{
 			// @TODO: what if the package's outer isn't null... what does that mean?
-			bIsImportNative = !ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_CompiledIn);
+			bIsImportNative = !ExistingPackage->GetOuter() && ExistingPackage->HasAnyPackageFlags(PKG_CompiledIn);
 		}
 	}
 

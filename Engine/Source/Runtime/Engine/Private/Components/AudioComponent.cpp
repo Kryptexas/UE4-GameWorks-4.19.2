@@ -22,7 +22,8 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	bVisualizeComponent = true;
 #endif
 	VolumeMultiplier = 1.f;
-	VolumeWeightedPriorityScale = 1.f;
+	bOverridePriority = false;
+	Priority = 1.f;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
 	VolumeModulationMax = 1.f;
@@ -151,7 +152,15 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 
 			NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ((VolumeModulationMin - VolumeModulationMax) * FMath::SRand())) * VolumeMultiplier;
-			NewActiveSound.VolumeWeightedPriorityScale = VolumeWeightedPriorityScale;
+			// The priority used for the active sound is the audio component's priority scaled with the sound's priority
+			if (bOverridePriority)
+			{
+				NewActiveSound.Priority = Priority;
+			}
+			else
+			{
+				NewActiveSound.Priority = Sound->Priority;
+			}
 			NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
 			NewActiveSound.HighFrequencyGainMultiplier = HighFrequencyGainMultiplier;
 

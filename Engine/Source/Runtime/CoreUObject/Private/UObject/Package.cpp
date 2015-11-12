@@ -41,7 +41,7 @@ void UPackage::PostInitProperties()
 	bIsCookedForEditor = false;
 	// Mark this package as editor-only by default. As soon as something in it is accessed through a non editor-only
 	// property the flag will be removed.
-	bLoadedByEditorPropertiesOnly = !HasAnyFlags(RF_ClassDefaultObject) && !(PackageFlags & PKG_CompiledIn);
+	bLoadedByEditorPropertiesOnly = !HasAnyFlags(RF_ClassDefaultObject) && !HasAnyPackageFlags(PKG_CompiledIn);
 #endif
 }
 
@@ -55,7 +55,7 @@ void UPackage::SetDirtyFlag( bool bIsDirty )
 	{
 		if ( GUndo != NULL
 		// PIE world objects should never end up in the transaction buffer as we cannot undo during gameplay.
-		&& !(GetOutermost()->PackageFlags & (PKG_PlayInEditor|PKG_ContainsScript)) )
+		&& !GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor|PKG_ContainsScript) )
 		{
 			// make sure we're marked as transactional
 			SetFlags(RF_Transactional);
@@ -68,8 +68,8 @@ void UPackage::SetDirtyFlag( bool bIsDirty )
 		bDirty = bIsDirty;
 
 		if( GIsEditor									// Only fire the callback in editor mode
-			&& !(PackageFlags & PKG_ContainsScript)		// Skip script packages
-			&& !(PackageFlags & PKG_PlayInEditor)		// Skip packages for PIE
+			&& !HasAnyPackageFlags(PKG_ContainsScript)	// Skip script packages
+			&& !HasAnyPackageFlags(PKG_PlayInEditor)	// Skip packages for PIE
 			&& GetTransientPackage() != this )			// Skip the transient package
 		{
 			// Package is changing dirty state, let the editor know so we may prompt for source control checkout
@@ -215,6 +215,16 @@ void UPackage::BeginDestroy()
 
 	Super::BeginDestroy();
 }
+
+// UE-21181 - Tracking where the loaded editor level's package gets flagged as a PIE object
+#if WITH_EDITOR
+UPackage* UPackage::EditorPackage = nullptr;
+void UPackage::SetPackageFlagsTo( uint32 NewFlags )
+{
+	PackageFlagsPrivate = NewFlags;
+	ensure(((NewFlags & PKG_PlayInEditor) == 0) || (this != EditorPackage));
+}
+#endif
 
 #if WITH_EDITORONLY_DATA
 void FixupPackageEditorOnlyFlag(FName PackageThatGotEditorOnlyFlagCleared, bool bRecursive);

@@ -1111,7 +1111,7 @@ void SAnimationEditorViewportTabBody::ShowRetargetBasePose()
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	if(PreviewComponent && PreviewComponent->PreviewInstance)
 	{
-		PreviewComponent->PreviewInstance->bForceRetargetBasePose = !PreviewComponent->PreviewInstance->bForceRetargetBasePose;
+		PreviewComponent->PreviewInstance->SetForceRetargetBasePose(!PreviewComponent->PreviewInstance->GetForceRetargetBasePose());
 	}
 }
 
@@ -1126,7 +1126,7 @@ bool SAnimationEditorViewportTabBody::IsShowRetargetBasePoseEnabled() const
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	if(PreviewComponent && PreviewComponent->PreviewInstance)
 	{
-		return PreviewComponent->PreviewInstance->bForceRetargetBasePose;
+		return PreviewComponent->PreviewInstance->GetForceRetargetBasePose();
 	}
 	return false;
 }

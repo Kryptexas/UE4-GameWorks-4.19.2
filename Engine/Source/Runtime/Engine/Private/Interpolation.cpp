@@ -8040,6 +8040,7 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 	if ( NewPosition >= IData->InterpLength && !bContinueSoundOnMatineeEnd && SoundInst->PlayAudioComp && SoundInst->PlayAudioComp->IsPlaying() )
 	{
 		SoundInst->PlayAudioComp->Stop();
+		bPlaying = false;
 	}
 
 	// If the new position for the track is before the last interp position, then the playback must have looped,

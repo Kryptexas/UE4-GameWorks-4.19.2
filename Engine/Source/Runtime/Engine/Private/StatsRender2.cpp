@@ -710,62 +710,87 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 	// Render all groups.
 	for( int32 GroupIndex = 0; GroupIndex < ViewData.HudGroups.Num(); ++GroupIndex )
 	{
-		// If the stat isn't enabled for this particular viewport, skip
-		FString StatGroupName = ViewData.GroupNames[GroupIndex].ToString();
-		StatGroupName.RemoveFromStart(TEXT("STATGROUP_"), ESearchCase::CaseSensitive);
-		if (!Viewport->GetClient() || !Viewport->GetClient()->IsStatEnabled(StatGroupName))
-		{
-			continue;
-		}
-
-		// Render header.
-		const FName& GroupName = ViewData.GroupNames[GroupIndex];
-		const FString& GroupDesc = ViewData.GroupDescriptions[GroupIndex];
-		const FString GroupLongName = !ViewData.RootFilter.IsEmpty() ? FString::Printf(TEXT("%s [%s] ROOT=%s"), *GroupDesc, *GroupName.GetPlainNameString(), *ViewData.RootFilter)
-																	   : FString::Printf(TEXT("%s [%s]"), *GroupDesc, *GroupName.GetPlainNameString());
-
-		Canvas->DrawShadowedString(X, Y, *GroupLongName, Globals.StatFont, Globals.GroupColor);
-		Y += Globals.GetFontHeight();
-
 		const FHudGroup& HudGroup = ViewData.HudGroups[GroupIndex];
-		const bool bHasHierarchy = !!HudGroup.HierAggregate.Num();
-		const bool bHasFlat = !!HudGroup.FlatAggregate.Num();
-		const bool bBudget = HudGroup.TotalGroupBudget >= 0.f;
-		if (bHasHierarchy || bHasFlat)
-		{
-			// Render grouped headings.
-			Y += RenderGroupedHeadings( Canvas, X, Y, bHasHierarchy, bBudget );
-		}
+		const bool bBudget = HudGroup.ThreadBudgetMap.Num() > 0;
+		const int32 NumThreadsBreakdown = bBudget ? HudGroup.FlatAggregateThreadBreakdown.Num() : 1;
+		TArray<FName> ThreadNames;
+		HudGroup.FlatAggregateThreadBreakdown.GetKeys(ThreadNames);
 
-		// Render hierarchy.
-		if( bHasHierarchy )
+		for(int32 ThreadBreakdownIdx = 0; ThreadBreakdownIdx < NumThreadsBreakdown; ++ThreadBreakdownIdx)
 		{
-			RenderHierCycles( Canvas, X, Y, HudGroup );
-			Y += Globals.GetFontHeight();
-		}
+			// If the stat isn't enabled for this particular viewport, skip
+			FString StatGroupName = ViewData.GroupNames[GroupIndex].ToString();
+			StatGroupName.RemoveFromStart(TEXT("STATGROUP_"), ESearchCase::CaseSensitive);
+			if (!Viewport->GetClient() || !Viewport->GetClient()->IsStatEnabled(StatGroupName))
+			{
+				continue;
+			}
 
-		// Render flat.
-		if( bHasFlat )
-		{
-			RenderArrayOfStats(Canvas,X,Y,HudGroup.FlatAggregate, ViewData, HudGroup.BudgetIgnoreStats, HudGroup.TotalGroupBudget, RenderFlatCycle);
-			Y += Globals.GetFontHeight();
-		}
+			// Render header.
+			const FName& GroupName = ViewData.GroupNames[GroupIndex];
+			const FString& GroupDesc = ViewData.GroupDescriptions[GroupIndex];
+			FString GroupLongName = FString::Printf(TEXT("%s [%s]"), *GroupDesc, *GroupName.GetPlainNameString());
+			
+			FName ThreadName;
+			FName ShortThreadName;
+			if(NumThreadsBreakdown)
+			{
+				ThreadName = ThreadNames[ThreadBreakdownIdx];
+				ShortThreadName = FStatNameAndInfo::GetShortNameFrom(ThreadName);
+				GroupLongName += FString::Printf(TEXT(" - %s"), *ShortThreadName.ToString());
+			}
 
-		// Render memory counters.
-		if( HudGroup.MemoryAggregate.Num() )
-		{
-			Y += RenderMemoryHeadings(Canvas,X,Y);
-			RenderArrayOfStats(Canvas,X,Y,HudGroup.MemoryAggregate, ViewData, HudGroup.BudgetIgnoreStats, HudGroup.TotalGroupBudget, RenderMemoryCounter);
-			Y += Globals.GetFontHeight();
-		}
+			if(!ViewData.RootFilter.IsEmpty())
+			{
+				GroupLongName += FString::Printf(TEXT(" ROOT=%s"), *ViewData.RootFilter);
+			}
 
-		// Render remaining counters.
-		if( HudGroup.CountersAggregate.Num() )
-		{
-			Y += RenderCounterHeadings(Canvas,X,Y);
-			RenderArrayOfStats(Canvas,X,Y,HudGroup.CountersAggregate, ViewData, HudGroup.BudgetIgnoreStats, HudGroup.TotalGroupBudget, RenderCounter);
+			Canvas->DrawShadowedString(X, Y, *GroupLongName, Globals.StatFont, Globals.GroupColor);
 			Y += Globals.GetFontHeight();
+
+			
+			const bool bHasHierarchy = !!HudGroup.HierAggregate.Num();
+			const bool bHasFlat = !!HudGroup.FlatAggregate.Num();
+
+			if (bHasHierarchy || bHasFlat)
+			{
+				// Render grouped headings.
+				Y += RenderGroupedHeadings(Canvas, X, Y, bHasHierarchy, bBudget);
+			}
+
+			// Render hierarchy.
+			if (bHasHierarchy)
+			{
+				RenderHierCycles(Canvas, X, Y, HudGroup);
+				Y += Globals.GetFontHeight();
+			}
+
+			const float* BudgetPtr = ShortThreadName != NAME_None ? HudGroup.ThreadBudgetMap.Find(ShortThreadName) : nullptr;
+			const float Budget = BudgetPtr ? *BudgetPtr : -1.f;
+			// Render flat.
+			if (bHasFlat)
+			{
+				RenderArrayOfStats(Canvas, X, Y, bBudget ? HudGroup.FlatAggregateThreadBreakdown[ThreadName] : HudGroup.FlatAggregate, ViewData, HudGroup.BudgetIgnoreStats, Budget, RenderFlatCycle);
+				Y += Globals.GetFontHeight();
+			}
+
+			// Render memory counters.
+			if (HudGroup.MemoryAggregate.Num())
+			{
+				Y += RenderMemoryHeadings(Canvas, X, Y);
+				RenderArrayOfStats(Canvas, X, Y, HudGroup.MemoryAggregate, ViewData, HudGroup.BudgetIgnoreStats, Budget, RenderMemoryCounter);
+				Y += Globals.GetFontHeight();
+			}
+
+			// Render remaining counters.
+			if (HudGroup.CountersAggregate.Num())
+			{
+				Y += RenderCounterHeadings(Canvas, X, Y);
+				RenderArrayOfStats(Canvas, X, Y, HudGroup.CountersAggregate, ViewData, HudGroup.BudgetIgnoreStats, Budget, RenderCounter);
+				Y += Globals.GetFontHeight();
+			}
 		}
+		
 	}
 }
 

@@ -290,7 +290,7 @@ void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, 
 			if( Object->IsA(Class) && !Object->IsPendingKill() )
 			{
 				// If we're in a PIE session then only allow set commands to affect PlayInEditor objects.
-				if( !GIsPlayInEditorWorld || ( Object->GetOutermost()->PackageFlags & PKG_PlayInEditor ) != 0 )
+				if( !GIsPlayInEditorWorld || Object->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor)  )
 				{
 #if WITH_EDITOR
 					if( !Object->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
@@ -1015,7 +1015,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		// If we are loading a package for diff'ing, set the package flag
 		if(LoadFlags & LOAD_ForDiff)
 		{
-			Result->PackageFlags |= PKG_ForDiffing;
+			Result->SetPackageFlags(PKG_ForDiffing);
 		}
 
 		// Save the filename we load from
@@ -1798,7 +1798,7 @@ bool SaveToTransactionBuffer(UObject* Object, bool bMarkDirty)
 	// Neither PIE world objects nor script packages should end up in the transaction buffer. Additionally, in order
 	// to save a copy of the object, we must have a transactor and the object must be transactional.
 	const bool IsTransactional = Object->HasAnyFlags(RF_Transactional);
-	const bool IsNotPIEOrContainsScriptObject = ( ( Object->GetOutermost()->PackageFlags & ( PKG_PlayInEditor | PKG_ContainsScript ) ) == 0 );
+	const bool IsNotPIEOrContainsScriptObject = (Object->GetOutermost()->HasAnyPackageFlags( PKG_PlayInEditor | PKG_ContainsScript) == false);
 
 	if ( GUndo && IsTransactional && IsNotPIEOrContainsScriptObject )
 	{

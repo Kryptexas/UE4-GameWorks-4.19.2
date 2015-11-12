@@ -218,12 +218,25 @@ bool UBehaviorTreeManager::LoadTree(UBehaviorTree& Asset, UBTCompositeNode*& Roo
 	return false;
 }
 
-void UBehaviorTreeManager::InitializeMemoryHelper(const TArray<UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize)
+void UBehaviorTreeManager::InitializeMemoryHelper(const TArray<UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize, bool bForceInstancing)
 {
 	TArray<FNodeInitializationData> InitList;
 	for (int32 NodeIndex = 0; NodeIndex < Nodes.Num(); NodeIndex++)
 	{
+		UBTNode* Node = Nodes[NodeIndex];
+
+		const bool bUsesInstancing = Node->HasInstance();
+		if (bForceInstancing)
+		{
+			Node->ForceInstancing(true);
+		}
+
 		InitList.Add(FNodeInitializationData(Nodes[NodeIndex], NULL, 0, 0, Nodes[NodeIndex]->GetInstanceMemorySize(), Nodes[NodeIndex]->GetSpecialMemorySize()));
+
+		if (bForceInstancing && !bUsesInstancing)
+		{
+			Node->ForceInstancing(false);
+		}
 	}
 
 	InitList.Sort(FNodeInitializationData::FMemorySort());

@@ -2371,7 +2371,7 @@ int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterial
 	}
 }
 
-void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, int32& OutNumTextureCoordinates, bool& OutUseVertexColor)
+void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, int32& OutNumTextureCoordinates, bool& bOutRequiresVertexData)
 {
 #if WITH_EDITORONLY_DATA
 	// FHLSLMaterialTranslator collects all required information during translation, but these data are protected. Needs to
@@ -2390,6 +2390,16 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 		{
 			return bUsesVertexColor;
 		}
+
+		bool UsesTransformVector() const
+		{
+			return bUsesTransformVector;
+		}
+
+		bool UsesWorldPositionExcludingShaderOffsets() const
+		{
+			return bNeedsWorldPositionExcludingShaderOffsets;
+		}
 	};
 
 	FMaterialCompilationOutput TempOutput;
@@ -2402,7 +2412,7 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 	CompileProperty(&MaterialTranslator, InProperty);
 	// Request data from translator
 	OutNumTextureCoordinates = MaterialTranslator.GetTextureCoordsCount();
-	OutUseVertexColor = MaterialTranslator.UsesVertexColor();
+	bOutRequiresVertexData = MaterialTranslator.UsesVertexColor() || MaterialTranslator.UsesTransformVector() || MaterialTranslator.UsesWorldPositionExcludingShaderOffsets();
 #endif
 }
 

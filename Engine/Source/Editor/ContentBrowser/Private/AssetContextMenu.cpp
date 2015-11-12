@@ -1828,19 +1828,20 @@ bool FAssetContextMenu::CanExecuteDuplicate() const
 {
 	const TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	uint32 NumNonRedirectors = 0;
-	for(auto& AssetData : AssetViewSelectedAssets)
+
+	for (const FAssetData& AssetData : AssetViewSelectedAssets)
 	{
-		if(!AssetData.IsValid())
+		if (!AssetData.IsValid())
 		{
 			continue;
 		}
 
-		if(AssetData.AssetClass == NAME_Class)
+		if (AssetData.AssetClass == NAME_Class || AssetData.AssetClass == UWorld::StaticClass()->GetFName())
 		{
 			return false;
 		}
 
-		if(AssetData.AssetClass != UObjectRedirector::StaticClass()->GetFName())
+		if (AssetData.AssetClass != UObjectRedirector::StaticClass()->GetFName())
 		{
 			++NumNonRedirectors;
 		}

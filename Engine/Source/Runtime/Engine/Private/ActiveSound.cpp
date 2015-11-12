@@ -49,7 +49,7 @@ FActiveSound::FActiveSound()
 	, HighFrequencyGainMultiplier(1.f)
 	, ConcurrencyVolumeScale(1.f)
 	, SubtitlePriority(0.f)
-	, VolumeWeightedPriorityScale(1.0f)
+	, Priority(1.0f)
 	, VolumeConcurrency(0.0f)
 	, OcclusionCheckInterval(0.f)
 	, LastOcclusionCheckTime(0.f)
@@ -201,7 +201,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 
 	int32 ClosestListenerIndex = 0;
 
-	if (AudioDevice->Listeners.Num() > 0)
+	if (AudioDevice->Listeners.Num() > 1)
 	{
 		SCOPE_CYCLE_COUNTER( STAT_AudioFindNearestLocation );
 		ClosestListenerIndex = FindClosestListener(AudioDevice->Listeners);
@@ -221,7 +221,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// final value that is correct
 	UpdateAdjustVolumeMultiplier(DeltaTime);
 	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * AudioDevice->TransientMasterVolume * (bOccluded ? 0.5f : 1.0f) * ConcurrencyVolumeScale;
-	ParseParams.VolumeWeightedPriorityScale = VolumeWeightedPriorityScale;
+	ParseParams.Priority = Priority;
 	ParseParams.Pitch *= PitchMultiplier * Sound->GetPitchMultiplier();
 	ParseParams.HighFrequencyGain *= HighFrequencyGainMultiplier;
 
@@ -254,18 +254,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	{
 		if (bHasAttenuationSettings)
 		{
-			AttenuationSettings.ApplyAttenuation(ParseParams.Transform, Listener.Transform.GetTranslation(), ParseParams.Volume, ParseParams.HighFrequencyGain);
-			ParseParams.OmniRadius = AttenuationSettings.OmniRadius;
-			ParseParams.StereoSpread = AttenuationSettings.StereoSpread;
-			ParseParams.bUseSpatialization = AttenuationSettings.bSpatialize;
-			if (AttenuationSettings.SpatializationAlgorithm == SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
-			{
-				ParseParams.SpatializationAlgorithm = SPATIALIZATION_HRTF;
-			}
-			else
-			{
-				ParseParams.SpatializationAlgorithm = AttenuationSettings.SpatializationAlgorithm;
-			}
+			ApplyAttenuation(ParseParams, ClosestListener);
 		}
 
 
@@ -666,5 +655,157 @@ void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuati
 				AttenuationSettingsToApply->CollectAttenuationShapesForVisualization(ShapeDetailsMap);
 			}
 		}
+	}
+}
+
+void FActiveSound::GetAttenuationListenerData(FAttenuationListenerData& ListenerData, const FSoundParseParameters& ParseParams, const FListener& Listener) const
+{
+	// Only perform this calculation once and explicitly require a reset.
+	if (ListenerData.bDataComputed)
+	{
+		return;
+	}
+
+	const FTransform& SoundTransform = ParseParams.Transform;
+	const FVector& ListenerLocation = Listener.Transform.GetTranslation();
+
+	FVector ListenerToSound = SoundTransform.GetTranslation() - ListenerLocation;
+	ListenerToSound.ToDirectionAndLength(ListenerData.ListenerToSoundDir, ListenerData.ListenerToSoundDistance);
+
+	ListenerData.AttenuationDistance = 0.0f;
+
+	if ((AttenuationSettings.bAttenuate && AttenuationSettings.AttenuationShape == EAttenuationShape::Sphere) || AttenuationSettings.bAttenuateWithLPF)
+	{
+		ListenerData.AttenuationDistance = FMath::Max(ListenerData.ListenerToSoundDistance - AttenuationSettings.AttenuationShapeExtents.X, 0.f);
+	}
+
+	ListenerData.bDataComputed = true;
+}
+
+void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener)
+{
+	float& Volume = ParseParams.Volume;
+	const FTransform& SoundTransform = ParseParams.Transform;
+	const FVector& ListenerLocation = Listener.Transform.GetTranslation();
+	float& HighFrequencyGain = ParseParams.HighFrequencyGain;
+
+	FAttenuationListenerData ListenerData;
+
+	// Init focus factor to 1.0f in case this sound is ignoring focus
+	float FocusFactor = 1.0f;
+
+	// How much we want to scale the listener-emitter distance based on focus
+	float DistanceScale = 1.0f;
+
+	// Computer the focus factor if needed
+	check(Sound);
+	if (AttenuationSettings.bSpatialize && AttenuationSettings.bEnableListenerFocus && !Sound->bIgnoreFocus)
+	{
+		// Get the attenuation listener data
+		GetAttenuationListenerData(ListenerData, ParseParams, Listener);
+
+		// Compute the focus factor
+		const FVector& ListenerForwardDir = Listener.Transform.GetUnitAxis(EAxis::X);
+		const FVector& ListenerToSoundDir = ListenerData.ListenerToSoundDir;
+		const float FocusDotProduct = FVector::DotProduct(ListenerForwardDir, ListenerToSoundDir);
+		const float FocusAngle = FMath::RadiansToDegrees(FMath::Acos(FocusDotProduct));
+
+		const float FocusAzimuth = FMath::Clamp(AttenuationSettings.FocusAzimuth, 0.0f, 360.0f);
+		const float NonFocusAzimuth = FMath::Clamp(AttenuationSettings.NonFocusAzimuth, 0.0f, 360.0f);
+
+		if (FocusAzimuth != NonFocusAzimuth)
+		{
+			FocusFactor = (FocusAngle - FocusAzimuth) / (NonFocusAzimuth - FocusAzimuth);
+			FocusFactor = FMath::Clamp(FocusFactor, 0.0f, 1.0f);
+		}
+		else
+		{
+			FocusFactor = 0.0f;
+			if (FocusAngle < FocusAzimuth)
+			{
+				FocusFactor = 1.0f;
+			}
+		}
+
+		// Get the volume scale to apply the volume calculation based on the focus factor
+		const float NonFocusVolumeAttenuation = FMath::Clamp(AttenuationSettings.NonFocusVolumeAttenuation, 0.0f, 1.0f);
+		const float FocusVolumeAttenuation = FMath::Lerp(1.0f, NonFocusVolumeAttenuation, FocusFactor);
+		Volume *= FocusVolumeAttenuation;
+
+		// Scale the volume-weighted priority scale value we use for sorting this sound for voice-stealing
+		const float NonFocusPriorityScale = FMath::Max(AttenuationSettings.NonFocusPriorityScale, 0.0f);
+		const float FocusPriorityScale = FMath::Max(AttenuationSettings.FocusPriorityScale, 0.0f);
+		const float PriorityScale = FMath::Lerp(FocusPriorityScale, NonFocusPriorityScale, FocusFactor);
+		ParseParams.Priority *= PriorityScale;
+
+		// Get the distance scale to use when computing distance-calculations for 3d atttenuation
+		const float FocusDistanceScale = FMath::Max(AttenuationSettings.FocusDistanceScale, 0.0f);
+		const float NonFocusDistanceScale = FMath::Max(AttenuationSettings.NonFocusDistanceScale, 0.0f);
+		DistanceScale = FMath::Lerp(FocusDistanceScale, NonFocusDistanceScale, FocusFactor);
+
+		// Update the sound's distance scale value for checks based on max distance
+		Sound->SetFocusDistanceScale(DistanceScale);
+	}
+
+	// Attenuate the volume based on the model
+	if (AttenuationSettings.bAttenuate)
+	{
+		switch (AttenuationSettings.AttenuationShape)
+		{
+			case EAttenuationShape::Sphere:
+			{
+				// Update attenuation data in-case it hasn't been updated
+				GetAttenuationListenerData(ListenerData, ParseParams, Listener);
+				Volume *= AttenuationSettings.AttenuationEval(ListenerData.AttenuationDistance, AttenuationSettings.FalloffDistance, DistanceScale);
+				break;
+			}
+
+			case EAttenuationShape::Box:
+			Volume *= AttenuationSettings.AttenuationEvalBox(SoundTransform, ListenerLocation, DistanceScale);
+			break;
+
+			case EAttenuationShape::Capsule:
+			Volume *= AttenuationSettings.AttenuationEvalCapsule(SoundTransform, ListenerLocation, DistanceScale);
+			break;
+
+			case EAttenuationShape::Cone:
+			Volume *= AttenuationSettings.AttenuationEvalCone(SoundTransform, ListenerLocation, DistanceScale);
+			break;
+
+			default:
+			check(false);
+		}
+	}
+
+	// Attenuate with the low pass filter if necessary
+	if (AttenuationSettings.bAttenuateWithLPF)
+	{
+		GetAttenuationListenerData(ListenerData, ParseParams, Listener);
+		if (ListenerData.AttenuationDistance >= AttenuationSettings.LPFRadiusMax)
+		{
+			HighFrequencyGain = 0.0f;
+		}
+		// UsedLPFMinRadius is the point at which to start applying the low pass filter
+		else if (ListenerData.AttenuationDistance > AttenuationSettings.LPFRadiusMin)
+		{
+			HighFrequencyGain = 1.0f - ((ListenerData.AttenuationDistance - AttenuationSettings.LPFRadiusMin) / (AttenuationSettings.LPFRadiusMax - AttenuationSettings.LPFRadiusMin));
+		}
+		else
+		{
+			HighFrequencyGain = 1.0f;
+		}
+	}
+
+	ParseParams.OmniRadius = AttenuationSettings.OmniRadius;
+	ParseParams.StereoSpread = AttenuationSettings.StereoSpread;
+	ParseParams.bUseSpatialization |= AttenuationSettings.bSpatialize;
+
+	if (AttenuationSettings.SpatializationAlgorithm == SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
+	{
+		ParseParams.SpatializationAlgorithm = SPATIALIZATION_HRTF;
+	}
+	else
+	{
+		ParseParams.SpatializationAlgorithm = AttenuationSettings.SpatializationAlgorithm;
 	}
 }

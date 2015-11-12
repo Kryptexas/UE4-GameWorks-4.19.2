@@ -364,7 +364,22 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 	if (WaveInstance->bUseSpatialization)
 	{
 		FVector EmitterPosition = AudioDevice->GetListenerTransformedDirection(WaveInstance->Location, &Params.Distance);
-		Params.NormalizedOmniRadius = (Params.Distance > 0) ? (WaveInstance->OmniRadius / Params.Distance) : FLT_MAX;
+		
+		// If we are using the OmniRadius feature
+		if (WaveInstance->OmniRadius > 0.0f)
+		{
+			static const float MaxNormalizedRadius = 1000000.0f;
+			Params.NormalizedOmniRadius = MaxNormalizedRadius;
+
+			if (Params.Distance > 0)
+			{
+				Params.NormalizedOmniRadius = FMath::Clamp(WaveInstance->OmniRadius / Params.Distance, 0.0f, MaxNormalizedRadius);
+			}
+		}
+		else
+		{
+			Params.NormalizedOmniRadius = 0.0f;
+		}
 
 		if (Buffer->NumChannels == 2)
 		{
@@ -466,7 +481,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 ,	ActiveSound( InActiveSound )
 ,	Volume( 0.0f )
 ,	VolumeMultiplier( 1.0f )
-,	PlayPriority( 0.0f )
+,	Priority( 1.0f )
 ,	VoiceCenterChannelVolume( 0.0f )
 ,	RadioFilterVolume( 0.0f )
 ,	RadioFilterVolumeThreshold( 0.0f )
@@ -568,7 +583,7 @@ float FWaveInstance::GetVolumeWeightedPriority() const
 	check(ActiveSound);
 	// If this wave instance's active sound should stop due to max concurrency, return a large negative weighted priority so 
 	// that it will always be sorted to the bottom of the WaveInstance list and stopped.
-	return ActiveSound->bShouldStopDueToMaxConcurrency ? -100.0f : GetActualVolume() * VolumeWeightedPriorityScale;
+	return ActiveSound->bShouldStopDueToMaxConcurrency ? -100.0f : GetActualVolume() * Priority;
 }
 
 bool FWaveInstance::IsStreaming() const

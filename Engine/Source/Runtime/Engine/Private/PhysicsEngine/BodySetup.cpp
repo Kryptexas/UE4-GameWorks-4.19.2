@@ -443,7 +443,7 @@ public:
 			// first apply the scale first 
 			float Radius = FMath::Max(SphylElem.Radius * ScaleRadius, 0.1f);
 			float Length = SphylElem.Length + SphylElem.Radius * 2.f;
-			float HalfLength = Length * ScaleLength * 0.5f;
+			float HalfLength = FMath::Max(Length * ScaleLength * 0.5f, 0.1f);
 			Radius = FMath::Clamp(Radius, 0.1f, HalfLength);	//radius is capped by half length
 			float HalfHeight = HalfLength - Radius;
 			HalfHeight = FMath::Max(0.1f, HalfHeight);

@@ -1011,7 +1011,6 @@ static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
 #endif
 
 DECLARE_CYCLE_STAT(TEXT("TG_PrePhysics"), STAT_TG_PrePhysics, STATGROUP_TickGroups);
-DECLARE_CYCLE_STAT(TEXT("TG_DuringAnimation"), STAT_TG_DuringAnimation, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_StartPhysics"), STAT_TG_StartPhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("Start TG_DuringPhysics"), STAT_TG_DuringPhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_EndPhysics"), STAT_TG_EndPhysics, STATGROUP_TickGroups);
@@ -1170,10 +1169,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PrePhysics);
 			RunTickGroup(TG_PrePhysics);
-		}
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_DuringAnimation);
-			RunTickGroup(TG_DuringAnimation);		
 		}
         bInTick = false;
         EnsureCollisionTreeIsBuilt();

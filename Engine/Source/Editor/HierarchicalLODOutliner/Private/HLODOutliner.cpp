@@ -157,7 +157,7 @@ namespace HLODOutliner
 					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("BuildMeshes", "Build LOD Meshes for Clusters"))
 					.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
-				]
+				]				
 			];
 		
 	}
@@ -205,7 +205,6 @@ namespace HLODOutliner
 				.FillWidth(0.5f)
 				[
 					SNew(SSlider)
-					.IsEnabled(this, &SHLODOutliner::HandleForcedLevelSliderIsEnabled)
 					.OnValueChanged(this, &SHLODOutliner::HandleForcedLevelSliderValueChanged)
 					.OnMouseCaptureBegin(this, &SHLODOutliner::HandleForcedLevelSliderCaptureBegin)
 					.OnMouseCaptureEnd(this, &SHLODOutliner::HandleForcedLevelSliderCaptureEnd)
@@ -418,24 +417,9 @@ namespace HLODOutliner
 		return FReply::Handled();
 	}
 
-	FReply SHLODOutliner::HandleTestFunction()
-	{
-		if (SelectedNodes.Num() > 0)
-		{
-			if (SelectedNodes[0]->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
-			{
-				FLODActorItem* Item = static_cast<FLODActorItem*>(SelectedNodes[0].Get());
-				ALODActor* LODActor = Item->LODActor.Get();
-				
-				FHierarchicalLODUtilities::CreateVolumeForLODActor(LODActor, CurrentWorld);
-			}
-		}
-		return FReply::Handled();
-	}
-
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-		void SHLODOutliner::RegisterDelegates()
+	void SHLODOutliner::RegisterDelegates()
 	{
 		FEditorDelegates::MapChange.AddSP(this, &SHLODOutliner::OnMapChange);
 		FEditorDelegates::NewCurrentLevel.AddSP(this, &SHLODOutliner::OnNewCurrentLevel);
@@ -507,7 +491,7 @@ namespace HLODOutliner
 		}
 	}
 
-	bool SHLODOutliner::HandleForcedLevelSliderIsEnabled() const
+	bool SHLODOutliner::AreHLODsBuild() const
 	{
 		bool bHLODsBuild = true;
 		for (bool Build : LODLevelBuildFlags)
@@ -638,13 +622,16 @@ namespace HLODOutliner
 			for (auto SelectedItem : SelectedItems )
 			{
 				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
-				auto Parent = ActorItem->GetParent();
-
-				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
-				if (Type == ITreeItem::HierarchicalLODLevel)
+				if (ActorItem->LODActor->SubActors.Num() > 1)
 				{
-					FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
-					CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+					auto Parent = ActorItem->GetParent();
+
+					ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+					if (Type == ITreeItem::HierarchicalLODLevel)
+					{
+						FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
+						CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+					}
 				}
 			}
 
@@ -664,15 +651,17 @@ namespace HLODOutliner
 			for (auto SelectedItem : SelectedItems)
 			{
 				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
-
-				auto Parent = ActorItem->GetParent();
-
-				ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
-				if (Type == ITreeItem::HierarchicalLODLevel)
+				if (ActorItem->LODActor->SubActors.Num() > 1)
 				{
-					FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
-					ActorItem->LODActor->SetIsDirty(true);
-					CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);			
+					auto Parent = ActorItem->GetParent();
+
+					ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+					if (Type == ITreeItem::HierarchicalLODLevel)
+					{
+						FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
+						ActorItem->LODActor->SetIsDirty(true);
+						CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+					}
 				}
 			}
 
@@ -1195,6 +1184,8 @@ namespace HLODOutliner
 						{
 							DestroySelectionActors();
 						}
+
+						TreeView->RequestScrollIntoView(*Item);
 					}
 					else
 					{
@@ -1214,6 +1205,8 @@ namespace HLODOutliner
 				{
 					DestroySelectionActors();
 				}
+
+				TreeView->RequestScrollIntoView(*Item);
 			}	
 			else
 			{

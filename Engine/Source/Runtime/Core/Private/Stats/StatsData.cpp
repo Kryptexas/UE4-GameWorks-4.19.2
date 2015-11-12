@@ -1064,7 +1064,7 @@ void FStatsThreadState::UpdateStatMessagesMemoryUsage()
 	}
 }
 
-void FStatsThreadState::GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter, bool bAddNonStackStats /*= true*/) const
+void FStatsThreadState::GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter, bool bAddNonStackStats, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap) const
 {
 	struct FTimeInfo
 	{
@@ -1081,10 +1081,42 @@ void FStatsThreadState::GetInclusiveAggregateStackStats(int64 TargetFrame, TArra
 	};
 	TMap<FName, FTimeInfo> Timing;
 	TMap<FName, FStatMessage> ThisFrameMetaData;
+	TMap<FName, TMap<FName, FStatMessage>> ThisFrameMetaDataPerThread;
+	TMap<FName, FStatMessage> ThreadStarts;
+	TMap<FName, FStatMessage> ThreadEnds;
 	TArray<FStatMessage> const& Data = GetCondensedHistory(TargetFrame);
+	TMap<FName, FStatMessage>* ThisFrameMetaDataPerThreadPtr = nullptr;
+	int32 Depth = 0;
 	for (int32 Index = 0; Index < Data.Num(); Index++)
 	{
 		FStatMessage const& Item = Data[Index];
+
+		//Need to get thread root first regardless of filter
+		if(OptionalOutThreadBreakdownMap)
+		{
+			EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
+			if (Op == EStatOperation::ChildrenStart)
+			{
+				if(Depth++ == 1)
+				{
+					FName LongName = Item.NameAndInfo.GetRawName();
+					check(ThisFrameMetaDataPerThreadPtr == nullptr);
+					ThreadStarts.Add(LongName, Item);
+					ThisFrameMetaDataPerThreadPtr = &ThisFrameMetaDataPerThread.FindOrAdd(LongName);
+				}
+			}
+			else if (Op == EStatOperation::ChildrenEnd)
+			{
+				if(--Depth == 1)
+				{
+					FName LongName = Item.NameAndInfo.GetRawName();
+					ThreadEnds.Add(LongName, Item);
+					check(ThisFrameMetaDataPerThreadPtr);
+					ThisFrameMetaDataPerThreadPtr = nullptr;
+				}
+			}
+		}
+
 		if (!Filter || Filter->Keep(Item))
 		{
 			FName LongName = Item.NameAndInfo.GetRawName();
@@ -1101,7 +1133,21 @@ void FStatsThreadState::GetInclusiveAggregateStackStats(int64 TargetFrame, TArra
 					Result->NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
 					Result->Clear();
 				}
+
+				if(Depth && ThisFrameMetaDataPerThreadPtr)
+				{
+					FStatMessage* ThreadResult = ThisFrameMetaDataPerThreadPtr->Find(LongName);
+					if (!ThreadResult)
+					{
+						ThreadResult = &ThisFrameMetaDataPerThreadPtr->Add(LongName, Item);
+						ThreadResult->NameAndInfo.SetField<EStatOperation>(EStatOperation::Set);
+						ThreadResult->NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
+						ThreadResult->Clear();
+					}
+				}
+
 				FTimeInfo& ItemTime = Timing.FindOrAdd(LongName);
+
 				if (Op == EStatOperation::ChildrenStart)
 				{
 					ItemTime.StartCalls++;
@@ -1117,6 +1163,11 @@ void FStatsThreadState::GetInclusiveAggregateStackStats(int64 TargetFrame, TArra
 					if (!ItemTime.Recursion) // doing aggregates here, so ignore misleading recursion which would be counted twice
 					{
 						FStatsUtils::AccumulateStat(*Result, Item, EStatOperation::Add);
+						if (Depth && ThisFrameMetaDataPerThreadPtr)
+						{
+							FStatMessage& ThreadResult = ThisFrameMetaDataPerThreadPtr->FindChecked(LongName);
+							FStatsUtils::AccumulateStat(ThreadResult, Item, EStatOperation::Add);
+						}
 					}
 
 				}
@@ -1131,6 +1182,24 @@ void FStatsThreadState::GetInclusiveAggregateStackStats(int64 TargetFrame, TArra
 	for (TMap<FName, FStatMessage>::TConstIterator It(ThisFrameMetaData); It; ++It)
 	{
 		OutStats.Add(It.Value());
+	}
+	
+	if(OptionalOutThreadBreakdownMap)
+	{
+		for (TMap<FName, TMap<FName, FStatMessage>> ::TConstIterator ItThread(ThisFrameMetaDataPerThread); ItThread; ++ItThread)
+		{
+			const TMap<FName, FStatMessage>& ItemNameToMeta = ItThread.Value();
+			const FName ThreadName = ItThread.Key();
+
+			if(ItemNameToMeta.Num())
+			{
+				TArray<FStatMessage>& MetaForThread = OptionalOutThreadBreakdownMap->FindOrAdd(ThreadName);
+				for (TMap<FName, FStatMessage>::TConstIterator It(ItemNameToMeta); It; ++It)
+				{
+					MetaForThread.Add(It.Value());
+				}
+			}
+		}
 	}
 }
 

@@ -2495,7 +2495,15 @@ struct FMaterialSimplificationSettings
 	}
 };
 
-
+UENUM()
+enum ETextureSizingType
+{
+	TextureSizingType_UseSingleTextureSize UMETA(DisplayName = "Use TextureSize for all material properties"),
+	TextureSizingType_UseAutomaticBiasedSizes UMETA(DisplayName = "Use automatically biased texture sizes based on TextureSize"),
+	TextureSizingType_UseManualOverrideTextureSize UMETA(DisplayName = "Use per property manually overriden texture sizes"),
+	TextureSizingType_UseSimplygonAutomaticSizing UMETA(DisplayName = "Use Simplygon's automatic texture sizing"),
+	TextureSizingType_MAX,
+};
 
 USTRUCT()
 struct FMaterialProxySettings
@@ -2506,9 +2514,8 @@ struct FMaterialProxySettings
 	UPROPERTY(Category = Material, EditAnywhere)
 	FIntPoint TextureSize;
 
-	// Use automatic texure sizes
 	UPROPERTY(Category = Material, EditAnywhere)
-	bool bAutomaticTextureSizes;
+	TEnumAsByte<ETextureSizingType> TextureSizingType;
 
 	UPROPERTY(Category = Material, EditAnywhere)
 	float GutterSpace;
@@ -2549,25 +2556,60 @@ struct FMaterialProxySettings
 	UPROPERTY(Category = Material, EditAnywhere)
 	bool bOpacityMap;
 
+	// Override diffuse map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint DiffuseTextureSize;
 
+	// Override normal map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint NormalTextureSize;
+
+	// Override metallic map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint MetallicTextureSize;
+
+	// Override roughness map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint RoughnessTextureSize;
+
+	// Override specular map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint SpecularTextureSize;				    
+						
+	// Override emissive map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint EmissiveTextureSize;				    
+						
+	// Override opacity map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint OpacityTextureSize;
+	
 	FMaterialProxySettings()
 		: TextureSize(1024, 1024)
-		, bAutomaticTextureSizes(false)
+		, TextureSizingType(TextureSizingType_UseSingleTextureSize)
 		, GutterSpace(4.0f)
 		, bNormalMap(true)
 		, bMetallicMap(false)
 		, MetallicConstant(0.0f)
 		, bRoughnessMap(false)
 		, RoughnessConstant(0.5f)				
-		, bSpecularMap(false)
+		, bSpecularMap(false)		
 		, SpecularConstant(0.5f)
+		, bEmissiveMap(false)
+		, bOpacityMap(false)
+		, DiffuseTextureSize(1024, 1024)
+		, NormalTextureSize(1024, 1024)
+		, MetallicTextureSize(1024, 1024)
+		, RoughnessTextureSize(1024, 1024)
+		, EmissiveTextureSize(1024, 1024)
+		, OpacityTextureSize(1024, 1024)
 	{
 	}
 
 	bool operator == (const FMaterialProxySettings& Other) const
 	{
 		return TextureSize == Other.TextureSize
-			&& bAutomaticTextureSizes == Other.bAutomaticTextureSizes
+			&& TextureSizingType == Other.TextureSizingType
 			&& GutterSpace == Other.GutterSpace
 			&& bNormalMap == Other.bNormalMap
 			&& MetallicConstant == Other.MetallicConstant
@@ -2575,7 +2617,15 @@ struct FMaterialProxySettings
 			&& RoughnessConstant == Other.RoughnessConstant
 			&& bRoughnessMap == Other.bRoughnessMap
 			&& SpecularConstant == Other.SpecularConstant
-			&& bSpecularMap == Other.bSpecularMap;
+			&& bSpecularMap == Other.bSpecularMap
+			&& bEmissiveMap == Other.bEmissiveMap
+			&& bOpacityMap == Other.bOpacityMap
+			&& DiffuseTextureSize == Other.DiffuseTextureSize
+			&& NormalTextureSize == Other.NormalTextureSize
+			&& MetallicTextureSize == Other.MetallicTextureSize
+			&& RoughnessTextureSize == Other.RoughnessTextureSize
+			&& EmissiveTextureSize == Other.EmissiveTextureSize
+			&& OpacityTextureSize == Other.OpacityTextureSize;
 	}
 };
 

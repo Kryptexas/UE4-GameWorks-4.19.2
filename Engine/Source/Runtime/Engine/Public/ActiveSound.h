@@ -27,7 +27,8 @@ struct FSoundParseParameters
 	float Volume;
 	float VolumeMultiplier;
 
-	float VolumeWeightedPriorityScale;
+	// The priority of sound, which is the product of the component priority and the USoundBased priority
+	float Priority;
 
 	float Pitch;
 	float HighFrequencyGain;
@@ -187,7 +188,9 @@ public:
 	float ConcurrencyVolumeScale;
 
 	float SubtitlePriority;
-	float VolumeWeightedPriorityScale;
+
+	/** The product of the component priority and the USoundBase priority */
+	float Priority;
 
 	// The volume used to determine concurrency resolution for "quietest" active sound
 	float VolumeConcurrency;
@@ -303,6 +306,9 @@ public:
 	/** Returns the sound concurrency object ID if it exists. If it doesn't exist, returns 0. */
 	uint32 GetSoundConcurrencyObjectID() const;
 
+	/** Applies the active sound's attenuation settings to the input parse params using the given listener */
+	void ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener);
+
 private:
 
 	/** This is a friend so the audio device can call Stop() on the active sound. */
@@ -323,4 +329,23 @@ private:
 
 	/** Apply the interior settings to the ambient sound as appropriate */
 	void HandleInteriorVolumes( const FListener& Listener, struct FSoundParseParameters& ParseParams );
+
+	/** Struct used to cache listener attenuation vector math results */
+	struct FAttenuationListenerData
+	{
+		FVector ListenerToSoundDir;
+		float AttenuationDistance;
+		float ListenerToSoundDistance;
+		bool bDataComputed;
+
+		FAttenuationListenerData()
+			: ListenerToSoundDir(FVector::ZeroVector)
+			, AttenuationDistance(0.0f)
+			, ListenerToSoundDistance(0.0f)
+			, bDataComputed(false)
+		{}
+	};
+
+	/** Performs listener-based calculations for spatializing and attenuating the active sound */
+	void GetAttenuationListenerData(FAttenuationListenerData& Data, const FSoundParseParameters& ParseParams, const FListener& Listener) const;
 };

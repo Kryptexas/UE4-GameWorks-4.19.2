@@ -27,7 +27,7 @@ void UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded(UPackage *Pack
 	if (PackagesToNotReload.Contains(Name))
 	{
 		UE_LOG(LogDerivedDataCacheCommandlet, Verbose, TEXT("Marking %s already loaded."), *Name);
-		Package->PackageFlags |= PKG_ReloadingForCooker;
+		Package->SetPackageFlags(PKG_ReloadingForCooker);
 	}
 }
 
@@ -162,7 +162,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 							ProcessedPackages.Add(Filename);
 
 							PackagesToNotReload.Add(Pkg->GetName());
-							Pkg->PackageFlags |= PKG_ReloadingForCooker;
+							Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 							{
 								TArray<UObject *> ObjectsInPackage;
 								GetObjectsWithOuter(Pkg, ObjectsInPackage, true);

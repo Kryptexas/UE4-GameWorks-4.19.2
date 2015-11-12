@@ -1104,6 +1104,13 @@ ECollisionChannel UPrimitiveComponent::GetCollisionObjectType() const
 	return ECollisionChannel(BodyInstance.GetObjectType());
 }
 
+void UPrimitiveComponent::SetBoundsScale(float NewBoundsScale)
+{
+	BoundsScale = NewBoundsScale;
+	UpdateBounds();
+	MarkRenderTransformDirty();
+}
+
 UMaterialInterface* UPrimitiveComponent::GetMaterial(int32 Index) const
 {
 	return NULL;
@@ -1415,7 +1422,7 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 		Extent = Extent.ComponentMax(FVector::ZeroVector);
 	}
 
-	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
+	return FCollisionShape::MakeBox(Extent);
 }
 
 

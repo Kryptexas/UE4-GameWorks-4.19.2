@@ -463,6 +463,11 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 		}
 	}
 
+	if(IsSimulatingPhysics())
+	{
+		SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
+	}
+
 	UpdatePreClothTickRegisteredState();
 }
 
@@ -870,7 +875,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 				Body->CreateDOFLock();
 
 				// Set to sleep if necessary
-				if (bShouldSleep)
+				if (bShouldSleep  && Body->GetPxRigidDynamic_AssumesLocked())
 				{
 					Body->GetPxRigidDynamic_AssumesLocked()->putToSleep();
 				}
@@ -1051,6 +1056,8 @@ void USkeletalMeshComponent::SetAllBodiesSimulatePhysics(bool bNewSimulate)
 		Bodies[i]->SetInstanceSimulatePhysics(bNewSimulate);
 	}
 
+	SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
+
 	UpdatePreClothTickRegisteredState();
 }
 
@@ -1094,6 +1101,11 @@ void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBo
 	{
 		//UE_LOG(LogSkeletalMesh, Warning, TEXT( "ForceAllBodiesBelowUnfixed %s" ), *InAsset->BodySetup(BodyIndices(i))->BoneName.ToString() );
 		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics(bNewSimulate);
+	}
+
+	if (IsSimulatingPhysics())
+	{
+		SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
 	}
 
 	UpdatePreClothTickRegisteredState();
@@ -4230,6 +4242,37 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI)
 #endif // #if WITH_APEX_CLOTHING
 }
 
+
+void DrawWireTaperedCapsuleSleeve(const FSphere& S0, const FSphere& S1, TFunction<void(const FVector&, const FVector&)> DrawLine, bool TrueHull = true)
+{
+	// Draws just the sides of a tapered capsule specified by provided Spheres that can have different radii.  Does not draw the spheres, just the sleeve.
+	// If Using TrueHull (above console var) Extent geometry endpoints not necessarily coplanar with sphere origins (uses hull horizon)
+	// Otherwise uses the great-circle cap assumption.
+	const float AngleIncrement = 30.0f;   // if parameter added for number of sides, then set this to be:  = 360.0f / NumSides; 
+	FVector Separation = S1.Center - S0.Center;
+	float Distance = Separation.Size();
+	if (Separation.IsNearlyZero() || Distance <= FMath::Abs(S0.W - S1.W))
+	{
+		return;
+	}
+	FQuat CapsuleOrientation = FQuat::FindBetween(FVector(0, 0, 1), Separation.GetSafeNormal());
+	float OffsetZ = TrueHull ? -(S1.W - S0.W) / Distance : 0.0f;
+	float ScaleXY = FMath::Sqrt(1.0f - FMath::Square(OffsetZ));
+	FVector VertexPrevious = CapsuleOrientation.RotateVector(FVector(ScaleXY, 0, OffsetZ));
+	for (float Angle = AngleIncrement; Angle <= 360.0f; Angle += AngleIncrement)  // iterate over unit circle about capsule's major axis (which is orientation.AxisZ)
+	{
+		FVector VertexCurrent = CapsuleOrientation.RotateVector(FVector(FMath::Cos(FMath::DegreesToRadians(Angle))*ScaleXY, FMath::Sin(FMath::DegreesToRadians(Angle))*ScaleXY, OffsetZ));
+		DrawLine(S0.Center + VertexCurrent  * S0.W, S1.Center + VertexCurrent * S1.W);  // capsule side segment between spheres
+		DrawLine(S0.Center + VertexPrevious * S0.W, S0.Center + VertexCurrent * S0.W);  // cap-circle segment on sphere S0
+		DrawLine(S1.Center + VertexPrevious * S1.W, S1.Center + VertexCurrent * S1.W);  // cap-circle segment on sphere S1
+		VertexPrevious = VertexCurrent;
+	}
+}
+
+TAutoConsoleVariable<int32> CVarEnableTaperedCapsulesTrueHull(TEXT("p.TaperedCapsulesTrueHull"), 1, TEXT("If 1, debug rendering of tapered capsules will use correct horizon to generate shaft geometry rather than using great-arc assumption where cap is coplanar with sphere origins. "));
+
+
+
 void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterface* PDI)
 {
 #if WITH_APEX_CLOTHING
@@ -4388,10 +4431,10 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 		for(int32 i=0; i<NumConnections; i+=2)
 		{
-			uint16 Index1 = Connections[i];
-			uint16 Index2 = Connections[i+1];
-
-			DrawDebugLine(GetWorld(), SpherePositions[Index1], SpherePositions[Index2], FColor::Magenta, false, -1.0f, SDPG_Foreground);
+			DrawWireTaperedCapsuleSleeve(FSphere(SpherePositions[Connections[i + 0]], Spheres[Connections[i + 0]].Radius),
+			                             FSphere(SpherePositions[Connections[i + 1]], Spheres[Connections[i + 1]].Radius),
+			                             [&](const FVector& V0, const FVector& V1)->void{PDI->DrawLine(V0, V1, Colors[AssetIdx % 3], SDPG_World); },
+			                             (CVarEnableTaperedCapsulesTrueHull.GetValueOnAnyThread()) != 0);
 		}
 	}
 #endif // #if WITH_APEX_CLOTHING

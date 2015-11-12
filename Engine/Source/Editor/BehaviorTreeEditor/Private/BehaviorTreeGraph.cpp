@@ -1064,6 +1064,21 @@ void UBehaviorTreeGraph::RebuildExecutionOrder()
 	}
 }
 
+void UBehaviorTreeGraph::RebuildChildOrder(UEdGraphNode* ParentNode)
+{
+	if (ParentNode)
+	{
+		for (int32 PinIdx = 0; PinIdx < ParentNode->Pins.Num(); PinIdx++)
+		{
+			UEdGraphPin* Pin = ParentNode->Pins[PinIdx];
+			if (Pin->Direction == EGPD_Output)
+			{
+				Pin->LinkedTo.Sort(FCompareNodeXLocation());
+			}
+		}
+	}
+}
+
 namespace BTAutoArrangeHelpers
 {
 	struct FNodeBoundsInfo

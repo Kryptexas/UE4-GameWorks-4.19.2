@@ -690,21 +690,25 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 		{
 			UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnEmitterAttached: NULL AttachComponent specified!"));
 		}
-		else if (AttachToComponent->GetWorld() && AttachToComponent->GetWorld()->GetNetMode() != NM_DedicatedServer)
+		else
 		{
-			PSC = CreateParticleSystem(EmitterTemplate, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), bAutoDestroy);
-			PSC->AttachTo(AttachToComponent, AttachPointName);
-			if (LocationType == EAttachLocation::KeepWorldPosition)
+			UWorld* const World = AttachToComponent->GetWorld();
+			if (World && World->GetNetMode() != NM_DedicatedServer)
 			{
-				PSC->SetWorldLocationAndRotation(Location, Rotation);
+				PSC = CreateParticleSystem(EmitterTemplate, World, AttachToComponent->GetOwner(), bAutoDestroy);
+				PSC->AttachTo(AttachToComponent, AttachPointName);
+				if (LocationType == EAttachLocation::KeepWorldPosition)
+				{
+					PSC->SetWorldLocationAndRotation(Location, Rotation);
+				}
+				else
+				{
+					PSC->SetRelativeLocationAndRotation(Location, Rotation);
+				}
+				PSC->SetRelativeScale3D(FVector(1.f));
+				PSC->RegisterComponentWithWorld(World);
+				PSC->ActivateSystem(true);
 			}
-			else
-			{
-				PSC->SetRelativeLocationAndRotation(Location, Rotation);
-			}
-			PSC->SetRelativeScale3D(FVector(1.f));
-			PSC->RegisterComponentWithWorld(AttachToComponent->GetWorld());
-			PSC->ActivateSystem(true);
 		}
 	}
 	return PSC;
@@ -802,6 +806,7 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 
 		NewActiveSound.bIsUISound = true;
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
+		NewActiveSound.Priority = Sound->Priority;
 
 		AudioDevice->AddNewActiveSound(NewActiveSound);
 	}
@@ -889,6 +894,7 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 			}
 
 			NewActiveSound.ConcurrencySettings = ConcurrencySettings;
+			NewActiveSound.Priority = Sound->Priority;
 
 			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
 			AudioDevice->AddNewActiveSound(NewActiveSound);

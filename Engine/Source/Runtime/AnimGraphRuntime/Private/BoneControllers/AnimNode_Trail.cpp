@@ -2,6 +2,7 @@
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "BoneControllers/AnimNode_Trail.h"
+#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_Trail
@@ -296,7 +297,7 @@ void FAnimNode_Trail::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_SkeletalControlBase::Initialize(Context);
 
-	const USkeleton* Skeleton = Context.AnimInstance->CurrentSkeleton;
+	const USkeleton* Skeleton = Context.AnimInstanceProxy->GetSkeleton();
 	check (Skeleton);
 
 	BaseJoint.Initialize(Skeleton);
