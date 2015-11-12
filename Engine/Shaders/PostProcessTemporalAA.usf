@@ -296,6 +296,8 @@ void LightShaftTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposur
 #endif
 }
 
+float DitherScale;
+
 void MainTemporalAAPS(
 	in float4 UVAndScreenPos : TEXCOORD0,
 	in float3 InExposureScaleVignette : TEXCOORD1,
@@ -324,7 +326,7 @@ void MainTemporalAAPS(
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
-	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
+	OutColor += DitherScale * (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #endif
 #else
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
@@ -356,7 +358,7 @@ void MainFastTemporalAAPS(
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
-	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
+	OutColor += DitherScale * (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #endif
 #else
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
