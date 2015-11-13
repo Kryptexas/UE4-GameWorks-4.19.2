@@ -12,6 +12,7 @@
 #include "GameplayDebuggerReplicator.h"
 #include "BehaviorTreeDelegates.h"
 #if WITH_EDITOR
+#include "Editor.h"
 #include "Editor/EditorEngine.h"
 #include "Editor/BehaviorTreeEditor/Public/BehaviorTreeEditorModule.h"
 #include "LevelEditorViewport.h"
