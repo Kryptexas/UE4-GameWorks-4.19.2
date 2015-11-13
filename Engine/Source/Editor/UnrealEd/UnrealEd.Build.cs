@@ -83,6 +83,7 @@ public class UnrealEd : ModuleRules
 				"SourceControl",
 				"UnrealEdMessages",
                 "AIModule",
+				"GameplayDebugger",
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
