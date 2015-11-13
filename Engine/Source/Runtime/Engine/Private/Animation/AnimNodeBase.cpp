@@ -9,7 +9,7 @@
 
 // @todo: remove after deprecation
 FAnimationBaseContext::FAnimationBaseContext(UAnimInstance* InAnimInstance)
-	: AnimInstanceProxy(&InAnimInstance->GetProxyOnAnyThread())
+	: AnimInstanceProxy(&InAnimInstance->GetProxyOnAnyThread<FAnimInstanceProxy>())
 {
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	AnimInstance = InAnimInstance;

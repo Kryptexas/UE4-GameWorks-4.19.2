@@ -1226,7 +1226,7 @@ protected:
 	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy);
 
 	/** Access the proxy but block if a task is currently in progress as it wouldn't be safe to access it */
-	template <typename T = FAnimInstanceProxy>
+	template <typename T /*= FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
 	FORCEINLINE T& GetProxyOnGameThread()
 	{
 		check(IsInGameThread());
@@ -1244,7 +1244,7 @@ protected:
 	}
 
 	/** Access the proxy but block if a task is currently in progress as it wouldn't be safe to access it */
-	template <typename T = FAnimInstanceProxy>
+	template <typename T/* = FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
 	FORCEINLINE const T& GetProxyOnGameThread() const
 	{
 		check(IsInGameThread());
@@ -1262,7 +1262,7 @@ protected:
 	}
 
 	/** Access the proxy but block if a task is currently in progress (and we are on the game thread) as it wouldn't be safe to access it */
-	template <typename T = FAnimInstanceProxy>
+	template <typename T/* = FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
 	FORCEINLINE T& GetProxyOnAnyThread()
 	{
 		if(GetOuter() && GetOuter()->IsA<USkeletalMeshComponent>())
@@ -1282,7 +1282,7 @@ protected:
 	}
 
 	/** Access the proxy but block if a task is currently in progress (and we are on the game thread) as it wouldn't be safe to access it */
-	template <typename T = FAnimInstanceProxy>
+	template <typename T/* = FAnimInstanceProxy*/>	// @TODO: Cant default parameters to this function on Xbox One until we move off the VS2012 compiler
 	FORCEINLINE const T& GetProxyOnAnyThread() const
 	{
 		if(GetOuter() && GetOuter()->IsA<USkeletalMeshComponent>())
