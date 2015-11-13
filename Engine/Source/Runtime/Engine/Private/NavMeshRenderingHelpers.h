@@ -13,7 +13,6 @@
 #include "MaterialShared.h"
 #include "GenericOctreePublic.h"
 #include "GenericOctree.h"
-#include "Canvas.h"
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);
 static const FColor NavMeshRenderColor_Recast_TileEdges(16,16,16,32);
