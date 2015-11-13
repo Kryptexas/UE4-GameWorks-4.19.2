@@ -262,6 +262,8 @@ private:
 	{
 		FHierarchicalSimplification ASP1, ASP2;
 		ASP1 = ASP2;
+
+		FHierarchicalSimplification ASP3(ASP2);
 	}
 };
 
