@@ -8,8 +8,8 @@
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bIgnoreFocus(false)
-	, FocusDistanceScale(1.0f)
 	, Priority(1.0f)
+	, FocusDistanceScale(1.0f)
 {
 	MaxConcurrentPlayCount_DEPRECATED = 16;
 }
