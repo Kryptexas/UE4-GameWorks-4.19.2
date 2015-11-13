@@ -9336,30 +9336,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		}
 	}
 
-	UPackage* MapOuter = NULL;
-
-	// in the seekfree case (which hasn't already loaded anything), get linkers for any downloaded packages here,
-	// so that any dependent packages will correctly find them as they will not search the cache by default
-	if (Pending && Pending->NetDriver && Pending->NetDriver->ServerConnection)
-	{
-		// make the package, and use this for the new linker (and to load the map from)
-		MapOuter = CreatePackage(NULL, *Pending->URL.Map);
-#if WITH_EDITOR
-		if (WorldContext.WorldType == EWorldType::PIE)
-		{
-			MapOuter->SetPackageFlags(PKG_PlayInEditor);
-		}
-		MapOuter->PIEInstanceID = WorldContext.PIEInstance;
-#endif
-		// create the linker with the map name, and use the Guid so we find the downloaded version
-		BeginLoad();
-		GetPackageLinker(MapOuter, NULL, LOAD_NoWarn | LOAD_NoVerify | LOAD_Quiet, NULL, NULL);
-		EndLoad();
-	}
-
 	UPackage* WorldPackage = NULL;
 	UWorld*	NewWorld = NULL;
-
 	
 	// Is this a PIE networking thing?
 	if (!WorldContext.PIERemapPrefix.IsEmpty())
@@ -9443,12 +9421,12 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		UWorld::WorldTypePreLoadMap.FindOrAdd( URLMapFName ) = WorldContext.WorldType;
 
 		// See if the level is already in memory
-		WorldPackage = FindPackage(MapOuter, *URL.Map);
+		WorldPackage = FindPackage(nullptr, *URL.Map);
 
 		// If the level isn't already in memory, load level from disk
 		if (WorldPackage == NULL)
 		{
-			WorldPackage = LoadPackage(MapOuter, *URL.Map, (WorldContext.WorldType == EWorldType::PIE ? LOAD_PackageForPIE : LOAD_None));
+			WorldPackage = LoadPackage(nullptr, *URL.Map, (WorldContext.WorldType == EWorldType::PIE ? LOAD_PackageForPIE : LOAD_None));
 		}
 
 		// Clean up the world type list now that PostLoad has occurred
