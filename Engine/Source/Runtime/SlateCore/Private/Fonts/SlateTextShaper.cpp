@@ -230,8 +230,7 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 	// Step 2) Now we use the font cache to get the size for each character, and kerning for each character pair
 	{
 		FCharacterList& CharacterList = FontCache->GetCharacterList(InFontInfo, InFontScale);
-		OutGlyphsToRender.Reserve(InTextLen);
-
+		OutGlyphsToRender.Reserve(OutGlyphsToRender.Num() + InTextLen);
 		for (const FKerningOnlyTextSequenceEntry& KerningOnlyTextSequenceEntry : KerningOnlyTextSequence)
 		{
 			const float FinalFontScale = InFontScale * KerningOnlyTextSequenceEntry.SubFontScalingFactor;

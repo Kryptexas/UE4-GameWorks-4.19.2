@@ -237,7 +237,7 @@ void FSlateFontRenderer::GetRenderData(const FShapedGlyphEntry& InShapedGlyph, F
 {
 #if WITH_FREETYPE
 	FFreeTypeFaceGlyphData FaceGlyphData;
-	FaceGlyphData.FaceAndMemory = InShapedGlyph.FontFaceData->FontFace.IsValid() ? InShapedGlyph.FontFaceData->FontFace.Pin() : nullptr;
+	FaceGlyphData.FaceAndMemory = InShapedGlyph.FontFaceData->FontFace.Pin();
 	FaceGlyphData.GlyphIndex = InShapedGlyph.GlyphIndex;
 	FaceGlyphData.GlyphFlags = InShapedGlyph.FontFaceData->GlyphFlags;
 	check(FaceGlyphData.FaceAndMemory.IsValid());

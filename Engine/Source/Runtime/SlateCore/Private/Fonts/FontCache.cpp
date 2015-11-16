@@ -825,9 +825,9 @@ bool FSlateFontCache::ConditionalFlushCache()
 	bool bFlushed = false;
 	if( bFlushRequested )
 	{
-		FlushCache();
-		bFlushed = true;
 		bFlushRequested = false;
+		FlushCache();
+		bFlushed = !bFlushRequested;
 	}
 
 	return bFlushed;
@@ -851,24 +851,31 @@ void FSlateFontCache::ReleaseResources()
 
 void FSlateFontCache::FlushCache() const
 {
-	FlushData();
-
-	FontToCharacterListCache.Empty();
-	ShapedGlyphToAtlasData.Empty();
-
-	for( int32 AtlasIndex = 0; AtlasIndex < FontAtlases.Num(); ++AtlasIndex ) 
+	if ( IsThreadSafeForSlateRendering() )
 	{
-		FontAtlases[AtlasIndex]->ReleaseResources();
+		FlushData();
+
+		FontToCharacterListCache.Empty();
+		ShapedGlyphToAtlasData.Empty();
+
+		for ( int32 AtlasIndex = 0; AtlasIndex < FontAtlases.Num(); ++AtlasIndex )
+		{
+			FontAtlases[AtlasIndex]->ReleaseResources();
+		}
+
+		// hack
+		FSlateApplicationBase::Get().GetRenderer()->FlushCommands();
+
+		SET_DWORD_STAT(STAT_SlateNumFontAtlases, 0);
+
+		FontAtlases.Empty();
+
+		UE_LOG(LogSlate, Verbose, TEXT("Slate font cache was flushed"));
 	}
-
-	// hack
-	FSlateApplicationBase::Get().GetRenderer()->FlushCommands();
-
-	SET_DWORD_STAT( STAT_SlateNumFontAtlases, 0 );
-
-	FontAtlases.Empty();
-
-	UE_LOG( LogSlate, Verbose, TEXT("Slate font cache was flushed") );
+	else
+	{
+		bFlushRequested = true;
+	}
 }
 
 void FSlateFontCache::FlushData() const

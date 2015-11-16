@@ -727,5 +727,5 @@ private:
 	TSharedRef<ISlateFontAtlasFactory> FontAtlasFactory;
 
 	/** Whether or not we have a pending request to flush the cache when it is safe to do so */
-	mutable bool bFlushRequested;
+	volatile mutable bool bFlushRequested;
 };
