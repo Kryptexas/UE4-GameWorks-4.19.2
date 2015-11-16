@@ -5,6 +5,8 @@
 #include "OnlineSubsystemFacebookPrivatePCH.h"
 #include "OnlineUserFacebook.h"
 
+#import <FBSDKCoreKit/FBSDKCoreKit.h>
+
 // FOnlineUserInfoFacebook
 
 TSharedRef<const FUniqueNetId> FOnlineUserInfoFacebook::GetUserId() const

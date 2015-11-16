@@ -6,6 +6,8 @@
 #include "OnlineSharingFacebook.h"
 #include "OnlineUserFacebook.h"
 
+#import <FBSDKCoreKit/FBSDKCoreKit.h>
+
 FOnlineSubsystemFacebook::FOnlineSubsystemFacebook() 
 	: FacebookIdentity(nullptr)
 	, FacebookFriends(nullptr)
