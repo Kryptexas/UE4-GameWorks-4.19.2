@@ -408,4 +408,10 @@ protected:
  * If the slate loading thread exists, then yes, it is always safe
  * Otherwise, we have to be on the game thread
  */
-bool SLATECORE_API IsThreadSafeForSlateRendering( );
+bool SLATECORE_API IsThreadSafeForSlateRendering();
+
+/**
+ * If it's the game thread, and there's no loading thread, then it owns slate rendering.
+ * However if there's a loading thread, it is the exlusive owner of slate rendering.
+ */
+bool SLATECORE_API DoesThreadOwnSlateRendering();

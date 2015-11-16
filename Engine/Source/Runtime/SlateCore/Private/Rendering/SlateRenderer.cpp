@@ -149,6 +149,11 @@ void FSlateRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 
 bool IsThreadSafeForSlateRendering()
 {
+	return ( ( GSlateLoadingThreadId != 0 ) || IsInGameThread() );
+}
+
+bool DoesThreadOwnSlateRendering()
+{
 	if ( IsInGameThread() )
 	{
 		return GSlateLoadingThreadId == 0;

@@ -851,7 +851,7 @@ void FSlateFontCache::ReleaseResources()
 
 void FSlateFontCache::FlushCache() const
 {
-	if ( IsThreadSafeForSlateRendering() )
+	if ( DoesThreadOwnSlateRendering() )
 	{
 		FlushData();
 
