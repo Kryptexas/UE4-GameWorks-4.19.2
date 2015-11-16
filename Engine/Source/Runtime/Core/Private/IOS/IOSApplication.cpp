@@ -121,3 +121,9 @@ void FIOSApplication::OrientationChanged(UIDeviceOrientation orientation)
 	FScopeLock Lock(&CriticalSection);
 	bOrientationChanged = true;
 }
+
+IInputInterface* FIOSApplication::GetInputInterface()
+{
+    // NOTE: This does not increase the reference count, so don't cache the result
+    return InputInterface.Get();
+}

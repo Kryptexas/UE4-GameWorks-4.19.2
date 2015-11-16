@@ -27,6 +27,8 @@ public:
 
 	virtual void AddExternalInputDevice(TSharedPtr<class IInputDevice> InputDevice);
 
+    virtual IInputInterface* GetInputInterface() override;
+
 	static void OrientationChanged(UIDeviceOrientation orientation);
 
 protected:
