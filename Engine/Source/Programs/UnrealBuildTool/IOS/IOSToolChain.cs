@@ -553,7 +553,8 @@ namespace UnrealBuildTool
 			
 				string AllArgs = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				string SourceText = System.IO.File.ReadAllText(SourceFile.AbsolutePath);
-				if (UEBuildConfiguration.bCompileForSize && (SourceFile.AbsolutePath.Contains("ElementBatcher.cpp") || SourceText.Contains("ElementBatcher.cpp") || SourceFile.AbsolutePath.Contains("AnimationRuntime.cpp") || SourceText.Contains("AnimationRuntime.cpp")))
+				if (UEBuildConfiguration.bCompileForSize && (SourceFile.AbsolutePath.Contains("ElementBatcher.cpp") || SourceText.Contains("ElementBatcher.cpp") || SourceFile.AbsolutePath.Contains("AnimationRuntime.cpp") || SourceText.Contains("AnimationRuntime.cpp") 
+					|| SourceFile.AbsolutePath.Contains("AnimEncoding.cpp") || SourceText.Contains("AnimEncoding.cpp")))
 				{
 					Console.WriteLine("Forcing {0} to --O3!", SourceFile.AbsolutePath);
 					
