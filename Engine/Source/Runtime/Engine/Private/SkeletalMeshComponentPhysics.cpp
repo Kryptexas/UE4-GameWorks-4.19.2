@@ -3591,10 +3591,15 @@ void USkeletalMeshComponent::ParallelUpdateClothState(float DeltaTime, FClothSim
 	for (const FClothingActor& ClothingActor : ClothingActors)
 	{
 		const FClothingAssetData& ClothingAsset = SkeletalMesh->ClothingAssets[ClothingActor.ParentClothingAssetIndex];
+		const NxClothingAsset* ApexClothingAsset = ClothingActor.ParentClothingAsset;
+		NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor;
+
+		if (!ApexClothingActor || !ApexClothingAsset)
+		{
+			continue;
+		}
 
 		ApplyWindForCloth(ClothingActor);
-
-		const NxClothingAsset* ApexClothingAsset = ClothingActor.ParentClothingAsset;
 
 		uint32 NumUsedBones = ApexClothingAsset->getNumUsedBones();
 
@@ -3639,17 +3644,13 @@ void USkeletalMeshComponent::ParallelUpdateClothState(float DeltaTime, FClothSim
 			}
 		}
 
-		if (NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor)
-		{
-			// if bUseInternalboneOrder is set, "NumUsedBones" works, otherwise have to use "getNumBones" 
-			ApexClothingActor->updateState(
-				PxGlobalPose,
-				BoneMatrices.GetData(),
-				sizeof(physx::PxMat44),
-				NumUsedBones,
-				CurTeleportMode);
-		}
-
+		// if bUseInternalboneOrder is set, "NumUsedBones" works, otherwise have to use "getNumBones" 
+		ApexClothingActor->updateState(
+			PxGlobalPose,
+			BoneMatrices.GetData(),
+			sizeof(physx::PxMat44),
+			NumUsedBones,
+			CurTeleportMode);
 
 		BoneMatrices.Reset();
 	}

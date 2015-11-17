@@ -373,6 +373,44 @@ TArray<FKeyHandle> FGroupedKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInter
 	return AddedKeyHandles;
 }
 
+TOptional<FKeyHandle> FGroupedKeyArea::DuplicateKey(FKeyHandle KeyToDuplicate)
+{
+	FKeyGrouping* Group = FindGroup(KeyToDuplicate);
+	if (!Group)
+	{
+		return TOptional<FKeyHandle>();
+	}
+
+	const float Time = Group->RepresentativeTime;
+
+	const int32 NewGroupIndex = Groups.Num();
+	Groups.Emplace(Time);
+	
+	for (const FKeyGrouping::FKeyIndex& Key : Group->Keys)
+	{
+		TOptional<FKeyHandle> NewKeyHandle = KeyAreas[Key.AreaIndex]->DuplicateKey(Key.KeyHandle);
+		if (NewKeyHandle.IsSet())
+		{
+			Groups[NewGroupIndex].Keys.Emplace(Key.AreaIndex, NewKeyHandle.GetValue());
+		}
+	}
+
+	// Update the global index with our new key
+	FIndexEntry* IndexEntry = GlobalIndex.Find(IndexKey);
+	if (IndexEntry)
+	{
+		FKeyHandle ThisGroupKeyHandle;
+
+		IndexEntry->GroupHandles.Add(ThisGroupKeyHandle);
+		IndexEntry->HandleToGroup.Add(ThisGroupKeyHandle, NewGroupIndex);
+		IndexEntry->RepresentativeTimes.Add(Time);
+
+		return ThisGroupKeyHandle;
+	}
+
+	return TOptional<FKeyHandle>();
+}
+
 FRichCurve* FGroupedKeyArea::GetRichCurve()
 {
 	return nullptr;

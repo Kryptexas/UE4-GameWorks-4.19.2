@@ -16,7 +16,7 @@ PACKAGE_SCOPE:
 public:
 
 	//~ Begin IOnlineExternalUI Interface
-	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate() = FOnLoginUIClosedDelegate()) override;
+	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) override;
 	virtual bool ShowFriendsUI(int32 LocalUserNum) override;
 	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionMame = GameSessionName) override;
 	virtual bool ShowAchievementsUI(int32 LocalUserNum) override;

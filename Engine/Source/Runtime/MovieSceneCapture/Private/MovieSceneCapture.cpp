@@ -58,7 +58,7 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 		InheritedCommandLineArguments.AppendChar(' ');
 	}
 
-	AdditionalCommandLineArguments += TEXT("-NoLoadingScreen");
+	AdditionalCommandLineArguments += TEXT("-NoLoadingScreen -NOSCREENMESSAGES -ForceRes");
 
 	Handle = FUniqueMovieSceneCaptureHandle();
 

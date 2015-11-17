@@ -27,6 +27,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
 	bLooping = false;
+	bKeepCursorInPlayRange = true;
 }
 
 bool USequencerSettings::GetAutoKeyEnabled() const
@@ -321,6 +322,20 @@ void USequencerSettings::SetLooping(bool bInLooping)
 	if (bLooping != bInLooping)
 	{
 		bLooping = bInLooping;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::ShouldKeepCursorInPlayRange() const
+{
+	return bKeepCursorInPlayRange;
+}
+
+void USequencerSettings::SetKeepCursorInPlayRange(bool bInKeepCursorInPlayRange)
+{
+	if (bKeepCursorInPlayRange != bInKeepCursorInPlayRange)
+	{
+		bKeepCursorInPlayRange = bInKeepCursorInPlayRange;
 		SaveConfig();
 	}
 }

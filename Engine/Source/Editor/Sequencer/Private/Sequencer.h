@@ -448,8 +448,8 @@ protected:
 	void StepToNextCameraKey();
 	void StepToPreviousCameraKey();
 
-	void ExpandNodesAndDescendants();
-	void CollapseNodesAndDescendants();
+	void ExpandAllNodesAndDescendants();
+	void CollapseAllNodesAndDescendants();
 
 	/** Expand or collapse selected nodes */
 	void ToggleExpandCollapseNodes();

@@ -191,21 +191,25 @@ FMovieSceneClipboard FMovieSceneClipboardBuilder::Commit(TOptional<float> CopyRe
 		}
 	}
 
-	for (auto& Pair : TrackIndex)
+	if (CopyRelativeTo.IsSet())
 	{
-		for (FMovieSceneClipboardKeyTrack& Track : Pair.Value)
+		for (auto& Pair : TrackIndex)
 		{
-			Track.IterateKeys([&](FMovieSceneClipboardKey& Key){
-				Key.SetTime(Key.GetTime() - CopyRelativeTo.GetValue());
-				return true;
-			});
+			for (FMovieSceneClipboardKeyTrack& Track : Pair.Value)
+			{
+				Track.IterateKeys([&](FMovieSceneClipboardKey& Key){
+					Key.SetTime(Key.GetTime() - CopyRelativeTo.GetValue());
+					return true;
+				});
+			}
+
+			Clipboard.KeyTrackGroups.Add(MoveTemp(Pair.Value));
 		}
 
-		Clipboard.KeyTrackGroups.Add(MoveTemp(Pair.Value));
+		Clipboard.GetEnvironment().CardinalTime = CopyRelativeTo.GetValue();
 	}
+	
 	TrackIndex.Reset();
-
-	Clipboard.GetEnvironment().CardinalTime = CopyRelativeTo.GetValue();
 	return Clipboard;
 }
 

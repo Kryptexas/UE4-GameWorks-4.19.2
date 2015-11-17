@@ -179,7 +179,7 @@ partial class GUBP
 			/// <summary>
 			/// Allows a branch to override the "Localise" commandlet settings.
 			/// </summary>
-			public bool bShouldBuildLocalization = false;
+			public List<string> LocalizationNodesToBuild = new List<string>();
 			public string LocalizationBranchSuffix = "";
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
@@ -1122,9 +1122,16 @@ partial class GUBP
 			}
 		}
 
-		if (HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)) && BranchOptions.bShouldBuildLocalization)
+		if (HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)))
 		{
-			BranchConfig.AddNode(new BuildEngineLocalizationNode(BranchOptions.LocalizationBranchSuffix));
+			foreach (var LocalizationNodeToBuild in BranchOptions.LocalizationNodesToBuild)
+			{
+				var LocalizationNode = BuildLocalizationNode.GetLocalizationNode(LocalizationNodeToBuild, BranchOptions.LocalizationBranchSuffix, BranchConfig);
+				if (LocalizationNode != null)
+				{
+					BranchConfig.AddNode(LocalizationNode);
+				}
+			}
 		}
 
         BranchConfig.AddNode(new WaitForTestShared(this));

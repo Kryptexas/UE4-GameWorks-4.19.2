@@ -2227,7 +2227,7 @@ void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, const FAlphaBl
 	for (int32 InstanceIndex = MontageInstances.Num() - 1; InstanceIndex >= 0; InstanceIndex--)
 	{
 		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
-		if (MontageInstance && MontageInstance->IsActive() && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
+		if (MontageInstance && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
 		{
 			MontageInstances[InstanceIndex]->Stop(BlendOut, true);
 		}

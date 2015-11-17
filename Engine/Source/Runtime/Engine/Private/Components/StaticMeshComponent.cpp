@@ -184,6 +184,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 	bOverrideNavigationExport = false;
 	bForceNavigationObstacle = true;
+	bDisallowMeshPaintPerInstance = false;
 
 	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
 
@@ -1701,6 +1702,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		}
 	}
 
+	if (!bDisallowMeshPaintPerInstance)
 	{
 		FComponentReregisterContext ReregisterStaticMesh(this);
 		StaticMeshInstanceData->ApplyVertexColorData(this);

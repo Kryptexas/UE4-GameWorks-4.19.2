@@ -145,7 +145,7 @@ public:
 	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 
-private:	
+protected:
 
 	/** The selected keys being moved. */
 	const TSet<FSequencerSelectedKey>& SelectedKeys;
@@ -158,4 +158,21 @@ private:
 
 	/** The set of sections being modified */
 	TSet<UMovieSceneSection*> ModifiedSections;
+};
+
+/**
+ * Operation to drag-duplicate the currently selected keys
+ */
+class FDuplicateKeys : public FMoveKeys
+{
+public:
+
+	FDuplicateKeys( FSequencer& InSequencer, const TSet<FSequencerSelectedKey>& InSelectedKeys )
+		: FMoveKeys(InSequencer, InSelectedKeys)
+	{}
+
+public:
+
+	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
+	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 };

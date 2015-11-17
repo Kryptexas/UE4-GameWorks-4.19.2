@@ -45,6 +45,12 @@ struct FKeyGrouping
 		FKeyHandle KeyHandle;
 	};
 
+	/** Construct an empty key group */
+	FKeyGrouping(float InRepresentativeTime)
+		: RepresentativeTime(InRepresentativeTime)
+	{
+	}
+
 	/** Construct this group with a single key handle */
 	FKeyGrouping(float InRepresentativeTime, int32 AreaIndex, FKeyHandle KeyHandle)
 		: RepresentativeTime(InRepresentativeTime)
@@ -82,6 +88,7 @@ public:
 	virtual void                    SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override;
 	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual TArray<FKeyHandle>		AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) override;
+	virtual TOptional<FKeyHandle>				DuplicateKey(FKeyHandle KeyToDuplicate) override;
 	virtual FRichCurve*				GetRichCurve() override;
 	virtual UMovieSceneSection*		GetOwningSection() override;
 	virtual bool					CanCreateKeyEditor() override;

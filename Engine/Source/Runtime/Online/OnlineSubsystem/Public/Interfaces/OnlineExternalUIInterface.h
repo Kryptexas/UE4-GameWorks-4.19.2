@@ -47,6 +47,8 @@ struct FShowWebUrlParams
 	int32 SizeY;
 	/** if specified then restricted to only navigate within these domains */
 	TArray<FString> AllowedDomains;
+	/** portion of url for detecting callback.  Eg. "&code=", "redirect=", etc */
+	FString CallbackPath;
 
 	/**
 	 * Constructor
@@ -94,7 +96,7 @@ public:
  	 *
 	 * @return true if it was able to show the UI, false if it failed
 	 */
-	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate() = FOnLoginUIClosedDelegate()) = 0;
+	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) = 0;
 
 	/**
 	 * Displays the UI that shows a user's list of friends

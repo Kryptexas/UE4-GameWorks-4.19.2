@@ -31,6 +31,15 @@ TArray<FKeyHandle> FIntegralCurveKeyAreaBase::AddKeyUnique(float Time, EMovieSce
 	return AddedKeyHandles;
 }
 
+TOptional<FKeyHandle> FIntegralCurveKeyAreaBase::DuplicateKey(FKeyHandle KeyToDuplicate)
+{
+	if (!Curve.IsKeyHandleValid(KeyToDuplicate))
+	{
+		return TOptional<FKeyHandle>();
+	}
+
+	return Curve.AddKey(GetKeyTime(KeyToDuplicate), Curve.GetKey(KeyToDuplicate).Value);
+}
 
 void FIntegralCurveKeyAreaBase::DeleteKey(FKeyHandle KeyHandle)
 {

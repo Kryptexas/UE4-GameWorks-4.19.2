@@ -324,6 +324,8 @@ public partial class Project : CommandUtils
 
                 List<string> PakFiles = new List<string>();
 
+                string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
+
                 if (Path.HasExtension(SourceCookedContentPath) && (!SourceCookedContentPath.EndsWith(".pak")))
                 {
                     // must be a per platform pkg file try this
@@ -333,20 +335,25 @@ public partial class Project : CommandUtils
                     PakFiles.AddRange( Directory.EnumerateFiles(TemporaryPakPath, Params.ShortProjectName+"*.pak", SearchOption.AllDirectories));
                     PakFiles.AddRange( Directory.EnumerateFiles(TemporaryPakPath, "pakchunk*.pak", SearchOption.AllDirectories));
                 }
-
-                string CookPlatformString = CurrentPlatform.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
-
-                if (!Path.HasExtension(SourceCookedContentPath))
+                else if (!Path.HasExtension(SourceCookedContentPath))
                 {
                     // try find the pak or pkg file
                     string SourceCookedContentPlatformPath = CombinePaths(SourceCookedContentPath, CookPlatformString);
 
-                    foreach (var PakName in Directory.EnumerateFiles(SourceCookedContentPlatformPath, "*.pak", SearchOption.AllDirectories))
+                    foreach (var PakName in Directory.EnumerateFiles(SourceCookedContentPlatformPath, Params.ShortProjectName + "*.pak", SearchOption.AllDirectories))
                     {
                         string TemporaryPakFilename = CombinePaths(TemporaryPakPath, Path.GetFileName(PakName));
                         File.Copy(PakName, TemporaryPakFilename);
                         PakFiles.Add(TemporaryPakFilename);
                     }
+
+                    foreach (var PakName in Directory.EnumerateFiles(SourceCookedContentPlatformPath, "pakchunk*.pak", SearchOption.AllDirectories))
+                    {
+                        string TemporaryPakFilename = CombinePaths(TemporaryPakPath, Path.GetFileName(PakName));
+                        File.Copy(PakName, TemporaryPakFilename);
+                        PakFiles.Add(TemporaryPakFilename);
+                    }
+
                     if ( PakFiles.Count <= 0 )
                     {
                         Log("No Pak files found in " + SourceCookedContentPlatformPath +" :(");

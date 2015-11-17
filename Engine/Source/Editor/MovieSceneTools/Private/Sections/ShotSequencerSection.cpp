@@ -155,6 +155,11 @@ void FShotSequencerSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 /* ISequencerSection interface
  *****************************************************************************/
 
+bool FShotSequencerSection::ShouldDrawKeyAreaBackground() const
+{
+	return false;
+}
+
 bool FShotSequencerSection::AreSectionsConnected() const
 {
 	return true;

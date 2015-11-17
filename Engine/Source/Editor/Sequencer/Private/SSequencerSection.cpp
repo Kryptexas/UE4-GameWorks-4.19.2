@@ -14,21 +14,6 @@
 
 double SSequencerSection::SelectionThrobEndTime = 0;
 
-/** When 0, regeneration of dynamic key layouts is enabled, when non-zero, such behaviour is disabled */
-FThreadSafeCounter LayoutRegenerationLock;
-
-
-void SSequencerSection::DisableLayoutRegeneration()
-{
-	LayoutRegenerationLock.Increment();
-}
-
-
-void SSequencerSection::EnableLayoutRegeneration()
-{
-	LayoutRegenerationLock.Decrement();
-}
-
 
 void SSequencerSection::Construct( const FArguments& InArgs, TSharedRef<FSequencerTrackNode> SectionNode, int32 InSectionIndex )
 {
@@ -346,12 +331,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 	{
 		// get key handles
 		TSharedPtr<IKeyArea> KeyArea = LayoutElement.GetKeyArea();
-		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
 
-		if (!KeyHandles.Num())
-		{
-			continue;
-		}
 
 		FGeometry KeyAreaGeometry = GetKeyAreaGeometry(LayoutElement, AllottedGeometry);
 
@@ -360,15 +340,25 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			: FTimeToPixel(KeyAreaGeometry, TRange<float>(SectionObject.GetStartTime(), SectionObject.GetEndTime()));
 
 		// draw a box for the key area 
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			KeyAreaGeometry.ToPaintGeometry(),
-			BackgroundBrush,
-			MyClippingRect,
-			DrawEffects,
-			KeyArea->GetColor()
-		); 
+		if (SectionInterface->ShouldDrawKeyAreaBackground())
+		{
+			FSlateDrawElement::MakeBox( 
+				OutDrawElements,
+				LayerId + 1,
+				KeyAreaGeometry.ToPaintGeometry(),
+				BackgroundBrush,
+				MyClippingRect,
+				DrawEffects,
+				KeyArea->GetColor()
+			); 
+		}
+
+		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
+
+		if (!KeyHandles.Num())
+		{
+			continue;
+		}
 
 		const int32 KeyLayer = LayerId + 1;
 
@@ -637,10 +627,7 @@ void SSequencerSection::Tick( const FGeometry& AllottedGeometry, const double In
 {	
 	if( GetVisibility() == EVisibility::Visible )
 	{
-		if (LayoutRegenerationLock.GetValue() == 0)
-		{
-			Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
-		}
+		Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
 		FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
 
 		SectionInterface->Tick(SectionGeometry, ParentGeometry, InCurrentTime, InDeltaTime);

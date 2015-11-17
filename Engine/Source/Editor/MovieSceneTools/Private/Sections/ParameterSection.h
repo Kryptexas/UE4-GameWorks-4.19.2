@@ -6,12 +6,12 @@
 /**
  * A movie scene section for material parameters.
  */
-class FMaterialParameterSection
+class FParameterSection
 	: public FPropertySection
 {
 public:
 
-	FMaterialParameterSection(UMovieSceneSection& InSectionObject, const FText& SectionName)
+	FParameterSection(UMovieSceneSection& InSectionObject, const FText& SectionName)
 		: FPropertySection(InSectionObject, SectionName)
 	{ }
 

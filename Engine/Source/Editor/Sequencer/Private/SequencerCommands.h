@@ -48,11 +48,14 @@ public:
 	/** Set end playback range */
 	TSharedPtr< FUICommandInfo > SetEndPlaybackRange;
 
-	/** Expand nodes and descendants */
-	TSharedPtr< FUICommandInfo > ExpandNodesAndDescendants;
+	/** Toggle constraining the time cursor to the playback range */
+	TSharedPtr< FUICommandInfo > ToggleKeepCursorInPlaybackRange;
 
-	/** Collapse nodes and descendants */
-	TSharedPtr< FUICommandInfo > CollapseNodesAndDescendants;
+	/** Expand all nodes and descendants */
+	TSharedPtr< FUICommandInfo > ExpandAllNodesAndDescendants;
+
+	/** Collapse all nodes and descendants */
+	TSharedPtr< FUICommandInfo > CollapseAllNodesAndDescendants;
 
 	/** Expand/collapse nodes */
 	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodes;

@@ -663,6 +663,8 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	}
 
 	UE_LOG(LogContentCommandlet, Display, TEXT( "[REPORT] %d/%d packages required resaving" ), PackagesRequiringResave, PackageNames.Num() );
+
+
 	return 0;
 }
 
@@ -705,6 +707,17 @@ bool UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLi
 						 (MaxResaveUE4Version != IGNORE_PACKAGE_VERSION && UE4PackageVersion <= MaxResaveUE4Version) ||
 						 (MaxResaveLicenseeUE4Version != IGNORE_PACKAGE_VERSION && LicenseeUE4PackageVersion <= MaxResaveLicenseeUE4Version);
 
+	// If the package was saved with a higher engine version do not try to resave it. This also addresses problem with people 
+	// building editor locally and resaving content with a 0 CL version (e.g. BUILD_FROM_CL == 0)
+	if (PackageLinker->Summary.SavedByEngineVersion.GetChangelist() > FEngineVersion::Current().GetChangelist())
+	{
+		UE_LOG(LogContentCommandlet, Warning, TEXT("Skipping resave of %s due to engine version mismatch (Package:%d, Editor:%d "), 
+			*PackageLinker->GetArchiveName(),
+			PackageLinker->Summary.SavedByEngineVersion.GetChangelist(), 
+			FEngineVersion::Current().GetChangelist());
+		bSavePackage = false;
+		bResult = true;	
+	}
 
 	// If not, don't resave it.
 	if ( !bAllowResave )

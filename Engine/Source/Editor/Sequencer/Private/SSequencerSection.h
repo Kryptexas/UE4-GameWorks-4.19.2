@@ -20,12 +20,6 @@ public:
 	void CacheParentGeometry(const FGeometry& InParentGeometry) {ParentGeometry = InParentGeometry;}
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
-	
-	/** Temporarily disable dynamic layout regeneration. This prevents overlapping key groups from being amalgamated during drags. Key times will continue to update correctly. */
-	static void DisableLayoutRegeneration();
-
-	/** Re-enable dynamic layout regeneration */
-	static void EnableLayoutRegeneration();
 
 private:
 

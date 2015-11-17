@@ -44,6 +44,11 @@ UMovieSceneSection* FSkeletalAnimationSection::GetSectionObject()
 }
 
 
+bool FSkeletalAnimationSection::ShouldDrawKeyAreaBackground() const
+{
+	return false;
+}
+
 FText FSkeletalAnimationSection::GetDisplayName() const
 {
 	return LOCTEXT("AnimationSection", "Animation");

@@ -451,7 +451,7 @@ void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 {
 	check( SelectedKeys.Num() > 0 )
 
-	SSequencerSection::DisableLayoutRegeneration();
+	FSequencerDisplayNode::DisableKeyGoupingRegeneration();
 
 	FDefaultKeySnappingCandidates SnapCandidates(SelectedKeys);
 	SnapField = FSequencerSnapField(Sequencer, SnapCandidates);
@@ -461,8 +461,7 @@ void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 	BeginTransaction( DummySections, NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
 
 	const float MouseTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
-	
-	ModifiedSections.Empty();
+
 	for( FSequencerSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
@@ -576,5 +575,54 @@ void FMoveKeys::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 {
 	ModifiedSections.Empty();
 	EndTransaction();
-	SSequencerSection::EnableLayoutRegeneration();
+	FSequencerDisplayNode::EnableKeyGoupingRegeneration();
+}
+
+void FDuplicateKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
+{
+	// Duplicate and select all the keys
+	TSet<FSequencerSelectedKey> OldSelection = SelectedKeys;
+
+	// Begin an editor transaction and mark the section as transactional so it's state will be saved
+	TArray<FSectionHandle> DummySections;
+	BeginTransaction( DummySections, NSLOCTEXT("Sequencer", "DuplicateKeysTransaction", "Duplicate Keys") );
+
+	// Modify all the sections first
+	for (const FSequencerSelectedKey& SelectedKey : SelectedKeys)
+	{
+		UMovieSceneSection* OwningSection = SelectedKey.Section;
+
+		// Only modify sections once
+		if (!ModifiedSections.Contains(OwningSection ))
+		{
+			OwningSection->SetFlags(RF_Transactional);
+			// Save the current state of the section
+			if (OwningSection->TryModify())
+			{
+				// Section has been modified
+				ModifiedSections.Add( OwningSection );
+			}
+		}
+	}
+
+	// Then duplicate the keys
+
+	// @todo sequencer: selection in transactions
+	Sequencer.GetSelection().EmptySelectedKeys();
+	for (const FSequencerSelectedKey& SelectedKey : OldSelection)
+	{
+		FSequencerSelectedKey NewKey = SelectedKey;
+		NewKey.KeyHandle = SelectedKey.KeyArea->DuplicateKey(SelectedKey.KeyHandle.GetValue());
+		Sequencer.GetSelection().AddToSelection(NewKey);
+	}
+
+	// Now start the move drag
+	FMoveKeys::OnBeginDrag(MouseEvent, LocalMousePos, VirtualTrackArea);
+}
+
+void FDuplicateKeys::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
+{
+	FMoveKeys::OnEndDrag(MouseEvent, LocalMousePos, VirtualTrackArea);
+
+	EndTransaction();
 }

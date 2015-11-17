@@ -24,6 +24,7 @@
 #include "AudioTrackEditor.h"
 #include "SkeletalAnimationTrackEditor.h"
 #include "ParticleTrackEditor.h"
+#include "ParticleParameterTrackEditor.h"
 #include "AttachTrackEditor.h"
 #include "EventTrackEditor.h"
 #include "PathTrackEditor.h"
@@ -65,6 +66,7 @@ public:
 		AudioTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FAudioTrackEditor::CreateTrackEditor ) );
 		EventTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FEventTrackEditor::CreateTrackEditor ) );
 		ParticleTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FParticleTrackEditor::CreateTrackEditor ) );
+		ParticleParameterTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FParticleParameterTrackEditor::CreateTrackEditor ) );
 		PathTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DPathTrackEditor::CreateTrackEditor ) );
 		ShotTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FShotTrackEditor::CreateTrackEditor ) );
 		SlomoTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSlomoTrackEditor::CreateTrackEditor ) );
@@ -100,6 +102,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( AudioTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( EventTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( ParticleTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( ParticleParameterTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( PathTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( ShotTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( SlomoTrackCreateEditorHandle );
@@ -159,6 +162,7 @@ private:
 	FDelegateHandle AudioTrackCreateEditorHandle;
 	FDelegateHandle EventTrackCreateEditorHandle;
 	FDelegateHandle ParticleTrackCreateEditorHandle;
+	FDelegateHandle ParticleParameterTrackCreateEditorHandle;
 	FDelegateHandle PathTrackCreateEditorHandle;
 	FDelegateHandle ShotTrackCreateEditorHandle;
 	FDelegateHandle SlomoTrackCreateEditorHandle;

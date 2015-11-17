@@ -269,7 +269,7 @@ struct FMovieSceneClipboardEnvironment
 {
 	FMovieSceneClipboardEnvironment()
 		: CardinalTime(0.f)
-		, DateTime(FDateTime::Now())
+		, DateTime(FDateTime::UtcNow())
 	{}
 
 	/** The cardinal time for a copy-paste operation. Keys are copied with absolute time values */

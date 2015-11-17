@@ -66,7 +66,7 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 		// Otherwise we can attempt a new drag
 		else if (DelayedDrag->AttemptDragStart(MouseEvent))
 		{
-			DragOperation = CreateDrag();
+			DragOperation = CreateDrag(MouseEvent);
 
 			if (DragOperation.IsValid())
 			{
@@ -83,7 +83,7 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 }
 
 
-TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag()
+TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateDrag(const FPointerEvent& MouseEvent)
 {
 	auto PinnedSequencer = Sequencer.Pin();
 	FSequencerSelection& Selection = PinnedSequencer->GetSelection();
@@ -133,7 +133,15 @@ TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateD
 				Selection.AddToSelection(ThisKey);
 			}
 
-			return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
+			// @todo sequencer: Make this a customizable UI command modifier?
+			if (MouseEvent.IsAltDown())
+			{
+				return MakeShareable( new FDuplicateKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
+			}
+			else
+			{
+				return MakeShareable( new FMoveKeys( *PinnedSequencer, Selection.GetSelectedKeys() ) );
+			}
 		}
 	}
 	// If we're not dragging a hotspot, sections take precedence over keys

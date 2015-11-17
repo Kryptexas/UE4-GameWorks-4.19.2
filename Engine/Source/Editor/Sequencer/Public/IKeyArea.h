@@ -133,6 +133,11 @@ public:
 	 */
 	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) = 0;
 
+	/**
+	 * Duplicate the specified key
+	 */
+	virtual TOptional<FKeyHandle> DuplicateKey(FKeyHandle KeyToDuplicate) = 0;
+
 	/** Gets the rich curve associated with this key area.  This can be null but it must be valid in order to be
 	  * edited by the curve editor. */
 	virtual FRichCurve* GetRichCurve() = 0;

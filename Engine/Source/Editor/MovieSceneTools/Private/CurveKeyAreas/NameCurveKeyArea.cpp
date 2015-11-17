@@ -31,6 +31,15 @@ TArray<FKeyHandle> FNameCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInt
 	return AddedKeyHandles;
 }
 
+TOptional<FKeyHandle> FNameCurveKeyArea::DuplicateKey(FKeyHandle KeyToDuplicate)
+{
+	if (!Curve.IsKeyHandleValid(KeyToDuplicate))
+	{
+		return TOptional<FKeyHandle>();
+	}
+
+	return Curve.AddKey(GetKeyTime(KeyToDuplicate), Curve.GetKey(KeyToDuplicate).Value);
+}
 
 bool FNameCurveKeyArea::CanCreateKeyEditor()
 {

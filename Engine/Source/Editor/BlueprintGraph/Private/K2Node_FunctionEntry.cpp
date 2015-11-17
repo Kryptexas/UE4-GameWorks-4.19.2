@@ -126,6 +126,9 @@ void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 			// Allow legacy implementations to violate const-correctness
 			bEnforceConstCorrectness = false;
 		}
+
+		// @TODO: gate this with a version check once it makes its way into main
+		ExtraFlags &= ~FUNC_Native;
 	}
 }
 

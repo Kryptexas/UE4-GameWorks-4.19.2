@@ -705,7 +705,7 @@ float3 EyeSubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 
 	float NoL = saturate( dot( IrisNormal, L ) );
 	float Power = lerp( 12, 1, NoL );
-	float Caustic = 0.5 + 0.5 * ( Power + 1 ) * pow( saturate( dot( CausticNormal, L ) ), Power );
+	float Caustic = 0.6 + 0.2 * ( Power + 1 ) * pow( saturate( dot( CausticNormal, L ) ), Power );
 	float Iris = NoL * Caustic;
 
 	// http://blog.stevemcauley.com/2011/12/03/energy-conserving-wrapped-diffuse/

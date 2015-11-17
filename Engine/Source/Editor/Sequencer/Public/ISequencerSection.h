@@ -64,6 +64,11 @@ public:
 	 */
 	virtual const FSlateBrush* GetKeyBrush(FKeyHandle KeyHandle) const { return nullptr; }
 
+	/*
+	 * @return Whether to draw a background for the key area
+	 */
+	virtual bool ShouldDrawKeyAreaBackground() const { return true; }
+
 	/**
 	 * Called when the section is double clicked
 	 *

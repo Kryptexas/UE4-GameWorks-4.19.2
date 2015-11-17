@@ -254,7 +254,7 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("AddParticleTrack", "Particle Track"),
+			LOCTEXT("AddParticleTrack", "Particle Toggle Track"),
 			LOCTEXT("TriggerParticlesTooltip", "Adds a track for controlling particle emitter state."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FParticleTrackEditor::AddParticleKey, ObjectBinding))

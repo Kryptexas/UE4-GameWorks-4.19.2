@@ -218,7 +218,7 @@ public:
 	{
 		// Error checking: checks if we have a curve table specified but no valid curve entry
 		GetValueAtLevel(1.f);
-		bool bInvalid = (Curve.CurveTable != nullptr && FinalCurve == nullptr);
+		bool bInvalid = (Curve.CurveTable != nullptr || Curve.RowName != NAME_None ) && (FinalCurve == nullptr);
 		return !bInvalid;
 	}
 

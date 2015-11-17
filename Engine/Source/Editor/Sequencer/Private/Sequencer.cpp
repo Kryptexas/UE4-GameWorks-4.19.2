@@ -1098,20 +1098,34 @@ void FSequencer::SetGlobalTimeLooped(float InTime)
 	}
 	else
 	{
-
 		TRange<float> TimeBounds = GetTimeBounds();
 		TRange<float> WorkingRange = GetClampRange();
 
+		const bool bReachedEnd = GetGlobalTime() < TimeBounds.GetUpperBoundValue() && InTime >= TimeBounds.GetUpperBoundValue();
+
 		// Stop if we hit the playback range end
-		if (GetGlobalTime() < TimeBounds.GetUpperBoundValue() && InTime >= TimeBounds.GetUpperBoundValue())
+		if (bReachedEnd)
 		{
 			InTime = TimeBounds.GetUpperBoundValue();
 			PlaybackState = EMovieScenePlayerStatus::Stopped;
 		}
-		// Jump to the start of the working range if necessary
-		else if (InTime < WorkingRange.GetLowerBoundValue())
+		// Constrain to the play range if necessary
+		else if (Settings->ShouldKeepCursorInPlayRange())
 		{
-			InTime = WorkingRange.GetLowerBoundValue();
+			// Clamp to lower bound
+			InTime = FMath::Max(InTime, TimeBounds.GetLowerBoundValue());
+
+			// Jump back if necessary
+			if (InTime >= TimeBounds.GetUpperBoundValue())
+			{
+				InTime = TimeBounds.GetLowerBoundValue();
+			}
+		}
+		// Ensure the time is within the working range
+		else if (!WorkingRange.Contains(InTime))
+		{
+			InTime = FMath::Clamp(InTime, WorkingRange.GetLowerBoundValue(), WorkingRange.GetUpperBoundValue());
+			PlaybackState = EMovieScenePlayerStatus::Stopped;
 		}
 	}
 
@@ -2225,14 +2239,16 @@ void FSequencer::StepToPreviousCameraKey()
 	SequencerWidget->StepToPreviousCameraKey();
 }
 
-void FSequencer::ExpandNodesAndDescendants()
+void FSequencer::ExpandAllNodesAndDescendants()
 {
-	SequencerWidget->GetTreeView()->ExpandNodes(ETreeRecursion::Recursive);
+	const bool bExpandAll = true;
+	SequencerWidget->GetTreeView()->ExpandNodes(ETreeRecursion::Recursive, bExpandAll);
 }
 
-void FSequencer::CollapseNodesAndDescendants()
+void FSequencer::CollapseAllNodesAndDescendants()
 {
-	SequencerWidget->GetTreeView()->CollapseNodes(ETreeRecursion::Recursive);
+	const bool bExpandAll = true;
+	SequencerWidget->GetTreeView()->CollapseNodes(ETreeRecursion::Recursive, bExpandAll);
 }
 
 void FSequencer::ToggleExpandCollapseNodes()
@@ -2259,9 +2275,10 @@ void FSequencer::SetKey()
 	
 		for (auto KeyArea : KeyAreas)
 		{
-			KeyArea->GetOwningSection()->Modify();
-	
-			KeyArea->AddKeyUnique(GetGlobalTime(), GetKeyInterpolation());
+			if (KeyArea->GetOwningSection()->TryModify())
+			{
+				KeyArea->AddKeyUnique(GetGlobalTime(), GetKeyInterpolation());
+			}
 		}
 	}
 }
@@ -2328,6 +2345,11 @@ TArray<TSharedPtr<FMovieSceneClipboard>> GClipboardStack;
 
 void FSequencer::CopySelectedKeys()
 {
+	if (Selection.GetSelectedKeys().Num() == 0)
+	{
+		return;
+	}
+
 	TOptional<float> CopyRelativeTo;
 	
 	// Copy relative to the current key hotspot, if applicable
@@ -2364,11 +2386,14 @@ void FSequencer::CopySelectedKeys()
 
 	TSharedRef<FMovieSceneClipboard> Clipboard = MakeShareable( new FMovieSceneClipboard(Builder.Commit(CopyRelativeTo)) );
 	
-	GClipboardStack.Push(Clipboard);
-
-	if (GClipboardStack.Num() > 10)
+	if (Clipboard->GetKeyTrackGroups().Num())
 	{
-		GClipboardStack.RemoveAt(0, 1);
+		GClipboardStack.Push(Clipboard);
+
+		if (GClipboardStack.Num() > 10)
+		{
+			GClipboardStack.RemoveAt(0, 1);
+		}
 	}
 }
 
@@ -2386,7 +2411,7 @@ const TArray<TSharedPtr<FMovieSceneClipboard>>& FSequencer::GetClipboardStack() 
 
 void FSequencer::OnClipboardUsed(TSharedPtr<FMovieSceneClipboard> Clipboard)
 {
-	Clipboard->GetEnvironment().DateTime = FDateTime::Now();
+	Clipboard->GetEnvironment().DateTime = FDateTime::UtcNow();
 
 	// Last entry in the stack should be the most up-to-date
 	GClipboardStack.Sort([](const TSharedPtr<FMovieSceneClipboard>& A, const TSharedPtr<FMovieSceneClipboard>& B){
@@ -2506,12 +2531,12 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateSP( this, &FSequencer::SetEndPlaybackRange ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ExpandNodesAndDescendants,
-		FExecuteAction::CreateSP(this, &FSequencer::ExpandNodesAndDescendants));
+		Commands.ExpandAllNodesAndDescendants,
+		FExecuteAction::CreateSP(this, &FSequencer::ExpandAllNodesAndDescendants));
 
 	SequencerCommandBindings->MapAction(
-		Commands.CollapseNodesAndDescendants,
-		FExecuteAction::CreateSP(this, &FSequencer::CollapseNodesAndDescendants));
+		Commands.CollapseAllNodesAndDescendants,
+		FExecuteAction::CreateSP(this, &FSequencer::CollapseAllNodesAndDescendants));
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleExpandCollapseNodes,
@@ -2681,7 +2706,14 @@ void FSequencer::BindSequencerCommands()
 		FCanExecuteAction::CreateLambda(CanCutOrCopy)
 	);
 
-	SequencerCommandBindings->MapAction( Commands.RenderMovie,
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleKeepCursorInPlaybackRange,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetKeepCursorInPlayRange( !Settings->ShouldKeepCursorInPlayRange() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->ShouldKeepCursorInPlayRange(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.RenderMovie,
 		FExecuteAction::CreateLambda([this]{
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 

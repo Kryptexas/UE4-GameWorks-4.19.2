@@ -20,6 +20,9 @@
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
 
 
+/** When 0, regeneration of dynamic key groups is enabled, when non-zero, such behaviour is disabled */
+FThreadSafeCounter KeyGroupRegenerationLock;
+
 namespace SequencerNodeConstants
 {
 	extern const float CommonPadding;
@@ -524,7 +527,7 @@ TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSec
 	{
 		KeyGroup = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
 	}
-	else
+	else if (KeyGroupRegenerationLock.GetValue() == 0)
 	{
 		*KeyGroup = FGroupedKeyArea(*this, InSectionIndex);
 	}
@@ -549,5 +552,16 @@ bool FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute(TSharedRef<FSe
 	return NodeToBeRenamed->CanRenameNode();
 }
 
+
+void FSequencerDisplayNode::DisableKeyGoupingRegeneration()
+{
+	KeyGroupRegenerationLock.Increment();
+}
+
+
+void FSequencerDisplayNode::EnableKeyGoupingRegeneration()
+{
+	KeyGroupRegenerationLock.Decrement();
+}
 
 #undef LOCTEXT_NAMESPACE

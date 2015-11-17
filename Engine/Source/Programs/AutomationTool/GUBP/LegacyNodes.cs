@@ -2646,22 +2646,58 @@ partial class GUBP
         }
     }
 
-	public class BuildEngineLocalizationNode : HostPlatformNode
+	public abstract class BuildLocalizationNode : HostPlatformNode
 	{
-		public BuildEngineLocalizationNode(string InLocalizationBranchSuffix)
+		public BuildLocalizationNode(string InLocalizationBranchSuffix, GUBPBranchConfig InBranchConfig)
 			: base(UnrealTargetPlatform.Win64)
 		{
-			//LocalizationBranchSuffix = InLocalizationBranchSuffix;
-
-			AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+			LocalizationBranchSuffix = InLocalizationBranchSuffix;
             AddDependency(ToolsNode.StaticGetFullName(HostPlatform));
 		}
 
 		public override void DoBuild(GUBP bp)
 		{
+			var UEProjectDirectory = GetUEProjectDirectory();
+			var UEProjectName = GetUEProjectName();
+			var OneSkyConfigName = GetOneSkyConfigName();
+			var OneSkyProjectGroupName = GetOneSkyProjectGroupName();
+			var OneSkyProjectNames = GetOneSkyProjectNames();
+
+			// Build the correct command line arguments.
+			var CommandLineArguments = "";
+
+			if (!String.IsNullOrEmpty(UEProjectDirectory))
+			{
+				CommandLineArguments += " -UEProjectDirectory=\"" + UEProjectDirectory + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(UEProjectName))
+			{
+				CommandLineArguments += " -UEProjectName=\"" + UEProjectName + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(OneSkyConfigName))
+			{
+				CommandLineArguments += " -OneSkyConfigName=\"" + OneSkyConfigName + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(OneSkyProjectGroupName))
+			{
+				CommandLineArguments += " -OneSkyProjectGroupName=\"" + OneSkyProjectGroupName + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(OneSkyProjectNames))
+			{
+				CommandLineArguments += " -OneSkyProjectNames=\"" + OneSkyProjectNames + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(LocalizationBranchSuffix))
+			{
+				CommandLineArguments += " -OneSkyBranchSuffix=\"" + LocalizationBranchSuffix + "\"";
+			}
+
 			// Run the localise script.
-			// todo: Will need to pass along LocalizationBranchSuffix to the commandlet (once this is set up to work for branches other than Main)
-			CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise");
+			CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise" + CommandLineArguments);
 
 			// Don't pass on any build products to other build nodes at the moment.
 			BuildProducts = new List<string>();
@@ -2671,6 +2707,113 @@ partial class GUBP
 		public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
 		{
 			return base.CISFrequencyQuantumShift(BranchConfig) + 6;
+		}
+
+		public virtual string GetLocalizationId()
+		{
+			throw new AutomationException("Unimplemented GetLocalizationId.");
+		}
+
+		protected virtual string GetUEProjectDirectory()
+		{
+			throw new AutomationException("Unimplemented GetUEProjectDirectory.");
+		}
+
+		protected virtual string GetUEProjectName()
+		{
+			throw new AutomationException("Unimplemented GetUEProjectName.");
+		}
+
+		protected virtual string GetOneSkyConfigName()
+		{
+			throw new AutomationException("Unimplemented GetOneSkyConfigName.");
+		}
+
+		protected virtual string GetOneSkyProjectGroupName()
+		{
+			throw new AutomationException("Unimplemented GetOneSkyProjectGroupName.");
+		}
+
+		protected virtual string GetOneSkyProjectNames()
+		{
+			throw new AutomationException("Unimplemented GetOneSkyProjectNames.");
+		}
+
+		public static BuildLocalizationNode GetLocalizationNode(string InLocalizationId, string InLocalizationBranchSuffix, GUBPBranchConfig InBranchConfig)
+		{
+			if (CachedLocalizationNodeTypes == null)
+			{
+				// Find all types that derive from BuildLocalizationNode in any of our DLLs
+				CachedLocalizationNodeTypes = new Dictionary<string, Type>();
+				var LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+				foreach (var Dll in LoadedAssemblies)
+				{
+					var AllTypes = Dll.GetTypes();
+					foreach (var PotentialLocalizationNodeType in AllTypes)
+					{
+						if (PotentialLocalizationNodeType != typeof(BuildLocalizationNode) && typeof(BuildLocalizationNode).IsAssignableFrom(PotentialLocalizationNodeType))
+						{
+							// Types should implement a static StaticGetLocalizationId method
+							var Method = PotentialLocalizationNodeType.GetMethod("StaticGetLocalizationId");
+							if (Method != null)
+							{
+								try
+								{
+									var NodeLocalizationId = Method.Invoke(null, null) as string;
+									CachedLocalizationNodeTypes.Add(NodeLocalizationId, PotentialLocalizationNodeType);
+								}
+								catch
+								{
+									BuildCommand.LogWarning("Type '{0}' threw when calling its StaticGetLocalizationId method.", PotentialLocalizationNodeType.FullName);
+								}
+							}
+							else
+							{
+								BuildCommand.LogWarning("Type '{0}' derives from BuildLocalizationNode but is missing its StaticGetLocalizationId method.", PotentialLocalizationNodeType.FullName);
+							}
+						}
+					}
+				}
+			}
+
+			Type LocalizationNodeType;
+			CachedLocalizationNodeTypes.TryGetValue(InLocalizationId, out LocalizationNodeType);
+			if (LocalizationNodeType != null)
+			{
+				try
+				{
+					return Activator.CreateInstance(LocalizationNodeType, new object[] { InLocalizationBranchSuffix, InBranchConfig }) as BuildLocalizationNode;
+				}
+				catch
+				{
+					BuildCommand.LogWarning("Unable to create an instance of the type '{0}'", LocalizationNodeType.FullName);
+				}
+			}
+
+			return null;
+		}
+
+		private static Dictionary<string, Type> CachedLocalizationNodeTypes;
+
+		protected string LocalizationBranchSuffix;
+	}
+
+	public class BuildEngineLocalizationNode : BuildLocalizationNode
+	{
+		public BuildEngineLocalizationNode(string InLocalizationBranchSuffix, GUBPBranchConfig InBranchConfig)
+			: base(InLocalizationBranchSuffix, InBranchConfig)
+		{
+			AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+		}
+
+		public static string StaticGetLocalizationId()
+		{
+			return "Engine";
+		}
+
+		public override string GetLocalizationId()
+		{
+			return StaticGetLocalizationId();
 		}
 
 		public static string StaticGetFullName()
@@ -2683,7 +2826,30 @@ partial class GUBP
 			return StaticGetFullName();
 		}
 
-		//private string LocalizationBranchSuffix;
+		protected override string GetUEProjectDirectory()
+		{
+			return "Engine";
+		}
+
+		protected override string GetUEProjectName()
+		{
+			return "";
+		}
+
+		protected override string GetOneSkyConfigName()
+		{
+			return "OneSkyConfig_EpicGames";
+		}
+
+		protected override string GetOneSkyProjectGroupName()
+		{
+			return "Unreal Engine";
+		}
+
+		protected override string GetOneSkyProjectNames()
+		{
+			return "Engine,Editor,EditorTutorials,PropertyNames,ToolTips,Category,Keywords";
+		}
 	}
 
     public class GameAggregateNode : HostPlatformAggregateNode

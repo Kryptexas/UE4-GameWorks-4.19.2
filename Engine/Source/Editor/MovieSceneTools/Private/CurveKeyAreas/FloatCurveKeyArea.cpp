@@ -62,6 +62,21 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 	return AddedKeyHandles;
 }
 
+TOptional<FKeyHandle> FFloatCurveKeyArea::DuplicateKey(FKeyHandle KeyToDuplicate)
+{
+	if (!Curve->IsKeyHandleValid(KeyToDuplicate))
+	{
+		return TOptional<FKeyHandle>();
+	}
+
+	FRichCurveKey ThisKey = Curve->GetKey(KeyToDuplicate);
+
+	FKeyHandle KeyHandle = Curve->AddKey(GetKeyTime(KeyToDuplicate), ThisKey.Value);
+	// Ensure the rest of the key properties are added
+	Curve->GetKey(KeyHandle) = ThisKey;
+
+	return KeyHandle;
+}
 
 bool FFloatCurveKeyArea::CanCreateKeyEditor()
 {

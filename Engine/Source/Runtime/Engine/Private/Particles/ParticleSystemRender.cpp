@@ -5560,6 +5560,8 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 			{
 				WorkingUp = CameraUp;
 			}
+
+			WorkingUp.Normalize();
 		}
 
 		while (TrailPayload)
@@ -5788,6 +5790,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					{
 						WorkingUp = CameraUp;
 					}
+					WorkingUp.Normalize();
 				}
 			}
 		}

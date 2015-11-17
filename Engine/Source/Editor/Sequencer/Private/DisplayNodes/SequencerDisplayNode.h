@@ -314,6 +314,14 @@ public:
 	/** Get the key grouping for the specified section index */
 	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
 
+public:
+
+	/** Temporarily disable dynamic regeneration of key groupings. This prevents overlapping key groups from being amalgamated during drags. Key times will continue to update correctly. */
+	static void DisableKeyGoupingRegeneration();
+
+	/** Re-enable dynamic regeneration of key groupings */
+	static void EnableKeyGoupingRegeneration();
+
 private:
 
 	/** Callback for executing a "Rename Node" context menu action. */

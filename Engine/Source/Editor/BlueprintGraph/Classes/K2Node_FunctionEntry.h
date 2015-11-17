@@ -72,7 +72,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	/** Set the extra flags on this node */
 	BLUEPRINTGRAPH_API void SetExtraFlags(int32 InFlags)
 	{
-		ExtraFlags = InFlags;
+		ExtraFlags = (InFlags & ~FUNC_Native);
 	}
 
 protected:

@@ -164,6 +164,11 @@ public:
 	/** Sets the loop mode. */
 	void SetLooping(bool bInLooping);
 
+	/** @return true if the cursor should be kept within the playback range during playback in sequencer, false otherwise */
+	bool ShouldKeepCursorInPlayRange() const;
+	/** Set whether or not the cursor should be kept within the playback range during playback in sequencer */
+	void SetKeepCursorInPlayRange(bool bInKeepCursorInPlayRange);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -236,6 +241,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bLooping;
+
+	UPROPERTY( config )
+	bool bKeepCursorInPlayRange;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

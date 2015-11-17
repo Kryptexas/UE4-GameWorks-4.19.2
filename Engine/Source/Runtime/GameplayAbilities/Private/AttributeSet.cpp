@@ -522,6 +522,12 @@ static bool CheckForBadScalableFloats_Prop_r(void* Data, UProperty* Prop, UClass
 					ThisScalableFloat->Curve.CurveTable = nullptr;
 					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
 				}
+				else if (ThisScalableFloat->Curve.CurveTable == nullptr)
+				{
+					// Just fix this case up here
+					ThisScalableFloat->Curve.RowName = NAME_None;
+					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
+				}
 				else
 				{
 					GCurrentBadScalableFloat.Property = Prop;

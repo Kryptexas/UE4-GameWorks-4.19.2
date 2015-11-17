@@ -344,6 +344,10 @@ UMovieSceneSection* FAudioSection::GetSectionObject()
 	return &Section;
 }
 
+bool FAudioSection::ShouldDrawKeyAreaBackground() const
+{
+	return false;
+}
 
 FText FAudioSection::GetDisplayName() const
 {

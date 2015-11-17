@@ -39,7 +39,12 @@ void FMovieSceneShotTrackInstance::RefreshInstance(const TArray<UObject*>& Runti
 	}
 }
 
-
+	
+void FMovieSceneShotTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+{
+	Player.UpdateCameraCut(nullptr, nullptr);
+}
+	
 void FMovieSceneShotTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) 
 {
 	UObject* CameraObject = nullptr;
