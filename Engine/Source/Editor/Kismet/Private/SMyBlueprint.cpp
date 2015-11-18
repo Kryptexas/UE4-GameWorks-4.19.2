@@ -2222,7 +2222,7 @@ void SMyBlueprint::OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph
 		FBlueprintEditorUtils::RemoveGraph(GetBlueprintObj(), InGraph, EGraphRemoveFlags::Recompile);
 		BlueprintEditorPtr.Pin()->CloseDocumentTab(InGraph);
 
-		for (TObjectIterator<UK2Node_CreateDelegate> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
+		for (TObjectIterator<UK2Node_CreateDelegate> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
 			if (It->GetGraph() != InGraph)
 			{
@@ -2274,7 +2274,7 @@ void SMyBlueprint::OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateA
 		FBlueprintEditorUtils::RemoveMemberVariable(BlueprintObj, GraphToActOn->GetFName());
 		FBlueprintEditorUtils::RemoveGraph(BlueprintObj, GraphToActOn, EGraphRemoveFlags::Recompile);
 
-		for (TObjectIterator<UK2Node_CreateDelegate> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
+		for (TObjectIterator<UK2Node_CreateDelegate> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
 			if (!It->IsPendingKill() && It->GetGraph() && !It->GetGraph()->IsPendingKill())
 			{
@@ -2622,7 +2622,7 @@ bool SMyBlueprint::IsNativeVariable() const
 	{
 		UProperty* VarProperty = VarAction->GetProperty();
 
-		if( VarProperty && VarProperty->HasAllFlags( RF_Native ))
+		if( VarProperty && VarProperty->IsNative())
 		{
 			return true;
 		}

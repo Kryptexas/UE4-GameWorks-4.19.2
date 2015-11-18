@@ -245,7 +245,7 @@ void FBlueprintUnloader::UnloadBlueprint(const bool bResetPackage)
 
 		// make sure the blueprint is properly trashed (remove it from the package)
 		UnloadingBp->SetFlags(RF_Transient);
-		UnloadingBp->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+		UnloadingBp->ClearFlags(RF_Standalone | RF_Transactional);
 		UnloadingBp->RemoveFromRoot();
 		UnloadingBp->MarkPendingKill();
 		// if it's in the undo buffer, then we have to clear that...
@@ -660,12 +660,12 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 {
 	UObject* BlueprintObj = Blueprint;
 	FReferencerInformationList ReferencesIncludingUndo;
-	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, /*bCheckSubObjects =*/true, &ReferencesIncludingUndo);
+	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, /*bCheckSubObjects =*/true, &ReferencesIncludingUndo);
 
 	FReferencerInformationList ReferencesExcludingUndo;
 	// Determine the in-memory references, *excluding* the undo buffer
 	GEditor->Trans->DisableObjectSerialization();
-	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, /*bCheckSubObjects =*/true, &ReferencesExcludingUndo);
+	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, /*bCheckSubObjects =*/true, &ReferencesExcludingUndo);
 	GEditor->Trans->EnableObjectSerialization();
 
 	// see if this object is the transaction buffer - set a flag so we know we need to clear the undo stack

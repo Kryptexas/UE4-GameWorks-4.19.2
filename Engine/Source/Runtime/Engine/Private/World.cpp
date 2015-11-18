@@ -1134,7 +1134,7 @@ void UWorld::MarkObjectsPendingKill()
 	{
 		Object->MarkPendingKill();
 	};
-	ForEachObjectWithOuter(this, MarkObjectPendingKill, true, RF_PendingKill);
+	ForEachObjectWithOuter(this, MarkObjectPendingKill, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 }
 
 UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName, UPackage* InWorldPackage, bool bAddToRoot, ERHIFeatureLevel::Type InFeatureLevel)
@@ -1706,7 +1706,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 	
 	check(Level);
 	check(!Level->IsPendingKill());
-	check(!Level->HasAnyFlags(RF_Unreachable));
+	check(!Level->IsUnreachable());
 
 	FScopeCycleCounterUObject ContextScope(Level);
 
@@ -1981,7 +1981,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 	FScopeCycleCounterUObject Context(Level);
 	check(Level);
 	check(!Level->IsPendingKill());
-	check(!Level->HasAnyFlags(RF_Unreachable));
+	check(!Level->IsUnreachable());
 
 	if (CurrentLevelPendingVisibility == NULL && Level->bIsVisible)
 	{
@@ -4656,7 +4656,7 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			{
 				PackageFlags |= PKG_PlayInEditor;
 			}
-			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_PendingKill);
+			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 			if (EditorLevelPackage)
 			{
 				PIEInstanceID = WorldContext.PIEInstance;

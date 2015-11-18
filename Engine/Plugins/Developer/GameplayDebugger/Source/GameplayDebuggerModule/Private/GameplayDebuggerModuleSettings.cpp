@@ -165,7 +165,7 @@ void UGameplayDebuggerModuleSettings::RegisterClass(class UGameplayDebuggerBaseO
 void UGameplayDebuggerModuleSettings::RegisterClass(UClass* InClass)
 {
 #if ENABLED_GAMEPLAY_DEBUGGER
-	if (!InClass || InClass->HasAnyClassFlags(CLASS_Abstract) || InClass->HasAnyFlags(RF_Unreachable))
+	if (!InClass || InClass->HasAnyClassFlags(CLASS_Abstract) || InClass->IsUnreachable())
 	{
 		return;
 	}
@@ -203,7 +203,7 @@ void UGameplayDebuggerModuleSettings::UnregisterClass(class UGameplayDebuggerBas
 {
 #if ENABLED_GAMEPLAY_DEBUGGER
 	UClass *InClass = BaseObject ? BaseObject->GetClass() : nullptr;
-	const bool bIsValidClass = !(!InClass || InClass->HasAnyClassFlags(CLASS_Abstract) || InClass->HasAnyFlags(RF_Unreachable));
+	const bool bIsValidClass = !(!InClass || InClass->HasAnyClassFlags(CLASS_Abstract) || InClass->IsUnreachable());
 
 	if (bIsValidClass && ManualClasses.Find(InClass) != INDEX_NONE && InClass->GetName().Find(TEXT("REINST_")) == INDEX_NONE && InClass->GetName().Find(TEXT("SKEL_")) == INDEX_NONE)
 	{
@@ -288,7 +288,7 @@ void UGameplayDebuggerModuleSettings::UpdateCategories(bool bUpdateConfig)
 	/** add all new categories and classes */
 	for (UClass* Class : Results)
 	{
-		if (Class == nullptr || Class->HasAnyClassFlags(CLASS_Abstract) || Class->HasAnyFlags(RF_Unreachable))
+		if (Class == nullptr || Class->HasAnyClassFlags(CLASS_Abstract) || Class->IsUnreachable())
 		{
 			continue;
 		}

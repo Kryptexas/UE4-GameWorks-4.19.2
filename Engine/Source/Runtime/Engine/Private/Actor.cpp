@@ -102,7 +102,7 @@ void AActor::InitializeDefaults()
 
 void FActorTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	if (Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
+	if (Target && !Target->IsPendingKillOrUnreachable())
 	{
 		FScopeCycleCounterUObject ActorScope(Target);
 		Target->TickActor(DeltaTime*Target->CustomTimeDilation, TickType, *this);	
@@ -230,7 +230,7 @@ void AActor::ResetOwnedComponents()
 	TArray<UObject*> ActorChildren;
 	OwnedComponents.Empty();
 	ReplicatedComponents.Empty();
-	GetObjectsWithOuter(this, ActorChildren, true, RF_PendingKill);
+	GetObjectsWithOuter(this, ActorChildren, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
 	for (UObject* Child : ActorChildren)
 	{
@@ -272,7 +272,7 @@ UWorld* AActor::GetWorld() const
 {
 	// CDO objects do not belong to a world
 	// If the actors outer is destroyed or unreachable we are shutting down and the world should be NULL
-	return (!HasAnyFlags(RF_ClassDefaultObject) && !GetOuter()->HasAnyFlags(RF_BeginDestroyed|RF_Unreachable) ? GetLevel()->OwningWorld : NULL);
+	return (!HasAnyFlags(RF_ClassDefaultObject) && !GetOuter()->HasAnyFlags(RF_BeginDestroyed) && !GetOuter()->IsUnreachable() ? GetLevel()->OwningWorld : NULL);
 }
 
 FTimerManager& AActor::GetWorldTimerManager() const
@@ -2720,9 +2720,9 @@ void AActor::PostActorConstruction()
 		// Set IsPendingKill() to true so that when the initial undo record is made,
 		// the actor will be treated as destroyed, in that undo an add will
 		// actually work
-		SetFlags(RF_PendingKill);
+		MarkPendingKill();
 		Modify(false);
-		ClearFlags(RF_PendingKill);
+		ClearPendingKill();
 	}
 
 	if (!IsPendingKill())

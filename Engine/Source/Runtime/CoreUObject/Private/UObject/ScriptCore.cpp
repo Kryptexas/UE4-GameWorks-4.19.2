@@ -970,7 +970,7 @@ UFunction* UObject::FindFunctionChecked( FName InName ) const
 
 void UObject::ProcessEvent( UFunction* Function, void* Parms )
 {
-	checkf(!HasAnyFlags(RF_Unreachable),TEXT("%s  Function: '%s'"), *GetFullName(), *Function->GetPathName());
+	checkf(!IsUnreachable(),TEXT("%s  Function: '%s'"), *GetFullName(), *Function->GetPathName());
 	checkf(!FUObjectThreadContext::Get().IsRoutingPostLoad, TEXT("Cannot call UnrealScript (%s - %s) while PostLoading objects"), *GetFullName(), *Function->GetFullName());
 
 	// Reject.

@@ -1231,7 +1231,7 @@ void ULevel::PostEditUndo()
 	//Actors.Remove(nullptr); // removed because TTransArray exploded (undo followed by redo ends up with a different ArrayNum to originally)
 	TSet<AActor*> ActorsSet(Actors);
 	TArray<UObject *> InnerObjects;
-	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_PendingKill);
+	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_NoFlags, /* InternalExclusionFlags */ EInternalObjectFlags::PendingKill);
 	for (UObject* InnerObject : InnerObjects)
 	{
 		AActor* InnerActor = Cast<AActor>(InnerObject);
@@ -1774,7 +1774,7 @@ TArray<UBlueprint*> ULevel::GetLevelBlueprints() const
 {
 	TArray<UBlueprint*> LevelBlueprints;
 	TArray<UObject*> LevelChildren;
-	GetObjectsWithOuter(this, LevelChildren, false, RF_PendingKill);
+	GetObjectsWithOuter(this, LevelChildren, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
 	for (UObject* LevelChild : LevelChildren)
 	{

@@ -21,6 +21,7 @@
 #include "Specifiers/InterfaceSpecifiers.h"
 #include "Specifiers/StructSpecifiers.h"
 #include "Specifiers/VariableSpecifiers.h"
+#include "UHTMakefile/UHTMakefile.h"
 
 double GPluginOverheadTime = 0.0;
 double GHeaderCodeGenTime = 0.0;
@@ -184,7 +185,7 @@ namespace
 
 		for (const auto& Specifier : Specifiers)
 		{
-			switch ((EFunctionSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GFunctionSpecifierStrings, ARRAY_COUNT(GFunctionSpecifierStrings)))
+			switch ((EFunctionSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GFunctionSpecifierStrings))
 			{
 				default:
 				{
@@ -486,87 +487,130 @@ namespace
 		return bDefaultToInstanced;
 	}
 
-	UProperty* CreateVariableProperty(FPropertyBase& VarProperty, UObject* Scope, FName Name, EObjectFlags ObjectFlags, EVariableCategory::Type VariableCategory)
+	UProperty* CreateVariableProperty(FPropertyBase& VarProperty, UObject* Scope, FName Name, EObjectFlags ObjectFlags, EVariableCategory::Type VariableCategory, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
 	{
 		switch (VarProperty.Type)
 		{
 			case CPT_Byte:
 			{
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UByteProperty(FObjectInitializer());
+				UByteProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UByteProperty(FObjectInitializer());
 				Result->Enum = VarProperty.Enum;
+				UHTMakefile.AddByteProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Int8:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt8Property(FObjectInitializer());
+			{
+				UInt8Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt8Property(FObjectInitializer());
+				UHTMakefile.AddInt8Property(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Int16:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt16Property(FObjectInitializer());
+			{
+				UInt16Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt16Property(FObjectInitializer());
+				UHTMakefile.AddInt16Property(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Int:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UIntProperty(FObjectInitializer());
+			{
+				UIntProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UIntProperty(FObjectInitializer());
+				UHTMakefile.AddIntProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Int64:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt64Property(FObjectInitializer());
+			{
+				UInt64Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UInt64Property(FObjectInitializer());
+				UHTMakefile.AddInt64Property(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_UInt16:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt16Property(FObjectInitializer());
+			{
+				UUInt16Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt16Property(FObjectInitializer());
+				UHTMakefile.AddUInt16Property(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_UInt32:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt32Property(FObjectInitializer());
+			{
+				UUInt32Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt32Property(FObjectInitializer());
+				UHTMakefile.AddUInt32Property(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_UInt64:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt64Property(FObjectInitializer());
+			{
+				UUInt64Property* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UUInt64Property(FObjectInitializer());
+				UHTMakefile.AddUInt64Property(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Bool:
 			{
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
+				UBoolProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
 				Result->SetBoolSize(sizeof(bool), true);
+				UHTMakefile.AddBoolProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Bool8:
 			{
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
+				UBoolProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
 				Result->SetBoolSize((VariableCategory == EVariableCategory::Return) ? sizeof(bool) : sizeof(uint8), VariableCategory == EVariableCategory::Return);
+				UHTMakefile.AddBoolProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Bool16:
 			{
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
+				UBoolProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
 				Result->SetBoolSize((VariableCategory == EVariableCategory::Return) ? sizeof(bool) : sizeof(uint16), VariableCategory == EVariableCategory::Return);
+				UHTMakefile.AddBoolProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Bool32:
 			{
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
+				UBoolProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
 				Result->SetBoolSize((VariableCategory == EVariableCategory::Return) ? sizeof(bool) : sizeof(uint32), VariableCategory == EVariableCategory::Return);
+				UHTMakefile.AddBoolProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Bool64:
 			{
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
+				UBoolProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UBoolProperty(FObjectInitializer());
 				Result->SetBoolSize((VariableCategory == EVariableCategory::Return) ? sizeof(bool) : sizeof(uint64), VariableCategory == EVariableCategory::Return);
+				UHTMakefile.AddBoolProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Float:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UFloatProperty(FObjectInitializer());
+			{
+				UFloatProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UFloatProperty(FObjectInitializer());
+				UHTMakefile.AddFloatProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Double:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UDoubleProperty(FObjectInitializer());
+			{
+				UDoubleProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UDoubleProperty(FObjectInitializer());
+				UHTMakefile.AddDoubleProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_ObjectReference:
 				check(VarProperty.PropertyClass);
 
 				if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 				{
-					auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UClassProperty(FObjectInitializer());
+					UClassProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UClassProperty(FObjectInitializer());
 					Result->MetaClass     = VarProperty.MetaClass;
 					Result->PropertyClass = VarProperty.PropertyClass;
+					UHTMakefile.AddClassProperty(UnrealSourceFile, Result);
 					return Result;
 				}
 				else
@@ -577,8 +621,9 @@ namespace
 						AddEditInlineMetaData(VarProperty.MetaData);
 					}
 
-					auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UObjectProperty(FObjectInitializer());
+					UObjectProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UObjectProperty(FObjectInitializer());
 					Result->PropertyClass = VarProperty.PropertyClass;
+					UHTMakefile.AddObjectProperty(UnrealSourceFile, Result);
 					return Result;
 				}
 
@@ -586,8 +631,9 @@ namespace
 			{
 				check(VarProperty.PropertyClass);
 
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UWeakObjectProperty(FObjectInitializer());
+				UWeakObjectProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UWeakObjectProperty(FObjectInitializer());
 				Result->PropertyClass = VarProperty.PropertyClass;
+				UHTMakefile.AddWeakObjectProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
@@ -595,8 +641,9 @@ namespace
 			{
 				check(VarProperty.PropertyClass);
 
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) ULazyObjectProperty(FObjectInitializer());
+				ULazyObjectProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) ULazyObjectProperty(FObjectInitializer());
 				Result->PropertyClass = VarProperty.PropertyClass;
+				UHTMakefile.AddLazyObjectProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
@@ -605,15 +652,17 @@ namespace
 
 				if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 				{
-					auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UAssetClassProperty(FObjectInitializer());
+					UAssetClassProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UAssetClassProperty(FObjectInitializer());
 					Result->MetaClass     = VarProperty.MetaClass;
 					Result->PropertyClass = VarProperty.PropertyClass;
+					UHTMakefile.AddAssetClassProperty(UnrealSourceFile, Result);
 					return Result;
 				}
 				else
 				{
-					auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UAssetObjectProperty(FObjectInitializer());
+					UAssetObjectProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UAssetObjectProperty(FObjectInitializer());
 					Result->PropertyClass = VarProperty.PropertyClass;
+					UHTMakefile.AddAssetObjectProperty(UnrealSourceFile, Result);
 					return Result;
 				}
 
@@ -622,19 +671,32 @@ namespace
 				check(VarProperty.PropertyClass);
 				check(VarProperty.PropertyClass->HasAnyClassFlags(CLASS_Interface));
 
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags)  UInterfaceProperty(FObjectInitializer());
+				UInterfaceProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags)  UInterfaceProperty(FObjectInitializer());
 				Result->InterfaceClass = VarProperty.PropertyClass;
+				UHTMakefile.AddInterfaceProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Name:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UNameProperty(FObjectInitializer());
+			{
+				UNameProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UNameProperty(FObjectInitializer());
+				UHTMakefile.AddNameProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_String:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UStrProperty(FObjectInitializer());
+			{
+				UStrProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UStrProperty(FObjectInitializer());
+				UHTMakefile.AddStrProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Text:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UTextProperty(FObjectInitializer());
+			{
+				UTextProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UTextProperty(FObjectInitializer());
+				UHTMakefile.AddTextProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_Struct:
 			{
@@ -643,16 +705,25 @@ namespace
 					VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
 				}
 
-				auto* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UStructProperty(FObjectInitializer());
+				UStructProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UStructProperty(FObjectInitializer());
 				Result->Struct = VarProperty.Struct;
+				UHTMakefile.AddStructProperty(UnrealSourceFile, Result);
 				return Result;
 			}
 
 			case CPT_Delegate:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UDelegateProperty(FObjectInitializer());
+			{
+				UDelegateProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UDelegateProperty(FObjectInitializer());
+				UHTMakefile.AddDelegateProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			case CPT_MulticastDelegate:
-				return new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UMulticastDelegateProperty(FObjectInitializer());
+			{
+				UMulticastDelegateProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UMulticastDelegateProperty(FObjectInitializer());
+				UHTMakefile.AddMulticastDelegateProperty(UnrealSourceFile, Result);
+				return Result;
+			}
 
 			default:
 				FError::Throwf(TEXT("Unknown property type %i"), (uint8)VarProperty.Type);
@@ -670,7 +741,7 @@ namespace
 	 */
 	void ValidateMetaDataFormat(UField* Field, const FString& InKey, const FString& InValue)
 	{
-		switch ((ECheckedMetadataSpecifier)Algo::FindSortedStringCaseInsensitive(*InKey, GCheckedMetadataSpecifierStrings, ARRAY_COUNT(GCheckedMetadataSpecifierStrings)))
+		switch ((ECheckedMetadataSpecifier)Algo::FindSortedStringCaseInsensitive(*InKey, GCheckedMetadataSpecifierStrings))
 		{
 			default:
 			{
@@ -1038,9 +1109,10 @@ void AddModuleRelativePathToMetadata(UField* Type, TMap<FName, FString> &MetaDat
 //
 // Compile an enumeration definition.
 //
-UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
+UEnum* FHeaderParser::CompileEnum()
 {
-	auto Scope = SourceFile.GetScope();
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
+	auto Scope = CurrentSourceFile->GetScope();
 
 	CheckAllow( TEXT("'Enum'"), ALLOW_TypeDecl );
 
@@ -1107,13 +1179,12 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 	}
 
 	ParseFieldMetaData(EnumToken.MetaData, EnumToken.Identifier);
-
 	// Create enum definition.
-	UEnum* Enum = new(EC_InternalUseOnlyConstructor, SourceFile.GetPackage(), EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
+	UEnum* Enum = new(EC_InternalUseOnlyConstructor, CurrentSourceFile->GetPackage(), EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
 	Scope->AddType(Enum);
 
-	AddTypeDefinition(SourceFile, Enum, InputLine);
-
+	AddTypeDefinition(UHTMakefile, CurrentSourceFile, Enum, InputLine);
+	UHTMakefile.AddEnum(CurrentSourceFile, Enum);
 	// Validate the metadata for the enum
 	ValidateMetaDataFormat(Enum, EnumToken.MetaData);
 
@@ -1133,6 +1204,7 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 		}
 
 		GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
+		UHTMakefile.AddGEnumUnderlyingType(CurrentSourceFile, Enum, CPT_Byte);
 	}
 
 	// Get opening brace.
@@ -1618,9 +1690,10 @@ EAccessSpecifier FHeaderParser::ParseAccessProtectionSpecifier(FToken& Token)
 /**
  * Compile a struct definition.
  */
-UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUnrealSourceFile& SourceFile)
+UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 {
-	auto Scope = SourceFile.GetScope();
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
+	auto Scope = CurrentSourceFile->GetScope();
 
 	// Make sure structs can be declared here.
 	CheckAllow( TEXT("'struct'"), ALLOW_TypeDecl );//@TODO: UCREMOVAL: After the switch: Make this require global scope
@@ -1668,7 +1741,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 	// Process the list of specifiers
 	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
-		switch ((EStructSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GStructSpecifierStrings, ARRAY_COUNT(GStructSpecifierStrings)))
+		switch ((EStructSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GStructSpecifierStrings))
 		{
 			default:
 			{
@@ -1834,14 +1907,14 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 	{
 		StructFlags |= (BaseStruct->StructFlags&STRUCT_Inherit);
 	}
-
 	// Create.
-	UScriptStruct* Struct = new(EC_InternalUseOnlyConstructor, SourceFile.GetPackage(), *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
+	UScriptStruct* Struct = new(EC_InternalUseOnlyConstructor, CurrentSourceFile->GetPackage(), *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
+	UHTMakefile.AddScriptStruct(CurrentSourceFile, Struct);
 
 	Scope->AddType(Struct);
-	FScope::AddTypeScope(Struct, &SourceFile.GetScope().Get());
+	FScope::AddTypeScope(Struct, &CurrentSourceFile->GetScope().Get(), CurrentSourceFile, UHTMakefile);
 
-	AddTypeDefinition(SourceFile, Struct, InputLine);
+	AddTypeDefinition(UHTMakefile, CurrentSourceFile, Struct, InputLine);
 
 	AddModuleRelativePathToMetadata(Struct, MetaData);
 
@@ -1884,7 +1957,8 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 		StructToken.Struct = Struct;
 
 		// add this struct to the compiler's persistent tracking system
-		GScriptHelper.AddClassData(StructToken.Struct);
+		FClassMetaData* ClassMetaData = GScriptHelper.AddClassData(StructToken.Struct, UHTMakefile, CurrentSourceFile);
+		UHTMakefile.AddGScriptHelperEntry(CurrentSourceFile, Struct, ClassMetaData);
 	}
 
 	int32 SavedLineNumber = InputLine;
@@ -1927,7 +2001,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 			Struct->StructMacroDeclaredLineNumber = InputLine;
 			RequireSymbol(TEXT("("), TEXT("'struct'"));
 
-			CompileVersionDeclaration(SourceFile, Struct);
+			CompileVersionDeclaration(Struct);
 
 			RequireSymbol(TEXT(")"), TEXT("'struct'"));
 
@@ -2480,8 +2554,10 @@ void FHeaderParser::VerifyRepNotifyCallbacks( UClass* TargetClass )
 //
 // Process a compiler directive.
 //
-void FHeaderParser::CompileDirective(FClasses& AllClasses, FUnrealSourceFile& SourceFile)
+void FHeaderParser::CompileDirective(FClasses& AllClasses)
 {
+	FUnrealSourceFile* CurrentSourceFilePtr = GetCurrentSourceFile();
+	TSharedRef<FUnrealSourceFile> CurrentSourceFile = CurrentSourceFilePtr->AsShared();
 	FToken Directive;
 
 	int32 LineAtStartOfDirective = InputLine;
@@ -2516,7 +2592,7 @@ void FHeaderParser::CompileDirective(FClasses& AllClasses, FUnrealSourceFile& So
 	}
 	else if (Directive.Matches(TEXT("include")))
 	{
-		FString ExpectedHeaderName = SourceFile.GetGeneratedHeaderFilename();
+		FString ExpectedHeaderName = CurrentSourceFile->GetGeneratedHeaderFilename();
 		FToken IncludeName;
 		if (GetToken(IncludeName) && (IncludeName.TokenType == TOKEN_Const) && (IncludeName.Type == CPT_String))
 		{
@@ -2680,7 +2756,7 @@ FIndexRange*                    ParsedVarIndexRange
 	bool bSeenBlueprintEditSpecifier = false;
 	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
-		EVariableSpecifier SpecID = (EVariableSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GVariableSpecifierStrings, ARRAY_COUNT(GVariableSpecifierStrings));
+		EVariableSpecifier SpecID = (EVariableSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GVariableSpecifierStrings);
 		if (VariableCategory == EVariableCategory::Member)
 		{
 			switch (SpecID)
@@ -3279,7 +3355,9 @@ FIndexRange*                    ParsedVarIndexRange
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
 		OriginalVarTypeFlags |= MapKeyType .PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
 		VarType.PropertyFlags = OriginalVarTypeFlags;
-		VarProperty.MapKeyProp = MakeShareable<FToken>(new FToken(MapKeyType));
+		FToken* MapKeyProp = new FToken(MapKeyType);
+		VarProperty.MapKeyProp = MakeShareable<FToken>(MapKeyProp);
+		UHTMakefile.AddToken(GetCurrentSourceFile(), MapKeyProp);
 		VarProperty.MapKeyProp->PropertyFlags = OriginalVarTypeFlags;
 
 		FToken CloseTemplateToken;
@@ -3877,6 +3955,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 {
 	check(Scope);
 
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
 	EObjectFlags ObjectFlags = RF_Public;
 	if (VariableCategory == EVariableCategory::Member && CurrentAccessSpecifier == ACCESS_Private)
 	{
@@ -4107,6 +4186,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		if (VarProperty.ArrayType == EArrayType::Dynamic)
 		{
 			Array       = new (EC_InternalUseOnlyConstructor, Scope, PropertyName, ObjectFlags) UArrayProperty(FObjectInitializer());
+			UHTMakefile.AddArrayProperty(CurrentSourceFile, Array);
 			NewScope    = Array;
 			ObjectFlags = RF_Public;
 		}
@@ -4117,12 +4197,13 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.MapKeyProp.IsValid())
 		{
 			Map               = new (EC_InternalUseOnlyConstructor, Scope, PropertyName, ObjectFlags) UMapProperty(FObjectInitializer());
+			UHTMakefile.AddMapProperty(CurrentSourceFile, Map);
 			NewScope          = Map;
 			ObjectFlags       = RF_Public;
-			NewMapKeyProperty = CreateVariableProperty(*VarProperty.MapKeyProp, NewScope, *(PropertyName.ToString() + TEXT("_Key")), ObjectFlags, VariableCategory);
+			NewMapKeyProperty = CreateVariableProperty(*VarProperty.MapKeyProp, NewScope, *(PropertyName.ToString() + TEXT("_Key")), ObjectFlags, VariableCategory, UHTMakefile, CurrentSourceFile);
 		}
 
-		NewProperty = CreateVariableProperty(VarProperty, NewScope, PropertyName, ObjectFlags, VariableCategory);
+		NewProperty = CreateVariableProperty(VarProperty, NewScope, PropertyName, ObjectFlags, VariableCategory, UHTMakefile, CurrentSourceFile);
 
 		auto PropagateFlags = [](uint64 FlagsToPropagate, FPropertyBase& From, UProperty* To) {
 			// Copy some of the property flags to the inner property.
@@ -4184,11 +4265,10 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	VarProperty.TokenProperty = NewProperty;
 	FClassMetaData* ScopeData = GScriptHelper.FindClassData(Scope);
 	check(ScopeData);
-	ScopeData->AddProperty(VarProperty);
+	ScopeData->AddProperty(VarProperty, UHTMakefile, CurrentSourceFile);
 
 	// if we had any metadata, add it to the class
 	AddMetaDataToClassData(VarProperty.TokenProperty, VarProperty.MetaData);
-
 	return NewProperty;
 }
 
@@ -4199,7 +4279,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 //
 // Compile a declaration in Token. Returns 1 if compiled, 0 if not.
 //
-bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& SourceFile, FToken& Token)
+bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 {
 	EAccessSpecifier AccessSpecifier = ParseAccessProtectionSpecifier(Token);
 	if (AccessSpecifier)
@@ -4241,7 +4321,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 			FError::Throwf(TEXT("%s must occur inside the native interface definition"), Token.Identifier);
 		}
 		RequireSymbol(TEXT("("), Token.Identifier);
-		CompileVersionDeclaration(SourceFile, GetCurrentClass());
+		CompileVersionDeclaration(GetCurrentClass());
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		auto* ClassData = GetCurrentClassData();
@@ -4270,7 +4350,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 			FError::Throwf(TEXT("%s must occur inside the interface definition"), Token.Identifier);
 		}
 		RequireSymbol(TEXT("("), Token.Identifier);
-		CompileVersionDeclaration(SourceFile, GetCurrentClass());
+		CompileVersionDeclaration(GetCurrentClass());
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		auto* ClassData = GetCurrentClassData();
@@ -4313,7 +4393,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		}
 
 		RequireSymbol(TEXT("("), Token.Identifier);
-		CompileVersionDeclaration(SourceFile, GetCurrentClass());
+		CompileVersionDeclaration(GetCurrentClass());
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		ClassData->SetGeneratedBodyLine(InputLine);
@@ -4340,19 +4420,19 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 
 	if (Token.Matches(TEXT("UFUNCTION"), ESearchCase::CaseSensitive))
 	{
-		CompileFunctionDeclaration(SourceFile, AllClasses);
+		CompileFunctionDeclaration(AllClasses);
 		return true;
 	}
 
 	if (Token.Matches(TEXT("UDELEGATE")))
 	{
-		CompileDelegateDeclaration(SourceFile, AllClasses, Token.Identifier, EDelegateSpecifierAction::Parse);
+		CompileDelegateDeclaration(AllClasses, Token.Identifier, EDelegateSpecifierAction::Parse);
 		return true;
 	}
 
 	if (IsValidDelegateDeclaration(Token)) // Legacy delegate parsing - it didn't need a UDELEGATE
 	{
-		CompileDelegateDeclaration(SourceFile, AllClasses, Token.Identifier);
+		CompileDelegateDeclaration(AllClasses, Token.Identifier);
 		return true;
 	}
 
@@ -4368,21 +4448,21 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 	if (Token.Matches(TEXT("UENUM")))
 	{
 		// Enumeration definition.
-		CompileEnum(SourceFile);
+		CompileEnum();
 		return true;
 	}
 
 	if (Token.Matches(TEXT("USTRUCT")))
 	{
 		// Struct definition.
-		CompileStructDeclaration(AllClasses, SourceFile);
+		CompileStructDeclaration(AllClasses);
 		return true;
 	}
 
 	if (Token.Matches(TEXT("#")))
 	{
 		// Compiler directive.
-		CompileDirective(AllClasses, SourceFile);
+		CompileDirective(AllClasses);
 		return true;
 	}
 
@@ -4614,12 +4694,14 @@ bool FHeaderParser::SafeMatchSymbol( const TCHAR* Match )
 
 FClass* FHeaderParser::ParseClassNameDeclaration(FClasses& AllClasses, FString& DeclaredClassName, FString& RequiredAPIMacroIfPresent)
 {
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
 	ParseNameWithPotentialAPIMacroPrefix(/*out*/ DeclaredClassName, /*out*/ RequiredAPIMacroIfPresent, TEXT("class"));
 
 	FClass* FoundClass = AllClasses.FindClass(*GetClassNameWithPrefixRemoved(*DeclaredClassName));
 	check(FoundClass);
 
-	GScriptHelper.AddClassData(FoundClass);
+	FClassMetaData* ClassMetaData = GScriptHelper.AddClassData(FoundClass, UHTMakefile, CurrentSourceFile);
+	UHTMakefile.AddGScriptHelperEntry(CurrentSourceFile, FoundClass, ClassMetaData);
 
 	// Get parent class.
 	bool bSpecifiesParentClass = false;
@@ -4706,6 +4788,7 @@ FClass* FHeaderParser::ParseClassNameDeclaration(FClasses& AllClasses, FString& 
 
 void FHeaderParser::HandleOneInheritedClass(FClasses& AllClasses, UClass* Class, FString InterfaceName)
 {
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
 	// Check for UInterface derived interface inheritance
 	if (UClass* Interface = AllClasses.FindScriptClass(InterfaceName))
 	{
@@ -4723,7 +4806,7 @@ void FHeaderParser::HandleOneInheritedClass(FClasses& AllClasses, UClass* Class,
 		{
 			FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
 			check(ClassData);
-			ClassData->AddInheritanceParent(Interface);
+			ClassData->AddInheritanceParent(Interface, UHTMakefile, CurrentSourceFile);
 		}
 	}
 	else
@@ -4731,7 +4814,7 @@ void FHeaderParser::HandleOneInheritedClass(FClasses& AllClasses, UClass* Class,
 		// Non-UObject inheritance
 		FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
 		check(ClassData);
-		ClassData->AddInheritanceParent(InterfaceName);
+		ClassData->AddInheritanceParent(InterfaceName, UHTMakefile, CurrentSourceFile);
 	}
 }
 
@@ -4819,7 +4902,9 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	// Make sure our parent classes is parsed.
 	for (UClass* Temp = Class->GetSuperClass(); Temp; Temp = Temp->GetSuperClass())
 	{
-		if (!(Temp->ClassFlags & (CLASS_Parsed | CLASS_Intrinsic)))
+		bool bIsParsed = !!(Temp->ClassFlags & CLASS_Parsed);
+		bool bIsIntrinsic = !!(Temp->ClassFlags & CLASS_Intrinsic);
+		if (!(bIsParsed || bIsIntrinsic))
 		{
 			FError::Throwf(TEXT("'%s' can't be compiled: Parent class '%s' has errors"), *Class->GetName(), *Temp->GetName());
 		}
@@ -4834,7 +4919,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	ClassData->SetPrologLine(PrologFinishLine);
 
 	ClassDeclarationData->MergeAndValidateClassFlags(DeclaredClassName, PrevClassFlags, Class, AllClasses);
-	Class->SetFlags(RF_Native);
+	Class->SetInternalFlags(EInternalObjectFlags::Native);
 
 	// Class metadata
 	MetaData.Append(ClassDeclarationData->MetaData);
@@ -4873,7 +4958,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	for (int32 ParentIndex = InheritanceParents.Num() - 1; ParentIndex >= 0; ParentIndex--)
 	{
 		// if this base class corresponds to an interface class, assign the vtable UProperty in the class's Interfaces map now...
-		if (UClass* InheritedInterface = InheritanceParents[ParentIndex].InterfaceClass)
+		if (UClass* InheritedInterface = InheritanceParents[ParentIndex]->InterfaceClass)
 		{
 			if (FImplementedInterface* Found = Class->Interfaces.FindByPredicate([=](const FImplementedInterface& Impl) { return Impl.Class == InheritedInterface; }))
 			{
@@ -4974,6 +5059,7 @@ bool FHeaderParser::TryParseIInterfaceClass(FClasses& AllClasses)
  */
 void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 {
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
 	// Start of an interface block. Since Interfaces and Classes are always at the same nesting level,
 	// whereever a class declaration is allowed, an interface declaration is also allowed.
 	CheckAllow( TEXT("'interface'"), ALLOW_Class );
@@ -5014,13 +5100,13 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 		FError::Throwf(TEXT("Native classes cannot extend non-native classes") );
 	}
 
-	InterfaceClass->SetFlags(RF_Native);
+	InterfaceClass->SetInternalFlags(EInternalObjectFlags::Native);
 	InterfaceClass->ClassFlags |= CLASS_Native;
 
 	// Process all of the interface specifiers
 	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
-		switch ((EInterfaceSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GInterfaceSpecifierStrings, ARRAY_COUNT(GInterfaceSpecifierStrings)))
+		switch ((EInterfaceSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GInterfaceSpecifierStrings))
 		{
 			default:
 			{
@@ -5056,7 +5142,8 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	}
 
 	// Try parsing metadata for the interface
-	FClassMetaData* ClassData = GScriptHelper.AddClassData(InterfaceClass);
+	FClassMetaData* ClassData = GScriptHelper.AddClassData(InterfaceClass, UHTMakefile, CurrentSourceFile);
+	UHTMakefile.AddGScriptHelperEntry(CurrentSourceFile, InterfaceClass, ClassData);
 	check(ClassData);
 
 	ClassData->SetPrologLine(PrologFinishLine);
@@ -5210,12 +5297,11 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 	} while( MatchSymbol(TEXT(",")) );
 	RequireSymbol( TEXT(")"), TEXT("parameter list") );
 }
-
-void FHeaderParser::CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction)
+void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction)
 {
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
-
-	AddModuleRelativePathToMetadata(SourceFile, MetaData);
+	AddModuleRelativePathToMetadata(*CurrentSourceFile, MetaData);
 
 	FFuncInfo            FuncInfo;
 
@@ -5326,8 +5412,10 @@ void FHeaderParser::CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FC
 
 	FuncInfo.MacroLine = InputLine;
 	auto* DelegateSignatureFunction = CreateDelegateFunction(FuncInfo);
+	UHTMakefile.AddDelegateFunction(CurrentSourceFile, DelegateSignatureFunction);
 
-	GScriptHelper.AddClassData(DelegateSignatureFunction);
+	FClassMetaData* ClassMetaData = GScriptHelper.AddClassData(DelegateSignatureFunction, UHTMakefile, CurrentSourceFile);
+	UHTMakefile.AddGScriptHelperEntry(CurrentSourceFile, DelegateSignatureFunction, ClassMetaData);
 
 	DelegateSignatureFunction->FunctionFlags |= FuncInfo.FunctionFlags;
 
@@ -5407,13 +5495,13 @@ void FHeaderParser::CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FC
 /**
  * Parses and compiles a function declaration
  */
-void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FClasses& AllClasses)
+void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 {
 	CheckAllow(TEXT("'Function'"), ALLOW_Function);
 
+	FUnrealSourceFile* CurrentSourceFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
-
-	AddModuleRelativePathToMetadata(SourceFile, MetaData);
+	AddModuleRelativePathToMetadata(*CurrentSourceFile, MetaData);
 
 	// New-style UFUNCTION() syntax 
 	TArray<FPropertySpecifier> SpecifiersFound;
@@ -5691,8 +5779,10 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 	}
 
 	auto* TopFunction = CreateFunction(FuncInfo);
+	UHTMakefile.AddFunction(CurrentSourceFile, TopFunction);
 
-	GScriptHelper.AddClassData(TopFunction);
+	FClassMetaData* ClassMetaData = GScriptHelper.AddClassData(TopFunction, UHTMakefile, CurrentSourceFile);
+	UHTMakefile.AddGScriptHelperEntry(CurrentSourceFile, TopFunction, ClassMetaData);
 
 	TopFunction->FunctionFlags |= FuncInfo.FunctionFlags;
 
@@ -6139,7 +6229,6 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 
 	// Get variable type.
 	FPropertyBase OriginalProperty(CPT_None);
-
 	FIndexRange TypeRange;
 	GetVarType( AllClasses, &FScope::GetTypeScope(Struct).Get(), OriginalProperty, DisallowFlags, /*OuterPropertyType=*/ NULL, EPropertyDeclarationStyle::UPROPERTY, EVariableCategory::Member, &TypeRange );
 	OriginalProperty.PropertyFlags |= EdFlags;
@@ -6286,7 +6375,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 // Compile a statement: Either a declaration or a command.
 // Returns 1 if success, 0 if end of file.
 //
-bool FHeaderParser::CompileStatement(FClasses& AllClasses, FUnrealSourceFile& SourceFile)
+bool FHeaderParser::CompileStatement(FClasses& AllClasses)
 {
 	// Get a token and compile it.
 	FToken Token;
@@ -6295,7 +6384,7 @@ bool FHeaderParser::CompileStatement(FClasses& AllClasses, FUnrealSourceFile& So
 		// End of file.
 		return false;
 	}
-	else if (!CompileDeclaration(AllClasses, SourceFile, Token))
+	else if (!CompileDeclaration(AllClasses, Token))
 	{
 		FError::Throwf(TEXT("'%s': Bad command or expression"), Token.Identifier );
 	}
@@ -6433,17 +6522,21 @@ void FHeaderParser::FinalizeScriptExposedFunctions(UClass* Class)
 // Parses the header associated with the specified class.
 // Returns result enumeration.
 //
-ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrealSourceFile& SourceFile)
+ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrealSourceFile* SourceFile)
 {
-	if (SourceFile.IsParsed())
+	SetCurrentSourceFile(SourceFile);
+	UHTMakefile.AddToHeaderOrder(SourceFile);
+	NameLookupCPP.SetCurrentSourceFile(SourceFile);
+	FUnrealSourceFile* CurrentSourceFile = SourceFile;
+	if (CurrentSourceFile->IsParsed())
 	{
 		return ECompilationResult::Succeeded;
 	}
 
-	SourceFile.MarkAsParsed();
+	CurrentSourceFile->MarkAsParsed();
 
 	// Early-out if this class has previously failed some aspect of parsing
-	if (FailedFilesAnnotation.Get(&SourceFile))
+	if (FailedFilesAnnotation.Get(CurrentSourceFile))
 	{
 		return ECompilationResult::OtherCompilationError;
 	}
@@ -6462,16 +6555,16 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 	if (FParse::Param(FCommandLine::Get(), TEXT("VERBOSE")))
 	{
 		// Message.
-		Warn->Logf(TEXT("Parsing %s"), *SourceFile.GetFilename());
+		Warn->Logf(TEXT("Parsing %s"), *CurrentSourceFile->GetFilename());
 	}
 
 	// Init compiler variables.
-	ResetParser(*SourceFile.GetContent());
+	ResetParser(*CurrentSourceFile->GetContent());
 
 	// Init nesting.
 	NestLevel = 0;
 	TopNest = NULL;
-	PushNest(NEST_GlobalScope, nullptr, &SourceFile);
+	PushNest(NEST_GlobalScope, nullptr, CurrentSourceFile);
 
 	// C++ classes default to private access level
 	CurrentAccessSpecifier = ACCESS_Private; 
@@ -6487,7 +6580,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 #endif
 	{
 		// Parse entire program.
-		while (CompileStatement(AllClasses, SourceFile))
+		while (CompileStatement(AllClasses))
 		{
 			bEmptyFile = false;
 
@@ -6498,7 +6591,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 
 		PopNest(NEST_GlobalScope, TEXT("Global scope"));
 
-		auto ScopeTypeIterator = SourceFile.GetScope()->GetTypeIterator();
+		auto ScopeTypeIterator = CurrentSourceFile->GetScope()->GetTypeIterator();
 		while (ScopeTypeIterator.MoveNext())
 		{
 			auto* Type = *ScopeTypeIterator;
@@ -6548,7 +6641,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 		// First-pass success.
 		Result = ECompilationResult::Succeeded;
 
-		for (auto* Class : SourceFile.GetDefinedClasses())
+		for (auto* Class : CurrentSourceFile->GetDefinedClasses())
 		{
 			PostParsingClassSetup(Class);
 
@@ -6564,11 +6657,11 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 			bNoExportClassesOnly = bNoExportClassesOnly && Class->HasAnyClassFlags(CLASS_NoExport);
 		}
 
-		check(SourceFile.IsParsed());
+		check(CurrentSourceFile->IsParsed());
 
 		if (!bSpottedAutogeneratedHeaderInclude && !bEmptyFile && !bNoExportClassesOnly)
 		{
-			const FString ExpectedHeaderName = SourceFile.GetGeneratedHeaderFilename();
+			const FString ExpectedHeaderName = CurrentSourceFile->GetGeneratedHeaderFilename();
 			FError::Throwf(TEXT("Expected an include at the top of the header: '#include \"%s\"'"), *ExpectedHeaderName);
 		}
 	}
@@ -6578,7 +6671,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 		if (NestLevel == 0)
 		{
 			// Pushing nest so there is a file context for this error.
-			PushNest(NEST_GlobalScope, nullptr, &SourceFile);
+			PushNest(NEST_GlobalScope, nullptr, CurrentSourceFile);
 		}
 
 		// Handle compiler error.
@@ -6590,7 +6683,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 			Warn->Log(ELogVerbosity::Error, ErrorMsg);
 		}
 
-		FailedFilesAnnotation.Set(&SourceFile);
+		FailedFilesAnnotation.Set(CurrentSourceFile);
 		Result = GCompilationResult;
 	}
 #endif
@@ -6602,16 +6695,16 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 	Global functions.
 -----------------------------------------------------------------------------*/
 
-ECompilationResult::Type FHeaderParser::ParseRestOfModulesSourceFiles(FClasses& AllClasses, UPackage* ModulePackage, FHeaderParser& HeaderParser)
+ECompilationResult::Type FHeaderParser::ParseRestOfModulesSourceFiles(FClasses& AllClasses, UPackage* ModulePackage, FHeaderParser& HeaderParser, FUHTMakefile& UHTMakefile)
 {
 	for (auto& Pair : GUnrealSourceFilesMap)
 	{
-		FUnrealSourceFile& SourceFile = Pair.Value.Get();
+		FUnrealSourceFile* SourceFile = &Pair.Value.Get();
 
-		if (SourceFile.GetPackage() == ModulePackage && (!SourceFile.IsParsed() || SourceFile.GetDefinedClassesCount() == 0))
+		if (SourceFile->GetPackage() == ModulePackage && (!SourceFile->IsParsed() || SourceFile->GetDefinedClassesCount() == 0))
 		{
 			ECompilationResult::Type Result;
-			if ((Result = ParseHeaders(AllClasses, HeaderParser, SourceFile, true)) != ECompilationResult::Succeeded)
+			if ((Result = ParseHeaders(AllClasses, HeaderParser, SourceFile, true, UHTMakefile)) != ECompilationResult::Succeeded)
 			{
 				return Result;
 			}
@@ -6622,22 +6715,23 @@ ECompilationResult::Type FHeaderParser::ParseRestOfModulesSourceFiles(FClasses& 
 }
 
 // Parse Class's annotated headers and optionally its child classes.
-ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile& SourceFile, bool bParseSubclasses)
+ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile* SourceFile, bool bParseSubclasses, FUHTMakefile& UHTMakefile)
 {
 	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 
-	if (SourceFile.AreDependenciesResolved())
+	if (SourceFile->AreDependenciesResolved())
 	{
 		return Result;
 	}
 
-	SourceFile.MarkDependenciesResolved();
+	SourceFile->MarkDependenciesResolved();
 
 	TArray<FUnrealSourceFile*> SourceFilesRequired;
 
-	for (auto& Include : SourceFile.GetIncludes())
+	static const FString ObjectHeader = FString(TEXT("Object.h"));
+	for (auto& Include : SourceFile->GetIncludes())
 	{
-		if (Include.GetId() == "Object.h")
+		if (Include.GetId() == ObjectHeader)
 		{
 			continue;
 		}
@@ -6650,7 +6744,7 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 		}
 	}
 
-	auto Classes = SourceFile.GetDefinedClasses();
+	auto Classes = SourceFile->GetDefinedClasses();
 
 	for (auto* Class : Classes)
 	{
@@ -6659,19 +6753,20 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 			SourceFilesRequired.Add(&GTypeDefinitionInfoMap[ParentClass]->GetUnrealSourceFile());
 		}
 	}
+	UHTMakefile.GetHeaderDescriptor(SourceFile).AddPrerequesites(SourceFilesRequired);
 
 	for (auto* RequiredFile : SourceFilesRequired)
 	{
-		SourceFile.GetScope()->IncludeScope(&RequiredFile->GetScope().Get());
+		SourceFile->GetScope()->IncludeScope(&RequiredFile->GetScope().Get());
 
-		ECompilationResult::Type SuperClassParseResult = ParseHeaders(AllClasses, HeaderParser, *RequiredFile, true);
+		ECompilationResult::Type SuperClassParseResult = ParseHeaders(AllClasses, HeaderParser, RequiredFile, true, UHTMakefile);
 
 		if (SuperClassParseResult == ECompilationResult::Succeeded)
 		{
 			continue;
 		}
 
-		SuperClassParseResult = ParseHeaders(AllClasses, HeaderParser, *RequiredFile, false);
+		SuperClassParseResult = ParseHeaders(AllClasses, HeaderParser, RequiredFile, false, UHTMakefile);
 
 		if (SuperClassParseResult != ECompilationResult::Succeeded)
 		{
@@ -6769,6 +6864,8 @@ void FHeaderParser::ExportNativeHeaders(
 #if WITH_HOT_RELOAD_CTORS
 	, bool bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
+	, FUHTMakefile& UHTMakefile
+	, const FManifestModule& Module
 )
 {
 	// Build a list of header filenames
@@ -6776,7 +6873,6 @@ void FHeaderParser::ExportNativeHeaders(
 	new (ClassHeaderFilenames) FString();
 
 	auto SourceFiles = GetSourceFilesWithInheritanceOrdering(CurrentPackage, AllClasses);
-
 	if (SourceFiles.Num() > 0)
 	{
 		const static bool bQuiet = !FParse::Param(FCommandLine::Get(),TEXT("VERBOSE"));
@@ -6802,7 +6898,19 @@ void FHeaderParser::ExportNativeHeaders(
 				UE_LOG(LogCompile, Warning, TEXT("Exporting native class declarations"));
 			}
 		}
+		UHTMakefile.StartExporting();
 
+
+		FName ModuleName = FName(*Module.Name);
+		bool bNeedsRegeneration = Module.NeedsRegeneration();
+		bool bUHTMakefileContainsModuleData = UHTMakefile.HasModule(ModuleName);
+		bool bLoadFromMakefile = !bNeedsRegeneration && bUHTMakefileContainsModuleData;
+		if (bLoadFromMakefile)
+		{
+			UHTMakefile.LoadModuleData(ModuleName, Module);
+		}
+		else
+		{
 		// Export native class definitions to package header files.
 		FNativeClassHeaderGenerator(
 			CurrentPackage,
@@ -6812,15 +6920,19 @@ void FHeaderParser::ExportNativeHeaders(
 #if WITH_HOT_RELOAD_CTORS
 			, bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
+				, UHTMakefile
 		);
 	}
+		UHTMakefile.StopExporting();
+}
 }
 
-FHeaderParser::FHeaderParser(FFeedbackContext* InWarn)
+FHeaderParser::FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile)
 : FBaseParser                       ()
 , Warn                              (InWarn)
 , bSpottedAutogeneratedHeaderInclude(false)
 , TopNest                           (NULL)
+, UHTMakefile(InUHTMakefile)
 {
 	FScriptLocation::Compiler = this;
 
@@ -6916,19 +7028,18 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 #if WITH_HOT_RELOAD_CTORS
 	, bool bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
-)
+	, FUHTMakefile& UHTMakefile
+	)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
 	TGuardValue<bool> AutoRestoreVerifyObjectRefsFlag(GVerifyObjectReferencesOnly, true);
-
+	UHTMakefile.SetCurrentModuleName(FName(*Module.Name));
 	// Create the header parser and register it as the warning context.
 	// Note: This must be declared outside the try block, since the catch block will log into it.
-	FHeaderParser HeaderParser(Warn);
+	FHeaderParser HeaderParser(Warn, UHTMakefile);
 	HeaderParser.CurrentlyParsedModule = &Module;
 	Warn->SetContext(&HeaderParser);
 
-	// Set up a filename for the error context if we don't even get as far parsing a class
-	HeaderParser.Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*GTypeDefinitionInfoMap[ModuleClasses.GetRootClass()]->GetUnrealSourceFile().GetFilename());
 
 	// Hierarchically parse all classes.
 	ECompilationResult::Type Result = ECompilationResult::Succeeded;
@@ -6936,24 +7047,43 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 	try
 #endif
 	{
-		for (auto* SourceFilePtr : GPublicSourceFileSet)
+		UHTMakefile.StartLoading();
+		FName ModuleName = FName(*Module.Name);
+		UHTMakefile.SetCurrentModuleName(ModuleName);
+		bool bNeedsRegeneration = Module.NeedsRegeneration();
+		bool bUHTMakefileContainsModuleData = UHTMakefile.HasModule(ModuleName);
+		bool bLoadFromMakefile = !bNeedsRegeneration && bUHTMakefileContainsModuleData;
+		if (bLoadFromMakefile)
 		{
-			FUnrealSourceFile& SourceFile = *SourceFilePtr;
+			UHTMakefile.LoadModuleData(ModuleName, Module);
+		}
+		else
+		{
+			// Set up a filename for the error context if we don't even get as far parsing a class
+			FClass*                                      RootClass          = ModuleClasses.GetRootClass();
+			const TSharedRef<FUnrealTypeDefinitionInfo>& TypeDefinitionInfo = GTypeDefinitionInfoMap[RootClass];
+			const FUnrealSourceFile&                     RootSourceFile     = TypeDefinitionInfo->GetUnrealSourceFile();
+			const FString&                               RootFilename       = RootSourceFile.GetFilename();
 
-			if (SourceFile.GetPackage() == CurrentPackage && (!SourceFile.IsParsed() || SourceFile.GetDefinedClassesCount() == 0))
+			HeaderParser.Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*RootFilename);
+
+			for (FUnrealSourceFile* SourceFile : GPublicSourceFileSet)
 			{
-                Result = ParseHeaders(ModuleClasses, HeaderParser, SourceFile, true);
-				if (Result != ECompilationResult::Succeeded)
+				if (SourceFile->GetPackage() == CurrentPackage && (!SourceFile->IsParsed() || SourceFile->GetDefinedClassesCount() == 0))
 				{
-					return Result;
+					Result = ParseHeaders(ModuleClasses, HeaderParser, SourceFile, true, UHTMakefile);
+					if (Result != ECompilationResult::Succeeded)
+					{
+						return Result;
+					}
 				}
 			}
+			if (Result == ECompilationResult::Succeeded)
+			{
+				Result = FHeaderParser::ParseRestOfModulesSourceFiles(ModuleClasses, CurrentPackage, HeaderParser, UHTMakefile);
+			}
 		}
-
-		if (Result == ECompilationResult::Succeeded)
-		{
-			Result = FHeaderParser::ParseRestOfModulesSourceFiles(ModuleClasses, CurrentPackage, HeaderParser);
-		}
+		UHTMakefile.StopLoading();
 
 		// Export the autogenerated code wrappers
 		if (Result == ECompilationResult::Succeeded)
@@ -6973,7 +7103,9 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 #if WITH_HOT_RELOAD_CTORS
 					, bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
-				);
+					, UHTMakefile
+					, Module
+					);
 			}
 			GHeaderCodeGenTime += ExportTime;
 
@@ -6989,7 +7121,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 		}
 	}
 #if !PLATFORM_EXCEPTIONS_DISABLED
-	catch( TCHAR* ErrorMsg )
+	catch (TCHAR* ErrorMsg)
 	{
 		Warn->Log(ELogVerbosity::Error, ErrorMsg);
 		Result = GCompilationResult;
@@ -7896,8 +8028,10 @@ void FHeaderParser::SkipDeprecatedMacroIfNecessary()
 	RequireSymbol(TEXT(")"), TEXT("DEPRECATED macro"));
 }
 
-void FHeaderParser::CompileVersionDeclaration(FUnrealSourceFile& SourceFile, UStruct* Struct)
+void FHeaderParser::CompileVersionDeclaration(UStruct* Struct)
 {
+	FUnrealSourceFile* CurrentSourceFilePtr = GetCurrentSourceFile();
+	TSharedRef<FUnrealSourceFile> CurrentSourceFile = CurrentSourceFilePtr->AsShared();
 	// Do nothing if we're at the end of file.
 	FToken Token;
 	if (!GetToken(Token, true, ESymbolParseOption::Normal))
@@ -7917,7 +8051,7 @@ void FHeaderParser::CompileVersionDeclaration(FUnrealSourceFile& SourceFile, USt
 	if (Token.TokenType == ETokenType::TOKEN_Symbol
 		&& !FCString::Stricmp(Token.Identifier, TEXT(")")))
 	{
-		SourceFile.GetGeneratedCodeVersions().FindOrAdd(Struct) = Version;
+		CurrentSourceFile->GetGeneratedCodeVersions().FindOrAdd(Struct) = Version;
 		UngetToken(Token);
 		return;
 	}
@@ -7925,7 +8059,7 @@ void FHeaderParser::CompileVersionDeclaration(FUnrealSourceFile& SourceFile, USt
 	// Overwrite with version specified by macro.
 	Version = ToGeneratedCodeVersion(Token.Identifier);
 
-	SourceFile.GetGeneratedCodeVersions().FindOrAdd(Struct) = Version;
+	CurrentSourceFile->GetGeneratedCodeVersions().FindOrAdd(Struct) = Version;
 }
 
 void FHeaderParser::ResetClassData()

@@ -531,7 +531,7 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	// Notify any currently-loaded InstancedFoliageActors
 	if (IsFoliageReallocationRequiredForPropertyChange(PropertyChangedEvent))
 	{
-		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
+		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFalgs */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
 			It->NotifyFoliageTypeChanged(this, bMeshChanged);
 		}

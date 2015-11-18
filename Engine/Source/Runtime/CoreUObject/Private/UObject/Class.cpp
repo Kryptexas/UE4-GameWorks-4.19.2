@@ -28,6 +28,23 @@ DEFINE_LOG_CATEGORY(LogClass);
 
 //////////////////////////////////////////////////////////////////////////
 
+FThreadSafeBool& InternalSafeGetTokenStreamDirtyFlag()
+{
+	static FThreadSafeBool TokenStreamDirty(true);
+	return TokenStreamDirty;
+}
+
+bool SetTokenStreamMaybeDirty(bool bDirty)
+{
+	bool bResult = InternalSafeGetTokenStreamDirtyFlag().AtomicSet(bDirty);
+	return bResult;
+}
+
+bool IsTokenStreamDirty()
+{
+	return InternalSafeGetTokenStreamDirtyFlag();
+}
+
 /**
  * Shared function called from the various InitializePrivateStaticClass functions generated my the IMPLEMENT_CLASS macro.
  */
@@ -1712,7 +1729,7 @@ void UStruct::TagSubobjects(EObjectFlags NewFlags)
 	for (TFieldIterator<UProperty> It(this, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
 		UProperty* Property = *It;
-		if (Property && !Property->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
+		if (Property && !Property->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !Property->IsRooted())
 		{
 			Property->SetFlags(NewFlags);
 			Property->TagSubobjects(NewFlags);
@@ -2874,7 +2891,7 @@ void UClass::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);
 
-	if (ClassDefaultObject && !ClassDefaultObject->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
+	if (ClassDefaultObject && !ClassDefaultObject->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !ClassDefaultObject->IsRooted())
 	{
 		ClassDefaultObject->SetFlags(NewFlags);
 		ClassDefaultObject->TagSubobjects(NewFlags);
@@ -2888,7 +2905,7 @@ void UClass::Bind()
 {
 	UStruct::Bind();
 
-	if( !GIsUCCMakeStandaloneHeaderGenerator && !ClassConstructor && HasAnyFlags(RF_Native) )
+	if( !GIsUCCMakeStandaloneHeaderGenerator && !ClassConstructor && IsNative() )
 	{
 		UE_LOG(LogClass, Fatal, TEXT("Can't bind to native class %s"), *GetPathName() );
 	}
@@ -3469,7 +3486,10 @@ void UClass::Serialize( FArchive& Ar )
 		}
 	}
 
-	Ar << ClassGeneratedBy;
+	if (!Ar.IsIgnoringClassGeneratedByRef())
+	{
+		Ar << ClassGeneratedBy;
+	}
 
 	if(Ar.IsLoading())
 	{
@@ -3684,6 +3704,8 @@ UObject* UClass::GetArchetypeForCDO() const
 
 void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
+	SetTokenStreamMaybeDirty(true);
+
 	ClassConstructor = nullptr;
 #if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = nullptr;
@@ -3790,32 +3812,35 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 ,	ClassDefaultObject(NULL)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
+	SetTokenStreamMaybeDirty(true);
 }
 
 /**
  * Create a new UClass given its superclass.
  */
-UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass )
-:	UStruct( ObjectInitializer, InBaseClass )
+UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
+: UStruct(ObjectInitializer, InBaseClass)
 ,	ClassUnique(0)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
-,	ClassWithin( UObject::StaticClass() )
+, ClassWithin(UObject::StaticClass())
 ,	ClassGeneratedBy(NULL)
 ,	bCooked(false)
 ,	ClassDefaultObject(NULL)
 {
+	SetTokenStreamMaybeDirty(true);
+
 	// If you add properties here, please update the other constructors and PurgeClass()
 
 	UClass* ParentClass = GetSuperClass();
-	if( ParentClass )
+	if (ParentClass)
 	{
 		ClassWithin = ParentClass->ClassWithin;
 		Bind();
 
 		// if this is a native class, we may have defined a StaticConfigName() which overrides
 		// the one from the parent class, so get our config name from there
-		if ( HasAnyFlags(RF_Native) )
+		if (IsNative())
 		{
 			ClassConfigName = StaticConfigName();
 		}
@@ -3868,6 +3893,8 @@ UClass::UClass
 	// complains about this operation, but AFAIK it is safe (and we've been doing it a long time)
 	// so the warning has been disabled for now:
 	*(const TCHAR**)&ClassConfigName = InConfigName; //-V580
+
+	SetTokenStreamMaybeDirty(true);
 }
 
 #if WITH_HOT_RELOAD
@@ -3886,6 +3913,8 @@ bool UClass::HotReloadPrivateStaticClass(
 	class UClass* TClass_WithinClass_StaticClass
 	)
 {
+	SetTokenStreamMaybeDirty(true);
+
 	if (InSize != PropertiesSize)
 	{
 		UClass::GetDefaultPropertiesFeedbackContext().Logf(ELogVerbosity::Warning, TEXT("Property size mismatch. Will not update class %s (was %d, new %d)."), *GetName(), PropertiesSize, InSize);
@@ -3966,7 +3995,7 @@ bool UClass::HotReloadPrivateStaticClass(
 		int32 CountClass = 0;
 		for ( FRawObjectIterator It; It; ++It )
 		{
-			UObject* Target = *It;
+			UObject* Target = static_cast<UObject*>(It->Object);
 			if (OldVTable == *(void**)Target)
 			{
 				*(void**)Target = NewVTable;
@@ -4332,7 +4361,7 @@ void GetPrivateStaticClassBody(
 			InClassFlags,
 			InClassCastFlags,
 			InConfigName,
-			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
+			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_MarkAsNative | RF_MarkAsRootSet),
 			InClassConstructor,
 #if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,
@@ -4353,7 +4382,7 @@ void GetPrivateStaticClassBody(
 			InClassFlags,
 			InClassCastFlags,
 			InConfigName,
-			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_Dynamic),
+			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_MarkAsNative | RF_Dynamic),
 			InClassConstructor,
 #if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,

@@ -184,7 +184,7 @@ void FFindFloorResult::SetFromLineTrace(const FHitResult& InHit, const float InS
 
 void FCharacterMovementComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	if ( (TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
+	if ( (TickType == LEVELTICK_All) && Target && !Target->IsPendingKillOrUnreachable())
 	{
 		FScopeCycleCounterUObject ComponentScope(Target);
 		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());

@@ -2591,7 +2591,8 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 	GraphToRemove->GetSchema()->HandleGraphBeingDeleted(*GraphToRemove);
 
 	GraphToRemove->Rename(NULL, Blueprint->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
-	GraphToRemove->ClearFlags(RF_Standalone | RF_RootSet | RF_Public);
+	GraphToRemove->ClearFlags(RF_Standalone | RF_Public);
+	GraphToRemove->RemoveFromRoot();
 
 	if (Flags & EGraphRemoveFlags::MarkTransient)
 	{
@@ -2887,7 +2888,7 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 	{
 		// we know the class is correct so a fast cast is ok here
 		UBlueprint* TestBP = (UBlueprint*) *ObjIt;
-		if (TestBP && !TestBP->HasAnyFlags(RF_PendingKill))
+		if (TestBP && !TestBP->IsPendingKill())
 		{
 			EnsureCachedDependenciesUpToDate(TestBP);
 
@@ -6916,7 +6917,7 @@ bool FBlueprintEditorUtils::KismetDiagnosticExec(const TCHAR* InStream, FOutputD
 		for( FObjectIterator it; it; ++it )
 		{
 			UObject* CurrObj = *it;
-			if( CurrObj->HasAnyFlags(RF_RootSet) )
+			if( CurrObj->IsRooted() )
 			{
 				UE_LOG(LogBlueprintDebug, Log, TEXT(" - %s"), *CurrObj->GetFullName());
 			}
@@ -7245,7 +7246,7 @@ void FBlueprintEditorUtils::PostEditChangeBlueprintActors(UBlueprint* Blueprint,
 		const bool bIncludeDerivedClasses = false;
 
 		TArray<UObject*> MatchingBlueprintObjects;
-		GetObjectsOfClass(Blueprint->GeneratedClass, MatchingBlueprintObjects, bIncludeDerivedClasses, (RF_ClassDefaultObject | RF_PendingKill));
+		GetObjectsOfClass(Blueprint->GeneratedClass, MatchingBlueprintObjects, bIncludeDerivedClasses, RF_ClassDefaultObject, EInternalObjectFlags::PendingKill);
 
 		for (auto ObjIt : MatchingBlueprintObjects)
 		{
@@ -7427,7 +7428,7 @@ void FBlueprintEditorUtils::AnalyticsTrackNewNode( UEdGraphNode *NewNode )
 
 bool FBlueprintEditorUtils::IsObjectADebugCandidate( AActor* InActorObject, UBlueprint* InBlueprint, bool bInDisallowDerivedBlueprints )
 {
-	const bool bPassesFlags = !InActorObject->HasAnyFlags(RF_PendingKill | RF_ClassDefaultObject);
+	const bool bPassesFlags = !InActorObject->HasAnyFlags(RF_ClassDefaultObject) && !InActorObject->IsPendingKill();
 	bool bCanDebugThisObject;
 	if( bInDisallowDerivedBlueprints == true )
 	{

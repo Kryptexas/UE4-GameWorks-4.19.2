@@ -487,7 +487,7 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 					(*LightIt)->GetWorld()->DestroyActor(*LightIt);
 				}
 
-				for(TObjectIterator<ULightComponentBase> LightIt(RF_ClassDefaultObject|RF_PendingKill);LightIt;++LightIt)
+				for (TObjectIterator<ULightComponentBase> LightIt(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); LightIt; ++LightIt)
 				{
 					ULightComponentBase* const Light = *LightIt;
 					const bool bLightIsInWorld = Light->GetOwner() 

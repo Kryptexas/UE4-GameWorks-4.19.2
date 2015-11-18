@@ -29,8 +29,10 @@ UWidgetAnimation* UWidgetAnimation::GetNullAnimation()
 
 	if (!NullAnimation)
 	{
-		NullAnimation = NewObject<UWidgetAnimation>(GetTransientPackage(), NAME_None, RF_RootSet);
-		NullAnimation->MovieScene = NewObject<UMovieScene>(NullAnimation, FName("No Animation"), RF_RootSet);
+		NullAnimation = NewObject<UWidgetAnimation>(GetTransientPackage(), NAME_None);
+		NullAnimation->AddToRoot();
+		NullAnimation->MovieScene = NewObject<UMovieScene>(NullAnimation, FName("No Animation"));
+		NullAnimation->MovieScene->AddToRoot();
 	}
 
 	return NullAnimation;

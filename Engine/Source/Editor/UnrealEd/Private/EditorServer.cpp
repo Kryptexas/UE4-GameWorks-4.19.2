@@ -1861,7 +1861,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	if (ContextWorld->WorldType != EWorldType::Preview && ContextWorld->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
-		ContextWorld->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+		ContextWorld->ClearFlags(RF_Standalone | RF_Transactional);
+		ContextWorld->RemoveFromRoot();
 
 		// If this was a memory-only world, we should inform the asset registry that this asset is going away forever.
 		if (WorldPackage)

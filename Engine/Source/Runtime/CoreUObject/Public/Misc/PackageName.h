@@ -119,7 +119,7 @@ public:
 	 * @param Package Package which name to convert.
 	 * @return Short package name.
 	 */
-	static FString GetShortName(UPackage* Package);
+	static FString GetShortName(const UPackage* Package);
 	/**
 	 * Converts package name to short name.
 	 *

@@ -476,7 +476,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddScenePrimitiveGT);
 
-	checkf(!Primitive->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Primitive->GetFullName());
+	checkf(!Primitive->IsUnreachable(), TEXT("%s"), *Primitive->GetFullName());
 
 
 	// Save the world transform for next time the primitive is added to the scene

@@ -631,10 +631,20 @@ private:
 			FScopeLock NamesLock(&NamesCritical);
 			return Names.Contains(InName);
 		}
+		void Remove(FName InName)
+		{
+			FScopeLock NamesLock(&NamesCritical);
+			Names.Remove(InName);
+		}
 		void Empty()
 		{
 			FScopeLock NamesLock(&NamesCritical);
 			Names.Empty();
+		}
+		void GetNames(TSet<FName>& OutNames)
+		{
+			FScopeLock NamesLock(&NamesCritical);
+			OutNames.Append(Names);
 		}
 	};
 private:

@@ -981,7 +981,7 @@ int32 FLinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* Placehol
 	// holding onto objects that are spawned during the process (to ensure 
 	// they're not thrown away prematurely)
 	bool const bIsAsyncLoadRef = (UnresolvedReferences.ExternalReferences.Num() == 1) &&
-		PlaceholderObj->HasAnyFlags(RF_AsyncLoading) && (UnresolvedReferences.ExternalReferences[0].Referencer == FGCObject::GGCObjectReferencer);
+		PlaceholderObj->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading) && (UnresolvedReferences.ExternalReferences[0].Referencer == FGCObject::GGCObjectReferencer);
 
 	DEFERRED_DEPENDENCY_CHECK(!bIsReferenced || bIsAsyncLoadRef);
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -1899,7 +1899,7 @@ void FReplaceCookedBPGC::AdditionalStubFieldInitialization(UField* Stub)
 		Class->ClassConstructor = &DummyClassConstructor;
 		Class->ClassAddReferencedObjects = &UObject::AddReferencedObjects;
 	}
-	Stub->SetFlags(RF_Native);
+	Stub->SetInternalFlags(EInternalObjectFlags::Native);
 }
 
 #endif //WITH_EDITOR

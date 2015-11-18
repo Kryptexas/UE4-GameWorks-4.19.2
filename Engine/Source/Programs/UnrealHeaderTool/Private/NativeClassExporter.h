@@ -40,6 +40,9 @@ typedef FStringOutputDeviceCountLines FUHTStringBuilderLineCounter;
 struct FNativeClassHeaderGenerator
 {
 private:
+	/** Stack of currently parsed source files. */
+	TArray<FUnrealSourceFile*> CurrentSourceFile;
+
 	FString API;
 
 	/**
@@ -57,7 +60,7 @@ private:
 	FString GeneratedProtoFilenameBase;
 	/** the name of the java file where mcp definitions are generated */
 	FString GeneratedMCPFilenameBase;
-	UPackage* Package;
+	const UPackage* Package;
 	FUHTStringBuilder PreHeaderText;
 	FUHTStringBuilder EnumForeachText;
 	TArray<FUnrealSourceFile*> ListOfPublicHeaderGroupIncludes;			// This is built up each time from scratch each time for each header groups
@@ -120,6 +123,8 @@ private:
 	/** All properties that need to be forward declared. */
 	TArray<UProperty*>	ForwardDeclarations;
 
+	/** Makefile to save parsing data to. */
+	FUHTMakefile& UHTMakefile;
 	// This exists because it makes debugging much easier on VC2010, since the visualizers can't properly understand templates with templated args
 	struct HeaderDependents : TArray<const FString*>
 	{
@@ -201,7 +206,7 @@ private:
 	/** 
 	 * Export functions used to find and call C++ or script implementation of a script function in the interface 
 	 */
-	void ExportInterfaceCallFunctions(const TArray<UFunction*>& CallbackFunctions, UClass* Class, FClassMetaData* ClassData, FUHTStringBuilder& HeaderOutput);
+	void ExportInterfaceCallFunctions(const TArray<UFunction*>& CallbackFunctions, UClass* Class, FUHTStringBuilder& HeaderOutput);
 
 	/** 
 	 * Export UInterface boilerplate.
@@ -268,10 +273,9 @@ private:
 	/**
 	 * Exports the macro declarations for GENERATED_BODY() for each Foo in the list of structs specified
 	 * 
-	 * @param	SourceFile	the source file
 	 * @param	Structs		the structs to export
 	 */
-	void ExportGeneratedStructBodyMacros(FUnrealSourceFile& SourceFile, const TArray<UScriptStruct*>& NativeStructs);
+	void ExportGeneratedStructBodyMacros(const TArray<UScriptStruct*>& NativeStructs);
 
 	/**
 	 * Exports a local mirror of the specified struct; used to get offsets for noexport structs
@@ -324,11 +328,10 @@ private:
 	 * Generate a .proto message declaration for any functions marked as requiring one
 	 * 
 	 * @param InCallbackFunctions array of functions for consideration to generate .proto definitions
-	 * @param ClassData class data
 	 * @param Indent starting indentation level
 	 * @param Output optional output redirect
 	 */
-	void ExportProtoMessage(const TArray<UFunction*>& InCallbackFunctions, FClassMetaData* ClassData, int32 Indent = 0, FUHTStringBuilder* Output = NULL);
+	void ExportProtoMessage(const TArray<UFunction*>& InCallbackFunctions, int32 Indent = 0, FUHTStringBuilder* Output = NULL);
 
 	/**
 	 * Generate a .java message declaration for any functions marked as requiring one
@@ -443,7 +446,7 @@ private:
 	 * 
 	 * @param	Package		Package to export code for.
 	**/
-	void ExportGeneratedPackageInitCode(UPackage* Package);
+	void ExportGeneratedPackageInitCode(const UPackage* Package);
 
 	/**
 	 * Function to output the C++ code necessary to set up the given array of properties
@@ -532,19 +535,20 @@ private:
 	/**
 	 * Gets list of public headers for the given package in the form of string of includes.
 	 */
-	FString GetListOfPublicHeaderGroupIncludesString(UPackage* Package);
+	FString GetListOfPublicHeaderGroupIncludesString(const UPackage* Package);
 
 public:
 
 	// Constructor
 	FNativeClassHeaderGenerator(
-		UPackage* InPackage,
+		const UPackage* InPackage,
 		const TArray<FUnrealSourceFile*>& SourceFiles,
 		FClasses& AllClasses,
 		bool InAllowSaveExportedHeaders
 #if WITH_HOT_RELOAD_CTORS
 		, bool bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
+		, FUHTMakefile& UHTMakefile
 	);
 
 	/**

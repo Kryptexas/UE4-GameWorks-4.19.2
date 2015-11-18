@@ -48,7 +48,7 @@ class COREUOBJECT_API UPackage : public UObject
 	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage,UObject,0,CoreUObject, CASTCLASS_UPackage)
 
 #if WITH_HOT_RELOAD_CTORS
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, CoreUObject, CASTCLASS_UPackage, NO_API )
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API )
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UPackage(FVTableHelper& Helper)
 		: Super(Helper)
@@ -56,7 +56,7 @@ class COREUOBJECT_API UPackage : public UObject
 	{
 	};
 #else
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage,UObject,0,CoreUObject, CASTCLASS_UPackage, NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage,UObject,0,TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API)
 #endif
 
 
@@ -582,7 +582,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
  */
 class COREUOBJECT_API UMetaData : public UObject
 {
-	DECLARE_CLASS_INTRINSIC(UMetaData, UObject, 0, CoreUObject)
+	DECLARE_CLASS_INTRINSIC(UMetaData, UObject, 0, TEXT("/Script/CoreUObject"))
 
 public:
 	// Variables.
@@ -690,6 +690,9 @@ public:
 #if HACK_HEADER_GENERATOR
 	// Returns the remapped key name, or NAME_None was not remapped.
 	static FName GetRemappedKeyName(FName OldKey);
+
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FMetadataArchiveProxy;
 #endif
 
 private:

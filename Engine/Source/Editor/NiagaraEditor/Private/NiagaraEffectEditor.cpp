@@ -85,7 +85,8 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 	if (!Sequencer.IsValid())
 	{
-		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"), RF_RootSet);
+		MovieScene = NewObject<UMovieScene>(InEffect, FName("Niagara Effect MovieScene"));
+		MovieScene->AddToRoot();
 		auto NewAnimation = NewObject<UNiagaraSequence>(MovieScene);
 		MovieScene->SetPlaybackRange(InTime, OutTime);
 		NewAnimation->MovieScene = MovieScene;

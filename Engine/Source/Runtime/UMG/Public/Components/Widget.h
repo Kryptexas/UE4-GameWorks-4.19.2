@@ -459,10 +459,10 @@ public:
 #if WITH_EDITOR
 	FORCEINLINE bool CanSafelyRouteEvent()
 	{
-		return !(IsDesignTime() || GIntraFrameDebuggingGameThread || HasAnyFlags(RF_Unreachable) || FUObjectThreadContext::Get().IsRoutingPostLoad);
+		return !(IsDesignTime() || GIntraFrameDebuggingGameThread || IsUnreachable() || FUObjectThreadContext::Get().IsRoutingPostLoad);
 	}
 #else
-	FORCEINLINE bool CanSafelyRouteEvent() { return !(HasAnyFlags(RF_Unreachable) || FUObjectThreadContext::Get().IsRoutingPostLoad); }
+	FORCEINLINE bool CanSafelyRouteEvent() { return !(IsUnreachable() || FUObjectThreadContext::Get().IsRoutingPostLoad); }
 #endif
 
 #if WITH_EDITOR

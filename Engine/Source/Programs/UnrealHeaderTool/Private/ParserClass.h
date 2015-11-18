@@ -47,4 +47,7 @@ public:
 
 	/** Helper function that checks if the field is a dynamic type (can be constructed post-startup) */
 	static bool IsDynamic(UField* Field);
+
+	/** Helper function to get the source replaced package name */
+	static FString GetTypePackageName(UField* Field);
 };

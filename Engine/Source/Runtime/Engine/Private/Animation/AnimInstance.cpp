@@ -937,7 +937,7 @@ void UAnimInstance::Serialize(FArchive& Ar)
 
 	if (!Ar.IsLoading() || !Ar.IsSaving())
 	{
-		Ar << GetProxyOnGameThread<FAnimInstanceProxy>().GetRequiredBones();
+		Ar << GetProxyOnAnyThread<FAnimInstanceProxy>().GetRequiredBones();
 	}
 }
 

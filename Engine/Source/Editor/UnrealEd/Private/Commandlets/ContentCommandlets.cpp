@@ -311,7 +311,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 		if( !Linker )
 		{
 			VerboseMessage(TEXT("Aborting...package could not be loaded"));
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 			return;
 		}
 
@@ -549,7 +549,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			}
 			VerboseMessage(TEXT("Pre CollectGarbage"));
 
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 
 			VerboseMessage(TEXT("Post CollectGarbage"));
 		}
@@ -1318,7 +1318,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 					}
 
 					// close this package
-					CollectGarbage(RF_Native);
+					CollectGarbage(RF_NoFlags);
 				}
 			}
 		}
@@ -1472,7 +1472,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 			// collect garbage every 20 packages (we aren't fully loading, so it doesn't need to be often)
 			if ((PackageIndex % 20) == 0)
 			{
-				CollectGarbage(RF_Native);
+				CollectGarbage(RF_NoFlags);
 			}
 		}
 	}
@@ -1565,7 +1565,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 				SavePackageHelper(Package, *CutdownPackageName, RF_AllFlags, GWarn, NULL, SAVE_CutdownPackage);
 
 				// close up this package
-				CollectGarbage(RF_Native);
+				CollectGarbage(RF_NoFlags);
 			}
 		}
 	}
@@ -1686,7 +1686,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 			// finally save it out
 			SavePackageHelper(MovedPackage, *MovedFilename);
 
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 		}
 	}
 
@@ -1825,7 +1825,7 @@ int32 UListMaterialsUsedWithMeshEmittersCommandlet::Main( const FString& Params 
 		// Collect garbage every 10 packages instead of every package makes the commandlet run much faster
 		if( (++GCIndex % 10) == 0 )
 		{
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 		}
 	}
 
@@ -1914,7 +1914,7 @@ int32 UListStaticMeshesImportedFromSpeedTreesCommandlet::Main(const FString& Par
 		// Collect garbage every 10 packages instead of every package makes the commandlet run much faster
 		if ((++GCIndex % 10) == 0)
 		{
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 		}
 	}
 

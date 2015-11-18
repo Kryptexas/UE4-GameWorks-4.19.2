@@ -2048,6 +2048,10 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					continue;
 				}
 
+				// This package is valid, so make sure it wasn't previously marked as being an uncooked editor only package or it would get removed from the
+				// asset registry at the end of the cook
+				UncookedEditorOnlyPackages.Remove(Package->GetFName());
+
 				const FName StandardPackageFilename = GetCachedStandardPackageFileFName(Package);
 				check(IsInGameThread());
 				if (NeverCookPackageList.Contains(StandardPackageFilename))
@@ -2215,7 +2219,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				}
 
 				//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
-				if (Package->HasAnyFlags(RF_RootSet) == false && ((CurrentCookMode==ECookMode::CookOnTheFly)) )
+				if (Package->IsRooted() == false && ((CurrentCookMode==ECookMode::CookOnTheFly)) )
 				{
 					SCOPE_TIMER(ResetLoaders);
 					ResetLoaders(Package);
@@ -3937,8 +3941,14 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				IgnorePackageNames.Add(FName(*LongPackageName));
 			}
 
+			// Ignore packages that weren't cooked because they were only referenced by editor-only properties
+			TSet<FName> UncookedEditorOnlyPackageNames;
+			UncookedEditorOnlyPackages.GetNames(UncookedEditorOnlyPackageNames);
+			for (FName UncookedEditorOnlyPackage : UncookedEditorOnlyPackageNames)
+			{
+				IgnorePackageNames.Add(UncookedEditorOnlyPackage);
+			}
 			
-
 
 			Manifest.Value->SaveAssetRegistry(SandboxRegistryFilename, &IgnorePackageNames);
 

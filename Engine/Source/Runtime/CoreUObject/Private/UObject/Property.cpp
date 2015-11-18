@@ -350,12 +350,13 @@ void UProperty::Init()
 {
 	// properties created in C++ should always be marked RF_Transient so that when the package containing
 	// this property is saved, it doesn't try to save this UProperty into the ExportMap
-	SetFlags(RF_Transient | RF_Native);
+	SetFlags(RF_Transient);
+	SetInternalFlags(EInternalObjectFlags::Native);
 #if !WITH_EDITORONLY_DATA
 	//@todo.COOKER/PACKAGER: Until we have a cooker/packager step, this can fire when WITH_EDITORONLY_DATA is not defined!
 	//	checkSlow(!HasAnyPropertyFlags(CPF_EditorOnly));
 #endif // WITH_EDITORONLY_DATA
-	checkSlow(GetOuterUField()->HasAllFlags(RF_Native | RF_Transient));
+	checkSlow(GetOuterUField()->HasAllFlags(RF_Transient) && GetOuterUField()->IsNative());
 
 	GetOuterUField()->AddCppProperty(this);
 }

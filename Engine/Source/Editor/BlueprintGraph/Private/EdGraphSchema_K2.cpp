@@ -3917,7 +3917,7 @@ void UEdGraphSchema_K2::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchR
 		{
 			UEdGraphPin* Pin = Cast<UEdGraphPin>(NodeChildren[Iter]);
 			const bool bIsValidPin = !Pin 
-				|| (Pin->HasAllFlags(RF_PendingKill) && !Pin->LinkedTo.Num()) 
+				|| (Pin->IsPendingKill() && !Pin->LinkedTo.Num()) 
 				|| TargetNode.Pins.Contains(Pin);
 			if (!bIsValidPin)
 			{

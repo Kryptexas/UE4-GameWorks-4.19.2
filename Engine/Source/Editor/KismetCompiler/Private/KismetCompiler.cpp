@@ -215,7 +215,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	// Set properties we need to regenerate the class with
 	ClassToClean->PropertyLink = ParentClass->PropertyLink;
 	ClassToClean->ClassWithin = ParentClass;
-	ClassToClean->ClassConfigName = ClassToClean->HasAnyFlags(RF_Native) ? FName(ClassToClean->StaticConfigName()) : FName(*ParentClass->GetConfigName());
+	ClassToClean->ClassConfigName = ClassToClean->IsNative() ? FName(ClassToClean->StaticConfigName()) : FName(*ParentClass->GetConfigName());
 	ClassToClean->DebugData = FBlueprintDebugData();
 }
 
@@ -451,7 +451,7 @@ void FKismetCompilerContext::ValidateVariableNames()
 			{
 				NewVarName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, VarNameStr);
 			}
-			else if (ParentClass->HasAnyFlags(RF_Native)) // the above case handles when the parent is a blueprint
+			else if (ParentClass->IsNative()) // the above case handles when the parent is a blueprint
 			{
 				if (auto ExisingField = FindField<UField>(ParentClass, *VarNameStr))
 				{

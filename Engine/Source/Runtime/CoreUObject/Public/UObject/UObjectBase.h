@@ -11,6 +11,7 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_UObjectsStatGroupTester"), STAT_UOb
 
 class COREUOBJECT_API UObjectBase
 {
+	friend class UObjectBaseUtility;
 	friend COREUOBJECT_API class UClass* Z_Construct_UClass_UObject();
 	friend class FUObjectArray; // for access to InternalIndex without revealing it to anyone else
 	friend class FUObjectAllocator; // for access to destructor without revealing it to anyone else
@@ -37,10 +38,11 @@ public:
 	 * Constructor used by StaticAllocateObject
 	 * @param	InClass				non NULL, this gives the class of the new object, if known at this time
 	 * @param	InFlags				RF_Flags to assign
+	 * @param	InInternalFlags EInternalObjectFlags to assign
 	 * @param	InOuter				outer for this object
 	 * @param	InName				name of the new object
 	 */
-	UObjectBase( UClass* InClass, EObjectFlags InFlags, UObject *InOuter, FName InName );
+	UObjectBase( UClass* InClass, EObjectFlags InFlags, EInternalObjectFlags InInternalFlags, UObject *InOuter, FName InName );
 
 	/**
 	 * Final destructor, removes the object from the object array, and indirectly, from any annotations
@@ -79,8 +81,9 @@ private:
 	 * Add a newly created object to the name hash tables and the object array
 	 *
 	 * @param Name name to assign to this uobject
+	 * @param InSetInternalFlags Internal object flags to be set on the object once it's been added to the array
 	 */
-	void AddObject(FName Name);
+	void AddObject(FName Name, EInternalObjectFlags InSetInternalFlags);
 public:
 	/**
 	 * Checks to see if the object appears to be valid
@@ -200,34 +203,6 @@ public:
 		while( FPlatformAtomics::InterlockedCompareExchange( (int32*)&ObjectFlags, NewFlags, OldFlags) != OldFlags );
 	}
 
-	/**
-	 * Atomically clear the unreachable flag
-	 *
-	 * @return true if we are the thread that cleared RF_Unreachable
-	 **/
-	FORCEINLINE bool ThisThreadAtomicallyClearedRFUnreachable()
-	{
-		static_assert(sizeof(int32) == sizeof(EObjectFlags), "Flags must be 32-bit for atomics.");
-		bool bIChangedIt = false;
-		while (1)
-		{
-			int32 StartValue = int32(ObjectFlags);
-			if (!(StartValue & int32(RF_Unreachable)))
-			{
-				break;
-			}
-			EObjectFlags OldValue = (EObjectFlags)FPlatformAtomics::InterlockedCompareExchange((int32*)&ObjectFlags, StartValue & ~int32(RF_Unreachable),StartValue);
-			if (OldValue == StartValue)
-			{
-				bIChangedIt = true;
-				break;
-			}
-			// Remove later.
-			checkSlow(OldValue == (StartValue & ~int32(RF_Unreachable)));
-		}
-		return bIChangedIt;
-	}
-
 private:
 
 	/** Flags used to track and report various object states. This needs to be 8 byte aligned on 32-bit
@@ -253,6 +228,11 @@ private:
 	// This is used by the reinstancer to re-class and re-archetype the current instances of a class before recompiling
 	friend class FBlueprintCompileReinstancer;
 	void SetClass(UClass* NewClass);
+
+#if HACK_HEADER_GENERATOR
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FObjectBaseArchiveProxy;
+#endif // HACK_HEADER_GENERATOR
 };
 
 namespace Internal

@@ -262,7 +262,7 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 				, *AsClass->GetName());
 		}
 		auto AsStruct = CastChecked<UStruct>(Field);
-		if (AsStruct->HasAnyFlags(RF_Native))
+		if (AsStruct->IsNative())
 		{
 			return FString::Printf(TEXT("%s%s"), AsStruct->GetPrefixCPP(), *AsStruct->GetName());
 		}
@@ -276,7 +276,7 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 		if (const UStruct* Owner = AsProperty->GetOwnerStruct())
 		{
 			if ((Cast<UBlueprintGeneratedClass>(Owner) ||
-				!Owner->HasAnyFlags(RF_Native)))
+				!Owner->IsNative()))
 			{
 				return ::UnicodeToCPPIdentifier(AsProperty->GetName(), AsProperty->HasAnyPropertyFlags(CPF_Deprecated), TEXT("bpv__"));
 			}
@@ -284,7 +284,7 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 		return AsProperty->GetNameCPP();
 	}
 
-	if (!Field->HasAnyFlags(RF_Native) && !Field->IsA<UUserDefinedEnum>())
+	if (!Field->IsNative() && !Field->IsA<UUserDefinedEnum>())
 	{
 		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("bpf__"));
 	}

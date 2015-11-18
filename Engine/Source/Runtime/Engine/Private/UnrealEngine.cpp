@@ -7584,8 +7584,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
 
 #if STATS
-		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y);
-		RenderStats(Viewport, Canvas, StatsXOffset, Y);
+		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SizeX);
+		RenderStats( Viewport, Canvas, StatsXOffset, Y, CanvasObject != nullptr ? CanvasObject->CachedDisplayWidth - CanvasObject->SafeZonePadX * 2 : Viewport->GetSizeXY().X );
 #endif
 	}
 
@@ -7709,7 +7709,6 @@ DEFINE_STAT(STAT_RedrawViewports);
 DEFINE_STAT(STAT_UpdateLevelStreaming);
 DEFINE_STAT(STAT_RHITickTime);
 DEFINE_STAT(STAT_IntentionalHitch);
-DEFINE_STAT(STAT_PlatformMessageTime);
 DEFINE_STAT(STAT_FrameSyncTime);
 DEFINE_STAT(STAT_DeferredTickTime);
 

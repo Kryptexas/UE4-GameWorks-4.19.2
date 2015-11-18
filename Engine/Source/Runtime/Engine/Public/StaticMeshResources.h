@@ -705,7 +705,7 @@ public:
 		{
 			if ( It->StaticMesh == InStaticMesh )
 			{
-				checkf( !It->HasAnyFlags(RF_Unreachable), TEXT("%s"), *It->GetFullName() );
+				checkf( !It->IsUnreachable(), TEXT("%s"), *It->GetFullName() );
 
 				if ( It->bRenderStateCreated )
 				{

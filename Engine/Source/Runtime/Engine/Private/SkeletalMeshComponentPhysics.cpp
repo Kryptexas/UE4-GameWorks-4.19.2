@@ -47,7 +47,7 @@ void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, en
 {
 	QUICK_SCOPE_CYCLE_COUNTER(FSkeletalMeshComponentPreClothTickFunction_ExecuteTick);
 
-	if ((TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
+	if ((TickType == LEVELTICK_All) && Target && !Target->IsPendingKillOrUnreachable())
 	{
 		Target->PreClothTick(DeltaTime, *this);
 	}

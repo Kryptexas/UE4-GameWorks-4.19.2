@@ -41,7 +41,7 @@ namespace PackageTools
 		GetObjectsWithOuter(PackageBeingUnloaded, ObjectsInPackage);
 		for ( UObject* Object : ObjectsInPackage )
 		{
-			if ( !Object->HasAnyFlags(RF_Unreachable) )
+			if ( !Object->IsUnreachable() )
 			{
 				if ( ObjectsThatHadFlagsCleared.Find(Object) )
 				{

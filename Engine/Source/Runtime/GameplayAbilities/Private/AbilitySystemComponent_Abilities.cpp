@@ -27,7 +27,7 @@ void UAbilitySystemComponent::InitializeComponent()
 	InitAbilityActorInfo(Owner, Owner);	// Default init to our outer owner
 
 	TArray<UObject*> ChildObjects;
-	GetObjectsWithOuter(Owner, ChildObjects, false, RF_PendingKill);
+	GetObjectsWithOuter(Owner, ChildObjects, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 	for (UObject* Obj : ChildObjects)
 	{
 		UAttributeSet* Set = Cast<UAttributeSet>(Obj);

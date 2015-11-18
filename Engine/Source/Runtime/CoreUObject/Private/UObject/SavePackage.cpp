@@ -7,6 +7,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "BlueprintSupport.h"
 #include "DebugSerializationFlags.h"
+#include "UObject/GCScopeLock.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -812,11 +813,11 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 	// Skip PendingKill objects and objects that are both not for client and not for server when cooking.
 	if (Obj && !Obj->IsPendingKill() && (!IsCooking() || !Obj->HasAllMarks(ObjectMarks)) && !Obj->HasAnyMarks(OBJECTMARK_EditorOnly))
 	{
-		if( !Obj->HasAnyFlags(RF_Transient) || Obj->HasAllFlags(RF_Native) )
+		if( !Obj->HasAnyFlags(RF_Transient) || Obj->IsNative() )
 		{
 			// remember it as a dependency, unless it's a top level package or native
 			const bool bIsTopLevelPackage = Obj->GetOuter() == NULL && dynamic_cast<UPackage*>(Obj);
-			bool bIsNative = Obj->HasAnyFlags(RF_Native);
+			bool bIsNative = Obj->IsNative();
 			UObject* Outer = Obj->GetOuter();
 
 			const bool bIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(Obj);
@@ -829,7 +830,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 			// go up looking for native classes
 			while (!bIsNative && Outer)
 			{
-				if (dynamic_cast<UClass*>(Outer) && Outer->HasAnyFlags(RF_Native))
+				if (dynamic_cast<UClass*>(Outer) && Outer->IsNative())
 				{
 					bIsNative = true;
 				}
@@ -862,10 +863,14 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 					Obj->UnMark(OBJECTMARK_NotForServer);
 				}
 
-				UObject* Parent = Obj->GetOuter();
-				if( Parent )
+				// If the object has been excluded, don't add its outer
+				if (!Obj->HasAllMarks(ObjectMarks))
 				{
-					*this << Parent;
+					UObject* Parent = Obj->GetOuter();
+					if( Parent )
+					{
+						*this << Parent;
+					}
 				}
 			}
 		}
@@ -1404,27 +1409,27 @@ static void FindMostLikelyCulprit( TArray<UObject*> BadObjects, UObject*& MostLi
 		
 		FReferencerInformationList Refs;
 
-		if ( IsReferenced( Obj,RF_Native | RF_Public, true, &Refs) )
-		{	
+		if (IsReferenced(Obj, RF_Public, EInternalObjectFlags::Native, true, &Refs))
+		{
 			for (int32 i = 0; i < Refs.ExternalReferences.Num(); i++)
 			{
 				UObject* RefObj = Refs.ExternalReferences[i].Referencer;
-				if( RefObj->HasAnyMarks(EObjectMark(OBJECTMARK_TagExp|OBJECTMARK_TagImp)) )
+				if (RefObj->HasAnyMarks(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp)))
 				{
-					if ( RefObj->GetFName() == NAME_PersistentLevel || RefObj->GetClass()->GetFName() == WorldClassName )
+					if (RefObj->GetFName() == NAME_PersistentLevel || RefObj->GetClass()->GetFName() == WorldClassName)
 					{
 						// these types of references should be ignored
 						continue;
 					}
 
-					UE_LOG(LogSavePackage, Warning, TEXT("\t%s (%i refs)"), *RefObj->GetFullName(), Refs.ExternalReferences[i].TotalReferences );
-					for ( int32 j = 0; j < Refs.ExternalReferences[i].ReferencingProperties.Num(); j++ )
+					UE_LOG(LogSavePackage, Warning, TEXT("\t%s (%i refs)"), *RefObj->GetFullName(), Refs.ExternalReferences[i].TotalReferences);
+					for (int32 j = 0; j < Refs.ExternalReferences[i].ReferencingProperties.Num(); j++)
 					{
 						const UProperty* Prop = Refs.ExternalReferences[i].ReferencingProperties[j];
 						UE_LOG(LogSavePackage, Warning, TEXT("\t\t%i) %s"), j, *Prop->GetFullName());
 						PropertyRef = Prop;
 					}
-			
+
 					MostLikelyCulprit = Obj;
 				}
 			}
@@ -2901,7 +2906,7 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, FLinkerLoad* OldL
 	{
 		UClass* NewClass = (UClass*)StaticFindObjectFast(UClass::StaticClass(), NewPackage, OldLinker->ExportMap[i].ObjectName, true, false);
 		UClass* OldClass = static_cast<UClass*>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
-		if (OldClass != NULL && NewClass != NULL && OldClass->HasAnyFlags(RF_Native) && NewClass->HasAnyFlags(RF_Native))
+		if (OldClass != NULL && NewClass != NULL && OldClass->IsNative() && NewClass->IsNative())
 		{
 			OldClass->ClassConstructor = NewClass->ClassConstructor;
 #if WITH_HOT_RELOAD_CTORS
@@ -3231,6 +3236,7 @@ public:
 
 #endif
 
+extern FGCCSyncObject GGarbageCollectionGuardCritical;
 
 ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
@@ -3302,7 +3308,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		// The latter implies flushing all file handles which is a pre-requisite of saving a package. The code basically needs 
 		// to be sure that we are not reading from a file that is about to be overwritten and that there is no way we might 
 		// start reading from the file till we are done overwriting it.
-
 		FlushAsyncLoading();
 
 		UE_LOG_COOK_TIME(TEXT("FlushAsyncLoading"));
@@ -3456,11 +3461,21 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 			UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
 		
 			{
-				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly
+				check(!IsGarbageCollecting());
+				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly								
 				struct FScopedSavingFlag
 				{
-					FScopedSavingFlag() { GIsSavingPackage = true; }
-					~FScopedSavingFlag() { GIsSavingPackage = false; }
+					FScopedSavingFlag() 
+					{ 
+						// We need the same lock as GC so that no StaticFindObject can happen in parallel to saveing a package
+						GGarbageCollectionGuardCritical.GCLock();
+						GIsSavingPackage = true; 
+					}
+					~FScopedSavingFlag() 
+					{ 
+						GIsSavingPackage = false; 
+						GGarbageCollectionGuardCritical.GCUnlock();
+					}
 				} IsSavingFlag;
 
 			
@@ -3710,7 +3725,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
 				{
 					TArray<UObject*> ObjectsInPackage;
-					GetObjectsWithOuter(InOuter, ObjectsInPackage, true, RF_Transient | RF_PendingKill);
+					GetObjectsWithOuter(InOuter, ObjectsInPackage, true, RF_Transient, EInternalObjectFlags::PendingKill);
 					for (UObject* const Object : ObjectsInPackage)
 					{
 						FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(Linker->GatherableTextDataMap);
@@ -4638,20 +4653,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						{
 							if ( Import.XObject->GetOuter()->IsIn(InOuter) )
 							{
-								if ( !Import.XObject->HasAllFlags(RF_Native|RF_Transient) )
+								if (!Import.XObject->HasAllFlags(RF_Transient) || !Import.XObject->IsNative())
 								{
 									UE_LOG(LogSavePackage, Warning, TEXT("Bad Object=%s"),*Import.XObject->GetFullName());
 								}
 								else
 								{
-									// if an object is marked RF_Transient|RF_Native, it is either an intrinsic class or
+									// if an object is marked RF_Transient and native, it is either an intrinsic class or
 									// a property of an intrinsic class.  Only properties of intrinsic classes will have
 									// an Outer that passes the check for "GetOuter()->IsIn(InOuter)" (thus ending up in this
-									// block of code).  Just verify that the Outer for this property is also marked RF_Transient|RF_Native
-									check(Import.XObject->GetOuter()->HasAllFlags(RF_Native|RF_Transient));
+									// block of code).  Just verify that the Outer for this property is also marked RF_Transient and Native
+									check(Import.XObject->GetOuter()->HasAllFlags(RF_Transient) && Import.XObject->GetOuter()->IsNative());
 								}
 							}
-							check(!Import.XObject->GetOuter()->IsIn(InOuter)||Import.XObject->HasAllFlags(EObjectFlags(RF_Native|RF_Transient)));
+							check(!Import.XObject->GetOuter()->IsIn(InOuter) || Import.XObject->HasAllFlags(RF_Transient) || Import.XObject->IsNative());
 							Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
 						}
 					}

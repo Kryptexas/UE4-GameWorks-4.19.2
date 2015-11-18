@@ -2356,7 +2356,7 @@ bool UK2Node_CallFunction::HasExternalDependencies(TArray<class UStruct*>* Optio
 			continue;
 		}
 
-		if (DepStruct && !DepStruct->HasAnyFlags(RF_Native))
+		if (DepStruct && !DepStruct->IsNative())
 		{
 			if (OptionalOutput)
 			{

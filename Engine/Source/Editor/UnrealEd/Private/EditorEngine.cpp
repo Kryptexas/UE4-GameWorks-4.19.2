@@ -1827,7 +1827,7 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 		// will occur next time someone tries to use it. This is caused by
 		// the fact that the loading routing will check that already
 		// existed, but the object was missing in cache.
-		const EObjectFlags FlagsToClear = RF_Standalone | RF_RootSet | RF_Transactional;
+		const EObjectFlags FlagsToClear = RF_Standalone | RF_Transactional;
 		TArray<UPackage*> PackagesToUnload;
 		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
 		{
@@ -1854,6 +1854,7 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			{
 				// In case this isn't redirector-only package, clear just the redirector.
 				RedirIt->ClearFlags(FlagsToClear);
+				RedirIt->RemoveFromRoot();
 			}
 		}
 
@@ -1864,9 +1865,11 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			for (auto* Object : PackageObjects)
 			{
 				Object->ClearFlags(FlagsToClear);
+				Object->RemoveFromRoot();
 			}
 
 			PackageToUnload->ClearFlags(FlagsToClear);
+			PackageToUnload->RemoveFromRoot();
 		}
 
 		// Collect garbage.

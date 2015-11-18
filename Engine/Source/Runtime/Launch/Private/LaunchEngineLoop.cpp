@@ -2514,9 +2514,7 @@ void FEngineLoop::Tick()
 
 	// early in the Tick() to get the callbacks for cvar changes called
 	{
-#if WITH_ENGINE
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_CallAllConsoleVariableSinks);
-#endif
 		IConsoleManager::Get().CallAllConsoleVariableSinks();
 	}
 
@@ -2533,9 +2531,7 @@ void FEngineLoop::Tick()
 		});
 
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_FlushThreadedLogs);
-#endif
 			// Flush debug output which has been buffered by other threads.
 			GLog->FlushThreadedLogs();
 		}
@@ -2549,25 +2545,19 @@ void FEngineLoop::Tick()
 		}
 
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_UpdateTimeAndHandleMaxTickRate);
-#endif
 			// Set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate.
 			GEngine->UpdateTimeAndHandleMaxTickRate();
 		}
 
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_TickFPSChart);
-#endif
 			GEngine->TickFPSChart( FApp::GetDeltaTime() );
 		}
 
-#if WITH_ENGINE
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
-#endif
-		// Update platform memory and memory allocator stats.
-		FPlatformMemory::UpdateStats();
+
+		// Update memory allocator stats.
 		GMalloc->UpdateStats();
 	} 
 
@@ -2591,9 +2581,6 @@ void FEngineLoop::Tick()
 			});
 		
 		{
-#if WITH_ENGINE
-			SCOPE_CYCLE_COUNTER( STAT_PlatformMessageTime );
-#endif
 			SCOPE_CYCLE_COUNTER(STAT_PumpMessages);
 			FPlatformMisc::PumpMessages(true);
 		}
@@ -2601,9 +2588,8 @@ void FEngineLoop::Tick()
 		bool bIdleMode;
 		{
 
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Idle);
-#endif
+
 			// Idle mode prevents ticking and rendering completely
 			bIdleMode = ShouldUseIdleMode();
 			if (bIdleMode)
@@ -2615,9 +2601,8 @@ void FEngineLoop::Tick()
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);
-#endif
+
 			FSlateApplication& SlateApp = FSlateApplication::Get();
 			SlateApp.PollGameDeviceState();
 			// Gives widgets a chance to process any accumulated input
@@ -2630,35 +2615,28 @@ void FEngineLoop::Tick()
 		// wait for it to finish before we continue to tick or tick again
 		// We do this right after GEngine->Tick() because that is where user code would initiate a load / movie.
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_WaitForMovieToFinish);
-#endif
+
 			GetMoviePlayer()->WaitForMovieToFinish();
 		}
 		
 		if (GShaderCompilingManager)
 		{
 			// Process any asynchronous shader compile results that are ready, limit execution time
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_GShaderCompilingManager);
-#endif
 			GShaderCompilingManager->ProcessAsyncResults(true, false);
 		}
 
 		if (GDistanceFieldAsyncQueue)
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_GDistanceFieldAsyncQueue);
-#endif
 			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
 		}
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			{
-#if WITH_ENGINE
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_ProcessPlayerControllersSlateOperations);
-#endif
 				check(!IsRunningDedicatedServer());
 
 				// Process slate operations accumulated in the world ticks.
@@ -2677,9 +2655,7 @@ void FEngineLoop::Tick()
 
 #if WITH_EDITOR
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_FEngineLoop_Tick_AutomationController );
-#endif
 			static FName AutomationController( "AutomationController" );
 			//Check if module loaded to support the change to allow this to be hot compilable.
 			if (FModuleManager::Get().IsModuleLoaded( AutomationController ))
@@ -2692,9 +2668,7 @@ void FEngineLoop::Tick()
 #if WITH_ENGINE
 #if WITH_AUTOMATION_WORKER
 		{
-#if WITH_ENGINE
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationWorker);
-#endif
 			//Check if module loaded to support the change to allow this to be hot compilable.
 			static const FName AutomationWorkerModuleName = TEXT("AutomationWorker");
 			if (FModuleManager::Get().IsModuleLoaded(AutomationWorkerModuleName))
@@ -2706,9 +2680,7 @@ void FEngineLoop::Tick()
 #endif //WITH_ENGINE
 
 		{			
-#if WITH_ENGINE
 			SCOPE_CYCLE_COUNTER(STAT_RHITickTime);
-#endif
 			RHITick( FApp::GetDeltaTime() ); // Update RHI.
 		}
 
@@ -2727,9 +2699,7 @@ void FEngineLoop::Tick()
 		PendingCleanupObjects = GetPendingCleanupObjects();
 
 		{
-#if WITH_ENGINE
 			SCOPE_CYCLE_COUNTER( STAT_FrameSyncTime );
-#endif
 			// this could be perhaps moved down to get greater parallelizm
 			// Sync game and render thread. Either total sync or allowing one frame lag.
 			static FFrameEndSync FrameEndSync;
@@ -2738,10 +2708,7 @@ void FEngineLoop::Tick()
 		}
 
 		{
-#if WITH_ENGINE
 			SCOPE_CYCLE_COUNTER( STAT_DeferredTickTime );
-#endif
-
 			// Delete the objects which were enqueued for deferred cleanup before the previous frame.
 			delete PreviousPendingCleanupObjects;
 

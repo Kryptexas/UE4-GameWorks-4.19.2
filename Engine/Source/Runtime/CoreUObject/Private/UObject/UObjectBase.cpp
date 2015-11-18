@@ -68,7 +68,7 @@ UObjectBase::UObjectBase( EObjectFlags InFlags )
  * @param	InName				name of the new object
  * @param	InObjectArchetype	archetype to assign
  */
-UObjectBase::UObjectBase( UClass* InClass, EObjectFlags InFlags, UObject *InOuter, FName InName )
+UObjectBase::UObjectBase(UClass* InClass, EObjectFlags InFlags, EInternalObjectFlags InInternalFlags, UObject *InOuter, FName InName)
 :	ObjectFlags			(InFlags)
 ,	InternalIndex		(INDEX_NONE)
 ,	Class				(InClass)
@@ -76,7 +76,7 @@ UObjectBase::UObjectBase( UClass* InClass, EObjectFlags InFlags, UObject *InOute
 {
 	check(Class);
 	// Add to global table.
-	AddObject(InName);
+	AddObject(InName, InInternalFlags);
 }
 
 
@@ -140,10 +140,10 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
 	Class = UClassStaticClass;
 
 	// Add to the global object table.
-	AddObject(FName(InName));
+	AddObject(FName(InName), EInternalObjectFlags::None);
 
 	// Make sure that objects disregarded for GC are part of root set.
-	check(!GUObjectArray.IsDisregardForGC(this) || (GetFlags() & RF_RootSet) );
+	check(!GUObjectArray.IsDisregardForGC(this) || GUObjectArray.IndexToObject(InternalIndex)->IsRootSet());
 }
 
 /**
@@ -151,15 +151,31 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
  *
  * @param Name name to assign to this uobject
  */
-void UObjectBase::AddObject(FName InName)
+void UObjectBase::AddObject(FName InName, EInternalObjectFlags InSetInternalFlags)
 {
 	Name = InName;
+	EInternalObjectFlags InternalFlagsToSet = InSetInternalFlags;
 	if (!IsInGameThread())
 	{
-		ObjectFlags |= RF_Async;
+		InternalFlagsToSet |= EInternalObjectFlags::Async;
+	}
+	if (ObjectFlags & RF_MarkAsRootSet)
+	{		
+		InternalFlagsToSet |= EInternalObjectFlags::RootSet;
+		ObjectFlags &= ~RF_MarkAsRootSet;
+	}
+	if (ObjectFlags & RF_MarkAsNative)
+	{
+		InternalFlagsToSet |= EInternalObjectFlags::Native;
+		ObjectFlags &= ~RF_MarkAsNative;
 	}
 	AllocateUObjectIndexForCurrentThread(this);
 	check(InName != NAME_None && InternalIndex >= 0);
+	if (InternalFlagsToSet != EInternalObjectFlags::None)
+	{
+		GUObjectArray.IndexToObject(InternalIndex)->SetFlags(InternalFlagsToSet);
+	
+	}	
 	HashObject(this);
 	check(IsValidLowLevel());
 }
@@ -555,8 +571,10 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 		if (ClassInfo->bHasChanged)
 		{
 			// Rename the old class and move it to transient package
-			ExistingClass->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
-			ExistingClass->GetDefaultObject()->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
+			ExistingClass->RemoveFromRoot();
+			ExistingClass->ClearFlags(RF_Standalone | RF_Public);
+			ExistingClass->GetDefaultObject()->RemoveFromRoot();
+			ExistingClass->GetDefaultObject()->ClearFlags(RF_Standalone | RF_Public);
 			const FName OldClassRename = MakeUniqueObjectName(GetTransientPackage(), ExistingClass->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), *NameWithoutPrefix));
 			ExistingClass->Rename(*OldClassRename.ToString(), GetTransientPackage());
 			ExistingClass->SetFlags(RF_Transient);
@@ -805,10 +823,10 @@ void ProcessNewlyLoadedUObjects()
 #endif
 }
 
-static int32 GVarWarnIfTimeLimitExceeded;
-static FAutoConsoleVariableRef CVarWarnIfTimeLimitExceeded(
+static int32 GVarMaxObjectsNotConsideredByGC;
+static FAutoConsoleVariableRef CMaxObjectsNotConsideredByGC(
 	TEXT("gc.MaxObjectsNotConsideredByGC"),
-	GVarWarnIfTimeLimitExceeded,
+	GVarMaxObjectsNotConsideredByGC,
 	TEXT("Placeholder console variable, currently not used in runtime."),
 	ECVF_Default
 	);
@@ -821,6 +839,22 @@ static FAutoConsoleVariableRef CSizeOfPermanentObjectPool(
 	ECVF_Default
 	);
 
+static int32 GMaxObjectsInEditor;
+static FAutoConsoleVariableRef CMaxObjectsInEditor(
+	TEXT("gc.MaxObjectsInEditor"),
+	GMaxObjectsInEditor,
+	TEXT("Placeholder console variable, currently not used in runtime."),
+	ECVF_Default
+	);
+
+static int32 GMaxObjectsInGame;
+static FAutoConsoleVariableRef CMaxObjectsInGame(
+	TEXT("gc.MaxObjectsInGame"),
+	GMaxObjectsInGame,
+	TEXT("Placeholder console variable, currently not used in runtime."),
+	ECVF_Default
+	);
+
 /**
  * Final phase of UObject initialization. all auto register objects are added to the main data structures.
  */
@@ -829,6 +863,7 @@ void UObjectBaseInit()
 	// Zero initialize and later on get value from .ini so it is overridable per game/ platform...
 	int32 MaxObjectsNotConsideredByGC	= 0;  
 	int32 SizeOfPermanentObjectPool	= 0;
+	int32 MaxUObjects = 2 * 1024 * 1024; // Default to ~2M UObjects
 
 	// To properly set MaxObjectsNotConsideredByGC look for "Log: XXX objects as part of root set at end of initial load."
 	// in your log file. This is being logged from LaunchEnglineLoop after objects have been added to the root set. 
@@ -841,13 +876,21 @@ void UObjectBaseInit()
 
 		// Not used on PC as in-place creation inside bigger pool interacts with the exit purge and deleting UObject directly.
 		GConfig->GetInt( TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.SizeOfPermanentObjectPool"), SizeOfPermanentObjectPool, GEngineIni );
+
+		// Maximum number of UObjects in cooked game
+		GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsInGame"), MaxUObjects, GEngineIni);
+	}
+	else
+	{
+		// Maximum number of UObjects in the editor
+		GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsInEditor"), MaxUObjects, GEngineIni);
 	}
 
 	// Log what we're doing to track down what really happens as log in LaunchEngineLoop doesn't report those settings in pristine form.
-	UE_LOG(LogInit, Log, TEXT("Presizing for %i objects not considered by GC, pre-allocating %i bytes."), MaxObjectsNotConsideredByGC, SizeOfPermanentObjectPool );
+	UE_LOG(LogInit, Log, TEXT("Presizing for max %d objects, including %i objects not considered by GC, pre-allocating %i bytes for permanent pool."), MaxUObjects, MaxObjectsNotConsideredByGC, SizeOfPermanentObjectPool);
 
 	GUObjectAllocator.AllocatePermanentObjectPool(SizeOfPermanentObjectPool);
-	GUObjectArray.AllocatePermanentObjectPool(MaxObjectsNotConsideredByGC);
+	GUObjectArray.AllocateObjectPool(MaxUObjects, MaxObjectsNotConsideredByGC);
 
 	void InitAsyncThread();
 	InitAsyncThread();
@@ -965,7 +1008,6 @@ const TCHAR* DebugFullName(UObject* Object)
 		return TEXT("None");
 	}
 }
-
 namespace
 {
 #if WITH_HOT_RELOAD
@@ -1058,7 +1100,8 @@ namespace
 			if (Existing)
 			{
 				// Make sure the old struct is not used by anything
-				Existing->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
+				Existing->ClearFlags(RF_Standalone | RF_Public);
+				Existing->RemoveFromRoot();
 				const FName OldRename = MakeUniqueObjectName(GetTransientPackage(), Existing->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), Name));
 				Existing->Rename(*OldRename.ToString(), GetTransientPackage());
 			}
@@ -1135,7 +1178,6 @@ UEnum* ConstructDynamicEnum(FName EnumName)
 	return Result;
 }
 
-/** Constructs a dynamic class/enum/struct given its name */
 UObject* ConstructDynamicType(FName TypeName, FName TypeClass)
 {
 	UObject* Result = nullptr;
@@ -1152,4 +1194,16 @@ UObject* ConstructDynamicType(FName TypeName, FName TypeClass)
 		Result = ConstructDynamicEnum(TypeName);
 	}
 	return Result;
+}
+
+UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
+{
+	UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, PackageName));
+	if (!Package)
+	{
+		Package = CreatePackage(nullptr, PackageName);
+		Package->SetPackageFlags(PKG_CompiledIn);
+	}
+	check(Package);
+	return Package;
 }

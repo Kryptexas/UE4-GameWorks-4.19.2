@@ -1640,7 +1640,7 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 
 	Ar.Log( TEXT("stat dumpave|dumpmax|dumpsum  [-start | -stop | -num=30] [-ms=5.0] [-depth=maxint] - aggregate stats over multiple frames"));
 	Ar.Log( TEXT("stat dumphitches - toggles dumping hitches"));
-	Ar.Log( TEXT("stat dumpevents [-ms=0.2] [-all] - toggles dumping events history for slow events, -all adds other threads besides game and render"));
+	Ar.Log( TEXT("stat dumpevents [-ms=0.2] [-all] - dumps events history for slow events, -all adds other threads besides game and render"));
 	Ar.Log( TEXT("stat dumpnonframe - dumps non-frame stats, usually memory stats"));
 	Ar.Log( TEXT("stat dumpcpu - dumps cpu stats"));
 

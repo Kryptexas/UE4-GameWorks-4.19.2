@@ -2138,7 +2138,7 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 		bIsGatheringDependencies = false;
 
 		bool bIsValidImport =
-			(Import.XObject != NULL && !Import.XObject->HasAnyFlags(RF_Native) && (!Import.XObject->HasAnyFlags(RF_ClassDefaultObject) || !Import.XObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public|RF_Native|RF_Transient)))) ||
+			(Import.XObject != NULL && !Import.XObject->IsNative() && (!Import.XObject->HasAnyFlags(RF_ClassDefaultObject) || !(Import.XObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public | RF_Transient)) && Import.XObject->GetClass()->IsNative()))) ||
 			(Import.SourceLinker != NULL && Import.SourceIndex != INDEX_NONE);
 
 		// make sure it succeeded
@@ -2148,7 +2148,7 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 			if (!Import.XObject || !(Import.XObject->GetClass()->HasAnyClassFlags(CLASS_Intrinsic)))
 			{
 				UE_LOG(LogLinker, Warning, TEXT("VerifyImportInner failed [(%x, %d), (%x, %d)] for %s with linker: %s"), 
-					Import.XObject, Import.XObject ? (Import.XObject->HasAnyFlags(RF_Native) ? 1 : 0) : 0, 
+					Import.XObject, Import.XObject ? (Import.XObject->IsNative() ? 1 : 0) : 0, 
 					Import.SourceLinker, Import.SourceIndex, 
 					*GetImportFullName(ImportIndex), *this->Filename );
 			}
@@ -2723,7 +2723,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 				UObject* FindObject = StaticFindObject(FindClass, FindOuter, *Import.ObjectName.ToString());
 				// Reference to in memory-only package's object, native transient class or CDO of such a class.
-				bool bIsInMemoryOnlyOrNativeTransient = bCameFromMemoryOnlyPackage || (FindObject != NULL && (FindObject->HasAllFlags(EObjectFlags(RF_Public | RF_Native | RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public | RF_Native | RF_Transient)))));
+				bool bIsInMemoryOnlyOrNativeTransient = bCameFromMemoryOnlyPackage || (FindObject != NULL && (FindObject->HasAllFlags(EObjectFlags(RF_Public | RF_MarkAsNative | RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public | RF_MarkAsNative | RF_Transient)))));
 				// Check for structs which have been moved to another header (within the same class package).
 				if (!FindObject && bIsInMemoryOnlyOrNativeTransient && FindClass == UScriptStruct::StaticClass())
 				{
@@ -3525,7 +3525,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 				// There are other attempts to force our super struct to load, and I have not verified that they can all be removed
 				// in favor of this one:
 				if (!SuperStruct->HasAnyFlags(RF_LoadCompleted)
-					&& !SuperStruct->HasAnyFlags(RF_Native)
+					&& !SuperStruct->IsNative()
 					&& SuperStruct->GetLinker()
 					&& Export.SuperIndex.IsImport())
 				{
@@ -3539,14 +3539,14 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			}
 		}
 
-		// Only UClass objects and UProperty objects of intrinsic classes can have RF_Native set. Those property objects are never
-		// serialized so we only have to worry about classes. If we encounter an object that is not a class and has RF_Native set
+		// Only UClass objects and UProperty objects of intrinsic classes can have Native flag set. Those property objects are never
+		// serialized so we only have to worry about classes. If we encounter an object that is not a class and has Native flag set
 		// we warn about it and remove the flag.
-		if( (Export.ObjectFlags & RF_Native) != 0 && !LoadClass->IsChildOf(UField::StaticClass()) )
+		if( (Export.ObjectFlags & RF_MarkAsNative) != 0 && !LoadClass->IsChildOf(UField::StaticClass()) )
 		{
-			UE_LOG(LogLinker, Warning,TEXT("%s %s has RF_Native set but is not a UField derived class"),*LoadClass->GetName(),*Export.ObjectName.ToString());
-			// Remove RF_Native;
-			Export.ObjectFlags = EObjectFlags(Export.ObjectFlags & ~RF_Native);
+			UE_LOG(LogLinker, Warning,TEXT("%s %s has RF_MarkAsNative set but is not a UField derived class"),*LoadClass->GetName(),*Export.ObjectName.ToString());
+			// Remove RF_MarkAsNative;
+			Export.ObjectFlags = EObjectFlags(Export.ObjectFlags & ~RF_MarkAsNative);
 		}
 
 		if ( !LoadClass->HasAnyClassFlags(CLASS_Intrinsic) )
@@ -3777,11 +3777,11 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		if ((ObjectLoadFlags & RF_ClassDefaultObject) != 0)
 		{
 			UClass* SuperClass = LoadClass->GetSuperClass();
-			if (SuperClass && !SuperClass->HasAnyFlags(RF_Native))
+			if (SuperClass && !SuperClass->IsNative())
 			{
 				UObject* SuperCDO = SuperClass->GetDefaultObject();
 				TArray<UObject*> SuperSubObjects;
-				GetObjectsWithOuter(SuperCDO, SuperSubObjects, /*bIncludeNestedObjects=*/ false, /*ExclusionFlags=*/ RF_Native);
+				GetObjectsWithOuter(SuperCDO, SuperSubObjects, /*bIncludeNestedObjects=*/ false, /*ExclusionFlags=*/ RF_NoFlags, /*InternalExclusionFlags=*/ EInternalObjectFlags::Native);
 
 				for (UObject* SubObject : SuperSubObjects)
 				{
@@ -3806,9 +3806,14 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			LoadClass,
 			ThisParent,
 			NewName,
-			EObjectFlags(ObjectLoadFlags | ((FPlatformProperties::RequiresCookedData() && GIsInitialLoad) ? RF_RootSet : 0)),
+			ObjectLoadFlags,
+			EInternalObjectFlags::None,
 			Template
 		);
+		if (FPlatformProperties::RequiresCookedData() && GIsInitialLoad)
+		{
+			Export.Object->AddToRoot();
+		}
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component
 
 		if (NewName != Export.ObjectName)

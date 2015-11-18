@@ -178,7 +178,7 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 
 			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
 
-			CollectGarbage( RF_Native );
+			CollectGarbage(RF_NoFlags);
 		}
 
 
@@ -642,7 +642,7 @@ void UCookCommandlet::CleanSandbox(const TArray<ITargetPlatform*>& Platforms)
 			}
 
 			// Collect garbage to ensure we don't have any packages hanging around from dependent time stamp determination
-			CollectGarbage(RF_Native);
+			CollectGarbage(RF_NoFlags);
 		}
 	}
 
@@ -1245,7 +1245,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 
 				UE_LOG( LogCookCommandlet, Display, TEXT( "GC..." ) );
 
-				CollectGarbage( RF_Native );
+				CollectGarbage(RF_NoFlags);
 			}
 			else
 			{
@@ -1417,7 +1417,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Full GC..."));
 
-				CollectGarbage( RF_Native );
+				CollectGarbage(RF_NoFlags);
 				NumProcessedSinceLastGC = 0;
 
 				if (bLeakTest)

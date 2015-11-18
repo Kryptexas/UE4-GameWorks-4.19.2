@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "CrashReporterSettings.h"
 #include "Components/BillboardComponent.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Components/ArrowComponent.h"
@@ -565,6 +566,13 @@ bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) con
 	}
 
 	return Super::CanEditChange(InProperty);
+}
+
+/* UCrashReporterSettings interface
+*****************************************************************************/
+UCrashReporterSettings::UCrashReporterSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
 }
 
 #undef LOCTEXT_NAMESPACE

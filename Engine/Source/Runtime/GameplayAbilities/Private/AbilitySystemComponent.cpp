@@ -1284,7 +1284,7 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 
 	for (UGameplayAbility* Ability : AllReplicatedInstancedAbilities)
 	{
-		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
+		if (Ability && !Ability->IsPendingKill())
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Ability, *Bunch, *RepFlags);
 		}

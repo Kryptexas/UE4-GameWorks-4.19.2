@@ -351,7 +351,7 @@ void USkyLightComponent::CheckForErrors()
 				USkyLightComponent* Component = *ComponentIt;
 
 				if (Component != this 
-					&& !Component->HasAnyFlags(RF_PendingKill)
+					&& !Component->IsPendingKill()
 					&& Component->bVisible
 					&& Component->bAffectsWorld
 					&& Component->GetOwner() 

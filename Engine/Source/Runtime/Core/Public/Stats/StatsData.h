@@ -24,6 +24,9 @@ struct CORE_API FStatConstants
 	static const char* ThreadGroupName;
 	static const FName NAME_ThreadGroup;
 
+	/** Stat short name for seconds per cycle. */
+	static const FName NAME_SecondsPerCycle;
+
 	/** Special case category, when we want to Stat to appear at the root of the menu (leaving the category blank omits it from the menu entirely) */
 	static const FName NAME_NoCategory;
 
@@ -37,13 +40,16 @@ struct CORE_API FStatConstants
 	static const FString ThreadNameMarker;
 
 	/** A raw name for the event wait with id. */
-	static const FName NAME_EventWaitWithId;
+	static const FName RAW_EventWaitWithId;
 
 	/** A raw name for the event trigger with id. */
-	static const FName NAME_EventTriggerWithId;
+	static const FName RAW_EventTriggerWithId;
 
 	/** A raw name for the stat marker. */
-	static const FName NAME_NamedMarker;
+	static const FName RAW_NamedMarker;
+
+	/** A special meta data used to advance the frame. */
+	static const FStatNameAndInfo AdvanceFrame;
 };
 
 namespace LexicalConversion

@@ -7786,7 +7786,7 @@ bool FBlueprintEditor::IsSelectionNativeVariable()
 			{
 				UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode->GetBlueprintClassFromNode() );
 
-				if( VariableProperty && VariableProperty->HasAllFlags( RF_Native ))
+				if( VariableProperty && VariableProperty->IsNative())
 				{
 					return true;
 				}

@@ -1555,6 +1555,66 @@ void AddDependsNodesRecursive(FDependsNode* InDependsNode, TArray<FDependsNode*>
 	}
 }
 
+FDependsNode* FAssetRegistry::ResolveRedirector(FDependsNode* InDependency, TMap<FName, FAssetData*>& InAllowedAssets, TMap<FDependsNode*, FDependsNode*>& InCache)
+{
+	static const FName ObjectRedirectorClassName(TEXT("ObjectRedirector"));
+
+	FDependsNode* Original = InDependency;
+	FDependsNode* Result = nullptr;
+
+	if (InCache.Contains(InDependency))
+	{
+		return InCache[InDependency];
+	}
+
+	while (Result == nullptr)
+	{
+		if (CachedAssetsByPackageName.Contains(InDependency->GetPackageName()))
+		{
+			auto DependencyAsset = CachedAssetsByPackageName[InDependency->GetPackageName()][0];
+
+			if (DependencyAsset->AssetClass == ObjectRedirectorClassName)
+			{
+				FDependsNode* Before = InDependency;
+
+				InDependency->IterateOverDependencies([&](FDependsNode* InDepends, EAssetRegistryDependencyType::Type)
+				{
+					if (InAllowedAssets.Contains(InDepends->GetPackageName()))
+					{
+						Result = InDepends;
+					}
+					else if (CachedAssetsByPackageName.Contains(InDepends->GetPackageName()))
+					{
+						auto SubDependencyAsset = CachedAssetsByPackageName[InDepends->GetPackageName()][0];
+						if (SubDependencyAsset->AssetClass == ObjectRedirectorClassName)
+						{
+							InDependency = InDepends;
+						}
+					}
+				});
+
+				if (Result == nullptr && InDependency == Before)
+				{
+					// The redirector doesn't point at any files that were cooked. Allow function to return with 
+					// result as nullptr to indicate this
+					break;
+				}
+			}
+			else
+			{
+				Result = InDependency;
+			}
+		}
+		else
+		{
+			Result = InDependency;
+		}
+	}
+
+	InCache.Add(Original, Result);
+	return Result;
+}
+
 void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps /* = nullptr */)
 {
 	// Write mini asset registry header
@@ -1614,73 +1674,60 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 		}
 	}
 
+	TArray<FDependsNode*> ProcessedDependencies;
+	TMap<EAssetRegistryDependencyType::Type, int32> DependencyTypeCounts;
+	TMap<FDependsNode*, FDependsNode*> RedirectCache;
+
 	for (auto DependentNode : Dependencies)
 	{
-		auto HardDependencyCount = 0;
-		auto SoftDependencyCount = 0;
-		auto ReferencerCount = 0;
+		ProcessedDependencies.Empty();
+		DependencyTypeCounts.Empty();
+		DependencyTypeCounts.Add(EAssetRegistryDependencyType::Hard, 0);
+		DependencyTypeCounts.Add(EAssetRegistryDependencyType::Soft, 0);
 
-		DependentNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
+		auto DependencyProcessor = [&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
 		{
 			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
 
-			if (!bIsMap && AssetIndexMap.Contains(InDependency->GetPackageName()))
+			if (!bIsMap)
 			{
-				if (InDependencyType == EAssetRegistryDependencyType::Hard)
+				auto RedirectedDependency = ResolveRedirector(InDependency, Data, RedirectCache);
+
+				if (RedirectedDependency && AssetIndexMap.Contains(RedirectedDependency->GetPackageName()))
 				{
-					HardDependencyCount++;
-				}
-				else
-				{
-					SoftDependencyCount++;
+					ProcessedDependencies.Add(InDependency);
+					DependencyTypeCounts[InDependencyType] = DependencyTypeCounts[InDependencyType] + 1;
 				}
 			}
-		});
+		};
 
+		DependentNode->IterateOverDependencies(DependencyProcessor, EAssetRegistryDependencyType::Hard);
+		DependentNode->IterateOverDependencies(DependencyProcessor, EAssetRegistryDependencyType::Soft);
+
+		int32 ReferencerCount = 0;
 		DependentNode->IterateOverReferencers([&](FDependsNode* InReferencer)
 		{
 			if (AssetIndexMap.Contains(InReferencer->GetPackageName()))
 			{
+				ProcessedDependencies.Add(InReferencer);
 				ReferencerCount++;
 			}
 		});
+
+		int32 HardDependencyCount = DependencyTypeCounts[EAssetRegistryDependencyType::Hard];
+		int32 SoftDependencyCount = DependencyTypeCounts[EAssetRegistryDependencyType::Soft];
 
 		Ar << HardDependencyCount;
 		Ar << SoftDependencyCount;
 		Ar << ReferencerCount;
 
-		DependentNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
+		for (auto Dependency : ProcessedDependencies)
 		{
-			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
-
-			if (!bIsMap && AssetIndexMap.Contains(InDependency->GetPackageName()))
-			{
-				int32 Index = AssetIndexMap[InDependency->GetPackageName()];
-				Ar << Index;
-			}
-		},
-		EAssetRegistryDependencyType::Hard);
-
-		DependentNode->IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
-		{
-			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
-
-			if (!bIsMap && AssetIndexMap.Contains(InDependency->GetPackageName()))
-			{
-				int32 Index = AssetIndexMap[InDependency->GetPackageName()];
-				Ar << Index;
-			}
-		},
-		EAssetRegistryDependencyType::Soft);
-
-		DependentNode->IterateOverReferencers([&](FDependsNode* InReferencer)
-		{
-			if (AssetIndexMap.Contains(InReferencer->GetPackageName()))
-			{
-				int32 Index = AssetIndexMap[InReferencer->GetPackageName()];
-				Ar << Index;
-			}
-		});
+			FDependsNode* RedirectedDependency = ResolveRedirector(Dependency, Data, RedirectCache);
+			check(RedirectedDependency);
+			int32 Index = AssetIndexMap[RedirectedDependency->GetPackageName()];
+			Ar << Index;
+		}
 	}
 }
 

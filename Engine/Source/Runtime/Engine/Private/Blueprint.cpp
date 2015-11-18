@@ -663,7 +663,7 @@ UObject* UBlueprint::GetObjectBeingDebugged()
 	if(DebugObj)
 	{
 		//Check whether the object has been deleted.
-		if(DebugObj->HasAnyFlags(RF_PendingKill))
+		if(DebugObj->IsPendingKill())
 		{
 			SetObjectBeingDebugged(NULL);
 			DebugObj = NULL;
@@ -677,7 +677,7 @@ UWorld* UBlueprint::GetWorldBeingDebugged()
 	UWorld* DebugWorld = CurrentWorldBeingDebugged.Get();
 	if (DebugWorld)
 	{
-		if(DebugWorld->HasAnyFlags(RF_PendingKill))
+		if(DebugWorld->IsPendingKill())
 		{
 			SetWorldBeingDebugged(NULL);
 			DebugWorld = NULL;
@@ -1043,13 +1043,13 @@ void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);
 
-	if (GeneratedClass && !GeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
+	if (GeneratedClass && !GeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !GeneratedClass->IsRooted())
 	{
 		GeneratedClass->SetFlags(NewFlags);
 		GeneratedClass->TagSubobjects(NewFlags);
 	}
 
-	if (SkeletonGeneratedClass && SkeletonGeneratedClass != GeneratedClass && !SkeletonGeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
+	if (SkeletonGeneratedClass && SkeletonGeneratedClass != GeneratedClass && !SkeletonGeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !SkeletonGeneratedClass->IsRooted())
 	{
 		SkeletonGeneratedClass->SetFlags(NewFlags);
 		SkeletonGeneratedClass->TagSubobjects(NewFlags);
