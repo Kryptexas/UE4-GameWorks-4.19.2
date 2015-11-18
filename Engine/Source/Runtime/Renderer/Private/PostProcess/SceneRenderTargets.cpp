@@ -209,6 +209,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, SkySHIrradianceMap(GRenderTargetPool.MakeSnapshot(SnapshotSource.SkySHIrradianceMap))
 	, EditorPrimitivesColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesColor))
 	, EditorPrimitivesDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesDepth))
+	, SeparateTranslucencyRT(SnapshotSource.SeparateTranslucencyRT)
+	, SeparateTranslucencyDepthRT(SnapshotSource.SeparateTranslucencyDepthRT)
 	, bScreenSpaceAOIsValid(SnapshotSource.bScreenSpaceAOIsValid)
 	, bCustomDepthIsValid(SnapshotSource.bCustomDepthIsValid)
 	, bPreshadowCacheNewlyAllocated(SnapshotSource.bPreshadowCacheNewlyAllocated)
@@ -240,8 +242,6 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bSceneDepthCleared(SnapshotSource.bSceneDepthCleared)	
 	, bSnapshot(true)
 	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
-	, SeparateTranslucencyRT(SnapshotSource.SeparateTranslucencyRT)
-	, SeparateTranslucencyDepthRT(SnapshotSource.SeparateTranslucencyDepthRT)
 {
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
 	SnapshotArray(TranslucencyShadowTransmission, SnapshotSource.TranslucencyShadowTransmission);
