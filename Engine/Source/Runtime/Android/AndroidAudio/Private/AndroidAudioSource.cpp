@@ -71,11 +71,12 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 		BufferInUse = !BufferInUse;
 		if (bHasLooped == false || WaveInstance->LoopingMode != LOOP_Never)
 		{
-			if (ReadMorePCMData(BufferInUse, EDataReadMode::Asynchronous))
+			if (ReadMorePCMData(BufferInUse, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous)))
 			{
 				// If this is a synchronous source we may get notified immediately that we have looped
 				bHasLooped = true;
 			}
+			bSkipFirstBuffer = false;
 		}
 	}
 }
@@ -214,10 +215,12 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	AudioBuffers[1].AudioDataSize = BufferSize;
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
+	bSkipFirstBuffer = false;
 	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
 	{
 		FMemory::Memcpy((uint8*)AudioBuffers[0].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
-		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
+		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
+		bSkipFirstBuffer = true;
 	}
 	else
 	{

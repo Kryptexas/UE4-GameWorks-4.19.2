@@ -224,7 +224,9 @@ protected:
 	/** Which sound buffer should be written to next - used for double buffering. */
 	bool						bStreamedSound;
 	/** A pair of sound buffers for real-time decoding */
-	SLESAudioBuffer			AudioBuffers[2];
+	SLESAudioBuffer				AudioBuffers[2];
+	/** Indicates initial two buffer fills were copies, not reads */
+	bool						bSkipFirstBuffer = false;
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 
