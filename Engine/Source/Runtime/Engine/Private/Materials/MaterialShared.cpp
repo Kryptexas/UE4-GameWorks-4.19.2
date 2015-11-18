@@ -911,27 +911,26 @@ void FMaterialResource::NotifyCompilationFinished()
  */
 void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Descriptions, TArray<int32> &InstructionCounts) const
 {
-	TArray<FString> ShaderTypeNames;
-	TArray<FString> ShaderTypeDescriptions;
+	TMap<FName, FString> ShaderTypeNamesAndDescriptions;
 
 	//when adding a shader type here be sure to update FPreviewMaterial::ShouldCache()
 	//so the shader type will get compiled with preview materials
 	const FMaterialShaderMap* MaterialShaderMap = GetGameThreadShaderMap();
 	if (MaterialShaderMap && MaterialShaderMap->IsCompilationFinalized())
 	{
-		GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
+		GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNamesAndDescriptions);
 
 		if( IsUIMaterial() )
 		{
-			for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
+			for (const TPair<FName, FString>& ShaderTypePair : ShaderTypeNamesAndDescriptions)
 			{
-				FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
+				FShaderType* ShaderType = FindShaderTypeByName(ShaderTypePair.Key);
 				int32 NumInstructions = MaterialShaderMap->GetMaxNumInstructionsForShader(ShaderType);
 				if (NumInstructions > 0)
 				{
 					//if the shader was found, add it to the output arrays
 					InstructionCounts.Push(NumInstructions);
-					Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+					Descriptions.Push(ShaderTypePair.Value);
 				}
 			}
 		}
@@ -943,9 +942,9 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 				Descriptions.Empty();
 				InstructionCounts.Empty();
 
-				for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
+				for (const TPair<FName, FString>& ShaderTypePair : ShaderTypeNamesAndDescriptions)
 				{
-					FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
+					FShaderType* ShaderType = FindShaderTypeByName(ShaderTypePair.Key);
 					if (ShaderType)
 					{
 						int32 NumInstructions = MeshShaderMap->GetMaxNumInstructionsForShader(ShaderType);
@@ -953,7 +952,7 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 						{
 							//if the shader was found, add it to the output arrays
 							InstructionCounts.Push(NumInstructions);
-							Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+							Descriptions.Push(ShaderTypePair.Value);
 						}
 					}
 				}
@@ -964,84 +963,99 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 	check(Descriptions.Num() == InstructionCounts.Num());
 }
 
-void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FString> &ShaderTypeNames, TArray<FString> &ShaderTypeDescriptions) const
+void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TMap<FName, FString>& ShaderTypeNamesAndDescriptions) const
 {
 	static auto* MobileHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	bool bMobileHDR = MobileHDR && MobileHDR->GetValueOnAnyThread() == 1;
 
 	if( IsUIMaterial() )
 	{
-		new(ShaderTypeNames)FString(TEXT("TSlateMaterialShaderPSDefaultfalse"));
-		new(ShaderTypeDescriptions)FString(TEXT("Default UI Pixel Shader"));
+		static FName TSlateMaterialShaderPSDefaultfalseName = TEXT("TSlateMaterialShaderPSDefaultfalse");
+		ShaderTypeNamesAndDescriptions.Add(TSlateMaterialShaderPSDefaultfalseName, TEXT("Default UI Pixel Shader"));
 
-		new(ShaderTypeNames) FString(TEXT("TSlateMaterialShaderVSfalse"));
-		new(ShaderTypeDescriptions) FString(TEXT("Default UI Vertex Shader"));
+		static FName TSlateMaterialShaderVSfalseName = TEXT("TSlateMaterialShaderVSfalse");
+		ShaderTypeNamesAndDescriptions.Add(TSlateMaterialShaderVSfalseName, TEXT("Default UI Vertex Shader"));
 
-		new(ShaderTypeNames)FString(TEXT("TSlateMaterialShaderVStrue"));
-		new(ShaderTypeDescriptions)FString(TEXT("Instanced UI Vertex Shader"));
+		static FName TSlateMaterialShaderVStrueName = TEXT("TSlateMaterialShaderVStrue");
+		ShaderTypeNamesAndDescriptions.Add(TSlateMaterialShaderVStrueName, TEXT("Instanced UI Vertex Shader"));
 	}
 	else if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
-			new (ShaderTypeNames)FString(TEXT("TBasePassPSFNoLightMapPolicy"));
-			new (ShaderTypeDescriptions)FString(TEXT("Base pass shader without light map"));
+			static FName TBasePassPSFNoLightMapPolicyName = TEXT("TBasePassPSFNoLightMapPolicy");
+			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader without light map"));
 		}
 		else
 		{
 			if (IsUsedWithStaticLighting())
 			{
 				//lit materials are usually lightmapped
-				new (ShaderTypeNames)FString(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ"));
-				new (ShaderTypeDescriptions)FString(TEXT("Base pass shader with static lighting"));
+				static FName TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQName = TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ");
+				ShaderTypeNamesAndDescriptions.Add(TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQName, TEXT("Base pass shader with static lighting"));
 			}
 
 			//also show a dynamically lit shader
-			new (ShaderTypeNames)FString(TEXT("TBasePassPSFNoLightMapPolicy"));
-			new (ShaderTypeDescriptions)FString(TEXT("Base pass shader with only dynamic lighting"));
+			static FName TBasePassPSFNoLightMapPolicyName = TEXT("TBasePassPSFNoLightMapPolicy");
+			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader with only dynamic lighting"));
 
 			if (IsTranslucentBlendMode(GetBlendMode()))
 			{
-				new (ShaderTypeNames)FString(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy"));
-				new (ShaderTypeDescriptions)FString(TEXT("Base pass shader for self shadowed translucency"));
+				static FName TBasePassPSFSelfShadowedTranslucencyPolicyName = TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy");
+				ShaderTypeNamesAndDescriptions.Add(TBasePassPSFSelfShadowedTranslucencyPolicyName, TEXT("Base pass shader for self shadowed translucency"));
 			}
 		}
 
-		new (ShaderTypeNames)FString(TEXT("TBasePassVSFNoLightMapPolicy"));
-		new (ShaderTypeDescriptions)FString(TEXT("Vertex shader"));
+		static FName TBasePassVSFNoLightMapPolicyName = TEXT("TBasePassVSFNoLightMapPolicy");
+		ShaderTypeNamesAndDescriptions.Add(TBasePassVSFNoLightMapPolicyName, TEXT("Vertex shader"));
 	}
 	else
 	{
-		const TCHAR* ShaderSuffix = bMobileHDR ? TEXT("HDRLinear64") : TEXT("LDRGamma32");
 		const TCHAR* DescSuffix = bMobileHDR ? TEXT(" (HDR)") : TEXT(" (LDR)");
 
 		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
-			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy0%s"), ShaderSuffix));
-			new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader without light map%s"), DescSuffix));
+			static FName Name_HDRLinear64 = TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy0HDRLinear64");
+			static FName Name_LDRGamma32 = TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy0LDRGamma32");
+			const FName TBasePassForForwardShadingPSFNoLightMapPolicy0Name = bMobileHDR ? Name_HDRLinear64 : Name_LDRGamma32;
+			ShaderTypeNamesAndDescriptions.Add(TBasePassForForwardShadingPSFNoLightMapPolicy0Name, FString::Printf(TEXT("Mobile base pass shader without light map%s"), DescSuffix));
 		}
 		else
 		{
 			if (IsUsedWithStaticLighting())
 			{
 				//lit materials are usually lightmapped
-				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTLightMapPolicy0LQ%s"), ShaderSuffix));
-				new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with static lighting%s"), DescSuffix));
+				{
+					static FName Name_HDRLinear64 = TEXT("TBasePassForForwardShadingPSTLightMapPolicy0LQHDRLinear64");
+					static FName Name_LDRGamma32 = TEXT("TBasePassForForwardShadingPSTLightMapPolicy0LQLDRGamma32");
+					static FName TSlateMaterialShaderVStrueName = bMobileHDR ? Name_HDRLinear64 : Name_LDRGamma32;
+					ShaderTypeNamesAndDescriptions.Add(TSlateMaterialShaderVStrueName, FString::Printf(TEXT("Mobile base pass shader with static lighting%s"), DescSuffix));
+				}
 
 				// + distance field shadows
-				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicy0LQ%s"), ShaderSuffix));
-				new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with distance field shadows%s"), DescSuffix));
+				{
+					static FName Name_HDRLinear64 = TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicy0LQHDRLinear64");
+					static FName Name_LDRGamma32 = TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicy0LQLDRGamma32");
+					static FName TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicy0LQName = bMobileHDR ? Name_HDRLinear64 : Name_LDRGamma32;
+					ShaderTypeNamesAndDescriptions.Add(TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicy0LQName, FString::Printf(TEXT("Mobile base pass shader with distance field shadows%s"), DescSuffix));
+				}
 			}
 
 			//also show a dynamically lit shader
-			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy0%s"), ShaderSuffix));
-			new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with only dynamic lighting%s"), DescSuffix));
+			static FName Name_HDRLinear64 = TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy0HDRLinear64");
+			static FName Name_LDRGamma32 = TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy0LDRGamma32");
+			const FName TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy0Name = bMobileHDR ? Name_HDRLinear64 : Name_LDRGamma32;
+			ShaderTypeNamesAndDescriptions.Add(TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy0Name, FString::Printf(TEXT("Mobile base pass shader with only dynamic lighting%s"), DescSuffix));
 		}
 
-		new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingVSFNoLightMapPolicy%s"), ShaderSuffix));
-		new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass vertex shader%s"), DescSuffix));
+		{
+			static FName Name_HDRLinear64 = TEXT("TBasePassForForwardShadingVSFNoLightMapPolicyHDRLinear64");
+			static FName Name_LDRGamma32 = TEXT("TBasePassForForwardShadingVSFNoLightMapPolicyLDRGamma32");
+			const FName TBasePassForForwardShadingVSFNoLightMapPolicyName = bMobileHDR ? Name_HDRLinear64 : Name_LDRGamma32;
+			ShaderTypeNamesAndDescriptions.Add(TBasePassForForwardShadingVSFNoLightMapPolicyName, FString::Printf(TEXT("Mobile base pass vertex shader%s"), DescSuffix));
+		}
 	}
 }
 
@@ -1548,6 +1562,55 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 	return Shader;
 }
 
+FShaderPipeline* FMaterial::GetShaderPipeline(class FShaderPipelineType* ShaderPipelineType, FVertexFactoryType* VertexFactoryType) const
+{
+	const FMeshMaterialShaderMap* MeshShaderMap = RenderingThreadShaderMap->GetMeshShaderMap(VertexFactoryType);
+	FShaderPipeline* ShaderPipeline = MeshShaderMap ? MeshShaderMap->GetShaderPipeline(ShaderPipelineType) : nullptr;
+	if (!ShaderPipeline)
+	{
+		// Get the ShouldCache results that determine whether the shader should be compiled
+		auto ShaderPlatform = GShaderPlatformForFeatureLevel[GetFeatureLevel()];
+		FString MaterialUsage = GetMaterialUsageDescription();
+
+		FString Message;
+		for (auto* ShaderType : ShaderPipelineType->GetStages())
+		{
+			FShader* Shader = MeshShaderMap ? MeshShaderMap->GetShader((FShaderType*)ShaderType) : nullptr;
+			if (Shader && ShaderType->GetMeshMaterialShaderType())
+			{
+				bool bMaterialShouldCache = ShouldCache(ShaderPlatform, ShaderType->GetMeshMaterialShaderType(), VertexFactoryType);
+				bool bVFShouldCache = VertexFactoryType->ShouldCache(ShaderPlatform, this, ShaderType->GetMeshMaterialShaderType());
+				bool bShaderShouldCache = ShaderType->GetMeshMaterialShaderType()->ShouldCache(ShaderPlatform, this, VertexFactoryType);
+
+				Message += FString::Printf(TEXT("%s Freq %d, ShouldCache: Mat=%u, VF=%u, Shader=%u\n"),
+					ShaderType->GetName(), (int32)ShaderType->GetFrequency(), bMaterialShouldCache, bVFShouldCache, bShaderShouldCache);
+			}
+			else
+			{
+				Message += FString::Printf(TEXT("%s Freq %d not Found\n"),
+					ShaderType->GetName(), (int32)ShaderType->GetFrequency());
+			}
+		}
+
+		int BreakPoint = 0;
+
+		// Assert with detailed information if the shader wasn't found for rendering.  
+		// This is usually the result of an incorrect ShouldCache function.
+		UE_LOG(LogMaterial, Fatal,
+			TEXT("Couldn't find ShaderPipeline %s for Material Resource %s!\n")
+			TEXT("		With VF=%s, Platform=%s\n")
+			TEXT("		%s\n")
+			TEXT("		MaterialUsageDesc: %s"),
+			ShaderPipelineType->GetName(), *GetFriendlyName(),
+			VertexFactoryType->GetName(), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString(),
+			*Message,
+			*MaterialUsage
+			);
+	}
+
+	return ShaderPipeline;
+}
+
 /** Returns the index to the Expression in the Expressions array, or -1 if not found. */
 int32 FMaterial::FindExpression( const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >&Expressions, const FMaterialUniformExpressionTexture &Expression )
 {
@@ -1862,7 +1925,9 @@ void FMaterial::GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FS
 				auto* PipelineType = *PipelineTypeIt;
 				if (PipelineType->IsMeshMaterialTypePipeline())
 				{
-					for (const FShaderType* Type : PipelineType->GetStages())
+					int32 NumShouldCache = 0;
+					auto& ShaderStages = PipelineType->GetStages();
+					for (const FShaderType* Type : ShaderStages)
 					{
 						const FMeshMaterialShaderType* ShaderType = Type->GetMeshMaterialShaderType();
 						if (ShaderType->ShouldCache(Platform, this, VertexFactoryType) &&
@@ -1870,8 +1935,16 @@ void FMaterial::GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FS
 							VertexFactoryType->ShouldCache(Platform, this, ShaderType)
 							)
 						{
-							bAddedTypeFromThisVF = true;
-							OutShaderPipelineTypes.AddUnique(PipelineType);
+							++NumShouldCache;
+						}
+					}
+
+					if (NumShouldCache == ShaderStages.Num())
+					{
+						bAddedTypeFromThisVF = true;
+						OutShaderPipelineTypes.AddUnique(PipelineType);
+						for (const FShaderType* Type : ShaderStages)
+						{
 							OutShaderTypes.AddUnique((FShaderType*)Type);
 						}
 					}
@@ -1904,7 +1977,9 @@ void FMaterial::GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FS
 		auto* PipelineType = *PipelineTypeIt;
 		if (PipelineType->IsMaterialTypePipeline())
 		{
-			for (const FShaderType* Type : PipelineType->GetStages())
+			int32 NumShouldCache = 0;
+			auto& ShaderStages = PipelineType->GetStages();
+			for (const FShaderType* Type : ShaderStages)
 			{
 				const FMaterialShaderType* ShaderType = Type->GetMaterialShaderType();
 				if (ShaderType &&
@@ -1912,6 +1987,15 @@ void FMaterial::GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FS
 					ShouldCache(Platform, ShaderType, nullptr)
 					)
 				{
+					++NumShouldCache;
+				}
+			}
+
+			if (NumShouldCache == ShaderStages.Num())
+			{
+				for (const FShaderType* Type : ShaderStages)
+				{
+					const FMaterialShaderType* ShaderType = Type->GetMaterialShaderType();
 					OutShaderPipelineTypes.AddUnique(PipelineType);
 					OutShaderTypes.AddUnique((FShaderType*)Type);
 				}
@@ -2494,6 +2578,19 @@ bool FMaterialShaderMapId::ContainsShaderType(const FShaderType* ShaderType) con
 	for (int32 TypeIndex = 0; TypeIndex < ShaderTypeDependencies.Num(); TypeIndex++)
 	{
 		if (ShaderTypeDependencies[TypeIndex].ShaderType == ShaderType)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FMaterialShaderMapId::ContainsShaderPipelineType(const FShaderPipelineType* ShaderPipelineType) const
+{
+	for (int32 TypeIndex = 0; TypeIndex < ShaderPipelineTypeDependencies.Num(); TypeIndex++)
+	{
+		if (ShaderPipelineTypeDependencies[TypeIndex].ShaderPipelineType == ShaderPipelineType)
 		{
 			return true;
 		}

@@ -120,6 +120,7 @@ FShaderType::FShaderType(
 	GetStreamOutElementsType InGetStreamOutElementsRef
 	):
 	Name(InName),
+	TypeName(InName),
 	SourceFilename(InSourceFilename),
 	FunctionName(InFunctionName),
 	Frequency(InFrequency),
@@ -141,7 +142,7 @@ FShaderType::FShaderType(
 
 	// register this shader type
 	GlobalListLink.LinkHead(GetTypeList());
-	GetNameToTypeMap().Add(FName(InName), this);
+	GetNameToTypeMap().Add(TypeName, this);
 
 	// Assign the shader type the next unassigned hash index.
 	static uint32 NextHashIndex = 0;
@@ -151,12 +152,12 @@ FShaderType::FShaderType(
 FShaderType::~FShaderType()
 {
 	GlobalListLink.Unlink();
-	GetNameToTypeMap().Remove(FName(Name));
+	GetNameToTypeMap().Remove(TypeName);
 }
 
 TLinkedList<FShaderType*>*& FShaderType::GetTypeList()
 {
-	static TLinkedList<FShaderType*>* GShaderTypeList = NULL;
+	static TLinkedList<FShaderType*>* GShaderTypeList = nullptr;
 	return GShaderTypeList;
 }
 
@@ -172,7 +173,7 @@ FShaderType* FShaderType::GetShaderTypeByName(const TCHAR* Name)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 TArray<FShaderType*> FShaderType::GetShaderTypesByFilename(const TCHAR* Filename)
@@ -649,8 +650,8 @@ FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, const FShaderPipel
 	}
 	else
 	{
-		VFSerializationHistory = NULL;
-		VertexFactoryType = NULL;
+		VFSerializationHistory = nullptr;
+		VertexFactoryType = nullptr;
 	}
 }
 
@@ -983,11 +984,11 @@ FShaderPipelineType::FShaderPipelineType(
 	const FShaderType* InDomainShader,
 	const FShaderType* InGeometryShader,
 	const FShaderType* InPixelShader,
-	bool bInShouldAddShadersToIndividualMap) :
+	bool bInShouldOptimizeUnusedOutputs) :
 	Name(InName),
 	TypeName(Name),
 	GlobalListLink(this),
-	bAddShadersToIndividualMap(bInShouldAddShadersToIndividualMap)
+	bShouldOptimizeUnusedOutputs(bInShouldOptimizeUnusedOutputs)
 {
 	checkf(Name && *Name, TEXT("Shader Pipeline Type requires a valid Name!"));
 
@@ -1035,12 +1036,6 @@ FShaderPipelineType::FShaderPipelineType(
 
 FShaderPipelineType::~FShaderPipelineType()
 {
-	if (!bAddShadersToIndividualMap)
-	{
-		//#todo-rco: Delete & remove each FShader
-		check(0);
-	}
-
 	GetNameToTypeMap().Remove(FName(Name));
 	GlobalListLink.Unlink();
 }
@@ -1157,6 +1152,30 @@ void FShaderPipelineType::GetOutdatedTypes(TArray<FShaderType*>& OutdatedShaderT
 	}
 }
 
+const FShaderPipelineType* FShaderPipelineType::GetShaderPipelineTypeByName(FName Name)
+{
+	for (TLinkedList<FShaderPipelineType*>::TIterator It(GetTypeList()); It; It.Next())
+	{
+		const FShaderPipelineType* Type = *It;
+		if (Name == Type->GetFName())
+		{
+			return Type;
+		}
+	}
+
+	return nullptr;
+}
+
+const FSHAHash& FShaderPipelineType::GetSourceHash() const
+{
+	TArray<FString> Filenames;
+	for (const FShaderType* ShaderType : Stages)
+	{
+		Filenames.Add(ShaderType->GetShaderFilename());
+	}
+	return GetShaderFilesHash(Filenames);
+}
+
 
 FShaderPipeline::FShaderPipeline(
 	const FShaderPipelineType* InPipelineType,
@@ -1221,8 +1240,59 @@ FShaderPipeline::FShaderPipeline(const FShaderPipelineType* InPipelineType, cons
 	Validate();
 }
 
+FShaderPipeline::FShaderPipeline(const FShaderPipelineType* InPipelineType, const TArray< TRefCountPtr<FShader> >& InStages) :
+	PipelineType(InPipelineType),
+	VertexShader(nullptr),
+	HullShader(nullptr),
+	DomainShader(nullptr),
+	GeometryShader(nullptr),
+	PixelShader(nullptr)
+{
+	check(InPipelineType);
+	for (FShader* Shader : InStages)
+	{
+		if (Shader)
+		{
+			switch (Shader->GetType()->GetFrequency())
+			{
+			case SF_Vertex:
+				check(!VertexShader);
+				VertexShader = Shader;
+				break;
+			case SF_Pixel:
+				check(!PixelShader);
+				PixelShader = Shader;
+				break;
+			case SF_Hull:
+				check(!HullShader);
+				HullShader = Shader;
+				break;
+			case SF_Domain:
+				check(!DomainShader);
+				DomainShader = Shader;
+				break;
+			case SF_Geometry:
+				check(!GeometryShader);
+				GeometryShader = Shader;
+				break;
+			default:
+				checkf(0, TEXT("Invalid stage %u found!"), Shader->GetType()->GetFrequency());
+				break;
+			}
+		}
+	}
+
+	Validate();
+}
+
 FShaderPipeline::~FShaderPipeline()
 {
+	// Manually set references to nullptr, helps debugging
+	VertexShader = nullptr;
+	HullShader = nullptr;
+	DomainShader = nullptr;
+	GeometryShader = nullptr;
+	PixelShader = nullptr;
 }
 
 void FShaderPipeline::Validate()
@@ -1260,9 +1330,10 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 
 	// Iterate over all shader types and log stats.
 	int32 TotalShaderCount		= 0;
-	int32 TotalTypeCount			= 0;
+	int32 TotalTypeCount		= 0;
 	int32 TotalInstructionCount	= 0;
 	int32 TotalSize				= 0;
+	int32 TotalPipelineCount	= 0;
 	float TotalSizePerType		= 0;
 
 	// Write a row of headings for the table's columns.
@@ -1272,6 +1343,7 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 	ShaderTypeViewer.AddColumn(TEXT("Size"));
 	ShaderTypeViewer.AddColumn(TEXT("AvgSizePerInstance"));
 	ShaderTypeViewer.AddColumn(TEXT("Pipelines"));
+	ShaderTypeViewer.AddColumn(TEXT("Shared Pipelines"));
 	ShaderTypeViewer.CycleRow();
 
 	for( TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next() )
@@ -1285,6 +1357,7 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 			int32 Size						= 0;
 			int32 NumShaders					= 0;
 			int32 NumPipelines = 0;
+			int32 NumSharedPipelines = 0;
 			for (TMap<FShaderId,FShader*>::TConstIterator ShaderIt(Type->ShaderIdMap);ShaderIt;++ShaderIt)
 			{
 				const FShader* Shader = ShaderIt.Value();
@@ -1299,17 +1372,39 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 					continue;
 				}
 
-				if (Shader->GetShaderPipelineType())
-				{
-					++NumPipelines;
-				}
-
 				NumInitializedInstructions += Shader->GetNumInstructions();
 				Size += Shader->GetCode().Num();
 				NumShaders++;
 			}
 			AverageNumInstructions = (float)NumInitializedInstructions / (float)Type->GetNumShaders();
 			
+			for (TLinkedList<FShaderPipelineType*>::TConstIterator PipelineIt(FShaderPipelineType::GetTypeList()); PipelineIt; PipelineIt.Next())
+			{
+				const FShaderPipelineType* PipelineType = *PipelineIt;
+				bool bFound = false;
+				if (Frequency == SF_NumFrequencies)
+				{
+					if (PipelineType->GetShader(Type->GetFrequency()) == Type)
+					{
+						++NumPipelines;
+						bFound = true;
+					}
+				}
+				else
+				{
+					if (PipelineType->GetShader(Frequency) == Type)
+					{
+						++NumPipelines;
+						bFound = true;
+					}
+				}
+
+				if (!PipelineType->ShouldOptimizeUnusedOutputs() && bFound)
+				{
+					++NumSharedPipelines;
+				}
+			}
+
 			// Only add rows if there is a matching shader.
 			if( NumShaders )
 			{
@@ -1320,9 +1415,11 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 				ShaderTypeViewer.AddColumn(TEXT("%u"),Size);
 				ShaderTypeViewer.AddColumn(TEXT("%.1f"),Size / (float)NumShaders);
 				ShaderTypeViewer.AddColumn(TEXT("%d"), NumPipelines);
+				ShaderTypeViewer.AddColumn(TEXT("%d"), NumSharedPipelines);
 				ShaderTypeViewer.CycleRow();
 
 				TotalShaderCount += NumShaders;
+				TotalPipelineCount += NumPipelines;
 				TotalInstructionCount += NumInitializedInstructions;
 				TotalTypeCount++;
 				TotalSize += Size;
@@ -1331,12 +1428,15 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 		}
 	}
 
+	// go through non shared pipelines
+
 	// Write a total row.
 	ShaderTypeViewer.AddColumn(TEXT("Total"));
 	ShaderTypeViewer.AddColumn(TEXT("%u"),TotalShaderCount);
 	ShaderTypeViewer.AddColumn(TEXT("%u"),TotalInstructionCount);
 	ShaderTypeViewer.AddColumn(TEXT("%u"),TotalSize);
 	ShaderTypeViewer.AddColumn(TEXT("0"));
+	ShaderTypeViewer.AddColumn(TEXT("%u"), TotalPipelineCount);
 	ShaderTypeViewer.AddColumn(TEXT("-"));
 	ShaderTypeViewer.CycleRow();
 
@@ -1347,23 +1447,21 @@ void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)
 	ShaderTypeViewer.AddColumn(TEXT("%.1f"),TotalSize / (float)TotalShaderCount);
 	ShaderTypeViewer.AddColumn(TEXT("%.1f"),TotalSizePerType / TotalTypeCount);
 	ShaderTypeViewer.AddColumn(TEXT("-"));
+	ShaderTypeViewer.AddColumn(TEXT("-"));
 	ShaderTypeViewer.CycleRow();
 #endif
 }
 
 
-FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName)
+FShaderType* FindShaderTypeByName(FName ShaderTypeName)
 {
-	for(TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
+	FShaderType** FoundShader = FShaderType::GetNameToTypeMap().Find(ShaderTypeName);
+	if (FoundShader)
 	{
-		const TCHAR* LocalName = ShaderTypeIt->GetName();
-
-		if(!FCString::Stricmp(LocalName, ShaderTypeName))
-		{
-			return *ShaderTypeIt;
-		}
+		return *FoundShader;
 	}
-	return NULL;
+
+	return nullptr;
 }
 
 

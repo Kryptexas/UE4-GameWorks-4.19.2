@@ -429,6 +429,7 @@ public:
 	 */
 	FString VertexFactoryTypeName;
 
+	// Required to differentiate amongst unique shaders in the global map per Type
 	FString ShaderPipelineName;
 
 	/** Used to detect changes to the vertex factory source files. */
@@ -577,7 +578,6 @@ public:
 	inline FSHAHash GetOutputHash() const { return OutputHash; }
 	FShaderId GetId() const;
 	inline FVertexFactoryType* GetVertexFactoryType() const { return VFType; }
-	inline const FShaderPipelineType* GetShaderPipelineType() const { return ShaderPipeline; }
 	inline FSHAHash GetMaterialShaderMapHash() const { return MaterialShaderMapHash; }
 	inline int32 GetNumRefs() const { return NumRefs; }
 
@@ -834,6 +834,10 @@ public:
 	{ 
 		return Name; 
 	}
+	const FName& GetFName() const
+	{
+		return TypeName;
+	}
 	const TCHAR* GetShaderFilename() const 
 	{ 
 		return SourceFilename; 
@@ -904,9 +908,9 @@ public:
 	}
 
 private:
-
 	uint32 HashIndex;
 	const TCHAR* Name;
+	FName TypeName;
 	const TCHAR* SourceFilename;
 	const TCHAR* FunctionName;
 	uint32 Frequency;
@@ -1012,7 +1016,8 @@ private:
 class SHADERCORE_API FShaderPipelineType
 {
 public:
-	// Set bInShouldShadersToIndividualMap to false if you want to skip adding the FShaderTypes from the shadermap individual shader type list
+	// Set bShouldOptimizeUnusedOutputs to true if we want unique FShaders for each shader pipeline
+	// Set bShouldOptimizeUnusedOutputs to false if the FShaders will point to the individual shaders in the map
 	FShaderPipelineType(
 		const TCHAR* InName,
 		const FShaderType* InVertexShader,
@@ -1020,8 +1025,8 @@ public:
 		const FShaderType* InDomainShader,
 		const FShaderType* InGeometryShader,
 		const FShaderType* InPixelShader,
-		bool bInShouldAddShadersToIndividualMap = true);
-	virtual ~FShaderPipelineType();
+		bool bInShouldOptimizeUnusedOutputs);
+	~FShaderPipelineType();
 
 	FORCEINLINE bool HasTessellation() const { return AllStages[SF_Domain] != nullptr; }
 	FORCEINLINE bool HasGeometry() const { return AllStages[SF_Geometry] != nullptr; }
@@ -1043,6 +1048,7 @@ public:
 
 	/** @return The global shader pipeline name to type map */
 	static TMap<FName, FShaderPipelineType*>& GetNameToTypeMap();
+	static const FShaderPipelineType* GetShaderPipelineTypeByName(FName Name);
 
 	/** Initialize static members, this must be called before any shader types are created. */
 	static void Initialize();
@@ -1061,10 +1067,13 @@ public:
 	bool IsGlobalTypePipeline() const { return Stages[0]->GetGlobalShaderType() != nullptr; }
 	bool IsMaterialTypePipeline() const { return Stages[0]->GetMaterialShaderType() != nullptr; }
 	bool IsMeshMaterialTypePipeline() const { return Stages[0]->GetMeshMaterialShaderType() != nullptr; }
-	bool ShouldAddShadersToIndividualMap() const { return bAddShadersToIndividualMap; }
+	bool ShouldOptimizeUnusedOutputs() const { return bShouldOptimizeUnusedOutputs; }
 
 	/** Gets a list of FShaderTypes & PipelineTypes whose source file no longer matches what that type was compiled with */
 	static void GetOutdatedTypes(TArray<FShaderType*>& OutdatedShaderTypes, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& OutdatedFactoryTypes);
+
+	/** Calculates a Hash based on this shader pipeline type stages' source code and includes */
+	const FSHAHash& GetSourceHash() const;
 
 protected:
 	const TCHAR* const Name;
@@ -1078,11 +1087,37 @@ protected:
 	TLinkedList<FShaderPipelineType*> GlobalListLink;
 
 	uint32 HashIndex;
-	bool bAddShadersToIndividualMap;
+	bool bShouldOptimizeUnusedOutputs;
 
 	static bool bInitialized;
 };
 
+#if !UE_BUILD_DOCS
+// Vertex+Pixel
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSPS(PipelineName, VertexShaderType, PixelShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, nullptr, nullptr, nullptr, &PixelShaderType::StaticType, bRemoveUnused);
+// Only VS
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VS(PipelineName, VertexShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, nullptr, nullptr, nullptr, nullptr, bRemoveUnused);
+// Vertex+Geometry+Pixel
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSGSPS(PipelineName, VertexShaderType, GeometryShaderType, PixelShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, nullptr, nullptr, &GeometryShaderType::StaticType, &PixelShaderType::StaticType, bRemoveUnused);
+// Vertex+Geometry
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSGS(PipelineName, VertexShaderType, GeometryShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, nullptr, nullptr, &GeometryShaderType::StaticType, nullptr, bRemoveUnused);
+// Vertex+Hull+Domain+Pixel
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSHSDSPS(PipelineName, VertexShaderType, HullShaderType, DomainShaderType, PixelShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, &HullShaderType::StaticType, &DomainShaderType::StaticType, nullptr, &PixelShaderType::StaticType, bRemoveUnused);
+// Vertex+Hull+Domain+Geometry+Pixel
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSHSDSGSPS(PipelineName, VertexShaderType, HullShaderType, DomainShaderType, GeometryShaderType, PixelShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, &HullShaderType::StaticType, &DomainShaderType::StaticType, &GeometryShaderType::StaticType, &PixelShaderType::StaticType, bRemoveUnused);
+// Vertex+Hull+Domain
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSHSDS(PipelineName, VertexShaderType, HullShaderType, DomainShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, &HullShaderType::StaticType, &DomainShaderType::StaticType, nullptr, nullptr, bRemoveUnused);
+// Vertex+Hull+Domain+Geometry
+#define IMPLEMENT_SHADERPIPELINE_TYPE_VSHSDSGS(PipelineName, VertexShaderType, HullShaderType, DomainShaderType, GeometryShaderType, bRemoveUnused)	\
+	static FShaderPipelineType PipelineName(TEXT(PREPROCESSOR_TO_STRING(PipelineName)), &VertexShaderType::StaticType, &HullShaderType::StaticType, &DomainShaderType::StaticType, &GeometryShaderType::StaticType, nullptr, bRemoveUnused);
+#endif
 
 /** Encapsulates a dependency on a shader type and saved state from that shader type. */
 class FShaderTypeDependency
@@ -1090,14 +1125,11 @@ class FShaderTypeDependency
 public:
 
 	FShaderTypeDependency() :
-		ShaderType(nullptr),
-		ShaderPipelineType(nullptr)
+		ShaderType(nullptr)
 	{}
 
 	/** Shader type */
 	FShaderType* ShaderType;
-
-	const FShaderPipelineType* ShaderPipelineType;
 
 	/** Used to detect changes to the shader source files. */
 	FSHAHash SourceHash;
@@ -1105,20 +1137,42 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,class FShaderTypeDependency& Ref)
 	{
 		Ar << Ref.ShaderType;
-		if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
-		{
-			Ar << Ref.ShaderPipelineType;
-		}
 		Ar << Ref.SourceHash;
 		return Ar;
 	}
 
 	bool operator==(const FShaderTypeDependency& Reference) const
 	{
-		return ShaderType == Reference.ShaderType && ShaderPipelineType == Reference.ShaderPipelineType && SourceHash == Reference.SourceHash;
+		return ShaderType == Reference.ShaderType && SourceHash == Reference.SourceHash;
 	}
 };
 
+
+class FShaderPipelineTypeDependency
+{
+public:
+	FShaderPipelineTypeDependency() :
+		ShaderPipelineType(nullptr)
+	{}
+
+	/** Shader Pipeline type */
+	const FShaderPipelineType* ShaderPipelineType;
+
+	/** Used to detect changes to the shader source files. */
+	FSHAHash StagesSourceHash;
+
+	friend FArchive& operator<<(FArchive& Ar, class FShaderPipelineTypeDependency& Ref)
+	{
+		Ar << Ref.ShaderPipelineType;
+		Ar << Ref.StagesSourceHash;
+		return Ar;
+	}
+
+	bool operator==(const FShaderPipelineTypeDependency& Reference) const
+	{
+		return ShaderPipelineType == Reference.ShaderPipelineType && StagesSourceHash == Reference.StagesSourceHash;
+	}
+};
 
 /** Used to compare two shader types by name. */
 class FCompareShaderTypes
@@ -1170,49 +1224,8 @@ public:
 	}
 };
 
-/** Used to compare two shader pipeline types by name. */
-class FCompareShaderPipelineTypes
-{
-public:
-	FORCEINLINE bool operator()(const FShaderPipelineType& A, const FShaderPipelineType& B) const
-	{
-		int32 AL = FCString::Strlen(A.GetName());
-		int32 BL = FCString::Strlen(B.GetName());
-		if (AL == BL)
-		{
-			int32 Result = FCString::Strncmp(A.GetName(), B.GetName(), AL);
-			if (Result != 0)
-			{
-				return Result > 0;
-			}
-
-			const auto& PipeA = A.GetStages();
-			const auto& PipeB = B.GetStages();
-
-			if (PipeA.Num() != PipeB.Num())
-			{
-				return PipeA.Num() > PipeB.Num();
-			}
-
-			bool bResult = false;
-			FCompareShaderTypes Comparator;
-			for (int32 Index = 0; Index < PipeA.Num(); ++Index)
-			{
-				bResult = Comparator(*PipeA[Index], *PipeB[Index]);
-				if (bResult != 0)
-				{
-					break;
-				}
-			}
-
-			return bResult;
-		}
-		return AL > BL;
-	}
-};
-
 // A Shader Pipeline instance with compiled stages
-class SHADERCORE_API FShaderPipeline : public FRefCountedObject
+class SHADERCORE_API FShaderPipeline
 {
 public:
 	const FShaderPipelineType* PipelineType;
@@ -1231,8 +1244,9 @@ public:
 		FShader* InPixelShader);
 
 	FShaderPipeline(const FShaderPipelineType* InPipelineType, const TArray<FShader*>& InStages);
+	FShaderPipeline(const FShaderPipelineType* InPipelineType, const TArray< TRefCountPtr<FShader> >& InStages);
 
-	virtual ~FShaderPipeline();
+	~FShaderPipeline();
 
 	// Find a shader inside the pipeline
 	template<typename ShaderType>
@@ -1324,8 +1338,20 @@ public:
 	}
 
 	void Validate();
+
+	enum EFilter
+	{
+		EAll,			// All pipelines
+		EOnlyShared,	// Only pipelines with shared shaders
+		EOnlyUnique,	// Only pipelines with unique shaders
+	};
 };
 
+inline bool operator<(const FShaderPipeline& Lhs, const FShaderPipeline& Rhs)
+{
+	FCompareShaderPipelineNameTypes Comparator;
+	return Comparator(*Lhs.PipelineType, *Rhs.PipelineType);
+}
 
 /** A collection of shaders of different types, but the same meta type. */
 template<typename ShaderMetaType>
@@ -1381,9 +1407,13 @@ public:
 
 	void RemoveShaderPipelineType(const FShaderPipelineType* ShaderPipelineType)
 	{
-		auto* Found = ShaderPipelines.Find(ShaderPipelineType);
+		FShaderPipeline** Found = ShaderPipelines.Find(ShaderPipelineType);
 		if (Found)
 		{
+			if (*Found)
+			{
+				delete *Found;
+			}
 			ShaderPipelines.Remove(ShaderPipelineType);
 		}
 	}
@@ -1401,11 +1431,20 @@ public:
 	}
 
 	/** Builds a list of the shader pipelines in a shader map. */
-	void GetShaderPipelineList(TArray<FShaderPipeline*>& OutShaderPipelines) const
+	void GetShaderPipelineList(TArray<FShaderPipeline*>& OutShaderPipelines, FShaderPipeline::EFilter Filter) const
 	{
 		for (auto Pair : ShaderPipelines)
 		{
-			OutShaderPipelines.Add(Pair.Value);
+			FShaderPipeline* Pipeline = Pair.Value;
+			if (Pipeline->PipelineType->ShouldOptimizeUnusedOutputs() && Filter == FShaderPipeline::EOnlyShared)
+			{
+				continue;
+			}
+			else if (!Pipeline->PipelineType->ShouldOptimizeUnusedOutputs() && Filter == FShaderPipeline::EOnlyUnique)
+			{
+				continue;
+			}
+			OutShaderPipelines.Add(Pipeline);
 		}
 	}
 
@@ -1535,14 +1574,14 @@ public:
 				SerializeShaderForSaving(CurrentShader, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 			}
 
-			int32 NumPipelines = ShaderPipelines.Num();
+			TArray<FShaderPipeline*> SortedPipelines;
+			GetShaderPipelineList(SortedPipelines, FShaderPipeline::EAll);
+			int32 NumPipelines = SortedPipelines.Num();
 			Ar << NumPipelines;
 			// Sort the shader pipelines by type name before saving, to make sure the saved result is binary equivalent to what is generated on other machines, Which is a requirement of the Derived Data Cache.
-			auto SortedPipelines = ShaderPipelines;
-			SortedPipelines.KeySort(FCompareShaderPipelineNameTypes());
-			for (TMap<const FShaderPipelineType*, TRefCountPtr<FShaderPipeline> >::TConstIterator PipelineIt(SortedPipelines); PipelineIt; ++PipelineIt)
+			SortedPipelines.Sort();
+			for (FShaderPipeline* CurrentPipeline : SortedPipelines)
 			{
-				FShaderPipeline* CurrentPipeline = PipelineIt.Value();
 				const FShaderPipelineType* PipelineType = CurrentPipeline->PipelineType;
 				Ar << PipelineType;
 
@@ -1584,7 +1623,8 @@ public:
 				Ar << ShaderPipelineType;
 				int32 NumStages = 0;
 				Ar << NumStages;
-				TArray<FShader*> ShaderStages;
+				// Make a list of references so they can be deleted when going out of scope if needed
+				TArray< TRefCountPtr<FShader> > ShaderStages;
 				for (int32 Index = 0; Index < NumStages; ++Index)
 				{
 					FShaderType* Type = nullptr;
@@ -1596,37 +1636,30 @@ public:
 					}
 				}
 
-				if (ShaderStages.Num() == ShaderPipelineType->GetStages().Num())
+				// ShaderPipelineType can be nullptr if the pipeline existed but now is gone!
+				if (ShaderPipelineType && ShaderStages.Num() == ShaderPipelineType->GetStages().Num())
 				{
 					FShaderPipeline* ShaderPipeline = new FShaderPipeline(ShaderPipelineType, ShaderStages);
 					AddShaderPipeline(ShaderPipelineType, ShaderPipeline);
-				}
-				else
-				{
-					//#todo-rco: Log that the # of stages changed for this pipeline
-					for (FShader* Shader : ShaderStages)
-					{
-						delete Shader;
-					}
 				}
 			}
 		}
 	}
 
 	/** @return true if the map is empty */
-	bool IsEmpty() const
+	inline bool IsEmpty() const
 	{
 		return Shaders.Num() == 0;
 	}
 
 	/** @return The number of shaders in the map. */
-	uint32 GetNumShaders() const
+	inline uint32 GetNumShaders() const
 	{
 		return Shaders.Num();
 	}
 
 	/** @return The number of shader pipelines in the map. */
-	uint32 GetNumShaderPipelines() const
+	inline uint32 GetNumShaderPipelines() const
 	{
 		return ShaderPipelines.Num();
 	}
@@ -1638,14 +1671,25 @@ public:
 		ShaderPipelines.Empty();
 	}
 
-	// Returns nullptr if not found
-	FShaderPipeline* GetShaderPipeline(const FShaderPipelineType* PipelineType) const
+	inline FShaderPipeline* GetShaderPipeline(const FShaderPipelineType* PipelineType)
 	{
-		auto* Found = ShaderPipelines.Find(PipelineType);
+		FShaderPipeline** Found = ShaderPipelines.Find(PipelineType);
 		return Found ? *Found : nullptr;
 	}
 
-	void AddShaderPipeline(const FShaderPipelineType* Type, FShaderPipeline* ShaderPipeline)
+	inline FShaderPipeline* GetShaderPipeline(const FShaderPipelineType* PipelineType) const
+	{
+		FShaderPipeline* const* Found = ShaderPipelines.Find(PipelineType);
+		return Found ? *Found : nullptr;
+	}
+
+	// Returns nullptr if not found
+	inline bool HasShaderPipeline(const FShaderPipelineType* PipelineType) const
+	{
+		return (GetShaderPipeline(PipelineType) != nullptr);
+	}
+
+	inline void AddShaderPipeline(const FShaderPipelineType* Type, FShaderPipeline* ShaderPipeline)
 	{
 		check(Type);
 		check(!ShaderPipeline || ShaderPipeline->PipelineType == Type);
@@ -1676,7 +1720,7 @@ public:
 
 protected:
 	TMap<FShaderType*, TRefCountPtr<FShader> > Shaders;
-	TMap<const FShaderPipelineType*, TRefCountPtr<FShaderPipeline> > ShaderPipelines;
+	TMap<const FShaderPipelineType*, FShaderPipeline*> ShaderPipelines;
 };
 
 /** A reference which is initialized with the requested shader type from a shader map. */
@@ -1905,7 +1949,7 @@ extern SHADERCORE_API void DumpShaderStats( EShaderPlatform Platform, EShaderFre
  * @param ShaderTypeName - The name of the shader type to find.
  * @return The shader type, or NULL if none matched.
  */
-extern SHADERCORE_API FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName);
+extern SHADERCORE_API FShaderType* FindShaderTypeByName(FName ShaderTypeName);
 
 /** Helper function to dispatch a compute shader while checking that parameters have been set correctly. */
 extern SHADERCORE_API void DispatchComputeShader(

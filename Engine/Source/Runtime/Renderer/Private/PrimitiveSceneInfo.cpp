@@ -135,7 +135,6 @@ FPrimitiveSceneInfo::~FPrimitiveSceneInfo()
 
 void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList)
 {
-	ConditionalUpdateUniformBuffer(RHICmdList);
 	// Cache the primitive's static mesh elements.
 	FBatchingSPDI BatchingSPDI(this);
 	BatchingSPDI.SetHitProxy(DefaultDynamicHitProxy);

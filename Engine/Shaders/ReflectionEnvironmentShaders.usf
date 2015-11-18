@@ -111,6 +111,7 @@ float3 GetCubemapVector(float2 ScaledUVs)
 
 TextureCube SourceTexture;
 SamplerState SourceTextureSampler;
+float2 SinCosSourceCubemapRotation;
 
 void CopyCubemapToCubeFaceColorPS(
 	FScreenVertexOutput Input,
@@ -119,6 +120,8 @@ void CopyCubemapToCubeFaceColorPS(
 { 
 	float2 ScaledUVs = Input.UV * 2 - 1;
 	float3 CubeCoordinates = GetCubemapVector(ScaledUVs);
+	// Rotate around Z axis
+	CubeCoordinates.xy = float2(dot(CubeCoordinates.xy, float2(SinCosSourceCubemapRotation.y, -SinCosSourceCubemapRotation.x)), dot(CubeCoordinates.xy, SinCosSourceCubemapRotation));
 	OutColor = TextureCubeSampleLevel(SourceTexture, SourceTextureSampler, CubeCoordinates, 0);
 
 	if (SkyLightCaptureParameters.x > 0)

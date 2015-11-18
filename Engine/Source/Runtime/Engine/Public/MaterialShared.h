@@ -24,6 +24,7 @@ class FShaderCommonCompileJob;
 class FShaderCompileJob;
 class FShaderType;
 class FShaderTypeDependency;
+class FShaderPipelineTypeDependency;
 class FVertexFactoryType;
 class FVertexFactoryTypeDependency;
 class UMaterial;
@@ -403,6 +404,9 @@ public:
 	/** Shader types of shaders that are inlined in this shader map in the DDC. */
 	TArray<FShaderTypeDependency> ShaderTypeDependencies;
 
+	/** Shader pipeline types of shader pipelines that are inlined in this shader map in the DDC. */
+	TArray<FShaderPipelineTypeDependency> ShaderPipelineTypeDependencies;
+
 	/** Vertex factory types of shaders that are inlined in this shader map in the DDC. */
 	TArray<FVertexFactoryTypeDependency> VertexFactoryTypeDependencies;
 
@@ -442,6 +446,7 @@ public:
 			+ ReferencedFunctions.GetAllocatedSize()
 			+ ReferencedParameterCollections.GetAllocatedSize()
 			+ ShaderTypeDependencies.GetAllocatedSize()
+			+ ShaderPipelineTypeDependencies.GetAllocatedSize()
 			+ VertexFactoryTypeDependencies.GetAllocatedSize();
 	}
 
@@ -466,6 +471,9 @@ public:
 
 	/** Returns true if the requested shader type is a dependency of this shader map Id. */
 	bool ContainsShaderType(const FShaderType* ShaderType) const;
+
+	/** Returns true if the requested shader type is a dependency of this shader map Id. */
+	bool ContainsShaderPipelineType(const FShaderPipelineType* ShaderPipelineType) const;
 
 	/** Returns true if the requested vertex factory type is a dependency of this shader map Id. */
 	bool ContainsVertexFactoryType(const FVertexFactoryType* VFType) const;
@@ -530,7 +538,7 @@ public:
 	void FlushShadersByShaderPipelineType(const FShaderPipelineType* ShaderPipelineType);
 
 	// Accessors.
-	FVertexFactoryType* GetVertexFactoryType() const { return VertexFactoryType; }
+	inline FVertexFactoryType* GetVertexFactoryType() const { return VertexFactoryType; }
 
 private:
 	/** The vertex factory type these shaders are for. */
@@ -590,7 +598,7 @@ public:
 		);
 
 	/** Sorts the incoming compiled jobs into the appropriate mesh shader maps, and finalizes this shader map so that it can be used for rendering. */
-	bool ProcessCompilationResults(const TArray<FShaderCommonCompileJob*>& InCompilationResults, int32& ResultIndex, float& TimeBudget);
+	bool ProcessCompilationResults(const TArray<FShaderCommonCompileJob*>& InCompilationResults, int32& ResultIndex, float& TimeBudget, TMap<const FVertexFactoryType*, TArray<const FShaderPipelineType*> >& SharedPipelines);
 
 	/**
 	 * Checks whether the material shader map is missing any shader types necessary for the given material.
@@ -1119,6 +1127,8 @@ public:
 		return (ShaderType*)GetShader(&ShaderType::StaticType, VertexFactoryType);
 	}
 
+	ENGINE_API FShaderPipeline* GetShaderPipeline(class FShaderPipelineType* ShaderPipelineType, FVertexFactoryType* VertexFactoryType) const;
+
 	/** Returns a string that describes the material's usage for debugging purposes. */
 	virtual FString GetMaterialUsageDescription() const = 0;
 
@@ -1587,7 +1597,7 @@ public:
 	 */
 	ENGINE_API void GetRepresentativeInstructionCounts(TArray<FString> &Descriptions, TArray<int32> &InstructionCounts) const;
 
-	ENGINE_API void GetRepresentativeShaderTypesAndDescriptions(TArray<FString> &ShaderTypeNames, TArray<FString> &ShaderTypeDescriptions) const;
+	ENGINE_API void GetRepresentativeShaderTypesAndDescriptions(TMap<FName, FString>& OutShaderTypeNameAndDescriptions) const;
 
 	ENGINE_API SIZE_T GetResourceSizeInclusive();
 

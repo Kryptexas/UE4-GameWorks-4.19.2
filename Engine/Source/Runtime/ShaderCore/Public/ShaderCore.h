@@ -111,7 +111,9 @@ enum ECompilerFlags
 	CFLAG_StandardOptimization,
 	/** Shader should use on chip memory instead of main memory ring buffer memory. */
 	CFLAG_OnChip,
-	CFLAG_KeepDebugInfo
+	CFLAG_KeepDebugInfo,
+	// Skip using the cached usf file system and directly open the file (for debugging)
+	CFLAG_OpenFileFromFullPath,
 };
 
 /**

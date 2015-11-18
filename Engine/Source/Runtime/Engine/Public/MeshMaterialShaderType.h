@@ -59,7 +59,7 @@ public:
 	 * @param Material - The material to link the shader with.
 	 * @param VertexFactoryType - The vertex factory to compile with.
 	 */
-	void BeginCompileShader(
+	class FShaderCompileJob* BeginCompileShader(
 		uint32 ShaderMapId,
 		EShaderPlatform Platform,
 		const FMaterial* Material,

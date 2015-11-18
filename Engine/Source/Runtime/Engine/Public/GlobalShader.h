@@ -29,6 +29,9 @@ public:
 private:
 	/** Shader types that this shader map is dependent on and their stored state. */
 	TArray<FShaderTypeDependency> ShaderTypeDependencies;
+
+	/** Shader pipeline types that this shader map is dependent on and their stored state. */
+	TArray<FShaderPipelineTypeDependency> ShaderPipelineTypeDependencies;
 };
 
 /**
@@ -64,7 +67,7 @@ public:
 	/**
 	 * Enqueues compilation of a shader of this type.  
 	 */
-	ENGINE_API void BeginCompileShader(EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
+	ENGINE_API class FShaderCompileJob* BeginCompileShader(EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
 
 	/**
 	 * Enqueues compilation of a shader pipeline of this type.  

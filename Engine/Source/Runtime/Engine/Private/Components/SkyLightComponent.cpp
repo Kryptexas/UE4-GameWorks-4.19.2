@@ -316,7 +316,8 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
-		if (FCString::Strcmp(*PropertyName, TEXT("Cubemap")) == 0)
+		if (FCString::Strcmp(*PropertyName, TEXT("Cubemap")) == 0
+			|| FCString::Strcmp(*PropertyName, TEXT("SourceCubemapAngle")) == 0)
 		{
 			return SourceType == SLS_SpecifiedCubemap;
 		}

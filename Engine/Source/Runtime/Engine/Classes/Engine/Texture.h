@@ -13,7 +13,7 @@ UENUM()
 enum TextureCompressionSettings
 {
 	TC_Default					UMETA(DisplayName="Default (DXT1/5, BC1/3 on DX11)"),
-	TC_Normalmap				UMETA(DisplayName="Normalmap (DXT5, BC3 on DX11)"),
+	TC_Normalmap				UMETA(DisplayName="Normalmap (DXT5, BC5 on DX11)"),
 	TC_Masks					UMETA(DisplayName="Masks (no sRGB)"),
 	TC_Grayscale				UMETA(DisplayName="Grayscale (R8, RGB8 sRGB)"),
 	TC_Displacementmap			UMETA(DisplayName="Displacementmap (8/16bit)"),

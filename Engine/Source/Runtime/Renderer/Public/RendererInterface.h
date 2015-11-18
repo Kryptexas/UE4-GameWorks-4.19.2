@@ -183,7 +183,7 @@ public:
 			&& TargetableFlags == rhs.TargetableFlags
 			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource
 			&& ClearValue == rhs.ClearValue
-			&& AutoWritable == AutoWritable;
+			&& AutoWritable == rhs.AutoWritable;
 	}
 
 	bool IsCubemap() const

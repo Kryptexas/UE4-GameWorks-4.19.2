@@ -505,10 +505,6 @@ public:
 
 	FHeightfieldLightingAtlas* HeightfieldLightingAtlas;
 
-	// If Translucency should be rendered into a separate RT and composited without DepthOfField, can be disabled in the materials (affects sorting)
-	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
-	// Depth buffer for separate translucency rendering (needed if SeparateTranslucencyScreenPercentage is <100)
-	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyDepthRT;
 	// Temporal AA result of last frame
 	TRefCountPtr<IPooledRenderTarget> TemporalAAHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> PendingTemporalAAHistoryRT;
@@ -607,12 +603,6 @@ public:
 		return DistanceFieldTemporalSampleIndex;
 	}
 
-	void FreeSeparateTranslucency()
-	{
-		SeparateTranslucencyRT.SafeRelease();
-
-		check(!SeparateTranslucencyRT);
-	}
 
 	// call only if not yet created
 	void SetupLightPropagationVolume(FSceneView& View, FSceneViewFamily& ViewFamily);
@@ -696,37 +686,6 @@ public:
 		bValidEyeAdaptation = true;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size)
-	{
-		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
-		{
-			// Create the SeparateTranslucency render target (alpha is needed to lerping)
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
-			Desc.AutoWritable = false;
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
-		}
-		return SeparateTranslucencyRT;
-	}
-
-	bool IsSeparateTranslucencyDepthValid()
-	{
-		return SeparateTranslucencyDepthRT != nullptr;
-	}
-
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size)
-	{
-		if (!SeparateTranslucencyDepthRT || SeparateTranslucencyDepthRT->GetDesc().Extent != Size)
-		{
-			// Create the SeparateTranslucency depth render target 
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_DepthStencil, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, true));
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SeparateTranslucencyDepthRT, TEXT("SeparateTranslucencyDepth"));
-		}
-		return SeparateTranslucencyDepthRT;
-	}
-	const FTexture2DRHIRef& GetSeparateTranslucencyDepthSurface()
-	{
-		return (const FTexture2DRHIRef&)SeparateTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
-	}
 
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
@@ -745,8 +704,6 @@ public:
 		OcclusionQueryPool.Release();
 		HZBOcclusionTests.ReleaseDynamicRHI();
 		EyeAdaptationRT.SafeRelease();
-		SeparateTranslucencyRT.SafeRelease();
-		SeparateTranslucencyDepthRT.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
 		PendingTemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();

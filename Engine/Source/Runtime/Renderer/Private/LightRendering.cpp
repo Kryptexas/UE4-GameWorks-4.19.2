@@ -910,7 +910,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 					}
 					else
 					{
-						SetShaderTemplLighting<false, false, false, true>(RHICmdList, View, *VertexShader, LightSceneInfo);
+						SetShaderTemplLighting<false, false, false, false>(RHICmdList, View, *VertexShader, LightSceneInfo);
 					}
 				}
 			}

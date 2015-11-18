@@ -23,38 +23,7 @@ const int32 GlobalShaderMapId = 0;
 FGlobalShaderMapId::FGlobalShaderMapId(EShaderPlatform Platform)
 {
 	TArray<FShaderType*> ShaderTypes;
-
 	TArray<const FShaderPipelineType*> ShaderPipelineTypes;
-	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList()); ShaderPipelineIt; ShaderPipelineIt.Next())
-	{
-		const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
-		if (Pipeline->IsGlobalTypePipeline())
-		{
-			// Verify all the ShouldCache are in sync
-			int32 NumShouldCache = 0;
-			const auto& Stages = Pipeline->GetStages();
-			for (int32 Index = 0; Index < Stages.Num(); ++Index)
-			{
-				const FGlobalShaderType* GlobalShaderType = Stages[Index]->GetGlobalShaderType();
-				if (GlobalShaderType->ShouldCache(Platform))
-				{
-					++NumShouldCache;
-				}
-			}
-
-			if (NumShouldCache != 0)
-			{
-				if (NumShouldCache != Stages.Num())
-				{
-					UE_LOG(LogShaders, Error, TEXT("Mismatched ShouldCache() function on the shaders for Global ShaderPipeline %s"), Pipeline->GetName());
-				}
-				else
-				{
-					ShaderPipelineTypes.Add(Pipeline);
-				}
-			}
-		}
-	}
 
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList()); ShaderTypeIt; ShaderTypeIt.Next())
 	{
@@ -65,9 +34,35 @@ FGlobalShaderMapId::FGlobalShaderMapId(EShaderPlatform Platform)
 		}
 	}
 
-	ShaderTypes.Sort(FCompareShaderTypes());
-	ShaderPipelineTypes.Sort(FCompareShaderPipelineTypes());
+	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList()); ShaderPipelineIt; ShaderPipelineIt.Next())
+	{
+		const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
+		if (Pipeline->IsGlobalTypePipeline())
+		{
+			int32 NumStagesNeeded = 0;
+			auto& StageTypes = Pipeline->GetStages();
+			for (const FShaderType* Shader : StageTypes)
+			{
+				const FGlobalShaderType* GlobalShaderType = Shader->GetGlobalShaderType();
+				if (GlobalShaderType->ShouldCache(Platform))
+				{
+					++NumStagesNeeded;
+				}
+				else
+				{
+					break;
+				}
+			}
 
+			if (NumStagesNeeded == StageTypes.Num())
+			{
+				ShaderPipelineTypes.Add(Pipeline);
+			}
+		}
+	}
+
+	// Individual shader dependencies
+	ShaderTypes.Sort(FCompareShaderTypes());
 	for (int32 TypeIndex = 0; TypeIndex < ShaderTypes.Num(); TypeIndex++)
 	{
 		FShaderTypeDependency Dependency;
@@ -76,19 +71,15 @@ FGlobalShaderMapId::FGlobalShaderMapId(EShaderPlatform Platform)
 		ShaderTypeDependencies.Add(Dependency);
 	}
 
-	//#todo-rco: Is this currently necessary? Might be redundant until we only have Pipelines...
+	// Shader pipeline dependencies
+	ShaderPipelineTypes.Sort(FCompareShaderPipelineNameTypes());
 	for (int32 TypeIndex = 0; TypeIndex < ShaderPipelineTypes.Num(); TypeIndex++)
 	{
-		auto& Stages = ShaderPipelineTypes[TypeIndex]->GetStages();
-		for (int32 Index = 0; Index < Stages.Num(); ++Index)
-		{
-			FShaderType* GlobalShaderType = (FShaderType*)Stages[Index];
-			FShaderTypeDependency Dependency;
-			Dependency.ShaderPipelineType = ShaderPipelineTypes[TypeIndex];
-			Dependency.ShaderType = (FShaderType*)Stages[Index];
-			Dependency.SourceHash = Stages[Index]->GetSourceHash();
-			ShaderTypeDependencies.Add(Dependency);
-		}
+		const FShaderPipelineType* Pipeline = ShaderPipelineTypes[TypeIndex];
+		FShaderPipelineTypeDependency Dependency;
+		Dependency.ShaderPipelineType = Pipeline;
+		Dependency.StagesSourceHash = Pipeline->GetSourceHash();
+		ShaderPipelineTypeDependencies.Add(Dependency);
 	}
 }
 
@@ -101,12 +92,6 @@ void FGlobalShaderMapId::AppendKeyString(FString& KeyString) const
 		const FShaderTypeDependency& ShaderTypeDependency = ShaderTypeDependencies[ShaderIndex];
 
 		KeyString += TEXT("_");
-		if (ShaderTypeDependency.ShaderPipelineType)
-		{
-			KeyString += ShaderTypeDependency.ShaderPipelineType->GetName();
-			KeyString += TEXT("_");
-		}
-
 		KeyString += ShaderTypeDependency.ShaderType->GetName();
 
 		// Add the type's source hash so that we can invalidate cached shaders when .usf changes are made
@@ -124,6 +109,28 @@ void FGlobalShaderMapId::AppendKeyString(FString& KeyString) const
 		}
 	}
 
+	for (int32 Index = 0; Index < ShaderPipelineTypeDependencies.Num(); ++Index)
+	{
+		const FShaderPipelineTypeDependency& Dependency = ShaderPipelineTypeDependencies[Index];
+
+		KeyString += TEXT("_");
+		KeyString += Dependency.ShaderPipelineType->GetName();
+
+		// Add the type's source hash so that we can invalidate cached shaders when .usf changes are made
+		KeyString += Dependency.StagesSourceHash.ToString();
+
+		for (const FShaderType* ShaderType : Dependency.ShaderPipelineType->GetStages())
+		{
+			const TMap<const TCHAR*, FCachedUniformBufferDeclaration>& ReferencedUniformBufferStructsCache = ShaderType->GetReferencedUniformBufferStructsCache();
+
+			// Gather referenced uniform buffers
+			for (TMap<const TCHAR*, FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
+			{
+				ReferencedUniformBuffers.Add(It.Key(), It.Value());
+			}
+		}
+	}
+
 	{
 		TArray<uint8> TempData;
 		FSerializationHistory SerializationHistory;
@@ -137,7 +144,7 @@ void FGlobalShaderMapId::AppendKeyString(FString& KeyString) const
 	}
 }
 
-void FGlobalShaderType::BeginCompileShader(EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs)
+FShaderCompileJob* FGlobalShaderType::BeginCompileShader(EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs)
 {
 	FShaderCompileJob* NewJob = new FShaderCompileJob(GlobalShaderMapId, nullptr, this);
 	FShaderCompilerEnvironment& ShaderEnvironment = NewJob->Input.Environment;
@@ -161,6 +168,8 @@ void FGlobalShaderType::BeginCompileShader(EShaderPlatform Platform, const FShad
 		NewJob,
 		NewJobs
 		);
+
+	return NewJob;
 }
 
 void FGlobalShaderType::BeginCompileShaderPipeline(EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, const TArray<FGlobalShaderType*>& ShaderStages, TArray<FShaderCommonCompileJob*>& NewJobs)
@@ -191,6 +200,12 @@ FShader* FGlobalShaderType::FinishCompileShader(const FShaderCompileJob& Current
 		// This allows FShaders to share compiled bytecode and RHI shader references
 		FShaderResource* Resource = FShaderResource::FindOrCreateShaderResource(CurrentJob.Output, SpecificType);
 		check(Resource);
+
+		if (ShaderPipelineType && !ShaderPipelineType->ShouldOptimizeUnusedOutputs())
+		{
+			// If sharing shaders in this pipeline, remove it from the type/id so it uses the one in the shared shadermap list
+			ShaderPipelineType = nullptr;
+		}
 
 		// Find a shader with the same key in memory
 		Shader = CurrentJob.ShaderType->FindShaderById(FShaderId(GGlobalShaderMapHash, ShaderPipelineType, nullptr, CurrentJob.ShaderType, CurrentJob.Input.Target));
@@ -287,54 +302,11 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 		bErrorOnMissing = true;
 	}
 
+	// All jobs, single & pipeline
 	TArray<FShaderCommonCompileJob*> GlobalShaderJobs;
-	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList());ShaderPipelineIt;ShaderPipelineIt.Next())
-	{
-		const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
-		if (Pipeline->IsGlobalTypePipeline())
-		{
-			if (!GlobalShaderMap->GetShaderPipeline(Pipeline))
-			{
-				// First see if all the ShouldCache pass
-				auto& Stages = Pipeline->GetStages();
-				int32 ShaderStagesToCompile = 0;
-				TArray<FGlobalShaderType*> ShaderStages;
-				for (int32 Index = 0; Index < Stages.Num(); ++Index)
-				{
-					FGlobalShaderType* GlobalShaderType = ((FShaderType*)(Stages[Index]))->GetGlobalShaderType();
-					if (GlobalShaderType->ShouldCache(Platform))
-					{
-						ShaderStages.Add(GlobalShaderType);
-						++ShaderStagesToCompile;
-					}
-				}
 
-				if (ShaderStagesToCompile > 0)
-				{
-					if (bErrorOnMissing)
-					{
-						UE_LOG(LogShaders, Fatal, TEXT("Missing global shader pipeline %s, Please make sure cooking was successful."), Pipeline->GetName());
-					}
-
-					if (ShaderStagesToCompile != ShaderStages.Num())
-					{
-						UE_LOG(LogShaders, Fatal, TEXT("Missing global shader pipeline %s, has mismatched ShouldCache() functions, Please make sure cooking was successful."), Pipeline->GetName());
-					}
-					else
-					{
-						if (!bEmptyMap)
-						{
-							UE_LOG(LogShaders, Warning, TEXT("	%s"), Pipeline->GetName());
-						}
-
-						// Make a pipeline job with all the stages
-						FGlobalShaderType::BeginCompileShaderPipeline(Platform, Pipeline, ShaderStages, GlobalShaderJobs);
-					}
-				}
-			}
-		}
-	}
-
+	// Add the single jobs first
+	TMap<FShaderType*, FShaderCompileJob*> SharedShaderJobs;
 	for(TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
@@ -353,7 +325,68 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 				}
 	
 				// Compile this global shader type.
-				GlobalShaderType->BeginCompileShader(Platform, nullptr, GlobalShaderJobs);
+				auto* Job = GlobalShaderType->BeginCompileShader(Platform, nullptr, GlobalShaderJobs);
+				check(!SharedShaderJobs.Find(GlobalShaderType));
+				SharedShaderJobs.Add(GlobalShaderType, Job);
+			}
+		}
+	}
+
+	// Now the pipeline jobs; if it's a shareable pipeline, do not add duplicate jobs
+	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList());ShaderPipelineIt;ShaderPipelineIt.Next())
+	{
+		const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
+		if (Pipeline->IsGlobalTypePipeline())
+		{
+			if (!GlobalShaderMap->GetShaderPipeline(Pipeline))
+			{
+				auto& StageTypes = Pipeline->GetStages();
+				TArray<FGlobalShaderType*> ShaderStages;
+				for (int32 Index = 0; Index < StageTypes.Num(); ++Index)
+				{
+					FGlobalShaderType* GlobalShaderType = ((FShaderType*)(StageTypes[Index]))->GetGlobalShaderType();
+					if (GlobalShaderType->ShouldCache(Platform))
+					{
+						ShaderStages.Add(GlobalShaderType);
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				if (ShaderStages.Num() == StageTypes.Num())
+				{
+					if (bErrorOnMissing)
+					{
+						UE_LOG(LogShaders, Fatal, TEXT("Missing global shader pipeline %s, Please make sure cooking was successful."), Pipeline->GetName());
+					}
+
+					if (!bEmptyMap)
+					{
+						UE_LOG(LogShaders, Warning, TEXT("	%s"), Pipeline->GetName());
+					}
+
+					if (Pipeline->ShouldOptimizeUnusedOutputs())
+					{
+						// Make a pipeline job with all the stages
+						FGlobalShaderType::BeginCompileShaderPipeline(Platform, Pipeline, ShaderStages, GlobalShaderJobs);
+					}
+					else
+					{
+						// If sharing shaders amongst pipelines, add this pipeline as a dependency of an existing individual job
+						for (const FShaderType* ShaderType : StageTypes)
+						{
+							FShaderCompileJob** Job = SharedShaderJobs.Find(ShaderType);
+							checkf(Job, TEXT("Couldn't find existing shared job for global shader %s on pipeline %s!"), ShaderType->GetName(), Pipeline->GetName());
+							auto* SingleJob = (*Job)->GetSingleShaderJob();
+							check(SingleJob);
+							auto& SharedPipelinesInJob = SingleJob->SharingPipelines.FindOrAdd(nullptr);
+							check(!SharedPipelinesInJob.Contains(Pipeline));
+							SharedPipelinesInJob.Add(Pipeline);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -380,7 +413,7 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 }
 
 /** Serializes the global shader map to an archive. */
-void SerializeGlobalShaders(FArchive& Ar, TShaderMap<FGlobalShaderType>* GlobalShaderMap)
+static void SerializeGlobalShaders(FArchive& Ar, TShaderMap<FGlobalShaderType>* GlobalShaderMap)
 {
 	check(IsInGameThread());
 
@@ -403,7 +436,7 @@ void SerializeGlobalShaders(FArchive& Ar, TShaderMap<FGlobalShaderType>* GlobalS
 	GlobalShaderMap->SerializeInline(Ar, true, false);
 }
 
-FString GetGlobalShaderCacheFilename(EShaderPlatform Platform)
+static FString GetGlobalShaderCacheFilename(EShaderPlatform Platform)
 {
 	return FString(TEXT("Engine")) / TEXT("GlobalShaderCache-") + LegacyShaderPlatformToShaderFormat(Platform).ToString() + TEXT(".bin");
 }
@@ -474,14 +507,14 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 			GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
 			return GGlobalShaderMap[Platform];
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	if (bRefreshShaderMap)
 	{
 		// delete the current global shader map
 		delete GGlobalShaderMap[Platform];
-		GGlobalShaderMap[Platform] = NULL;
+		GGlobalShaderMap[Platform] = nullptr;
 
 		// make sure we look for updated shader source files
 		FlushShaderFileCache();
@@ -576,7 +609,7 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 	return GGlobalShaderMap[Platform];
 }
 
-static inline bool ShouldCacheGlobalShader(const FGlobalShaderType* GlobalShaderType, const TCHAR* TypeNameSubstring, EShaderPlatform Platform)
+static inline bool ShouldCacheGlobalShaderTypeName(const FGlobalShaderType* GlobalShaderType, const TCHAR* TypeNameSubstring, EShaderPlatform Platform)
 {
 	return GlobalShaderType
 		&& (TypeNameSubstring == nullptr || (FPlatformString::Strstr(GlobalShaderType->GetName(), TypeNameSubstring) != nullptr))
@@ -594,32 +627,46 @@ bool IsGlobalShaderMapComplete(const TCHAR* TypeNameSubstring)
 
 		if (GlobalShaderMap)
 		{
+			// Check if the individual shaders are complete
+			for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList()); ShaderTypeIt; ShaderTypeIt.Next())
+			{
+				FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
+				if (ShouldCacheGlobalShaderTypeName(GlobalShaderType, TypeNameSubstring, Platform))
+				{
+					if (!GlobalShaderMap->HasShader(GlobalShaderType))
+					{
+						return false;
+					}
+				}
+			}
+
+			// Then the pipelines as it may be sharing shaders
 			for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList()); ShaderPipelineIt; ShaderPipelineIt.Next())
 			{
 				const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
 				if (Pipeline->IsGlobalTypePipeline())
 				{
 					auto& Stages = Pipeline->GetStages();
-					// Only need to check Stage 0 as we validated ShouldCache matching on FGlobalShaderMapId()
-					const FGlobalShaderType* GlobalShaderType = Stages[0]->GetGlobalShaderType();
-					if (ShouldCacheGlobalShader(GlobalShaderType, TypeNameSubstring, Platform))
+					int32 NumStagesNeeded = 0;
+					for (const FShaderType* Shader : Stages)
+					{
+						const FGlobalShaderType* GlobalShaderType = Shader->GetGlobalShaderType();
+						if (ShouldCacheGlobalShaderTypeName(GlobalShaderType, TypeNameSubstring, Platform))
+						{
+							++NumStagesNeeded;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					if (NumStagesNeeded == Stages.Num())
 					{
 						if (!GlobalShaderMap->GetShaderPipeline(Pipeline))
 						{
 							return false;
 						}
-					}
-				}
-			}
-
-			for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList()); ShaderTypeIt; ShaderTypeIt.Next())
-			{
-				FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
-				if (ShouldCacheGlobalShader(GlobalShaderType, TypeNameSubstring, Platform))
-				{
-					if (!GlobalShaderMap->HasShader(GlobalShaderType))
-					{
-						return false;
 					}
 				}
 			}
@@ -869,18 +916,30 @@ void FinishRecompileGlobalShaders()
 	GShaderCompilingManager->ProcessAsyncResults(false, true);
 }
 
-static inline FShader* ProcessCompiledJob(FShaderCompileJob* SingleJob, const FShaderPipelineType* Pipeline, TArray<EShaderPlatform>& ShaderPlatformsProcessed)
+static inline FShader* ProcessCompiledJob(FShaderCompileJob* SingleJob, const FShaderPipelineType* Pipeline, TArray<EShaderPlatform>& ShaderPlatformsProcessed, TArray<const FShaderPipelineType*>& OutSharedPipelines)
 {
 	FGlobalShaderType* GlobalShaderType = SingleJob->ShaderType->GetGlobalShaderType();
 	check(GlobalShaderType);
 	FShader* Shader = GlobalShaderType->FinishCompileShader(*SingleJob, Pipeline);
 	if (Shader)
 	{
-		// Add the new global shader instance to the global shader map.
+		// Add the new global shader instance to the global shader map if it's a shared shader
 		EShaderPlatform Platform = (EShaderPlatform)SingleJob->Input.Target.Platform;
-		if (!Pipeline || Pipeline->ShouldAddShadersToIndividualMap())
+		if (!Pipeline || !Pipeline->ShouldOptimizeUnusedOutputs())
 		{
 			GGlobalShaderMap[Platform]->AddShader(GlobalShaderType, Shader);
+			// Add this shared pipeline to the list
+			if (!Pipeline)
+			{
+				auto* JobSharedPipelines = SingleJob->SharingPipelines.Find(nullptr);
+				if (JobSharedPipelines)
+				{
+					for (auto* SharedPipeline : *JobSharedPipelines)
+					{
+						OutSharedPipelines.AddUnique(SharedPipeline);
+					}
+				}
+			}
 		}
 		ShaderPlatformsProcessed.AddUnique(Platform);
 	}
@@ -900,6 +959,7 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& Compil
 	UE_LOG(LogShaders, Warning, TEXT("Compiled %u global shaders"), CompilationResults.Num());
 
 	TArray<EShaderPlatform> ShaderPlatformsProcessed;
+	TArray<const FShaderPipelineType*> SharedPipelines;
 
 	for (int32 ResultIndex = 0; ResultIndex < CompilationResults.Num(); ResultIndex++)
 	{
@@ -907,7 +967,7 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& Compil
 		FShaderCompileJob* SingleJob = nullptr;
 		if ((SingleJob = (FShaderCompileJob*)CurrentJob.GetSingleShaderJob()) != nullptr)
 		{
-			ProcessCompiledJob(SingleJob, nullptr, ShaderPlatformsProcessed);
+			ProcessCompiledJob(SingleJob, nullptr, ShaderPlatformsProcessed, SharedPipelines);
 		}
 		else
 		{
@@ -917,7 +977,7 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& Compil
 			for (int32 Index = 0; Index < PipelineJob->StageJobs.Num(); ++Index)
 			{
 				SingleJob = PipelineJob->StageJobs[Index]->GetSingleShaderJob();
-				FShader* Shader = ProcessCompiledJob(SingleJob, PipelineJob->ShaderPipeline, ShaderPlatformsProcessed);
+				FShader* Shader = ProcessCompiledJob(SingleJob, PipelineJob->ShaderPipeline, ShaderPlatformsProcessed, SharedPipelines);
 				ShaderStages.Add(Shader);
 			}
 
@@ -925,7 +985,7 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& Compil
 			if (ShaderPipeline)
 			{
 				EShaderPlatform Platform = (EShaderPlatform)PipelineJob->StageJobs[0]->GetSingleShaderJob()->Input.Target.Platform;
-				check(ShaderPipeline && !GGlobalShaderMap[Platform]->GetShaderPipeline(ShaderPipeline->PipelineType));
+				check(ShaderPipeline && !GGlobalShaderMap[Platform]->HasShaderPipeline(ShaderPipeline->PipelineType));
 				GGlobalShaderMap[Platform]->AddShaderPipeline(PipelineJob->ShaderPipeline, ShaderPipeline);
 			}
 		}
@@ -933,6 +993,39 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& Compil
 
 	for (int32 PlatformIndex = 0; PlatformIndex < ShaderPlatformsProcessed.Num(); PlatformIndex++)
 	{
+		{
+			// Process the shader pipelines that share shaders
+			EShaderPlatform Platform = ShaderPlatformsProcessed[PlatformIndex];
+			auto* GlobalShaderMap = GGlobalShaderMap[Platform];
+			for (const FShaderPipelineType* ShaderPipelineType : SharedPipelines)
+			{
+				check(ShaderPipelineType->IsGlobalTypePipeline());
+				if (!GlobalShaderMap->HasShaderPipeline(ShaderPipelineType))
+				{
+					auto& StageTypes = ShaderPipelineType->GetStages();
+					TArray<FShader*> ShaderStages;
+					for (int32 Index = 0; Index < StageTypes.Num(); ++Index)
+					{
+						FGlobalShaderType* GlobalShaderType = ((FShaderType*)(StageTypes[Index]))->GetGlobalShaderType();
+						if (GlobalShaderType->ShouldCache(Platform))
+						{
+							FShader* Shader = GlobalShaderMap->GetShader(GlobalShaderType);
+							check(Shader);
+							ShaderStages.Add(Shader);
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					checkf(StageTypes.Num() == ShaderStages.Num(), TEXT("Internal Error adding Global ShaderPipeline %s"), ShaderPipelineType->GetName());
+					FShaderPipeline* ShaderPipeline = new FShaderPipeline(ShaderPipelineType, ShaderStages);
+					GlobalShaderMap->AddShaderPipeline(ShaderPipelineType, ShaderPipeline);
+				}
+			}
+		}
+
 		// Save the global shader map for any platforms that were recompiled
 		SaveGlobalShaderMapToDerivedDataCache(ShaderPlatformsProcessed[PlatformIndex]);
 	}

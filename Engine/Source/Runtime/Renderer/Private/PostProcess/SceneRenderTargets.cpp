@@ -240,6 +240,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bSceneDepthCleared(SnapshotSource.bSceneDepthCleared)	
 	, bSnapshot(true)
 	, QuadOverdrawIndex(SnapshotSource.QuadOverdrawIndex)
+	, SeparateTranslucencyRT(SnapshotSource.SeparateTranslucencyRT)
+	, SeparateTranslucencyDepthRT(SnapshotSource.SeparateTranslucencyDepthRT)
 {
 	SnapshotArray(SceneColor, SnapshotSource.SceneColor);
 	SnapshotArray(TranslucencyShadowTransmission, SnapshotSource.TranslucencyShadowTransmission);
@@ -249,13 +251,6 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	SnapshotArray(ReflectionBrightness, SnapshotSource.ReflectionBrightness);
 	SnapshotArray(TranslucencyLightingVolumeAmbient, SnapshotSource.TranslucencyLightingVolumeAmbient);
 	SnapshotArray(TranslucencyLightingVolumeDirectional, SnapshotSource.TranslucencyLightingVolumeDirectional);
-
-	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	if (ViewState)
-	{
-		SeparateTranslucencyRT = GRenderTargetPool.MakeSnapshot(ViewState->SeparateTranslucencyRT);
-		SeparateTranslucencyDepthRT = GRenderTargetPool.MakeSnapshot(ViewState->SeparateTranslucencyDepthRT);
-	}
 }
 
 
@@ -1291,11 +1286,9 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 		}
 		else
 		{
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
-			SeparateTranslucency = &ViewState->GetSeparateTranslucency(RHICmdList, ScaledSize);
+			SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
 		}
-		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-		const FTexture2DRHIRef &SeparateTranslucencyDepth = Scale < 1.0f ? (const FTexture2DRHIRef&)ViewState->GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY())->GetRenderTargetItem().TargetableTexture : GetSceneDepthSurface();
+		const FTexture2DRHIRef &SeparateTranslucencyDepth = Scale < 1.0f ? (const FTexture2DRHIRef&)GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY())->GetRenderTargetItem().TargetableTexture : GetSceneDepthSurface();
 
 		check((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture->GetClearColor() == FLinearColor::Black);
 		// clear the render target the first time, re-use afterwards
@@ -1334,10 +1327,9 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
 			float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			FIntPoint ScaledSize(GetBufferSizeXY().X * Scale, GetBufferSizeXY().Y * Scale);
-			SeparateTranslucency = &ViewState->GetSeparateTranslucency( RHICmdList, ScaledSize );
-			SeparateTranslucencyDepth = &ViewState->GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY());
+			SeparateTranslucency = &GetSeparateTranslucency( RHICmdList, ScaledSize );
+			SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY());
 		}
 
 		RHICmdList.CopyToResolveTarget((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucency)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
@@ -1447,8 +1439,7 @@ bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) co
 
 	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
 		&& View.Family->EngineShowFlags.PostProcessing
-		&& View.Family->EngineShowFlags.SeparateTranslucency
-		&& View.State != NULL;	// We require a ViewState in order for separate translucency to work (it keeps track of our SeparateTranslucencyRT)
+		&& View.Family->EngineShowFlags.SeparateTranslucency;
 }
 
 void FSceneRenderTargets::InitEditorPrimitivesColor(FRHICommandList& RHICmdList)
@@ -2269,15 +2260,13 @@ void FSceneTextureShaderParameters::Set(
 
 		if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
 		{
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
 			const FTexture2DRHIRef* DepthTexture = SceneContext.GetActualDepthTexture();
 			if (SceneContext.IsSeparateTranslucencyPass()
 				&& CVar->GetValueOnRenderThread() < 100
-				&& ViewState
-				&& ViewState->IsSeparateTranslucencyDepthValid())
+				&& SceneContext.IsSeparateTranslucencyDepthValid())
 			{
-				DepthTexture = &ViewState->GetSeparateTranslucencyDepthSurface();
+				DepthTexture = &SceneContext.GetSeparateTranslucencyDepthSurface();
 			}
 
 			SetTextureParameter(

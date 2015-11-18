@@ -1297,8 +1297,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			GPostProcessing.Process(RHICmdList, Views[ ViewIndex ], VelocityRT);
 
 			// we rendered to it during the frame, seems we haven't made use of it, because it should be released
-			FSceneViewState* ViewState = (FSceneViewState*)Views[ ViewIndex ].State;
-			check( !ViewState || !ViewState->SeparateTranslucencyRT );
+			check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
 		}
 	}
 	else

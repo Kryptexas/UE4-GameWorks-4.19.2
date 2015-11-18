@@ -1830,7 +1830,10 @@ void FreeSkeletalMeshBuffersSinkCallback()
 		FlushRenderingCommands();
 		for (TObjectIterator<USkeletalMesh> It;It;++It)
 		{
-			It->ReleaseCPUResources();
+			if (!It->GetImportedResource()->RequiresCPUSkinning(GMaxRHIFeatureLevel))
+			{
+				It->ReleaseCPUResources();
+			}
 		}
 	}
 }

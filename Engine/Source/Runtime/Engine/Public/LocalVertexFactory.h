@@ -89,6 +89,16 @@ public:
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override;
+
+	FLocalVertexFactoryShaderParameters()
+		: bAnySpeedTreeParamIsBound(false)
+	{
+	}
+
+	// True if either of the two below is bound, which puts us on the slow path in SetMesh
+	bool bAnySpeedTreeParamIsBound;
 	// SpeedTree LOD parameter
 	FShaderParameter LODParameter;
+	// SpeedTree wind parameter
+	FShaderResourceParameter WindParameter;
 };

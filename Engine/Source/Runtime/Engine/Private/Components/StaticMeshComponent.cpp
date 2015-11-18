@@ -871,8 +871,17 @@ void UStaticMeshComponent::CachePaintedDataIfNecessary()
 					}
 				}
 				else
-				{
-					UE_LOG(LogStaticMesh, Warning, TEXT("Unable to cache painted data for mesh component. Vertex color overrides will be lost if the mesh is modified. %s %s LOD%d."), *GetFullName(), *StaticMesh->GetFullName(), LODIter.GetIndex() );
+				{					
+					// At this point we can't resolve the colors, so just discard any isolated data we still have
+					if (CurCompLODInfo.OverrideVertexColors && CurCompLODInfo.OverrideVertexColors->GetNumVertices() > 0)
+					{
+						UE_LOG(LogStaticMesh, Warning, TEXT("Level requires re-saving! Outdated vertex color overrides have been discarded for %s %s LOD%d. "), *GetFullName(), *StaticMesh->GetFullName(), LODIter.GetIndex());
+						CurCompLODInfo.ReleaseOverrideVertexColorsAndBlock();
+					}
+					else
+					{
+						UE_LOG(LogStaticMesh, Warning, TEXT("Unable to cache painted data for mesh component. Vertex color overrides will be lost if the mesh is modified. %s %s LOD%d."), *GetFullName(), *StaticMesh->GetFullName(), LODIter.GetIndex() );
+					}
 				}
 			}
 		}

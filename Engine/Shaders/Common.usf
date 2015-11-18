@@ -923,15 +923,20 @@ float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 #endif
 }
 
-// Converts depth buffer Z / W into W
+// also see ConvertToDeviceZ()
+// @param DeviceZ value that is stored in the depth buffer (Z/W)
+// @return SceneDepth (linear in world units, W)
 float ConvertFromDeviceZ(float DeviceZ)
 {
 	return 1.f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);	
 }
 
-// inverse opteration of ConvertFromDeviceZ
+// inverse operation of ConvertFromDeviceZ()
+// @param SceneDepth (linear in world units, W)
+// @return DeviceZ (Z/W)
 float ConvertToDeviceZ(float SceneDepth)
 {
+	// todo: can change the ADD+MUL into a MAD for precision and performance
 	return 1.0f / ((SceneDepth + View.InvDeviceZToWorldZTransform[3]) * View.InvDeviceZToWorldZTransform[2]);
 }
 

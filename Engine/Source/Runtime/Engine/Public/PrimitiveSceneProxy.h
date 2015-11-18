@@ -423,8 +423,6 @@ public:
 	inline bool AllowApproximateOcclusion() const { return bAllowApproximateOcclusion; }
 	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetUniformBuffer() const 
 	{
-
-		check(!NeedsUniformBufferUpdate());
 		return UniformBuffer; 
 	}
 	inline bool HasPerInstanceHitProxies () const { return bHasPerInstanceHitProxies; }

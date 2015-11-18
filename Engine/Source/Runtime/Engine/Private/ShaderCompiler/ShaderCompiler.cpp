@@ -977,30 +977,30 @@ void FShaderCompileThreadRunnable::CompileDirectlyThroughDll()
 				if (SingleJob)
 				{
 					const FName Format = LegacyShaderPlatformToShaderFormat(EShaderPlatform(SingleJob->Input.Target.Platform));
-				const IShaderFormat* Compiler = TPM.FindShaderFormat(Format);
+					const IShaderFormat* Compiler = TPM.FindShaderFormat(Format);
 
-				if (!Compiler)
-				{
-					UE_LOG(LogShaderCompilers, Fatal, TEXT("Can't compile shaders for format %s, couldn't load compiler dll"), *Format.ToString());
-				}
-				CA_ASSUME(Compiler != NULL);
+					if (!Compiler)
+					{
+						UE_LOG(LogShaderCompilers, Fatal, TEXT("Can't compile shaders for format %s, couldn't load compiler dll"), *Format.ToString());
+					}
+					CA_ASSUME(Compiler != NULL);
 
 					if (IsValidRef(SingleJob->Input.SharedEnvironment))
-				{
-					// Merge the shared environment into the per-shader environment before calling into the compile function
-					// Normally this happens in the worker
+					{
+						// Merge the shared environment into the per-shader environment before calling into the compile function
+						// Normally this happens in the worker
 						SingleJob->Input.Environment.Merge(*SingleJob->Input.SharedEnvironment);
-				}
+					}
 
-				// Compile the shader directly through the platform dll (directly from the shader dir as the working directory)
+					// Compile the shader directly through the platform dll (directly from the shader dir as the working directory)
 					Compiler->CompileShader(Format, SingleJob->Input, SingleJob->Output, FString(FPlatformProcess::ShaderDir()));
 
 					SingleJob->bSucceeded = SingleJob->Output.bSucceeded;
 
 					if (SingleJob->Output.bSucceeded)
-				{
-					// Generate a hash of the output and cache it
-					// The shader processing this output will use it to search for existing FShaderResources
+					{
+						// Generate a hash of the output and cache it
+						// The shader processing this output will use it to search for existing FShaderResources
 						SingleJob->Output.GenerateOutputHash();
 					}
 				}
@@ -1284,10 +1284,10 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 
 	if (DEBUG_SHADERCOMPILEWORKER)
 	{
-	// Note: Set breakpoint here and launch the shadercompileworker with WorkerParameters a cmd-line
-	const TCHAR* WorkerParametersText = *WorkerParameters;
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
-	return FProcHandle();
+		// Note: Set breakpoint here and launch the ShaderCompileWorker with WorkerParameters a cmd-line
+		const TCHAR* WorkerParametersText = *WorkerParameters;
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
+		return FProcHandle();
 	}
 	else
 	{
@@ -1499,7 +1499,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 
 			if (bSuccess)
 			{
-				bShaderMapComplete = ShaderMap->ProcessCompilationResults(ResultArray, CompileResults.FinalizeJobIndex, TimeBudget);
+				bShaderMapComplete = ShaderMap->ProcessCompilationResults(ResultArray, CompileResults.FinalizeJobIndex, TimeBudget, CompileResults.SharedPipelines);
 			}
 
 
