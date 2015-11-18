@@ -668,7 +668,10 @@ void USceneComponent::OnComponentDestroyed()
 			bool bNeedsDetach = true;
 			if (AttachParent)
 			{
-				bNeedsDetach = (Child->AttachTo(AttachParent) == false);
+				Child->AttachTo(AttachParent);
+				// If, after telling the Child to attach to our AttachParent, it is still attached to us it has
+				// failed and we want to just forcefully detach it
+				bNeedsDetach = (Child->AttachParent == this);
 			}
 			if (bNeedsDetach)
 			{
