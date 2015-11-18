@@ -501,6 +501,10 @@ struct ENGINE_API FWorldAsyncTraceState
 
 	/** Used as counter for Buffer swap for DataBuffer. Right now it's only 2, but it can change. */
 	int32 CurrentFrame;
+
+	/** Next available index for each pool - used as ID for each trace query **/
+	int32 NextAvailableTraceIndex;
+	int32 NextAvailableOverlapIndex;
 };
 
 #if WITH_EDITOR
