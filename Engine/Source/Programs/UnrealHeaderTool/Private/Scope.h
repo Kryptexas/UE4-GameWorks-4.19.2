@@ -267,8 +267,8 @@ class FFileScope : public FScope
 {
 public:
 	FFileScope()
-		: Name(NAME_None)
-		, SourceFile(nullptr)
+		: SourceFile(nullptr)
+		, Name(NAME_None)
 	{ }
 	// Constructor.
 	FFileScope(FName Name, FUnrealSourceFile* SourceFile);

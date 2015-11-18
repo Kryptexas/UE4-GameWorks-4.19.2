@@ -191,7 +191,7 @@ struct FNamePropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FStrPropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FStrPropertyArchiveProxy::FStrPropertyArchiveProxy() { }
+	FStrPropertyArchiveProxy() { }
 	FStrPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UStrProperty* StrProperty);
 	static void AddReferencedNames(const UStrProperty* Property, FUHTMakefile& UHTMakefile)
 	{
@@ -203,7 +203,7 @@ struct FStrPropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FTextPropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FTextPropertyArchiveProxy::FTextPropertyArchiveProxy() { }
+	FTextPropertyArchiveProxy() { }
 	FTextPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UTextProperty* TextProperty);
 
 	UTextProperty* CreateTextProperty(const FUHTMakefile& UHTMakefile) const;
@@ -215,7 +215,7 @@ struct FTextPropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FDelegatePropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FDelegatePropertyArchiveProxy::FDelegatePropertyArchiveProxy() { }
+	FDelegatePropertyArchiveProxy() { }
 	FDelegatePropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UDelegateProperty* DelegateProperty);
 
 	UDelegateProperty* CreateDelegateProperty(const FUHTMakefile& UHTMakefile) const;
@@ -227,7 +227,7 @@ struct FDelegatePropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FMulticastDelegatePropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FMulticastDelegatePropertyArchiveProxy::FMulticastDelegatePropertyArchiveProxy() { }
+	FMulticastDelegatePropertyArchiveProxy() { }
 	FMulticastDelegatePropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UMulticastDelegateProperty* MulticastDelegateProperty);
 
 	UMulticastDelegateProperty* CreateMulticastDelegateProperty(const FUHTMakefile& UHTMakefile) const;
@@ -239,7 +239,7 @@ struct FMulticastDelegatePropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FObjectPropertyBaseArchiveProxy : public FPropertyArchiveProxy
 {
-	FObjectPropertyBaseArchiveProxy::FObjectPropertyBaseArchiveProxy() { }
+	FObjectPropertyBaseArchiveProxy() { }
 	FObjectPropertyBaseArchiveProxy(FUHTMakefile& UHTMakefile, const UObjectPropertyBase* ObjectPropertyBase);
 
 	UObjectPropertyBase* CreateObjectPropertyBase(const FUHTMakefile& UHTMakefile) const;
@@ -257,7 +257,7 @@ struct FObjectPropertyBaseArchiveProxy : public FPropertyArchiveProxy
 
 struct FClassPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 {
-	FClassPropertyArchiveProxy::FClassPropertyArchiveProxy() { }
+	FClassPropertyArchiveProxy() { }
 	FClassPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UClassProperty* ClassProperty);
 
 	UClassProperty* CreateClassProperty(const FUHTMakefile& UHTMakefile) const;
@@ -275,7 +275,7 @@ struct FClassPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 
 struct FObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 {
-	FObjectPropertyArchiveProxy::FObjectPropertyArchiveProxy() { }
+	FObjectPropertyArchiveProxy() { }
 	FObjectPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UObjectProperty* ObjectProperty);
 	static void AddReferencedNames(const UObjectProperty* Property, FUHTMakefile& UHTMakefile)
 	{
@@ -287,7 +287,7 @@ struct FObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 
 struct FWeakObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 {
-	FWeakObjectPropertyArchiveProxy::FWeakObjectPropertyArchiveProxy() { }
+	FWeakObjectPropertyArchiveProxy() { }
 	FWeakObjectPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UWeakObjectProperty* WeakObjectProperty);
 
 	UWeakObjectProperty* CreateWeakObjectProperty(const FUHTMakefile& UHTMakefile) const;
@@ -299,7 +299,7 @@ struct FWeakObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 
 struct FLazyObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 {
-	FLazyObjectPropertyArchiveProxy::FLazyObjectPropertyArchiveProxy() { }
+	FLazyObjectPropertyArchiveProxy() { }
 	FLazyObjectPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const ULazyObjectProperty* LazyObjectProperty);
 
 	ULazyObjectProperty* CreateLazyObjectProperty(const FUHTMakefile& UHTMakefile) const;
@@ -311,7 +311,7 @@ struct FLazyObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 
 struct FAssetObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 {
-	FAssetObjectPropertyArchiveProxy::FAssetObjectPropertyArchiveProxy() { }
+	FAssetObjectPropertyArchiveProxy() { }
 	FAssetObjectPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UAssetObjectProperty* AssetObjectProperty);
 
 	UAssetObjectProperty* CreateAssetObjectProperty(const FUHTMakefile& UHTMakefile) const;
@@ -323,7 +323,7 @@ struct FAssetObjectPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 
 struct FAssetClassPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 {
-	FAssetClassPropertyArchiveProxy::FAssetClassPropertyArchiveProxy() { }
+	FAssetClassPropertyArchiveProxy() { }
 	FAssetClassPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UAssetClassProperty* AssetClassProperty);
 
 	UAssetClassProperty* CreateAssetClassProperty(const FUHTMakefile& UHTMakefile) const;
@@ -341,7 +341,7 @@ struct FAssetClassPropertyArchiveProxy : public FObjectPropertyBaseArchiveProxy
 
 struct FInterfacePropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FInterfacePropertyArchiveProxy::FInterfacePropertyArchiveProxy() { }
+	FInterfacePropertyArchiveProxy() { }
 	FInterfacePropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UInterfaceProperty* InterfaceProperty);
 
 	UInterfaceProperty* CreateInterfaceProperty(const FUHTMakefile& UHTMakefile) const;
@@ -359,7 +359,7 @@ struct FInterfacePropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FStructPropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FStructPropertyArchiveProxy::FStructPropertyArchiveProxy() { }
+	FStructPropertyArchiveProxy() { }
 	FStructPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UStructProperty* StructProperty);
 
 	UStructProperty* CreateStructProperty(const FUHTMakefile& UHTMakefile) const;
@@ -383,7 +383,7 @@ FArchive& operator<<(FArchive& Ar, FScriptMapLayout& ScriptMapLayout);
 
 struct FMapPropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FMapPropertyArchiveProxy::FMapPropertyArchiveProxy() { }
+	FMapPropertyArchiveProxy() { }
 	FMapPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UMapProperty* MapProperty);
 
 	UMapProperty* CreateMapProperty(const FUHTMakefile& UHTMakefile) const;
@@ -403,7 +403,7 @@ struct FMapPropertyArchiveProxy : public FPropertyArchiveProxy
 
 struct FArrayPropertyArchiveProxy : public FPropertyArchiveProxy
 {
-	FArrayPropertyArchiveProxy::FArrayPropertyArchiveProxy() { }
+	FArrayPropertyArchiveProxy() { }
 	FArrayPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UArrayProperty* ArrayProperty);
 
 	UArrayProperty* CreateArrayProperty(const FUHTMakefile& UHTMakefile) const;

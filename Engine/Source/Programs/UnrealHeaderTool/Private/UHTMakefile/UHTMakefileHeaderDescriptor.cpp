@@ -6,9 +6,9 @@
 #include "ClassMaps.h"
 
 FUHTMakefileHeaderDescriptor::FUHTMakefileHeaderDescriptor(FUHTMakefile* InUHTMakefile /*= nullptr*/)
-	: LoadingPhase(EUHTMakefileLoadingPhase::Preload)
-	, UHTMakefile(InUHTMakefile)
+	: UHTMakefile(InUHTMakefile)
 	, SourceFile(nullptr)
+	, LoadingPhase(EUHTMakefileLoadingPhase::Preload)
 {
 	InitializeObjectIndexes.AddDefaulted(+EUHTMakefileLoadingPhase::Max);
 	for (uint8 i = 0; i < +EUHTMakefileLoadingPhase::Max; ++i)

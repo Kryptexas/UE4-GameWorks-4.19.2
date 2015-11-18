@@ -104,10 +104,10 @@ class FUHTMakefile
 {
 public:
 	FUHTMakefile()
-		: Version(CurrentVersion)
-		, LoadingPhase(EUHTMakefileLoadingPhase::Max)
+		: bShouldForceRegeneration(false)
 		, bShouldMoveNewObjects(false)
-		, bShouldForceRegeneration(false)
+		, Version(CurrentVersion)
+		, LoadingPhase(EUHTMakefileLoadingPhase::Max)
 	{
 		InitializationOrder.AddDefaulted(+EUHTMakefileLoadingPhase::Max);
 	}

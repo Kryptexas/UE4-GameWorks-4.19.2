@@ -517,7 +517,7 @@ void FUHTMakefile::SaveToFile(const TCHAR* MakefilePath)
 	UE_LOG(LogCompile, Log, TEXT("Saving UHT makefile took %f seconds"), UHTMakefileLoadTime);
 }
 
-void FUHTMakefile::LoadFromFile(const TCHAR* MakefilePath, FManifest* Manifest)
+void FUHTMakefile::LoadFromFile(const TCHAR* MakefilePath, FManifest* InManifest)
 {
 	FArchive* UHTMakefileArchive = IFileManager::Get().CreateFileReader(MakefilePath);
 	if (!UHTMakefileArchive)
@@ -537,7 +537,7 @@ void FUHTMakefile::LoadFromFile(const TCHAR* MakefilePath, FManifest* Manifest)
 	UHTMakefileLoadTimer.Stop();
 	UE_LOG(LogCompile, Log, TEXT("Loading UHT makefile took %f seconds"), UHTMakefileLoadTime);
 
-	UpdateModulesCompatibility(Manifest);
+	UpdateModulesCompatibility(InManifest);
 }
 
 bool FUHTMakefile::CanLoadModule(const FManifestModule& ManifestModule)

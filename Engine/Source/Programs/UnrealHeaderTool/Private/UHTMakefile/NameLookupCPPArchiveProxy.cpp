@@ -3,19 +3,21 @@
 #include "UHTMakefile/UHTMakefile.h"
 #include "UHTMakefile/NameLookupCPPArchiveProxy.h"
 
-FNameLookupCPPArchiveProxy::FNameLookupCPPArchiveProxy(const FUHTMakefile& UHTMakefile, const FNameLookupCPP* NameLookupCPP)
+FNameLookupCPPArchiveProxy::FNameLookupCPPArchiveProxy(const FUHTMakefile& UHTMakefile, const FNameLookupCPP* InNameLookupCPP)
 {
-	TArray<TPair<FSerializeIndex, FString>> StructNameMap;
-	StructNameMap.Empty(NameLookupCPP->StructNameMap.Num());
-	for (auto& Kvp : NameLookupCPP->StructNameMap)
+	// TODO: This really probably shouldn't be a local variable and should be populating the member variable instead
+	TArray<TPair<FSerializeIndex, FString>> StructNameMapLocal;
+	StructNameMapLocal.Empty(InNameLookupCPP->StructNameMap.Num());
+	for (auto& Kvp : InNameLookupCPP->StructNameMap)
 	{
-		StructNameMap.Add(TPairInitializer<FSerializeIndex, FString>(UHTMakefile.GetStructIndex(Kvp.Key), Kvp.Value));
+		StructNameMapLocal.Add(TPairInitializer<FSerializeIndex, FString>(UHTMakefile.GetStructIndex(Kvp.Key), Kvp.Value));
 	}
-	TArray<FString> InterfaceAllocations;
-	InterfaceAllocations.Empty(NameLookupCPP->InterfaceAllocations.Num());
-	for (TCHAR* InterfaceAllocation : NameLookupCPP->InterfaceAllocations)
+	// TODO: This really probably shouldn't be a local variable and should be populating the member variable instead
+	TArray<FString> InterfaceAllocationsLocal;
+	InterfaceAllocationsLocal.Empty(InNameLookupCPP->InterfaceAllocations.Num());
+	for (TCHAR* InterfaceAllocation : InNameLookupCPP->InterfaceAllocations)
 	{
-		InterfaceAllocations.Add(InterfaceAllocation);
+		InterfaceAllocationsLocal.Add(InterfaceAllocation);
 	}
 }
 
@@ -27,7 +29,7 @@ FArchive& operator<<(FArchive& Ar, FNameLookupCPPArchiveProxy& NameLookupCPPArch
 	return Ar;
 }
 
-void FNameLookupCPPArchiveProxy::Resolve(FNameLookupCPP* NameLookupCPP, FUHTMakefile& UHTMakefile)
+void FNameLookupCPPArchiveProxy::Resolve(FNameLookupCPP* InNameLookupCPP, FUHTMakefile& UHTMakefile)
 {
 
 }

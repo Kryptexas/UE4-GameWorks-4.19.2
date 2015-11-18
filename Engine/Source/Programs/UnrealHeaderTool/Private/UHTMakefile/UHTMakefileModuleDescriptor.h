@@ -11,9 +11,10 @@ class FUHTMakefileModuleDescriptor
 {
 public:
 	FUHTMakefileModuleDescriptor(FUHTMakefile* InUHTMakefile = nullptr)
-		: UHTMakefile(InUHTMakefile)
+		: LoadingPhase(EUHTMakefileLoadingPhase::Preload)
+		, UHTMakefile(InUHTMakefile)
 		, Package(nullptr)
-		, LoadingPhase(EUHTMakefileLoadingPhase::Preload)
+		
 	{
 		HeadersOrder.AddDefaulted(+EUHTMakefileLoadingPhase::Max);
 	}
