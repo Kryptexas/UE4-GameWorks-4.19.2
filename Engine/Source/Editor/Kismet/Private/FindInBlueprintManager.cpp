@@ -816,7 +816,7 @@ public:
 						// Save the package
 						EObjectFlags ObjectFlags = (WorldAsset == nullptr)? RF_Standalone : RF_NoFlags;
 						
-						if (GEditor->SavePackage(Package, WorldAsset, ObjectFlags, *FinalPackageFilename))
+						if (GEditor->SavePackage(Package, WorldAsset, ObjectFlags, *FinalPackageFilename, GError, nullptr, false, true, SAVE_NoError))
 						{
 							bFailedToCache = false;
 						}
