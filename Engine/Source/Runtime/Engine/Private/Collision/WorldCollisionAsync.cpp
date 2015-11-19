@@ -292,8 +292,6 @@ FWorldAsyncTraceState::FWorldAsyncTraceState()
 	, NextAvailableTraceIndex  (0)
 	, NextAvailableOverlapIndex(0)
 {
-	// initial buffer is open for business
-	DataBuffer[CurrentFrame].bAsyncAllowed = true;
 }
 
 FTraceHandle UWorld::AsyncLineTraceByChannel(const FVector& Start,const FVector& End, ECollisionChannel TraceChannel, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */, FTraceDelegate * InDelegate/* =NULL */, uint32 UserData /* = 0 */, bool bMultiTrace/* =false */ )
@@ -408,16 +406,21 @@ void UWorld::ResetAsyncTrace()
 	WaitForAllAsyncTraceTasks();
 
 	// do run delegates before starting next round
-	for (int32 Idx = 0; Idx != DataBufferExecuted.TraceData.Num(); ++Idx)
+	for (int32 Idx = 0; Idx != AsyncTraceState.NextAvailableTraceIndex; ++Idx)
 	{
 		auto& TraceData = FBufferIndexPair(Idx).DatumLookupChecked(DataBufferExecuted.TraceData);
 		TraceData.Delegate.ExecuteIfBound(FTraceHandle(TraceData.FrameNumber, Idx), TraceData);
 	}
-	for (int32 Idx = 0; Idx != DataBufferExecuted.OverlapData.Num(); ++Idx)
+	for (int32 Idx = 0; Idx != AsyncTraceState.NextAvailableOverlapIndex; ++Idx)
 	{
 		auto& TraceData = FBufferIndexPair(Idx).DatumLookupChecked(DataBufferExecuted.OverlapData);
 		TraceData.Delegate.ExecuteIfBound(FTraceHandle(TraceData.FrameNumber, Idx), TraceData);
 	}
+
+	// re-initialize all variables
+	AsyncTraceState.GetBufferForCurrentFrame().bAsyncAllowed = true;
+	AsyncTraceState.NextAvailableTraceIndex   = 0;
+	AsyncTraceState.NextAvailableOverlapIndex = 0;
 }
 
 void UWorld::FinishAsyncTrace()
@@ -431,10 +434,4 @@ void UWorld::FinishAsyncTrace()
 
 	// increase buffer index to next one
 	++AsyncTraceState.CurrentFrame;
-
-	// set up new buffer to accept trace requests
-	AsyncTraceState.GetBufferForCurrentFrame().bAsyncAllowed = true;
-	AsyncTraceState.NextAvailableTraceIndex = 0;
-	AsyncTraceState.NextAvailableOverlapIndex = 0;
-
 }
