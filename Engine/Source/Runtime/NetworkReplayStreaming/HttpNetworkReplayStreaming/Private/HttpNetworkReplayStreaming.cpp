@@ -306,14 +306,14 @@ void FHttpNetworkReplayStreamer::AddRequestToQueue( const EQueuedHttpRequestType
 {
 	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddRequestToQueue. Type: %s" ), EQueuedHttpRequestType::ToString( Type ) );
 
-	QueuedHttpRequests.Enqueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequest( Type, Request ) ) );
+	QueuedHttpRequests.Add( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequest( Type, Request ) ) );
 }
 
 void FHttpNetworkReplayStreamer::AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request )
 {
 	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddCustomRequestToQueue. Type: %s" ), EQueuedHttpRequestType::ToString( Request->Type ) );
 
-	QueuedHttpRequests.Enqueue( Request );
+	QueuedHttpRequests.Add( Request );
 }
 
 void FHttpNetworkReplayStreamer::StopStreaming()
@@ -445,6 +445,11 @@ void FHttpNetworkReplayStreamer::FlushStream()
 
 void FHttpNetworkReplayStreamer::ConditionallyFlushStream()
 {
+	if ( IsHttpRequestInFlight() || HasPendingHttpRequests() )
+	{
+		return;
+	}
+	
 	const double FLUSH_TIME_IN_SECONDS = 10;
 
 	if ( FPlatformTime::Seconds() - LastChunkTime > FLUSH_TIME_IN_SECONDS )
@@ -744,17 +749,38 @@ void FHttpNetworkReplayStreamer::DownloadHeader()
 	AddRequestToQueue( EQueuedHttpRequestType::DownloadingHeader, HttpRequest );
 }
 
+bool FHttpNetworkReplayStreamer::IsTaskPendingOrInFlight( const EQueuedHttpRequestType::Type Type ) const
+{
+	for ( const TSharedPtr< FQueuedHttpRequest >& Request : QueuedHttpRequests )
+	{
+		if ( Request->Type == Type )
+		{
+			return true;
+		}
+	}
+
+	if ( InFlightHttpRequest.IsValid() )
+	{
+		if ( InFlightHttpRequest->Type == Type )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 {
-	if ( IsHttpRequestInFlight() )
+	if ( GotoCheckpointDelegate.IsBound() )
 	{
-		// We never download next chunk if there is an http request in flight
+		// Don't download stream chunk while we're waiting for a checkpoint to download
 		return;
 	}
 
-	if ( GotoCheckpointDelegate.IsBound() )
+	if ( IsTaskPendingOrInFlight( EQueuedHttpRequestType::DownloadingStream ) )
 	{
-		// Don't download stream while we're waiting for a checkpoint to download
+		// Only download one chunk at a time
 		return;
 	}
 
@@ -859,6 +885,11 @@ void FHttpNetworkReplayStreamer::RefreshViewer( const bool bFinal )
 
 void FHttpNetworkReplayStreamer::ConditionallyRefreshViewer()
 {
+	if ( IsHttpRequestInFlight() || HasPendingHttpRequests() )
+	{
+		return;
+	}
+
 	const double REFRESH_VIEWER_IN_SECONDS = 10;
 
 	if ( FPlatformTime::Seconds() - LastRefreshViewerTime > REFRESH_VIEWER_IN_SECONDS )
@@ -884,10 +915,7 @@ void FHttpNetworkReplayStreamer::CancelStreamingRequests()
 	}
 
 	// Empty the request queue
-	TSharedPtr< FQueuedHttpRequest > QueuedRequest;
-	while ( QueuedHttpRequests.Dequeue( QueuedRequest ) )
-	{
-	}
+	QueuedHttpRequests.Empty();
 
 	StreamerState			= EStreamerState::Idle;
 	bStopStreamingCalled	= false;
@@ -1106,6 +1134,11 @@ void FHttpNetworkReplayStreamer::EnumerateCheckpoints()
 
 void FHttpNetworkReplayStreamer::ConditionallyEnumerateCheckpoints()
 {
+	if ( IsHttpRequestInFlight() || HasPendingHttpRequests() )
+	{
+		return;
+	}
+
 	if ( !bStreamIsLive )
 	{
 		// We don't need to enumerate more than once for non live streams
@@ -1714,10 +1747,12 @@ bool FHttpNetworkReplayStreamer::ProcessNextHttpRequest()
 		return false;
 	}
 
-	TSharedPtr< FQueuedHttpRequest > QueuedRequest;
-
-	if ( QueuedHttpRequests.Dequeue( QueuedRequest ) )
+	if ( QueuedHttpRequests.Num() > 0 )
 	{
+		TSharedPtr< FQueuedHttpRequest > QueuedRequest = QueuedHttpRequests[0];
+
+		QueuedHttpRequests.RemoveAt( 0 );
+
 		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::ProcessNextHttpRequest. Dequeue Type: %s" ), EQueuedHttpRequestType::ToString( QueuedRequest->Type ) );
 
 		check( !InFlightHttpRequest.IsValid() );
@@ -1761,22 +1796,16 @@ void FHttpNetworkReplayStreamer::ProcessRequestInternal( TSharedPtr< class IHttp
 
 void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 {
-	if ( IsHttpRequestInFlight() )
-	{
-		// We only process one http request at a time to keep things simple
-		return;
-	}
-
 	// Attempt to process the next http request
 	if ( ProcessNextHttpRequest() )
 	{
-		// We can now return since we know there is a request in flight
 		check( IsHttpRequestInFlight() );
-		return;
 	}
 
-	// We should have no pending or requests in flight at this point
-	check( !HasPendingHttpRequests() );
+	if ( bStopStreamingCalled )
+	{
+		return;
+	}
 
 	if ( StreamerState == EStreamerState::StreamingUp )
 	{
@@ -1784,6 +1813,12 @@ void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 	}
 	else if ( StreamerState == EStreamerState::StreamingDown )
 	{
+		if ( IsTaskPendingOrInFlight( EQueuedHttpRequestType::StartDownloading ) )
+		{
+			// If we're still waiting on finalizing the download request then return
+			return;
+		}
+
 		// Check to see if we're done downloading the high priority portion of the strema
 		// If so, we can cancel the request
 		if ( HighPriorityEndTime > 0 && StreamTimeRangeEnd >= HighPriorityEndTime )
@@ -1812,7 +1847,7 @@ bool FHttpNetworkReplayStreamer::IsHttpRequestInFlight() const
 bool FHttpNetworkReplayStreamer::HasPendingHttpRequests() const
 {
 	// If there is currently one in flight, or we have more to process, return true
-	return IsHttpRequestInFlight() || !QueuedHttpRequests.IsEmpty();
+	return IsHttpRequestInFlight() || QueuedHttpRequests.Num() > 0;
 }
 
 bool FHttpNetworkReplayStreamer::IsStreaming() const

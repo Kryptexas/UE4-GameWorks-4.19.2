@@ -182,6 +182,7 @@ public:
 	void ConditionallyFlushStream();
 	void StopUploading();
 	void DownloadHeader();
+	bool IsTaskPendingOrInFlight( const EQueuedHttpRequestType::Type Type ) const;
 	void ConditionallyDownloadNextChunk();
 	void RefreshViewer( const bool bFinal );
 	void ConditionallyRefreshViewer();
@@ -262,7 +263,7 @@ public:
 
 	FReplayEventList					CheckpointList;
 
-	TQueue< TSharedPtr< FQueuedHttpRequest > >	QueuedHttpRequests;
+	TArray< TSharedPtr< FQueuedHttpRequest > >	QueuedHttpRequests;
 	TSharedPtr< FQueuedHttpRequest >			InFlightHttpRequest;
 };
 

@@ -1277,7 +1277,12 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		return;
 	}
 
-	DemoCurrentTime += DeltaSeconds;
+	{
+		// Since the DeltaSeconds here hasn't been clamped or dilated by the engine,
+		// clamp here to prevent large gaps in replay frame times that can cause a lot of dead air when played back.
+		const float ClampedDeltaSeconds = FMath::Clamp( DeltaSeconds, 1.0f / 1000.0f, 1.0f / 2.0f );
+		DemoCurrentTime += ClampedDeltaSeconds;
+	}
 
 	ReplayStreamer->UpdateTotalDemoTime( GetDemoCurrentTimeInMS() );
 
