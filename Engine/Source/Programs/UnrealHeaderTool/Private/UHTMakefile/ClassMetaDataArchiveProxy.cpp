@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "UnrealHeaderTool.h"
 #include "UHTMakefile/UHTMakefile.h"
-#include "UHTMakefile/ClassMetadataArchiveProxy.h"
+#include "UHTMakefile/ClassMetaDataArchiveProxy.h"
 
 FClassMetaDataArchiveProxy::FClassMetaDataArchiveProxy(const FUHTMakefile& UHTMakefile, const FClassMetaData* ClassMetaData)
 {
