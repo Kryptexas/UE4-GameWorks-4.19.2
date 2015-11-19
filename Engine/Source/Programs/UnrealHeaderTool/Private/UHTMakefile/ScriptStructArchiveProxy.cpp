@@ -1,6 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
 #include "UnrealHeaderTool.h"
 #include "UHTMakefile/UHTMakefile.h"
 #include "UHTMakefile/StructArchiveProxy.h"
