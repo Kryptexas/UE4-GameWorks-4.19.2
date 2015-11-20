@@ -1724,7 +1724,10 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 		for (auto Dependency : ProcessedDependencies)
 		{
 			FDependsNode* RedirectedDependency = ResolveRedirector(Dependency, Data, RedirectCache);
-			check(RedirectedDependency);
+			if (RedirectedDependency == nullptr)
+			{
+				RedirectedDependency = Dependency;
+			}
 			int32 Index = AssetIndexMap[RedirectedDependency->GetPackageName()];
 			Ar << Index;
 		}
