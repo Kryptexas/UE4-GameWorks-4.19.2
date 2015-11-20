@@ -583,7 +583,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 	if (bLooping || ParseParams.bLooping)
 	{
 		WaveInstance->bIsFinished = false;
-#if !NO_LOGGING
+#if !(NO_LOGGING || UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (!ActiveSound.bWarnedAboutOrphanedLooping && ActiveSound.GetAudioComponent() == nullptr)
 		{
 			UE_LOG(LogAudio, Warning, TEXT("Detected orphaned looping sound '%s'."), *ActiveSound.Sound->GetName());
@@ -599,7 +599,12 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->Volume = ParseParams.Volume * Volume;
 		WaveInstance->VolumeMultiplier = ParseParams.VolumeMultiplier;
 		WaveInstance->Pitch = ParseParams.Pitch * Pitch;
-		WaveInstance->HighFrequencyGain = ParseParams.HighFrequencyGain;
+		WaveInstance->bEnableLowPassFilter = ParseParams.bEnableLowPassFilter;
+		WaveInstance->bIsOccluded = ParseParams.bIsOccluded;
+		WaveInstance->LowPassFilterFrequency = ParseParams.LowPassFilterFrequency;
+		WaveInstance->OcclusionFilterFrequency = ParseParams.OcclusionFilterFrequency;
+		WaveInstance->AttenuationFilterFrequency = ParseParams.AttenuationFilterFrequency;
+		WaveInstance->AmbientZoneFilterFrequency = ParseParams.AmbientZoneFilterFrequency;
 		WaveInstance->bApplyRadioFilter = ActiveSound.bApplyRadioFilter;
 		WaveInstance->StartTime = ParseParams.StartTime;
 		WaveInstance->UserIndex = ActiveSound.UserIndex;

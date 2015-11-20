@@ -116,7 +116,10 @@ public:
 	{
 		return Outer;
 	}
-	const FName GetFName() const;
+	FORCEINLINE FName GetFName() const
+	{
+		return Name;
+	}
 
 	/** 
 	 * Returns the stat ID of the object...

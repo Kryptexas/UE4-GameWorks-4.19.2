@@ -411,9 +411,22 @@ struct FExposedValueCopyRecord
 	GENERATED_USTRUCT_BODY()
 
 	FExposedValueCopyRecord()
-		: Source(nullptr)
+		: SourceProperty_DEPRECATED(nullptr)
+		, SourcePropertyName(NAME_None)
+		, SourceSubPropertyName(NAME_None)
+		, SourceArrayIndex(0)
+		, DestProperty(nullptr)
+		, DestArrayIndex(0)
+		, Size(0)
+		, PostCopyOperation(EPostCopyOperation::None)
+		, Source(nullptr)
 		, Dest(nullptr)
 	{}
+
+	void PostSerialize(const FArchive& Ar);
+
+	UPROPERTY()
+	UProperty* SourceProperty_DEPRECATED;
 
 	UPROPERTY()
 	FName SourcePropertyName;
@@ -441,6 +454,15 @@ struct FExposedValueCopyRecord
 
 	// Cached dest copy ptr
 	void* Dest;
+};
+
+template<>
+struct TStructOpsTypeTraits< FExposedValueCopyRecord > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 // An exposed value updater

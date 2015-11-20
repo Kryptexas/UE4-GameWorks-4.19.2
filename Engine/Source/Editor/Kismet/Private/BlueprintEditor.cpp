@@ -2815,7 +2815,7 @@ void FBlueprintEditor::FixSubObjectReferencesPostUndoRedo(UObject* InObject)
 		// This will occur during post-undo/redo of deletions
 		if (!bFoundMatchingSubObject)
 		{
-			UObject* NewSubObject = DuplicateObject(PropertySubObject, InObject, *PropertySubObject->GetName());
+			UObject* NewSubObject = DuplicateObject(PropertySubObject, InObject, PropertySubObject->GetFName());
 
 			// Don't forget to fix up all references and sub-object references
 			OldToNewInstanceMap.Add(PropertySubObject, NewSubObject);

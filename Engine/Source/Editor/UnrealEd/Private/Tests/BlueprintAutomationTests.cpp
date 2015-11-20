@@ -595,8 +595,8 @@ public:
 	{
 		UPackage* TempPackage = CreateTempPackage(BlueprintToClone->GetName());
 
-		FString TempBlueprintName = MakeUniqueObjectName(TempPackage, UBlueprint::StaticClass(), BlueprintToClone->GetFName()).ToString();
-		return Cast<UBlueprint>(StaticDuplicateObject(BlueprintToClone, TempPackage, *TempBlueprintName));
+		const FName TempBlueprintName = MakeUniqueObjectName(TempPackage, UBlueprint::StaticClass(), BlueprintToClone->GetFName());
+		return Cast<UBlueprint>(StaticDuplicateObject(BlueprintToClone, TempPackage, TempBlueprintName));
 	}
 
 	/**

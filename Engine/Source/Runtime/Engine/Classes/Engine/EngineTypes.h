@@ -1949,6 +1949,20 @@ struct FAnimSlotDesc
 
 };
 
+/** Enum for controlling buckets for update rate optimizations if we need to stagger
+ *  Multiple actor populations separately.
+ */
+UENUM()
+enum class EUpdateRateShiftBucket : uint8
+{
+	ShiftBucket0 = 0,
+	ShiftBucket1,
+	ShiftBucket2,
+	ShiftBucket3,
+	ShiftBucket4,
+	ShiftBucket5,
+	ShiftBucketMax
+};
 
 /** Container for Animation Update Rate parameters.
  * They are shared for all components of an Actor, so they can be updated in sync. */
@@ -1979,6 +1993,10 @@ public:
 	/** When skipping a frame, should it be interpolated or frozen? */
 	UPROPERTY()
 	bool bInterpolateSkippedFrames;
+
+	/** Whether or not to use the defined LOD/Frameskip map instead of separate distance factor thresholds */
+	UPROPERTY()
+	bool bShouldUseLodMap;
 
 	/** (This frame) animation update should be skipped. */
 	UPROPERTY()
@@ -2017,9 +2035,20 @@ public:
 	UPROPERTY()
 	TArray<float> BaseVisibleDistanceFactorThesholds;
 
+	/** Map of LOD levels to frame skip amounts. if bShouldUseLodMap is set these values will be used for
+	 * the frameskip amounts and the distance factor thresholds will be ignored. The flag and these values
+	 * should be configured using the customization callback when parameters are created for a component.
+	 */
+	UPROPERTY()
+	TMap<int32, int32> LODToFrameSkipMap;
+
 	/** Max Evaluation Rate allowed for interpolation to be enabled. Beyond, interpolation will be turned off. */
 	UPROPERTY()
 	int32 MaxEvalRateForInterpolation;
+
+	/** The bucket to use when deciding which counter to use to calculate shift values */
+	UPROPERTY()
+	EUpdateRateShiftBucket ShiftBucket;
 
 public:
 
@@ -2029,6 +2058,7 @@ public:
 		, UpdateRate(1)
 		, EvaluationRate(1)
 		, bInterpolateSkippedFrames(false)
+		, bShouldUseLodMap(false)
 		, bSkipUpdate(false)
 		, bSkipEvaluation(false)
 		, TickedPoseOffestTime(0.f)
@@ -2036,6 +2066,7 @@ public:
 		, ThisTickDelta(0.f)
 		, BaseNonRenderedUpdateRate(4)
 		, MaxEvalRateForInterpolation(4)
+		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
 	{ 
 		BaseVisibleDistanceFactorThesholds.Add(0.4f);
 		BaseVisibleDistanceFactorThesholds.Add(0.2f);

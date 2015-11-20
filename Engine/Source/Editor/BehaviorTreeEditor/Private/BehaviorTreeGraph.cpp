@@ -233,7 +233,7 @@ void UBehaviorTreeGraph::UpdateDeprecatedNodes()
 			// UBTTask_RunBehavior is now handled by dedicated graph node
 			if (Node->NodeInstance && Node->NodeInstance->IsA(UBTTask_RunBehavior::StaticClass()))
 			{
-				UBehaviorTreeGraphNode* NewNode = Cast<UBehaviorTreeGraphNode>(StaticDuplicateObject(Node, this, TEXT(""), RF_AllFlags, UBehaviorTreeGraphNode_SubtreeTask::StaticClass()));
+				UBehaviorTreeGraphNode* NewNode = Cast<UBehaviorTreeGraphNode>(StaticDuplicateObject(Node, this, NAME_None, RF_AllFlags, UBehaviorTreeGraphNode_SubtreeTask::StaticClass()));
 				check(NewNode);
 
 				ReplaceNodeConnections(Node, NewNode);

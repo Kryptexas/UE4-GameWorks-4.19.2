@@ -16,6 +16,9 @@ DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("Accumulate"),STAT_Accumulate,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("GetFlatAggregates"),STAT_GetFlatAggregates,STATGROUP_StatSystem);
 
+static float DumpCull = 1.0f;
+
+
 void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 {
 	OutValue = EStatCompareBy::Sum;
@@ -174,30 +177,30 @@ struct FStatSlowParams : public FStatParams
 	}
 };
 
-void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, float DumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL)
+void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, float InDumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL)
 {
 	UE_LOG(LogStats, Log, TEXT("Single Frame %lld ---------------------------------"), TargetFrame);
-	if (DumpCull == 0.0f)
+	if (InDumpCull == 0.0f)
 	{
 		UE_LOG(LogStats, Log, TEXT("Full data, use -ms=5, for example to show just the stack data with a 5ms threshhold."));
 	}
 	else
 	{
-		UE_LOG(LogStats, Log, TEXT("Culled to %fms, use -ms=0, for all data and aggregates."), DumpCull);
+		UE_LOG(LogStats, Log, TEXT("Culled to %fms, use -ms=0, for all data and aggregates."), InDumpCull);
 	}
 	{
 		UE_LOG(LogStats, Log, TEXT("Stack ---------------"));
 		FRawStatStackNode Stack;
 		StatsData.UncondenseStackStats(TargetFrame, Stack);
 		Stack.AddSelf();
-		if (DumpCull != 0.0f)
+		if (InDumpCull != 0.0f)
 		{
-			Stack.CullByCycles( int64( DumpCull / FPlatformTime::ToMilliseconds( 1 ) ) );		
+			Stack.CullByCycles( int64( InDumpCull / FPlatformTime::ToMilliseconds( 1 ) ) );		
 		}
 		Stack.CullByDepth( MaxDepth );
 		Stack.DebugPrint(Filter);
 	}
-	if (DumpCull == 0.0f)
+	if (InDumpCull == 0.0f)
 	{
 		UE_LOG(LogStats, Log, TEXT("Inclusive aggregate stack data---------------"));
 		TArray<FStatMessage> Stats;
@@ -599,7 +602,7 @@ static void DumpHitch(int64 Frame)
 		Stack.AddNameHierarchy();
 		Stack.AddSelf();
 
-		const float MinTimeToReportInSecs = 1.0f / 1000.0f;
+		const float MinTimeToReportInSecs = DumpCull / 1000.0f;
 		const int64 MinCycles = int64(MinTimeToReportInSecs / FPlatformTime::GetSecondsPerCycle());
 		FRawStatStackNode* GameThread = NULL;
 		FRawStatStackNode* RenderThread = NULL;
@@ -1457,7 +1460,6 @@ bool FGroupFilter::IsRoot(const FName& MessageName) const
 	Dump...
 -----------------------------------------------------------------------------*/
 
-static float DumpCull = 5.0f;
 static int32 MaxDepth = MAX_int32;
 static FString NameFilter;
 static FDelegateHandle DumpFrameDelegateHandle;
@@ -1718,7 +1720,7 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 	{
 #if STATS
 		FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
-		DumpCull = 5.0f;
+		DumpCull = 1.0f;
 		MaxDepth = MAX_int32;
 		NameFilter.Empty();
 

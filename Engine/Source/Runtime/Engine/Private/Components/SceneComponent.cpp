@@ -725,11 +725,12 @@ void USceneComponent::OnComponentDestroyed()
 	{
 		if (USceneComponent* Child = AttachChildren.Last())
 		{
+			bool bNeedsDetach = true;
 			if (AttachParent)
 			{
-				Child->AttachTo(AttachParent);
+				bNeedsDetach = (Child->AttachTo(AttachParent) == false);
 			}
-			else
+			if (bNeedsDetach)
 			{
 				Child->DetachFromParent();
 			}

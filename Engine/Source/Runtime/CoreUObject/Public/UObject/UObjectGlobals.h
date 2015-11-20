@@ -267,11 +267,11 @@ enum EDuplicateForPie
 	SDO_No_DuplicateForPie,
 	SDO_DuplicateForPie,
 };
-COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject,UObject* DestOuter,const TCHAR* DestName,EObjectFlags FlagMask = RF_AllFlags,UClass* DestClass=NULL, EDuplicateForPie DuplicateForPIE = SDO_No_DuplicateForPie, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
+COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateForPie DuplicateForPIE = SDO_No_DuplicateForPie, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
 COREUOBJECT_API UObject* StaticDuplicateObjectEx( struct FObjectDuplicationParameters& Parameters );
 
 /**
- * Performs UObject system pre-initialization. Depracated, do not use.
+ * Performs UObject system pre-initialization. Deprecated, do not use.
  */
 COREUOBJECT_API void PreInitUObject();
 /** 
@@ -1207,7 +1207,7 @@ TClass* NewNamedObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFla
  * @return the copied object or null if it failed for some reason
  */
 template< class T >
-T* DuplicateObject(T const* SourceObject,UObject* Outer,const TCHAR* Name = TEXT("None"))
+T* DuplicateObject(T const* SourceObject,UObject* Outer, const FName Name = NAME_None)
 {
 	if (SourceObject != NULL)
 	{

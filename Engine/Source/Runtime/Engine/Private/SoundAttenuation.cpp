@@ -202,7 +202,9 @@ bool FAttenuationSettings::operator==(const FAttenuationSettings& Other) const
 			&& FalloffDistance		    == Other.FalloffDistance
 			&& AttenuationShapeExtents	== Other.AttenuationShapeExtents
 			&& SpatializationAlgorithm  == Other.SpatializationAlgorithm
-			&& bEnableListenerFocus		== Other.bEnableListenerFocus
+			&& LPFFrequencyAtMin == Other.LPFFrequencyAtMin
+			&& LPFFrequencyAtMax == Other.LPFFrequencyAtMax
+			&& bEnableListenerFocus == Other.bEnableListenerFocus
 			&& FocusAzimuth				== Other.FocusAzimuth
 			&& NonFocusAzimuth			== Other.NonFocusAzimuth
 			&& FocusDistanceScale		== Other.FocusDistanceScale

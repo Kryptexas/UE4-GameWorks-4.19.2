@@ -891,6 +891,11 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 			if (NewActiveSound.bHasAttenuationSettings)
 			{
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
+				NewActiveSound.MaxDistance = NewActiveSound.AttenuationSettings.GetMaxDimension();
+			}
+			else
+			{
+				NewActiveSound.MaxDistance = Sound->GetMaxAudibleDistance();
 			}
 
 			NewActiveSound.ConcurrencySettings = ConcurrencySettings;

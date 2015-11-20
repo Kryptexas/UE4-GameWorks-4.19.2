@@ -5,6 +5,7 @@
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundCue.h"
 #include "SubtitleManager.h"
+#include "Audio.h"
 
 /*-----------------------------------------------------------------------------
 UAudioComponent implementation.
@@ -29,7 +30,14 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	VolumeModulationMax = 1.f;
 	PitchModulationMin = 1.f;
 	PitchModulationMax = 1.f;
-	HighFrequencyGainMultiplier = 1.0f;
+	bEnableLowPassFilter = false;
+	OcclusionVolumeAttenuation = 1.0f;
+	LowPassFilterFrequency = MAX_FILTER_FREQUENCY;
+	bEnableOcclusionChecks = false;
+	bUseComplexCollisionChecks = false;
+	OcclusionLowPassFilterFrequency = MAX_FILTER_FREQUENCY;
+	OcclusionInterpolationTime = 0.1f;
+	OcclusionCheckInterval = 0.1f;
 	ActiveCount = 0;
 }
 
@@ -47,6 +55,30 @@ FString UAudioComponent::GetDetailedInfoInternal( void ) const
 	}
 
 	return Result;
+}
+
+void UAudioComponent::PostLoad()
+{
+	const int32 LinkerUE4Version = GetLinkerUE4Version();
+
+	// Translate the old HighFrequencyGainMultiplier value to the new LowPassFilterFrequency value
+	if (LinkerUE4Version < VER_UE4_USE_LOW_PASS_FILTER_FREQ)
+	{
+		if (HighFrequencyGainMultiplier_DEPRECATED > 0.0f &&  HighFrequencyGainMultiplier_DEPRECATED < 1.0f)
+		{
+			bEnableLowPassFilter = true;
+
+			// This seems like it wouldn't make sense, but the original implementation for HighFrequencyGainMultiplier (a number between 0.0 and 1.0).
+			// In earlier versions, this was *not* used as a high frequency gain, but instead converted to a frequency value between 0.0 and 6000.0
+			// then "converted" to a radian frequency value using an equation taken from XAudio2 documentation. To recover
+			// the original intended frequency (approximately), we'll run it through that equation, then scale radian value by the max filter frequency.
+
+			float FilterConstant = 2.0f * FMath::Sin(PI * 6000.0f * HighFrequencyGainMultiplier_DEPRECATED / 48000);
+			LowPassFilterFrequency = FilterConstant * MAX_FILTER_FREQUENCY;
+		}
+	}
+
+	Super::PostLoad();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -162,7 +194,13 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				NewActiveSound.Priority = Sound->Priority;
 			}
 			NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
-			NewActiveSound.HighFrequencyGainMultiplier = HighFrequencyGainMultiplier;
+			NewActiveSound.bEnableLowPassFilter = bEnableLowPassFilter;
+			NewActiveSound.LowPassFilterFrequency = LowPassFilterFrequency;
+			NewActiveSound.bEnableOcclusionChecks = bEnableOcclusionChecks;
+			NewActiveSound.bUseComplexOcclusionChecks = bUseComplexCollisionChecks;
+			NewActiveSound.OcclusionLowPassFilterFrequency = FMath::Clamp(OcclusionLowPassFilterFrequency, MIN_FILTER_FREQUENCY, MAX_FILTER_FREQUENCY);
+			NewActiveSound.OcclusionVolumeAttenuation = FMath::Clamp(OcclusionVolumeAttenuation, 0.0f, 1.0f);
+			NewActiveSound.OcclusionInterpolationTime = FMath::Max(0.0f, OcclusionInterpolationTime);
 
 			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
 			NewActiveSound.OcclusionCheckInterval = OcclusionCheckInterval;
@@ -190,6 +228,11 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			if (NewActiveSound.bHasAttenuationSettings)
 			{
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
+				NewActiveSound.MaxDistance = NewActiveSound.AttenuationSettings.GetMaxDimension();
+			}
+			else
+			{
+				NewActiveSound.MaxDistance = Sound->GetMaxAudibleDistance();
 			}
 
 			NewActiveSound.InstanceParameters = InstanceParameters;

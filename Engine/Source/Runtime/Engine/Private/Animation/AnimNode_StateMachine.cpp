@@ -211,7 +211,6 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 	FAnimNode_Base::Initialize(Context);
 
 	const UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
-	PRIVATE_MachineDescription = AnimBlueprintClass->BakedStateMachines.IsValidIndex(StateMachineIndexInClass) ? &(AnimBlueprintClass->BakedStateMachines[StateMachineIndexInClass]) : NULL;
 
 	if (const FBakedAnimationStateMachine* Machine = GetMachineDescription())
 	{
@@ -977,3 +976,7 @@ FName FAnimNode_StateMachine::GetCurrentStateName() const
 	return NAME_None;
 }
 
+void FAnimNode_StateMachine::CacheMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass)
+{
+	PRIVATE_MachineDescription = AnimBlueprintClass->BakedStateMachines.IsValidIndex(StateMachineIndexInClass) ? &(AnimBlueprintClass->BakedStateMachines[StateMachineIndexInClass]) : nullptr;
+}

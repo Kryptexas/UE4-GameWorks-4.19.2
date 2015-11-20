@@ -538,7 +538,7 @@ void UParticleLODLevel::ConvertToSpawnModule()
 	UDistributionFloat* SourceDist = RequiredModule->SpawnRate.Distribution;
 	if (SourceDist)
 	{
-		SpawnModule->Rate.Distribution = Cast<UDistributionFloat>(StaticDuplicateObject(SourceDist, SpawnModule, TEXT("None")));
+		SpawnModule->Rate.Distribution = Cast<UDistributionFloat>(StaticDuplicateObject(SourceDist, SpawnModule));
 		SpawnModule->Rate.Distribution->bIsDirty = true;
 		SpawnModule->Rate.Initialize();
 	}
@@ -2890,7 +2890,7 @@ bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* Source
 	}
 	else
 	{
-		FCollisionQueryParams BoxParams(false);
+		FCollisionQueryParams BoxParams;
 		BoxParams.TraceTag = NAME_ParticleCollision;
 		BoxParams.AddIgnoredActor(SourceActor);
 		return GetWorld()->SweepSingleByObjectType(Hit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(HalfExtent), BoxParams);

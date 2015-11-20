@@ -325,6 +325,15 @@ void FNodeDebugData::GetFlattenedDebugData(TArray<FFlattenedDebugData>& Flattene
 	}
 }
 
+void FExposedValueCopyRecord::PostSerialize(const FArchive& Ar)
+{
+	// backwards compatibility: check value of deprecated source property and patch up property name
+	if(SourceProperty_DEPRECATED && SourcePropertyName == NAME_None)
+	{
+		SourcePropertyName = SourceProperty_DEPRECATED->GetFName();
+	}
+}
+
 void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimInstanceObject) 
 {
 	if(bInitialized)

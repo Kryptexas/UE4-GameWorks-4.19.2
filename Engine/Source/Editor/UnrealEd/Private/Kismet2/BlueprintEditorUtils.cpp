@@ -1941,7 +1941,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			UBlueprintGeneratedClass* NewBPGC = (UBlueprintGeneratedClass*)(NewBPGCAsClass);
 			if( SCSRootNode )
 			{
-				NewBPGC->SimpleConstructionScript = Cast<USimpleConstructionScript>(StaticDuplicateObject(SCSRootNode, NewBPGC, *SCSRootNode->GetName()));
+				NewBPGC->SimpleConstructionScript = Cast<USimpleConstructionScript>(StaticDuplicateObject(SCSRootNode, NewBPGC, SCSRootNode->GetFName()));
 				const TArray<USCS_Node*>& AllNodes = NewBPGC->SimpleConstructionScript->GetAllNodes();
 
 				// Duplicate all component templates
@@ -1949,7 +1949,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 				{
 					if (CurrentNode && CurrentNode->ComponentTemplate)
 					{
-						UActorComponent* DuplicatedComponent = CastChecked<UActorComponent>(StaticDuplicateObject(CurrentNode->ComponentTemplate, NewBPGC, *CurrentNode->ComponentTemplate->GetName()));
+						UActorComponent* DuplicatedComponent = CastChecked<UActorComponent>(StaticDuplicateObject(CurrentNode->ComponentTemplate, NewBPGC, CurrentNode->ComponentTemplate->GetFName()));
 						OldToNewMap.Add(CurrentNode->ComponentTemplate, DuplicatedComponent);
 						CurrentNode->ComponentTemplate = DuplicatedComponent;
 					}
@@ -1962,7 +1962,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 						UActorComponent* DuplicatedComponent =  Cast<UActorComponent>(OldToNewMap.FindRef(DefaultSceneRootNode->ComponentTemplate));
 						if (!DuplicatedComponent)
 						{
-							DuplicatedComponent = CastChecked<UActorComponent>(StaticDuplicateObject(DefaultSceneRootNode->ComponentTemplate, NewBPGC, *DefaultSceneRootNode->ComponentTemplate->GetName()));
+							DuplicatedComponent = CastChecked<UActorComponent>(StaticDuplicateObject(DefaultSceneRootNode->ComponentTemplate, NewBPGC, DefaultSceneRootNode->ComponentTemplate->GetFName()));
 							OldToNewMap.Add(DefaultSceneRootNode->ComponentTemplate, DuplicatedComponent);
 						}
 						DefaultSceneRootNode->ComponentTemplate = DuplicatedComponent;
@@ -1973,7 +1973,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			for(auto CompIt = Templates.CreateIterator(); CompIt; ++CompIt)
 			{
 				UActorComponent* OldComponent = *CompIt;
-				UActorComponent* NewComponent = CastChecked<UActorComponent>(StaticDuplicateObject(OldComponent, NewBPGC, *OldComponent->GetName()));
+				UActorComponent* NewComponent = CastChecked<UActorComponent>(StaticDuplicateObject(OldComponent, NewBPGC, OldComponent->GetFName()));
 
 				NewBPGC->ComponentTemplates.Add(NewComponent);
 				OldToNewMap.Add(OldComponent, NewComponent);
@@ -1982,7 +1982,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			for(auto TimelineIt = Timelines.CreateIterator(); TimelineIt; ++TimelineIt)
 			{
 				UTimelineTemplate* OldTimeline = *TimelineIt;
-				UTimelineTemplate* NewTimeline = CastChecked<UTimelineTemplate>(StaticDuplicateObject(OldTimeline, NewBPGC, *OldTimeline->GetName()));
+				UTimelineTemplate* NewTimeline = CastChecked<UTimelineTemplate>(StaticDuplicateObject(OldTimeline, NewBPGC, OldTimeline->GetFName()));
 
 				NewBPGC->Timelines.Add(NewTimeline);
 				OldToNewMap.Add(OldTimeline, NewTimeline);
@@ -1990,7 +1990,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 
 			if (InheritableComponentHandler)
 			{
-				NewBPGC->InheritableComponentHandler = Cast<UInheritableComponentHandler>(StaticDuplicateObject(InheritableComponentHandler, NewBPGC, *InheritableComponentHandler->GetName()));
+				NewBPGC->InheritableComponentHandler = Cast<UInheritableComponentHandler>(StaticDuplicateObject(InheritableComponentHandler, NewBPGC, InheritableComponentHandler->GetFName()));
 				if (NewBPGC->InheritableComponentHandler)
 				{
 					NewBPGC->InheritableComponentHandler->UpdateOwnerClass(NewBPGC);

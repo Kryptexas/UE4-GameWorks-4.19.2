@@ -197,6 +197,9 @@ public:
 	
 	bool IsValidTransitionIndex(int32 TransitionIndex) const;
 
+	/** Cache the internal machine description */
+	void CacheMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass);
+
 protected:
 	// Tries to get the instance information for the state machine
 	const FBakedAnimationStateMachine* GetMachineDescription() const;

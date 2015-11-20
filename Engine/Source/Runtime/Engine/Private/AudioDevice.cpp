@@ -2255,23 +2255,34 @@ void FAudioDevice::RemoveActiveSound(FActiveSound* ActiveSound)
 	check(NumRemoved == 1);
 }
 
-bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )
+bool FAudioDevice::LocationIsAudible(const FVector& Location, const float MaxDistance)
 {
-	if( MaxDistance >= WORLD_MAX )
+	if (MaxDistance >= WORLD_MAX)
 	{
-		return( true );
+		return true;
 	}
 
-	MaxDistance *= MaxDistance;
-	for( int32 i = 0; i < Listeners.Num(); i++ )
+	const float MaxDistanceSquared = MaxDistance * MaxDistance;
+	for (const FListener& Listener : Listeners)
 	{
-		if( ( Listeners[ i ].Transform.GetTranslation() - Location ).SizeSquared() < MaxDistance )
+		if (LocationIsAudible(Location, Listener, MaxDistance))
 		{
-			return( true );
+			return true;
 		}
 	}
 
-	return( false );
+	return false;
+}
+
+bool FAudioDevice::LocationIsAudible(const FVector& Location, const FListener& Listener, float MaxDistance)
+{
+	if (MaxDistance >= WORLD_MAX)
+	{
+		return true;
+	}
+
+	const float MaxDistanceSquared = MaxDistance * MaxDistance;
+	return (Listener.Transform.GetTranslation() - Location).SizeSquared() < MaxDistanceSquared;
 }
 
 UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings)

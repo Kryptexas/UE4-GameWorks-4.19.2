@@ -510,7 +510,7 @@ UParticleModule* UParticleModule::GenerateLODModule(UParticleLODLevel* SourceLOD
 	// Otherwise, construct a new object and set the values appropriately... if required.
 	UParticleModule* NewModule = NULL;
 
-	UObject* DupObject = StaticDuplicateObject(this, GetOuter(), TEXT("None"));
+	UObject* DupObject = StaticDuplicateObject(this, GetOuter());
 	if (DupObject)
 	{
 		NewModule = CastChecked<UParticleModule>(DupObject);

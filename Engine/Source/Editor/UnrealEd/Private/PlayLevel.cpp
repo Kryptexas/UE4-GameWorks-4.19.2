@@ -3481,7 +3481,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		NewPIEWorld = CastChecked<UWorld>( StaticDuplicateObject(
 			EditorWorld,			// Source root
 			PlayWorldPackage,		// Destination root
-			*EditorWorld->GetName(),// Name for new object
+			EditorWorld->GetFName(),// Name for new object
 			RF_AllFlags,			// FlagMask
 			NULL,					// DestClass
 			SDO_DuplicateForPie		// bDuplicateForPIE

@@ -1570,7 +1570,7 @@ FObjectDuplicationParameters::FObjectDuplicationParameters( UObject* InSourceObj
 }
 
 
-UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const TCHAR* DestName, EObjectFlags FlagMask, UClass* DestClass, EDuplicateForPie DuplicateForPIE, EInternalObjectFlags InternalFlagsMask)
+UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName, EObjectFlags FlagMask, UClass* DestClass, EDuplicateForPie DuplicateForPIE, EInternalObjectFlags InternalFlagsMask)
 {
 	if (!IsAsyncLoading() && !IsLoading() && SourceObject->HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -1580,9 +1580,9 @@ UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, 
 
 	// @todo: handle const down the callstack.  for now, let higher level code use it and just cast it off
 	FObjectDuplicationParameters Parameters(const_cast<UObject*>(SourceObject), DestOuter);
-	if ( DestName && FCString::Strcmp(DestName,TEXT("")) )
+	if ( !DestName.IsNone() )
 	{
-		Parameters.DestName = FName(DestName, FNAME_Add, true);
+		Parameters.DestName = DestName;
 	}
 	else if (SourceObject->GetOuter() != DestOuter)
 	{

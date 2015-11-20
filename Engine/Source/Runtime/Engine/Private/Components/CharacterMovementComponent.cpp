@@ -28,6 +28,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogNavMeshMovement, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogCharacterNetSmoothing, Log, All);
 
 /**
  * Character stats
@@ -262,6 +263,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	bShrinkProxyCapsule = true;
 	bCanWalkOffLedges = true;
 	bCanWalkOffLedgesWhenCrouching = false;
+	bNetworkSmoothingComplete = true; // Initially true until we get a net update, so we don't try to smooth to an uninitialized value.
 	bWantsToLeaveNavWalking = false;
 
 	bEnablePhysicsInteraction = true;
@@ -1234,9 +1236,14 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 	}
 
 	// Smooth mesh location after moving the capsule above.
+	if (!bNetworkSmoothingComplete)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_CharacterMovementSmoothClientPosition);
 		SmoothClientPosition(DeltaSeconds);
+	}
+	else
+	{
+		UE_LOG(LogCharacterNetSmoothing, Verbose, TEXT("Skipping network smoothing for %s."), *GetNameSafe(CharacterOwner));
 	}
 }
 
@@ -6061,15 +6068,25 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 		return;
 	}
 
+	// Getting a correction means new data, so smoothing needs to run.
+	bNetworkSmoothingComplete = false;
+
+	// Handle selected smoothing mode.
 	if (NetworkSmoothingMode == ENetworkSmoothingMode::Disabled)
 	{
 		UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
+		bNetworkSmoothingComplete = true;
 	}
 	else if (FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character())
 	{
 		// Force linear smoothing for replays.
 		const UWorld* MyWorld = GetWorld();
-		if (MyWorld && MyWorld->DemoNetDriver && MyWorld->DemoNetDriver->ServerConnection)
+		if (!ensure(MyWorld != nullptr))
+		{
+			return;
+		}
+
+		if (MyWorld->DemoNetDriver && MyWorld->DemoNetDriver->ServerConnection)
 		{
 			NetworkSmoothingMode = ENetworkSmoothingMode::Linear;
 
@@ -6102,12 +6119,10 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 			ClientData->MeshRotationOffset				= OldRotation;
 			ClientData->MeshRotationTarget				= NewRotation;
 
+			// Move the capsule, but not the mesh.
 			// Note: we don't change rotation, we lerp towards it in SmoothClientPosition.
 			const FScopedPreventAttachedComponentMove PreventMeshMove(CharacterOwner->GetMesh());
 			UpdatedComponent->SetWorldLocation(NewLocation);
-
-			ClientData->LastCorrectionDelta				= FMath::Clamp( ClientData->CurrentSmoothTime, 1.0f / 120.0f, 1.0f / 5.0f );
-			ClientData->CurrentSmoothTime				= 0;
 		}
 		else
 		{
@@ -6119,6 +6134,9 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 			const FScopedPreventAttachedComponentMove PreventMeshMove(CharacterOwner->GetMesh());
 			UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
 		}
+
+		ClientData->LastCorrectionDelta = FMath::Clamp(MyWorld->TimeSince(ClientData->LastCorrectionTime), 1.0f / 120.0f, 1.0f / 5.0f);
+		ClientData->LastCorrectionTime  = MyWorld->GetTimeSeconds();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if ( CVarNetVisualizeSimulatedCorrections.GetValueOnGameThread() >= 2 )
@@ -6193,16 +6211,18 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 	{
 		if (NetworkSmoothingMode == ENetworkSmoothingMode::Linear)
 		{
-			ClientData->CurrentSmoothTime += FMath::Min( DeltaSeconds, 1.0f / 5.0f );
+			const UWorld* MyWorld = GetWorld();
+			const float CurrentSmoothTime = MyWorld->TimeSince(ClientData->LastCorrectionTime);
 
 			// Linearly interpolate between correction updates
-			const bool bAtEnd = ClientData->LastCorrectionDelta < SMALL_NUMBER || ClientData->CurrentSmoothTime >= ClientData->LastCorrectionDelta;
-			const float LerpPercent	= bAtEnd ? 1.0f : ( ClientData->CurrentSmoothTime / ClientData->LastCorrectionDelta );
+			const bool bAtEnd = (ClientData->LastCorrectionDelta < SMALL_NUMBER) || (CurrentSmoothTime >= ClientData->LastCorrectionDelta);
+			const float LerpPercent	= bAtEnd ? 1.0f : (CurrentSmoothTime / ClientData->LastCorrectionDelta);
 
 			if (LerpPercent >= 1.0f)
 			{
 				ClientData->MeshTranslationOffset = FVector::ZeroVector;
 				ClientData->MeshRotationOffset = ClientData->MeshRotationTarget;
+				bNetworkSmoothingComplete = true;
 			}
 			else
 			{
@@ -6237,14 +6257,24 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 			}
 
 			// Smooth rotation
+			const FQuat MeshRotationTarget = ClientData->MeshRotationTarget;
 			if (DeltaSeconds < ClientData->SmoothNetUpdateRotationTime)
 			{
 				// Slowly decay rotation offset
-				ClientData->MeshRotationOffset = FQuat::FastLerp(ClientData->MeshRotationOffset, ClientData->MeshRotationTarget, DeltaSeconds / ClientData->SmoothNetUpdateRotationTime).GetNormalized();
+				ClientData->MeshRotationOffset = FQuat::FastLerp(ClientData->MeshRotationOffset, MeshRotationTarget, DeltaSeconds / ClientData->SmoothNetUpdateRotationTime).GetNormalized();
 			}
 			else
 			{
-				ClientData->MeshRotationOffset = FQuat::Identity;
+				ClientData->MeshRotationOffset = MeshRotationTarget;
+			}
+
+			// Check if lerp is complete
+			if (ClientData->MeshTranslationOffset.IsNearlyZero(1e-2f) && ClientData->MeshRotationOffset.Equals(MeshRotationTarget, 1e-5f))
+			{
+				bNetworkSmoothingComplete = true;
+				// Make sure to snap exactly to target values.
+				ClientData->MeshTranslationOffset = FVector::ZeroVector;
+				ClientData->MeshRotationOffset = MeshRotationTarget;
 			}
 		}
 		else
@@ -6253,6 +6283,9 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		UE_LOG(LogCharacterNetSmoothing, Verbose, TEXT("SmoothClientPosition_Interpolate %s: Translation: %s Rotation: %s"),
+			*GetNameSafe(CharacterOwner), *ClientData->MeshTranslationOffset.ToString(), *ClientData->MeshRotationOffset.ToString());
+
 		if ( CVarNetVisualizeSimulatedCorrections.GetValueOnGameThread() >= 1 )
 		{
 			const FVector DebugLocation = CharacterOwner->GetMesh()->GetComponentLocation() + FVector( 0.f, 0.f, 300.0f ) - CharacterOwner->GetBaseTranslationOffset();
@@ -8131,7 +8164,8 @@ FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character
 	, MeshRotationOffset(FQuat::Identity)	
 	, MeshRotationTarget(FQuat::Identity)
 	, LastCorrectionDelta(0.f)
-	, CurrentSmoothTime(0.f)
+	, LastCorrectionTime(0.f)
+	, CurrentSmoothTime(0.f) // Deprecated
 	, bUseLinearSmoothing(false) // Deprecated
 	, MaxSmoothNetUpdateDist(0.f)
 	, NoSmoothNetUpdateDist(0.f)

@@ -95,13 +95,6 @@ UObjectBase::~UObjectBase()
 	}
 }
 
-
-const FName UObjectBase::GetFName() const
-{
-	return Name;
-}
-
-
 #if STATS
 
 void UObjectBase::CreateStatID() const
@@ -697,7 +690,7 @@ static void UClassGenerateCDODuplicatesForHotReload()
 				GIsDuplicatingClassForReinstancing = true;
 				UObject* DupCDO = (UObject*)StaticDuplicateObject(
 					Class->GetDefaultObject(), GetTransientPackage(),
-					*MakeUniqueObjectName(GetTransientPackage(), Class, TEXT("HOTRELOAD_CDO_DUPLICATE")).ToString()
+					MakeUniqueObjectName(GetTransientPackage(), Class, TEXT("HOTRELOAD_CDO_DUPLICATE"))
 					);
 				GIsDuplicatingClassForReinstancing = false;
 				GetDuplicatedCDOMap().Add(Class->GetDefaultObject(), DupCDO);

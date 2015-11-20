@@ -97,6 +97,16 @@ void FAnimInstanceProxy::InitializeRootNode()
 {
 	if (RootNode != nullptr)
 	{
+		// cache any state machine descriptions we have
+		for(UStructProperty* Property : AnimBlueprintClass->AnimNodeProperties)
+		{
+			if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
+			{
+				FAnimNode_StateMachine* StateMachine = Property->ContainerPtrToValuePtr<FAnimNode_StateMachine>(AnimInstanceObject);
+				StateMachine->CacheMachineDescription(AnimBlueprintClass);
+			}
+		}
+
 		GameThreadPreUpdateEvents.Reset();
 
 		InitializationCounter.Increment();

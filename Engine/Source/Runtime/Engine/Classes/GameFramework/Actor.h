@@ -2183,7 +2183,10 @@ public:
 	void FinishAndRegisterComponent(UActorComponent* Component);
 
 	/**  Util to create a component based on a template	 */
-	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FString& InName = FString() );
+	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FName InName = NAME_None );
+
+	DEPRECATED(4.11, "Use CreateComponentFromTemplate that takes a FName instead of a FString")
+	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FString& InName);
 
 	/** Destroys the constructed components. */
 	void DestroyConstructedComponents();

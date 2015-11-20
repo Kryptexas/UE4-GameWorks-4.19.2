@@ -92,7 +92,7 @@ void UInheritableComponentHandler::UpdateOwnerClass(UBlueprintGeneratedClass* Ow
 		auto OldComponentTemplate = Record.ComponentTemplate;
 		if (OldComponentTemplate && (OwnerClass != OldComponentTemplate->GetOuter()))
 		{
-			Record.ComponentTemplate = DuplicateObject(OldComponentTemplate, OwnerClass, *OldComponentTemplate->GetName());
+			Record.ComponentTemplate = DuplicateObject(OldComponentTemplate, OwnerClass, OldComponentTemplate->GetFName());
 		}
 	}
 }

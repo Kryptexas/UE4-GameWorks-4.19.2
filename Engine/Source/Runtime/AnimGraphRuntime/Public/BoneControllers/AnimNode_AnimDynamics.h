@@ -271,6 +271,17 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	int32 GetNumBodies() const;
 	const FAnimPhysRigidBody& GetPhysBody(int32 BodyIndex) const;
 
+#if WITH_EDITOR
+
+	// Accessors for editor code (mainly for visualization functions)
+	FVector GetBodyLocalJointOffset(int32 BodyIndex) const;
+	// Gets the number of currently bound bones (always 1 unless using a chain)
+	int32 GetNumBoundBones() const;
+	// Gets the specified bound bone reference
+	const FBoneReference* GetBoundBoneReference(int32 Index) const;
+
+#endif
+
 protected:
 
 	// FAnimNode_SkeletalControlBase protected interface
