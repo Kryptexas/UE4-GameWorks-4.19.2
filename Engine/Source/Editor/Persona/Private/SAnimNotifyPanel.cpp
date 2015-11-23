@@ -4284,6 +4284,7 @@ void SAnimNotifyPanel::OnPropertyChanged(UObject* ChangedObject, FPropertyChange
 			if(Event.Notify == ChangedObject || Event.NotifyStateClass == ChangedObject)
 			{
 				// If we've changed a notify present in the sequence, refresh our tracks.
+				Sequence->RefreshCacheData();
 				RefreshNotifyTracks();
 			}
 		}
