@@ -864,8 +864,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				}
 
 				// If the object has been excluded, don't add its outer
-				// TODO: RobM, please investigate as this change is causing problems with BP macros
-				//if (!Obj->HasAllMarks(ObjectMarks))
+				if (!IsCooking() || !Obj->HasAllMarks(ObjectMarks))
 				{
 					UObject* Parent = Obj->GetOuter();
 					if( Parent )
