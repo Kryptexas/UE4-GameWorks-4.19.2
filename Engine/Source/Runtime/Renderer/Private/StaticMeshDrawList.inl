@@ -96,11 +96,16 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 			for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
 			{
 				INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
+				const FPrimitiveSceneProxy* Proxy = Element.Mesh->PrimitiveSceneInfo->Proxy;
+
+				TDrawEvent<FRHICommandList> MeshEvent;
+				BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
+
 				float DitherValue = View.GetDitheredLODTransitionValue(*Element.Mesh);
 				DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
 					RHICmdList, 
 					View,
-					Element.Mesh->PrimitiveSceneInfo->Proxy,
+					Proxy,
 					*Element.Mesh,
 					BatchElementIndex,
 					!!BackFace,

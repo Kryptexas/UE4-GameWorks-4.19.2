@@ -82,6 +82,16 @@ struct ENGINE_API FNetworkVersion
 	static const uint32 InternalProtocolVersion;
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FPreActorDestroyReplayScrub, AActor*);
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FPreReplayScrub, UWorld*);
+
+struct ENGINE_API FNetworkReplayDelegates
+{
+	/** global delegate called one time prior to scrubbing */
+	static FPreReplayScrub OnPreScrub;
+};
+
 /*-----------------------------------------------------------------------------
 	Replication.
 -----------------------------------------------------------------------------*/

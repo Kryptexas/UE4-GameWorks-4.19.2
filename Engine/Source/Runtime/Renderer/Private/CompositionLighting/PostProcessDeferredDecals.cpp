@@ -266,8 +266,6 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 		}
 	}
 	
-	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil);
-
 	FDecalRendering::SetVertexShaderOnly(Context.RHICmdList, View, FrustumComponentToClip);
 
 	// Set states, the state cache helps us avoiding redundant sets

@@ -141,8 +141,15 @@ public:
 
 	/** Gets whether or not the details view is visible. */
 	bool GetDetailsViewVisible() const;
+
 	/** Sets whether or not the details view is visible. */
 	void SetDetailsViewVisible(bool InbDetailsViewVisible);
+
+	/** Gets whether or not the label browser is visible. */
+	bool GetLabelBrowserVisible() const;
+
+	/** Sets whether or not the label browser is visible. */
+	void SetLabelBrowserVisible(bool Visible);
 
 	/** Gets whether or not auto-scroll is enabled. */
 	bool GetAutoScrollEnabled() const;
@@ -229,6 +236,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bDetailsViewVisible;
+
+	UPROPERTY( config )
+	bool bLabelBrowserVisible;
 
 	UPROPERTY( config )
 	bool bAutoScrollEnabled;

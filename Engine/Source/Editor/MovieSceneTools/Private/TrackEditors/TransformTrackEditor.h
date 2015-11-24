@@ -46,6 +46,9 @@ public:
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 
+	// FKeyframeTrackEditor interface
+	virtual bool ShouldAddKey(UMovieScene3DTransformTrack* InTrack, FTransformKey InKey, FKeyParams InKeyParams) const override;
+
 private:
 
 	/** Returns whether or not a transform track can be added for an actor with a specific handle. */

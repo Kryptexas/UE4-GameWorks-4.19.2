@@ -9,6 +9,7 @@ UMovieSceneSection::UMovieSceneSection( const FObjectInitializer& ObjectInitiali
 	, StartTime(0.0f)
 	, EndTime(0.0f)
 	, RowIndex(0)
+	, OverlapPriority(0)
 	, bIsActive(true)
 	, bIsLocked(false)
 	, bIsInfinite(false)

@@ -45,6 +45,10 @@ public:
 	virtual void AddNewSection(float SectionTime);
 	virtual UMovieSceneSection* CreateNewSection() override;
 
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDisplayName() const override;
+#endif
+
 private:
 
 	/** List of all particle sections. */

@@ -86,5 +86,11 @@ UMovieSceneSection* UMovieSceneParticleTrack::CreateNewSection()
 	return NewObject<UMovieSceneParticleSection>( this );
 }
 
+#if WITH_EDITORONLY_DATA
+FText UMovieSceneParticleTrack::GetDisplayName() const
+{
+	return LOCTEXT("DisplayName", "Particle System");
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

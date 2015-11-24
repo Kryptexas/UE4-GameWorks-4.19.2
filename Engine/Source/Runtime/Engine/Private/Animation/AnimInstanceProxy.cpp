@@ -297,6 +297,17 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 			// we found leader
 			SyncGroup.Finalize(PreviousGroup);
 
+			if (TickContext.CanUseMarkerPosition())
+			{
+				const FMarkerSyncAnimPosition& MarkerStart = TickContext.MarkerTickContext.GetMarkerSyncStartPosition();
+				FName SyncGroupName = AnimBlueprintClass->SyncGroupNames[GroupIndex];
+				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[SyncGroup.GroupLeaderIndex];
+				FString LeaderAnimName = GroupLeader.SourceAsset->GetName();
+
+				checkf(MarkerStart.PreviousMarkerName == NAME_None || SyncGroup.ValidMarkers.Contains(MarkerStart.PreviousMarkerName), TEXT("Prev Marker name not valid for sync group. Marker %s : SyncGroupName %s : Leader %s"), *MarkerStart.PreviousMarkerName.ToString(), *SyncGroupName.ToString(), *LeaderAnimName);
+				checkf(MarkerStart.NextMarkerName == NAME_None || SyncGroup.ValidMarkers.Contains(MarkerStart.NextMarkerName), TEXT("Next Marker name not valid for sync group. Marker %s : SyncGroupName %s : Leader %s"), *MarkerStart.PreviousMarkerName.ToString(), *SyncGroupName.ToString(), *LeaderAnimName);
+			}
+
 			// Update everything else to follow the leader, if there is more followers
 			if (SyncGroup.ActivePlayers.Num() > GroupLeaderIndex + 1)
 			{

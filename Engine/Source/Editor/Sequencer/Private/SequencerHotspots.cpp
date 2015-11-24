@@ -18,7 +18,28 @@ void FSectionHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer&
 	FSequencer& Sequencer = static_cast<FSequencer&>(InSequencer);
 
 	TSharedPtr<ISequencerSection> SectionInterface = Section.TrackNode->GetSections()[Section.SectionIndex];
-	SectionInterface->BuildSectionContextMenu(MenuBuilder);
+
+	FGuid ObjectBinding;
+	if (Section.TrackNode.IsValid())
+	{
+		TSharedPtr<FSequencerDisplayNode> ParentNode = Section.TrackNode;
+
+		while (ParentNode.IsValid())
+		{
+			if (ParentNode.Get()->GetType() == ESequencerNode::Object)
+			{
+				TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(ParentNode);
+				if (ObjectNode.IsValid())
+				{
+					ObjectBinding = ObjectNode.Get()->GetObjectBinding();
+					break;
+				}
+			}
+			ParentNode = ParentNode.Get()->GetParent();
+		}
+	}
+
+	SectionInterface->BuildSectionContextMenu(MenuBuilder, ObjectBinding);
 
 	FSectionContextMenu::BuildMenu(MenuBuilder, Sequencer, MouseDownTime);
 }

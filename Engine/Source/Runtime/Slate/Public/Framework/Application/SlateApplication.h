@@ -393,6 +393,10 @@ public:
 	 */
 	void ExternalModalStop();
 
+	/** Delegate for retainer widgets to know when they should update */
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnUpdateRetainerWidgets, float);
+	FOnUpdateRetainerWidgets& OnUpdateRetainerWidgets()  { return UpdateRetainerWidgetsEvent; }
+
 	/** 
 	 * Removes references to FViewportRHI's.  
 	 * This has to be done explicitly instead of using the FRenderResource mechanism because FViewportRHI's are managed by the game thread.
@@ -1651,9 +1655,13 @@ private:
 		TArray< TSharedPtr< FSlateWindowElementList > > InactiveCachedElementListPool;
 	};
 
-	TMap< const ILayoutCache*, FCacheElementPools* > CachedElementLists;
-	TArray< FCacheElementPools* > ReleasedCachedElementLists;
+	TMap< const ILayoutCache*, TSharedPtr<FCacheElementPools> > CachedElementLists;
+	TArray< TSharedPtr<FCacheElementPools> > ReleasedCachedElementLists;
 
 	/** Configured fkeys to control navigation */
 	FNavigationConfig NavigationConfig;
+
+	/** Delegate for retainer widgets to know when they should update */
+	FOnUpdateRetainerWidgets UpdateRetainerWidgetsEvent;
+
 };

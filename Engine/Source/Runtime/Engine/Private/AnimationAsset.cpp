@@ -104,7 +104,7 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 						// Found previous record for "us"
 						if (PrevRecord.SourceAsset != Candidate.SourceAsset)
 						{
-							Candidate.MarkerTickRecord->Reset(); // Changed animation, clPear our cached data
+							Candidate.MarkerTickRecord->Reset(); // Changed animation, clear our cached data
 						}
 						bCandidateFound = true;
 						break;

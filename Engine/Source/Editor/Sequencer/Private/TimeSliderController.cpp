@@ -291,7 +291,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 		FLinearColor ScrubColor = InWidgetStyle.GetColorAndOpacityTint();
 
 		// @todo Sequencer this color should be specified in the style
-		ScrubColor.A = ScrubColor.A*0.5f;
+		ScrubColor.A = ScrubColor.A*0.75f;
 		ScrubColor.B *= 0.1f;
 		ScrubColor.G *= 0.2f;
 		FSlateDrawElement::MakeBox( 

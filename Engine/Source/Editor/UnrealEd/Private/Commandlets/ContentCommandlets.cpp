@@ -577,6 +577,8 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	bAutoCheckOut = Switches.Contains(TEXT("AutoCheckOutPackages"));
 	/** if we should auto checkin packages that were checked out**/
 	bAutoCheckIn = bAutoCheckOut && Switches.Contains(TEXT("AutoCheckIn"));
+	/** determine if we are building lighting for the map packages on the pass. **/
+	bShouldBuildLighting = Switches.Contains(TEXT("buildlighting"));
 
 	TArray<FString> PackageNames;
 	int32 ResultCode = InitializeResaveParameters(Tokens, PackageNames);
@@ -672,8 +674,7 @@ FText UResavePackagesCommandlet::GetChangelistDescription() const
 {
 	FText ChangelistDescription;
 
-	static bool bBuildLighting = FParse::Param(FCommandLine::Get(), TEXT("buildlighting")) == true;
-	if (bBuildLighting)
+	if (bShouldBuildLighting)
 	{
 		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionBuildLighting", "Rebuild lightmaps.");
 	}
@@ -747,9 +748,8 @@ bool UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLi
 void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World, bool& bSavePackage)
 {
 	check(World);
-	static bool bBuildLighting = FParse::Param(FCommandLine::Get(), TEXT("buildlighting")) == true;
 
-	if (bBuildLighting)
+	if (bShouldBuildLighting)
 	{
 		static bool bHasLoadedStartupPackages = false;
 		if (bHasLoadedStartupPackages == false)
@@ -758,6 +758,8 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			bHasLoadedStartupPackages = FStartupPackages::LoadAll();
 		}
 
+		// Setup the world.
+		World->WorldType = EWorldType::Editor;
 		World->AddToRoot();
 		if (!World->bIsWorldInitialized)
 		{
@@ -774,30 +776,24 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			World->PersistentLevel->UpdateModelComponents();
 			World->UpdateWorldComponents(true, false);
 		}
-
-		// load all the sublevels
+		FWorldContext &WorldContext = GEditor->GetEditorWorldContext(true);
+		WorldContext.SetCurrentWorld(World);
+		GWorld = World;
 
 		if (World->StreamingLevels.Num())
 		{
-			//World->LoadSecondaryLevels(true, &PreviouslyCookedPackages);
 			World->LoadSecondaryLevels(true, NULL);
+
+			for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
+			{
+				NextStreamingLevel->bShouldBeVisible = true;
+				NextStreamingLevel->bShouldBeLoaded = true;
+			}
+
+			World->FlushLevelStreaming(EFlushLevelStreamingType::Full);
 		}
-
-		GWorld = World;
-
-		TArray<FString> SubPackages;
-
-		// force load all of the map to be loaded so we can get good rebuilt lighting 
-		if (World->WorldComposition)
-		{
-			World->WorldComposition->CollectTilesToCook(SubPackages);
-		}
-
-		for (const auto& SubPackage : SubPackages)
-		{
-			UPackage* Package = LoadPackage(nullptr, *SubPackage, 0);
-			check(Package->IsFullyLoaded());
-		}
+		// We need any deferred commands added when loading to be executed before we start building lighting.
+		GEngine->TickDeferredCommands();
 
 		GRedirectCollector.ResolveStringAssetReference();
 

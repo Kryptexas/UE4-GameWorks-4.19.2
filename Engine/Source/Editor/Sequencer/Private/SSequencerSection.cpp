@@ -211,6 +211,9 @@ FSequencer& SSequencerSection::GetSequencer() const
 int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
+
+	LayerId += SectionObject.GetOverlapPriority();
+	
 	const bool bEnabled = bParentEnabled && SectionObject.IsActive();
 	const bool bLocked = SectionObject.IsLocked();
 	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;

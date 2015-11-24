@@ -130,6 +130,7 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 
 	/** Called when the ability task is waiting on remote player data. IF the remote player ends the ability prematurely, and a task with this set is still running, the ability is killed. */
 	void SetWaitingOnRemotePlayerData();
+	void ClearWaitingOnRemotePlayerData();
 
 	virtual bool IsWaitingOnRemotePlayerdata() const override;
 

@@ -172,6 +172,8 @@ private:
 
 	TArray<FPoseContext*> StateCachedPoses;
 
+	TArray<FGraphTraversalCounter> StateCacheBoneCounters;
+
 public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
@@ -188,6 +190,8 @@ public:
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
+	void ConditionallyCacheBonesForState(int32 StateIndex, FAnimationBaseContext Context);
 
 	// Returns the blend weight of the specified state, as calculated by the last call to Update()
 	float GetStateWeight(int32 StateIndex) const;

@@ -538,6 +538,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	}
 
 	bUseFieldOfViewForLOD = InitOptions.bUseFieldOfViewForLOD;
+	DrawDynamicFlags = EDrawDynamicFlags::None;
 
 #if WITH_EDITOR
 	EditorViewBitflag = InitOptions.EditorViewBitflag;

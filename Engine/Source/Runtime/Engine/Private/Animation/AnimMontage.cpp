@@ -1962,7 +1962,6 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 			{
 				SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
 				SingleNodeInst->SetPosition(0.0f);
-				SingleNodeInst->SetPlaying(false);
 			}
 
 			if(SingleNodeInst->IsLooping()!=bLooping)

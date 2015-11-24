@@ -983,15 +983,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
-#if !UE_BUILD_SHIPPING
-	// Benchmarking.
-	FApp::SetBenchmarking(FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK")));
-#else
-	FApp::SetBenchmarking(false);
-#endif // !UE_BUILD_SHIPPING
-	
-	FApp::SetUseFixedTimeStep(FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
-	
 	FString CheckToken = Token;
 	bool bFoundValidToken = false;
 	while (!bFoundValidToken && (CheckToken.Len() > 0))
@@ -1040,6 +1031,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	bHasEditorToken = false;
 #endif
 #endif	//UE_EDITOR
+
+#if !UE_BUILD_SHIPPING
+	// Benchmarking.
+	FApp::SetBenchmarking(FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK")));
+#else
+	FApp::SetBenchmarking(false);
+#endif // !UE_BUILD_SHIPPING
+
+	FApp::SetUseFixedTimeStep(FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
 
 	// Initialize random number generator.
 	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )

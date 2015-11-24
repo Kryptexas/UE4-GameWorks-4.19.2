@@ -135,6 +135,9 @@ public:
 	/** Toggles whether the details view is enabled in the level editor. */
 	TSharedPtr< FUICommandInfo > ToggleDetailsView;
 
+	/** Toggles whether the label browser is enabled in the level editor. */
+	TSharedPtr< FUICommandInfo > ToggleLabelBrowser;
+
 	/** Turns auto scroll on and off. */
 	TSharedPtr< FUICommandInfo > ToggleAutoScroll;
 

@@ -72,6 +72,11 @@ void UAbilityTask::SetWaitingOnRemotePlayerData()
 	}
 }
 
+void UAbilityTask::ClearWaitingOnRemotePlayerData()
+{
+	WaitState = EAbilityTaskWaitState::WaitingOnGame;
+}
+
 bool UAbilityTask::IsWaitingOnRemotePlayerdata() const
 {
 	return (WaitState == EAbilityTaskWaitState::WaitingOnUser);

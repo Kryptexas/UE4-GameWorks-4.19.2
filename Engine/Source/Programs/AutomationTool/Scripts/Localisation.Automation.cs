@@ -106,6 +106,14 @@ class Localise : BuildCommand
 
 		var RootWorkingDirectory = CombinePaths(CmdEnv.LocalRoot, UEProjectDirectory);
 
+		// Make sure the Localization configs and content is up-to-date to ensure we don't get errors later on
+		if (P4Enabled)
+		{
+			Log("Sync necessary content to head revision");
+			P4.Sync(P4Env.BuildRootP4 + "/" + UEProjectDirectory + "/Config/Localization/...");
+			P4.Sync(P4Env.BuildRootP4 + "/" + UEProjectDirectory + "/Content/Localization/...");
+		}
+
 		// Generate the info we need to gather for each project
 		var ProjectInfos = new List<ProjectInfo>();
 		foreach (var ProjectName in OneSkyProjectNames)
@@ -126,7 +134,7 @@ class Localise : BuildCommand
 		// Export all text from OneSky
 		foreach (var ProjectInfo in ProjectInfos)
 		{
-			ExportOneSkyProjectToDirectory(RootWorkingDirectory, OneSkyService, OneSkyProjectGroup, ProjectInfo);
+			ExportOneSkyProjectToDirectory(RootWorkingDirectory, OneSkyService, OneSkyProjectGroup, OneSkyBranchSuffix, ProjectInfo);
 		}
 
 		// Submit changelist for backed up POs from OneSky.
@@ -311,10 +319,11 @@ class Localise : BuildCommand
 		return OneSkyProject;
     }
 
-	private void ExportOneSkyProjectToDirectory(string RootWorkingDirectory, OneSkyService OneSkyService, ProjectGroup OneSkyProjectGroup, ProjectInfo ProjectInfo)
+	private void ExportOneSkyProjectToDirectory(string RootWorkingDirectory, OneSkyService OneSkyService, ProjectGroup OneSkyProjectGroup, string OneSkyBranchSuffix, ProjectInfo ProjectInfo)
 	{
+		var OneSkyFileName = GetOneSkyFilename(ProjectInfo.ImportInfo.PortableObjectName, OneSkyBranchSuffix);
 		var OneSkyProject = GetOneSkyProject(OneSkyService, OneSkyProjectGroup.Name, ProjectInfo.ProjectName);
-		var OneSkyFile = OneSkyProject.UploadedFiles.FirstOrDefault(f => f.Filename == ProjectInfo.ImportInfo.PortableObjectName);
+		var OneSkyFile = OneSkyProject.UploadedFiles.FirstOrDefault(f => f.Filename == OneSkyFileName);
 
 		//Export
 		if (OneSkyFile != null)
@@ -329,11 +338,11 @@ class Localise : BuildCommand
 				}
 			}
 
-			ExportOneSkyFileToDirectory(OneSkyFile, new DirectoryInfo(CombinePaths(RootWorkingDirectory, ProjectInfo.ImportInfo.DestinationPath)), CulturesToExport, ProjectInfo.ImportInfo.bUseCultureDirectory);
+			ExportOneSkyFileToDirectory(OneSkyFile, new DirectoryInfo(CombinePaths(RootWorkingDirectory, ProjectInfo.ImportInfo.DestinationPath)), ProjectInfo.ImportInfo.PortableObjectName, CulturesToExport, ProjectInfo.ImportInfo.bUseCultureDirectory);
 		}
 	}
 
-	private void ExportOneSkyFileToDirectory(UploadedFile OneSkyFile, DirectoryInfo DestinationDirectory, IEnumerable<string> Cultures, bool bUseCultureDirectory)
+	private void ExportOneSkyFileToDirectory(UploadedFile OneSkyFile, DirectoryInfo DestinationDirectory, string DestinationFilename, IEnumerable<string> Cultures, bool bUseCultureDirectory)
     {
 		foreach (var Culture in Cultures)
         {
@@ -345,11 +354,11 @@ class Localise : BuildCommand
 
             using (var MemoryStream = new MemoryStream())
             {
-				var ExportFile = new FileInfo(Path.Combine(CultureDirectory.FullName, OneSkyFile.Filename));
-
 				var ExportTranslationState = OneSkyFile.ExportTranslation(Culture, MemoryStream).Result;
 				if (ExportTranslationState == UploadedFile.ExportTranslationState.Success)
 				{
+					var ExportFile = new FileInfo(Path.Combine(CultureDirectory.FullName, DestinationFilename));
+
 					// Write out the updated PO file so that the gather commandlet will import the new data from it
 					{
 						var ExportFileWasReadOnly = false;
@@ -364,7 +373,7 @@ class Localise : BuildCommand
 						using (Stream FileStream = ExportFile.OpenWrite())
 						{
 							MemoryStream.CopyTo(FileStream);
-							Console.WriteLine("[SUCCESS] Exporting: '{0}' ({1})", ExportFile.FullName, Culture);
+							Console.WriteLine("[SUCCESS] Exporting: '{0}' as '{1}' ({2})", OneSkyFile.Filename, ExportFile.FullName, Culture);
 						}
 
 						if (ExportFileWasReadOnly)
@@ -401,11 +410,11 @@ class Localise : BuildCommand
 				}
 				else if (ExportTranslationState == UploadedFile.ExportTranslationState.NoContent)
                 {
-					Console.WriteLine("[WARNING] Exporting: '{0}' ({1}) has no translations!", ExportFile.FullName, Culture);
+					Console.WriteLine("[WARNING] Exporting: '{0}' ({1}) has no translations!", OneSkyFile.Filename, Culture);
                 }
                 else
                 {
-					Console.WriteLine("[FAILED] Exporting: '{0}' ({1})", ExportFile.FullName, Culture);
+					Console.WriteLine("[FAILED] Exporting: '{0}' ({1})", OneSkyFile.Filename, Culture);
                 }
             }
         }
@@ -455,15 +464,9 @@ class Localise : BuildCommand
 				FileStream.Position = 0;
 			}
 
-			Console.WriteLine("Uploading: '{0}' ({1})", FileToUpload.FullName, Culture);
+			var OneSkyFileName = GetOneSkyFilename(Path.GetFileName(FileToUpload.FullName), OneSkyBranchSuffix);
 
-			var OneSkyFileName = Path.GetFileName(FileToUpload.FullName);
-			if (!String.IsNullOrEmpty(OneSkyBranchSuffix))
-			{
-				// Apply the branch suffix. OneSky will take care of merging the files from different branches together.
-				var OneSkyFileNameWithSuffix = Path.GetFileNameWithoutExtension(OneSkyFileName) + "_" + OneSkyBranchSuffix + Path.GetExtension(OneSkyFileName);
-				OneSkyFileName = OneSkyFileNameWithSuffix;
-			}
+			Console.WriteLine("Uploading: '{0}' as '{1}' ({2})", FileToUpload.FullName, OneSkyFileName, Culture);
 
 			var UploadedFile = OneSkyProject.Upload(OneSkyFileName, FileStream, Culture).Result;
 
@@ -476,5 +479,17 @@ class Localise : BuildCommand
 				Console.WriteLine("[SUCCESS] Uploading: '{0}' ({1})", FileToUpload.FullName, Culture);
 			}
 		}
+	}
+
+	private static string GetOneSkyFilename(string BaseFilename, string OneSkyBranchSuffix)
+	{
+		var OneSkyFileName = BaseFilename;
+		if (!String.IsNullOrEmpty(OneSkyBranchSuffix))
+		{
+			// Apply the branch suffix. OneSky will take care of merging the files from different branches together.
+			var OneSkyFileNameWithSuffix = Path.GetFileNameWithoutExtension(OneSkyFileName) + "_" + OneSkyBranchSuffix + Path.GetExtension(OneSkyFileName);
+			OneSkyFileName = OneSkyFileNameWithSuffix;
+		}
+		return OneSkyFileName;
 	}
 }

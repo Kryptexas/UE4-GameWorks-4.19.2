@@ -163,7 +163,7 @@ FLinearColor FColorPropertySection::FindSlateColor(const FName& ColorName) const
 				continue;
 			}
 
-			UObject* RuntimeObject = FocusedSequence->FindObject(Binding.GetObjectGuid());
+			UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObject(Binding.GetObjectGuid(), *Sequencer);
 
 			if (RuntimeObject == nullptr)
 			{

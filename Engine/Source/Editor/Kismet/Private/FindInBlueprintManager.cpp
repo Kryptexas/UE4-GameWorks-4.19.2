@@ -1271,7 +1271,16 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 			}
 			else if(const FString* FiBVersionedSearchData = InAssetData.TagsAndValues.Find("FiBData"))
 			{
-				ExtractUnloadedFiBData(InAssetData, *FiBVersionedSearchData, true);
+				if (FiBVersionedSearchData->Len() == 0)
+				{
+					// agrant TODO: Can we patch this up? Is it dangerous not to?
+					UE_LOG(LogBlueprint, Warning, TEXT("Blueprint %s had empty search data!"), *InAssetData.ObjectPath.ToString());
+					UncachedBlueprints.Add(InAssetData.ObjectPath);
+				}
+				else
+				{
+					ExtractUnloadedFiBData(InAssetData, *FiBVersionedSearchData, true);
+				}
 			}
 			else
 			{
@@ -1319,6 +1328,7 @@ void FFindInBlueprintSearchManager::ExtractUnloadedFiBData(const FAssetData& InA
 	// Deserialize the version if available
 	if (bIsVersioned)
 	{
+		checkf(NewSearchData.Value.Len(), TEXT("Versioned search data was zero length!"));
 		FBufferReader ReaderStream((void*)*NewSearchData.Value, NewSearchData.Value.Len() * sizeof(TCHAR), false);
 		NewSearchData.Version = FiBSerializationHelpers::Deserialize<int32>(ReaderStream);
 	}

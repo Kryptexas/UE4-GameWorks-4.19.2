@@ -71,6 +71,11 @@ bool FOnlineExternalUIIOS::ShowWebURL(const FString& Url, const FShowWebUrlParam
 	return false;
 }
 
+bool FOnlineExternalUIIOS::CloseWebURL()
+{
+	return false;
+}
+
 bool FOnlineExternalUIIOS::ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate)
 {
 	return false;

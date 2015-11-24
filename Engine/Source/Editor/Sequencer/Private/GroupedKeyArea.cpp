@@ -163,24 +163,19 @@ FLinearColor FGroupedKeyArea::GetKeyTint(FKeyHandle InHandle) const
 
 const FSlateBrush* FGroupedKeyArea::GetBrush(FKeyHandle InHandle) const
 {
-	static const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("Sequencer.KeyDiamond");
 	static const FSlateBrush* PartialKeyBrush = FEditorStyle::GetBrush("Sequencer.PartialKey");
-
 	const auto* Group = FindGroup(InHandle);
-
-	bool bPartialKey = false;
 
 	// Ensure that each key area is represented at least once for it to be considered a 'complete key'
 	for (int32 AreaIndex = 0; Group && AreaIndex < KeyAreas.Num(); ++AreaIndex)
 	{
 		if (!Group->Keys.ContainsByPredicate([&](const FKeyGrouping::FKeyIndex& Key){ return Key.AreaIndex == AreaIndex; }))
 		{
-			bPartialKey = true;
-			break;
+			return PartialKeyBrush;
 		}
 	}
 
-	return bPartialKey ? PartialKeyBrush : KeyBrush;
+	return nullptr;
 }
 
 TArray<FKeyHandle> FGroupedKeyArea::GetUnsortedKeyHandles() const

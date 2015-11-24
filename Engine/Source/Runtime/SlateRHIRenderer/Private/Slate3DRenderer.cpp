@@ -26,8 +26,7 @@ FSlate3DRenderer::~FSlate3DRenderer()
 
 FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 {
-	FreeBufferIndex = (FreeBufferIndex + 1) % 2;
-
+	FreeBufferIndex = (FreeBufferIndex + 1) % NUM_DRAW_BUFFERS;
 	FSlateDrawBuffer* Buffer = &DrawBuffers[FreeBufferIndex];
 
 	while (!Buffer->Lock())
@@ -54,7 +53,7 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 
 	// Need to flush the font cache before we add the elements below to avoid the flush potentially 
 	// deleting the texture resources that will be needed by the render thread
-	FontCache->ConditionalFlushCache();
+	//FontCache->ConditionalFlushCache();
 
 	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = DrawBuffer.GetWindowElementLists();
 

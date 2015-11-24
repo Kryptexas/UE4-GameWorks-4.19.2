@@ -78,6 +78,11 @@ bool FOnlineExternalUIGooglePlay::ShowWebURL(const FString& Url, const FShowWebU
 	return false;
 }
 
+bool FOnlineExternalUIGooglePlay::CloseWebURL()
+{
+	return false;
+}
+
 bool FOnlineExternalUIGooglePlay::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
 {
 	return false;

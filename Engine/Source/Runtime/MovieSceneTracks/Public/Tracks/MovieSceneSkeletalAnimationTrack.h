@@ -3,7 +3,7 @@
 #pragma once
 
 #include "MovieScene.h"
-#include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "MovieSceneSkeletalAnimationTrack.generated.h"
 
 
@@ -15,7 +15,7 @@ class UMovieSceneSection;
  */
 UCLASS( MinimalAPI )
 class UMovieSceneSkeletalAnimationTrack
-	: public UMovieSceneTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_UCLASS_BODY()
 

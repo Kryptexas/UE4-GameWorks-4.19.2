@@ -190,6 +190,18 @@ public:
 	/** Gets the row index for this section */
 	int32 GetRowIndex() const {return RowIndex;}
 	
+	/** Sets this section's priority over overlapping sections (higher wins) */
+	void SetOverlapPriority(int32 NewPriority)
+	{
+		OverlapPriority = NewPriority;
+	}
+
+	/** Gets this section's priority over overlapping sections (higher wins) */
+	int32 GetOverlapPriority() const
+	{
+		return OverlapPriority;
+	}
+
 	/**
 	 * Adds a key to a rich curve, finding an existing key to modify or adding a new one
 	 *
@@ -255,6 +267,10 @@ private:
 	/** The row index that this section sits on */
 	UPROPERTY()
 	int32 RowIndex;
+
+	/** This section's priority over overlapping sections */
+	UPROPERTY()
+	int32 OverlapPriority;
 
 	/** Toggle whether this section is active/inactive */
 	UPROPERTY(EditAnywhere, Category="Section")

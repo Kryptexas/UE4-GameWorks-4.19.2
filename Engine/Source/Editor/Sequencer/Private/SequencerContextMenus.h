@@ -57,6 +57,14 @@ private:
 
 	void DeleteSection();
 
+	void BringToFront();
+
+	void SendToBack();
+
+	void BringForward();
+
+	void SendBackward();
+
 	/** The sequencer */
 	TSharedRef<FSequencer> Sequencer;
 

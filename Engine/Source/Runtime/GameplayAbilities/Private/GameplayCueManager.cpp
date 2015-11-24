@@ -8,6 +8,7 @@
 #include "GameplayTagsModule.h"
 #include "GameplayCueNotify_Static.h"
 #include "AbilitySystemComponent.h"
+#include "UnrealNetwork.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -52,6 +53,8 @@ void UGameplayCueManager::OnCreated()
 {
 	FWorldDelegates::OnPostWorldCreation.AddUObject(this, &UGameplayCueManager::OnWorldCreated);
 	FWorldDelegates::OnWorldCleanup.AddUObject(this, &UGameplayCueManager::OnWorldCleanup);
+
+	FNetworkReplayDelegates::OnPreScrub.AddUObject(this, &UGameplayCueManager::OnPreReplayScrub);
 }
 
 bool IsDedicatedServerForGameplayCue()
@@ -921,6 +924,12 @@ void UGameplayCueManager::DumpPreallocationStats(UWorld* World)
 			}
 		}
 	}
+}
+
+void UGameplayCueManager::OnPreReplayScrub(UWorld* World)
+{
+	FPreallocationInfo& Info = GetPreallocationInfo(World);
+	Info.PreallocatedInstances.Reset();
 }
 
 #if WITH_EDITOR

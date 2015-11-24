@@ -43,6 +43,9 @@ void UAutomatedLevelSequenceCapture::SetLevelSequenceActor(ALevelSequenceActor* 
 
 void UAutomatedLevelSequenceCapture::Initialize(TWeakPtr<FSceneViewport> InViewport)
 {
+	// Apply command-line overrides from parent class first. This needs to be called before setting up the capture strategy with the desired frame rate.
+	Super::Initialize(InViewport);
+
 	// Apply command-line overrides
 	{
 		FString LevelSequenceAssetPath;
@@ -126,8 +129,6 @@ void UAutomatedLevelSequenceCapture::Initialize(TWeakPtr<FSceneViewport> InViewp
 	CaptureState = ELevelSequenceCaptureState::DelayBeforeWarmUp;
 	RemainingDelaySeconds = FMath::Max( 0.0f, DelayBeforeWarmUp );
 	CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
-
-	Super::Initialize(InViewport);
 }
 
 

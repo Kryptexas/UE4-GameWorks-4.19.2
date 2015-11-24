@@ -18,6 +18,7 @@ void FSlateNullRenderer::Destroy()
 FSlateDrawBuffer& FSlateNullRenderer::GetDrawBuffer()
 {
 	static FSlateDrawBuffer StaticDrawBuffer;
+	StaticDrawBuffer.ClearBuffer();
 	return StaticDrawBuffer;
 }
 

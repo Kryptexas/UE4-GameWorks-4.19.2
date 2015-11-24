@@ -17,6 +17,7 @@
 #include "BatchedElements.h"
 #include "MeshBatch.h"
 #include "RendererInterface.h"
+#include "SceneUtils.h"
 
 // Forward declarations.
 class FLightSceneInfo;
@@ -2037,22 +2038,21 @@ extern ENGINE_API EVertexColorViewMode::Type GVertexColorViewMode;
  */
 extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WANTS_DRAW_MESH_EVENTS
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "ShowMaterialDrawEvents" console command.
 	 */
 	extern ENGINE_API bool GShowMaterialDrawEvents;
-	extern ENGINE_API void EmitMeshDrawEvents_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh);
+	extern ENGINE_API void BeginMeshDrawEvent_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent);
 #endif
 
-/** Emits draw events for a given FMeshBatch and the PrimitiveSceneProxy corresponding to that mesh element. */
-FORCEINLINE void EmitMeshDrawEvents(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh)
+FORCEINLINE void BeginMeshDrawEvent(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if ( GShowMaterialDrawEvents )
+#if WANTS_DRAW_MESH_EVENTS
+	if (GShowMaterialDrawEvents)
 	{
-		EmitMeshDrawEvents_Inner(RHICmdList, PrimitiveSceneProxy, Mesh);
+		BeginMeshDrawEvent_Inner(RHICmdList, PrimitiveSceneProxy, Mesh, DrawEvent);
 	}
 #endif
 }

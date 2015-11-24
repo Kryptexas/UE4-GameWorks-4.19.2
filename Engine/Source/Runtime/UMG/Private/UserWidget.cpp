@@ -11,6 +11,23 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+
+static FGeometry NullGeometry;
+static FSlateRect NullRect;
+static FSlateWindowElementList NullElementList;
+static FWidgetStyle NullStyle;
+
+FPaintContext::FPaintContext()
+		: AllottedGeometry(NullGeometry)
+		, MyClippingRect(NullRect)
+		, OutDrawElements(NullElementList)
+		, LayerId(0)
+		, WidgetStyle(NullStyle)
+		, bParentEnabled(true)
+		, MaxLayer(0)
+{
+}
+
 /////////////////////////////////////////////////////
 // UUserWidget
 

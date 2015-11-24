@@ -1387,6 +1387,10 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 	{
 		Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
 	}
+	else if (View->DrawDynamicFlags & EDrawDynamicFlags::ForceLowestLOD)
+	{
+		Result.SetLOD(RenderData->LODResources.Num() - 1);
+	}
 	else if (ForcedLodModel > 0)
 	{
 		Result.SetLOD(FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1);

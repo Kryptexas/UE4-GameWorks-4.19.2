@@ -20,11 +20,6 @@ UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-void UMovieScene::PostLoad()
-{
-	UpgradeTimeRanges();
-	Super::PostLoad();
-}
 
 #if WITH_EDITOR
 
@@ -123,9 +118,9 @@ bool UMovieScene::RemovePossessable( const FGuid& PossessableGuid )
 			Modify();
 
 			// Remove the parent-child link for a parent spawnable/child possessable if necessary
-			if (CurPossesable.GetParentSpawnable().IsValid())
+			if (CurPossesable.GetParent().IsValid())
 			{
-				FMovieSceneSpawnable* ParentSpawnable = FindSpawnable(CurPossesable.GetParentSpawnable());
+				FMovieSceneSpawnable* ParentSpawnable = FindSpawnable(CurPossesable.GetParent());
 				if (ParentSpawnable)
 				{
 					ParentSpawnable->RemoveChildPossessable(PossessableGuid);
@@ -224,14 +219,44 @@ FText UMovieScene::GetObjectDisplayName(const FGuid& ObjectId)
 	}
 #endif
 	return FText::GetEmpty();
+}
+
+
+#if WITH_EDITORONLY_DATA
+int32 UMovieScene::GetAllLabels(TArray<FString>& OutLabels) const
+{
+	for (const auto& LabelsPair : ObjectsToLabels)
+	{
+		for (const auto& Label : LabelsPair.Value.Strings)
+		{
+			OutLabels.AddUnique(Label);
 		}
+	}
+
+	return OutLabels.Num();
+}
+
+
+bool UMovieScene::LabelExists(const FString& Label) const
+{
+	for (const auto& LabelsPair : ObjectsToLabels)
+	{
+		if (LabelsPair.Value.Strings.Contains(Label))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif
 
 
 TRange<float> UMovieScene::GetPlaybackRange() const
 {
 	check(PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound());
 	return PlaybackRange;
-	}
+}
 
 
 void UMovieScene::SetPlaybackRange(float Start, float End)
@@ -491,6 +516,45 @@ void UMovieScene::UpgradeTimeRanges()
 	if (EditorData.ViewRange.IsEmpty())
 	{
 		EditorData.ViewRange = PlaybackRange;
+	}
+#endif
+}
+
+
+/* UObject interface
+ *****************************************************************************/
+
+void UMovieScene::PostLoad()
+{
+	UpgradeTimeRanges();
+	Super::PostLoad();
+}
+
+
+void UMovieScene::PreSave()
+{
+	Super::PreSave();
+
+#if WITH_EDITORONLY_DATA
+	// compress meta data mappings prior to saving
+	for (auto It = ObjectsToDisplayNames.CreateIterator(); It; ++It)
+	{
+		FGuid ObjectId;
+
+		if (!FGuid::Parse(It.Key(), ObjectId) || ((FindPossessable(ObjectId) == nullptr) && (FindSpawnable(ObjectId) == nullptr)))
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	for (auto It = ObjectsToLabels.CreateIterator(); It; ++It)
+	{
+		FGuid ObjectId;
+
+		if (!FGuid::Parse(It.Key(), ObjectId) || ((FindPossessable(ObjectId) == nullptr) && (FindSpawnable(ObjectId) == nullptr)))
+		{
+			It.RemoveCurrent();
+		}
 	}
 #endif
 }

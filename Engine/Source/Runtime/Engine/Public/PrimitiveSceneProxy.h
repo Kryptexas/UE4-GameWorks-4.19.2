@@ -104,14 +104,6 @@ public:
 	{}
 };
 
-namespace EDrawDynamicFlags
-{
-	enum Type
-	{
-		ForceLowestLOD = 0x1
-	};
-}
-
 /**
  * Encapsulates the data which is mirrored to render a UPrimitiveComponent parallel to the game thread.
  * This is intended to be subclassed to support different primitive types.  

@@ -2648,7 +2648,7 @@ partial class GUBP
 
 	public abstract class BuildLocalizationNode : HostPlatformNode
 	{
-		public BuildLocalizationNode(string InLocalizationBranchSuffix, GUBPBranchConfig InBranchConfig)
+		public BuildLocalizationNode(string InLocalizationBranchSuffix)
 			: base(UnrealTargetPlatform.Win64)
 		{
 			LocalizationBranchSuffix = InLocalizationBranchSuffix;
@@ -2709,11 +2709,6 @@ partial class GUBP
 			return base.CISFrequencyQuantumShift(BranchConfig) + 6;
 		}
 
-		public virtual string GetLocalizationId()
-		{
-			throw new AutomationException("Unimplemented GetLocalizationId.");
-		}
-
 		protected virtual string GetUEProjectDirectory()
 		{
 			throw new AutomationException("Unimplemented GetUEProjectDirectory.");
@@ -2739,81 +2734,15 @@ partial class GUBP
 			throw new AutomationException("Unimplemented GetOneSkyProjectNames.");
 		}
 
-		public static BuildLocalizationNode GetLocalizationNode(string InLocalizationId, string InLocalizationBranchSuffix, GUBPBranchConfig InBranchConfig)
-		{
-			if (CachedLocalizationNodeTypes == null)
-			{
-				// Find all types that derive from BuildLocalizationNode in any of our DLLs
-				CachedLocalizationNodeTypes = new Dictionary<string, Type>();
-				var LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-				foreach (var Dll in LoadedAssemblies)
-				{
-					var AllTypes = Dll.GetTypes();
-					foreach (var PotentialLocalizationNodeType in AllTypes)
-					{
-						if (PotentialLocalizationNodeType != typeof(BuildLocalizationNode) && typeof(BuildLocalizationNode).IsAssignableFrom(PotentialLocalizationNodeType))
-						{
-							// Types should implement a static StaticGetLocalizationId method
-							var Method = PotentialLocalizationNodeType.GetMethod("StaticGetLocalizationId");
-							if (Method != null)
-							{
-								try
-								{
-									var NodeLocalizationId = Method.Invoke(null, null) as string;
-									CachedLocalizationNodeTypes.Add(NodeLocalizationId, PotentialLocalizationNodeType);
-								}
-								catch
-								{
-									BuildCommand.LogWarning("Type '{0}' threw when calling its StaticGetLocalizationId method.", PotentialLocalizationNodeType.FullName);
-								}
-							}
-							else
-							{
-								BuildCommand.LogWarning("Type '{0}' derives from BuildLocalizationNode but is missing its StaticGetLocalizationId method.", PotentialLocalizationNodeType.FullName);
-							}
-						}
-					}
-				}
-			}
-
-			Type LocalizationNodeType;
-			CachedLocalizationNodeTypes.TryGetValue(InLocalizationId, out LocalizationNodeType);
-			if (LocalizationNodeType != null)
-			{
-				try
-				{
-					return Activator.CreateInstance(LocalizationNodeType, new object[] { InLocalizationBranchSuffix, InBranchConfig }) as BuildLocalizationNode;
-				}
-				catch
-				{
-					BuildCommand.LogWarning("Unable to create an instance of the type '{0}'", LocalizationNodeType.FullName);
-				}
-			}
-
-			return null;
-		}
-
-		private static Dictionary<string, Type> CachedLocalizationNodeTypes;
-
 		protected string LocalizationBranchSuffix;
 	}
 
 	public class BuildEngineLocalizationNode : BuildLocalizationNode
 	{
-		public BuildEngineLocalizationNode(string InLocalizationBranchSuffix, GUBPBranchConfig InBranchConfig)
-			: base(InLocalizationBranchSuffix, InBranchConfig)
+		public BuildEngineLocalizationNode(string InLocalizationBranchSuffix)
+			: base(InLocalizationBranchSuffix)
 		{
 			AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
-		}
-
-		public static string StaticGetLocalizationId()
-		{
-			return "Engine";
-		}
-
-		public override string GetLocalizationId()
-		{
-			return StaticGetLocalizationId();
 		}
 
 		public static string StaticGetFullName()

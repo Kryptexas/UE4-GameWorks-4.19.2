@@ -39,6 +39,11 @@ public:
 		return Type == TrackType::StaticClass();
 	}
 
+	// Only add a key if the track already has keys, or if creating keys has been forced.  Otherwise just update the track default.
+	virtual bool ShouldAddKey(TrackType* InTrack, KeyDataType InNewKey, FKeyParams InKeyParams) const
+	{
+		return HasKeys( InTrack, InNewKey ) || InKeyParams.bCreateKeyIfEmpty;
+	}
 
 protected:
 
@@ -132,8 +137,7 @@ private:
 				// Only modify the track if the new key will create new data, or if creating keys has been forced.
 				if ( NewKeyIsNewData( Track, KeyTime, NewKey ) || KeyParams.bCreateKeyIfUnchanged )
 				{
-					// Only add a key if the track already has keys, or if creating keys has been forced.  Otherwise just update the track default.
-					if ( HasKeys( Track, NewKey ) || KeyParams.bCreateKeyIfEmpty )
+					if ( ShouldAddKey(Track, NewKey, KeyParams) )
 					{
 						AddKey( Track, KeyTime, NewKey, InterpolationMode );
 					}

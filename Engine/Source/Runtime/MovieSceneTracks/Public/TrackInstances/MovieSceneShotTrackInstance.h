@@ -37,7 +37,7 @@ protected:
 	 * @param SequenceInstance The sequence instance that owns this track instance.
 	 * @return The camera object, or nullptr if not found.
 	 */
-	UObject* AcquireCameraForShot(int32 ShotIndex, const FGuid& CameraGuid, FMovieSceneSequenceInstance& SequenceInstance);
+	UObject* AcquireCameraForShot(int32 ShotIndex, const FGuid& CameraGuid, FMovieSceneSequenceInstance& SequenceInstance, const IMovieScenePlayer& Player);
 
 private:
 	

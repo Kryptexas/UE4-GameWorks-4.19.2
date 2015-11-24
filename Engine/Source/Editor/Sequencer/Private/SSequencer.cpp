@@ -138,8 +138,8 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
 	AddMenuExtender = InArgs._AddMenuExtender;
 
-	ColumnFillCoefficients[0] = .25f;
-	ColumnFillCoefficients[1] = .75f;
+	ColumnFillCoefficients[0] = 0.3f;
+	ColumnFillCoefficients[1] = 0.7f;
 
 	TAttribute<float> FillCoefficient_0, FillCoefficient_1;
 	{
@@ -226,7 +226,16 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 							.Orientation(Orient_Horizontal)
 						
 						+ SSplitter::Slot()
-							.Value(0.80f)
+							.Value(0.10f)
+							[
+								// track label browser
+								SAssignNew(LabelBrowser, SSequencerLabelBrowser)
+									.OnSelectionChanged(this, &SSequencer::HandleLabelBrowserSelectionChanged)
+									.Visibility(this, &SSequencer::HandleLabelBrowserVisibility)
+							]
+
+						+ SSplitter::Slot()
+							.Value(0.7f)
 							[
 								SNew(SOverlay)
 
@@ -251,7 +260,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 															.BorderBackgroundColor(FLinearColor(.50f, .50f, .50f, 1.0f))
 															.Padding(FMargin(4.0f, 3.0f))
 															[
-																SNew( SSearchBox )
+																SAssignNew(SearchBox, SSearchBox)
 																	.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
 															]
 													]
@@ -274,7 +283,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 																		+ SHorizontalBox::Slot()
 																			.FillWidth( FillCoefficient_0 )
 																			[
-																				SNew(SSequencerTreeViewBox, InSequencer)
+																				SNew(SSequencerTreeViewBox, InSequencer, SharedThis(this))
 																					.Padding(FMargin(0, 0, 10.f, 0)) // Padding to allow space for the scroll bar
 																					[
 																						TreeView.ToSharedRef()
@@ -359,6 +368,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 														SNew( SBorder )
 															.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 															.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+															.Padding(0)
 															[
 																SNew(SVerticalBox)
 
@@ -418,7 +428,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 							[
 								// details view panel
 								SNew(SVerticalBox)
-								.Visibility(this, &SSequencer::HandleDetailsViewVisibility)
+									.Visibility(this, &SSequencer::HandleDetailsViewVisibility)
 
 								+ SVerticalBox::Slot()
 									.AutoHeight()
@@ -451,7 +461,7 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 {
 	SequencerCommandBindings->MapAction(
 		FSequencerCommands::Get().MoveTool,
-		FExecuteAction::CreateLambda([&] {
+		FExecuteAction::CreateLambda([this] {
 			EditTool.Reset(new FSequencerEditTool_Movement(Sequencer.Pin(), SharedThis(this)));
 		}),
 		FCanExecuteAction::CreateLambda([] {
@@ -462,7 +472,7 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 
 	SequencerCommandBindings->MapAction(
 		FSequencerCommands::Get().MarqueeTool,
-		FExecuteAction::CreateLambda( [&] {
+		FExecuteAction::CreateLambda( [this] {
 			EditTool.Reset(new FSequencerEditTool_Selection(Sequencer.Pin(), SharedThis(this)));
 		}),
 		FCanExecuteAction::CreateLambda([] {
@@ -471,20 +481,25 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 		FIsActionChecked::CreateSP(this, &SSequencer::IsEditToolEnabled, FName("Selection"))
 	);
 
+	auto CanPaste = [this]{
+		if (!HasFocusedDescendants() && !HasKeyboardFocus())
+		{
+			return false;
+		}
+
+		return Sequencer.Pin()->GetClipboardStack().Num() != 0;
+	};
+
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP(this, &SSequencer::Paste),
-		FCanExecuteAction::CreateLambda([&]{
-			return Sequencer.Pin()->GetClipboardStack().Num() != 0;
-		})
+		FCanExecuteAction::CreateLambda(CanPaste)
 	);
 
 	SequencerCommandBindings->MapAction(
 		FSequencerCommands::Get().PasteFromHistory,
 		FExecuteAction::CreateSP(this, &SSequencer::PasteFromHistory),
-		FCanExecuteAction::CreateLambda([&]{
-			return Sequencer.Pin()->GetClipboardStack().Num() != 0;
-		})
+		FCanExecuteAction::CreateLambda(CanPaste)
 	);
 }
 
@@ -562,6 +577,23 @@ EVisibility SSequencer::HandleDetailsViewVisibility() const
 void SSequencer::HandleKeySelectionChanged()
 {
 	UpdateDetailsView();
+}
+
+
+void SSequencer::HandleLabelBrowserSelectionChanged(FString NewLabel, ESelectInfo::Type SelectInfo)
+{
+	SearchBox->SetText(FText::FromString(NewLabel));
+}
+
+
+EVisibility SSequencer::HandleLabelBrowserVisibility() const
+{
+	if (Sequencer.Pin()->GetSettings()->GetLabelBrowserVisible())
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
 }
 
 
@@ -751,6 +783,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		if (Sequencer.Pin()->IsLevelEditorSequencer())
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleDetailsView );
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLabelBrowser );
 		}
 
 		if (Sequencer.Pin()->IsLevelEditorSequencer())

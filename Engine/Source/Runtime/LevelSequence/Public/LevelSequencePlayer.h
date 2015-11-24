@@ -6,7 +6,7 @@
 #include "LevelSequence.h"
 #include "LevelSequencePlayer.generated.h"
 
-
+class FLevelSequenceSpawnRegister;
 class FMovieSceneSequenceInstance;
 class ULevel;
 class UMovieSceneBindings;
@@ -141,6 +141,8 @@ protected:
 	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
 	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
+	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override;
+	virtual UObject* GetPlaybackContext() const override;
 
 public:
 
@@ -178,6 +180,9 @@ private:
 	/** The number of times we have looped in the current playback */
 	int32 CurrentNumLoops;
 
+	/** Whether this player has cleaned up the level sequence after it has stopped playing or not */
+	bool bHasCleanedUpSequence;
+
 private:
 
 	/** The root movie scene instance to update when playing. */
@@ -185,6 +190,9 @@ private:
 
 	/** The world this player will spawn actors in, if needed */
 	TWeakObjectPtr<UWorld> World;
+
+	/** Register responsible for managing spawned objects */
+	TSharedPtr<FLevelSequenceSpawnRegister> SpawnRegister;
 
 #if WITH_EDITOR
 public:

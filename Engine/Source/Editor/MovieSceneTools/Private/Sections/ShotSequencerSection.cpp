@@ -166,7 +166,7 @@ bool FShotSequencerSection::AreSectionsConnected() const
 }
 
 
-void FShotSequencerSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder)
+void FShotSequencerSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
 {
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 

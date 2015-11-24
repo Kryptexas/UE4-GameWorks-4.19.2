@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "MovieSceneParameterSection.h"
 #include "MovieSceneMaterialTrack.generated.h"
 
@@ -12,7 +12,7 @@
  */
 UCLASS( MinimalAPI )
 class UMovieSceneMaterialTrack
-	: public UMovieSceneTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_UCLASS_BODY()
 

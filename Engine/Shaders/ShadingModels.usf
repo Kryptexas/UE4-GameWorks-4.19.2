@@ -517,10 +517,10 @@ float3 HairShadingRef( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 
 // Approximation to HairShadingRef using concepts from the following papers:
 // [Marschner et al. 2003, "Light Scattering from Human Hair Fibers"]
 // [Pekelis et al. 2015, "A Data-Driven Light Scattering Model for Hair"]
-float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Shadow, uint2 Random )
+float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Shadow, float Backlit, float Area, uint2 Random )
 {
 	//const float3 DiffuseN	= OctahedronToUnitVector( GBuffer.CustomData.xy * 2 - 1 );
-	const float Backlit	= GBuffer.CustomData.z;
+	//const float Backlit	= GBuffer.CustomData.z;
 
 #if HAIR_REFERENCE
 	float3 S = HairShadingRef( GBuffer, L, V, N, Random );
@@ -531,7 +531,9 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 	const float VoL       = dot(V,L);
 	const float SinThetaL = dot(N,L);
 	const float SinThetaV = dot(N,V);
-	const float CosThetaD = cos( 0.5 * abs( asin( SinThetaV ) - asin( SinThetaL ) ) );
+	float CosThetaD = cos( 0.5 * abs( asin( SinThetaV ) - asin( SinThetaL ) ) );
+
+	//CosThetaD = abs( CosThetaD ) < 0.01 ? 0.01 : CosThetaD;
 
 	const float3 Lp = L - SinThetaL * N;
 	const float3 Vp = V - SinThetaV * N;
@@ -543,18 +545,18 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 	//float n_prime = sqrt( n*n - 1 + Pow2( CosThetaD ) ) / CosThetaD;
 	float n_prime = 1.2 / CosThetaD + 0.35 * CosThetaD;
 
-	float Shift = 0.05;
+	float Shift = 0.035;
 	float Alpha[] =
 	{
+		-Shift * 2,
 		Shift,
-		-Shift * 0.5,
-		-Shift * 1.5,
+		Shift * 4,
 	};
 	float B[] =
 	{
-		Pow2( GBuffer.Roughness ),
-		Pow2( GBuffer.Roughness ) / 2,
-		Pow2( GBuffer.Roughness ) * 2,
+		Area + Pow2( GBuffer.Roughness ),
+		Area + Pow2( GBuffer.Roughness ) / 2,
+		Area + Pow2( GBuffer.Roughness ) * 2,
 	};
 
 	float3 S = 0;
@@ -567,7 +569,7 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 
 		float Mp = Hair_g( B[0] * sqrt(2.0) * CosHalfPhi, SinThetaL + SinThetaV - Shift );
 		float Np = 0.25 * CosHalfPhi;
-		float Fp = Hair_F( sqrt( 0.5 + 0.5 * VoL ) );
+		float Fp = Hair_F( sqrt( saturate( 0.5 + 0.5 * VoL ) ) );
 		S += Mp * Np * Fp * ( GBuffer.Specular * 2 ) * lerp( 1, Backlit, saturate(-VoL) );
 	}
 
@@ -625,7 +627,7 @@ float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, float Sha
 	float DiffuseScatter = (1 / PI) * NoL * GBuffer.Metallic;
 	float Luma = Luminance( GBuffer.BaseColor );
 	float3 ScatterTint = pow( GBuffer.BaseColor / Luma, 1 - Shadow );
-	S += lerp( GBuffer.BaseColor, Luma, 0.25 ) * DiffuseScatter * ScatterTint;
+	S += sqrt( GBuffer.BaseColor ) * DiffuseScatter * ScatterTint;
 
 	return S;
 }
@@ -740,7 +742,6 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
 			return StandardShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N, DiffSpecMask);
 		case SHADINGMODELID_CLEAR_COAT:
-			// this path does not support DiffSpecMask yet
 			return ClearCoatShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N );
 		case SHADINGMODELID_CLOTH:
 			return ClothShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N );
@@ -764,7 +765,7 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, flo
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
 			return SubsurfaceShadingTwoSided( SubsurfaceColor, L, V, N );
 		case SHADINGMODELID_HAIR:
-			return HairShading( GBuffer, L, V, N, Shadow, Random );
+			return HairShading( GBuffer, L, V, N, Shadow, 1, 0, Random );
 		case SHADINGMODELID_EYE:
 			return EyeSubsurfaceShading( GBuffer, L, V, N );
 		default:

@@ -487,6 +487,36 @@ void FHttpNetworkReplayStreamer::FlushCheckpoint( const uint32 TimeInMS )
 	FlushCheckpointInternal( TimeInMS );
 }
 
+FQueuedGotoFakeCheckpoint::FQueuedGotoFakeCheckpoint() : FQueuedHttpRequest( EQueuedHttpRequestType::UploadingCustomEvent, nullptr )
+{
+}
+
+bool FQueuedGotoFakeCheckpoint::PreProcess( FHttpNetworkReplayStreamer* Streamer, const FString& ServerURL, const FString& SessionName )
+{
+	// Make sure to reset the checkpoint archive (this is how we signify that the engine should start from the beginning of the steam (we don't need a checkpoint for that))
+	Streamer->CheckpointArchive.Buffer.Empty();
+	Streamer->CheckpointArchive.Pos = 0;
+
+	// Completely reset our stream (we're going to start downloading from the start of the checkpoint)
+	Streamer->StreamArchive.Buffer.Empty();
+	Streamer->StreamArchive.Pos				= 0;
+	Streamer->StreamArchive.bAtEndOfReplay	= false;
+
+	// Reset our stream range
+	Streamer->StreamTimeRangeStart	= 0;
+	Streamer->StreamTimeRangeEnd	= 0;
+
+	// Reset chunk index
+	Streamer->StreamChunkIndex		= 0;
+
+	Streamer->GotoCheckpointDelegate.ExecuteIfBound( true, Streamer->LastGotoTimeInMS );
+	Streamer->GotoCheckpointDelegate = FOnCheckpointReadyDelegate();
+
+	Streamer->LastGotoTimeInMS = -1;
+
+	return true;
+}
+
 void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate )
 {
 	if ( GotoCheckpointDelegate.IsBound() || DownloadCheckpointIndex != -1 )
@@ -501,23 +531,8 @@ void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointInde
 
 	if ( CheckpointIndex == -1 )
 	{
-		// Make sure to reset the checkpoint archive (this is how we signify that the engine should start from the beginning of the steam (we don't need a checkpoint for that))
-		CheckpointArchive.Buffer.Empty();
-		CheckpointArchive.Pos = 0;
-
-		// Completely reset our stream (we're going to start downloading from the start of the checkpoint)
-		StreamArchive.Buffer.Empty();
-		StreamArchive.Pos				= 0;
-		StreamArchive.bAtEndOfReplay	= false;
-
-		// Reset our stream range
-		StreamTimeRangeStart	= 0;
-		StreamTimeRangeEnd		= 0;
-
-		StreamChunkIndex		= 0;
-
-		Delegate.ExecuteIfBound( true, LastGotoTimeInMS );
-		LastGotoTimeInMS = -1;
+		GotoCheckpointDelegate = Delegate;
+		AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedGotoFakeCheckpoint() ) );
 		return;
 	}
 
@@ -679,7 +694,7 @@ FQueuedHttpRequestAddEvent::FQueuedHttpRequestAddEvent( const FString& InName, c
 	Meta		= InMeta;
 }
 
-bool FQueuedHttpRequestAddEvent::PreProcess( const FString& ServerURL, const FString& SessionName )
+bool FQueuedHttpRequestAddEvent::PreProcess( FHttpNetworkReplayStreamer* Streamer, const FString& ServerURL, const FString& SessionName )
 {
 	if ( SessionName.IsEmpty() )
 	{
@@ -770,6 +785,23 @@ bool FHttpNetworkReplayStreamer::IsTaskPendingOrInFlight( const EQueuedHttpReque
 	return false;
 }
 
+void FHttpNetworkReplayStreamer::CancelInFlightOrPendingTask( const EQueuedHttpRequestType::Type Type )
+{
+	for ( int i = QueuedHttpRequests.Num() - 1; i >= 0; i-- )
+	{
+		if ( QueuedHttpRequests[i]->Type == Type )
+		{
+			QueuedHttpRequests.RemoveAt( i );
+		}
+	}
+
+	if ( InFlightHttpRequest.IsValid() && InFlightHttpRequest->Type == Type )
+	{
+		InFlightHttpRequest->Request->CancelRequest();
+		InFlightHttpRequest = NULL;
+	}
+}
+
 void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 {
 	if ( GotoCheckpointDelegate.IsBound() )
@@ -821,7 +853,7 @@ void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 	HttpRequest->SetURL( URL );
 	HttpRequest->SetVerb( TEXT( "GET" ) );
 
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadFinished );
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadFinished, StreamChunkIndex );
 
 	AddRequestToQueue( EQueuedHttpRequestType::DownloadingStream, HttpRequest );
 
@@ -1427,7 +1459,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 	}
 }
 
-void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 RequestedStreamChunkIndex )
 {
 	RequestFinished( EStreamerState::StreamingDown, EQueuedHttpRequestType::DownloadingStream, HttpRequest );
 
@@ -1435,6 +1467,15 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
+		// Make sure our stream chunk index didn't change under our feet
+		if ( RequestedStreamChunkIndex != StreamChunkIndex )
+		{
+			UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. StreamChunkIndex changed while request was in flight" ) );
+			StreamArchive.Buffer.Empty();
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
+			return;
+		}
+
 		if ( HttpResponse->GetHeader( TEXT( "NumChunks" ) ) == TEXT( "" ) )
 		{
 			// Assume this is an implcit status update
@@ -1772,9 +1813,15 @@ bool FHttpNetworkReplayStreamer::ProcessNextHttpRequest()
 			return ProcessNextHttpRequest();
 		}
 
-		if ( !QueuedRequest->PreProcess( ServerURL, SessionName ) )
+		if ( !QueuedRequest->PreProcess( this, ServerURL, SessionName ) )
 		{
 			// This request failed, go ahead and process the next request
+			return ProcessNextHttpRequest();
+		}
+
+		// If this task has no http request, immediately go to the next task
+		if ( !QueuedRequest->Request.IsValid() )
+		{
 			return ProcessNextHttpRequest();
 		}
 

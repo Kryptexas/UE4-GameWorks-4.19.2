@@ -259,6 +259,12 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 			// Reset transition related variables
 			StatesUpdated.Reset();
 			ActiveTransitionArray.Reset();
+
+			if (StateCacheBoneCounters.Num() != Machine->States.Num())
+			{
+				StateCacheBoneCounters.Reset(Machine->States.Num());
+				StateCacheBoneCounters.AddDefaulted(Machine->States.Num());
+			}
 		
 			// Move to the default state
 			SetState(Context, Machine->InitialState);
@@ -275,14 +281,28 @@ void FAnimNode_StateMachine::CacheBones(const FAnimationCacheBonesContext& Conte
 	{
 		for (int32 StateIndex = 0; StateIndex < Machine->States.Num(); ++StateIndex)
 		{
-			if( GetStateWeight(StateIndex) > 0.f) 
+			if (GetStateWeight(StateIndex) > 0.f)
 			{
-				StatePoseLinks[StateIndex].CacheBones(Context);
+				ConditionallyCacheBonesForState(StateIndex, Context);
 			}
 		}
 	}
 
 	// @TODO GetStateWeight is O(N) transitions.
+}
+
+void FAnimNode_StateMachine::ConditionallyCacheBonesForState(int32 StateIndex, FAnimationBaseContext Context)
+{
+	// Only call CacheBones when needed.
+	check(StateCacheBoneCounters.IsValidIndex(StateIndex));
+	if (!StateCacheBoneCounters[StateIndex].IsSynchronizedWith(Context.AnimInstanceProxy->GetCachedBonesCounter()))
+	{
+		// keep track of states that have had CacheBones called on.
+		StateCacheBoneCounters[StateIndex].SynchronizeWith(Context.AnimInstanceProxy->GetCachedBonesCounter());
+
+		FAnimationCacheBonesContext CacheBoneContext(Context.AnimInstanceProxy);
+		StatePoseLinks[StateIndex].CacheBones(CacheBoneContext);
+	}
 }
 
 const FBakedAnimationState& FAnimNode_StateMachine::GetStateInfo() const
@@ -709,6 +729,9 @@ void FAnimNode_StateMachine::Evaluate(FPoseContext& Output)
 	}
 	else if (!IsAConduitState(CurrentState))
 	{
+		// Make sure CacheBones has been called before evaluating.
+		ConditionallyCacheBonesForState(CurrentState, Output);
+
 		// Evaluate the current state
 		StatePoseLinks[CurrentState].Evaluate(Output);
 	}
@@ -823,6 +846,7 @@ void FAnimNode_StateMachine::SetStateInternal(int32 NewStateIndex)
 	checkSlow(PRIVATE_MachineDescription);
 	ensure(!IsAConduitState(NewStateIndex));
 	CurrentState = FMath::Clamp<int32>(NewStateIndex, 0, PRIVATE_MachineDescription->States.Num() - 1);
+	check(CurrentState == NewStateIndex);
 	ElapsedTime = 0.0f;
 }
 
@@ -859,9 +883,8 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 			FAnimationInitializeContext InitContext(Context.AnimInstanceProxy);
 			StatePoseLinks[NewStateIndex].Initialize(InitContext);
 
-			// Also update BoneCaching.
-			FAnimationCacheBonesContext CacheBoneContext(Context.AnimInstanceProxy);
-			StatePoseLinks[NewStateIndex].CacheBones(CacheBoneContext);
+			// Also call cache bones if needed
+			ConditionallyCacheBonesForState(NewStateIndex, Context);
 		}
 
 		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesEntered.Num())
@@ -950,6 +973,9 @@ const FPoseContext& FAnimNode_StateMachine::EvaluateState(int32 StateIndex, cons
 
 		if (!IsAConduitState(StateIndex))
 		{
+			// Make sure CacheBones has been called before evaluating.
+			ConditionallyCacheBonesForState(StateIndex, Context);
+
 			StatePoseLinks[StateIndex].Evaluate(*CachePosePtr);
 		}
 	}

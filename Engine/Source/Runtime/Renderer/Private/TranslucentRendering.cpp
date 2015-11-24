@@ -311,6 +311,9 @@ public:
 		{
 			if(BatchElementMask & 1)
 			{
+				TDrawEvent<FRHICommandList> MeshEvent;
+				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+
 				DrawingPolicy.SetMeshRenderState(
 					RHICmdList, 
 					View,

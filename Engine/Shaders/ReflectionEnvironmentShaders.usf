@@ -459,7 +459,7 @@ void ReflectionApplyPS(
 	
 	BRANCH
 	// Only light pixels marked as lit
-	if( GBuffer.ShadingModelID > 0 )
+	if( GBuffer.ShadingModelID > 0 && GBuffer.ShadingModelID != SHADINGMODELID_HAIR )
 	{
 		// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
 		float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );

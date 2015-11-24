@@ -144,6 +144,7 @@ void AWorldSettings::NotifyBeginPlay()
 			// Actors that have traveled seamlessly from other levels already had BeginPlay called in that level
 			if (!It->IsPendingKill() && !It->HasActorBegunPlay())
 			{
+				SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
 				It->BeginPlay();
 			}
 		}

@@ -128,8 +128,9 @@ public:
 	 * Builds up the section context menu for the outliner
 	 *
 	 * @param MenuBuilder	The menu builder to change
+	 * @param ObjectBinding The object guid bound to this section
 	 */
-	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) {}
+	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) {}
 
 	/**
 	 * Called when the user requests that a category from this section be deleted. 

@@ -842,8 +842,8 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 				ParticleLight.bAffectTranslucency = LightPayload->bAffectsTranslucency;
 
 				// Early out if the light will have no visible contribution
-				if (ParticleLight.Radius <= KINDA_SMALL_NUMBER
-					&& ParticleLight.Color.GetMax() <= KINDA_SMALL_NUMBER)
+				if (LightPayload->bHighQuality || 
+					(ParticleLight.Radius <= KINDA_SMALL_NUMBER && ParticleLight.Color.GetMax() <= KINDA_SMALL_NUMBER))
 				{
 					continue;
 				}

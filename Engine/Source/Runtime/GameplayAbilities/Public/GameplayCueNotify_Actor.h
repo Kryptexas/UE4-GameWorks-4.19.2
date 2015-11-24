@@ -104,9 +104,13 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	int32 NumPreallocatedInstances;
 
 	FGCNotifyActorKey NotifyKey;
+	
+	int32 StackCount;
+
+protected:
+	FTimerHandle FinishTimerHandle;
 
 private:
 	virtual void DeriveGameplayCueTagFromAssetName();
 
-	FTimerHandle FinishTimerHandle;
 };

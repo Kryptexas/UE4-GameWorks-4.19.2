@@ -37,6 +37,10 @@ struct FShowWebUrlParams
 {
 	/** presented without a frame if embedded enabled */
 	bool bEmbedded;
+	/** Show the built in close button */
+	bool bShowCloseButton;
+	/** Show the built in background */
+	bool bShowBackground;
 	/** x offset in pixels from top left */
 	int32 OffsetX;
 	/** y offset in pixels from top left */
@@ -55,6 +59,8 @@ struct FShowWebUrlParams
 	 */
 	FShowWebUrlParams(bool InbEmbedded, int32 InOffsetX, int32 InOffsetY, int32 InSizeX, int32 InSizeY)
 		: bEmbedded(InbEmbedded)
+		, bShowCloseButton(false)
+		, bShowBackground(false)
 		, OffsetX(InOffsetX)
 		, OffsetY(InOffsetY)
 		, SizeX(InSizeX)
@@ -66,6 +72,8 @@ struct FShowWebUrlParams
 	 */
 	FShowWebUrlParams()
 		: bEmbedded(false)
+		, bShowCloseButton(false)
+		, bShowBackground(false)
 		, OffsetX(0)
 		, OffsetY(0)
 		, SizeX(0)
@@ -135,13 +143,20 @@ public:
 	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) = 0;
 
 	/**
-	 *	Displays a web page in the external UI
+	 * Displays a web page in the external UI
 	 *
 	 * @param WebURL fully formed web address (http://www.google.com)
 	 *
 	 * @return true if it was able to show the UI, false if it failed
 	 */
 	virtual bool ShowWebURL(const FString& Url, const FShowWebUrlParams& ShowParams, const FOnShowWebUrlClosedDelegate& Delegate = FOnShowWebUrlClosedDelegate()) = 0;
+
+	/**
+	 * Closes the currently active web external UI
+	 *
+	 * @return true if it was able to show the UI, false if it failed
+	 */
+	virtual bool CloseWebURL() = 0;
 
 	/**
 	 * Displays a user's profile card.

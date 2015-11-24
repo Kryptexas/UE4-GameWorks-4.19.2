@@ -62,6 +62,9 @@ protected:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// ~ FGCObject
 
+protected:
+	static void PushUpdate(uint32 VectorArtId, const SMeshWidget& Widget, const FVector2D& Position, float Scale, uint32 BaseAddress);
+
 private:
 
 	struct FRenderData

@@ -229,6 +229,9 @@ public:
 	//copy operator to prevent duplicate handles
 	void operator=(const FScalableFloat& Src);
 
+	/* Used to upgrade a float property into an FScalableFloat */
+	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
+
 private:
 
 	/** Conditionally register the OnCurveTablePostReimport function with the re-import manager */
@@ -248,6 +251,17 @@ private:
 	// Cached direct pointer to RichCurve we should evaluate
 	mutable FRichCurve* FinalCurve;
 };
+
+template<>
+struct TStructOpsTypeTraits<FScalableFloat>
+	: public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializeFromMismatchedTag = true,
+	};
+};
+
 
 /**
  *	DataTable that allows us to define meta data about attributes. Still a work in progress.

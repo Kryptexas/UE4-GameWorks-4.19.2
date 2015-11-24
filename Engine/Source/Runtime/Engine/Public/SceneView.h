@@ -496,6 +496,15 @@ public:
 
 extern ENGINE_API TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;
 
+namespace EDrawDynamicFlags
+{
+	enum Type
+	{
+		None = 0,
+		ForceLowestLOD = 0x1
+	};
+}
+
 /**
  * A projection from scene space into a 2D screen region.
  */
@@ -558,6 +567,8 @@ public:
 
 	// Whether to use FOV when computing mesh LOD.
 	bool bUseFieldOfViewForLOD;
+
+	EDrawDynamicFlags::Type DrawDynamicFlags;
 
 	/** Current buffer visualization mode */
 	FName CurrentBufferVisualizationMode;

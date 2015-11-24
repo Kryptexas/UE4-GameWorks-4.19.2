@@ -16,7 +16,8 @@ public:
 private:
 
 	/** Double buffered draw buffers so that the rendering thread can be rendering windows while the game thread is setting up for next frame */
-	FSlateDrawBuffer DrawBuffers[2];
+	static const int32 NUM_DRAW_BUFFERS = 3;
+	FSlateDrawBuffer DrawBuffers[NUM_DRAW_BUFFERS];
 
 	/** The font services to use for rendering text */
 	TSharedRef<FSlateFontServices> SlateFontServices;

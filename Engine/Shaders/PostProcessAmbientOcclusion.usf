@@ -526,6 +526,13 @@ void MainPSandCS(in float4 UVAndScreenPos, float4 SvPosition, out float4 OutColo
 	float SceneDepth = GetDepthFromAOInput(UV);
 	float3 WorldNormal = GetWorldSpaceNormalFromAOInput(UV);
 
+	FGBufferData GBuffer = GetGBufferData(UV);
+	BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
+	{
+		float3 V = -normalize(mul(float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld).xyz);
+		WorldNormal = normalize( V - WorldNormal * dot(V, WorldNormal) );
+	}
+
 	float3 ViewSpaceNormal = normalize(mul(WorldNormal, (float3x3)View.TranslatedWorldToView));
 	
 	float3 ViewSpacePosition = ReconstructCSPos(SceneDepth, ScreenPos);

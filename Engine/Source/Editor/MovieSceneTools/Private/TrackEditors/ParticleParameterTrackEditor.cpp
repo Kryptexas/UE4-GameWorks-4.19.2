@@ -94,7 +94,7 @@ TSharedRef<SWidget> FParticleParameterTrackEditor::OnGetAddParameterMenuContent(
 {
 	FMenuBuilder AddParameterMenuBuilder( true, nullptr );
 
-	AEmitter* Emitter = Cast<AEmitter>( GetSequencer()->GetFocusedMovieSceneSequence()->FindObject( ObjectBinding ) );
+	AEmitter* Emitter = Cast<AEmitter>( GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() ) );
 	if ( Emitter != nullptr )
 	{
 		UParticleSystemComponent* ParticleSystemComponent = Emitter->GetParticleSystemComponent();
@@ -161,7 +161,7 @@ void FParticleParameterTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMo
 	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
 	float KeyTime = GetTimeForKey( MovieSceneSequence );
 
-	UObject* Object = GetSequencer()->GetFocusedMovieSceneSequence()->FindObject( ObjectBinding );
+	UObject* Object = GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() );
 	AEmitter* Emitter = Cast<AEmitter>(Object);
 	if ( Emitter != nullptr )
 	{
@@ -185,7 +185,7 @@ void FParticleParameterTrackEditor::AddVectorParameter( FGuid ObjectBinding, UMo
 	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
 	float KeyTime = GetTimeForKey( MovieSceneSequence );
 
-	UObject* Object = GetSequencer()->GetFocusedMovieSceneSequence()->FindObject( ObjectBinding );
+	UObject* Object = GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() );
 	AEmitter* Emitter = Cast<AEmitter>( Object );
 	if ( Emitter != nullptr )
 	{
@@ -209,7 +209,7 @@ void FParticleParameterTrackEditor::AddColorParameter( FGuid ObjectBinding, UMov
 	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
 	float KeyTime = GetTimeForKey( MovieSceneSequence );
 
-	UObject* Object = GetSequencer()->GetFocusedMovieSceneSequence()->FindObject( ObjectBinding );
+	UObject* Object = GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() );
 	AEmitter* Emitter = Cast<AEmitter>( Object );
 	if ( Emitter != nullptr )
 	{

@@ -1697,8 +1697,10 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 /*-----------------------------------------------------------------------------
 	UParticleSystem implementation.
 -----------------------------------------------------------------------------*/
+
 UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bAnyEmitterLoopsForever(false)
 {
 #if WITH_EDITORONLY_DATA
 	ThumbnailDistance = 200.0;
@@ -1810,6 +1812,29 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		}
 	}
 
+	// Recompute the looping flag
+	bAnyEmitterLoopsForever = false;
+	for (UParticleEmitter* Emitter : Emitters)
+	{
+		if (Emitter != nullptr)
+		{
+			for (const UParticleLODLevel* LODLevel : Emitter->LODLevels)
+			{
+				if (LODLevel != nullptr)
+				{
+					if (LODLevel->bEnabled)
+					{
+						const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
+						if ((RequiredModule != nullptr) && (RequiredModule->EmitterLoops == 0))
+						{
+							bAnyEmitterLoopsForever = true;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	//cap the WarmupTickRate to realistic values
 	if (WarmupTickRate <= 0)
 	{
@@ -1854,10 +1879,12 @@ void UParticleSystem::PostLoad()
 {
 	Super::PostLoad();
 
-	// Remove any old emitters
+	// Run thru all of the emitters, load them up and compute some flags based on them
 	bHasPhysics = false;
+	bAnyEmitterLoopsForever = false;
 	for (int32 i = Emitters.Num() - 1; i >= 0; i--)
 	{
+		// Remove any old emitters
 		UParticleEmitter* Emitter = Emitters[i];
 		if (Emitter == NULL)
 		{
@@ -1871,36 +1898,45 @@ void UParticleSystem::PostLoad()
 
 		Emitter->ConditionalPostLoad();
 
-		if (Emitter->IsA(UParticleSpriteEmitter::StaticClass()))
+		bool bCookedOut = false;
+		if (UParticleSpriteEmitter* SpriteEmitter = Cast<UParticleSpriteEmitter>(Emitter))
 		{
-			UParticleSpriteEmitter* SpriteEmitter = Cast<UParticleSpriteEmitter>(Emitter);
+			bCookedOut = SpriteEmitter->bCookedOut;
+		}
 
-			if (SpriteEmitter->bCookedOut == false)
-			{
-				UParticleLODLevel* LODLevel = SpriteEmitter->LODLevels[0];
-				check(LODLevel);
+		if (!bCookedOut)
+		{
+			UParticleLODLevel* LODLevel = Emitter->LODLevels[0];
+			check(LODLevel);
 
-				LODLevel->ConditionalPostLoad();
+			LODLevel->ConditionalPostLoad();
 				
-				//@todo. Move this into the editor and serialize?
-				for (int32 LODIndex = 0; (LODIndex < Emitter->LODLevels.Num()) && (bHasPhysics == false); LODIndex++)
+			//@todo. Move these flag calculations into the editor and serialize?
+			for (UParticleLODLevel* ParticleLODLevel : Emitter->LODLevels)
+			{
+				if (ParticleLODLevel)
 				{
 					//@todo. This is a temporary fix for emitters that apply physics.
 					// Check for collision modules with bApplyPhysics set to true
-					UParticleLODLevel*  ParticleLODLevel = Emitter->LODLevels[LODIndex];
-					if (ParticleLODLevel)
+					for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->Modules.Num(); ModuleIndex++)
 					{
-						for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->Modules.Num(); ModuleIndex++)
+						UParticleModuleCollision* CollisionModule = Cast<UParticleModuleCollision>(ParticleLODLevel->Modules[ModuleIndex]);
+						if (CollisionModule)
 						{
-							UParticleModuleCollision* CollisionModule = Cast<UParticleModuleCollision>(ParticleLODLevel->Modules[ModuleIndex]);
-							if (CollisionModule)
+							if (CollisionModule->bApplyPhysics == true)
 							{
-								if (CollisionModule->bApplyPhysics == true)
-								{
-									bHasPhysics = true;
-									break;
-								}
+								bHasPhysics = true;
+								break;
 							}
+						}
+					}
+
+					if (LODLevel->bEnabled)
+					{
+						const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
+						if ((RequiredModule != nullptr) && (RequiredModule->EmitterLoops == 0))
+						{
+							bAnyEmitterLoopsForever = true;
 						}
 					}
 				}
@@ -2090,9 +2126,8 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	OutTags.Add(FAssetRegistryTag("LODMethod", LODMethodString, FAssetRegistryTag::TT_Alphabetical));
 
 	// Run thru the emitters and see if any will loop forever
-	bool bAnyEmitterLoopsForever = false;
 	bool bEmitterIsDangerous = false;
-	for (int32 EmitterIndex = 0; (EmitterIndex < Emitters.Num()) && !bAnyEmitterLoopsForever; ++EmitterIndex)
+	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
 	{
 		if (const UParticleEmitter* Emitter = Emitters[EmitterIndex])
 		{
@@ -2103,13 +2138,7 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 					const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
 					check(RequiredModule);
 
-					if (RequiredModule->EmitterLoops == 0)
-					{
-						bAnyEmitterLoopsForever = true;
-						break;
-					}
-
-					UParticleModuleSpawn *SpawnModule = LODLevel->SpawnModule;
+					UParticleModuleSpawn* SpawnModule = LODLevel->SpawnModule;
 					check(SpawnModule);
 
 					if (SpawnModule->GetMaximumSpawnRate() == 0 
@@ -2119,7 +2148,6 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 					{
 						bEmitterIsDangerous = true;
 					}
-
 				}
 			}
 		}
@@ -2630,8 +2658,7 @@ void UParticleSystem::BuildEmitters()
 	const int32 EmitterCount = Emitters.Num();
 	for ( int32 EmitterIndex = 0; EmitterIndex < EmitterCount; ++EmitterIndex )
 	{
-		UParticleEmitter* Emitter = Emitters[EmitterIndex];
-		if ( Emitter )
+		if (UParticleEmitter* Emitter = Emitters[EmitterIndex])
 		{
 			Emitter->Build();
 		}
@@ -6207,7 +6234,14 @@ void AEmitterCameraLensEffectBase::RegisterCamera(APlayerCameraManager* C)
 	BaseCamera = C;
 }
 
-void AEmitterCameraLensEffectBase::NotifyRetriggered() {}
+void AEmitterCameraLensEffectBase::NotifyRetriggered() 
+{
+	UParticleSystemComponent* const PSC = GetParticleSystemComponent();
+	if (PSC && PSC->bWasDeactivated)
+	{
+		PSC->Activate(false);
+	}
+}
 
 void AEmitterCameraLensEffectBase::PostInitializeComponents()
 {
@@ -6256,6 +6290,30 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 			SetTemplate( PS_CameraEffect );
 		}
 	}
+}
+
+void AEmitterCameraLensEffectBase::DeactivateLensEffect()
+{
+	UParticleSystemComponent* const PSC = GetParticleSystemComponent();
+	if (PSC)
+	{
+		PSC->DeactivateSystem();
+	}
+}
+
+bool AEmitterCameraLensEffectBase::IsLooping() const
+{
+	if ((PS_CameraEffect != nullptr) && PS_CameraEffect->IsLooping())
+	{
+		return true;
+	}
+
+	if ((PS_CameraEffectNonExtremeContent != nullptr) && PS_CameraEffectNonExtremeContent->IsLooping())
+	{
+		return true;
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

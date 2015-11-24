@@ -576,7 +576,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 #if DO_ENABLE_NET_TEST
 		// if the connection is closing/being destroyed/etc we need to send immediately regardless of settings
 		// because we won't be around to send it delayed
-		if (State == USOCK_Closed || IsGarbageCollecting() || bIgnoreSimulation)
+		if (State == USOCK_Closed || IsGarbageCollecting() || bIgnoreSimulation || InternalAck)
 		{
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())
@@ -996,11 +996,19 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				const bool ValidUnreliableOpen = Bunch.bOpen && (Bunch.bClose || Bunch.bPartial);
 				if (!ValidUnreliableOpen)
 				{
-					UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
+					if ( InternalAck )
+					{
+						// Should be impossible with 100% reliable connections
+						UE_LOG( LogNetTraffic, Error, TEXT( "      Received unreliable bunch before open with reliable connection (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
+					}
+					else
+					{
+						UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
+					}
+
 					// Since we won't be processing this packet, don't ack it
 					// We don't want the sender to think this bunch was processed when it really wasn't
 					bSkipAck = true;
-					check( !InternalAck );		// Should be impossible with 100% reliable connections
 					continue;
 				}
 			}
@@ -1062,8 +1070,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	}
 
 	ValidateSendBuffer();
-
-	check( !bSkipAck || !InternalAck );		// 100% reliable connections shouldn't be skipping acks
 
 	// Acknowledge the packet.
 	if ( !bSkipAck )

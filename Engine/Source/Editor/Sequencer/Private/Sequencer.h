@@ -6,7 +6,6 @@
 #include "EditorUndoClient.h"
 #include "MovieSceneClipboard.h"
 
-
 class FMenuBuilder;
 class FMovieSceneSequenceInstance;
 class IDetailKeyframeHandler;
@@ -20,6 +19,7 @@ class UMovieScene;
 class UMovieSceneSection;
 class UMovieSceneSequence;
 class UWorld;
+class IMovieSceneSpawnRegister;
 
 
 /**
@@ -103,6 +103,9 @@ public:
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
 	virtual void NotifyMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
+	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
+	virtual UObject* GetPlaybackContext() const override;
+	virtual void GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties) override;
 
 	/** Set the global time directly, without performing any auto-scroll */
 	void SetGlobalTimeDirectly(float Time);
@@ -251,6 +254,7 @@ public:
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
 	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
 	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
+	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override { return *SpawnRegister; }
 
 	/** Called when an actor is dropped into Sequencer */
 	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );
@@ -431,6 +435,26 @@ protected:
 
 protected:
 
+	/**
+	 * Populate the specified set with all UProperties that are currently keyed for the specified object and sequence instance, including any sub sequences
+	 *
+	 * @param Object		The object to get keyed properties for
+	 * @param Instance		The sequence instance in which to look for the object bindings
+	 * @param OutProperties	set to populate with properties
+	 */
+	void GetAllKeyedPropertiesForInstance(UObject& Object, FMovieSceneSequenceInstance& Instance, TSet<UProperty*>& OutProperties);
+
+	/**
+	 * Populate the specified set with all UProperties that are currently keyed for the specified object and sequence instance, excluding any sub sequences
+	 *
+	 * @param Object		The object to get keyed properties for
+	 * @param Instance		The sequence instance in which to look for the object bindings
+	 * @param OutProperties	set to populate with properties
+	 */
+	void GetKeyedProperties(UObject& Object, FMovieSceneSequenceInstance& Instance, TSet<UProperty*>& OutProperties);
+
+protected:
+
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const;
 	
@@ -539,6 +563,9 @@ private:
 	/** Main sequencer widget */
 	TSharedPtr<SSequencer> SequencerWidget;
 	
+	/** Spawn register for keeping track of what is spawned */
+	TSharedPtr<IMovieSceneSpawnRegister> SpawnRegister;
+
 	/** The asset editor that created this Sequencer if any */
 	TWeakPtr<IToolkitHost> ToolkitHost;
 

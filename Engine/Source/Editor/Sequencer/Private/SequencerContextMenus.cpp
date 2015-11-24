@@ -241,6 +241,23 @@ void FSectionContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 		);
 	}
 	MenuBuilder.EndSection(); // SequencerSections
+
+	MenuBuilder.BeginSection("SequencerSectionOrder", LOCTEXT("SectionOrderLabel", "Order"));
+	{
+		MenuBuilder.AddMenuEntry(LOCTEXT("BringToFront", "Bring To Front"), FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([=]{ return Shared->BringToFront(); })));
+
+		MenuBuilder.AddMenuEntry(LOCTEXT("SendToBack", "Send To Back"), FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([=]{ return Shared->SendToBack(); })));
+
+		MenuBuilder.AddMenuEntry(LOCTEXT("BringForward", "Bring Forward"), FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([=]{ return Shared->BringForward(); })));
+
+		MenuBuilder.AddMenuEntry(LOCTEXT("SendBackward", "Send Backward"), FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([=]{ return Shared->SendBackward(); })));
+
+	}
+	MenuBuilder.EndSection(); // SequencerSectionOrder
 }
 
 void FSectionContextMenu::AddEditMenu(FMenuBuilder& MenuBuilder)
@@ -564,6 +581,272 @@ void FSectionContextMenu::DeleteSection()
 {
 	Sequencer->DeleteSections(Sequencer->GetSelection().GetSelectedSections());
 }
+
+/** Information pertaining to a specific row in a track, required for z-ordering operations */
+struct FTrackSectionRow
+{
+	/** The minimum z-order value for all the sections in this row */
+	int32 MinOrderValue;
+
+	/** The maximum z-order value for all the sections in this row */
+	int32 MaxOrderValue;
+
+	/** All the sections contained in this row */
+	TArray<UMovieSceneSection*> Sections;
+
+	/** A set of sections that are to be operated on */
+	TSet<UMovieSceneSection*> SectionToReOrder;
+
+	void AddSection(UMovieSceneSection* InSection)
+	{
+		Sections.Add(InSection);
+		MinOrderValue = FMath::Min(MinOrderValue, InSection->GetOverlapPriority());
+		MaxOrderValue = FMath::Max(MaxOrderValue, InSection->GetOverlapPriority());
+	}
+};
+
+/** Generate the data required for re-ordering rows based on the current sequencer selection */
+/** @note: Produces a map of track -> rows, keyed on row index. Only returns rows that contain selected sections */
+TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>> GenerateTrackRowsFromSelection(FSequencer& Sequencer)
+{
+	TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>> TrackRows;
+
+	for (const TWeakObjectPtr<UMovieSceneSection>& SectionPtr : Sequencer.GetSelection().GetSelectedSections())
+	{
+		UMovieSceneSection* Section = SectionPtr.Get();
+		if (!Section)
+		{
+			continue;
+		}
+
+		UMovieSceneTrack* Track = Section->GetTypedOuter<UMovieSceneTrack>();
+		if (!Track)
+		{
+			continue;
+		}
+
+		FTrackSectionRow& Row = TrackRows.FindOrAdd(Track).FindOrAdd(Section->GetRowIndex());
+		Row.SectionToReOrder.Add(Section);
+	}
+
+	// Now ensure all rows that we're operating on are fully populated
+	for (auto& Pair : TrackRows)
+	{
+		UMovieSceneTrack* Track = Pair.Key;
+		for (auto& RowPair : Pair.Value)
+		{
+			const int32 RowIndex = RowPair.Key;
+			for (UMovieSceneSection* Section : Track->GetAllSections())
+			{
+				if (Section->GetRowIndex() == RowIndex)
+				{
+					RowPair.Value.AddSection(Section);
+				}
+			}
+		}
+	}
+
+	return TrackRows;
+}
+
+/** Modify all the sections contained within the specified data structure */
+void ModifySections(TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>>& TrackRows)
+{
+	for (auto& Pair : TrackRows)
+	{
+		UMovieSceneTrack* Track = Pair.Key;
+		for (auto& RowPair : Pair.Value)
+		{
+			for (UMovieSceneSection* Section : RowPair.Value.Sections)
+			{
+				Section->Modify();
+			}
+		}
+	}
+}
+
+void FSectionContextMenu::BringToFront()
+{
+	TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>> TrackRows = GenerateTrackRowsFromSelection(*Sequencer);
+	if (TrackRows.Num() == 0)
+	{
+		return;
+	}
+
+	FScopedTransaction Transaction(LOCTEXT("BringToFrontTransaction", "Bring to Front"));
+	ModifySections(TrackRows);
+
+	for (auto& Pair : TrackRows)
+	{
+		UMovieSceneTrack* Track = Pair.Key;
+		TMap<int32, FTrackSectionRow>& Rows = Pair.Value;
+
+		for (auto& RowPair : Rows)
+		{
+			FTrackSectionRow& Row = RowPair.Value;
+
+			Row.Sections.StableSort([&](UMovieSceneSection& A, UMovieSceneSection& B){
+				bool bIsActiveA = Row.SectionToReOrder.Contains(&A);
+				bool bIsActiveB = Row.SectionToReOrder.Contains(&B);
+
+				// Sort secondarily on overlap priority
+				if (bIsActiveA == bIsActiveB)
+				{
+					return A.GetOverlapPriority() < B.GetOverlapPriority();
+				}
+				// Sort and primarily on whether we're sending to the back or not (bIsActive)
+				else
+				{
+					return !bIsActiveA;
+				}
+			});
+
+			int32 CurrentPriority = Row.MinOrderValue;
+			for (UMovieSceneSection* Section : Row.Sections)
+			{
+				Section->SetOverlapPriority(CurrentPriority++);
+			}
+		}
+	}
+
+	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+}
+
+void FSectionContextMenu::SendToBack()
+{
+	TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>> TrackRows = GenerateTrackRowsFromSelection(*Sequencer);
+	if (TrackRows.Num() == 0)
+	{
+		return;
+	}
+
+	FScopedTransaction Transaction(LOCTEXT("SendToBackTransaction", "Send to Back"));
+	ModifySections(TrackRows);
+
+	for (auto& Pair : TrackRows)
+	{
+		UMovieSceneTrack* Track = Pair.Key;
+		TMap<int32, FTrackSectionRow>& Rows = Pair.Value;
+
+		for (auto& RowPair : Rows)
+		{
+			FTrackSectionRow& Row = RowPair.Value;
+
+			Row.Sections.StableSort([&](UMovieSceneSection& A, UMovieSceneSection& B){
+				bool bIsActiveA = Row.SectionToReOrder.Contains(&A);
+				bool bIsActiveB = Row.SectionToReOrder.Contains(&B);
+
+				// Sort secondarily on overlap priority
+				if (bIsActiveA == bIsActiveB)
+				{
+					return A.GetOverlapPriority() < B.GetOverlapPriority();
+				}
+				// Sort and primarily on whether we're bringing to the front or not (bIsActive)
+				else
+				{
+					return bIsActiveA;
+				}
+			});
+
+			int32 CurrentPriority = Row.MinOrderValue;
+			for (UMovieSceneSection* Section : Row.Sections)
+			{
+				Section->SetOverlapPriority(CurrentPriority++);
+			}
+		}
+	}
+
+	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+}
+
+void FSectionContextMenu::BringForward()
+{
+	TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>> TrackRows = GenerateTrackRowsFromSelection(*Sequencer);
+	if (TrackRows.Num() == 0)
+	{
+		return;
+	}
+
+	FScopedTransaction Transaction(LOCTEXT("BringForwardTransaction", "Bring Forward"));
+	ModifySections(TrackRows);
+
+	for (auto& Pair : TrackRows)
+	{
+		UMovieSceneTrack* Track = Pair.Key;
+		TMap<int32, FTrackSectionRow>& Rows = Pair.Value;
+
+		for (auto& RowPair : Rows)
+		{
+			FTrackSectionRow& Row = RowPair.Value;
+
+			Row.Sections.Sort([&](UMovieSceneSection& A, UMovieSceneSection& B){
+				return A.GetOverlapPriority() < B.GetOverlapPriority();
+			});
+
+			for (int32 SectionIndex = Row.Sections.Num() - 1; SectionIndex >= 0; --SectionIndex)
+			{
+				UMovieSceneSection* ThisSection = Row.Sections[SectionIndex];
+				if (Row.SectionToReOrder.Contains(ThisSection))
+				{
+					UMovieSceneSection* OtherSection = Row.Sections[SectionIndex + 1];
+
+					Row.Sections.Swap(SectionIndex, SectionIndex+1);
+
+					const int32 SwappedPriority = OtherSection->GetOverlapPriority();
+					OtherSection->SetOverlapPriority(ThisSection->GetOverlapPriority());
+					ThisSection->SetOverlapPriority(SwappedPriority);
+				}
+			}
+		}
+	}
+
+	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+}
+
+void FSectionContextMenu::SendBackward()
+{
+	TMap<UMovieSceneTrack*, TMap<int32, FTrackSectionRow>> TrackRows = GenerateTrackRowsFromSelection(*Sequencer);
+	if (TrackRows.Num() == 0)
+	{
+		return;
+	}
+
+	FScopedTransaction Transaction(LOCTEXT("SendBackwardTransaction", "Send Backward"));
+	ModifySections(TrackRows);
+
+	for (auto& Pair : TrackRows)
+	{
+		UMovieSceneTrack* Track = Pair.Key;
+		TMap<int32, FTrackSectionRow>& Rows = Pair.Value;
+
+		for (auto& RowPair : Rows)
+		{
+			FTrackSectionRow& Row = RowPair.Value;
+
+			Row.Sections.Sort([&](UMovieSceneSection& A, UMovieSceneSection& B){
+				return A.GetOverlapPriority() < B.GetOverlapPriority();
+			});
+
+			for (int32 SectionIndex = 1; SectionIndex < Row.Sections.Num(); ++SectionIndex)
+			{
+				UMovieSceneSection* ThisSection = Row.Sections[SectionIndex];
+				if (Row.SectionToReOrder.Contains(ThisSection))
+				{
+					UMovieSceneSection* OtherSection = Row.Sections[SectionIndex - 1];
+
+					Row.Sections.Swap(SectionIndex, SectionIndex - 1);
+
+					const int32 SwappedPriority = OtherSection->GetOverlapPriority();
+					OtherSection->SetOverlapPriority(ThisSection->GetOverlapPriority());
+					ThisSection->SetOverlapPriority(SwappedPriority);
+				}
+			}
+		}
+	}
+
+	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+}
+
 
 bool FPasteContextMenu::BuildMenu(FMenuBuilder& MenuBuilder, FSequencer& InSequencer, const FPasteContextMenuArgs& Args)
 {

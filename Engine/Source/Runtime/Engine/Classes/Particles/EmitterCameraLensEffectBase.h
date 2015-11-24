@@ -66,9 +66,14 @@ public:
 	/** This will actually activate the lens Effect.  We want this separated from PostInitializeComponents so we can cache these emitters **/
 	virtual void ActivateLensEffect();
 	
+	/** Deactivtes the particle system. If bDestroyOnSystemFinish is true, actor will die after particles are all dead. */
+	virtual void DeactivateLensEffect();
+	
 	/** Given updated camera information, adjust this effect to display appropriately. */
 	virtual void UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg);
 
+	/** Returns true if either particle system would loop forever when played */
+	bool IsLooping() const;
 private:
 	/** DEPRECATED(4.11) */
 	UPROPERTY()

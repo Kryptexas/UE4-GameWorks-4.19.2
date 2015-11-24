@@ -6,6 +6,7 @@
 #include "SlateMaterialBrush.h"
 #include "Runtime/SlateRHIRenderer/Public/Interfaces/ISlateRHIRendererModule.h"
 #include "SlateVectorArtData.h"
+#include "SlateVectorArtInstanceData.h"
 
 
 
@@ -210,5 +211,22 @@ void SMeshWidget::AddReferencedObjects(FReferenceCollector& Collector)
 			UObject* ResourceObject = SomeRenderData.Brush->GetResourceObject();
 			Collector.AddReferencedObject(ResourceObject);
 		}
+	}
+}
+
+
+void SMeshWidget::PushUpdate(uint32 VectorArtId, const SMeshWidget& Widget, const FVector2D& Position, float Scale, uint32 BaseAddress)
+
+{
+	FSlateVectorArtInstanceData Data;
+	Data.SetPosition(Position);
+	Data.SetScale(Scale);
+	Data.SetBaseAddress(BaseAddress);
+
+	{
+		TSharedPtr<FSlateInstanceBufferUpdate> PerInstaceUpdate = Widget.BeginPerInstanceBufferUpdateConst(VectorArtId);
+		PerInstaceUpdate->GetData().Empty();
+		PerInstaceUpdate->GetData().Add(Data.GetData());
+		FSlateInstanceBufferUpdate::CommitUpdate(PerInstaceUpdate);
 	}
 }

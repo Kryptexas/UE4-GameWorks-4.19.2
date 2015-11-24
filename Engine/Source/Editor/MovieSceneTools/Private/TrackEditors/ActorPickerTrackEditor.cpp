@@ -24,7 +24,7 @@ void FActorPickerTrackEditor::PickActorInteractive(FGuid ObjectBinding, UMovieSc
 
 		ActorPickerMode.BeginActorPickingMode(
 			FOnGetAllowedClasses(), 
-			FOnShouldFilterActor::CreateSP(this, &FActorPickerTrackEditor::IsActorPickable), 
+			FOnShouldFilterActor::CreateSP(this, &FActorPickerTrackEditor::IsActorPickable, ObjectBinding, Section), 
 			FOnActorSelected::CreateSP(this, &FActorPickerTrackEditor::ActorPicked, ObjectBinding, Section)
 			);
 	}
@@ -55,7 +55,7 @@ void FActorPickerTrackEditor::ShowActorSubMenu(FMenuBuilder& MenuBuilder, FGuid 
 		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
 
 		// Only display Actors that we can attach too
-		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateSP(this, &FActorPickerTrackEditor::IsActorPickable) );
+		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateSP(this, &FActorPickerTrackEditor::IsActorPickable, ObjectBinding, Section) );
 	}		
 
 	// Actor selector to allow the user to choose a parent actor

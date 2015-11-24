@@ -59,7 +59,11 @@ protected:
 private:
 
 	TSharedRef<SWidget> HandleAddTrackComboButtonGetMenuContent();
+	
 	void HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyablePropertyPath);
+
+	void HandleLabelsSubMenuCreate(FMenuBuilder& MenuBuilder);
+	
 	void HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath);
 
 private:

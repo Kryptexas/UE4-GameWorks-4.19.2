@@ -1016,17 +1016,8 @@ static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 		AActor* Actor;
 	};
 
-	// All actors marked for replication are assumed to be relevant for demo recording.
-	/*
-	if
-		(	Actor
-		&&	((IsNetClient && Actor->bTearOff) || Actor->RemoteRole != ROLE_None || (IsNetClient && Actor->Role != ROLE_None && Actor->Role != ROLE_Authority) || Actor->bForceDemoRelevant)
-		&&  (!Actor->bNetTemporary || !Connection->SentTemporaries.Contains(Actor))
-		&& (Actor == Connection->PlayerController || Cast<APlayerController>(Actor) == NULL)
-		)
-	*/
-	bool bReplicated = false;
-
+	const int32 OriginalOutBunches = Connection->Driver->OutBunches;
+	
 	if ( Actor != NULL )
 	{
 		// We need to swap roles if:
@@ -1066,12 +1057,8 @@ static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 			if (Channel != NULL && !Channel->Closing)
 			{
 				// Send it out!
-				if (Channel->IsNetReady(0))
-				{
-					Channel->ReplicateActor();
-					bReplicated = true;
-				}
-			
+				Channel->ReplicateActor();
+
 				// Close the channel if this actor shouldn't have one
 				if (!bShouldHaveChannel)
 				{
@@ -1081,9 +1068,9 @@ static void DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 		}
 	}
 
-	if ( bMustReplicate && !bReplicated )
+	if ( bMustReplicate && Connection->Driver->OutBunches == OriginalOutBunches )
 	{
-		UE_LOG( LogDemo, Warning, TEXT( "DemoReplicateActor: bMustReplicate is true but bReplicated is false" ) );
+		UE_LOG( LogDemo, Error, TEXT( "DemoReplicateActor: bMustReplicate is true but nothing was sent: %s" ), Actor ? *Actor->GetName() : TEXT( "NULL" ) );
 	}
 }
 
@@ -1315,6 +1302,9 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	uint32 DeltaTimeChecksum = FCrc::MemCrc32( &SavedAbsTimeMS, sizeof( SavedAbsTimeMS ), 0 );
 	*FileAr << DeltaTimeChecksum;
 #endif
+
+	// flush out any pending network traffic
+	ClientConnections[0]->FlushNet();
 
 	// Make sure we don't have anything in the buffer for this new frame
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
@@ -1883,6 +1873,8 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	}
 
 	PauseChannels( false );
+
+	FNetworkReplayDelegates::OnPreScrub.Broadcast(GetWorld());
 
 #if 1
 	// Destroy all non startup actors. They will get restored with the checkpoint

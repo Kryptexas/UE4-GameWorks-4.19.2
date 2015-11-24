@@ -1322,9 +1322,10 @@ void FSlateApplication::Tick()
 		Renderer->ReleaseAccessedResources(/* Flush State */ false);
 	}
 	
-	{
-		const float DeltaTime = GetDeltaTime();
 
+	const float DeltaTime = GetDeltaTime();
+
+	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateMessageTick );
 
 		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Platform");
@@ -1347,6 +1348,9 @@ void FSlateApplication::Tick()
 
 		//FPlatformMisc::EndNamedEvent();
 	}
+
+	UpdateRetainerWidgetsEvent.Broadcast( DeltaTime );
+
 
 	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::UpdateCursorLockRegion");
 	// The widget locking the cursor to its bounds may have been reshaped.
@@ -1439,7 +1443,8 @@ void FSlateApplication::Tick()
 		{
 			if ( ReleasedCachedElementLists[CacheIndex]->IsInUse() == false )
 			{
-				delete ReleasedCachedElementLists[CacheIndex];
+				ensure( ReleasedCachedElementLists[CacheIndex].IsUnique() );
+				ReleasedCachedElementLists[CacheIndex].Reset();
 				ReleasedCachedElementLists.RemoveAtSwap(CacheIndex, 1, false);
 				CacheIndex--;
 			}
@@ -3682,10 +3687,10 @@ bool FSlateApplication::TakeScreenshot(const TSharedRef<SWidget>& Widget, const 
 
 TSharedPtr< FSlateWindowElementList > FSlateApplication::GetCachableElementList(const TSharedPtr<SWindow>& CurrentWindow, const ILayoutCache* LayoutCache)
 {
-	FCacheElementPools* Pools = CachedElementLists.FindRef(LayoutCache);
-	if ( Pools == nullptr )
+	TSharedPtr<FCacheElementPools> Pools = CachedElementLists.FindRef(LayoutCache);
+	if ( !Pools.IsValid() )
 	{
-		Pools = new FCacheElementPools();
+		Pools = MakeShareable( new FCacheElementPools() );
 		CachedElementLists.Add(LayoutCache, Pools);
 	}
 
@@ -3753,8 +3758,8 @@ bool FSlateApplication::FCacheElementPools::IsInUse() const
 
 void FSlateApplication::ReleaseResourcesForLayoutCache(const ILayoutCache* LayoutCache)
 {
-	FCacheElementPools* Pools = CachedElementLists.FindRef(LayoutCache);
-	if ( Pools != nullptr )
+	TSharedPtr<FCacheElementPools> Pools = CachedElementLists.FindRef(LayoutCache);
+	if ( Pools.IsValid() )
 	{
 		ReleasedCachedElementLists.Add(Pools);
 	}

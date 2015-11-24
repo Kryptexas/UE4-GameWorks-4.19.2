@@ -44,6 +44,7 @@ DEFINE_STAT(STAT_AsyncWorkWaitTime);
 DEFINE_STAT(STAT_PhysicsTime);
 
 DEFINE_STAT(STAT_SpawnActorTime);
+DEFINE_STAT(STAT_ActorBeginPlay);
 
 DEFINE_STAT(STAT_GCSweepTime);
 DEFINE_STAT(STAT_GCMarkTime);

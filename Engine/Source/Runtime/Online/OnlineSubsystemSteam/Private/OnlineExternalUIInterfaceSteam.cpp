@@ -85,6 +85,11 @@ bool FOnlineExternalUISteam::ShowWebURL(const FString& Url, const FShowWebUrlPar
 	return true;
 }
 
+bool FOnlineExternalUISteam::CloseWebURL()
+{
+	return false;
+}
+
 bool FOnlineExternalUISteam::ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate)
 {
 	SteamFriends()->ActivateGameOverlayToUser(TCHAR_TO_UTF8(TEXT("steamid")), (const FUniqueNetIdSteam&)Requestee);
