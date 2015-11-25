@@ -183,17 +183,15 @@ void FFindFloorResult::SetFromLineTrace(const FHitResult& InHit, const float InS
 	}
 }
 
-void FCharacterMovementComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FCharacterMovementComponentPostPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	if ( (TickType == LEVELTICK_All) && Target && !Target->IsPendingKillOrUnreachable())
+	FActorComponentTickFunction::ExecuteTickHelper(Target, DeltaTime, TickType, [this](float DilatedTime)
 	{
-		FScopeCycleCounterUObject ComponentScope(Target);
-		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());
-		Target->PreClothTick(DeltaTime, *this);	
-	}
+		Target->PostPhysicsTickComponent(DilatedTime, *this);
+	});
 }
 
-FString FCharacterMovementComponentPreClothTickFunction::DiagnosticMessage()
+FString FCharacterMovementComponentPostPhysicsTickFunction::DiagnosticMessage()
 {
 	return Target->GetFullName() + TEXT("[UCharacterMovementComponent::PreClothTick]");
 }
@@ -201,9 +199,9 @@ FString FCharacterMovementComponentPreClothTickFunction::DiagnosticMessage()
 UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PreClothComponentTick.bCanEverTick = true;
-	PreClothComponentTick.bStartWithTickEnabled = false;
-	PreClothComponentTick.TickGroup = TG_PreCloth;
+	PostPhysicsTickFunction.bCanEverTick = true;
+	PostPhysicsTickFunction.bStartWithTickEnabled = false;
+	PostPhysicsTickFunction.TickGroup = TG_PostPhysics;
 
 	GravityScale = 1.f;
 	GroundFriction = 8.0f;
@@ -1057,7 +1055,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 }
 
-void UCharacterMovementComponent::PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction)
+void UCharacterMovementComponent::PostPhysicsTickComponent(float DeltaTime, FCharacterMovementComponentPostPhysicsTickFunction& ThisTickFunction)
 {
 	if(bDeferUpdateBasedMovement)
 	{
@@ -1480,13 +1478,13 @@ void UCharacterMovementComponent::MaybeUpdateBasedMovement(float DeltaSeconds)
 		if (!bBaseIsSimulatingPhysics || !bAllowDefer)
 		{
 			UpdateBasedMovement(DeltaSeconds);
-			PreClothComponentTick.SetTickFunctionEnable(false);
+			PostPhysicsTickFunction.SetTickFunctionEnable(false);
 		}
 		else
 		{
 			// defer movement base update until after physics
 			bDeferUpdateBasedMovement = true;
-			PreClothComponentTick.SetTickFunctionEnable(true);
+			PostPhysicsTickFunction.SetTickFunctionEnable(true);
 		}
 	}
 }
@@ -7912,16 +7910,16 @@ void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 	if (bRegister)
 	{
-		if (SetupActorComponentTickFunction(&PreClothComponentTick))
+		if (SetupActorComponentTickFunction(&PostPhysicsTickFunction))
 		{
-			PreClothComponentTick.Target = this;
+			PostPhysicsTickFunction.Target = this;
 		}
 	}
 	else
 	{
-		if(PreClothComponentTick.IsTickFunctionRegistered())
+		if(PostPhysicsTickFunction.IsTickFunctionRegistered())
 		{
-			PreClothComponentTick.UnRegisterTickFunction();
+			PostPhysicsTickFunction.UnRegisterTickFunction();
 		}
 	}
 }

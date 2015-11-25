@@ -285,12 +285,9 @@ void UPrimitiveComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMater
 **/
 void FPrimitiveComponentPostPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	if ( (TickType == LEVELTICK_All) && Target && !Target->IsPendingKillOrUnreachable())
-	{
-		FScopeCycleCounterUObject ComponentScope(Target);
-		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());
-		Target->PostPhysicsTick(*this);	
-	}
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	FActorComponentTickFunction::ExecuteTickHelper(Target, DeltaTime, TickType, [this](float DilatedTime){ Target->PostPhysicsTick(*this); });
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 /** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/

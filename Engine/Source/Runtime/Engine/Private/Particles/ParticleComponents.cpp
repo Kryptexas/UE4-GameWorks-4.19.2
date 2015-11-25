@@ -3725,7 +3725,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThreadGame();
+		return ENamedThreads::HiPri(ENamedThreads::AnyThread);
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }

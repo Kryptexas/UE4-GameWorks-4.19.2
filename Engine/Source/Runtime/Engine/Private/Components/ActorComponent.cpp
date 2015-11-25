@@ -688,12 +688,10 @@ FActorComponentInstanceData* UActorComponent::GetComponentInstanceData() const
 
 void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	if (Target && !Target->IsPendingKillOrUnreachable())
+	ExecuteTickHelper(Target, DeltaTime, TickType, [this, TickType](float DilatedTime)
 	{
-		FScopeCycleCounterUObject ComponentScope(Target);
-		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());
-	    Target->ConditionalTickComponent(DeltaTime, TickType, *this);	
-	}
+		Target->TickComponent(DilatedTime, TickType, this);
+	});
 }
 
 FString FActorComponentTickFunction::DiagnosticMessage()
@@ -1168,23 +1166,6 @@ void UActorComponent::RecreatePhysicsState()
 	}
 }
 
-FORCEINLINE_DEBUGGABLE void UActorComponent::ConditionalTickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction &ThisTickFunction)
-{
-	if(bRegistered)
-	{
-		AActor* MyOwner = GetOwner();
-		//@optimization, I imagine this is all unnecessary in a shipping game with no editor
-		if (TickType != LEVELTICK_ViewportsOnly || 
-			(bTickInEditor && TickType == LEVELTICK_ViewportsOnly) ||
-			(MyOwner && MyOwner->ShouldTickIfViewportsOnly())
-			)
-		{
-			const float TimeDilation = (MyOwner ? MyOwner->CustomTimeDilation : 1.f);
-			TickComponent(DeltaTime * TimeDilation, TickType, &ThisTickFunction);
-		}
-	}
-}
-
 void UActorComponent::SetTickGroup(ETickingGroup NewTickGroup)
 {
 	PrimaryComponentTick.TickGroup = NewTickGroup;
@@ -1228,6 +1209,8 @@ void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 	checkf(!IsUnreachable(), TEXT("%s"), *GetFullName());
 	checkf(!IsTemplate(), TEXT("%s"), *GetFullName());
 	checkf(!IsPendingKill(), TEXT("%s"), *GetFullName());
+
+	FScopeCycleCounterUObject ContextScope(this);
 
 	if(!IsRegistered())
 	{

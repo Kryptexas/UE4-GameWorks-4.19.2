@@ -393,28 +393,6 @@ struct FStartAsyncSimulationFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
-/**
-* Tick function that ends the cloth tick
-**/
-USTRUCT()
-struct FEndClothSimulationFunction : public FTickFunction
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** World this tick function belongs to **/
-	class UWorld*	Target;
-
-	/**
-	* Abstract function actually execute the tick.
-	* @param DeltaTime - frame time to advance, in seconds
-	* @param TickType - kind of tick for this frame
-	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
-	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
-	**/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
-	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage() override;
-};
 
 /* Struct of optional parameters passed to SpawnActor function(s). */
 PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing bNoCollisionFail

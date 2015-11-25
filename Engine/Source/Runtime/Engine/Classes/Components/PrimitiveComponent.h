@@ -1201,12 +1201,15 @@ public:
 	struct FPrimitiveComponentPostPhysicsTickFunction PostPhysicsComponentTick;
 
 	/** Controls if we get a post physics tick or not. If set during ticking, will take effect next frame **/
+	DEPRECATED(4.11, "Please register your own tick function or use the primary tick function")
 	void SetPostPhysicsComponentTickEnabled(bool bEnable);
 
 	/** Returns whether we have the post physics tick enabled **/
+	DEPRECATED(4.11, "Please register your own tick function or use the primary tick function")
 	bool IsPostPhysicsComponentTickEnabled() const;
 
 	/** Tick function called after physics (sync scene) has finished simulation */
+	DEPRECATED(4.11, "Please register your own tick function or use the primary tick function")
 	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) {}
 
 	/** Return the BodySetup to use for this PrimitiveComponent (single body case) */

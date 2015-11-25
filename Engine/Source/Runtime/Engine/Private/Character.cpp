@@ -625,14 +625,14 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 				}
 
 				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use post-physics transforms
-				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(NewBaseComponent->IsSimulatingPhysics());
+				CharacterMovement->PostPhysicsTickFunction.SetTickFunctionEnable(NewBaseComponent->IsSimulatingPhysics());
 			}
 			else
 			{
 				BasedMovement.BoneName = NAME_None; // None, regardless of whether user tried to set a bone name, since we have no base component.
 				BasedMovement.bRelativeRotation = false;
 				CharacterMovement->CurrentFloor.Clear();
-				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(false);
+				CharacterMovement->PostPhysicsTickFunction.SetTickFunctionEnable(false);
 			}
 
 			if (Role == ROLE_Authority || Role == ROLE_AutonomousProxy)

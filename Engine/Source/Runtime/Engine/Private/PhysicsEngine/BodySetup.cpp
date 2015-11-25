@@ -342,6 +342,8 @@ struct FAddShapesHelper
 			Scale3DAbs.Y *= Scale3DAbsRelative.Y;
 			Scale3DAbs.Z *= Scale3DAbsRelative.Z;
 		}
+
+		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
 	}
 
 	UBodySetup* BodySetup;
@@ -360,12 +362,12 @@ struct FAddShapesHelper
 	float MinScale;
 	FVector Scale3DAbs;
 
+	float ContactOffsetFactor;
+	float MaxContactOffset;
+
 public:
 	FORCEINLINE_DEBUGGABLE void AddSpheresToRigidActor_AssumesLocked() const
 	{
-		float ContactOffsetFactor, MaxContactOffset;
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-
 		for (int32 i = 0; i < BodySetup->AggGeom.SphereElems.Num(); i++)
 		{
 			const FKSphereElem& SphereElem = BodySetup->AggGeom.SphereElems[i];
@@ -394,9 +396,6 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void AddBoxesToRigidActor_AssumesLocked() const
 	{
-		float ContactOffsetFactor, MaxContactOffset;
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-
 		for (int32 i = 0; i < BodySetup->AggGeom.BoxElems.Num(); i++)
 		{
 			const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[i];
@@ -429,9 +428,6 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void AddSphylsToRigidActor_AssumesLocked() const
 	{
-		float ContactOffsetFactor, MaxContactOffset;
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-
 		float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
 		float ScaleLength = Scale3DAbs.Z;
 
@@ -475,9 +471,6 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void AddConvexElemsToRigidActor_AssumesLocked() const
 	{
-		float ContactOffsetFactor, MaxContactOffset;
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-
 		for (int32 i = 0; i < BodySetup->AggGeom.ConvexElems.Num(); i++)
 		{
 			const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[i];
@@ -533,9 +526,6 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void AddTriMeshToRigidActor_AssumesLocked() const
 	{
-		float ContactOffsetFactor, MaxContactOffset;
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-
 		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
 		{
 		

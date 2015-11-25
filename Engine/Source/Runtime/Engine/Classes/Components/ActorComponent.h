@@ -473,16 +473,9 @@ public:
 	 * @param InWorld - The world to register the component with.
 	 */
 	void RegisterComponentWithWorld(UWorld* InWorld);
-	
-private:
-	/**
-	 * Conditionally calls Tick if bRegistered == true and a bunch of other criteria are met
-	 * @param DeltaTime - The time since the last tick.
-	 * @param TickType - Type of tick that we are running
-	 * @param ThisTickFunction - the tick function that we are running
-	 */
-	void ConditionalTickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction &ThisTickFunction);
 
+private:
+	
 	/** Friend for access to ConditionalTickComponent(). */
 	friend struct FActorComponentTickFunction;
 

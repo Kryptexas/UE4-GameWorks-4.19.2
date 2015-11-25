@@ -79,10 +79,10 @@ public:
 };
 
 /** 
- * Tick function that calls UCharacterMovementComponent::PreClothTick
+ * Tick function that calls UCharacterMovementComponent::PostPhysicsTickComponent
  **/
 USTRUCT()
-struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
+struct FCharacterMovementComponentPostPhysicsTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -1438,10 +1438,10 @@ public:
 
 	/** Post-physics tick function for this character */
 	UPROPERTY()
-	struct FCharacterMovementComponentPreClothTickFunction PreClothComponentTick;
+	struct FCharacterMovementComponentPostPhysicsTickFunction PostPhysicsTickFunction;
 
 	/** Tick function called after physics (sync scene) has finished simulation, before cloth */
-	virtual void PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction);
+	virtual void PostPhysicsTickComponent(float DeltaTime, FCharacterMovementComponentPostPhysicsTickFunction& ThisTickFunction);
 
 protected:
 	/** @note Movement update functions should only be called through StartNewPhysics()*/

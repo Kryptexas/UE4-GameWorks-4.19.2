@@ -29,7 +29,6 @@
 #endif
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/PhysicsAsset.h"
-#include "PhysicsEngine/ClothManager.h"
 
 #if WITH_APEX_CLOTHING
 #include "PhysicsEngine/PhysXSupport.h"
@@ -40,6 +39,12 @@
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 TAutoConsoleVariable<int32> CVarUseParallelAnimUpdate(TEXT("a.ParallelAnimUpdate"), 1, TEXT("If != 0, then we update animation blend tree, native update, asset players and montages (is possible) on worker threads."));
 TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate(TEXT("a.ForceParallelAnimUpdate"), 1, TEXT("If != 0, then we update animations on worker threads regardless of the setting on the anim blueprint."));
+
+static TAutoConsoleVariable<float> CVarStallParallelAnimation(
+	TEXT("CriticalPathStall.ParallelAnimation"),
+	0.0f,
+	TEXT("Sleep for the given time in each parallel animation task. Time is given in ms. This is a debug option used for critical path analysis and forcing a change in the critical path."));
+
 
 DECLARE_CYCLE_STAT(TEXT("Swap Anim Buffers"), STAT_CompleteAnimSwapBuffers, STATGROUP_Anim);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, STATGROUP_Anim, );
@@ -62,7 +67,7 @@ public:
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThreadGame();
+		return ENamedThreads::AnyThread;
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
@@ -74,6 +79,11 @@ public:
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
 			FScopeCycleCounterUObject ContextScope(Comp);
+			float Stall = CVarStallParallelAnimation.GetValueOnAnyThread();
+			if (Stall > 0.0f)
+			{
+				FPlatformProcess::Sleep(Stall / 1000.0f);
+			}
 			Comp->ParallelAnimationEvaluation();
 		}
 	}
@@ -131,10 +141,13 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bGenerateOverlapEvents = false;
 	LineCheckBoundsScale = FVector(1.0f, 1.0f, 1.0f);
 
-	PreClothTickFunction.TickGroup = TG_PreCloth;
-	PreClothTickFunction.bCanEverTick = true;
-	PreClothTickFunction.bStartWithTickEnabled = true;
+	PostPhysicsTickFunction.TickGroup = TG_PostPhysics;
+	PostPhysicsTickFunction.bCanEverTick = true;
+	PostPhysicsTickFunction.bStartWithTickEnabled = true;
 
+	ClothTickFunction.TickGroup = TG_PrePhysics;
+	ClothTickFunction.EndTickGroup = TG_PostPhysics;
+	ClothTickFunction.bCanEverTick = true;
 
 #if WITH_APEX_CLOTHING
 	ClothMaxDistanceScale = 1.0f;
@@ -144,13 +157,12 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	ClothBlendWeight = 1.0f;
 	bPreparedClothMorphTargets = false;
 
-	EditableClothSimulationContext.ClothTeleportMode = FClothingActor::Default;
-	InternalClothSimulationContext.ClothTeleportMode = FClothingActor::Continuous;
-	InternalClothSimulationContext.PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
+	ClothTeleportMode = FClothingActor::Continuous;
+	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
 
 	// pre-compute cloth teleport thresholds for performance
-	EditableClothSimulationContext.ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
-	EditableClothSimulationContext.ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
+	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
+	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
 	bBindClothToMasterComponent = false;
 	bPrevMasterSimulateLocalSpace = false;
 
@@ -179,42 +191,89 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
 
-	UpdatePreClothTickRegisteredState();
+	UpdatePostPhysicsTickRegisteredState();
+	UpdateClothTickRegisteredState();
 }
 
-void USkeletalMeshComponent::RegisterPreClothTick(bool bRegister)
+void USkeletalMeshComponent::RegisterPostPhysicsTick(bool bRegister)
 {
-	if (bRegister != PreClothTickFunction.IsTickFunctionRegistered())
+	if (bRegister != PostPhysicsTickFunction.IsTickFunctionRegistered())
 	{
 		if (bRegister)
 		{
-			if (SetupActorComponentTickFunction(&PreClothTickFunction))
+			if (SetupActorComponentTickFunction(&PostPhysicsTickFunction))
 			{
-				PreClothTickFunction.Target = this;
+				PostPhysicsTickFunction.Target = this;
 				// Set a prereq for the pre cloth tick to happen after physics is finished
 				if (World != NULL)
 				{
-					PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
+					PostPhysicsTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
 				}
 			}
 		}
 		else
 		{
-			PreClothTickFunction.UnRegisterTickFunction();
+			PostPhysicsTickFunction.UnRegisterTickFunction();
 		}
 	}
 }
 
-bool USkeletalMeshComponent::ShouldRunPreClothTick() const
+void USkeletalMeshComponent::RegisterClothTick(bool bRegister)
 {
-	return	(bEnablePhysicsOnDedicatedServer || !IsRunningDedicatedServer()) && // Early out with we are on a dedicated server and not running physics
-			(IsSimulatingPhysics() || ShouldBlendPhysicsBones() || (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0));
+	if (bRegister != ClothTickFunction.IsTickFunctionRegistered())
+	{
+		if (bRegister)
+		{
+			if (SetupActorComponentTickFunction(&ClothTickFunction))
+			{
+				ClothTickFunction.Target = this;
+				ClothTickFunction.AddPrerequisite(this, PrimaryComponentTick);
+				ClothTickFunction.AddPrerequisite(this, PostPhysicsTickFunction);	//If this tick function is running it means that we are doing physics blending so we should wait for its results
+			}
+		}
+		else
+		{
+			ClothTickFunction.UnRegisterTickFunction();
+		}
+	}
 }
 
-void USkeletalMeshComponent::UpdatePreClothTickRegisteredState()
+bool USkeletalMeshComponent::ShouldRunPostPhysicsTick() const
 {
-	bool bShouldRunClothTick = ShouldRunPreClothTick();
-	RegisterPreClothTick(bShouldRunClothTick && PrimaryComponentTick.IsTickFunctionRegistered());
+	return	(bEnablePhysicsOnDedicatedServer || GetNetMode() != NM_DedicatedServer) && // Early out with we are on a dedicated server and not running physics
+			(IsSimulatingPhysics() || ShouldBlendPhysicsBones());
+}
+
+void USkeletalMeshComponent::UpdatePostPhysicsTickRegisteredState()
+{
+	RegisterPostPhysicsTick(PrimaryComponentTick.IsTickFunctionRegistered() && ShouldRunPostPhysicsTick());
+}
+
+bool USkeletalMeshComponent::ShouldRunClothTick() const
+{
+#if WITH_APEX_CLOTHING
+	bool bShouldRunCloth = GetNetMode() != NM_DedicatedServer && // Cloth never needs to run on dedicated server
+		SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0;
+
+	//If we are eligible to run cloth we should check if any of the clothing actors will actually simulate at this LOD
+	if(bShouldRunCloth)
+	{
+		for(const FClothingActor& ClothingActor : ClothingActors)
+		{
+			if(ClothingActor.bSimulateForCurrentLOD)	//found at least one so register the tick
+			{
+				return true;
+			}
+		}
+	}
+#endif
+
+	return	false;
+}
+
+void USkeletalMeshComponent::UpdateClothTickRegisteredState()
+{
+	RegisterClothTick(PrimaryComponentTick.IsTickFunctionRegistered() && ShouldRunClothTick());
 }
 
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
@@ -593,14 +652,39 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 	}
 }
 
+static TAutoConsoleVariable<int32> CVarAnimationDelaysEndGroup(
+	TEXT("tick.AnimationDelaysEndGroup"),
+	1,
+	TEXT("If > 0, then skeletal meshes that do not rely on physics simulation will set their animation end tick group to TG_PostPhysics."));
+static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
+	TEXT("tick.HiPriSkinnedMeshes"),
+	1,
+	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
+
+
 void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	UpdatePreClothTickRegisteredState();
+	UpdatePostPhysicsTickRegisteredState();
+	UpdateClothTickRegisteredState();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update bOldForceRefPose
 	bOldForceRefPose = bForceRefpose;
+
+	/** Update the end group and tick priority */
+	const bool bDoLateEnd = CVarAnimationDelaysEndGroup.GetValueOnGameThread() > 0;
+	const bool bRequiresPhysics = PostPhysicsTickFunction.IsTickFunctionRegistered();
+	const ETickingGroup EndTickGroup = bDoLateEnd && !bRequiresPhysics ? TG_PostPhysics : TG_PrePhysics;
+	ThisTickFunction->EndTickGroup = EndTickGroup;
+
+	// Note that if animation is so long that we are blocked in EndPhysics we may want to reduce the priority. However, there is a risk that this function will not go wide early enough.
+	// This requires profiling and is very game dependent so cvar for now makes sense
+	bool bDoHiPri = CVarHiPriSkinnedMeshesTicks.GetValueOnGameThread() > 0;
+	if (ThisTickFunction->bHighPriority != bDoHiPri)
+	{
+		ThisTickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
+	}
 }
 
 
@@ -948,8 +1032,6 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 		}
 	}
 
-	PrepareCloth();
-
 	Super::UpdateSlaveComponent();
 }
 
@@ -976,10 +1058,6 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
 }
 
-static TAutoConsoleVariable<int32> CVarHiPriSkinnedMeshesTicks(
-	TEXT("tick.HiPriSkinnedMeshes"),
-	1,
-	TEXT("If > 0, then schedule the skinned component ticks in a tick group before other ticks."));
 
 int32 GetCurveNumber(USkeleton* Skeleton)
 {
@@ -994,23 +1072,31 @@ int32 GetCurveNumber(USkeleton* Skeleton)
 }
 
 #if WITH_APEX_CLOTHING
-void USkeletalMeshComponent::SubmitClothSimulationContext()
+void USkeletalMeshComponent::UpdateClothSimulationContext()
 {
-	InternalClothSimulationContext.ClothTeleportCosineThresholdInRad = EditableClothSimulationContext.ClothTeleportCosineThresholdInRad;
-	InternalClothSimulationContext.ClothTeleportDistThresholdSquared = EditableClothSimulationContext.ClothTeleportDistThresholdSquared;
-
-	//If the editable teleport mode is non default it means the user has actively written to it since the previous flip. This means we should use it. Otherwise use the internal because the cloth code set it as needed
-	InternalClothSimulationContext.ClothTeleportMode = EditableClothSimulationContext.ClothTeleportMode == FClothingActor::Default ? InternalClothSimulationContext.ClothTeleportMode : EditableClothSimulationContext.ClothTeleportMode;
-	EditableClothSimulationContext.ClothTeleportMode = FClothingActor::Default;	//reset editable teleport mode to default because user has to set it directly
+	USkinnedMeshComponent* MasterPoseComponentPtr = MasterPoseComponent.Get();
+	InternalClothSimulationContext.bUseMasterPose = MasterPoseComponent != nullptr;
+	InternalClothSimulationContext.BoneTransforms = MasterPoseComponentPtr ? MasterPoseComponentPtr->GetSpaceBases() : GetSpaceBases();
+	InternalClothSimulationContext.ClothingActors = ClothingActors;
+	InternalClothSimulationContext.ClothingAssets = SkeletalMesh->ClothingAssets;
+	InternalClothSimulationContext.ComponentToWorld = ComponentToWorld;
 
 	if(InternalClothSimulationContext.InMasterBoneMapCacheCount != MasterBoneMapCacheCount)
 	{
 		InternalClothSimulationContext.InMasterBoneMapCacheCount = MasterBoneMapCacheCount;
-		InternalClothSimulationContext.InMasterPoseComponent = MasterPoseComponent.Get();
 		InternalClothSimulationContext.InMasterBoneMap = MasterBoneMap;
 	}
 
-	//we intentionally ignore PrevRootBone which is only needed internally, but is still in the Context struct for the sake of const
+
+	//Do the teleport cloth test here on the game thread
+	{
+		CheckClothTeleport();
+		InternalClothSimulationContext.ClothTeleportMode = ClothTeleportMode;
+		ClothTeleportMode = FClothingActor::TeleportMode::Continuous;
+	}
+
+	//Get wind information on the game thread. This is actually not thread safe because of how the wind system works, but this is isolating the actual parallel cloth code from it all
+	GetWindForCloth_GameThread(InternalClothSimulationContext.WindDirection, InternalClothSimulationContext.WindAdaption);
 }
 #endif
 
@@ -1084,14 +1170,6 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_RefreshBoneTransforms_SetupParallel); 
 
-		// this makes no sense to do on the fly. If we want to use hipri ticks, this needs to be done at register time
-		// this does allow us to toggle it easily for performance testing
-		bool bDoHiPri = CVarHiPriSkinnedMeshesTicks.GetValueOnGameThread() > 0;
-		if (TickFunction->bHighPriority != bDoHiPri)
-		{
-			TickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
-		}
-
 		if (SkeletalMesh->RefSkeleton.GetNum() != AnimEvaluationContext.LocalAtoms.Num())
 		{
 			// Initialize Parallel Task arrays
@@ -1159,33 +1237,12 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 }
 
-void USkeletalMeshComponent::PrepareCloth()
-{
-#if WITH_APEX_CLOTHING
-	if(ClothingActors.Num())
-	{
-		if (FPhysScene* PhysScene = GetWorld()->GetPhysicsScene())
-		{
-			FClothManager* ClothManager = PhysScene->GetClothManager();
-			bool bClothNeedsPhysics = BodyInstance.bSimulatePhysics || IsAnySimulatingPhysics();	//TODO: this errs on the side of simulating later. We may want to optimize this so that it's only needed when cloth bodies are simulating
-			PrepareClothSchedule PrepareSchedule = bClothNeedsPhysics ? PrepareClothSchedule::WaitOnPhysics : PrepareClothSchedule::IgnorePhysics;
-
-			SubmitClothSimulationContext();	//duplicate needed data for off-thread work
-
-			ClothManager->RegisterForPrepareCloth(this, PrepareSchedule);
-		}
-	}
-#endif
-}
-
 FClothSimulationContext::FClothSimulationContext()
 {
-	ClothTeleportCosineThresholdInRad = 0.f;
-	ClothTeleportDistThresholdSquared = 0.f;
-	ClothTeleportMode = FClothingActor::TeleportMode::Default;
-	
-	USkeletalMeshComponent* InMasterComponent = nullptr;
+	ClothTeleportMode = FClothingActor::TeleportMode::Continuous;
 	InMasterBoneMapCacheCount = -1;
+	bUseMasterPose = false;
+	WindAdaption = 2.f;	//This is the const that the previous code was using. Not sure where it comes from
 }
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
@@ -1247,8 +1304,6 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		// Flip buffers, update bounds, attachments etc.
 		PostBlendPhysics();
 	}
-
-	PrepareCloth();
 }
 
 FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const

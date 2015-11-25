@@ -707,7 +707,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 	return DisplayMode;
 }
 
-void UDebugSkelMeshComponent::CheckClothTeleport(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const
+void UDebugSkelMeshComponent::CheckClothTeleport()
 {
 	// do nothing to avoid clothing reset while modifying properties
 	// modifying values can cause frame delay and clothes will be reset by a large delta time (low fps)

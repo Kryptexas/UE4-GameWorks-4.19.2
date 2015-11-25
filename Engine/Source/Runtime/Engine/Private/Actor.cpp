@@ -1104,12 +1104,16 @@ bool AActor::IsOverlappingActor(const AActor* Other) const
 		// push children on the stack so they get tested later
 		ComponentStack.Append(CurrentComponent->AttachChildren);
 
-		UPrimitiveComponent const* const PrimComp = Cast<const UPrimitiveComponent>(CurrentComponent);
-		if (PrimComp && PrimComp->IsOverlappingActor(Other))
+		if(CurrentComponent->GetOwner() == this)	//The component could be attached but be from a different actor
 		{
-			// found one, finished
-			return true;
+			UPrimitiveComponent const* const PrimComp = Cast<const UPrimitiveComponent>(CurrentComponent);
+			if (PrimComp && PrimComp->IsOverlappingActor(Other))
+			{
+				// found one, finished
+				return true;
+			}
 		}
+		
 
 		// advance to next component
 		const bool bAllowShrinking = false;
