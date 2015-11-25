@@ -553,6 +553,11 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -nodebuginfo");
 	}
 
+	if (PackagingSettings->bNativizeBlueprintAssets)
+	{
+		OptionalParams += TEXT(" -nativizeAssets");
+	}
+
 
 	bool bTargetPlatformCanUseCrashReporter = true;
 	if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") && PlatformInfo->PlatformFlavor == TEXT("Win32"))
@@ -579,7 +584,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	}
 
 	// only build if the project has code that might need to be built
-	if (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()))
+	if (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()) || PackagingSettings->bNativizeBlueprintAssets)
 	{
 		OptionalParams += TEXT(" -build");
 	}
@@ -598,7 +603,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	int32 NumCookers = GetDefault<UEditorExperimentalSettings>()->MultiProcessCooking;
 	if (NumCookers > 0 )
 	{
-		OptionalParams += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), NumCookers);
+		OptionalParams += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), NumCookers); 
 	}
 
 	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));

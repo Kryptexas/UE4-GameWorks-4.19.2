@@ -26,7 +26,7 @@ public:
 
 	FAnimInstanceProxy(UAnimInstance* Instance)
 		: AnimInstanceObject(Instance)
-		, AnimBlueprintClass(Cast<UAnimBlueprintGeneratedClass>(Instance->GetClass()))
+		, AnimClassInterface(IAnimClassInterface::GetFromClass(Instance->GetClass()))
 		, Skeleton(nullptr)
 		, SkeletalMeshComponent(nullptr)
 		, CurrentDeltaSeconds(0.0f)
@@ -43,11 +43,19 @@ public:
 
 	virtual ~FAnimInstanceProxy() {}
 
+	// Get the IAnimClassInterface associated with this context, if there is one.
+	// Note: This can return NULL, so check the result.
+	IAnimClassInterface* GetAnimClassInterface() const
+	{
+		return AnimClassInterface;
+	}
+
 	// Get the Blueprint Generated Class associated with this context, if there is one.
 	// Note: This can return NULL, so check the result.
+	DEPRECATED(4.11, "GetAnimBlueprintClass() is deprecated, UAnimBlueprintGeneratedClass should not be directly used at runtime. Please use GetAnimClassInterface() instead.")
 	UAnimBlueprintGeneratedClass* GetAnimBlueprintClass() const
 	{
-		return AnimBlueprintClass;
+		return Cast<UAnimBlueprintGeneratedClass>(IAnimClassInterface::GetActualAnimClass(AnimClassInterface));
 	}
 
 	/** Get the last DeltaSeconds passed into PreUpdate() */
@@ -67,6 +75,12 @@ public:
 	void RecordNodeVisit(int32 TargetNodeIndex, int32 SourceNodeIndex, float BlendWeight)
 	{
 		new (UpdatedNodesThisFrame) FAnimBlueprintDebugData::FNodeVisit(SourceNodeIndex, TargetNodeIndex, BlendWeight);
+	}
+
+	UAnimBlueprint* GetAnimBlueprint() const
+	{
+		UClass* ActualAnimClass = IAnimClassInterface::GetActualAnimClass(AnimClassInterface);
+		return ActualAnimClass ? Cast<UAnimBlueprint>(ActualAnimClass->ClassGeneratedBy) : nullptr;
 	}
 #endif
 
@@ -239,7 +253,7 @@ public:
 	FAnimNode_StateMachine* GetStateMachineInstanceFromName(FName MachineName);
 
 	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
-	static const FBakedAnimationStateMachine* GetMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+	static const FBakedAnimationStateMachine* GetMachineDescription(IAnimClassInterface* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
 
 	/** 
 	 * Get the index of the specified instance asset player. Useful to pass to GetInstanceAssetPlayerLength (etc.).
@@ -457,7 +471,7 @@ private:
 	mutable UObject* AnimInstanceObject;
 
 	/** Our anim blueprint generated class */
-	UAnimBlueprintGeneratedClass* AnimBlueprintClass;
+	IAnimClassInterface* AnimClassInterface;
 
 	/** Skeleton we are using, only used for comparison purposes */
 	USkeleton* Skeleton;

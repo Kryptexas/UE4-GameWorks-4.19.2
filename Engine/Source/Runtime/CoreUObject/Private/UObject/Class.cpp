@@ -4291,7 +4291,7 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	}
 );
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassName);
+UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName);
 
 void GetPrivateStaticClassBody(
 	const TCHAR* PackageName,
@@ -4382,7 +4382,7 @@ void GetPrivateStaticClassBody(
 			InClassFlags,
 			InClassCastFlags,
 			InConfigName,
-			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_MarkAsNative | RF_Dynamic),
+			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Dynamic | (GIsInitialLoad ? RF_MarkAsRootSet : RF_NoFlags)),
 			InClassConstructor,
 #if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,
@@ -4405,7 +4405,7 @@ void GetPrivateStaticClassBody(
 	if (bIsDynamic)
 	{
 		// Now call the UHT-generated Z_Construct* function for the dynamic class
-		UClass::StaticClassFunctionType ZConstructDynamicClassFn = GetDynamicClassConstructFn(Name);
+		UClass::StaticClassFunctionType ZConstructDynamicClassFn = GetDynamicClassConstructFn(*ReturnClass->GetPathName());
 		check(ZConstructDynamicClassFn);
 		ZConstructDynamicClassFn();
 	}
@@ -4782,6 +4782,7 @@ UDynamicClass constructors.
 */
 UDynamicClass::UDynamicClass(const FObjectInitializer& ObjectInitializer)
 : UClass(ObjectInitializer)
+, AnimClassImplementation(nullptr)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 }
@@ -4791,6 +4792,7 @@ UDynamicClass::UDynamicClass(const FObjectInitializer& ObjectInitializer)
 */
 UDynamicClass::UDynamicClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
 : UClass(ObjectInitializer, InBaseClass)
+, AnimClassImplementation(nullptr)
 {
 }
 
@@ -4823,6 +4825,7 @@ UDynamicClass::UDynamicClass(
 , InClassVTableHelperCtorCaller
 #endif // WITH_HOT_RELOAD_CTORS
 , InClassAddReferencedObjects)
+, AnimClassImplementation(nullptr)
 {
 }
 
@@ -4836,6 +4839,8 @@ void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Collector.AddReferencedObjects(This->DynamicBindingObjects, This);
 	Collector.AddReferencedObjects(This->ComponentTemplates, This);
 	Collector.AddReferencedObjects(This->Timelines, This);
+
+	Collector.AddReferencedObject(This->AnimClassImplementation, This);
 
 	Super::AddReferencedObjects(This, Collector);
 }
@@ -4851,6 +4856,8 @@ void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)
 	DynamicBindingObjects.Empty();
 	ComponentTemplates.Empty();
 	Timelines.Empty();
+
+	AnimClassImplementation = nullptr;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,

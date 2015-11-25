@@ -6,6 +6,8 @@
 
 #include "UnrealEd.h"
 
+#include "Blueprint/BlueprintSupport.h"
+#include "BlueprintNativeCodeGenModule.h"
 #include "Engine/WorldComposition.h"
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
@@ -460,7 +462,12 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				}
 				else
 				{
-					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue() );
+					ESavePackageResult Result = GEditor->Save(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue());
+					if (Result == ESavePackageResult::ReplaceCompletely || Result == ESavePackageResult::GenerateStub)
+					{
+						IBlueprintNativeCodeGenModule::Get().Convert(Package, Result == ESavePackageResult::ReplaceCompletely ? EReplacementResult::ReplaceCompletely : EReplacementResult::GenerateStub);
+					}
+					bSavedCorrectly &= (Result == ESavePackageResult::ReplaceCompletely || Result == ESavePackageResult::GenerateStub || Result == ESavePackageResult::Success);
 				}
 				
 				bOutWasUpToDate = false;
@@ -1055,6 +1062,9 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FString ChildCookFile;
 	FParse::Value(*Params, TEXT("cookchild="), ChildCookFile);
 
+	FString ChildManifestFilename;
+	FParse::Value(*Params, TEXT("childmanifest="), ChildManifestFilename);
+
 	int32 NumProcesses = 0;
 	FParse::Value(*Params, TEXT("numcookerstospawn="), NumProcesses);
 
@@ -1158,11 +1168,19 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	AlwaysCookMapList.Append(MapList);
 	Swap(MapList, AlwaysCookMapList);
 
+	FCookCommandParams CookParams(FCommandLine::Get());
+	if (CookParams.bRunConversion)
+	{
+		const UBlueprintNativeCodeGenConfig* ConfigSettings = GetDefault<UBlueprintNativeCodeGenConfig>();
+		TMap<UObject*, UClass*> ClassReplacementMap;
+		ClassReplacementMap.Add(UUserDefinedEnum::StaticClass(), UEnum::StaticClass());
+		ClassReplacementMap.Add(UUserDefinedStruct::StaticClass(), UScriptStruct::StaticClass());
+		ClassReplacementMap.Add(UBlueprintGeneratedClass::StaticClass(), UDynamicClass::StaticClass());
+		FScriptCookReplacementCoordinator::Create(CookParams.bRunConversion, ConfigSettings->ExcludedAssetTypes, ConfigSettings->ExcludedBlueprintTypes, ClassReplacementMap);
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// start cook by the book 
-
-
-
 	ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None;
 
 	CookOptions |= bLeakTest ? ECookByTheBookOptions::LeakTest : ECookByTheBookOptions::None; 
@@ -1185,7 +1203,9 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.bGenerateDependenciesForMaps = Switches.Contains(TEXT("GenerateDependenciesForMaps"));
 	StartupOptions.bGenerateStreamingInstallManifests = bGenerateStreamingInstallManifests;
 	StartupOptions.ChildCookFileName = ChildCookFile;
+	StartupOptions.ChildManifestFilename = ChildManifestFilename;
 	StartupOptions.NumProcesses = NumProcesses;
+	FParse::Value(FCommandLine::Get(), TEXT("COOKSINGLEASSETNAME="), StartupOptions.CookSingleAssetName);
 
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 

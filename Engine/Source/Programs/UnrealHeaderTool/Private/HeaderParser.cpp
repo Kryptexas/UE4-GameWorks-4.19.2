@@ -391,11 +391,6 @@ namespace
 			}
 		}
 
-		if ( ( FuncInfo.FunctionFlags & FUNC_NetServer ) && !( FuncInfo.FunctionFlags & FUNC_NetValidate ) )
-		{
-			FError::Throwf( TEXT( "Server RPC missing 'WithValidation' keyword in the UPROPERTY() declaration statement.  Required for security purposes." ) );
-		}
-
 		if (FuncInfo.FunctionFlags & FUNC_Net)
 		{
 			// Network replicated functions are always events
@@ -2482,7 +2477,7 @@ void FHeaderParser::VerifyRepNotifyCallbacks( UClass* TargetClass )
 				for( UField* TestField = SearchClass->Children; TestField; TestField = TestField->Next )
 				{
 					UFunction* TestFunc = Cast<UFunction>(TestField);
-					if( TestFunc && TestFunc->GetFName() == Prop->RepNotifyFunc )
+					if (TestFunc && FNativeClassHeaderGenerator::GetOverriddenFName(TestFunc) == Prop->RepNotifyFunc)
 					{
 						TargetFunc = TestFunc;
 						break;
@@ -5564,6 +5559,12 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	}
 
 	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
+
+	const bool bClassGeneratedFromBP = FClass::IsDynamic(GetCurrentClass());
+	if ((FuncInfo.FunctionFlags & FUNC_NetServer) && !(FuncInfo.FunctionFlags & FUNC_NetValidate) && !bClassGeneratedFromBP)
+	{
+		FError::Throwf(TEXT("Server RPC missing 'WithValidation' keyword in the UPROPERTY() declaration statement.  Required for security purposes."));
+	}
 
 	if ((0 != (FuncInfo.FunctionExportFlags & FUNCEXPORT_CustomThunk)) && !MetaData.Contains("CustomThunk"))
 	{

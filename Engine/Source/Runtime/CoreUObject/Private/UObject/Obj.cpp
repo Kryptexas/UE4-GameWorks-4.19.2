@@ -46,7 +46,7 @@ static UPackage*			GObjTransientPkg								= NULL;
 #endif
 
 UObject::UObject( EStaticConstructor, EObjectFlags InFlags )
-: UObjectBaseUtility(InFlags | RF_MarkAsNative | RF_MarkAsRootSet)
+: UObjectBaseUtility(InFlags | (!(InFlags & RF_Dynamic) ? (RF_MarkAsNative | RF_MarkAsRootSet) : RF_NoFlags))
 {
 #if WITH_HOT_RELOAD_CTORS
 	EnsureNotRetrievingVTablePtr();

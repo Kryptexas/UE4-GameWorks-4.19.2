@@ -1851,9 +1851,15 @@ extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;
 COREUOBJECT_API UScriptStruct* GetFallbackStruct();
 
 /** Constructs dynamic type of a given class. */
-COREUOBJECT_API UObject* ConstructDynamicType(FName TypeName, FName TypeClass);
+COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName);
+
+/** Given a dynamic type path name, returns that type's class name (can be either DynamicClass, ScriptStruct or Enum). */
+COREUOBJECT_API FName GetDynamicTypeClassName(FName TypePathName);
 
 /** Finds or constructs a package for dynamic type. */
 COREUOBJECT_API UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName);
+
+/** Get names of "virtual" packages, that contain Dynamic types  */
+COREUOBJECT_API TMap<FName, FName>& GetConvertedDynamicPackageNameToTypeName();
 
 #endif	// __UNOBJGLOBALS_H__

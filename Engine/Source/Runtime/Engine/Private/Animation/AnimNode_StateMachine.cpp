@@ -77,8 +77,8 @@ void FAnimationActiveTransitionEntry::InitializeCustomGraphLinks(const FAnimatio
 {
 	if (TransitionRule.CustomResultNodeIndex != INDEX_NONE)
 	{
-		const UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
-		CustomTransitionGraph.LinkID = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - TransitionRule.CustomResultNodeIndex; //@TODO: Crazysauce
+		const IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass();
+		CustomTransitionGraph.LinkID = AnimBlueprintClass->GetAnimNodeProperties().Num() - 1 - TransitionRule.CustomResultNodeIndex; //@TODO: Crazysauce
 		FAnimationInitializeContext InitContext(Context.AnimInstanceProxy);
 		CustomTransitionGraph.Initialize(InitContext);
 
@@ -210,7 +210,7 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 {
 	FAnimNode_Base::Initialize(Context);
 
-	const UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
+	IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass();
 
 	if (const FBakedAnimationStateMachine* Machine = GetMachineDescription())
 	{
@@ -231,7 +231,7 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 				// because conduits don't contain bound graphs, this link is no longer guaranteed to be valid
 				if (State.StateRootNodeIndex != INDEX_NONE)
 				{
-					StatePoseLink->LinkID = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - State.StateRootNodeIndex; //@TODO: Crazysauce
+					StatePoseLink->LinkID = AnimBlueprintClass->GetAnimNodeProperties().Num() - 1 - State.StateRootNodeIndex; //@TODO: Crazysauce
 				}
 
 				// also initialize transitions
@@ -528,7 +528,7 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 	}
 	OutVisitedStateIndices.Add(CheckingStateIndex);
 
-	const UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
+	const IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass();
 
 	// Conduit 'states' have an additional entry rule which must be true to consider taking any transitions via the conduit
 	//@TODO: It would add flexibility to be able to define this on normal state nodes as well, assuming the dual-graph editing is sorted out
@@ -1002,7 +1002,7 @@ FName FAnimNode_StateMachine::GetCurrentStateName() const
 	return NAME_None;
 }
 
-void FAnimNode_StateMachine::CacheMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass)
+void FAnimNode_StateMachine::CacheMachineDescription(IAnimClassInterface* AnimBlueprintClass)
 {
-	PRIVATE_MachineDescription = AnimBlueprintClass->BakedStateMachines.IsValidIndex(StateMachineIndexInClass) ? &(AnimBlueprintClass->BakedStateMachines[StateMachineIndexInClass]) : nullptr;
+	PRIVATE_MachineDescription = AnimBlueprintClass->GetBakedStateMachines().IsValidIndex(StateMachineIndexInClass) ? &(AnimBlueprintClass->GetBakedStateMachines()[StateMachineIndexInClass]) : nullptr;
 }

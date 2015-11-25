@@ -127,7 +127,7 @@ public:
 	UPROPERTY()
 	uint32 bInstanceComponent_DEPRECATED:1;
 
-	/** Whether to the component is activated at creation or must be explicitly activated. */
+	/** Whether the component is activated at creation or must be explicitly activated. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Activation)
 	uint32 bAutoActivate:1;
 

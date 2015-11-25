@@ -216,11 +216,20 @@ public partial class Project : CommandUtils
                     CommandletParams += " -compressed";
                 }
                 // we provide the option for users to run a conversion on certain (script) assets, translating them 
-                // into native source code... to use those classes over the assets, we need to incorporate the 
-                // generated plugin into the cooker
-                if (Params.UseNativizedScriptPlugin())
+                // into native source code... the cooker needs to 
+                if (Params.RunAssetNativization)
                 {
-                    CommandletParams += " -PLUGIN=\"" + Params.NativizedScriptPlugin + "\"";
+                    string GeneratedPluginName = "NativizedScript";
+                    string ProjectDir = Params.RawProjectPath.Directory.ToString();
+                    string GeneratedPluginDirectory = Path.GetFullPath(CommandUtils.CombinePaths(ProjectDir, "Intermediate", "Plugins", GeneratedPluginName));
+                    string PluginDescFilename  = GeneratedPluginName + ".uplugin";
+                    string GeneratedPluginPath = Path.GetFullPath(CommandUtils.CombinePaths(GeneratedPluginDirectory, PluginDescFilename));
+
+                    CommandletParams += " -NativizeAssets -NativizedAssetPlugin=\"" + GeneratedPluginPath + "\"";
+
+                    // fill out this, so as to coordinate with build automation
+                    // (the builder now needs to compile in the generated assets)
+                    Params.NativizedScriptPlugin = new FileReference(GeneratedPluginPath);
                 }
                 if (Params.HasAdditionalCookerOptions)
                 {

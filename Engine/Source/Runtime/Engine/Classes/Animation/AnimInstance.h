@@ -9,6 +9,7 @@
 #include "BonePose.h"
 #include "Animation/AnimTypes.h"
 #include "Animation/AnimNotifyQueue.h"
+#include "Animation/AnimClassInterface.h"
 #include "AnimInstance.generated.h"
 
 struct FAnimMontageInstance;
@@ -860,7 +861,7 @@ public:
 	FAnimNode_StateMachine* GetStateMachineInstanceFromName(FName MachineName);
 
 	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
-	const FBakedAnimationStateMachine* GetMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+	const FBakedAnimationStateMachine* GetMachineDescription(IAnimClassInterface* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
 
 	/** Returns the baked sync group index from the compile step */
 	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;

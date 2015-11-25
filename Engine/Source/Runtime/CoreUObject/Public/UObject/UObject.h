@@ -1012,6 +1012,9 @@ public:
 	DECLARE_FUNCTION(execTracepoint);
 	DECLARE_FUNCTION(execWireTracepoint);
 
+	/** Instrumentation event for profiling; only observed in the builds with blueprint instrumentation */
+	DECLARE_FUNCTION(execInstrumentation);
+
 	DECLARE_FUNCTION(execEndOfScript);
 
 	/** failsafe for functions that return a value - returns the zero value for a property and logs that control reached the end of a non-void function */

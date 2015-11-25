@@ -143,7 +143,8 @@ public class UnrealEd : ModuleRules
                 "LocalizationService",
 				"AddContentDialog",
 				"GameProjectGeneration",
-                "HierarchicalLODUtilities"
+                "HierarchicalLODUtilities",
+                "BlueprintNativeCodeGen",               
 			}
 		);
 
@@ -213,7 +214,7 @@ public class UnrealEd : ModuleRules
 				"SizeMap",
                 "PortalProxies",
                 "PortalServices",
-                "GeometryCacheEd"
+                "GeometryCacheEd",
 			}
 		);
 

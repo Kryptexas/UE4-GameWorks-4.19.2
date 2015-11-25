@@ -29,6 +29,16 @@ DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Linker Count"), STAT_LinkerCount, STATGROUP
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Live Linker Count"), STAT_LiveLinkerCount, STATGROUP_LinkerCount);
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Fixup editor-only flags time"), STAT_EditorOnlyFixupTime, STATGROUP_LinkerCount);
 
+#if WITH_EDITORONLY_DATA
+int32 GLinkerAllowDynamicClasses = 0;
+static FAutoConsoleVariableRef CVarLinkerAllowDynamicClasses(
+	TEXT("linker.AllowDynamicClasses"),
+	GLinkerAllowDynamicClasses,
+	TEXT("If true, linkers will attempt to use dynamic classes instead of class assets."),
+	ECVF_Default
+	);
+#endif
+
 /** Map that keeps track of any precached full package reads															*/
 TMap<FString, FLinkerLoad::FPackagePrecacheInfo> FLinkerLoad::PackagePrecacheMap;
 
@@ -342,9 +352,9 @@ static bool IgnoreMissingReferencedClass( FName ClassName )
 	return MissingClassesToIgnore.Find( ClassName ) != INDEX_NONE;
 }
 
-static inline int32 HashNames( FName A, FName B, FName C )
+static inline int32 HashNames(FName Object, FName Class, FName Package)
 {
-	return A.GetComparisonIndex() + 7 * B.GetComparisonIndex() + 31 * FPackageName::GetShortFName(C).GetComparisonIndex();
+	return Object.GetComparisonIndex() + 7 * Class.GetComparisonIndex() + 31 * FPackageName::GetShortFName(Package).GetComparisonIndex();
 }
 
 static FORCEINLINE bool IsCoreUObjectPackage(const FName& PackageName)
@@ -709,6 +719,7 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 : FLinker(ELinkerType::Load, InParent, InFilename)
 , LoadFlags(InLoadFlags)
 , bHaveImportsBeenVerified(false)
+, bDynamicClassLinker(false)
 , Loader(nullptr)
 , AsyncRoot(nullptr)
 , NameMapIndex(0)
@@ -817,7 +828,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader()
 	// This should have been initialized in InitUObject
 	check(bActiveRedirectsMapInitialized);
 
-	if( !Loader )
+	if( !Loader && !bDynamicClassLinker )
 	{
 		bool bIsSeekFree = LoadFlags & LOAD_SeekFree;
 
@@ -828,13 +839,22 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader()
 		LoadProgressScope->EnterProgressFrame();
 #endif
 
-		// NOTE: Precached memory read gets highest priority, then memory reader, then seek free, then normal
-
-		// check to see if there is was an async preload request for this file
-		FPackagePrecacheInfo* PrecacheInfo = PackagePrecacheMap.Find(*Filename);
-		// if so, serialize from memory (note this will have uncompressed a fully compressed package)
-		if (PrecacheInfo)
+		// Check if this linker was created for dynamic class package
+		bDynamicClassLinker = GetConvertedDynamicPackageNameToTypeName().Contains(LinkerRoot->GetFName());
+		if (bDynamicClassLinker
+#if WITH_EDITORONLY_DATA
+			&& GLinkerAllowDynamicClasses
+#endif
+			)
 		{
+			// In this case we can skip serializing PackageFileSummary and fill all the required info here
+			CreateDynamicTypeLoader();
+		}
+		// NOTE: Precached memory read gets highest priority, then memory reader, then seek free, then normal
+		// check to see if there is was an async preload request for this file
+		else if (FPackagePrecacheInfo* PrecacheInfo = PackagePrecacheMap.Find(*Filename))
+		{
+			// if so, serialize from memory (note this will have uncompressed a fully compressed package)
 			// block until the async read is complete
 			if( PrecacheInfo->SynchronizationObject->GetValue() != 0 )
 			{
@@ -908,8 +928,8 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader()
 				return LINKER_Failed;
 			}
 		}
-		check( Loader );
-		check( !Loader->IsError() );
+		check(bDynamicClassLinker || Loader);
+		check(bDynamicClassLinker || !Loader->IsError());
 
 		//if( FLinkerLoad::FindExistingLinkerForPackage(LinkerRoot) )
 		//{
@@ -1326,36 +1346,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 				for( int32 i=0; i<ImportMap.Num(); i++ )
 				{
 					FObjectImport& Import = ImportMap[i];
-
-#if WITH_EDITOR
-					// Fix references to assets that were converted into native code
-					
-					if (FReplaceConvertedAssetManager::Get().IsEnabled() && !Import.XObject)
-					{
-						const FString ImportPathName = GetImportPathName(i);
-						const FName PackageClassName(TEXT("Package"));
-						const bool bIsPackage = Import.ClassName == PackageClassName; // there must be a better way
-						if (bIsPackage)
-						{
-							if (auto NewNativePackage = FReplaceConvertedAssetManager::Get().FindPackageReplacement(ImportPathName))
-							{
-								Import.XObject = NewNativePackage;
-								Import.ObjectName = NewNativePackage->GetFName();
-								continue;
-							}
-						}
-						else if (auto ConvertedObject = FReplaceConvertedAssetManager::Get().FindReplacement(ImportPathName))
-						{
-							Import.ObjectName = ConvertedObject->GetFName();
-							Import.XObject = ConvertedObject;
-							Import.ClassName = ConvertedObject->GetClass()->GetFName();
-							auto ClassPackage = ConvertedObject->GetClass()->GetOuterUPackage();
-							Import.ClassPackage = ClassPackage ? ClassPackage->GetFName() : FName();
-							continue;
-						}
-					}
-#endif //WITH_EDITOR
-
 					{
 						FSubobjectRedirect* Redirect = SubobjectNameRedirects.Find(Import.ObjectName);
 						if (Redirect)
@@ -2017,6 +2007,13 @@ FName FLinkerLoad::GetExportClassPackage( int32 i )
 		// the export's class is contained within the same package
 		return LinkerRoot->GetFName();
 	}
+#if WITH_EDITORONLY_DATA
+	else if (GLinkerAllowDynamicClasses && Export.bDynamicClass)
+	{
+		static FName NAME_EnginePackage(TEXT("/Script/Engine"));
+		return NAME_EnginePackage;
+	}
+#endif
 	else
 	{
 		return GLongCoreUObjectPackageName;
@@ -2720,7 +2717,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 					}
 				}
 
-				UObject* FindObject = StaticFindObject(FindClass, FindOuter, *Import.ObjectName.ToString());
+				UObject* FindObject = FindImport(FindClass, FindOuter, *Import.ObjectName.ToString());
 				// Reference to in memory-only package's object, native transient class or CDO of such a class.
 				bool bIsInMemoryOnlyOrNativeTransient = bCameFromMemoryOnlyPackage || (FindObject != NULL && (FindObject->HasAllFlags(EObjectFlags(RF_Public | RF_MarkAsNative | RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public | RF_MarkAsNative | RF_Transient)))));
 				// Check for structs which have been moved to another header (within the same class package).
@@ -3454,6 +3451,17 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(IsLoading());
 
+		if (Export.bDynamicClass)
+		{
+			// Export is a dynamic type, construct it using registered native functions
+			Export.Object = ConstructDynamicType(*GetExportPathName(Index));
+			if (Export.Object)
+			{
+				Export.Object->SetLinker(this, Index);
+			}
+			return Export.Object;
+		}
+
 		UClass* LoadClass = GetExportLoadClass(Index);
 		if( !LoadClass && !Export.ClassIndex.IsNull() ) // Hack to load packages with classes which do not exist.
 		{
@@ -3952,8 +3960,6 @@ bool FLinkerLoad::IsImportNative(const int32 Index) const
 	return bIsImportNative;
 }
 
-UObject* ConstructDynamicType(FName TypeName, FName TypeClass);
-
 // Return the loaded object corresponding to an import index; any errors are fatal.
 UObject* FLinkerLoad::CreateImport( int32 Index )
 {
@@ -3975,7 +3981,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 			// Try to find existing version in memory first.
 			if( UPackage* ClassPackage = FindObjectFast<UPackage>( NULL, Import.ClassPackage, false, false ) )
 			{
-				if( UClass*	FindClass = FindObjectFast<UClass>( ClassPackage, Import.ClassName, false, false ) )
+				if( UClass*	FindClass = FindObjectFast<UClass>( ClassPackage, Import.ClassName, false, false ) ) // 
 				{
 					// Make sure the class has been loaded and linked before creating a CDO.
 					// This is an edge case, but can happen if a blueprint package has not finished creating exports for a class
@@ -3994,14 +4000,6 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 					// Import is regular import/ export.
 					else
 					{
-						if (FPlatformProperties::RequiresCookedData())
-						{
-							// At this point we know the class package and class of the import exist, this can potentially be a native blueprint
-							// (class is just a UClass and the package is /Script/CoreUObject)
-							// @todo: maybe we can further filter out classes by checking FindClass somehow (e.g. once it's a specialized UCookedBlueprintClass or something)
-							ConstructDynamicType(Import.ObjectName, Import.ClassName);
-						}
-						
 						// Find the imports' outer.
 						UObject* FindOuter = NULL;
 						// Import.
@@ -4038,7 +4036,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 						}
 	
 						// Find object now that we know it's class, outer and name.
-						FindObject = StaticFindObjectFast( FindClass, FindOuter, Import.ObjectName, false, false );
+						FindObject = FindImportFast(FindClass, FindOuter, Import.ObjectName);
 					}
 
 					if( FindObject )
@@ -4267,7 +4265,7 @@ void FLinkerLoad::DetachAllBulkData(bool bEnsureAllBulkDataIsLoaded)
  */
 bool FLinkerLoad::Precache( int64 PrecacheOffset, int64 PrecacheSize )
 {
-	return Loader->Precache( PrecacheOffset, PrecacheSize );
+	return bDynamicClassLinker || Loader->Precache(PrecacheOffset, PrecacheSize);
 }
 
 void FLinkerLoad::Seek( int64 InPos )

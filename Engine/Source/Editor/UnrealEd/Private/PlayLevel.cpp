@@ -2317,6 +2317,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	PlayInSettings->SetPlayNetMode(OrigPlayNetMode);
 
 	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
+	if (EditorWorld)
 	{
 		TArray<ULevel*> Levels = EditorWorld->GetLevels();
 

@@ -33,7 +33,12 @@ public:
 public:
 	// Get the Blueprint Generated Class associated with this context, if there is one.
 	// Note: This can return NULL, so check the result.
+	DEPRECATED(4.11, "GetAnimBlueprintClass() is deprecated, UAnimBlueprintGeneratedClass should not be directly used at runtime. Please use GetAnimClass() instead.")
 	ENGINE_API UAnimBlueprintGeneratedClass* GetAnimBlueprintClass() const;
+
+	// Get the Blueprint IAnimClassInterface associated with this context, if there is one.
+	// Note: This can return NULL, so check the result.
+	ENGINE_API IAnimClassInterface* GetAnimClass() const;
 
 #if WITH_EDITORONLY_DATA
 	// Get the AnimBlueprint associated with this context, if there is one.

@@ -35,7 +35,9 @@ enum class ESavePackageResult
 	/** [When cooking] Package was not saved because it was referenced by editor-only properties */
 	ReferencedOnlyByEditorOnlyData, 
 	/** [When cooking] Package was not saved because it contains assets that were converted into native code */
-	ContainsConvertedAssets
+	ReplaceCompletely,
+	/** [When cooking] Package was saved, but we should generate a stub so that other converted packages can interface with it*/
+	GenerateStub
 };
 
 /**
@@ -45,7 +47,7 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions ref
 class COREUOBJECT_API UPackage : public UObject
 {
 	// Have to unwind this macro to support the reference variable, can go back to commented declaration when removing the deprecated variable
-	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage,UObject,0,CoreUObject, CASTCLASS_UPackage)
+	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage)
 
 #if WITH_HOT_RELOAD_CTORS
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API )
@@ -56,7 +58,7 @@ class COREUOBJECT_API UPackage : public UObject
 	{
 	};
 #else
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage,UObject,0,TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API)
 #endif
 
 

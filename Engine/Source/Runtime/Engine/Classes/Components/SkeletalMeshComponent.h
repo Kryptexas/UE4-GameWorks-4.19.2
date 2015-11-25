@@ -327,9 +327,13 @@ public:
 	class UAnimBlueprint* AnimationBlueprint_DEPRECATED;
 #endif
 
-	/* The AnimBlueprint class to use. Use 'SetAnimInstanceClass' to change at runtime. */
+	DEPRECATED(4.11, "This property is deprecated. Please use AnimClass instead")
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
 	class UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass;
+
+	/* The AnimBlueprint class to use. Use 'SetAnimInstanceClass' to change at runtime. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
+	class TSubclassOf<UAnimInstance> AnimClass;
 
 	/** The active animation graph program instance. */
 	UPROPERTY(transient)

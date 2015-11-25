@@ -314,13 +314,11 @@ public:
 	 */
 	void AddReplacementsNames(UObject* Obj)
 	{
-		if (Obj && FReplaceCookedBPGC::Get().IsEnabled())
+		if (FScriptCookReplacementCoordinator* Coordinator = FScriptCookReplacementCoordinator::Get())
 		{
-			if (UObject* ReplObj = FReplaceCookedBPGC::Get().FindReplacementStub(Obj))
+			if (const UClass* ReplObjClass = Coordinator->FindReplacedClass(Obj))
 			{
-				MarkNameAsReferenced(ReplObj->GetFName());
-				MarkNameAsReferenced(ReplObj->GetClass()->GetFName());
-				MarkNameAsReferenced(ReplObj->GetOuter()->GetFName());
+				MarkNameAsReferenced(ReplObjClass->GetFName());
 			}
 		}
 	}
@@ -1582,7 +1580,7 @@ public:
 				else
 				{
 					// this import no longer exists in the new package
-					new(Imports)FObjectImport( NULL );
+					new(Imports)FObjectImport( nullptr );
 				}
 			}
 
@@ -3118,55 +3116,6 @@ TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
 
 COREUOBJECT_API extern bool GOutputCookingWarnings;
 
-/**
- * Find imports to converted BPGC, that should replaced by a generated native class. 
- * For each converted class a stub is generated. The import object is replaced with the stub.
- */
-struct FImportReplacementsHelper
-{
-	TSet<UObject*> UniqueTagImpObjects;
-
-	FImportReplacementsHelper(const TArray<UObject*>& InTagImpObjects)
-	{
-		if (FReplaceCookedBPGC::Get().IsEnabled())
-		{
-			UniqueTagImpObjects = TSet<UObject*>(InTagImpObjects);
-		}
-	}
-
-	UObject* Handle(UObject* Obj, TArray<FObjectImport>& ImportMap)
-	{
-		if (FReplaceCookedBPGC::Get().IsEnabled())
-		{
-			UObject* ReplacedObjectToImport = FReplaceCookedBPGC::Get().FindReplacementStub(Obj);
-			Obj = ReplacedObjectToImport ? ReplacedObjectToImport : Obj;
-			if (ReplacedObjectToImport)
-			{
-				{
-					ensure(ReplacedObjectToImport->GetOuter() == ReplacedObjectToImport->GetOutermost());
-					bool bAlreadyAdded = false;
-					UniqueTagImpObjects.Add(ReplacedObjectToImport->GetOuter(), &bAlreadyAdded);
-					if (!bAlreadyAdded)
-					{
-						new(ImportMap)FObjectImport(ReplacedObjectToImport->GetOuter());
-					}
-				}
-
-									{
-										bool bAlreadyAdded = false;
-										UniqueTagImpObjects.Add(ReplacedObjectToImport->GetClass(), &bAlreadyAdded);
-										if (!bAlreadyAdded)
-										{
-											new(ImportMap)FObjectImport(ReplacedObjectToImport->GetClass());
-										}
-									}
-			}
-		}
-		return Obj;
-	}
-
-};
-
 class FDiffSerializeArchive : public FBufferArchive
 {
 private:
@@ -3243,7 +3192,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
 {
 	UE_START_LOG_COOK_TIME( Filename );
-	
+
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
 		if (GIsSavingPackage)
@@ -3271,14 +3220,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("Package marked as editor-only: %s. Package will not be saved."), *InOuter->GetName());
 				return ESavePackageResult::ReferencedOnlyByEditorOnlyData;
 			}
-#if WITH_EDITOR
-			else if (FReplaceCookedBPGC::Get().PackageShouldNotBeSaved(InOuter))
-			{
-				UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
-				// Or replace with the NativeScriptPackage ?
-				return ESavePackageResult::ContainsConvertedAssets;
-			}
-#endif	// #if WITH_EDITOR
 		}
 #endif
 		// if we are cooking we should be doing it in the editor
@@ -3426,6 +3367,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		SlowTask.EnterProgressFrame();
 
 		bool Success = true;
+		bool bRequestStub = false;
 
 		ResetLoadersForSave(InOuter,Filename);
 
@@ -3625,6 +3567,23 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("No exports found (or all exports are editor-only) for %s. Package will not be saved."), *BaseFilename);
 						return ESavePackageResult::ContainsEditorOnlyData;
 					}
+
+#if WITH_EDITOR
+					if (FScriptCookReplacementCoordinator::Get())
+					{
+						EReplacementResult ReplacmentResult = FScriptCookReplacementCoordinator::Get()->IsTargetedForReplacement(InOuter);
+						if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
+						{
+							return ESavePackageResult::ReplaceCompletely;
+						}
+						else if (ReplacmentResult == EReplacementResult::GenerateStub)
+						{
+							bRequestStub = true;
+						}
+						UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
+						// Or replace with the NativeScriptPackage ?
+					}
+#endif
 				}
 
 				// Import objects & names.
@@ -3665,18 +3624,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						{
 							UE_LOG(LogSavePackage, Fatal, TEXT("%s"), *FString::Printf( TEXT("Transient object imported: %s"), *Obj->GetFullName() ) );
 						}
-#if WITH_EDITOR
-						if (FReplaceCookedBPGC::Get().IsEnabled())
-						{
-							for (UObject*& Dependency : ImportTagger.Dependencies)
-							{
-								if (UObject* NewDependency = FReplaceCookedBPGC::Get().FindReplacementStub(Dependency))
-								{
-									Dependency = NewDependency;
-								}
-							}
-						}
-#endif //WITH_EDITOR
 
 						if (Linker->IsCooking())
 						{
@@ -3985,6 +3932,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					InOuter->Guid = Linker->Summary.Guid;
 				}
 				new(Linker->Summary.Generations)FGenerationInfo(0, 0);
+
 				*Linker << Linker->Summary;
 				int32 OffsetAfterPackageFileSummary = Linker->Tell();
 		
@@ -4079,9 +4027,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				{
 					TArray<UObject*> TagImpObjects;
 					GetObjectsWithAnyMarks(TagImpObjects, OBJECTMARK_TagImp);
-#if WITH_EDITOR
-					FImportReplacementsHelper ImportReplacementsHelper(TagImpObjects);
-#endif //WITH_EDITOR
 
 					if (Linker->IsCooking())
 					{
@@ -4099,13 +4044,25 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UObject* Obj = TagImpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagImp) || Linker->IsCooking());
-						
+						UClass* ObjClass = nullptr;
 #if WITH_EDITOR
-						Obj = ImportReplacementsHelper.Handle(Obj, Linker->ImportMap);
+						bool bReplaced = false;
+						if (FScriptCookReplacementCoordinator* Coordinator = FScriptCookReplacementCoordinator::Get())
+						{
+							if (UClass* ReplacedClass = Coordinator->FindReplacedClass(Obj))
+							{
+								ObjClass = ReplacedClass;
+								bReplaced = true;
+							}
+						}
+						if (!bReplaced)
 #endif //WITH_EDITOR
+						{
+							ObjClass = Obj->GetClass();
+						}
 						if (Obj->HasAnyMarks(OBJECTMARK_TagImp))
 						{
-							new( Linker->ImportMap )FObjectImport( Obj );
+							new(Linker->ImportMap)FObjectImport(Obj, ObjClass);
 						}
 					}
 				}
@@ -4352,7 +4309,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					UObject* Object = Linker->ImportMap[i].XObject;
 					if( Object != NULL )
 					{
-						Linker->ObjectIndicesMap.Add(Object, FPackageIndex::FromImport(i));
+						const FPackageIndex PackageIndex = FPackageIndex::FromImport(i);
+						//ensure(!Linker->ObjectIndicesMap.Contains(Object)); // this ensure will fail
+						Linker->ObjectIndicesMap.Add(Object, PackageIndex);
 					}
 					else
 					{
@@ -4489,16 +4448,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							// Set class index.
 							// If this is *exactly* a UClass, store null instead; for anything else, including UClass-derived classes, map it
 							UClass* ObjClass = Export.Object->GetClass();
-#if WITH_EDITOR
-							if (FReplaceCookedBPGC::Get().IsEnabled())
-							{
-								if (UObject* NewObjClass = FReplaceCookedBPGC::Get().FindReplacementStub(ObjClass))
-								{
-									ObjClass = CastChecked<UClass>(NewObjClass);
-								}
-							}
-#endif	// #if WITH_EDITOR
-
 							if (ObjClass != UClass::StaticClass())
 							{
 								Export.ClassIndex = Linker->MapObject(ObjClass);
@@ -4935,7 +4884,25 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 		UE_LOG(LogSavePackage, Display, TEXT("Finished SavePackage %s"), Filename);
 
-		return Success ? ESavePackageResult::Success : ESavePackageResult::Error;
+		if (Success)
+		{
+			if (bRequestStub)
+			{
+				return ESavePackageResult::GenerateStub;
+			}
+			else
+			{
+				return ESavePackageResult::Success;
+			}
+		}
+		else
+		{
+			if (bRequestStub)
+			{
+				UE_LOG(LogSavePackage, Warning, TEXT("C++ stub requested, but package failed to save, may cause compile errors: %s"), Filename);
+			}
+			return ESavePackageResult::Error;
+		}
 	}
 	else
 	{

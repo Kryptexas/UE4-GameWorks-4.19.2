@@ -191,12 +191,6 @@ private:
 	FString GetSingletonName(UField* Item, bool bRequiresValidObject=true);
 	/** Return the name of the singleton function that returns the UObject for Item */
 	FString GetSingletonName(FClass* Item, bool bRequiresValidObject=true);
-
-	/** 
-	 * Properties in source files generated from blueprint assets have a symbol name that differs from the source asset.
-	 * This function returns the original name of the field (rather than the native, symbol name).
-	 */
-	FString GetOverriddenName(const UField* Item);
 	
 	/** 
 	 * Returns the name (overridden if marked up) with TEXT("") or "" wrappers for use in a string literal.
@@ -538,6 +532,14 @@ private:
 	FString GetListOfPublicHeaderGroupIncludesString(const UPackage* Package);
 
 public:
+
+	/** 
+	 * Properties in source files generated from blueprint assets have a symbol name that differs from the source asset.
+	 * This function returns the original name of the field (rather than the native, symbol name).
+	 */
+	static FString GetOverriddenName(const UField* Item);
+	static FName GetOverriddenFName(const UField* Item);
+	static FString GetOverriddenPathName(const UField* Item);
 
 	// Constructor
 	FNativeClassHeaderGenerator(

@@ -117,7 +117,7 @@ private:
 	struct FCollisionResponseContainer ResponseToChannels;
 
 	/** Custom Channels for Responses */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Custom)
 	TArray<FResponseChannel> ResponseArray;
 
 	friend struct FBodyInstance;

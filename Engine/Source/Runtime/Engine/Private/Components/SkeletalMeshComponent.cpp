@@ -278,10 +278,11 @@ void USkeletalMeshComponent::UpdateClothTickRegisteredState()
 
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
 {
-	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimBlueprintGeneratedClass != NULL) && 
-		(SkeletalMesh != NULL) && (SkeletalMesh->Skeleton->IsCompatible(AnimBlueprintGeneratedClass->TargetSkeleton)))
+	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
+	if (AnimationMode == EAnimationMode::AnimationBlueprint && (AnimClassInterface != NULL) &&
+		(SkeletalMesh != NULL) && (SkeletalMesh->Skeleton->IsCompatible(AnimClassInterface->GetTargetSkeleton())))
 	{
-		if (bForceInit || (AnimScriptInstance == NULL) || (AnimScriptInstance->GetClass() != AnimBlueprintGeneratedClass) )
+		if (bForceInit || (AnimScriptInstance == NULL) || (AnimScriptInstance->GetClass() != AnimClass) )
 		{
 			return true;
 		}
@@ -292,7 +293,7 @@ bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) cons
 
 bool USkeletalMeshComponent::IsAnimBlueprintInstanced() const
 {
-	return (AnimScriptInstance && AnimScriptInstance->GetClass() == AnimBlueprintGeneratedClass);
+	return (AnimScriptInstance && AnimScriptInstance->GetClass() == AnimClass);
 }
 
 void USkeletalMeshComponent::OnRegister()
@@ -339,8 +340,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
 		HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
 
-		bool bBlueprintMismatch = (AnimBlueprintGeneratedClass != NULL) && 
-			(AnimScriptInstance != NULL) && (AnimScriptInstance->GetClass() != AnimBlueprintGeneratedClass);
+		bool bBlueprintMismatch = (AnimClass != NULL) &&
+			(AnimScriptInstance != NULL) && (AnimScriptInstance->GetClass() != AnimClass);
 
 		bool bSkeletonMismatch = AnimScriptInstance && AnimScriptInstance->CurrentSkeleton && (AnimScriptInstance->CurrentSkeleton!=SkeletalMesh->Skeleton);
 
@@ -369,7 +370,7 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		if (NeedToSpawnAnimScriptInstance(bForceReinit))
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
-			AnimScriptInstance = NewObject<UAnimInstance>(this, AnimBlueprintGeneratedClass);
+			AnimScriptInstance = NewObject<UAnimInstance>(this, AnimClass);
 
 			if (AnimScriptInstance)
 			{
@@ -452,7 +453,7 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		{
 			if (AnimationMode == EAnimationMode::AnimationBlueprint)
 			{
-				if (AnimBlueprintGeneratedClass == NULL)
+				if (AnimClass == NULL)
 				{
 					ClearAnimScriptInstance();
 				}
@@ -461,14 +462,14 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 					if (NeedToSpawnAnimScriptInstance(false))
 					{
 						SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
-						AnimScriptInstance = NewObject<UAnimInstance>(this, AnimBlueprintGeneratedClass);
+						AnimScriptInstance = NewObject<UAnimInstance>(this, AnimClass);
 						AnimScriptInstance->InitializeAnimation();
 					}
 				}
 			}
 		}
 
-		if ( PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED( USkeletalMeshComponent, AnimBlueprintGeneratedClass ) )
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, AnimClass))
 		{
 			InitAnim(false);
 		}
@@ -1420,17 +1421,16 @@ void USkeletalMeshComponent::SetForceRefPose(bool bNewForceRefPose)
 
 void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 {
-	if (NewClass != NULL)
+	if (NewClass != nullptr)
 	{
-		UAnimBlueprintGeneratedClass* NewGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(NewClass);
-		ensure(NULL != NewGeneratedClass);
+		ensure(nullptr != IAnimClassInterface::GetFromClass(NewClass));
 		// set the animation mode
 		AnimationMode = EAnimationMode::Type::AnimationBlueprint;
 
-		if (NewGeneratedClass != AnimBlueprintGeneratedClass)
+		if (NewClass != AnimClass)
 		{
 			// Only need to initialize if it hasn't already been set.
-			AnimBlueprintGeneratedClass = NewGeneratedClass;
+			AnimClass = NewClass;
 			ClearAnimScriptInstance();
 			InitAnim(true);
 		}
@@ -1439,7 +1439,7 @@ void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 	{
 		// Need to clear the instance as well as the blueprint.
 		// @todo is this it?
-		AnimBlueprintGeneratedClass = NULL;
+		AnimClass = nullptr;
 		ClearAnimScriptInstance();
 	}
 }
@@ -2077,7 +2077,7 @@ void USkeletalMeshComponent::ValidateAnimation()
 		}
 		else
 		{
-			AnimBlueprintGeneratedClass = nullptr;
+			AnimClass = nullptr;
 		}
 		return;
 	}
@@ -2100,18 +2100,19 @@ void USkeletalMeshComponent::ValidateAnimation()
 	}
 	else
 	{
-		if(AnimBlueprintGeneratedClass && SkeletalMesh && AnimBlueprintGeneratedClass->TargetSkeleton != SkeletalMesh->Skeleton)
+		IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
+		if (AnimClassInterface && SkeletalMesh && AnimClassInterface->GetTargetSkeleton() != SkeletalMesh->Skeleton)
 		{
 			if(SkeletalMesh->Skeleton)
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible with skeleton %s, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->Skeleton->GetName());
+				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible with skeleton %s, removing AnimBP from actor."), *AnimClass->GetName(), *SkeletalMesh->Skeleton->GetName());
 			}
 			else
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible because mesh %s has no skeleton, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->GetName());
+				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible because mesh %s has no skeleton, removing AnimBP from actor."), *AnimClass->GetName(), *SkeletalMesh->GetName());
 			}
 
-			AnimBlueprintGeneratedClass = nullptr;
+			AnimClass = nullptr;
 		}
 	}
 }

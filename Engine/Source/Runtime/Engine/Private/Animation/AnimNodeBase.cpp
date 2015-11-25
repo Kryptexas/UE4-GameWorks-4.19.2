@@ -36,17 +36,20 @@ FAnimationBaseContext::FAnimationBaseContext(const FAnimationBaseContext& InCont
 
 UAnimBlueprintGeneratedClass* FAnimationBaseContext::GetAnimBlueprintClass() const
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return AnimInstanceProxy->GetAnimBlueprintClass();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+IAnimClassInterface* FAnimationBaseContext::GetAnimClass() const
+{
+	return AnimInstanceProxy ? AnimInstanceProxy->GetAnimClassInterface() : nullptr;
 }
 
 #if WITH_EDITORONLY_DATA
 UAnimBlueprint* FAnimationBaseContext::GetAnimBlueprint() const
 {
-	if (UAnimBlueprintGeneratedClass* Class = AnimInstanceProxy->GetAnimBlueprintClass())
-	{
-		return Cast<UAnimBlueprint>(Class->ClassGeneratedBy);
-	}
-	return NULL;
+	return AnimInstanceProxy ? AnimInstanceProxy->GetAnimBlueprint() : nullptr;
 }
 #endif //WITH_EDITORONLY_DATA
 
@@ -91,13 +94,13 @@ void FPoseLinkBase::AttemptRelink(const FAnimationBaseContext& Context)
 	// Do the linkage
 	if ((LinkedNode == NULL) && (LinkID != INDEX_NONE))
 	{
-		UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
+		IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass();
 		check(AnimBlueprintClass);
 
 		// adding ensure. We had a crash on here
-		if ( ensure(AnimBlueprintClass->AnimNodeProperties.IsValidIndex(LinkID)) )
+		if ( ensure(AnimBlueprintClass->GetAnimNodeProperties().IsValidIndex(LinkID)) )
 		{
-			UProperty* LinkedProperty = AnimBlueprintClass->AnimNodeProperties[LinkID];
+			UProperty* LinkedProperty = AnimBlueprintClass->GetAnimNodeProperties()[LinkID];
 			void* LinkedNodePtr = LinkedProperty->ContainerPtrToValuePtr<void>(Context.AnimInstanceProxy->GetAnimInstanceObject());
 			LinkedNode = (FAnimNode_Base*)LinkedNodePtr;
 		}
@@ -107,8 +110,8 @@ void FPoseLinkBase::AttemptRelink(const FAnimationBaseContext& Context)
 void FPoseLinkBase::Initialize(const FAnimationInitializeContext& Context)
 {
 #if DO_CHECK
-	checkf( !bProcessed, TEXT( "Initialize already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
-		*Context.AnimInstanceProxy->GetAnimInstanceName(), Context.GetAnimBlueprintClass() ? *Context.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
+	checkf(!bProcessed, TEXT("Initialize already in progress, circular link for AnimInstance [%s] Blueprint [%s]"), \
+		*Context.AnimInstanceProxy->GetAnimInstanceName(), *GetFullNameSafe(IAnimClassInterface::GetActualAnimClass(Context.AnimInstanceProxy->GetAnimClassInterface())));
 	TGuardValue<bool> CircularGuard(bProcessed, true);
 #endif
 
@@ -129,7 +132,7 @@ void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext& Context)
 {
 #if DO_CHECK
 	checkf( !bProcessed, TEXT( "CacheBones already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
-		*Context.AnimInstanceProxy->GetAnimInstanceName(), Context.GetAnimBlueprintClass() ? *Context.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
+		*Context.AnimInstanceProxy->GetAnimInstanceName(), *GetFullNameSafe(IAnimClassInterface::GetActualAnimClass(Context.AnimInstanceProxy->GetAnimClassInterface())));
 	TGuardValue<bool> CircularGuard(bProcessed, true);
 #endif
 
@@ -148,7 +151,7 @@ void FPoseLinkBase::Update(const FAnimationUpdateContext& Context)
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FPoseLinkBase_Update);
 #if DO_CHECK
 	checkf( !bProcessed, TEXT( "Update already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
-		*Context.AnimInstanceProxy->GetAnimInstanceName(), Context.GetAnimBlueprintClass() ? *Context.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
+		*Context.AnimInstanceProxy->GetAnimInstanceName(), *GetFullNameSafe(IAnimClassInterface::GetActualAnimClass(Context.AnimInstanceProxy->GetAnimClassInterface())));
 	TGuardValue<bool> CircularGuard(bProcessed, true);
 #endif
 
@@ -199,7 +202,7 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 {
 #if DO_CHECK
 	checkf( !bProcessed, TEXT( "Evaluate already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
-		*Output.AnimInstanceProxy->GetAnimInstanceName(), Output.GetAnimBlueprintClass() ? *Output.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
+		*Output.AnimInstanceProxy->GetAnimInstanceName(), *GetFullNameSafe(IAnimClassInterface::GetActualAnimClass(Output.AnimInstanceProxy->GetAnimClassInterface())));
 	TGuardValue<bool> CircularGuard(bProcessed, true);
 #endif
 
@@ -247,7 +250,7 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 {
 #if DO_CHECK
 	checkf( !bProcessed, TEXT( "EvaluateComponentSpace already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
-		*Output.AnimInstanceProxy->GetAnimInstanceName(), Output.GetAnimBlueprintClass() ? *Output.GetAnimBlueprintClass()->GetFullName() : TEXT( "None" ) );
+		*Output.AnimInstanceProxy->GetAnimInstanceName(), *GetFullNameSafe(IAnimClassInterface::GetActualAnimClass(Output.AnimInstanceProxy->GetAnimClassInterface())));
 	TGuardValue<bool> CircularGuard(bProcessed, true);
 #endif
 

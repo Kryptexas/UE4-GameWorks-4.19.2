@@ -390,7 +390,7 @@ TMap<FName, UScriptStruct *(*)()>& GetDynamicStructMap()
 	return DynamicStructMap;
 }
 
-void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic)
+void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic)
 {
 	if (!bDynamic)
 	{
@@ -401,7 +401,7 @@ void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TC
 	}
 	else
 	{
-		GetDynamicStructMap().Add(FName(Name), InRegister);
+		GetDynamicStructMap().Add(PathName, InRegister);
 	}
 }
 
@@ -443,7 +443,7 @@ TMap<FName, UEnum *(*)()>& GetDynamicEnumMap()
 	return DynamicEnumMap;
 }
 
-void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic)
+void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic)
 {
 	if (!bDynamic)
 	{
@@ -454,7 +454,7 @@ void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* Packa
 	}
 	else
 	{
-		GetDynamicEnumMap().Add(FName(Name), InRegister);
+		GetDynamicEnumMap().Add(PathName, InRegister);
 	}
 }
 
@@ -612,7 +612,7 @@ TMap<FName, FClassConstructFunctions>& GetDynamicClassMap()
 	return DynamicClassMap;
 }
 
-void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic)
+void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPathName)
 {
 	if (!bDynamic)
 	{
@@ -630,7 +630,7 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 		FClassConstructFunctions ClassFunctions;
 		ClassFunctions.ZConstructFn = InRegister;
 		ClassFunctions.StaticClassFn = InStaticClass;
-		GetDynamicClassMap().Add(FName(Name), ClassFunctions);
+		GetDynamicClassMap().Add(FName(DynamicPathName), ClassFunctions);
 	}
 }
 
@@ -1107,40 +1107,28 @@ namespace
 
 UScriptStruct* FindExistingStructIfHotReloadOrDynamic(UObject* Outer, const TCHAR* StructName, SIZE_T Size, uint32 Crc, bool bIsDynamic)
 {
-	if (UScriptStruct* Output = FindExistingStructOrEnumIfHotReload<UScriptStruct>(Outer, StructName, Size, Crc))
+	UScriptStruct* Result = FindExistingStructOrEnumIfHotReload<UScriptStruct>(Outer, StructName, Size, Crc);
+	if (!Result && bIsDynamic)
 	{
-		return Output;
-	}
-
-	if (bIsDynamic)
-	{
-		return Cast<UScriptStruct>(StaticFindObjectFast(UScriptStruct::StaticClass(), Outer, StructName));
-	}
-
-	return nullptr;
-}
-
-UEnum* FindExistingEnumIfHotReload(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc)
-{
-	return FindExistingStructOrEnumIfHotReload<UEnum>(Outer, EnumName, Size, Crc);
-}
-
-UClass* ConstructDynamicClass(FName ClassName)
-{
-	UClass* Result = nullptr;
-	FClassConstructFunctions* ClassConstructFn = GetDynamicClassMap().Find(ClassName);
-	if (ClassConstructFn)
-	{
-		// This calls the class' StaticClass() function which calls GetPrivateStaticClassBody() which calls Z_Construct* function.
-		Result = ClassConstructFn->StaticClassFn();
+		Result = Cast<UScriptStruct>(StaticFindObjectFast(UScriptStruct::StaticClass(), Outer, StructName));
 	}
 	return Result;
 }
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassName)
+UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc, bool bIsDynamic)
 {
-	FClassConstructFunctions* ClassConstructFn = GetDynamicClassMap().Find(ClassName);
-	UE_CLOG(!ClassConstructFn, LogUObjectBase, Fatal, TEXT("Unable to find construct function pointer for dynamic class %s. Make sure dynamic class exists."), *ClassName.ToString());
+	UEnum* Result = FindExistingStructOrEnumIfHotReload<UEnum>(Outer, EnumName, Size, Crc);
+	if (!Result && bIsDynamic)
+	{
+		Result = Cast<UEnum>(StaticFindObjectFast(UEnum::StaticClass(), Outer, EnumName));
+	}
+	return Result;
+}
+
+UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName)
+{
+	FClassConstructFunctions* ClassConstructFn = GetDynamicClassMap().Find(ClassPathName);
+	UE_CLOG(!ClassConstructFn, LogUObjectBase, Fatal, TEXT("Unable to find construct function pointer for dynamic class %s. Make sure dynamic class exists."), *ClassPathName.ToString());
 	if (ClassConstructFn)
 	{
 		return ClassConstructFn->ZConstructFn;
@@ -1149,42 +1137,38 @@ UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassName)
 	return nullptr;
 }
 
-UScriptStruct* ConstructDynamicStruct(FName StructName)
+UObject* ConstructDynamicType(FName TypePathName)
 {
-	UScriptStruct* Result = nullptr;
-	UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(StructName);
-	if (StaticStructFNPtr)
+	UObject* Result = nullptr;
+	if (FClassConstructFunctions* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
+	{
+		Result = ClassConstructFn->StaticClassFn();
+	}
+	else if (UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(TypePathName))
 	{
 		Result = (*StaticStructFNPtr)();
 	}
-	return Result;
-}
-
-UEnum* ConstructDynamicEnum(FName EnumName)
-{
-	UEnum* Result = nullptr;
-	UEnum *(**StaticEnumFNPtr)() = GetDynamicEnumMap().Find(EnumName);
-	if (StaticEnumFNPtr)
+	else if (UEnum *(**StaticEnumFNPtr)() = GetDynamicEnumMap().Find(TypePathName))
 	{
 		Result = (*StaticEnumFNPtr)();
 	}
 	return Result;
 }
 
-UObject* ConstructDynamicType(FName TypeName, FName TypeClass)
+FName GetDynamicTypeClassName(FName TypePathName)
 {
-	UObject* Result = nullptr;
-	if ((TypeClass == UClass::StaticClass()->GetFName()) || (TypeClass == UDynamicClass::StaticClass()->GetFName()))
+	FName Result = NAME_None;
+	if (GetDynamicClassMap().Find(TypePathName))
 	{
-		Result = ConstructDynamicClass(TypeName);
+		Result = UDynamicClass::StaticClass()->GetFName();
 	}
-	else if (TypeClass == UScriptStruct::StaticClass()->GetFName())
+	else if (GetDynamicStructMap().Find(TypePathName))
 	{
-		Result = ConstructDynamicStruct(TypeName);
+		Result = UScriptStruct::StaticClass()->GetFName();
 	}
-	else if (TypeClass == UEnum::StaticClass()->GetFName())
+	else if (GetDynamicEnumMap().Find(TypePathName))
 	{
-		Result = ConstructDynamicEnum(TypeName);
+		Result = UEnum::StaticClass()->GetFName();
 	}
 	return Result;
 }
@@ -1199,4 +1183,10 @@ UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
 	}
 	check(Package);
 	return Package;
+}
+
+TMap<FName, FName>& GetConvertedDynamicPackageNameToTypeName()
+{
+	static TMap<FName, FName> ConvertedDynamicPackageNameToTypeName;
+	return ConvertedDynamicPackageNameToTypeName;
 }

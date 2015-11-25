@@ -87,13 +87,25 @@ void FClass::GetShowCategories(TArray<FString>& OutShowCategories) const
 	}
 }
 
-bool FClass::IsDynamic(UField* Field)
+bool FClass::IsDynamic(const UField* Field)
 {
 	static const FName NAME_ReplaceConverted(TEXT("ReplaceConverted"));
 	return Field->HasMetaData(NAME_ReplaceConverted);
 }
 
-FString FClass::GetTypePackageName(UField* Field)
+bool FClass::IsOwnedByDynamicType(const UField* Field)
+{
+	for (const UField* OuterField = Cast<const UField>(Field->GetOuter()); OuterField; OuterField = Cast<const UField>(OuterField->GetOuter()))
+	{
+		if (IsDynamic(OuterField))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+FString FClass::GetTypePackageName(const UField* Field)
 {
 	static const FName NAME_ReplaceConverted(TEXT("ReplaceConverted"));
 	FString PackageName = Field->GetMetaData(NAME_ReplaceConverted);
@@ -112,4 +124,3 @@ FString FClass::GetTypePackageName(UField* Field)
 	}
 	return PackageName;
 }
-

@@ -124,6 +124,15 @@ static UProperty* GetReplicatedProperty(UClass* CallingClass, UClass* PropClass,
 	}																		\
 }
 
+#define DOREPLIFETIME_DIFFNAMES(c,v, n) \
+{ \
+	static UProperty* sp##v = GetReplicatedProperty(StaticClass(), c::StaticClass(), n); \
+	for ( int32 i = 0; i < sp##v->ArrayDim; i++ )							\
+	{																		\
+		OutLifetimeProps.AddUnique( FLifetimeProperty( sp##v->RepIndex + i ) );	\
+	}																		\
+}
+
 #define DOREPLIFETIME_CONDITION(c,v,cond) \
 { \
 	static UProperty* sp##v = GetReplicatedProperty(StaticClass(), c::StaticClass(),GET_MEMBER_NAME_CHECKED(c,v)); \

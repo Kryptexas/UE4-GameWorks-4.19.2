@@ -476,7 +476,8 @@ void AAIController::Possess(APawn* InPawn)
 	}
 	CachedGameplayTasksComponent = GTComp;
 
-	if (GTComp)
+	// Prevents re-entrant issues.
+	if (GTComp && !GTComp->OnClaimedResourcesChange.Contains(this, GET_FUNCTION_NAME_CHECKED(AAIController, OnGameplayTaskResourcesClaimed)))
 	{
 		GTComp->OnClaimedResourcesChange.AddDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 

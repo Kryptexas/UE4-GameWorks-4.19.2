@@ -1762,7 +1762,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	// UObjectPropertyBase interface
 public:
 
-	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, UClass* ActualClass) const PURE_VIRTUAL(UObjectPropertyBase::GetCPPTypeCustom, return TEXT(""););
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName) const PURE_VIRTUAL(UObjectPropertyBase::GetCPPTypeCustom, return TEXT(""););
 
 	/**
 	 * Parses a text buffer into an object reference.
@@ -1868,9 +1868,12 @@ public:
 	}
 	// End of UProperty interface
 
+	// TProperty::GetCPPType should not be used here
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override
 	{
-		return this->GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, UObjectPropertyBase::PropertyClass);
+		check(UObjectPropertyBase::PropertyClass);
+		return this->GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, 
+			FString::Printf(TEXT("%s%s"), UObjectPropertyBase::PropertyClass->GetPrefixCPP(), *UObjectPropertyBase::PropertyClass->GetName()));
 	}
 };
 
@@ -1916,7 +1919,7 @@ public:
 	}
 	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
 
-	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, UClass* ActualClass)  const override;
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 	// End of UObjectPropertyBase interface
 };
 
@@ -2050,7 +2053,7 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	{
 		return true;
 	}
-	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, UClass* ActualClass)  const override;
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 
 private:
 	virtual uint32 GetValueTypeHashInternal(const void* Src) const override
@@ -2097,14 +2100,14 @@ class COREUOBJECT_API UClassProperty : public UObjectProperty
 	// Variables.
 	class UClass* MetaClass;
 public:
-	UClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass)
-		: UObjectProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, UClass::StaticClass())
+	UClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass, UClass* InClassType)
+		: UObjectProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClassType ? InClassType : UClass::StaticClass())
 		, MetaClass(InMetaClass)
 	{
 	}
 
-	UClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
-	:	UObjectProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
+	UClassProperty(const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass, UClass* InClassType)
+		: UObjectProperty(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClassType ? InClassType : UClass::StaticClass())
 	,	MetaClass( InMetaClass )
 	{
 	}
@@ -2126,7 +2129,7 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
-	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, UClass* ActualClass)  const override;
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 
 	/**
 	 * Setter function for this property's MetaClass member. Favor this function 
@@ -2180,13 +2183,29 @@ public:
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	// UProperty interface
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
-	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, UClass* ActualClass)  const override;
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
+
+	/**
+	 * Setter function for this property's MetaClass member. Favor this function 
+	 * whilst loading (since, to handle circular dependencies, we defer some 
+	 * class loads and use a placeholder class instead). It properly handles 
+	 * deferred loading placeholder classes (so they can properly be replaced 
+	 * later).
+	 * 
+	 * @param  NewMetaClass    The MetaClass you want this property set with.
+	 */
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	void SetMetaClass(UClass* NewMetaClass);
+#else
+	FORCEINLINE void SetMetaClass(UClass* NewMetaClass) { MetaClass = NewMetaClass; }
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 };
 
 /*-----------------------------------------------------------------------------

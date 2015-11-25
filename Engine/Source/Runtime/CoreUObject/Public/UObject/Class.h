@@ -2414,6 +2414,10 @@ public:
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) {}
 
 	virtual UObject* GetArchetypeForCDO() const;
+
+	/** Returns true if this class implements script instrumentation. */
+	virtual bool HasInstrumentation() const { return false; }
+
 private:
 	#if UCLASS_FAST_ISA_IMPL & 2
 		// For UObjectBaseUtility
@@ -2493,6 +2497,9 @@ public:
 	TArray<UObject*> DynamicBindingObjects;
 	TArray<UObject*> ComponentTemplates;
 	TArray<UObject*> Timelines;
+
+	// IAnimClassInterface (UAnimClassData) or null
+	UObject* AnimClassImplementation;
 };
 
 /**

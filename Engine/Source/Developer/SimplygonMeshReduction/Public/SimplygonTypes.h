@@ -5,7 +5,7 @@
 #include "Core.h"
 #include "CoreUObject.h"
 #include "Engine.h"
-#include "Containers/EnumAsByte.h"
+#include "Containers/EnumAsByte.h" 
 #include "SimplygonSDK.h"
 
 #include "SimplygonTypes.generated.h"

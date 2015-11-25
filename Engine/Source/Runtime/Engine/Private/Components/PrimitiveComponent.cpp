@@ -426,6 +426,11 @@ void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Componen
 {
 	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 
+#if WITH_EDITOR
+	// This is needed to restore transient collision profile data.
+	CastChecked<UPrimitiveComponent>(Component)->UpdateCollisionProfile();
+#endif // #if WITH_EDITOR
+
 	if (ContainsSavedProperties() && Component->IsRegistered())
 	{
 		Component->MarkRenderStateDirty();

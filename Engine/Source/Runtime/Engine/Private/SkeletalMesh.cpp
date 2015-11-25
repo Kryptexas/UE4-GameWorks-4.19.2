@@ -4937,6 +4937,7 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsSaving())
 	{
@@ -4946,6 +4947,14 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 #endif
+
+	if (Ar.IsSaving() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	{
+		if ((nullptr != AnimBlueprintGeneratedClass) && (nullptr == AnimClass))
+		{
+			AnimClass = AnimBlueprintGeneratedClass;
+		}
+	}
 
 	Super::Serialize(Ar);
 			
@@ -4971,6 +4980,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	{
 		bBlendPhysics = true;
 	}
+
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_EDITORONLY_BLUEPRINTS))
 	{
@@ -4983,10 +4993,19 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	}
 #endif
 
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	{
+		if ((nullptr != AnimBlueprintGeneratedClass) && (nullptr == AnimClass))
+		{
+			AnimClass = AnimBlueprintGeneratedClass;
+		}
+	}
+
 	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_AUTO_WELDING))
 	{
 		BodyInstance.bAutoWeld = false;
 	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 

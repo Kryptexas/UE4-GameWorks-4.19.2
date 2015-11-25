@@ -662,6 +662,7 @@ public:
 		FProcHandle ProcessHandle;
 		FString ResponseFileName;
 		FString BaseResponseFileName;
+		FString ManifestFilename;
 		void* ReadPipe;
 		int32 ReturnCode;
 		bool bFinished;
@@ -717,6 +718,7 @@ private:
 		bool bForceDisableCompressedPackages;
 		bool bIsChildCooker;
 		FString ChildCookFilename;
+		FString ChildManifestFilename;
 		TSet<FName> ChildUnsolicitedPackages;
 		TArray<FChildCooker> ChildCookers;
 		TArray<FName> TargetPlatformNames;
@@ -856,10 +858,12 @@ public:
 		TArray<FString> CookCultures; 
 		TArray<FString> IniMapSections;
 		ECookByTheBookOptions CookOptions;
+		FString CookSingleAssetName;
 		FString DLCName;
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
 		FString ChildCookFileName; // if we are the child cooker 
+		FString ChildManifestFilename; // again, only if you are the child cooker
 		bool bGenerateStreamingInstallManifests; 
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
@@ -1063,7 +1067,7 @@ private:
 	 * 
 	 * @param NumChildCookersToSpawn, number of child cookers we want to use
 	 */
-	void StartChildCookers(int32 NumChildCookersToSpawn, const TArray<FName>& TargetPlatformNames );
+	void StartChildCookers(int32 NumChildCookersToSpawn, const TArray<FName>& TargetPlatformNames, const FString& ExtraCmdParams = FString());
 
 	/**
 	 * TickChildCookers

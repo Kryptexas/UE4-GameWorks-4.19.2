@@ -66,7 +66,8 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	: Super(ObjectInitializer)
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
-
+	, bBlueprintPerformanceAnalysisTools(false)
+	, BlueprintProfilerAverageSampleCount(20)
 {
 }
 
