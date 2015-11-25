@@ -512,7 +512,7 @@ struct ENGINE_API FAnimNode_Base
 	GENERATED_USTRUCT_BODY()
 
 	// The default handler for graph-exposed inputs
-	UPROPERTY()
+	UPROPERTY(meta=(BlueprintCompilerGeneratedDefaults))
 	FExposedValueHandler EvaluateGraphExposedInputs;
 
 	// A derived class should implement Initialize, Update, and either Evaluate or EvaluateComponentSpace, but not both of them

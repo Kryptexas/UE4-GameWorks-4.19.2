@@ -10817,7 +10817,33 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	const uint32 AdditinalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
 	// Save the modified properties of the old CDO
 	{
-		FObjectWriter Writer(OldObject, SavedProperties, true, true, Params.bDoDelta, AdditinalPortFlags);
+		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
+		{
+		public:
+			FCopyPropertiesArchiveObjectWriter(UObject* Obj, TArray<uint8>& InBytes, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 AdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
+				: FObjectWriter(InBytes)
+			{	
+				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
+				ArIgnoreClassRef = bIgnoreClassRef;
+				ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
+				ArNoDelta = !bDoDelta;
+				ArPortFlags |= AdditionalPortFlags;
+
+				Obj->Serialize(*this);
+			}
+
+#if WITH_EDITOR
+			virtual bool ShouldSkipProperty(const class UProperty* InProperty) const override
+			{
+				static FName BlueprintCompilerGeneratedDefaultsName(TEXT("BlueprintCompilerGeneratedDefaults"));
+				return bSkipCompilerGeneratedDefaults && InProperty->HasMetaData(BlueprintCompilerGeneratedDefaultsName);
+			}
+#endif
+
+			bool bSkipCompilerGeneratedDefaults;
+		};
+
+		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, true, true, Params.bDoDelta, AdditinalPortFlags, Params.bSkipCompilerGeneratedDefaults);
 	}
 
 	{

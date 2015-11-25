@@ -2246,12 +2246,16 @@ public:
 		bool bCopyDeprecatedProperties;
 		bool bPreserveRootComponent;
 
+		/** Skips copying properties with BlueprintCompilerGeneratedDefaults metadata */
+		bool bSkipCompilerGeneratedDefaults;
+
 		FCopyPropertiesForUnrelatedObjectsParams()
 			: bAggressiveDefaultSubobjectReplacement(false)
 			, bDoDelta(true)
 			, bReplaceObjectClassReferences(true)
 			, bCopyDeprecatedProperties(false)
 			, bPreserveRootComponent(true)
+			, bSkipCompilerGeneratedDefaults(false)
 		{}
 	};
 	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, FCopyPropertiesForUnrelatedObjectsParams Params = FCopyPropertiesForUnrelatedObjectsParams());//bool bAggressiveDefaultSubobjectReplacement = false, bool bDoDelta = true);

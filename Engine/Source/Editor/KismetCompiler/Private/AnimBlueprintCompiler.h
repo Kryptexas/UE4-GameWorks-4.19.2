@@ -215,6 +215,9 @@ protected:
 	// Map of cache name to encountered save cached pose nodes
 	TMap<FString, UAnimGraphNode_SaveCachedPose*> SaveCachedPoseNodes;
 
+	// Set of used handler function names
+	TSet<FName> HandlerFunctionNames;
+
 	// True if any parent class is also generated from an animation blueprint
 	bool bIsDerivedAnimBlueprint;
 private:

@@ -344,6 +344,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 	if (BoundFunction != NAME_None)
 	{
 		Function = AnimInstanceObject->FindFunction(BoundFunction);
+		check(Function);
 	}
 	else
 	{
