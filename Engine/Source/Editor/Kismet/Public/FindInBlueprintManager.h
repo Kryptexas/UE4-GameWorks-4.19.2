@@ -529,7 +529,7 @@ protected:
 	TMap<FName, const UClass*> CachedAssetClasses;
 };
 
-KISMET_API struct FDisableGatheringDataOnScope
+struct KISMET_API FDisableGatheringDataOnScope
 {
 	bool bOriginallyEnabled;
 	FDisableGatheringDataOnScope() : bOriginallyEnabled(FFindInBlueprintSearchManager::Get().IsGatheringDataEnabled())

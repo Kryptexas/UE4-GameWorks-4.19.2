@@ -192,9 +192,12 @@ bool UPackage::IsFullyLoaded()
 	{
 		FString DummyFilename;
 		// Try to find matching package in package file cache.
-		if (!GetConvertedDynamicPackageNameToTypeName().Contains(GetFName()) &&
-			  !FPackageName::DoesPackageExist( *GetName(), NULL, &DummyFilename ) || 
-				(GIsEditor && IFileManager::Get().FileSize(*DummyFilename) < 0) )
+		if (	!GetConvertedDynamicPackageNameToTypeName().Contains(GetFName()) &&
+				(
+					!FPackageName::DoesPackageExist( *GetName(), NULL, &DummyFilename ) || 
+					(GIsEditor && IFileManager::Get().FileSize(*DummyFilename) < 0) 
+				)
+			)
 		{
 			// Package has NOT been found, so we assume it's a newly created one and therefore fully loaded.
 			bHasBeenFullyLoaded = true;
