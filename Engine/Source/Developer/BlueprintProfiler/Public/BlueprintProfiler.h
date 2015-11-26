@@ -12,7 +12,7 @@ class FBlueprintProfiler : public IBlueprintProfilerInterface
 public:
 
 	FBlueprintProfiler();
-	~FBlueprintProfiler();
+	virtual ~FBlueprintProfiler();
 
 	// Begin IModuleInterface
 	virtual void StartupModule() override;
