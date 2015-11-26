@@ -1218,7 +1218,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 	TArray<FName> OverridableFunctionNames;
 
 	// Cache potentially overridable functions
-	UClass* ParentClass = BlueprintObj->SkeletonGeneratedClass? BlueprintObj->SkeletonGeneratedClass->GetSuperClass() : BlueprintObj->ParentClass;
+	UClass* ParentClass = BlueprintObj->SkeletonGeneratedClass ? BlueprintObj->SkeletonGeneratedClass->GetSuperClass() : *BlueprintObj->ParentClass;
 	for ( TFieldIterator<UFunction> FunctionIt(ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt )
 	{
 		const UFunction* Function = *FunctionIt;

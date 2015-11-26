@@ -144,6 +144,8 @@ public:
 		UpdateStatName();
 	}
 
+	virtual ~FBPProfilerStat() {}
+
 	/** Release Data */
 	void ReleaseData()
 	{
@@ -262,6 +264,8 @@ public:
 		, bAreExecutionPathsSequential(false)
 	{
 	}
+
+	virtual ~FBPProfilerBranchStat() {}
 
 	//~ FBPProfilerStat Start
 	virtual FBPProfilerStatPtr FindOrAddChildByContext(FScriptExecEvent& Context) override;

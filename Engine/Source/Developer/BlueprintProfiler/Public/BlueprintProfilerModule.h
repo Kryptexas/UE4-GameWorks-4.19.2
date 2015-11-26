@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ModuleManager.h"
 #include "Script.h"
 #include "BlueprintProfilerSupport.h"
 
