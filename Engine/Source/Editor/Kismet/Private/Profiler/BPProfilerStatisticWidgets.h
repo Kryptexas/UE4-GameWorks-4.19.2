@@ -56,10 +56,11 @@ struct FBPPerformanceData
 public:
 
 	FBPPerformanceData()
-		: MaxTime(-MAX_dbl)
+		: Samples(StatSampleSize)
+		, CachedExclusiveTime(0.0)
+		, MaxTime(-MAX_dbl)
 		, MinTime(MAX_dbl)
 		, TotalTime(0.0)
-		, Samples(StatSampleSize)
 		, NumSamples(0)
 		, bDirty(false)
 	{
@@ -133,12 +134,12 @@ public:
 	}
 
 	FBPProfilerStat(FBPProfilerStatPtr InParentStat, FScriptExecEvent& Context)
-		: ObjectContext(Context)
-		, InclusiveTime(0.0)
+		: InclusiveTime(0.0)
 		, MinInclusiveTime(MAX_dbl)
 		, MaxInclusiveTime(-MAX_dbl)
 		, InclusiveTotalTime(0.0)
 		, InclusiveSamples(0)
+		, ObjectContext(Context)
 		, ParentStat(InParentStat)
 	{
 		UpdateStatName();

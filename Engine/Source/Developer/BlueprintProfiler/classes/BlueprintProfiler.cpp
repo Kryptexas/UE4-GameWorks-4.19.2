@@ -2,6 +2,8 @@
 
 #include "Private/BlueprintProfilerPCH.h"
 
+#include "BlueprintProfiler.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintProfiler
 

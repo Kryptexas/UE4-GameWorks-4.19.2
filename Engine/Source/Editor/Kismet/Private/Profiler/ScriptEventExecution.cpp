@@ -14,25 +14,25 @@ FScriptExecEvent::FScriptExecEvent()
 }
 
 FScriptExecEvent::FScriptExecEvent(TWeakObjectPtr<const UObject> InObjectPtr, const FScriptExecEvent& ContextToCopy)
-	: EventType(EScriptInstrumentation::NodePin)
+	: CallDepth(ContextToCopy.CallDepth)
+	, NumExecOutPins(1)
+	, EventType(EScriptInstrumentation::NodePin)
 	, ScriptCodeOffset(-1)
 	, EventTime(0.0)
 	, ContextObject(InObjectPtr)
 	, PinIndex(ContextToCopy.PinIndex)
-	, CallDepth(ContextToCopy.CallDepth)
-	, NumExecOutPins(1)
 {
 }
 
 FScriptExecEvent::FScriptExecEvent(TWeakObjectPtr<const UObject> InObjectPtr, TWeakObjectPtr<const UObject> InMacroObjectPtr, const FBlueprintInstrumentedEvent& InEvent, const int32 InPinIndex)
-	: EventType(InEvent.GetType())
+	: CallDepth(0)
+	, NumExecOutPins(-1)
+	, EventType(InEvent.GetType())
 	, ScriptCodeOffset(InEvent.GetScriptCodeOffset())
 	, EventTime(InEvent.GetTime())
 	, ContextObject(InObjectPtr)
 	, MacroContextObject(InMacroObjectPtr)
 	, PinIndex(InPinIndex)
-	, CallDepth(0)
-	, NumExecOutPins(-1)
 {
 }
 
