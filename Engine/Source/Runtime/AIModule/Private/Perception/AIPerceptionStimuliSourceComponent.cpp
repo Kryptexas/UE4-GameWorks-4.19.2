@@ -14,7 +14,7 @@ void UAIPerceptionStimuliSourceComponent::OnRegister()
 	Super::OnRegister();
 
 	RegisterAsSourceForSenses.RemoveAllSwap([](TSubclassOf<UAISense> SenseClass){
-		return SenseClass != nullptr;
+		return SenseClass == nullptr;
 	});
 
 	if (bAutoRegisterAsSource)
