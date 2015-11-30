@@ -6069,7 +6069,7 @@ void UEngine::InitHardwareSurvey()
 	// The hardware survey costs time and we don't want to slow down debug builds.
 	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
 	// Never run the survey in games, only in the editor.
-	bPendingHardwareSurveyResults = FEngineAnalytics::IsAvailable() && FEngineAnalytics::IsEditorRun() && IsHardwareSurveyRequired();
+	bPendingHardwareSurveyResults = WITH_EDITOR && GIsEditor && !IsRunningCommandlet() && FEngineAnalytics::IsAvailable() && IsHardwareSurveyRequired();
 }
 
 void UEngine::TickHardwareSurvey()

@@ -25,10 +25,6 @@ public:
 	static ENGINE_API void Initialize();
 	/** Called to shut down the singleton */
 	static ENGINE_API void Shutdown();
-	/** Is this an editor run? (false for games and commandlets) */
-	static ENGINE_API bool IsEditorRun() { return bIsEditorRun; }
-	/** Is this a game run? (false for the editor, commandlets, programs and non-cooked games) */
-	static ENGINE_API bool IsGameRun() { return bIsGameRun; }
 
 private:
 	static bool bIsInitialized;
