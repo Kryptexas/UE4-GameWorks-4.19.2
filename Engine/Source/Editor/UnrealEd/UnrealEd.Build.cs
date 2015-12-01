@@ -144,7 +144,8 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
-                "BlueprintNativeCodeGen",               
+                "BlueprintNativeCodeGen",
+                "Analytics"
 			}
 		);
 

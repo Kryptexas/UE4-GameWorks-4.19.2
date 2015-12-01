@@ -126,6 +126,7 @@
 #endif
 
 #include "InstancedReferenceSubobjectHelper.h"
+#include "Engine/EndUserSettings.h"
 #include "ABTesting.h"
 #include "Performance/EnginePerformanceTargets.h"
 
@@ -6125,7 +6126,7 @@ void UEngine::InitHardwareSurvey()
 {
 	bool bEnabled = true;
 #if !WITH_EDITORONLY_DATA
-	bEnabled = bHardwareSurveyEnabled;
+	bEnabled = AreGameAnalyticsEnabled();
 #endif
 
 	// The hardware survey costs time and we don't want to slow down debug builds.
@@ -10079,6 +10080,11 @@ UGameViewportClient* UEngine::GameViewportForWorld(const UWorld *InWorld) const
 {
 	const FWorldContext* Context = GetWorldContextFromWorld(InWorld);
 	return (Context ? Context->GameViewport : NULL);
+}
+
+bool UEngine::AreGameAnalyticsEnabled() const
+{ 
+	return GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
 }
 
 FWorldContext* UEngine::GetWorldContextFromGameViewport(const UGameViewportClient *InViewport)

@@ -14,7 +14,7 @@
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
 #include "CrashReporterSettings.h"
-
+#include "Analytics/AnalyticsPrivacySettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -61,6 +61,7 @@ public:
 			RegisterGeneralSettings(*SettingsModule);
 			RegisterLevelEditorSettings(*SettingsModule);
 			RegisterContentEditorsSettings(*SettingsModule);
+			RegisterPrivacySettings(*SettingsModule);
 
 			SettingsModule->RegisterViewer("Editor", *this);
 		}
@@ -216,6 +217,16 @@ protected:
 			LOCTEXT("ContentEditorsPersonaSettingsDescription", "Customize Persona Editor."),
 			GetMutableDefault<UPersonaOptions>()
 		);
+	}
+
+	void RegisterPrivacySettings(ISettingsModule& SettingsModule)
+	{
+		// Analytics
+		SettingsModule.RegisterSettings("Editor", "Privacy", "Analytics",
+			LOCTEXT("PrivacyAnalyticsSettingsName", "Usage Data"),
+			LOCTEXT("PrivacyAnalyticsSettingsDescription", "Configure the way your Editor usage information is handled."),
+			GetMutableDefault<UAnalyticsPrivacySettings>()
+			);
 	}
 
 	/** Unregisters all settings. */

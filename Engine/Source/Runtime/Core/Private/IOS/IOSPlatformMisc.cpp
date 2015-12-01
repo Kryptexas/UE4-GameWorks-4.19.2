@@ -120,6 +120,12 @@ bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& I
 	return false;
 }
 
+bool FIOSPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
+{
+	// No Implementation (currently only used by editor code so not needed on iOS)
+	return false;
+}
+
 //void FIOSPlatformMisc::LowLevelOutputDebugStringf(const TCHAR *Fmt, ... )
 //{
 //

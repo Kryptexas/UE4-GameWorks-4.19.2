@@ -530,3 +530,8 @@ bool FGenericPlatformProcess::IsFirstInstance()
 	return true;
 #endif
 }
+
+FSystemWideCriticalSectionNotImplemented::FSystemWideCriticalSectionNotImplemented(const FString& Name, FTimespan Timeout)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FSystemWideCriticalSection not implemented on this platform"));
+}

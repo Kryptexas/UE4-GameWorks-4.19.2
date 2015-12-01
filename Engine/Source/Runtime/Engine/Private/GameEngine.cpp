@@ -203,8 +203,8 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);
 
-	// consume available desktop area
-	FDisplayMetrics DisplayMetrics;
+		// consume available desktop area
+		FDisplayMetrics DisplayMetrics;
 	FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 		
 	int32 DesktopResolutionX = DisplayMetrics.PrimaryDisplayWidth;
@@ -421,7 +421,7 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	bUseSound = true;
 
-	bHardwareSurveyEnabled = true;
+	bHardwareSurveyEnabled_DEPRECATED = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
 
@@ -556,7 +556,7 @@ void UGameEngine::PreExit()
 
 			if (World->GetGameInstance() != nullptr)
 			{
-				World->GetGameInstance()->Shutdown();
+			World->GetGameInstance()->Shutdown();
 			}
 
 			World->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
@@ -602,7 +602,7 @@ bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading 
 		{
 			const FString StreamingLevelName = StreamingLevel->GetWorldAsset().GetLongPackageName();
 			if (StreamingLevelName == PrefixedName)
-			{
+	{
 				Str = PrefixedName;
 				return true;
 			}
@@ -1020,45 +1020,45 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Tick the viewport
-	if ( GameViewport != NULL && !bIdleMode )
-	{
-		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
-		GameViewport->Tick(DeltaSeconds);
-	}
-
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		// Hide the splashscreen and show the game window
-		static bool bFirstTime = true;
-		if ( bFirstTime )
+		if ( GameViewport != NULL && !bIdleMode )
 		{
-			bFirstTime = false;
-			FPlatformSplash::Hide();
-			if ( GameViewportWindow.IsValid() )
+			SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
+			GameViewport->Tick(DeltaSeconds);
+		}
+
+		if (FPlatformProperties::SupportsWindowedMode())
+		{
+			// Hide the splashscreen and show the game window
+			static bool bFirstTime = true;
+			if ( bFirstTime )
 			{
-				GameViewportWindow.Pin()->ShowWindow();
-				FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
+				bFirstTime = false;
+				FPlatformSplash::Hide();
+				if ( GameViewportWindow.IsValid() )
+				{
+					GameViewportWindow.Pin()->ShowWindow();
+					FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
+				}
 			}
 		}
-	}
 
-	if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
-	{
-		// Render everything.
-		RedrawViewports();
-	}
+		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
+		{
+			// Render everything.
+			RedrawViewports();
+		}
 
-	if( GIsClient )
-	{
-		// Update resource streaming after viewports have had a chance to update view information. Normal update.
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-		IStreamingManager::Get().Tick( DeltaSeconds );
-	}
+		if( GIsClient )
+		{
+			// Update resource streaming after viewports have had a chance to update view information. Normal update.
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
+				IStreamingManager::Get().Tick( DeltaSeconds );
+			}
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
 	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (AudioDeviceManager)
-	{
+			{
 		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 

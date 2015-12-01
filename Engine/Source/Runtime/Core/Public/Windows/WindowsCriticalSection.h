@@ -68,3 +68,31 @@ public:
 		LeaveCriticalSection(&CriticalSection);
 	}
 };
+
+/** System-Wide Critical Section for windows using mutex */
+class CORE_API FWindowsSystemWideCriticalSection
+{
+public:
+	/** Construct a named, system-wide critical section and attempt to get access/ownership of it */
+	explicit FWindowsSystemWideCriticalSection(const FString& InName, FTimespan InTimeout = FTimespan::Zero());
+
+	/** Destructor releases system-wide critical section if it is currently owned */
+	~FWindowsSystemWideCriticalSection();
+
+	/**
+	 * Does the calling thread have ownership of the system-wide critical section?
+	 *
+	 * @return True if obtained. WARNING: Returns true for an owned but previously abandoned locks so shared resources can be in undetermined states. You must handle shared data robustly.
+	 */
+	bool IsValid() const;
+
+	/** Releases system-wide critical section if it is currently owned */
+	void Release();
+
+private:
+	FWindowsSystemWideCriticalSection(const FWindowsSystemWideCriticalSection&);
+	FWindowsSystemWideCriticalSection& operator=(const FWindowsSystemWideCriticalSection&);
+
+private:
+	HANDLE Mutex;
+};

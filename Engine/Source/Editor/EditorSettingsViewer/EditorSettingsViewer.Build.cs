@@ -26,6 +26,7 @@ namespace UnrealBuildTool.Rules
                     "InternationalizationSettings",
 					"BlueprintGraph",
                     "EditorStyle",
+                    "Analytics"
 				}
 			);
 

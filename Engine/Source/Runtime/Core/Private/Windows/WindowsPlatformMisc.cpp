@@ -2031,6 +2031,47 @@ bool FWindowsPlatformMisc::GetStoredValue(const FString& InStoreId, const FStrin
 	return QueryRegKey(HKEY_CURRENT_USER, *FullRegistryKey, *InKeyName, OutValue);
 }
 
+bool FWindowsPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
+{
+	// Deletes values in reg keys and also deletes the owning key if it becomes empty
+
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	FString FullRegistryKey = FString(TEXT("Software")) / InStoreId / InSectionName;
+	FullRegistryKey = FullRegistryKey.Replace(TEXT("/"), TEXT("\\")); // we use forward slashes, but the registry needs back slashes
+
+	HKEY hKey;
+	HRESULT Result = ::RegOpenKeyEx(HKEY_CURRENT_USER, *FullRegistryKey, 0, KEY_WRITE | KEY_READ, &hKey);
+	if (Result == ERROR_SUCCESS)
+	{
+		Result = ::RegDeleteValue(hKey, *InKeyName);
+
+		// Query for sub-keys in the open key
+		TCHAR CheckKeyName[256];
+		::DWORD CheckKeyNameLength = sizeof(CheckKeyName) / sizeof(CheckKeyName[0]);
+		HRESULT EnumResult = RegEnumKeyEx(hKey, 0, CheckKeyName, &CheckKeyNameLength, NULL, NULL, NULL, NULL);
+		bool bZeroSubKeys = EnumResult != ERROR_SUCCESS;
+
+		// Query for a remaining value in the open key
+		wchar_t CheckValueName[256];
+		::DWORD CheckValueNameLength = sizeof(CheckValueName) / sizeof(CheckValueName[0]);
+		EnumResult = RegEnumValue(hKey, 0, CheckValueName, &CheckValueNameLength, NULL, NULL, NULL, NULL);
+		bool bZeroValues = EnumResult != ERROR_SUCCESS;
+
+		::RegCloseKey(hKey);
+
+		if (bZeroSubKeys && bZeroValues)
+		{
+			// No more values - delete the section
+			::RegDeleteKey(HKEY_CURRENT_USER, *FullRegistryKey);
+		}
+	}
+
+	return Result == ERROR_SUCCESS;
+}
+
 uint32 FWindowsPlatformMisc::GetLastError()
 {
 	return (uint32)::GetLastError();

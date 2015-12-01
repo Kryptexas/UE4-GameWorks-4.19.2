@@ -8,8 +8,9 @@
 #include "GeneralProjectSettings.h"
 
 bool FEngineAnalytics::bIsInitialized;
+bool FEngineAnalytics::bIsEditorRun;
+bool FEngineAnalytics::bIsGameRun;
 TSharedPtr<IAnalyticsProvider> FEngineAnalytics::Analytics;
-bool FEngineAnalytics::bShouldSendUsageEvents;
 
 /**
  * Engine analytics config log to initialize the engine analytics provider.
@@ -41,22 +42,16 @@ void FEngineAnalytics::Initialize()
 
 	// this will only be true for builds that have editor support (currently PC, Mac, Linux)
 	// The idea here is to only send editor events for actual editor runs, not for things like -game runs of the editor.
-	const bool bIsEditorRun = WITH_EDITOR && GIsEditor && !IsRunningCommandlet();
+	bIsEditorRun = WITH_EDITOR && GIsEditor && !IsRunningCommandlet();
 
 	// We also want to identify a real run of a game, which is NOT necessarily the opposite of an editor run.
 	// Ideally we'd be able to tell explicitly, but with content-only games, it becomes difficult.
 	// So we ensure we are not an editor run, we don't have EDITOR stuff compiled in, we are not running a commandlet,
 	// we are not a generic, utility program, and we require cooked data.
-	const bool bIsGameRun = !WITH_EDITOR && !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
-
-	const bool bShouldInitAnalytics = bIsEditorRun || bIsGameRun;
+	bIsGameRun = !WITH_EDITOR && !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
 
 	// Outside of the editor, the only engine analytics usage is the hardware survey
-	bShouldSendUsageEvents = bIsEditorRun 
-		? GEngine->AreEditorAnalyticsEnabled() 
-		: bIsGameRun 
-			? GEngine->bHardwareSurveyEnabled 
-			: false;
+	const bool bShouldInitAnalytics = (bIsEditorRun && GEngine->AreEditorAnalyticsEnabled()) || (bIsGameRun && GEngine->AreGameAnalyticsEnabled());
 
 	if (bShouldInitAnalytics)
 	{
@@ -109,9 +104,25 @@ void FEngineAnalytics::Initialize()
 			Analytics = FAnalytics::Get().CreateAnalyticsProvider(
 				FName(*DefaultEngineAnalyticsConfig.Execute(TEXT("ProviderModuleName"), true)), 
 				DefaultEngineAnalyticsConfig);
+
 			if (Analytics.IsValid())
 			{
-				Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
+				// Use an anonymous user id in-game
+				if (bIsGameRun)
+				{
+					FString AnonymousId;
+					if (!FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Privacy"), TEXT("AnonymousID"), AnonymousId) || AnonymousId.IsEmpty())
+					{
+						AnonymousId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
+						FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Privacy"), TEXT("AnonymousID"), AnonymousId);
+					}
+
+					Analytics->SetUserID(FString::Printf(TEXT("ANON-%s"), *AnonymousId));
+				}
+				else
+				{
+					Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
+				}
 
 				TArray<FAnalyticsEventAttribute> StartSessionAttributes;
 				GEngine->CreateStartupAnalyticsAttributes( StartSessionAttributes );
@@ -123,10 +134,11 @@ void FEngineAnalytics::Initialize()
 				StartSessionAttributes.Emplace(TEXT("ProjectVersion"), ProjectSettings.ProjectVersion);
 
 				Analytics->StartSession( StartSessionAttributes );
+
+				bIsInitialized = true;
 			}
 		}
 	}
-	bIsInitialized = true;
 }
 
 

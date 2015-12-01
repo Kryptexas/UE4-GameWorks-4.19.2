@@ -68,13 +68,10 @@
 #include "Components/DrawFrustumComponent.h"
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
-
 #include "PhysicsPublic.h"
-
 #include "AnimationRecorder.h"
-
 #include "Settings/EditorSettings.h"
-
+#include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
@@ -1107,7 +1104,7 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 
 bool UEditorEngine::AreEditorAnalyticsEnabled() const 
 {
-	return GetDefault<UEditorSettings>()->bEditorAnalyticsEnabled;
+	return GetDefault<UAnalyticsPrivacySettings>()->bSendUsageData;
 }
 
 void UEditorEngine::CreateStartupAnalyticsAttributes( TArray<FAnalyticsEventAttribute>& StartSessionAttributes ) const

@@ -34,6 +34,8 @@ public class Engine : ModuleRules
 				"AutomationWorker",
                 "Analytics",
 				"MovieSceneCapture",
+				"DesktopPlatform",
+				"Analytics"
 			}
 		);
 

@@ -442,6 +442,8 @@ void FUnrealEdMisc::OnInit()
 
 	SlowTask.EnterProgressFrame(10);
 
+	FEditorAnalytics::InitializeSessionManager();
+
 	// Send Project Analytics
 	InitEngineAnalytics();
 	
@@ -571,6 +573,8 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
+
+	FEditorAnalytics::SessionHeartbeat();
 }
 
 void FUnrealEdMisc::TickAssetAnalytics()
@@ -763,6 +767,8 @@ void FUnrealEdMisc::OnExit()
 		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
 		FEditorViewportStats::SendUsageData();
 	}
+
+	FEditorAnalytics::ShutdownSessionManager();
 
 	FInputBindingManager::Get().UnregisterUserDefinedChordChanged(OnUserDefinedChordChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();
