@@ -203,6 +203,11 @@ TSharedRef<SWidget> SBehaviorTreeBlackboardEditor::HandleCreateNewEntryMenu() co
 
 	FOnClassPicked OnPicked( FOnClassPicked::CreateRaw( this, &SBehaviorTreeBlackboardEditor::HandleKeyClassPicked ) );
 
+	// clear the search box, just in case there's something typed in there 
+	// We need to do that since key adding code takes advantage of selection mechanics
+	TSharedRef<SEditableTextBox> FilterTextBox = GraphActionMenu->GetFilterTextBox();
+	FilterTextBox->SetText(FText());
+
 	return 
 		SNew(SBox)
 		.HeightOverride(240.0f)

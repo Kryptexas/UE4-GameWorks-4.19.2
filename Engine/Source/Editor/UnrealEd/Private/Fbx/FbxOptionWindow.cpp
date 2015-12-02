@@ -117,7 +117,7 @@ bool SFbxOptionWindow::CanImport()  const
 
 	if (ImportUI->AnimSequenceImportData->AnimationLength == FBXALIT_SetRange)
 	{
-		if (ImportUI->AnimSequenceImportData->StartFrame > ImportUI->AnimSequenceImportData->EndFrame)
+		if (ImportUI->AnimSequenceImportData->FrameImportRange.Min > ImportUI->AnimSequenceImportData->FrameImportRange.Max)
 		{
 			return false;
 		}

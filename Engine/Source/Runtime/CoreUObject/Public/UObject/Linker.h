@@ -1334,7 +1334,7 @@ public:
 	/** Old plugin name to new plugin name mapping */
 	static TMap<FString, FString> PluginNameRedirects;
 	/** Packages that are known to be missing when verifying imports that we don't want a message about */
-	static TSet<FName> KnownMissingPackages;
+	COREUOBJECT_API static TSet<FName> KnownMissingPackages;
 
 	/** Object name to required class and new name for load-time remapping */
 	struct FSubobjectRedirect

@@ -2574,13 +2574,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		{
 			Ar << ClothingAssets[Idx];
 		}
-
-#if WITH_APEX_CLOTHING
-		if (Ar.IsLoading())
-		{
-			BuildApexToUnrealBoneMapping();
-		}
-#endif
 	}
 
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_SKELETALMESH_SHADOWCASTING )
@@ -2921,6 +2914,14 @@ void USkeletalMesh::PostLoad()
 		// Rebuild name table.
 		RefSkeleton.RebuildNameToIndexMap();
 	}
+
+#if WITH_APEX_CLOTHING
+	//We can't build apex map until this point because old content needs to call RebuildNameToIndexMap
+	if(GetLinkerUE4Version() >= VER_UE4_APEX_CLOTH)
+	{
+		BuildApexToUnrealBoneMapping();
+	}
+#endif
 
 	if (GetLinkerUE4Version() < VER_UE4_SORT_ACTIVE_BONE_INDICES)
 	{

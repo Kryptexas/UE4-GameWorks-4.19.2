@@ -11,6 +11,7 @@
 #include "ParticleHelper.h"
 #include "Distributions/DistributionFloat.h"
 #include "Distributions/DistributionVector.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleHelper.h"
 
 /*-----------------------------------------------------------------------------
@@ -187,7 +188,7 @@ public:
 	static const float PeakActiveParticleUpdateDelta;
 
 	/** The template this instance is based on.							*/
-	UParticleSpriteEmitter* SpriteTemplate;
+	UParticleEmitter* SpriteTemplate;
 	/** The component who owns it.										*/
 	UParticleSystemComponent* Component;
 	/** The index of the currently set LOD level.						*/
@@ -228,20 +229,20 @@ public:
 	uint32 bIgnoreComponentScale:1;
 	/** Hack: Make sure this is a Beam type to avoid casting from/to wrong types. */
 	uint32 bIsBeam:1;
+	/** Whether axis lock is enabled, cached here to avoid finding it from the module each frame */
+	uint32 bAxisLockEnabled : 1;
+	/** Axis lock flags, cached here to avoid finding it from the module each frame */
+	TEnumAsByte<EParticleAxisLock> LockAxisFlags;
 	/** The sort mode to use for this emitter as specified by artist.	*/
 	int32 SortMode;
 	/** Pointer to the particle data array.								*/
 	uint8* ParticleData;
 	/** Pointer to the particle index array.							*/
 	uint16* ParticleIndices;
-	/** Map module pointers to their offset into the particle data.		*/
-	TMap<UParticleModule*,uint32> ModuleOffsetMap;
 	/** Pointer to the instance data array.								*/
 	uint8* InstanceData;
 	/** The size of the Instance data array.							*/
 	int32 InstancePayloadSize;
-	/** Map module pointers to their offset into the instance data.		*/
-	TMap<UParticleModule*,uint32> ModuleInstanceOffsetMap;
 	/** The offset to the particle data.								*/
 	int32 PayloadOffset;
 	/** The total size of a particle (in bytes).						*/
@@ -276,8 +277,6 @@ public:
 	int32 LoopCount;
 	/** Flag indicating if the render data is dirty.					*/
 	int32 IsRenderDataDirty;
-	/** The AxisLock module - to avoid finding each Tick.				*/
-	UParticleModuleOrientationAxisLock* Module_AxisLock;
 	/** The current duration fo the emitter instance.					*/
 	float EmitterDuration;
 	/** The emitter duration at each LOD level for the instance.		*/
@@ -318,7 +317,7 @@ public:
 #endif
 
 	//
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true);
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent);
 	virtual void Init();
 
 	/** @return The world that the component that owns this instance is in */
@@ -391,7 +390,10 @@ public:
 	virtual void UpdateBoundingBox(float DeltaTime);
 	virtual void ForceUpdateBoundingBox();
 	virtual uint32 RequiredBytes();
-	virtual uint8* GetModuleInstanceData(UParticleModule* Module);
+	/** Get offset for particle payload data for a particular module */
+	uint32 GetModuleDataOffset(UParticleModule* Module);
+	/** Get pointer to emitter instance payload data for a particular module */
+	uint8* GetModuleInstanceData(UParticleModule* Module);
 	virtual uint8* GetTypeDataModuleInstanceData();
 	virtual uint32 CalculateParticleStride(uint32 ParticleSize);
 	virtual void ResetBurstList();
@@ -786,7 +788,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	/** Constructor	*/
 	FParticleMeshEmitterInstance();
 
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true) override;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 	virtual void Init() override;
 	virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true) override;
 	virtual void Tick(float DeltaTime, bool bSuppressSpawning) override;
@@ -880,6 +882,7 @@ protected:
 struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 {
 	UParticleModuleTypeDataBeam2*	BeamTypeData;
+
 	UParticleModuleBeamSource*		BeamModule_Source;
 	UParticleModuleBeamTarget*		BeamModule_Target;
 	UParticleModuleBeamNoise*		BeamModule_Noise;
@@ -887,13 +890,6 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	int32								BeamModule_SourceModifier_Offset;
 	UParticleModuleBeamModifier*	BeamModule_TargetModifier;
 	int32								BeamModule_TargetModifier_Offset;
-
-	TArray<UParticleModuleTypeDataBeam2*>	LOD_BeamTypeData;
-	TArray<UParticleModuleBeamSource*>		LOD_BeamModule_Source;
-	TArray<UParticleModuleBeamTarget*>		LOD_BeamModule_Target;
-	TArray<UParticleModuleBeamNoise*>		LOD_BeamModule_Noise;
-	TArray<UParticleModuleBeamModifier*>	LOD_BeamModule_SourceModifier;
-	TArray<UParticleModuleBeamModifier*>	LOD_BeamModule_TargetModifier;
 
 	bool							FirstEmission;
 	int32								TickCount;
@@ -955,7 +951,7 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift) override;
 	
 	//
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true) override;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 	virtual void Init() override;
 	virtual void Tick(float DeltaTime, bool bSuppressSpawning) override;
 	/**
@@ -988,8 +984,6 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	virtual uint32 RequiredBytes() override;
 	float SpawnBeamParticles(float OldLeftover, float Rate, float DeltaTime, int32 Burst = 0, float BurstTime = 0.0f);
 	virtual void KillParticles() override;
-	void SetupBeamModules();
-	void SetupBeamModifierModules();
 	/**
 	 *	Setup the offsets to the BeamModifier modules...
 	 *	This must be done after the base Init call as that inserts modules into the offset map.
@@ -1126,7 +1120,7 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	}
 
 	virtual void Init() override;
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true) override;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 	virtual void Tick(float DeltaTime, bool bSuppressSpawning) override;
 
 	/**
@@ -1273,7 +1267,7 @@ struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Ba
 	/** Destructor	*/
 	virtual ~FParticleRibbonEmitterInstance();
 
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true) override;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 
 	/**
 	 *	Tick sub-function that handles recalculation of tangents
@@ -1463,7 +1457,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	/** Destructor	*/
 	virtual ~FParticleAnimTrailEmitterInstance();
 
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true) override;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 
 	/**
 	 *	Helper function for recalculating tangents and the spline interpolation parameter...

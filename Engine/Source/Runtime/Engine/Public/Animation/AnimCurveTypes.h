@@ -241,32 +241,25 @@ struct ENGINE_API FBlendedCurve
 	* List of curve elements for this pose
 	*/
 	TArray<FCurveElement> Elements;
-	TArray<FSmartNameMapping::UID> UIDList;
 
+	/**
+	* List of SmartName UIDs, retrieved from AnimInstanceProxy (which keeps authority)
+	*/
+	TArray<FSmartNameMapping::UID> const * UIDList;
+	
 	/**
 	 * constructor
 	 */
 	FBlendedCurve()
-		: bInitialized(false)
+		: UIDList(nullptr)
+		, bInitialized(false)
 	{
 	}
-
-	/**
-	 * constructor
-	 */
-	FBlendedCurve(const class UAnimInstance* AnimInstance);
-
-	/**
-	 * constructor
-	 */
-	FBlendedCurve(const class USkeleton* Skeleton)
-	{
-		check (Skeleton);
-		InitFrom(Skeleton);
-	}
-
+	
 	/** Initialize Curve Data from following data */
+	DEPRECATED(4.11, "Use new InitFrom(TArray<FSmartNameMapping::UID>* InSmartNameUIDs) signature")
 	void InitFrom(const class USkeleton* Skeleton);
+	void InitFrom(TArray<FSmartNameMapping::UID> const * InSmartNameUIDs);
 	void InitFrom(const FBlendedCurve& InCurveToInitFrom);
 
 	/** Set value of InUID to InValue */
@@ -314,8 +307,10 @@ struct ENGINE_API FBlendedCurve
 	/** Empty */
 	void Empty()
 	{
-		UIDList.Reset();
+		// Set to nullptr as we only received a ptr reference from USkeleton
+		UIDList = nullptr;
 		Elements.Reset();
+		bInitialized = false;
 	}
 private:
 	/**  Whether initialized or not */
@@ -399,7 +394,7 @@ struct FRawCurveTracks
 	/**
 	 * Updates the LastObservedName field of the curves from the provided name container
 	 */
-	ENGINE_API void UpdateLastObservedNames(FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType = FloatType);
+	ENGINE_API void UpdateLastObservedNames(const FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType = FloatType);
 
 	/** 
 	 * Serialize
@@ -467,5 +462,5 @@ private:
 	 * Updates the LastObservedName field of the curves from the provided name container
 	 */
 	template <typename DataType>
-	void UpdateLastObservedNamesImpl(TArray<DataType>& Curves, FSmartNameMapping* NameMapping);
+	void UpdateLastObservedNamesImpl(TArray<DataType>& Curves, const FSmartNameMapping* NameMapping);
 };

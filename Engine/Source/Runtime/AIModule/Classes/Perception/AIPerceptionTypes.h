@@ -214,13 +214,13 @@ struct AIMODULE_API FAISenseAffiliationFilter
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense")
 	uint32 bDetectEnemies : 1;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense")
 	uint32 bDetectNeutrals : 1;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense")
 	uint32 bDetectFriendlies : 1;
 	
 	uint8 GetAsFlags() const { return (bDetectEnemies << ETeamAttitude::Hostile) | (bDetectNeutrals << ETeamAttitude::Neutral) | (bDetectFriendlies << ETeamAttitude::Friendly); }

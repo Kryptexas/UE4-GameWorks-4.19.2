@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Actions/PawnAction.h"
 #include "PawnAction_Repeat.generated.h"
 
 UCLASS()

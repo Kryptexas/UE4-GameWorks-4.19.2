@@ -582,6 +582,10 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_USE_LOW_PASS_FILTER_FREQ,
 	// UAnimBlueprintGeneratedClass can be replaced by a dynamic class. Use TSubclassOf<UAnimInstance> instead.
 	VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE,
+	// The SCS keeps a list of all nodes in its hierarchy rather than recursively building it each time it is requested
+	VER_UE4_SCS_STORES_ALLNODES_ARRAY,
+	// Moved StartRange and EndRange in UFbxAnimSequenceImportData to use FInt32Interval
+	VER_UE4_FBX_IMPORT_DATA_RANGE_ENCAPSULATION,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

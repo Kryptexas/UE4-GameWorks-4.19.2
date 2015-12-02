@@ -96,6 +96,7 @@ DEFINE_STAT(STAT_Navigation_BuildTime);
 DEFINE_STAT(STAT_Navigation_OffsetFromCorners);
 DEFINE_STAT(STAT_Navigation_PathVisibilityOptimisation);
 DEFINE_STAT(STAT_Navigation_ObservedPathsCount);
+DEFINE_STAT(STAT_Navigation_RecastMemory);
 
 //----------------------------------------------------------------------//
 // consts
@@ -941,11 +942,11 @@ FPathFindingResult UNavigationSystem::FindPathSync(FPathFindingQuery Query, EPat
 	{
 		if (Mode == EPathFindingMode::Regular)
 		{
-			Result = Query.NavData->FindPath(FNavAgentProperties(), Query);
+			Result = Query.NavData->FindPath(Query.NavAgentProperties, Query);
 		}
 		else // EPathFindingMode::Hierarchical
 		{
-			Result = Query.NavData->FindHierarchicalPath(FNavAgentProperties(), Query);
+			Result = Query.NavData->FindHierarchicalPath(Query.NavAgentProperties, Query);
 		}
 	}
 
@@ -966,11 +967,11 @@ bool UNavigationSystem::TestPathSync(FPathFindingQuery Query, EPathFindingMode::
 	{
 		if (Mode == EPathFindingMode::Hierarchical)
 		{
-			bExists = Query.NavData->TestHierarchicalPath(FNavAgentProperties(), Query, NumVisitedNodes);
+			bExists = Query.NavData->TestHierarchicalPath(Query.NavAgentProperties, Query, NumVisitedNodes);
 		}
 		else
 		{
-			bExists = Query.NavData->TestPath(FNavAgentProperties(), Query, NumVisitedNodes);
+			bExists = Query.NavData->TestPath(Query.NavAgentProperties, Query, NumVisitedNodes);
 		}
 	}
 
@@ -1046,30 +1047,27 @@ void UNavigationSystem::PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathF
 		return;
 	}
 	
-	const int32 QueriesCount = PathFindingQueries.Num();
-	FAsyncPathFindingQuery* Query = PathFindingQueries.GetData();
-
-	for (int32 QueryIndex = 0; QueryIndex < QueriesCount; ++QueryIndex, ++Query)
+	for (FAsyncPathFindingQuery& Query : PathFindingQueries)
 	{
 		// @todo this is not necessarily the safest way to use UObjects outside of main thread. 
 		//	think about something else.
-		const ANavigationData* NavData = Query->NavData.IsValid() ? Query->NavData.Get() : GetMainNavData(FNavigationSystem::DontCreate);
+		const ANavigationData* NavData = Query.NavData.IsValid() ? Query.NavData.Get() : GetMainNavData(FNavigationSystem::DontCreate);
 
 		// perform query
 		if (NavData)
 		{
-			if (Query->Mode == EPathFindingMode::Hierarchical)
+			if (Query.Mode == EPathFindingMode::Hierarchical)
 			{
-				Query->Result = NavData->FindHierarchicalPath(FNavAgentProperties(), *Query);
+				Query.Result = NavData->FindHierarchicalPath(Query.NavAgentProperties, Query);
 			}
 			else
 			{
-				Query->Result = NavData->FindPath(FNavAgentProperties(), *Query);
+				Query.Result = NavData->FindPath(Query.NavAgentProperties, Query);
 			}
 		}
 		else
 		{
-			Query->Result = ENavigationQueryResult::Error;
+			Query.Result = ENavigationQueryResult::Error;
 		}
 
 		// @todo make it return more informative results (bResult == false)
@@ -1079,7 +1077,7 @@ void UNavigationSystem::PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathF
 			STATGROUP_TaskGraphTasks);
 
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateStatic(AsyncQueryDone, *Query),
+			FSimpleDelegateGraphTask::FDelegate::CreateStatic(AsyncQueryDone, Query),
 			GET_STATID(STAT_FSimpleDelegateGraphTask_AsyncNavQueryFinished), NULL, ENamedThreads::GameThread);
 	}
 }
@@ -3130,9 +3128,18 @@ void UNavigationSystem::SpawnMissingNavigationData()
 			{
 				bool bHandled = false;
 
-				ANavigationData* NavDataCDO = NavConfig.NavigationDataClass->GetDefaultObject<ANavigationData>();
+				const ANavigationData* NavDataCDO = NavConfig.NavigationDataClass->GetDefaultObject<ANavigationData>();
 				if (NavDataCDO == nullptr || !NavDataCDO->CanSpawnOnRebuild())
 				{
+					continue;
+				}
+
+				if (NavWorld->WorldType != EWorldType::Editor && NavDataCDO->GetRuntimeGenerationMode() == ERuntimeGenerationType::Static)
+				{
+					// if we're not in the editor, and specified navigation class is configured 
+					// to be static, then we don't want to create an instance					
+					UE_LOG(LogNavigation, Log, TEXT("Not spawning navigation data for %s since indivated NavigationData type is not configured for dynamic generation")
+						, *NavConfig.Name.ToString());
 					continue;
 				}
 

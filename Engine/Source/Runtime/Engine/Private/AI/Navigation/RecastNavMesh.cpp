@@ -537,11 +537,6 @@ void ARecastNavMesh::RecreateDefaultFilter()
 	}
 }
 
-FVector ARecastNavMesh::GetModifiedQueryExtent(const FVector& QueryExtent) const
-{
-	return FVector(QueryExtent.X, QueryExtent.Y, QueryExtent.Z + FMath::Max(0.0f, VerticalDeviationFromGroundCompensation));
-}
-
 void ARecastNavMesh::UpdatePolyRefBitsPreview()
 {
 	static const int32 TotalBits = (sizeof(dtPolyRef) * 8);
@@ -1006,10 +1001,9 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 
 	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(GetWorld()), Querier);
 	INITIALIZE_NAVQUERY_WLINKFILTER(NavQuery, FilterToUse.GetMaxSearchNodes(), LinkFilter);
-	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(FilterToUse.GetImplementation()))->GetAsDetourQueryFilter();
+	const dtQueryFilter* QueryFilter = static_cast<const FRecastQueryFilter*>(FilterToUse.GetImplementation())->GetAsDetourQueryFilter();
 	
-	ensure(QueryFilter);
-	if (QueryFilter)
+	if (ensure(QueryFilter))
 	{
 		const FVector ModifiedExtent = GetModifiedQueryExtent(Extent);
 		FVector RcExtent = Unreal2RecastPoint(ModifiedExtent).GetAbs();
@@ -1029,6 +1023,48 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 				{
 					Workload[Idx].OutLocation = FNavLocation(UnrealClosestPoint, PolyRef);
 					Workload[Idx].bResult = true;
+				}
+			}
+		}
+	}
+}
+
+void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workload, FSharedConstNavQueryFilter Filter, const UObject* Querier) const
+{
+	if (Workload.Num() == 0 || RecastNavMeshImpl == NULL || RecastNavMeshImpl->DetourNavMesh == NULL)
+	{
+		return;
+	}
+
+	const FNavigationQueryFilter& FilterToUse = GetRightFilterRef(Filter);
+
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(GetWorld()), Querier);
+	INITIALIZE_NAVQUERY_WLINKFILTER(NavQuery, FilterToUse.GetMaxSearchNodes(), LinkFilter);
+	const dtQueryFilter* QueryFilter = static_cast<const FRecastQueryFilter*>(FilterToUse.GetImplementation())->GetAsDetourQueryFilter();
+
+	if (ensure(QueryFilter))
+	{
+		float ClosestPoint[3];
+		dtPolyRef PolyRef;
+
+		for (FNavigationProjectionWork& Work : Workload)
+		{
+			ensure(Work.ProjectionLimit.IsValid);
+			const FVector RcReferencePoint = Unreal2RecastPoint(Work.Point);
+			const FVector ModifiedExtent = GetModifiedQueryExtent(Work.ProjectionLimit.GetExtent());
+			const FVector RcExtent = Unreal2RecastPoint(ModifiedExtent).GetAbs();
+			const FVector RcBoxCenter = Unreal2RecastPoint(Work.ProjectionLimit.GetCenter());
+
+			NavQuery.findNearestPoly(&RcBoxCenter.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint, &RcReferencePoint.X);
+
+			// one last step required due to recast's BVTree imprecision
+			if (PolyRef > 0)
+			{
+				const FVector& UnrealClosestPoint = Recast2UnrealPoint(ClosestPoint);
+				if (FVector::DistSquared(UnrealClosestPoint, Work.Point) <= ModifiedExtent.SizeSquared())
+				{
+					Work.OutLocation = FNavLocation(UnrealClosestPoint, PolyRef);
+					Work.bResult = true;
 				}
 			}
 		}

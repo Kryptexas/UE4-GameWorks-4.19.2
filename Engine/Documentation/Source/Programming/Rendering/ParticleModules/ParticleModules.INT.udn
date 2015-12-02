@@ -50,8 +50,8 @@ The `ParticleModule` class contains several virtual member functions that provid
 | -------- | -------- |
 | `void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime)` | Called on a particle that is freshly spawned by the emitter. This is where the module can set/modify initial values for each particle as they are created. |
 | `void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)` | Called on a particle that is being updated by its emitter. This is where the module can perform operations on particles that are being updated, such as altering its color or velocity. |
-| `uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL)` | Returns the number of bytes that the module requires in the particle payload block. This allows for the module to store some data it requires per-particle. |
-| `uint32 RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL)` | Returns the number of bytes the module requires in the emitters _per-instance_ data block. This allows for the module to store some data it requires per-emitter instance. |
+| `uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData)` | Returns the number of bytes that the module requires in the particle payload block. This allows for the module to store some data it requires per-particle. |
+| `uint32 RequiredBytesPerInstance()` | Returns the number of bytes the module requires in the emitters _per-instance_ data block. This allows for the module to store some data it requires per-emitter instance. |
 | `virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo )` | `CompileModule()` must be implemented for modules that can be used with GPU particle emitters. The module should modify the emitter info struct to apply the effects of the module to the simulation. |
 
 ## Creating a Custom Module

@@ -1579,7 +1579,7 @@ void FRecastTileGenerator::Setup(const FRecastNavMeshGenerator& ParentGenerator,
 			
 	// from passed in boxes pick the ones overlapping with tile bounds
 	bFullyEncapsulatedByInclusionBounds = true;
-	const auto& ParentBounds = ParentGenerator.GetInclusionBounds();
+	const TNavStatArray<FBox>& ParentBounds = ParentGenerator.GetInclusionBounds();
 	if (ParentBounds.Num() > 0)
 	{
 		bFullyEncapsulatedByInclusionBounds = false;
@@ -2282,9 +2282,9 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Rasterization: without voxel cache"), Stat_RecastRasterNoCache, STATGROUP_Navigation);
 		RECAST_STAT(STAT_Navigation_RasterizeTriangles)
 		
-		for (const auto& Element : RawGeometry)
+		for (const FRecastRawGeometryElement& Element : RawGeometry)
 		{
-			for (const auto& InstanceTransform : Element.PerInstanceTransform)
+			for (const FTransform& InstanceTransform : Element.PerInstanceTransform)
 			{
 				RasterizeGeometry(BuildContext, TileConfig, Element.GeomCoords, Element.GeomIndices, InstanceTransform, RasterContext);
 			}
@@ -2786,11 +2786,11 @@ void FRecastTileGenerator::MarkDynamicAreas(dtTileCacheLayer& Layer)
 		AdditionalCachedData.ActorOwner->SortAreasForGenerator(Modifiers);
 	}
 		
-	for (const auto& Element : Modifiers)
+	for (const FRecastAreaNavModifierElement& Element : Modifiers)
 	{
-		for (const auto& Area : Element.Areas)
+		for (const FAreaNavModifier& Area : Element.Areas)
 		{
-			for (const auto& LocalToWorld : Element.PerInstanceTransform)
+			for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
 			{
 				MarkDynamicArea(Area, LocalToWorld, Layer);
 			}
@@ -2941,14 +2941,14 @@ uint32 FRecastTileGenerator::GetUsedMemCount() const
 	TotalMemory += RawGeometry.GetAllocatedSize();
 	TotalMemory += Modifiers.GetAllocatedSize();
 	
-	for (const auto& Element : RawGeometry)
+	for (const FRecastRawGeometryElement& Element : RawGeometry)
 	{
 		TotalMemory += Element.GeomCoords.GetAllocatedSize();
 		TotalMemory += Element.GeomIndices.GetAllocatedSize();
 		TotalMemory += Element.PerInstanceTransform.GetAllocatedSize();
 	}
 
-	for (const auto& Element : Modifiers)
+	for (const FRecastAreaNavModifierElement& Element : Modifiers)
 	{
 		TotalMemory += Element.Areas.GetAllocatedSize();
 		TotalMemory += Element.PerInstanceTransform.GetAllocatedSize();
@@ -3176,7 +3176,7 @@ void FRecastNavMeshGenerator::UpdateNavigationBounds()
 	// Collect bounding geometry
 	if (NavSys->ShouldGenerateNavigationEverywhere() == false)
 	{
-		for (const auto& NavigationBounds : NavigationBoundsSet)
+		for (const FNavigationBounds& NavigationBounds : NavigationBoundsSet)
 		{
 			if (NavigationBounds.SupportedAgents.Contains(AgentIndex))
 			{

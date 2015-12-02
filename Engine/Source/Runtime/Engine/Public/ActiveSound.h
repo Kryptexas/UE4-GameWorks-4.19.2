@@ -195,13 +195,6 @@ public:
 
 	/** Whether or not we have a low-pass filter enabled on this active sound. */
 	uint32 bEnableLowPassFilter : 1;
-
-	/** Whether or not we have occlusion checks enabled on this active sound. */
-	uint32 bEnableOcclusionChecks : 1;
-
-	/** Whether or not we use complex occlusion traces. */
-	uint32 bUseComplexOcclusionChecks : 1;
-
 	/** Whether or not to use an async trace for occlusion */
 	uint32 bOcclusionAsyncTrace : 1;
 
@@ -219,15 +212,6 @@ public:
 
 	/** The low-pass filter frequency to apply if bEnableLowPassFilter is true. */
 	float LowPassFilterFrequency;
-
-	/** The occlusion lowpass filter frequency to apply if bEnableOcclusionChecks is true. This will override LowPassFilterFrequency if the sound is occluded. */
-	float OcclusionLowPassFilterFrequency;
-
-	/** The time it takes to interpolate from occluded to unoccluded filtering */
-	float OcclusionInterpolationTime;
-
-	/** The amount of volume attenuation to apply to sounds which are occluded */
-	float OcclusionVolumeAttenuation;
 
 	/** The interpolated parameter for the low-pass frequency due to occlusion */
 	FDynamicParameter CurrentOcclusionFilterFrequency;
@@ -363,15 +347,15 @@ public:
 	uint32 GetSoundConcurrencyObjectID() const;
 
 	/** Applies the active sound's attenuation settings to the input parse params using the given listener */
-	void ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener);
-
-	/** Whether or not this active sound is out of range of its max distance relative to the closest listener */
-	bool IsOutOfRange() const;
+	void ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FAttenuationSettings* SettingsAttenuationNode = nullptr);
 
 private:
 	
 	/** Whether or not this sound is audible */
 	bool bIsAudible;
+
+	/** Cached ptr to the closest listener. So we don't have to do the work to find it twice. */
+	const FListener* ClosestListenerPtr;
 
 	/** This is a friend so the audio device can call Stop() on the active sound. */
 	friend class FAudioDevice;
@@ -387,9 +371,9 @@ private:
 	 * CurrentLocation is the location of this component that will be used for playback
 	 * @param ListenerLocation location of the closest listener to the sound
 	 */
-	void CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation);
-	
-	void SetIsOccluded(bool bInOccluded);
+	void CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FAttenuationSettings* AttenuationSettingsPtr);
+	 
+	void UpdateOcclusion(const FAttenuationSettings* AttenuationSettingsPtr);
 
 	FTraceDelegate OcclusionTraceDelegate;
 

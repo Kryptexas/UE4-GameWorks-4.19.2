@@ -538,6 +538,15 @@ struct ENGINE_API FAnimNode_Base
 	}
 
 	virtual bool CanUpdateInWorkerThread() const { return true; }
+
+	/**
+	 * Override this to indicate that PreUpdate() should be called on the game thread (usually to 
+	 * gather non-thread safe data) before Update() is called.
+	 */
+	virtual bool HasPreUpdate() const { return false; }
+
+	/** Override this to perform game-thread work prior to non-game thread Update() being called */
+	virtual void PreUpdate(const UAnimInstance* InAnimInstance) {}
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}

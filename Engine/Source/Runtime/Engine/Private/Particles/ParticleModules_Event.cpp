@@ -52,12 +52,12 @@ void UParticleModuleEventGenerator::Update(FParticleEmitterInstance* Owner, int3
 {
 }
 
-uint32 UParticleModuleEventGenerator::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleEventGenerator::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return 0;
 }
 
-uint32 UParticleModuleEventGenerator::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleEventGenerator::RequiredBytesPerInstance()
 {
 	return sizeof(FParticleEventInstancePayload);
 }

@@ -39,8 +39,6 @@ FActiveSound::FActiveSound()
 	, bWarnedAboutOrphanedLooping(false)
 #endif
 	, bEnableLowPassFilter(false)
-	, bEnableOcclusionChecks(false)
-	, bUseComplexOcclusionChecks(false)
 	, bOcclusionAsyncTrace(false)
 	, UserIndex(0)
 	, PlaybackTime(0.f)
@@ -51,9 +49,6 @@ FActiveSound::FActiveSound()
 	, VolumeMultiplier(1.f)
 	, PitchMultiplier(1.f)
 	, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
-	, OcclusionLowPassFilterFrequency(MAX_FILTER_FREQUENCY)
-	, OcclusionInterpolationTime(0.1f)
-	, OcclusionVolumeAttenuation(1.0f)
 	, CurrentOcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
 	, CurrentOcclusionVolumeAttenuation(1.0f)
 	, ConcurrencyVolumeScale(1.f)
@@ -71,6 +66,7 @@ FActiveSound::FActiveSound()
 	, CurrentInteriorVolume(1.f)
 	, CurrentInteriorLPF(1.f)
 	, bIsAudible(true)
+	, ClosestListenerPtr(nullptr)
 {
 	// Bind our async occlusion trace delegate
 	OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
@@ -206,7 +202,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// splitscreen support:
 	// we always pass the 'primary' listener (viewport 0) to the sound nodes and the underlying audio system
 	// then move the AudioComponent's CurrentLocation so that its position relative to that Listener is the same as its real position is relative to the closest Listener
-	const FListener& Listener = AudioDevice->Listeners[ 0 ];
 
 	int32 ClosestListenerIndex = 0;
 
@@ -216,46 +211,33 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 		ClosestListenerIndex = FindClosestListener(AudioDevice->Listeners);
 	}
 
-	const FListener& ClosestListener = AudioDevice->Listeners[ ClosestListenerIndex ];
+	// Cache the closest listener ptr 
+	ClosestListenerPtr = &AudioDevice->Listeners[ClosestListenerIndex];
 
 	// Update whether or not his sound is out of range
-	bIsAudible = AudioDevice->LocationIsAudible(Transform.GetTranslation(), ClosestListener, MaxDistance);
+	bIsAudible = AudioDevice->LocationIsAudible(Transform.GetTranslation(), *ClosestListenerPtr, MaxDistance);
 
 	FSoundParseParameters ParseParams;
 	ParseParams.Transform = Transform;
 	ParseParams.StartTime = RequestedStartTime;
-
-	// Set volume multiplier to 1.0f before scaling with occlusion attenuation
-	float OcclusionVolumeMultiplier = 1.0f;
-
-	// Process occlusion only if there's a chance of it being heard and if its in range (to save on doing raycasting)
-	if (bEnableOcclusionChecks && bIsAudible && FApp::GetVolumeMultiplier() > 0.0f && !AudioDevice->IsAudioDeviceMuted())
-	{
-		CheckOcclusion(ClosestListener.Transform.GetTranslation(), ParseParams.Transform.GetTranslation());
-
-		// Apply the volume attenuation due to occlusion (using the interpolating dynamic parameter)
-		OcclusionVolumeMultiplier = CurrentOcclusionVolumeAttenuation.GetValue();
-	}
 
 	// Default values.
 	// It's all Multiplicative!  So now people are all modifying the multiplier values via various means
 	// (even after the Sound has started playing, and this line takes them all into account and gives us
 	// final value that is correct
 	UpdateAdjustVolumeMultiplier(DeltaTime);
-	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * AudioDevice->TransientMasterVolume * OcclusionVolumeMultiplier * ConcurrencyVolumeScale;
+	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * AudioDevice->TransientMasterVolume * ConcurrencyVolumeScale;
 	ParseParams.Priority = Priority;
 	ParseParams.Pitch *= PitchMultiplier * Sound->GetPitchMultiplier();
 	ParseParams.bEnableLowPassFilter = bEnableLowPassFilter;
-	ParseParams.bIsOccluded = bIsOccluded;
 	ParseParams.LowPassFilterFrequency = LowPassFilterFrequency;
-	ParseParams.OcclusionFilterFrequency = CurrentOcclusionFilterFrequency.GetValue();
 	ParseParams.SoundClass = GetSoundClass();
 
 	if (ParseParams.SoundClass && ParseParams.SoundClass->Properties.bApplyAmbientVolumes)
 	{
 		// Additional inside/outside processing for ambient sounds
 		// If we aren't in a world there is no interior volumes to be handled.
-		HandleInteriorVolumes( ClosestListener, ParseParams );
+		HandleInteriorVolumes(*ClosestListenerPtr, ParseParams);
 	}
 
 	// for velocity-based effects like doppler
@@ -268,7 +250,8 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// if the closest listener is not the primary one, transform CurrentLocation
 	if (ClosestListenerIndex != 0)
 	{
-		ParseParams.Transform = ParseParams.Transform * ClosestListener.Transform.Inverse() * Listener.Transform;
+		const FListener& Listener = AudioDevice->Listeners[0];
+		ParseParams.Transform = ParseParams.Transform * ClosestListenerPtr->Transform.Inverse() * Listener.Transform;
 	}
 
 	TArray<FWaveInstance*> ThisSoundsWaveInstances;
@@ -279,9 +262,8 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	{
 		if (bHasAttenuationSettings)
 		{
-			ApplyAttenuation(ParseParams, ClosestListener);
+			ApplyAttenuation(ParseParams, *ClosestListenerPtr);
 		}
-
 
 		Sound->Parse(AudioDevice, 0, *this, ParseParams, ThisSoundsWaveInstances);
 	}
@@ -366,36 +348,46 @@ void FActiveSound::UpdateAdjustVolumeMultiplier(const float DeltaTime)
 	{
 		CurrentAdjustVolumeMultiplier = TargetAdjustVolumeMultiplier;
 	}
-}
+} 
 
-void FActiveSound::SetIsOccluded(const bool bInOccluded)
+void FActiveSound::UpdateOcclusion(const FAttenuationSettings* AttenuationSettingsPtr)
 {
-	if (bInOccluded != bIsOccluded)
+	if (bIsOccluded)
 	{
-		bIsOccluded = bInOccluded;
-		if (bIsOccluded)
+		if (CurrentOcclusionFilterFrequency.GetTargetValue() > AttenuationSettingsPtr->OcclusionLowPassFilterFrequency)
 		{
-			CurrentOcclusionFilterFrequency.Set(OcclusionLowPassFilterFrequency, OcclusionInterpolationTime);
-			CurrentOcclusionVolumeAttenuation.Set(OcclusionVolumeAttenuation, OcclusionInterpolationTime);
+			CurrentOcclusionFilterFrequency.Set(AttenuationSettingsPtr->OcclusionLowPassFilterFrequency, AttenuationSettingsPtr->OcclusionInterpolationTime);
 		}
-		else
+
+		if (CurrentOcclusionVolumeAttenuation.GetTargetValue() > AttenuationSettingsPtr->OcclusionVolumeAttenuation)
 		{
-			CurrentOcclusionFilterFrequency.Set(MAX_FILTER_FREQUENCY, OcclusionInterpolationTime);
-			CurrentOcclusionVolumeAttenuation.Set(1.0f, OcclusionInterpolationTime);
+			CurrentOcclusionVolumeAttenuation.Set(AttenuationSettingsPtr->OcclusionVolumeAttenuation, AttenuationSettingsPtr->OcclusionInterpolationTime);
 		}
 	}
+	else
+	{
+		CurrentOcclusionFilterFrequency.Set(MAX_FILTER_FREQUENCY, AttenuationSettingsPtr->OcclusionInterpolationTime);
+		CurrentOcclusionVolumeAttenuation.Set(1.0f, AttenuationSettingsPtr->OcclusionInterpolationTime);
+	}
+
+	UWorld* WorldPtr = World.Get();
+	CurrentOcclusionFilterFrequency.Update(WorldPtr->DeltaTimeSeconds);
+	CurrentOcclusionVolumeAttenuation.Update(WorldPtr->DeltaTimeSeconds);
 }
 
 void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)
 {
-	SetIsOccluded(TraceDatum.OutHits.Num() > 0);
+	bIsOccluded = (TraceDatum.OutHits.Num() > 0);
 }
 
-void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation)
+void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FAttenuationSettings* AttenuationSettingsPtr)
 {
-	check(bEnableOcclusionChecks);
+	check(AttenuationSettingsPtr);
+	check(AttenuationSettingsPtr->bEnableOcclusion);
+
 	UWorld* WorldPtr = World.Get();
 	float WorldTime = WorldPtr->GetTimeSeconds();
+
 	if ((WorldTime - LastOcclusionCheckTime) > OcclusionCheckInterval)
 	{
 		LastOcclusionCheckTime = WorldTime;
@@ -408,7 +400,7 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 			IgnoreActor = AudioComponentPtr->GetOwner();
 		}
 
-		FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexOcclusionChecks, IgnoreActor);
+		FCollisionQueryParams Params(NAME_SoundOcclusion, AttenuationSettingsPtr->bUseComplexCollisionForOcclusion, IgnoreActor);
 
 		if (bOcclusionAsyncTrace)
 		{
@@ -416,13 +408,11 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 		}
 		else
 		{
-			bool bTraceResult = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, ECC_Visibility, Params);
-			SetIsOccluded(bTraceResult);
+			bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, ECC_Visibility, Params);
 		}
 	}
 
-	CurrentOcclusionFilterFrequency.Update(WorldPtr->DeltaTimeSeconds);
-	CurrentOcclusionVolumeAttenuation.Update(WorldPtr->DeltaTimeSeconds);
+	UpdateOcclusion(AttenuationSettingsPtr);
 }
 
 const TCHAR* GetAWaveName(TMap<UPTRINT, struct FWaveInstance*> WaveInstances)
@@ -755,11 +745,14 @@ void FActiveSound::GetAttenuationListenerData(FAttenuationListenerData& Listener
 	ListenerData.bDataComputed = true;
 }
 
-void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener)
+void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FAttenuationSettings* SettingsAttenuationNode)
 {
 	float& Volume = ParseParams.Volume;
 	const FTransform& SoundTransform = ParseParams.Transform;
 	const FVector& ListenerLocation = Listener.Transform.GetTranslation();
+
+	// Get the attenuation settings to use for this application to the active sound
+	const FAttenuationSettings* Settings = SettingsAttenuationNode ? SettingsAttenuationNode : &AttenuationSettings;
 
 	FAttenuationListenerData ListenerData;
 
@@ -771,7 +764,7 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 
 	// Computer the focus factor if needed
 	check(Sound);
-	if (AttenuationSettings.bSpatialize && AttenuationSettings.bEnableListenerFocus && !Sound->bIgnoreFocus)
+	if (Settings->bSpatialize && Settings->bEnableListenerFocus && !Sound->bIgnoreFocus)
 	{
 		// Get the attenuation listener data
 		GetAttenuationListenerData(ListenerData, ParseParams, Listener);
@@ -782,8 +775,8 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		const float FocusDotProduct = FVector::DotProduct(ListenerForwardDir, ListenerToSoundDir);
 		const float FocusAngle = FMath::RadiansToDegrees(FMath::Acos(FocusDotProduct));
 
-		const float FocusAzimuth = FMath::Clamp(AttenuationSettings.FocusAzimuth, 0.0f, 360.0f);
-		const float NonFocusAzimuth = FMath::Clamp(AttenuationSettings.NonFocusAzimuth, 0.0f, 360.0f);
+		const float FocusAzimuth = FMath::Clamp(Settings->FocusAzimuth, 0.0f, 360.0f);
+		const float NonFocusAzimuth = FMath::Clamp(Settings->NonFocusAzimuth, 0.0f, 360.0f);
 
 		if (FocusAzimuth != NonFocusAzimuth)
 		{
@@ -800,48 +793,45 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		}
 
 		// Get the volume scale to apply the volume calculation based on the focus factor
-		const float NonFocusVolumeAttenuation = FMath::Clamp(AttenuationSettings.NonFocusVolumeAttenuation, 0.0f, 1.0f);
+		const float NonFocusVolumeAttenuation = FMath::Clamp(Settings->NonFocusVolumeAttenuation, 0.0f, 1.0f);
 		const float FocusVolumeAttenuation = FMath::Lerp(1.0f, NonFocusVolumeAttenuation, FocusFactor);
 		Volume *= FocusVolumeAttenuation;
 
 		// Scale the volume-weighted priority scale value we use for sorting this sound for voice-stealing
-		const float NonFocusPriorityScale = FMath::Max(AttenuationSettings.NonFocusPriorityScale, 0.0f);
-		const float FocusPriorityScale = FMath::Max(AttenuationSettings.FocusPriorityScale, 0.0f);
+		const float NonFocusPriorityScale = FMath::Max(Settings->NonFocusPriorityScale, 0.0f);
+		const float FocusPriorityScale = FMath::Max(Settings->FocusPriorityScale, 0.0f);
 		const float PriorityScale = FMath::Lerp(FocusPriorityScale, NonFocusPriorityScale, FocusFactor);
 		ParseParams.Priority *= PriorityScale;
 
 		// Get the distance scale to use when computing distance-calculations for 3d atttenuation
-		const float FocusDistanceScale = FMath::Max(AttenuationSettings.FocusDistanceScale, 0.0f);
-		const float NonFocusDistanceScale = FMath::Max(AttenuationSettings.NonFocusDistanceScale, 0.0f);
+		const float FocusDistanceScale = FMath::Max(Settings->FocusDistanceScale, 0.0f);
+		const float NonFocusDistanceScale = FMath::Max(Settings->NonFocusDistanceScale, 0.0f);
 		DistanceScale = FMath::Lerp(FocusDistanceScale, NonFocusDistanceScale, FocusFactor);
-
-		// Update the sound's distance scale value for checks based on max distance
-		Sound->SetFocusDistanceScale(DistanceScale);
 	}
 
 	// Attenuate the volume based on the model
-	if (AttenuationSettings.bAttenuate)
+	if (Settings->bAttenuate)
 	{
-		switch (AttenuationSettings.AttenuationShape)
+		switch (Settings->AttenuationShape)
 		{
 			case EAttenuationShape::Sphere:
 			{
 				// Update attenuation data in-case it hasn't been updated
 				GetAttenuationListenerData(ListenerData, ParseParams, Listener);
-				Volume *= AttenuationSettings.AttenuationEval(ListenerData.AttenuationDistance, AttenuationSettings.FalloffDistance, DistanceScale);
+				Volume *= Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, DistanceScale);
 				break;
 			}
 
 			case EAttenuationShape::Box:
-			Volume *= AttenuationSettings.AttenuationEvalBox(SoundTransform, ListenerLocation, DistanceScale);
+			Volume *= Settings->AttenuationEvalBox(SoundTransform, ListenerLocation, DistanceScale);
 			break;
 
 			case EAttenuationShape::Capsule:
-			Volume *= AttenuationSettings.AttenuationEvalCapsule(SoundTransform, ListenerLocation, DistanceScale);
+			Volume *= Settings->AttenuationEvalCapsule(SoundTransform, ListenerLocation, DistanceScale);
 			break;
 
 			case EAttenuationShape::Cone:
-			Volume *= AttenuationSettings.AttenuationEvalCone(SoundTransform, ListenerLocation, DistanceScale);
+			Volume *= Settings->AttenuationEvalCone(SoundTransform, ListenerLocation, DistanceScale);
 			break;
 
 			default:
@@ -849,14 +839,26 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		}
 	}
 
+	if (Settings->bEnableOcclusion && bIsAudible && FApp::GetVolumeMultiplier() > 0.0f && !AudioDevice->IsAudioDeviceMuted())
+	{
+		check(ClosestListenerPtr);
+		CheckOcclusion(ClosestListenerPtr->Transform.GetTranslation(), ParseParams.Transform.GetTranslation(), Settings);
+
+		// Apply the volume attenuation due to occlusion (using the interpolating dynamic parameter)
+		ParseParams.VolumeMultiplier *= CurrentOcclusionVolumeAttenuation.GetValue();
+
+		ParseParams.bIsOccluded = bIsOccluded;
+		ParseParams.OcclusionFilterFrequency = CurrentOcclusionFilterFrequency.GetValue();
+	}
+
 	// Attenuate with the low pass filter if necessary
-	if (AttenuationSettings.bAttenuateWithLPF)
+	if (Settings->bAttenuateWithLPF)
 	{
 		GetAttenuationListenerData(ListenerData, ParseParams, Listener);
 
 		// Attenuate with the low pass filter if necessary
-		FVector2D InputRange(AttenuationSettings.LPFRadiusMin, AttenuationSettings.LPFRadiusMax);
-		FVector2D OutputRange(AttenuationSettings.LPFFrequencyAtMin, AttenuationSettings.LPFFrequencyAtMax);
+		FVector2D InputRange(Settings->LPFRadiusMin, Settings->LPFRadiusMax);
+		FVector2D OutputRange(Settings->LPFFrequencyAtMin, Settings->LPFFrequencyAtMax);
 		float AttenuationFilterFrequency = FMath::GetMappedRangeValueClamped(InputRange, OutputRange, ListenerData.AttenuationDistance);
 
 		// Only apply the attenuation filter frequency if it results in a lower attenuation filter frequency than is already being used by ParseParams (the struct pass into the sound cue node tree)
@@ -867,16 +869,16 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		}
 	}
 
-	ParseParams.OmniRadius = AttenuationSettings.OmniRadius;
-	ParseParams.StereoSpread = AttenuationSettings.StereoSpread;
-	ParseParams.bUseSpatialization |= AttenuationSettings.bSpatialize;
+	ParseParams.OmniRadius = Settings->OmniRadius;
+	ParseParams.StereoSpread = Settings->StereoSpread;
+	ParseParams.bUseSpatialization |= Settings->bSpatialize;
 
-	if (AttenuationSettings.SpatializationAlgorithm == SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
+	if (Settings->SpatializationAlgorithm == SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
 	{
 		ParseParams.SpatializationAlgorithm = SPATIALIZATION_HRTF;
 	}
 	else
 	{
-		ParseParams.SpatializationAlgorithm = AttenuationSettings.SpatializationAlgorithm;
+		ParseParams.SpatializationAlgorithm = Settings->SpatializationAlgorithm;
 	}
 }

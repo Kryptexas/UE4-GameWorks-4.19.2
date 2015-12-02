@@ -23,23 +23,28 @@ FDynamicParameter::FDynamicParameter(float Value)
 	, CurrTimeSec(0.0f)
 	, DurationSec(0.0f)
 	, LastTime(0.0f)
+	, TargetValue(Value)
 {}
 
 void FDynamicParameter::Set(float Value, float InDuration)
 {
-	if (InDuration > 0.0f)
+	if (TargetValue != Value || DurationSec != InDuration)
 	{
-		DeltaValue = Value - CurrValue;
-		StartValue = CurrValue;
-		DurationSec = InDuration;
-		CurrTimeSec = 0.0f;
-	}
-	else
-	{
-		StartValue = Value;
-		DeltaValue = 0.0f;
-		DurationSec = 0.0f;
-		CurrValue = Value;
+		TargetValue = Value;
+		if (InDuration > 0.0f)
+		{
+			DeltaValue = Value - CurrValue;
+			StartValue = CurrValue;
+			DurationSec = InDuration;
+			CurrTimeSec = 0.0f;
+		}
+		else
+		{
+			StartValue = Value;
+			DeltaValue = 0.0f;
+			DurationSec = 0.0f;
+			CurrValue = Value;
+		}
 	}
 }
 

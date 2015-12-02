@@ -184,7 +184,7 @@ void UParticleModuleLocation_Seeded::Spawn(FParticleEmitterInstance* Owner, int3
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocation_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocation_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -247,7 +247,7 @@ void UParticleModuleLocationWorldOffset_Seeded::Spawn(FParticleEmitterInstance* 
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocationWorldOffset_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationWorldOffset_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -372,7 +372,7 @@ void UParticleModuleLocationDirect::Update(FParticleEmitterInstance* Owner, int3
 	END_UPDATE_LOOP;
 }
 
-uint32 UParticleModuleLocationDirect::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationDirect::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FVector);
 }
@@ -521,7 +521,7 @@ void UParticleModuleLocationEmitter::Spawn(FParticleEmitterInstance* Owner, int3
 		}
 } 
 
-uint32 UParticleModuleLocationEmitter::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationEmitter::RequiredBytesPerInstance()
 {
 	return sizeof(FLocationEmitterInstancePayload);
 }
@@ -1207,7 +1207,7 @@ void UParticleModuleLocationPrimitiveCylinder_Seeded::Spawn(FParticleEmitterInst
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocationPrimitiveCylinder_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationPrimitiveCylinder_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1421,7 +1421,7 @@ void UParticleModuleLocationPrimitiveSphere_Seeded::Spawn(FParticleEmitterInstan
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLocationPrimitiveSphere_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationPrimitiveSphere_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1694,12 +1694,12 @@ void UParticleModuleLocationBoneSocket::FinalUpdate(FParticleEmitterInstance* Ow
 	}
 }
 
-uint32 UParticleModuleLocationBoneSocket::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationBoneSocket::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FModuleLocationBoneSocketParticlePayload);
 }
 
-uint32 UParticleModuleLocationBoneSocket::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationBoneSocket::RequiredBytesPerInstance()
 {
     // Memory in addition to the struct size is reserved for the PrevFrameBonePositions and BoneVelocity arrays. 
     // The size of these arrays are fixed to SourceLocations.Num(). FModuleLocationBoneSocketInstancePayload contains
@@ -2384,13 +2384,13 @@ void UParticleModuleLocationSkelVertSurface::UpdateBoneIndicesList(FParticleEmit
 }
 
 
-uint32 UParticleModuleLocationSkelVertSurface::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationSkelVertSurface::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FModuleLocationVertSurfaceParticlePayload);
 }
 
 
-uint32 UParticleModuleLocationSkelVertSurface::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLocationSkelVertSurface::RequiredBytesPerInstance()
 {
 	// Memory in addition to the struct size is reserved for the ValidAssociatedBoneIndices, PrevFrameBonePositions and BoneVelocity arrays. 
     // The size of these arrays are fixed to ValidAssociatedBones.Num(). Proxys are setup in PrepPerInstanceBlock 

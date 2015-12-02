@@ -16,7 +16,6 @@ FAnimNode_BlendSpacePlayer::FAnimNode_BlendSpacePlayer()
 	, bLoop(true)
 	, StartPosition(0.f)
 	, BlendSpace(NULL)
-	, GroupIndex(INDEX_NONE)
 {
 }
 

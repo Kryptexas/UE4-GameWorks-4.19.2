@@ -459,6 +459,8 @@ private:
 	/** Finds a snap position if possible for the provided scrub handle, if it is not possible, returns -1.0f */
 	float GetScrubHandleSnapPosition(float NotifyLocalX, ENotifyStateHandleHit::Type HandleToCheck);
 
+	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent) override;
+
 	/** The sequence that the AnimNotifyEvent for Notify lives in */
 	UAnimSequenceBase* Sequence;
 	FSlateFontInfo Font;
@@ -1758,8 +1760,13 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 	// Don't do scrub handle dragging if we haven't captured the mouse.
 	if(!this->HasMouseCapture()) return FReply::Unhandled();
 
-	// IF we get this far we should definitely have a handle to move.
-	check(CurrentDragHandle != ENotifyStateHandleHit::None);
+	if(CurrentDragHandle == ENotifyStateHandleHit::None)
+	{
+		// We've had focus taken away - realease the mouse
+		FSlateApplication::Get().ReleaseMouseCapture();
+		return FReply::Unhandled();
+	}
+
 	
 	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, CachedAllotedGeometrySize);
 	
@@ -1925,6 +1932,11 @@ float SAnimNotifyNode::GetScrubHandleSnapPosition( float NotifyLocalX, ENotifySt
 	}
 
 	return SnapPosition;
+}
+
+FReply SAnimNotifyNode::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
+{
+	return FReply::Handled().SetUserFocus(AsShared(), EFocusCause::SetDirectly, true);
 }
 
 float SAnimNotifyNode::HandleOverflowPan( const FVector2D &ScreenCursorPos, float TrackScreenSpaceXPosition )

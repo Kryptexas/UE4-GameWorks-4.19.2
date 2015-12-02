@@ -316,7 +316,7 @@ void SVisualLoggerFilters::AddFilterCategory(FString InName, ELogVerbosity::Type
 	}
 	else
 	{
-		for (auto& CurrentFilter : Filters)
+		for (TSharedRef<SFilterWidget>& CurrentFilter : Filters)
 		{
 			if (CurrentFilter->GetFilterNameAsString() == InName)
 			{

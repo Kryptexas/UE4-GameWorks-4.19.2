@@ -495,7 +495,8 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 				FCSPose<FCompactPose> CSAdditiveBasePose;
 				{
 					FCompactPose AdditiveBasePose;
-					FBlendedCurve AdditiveCurve(PreviewInstance);
+					FBlendedCurve AdditiveCurve;
+					AdditiveCurve.InitFrom(AnimScriptInstance->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
 					AdditiveBasePose.SetBoneContainer(&PreviewInstance->GetRequiredBones());
 					Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->GetCurrentTime()));
 					CSAdditiveBasePose.InitPose(AdditiveBasePose);

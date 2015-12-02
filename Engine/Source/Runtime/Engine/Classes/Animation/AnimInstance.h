@@ -1197,11 +1197,9 @@ public:
 
 	/** Wrapper around UpdateActiveVertexAnims that can use vertex anims internal to the proxy */
 	TArray<FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* SkeletalMesh);
-
 private:
 	/** Active Root Motion Montage Instance, if any. */
 	struct FAnimMontageInstance * RootMotionMontageInstance;
-
 private:
 	// update montage
 	void UpdateMontage(float DeltaSeconds);
@@ -1304,7 +1302,7 @@ protected:
 
 	// TODO: Remove after deprecation (4.11)
 	friend struct FAnimationBaseContext;
-
+	
 protected:
 	/** Proxy object, nothing should access this from an externally-callable API as it is used as a scratch area on worker threads */
 	mutable FAnimInstanceProxy* AnimInstanceProxy;

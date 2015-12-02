@@ -241,16 +241,6 @@ void UPointLightComponent::Serialize(FArchive& Ar)
 	}
 }
 
-void UPointLightComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_POINT_LIGHT_SOURCE_RADIUS)
-	{
-		SourceRadius = SourceRadius_DEPRECATED;	
-	}
-}
-
 #if WITH_EDITOR
 
 bool UPointLightComponent::CanEditChange(const UProperty* InProperty) const

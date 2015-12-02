@@ -40,7 +40,7 @@ TSharedRef<SWidget> STimelinesContainer::GetRightClickMenuContent()
 		];
 }
 
-void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> AffectedNode, bool bSelect, bool bDeselectOtherNodes)
+void STimelinesContainer::SetSelectionState(TSharedPtr<STimeline> AffectedNode, bool bSelect, bool bDeselectOtherNodes)
 {
 	const FName RowName = AffectedNode->GetName();
 	const bool bIsSelected = FVisualLoggerDatabase::Get().IsRowSelected(RowName);
@@ -58,11 +58,11 @@ void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> Affected
 void STimelinesContainer::OnObjectSelectionChanged(const TArray<FName>& RowNames)
 {
 	CachedSelectedTimelines.Reset();
-	for (TSharedPtr<class STimeline> CurrentTimeline : TimelineItems)
+	for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 	{
-		if (RowNames.Find(CurrentTimeline->GetName()) != INDEX_NONE)
+		if (RowNames.Find(Timeline->GetName()) != INDEX_NONE)
 		{
-			CachedSelectedTimelines.Add(CurrentTimeline);
+			CachedSelectedTimelines.Add(Timeline);
 		}
 	}
 
@@ -72,12 +72,12 @@ void STimelinesContainer::OnObjectSelectionChanged(const TArray<FName>& RowNames
 	}
 }
 
-bool STimelinesContainer::IsNodeSelected(TSharedPtr<class STimeline> Node) const
+bool STimelinesContainer::IsNodeSelected(TSharedPtr<STimeline> Node) const
 {
 	return FVisualLoggerDatabase::Get().IsRowSelected(Node->GetName());// SelectedNodes.Contains(Node);
 }
 
-void STimelinesContainer::ChangeSelection(class TSharedPtr<class STimeline> Timeline, const FPointerEvent& MouseEvent)
+void STimelinesContainer::ChangeSelection(TSharedPtr<STimeline> Timeline, const FPointerEvent& MouseEvent)
 {
 	if (MouseEvent.IsLeftShiftDown() == false)
 	{
@@ -97,13 +97,13 @@ void STimelinesContainer::ChangeSelection(class TSharedPtr<class STimeline> Time
 			SetSelectionState(TimelineItems[0], true, true);
 		}
 
-		TSharedPtr<class STimeline> LastSelected = CachedSelectedTimelines.Num() ? CachedSelectedTimelines[CachedSelectedTimelines.Num() - 1] : nullptr;
+		TSharedPtr<STimeline> LastSelected = CachedSelectedTimelines.Num() ? CachedSelectedTimelines[CachedSelectedTimelines.Num() - 1] : nullptr;
 		if (LastSelected.IsValid())
 		{
 			bool bStartedSelection = false;
-			for (auto& CurrentItem : TimelineItems)
+			for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 			{
-				if (CurrentItem == LastSelected || CurrentItem == Timeline)
+				if (Timeline == LastSelected || Timeline == Timeline)
 				{
 					if (!bStartedSelection)
 					{
@@ -117,7 +117,7 @@ void STimelinesContainer::ChangeSelection(class TSharedPtr<class STimeline> Time
 				}
 				if (bStartedSelection)
 				{
-					SetSelectionState(CurrentItem, true, false);
+					SetSelectionState(Timeline, true, false);
 				}
 			}
 		}
@@ -165,27 +165,28 @@ FReply STimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 {
 	if (InKeyEvent.GetKey() == EKeys::A && InKeyEvent.IsLeftControlDown())
 	{
-		for (auto& CurrentTimeline : TimelineItems)
+		for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 		{
-			SetSelectionState(CurrentTimeline, true, false);
+			SetSelectionState(Timeline, true, false);
 		}
 
 		return FReply::Handled();
 	}
 	else if (InKeyEvent.GetKey() == EKeys::Platform_Delete && CachedSelectedTimelines.Num() > 0)
 	{
-		TWeakPtr<class STimeline>  NotSelectedOne;
-		for (auto & CurrentNode : CachedSelectedTimelines)
+		TWeakPtr<STimeline>  NotSelectedOne;
+		for (TSharedPtr<STimeline>& CurrentNode : CachedSelectedTimelines)
 		{
-			TSharedPtr<class STimeline> LastSelected = CachedSelectedTimelines[CachedSelectedTimelines.Num() - 1];
+			TSharedPtr<STimeline> LastSelected = CachedSelectedTimelines[CachedSelectedTimelines.Num() - 1];
 			bool bFoundSelectedOne = false;
-			for (auto& CurrentItem : TimelineItems)
+
+			for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 			{
-				if (IsNodeSelected(CurrentItem) == false)
+				if (IsNodeSelected(Timeline) == false)
 				{
-					NotSelectedOne = CurrentItem;
+					NotSelectedOne = Timeline;
 				}
-				if (LastSelected == CurrentItem)
+				if (LastSelected == Timeline)
 				{
 					if (bFoundSelectedOne && NotSelectedOne.IsValid())
 					{
@@ -204,8 +205,8 @@ FReply STimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 	}
 	else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down)
 	{
-		TSharedPtr<class STimeline> PreviousTimeline;
-		TSharedPtr<class STimeline> LastSelected = CachedSelectedTimelines[CachedSelectedTimelines.Num() - 1];
+		TSharedPtr<STimeline> PreviousTimeline;
+		TSharedPtr<STimeline> LastSelected = CachedSelectedTimelines[CachedSelectedTimelines.Num() - 1];
 		for (int32 Index = 0; Index < TimelineItems.Num(); ++Index)
 		{
 			auto& CurrentItem = TimelineItems[Index];
@@ -246,10 +247,10 @@ FReply STimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 
 void STimelinesContainer::ResetData()
 {
-	for (auto& CurrentItem : TimelineItems)
+	for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 	{
-		ContainingBorder->RemoveSlot(CurrentItem.ToSharedRef());
-		CurrentItem.Reset();
+		ContainingBorder->RemoveSlot(Timeline.ToSharedRef());
+		Timeline.Reset();
 	}
 	TimelineItems.Reset();
 
@@ -265,7 +266,7 @@ void STimelinesContainer::ResetData()
 	TimeSliderController->SetTimeRange(0, 5);
 }
 
-void STimelinesContainer::Construct(const FArguments& InArgs, TSharedRef<class SVisualLoggerView> InVisualLoggerView, TSharedRef<FVisualLoggerTimeSliderController> InTimeSliderController)
+void STimelinesContainer::Construct(const FArguments& InArgs, TSharedRef<SVisualLoggerView> InVisualLoggerView, TSharedRef<FVisualLoggerTimeSliderController> InTimeSliderController)
 {
 	TimeSliderController = InTimeSliderController;
 	VisualLoggerView = InVisualLoggerView;
@@ -309,6 +310,8 @@ void STimelinesContainer::OnNewRowHandler(const FVisualLoggerDBRow& DBRow)
 		];
 
 	TimelineItems.Add(NewTimeline.ToSharedRef());
+	// make sure the new entry doesn't show if it doesn't match CurrentSearchText
+	NewTimeline->OnSearchChanged(CurrentSearchText);
 }
 
 void STimelinesContainer::OnNewItemHandler(const FVisualLoggerDBRow& BDRow, int32 ItemIndex)
@@ -330,25 +333,26 @@ void STimelinesContainer::OnNewItemHandler(const FVisualLoggerDBRow& BDRow, int3
 
 void STimelinesContainer::OnSearchChanged(const FText& Filter)
 {
-	for (auto CurrentItem : TimelineItems)
+	CurrentSearchText = Filter;
+	for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 	{
-		CurrentItem->OnSearchChanged(Filter);
+		Timeline->OnSearchChanged(Filter);
 	}
 }
 
 void STimelinesContainer::OnFiltersChanged()
 {
-	for (auto CurrentItem : TimelineItems)
+	for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 	{
-		CurrentItem->OnFiltersChanged();
+		Timeline->OnFiltersChanged();
 	}
 }
 
 void STimelinesContainer::OnFiltersSearchChanged(const FText& Filter)
 {
-	for (auto CurrentItem : TimelineItems)
+	for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 	{
-		CurrentItem->OnFiltersSearchChanged(Filter);
+		Timeline->OnFiltersSearchChanged(Filter);
 	}
 }
 
@@ -367,11 +371,11 @@ void STimelinesContainer::GenerateReport()
 
 void STimelinesContainer::OnRowChangedVisibility(const FName& InName)
 {
-	for (TSharedPtr<class STimeline> CurrentTimeline : TimelineItems)
+	for (TSharedPtr<STimeline>& Timeline : TimelineItems)
 	{
-		if (InName == CurrentTimeline->GetName())
+		if (InName == Timeline->GetName())
 		{
-			CurrentTimeline->SetVisibility(FVisualLoggerDatabase::Get().IsRowVisible(InName) ? EVisibility::Visible : EVisibility::Collapsed);
+			Timeline->SetVisibility(FVisualLoggerDatabase::Get().IsRowVisible(InName) ? EVisibility::Visible : EVisibility::Collapsed);
 			break;
 		}
 	}

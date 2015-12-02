@@ -699,8 +699,11 @@ public:
 	virtual bool IsNavigationRelevant() const { return false; }
 
 protected:
-	/** Makes sure navigation system has up to date information regarding component's navigation relevancy and if it can affect navigation at all */
-	void HandleCanEverAffectNavigationChange();
+	/** Makes sure navigation system has up to date information regarding component's navigation relevancy 
+	 *	and if it can affect navigation at all 
+	 *	@param bForceUpdate by default updating navigation system will take place only if the component has
+	 *		already been registered. Setting bForceUpdate to true overrides that check */
+	void HandleCanEverAffectNavigationChange(bool bForceUpdate = false);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

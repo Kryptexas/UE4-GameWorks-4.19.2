@@ -48,7 +48,8 @@ static void* DetourMalloc(int Size, dtAllocHint)
 	void* Result = FMemory::Malloc(uint32(Size));
 #if STATS
 	const uint32 ActualSize = FMemory::GetAllocSize(Result);
-	INC_DWORD_STAT_BY( STAT_NavigationMemory, ActualSize );
+	INC_DWORD_STAT_BY(STAT_NavigationMemory, ActualSize);
+	INC_MEMORY_STAT_BY(STAT_Navigation_RecastMemory, ActualSize);
 #endif // STATS
 	return Result;
 }
@@ -58,7 +59,8 @@ static void* RecastMalloc(int Size, rcAllocHint)
 	void* Result = FMemory::Malloc(uint32(Size));
 #if STATS
 	const uint32 ActualSize = FMemory::GetAllocSize(Result);
-	INC_DWORD_STAT_BY( STAT_NavigationMemory, ActualSize );
+	INC_DWORD_STAT_BY(STAT_NavigationMemory, ActualSize);
+	INC_MEMORY_STAT_BY(STAT_Navigation_RecastMemory, ActualSize);
 #endif // STATS
 	return Result;
 }
@@ -67,7 +69,8 @@ static void RecastFree( void* Original )
 {
 #if STATS
 	const uint32 Size = FMemory::GetAllocSize(Original);
-	DEC_DWORD_STAT_BY( STAT_NavigationMemory, Size );	
+	DEC_DWORD_STAT_BY(STAT_NavigationMemory, Size);	
+	DEC_MEMORY_STAT_BY(STAT_Navigation_RecastMemory, Size);
 #endif // STATS
 	FMemory::Free(Original);
 }

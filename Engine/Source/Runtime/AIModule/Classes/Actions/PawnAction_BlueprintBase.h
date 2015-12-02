@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Actions/PawnAction.h"
 #include "PawnAction_BlueprintBase.generated.h"
 
 UCLASS(abstract, Blueprintable)

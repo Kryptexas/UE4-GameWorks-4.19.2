@@ -221,7 +221,10 @@ struct FGenericPlatformMath
 		return modf(InValue, OutIntPart);
 	}
 
+	// Returns e^Value
 	static FORCEINLINE float Exp( float Value ) { return expf(Value); }
+	// Returns 2^Value
+	static FORCEINLINE float Exp2( float Value ) { return exp2f(Value); }
 	static FORCEINLINE float Loge( float Value ) {	return logf(Value); }
 	static FORCEINLINE float LogX( float Base, float Value ) { return Loge(Value) / Loge(Base); }
 	// 1.0 / Loge(2) = 1.4426950f
@@ -253,7 +256,7 @@ struct FGenericPlatformMath
 	static FORCEINLINE float Acos( float Value ) { return acosf( (Value<-1.f) ? -1.f : ((Value<1.f) ? Value : 1.f) ); }
 	static FORCEINLINE float Tan( float Value ) { return tanf(Value); }
 	static FORCEINLINE float Atan( float Value ) { return atanf(Value); }
-	static FORCEINLINE float Atan2( float Y, float X ) { return atan2f(Y,X); }
+	static CORE_API float Atan2( float Y, float X );
 	static FORCEINLINE float Sqrt( float Value ) { return sqrtf(Value); }
 	static FORCEINLINE float Pow( float A, float B ) { return powf(A,B); }
 

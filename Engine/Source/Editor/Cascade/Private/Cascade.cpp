@@ -1228,7 +1228,7 @@ bool FCascade::InsertModule(UParticleModule* Module, UParticleEmitter* TargetEmi
 
 		if (bInsert == true)
 		{
-			LODLevel->TypeDataModule = Module;
+			LODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(Module);
 
 			if (DraggedModules.Num() > 0)
 			{
@@ -1238,7 +1238,7 @@ bool FCascade::InsertModule(UParticleModule* Module, UParticleEmitter* TargetEmi
 					UParticleLODLevel* TargetEmitterLODLevel = TargetEmitter->GetLODLevel(LODIndex);
 					UParticleModule* DraggedModule = DraggedModules[LODIndex];
 
-					TargetEmitterLODLevel->TypeDataModule = DraggedModule;
+					TargetEmitterLODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(DraggedModule);
 				}
 			}
 		}
@@ -2814,7 +2814,7 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 						{
 							UParticleModule* Module		= Cast<UParticleModule>(DupObject);
 							Module->ModuleEditorColor	= FColor::MakeRandomColor();
-							NewLODLevel->TypeDataModule	= Module;
+							NewLODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(Module);
 						}
 					}
 				}
@@ -3047,7 +3047,7 @@ void FCascade::DuplicateModule(bool bDoShare, bool bUseHighest)
 				DestLODLevel->SpawnModule = CastChecked<UParticleModuleSpawn>(NewModule);
 				break;
 			case INDEX_TYPEDATAMODULE:
-				DestLODLevel->TypeDataModule = NewModule;
+				DestLODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(NewModule);
 				break;
 			default:
 				DestLODLevel->Modules[SelectedModuleIndex] = NewModule;

@@ -152,6 +152,7 @@ namespace BlueprintNodeHelpers
 			if (StructProp && StructProp->GetCPPType(NULL, CPPF_None).Contains(GET_STRUCT_NAME_CHECKED(FBlackboardKeySelector)))
 			{
 				bResult = true;
+				break;
 			}
 		}
 

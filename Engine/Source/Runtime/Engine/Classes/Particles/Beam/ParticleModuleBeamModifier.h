@@ -99,7 +99,7 @@ class UParticleModuleBeamModifier : public UParticleModuleBeamBase
 	//Begin UParticleModule Interface
 	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
 	virtual void AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp) override;
 	virtual void GetCurveObjects(TArray<FParticleCurvePair>& OutCurves) override;
 	virtual	bool AddModuleCurvesToEditor(UInterpCurveEdSetup* EdSetup, TArray<const FCurveEdEntry*>& OutCurveEntries) override;

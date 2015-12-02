@@ -184,7 +184,7 @@ UParticleModuleTypeDataRibbon::UParticleModuleTypeDataRibbon(const FObjectInitia
 	TangentTessellationScalar = 5.0f;
 }
 
-uint32 UParticleModuleTypeDataRibbon::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleTypeDataRibbon::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FRibbonTypeDataPayload);
 }
@@ -247,7 +247,7 @@ UParticleModuleTypeDataAnimTrail::UParticleModuleTypeDataAnimTrail(const FObject
 	TangentTessellationStepSize = 0.0f;
 }
 
-uint32 UParticleModuleTypeDataAnimTrail::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleTypeDataAnimTrail::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FAnimTrailTypeDataPayload);
 }

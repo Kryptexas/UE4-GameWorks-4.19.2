@@ -714,7 +714,9 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 	float VerticalLabelOffset = 0.f;
 	for (const FGameplayDebuggerShapeElement& Shape : DebugComponent->PerceptionShapeElements)
 	{
-		if (Shape.GetType() == EGameplayDebuggerShapeElement::String)
+		switch (Shape.GetType())
+		{
+		case EGameplayDebuggerShapeElement::String:
 		{
 			const FVector& Loc = Shape.Points[0];
 			const FVector ScreenLoc = DefaultContext.Canvas->Project(Loc);
@@ -722,17 +724,24 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 			PrintString(DefaultContext, Shape.GetFColor(), Shape.Description, ScreenLoc.X, ScreenLoc.Y + VerticalLabelOffset);
 			VerticalLabelOffset += 17;
 		}
-		else if (Shape.GetType() == EGameplayDebuggerShapeElement::Segment)
+			break;
+		case EGameplayDebuggerShapeElement::Segment:
 		{
 			DrawDebugLine(World, Shape.Points[0], Shape.Points[1], Shape.GetFColor());
 		}
-		else if (Shape.GetType() == EGameplayDebuggerShapeElement::SinglePoint)
+			break;
+		case EGameplayDebuggerShapeElement::SinglePoint:
 		{
 			DrawDebugSphere(World, Shape.Points[0], Shape.ThicknesOrRadius, 16, Shape.GetFColor());
 		}
-		else if (Shape.GetType() == EGameplayDebuggerShapeElement::Cylinder)
+			break;
+		case EGameplayDebuggerShapeElement::Cylinder:
 		{
+			static const float DefaultCylinderHeight = 50.f;
+			const FVector EndLocation = ensure(Shape.Points.Num() > 1) ? Shape.Points[1] : (Shape.Points[0] + FVector::UpVector * DefaultCylinderHeight);
 			DrawDebugCylinder(World, Shape.Points[0], Shape.Points[1], Shape.ThicknesOrRadius, 16, Shape.GetFColor());
+		}
+			break;
 		}
 	}
 

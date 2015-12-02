@@ -26,9 +26,13 @@ protected:
 
 	TSharedPtr< IPropertyHandle > bIsSpatializedHandle;
 	TSharedPtr< IPropertyHandle > bIsFocusedHandle;
+	TSharedPtr< IPropertyHandle > bIsOcclussionEnabledHandle;
 
 	bool IsFocusedEnabled() const;
 	TAttribute<bool> GetIsFocusEnabledAttribute() const;
+
+	bool IsOcclusionEnabled() const;
+	TAttribute<bool> GetIsOcclusionEnabledAttribute() const;
 
 	TAttribute<bool> IsFocusEnabledAttribute;
 };

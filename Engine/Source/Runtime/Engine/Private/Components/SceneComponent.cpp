@@ -1238,7 +1238,8 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 {
 	if(Parent != nullptr)
 	{
-		if (Parent == AttachParent && InSocketName == AttachSocketName && Parent->AttachChildren.Contains(this))
+		const bool bSameAttachParentAndSocket = (Parent == AttachParent && InSocketName == AttachSocketName);
+		if (bSameAttachParentAndSocket && Parent->AttachChildren.Contains(this))
 		{
 			// already attached!
 			return true;
@@ -1308,7 +1309,17 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		// Make sure we are detached
 		const bool bMaintainWorldPosition = (AttachType == EAttachLocation::KeepWorldPosition);
-		DetachFromParent(bMaintainWorldPosition);
+		if (bSameAttachParentAndSocket && !IsRegistered() && AttachType == EAttachLocation::KeepRelativeOffset && LastAttachIndex == INDEX_NONE)
+		{
+			// No sense detaching from what we are about to attach to during registration, as long as relative position is being maintained.
+			//UE_LOG(LogSceneComponent, Verbose, TEXT("[%s] skipping DetachFromParent() for same pending parent [%s] during registration."),
+			//	   *GetPathName(GetOwner() ? GetOwner()->GetOuter() : nullptr),
+			//	   *AttachParent->GetPathName(AttachParent->GetOwner() ? AttachParent->GetOwner()->GetOuter() : nullptr));
+		}
+		else
+		{
+			DetachFromParent(bMaintainWorldPosition);
+		}
 		
 		// Restore detachment update overlaps flag.
 		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
@@ -1322,18 +1333,34 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
 			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
 
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !bWeldSimulatedBodies && GetWorld() && GetWorld()->IsGameWorld() /*&& !GetWorld()->bIsRunningConstructionScript*/)
+			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !bWeldSimulatedBodies && GetWorld() && GetWorld()->IsGameWorld())
 			{
-				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
-				if (bMaintainWorldPosition == false)	//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
-				{
-					UpdateComponentToWorldWithParent(Parent, InSocketName, false, RelativeRotationCache.RotatorToQuat(RelativeRotation));
-					RelativeLocation = ComponentToWorld.GetLocation(); // or GetComponentLocation(), but worried about custom location...
-					RelativeRotation = GetComponentRotation();
-					RelativeScale3D = GetComponentScale();
-				}
+				 if(!GetWorld()->bIsRunningConstructionScript)
+				 {
+					 //Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
+					 bDisableDetachmentUpdateOverlaps = true;
+					 DetachFromParent(bMaintainWorldPosition);
+					 bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
 
-				return false;
+					 if (bMaintainWorldPosition == false)	//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
+					 {
+						 UpdateComponentToWorldWithParent(Parent, InSocketName, false, RelativeRotationCache.RotatorToQuat(RelativeRotation));
+						 RelativeLocation = ComponentToWorld.GetLocation(); // or GetComponentLocation(), but worried about custom location...
+						 RelativeRotation = GetComponentRotation();
+						 RelativeScale3D = GetComponentScale();
+						 if (IsRegistered())
+						 {
+							 UpdateOverlaps();
+						 }
+					 }
+
+					 return false;
+				 }else
+				 {
+					//A simulated object needs to be detached at runtime. We are in the construction script so we can't do it here. However, we want to make sure it is done in BeginPlay.
+					bWantsBeginPlay = true;
+				 }
+				
 			}
 		}
 

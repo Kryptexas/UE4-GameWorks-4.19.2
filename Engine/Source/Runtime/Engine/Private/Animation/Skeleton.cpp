@@ -81,6 +81,9 @@ void USkeleton::PostLoad()
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
+
+	// Cache smart name uids for animation curve names
+	CacheAnimCurveMappingNameUids();
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -894,51 +897,6 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void* Unregister)
 
 #endif
 
-bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
-{
-	bool Successful = false;
-	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
-	if(RequestedMapping)
-	{
-		if(RequestedMapping->AddOrFindName(NewName, NewUid))
-		{
-			Modify(true);
-			Successful = true;
-		}
-	}
-	return Successful;
-}
-
-bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
-{
-	bool Successful = false;
-	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
-	if(RequestedMapping)
-	{
-		FName CurrentName;
-		RequestedMapping->GetName(Uid, CurrentName);
-		if(CurrentName != NewName)
-		{
-			Modify();
-			Successful = RequestedMapping->Rename(Uid, NewName);
-		}
-	}
-	return Successful;
-}
-
-void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
-{
-	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
-	if(RequestedMapping)
-	{
-		if(RequestedMapping->Exists(Uid))
-		{
-			Modify();
-			RequestedMapping->Remove(Uid);
-		}
-	}
-}
-
 #endif // WITH_EDITORONLY_DATA
 
 const TArray<FAnimSlotGroup>& USkeleton::GetSlotGroups() const
@@ -1078,10 +1036,109 @@ void USkeleton::RenameSlotName(const FName& OldName, const FName& NewName)
 	SetSlotGroupName(NewName, GroupName);
 }
 
+
+bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		if (RequestedMapping->AddOrFindName(NewName, NewUid))
+		{
+			Modify(true);
+			Successful = true;
+			CacheAnimCurveMappingNameUids();
+		}
+	}
+	return Successful;
+}
+
+bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		FName CurrentName;
+		RequestedMapping->GetName(Uid, CurrentName);
+		if (CurrentName != NewName)
+		{
+			Modify();
+			Successful = RequestedMapping->Rename(Uid, NewName);
+			CacheAnimCurveMappingNameUids();
+		}
+	}
+	return Successful;
+}
+
+void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
+{
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		
+	}
+}
+
+void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids)
+{
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
+	if (RequestedMapping)
+	{
+		bool bModified = false;
+		for (const FSmartNameMapping::UID& UID : Uids)
+		{
+			if (RequestedMapping->Exists(UID))
+			{
+				RequestedMapping->Remove(UID);
+				bModified = true;
+			}
+		}
+
+		if (bModified)
+		{
+			Modify();
+			CacheAnimCurveMappingNameUids();
+		}		
+	}
+}
+
+const FSmartNameMapping* USkeleton::GetOrAddSmartNameContainer(FName ContainerName)
+{
+	const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(ContainerName);
+	if (Mapping == nullptr)
+	{
+		Modify();
+		SmartNames.AddContainer(ContainerName);
+		Mapping = SmartNames.GetContainer(ContainerName);		
+	}
+
+	return Mapping;
+}
+
+const FSmartNameMapping* USkeleton::GetSmartNameContainer(FName ContainerName) const
+{
+	return SmartNames.GetContainer(ContainerName);
+}
+
 void USkeleton::RegenerateGuid()
 {
 	Guid = FGuid::NewGuid();
 	check(Guid.IsValid());
+}
+
+void USkeleton::CacheAnimCurveMappingNameUids()
+{
+	const FSmartNameMapping* Mapping = GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+	if (Mapping != nullptr)
+	{
+		Mapping->FillUidArray(CachedAnimCurveMappingNameUids);
+	}
+}
+
+const TArray<FSmartNameMapping::UID>& USkeleton::GetCachedAnimCurveMappingNameUids()
+{
+	return CachedAnimCurveMappingNameUids;
 }
 
 #if WITH_EDITOR

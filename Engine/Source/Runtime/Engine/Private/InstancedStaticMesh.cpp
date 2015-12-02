@@ -1106,17 +1106,43 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 
 void UInstancedStaticMeshComponent::DestroyPhysicsState()
 {
+	int32 PSceneIndex = INDEX_NONE;
+	for(const FBodyInstance* BI : InstanceBodies)
+	{
+		if(BI)
+		{
+			if(BI->SceneIndexSync)
+			{
+				PSceneIndex = BI->SceneIndexSync;
+				break;
+			}
+			else if(BI->SceneIndexAsync)
+			{
+				PSceneIndex = BI->SceneIndexAsync;
+				break;
+			}
+		}
+	}
+
 	USceneComponent::DestroyPhysicsState();
 
 	// Release all physics representations
 	ClearAllInstanceBodies();
 
 #if WITH_PHYSX
-	// releasing Aggregates, they shouldn't contain any Bodies now, because they are released above
-	for (auto* Aggregate : Aggregates)
+
+	if(PSceneIndex != INDEX_NONE)
 	{
-		Aggregate->release();
+		PxScene* PScene = GetPhysXSceneFromIndex(PSceneIndex);
+		SCOPED_SCENE_WRITE_LOCK(PScene);
+
+		// releasing Aggregates, they shouldn't contain any Bodies now, because they are released above
+		for (auto* Aggregate : Aggregates)
+		{
+			Aggregate->release();
+		}
 	}
+	
 	Aggregates.Empty();
 #endif //WITH_PHYSX
 }

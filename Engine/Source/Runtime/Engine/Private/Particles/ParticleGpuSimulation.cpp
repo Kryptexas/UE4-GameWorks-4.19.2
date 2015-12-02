@@ -32,6 +32,8 @@
 #include "MeshBatch.h"
 #include "GlobalDistanceFieldParameters.h"
 
+DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
+
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.
 ------------------------------------------------------------------------------*/
@@ -3157,19 +3159,12 @@ public:
 	}
 
 	/**
-	 * Initializes parameters for this emitter instance.
-	 */
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources) override
-	{
-		FParticleEmitterInstance::InitParameters( InTemplate, InComponent, bClearResources );
-		SetupEmitterDuration();
-	}
-
-	/**
 	 * Initializes the emitter.
 	 */
 	virtual void Init() override
 	{
+		SCOPE_CYCLE_COUNTER(STAT_GPUSpriteEmitterInstance_Init);
+
 		FParticleEmitterInstance::Init();
 
 		if (EmitterInfo.RequiredModule)
@@ -3193,18 +3188,20 @@ public:
 		FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
 		const int32 MinTileCount = GetMinTileCount();
 		int32 NumAllocated = 0;
-		while (AllocatedTiles.Num() < MinTileCount)
 		{
-			uint32 TileIndex = ParticleSimulationResources->AllocateTile();
-			if ( TileIndex != INDEX_NONE )
+			while (AllocatedTiles.Num() < MinTileCount)
 			{
-				AllocatedTiles.Add( TileIndex );
-				TileTimeOfDeath.Add( 0.0f );
-				NumAllocated++;
-			}
-			else
-			{
-				break;
+				uint32 TileIndex = ParticleSimulationResources->AllocateTile();
+				if ( TileIndex != INDEX_NONE )
+				{
+					AllocatedTiles.Add( TileIndex );
+					TileTimeOfDeath.Add( 0.0f );
+					NumAllocated++;
+				}
+				else
+				{
+					break;
+				}
 			}
 		}
 		
@@ -3894,8 +3891,7 @@ private:
 			UParticleModule* CurrentModule	= CurrentLODLevel->UpdateModules[ModuleIndex];
 			if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bUpdateModule && CurrentModule->bUpdateForGPUEmitter)
 			{
-				uint32* Offset = ModuleOffsetMap.Find(HighestLODLevel->UpdateModules[ModuleIndex]);
-				CurrentModule->Update(this, Offset ? *Offset : 0, DeltaTime);
+				CurrentModule->Update(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
 			}
 		}
 	}
@@ -3914,8 +3910,7 @@ private:
 			UParticleModule* CurrentModule	= CurrentLODLevel->UpdateModules[ModuleIndex];
 			if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bFinalUpdateModule && CurrentModule->bUpdateForGPUEmitter)
 			{
-				uint32* Offset = ModuleOffsetMap.Find(HighestLODLevel->UpdateModules[ModuleIndex]);
-				CurrentModule->FinalUpdate(this, Offset ? *Offset : 0, DeltaTime);
+				CurrentModule->FinalUpdate(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
 			}
 		}
 	}

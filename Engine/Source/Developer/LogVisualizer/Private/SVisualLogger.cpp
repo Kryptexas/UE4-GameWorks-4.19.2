@@ -87,7 +87,7 @@ SVisualLogger::SVisualLogger()
 			{
 				CurrentWorld = const_cast<UWorld*>(FVisualLogger::Get().GetObjectToWorldMap()[LogOwner].Get());
 			}
-			if (LastUsedWorld != CurrentWorld)
+			if (LastUsedWorld != CurrentWorld && CurrentWorld != nullptr)
 			{
 				OnWorldChanged.ExecuteIfBound(LastUsedWorld, CurrentWorld);
 				LastUsedWorld = CurrentWorld;
@@ -742,23 +742,23 @@ void SVisualLogger::OnNewWorld(UWorld* NewWorld)
 	LastUsedWorld = NewWorld;
 
 	AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FVisualLoggerEditorInterface::Get()->GetHelperActor(LastUsedWorld.Get()));
-	check(HelperActor);
-
-	if (LastUsedWorld.IsValid() == false || ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bResetDataWithNewSession)
+	if (ensure(HelperActor))
 	{
-		ResetData();
-	}
+		if (LastUsedWorld.IsValid() == false || ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bResetDataWithNewSession)
+		{
+			ResetData();
+		}
 
-	// reset data and simulate row/item selection to recreate rendering proxy with correct data
-	HelperActor->ResetRendering();
-	const TArray<FName>& SelectedRows = FVisualLoggerDatabase::Get().GetSelectedRows();
-	HelperActor->ObjectSelectionChanged(SelectedRows);
-	for (auto& RowName : SelectedRows)
-	{
-		FVisualLoggerDBRow& DBRow = FVisualLoggerDatabase::Get().GetRowByName(RowName);
-		HelperActor->OnItemSelectionChanged(DBRow, DBRow.GetCurrentItemIndex());
+		// reset data and simulate row/item selection to recreate rendering proxy with correct data
+		HelperActor->ResetRendering();
+		const TArray<FName>& SelectedRows = FVisualLoggerDatabase::Get().GetSelectedRows();
+		HelperActor->ObjectSelectionChanged(SelectedRows);
+		for (auto& RowName : SelectedRows)
+		{
+			FVisualLoggerDBRow& DBRow = FVisualLoggerDatabase::Get().GetRowByName(RowName);
+			HelperActor->OnItemSelectionChanged(DBRow, DBRow.GetCurrentItemIndex());
+		}
 	}
-
 }
 
 void SVisualLogger::OnObjectSelectionChanged(const TArray<FName>& RowNames)

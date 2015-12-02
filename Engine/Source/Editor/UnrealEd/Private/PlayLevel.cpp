@@ -342,6 +342,16 @@ void UEditorEngine::EndPlayMap()
 		}
 	}
 
+	// mark all objects contained within the PIE game instances to be deleted
+	for (TObjectIterator<UGameInstance> It; It; ++It)
+	{
+		auto MarkObjectPendingKill = [](UObject* Object)
+		{
+			Object->MarkPendingKill();
+		};
+		ForEachObjectWithOuter(*It, MarkObjectPendingKill, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
+	}
+
 	// Flush any render commands and released accessed UTextures and materials to give them a chance to be collected.
 	if ( FSlateApplication::IsInitialized() )
 	{

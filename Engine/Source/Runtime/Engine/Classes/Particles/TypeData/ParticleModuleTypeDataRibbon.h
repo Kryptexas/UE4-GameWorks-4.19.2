@@ -166,7 +166,7 @@ class UParticleModuleTypeDataRibbon : public UParticleModuleTypeDataBase
 	//~ End UObject Interface
 
 	//~ Begin UParticleModule Interface
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
 	//~ End UParticleModule Interface
 
 	//~ Begin UParticleModuleTypeDataBase Interface

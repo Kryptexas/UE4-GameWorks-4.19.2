@@ -559,6 +559,8 @@ void UActorComponent::PostEditUndo()
 
 void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent)
 {
+	static const FName NAME_CanEverAffectNavigation = GET_MEMBER_NAME_CHECKED(UActorComponent, bCanEverAffectNavigation);
+
 	FComponentReregisterContext* ReregisterContext = nullptr;
 	if(EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
 	{
@@ -580,6 +582,11 @@ void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& Pr
 				It.RemoveCurrent();
 			}
 		}
+	}
+
+	if (PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetFName() == NAME_CanEverAffectNavigation)
+	{
+		HandleCanEverAffectNavigationChange(/*bForce=*/true);
 	}
 
 	// The component or its outer could be pending kill when calling PostEditChange when applying a transaction.
@@ -1588,10 +1595,10 @@ void UActorComponent::SetCanEverAffectNavigation(bool bRelevant)
 	}
 }
 
-void UActorComponent::HandleCanEverAffectNavigationChange()
+void UActorComponent::HandleCanEverAffectNavigationChange(bool bForceUpdate)
 {
 	// update octree if already registered
-	if (bRegistered)
+	if (bRegistered || bForceUpdate)
 	{
 		if (bCanEverAffectNavigation)
 		{

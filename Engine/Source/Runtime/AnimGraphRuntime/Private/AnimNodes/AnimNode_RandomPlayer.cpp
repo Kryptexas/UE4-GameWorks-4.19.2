@@ -178,8 +178,8 @@ void FAnimNode_RandomPlayer::Evaluate(FPoseContext& Output)
 					Poses[0].SetBoneContainer(&AnimProxy->GetRequiredBones());
 					Poses[1].SetBoneContainer(&AnimProxy->GetRequiredBones());
 
-					Curves[0].InitFrom(AnimProxy->GetSkeleton());
-					Curves[1].InitFrom(AnimProxy->GetSkeleton());
+					Curves[0].InitFrom(AnimProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
+					Curves[1].InitFrom(AnimProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
 
 					Weights[0] = CurrentData.BlendWeight;
 					Weights[1] = NextData.BlendWeight;

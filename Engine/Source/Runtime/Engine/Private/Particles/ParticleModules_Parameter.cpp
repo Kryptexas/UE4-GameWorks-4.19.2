@@ -343,7 +343,7 @@ void UParticleModuleParameterDynamic::Update(FParticleEmitterInstance* Owner, in
 	}
 }
 
-uint32 UParticleModuleParameterDynamic::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleParameterDynamic::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FEmitterDynamicParameterPayload);
 }
@@ -565,7 +565,7 @@ void UParticleModuleParameterDynamic_Seeded::Spawn(FParticleEmitterInstance* Own
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleParameterDynamic_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleParameterDynamic_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }

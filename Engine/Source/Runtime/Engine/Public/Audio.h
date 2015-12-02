@@ -630,6 +630,10 @@ public:
 	{
 		return CurrValue;
 	}
+	float GetTargetValue() const
+	{
+		return TargetValue;
+	}
 
 private:
 	float CurrValue;
@@ -638,6 +642,7 @@ private:
 	float CurrTimeSec;
 	float DurationSec;
 	float LastTime;
+	float TargetValue;
 };
 
 /**

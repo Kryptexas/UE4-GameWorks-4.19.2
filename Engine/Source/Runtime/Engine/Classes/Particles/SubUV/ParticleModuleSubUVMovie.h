@@ -45,7 +45,7 @@ class UParticleModuleSubUVMovie : public UParticleModuleSubUV
 
 	//~ Begin UParticleModule Interface
 	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32 RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	virtual void GetCurveObjects(TArray<FParticleCurvePair>& OutCurves) override;
 	//~ End UParticleModule Interface

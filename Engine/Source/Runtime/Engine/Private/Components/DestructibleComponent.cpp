@@ -1344,6 +1344,7 @@ void UDestructibleComponent::SetSimulatePhysics(bool bSimulate)
 						ApexDestructibleActor->setChunkPhysXActorAwakeState(ChunkInfo->ChunkIndex, false);
 					}
 				}
+				ApexDestructibleActor->releasePhysXActorBuffer();
 			}
 		}
 		
@@ -1400,6 +1401,39 @@ bool UDestructibleComponent::IsChunkLarge(PxRigidActor* ChunkActor) const
 	return Bounds.getExtents().maxElement() > LargeChunkThreshold;
 #else
 	return true;
+#endif // WITH_APEX
+}
+
+void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
+{
+#if WITH_APEX
+	ExecuteOnPhysicsReadWrite([&]
+	{
+		PxShape** ShapeBuffer;
+		PxU32 ShapeCount = 0;
+		
+		PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
+		
+		const bool bSetQuery = NewType == ECollisionEnabled::QueryAndPhysics || NewType == ECollisionEnabled::QueryOnly;
+		const bool bSetSim = NewType == ECollisionEnabled::PhysicsOnly || NewType == ECollisionEnabled::QueryAndPhysics;
+		
+		for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+		{
+			ShapeCount = ApexDestructibleActor->getChunkPhysXShapes(ShapeBuffer, ChunkIdx);
+			
+			for(uint32 ShapeIdx = 0; ShapeIdx < ShapeCount; ++ShapeIdx)
+			{
+				if(PxShape* Shape = ShapeBuffer[ShapeIdx])
+				{
+					Shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bSetQuery);
+					Shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, bSetSim);
+				}
+			}
+		}
+	});
+
+	EnsurePhysicsStateCreated();
+	OnComponentCollisionSettingsChanged();
 #endif // WITH_APEX
 }
 

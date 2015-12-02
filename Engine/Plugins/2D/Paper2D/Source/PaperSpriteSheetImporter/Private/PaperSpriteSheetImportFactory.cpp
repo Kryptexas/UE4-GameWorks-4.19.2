@@ -79,5 +79,8 @@ UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObj
 	
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, Result);
 
+	// Reset the importer to ensure that no leftover data can contaminate future imports.
+	Importer = FPaperJsonSpriteSheetImporter();
+
 	return Result;
 }

@@ -153,6 +153,7 @@ struct FAnimationEvaluationContext
 	{
 		AnimInstance = NULL;
 		SkeletalMesh = NULL;
+		Curve.Empty();
 	}
 
 };
@@ -919,6 +920,8 @@ public:
 	virtual void WakeAllRigidBodies() override;
 	virtual void PutAllRigidBodiesToSleep() override;
 	virtual bool IsAnyRigidBodyAwake() override;
+	virtual void SetEnableGravity(bool bGravityEnabled);
+	virtual bool IsGravityEnabled() const override;
 	virtual void OnComponentCollisionSettingsChanged() override;
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) override;
 	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const override;
@@ -1323,6 +1326,9 @@ public:
 
 	friend class FSkeletalMeshComponentDetails;
 
+	/** Returns array containing cachec animation curve mapping UIDs (which are copied over from USkeleton) */
+	TArray<FSmartNameMapping::UID> const * GetCachedAnimCurveMappingNameUids();
+
 private:
 	// Returns whether we need to run the Pre Cloth Tick or not
 	bool ShouldRunPostPhysicsTick() const;
@@ -1381,7 +1387,12 @@ private:
 	// Default setting for playrate of SequenceToPlay to play. 
 	UPROPERTY()
 	float DefaultPlayRate_DEPRECATED;
+	
+	/** Caches the anim curve mapping smart name UIDs, by copying cached data from the Skeleton */
+	void UpdateCachedAnimCurveMappingNameUids();
 
+	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (used for FBlendedCurve::InitFrom) */
+	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */
 	UPROPERTY(Transient)

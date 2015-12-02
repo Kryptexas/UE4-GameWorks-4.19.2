@@ -75,7 +75,7 @@ class UParticleModuleSpawnPerUnit : public UParticleModuleSpawnBase
 
 	//~ Begin UParticleModule Interface
 	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) override;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32	RequiredBytesPerInstance() override;
 	//~ End UParticleModule Interface
 
 	//~ Begin UParticleModuleSpawnBase Interface

@@ -113,13 +113,13 @@ void UParticleModuleCollision::PostEditChangeProperty(FPropertyChangedEvent& Pro
 }
 #endif // WITH_EDITOR
 
-uint32 UParticleModuleCollision::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleCollision::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FParticleCollisionPayload);
 }
 
 
-uint32 UParticleModuleCollision::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleCollision::RequiredBytesPerInstance()
 {
 	return sizeof(FParticleCollisionInstancePayload);
 }

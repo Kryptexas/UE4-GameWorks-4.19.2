@@ -1259,7 +1259,7 @@ void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 		// Cast for phys bodies if we didn't get any hit proxies
 		FHitResult Result(1.0f);
 		const FViewportClick Click(&View, this, EKeys::Invalid, IE_Released, Viewport->GetMouseX(), Viewport->GetMouseY());
-		bool bHit = PreviewSkelMeshComp.Get()->LineTraceComponent(Result, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * BodyTraceDistance, FCollisionQueryParams(true));
+		bool bHit = PreviewSkelMeshComp.Get()->LineTraceComponent(Result, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * BodyTraceDistance, FCollisionQueryParams(NAME_None,true));
 		
 		if(bHit)
 		{

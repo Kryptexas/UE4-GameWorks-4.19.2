@@ -173,19 +173,6 @@ void UTextBlock::SetText(FText InText)
 	}
 }
 
-void UTextBlock::PostLoad()
-{
-	Super::PostLoad();
-
-	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
-	{
-		if ( Style_DEPRECATED != nullptr )
-		{
-			Style_DEPRECATED = nullptr;
-		}
-	}
-}
-
 #if WITH_EDITOR
 
 FString UTextBlock::GetLabelMetadata() const

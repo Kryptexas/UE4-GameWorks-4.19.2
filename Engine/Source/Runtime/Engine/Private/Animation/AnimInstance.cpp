@@ -24,6 +24,8 @@
 #include "Animation/AnimNode_AssetPlayerBase.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "Animation/Skeleton.h"
+#include "Animation/SmartName.h"
 
 /** Anim stats */
 
@@ -1045,7 +1047,7 @@ void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value
 	FName CurrentCurveName;
 	// Grab the smartname mapping from our current skeleton and resolve the curve name. We cannot cache
 	// the smart name mapping as the skeleton can change at any time.
-	if(FSmartNameMapping* NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
+	if(const FSmartNameMapping* NameMapping = CurrentSkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName))
 	{
 		NameMapping->GetName(Uid, CurrentCurveName);
 	}
@@ -1087,11 +1089,15 @@ void UAnimInstance::UpdateCurves(const FBlendedCurve& InCurve)
 	Proxy.GetMorphTargetCurves().Reset();
 	Proxy.GetMaterialParameterCurves().Reset();
 
-	for(int32 CurveId=0; CurveId<InCurve.UIDList.Num(); ++CurveId)
+	if (InCurve.UIDList != nullptr)
 	{
-		// had to add to anotehr data type
-		AddCurveValue(InCurve.UIDList[CurveId], InCurve.Elements[CurveId].Value, InCurve.Elements[CurveId].Flags);
-	}
+		const TArray<FSmartNameMapping::UID>& UIDList = *InCurve.UIDList;
+		for (int32 CurveId = 0; CurveId < InCurve.UIDList->Num(); ++CurveId)
+		{
+			// had to add to another data type
+			AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value, InCurve.Elements[CurveId].Flags);
+		}
+	}	
 
 	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue

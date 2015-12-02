@@ -107,7 +107,7 @@ FBox ANavLinkProxy::GetNavigationBounds() const
 
 bool ANavLinkProxy::IsNavigationRelevant() const
 {
-	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0);
+	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0) || bSmartLinkIsRelevant;
 }
 
 bool ANavLinkProxy::GetNavigationLinksClasses(TArray<TSubclassOf<UNavLinkDefinition> >& OutClasses) const

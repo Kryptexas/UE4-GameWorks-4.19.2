@@ -502,8 +502,8 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 	FEnvQueryInstance* InstanceTemplate = NULL;
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceCache.Num(); InstanceIndex++)
 	{
-		if (InstanceCache[InstanceIndex].Template->GetFName() == Template->GetFName() &&
-			InstanceCache[InstanceIndex].Instance.Mode == RunMode)
+		if (InstanceCache[InstanceIndex].Template->GetQueryName() == Template->GetQueryName()
+			&& InstanceCache[InstanceIndex].Instance.Mode == RunMode)
 		{
 			InstanceTemplate = &InstanceCache[InstanceIndex].Instance;
 			break;
@@ -516,13 +516,13 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_LoadTime);
 		
 		// duplicate template in manager's world for BP based nodes
-		UEnvQuery* LocalTemplate = (UEnvQuery*)StaticDuplicateObject(Template, this, Template->GetFName());
+		UEnvQuery* LocalTemplate = (UEnvQuery*)StaticDuplicateObject(Template, this, TEXT("None"));
 
 		{
 			// memory stat tracking: temporary variable will exist only inside this section
 			FEnvQueryInstanceCache NewCacheEntry;
 			NewCacheEntry.Template = LocalTemplate;
-			NewCacheEntry.Instance.QueryName = LocalTemplate->GetName();
+			NewCacheEntry.Instance.QueryName = LocalTemplate->GetQueryName().ToString();
 			NewCacheEntry.Instance.Mode = RunMode;
 
 			const int32 Idx = InstanceCache.Add(NewCacheEntry);

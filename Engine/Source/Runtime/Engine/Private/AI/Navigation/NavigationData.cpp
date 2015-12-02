@@ -8,15 +8,16 @@
 //----------------------------------------------------------------------//
 // FPathFindingQuery
 //----------------------------------------------------------------------//
-FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
-: NavData(InNavData)
-, Owner(InOwner)
-, StartLocation(Start)
-, EndLocation(End)
-, QueryFilter(SourceQueryFilter)
-, PathInstanceToFill(InPathInstanceToFill)
-, NavDataFlags(0)
-, bAllowPartialPaths(true)
+FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
+	: NavData(&InNavData)
+	, Owner(InOwner)
+	, StartLocation(Start)
+	, EndLocation(End)
+	, QueryFilter(SourceQueryFilter)
+	, PathInstanceToFill(InPathInstanceToFill)
+	, NavAgentProperties(FNavAgentProperties::DefaultProperties)
+	, NavDataFlags(0)
+	, bAllowPartialPaths(true)
 {
 	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -24,15 +25,16 @@ FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationDa
 	}
 }
 
-FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
-: NavData(&InNavData)
-, Owner(InOwner)
-, StartLocation(Start)
-, EndLocation(End)
-, QueryFilter(SourceQueryFilter)
-, PathInstanceToFill(InPathInstanceToFill)
-, NavDataFlags(0)
-, bAllowPartialPaths(true)
+FPathFindingQuery::FPathFindingQuery(const INavAgentInterface& InNavAgent, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
+	: NavData(&InNavData)
+	, Owner(Cast<UObject>(&InNavAgent))
+	, StartLocation(Start)
+	, EndLocation(End)
+	, QueryFilter(SourceQueryFilter)
+	, PathInstanceToFill(InPathInstanceToFill)
+	, NavAgentProperties(InNavAgent.GetNavAgentPropertiesRef())
+	, NavDataFlags(0)
+	, bAllowPartialPaths(true)
 {
 	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -41,14 +43,15 @@ FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationDa
 }
 
 FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
-: NavData(Source.NavData)
-, Owner(Source.Owner)
-, StartLocation(Source.StartLocation)
-, EndLocation(Source.EndLocation)
-, QueryFilter(Source.QueryFilter)
-, PathInstanceToFill(Source.PathInstanceToFill)
-, NavDataFlags(Source.NavDataFlags)
-, bAllowPartialPaths(Source.bAllowPartialPaths)
+	: NavData(Source.NavData)
+	, Owner(Source.Owner)
+	, StartLocation(Source.StartLocation)
+	, EndLocation(Source.EndLocation)
+	, QueryFilter(Source.QueryFilter)
+	, PathInstanceToFill(Source.PathInstanceToFill)
+	, NavAgentProperties(Source.NavAgentProperties)
+	, NavDataFlags(Source.NavDataFlags)
+	, bAllowPartialPaths(Source.bAllowPartialPaths)
 {
 	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -57,14 +60,15 @@ FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
 }
 
 FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride)
-: NavData(NavDataOverride != NULL ? NavDataOverride : PathToRecalculate->GetNavigationDataUsed())
-, Owner(PathToRecalculate->GetQuerier())
-, StartLocation(PathToRecalculate->GetPathFindingStartLocation())
-, EndLocation(PathToRecalculate->GetGoalLocation())
-, QueryFilter(PathToRecalculate->GetFilter())
-, PathInstanceToFill(PathToRecalculate)
-, NavDataFlags(0)
-, bAllowPartialPaths(true)
+	: NavData(NavDataOverride != NULL ? NavDataOverride : PathToRecalculate->GetNavigationDataUsed())
+	, Owner(PathToRecalculate->GetQuerier())
+	, StartLocation(PathToRecalculate->GetPathFindingStartLocation())
+	, EndLocation(PathToRecalculate->GetGoalLocation())
+	, QueryFilter(PathToRecalculate->GetFilter())
+	, PathInstanceToFill(PathToRecalculate)
+	, NavAgentProperties(FNavAgentProperties::DefaultProperties)
+	, NavDataFlags(0)
+	, bAllowPartialPaths(true)
 {
 	if (QueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -297,7 +301,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 
 			FPathFindingQuery Query(PinnedPath.ToSharedRef());
 			// @todo consider supplying NavAgentPropertied from path's querier
-			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(PinnedPath));
+			const FPathFindingResult Result = FindPath(Query.NavAgentProperties, Query.SetPathInstanceToUpdate(PinnedPath));
 
 			// update time stamp to give observers any means of telling if it has changed
 			PinnedPath->SetTimeStamp(TimeStamp);

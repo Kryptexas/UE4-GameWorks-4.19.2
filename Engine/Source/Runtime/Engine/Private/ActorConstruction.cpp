@@ -258,20 +258,28 @@ void AActor::RerunConstructionScripts()
 
 			for (AActor* AttachedActor : AttachedActors)
 			{
-				USceneComponent* EachRoot = AttachedActor->GetRootComponent();
-				// If the component we are attached to is about to go away...
-				if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->IsCreatedByConstructionScript())
+				// We don't need to detach child actors, that will be handled by component tear down
+				if (!AttachedActor->ParentComponentActor.IsValid())
 				{
-					// Save info about actor to reattach
-					FAttachedActorInfo Info;
-					Info.AttachedActor = AttachedActor;
-					Info.AttachedToSocket = EachRoot->AttachSocketName;
-					Info.bSetRelativeTransform = false;
-					AttachedActorInfos.Add(Info);
+					USceneComponent* EachRoot = AttachedActor->GetRootComponent();
+					// If the component we are attached to is about to go away...
+					if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->IsCreatedByConstructionScript())
+					{
+						// Save info about actor to reattach
+						FAttachedActorInfo Info;
+						Info.AttachedActor = AttachedActor;
+						Info.AttachedToSocket = EachRoot->AttachSocketName;
+						Info.bSetRelativeTransform = false;
+						AttachedActorInfos.Add(Info);
 
-					// Now detach it
-					AttachedActor->Modify();
-					EachRoot->DetachFromParent(true);
+						// Now detach it
+						AttachedActor->Modify();
+						EachRoot->DetachFromParent(true);
+					}
+				}
+				else
+				{
+					check(AttachedActor->ParentComponentActor == this);
 				}
 			}
 		}

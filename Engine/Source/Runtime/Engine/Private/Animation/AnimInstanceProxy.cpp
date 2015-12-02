@@ -97,17 +97,29 @@ void FAnimInstanceProxy::InitializeRootNode()
 {
 	if (RootNode != nullptr)
 	{
+		GameThreadPreUpdateNodes.Reset();
+
 		// cache any state machine descriptions we have
-		for(UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
+		for (UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
 		{
-			if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
+			if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
 			{
-				FAnimNode_StateMachine* StateMachine = Property->ContainerPtrToValuePtr<FAnimNode_StateMachine>(AnimInstanceObject);
-				StateMachine->CacheMachineDescription(AnimClassInterface);
+				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(AnimInstanceObject);
+				if (AnimNode)
+				{
+					if (AnimNode->HasPreUpdate())
+					{
+						GameThreadPreUpdateNodes.Add(AnimNode);
+					}
+
+					if (Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
+					{
+						FAnimNode_StateMachine* StateMachine = static_cast<FAnimNode_StateMachine*>(AnimNode);
+						StateMachine->CacheMachineDescription(AnimClassInterface);
+					}
+				}
 			}
 		}
-
-		GameThreadPreUpdateEvents.Reset();
 
 		InitializationCounter.Increment();
 		FAnimationInitializeContext InitContext(this);
@@ -149,10 +161,10 @@ void FAnimInstanceProxy::PreUpdate(const UAnimInstance* InAnimInstance, float De
 	}
 #endif
 
-	// run preupdate events
-	for(const auto& Event : GameThreadPreUpdateEvents)
+	// run preupdate calls
+	for (FAnimNode_Base* Node : GameThreadPreUpdateNodes)
 	{
-		Event.ExecuteIfBound(InAnimInstance);
+		Node->PreUpdate(InAnimInstance);
 	}
 }
 
@@ -487,21 +499,6 @@ void FAnimInstanceProxy::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
 	SlotWeightTracker.Add(SlotNodeName, FMontageActiveSlotTracker());
 }
 
-void FAnimInstanceProxy::AddGameThreadPreUpdateEvent(const FGameThreadPreUpdateEvent& InEvent)
-{
-	for(const auto& Event : GameThreadPreUpdateEvents)
-	{
-		if( Event.GetDelegateInstance()->GetRawMethodPtr() == InEvent.GetDelegateInstance()->GetRawMethodPtr() &&
-			Event.GetDelegateInstance()->GetRawUserObject() == InEvent.GetDelegateInstance()->GetRawUserObject())
-		{
-			// already added
-			return;
-		}
-	}
-
-	GameThreadPreUpdateEvents.Add(InEvent);
-}
-
 void FAnimInstanceProxy::UpdateSlotNodeWeight(FName SlotNodeName, float Weight)
 {
 	FMontageActiveSlotTracker* Tracker = SlotWeightTracker.Find(SlotNodeName);
@@ -682,32 +679,11 @@ void FAnimInstanceProxy::UpdateComponentsMaterialParameters(UPrimitiveComponent*
 	if(MaterialParameterCurves.Num() > 0)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimInstanceProxy_UpdateComponentsMaterialParameters);
-
 		for(auto Iter = MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter)
 		{
 			FName ParameterName = Iter.Key();
 			float ParameterValue = Iter.Value();
-
-			UE_LOG(LogAnimation, Verbose, TEXT("Material Parameter change by Animation (%s : %0.2f)"), *ParameterName.ToString(), ParameterValue);
-			for(int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
-			{
-				UMaterialInterface* MaterialInterface = Component->GetMaterial(MaterialIndex);
-				if(MaterialInterface)
-				{
-					float TestValue; //not used but needed for GetScalarParameterValue call
-					if(MaterialInterface->GetScalarParameterValue(ParameterName, TestValue))
-					{
-						UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(MaterialInterface);
-						if(!DynamicMaterial) //Is it already a UMaterialInstanceDynamic (ie we used it last tick)
-						{
-							DynamicMaterial = Component->CreateAndSetMaterialInstanceDynamic(MaterialIndex);
-						}
-						DynamicMaterial->SetScalarParameterValue(ParameterName, ParameterValue);
-
-						// we don't break here because we can have multiple materials wanted to be driven by same parameter
-					}
-				}
-			}
+			SkeletalMeshComponent->SetScalarParameterValueOnMaterials(ParameterName, ParameterValue);
 		}
 	}
 }
@@ -754,7 +730,7 @@ void FAnimInstanceProxy::SlotEvaluatePose(FName SlotNodeName, const FCompactPose
 			
 			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
 			NewPose.Pose.SetBoneContainer(&RequiredBones);
-			NewPose.Curve.InitFrom(GetSkeleton());
+			NewPose.Curve.InitFrom(SkeletalMeshComponent->GetCachedAnimCurveMappingNameUids());
 
 			// Extract pose from Track
 			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
@@ -762,7 +738,7 @@ void FAnimInstanceProxy::SlotEvaluatePose(FName SlotNodeName, const FCompactPose
 
 			// add montage curves 
 			FBlendedCurve MontageCurve;
-			MontageCurve.InitFrom(GetSkeleton());
+			MontageCurve.InitFrom(SkeletalMeshComponent->GetCachedAnimCurveMappingNameUids());
 			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
 			NewPose.Curve.Combine(MontageCurve);
 

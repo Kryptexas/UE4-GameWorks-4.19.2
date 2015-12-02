@@ -294,7 +294,7 @@ void UParticleModuleSpawnPerUnit::PostEditChangeProperty(FPropertyChangedEvent& 
 }
 #endif // WITH_EDITOR
 
-uint32 UParticleModuleSpawnPerUnit::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleSpawnPerUnit::RequiredBytesPerInstance()
 {
 	return sizeof(FParticleSpawnPerUnitInstancePayload);
 }

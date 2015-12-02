@@ -46,6 +46,8 @@ AAIController::AAIController(const FObjectInitializer& ObjectInitializer)
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;
 	TeamID = FGenericTeamId::NoTeam;
+
+	bStopAILogicOnUnposses = true;
 }
 
 void AAIController::Tick(float DeltaTime)
@@ -442,6 +444,12 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 
 void AAIController::Possess(APawn* InPawn)
 {
+	// don't even try possessing pending-kill pawns
+	if (InPawn != nullptr && InPawn->IsPendingKill())
+	{
+		return;
+	}
+
 	Super::Possess(InPawn);
 
 	if (GetPawn() == nullptr || InPawn == nullptr)
@@ -489,6 +497,8 @@ void AAIController::Possess(APawn* InPawn)
 
 void AAIController::UnPossess()
 {
+	APawn* OldPawn = GetPawn();
+
 	Super::UnPossess();
 
 	if (PathFollowingComponent)
@@ -496,9 +506,12 @@ void AAIController::UnPossess()
 		PathFollowingComponent->Cleanup();
 	}
 
-	if (BrainComponent)
+	if (bStopAILogicOnUnposses)
 	{
-		BrainComponent->Cleanup();
+		if (BrainComponent)
+		{
+			BrainComponent->Cleanup();
+		}
 	}
 
 	if (CachedGameplayTasksComponent)
@@ -506,6 +519,8 @@ void AAIController::UnPossess()
 		CachedGameplayTasksComponent->OnClaimedResourcesChange.RemoveDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 		CachedGameplayTasksComponent = nullptr;
 	}
+
+	OnUnpossess(OldPawn);
 }
 
 void AAIController::SetPawn(APawn* InPawn)
@@ -721,7 +736,7 @@ bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathF
 				}
 			}
 
-			Query = FPathFindingQuery(this, *NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, MoveRequest.GetNavigationFilter()));
+			Query = FPathFindingQuery(*this, *NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, MoveRequest.GetNavigationFilter()));
 			Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
 
 			if (PathFollowingComponent)

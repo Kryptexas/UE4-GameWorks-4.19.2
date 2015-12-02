@@ -306,7 +306,7 @@ namespace FEQSHelpers
 		INavAgentInterface* NavAgent = QueryInstance.Owner.IsValid() ? Cast<INavAgentInterface>(QueryInstance.Owner.Get()) : NULL;
 		if (NavAgent)
 		{
-			const FNavAgentProperties& NavAgentProps = NavAgent ? NavAgent->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
+			const FNavAgentProperties& NavAgentProps = NavAgent->GetNavAgentPropertiesRef();
 			return NavSys->GetNavDataForProps(NavAgentProps);
 		}
 

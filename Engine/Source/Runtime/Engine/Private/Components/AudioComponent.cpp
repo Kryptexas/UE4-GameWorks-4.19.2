@@ -31,12 +31,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	PitchModulationMin = 1.f;
 	PitchModulationMax = 1.f;
 	bEnableLowPassFilter = false;
-	OcclusionVolumeAttenuation = 1.0f;
 	LowPassFilterFrequency = MAX_FILTER_FREQUENCY;
-	bEnableOcclusionChecks = false;
-	bUseComplexCollisionChecks = false;
-	OcclusionLowPassFilterFrequency = MAX_FILTER_FREQUENCY;
-	OcclusionInterpolationTime = 0.1f;
 	OcclusionCheckInterval = 0.1f;
 	ActiveCount = 0;
 }
@@ -196,14 +191,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
 			NewActiveSound.bEnableLowPassFilter = bEnableLowPassFilter;
 			NewActiveSound.LowPassFilterFrequency = LowPassFilterFrequency;
-			NewActiveSound.bEnableOcclusionChecks = bEnableOcclusionChecks;
-			NewActiveSound.bUseComplexOcclusionChecks = bUseComplexCollisionChecks;
-			NewActiveSound.OcclusionLowPassFilterFrequency = FMath::Clamp(OcclusionLowPassFilterFrequency, MIN_FILTER_FREQUENCY, MAX_FILTER_FREQUENCY);
-			NewActiveSound.OcclusionVolumeAttenuation = FMath::Clamp(OcclusionVolumeAttenuation, 0.0f, 1.0f);
-			NewActiveSound.OcclusionInterpolationTime = FMath::Max(0.0f, OcclusionInterpolationTime);
-
 			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
-			NewActiveSound.OcclusionCheckInterval = OcclusionCheckInterval;
 			NewActiveSound.SubtitlePriority = SubtitlePriority;
 
 			NewActiveSound.bShouldRemainActiveIfDropped = bShouldRemainActiveIfDropped;

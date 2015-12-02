@@ -1040,6 +1040,8 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 {
 	ANIM_MT_SCOPE_CYCLE_COUNTER(PerformAnimEvaluation, IsRunningParallelEvaluation());
 
+	FMemMark StackMemoryMark(FMemStack::Get());
+
 	// Can't do anything without a SkeletalMesh
 	// Do nothing more if no bones in skeleton.
 	if (!InSkeletalMesh || OutSpaceBases.Num() == 0)
@@ -1064,7 +1066,7 @@ int32 GetCurveNumber(USkeleton* Skeleton)
 {
 	check (Skeleton);
 	// get all curve list
-	if(const FSmartNameMapping* Mapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
+	if(const FSmartNameMapping* Mapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName))
 	{
 		return Mapping->GetNumNames();
 	}
@@ -1107,11 +1109,14 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
 
 	check(IsInGameThread()); //Only want to call this from the game thread as we set up tasks etc
-
+	
 	if (!SkeletalMesh || GetNumSpaceBases() == 0)
 	{
 		return;
 	}
+
+	// Cache Animation curve mapping names UIds from Skeleton
+	UpdateCachedAnimCurveMappingNameUids();
 
 	// Recalculate the RequiredBones array, if necessary
 	if (!bRequiredBonesUpToDate)
@@ -1152,6 +1157,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	AnimEvaluationContext.SkeletalMesh = SkeletalMesh;
 	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
+	AnimEvaluationContext.Curve.InitFrom(&CachedAnimCurveMappingNameUids);
 
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;
 	AnimEvaluationContext.bDoUpdate = AnimScriptInstance && AnimScriptInstance->NeedsUpdate();
@@ -1255,13 +1261,11 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		EvaluationContext.AnimInstance->PostUpdateAnimation();
 	}
 
-	AnimEvaluationContext.Clear();
-
 	if (EvaluationContext.bDuplicateToCacheCurve)
 	{
 		CachedCurve.InitFrom(EvaluationContext.Curve);
 	}
-
+	
 	if (EvaluationContext.bDuplicateToCacheBones)
 	{
 		CachedSpaceBases.Reset();
@@ -1305,6 +1309,8 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		// Flip buffers, update bounds, attachments etc.
 		PostBlendPhysics();
 	}
+
+	AnimEvaluationContext.Clear();
 }
 
 FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -1379,6 +1385,9 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 #if WITH_APEX_CLOTHING
 	RecreateClothingActors();
 #endif
+
+	// Mark cached material parameter names dirty
+	MarkCachedMaterialParameterNameIndicesDirty();
 }
 
 void USkeletalMeshComponent::SetSkeletalMeshWithoutResettingAnimation(USkeletalMesh* InSkelMesh)
@@ -2345,4 +2354,15 @@ void USkeletalMeshComponent::FinalizeBoneTransform()
 	{
 		AnimScriptInstance->PostEvaluateAnimation();
 	}
+}
+
+void USkeletalMeshComponent::UpdateCachedAnimCurveMappingNameUids()
+{
+	check(SkeletalMesh->Skeleton != nullptr);
+	CachedAnimCurveMappingNameUids = SkeletalMesh->Skeleton->GetCachedAnimCurveMappingNameUids();
+}
+
+TArray<FSmartNameMapping::UID> const * USkeletalMeshComponent::GetCachedAnimCurveMappingNameUids()
+{
+	return &CachedAnimCurveMappingNameUids;
 }

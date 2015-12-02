@@ -31,8 +31,6 @@ void FAnimNode_SpringBone::Initialize(const FAnimationInitializeContext& Context
 {
 	FAnimNode_SkeletalControlBase::Initialize(Context);
 
-	Context.AnimInstanceProxy->AddGameThreadPreUpdateEvent(FGameThreadPreUpdateEvent::CreateRaw(this, &FAnimNode_SpringBone::HandleGameThreadPreUpdateEvent));
-
 	RemainingTime = 0.0f;
 }
 
@@ -219,7 +217,7 @@ void FAnimNode_SpringBone::InitializeBoneReferences(const FBoneContainer& Requir
 	SpringBone.Initialize(RequiredBones);
 }
 
-void FAnimNode_SpringBone::HandleGameThreadPreUpdateEvent(const UAnimInstance* InAnimInstance)
+void FAnimNode_SpringBone::PreUpdate(const UAnimInstance* InAnimInstance)
 {
 	const USkeletalMeshComponent* SkelComp = InAnimInstance->GetSkelMeshComponent();
 	const UWorld* World = SkelComp->GetWorld();

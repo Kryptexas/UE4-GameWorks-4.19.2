@@ -22,14 +22,18 @@
 #include "ObjectEditorUtils.h"
 #endif
 
+#include "Particles/Camera/ParticleModuleCameraOffset.h"
 #include "Particles/Collision/ParticleModuleCollision.h"
 #include "Particles/Color/ParticleModuleColorOverLife.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
 #include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetime.h"
+#include "Particles/Light/ParticleModuleLightBase.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/Modules/Location/ParticleModulePivotOffset.h"
 #include "Particles/Orbit/ParticleModuleOrbit.h"
+#include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "Particles/Size/ParticleModuleSize.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/Spawn/ParticleModuleSpawnBase.h"
@@ -51,6 +55,29 @@
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Engine/InterpCurveEdSetup.h"
 #include "GameFramework/GameState.h"
+
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderTransform Concurrent"), STAT_ParticleSystemComponent_SendRenderTransform_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent DestroyRenderState Concurrent"), STAT_ParticleSystemComponent_DestroyRenderState_Concurrent, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData"), STAT_ParticleSystemComponent_CreateDynamicData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Replay"), STAT_ParticleSystemComponent_CreateDynamicData_Replay, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Capture"), STAT_ParticleSystemComponent_CreateDynamicData_Capture, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData Gather"), STAT_ParticleSystemComponent_CreateDynamicData_Gather, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent GetDynamicData"), STAT_ParticleSystemComponent_GetDynamicData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent GetDynamicData Selected"), STAT_ParticleSystemComponent_GetDynamicData_Selected, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateDynamicData GatherCapture"), STAT_ParticleSystemComponent_CreateDynamicData_GatherCapture, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent UpdateDynamicData"), STAT_ParticleSystemComponent_UpdateDynamicData, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent OrientZAxisTowardCamera"), STAT_UParticleSystemComponent_OrientZAxisTowardCamera, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueFinalize"), STAT_UParticleSystemComponent_QueueFinalize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CheckForReset"), STAT_UParticleSystemComponent_CheckForReset, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent LOD_Inactive"), STAT_UParticleSystemComponent_LOD_Inactive, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent LOD"), STAT_UParticleSystemComponent_LOD, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent ResetAndCheckParallel"), STAT_UParticleSystemComponent_ResetAndCheckParallel, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueTasks"), STAT_UParticleSystemComponent_QueueTasks, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueAsync"), STAT_UParticleSystemComponent_QueueAsync, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent WaitForAsyncAndFinalize"), STAT_UParticleSystemComponent_WaitForAsyncAndFinalize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateRenderState Concurrent"), STAT_ParticleSystemComponent_CreateRenderState_Concurrent, STATGROUP_Particles);
 
 
 #define LOCTEXT_NAMESPACE "ParticleComponents"
@@ -288,7 +315,7 @@ void UParticleLODLevel::UpdateModuleLists()
 
 		if (Module->IsA(UParticleModuleTypeDataBase::StaticClass()))
 		{
-			TypeDataModule = Module;
+			TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(Module);
 			if (!Module->bSpawnModule && !Module->bUpdateModule)
 			{
 				// For now, remove it from the list and set it as the TypeDataModule
@@ -298,24 +325,24 @@ void UParticleLODLevel::UpdateModuleLists()
 		else
 		if (Module->IsA(UParticleModuleSpawnBase::StaticClass()))
 		{
-			UParticleModuleSpawnBase* SpawnBase = Cast<UParticleModuleSpawnBase>(Module);
+			UParticleModuleSpawnBase* SpawnBase = CastChecked<UParticleModuleSpawnBase>(Module);
 			SpawningModules.Add(SpawnBase);
 		}
 		else
 		if (Module->IsA(UParticleModuleOrbit::StaticClass()))
 		{
-			UParticleModuleOrbit* Orbit = Cast<UParticleModuleOrbit>(Module);
+			UParticleModuleOrbit* Orbit = CastChecked<UParticleModuleOrbit>(Module);
 			OrbitModules.Add(Orbit);
 		}
 		else
 		if (Module->IsA(UParticleModuleEventGenerator::StaticClass()))
 		{
-			EventGenerator = Cast<UParticleModuleEventGenerator>(Module);
+			EventGenerator = CastChecked<UParticleModuleEventGenerator>(Module);
 		}
 		else
 		if (Module->IsA(UParticleModuleEventReceiverBase::StaticClass()))
 		{
-			UParticleModuleEventReceiverBase* Event = Cast<UParticleModuleEventReceiverBase>(Module);
+			UParticleModuleEventReceiverBase* Event = CastChecked<UParticleModuleEventReceiverBase>(Module);
 			EventReceiverModules.Add(Event);
 		}
 	}
@@ -385,7 +412,10 @@ bool UParticleLODLevel::GenerateFromLODLevel(UParticleLODLevel* SourceLODLevel, 
 	// TypeData module, if present...
 	if (SourceLODLevel->TypeDataModule)
 	{
-		TypeDataModule = SourceLODLevel->TypeDataModule->GenerateLODModule(SourceLODLevel, this, Percentage, bGenerateModuleData);
+		TypeDataModule = 
+			CastChecked<UParticleModuleTypeDataBase>(
+			SourceLODLevel->TypeDataModule->GenerateLODModule(SourceLODLevel, this, Percentage, bGenerateModuleData));
+		check(TypeDataModule == SourceLODLevel->TypeDataModule); // Code expects typedata to be the same across LODs
 	}
 
 	// The remaining modules...
@@ -1490,13 +1520,152 @@ void UParticleEmitter::Build()
 	const int32 LODCount = LODLevels.Num();
 	if ( LODCount > 0 )
 	{
-		UParticleLODLevel* LODLevel = LODLevels[0];
-		UParticleModuleTypeDataBase* TypeDataModule = (UParticleModuleTypeDataBase*)(LODLevel ? LODLevel->TypeDataModule : NULL);
-		if ( TypeDataModule && TypeDataModule->RequiresBuild() )
+		UParticleLODLevel* HighLODLevel = LODLevels[0];
+		check(HighLODLevel);
+		if (HighLODLevel->TypeDataModule != nullptr)
 		{
-			FParticleEmitterBuildInfo EmitterBuildInfo;
-			LODLevel->CompileModules( EmitterBuildInfo );
-			TypeDataModule->Build( EmitterBuildInfo );
+			if(HighLODLevel->TypeDataModule->RequiresBuild())
+			{
+				FParticleEmitterBuildInfo EmitterBuildInfo;
+				HighLODLevel->CompileModules( EmitterBuildInfo );
+				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
+			}
+
+			// Allow TypeData module to cache pointers to modules
+			HighLODLevel->TypeDataModule->CacheModuleInfo(this);
+		}
+
+		// Cache particle size/offset data for all LOD Levels
+		CacheEmitterModuleInfo();
+	}
+}
+
+void UParticleEmitter::CacheEmitterModuleInfo()
+{
+	// This assert makes sure that packing is as expected.
+	// Added FBaseColor...
+	// Linear color change
+	// Added Flags field	
+	static_assert(sizeof(FBaseParticle) == 128, "FBaseParticle size");
+
+
+	bRequiresLoopNotification = false;
+	bAxisLockEnabled = false;
+	bMeshRotationActive = false;
+	LockAxisFlags = EPAL_NONE;
+	ModuleOffsetMap.Empty();
+	ModuleInstanceOffsetMap.Empty();
+	ModulesNeedingInstanceData.Empty();
+	MeshMaterials.Empty();
+	DynamicParameterDataOffset = 0;
+	LightDataOffset = 0;
+	CameraPayloadOffset = 0;
+	ParticleSize = sizeof(FBaseParticle);
+	ReqInstanceBytes = 0;
+	PivotOffset = FVector2D(-0.5f, -0.5f);
+	TypeDataOffset = 0;
+	TypeDataInstanceOffset = -1;
+
+	UParticleLODLevel* HighLODLevel = GetLODLevel(0);
+	check(HighLODLevel);
+
+	UParticleModuleTypeDataBase* HighTypeData = HighLODLevel->TypeDataModule;
+	if (HighTypeData)
+	{
+		int32 ReqBytes = HighTypeData->RequiredBytes(static_cast<UParticleModuleTypeDataBase*>(nullptr));
+		if (ReqBytes)
+		{
+			TypeDataOffset = ParticleSize;
+			ParticleSize += ReqBytes;
+		}
+
+		int32 TempInstanceBytes = HighTypeData->RequiredBytesPerInstance();
+		if (TempInstanceBytes)
+		{
+			TypeDataInstanceOffset = ReqInstanceBytes;
+			ReqInstanceBytes += TempInstanceBytes;
+		}
+	}
+
+	// Grab required module
+	UParticleModuleRequired* RequiredModule = HighLODLevel->RequiredModule;
+	check(RequiredModule);
+	// mesh rotation active if alignment is set
+	bMeshRotationActive = (RequiredModule->ScreenAlignment == PSA_Velocity || RequiredModule->ScreenAlignment == PSA_AwayFromCenter);
+
+	// NOTE: This code assumes that the same module order occurs in all LOD levels
+
+	for (int32 ModuleIdx = 0; ModuleIdx < HighLODLevel->Modules.Num(); ModuleIdx++)
+	{
+		UParticleModule* ParticleModule = HighLODLevel->Modules[ModuleIdx];
+		check(ParticleModule);
+
+		// Loop notification?
+		bRequiresLoopNotification |= (ParticleModule->bEnabled && ParticleModule->RequiresLoopingNotification());
+
+		if (ParticleModule->IsA(UParticleModuleTypeDataBase::StaticClass()) == false)
+		{
+			int32 ReqBytes = ParticleModule->RequiredBytes(HighTypeData);
+			if (ReqBytes)
+			{
+				ModuleOffsetMap.Add(ParticleModule, ParticleSize);
+				if (ParticleModule->IsA(UParticleModuleParameterDynamic::StaticClass()) && (DynamicParameterDataOffset == 0))
+				{
+					DynamicParameterDataOffset = ParticleSize;
+				}
+				if (ParticleModule->IsA(UParticleModuleLightBase::StaticClass()) && (LightDataOffset == 0))
+				{
+					LightDataOffset = ParticleSize;
+				}
+				if (ParticleModule->IsA(UParticleModuleCameraOffset::StaticClass()) && (CameraPayloadOffset == 0))
+				{
+					CameraPayloadOffset = ParticleSize;
+				}
+				ParticleSize += ReqBytes;
+			}
+
+			int32 TempInstanceBytes = ParticleModule->RequiredBytesPerInstance();
+			if (TempInstanceBytes > 0)
+			{
+				// Add the high-lodlevel offset to the lookup map
+				ModuleInstanceOffsetMap.Add(ParticleModule, ReqInstanceBytes);
+				// Remember that this module has emitter-instance data
+				ModulesNeedingInstanceData.Add(ParticleModule);
+
+				// Add all the other LODLevel modules, using the same offset.
+				// This removes the need to always also grab the HighestLODLevel pointer.
+				for (int32 LODIdx = 1; LODIdx < LODLevels.Num(); LODIdx++)
+				{
+					UParticleLODLevel* CurLODLevel = LODLevels[LODIdx];
+					ModuleInstanceOffsetMap.Add(CurLODLevel->Modules[ModuleIdx], ReqInstanceBytes);
+				}
+				ReqInstanceBytes += TempInstanceBytes;
+			}
+		}
+
+		if (ParticleModule->IsA(UParticleModuleOrientationAxisLock::StaticClass()))
+		{
+			UParticleModuleOrientationAxisLock* Module_AxisLock = CastChecked<UParticleModuleOrientationAxisLock>(ParticleModule);
+			bAxisLockEnabled = Module_AxisLock->bEnabled;
+			LockAxisFlags = Module_AxisLock->LockAxisFlags;
+		}
+		else if (ParticleModule->IsA(UParticleModulePivotOffset::StaticClass()))
+		{
+			PivotOffset += Cast<UParticleModulePivotOffset>(ParticleModule)->PivotOffset;
+		}
+		else if (ParticleModule->IsA(UParticleModuleMeshMaterial::StaticClass()))
+		{
+			UParticleModuleMeshMaterial* MeshMaterialModule = CastChecked<UParticleModuleMeshMaterial>(ParticleModule);
+			if (MeshMaterialModule->bEnabled)
+			{
+				MeshMaterials = MeshMaterialModule->MeshMaterials;
+			}
+		}
+
+		// Set bMeshRotationActive if module says so
+		if(!bMeshRotationActive && ParticleModule->TouchesMeshRotation())
+		{
+			bMeshRotationActive = true;
 		}
 	}
 }
@@ -2647,6 +2816,20 @@ void UParticleSystem::UpdateAllModuleLists()
 					LODLevel->UpdateModuleLists();
 				}
 			}
+
+			// Allow type data module to cache any module info
+			if(Emitter->LODLevels.Num() > 0)
+			{
+				UParticleLODLevel* HighLODLevel = Emitter->LODLevels[0];
+				if (HighLODLevel != nullptr && HighLODLevel->TypeDataModule != nullptr)
+				{
+					// Allow TypeData module to cache pointers to modules
+					HighLODLevel->TypeDataModule->CacheModuleInfo(Emitter);
+				}
+			}
+
+			// Update any cached info from modules on the emitter
+			Emitter->CacheEmitterModuleInfo();
 		}
 	}
 }
@@ -3010,7 +3193,7 @@ void UParticleSystemComponent::OnUnregister()
 
 void UParticleSystemComponent::CreateRenderState_Concurrent()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateRenderState_Concurrent);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateRenderState_Concurrent);
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	check( GetWorld() );
@@ -3044,7 +3227,7 @@ void UParticleSystemComponent::CreateRenderState_Concurrent()
 
 void UParticleSystemComponent::SendRenderTransform_Concurrent()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_SendRenderTransform_Concurrent);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_SendRenderTransform_Concurrent);
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	if (bIsActive)
@@ -3061,7 +3244,7 @@ void UParticleSystemComponent::SendRenderTransform_Concurrent()
 
 void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent);
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	Super::SendRenderDynamicData_Concurrent();
@@ -3095,7 +3278,7 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 
 void UParticleSystemComponent::DestroyRenderState_Concurrent()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_DestroyRenderState_Concurrent);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_DestroyRenderState_Concurrent);
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	check( GetWorld() );
@@ -3232,7 +3415,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 
 FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData);
 
 	// Only proceed if we have any live particles or if we're actively replaying/capturing
 	if (EmitterInstances.Num() > 0)
@@ -3271,7 +3454,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 
 	if( ReplayState == PRS_Replaying )
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Replay);
+		SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Replay);
 		// Do we have any replay data to play back?
 		UParticleSystemReplay* ReplayData = FindReplayClipForIDNumber( ReplayClipIDNumber );
 		if( ReplayData != NULL )
@@ -3315,7 +3498,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 		FParticleSystemReplayFrame* NewReplayFrame = NULL;
 		if( ReplayState == PRS_Capturing )
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Capture);
+			SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Capture);
 			ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 			check(IsInGameThread());
 			// If we don't have any replay data for this component yet, create some now
@@ -3350,7 +3533,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 		// Is the particle system allowed to run?
 		if( bForcedInActive == false )
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Gather);
+			SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Gather);
 			ParticleDynamicData->DynamicEmitterDataArray.Reset();
 			ParticleDynamicData->DynamicEmitterDataArray.Reserve(EmitterInstances.Num());
 
@@ -3362,11 +3545,11 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 				{
 					// Generate the dynamic data for this emitter
 					{
-						QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData);
+						SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData);
 						bool bIsOwnerSeleted = false;
 #if WITH_EDITOR
 						{
-							QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData_Selected);
+							SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData_Selected);
 							bIsOwnerSeleted = IsOwnerSelected();
 						}
 #endif
@@ -3379,7 +3562,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 						// Are we current capturing particle state?
 						if( ReplayState == PRS_Capturing )
 						{
-							QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_GatherCapture);
+							SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_GatherCapture);
 							// Capture replay data for this particle system
 							// NOTE: This call should always succeed if GetDynamicData succeeded earlier
 							FDynamicEmitterReplayDataBase* NewEmitterReplayData = EmitterInst->GetReplayData();
@@ -3466,7 +3649,7 @@ void UParticleSystemComponent::ClearDynamicData()
 
 void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Proxy)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	if (SceneProxy)
@@ -3545,7 +3728,7 @@ void UParticleSystemComponent::UpdateLODInformation()
 
 void UParticleSystemComponent::OrientZAxisTowardCamera()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_OrientZAxisTowardCamera);
+	SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_OrientZAxisTowardCamera);
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 
 	//@TODO: CAMERA: How does this work for stereo and/or split-screen?
@@ -3735,7 +3918,7 @@ public:
 		Target->ComputeTickComponent_Concurrent();
 #if !WITH_EDITOR  // otherwise this is queued by the calling code because we need to be able to block and wait on it
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
 			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(nullptr, CurrentThread).ConstructAndDispatchWhenReady(Target);
 			MyCompletionGraphEvent->DontCompleteUntil(Finalize);
 		}
@@ -3813,7 +3996,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	} 
 	else
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_CheckForReset);
+		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_CheckForReset);
 		bool bRequiresReset = false;
 		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
 		{
@@ -3849,7 +4032,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			&&	AccumTickTime > ClampedMaxSecondsBeforeInactive//SecondsBeforeInactive
 			&&	GetWorld()->IsGameWorld() )
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD_Inactive);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD_Inactive);
 			const float CurrentTimeSeconds = World->GetTimeSeconds();
 			if( CurrentTimeSeconds > (LastRenderTime + ClampedMaxSecondsBeforeInactive) )
 			{
@@ -3867,7 +4050,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		AccumLODDistanceCheckTime += DeltaTime;
 		if (AccumLODDistanceCheckTime > Template->LODDistanceCheckTime)
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD);
 			AccumLODDistanceCheckTime = 0.0f;
 
 			if (ShouldComputeLODFromGameThread())
@@ -3911,7 +4094,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_ResetAndCheckParallel);
+		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_ResetAndCheckParallel);
 		// Clear out the events.
 		SpawnEvents.Reset();
 		DeathEvents.Reset();
@@ -3935,7 +4118,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	else
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueTasks);
+		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueTasks);
 		bAsyncDataCopyIsValid = true;
 		check(!bParallelRenderThreadUpdate);
 		AsyncComponentToWorld = ComponentToWorld;
@@ -3944,7 +4127,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 		bAsyncWorkOutstanding = true;
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueAsync);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueAsync);
 			AsyncWork = TGraphTask<FParticleAsyncTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
 #if !WITH_EDITOR  // we need to not complete until this is done because the game thread finalize task has not beed queued yet
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(AsyncWork);
@@ -3952,7 +4135,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 #if WITH_EDITOR  // we need to queue this here because we need to be able to block and wait on it
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueFinalize);
 			FGraphEventArray Prereqs;
 			Prereqs.Add(AsyncWork);
 			FGraphEventRef Finalize = TGraphTask<FParticleFinalizeTask>::CreateTask(&Prereqs, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
@@ -4176,7 +4359,7 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 		check(IsInGameThread());
 		SCOPE_CYCLE_COUNTER(STAT_GTSTallTime);
 		double StartTime = FPlatformTime::Seconds();
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_WaitForAsyncAndFinalize);
+		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_WaitForAsyncAndFinalize);
 #if WITH_EDITOR
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(AsyncWork, ENamedThreads::GameThread_Local);
 #else
@@ -4198,7 +4381,7 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 
 void UParticleSystemComponent::InitParticles()
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_InitParticles);
+	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_InitParticles);
 
 	if (IsTemplate() == true)
 	{
@@ -4289,7 +4472,7 @@ void UParticleSystemComponent::InitParticles()
 					}
 					if (Emitter && Emitter->DetailMode <= GlobalDetailMode)
 					{
-						Instance->InitParameters(Emitter, this, false);
+						Instance->InitParameters(Emitter, this);
 						Instance->Init();
 						if (PreferredLODLevel >= Emitter->LODLevels.Num())
 						{
@@ -4320,7 +4503,7 @@ void UParticleSystemComponent::InitParticles()
 						EmitterInstances[Idx] = Instance;
 						if (Instance != NULL)
 						{
-							Instance->InitParameters(Emitter, this, false);
+							Instance->InitParameters(Emitter, this);
 							Instance->Init();
 							if (PreferredLODLevel >= Emitter->LODLevels.Num())
 							{

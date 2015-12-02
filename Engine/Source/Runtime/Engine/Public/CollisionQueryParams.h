@@ -81,8 +81,7 @@ public:
 	 *  can cause this constructor to be invoked instead the the other which was likely the programmers intention. 
 	 *  This constructor will eventually be deprecated to avoid this potentially ambiguous case.
 	 */ 
-	//  temporarily un-deprecate to reduce spam warning for everyone until we find and update all the projects/places that had intentionally or inadvertently been calling the old constructor
-	//	DEPRECATED(4.11, "FCollisionQueryParams, to avoid ambiguity, please use other constructor and explicitly provide an FName parameter (not just a string literal) as the first parameter")
+	DEPRECATED(4.11, "FCollisionQueryParams, to avoid ambiguity, please use other constructor and explicitly provide an FName parameter (not just a string literal) as the first parameter")
 	FCollisionQueryParams(bool bInTraceComplex)
 	{
 		bTraceComplex = bInTraceComplex;

@@ -435,6 +435,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
+	/** Used to detach physics objects before simulation begins. This is needed because at runtime we can't have simulated objects inside the attachment hierarchy */
+	virtual void BeginPlay() override;
+
 protected:
 
 	/** Returns true if all descendant components that we can possibly overlap with use relative location and rotation. */
@@ -1667,10 +1670,13 @@ public:
 	 */
 	void SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses);
 	
-private:
+protected:
+
 	/** Called when the BodyInstance ResponseToChannels, CollisionEnabled or bNotifyRigidBodyCollision changes, in case subclasses want to use that information. */
 	virtual void OnComponentCollisionSettingsChanged();
 
+private:
+	
 	/**
 	 *	Applies a RigidBodyState struct to this Actor.
 	 *	When we get an update for the physics, we try to do it smoothly if it is less than ..DeltaThreshold.

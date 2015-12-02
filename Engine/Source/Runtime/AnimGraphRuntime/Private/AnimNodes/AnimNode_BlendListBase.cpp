@@ -81,7 +81,7 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 	{
 		// Handle a change in the active child index; adjusting the target weights
 		const int32 ChildIndex = GetActiveChildIndex();
-
+		
 		if (ChildIndex != LastActiveChildIndex)
 		{
 			bool LastChildIndexIsInvalid = (LastActiveChildIndex == INDEX_NONE);
@@ -165,7 +165,7 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 			if (BlendWeight > ZERO_ANIMWEIGHT_THRESH)
 			{
 				BlendPose[i].Update(Context.FractionalWeight(BlendWeight));
-				PosesToEvaluate.Add(i);
+				PosesToEvaluate.Add(i);				
 			}
 		}
 
@@ -205,25 +205,18 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 	const int32 NumPoses = PosesToEvaluate.Num();
 
 	if ((NumPoses > 0) && (BlendPose.Num() == BlendWeights.Num()))
-	{
-		TArray<FCompactPose> FilteredPoses;
-		FilteredPoses.SetNum(NumPoses);
-
-		TArray<FBlendedCurve> FilteredCurve;
-		FilteredCurve.SetNum(NumPoses);
-
-		TArray<FBlendSampleData> FilteredSampleData;
-		FilteredSampleData.SetNum(NumPoses);
-
-		TArray<float> FilteredWeights;
-		FilteredWeights.AddUninitialized(NumPoses);
+	{		
+		// Scratch arrays for evaluation, stack allocated
+		TArray<FCompactPose, TMemStackAllocator<ALIGNOF(FCompactPose)>> FilteredPoses;
+		TArray<FBlendedCurve, TMemStackAllocator<ALIGNOF(FBlendedCurve)>> FilteredCurve;
+		FilteredPoses.SetNum(NumPoses, false);
+		FilteredCurve.SetNum(NumPoses, false);
 
 		int32 NumActivePoses = 0;
 		for (int32 i = 0; i < PosesToEvaluate.Num(); ++i)
 		{
 			int32 PoseIndex = PosesToEvaluate[i];
 
-			const float BlendWeight = BlendWeights[PoseIndex];
 			FPoseContext EvaluateContext(Output);
 
 			FPoseLink& CurrentPose = BlendPose[PoseIndex];
@@ -231,24 +224,17 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 
 			FilteredPoses[i].MoveBonesFrom(EvaluateContext.Pose);
 			FilteredCurve[i] = EvaluateContext.Curve;
-
-			if(BlendProfile)
-			{
-				FilteredSampleData[i] = PerBoneSampleData[PoseIndex];
-			}
-
-			FilteredWeights[i] = BlendWeight;
 		}
 
 		// Use the calculated blend sample data if we're blending per-bone
-		if(BlendProfile)
+		if (BlendProfile)
 		{
-			FAnimationRuntime::BlendPosesTogetherPerBone(FilteredPoses, FilteredCurve, BlendProfile, FilteredSampleData, Output.Pose, Output.Curve);
+			FAnimationRuntime::BlendPosesTogetherPerBone(FilteredPoses, FilteredCurve, BlendProfile, PerBoneSampleData, PosesToEvaluate, Output.Pose, Output.Curve);
 		}
 		else
 		{
-			FAnimationRuntime::BlendPosesTogether(FilteredPoses, FilteredCurve, FilteredWeights, Output.Pose, Output.Curve);
-		}
+			FAnimationRuntime::BlendPosesTogether(FilteredPoses, FilteredCurve, BlendWeights, PosesToEvaluate, Output.Pose, Output.Curve);
+		}		
 	}
 	else
 	{

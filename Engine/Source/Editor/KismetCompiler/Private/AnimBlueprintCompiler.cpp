@@ -1942,6 +1942,11 @@ static UEdGraphPin* FindFirstInputPin(UEdGraphNode* InNode)
 
 static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 {
+	if (FromPin->LinkedTo.Num() == 0)
+	{
+		return nullptr;
+	}
+
 	UEdGraphPin* LinkedPin = FromPin->LinkedTo[0];
 	DestPin = LinkedPin;
 	if(LinkedPin)

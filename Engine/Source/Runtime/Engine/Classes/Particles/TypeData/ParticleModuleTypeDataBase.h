@@ -31,6 +31,8 @@ class UParticleModuleTypeDataBase : public UParticleModule
 	// @todo document
 	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent);
 
+	/** Cache any desired module pointers inside this type data */
+	virtual void CacheModuleInfo(UParticleEmitter* Emitter) {}
 
 	// @todo document
 	virtual bool		SupportsSpecificScreenAlignmentFlags() const	{	return false;			}

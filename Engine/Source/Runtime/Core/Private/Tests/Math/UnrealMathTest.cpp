@@ -422,23 +422,25 @@ FORCENOINLINE FRotator TestQuaternionToRotator(const FQuat& Quat)
 	static const float RAD_TO_DEG = (180.f)/PI;
 	FRotator RotatorFromQuat;
 
+	// Note: using stock C functions for some trig functions since this is the "reference" implementation
+	// and we don't want fast approximations to be used here.
 	if (SingularityTest < -SINGULARITY_THRESHOLD)
 	{
 		RotatorFromQuat.Pitch = 270.f;
-		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = -RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG);
+		RotatorFromQuat.Yaw = atan2f(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = -RotatorFromQuat.Yaw - (2.f * atan2f(X, W) * RAD_TO_DEG);
 	}
 	else if (SingularityTest > SINGULARITY_THRESHOLD)
 	{
 		RotatorFromQuat.Pitch = 90.f;
-		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG);
+		RotatorFromQuat.Yaw = atan2f(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = RotatorFromQuat.Yaw - (2.f * atan2f(X, W) * RAD_TO_DEG);
 	}
 	else
 	{
 		RotatorFromQuat.Pitch = FMath::Asin(2.f*(SingularityTest)) * RAD_TO_DEG;
-		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = FMath::Atan2(-2.f*(W*X+Y*Z), (1.f-2.f*(FMath::Square(X) + FMath::Square(Y)))) * RAD_TO_DEG;
+		RotatorFromQuat.Yaw = atan2f(YawY, YawX) * RAD_TO_DEG;
+		RotatorFromQuat.Roll = atan2f(-2.f*(W*X+Y*Z), (1.f-2.f*(FMath::Square(X) + FMath::Square(Y)))) * RAD_TO_DEG;
 	}
 
 	RotatorFromQuat.Pitch = FRotator::NormalizeAxis(RotatorFromQuat.Pitch);
@@ -537,7 +539,18 @@ void LogRotatorTest(bool bExpected, const TCHAR* TestName, const FRotator& A, co
 	if (bHasPassed == false)
 	{
 		UE_LOG(LogUnrealMathTest, Log, TEXT("%s: %s"), bHasPassed ? TEXT("PASSED") : TEXT("FAILED"), TestName);
-		UE_LOG(LogUnrealMathTest, Log, TEXT("%s.Equals(%s) = %d"), *A.ToString(), *B.ToString(), bComparison);
+		UE_LOG(LogUnrealMathTest, Log, TEXT("(%s).Equals(%s) = %d"), *A.ToString(), *B.ToString(), bComparison);
+		GPassing = false;
+	}
+}
+
+
+void LogRotatorTest(const TCHAR* TestName, const FRotator& A, const FRotator& B, bool bComparison)
+{
+	if (bComparison == false)
+	{
+		UE_LOG(LogUnrealMathTest, Log, TEXT("%s: %s"), bComparison ? TEXT("PASSED") : TEXT("FAILED"), TestName);
+		UE_LOG(LogUnrealMathTest, Log, TEXT("(%s).Equals(%s) = %d"), *A.ToString(), *B.ToString(), bComparison);
 		GPassing = false;
 	}
 }
@@ -547,7 +560,7 @@ void LogQuaternionTest(const TCHAR* TestName, const FQuat& A, const FQuat& B, bo
 	if (bComparison == false)
 	{
 		UE_LOG(LogUnrealMathTest, Log, TEXT("%s: %s"), bComparison ? TEXT("PASSED") : TEXT("FAILED"), TestName);
-		UE_LOG(LogUnrealMathTest, Log, TEXT("%s.Equals(%s) = %d"), *A.ToString(), *B.ToString(), bComparison);
+		UE_LOG(LogUnrealMathTest, Log, TEXT("(%s).Equals(%s) = %d"), *A.ToString(), *B.ToString(), bComparison);
 		GPassing = false;
 	}
 }
@@ -1174,7 +1187,11 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	{
 		const FRotator RotArray[] ={
 			FRotator(30.0f, -45.0f, 90.0f),
-			FRotator(45.0f, 60.0f, 120.0f),
+			FRotator(45.0f, 60.0f, -120.0f),
+			FRotator(0.f, 90.f, 0.f),
+			FRotator(0.f, -90.f, 0.f),
+			FRotator(0.f, 180.f, 0.f),
+			FRotator(0.f, -180.f, 0.f),
 			FRotator(90.f, 0.f, 0.f),
 			FRotator(-90.f, 0.f, 0.f),
 			FRotator(150.f, 0.f, 0.f)
@@ -1185,7 +1202,7 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 			Q0 = TestRotatorToQuaternion(Rotator0);
 			FRotator Rotator1 = Q0.Rotator();
 			FRotator Rotator2 = TestQuaternionToRotator(Q0);
-			LogTest(TEXT("Rotator->Quat->Rotator"), Rotator1.Equals(Rotator2, 1e-5f));
+			LogRotatorTest(TEXT("Rotator->Quat->Rotator"), Rotator1, Rotator2, Rotator1.Equals(Rotator2, 1e-4f));
 		}
 	}
 

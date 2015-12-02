@@ -123,3 +123,19 @@ void UEnvQuery::CollectQueryParams(UObject& QueryOwner, TArray<FAIDynamicParam>&
 		}
 	}
 }
+
+void UEnvQuery::PostInitProperties()
+{
+	Super::PostInitProperties();
+	QueryName = GetFName();
+}
+
+void UEnvQuery::PostLoad()
+{
+	Super::PostLoad();
+
+	if (QueryName == NAME_None || QueryName.IsValid() == false)
+	{
+		QueryName = GetFName();
+	}
+}

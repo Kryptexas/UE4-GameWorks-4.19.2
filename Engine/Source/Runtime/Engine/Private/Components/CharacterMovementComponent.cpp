@@ -6321,7 +6321,8 @@ void UCharacterMovementComponent::SmoothClientPosition_UpdateVisuals()
 {
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementSmoothClientPosition_Visual);
 	FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
-	if (ClientData && CharacterOwner->GetMesh() && !CharacterOwner->GetMesh()->IsSimulatingPhysics())
+	USkeletalMeshComponent* Mesh = CharacterOwner->GetMesh();
+	if (ClientData && Mesh && !Mesh->IsSimulatingPhysics())
 	{
 		if (NetworkSmoothingMode == ENetworkSmoothingMode::Linear)
 		{
@@ -6330,12 +6331,12 @@ void UCharacterMovementComponent::SmoothClientPosition_UpdateVisuals()
 			const FVector NewRelLocation = ClientData->MeshRotationOffset.UnrotateVector(ClientData->MeshTranslationOffset) + CharacterOwner->GetBaseTranslationOffset();
 			if (!UpdatedComponent->GetComponentQuat().Equals(ClientData->MeshRotationOffset, SCENECOMPONENT_QUAT_TOLERANCE))
 			{
-				CharacterOwner->GetMesh()->RelativeLocation = NewRelLocation;
+				Mesh->RelativeLocation = NewRelLocation;
 				UpdatedComponent->SetWorldRotation(ClientData->MeshRotationOffset);
 			}
 			else
 			{
-				CharacterOwner->GetMesh()->SetRelativeLocation(NewRelLocation);
+				Mesh->SetRelativeLocation(NewRelLocation);
 			}
 		}
 		else if (NetworkSmoothingMode == ENetworkSmoothingMode::Exponential)
@@ -6343,7 +6344,7 @@ void UCharacterMovementComponent::SmoothClientPosition_UpdateVisuals()
 			// Adjust mesh location and rotation
 			const FVector NewRelTranslation = UpdatedComponent->GetComponentToWorld().InverseTransformVectorNoScale(ClientData->MeshTranslationOffset) + CharacterOwner->GetBaseTranslationOffset();
 			const FQuat NewRelRotation = ClientData->MeshRotationOffset * CharacterOwner->GetBaseRotationOffset();
-			CharacterOwner->GetMesh()->SetRelativeLocationAndRotation(NewRelTranslation, NewRelRotation);
+			Mesh->SetRelativeLocationAndRotation(NewRelTranslation, NewRelRotation);
 		}
 		else
 		{
@@ -7774,18 +7775,22 @@ void UCharacterMovementComponent::ApplyRepulsionForce(float DeltaSeconds)
 					continue; 
 				}
 
-				FName BoneName = NAME_None;
-				if (Overlap.GetBodyIndex() != INDEX_NONE && Cast<USkinnedMeshComponent>(OverlapComp))
-				{
-					BoneName = ((USkinnedMeshComponent*)OverlapComp)->GetBoneName(Overlap.GetBodyIndex());
-				}
-
 				// Use the body instead of the component for cases where we have multi-body overlaps enabled
-				FBodyInstance* OverlapBody = OverlapComp->GetBodyInstance(BoneName);
+				FBodyInstance* OverlapBody = nullptr;
+				const int32 OverlapBodyIndex = Overlap.GetBodyIndex();
+				const USkeletalMeshComponent* SkelMeshForBody = (OverlapBodyIndex != INDEX_NONE) ? Cast<USkeletalMeshComponent>(OverlapComp) : nullptr;
+				if (SkelMeshForBody != nullptr)
+				{
+					OverlapBody = SkelMeshForBody->Bodies.IsValidIndex(OverlapBodyIndex) ? SkelMeshForBody->Bodies[OverlapBodyIndex] : nullptr;
+				}
+				else
+				{
+					OverlapBody = OverlapComp->GetBodyInstance();
+				}
 
 				if (!OverlapBody)
 				{
-					UE_LOG(LogCharacterMovement, Warning, TEXT("%s could not find overlap body for bone %s"), *GetName(), *BoneName.ToString());
+					UE_LOG(LogCharacterMovement, Warning, TEXT("%s could not find overlap body for body index %d"), *GetName(), OverlapBodyIndex);
 					continue;
 				}
 

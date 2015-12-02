@@ -277,10 +277,7 @@ void USimpleConstructionScript::PostLoad()
 		}
 	}
 
-	// TODO: Put an object version check on this - for now will have to do it each time but
-	//       we'll skip it in cooked builds since we can assume they were fixed up during
-	//       the cooking process
-	if (!FPlatformProperties::RequiresCookedData())
+	if (GetLinkerUE4Version() < VER_UE4_SCS_STORES_ALLNODES_ARRAY)
 	{
 		// Fill out AllNodes if this is an older object
 		if (RootNodes.Num() > 0)

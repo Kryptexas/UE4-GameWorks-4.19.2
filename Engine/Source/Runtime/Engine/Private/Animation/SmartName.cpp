@@ -139,12 +139,12 @@ void FSmartNameMapping::FillNameArray(TArray<FName>& Array) const
 	UidMap.GenerateValueArray(Array);
 }
 
-bool FSmartNameMapping::Exists(const UID& Uid)
+bool FSmartNameMapping::Exists(const UID& Uid) const
 {
 	return UidMap.Find(Uid) != nullptr;
 }
 
-bool FSmartNameMapping::Exists(const FName& Name)
+bool FSmartNameMapping::Exists(const FName& Name) const
 {
 	return UidMap.FindKey(Name) != nullptr;
 }
@@ -169,11 +169,6 @@ void FSmartNameContainer::AddContainer(FName NewContainerName)
 	}
 }
 
-FSmartNameMapping* FSmartNameContainer::GetContainer(FName ContainerName)
-{
-	return NameMappings.Find(ContainerName);
-}
-
 const FSmartNameMapping* FSmartNameContainer::GetContainer(FName ContainerName) const
 {
 	return NameMappings.Find(ContainerName);
@@ -182,4 +177,9 @@ const FSmartNameMapping* FSmartNameContainer::GetContainer(FName ContainerName) 
 void FSmartNameContainer::Serialize(FArchive& Ar)
 {
 	Ar << NameMappings;
+}
+
+FSmartNameMapping* FSmartNameContainer::GetContainerInternal(FName ContainerName)
+{
+	return NameMappings.Find(ContainerName);
 }

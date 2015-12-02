@@ -136,11 +136,31 @@ void UParticleModule::FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset,
 {
 }
 
+uint32 UParticleModule::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		// To try and handle deprecation, if function is not overriden, call old function
+	// Will fail though if actually trying to use Owner
+	return RequiredBytes(static_cast<FParticleEmitterInstance*>(nullptr));
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+uint32 UParticleModule::RequiredBytesPerInstance()
+{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	// To try and handle deprecation, if function is not overriden, call old function
+	// Will fail though if actually trying to use Owner
+	return RequiredBytesPerInstance(nullptr);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+// DEPRECATED 4.11
 uint32 UParticleModule::RequiredBytes(FParticleEmitterInstance* Owner)
 {
 	return 0;
 }
 
+// DEPRECATED 4.11
 uint32 UParticleModule::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
 {
 	return 0;
@@ -1238,7 +1258,7 @@ void UParticleModuleMeshRotation_Seeded::Spawn(FParticleEmitterInstance* Owner, 
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleMeshRotation_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleMeshRotation_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1356,7 +1376,7 @@ void UParticleModuleMeshRotationRate_Seeded::Spawn(FParticleEmitterInstance* Own
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleMeshRotationRate_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleMeshRotationRate_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1625,7 +1645,7 @@ void UParticleModuleRotation_Seeded::Spawn(FParticleEmitterInstance* Owner, int3
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleRotation_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleRotation_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -1734,7 +1754,7 @@ void UParticleModuleRotationRate_Seeded::Spawn(FParticleEmitterInstance* Owner, 
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleRotationRate_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleRotationRate_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -2134,7 +2154,7 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 }
 
 
-uint32 UParticleModuleSubUVMovie::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleSubUVMovie::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FSubUVMovieParticlePayload);
 }
@@ -2644,7 +2664,7 @@ void UParticleModuleAcceleration::Update(FParticleEmitterInstance* Owner, int32 
 	}
 }
 
-uint32 UParticleModuleAcceleration::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleAcceleration::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	// FVector UsedAcceleration
 	return sizeof(FVector);
@@ -2984,7 +3004,7 @@ void UParticleModuleLight::Update(FParticleEmitterInstance* Owner, int32 Offset,
 	}
 }
 
-uint32 UParticleModuleLight::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLight::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FLightParticlePayload);
 }
@@ -3073,25 +3093,25 @@ UParticleModuleLight_Seeded::UParticleModuleLight_Seeded(const FObjectInitialize
 
 void UParticleModuleLight_Seeded::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
-	FParticleRandomSeedInstancePayload* Payload = (FParticleRandomSeedInstancePayload*)(Owner->GetModuleInstanceData(this) + Super::RequiredBytesPerInstance(Owner));
+	FParticleRandomSeedInstancePayload* Payload = (FParticleRandomSeedInstancePayload*)(Owner->GetModuleInstanceData(this) + Super::RequiredBytesPerInstance());
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLight_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLight_Seeded::RequiredBytesPerInstance()
 {
-	return Super::RequiredBytesPerInstance(Owner) + RandomSeedInfo.GetInstancePayloadSize();
+	return Super::RequiredBytesPerInstance() + RandomSeedInfo.GetInstancePayloadSize();
 }
 
 uint32 UParticleModuleLight_Seeded::PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData)
 {
-	return PrepRandomSeedInstancePayload(Owner, (FParticleRandomSeedInstancePayload*)((uint8*)InstData + Super::RequiredBytesPerInstance(Owner)), RandomSeedInfo);
+	return PrepRandomSeedInstancePayload(Owner, (FParticleRandomSeedInstancePayload*)((uint8*)InstData + Super::RequiredBytesPerInstance()), RandomSeedInfo);
 }
 
 void UParticleModuleLight_Seeded::EmitterLoopingNotify(FParticleEmitterInstance* Owner)
 {
 	if (RandomSeedInfo.bResetSeedOnEmitterLooping == true)
 	{
-		FParticleRandomSeedInstancePayload* Payload = (FParticleRandomSeedInstancePayload*)(Owner->GetModuleInstanceData(this) + Super::RequiredBytesPerInstance(Owner));
+		FParticleRandomSeedInstancePayload* Payload = (FParticleRandomSeedInstancePayload*)(Owner->GetModuleInstanceData(this) + Super::RequiredBytesPerInstance());
 		PrepRandomSeedInstancePayload(Owner, Payload, RandomSeedInfo);
 	}
 }
@@ -3597,7 +3617,7 @@ void UParticleModuleLifetime_Seeded::Spawn(FParticleEmitterInstance* Owner, int3
 	SpawnEx(Owner, Offset, SpawnTime, (Payload != NULL) ? &(Payload->RandomStream) : NULL, ParticleBase);
 }
 
-uint32 UParticleModuleLifetime_Seeded::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleLifetime_Seeded::RequiredBytesPerInstance()
 {
 	return RandomSeedInfo.GetInstancePayloadSize();
 }
@@ -4007,7 +4027,7 @@ void UParticleModuleAttractorParticle::Update(FParticleEmitterInstance* Owner, i
 }
 
 
-uint32 UParticleModuleAttractorParticle::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleAttractorParticle::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FAttractorParticlePayload);
 }

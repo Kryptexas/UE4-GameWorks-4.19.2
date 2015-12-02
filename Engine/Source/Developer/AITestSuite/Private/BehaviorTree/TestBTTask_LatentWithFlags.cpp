@@ -31,6 +31,9 @@ EBTNodeResult::Type UTestBTTask_LatentWithFlags::ExecuteTask(UBehaviorTreeCompon
 	LogExecution(OwnerComp, LogIndexExecuteStart);
 	if (ExecuteTicks == 0)
 	{
+		OwnerComp.GetBlackboardComponent()->SetValueAsBool(KeyNameExecute, true);
+		MyMemory->bFlagSet = true;
+
 		LogExecution(OwnerComp, LogIndexExecuteFinish);
 		return LogResult;
 	}
@@ -49,6 +52,9 @@ EBTNodeResult::Type UTestBTTask_LatentWithFlags::AbortTask(UBehaviorTreeComponen
 	LogExecution(OwnerComp, LogIndexAbortStart);
 	if (AbortTicks == 0)
 	{
+		OwnerComp.GetBlackboardComponent()->SetValueAsBool(KeyNameAbort, true);
+		MyMemory->bFlagSet = true;
+
 		LogExecution(OwnerComp, LogIndexAbortFinish);
 		return EBTNodeResult::Aborted;
 	}

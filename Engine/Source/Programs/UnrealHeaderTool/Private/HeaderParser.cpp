@@ -4010,29 +4010,30 @@ UProperty* FHeaderParser::GetVarNameAndDim
 
 	if (Existing != NULL)
 	{
-		if (Existing->GetOuter() == Scope)
+		bool bErrorDueToShadowing = true;
+
+		if (Existing->IsA(UFunction::StaticClass()) && (VariableCategory != EVariableCategory::Member))
 		{
-			FError::Throwf(TEXT("%s: '%s' already defined"), HintText, VarProperty.Identifier);
+			// A function parameter with the same name as a method is allowed
+			bErrorDueToShadowing = false;
 		}
-		else if ((Cast<UFunction>(Scope) != NULL || Cast<UClass>(Scope) != NULL)	// declaring class member or function local/parm
-				&& Cast<UFunction>(Existing) == NULL								// and the existing field isn't a function
-				&& Cast<UClass>(Existing->GetOuter()) != NULL )						// and the existing field is a class member (don't care about locals in other functions)
+
+		//@TODO: This exception does not seem sound either, but there is enough existing code that it will need to be
+		// fixed up first before the exception it is removed.
+ 		{
+ 			UProperty* ExistingProp = Cast<UProperty>(Existing);
+ 			const bool bExistingPropDeprecated = (ExistingProp != nullptr) && ExistingProp->HasAnyPropertyFlags(CPF_Deprecated);
+ 			const bool bNewPropDeprecated = (VariableCategory == EVariableCategory::Member) && ((VarProperty.PropertyFlags & CPF_Deprecated) != 0);
+ 			if (bNewPropDeprecated || bExistingPropDeprecated)
+ 			{
+ 				// if this is a property and one of them is deprecated, ignore it since it will be removed soon
+ 				bErrorDueToShadowing = false;
+ 			}
+ 		}
+
+		if (bErrorDueToShadowing)
 		{
-			// don't allow it to obscure class properties either
-			if (Existing->IsA(UScriptStruct::StaticClass()))
-			{
-				FError::Throwf(TEXT("%s: '%s' conflicts with struct defined in %s'%s'"), HintText, VarProperty.Identifier, (OuterContextCount > 0) ? TEXT("'within' class") : TEXT(""), *Existing->GetOuter()->GetName());
-			}
-			else
-			{
-				// if this is a property and one of them is deprecated, ignore it since it will be removed soon
-				UProperty* ExistingProp = Cast<UProperty>(Existing);
-				if ( ExistingProp == NULL
-				|| (!ExistingProp->HasAnyPropertyFlags(CPF_Deprecated) && (VarProperty.PropertyFlags & CPF_Deprecated) == 0) )
-				{
-					FError::Throwf(TEXT("%s: '%s' conflicts with previously defined field in %s'%s'"), HintText, VarProperty.Identifier, (OuterContextCount > 0) ? TEXT("'within' class") : TEXT(""), *Existing->GetOuter()->GetName() );
-				}
-			}
+			FError::Throwf(TEXT("%s: '%s' cannot be defined in '%s' as it is already defined in scope '%s' (shadowing is not allowed)"), HintText, VarProperty.Identifier, *Scope->GetName(), *Existing->GetOuter()->GetName());
 		}
 	}
 
@@ -6705,7 +6706,7 @@ ECompilationResult::Type FHeaderParser::ParseRestOfModulesSourceFiles(FClasses& 
 		if (SourceFile->GetPackage() == ModulePackage && (!SourceFile->IsParsed() || SourceFile->GetDefinedClassesCount() == 0))
 		{
 			ECompilationResult::Type Result;
-			if ((Result = ParseHeaders(AllClasses, HeaderParser, SourceFile, true, UHTMakefile)) != ECompilationResult::Succeeded)
+			if ((Result = ParseHeaders(AllClasses, HeaderParser, SourceFile, UHTMakefile)) != ECompilationResult::Succeeded)
 			{
 				return Result;
 			}
@@ -6716,7 +6717,7 @@ ECompilationResult::Type FHeaderParser::ParseRestOfModulesSourceFiles(FClasses& 
 }
 
 // Parse Class's annotated headers and optionally its child classes.
-ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile* SourceFile, bool bParseSubclasses, FUHTMakefile& UHTMakefile)
+ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile* SourceFile, FUHTMakefile& UHTMakefile)
 {
 	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 
@@ -6760,19 +6761,11 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 	{
 		SourceFile->GetScope()->IncludeScope(&RequiredFile->GetScope().Get());
 
-		ECompilationResult::Type SuperClassParseResult = ParseHeaders(AllClasses, HeaderParser, RequiredFile, true, UHTMakefile);
+		ECompilationResult::Type ParseResult = ParseHeaders(AllClasses, HeaderParser, RequiredFile, UHTMakefile);
 
-		if (SuperClassParseResult == ECompilationResult::Succeeded)
+		if (ParseResult != ECompilationResult::Succeeded)
 		{
-			continue;
-		}
-
-		SuperClassParseResult = ParseHeaders(AllClasses, HeaderParser, RequiredFile, false, UHTMakefile);
-
-		if (SuperClassParseResult != ECompilationResult::Succeeded)
-		{
-			Result = SuperClassParseResult;
-			break;
+			return ParseResult;
 		}
 	}
 
@@ -7072,7 +7065,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 			{
 				if (SourceFile->GetPackage() == CurrentPackage && (!SourceFile->IsParsed() || SourceFile->GetDefinedClassesCount() == 0))
 				{
-					Result = ParseHeaders(ModuleClasses, HeaderParser, SourceFile, true, UHTMakefile);
+					Result = ParseHeaders(ModuleClasses, HeaderParser, SourceFile, UHTMakefile);
 					if (Result != ECompilationResult::Succeeded)
 					{
 						return Result;

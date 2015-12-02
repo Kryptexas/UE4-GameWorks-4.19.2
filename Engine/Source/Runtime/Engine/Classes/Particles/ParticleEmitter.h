@@ -173,6 +173,37 @@ class UParticleEmitter : public UObject
 	UPROPERTY(EditAnywhere, Category = Particle)
 	uint32 bDisabledLODsKeepEmitterAlive : 1;
 
+	//////////////////////////////////////////////////////////////////////////
+	// Below is information udpated by calling CacheEmitterModuleInfo
+
+	uint32 bRequiresLoopNotification : 1;
+	uint32 bAxisLockEnabled : 1;
+	uint32 bMeshRotationActive : 1;
+	TEnumAsByte<EParticleAxisLock> LockAxisFlags;
+
+	/** Map module pointers to their offset into the particle data.		*/
+	TMap<UParticleModule*, uint32> ModuleOffsetMap;
+
+	/** Map module pointers to their offset into the instance data.		*/
+	TMap<UParticleModule*, uint32> ModuleInstanceOffsetMap;
+
+	/** Materials collected from any MeshMaterial modules */
+	TArray<class UMaterialInterface*> MeshMaterials;
+
+	int32 DynamicParameterDataOffset;
+	int32 LightDataOffset;
+	int32 CameraPayloadOffset;
+	int32 ParticleSize;
+	int32 ReqInstanceBytes;
+	FVector2D PivotOffset;
+	int32 TypeDataOffset;
+	int32 TypeDataInstanceOffset;
+
+	// Array of modules that want emitter instance data
+	TArray<UParticleModule*> ModulesNeedingInstanceData;
+
+	//////////////////////////////////////////////////////////////////////////
+
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -309,6 +340,9 @@ class UParticleEmitter : public UObject
 	 * Builds data needed for simulation by the emitter from all modules.
 	 */
 	void Build();
+
+	/** Pre-calculate data size/offset and other info from modules in this Emitter */
+	void CacheEmitterModuleInfo();
 
 	/**
 	 *   Calculate spawn rate multiplier based on global effects quality level and emitter's quality scale

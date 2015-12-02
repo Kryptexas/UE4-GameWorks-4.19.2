@@ -526,16 +526,17 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 struct FNavigationProjectionWork
 {
 	const FVector Point;
+	FBox ProjectionLimit;
 	FNavLocation OutLocation;
 	bool bResult;
 	bool bIsValid;
 
-	explicit FNavigationProjectionWork(const FVector& StartPoint)
-		: Point(StartPoint), bResult(false), bIsValid(true)
+	explicit FNavigationProjectionWork(const FVector& StartPoint, const FBox& CustomProjectionLimits = FBox(ForceInit))
+		: Point(StartPoint), ProjectionLimit(CustomProjectionLimits), bResult(false), bIsValid(true)
 	{}
 
 	FNavigationProjectionWork()
-		: Point(FNavigationSystem::InvalidLocation), bResult(false), bIsValid(false)
+		: Point(FNavigationSystem::InvalidLocation), ProjectionLimit(ForceInit), bResult(false), bIsValid(false)
 	{}
 };
 
@@ -572,6 +573,7 @@ struct ENGINE_API FPathFindingQuery
 	FVector EndLocation;
 	FSharedConstNavQueryFilter QueryFilter;
 	FNavPathSharedPtr PathInstanceToFill;
+	FNavAgentProperties NavAgentProperties;
 
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
@@ -583,15 +585,15 @@ struct ENGINE_API FPathFindingQuery
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 
-	DEPRECATED(4.8, "This version of FPathFindingQuery's constructor is deprecated. Please use ANavigationData reference rather than a pointer")
-	FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
-
 	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
+
+	FPathFindingQuery(const INavAgentInterface& InNavAgent, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 
 	explicit FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride = NULL);
 
 	FPathFindingQuery& SetPathInstanceToUpdate(FNavPathSharedPtr InPathInstanceToFill) { PathInstanceToFill = InPathInstanceToFill; return *this; }
 	FPathFindingQuery& SetAllowPartialPaths(bool bAllow) { bAllowPartialPaths = bAllow; return *this; }
+	FPathFindingQuery& SetNavAgentProperties(const FNavAgentProperties& InNavAgentProperties) { NavAgentProperties = InNavAgentProperties; return *this; }
 };
 
 namespace EPathFindingMode

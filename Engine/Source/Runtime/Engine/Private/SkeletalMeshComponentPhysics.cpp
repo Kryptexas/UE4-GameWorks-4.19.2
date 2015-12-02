@@ -739,6 +739,43 @@ void USkeletalMeshComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysM
 	}
 }
 
+void USkeletalMeshComponent::SetEnableGravity(bool bGravityEnabled)
+{
+	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
+	{
+		return;
+	}
+
+	BodyInstance.bEnableGravity = bGravityEnabled;
+
+	if (UPhysicsAsset * PhysAsset = GetPhysicsAsset())
+	{
+		for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
+		{
+			if (FBodyInstance* BodyInstance = Bodies[BodyIdx])
+			{
+				if (UBodySetup * PhysAssetBodySetup = PhysAsset->BodySetup[BodyIdx])
+				{
+					bool bUseGravityEnabled = bGravityEnabled;
+					
+					//If the default body instance has gravity turned off then turning it ON for skeletal mesh component does not turn the instance on
+					if(bUseGravityEnabled && !PhysAssetBodySetup->DefaultInstance.bEnableGravity)	
+					{
+						bUseGravityEnabled = false;
+					}
+				
+					BodyInstance->SetEnableGravity(bUseGravityEnabled);
+				}
+			}
+		}
+	}
+}
+
+bool USkeletalMeshComponent::IsGravityEnabled() const
+{
+	return BodyInstance.bEnableGravity;
+}
+
 DECLARE_CYCLE_STAT(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics);
 
 TAutoConsoleVariable<int32> CVarEnableRagdollPhysics(TEXT("p.RagdollPhysics"), 1, TEXT("If 1, ragdoll physics will be used. Otherwise just root body is simulated"));
@@ -2155,6 +2192,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::
 	verify(NxParameterized::setParamF32(*ActorDesc,"lodWeights.benefitsBias",0));
 
 	verify(NxParameterized::setParamBool(*ActorDesc, "localSpaceSim", bLocalSpaceSimulation));
+	verify(NxParameterized::setParamBool(*ActorDesc, "flags.ComputeRenderData", false));
 
 	// Initialize the global pose
 

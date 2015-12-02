@@ -1,6 +1,12 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Widgets/SCompoundWidget.h"
+
+class FVisualLoggerTimeSliderController;
+class SVisualLoggerView;
+class STimeline;
+class STimelinesBar;
 
 /**
 * A list of filters currently applied to an asset view.
@@ -20,11 +26,11 @@ public:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	/** Constructs this widget with InArgs */
-	void Construct(const FArguments& InArgs, TSharedRef<class SVisualLoggerView>, TSharedRef<FVisualLoggerTimeSliderController> TimeSliderController);
+	void Construct(const FArguments& InArgs, TSharedRef<SVisualLoggerView>, TSharedRef<FVisualLoggerTimeSliderController> TimeSliderController);
 	TSharedRef<SWidget> GetRightClickMenuContent();
 
-	void OnTimelineSelected(TSharedPtr<class STimelinesBar> Widget);
-	void ChangeSelection(class TSharedPtr<class STimeline>, const FPointerEvent& MouseEvent);
+	void OnTimelineSelected(TSharedPtr<STimelinesBar> Widget);
+	void ChangeSelection(TSharedPtr<STimeline>, const FPointerEvent& MouseEvent);
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	void OnFiltersChanged();
@@ -42,14 +48,14 @@ public:
 	* @param bSelect				Whether or not to select
 	* @param bDeselectOtherNodes	Whether or not to deselect all other nodes
 	*/
-	void SetSelectionState(TSharedPtr<class STimeline> AffectedNode, bool bSelect, bool bDeselectOtherNodes = true);
+	void SetSelectionState(TSharedPtr<STimeline> AffectedNode, bool bSelect, bool bDeselectOtherNodes = true);
 
 	/**
 	* @return All currently selected nodes
 	*/
-	const TArray< TSharedPtr<class STimeline> >& GetSelectedNodes() const { return CachedSelectedTimelines; }
+	const TArray< TSharedPtr<STimeline> >& GetSelectedNodes() const { return CachedSelectedTimelines; }
 
-	const TArray< TSharedPtr<class STimeline> >& GetAllNodes() const { return TimelineItems; }
+	const TArray< TSharedPtr<STimeline> >& GetAllNodes() const { return TimelineItems; }
 
 	/**
 	* Returns whether or not a node is selected
@@ -57,7 +63,7 @@ public:
 	* @param Node	The node to check for selection
 	* @return true if the node is selected
 	*/
-	bool IsNodeSelected(TSharedPtr<class STimeline> Node) const;
+	bool IsNodeSelected(TSharedPtr<STimeline> Node) const;
 
 protected:
 	void OnNewRowHandler(const FVisualLoggerDBRow& DBRow);
@@ -67,10 +73,12 @@ protected:
 
 protected:
 	TSharedPtr<SVerticalBox> ContainingBorder;
-	TSharedPtr<class FVisualLoggerTimeSliderController> TimeSliderController;
-	TSharedPtr<class SVisualLoggerView> VisualLoggerView;
+	TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController;
+	TSharedPtr<SVisualLoggerView> VisualLoggerView;
 
-	TArray<TSharedPtr<class STimeline> > TimelineItems;
-	TArray< TSharedPtr<class STimeline> > CachedSelectedTimelines;
+	TArray<TSharedPtr<STimeline> > TimelineItems;
+	TArray<TSharedPtr<STimeline> > CachedSelectedTimelines;
 	float CachedMinTime, CachedMaxTime;
+
+	FText CurrentSearchText;
 };

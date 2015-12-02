@@ -20,6 +20,10 @@ DECLARE_CYCLE_STAT(TEXT("Finalize Parallel Queue"),STAT_FinalizeParallelQueue,ST
 DECLARE_CYCLE_STAT(TEXT("Schedule cooldowns"),STAT_ScheduleCooldowns,STATGROUP_Game);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Ticks Queued"),STAT_TicksQueued,STATGROUP_Game);
 DECLARE_CYCLE_STAT(TEXT("TG_NewlySpawned"), STAT_TG_NewlySpawned, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("ReleaseTickGroup"), STAT_ReleaseTickGroup, STATGROUP_TickGroups);
+DECLARE_CYCLE_STAT(TEXT("ReleaseTickGroup Block"), STAT_ReleaseTickGroup_Block, STATGROUP_TickGroups);
+
+
 
 static TAutoConsoleVariable<float> CVarStallStartFrame(
 	TEXT("CriticalPathStall.TickStartFrame"),
@@ -458,7 +462,7 @@ public:
 		checkSlow(WorldTickGroup >= 0 && WorldTickGroup < TG_MAX);
 
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup);
+			SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup);
 			if (SingleThreadedMode() || CVarAllowAsyncTickDispatch.GetValueOnGameThread() == 0)
 			{
 				DispatchTickGroup(ENamedThreads::GameThread, WorldTickGroup);
@@ -473,7 +477,7 @@ public:
 
 		if (bBlockTillComplete || SingleThreadedMode())
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup_Block);
+			SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup_Block);
 			for (ETickingGroup Block = WaitForTickGroup; Block <= WorldTickGroup; Block = ETickingGroup(Block + 1))
 			{
 				if (TickCompletionEvents[Block].Num())

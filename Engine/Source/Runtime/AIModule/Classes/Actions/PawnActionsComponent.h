@@ -4,6 +4,7 @@
 
 #include "Components/ActorComponent.h"
 #include "GameFramework/Pawn.h"
+#include "AITypes.h"
 #include "PawnActionsComponent.generated.h"
 
 class UPawnAction;

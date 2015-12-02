@@ -10,9 +10,6 @@
 
 struct FAnimNode_Base;
 
-/** Delegate fired for nodes to gather any data they need on the game thread before */
-DECLARE_DELEGATE_OneParam(FGameThreadPreUpdateEvent, const UAnimInstance* /*InAnimInstance*/);
-
 /** Proxy object passed around during animation tree update in lieu of a UAnimInstance */
 USTRUCT(meta = (DisplayName = "Native Variables"))
 struct ENGINE_API FAnimInstanceProxy
@@ -211,15 +208,7 @@ public:
 
 	/** Register a named slot */
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
-
-	/** 
-	 * Add a pre-update event. Events can be added more than once. Subsequent adds will be ignored.
-	 * Events are called from PreUpdate() on the game thread.
-	 * This is intended to be used by FAnimNode_Base-derived classes that need to perform some Update() work on the game thread.
-	 * @param	InEvent		The event to register
-	 */
-	void AddGameThreadPreUpdateEvent(const FGameThreadPreUpdateEvent& InEvent);
-
+	
 	/** Check whether we have a valid root node */
 	bool HasRootNode() const
 	{ 
@@ -260,6 +249,8 @@ public:
 	 * Passing NAME_None to InstanceName will return the first (assumed only) player instance index found.
 	 */
 	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
+
+
 
 	/** Only restricted classes can access the protected interface */
 	friend class UAnimInstance;
@@ -466,6 +457,7 @@ protected:
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
+
 private:
 	/** Object ptr to our UAnimInstance */
 	mutable UObject* AnimInstanceObject;
@@ -553,7 +545,7 @@ private:
 	TArray<struct FActiveVertexAnim> VertexAnims;
 
 	/** Delegate fired on the game thread before update occurs */
-	TArray<FGameThreadPreUpdateEvent> GameThreadPreUpdateEvents;
+	TArray<FAnimNode_Base*> GameThreadPreUpdateNodes;
 
 	/** Native transition rules */
 	TArray<FNativeTransitionBinding> NativeTransitionBindings;

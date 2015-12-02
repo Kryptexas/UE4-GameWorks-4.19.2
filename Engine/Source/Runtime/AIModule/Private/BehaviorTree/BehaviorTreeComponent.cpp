@@ -1270,6 +1270,9 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		ExecutionRequest = FBTNodeExecutionInfo();
 	}
 
+	// unlock execution data, can get locked again if AbortCurrentTask starts any new requests
+	PendingExecution.Unlock();
+
 	if (bIsSearchValid)
 	{
 		// abort task if needed
@@ -1287,8 +1290,6 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		UE_VLOG(GetOwner(), LogBehaviorTree, Verbose, TEXT("Search result is not valid, reverted all changes."));
 	}
 
-	// it could be locked by failed search attempt
-	PendingExecution.Unlock();
 	ProcessPendingExecution();
 }
 

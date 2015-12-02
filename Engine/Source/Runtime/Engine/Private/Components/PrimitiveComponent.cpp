@@ -2291,6 +2291,20 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 	return true;
 }
 
+void UPrimitiveComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (BodyInstance.bSimulatePhysics && !BodyInstance.WeldParent)
+	{
+		//Since the object is physically simulated it can't be attached
+		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
+		bDisableDetachmentUpdateOverlaps = true;
+		DetachFromParent(/*MaintainWorldPosition =*/ true);
+		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+	}
+}
+
 void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore)
 {
 	// Clean up stale references

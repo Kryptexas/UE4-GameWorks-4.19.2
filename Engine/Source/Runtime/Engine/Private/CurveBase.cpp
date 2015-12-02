@@ -4,6 +4,8 @@
 #include "CsvParser.h"
 #include "EditorFramework/AssetImportData.h"
 
+DECLARE_CYCLE_STAT(TEXT("RichCurve Eval"), STAT_RichCurve_Eval, STATGROUP_Engine);
+
 
 /* FKeyHandleMap
  *****************************************************************************/
@@ -1303,7 +1305,7 @@ void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
 
 float FRichCurve::Eval(float InTime, float InDefaultValue) const
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_RichCurve_Eval);
+	SCOPE_CYCLE_COUNTER(STAT_RichCurve_Eval);
 
 	// Remap time if extrapolation is present and compute offset value to use if cycling 
 	float CycleValueOffset = 0;

@@ -44,8 +44,6 @@ void FAnimNode_AnimDynamics::Initialize(const FAnimationInitializeContext& Conte
 {
 	FAnimNode_SkeletalControlBase::Initialize(Context);
 
-	Context.AnimInstanceProxy->AddGameThreadPreUpdateEvent(FGameThreadPreUpdateEvent::CreateRaw(this, &FAnimNode_AnimDynamics::HandleGameThreadPreUpdateEvent));
-
 	FBoneContainer& RequiredBones = Context.AnimInstanceProxy->GetRequiredBones();
 
 	BoundBone.Initialize(RequiredBones);
@@ -577,7 +575,7 @@ void FAnimNode_AnimDynamics::UpdateLimits(USkeletalMeshComponent* SkelComp, FCSP
 	}
 }
 
-void FAnimNode_AnimDynamics::HandleGameThreadPreUpdateEvent(const UAnimInstance* InAnimInstance)
+void FAnimNode_AnimDynamics::PreUpdate(const UAnimInstance* InAnimInstance)
 {
 	const USkeletalMeshComponent* SkelComp = InAnimInstance->GetSkelMeshComponent();
 	const UWorld* World = SkelComp->GetWorld();

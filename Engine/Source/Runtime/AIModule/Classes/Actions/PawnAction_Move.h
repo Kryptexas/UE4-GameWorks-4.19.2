@@ -1,8 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "TimerManager.h"
-#include "PawnAction.h"
+#include "Actions/PawnAction.h"
 #include "PawnAction_Move.generated.h"
 
 class AActor;

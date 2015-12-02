@@ -38,6 +38,9 @@ DEFINE_STAT(STAT_TrailTickTime);
 
 DEFINE_STAT(STAT_AnimTrailNotifyTime);
 
+DECLARE_CYCLE_STAT(TEXT("TrailEmitterInstance Init"), STAT_TrailEmitterInstance_Init, STATGROUP_Particles);
+
+
 #define MAX_TRAIL_INDICES	65535
 
 /*-----------------------------------------------------------------------------
@@ -45,13 +48,14 @@ DEFINE_STAT(STAT_AnimTrailNotifyTime);
 -----------------------------------------------------------------------------*/
 void FParticleTrailsEmitterInstance_Base::Init()
 {
+	SCOPE_CYCLE_COUNTER(STAT_TrailEmitterInstance_Init);
 	FParticleEmitterInstance::Init();
 	SetupTrailModules();
 }
 
-void FParticleTrailsEmitterInstance_Base::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources)
+void FParticleTrailsEmitterInstance_Base::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
 {
-	FParticleEmitterInstance::InitParameters(InTemplate, InComponent, bClearResources);
+	FParticleEmitterInstance::InitParameters(InTemplate, InComponent);
 	if (GIsEditor)
 	{
 		UParticleLODLevel* LODLevel	= InTemplate->GetLODLevel(0);
@@ -750,9 +754,9 @@ FParticleRibbonEmitterInstance::~FParticleRibbonEmitterInstance()
 {
 }
 
-void FParticleRibbonEmitterInstance::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources)
+void FParticleRibbonEmitterInstance::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
 {
-	FParticleTrailsEmitterInstance_Base::InitParameters(InTemplate, InComponent, bClearResources);
+	FParticleTrailsEmitterInstance_Base::InitParameters(InTemplate, InComponent);
 
 	// We don't support LOD on trails
 	UParticleLODLevel* LODLevel	= InTemplate->GetLODLevel(0);
@@ -1353,8 +1357,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 				if (SpawnModule->bEnabled)
 				{
 					UParticleModule* OffsetModule	= LODLevel->SpawnModules[ModuleIndex];
-					uint32* Offset = ModuleOffsetMap.Find(OffsetModule);
-					SpawnModule->Spawn(this, Offset ? *Offset : 0, SpawnTime, Particle);
+					SpawnModule->Spawn(this, GetModuleDataOffset(OffsetModule), SpawnTime, Particle);
 				}
 			}
 			PostSpawn(Particle, 1.f - float(SpawnIdx + 1) / float(SpawnNumber), SpawnTime);
@@ -1826,8 +1829,7 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 						continue;
 					}
 
-					uint32* Offset = ModuleOffsetMap.Find(SpawnModule);
-					SpawnModule->Spawn(this, Offset ? *Offset : 0, SpawnTime, Particle);
+					SpawnModule->Spawn(this, GetModuleDataOffset(SpawnModule), SpawnTime, Particle);
 				}
 
 				if (LODLevel->TypeDataModule)
@@ -1996,7 +1998,7 @@ void FParticleRibbonEmitterInstance::SetupTrailModules()
 		else if (CheckSourceModule != NULL)
 		{
 			SourceModule = CheckSourceModule;
-			uint32* Offset = ModuleOffsetMap.Find(CheckSourceModule);
+			uint32* Offset = SpriteTemplate->ModuleOffsetMap.Find(CheckSourceModule);
 			if (Offset != NULL)
 			{
 				TrailModule_Source_Offset = *Offset;
@@ -2875,9 +2877,9 @@ FParticleAnimTrailEmitterInstance::~FParticleAnimTrailEmitterInstance()
 {
 }
 
-void FParticleAnimTrailEmitterInstance::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources)
+void FParticleAnimTrailEmitterInstance::InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
 {
-	FParticleTrailsEmitterInstance_Base::InitParameters(InTemplate, InComponent, bClearResources);
+	FParticleTrailsEmitterInstance_Base::InitParameters(InTemplate, InComponent);
 
 	// We don't support LOD on trails
 	UParticleLODLevel* LODLevel	= InTemplate->GetLODLevel(0);
@@ -3093,8 +3095,7 @@ void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex
 			continue;
 		}
 
-		uint32* Offset = ModuleOffsetMap.Find(SpawnModule);
-		SpawnModule->Spawn(this, Offset ? *Offset : 0, SpawnTime, Particle);
+		SpawnModule->Spawn(this, GetModuleDataOffset(SpawnModule), SpawnTime, Particle);
 	}
 
 	if ((1.0f / Particle->OneOverMaxLifetime) < 0.001f)

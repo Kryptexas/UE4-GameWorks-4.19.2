@@ -463,8 +463,8 @@ namespace EditorAnimUtils
 	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType )
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
-		FSmartNameMapping* OldNameMapping = OldSkeleton->SmartNames.GetContainer(ContainerName);
-		FSmartNameMapping* NewNameMapping = NewSkeleton->SmartNames.GetContainer(ContainerName);
+		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
+		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetSmartNameContainer(ContainerName);
 		SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping, CurveType);
 
 		switch (CurveType)
@@ -473,7 +473,7 @@ namespace EditorAnimUtils
 			{
 				for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
 				{
-					NewNameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
 				}
 				break;
 			}
@@ -481,7 +481,7 @@ namespace EditorAnimUtils
 			{
 				for(FVectorCurve& Curve : SequenceBase->RawCurveData.VectorCurves)
 				{
-					NewNameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
 				}
 				break;
 			}
@@ -489,7 +489,7 @@ namespace EditorAnimUtils
 			{
 				for(FTransformCurve& Curve : SequenceBase->RawCurveData.TransformCurves)
 				{
-					NewNameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
 				}
 				break;
 			}

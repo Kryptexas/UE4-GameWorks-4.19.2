@@ -937,7 +937,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 	{
 		FName Name = *CurveName;
 		USkeleton* Skeleton = TargetSequence->GetSkeleton();
-		FSmartNameMapping* NameMapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
+		const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 
 		// Add or retrieve curve
 		USkeleton::AnimCurveUID Uid;
@@ -947,7 +947,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 			Skeleton->Modify();
 		}
 
-		NameMapping->AddOrFindName(Name, Uid);
+		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, Uid);
 
 		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if(CurveToImport==NULL)
