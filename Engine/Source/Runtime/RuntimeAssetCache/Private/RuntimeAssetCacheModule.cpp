@@ -29,7 +29,7 @@ public:
 	*/
 	virtual FRuntimeAssetCacheInterface& GetRuntimeAssetCache() override
 	{
-		static FRuntimeAssetCache RuntimeAssetCache = FRuntimeAssetCache();
+		static FRuntimeAssetCache RuntimeAssetCache;
 		return RuntimeAssetCache;
 	}
 

@@ -47,8 +47,10 @@ typedef FHTML5PlatformProcess FPlatformProcess;
  */
 class FHTML5CriticalSection
 {
-
 public:
+
+	FHTML5CriticalSection() {}
+
 	/**
 	 * Locks the critical section
 	 */
