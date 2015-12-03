@@ -352,20 +352,32 @@ void FWindowsApplication::SetHighPrecisionMouseMode( const bool Enable, const TS
 	::RegisterRawInputDevices( &RawInputDevice, 1, sizeof( RAWINPUTDEVICE ) );
 }
 
+typedef BOOL(*pWin32CalculatePopupWindowPosition)( const POINT* /*anchorPoint*/, const SIZE* /*windowSize*/, UINT /*flags*/, RECT* /*excludeRect*/, RECT* /*popupWindowPosition*/ );
+static pWin32CalculatePopupWindowPosition GetCalculatePopupWindowPosition()
+{
+	static pWin32CalculatePopupWindowPosition Function = (pWin32CalculatePopupWindowPosition)(void*)GetProcAddress(GetModuleHandle(TEXT("User32.dll")), "CalculatePopupWindowPosition");
+	return Function;
+}
+
 bool FWindowsApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
 {
-#if(_WIN32_WINNT >= 0x0601) 
-	POINT AnchorPoint = { FMath::TruncToInt(InAnchor.Left), FMath::TruncToInt(InAnchor.Top) };
-	SIZE WindowSize = { FMath::TruncToInt(InSize.X), FMath::TruncToInt(InSize.Y) };
+	if ( pWin32CalculatePopupWindowPosition LinkedCalculatePopupWindowPosition = GetCalculatePopupWindowPosition() )
+	{
+		SIZE WindowSize = { FMath::TruncToInt(InSize.X), FMath::TruncToInt(InSize.Y) };
+		RECT ExcludeRect  = { InAnchor.Left, InAnchor.Top, InAnchor.Right, InAnchor.Bottom };
 
-	RECT WindowPos;
-	::CalculatePopupWindowPosition( &AnchorPoint, &WindowSize, TPM_CENTERALIGN | TPM_VCENTERALIGN, NULL, &WindowPos );
+		POINT AnchorPoint = ( Orientation == EPopUpOrientation::Vertical ) ? POINT({ InAnchor.Left, InAnchor.Bottom }) : POINT({ InAnchor.Right, InAnchor.Top });
 
-	CalculatedPopUpPosition->Set( WindowPos.left, WindowPos.right );
-	return true;
-#else
+		RECT WindowPos;
+		BOOL Success = LinkedCalculatePopupWindowPosition(&AnchorPoint, &WindowSize, TPM_LEFTALIGN | TPM_TOPALIGN, &ExcludeRect, &WindowPos);
+		if ( Success )
+		{
+			CalculatedPopUpPosition->Set(WindowPos.left, WindowPos.top);
+			return true;
+		}
+	}
+
 	return false;
-#endif
 }
 
 FPlatformRect FWindowsApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
@@ -1101,7 +1113,7 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 
 		default:
 			{
-			    int32 HandlerResult = 0;
+				int32 HandlerResult = 0;
 
 				// give others a chance to handle unprocessed messages
 				for (auto Handler : MessageHandlers)
@@ -1806,7 +1818,7 @@ void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, cons
 {
 	const FForceFeedbackValues* InternalValues = &Values;
  
- 	XInput->SetChannelValues( ControllerId, *InternalValues );
+	XInput->SetChannelValues( ControllerId, *InternalValues );
  
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
