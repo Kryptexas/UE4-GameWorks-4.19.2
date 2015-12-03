@@ -233,14 +233,15 @@ private:
 	/** The name of the file that contains the timestamped cache of discovered assets */
 	FString CacheFilename;
 
-	/** When loading a registry from disk, we can allocate all the FAssetData objects in one chunk, to save on 10s of thousands of heap allocations */
-	FDiskCachedAssetData* DiskCachedAssetDataBuffer;
-
 	/** An array of all cached data that was newly discovered this run. This array is just used to make sure they are all deleted at shutdown */
 	TArray<FDiskCachedAssetData*> NewCachedAssetData;
 
-	/** Map of PackageName to cached discovered assets that were loaded from disk */
-	TMap<FName, FDiskCachedAssetData*> DiskCachedAssetDataMap;
+	/** 
+	 * Map of PackageName to cached discovered assets that were loaded from disk. 
+	 * This should only be modified in the loading section of SerializeCache and remain const after
+	 * since NewCachedAssetDataMap keeps pointers to the values in this map.
+	 */
+	TMap<FName, FDiskCachedAssetData> DiskCachedAssetDataMap;
 
 	/** Map of PackageName to cached discovered assets that will be written to disk at shutdown */
 	TMap<FName, FDiskCachedAssetData*> NewCachedAssetDataMap;

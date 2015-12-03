@@ -1556,10 +1556,7 @@ public:
 	template<class UObjectType>
 	void AddReferencedObjects(TArray<UObjectType>& ObjectArray, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
 	{
-		for (auto& Object : ObjectArray)
-		{
-			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
-		}
+		HandleObjectReferences(reinterpret_cast<UObject**>(ObjectArray.GetData()), ObjectArray.Num(), ReferencingObject, ReferencingProperty);
 	}
 
 	/**
@@ -1663,6 +1660,23 @@ protected:
 	 * @param ReferencingProperty Referencing property (if available).
 	 */
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) = 0;
+
+	/**
+	* Handle multiple object references. Called by AddReferencedObjects.
+	* DEFAULT IMPLEMENTAION IS SLOW as it calls HandleObjectReference multiple times. In order to optimize it, provide your own implementation.
+	*
+	* @param Object Referenced object.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty)
+	{
+		for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
+		{
+			UObject*& Object = InObjects[ObjectIndex];
+			HandleObjectReference(Object, InReferencingObject, InReferencingProperty);
+		}
+	}
 };
 
 /**

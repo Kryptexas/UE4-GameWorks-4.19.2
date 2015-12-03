@@ -32,11 +32,9 @@ FString FTimerUnifiedDelegate::ToString() const
 
 	if (FuncDelegate.IsBound())
 	{
-		Object = FuncDelegate.GetUObject();
-		if (IDelegateInstance* Ptr = FuncDelegate.GetDelegateInstance())
-		{
-			FunctionName = Ptr->GetFunctionName();
-		}
+#if USE_DELEGATE_TRYGETBOUNDFUNCTIONNAME
+		FunctionName = FuncDelegate.TryGetBoundFunctionName();
+#endif
 	}
 	else if (FuncDynDelegate.IsBound())
 	{

@@ -500,7 +500,7 @@ protected:
 		const int32 NumFunctions = InvocationList.Num();
 		for( int32 CurFunctionIndex = 0; CurFunctionIndex < NumFunctions; ++CurFunctionIndex )
 		{
-			check( InvocationList[ CurFunctionIndex ] != InDelegate );
+			(void)ensure( InvocationList[ CurFunctionIndex ] != InDelegate );
 		}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		InvocationList.Add( InDelegate );

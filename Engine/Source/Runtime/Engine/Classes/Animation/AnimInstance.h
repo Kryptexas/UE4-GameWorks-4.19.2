@@ -298,10 +298,18 @@ struct FNativeStateBinding
 	/** Delegate to use when checking transition */
 	FOnGraphStateChanged NativeStateDelegate;
 
-	FNativeStateBinding(const FName& InMachineName, const FName& InStateName, const FOnGraphStateChanged& InNativeStateDelegate)
+#if WITH_EDITORONLY_DATA
+	/** Name of this binding */
+	FName BindingName;
+#endif
+
+	FNativeStateBinding(const FName& InMachineName, const FName& InStateName, const FOnGraphStateChanged& InNativeStateDelegate, const FName& InBindingName = NAME_None)
 		: MachineName(InMachineName)
 		, StateName(InStateName)
 		, NativeStateDelegate(InNativeStateDelegate)
+#if WITH_EDITORONLY_DATA
+		, BindingName(InBindingName)
+#endif
 	{
 	}
 };

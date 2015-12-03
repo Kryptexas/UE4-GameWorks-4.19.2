@@ -62,6 +62,10 @@ public:
 	FORCEINLINE void Unlock(void)
 	{
 	}
+
+private:
+	FHTML5CriticalSection(const FHTML5CriticalSection&);
+	FHTML5CriticalSection& operator=(const FHTML5CriticalSection&);
 };
 
 typedef FHTML5CriticalSection FCriticalSection;

@@ -24,8 +24,8 @@ struct CORE_API FStatConstants
 	static const char* ThreadGroupName;
 	static const FName NAME_ThreadGroup;
 
-	/** Stat short name for seconds per cycle. */
-	static const FName NAME_SecondsPerCycle;
+	/** Stat raw name for seconds per cycle. */
+	static const FName RAW_SecondsPerCycle;
 
 	/** Special case category, when we want to Stat to appear at the root of the menu (leaving the category blank omits it from the menu entirely) */
 	static const FName NAME_NoCategory;
@@ -491,7 +491,7 @@ class CORE_API FStatsThreadState
 	void ScanForAdvance(FStatPacketArray& NewData);
 
 public:
-	/** Internal method to add meta data packets to the data structures. **/
+	/** Internal method to update the internal metadata. **/
 	void ProcessMetaDataOnly(TArray<FStatMessage>& Data);
 
 	/** Toggles tracking the most memory expensive stats. */
@@ -640,13 +640,22 @@ public:
 	}
 
 	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
+	void GetInclusiveAggregateStackStats( const TArray<FStatMessage>& CondensedMessages, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr ) const;
+
+	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
 	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr) const;
+
+	/** Gets the old-skool flat grouped exclusive stats. These merge threads, etc and so generally the condensed callstack is less confusing. **/
+	void GetExclusiveAggregateStackStats( const TArray<FStatMessage>& CondensedMessages, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true ) const;
 
 	/** Gets the old-skool flat grouped exclusive stats. These merge threads, etc and so generally the condensed callstack is less confusing. **/
 	void GetExclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true) const;
 
 	/** Used to turn the condensed version of stack stats back into a tree for easier handling. **/
-	void UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Out, IItemFiler* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr) const;
+	void UncondenseStackStats( const TArray<FStatMessage>& CondensedMessages, FRawStatStackNode& Root, IItemFiler* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr ) const;
+
+	/** Used to turn the condensed version of stack stats back into a tree for easier handling. **/
+	void UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Root, IItemFiler* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr) const;
 
 	/** Adds missing stats to the group so it doesn't jitter. **/
 	void AddMissingStats(TArray<FStatMessage>& Dest, TSet<FName> const& EnabledItems) const;
@@ -660,11 +669,13 @@ public:
 		#YRX_Stats: 2015-07-07 Maybe move to FStatsLoadedState
 	-----------------------------------------------------------------------------*/
 public:
+	friend struct FStatsReadFile;
+
 	/** Constructor to load stats from a file **/
 	FStatsThreadState( FString const& Filename );
 
 	/** Adds a frame worth of messages */
-	void AddMessages( TArray<FStatMessage>& InMessages );
+	void AddCondensedMessages( TArray<FStatMessage>& CondensedMessages );
 
 	/** Marks this stats state as loaded. */
 	void MarkAsLoaded()
@@ -673,8 +684,18 @@ public:
 	}
 
 protected:
-	/** Internal method to scan the messages to accumulate any non-frame stats. **/
-	void ProcessMetaDataForLoad( TArray<FStatMessage>& Data );
+	/** Internal method to update the internal metadata. **/
+	void ProcessMetaDataForLoad( TArray<FStatMessage>& CondensedMessages );
+
+	/** 
+	  * Internal method to place the data into the history, 
+	  * maintains the history based on the requested number of frames to keep in the history. 
+	  * The condensed messages are emplaced in the condensed history.
+	  */
+	void AddFrameFromCondensedMessages( TArray<FStatMessage>& CondensedMessages );
+
+	/** Internal method to scan the messages to find the current game/render thread frame. */
+	void AdvanceFrameForLoad( TArray<FStatMessage>& CondensedMessages );
 
 	/** Largest frame seen. Loaded stats only. **/
 	int64 MaxFrameSeen;

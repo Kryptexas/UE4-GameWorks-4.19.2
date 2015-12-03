@@ -55,4 +55,8 @@ public:
 	{
 		pthread_mutex_unlock(&Mutex);
 	}
+
+private:
+	FPThreadsCriticalSection(const FPThreadsCriticalSection&);
+	FPThreadsCriticalSection& operator=(const FPThreadsCriticalSection&);
 };

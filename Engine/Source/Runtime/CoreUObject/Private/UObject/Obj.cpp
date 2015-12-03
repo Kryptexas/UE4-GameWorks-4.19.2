@@ -727,6 +727,12 @@ void UObject::ConditionalPostLoad()
 			PostLoad();
 		}
 
+		extern int32 GCreateGCClusters;
+		if (GCreateGCClusters && FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && CanBeClusterRoot())
+		{
+			CreateCluster();
+		}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (ThreadContext.DebugPostLoad.Contains(this))
 		{

@@ -313,8 +313,10 @@ void FBlueprintCompileReinstancer::GenerateFieldMappings(TMap<UObject*, UObject*
 
 void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Collector)
 {
+	Collector.AllowEliminatingReferences(false);
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
+	Collector.AllowEliminatingReferences(true);
 }
 
 void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)

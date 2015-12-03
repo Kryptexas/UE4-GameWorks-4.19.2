@@ -91,8 +91,7 @@ MS_ALIGN(8)
 struct TStatIdData
 {
 	FORCEINLINE TStatIdData()
-		: Name(NameToMinimalName(NAME_None))
-		, AnsiString(0)
+		: AnsiString(0)
 		, WideString(0)
 	{
 	}
@@ -2071,5 +2070,6 @@ DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, CORE_API);
 DECLARE_FNAME_STAT_EXTERN(TEXT("NamedMarker"),STAT_NamedMarker,STATGROUP_StatSystem, CORE_API);
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Seconds Per Cycle"),STAT_SecondsPerCycle,STATGROUP_Engine, CORE_API);
 
 #endif

@@ -286,11 +286,38 @@ public:
 	 */
 	FString GetPathName( const UObject* StopOuter=NULL ) const;
 
+	/**
+	* Called after load to determine if the object can be a cluster root
+	*
+	* @return	true if this object can be a cluster root
+	*/
+	virtual bool CanBeClusterRoot() const
+	{
+		return false;
+	}
+
+	/**
+	* Called during cluster construction if the object can be added to a cluster
+	*
+	* @return	true if this object can be inside of a cluster
+	*/
+	virtual bool CanBeInCluster() const
+	{
+		return true;
+	}
+
 protected:
+
 	/**
 	 * Internal version of GetPathName() that eliminates lots of copies.
 	 */
 	void GetPathName( const UObject* StopOuter, FString& ResultString ) const;
+
+	/**
+	* Called during PostLoad to create UObject cluster
+	*/
+	virtual void CreateCluster();
+
 public:
 	/**
 	 * Walks up the chain of packages until it reaches the top level, which it ignores.

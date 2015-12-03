@@ -89,8 +89,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				{
 					var BranchList = Context.Crashes
 					.Where( n => n.TimeOfCrash > DateTime.Now.AddMonths( -3 ) )
-					// Depot || Stream
-					.Where( n => n.Branch.StartsWith( "UE4" ) || n.Branch.StartsWith( "//UE4" ) )
+					// Depot - //depot/UE4* || Stream //UE4, //Something etc.
+					.Where( n => n.Branch.StartsWith( "UE4" ) || n.Branch.StartsWith( "//" ) )
 					.Select( n => n.Branch )
 					.Distinct()
 					.ToList();

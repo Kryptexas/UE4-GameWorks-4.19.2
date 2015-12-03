@@ -475,6 +475,11 @@ FDateTime FFileManagerGeneric::GetTimeStamp(const TCHAR* Filename)
 	return GetLowLevel().GetTimeStamp(Filename);
 }
 
+void FFileManagerGeneric::GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
+{
+	GetLowLevel().GetTimeStampPair(PathA, PathB, OutTimeStampA, OutTimeStampB);
+}
+
 bool FFileManagerGeneric::SetTimeStamp(const TCHAR* Filename, FDateTime DateTime)
 {
 	// if the file doesn't exist, fail

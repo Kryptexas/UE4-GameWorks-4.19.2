@@ -213,7 +213,7 @@ protected:
 /** Class for managing the raw stats in the context of memory profiling. */
 class FRawStatsMemoryProfiler : public FStatsReadFile
 {
-	friend struct FCreateStatsReader<FRawStatsMemoryProfiler>;
+	friend struct FStatsReader<FRawStatsMemoryProfiler>;
 	typedef FStatsReadFile Super;
 
 protected:

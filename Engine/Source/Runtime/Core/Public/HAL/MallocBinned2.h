@@ -2,15 +2,13 @@
 
 #pragma once
 
-#define BINNED2_CACHE_FREED_OS_ALLOCS
+#include "Allocators/CachedOSPageAllocator.h"
 
-#if defined BINNED2_CACHE_FREED_OS_ALLOCS
-	#define BINNED2_MAX_CACHED_OS_FREES (64)
-	#if PLATFORM_64BITS
-		#define BINNED2_MAX_CACHED_OS_FREES_BYTE_LIMIT (64*1024*1024)
-	#else
-		#define BINNED2_MAX_CACHED_OS_FREES_BYTE_LIMIT (16*1024*1024)
-	#endif
+#define BINNED2_MAX_CACHED_OS_FREES (64)
+#if PLATFORM_64BITS
+	#define BINNED2_MAX_CACHED_OS_FREES_BYTE_LIMIT (64*1024*1024)
+#else
+	#define BINNED2_MAX_CACHED_OS_FREES_BYTE_LIMIT (16*1024*1024)
 #endif
 
 #if STATS
@@ -42,21 +40,6 @@ private:
 	struct FPoolTable;
 	struct FPoolInfo;
 	struct PoolHashBucket;
-
-#ifdef BINNED2_CACHE_FREED_OS_ALLOCS
-	/**  */
-	struct FFreePageBlock
-	{
-		void*				Ptr;
-		SIZE_T				ByteSize;
-
-		FFreePageBlock() 
-		{
-			Ptr = nullptr;
-			ByteSize = 0;
-		}
-	};
-#endif
 
 	/** Pool table. */
 	struct FPoolTable
@@ -108,53 +91,65 @@ private:
 		}
 	};
 
-	uint64 TableAddressLimit;
+	const uint32 PageSize;
+
+	/** Shift to get the reference from the indirect tables */
+	const uint64 PoolBitShift;
+	const uint64 IndirectPoolBlockSize;
+	const uint64 IndirectPoolBitShift;
 
 	// PageSize dependent constants
-	uint64 MaxHashBuckets; 
-	uint64 MaxHashBucketBits;
-	uint64 MaxHashBucketWaste;
-	uint64 MaxBookKeepingOverhead;
-	/** Shift to get the reference from the indirect tables */
-	uint64 PoolBitShift;
-	uint64 IndirectPoolBitShift;
-	uint64 IndirectPoolBlockSize;
+	const uint64 MaxHashBuckets;
+
 	/** Shift required to get required hash table key. */
-	uint64 HashKeyShift;
+	const uint64 HashKeyShift;
+
 	/** Used to mask off the bits that have been used to lookup the indirect table */
-	uint64 PoolMask;
-	uint64 BinnedSizeLimit;
-	uint64 BinnedOSTableIndex;
+	const uint64 PoolMask;
+	const uint64 BinnedSizeLimit;
+	const uint64 BinnedOSTableIndex;
 
 	// Variables.
 	FPoolTable  PoolTable[POOL_COUNT];
-	FPoolTable	OsTable;
-	FPoolTable	PagePoolTable[EXTENDED_PAGE_POOL_ALLOCATION_COUNT];
-	FPoolTable* MemSizeToPoolTable[MAX_POOLED_ALLOCATION_SIZE+EXTENDED_PAGE_POOL_ALLOCATION_COUNT];
+	FPoolTable  PagePoolTable[EXTENDED_PAGE_POOL_ALLOCATION_COUNT];
+	FPoolTable* MemSizeToPoolTable[MAX_POOLED_ALLOCATION_SIZE + EXTENDED_PAGE_POOL_ALLOCATION_COUNT];
 
 	PoolHashBucket* HashBuckets;
 	PoolHashBucket* HashBucketFreeList;
 
-	uint32		PageSize;
-
-#ifdef BINNED2_CACHE_FREED_OS_ALLOCS
-	FFreePageBlock	FreedPageBlocks[BINNED2_MAX_CACHED_OS_FREES];
-	uint32			FreedPageBlocksNum;
-	uint32			CachedTotal;
-#endif
+	TCachedOSPageAllocator<BINNED2_MAX_CACHED_OS_FREES, BINNED2_MAX_CACHED_OS_FREES_BYTE_LIMIT> CachedOSPageAllocator;
 
 #if STATS
-	BINNED2_STAT		OsCurrent;
-	BINNED2_STAT		OsPeak;
-	BINNED2_STAT		WasteCurrent;
-	BINNED2_STAT		WastePeak;
-	BINNED2_STAT		UsedCurrent;
-	BINNED2_STAT		UsedPeak;
-	BINNED2_STAT		CurrentAllocs;
-	BINNED2_STAT		TotalAllocs;
-	/** OsCurrent - WasteCurrent - UsedCurrent. */
-	BINNED2_STAT		SlackCurrent;
-	double		MemTime;
+	struct FStats
+	{
+		BINNED2_STAT		OsCurrent;
+		BINNED2_STAT		OsPeak;
+		BINNED2_STAT		WasteCurrent;
+		BINNED2_STAT		WastePeak;
+		BINNED2_STAT		UsedCurrent;
+		BINNED2_STAT		UsedPeak;
+		BINNED2_STAT		CurrentAllocs;
+		BINNED2_STAT		TotalAllocs;
+		/** OsCurrent - WasteCurrent - UsedCurrent. */
+		BINNED2_STAT		SlackCurrent;
+		double				MemTime;
+
+		FStats()
+			: OsCurrent    (0)
+			, OsPeak       (0)
+			, WasteCurrent (0)
+			, WastePeak    (0)
+			, UsedCurrent  (0)
+			, UsedPeak     (0)
+			, CurrentAllocs(0)
+			, TotalAllocs  (0)
+			, SlackCurrent (0)
+			, MemTime      (0.0)
+		{
+		}
+	};
+
+	FStats Stats;
 #endif
 
 public:

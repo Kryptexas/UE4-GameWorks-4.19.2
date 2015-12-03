@@ -22,7 +22,6 @@ struct FStats2Globals
 static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
 {} FForceInitAtBootFStats2;
 
-DECLARE_FLOAT_COUNTER_STAT( TEXT("Seconds Per Cycle"), STAT_SecondsPerCycle, STATGROUP_Engine );
 DECLARE_DWORD_COUNTER_STAT( TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
 
 DECLARE_CYCLE_STAT(TEXT("WaitForStats"),STAT_WaitForStats,STATGROUP_Engine);
@@ -36,6 +35,7 @@ DECLARE_MEMORY_STAT( TEXT("Stats Descriptions"), STAT_StatDescMemory, STATGROUP_
 
 DEFINE_STAT(STAT_FrameTime);
 DEFINE_STAT(STAT_NamedMarker);
+DEFINE_STAT(STAT_SecondsPerCycle);
 
 /*-----------------------------------------------------------------------------
 	DebugLeakTest, for the stats based memory profiler
@@ -1076,6 +1076,12 @@ void FThreadStats::Flush( bool bHasBrokenCallstacks /*= false*/, bool bForceFlus
 
 void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlush )
 {
+	if (bReentranceGuard)
+	{
+		return;
+	}
+	TGuardValue<bool> Guard( bReentranceGuard, true );
+
 	enum
 	{
 		PRESIZE_MAX_NUM_ENTRIES = 10,
@@ -1133,11 +1139,11 @@ void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlus
 
 void FThreadStats::FlushRawStats( bool bHasBrokenCallstacks /*= false*/, bool bForceFlush /*= false*/ )
 {
-	if( bReentranceGuard )
+	if (bReentranceGuard)
 	{
 		return;
 	}
-	bReentranceGuard = true;
+	TGuardValue<bool> Guard( bReentranceGuard, true );
 	
 	enum
 	{
@@ -1173,8 +1179,6 @@ void FThreadStats::FlushRawStats( bool bHasBrokenCallstacks /*= false*/, bool bF
 
 		UE_LOG( LogStats, Verbose, TEXT( "FlushRawStats NumMessages: %i (%.2f MB), Thread: %u" ), NumMessages, NumMessagesAsMB, Packet.ThreadId );
 	}
-	
-	bReentranceGuard = false;
 }
 
 void FThreadStats::CheckForCollectingStartupStats()

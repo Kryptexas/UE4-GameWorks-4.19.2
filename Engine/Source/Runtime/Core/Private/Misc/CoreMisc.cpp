@@ -203,9 +203,9 @@ bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint
 /**
  * Save a binary array to a file.
  */
-bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager /*= &IFileManager::Get()*/ )
+bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
 {
-	FArchive* Ar = FileManager->CreateFileWriter( Filename, 0 );
+	FArchive* Ar = FileManager->CreateFileWriter( Filename, WriteFlags );
 	if( !Ar )
 	{
 		return 0;
@@ -219,10 +219,10 @@ bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* File
  * Write the FString to a file.
  * Supports all combination of ANSI/Unicode files and platforms.
  */
-bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename,  EEncodingOptions::Type EncodingOptions, IFileManager* FileManager /*= &IFileManager::Get()*/ )
+bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename,  EEncodingOptions::Type EncodingOptions, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
 {
 	// max size of the string is a UCS2CHAR for each character and some UNICODE magic 
-	auto Ar = TUniquePtr<FArchive>( FileManager->CreateFileWriter( Filename, 0 ) );
+	auto Ar = TUniquePtr<FArchive>( FileManager->CreateFileWriter( Filename, WriteFlags ) );
 	if( !Ar )
 		return false;
 
@@ -585,6 +585,9 @@ bool FCommandLine::Set(const TCHAR* NewCommandLine)
 	}
 
 	FCString::Strncpy( CmdLine, NewCommandLine, ARRAY_COUNT(CmdLine) );
+	// If configured as part of the build, strip out any unapproved args
+	WhitelistCommandLines();
+
 	bIsInitialized = true;
 
 	// Check for the '-' that normal ones get converted to in Outlook. It's important to do it AFTER the command line is initialized
@@ -605,7 +608,81 @@ bool FCommandLine::Set(const TCHAR* NewCommandLine)
 void FCommandLine::Append(const TCHAR* AppendString)
 {
 	FCString::Strncat( CmdLine, AppendString, ARRAY_COUNT(CmdLine) );
+	// If configured as part of the build, strip out any unapproved args
+	WhitelistCommandLines();
 }
+
+#if WANTS_COMMANDLINE_WHITELIST
+TArray<FString> FCommandLine::ApprovedArgs;
+
+#ifdef OVERRIDE_COMMANDLINE_WHITELIST
+/**
+ * When overriding this setting make sure that your define looks like the following in your .cs file:
+ *
+ *		OutCPPEnvironmentConfiguration.Definitions.Add("OVERRIDE_COMMANDLINE_WHITELIST=\"-arg1 -arg2 -arg3 -arg4\"");
+ *
+ * The important part is the \" as they quotes get stripped off by the compiler without them
+ */
+const TCHAR* OverrideList = TEXT(OVERRIDE_COMMANDLINE_WHITELIST);
+#else
+// Default list most conservative restrictions
+const TCHAR* OverrideList = TEXT("-fullscreen /windowed");
+#endif
+
+void FCommandLine::WhitelistCommandLines()
+{
+	if (ApprovedArgs.Num() == 0)
+	{
+		TArray<FString> Ignored;
+		FCommandLine::Parse(OverrideList, ApprovedArgs, Ignored);
+	}
+	// Process the original command line
+	TArray<FString> OriginalList = FilterCommandLine(OriginalCmdLine);
+	BuildWhitelistCommandLine(OriginalCmdLine, ARRAY_COUNT(OriginalCmdLine), OriginalList);
+	// Process the current command line
+	TArray<FString> CmdList = FilterCommandLine(CmdLine);
+	BuildWhitelistCommandLine(CmdLine, ARRAY_COUNT(CmdLine), CmdList);
+}
+
+TArray<FString> FCommandLine::FilterCommandLine(TCHAR* CommandLine)
+{
+	TArray<FString> Ignored;
+	TArray<FString> ParsedList;
+	// Parse the command line list
+	FCommandLine::Parse(CommandLine, ParsedList, Ignored);
+	// Remove any that are not in our approved list
+	for (int32 Index = 0; Index < ParsedList.Num(); Index++)
+	{
+		if (!ApprovedArgs.Contains(ParsedList[Index]))
+		{
+			ParsedList.RemoveAt(Index);
+		}
+	}
+	return ParsedList;
+}
+
+void FCommandLine::BuildWhitelistCommandLine(TCHAR* CommandLine, uint32 ArrayCount, const TArray<FString>& FilteredArgs)
+{
+	check(ArrayCount > 0);
+	// Zero the whole string
+	FMemory::Memzero(OriginalCmdLine, sizeof(TCHAR) * ArrayCount);
+
+	uint32 StartIndex = 0;
+	for (auto Arg : FilteredArgs)
+	{
+		if ((StartIndex + Arg.Len() + 2) < ArrayCount)
+		{
+			if (StartIndex != 0)
+			{
+				CommandLine[StartIndex++] = TEXT(' ');
+			}
+			CommandLine[StartIndex++] = TEXT('-');
+			FCString::Strncpy(&CommandLine[StartIndex], *Arg, ArrayCount - StartIndex);
+			StartIndex += Arg.Len();
+		}
+	}
+}
+#endif
 
 void FCommandLine::AddToSubprocessCommandline( const TCHAR* Param )
 {
@@ -666,9 +743,10 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 	FString NextToken;
 	while (FParse::Token(InCmdLine, NextToken, false))
 	{
-		if ((**NextToken == TCHAR('-')))
+		if ((**NextToken == TCHAR('-')) || (**NextToken == TCHAR('/')))
 		{
 			new(Switches) FString(NextToken.Mid(1));
+			new(Tokens) FString(NextToken.Right(NextToken.Len() - 1));
 		}
 		else
 		{

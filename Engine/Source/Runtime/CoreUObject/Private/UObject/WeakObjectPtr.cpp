@@ -9,10 +9,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogWeakObjectPtr, Log, All);
 
 /*-----------------------------------------------------------------------------------------------------------
-	Base serial number management. This is complicated by the need for thread safety and lock-free implementation
+	Base serial number management.
 -------------------------------------------------------------------------------------------------------------*/
-
-int32** GSerialNumberBlocksForDebugVisualizersRoot = 0;
 
 /*-----------------------------------------------------------------------------------------------------------
 	FWeakObjectPtr

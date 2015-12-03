@@ -218,9 +218,10 @@ struct FMath : public FPlatformMath
 	 *	@param Value	Number to check
 	 *	@return			true if Value is a power of two
 	 */
-	static FORCEINLINE bool IsPowerOfTwo( uint32 Value )
+	template <typename T>
+	static FORCEINLINE bool IsPowerOfTwo( T Value )
 	{
-		return ((Value & (Value - 1)) == 0);
+		return ((Value & (Value - 1)) == (T)0);
 	}
 
 

@@ -53,4 +53,8 @@ public:
 	{
 		LeaveCriticalSection(&CriticalSection);
 	}
+
+private:
+	FWinRTCriticalSection(const FWinRTCriticalSection&);
+	FWinRTCriticalSection& operator=(const FWinRTCriticalSection&);
 };

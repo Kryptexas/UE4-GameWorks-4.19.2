@@ -197,7 +197,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
-	const FString LocalDepotDir = DepotRoot / DepotName.Replace( ICrashDebugHelper::P4_DEPOT_PREFIX, TEXT( "" ) );
+	const FString LocalDepotDir = EscapePath( DepotRoot / DepotName );
 
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry: %s is being copied from: %s, it will take some time" ), *CleanedLabelName, *OriginalLabelName );
 	for( const auto& Filename : FilesToBeCached )

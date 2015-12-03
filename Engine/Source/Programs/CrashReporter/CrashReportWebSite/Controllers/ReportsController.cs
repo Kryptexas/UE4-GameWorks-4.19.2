@@ -44,7 +44,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			BuggRepository BuggsRepo = new BuggRepository();
 			CrashRepository CrashRepo = new CrashRepository();
 
-			// @TODO yrx 2015-02-17 BuggIDToBeAddedToJira replace with List<int> based on check box and Submit?
 			// It would be great to have a CSV export of this as well with buggs ID being the key I can then use to join them :)
 			// 
 			// Enumerate JIRA projects if needed.

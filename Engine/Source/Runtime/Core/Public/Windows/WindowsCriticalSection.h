@@ -48,25 +48,30 @@ public:
 	}
 
 	/**
-	* Quick test for seeing if the lock is already being used.
-	*/
+	 * Attempt to take a lock and returns whether or not a lock was taken.
+	 *
+	 * @return true if a lock was taken, false otherwise.
+	 */
 	FORCEINLINE bool TryLock()
 	{
 		if (TryEnterCriticalSection(&CriticalSection))
 		{
-			LeaveCriticalSection(&CriticalSection);
 			return true;
 		};
 		return false;
 	}
 
 	/**
-	 * Releases the lock on the critical seciton
+	 * Releases the lock on the critical section
 	 */
 	FORCEINLINE void Unlock()
 	{
 		LeaveCriticalSection(&CriticalSection);
 	}
+
+private:
+	FWindowsCriticalSection(const FWindowsCriticalSection&);
+	FWindowsCriticalSection& operator=(const FWindowsCriticalSection&);
 };
 
 /** System-Wide Critical Section for windows using mutex */

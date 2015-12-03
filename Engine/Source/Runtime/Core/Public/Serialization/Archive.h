@@ -198,7 +198,7 @@ public:
 		ArIsPersistent	= bIsPersistent;
 	}
 
-	// with this method it's possible to attach data behind some serialized data 
+	/** With this method it's possible to attach data behind some serialized data. */
 	void SetLimitSize(int64 NewLimitSize)
 	{
 		LimitSize = NewLimitSize;

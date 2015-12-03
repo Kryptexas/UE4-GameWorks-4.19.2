@@ -25,6 +25,8 @@ class FAsyncLoadingThread : public FRunnable
 	FEvent* CancelLoadingEvent;
 	/** [ASYNC/GAME THREAD] Event used to signal that the async loading thread should be suspended */
 	FEvent* ThreadSuspendedEvent;
+	/** [ASYNC/GAME THREAD] Event used to signal that the async loading thread has resumed */
+	FEvent* ThreadResumedEvent;
 	/** [ASYNC/GAME THREAD] List of queued packages to stream */
 	TArray<FAsyncPackageDesc*> QueuedPackages;
 #if THREADSAFE_UOBJECTS

@@ -122,6 +122,18 @@ struct CORE_API FCommandLine
 	 */
 	static void Parse(const TCHAR* CmdLine, TArray<FString>& Tokens, TArray<FString>& Switches);
 private:
+#if WANTS_COMMANDLINE_WHITELIST
+	/** Filters both the original and current command line list for approved only args */
+	static void WhitelistCommandLines();
+	/** Filters any command line args that aren't on the approved list */
+	static TArray<FString> FilterCommandLine(TCHAR* CommandLine);
+	/** Rebuilds the command line using the filtered args */
+	static void BuildWhitelistCommandLine(TCHAR* CommandLine, uint32 Length, const TArray<FString>& FilteredArgs);
+	static TArray<FString> ApprovedArgs;
+#else
+#define WhitelistCommandLines()
+#endif
+
 	/** Flag to check if the commandline has been initialized or not. */
 	static bool bIsInitialized;
 	/** character buffer containing the command line */
@@ -169,7 +181,7 @@ struct CORE_API FFileHelper
 	/**
 	 * Load a binary file to a dynamic array.
 	*/
-	static bool LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename,uint32 Flags = 0 );
+	static bool LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename, uint32 Flags = 0 );
 
 	/**
 	 * Load a text file to an FString.
@@ -183,13 +195,13 @@ struct CORE_API FFileHelper
 	/**
 	 * Save a binary array to a file.
 	 */
-	static bool SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager=&IFileManager::Get() );
+	static bool SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0 );
 
 	/**
 	 * Write the FString to a file.
 	 * Supports all combination of ANSI/Unicode files and platforms.
 	 */
-	static bool SaveStringToFile( const FString& String, const TCHAR* Filename, EEncodingOptions::Type EncodingOptions=EEncodingOptions::AutoDetect, IFileManager* FileManager=&IFileManager::Get() );
+	static bool SaveStringToFile( const FString& String, const TCHAR* Filename, EEncodingOptions::Type EncodingOptions=EEncodingOptions::AutoDetect, IFileManager* FileManager=&IFileManager::Get(), uint32 WriteFlags = 0 );
 
 	/**
 	 * Saves a 24/32Bit BMP file to disk

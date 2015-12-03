@@ -710,6 +710,10 @@ public:
 	~FD3D12PipelineStateCache();
 
 	static const bool bUseAPILibaries = false;
+
+private:
+	FD3D12PipelineStateCache(const FD3D12PipelineStateCache&);
+	FD3D12PipelineStateCache& operator=(const FD3D12PipelineStateCache&);
 };
 
 class FD3D12BitArray

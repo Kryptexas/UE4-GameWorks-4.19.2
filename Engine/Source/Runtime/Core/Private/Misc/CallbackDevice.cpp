@@ -26,12 +26,6 @@ FCoreDelegates::FObjectArrayForDebugVisualizersDelegate& FCoreDelegates::GetObje
 	return StaticDelegate;
 }
 
-FCoreDelegates::FGetSerialNumberBlocksForDebugVisualizersDelegate& FCoreDelegates::GetSerialNumberBlocksForDebugVisualizersDelegate()
-{
-	static FGetSerialNumberBlocksForDebugVisualizersDelegate StaticDelegate;
-	return StaticDelegate;
-}
-
 FCoreDelegates::FOnMountPak FCoreDelegates::OnMountPak;
 FCoreDelegates::FOnUnmountPak FCoreDelegates::OnUnmountPak;
 FCoreDelegates::FOnUserLoginChangedEvent FCoreDelegates::OnUserLoginChangedEvent; 

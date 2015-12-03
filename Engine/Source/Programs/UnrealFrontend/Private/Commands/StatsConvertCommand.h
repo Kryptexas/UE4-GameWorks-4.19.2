@@ -20,13 +20,5 @@ public:
 protected:
 
 	void InternalRun();
-	void WriteString( FArchive& Writer, const ANSICHAR* Format, ... );
-	void CollectAndWriteStatsValues( FArchive& Writer );
-	void ReadAndConvertStatMessages( FArchive& Reader, FArchive& Writer );
 
-private:
-
-	FStatsReadStream Stream;
-	FStatsThreadState ThreadState;
-	TArray<FName> StatList;
 };

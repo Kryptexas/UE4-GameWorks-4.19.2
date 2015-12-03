@@ -351,7 +351,7 @@ void SProfilerWindow::UpdateEventGraph( const FGuid ProfilerInstanceID, const FE
 
 EVisibility SProfilerWindow::IsSessionOverlayVissible() const
 {
-	if( FProfilerManager::Get()->GetProfilerInstancesNum() > 0 )
+	if( FProfilerManager::Get()->HasValidSession() )
 	{
 		return EVisibility::Hidden;
 	}

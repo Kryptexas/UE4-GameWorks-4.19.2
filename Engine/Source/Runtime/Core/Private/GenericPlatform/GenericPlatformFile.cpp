@@ -18,6 +18,19 @@ const TCHAR* IPlatformFile::GetPhysicalTypeName()
 	return TEXT("PhysicalFile");
 }
 
+void IPlatformFile::GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
+{
+	if (GetLowerLevel())
+	{
+		GetLowerLevel()->GetTimeStampPair(PathA, PathB, OutTimeStampA, OutTimeStampB);
+	}
+	else
+	{
+		OutTimeStampA = GetTimeStamp(PathA);
+		OutTimeStampB = GetTimeStamp(PathB);
+	}
+}
+
 bool IPlatformFile::IterateDirectoryRecursively(const TCHAR* Directory, FDirectoryVisitor& Visitor)
 {
 	class FRecurse : public FDirectoryVisitor

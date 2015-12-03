@@ -1904,10 +1904,10 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 			{
 				// This will be executed on the game thread.
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-					(
+				(
 					FSimpleDelegateGraphTask::FDelegate::CreateStatic(&FLocal::OnGameThread, MarkerName),
 					TStatId(), nullptr, ENamedThreads::GameThread
-					);
+				);
 			}
 		}
 		// @see FStatHierParams

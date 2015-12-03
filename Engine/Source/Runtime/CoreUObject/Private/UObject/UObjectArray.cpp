@@ -8,6 +8,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectArray, Log, All);
 
+TMap<int32, FUObjectCluster*> GUObjectClusters;
+
 void FUObjectArray::AllocateObjectPool(int32 MaxUObjects, int32 MaxObjectsNotConsideredByGC)
 {
 	check(IsInGameThread());
@@ -229,7 +231,7 @@ void FUObjectArray::ShutdownUObjectArray()
 {
 }
 
-UObjectBase*** FUObjectArray::GetObjectArrayForDebugVisualizers()
+FFixedUObjectArray* FUObjectArray::GetObjectArrayForDebugVisualizers()
 {
-	return GUObjectArray.ObjObjects.GetRootBlockForDebuggerVisualizers();
+	return &GUObjectArray.ObjObjects;
 }

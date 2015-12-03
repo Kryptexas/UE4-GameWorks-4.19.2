@@ -313,25 +313,28 @@
 #define PLATFORM_VTABLE_AT_END_OF_CLASS 0 
 
 #ifndef VARARGS
-	#define VARARGS					/* Functions with variable arguments */
+	#define VARARGS									/* Functions with variable arguments */
 #endif
 #ifndef CDECL
-	#define CDECL	    			/* Standard C function */
+	#define CDECL	    							/* Standard C function */
 #endif
 #ifndef STDCALL
-	#define STDCALL					/* Standard calling convention */
+	#define STDCALL									/* Standard calling convention */
 #endif
 #ifndef FORCEINLINE
-	#define FORCEINLINE 			/* Force code to be inline */
+	#define FORCEINLINE 							/* Force code to be inline */
 #endif
 #ifndef FORCENOINLINE
-	#define FORCENOINLINE 			/* Force code to NOT be inline */
+	#define FORCENOINLINE 							/* Force code to NOT be inline */
 #endif
 #ifndef RESTRICT
-	#define RESTRICT __restrict		/* no alias hint */
+	#define RESTRICT __restrict						/* no alias hint */
+#endif
+#ifndef FUNCTION_CHECK_RETURN
+	#define FUNCTION_CHECK_RETURN(...) __VA_ARGS__	/* Wrap a function signature in this to warn that callers should not ignore the return value */
 #endif
 
-#ifndef ASSUME						/* Hints compiler that expression is true; generally restricted to comparisons against constants */
+#ifndef ASSUME										/* Hints compiler that expression is true; generally restricted to comparisons against constants */
 	#define ASSUME(...) 
 #endif
 

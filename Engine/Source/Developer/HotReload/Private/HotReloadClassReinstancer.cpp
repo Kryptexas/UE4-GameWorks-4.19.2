@@ -522,7 +522,9 @@ void FHotReloadClassReinstancer::ReinstanceObjectsAndUpdateDefaults()
 void FHotReloadClassReinstancer::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	FBlueprintCompileReinstancer::AddReferencedObjects(Collector);
+	Collector.AllowEliminatingReferences(false);
 	Collector.AddReferencedObject(CopyOfPreviousCDO);
+	Collector.AllowEliminatingReferences(true);
 }
 
 void FHotReloadClassReinstancer::EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly)

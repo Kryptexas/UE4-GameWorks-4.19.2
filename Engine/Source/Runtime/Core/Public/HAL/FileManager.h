@@ -166,6 +166,11 @@ public:
 	 */
 	virtual FDateTime GetTimeStamp( const TCHAR* Path ) = 0;
 
+	/**
+	* @return the modification time of the given file (or FDateTime::MinValue() on failure)
+	*/
+	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB) = 0;
+
 	/** 
 	 * Sets the modification time of the given file
 	 */

@@ -196,6 +196,15 @@ public:
 	static bool DoesPackageExist(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutFilename = NULL, const bool ShouldGetLocalizedPackage = false);
 
 	/**
+	* Checks if the package and any localized version exist on disk.
+	*
+	* @param LongPackageName Package name.
+	* @param OutFilenameNative Package package filename on disk. Set to empty string if the package is not found.
+	* @param OutFilenameLocalized Localized package filename on disk. Set to empty string if the package is not found
+	**/
+	static bool DoesPackageExistWithLocalization(const FString& LongPackageName, const FGuid* Guid = NULL, FString* OutNativeFilename = NULL, FString* OutLocalizedFilename = NULL);
+
+	/**
 	 * Attempts to find a package given its short name on disk (very slow).
 	 * 
 	 * @param PackageName Package to find.
@@ -363,6 +372,11 @@ public:
 	* @return true if the package could be found on disk.
 	*/
 	static bool FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename);
+
+	/**
+	* TODO
+	*/
+	static void FindPackageFileAndLocalizationWithoutExtension(const FString& InNativePackageFilename, const FString& InLocalizedPackageFilename, FString& OutNativeFilename, FString& OutLocalizedFilename);
 
 private:
 

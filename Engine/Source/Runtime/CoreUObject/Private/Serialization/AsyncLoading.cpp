@@ -820,6 +820,7 @@ FAsyncLoadingThread::FAsyncLoadingThread()
 	QueuedRequestsEvent = FPlatformProcess::GetSynchEventFromPool();
 	CancelLoadingEvent = FPlatformProcess::GetSynchEventFromPool();
 	ThreadSuspendedEvent = FPlatformProcess::GetSynchEventFromPool();
+	ThreadResumedEvent = FPlatformProcess::GetSynchEventFromPool();
 	if (FAsyncLoadingThread::IsMultithreaded())
 	{
 		UE_LOG(LogStreaming, Log, TEXT("Async loading is multithreaded."));
@@ -844,6 +845,8 @@ FAsyncLoadingThread::~FAsyncLoadingThread()
 	CancelLoadingEvent = nullptr;
 	FPlatformProcess::ReturnSynchEventToPool(ThreadSuspendedEvent);
 	ThreadSuspendedEvent = nullptr;
+	FPlatformProcess::ReturnSynchEventToPool(ThreadResumedEvent);
+	ThreadResumedEvent = nullptr;	
 }
 
 bool FAsyncLoadingThread::Init()
@@ -860,7 +863,11 @@ uint32 FAsyncLoadingThread::Run()
 	{
 		if (IsLoadingSuspended.GetValue() == 0)
 		{
-			bWasSuspendedLastFrame = false;
+			if (bWasSuspendedLastFrame)
+			{
+				bWasSuspendedLastFrame = false;
+				ThreadResumedEvent->Trigger();
+			}			
 			TickAsyncThread(false, true, 0.0f);
 		}
 		else if (!bWasSuspendedLastFrame)
@@ -947,6 +954,10 @@ void FAsyncLoadingThread::ResumeLoading()
 	check(IsInGameThread());
 	const int32 SuspendCount = IsLoadingSuspended.Decrement();
 	UE_CLOG(SuspendCount < 0, LogStreaming, Fatal, TEXT("ResumeAsyncLoadingThread: Async loading was resumed more times than it was suspended."));
+	if (IsMultithreaded() && SuspendCount == 0)
+	{
+		ThreadResumedEvent->Wait();
+	}
 }
 
 float FAsyncLoadingThread::GetAsyncLoadPercentage(const FName& PackageName)

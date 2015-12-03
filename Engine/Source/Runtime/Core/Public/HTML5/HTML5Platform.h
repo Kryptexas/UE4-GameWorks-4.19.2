@@ -58,9 +58,11 @@ typedef FHTML5Types FPlatformTypes;
 #define FORCEINLINE _forceinline
 #define FORCENOINLINE __declspec(noinline)	/* Force code to NOT be inline */
 #define CONSTEXPR    
+#define FUNCTION_CHECK_RETURN(...) __declspec("SAL_checkReturn") __VA_ARGS__	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
 #else
 #define FORCEINLINE		inline __attribute__((__always_inline__))		/* Force code to be inline */
 #define FORCENOINLINE	__attribute__((noinline))			/* Force code to NOT be inline */
+#define FUNCTION_CHECK_RETURN(...) __VA_ARGS__ __attribute__ ((warn_unused_result))	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
 #endif
 
 // Optimization macros

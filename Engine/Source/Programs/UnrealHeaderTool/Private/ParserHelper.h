@@ -1739,7 +1739,6 @@ private:
 	TMap<UStruct*,TCHAR*> StructNameMap;
 	TArray<TCHAR*> InterfaceAllocations;
 
-	friend struct FNameLookupCPPArchiveProxy;
 	friend class FUHTMakefile;
 	FUHTMakefile* UHTMakefile;
 	FUnrealSourceFile* UnrealSourceFile;

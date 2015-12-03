@@ -1187,17 +1187,20 @@ public:
 
 	virtual FArchive& operator<<(class FName& Value) override
 	{
-		return InnerArchive << Value;
+		InnerArchive << Value;
+		return *this;
 	}
 
 	virtual FArchive& operator<<(class UObject*& Value) override
 	{
-		return InnerArchive << Value;
+		InnerArchive << Value;
+		return *this;
 	}
 
 	virtual FArchive& operator<<(struct FStringAssetReference& Value) override
 	{
-		return InnerArchive << Value;
+		InnerArchive << Value;
+		return *this;
 	}
 
 	virtual void Serialize(void* V, int64 Length) override

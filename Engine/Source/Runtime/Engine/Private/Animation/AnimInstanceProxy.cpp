@@ -100,7 +100,7 @@ void FAnimInstanceProxy::InitializeRootNode()
 		GameThreadPreUpdateNodes.Reset();
 
 		// cache any state machine descriptions we have
-		for (UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
+		for(UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
 		{
 			if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
 			{
@@ -112,12 +112,12 @@ void FAnimInstanceProxy::InitializeRootNode()
 						GameThreadPreUpdateNodes.Add(AnimNode);
 					}
 
-					if (Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
-					{
+			if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
+			{
 						FAnimNode_StateMachine* StateMachine = static_cast<FAnimNode_StateMachine*>(AnimNode);
-						StateMachine->CacheMachineDescription(AnimClassInterface);
-					}
-				}
+				StateMachine->CacheMachineDescription(AnimClassInterface);
+			}
+		}
 			}
 		}
 
@@ -1174,17 +1174,10 @@ bool FAnimInstanceProxy::HasNativeTransitionBinding(const FName& MachineName, co
 	{
 		if(Binding.MachineName == MachineName && Binding.PreviousStateName == PrevStateName && Binding.NextStateName == NextStateName)
 		{
-			IDelegateInstance* DelegateInstance = Binding.NativeTransitionDelegate.GetDelegateInstance();
-			if(DelegateInstance)
-			{
-				OutBindingName = DelegateInstance->GetFunctionName();
-			}
 #if WITH_EDITORONLY_DATA
-			// if the function wasnt forthcoming with a name, use the explicit name supplied in the binding
-			if(OutBindingName == NAME_None)
-			{
 				OutBindingName = Binding.TransitionName;
-			}
+#else
+			OutBindingName = NAME_None;
 #endif
 			return true;
 		}
@@ -1193,9 +1186,9 @@ bool FAnimInstanceProxy::HasNativeTransitionBinding(const FName& MachineName, co
 	return false;
 }
 
-void FAnimInstanceProxy::AddNativeStateEntryBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeEnteredDelegate)
+void FAnimInstanceProxy::AddNativeStateEntryBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeEnteredDelegate, const FName& BindingName)
 {
-	NativeStateEntryBindings.Add(FNativeStateBinding(MachineName, StateName, NativeEnteredDelegate));
+	NativeStateEntryBindings.Add(FNativeStateBinding(MachineName, StateName, NativeEnteredDelegate, BindingName));
 }
 	
 bool FAnimInstanceProxy::HasNativeStateEntryBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName)
@@ -1204,11 +1197,11 @@ bool FAnimInstanceProxy::HasNativeStateEntryBinding(const FName& MachineName, co
 	{
 		if(Binding.MachineName == MachineName && Binding.StateName == StateName)
 		{
-			IDelegateInstance* DelegateInstance = Binding.NativeStateDelegate.GetDelegateInstance();
-			if(DelegateInstance)
-			{
-				OutBindingName = DelegateInstance->GetFunctionName();
-			}
+#if WITH_EDITORONLY_DATA
+			OutBindingName = Binding.BindingName;
+#else
+			OutBindingName = NAME_None;
+#endif
 			return true;
 		}
 	}
@@ -1216,9 +1209,9 @@ bool FAnimInstanceProxy::HasNativeStateEntryBinding(const FName& MachineName, co
 	return false;
 }
 
-void FAnimInstanceProxy::AddNativeStateExitBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeExitedDelegate)
+void FAnimInstanceProxy::AddNativeStateExitBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeExitedDelegate, const FName& BindingName)
 {
-	NativeStateExitBindings.Add(FNativeStateBinding(MachineName, StateName, NativeExitedDelegate));
+	NativeStateExitBindings.Add(FNativeStateBinding(MachineName, StateName, NativeExitedDelegate, BindingName));
 }
 
 bool FAnimInstanceProxy::HasNativeStateExitBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName)
@@ -1227,11 +1220,11 @@ bool FAnimInstanceProxy::HasNativeStateExitBinding(const FName& MachineName, con
 	{
 		if(Binding.MachineName == MachineName && Binding.StateName == StateName)
 		{
-			IDelegateInstance* DelegateInstance = Binding.NativeStateDelegate.GetDelegateInstance();
-			if(DelegateInstance)
-			{
-				OutBindingName = DelegateInstance->GetFunctionName();
-			}
+#if WITH_EDITORONLY_DATA
+			OutBindingName = Binding.BindingName;
+#else
+			OutBindingName = NAME_None;
+#endif
 			return true;
 		}
 	}

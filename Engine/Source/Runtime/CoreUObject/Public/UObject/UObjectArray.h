@@ -13,9 +13,6 @@
 */
 #define UE_GC_TRACK_OBJ_AVAILABLE (WITH_EDITOR)
 
-/** Used to test for stale weak pointers in the debug visualizers **/
-extern COREUOBJECT_API int32** GSerialNumberBlocksForDebugVisualizersRoot;
-
 /**
 * Single item in the UObject array.
 */
@@ -24,9 +21,21 @@ struct FUObjectItem
 	// Pointer to the allocated object
 	class UObjectBase* Object;
 	// UObject internal flags
-	int32 Flags;
+	int32 ClusterAndFlags;
 	// Weak Object Pointer Serial number associated with the object
 	int32 SerialNumber;
+
+	FORCEINLINE void SetOwnerIndex(int32 OwnerIndex)
+	{
+		check(OwnerIndex >= 0 && (OwnerIndex & int32(EInternalObjectFlags::AllFlags)) == 0);
+		ClusterAndFlags &= int32(EInternalObjectFlags::AllFlags);
+		ClusterAndFlags |= OwnerIndex;
+	}
+
+	FORCEINLINE int32 GetOwnerIndex() const
+	{
+		return ClusterAndFlags & ~int32(EInternalObjectFlags::AllFlags);
+	}
 
 	FORCEINLINE int32 GetSerialNumber() const
 	{
@@ -35,31 +44,33 @@ struct FUObjectItem
 
 	FORCEINLINE void SetFlags(EInternalObjectFlags FlagsToSet)
 	{
-		Flags |= int32(FlagsToSet);
+		check((int32(FlagsToSet) & ~int32(EInternalObjectFlags::AllFlags)) == 0);
+		ClusterAndFlags |= int32(FlagsToSet);
 	}
 
 	FORCEINLINE EInternalObjectFlags GetFlags() const
 	{
-		return EInternalObjectFlags(Flags & int32(EInternalObjectFlags::AllFlags));
+		return EInternalObjectFlags(ClusterAndFlags & int32(EInternalObjectFlags::AllFlags));
 	}
 
 	FORCEINLINE void ClearFlags(EInternalObjectFlags FlagsToClear)
 	{
-		Flags &= ~int32(FlagsToClear);
+		check((int32(FlagsToClear) & ~int32(EInternalObjectFlags::AllFlags)) == 0);
+		ClusterAndFlags &= ~int32(FlagsToClear);
 	}
 
 	FORCEINLINE bool ThisThreadAtomicallyClearedFlag(EInternalObjectFlags FlagToClear)
 	{
-		static_assert(sizeof(int32) == sizeof(Flags), "Flags must be 32-bit for atomics.");
+		static_assert(sizeof(int32) == sizeof(ClusterAndFlags), "Flags must be 32-bit for atomics.");
 		bool bIChangedIt = false;
 		while (1)
 		{
-			int32 StartValue = int32(Flags);
+			int32 StartValue = int32(ClusterAndFlags);
 			if (!(StartValue & int32(FlagToClear)))
 			{
 				break;
 			}
-			int32 OldValue = (int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&Flags, StartValue & ~int32(FlagToClear), StartValue);
+			int32 OldValue = (int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&ClusterAndFlags, StartValue & ~int32(FlagToClear), StartValue);
 			if (OldValue == StartValue)
 			{
 				bIChangedIt = true;
@@ -73,20 +84,20 @@ struct FUObjectItem
 
 	FORCEINLINE bool HasAnyFlags(EInternalObjectFlags InFlags) const
 	{
-		return !!(Flags & int32(InFlags));
+		return !!(ClusterAndFlags & int32(InFlags));
 	}
 
 	FORCEINLINE void SetUnreachable()
 	{
-		Flags |= int32(EInternalObjectFlags::Unreachable);
+		ClusterAndFlags |= int32(EInternalObjectFlags::Unreachable);
 	}
 	FORCEINLINE void ClearUnreachable()
 	{
-		Flags &= ~int32(EInternalObjectFlags::Unreachable);
+		ClusterAndFlags &= ~int32(EInternalObjectFlags::Unreachable);
 	}
 	FORCEINLINE bool IsUnreachable() const
 	{
-		return !!(Flags & int32(EInternalObjectFlags::Unreachable));
+		return !!(ClusterAndFlags & int32(EInternalObjectFlags::Unreachable));
 	}
 	FORCEINLINE bool ThisThreadAtomicallyClearedRFUnreachable()
 	{
@@ -95,45 +106,45 @@ struct FUObjectItem
 
 	FORCEINLINE void SetPendingKill()
 	{
-		Flags |= int32(EInternalObjectFlags::PendingKill);
+		ClusterAndFlags |= int32(EInternalObjectFlags::PendingKill);
 	}
 	FORCEINLINE void ClearPendingKill()
 	{
-		Flags &= ~int32(EInternalObjectFlags::PendingKill);
+		ClusterAndFlags &= ~int32(EInternalObjectFlags::PendingKill);
 	}
 	FORCEINLINE bool IsPendingKill() const
 	{
-		return !!(Flags & int32(EInternalObjectFlags::PendingKill));
+		return !!(ClusterAndFlags & int32(EInternalObjectFlags::PendingKill));
 	}
 
 	FORCEINLINE void SetRootSet()
 	{
-		Flags |= int32(EInternalObjectFlags::RootSet);
+		ClusterAndFlags |= int32(EInternalObjectFlags::RootSet);
 	}
 	FORCEINLINE void ClearRootSet()
 	{
-		Flags &= ~int32(EInternalObjectFlags::RootSet);
+		ClusterAndFlags &= ~int32(EInternalObjectFlags::RootSet);
 	}
 	FORCEINLINE bool IsRootSet() const
 	{
-		return !!(Flags & int32(EInternalObjectFlags::RootSet));
+		return !!(ClusterAndFlags & int32(EInternalObjectFlags::RootSet));
 	}
 
 	FORCEINLINE void SetNoStrongReference()
 	{
-		Flags |= int32(EInternalObjectFlags::NoStrongReference);
+		ClusterAndFlags |= int32(EInternalObjectFlags::NoStrongReference);
 	}
 	FORCEINLINE void ClearNoStrongReference()
 	{
-		Flags &= ~int32(EInternalObjectFlags::NoStrongReference);
+		ClusterAndFlags &= ~int32(EInternalObjectFlags::NoStrongReference);
 	}
 	FORCEINLINE bool IsNoStrongReference() const
 	{
-		return !!(Flags & int32(EInternalObjectFlags::NoStrongReference));
+		return !!(ClusterAndFlags & int32(EInternalObjectFlags::NoStrongReference));
 	}
 	FORCEINLINE void ResetSerialNumberAndFlags()
 	{
-		Flags = 0;
+		ClusterAndFlags = 0;
 		SerialNumber = 0;
 	}
 };
@@ -671,7 +682,7 @@ private:
 	/**
 	 * return the object array for use by debug visualizers
 	 */
-	static UObjectBase*** GetObjectArrayForDebugVisualizers();
+	static FFixedUObjectArray* GetObjectArrayForDebugVisualizers();
 
 	// note these variables are left with the Obj prefix so they can be related to the historical GObj versions
 
@@ -707,8 +718,15 @@ private:
 	FThreadSafeCounter	MasterSerialNumber;
 };
 
+struct FUObjectCluster
+{
+	TArray<int32> Objects;
+	TArray<int32> ReferencedClusters;
+};
+
 /** Global UObject allocator							*/
 extern COREUOBJECT_API FUObjectArray GUObjectArray;
+extern COREUOBJECT_API TMap<int32, FUObjectCluster* > GUObjectClusters;
 
 /**
 	* Static version of IndexToObject for use with TWeakObjectPtr.

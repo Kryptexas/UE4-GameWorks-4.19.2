@@ -40,6 +40,7 @@
 #include "IMotionController.h"
 #include "Scalability.h"
 #include "StatsData.h"
+#include "StatsFile.h"
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
 #include "AudioDeviceManager.h"
@@ -7351,6 +7352,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 	const int32 StatsXOffset = 100;// FPlatformProperties::SupportsWindowedMode() ? 4 : 100;
 
 	int32 MessageY = 35;
+	const int32 FontSizeY = 20;
 
 	if( !GIsEditor )
 	{
@@ -7386,7 +7388,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				}
 				SmallTextItem.Text =  FText::FromString( FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects) );				
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 			
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -7398,7 +7400,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 					SmallTextItem.SetColor(FLinearColor::Red);
 					SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
 					Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-					MessageY += 20;
+					MessageY += FontSizeY;
 				}
 			}
 #endif
@@ -7416,7 +7418,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				SmallTextItem.SetColor( FLinearColor::White );
 				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 
 			if( World->bKismetScriptError )
@@ -7424,7 +7426,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				SmallTextItem.Text = LOCTEXT("BlueprintInLevelHadCompileErrorMessage", "BLUEPRINT COMPILE ERROR" );
 				SmallTextItem.SetColor( FLinearColor::Red );
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 
 			SmallTextItem.SetColor( FLinearColor::White );
@@ -7433,7 +7435,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			{
 				SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()));
 				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 
 #if ENABLE_VISUAL_LOG
@@ -7464,7 +7466,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 					GEngine->GetSmallFont(),
 					FColor(128,128,128)
 					);
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 			*/
 
@@ -7472,14 +7474,14 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			{
 				SmallTextItem.Text =  LOCTEXT("Levelstreamingfrozen", "Level streaming frozen..." );
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 
 			if (GIsPrepareMapChangeBroken)
 			{
 				SmallTextItem.Text =  LOCTEXT("PrepareMapChangeError", "PrepareMapChange had a bad level name! Check the log (tagged with PREPAREMAPCHANGE) for info" );
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += 20;
+				MessageY += FontSizeY;
 			}
 
 #if STATS
@@ -7490,13 +7492,22 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				{				
 					SmallTextItem.Text =  LOCTEXT("AIPROFILINGWARNING", "PROFILING WITH AI LOGGING ON!" );
 					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-					MessageY += 20;
+					MessageY += FontSizeY;
 				}
 				if (GShouldVerifyGCAssumptions)
 				{
 					SmallTextItem.Text =  LOCTEXT("GCPROFILINGWARNING", "PROFILING WITH GC VERIFY ON!" );
 					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );					
-					MessageY += 20;
+					MessageY += FontSizeY;
+				}
+
+				const bool bIsStatsFileActive = FCommandStatsFile::Get().IsStatFileActive();
+				if (bIsStatsFileActive)
+				{
+					SmallTextItem.SetColor( FLinearColor::White );
+					SmallTextItem.Text = FCommandStatsFile::Get().GetFileMetaDesc();
+					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
+					MessageY += FontSizeY;
 				}
 			}
 #endif

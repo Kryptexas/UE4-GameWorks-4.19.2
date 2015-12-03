@@ -1072,6 +1072,27 @@ public:
 		return Result;
 	}
 
+	virtual void GetTimeStampPair(const TCHAR* FilenameA, const TCHAR* FilenameB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB) override
+	{
+		FPakFile* PakFileA = nullptr;
+		FPakFile* PakFileB = nullptr;
+		FindFileInPakFiles(FilenameA, &PakFileA);
+		FindFileInPakFiles(FilenameB, &PakFileB);
+
+		// If either file exists, we'll assume both should exist here and therefore we can skip the
+		// request to the lower level platform file.
+		if (PakFileA != nullptr || PakFileB != nullptr)
+		{
+			OutTimeStampA = PakFileA != nullptr ? PakFileA->GetTimestamp() : FDateTime::MinValue();
+			OutTimeStampB = PakFileB != nullptr ? PakFileB->GetTimestamp() : FDateTime::MinValue();
+		}
+		else
+		{
+			// Fall back to lower level.
+			LowerLevel->GetTimeStampPair(FilenameA, FilenameB, OutTimeStampA, OutTimeStampB);
+		}
+	}
+
 	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		// No modifications allowed on files from pak (although we could theoretically allow this one).

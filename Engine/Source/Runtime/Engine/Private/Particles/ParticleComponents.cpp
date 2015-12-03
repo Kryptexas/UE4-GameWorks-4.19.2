@@ -2328,6 +2328,10 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	Super::GetAssetRegistryTags(OutTags);
 }
 
+bool UParticleSystem::CanBeClusterRoot() const
+{
+	return true;
+}
 
 bool UParticleSystem::CalculateMaxActiveParticleCounts()
 {

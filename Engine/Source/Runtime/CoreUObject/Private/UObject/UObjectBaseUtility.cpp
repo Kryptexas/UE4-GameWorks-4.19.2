@@ -7,7 +7,7 @@
 #include "CoreUObjectPrivate.h"
 #include "Interface.h"
 #include "ModuleManager.h"
-
+#include "FastReferenceCollector.h"
 
 /***********************/
 /******** Names ********/
@@ -417,4 +417,3 @@ bool UObjectBaseUtility::IsDefaultSubobject() const
 	const bool bIsInstanced = GetOuter() && (GetOuter()->HasAnyFlags(RF_ClassDefaultObject) || ((UObject*)this)->GetArchetype() != GetClass()->GetDefaultObject());
 	return bIsInstanced;
 }
-

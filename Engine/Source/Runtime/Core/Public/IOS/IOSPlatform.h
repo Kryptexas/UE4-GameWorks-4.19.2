@@ -47,11 +47,12 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define FORCE_ANSI_ALLOCATOR 1
 
 // Function type macros.
-#define VARARGS														/* Functions with variable arguments */
-#define CDECL														/* Standard C function */
-#define STDCALL														/* Standard calling convention */
-#define FORCEINLINE inline __attribute__ ((always_inline))			/* Force code to be inline */
-#define FORCENOINLINE __attribute__((noinline))						/* Force code to NOT be inline */
+#define VARARGS																		/* Functions with variable arguments */
+#define CDECL																		/* Standard C function */
+#define STDCALL																		/* Standard calling convention */
+#define FORCEINLINE inline __attribute__ ((always_inline))							/* Force code to be inline */
+#define FORCENOINLINE __attribute__((noinline))										/* Force code to NOT be inline */
+#define FUNCTION_CHECK_RETURN(...) __VA_ARGS__ __attribute__ ((warn_unused_result))	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
 
 #define TEXT_HELPER(a,b)	a ## b
 #define TEXT(s)				TEXT_HELPER(L, s)

@@ -5,7 +5,7 @@ using System.Reflection;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle( "RegisterPII" )]
-[assembly: AssemblyDescription( "Map a user and machine name to the machine GUID uploaded via Windows Error Reporting" )]
+[assembly: AssemblyTitle( "CrashReportReceiver" )]
+[assembly: AssemblyDescription( "A service to receive uploaded crash reports." )]
 [assembly: AssemblyConfiguration( "" )]
 

@@ -735,7 +735,6 @@ void FD3D12Device::SetupAfterDeviceCreation()
 {
 	CreateSignatures();
 
-    PipelineStateCache = FD3D12PipelineStateCache(this);
     FString GraphicsCacheFile = FPaths::GameSavedDir() / TEXT("D3DGraphics.ushaderprecache");
     FString ComputeCacheFile = FPaths::GameSavedDir() / TEXT("D3DCompute.ushaderprecache");
 

@@ -3211,6 +3211,11 @@ void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 	Super::AddReferencedObjects(This, Collector);
 }
 
+bool UMaterial::CanBeClusterRoot() const 
+{
+	return true;
+}
+
 #if WITH_EDITOR
 void UMaterial::CancelOutstandingCompilation()
 {

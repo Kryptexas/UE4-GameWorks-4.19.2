@@ -434,13 +434,13 @@ protected:
 	bool HasNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, FName& OutBindingName);
 
 	// Sets up a native state entry delegate from state with StateName, in the state machine with name MachineName.
-	void AddNativeStateEntryBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeEnteredDelegate);
+	void AddNativeStateEntryBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeEnteredDelegate, const FName& BindingName = NAME_None);
 	
 	// Check for whether a native entry delegate is bound to the specified state
 	bool HasNativeStateEntryBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName);
 
 	// Sets up a native state exit delegate from state with StateName, in the state machine with name MachineName.
-	void AddNativeStateExitBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeExitedDelegate);
+	void AddNativeStateExitBinding(const FName& MachineName, const FName& StateName, const FOnGraphStateChanged& NativeExitedDelegate, const FName& BindingName = NAME_None);
 
 	// Check for whether a native exit delegate is bound to the specified state
 	bool HasNativeStateExitBinding(const FName& MachineName, const FName& StateName, FName& OutBindingName);

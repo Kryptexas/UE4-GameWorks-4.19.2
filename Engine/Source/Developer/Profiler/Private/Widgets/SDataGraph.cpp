@@ -240,7 +240,7 @@ void SDataGraph::UpdateState()
 	if( GraphDesc )
 	{
 		// Check if we need to force time based view mode.
-		const bool bCanBeDisplayedAsMulti = GraphDesc->CombinedGraphDataSource->CanBeDisplayedAsMulti();
+		const bool bCanBeDisplayedAsMulti = false;
 		if( bCanBeDisplayedAsMulti )
 		{
 			ViewMode = EDataGraphViewModes::Time;
@@ -566,7 +566,7 @@ int32 SDataGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 			const int32 FrameStartIndex = GraphOffset + AvgFrameRate - (GraphOffset % AvgFrameRate);
 			const int32 FrameEndIndex = FMath::Min( GraphOffset + NumVisiblePoints, NumDataPoints );
 
-			const bool bCanBeDisplayedAsMulti = GraphDesc->CombinedGraphDataSource->CanBeDisplayedAsMulti();
+			const bool bCanBeDisplayedAsMulti = false;
 			const IDataProviderRef DataProvider = (*GraphDataSource)->GetDataProvider();
 
 			for( int32 FrameIndex = FrameStartIndex; FrameIndex < FrameEndIndex; FrameIndex += AvgFrameRate )
@@ -1288,72 +1288,6 @@ void SDataGraph::ShowContextMenu(const FVector2D& ScreenSpacePosition, const FPo
 
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, ProfilerCommandList );
-
-	if( !FProfilerManager::GetSettings().bSingleInstanceMode )
-	{
-		MenuBuilder.BeginSection( "ProfilerInstances", LOCTEXT("ContextMenu_ProfilerInstances", "Profiler Instances") );
-		{
-			// @TODO: Add to FProfilerMenuBuilder
-			struct FProfilerSessionMenu
-			{
-				static void Build( FMenuBuilder& InMenuBuilder, const FGuid SessionInstanceID, const FEventGraphDataHandlerRef InEventGraphDataHandler )
-				{
-					const FProfilerCommands& Commands = FProfilerManager::GetCommands();
-					const FProfilerActionManager& ProfilerActionMgr = FProfilerManager::GetActionManager();
-
-					FProfilerMenuBuilder::AddMenuEntry
-					( 
-						InMenuBuilder, 
-						Commands.ToggleDataPreview, 
-						ProfilerActionMgr.ToggleDataPreview_Custom(SessionInstanceID) 
-					);
-
-					FProfilerMenuBuilder::AddMenuEntry
-					( 
-						InMenuBuilder, 
-						Commands.ToggleDataCapture, 
-						ProfilerActionMgr.ToggleDataCapture_Custom(SessionInstanceID) 
-					);
-
-					if( SessionInstanceID.IsValid() )
-					{
-						FProfilerMenuBuilder::AddMenuEntry
-						( 
-							InMenuBuilder, 
-							Commands.ToggleShowDataGraph, 
-							ProfilerActionMgr.ToggleShowDataGraph_Custom(SessionInstanceID) 
-						);
-					}
-				}
-			};
-
-			if( FProfilerManager::Get()->GetProfilerInstancesNum() > 1 )
-			{
-				MenuBuilder.AddSubMenu
-				( 
-					LOCTEXT("ContextMenu_AllProfilerInstances", "AllInstances"), 
-					LOCTEXT("ContextMenu_AllProfilerInstances_TT", "All profiler instances options"), 
-					FNewMenuDelegate::CreateStatic( &FProfilerSessionMenu::Build, FGuid(), EventGraphDataHandler )
-				);
-			}
-
-			MenuBuilder.AddMenuSeparator();
-
-			for( auto It = FProfilerManager::Get()->GetProfilerInstancesIterator(); It; ++It )
-			{
-				const FProfilerSessionRef& ProfilerSession = It.Value();
-				const FGuid SessionInstanceID = ProfilerSession->GetInstanceID();
-
-				MenuBuilder.AddSubMenu
-				( 
-					FText::FromString( ProfilerSession->GetShortName() ), 
-					LOCTEXT("ContextMenu_InstancesList_TT", "Profiler instance options"), 
-					FNewMenuDelegate::CreateStatic( &FProfilerSessionMenu::Build, SessionInstanceID, EventGraphDataHandler )
-				);	
-			}
-		}
-		MenuBuilder.EndSection();
-	}
 	
 	MenuBuilder.BeginSection( "ViewMode", LOCTEXT("ContextMenu_ViewMode", "View Mode") );
 	{
@@ -1362,16 +1296,6 @@ void SDataGraph::ShowContextMenu(const FVector2D& ScreenSpacePosition, const FPo
 		//MenuBuilder.AddMenuEntry( ProfilerCommands.DataGraph_ViewMode_SetTimeBased );
 	}
 	MenuBuilder.EndSection();
-
-	if( !FProfilerManager::GetSettings().bSingleInstanceMode )
-	{
-		MenuBuilder.BeginSection( "MultiMode", LOCTEXT("ContextMenu_MultiMode", "Multi Mode") );
-		{
-			MenuBuilder.AddMenuEntry( ProfilerCommands.DataGraph_MultiMode_SetCombined );
-			MenuBuilder.AddMenuEntry( ProfilerCommands.DataGraph_MultiMode_SetOneLinePerDataSource );
-		}
-		MenuBuilder.EndSection();
-	}
 
 	MenuBuilder.BeginSection( TEXT("Misc"), LOCTEXT("Miscellaneous", "Miscellaneous") );
 	{
@@ -1408,24 +1332,6 @@ void SDataGraph::BindCommands()
 		FExecuteAction::CreateSP( this, &SDataGraph::ViewMode_SetTimeBased_Execute ),
 		FCanExecuteAction::CreateSP( this, &SDataGraph::ViewMode_SetTimeBased_CanExecute ),
 		FIsActionChecked::CreateSP( this, &SDataGraph::ViewMode_SetTimeBased_IsChecked )
-	);
- 
-	// DataGraph_MultiMode_SetCombined
-	ProfilerCommandList->MapAction
-	( 
-		ProfilerCommands.DataGraph_MultiMode_SetCombined,
-		FExecuteAction::CreateSP( this, &SDataGraph::MultiMode_SetCombined_Execute ),
-		FCanExecuteAction::CreateSP( this, &SDataGraph::MultiMode_SetCombined_CanExecute ),
-		FIsActionChecked::CreateSP( this, &SDataGraph::MultiMode_SetCombined_IsChecked )
-	);
- 
-	// DataGraph_MultiMode_SetCombined
-	ProfilerCommandList->MapAction
-	( 
-		ProfilerCommands.DataGraph_MultiMode_SetOneLinePerDataSource,
-		FExecuteAction::CreateSP( this, &SDataGraph::MultiMode_SetOneLinePerDataSource_Execute ),
-		FCanExecuteAction::CreateSP( this, &SDataGraph::MultiMode_SetOneLinePerDataSource_CanExecute ),
-		FIsActionChecked::CreateSP( this, &SDataGraph::MultiMode_SetOneLinePerDataSource_IsChecked )
 	);
 }
 
@@ -1471,47 +1377,6 @@ bool SDataGraph::ViewMode_SetTimeBased_CanExecute() const
 bool SDataGraph::ViewMode_SetTimeBased_IsChecked() const
 {
 	return ViewMode == EDataGraphViewModes::Time;
-}
-
-/*-----------------------------------------------------------------------------
-	MultiMode_SetCombined
------------------------------------------------------------------------------*/
-
-void SDataGraph::MultiMode_SetCombined_Execute()
-{
-	MultiMode = EDataGraphMultiModes::Combined;
-	UpdateState();
-}
-
-bool SDataGraph::MultiMode_SetCombined_CanExecute() const
-{
-	const bool bCanBeDisplayedAsMulti = GetFirstGraph() ? GetFirstGraph()->CombinedGraphDataSource->CanBeDisplayedAsMulti() : false;
-	return MultiMode != EDataGraphMultiModes::Combined && bCanBeDisplayedAsMulti && ViewMode == EDataGraphViewModes::Time;
-}
-
-bool SDataGraph::MultiMode_SetCombined_IsChecked() const
-{
-	return MultiMode == EDataGraphMultiModes::Combined;
-}
-
-/*-----------------------------------------------------------------------------
-	MultiMode_SetOneLinePerDataSource
------------------------------------------------------------------------------*/
-
-void SDataGraph::MultiMode_SetOneLinePerDataSource_Execute()
-{
-	MultiMode = EDataGraphMultiModes::OneLinePerDataSource;
-	UpdateState();
-}
-
-bool SDataGraph::MultiMode_SetOneLinePerDataSource_CanExecute() const
-{
-	return MultiMode != EDataGraphMultiModes::OneLinePerDataSource;
-}
-
-bool SDataGraph::MultiMode_SetOneLinePerDataSource_IsChecked() const
-{
-	return MultiMode == EDataGraphMultiModes::OneLinePerDataSource;
 }
 
 void SDataGraph::EventGraph_OnRestoredFromHistory( uint32 FrameStartIndex, uint32 FrameEndIndex )

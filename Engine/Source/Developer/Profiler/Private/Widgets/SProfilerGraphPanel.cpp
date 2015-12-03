@@ -20,7 +20,6 @@ SProfilerGraphPanel::~SProfilerGraphPanel()
 	if( ProfilerManager.IsValid() )
 	{
 		ProfilerManager->OnTrackedStatChanged().RemoveAll( this );
-		ProfilerManager->OnSessionInstancesUpdated().RemoveAll( this );
 		ProfilerManager->OnViewModeChanged().RemoveAll( this );
 
 		DataGraph->OnSelectionChangedForIndex().RemoveAll( ProfilerManager.Get() );
