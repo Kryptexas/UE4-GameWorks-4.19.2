@@ -1105,7 +1105,7 @@ FORCEINLINE VectorRegister VectorFloor(const VectorRegister& X)
 //TODO: Vectorize
 FORCEINLINE VectorRegister VectorTruncate(const VectorRegister& X)
 {
-	return MakeVectorRegister(FMath::TruncToFloat(VectorGetComponent(X, 0), FMath::TruncToFloat(VectorGetComponent(X, 1), FMath::TruncToFloat(VectorGetComponent(X, 2), FMath::TruncToFloat(VectorGetComponent(X, 3));
+	return MakeVectorRegister(FMath::TruncToFloat(VectorGetComponent(X, 0)), FMath::TruncToFloat(VectorGetComponent(X, 1)), FMath::TruncToFloat(VectorGetComponent(X, 2)), FMath::TruncToFloat(VectorGetComponent(X, 3)));
 }
 
 //TODO: Vectorize
