@@ -43,7 +43,6 @@
 	bool bIsUsingMetal;
 }
 
-+ (bool)IsA7DeviceOnIOS9;
 + (bool)IsDeviceOnIOS8;
 
 //// SHARED FUNCTIONALITY
