@@ -21,5 +21,6 @@ public class UnrealAudioWasapi : ModuleRules
 
 		PublicDependencyModuleNames.Add("UnrealAudio");
 
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

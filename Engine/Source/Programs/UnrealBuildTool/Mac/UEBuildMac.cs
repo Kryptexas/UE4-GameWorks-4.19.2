@@ -276,10 +276,15 @@ namespace UnrealBuildTool
 
 	class MacPlatformFactory : UEBuildPlatformFactory
 	{
+		protected override UnrealTargetPlatform TargetPlatform
+		{
+			get { return UnrealTargetPlatform.Mac; }
+		}
+
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		public override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms()
 		{
 			MacPlatformSDK SDK = new MacPlatformSDK();
 			SDK.ManageAndValidateSDK();

@@ -40,7 +40,7 @@ goto Error_NoVisualStudioEnvironment
 :ReadyToCompile
 rem ## Run UnrealBuildTool to generate Visual Studio solution and project files
 rem ## NOTE: We also pass along any arguments to the GenerateProjectFiles.bat here
-..\Binaries\DotNET\UnrealBuildTool.exe -ProjectFiles -rocket %*
+..\Binaries\DotNET\UnrealBuildTool.exe -ProjectFiles %*
 if not %ERRORLEVEL% == 0 goto Error_ProjectGenerationFailed
 
 rem ## Success!

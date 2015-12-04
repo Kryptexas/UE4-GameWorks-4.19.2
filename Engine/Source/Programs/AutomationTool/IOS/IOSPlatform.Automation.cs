@@ -406,7 +406,7 @@ public class IOSPlatform : Platform
 			string Arguments = "-project=\"" + RawProjectPath + "\"";
 			Arguments += " -platforms=IOS -game -nointellisense -iosdeployonly -ignorejunk";
 			string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
-			if (GlobalCommandLine.Rocket)
+			if (Automation.RunningRocket())
 			{
 				Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
 			}

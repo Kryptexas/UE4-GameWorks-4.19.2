@@ -151,19 +151,42 @@ public partial class GUBP : BuildCommand
 			ExplicitTriggerName = ParseParamValue("TriggerNode", "");
 		}
 
+		// Create the build graph
 		int TimeQuantum = 20;
-		BuildGraphTemplate GraphTemplate = new BuildGraphTemplate();
+		List<AggregateNodeDefinition> AggregateNodeDefinitions = new List<AggregateNodeDefinition>();
+		List<BuildNodeDefinition> BuildNodeDefinitions = new List<BuildNodeDefinition>();
 
-        AddNodesForBranch(HostPlatforms, JobInfo, BranchOptions, out GraphTemplate.BuildNodeTemplates, out GraphTemplate.AggregateNodeTemplates, ref TimeQuantum);
+		// Add all the nodes to it
+		string ScriptName = ParseParamValue("Script");
+		if(ScriptName == null)
+		{
+			// Automatically configure it from whatever is in the branch
+			AddNodesForBranch(HostPlatforms, JobInfo, BranchOptions, out BuildNodeDefinitions, out AggregateNodeDefinitions, ref TimeQuantum);
 
-		BuildGraph Graph = new BuildGraph(GraphTemplate);
+			// Check if we're exporting the graph as a starting point for manually configuring it
+			string OutputScriptName = ParseParamValue("ExportScript");
+			if(OutputScriptName != null)
+			{
+				BuildGraphDefinition Definition = BuildGraphDefinition.FromNodeDefinitions(AggregateNodeDefinitions, BuildNodeDefinitions, 20);
+				Definition.Write(OutputScriptName);
+				return ExitCode.Success;
+			}
+		}
+		else
+		{
+			// Read it from a script
+			BuildGraphDefinition Definition = BuildGraphDefinition.Read(ScriptName);
+			Definition.AddToGraph(AggregateNodeDefinitions, BuildNodeDefinitions);
+		}
+
+		BuildGraph Graph = new BuildGraph(AggregateNodeDefinitions, BuildNodeDefinitions);
 		FindCompletionState(Graph.BuildNodes, JobInfo, LocalOnly);
 		ComputeDependentFrequencies(Graph.BuildNodes);
 
-		int TimeIndex = ParseParamInt("TimeIndex", 0);
-		if (TimeIndex == 0)
+		int TimeIndex = ParseParamInt("TimeIndex", -1);
+		if (TimeIndex == -1)
 		{
-			TimeIndex = ParseParamInt("UserTimeIndex", 0);
+			TimeIndex = ParseParamInt("UserTimeIndex", -1);
 		}
 		if (ParseParam("CIS") && ExplicitTriggerName == "" && CommanderSetup) // explicit triggers will already have a time index assigned
 		{
@@ -420,12 +443,7 @@ public partial class GUBP : BuildCommand
 			Log("*********** Aggregates");
 			foreach (AggregateNode Aggregate in MatchingAggregates.OrderBy(x => x.Name))
 			{
-				StringBuilder Note = new StringBuilder("    " + Aggregate.Name);
-				if (Aggregate.IsPromotableAggregate)
-				{
-					Note.Append(" (promotable)");
-				}
-				Log(Note.ToString());
+				Log("    " + Aggregate.Name);
 			}
 		}
 
@@ -470,7 +488,7 @@ public partial class GUBP : BuildCommand
 			{
 				Builder.Append("    ");
 			}
-			Builder.AppendFormat("{0} ({1})", NodeToDo.Name, GetTimeIntervalString(TimeQuantum << NodeToDo.FrequencyShift));
+			Builder.AppendFormat("{0} ({1})", NodeToDo.Name, (NodeToDo.FrequencyShift >= BuildNode.ExplicitFrequencyShift)? "explicit" : GetTimeIntervalString(TimeQuantum << NodeToDo.FrequencyShift));
 			if(NodeToDo.IsComplete)
 			{
 				Builder.Append(" - (Completed)");
@@ -1043,12 +1061,12 @@ public partial class GUBP : BuildCommand
 	/// <param name="TimeIndex">The current time index. All nodes are run for TimeIndex=0, otherwise they are culled based on their FrequencyShift parameter.</param>
 	private void CullNodesForTimeIndex(HashSet<BuildNode> NodesToDo, int TimeIndex)
 	{
-		if (TimeIndex != 0)
+		if (TimeIndex >= 0)
 		{
 			List<BuildNode> NodesToCull = new List<BuildNode>();
 			foreach (BuildNode NodeToDo in NodesToDo)
 			{
-				if ((TimeIndex % (1 << NodeToDo.FrequencyShift)) != 0)
+				if (NodeToDo.FrequencyShift >= BuildNode.ExplicitFrequencyShift || (TimeIndex % (1 << NodeToDo.FrequencyShift)) != 0)
 				{
 					NodesToCull.Add(NodeToDo);
 				}
@@ -1370,13 +1388,12 @@ public partial class GUBP : BuildCommand
 		{
 			if (bFake)
 			{
-				NodeToDo.DoFakeBuild();
+				return NodeToDo.DoFakeBuild();
 			}
 			else
 			{
-				NodeToDo.DoBuild();
+				return NodeToDo.DoBuild();
 			}
-			return true;
 		}
 		catch(Exception Ex)
 		{

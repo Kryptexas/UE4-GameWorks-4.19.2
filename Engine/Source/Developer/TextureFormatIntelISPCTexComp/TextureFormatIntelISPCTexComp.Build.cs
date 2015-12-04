@@ -23,5 +23,10 @@ public class TextureFormatIntelISPCTexComp : ModuleRules
 			);
 
 		AddThirdPartyPrivateStaticDependencies(Target, "IntelISPCTexComp");
+
+		if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.Win32)
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
 	}
 }

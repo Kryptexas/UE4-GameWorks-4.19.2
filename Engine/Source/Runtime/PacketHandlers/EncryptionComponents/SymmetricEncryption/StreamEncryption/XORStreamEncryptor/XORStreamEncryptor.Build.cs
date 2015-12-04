@@ -13,5 +13,7 @@ public class XORStreamEncryptor : ModuleRules
                 "StreamEncryptionHandlerComponent"
             }
         );
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

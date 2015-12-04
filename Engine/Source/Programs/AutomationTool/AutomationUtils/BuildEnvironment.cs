@@ -22,8 +22,6 @@ namespace AutomationTool
 		static public readonly string LogFolder = "uebp_LogFolder";
         static public readonly string CSVFile = "uebp_CSVFile";
 		static public readonly string EngineSavedFolder = "uebp_EngineSavedFolder";
-		static public readonly string NETFrameworkDir = "FrameworkDir";
-		static public readonly string NETFrameworkVersion = "FrameworkVersion";
 
 		// Perforce Environment
 		static public readonly string P4Port = "uebp_PORT";		
@@ -207,17 +205,6 @@ namespace AutomationTool
 		{
 			// Assume we have the capability co compile.
 			HasCapabilityToCompile = true;
-
-			try
-			{
-				HostPlatform.Current.SetFrameworkVars();
-			}
-			catch (Exception)
-			{
-				// Something went wrong, we can't compile.
-				Log.WriteLine(LogEventType.Warning, "SetFrameworkVars failed. Assuming no compilation capability.");
-				HasCapabilityToCompile = false;
-			}
 
 			if (HasCapabilityToCompile)
 			{

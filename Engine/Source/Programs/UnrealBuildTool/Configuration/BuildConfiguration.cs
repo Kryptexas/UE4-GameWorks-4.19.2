@@ -522,6 +522,23 @@ namespace UnrealBuildTool
 		public static string UCAModuleToAnalyze;
 
 		/// <summary>
+		/// If specified, we will only build this particular source file, ignore all other outputs.  Useful for testing non-Unity builds.
+		/// </summary>
+		public static string SingleFileToCompile;
+
+		/// <summary>
+		/// Whether to automatically add the -FastPDB option to the build commands in generated project files
+		/// </summary>
+		[XmlConfig]
+		public static bool bAddFastPDBToProjects;
+
+		/// <summary>
+		/// Whether to use the :FASTLINK option when building with /DEBUG to create local PDBs
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseFastPDBLinking;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -676,7 +693,14 @@ namespace UnrealBuildTool
 			// If header is included in 0% or more cpp files in module it should be included in PCH.
 			UCAUsageThreshold = 100.0f;
 
+			// Compile everything by default
+			SingleFileToCompile = null;
+
 			bUCACheckUObjectThreadSafety = false;
+
+			// Use Fast PDB linking by default in projects but not all builds
+			bAddFastPDBToProjects = true;
+			bUseFastPDBLinking = false;
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
@@ -779,6 +803,13 @@ namespace UnrealBuildTool
 			if (!BuildPlatform.CanUseSNDBS())
 			{
 				bAllowSNDBS = false;
+			}
+
+			// If we're compiling just a single file, we need to prevent unity builds from running
+			if(SingleFileToCompile != null)
+			{
+				bUseUnityBuild = false;
+				bForceUnityBuild = false;
 			}
 		}
 

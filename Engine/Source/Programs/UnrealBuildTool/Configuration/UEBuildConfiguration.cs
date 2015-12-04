@@ -123,6 +123,9 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bMergeExternalFileList;
 
+		/** Whether to generate a list of referenced TPS files */
+		public static bool bListThirdPartySoftware;
+
 		/// <summary>
 		/// Whether to generate a manifest file that contains the files to add to Perforce
 		/// </summary>

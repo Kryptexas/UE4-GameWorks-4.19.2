@@ -446,7 +446,7 @@ namespace AutomationTool
 		/// </summary>
 		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null)
 		{
-			bool bIsLicenseeVersion = OwnerCommand.ParseParam("Licensee");
+			bool bIsLicenseeVersion = ParseParam("Licensee");
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
 			int ChangelistNumber = 0;
 			string ChangelistString = String.Empty;
@@ -1200,6 +1200,16 @@ namespace AutomationTool
 			return UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames.ToArray();
 		}
 
+		private new bool ParseParam(string Name)
+		{
+			return OwnerCommand != null && OwnerCommand.ParseParam(Name);
+		}
+
+		private string ParseParamValue(string Name)
+		{
+			return (OwnerCommand != null)? OwnerCommand.ParseParamValue(Name) : null;
+		}
+
 		/// <summary>
 		/// Executes a build.
 		/// </summary>
@@ -1214,14 +1224,14 @@ namespace AutomationTool
 			{
 				throw new AutomationException("You are attempting to compile on a machine that does not have a supported compiler!");
 			}
-			DeleteBuildProducts = InDeleteBuildProducts.HasValue ? InDeleteBuildProducts.Value : OwnerCommand.ParseParam("Clean");
+			DeleteBuildProducts = InDeleteBuildProducts.HasValue ? InDeleteBuildProducts.Value : ParseParam("Clean");
 			if (InUpdateVersionFiles)
 			{
 				UpdateVersionFiles();
 			}
 
 			{
-				var EncryptionKeyFilename = OwnerCommand.ParseParamValue("SignPak");
+				var EncryptionKeyFilename = ParseParamValue("SignPak");
 				if (String.IsNullOrEmpty(EncryptionKeyFilename) == false)
 				{
 					UpdatePublicKey(EncryptionKeyFilename);
@@ -1310,12 +1320,12 @@ namespace AutomationTool
 				AddBuildProductsForCSharpProj(Path.Combine(CmdEnv.LocalRoot, File));
 			}
 
-			bool bForceMonolithic = OwnerCommand.ParseParam("ForceMonolithic");
-			bool bForceNonUnity = OwnerCommand.ParseParam("ForceNonUnity") || InForceNonUnity;
-			bool bForceUnity = OwnerCommand.ParseParam("ForceUnity") || InForceUnity;
-			bool bForceDebugInfo = OwnerCommand.ParseParam("ForceDebugInfo");
+			bool bForceMonolithic = ParseParam("ForceMonolithic");
+			bool bForceNonUnity = ParseParam("ForceNonUnity") || InForceNonUnity;
+			bool bForceUnity = ParseParam("ForceUnity") || InForceUnity;
+			bool bForceDebugInfo = ParseParam("ForceDebugInfo");
 			bool bUsedXGE = false;
-			bool bCanUseXGE = !OwnerCommand.ParseParam("NoXGE") && !InForceNoXGE;
+			bool bCanUseXGE = !ParseParam("NoXGE") && !InForceNoXGE;
 			string XGEConsole = XGEConsoleExe();
 			if (bCanUseXGE && string.IsNullOrEmpty(XGEConsole))
 			{
@@ -1586,7 +1596,7 @@ namespace AutomationTool
 			// Can't write to Engine directory on 
             bool bForceRocket = InAddArgs.ToLowerInvariant().Contains(" -rocket"); //awful
 
-            if ((GlobalCommandLine.Rocket || bForceRocket) && UProjectPath != null)
+            if ((Automation.IsEngineInstalled() || bForceRocket) && UProjectPath != null)
 			{
 				return Path.Combine(Path.GetDirectoryName(UProjectPath.FullName), "Intermediate/Build/Manifest.xml");				
 			}

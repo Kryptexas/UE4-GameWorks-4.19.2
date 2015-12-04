@@ -321,6 +321,24 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// If we're only compiling a single file, we should always compile and should never link.
+			if (!string.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile))
+			{
+				// Never do anything but compile the target file
+				AllActions.RemoveAll(x => x.ActionType != ActionType.Compile);
+
+				// Check all of the leftover compilation actions for the one we want... that one is always outdated.
+				foreach (var Action in AllActions)
+				{
+					// Slightly hacky.  We know a compiling X:/Blah/Actor.cpp ends up with StatusDescription == "Actor.cpp".
+					bool bIsSingleFileAction = BuildConfiguration.SingleFileToCompile.EndsWith(Action.StatusDescription.ToLowerInvariant());
+					OutdatedActionDictionary[Action] = bIsSingleFileAction;
+				}
+
+				// Don't save the history of a single file compilation.
+				HistoryList.Clear();
+			}
+
 			// Delete produced items that are outdated.
 			DeleteOutdatedProducedItems(OutdatedActionDictionary, BuildConfiguration.bShouldDeleteAllOutdatedProducedItems);
 

@@ -126,6 +126,8 @@ namespace AutomationTool
         /// Allows you to use local storage for your root build storage dir (default of P:\Builds (on PC) is changed to Engine\Saved\LocalBuilds). Used for local testing.
         /// </summary>
         public static CommandLineArg UseLocalBuildStorage = new CommandLineArg("-UseLocalBuildStorage");
+		public static CommandLineArg InstalledEngine = new CommandLineArg("-InstalledEngine");
+		public static CommandLineArg NotInstalledEngine = new CommandLineArg("-NotInstalledEngine");
 
 		/// <summary>
 		/// Force initialize static members by calling this.
@@ -417,11 +419,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				throw new AutomationException("{0} and {1} can't be set simultaneously.", GlobalCommandLine.NoSubmit.Name, GlobalCommandLine.Submit.Name);
 			}
-
-			if (GlobalCommandLine.Rocket)
-			{
-				UnrealBuildTool.UnrealBuildTool.bRunningRocket = true;
-			}
 		}
 
 		#endregion
@@ -609,6 +606,48 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 			CommandUtils.Log(Message);
 		}
+
+		#endregion
+
+		#region HelperFunctions
+
+		/// <summary>
+		/// Returns true if Automation tool is running with Rocket mode enabled
+		/// </summary>
+		/// <returns>True if running in Rocket mode</returns>
+		static public bool RunningRocket()
+		{
+			if (!bRunningRocket.HasValue)
+			{
+				if (GlobalCommandLine.Rocket)
+				{
+					Log.TraceWarning("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build.");
+				}
+				bRunningRocket = GlobalCommandLine.Rocket;
+				string RocketFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "Rocket.txt");
+				bRunningRocket |= File.Exists(RocketFile);
+			}
+
+			return bRunningRocket.Value;
+		}
+		static private bool? bRunningRocket;
+
+		/// <summary>
+		/// Returns true if AutomationTool is running using installed Engine components
+		/// </summary>
+		/// <returns>True if running using installed Engine components</returns>
+		static public bool IsEngineInstalled()
+		{
+			if (!bIsEngineInstalled.HasValue)
+			{
+				bIsEngineInstalled = GlobalCommandLine.Installed || (Automation.RunningRocket() ? !GlobalCommandLine.NotInstalledEngine : GlobalCommandLine.InstalledEngine);
+				string InstalledBuildFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "InstalledBuild.txt");
+				bIsEngineInstalled |= File.Exists(InstalledBuildFile);
+			}
+
+			return bIsEngineInstalled.Value;
+		}
+		static private bool? bIsEngineInstalled;
 
 		#endregion
 

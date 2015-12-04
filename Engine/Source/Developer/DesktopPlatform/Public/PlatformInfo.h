@@ -152,11 +152,11 @@ namespace PlatformInfo
 		/** Tutorial path for tutorial to install SDK */
 		FString SDKTutorial;
 
+		/** Name of sub-folder where binaries will be placed */
+		FString BinaryFolderName;
+
 		/** Enabled for use */
 		bool bEnabledForUse;
-
-		/** Enabled in binary distribution */
-		bool bEnabledInBinary;
 
 		/** Whether code projects for this platform require the host platform compiler to be installed. Host platforms typically have a SDK status of valid, but they can't necessarily build. */
 		bool bUsesHostCompiler;

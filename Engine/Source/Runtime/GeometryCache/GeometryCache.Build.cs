@@ -30,5 +30,7 @@ public class GeometryCache : ModuleRules
         {
             DynamicallyLoadedModuleNames.Add("GeometryCacheEd");
         }
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

@@ -821,10 +821,15 @@ namespace UnrealBuildTool
 
 	class WindowsPlatformFactory : UEBuildPlatformFactory
 	{
+		protected override UnrealTargetPlatform TargetPlatform
+		{
+			get { return UnrealTargetPlatform.Win64; }
+		}
+
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		public override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms()
 		{
 			WindowsPlatformSDK SDK = new WindowsPlatformSDK();
 			SDK.ManageAndValidateSDK();

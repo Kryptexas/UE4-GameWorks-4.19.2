@@ -1098,9 +1098,15 @@ namespace Rocket
 			BuildDerivedDataCacheNode DerivedDataCacheNode = (BuildDerivedDataCacheNode)BranchConfig.FindNode(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
 			CopyManifestFilesToOutput(DerivedDataCacheNode.SavedManifestPath, DerivedDataCacheNode.SavedDir, OutputDir);
 
-			// Write the Rocket.txt file with the 
+			// Write the Rocket.txt file to indicate a Rocket build
 			string RocketFile = CommandUtils.CombinePaths(OutputDir, "Engine/Build/Rocket.txt");
-			CommandUtils.WriteAllText(RocketFile, "-installedengine -rocket");
+			CommandUtils.WriteAllText(RocketFile, "");
+
+			// Write InstalledBuild.txt to indicate Engine is installed
+			string InstalledBuildFile = CommandUtils.CombinePaths(OutputDir, "Engine/Build/InstalledBuild.txt");
+			CommandUtils.WriteAllText(InstalledBuildFile, "");
+
+			WriteRocketSpecificConfigSettings();
 
 			// Create a dummy build product
 			BuildProducts = new List<string>();
@@ -1120,6 +1126,78 @@ namespace Rocket
 
 			// Copy everything
 			CommandUtils.ThreadedCopyFiles(SourceFiles, TargetFiles);
+		}
+
+		public void WriteRocketSpecificConfigSettings()
+		{
+			string OutputEnginePath = Path.Combine(OutputDir, "Engine");
+			string OutputBaseEnginePath = Path.Combine(OutputEnginePath, "Config", "BaseEngine.ini");
+			FileAttributes OutputAttributes = FileAttributes.ReadOnly;
+			List<String> IniLines = new List<String>();
+
+			// Should always exist but if not, we don't need extra line
+			if (File.Exists(OutputBaseEnginePath))
+			{
+				OutputAttributes = File.GetAttributes(OutputBaseEnginePath);
+				IniLines.Add("");
+			}
+			
+			// Write information about platforms installed in a Rocket build
+			IniLines.Add("[InstalledPlatforms]");
+			foreach (UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
+			{
+				// Bit of a hack to mark these platforms as available in any type of project
+				EProjectType ProjectType = EProjectType.Content;
+				if (HostPlatform == UnrealTargetPlatform.Mac)
+				{
+					if (CodeTargetPlatform == UnrealTargetPlatform.Mac
+					 || CodeTargetPlatform == UnrealTargetPlatform.IOS
+					 || CodeTargetPlatform == UnrealTargetPlatform.Linux)
+					{
+						ProjectType = EProjectType.Any;
+					}
+				}
+				else
+				{
+					if (CodeTargetPlatform == UnrealTargetPlatform.Win32
+					 || CodeTargetPlatform == UnrealTargetPlatform.Win64
+					 || CodeTargetPlatform == UnrealTargetPlatform.Android)
+					{
+						ProjectType = EProjectType.Any;
+					}
+				}
+				foreach (UnrealTargetConfiguration CodeTargetConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+				{
+					// Need to check for development receipt as we use that for the Engine code in DebugGame
+					UnrealTargetConfiguration EngineConfiguration = (CodeTargetConfiguration == UnrealTargetConfiguration.DebugGame) ? UnrealTargetConfiguration.Development : CodeTargetConfiguration;
+
+					string Architecture = "";
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(CodeTargetPlatform, true);
+					if (BuildPlatform != null)
+					{
+						Architecture = BuildPlatform.CreateContext(null).GetActiveArchitecture();
+					}
+					string ReceiptFileName = TargetReceipt.GetDefaultPath(OutputEnginePath, "UE4Game", CodeTargetPlatform, EngineConfiguration, Architecture);
+
+					if (File.Exists(ReceiptFileName))
+					{
+						// Strip the output folder so that this can be used on any machine
+						ReceiptFileName = new FileReference(ReceiptFileName).MakeRelativeTo(new DirectoryReference(OutputDir));
+						IniLines.Add(string.Format("+InstalledPlatformConfigurations=(PlatformName=\"{0}\", Configuration=\"{1}\", RequiredFile=\"{2}\", ProjectType=\"{3}\")",
+													CodeTargetPlatform.ToString(), CodeTargetConfiguration.ToString(), ReceiptFileName, ProjectType.ToString()));
+					}
+				}
+			}
+
+			// Write Rocket specific Analytics settings
+			IniLines.Add("");
+			IniLines.Add("[Analytics]");
+			IniLines.Add("UE4TypeOverride=Rocket");
+
+			// Make sure we can write to the the config file
+			File.SetAttributes(OutputBaseEnginePath, OutputAttributes & ~FileAttributes.ReadOnly);
+			File.AppendAllLines(OutputBaseEnginePath, IniLines);
+			File.SetAttributes(OutputBaseEnginePath, OutputAttributes);
 		}
 	}
 

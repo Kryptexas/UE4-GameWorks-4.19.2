@@ -593,7 +593,7 @@ namespace AutomationTool
             this.RunAutomationTest = ParseParamValueIfNotSpecified(Command, RunAutomationTest, "RunAutomationTest");
             this.RunAutomationTests = this.RunAutomationTest != "" || GetParamValueIfNotSpecified(Command, RunAutomationTests, this.RunAutomationTests, "RunAutomationTests");
             this.SkipServer = GetParamValueIfNotSpecified(Command, SkipServer, this.SkipServer, "skipserver");
-			this.Rocket = GetParamValueIfNotSpecified(Command, Rocket, this.Rocket || GlobalCommandLine.Rocket, "rocket");
+			this.Rocket = GetParamValueIfNotSpecified(Command, Rocket, this.Rocket || Automation.RunningRocket(), "rocket");
 			this.UE4Exe = ParseParamValueIfNotSpecified(Command, UE4Exe, "ue4exe", "UE4Editor-Cmd.exe");
 			this.Unattended = GetParamValueIfNotSpecified(Command, Unattended, this.Unattended, "unattended");
 			this.DeviceUsername = ParseParamValueIfNotSpecified(Command, DeviceUsername, "deviceuser", String.Empty);
@@ -1533,7 +1533,7 @@ namespace AutomationTool
 			var ProgramTarget = String.Empty;
 			var ProjectType = TargetRules.TargetType.Game;
 
-			if (GlobalCommandLine.Rocket)
+			if (Automation.RunningRocket())
 			{
 				if (!CommandUtils.CmdEnv.HasCapabilityToCompile || !bIsCodeBasedProject)
 				{

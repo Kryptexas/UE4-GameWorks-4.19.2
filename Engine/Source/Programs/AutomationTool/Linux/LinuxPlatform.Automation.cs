@@ -64,7 +64,7 @@ public abstract class BaseLinuxPlatform : Platform
 		}
 
 		// stage libLND (omit it for dedservers and Rocket - proper resolution is to use build receipts, see UEPLAT-807)
-		if (!SC.DedicatedServer && !GlobalCommandLine.Rocket)
+		if (!SC.DedicatedServer && !Automation.RunningRocket())
 		{
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/LinuxNativeDialogs/", SC.PlatformDir, BuildArchitecture), "libLND*.so");
 		}

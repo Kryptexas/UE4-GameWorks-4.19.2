@@ -11,7 +11,7 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
-	class VCEnvironment
+	public class VCEnvironment
 	{
 		public readonly CPPTargetPlatform Platform;             // The platform the envvars have been initialized for
 		public readonly string BaseVSToolPath;       // The path to Visual Studio's /Common7/Tools directory.
@@ -30,6 +30,9 @@ namespace UnrealBuildTool
 		public readonly string VisualCppDir;         // Installation folder for Visual C++, eg. C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC.
 		public readonly string UniversalCRTDir;      // For Visual Studio 2015; the path to the universal CRT.
 		public readonly string UniversalCRTVersion;  // For Visual Studio 2015; the universal CRT version to use.
+
+		static readonly string InitialIncludePaths = Environment.GetEnvironmentVariable("INCLUDE");
+		static readonly string InitialLibraryPaths = Environment.GetEnvironmentVariable("LIB");
 
 		private string _MSBuildPath = null;
 		public string MSBuildPath // The path to MSBuild
@@ -94,51 +97,21 @@ namespace UnrealBuildTool
 			LibraryLinkerPath = GetLibraryLinkerToolPath(LinkerVSToolPath);
 			ResourceCompilerPath = GetResourceCompilerToolPath(Platform, bSupportWindowsXP);
 
-			// Manually determine the compile environment
+			// Setup the INCLUDE environment variable
 			List<string> IncludePaths = GetVisualCppIncludePaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion);
-			List<string> LibraryPaths = GetVisualCppLibraryPaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform);
-
-			// We ensure an extra trailing slash because of a user getting an odd error where the paths seemed to get concatenated wrongly:
-			//
-			// C:\Programme\Microsoft Visual Studio 12.0\Common7\Tools../../VC/bin/x86_amd64/vcvarsx86_amd64.bat
-			//
-			// https://answers.unrealengine.com/questions/233640/unable-to-create-project-files-for-48-preview-3.html
-			//
-			bool bUse64BitCompiler = Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP;
-			string BaseToolPathWithTrailingSlash = BaseVSToolPath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-			string VCVarsBatchFile = Path.Combine(BaseToolPathWithTrailingSlash, bUse64BitCompiler ? @"..\..\VC\bin\x86_amd64\vcvarsx86_amd64.bat" : "vsvars32.bat");
-			if (Platform == CPPTargetPlatform.UWP && UWPPlatform.bBuildForStore)
+			if(InitialIncludePaths != null)
 			{
-				Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile, "store");
+				IncludePaths.Add(InitialIncludePaths);
 			}
-			else
+            Environment.SetEnvironmentVariable("INCLUDE", String.Join(";", IncludePaths));
+			
+			// Setup the LIB environment variable
+            List<string> LibraryPaths = GetVisualCppLibraryPaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform);
+			if(InitialLibraryPaths != null)
 			{
-				Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile);
+				LibraryPaths.Add(InitialLibraryPaths);
 			}
-
-			// When targeting Windows XP on Visual Studio 2012+, we need to override the Windows SDK include and lib path set
-			// by the batch file environment (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-			if (bSupportWindowsXP)
-			{
-				// Lib and bin folders have a x64 subfolder for 64 bit development.
-				var ConfigSuffix = (Platform == CPPTargetPlatform.Win64) ? "\\x64" : "";
-
-				Environment.SetEnvironmentVariable("PATH", Utils.ResolveEnvironmentVariable(WindowsSDKDir + "bin" + ConfigSuffix + ";%PATH%"));
-				Environment.SetEnvironmentVariable("LIB", Utils.ResolveEnvironmentVariable(WindowsSDKDir + "lib" + ConfigSuffix + ";%LIB%"));
-				Environment.SetEnvironmentVariable("INCLUDE", Utils.ResolveEnvironmentVariable(WindowsSDKDir + "include;%INCLUDE%"));
-			}
-
-			// Check the environment matches up with the environment variables set by the batch files. For now, this is academic, but once we've established this as reliable, 
-			// start using them in preference. 
-			// NOTE: We skip this step for Windows XP, because the batch file actually initializes them incorrectly (and we override them above).
-			if (!bSupportWindowsXP)
-			{
-				string IncludePathsString = String.Join(";", IncludePaths) + ";";
-				CompareEnvironmentVariable("INCLUDE", IncludePathsString, bSupportWindowsXP);
-
-				string LibraryPathsString = String.Join(";", LibraryPaths) + ";";
-				CompareEnvironmentVariable("LIB", LibraryPathsString, bSupportWindowsXP);
-			}
+            Environment.SetEnvironmentVariable("LIB", String.Join(";", LibraryPaths));
 		}
 
 		/// <summary>
@@ -486,16 +459,46 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the path to MSBuild.
 		/// </summary>
-		static string GetMSBuildToolPath()
+		public static string GetMSBuildToolPath()
 		{
-			string FrameworkDirectory = Environment.GetEnvironmentVariable("FrameworkDir");
-			string FrameworkVersion = Environment.GetEnvironmentVariable("FrameworkVersion");
-			if (FrameworkDirectory == null || FrameworkVersion == null)
+			string ToolPath;
+			if(TryGetMSBuildToolPath("FrameworkDir64", "FrameworkVer64", out ToolPath))
 			{
-				throw new BuildException("NOTE: Please ensure that 64bit Tools are installed with DevStudio - there is usually an option to install these during install");
+				return ToolPath;
+			}
+			if(TryGetMSBuildToolPath("FrameworkDir32", "FrameworkVer32", out ToolPath))
+			{
+				return ToolPath;
+			}
+			throw new BuildException("NOTE: Please ensure that 64bit Tools are installed with DevStudio - there is usually an option to install these during install");
+		}
+
+		static bool TryGetMSBuildToolPath(string FrameworkDirName, string FrameworkVerName, out string ToolPath)
+		{
+			string[] RegistryPaths = 
+			{
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\VC7",
+				@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\VisualStudio\SxS\VC7",
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7",
+				@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7"
+			};
+
+			foreach(string RegistryPath in RegistryPaths)
+			{
+				string FrameworkDir = Microsoft.Win32.Registry.GetValue(RegistryPath, FrameworkDirName, null) as string;
+				if(!String.IsNullOrEmpty(FrameworkDir))
+				{
+					string FrameworkVer = Microsoft.Win32.Registry.GetValue(RegistryPath, FrameworkVerName, null) as string;
+					if(!String.IsNullOrEmpty(FrameworkVer))
+					{
+						ToolPath = Path.Combine(FrameworkDir, FrameworkVer, "MSBuild.exe");
+						return true;
+					}
+				}
 			}
 
-			return Path.Combine(FrameworkDirectory, FrameworkVersion, "MSBuild.exe");
+			ToolPath = null;
+			return false;
 		}
 
 		/// <summary>

@@ -23,5 +23,7 @@ public class AESBlockEncryptor : ModuleRules
         }
 
         PublicIncludePathModuleNames.Add("CryptoPP");
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

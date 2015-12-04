@@ -91,6 +91,22 @@ namespace UnrealBuildTool
 		}
 	}
 
+	[Serializable]
+	public class ReceiptProperty
+	{
+		[XmlAttribute]
+		public string Name;
+
+		[XmlAttribute]
+		public string Value;
+
+		public ReceiptProperty(string InName, string InValue)
+		{
+			Name = InName;
+			Value = InValue;
+		}
+	}
+
 	/// <summary>
 	/// Stores a record of a built target, with all metadata that other tools may need to know about the build.
 	/// </summary>
@@ -133,6 +149,11 @@ namespace UnrealBuildTool
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
 
 		/// <summary>
+		/// Additional build properties passed through from the module rules
+		/// </summary>
+		public List<ReceiptProperty> AdditionalProperties = new List<ReceiptProperty>();
+
+		/// <summary>
 		/// Default constructor
 		/// </summary>
 		public TargetReceipt()
@@ -168,6 +189,7 @@ namespace UnrealBuildTool
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(OtherRuntimeDependency));
 			}
+			AdditionalProperties.AddRange(Other.AdditionalProperties);
 		}
 
 		/// <summary>
@@ -379,6 +401,24 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// Read the additional properties
+			JsonObject[] AdditionalPropertyObjects;
+			if(RawObject.TryGetObjectArrayField("AdditionalProperties", out AdditionalPropertyObjects))
+			{
+				foreach(JsonObject AdditionalPropertyObject in AdditionalPropertyObjects)
+				{
+					string Name;
+					if(AdditionalPropertyObject.TryGetStringField("Name", out Name))
+					{
+						string Value;
+						if(AdditionalPropertyObject.TryGetStringField("Value", out Value))
+						{
+							Receipt.AdditionalProperties.Add(new ReceiptProperty(Name, Value));
+						}
+					}
+				}
+			}
+
 			return Receipt;
 		}
 
@@ -450,6 +490,19 @@ namespace UnrealBuildTool
 					Writer.WriteObjectEnd();
 				}
 				Writer.WriteArrayEnd();
+
+				if(AdditionalProperties.Count > 0)
+				{
+					Writer.WriteArrayStart("AdditionalProperties");
+					foreach (ReceiptProperty AdditionalProperty in AdditionalProperties)
+					{
+						Writer.WriteObjectStart();
+						Writer.WriteValue("Key", AdditionalProperty.Name);
+						Writer.WriteValue("Value", AdditionalProperty.Value);
+						Writer.WriteObjectEnd();
+					}
+					Writer.WriteArrayEnd();
+				}
 
 				Writer.WriteObjectEnd();
 			}

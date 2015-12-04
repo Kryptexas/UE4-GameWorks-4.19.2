@@ -36,10 +36,6 @@ class BuildPlugin : BuildCommand
 
 		// Get any additional arguments from the commandline
 		string AdditionalArgs = "";
-		if(ParseParam("Rocket"))
-		{
-			AdditionalArgs += " -Rocket";
-		}
 
 		// Build the host platforms
 		List<string> ReceiptFileNames = new List<string>();

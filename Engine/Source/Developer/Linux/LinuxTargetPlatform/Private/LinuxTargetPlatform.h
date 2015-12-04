@@ -10,6 +10,7 @@
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 #include "IProjectManager.h"
+#include "InstalledPlatformInfo.h"
 
 #define LOCTEXT_NAMESPACE "TLinuxTargetPlatform"
 
@@ -184,8 +185,8 @@ public:
 	{
 		int32 ReadyToBuild = TSuper::CheckRequirements(ProjectPath, bProjectHasCode, OutDocumentationPath);
 
-		// do not support code/plugins in Rocket as the required libs aren't bundled (on Windows/Mac)
-		if (!PLATFORM_LINUX && FRocketSupport::IsRocket())
+		// do not support code/plugins in Installed builds if the required libs aren't bundled (on Windows/Mac)
+		if (!PLATFORM_LINUX && !FInstalledPlatformInfo::Get().IsValidPlatform(TSuper::GetPlatformInfo().BinaryFolderName, EProjectType::Code))
 		{
 			if (bProjectHasCode)
 			{

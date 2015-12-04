@@ -29,5 +29,7 @@ public class UnrealAudioCoreAudio : ModuleRules
 				"AudioToolbox"
 			}
 		);
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

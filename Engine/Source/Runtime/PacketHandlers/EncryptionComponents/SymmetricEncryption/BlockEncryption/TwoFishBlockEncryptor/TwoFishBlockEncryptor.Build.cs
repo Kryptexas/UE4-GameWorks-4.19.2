@@ -23,5 +23,7 @@ public class TwoFishBlockEncryptor : ModuleRules
         }
 
         PublicIncludePathModuleNames.Add("CryptoPP");
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

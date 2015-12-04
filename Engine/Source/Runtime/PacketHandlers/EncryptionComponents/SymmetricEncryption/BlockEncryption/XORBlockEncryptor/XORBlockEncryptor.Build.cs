@@ -23,5 +23,7 @@ public class XORBlockEncryptor : ModuleRules
         }
 
         PublicIncludePathModuleNames.Add("CryptoPP");
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

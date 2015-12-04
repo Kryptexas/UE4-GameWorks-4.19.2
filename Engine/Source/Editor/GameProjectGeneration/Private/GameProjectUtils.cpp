@@ -3060,7 +3060,7 @@ bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 
 	bool bRequiresBuild = false;
 
-	if (!FRocketSupport::IsRocket())
+	if (!FApp::IsEngineInstalled())
 	{
 		// check to see if the default build settings have changed
 		bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);

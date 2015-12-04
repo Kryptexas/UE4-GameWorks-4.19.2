@@ -765,9 +765,9 @@ namespace UnrealBuildTool
 
 					string CmdLine = (Target.ProjectFile != null) ? "\"" + Target.ProjectFile.FullName + "\"" : Target.GetTargetName();
 					CmdLine += " \"" + ModuleInfoFileName + "\" -LogCmds=\"loginit warning, logexit warning, logdatabase error\"";
-					if (UnrealBuildTool.RunningRocket())
+					if (UnrealBuildTool.IsEngineInstalled())
 					{
-						CmdLine += " -rocket -installed";
+						CmdLine += " -installed";
 					}
 
 					if (UEBuildConfiguration.bFailIfGeneratedCodeChanges)

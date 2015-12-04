@@ -128,67 +128,130 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class ModuleRules
 	{
+		/// <summary>
 		/// Type of module
+		/// </summary>
 		public enum ModuleType
 		{
+			/// <summary>
 			/// C++
+			/// <summary>
 			CPlusPlus,
 
+			/// <summary>
 			/// CLR module (mixed C++ and C++/CLI)
+			/// </summary>
 			CPlusPlusCLR,
 
+			/// <summary>
 			/// External (third-party)
+			/// </summary>
 			External,
 		}
 
+		/// <summary>
 		/// Code optimization settings
+		/// </summary>
 		public enum CodeOptimization
 		{
+			/// <summary>
 			/// Code should never be optimized if possible.
+			/// </summary>
 			Never,
 
+			/// <summary>
 			/// Code should only be optimized in non-debug builds (not in Debug).
+			/// </summary>
 			InNonDebugBuilds,
 
+			/// <summary>
 			/// Code should only be optimized in shipping builds (not in Debug, DebugGame, Development)
+			/// </summary>
 			InShippingBuildsOnly,
 
+			/// <summary>
 			/// Code should always be optimized if possible.
+			/// </summary>
 			Always,
 
+			/// <summary>
 			/// Default: 'InNonDebugBuilds' for game modules, 'Always' otherwise.
+			/// </summary>
 			Default,
 		}
 
-		/// Type of module
-		public ModuleType Type = ModuleType.CPlusPlus;
-
-		/// Subfolder of Binaries/PLATFORM folder to put this module in when building DLLs
-		/// This should only be used by modules that are found via searching like the
-		/// TargetPlatform or ShaderFormat modules. 
-		/// If FindModules is not used to track them down, the modules will not be found.
-		public string BinariesSubFolder = "";
-
-		/// When this module's code should be optimized.
-		public CodeOptimization OptimizeCode = CodeOptimization.Default;
-
-		/// Header file name for a shared PCH provided by this module.  Must be a valid relative path to a public C++ header file.
-		/// This should only be set for header files that are included by a significant number of other C++ modules.
-		public string SharedPCHHeaderFile = String.Empty;
-
+		/// <summary>
+		/// What type of PCH to use for this module.
+		/// </summary>
 		public enum PCHUsageMode
 		{
+			/// <summary>
 			/// Default: Engine modules use shared PCHs, game modules do not
+			/// </summary>
 			Default,
 
+			/// <summary>
 			/// Never use shared PCHs.  Always generate a unique PCH for this module if appropriate
+			/// </summary>
 			NoSharedPCHs,
 
+			/// <summary>
 			/// Shared PCHs are OK!
+			/// </summary>
 			UseSharedPCHs
 		}
 
+		/// <summary>
+		/// Which type of targets this module should be precompiled for
+		/// </summary>
+		public enum PrecompileTargetsType
+		{
+			/// <summary>
+			/// Never precompile this module.
+			/// </summary>
+			None,
+
+			/// <summary>
+			/// Inferred from the module's directory. Engine modules under Engine/Source/Runtime will be compiled for games, those under Engine/Source/Editor will be compiled for the editor, etc...
+			/// </summary>
+			Default,
+
+			/// <summary>
+			/// Any game targets.
+			/// </summary>
+			Game,
+
+			/// <summary>
+			/// Any editor targets.
+			/// </summary>
+			Editor,
+		}
+
+		/// <summary>
+		/// Type of module
+		/// </summary>
+		public ModuleType Type = ModuleType.CPlusPlus;
+
+		/// <summary>
+		/// Subfolder of Binaries/PLATFORM folder to put this module in when building DLLs. This should only be used by modules that are found via searching like the
+		/// TargetPlatform or ShaderFormat modules. If FindModules is not used to track them down, the modules will not be found.
+		/// </summary>
+		public string BinariesSubFolder = "";
+
+		/// <summary>
+		/// When this module's code should be optimized.
+		/// </summary>
+		public CodeOptimization OptimizeCode = CodeOptimization.Default;
+
+		/// <summary>
+		/// Header file name for a shared PCH provided by this module.  Must be a valid relative path to a public C++ header file.
+		/// This should only be set for header files that are included by a significant number of other C++ modules.
+		/// </summary>
+		public string SharedPCHHeaderFile = String.Empty;
+
+		/// <summary>
 		/// Precompiled header usage for this module
+		/// </summary>
 		public PCHUsageMode PCHUsage = PCHUsageMode.Default;
 
 		/// <summary>
@@ -236,6 +299,11 @@ namespace UnrealBuildTool
 		/// Module uses a #import so must be built locally when compiling with SN-DBS
 		/// </summary>
 		public bool bBuildLocallyWithSNDBS = false;
+
+		/// <summary>
+		/// Redistribution override flag for this module.
+		/// </summary>
+		public bool? IsRedistributableOverride = null;
 
 		/// <summary>
 		/// Whether the output from this module can be publicly distributed, even if it has code/
@@ -354,6 +422,16 @@ namespace UnrealBuildTool
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
 
 		/// <summary>
+		/// List of additional properties to be added to the build receipt
+		/// </summary>
+		public List<ReceiptProperty> AdditionalPropertiesForReceipt = new List<ReceiptProperty>();
+
+		/// <summary>
+		/// Which targets this module should be precompiled for
+		/// </summary>
+		public PrecompileTargetsType PrecompileForTargets = PrecompileTargetsType.Default;
+
+		/// <summary>
 		/// Property for the directory containing this module. Useful for adding paths to third party dependencies.
 		/// </summary>
 		public string ModuleDirectory
@@ -448,11 +526,6 @@ namespace UnrealBuildTool
 			// Box2D included define (required because pointer types may be in public exported structures)
 			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
 		}
-
-		/// <summary>
-		/// Redistribution override flag for this module.
-		/// </summary>
-		public bool? IsRedistributableOverride { get; set; }
 	}
 
 	/// <summary>
@@ -460,23 +533,35 @@ namespace UnrealBuildTool
 	/// </summary>
 	public abstract class TargetRules
 	{
-		/// Type of target
+		/// <summary>
+		/// The type of target
+		/// </summary>
 		[Serializable]
 		public enum TargetType
 		{
+			/// <summary>
 			/// Cooked monolithic game executable (GameName.exe).  Also used for a game-agnostic engine executable (UE4Game.exe or RocketGame.exe)
+			/// </summary>
 			Game,
 
+			/// <summary>
 			/// Uncooked modular editor executable and DLLs (UE4Editor.exe, UE4Editor*.dll, GameName*.dll)
+			/// </summary>
 			Editor,
 
+			/// <summary>
 			/// Cooked monolithic game client executable (GameNameClient.exe, but no server code)
+			/// </summary>
 			Client,
 
+			/// <summary>
 			/// Cooked monolithic game server executable (GameNameServer.exe, but no client code)
+			/// </summary>
 			Server,
 
+			/// <summary>
 			/// Program (standalone program, e.g. ShaderCompileWorker.exe, can be modular or monolithic depending on the program)
+			/// </summary>
 			Program,
 		}
 
@@ -1174,6 +1259,19 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Fills a list with all the module names in this assembly (or its parent)
+		/// </summary>
+		/// <param name="ModuleNames">List to receive the module names</param>
+		public void GetAllModuleNames(List<string> ModuleNames)
+		{
+			if(Parent != null)
+			{
+				Parent.GetAllModuleNames(ModuleNames);
+			}
+			ModuleNames.AddRange(ModuleNameToModuleFile.Keys);
+		}
+
+		/// <summary>
 		/// Tries to get the filename that declared the given type
 		/// </summary>
 		/// <param name="ExistingType"></param>
@@ -1703,8 +1801,8 @@ namespace UnrealBuildTool
 			{
 				Cache = new RulesFileCache();
 				FindAllRulesFilesRecursively(Directory, Cache);
-				RootFolderToRulesFileCache[Directory] = Cache;
-			}
+					RootFolderToRulesFileCache[Directory] = Cache;
+				}
 
 			// Get the list of files of the type we're looking for
 			if (Type == RulesCompiler.RulesFileType.Module)

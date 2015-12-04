@@ -199,6 +199,11 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Creates all the modules referenced by this target.
+		/// </summary>
+		public virtual void CreateAllDependentModules() { }
+
+		/// <summary>
 		/// Called to resolve module names and uniquely bind modules to a binary.
 		/// </summary>
 		/// <param name="BuildTarget">The build target the modules are being bound for</param>
@@ -440,6 +445,21 @@ namespace UnrealBuildTool
 		// UEBuildBinary interface.
 
 		/// <summary>
+		/// Creates all the modules referenced by this target.
+		/// </summary>
+		public override void CreateAllDependentModules()
+		{
+			if (Config.bHasModuleRules)
+			{
+				foreach (UEBuildModule Module in Modules)
+				{
+					Module.RecursivelyCreateModules();
+				}
+			}
+		}
+
+
+		/// <summary>
 		/// Called to resolve module names and uniquely bind modules to a binary.
 		/// </summary>
 		/// <param name="BuildTarget">The build target the modules are being bound for</param>
@@ -499,7 +519,6 @@ namespace UnrealBuildTool
 				// Modules may be added to this binary during this process, so don't foreach over ModuleNames
 				foreach (UEBuildModule Module in Modules)
 				{
-					Module.RecursivelyCreateModules();
 					Module.RecursivelyProcessUnboundModules();
 				}
 			}
@@ -768,6 +787,11 @@ namespace UnrealBuildTool
 				// Create actions to analyze *.includes files and provide suggestions on how to modify PCH.
 				//
 				return CreateOutputFilesForUCA(BinaryLinkEnvironment);
+			}
+
+			if (!string.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile))
+			{
+				return BinaryLinkEnvironment.InputFiles;
 			}
 
 			//

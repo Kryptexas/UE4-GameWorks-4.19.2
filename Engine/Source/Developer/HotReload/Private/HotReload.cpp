@@ -1505,17 +1505,15 @@ FString FHotReloadModule::MakeUBTArgumentsForModuleCompiling()
 		//     name passed in (see bIsProjectTarget in VCProject.cs), which causes intermediate libraries to be saved to the Engine
 		//     intermediate folder instead of the project's intermediate folder.  We're emulating this behavior here for module
 		//     recompiling, so that compiled modules will be able to find their import libraries in the original folder they were compiled.
-		if( FRocketSupport::IsRocket() || !FullProjectPath.StartsWith( FPaths::ConvertRelativePathToFull( FPaths::RootDir() ) ) )
+		if( FApp::IsEngineInstalled() || !FullProjectPath.StartsWith( FPaths::ConvertRelativePathToFull( FPaths::RootDir() ) ) )
 		{
 			const FString ProjectFilenameWithQuotes = FString::Printf(TEXT("\"%s\""), *FullProjectPath);
 			AdditionalArguments += FString::Printf(TEXT("%s "), *ProjectFilenameWithQuotes);
 		}
-
-		if (FRocketSupport::IsRocket())
-		{
-			AdditionalArguments += TEXT("-rocket ");
-		}
 	}
+
+	// Use new FastPDB option to cut down linking time
+	AdditionalArguments += TEXT(" -FastPDB");
 
 	return AdditionalArguments;
 }

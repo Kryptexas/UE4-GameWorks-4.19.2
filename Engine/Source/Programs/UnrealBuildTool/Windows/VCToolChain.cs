@@ -776,6 +776,12 @@ namespace UnrealBuildTool
 			{
 				// Output debug info for the linked executable.
 				Arguments.Append(" /DEBUG");
+
+				// Allow partial PDBs for faster linking
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && BuildConfiguration.bUseFastPDBLinking)
+				{
+					Arguments.Append(":FASTLINK");
+				}
 			}
 
 			// Prompt the user before reporting internal errors to Microsoft.

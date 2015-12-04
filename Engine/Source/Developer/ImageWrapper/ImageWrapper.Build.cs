@@ -23,7 +23,7 @@ public class ImageWrapper : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
         {
             Definitions.Add("WITH_UNREALEXR=1");
-            AddThirdPartyPrivateStaticDependencies(Target, "UEOpenEXR");
+            AddThirdPartyPrivateStaticDependencies(Target, "UEOpenExr");
         }
 
         bEnableShadowVariableWarnings = false;

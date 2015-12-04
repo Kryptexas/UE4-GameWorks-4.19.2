@@ -511,7 +511,12 @@ namespace UnrealBuildTool
 
 	public class AndroidPlatformFactory : UEBuildPlatformFactory
 	{
-		public override void RegisterBuildPlatforms()
+		protected override UnrealTargetPlatform TargetPlatform
+		{
+			get { return UnrealTargetPlatform.Android; }
+		}
+
+		protected override void RegisterBuildPlatforms()
 		{
 			AndroidPlatformSDK SDK = new AndroidPlatformSDK();
 			SDK.ManageAndValidateSDK();

@@ -26,5 +26,7 @@ public class StreamEncryptionHandlerComponent : ModuleRules
         }
 
         PublicIncludePathModuleNames.Add("CryptoPP");
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

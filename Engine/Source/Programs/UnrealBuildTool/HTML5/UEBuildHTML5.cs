@@ -372,10 +372,15 @@ namespace UnrealBuildTool
 
 	class HTML5PlatformFactory : UEBuildPlatformFactory
 	{
+		protected override UnrealTargetPlatform TargetPlatform
+		{
+			get { return UnrealTargetPlatform.HTML5; }
+		}
+
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		public override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms()
 		{
 			HTML5PlatformSDK SDK = new HTML5PlatformSDK();
 			SDK.ManageAndValidateSDK();

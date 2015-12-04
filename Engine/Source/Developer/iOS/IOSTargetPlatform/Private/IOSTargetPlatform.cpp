@@ -6,6 +6,7 @@
 
 #include "IOSTargetPlatformPrivatePCH.h"
 #include "IProjectManager.h"
+#include "InstalledPlatformInfo.h"
 
 /* FIOSTargetPlatform structors
  *****************************************************************************/
@@ -120,15 +121,18 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	OutTutorialPath = FString("/Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial");
     // shell to certtool
 #else
-	if (bProjectHasCode && FRocketSupport::IsRocket())
+	if (!FInstalledPlatformInfo::Get().IsValidPlatform(GetPlatformInfo().BinaryFolderName, EProjectType::Code))
 	{
-		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCRestrictions.iOSonPCRestrictions");
-		bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
-	}
-	if (FRocketSupport::IsRocket() && IProjectManager::Get().IsNonDefaultPluginEnabled())
-	{
-		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
-		bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
+		if (bProjectHasCode)
+		{
+			OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCRestrictions.iOSonPCRestrictions");
+			bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
+		}
+		if (IProjectManager::Get().IsNonDefaultPluginEnabled())
+		{
+			OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
+			bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
+		}
 	}
 #endif
 

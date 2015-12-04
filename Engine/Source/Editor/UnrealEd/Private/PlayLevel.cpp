@@ -1443,7 +1443,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 			PlatformName = PlatformName.Left(PlatformName.Find(TEXT("NoEditor")));
 		}
 		Arguments.Add(TEXT("PlatformName"), FText::FromString(PlatformName));
-		if (FRocketSupport::IsRocket() || !bPlayUsingLauncherHasCode || !bPlayUsingLauncherHasCompiler || bBuildType == EPlayOnBuildMode::PlayOnBuild_Never)
+		if (FApp::IsEngineInstalled() || !bPlayUsingLauncherHasCode || !bPlayUsingLauncherHasCompiler || bBuildType == EPlayOnBuildMode::PlayOnBuild_Never)
 		{
 			NotificationText = FText::Format(LOCTEXT("LauncherTaskValidateNotification", "Validating Executable for {PlatformName}..."), Arguments);
 		}

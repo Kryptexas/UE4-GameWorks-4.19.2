@@ -15,6 +15,7 @@
 #include "ManifestUpdateHelper.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "AndroidRuntimeSettings"
 
@@ -200,18 +201,18 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 		.EditCondition(SetupForGooglePlayAttribute, NULL);
 
 
-#define SETUP_NONROCKET_PROP(PropName, Category, Tip) \
+#define SETUP_SOURCEONLY_PROP(PropName, Category, Tip) \
 	{ \
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, PropName)); \
 		Category.AddProperty(PropertyHandle) \
-			.IsEnabled(!FRocketSupport::IsRocket()) \
-			.ToolTip(!FRocketSupport::IsRocket() ? Tip : FAndroidTargetSettingsCustomizationConstants::DisabledTip); \
+			.IsEnabled(FEngineBuildSettings::IsSourceDistribution()) \
+			.ToolTip(FEngineBuildSettings::IsSourceDistribution() ? Tip : FAndroidTargetSettingsCustomizationConstants::DisabledTip); \
 	}
-	SETUP_NONROCKET_PROP(bBuildForArmV7, BuildCategory, LOCTEXT("BuildForArmV7ToolTip", "Enable ArmV7 CPU architecture support? (this will be used if all CPU architecture types are unchecked)"));
-	SETUP_NONROCKET_PROP(bBuildForX86, BuildCategory, LOCTEXT("BuildForX86ToolTip", "Enable X86 CPU architecture support?"));
-	SETUP_NONROCKET_PROP(bBuildForX8664, BuildCategory, LOCTEXT("BuildForX8664ToolTip", "Enable X86-64 CPU architecture support?"));
-	SETUP_NONROCKET_PROP(bBuildForES2, BuildCategory, LOCTEXT("BuildForES2ToolTip", "Enable OpenGL ES2 rendering support? (this will be used if rendering types are unchecked)"));
-	SETUP_NONROCKET_PROP(bBuildForES31, BuildCategory, LOCTEXT("BuildForES31ToolTip", "Enable OpenGL ES31 + AEP (Android Extension Pack) rendering support?"));
+	SETUP_SOURCEONLY_PROP(bBuildForArmV7, BuildCategory, LOCTEXT("BuildForArmV7ToolTip", "Enable ArmV7 CPU architecture support? (this will be used if all CPU architecture types are unchecked)"));
+	SETUP_SOURCEONLY_PROP(bBuildForX86, BuildCategory, LOCTEXT("BuildForX86ToolTip", "Enable X86 CPU architecture support?"));
+	SETUP_SOURCEONLY_PROP(bBuildForX8664, BuildCategory, LOCTEXT("BuildForX8664ToolTip", "Enable X86-64 CPU architecture support?"));
+	SETUP_SOURCEONLY_PROP(bBuildForES2, BuildCategory, LOCTEXT("BuildForES2ToolTip", "Enable OpenGL ES2 rendering support? (this will be used if rendering types are unchecked)"));
+	SETUP_SOURCEONLY_PROP(bBuildForES31, BuildCategory, LOCTEXT("BuildForES31ToolTip", "Enable OpenGL ES31 + AEP (Android Extension Pack) rendering support?"));
 	
 	// @todo android fat binary: Put back in when we expose those
 //	SETUP_NONROCKET_PROP(bSplitIntoSeparateApks, BuildCategory, LOCTEXT("SplitIntoSeparateAPKsToolTip", "If checked, CPU architectures and rendering types will be split into separate .apk files"));

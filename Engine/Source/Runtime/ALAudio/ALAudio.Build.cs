@@ -22,5 +22,7 @@ public class ALAudio : ModuleRules
             "Vorbis",
             "VorbisFile"
         );
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

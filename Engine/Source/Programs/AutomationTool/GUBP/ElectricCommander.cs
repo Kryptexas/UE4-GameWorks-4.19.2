@@ -281,13 +281,13 @@ namespace AutomationTool
 
 			// Write all the job setup
 			WriteJobSteps(OrderedToDo, bSkipTriggers);
+
+			// Export it as JSON too
+			WriteJson(OrderedToDo, bSkipTriggers);
 		}
 
 		private void WriteProperties(IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, int TimeIndex, int TimeQuantum)
 		{
-			List<AggregateNode> SeparatePromotables = FindPromotables(AllAggregates);
-			Dictionary<BuildNode, List<AggregateNode>> DependentPromotions = FindDependentPromotables(AllNodes, SeparatePromotables);
-
 			Dictionary<BuildNode, int> FullNodeListSortKey = GetDisplayOrder(SortedNodes);
 
 			List<string> ECProps = new List<string>();
@@ -299,14 +299,6 @@ namespace AutomationTool
 			foreach (KeyValuePair<BuildNode, int> NodePair in FullNodeListSortKey.Where(x => x.Key.ControllingTriggers.Length == 0))
 			{
 				ECProps.Add(string.Format("SortKey/{0}={1}", NodePair.Key.Name, NodePair.Value));
-			}
-			foreach (KeyValuePair<BuildNode, List<AggregateNode>> NodePair in DependentPromotions)
-			{
-				ECProps.Add(string.Format("DependentPromotions/{0}={1}", NodePair.Key.Name, String.Join(" ", NodePair.Value.Select(x => x.Name))));
-			}
-			foreach (AggregateNode Node in SeparatePromotables)
-			{
-				ECProps.Add(string.Format("PossiblePromotables/{0}={1}", Node.Name, ""));
 			}
 
 			foreach (BuildNode NodeToDo in OrderedToDo)
@@ -330,6 +322,121 @@ namespace AutomationTool
 
 			bool bHasTests = OrderedToDo.Any(x => x.IsTest);
 			RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
+		}
+
+		private static string GetAgentGroupOrSticky(BuildNode NodeToDo)
+		{
+			string AgentGroup = NodeToDo.AgentSharingGroup;
+			if (NodeToDo.IsSticky)
+			{
+				if (NodeToDo.AgentSharingGroup != "")
+				{
+					throw new AutomationException("Node {0} is both agent sharing and sitcky.", NodeToDo.Name);
+				}
+				if (NodeToDo.AgentPlatform != UnrealTargetPlatform.Win64)
+				{
+					throw new AutomationException("Node {0} is sticky, but {1} hosted. Sticky nodes must be PC hosted.", NodeToDo.Name, NodeToDo.AgentPlatform);
+				}
+				if (NodeToDo.AgentRequirements != "")
+				{
+					throw new AutomationException("Node {0} is sticky but has agent requirements.", NodeToDo.Name);
+				}
+				AgentGroup = "Sticky";
+			}
+			return AgentGroup;
+		}
+
+		private void WriteJson(List<BuildNode> OrderedToDo, bool bSkipTriggers)
+		{
+			using(JsonWriter JsonWriter = new JsonWriter(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "JobSteps.json")))
+			{
+				JsonWriter.WriteObjectStart();
+				JsonWriter.WriteArrayStart("JobSteps");
+
+				string CurrentAgentGroup = "";
+				foreach (BuildNode NodeToDo in OrderedToDo)
+				{
+					if (!NodeToDo.IsComplete) // if something is already finished, we don't put it into EC  
+					{
+						// Write the agent group object
+						string AgentGroup = GetAgentGroupOrSticky(NodeToDo);
+						if(AgentGroup != CurrentAgentGroup)
+						{
+							if(CurrentAgentGroup != "")
+							{
+								JsonWriter.WriteArrayEnd();
+								JsonWriter.WriteObjectEnd();
+							}
+							CurrentAgentGroup = AgentGroup;
+							if(CurrentAgentGroup != "")
+							{
+								JsonWriter.WriteObjectStart();
+								JsonWriter.WriteValue("Group", AgentGroup);
+								JsonWriter.WriteValue("AgentPlatform", NodeToDo.AgentPlatform.ToString());
+								JsonWriter.WriteArrayStart("JobSteps");
+							}
+						}
+
+						// Add this node
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Node", NodeToDo.Name);
+						if(CurrentAgentGroup == "")
+						{
+							JsonWriter.WriteValue("AgentPlatform", NodeToDo.AgentPlatform.ToString());
+						}
+						if(!String.IsNullOrEmpty(NodeToDo.AgentRequirements))
+						{
+							JsonWriter.WriteValue("AgentRequirements", NodeToDo.AgentRequirements);
+						}
+
+						// Write all the dependencies
+						StringBuilder DependsOnList = new StringBuilder();
+						foreach (BuildNode Dep in FindDirectOrderDependencies(NodeToDo))
+						{
+							if (!Dep.IsComplete && OrderedToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+							{
+								if (OrderedToDo.IndexOf(Dep) > OrderedToDo.IndexOf(NodeToDo))
+								{
+									throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo.Name, Dep.Name);
+								}
+								if(DependsOnList.Length > 0)
+								{
+									DependsOnList.Append(";");
+								}
+								string DepAgentGroup = GetAgentGroupOrSticky(Dep);
+								if(DepAgentGroup != "")
+								{
+									DependsOnList.AppendFormat("{0}/", DepAgentGroup);
+								}
+								DependsOnList.Append(Dep.Name);
+							}
+						}
+						JsonWriter.WriteValue("DependsOn", DependsOnList.ToString());
+
+						// Add any trigger-specific settings
+						TriggerNode TriggerNodeToDo = NodeToDo as TriggerNode;
+						if (TriggerNodeToDo != null && !TriggerNodeToDo.IsTriggered)
+						{
+							JsonWriter.WriteValue("TriggerState", TriggerNodeToDo.StateName);
+							JsonWriter.WriteValue("TriggerActionText", TriggerNodeToDo.ActionText);
+							JsonWriter.WriteValue("TriggerDescriptionText", TriggerNodeToDo.DescriptionText);
+							if (NodeToDo.RecipientsForFailureEmails.Length > 0)
+							{
+								JsonWriter.WriteValue("TriggerEmailRecipients", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
+							}
+						}
+
+						JsonWriter.WriteObjectEnd();
+					}
+				}
+				if(CurrentAgentGroup != "")
+				{
+					JsonWriter.WriteArrayEnd();
+					JsonWriter.WriteObjectEnd();
+				}
+				JsonWriter.WriteArrayEnd();
+				JsonWriter.WriteObjectEnd();
+			}
 		}
 
 		private void WriteJobSteps(List<BuildNode> OrderedToDo, bool bSkipTriggers)
@@ -703,33 +810,6 @@ namespace AutomationTool
 				RunCondition = RunCondition + ")true; else false;]\"";
 			}
 			return RunCondition;
-		}
-
-		private static List<AggregateNode> FindPromotables(IEnumerable<AggregateNode> NodesToDo)
-		{
-			List<AggregateNode> SeparatePromotables = new List<AggregateNode>();
-			foreach (AggregateNode NodeToDo in NodesToDo)
-			{
-				if (NodeToDo.IsSeparatePromotable)
-				{
-					SeparatePromotables.Add(NodeToDo);
-				}
-			}
-			return SeparatePromotables;
-		}
-
-		private static Dictionary<BuildNode, List<AggregateNode>> FindDependentPromotables(IEnumerable<BuildNode> NodesToDo, IEnumerable<AggregateNode> SeparatePromotions)
-		{
-			Dictionary<BuildNode, List<AggregateNode>> DependentPromotions = NodesToDo.ToDictionary(x => x, x => new List<AggregateNode>());
-			foreach (AggregateNode SeparatePromotion in SeparatePromotions)
-			{
-				BuildNode[] Dependencies = SeparatePromotion.Dependencies.SelectMany(x => x.OrderDependencies).Distinct().ToArray();
-				foreach (BuildNode Dependency in Dependencies)
-				{
-					DependentPromotions[Dependency].Add(SeparatePromotion);
-				}
-			}
-			return DependentPromotions;
 		}
 
 		/// <summary>

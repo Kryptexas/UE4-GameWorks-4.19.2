@@ -139,13 +139,12 @@ FString FPluginDescriptor::ToString() const
 	Writer.WriteValue(TEXT("DocsURL"), DocsURL);
 	Writer.WriteValue(TEXT("MarketplaceURL"), MarketplaceURL);
 	Writer.WriteValue(TEXT("SupportURL"), SupportURL);
-
-	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
-
 	Writer.WriteValue(TEXT("EnabledByDefault"), bEnabledByDefault);
 	Writer.WriteValue(TEXT("CanContainContent"), bCanContainContent);
 	Writer.WriteValue(TEXT("IsBetaVersion"), bIsBetaVersion);
 	Writer.WriteValue(TEXT("Installed"), bInstalled);
+
+	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
 
 	Writer.WriteObjectEnd();
 	Writer.Close();

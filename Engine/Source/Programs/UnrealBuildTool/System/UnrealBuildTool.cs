@@ -78,7 +78,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Are we running for Rocket
 		/// </summary>
-		static public bool bRunningRocket = false;
+		static public bool? bRunningRocket;
+
+		/// <summary>
+		/// Whether we're running with engine installed
+		/// </summary>
+		static private bool? bIsEngineInstalled;
 
 		/// <summary>
 		/// The full name of the Root UE4 directory
@@ -177,12 +182,18 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Returns true if UnrealBuildTool is running with the "-rocket" option (Rocket mode)
+		/// Returns true if UnrealBuildTool is running with Rocket mode enabled
 		/// </summary>
-		/// <returns>True if running with "-rocket"</returns>
+		/// <returns>True if running with Rocket mode</returns>
 		static public bool RunningRocket()
 		{
-			return bRunningRocket;
+			if (!bRunningRocket.HasValue)
+			{
+				FileReference RocketFile = FileReference.Combine(RootDirectory, "Engine", "Build", "Rocket.txt");
+				bRunningRocket = RocketFile.Exists();
+			}
+
+			return bRunningRocket.Value;
 		}
 
 		/// <summary>
@@ -191,8 +202,15 @@ namespace UnrealBuildTool
 		/// <returns>True if running using installed Engine components</returns>
 		static public bool IsEngineInstalled()
 		{
-			// For now this is only true when running Rocket
-			return RunningRocket();
+			if (!bIsEngineInstalled.HasValue)
+			{
+				bIsEngineInstalled = UnrealBuildTool.CommandLineContains("-Installed")
+					|| (RunningRocket() ? !UnrealBuildTool.CommandLineContains("-NotInstalledEngine") : UnrealBuildTool.CommandLineContains("-InstalledEngine"));
+				FileReference InstalledBuildFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt");
+				bIsEngineInstalled |= InstalledBuildFile.Exists();
+			}
+
+			return bIsEngineInstalled.Value;
 		}
 
 		static public string GetUBTPath()
@@ -339,51 +357,23 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Is this a valid configuration. Used primarily for Rocket vs non-Rocket.
+		/// Is this a valid configuration. Used primarily for Installed vs non-Installed.
 		/// </summary>
 		/// <param name="InConfiguration"></param>
 		/// <returns>true if valid, false if not</returns>
 		static public bool IsValidConfiguration(UnrealTargetConfiguration InConfiguration)
 		{
-			if (RunningRocket())
-			{
-				if (
-					(InConfiguration != UnrealTargetConfiguration.Development)
-					&& (InConfiguration != UnrealTargetConfiguration.DebugGame)
-					&& (InConfiguration != UnrealTargetConfiguration.Shipping)
-					)
-				{
-					return false;
-				}
-			}
-			return true;
+			return InstalledPlatformInfo.Current.IsValidConfiguration(InConfiguration, EProjectType.Code);
 		}
 
 		/// <summary>
-		/// Is this a valid platform. Used primarily for Rocket vs non-Rocket.
+		/// Is this a valid platform. Used primarily for Installed vs non-Installed.
 		/// </summary>
 		/// <param name="InPlatform"></param>
 		/// <returns>true if valid, false if not</returns>
 		static public bool IsValidPlatform(UnrealTargetPlatform InPlatform)
 		{
-			if (RunningRocket())
-			{
-				if (Utils.IsRunningOnMono)
-				{
-					if (InPlatform != UnrealTargetPlatform.Mac && InPlatform != UnrealTargetPlatform.IOS && InPlatform != UnrealTargetPlatform.Linux)
-					{
-						return false;
-					}
-				}
-				else
-				{
-					if (InPlatform != UnrealTargetPlatform.Win32 && InPlatform != UnrealTargetPlatform.Win64 && InPlatform != UnrealTargetPlatform.Android)
-					{
-						return false;
-					}
-				}
-			}
-			return true;
+			return InstalledPlatformInfo.Current.IsValidPlatform(InPlatform, EProjectType.Code);
 		}
 
 
@@ -448,7 +438,7 @@ namespace UnrealBuildTool
 							{
 								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
 								var TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-								TempInst.RegisterBuildPlatforms();
+								TempInst.TryRegisterBuildPlatforms();
 							}
 						}
 					}
@@ -483,6 +473,7 @@ namespace UnrealBuildTool
 			string ProjectArg = null;
 			if (LowercaseArg == "-rocket")
 			{
+				Log.TraceWarning("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build.");
 				bRunningRocket = true;
 			}
 			else if (LowercaseArg.StartsWith("-project="))
@@ -669,6 +660,10 @@ namespace UnrealBuildTool
 				{
 					UEBuildConfiguration.bMergeExternalFileList = true;
 				}
+				else if (LowercaseArg == "-listtps")
+				{
+					UEBuildConfiguration.bListThirdPartySoftware = true;
+				}
 				else if (LowercaseArg == "-generatemanifest")
 				{
 					// Generate a manifest file containing all the files required to be in Perforce
@@ -810,6 +805,15 @@ namespace UnrealBuildTool
 				else if (LowercaseArg == "-ucacheckpchfiles")
 				{
 					BuildConfiguration.bUCACheckPCHFiles = true;
+				}
+				else if (LowercaseArg.StartsWith("-singlefile="))
+				{
+					BuildConfiguration.bUseUBTMakefiles = false;
+					BuildConfiguration.SingleFileToCompile = LowercaseArg.Replace("-singlefile=", "");
+				}
+				else if (LowercaseArg.StartsWith("-fastpdb"))
+				{
+					BuildConfiguration.bUseFastPDBLinking = true;
 				}
 			}
 		}
@@ -1130,7 +1134,7 @@ namespace UnrealBuildTool
 						{
 							// This arg may be a game name. Check for the existence of a game folder with this name.
 							// "Engine" is not a valid game name.
-							if (LowercaseArg != "engine" && Arg.IndexOfAny(Path.GetInvalidPathChars()) == -1 &&
+							if (LowercaseArg != "engine" && Arg.IndexOfAny(Path.GetInvalidPathChars()) == -1 && Arg.IndexOfAny(new char[]{ ':', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}) == -1 &&
 								Directory.Exists(Path.Combine(ProjectFileGenerator.RootRelativePath, Arg, "Config")))
 							{
 								GameName = Arg;
@@ -1854,7 +1858,7 @@ namespace UnrealBuildTool
 				if (BuildResult == ECompilationResult.Succeeded &&
 					(
 						(BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) ||
-						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !UEBuildConfiguration.bGenerateExternalFileList)
+						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !UEBuildConfiguration.bGenerateExternalFileList && !UEBuildConfiguration.bListThirdPartySoftware)
 					))
 				{
 					if (UnrealBuildTool.IsGatheringBuild)
@@ -1951,7 +1955,7 @@ namespace UnrealBuildTool
 									ActionsToExecute.Count
 									);
 
-							if (!bIsHotReload)
+							if (!bIsHotReload && String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile))
 							{
 								// clean up any stale modules
 								foreach (UEBuildTarget Target in Targets)

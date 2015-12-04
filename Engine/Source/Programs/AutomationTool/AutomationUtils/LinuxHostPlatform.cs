@@ -12,11 +12,6 @@ namespace AutomationTool
 {
 	class LinuxHostPlatform : HostPlatform
 	{
-		public override void SetFrameworkVars()
-		{
-			// @todo
-		}
-
 		public override string GetMsBuildExe()
 		{
 			return "xbuild";

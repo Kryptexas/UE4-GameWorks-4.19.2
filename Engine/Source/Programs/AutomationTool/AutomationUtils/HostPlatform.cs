@@ -66,11 +66,6 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Sets .Net framework environment variables.
-		/// </summary>
-		abstract public void SetFrameworkVars();
-
-		/// <summary>
 		/// Gets the build executable filename.
 		/// </summary>
 		/// <returns></returns>

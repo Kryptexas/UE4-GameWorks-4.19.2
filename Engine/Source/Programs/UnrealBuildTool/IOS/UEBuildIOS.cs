@@ -498,10 +498,15 @@ namespace UnrealBuildTool
 
 	public class IOSPlatformFactory : UEBuildPlatformFactory
 	{
+		protected override UnrealTargetPlatform TargetPlatform
+		{
+			get { return UnrealTargetPlatform.IOS; }
+		}
+
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		public override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms()
 		{
 			IOSPlatformSDK SDK = new IOSPlatformSDK();
 			SDK.ManageAndValidateSDK();

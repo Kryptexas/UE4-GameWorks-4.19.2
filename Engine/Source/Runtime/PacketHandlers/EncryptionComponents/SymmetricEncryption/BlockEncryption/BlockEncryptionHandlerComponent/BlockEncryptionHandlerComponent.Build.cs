@@ -27,5 +27,6 @@ public class BlockEncryptionHandlerComponent : ModuleRules
 
         PublicIncludePathModuleNames.Add("CryptoPP");
 
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

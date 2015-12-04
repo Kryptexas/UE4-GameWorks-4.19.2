@@ -84,6 +84,7 @@ namespace UnrealBuildTool
 		public static readonly string DeveloperFolder = String.Format("{0}Developer{0}", Path.DirectorySeparatorChar);
 		public static readonly string EditorFolder = String.Format("{0}Editor{0}", Path.DirectorySeparatorChar);
 		public static readonly string ProgramsFolder = String.Format("{0}Programs{0}", Path.DirectorySeparatorChar);
+		public static readonly string ThirdPartyFolder = String.Format("{0}ThirdParty{0}", Path.DirectorySeparatorChar);
 
 		public static UEBuildModuleType GetModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
@@ -122,6 +123,10 @@ namespace UnrealBuildTool
 			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ProgramsFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
 				ModuleType = UEBuildModuleType.Program;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ThirdPartyFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.ThirdParty;
 			}
 			return ModuleType;
 		}

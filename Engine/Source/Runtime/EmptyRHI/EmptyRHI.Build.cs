@@ -17,5 +17,7 @@ public class EmptyRHI : ModuleRules
 				"ShaderCore"
 			}
 			);
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

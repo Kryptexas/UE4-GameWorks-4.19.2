@@ -10,6 +10,7 @@ namespace UnrealBuildTool
 {
 	public enum ModuleHostType
 	{
+		Default,
 		Runtime,
 		RuntimeNoCommandlet,
 		Developer,

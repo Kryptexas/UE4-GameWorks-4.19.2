@@ -13,5 +13,7 @@ public class HTTPChunkInstaller : ModuleRules
         PrivateDependencyModuleNames.Add("BuildPatchServices");
         PrivateDependencyModuleNames.Add("OnlineSubsystem");
         PrivateDependencyModuleNames.Add("OnlineSubsystemUtils");
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

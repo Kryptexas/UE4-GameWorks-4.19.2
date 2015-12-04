@@ -23,5 +23,7 @@ public class RSAEncryptionHandlerComponent : ModuleRules
         }
 
         PublicIncludePathModuleNames.Add("CryptoPP");
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

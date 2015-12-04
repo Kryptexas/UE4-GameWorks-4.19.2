@@ -37,9 +37,9 @@ partial class GUBP
         {
             return "";
         }
-		public virtual BuildNodeTemplate GetTemplate(GUBP bp)
+		public virtual BuildNodeDefinition GetDefinition(GUBP bp)
 		{
-			return new LegacyNodeTemplate(bp, this);
+			return new LegacyNodeDefinition(bp, this);
 		}
         public virtual void DoBuild(GUBP bp)
         {
@@ -243,11 +243,11 @@ partial class GUBP
 			}
             return "";
         }
-		public override BuildNodeTemplate GetTemplate(GUBP bp)
+		public override BuildNodeDefinition GetDefinition(GUBP bp)
 		{
-			BuildNodeTemplate Template = base.GetTemplate(bp);
-			Template.AgentPlatform = GetAgentPlatform();
-			return Template;
+			BuildNodeDefinition Definition = base.GetDefinition(bp);
+			Definition.AgentPlatform = GetAgentPlatform();
+			return Definition;
 		}
         public virtual UnrealTargetPlatform GetAgentPlatform()
         {
@@ -359,14 +359,14 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNodeTemplate GetTemplate(GUBP bp)
+		public override BuildNodeDefinition GetDefinition(GUBP bp)
 		{
-			BuildNodeTemplate Template = base.GetTemplate(bp);
+			BuildNodeDefinition Definition = base.GetDefinition(bp);
 			if(HostPlatform == UnrealTargetPlatform.Win64)
 			{
-				Template.IsParallelAgentShareEditor = true;
+				Definition.IsParallelAgentShareEditor = true;
 			}
-			return Template;
+			return Definition;
 		}
         public override bool DeleteBuildProducts()
         {
@@ -461,14 +461,14 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNodeTemplate GetTemplate(GUBP bp)
+		public override BuildNodeDefinition GetDefinition(GUBP bp)
 		{
-			BuildNodeTemplate Template = base.GetTemplate(bp);
+			BuildNodeDefinition Definition = base.GetDefinition(bp);
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
-				Template.IsParallelAgentShareEditor = true;
+				Definition.IsParallelAgentShareEditor = true;
 			}
-			return Template;
+			return Definition;
 		}
 		public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
@@ -917,14 +917,14 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNodeTemplate GetTemplate(GUBP bp)
+		public override BuildNodeDefinition GetDefinition(GUBP bp)
 		{
-			BuildNodeTemplate Template = base.GetTemplate(bp);
+			BuildNodeDefinition Definition = base.GetDefinition(bp);
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
-				Template.IsParallelAgentShareEditor = true;
+				Definition.IsParallelAgentShareEditor = true;
 			}
-			return Template;
+			return Definition;
 		}
 		public override string GameNameIfAnyForFullGameAggregateNode()
         {
@@ -1107,7 +1107,7 @@ partial class GUBP
             if (InGameProj.Options(InHostPlatform).bTestWithShared)  /// compiling templates is only for testing purposes, and we will group them to avoid saturating the farm
             {
                 AddPseudodependency(WaitForTestShared.StaticGetFullName());
-                AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
+                //AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
         }
 
@@ -1398,14 +1398,12 @@ partial class GUBP
 			}
 		}
 
-		public AggregateNodeTemplate GetTemplate()
+		public AggregateNodeDefinition GetDefinition()
 		{
-			AggregateNodeTemplate Template = new AggregateNodeTemplate();
-			Template.Name = GetFullName();
-			Template.DependencyNames = String.Join(";", Dependencies);
-			Template.IsPromotableAggregate = IsPromotableAggregate();
-			Template.IsSeparatePromotable = IsSeparatePromotable();
-			return Template;
+			AggregateNodeDefinition Definition = new AggregateNodeDefinition();
+			Definition.Name = GetFullName();
+			Definition.DependsOn = String.Join(";", Dependencies);
+			return Definition;
 		}
 
 		public abstract string GetFullName();
@@ -1413,16 +1411,6 @@ partial class GUBP
         public virtual string GameNameIfAnyForFullGameAggregateNode()
 		{
 			return "";
-		}
-
-		public virtual bool IsPromotableAggregate()
-		{
-			return false;
-		}
-
-		public virtual bool IsSeparatePromotable()
-		{
-			return false;
 		}
     }
 
@@ -1502,9 +1490,9 @@ partial class GUBP
             BuildProducts = new List<string>();
             SaveRecordOfSuccessAndAddToBuildProducts();
         }
-        public override BuildNodeTemplate GetTemplate(GUBP bp)
+        public override BuildNodeDefinition GetDefinition(GUBP bp)
         {
-			return new TriggerNodeTemplate(bp, this);
+			return new TriggerNodeDefinition(bp, this);
         }
         public virtual string GetTriggerStateName()
         {
@@ -1640,6 +1628,11 @@ partial class GUBP
                     AddPseudodependency(CookNode.StaticGetFullName(HostPlatform, BranchConfig.Branch.BaseEngineProject, BaseCookedPlatform));
                 }
             }
+
+			if(InGameProj.GameName == BranchConfig.Branch.BaseEngineProject.GameName)
+			{
+				ExtraArgsForCook += " -WarningsAsErrors";
+			}
 
 			if(GamePlatformMonolithicsNode.IsSample(BranchConfig, GameProj))
 			{

@@ -1047,11 +1047,17 @@ namespace UnrealBuildTool
 					}
 					if (IsForeignProject)
 					{
-						BuildArguments += " " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : "");
+						BuildArguments += " " + UProjectPath;
 					}
 
 					// Always wait for the mutex between UBT invocations, so that building the whole solution doesn't fail.
 					BuildArguments += " -waitmutex";
+
+					if (BuildConfiguration.bAddFastPDBToProjects)
+					{
+						// Pass Fast PDB option to make use of Visual Studio's /DEBUG:FASTLINK option
+						BuildArguments += " -FastPDB";
+					}
 
 					DirectoryReference BatchFilesDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Build", "BatchFiles");
 

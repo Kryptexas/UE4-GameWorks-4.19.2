@@ -235,7 +235,7 @@ partial class GUBP
 		}
     }
 
-	private void FindEmailsForNodes(string BranchName, IEnumerable<BuildNodeTemplate> Nodes)
+	private void FindEmailsForNodes(string BranchName, IEnumerable<BuildNodeDefinition> Nodes)
 	{
 		List<GUBPEmailHacker> EmailHackers = new List<GUBPEmailHacker>();
 
@@ -256,13 +256,13 @@ partial class GUBP
 			}
 		}
 
-		foreach (BuildNodeTemplate Node in Nodes)
+		foreach (BuildNodeDefinition Node in Nodes)
 		{
-			Node.RecipientsForFailureEmails = String.Join(";", HackEmails(EmailHackers, BranchName, Node, out Node.AddSubmittersToFailureEmails));
+			Node.Notify = String.Join(";", HackEmails(EmailHackers, BranchName, Node, out Node.AddSubmittersToFailureEmails));
 		}
 	}
 
-	private string[] HackEmails(List<GUBPEmailHacker> EmailHackers, string Branch, BuildNodeTemplate NodeInfo, out bool bIncludeCausers)
+	private string[] HackEmails(List<GUBPEmailHacker> EmailHackers, string Branch, BuildNodeDefinition NodeInfo, out bool bIncludeCausers)
     {
 		string OnlyEmail = ParseParamValue("OnlyEmail");
         if (!String.IsNullOrEmpty(OnlyEmail))
@@ -317,7 +317,7 @@ partial class GUBP
         }
     }
 
-	void FindFrequenciesForNodes(GUBP.GUBPBranchConfig BranchConfig, Dictionary<GUBP.GUBPNode, BuildNodeTemplate> LegacyToNewNodes, Dictionary<string, int> FrequencyOverrides)
+	void FindFrequenciesForNodes(GUBP.GUBPBranchConfig BranchConfig, Dictionary<GUBP.GUBPNode, BuildNodeDefinition> LegacyToNewNodes, Dictionary<string, int> FrequencyOverrides)
 	{
         List<GUBPFrequencyHacker> FrequencyHackers = new List<GUBPFrequencyHacker>();
 
@@ -338,9 +338,9 @@ partial class GUBP
             }
         }
 
-		foreach (KeyValuePair<GUBP.GUBPNode, BuildNodeTemplate> LegacyToNewNodePair in LegacyToNewNodes)
+		foreach (KeyValuePair<GUBP.GUBPNode, BuildNodeDefinition> LegacyToNewNodePair in LegacyToNewNodes)
 		{
-			BuildNodeTemplate Node = LegacyToNewNodePair.Value;
+			BuildNodeDefinition Node = LegacyToNewNodePair.Value;
 			Node.FrequencyShift = LegacyToNewNodePair.Key.CISFrequencyQuantumShift(BranchConfig);
 
 			foreach(GUBPFrequencyHacker FrequencyHacker in FrequencyHackers)
@@ -367,7 +367,7 @@ partial class GUBP
         return AltHostPlatform;
     }
 
-    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, GUBPBranchHacker.BranchOptions BranchOptions, out List<BuildNodeTemplate> AllNodeDefinitions, out List<AggregateNodeTemplate> AllAggregateDefinitions, ref int TimeQuantum)
+    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, GUBPBranchHacker.BranchOptions BranchOptions, out List<BuildNodeDefinition> AllNodeDefinitions, out List<AggregateNodeDefinition> AllAggregateDefinitions, ref int TimeQuantum)
 	{
 		DateTime StartTime = DateTime.UtcNow;
 
@@ -1197,14 +1197,14 @@ partial class GUBP
 		Dictionary<string, int> FrequencyOverrides = ApplyFrequencyBarriers(BranchConfig.GUBPNodes, BranchConfig.GUBPAggregates, BranchOptions.FrequencyBarriers);
 
 		// Get the legacy node to new node mapping
-		Dictionary<GUBP.GUBPNode, BuildNodeTemplate> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetTemplate(this));
+		Dictionary<GUBP.GUBPNode, BuildNodeDefinition> LegacyToNewNodes = BranchConfig.GUBPNodes.Values.ToDictionary(x => x, x => x.GetDefinition(this));
 
 		// Convert the GUBPNodes and GUBPAggregates maps into lists
-		AllNodeDefinitions = new List<BuildNodeTemplate>();
+		AllNodeDefinitions = new List<BuildNodeDefinition>();
 		AllNodeDefinitions.AddRange(LegacyToNewNodes.Values);
 
-		AllAggregateDefinitions = new List<AggregateNodeTemplate>();
-		AllAggregateDefinitions.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => x.GetTemplate()));
+		AllAggregateDefinitions = new List<AggregateNodeDefinition>();
+		AllAggregateDefinitions.AddRange(BranchConfig.GUBPAggregates.Values.Select(x => x.GetDefinition()));
 
 		// Calculate the frequencies for each node
 		FindFrequenciesForNodes(BranchConfig, LegacyToNewNodes, FrequencyOverrides);

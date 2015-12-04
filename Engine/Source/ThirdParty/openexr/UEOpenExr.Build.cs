@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class UEOpenEXR : ModuleRules
+public class UEOpenExr : ModuleRules
 {
-    public UEOpenEXR(TargetInfo Target)
+    public UEOpenExr(TargetInfo Target)
     {
         Type = ModuleType.External;
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)

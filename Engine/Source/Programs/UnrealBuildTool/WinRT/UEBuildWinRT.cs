@@ -625,13 +625,17 @@ namespace UnrealBuildTool
 
 	public class WinRTPlatformFactory : UEBuildPlatformFactory
 	{
+		protected override UnrealTargetPlatform TargetPlatform
+		{
+			get { return UnrealTargetPlatform.WinRT; }
+		}
+
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		public override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms()
 		{
-			//@todo.Rocket: Add platform support
-			if (UnrealBuildTool.RunningRocket() || Utils.IsRunningOnMono)
+			if (Utils.IsRunningOnMono)
 			{
 				return;
 			}

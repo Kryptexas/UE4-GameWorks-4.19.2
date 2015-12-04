@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -404,6 +405,16 @@ namespace UnrealBuildTool
 			List<UnrealTargetPlatform> PlatformList;
 			PlatformGroupDictionary.TryGetValue(InGroup, out PlatformList);
 			return PlatformList;
+		}
+
+		/// <summary>
+		/// Enumerates all the platform groups for a given platform
+		/// </summary>
+		/// <param name="InPlatform">The platform to look for</param>
+		/// <returns>List of platform groups that this platform is a member of</returns>
+		public static IEnumerable<UnrealPlatformGroup> GetPlatformGroups(UnrealTargetPlatform Platform)
+		{
+			return PlatformGroupDictionary.Where(x => x.Value.Contains(Platform)).Select(x => x.Key);
 		}
 
 		/// <summary>
@@ -1599,8 +1610,27 @@ namespace UnrealBuildTool
 	public abstract class UEBuildPlatformFactory
 	{
 		/// <summary>
+		/// Attempt to register a build platform, checking whether it is a valid platform in installed builds
+		/// </summary>
+		public void TryRegisterBuildPlatforms()
+		{
+			if (UnrealBuildTool.IsValidPlatform(TargetPlatform))
+			{
+				RegisterBuildPlatforms();
+			}
+		}
+
+		/// <summary>
+		/// Gets the target platform for an individual factory
+		/// </summary>
+		protected abstract UnrealTargetPlatform TargetPlatform
+		{
+			get;
+		}
+
+		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		public abstract void RegisterBuildPlatforms();
+		protected abstract void RegisterBuildPlatforms();
 	}
 }

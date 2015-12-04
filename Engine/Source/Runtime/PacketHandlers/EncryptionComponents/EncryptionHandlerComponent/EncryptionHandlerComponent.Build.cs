@@ -16,5 +16,7 @@ public class EncryptionHandlerComponent : ModuleRules
                 "RSAEncryptionHandlerComponent",
             }
         );
+
+		PrecompileForTargets = PrecompileTargetsType.None;
     }
 }

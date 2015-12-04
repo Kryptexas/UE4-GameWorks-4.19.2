@@ -33,6 +33,8 @@
 
 #include "IProjectManager.h"
 
+#include "InstalledPlatformInfo.h"
+
 
 #define LOCTEXT_NAMESPACE "DebuggerCommands"
 
@@ -632,13 +634,14 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	PlatformsToCheckFlavorsFor.Add(TEXT("IOS"));
 	TArray<FName> PlatformsWithNoDevices;
 	TArray<PlatformInfo::FPlatformInfo> PlatformsToAddInstallLinksFor;
+	EProjectType ProjectType = FGameProjectGenerationModule::Get().ProjectHasCodeFiles() ? EProjectType::Code : EProjectType::Content;
 
 	MenuBuilder.BeginSection("LevelEditorLaunchDevices", LOCTEXT("LaunchButtonDevicesSection", "Devices"));
 	{
 		for (const PlatformInfo::FVanillaPlatformEntry& VanillaPlatform : VanillaPlatforms)
 		{
 			// for the Editor we are only interested in launching standalone games
-			if (VanillaPlatform.PlatformInfo->PlatformType != PlatformInfo::EPlatformType::Game || !VanillaPlatform.PlatformInfo->bEnabledForUse || (!VanillaPlatform.PlatformInfo->bEnabledInBinary && FRocketSupport::IsRocket()))
+			if (VanillaPlatform.PlatformInfo->PlatformType != PlatformInfo::EPlatformType::Game || !VanillaPlatform.PlatformInfo->bEnabledForUse || !FInstalledPlatformInfo::Get().IsValidPlatform(VanillaPlatform.PlatformInfo->BinaryFolderName, ProjectType))
 			{
 				continue;
 			}

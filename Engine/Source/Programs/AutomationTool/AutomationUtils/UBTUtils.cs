@@ -28,10 +28,6 @@ namespace AutomationTool
 				throw new AutomationException("Unable to find UBT executable: " + UBTExecutable);
 			}
 
-			if (GlobalCommandLine.Rocket)
-			{
-				CommandLine += " -rocket";
-			}
 			if (GlobalCommandLine.VS2015)
 			{
 				CommandLine += " -2015";

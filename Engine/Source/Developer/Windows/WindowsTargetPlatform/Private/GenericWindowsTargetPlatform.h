@@ -229,22 +229,6 @@ public:
 
 	//~ End ITargetPlatform Interface
 
-protected:
-
-	/**
-	 * Temporary helper until we refactor Windows build targets.
-	 * Basically maps WindowsNoEditor to Win32 and Windows to Win64.
-	 */
-	FString GetBinariesSubDir( ) const
-	{
-		if (HAS_EDITOR_DATA)
-		{
-			return TEXT("Win64");
-		}
-
-		return TEXT("Win32");
-	}
-
 private:
 
 	// Holds the local device.

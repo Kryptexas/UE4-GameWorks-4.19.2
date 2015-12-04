@@ -30,5 +30,7 @@ public class SimplygonMeshReduction : ModuleRules
         );
         		
 		AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");		
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

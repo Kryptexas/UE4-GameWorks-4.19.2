@@ -224,7 +224,7 @@ namespace AutomationTool
 			foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
 			{
 				UEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
-				if (!GlobalCommandLine.Rocket && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, RawProjectPath.Directory))
+				if (!Automation.IsEngineInstalled() && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, RawProjectPath.Directory))
 				{
 					RetVal = true;
 					break;

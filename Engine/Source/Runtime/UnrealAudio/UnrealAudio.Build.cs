@@ -53,5 +53,7 @@ public class UnrealAudio : ModuleRules
 // 			LibSndFilePath += "Mac/libsndfile.1.dylib";
 // 			PublicAdditionalLibraries.Add(LibSndFilePath);
 // 		}
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

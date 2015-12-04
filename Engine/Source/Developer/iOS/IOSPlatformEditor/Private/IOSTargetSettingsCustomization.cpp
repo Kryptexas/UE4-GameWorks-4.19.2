@@ -24,6 +24,7 @@
 #include "SHyperlink.h"
 #include "SProvisionListRow.h"
 #include "SCertificateListRow.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "IOSTargetSettings"
 
@@ -630,12 +631,12 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	// Show properties that are gated by the plist being present and writable
 	RunningIPPProcess = false;
 
-#define SETUP_NONROCKET_PROP(PropName, Category) \
+#define SETUP_SOURCEONLY_PROP(PropName, Category) \
 	{ \
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, PropName)); \
 		Category.AddProperty(PropertyHandle) \
-			.IsEnabled(!FRocketSupport::IsRocket()) \
-			.ToolTip(!FRocketSupport::IsRocket() ? PropertyHandle->GetToolTipText() : FIOSTargetSettingsCustomizationConstants::DisabledTip); \
+			.IsEnabled(FEngineBuildSettings::IsSourceDistribution()) \
+			.ToolTip(FEngineBuildSettings::IsSourceDistribution() ? PropertyHandle->GetToolTipText() : FIOSTargetSettingsCustomizationConstants::DisabledTip); \
 	}
 
 #define SETUP_PLIST_PROP(PropName, Category) \
@@ -705,16 +706,16 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 	SETUP_PLIST_PROP(AdditionalPlistData, ExtraCategory);
 
-	SETUP_NONROCKET_PROP(bDevForArmV7, BuildCategory);
-	SETUP_NONROCKET_PROP(bDevForArm64, BuildCategory);
-	SETUP_NONROCKET_PROP(bDevForArmV7S, BuildCategory);
-	SETUP_NONROCKET_PROP(bShipForArmV7, BuildCategory);
-	SETUP_NONROCKET_PROP(bShipForArm64, BuildCategory);
-	SETUP_NONROCKET_PROP(bShipForArmV7S, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bDevForArmV7, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bDevForArm64, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bDevForArmV7S, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForArmV7, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForArm64, BuildCategory);
+	SETUP_SOURCEONLY_PROP(bShipForArmV7S, BuildCategory);
 
-	SETUP_NONROCKET_PROP(bSupportsMetalMRT, RenderCategory);
+	SETUP_SOURCEONLY_PROP(bSupportsMetalMRT, RenderCategory);
 
-#undef SETUP_NONROCKET_PROP
+#undef SETUP_SOURCEONLY_PROP
 }
 
 

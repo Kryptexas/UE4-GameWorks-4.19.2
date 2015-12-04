@@ -23,5 +23,7 @@ public class UnrealAudioXAudio2 : ModuleRules
 		AddThirdPartyPrivateStaticDependencies(Target, 
 			"DX11Audio"
 		);
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

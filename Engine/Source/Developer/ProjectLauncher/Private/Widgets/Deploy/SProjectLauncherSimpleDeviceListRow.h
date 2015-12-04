@@ -262,7 +262,7 @@ private:
 	{
 		if (SimpleProfile.IsValid())
 		{
-			return FText::FromString(EBuildConfigurations::ToString(SimpleProfile->GetBuildConfiguration()));
+			return EBuildConfigurations::ToText(SimpleProfile->GetBuildConfiguration());
 		}
 
 		return FText::GetEmpty();

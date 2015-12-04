@@ -69,10 +69,19 @@
     <Compile Include="Nodes\AggregateNode.cs" />
     <Compile Include="Nodes\BuildNode.cs" />
     <Compile Include="Nodes\LegacyNode.cs" />
+    <Compile Include="Nodes\TaskNode.cs" />
     <Compile Include="Nodes\TriggerNode.cs" />
+    <Compile Include="Tasks\BuildTask.cs" />
+    <Compile Include="Tasks\CommandTask.cs" />
+    <Compile Include="Tasks\CompileTask.cs" />
+    <Compile Include="Tasks\CookTask.cs" />
+    <Compile Include="Tasks\MsBuildTask.cs" />
+    <Compile Include="Tasks\OutputTask.cs" />
+    <Compile Include="Tasks\ScriptTask.cs" />
     <Compile Include="TempStorage.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="BuildGraphDefinition.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\UnrealBuildTool\UnrealBuildTool.csproj">

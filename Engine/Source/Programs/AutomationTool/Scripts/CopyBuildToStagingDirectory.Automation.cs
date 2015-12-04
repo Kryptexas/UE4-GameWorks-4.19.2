@@ -1190,15 +1190,15 @@ public partial class Project : CommandUtils
 		Log("Cleaning Stage Directory: {0}", SC.StageDirectory);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage && !Params.IterativeDeploy)
 		{
-			try
-			{
-				DeleteDirectory(SC.StageDirectory);
-			}
-			catch (Exception Ex)
-			{
-				// Delete cooked data (if any) as it may be incomplete / corrupted.
-				throw new AutomationException(ExitCode.Error_FailedToDeleteStagingDirectory, Ex, "Stage Failed. Failed to delete staging directory " + SC.StageDirectory);
-			}
+            try
+            {
+                DeleteDirectory(SC.StageDirectory);
+            }
+            catch (Exception Ex)
+            {
+                // Delete cooked data (if any) as it may be incomplete / corrupted.
+                throw new AutomationException(ExitCode.Error_FailedToDeleteStagingDirectory, Ex, "Stage Failed. Failed to delete staging directory " + SC.StageDirectory);
+            }
 		}
 		else
 		{

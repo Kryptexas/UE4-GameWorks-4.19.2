@@ -173,13 +173,12 @@ namespace UnrealBuildTool
 				Writer.WriteValue("DocsURL", DocsURL);
 				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
 				Writer.WriteValue("SupportURL", SupportURL);
-
-				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
-
 				Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
 				Writer.WriteValue("CanContainContent", bCanContainContent);
 				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
 				Writer.WriteValue("Installed", bInstalled);
+
+				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
 
 				Writer.WriteObjectEnd();
 			}
