@@ -340,7 +340,7 @@ void StandardDeferredReflectionPS(
 	)
 {
 	OutColor = 0;
-	float2 ScreenUV = InScreenPosition.xy / InScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	float2 ScreenUV = InScreenPosition.xy / InScreenPosition.w * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(ScreenUV);
 
 	BRANCH
@@ -478,7 +478,7 @@ void ReflectionApplyPS(
 
 #if ALLOW_STATIC_LIGHTING
 		FLATTEN
-		if( View.UseLightmaps > 0 )
+		if( Frame.UseLightmaps > 0 )
 		{
 			// We have high frequency directional data but low frequency spatial data in the envmap.
 			// We have high frequency spatial data but low frequency directional data in the lightmap.
@@ -542,7 +542,7 @@ void ReflectionApplyPS(
 		{
 			float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
 			// Normalize for static skylight types which mix with lightmaps
-			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
+			bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			float3 SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
 			SkyLighting *= SpecularColor;
 

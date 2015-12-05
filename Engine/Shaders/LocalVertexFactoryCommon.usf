@@ -30,6 +30,10 @@ struct FVertexFactoryInterpolantsVSToPS
 #if NEEDS_LIGHTMAP_COORDINATE
 	float4	LightMapCoordinate : TEXCOORD4;
 #endif
+
+#if INSTANCED_STEREO
+	uint EyeIndex : EYE_INDEX;
+#endif
 };
 
 #if NUM_MATERIAL_TEXCOORDS || USE_PARTICLE_SUBUVS
@@ -144,6 +148,10 @@ struct FVertexFactoryInterpolantsVSToPS
 #if USE_INSTANCING
 	// x = per-instance random, y = per-instance fade out amount, z = hide/show flag, w dither fade cutoff
 	float4  PerInstanceParams : COLOR1;
+#endif
+
+#if INSTANCED_STEREO
+	uint EyeIndex : EYE_INDEX;
 #endif
 };
 

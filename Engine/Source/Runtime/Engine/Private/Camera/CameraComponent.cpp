@@ -6,6 +6,7 @@
 #include "MapErrors.h"
 #include "Camera/CameraComponent.h"
 #include "Components/DrawFrustumComponent.h"
+#include "IHeadMountedDisplay.h"
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
@@ -37,6 +38,7 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
 	bUsePawnControlRotation = false;
 	bAutoActivate = true;
+	bLockToHmd = true;
 
 	// Init deprecated var, for old code that may refer to it.
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
@@ -201,6 +203,24 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
+	if (bLockToHmd)
+	{
+		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+		{
+			ResetRelativeTransform();
+			const FTransform ParentWorld = GetComponentToWorld();
+			GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
+
+			FQuat Orientation;
+			FVector Position;
+			if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
+			{
+				FTransform Transform(Orientation, Position);
+				SetRelativeTransform(Transform);
+			}
+		}
+	}
+
 	if (bUsePawnControlRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))

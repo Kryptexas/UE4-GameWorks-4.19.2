@@ -1813,15 +1813,20 @@ void FSceneRenderer::GatherDynamicMeshElements(
 			Collector.AddViewMeshArrays(&InViews[ViewIndex], &InViews[ViewIndex].DynamicMeshElements, &InViews[ViewIndex].SimpleElementCollector, InViewFamily.GetFeatureLevel());
 		}
 
+		const bool bIsInstancedStereo = (InViews.Num() > 0) ? InViews[0].IsInstancedStereoPass() : false;
+
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
 		{
 			const uint8 ViewMask = HasDynamicMeshElementsMasks[PrimitiveIndex];
 
 			if (ViewMask != 0)
 			{
+				// Don't cull a single eye when drawing a stereo pair
+				const uint8 ViewMaskFinal = (bIsInstancedStereo) ? ViewMask | 0x3 : ViewMask;
+
 				FPrimitiveSceneInfo* PrimitiveSceneInfo = InScene->Primitives[PrimitiveIndex];
 				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
-				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(InViewFamily.Views, InViewFamily, ViewMask, Collector);
+				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(InViewFamily.Views, InViewFamily, ViewMaskFinal, Collector);
 			}
 		}
 	}

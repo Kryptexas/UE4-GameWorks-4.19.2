@@ -64,6 +64,11 @@ class FOculusLibraryPlugin : public IOculusLibraryPlugin
 	{
 		UOculusFunctionLibrary::GetBaseRotationAndPositionOffset(OutRot, OutPosOffset);
 	}
+
+	virtual class IStereoLayers* GetStereoLayers() override
+	{
+		return UOculusFunctionLibrary::GetStereoLayers();
+	}
 };
 
 IMPLEMENT_MODULE( FOculusLibraryPlugin, OculusLibrary )

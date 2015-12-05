@@ -114,6 +114,10 @@ struct FVertexFactoryInterpolantsVSToPS
 #if NUM_MATERIAL_TEXCOORDS
 	float2	TexCoords[NUM_MATERIAL_TEXCOORDS]	: TEXCOORD0;
 #endif
+
+#if INSTANCED_STEREO
+	uint EyeIndex : EYE_INDEX;
+#endif
 };
 
 struct FVertexFactoryInterpolantsVSToDS
@@ -501,7 +505,7 @@ float4 CalcWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates 
 
 		// Intermediates.SimulatedPosition is a clothing position in world coord
 		float3 BlendedPos = lerp(TransformedSkinPos.xyz, Intermediates.SimulatedPosition, ClothBlendWeight);
-		return float4(BlendedPos + View.PreViewTranslation, 1);
+		return float4(BlendedPos + ResolvedView.PreViewTranslation, 1);
 	}
 	else
 #endif
@@ -563,6 +567,10 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	CalcTangentToWorld(Input, Intermediates, Interpolants.TangentToWorld0.xyz, Interpolants.TangentToWorld2);
 
 	Interpolants.Color = Intermediates.Color;
+
+#if INSTANCED_STEREO
+	Interpolants.EyeIndex = 0;
+#endif
 
 	return Interpolants;
 }
@@ -635,7 +643,7 @@ FMaterialTessellationParameters GetMaterialTessellationParameters(FVertexFactory
 	Result.TangentToWorldPreScale = 1;
 
 
-	Result.WorldPosition = CameraLocalWorldPosition + View.WorldCameraOrigin;
+	Result.WorldPosition = CameraLocalWorldPosition + ResolvedView.WorldCameraOrigin;
 
 	return Result;
 }
@@ -673,3 +681,10 @@ float3x3 VertexFactoryGetTangentToLocalDS(FVertexFactoryInterpolantsVSToDS Inter
 }
 
 #endif // #if USING_TESSELLATION
+
+#if INSTANCED_STEREO
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	return InstanceId & 1;
+}
+#endif

@@ -19,7 +19,15 @@ protected:
 	TDepthOnlyVS() {}
 	TDepthOnlyVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer) :
 		FMeshMaterialShader(Initializer)
-	{}
+	{
+		InstancedEyeIndexParameter.Bind(Initializer.ParameterMap, TEXT("InstancedEyeIndex"));
+		IsInstancedStereoParameter.Bind(Initializer.ParameterMap, TEXT("bIsInstancedStereo"));
+	}
+
+private:
+
+	FShaderParameter InstancedEyeIndexParameter;
+	FShaderParameter IsInstancedStereoParameter;
 
 public:
 
@@ -35,14 +43,34 @@ public:
 		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition());
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView& View)
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		const bool result = FMeshMaterialShader::Serialize(Ar);
+		Ar << InstancedEyeIndexParameter;
+		Ar << IsInstancedStereoParameter;
+		return result;
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView& View, const bool bIsInstancedStereo)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,MaterialResource,View,ESceneRenderTargetsMode::DontSet);
+		
+		if (IsInstancedStereoParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);
+	}
+
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
+		if (InstancedEyeIndexParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
+		}
 	}
 };
 
@@ -169,10 +197,14 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 
 }
 
+void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
+}
+
 void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
-	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View);
+	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, *View, PolicyContext.bIsInstancedStereo);
 	if(HullShader && DomainShader)
 	{
 		HullShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -260,7 +292,7 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 void FPositionOnlyDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
-	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View);
+	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, *View, PolicyContext.bIsInstancedStereo);
 
 	// Set the shared mesh resources.
 	VertexFactory->SetPositionStream(RHICmdList);
@@ -294,6 +326,10 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 {
 	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
 	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,ElementData,PolicyContext);
+}
+
+void FPositionOnlyDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 }
 
 int32 CompareDrawingPolicy(const FPositionOnlyDepthDrawingPolicy& A,const FPositionOnlyDepthDrawingPolicy& B)
@@ -383,7 +419,8 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 	float DitheredLODTransitionValue,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	FHitProxyId HitProxyId
+	FHitProxyId HitProxyId, 
+	const bool bIsInstancedStereo
 	)
 {
 	bool bDirty = false;
@@ -410,7 +447,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			FPositionOnlyDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, DefaultProxy, *DefaultProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided(), Material->IsWireframe());
 			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-			DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType());
+			DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo));
 
 			int32 BatchElementIndex = 0;
 			uint64 Mask = BatchElementMask;
@@ -422,7 +459,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DitheredLODTransitionValue,FPositionOnlyDepthDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex, bIsInstancedStereo);
 				}
 				Mask >>= 1;
 				BatchElementIndex++;
@@ -459,7 +496,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 				FDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided(), View.GetFeatureLevel());
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-				DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType());
+				DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo));
 
 				int32 BatchElementIndex = 0;
 				uint64 Mask = BatchElementMask;
@@ -471,7 +508,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 						BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
 						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DitheredLODTransitionValue,FMeshDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
-						DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+						DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
 					}
 					Mask >>= 1;
 					BatchElementIndex++;
@@ -493,7 +530,8 @@ bool FDepthDrawingPolicyFactory::DrawDynamicMesh(
 	bool bBackFace,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	FHitProxyId HitProxyId
+	FHitProxyId HitProxyId, 
+	const bool bIsInstancedStereo
 	)
 {
 	return DrawMesh(
@@ -506,7 +544,8 @@ bool FDepthDrawingPolicyFactory::DrawDynamicMesh(
 		0.0f,
 		bPreFog,
 		PrimitiveSceneProxy,
-		HitProxyId);
+		HitProxyId, 
+		bIsInstancedStereo);
 }
 
 

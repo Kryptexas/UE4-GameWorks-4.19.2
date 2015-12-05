@@ -19,7 +19,7 @@
 		{
 			"Name" : "OculusRift",
 			"Type" : "Runtime",
-			"LoadingPhase" : "Default",
+			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :
 			[
 				"Win64",

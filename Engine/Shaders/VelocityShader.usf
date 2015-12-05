@@ -21,8 +21,8 @@
 static const float GTessellationDepthBias = 0.001f;
 // for non tessellation: 0.0f as the isolate code should do a good job to prevent this case (can be increased if that is not the case e.g. if the platform ignores the isolate)
 static const float GNonTessellationDepthBias = 0.0f;
-
-//
+// for instanced stereo
+static const float GInstancedStereoDepthBias = 0.001f;
 
 struct FVelocityInterpsVSToPS
 {
@@ -92,7 +92,7 @@ struct FVelocityVSToPS
 
 		ISOLATE
 		{
-			O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
+			O.Position = mul(WorldPosition, ResolvedView.TranslatedWorldToClip);
 		}
 
 		// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
@@ -120,6 +120,12 @@ void MainVertexShader(
 #endif
 	out FVertexOutput Output )
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 #if GPUSKIN_PASS_THROUGH
 	VFIntermediates.VertexID = VertexID;
@@ -153,13 +159,13 @@ void MainVertexShader(
 	{
 		float4 ScreenPos;
 		// compute the old screen pos with the old world position and the old camera matrix
-		float4 PrevScreenPosObj = mul(float4(PrevTranslatedWorldPosition.xyz, 1), View.PrevTranslatedWorldToClip);
+		float4 PrevScreenPosObj = mul(float4(PrevTranslatedWorldPosition.xyz, 1), ResolvedView.PrevTranslatedWorldToClip);
 
 #if !USING_TESSELLATION
 		ISOLATE
 		{
 #endif
-			ScreenPos  = mul(float4(TranslatedWorldPosition.xyz, 1), View.TranslatedWorldToClip);
+			ScreenPos  = mul(float4(TranslatedWorldPosition.xyz, 1), ResolvedView.TranslatedWorldToClip);
 #if !USING_TESSELLATION
 			Output.Position = ScreenPos;
 		}
@@ -169,9 +175,13 @@ void MainVertexShader(
 		Output.Interps.PackedVelocityC = PrevScreenPosObj;
 	}
 
+// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
 #if !USING_TESSELLATION
-	// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
-	Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
+	#if INSTANCED_STEREO
+		Output.Position.z += GInstancedStereoDepthBias * Output.Position.w;
+	#else
+		Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
+	#endif
 #endif
 
 #if USING_TESSELLATION
@@ -194,6 +204,12 @@ void MainPixelShader(
 	out float4 OutColor : SV_Target0
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 	// Manual clipping here (alpha-test, etc)
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, SvPosition);
 	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);

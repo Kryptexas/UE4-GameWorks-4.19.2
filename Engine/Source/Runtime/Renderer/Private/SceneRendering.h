@@ -586,8 +586,10 @@ public:
 	*/
 	~FViewInfo();
 
-	/** Creates the view's uniform buffer given a set of view transforms. */
-	TUniformBufferRef<FViewUniformShaderParameters> CreateUniformBuffer(
+	/** Creates the view's uniform buffers given a set of view transforms. */
+	void CreateUniformBuffer(
+		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
+		TUniformBufferRef<FFrameUniformShaderParameters>& OutFrameUniformBuffer, 
 		FRHICommandList& RHICmdList,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
@@ -612,6 +614,22 @@ public:
 
 	/** Create acceleration data structure and information to do forward lighting with dynamic branching. */
 	void CreateLightGrid();
+
+	/** Instanced stereo only needs to render the left eye. */
+	bool ShouldRenderView() const {
+		if (!bIsInstancedStereoEnabled)
+		{
+			return true;
+		}
+		else if (StereoPass != eSSP_RIGHT_EYE)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 
 	FORCEINLINE_DEBUGGABLE float GetDitheredLODTransitionValue(const FStaticMesh& Mesh) const
 	{

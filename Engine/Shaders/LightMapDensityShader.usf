@@ -10,7 +10,6 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 
-
 struct FLightMapDensityVSToPS
 {
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
@@ -53,7 +52,7 @@ struct FLightMapDensityVSToPS
 		// Finally, transform position to clip-space
 		ISOLATE
 		{
-			O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
+			O.Position = mul(WorldPosition, ResolvedView.TranslatedWorldToClip);
 		}
 
 		O.WorldPosition = WorldPosition;
@@ -74,6 +73,12 @@ void MainVertexShader(
 	out FLightMapDensityVSOutput Output
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
@@ -91,7 +96,7 @@ void MainVertexShader(
 	ISOLATE
 	{
 		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, Output.WorldPosition);
-		Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
+		Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 	}
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
@@ -158,6 +163,12 @@ void MainPixelShader(
 	out float4 OutColor		: SV_Target0
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, SvPosition);
 	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
 	GetMaterialCoverageAndClipping(MaterialParameters);

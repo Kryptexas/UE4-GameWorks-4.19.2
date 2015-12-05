@@ -1,14 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-/** Defines the controller hands for tracking.  Could be expanded, as needed, to facilitate non-handheld controllers */
-UENUM(BlueprintType)
-enum class EControllerHand
-{
-	Left,
-	Right
-};
+#include "InputCoreTypes.h"
 
 /**
  * Motion Controller device interface

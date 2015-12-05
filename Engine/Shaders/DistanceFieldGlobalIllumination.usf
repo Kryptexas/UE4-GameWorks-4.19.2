@@ -1131,7 +1131,7 @@ void ComputeIrradianceScreenGridCS(
 		uint StepBentNormalBaseIndex = OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x;
 
 		float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
-		float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+		float2 ScreenPosition = (ScreenUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
 		
 		float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 		float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;

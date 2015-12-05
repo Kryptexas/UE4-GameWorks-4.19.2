@@ -56,6 +56,10 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Camera)
 	void SetUseFieldOfViewForLOD(bool bInUseFieldOfViewForLOD) { bUseFieldOfViewForLOD = bInUseFieldOfViewForLOD; }
 
+	/** True if the camera's orientation and position should be locked to the HMD */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
+	uint32 bLockToHmd:1;
+
 	/**
 	 * If this camera component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
 	 * @see APawn::GetViewRotation()

@@ -516,14 +516,17 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	}
 	check(FoundView); 
 
-	TUniformBufferRef<FViewUniformShaderParameters> OriginalUniformBuffer;
+	TUniformBufferRef<FViewUniformShaderParameters> OriginalViewUniformBuffer;
+	TUniformBufferRef<FFrameUniformShaderParameters> OriginalFrameUniformBuffer;
+
 	FMatrix OriginalViewMatrix;
 
 	if (!bMakeViewSnapshot)
 	{
 		check(!FRHICommandListImmediate::AnyRenderThreadTasksOutstanding()); // we should add tasks that use the hacked view if it wasn't cloned.
 		// Backup properties of the view that we will override
-		OriginalUniformBuffer = FoundView->UniformBuffer;
+		OriginalViewUniformBuffer = FoundView->ViewUniformBuffer;
+		OriginalFrameUniformBuffer = FoundView->FrameUniformBuffer;
 		OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
 	}
 
@@ -531,7 +534,9 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	// Override the view matrix so that billboarding primitives will be aligned to the light
 	FoundView->ViewMatrices.ViewMatrix = ShadowViewMatrix;
 	FBox VolumeBounds[TVC_MAX];
-	FoundView->UniformBuffer = FoundView->CreateUniformBuffer(
+	FoundView->CreateUniformBuffer(
+		FoundView->ViewUniformBuffer, 
+		FoundView->FrameUniformBuffer, 
 		RHICmdList,
 		nullptr,
 		ShadowViewMatrix, 
@@ -630,7 +635,8 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	if (!bMakeViewSnapshot)
 	{
 		check(!FRHICommandListImmediate::AnyRenderThreadTasksOutstanding()); // we should add tasks that use the hacked view if it wasn't cloned.
-		FoundView->UniformBuffer = OriginalUniformBuffer;
+		FoundView->ViewUniformBuffer = OriginalViewUniformBuffer;
+		FoundView->FrameUniformBuffer = OriginalFrameUniformBuffer;
 		FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
 	}
 }

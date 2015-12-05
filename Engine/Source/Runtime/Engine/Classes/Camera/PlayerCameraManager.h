@@ -384,10 +384,6 @@ protected:
 	uint32 bAlwaysApplyModifiers : 1;
 
 public:
-	/** True if camera's orientation should be updated by most recent HMD orientation. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerCameraManager)
-	uint32 bFollowHmdOrientation : 1;
-
 	/** Minimum view pitch, in degrees. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerCameraManager)
 	float ViewPitchMin;

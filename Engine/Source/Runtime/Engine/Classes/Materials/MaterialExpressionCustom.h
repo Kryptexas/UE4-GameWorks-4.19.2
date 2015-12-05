@@ -50,6 +50,7 @@ class UMaterialExpressionCustom : public UMaterialExpression
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
+	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface.
 	
 	//~ Begin UMaterialExpression Interface

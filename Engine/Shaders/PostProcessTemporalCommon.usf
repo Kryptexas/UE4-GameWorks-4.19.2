@@ -163,7 +163,7 @@ which can be configured via defines for various temporal AA passes.
 
 #if AA_DOF
 	// temp solution, BrianK knows
-	float4 ThisClip = float4((UV - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, PosN.z, 1);
+	float4 ThisClip = float4((UV - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy, PosN.z, 1);
 	float4 ThisTranslatedWorld = mul(ThisClip, View.ClipToTranslatedWorld);
 	ThisTranslatedWorld /= ThisTranslatedWorld.w;
 

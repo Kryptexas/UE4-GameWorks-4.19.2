@@ -46,6 +46,14 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 	}
 }
 
+template<typename VertexParametersType>
+void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
+	if (InstancedEyeIndexParameter.IsBound())
+	{
+		SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
+	}
+}
+
 template<typename PixelParametersType>
 void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, EBlendMode BlendMode, float DitheredLODTransitionValue)
 {

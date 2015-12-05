@@ -89,7 +89,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 			bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
 
 			// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
+			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - Frame.TemporalAAParams.zw) * Frame.BufferSizeAndInvSize.zw, 0).r;
 
 			float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
@@ -136,6 +136,12 @@ void Main(
 	out half4 OutColor	: SV_Target0
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 #if PACK_INTERPOLANTS
 	float4 PackedInterpolants[NUM_VF_PACKED_INTERPOLANTS];
 	VertexFactoryUnpackInterpolants(Interpolants, PackedInterpolants);
@@ -145,7 +151,7 @@ void Main(
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
+			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToResolvedTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
@@ -240,10 +246,10 @@ void Main(
 		// Cascaded Shadow Map
 		{
 			FPCFSamplerSettings Settings;
-			Settings.ShadowDepthTexture = View.DirectionalLightShadowTexture;
-			Settings.ShadowDepthTextureSampler = View.DirectionalLightShadowSampler;
-			Settings.TransitionScale = View.DirectionalLightShadowTransition;
-			Settings.ShadowBufferSize = View.DirectionalLightShadowSize;
+			Settings.ShadowDepthTexture = Frame.DirectionalLightShadowTexture;
+			Settings.ShadowDepthTextureSampler = Frame.DirectionalLightShadowSampler;
+			Settings.TransitionScale = Frame.DirectionalLightShadowTransition;
+			Settings.ShadowBufferSize = Frame.DirectionalLightShadowSize;
 			Settings.bSubsurface = false;
 			Settings.DensityMulConstant = 0;
 			Settings.ProjectionDepthBiasParameters = 0;
@@ -252,9 +258,9 @@ void Main(
 			for (int i = 0; i < MAX_FORWARD_SHADOWCASCADES; i++)
 			{
 				if (i == (MAX_FORWARD_SHADOWCASCADES - 1) // ignore test for last shadow map.
-					|| MaterialParameters.ScreenPosition.w < View.DirectionalLightShadowDistances[i])
+					|| MaterialParameters.ScreenPosition.w < Frame.DirectionalLightShadowDistances[i])
 				{
-					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[i]);
+					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), Frame.DirectionalLightScreenToShadow[i]);
 					break; // position found.
 				}
 			}
@@ -273,13 +279,13 @@ void Main(
 		}
 		#endif /* MOVABLE_DIRECTIONAL_LIGHT_CSM */
 
-		float NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
-		float RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
+		float NoL = max(0, dot(MaterialParameters.WorldNormal, Frame.DirectionalLightDirection));
+		float RoL = max(0, dot(MaterialParameters.ReflectionVector, Frame.DirectionalLightDirection));
 
 		#if FULLY_ROUGH
-			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * DiffuseColor;
+			Color += (Shadow * NoL) * Frame.DirectionalLightColor.rgb * DiffuseColor;
 		#else
-			Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
+			Color += (Shadow * NoL) * Frame.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness);
 			// Environment map has been prenormalized, scale by lightmap luminance
 			Color += SpecularIBL * IndirectIrradiance * SpecularColor;
@@ -288,7 +294,7 @@ void Main(
 		#if ENABLE_SKY_LIGHT
 			//@mw todo
 			// TODO: Also need to do specular.
-			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * View.SkyLightColor.rgb * DiffuseColor;    
+			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * Frame.SkyLightColor.rgb * DiffuseColor;    
 		#endif
 
 		#if MAX_DYNAMIC_POINT_LIGHTS > 0
@@ -357,7 +363,7 @@ void Main(
 #endif
 
 #if !MATERIAL_SHADINGMODEL_UNLIT && MOBILE_EMULATION
-	Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
+	Color = lerp(Color, DiffuseColor + SpecularColor, Frame.UnlitViewmodeMask);
 #endif
 
 	#if MATERIALBLENDING_TRANSLUCENT
@@ -385,7 +391,7 @@ void Main(
 	#if !MATERIALBLENDING_MODULATE
 		// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
 		// After 4.2 we can put the workaround in the cross compiler.
-		OutColor.rgba *= View.ExposureScale.xyzw;
+		OutColor.rgba *= Frame.ExposureScale.xyzw;
 	#endif
 
 	#if OUTPUT_GAMMA_SPACE

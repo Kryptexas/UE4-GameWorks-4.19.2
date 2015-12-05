@@ -26,6 +26,12 @@ void VSMain(
 	out FLandscapeGrassWeightInterpolantsVSToPS Output
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float4 WorldPosition = WorldPositionExcludingWPO;
@@ -38,7 +44,7 @@ void VSMain(
 	WorldPosition.xyz += WorldPositionOffset;
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
 	Output.PixelPosition = WorldPosition;
-	Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
+	Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
 	Output.Height = LandscapeVertexFactorySampleHeight(Input, VFIntermediates);
@@ -60,6 +66,12 @@ void PSMain(
 	out half4 OutColor	: SV_Target0
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants.FactoryInterpolants, SvPosition);
 
 	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace); 

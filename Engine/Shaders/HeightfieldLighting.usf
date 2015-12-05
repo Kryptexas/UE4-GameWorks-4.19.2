@@ -427,7 +427,7 @@ void LightHeightfieldsPS(
 	float3 DiffuseColor = GetGlobalDiffuseColor(Input.GlobalUV);
 	float3 Lighting = (Shadowing * GreyScaleLightFunction * saturate(dot(-LightDirection, WorldHeightfieldNormal))) * LightColor;
 	 
-	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * View.SkyLightColor.rgb * SkyLightIndirectScale;
+	float3 SkylightDiffuse = GetSkySHDiffuse(WorldHeightfieldNormal) * Frame.SkyLightColor.rgb * SkyLightIndirectScale;
 	Lighting += SkylightDiffuse;
 
 	OutColor = float4(DiffuseColor * Lighting, 0);
@@ -806,7 +806,7 @@ void CalculateHeightfieldOcclusionScreenGridCS(
 		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
 
 		float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
-		float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+		float2 ScreenPosition = (ScreenUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
 		
 		float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
@@ -885,7 +885,7 @@ void CalculateHeightfieldIrradianceScreenGridCS(
 		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
 
 		float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
-		float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+		float2 ScreenPosition = (ScreenUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
 		
 		float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;

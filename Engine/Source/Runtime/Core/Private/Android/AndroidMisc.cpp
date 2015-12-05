@@ -13,6 +13,8 @@
 #include "PlatformMallocCrash.h"
 #include "AndroidJavaMessageBox.h"
 
+#include <android_native_app_glue.h>
+
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 void* FAndroidMisc::NativeWindow = NULL;
@@ -105,12 +107,97 @@ void FAndroidMisc::PlatformPreInit()
 	FAndroidAppEntry::PlatformInit();
 }
 
+static volatile bool HeadPhonesArePluggedIn = false;
+
+static FAndroidMisc::FBatteryState CurrentBatteryState;
+
+static FCriticalSection ReceiversLock;
+static struct  
+{
+	int		Volume;
+	double	TimeOfChange;
+} CurrentVolume;
+
+extern "C"
+{
+
+	JNIEXPORT void Java_com_epicgames_ue4_HeadsetReceiver_stateChanged(JNIEnv * jni, jclass clazz, jint state)
+	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("nativeHeadsetEvent(%i)"), state);
+		HeadPhonesArePluggedIn = (state == 1);
+	}
+
+	JNIEXPORT void Java_com_epicgames_ue4_VolumeReceiver_volumeChanged(JNIEnv * jni, jclass clazz, jint volume)
+	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("nativeVolumeEvent(%i)"), volume);
+		ReceiversLock.Lock();
+		CurrentVolume.Volume = volume;
+		CurrentVolume.TimeOfChange = FApp::GetCurrentTime();
+		ReceiversLock.Unlock();
+	}
+
+	JNIEXPORT void Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent(JNIEnv * jni, jclass clazz, jint status, jint level, jint temperature)
+	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("nativeBatteryEvent(stat = %i, lvl = %i, t = %3.2f)"), status, level, float(temperature)/10.f);
+
+		ReceiversLock.Lock();
+		FAndroidMisc::FBatteryState state;
+		state.State = (FAndroidMisc::EBatteryState)status;
+		state.Level = level;
+		state.Temperature = float(temperature)/10.f;
+		CurrentBatteryState = state;
+		ReceiversLock.Unlock();
+	}
+}
+
 void FAndroidMisc::PlatformInit()
 {
 	// Increase the maximum number of simultaneously open files
 	// Display Timer resolution.
 	// Get swap file info
 	// Display memory info
+
+	// Register natives to receive Volume, Battery, Headphones events
+	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		struct
+		{
+			const char*		ClazzName;
+			JNINativeMethod	Jnim;
+			jclass			Clazz;
+		} gMethods[] =
+		{
+			{ "com/epicgames/ue4/VolumeReceiver",  { "volumeChanged", "(I)V",  (void *)Java_com_epicgames_ue4_VolumeReceiver_volumeChanged } },
+			{ "com/epicgames/ue4/BatteryReceiver", { "dispatchEvent", "(III)V",(void *)Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent } },
+			{ "com/epicgames/ue4/HeadsetReceiver", { "stateChanged",  "(I)V",  (void *)Java_com_epicgames_ue4_HeadsetReceiver_stateChanged } },
+		};
+		const int count = sizeof(gMethods) / sizeof(gMethods[0]);
+
+		for (int i = 0; i < count; i++)
+		{
+			gMethods[i].Clazz = FAndroidApplication::FindJavaClass(gMethods[i].ClazzName);
+			if (gMethods[i].Clazz == nullptr)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Can't find class for %s"), gMethods[i].ClazzName);
+				continue;
+			}
+			if (JNI_OK != JEnv->RegisterNatives(gMethods[i].Clazz, &gMethods[i].Jnim, 1))
+			{
+				UE_LOG(LogEngine, Warning, TEXT("RegisterNatives failed for %s on %s"), gMethods[i].ClazzName, gMethods[i].Jnim.name);
+			}
+			extern struct android_app* GNativeAndroidApp;
+			jmethodID methodId = JEnv->GetStaticMethodID(gMethods[i].Clazz, "startReceiver", "(Landroid/app/Activity;)V");
+			if (methodId != 0)
+			{
+				JEnv->CallStaticVoidMethod(gMethods[i].Clazz, methodId, GNativeAndroidApp->activity->clazz);
+			}
+			else
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Can't find method startReceiver of class %s"), gMethods[i].ClazzName);
+			}
+		}
+	}
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
@@ -839,3 +926,31 @@ bool FAndroidMisc::IsDebuggerPresent()
 	return Result;
 }
 #endif
+
+int FAndroidMisc::GetVolumeState(double* OutTimeOfChangeInSec)
+{
+	int v;
+	ReceiversLock.Lock();
+	v = CurrentVolume.Volume;
+	if (OutTimeOfChangeInSec)
+	{
+		*OutTimeOfChangeInSec = CurrentVolume.TimeOfChange;
+	}
+	ReceiversLock.Unlock();
+	return v;
+}
+
+FAndroidMisc::FBatteryState FAndroidMisc::GetBatteryState()
+{
+	FBatteryState CurState;
+	ReceiversLock.Lock();
+	CurState = CurrentBatteryState;
+	ReceiversLock.Unlock();
+	return CurState;
+}
+
+bool FAndroidMisc::AreHeadPhonesPluggedIn()
+{
+	return HeadPhonesArePluggedIn;
+}
+

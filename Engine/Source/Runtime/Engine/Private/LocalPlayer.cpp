@@ -944,6 +944,9 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
     FVector StereoViewLocation = ViewInfo.Location;
     if (bNeedStereo || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
     {
+		AActor* ViewTarget = PlayerController->GetViewTarget();
+		const bool bHasActiveCamera = ViewTarget && ViewTarget->HasActiveCameraComponent();
+		GEngine->StereoRenderingDevice->UseImplicitHmdPosition(bHasActiveCamera);
         GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
     }
 

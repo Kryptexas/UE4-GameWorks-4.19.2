@@ -261,6 +261,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bSelectiveBasePassOutputs:1;
 
+	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
+		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
+		ToolTip="Enable instanced stereo rendering.",
+		ConfigRestartRequired=true))
+	uint32 bInstancedStereo:1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))

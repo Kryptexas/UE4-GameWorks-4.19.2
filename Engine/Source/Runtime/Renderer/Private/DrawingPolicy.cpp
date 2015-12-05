@@ -67,7 +67,7 @@ void FMeshDrawingPolicy::SetMeshRenderState(
 		));
 }
 
-void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const
+void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
 	INC_DWORD_STAT(STAT_MeshDrawCalls);
 	SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, MeshEvent, GEmitMeshDrawEvent != 0, TEXT("Mesh Draw"));
@@ -166,6 +166,9 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 			}
 			else
 			{
+				// Currently only supporting this path for instanced stereo.
+				const uint32 InstanceCount = (bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances;
+
 				RHICmdList.DrawIndexedPrimitive(
 					BatchElement.IndexBuffer->IndexBufferRHI,
 					Mesh.Type,
@@ -174,7 +177,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
 					BatchElement.FirstIndex,
 					BatchElement.NumPrimitives,
-					BatchElement.NumInstances
+					InstanceCount
 					);
 			}
 		}

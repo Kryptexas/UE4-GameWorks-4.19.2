@@ -185,6 +185,10 @@ class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrar
 	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary", meta = (DeprecatedFunction, DeprecationMessage = "A hack, proper camera positioning should be used"))
 	static void GetBaseRotationAndPositionOffset(FRotator& OutRot, FVector& OutPosOffset);
 
+	/**
+	 * Returns IStereoLayers interface to work with overlays.
+	 */
+	static class IStereoLayers* GetStereoLayers();
 protected:
 	static class FHeadMountedDisplay* GetOculusHMD();
 };

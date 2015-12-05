@@ -27,8 +27,8 @@ float4 SeparateTranslucencyResMult;
 // @return x:layer in front of focal plane, y: layer behind focal plane  1-x-y:layer in focus
 float2 ComputeLayerContributions(float Depth)
 {
-	float Front = saturate((View.DepthOfFieldFocalDistance - Depth) / View.DepthOfFieldNearTransitionRegion);
-	float Back = saturate((Depth - View.DepthOfFieldFocalDistance - View.DepthOfFieldFocalRegion) / max(View.DepthOfFieldFarTransitionRegion, 0.0001f));
+	float Front = saturate((Frame.DepthOfFieldFocalDistance - Depth) / Frame.DepthOfFieldNearTransitionRegion);
+	float Back = saturate((Depth - Frame.DepthOfFieldFocalDistance - Frame.DepthOfFieldFocalRegion) / max(Frame.DepthOfFieldFarTransitionRegion, 0.0001f));
 
 	return float2(Front, Back);
 }
@@ -125,7 +125,7 @@ void MainVS(
 	float2 CoCPixelSize = CircleOfConfusion * KernelSize.xy + 2.0f;
 
 	// offset in half res pixels to put two views in one texture with safety border
-	float YOffset = SceneDepth < View.DepthOfFieldFocalDistance ? DepthOfFieldParams[1].w : 0;
+	float YOffset = SceneDepth < Frame.DepthOfFieldFocalDistance ? DepthOfFieldParams[1].w : 0;
 
 	// offset the corners
 	OutPosition.xy = PixelToScreenPos(PixelPos + (LocalPos - 0.5f) * CoCPixelSize + float2(0, YOffset));
@@ -199,8 +199,8 @@ void MainVS(
 	}
 	
 	{
-		bool MinLayer = MinColorAndDepths.a < View.DepthOfFieldFocalDistance;
-		bool MaxLayer = MaxColorAndDepths.a < View.DepthOfFieldFocalDistance + View.DepthOfFieldFocalRegion;
+		bool MinLayer = MinColorAndDepths.a < Frame.DepthOfFieldFocalDistance;
+		bool MaxLayer = MaxColorAndDepths.a < Frame.DepthOfFieldFocalDistance + Frame.DepthOfFieldFocalRegion;
 
 		if(MinLayer != MaxLayer)
 		{
@@ -257,7 +257,7 @@ void MainVS(
 
 	float2 Layer = ComputeLayerContributions(SceneDepth);
 
-	OutColor *= (SceneDepth < View.DepthOfFieldFocalDistance) ? Layer.r : Layer.g;
+	OutColor *= (SceneDepth < Frame.DepthOfFieldFocalDistance) ? Layer.r : Layer.g;
 
 	if(!bRenderAll4Quads)
 	{
@@ -288,7 +288,7 @@ void MainVS(
 	}
 
 	// offset in half res pixels to put two views in one texture with safety border
-	float YOffset = SceneDepth < View.DepthOfFieldFocalDistance ? DepthOfFieldParams[1].w : 0;
+	float YOffset = SceneDepth < Frame.DepthOfFieldFocalDistance ? DepthOfFieldParams[1].w : 0;
 
 	// offset the corners
 	OutPosition.xy = PixelToScreenPos(PixelPos + (LocalPos - 0.5f) * CoCPixelSize + float2(0, YOffset));

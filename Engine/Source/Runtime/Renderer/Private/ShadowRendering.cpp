@@ -1746,7 +1746,9 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	//@todo - creating a new uniform buffer is expensive, only do this when the vertex factory needs an accurate view matrix (particle sprites)
 	FoundView->ViewMatrices.ViewMatrix = ShadowViewMatrix;
 	FBox VolumeBounds[TVC_MAX];
-	FoundView->UniformBuffer = FoundView->CreateUniformBuffer(
+	FoundView->CreateUniformBuffer(
+		FoundView->ViewUniformBuffer, 
+		FoundView->FrameUniformBuffer,
 		RHICmdList,
 		nullptr,
 		ShadowViewMatrix, 
@@ -1843,7 +1845,8 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 		FoundView = FoundView->CreateSnapshot();
 	}
 
-	TUniformBufferRef<FViewUniformShaderParameters> OriginalUniformBuffer;
+	TUniformBufferRef<FViewUniformShaderParameters> OriginalViewUniformBuffer;
+	TUniformBufferRef<FFrameUniformShaderParameters> OriginalFrameUniformBuffer;
 	FMatrix OriginalViewMatrix;
 	float JitterX = 0.0f;
 	float JitterY = 0.0f;
@@ -1851,7 +1854,8 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	if (!bMakeViewSnapshot)
 	{
 		// Backup properties of the view that we will override
-		OriginalUniformBuffer = FoundView->UniformBuffer;
+		OriginalViewUniformBuffer = FoundView->ViewUniformBuffer;
+		OriginalFrameUniformBuffer = FoundView->FrameUniformBuffer;
 		OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
 
 		JitterX = FoundView->ViewMatrices.ProjMatrix.M[2][0];
@@ -1869,7 +1873,8 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 		// previous jobs rely on previously hacked views...maybe we didn't actually do shadows in parallel, but if not, there are no outstanding jobs anyway
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
 
-	    FoundView->UniformBuffer = OriginalUniformBuffer;
+	    FoundView->ViewUniformBuffer = OriginalViewUniformBuffer;
+		FoundView->FrameUniformBuffer = OriginalFrameUniformBuffer;
 	    FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
     
 	    FoundView->ViewMatrices.ProjMatrix.M[2][0] = JitterX;

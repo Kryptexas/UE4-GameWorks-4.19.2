@@ -19,6 +19,10 @@ void Main(
 	out float4 OutColor : SV_Target0
 	)
 {
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView(FactoryInterpolants.EyeIndex);
+#endif
+
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, SvPosition);

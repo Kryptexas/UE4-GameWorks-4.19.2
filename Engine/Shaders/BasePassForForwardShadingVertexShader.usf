@@ -31,6 +31,12 @@ void Main(
 	out FForwardShadingBasePassVSOutput Output
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 #if PACK_INTERPOLANTS
 	float4 PackedInterps[NUM_VF_PACKED_INTERPOLANTS];
 	UNROLL 
@@ -51,7 +57,7 @@ void Main(
 	
 	WorldPosition.xyz += WorldPositionOffset;
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
-	Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
+	Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 	Output.BasePassInterpolants.PixelPosition = WorldPosition;
 
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
@@ -60,9 +66,9 @@ void Main(
 
 #if USE_VERTEX_FOG
 #if PACK_INTERPOLANTS
-	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz - float4(View.TranslatedWorldCameraOrigin, 1));
+	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz - float4(ResolvedView.TranslatedWorldCameraOrigin, 1));
 #else
-	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz - float4(View.TranslatedWorldCameraOrigin, 1));
+	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz - float4(ResolvedView.TranslatedWorldCameraOrigin, 1));
 #endif // PACK_INTERPOLANTS
 #endif
 

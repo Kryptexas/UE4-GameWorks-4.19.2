@@ -1098,6 +1098,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				FMeshBatch& Mesh = Collector.AllocateMesh();
 				FMeshBatchElement& BatchElement = Mesh.Elements[0];
 				BatchElement.IndexBuffer = &GParticleIndexBuffer;
+				BatchElement.bIsInstancedMesh = bInstanced;
 				if(bInstanced)
 				{
 					BatchElement.NumPrimitives = 2;
@@ -1564,6 +1565,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					BatchElement.MinVertexIndex = Section.MinVertexIndex;
 					BatchElement.MaxVertexIndex = Section.MaxVertexIndex;
 					BatchElement.NumInstances = bInstanced ? ParticleCount : 1;
+					BatchElement.bIsInstancedMesh = bInstanced;
 
 					if (bIsWireframe)
 					{

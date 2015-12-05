@@ -326,7 +326,7 @@ FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBuf
 	}
 }
 
-void CacheUniformBufferIncludes(TMap<const TCHAR*,FCachedUniformBufferDeclaration>& Cache, EShaderPlatform Platform)
+void CacheUniformBufferIncludes(TMap<const TCHAR*,FCachedUniformBufferDeclaration>& Cache, EShaderPlatform Platform, const bool bIsInstancedStereoEnabled)
 {
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TIterator It(Cache); It; ++It)
 	{
@@ -337,7 +337,19 @@ void CacheUniformBufferIncludes(TMap<const TCHAR*,FCachedUniformBufferDeclaratio
 		{
 			if (It.Key() == StructIt->GetShaderVariableName())
 			{
-				BufferDeclaration.Declaration[Platform] = CreateUniformBufferShaderDeclaration(StructIt->GetShaderVariableName(), **StructIt, Platform);
+				const FString& ShaderVariableName = (*StructIt)->GetShaderVariableName();
+				const bool bIsInstancedStereoUniformBuffer = ShaderVariableName == TEXT("InstancedView");
+				if (bIsInstancedStereoEnabled || !bIsInstancedStereoUniformBuffer)
+				{
+					BufferDeclaration.Declaration[Platform] = CreateUniformBufferShaderDeclaration(StructIt->GetShaderVariableName(), **StructIt, Platform);
+				}
+
+				// Strip out instanced stereo uniform buffers if we're not using them.
+				else
+				{
+					BufferDeclaration.Declaration[Platform] = TEXT("\n");
+				}
+
 				break;
 			}
 		}
@@ -346,10 +358,13 @@ void CacheUniformBufferIncludes(TMap<const TCHAR*,FCachedUniformBufferDeclaratio
 
 void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, FString& OutSourceFilePrefix, EShaderPlatform Platform)
 {
+	const FString* const InstancedStereoDef = OutEnvironment.GetDefinitions().Find(TEXT("INSTANCED_STEREO"));
+	const bool bIsInstancedStereoEnabled = (InstancedStereoDef ? (*InstancedStereoDef == TEXT("1")) : false);
+
 	// Cache uniform buffer struct declarations referenced by this shader type's files
 	if (!bCachedUniformBufferStructDeclarations[Platform])
 	{
-		CacheUniformBufferIncludes(ReferencedUniformBufferStructsCache, Platform);
+		CacheUniformBufferIncludes(ReferencedUniformBufferStructsCache, Platform, bIsInstancedStereoEnabled);
 		bCachedUniformBufferStructDeclarations[Platform] = true;
 	}
 
@@ -379,10 +394,13 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 
 void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment& OutEnvironment, FString& OutSourceFilePrefix, EShaderPlatform Platform)
 {
+	const FString* const InstancedStereoDef = OutEnvironment.GetDefinitions().Find(TEXT("INSTANCED_STEREO"));
+	const bool bIsInstancedStereoEnabled = (InstancedStereoDef ? (*InstancedStereoDef == TEXT("1")) : false);
+
 	// Cache uniform buffer struct declarations referenced by this shader type's files
 	if (!bCachedUniformBufferStructDeclarations[Platform])
 	{
-		CacheUniformBufferIncludes(ReferencedUniformBufferStructsCache, Platform);
+		CacheUniformBufferIncludes(ReferencedUniformBufferStructsCache, Platform, bIsInstancedStereoEnabled);
 		bCachedUniformBufferStructDeclarations[Platform] = true;
 	}
 

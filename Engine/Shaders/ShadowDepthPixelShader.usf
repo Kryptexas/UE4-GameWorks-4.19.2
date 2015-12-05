@@ -54,6 +54,12 @@ void Main(
 #endif
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 #if INTERPOLATE_VF_ATTRIBUTES
 	
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
@@ -61,7 +67,7 @@ void Main(
 	#if INTERPOLATE_POSITION
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, 1, SvPositionToTranslatedWorld(SvPosition), SvPosition.xyz);
+			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, 1, SvPositionToResolvedTranslatedWorld(SvPosition), SvPosition.xyz);
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, SvPosition, 1);

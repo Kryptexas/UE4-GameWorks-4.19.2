@@ -42,7 +42,8 @@ struct FMeshBatchElement
 	uint8 InstancedLODIndex : 4;
 	uint8 InstancedLODRange : 4;
 	uint8 bUserDataIsColorVertexBuffer : 1;
-
+	uint8 bIsInstancedMesh : 1;
+	
 	FMeshBatchElement()
 	:	PrimitiveUniformBufferResource(nullptr)
 	,	IndexBuffer(nullptr)
@@ -56,6 +57,7 @@ struct FMeshBatchElement
 	,	InstancedLODIndex(0)
 	,	InstancedLODRange(0)
 	,	bUserDataIsColorVertexBuffer(false)
+	,   bIsInstancedMesh(false)
 	{
 	}
 };

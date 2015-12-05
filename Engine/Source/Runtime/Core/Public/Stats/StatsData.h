@@ -574,7 +574,7 @@ private:
 public:
 
 	/** Constructor used by GetLocalState(), also used by the profiler to hold a previewing stats thread state. We don't keep many frames by default **/
-	FStatsThreadState(int32 InHistoryFrames = STAT_FRAME_SLOP + 2);
+	FStatsThreadState(int32 InHistoryFrames = STAT_FRAME_SLOP + 10);
 
 	/** Delegate we fire every time we have a new complete frame of data. **/
 	mutable FOnNewFrameHistory NewFrameDelegate;

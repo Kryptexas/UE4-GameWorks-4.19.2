@@ -143,4 +143,13 @@ public:
 	{
 		return false;
 	}
+
+	/**
+	 * Set the view offset mode to assume an implied hmd position
+	 */
+	virtual void UseImplicitHmdPosition (bool bInImplicitHmdPosition) { bImplicitHmdPosition = bInImplicitHmdPosition; }
+
+protected:
+
+	bool bImplicitHmdPosition;
 };

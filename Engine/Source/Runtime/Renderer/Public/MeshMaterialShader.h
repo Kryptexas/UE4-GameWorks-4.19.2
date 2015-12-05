@@ -29,9 +29,9 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FMaterial& Material,
 		const FSceneView& View,
-		ESceneRenderTargetsMode::Type TextureMode )
+		ESceneRenderTargetsMode::Type TextureMode)
 	{
-		FMaterialShader::SetParameters(RHICmdList, ShaderRHI,MaterialRenderProxy,Material,View,false,TextureMode);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialRenderProxy, Material, View, false, TextureMode);
 	}
 
 	void SetVFParametersOnly(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement)

@@ -312,12 +312,12 @@ float3 GetPrevTranslatedWorldPosition(FMaterialVertexParameters Parameters)
 
 float3 GetWorldPosition(FMaterialVertexParameters Parameters)
 {
-	return GetTranslatedWorldPosition(Parameters) - View.PreViewTranslation;
+	return GetTranslatedWorldPosition(Parameters) - ResolvedView.PreViewTranslation;
 }
 
 float3 GetPrevWorldPosition(FMaterialVertexParameters Parameters)
 {
-	return GetPrevTranslatedWorldPosition(Parameters) - View.PrevPreViewTranslation;
+	return GetPrevTranslatedWorldPosition(Parameters) - ResolvedView.PrevPreViewTranslation;
 }
 
 //TODO(bug UE-17131): We should compute world displacement for the previous frame
@@ -328,7 +328,7 @@ float3 GetWorldPosition(FMaterialTessellationParameters Parameters)
 
 float3 GetTranslatedWorldPosition(FMaterialTessellationParameters Parameters)
 {
-	return Parameters.WorldPosition + View.PreViewTranslation;
+	return Parameters.WorldPosition + ResolvedView.PreViewTranslation;
 }
 
 float3 GetWorldPosition(FMaterialPixelParameters Parameters)
@@ -354,7 +354,7 @@ float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Par
 // using this function allows to write the same code for VS and PS
 float4 GetScreenPosition(FMaterialVertexParameters Parameters)
 {
-	return mul(float4(Parameters.WorldPosition, 1.0f), View.TranslatedWorldToClip);
+	return mul(float4(Parameters.WorldPosition, 1.0f), ResolvedView.TranslatedWorldToClip);
 }
 
 // using this function allows to write the same code for VS and PS
@@ -477,7 +477,7 @@ MaterialFloat3 TransformTangentVectorToWorld_PreScaled(FMaterialTessellationPara
 MaterialFloat3 TransformTangentVectorToView(FMaterialPixelParameters Parameters, MaterialFloat3 InTangentVector)
 {
 	// Transform from tangent to world, and then to view space
-	return mul(mul(InTangentVector, Parameters.TangentToWorld), (MaterialFloat3x3)View.TranslatedWorldToView);
+	return mul(mul(InTangentVector, Parameters.TangentToWorld), (MaterialFloat3x3)ResolvedView.TranslatedWorldToView);
 }
 
 /** Transforms a vector from local space to world space (VS version) */
@@ -589,7 +589,7 @@ float GetPerInstanceFadeAmount(FMaterialVertexParameters Parameters)
  
 MaterialFloat GetDistanceCullFade()
 {
-	return saturate( View.RealTime * PrimitiveFade.FadeTimeScaleBias.x + PrimitiveFade.FadeTimeScaleBias.y );
+	return saturate( Frame.RealTime * PrimitiveFade.FadeTimeScaleBias.x + PrimitiveFade.FadeTimeScaleBias.y );
 }
 
 /** Rotates Position about the given axis by the given angle, in radians, and returns the offset to Position. */
@@ -664,9 +664,9 @@ float4 MaterialExpressionAtmosphericFog(FMaterialPixelParameters Parameters, flo
 {
 #if MATERIAL_ATMOSPHERIC_FOG
 	// WorldPosition default value is Parameters.AbsoluteWorldPosition if not overridden by the user
-	float3 ViewVector = AbsoluteWorldPosition - View.WorldCameraOrigin;
+	float3 ViewVector = AbsoluteWorldPosition - ResolvedView.WorldCameraOrigin;
 	float SceneDepth = length(ViewVector);
-	return GetAtmosphericFog(View.WorldCameraOrigin, ViewVector, SceneDepth, float3(0.f, 0.f, 0.f));
+	return GetAtmosphericFog(ResolvedView.WorldCameraOrigin, ViewVector, SceneDepth, float3(0.f, 0.f, 0.f));
 #else
 	return float4(0.f, 0.f, 0.f, 0.f);
 #endif
@@ -725,7 +725,7 @@ MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 {
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	#if MOBILE_EMULATION
-	if( View.MobilePreviewMode > 0.5f)
+	if( Frame.MobilePreviewMode > 0.5f)
 	{
 		// undo HW srgb->lin
 		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
@@ -747,7 +747,7 @@ MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 {
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	#if MOBILE_EMULATION
-	if( View.MobilePreviewMode > 0.5f )
+	if( Frame.MobilePreviewMode > 0.5f )
 	{
 		// undo HW srgb->lin
 		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
@@ -847,7 +847,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 
 #if !SPHERICAL_OPACITY_FOR_SHADOW_DEPTHS
 		// Fade out as the particle approaches the near plane
-		Opacity = lerp(0, Opacity, saturate((Parameters.ScreenPosition.w - ParticleRadius - View.NearPlane) / ParticleRadius));
+		Opacity = lerp(0, Opacity, saturate((Parameters.ScreenPosition.w - ParticleRadius - Frame.NearPlane) / ParticleRadius));
 #endif
 	}
 
@@ -886,11 +886,11 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 #if !USE_INSTANCING || !USE_DITHERED_LOD_TRANSITION
 	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 	{
-		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndInvSize.x * View.ViewToClip[0][0],
-												View.ViewSizeAndInvSize.y * View.ViewToClip[1][1]);
+		const float ScreenMultiple = 0.5 * max(Frame.ViewSizeAndInvSize.x * ResolvedView.ViewToClip[0][0],
+												Frame.ViewSizeAndInvSize.y * ResolvedView.ViewToClip[1][1]);
 		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
-									max(1.0, dot(TreePos - View.WorldCameraOrigin, View.ViewForward.xyz));
-		const float ScreenArea = PI * ScreenRadius * ScreenRadius * View.ViewSizeAndInvSize.z * View.ViewSizeAndInvSize.w;
+									max(1.0, dot(TreePos - ResolvedView.WorldCameraOrigin, ResolvedView.ViewForward.xyz));
+		const float ScreenArea = PI * ScreenRadius * ScreenRadius * Frame.ViewSizeAndInvSize.z * Frame.ViewSizeAndInvSize.w;
 		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
 	}
 #endif
@@ -915,7 +915,7 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		{
 			// billboard meshes can have triangles drop out if they aren't facing the camera
 			// this rotates the view direction around so we ignore the local Z component
-			float3 LocalView2D = normalize(float3(View.ViewForward.xy, 0));
+			float3 LocalView2D = normalize(float3(ResolvedView.ViewForward.xy, 0));
 			float3 LocalNormal2D = normalize(float3(Parameters.TangentToWorld[2].xy, 0));
 			if (dot(LocalView2D, LocalNormal2D) > (-1.0 + BillboardThreshold * 0.25))
 			{
@@ -982,9 +982,9 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
 			{
 				// have to rotate the view into local space
-				FinalPosition = FinalPosition.x * View.ViewRight + 
-								FinalPosition.y * View.ViewUp + 
-								FinalPosition.z * View.ViewForward;
+				FinalPosition = FinalPosition.x * ResolvedView.ViewRight + 
+								FinalPosition.y * ResolvedView.ViewUp + 
+								FinalPosition.z * ResolvedView.ViewForward;
 			}
 
 			// leaf wind
@@ -1252,13 +1252,13 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters)
 	#if USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		half3 OverrideNormal = View.NormalOverrideParameter.xyz;
+		half3 OverrideNormal = Frame.NormalOverrideParameter.xyz;
 
 		#if !MATERIAL_TANGENTSPACENORMAL
-			OverrideNormal = Parameters.TangentToWorld[2] * (1 - View.NormalOverrideParameter.w);
+			OverrideNormal = Parameters.TangentToWorld[2] * (1 - Frame.NormalOverrideParameter.w);
 		#endif
 
-		RetNormal = RetNormal * View.NormalOverrideParameter.w + OverrideNormal;
+		RetNormal = RetNormal * Frame.NormalOverrideParameter.w + OverrideNormal;
 	}
 	#endif
 
@@ -1334,7 +1334,7 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	#if USE_EDITOR_SHADERS && !ES31_AEP_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;
+		Roughness = Roughness * Frame.RoughnessOverrideParameter.y + Frame.RoughnessOverrideParameter.x;
 	}
 	#endif
 	
@@ -1604,8 +1604,8 @@ void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters)
 		234
 		401
 		*/
-		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)View.TemporalAAParams.x ) % 5 ) / 5.0;
-		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + View.TemporalAAParams.x ) / 5 );
+		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)Frame.TemporalAAParams.x ) % 5 ) / 5.0;
+		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + Frame.TemporalAAParams.x ) / 5 );
 		float Noise = frac( dot( float2( 171.0, 231.0 ) / 71, Parameters.SvPosition.xy ) );
 		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0) - 0.5;
 		clip( GetMaterialMask(Parameters) + Dither );
@@ -1640,13 +1640,13 @@ void CalcMaterialParametersEx(
 {
 	// Remove the pre view translation
 	Parameters.WorldPosition_CamRelative = TranslatedWorldPosition.xyz;
-	Parameters.AbsoluteWorldPosition = TranslatedWorldPosition.xyz - View.PreViewTranslation.xyz;
+	Parameters.AbsoluteWorldPosition = TranslatedWorldPosition.xyz - ResolvedView.PreViewTranslation.xyz;
 
 	// If the material uses any non-offset world position expressions, calculate those parameters. If not, 
 	// the variables will have been initialised to 0 earlier.
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 	Parameters.WorldPosition_NoOffsets_CamRelative = TranslatedWorldPositionExcludingShaderOffsets;
-	Parameters.WorldPosition_NoOffsets = TranslatedWorldPositionExcludingShaderOffsets - View.PreViewTranslation.xyz;
+	Parameters.WorldPosition_NoOffsets = TranslatedWorldPositionExcludingShaderOffsets - ResolvedView.PreViewTranslation.xyz;
 #endif
 
 	Parameters.SvPosition = SvPosition;
@@ -1666,7 +1666,7 @@ void CalcMaterialParametersEx(
 	Parameters.TwoSidedSign = 1.0f;
 
 #if MATERIAL_TWOSIDED && HAS_PRIMITIVE_UNIFORM_BUFFER
-	Parameters.TwoSidedSign *= View.CullingSign * Primitive.LocalToWorldDeterminantSign;
+	Parameters.TwoSidedSign *= Frame.CullingSign * Primitive.LocalToWorldDeterminantSign;
 
 	#if !MATERIAL_TWOSIDED_SEPARATE_PASS
 		Parameters.TwoSidedSign *= GetFloatFacingSign(bIsFrontFace);
@@ -1702,6 +1702,17 @@ void CalcMaterialParametersEx(
 // convenience function to setup CalcMaterialParameters assuming we don't support TranslatedWorldPositionExcludingShaderOffsets
 // @param SvPosition from SV_Position when rendering the view, for other projections e.g. shadowmaps this function cannot be used and you need to call CalcMaterialParametersEx()
 void CalcMaterialParameters(
+	in out FMaterialPixelParameters Parameters,
+	float4 SvPosition,
+	FIsFrontFace bIsFrontFace)
+{
+	float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+	float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SvPosition);
+
+	CalcMaterialParametersEx(Parameters, SvPosition, ScreenPosition, bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
+}
+
+void CalcMaterialParametersPost(
 	in out FMaterialPixelParameters Parameters,
 	float4 SvPosition,
 	FIsFrontFace bIsFrontFace)

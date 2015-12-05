@@ -127,6 +127,9 @@ protected:
 //@todo-rco: Move to pixel shader
 			SkipOutputVelocityParameter.Bind(Initializer.ParameterMap, TEXT("SkipOutputVelocity"));
 		}
+
+		InstancedEyeIndexParameter.Bind(Initializer.ParameterMap, TEXT("InstancedEyeIndex"));
+		IsInstancedStereoParameter.Bind(Initializer.ParameterMap, TEXT("bIsInstancedStereo"));
 	}
 
 public:
@@ -145,6 +148,8 @@ public:
 		Ar << TranslucentLightingVolumeParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
+		Ar << InstancedEyeIndexParameter;
+		Ar << IsInstancedStereoParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -155,10 +160,11 @@ public:
 		const FMaterial& InMaterialResource,
 		const FSceneView& View,
 		bool bAllowGlobalFog,
-		ESceneRenderTargetsMode::Type TextureMode
+		ESceneRenderTargetsMode::Type TextureMode, 
+		const bool bIsInstancedStereo
 		)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, InMaterialResource, View, TextureMode);
 
 		if (bAllowGlobalFog)
 		{
@@ -167,9 +173,16 @@ public:
 		}
 
 		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
+
+		if (IsInstancedStereoParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue);
+
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex);
 
 private:
 	
@@ -180,6 +193,8 @@ private:
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
 	FShaderParameter SkipOutputVelocityParameter;
+	FShaderParameter InstancedEyeIndexParameter;
+	FShaderParameter IsInstancedStereoParameter;
 };
 
 
@@ -769,7 +784,7 @@ public:
 			// Set the light-map policy.
 			LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
 
-			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode);
+			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode, PolicyContext.bIsInstancedStereo);
 
 			if(HullShader)
 			{
@@ -825,6 +840,10 @@ public:
 				break;
 			};
 		}
+	}
+
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+		VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 	}
 
 	/** 
@@ -1018,7 +1037,8 @@ public:
 		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId, 
+		const bool bIsInstancedStereo = false
 		);
 };
 
@@ -1038,6 +1058,7 @@ public:
 	const bool bEditorCompositeDepthTest;
 	ESceneRenderTargetsMode::Type TextureMode;
 	ERHIFeatureLevel::Type FeatureLevel;
+	const bool bIsInstancedStereo;
 
 	/** Initialization constructor. */
 	FProcessBasePassMeshParameters(
@@ -1047,7 +1068,8 @@ public:
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
-		ERHIFeatureLevel::Type InFeatureLevel
+		ERHIFeatureLevel::Type InFeatureLevel, 
+		const bool InbIsInstancedStereo = false
 		):
 		Mesh(InMesh),
 		BatchElementMask(Mesh.Elements.Num()==1 ? 1 : (1<<Mesh.Elements.Num())-1), // 1 bit set for each mesh element
@@ -1058,7 +1080,8 @@ public:
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
-		FeatureLevel(InFeatureLevel)
+		FeatureLevel(InFeatureLevel), 
+		bIsInstancedStereo(InbIsInstancedStereo)
 	{
 	}
 
@@ -1071,7 +1094,8 @@ public:
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
-		ERHIFeatureLevel::Type InFeatureLevel
+		ERHIFeatureLevel::Type InFeatureLevel, 
+		bool InbIsInstancedStereo = false
 		) :
 		Mesh(InMesh),
 		BatchElementMask(InBatchElementMask),
@@ -1082,7 +1106,8 @@ public:
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
-		FeatureLevel(InFeatureLevel)
+		FeatureLevel(InFeatureLevel),
+		bIsInstancedStereo(InbIsInstancedStereo)
 	{
 	}
 };

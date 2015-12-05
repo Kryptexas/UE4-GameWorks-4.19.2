@@ -99,6 +99,9 @@ struct FVertexFactoryInterpolantsVSToPS
 	float ParticleTime : PARTICLE_TIME;
 #endif
 
+#if INSTANCED_STEREO
+	uint EyeIndex : EYE_INDEX;
+#endif
 };
 
 struct FVertexFactoryIntermediates
@@ -261,7 +264,7 @@ half2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 float4 CalcWorldPosition(FVertexFactoryInput Input)
 {
 	float4x4 Transform = GetParticleTransform(Input);
-	float3 WorldPosition = mul(Input.Position, Transform).xyz + View.PreViewTranslation;
+	float3 WorldPosition = mul(Input.Position, Transform).xyz + ResolvedView.PreViewTranslation;
 	return float4(WorldPosition, Input.Position.w);
 }
 
@@ -437,6 +440,10 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	Interpolants.ParticleTime = Intermediates.RelativeTime;
 #endif
 
+#if INSTANCED_STEREO
+	Interpolants.EyeIndex = 0;
+#endif
+
 	return Interpolants;
 }
 
@@ -489,7 +496,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 		half4 TangentToWorld2 = Interpolants.InterpolantsVSToPS.TangentToWorld2;
 		Result.TangentToWorld = AssembleTangentToWorld( TangentToWorld0, TangentToWorld2 );
 		Result.TangentToWorldPreScale = 1;
-		Result.WorldPosition = CameraLocalWorldPosition + View.WorldCameraOrigin;
+		Result.WorldPosition = CameraLocalWorldPosition + ResolvedView.WorldCameraOrigin;
 
 		return Result;
 	}
@@ -542,3 +549,20 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 		return TangentToWorld;
 	}
 #endif // #if USING_TESSELLATION
+
+#if INSTANCED_STEREO
+
+// Instanced stereo sets the eye index explicitly for instanced geometry
+#if PARTICLE_MESH_INSTANCED
+uint InstancedEyeIndex;
+#endif
+
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	#if PARTICLE_MESH_INSTANCED
+		return InstancedEyeIndex & bIsInstancedStereo;
+	#else
+		return InstanceId & 1;
+	#endif
+}
+#endif

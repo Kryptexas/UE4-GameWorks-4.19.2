@@ -222,7 +222,7 @@ void Circle4Samples(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV
 
 	// Fixed maximum search size (in terms of Circle of Confusion radius).
 	// Higher than 8 is too noizy for 4 samples.
-	float Coc = 8.0 * View.CircleDOFParams.w;
+	float Coc = 8.0 * Frame.CircleDOFParams.w;
 
 	float LocalRand = RandomOffset.x + InRand;
 
@@ -579,8 +579,8 @@ float4 Recombine2Samples(float4 UVAndScreenPos, float PixCoc, float InRand)
 		// Weight the two samples to avoid forground into background bleed.
 		float IFeather0 = 1.0/4.0;
 		ICoc *= 0.5; // Coc is half res units.
-		I1 += saturate((abs(CA.a) - ICoc) * IFeather0 + View.GeneralPurposeTweak);
-		I2 += saturate((abs(CB.a) - ICoc) * IFeather0 + View.GeneralPurposeTweak);
+		I1 += saturate((abs(CA.a) - ICoc) * IFeather0 + Frame.GeneralPurposeTweak);
+		I2 += saturate((abs(CB.a) - ICoc) * IFeather0 + Frame.GeneralPurposeTweak);
 #endif
 
 		return float4(CA.rgb * I1 + CB.rgb * I2, I1 + I2);

@@ -328,7 +328,7 @@ void MainTemporalAAPS(
 	#define AA_BICUBIC 1
 	#include "PostProcessTemporalCommon.usf"
 	
-	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
+	uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
 	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #else 
@@ -357,7 +357,7 @@ void MainFastTemporalAAPS(
 	#define AA_BICUBIC 0
 	#include "PostProcessTemporalCommon.usf"
 
-	uint2 PixelPos = SvPosition.xy + uint2( View.FrameNumber & 3, (View.FrameNumber / 4) & 3 );
+	uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );
 	float Random = RandFast( PixelPos );
 	OutColor += (Random - 0.5) * (1.0 / 1024.0) / InExposureScale;
 #else 

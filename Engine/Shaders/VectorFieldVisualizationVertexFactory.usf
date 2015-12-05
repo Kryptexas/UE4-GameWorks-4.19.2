@@ -30,6 +30,10 @@ struct FVertexFactoryInterpolantsVSToPS
 {
 	/** Dummy value to interpolate. */
 	float2 DummyTexCoord : TEXCOORD0;
+
+#if INSTANCED_STEREO
+	uint EyeIndex : EYE_INDEX;
+#endif
 };
 
 /**
@@ -61,7 +65,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	const float3 Vec = normalize(Force) * ForceScale;
 
 	// The base position for this vector.
-	const float3 BasePosition = mul(float4(VoxelUV.xyz,1), VectorFieldVis.VolumeToWorld).xyz - View.WorldCameraOrigin;
+	const float3 BasePosition = mul(float4(VoxelUV.xyz,1), VectorFieldVis.VolumeToWorld).xyz - ResolvedView.WorldCameraOrigin;
 	const float3 Position = BasePosition + float(Input.VertexId) * 
 		mul(float4(Vec,0), VectorFieldVis.VolumeToWorldNoScale).xyz;
 
@@ -141,6 +145,11 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS( FVertexFact
 {
 	FVertexFactoryInterpolantsVSToPS Interpolants;
 	Interpolants.DummyTexCoord = float2(0,0);
+
+#if INSTANCED_STEREO
+	Interpolants.EyeIndex = 0;
+#endif
+
 	return Interpolants;
 }
 
@@ -169,3 +178,10 @@ float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFacto
 	TangentToLocal[2] = float3(0,0,1);
 	return TangentToLocal;
 }
+
+#if INSTANCED_STEREO
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	return 0;
+}
+#endif

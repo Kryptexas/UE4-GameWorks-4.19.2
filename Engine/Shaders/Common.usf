@@ -84,6 +84,8 @@
 // uniform buffers specifics
 #include "CommonViewUniformBuffer.usf"
 
+#include "InstancedStereo.usf"
+
 #include "Definitions.usf"
 
 #define FEATURE_LEVEL_ES2	1
@@ -750,7 +752,7 @@ MaterialFloat3 HdrMosaic(MaterialFloat3 LinearColor, MaterialFloat2 VPos)
 // Resolve pass to remove mosaic and restore color.
 MaterialFloat3 HdrDemosaic(MaterialFloat3 Pixel, MaterialFloat3 OtherPixel, MaterialFloat2 VPos)
 {
-	MaterialFloat A = frac(dot(VPos + View.DemosaicVposOffset, MaterialFloat2(0.5, 0.5)));
+	MaterialFloat A = frac(dot(VPos + Frame.DemosaicVposOffset, MaterialFloat2(0.5, 0.5)));
 	MaterialFloat B = 0.5 - A;
 	A = A * DEMOSAIC_MUL + DEMOSAIC_ADD;
 	B = B * DEMOSAIC_MUL + DEMOSAIC_ADD;
@@ -856,7 +858,7 @@ float GetHDR32bppEncodeMode()
 	#endif
 	#if MOBILE_EMULATION
 		// To enable editor runtime change without recompile, PC always eats the encode cost.
-		return View.HDR32bppEncodingMode;
+		return Frame.HDR32bppEncodingMode;
 	#endif
 #endif
 	return HDR_ENCODE_NONE;
@@ -906,7 +908,7 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 	// Clamp to valid area of the screen to avoid reading garbage
 	//@todo - soft clamp
 	float2 OffsetNDC = clamp(NDC + OffsetFraction * float2(2, -2), -.999f, .999f);
-	return float2(OffsetNDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz);
+	return float2(OffsetNDC * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz);
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
@@ -1042,17 +1044,26 @@ float4 CalcSceneColorAndDepth( float2 ScreenUV )
 
 float2 ScreenPositionToBufferUV(float4 ScreenPosition)
 {
-	return float2(ScreenPosition.xy / ScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz);
+	return float2(ScreenPosition.xy / ScreenPosition.w * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz);
 }
 
 float2 SvPositionToBufferUV(float4 SvPosition)
 {
-	return SvPosition.xy * View.BufferSizeAndInvSize.zw;
+	return SvPosition.xy * Frame.BufferSizeAndInvSize.zw;
 }
-	
+
+// Used for post process shaders which don't need to resolve the view	
 float3 SvPositionToTranslatedWorld(float4 SvPosition)
 {
 	float4 HomWorldPos = mul(float4(SvPosition.xyz, 1), View.SVPositionToTranslatedWorld);
+
+	return HomWorldPos.xyz / HomWorldPos.w;
+}
+
+// Used for vertex factory shaders which need to use the resolved view
+float3 SvPositionToResolvedTranslatedWorld(float4 SvPosition)
+{
+	float4 HomWorldPos = mul(float4(SvPosition.xyz, 1), ResolvedView.SVPositionToTranslatedWorld);
 
 	return HomWorldPos.xyz / HomWorldPos.w;
 }
@@ -1069,10 +1080,10 @@ float4 SvPositionToScreenPosition(float4 SvPosition)
 	// todo: is already in .w or needs to be reconstructed like this:
 //	SvPosition.w = ConvertFromDeviceZ(SvPosition.z);
 
-	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
+	float2 PixelPos = SvPosition.xy - Frame.ViewRectMin.xy;	
 
 	// NDC (NormalizedDeviceCoordinates, after the perspective divide)
-	float3 NDCPos = float3( (PixelPos * View.ViewSizeAndInvSize.zw - 0.5f) * float2(2, -2), SvPosition.z);
+	float3 NDCPos = float3( (PixelPos * Frame.ViewSizeAndInvSize.zw - 0.5f) * float2(2, -2), SvPosition.z);
 
 	// SvPosition.w: so .w has the SceneDepth, some mobile code and the DepthFade material expression wants that
 	return float4(NDCPos.xyz, 1) * SvPosition.w;
@@ -1081,9 +1092,9 @@ float4 SvPositionToScreenPosition(float4 SvPosition)
 float2 SvPositionToViewportUV(float4 SvPosition)
 {
 	// can be optimized from 2SUB+2MUL to 2MAD
-	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
+	float2 PixelPos = SvPosition.xy - Frame.ViewRectMin.xy;	
 
-	return PixelPos.xy * View.ViewSizeAndInvSize.zw;
+	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
 }
 
 // ----------------------------
@@ -1102,7 +1113,7 @@ MaterialFloat2 ScreenAlignedPosition( float4 ScreenPosition )
  */
 MaterialFloat2 ScreenAlignedUV( MaterialFloat2 UV )
 {
-	return (UV*MaterialFloat2(2,-2) + MaterialFloat2(-1,1))*View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	return (UV*MaterialFloat2(2,-2) + MaterialFloat2(-1,1))*Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
 }
 
 /**

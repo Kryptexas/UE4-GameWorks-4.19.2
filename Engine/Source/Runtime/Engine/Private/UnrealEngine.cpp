@@ -1806,6 +1806,28 @@ bool UEngine::UseSound() const
 class FFakeStereoRenderingDevice : public IStereoRendering
 {
 public:
+	FFakeStereoRenderingDevice() 
+	{
+		static TAutoConsoleVariable<float> CVarEmulateStereoFOV(TEXT("r.StereoEmulationFOV"), 0, TEXT("FOV in degrees, of the imaginable HMD for stereo emulation"));
+		static TAutoConsoleVariable<int32> CVarEmulateStereoWidth(TEXT("r.StereoEmulationWidth"), 0, TEXT("Width of the imaginable HMD for stereo emulation"));
+		static TAutoConsoleVariable<int32> CVarEmulateStereoHeight(TEXT("r.StereoEmulationHeight"), 0, TEXT("Height of the imaginable HMD for stereo emulation"));
+		float FOV = CVarEmulateStereoFOV.GetValueOnAnyThread();
+		if (FOV != 0)
+		{
+			FOVInDegrees = FMath::Clamp(FOV, 20.f, 300.f);
+		}
+		int32 W = CVarEmulateStereoWidth.GetValueOnAnyThread();
+		int32 H = CVarEmulateStereoHeight.GetValueOnAnyThread();
+		if (W != 0)
+		{
+			Width = FMath::Clamp(W, 100, 10000);
+		}
+		if (H != 0)
+		{
+			Height = FMath::Clamp(H, 100, 10000);
+		}
+	}
+
 	virtual ~FFakeStereoRenderingDevice() {}
 
 	virtual bool IsStereoEnabled() const override { return true; }
@@ -1836,9 +1858,9 @@ public:
 		const float ProjectionCenterOffset = 0.151976421f;
 		const float PassProjectionOffset = (StereoPassType == eSSP_LEFT_EYE) ? ProjectionCenterOffset : -ProjectionCenterOffset;
 
-		const float HalfFov = 2.19686294f / 2.f;
-		const float InWidth = 640.f;
-		const float InHeight = 480.f;
+		const float HalfFov = FMath::DegreesToRadians(FOVInDegrees) / 2.f;
+		const float InWidth = Width;
+		const float InHeight = Height;
 		const float XS = 1.0f / tan(HalfFov);
 		const float YS = InWidth / tan(HalfFov) / InHeight;
 
@@ -1884,13 +1906,17 @@ public:
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
 	}
+
+	float FOVInDegrees = 100;		 // max(HFOV, VFOV) in degrees of imaginable HMD
+	int32 Width = 640, Height = 480; // resolution of imaginable HMD
 };
 
 bool UEngine::InitializeHMDDevice()
 {
 	if (!IsRunningCommandlet())
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
+		static TAutoConsoleVariable<int32> CVarEmulateStereo(TEXT("r.EnableStereoEmulation"), 0, TEXT("Emulate stereo rendering"));
+		if (FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")) || CVarEmulateStereo.GetValueOnAnyThread() != 0)
 		{
 			TSharedPtr<FFakeStereoRenderingDevice, ESPMode::ThreadSafe> FakeStereoDevice(new FFakeStereoRenderingDevice());
 			StereoRenderingDevice = FakeStereoDevice;

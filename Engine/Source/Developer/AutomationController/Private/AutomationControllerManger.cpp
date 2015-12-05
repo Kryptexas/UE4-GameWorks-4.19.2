@@ -356,6 +356,17 @@ void FAutomationControllerManager::SetTestNames( const FMessageAddress& Automati
 	// Find the device that requested these tests
 	if( DeviceClusterManager.FindDevice( AutomationWorkerAddress, DeviceClusterIndex, DeviceIndex ) )
 	{
+		// Sort tests by display name
+		struct FCompareAutomationTestInfo
+		{
+			FORCEINLINE bool operator()(const FAutomationTestInfo& A,const FAutomationTestInfo& B) const
+			{
+				return A.GetDisplayName() < B.GetDisplayName();
+			}
+		};
+
+		TestInfo.Sort(FCompareAutomationTestInfo());
+
 		// Add each test to the collection
 		for( int32 TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex )
 		{

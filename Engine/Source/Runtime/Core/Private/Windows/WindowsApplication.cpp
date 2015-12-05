@@ -8,6 +8,7 @@
 #include "XInputInterface.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
+#include "IHapticDevice.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
@@ -1811,6 +1812,18 @@ void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, cons
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
 		(*DeviceIt)->SetChannelValues(ControllerId, Values);
+	}
+}
+
+void FWindowsApplication::SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values)
+{
+	for (auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt)
+	{
+		IHapticDevice* HapticDevice = (*DeviceIt)->GetHapticDevice();
+		if (HapticDevice)
+		{
+			HapticDevice->SetHapticFeedbackValues(ControllerId, Hand, Values);
+		}
 	}
 }
 

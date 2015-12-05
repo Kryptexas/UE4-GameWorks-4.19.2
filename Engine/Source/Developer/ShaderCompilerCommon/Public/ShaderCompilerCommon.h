@@ -61,8 +61,9 @@ extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderComp
 //		{
 //		[...]UniformBuffer_Member[...]
 //		}
-extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
-
+//
+// If instanced stereo is not enabled, replace ResolvedView with View.
+extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode, const bool bInstancedStereoEnabled = false);
 extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& InOutSourceCode, const TArray<FString>& SystemOutputs, const TArray<FString>& UsedOutputs, const FString& EntryPoint, TArray<FString>& OutErrors);
 
 // Cross compiler support/common functionality

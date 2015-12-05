@@ -10,6 +10,7 @@
 #include "HideWindowsPlatformTypes.h"
 
 #include "HardwareInfo.h"
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 
 
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
@@ -22,6 +23,16 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("At the moment this only works on Direct3D 11.\n")
 	TEXT(" -2: Take the first one that fulfills the criteria\n")
 	TEXT(" -1: Favour non integrated because there are usually faster\n")
+	TEXT("  0: Adpater #0\n")
+	TEXT("  1: Adpater #1, ..."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarHmdGraphicsAdapter(
+	TEXT("r.HmdGraphicsAdapter"),
+	-1,
+	TEXT("Specifies the index of the graphics adapter where the HMD is connected.  Overrides r.GraphicsAdapter when the Hmd is enabled.\n")
+	TEXT("At the moment this only works on Direct3D 11.\n")
+	TEXT(" -1: Unknown\n")
 	TEXT("  0: Adpater #0\n")
 	TEXT("  1: Adpater #1, ..."),
 	ECVF_RenderThreadSafe);
@@ -240,7 +251,11 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	bAllowPerfHUD = false;
 #endif
 
-	int32 CVarValue = CVarGraphicsAdapter.GetValueOnGameThread();
+	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
+	bool bUseHmdGraphicsAdapter = CVarHmdGraphicsAdapter.GetValueOnGameThread() >= 0 && 
+		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
+
+	int32 CVarValue = bUseHmdGraphicsAdapter ? CVarHmdGraphicsAdapter.GetValueOnGameThread() : CVarGraphicsAdapter.GetValueOnGameThread();
 
 	const bool bFavorNonIntegrated = CVarValue == -1;
 

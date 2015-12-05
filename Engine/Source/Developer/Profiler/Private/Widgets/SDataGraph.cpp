@@ -327,7 +327,7 @@ int32 SDataGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 		const FGraphDescription& GraphDescription = It.Value();
 		const float GraphYScale = AllottedGeometry.Size.Y/ScaleY;
 		
-		const float UnitTypeScale = GraphDescription.CombinedGraphDataSource->GetSampleType() == EProfilerSampleTypes::HierarchicalTime ? 1.0f : CounterToTimeScale;
+		const float UnitTypeScale = GraphDescription.CombinedGraphDataSource->GetSampleType() != EProfilerSampleTypes::Memory ? 1.0f : CounterToTimeScale;
 		const float TimeAccuracyMS = FTimeAccuracy::AsFrameTime( TimeBasedAccuracy );
 
 		if( ViewMode == EDataGraphViewModes::Time )
@@ -649,21 +649,21 @@ int32 SDataGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 	const int32 MaxGridPixelSpacing = 160.0f;
 
-	// Draw a horizontal lines every 150 pixels and draw a few basic lines like 5ms, 10ms, 16ms, 33ms
+	// Draw a horizontal lines every 150 pixels and draw a few basic lines
 	static const TArray<float> DefaultTimeValueHints = TArrayBuilder<float>()
-		.Add( 5.0f )
-		.Add( 10.0f )
-		.Add( 16.6f )
-		.Add( 33.0f );
+		.Add( 11.1f )	// 90fps
+		.Add( 16.6f )	// 60fps
+		.Add( 33.3f )	// 30fps
+		.Add( 50.0f );	// 20fps
 
-	const FLinearColor HintColor05(0.0f,1.0f,1.0f, 0.5f);
-	const FLinearColor HintColor33(0.5f,1.0f,0.0f, 0.5f);
+	const FLinearColor HintColor90FPS(0.0f,1.0f,1.0f, 0.5f);
+	const FLinearColor HintColor20FPS(0.5f,1.0f,0.0f, 0.5f);
 
 	static TMap<float,FLinearColor> DefaultTimeValueHintColors = TMapBuilder<float,FLinearColor>()
-		.Add( 5.0f, FMath::Lerp(HintColor05,HintColor33,0.0f) )
-		.Add( 10.0f, FMath::Lerp(HintColor05,HintColor33,0.33f) )
-		.Add( 16.6f, FMath::Lerp(HintColor05,HintColor33,0.66f) )
-		.Add( 33.0f, FMath::Lerp(HintColor05,HintColor33,1.0f) );
+		.Add( 11.1f, FMath::Lerp(HintColor90FPS,HintColor20FPS,0.0f) )
+		.Add( 16.6f, FMath::Lerp(HintColor90FPS,HintColor20FPS,0.33f) )
+		.Add( 33.3f, FMath::Lerp(HintColor90FPS,HintColor20FPS,0.66f) )
+		.Add( 50.0f, FMath::Lerp(HintColor90FPS,HintColor20FPS,1.0f) );
 
 
 	// Time value hints based on the graph height and maximum value the can be displayed on this graph.

@@ -95,7 +95,8 @@ void FMaterialShader::SetParameters(
 	const FMaterial& Material,
 	const FSceneView& View, 
 	bool bDeferredPass, 
-	ESceneRenderTargetsMode::Type TextureMode)
+	ESceneRenderTargetsMode::Type TextureMode, 
+	const bool bIsInstancedStereo)
 {
 	ERHIFeatureLevel::Type FeatureLevel = View.GetFeatureLevel();
 	FUniformExpressionCache TempUniformExpressionCache;
@@ -367,7 +368,8 @@ void FMaterialShader::SetParameters(
 		const FMaterial& Material,						\
 		const FSceneView& View,							\
 		bool bDeferredPass,								\
-		ESceneRenderTargetsMode::Type TextureMode		\
+		ESceneRenderTargetsMode::Type TextureMode,		\
+		const bool bIsInstancedStereo					\
 	);
 
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FVertexShaderRHIParamRef );

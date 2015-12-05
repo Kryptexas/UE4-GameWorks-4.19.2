@@ -16,15 +16,19 @@
 ACameraActor::ACameraActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
+
+	// Make the scene component the root component
+	RootComponent = SceneComponent;
+	
 	// Setup camera defaults
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->FieldOfView = 90.0f;
 	CameraComponent->bConstrainAspectRatio = true;
 	CameraComponent->AspectRatio = 1.777778f;
 	CameraComponent->PostProcessBlendWeight = 1.0f;
-
-	// Make the camera component the root component
-	RootComponent = CameraComponent;
+	
+	CameraComponent->AttachParent = SceneComponent;
 
 	// Initialize deprecated properties (needed for backwards compatibility due to delta serialization)
 	FOVAngle_DEPRECATED = 90.0f;
@@ -65,6 +69,12 @@ void ACameraActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph
 	{
 		Super::PostLoadSubobjects(OuterInstanceGraph);
 	}
+
+	if (GetLinkerUE4Version() < VER_UE4_CAMERA_COMPONENT_ATTACH_TO_ROOT)
+	{
+		RootComponent = SceneComponent;
+		CameraComponent->AttachTo(RootComponent);
+	}
 }
 
 #if WITH_EDITOR
@@ -78,6 +88,11 @@ void ACameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		PreviewedCameraAnim->BasePostProcessSettings = CameraComponent->PostProcessSettings;
 		PreviewedCameraAnim->BasePostProcessBlendWeight = CameraComponent->PostProcessBlendWeight;
 	}
+}
+
+USceneComponent* ACameraActor::GetDefaultAttachComponent() const
+{
+	return CameraComponent;
 }
 #endif
 

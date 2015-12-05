@@ -187,6 +187,12 @@ void Main(
 	out float4 OutPosition : SV_POSITION
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
@@ -268,6 +274,12 @@ void PositionOnlyMain(
 	out float4 OutPosition : SV_POSITION
 	)
 {
+
+// Instanced stereo not implemented
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView();
+#endif
+
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input);
 
 #if ONEPASS_POINTLIGHT_SHADOW

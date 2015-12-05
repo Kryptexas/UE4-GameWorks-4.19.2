@@ -12,6 +12,12 @@ float4x4 PreviousLocalToWorld;
 #include "UniformBuffers/PrecomputedLightingBuffer.usf"
 
 #if USE_INSTANCING
+
+	// Instanced stereo sets the eye index explicitly for instanced geometry
+	#if INSTANCED_STEREO
+		uint InstancedEyeIndex;	 
+	#endif
+
 	#ifndef USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED
 		#error "USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED should have been defined"
 	#endif
@@ -51,7 +57,6 @@ float4 InstancingFadeOutParams;
 		#define USE_INSTANCING_EMULATED (0)
 	#endif
 #endif	// USE_INSTANCING
-
 
 #if USE_SPLINEDEFORM
 float3 SplineStartPos;
@@ -506,7 +511,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float SelectedValue = GetInstanceSelected(Input);
 	Intermediates.PerInstanceParams.x = GetInstanceRandom(Input);
 	float3 InstanceLocation = TransformLocalToWorld(GetInstanceOrigin(Input)).xyz;
-	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + View.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
+	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + ResolvedView.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
 	// InstancingFadeOutParams.z,w are RenderSelected and RenderDeselected respectively.
 	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
 	#if USE_DITHERED_LOD_TRANSITION
@@ -599,6 +604,11 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #if USE_INSTANCING
 	Interpolants.PerInstanceParams = Intermediates.PerInstanceParams;
 #endif
+
+#if INSTANCED_STEREO
+	Interpolants.EyeIndex = 0;
+#endif
+
 	return Interpolants;
 }
 
@@ -678,7 +688,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 
 		Result.TangentToWorldPreScale = 1;
 
-		Result.WorldPosition = CameraLocalWorldPosition + View.WorldCameraOrigin;
+		Result.WorldPosition = CameraLocalWorldPosition + ResolvedView.WorldCameraOrigin;
 
 		return Result;
 	}
@@ -748,3 +758,14 @@ float4 VertexFactoryGetInstanceHitProxyId(FVertexFactoryInput Input, FVertexFact
 	return float4(R/255.0, G/255.0, B/255.0, 0);
 }
 #endif	// USE_INSTANCING
+
+#if INSTANCED_STEREO
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	#if USE_INSTANCING
+		return InstancedEyeIndex;
+	#else
+		return InstanceId & 1;
+	#endif
+}
+#endif

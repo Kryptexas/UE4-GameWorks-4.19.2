@@ -446,7 +446,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	return LODToRender;
 }
 
-FViewUniformShaderParameters::FViewUniformShaderParameters()
+FFrameUniformShaderParameters::FFrameUniformShaderParameters()
 	: DirectionalLightShadowTexture(GWhiteTexture->TextureRHI)
 	, DirectionalLightShadowSampler(TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI())
 {

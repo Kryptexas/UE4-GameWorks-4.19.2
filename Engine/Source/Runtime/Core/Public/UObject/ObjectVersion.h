@@ -586,6 +586,10 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SCS_STORES_ALLNODES_ARRAY,
 	// Moved StartRange and EndRange in UFbxAnimSequenceImportData to use FInt32Interval
 	VER_UE4_FBX_IMPORT_DATA_RANGE_ENCAPSULATION,
+	// Adding a new root scene component to camera component
+	VER_UE4_CAMERA_COMPONENT_ATTACH_TO_ROOT,
+	// Updating custom material expression nodes for instanced stereo implementation
+	VER_UE4_INSTANCED_STEREO_UNIFORM_UPDATE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

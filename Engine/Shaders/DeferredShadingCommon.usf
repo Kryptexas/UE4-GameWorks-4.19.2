@@ -397,7 +397,7 @@ bool CheckerFromPixelPos(uint2 PixelPos)
 {
 	// todo: Index is float and by staying float we can optimize this 
 	// We alternate the pattern to get 2x supersampling on the lower res data to get more near to full res
-	uint TemporalAASampleIndex = View.TemporalAAParams.x;
+	uint TemporalAASampleIndex = Frame.TemporalAAParams.x;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	return (PixelPos.x + PixelPos.y + TemporalAASampleIndex) % 2;
@@ -412,7 +412,7 @@ bool CheckerFromPixelPos(uint2 PixelPos)
 bool CheckerFromSceneColorUV(float2 UVSceneColor)
 {
 	// relative to left top of the rendertarget (not viewport)
-	uint2 PixelPos = uint2(UVSceneColor * View.BufferSizeAndInvSize.xy);
+	uint2 PixelPos = uint2(UVSceneColor * Frame.BufferSizeAndInvSize.xy);
 
 	return CheckerFromPixelPos(PixelPos);
 }
@@ -483,8 +483,8 @@ FGBufferData DecodeGBufferData(
 		#if USE_DEVELOPMENT_SHADERS
 		{
 			// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-			GBuffer.DiffuseColor = GBuffer.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;
-			GBuffer.SpecularColor = GBuffer.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
+			GBuffer.DiffuseColor = GBuffer.DiffuseColor * Frame.DiffuseOverrideParameter.www + Frame.DiffuseOverrideParameter.xyz;
+			GBuffer.SpecularColor = GBuffer.SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
 		}
 		#endif //USE_DEVELOPMENT_SHADERS
 	}

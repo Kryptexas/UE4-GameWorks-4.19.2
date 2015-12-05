@@ -392,15 +392,26 @@ public:
 			View.Family->GetQuadOverdrawMode()
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType());
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
-			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+			// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
+			const bool bIsInstancedMesh = Parameters.Mesh.Elements[BatchElementIndex].bIsInstancedMesh;
+			const uint32 InstancedStereoDrawCount = (Parameters.bIsInstancedStereo && bIsInstancedMesh) ? 2 : 1;
+			for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
+			{
+				// Set the eye index explicitly
+				if (InstancedStereoDrawCount > 1)
+				{
+					DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
+				}
 
-			DrawingPolicy.SetMeshRenderState(
-				RHICmdList, 
+				TDrawEvent<FRHICommandList> MeshEvent;
+				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+
+				DrawingPolicy.SetMeshRenderState(
+				RHICmdList,
 				View,
 				Parameters.PrimitiveSceneProxy,
 				Parameters.Mesh,
@@ -410,7 +421,8 @@ public:
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
-			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex, Parameters.bIsInstancedStereo);
+			}
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -430,7 +442,8 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	bool bBackFace,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	FHitProxyId HitProxyId
+	FHitProxyId HitProxyId, 
+	const bool bIsInstancedStereo
 	)
 {
 	// Determine the mesh's material and blend mode.
@@ -449,7 +462,8 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				!bPreFog,
 				DrawingContext.bEditorCompositeDepthTest,
 				DrawingContext.TextureMode,
-				View.GetFeatureLevel()
+				View.GetFeatureLevel(), 
+				bIsInstancedStereo
 				),
 			FDrawBasePassDynamicMeshAction(
 				View,

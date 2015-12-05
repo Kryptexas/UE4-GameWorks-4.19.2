@@ -5,8 +5,8 @@
 #include "SceneViewExtension.h"
 #include "MotionControllerComponent.generated.h"
 
-UCLASS(MinimalAPI, Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = MotionController)
-class UMotionControllerComponent : public UPrimitiveComponent
+UCLASS(Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = MotionController)
+class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 

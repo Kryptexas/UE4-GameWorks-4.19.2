@@ -42,8 +42,6 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	bUseClientSideCameraUpdates = true;
 	CameraStyle = NAME_Default;
 	bCanBeDamaged = false;
-	
-	bFollowHmdOrientation = false;
 
 	// create dummy transform component
 	TransformComponent = CreateDefaultSubobject<USceneComponent>(TEXT("TransformComponent0"));
@@ -573,14 +571,6 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 	{
 		// Apply camera modifiers at the end (view shakes for example)
 		ApplyCameraModifiers(DeltaTime, OutVT.POV);
-	}
-
-	if (bFollowHmdOrientation)
-	{
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-		{
-			GEngine->HMDDevice->UpdatePlayerCameraRotation(this, OutVT.POV);
-		}
 	}
 
 	// Synchronize the actor with the view target results

@@ -265,7 +265,7 @@ void CollideWithDepthBuffer(
 	if (all(abs(ScreenPosition.xy) <= float2(1,1)))
 	{
 		// Sample the depth buffer to get a world position near the particle.
-		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+		float2 ScreenUV = ScreenPosition * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
 		float SceneDepth = CalcSceneDepth(ScreenUV);
 
 		if (abs(ClipPosition.w - SceneDepth) < CollisionDepthBounds)

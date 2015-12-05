@@ -6375,6 +6375,118 @@ uint32 UMaterialExpressionCustom::GetOutputType(int32 OutputIndex)
 }
 #endif // WITH_EDITOR
 
+void UMaterialExpressionCustom::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	// Fix up uniform references that were moved from View to Frame as part of the instanced stereo implementation
+	if (Ar.UE4Ver() < VER_UE4_INSTANCED_STEREO_UNIFORM_UPDATE)
+	{
+		// Make a copy of the current code before we change it
+		const FString PreFixUp = Code;
+
+		// Uniform members that were moved from View to Frame
+		static const FString UniformMembers[] = {
+			FString(TEXT("FieldOfViewWideAngles")),
+			FString(TEXT("PrevFieldOfViewWideAngles")),
+			FString(TEXT("ScreenPositionScaleBias")),
+			FString(TEXT("ViewRectMin")),
+			FString(TEXT("ViewSizeAndInvSize")),
+			FString(TEXT("BufferSizeAndInvSize")),
+			FString(TEXT("ExposureScale")),
+			FString(TEXT("DiffuseOverrideParameter")),
+			FString(TEXT("SpecularOverrideParameter")),
+			FString(TEXT("NormalOverrideParameter")),
+			FString(TEXT("RoughnessOverrideParameter")),
+			FString(TEXT("PrevFrameGameTime")),
+			FString(TEXT("PrevFrameRealTime")),
+			FString(TEXT("OutOfBoundsMask")),
+			FString(TEXT("WorldCameraMovementSinceLastFrame")),
+			FString(TEXT("CullingSign")),
+			FString(TEXT("NearPlane")),
+			FString(TEXT("AdaptiveTessellationFactor")),
+			FString(TEXT("GameTime")),
+			FString(TEXT("RealTime")),
+			FString(TEXT("Random")),
+			FString(TEXT("FrameNumber")),
+			FString(TEXT("CameraCut")),
+			FString(TEXT("UseLightmaps")),
+			FString(TEXT("UnlitViewmodeMask")),
+			FString(TEXT("DirectionalLightColor")),
+			FString(TEXT("DirectionalLightDirection")),
+			FString(TEXT("DirectionalLightShadowTransition")),
+			FString(TEXT("DirectionalLightShadowSize")),
+			FString(TEXT("DirectionalLightScreenToShadow")),
+			FString(TEXT("DirectionalLightShadowDistances")),
+			FString(TEXT("UpperSkyColor")),
+			FString(TEXT("LowerSkyColor")),
+			FString(TEXT("TranslucencyLightingVolumeMin")),
+			FString(TEXT("TranslucencyLightingVolumeInvSize")),
+			FString(TEXT("TemporalAAParams")),
+			FString(TEXT("CircleDOFParams")),
+			FString(TEXT("DepthOfFieldFocalDistance")),
+			FString(TEXT("DepthOfFieldScale")),
+			FString(TEXT("DepthOfFieldFocalLength")),
+			FString(TEXT("DepthOfFieldFocalRegion")),
+			FString(TEXT("DepthOfFieldNearTransitionRegion")),
+			FString(TEXT("DepthOfFieldFarTransitionRegion")),
+			FString(TEXT("MotionBlurNormalizedToPixel")),
+			FString(TEXT("GeneralPurposeTweak")),
+			FString(TEXT("DemosaicVposOffset")),
+			FString(TEXT("IndirectLightingColorScale")),
+			FString(TEXT("HDR32bppEncodingMode")),
+			FString(TEXT("AtmosphericFogSunDirection")),
+			FString(TEXT("AtmosphericFogSunPower")),
+			FString(TEXT("AtmosphericFogPower")),
+			FString(TEXT("AtmosphericFogDensityScale")),
+			FString(TEXT("AtmosphericFogDensityOffset")),
+			FString(TEXT("AtmosphericFogGroundOffset")),
+			FString(TEXT("AtmosphericFogDistanceScale")),
+			FString(TEXT("AtmosphericFogAltitudeScale")),
+			FString(TEXT("AtmosphericFogHeightScaleRayleigh")),
+			FString(TEXT("AtmosphericFogStartDistance")),
+			FString(TEXT("AtmosphericFogDistanceOffset")),
+			FString(TEXT("AtmosphericFogSunDiscScale")),
+			FString(TEXT("AtmosphericFogRenderMask")),
+			FString(TEXT("AtmosphericFogInscatterAltitudeSampleNum")),
+			FString(TEXT("AtmosphericFogSunColor")),
+			FString(TEXT("AmbientCubemapTint")),
+			FString(TEXT("AmbientCubemapIntensity")),
+			FString(TEXT("RenderTargetSize")),
+			FString(TEXT("SkyLightParameters")),
+			FString(TEXT("SceneFString(TEXTureMinMax")),
+			FString(TEXT("SkyLightColor")),
+			FString(TEXT("SkyIrradianceEnvironmentMap")),
+			FString(TEXT("MobilePreviewMode")),
+			FString(TEXT("HMDEyePaddingOffset")),
+			FString(TEXT("DirectionalLightShadowFString(TEXTure")),
+			FString(TEXT("SamplerState")),
+		};
+
+		// Update the uniform members
+		bool bDidUpdate = false;
+		const FString ViewUniformName(TEXT("View."));
+		const FString FrameUniformName(TEXT("Frame."));
+		for (const FString& Member : UniformMembers)
+		{
+			const FString SearchString = ViewUniformName + Member;
+			const FString ReplaceString = FrameUniformName + Member;
+			if (Code.ReplaceInline(*SearchString, *ReplaceString, ESearchCase::CaseSensitive) > 0)
+			{
+				bDidUpdate = true;
+			}
+		}
+
+		// If we made changes, copy the original into the description just in case
+		if (bDidUpdate)
+		{
+			Desc += TEXT("\n*** Original source before expression upgrade ***\n");
+			Desc += PreFixUp;
+			UE_LOG(LogMaterial, Log, TEXT("Uniform references updated for custom material expression %s."), *Description);
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialFunction
 ///////////////////////////////////////////////////////////////////////////////

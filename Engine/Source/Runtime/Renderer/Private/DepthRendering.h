@@ -47,6 +47,8 @@ public:
 			&& PixelShader == Other.PixelShader;
 	}
 
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const;
+
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/** 
@@ -123,6 +125,8 @@ public:
 		const ContextDataType PolicyContext
 		) const;
 
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const;
+
 	friend int32 CompareDrawingPolicy(const FPositionOnlyDepthDrawingPolicy& A,const FPositionOnlyDepthDrawingPolicy& B);
 
 private:
@@ -155,7 +159,8 @@ public:
 		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId, 
+		const bool bIsInstancedStereo = false
 		);
 
 	static bool DrawStaticMesh(
@@ -185,6 +190,7 @@ private:
 		float DitheredLODTransitionValue,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId, 
+		const bool bIsInstancedStereo = false
 		);
 };

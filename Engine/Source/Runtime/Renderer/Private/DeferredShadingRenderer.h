@@ -90,6 +90,9 @@ public:
 
 	/** Renders the basepass for a given View. */
 	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+
+	/** Renders editor primitives for a given View. */
+	void RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
 	
 	/** 
 	* Renders the scene's base pass 

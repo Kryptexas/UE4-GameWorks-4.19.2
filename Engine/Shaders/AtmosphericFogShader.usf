@@ -46,7 +46,7 @@ void VSMain(
 	// screenspace position from vb
 	OutPosition = float4(InPosition,0,1);
 	// texture coord from vb
-	OutTexCoord = InPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	OutTexCoord = InPosition * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
 
 	// deproject to world space
 	OutScreenVector = mul(float4(InPosition,1,0), View.ScreenToTranslatedWorld);

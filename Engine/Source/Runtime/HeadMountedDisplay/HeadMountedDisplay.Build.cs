@@ -17,8 +17,10 @@ public class HeadMountedDisplay : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+                "InputCore",
 				"Slate",
 				"SlateCore",
+                "RHI"
 			}
 		);
 	}

@@ -41,7 +41,7 @@ FProfilerSession::FProfilerSession( EProfilerSessionTypes::Type InSessionType, c
 , bDataCapturing( false )
 , bHasAllProfilerData( false )
 
-, FPSAnalyzer( MakeShareable( new FFPSAnalyzer( 5, 0, 60 ) ) )
+, FPSAnalyzer( MakeShareable( new FFPSAnalyzer( 5, 0, 90 ) ) )
 {}
 
 FProfilerSession::FProfilerSession( const ISessionInstanceInfoPtr InSessionInstanceInfo )
@@ -65,7 +65,7 @@ FProfilerSession::FProfilerSession( const ISessionInstanceInfoPtr InSessionInsta
 , bDataCapturing( false )
 , bHasAllProfilerData( false )
 
-, FPSAnalyzer( MakeShareable( new FFPSAnalyzer( 5, 0, 60 ) ) )
+, FPSAnalyzer( MakeShareable( new FFPSAnalyzer( 5, 0, 90 ) ) )
 {
 	// Randomize creation time to test loading profiler captures with different creation time and different amount of data.
 	CreationTime = FDateTime::Now() += FTimespan( 0, 0, FMath::RandRange( 2, 8 ) );
@@ -93,7 +93,7 @@ FProfilerSession::FProfilerSession( const FString& InDataFilepath )
 , bDataCapturing( false )
 , bHasAllProfilerData( false )
 
-, FPSAnalyzer( MakeShareable( new FFPSAnalyzer( 5, 0, 60 ) ) )
+, FPSAnalyzer( MakeShareable( new FFPSAnalyzer( 5, 0, 90 ) ) )
 {
 	// Randomize creation time to test loading profiler captures with different creation time and different amount of data.
 	CreationTime = FDateTime::Now() += FTimespan( 0, 0, FMath::RandRange( 2, 8 ) );

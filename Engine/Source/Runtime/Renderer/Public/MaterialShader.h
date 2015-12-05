@@ -110,14 +110,26 @@ public:
 	FUniformBufferRHIParamRef GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const;
 
 	template<typename ShaderRHIParamRef>
-	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View)
 	{
-		CheckShaderIsValid();
-		const auto& ViewUBParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUBParameter, View.UniformBuffer);
-
+		const auto& ViewUniformBufferParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
+		const auto& FrameUniformBufferParameter = GetUniformBufferParameter<FFrameUniformShaderParameters>();
 		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
+		CheckShaderIsValid();
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, View.ViewUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, FrameUniformBufferParameter, View.FrameUniformBuffer);
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
+
+		// Skip if instanced stereo is not enabled
+		if (View.bIsInstancedStereoEnabled && View.Family->Views.Num() > 0)
+		{
+			// When drawing the left eye in a stereo scene, copy the right eye view values into the instanced view uniform buffer.
+			const EStereoscopicPass StereoPassIndex = (View.StereoPass != eSSP_FULL) ? eSSP_RIGHT_EYE : eSSP_FULL;
+
+			const FSceneView& InstancedView = View.Family->GetStereoEyeView(StereoPassIndex);
+			const auto& InstancedViewUniformBufferParameter = GetUniformBufferParameter<FInstancedViewUniformShaderParameters>();
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedViewUniformBufferParameter, InstancedView.ViewUniformBuffer);
+		}
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -134,7 +146,8 @@ public:
 		const FMaterial& Material,
 		const FSceneView& View, 
 		bool bDeferredPass, 
-		ESceneRenderTargetsMode::Type TextureMode );
+		ESceneRenderTargetsMode::Type TextureMode, 
+		const bool bIsInstancedStereo = false);
 
 	FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 

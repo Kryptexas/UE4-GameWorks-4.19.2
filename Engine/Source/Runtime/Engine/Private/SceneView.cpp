@@ -30,8 +30,12 @@ DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcess
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, TEXT("InstancedView"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FFrameUniformShaderParameters, TEXT("Frame"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FForwardLightData,TEXT("ForwardLightData"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
+
+static_assert(sizeof(FViewUniformShaderParameters) == sizeof(FInstancedViewUniformShaderParameters), "Instanced view and view must match.");
 
 FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
 {
@@ -345,6 +349,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsReflectionCapture(false)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
+	, bIsInstancedStereoEnabled(false)
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
@@ -545,6 +550,10 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	SelectionOutlineColor = GEngine->GetSelectionOutlineColor();
 #endif
+
+	// Query instanced stereo state
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+	bIsInstancedStereoEnabled = CVar ? (CVar->GetValueOnAnyThread() != false) : false;
 }
 
 static TAutoConsoleVariable<int32> CVarCompensateForFOV(
@@ -1848,6 +1857,24 @@ ENGINE_API EQuadOverdrawMode FSceneViewFamily::GetQuadOverdrawMode() const
 	return QOM_None;
 };
 #endif
+
+const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye) const
+{
+	const int32 EyeIndex = static_cast<int32>(Eye);
+	check(Views.Num() > 0 && Views.Num() >= EyeIndex);
+
+	// Mono or left eye
+	if (EyeIndex <= 1)
+	{
+		return *Views[0];
+	}
+
+	// Right eye
+	else
+	{
+		return *Views[1];
+	}
+}
 
 FSceneViewFamilyContext::~FSceneViewFamilyContext()
 {

@@ -30,7 +30,12 @@ public:
 	struct ElementDataType {};
 
 	/** Context data required by the drawing policy that is not known when caching policies in static mesh draw lists. */
-	struct ContextDataType {};
+	struct ContextDataType
+	{
+		ContextDataType(bool InbIsInstancedStereo) : bIsInstancedStereo(InbIsInstancedStereo) {};
+		ContextDataType() : bIsInstancedStereo(false) {};
+		bool bIsInstancedStereo;
+	};
 
 	FMeshDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
@@ -93,7 +98,14 @@ public:
 	/**
 	 * Executes the draw commands for a mesh.
 	 */
-	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const;
+	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
+
+	/** 
+	 * Sets the instanced eye index shader uniform value where supported. 
+	 * Used for explicitly setting which eye an instanced mesh will render to when rendering with instanced stereo.
+	 * @param EyeIndex - Eye to render to: 0 = Left, 1 = Right
+	 */
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const { /*Empty*/ };
 
 	/**
 	 * Executes the draw commands which can be shared between any meshes using this drawer.

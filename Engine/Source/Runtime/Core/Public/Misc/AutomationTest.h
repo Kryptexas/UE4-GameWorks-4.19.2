@@ -325,7 +325,7 @@ protected:
 	}
 
 	/** For timers, track the first time this ticks */
-	float StartTime;
+	double StartTime;
 
 	friend class FAutomationTestFramework;
 };

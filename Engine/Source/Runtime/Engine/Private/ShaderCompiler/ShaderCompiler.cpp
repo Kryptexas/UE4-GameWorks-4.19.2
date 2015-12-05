@@ -2202,6 +2202,13 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("COMPUTESHADER"),	Target.Frequency == SF_Compute);
 	}
 
+	// We need to know if instanced stereo is enabled before setting up uniform buffer includes. If it's not we can strip out InstancedView.
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+		const bool bIsInstancedStereo = CVar ? (CVar->GetValueOnGameThread() != false) : false;
+		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo ? 1 : 0);
+	}
+
 	ShaderType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix, (EShaderPlatform)Target.Platform);
 
 	if (VFType)

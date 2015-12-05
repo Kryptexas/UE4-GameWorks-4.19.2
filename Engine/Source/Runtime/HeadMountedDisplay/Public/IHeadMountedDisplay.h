@@ -113,10 +113,9 @@ public:
 	virtual void ApplyHmdRotation(class APlayerController* PC, FRotator& ViewRotation) = 0;
 
 	/**
-	 * Apply the orientation of the headset to the Camera's rotation.
-	 * This method is called for cameras with bFollowHmdOrientation set to 'true'.
+	 * Apply the orientation and position of the headset to the Camera.
 	 */
-	virtual void UpdatePlayerCameraRotation(class APlayerCameraManager* Camera, struct FMinimalViewInfo& POV) = 0;
+	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
 
 	/**
 	 * Gets the scaling factor, applied to the post process warping effect
@@ -342,7 +341,21 @@ public:
 	 */
 	virtual FString GetVersionString() const { return FString(TEXT("GenericHMD")); }
 
+	/** Setup state for applying the render thread late update */
+	virtual void SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component);
+
+	/** Apply the late update delta to the cached compeonents */
+	virtual void ApplyLateUpdate(const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform);
+	
 private:
+
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
 	FSlateRect PreFullScreenRect;
+
+	/** Scene proxies that need late updates */
+	FPrimitiveSceneProxy*	LateUpdateSceneProxies[16];
+	int32					LateUpdateSceneProxyCount;
+
+	/** Parent world transform used to reconstruct new world transforms for late update scene proxies */
+	FTransform				LateUpdateParentToWorld;
 };

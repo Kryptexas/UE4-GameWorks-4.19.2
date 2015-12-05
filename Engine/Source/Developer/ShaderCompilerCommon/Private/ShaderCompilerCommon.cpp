@@ -269,8 +269,15 @@ static void WholeWordReplaceInline(FString& String, TCHAR* StartPtr, const TCHAR
 }
 
 
-bool RemoveUniformBuffersFromSource(FString& SourceCode)
+bool RemoveUniformBuffersFromSource(FString& SourceCode, const bool bInstancedStereoEnabled)
 {
+
+	// If instanced stereo is not enabled, fall back to the main View uniform. We don't need to dynamically resolve between View and InstancedView.
+	if (!bInstancedStereoEnabled)
+	{
+		SourceCode.ReplaceInline(TEXT("ResolvedView"), TEXT("View"));
+	}
+	
 	static const FString StaticStructToken(TEXT("static const struct"));
 	int32 StaticStructTokenPos = SourceCode.Find(StaticStructToken, ESearchCase::CaseSensitive, ESearchDir::FromStart);
 	while (StaticStructTokenPos != INDEX_NONE)

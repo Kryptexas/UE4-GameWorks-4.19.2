@@ -1403,10 +1403,10 @@ void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketNam
 {
 	if (RootComponent && InParentActor)
 	{
-		USceneComponent* ParentRootComponent = InParentActor->GetRootComponent();
-		if (ParentRootComponent)
+		USceneComponent* ParentDefaultAttachComponent = InParentActor->GetDefaultAttachComponent();
+		if (ParentDefaultAttachComponent)
 		{
-			RootComponent->AttachTo(ParentRootComponent, InSocketName, AttachLocationType, bWeldSimulatedBodies );
+			RootComponent->AttachTo(ParentDefaultAttachComponent, InSocketName, AttachLocationType, bWeldSimulatedBodies );
 		}
 	}
 }
@@ -1415,10 +1415,10 @@ void AActor::SnapRootComponentTo(AActor* InParentActor, FName InSocketName/* = N
 {
 	if (RootComponent && InParentActor)
 	{
-		USceneComponent* ParentRootComponent = InParentActor->GetRootComponent();
-		if (ParentRootComponent)
+		USceneComponent* ParentDefaultAttachComponent = InParentActor->GetDefaultAttachComponent();
+		if (ParentDefaultAttachComponent)
 		{
-			RootComponent->SnapTo(ParentRootComponent, InSocketName);
+			RootComponent->SnapTo(ParentDefaultAttachComponent, InSocketName);
 		}
 	}
 }
@@ -2184,6 +2184,25 @@ void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	}
 
 	GetActorEyesViewPoint(OutResult.Location, OutResult.Rotation);
+}
+
+bool AActor::HasActiveCameraComponent()
+{
+	if (bFindCameraComponentWhenViewTarget)
+	{
+		// Look for the first active camera component and use that for the view
+		TInlineComponentArray<UCameraComponent*> Cameras;
+		GetComponents<UCameraComponent>(Cameras);
+
+		for (UCameraComponent* CameraComponent : Cameras)
+		{
+			if (CameraComponent->bIsActive)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void AActor::ForceNetRelevant()

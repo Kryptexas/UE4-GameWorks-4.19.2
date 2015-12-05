@@ -1556,6 +1556,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+		if (CVar && CVar->GetValueOnGameThread() != 0)
+		{
+			KeyString += TEXT("_VRIS");
+		}
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SelectiveBasePassOutputs"));
 		if (CVar && CVar->GetValueOnGameThread() != 0)
 		{

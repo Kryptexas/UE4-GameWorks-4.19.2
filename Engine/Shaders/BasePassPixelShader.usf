@@ -79,7 +79,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 
 #if ALLOW_STATIC_LIGHTING
 	FLATTEN
-	if (View.UseLightmaps > 0)
+	if (Frame.UseLightmaps > 0)
 	{
 		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
 		SpecularIBL.rgb *= IndirectIrradiance;
@@ -91,7 +91,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	if (SkyLightParameters.y > 0 && SpecularIBL.a < .999f)
 	{
 		// Normalize for static skylight types which mix with lightmaps
-		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps;
+		bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps;
 		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, bNormalize);
 
 		FLATTEN
@@ -106,10 +106,10 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #endif
 
 #if MATERIAL_SSR
-	if( View.CameraCut == 0 )
+	if( Frame.CameraCut == 0 )
 	{
-		//uint FrameRandom = (uint)(View.TemporalAAParams.r * 1551);
-		uint FrameRandom = (View.FrameNumber & 15) * 1551;
+		//uint FrameRandom = (uint)(Frame.TemporalAAParams.r * 1551);
+		uint FrameRandom = (Frame.FrameNumber & 15) * 1551;
 
 		uint Morton = MortonCode( (uint)MaterialParameters.SvPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
 		uint PixelIndex = ReverseBits32( Morton ) >> 28;
@@ -313,7 +313,7 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 	
 	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
 		BRANCH
-		if (View.SkyLightParameters.x > 0)
+		if (Frame.SkyLightParameters.x > 0)
 		{
 			#if HQ_TEXTURE_LIGHTMAP
 
@@ -353,13 +353,13 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 	#endif
 			
 	// Compute the preconvolved incoming lighting with the bent normal direction
-	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
+	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
 
 	// Apply AO to the sky diffuse
 	OutDiffuseLighting += DiffuseLookup * (SkyVisibility * GeometryTerm);
 
 	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		float3 BackfaceDiffuseLookup = GetSkySHDiffuse(-WorldNormal) * View.SkyLightColor.rgb;
+		float3 BackfaceDiffuseLookup = GetSkySHDiffuse(-WorldNormal) * Frame.SkyLightColor.rgb;
 		OutSubsurfaceLighting += BackfaceDiffuseLookup * SkyVisibility;
 	#endif
 
@@ -472,7 +472,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	#endif
 
 	// Apply indirect lighting scale while we have only accumulated lightmaps
-	OutDiffuseLighting *= View.IndirectLightingColorScale;
+	OutDiffuseLighting *= Frame.IndirectLightingColorScale;
 
 	float3 SkyDiffuseLighting;
 	float3 SkySubsurfaceLighting;
@@ -481,7 +481,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	OutSubsurfaceLighting += SkySubsurfaceLighting;
 
 	BRANCH
-	if( View.UseLightmaps > 0 || !ALLOW_STATIC_LIGHTING)
+	if( Frame.UseLightmaps > 0 || !ALLOW_STATIC_LIGHTING)
 	{
 		// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
 		OutDiffuseLighting += SkyDiffuseLighting;
@@ -522,11 +522,11 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 	{
 #if HAS_INVERTED_Z_BUFFER
 		//@todo-briank
-		bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
+		bool bIsPerspective = (ResolvedView.ViewToClip._m33 < 1.0f);
 #endif	// HAS_INVERTED_Z_BUFFER
  		
 		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
+		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - Frame.TemporalAAParams.zw) * Frame.BufferSizeAndInvSize.zw, 0).r;
 
 		float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
@@ -645,6 +645,10 @@ void Main(
 #endif
    )
 {
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView(Interpolants.EyeIndex);
+#endif
+
 #if !WRITES_CUSTOMDATA_TO_GBUFFER
 	float4 OutGBufferD = 0;
 #endif
@@ -664,7 +668,7 @@ void Main(
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
+			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToResolvedTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
@@ -711,7 +715,7 @@ void Main(
 		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		SubsurfaceColor = SubsurfaceData.rgb * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
+		SubsurfaceColor = SubsurfaceData.rgb * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
 #elif MATERIAL_SHADINGMODEL_CLOTH
 		SubsurfaceColor = SubsurfaceData.rgb;
 #endif
@@ -729,7 +733,7 @@ void Main(
 	BRANCH if(Primitive.DecalReceiverMask > 0)
 	{
 		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-		float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+		float2 ScreenUV = NDC * Frame.ScreenPositionScaleBias.xy + Frame.ScreenPositionScaleBias.wz;
 
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
 
@@ -749,8 +753,8 @@ void Main(
 #if USE_DEVELOPMENT_SHADERS
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		DiffuseColor = DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
-		SpecularColor = SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
+		DiffuseColor = DiffuseColor * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
+		SpecularColor = SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
 	}
 #endif
 
@@ -795,14 +799,14 @@ void Main(
 
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed
-			half Lambert = saturate(dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
-			Color += DiffuseColor * Lambert * View.DirectionalLightColor.rgb;
+			half Lambert = saturate(dot(MaterialParameters.WorldNormal, Frame.DirectionalLightDirection));
+			Color += DiffuseColor * Lambert * Frame.DirectionalLightColor.rgb;
 
 			Color += GetMaterialHemisphereLightTransferFull(
 				DiffuseColor,
 				MaterialParameters,
-				View.UpperSkyColor.rgb,
-				View.LowerSkyColor.rgb
+				Frame.UpperSkyColor.rgb,
+				Frame.LowerSkyColor.rgb
 				);
 		#endif
 	#endif
@@ -821,7 +825,7 @@ void Main(
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT && USE_DEVELOPMENT_SHADERS
-		Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
+		Color = lerp(Color, DiffuseColor + SpecularColor, Frame.UnlitViewmodeMask);
 	#endif
 
 	half3 Emissive = GetMaterialEmissive(MaterialParameters);
@@ -830,7 +834,7 @@ void Main(
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 	#if SM5_PROFILE || SM4_PROFILE
 		BRANCH
-		if (View.OutOfBoundsMask > 0)
+		if (Frame.OutOfBoundsMask > 0)
 		{
 			if (any(abs(MaterialParameters.AbsoluteWorldPosition - Primitive.ObjectWorldPositionAndRadius.xyz) > Primitive.ObjectBounds + 1))
 			{

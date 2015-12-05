@@ -37,7 +37,7 @@ void MainPS(
 	SvPosition.z = LookupDeviceZ(ScreenUV);
 
 	// fill out other related material parameters
-	CalcMaterialParameters(Parameters, SvPosition, true);
+	CalcMaterialParametersPost(Parameters, SvPosition, true);
 
 	// Grab emissive colour as output
 	OutColor = float4(GetMaterialEmissive(Parameters), 1);

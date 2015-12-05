@@ -584,6 +584,7 @@ void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int
 	BatchElement0.UserData = (void*)&UserData_AllInstances;
 	BatchElement0.InstancedLODIndex = LODIndex;
 	BatchElement0.UserIndex = 0;
+	BatchElement0.bIsInstancedMesh = bInstanced;
 
 	if (bInstanced)
 	{

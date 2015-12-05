@@ -14,6 +14,8 @@ void FFPSAnalyzer::Reset()
 	MinFPS = 9999;
 	MaxFPS = 0;
 	AveFPS = 0;
+	FPS90 = 0;
+	FPS60 = 0;
 	FPS30 = 0;
 	FPS25 = 0;
 	FPS20 = 0;
@@ -28,6 +30,14 @@ void FFPSAnalyzer::AddSample( float FPSSample )
 	Index = Index >= Histogram.Num() ? Histogram.Num()-1 : Index;
 	Histogram[Index].Count++;
 	Histogram[Index].CummulativeTime += DeltaSeconds;
+	if (FPSSample >= 90)
+	{
+		FPS90++;
+	}
+	if (FPSSample >= 60)
+	{
+		FPS60++;
+	}
 	if (FPSSample >= 30)
 	{
 		FPS30++;

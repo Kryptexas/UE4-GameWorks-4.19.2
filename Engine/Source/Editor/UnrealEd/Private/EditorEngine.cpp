@@ -3492,7 +3492,7 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 	if (CanParentActors(ParentActor, ChildActor))
 	{
 		USceneComponent* ChildRoot = ChildActor->GetRootComponent();
-		USceneComponent* ParentRoot = ParentActor->GetRootComponent();
+		USceneComponent* ParentRoot = ParentActor->GetDefaultAttachComponent();
 
 		check(ChildRoot);	// CanParentActors() call should ensure this
 		check(ParentRoot);	// CanParentActors() call should ensure this
@@ -3572,7 +3572,7 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 	}
 
 	USceneComponent* ChildRoot = ChildActor->GetRootComponent();
-	USceneComponent* ParentRoot = ParentActor->GetRootComponent();
+	USceneComponent* ParentRoot = ParentActor->GetDefaultAttachComponent();
 	if(ChildRoot == NULL || ParentRoot == NULL)
 	{
 		if (ReasonText)

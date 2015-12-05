@@ -138,5 +138,11 @@ public:
 	* @param OutPosOffset		(out) the vector with previously set position offset.
 	*/
 	virtual void GetBaseRotationAndPositionOffset(FRotator& OutRot, FVector& OutPosOffset) = 0;
+
+	/**
+	 * Returns IStereoLayers interface to work with overlays.
+	 */
+	virtual class IStereoLayers* GetStereoLayers() = 0;
+
 };
 

@@ -1489,6 +1489,12 @@ public:
 	/** Returns this actor's root component. */
 	FORCEINLINE class USceneComponent* GetRootComponent() const { return RootComponent; }
 
+	/**
+	 * Returns this actor's default attacjment component for attaching children to
+	 * @return The scene component to be used as parent
+	 */
+	virtual class USceneComponent* GetDefaultAttachComponent() const { return GetRootComponent(); }
+
 	/** Returns this actor's root component cast to a primitive component */
 	DEPRECATED(4.5, "Use GetRootComponent() and cast manually if needed")
 	class UPrimitiveComponent* GetRootPrimitiveComponent() const;
@@ -2344,6 +2350,9 @@ public:
 	 * @param	OutResult	Camera configuration
 	 */
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult);
+
+	// Returns true if the actor contains an active camera component
+	virtual bool HasActiveCameraComponent();
 
 	// Returns the human readable string representation of an object.
 	virtual FString GetHumanReadableName() const;

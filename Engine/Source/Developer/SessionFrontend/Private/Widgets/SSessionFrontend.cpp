@@ -74,7 +74,7 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 					FTabManager::NewStack()
 						->AddTab(SessionConsoleTabId, ETabState::OpenedTab)
 						->AddTab(AutomationTabId, ETabState::OpenedTab)
-						->AddTab(SessionScreenTabId, ETabState::ClosedTab)
+						->AddTab(SessionScreenTabId, ETabState::OpenedTab)
 						->AddTab(ProfilerTabId, ETabState::OpenedTab)
 						->SetSizeCoefficient(0.75f)
 						->SetForegroundTab(SessionConsoleTabId)

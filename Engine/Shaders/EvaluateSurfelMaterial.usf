@@ -51,11 +51,13 @@ void EvaluateSurfelMaterialCS(
 	if (SurfelIndex < NumSurfelsToGenerate)
 	{
 		float4 PositionAndRadius = InterpolatedVertexData[(SurfelStartIndex + SurfelIndex) * INTERPOLATED_VERTEX_DATA_STRIDE + 0];
-
+	#if INSTANCED_STEREO
+		ResolvedView = ResolveView();
+	#endif
 		FMaterialPixelParameters MaterialParameters;
 		AssembleMaterialParameters(MaterialParameters, SurfelIndex);
 
-		float4 PixelPosition = float4(PositionAndRadius.xyz + View.PreViewTranslation.xyz, 0);
+		float4 PixelPosition = float4(PositionAndRadius.xyz + ResolvedView.PreViewTranslation.xyz, 0);
 		CalcMaterialParameters(MaterialParameters, float4(0, 0, 0, 0), true);
 
 		float3 BaseColor = GetMaterialBaseColor(MaterialParameters);	
