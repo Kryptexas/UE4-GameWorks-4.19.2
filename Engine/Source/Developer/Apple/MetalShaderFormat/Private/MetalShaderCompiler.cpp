@@ -298,7 +298,7 @@ static void BuildMetalShaderOutput(
 	}
 
 	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::ES3_1);
-	Header.ShaderName = CCHeader.Name.GetCharArray();
+	Header.ShaderName = CCHeader.Name;
 
 	if (Header.Bindings.NumSamplers > MaxSamplers)
 	{

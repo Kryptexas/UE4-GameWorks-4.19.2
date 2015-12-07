@@ -138,7 +138,7 @@ struct FMetalCodeHeader
 	uint32 Frequency;
 	FMetalShaderBindings Bindings;
 	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
-	TArray<TCHAR> ShaderName;
+	FString ShaderName;
 
 	uint8 NumThreadsX;
 	uint8 NumThreadsY;

@@ -122,9 +122,9 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			NSError* Error;
 			NSString* ShaderSource = [NSString stringWithUTF8String:SourceCode];
 
-			if(Header.ShaderName.Num())
+			if(Header.ShaderName.Len())
 			{
-				ShaderSource = [NSString stringWithFormat:@"// %@\n%@", FString(Header.ShaderName.GetData()).GetNSString(), ShaderSource];
+				ShaderSource = [NSString stringWithFormat:@"// %@\n%@", Header.ShaderName.GetNSString(), ShaderSource];
 			}
 			
 			MTLCompileOptions *CompileOptions = [[MTLCompileOptions alloc] init];
