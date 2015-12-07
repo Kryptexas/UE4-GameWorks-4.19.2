@@ -234,6 +234,6 @@ class IStereoLayers* UOculusFunctionLibrary::GetStereoLayers()
 	{
 		return OculusHMD;
 	}
-	return nullptr;
 #endif // OCULUS_SUPPORTED_PLATFORMS
+	return nullptr;
 }
