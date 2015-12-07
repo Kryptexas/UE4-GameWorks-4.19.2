@@ -159,9 +159,12 @@ bool ICrashDebugHelper::Init()
 	}
 	else
 	{
-		// Obsolete.
+		// Use the current values.
+		const FEngineVersion& EngineVersion = FEngineVersion::Current();
+		CrashInfo.DepotName = EngineVersion.GetBranch();
+		CrashInfo.BuiltFromCL = (int32)EngineVersion.GetChangelist();
+		CrashInfo.EngineVersion = EngineVersion.ToString();
 	}
-
 
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "DepotName: %s" ), *CrashInfo.DepotName );
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "BuiltFromCL: %i" ), CrashInfo.BuiltFromCL );
