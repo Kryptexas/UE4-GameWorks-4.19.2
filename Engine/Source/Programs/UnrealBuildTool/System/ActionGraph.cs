@@ -470,7 +470,7 @@ namespace UnrealBuildTool
 						"OS", Environment.OSVersion.ToString(),
 						"MachineName", Environment.MachineName,
 						"NumLogicalCores", Environment.ProcessorCount.ToString(),
-						"NumPhysicalCores", Utils.GetPhysicalProcessorCount().ToString(),
+						"NumPhysicalCores", (bUsedXGE? -1 : Utils.GetPhysicalProcessorCount()).ToString(),
 						"Targets", TargetInfoForTelemetry,
 						"NumActions", ActionsToExecute.Count.ToString(),
 						"NumCompileActions", ActionsToExecute.Count(x => x.ActionType == ActionType.Compile).ToString(),
