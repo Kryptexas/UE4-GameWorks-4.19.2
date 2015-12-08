@@ -18,13 +18,18 @@ struct FPortalRpcLocateServer
 	UPROPERTY(EditAnywhere, Category="Message")
 	FString ProductVersion;
 
+	/** The product's version string. */
+	UPROPERTY(EditAnywhere, Category = "Message")
+	FString HostMacAddress;
+
 	/** Default constructor. */
 	FPortalRpcLocateServer() { }
 
 	/** Create and initialize a new instance. */
-	FPortalRpcLocateServer(const FGuid& InProductId, const FString& InProductVersion)
+	FPortalRpcLocateServer(const FGuid& InProductId, const FString& InProductVersion, const FString& InHostMacAddress)
 		: ProductId(InProductId)
 		, ProductVersion(InProductVersion)
+		, HostMacAddress(InHostMacAddress)
 	{ }
 };
 

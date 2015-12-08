@@ -119,7 +119,7 @@ bool FWebImage::ProcessHttpResponse(const FString& RequestUrl, FHttpResponsePtr 
 
 	// get the raw image data
 	const TArray<uint8>* RawImageData = nullptr;
-	if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, RawImageData) || RawImageData == nullptr)
+	if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawImageData) || RawImageData == nullptr)
 	{
 		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to convert image format %d to BGRA 8"), (int32)ImageFormat);
 		return false;

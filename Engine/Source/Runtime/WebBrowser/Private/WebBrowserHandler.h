@@ -195,21 +195,22 @@ public:
 		CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
 		CefRefPtr<CefRequest> Request,
-		CefRefPtr<CefRequestCallback> /* Callback */) override
-	{
-		return OnBeforeResourceLoad(Browser, Frame, Request) ? RV_CANCEL : RV_CONTINUE;
-	}
-
-	virtual bool OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser,
-		CefRefPtr<CefFrame> Frame,
-		CefRefPtr<CefRequest> Request);
-
+		CefRefPtr<CefRequestCallback> Callback) override;
 	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status) override;
 	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
 		CefRefPtr<CefRequest> Request,
 		bool IsRedirect) override;
-	virtual CefRefPtr<CefResourceHandler> GetResourceHandler( CefRefPtr<CefBrowser> Browser, CefRefPtr< CefFrame > Frame, CefRefPtr<CefRequest> Request ) override;
+	virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
+		CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		CefRefPtr<CefRequest> Request ) override;
+	virtual bool OnCertificateError(
+		CefRefPtr<CefBrowser> Browser,
+		cef_errorcode_t CertError,
+		const CefString& RequestUrl,
+		CefRefPtr<CefSSLInfo> SslInfo,
+		CefRefPtr<CefRequestCallback> Callback ) override;
 
 public:
 	// CefKeyboardHandler interface
@@ -230,7 +231,7 @@ private:
 
 	bool ShowDevTools(const CefRefPtr<CefBrowser>& Browser);
 
-	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid*/
+	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid.*/
 	TWeakPtr<FWebBrowserWindow> BrowserWindowPtr;
 	
 	/** Weak Pointer to the parent web browser window */

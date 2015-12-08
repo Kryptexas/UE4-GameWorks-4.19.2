@@ -24,4 +24,4 @@ public:
 	/** Virtual destructor. */
 	virtual ~IPortalApplicationWindow() { }
 };
-Expose_TNameOf(IPortalApplicationWindow)
+Expose_TNameOf(IPortalApplicationWindow);

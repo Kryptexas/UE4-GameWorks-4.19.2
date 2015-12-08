@@ -12,6 +12,7 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
                     "MessagingRpc",
+                    "PortalServices",
 				}
 			);
 

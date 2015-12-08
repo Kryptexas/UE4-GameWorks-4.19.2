@@ -7,6 +7,7 @@
 *****************************************************************************/
 
 #include "Core.h"
+#include "CoreUObject.h"
 
 
 /* Private includes

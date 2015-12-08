@@ -27,5 +27,11 @@ public class ImageWrapper : ModuleRules
         }
 
         bEnableShadowVariableWarnings = false;
+
+		// Enable exceptions to allow error handling
+		bEnableExceptions = true;
+
+		// Disable shared PCHs to handle warning C4652
+		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
     }
 }

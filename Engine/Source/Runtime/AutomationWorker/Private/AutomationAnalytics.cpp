@@ -5,9 +5,8 @@
 #include "EngineBuildSettings.h"
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "GeneralProjectSettings.h"
 
-
+DEFINE_LOG_CATEGORY(LogAutomationAnalytics);
 
 bool FAutomationAnalytics::bIsInitialized;
 TSharedPtr<IAnalyticsProvider> FAutomationAnalytics::Analytics;

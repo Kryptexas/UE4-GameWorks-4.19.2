@@ -574,8 +574,12 @@ namespace UnrealBuildTool
 				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir).Replace("\\", "/");
 				if (!RelativePath.Contains(LibraryDir) && !RPaths.Contains(RelativePath))
 				{
+					// For CEF3 for the Shipping Launcher we only want the RPATH to the framework inside the app bundle, otherwise OS X gatekeeper erroneously complains about not seeing framework. 
+					if (!ExeAbsolutePath.Contains("EpicGamesLauncher-Mac-Shipping") || !Library.Contains("CEF3"))
+					{
 					RPaths.Add(RelativePath);
 					LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+					}
 
 					if (bIsBuildingAppBundle)
 					{
@@ -979,8 +983,14 @@ namespace UnrealBuildTool
 					AppendMacLine(FinalizeAppBundleScript, "cd \"{0}\"", ConvertPath(BinariesPath).Replace("$", "\\$"));
 
 					string ExeName = Path.GetFileName(OutputFile.AbsolutePath);
+					bool bIsLauncherProduct = ExeName.StartsWith("EpicGamesLauncher") || ExeName.StartsWith("EpicGamesBootstrapLauncher");
 					string[] ExeNameParts = ExeName.Split('-');
 					string GameName = ExeNameParts[0];
+
+					if (GameName == "EpicGamesBootstrapLauncher")
+					{
+						GameName = "EpicGamesLauncher";
+					}
 
 					AppendMacLine(FinalizeAppBundleScript, "mkdir -p \"{0}.app/Contents/MacOS\"", ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources\"", ExeName);
@@ -989,7 +999,7 @@ namespace UnrealBuildTool
 					AppendMacLine(FinalizeAppBundleScript, "sh \"{0}\" \"{1}\"", ConvertPath(DylibCopyScriptPath.FullName).Replace("$", "\\$"), ExeName);
 
 					string IconName = "UE4";
-					string BundleVersion = ExeName.StartsWith("EpicGamesLauncher") ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
+					string BundleVersion = bIsLauncherProduct ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
 					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
 					FileReference UProjectFilePath;
 					string CustomResourcesPath = "";
@@ -1009,7 +1019,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						string ResourceParentFolderName = ExeName.StartsWith("EpicGamesLauncher") ? "Application" : GameName;
+						string ResourceParentFolderName = bIsLauncherProduct ? "Application" : GameName;
 						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Source/" + ResourceParentFolderName + "/Resources/Mac";
 						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Build/Mac";
 					}
@@ -1444,7 +1454,12 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/" + Binary.Target.TargetName + ".icns"), BuildProductType.RequiredResource);
+					string IconName = Binary.Target.TargetName;
+					if (IconName == "EpicGamesBootstrapLauncher")
+					{
+						IconName = "EpicGamesLauncher";
+					}
+					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/" + IconName + ".icns"), BuildProductType.RequiredResource);
 				}
 			}
 		}

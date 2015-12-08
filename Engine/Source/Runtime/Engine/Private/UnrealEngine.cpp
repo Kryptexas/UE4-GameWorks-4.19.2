@@ -141,7 +141,6 @@
 #endif
 
 DEFINE_LOG_CATEGORY(LogEngine);
-DEFINE_LOG_CATEGORY(LogAutomationAnalytics);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
@@ -1583,6 +1582,8 @@ void UEngine::InitializePortalServices()
 	{
 		// @todo add any Engine specific Portal services here
 		ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
+		ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
+		ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
 	}
 }
 #endif

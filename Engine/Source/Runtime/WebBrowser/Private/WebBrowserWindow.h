@@ -26,8 +26,6 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-class FWebBrowserViewport;
-
 /**
  * Helper for containing items required for CEF browser window creation.
  */
@@ -79,8 +77,7 @@ public:
 
 	virtual void LoadURL(FString NewURL) override;
 	virtual void LoadString(FString Contents, FString DummyURL) override;
-	virtual void SetViewportSize(FIntPoint WindowSize) override;
-	virtual TSharedRef<SWidget> CreateWidget(TAttribute<FVector2D> ViewportSize) override;
+	virtual void SetViewportSize(FIntPoint WindowSize, FIntPoint WindowPos) override;
 	virtual FSlateShaderResource* GetTexture(bool bIsPopup = false) override;
 	virtual bool IsValid() const override;
 	virtual bool IsInitialized() const override;
@@ -88,6 +85,7 @@ public:
 	virtual EWebBrowserDocumentState GetDocumentLoadingState() const override;
 	virtual FString GetTitle() const override;
 	virtual FString GetUrl() const override;
+	virtual void GetSource(TFunction<void (const FString&)> Callback) const override;
 	virtual bool OnKeyDown(const FKeyEvent& InKeyEvent) override;
 	virtual bool OnKeyUp(const FKeyEvent& InKeyEvent) override;
 	virtual bool OnKeyChar(const FCharacterEvent& InCharacterEvent) override;
@@ -109,6 +107,8 @@ public:
 	virtual void CloseBrowser(bool bForce) override;
 	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) override;
 	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;
+	virtual int GetLoadError() override;
+	virtual void SetIsDisabled(bool bValue) override;
 
 	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnDocumentStateChanged, FOnDocumentStateChanged);
 	virtual FOnDocumentStateChanged& OnDocumentStateChanged() override
@@ -126,6 +126,12 @@ public:
 	virtual FOnUrlChanged& OnUrlChanged() override
 	{
 		return UrlChangedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnToolTip, FOnToolTip);
+	virtual FOnToolTip& OnToolTip() override
+	{
+		return ToolTipEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnNeedsRedraw, FOnNeedsRedraw);
@@ -225,7 +231,7 @@ private:
 	bool GetViewRect(CefRect& Rect);
 
 	/** Notifies clients that document loading has failed. */
-	void NotifyDocumentError();
+	void NotifyDocumentError(int ErrorCode);
 
 	/**
 	 * Notifies clients that the loading state of the document has changed.
@@ -274,9 +280,11 @@ private:
 	bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefRequest> Request, bool bIsRedirect);
 	
 	/**
-	 * Called before loading a resource.
+	 * Called before loading a resource to allow overriding the content for a request.
+	 *
+	 * @return string content representing the content to show for the URL or an unset value to fetch the URL normally.
 	 */
-	CefRefPtr<CefResourceHandler> GetResourceHandler( CefRefPtr< CefFrame > Frame, CefRefPtr< CefRequest > Request );
+	TOptional<FString> GetResourceContent( CefRefPtr< CefFrame > Frame, CefRefPtr< CefRequest > Request);
 
 	/** 
 	 * Called when browser reports a key event that was not handled by it
@@ -401,11 +409,6 @@ private:
 
 private:
 
-	/** Viewport interface for rendering the web page. */
-	TSharedPtr<FWebBrowserViewport> BrowserViewport;
-	/** The actual viewport widget. Required to update its tool tip property. */
-	TSharedPtr<SViewport> ViewportWidget;
-
 	/** Current state of the document being loaded. */
 	EWebBrowserDocumentState DocumentState;
 
@@ -454,6 +457,9 @@ private:
 	/** Delegate for broadcasting address changes. */
 	FOnUrlChanged UrlChangedEvent;
 
+	/** Delegate for showing or hiding tool tips. */
+	FOnToolTip ToolTipEvent;
+
 	/** Delegate for notifying that the window needs refreshing. */
 	FOnNeedsRedraw NeedsRedrawEvent;
 
@@ -487,6 +493,9 @@ private:
 	/** Tracks the current mouse cursor */
 	EMouseCursor::Type Cursor;
 
+	/** Tracks wether the widget is currently disabled or not*/
+	bool bIsDisabled;
+
 	/** Tracks wether the widget is currently hidden or not*/
 	bool bIsHidden;
 
@@ -510,6 +519,8 @@ private:
 
 	/** This is set to true when reloading after render process crash. */
 	bool bRecoverFromRenderProcessCrash;
+
+	int ErrorCode;
 
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FWebJSScripting> Scripting;

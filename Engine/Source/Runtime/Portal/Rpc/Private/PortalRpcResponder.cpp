@@ -7,6 +7,7 @@
 #include "IPortalRpcServer.h"
 #include "PortalRpcMessages.h"
 #include "ModuleManager.h"
+#include "GenericPlatformMisc.h"
 
 class FPortalRpcResponderImpl
 	: public IPortalRpcResponder
@@ -25,7 +26,9 @@ public:
 
 private:
 
-	FPortalRpcResponderImpl()
+	FPortalRpcResponderImpl(
+		const FString& InMyHostMacAddress)
+		: MyHostMacAddress(InMyHostMacAddress)
 	{
 		MessageEndpoint = FMessageEndpoint::Builder("FPortalRpcResponder")
 			.Handling<FPortalRpcLocateServer>(this, &FPortalRpcResponderImpl::HandleMessage);
@@ -41,6 +44,11 @@ private:
 	void HandleMessage(const FPortalRpcLocateServer& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 	{
 		if (!LookupDelegate.IsBound())
+		{
+			return;
+		}
+
+		if (Message.HostMacAddress != MyHostMacAddress)
 		{
 			return;
 		}
@@ -62,6 +70,8 @@ private:
 
 private:
 
+	const FString MyHostMacAddress;
+
 	/** A delegate that is executed when a look-up for an RPC server occurs. */
 	FOnPortalRpcLookup LookupDelegate;
 
@@ -76,5 +86,5 @@ private:
 
 TSharedRef<IPortalRpcResponder> FPortalRpcResponderFactory::Create()
 {
-	return MakeShareable(new FPortalRpcResponderImpl());
+	return MakeShareable(new FPortalRpcResponderImpl(FGenericPlatformMisc::GetMacAddressString()));
 }

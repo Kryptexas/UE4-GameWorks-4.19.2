@@ -818,6 +818,18 @@ namespace AutomationTool
                     return Proj;
                 }
             }
+
+			foreach (var CodeProj in CodeProjects)
+			{
+				foreach (var Proj in CodeProj.Properties.Programs)
+				{
+					if (Proj.TargetName.Equals(ProgramName, StringComparison.InvariantCultureIgnoreCase))
+					{
+						return Proj;
+					}
+				}
+			}
+
             SingleTargetProperties Result;
             Result.TargetName = ProgramName;
             Result.Rules = null;

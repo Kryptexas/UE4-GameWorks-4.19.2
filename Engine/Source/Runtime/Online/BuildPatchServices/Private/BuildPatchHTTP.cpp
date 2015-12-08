@@ -23,7 +23,12 @@ bool FBuildPatchHTTP::Tick( float Delta )
 			while( HttpRequestQueue.Num() > 0 )
 			{
 				FHttpRequestInfo HttpRequestInfo = HttpRequestQueue.Pop();
-				HttpRequestInfo.OnCompleteDelegate.ExecuteIfBound( NULL, NULL, false );
+
+				// Generate a dummy request
+				TSharedRef< IHttpRequest > AbortedRequest = FHttpModule::Get().CreateRequest();
+				AbortedRequest->SetURL(HttpRequestInfo.UrlRequest);
+
+				HttpRequestInfo.OnCompleteDelegate.ExecuteIfBound(AbortedRequest, NULL, false);
 			}
 		}
 		else
@@ -92,7 +97,11 @@ int32 FBuildPatchHTTP::QueueHttpRequest( const FString& UrlRequest, const FHttpR
 	}
 	else
 	{
-		OnCompleteDelegate.ExecuteIfBound( NULL, NULL, false );
+		// Generate a dummy request
+		TSharedRef< IHttpRequest > AbortedRequest = FHttpModule::Get().CreateRequest();
+		AbortedRequest->SetURL(UrlRequest);
+
+		OnCompleteDelegate.ExecuteIfBound(AbortedRequest, NULL, false);
 		return INDEX_NONE;
 	}
 }

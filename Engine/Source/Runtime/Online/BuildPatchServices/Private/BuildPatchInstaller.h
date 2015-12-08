@@ -78,6 +78,9 @@ private:
 	// The download speed value
 	double DownloadSpeedValue;
 
+	// The current download health value
+	EBuildPatchDownloadHealth DownloadHealthValue;
+
 	// The number of bytes left to download
 	int64 DownloadBytesLeft;
 
@@ -108,7 +111,10 @@ private:
 	// Holds the files which are all required
 	TSet<FString> TaggedFiles;
 
-	// Referecne to the module's installation info
+	// The list of prerequisites that have already been installed. Will also be updated on successful installation
+	TSet<FString> InstalledPrereqs;
+
+	// Reference to the module's installation info
 	FBuildPatchInstallationInfo& InstallationInfo;
 
 public:
@@ -151,6 +157,7 @@ public:
 	virtual FText GetStatusText(bool ShortError = false) override;
 	virtual float GetUpdateProgress() override;
 	virtual FBuildInstallStats GetBuildStatistics() override;
+	virtual EBuildPatchDownloadHealth GetDownloadHealth() const override;
 	virtual FText GetErrorText() override;
 	virtual void CancelInstall() override;
 	virtual bool TogglePauseInstall() override;
@@ -258,6 +265,12 @@ private:
 	void SetDownloadBytesLeft( const int64& BytesLeft );
 
 	/**
+	 * Sets the current download health
+	 * @param DownloadHealth	The download health
+	 */
+	void SetDownloadHealth(EBuildPatchDownloadHealth DownloadHealth);
+
+	/**
 	 * Helper to calculate new chunk progress values
 	 * @param bReset	Resets internals without updating
 	 */
@@ -274,4 +287,14 @@ private:
 	 * @param RootDirectory	 Root Directory for search
 	 */
 	void CleanupEmptyDirectories( const FString& RootDirectory );
+
+	/**
+	 * Loads configuration values, call from main thread.
+	 */
+	void LoadConfig();
+
+	/**
+	 * Saves updated configuration values, call from main thread.
+	 */
+	void SaveConfig();
 };

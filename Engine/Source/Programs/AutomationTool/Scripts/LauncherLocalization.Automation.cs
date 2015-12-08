@@ -6,6 +6,7 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using AutomationTool;
+using UnrealBuildTool;
 using OneSky;
 using EpicGames.OneSkyLocalization.Config;
 
@@ -14,6 +15,14 @@ class LauncherLocalization : BuildCommand
 
 	public override void ExecuteBuild()
 	{
+		if (ParseParam("BuildEditor"))
+		{
+			UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
+			Agenda.AddTarget("UE4Editor", HostPlatform.Current.HostEditorPlatform, UnrealTargetConfiguration.Development);
+
+			UE4Build Builder = new UE4Build(this);
+			Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: true);
+		}
 
 		var EditorExe = CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/Win64/UE4Editor-Cmd.exe");
 

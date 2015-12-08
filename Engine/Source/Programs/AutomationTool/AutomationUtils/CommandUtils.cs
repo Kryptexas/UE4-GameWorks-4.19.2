@@ -2431,6 +2431,7 @@ namespace AutomationTool
 			List<string> Extensions = new List<string>();
 			Extensions.Add(".dylib");
 			Extensions.Add(".app");
+			Extensions.Add(".framework");
 
 			bool IsExecutable = bIgnoreExtension || (Path.GetExtension(InPath) == "" && !InPath.EndsWith("PkgInfo"));
 

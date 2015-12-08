@@ -1748,23 +1748,23 @@ bool FWindowsPlatformMisc::CommandLineCommands()
  */
 bool FWindowsPlatformMisc::Is64bitOperatingSystem()
 {
-#if defined(PLATFORM_64BITS)
+#if PLATFORM_64BITS
 	return true;
 #else
 	#pragma warning( push )
 	#pragma warning( disable: 4191 )	// unsafe conversion from 'type of expression' to 'type required'
-	typedef bool (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
+	typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
 	LPFN_ISWOW64PROCESS fnIsWow64Process = (LPFN_ISWOW64PROCESS) GetProcAddress( GetModuleHandle(TEXT("kernel32")), "IsWow64Process" );
-	bool bIsWoW64Process = false;
+	BOOL bIsWoW64Process = 0;
 	if ( fnIsWow64Process != NULL )
 	{
-		if ( fnIsWow64Process(GetCurrentProcess(), (PBOOL)&bIsWoW64Process) == 0 )
+		if ( fnIsWow64Process(GetCurrentProcess(), &bIsWoW64Process) == 0 )
 		{
-			bIsWoW64Process = false;
+			bIsWoW64Process = 0;
 		}
 	}
 	#pragma warning( pop )
-	return bIsWoW64Process;
+	return bIsWoW64Process == 1;
 #endif
 }
 

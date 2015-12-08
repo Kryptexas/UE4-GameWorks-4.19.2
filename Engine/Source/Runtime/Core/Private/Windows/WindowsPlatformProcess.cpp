@@ -216,7 +216,12 @@ static void LaunchWebURL( const FString& URLParams, FString* Error )
 		// If anything failed to parse right, don't continue down this path, just use shell execute.
 		if (!ExePath.IsEmpty())
 		{
-			ExeArgs = ExeArgs.Replace(TEXT("%1"), *URLParams);
+			if (ExeArgs.ReplaceInline(TEXT("%1"), *URLParams) == 0)
+			{
+				// If we fail to detect the placement token we append the URL to the arguments.
+				// This is for robustness, and to fix a known error case when using Internet Explorer 8. 
+				ExeArgs.Append(TEXT(" \"") + URLParams + TEXT("\""));
+			}
 
 			// Now that we have the shell open command to use, run the shell command in the open process with any and all parameters.
 			if (FPlatformProcess::CreateProc(*ExePath, *ExeArgs, true, false, false, NULL, 0, NULL, NULL).IsValid())

@@ -715,8 +715,41 @@ void FCurlHttpRequest::FinishedRequest()
 	if (Response.IsValid() &&
 		Response->bSucceeded)
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("%p: request has been successfully processed. HTTP code: %d, content length: %d, actual payload size: %d"), 
-			this, Response->HttpCode, Response->ContentLength, Response->Payload.Num() );
+		const bool bDebugServerResponse = Response->GetResponseCode() >= 500 && Response->GetResponseCode() <= 505;
+
+		// log info about error responses to identify failed downloads
+		if (UE_LOG_ACTIVE(LogHttp, Verbose) ||
+			bDebugServerResponse)
+		{
+			if (bDebugServerResponse)
+			{
+				UE_LOG(LogHttp, Warning, TEXT("%p: request has been successfully processed. URL: %s, HTTP code: %d, content length: %d, actual payload size: %d"),
+					this, *GetURL(), Response->HttpCode, Response->ContentLength, Response->Payload.Num());
+			}
+			else
+			{
+				UE_LOG(LogHttp, Verbose, TEXT("%p: request has been successfully processed. URL: %s, HTTP code: %d, content length: %d, actual payload size: %d"),
+					this, *GetURL(), Response->HttpCode, Response->ContentLength, Response->Payload.Num());
+			}
+
+			TArray<FString> AllHeaders = Response->GetAllHeaders();
+			for (TArray<FString>::TConstIterator It(AllHeaders); It; ++It)
+			{
+				const FString& HeaderStr = *It;
+				if (!HeaderStr.StartsWith(TEXT("Authorization")) && !HeaderStr.StartsWith(TEXT("Set-Cookie")))
+				{
+					if (bDebugServerResponse)
+					{
+						UE_LOG(LogHttp, Warning, TEXT("%p Response Header %s"), this, *HeaderStr);
+					}
+					else
+					{
+						UE_LOG(LogHttp, Verbose, TEXT("%p Response Header %s"), this, *HeaderStr);
+					}
+				}
+			}
+		}
+
 
 		// Mark last request attempt as completed successfully
 		CompletionStatus = EHttpRequestStatus::Succeeded;

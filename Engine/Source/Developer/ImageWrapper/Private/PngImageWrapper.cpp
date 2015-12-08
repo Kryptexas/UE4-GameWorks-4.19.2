@@ -18,6 +18,19 @@ FCriticalSection GPNGSection;
 /* Local helper classes
  *****************************************************************************/
 
+
+/**
+ * Error type for PNG reading issue.
+ */
+struct FPNGImageCRCError
+{
+	FPNGImageCRCError(FString InErrorText)
+		: ErrorText(MoveTemp(InErrorText))
+	{ }
+
+	FString ErrorText;
+};
+
 /**
  * Guard that safely releases PNG reader resources.
  */
@@ -151,10 +164,10 @@ void FPngImageWrapper::Compress( int32 Quality )
 
 			if (!setjmp(SetjmpBuffer))
 			{
-				png_write_png(png_ptr, info_ptr, Transform, NULL);
-			}
+			png_write_png(png_ptr, info_ptr, Transform, NULL);
 		}
 	}
+}
 }
 
 
@@ -206,6 +219,10 @@ void FPngImageWrapper::UncompressPNGData( const ERGBFormat::Type InFormat, const
 
 	png_infop info_ptr	= png_create_info_struct( png_ptr );
 	check( info_ptr );
+#if !PLATFORM_EXCEPTIONS_DISABLED
+	try
+#endif
+	{
 	PNGReadGuard PNGGuard( &png_ptr, &info_ptr );
 	{
 		if (ColorType == PNG_COLOR_TYPE_PALETTE)
@@ -318,6 +335,18 @@ void FPngImageWrapper::UncompressPNGData( const ERGBFormat::Type InFormat, const
 			png_read_png(png_ptr, info_ptr, Transform, NULL);
 		}
 	}
+	}
+#if !PLATFORM_EXCEPTIONS_DISABLED
+	catch (const FPNGImageCRCError& e)
+		{
+		/** 
+		 *	libPNG has a known issue in version 1.5.2 causing
+		 *	an unhandled exception upon a CRC error. This code 
+		 *	catches our custom exception thrown in user_error_fn.
+		 */
+		UE_LOG(LogImageWrapper, Error, TEXT("%s"), *e.ErrorText);
+	}
+#endif
 
 	RawFormat = InFormat;
 	RawBitDepth = InBitDepth;
@@ -410,14 +439,27 @@ void FPngImageWrapper::user_flush_data( png_structp png_ptr )
 
 void FPngImageWrapper::user_error_fn( png_structp png_ptr, png_const_charp error_msg )
 {
-	FPngImageWrapper* ctx = (FPngImageWrapper*)png_get_io_ptr(png_ptr);
+	FPngImageWrapper* ctx = (FPngImageWrapper*)png_get_io_ptr( png_ptr );
 
 	{
-		FString ErrorMsg = ANSI_TO_TCHAR(error_msg);
-		ctx->SetError(*ErrorMsg);
+	FString ErrorMsg = ANSI_TO_TCHAR(error_msg);
+	ctx->SetError(*ErrorMsg);
 
-		UE_LOG(LogImageWrapper, Error, TEXT("PNG Error: %s"), *ErrorMsg);
+	UE_LOG(LogImageWrapper, Error, TEXT("PNG Error: %s"), *ErrorMsg);
+
+#if !PLATFORM_EXCEPTIONS_DISABLED
+	/** 
+	 *	libPNG has a known issue in version 1.5.2 causing 
+	 *	an unhandled exception upon a CRC error. This code 
+	 *	detects the error manually and throws our own 
+	 *	exception to be handled. 
+	 */
+	if (ErrorMsg.Contains(TEXT("CRC error")))
+	{
+		throw FPNGImageCRCError(ErrorMsg);
 	}
+#endif
+}
 	// Ensure that FString is destructed prior to executing the longjmp
 
 	longjmp(ctx->SetjmpBuffer, 1);

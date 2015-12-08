@@ -19,5 +19,3 @@
 /* Private includes
  *****************************************************************************/
 
-#include "PortalApplicationWindowProxy.h"
-#include "PortalPackageInstallerProxy.h"

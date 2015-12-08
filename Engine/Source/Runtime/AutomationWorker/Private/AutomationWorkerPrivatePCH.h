@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "Core.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogAutomationAnalytics, Log, All);
+
 #include "AutomationWorker.h"
 
 

@@ -100,7 +100,7 @@ void FWebBrowserWindow::LoadString(FString Contents, FString DummyURL)
 {
 }
 
-TSharedRef<SWidget> FWebBrowserWindow::CreateWidget(TAttribute<FVector2D> InViewportSize)
+TSharedRef<SWidget> FWebBrowserWindow::CreateWidget()
 {
 	TSharedRef<SAndroidWebBrowserWidget> BrowserWidgetRef =
 		SNew(SAndroidWebBrowserWidget)
@@ -110,7 +110,7 @@ TSharedRef<SWidget> FWebBrowserWindow::CreateWidget(TAttribute<FVector2D> InView
 	return BrowserWidgetRef;
 }
 
-void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
+void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize, FIntPoint WindowPos)
 {
 }
 
@@ -227,6 +227,21 @@ void FWebBrowserWindow::Reload()
 void FWebBrowserWindow::StopLoad()
 {
 }
+
+void FWebBrowserWindow::GetSource(TFunction<void (const FString&)> Callback) const
+{
+	Callback(FString());
+}
+
+int FWebBrowserWindow::GetLoadError()
+{
+	return 0;
+}
+
+void FWebBrowserWindow::SetIsDisabled(bool bValue)
+{
+}
+
 
 void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 {

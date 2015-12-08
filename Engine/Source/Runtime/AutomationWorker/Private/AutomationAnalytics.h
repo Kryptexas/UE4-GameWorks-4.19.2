@@ -6,6 +6,7 @@
 #include "AutomationWorkerMessages.h"
 
 class IAnalyticsProvider;
+struct FAnalyticsEventAttribute;
 
 class FAutomationAnalytics : FNoncopyable
 {

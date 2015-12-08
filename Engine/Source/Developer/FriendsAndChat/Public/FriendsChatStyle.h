@@ -20,7 +20,11 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	GENERATED_USTRUCT_BODY()
 
 	// Default Constructor
-	FFriendsChatStyle() { }
+	FFriendsChatStyle()
+		: TimeStampOpacity(1.0f)
+	{
+
+	}
 
 	// Default Destructor
 	virtual ~FFriendsChatStyle() { }
@@ -54,6 +58,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FTextBlockStyle TimeStampTextStyle;
 	FFriendsChatStyle& SetTimeStampTextStyle(const FTextBlockStyle& InTextStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float TimeStampOpacity;
+	FFriendsChatStyle& SetTimestampOpacity(float InOpacity);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor DefaultChatColor;
