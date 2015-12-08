@@ -888,7 +888,7 @@ namespace UnrealBuildTool
 												}
 											}
 
-											string MacExecutableName = UEBuildTarget.MakeBinaryFileName(ExeName, UnrealTargetPlatform.Mac, Configuration, ProjectTarget.TargetRules.UndecoratedConfiguration, UEBuildBinaryType.Executable);
+											string MacExecutableName = UEBuildTarget.MakeBinaryFileName(ExeName, UnrealTargetPlatform.Mac, (ExeName == "UE4Editor" && Configuration == UnrealTargetConfiguration.DebugGame) ? UnrealTargetConfiguration.Development : Configuration, ProjectTarget.TargetRules.UndecoratedConfiguration, UEBuildBinaryType.Executable);
 											string IOSExecutableName = MacExecutableName.Replace("-Mac-", "-IOS-");
 											BuildConfigs.Add(new XcodeBuildConfig(ConfigName, TargetName, Path.Combine(OutputDirectory, "Mac", MacExecutableName), Path.Combine(OutputDirectory, "IOS", IOSExecutableName), ProjectTarget, Configuration));
 										}
