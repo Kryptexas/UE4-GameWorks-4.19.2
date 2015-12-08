@@ -2913,7 +2913,7 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 			{
 				SceneContext.BeginRenderingLightAttenuation(RHICmdList);
 
-				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque1);
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 				{
@@ -3172,7 +3172,7 @@ bool FDeferredShadingSceneRenderer::RenderTranslucentProjectedShadows(FRHIComman
 		// Render the shadow projections.
 		{
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque2);
 				RenderProjections(RHICmdList, LightSceneInfo, Shadows, false);
 			}
 
@@ -3544,7 +3544,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 		// Render the shadow projections.
 		{
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque3);
 				RenderProjections(RHICmdList, LightSceneInfo, Shadows, false);
 			}
 			
@@ -4075,7 +4075,7 @@ void FForwardShadingSceneRenderer::RenderAllocatedModulatedShadowProjections(FRH
 
 		// Render the shadow projections.
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
+			SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque4);
 			RenderProjections(RHICmdList, LightSceneInfo, Shadows, true);
 		}
 

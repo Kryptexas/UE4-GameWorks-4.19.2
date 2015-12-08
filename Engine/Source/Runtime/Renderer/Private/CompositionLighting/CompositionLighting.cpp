@@ -267,6 +267,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 
 		// decals are before AmbientOcclusion so the decal can output a normal that AO is affected by
 		if (!Context.View.Family->EngineShowFlags.ShaderComplexity &&
+			Context.View.Family->EngineShowFlags.Decals &&
 			IsDBufferEnabled()) 
 		{
 			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_BeforeBasePass));
@@ -310,7 +311,8 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 
 		// Add the passes we want to add to the graph ----------
 		
-		if(Context.View.Family->EngineShowFlags.Decals && !Context.View.Family->EngineShowFlags.ShaderComplexity)
+		if( Context.View.Family->EngineShowFlags.Decals &&
+			!Context.View.Family->EngineShowFlags.ShaderComplexity)
 		{
 			// DRS_AfterBasePass is for Volumetric decals which don't support ShaderComplexity yet
 			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_AfterBasePass));

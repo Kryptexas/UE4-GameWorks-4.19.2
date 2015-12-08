@@ -168,6 +168,8 @@ void SSequencerCurveEditor::NodeTreeSelectionChanged()
 {
 	if (SequencerNodeTree.IsValid())
 	{
+		ValidateSelection();
+
 		if (GetSettings()->GetCurveVisibility() == ECurveEditorCurveVisibility::SelectedCurves)
 		{
 			UpdateCurveOwner();

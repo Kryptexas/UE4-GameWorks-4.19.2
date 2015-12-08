@@ -306,7 +306,9 @@ void FAggregator::BroadcastOnDirty()
 	OnDirty.Broadcast(this);
 
 
-	TArray<FActiveGameplayEffectHandle>	ValidDependents;
+	static TArray<FActiveGameplayEffectHandle>	ValidDependents;
+	ValidDependents.Reset();
+
 	for (FActiveGameplayEffectHandle Handle : Dependents)
 	{
 		UAbilitySystemComponent* ASC = Handle.GetOwningAbilitySystemComponent();

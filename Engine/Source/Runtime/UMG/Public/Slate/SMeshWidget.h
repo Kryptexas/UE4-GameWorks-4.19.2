@@ -29,6 +29,15 @@ public:
 	 */
 	uint32 AddMesh(USlateVectorArtData& InMeshData);
 
+	/**
+	 * Switch from static material to material instance dynamic.
+	 * 
+	 * @param MeshId    The index of the mesh; returned from AddMesh.
+	 * 
+	 * @return The MID for this Asset on which parameters can be set.
+	 */
+	UMaterialInstanceDynamic* ConvertToMID( uint32 MeshId );
+
 	/** Discard any previous runs and reserve space for new render runs if needed. */
 	void ClearRuns(int32 NumRuns);
 

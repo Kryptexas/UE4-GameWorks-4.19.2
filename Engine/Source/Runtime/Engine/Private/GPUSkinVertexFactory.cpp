@@ -193,7 +193,8 @@ struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuf
 
 void FGPUBaseSkinVertexFactory::ShaderDataType::GoToNextFrame(uint32 FrameNumber)
 {
-	PreviousFrameNumber = FrameNumber;
+	PreviousFrameNumber = CurrentFrameNumber;
+	CurrentFrameNumber = FrameNumber;
 	CurrentBuffer = 1 - CurrentBuffer;
 }
 
@@ -707,6 +708,7 @@ public:
 	{
 		FGPUSkinVertexFactoryShaderParameters::Bind(ParameterMap);
 		ClothSimulVertsPositionsNormalsParameter.Bind(ParameterMap,TEXT("ClothSimulVertsPositionsNormals"));
+		PreviousClothSimulVertsPositionsNormalsParameter.Bind(ParameterMap,TEXT("PreviousClothSimulVertsPositionsNormals"));
 		ClothBlendWeightParameter.Bind(ParameterMap, TEXT("ClothBlendWeight"));
 	}
 	/**
@@ -717,6 +719,7 @@ public:
 	{ 
 		FGPUSkinVertexFactoryShaderParameters::Serialize(Ar);
 		Ar << ClothSimulVertsPositionsNormalsParameter;
+		Ar << PreviousClothSimulVertsPositionsNormalsParameter;
 		Ar << ClothBlendWeightParameter;
 	}
 
@@ -735,10 +738,18 @@ public:
 
 			SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(),Shader->GetUniformBufferParameter<FAPEXClothUniformShaderParameters>(),ClothShaderData.GetClothUniformBuffer());
 
+			uint32 FrameNumber = View.Family->FrameNumber;
+
 			// we tell the shader where to pickup the data
 			if(ClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
-				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulVertsPositionsNormalsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulPositionNormalBuffer().VertexBufferSRV);
+				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
+					ClothShaderData.GetClothBufferForReading(false, FrameNumber).VertexBufferSRV);
+			}
+			if(PreviousClothSimulVertsPositionsNormalsParameter.IsBound())
+			{
+				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), PreviousClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
+					ClothShaderData.GetClothBufferForReading(true, FrameNumber).VertexBufferSRV);
 			}
 			
 			SetShaderValue(
@@ -752,6 +763,7 @@ public:
 
 protected:
 	FShaderResourceParameter ClothSimulVertsPositionsNormalsParameter;
+	FShaderResourceParameter PreviousClothSimulVertsPositionsNormalsParameter;
 	FShaderParameter ClothBlendWeightParameter;
 };
 
@@ -798,35 +810,44 @@ struct FRHICommandUpdateClothBuffer : public FRHICommand<FRHICommandUpdateClothB
 	}
 };
 
-bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, ERHIFeatureLevel::Type FeatureLevel)
+bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions,
+	const TArray<FVector4>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FGPUBaseSkinAPEXClothVertexFactory_UpdateClothSimulData);
+
 	uint32 NumSimulVerts = InSimulPositions.Num();
+
+	FClothSimulDataBufferTypeRef* CurrentClothBuffer = 0;
 
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		FMath::Min(NumSimulVerts, (uint32)MAX_APEXCLOTH_VERTICES_FOR_VB);
+		check(IsInRenderingThread());
+
+		// + 1 as the FrameNumber is incremented later that in should be
+		CurrentClothBuffer = &GetClothBufferForWriting(FrameNumber + 1);
+
+		NumSimulVerts = FMath::Min(NumSimulVerts, (uint32)MAX_APEXCLOTH_VERTICES_FOR_VB);
 
 		uint32 VectorArraySize = NumSimulVerts * sizeof(float) * 6;
 		uint32 PooledArraySize = ClothSimulDataBufferPool.PooledSizeForCreationArguments(VectorArraySize);
-		if(!IsValidRef(ClothSimulPositionNormalBuffer) || PooledArraySize != ClothSimulPositionNormalBuffer.VertexBufferRHI->GetSize())
+		if(!IsValidRef(*CurrentClothBuffer) || PooledArraySize != CurrentClothBuffer->VertexBufferRHI->GetSize())
 		{
-			if(IsValidRef(ClothSimulPositionNormalBuffer))
+			if(IsValidRef(*CurrentClothBuffer))
 			{
-				ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulPositionNormalBuffer);
+				ClothSimulDataBufferPool.ReleasePooledResource(*CurrentClothBuffer);
 			}
-			ClothSimulPositionNormalBuffer = ClothSimulDataBufferPool.CreatePooledResource(VectorArraySize);
-			check(IsValidRef(ClothSimulPositionNormalBuffer));
+			*CurrentClothBuffer = ClothSimulDataBufferPool.CreatePooledResource(VectorArraySize);
+			check(IsValidRef(*CurrentClothBuffer));
 		}
 
 		if(NumSimulVerts)
 		{
 			if (DeferSkeletalLockAndFillToRHIThread())
 			{
-				new (RHICmdList.AllocCommand<FRHICommandUpdateClothBuffer>()) FRHICommandUpdateClothBuffer(ClothSimulPositionNormalBuffer.VertexBufferRHI, VectorArraySize, InSimulPositions, InSimulNormals);
+				new (RHICmdList.AllocCommand<FRHICommandUpdateClothBuffer>()) FRHICommandUpdateClothBuffer(CurrentClothBuffer->VertexBufferRHI, VectorArraySize, InSimulPositions, InSimulNormals);
 				return true;
 			}
-			float* RESTRICT Data = (float* RESTRICT)RHILockVertexBuffer(ClothSimulPositionNormalBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
+			float* RESTRICT Data = (float* RESTRICT)RHILockVertexBuffer(CurrentClothBuffer->VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_FGPUBaseSkinAPEXClothVertexFactory_UpdateClothSimulData_CopyData);
 				float* RESTRICT Pos = (float* RESTRICT) &InSimulPositions[0].X;
@@ -844,7 +865,7 @@ bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(F
 					Normal += 4;
 				}
 			}
-			RHIUnlockVertexBuffer(ClothSimulPositionNormalBuffer.VertexBufferRHI);
+			RHIUnlockVertexBuffer(CurrentClothBuffer->VertexBufferRHI);
 		}
 	}
 	else

@@ -23,6 +23,7 @@ public:
 	SLATE_DEFAULT_SLOT(FArguments, Content)
 		SLATE_ARGUMENT(int32, Phase)
 		SLATE_ARGUMENT(int32, PhaseCount)
+		SLATE_ARGUMENT(FName, StatId)
 	SLATE_END_ARGS()
 
 	SRetainerWidget();
@@ -98,4 +99,6 @@ private:
 
 	TSharedPtr<SVirtualWindow> Window;
 	TSharedPtr<FHittestGrid> HitTestGrid;
+
+	STAT(TStatId MyStatId;)
 };

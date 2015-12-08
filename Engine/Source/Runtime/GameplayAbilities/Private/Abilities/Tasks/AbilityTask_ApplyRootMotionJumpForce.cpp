@@ -108,16 +108,16 @@ void UAbilityTask_ApplyRootMotionJumpForce::SharedInitAndApply()
 			JumpForce->TimeMappingCurve = TimeMappingCurve;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(JumpForce);
 
-			if (Ability.IsValid())
+			if (Ability)
 			{
-				Ability.Get()->SetMovementSyncPoint(ForceName);
+				Ability->SetMovementSyncPoint(ForceName);
 			}
 		}
 	}
 	else
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_ApplyRootMotionJumpForce called in Ability %s with null MovementComponent; Task Instance Name %s."), 
-			Ability.IsValid() ? *Ability.Get()->GetName() : TEXT("NULL"), 
+			Ability ? *Ability->GetName() : TEXT("NULL"), 
 			*InstanceName.ToString());
 	}
 }

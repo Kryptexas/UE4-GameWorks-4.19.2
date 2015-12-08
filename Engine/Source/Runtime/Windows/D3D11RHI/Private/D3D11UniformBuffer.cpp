@@ -264,7 +264,7 @@ void FD3D11UniformBuffer::CacheResourcesInternal()
 	// Texture streaming makes textures complicated :)
 	for (int32 i = 0; i < NumResources; ++i)
 	{
-		RawResources[i].ResourceName = NAME_None;
+		RawResources[i].SetResourceName(NAME_None);
 		switch (ResourceTypes[i])
 		{
 		case UBMT_SRV:
@@ -284,7 +284,7 @@ void FD3D11UniformBuffer::CacheResourcesInternal()
 				FD3D11TextureBase* TextureD3D11 = GetD3D11TextureFromRHITexture(TextureRHI);
 				RawResources[i].ShaderResource = TextureD3D11->GetBaseShaderResource();
 				RawResources[i].D3D11Resource = (IUnknown*)TextureD3D11->GetShaderResourceView();
-				RawResources[i].ResourceName = TextureRHI->GetName();
+				RawResources[i].SetResourceName(TextureRHI->GetName());
 			}
 			break;
 

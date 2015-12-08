@@ -939,25 +939,12 @@ void FLandscapeComponentSceneProxy::GetLightRelevance(const FLightSceneProxy* Li
 
 FLightInteraction FLandscapeComponentSceneProxy::FLandscapeLCI::GetInteraction(const class FLightSceneProxy* LightSceneProxy) const
 {
-	// Check if the light has static lighting or shadowing.
-	if (LightSceneProxy->HasStaticShadowing())
+	// ask base class
+	ELightInteractionType LightInteraction = GetStaticInteraction(LightSceneProxy, IrrelevantLights);
+	
+	if(LightInteraction != LIT_MAX)
 	{
-		const FGuid LightGuid = LightSceneProxy->GetLightGuid();
-
-		if (LightMap && LightMap->ContainsLight(LightGuid))
-		{
-			return FLightInteraction::LightMap();
-		}
-
-		if (ShadowMap && ShadowMap->ContainsLight(LightGuid))
-		{
-			return FLightInteraction::ShadowMap2D();
-		}
-
-		if (IrrelevantLights.Contains(LightGuid))
-		{
-			return FLightInteraction::Irrelevant();
-		}
+		return FLightInteraction(LightInteraction);
 	}
 
 	// Use dynamic lighting if the light doesn't have static lighting.
@@ -1234,12 +1221,17 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 
 float FLandscapeComponentSceneProxy::CalcDesiredLOD(const class FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY) const
 {
+	int32 OverrideLOD = GetCVarForceLOD();
 #if WITH_EDITOR
 	if (View.Family->LandscapeLODOverride >= 0)
 	{
-		return FMath::Clamp<int32>(View.Family->LandscapeLODOverride, FirstLOD, LastLOD);
+		OverrideLOD = View.Family->LandscapeLODOverride;
 	}
 #endif
+	if (OverrideLOD >= 0)
+	{
+		return FMath::Clamp<int32>(OverrideLOD, FirstLOD, LastLOD);
+	}
 
 	// FLandscapeComponentSceneProxy::NumSubsections, SubsectionSizeQuads, MaxLOD, LODFalloff and LODDistance are the same for all components and so are safe to use in the neighbour LOD calculations
 	// HeightmapTexture, LODBias, ForcedLOD are component-specific with neighbor lookup

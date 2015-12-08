@@ -1005,6 +1005,8 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 
 	// Reset execution flag
 
+	bool bSuccess = false;
+
 //This fetches and gets active transforms. It's important that the function that calls this locks because getting the transforms and using the data must be an atomic operation
 #if WITH_PHYSX
 	PxScene* PScene = GetPhysXScene(SceneType);
@@ -1013,16 +1015,20 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 
 #if !WITH_APEX
 	PScene->lockWrite();
-	PScene->fetchResults(true, &OutErrorCode);
+	bSuccess = PScene->fetchResults(true, &OutErrorCode);
 	PScene->unlockWrite();
 #else	//	#if !WITH_APEX
 	// The APEX scene calls the fetchResults function for the PhysX scene, so we only call ApexScene->fetchResults().
 	NxApexScene* ApexScene = GetApexScene(SceneType);
 	check(ApexScene);
-	ApexScene->fetchResults(true, &OutErrorCode);
+	bSuccess = ApexScene->fetchResults(true, &OutErrorCode);
 #endif	//	#if !WITH_APEX
 
-	UpdateActiveTransforms(SceneType);
+	if(bSuccess)
+	{
+		UpdateActiveTransforms(SceneType);
+	}
+	
 	if (OutErrorCode != 0)
 	{
 		UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);

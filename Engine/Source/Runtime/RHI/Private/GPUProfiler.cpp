@@ -147,7 +147,7 @@ static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, in
 		// Add an 'Other Children' node if necessary to show time spent in the current node that is not in any of its children
 		if (bMatchesFilter && Node->Children.Num() > 0 && TotalChildDraws > 0 && (UnaccountedPercent > 2.0f || UnaccountedTime > .2f))
 		{
-			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms Other Children"), 
+			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms   Other Children"), 
 				*FString(TEXT("")).LeftPad((EffectiveDepth + 1) * 3), 
 				UnaccountedPercent,
 				UnaccountedTime);

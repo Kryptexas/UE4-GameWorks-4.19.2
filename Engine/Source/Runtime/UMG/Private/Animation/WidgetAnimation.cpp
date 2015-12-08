@@ -173,6 +173,19 @@ UObject* UWidgetAnimation::FindPossessableObject(const FGuid& ObjectId, UObject*
 	return nullptr;
 }
 
+FGuid UWidgetAnimation::FindPossessableObjectId(UObject& Object) const
+{
+	UPanelSlot* Slot = Cast<UPanelSlot>(&Object);
+
+	if (Slot != nullptr)
+	{
+		// slot guids are tracked by their content.
+		return SlotContentPreviewObjectToIds.FindRef(Slot->Content);
+	}
+
+	return PreviewObjectToIds.FindRef(&Object);
+}
+
 
 UMovieScene* UWidgetAnimation::GetMovieScene() const
 {

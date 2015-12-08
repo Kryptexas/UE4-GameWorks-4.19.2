@@ -41,6 +41,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
 #endif
+	virtual void BeginDestroy() override;
 	//~ End Object Interface.
 
 	//~ Begin ActorComponent Interface.
@@ -51,7 +52,7 @@ public:
 	//~ End ActorComponent Interface.
 
 	/** Apply the component instance data to the child actor component */
-	void ApplyComponentInstanceData(class FChildActorComponentInstanceData* ComponentInstanceData);
+	void ApplyComponentInstanceData(class FChildActorComponentInstanceData* ComponentInstanceData, const ECacheApplyPhase CacheApplyPhase);
 
 	/** Create the child actor */
 	ENGINE_API void CreateChildActor();

@@ -12,7 +12,7 @@ UAbilityTask_NetworkSyncPoint::UAbilityTask_NetworkSyncPoint(const FObjectInitia
 
 void UAbilityTask_NetworkSyncPoint::OnSignalCallback()
 {
-	if (AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->ConsumeGenericReplicatedEvent(ReplicatedEventToListenFor, GetAbilitySpecHandle(), GetActivationPredictionKey());
 	}
@@ -28,7 +28,7 @@ UAbilityTask_NetworkSyncPoint* UAbilityTask_NetworkSyncPoint::WaitNetSync(class 
 
 void UAbilityTask_NetworkSyncPoint::Activate()
 {
-	if (AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent)
 	{
 		if (IsPredictingClient())
 		{

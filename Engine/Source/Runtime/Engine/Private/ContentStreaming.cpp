@@ -4490,6 +4490,7 @@ bool FStreamingManagerTexture::HandleListTrackedTexturesCommand( const TCHAR* Cm
 }
 bool FStreamingManagerTexture::HandleDebugTrackedTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
+#if ENABLE_TEXTURE_TRACKING
 	int32 NumTrackedTextures = GTrackedTextureNames.Num();
 	if ( NumTrackedTextures )
 	{
@@ -4582,6 +4583,8 @@ bool FStreamingManagerTexture::HandleDebugTrackedTexturesCommand( const TCHAR* C
 			}
 		}
 	}
+#endif // ENABLE_TEXTURE_TRACKING
+
 	return true;
 }
 

@@ -28,7 +28,9 @@ FGuid FMovieSceneSequenceInstance::FindObjectId(UObject& Object) const
 		}
 	}
 
-	return FGuid();
+	// At this point the only possibility left is that we have not cached the object
+	// in ObjectBindingInstances, so we to see if the sequence itself can tell us the GUID
+	return MovieSceneSequence->FindPossessableObjectId(Object);
 }
 
 FGuid FMovieSceneSequenceInstance::FindParentObjectId(UObject& Object) const

@@ -402,6 +402,16 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	virtual bool GetPlayerValidation(const FUniqueNetId& PlayerId, FString& OutValidation) const;
 
 	/**
+	 * Get the party leader for a given unique id
+	 *
+	 * @param InPartyMemberId valid party member of some reservation looking for its leader
+	 * @param OutPartyLeaderId valid party leader id for the given party member if found, invalid if function returns false
+	 *
+	 * @return true if a party leader was found for a given user id, false otherwise
+	 */
+	virtual bool GetPartyLeader(const FUniqueNetIdRepl& InPartyMemberId, FUniqueNetIdRepl& OutPartyLeaderId) const;
+
+	/**
 	 * Randomly assign a team for the reservation configuring the beacon
 	 */
 	virtual void InitTeamArray();

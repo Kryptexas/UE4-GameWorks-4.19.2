@@ -849,7 +849,9 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 	// if the depth buffer is writable then it counts as unresolved.
 	if (NewDepthStencilTargetRHI && NewDepthStencilTargetRHI->GetDepthStencilAccess() == FExclusiveDepthStencil::DepthWrite_StencilWrite && NewDepthStencilTarget)
 	{		
+		check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 		UnresolvedTargets.Add(NewDepthStencilTarget->GetResource(), FUnresolvedRTInfo(NewDepthStencilTargetRHI->Texture->GetName(), 0, 1, -1, 1));
+		check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 	}
 #endif
 
@@ -938,7 +940,9 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 				// remember this target as having been bound for write.
 				ID3D11Resource* RTVResource;
 				RenderTargetView->GetResource(&RTVResource);
+				check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 				UnresolvedTargets.Add(RTVResource, FUnresolvedRTInfo(NewRenderTargetsRHI[RenderTargetIndex].Texture->GetName(), RTMipIndex, 1, RTSliceIndex, 1));
+				check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 				RTVResource->Release();
 			}
 #endif
@@ -1286,7 +1290,7 @@ inline int32 SetShaderResourcesFromBuffer(FD3D11DynamicRHI* RESTRICT D3D11RHI, F
 			FD3D11UniformBuffer::FResourcePair* RESTRICT ResourcePair = &Buffer->RawResourceTable[ResourceIndex];
 			FD3D11BaseShaderResource* ShaderResource = ResourcePair->ShaderResource;
 			D3DResourceType* D3D11Resource = (D3DResourceType*)ResourcePair->D3D11Resource;
-			SetResource<ShaderFrequency>(D3D11RHI, StateCache, BindIndex, ShaderResource, D3D11Resource, ResourcePair->ResourceName);
+			SetResource<ShaderFrequency>(D3D11RHI, StateCache, BindIndex, ShaderResource, D3D11Resource, ResourcePair->GetResourceName());
 			NumSetCalls++;
 			ResourceInfo = *ResourceInfos++;
 		} while (FRHIResourceTableEntry::GetUniformBufferIndex(ResourceInfo) == BufferIndex);

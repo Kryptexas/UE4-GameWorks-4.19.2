@@ -7415,8 +7415,14 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				{
 					SmallTextItem.SetColor( FLinearColor::Red );
 				}
+				// Use 'DumpUnbuiltLightInteractions' to investigate, if lighting is still unbuilt after a lighting build
 				SmallTextItem.Text =  FText::FromString( FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects) );				
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
+
+				SmallTextItem.SetColor( FLinearColor(.05f, .05f, .05f, .2f) );
+				SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));				
+				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX + 50, MessageY + 16 ) );
+
 				MessageY += FontSizeY;
 			}
 			

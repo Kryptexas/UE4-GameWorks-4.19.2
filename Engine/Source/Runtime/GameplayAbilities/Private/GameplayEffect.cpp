@@ -20,6 +20,8 @@ const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
 const float UGameplayEffect::NO_PERIOD = 0.f;
 const float UGameplayEffect::INVALID_LEVEL = -1.f;
 
+DECLARE_CYCLE_STAT(TEXT("MakeQuery"), STAT_MakeGameplayEffectQuery, STATGROUP_AbilitySystem);
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	UGameplayEffect
@@ -776,6 +778,25 @@ bool FGameplayEffectSpec::HasValidCapturedAttributes(const TArray<FGameplayEffec
 	return CapturedRelevantAttributes.HasValidCapturedAttributes(InCaptureDefsToCheck);
 }
 
+void FGameplayEffectSpec::RecaptureAttributeDataForClone(UAbilitySystemComponent* OriginalASC, UAbilitySystemComponent* NewASC)
+{
+	if (bCompletedSourceAttributeCapture == false)
+	{
+		// Only do this if we are the source
+		if (EffectContext.GetInstigatorAbilitySystemComponent() == OriginalASC)
+		{
+			// Flip the effect context
+			EffectContext.AddInstigator(NewASC->GetOwner(), EffectContext.GetEffectCauser());
+			CaptureDataFromSource();
+		}
+	}
+
+	if (bCompletedTargetAttributeCapture == false)
+	{
+		CaptureAttributeDataFromTarget(NewASC);
+	}
+}
+
 const FGameplayEffectModifiedAttribute* FGameplayEffectSpec::GetModifiedAttribute(const FGameplayAttribute& Attribute) const
 {
 	for (const FGameplayEffectModifiedAttribute& ModifiedAttribute : ModifiedAttributes)
@@ -981,6 +1002,14 @@ bool FGameplayEffectAttributeCaptureSpec::ShouldRefreshLinkedAggregator(const FA
 	return (BackingDefinition.bSnapshot == false && (ChangedAggregator == nullptr || AttributeAggregator.Get() == ChangedAggregator));
 }
 
+void FGameplayEffectAttributeCaptureSpec::SwapAggregator(FAggregatorRef From, FAggregatorRef To)
+{
+	if (AttributeAggregator.Get() == From.Get())
+	{
+		AttributeAggregator = To;
+	}
+}
+
 const FGameplayEffectAttributeCaptureDefinition& FGameplayEffectAttributeCaptureSpec::GetBackingDefinition() const
 {
 	return BackingDefinition;
@@ -1122,6 +1151,19 @@ void FGameplayEffectAttributeCaptureSpecContainer::UnregisterLinkedAggregatorCal
 	for (const FGameplayEffectAttributeCaptureSpec& CaptureSpec : TargetAttributes)
 	{
 		CaptureSpec.UnregisterLinkedAggregatorCallback(Handle);
+	}
+}
+
+void FGameplayEffectAttributeCaptureSpecContainer::SwapAggregator(FAggregatorRef From, FAggregatorRef To)
+{
+	for (FGameplayEffectAttributeCaptureSpec& CaptureSpec : SourceAttributes)
+	{
+		CaptureSpec.SwapAggregator(From, To);
+	}
+
+	for (FGameplayEffectAttributeCaptureSpec& CaptureSpec : TargetAttributes)
+	{
+		CaptureSpec.SwapAggregator(From, To);
 	}
 }
 
@@ -1959,6 +2001,22 @@ void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute A
 		// There is no aggregator yet, so we can just set the numeric value directly
 		InternalUpdateNumericalAttribute(Attribute, NewBaseValue, nullptr);
 	}
+}
+
+float FActiveGameplayEffectsContainer::GetAttributeBaseValue(FGameplayAttribute Attribute)
+{
+	float BaseValue = 0.f;
+	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
+	if (RefPtr)
+	{
+		BaseValue = RefPtr->Get()->GetBaseValue();
+	}
+	else
+	{
+		BaseValue = Owner->GetNumericAttribute(Attribute);
+	}
+
+	return BaseValue;
 }
 
 bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Spec, FGameplayModifierEvaluatedData& ModEvalData)
@@ -3157,30 +3215,36 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQ
 }
 
 
-int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const
+int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query, bool bEnforceOnGoingCheck) const
 {
 	int32 Count = 0;
 
 	for (const FActiveGameplayEffect& Effect : this)
 	{
-		if (Query.Matches(Effect))
+		if (!Effect.bIsInhibited || !bEnforceOnGoingCheck)
 		{
-			Count += Effect.Spec.StackCount;
+			if (Query.Matches(Effect))
+			{
+				Count += Effect.Spec.StackCount;
+			}
 		}
 	}
 
 	return Count;
 }
 
-int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FGameplayEffectQuery& Query) const
+int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FGameplayEffectQuery& Query, bool bEnforceOnGoingCheck) const
 {
 	int32 Count = 0;
 
 	for (const FActiveGameplayEffect& Effect : this)
 	{
-		if (Query.Matches(Effect))
+		if (!Effect.bIsInhibited || !bEnforceOnGoingCheck)
 		{
-			Count += Effect.Spec.StackCount;
+			if (Query.Matches(Effect))
+			{
+				Count += Effect.Spec.StackCount;
+			}
 		}
 	}
 
@@ -3321,6 +3385,116 @@ void FActiveGameplayEffectsContainer::DebugCyclicAggregatorBroadcasts(FAggregato
 				if (ASC)
 				{
 					ABILITY_LOG(Warning, TEXT("  Dependant (%s) GE: %s"), *ASC->GetPathName(), *GetNameSafe(ASC->GetGameplayEffectDefForHandle(Handle)));
+				}
+			}
+		}
+	}
+}
+
+void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsContainer& Source)
+{
+	// Make a full copy of the source's gameplay effects
+	GameplayEffects_Internal = Source.GameplayEffects_Internal;
+
+	// Build our AttributeAggregatorMap by deep copying the source's
+	AttributeAggregatorMap.Reset();
+
+	TArray< TPair<FAggregatorRef, FAggregatorRef> >	SwappedAggregators;
+
+	for (auto& It : Source.AttributeAggregatorMap)
+	{
+		const FGameplayAttribute& Attribute = It.Key;
+		const FAggregatorRef& SourceAggregatorRef = It.Value;
+
+		FAggregatorRef& NewAggregatorRef = FindOrCreateAttributeAggregator(Attribute);
+		FAggregator* NewAggregator = NewAggregatorRef.Get();
+		FAggregator::FOnAggregatorDirty OnDirtyDelegate = NewAggregator->OnDirty;
+
+		// Make full copy of the source aggregator
+		*NewAggregator = *SourceAggregatorRef.Get();
+
+		// But restore the OnDirty delegate to point to our proxy ASC
+		NewAggregator->OnDirty = OnDirtyDelegate;
+
+		TPair<FAggregatorRef, FAggregatorRef> SwappedPair;
+		SwappedPair.Key = SourceAggregatorRef;
+		SwappedPair.Value = NewAggregatorRef;
+
+		SwappedAggregators.Add(SwappedPair);
+	}
+
+	// Make all of our copied GEs "unique" by giving them a new handle
+	TArray< TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle> >	SwappedHandles;
+
+	for (FActiveGameplayEffect& Effect : this)
+	{
+		// Copy the Spec's context so we can modify it
+		Effect.Spec.DuplicateEffectContext();
+		Effect.Spec.SetupAttributeCaptureDefinitions();
+
+		// For client only, capture attribute data since this data is constructed for replicated active gameplay effects by default
+		Effect.Spec.RecaptureAttributeDataForClone(Source.Owner, Owner);
+
+		TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle> SwapPair;
+
+		SwapPair.Key = Effect.Handle;
+		Effect.Spec.CapturedRelevantAttributes.UnregisterLinkedAggregatorCallbacks(Effect.Handle);
+
+		Effect.Handle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
+		Effect.Spec.CapturedRelevantAttributes.RegisterLinkedAggregatorCallbacks(Effect.Handle);
+		SwapPair.Value = Effect.Handle;
+
+		SwappedHandles.Add(SwapPair);
+
+		// Update any captured attribute references to the proxy source.
+		for (TPair<FAggregatorRef, FAggregatorRef>& SwapAgg : SwappedAggregators)
+		{
+			Effect.Spec.CapturedRelevantAttributes.SwapAggregator( SwapAgg.Key, SwapAgg.Value );
+		}
+	}	
+
+	// Now go through our aggregator map and replace dependency references to the source's GEs with our GEs.
+	for (auto& It : AttributeAggregatorMap)
+	{
+		FGameplayAttribute& Attribute = It.Key;
+		FAggregatorRef& AggregatorRef = It.Value;
+
+		if (FAggregator* Aggregator = AggregatorRef.Get())
+		{
+			// Dependents
+			for (int32 idx=Aggregator->Dependents.Num()-1; idx >= 0; idx--)
+			{
+				FActiveGameplayEffectHandle& DependentHandle = Aggregator->Dependents[idx];
+				
+				bool found = false;
+				for (TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle>& SwapPair : SwappedHandles)
+				{
+					if (SwapPair.Key == DependentHandle || SwapPair.Value == DependentHandle)
+					{
+						DependentHandle = SwapPair.Value;
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					// This is a dependant outside of this cloned effects container. Don't bring this over in the clone.
+					Aggregator->Dependents.RemoveAtSwap(idx, 1, false);
+				}
+			}
+
+			for (int32 idx=0; idx < EGameplayModOp::Max; ++idx)
+			{
+				for (FAggregatorMod& Mod : Aggregator->Mods[idx])
+				{
+					for (TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle>& SwapPair : SwappedHandles)
+					{
+						if (SwapPair.Key == Mod.ActiveHandle)
+						{
+							Mod.ActiveHandle = SwapPair.Value;
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -3567,6 +3741,7 @@ bool FGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(InTags);
 	return OutQuery;
@@ -3575,6 +3750,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(const FG
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllOwningTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAllTags(InTags);
 	return OutQuery;
@@ -3583,6 +3759,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllOwningTags(const FG
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoOwningTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
 	return OutQuery;
@@ -3591,6 +3768,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoOwningTags(const FGa
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(InTags);
 	return OutQuery;
@@ -3599,6 +3777,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(const FG
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllEffectTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchAllTags(InTags);
 	return OutQuery;
@@ -3607,6 +3786,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllEffectTags(const FG
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoEffectTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
 	return OutQuery;
@@ -3615,6 +3795,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoEffectTags(const FGa
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnySourceTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.SourceTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(InTags);
 	return OutQuery;
@@ -3623,6 +3804,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAnySourceTags(const FG
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllSourceTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.SourceTagQuery = FGameplayTagQuery::MakeQuery_MatchAllTags(InTags);
 	return OutQuery;
@@ -3631,6 +3813,7 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchAllSourceTags(const FG
 // static
 FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoSourceTags(const FGameplayTagContainer& InTags)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeGameplayEffectQuery);
 	FGameplayEffectQuery OutQuery;
 	OutQuery.SourceTagQuery = FGameplayTagQuery::MakeQuery_MatchNoTags(InTags);
 	return OutQuery;

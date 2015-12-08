@@ -644,9 +644,20 @@ public:
 	/** Cached resources need to retain the associated shader resource for bookkeeping purposes. */
 	struct FResourcePair
 	{		
-		FName ResourceName;
 		FD3D11BaseShaderResource* ShaderResource;
 		IUnknown* D3D11Resource;
+		
+#if SUPPORT_RESOURCE_NAME
+		// useful to log resource transitions
+		void SetResourceName(const FName InName) { ResourceName = InName; }
+		FName GetResourceName() const { return ResourceName; }
+	private:
+		FName ResourceName;
+	public:
+#else
+		void SetResourceName(const FName InName) {}
+		FName GetResourceName() const { return NAME_None; }
+#endif
 	};
 
 	/** Raw resource table, cached once per frame. */

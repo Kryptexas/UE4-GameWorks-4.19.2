@@ -592,7 +592,9 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 	}
 
 #if CHECK_SRV_TRANSITIONS
+	check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 	UnresolvedTargets.Reset();
+	check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 #endif
 }
 

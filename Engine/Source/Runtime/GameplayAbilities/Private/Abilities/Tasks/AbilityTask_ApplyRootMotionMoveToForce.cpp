@@ -85,16 +85,16 @@ void UAbilityTask_ApplyRootMotionMoveToForce::SharedInitAndApply()
 			MoveToForce->PathOffsetCurve = PathOffsetCurve;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(MoveToForce);
 
-			if (Ability.IsValid())
+			if (Ability)
 			{
-				Ability.Get()->SetMovementSyncPoint(ForceName);
+				Ability->SetMovementSyncPoint(ForceName);
 			}
 		}
 	}
 	else
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_ApplyRootMotionMoveToForce called in Ability %s with null MovementComponent; Task Instance Name %s."), 
-			Ability.IsValid() ? *Ability.Get()->GetName() : TEXT("NULL"), 
+			Ability ? *Ability->GetName() : TEXT("NULL"), 
 			*InstanceName.ToString());
 	}
 }

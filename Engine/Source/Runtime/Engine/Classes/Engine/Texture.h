@@ -614,8 +614,11 @@ public:
 #if WITH_EDITOR
 	/**
 	 * Caches platform data for the texture.
+	 * 
+	 * @param bAsyncCache spawn a thread to cache the platform data 
+	 * @param bAllowAsyncBuild allow the building of the texture to happen on another thread !!!load BulkData and cache the Source mip data on the main thread before checking DDC!!!
 	 */
-	void CachePlatformData(bool bAsyncCache = false);
+	void CachePlatformData(bool bAsyncCache = false, bool bAllowAsyncBuild = false);
 
 	/**
 	 * Begins caching platform data in the background for the platform requested

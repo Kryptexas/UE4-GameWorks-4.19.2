@@ -229,7 +229,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 							.Value(0.10f)
 							[
 								// track label browser
-								SAssignNew(LabelBrowser, SSequencerLabelBrowser)
+								SAssignNew(LabelBrowser, SSequencerLabelBrowser, InSequencer)
 									.OnSelectionChanged(this, &SSequencer::HandleLabelBrowserSelectionChanged)
 									.Visibility(this, &SSequencer::HandleLabelBrowserVisibility)
 							]
@@ -518,6 +518,7 @@ TSharedRef<INumericTypeInterface<float>> SSequencer::GetNumericTypeInterface()
 	return NumericTypeInterface.ToSharedRef();
 }
 
+
 void SSequencer::UpdateDetailsView()
 {
 	TArray<TWeakObjectPtr<UObject>> Sections;
@@ -582,7 +583,7 @@ void SSequencer::HandleKeySelectionChanged()
 
 void SSequencer::HandleLabelBrowserSelectionChanged(FString NewLabel, ESelectInfo::Type SelectInfo)
 {
-	SearchBox->SetText(FText::FromString(NewLabel));
+	SearchBox->SetText(FText::FromString(FString(TEXT("label:") + NewLabel)));
 }
 
 

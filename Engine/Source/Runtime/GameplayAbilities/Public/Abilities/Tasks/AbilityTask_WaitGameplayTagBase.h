@@ -27,7 +27,9 @@ protected:
 	
 	bool RegisteredCallback;
 	
-	TWeakObjectPtr<UAbilitySystemComponent> OptionalExternalTarget;
+	UPROPERTY()
+	UAbilitySystemComponent* OptionalExternalTarget;
+
 	bool UseExternalTarget;	
 	bool OnlyTriggerOnce;
 

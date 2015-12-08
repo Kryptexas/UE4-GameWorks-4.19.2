@@ -3253,6 +3253,8 @@ public:
 	 */
 	virtual void Tick(float DeltaSeconds, bool bSuppressSpawning) override
 	{
+		FreeNewParticleArray(NewParticles);
+
 		SCOPE_CYCLE_COUNTER(STAT_GPUSpriteTickTime);
 
 		check(AllocatedTiles.Num() == TileTimeOfDeath.Num());

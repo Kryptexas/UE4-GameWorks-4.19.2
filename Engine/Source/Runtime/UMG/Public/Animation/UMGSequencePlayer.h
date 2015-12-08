@@ -34,6 +34,9 @@ public:
 	/** @return The current animation being played */
 	const UWidgetAnimation* GetAnimation() const { return Animation; }
 
+	/** Sets the number of loops to play */
+	void SetNumLoopsToPlay(int32 InNumLoopsToPlay);
+
 	/** IMovieScenePlayer interface */
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override {}

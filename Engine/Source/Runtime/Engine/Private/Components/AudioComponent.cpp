@@ -640,6 +640,45 @@ void UAudioComponent::SetIntParameter( FName InName, int32 InInt )
 	}
 }
 
+void UAudioComponent::SetSoundParameter(const FAudioComponentParam& Param)
+{
+	if (Param.ParamName != NAME_None)
+	{
+		bool bFound = false;
+		// First see if an entry for this name already exists
+		for (int32 i = 0; i < InstanceParameters.Num(); i++)
+		{
+			FAudioComponentParam& P = InstanceParameters[i];
+			if (P.ParamName == Param.ParamName)
+			{
+				P = Param;
+				bFound = true;
+				break;
+			}
+		}
+
+		// We didn't find one, so create a new one.
+		if (!bFound)
+		{
+			const int32 NewParamIndex = InstanceParameters.AddZeroed();
+			InstanceParameters[NewParamIndex] = Param;
+		}
+
+		if (bIsActive)
+		{
+			// TODO - Audio Threading. This call would be a task
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
+			{
+				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
+				if (ActiveSound)
+				{
+					ActiveSound->SetSoundParameter(Param);
+				}
+			}
+		}
+	}
+}
+
 void UAudioComponent::SetVolumeMultiplier(float NewVolumeMultiplier)
 {
 	VolumeMultiplier = NewVolumeMultiplier;

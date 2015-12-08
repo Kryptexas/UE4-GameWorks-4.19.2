@@ -130,6 +130,7 @@ struct ExistingSkelMeshData
 	TArray<FSkeletalMaterial>				ExistingMaterials;
 	TArray<UMorphTarget*>					ExistingMorphTargets;
 	TArray<UPhysicsAsset*>					ExistingPhysicsAssets;
+	UPhysicsAsset*							ExistingShadowPhysicsAsset;
 	USkeleton*								ExistingSkeleton;
 	TArray<FTransform>						ExistingRetargetBasePose;
 

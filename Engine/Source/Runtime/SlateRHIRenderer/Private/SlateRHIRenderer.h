@@ -148,6 +148,7 @@ private:
 
 	private:		
 	};
+
 public:
 	FSlateRHIRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager );
 	~FSlateRHIRenderer();
@@ -289,4 +290,16 @@ private:
 	bool bTakingAScreenShot;
 	FIntRect ScreenshotRect;
 	TArray<FColor>* OutScreenshotData;
+};
+
+struct FSlateEndDrawingWindowsCommand : public FRHICommand < FSlateEndDrawingWindowsCommand >
+{
+	FSlateRHIRenderingPolicy& Policy;
+	FSlateDrawBuffer* DrawBuffer;
+
+	FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer);
+
+	void Execute(FRHICommandListBase& CmdList);
+
+	static void EndDrawingWindows(FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy);
 };

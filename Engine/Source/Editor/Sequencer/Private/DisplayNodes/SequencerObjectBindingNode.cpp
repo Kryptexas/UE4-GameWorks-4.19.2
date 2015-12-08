@@ -102,7 +102,6 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			}
 		}
 
-#if 0
 		MenuBuilder.BeginSection("Organize", LOCTEXT("OrganizeContextMenuSectionName", "Organize"));
 		{
 			MenuBuilder.AddSubMenu(
@@ -112,7 +111,6 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			);
 		}
 		MenuBuilder.EndSection();
-#endif
 	}
 
 	FSequencerDisplayNode::BuildContextMenu(MenuBuilder);
@@ -451,8 +449,7 @@ void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrac
 
 void FSequencerObjectBindingNode::HandleLabelsSubMenuCreate(FMenuBuilder& MenuBuilder)
 {
-	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
-	MenuBuilder.AddWidget(SNew(SSequencerLabelEditor, MovieScene, ObjectBinding), FText::GetEmpty(), true);
+	MenuBuilder.AddWidget(SNew(SSequencerLabelEditor, GetSequencer(), ObjectBinding), FText::GetEmpty(), true);
 }
 
 

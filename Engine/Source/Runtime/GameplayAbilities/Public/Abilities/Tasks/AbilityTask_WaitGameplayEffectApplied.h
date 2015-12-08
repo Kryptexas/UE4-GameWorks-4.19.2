@@ -37,5 +37,6 @@ protected:
 	bool RegisteredCallback;
 	bool UseExternalOwner;
 
-	TWeakObjectPtr<UAbilitySystemComponent> ExternalOwner;
+	UPROPERTY()
+	UAbilitySystemComponent* ExternalOwner;
 };

@@ -185,11 +185,18 @@ static TAutoConsoleVariable<float> CVarMotionBlurScale(
 	TEXT("1: don't do any scaling (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarMotionBlurAmount(
+	TEXT("r.MotionBlur.Amount"),
+	-1.0f,
+	TEXT("Allows to override the postprocess setting (scale of motion blur)\n")
+	TEXT("-1: override (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<float> CVarMotionBlurMax(
 	TEXT("r.MotionBlur.Max"),
 	-1.0f,
-	TEXT("Allows to clamp the postprocess setting (max distortion caused by motion blur, in percent of the screen width)\n")
-	TEXT("-1: don't clamp (default)"),
+	TEXT("Allows to override the postprocess setting (max length of motion blur, in percent of the screen width)\n")
+	TEXT("-1: override (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarSceneColorFringeMax(
@@ -1475,11 +1482,20 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
+		float Value = CVarMotionBlurAmount.GetValueOnGameThread();
+
+		if(Value >= 0.0f)
+		{
+			FinalPostProcessSettings.MotionBlurAmount = Value;
+		}
+	}
+
+	{
 		float Value = CVarMotionBlurMax.GetValueOnGameThread();
 
 		if(Value >= 0.0f)
 		{
-			FinalPostProcessSettings.MotionBlurMax = FMath::Min(FinalPostProcessSettings.MotionBlurMax, Value);
+			FinalPostProcessSettings.MotionBlurMax = Value;
 		}
 	}
 

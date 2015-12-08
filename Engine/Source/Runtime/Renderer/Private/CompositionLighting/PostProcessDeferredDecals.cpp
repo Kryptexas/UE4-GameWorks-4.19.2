@@ -464,6 +464,20 @@ static inline bool IsWrittingToGBufferA(FDecalRendering::ERenderTargetMode Rende
 	return RenderTargetMode == FDecalRendering::RTM_SceneColorAndGBufferWithNormal ||  RenderTargetMode == FDecalRendering::RTM_SceneColorAndGBufferDepthWriteWithNormal || RenderTargetMode == FDecalRendering::RTM_GBufferNormal;
 }
 
+const TCHAR* GetStageName(EDecalRenderStage Stage)
+{
+	// could be implemented with enum reflections as well
+
+	switch(Stage)
+	{
+		case DRS_BeforeBasePass: return TEXT("DRS_BeforeBasePass");
+		case DRS_AfterBasePass: return TEXT("DRS_AfterBasePass");
+		case DRS_BeforeLighting: return TEXT("DRS_BeforeLighting");
+		case DRS_ForwardShading: return TEXT("DRS_ForwardShading");
+	}
+	return TEXT("<UNKNOWN>");
+}
+
 void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& Context)
 {
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
@@ -473,7 +487,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	const bool bDBuffer = IsDBufferEnabled();
 	const bool bStencilSizeThreshold = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
 
-	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, DeferredDecals, TEXT("DeferredDecals %s"), GetStageName(CurrentStage));
 
 	enum EDecalResolveBufferIndex
 	{
@@ -565,6 +579,8 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		if (SortedDecals.Num() > 0)
 		{
+			SCOPED_DRAW_EVENTF(Context.RHICmdList, DeferredDecalsInner, TEXT("DeferredDecalsInner %d/%d"), SortedDecals.Num(), Scene.Decals.Num());
+
 			FIntRect SrcRect = View.ViewRect;
 			FIntRect DestRect = View.ViewRect;
 

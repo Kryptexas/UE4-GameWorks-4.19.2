@@ -295,6 +295,9 @@ public:
 	/** Sets an integer instance parameter for the ActiveSound */
 	void SetIntParameter(const FName InName, const int32 InInt);
 
+	/** Sets the audio component parameter on the active sound. Note: this can be set without audio components if they are set when active sound is created. */
+	void SetSoundParameter(const FAudioComponentParam& Param);
+
 	/**
 	 * Try and find an Instance Parameter with the given name and if we find it return the float value.
 	 * @return true if float for parameter was found, otherwise false

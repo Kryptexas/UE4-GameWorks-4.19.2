@@ -34,7 +34,7 @@ public partial class Project : CommandUtils
 			}
 		}
 
-		if (DeployContextList.Count > 0 && !Params.SkipStage)
+		if (DeployContextList.Count > 0 && (!Params.SkipStage || Params.Package))
 		{
 			Log("********** PACKAGE COMMAND STARTED **********");
 

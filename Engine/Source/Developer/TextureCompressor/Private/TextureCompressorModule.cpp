@@ -1593,7 +1593,11 @@ static bool CompressMipChain(
 						Settings,
 						bImageHasAlphaChannel
 						);
+#if WITH_EDITOR
+					AsyncTask->StartBackgroundTask(GLargeThreadPool);
+#else
 					AsyncTask->StartBackgroundTask();
+#endif
 				}
 				else
 				{

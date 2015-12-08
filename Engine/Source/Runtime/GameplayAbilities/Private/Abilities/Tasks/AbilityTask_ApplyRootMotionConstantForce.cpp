@@ -64,16 +64,16 @@ void UAbilityTask_ApplyRootMotionConstantForce::SharedInitAndApply()
 			ConstantForce->Duration = Duration;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(ConstantForce);
 
-			if (Ability.IsValid())
+			if (Ability)
 			{
-				Ability.Get()->SetMovementSyncPoint(ForceName);
+				Ability->SetMovementSyncPoint(ForceName);
 			}
 		}
 	}
 	else
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_ApplyRootMotionConstantForce called in Ability %s with null MovementComponent; Task Instance Name %s."), 
-			Ability.IsValid() ? *Ability.Get()->GetName() : TEXT("NULL"), 
+			Ability ? *Ability->GetName() : TEXT("NULL"), 
 			*InstanceName.ToString());
 	}
 }

@@ -158,7 +158,9 @@ void FD3D11DynamicRHI::CheckIfSRVIsResolved(ID3D11ShaderResourceView* SRV)
 	int32 LastSlice = ArraySlice + NumSlices - 1;
 
 	TArray<FUnresolvedRTInfo> RTInfoArray;
+	check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 	UnresolvedTargets.MultiFind(SRVResource, RTInfoArray);
+	check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 
 	for (int32 InfoIndex = 0; InfoIndex < RTInfoArray.Num(); ++InfoIndex)
 	{

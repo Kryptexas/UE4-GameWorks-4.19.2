@@ -233,6 +233,8 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FDeferredDecalPS,TEXT("DeferredDecal"),TEXT("Mai
 
 void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo& View, EDecalRenderStage DecalRenderStage, FTransientDecalRenderDataList& OutVisibleDecals)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(BuildVisibleDecalList);
+
 	OutVisibleDecals.Empty(Scene.Decals.Num());
 
 	const float FadeMultiplier = CVarDecalFadeScreenSizeMultiplier.GetValueOnRenderThread();

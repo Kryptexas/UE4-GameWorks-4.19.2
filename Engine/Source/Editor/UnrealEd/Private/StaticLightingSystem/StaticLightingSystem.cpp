@@ -452,19 +452,7 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 		FMemory::Memzero(&AutomaticImportanceVolumeBounds, sizeof(FBox));
 
 		GLightingBuildQuality = Options.QualityLevel;
-		switch(Options.QualityLevel)
-		{
-			case Quality_Preview:
-				GLightmapEncodeQualityLevel = 0; // nvtt::Quality_Fastest
-				break;
-
-			case Quality_Medium:
-			case Quality_High:
-			case Quality_Production:
-			default:
-				GLightmapEncodeQualityLevel = 2; // nvtt::Quality_Production
-				break;
-		}
+	
 	}
 
 	{
@@ -788,7 +776,7 @@ void UpdateStaticLightingHLODTreeIndices(TMultiMap<AActor*, FStaticLightingMesh*
 
 			for (FStaticLightingMesh* SubActorMesh : SubActorMeshes)
 			{
-				check(SubActorMesh->HLODTreeIndex == 0)
+				checkf(SubActorMesh->HLODTreeIndex == 0, TEXT("ERROR: HLODTreeIndex != 0 for '%s' while processing LOD actor '%s'"), *SubActorMesh->Component->GetPathName(), *LODActor->GetName());
 				{
 					SubActorMesh->HLODTreeIndex = HLODTreeIndex;
 					SubActorMesh->HLODChildStartIndex = HLODLeafIndex;
@@ -1152,16 +1140,31 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 
 void FStaticLightingSystem::EncodeTextures(bool bLightingSuccessful)
 {
+	// used to debug multithreaded issues (don't check in)
+	
+	bool bEnableMultithreadedLightmapEncode = false;
+	bool bEnableMultithreadedShadowmapEncode = false;
+	UEditorExperimentalSettings* ExperimentalSettings = UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>();
+	if (ExperimentalSettings)
+	{
+		bEnableMultithreadedLightmapEncode = ExperimentalSettings->bEnableMultithreadedLightmapEncoding;
+		bEnableMultithreadedShadowmapEncode = ExperimentalSettings->bEnableMultithreadedShadowmapEncoding;
+	}
 	FLightmassStatistics::FScopedGather EncodeStatScope(LightmassStatistics.EncodingTime);
 
 	FScopedSlowTask SlowTask(2);
+	{
+		FLightmassStatistics::FScopedGather EncodeStatScope2(LightmassStatistics.EncodingLightmapsTime);
+		// Flush pending shadow-map and light-map encoding.
+		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticLightMapsStatusMessage", "Encoding imported static light maps."));
+		FLightMap2D::EncodeTextures(World, bLightingSuccessful, bEnableMultithreadedLightmapEncode);
+	}
 
-	// Flush pending shadow-map and light-map encoding.
-	SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticLightMapsStatusMessage", "Encoding imported static light maps.") );
-	FLightMap2D::EncodeTextures(World, bLightingSuccessful, true);
-
-	SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticShadowMapsStatusMessage", "Encoding imported static shadow maps.") );
-	FShadowMap2D::EncodeTextures(World, bLightingSuccessful);
+	{
+		FLightmassStatistics::FScopedGather EncodeStatScope2(LightmassStatistics.EncodingShadowMapsTime);
+		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticShadowMapsStatusMessage", "Encoding imported static shadow maps."));
+		FShadowMap2D::EncodeTextures(World, bLightingSuccessful, bEnableMultithreadedShadowmapEncode);
+	}
 }
 
 void FStaticLightingSystem::ApplyNewLightingData(bool bLightingSuccessful)
@@ -1387,7 +1390,7 @@ void FStaticLightingSystem::ReportStatistics()
 	}
 	else	//if ( GLightmassStatsMode)
 	{
-		UE_LOG(LogStaticLightingSystem, Log, TEXT("Illumination: %s (%s encoding lightmaps)"), *FPlatformTime::PrettyTime(LightmassStatistics.TotalTime), *FPlatformTime::PrettyTime(LightmassStatistics.EncodingTime) );
+		UE_LOG(LogStaticLightingSystem, Log, TEXT("Illumination: %s (%s encoding lightmaps, %s encoding shadowmaps)"), *FPlatformTime::PrettyTime(LightmassStatistics.TotalTime), *FPlatformTime::PrettyTime(LightmassStatistics.EncodingLightmapsTime), *FPlatformTime::PrettyTime(LightmassStatistics.EncodingShadowMapsTime));
 	}
 	UE_LOG(LogStaticLightingSystem, Log, TEXT("Lightmap texture memory:  %.1f MB (%.1f MB streaming, %.1f MB non-streaming), %d textures"),
 		GLightmapTotalSize/1024.0f/1024.0f,

@@ -95,7 +95,7 @@ class FNullMovieSceneSpawnRegister : public IMovieSceneSpawnRegister
 public:
 	// These 2 functions ensure because they should never be called for sequences that don't support spawnables
 	virtual UObject* SpawnObject(const FGuid& Object, FMovieSceneSequenceInstance&, IMovieScenePlayer&) override { check(false); return nullptr; }
-	virtual void DestroySpawnedObject(const FGuid& Object, FMovieSceneSequenceInstance&, IMovieScenePlayer&) override { check(false); }
+	virtual void DestroySpawnedObject(const FGuid& Object, FMovieSceneSequenceInstance&, IMovieScenePlayer&) override { }
 	virtual void DestroyObjectsOwnedByInstance(FMovieSceneSequenceInstance&, IMovieScenePlayer&) override { }
 	virtual void DestroyObjectsSpawnedByInstance(FMovieSceneSequenceInstance&, IMovieScenePlayer&) override { }
 	virtual void DestroyAllOwnedObjects(IMovieScenePlayer&) override { }

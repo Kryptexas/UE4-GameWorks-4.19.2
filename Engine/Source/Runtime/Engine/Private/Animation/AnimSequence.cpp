@@ -4144,6 +4144,8 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 	bool bOffsetInitialized = false;
 	float MarkerTimeOffset = 0.f;
 
+	check(CurrentTime >= 0.f && CurrentTime <= SequenceLength);
+
 	if (bPlayingForwards)
 	{
 		while (true)
@@ -4198,10 +4200,10 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 			}
 			else
 			{
-				CurrentTime += CurrentMoveDelta;
-				if (CurrentTime > SequenceLength)
+				CurrentTime = FMath::Fmod(CurrentTime + CurrentMoveDelta, SequenceLength);
+				if (CurrentTime < 0.f)
 				{
-					CurrentTime -= SequenceLength;
+					CurrentTime += SequenceLength;
 				}
 				NextMarker.TimeToMarker = TimeToMarker - CurrentMoveDelta;
 				PrevMarker.TimeToMarker -= CurrentMoveDelta;
@@ -4263,7 +4265,7 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 			}
 			else
 			{
-				CurrentTime += CurrentMoveDelta;
+				CurrentTime = FMath::Fmod(CurrentTime + CurrentMoveDelta, SequenceLength);
 				if (CurrentTime < 0.f)
 				{
 					CurrentTime += SequenceLength;
@@ -4274,6 +4276,8 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 			}
 		}
 	}
+
+	check(CurrentTime >= 0.f && CurrentTime <= SequenceLength);
 }
 
 void AdvanceMarkerForwards(int32& Marker, FName MarkerToFind, bool bLooping, const TArray<FAnimSyncMarker>& AuthoredSyncMarkers)
@@ -4323,7 +4327,7 @@ void AdvanceMarkerBackwards(int32& Marker, FName MarkerToFind, bool bLooping, co
 
 bool MarkerMatchesPosition(const UAnimSequence* Sequence, int32 MarkerIndex, FName CorrectMarker)
 {
-	checkf(MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Uninitialized marker supplied to MarkerMatchesPosition. Anim: %s Expecting marker %s"), *Sequence->GetName(), *CorrectMarker.ToString());
+	checkf(MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Uninitialized marker supplied to MarkerMatchesPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *Sequence->GetName(), *CorrectMarker.ToString());
 	return MarkerIndex == MarkerIndexSpecialValues::AnimationBoundary || CorrectMarker == Sequence->AuthoredSyncMarkers[MarkerIndex].MarkerName;
 }
 
@@ -4575,7 +4579,7 @@ void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& S
 			}
 		}
 		// Should have found a marker above!
-		checkf(false, TEXT("Next Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s"), *GetName(), *SyncPosition.NextMarkerName.ToString());
+		checkf(false, TEXT("Next Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.NextMarkerName.ToString());
 	}
 
 	if (SyncPosition.NextMarkerName == NAME_None)
@@ -4594,7 +4598,7 @@ void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& S
 			}
 		}
 		// Should have found a marker above!
-		checkf(false, TEXT("Previous Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s"), *GetName(), *SyncPosition.PreviousMarkerName.ToString());
+		checkf(false, TEXT("Previous Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.PreviousMarkerName.ToString());
 	}
 
 	float DiffToCurrentTime = FLT_MAX;
@@ -4637,8 +4641,8 @@ void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& S
 		}
 	}
 	// Should have found a markers above!
-	checkf(OutPrevMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Prev Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s"), *GetName(), *SyncPosition.PreviousMarkerName.ToString());
-	checkf(OutNextMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Next Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s"), *GetName(), *SyncPosition.NextMarkerName.ToString());
+	checkf(OutPrevMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Prev Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.PreviousMarkerName.ToString());
+	checkf(OutNextMarker.MarkerIndex != MarkerIndexSpecialValues::Unitialized, TEXT("Next Marker not found in GetMarkerIndicesForPosition. Anim: %s Expecting marker %s (Added to help debug Jira OR-9675)"), *GetName(), *SyncPosition.NextMarkerName.ToString());
 }
 
 float UAnimSequence::GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const

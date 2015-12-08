@@ -2272,6 +2272,25 @@ protected:
 		}
 	}
 
+#if WITH_EDITOR
+	virtual int32 MaterialBakingWorldPosition() override
+	{
+		if (ShaderFrequency == SF_Vertex)
+		{
+			NumUserVertexTexCoords = FMath::Max((uint32)8, NumUserVertexTexCoords);
+		}
+		else
+		{
+			NumUserTexCoords = FMath::Max((uint32)8, NumUserTexCoords);
+		}
+
+		// Note: inlining is important so that on ES2 devices, where half precision is used in the pixel shader, 
+		// The UV does not get assigned to a half temporary in cases where the texture sample is done directly from interpolated UVs
+		return AddInlinedCodeChunk(MCT_Float3, TEXT("float3(Parameters.TexCoords[6].x, Parameters.TexCoords[6].y, Parameters.TexCoords[7].x)"));
+	}
+#endif
+		
+
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override
 	{
 		const uint32 MaxNumCoordinates = (FeatureLevel == ERHIFeatureLevel::ES2) ? 3 : 8;

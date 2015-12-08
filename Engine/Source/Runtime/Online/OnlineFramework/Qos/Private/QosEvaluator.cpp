@@ -124,8 +124,16 @@ void UQosEvaluator::FindDatacenters(int32 ControllerId, const FOnQosSearchComple
 					const TSharedRef<FOnlineSessionSearch> QosSearchParams = MakeShareable(new FOnlineSessionSearchQos());
 					QosSearchQuery = QosSearchParams;
 
-					FOnFindSessionsCompleteDelegate OnFindDatacentersCompleteDelegate = FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindDatacentersComplete, InCompletionDelegate);
-					OnFindDatacentersCompleteDelegateHandle = SessionInt->AddOnFindSessionsCompleteDelegate_Handle(OnFindDatacentersCompleteDelegate);
+					if ( OnFindDatacentersCompleteDelegateHandle.IsValid() )
+					{
+						SessionInt->ClearOnFindSessionsCompleteDelegate_Handle( OnFindDatacentersCompleteDelegateHandle );
+					}
+					// now make a new bind
+					{
+						FOnFindSessionsCompleteDelegate OnFindDatacentersCompleteDelegate = FOnFindSessionsCompleteDelegate::CreateUObject( this, &ThisClass::OnFindDatacentersComplete, InCompletionDelegate );
+						OnFindDatacentersCompleteDelegateHandle = SessionInt->AddOnFindSessionsCompleteDelegate_Handle( OnFindDatacentersCompleteDelegate );
+					}
+
 					SessionInt->FindSessions(ControllerId, QosSearchParams);
 					Result = EQosCompletionResult::Success;
 				}
@@ -158,6 +166,7 @@ void UQosEvaluator::OnFindDatacentersComplete(bool bWasSuccessful, FOnQosSearchC
 		if (SessionInt.IsValid())
 		{
 			SessionInt->ClearOnFindSessionsCompleteDelegate_Handle(OnFindDatacentersCompleteDelegateHandle);
+			//OnFindDatacentersCompleteDelegateHandle.Reset();
 		}
 	}
 

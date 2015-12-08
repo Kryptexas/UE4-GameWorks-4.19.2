@@ -66,7 +66,11 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
+#if WITH_EDITOR
+		return Compiler->MaterialBakingWorldPosition();
+#else
 		return Compiler->WorldPosition(WorldPositionIncludedOffsets);
+#endif
 	}
 
 	virtual int32 ObjectWorldPosition() override
@@ -164,6 +168,13 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 	{ 
 		return Compiler->PrecomputedAOMask();
 	}
+
+#if WITH_EDITOR
+	virtual int32 MaterialBakingWorldPosition() override
+	{
+		return Compiler->MaterialBakingWorldPosition();
+	}
+#endif
 
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override
 	{
@@ -1724,7 +1735,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 
 	// Determine whether or not certain properties can be rendered
 	bool bRenderNormal = (Material->GetMaterial()->HasNormalConnected() || Material->GetMaterial()->bUseMaterialAttributes || Material->IsPropertyActive(MP_Normal)) && (OutFlattenMaterial.NormalSize.X > 0 && OutFlattenMaterial.NormalSize.Y > 0);
-	bool bRenderEmissive = Material->GetMaterial()->EmissiveColor.IsConnected() && Material->IsPropertyActive(MP_EmissiveColor) && OutFlattenMaterial.EmissiveSize.X > 0 && OutFlattenMaterial.EmissiveSize.Y > 0;
+	bool bRenderEmissive = (Material->GetMaterial()->EmissiveColor.IsConnected() || Material->GetMaterial()->bUseMaterialAttributes || Material->IsPropertyActive(MP_EmissiveColor)) && OutFlattenMaterial.EmissiveSize.X > 0 && OutFlattenMaterial.EmissiveSize.Y > 0;
 	bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
 	bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode()) && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
 	bool bRenderSubSurface = Material->IsPropertyActive(MP_SubsurfaceColor) && OutFlattenMaterial.SubSurfaceSize.X > 0 && OutFlattenMaterial.SubSurfaceSize.Y > 0;

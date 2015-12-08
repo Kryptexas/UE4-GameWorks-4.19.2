@@ -15,7 +15,7 @@ void UAbilityTask_WaitInputPress::OnPressCallback()
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 
-	if (!Ability.IsValid() || !AbilitySystemComponent.IsValid())
+	if (!Ability || !AbilitySystemComponent)
 	{
 		return;
 	}
@@ -47,7 +47,7 @@ UAbilityTask_WaitInputPress* UAbilityTask_WaitInputPress::WaitInputPress(class U
 void UAbilityTask_WaitInputPress::Activate()
 {
 	StartTime = GetWorld()->GetTimeSeconds();
-	if (Ability.IsValid())
+	if (Ability)
 	{
 		if (bTestInitialState && IsLocallyControlled())
 		{

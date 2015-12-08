@@ -42,10 +42,10 @@ UAbilitySystemComponent* UAbilityTask_WaitGameplayTag::GetTargetASC()
 {
 	if (UseExternalTarget)
 	{
-		return OptionalExternalTarget.Get();
+		return OptionalExternalTarget;
 	}
 
-	return AbilitySystemComponent.Get();
+	return AbilitySystemComponent;
 }
 
 void UAbilityTask_WaitGameplayTag::SetExternalTarget(AActor* Actor)

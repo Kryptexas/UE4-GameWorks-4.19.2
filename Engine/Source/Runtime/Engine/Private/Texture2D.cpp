@@ -1463,14 +1463,7 @@ void FTexture2DResource::GetData( uint32 MipIndex, void* Dest, uint32 DestPitch 
 	}
 	
 	// Free data retrieved via GetCopy inside constructor.
-	bool bMipIsInDerivedDataCache = false;
-#if WITH_EDITORONLY_DATA
-	bMipIsInDerivedDataCache = MipMap.DerivedDataKey.IsEmpty() == false;
-#endif
-	if (bMipIsInDerivedDataCache)
-	{
-		FMemory::Free(MipData[MipIndex]);
-	}
+	FMemory::Free(MipData[MipIndex]);
 	MipData[MipIndex] = NULL;
 }
 

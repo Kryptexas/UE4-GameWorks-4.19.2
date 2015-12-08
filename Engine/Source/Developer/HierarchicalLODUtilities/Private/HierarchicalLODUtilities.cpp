@@ -173,13 +173,25 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				FHierarchicalLODUtilities& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilities>("HierarchicalLODUtilities");
 				FHierarchicalLODProxyProcessor* Processor = Module.GetProxyProcessor();
 
+				FMeshProxySettings ProxySettings = LODSetup.ProxySetting;
+				if (LODActor->bOverrideMaterialMergeSettings)
+				{
+					ProxySettings.MaterialSettings = LODActor->MaterialSettings;
+				}
+
 				FGuid JobID = Processor->AddProxyJob(LODActor, LODSetup);
-				MeshUtilities.CreateProxyMesh(Actors, LODSetup.ProxySetting, AssetsOuter, PackageName, JobID, Processor->GetCallbackDelegate(), true);
+				MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, PackageName, JobID, Processor->GetCallbackDelegate(), true);
 				return true;
 			}
 			else
 			{
-				MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), LODSetup.MergeSetting, AssetsOuter, PackageName, LODIndex, OutAssets, OutProxyLocation, LODSetup.TransitionScreenSize, true);
+				FMeshMergingSettings MergeSettings = LODSetup.MergeSetting;
+				if (LODActor->bOverrideMaterialMergeSettings)
+				{
+					MergeSettings.MaterialSettings = LODActor->MaterialSettings;
+				}
+
+				MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), MergeSettings, AssetsOuter, PackageName, LODIndex, OutAssets, OutProxyLocation, LODSetup.TransitionScreenSize, true);
 
 				// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
 				for (auto& AssetIter : OutAssets)

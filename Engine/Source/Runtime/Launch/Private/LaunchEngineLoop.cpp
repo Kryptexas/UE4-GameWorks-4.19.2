@@ -1150,6 +1150,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			NumThreadsInThreadPool = 1;
 		}
 		verify(GThreadPool->Create(NumThreadsInThreadPool));
+
+#if WITH_EDITOR
+		// when we are in the editor we like to do things like build lighting and such
+		// this thread pool can be used for those purposes
+		GLargeThreadPool = FQueuedThreadPool::Allocate();
+		int32 NumThreadsInLargeThreadPool = FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2;
+
+		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool));
+#endif
 	}
 
 	// Get a pointer to the log output device

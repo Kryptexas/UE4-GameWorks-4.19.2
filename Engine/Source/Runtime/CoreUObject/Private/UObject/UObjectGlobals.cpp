@@ -39,6 +39,10 @@ DEFINE_STAT(STAT_NameTableWideEntries);
 DEFINE_STAT(STAT_NameTableMemorySize);
 DEFINE_STAT(STAT_DestroyObject);
 
+DECLARE_CYCLE_STAT(TEXT("InstanceSubobjects"), STAT_InstanceSubobjects, STATGROUP_Object);
+DECLARE_CYCLE_STAT(TEXT("PostInitProperties"), STAT_PostInitProperties, STATGROUP_Object);
+
+
 /** CoreUObject delegates */
 FCoreUObjectDelegates::FRegisterClassForHotReloadReinstancingDelegate FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate;
 FCoreUObjectDelegates::FReinstanceHotReloadedClassesDelegate FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate;
@@ -2410,7 +2414,10 @@ void FObjectInitializer::PostConstructInit()
 		InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
 	}
 
-	Obj->PostInitProperties();
+	{
+		SCOPE_CYCLE_COUNTER(STAT_PostInitProperties);
+		Obj->PostInitProperties();
+	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!FUObjectThreadContext::Get().PostInitPropertiesCheck.Num() || (FUObjectThreadContext::Get().PostInitPropertiesCheck.Pop() != Obj))
@@ -2503,6 +2510,8 @@ bool FObjectInitializer::InitSubobjectProperties(bool bAllowInstancing) const
 
 void FObjectInitializer::InstanceSubobjects(UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_InstanceSubobjects);
+
 	FObjectInstancingGraph TempInstancingGraph;
 	FObjectInstancingGraph* UseInstancingGraph = InstanceGraph ? InstanceGraph : &TempInstancingGraph;
 	{
@@ -2679,7 +2688,7 @@ UObject* StaticConstructObject_Internal
 	// Don't call the constructor on recycled subobjects, they haven't been destroyed.
 	if (!bRecycledSubobject)
 	{		
-		FScopeCycleCounterUObject ConstructorScope(Result, GET_STATID(STAT_ConstructObject));
+		FScopeCycleCounterUObject ConstructorScope(InClass, GET_STATID(STAT_ConstructObject));
 		(*InClass->ClassConstructor)( FObjectInitializer(Result, InTemplate, bCopyTransientsFromClassDefaults, true, InInstanceGraph) );
 	}
 	

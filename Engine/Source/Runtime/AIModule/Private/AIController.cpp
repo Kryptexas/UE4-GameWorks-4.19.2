@@ -476,20 +476,22 @@ void AAIController::Possess(APawn* InPawn)
 
 	// a Pawn controlled by AI _requires_ a GameplayTasksComponent, so if Pawn 
 	// doesn't have one we need to create it
-	UGameplayTasksComponent* GTComp = InPawn->FindComponentByClass<UGameplayTasksComponent>();
-	if (GTComp == nullptr)
+	if (CachedGameplayTasksComponent == nullptr)
 	{
-		GTComp = NewObject<UGameplayTasksComponent>(InPawn, TEXT("GameplayTasksComponent"));
-		GTComp->RegisterComponent();
+		UGameplayTasksComponent* GTComp = InPawn->FindComponentByClass<UGameplayTasksComponent>();
+		if (GTComp == nullptr)
+		{
+			GTComp = NewObject<UGameplayTasksComponent>(InPawn, TEXT("GameplayTasksComponent"));
+			GTComp->RegisterComponent();
+		}
+		CachedGameplayTasksComponent = GTComp;
 	}
-	CachedGameplayTasksComponent = GTComp;
 
-	// Prevents re-entrant issues.
-	if (GTComp && !GTComp->OnClaimedResourcesChange.Contains(this, GET_FUNCTION_NAME_CHECKED(AAIController, OnGameplayTaskResourcesClaimed)))
+	if (CachedGameplayTasksComponent && !CachedGameplayTasksComponent->OnClaimedResourcesChange.Contains(this, GET_FUNCTION_NAME_CHECKED(AAIController, OnGameplayTaskResourcesClaimed)))
 	{
-		GTComp->OnClaimedResourcesChange.AddDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
+		CachedGameplayTasksComponent->OnClaimedResourcesChange.AddDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 
-		REDIRECT_OBJECT_TO_VLOG(GTComp, this);
+		REDIRECT_OBJECT_TO_VLOG(CachedGameplayTasksComponent, this);
 	}
 
 	OnPossess(InPawn);
@@ -776,6 +778,8 @@ bool AAIController::PreparePathfinding(FPathFindingQuery& Query, const FVector& 
 
 FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
+
 	FAIRequestID RequestID;
 
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());

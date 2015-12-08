@@ -5,6 +5,8 @@
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "EditorUndoClient.h"
 #include "MovieSceneClipboard.h"
+#include "SequencerLabelManager.h"
+
 
 class FMenuBuilder;
 class FMovieSceneSequenceInstance;
@@ -310,6 +312,11 @@ public:
 	bool CanSetKeyTime() const;
 	void SetKeyTime(const bool bUseFrames);
 	void OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, const bool bUseFrames);
+
+	FSequencerLabelManager& GetLabelManager()
+	{
+		return LabelManager;
+	}
 
 public:
 
@@ -621,6 +628,7 @@ private:
 		the MovieScene data can change many times per frame.) */
 	bool bNeedTreeRefresh;
 
+	FSequencerLabelManager LabelManager;
 	FSequencerSelection Selection;
 	FSequencerSelectionPreview SelectionPreview;
 

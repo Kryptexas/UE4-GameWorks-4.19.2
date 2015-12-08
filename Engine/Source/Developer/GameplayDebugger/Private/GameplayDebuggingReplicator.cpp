@@ -190,7 +190,7 @@ void AGameplayDebuggingReplicator::BeginPlay()
 		}
 		// @note patching up OR-9814
 		const UGameplayDebuggingComponent* DummyPointer = GetDebugComponent();
-		if (DummyPointer)
+		if (DummyPointer == nullptr)
 		{
 			UE_LOG(LogGameplayDebugger, Error, TEXT("Unable to create UGameplayDebuggingComponent instance!"));
 		}

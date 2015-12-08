@@ -732,6 +732,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
 	bool IsAnimationPlaying(const UWidgetAnimation* InAnimation) const;
 
+	/**
+	* Changes the number of loops to play given a playing animation
+	*
+	* @param InAnimation The animation that is already playing
+	* @param NumLoopsToPlay The number of loops to play. (0 to loop indefinitely)
+	*/
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	void SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 NumLoopsToPlay);
+
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 

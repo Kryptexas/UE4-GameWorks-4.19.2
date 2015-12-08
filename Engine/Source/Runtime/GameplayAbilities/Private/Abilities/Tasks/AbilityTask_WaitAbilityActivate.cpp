@@ -25,7 +25,7 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 
 void UAbilityTask_WaitAbilityActivate::Activate()
 {
-	if (AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent)
 	{
 		OnAbilityActivateDelegateHandle = AbilitySystemComponent->AbilityActivatedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityActivate::OnAbilityActivate);
 	}
@@ -55,7 +55,7 @@ void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility* Activ
 
 void UAbilityTask_WaitAbilityActivate::OnDestroy(bool AbilityEnded)
 {
-	if (AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->AbilityActivatedCallbacks.Remove(OnAbilityActivateDelegateHandle);
 	}

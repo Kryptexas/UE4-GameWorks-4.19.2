@@ -298,7 +298,8 @@ namespace AutomationTool
 			this.bIsCodeBasedProject = InParams.bIsCodeBasedProject;
 			this.bCodeSign = InParams.bCodeSign;
 			this.UploadSymbols = InParams.UploadSymbols;
-            this.RunAssetNativization = InParams.RunAssetNativization;
+			this.TitleID = InParams.TitleID;
+			this.RunAssetNativization = InParams.RunAssetNativization;
 		}
 
 		/// <summary>
@@ -410,7 +411,8 @@ namespace AutomationTool
 			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
-			ParamList<string> InMapsToRebuildLightMaps = null
+			ParamList<string> InMapsToRebuildLightMaps = null,
+			ParamList<string> TitleID = null
 			)
 		{
 			//
@@ -693,7 +695,29 @@ namespace AutomationTool
 			{
 				this.MapsToRebuildLightMaps = InMapsToRebuildLightMaps;
 			}
-            
+
+			if (TitleID == null)
+			{
+				if (Command != null)
+				{
+					this.TitleID = new ParamList<string>();
+
+					var TitleString = Command.ParseParamValue("TitleID");
+					if (String.IsNullOrEmpty(TitleString) == false)
+					{
+						var TitleIDs = new ParamList<string>(TitleString.Split('+'));
+						foreach (var T in TitleIDs)
+						{
+							this.TitleID.Add(T);
+						}
+					}
+				}
+			}
+			else
+			{
+				this.TitleID = TitleID;
+			}
+
 			if (ServerConfigsToBuild == null)
 			{
 				if (Command != null)
@@ -1296,6 +1320,11 @@ namespace AutomationTool
 		/// Certificate to use
 		/// </summary>
 		public string Certificate = null;
+
+		/// <summary>
+		/// TitleID to package
+		/// </summary>
+		public ParamList<string> TitleID = new ParamList<string>();
 
 		#endregion
 

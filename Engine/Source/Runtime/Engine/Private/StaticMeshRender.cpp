@@ -1175,12 +1175,11 @@ bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 }
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex):
-	OverrideColorVertexBuffer(0),
-	PreCulledIndexBuffer(NULL),
-	LightMap(NULL),
-	ShadowMap(NULL),
-	bUsesMeshModifyingMaterials(false)
+FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex)
+	: FLightCacheInterface(nullptr, nullptr)
+	, OverrideColorVertexBuffer(0)
+	, PreCulledIndexBuffer(NULL)
+	, bUsesMeshModifyingMaterials(false)
 {
 	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
 
@@ -1191,8 +1190,8 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[LODIndex];
 
 		// Determine if the LOD has static lighting.
-		LightMap = ComponentLODInfo.LightMap;
-		ShadowMap = ComponentLODInfo.ShadowMap;
+		SetLightMap(ComponentLODInfo.LightMap);
+		SetShadowMap(ComponentLODInfo.ShadowMap);
 		IrrelevantLights = InComponent->IrrelevantLights;
 		PreCulledIndexBuffer = &ComponentLODInfo.PreCulledIndexBuffer;
 
@@ -1221,11 +1220,11 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	if (MeshRenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
-		LightMap = ComponentLODInfo.LightMap;
-		ShadowMap = ComponentLODInfo.ShadowMap;
+		SetLightMap(ComponentLODInfo.LightMap);
+		SetShadowMap(ComponentLODInfo.ShadowMap);
 	}
 
-	bool bHasStaticLighting = LightMap != NULL || ShadowMap != NULL;
+	bool bHasStaticLighting = GetLightMap() != NULL || GetShadowMap() != NULL;
 
 	// Gather the materials applied to the LOD.
 	Sections.Empty(MeshRenderData->LODResources[LODIndex].Sections.Num());
@@ -1305,40 +1304,16 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 // FLightCacheInterface.
 FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSceneProxy* LightSceneProxy) const
 {
-	// Check if the light has static lighting or shadowing.
-	// This directly accesses the component's static lighting with the assumption that it won't be changed without synchronizing with the rendering thread.
-	if (LightSceneProxy->HasStaticShadowing())
+	// ask base class
+	ELightInteractionType LightInteraction = GetStaticInteraction(LightSceneProxy, IrrelevantLights);
+
+	if(LightInteraction != LIT_MAX)
 	{
-		const FGuid LightGuid = LightSceneProxy->GetLightGuid();
-		
-		if (LightMap && LightMap->ContainsLight(LightGuid))
-		{
-			return FLightInteraction::LightMap();
-		}
-
-		if (ShadowMap && ShadowMap->ContainsLight(LightGuid))
-		{
-			return FLightInteraction::ShadowMap2D();
-		}
-
-		if (IrrelevantLights.Contains(LightGuid))
-		{
-			return FLightInteraction::Irrelevant();
-		}
+		return FLightInteraction(LightInteraction);
 	}
 
 	// Use dynamic lighting if the light doesn't have static lighting.
 	return FLightInteraction::Dynamic();
-}
-
-FLightMapInteraction FStaticMeshSceneProxy::FLODInfo::GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
-{
-	return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
-}
-
-FShadowMapInteraction FStaticMeshSceneProxy::FLODInfo::GetShadowMapInteraction() const
-{
-	return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
 }
 
 float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const

@@ -12,6 +12,7 @@
 #include "BehaviorTree/BlackboardData.h"
 #include "AISystem.h"
 
+DEFINE_STAT(STAT_AI_Overall);
 
 UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

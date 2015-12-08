@@ -108,6 +108,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Returns true if ability costs are ignored, returns false otherwise. Always returns false in shipping builds. */
 	bool ShouldIgnoreCosts() const;
 
+	DECLARE_MULTICAST_DELEGATE(FOnClientServerDebugAvailable);
+	FOnClientServerDebugAvailable	OnClientServerDebugAvailable;
+
+	/** Global place to accumulate debug strings for ability system component. Used when we fill up client side debug string immediately, and then wait for server to send server strings */
+	TArray<FString>	AbilitySystemDebugStrings;
+
 	// Global Tags
 
 	UPROPERTY()

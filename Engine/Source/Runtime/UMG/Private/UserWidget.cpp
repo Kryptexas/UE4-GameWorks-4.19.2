@@ -243,6 +243,8 @@ UWorld* UUserWidget::GetWorld() const
 
 void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
 {
+	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnim");
+
 	if( InAnimation )
 	{
 		// @todo UMG sequencer - Restart animations which have had Play called on them?
@@ -326,6 +328,19 @@ bool UUserWidget::IsAnimationPlaying(const UWidgetAnimation* InAnimation) const
 	}
 
 	return false;
+}
+
+void UUserWidget::SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 InNumLoopsToPlay)
+{
+	if (InAnimation)
+	{
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+
+		if (FoundPlayer)
+		{
+			(*FoundPlayer)->SetNumLoopsToPlay(InNumLoopsToPlay);
+		}
+	}
 }
 
 void UUserWidget::OnAnimationFinishedPlaying(UUMGSequencePlayer& Player)

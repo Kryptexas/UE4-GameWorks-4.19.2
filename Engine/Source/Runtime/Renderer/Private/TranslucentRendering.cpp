@@ -411,7 +411,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 			{
 				if (DrawingContext.bSceneColorCopyIsUpToDate == false)
 				{
-					if (!RHICmdList.Bypass() && !IsInRenderingThread())
+					if (!RHICmdList.Bypass() && !IsInActualRenderingThread() && !IsInGameThread())
 					{
 						FRHICommandList* CmdList = new FRHICommandList;
 						CmdList->CopyRenderThreadContexts(RHICmdList);

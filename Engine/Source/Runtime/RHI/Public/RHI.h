@@ -18,6 +18,9 @@ inline const bool IsValidFenceID( const uint64 FenceID )
 	return ( ( FenceID & 0x8000000000000000ull ) == 0 );
 }
 
+// 0:faster rendering (CPU) / 1:allows to get a name for resource transitions
+#define SUPPORT_RESOURCE_NAME (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+
 /** Uniform buffer structs must be aligned to 16-byte boundaries. */
 #define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
 

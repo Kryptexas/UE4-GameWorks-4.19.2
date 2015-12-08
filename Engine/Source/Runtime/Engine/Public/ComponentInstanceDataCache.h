@@ -24,7 +24,7 @@ public:
 	{}
 
 	/** Determines whether this component instance data matches the component */
-	bool MatchesComponent(const UActorComponent* Component, const UObject* ComponentTemplate) const;
+	bool MatchesComponent(const UActorComponent* Component, const UObject* ComponentTemplate, const TMap<UActorComponent*, const UObject*>& ComponentToArchetypeMap) const;
 
 	/** Applies this component instance data to the supplied component */
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase);

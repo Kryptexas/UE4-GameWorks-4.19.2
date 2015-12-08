@@ -19,9 +19,10 @@ SSequencerLabelBrowser::~SSequencerLabelBrowser()
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSequencerLabelBrowser::Construct(const FArguments& InArgs)
+void SSequencerLabelBrowser::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSequencer)
 {
 	OnSelectionChanged = InArgs._OnSelectionChanged;
+	Sequencer = InSequencer;
 
 	ChildSlot
 	[
@@ -35,6 +36,8 @@ void SSequencerLabelBrowser::Construct(const FArguments& InArgs)
 			.TreeItemsSource(&LabelList)
 	];
 
+	Sequencer->GetLabelManager().OnLabelsChanged().AddSP(this, &SSequencerLabelBrowser::HandleLabelManagerLabelsChanged);
+
 	ReloadLabelList(true);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -46,9 +49,60 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSequencerLabelBrowser::ReloadLabelList(bool FullyReload)
 {
 	LabelList.Reset();
+	LabelList.Add(MakeShareable(new FSequencerLabelTreeNode(FString(), FText::GetEmpty())));
 
-	// test
-	LabelList.Add(MakeShareable(new FSequencerLabelTreeNode(TEXT(""))));
+	TArray<FString> AllLabels;
+	
+	if (Sequencer->GetLabelManager().GetAllLabels(AllLabels) > 0)
+	{
+		for (const auto& Label : AllLabels)
+		{
+			// create new leaf node
+			TArray<FString> Strings;
+			Label.ParseIntoArray(Strings, TEXT("."), true);
+
+			TSharedRef<FSequencerLabelTreeNode> NewNode = MakeShareable(
+				new FSequencerLabelTreeNode(Label, FText::FromString(Strings.Last())));
+
+			// insert node into tree
+			TArray<TSharedPtr<FSequencerLabelTreeNode>>* ParentNodes = &LabelList;
+			int32 Index = 0;
+
+			while (Index < Strings.Num() - 1)
+			{
+				TSharedPtr<FSequencerLabelTreeNode> Parent;
+
+				for (const auto& Node : *ParentNodes)
+				{
+					if (Node->Label == Strings[Index])
+					{
+						Parent = Node;
+						break;
+					}
+				}
+
+				// create interior node if needed
+				if (!Parent.IsValid())
+				{
+					FString ParentLabel = Strings[0];
+
+					for (int32 SubIndex = 1; SubIndex <= Index; ++SubIndex)
+					{
+						ParentLabel += TEXT(".") + Strings[SubIndex];
+					}
+
+					Parent = MakeShareable(new FSequencerLabelTreeNode(ParentLabel, FText::FromString(Strings[Index])));
+					ParentNodes->Add(Parent);
+				}
+
+				ParentNodes = &Parent->Children;
+				++Index;
+			}
+
+			// insert node into tree
+			ParentNodes->Add(NewNode);
+		}
+	}
 
 	LabelTreeView->RequestTreeRefresh();
 }
@@ -56,6 +110,12 @@ void SSequencerLabelBrowser::ReloadLabelList(bool FullyReload)
 
 /* SSequencerLabelBrowser callbacks
  *****************************************************************************/
+
+void SSequencerLabelBrowser::HandleLabelManagerLabelsChanged()
+{
+	ReloadLabelList(true);
+}
+
 
 TSharedPtr<SWidget> SSequencerLabelBrowser::HandleLabelTreeViewContextMenuOpening()
 {
@@ -115,7 +175,7 @@ void SSequencerLabelBrowser::HandleLabelTreeViewGetChildren(TSharedPtr<FSequence
 {
 	if (Item.IsValid())
 	{
-		OutChildren = Item->GetChildren();
+		OutChildren = Item->Children;
 	}
 }
 
@@ -124,7 +184,7 @@ void SSequencerLabelBrowser::HandleLabelTreeViewSelectionChanged(TSharedPtr<FSeq
 {
 	OnSelectionChanged.ExecuteIfBound(
 		InItem.IsValid()
-			? InItem->GetLabel()
+			? InItem->Label
 			: FString(),
 		SelectInfo
 	);
@@ -133,12 +193,25 @@ void SSequencerLabelBrowser::HandleLabelTreeViewSelectionChanged(TSharedPtr<FSeq
 
 void SSequencerLabelBrowser::HandleRemoveLabelMenuEntryExecute()
 {
+	TArray<TSharedPtr<FSequencerLabelTreeNode>> SelectedItems;
+
+	if (LabelTreeView->GetSelectedItems(SelectedItems) > 0)
+	{
+		Sequencer->GetLabelManager().RemoveObjectLabel(FGuid(), SelectedItems[0]->Label);
+	}
 }
 
 
 bool SSequencerLabelBrowser::HandleRemoveLabelMenuEntryCanExecute() const
 {
-	return false;
+	TArray<TSharedPtr<FSequencerLabelTreeNode>> SelectedItems;
+
+	if (LabelTreeView->GetSelectedItems(SelectedItems) == 0)
+	{
+		return false;
+	}
+
+	return !SelectedItems[0]->Label.IsEmpty();
 }
 
 

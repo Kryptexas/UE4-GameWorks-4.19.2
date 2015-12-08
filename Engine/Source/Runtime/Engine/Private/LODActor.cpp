@@ -307,7 +307,7 @@ void ALODActor::AddSubActor(AActor* InActor)
 
 const bool ALODActor::RemoveSubActor(AActor* InActor)
 {
-	if (SubActors.Contains(InActor))
+	if ((InActor != nullptr) && SubActors.Contains(InActor))
 	{
 		SubActors.Remove(InActor);
 		InActor->SetLODParent(nullptr, 0);

@@ -2618,7 +2618,7 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 
 #include "GameFramework/SpawnActorTimer.h"
 
-void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTransform)
+void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTransform, const FComponentInstanceDataCache* InstanceDataCache)
 {
 #if ENABLE_SPAWNACTORTIMER
 	FScopedSpawnActorTimer SpawnTimer(GetClass()->GetFName(), ESpawnActorTimingType::FinishSpawning);
@@ -2654,7 +2654,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 			ValidateDeferredTransformCache();
 		}
 
-		ExecuteConstruction(FinalRootComponentTransform, nullptr, bIsDefaultTransform);
+		ExecuteConstruction(FinalRootComponentTransform, InstanceDataCache, bIsDefaultTransform);
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_PostActorConstruction);

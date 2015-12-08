@@ -336,9 +336,24 @@ public:
 	void SetReverbSettings( class AAudioVolume* Volume, const FReverbSettings& ReverbSettings );
 
 	/**
-	 * Creates an audio component to handle playing a sound cue
+	 * Creates an audio component to handle playing a sound
 	 */
 	static class UAudioComponent* CreateComponent(class USoundBase* Sound, class UWorld* World, AActor*  AActor = nullptr, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = nullptr, USoundAttenuation* AttenuationSettings = nullptr, USoundConcurrency* ConcurrencySettings = nullptr);
+
+	/** 
+	 * Plays a sound at the given location without creating an audio component.
+	 * @param   Sound				The USoundBase to play at the location.
+	 * @param   World				The world this sound is playing in.
+	 * @param   VolumeMultiplier	The volume multiplier to set on the sound.
+	 * @param   PitchMultiplier		The pitch multiplier to set on the sound.
+	 * @param	StartTime			The initial time offset for the sound.
+	 * @param	Location			The sound's position.
+	 * @param	Rotation			The sound's rotation.
+	 * @param	AttenuationSettings	The sound's attenuation settings to use (optional). Will default to the USoundBase's AttenuationSettings if not specified.
+	 * @param	USoundConcurrency	The sound's sound concurrency settings to use (optional). Will use the USoundBase's USoundConcurrency if not specified.
+	 * @param	Params				An optional list of audio component params to immediately apply to a sound.
+	 */
+	void PlaySoundAtLocation(class USoundBase* Sound, class UWorld* World, float VolumeMultiplier, float PitchMultiplier, float StartTime, const FVector& Location, const FRotator& Rotation, USoundAttenuation* AttenuationSettings = nullptr, USoundConcurrency* ConcurrencySettings = nullptr, const TArray<FAudioComponentParam>* Params = nullptr);
 
 	/**
 	 * Adds an active sound to the audio device

@@ -84,15 +84,6 @@ static FAutoConsoleVariableRef CVarAllowSubPrimitiveQueries(
 	ECVF_RenderThreadSafe
 	);
 
-
-static TAutoConsoleVariable<int32> CVarLightShaftQuality(
-	TEXT("r.LightShaftQuality"),
-	1,
-	TEXT("Defines the light shaft quality.\n")
-	TEXT("  0: off\n")
-	TEXT("  1: on (default)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
 	TEXT("r.StaticMeshLODDistanceScale"),
 	1.0f,
@@ -2513,7 +2504,8 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 			View.LightShaftColorApply = FLinearColor(0.0f,0.0f,0.0f);
 		}
 		
-		bCheckLightShafts = ViewFamily.EngineShowFlags.LightShafts && CVarLightShaftQuality.GetValueOnRenderThread() > 0;
+		extern int32 GLightShafts;
+		bCheckLightShafts = ViewFamily.EngineShowFlags.LightShafts && GLightShafts;
 	}
 
 	if (ViewFamily.EngineShowFlags.HitProxies == 0)

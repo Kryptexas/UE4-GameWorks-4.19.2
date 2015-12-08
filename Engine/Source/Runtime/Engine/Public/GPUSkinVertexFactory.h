@@ -289,6 +289,7 @@ public:
 		ShaderDataType()
 			: CurrentBuffer(0)
 			, PreviousFrameNumber(0)
+			, CurrentFrameNumber(0)
 		{
 			// BoneDataOffset and BoneTextureSize are not set as they are only valid if IsValidRef(BoneTexture)
 			if(!MaxBonesVar)
@@ -367,6 +368,7 @@ public:
 		uint32 CurrentBuffer;
 		// from GFrameNumber, to detect pause and old data when an object was not rendered for some time
 		uint32 PreviousFrameNumber;
+		uint32 CurrentFrameNumber;
 		// if FeatureLevel < ERHIFeatureLevel::ES3_1
 		FUniformBufferRHIRef UniformBuffer;
 		
@@ -384,10 +386,10 @@ public:
 			check(IsInParallelRenderingThread());
 
 			// this test prevents the skeletal meshes to keep velocity when we pause (e.g. simulate pause)
-			if(FrameNumber != PreviousFrameNumber + 1)
-			{
+			if ((CurrentFrameNumber - PreviousFrameNumber) > 1)
+			{				
 				bPrevious = false;
-			}
+			}			
 
 			uint32 BufferIndex = CurrentBuffer ^ (uint32)bPrevious;
 
@@ -620,42 +622,147 @@ class FGPUBaseSkinAPEXClothVertexFactory
 public:
 	struct ClothShaderType
 	{
-		/**
-		 * weight to blend between simulated positions and key-framed poses
-		 * if ClothBlendWeight is 1.0, it shows only simulated positions and if it is 0.0, it shows only key-framed animation
-		 */
-		float ClothBlendWeight;
+		ClothShaderType()
+			: ClothBlendWeight(1.0f)
+		{
+			Reset();
+		}
 
 		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
 
-		bool UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, ERHIFeatureLevel::Type FeatureLevel);
+		bool UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseClothSimulData()
 		{
 			APEXClothUniformBuffer.SafeRelease();
 
-			if(IsValidRef(ClothSimulPositionNormalBuffer))
+			for(uint32 i = 0; i < 2; ++i)
 			{
-				ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulPositionNormalBuffer);
+				if (IsValidRef(ClothSimulPositionNormalBuffer[i]))
+				{
+					ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulPositionNormalBuffer[i]);
+					ClothSimulPositionNormalBuffer[i].SafeRelease();
+				}
 			}
-			ClothSimulPositionNormalBuffer.SafeRelease();
-
+			Reset();
 		}
 
 		TUniformBufferRef<FAPEXClothUniformShaderParameters> GetClothUniformBuffer() const
 		{
 			return APEXClothUniformBuffer;
 		}
-
-		FClothSimulDataBufferTypeRef GetClothSimulPositionNormalBuffer() const
+		
+		// @param FrameNumber usually from View.Family->FrameNumber
+		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
+		FClothSimulDataBufferTypeRef& GetClothBufferForWriting(uint32 FrameNumber)
 		{
-			return ClothSimulPositionNormalBuffer;
+			uint32 Index = GetOldestIndex(FrameNumber);
+
+			// we don't write -1 as that is used to invalidate the entry
+			if(FrameNumber == -1)
+			{
+				// this could cause a 1 frame glitch on wraparound
+				FrameNumber = 0;
+			}
+
+			BufferFrameNumber[Index] = FrameNumber;
+
+			return ClothSimulPositionNormalBuffer[Index];
 		}
 
-	private:
-		TUniformBufferRef<FAPEXClothUniformShaderParameters> APEXClothUniformBuffer;
-		FClothSimulDataBufferTypeRef ClothSimulPositionNormalBuffer;
+		// @param bPrevious true:previous, false:current
+		// @param FrameNumber usually from View.Family->FrameNumber
+		const FClothSimulDataBufferTypeRef& GetClothBufferForReading(bool bPrevious, uint32 FrameNumber) const
+		{
+			int32 Index = GetMostRecentIndex(FrameNumber);
 
+			if(bPrevious && DoWeHavePreviousData())
+			{
+				Index = 1 - Index;
+			}
+
+			// we always return a valid buffer
+			check(ClothSimulPositionNormalBuffer[Index].VertexBufferRHI.IsValid());
+			return ClothSimulPositionNormalBuffer[Index];
+		}
+		
+		/**
+		 * weight to blend between simulated positions and key-framed poses
+		 * if ClothBlendWeight is 1.0, it shows only simulated positions and if it is 0.0, it shows only key-framed animation
+		 */
+		float ClothBlendWeight;
+
+	private:
+		// fallback for ClothSimulPositionNormalBuffer if the shadermodel doesn't allow it
+		TUniformBufferRef<FAPEXClothUniformShaderParameters> APEXClothUniformBuffer;
+		// 
+		FClothSimulDataBufferTypeRef ClothSimulPositionNormalBuffer[2];
+		// from GFrameNumber, to detect pause and old data when an object was not rendered for some time
+		uint32 BufferFrameNumber[2];
+
+		// @return 0 / 1, index into ClothSimulPositionNormalBuffer[]
+		uint32 GetMostRecentIndex(uint32 FrameNumber) const
+		{
+			if(BufferFrameNumber[0] == -1)
+			{
+				ensure(BufferFrameNumber[1] != -1);
+
+				return 1;
+			}
+			else if(BufferFrameNumber[1] == -1)
+			{
+				ensure(BufferFrameNumber[0] != -1);
+				return 0;
+			}
+
+			// should handle warp around correctly, did some basic testing
+			uint32 Age0 = FrameNumber - BufferFrameNumber[0];
+			uint32 Age1 = FrameNumber - BufferFrameNumber[1];
+
+			return (Age0 > Age1) ? 1 : 0;
+		}
+
+		// @return 0/1, index into ClothSimulPositionNormalBuffer[]
+		uint32 GetOldestIndex(uint32 FrameNumber) const
+		{
+			if(BufferFrameNumber[0] == -1)
+			{
+				return 0;
+			}
+			else if(BufferFrameNumber[1] == -1)
+			{
+				return 1;
+			}
+
+			// should handle warp around correctly (todo: test)
+			uint32 Age0 = FrameNumber - BufferFrameNumber[0];
+			uint32 Age1 = FrameNumber - BufferFrameNumber[1];
+
+			return (Age0 > Age1) ? 0 : 1;
+		}
+
+		bool DoWeHavePreviousData() const
+		{
+			if(BufferFrameNumber[0] == -1 || BufferFrameNumber[1] == -1)
+			{
+				return false;
+			}
+			
+			int32 Diff = BufferFrameNumber[0] - BufferFrameNumber[1];
+
+			uint32 DiffAbs = FMath::Abs(Diff);
+
+			// threshold is >1 because there could be in between frames e.g. HitProxyRendering
+			// We should switch to TickNumber to solve this
+			return DiffAbs <= 2;
+		}
+
+		void Reset()
+		{
+			// both are not valid
+			BufferFrameNumber[0] = -1;
+			BufferFrameNumber[1] = -1;
+		}
 	};
 
 

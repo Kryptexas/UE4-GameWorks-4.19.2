@@ -183,7 +183,9 @@ enum ELightInteractionType
 	LIT_CachedIrrelevant,
 	LIT_CachedLightMap,
 	LIT_Dynamic,
-	LIT_CachedSignedDistanceFieldShadowMap2D
+	LIT_CachedSignedDistanceFieldShadowMap2D,
+
+	LIT_MAX
 };
 
 /**
@@ -202,17 +204,14 @@ public:
 	// Accessors.
 	ELightInteractionType GetType() const { return Type; }
 
-private:
-
 	/**
 	 * Minimal initialization constructor.
 	 */
-	FLightInteraction(
-		ELightInteractionType InType
-		):
-		Type(InType)
+	FLightInteraction(ELightInteractionType InType)
+		: Type(InType)
 	{}
 
+private:
 	ELightInteractionType Type;
 };
 
@@ -520,20 +519,106 @@ private:
 	EShadowMapInteractionType Type;
 };
 
+class FLightMap;
+class FShadowMap;
+
 /**
  * An interface to cached lighting for a specific mesh.
  */
 class FLightCacheInterface
 {
 public:
-	virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const = 0;
-	virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const = 0;
-	virtual FShadowMapInteraction GetShadowMapInteraction() const { return FShadowMapInteraction::None(); }
-	virtual FUniformBufferRHIRef GetPrecomputedLightingBuffer() const = 0;
+	FLightCacheInterface(const FLightMap* InLightMap, const FShadowMap* InShadowMap)
+		: LightMap(InLightMap)
+		, ShadowMap(InShadowMap)
+	{
+	}
 
-	 // WARNING : This can be called with buffers valid for a single frame only, don't cache anywhere. See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
-	virtual void SetPrecomputedLightingBuffer(FUniformBufferRHIParamRef InPrecomputedLightingUniformBuffer) = 0;
+	// @param LightSceneProxy must not be 0
+	virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const = 0;
+
+	// helper function to implement GetInteraction(), call after checking for this: if(LightSceneProxy->HasStaticShadowing())
+	// @param LightSceneProxy same as in GetInteraction(), must not be 0
+	ENGINE_API ELightInteractionType GetStaticInteraction(const FLightSceneProxy* LightSceneProxy, const TArray<FGuid>& IrrelevantLights) const;
+	
+	// @param InLightMap may be 0
+	void SetLightMap(const FLightMap* InLightMap)
+	{
+		LightMap = InLightMap;
+	}
+
+	// @return may be 0
+	const FLightMap* GetLightMap() const
+	{
+		return LightMap;
+	}
+
+	// @param InShadowMap may be 0
+	void SetShadowMap(const FShadowMap* InShadowMap)
+	{
+		ShadowMap = InShadowMap;
+	}
+
+	// @return may be 0
+	const FShadowMap* GetShadowMap() const
+	{
+		return ShadowMap;
+	}
+
+	// WARNING : This can be called with buffers valid for a single frame only, don't cache anywhere. See FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
+	void SetPrecomputedLightingBuffer(FUniformBufferRHIParamRef InPrecomputedLightingUniformBuffer)
+	{
+		PrecomputedLightingUniformBuffer = InPrecomputedLightingUniformBuffer;
+	}
+
+	FUniformBufferRHIParamRef GetPrecomputedLightingBuffer() const
+	{
+		return PrecomputedLightingUniformBuffer;
+	}
+
+	ENGINE_API FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const;
+
+	ENGINE_API FShadowMapInteraction GetShadowMapInteraction() const;
+
+private:
+	// The light-map used by the element. may be 0
+	const FLightMap* LightMap;
+
+	// The shadowmap used by the element, may be 0
+	const FShadowMap* ShadowMap;
+
+	/** The uniform buffer holding mapping the lightmap policy resources. */
+	FUniformBufferRHIRef PrecomputedLightingUniformBuffer;
 };
+
+
+template<typename TPendingTextureType>
+class FAsyncEncode : public IQueuedWork
+{
+private:
+	TPendingTextureType* PendingTexture;
+	FThreadSafeCounter& Counter;
+public:
+
+	FAsyncEncode(TPendingTextureType* InPendingTexture, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
+	{
+		PendingTexture = InPendingTexture;
+	}
+
+	void Abandon()
+	{
+		PendingTexture->StartEncoding();
+		Counter.Decrement();
+	}
+
+	void DoThreadedWork()
+	{
+		PendingTexture->StartEncoding();
+		Counter.Decrement();
+	}
+};
+
+
 
 // Information about a single shadow cascade.
 class FShadowCascadeSettings

@@ -43,12 +43,19 @@ struct FAudioComponentParam
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioComponentParam)
 	class USoundWave* SoundWaveParam;
 
-
-	FAudioComponentParam()
-		: FloatParam(0)
+	FAudioComponentParam(const FName& Name)
+		: ParamName(Name)
+		, FloatParam(0.f)
 		, BoolParam(false)
 		, IntParam(0)
-		, SoundWaveParam(NULL)
+		, SoundWaveParam(nullptr)
+	{}
+
+	FAudioComponentParam()
+		: FloatParam(0.f)
+		, BoolParam(false)
+		, IntParam(0)
+		, SoundWaveParam(nullptr)
 	{
 	}
 
@@ -250,6 +257,9 @@ class ENGINE_API UAudioComponent : public USceneComponent
 
 	/** Called by the ActiveSound to inform the component that playback is finished */
 	void PlaybackCompleted(bool bFailedToStart);
+
+	/** Sets the sound instance parameter. */
+	void SetSoundParameter(const FAudioComponentParam& Param);
 
 public:
 

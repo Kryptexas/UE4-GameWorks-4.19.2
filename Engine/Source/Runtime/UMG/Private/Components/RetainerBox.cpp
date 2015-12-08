@@ -30,7 +30,11 @@ TSharedRef<SWidget> URetainerBox::RebuildWidget()
 	MyRetainerWidget =
 		SNew(SRetainerWidget)
 		.Phase(Phase)
-		.PhaseCount(PhaseCount);
+		.PhaseCount(PhaseCount)
+#if STATS
+		.StatId( FName( *FString::Printf(TEXT("%s [%s]"), *GetFName().ToString(), *GetClass()->GetName() ) ) )
+#endif//STATS
+		;
 
 	MyRetainerWidget->SetRetainedRendering(IsDesignTime() ? false : true);
 

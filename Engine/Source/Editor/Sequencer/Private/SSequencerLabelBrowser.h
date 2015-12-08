@@ -3,7 +3,7 @@
 #pragma once
 
 
-class FSequencerLabelTreeNode;
+struct FSequencerLabelTreeNode;
 
 
 /**
@@ -34,11 +34,9 @@ public:
 	 * Construct this widget.
 	 *
 	 * @param InArgs The construction arguments.
-	 * @param InModel The view model to use.
-	 * @param InStyle The visual style to use for this widget.
-	 * @param InTracer The message tracer.
+	 * @param InSequencer The sequencer object being visualized.
 	 */
-	void Construct(const FArguments& InArgs/*, const FMessagingDebuggerModelRef& InModel*/);
+	void Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSequencer);
 
 protected:
 
@@ -46,6 +44,9 @@ protected:
 	void ReloadLabelList(bool FullyReload);
 
 private:
+
+	/** Callback for when the label manager's labels changed. */
+	void HandleLabelManagerLabelsChanged();
 
 	/** Callback for generating the label tree view's context menu. */
 	TSharedPtr<SWidget> HandleLabelTreeViewContextMenuOpening();
@@ -79,7 +80,7 @@ private:
 
 private:
 
-	/** Holds the filtered list of processes running on the device. */
+	/** Holds the collection of root labels to be displayed in the tree view. */
 	TArray<TSharedPtr<FSequencerLabelTreeNode>> LabelList;
 
 	/** Holds the label tree view. */
@@ -87,4 +88,7 @@ private:
 
 	/** Delegate to invoke when the selected label changed. */
 	FOnSelectionChanged OnSelectionChanged;
+
+	/** The sequencer object being visualized. */
+	TSharedPtr<FSequencer> Sequencer;
 };

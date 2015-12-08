@@ -20,9 +20,6 @@ extern ENGINE_API bool GUseBilinearLightmaps;
 /** Whether to allow padding around mappings. Old-style lighting doesn't use this. */
 extern ENGINE_API bool GAllowLightmapPadding;
 
-/** The quality level of DXT encoding for lightmaps (values come from nvtt::Quality enum) */
-extern ENGINE_API int32 GLightmapEncodeQualityLevel;
-
 /** The quality level of the current lighting build */
 extern ENGINE_API ELightingBuildQuality GLightingBuildQuality;
 
@@ -265,7 +262,7 @@ public:
 	 * @param	bLightingSuccessful	Whether the lighting build was successful or not.
 	 * @param	bForceCompletion	Force all encoding to be fully completed (they may be asynchronous).
 	 */
-	ENGINE_API static void EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bForceCompletion );
+	ENGINE_API static void EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bMultithreadedEncode = false );
 
 	/** Call to enable/disable status update of LightMap encoding */
 	static void SetStatusUpdate(bool bInEnable)

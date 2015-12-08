@@ -72,7 +72,8 @@ protected:
 	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
 
 	/** The TargetActor that we spawned */
-	TWeakObjectPtr<AGameplayAbilityTargetActor>	TargetActor;
+	UPROPERTY()
+	AGameplayAbilityTargetActor* TargetActor;
 
 	TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType;
 

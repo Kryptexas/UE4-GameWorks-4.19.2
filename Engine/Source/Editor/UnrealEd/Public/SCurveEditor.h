@@ -369,9 +369,6 @@ private:
 	/** Empty key and tangent selection set */
 	void EmptyAllSelection();
 
-	/** Ensure that selected keys and tangents are still valid */
-	void ValidateSelection();
-
 	/** Get the value of the desired key as text */
 	TOptional<float> GetKeyValue(FSelectedCurveKey Key) const;
 	/** Get the time of the desired key */
@@ -576,6 +573,9 @@ protected:
 
 	/** Return whether any curve view models are selected */
 	UNREALED_API bool AnyCurveViewModelsSelected() const;
+
+	/** Ensure that selected keys and tangents are still valid */
+	UNREALED_API void ValidateSelection();
 
 private:
 

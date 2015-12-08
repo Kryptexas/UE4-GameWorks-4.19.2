@@ -23,7 +23,7 @@ UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UObject* WorldConte
 
 bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> InClass, AActor*& SpawnedActor)
 {
-	if (Ability.IsValid() && Ability.Get()->GetCurrentActorInfo()->IsNetAuthority())
+	if (Ability && Ability->GetCurrentActorInfo()->IsNetAuthority())
 	{
 		UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		if (World)

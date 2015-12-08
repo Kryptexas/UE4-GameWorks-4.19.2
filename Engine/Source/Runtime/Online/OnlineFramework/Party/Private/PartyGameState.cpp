@@ -310,8 +310,6 @@ bool UPartyGameState::ResetForFrontend()
 
 	if (!bSuccess)
 	{
-		OssParty = nullptr;
-
 		ResetPartyState();
 		ResetLocalPlayerState();
 		UnregisterFrontendDelegates();
@@ -529,12 +527,12 @@ void UPartyGameState::HandlePartyMemberDataReceived(const FUniqueNetId& InMember
 
 			check(CurrentPartyMember->MemberStateRefDef && CurrentPartyMember->MemberStateRefScratch);
 
-			// Copy out the old data
-			ensure(CurrentPartyMember->MemberStateRefDef->GetCppStructOps()->Copy(CurrentPartyMember->MemberStateRefScratch, CurrentPartyMember->MemberStateRef, 1));
 			if (FVariantDataConverter::VariantMapToUStruct(InPartyMemberData->KeyValAttrs, CurrentPartyMember->MemberStateRefDef, CurrentPartyMember->MemberStateRef, 0, CPF_Transient | CPF_RepSkip))
 			{
 				// Broadcast property changes
 				CurrentPartyMember->ComparePartyMemberData(*CurrentPartyMember->MemberStateRefScratch);
+				// Copy out the old data
+				ensure(CurrentPartyMember->MemberStateRefDef->GetCppStructOps()->Copy(CurrentPartyMember->MemberStateRefScratch, CurrentPartyMember->MemberStateRef, 1));
 				OnPartyMemberDataChanged().Broadcast(CurrentPartyMember->UniqueId, CurrentPartyMember);
 			}
 			else

@@ -1869,12 +1869,8 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 	if ( IsNetGUIDAuthority() )
 	{
-		// The client should never force the server to load objects
-		// In this case, make sure to log it, but we're relying on the calling code to know what's best to do.
-		// As of now, clients only send references to objects to the server via RPC, so this is usually just a NULL parameter that the game code
-		// needs to handle.
-		UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Guid with no object on server. FullNetGUIDPath: %s" ), *FullNetGUIDPath( NetGUID ) );
-		return NULL;
+		// Warn when the server needs to re-load an object, it's probably due to a GC after initially loading as default guid
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Server re-loading object (might have been GC'd). FullNetGUIDPath: %s" ), *FullNetGUIDPath( NetGUID ) );
 	}
 
 	if ( CacheObjectPtr->PathName == NAME_None )

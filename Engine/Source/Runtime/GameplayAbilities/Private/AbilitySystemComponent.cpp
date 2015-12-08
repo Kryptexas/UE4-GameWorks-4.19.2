@@ -109,6 +109,20 @@ bool UAbilitySystemComponent::HasAttributeSetForAttribute(FGameplayAttribute Att
 	return (Attribute.IsValid() && (Attribute.IsSystemAttribute() || GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr));
 }
 
+void UAbilitySystemComponent::GetAllAttributes(OUT TArray<FGameplayAttribute>& Attributes)
+{
+	for (UAttributeSet* Set : SpawnedAttributes)
+	{
+		for ( TFieldIterator<UProperty> It(Set->GetClass()); It; ++It)
+		{
+			if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(*It))
+			{
+				Attributes.Push( FGameplayAttribute(FloatProperty) );
+			}
+		}
+	}
+}
+
 void UAbilitySystemComponent::OnRegister()
 {
 	Super::OnRegister();
@@ -158,6 +172,11 @@ void UAbilitySystemComponent::SetNumericAttributeBase(const FGameplayAttribute &
 {
 	// Go through our active gameplay effects container so that aggregation/mods are handled properly.
 	ActiveGameplayEffects.SetAttributeBaseValue(Attribute, NewFloatValue);
+}
+
+float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute)
+{
+	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
 
 void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float NewFloatValue)
@@ -253,7 +272,7 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 	return Context;
 }
 
-int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent)
+int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent, bool bEnforceOnGoingCheck)
 {
 	int32 Count = 0;
 
@@ -281,7 +300,7 @@ int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffec
 			return bMatches;
 		});
 
-		Count = ActiveGameplayEffects.GetActiveEffectCount(Query);
+		Count = ActiveGameplayEffects.GetActiveEffectCount(Query, bEnforceOnGoingCheck);
 	}
 
 	return Count;
@@ -545,6 +564,11 @@ void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Containe
 		const FGameplayTag& Tag = *TagIt;
 		UpdateTagMap(Tag, CountDelta);
 	}
+}
+
+void UAbilitySystemComponent::ResetTagMap()
+{
+	GameplayTagCountContainer.Reset();
 }
 
 void UAbilitySystemComponent::NotifyTagMap_StackCountChange(const FGameplayTagContainer& Container)
@@ -1416,6 +1440,12 @@ void UAbilitySystemComponent::ClientPrintDebug_Response_Implementation(const TAr
 	{
 		ABILITY_LOG(Warning, TEXT("%s"), *Str);
 	}
+
+
+	// Now that we've heard back from server, append his strings and broadcast the delegate
+	UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Append(Strings);
+	UAbilitySystemGlobals::Get().OnClientServerDebugAvailable.Broadcast();
+	UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Reset(); // we are done with this now. Clear it to signal that this can be ran again
 }
 
 FString UAbilitySystemComponent::CleanupName(FString Str)
@@ -1515,13 +1545,31 @@ void UAbilitySystemComponent::PrintDebug()
 	DebugInfo.bShowAttributes = true;
 	DebugInfo.bShowGameplayEffects = true;
 	DebugInfo.bPrintToLog = true;
+	DebugInfo.Accumulate = true;
+	
 
 	Debug_Internal(DebugInfo);
+
+	// Store our local strings in the global debug array. Wait for server to respond with his.
+	if (UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Num() <= 0)
+	{
+		UAbilitySystemGlobals::Get().AbilitySystemDebugStrings = DebugInfo.Strings;
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemComponent::PrintDebug called while AbilitySystemDebugStrings was not empty. Still waiting for server response from a previous call?"));
+		return;
+	}
 
 	if (IsOwnerActorAuthoritative() == false)
 	{
 		// See what the server thinks
 		ServerPrintDebug_Request();
+	}
+	else
+	{
+		UAbilitySystemGlobals::Get().OnClientServerDebugAvailable.Broadcast();
+		UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Reset();
 	}
 }
 
@@ -1768,6 +1816,8 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 
 	// -------------------------------------------------------------
 
+	bool bShowAbilityTaskDebugMessages = true;
+
 	if (Info.bShowAbilities)
 	{
 		for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
@@ -1814,12 +1864,44 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 						continue;
 
 					if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
-					for (auto TaskPtr : Instance->ActiveTasks)
+					for (UGameplayTask* Task : Instance->ActiveTasks)
 					{
-						UGameplayTask* Task = TaskPtr;
 						if (Task)
 						{
 							DebugLine(Info, FString::Printf(TEXT("%s"), *Task->GetDebugString()), 7.f, 0.f);
+
+							if (bShowAbilityTaskDebugMessages)
+							{
+								for (FAbilityTaskDebugMessage& Msg : Instance->TaskDebugMessages)
+								{
+									if (Msg.FromTask == Task)
+									{
+										DebugLine(Info, FString::Printf(TEXT("%s"), *Msg.Message), 9.f, 0.f);
+									}
+								}
+							}
+						}
+					}
+
+					bool FirstTaskMsg=true;
+					int32 MsgCount = 0;
+					for (FAbilityTaskDebugMessage& Msg : Instance->TaskDebugMessages)
+					{
+						// Cap finished task msgs to 5 per ability unless dumping to log
+						if ( ++MsgCount > 5 || Info.bPrintToLog)
+						{
+							break;
+						}
+
+						if (Instance->ActiveTasks.Contains(Msg.FromTask) == false)
+						{
+							if (FirstTaskMsg)
+							{
+								DebugLine(Info, TEXT("[FinishedTasks]"), 7.f, 0.f);
+								FirstTaskMsg = false;
+							}
+
+							DebugLine(Info, FString::Printf(TEXT("%s"), *Msg.Message), 9.f, 0.f);
 						}
 					}
 

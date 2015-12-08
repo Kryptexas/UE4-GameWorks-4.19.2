@@ -175,7 +175,6 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 		// Update initial movie scene data
 		NotifyMovieSceneDataChanged();
-
 		UpdateTimeBoundsToFocusedMovieScene();
 
 		// NOTE: Could fill in asset editor commands here!
@@ -694,6 +693,7 @@ void FSequencer::OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors 
 
 void FSequencer::NotifyMovieSceneDataChanged()
 {
+	LabelManager.SetMovieScene(SequenceInstanceStack.Top()->GetSequence()->GetMovieScene());
 	PlaybackState = EMovieScenePlayerStatus::Stopped;
 	bNeedTreeRefresh = true;
 }
@@ -1118,6 +1118,8 @@ void FSequencer::UpdateRuntimeInstances()
 		}
 	}
 
+	// If realtime is off, this needs to be called to update the pivot location when scrubbing.
+	GUnrealEd->UpdatePivotLocationForSelection();
 	GEditor->RedrawLevelEditingViewports();
 }
 

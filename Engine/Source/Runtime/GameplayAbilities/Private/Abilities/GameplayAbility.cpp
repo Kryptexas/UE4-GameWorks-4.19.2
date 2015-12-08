@@ -547,10 +547,10 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		// Tell all our tasks that we are finished and they should cleanup
 		for (int32 TaskIdx = ActiveTasks.Num() - 1; TaskIdx >= 0 && ActiveTasks.Num() > 0; --TaskIdx)
 		{
-			TWeakObjectPtr<UGameplayTask> Task = ActiveTasks[TaskIdx];
-			if (Task.IsValid())
+			UGameplayTask* Task = ActiveTasks[TaskIdx];
+			if (Task)
 			{
-				Task.Get()->TaskOwnerEnded();
+				Task->TaskOwnerEnded();
 			}
 		}
 		ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
@@ -1180,6 +1180,19 @@ void UGameplayAbility::OnTaskDeactivated(UGameplayTask& Task)
 	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task.GetName());
 
 	ActiveTasks.Remove(&Task);
+
+	if (ENABLE_ABILITYTASK_DEBUGMSG)
+	{
+		AddAbilityTaskDebugMessage(&Task, TEXT("Ended."));
+	}
+}
+
+void UGameplayAbility::AddAbilityTaskDebugMessage(UGameplayTask* AbilityTask, FString DebugMessage)
+{
+	TaskDebugMessages.AddDefaulted();
+	FAbilityTaskDebugMessage& Msg = TaskDebugMessages.Last();
+	Msg.FromTask = AbilityTask;
+	Msg.Message = FString::Printf(TEXT("{%s} %s"), AbilityTask ? *AbilityTask->GetDebugString() : TEXT(""), *DebugMessage);
 }
 
 /**

@@ -531,34 +531,6 @@ void FSlateRHIRenderer::DrawWindows()
 	}
 }
 
-struct FSlateEndDrawingWindowsCommand : public FRHICommand<FSlateEndDrawingWindowsCommand>
-{
-	FSlateRHIRenderingPolicy& Policy;
-	FSlateDrawBuffer* DrawBuffer;
-	
-	FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer)
-		: Policy( InPolicy )
-		, DrawBuffer(InDrawBuffer)
-	{}
-
-	void Execute(FRHICommandListBase& CmdList)
-	{
-		for( auto& ElementList : DrawBuffer->GetWindowElementLists() )
-		{
-			ElementList->PostDraw_ParallelThread();
-		}
-
-		DrawBuffer->Unlock();
-		Policy.EndDrawingWindows();
-	}
-};
-
-static void EndDrawingWindows( FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy )
-{
-	new (RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>()) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
-}
-
-
 void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
 {
 	check(OutColorData);
@@ -703,7 +675,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		FSlateDrawBuffer*, DrawBuffer, &WindowDrawBuffer,
 		FSlateRHIRenderingPolicy&, Policy, *RenderingPolicy,
 	{
-		EndDrawingWindows( RHICmdList, DrawBuffer, Policy );
+		FSlateEndDrawingWindowsCommand::EndDrawingWindows(RHICmdList, DrawBuffer, Policy);
 	});
 
 	// flush the cache if needed
@@ -1345,4 +1317,25 @@ void FSlateRHIRenderer::ReleaseCachedRenderData(FSlateRenderDataHandle* InRender
 	{
 		Context.RenderPolicy->ReleaseCachedRenderData(Context.RenderDataHandle);
 	});
+}
+
+FSlateEndDrawingWindowsCommand::FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer)
+	: Policy(InPolicy)
+	, DrawBuffer(InDrawBuffer)
+{}
+
+void FSlateEndDrawingWindowsCommand::Execute(FRHICommandListBase& CmdList)
+{
+	for ( auto& ElementList : DrawBuffer->GetWindowElementLists() )
+	{
+		ElementList->PostDraw_ParallelThread();
+	}
+
+	DrawBuffer->Unlock();
+	Policy.EndDrawingWindows();
+}
+
+void FSlateEndDrawingWindowsCommand::EndDrawingWindows(FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy)
+{
+	new ( RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>() ) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
 }

@@ -156,7 +156,19 @@ void UUMGSequencePlayer::Stop()
 	TimeCursorPosition = 0;
 }
 
-void UUMGSequencePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const
+void UUMGSequencePlayer::SetNumLoopsToPlay(int32 InNumLoopsToPlay)
+{
+	if (PlayMode == EUMGSequencePlayMode::PingPong)
+	{
+		NumLoopsToPlay = (2 * InNumLoopsToPlay);
+	}
+	else
+	{
+		NumLoopsToPlay = InNumLoopsToPlay;
+	}
+}
+
+void UUMGSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects) const
 {
 	const TArray<UObject*>* FoundObjects = GuidToRuntimeObjectMap.Find( ObjectHandle );
 

@@ -864,51 +864,7 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		if (Sound->IsAudibleSimple(AudioDevice, Location, AttenuationSettings))
-		{
-			const bool bIsInGameWorld = ThisWorld->IsGameWorld();
-
-			FActiveSound NewActiveSound;
-			NewActiveSound.World = ThisWorld;
-			NewActiveSound.Sound = Sound;
-
-			NewActiveSound.VolumeMultiplier = VolumeMultiplier;
-			NewActiveSound.PitchMultiplier = PitchMultiplier;
-
-			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
-
-			NewActiveSound.bLocationDefined = true;
-			NewActiveSound.Transform.SetTranslation(Location);
-			NewActiveSound.Transform.SetRotation(FQuat(Rotation));
-
-			NewActiveSound.bIsUISound = !bIsInGameWorld;
-			NewActiveSound.bHandleSubtitles = true;
-			NewActiveSound.SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-
-			const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
-
-			NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
-			if (NewActiveSound.bHasAttenuationSettings)
-			{
-				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-				NewActiveSound.MaxDistance = NewActiveSound.AttenuationSettings.GetMaxDimension();
-			}
-			else
-			{
-				NewActiveSound.MaxDistance = Sound->GetMaxAudibleDistance();
-			}
-
-			NewActiveSound.ConcurrencySettings = ConcurrencySettings;
-			NewActiveSound.Priority = Sound->Priority;
-
-			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
-			AudioDevice->AddNewActiveSound(NewActiveSound);
-		}
-		else
-		{
-			// Don't play a sound for short sounds that start out of range of any listener
-			UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
-		}
+		AudioDevice->PlaySoundAtLocation(Sound, ThisWorld, VolumeMultiplier, PitchMultiplier, StartTime, Location, Rotation, AttenuationSettings, ConcurrencySettings);
 	}
 }
 

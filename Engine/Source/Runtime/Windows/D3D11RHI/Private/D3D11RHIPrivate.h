@@ -682,6 +682,7 @@ protected:
 		int32 ArraySlice;
 		int32 ArraySize;
 	};
+	FThreadSafeCounter UnresolvedTargetsConcurrencyGuard;
 	TMultiMap<ID3D11Resource*, FUnresolvedRTInfo> UnresolvedTargets;
 #endif
 

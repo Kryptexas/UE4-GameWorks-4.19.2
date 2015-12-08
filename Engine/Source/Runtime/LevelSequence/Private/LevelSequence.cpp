@@ -80,6 +80,11 @@ UObject* ULevelSequence::FindPossessableObject(const FGuid& ObjectId, UObject* C
 	return Context ? ObjectReferences.ResolveBinding(ObjectId, Context) : nullptr;
 }
 
+FGuid ULevelSequence::FindPossessableObjectId(UObject& Object) const
+{
+	return FGuid();
+}
+
 UMovieScene* ULevelSequence::GetMovieScene() const
 {
 	return MovieScene;

@@ -1374,10 +1374,10 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 		// consume path following requested velocity
 		bHasRequestedVelocity = false;
 
-		// if simulated gravity, find floor and check if falling
-		const bool bEnableFloorCheck = (!CharacterOwner->bSimGravityDisabled || !bIsSimulatedProxy);
-		if (bEnableFloorCheck && (IsMovingOnGround() || MovementMode == MOVE_Falling))
+		// find floor and check if falling
+		if (IsMovingOnGround() || MovementMode == MOVE_Falling)
 		{
+			const bool bSimGravityDisabled = (CharacterOwner->bSimGravityDisabled && bIsSimulatedProxy);
 			if (StepDownResult.bComputedFloor)
 			{
 				CurrentFloor = StepDownResult.FloorResult;
@@ -1393,8 +1393,11 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 
 			if (!CurrentFloor.IsWalkableFloor())
 			{
-				// No floor, must fall.
-				Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), DeltaSeconds);
+				if (!bSimGravityDisabled)
+				{
+					// No floor, must fall.
+					Velocity = NewFallVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaSeconds);
+				}
 				SetMovementMode(MOVE_Falling);
 			}
 			else
@@ -1407,15 +1410,18 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 				}
 				else if (MovementMode == MOVE_Falling)
 				{
-					if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST)
+					if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST || (bSimGravityDisabled && CurrentFloor.FloorDist <= MAX_FLOOR_DIST))
 					{
 						// Landed
 						SetPostLandedPhysics(CurrentFloor.HitResult);
 					}
 					else
 					{
-						// Continue falling.
-						Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), DeltaSeconds);
+						if (!bSimGravityDisabled)
+						{
+							// Continue falling.
+							Velocity = NewFallVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaSeconds);
+						}
 						CurrentFloor.Clear();
 					}
 				}

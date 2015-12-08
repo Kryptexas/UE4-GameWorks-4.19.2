@@ -25,7 +25,7 @@ UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCo
 
 void UAbilityTask_WaitAbilityCommit::Activate()
 {
-	if (AbilitySystemComponent.IsValid())	
+	if (AbilitySystemComponent)	
 	{		
 		OnAbilityCommitDelegateHandle = AbilitySystemComponent->AbilityCommitedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
 	}
@@ -33,7 +33,7 @@ void UAbilityTask_WaitAbilityCommit::Activate()
 
 void UAbilityTask_WaitAbilityCommit::OnDestroy(bool AbilityEnded)
 {
-	if (AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->AbilityCommitedCallbacks.Remove(OnAbilityCommitDelegateHandle);
 	}

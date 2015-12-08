@@ -13,7 +13,7 @@ class UAbilityTask_WaitConfirm : public UAbilityTask
 	FGenericGameplayTaskDelegate	OnConfirm;
 
 	UFUNCTION()
-	void OnConfirmCallback(UGameplayAbility* Ability);
+	void OnConfirmCallback(UGameplayAbility* InAbility);
 
 	virtual void Activate() override;
 

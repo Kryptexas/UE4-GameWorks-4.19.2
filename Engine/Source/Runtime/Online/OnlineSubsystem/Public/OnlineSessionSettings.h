@@ -524,6 +524,8 @@ public:
 #define SEARCH_PRESENCE FName(TEXT("PRESENCESEARCH"))
 /** Search for a match with min player availability (value is int) */
 #define SEARCH_MINSLOTSAVAILABLE FName(TEXT("MINSLOTSAVAILABLE"))
+/** Exclude all matches where any unique ids in a given array are present (value is string of the form "uniqueid1;uniqueid2;uniqueid3") */
+#define SEARCH_EXCLUDE_UNIQUEIDS FName(TEXT("EXCLUDEUNIQUEIDS"))
 /** User ID to search for session of */
 #define SEARCH_USER FName(TEXT("SEARCHUSER"))
 /** Keywords to match in session search */

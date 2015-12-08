@@ -124,6 +124,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
 	bool bFeatureLevelES31Preview;
 
+	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
+	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded lightmap encoding"))
+	bool bEnableMultithreadedLightmapEncoding;
+
+	/** Enable multithreaded shadow map encoding (decreases time taken to encode shadow maps) */
+	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded shadowmap encoding"))
+	bool bEnableMultithreadedShadowmapEncoding;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

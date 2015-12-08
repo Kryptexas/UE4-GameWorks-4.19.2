@@ -108,6 +108,11 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_DOF 0
 #endif
 
+// Tone map to kill fireflies
+#ifndef AA_TONE
+	#define AA_TONE 1
+#endif
+
 
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
     // ------------------------------------------------
@@ -236,7 +241,7 @@ which can be configured via defines for various temporal AA passes.
 		Neighbor4.rgb = RGBToYCoCg(Neighbor4.rgb);
 		Neighbor5.rgb = RGBToYCoCg(Neighbor5.rgb);
 		Neighbor7.rgb = RGBToYCoCg(Neighbor7.rgb);
-		#if 1
+		#if AA_TONE
 			Neighbor1.xyz *= HdrWeightY(Neighbor1.x, InExposureScale);
 			Neighbor3.xyz *= HdrWeightY(Neighbor3.x, InExposureScale);
 			Neighbor4.xyz *= HdrWeightY(Neighbor4.x, InExposureScale);
@@ -393,7 +398,7 @@ which can be configured via defines for various temporal AA passes.
 	#endif
 	#if AA_YCOCG
 		OutColor.rgb = RGBToYCoCg(OutColor.rgb);
-		#if 1
+		#if AA_TONE
 			OutColor.xyz *= HdrWeightY(OutColor.x, InExposureScale);
 		#endif
 	#else
@@ -484,7 +489,9 @@ which can be configured via defines for various temporal AA passes.
 		float HistoryFactor = DistToClamp * HistoryAmount * (1.0 + HistoryBlur * HistoryAmount * 8.0);
 	#endif
 	float BlendFinal = saturate(HistoryFactor / (DistToClamp + LumaMax - LumaMin));
-	BlendFinal = 0.04;
+	#if AA_TONE
+		BlendFinal = 0.04;
+	#endif
 	#if RESPONSIVE
 		// Responsive forces 1/4 of new frame.
 		BlendFinal = 1.0/4.0;
@@ -524,7 +531,7 @@ which can be configured via defines for various temporal AA passes.
 		OutColor = lerp(OutColor, Filtered, FixedLerp);
 	#endif
 	#if AA_YCOCG
-		#if 1
+		#if AA_TONE
 			OutColor.xyz *= HdrWeightInvY(OutColor.x, InExposureScale);
 		#endif
 		OutColor.rgb = YCoCgToRGB(OutColor.rgb);
@@ -564,3 +571,4 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_YCOCG
 #undef AA_BICUBIC
 #undef AA_DOF
+#undef AA_TONE

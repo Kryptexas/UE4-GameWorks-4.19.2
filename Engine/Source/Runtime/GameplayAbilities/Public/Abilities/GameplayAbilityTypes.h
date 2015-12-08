@@ -19,6 +19,8 @@ class UAttributeSet;
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
+#define ENABLE_ABILITYTASK_DEBUGMSG !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
 {
@@ -376,6 +378,17 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	class UDataTable*	DefaultStartingTable;
+};
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FAbilityTaskDebugMessage
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	class UGameplayTask*	FromTask;
+
+	FString Message;
 };
 
 /** Used for cleaning up predicted data on network clients */

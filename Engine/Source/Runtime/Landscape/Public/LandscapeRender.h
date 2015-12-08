@@ -456,46 +456,16 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 	public:
 		/** Initialization constructor. */
 		FLandscapeLCI(const ULandscapeComponent* InComponent)
+			: FLightCacheInterface(InComponent->LightMap, InComponent->ShadowMap)
 		{
-			LightMap = InComponent->LightMap;
-			ShadowMap = InComponent->ShadowMap;
 			IrrelevantLights = InComponent->IrrelevantLights;
 		}
 
 		// FLightCacheInterface
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override;
 
-		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const override
-		{
-			return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
-		}
-
-		virtual FShadowMapInteraction GetShadowMapInteraction() const override
-		{
-			return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
-		}
-
-		virtual void SetPrecomputedLightingBuffer(FUniformBufferRHIParamRef InPrecomputedLightingUniformBuffer) override
-		{
-			PrecomputedLightingUniformBuffer = InPrecomputedLightingUniformBuffer;
-		}
-
-		virtual FUniformBufferRHIRef GetPrecomputedLightingBuffer() const override
-		{
-			return PrecomputedLightingUniformBuffer;
-		}
-
 	private:
-		/** The light-map used by the element. */
-		const FLightMap* LightMap;
-
-		/** The shadowmap used by the element. */
-		const FShadowMap* ShadowMap;
-
 		TArray<FGuid> IrrelevantLights;
-
-		/** The uniform buffer holding mapping the lightmap policy resources. */
-		FUniformBufferRHIRef PrecomputedLightingUniformBuffer;
 	};
 
 protected:

@@ -99,6 +99,27 @@ uint32 SMeshWidget::AddMesh(USlateVectorArtData& InMeshData)
 }
 
 
+UMaterialInstanceDynamic* SMeshWidget::ConvertToMID(uint32 MeshId)
+{
+	FRenderData& MeshRenderData = RenderData[MeshId];
+	UObject* ResourceObject = MeshRenderData.Brush->GetResourceObject();
+	UMaterialInterface* Material = Cast<UMaterialInterface>(ResourceObject);
+
+	UMaterialInstanceDynamic* ExistingMID = Cast<UMaterialInstanceDynamic>(Material);
+	if (ExistingMID == nullptr)
+	{
+		UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(Material, nullptr);
+		MeshRenderData.Brush->SetResourceObject(NewMID);
+		MeshRenderData.RenderingResourceHandle = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*MeshRenderData.Brush);
+		return NewMID;
+	}
+	else
+	{
+		return ExistingMID;
+	}
+}
+
+
 void SMeshWidget::ClearRuns(int32 NumRuns)
 {
 	RenderRuns.Reset(NumRuns);
@@ -149,11 +170,14 @@ int32 SMeshWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeom
 			}
 			else
 			{
-				UE_LOG(LogUMG, Warning, TEXT("SMeshWidget did not render a run because of one of these Brush: %s, InstanceBuffer: %s, NumVertexes: %d, NumIndexes: %d"),
-					RunRenderData.RenderingResourceHandle.IsValid() ? TEXT("valid") : TEXT("nullptr"),
-					RunRenderData.PerInstanceBuffer.IsValid() ? TEXT("valid") : TEXT("nullptr"),
-					RunRenderData.VertexData.Num(),
-					RunRenderData.IndexData.Num());
+				if( !GUsingNullRHI )
+				{
+					UE_LOG(LogUMG, Warning, TEXT("SMeshWidget did not render a run because of one of these Brush: %s, InstanceBuffer: %s, NumVertexes: %d, NumIndexes: %d"),
+						RunRenderData.RenderingResourceHandle.IsValid() ? TEXT("valid") : TEXT("nullptr"),
+						RunRenderData.PerInstanceBuffer.IsValid() ? TEXT("valid") : TEXT("nullptr"),
+						RunRenderData.VertexData.Num(),
+						RunRenderData.IndexData.Num());
+				}
 			}
 		}
 	}
@@ -182,10 +206,13 @@ int32 SMeshWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeom
 			}
 			else
 			{
-				UE_LOG(LogUMG, Warning, TEXT("SMeshWidget did not render a run because of one of these Brush: %s, NumVertexes: %d, NumIndexes: %d"),
-					RunRenderData.RenderingResourceHandle.IsValid() ? TEXT("valid") : TEXT("nullptr"),
-					RunRenderData.VertexData.Num(),
-					RunRenderData.IndexData.Num());
+				if( !GUsingNullRHI )
+				{
+					UE_LOG(LogUMG, Warning, TEXT("SMeshWidget did not render a run because of one of these Brush: %s, NumVertexes: %d, NumIndexes: %d"),
+						RunRenderData.RenderingResourceHandle.IsValid() ? TEXT("valid") : TEXT("nullptr"),
+						RunRenderData.VertexData.Num(),
+						RunRenderData.IndexData.Num());
+				}
 			}
 		}
 	}

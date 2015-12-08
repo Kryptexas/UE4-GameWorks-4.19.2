@@ -910,9 +910,9 @@ void UnhashObject(UObjectBase* Object)
 }
 
 /**
- * Prevents any other threads from finding/adding UObjects while GC is running
+ * Prevents any other threads from finding/adding UObjects (e.g. while GC is running)
 */
-void LockUObjectHashTablesForGC()
+void LockUObjectHashTables()
 {
 #if THREADSAFE_UOBJECTS
 	FUObjectHashTables::Get().Lock();
@@ -922,9 +922,9 @@ void LockUObjectHashTablesForGC()
 }
 
 /**
- * Releases UObject hash tables lock after GC has finished running
+ * Releases UObject hash tables lock (e.g. after GC has finished running)
  */
-void UnlockUObjectHashTablesForGC()
+void UnlockUObjectHashTables()
 {
 #if THREADSAFE_UOBJECTS
 	FUObjectHashTables::Get().Unlock();

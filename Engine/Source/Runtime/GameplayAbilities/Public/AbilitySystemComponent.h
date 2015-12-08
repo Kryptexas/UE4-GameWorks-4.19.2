@@ -50,6 +50,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityFailedDelegate, const UGameplayAbil
 /** Called when ability ends */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
 
+/** Notify interested parties that ability spec has been modified */
+DECLARE_MULTICAST_DELEGATE_OneParam(FAbilitySpecDirtied, const FGameplayAbilitySpec&);
+
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
  */
@@ -122,6 +125,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION(BlueprintCallable, Category="Skills", meta=(DisplayName="InitStats"))
 	void K2_InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
 		
+	/** Returns a list of all attributes for this abiltiy system component */
+	void GetAllAttributes(OUT TArray<FGameplayAttribute>& Attributes);
 
 	UPROPERTY(EditAnywhere, Category="AttributeTest")
 	TArray<FAttributeDefaults>	DefaultStartingData;
@@ -131,6 +136,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Sets the base value of an attribute. Existing active modifiers are NOT cleared and will act upon the new base value. */
 	void SetNumericAttributeBase(const FGameplayAttribute &Attribute, float NewBaseValue);
+
+	/** Gets the base value of an attribute. That is, the value of the attribute with no stateful modifiers */
+	float GetNumericAttributeBase(const FGameplayAttribute &Attribute);
 
 	/**
 	 *	Applies an inplace mod to the given attribute. This correctly update the attribute's aggregator, updates the attribute set property,
@@ -300,7 +308,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 * @return Count of the specified source effect
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category=GameplayEffects)
-	int32 GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent);
+	int32 GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent, bool bEnforceOnGoingCheck = true);
 
 	/** Returns the sum of StackCount of all gameplay effects that pass query */
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
@@ -658,6 +666,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Cancels the specified ability CDO. */
 	void CancelAbility(UGameplayAbility* Ability);	
 
+	/** Cancels the ability indicated by passed in spec handle. If handle is not found among reactivated abilities nothing happens. */
+	void CancelAbilityHandle(const FGameplayAbilitySpecHandle& AbilityHandle);
+
 	/** Cancel all abilities with the specified tags. Will not cancel the Ignore instance */
 	void CancelAbilities(const FGameplayTagContainer* WithTags=nullptr, const FGameplayTagContainer* WithoutTags=nullptr, UGameplayAbility* Ignore=nullptr);
 
@@ -900,6 +911,8 @@ public:
 	FAbilityConfirmOrCancel	GenericLocalConfirmCallbacks;
 
 	FAbilityEnded AbilityEndedCallbacks;
+
+	FAbilitySpecDirtied AbilitySpecDirtiedCallbacks;
 
 	/** Generic local callback for generic CancelEvent that any ability can listen to */
 	FAbilityConfirmOrCancel	GenericLocalCancelCallbacks;
@@ -1200,6 +1213,8 @@ protected:
 	void UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta);
 	
 	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
+
+	void ResetTagMap();
 
 	void NotifyTagMap_StackCountChange(const FGameplayTagContainer& Container);
 

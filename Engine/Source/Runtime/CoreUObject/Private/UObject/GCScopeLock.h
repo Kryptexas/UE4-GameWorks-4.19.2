@@ -22,15 +22,15 @@ public:
 	FORCEINLINE FGCScopeLock()
 		: bPreviousGabageCollectingFlagValue(GetGarbageCollectingFlag())
 	{		
-		void LockUObjectHashTablesForGC();
-		LockUObjectHashTablesForGC();		
+		void LockUObjectHashTables();
+		LockUObjectHashTables();		
 		GetGarbageCollectingFlag() = true;
 	}
 	FORCEINLINE ~FGCScopeLock()
 	{		
 		GetGarbageCollectingFlag() = bPreviousGabageCollectingFlagValue;
-		void UnlockUObjectHashTablesForGC();
-		UnlockUObjectHashTablesForGC();		
+		void UnlockUObjectHashTables();
+		UnlockUObjectHashTables();		
 	}
 };
 

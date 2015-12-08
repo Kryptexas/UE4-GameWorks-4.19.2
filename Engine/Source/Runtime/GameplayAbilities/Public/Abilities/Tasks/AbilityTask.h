@@ -84,9 +84,11 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 	void SetAbilitySystemComponent(UAbilitySystemComponent* InAbilitySystemComponent);
 
 	/** GameplayAbility that created us */
-	TWeakObjectPtr<UGameplayAbility> Ability;
+	UPROPERTY()
+	UGameplayAbility* Ability;
 
-	TWeakObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	UPROPERTY()
+	UAbilitySystemComponent* AbilitySystemComponent;
 
 	/** Returns true if the ability is a locally predicted ability running on a client. Usually this means we need to tell the server something. */
 	bool IsPredictingClient() const;
@@ -158,7 +160,6 @@ struct FAbilityInstanceNamePredicate
 	FName InstanceName;
 };
 
-
 struct FAbilityInstanceClassPredicate
 {
 	FAbilityInstanceClassPredicate(TSubclassOf<UAbilityTask> Class)
@@ -173,3 +174,10 @@ struct FAbilityInstanceClassPredicate
 
 	TSubclassOf<UAbilityTask> TaskClass;
 };
+
+#define ABILITYTASK_MSG(Format, ...) \
+	if (ENABLE_ABILITYTASK_DEBUGMSG) \
+	{ \
+		if (Ability) \
+			Ability->AddAbilityTaskDebugMessage(this, FString::Printf(TEXT(Format), ##__VA_ARGS__)); \
+	} 

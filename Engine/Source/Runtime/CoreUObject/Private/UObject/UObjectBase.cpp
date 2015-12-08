@@ -10,6 +10,9 @@
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectBase, Log, All);
 DEFINE_STAT(STAT_UObjectsStatGroupTester);
 
+DECLARE_CYCLE_STAT(TEXT("CreateStatID"), STAT_CreateStatID, STATGROUP_StatSystem);
+
+
 /** Whether uobject system is initialized.												*/
 namespace Internal
 {
@@ -99,6 +102,8 @@ UObjectBase::~UObjectBase()
 
 void UObjectBase::CreateStatID() const
 {
+	SCOPE_CYCLE_COUNTER(STAT_CreateStatID);
+
 	FString LongName;
 	UObjectBase const* Target = this;
 	do 

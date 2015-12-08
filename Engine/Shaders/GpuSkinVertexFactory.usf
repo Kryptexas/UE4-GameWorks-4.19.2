@@ -54,6 +54,7 @@ bool PerBoneMotionBlur;
 #if GPUSKIN_APEX_CLOTH
 /** Vertex buffer from which to read simulated positions of clothing. */
 Buffer<float2> ClothSimulVertsPositionsNormals;
+Buffer<float2> PreviousClothSimulVertsPositionsNormals;
 /** blend weight between simulated positions and original key-framed animation */
 float ClothBlendWeight;
 #endif// #if GPUSKIN_APEX_CLOTH
@@ -198,7 +199,10 @@ struct FVertexFactoryIntermediates
 #endif
 
 #if GPUSKIN_APEX_CLOTH
+	// in world space (non translated)
 	float3 SimulatedPosition;
+	// in world space (non translated)
+	float3 PreviousSimulatedPosition;
 #endif
 
 };
@@ -228,18 +232,24 @@ bool IsSimulatedVertex( FVertexFactoryInput Input )
 	return (Input.SimulIndices.w < FIXED_VERTEX_INDEX);
 }
 
-float3 GetClothSimulPosition(int Index)
+float3 GetClothSimulPosition(int Index, bool bPrevious)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	if(bPrevious)
+		return float3(PreviousClothSimulVertsPositionsNormals[Index * 3], PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].x);
+	  else
 		return float3(ClothSimulVertsPositionsNormals[Index * 3], ClothSimulVertsPositionsNormals[Index * 3 + 1].x);
 #else
 	return APEXClothParam.Positions[Index];
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 }
 
-float3 GetClothSimulNormal(int Index)
+float3 GetClothSimulNormal(int Index, bool bPrevious)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	if(bPrevious)
+		return float3(PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].y, PreviousClothSimulVertsPositionsNormals[Index * 3 + 2]);
+	  else
 		return float3(ClothSimulVertsPositionsNormals[Index * 3 + 1].y, ClothSimulVertsPositionsNormals[Index * 3 + 2]);
 #else
 	return APEXClothParam.Normals[Index];
@@ -247,11 +257,11 @@ float3 GetClothSimulNormal(int Index)
 
 }
 
-float3 ClothingPosition( FVertexFactoryInput Input )
+float3 ClothingPosition( FVertexFactoryInput Input, bool bPrevious)
 {
-	float3 Position = Input.BaryCoordPos.x*(GetClothSimulPosition(Input.SimulIndices.x)+GetClothSimulNormal(Input.SimulIndices.x)*Input.BaryCoordPos.w)
-					+ Input.BaryCoordPos.y*(GetClothSimulPosition(Input.SimulIndices.y)+GetClothSimulNormal(Input.SimulIndices.y)*Input.BaryCoordPos.w)
-					+ Input.BaryCoordPos.z*(GetClothSimulPosition(Input.SimulIndices.z)+GetClothSimulNormal(Input.SimulIndices.z)*Input.BaryCoordPos.w);
+	float3 Position = Input.BaryCoordPos.x*(GetClothSimulPosition(Input.SimulIndices.x, bPrevious)+GetClothSimulNormal(Input.SimulIndices.x, bPrevious)*Input.BaryCoordPos.w)
+					+ Input.BaryCoordPos.y*(GetClothSimulPosition(Input.SimulIndices.y, bPrevious)+GetClothSimulNormal(Input.SimulIndices.y, bPrevious)*Input.BaryCoordPos.w)
+					+ Input.BaryCoordPos.z*(GetClothSimulPosition(Input.SimulIndices.z, bPrevious)+GetClothSimulNormal(Input.SimulIndices.z, bPrevious)*Input.BaryCoordPos.w);
 
 	return float3(Position.xyz*MeshExtension + MeshOrigin);
 }
@@ -399,13 +409,15 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 	{ 
 		TempClothBlendWeight = ClothBlendWeight;
 
-		float3 A = GetClothSimulPosition(Input.SimulIndices.x);
-		float3 B = GetClothSimulPosition(Input.SimulIndices.y);
-		float3 C = GetClothSimulPosition(Input.SimulIndices.z);
+		bool bPrevious = false;
 
-		float3 NA = GetClothSimulNormal(Input.SimulIndices.x);
-		float3 NB = GetClothSimulNormal(Input.SimulIndices.y);
-		float3 NC = GetClothSimulNormal(Input.SimulIndices.z);
+		float3 A = GetClothSimulPosition(Input.SimulIndices.x, bPrevious);
+		float3 B = GetClothSimulPosition(Input.SimulIndices.y, bPrevious);
+		float3 C = GetClothSimulPosition(Input.SimulIndices.z, bPrevious);
+
+		float3 NA = GetClothSimulNormal(Input.SimulIndices.x, bPrevious);
+		float3 NB = GetClothSimulNormal(Input.SimulIndices.y, bPrevious);
+		float3 NC = GetClothSimulNormal(Input.SimulIndices.z, bPrevious);
 
 		float3 NormalPosition = Input.BaryCoordNormal.x*(A+NA*Input.BaryCoordNormal.w)
 								+ Input.BaryCoordNormal.y*(B+NB*Input.BaryCoordNormal.w)
@@ -469,11 +481,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #if GPUSKIN_APEX_CLOTH
 	if( IsSimulatedVertex(Input) )
 	{
-		Intermediates.SimulatedPosition = ClothingPosition(Input);
+		Intermediates.PreviousSimulatedPosition = ClothingPosition(Input, true);
+		Intermediates.SimulatedPosition = ClothingPosition(Input, false);
 	}
 	else
 	{
-		Intermediates.SimulatedPosition = Intermediates.UnpackedPosition;
+		Intermediates.PreviousSimulatedPosition = Intermediates.SimulatedPosition = Intermediates.UnpackedPosition;
 	}
 	
 #endif
@@ -586,7 +599,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 #if GPUSKIN_APEX_CLOTH
 	if( IsSimulatedVertex(Input) )
 	{
-		float3 PrevSimulatedPos = mul(mul(float4(Intermediates.SimulatedPosition.xyz, 1), Primitive.WorldToLocal), PreviousLocalToWorld).xyz;
+		float3 PrevSimulatedPos = Intermediates.PreviousSimulatedPosition + View.PrevPreViewTranslation;
 		float3 BlendedPrevPos = lerp(PrevSkinPosInWorld.xyz, PrevSimulatedPos.xyz, ClothBlendWeight);
 		return float4(BlendedPrevPos, 1);
 	}

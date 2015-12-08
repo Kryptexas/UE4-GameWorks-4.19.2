@@ -34,6 +34,11 @@ UObject* UNiagaraSequence::FindPossessableObject(const FGuid& ObjectId, UObject*
 }
 
 
+FGuid UNiagaraSequence::FindPossessableObjectId(UObject& Object) const
+{
+	return FGuid();
+}
+
 UMovieScene* UNiagaraSequence::GetMovieScene() const
 {
 	return MovieScene;

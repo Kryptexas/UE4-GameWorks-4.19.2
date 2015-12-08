@@ -1014,6 +1014,7 @@ void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_Tick);
+	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
 
 	check(this != nullptr && this->IsPendingKill() == false);
 

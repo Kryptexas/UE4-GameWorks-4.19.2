@@ -4,7 +4,7 @@
 #include "OnlineTitleFileInterface.h"
 #include "OnlineHotfixManager.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogHotfixManager, Verbose, All);
+HOTFIX_API DECLARE_LOG_CATEGORY_EXTERN(LogHotfixManager, Verbose, All);
 
 UENUM()
 enum class EHotfixResult : uint8
@@ -22,13 +22,23 @@ enum class EHotfixResult : uint8
 };
 
 /**
- * Delegate fired when the list of files has been returned from the network store
+ * Delegate fired when the hotfix process has completed
  *
- * @param bWasSuccessful whether the file list was successful or not
- *
+ * @param EHotfixResult status on what happened
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnHotfixComplete, EHotfixResult);
 typedef FOnHotfixComplete::FDelegate FOnHotfixCompleteDelegate;
+
+/**
+ * Delegate fired as progress of hotfix file reading happens
+ *
+ * @param NumDownloaded the number of files downloaded so far
+ * @param TotalFiles the total number of files part of the hotfix
+ * @param NumBytes the number of bytes processed so far
+ * @param TotalBytes the total size of the hotfix data
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnHotfixProgress, uint32, uint32, uint64, uint64);
+typedef FOnHotfixProgress::FDelegate FOnHotfixProgressDelegate;
 
 /**
  * This class manages the downloading and application of hotfix data
@@ -48,8 +58,10 @@ protected:
 
 	/** Callbacks for when the title file interface is done */
 	FOnEnumerateFilesCompleteDelegate OnEnumerateFilesCompleteDelegate;
+	FOnReadFileProgressDelegate OnReadFileProgressDelegate;
 	FOnReadFileCompleteDelegate OnReadFileCompleteDelegate;
 	FDelegateHandle OnEnumerateFilesCompleteDelegateHandle;
+	FDelegateHandle OnReadFileProgressDelegateHandle;
 	FDelegateHandle OnReadFileCompleteDelegateHandle;
 
 	/**
@@ -59,8 +71,23 @@ protected:
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnHotfixComplete, EHotfixResult);
 
+	/**
+	 * Delegate fired as the hotfix files are processed
+	 */
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnHotfixProgress, uint32, uint32, uint64, uint64);
+
+	struct FPendingFileDLProgress
+	{
+		uint64 Progress;
+
+		FPendingFileDLProgress()
+		{
+			Progress = 0;
+		}
+	};
+
 	/** Holds which files are pending download */
-	TSet<FString> PendingHotfixFiles;
+	TMap<FString, FPendingFileDLProgress> PendingHotfixFiles;
 	/** The filtered list of files that are part of the hotfix */
 	TArray<FCloudFileHeader> HotfixFileList;
 	/** The last set of hotfix files that was applied so we can determine whether we are up to date or not */
@@ -71,6 +98,12 @@ protected:
 	FString GameLocName;
 	/** Used to match any PAK files for this platform */
 	FString PlatformPrefix;
+	/** Tracks how many files are being processed as part of the hotfix */
+	uint32 TotalFiles;
+	uint32 NumDownloaded;
+	/** Tracks the size of the files being processed as part of the hotfix */
+	uint64 TotalBytes;
+	uint64 NumBytes;
 
 	void Init();
 	void Cleanup();
@@ -89,12 +122,16 @@ protected:
 	void OnEnumerateFilesComplete(bool bWasSuccessful);
 	/** Called as files are downloaded to determine when to apply the hotfix data */
 	void OnReadFileComplete(bool bWasSuccessful, const FString& FileName);
+	/** Called as files are downloaded to provide progress notifications */
+	void OnReadFileProgress(const FString& FileName, uint64 BytesRead);
 
 	/** @return the config file entry for the ini file name in question */
 	FConfigFile* GetConfigFile(const FString& IniName);
 
 	/** @return the human readable name of the file */
 	const FString GetFriendlyNameFromDLName(const FString& DLName) const;
+
+	virtual void PostInitProperties() override;
 
 protected:
 	/**
@@ -160,6 +197,12 @@ protected:
 		return FPaths::GamePersistentDownloadDir();
 	}
 
+	/** Finds the header associated with the file name */
+	FCloudFileHeader* GetFileHeaderFromDLName(const FString& FileName);
+
+	/** Fires the progress delegate with our updated progress */
+	void UpdateProgress(uint32 FileCount, uint64 UpdateSize);
+
 public:
 	UOnlineHotfixManager();
 
@@ -171,9 +214,13 @@ public:
 	UPROPERTY(Config)
 	FString HotfixManagerClassName;
 
+	/** Used to prevent development work from interfering with playtests, etc. */
+	UPROPERTY(Config)
+	FString DebugPrefix;
+
 	/** Starts the fetching of hotfix data from the OnlineTitleFileInterface that is registered for this game */
 	UFUNCTION(BlueprintCallable, Category="Hotfix")
-	void StartHotfixProcess();
+	virtual void StartHotfixProcess();
 
 	/** Factory method that returns the configured hotfix manager */
 	static UOnlineHotfixManager* Get(UWorld* World);

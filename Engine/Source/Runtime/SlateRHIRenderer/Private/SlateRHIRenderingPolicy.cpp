@@ -101,13 +101,16 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferRTTime );
 
-		uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedVertices());
-		uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedIndices());
+		if (BatchData.GetNumBatchedVertices() > 0)
+		{
+			uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedVertices());
+			uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedIndices());
 
-		BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+			BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
 	
-		VertexBuffer.UnlockBuffer_RHIThread();
-		IndexBuffer.UnlockBuffer_RHIThread();
+			VertexBuffer.UnlockBuffer_RHIThread();
+			IndexBuffer.UnlockBuffer_RHIThread();
+		}
 	}
 };
 
@@ -436,8 +439,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				}
 
 
-				FSamplerStateRHIRef SamplerState = BilinearClamp;
-				FTextureRHIRef TextureRHI = GWhiteTexture->TextureRHI;
+				FSamplerStateRHIParamRef SamplerState = BilinearClamp;
+				FTextureRHIParamRef TextureRHI = GWhiteTexture->TextureRHI;
 				if( ShaderResource )
 				{
 					if (ResourceType == ESlateShaderResource::TextureObject)

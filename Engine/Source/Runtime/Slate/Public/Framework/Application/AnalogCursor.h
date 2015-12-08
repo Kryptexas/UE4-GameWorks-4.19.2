@@ -48,7 +48,7 @@ public:
 protected:
 
 	/** Getter */
-	FORCEINLINE FVector2D GetAnalogValues( EAnalogStick Stick = EAnalogStick::Left ) const
+	FORCEINLINE const FVector2D& GetAnalogValues( EAnalogStick Stick = EAnalogStick::Left ) const
 	{
 		return AnalogValues[ static_cast< uint8 >( Stick ) ];
 	}

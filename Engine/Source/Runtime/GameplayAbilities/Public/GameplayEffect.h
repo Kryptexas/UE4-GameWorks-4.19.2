@@ -853,6 +853,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	
 	/** Return true if this capture should be recalculated if the given aggregator has changed */
 	bool ShouldRefreshLinkedAggregator(const FAggregator* ChangedAggregator) const;
+
+	/** Swaps any internal references From aggregator To aggregator. Used when cloning */
+	void SwapAggregator(FAggregatorRef From, FAggregatorRef To);
 		
 private:
 
@@ -925,6 +928,9 @@ public:
 
 	/** Unregisters any linked aggregators from notifying this active handle if they are dirtied */
 	void UnregisterLinkedAggregatorCallbacks(FActiveGameplayEffectHandle Handle) const;
+
+	/** Swaps any internal references From aggregator To aggregator. Used when cloning */
+	void SwapAggregator(FAggregatorRef From, FAggregatorRef To);
 
 private:
 
@@ -1040,6 +1046,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 		return EffectContext;
 	}
 
+	void DuplicateEffectContext()
+	{
+		EffectContext = EffectContext.Duplicate();
+	}
+
 	void CaptureAttributeDataFromTarget(UAbilitySystemComponent* TargetAbilitySystemComponent);
 
 	/**
@@ -1054,12 +1065,15 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	void CalculateModifierMagnitudes();
 
-private:
-
-	void CaptureDataFromSource();
+	/** Recapture attributes from source and target for cloning */
+	void RecaptureAttributeDataForClone(UAbilitySystemComponent* OriginalASC, UAbilitySystemComponent* NewASC);
 
 	/** Helper function to initialize all of the capture definitions required by the spec */
 	void SetupAttributeCaptureDefinitions();
+
+private:
+
+	void CaptureDataFromSource();
 
 public:
 
@@ -1531,6 +1545,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue);
 
+	float GetAttributeBaseValue(FGameplayAttribute Attribute);
+
 	/** Actually applies given mod to the attribute */
 	void ApplyModToAttribute(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude, const FGameplayEffectModCallbackData* ModData=nullptr);
 
@@ -1616,8 +1632,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 * @return Count of the effects matching the specified query
 	 */
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
-	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const;
-	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query) const;
+	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query, bool bEnforceOnGoingCheck = true) const;
+	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query, bool bEnforceOnGoingCheck = true) const;
 
 	float GetServerWorldTime() const;
 
@@ -1632,6 +1648,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies);
 
 	void DebugCyclicAggregatorBroadcasts(struct FAggregator* Aggregator);
+
+	/** Performs a deep copy on the source container, duplicating all gameplay effects and reconstructing the attribute aggregator map to match the passed in source. */
+	void CloneFrom(const FActiveGameplayEffectsContainer& Source);
 
 	// -------------------------------------------------------------------------------------------
 

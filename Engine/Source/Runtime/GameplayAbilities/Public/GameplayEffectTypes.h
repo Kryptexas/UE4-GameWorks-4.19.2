@@ -911,6 +911,8 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	/** Simple accessor to the explicit gameplay tag list */
 	const FGameplayTagContainer& GetExplicitGameplayTags() const;
 
+	void Reset();
+
 private:
 
 	struct FDelegateInfo

@@ -56,10 +56,10 @@ UAbilitySystemComponent* UAbilityTask_WaitGameplayEvent::GetTargetASC()
 {
 	if (UseExternalTarget)
 	{
-		return OptionalExternalTarget.Get();
+		return OptionalExternalTarget;
 	}
 
-	return AbilitySystemComponent.Get();
+	return AbilitySystemComponent;
 }
 
 void UAbilityTask_WaitGameplayEvent::OnDestroy(bool AbilityEnding)

@@ -34,7 +34,10 @@ class UAbilityTask_WaitGameplayEvent : public UAbilityTask
 	void OnDestroy(bool AbilityEnding) override;
 
 	FGameplayTag Tag;
-	TWeakObjectPtr<UAbilitySystemComponent> OptionalExternalTarget;
+
+	UPROPERTY()
+	UAbilitySystemComponent* OptionalExternalTarget;
+
 	bool UseExternalTarget;	
 	bool OnlyTriggerOnce;
 

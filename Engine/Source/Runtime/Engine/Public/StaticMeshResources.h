@@ -861,44 +861,14 @@ protected:
 		/** Initialization constructor. */
 		FLODInfo(const UStaticMeshComponent* InComponent,int32 InLODIndex);
 
-		// Accessors.
-		const FLightMap* GetLightMap() const
-		{
-			return LightMap;
-		}
-
 		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
 
 		// FLightCacheInterface.
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override;
 
-		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const override;
-
-		virtual FShadowMapInteraction GetShadowMapInteraction() const override;
-
-		virtual void SetPrecomputedLightingBuffer(FUniformBufferRHIParamRef InPrecomputedLightingUniformBuffer) override
-		{
-			PrecomputedLightingUniformBuffer = InPrecomputedLightingUniformBuffer;
-		}
-
-		virtual FUniformBufferRHIRef GetPrecomputedLightingBuffer() const override
-		{
-			return PrecomputedLightingUniformBuffer;
-		}
-
-
 	private:
 
-		/** The lightmap used by this LOD. */
-		FLightMap* LightMap;
-
-		/** The shadowmap used by this LOD. */
-		FShadowMap* ShadowMap;
-
 		TArray<FGuid> IrrelevantLights;
-
-		/** The uniform buffer holding mapping the lightmap policy resources. */
-		FUniformBufferRHIRef PrecomputedLightingUniformBuffer;
 
 		/** True if any elements in this LOD use mesh-modifying materials **/
 		bool bUsesMeshModifyingMaterials;

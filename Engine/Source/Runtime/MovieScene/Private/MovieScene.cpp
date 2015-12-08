@@ -222,36 +222,6 @@ FText UMovieScene::GetObjectDisplayName(const FGuid& ObjectId)
 }
 
 
-#if WITH_EDITORONLY_DATA
-int32 UMovieScene::GetAllLabels(TArray<FString>& OutLabels) const
-{
-	for (const auto& LabelsPair : ObjectsToLabels)
-	{
-		for (const auto& Label : LabelsPair.Value.Strings)
-		{
-			OutLabels.AddUnique(Label);
-		}
-	}
-
-	return OutLabels.Num();
-}
-
-
-bool UMovieScene::LabelExists(const FString& Label) const
-{
-	for (const auto& LabelsPair : ObjectsToLabels)
-	{
-		if (LabelsPair.Value.Strings.Contains(Label))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-#endif
-
-
 TRange<float> UMovieScene::GetPlaybackRange() const
 {
 	check(PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound());
@@ -272,6 +242,7 @@ void UMovieScene::SetPlaybackRange(float Start, float End)
 		{
 			EditorData.WorkingRange = PlaybackRange;
 		}
+
 		if (EditorData.ViewRange.IsEmpty())
 		{
 			EditorData.ViewRange = PlaybackRange;
@@ -279,6 +250,7 @@ void UMovieScene::SetPlaybackRange(float Start, float End)
 #endif
 	}
 }
+
 
 TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 {

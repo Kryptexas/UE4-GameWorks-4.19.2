@@ -1004,7 +1004,11 @@ void FTexturePlatformData::Cache(
 	if (bAsync && !bForceRebuild)
 	{
 		AsyncTask = new FTextureAsyncCacheDerivedDataTask(Compressor, this, &InTexture, InSettings, Flags);
-		AsyncTask->StartBackgroundTask();
+		FQueuedThreadPool* ThreadPool = GThreadPool;
+#if WITH_EDITOR
+		ThreadPool = GLargeThreadPool;
+#endif
+		AsyncTask->StartBackgroundTask(ThreadPool);
 	}
 	else
 	{
@@ -1418,7 +1422,7 @@ void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 }
 
 #if WITH_EDITOR
-void UTexture::CachePlatformData(bool bAsyncCache)
+void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild)
 {
 	FTexturePlatformData** PlatformDataLinkPtr = GetRunningPlatformData();
 	if (PlatformDataLinkPtr)
@@ -1442,7 +1446,11 @@ void UTexture::CachePlatformData(bool bAsyncCache)
 				{
 					PlatformDataLink = new FTexturePlatformData();
 				}
-				PlatformDataLink->Cache(*this, BuildSettings, bAsyncCache ? ETextureCacheFlags::Async : ETextureCacheFlags::None);
+				int32 CacheFlags = 
+					(bAsyncCache ? ETextureCacheFlags::Async : ETextureCacheFlags::None) |
+					(bAllowAsyncBuild? ETextureCacheFlags::AllowAsyncBuild : ETextureCacheFlags::None);
+
+				PlatformDataLink->Cache(*this, BuildSettings, CacheFlags);
 			}
 		}
 		else if (PlatformDataLink == NULL)

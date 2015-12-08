@@ -49,6 +49,14 @@ public:
 	virtual UObject* FindPossessableObject(const FGuid& ObjectId, UObject* Context) const PURE_VIRTUAL(UMovieSceneSequence::FindPossessedObject, return nullptr;);
 
 	/**
+	 * Finds an ID for the specified the object
+	 *
+	 * @param Object The object to find an id for
+	 * @return The object's ID, or an invalid guid if not found
+	 */
+	virtual FGuid FindPossessableObjectId(UObject& Object) const PURE_VIRTUAL(UMovieSceneSequence::FindPossessableObjectId, return FGuid(););
+
+	/**
 	 * Get the movie scene that controls this animation.
 	 *
 	 * The returned movie scene represents the root movie scene.

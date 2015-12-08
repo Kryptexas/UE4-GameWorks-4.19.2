@@ -19,31 +19,39 @@ void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& 
 void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
-	if ((GroupIndex != INDEX_NONE) && (Sequence != NULL) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+
+	if (Sequence)
 	{
-		float TimeJump = ExplicitTime - InternalTimeAccumulator;
-		if (bShouldLoopWhenInSyncGroup)
+		// Clamp input to a valid position on this sequence's time line.
+		ExplicitTime = FMath::Clamp(ExplicitTime, 0.f, Sequence->SequenceLength);
+
+		if ((GroupIndex != INDEX_NONE) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 		{
-			if (FMath::Abs(TimeJump) > (Sequence->SequenceLength * 0.5f))
+			InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
+			float TimeJump = ExplicitTime - InternalTimeAccumulator;
+			if (bShouldLoopWhenInSyncGroup)
 			{
-				if (TimeJump > 0.f)
+				if (FMath::Abs(TimeJump) > (Sequence->SequenceLength * 0.5f))
 				{
-					TimeJump -= Sequence->SequenceLength;
-				}
-				else
-				{
-					TimeJump += Sequence->SequenceLength;
+					if (TimeJump > 0.f)
+					{
+						TimeJump -= Sequence->SequenceLength;
+					}
+					else
+					{
+						TimeJump += Sequence->SequenceLength;
+					}
 				}
 			}
-		}
 
-		const float DeltaTime = Context.GetDeltaTime();
-		const float PlayRate = FMath::IsNearlyZero(DeltaTime) ? 0.f : (TimeJump / DeltaTime);
-		CreateTickRecordForNode(Context, Sequence, bShouldLoopWhenInSyncGroup, PlayRate);
-	}
-	else
-	{
-		InternalTimeAccumulator = ExplicitTime;
+			const float DeltaTime = Context.GetDeltaTime();
+			const float PlayRate = FMath::IsNearlyZero(DeltaTime) ? 0.f : (TimeJump / DeltaTime);
+			CreateTickRecordForNode(Context, Sequence, bShouldLoopWhenInSyncGroup, PlayRate);
+		}
+		else
+		{
+			InternalTimeAccumulator = ExplicitTime;
+		}
 	}
 }
 

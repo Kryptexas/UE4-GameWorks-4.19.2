@@ -29,9 +29,14 @@ struct FHotfixManagerExec :
 static FHotfixManagerExec HotfixManagerExec;
 
 UOnlineHotfixManager::UOnlineHotfixManager() :
-	Super()
+	Super(),
+	TotalFiles(0),
+	NumDownloaded(0),
+	TotalBytes(0),
+	NumBytes(0)
 {
 	OnEnumerateFilesCompleteDelegate = FOnEnumerateFilesCompleteDelegate::CreateUObject(this, &UOnlineHotfixManager::OnEnumerateFilesComplete);
+	OnReadFileProgressDelegate = FOnReadFileProgressDelegate::CreateUObject(this, &UOnlineHotfixManager::OnReadFileProgress);
 	OnReadFileCompleteDelegate = FOnReadFileCompleteDelegate::CreateUObject(this, &UOnlineHotfixManager::OnReadFileComplete);
 	// So we only try to apply files for this platform
 	PlatformPrefix = ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
@@ -63,8 +68,20 @@ UOnlineHotfixManager* UOnlineHotfixManager::Get(UWorld* World)
 	return nullptr;
 }
 
+void UOnlineHotfixManager::PostInitProperties()
+{
+#if !UE_BUILD_SHIPPING
+	FParse::Value(FCommandLine::Get(), TEXT("HOTFIXPREFIX="), DebugPrefix);
+#endif
+	Super::PostInitProperties();
+}
+
 void UOnlineHotfixManager::Init()
 {
+	TotalFiles = 0;
+	NumDownloaded = 0;
+	TotalBytes = 0;
+	NumBytes = 0;
 	// Build the name of the loc file that we'll care about
 	// It can change at runtime so build it just before fetching the data
 	GameLocName = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() + TEXT("_Game.locres");
@@ -72,6 +89,7 @@ void UOnlineHotfixManager::Init()
 	if (OnlineTitleFile.IsValid())
 	{
 		OnEnumerateFilesCompleteDelegateHandle = OnlineTitleFile->AddOnEnumerateFilesCompleteDelegate_Handle(OnEnumerateFilesCompleteDelegate);
+		OnReadFileProgressDelegateHandle = OnlineTitleFile->AddOnReadFileProgressDelegate_Handle(OnReadFileProgressDelegate);
 		OnReadFileCompleteDelegateHandle = OnlineTitleFile->AddOnReadFileCompleteDelegate_Handle(OnReadFileCompleteDelegate);
 	}
 }
@@ -84,6 +102,7 @@ void UOnlineHotfixManager::Cleanup()
 		// Make sure to give back the memory used when reading the hotfix files
 		OnlineTitleFile->ClearFiles();
 		OnlineTitleFile->ClearOnEnumerateFilesCompleteDelegate_Handle(OnEnumerateFilesCompleteDelegateHandle);
+		OnlineTitleFile->ClearOnReadFileProgressDelegate_Handle(OnReadFileProgressDelegateHandle);
 		OnlineTitleFile->ClearOnReadFileCompleteDelegate_Handle(OnReadFileCompleteDelegateHandle);
 	}
 	OnlineTitleFile = nullptr;
@@ -112,6 +131,38 @@ void UOnlineHotfixManager::StartHotfixProcess()
 	}
 }
 
+struct FHotfixFileSortPredicate
+{
+	const FString PlatformName;
+
+	FHotfixFileSortPredicate(const FString& InPlatformName) :
+		PlatformName(InPlatformName)
+	{
+	}
+
+	bool operator()(const FCloudFileHeader &A, const FCloudFileHeader &B) const
+	{
+		if (A.FileName.EndsWith(TEXT("INI")) && B.FileName.EndsWith(TEXT("INI")))
+		{
+			bool bAStartsWithDefault = A.FileName.StartsWith(TEXT("Default"));
+			bool bBStartsWithDefault = B.FileName.StartsWith(TEXT("Default"));
+			bool bAStartsWithPlatformName = A.FileName.StartsWith(PlatformName);
+			bool bBStartsWithPlatformName = B.FileName.StartsWith(PlatformName);
+			// Sort any file with Default in front of the Platform version so they apply in correct order
+			if (bAStartsWithDefault && bBStartsWithPlatformName)
+			{
+				return true;
+			}
+			else if (bAStartsWithPlatformName && bBStartsWithDefault)
+			{
+				return false;
+			}
+		}
+		// Sort by the string order
+		return A < B;
+	}
+};
+
 void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
 {
 	if (bWasSuccessful)
@@ -124,10 +175,16 @@ void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
 		OnlineTitleFile->GetFileList(HotfixFileList);
 		FilterHotfixFiles();
 		// Sort after filtering so that the comparison below doesn't fail to different order from the server
-		HotfixFileList.Sort();
+		HotfixFileList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix));
 		if (LastHotfixFileList.Num() == 0 || LastHotfixFileList != HotfixFileList)
 		{
 			UnmountHotfixFiles();
+			// Update our totals for our progress delegates
+			TotalFiles = HotfixFileList.Num();
+			for (auto FileHeader : HotfixFileList)
+			{
+				TotalBytes += FileHeader.FileSize;
+			}
 			ReadHotfixFiles();
 		}
 		else
@@ -164,7 +221,7 @@ void UOnlineHotfixManager::ReadHotfixFiles()
 		// Do this in two passes so already cached files don't trigger completion
 		for (auto FileHeader : HotfixFileList)
 		{
-			PendingHotfixFiles.Add(FileHeader.DLName);
+			PendingHotfixFiles.Add(FileHeader.DLName, FPendingFileDLProgress());
 		}
 		for (auto FileHeader : HotfixFileList)
 		{
@@ -184,7 +241,11 @@ void UOnlineHotfixManager::OnReadFileComplete(bool bWasSuccessful, const FString
 	{
 		if (bWasSuccessful)
 		{
-			UE_LOG(LogHotfixManager, Log, TEXT("Hotfix file (%s) downloaded"), *GetFriendlyNameFromDLName(FileName));
+			FCloudFileHeader* Header = GetFileHeaderFromDLName(FileName);
+			check(Header != nullptr);
+			UE_LOG(LogHotfixManager, Log, TEXT("Hotfix file (%s) downloaded. Size was (%d)"), *GetFriendlyNameFromDLName(FileName), Header->FileSize);
+			// Completion updates the file count and progress updates the byte count
+			UpdateProgress(1, 0);
 			PendingHotfixFiles.Remove(FileName);
 			if (PendingHotfixFiles.Num() == 0)
 			{
@@ -198,6 +259,17 @@ void UOnlineHotfixManager::OnReadFileComplete(bool bWasSuccessful, const FString
 			TriggerHotfixComplete(EHotfixResult::Failed);
 		}
 	}
+}
+
+void UOnlineHotfixManager::UpdateProgress(uint32 FileCount, uint64 UpdateSize)
+{
+	NumDownloaded += FileCount;
+	NumBytes += UpdateSize;
+	// Update our progress
+	TriggerOnHotfixProgressDelegates(NumDownloaded, TotalFiles, NumBytes, TotalBytes);
+
+	UE_LOG(LogHotfixManager, Display, TEXT("NumFiles (%d), TotalFiles (%d), NumBytes (%d), TotalBytes(%d)"),
+		NumDownloaded, TotalFiles, NumBytes, TotalBytes);
 }
 
 void UOnlineHotfixManager::ApplyHotfix()
@@ -228,10 +300,17 @@ void UOnlineHotfixManager::TriggerHotfixComplete(EHotfixResult HotfixResult)
 
 bool UOnlineHotfixManager::WantsHotfixProcessing(const FCloudFileHeader& FileHeader)
 {
+#if !UE_BUILD_SHIPPING
+	if (!DebugPrefix.IsEmpty() && !FileHeader.FileName.StartsWith(DebugPrefix))
+	{
+		// Allow filtering of files by individual or group for testing
+		return false;
+	}
+#endif
 	const FString Extension = FPaths::GetExtension(FileHeader.FileName);
 	if (Extension == TEXT("INI"))
 	{
-		return FileHeader.FileName.StartsWith(PlatformPrefix);
+		return FileHeader.FileName.StartsWith(PlatformPrefix) || FileHeader.FileName.StartsWith(TEXT("Default"));
 	}
 	else if (Extension == TEXT("PAK"))
 	{
@@ -258,6 +337,8 @@ bool UOnlineHotfixManager::ApplyHotfixProcessing(const FCloudFileHeader& FileHea
 	else if (Extension == TEXT("LOCRES"))
 	{
 		HotfixLocFile(FileHeader);
+		// Currently no failure case for this
+		bSuccess = true;
 	}
 	else if (Extension == TEXT("PAK"))
 	{
@@ -269,10 +350,16 @@ bool UOnlineHotfixManager::ApplyHotfixProcessing(const FCloudFileHeader& FileHea
 
 FConfigFile* UOnlineHotfixManager::GetConfigFile(const FString& IniName)
 {
-	FString StrippedIniName;
-	if (IniName.StartsWith(PlatformPrefix))
+	FString StrippedIniName(IniName);
+#if !UE_BUILD_SHIPPING
+	if (!DebugPrefix.IsEmpty() && StrippedIniName.StartsWith(DebugPrefix))
 	{
-		StrippedIniName = IniName.Right(IniName.Len() - PlatformPrefix.Len());
+		StrippedIniName = IniName.Right(StrippedIniName.Len() - DebugPrefix.Len());
+	}
+#endif
+	if (StrippedIniName.StartsWith(PlatformPrefix))
+	{
+		StrippedIniName = IniName.Right(StrippedIniName.Len() - PlatformPrefix.Len());
 	}
 	if (StrippedIniName.StartsWith(TEXT("Default")))
 	{
@@ -292,8 +379,9 @@ FConfigFile* UOnlineHotfixManager::GetConfigFile(const FString& IniName)
 	if (ConfigFile == nullptr)
 	{
 		const FString IniNameWithPath = FPaths::GeneratedConfigDir() + StrippedIniName;
-		ConfigFile = new FConfigFile();
-		GConfig->SetFile(*IniNameWithPath, ConfigFile);
+		FConfigFile Empty;
+		GConfig->SetFile(IniNameWithPath, &Empty);
+		ConfigFile = GConfig->Find(IniNameWithPath, false);
 	}
 	check(ConfigFile);
 	// We never want to save these merged files
@@ -305,7 +393,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 {
 	FConfigFile* ConfigFile = GetConfigFile(FileName);
 	// Merge the string into the config file
-	ConfigFile->CombineFromBuffer(*IniData);
+	ConfigFile->CombineFromBuffer(IniData);
 	TArray<UClass*> Classes;
 	TArray<UObject*> PerObjectConfigObjects;
 	int32 StartIndex = 0;
@@ -323,7 +411,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 			{
 				int32 PerObjectNameIndex = IniData.Find(TEXT(" "), ESearchCase::IgnoreCase, ESearchDir::FromStart, StartIndex);
 				// Per object config entries will have a space in the name, but classes won't
-				if (PerObjectNameIndex == -1)
+				if (PerObjectNameIndex == -1 || PerObjectNameIndex > EndIndex)
 				{
 					if (IniData.StartsWith(TEXT("[/Script/"), ESearchCase::IgnoreCase))
 					{
@@ -342,7 +430,8 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 				// Handle the per object config case by finding the object for reload
 				else
 				{
-					const FString PerObjectName = IniData.Mid(StartIndex + 1, PerObjectNameIndex - 1);
+					const int32 Count = PerObjectNameIndex - StartIndex - 1;
+					const FString PerObjectName = IniData.Mid(StartIndex + 1, Count);
 					// Explicitly search the transient package (won't update non-transient objects)
 					UObject* PerObject = FindObject<UObject>(ANY_PACKAGE, *PerObjectName, false);
 					if (PerObject != nullptr)
@@ -464,4 +553,28 @@ void UOnlineHotfixManager::UnmountHotfixFiles()
 		FCoreDelegates::OnUnmountPak.Execute(PakFile);
 	}
 	MountedPakFiles.Empty();
+}
+
+FCloudFileHeader* UOnlineHotfixManager::GetFileHeaderFromDLName(const FString& FileName)
+{
+	for (int32 Index = 0; Index < HotfixFileList.Num(); Index++)
+	{
+		if (HotfixFileList[Index].DLName == FileName)
+		{
+			return &HotfixFileList[Index];
+		}
+	}
+	return nullptr;
+}
+
+void UOnlineHotfixManager::OnReadFileProgress(const FString& FileName, uint64 BytesRead)
+{
+	if (PendingHotfixFiles.Contains(FileName))
+	{
+		// Since the title file is reporting absolute numbers subtract out the last update so we can add a delta
+		uint64 Delta = BytesRead - PendingHotfixFiles[FileName].Progress;
+		PendingHotfixFiles[FileName].Progress = BytesRead;
+		// Completion updates the file count and progress updates the byte count
+		UpdateProgress(0, Delta);
+	}
 }

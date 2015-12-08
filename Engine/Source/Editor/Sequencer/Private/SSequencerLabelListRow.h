@@ -3,8 +3,19 @@
 #pragma once
 
 
-class FSequencerLabelTreeNode
+struct FSequencerLabelTreeNode
 {
+public:
+
+	/** Holds the child label nodes. */
+	TArray<TSharedPtr<FSequencerLabelTreeNode>> Children;
+
+	/** Holds the display name text. */
+	FText DisplayName;
+
+	/** Holds the label. */
+	FString Label;
+
 public:
 
 	/**
@@ -12,55 +23,10 @@ public:
 	 *
 	 * @param InLabel The node's label.
 	 */
-	FSequencerLabelTreeNode(const FString& InLabel)
-		: Label(InLabel)
+	FSequencerLabelTreeNode(const FString& InLabel, const FText& InDisplayName)
+		: DisplayName(InDisplayName)
+		, Label(InLabel)
 	{ }
-
-public:
-
-	/**
-	 * Adds a child label node to this node.
-	 *
-	 * @param The child node to add.
-	 */
-	void AddChild(const TSharedPtr<FSequencerLabelTreeNode>& Child)
-	{
-		Children.Add(Child);
-	}
-
-	/** Clears the collection of child nodes. */
-	void ClearChildren()
-	{
-		Children.Reset();
-	}
-
-	/**
-	 * Gets the child nodes.
-	 *
-	 * @return Child nodes.
-	 */
-	const TArray<TSharedPtr<FSequencerLabelTreeNode>>& GetChildren()
-	{
-		return Children;
-	}
-
-	/**
-	 * Gets the node's process information.
-	 *
-	 * @return The process information.
-	 */
-	const FString& GetLabel() const
-	{
-		return Label;
-	}
-
-private:
-
-	/** Holds the child label nodes. */
-	TArray<TSharedPtr<FSequencerLabelTreeNode>> Children;
-
-	/** Holds the label. */
-	FString Label;
 };
 
 
@@ -89,51 +55,48 @@ public:
 	{
 		Node = InArgs._Node;
 
-		ChildSlot
-			.Padding(0.0f, 2.0f, 0.0f, 0.0f)
-			[
-				SNew(SHorizontalBox)
-
-				// folder icon
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(2.0f, 2.0f)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SImage) 
-							.Image(this, &SSequencerLabelListRow::HandleFolderIconImage)
-							.ColorAndOpacity(this, &SSequencerLabelListRow::HandleFolderIconColor)
-					]
-
-				// folder name
-				+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(0.0f, 2.0f)
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-							.Text(
-								Node->GetLabel().IsEmpty()
-									? LOCTEXT("AllTracksLabel", "All Tracks")
-									: FText::FromString(Node->GetLabel())
-							)
-					]
-
-				// edit icon
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew(SImage)
-							.Image(FCoreStyle::Get().GetBrush(TEXT("EditableLabel.EditIcon")))
-							.Visibility(this, &SSequencerLabelListRow::HandleEditIconVisibility)
-					]
-			];
-
-		STableRow<TSharedPtr<FSequencerLabelTreeNode>>::ConstructInternal(
+		STableRow<TSharedPtr<FSequencerLabelTreeNode>>::Construct(
 			STableRow<TSharedPtr<FSequencerLabelTreeNode>>::FArguments()
-				.ShowSelection(false)
-				.Style(FEditorStyle::Get(), "DetailsView.TreeView.TableRow"),
+				.Padding(FMargin(0.0f, 2.0f, 0.0f, 0.0f))
+				.Content()
+				[
+					SNew(SHorizontalBox)
+
+					// folder icon
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(2.0f, 2.0f)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage) 
+								.Image(this, &SSequencerLabelListRow::HandleFolderIconImage)
+								.ColorAndOpacity(this, &SSequencerLabelListRow::HandleFolderIconColor)
+						]
+
+					// folder name
+					+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.Padding(0.0f, 2.0f)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+								.Text(
+									Node->Label.IsEmpty()
+										? LOCTEXT("AllTracksLabel", "All Tracks")
+										: Node->DisplayName
+								)
+						]
+
+					// edit icon
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage)
+								.Image(FCoreStyle::Get().GetBrush(TEXT("EditableLabel.EditIcon")))
+								.Visibility(this, &SSequencerLabelListRow::HandleEditIconVisibility)
+						]
+				],
 			InOwnerTableView
 		);
 	}

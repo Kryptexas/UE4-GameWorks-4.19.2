@@ -848,7 +848,7 @@ void MainNewPS(
 #endif
 
 	// converts pixel length to sample steps
-	float PixelToSampleScale = StepCount * rsqrtFast( dot( MaxVelocityPixels, MaxVelocityPixels ) );
+	float PixelToSampleScale = StepCount * rsqrt( dot( MaxVelocityPixels, MaxVelocityPixels ) );
 
 	BRANCH
 	if( bFastPath )

@@ -64,6 +64,7 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 	{
 		const int32 NumStaticMeshActors = DraggedObjects.StaticMeshActors->Num();	
 		bool bSameLevelInstance = true;
+		bool bAlreadyClustered = false;
 		ULevel* Level = nullptr;
 		for (auto Actor : DraggedObjects.StaticMeshActors.GetValue())
 		{
@@ -75,11 +76,21 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 			{
 				bSameLevelInstance = false;
 			}
+
+			if (FHierarchicalLODUtilities::GetParentLODActor(Actor.Get()))
+			{
+				bAlreadyClustered = true;
+			}
 		}
 
 		if (!bSameLevelInstance)
 		{
 			return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("NotInSameLevelAsset", "Static Mesh Actors not in the same level asset (streaming level)"));
+		}
+
+		if (bAlreadyClustered)
+		{
+			return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("AlreadyClusters", "One or more Static Mesh Actors is already in a cluster"));
 		}
 
 		return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_CompatibleNewCluster, LOCTEXT("CreateNewCluster", "Create new Cluster"));

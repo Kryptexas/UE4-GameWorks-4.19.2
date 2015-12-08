@@ -67,7 +67,8 @@ protected:
 	TArray<FGameplayTaskEventData> TaskEvents;
 
 	/** Array of currently active UAbilityTasks that require ticking */
-	TArray<TWeakObjectPtr<UGameplayTask> > TickingTasks;
+	UPROPERTY()
+	TArray<UGameplayTask*> TickingTasks;
 
 	/** Indicates what's the highest priority among currently running tasks */
 	uint8 TopActivePriority;

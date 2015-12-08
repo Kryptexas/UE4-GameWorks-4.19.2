@@ -61,6 +61,9 @@ bool FHierarchicalLODProxyProcessor::Tick(float DeltaTime)
 		// Freshly build so mark not dirty
 		Data->LODActor->SetIsDirty(false);
 
+		// Force lightmap coordinate to 0 for proxy meshes
+		//Data->LODActor->GetStaticMeshComponent()->StaticMesh->LightMapCoordinateIndex = 0;
+
 		delete Data;
 	}
 

@@ -368,6 +368,13 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/**
+	 */
+	TMap<FString, FMovieSceneTrackLabels>& GetObjectsToLabels()
+	{
+		return ObjectsToLabels;
+	}
+
+	/**
 	 * Get the display name of the object with the specified identifier.
 	 *
 	 * @param ObjectId The object identifier.
@@ -397,33 +404,6 @@ public:
 	{
 		return EditorData;
 	}
-
-	/**
-	 * Get all known track labels.
-	 *
-	 * @param OutLabels Will contain the collection of known labels.
-	 * @return The number labels returned.
-	 */
-	int32 GetAllLabels(TArray<FString>& OutLabels) const;
-
-	/**
-	 * Get an object's track label.
-	 *
-	 * @param ObjectId The object to get the label for.
-	 * @return The label string.
-	 */
-	FMovieSceneTrackLabels& GetObjectLabels(const FGuid& ObjectId) 
-	{
-		return ObjectsToLabels.FindOrAdd(ObjectId.ToString());
-	}
-
-	/**
-	 * Check whether the specified track label exists.
-	 *
-	 * @param Label The label to check.
-	 * @return true if the label exists, false otherwise.
-	 */
-	bool LabelExists(const FString& Label) const;
 #endif
 
 protected:

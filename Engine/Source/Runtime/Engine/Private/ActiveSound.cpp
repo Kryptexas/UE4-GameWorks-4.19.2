@@ -695,6 +695,27 @@ void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
 	}
 }
 
+void FActiveSound::SetSoundParameter(const FAudioComponentParam& Param)
+{
+	if (Param.ParamName != NAME_None)
+	{
+		// First see if an entry for this name already exists
+		for (int32 Index = 0; Index < InstanceParameters.Num(); ++Index)
+		{
+			FAudioComponentParam& P = InstanceParameters[Index];
+			if (P.ParamName == Param.ParamName)
+			{
+				P = Param;
+				return;
+			}
+		}
+
+		// We didn't find one, so create a new one.
+		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		InstanceParameters[NewParamIndex] = Param;
+	}
+}
+
 void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
 {
 	bool bFoundAttenuationSettings = false;

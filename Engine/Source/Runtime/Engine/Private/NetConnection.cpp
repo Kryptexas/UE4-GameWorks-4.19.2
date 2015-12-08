@@ -1399,6 +1399,11 @@ void UNetConnection::Tick()
 				Delayed.RemoveAt( i );
 				i--;
 			}
+			else
+			{
+				// Break now instead of continuing to iterate through the list. Otherwise LagVariance may cause out of order sends
+				break;
+			}
 		}
 	}
 #endif

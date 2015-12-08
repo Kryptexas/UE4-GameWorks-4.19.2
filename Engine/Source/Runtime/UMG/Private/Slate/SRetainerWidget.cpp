@@ -96,6 +96,8 @@ SRetainerWidget::~SRetainerWidget()
 
 void SRetainerWidget::Construct(const FArguments& InArgs)
 {
+	STAT(MyStatId = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Slate>(InArgs._StatId);)
+
 	if( FSlateApplication::IsInitialized() )
 	{
 		FSlateApplication::Get().OnUpdateRetainerWidgets().AddRaw( this, &SRetainerWidget::OnTickRetainers );
@@ -259,7 +261,10 @@ bool SRetainerWidget::ComputeVolatility() const
 
 void SRetainerWidget::OnTickRetainers(float DeltaTime)
 {
-	if ( bRenderingOffscreen && GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible() )
+	STAT(FScopeCycleCounter TickCycleCounter(MyStatId);)
+
+	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible(); 
+	if ( bRenderingOffscreen && bShouldRenderAtAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
 		if ( LastTickedFrame != GFrameCounter && ( GFrameCounter % PhaseCount ) == Phase )
@@ -320,11 +325,14 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 
 int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
+	STAT(FScopeCycleCounter PaintCycleCounter(MyStatId);)
+
 	SRetainerWidget* MutableThis = const_cast<SRetainerWidget*>( this );
 
 	MutableThis->RefreshRenderingMode();
 
-	if ( bRenderingOffscreen && GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible() )
+	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible(); 
+	if ( bRenderingOffscreen && bShouldRenderAtAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetPaint );
 		CachedAllottedGeometry = AllottedGeometry;
@@ -357,10 +365,12 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		
 		return LayerId;
 	}
-	else
+	else if( bShouldRenderAtAnything )
 	{
 		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
+
+	return LayerId;
 }
 
 FVector2D SRetainerWidget::ComputeDesiredSize(float LayoutScaleMuliplier) const

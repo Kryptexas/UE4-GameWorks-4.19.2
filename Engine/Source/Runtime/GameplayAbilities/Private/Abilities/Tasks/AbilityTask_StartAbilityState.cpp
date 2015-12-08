@@ -21,7 +21,7 @@ UAbilityTask_StartAbilityState* UAbilityTask_StartAbilityState::StartAbilityStat
 
 void UAbilityTask_StartAbilityState::Activate()
 {
-	if (Ability.IsValid())
+	if (Ability)
 	{
 		if (bEndCurrentState && Ability->OnGameplayAbilityStateEnded.IsBound())
 		{
@@ -46,7 +46,7 @@ void UAbilityTask_StartAbilityState::OnDestroy(bool AbilityEnded)
 		OnStateEnded.Broadcast();
 	}
 
-	if (Ability.IsValid())
+	if (Ability)
 	{
 		Ability->OnGameplayAbilityCancelled.Remove(InterruptStateHandle);
 		Ability->OnGameplayAbilityStateEnded.Remove(EndStateHandle);

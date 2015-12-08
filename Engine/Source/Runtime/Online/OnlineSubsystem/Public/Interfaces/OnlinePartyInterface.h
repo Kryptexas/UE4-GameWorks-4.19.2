@@ -305,6 +305,7 @@ enum class EPartyState
 	LeavePending,
 	Active,
 	Disconnected,
+	Reconnecting,
 	CleanUp
 };
 
@@ -470,10 +471,10 @@ DECLARE_DELEGATE_FourParams(FOnPromotePartyMemberComplete, const FUniqueNetId& /
 ///////////////////////////////////////////////////////////////////
 
 /**
- * notification when a party is joined
- * @param LocalUserId - id associated with this notification
- * @param PartyId - id associated with the party
- */
+* notification when a party is joined
+* @param LocalUserId - id associated with this notification
+* @param PartyId - id associated with the party
+*/
 DECLARE_MULTICAST_DELEGATE_TwoParams(F_PREFIX(OnPartyJoined), const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/);
 PARTY_DECLARE_DELEGATETYPE(OnPartyJoined);
 

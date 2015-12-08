@@ -5649,8 +5649,9 @@ bool FMeshUtilities::ConstructRawMesh(
 
 	FStaticMeshSourceModel& SrcModel = SrcMesh->SourceModels[LODIndex];
 	const bool bImportedMesh = !SrcModel.RawMeshBulkData->IsEmpty();
+	const bool bReducedMesh = (SrcModel.ReductionSettings.PercentTriangles < 1.0f);
 
-	if (bImportedMesh && !InMeshComponent->IsA<USplineMeshComponent>())
+	if (bImportedMesh && !InMeshComponent->IsA<USplineMeshComponent>() && !bReducedMesh)
 	{
 		SrcModel.RawMeshBulkData->LoadRawMesh(OutRawMesh);
 	}
@@ -5927,35 +5928,57 @@ bool FMeshUtilities::PropagatePaintedColorsToRawMesh(UStaticMeshComponent* Stati
 		FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
 		FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
 
-		if (RenderData.WedgeMap.Num() > 0 &&
-			ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
+		if (ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
 		{
 			int32 NumWedges = RawMesh.WedgeIndices.Num();
-			if (RenderData.WedgeMap.Num() == NumWedges)
+			// If we have a wedge map
+			if (RenderData.WedgeMap.Num() > 0)
 			{
-				int32 NumExistingColors = RawMesh.WedgeColors.Num();
-				if (NumExistingColors < NumWedges)
+				if (RenderData.WedgeMap.Num() == NumWedges)
 				{
-					RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
+					int32 NumExistingColors = RawMesh.WedgeColors.Num();
+					if (NumExistingColors < NumWedges)
+					{
+						RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
+					}
+
+					for (int32 i = 0; i < NumWedges; ++i)
+					{
+						FColor WedgeColor = FColor::White;
+						int32 Index = RenderData.WedgeMap[i];
+						if (Index != INDEX_NONE)
+						{
+							WedgeColor = ColorVertexBuffer.VertexColor(Index);
+						}
+
+						RawMesh.WedgeColors[i] = WedgeColor;
+					}
+
+					return true;
 				}
+				else
+				{
+					UE_LOG(LogMeshUtilities, Warning, TEXT("{%s} Wedge map size %d is wrong. Expected %d."), *StaticMesh->GetName(), RenderData.WedgeMap.Num(), RawMesh.WedgeIndices.Num());
+				}
+			}
+			// No wedge map (this can happen when we poly reduce the LOD for example)
+			// Use index buffer directly
+			else 
+			{
+				RawMesh.WedgeColors.SetNumUninitialized(NumWedges);
 
 				for (int32 i = 0; i < NumWedges; ++i)
 				{
 					FColor WedgeColor = FColor::White;
-					int32 Index = RenderData.WedgeMap[i];
-					if (Index != INDEX_NONE)
+					uint32 VertIndex = RawMesh.WedgeIndices[i];
+					if(VertIndex < ColorVertexBuffer.GetNumVertices())
 					{
-						WedgeColor = ColorVertexBuffer.VertexColor(Index);
+						WedgeColor = ColorVertexBuffer.VertexColor(VertIndex);
 					}
-
 					RawMesh.WedgeColors[i] = WedgeColor;
 				}
 
 				return true;
-			}
-			else
-			{
-				UE_LOG(LogMeshUtilities, Warning, TEXT("{%s} Wedge map size %d is wrong. Expected %d."), *StaticMesh->GetName(), RenderData.WedgeMap.Num(), RawMesh.WedgeIndices.Num());
 			}
 		}
 	}
@@ -6706,6 +6729,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		MergedFlatMaterial.MetallicSize = InSettings.MaterialSettings.bMetallicMap ? AtlasTextureSize : FIntPoint::ZeroValue;
 		MergedFlatMaterial.RoughnessSize = InSettings.MaterialSettings.bRoughnessMap ? AtlasTextureSize : FIntPoint::ZeroValue;
 		MergedFlatMaterial.SpecularSize = InSettings.MaterialSettings.bSpecularMap ? AtlasTextureSize : FIntPoint::ZeroValue;
+		MergedFlatMaterial.EmissiveSize = InSettings.MaterialSettings.bEmissiveMap ? AtlasTextureSize : FIntPoint::ZeroValue;
 
 		TArray<FRawMeshUVTransform> UVTransforms;
 

@@ -99,9 +99,18 @@ public:
 	FChildActorComponentInstanceData(const UChildActorComponent* Component)
 		: FSceneComponentInstanceData(Component)
 		, ChildActorName(Component->ChildActorName)
+		, ComponentInstanceData(nullptr)
 	{
 		if (Component->ChildActor)
 		{
+			ComponentInstanceData = new FComponentInstanceDataCache(Component->ChildActor);
+			// If it is empty dump it
+			if (!ComponentInstanceData->HasInstanceData())
+			{
+				delete ComponentInstanceData;
+				ComponentInstanceData = nullptr;
+			}
+
 			USceneComponent* ChildRootComponent = Component->ChildActor->GetRootComponent();
 			if (ChildRootComponent)
 			{
@@ -124,13 +133,22 @@ public:
 		}
 	}
 
+	virtual ~FChildActorComponentInstanceData()
+	{
+		delete ComponentInstanceData;
+	}
+
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
 		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
-		CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this);
+		CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this, CacheApplyPhase);
 	}
 
+	// The name of the spawned child actor so it (attempts to) remain constant across construction script reruns
 	FName ChildActorName;
+
+	// The component instance data cache for the ChildActor spawned by this component
+	FComponentInstanceDataCache* ComponentInstanceData;
 
 	struct FAttachedActorInfo
 	{
@@ -141,6 +159,17 @@ public:
 
 	TArray<FAttachedActorInfo> AttachedActors;
 };
+
+void UChildActorComponent::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	if (CachedInstanceData)
+	{
+		delete CachedInstanceData;
+		CachedInstanceData = nullptr;
+	}
+}
 
 FActorComponentInstanceData* UChildActorComponent::GetComponentInstanceData() const
 {
@@ -159,7 +188,7 @@ FActorComponentInstanceData* UChildActorComponent::GetComponentInstanceData() co
 	return InstanceData;
 }
 
-void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstanceData* ChildActorInstanceData)
+void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstanceData* ChildActorInstanceData, const ECacheApplyPhase CacheApplyPhase)
 {
 	check(ChildActorInstanceData);
 
@@ -174,6 +203,11 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 			{
 				ChildActor->Rename(*ChildActorNameString, nullptr, REN_DoNotDirty | (IsLoading() ? REN_ForceNoResetLoaders : REN_None));
 			}
+		}
+
+		if (ChildActorInstanceData->ComponentInstanceData)
+		{
+			ChildActorInstanceData->ComponentInstanceData->ApplyToActor(ChildActor, CacheApplyPhase);
 		}
 
 		USceneComponent* ChildActorRoot = ChildActor->GetRootComponent();
@@ -212,13 +246,6 @@ void UChildActorComponent::CreateChildActor()
 {
 	// Kill spawned actor if we have one
 	DestroyChildActor();
-
-	// This is no longer needed
-	if (CachedInstanceData)
-	{
-		delete CachedInstanceData;
-		CachedInstanceData = nullptr;
-	}
 
 	// If we have a class to spawn.
 	if(ChildActorClass != nullptr)
@@ -267,12 +294,20 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->ParentComponentActor = MyOwner;
 
 					// Parts that we deferred from SpawnActor
-					ChildActor->FinishSpawning(ComponentToWorld);
+					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);
+					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
 
 					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
 				}
 			}
 		}
+	}
+
+	// This is no longer needed
+	if (CachedInstanceData)
+	{
+		delete CachedInstanceData;
+		CachedInstanceData = nullptr;
 	}
 }
 

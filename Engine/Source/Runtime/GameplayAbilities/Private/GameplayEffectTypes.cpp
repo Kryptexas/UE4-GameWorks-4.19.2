@@ -361,6 +361,15 @@ const FGameplayTagContainer& FGameplayTagCountContainer::GetExplicitGameplayTags
 	return ExplicitTags;
 }
 
+void FGameplayTagCountContainer::Reset()
+{
+	GameplayTagEventMap.Reset();
+	GameplayTagCountMap.Reset();
+	ExplicitTagCountMap.Reset();
+	ExplicitTags.Reset();
+	OnAnyTagChangeDelegate.Clear();
+}
+
 void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
 {
 	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);

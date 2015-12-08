@@ -165,6 +165,7 @@ void UAIPerceptionSystem::OnListenerUpdate(const FPerceptionListener& UpdatedLis
 void UAIPerceptionSystem::Tick(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
+	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
 
 	// if no new stimuli
 	// and it's not time to remove stimuli from "know events"

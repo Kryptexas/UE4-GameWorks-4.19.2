@@ -156,7 +156,7 @@ void FSequencerCurveOwner::MakeTransactional()
 
 void FSequencerCurveOwner::OnCurveChanged( const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos )
 {
-	// Whenever a curve changes make sure to resize it's section so that the curve fits.
+	// Whenever a curve changes make sure to resize its section so that the curve fits.
 	for ( auto& ChangedCurveEditInfo : ChangedCurveEditInfos )
 	{
 		UMovieSceneSection** OwningSection = EditInfoToSectionMap.Find(ChangedCurveEditInfo);
@@ -175,6 +175,8 @@ void FSequencerCurveOwner::OnCurveChanged( const TArray<FRichCurveEditInfo>& Cha
 			}
 		}
 	}
+
+	SequencerNodeTree->GetSequencer().UpdateRuntimeInstances();
 }
 
 bool FSequencerCurveOwner::IsValidCurve( FRichCurveEditInfo CurveInfo )

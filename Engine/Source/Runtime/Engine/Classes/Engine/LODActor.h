@@ -12,7 +12,7 @@
  * @see UStaticMesh
  */
 
-UCLASS(notplaceable, hidecategories = (Object, Collision, Display, Input, Blueprint, Transform))
+UCLASS(notplaceable, hidecategories = (Object, Collision, Display, Input, Blueprint, Transform, Physics))
 class ENGINE_API ALODActor : public AActor
 {
 GENERATED_UCLASS_BODY()
@@ -129,6 +129,12 @@ public:
 	/** Cached number of triangles contained in the SubActors*/
 	UPROPERTY()
 	uint32 NumTrianglesInMergedMesh;
+
+	UPROPERTY(EditAnywhere, Category = MaterialMerge)
+	bool bOverrideMaterialMergeSettings;
+
+	UPROPERTY(EditAnywhere, Category = MaterialMerge, meta = (editcondition = "bOverrideMaterialMergeSettings"))
+	FMaterialProxySettings MaterialSettings;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Returns StaticMeshComponent subobject **/

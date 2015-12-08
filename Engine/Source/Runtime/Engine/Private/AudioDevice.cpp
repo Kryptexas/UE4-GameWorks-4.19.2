@@ -2369,6 +2369,62 @@ UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World,
 	return( AudioComponent );
 }
 
+void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float VolumeMultiplier, float PitchMultiplier, float StartTime, const FVector& Location, const FRotator& Rotation, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings, const TArray<FAudioComponentParam>* Params)
+{
+	if (!Sound || !World)
+	{
+		return;
+	}
+
+	if (Sound->IsAudibleSimple(this, Location, AttenuationSettings))
+	{
+		const bool bIsInGameWorld = World->IsGameWorld();
+
+		FActiveSound NewActiveSound;
+		NewActiveSound.World = World;
+		NewActiveSound.Sound = Sound;
+		NewActiveSound.VolumeMultiplier = VolumeMultiplier;
+		NewActiveSound.PitchMultiplier = PitchMultiplier;
+		NewActiveSound.RequestedStartTime = FMath::Max(0.0f, StartTime);
+		NewActiveSound.bLocationDefined = true;
+		NewActiveSound.Transform.SetTranslation(Location);
+		NewActiveSound.Transform.SetRotation(FQuat(Rotation));
+		NewActiveSound.bIsUISound = !bIsInGameWorld;
+		NewActiveSound.bHandleSubtitles = true;
+		NewActiveSound.SubtitlePriority = 10000.f; // Todo: Fix this. Add it to USoundBase
+
+		const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
+		NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+		if (NewActiveSound.bHasAttenuationSettings)
+		{
+			NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
+			NewActiveSound.MaxDistance = NewActiveSound.AttenuationSettings.GetMaxDimension();
+		}
+		else
+		{
+			NewActiveSound.MaxDistance = Sound->GetMaxAudibleDistance();
+		}
+			
+		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
+		NewActiveSound.Priority = Sound->Priority;
+
+		// Apply any optional audio component instance params on the sound
+		if (Params)
+		{
+			for (const FAudioComponentParam& Param : *Params)
+			{
+				NewActiveSound.SetSoundParameter(Param);
+			}
+		}
+
+		AddNewActiveSound(NewActiveSound);
+	}
+	else
+	{
+		// Don't play a sound for short sounds that start out of range of any listener
+		UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
+	}
+}
 
 void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 {

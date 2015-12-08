@@ -1933,7 +1933,7 @@ public:
 	void PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
 
 	/** Called to finish the spawning process, generally in the case of deferred spawning */
-	void FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform = false);
+	void FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform = false, const FComponentInstanceDataCache* InstanceDataCache = nullptr);
 
 private:
 	/** Called after the actor has run its construction. Responsible for finishing the actor spawn process. */

@@ -267,6 +267,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Tick);
 	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
+	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
 	// @TODO: threads?
 
 	const double ExecutionTimeWarningSeconds = 0.25;

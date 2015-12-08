@@ -584,7 +584,9 @@ namespace EOnlineComparisonOp
 		GreaterThanEquals,
 		LessThan,
 		LessThanEquals,
-		Near
+		Near,
+		In,
+		NotIn
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -619,6 +621,14 @@ namespace EOnlineComparisonOp
 		case Near:
 			{
 				return TEXT("Near");
+			}
+		case In:
+			{
+				return TEXT("In");
+			}
+		case NotIn:
+			{
+				return TEXT("NotIn");
 			}
 		}
 		return TEXT("");

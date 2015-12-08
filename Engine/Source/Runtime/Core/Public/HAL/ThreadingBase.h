@@ -646,6 +646,9 @@ public:
  *  Global thread pool for shared async operations
  */
 extern CORE_API FQueuedThreadPool* GThreadPool;
+#if WITH_EDITOR
+extern CORE_API FQueuedThreadPool* GLargeThreadPool;
+#endif
 
 
 /** Thread safe counter */

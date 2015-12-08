@@ -2854,6 +2854,11 @@ FCursorReply SMultiLineEditableText::OnCursorQuery( const FGeometry& MyGeometry,
 	}
 }
 
+bool SMultiLineEditableText::IsInteractable() const
+{
+	return IsEnabled();
+}
+
 bool SMultiLineEditableText::IsRightClickScrolling() const
 {
 	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistance() && VScrollBar.IsValid() && VScrollBar->IsNeeded();

@@ -385,6 +385,11 @@ public:
 					Vert->SetTangents(RawMesh.WedgeTangentX[SrcVertIndex], RawMesh.WedgeTangentY[SrcVertIndex], RawMesh.WedgeTangentZ[SrcVertIndex]);
 					for (int32 TexcoordIndex = 0; TexcoordIndex < NumTexcoords; TexcoordIndex++)
 						Vert->TextureCoordinate[TexcoordIndex] = RawMesh.WedgeTexCoords[TexcoordIndex][SrcVertIndex];
+
+					Vert->TextureCoordinate[6].X = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].X;
+					Vert->TextureCoordinate[6].Y = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].Y;
+					Vert->TextureCoordinate[7].X = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].Z;
+
 					Vert->Color = bHasVertexColor ? RawMesh.WedgeColors[SrcVertIndex].DWColor() : DefaultColor;
 					// add index
 					OutIndices.Add(VertIndex);

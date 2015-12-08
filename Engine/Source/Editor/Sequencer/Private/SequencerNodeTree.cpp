@@ -318,36 +318,37 @@ bool FSequencerNodeTree::IsNodeFiltered( const TSharedRef<const FSequencerDispla
 static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSequencerDisplayNode>& StartNode, const TArray<FString>& FilterStrings, TSet<TSharedRef<const FSequencerDisplayNode>>& OutFilteredNodes )
 {
 	// assume the filter is acceptable
-	bool bFilterAcceptable = true;
+	bool PassedTextFilter = true;
 
 	// check each string in the filter strings list against 
-	UMovieScene* MovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
-
 	for (const FString& String : FilterStrings)
 	{
 		if (String.StartsWith(TEXT("label:")))
 		{
-			if (StartNode->GetType() == ESequencerNode::Object)
+			if (!StartNode->GetParent().IsValid() && (String.Len() > 6))
 			{
-				auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(StartNode);
-				auto Labels = MovieScene->GetObjectLabels(ObjectBindingNode->GetObjectBinding());
-
-				if (!Labels.Strings.Contains(String.RightChop(6)))
+				if (StartNode->GetType() == ESequencerNode::Object)
 				{
-					bFilterAcceptable = false;
+					auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(StartNode);
+					auto Labels = Sequencer.GetLabelManager().GetObjectLabels(ObjectBindingNode->GetObjectBinding());
+
+					if ((Labels == nullptr) || !Labels->Strings.Contains(String.RightChop(6)))
+					{
+						return false;
+					}
 				}
-			}
-			else
-			{
-				bFilterAcceptable = false;
+				else
+				{
+					return false;
+				}
 			}
 		}
 		else if (!StartNode->GetDisplayName().ToString().Contains(String)) 
 		{
-			bFilterAcceptable = false;
+			PassedTextFilter = false;
 		}
 
-		if (!bFilterAcceptable)
+		if (!PassedTextFilter)
 		{
 			break;
 		}
@@ -356,7 +357,7 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	// whether or the start node is in the filter
 	bool bInFilter = false;
 
-	if (bFilterAcceptable)
+	if (PassedTextFilter)
 	{
 		// This node is now filtered
 		OutFilteredNodes.Add(StartNode);
@@ -369,16 +370,16 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	for (const auto& Node : ChildNodes)
 	{
 		// Mark the parent as filtered if any child node was filtered
-		bFilterAcceptable |= FilterNodesRecursive(Sequencer, Node, FilterStrings, OutFilteredNodes);
+		PassedTextFilter |= FilterNodesRecursive(Sequencer, Node, FilterStrings, OutFilteredNodes);
 
-		if (bFilterAcceptable && !bInFilter)
+		if (PassedTextFilter && !bInFilter)
 		{
 			OutFilteredNodes.Add(StartNode);
 			bInFilter = true;
 		}
 	}
 
-	return bFilterAcceptable;
+	return PassedTextFilter;
 }
 
 

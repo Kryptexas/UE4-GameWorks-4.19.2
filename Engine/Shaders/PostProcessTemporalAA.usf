@@ -354,7 +354,8 @@ void MainFastTemporalAAPS(
 	#define AA_DEBUG 0
 	#define AA_VELOCITY_WEIGHTING 0
 	#define AA_YCOCG 1
-	#define AA_BICUBIC 0
+	#define AA_BICUBIC 1
+	#define AA_TONE 0
 	#include "PostProcessTemporalCommon.usf"
 
 	uint2 PixelPos = SvPosition.xy + uint2( Frame.FrameNumber & 3, (Frame.FrameNumber / 4) & 3 );

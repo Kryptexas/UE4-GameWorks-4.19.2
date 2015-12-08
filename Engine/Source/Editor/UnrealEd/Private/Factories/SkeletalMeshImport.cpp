@@ -754,6 +754,8 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh)
 			}
 		}
 
+		ExistingMeshDataPtr->ExistingShadowPhysicsAsset = ExistingSkelMesh->ShadowPhysicsAsset;
+
 		ExistingMeshDataPtr->ExistingSkeleton = ExistingSkelMesh->Skeleton;
 
 		ExistingSkelMesh->ExportMirrorTable(ExistingMeshDataPtr->ExistingMirrorTable);
@@ -969,6 +971,8 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 				PhysicsAsset->PreviewSkeletalMesh = SkeletalMesh;
 			}
 		}
+
+		SkeletalMesh->ShadowPhysicsAsset = MeshData->ExistingShadowPhysicsAsset;
 
 		SkeletalMesh->Skeleton = MeshData->ExistingSkeleton;
 

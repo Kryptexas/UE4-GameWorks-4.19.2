@@ -175,7 +175,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 		Data.Add(TSharedPtr<FGameplayAbilityTargetData>(DataPtr));
 	}
 
-	TArray<TSharedPtr<FGameplayAbilityTargetData> >	Data;
+	TArray<TSharedPtr<FGameplayAbilityTargetData>, TInlineAllocator<1> >	Data;
 
 	void Clear()
 	{

@@ -12,8 +12,7 @@ UAbilityTask::UAbilityTask(const FObjectInitializer& ObjectInitializer)
 
 FGameplayAbilitySpecHandle UAbilityTask::GetAbilitySpecHandle() const
 {
-	UGameplayAbility* MyAbility = Ability.Get();
-	return MyAbility ? MyAbility->GetCurrentAbilitySpecHandle() : FGameplayAbilitySpecHandle();
+	return Ability ? Ability->GetCurrentAbilitySpecHandle() : FGameplayAbilitySpecHandle();
 }
 
 void UAbilityTask::SetAbilitySystemComponent(UAbilitySystemComponent* InAbilitySystemComponent)
@@ -30,26 +29,22 @@ void UAbilityTask::InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksCom
 
 FPredictionKey UAbilityTask::GetActivationPredictionKey() const
 {
-	UGameplayAbility* MyAbility = Ability.Get();
-	return MyAbility ? MyAbility->GetCurrentActivationInfo().GetActivationPredictionKey() : FPredictionKey();
+	return Ability ? Ability->GetCurrentActivationInfo().GetActivationPredictionKey() : FPredictionKey();
 }
 
 bool UAbilityTask::IsPredictingClient() const
 {
-	UGameplayAbility* MyAbility = Ability.Get();
-	return MyAbility && MyAbility->IsPredictingClient();
+	return Ability && Ability->IsPredictingClient();
 }
 
 bool UAbilityTask::IsForRemoteClient() const
 {
-	UGameplayAbility* MyAbility = Ability.Get();
-	return MyAbility && MyAbility->IsForRemoteClient();
+	return Ability && Ability->IsForRemoteClient();
 }
 
 bool UAbilityTask::IsLocallyControlled() const
 {
-	UGameplayAbility* MyAbility = Ability.Get();
-	return MyAbility && MyAbility->IsLocallyControlled();
+	return Ability && Ability->IsLocallyControlled();
 }
 
 bool UAbilityTask::CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate)
@@ -64,11 +59,10 @@ bool UAbilityTask::CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::T
 
 void UAbilityTask::SetWaitingOnRemotePlayerData()
 {
-	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility && IsPendingKill() == false && AbilitySystemComponent.IsValid())
+	if (Ability && IsPendingKill() == false && AbilitySystemComponent)
 	{
 		WaitState = EAbilityTaskWaitState::WaitingOnUser;
-		MyAbility->NotifyAbilityTaskWaitingOnPlayerData(this);
+		Ability->NotifyAbilityTaskWaitingOnPlayerData(this);
 	}
 }
 

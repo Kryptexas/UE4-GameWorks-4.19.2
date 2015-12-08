@@ -12,6 +12,7 @@ class FSequencerObjectBindingNode
 	: public FSequencerDisplayNode
 {
 public:
+
 	/**
 	 * Create and initialize a new instance.
 	 * 
@@ -28,7 +29,6 @@ public:
 	{ }
 
 public:
-
 
 	/** @return The object binding on this node */
 	const FGuid& GetObjectBinding() const

@@ -746,6 +746,14 @@ protected:
 	UPROPERTY()
 	TArray<UGameplayTask*>	ActiveTasks;
 
+	/** Tasks can emit debug messages throughout their life for debugging purposes. Saved on the ability so that they persist after task is finished */
+	TArray<FAbilityTaskDebugMessage> TaskDebugMessages;
+
+public:
+	void AddAbilityTaskDebugMessage(UGameplayTask* AbilityTask, FString DebugMessage);
+
+protected:
+
 	// ----------------------------------------------------------------------------------------------------------------
 	//
 	//	Animation

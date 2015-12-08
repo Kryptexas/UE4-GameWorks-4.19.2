@@ -527,6 +527,7 @@ void UAbilitySystemComponent::MarkAbilitySpecDirty(FGameplayAbilitySpec& Spec)
 	if (IsOwnerActorAuthoritative())
 	{
 		ActivatableAbilities.MarkItemDirty(Spec);
+		AbilitySpecDirtiedCallbacks.Broadcast(Spec);
 	}
 	else
 	{
@@ -663,6 +664,19 @@ void UAbilitySystemComponent::CancelAbility(UGameplayAbility* Ability)
 		if (Spec.Ability == Ability)
 		{
 			CancelAbilitySpec(Spec, nullptr);
+		}
+	}
+}
+
+void UAbilitySystemComponent::CancelAbilityHandle(const FGameplayAbilitySpecHandle& AbilityHandle)
+{
+	ABILITYLIST_SCOPE_LOCK();
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
+	{
+		if (Spec.Handle == AbilityHandle)
+		{
+			CancelAbilitySpec(Spec, nullptr);
+			return;
 		}
 	}
 }

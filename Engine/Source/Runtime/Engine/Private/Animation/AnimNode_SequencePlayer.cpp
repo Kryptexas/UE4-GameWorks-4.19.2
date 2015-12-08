@@ -34,11 +34,7 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 
 	if ((Sequence != NULL) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
-		if (InternalTimeAccumulator > Sequence->SequenceLength)
-		{
-			InternalTimeAccumulator = 0.f;
-		}
-
+		InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
 		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, PlayRate);
 	}
 }
