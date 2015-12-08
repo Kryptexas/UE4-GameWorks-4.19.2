@@ -8,6 +8,9 @@
 #include "AudioDecompress.h"
 #include "Engine.h"
 
+#define BUFFERINUSE_MASK		0x03
+#define BUFFERINUSE_SKIPFLAG	0x04
+
 // Callback that is registered if the source needs to loop
 void OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext ) 
 {
@@ -53,7 +56,7 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 				break;
 
 			case ERealtimeAudioTaskType::Procedural:
-				AudioBuffers[BufferInUse].AudioDataSize = RealtimeAsyncTask->GetTask().GetBytesWritten();
+				AudioBuffers[BufferInUse & BUFFERINUSE_MASK].AudioDataSize = RealtimeAsyncTask->GetTask().GetBytesWritten();
 				break;
 			}
 
@@ -61,21 +64,24 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 			RealtimeAsyncTask = nullptr;
 		}
 
-		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, AudioBuffers[BufferInUse].AudioData, AudioBuffers[BufferInUse].AudioDataSize );
+		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, AudioBuffers[BufferInUse & BUFFERINUSE_MASK].AudioData, AudioBuffers[BufferInUse & BUFFERINUSE_MASK].AudioDataSize);
 		if(result != SL_RESULT_SUCCESS) 
 		{ 
 			UE_LOG( LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue (Requeing)"));  
 		}
 
 		// Switch to the next buffer and decode for the next time the callback fires if we didn't just get the last buffer
-		BufferInUse = !BufferInUse;
+		bool bSkipFirstBuffer = (BufferInUse & BUFFERINUSE_SKIPFLAG) == BUFFERINUSE_SKIPFLAG;
+		BufferInUse = (!(BufferInUse & BUFFERINUSE_MASK)) | (bSkipFirstBuffer ? BUFFERINUSE_SKIPFLAG : 0);
 		if (bHasLooped == false || WaveInstance->LoopingMode != LOOP_Never)
 		{
-			if (ReadMorePCMData(BufferInUse, EDataReadMode::Asynchronous))
+			if (ReadMorePCMData(BufferInUse & BUFFERINUSE_MASK, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous)))
 			{
 				// If this is a synchronous source we may get notified immediately that we have looped
 				bHasLooped = true;
 			}
+			// clear skipfirstbuffer flag
+			BufferInUse = BufferInUse & BUFFERINUSE_MASK;
 		}
 	}
 }
@@ -214,10 +220,12 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	AudioBuffers[1].AudioDataSize = BufferSize;
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
+	bool bSkipFirstBuffer = false;
 	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
 	{
 		FMemory::Memcpy((uint8*)AudioBuffers[0].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
-		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
+		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
+		bSkipFirstBuffer = true;
 	}
 	else
 	{
@@ -244,7 +252,7 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	bStreamedSound = true;
 	bHasLooped = false;
 	bBuffersToFlush = false;
-	BufferInUse = 1;
+	BufferInUse = 1 | (bSkipFirstBuffer ? BUFFERINUSE_SKIPFLAG : 0);
 	return true;
 }
 

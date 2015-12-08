@@ -1330,6 +1330,13 @@ void FOculusRiftHMD::Startup()
 	check(!DetectHmd);
 	DetectHmd = new FDetectHmd(this, FParse::Param(FCommandLine::Get(), TEXT("forcedrift")));
 
+	// If there is no HMD detected at startup, don't continue, and allow other devices to be detected
+	if (!DetectHmd->OculusRiftHMD || !DetectHmd->OculusRiftHMD->HmdDetected)
+	{
+		Settings->Flags.InitStatus = FSettings::eNotInitialized;
+		return;
+	}
+
 	if (GIsEditor)
 	{
 		Settings->Flags.bHeadTrackingEnforced = true;

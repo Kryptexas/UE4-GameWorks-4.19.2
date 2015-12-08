@@ -2631,7 +2631,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			// cases the nodes found within the macro may be out of date 
 			// (function signatures, etc.), so let's force a reconstruct of the 
 			// nodes we inject from the macro (just in case)
-			const bool bForceRegenNodes = bIsLoading && MacroBlueprint && !MacroBlueprint->bHasBeenRegenerated;
+			const bool bForceRegenNodes = bIsLoading && MacroBlueprint && (MacroBlueprint != Blueprint) && !MacroBlueprint->bHasBeenRegenerated;
 
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
 			UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL, &MessageLog, true);

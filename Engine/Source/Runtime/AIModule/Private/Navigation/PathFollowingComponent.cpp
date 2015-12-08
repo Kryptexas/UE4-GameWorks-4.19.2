@@ -508,7 +508,9 @@ void UPathFollowingComponent::RecacheNavigationData()
 		{
 			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
 			// we should get something by now!
-			ensure(MyNavData);
+			UE_CLOG(MyNavData == nullptr, LogPathFollowing, Warning, TEXT("No NavigationData found while trying to cache it for %s\'s PathFollowingComponent")
+				, *GetNameSafe(GetOwner()));
+			UE_CVLOG(MyNavData == nullptr, this, LogPathFollowing, Warning, TEXT("No NavigationData found while trying to cache it in PathFollowingComponent::RecacheNavigationData"));
 		}
 	}
 }

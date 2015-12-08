@@ -6,6 +6,7 @@
 #define IOS_SUBSYSTEM FName(TEXT("IOS"))
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "SocketSubsystem.h"
 #include "ModuleManager.h"
 #include "IOSAppDelegate.h"

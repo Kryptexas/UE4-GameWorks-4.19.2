@@ -161,10 +161,16 @@ public class GooglePlayStoreHelper extends StoreHelper
 		boolean bIsAbleToSendQuery = bIsIapSetup && (cachedQueryProductIds.length > 0 );
 		if( bIsAbleToSendQuery )
 		{
+			// Populate a useable list for the query
+			ArrayList<String> SkuList = new ArrayList<String>();
+			for (String productID : ProductIds) 
+			{
+				SkuList.add(productID);
+			}
 			// Run the query pruchases command.
 			Log.debug("[GooglePlayStoreHelper] - queryInventoryAsync. - start");
 			try {
-				inAppPurchaseHelper.queryInventoryAsync(GotInventoryListener);
+				inAppPurchaseHelper.queryInventoryAsync(true, SkuList, GotInventoryListener);
 			} catch(Exception e) {
 				Log.debug("[GooglePlayStoreHelper] - queryInventoryAsync - Exception caught - " + e.getMessage());
 			}
@@ -259,7 +265,7 @@ public class GooglePlayStoreHelper extends StoreHelper
 					{
 						Log.debug("[GooglePlayStoreHelper] - Purchase Success.");
 						String Receipt = Base64.encode(purchase.getOriginalJson().getBytes());
-						nativePurchaseComplete(false, cachedPurchaseProductId, Receipt);
+						nativePurchaseComplete(true, cachedPurchaseProductId, Receipt);
 					}
 				}
 				else

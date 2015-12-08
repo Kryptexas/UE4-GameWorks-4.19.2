@@ -997,6 +997,12 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 
 void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 {
+	// We need access to HDR scene color
+	if (!IsMobileHDR() || IsMobileHDRMosaic())
+	{
+		return;
+	}
+
 	// do we need to render the distortion pass?
 	bool bRender=false;
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)

@@ -155,6 +155,7 @@ public class HTML5Platform : Platform
 		string[] UtilityJavaScriptFiles = Directory.GetFiles(JSDir, "*.js");
 
 		string DestinationFile = OutDir + "/Utility.js";
+		File.Delete(DestinationFile);
 		foreach( var UtilityFile in UtilityJavaScriptFiles)
 		{
 			string Data = File.ReadAllText(UtilityFile);

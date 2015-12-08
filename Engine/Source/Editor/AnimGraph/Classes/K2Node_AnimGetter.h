@@ -15,9 +15,12 @@ struct FNodeSpawnData
 
 	FNodeSpawnData();
 
+	//~ Using WITH_EDITORONLY_DATA within an Editor module to exclude this FText property from the gather for games
+#if WITH_EDITORONLY_DATA
 	// Title to use for the spawned node
 	UPROPERTY()
 	FText CachedTitle;
+#endif //~ WITH_EDITORONLY_DATA
 
 	// The node the spawned getter accesses
 	UPROPERTY()

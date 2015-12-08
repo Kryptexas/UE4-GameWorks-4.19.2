@@ -1109,8 +1109,11 @@ FMacSystemWideCriticalSection::FMacSystemWideCriticalSection(const FString& InNa
 {
 	check(InName.Len() > 0)
 	check(InTimeout >= FTimespan::Zero())
-	check(InTimeout.GetTotalSeconds() < (double)FLT_MAX)
+	check(InTimeout.GetTotalSeconds() < (double)FLT_MAX)	// we'll need this to fit in a single-precision float later so check it here
 
+	FDateTime ExpireTime = FDateTime::UtcNow() + InTimeout;
+
+	// This lock implementation is using files so correct any backslashes in the name
 	const FString LockPath = FString(FMacPlatformProcess::ApplicationSettingsDir()) / InName;
 	FString NormalizedFilepath(LockPath);
 	NormalizedFilepath.ReplaceInline(TEXT("\\"), TEXT("/"));
@@ -1120,16 +1123,17 @@ FMacSystemWideCriticalSection::FMacSystemWideCriticalSection(const FString& InNa
 
 	if (FileHandle == -1 && InTimeout != FTimespan::Zero())
 	{
-		FDateTime ExpireTime = FDateTime::UtcNow() + InTimeout;
-		const float RetrySeconds = FMath::Min((float)InTimeout.GetTotalSeconds(), 0.25f);
+		// Failed to get a valid file handle so the file is probably open and locked by another owner - retry until we timeout
 
-		do
+		for (FTimespan TimeoutRemaining = ExpireTime - FDateTime::UtcNow();
+			 FileHandle == -1 && TimeoutRemaining > FTimespan::Zero();
+			 TimeoutRemaining = ExpireTime - FDateTime::UtcNow())
 		{
 			// retry until timeout
+			float RetrySeconds = FMath::Min((float)TimeoutRemaining.GetTotalSeconds(), 0.25f);
 			FMacPlatformProcess::Sleep(RetrySeconds);
 			FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_EXLOCK | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		}
-		while (FileHandle == -1 && FDateTime::UtcNow() < ExpireTime);
 	}
 }
 

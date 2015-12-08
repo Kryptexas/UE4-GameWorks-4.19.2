@@ -388,7 +388,7 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 						.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 						[
 							SNew(SProjectLauncherFormLabel)
-							.ToolTipText(LOCTEXT("BasedOnReleaseVersionTextBoxToolTip", "The release version which this DLC / Patch / Next release is based on."))
+							.ToolTipText(LOCTEXT("BasedOnReleaseVersionTextBoxLabelToolTip", "The release version which this DLC / Patch / Next release is based on."))
 							.LabelText(LOCTEXT("BasedOnReleaseVersionTextBoxLabel", "Release version this is based on."))
 						]
 

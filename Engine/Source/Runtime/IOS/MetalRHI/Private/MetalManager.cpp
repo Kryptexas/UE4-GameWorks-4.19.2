@@ -630,13 +630,20 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
         FMetalSurface* PreviousSurface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
         bPreviousSurfaceWasBackBuffer = PreviousSurface == &BackBuffer->Surface;
     }
-
+        
 	FIntPoint MaxDimensions(TNumericLimits<decltype(FIntPoint::X)>::Max(),TNumericLimits<decltype(FIntPoint::Y)>::Max());
 	// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
 	MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
 
 	// if we need to do queries, write to the ring buffer (we set the offset into the ring buffer per query)
-	RenderPass.visibilityResultBuffer = QueryBuffer.Buffer;
+    if (IsFeatureLevelSupported(GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4))
+    {
+        RenderPass.visibilityResultBuffer = QueryBuffer.Buffer;
+    }
+    else
+    {
+        RenderPass.visibilityResultBuffer = NULL;
+    }
 
 	// default to non-msaa
     int32 OldCount = Pipeline.SampleCount;

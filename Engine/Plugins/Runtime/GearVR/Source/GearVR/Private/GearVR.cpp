@@ -1087,6 +1087,7 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 	auto GearVRHMD = static_cast<FGearVR*>(InDelegate);
 	pPresentBridge = GearVRHMD->pGearVRBridge;
 }
+#endif //GEARVR_SUPPORTED_PLATFORMS
 
 void FGearVRPlugin::StartOVRGlobalMenu() const 
 {
@@ -1207,6 +1208,7 @@ bool FGearVRPlugin::AreHeadPhonesPluggedIn() const
 
 void FGearVRPlugin::SetLoadingIconTexture(FTextureRHIRef InTexture)
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1215,10 +1217,12 @@ void FGearVRPlugin::SetLoadingIconTexture(FTextureRHIRef InTexture)
 
 		OculusHMD->SetLoadingIconTexture(InTexture);
 	}
+#endif
 }
 
 void FGearVRPlugin::SetLoadingIconMode(bool bActiveLoadingIcon)
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1227,10 +1231,12 @@ void FGearVRPlugin::SetLoadingIconMode(bool bActiveLoadingIcon)
 
 		OculusHMD->SetLoadingIconMode(bActiveLoadingIcon);
 	}
+#endif
 }
 
 void FGearVRPlugin::RenderLoadingIcon_RenderThread()
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInRenderingThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1239,10 +1245,12 @@ void FGearVRPlugin::RenderLoadingIcon_RenderThread()
 
 		OculusHMD->RenderLoadingIcon_RenderThread();
 	}
+#endif
 }
 
 bool FGearVRPlugin::IsInLoadingIconMode() const
 {
+#if GEARVR_SUPPORTED_PLATFORMS
 	check(IsInGameThread());
 	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
@@ -1251,10 +1259,10 @@ bool FGearVRPlugin::IsInLoadingIconMode() const
 
 		return OculusHMD->IsInLoadingIconMode();
 	}
+#endif
 	return false;
 }
 
 #include <HeadMountedDisplayCommon.cpp>
 
-#endif //GEARVR_SUPPORTED_PLATFORMS
 

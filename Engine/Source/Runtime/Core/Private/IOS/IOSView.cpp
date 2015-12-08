@@ -19,19 +19,6 @@ id<MTLDevice> GMetalDevice = nil;
 
 @synthesize SwapCount, OnScreenColorRenderBuffer, OnScreenColorRenderBufferMSAA;
 
-+ (bool)IsA7DeviceOnIOS9
-{
-#ifdef __IPHONE_9_0
-    bool bRequiresA7Workaround = true;
-    GConfig->GetBool(TEXT("/Script/IOSWorkarounds.IOSWorkarounds"), TEXT("bUseA7Workaround"), bRequiresA7Workaround, GEngineIni);
-    NSArray* versionArray = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
-    FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
-    return bRequiresA7Workaround && (Device == FPlatformMisc::IOS_IPhone5S || Device == FPlatformMisc::IOS_IPadAir || Device == FPlatformMisc::IOS_IPadMini2) && [[versionArray objectAtIndex:0] intValue] == 9;
-#else
-    return false;
-#endif
-}
-
 + (bool)IsDeviceOnIOS8
 {
 #ifdef __IPHONE_9_0
@@ -57,7 +44,7 @@ id<MTLDevice> GMetalDevice = nil;
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetalMRT"), bSupportsMetalMRT, GEngineIni);
 
 	// does commandline override?
-	bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("ES2")) || [FIOSView IsA7DeviceOnIOS9] || [FIOSView IsDeviceOnIOS8];
+	bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("ES2")) || [FIOSView IsDeviceOnIOS8];
 
 	bool bTriedToInit = false;
 

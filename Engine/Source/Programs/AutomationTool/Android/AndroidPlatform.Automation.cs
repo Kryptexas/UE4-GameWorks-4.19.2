@@ -1224,11 +1224,13 @@ public class AndroidPlatform : Platform
 		return Params.Package ? PakType.Always : PakType.DontCare;
 	}
 
+	/*
 	public override bool RequiresPackageToDeploy
 	{
 		get { return true; }
 	}
-    
+    */
+
 	#region Hooks
 
 	public override void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)

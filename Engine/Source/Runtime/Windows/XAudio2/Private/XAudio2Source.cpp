@@ -364,6 +364,7 @@ bool FXAudio2SoundSource::CreateSource( void )
 	// Reset the bUsingSpatializationEffect flag
 	bUsingDefaultSpatialization = true;
 	bool bCreatedWithSpatializationEffect = false;
+	MaxEffectChainChannels = 0;
 
 	if (CreateWithSpatializationEffect())
 	{

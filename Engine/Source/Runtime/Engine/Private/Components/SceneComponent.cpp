@@ -665,11 +665,15 @@ void USceneComponent::OnComponentDestroyed()
 	{
 		if (USceneComponent* Child = AttachChildren.Last())
 		{
+			bool bNeedsDetach = true;
 			if (AttachParent)
 			{
 				Child->AttachTo(AttachParent);
+				// If, after telling the Child to attach to our AttachParent, it is still attached to us it has
+				// failed and we want to just forcefully detach it
+				bNeedsDetach = (Child->AttachParent == this);
 			}
-			else
+			if (bNeedsDetach)
 			{
 				Child->DetachFromParent();
 			}

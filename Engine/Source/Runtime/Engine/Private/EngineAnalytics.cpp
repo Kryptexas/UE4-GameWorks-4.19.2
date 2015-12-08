@@ -50,8 +50,12 @@ void FEngineAnalytics::Initialize()
 	// we are not a generic, utility program, and we require cooked data.
 	bIsGameRun = !WITH_EDITOR && !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
 
+#if UE_BUILD_DEBUG
+	const bool bShouldInitAnalytics = false;
+#else
 	// Outside of the editor, the only engine analytics usage is the hardware survey
 	const bool bShouldInitAnalytics = (bIsEditorRun && GEngine->AreEditorAnalyticsEnabled()) || (bIsGameRun && GEngine->AreGameAnalyticsEnabled());
+#endif
 
 	if (bShouldInitAnalytics)
 	{
