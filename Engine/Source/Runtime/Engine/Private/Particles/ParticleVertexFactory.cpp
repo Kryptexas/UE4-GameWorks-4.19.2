@@ -176,12 +176,12 @@ void FParticleSpriteVertexFactory::ModifyCompilationEnvironment(EShaderPlatform 
 void FParticleSpriteVertexFactory::InitRHI()
 {
 	InitStreams();
-	SetDeclaration(GetParticleSpriteVertexDeclaration(RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()))).VertexDeclarationRHI);
+	SetDeclaration(GetParticleSpriteVertexDeclaration(GRHISupportsInstancing).VertexDeclarationRHI);
 }
 
 void FParticleSpriteVertexFactory::InitStreams()
 {
-    const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
+    const bool bInstanced = GRHISupportsInstancing;
 
 	check(Streams.Num() == 0);
 	if(bInstanced) 

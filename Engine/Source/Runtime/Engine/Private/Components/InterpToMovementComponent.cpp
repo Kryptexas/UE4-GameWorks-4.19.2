@@ -417,6 +417,23 @@ void UInterpToMovementComponent::BeginPlay()
 	FinaliseControlPoints();
 }
 
+void UInterpToMovementComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
+{
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
+ 
+ 	// Need to adjust the cached starting location... (StartLocation is always absolute)
+ 	StartLocation += InOffset;
+ 
+ 	// ...and all the stored control point positions if the control point positions are absolute.
+ 	for (auto& CtrlPoint : ControlPoints)
+ 	{
+ 		if (!CtrlPoint.bPositionIsRelative)
+ 		{
+ 			CtrlPoint.PositionControlPoint += InOffset;
+ 		}
+ 	}
+}
+
 void UInterpToMovementComponent::UpdateControlPoints(bool InForceUpdate)
 {
 	if (UpdatedComponent != nullptr)

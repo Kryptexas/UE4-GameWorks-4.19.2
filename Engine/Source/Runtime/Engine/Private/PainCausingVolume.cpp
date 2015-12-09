@@ -22,6 +22,13 @@ void APainCausingVolume::PostInitializeComponents()
 	BACKUP_bPainCausing	= bPainCausing;
 }
 
+void APainCausingVolume::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	
+	GetWorldTimerManager().ClearTimer(TimerHandle_PainTimer);
+}
+
 void APainCausingVolume::Reset()
 {
 	bPainCausing = BACKUP_bPainCausing;

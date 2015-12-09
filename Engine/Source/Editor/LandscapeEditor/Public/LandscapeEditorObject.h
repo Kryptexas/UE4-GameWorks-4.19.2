@@ -548,7 +548,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Limits painting to only the components that already have the selected layer
 	UPROPERTY(Category="Target Layers", EditAnywhere, NonTransactional, meta=(ShowForTargetTypes="Weightmap,Visibility"))
-	TEnumAsByte<ELandscapeLayerPaintingRestriction::Type> PaintingRestriction;
+	ELandscapeLayerPaintingRestriction PaintingRestriction;
 
 #if WITH_EDITOR
 	//~ Begin UObject Interface
@@ -578,6 +578,8 @@ class ULandscapeEditorObject : public UObject
 
 	void RefreshImportLayersList();
 	
+	void UpdateComponentLayerWhitelist();
+
 	int32 ClampLandscapeSize(int32 InComponenetsCount) const
 	{
 		// Max size is either whole components below 8192 verts, or 32 components 

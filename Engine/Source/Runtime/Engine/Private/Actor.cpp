@@ -604,12 +604,22 @@ void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 
 void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	// Attached components will be shifted by parents
+	// Attached components will be shifted by parents, will shift only USceneComponents derived components
 	if (RootComponent != nullptr && RootComponent->AttachParent == nullptr)
 	{
 		RootComponent->ApplyWorldOffset(InOffset, bWorldShift);
 	}
 
+	// Shift UActorComponent derived components, but not USceneComponents
+	const TArray<UActorComponent*>& AllActorComponents = GetComponents();
+ 	for (UActorComponent* ActorComponent : AllActorComponents)
+ 	{
+ 		if (IsValid(ActorComponent) && !ActorComponent->IsA<USceneComponent>())
+ 		{
+ 			ActorComponent->ApplyWorldOffset(InOffset, bWorldShift);
+ 		}
+ 	}
+ 	
 	// Navigation receives update during component registration. World shift needs a separate path to shift all navigation data
 	// So this normally should happen only in the editor when user moves visible sub-levels
 	if (!bWorldShift && !InOffset.IsZero())

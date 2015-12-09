@@ -30,6 +30,8 @@ class ALandscape;
 class ALandscapeProxy;
 class ULandscapeComponent;
 class USplineComponent;
+struct FLandscapeInfoLayerSettings;
+struct FAsyncGrassBuilder;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
@@ -172,7 +174,7 @@ struct FLandscapeImportLayerInfo
 	{
 	}
 
-	LANDSCAPE_API FLandscapeImportLayerInfo(const struct FLandscapeInfoLayerSettings& InLayerSettings);
+	LANDSCAPE_API FLandscapeImportLayerInfo(const FLandscapeInfoLayerSettings& InLayerSettings);
 #endif
 };
 
@@ -180,20 +182,20 @@ struct FLandscapeImportLayerInfo
 // results in Engine being dependent on LandscapeEditor, as the actual landscape editing
 // code (e.g. LandscapeEdit.h) is in /Engine/ for some reason...
 UENUM()
-namespace ELandscapeLayerPaintingRestriction
+enum class ELandscapeLayerPaintingRestriction : uint8
 {
-	enum Type
-	{
-		/** No restriction, can paint anywhere (default). */
-		None         UMETA(DisplayName="None"),
+	/** No restriction, can paint anywhere (default). */
+	None         UMETA(DisplayName="None"),
 
-		/** Uses the MaxPaintedLayersPerComponent setting from the LandscapeProxy. */
-		UseMaxLayers UMETA(DisplayName="Limit Layer Count"),
+	/** Uses the MaxPaintedLayersPerComponent setting from the LandscapeProxy. */
+	UseMaxLayers UMETA(DisplayName="Limit Layer Count"),
 
-		/** Restricts painting to only components that already have this layer. */
-		ExistingOnly UMETA(DisplayName="Existing Layers Only"),
-	};
-}
+	/** Restricts painting to only components that already have this layer. */
+	ExistingOnly UMETA(DisplayName="Existing Layers Only"),
+
+	/** Restricts painting to only components that have this layer in their whitelist. */
+	UseComponentWhitelist UMETA(DisplayName="Component Whitelist"),
+};
 
 UENUM()
 namespace ELandscapeLODFalloff
@@ -299,11 +301,11 @@ struct FCachedLandscapeFoliage
 class FAsyncGrassTask : public FNonAbandonableTask
 {
 public:
-	struct FAsyncGrassBuilder* Builder;
+	FAsyncGrassBuilder* Builder;
 	FCachedLandscapeFoliage::FGrassCompKey Key;
 	TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
 
-	FAsyncGrassTask(struct FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
+	FAsyncGrassTask(FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
 		: Builder(InBuilder)
 		, Key(InKey)
 		, Foliage(InFoliage)
@@ -430,7 +432,7 @@ public:
 
 	/** The Lightmass settings for this object. */
 	UPROPERTY(EditAnywhere, Category=Lightmass)
-	struct FLightmassPrimitiveSettings LightmassSettings;
+	FLightmassPrimitiveSettings LightmassSettings;
 
 	// Landscape LOD to use for collision tests. Higher numbers use less memory and process faster, but are much less accurate
 	UPROPERTY(EditAnywhere, Category=Landscape)
@@ -444,6 +446,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
+	/** Whether to bake the landscape material's vertical world position offset into the collision heightfield.
+		Note: Only z (vertical) offset is supported. XY offsets are ignored.
+		Does not work with CollisionMipLevel > 0
+		Does not work with an XY offset map (mesh collision) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Landscape)
+	bool bBakeMaterialPositionOffsetIntoCollision;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	TArray<ULandscapeLayerInfoObject*> EditorCachedLayerInfos_DEPRECATED;
@@ -452,7 +461,7 @@ public:
 	FString ReimportHeightmapFilePath;
 
 	UPROPERTY()
-	TArray<struct FLandscapeEditorLayerSettings> EditorLayerSettings;
+	TArray<FLandscapeEditorLayerSettings> EditorLayerSettings;
 #endif
 
 	/** Data set at creation time */
@@ -473,7 +482,7 @@ public:
 	ENavDataGatheringMode NavigationGeometryGatheringMode;
 
 	UPROPERTY(EditAnywhere, Category=LOD)
-	TEnumAsByte<enum ELandscapeLODFalloff::Type> LODFalloff;
+	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Landscape)
@@ -490,7 +499,7 @@ public:
 	TMap<FString, UMaterialInstanceConstant*> MaterialInstanceConstantMap;
 
 	/** Map of weightmap usage */
-	TMap<UTexture2D*, struct FLandscapeWeightmapUsage> WeightmapUsageMap;
+	TMap<UTexture2D*, FLandscapeWeightmapUsage> WeightmapUsageMap;
 
 	// Blueprint functions
 
@@ -658,7 +667,7 @@ public:
 	 * @param OutRawMesh - Resulting raw mesh
 	 * @return true if successful
 	 */
-	LANDSCAPE_API bool ExportToRawMesh(int32 InExportLOD, struct FRawMesh& OutRawMesh) const;
+	LANDSCAPE_API bool ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) const;
 
 
 	/** @return Current size of bounding rectangle in quads space */
@@ -683,6 +692,4 @@ public:
 	LANDSCAPE_API void RemoveOverlappingComponent(ULandscapeComponent* Component);
 #endif
 };
-
-
 

@@ -1177,6 +1177,68 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 	return ClosestCaptureIndex != INDEX_NONE ? ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndex] : NULL;
 }
 
+void FScene::FindClosestReflectionCaptures(FVector Position, const FReflectionCaptureProxy* (&SortedByDistanceOUT)[FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies]) const
+{
+	checkSlow(IsInParallelRenderingThread());
+	static const int32 ArraySize = FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies;
+
+	struct FReflectionCaptureDistIndex
+	{
+		int32 CaptureIndex;
+		float CaptureDistance;
+		const FReflectionCaptureProxy* CaptureProxy;
+	};
+
+	// Find the nearest n captures to this primitive. 
+	const int32 NumRegisteredReflectionCaptures = ReflectionSceneData.RegisteredReflectionCapturePositions.Num();
+	const int32 PopulateCaptureCount = FMath::Min(ArraySize, NumRegisteredReflectionCaptures);
+
+	TArray<FReflectionCaptureDistIndex, TFixedAllocator<ArraySize>> ClosestCaptureIndices;
+	ClosestCaptureIndices.AddUninitialized(PopulateCaptureCount);
+
+	for (int32 CaptureIndex = 0; CaptureIndex < PopulateCaptureCount; CaptureIndex++)
+	{
+		ClosestCaptureIndices[CaptureIndex].CaptureIndex = CaptureIndex;
+		ClosestCaptureIndices[CaptureIndex].CaptureDistance = (ReflectionSceneData.RegisteredReflectionCapturePositions[CaptureIndex] - Position).SizeSquared();
+	}
+	
+	for (int32 CaptureIndex = PopulateCaptureCount; CaptureIndex < NumRegisteredReflectionCaptures; CaptureIndex++)
+	{
+		const float DistanceSquared = (ReflectionSceneData.RegisteredReflectionCapturePositions[CaptureIndex] - Position).SizeSquared();
+		for (int32 i = 0; i < ArraySize; i++)
+		{
+			if (DistanceSquared<ClosestCaptureIndices[i].CaptureDistance)
+			{
+				ClosestCaptureIndices[i].CaptureDistance = DistanceSquared;
+				ClosestCaptureIndices[i].CaptureIndex = CaptureIndex;
+				break;
+			}
+		}
+	}
+
+	for (int32 CaptureIndex = 0; CaptureIndex < PopulateCaptureCount; CaptureIndex++)
+	{
+		FReflectionCaptureProxy* CaptureProxy = ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndices[CaptureIndex].CaptureIndex];		
+		ClosestCaptureIndices[CaptureIndex].CaptureProxy = CaptureProxy;
+	}
+	// Sort by influence radius.
+	ClosestCaptureIndices.Sort([](const FReflectionCaptureDistIndex& A, const FReflectionCaptureDistIndex& B)
+		{
+			if (A.CaptureProxy->InfluenceRadius != B.CaptureProxy->InfluenceRadius)
+			{
+				return (A.CaptureProxy->InfluenceRadius < B.CaptureProxy->InfluenceRadius);
+			}
+			return A.CaptureProxy->Guid < B.CaptureProxy->Guid;
+		});
+
+	FMemory::Memzero(SortedByDistanceOUT);
+
+	for (int32 CaptureIndex = 0; CaptureIndex < PopulateCaptureCount; CaptureIndex++)
+	{
+		SortedByDistanceOUT[CaptureIndex] = ClosestCaptureIndices[CaptureIndex].CaptureProxy;
+	}
+}
+
 void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const
 {
 	ERHIFeatureLevel::Type LocalFeatureLevel = GetFeatureLevel();

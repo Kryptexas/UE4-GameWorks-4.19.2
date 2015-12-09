@@ -285,6 +285,40 @@ public:
 		return *this;
 	}
 
+	/** Constructor for moving elements from a TSet with a different SetAllocator */
+	template<typename OtherAllocator>
+	TSet(TSet<ElementType, KeyFuncs, OtherAllocator>&& Other)
+		: HashSize(0)
+	{
+		Append(MoveTemp(Other));
+	}
+
+	/** Constructor for copying elements from a TSet with a different SetAllocator */
+	template<typename OtherAllocator>
+	TSet(const TSet<ElementType, KeyFuncs, OtherAllocator>& Other)
+		: HashSize(0)
+	{
+		Append(Other);
+	}
+
+	/** Assignment operator for moving elements from a TSet with a different SetAllocator */
+	template<typename OtherAllocator>
+	TSet& operator=(TSet<ElementType, KeyFuncs, OtherAllocator>&& Other)
+	{
+		Reset();
+		Append(MoveTemp(Other));
+		return *this;
+	}
+
+	/** Assignment operator for copying elements from a TSet with a different SetAllocator */
+	template<typename OtherAllocator>
+	TSet& operator=(const TSet<ElementType, KeyFuncs, OtherAllocator>& Other)
+	{
+		Reset();
+		Append(Other);
+		return *this;
+	}
+
 	/**
 	 * Removes all elements from the set, potentially leaving space allocated for an expected number of elements about to be added.
 	 * @param ExpectedNumElements - The number of elements about to be added to the set.
@@ -465,32 +499,50 @@ public:
 		return ElementId;
 	}
 
-	void Append(const TArray<ElementType>& InElements)
+	template<typename ArrayAllocator>
+	void Append(const TArray<ElementType, ArrayAllocator>& InElements)
 	{
+		Reserve(Elements.Num() + InElements.Num());
 		for (auto& Element : InElements)
 		{
 			Add(Element);
 		}
 	}
 
-	void Append(TArray<ElementType>&& InElements)
+	template<typename ArrayAllocator>
+	void Append(TArray<ElementType, ArrayAllocator>&& InElements)
 	{
+		Reserve(Elements.Num() + InElements.Num());
 		for (auto& Element : InElements)
 		{
 			Add(MoveTemp(Element));
 		}
+		InElements.Reset();
 	}
 
 	/**
 	 * Add all items from another set to our set (union without creating a new set)
 	 * @param OtherSet - The other set of items to add.
-     */
-	void Append( const TSet& OtherSet )
+	 */
+	template<typename OtherAllocator>
+	void Append(const TSet<ElementType, KeyFuncs, OtherAllocator>& OtherSet)
 	{
-		for(TConstIterator SetIt(OtherSet);SetIt;++SetIt)
+		Reserve(Elements.Num() + OtherSet.Num());
+		for (auto& Element : OtherSet)
 		{
-			Add(*SetIt);
+			Add(Element);
 		}
+	}
+
+	template<typename OtherAllocator>
+	void Append(TSet<ElementType, KeyFuncs, OtherAllocator>&& OtherSet)
+	{
+		Reserve(Elements.Num() + OtherSet.Num());
+		for (auto& Element : OtherSet)
+		{
+			Add(MoveTemp(Element));
+		}
+		OtherSet.Reset();
 	}
 
 	/**

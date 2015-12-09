@@ -98,11 +98,11 @@ namespace UnrealBuildTool
 					//#todo-rco: Remove when public
 					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 					{
-						if (!String.IsNullOrEmpty(VulkanSDKPath))
+/*						if ((!String.IsNullOrEmpty(VulkanSDKPath)))
 						{
 							Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 						}
-					}
+*/					}
 				}
 			}
 

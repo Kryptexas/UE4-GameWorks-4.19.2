@@ -728,16 +728,6 @@ inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL;
 }
 
-inline bool RHISupportsInstancing(const EShaderPlatform Platform)
-{
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES3_1);
-}
-
-inline bool RHISupportsInstancing(ERHIFeatureLevel::Type FeatureLevel)
-{
-	return FeatureLevel >= ERHIFeatureLevel::ES3_1;
-}
-
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
 	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)

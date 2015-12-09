@@ -323,6 +323,7 @@ void FViewInfo::Init()
 	ShadingModelMaskInView = 0;
 	NumVisibleStaticMeshElements = 0;
 	PrecomputedVisibilityData = 0;
+	bSceneHasDecals = 0;
 
 	bIsViewInfo = true;
 	PrevViewProjMatrix.SetIdentity();

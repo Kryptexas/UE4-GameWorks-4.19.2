@@ -12,7 +12,7 @@ struct FLandscapeGrassWeightInterpolantsVSToPS
 {
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 	float4 PixelPosition	: TEXCOORD8; // xyz = world position, w = clip z
-	float2 Height			: TEXCOORD9;
+	float  Height			: TEXCOORD9;
 	float4 Position : SV_POSITION;
 };
 
@@ -36,18 +36,20 @@ void VSMain(
 	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float4 WorldPosition = WorldPositionExcludingWPO;
 
-	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
+	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 
-	half3 WorldPositionOffset = GetMaterialWorldPositionOffset(VertexParameters);
-	
-	WorldPosition.xyz += WorldPositionOffset;
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
 	Output.PixelPosition = WorldPosition;
 	Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
 
-	Output.Height = LandscapeVertexFactorySampleHeight(Input, VFIntermediates);
+	float2 Height2 = LandscapeVertexFactorySampleHeight(Input, VFIntermediates);
+	float Height = DecodePackedTwoChannelValue(Height2);
+
+	half3 WorldPositionOffset = GetMaterialWorldPositionOffset(VertexParameters);
+	Height = Height + mul(WorldPositionOffset, (MaterialFloat3x3)(Primitive.WorldToLocal)).z / TERRAIN_ZSCALE;
+	Output.Height = Height;
 
 	Output.Position.xy += RenderOffset;
 
@@ -74,7 +76,10 @@ void PSMain(
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants.FactoryInterpolants, SvPosition);
 
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace); 
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
+
+	float Height = clamp(round(Interpolants.Height), 0, 65535);
+	float2 PackedHeight = float2(floor(Height / 256), fmod(Height, 256)) / 255;
 
 #if NUM_MATERIAL_OUTPUTS_GETGRASSWEIGHT > 2
 	switch(OutputPass)
@@ -82,7 +87,7 @@ void PSMain(
 	case 0:
 #endif
 		// Height, outputs 1 & 2
-		OutColor.xy = Interpolants.Height;
+		OutColor.xy = PackedHeight;
 		#if NUM_MATERIAL_OUTPUTS_GETGRASSWEIGHT > 0
 			OutColor.z = GetGrassWeight0(MaterialParameters);
 			#if NUM_MATERIAL_OUTPUTS_GETGRASSWEIGHT > 1

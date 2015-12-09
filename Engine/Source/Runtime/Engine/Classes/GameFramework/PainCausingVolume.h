@@ -57,6 +57,7 @@ class ENGINE_API APainCausingVolume : public APhysicsVolume
 
 	//Begin AActor Interface
 	virtual void PostInitializeComponents() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/* reset actor to initial state - used when restarting level without reloading. */
 	virtual void Reset() override;

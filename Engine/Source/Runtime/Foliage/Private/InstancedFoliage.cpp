@@ -286,6 +286,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	ZOffset.Max = 0.0f;
 	CullDistance.Min = 0;
 	CullDistance.Max = 0;
+	bEnableStaticLighting_DEPRECATED = true;
 	MinimumLayerWeight = 0.5f;
 	IsSelected = false;
 	DensityAdjustmentFactor = 1.0f;

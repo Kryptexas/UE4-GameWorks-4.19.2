@@ -52,9 +52,11 @@ public:
 #endif
 
 protected:
+	/** URL that the browser will initially navigate to. The URL should include the protocol, eg http:// */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FString InitialURL;
 
+	/** Should the browser window support transparency. */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	bool bSupportsTransparency;
 

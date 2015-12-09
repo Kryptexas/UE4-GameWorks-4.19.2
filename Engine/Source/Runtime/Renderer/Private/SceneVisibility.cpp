@@ -1508,6 +1508,13 @@ struct FRelevancePacket
 				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
+
+				if (!Scene->ShouldUseDeferredRenderer())
+				{
+					// forward HQ reflections
+					Scene->FindClosestReflectionCaptures(Scene->PrimitiveBounds[BitIndex].Origin, PrimitiveSceneInfo->CachedReflectionCaptureProxies);
+				}
+
 				PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
 			}
 			if (PrimitiveSceneInfo->NeedsLazyUpdateForRendering())
@@ -2466,6 +2473,10 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			}
 		}
 #endif
+
+		// TODO: right now decals visibility computed right before rendering them, ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
+	    // Currently used to disable stencil operations in forward base pass when scene has no any decals
+		View.bSceneHasDecals = (Scene->Decals.Num() > 0);
 	}
 
 	GatherDynamicMeshElements(Views, Scene, ViewFamily, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, MeshCollector);

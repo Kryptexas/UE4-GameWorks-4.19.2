@@ -274,6 +274,15 @@ void ULandscapeComponent::UpdateMaterialInstances()
 
 	if (CombinationMaterialInstance != NULL)
 	{
+		// not having the context recreate the render state because we will manually do it for only this component
+		FMaterialUpdateContext Context(FMaterialUpdateContext::EOptions::Default & ~FMaterialUpdateContext::EOptions::RecreateRenderStates);
+
+		if (bRenderStateCreated)
+		{
+			DestroyRenderState_Concurrent();
+			FlushRenderingCommands();
+		}
+
 		// Create the instance for this component, that will use the layer combination instance.
 		if (MaterialInstance == NULL || GetOutermost() != MaterialInstance->GetOutermost())
 		{
@@ -285,6 +294,8 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		MaterialInstance->Modify();
 
 		MaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
+		MaterialInstance->ClearParameterValuesEditorOnly();
+		Context.AddMaterialInstance(MaterialInstance); // must be done after SetParent
 
 		FLinearColor Masks[4];
 		Masks[0] = FLinearColor(1.0f, 0.0f, 0.0f, 0.0f);
@@ -363,6 +374,17 @@ bool ULandscapeComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolum
 	}
 
 	return false;
+}
+
+void ULandscapeComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel)
+{
+	Super::PreFeatureLevelChange(PendingFeatureLevel);
+
+	if (PendingFeatureLevel <= ERHIFeatureLevel::ES3_1)
+	{
+		// See if we need to cook platform data for ES2 preview in editor
+		CheckGenerateLandscapePlatformData(false);
+	}
 }
 
 void ULandscapeComponent::PostEditUndo()
@@ -484,6 +506,14 @@ void ULandscapeComponent::FixupWeightmaps()
 	}
 }
 
+void ULandscapeComponent::UpdateLayerWhitelistFromPaintedLayers()
+{
+	for (const auto& Allocation : WeightmapLayerAllocations)
+	{
+		LayerWhitelist.AddUnique(Allocation.LayerInfo);
+	}
+}
+
 //
 // LandscapeComponentAlphaInfo
 //
@@ -555,6 +585,17 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 	// Existing collision component is same type with collision
 	if (CollisionComp && ((XYOffsetmapTexture == NULL) == (MeshCollisionComponent == NULL)))
 	{
+		ComponentX1 = FMath::Min(ComponentX1, ComponentSizeQuads);
+		ComponentY1 = FMath::Min(ComponentY1, ComponentSizeQuads);
+		ComponentX2 = FMath::Max(ComponentX2, 0);
+		ComponentY2 = FMath::Max(ComponentY2, 0);
+
+		if (ComponentX2 < ComponentX1 || ComponentY2 < ComponentY1)
+		{
+			// nothing to do
+			return;
+		}
+
 		if (bUpdateBounds)
 		{
 			CollisionComp->CachedLocalBox = CachedLocalBox;
@@ -572,8 +613,8 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 	{
 		ComponentX1 = 0;
 		ComponentY1 = 0;
-		ComponentX2 = MAX_int32;
-		ComponentY2 = MAX_int32;
+		ComponentX2 = ComponentSizeQuads;
+		ComponentY2 = ComponentSizeQuads;
 
 		if (CollisionComp) // remove old component before changing to other type collision...
 		{
@@ -662,6 +703,10 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 	//int32 WeightmapOffsetX = FMath::RoundToInt(WeightmapScaleBias.Z * (float)XYMipSizeU) >> CollisionMipLevel;
 	//int32 WeightmapOffsetY = FMath::RoundToInt(WeightmapScaleBias.W * (float)XYMipSizeV) >> CollisionMipLevel;
 
+	// Handle WPO baked into heightfield collision
+	// WPO is not currently supported for mesh collision components
+	uint16* GrassHeights = Proxy->bBakeMaterialPositionOffsetIntoCollision && !MeshCollisionComponent && GrassData->HasData() && !IsGrassMapOutdated() ? GrassData->HeightData.GetData() : nullptr;
+
 	for (int32 SubsectionY = 0; SubsectionY < NumSubsections; SubsectionY++)
 	{
 		// Check if subsection is fully above or below the area we are interested in
@@ -702,15 +747,23 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			{
 				for (int32 VertX = VertX1; VertX <= VertX2; VertX++)
 				{
-					{
-						// X/Y of the vertex we're looking indexed into the texture data
-						int32 TexX = HeightmapOffsetX + CollisionSubsectionSizeVerts * SubsectionX + VertX;
-						int32 TexY = HeightmapOffsetY + CollisionSubsectionSizeVerts * SubsectionY + VertY;
-						const FColor& TexData = HeightmapTextureMipData[TexX + TexY * MipSizeU];
+					// X/Y of the vertex we're looking indexed into the texture data
+					int32 TexX = HeightmapOffsetX + CollisionSubsectionSizeVerts * SubsectionX + VertX;
+					int32 TexY = HeightmapOffsetY + CollisionSubsectionSizeVerts * SubsectionY + VertY;
 
-						// this uses Quads as we don't want the duplicated vertices
-						int32 CompVertX = CollisionSubsectionSizeQuads * SubsectionX + VertX;
-						int32 CompVertY = CollisionSubsectionSizeQuads * SubsectionY + VertY;
+					// this uses Quads as we don't want the duplicated vertices
+					int32 CompVertX = CollisionSubsectionSizeQuads * SubsectionX + VertX;
+					int32 CompVertY = CollisionSubsectionSizeQuads * SubsectionY + VertY;
+
+					if (GrassHeights)
+					{
+						uint16& CollisionHeight = CollisionHeightData[CompVertX + CompVertY * CollisionSizeVerts];
+						const uint16& NewHeight = GrassHeights[CompVertX + CompVertY * MipSizeU];
+						CollisionHeight = NewHeight;
+					}
+					else
+					{
+						const FColor& TexData = HeightmapTextureMipData[TexX + TexY * MipSizeU];
 
 						// Copy collision data
 						uint16& CollisionHeight = CollisionHeightData[CompVertX + CompVertY*CollisionSizeVerts];
@@ -721,14 +774,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 
 					if (XYOffsetmapTexture && XYOffsetmapTextureData && CollisionXYOffsetData)
 					{
-						// X/Y of the vertex we're looking indexed into the texture data
-						int32 TexX = CollisionSubsectionSizeVerts * SubsectionX + VertX;
-						int32 TexY = CollisionSubsectionSizeVerts * SubsectionY + VertY;
 						const FColor& TexData = XYOffsetmapTextureData[TexX + TexY * XYMipSizeU];
-
-						// this uses Quads as we don't want the duplicated vertices
-						int32 CompVertX = CollisionSubsectionSizeQuads * SubsectionX + VertX;
-						int32 CompVertY = CollisionSubsectionSizeQuads * SubsectionY + VertY;
 
 						// Copy collision data
 						uint16 NewXOffset = TexData.R << 8 | TexData.G;
@@ -990,7 +1036,7 @@ void ULandscapeComponent::UpdateCollisionLayerData()
 
 
 
-void ULandscapeComponent::GenerateHeightmapMips(TArray<FColor*>& HeightmapTextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, struct FLandscapeTextureDataInfo* TextureDataInfo/*=NULL*/)
+void ULandscapeComponent::GenerateHeightmapMips(TArray<FColor*>& HeightmapTextureMipData, int32 ComponentX1/*=0*/, int32 ComponentY1/*=0*/, int32 ComponentX2/*=MAX_int32*/, int32 ComponentY2/*=MAX_int32*/, FLandscapeTextureDataInfo* TextureDataInfo/*=NULL*/)
 {
 	bool EndX = false;
 	bool EndY = false;
@@ -1598,7 +1644,7 @@ void ULandscapeComponent::GetComponentExtent(int32& MinX, int32& MinY, int32& Ma
 
 #define MAX_LANDSCAPE_SUBSECTIONS 2
 
-void ULandscapeInfo::GetComponentsInRegion(int32 X1, int32 Y1, int32 X2, int32 Y2, TSet<ULandscapeComponent*>& OutComponents)
+void ULandscapeInfo::GetComponentsInRegion(int32 X1, int32 Y1, int32 X2, int32 Y2, TSet<ULandscapeComponent*>& OutComponents) const
 {
 	// Find component range for this block of data
 	// X2/Y2 Coordinates are "inclusive" max values
@@ -1645,36 +1691,23 @@ struct FHeightmapInfo
 	TArray<FColor*> HeightmapTextureMipData;
 };
 
-TArray<FName> ALandscapeProxy::GetLayersFromMaterial(UMaterialInterface* Material)
+TArray<FName> ALandscapeProxy::GetLayersFromMaterial(UMaterialInterface* MaterialInterface)
 {
 	TArray<FName> Result;
 
-	if (Material)
+	if (MaterialInterface)
 	{
-		const TArray<UMaterialExpression*>& Expressions = Material->GetMaterial()->Expressions;
+		UMaterial* Material = MaterialInterface->GetMaterial();
+		TArray<FName> ParameterNames;
+		TArray<FGuid> Guids;
+		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerWeight>(ParameterNames, Guids);
+		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerSwitch>(ParameterNames, Guids);
+		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerSample>(ParameterNames, Guids);
+		Material->GetAllParameterNames<UMaterialExpressionLandscapeLayerBlend>(ParameterNames, Guids);
 
-		// TODO: *Unconnected* layer expressions?
-		for (UMaterialExpression* Expression : Expressions)
+		for (const FName& Name : ParameterNames)
 		{
-			if (auto LayerWeightExpression = Cast<UMaterialExpressionLandscapeLayerWeight>(Expression))
-			{
-				Result.AddUnique(LayerWeightExpression->ParameterName);
-			}
-			else if (auto LayerSampleExpression = Cast<UMaterialExpressionLandscapeLayerSample>(Expression))
-			{
-				Result.AddUnique(LayerSampleExpression->ParameterName);
-			}
-			else if (auto LayerSwitchExpression = Cast<UMaterialExpressionLandscapeLayerSwitch>(Expression))
-			{
-				Result.AddUnique(LayerSwitchExpression->ParameterName);
-			}
-			else if (auto LayerBlendExpression = Cast<UMaterialExpressionLandscapeLayerBlend>(Expression))
-			{
-				for (const auto& ExpressionLayer : LayerBlendExpression->Layers)
-				{
-					Result.AddUnique(ExpressionLayer.LayerName);
-				}
-			}
+			Result.AddUnique(Name);
 		}
 	}
 
@@ -2954,6 +2987,15 @@ ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const FObjectInitializer& O
 #if WITH_EDITORONLY_DATA
 	bNoWeightBlend = false;
 #endif // WITH_EDITORONLY_DATA
+
+	// Assign initial LayerUsageDebugColor
+	if (!IsTemplate())
+	{
+		uint8 Hash[20];
+		FString PathNameString = GetPathName();
+		FSHA1::HashBuffer(*PathNameString, PathNameString.Len() * sizeof(PathNameString[0]), Hash);
+		LayerUsageDebugColor = FLinearColor(float(Hash[0]) / 255.f, float(Hash[1]) / 255.f, float(Hash[2]) / 255.f, 1.f);
+	}
 }
 
 #if WITH_EDITOR
@@ -2961,6 +3003,11 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 {
 	static const FName NAME_Hardness = FName(TEXT("Hardness"));
 	static const FName NAME_PhysMaterial = FName(TEXT("PhysMaterial"));
+	static const FName NAME_LayerUsageDebugColor = FName(TEXT("LayerUsageDebugColor"));
+	static const FName NAME_R = FName(TEXT("R"));
+	static const FName NAME_G = FName(TEXT("G"));
+	static const FName NAME_B = FName(TEXT("B"));
+	static const FName NAME_A = FName(TEXT("A"));
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -2991,6 +3038,18 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 							}
 						}
 					}
+				}
+			}
+		}
+		else if (PropertyName == NAME_LayerUsageDebugColor || PropertyName == NAME_R || PropertyName == NAME_G || PropertyName == NAME_B || PropertyName == NAME_A)
+		{
+			LayerUsageDebugColor.A = 1.0f;
+			for (TObjectIterator<ALandscapeProxy> It; It; ++It)
+			{
+				ALandscapeProxy* Proxy = *It;
+				if (Proxy->GetWorld() && !Proxy->GetWorld()->IsPlayInEditor())
+				{
+					Proxy->MarkComponentsRenderStateDirty();
 				}
 			}
 		}
@@ -3036,6 +3095,8 @@ void ALandscapeProxy::RemoveXYOffsets()
 		RecreateCollisionComponents();
 	}
 }
+
+
 
 void ALandscapeProxy::RecreateCollisionComponents()
 {
@@ -3197,11 +3258,12 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 				GetLandscapeInfo()->UpdateLayerInfoMap(/*this*/);
 
 				// Clear the parents out of combination material instances
-				for (TMap<FString, UMaterialInstanceConstant*>::TIterator It(MaterialInstanceConstantMap); It; ++It)
+				for (const auto& MICPair : MaterialInstanceConstantMap)
 				{
-					It.Value()->BasePropertyOverrides.bOverride_BlendMode = false;
-					It.Value()->SetParentEditorOnly(nullptr);
-					MaterialUpdateContext.AddMaterial(It.Value()->GetMaterial());
+					UMaterialInstanceConstant* MaterialInstance = MICPair.Value;
+					MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = false;
+					MaterialInstance->SetParentEditorOnly(nullptr);
+					MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
 				}
 
 				// Remove our references to any material instances
@@ -3229,7 +3291,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	{
 		ChangedPhysMaterial();
 	}
-	else if (GIsEditor && (PropertyName == FName(TEXT("CollisionMipLevel")) || PropertyName == FName(TEXT("CollisionThickness"))))
+	else if (GIsEditor && (PropertyName == FName(TEXT("CollisionMipLevel")) || PropertyName == FName(TEXT("CollisionThickness")) || PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bBakeMaterialPositionOffsetIntoCollision)))
 	{
 		RecreateCollisionComponents();
 	}
@@ -3348,11 +3410,12 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		ChangedMaterial = true;
 
 		// Clear the parents out of combination material instances
-		for (TMap<FString, UMaterialInstanceConstant*>::TIterator It(MaterialInstanceConstantMap); It; ++It)
+		for (const auto& MICPair : MaterialInstanceConstantMap)
 		{
-			It.Value()->BasePropertyOverrides.bOverride_BlendMode = false;
-			It.Value()->SetParentEditorOnly(nullptr);
-			MaterialUpdateContext.AddMaterial(It.Value()->GetMaterial());
+			UMaterialInstanceConstant* MaterialInstance = MICPair.Value;
+			MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = false;
+			MaterialInstance->SetParentEditorOnly(nullptr);
+			MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
 		}
 
 		// Remove our references to any material instances
@@ -3379,6 +3442,10 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	else if (PropertyName == FName(TEXT("CollisionMipLevel")))
 	{
 		CollisionMipLevel = FMath::Clamp<int32>(CollisionMipLevel, 0, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bBakeMaterialPositionOffsetIntoCollision))
+	{
 		bPropagateToProxies = true;
 	}
 	else if (PropertyName == FName(TEXT("LODFalloff")))
@@ -3425,10 +3492,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			LandscapeEdit.RecalculateNormals();
 		}
 
+		// We cannot iterate the XYtoComponentMap directly because reregistering components modifies the array.
 		TArray<ULandscapeComponent*> AllComponents;
 		Info->XYtoComponentMap.GenerateValueArray(AllComponents);
-
-		// We cannot iterate the XYtoComponentMap directly because reregistering components modifies the array.
 		for (auto It = AllComponents.CreateIterator(); It; ++It)
 		{
 			ULandscapeComponent* Comp = *It;

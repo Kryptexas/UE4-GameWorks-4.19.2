@@ -20,8 +20,8 @@
 class FLandscapeToolStrokeErosionBase : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeErosionBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InTarget)
+	FLandscapeToolStrokeErosionBase(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
 		, bWeightApplied(InTarget.TargetType != ELandscapeToolTargetType::Heightmap)
@@ -56,8 +56,8 @@ public:
 class FLandscapeToolStrokeErosion : public FLandscapeToolStrokeErosionBase
 {
 public:
-	FLandscapeToolStrokeErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
+	FLandscapeToolStrokeErosion(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeErosionBase(InEdMode, InViewportClient, InTarget)
 	{
 	}
 
@@ -288,8 +288,8 @@ public:
 class FLandscapeToolStrokeHydraErosion : public FLandscapeToolStrokeErosionBase
 {
 public:
-	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
+	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeErosionBase(InEdMode, InViewportClient, InTarget)
 	{
 	}
 

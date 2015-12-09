@@ -521,6 +521,8 @@ void UActorComponent::PostEditUndo()
 	}
 	else
 	{
+		bIsBeingDestroyed = false;
+
 		Owner = GetTypedOuter<AActor>();
 		bCanUseCachedOwner = true;
 

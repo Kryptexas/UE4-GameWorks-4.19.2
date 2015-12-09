@@ -127,6 +127,7 @@ UShaderPlatformQualitySettings::UShaderPlatformQualitySettings(const FObjectInit
 	: Super(ObjectInitializer)
 {
 	// high quality overrides are always enabled by default
+	check(IsInGameThread());
 	GetQualityOverrides(EMaterialQualityLevel::High).bEnableOverride = true;
 }
 

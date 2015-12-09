@@ -246,7 +246,8 @@ public class Engine : ModuleRules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"DerivedDataCache", 
-					"TargetPlatform"
+					"TargetPlatform",
+                    "DesktopPlatform"
 				}
 			);
 		}

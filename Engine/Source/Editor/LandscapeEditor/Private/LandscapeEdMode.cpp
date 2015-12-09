@@ -169,6 +169,7 @@ FEdModeLandscape::FEdModeLandscape()
 	GSelectionRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_SelectedRegion.SelectBrushMaterial_SelectedRegion"), NULL, LOAD_None, NULL);
 	GMaskRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/MaskBrushMaterial_MaskedRegion.MaskBrushMaterial_MaskedRegion"), NULL, LOAD_None, NULL);
 	GLandscapeBlackTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineResources/Black.Black"), NULL, LOAD_None, NULL);
+	GLandscapeLayerUsageMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/LandscapeLayerUsageMaterial.LandscapeLayerUsageMaterial"), NULL, LOAD_None, NULL);
 
 	// Initialize modes
 	InitializeToolModes();
@@ -584,6 +585,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		if (CurrentTool)
 		{
 			CurrentTool->EndTool(ViewportClient);
+			Viewport->CaptureMouse(false);
 			bToolActive = false;
 		}
 	}
@@ -1211,7 +1213,12 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 						}
 						else
 						{
+							Viewport->CaptureMouse(true);
 							bToolActive = CurrentTool->BeginTool(ViewportClient, CurrentToolTarget, HitLocation);
+							if (!bToolActive)
+							{
+								Viewport->CaptureMouse(false);
+							}
 							return bToolActive;
 						}
 					}
@@ -1228,6 +1235,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 				//Set the cursor position to that of the slate cursor so it wont snap back
 				Viewport->SetPreCaptureMousePosFromSlateCursor();
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 				return true;
 			}
@@ -1291,6 +1299,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 			}
 
@@ -1307,6 +1316,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
 				bToolActive = false;
 			}
 
@@ -2077,7 +2087,6 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 /** FEdMode: Render HUD elements for this tool */
 void FEdModeLandscape::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
 {
-
 }
 
 bool FEdModeLandscape::UsesTransformWidget() const

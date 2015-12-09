@@ -59,7 +59,9 @@ public:
 
 	virtual float GetVariantPriority() const override
 	{
-		return 0.1f;
+		float Priority;
+		return GConfig->GetFloat(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("TextureFormatPriority_ETC1"), Priority, GEngineIni) ?
+			Priority : 0.1f;
 	}
 };
 

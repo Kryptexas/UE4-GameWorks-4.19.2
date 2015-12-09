@@ -27,6 +27,9 @@ public:
 
 	UPROPERTY(Config, Meta = (DisplayName = "Disable Lightmap directionality"))
 	bool bForceDisableLMDirectionality;
+
+	UPROPERTY(Config, Meta = (DisplayName = "Force low quality reflections"))
+	bool bForceLQReflections;
 };
 
 

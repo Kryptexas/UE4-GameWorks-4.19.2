@@ -31,7 +31,7 @@ public:
 		/** A reference to the parent window. */
 		SLATE_ARGUMENT(TSharedPtr<SWindow>, ParentWindow)
 
-		/** URL that the browser will initially navigate to. */
+		/** URL that the browser will initially navigate to. The URL should include the protocol, eg http:// */
 		SLATE_ARGUMENT(FString, InitialURL)
 
 		/** Optional string to load contents as a web page. */

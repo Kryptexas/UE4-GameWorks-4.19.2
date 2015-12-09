@@ -23,6 +23,10 @@ class ULandscapeLayerInfoObject : public UObject
 	uint32 bNoWeightBlend:1;
 #endif // WITH_EDITORONLY_DATA
 
+	/* The color to use for layer usage debug */
+	UPROPERTY(EditAnywhere, Category = LandscapeLayerInfoObject)
+	FLinearColor LayerUsageDebugColor;
+
 #if WITH_EDITOR
 	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

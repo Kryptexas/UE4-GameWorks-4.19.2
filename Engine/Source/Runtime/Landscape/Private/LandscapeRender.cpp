@@ -447,6 +447,7 @@ UMaterialInstanceConstant* GSelectionColorMaterial = nullptr;
 UMaterialInstanceConstant* GSelectionRegionMaterial = nullptr;
 UMaterialInstanceConstant* GMaskRegionMaterial = nullptr;
 UTexture2D* GLandscapeBlackTexture = nullptr;
+UMaterial* GLandscapeLayerUsageMaterial = nullptr;
 
 // Game thread update
 void FLandscapeEditToolRenderData::Update(UMaterialInterface* InToolMaterial)
@@ -652,6 +653,18 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	SharedBuffersKey = (SubsectionSizeQuads & 0xffff) | ((NumSubsections & 0xf) << 16) | (FeatureLevel <= ERHIFeatureLevel::ES3_1 ? 0 : 1 << 20) | (XYOffsetmapTexture == nullptr ? 0 : 1 << 31);
 
 	bSupportsHeightfieldRepresentation = true;
+
+#if WITH_EDITOR
+	for (auto& Allocation : InComponent->WeightmapLayerAllocations)
+	{
+		if (ensure(Allocation.LayerInfo) && Allocation.LayerInfo != ALandscapeProxy::VisibilityLayer)
+		{
+			// Use black for hole layer
+			LayerColors.Add(Allocation.LayerInfo->LayerUsageDebugColor);
+			LayerNames.Add(Allocation.LayerInfo->LayerName);
+		}
+	}
+#endif
 }
 
 void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
@@ -1075,6 +1088,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	MeshBatch.CastShadow = true;
 	MeshBatch.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
 	MeshBatch.DepthPriorityGroup = SDPG_World;
+	MeshBatch.LODIndex = 0;
 
 	for (int32 LOD = FirstLOD; LOD <= LastLOD; LOD++)
 	{
@@ -1474,6 +1488,22 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 					Collector.AddMesh(ViewIndex, MeshTools);
 
+					NumPasses++;
+					NumTriangles += MeshTools.GetNumPrimitives();
+					NumDrawCalls += MeshTools.Elements.Num();
+				}
+				break;
+
+			case ELandscapeViewMode::LayerUsage:
+				if (EditToolRenderData && GLandscapeLayerUsageMaterial)
+				{	
+					float Rotation = ((SectionBase.X / ComponentSizeQuads) ^ (SectionBase.Y / ComponentSizeQuads)) & 1 ? 0 : 2.f * PI;
+					auto LayerUsageMaterialInstance = new FLandscapeLayerUsageRenderProxy(GLandscapeLayerUsageMaterial->GetRenderProxy(false), ComponentSizeVerts, LayerColors, Rotation);
+					MeshTools.MaterialRenderProxy = LayerUsageMaterialInstance;
+					Collector.RegisterOneFrameMaterialProxy(LayerUsageMaterialInstance);
+					MeshTools.bCanApplyViewModeOverrides = true;
+					MeshTools.bUseWireframeSelectionColoring = IsSelected();
+					Collector.AddMesh(ViewIndex, MeshTools);
 					NumPasses++;
 					NumTriangles += MeshTools.GetNumPrimitives();
 					NumDrawCalls += MeshTools.Elements.Num();

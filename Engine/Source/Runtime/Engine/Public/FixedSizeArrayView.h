@@ -38,8 +38,8 @@ public:
 	 * @param Other The source array view to copy
 	 */
 	TFixedSizeArrayView(const TFixedSizeArrayView& Other)
-		: DataPtr(Other.GetData())
-		, ArrayNum(Other.Num())
+		: DataPtr(Other.DataPtr)
+		, ArrayNum(Other.ArrayNum)
 	{
 	}
 
@@ -76,8 +76,8 @@ public:
 	{
 		if (this != &Other)
 		{
-			DataPtr = Other.GetData();
-			ArrayNum = Other.Num();
+			DataPtr = Other.DataPtr;
+			ArrayNum = Other.ArrayNum;
 		}
 		return *this;
 	}

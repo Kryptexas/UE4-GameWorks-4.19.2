@@ -23,13 +23,33 @@ float4 LightPositionAndInvRadius[MAX_DYNAMIC_POINT_LIGHTS];
 float4 LightColorAndFalloffExponent[MAX_DYNAMIC_POINT_LIGHTS];
 #endif
 
+#ifndef FORWARD_QL_FORCE_FULLY_ROUGH
+#define FORWARD_QL_FORCE_FULLY_ROUGH 0
+#endif
+#ifndef FORWARD_QL_FORCE_NONMETAL
+#define FORWARD_QL_FORCE_NONMETAL 0
+#endif
+#ifndef FORWARD_QL_FORCE_LQ_REFLECTIONS
+#define FORWARD_QL_FORCE_LQ_REFLECTIONS 0
+#endif
+
 #define FULLY_ROUGH (MATERIAL_FULLY_ROUGH || FORWARD_QL_FORCE_FULLY_ROUGH)
 #define NONMETAL (MATERIAL_NONMETAL || FORWARD_QL_FORCE_NONMETAL)
+#define HQ_REFLECTIONS (MATERIAL_HQ_FORWARD_REFLECTIONS && !FORWARD_QL_FORCE_LQ_REFLECTIONS)
 
 /** Prenormalized capture of the scene that's closest to the object being rendered. */
 #if !FULLY_ROUGH
 TextureCube ReflectionCubemap;
 SamplerState ReflectionCubemapSampler;
+	#if HQ_REFLECTIONS
+	#define MAX_HQ_REFLECTIONS 3
+
+	TextureCube ReflectionCubemap1;
+	SamplerState ReflectionCubemapSampler1;
+	TextureCube ReflectionCubemap2;
+	SamplerState ReflectionCubemapSampler2;
+	float4 ReflectionPositionsAndRadii[MAX_HQ_REFLECTIONS];
+	#endif
 #endif
 
 half PhongApprox( half Roughness, half RoL )
@@ -48,14 +68,89 @@ half PhongApprox( half Roughness, half RoL )
 }
 
 #if !FULLY_ROUGH
+#if HQ_REFLECTIONS
+
+float4 GetSphereCaptureVector(float3 ReflectionVector, float3 WorldPosition, float4 CapturePositionAndRadius)
+{
+	float4 ProjectedCaptureVector;
+	ProjectedCaptureVector.w = 0;
+	ProjectedCaptureVector.xyz = ReflectionVector;
+
+	float3 RayDirection = ReflectionVector;
+	float ProjectionSphereRadius = CapturePositionAndRadius.w * 1.2f;
+	float SphereRadiusSquared = ProjectionSphereRadius * ProjectionSphereRadius;
+
+	float3 ReceiverToSphereCenter = WorldPosition - CapturePositionAndRadius.xyz;
+	float ReceiverToSphereCenterSq = dot(ReceiverToSphereCenter, ReceiverToSphereCenter);
+
+	float3 CaptureVector = WorldPosition - CapturePositionAndRadius.xyz;
+	float CaptureVectorLength = sqrt(dot(CaptureVector, CaptureVector));
+	float NormalizedDistanceToCapture = saturate(CaptureVectorLength / CapturePositionAndRadius.w);
+
+	// Find the intersection between the ray along the reflection vector and the capture's sphere
+	float3 QuadraticCoef;
+	QuadraticCoef.x = 1;
+	QuadraticCoef.y = 2 * dot(RayDirection, ReceiverToSphereCenter);
+	QuadraticCoef.z = ReceiverToSphereCenterSq - SphereRadiusSquared;
+
+	float Determinant = QuadraticCoef.y * QuadraticCoef.y - 4 * QuadraticCoef.z;
+
+	BRANCH
+	// Only continue if the ray intersects the sphere
+	if (Determinant >= 0)
+	{
+		float FarIntersection = (sqrt(Determinant) - QuadraticCoef.y) * 0.5;
+
+		float3 IntersectPosition = WorldPosition + FarIntersection * RayDirection;
+		ProjectedCaptureVector.xyz = IntersectPosition - CapturePositionAndRadius.xyz;
+		// Fade out based on distance to capture
+		ProjectedCaptureVector.w = 1.0 - smoothstep(.6, 1, NormalizedDistanceToCapture);
+	}
+	return ProjectedCaptureVector;
+}
+
+half3 BlendReflectionCapture(FMaterialPixelParameters MaterialParameters, half Roughness, TextureCube ReflectionCube, SamplerState ReflectionSampler, half MipLevel, int ReflectionIndex, inout half BlendFactor)
+{
+	half4 ProjectedCaptureVector;
+	ProjectedCaptureVector = GetSphereCaptureVector(MaterialParameters.ReflectionVector, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionsAndRadii[ReflectionIndex]);
+
+	// Fetch from cubemap and convert to linear HDR
+	float4 Reflection = ReflectionCube.SampleLevel(ReflectionSampler, ProjectedCaptureVector.xyz, MipLevel);
+	half3 SpecularIBL = RGBMDecode(Reflection, 16.0f) * ProjectedCaptureVector.w * BlendFactor;
+
+	BlendFactor = BlendFactor * (1.0 - ProjectedCaptureVector.w);
+	return SpecularIBL;
+}
+
+half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half Roughness)
+{
+	// Compute fractional mip from roughness
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+
+	half3 SpecularIBL = half3(0, 0, 0);
+	half BlendFactor = 1;
+
+	SpecularIBL += BlendReflectionCapture(MaterialParameters, Roughness, ReflectionCubemap, ReflectionCubemapSampler, AbsoluteSpecularMip, 0, BlendFactor);
+	SpecularIBL += BlendReflectionCapture(MaterialParameters, Roughness, ReflectionCubemap1, ReflectionCubemapSampler1, AbsoluteSpecularMip, 1, BlendFactor);
+	SpecularIBL += BlendReflectionCapture(MaterialParameters, Roughness, ReflectionCubemap2, ReflectionCubemapSampler2, AbsoluteSpecularMip, 2, BlendFactor);
+
+	return SpecularIBL;
+}
+#endif // HQ_REFLECTIONS
+
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness)
 {
+#if HQ_REFLECTIONS
+	half3 SpecularIBL = BlendReflectionCaptures(MaterialParameters, Roughness);
+#else
+
 	half3 ProjectedCaptureVector = MaterialParameters.ReflectionVector;	
 
 	// Compute fractional mip from roughness
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
 	// Fetch from cubemap and convert to linear HDR
 	half3 SpecularIBL = RGBMDecode(ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip), 16.0f);
+#endif
 	SpecularIBL *= SpecularIBL;
 #if WEBGL
 	// need a rgb swizzle instead of the existing rgba swizzle, we should add it if another use case comes up. 
@@ -63,10 +158,8 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #else
 	return SpecularIBL;
 #endif
-
-
 }
-#endif
+#endif //!FULLY_ROUGH
 
 #if USE_EDITOR_COMPOSITING
 bool bEnableEditorPrimitiveDepthTest;
@@ -192,6 +285,14 @@ void Main(
 #else
 	SpecularColor = EnvBRDFApprox( SpecularColor, Roughness, NoV );
 #endif
+#endif
+
+#if MOBILE_EMULATION
+	{
+		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
+		DiffuseColor = DiffuseColor * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
+		SpecularColor = SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
+	}
 #endif
 	
 	half3 Color = 0;
@@ -379,8 +480,8 @@ void Main(
 		// Scene color alpha is not used yet so we set it to 0
 		OutColor.a = 0.0;
 
-		#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE 
-			if(GetHDR32bppEncodeMode() == HDR_ENCODE_NONE)
+		#if !OUTPUT_GAMMA_SPACE 
+			if (GetHDR32bppEncodeMode() == HDR_ENCODE_NONE)
 			{
 				// FP16 HDR stores Z in framebuffer alpha
 				OutColor.a = MaterialParameters.ScreenPosition.w;

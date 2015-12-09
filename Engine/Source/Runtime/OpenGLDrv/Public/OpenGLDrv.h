@@ -248,6 +248,8 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 	int CurrentGPUFrameQueryIndex;
 
 	class FOpenGLDynamicRHI* OpenGLRHI;
+	// count the number of beginframe calls without matching endframe calls.
+	int32 NestedFrameCount;
 
 	/** GPU hitch profile histories */
 	TIndirectArray<FOpenGLEventNodeFrame> GPUHitchEventNodeFrames;
@@ -257,6 +259,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 	,	FrameTiming(InOpenGLRHI, 4)
 	,	CurrentGPUFrameQueryIndex(0)
 	,	OpenGLRHI(InOpenGLRHI)
+	,	NestedFrameCount(0)
 	{
 		FrameTiming.InitResource();
 		for ( int32 Index=0; Index < MAX_GPUFRAMEQUERIES; ++Index )

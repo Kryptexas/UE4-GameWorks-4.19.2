@@ -7,7 +7,6 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "SceneUtils.h"
-#include "Algo/Partition.h"
 #include "MaterialShaderQualitySettings.h"
 
 #define IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_VERTEX_SHADER_TYPE(LightMapPolicyType,LightMapPolicyName) \
@@ -65,6 +64,7 @@ bool TBasePassForForwardShadingPSPolicyParamType<PixelParametersType, NumDynamic
 	OutEnvironment.SetDefine(TEXT("FORWARD_QL_FORCE_FULLY_ROUGH"), QualityOverrides.bEnableOverride && QualityOverrides.bForceFullyRough != 0 ? 1u : 0u);
 	OutEnvironment.SetDefine(TEXT("FORWARD_QL_FORCE_NONMETAL"), QualityOverrides.bEnableOverride && QualityOverrides.bForceNonMetal != 0 ? 1u : 0u);
 	OutEnvironment.SetDefine(TEXT("QL_FORCEDISABLE_LM_DIRECTIONALITY"), QualityOverrides.bEnableOverride && QualityOverrides.bForceDisableLMDirectionality != 0 ? 1u : 0u);
+	OutEnvironment.SetDefine(TEXT("FORWARD_QL_FORCE_LQ_REFLECTIONS"), QualityOverrides.bEnableOverride && QualityOverrides.bForceLQReflections != 0 ? 1u : 0u);
 	
 	return true;
 }
@@ -174,7 +174,8 @@ public:
 				Parameters.ShadingModel != MSM_Unlit && Scene->ShouldRenderSkylight(),
 				false,
 				FeatureLevel,
-				Parameters.bEditorCompositeDepthTest
+				Parameters.bEditorCompositeDepthTest,
+				IsMobileHDR() // bEnableReceiveDecalOutput
 				),
 				FeatureLevel
 				);
@@ -278,7 +279,8 @@ public:
 			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
 			View.Family->EngineShowFlags.ShaderComplexity,
 			View.GetFeatureLevel(),
-			Parameters.bEditorCompositeDepthTest
+			Parameters.bEditorCompositeDepthTest,
+			IsMobileHDR() // bEnableReceiveDecalOutput
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType());
@@ -509,46 +511,13 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 
 			FBasePassForwardOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::DontSet);
 			
-			int32 MeshBatchIndex = 0;
-			int32 MeshBatchNum = View.DynamicMeshElements.Num();
-			// If the scene has decals we need to partition the draw list into two groups: 
-			// those that receive decals and those that don't, and render the latter with stencil writes enabled
-			if (Scene->Decals.Num() > 0)
+			for (const FMeshBatchAndRelevance& MeshBatchAndRelevance : View.DynamicMeshElements)
 			{
-				MeshBatchNum = Algo::Partition(View.DynamicMeshElements.GetData(), MeshBatchNum, [](const FMeshBatchAndRelevance& El) { 
-					return El.PrimitiveSceneProxy->ReceivesDecals(); 
-				});
-			}
-
-			for (; MeshBatchIndex < MeshBatchNum; MeshBatchIndex++)
-			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
 				if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
 				{
 					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 				}
-			}
-
-			if (MeshBatchNum < View.DynamicMeshElements.Num())
-			{
-				// Primitives without decals are rendered with stencil enabled
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 0x80);
-				MeshBatchNum = View.DynamicMeshElements.Num();
-
-				for (; MeshBatchIndex < MeshBatchNum; MeshBatchIndex++)
-				{
-					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-					if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
-					{
-						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-						FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-					}
-				}
-				// Restore depthstencil state
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			}
 
 			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, NULL, EBlendModeFilter::OpaqueAndMasked);

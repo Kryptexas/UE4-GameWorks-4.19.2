@@ -54,6 +54,10 @@ PFNGLGETOBJECTLABELKHRPROC				glGetObjectLabelKHR = NULL;
 PFNGLOBJECTPTRLABELKHRPROC				glObjectPtrLabelKHR = NULL;
 PFNGLGETOBJECTPTRLABELKHRPROC			glGetObjectPtrLabelKHR = NULL;
 
+PFNGLDRAWELEMENTSINSTANCEDPROC			glDrawElementsInstanced = NULL;
+PFNGLDRAWARRAYSINSTANCEDPROC			glDrawArraysInstanced = NULL;
+PFNGLVERTEXATTRIBDIVISORPROC			glVertexAttribDivisor = NULL;
+
 struct FPlatformOpenGLDevice
 {
 
@@ -305,12 +309,13 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 bool FAndroidOpenGL::bUseHalfFloatTexStorage = false;
 bool FAndroidOpenGL::bUseES30ShadingLanguage = false;
+bool FAndroidOpenGL::bES30Support = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
 	FOpenGLES2::ProcessExtensions(ExtensionsString);
 
-	const bool bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3."));
+	bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3."));
 
 	// Get procedures
 	if (bSupportsOcclusionQueries || bSupportsDisjointTimeQueries)
@@ -370,6 +375,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 			UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_OES_packed_depth_stencil on Adreno 2xx"));
 			bSupportsPackedDepthStencil = false;
 		}
+	}
+
+	if (bES30Support)
+	{
+		glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawElementsInstanced"));
+		glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawArraysInstanced"));
+		glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)((void*)eglGetProcAddress("glVertexAttribDivisor"));
 	}
 
 	if (bES30Support || bIsAdrenoBased)

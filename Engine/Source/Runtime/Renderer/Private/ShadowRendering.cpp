@@ -2376,8 +2376,16 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	{
 		if (bForwardShading)
 		{
-			// Color modulate shadows, ignore alpha.
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_Zero, BF_SourceColor, BO_Add, BF_Zero, BF_One>::GetRHI());
+			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
+			if (bEncodedHDR)
+			{
+				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			}
+			else
+			{
+				// Color modulate shadows, ignore alpha.
+				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_Zero, BF_SourceColor, BO_Add, BF_Zero, BF_One>::GetRHI());
+			}
 		}
 		else
 		{

@@ -728,7 +728,7 @@ MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 	if( Frame.MobilePreviewMode > 0.5f)
 	{
 		// undo HW srgb->lin
-		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
+		TextureValue.rgb = pow(TextureValue.rgb, 1.0f / 2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
 	}
 	#endif
 
@@ -1249,7 +1249,7 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters)
 
 	RetNormal = GetMaterialNormalRaw(Parameters);
 		
-	#if USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)
+	#if (USE_EDITOR_SHADERS && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)) || MOBILE_EMULATION
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		half3 OverrideNormal = Frame.NormalOverrideParameter.xyz;
@@ -1326,12 +1326,21 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	// Note that we also clamp to 1.0 to match the deferred renderer on PC where the roughness is 
 	// stored in an 8-bit value and thus automatically clamped at 1.0.
 
+	half Roughness = GetMaterialRoughnessRaw(Parameters);
+
+	#if MOBILE_EMULATION
+	{
+		// this is only needed for mobile preview on PC
+		Roughness = Roughness * Frame.RoughnessOverrideParameter.y + Frame.RoughnessOverrideParameter.x;
+	}
+	#endif
+
 	// Increase value from 0.09 to 0.12 to fix missing specular lobe problem on device
-	return clamp( GetMaterialRoughnessRaw(Parameters), 0.12, 1.0 );
+	return clamp( Roughness, 0.12, 1.0 );
 #else
 	half Roughness = saturate(GetMaterialRoughnessRaw(Parameters));
 	
-	#if USE_EDITOR_SHADERS && !ES31_AEP_PROFILE
+	#if (USE_EDITOR_SHADERS && !ES31_AEP_PROFILE)
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		Roughness = Roughness * Frame.RoughnessOverrideParameter.y + Frame.RoughnessOverrideParameter.x;

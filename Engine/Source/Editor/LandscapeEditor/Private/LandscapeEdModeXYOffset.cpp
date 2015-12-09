@@ -53,8 +53,8 @@ namespace
 class FLandscapeToolStrokeRetopologize : public FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeToolStrokeRetopologize(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeToolStrokeBase(InEdMode, InTarget)
+	FLandscapeToolStrokeRetopologize(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
 		, Cache(InTarget)
 	{
 	}

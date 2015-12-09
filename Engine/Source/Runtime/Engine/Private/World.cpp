@@ -1147,11 +1147,10 @@ UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngi
 		InFeatureLevel = GMaxRHIFeatureLevel;
 	}
 
-	// Create a new package unless we're a commandlet in which case we keep the dummy world in the transient package.
 	UPackage* WorldPackage = InWorldPackage;
 	if ( !WorldPackage )
 	{
-		WorldPackage = IsRunningCommandlet() ? GetTransientPackage() : CreatePackage( NULL, NULL );
+		WorldPackage = CreatePackage( NULL, NULL );
 	}
 
 	if (InWorldType == EWorldType::PIE)
@@ -4295,8 +4294,9 @@ bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 	{
 		ULevel* LevelToShift = Levels[LevelIndex];
 		
-		// Only visible levels need to be shifted
-		if (LevelToShift->bIsVisible)
+		// Only visible sub-levels need to be shifted
+		// Hidden sub-levels will be shifted once they become visible in UWorld::AddToWorld
+		if (LevelToShift->bIsVisible || LevelToShift->IsPersistentLevel())
 		{
 			LevelToShift->ApplyWorldOffset(Offset, true);
 		}
@@ -5718,11 +5718,11 @@ void UWorld::CreateFXSystem()
 }
 
 #if WITH_EDITOR
-void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog )
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
-        FScopedSlowTask SlowTask(100.f, NSLOCTEXT("Engine", "ChangingPreviewRenderingLevelMessage", "Changing Preview Rendering Level"));
+		FScopedSlowTask SlowTask(100.f, NSLOCTEXT("Engine", "ChangingPreviewRenderingLevelMessage", "Changing Preview Rendering Level"), bShowSlowProgressDialog);
         SlowTask.MakeDialog();
         {
             SlowTask.EnterProgressFrame(10.0f);

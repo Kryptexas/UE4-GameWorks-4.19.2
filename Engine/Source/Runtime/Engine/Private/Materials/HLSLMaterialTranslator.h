@@ -1915,7 +1915,10 @@ protected:
 		{
 			return NonPixelShaderExpressionError();
 		}
-
+		if (ShaderFrequency != SF_Vertex)
+		{
+			bUsesTransformVector = true;
+		}
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.ReflectionVector"));
 	}
 
@@ -1929,6 +1932,11 @@ protected:
 		if (CustomWorldNormal == INDEX_NONE)
 		{
 			return INDEX_NONE;
+		}
+
+		if (ShaderFrequency != SF_Vertex)
+		{
+			bUsesTransformVector = true;
 		}
 
 		const TCHAR* ShouldNormalize = (!!bNormalizeCustomWorldNormal) ? TEXT("true") : TEXT("false");

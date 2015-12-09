@@ -107,7 +107,9 @@ class FAndroid_ASTCTargetPlatform
 
 	virtual float GetVariantPriority() const override
 	{
-		return 0.9f;
+		float Priority;
+		return GConfig->GetFloat(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("TextureFormatPriority_ASTC"), Priority, GEngineIni) ?
+			Priority : 0.9f;
 	}
 };
 

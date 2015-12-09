@@ -287,7 +287,7 @@ void ULandscapeHeightfieldCollisionComponent::ApplyWorldOffset(const FVector& In
 
 void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 {
-#if WITH_PHYSX	
+#if WITH_PHYSX
 	// If we have not created a heightfield yet - do it now.
 	if (!IsValidRef(HeightfieldRef))
 	{
@@ -314,12 +314,12 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 		else
 		{
 #if WITH_EDITOR
-		    // This should only occur if a level prior to VER_UE4_LANDSCAPE_COLLISION_DATA_COOKING 
-		    // was resaved using a commandlet and not saved in the editor, or if a PhysicalMaterial asset was deleted.
-		    if (CookedPhysicalMaterials.Num() == 0 || CookedPhysicalMaterials.Contains(nullptr))
-		    {
-			    bCheckDDC = false;
-		    }
+			// This should only occur if a level prior to VER_UE4_LANDSCAPE_COLLISION_DATA_COOKING 
+			// was resaved using a commandlet and not saved in the editor, or if a PhysicalMaterial asset was deleted.
+			if (CookedPhysicalMaterials.Num() == 0 || CookedPhysicalMaterials.Contains(nullptr))
+			{
+				bCheckDDC = false;
+			}
 
 			// Prepare heightfield data
 			static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
@@ -327,7 +327,6 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 
 			// The World will clean up any speculatively-loaded data we didn't end up using.
 			SpeculativeDDCRequest.Reset();
-
 #endif //WITH_EDITOR
 
 			if (CookedCollisionData.Num())
@@ -367,7 +366,7 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 			}
 		}
 	}
-#endif //WITH_PHYSX	
+#endif //WITH_PHYSX
 }
 
 #if WITH_EDITOR
@@ -425,13 +424,13 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 			}
 		}
 	}
-				
+
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (!Proxy || !Proxy->GetRootComponent())
 	{
 		return false;
 	}
-	
+
 	UPhysicalMaterial* DefMaterial = Proxy->DefaultPhysMaterial ? Proxy->DefaultPhysMaterial : GEngine->DefaultPhysMaterial;
 
 	// ComponentToWorld might not be initialized at this point, so use landscape transform
@@ -547,7 +546,6 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& InOutMaterials) const
 {
 #if WITH_PHYSX
-	
 	// we have 2 versions of collision objects
 	const int32 CookedDataIndex = bUseDefMaterial ? 0 : 1;
 
@@ -1269,7 +1267,7 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 		}
 		else
 		{
-#if WITH_EDITORONLY_DATA			
+#if WITH_EDITORONLY_DATA
 			// For PIE, we won't need the source height data if we already have a shared reference to the heightfield
 			if (!(Ar.GetPortFlags() & PPF_DuplicateForPIE) || !HeightfieldGuid.IsValid() || GSharedMeshRefs.FindRef(HeightfieldGuid) == nullptr)
 			{
@@ -1495,7 +1493,20 @@ void ULandscapeHeightfieldCollisionComponent::PreSave()
 	if (!IsRunningCommandlet())
 	{
 #if WITH_EDITOR
-		static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
+		ALandscapeProxy* Proxy = GetLandscapeProxy();
+		if (Proxy && Proxy->bBakeMaterialPositionOffsetIntoCollision)
+		{
+			if (!RenderComponent->GrassData->HasData() || RenderComponent->IsGrassMapOutdated())
+			{
+				if (!RenderComponent->CanRenderGrassMap())
+				{
+					RenderComponent->MaterialInstance->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
+				}
+				RenderComponent->RenderGrassMap();
+			}
+		}
+
+		static const FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
 		if (CookedCollisionData.Num() && HeightfieldGuid.IsValid())
 		{
 			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(PhysicsFormatName, false, HeightfieldGuid, CookedPhysicalMaterials), CookedCollisionData);
@@ -1552,8 +1563,8 @@ void ULandscapeInfo::UpdateAddCollision(FIntPoint LandscapeKey)
 {
 	FLandscapeAddCollision& AddCollision = XYtoAddCollisionMap.FindOrAdd(LandscapeKey);
 
-	// 8 Neighbors... 
-	// 0 1 2 
+	// 8 Neighbors...
+	// 0 1 2
 	// 3   4
 	// 5 6 7
 	FIntPoint NeighborsKeys[8] =

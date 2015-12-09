@@ -380,23 +380,23 @@ public:
 		check(InLandscapeComponents.Num());
 
 		TargetSize = FIntPoint(ComponentSizeVerts * NumPasses * InLandscapeComponents.Num(), ComponentSizeVerts);
-		FIntPoint TargetSizeMinusOne(TargetSize - FIntPoint(1,1));
+		FIntPoint TargetSizeMinusOne(TargetSize - FIntPoint(1, 1));
 		PassOffsetX = 2.0f * (float)ComponentSizeVerts / (float)TargetSize.X;
 
-		for (int32 Idx = 0; Idx<InLandscapeComponents.Num();Idx++)
+		for (int32 Idx = 0; Idx < InLandscapeComponents.Num(); Idx++)
 		{
 			ULandscapeComponent* Component = InLandscapeComponents[Idx];
 
 			FIntPoint ComponentOffset = (Component->GetSectionBase() - LandscapeProxy->LandscapeSectionOffset);
 			int32 PixelOffsetX = Idx * NumPasses * ComponentSizeVerts;
 
-			FVector2D ViewOffset(-ComponentOffset.X,ComponentOffset.Y);
+			FVector2D ViewOffset(-ComponentOffset.X, ComponentOffset.Y);
 			ViewOffset.X += PixelOffsetX;
 			ViewOffset /= (FVector2D(TargetSize) * 0.5f);
 
-			new(ComponentInfos)FComponentInfo(Component, ViewOffset, PixelOffsetX);
+			new(ComponentInfos) FComponentInfo(Component, ViewOffset, PixelOffsetX);
 		}
-		
+
 		// center of target area in world
 		FVector TargetCenter = LandscapeProxy->GetTransform().TransformPosition(FVector(TargetSizeMinusOne, 0.f)*0.5f);
 
@@ -406,9 +406,9 @@ public:
 		ViewOrigin = TargetCenter;
 		ViewRotationMatrix = FInverseRotationMatrix(LandscapeProxy->GetActorRotation());
 		ViewRotationMatrix *= FMatrix(FPlane(1, 0, 0, 0),
-			FPlane(0, -1, 0, 0),
-			FPlane(0, 0, -1, 0),
-			FPlane(0, 0, 0, 1));
+		                              FPlane(0,-1, 0, 0),
+		                              FPlane(0, 0,-1, 0),
+		                              FPlane(0, 0, 0, 1));
 
 		const float ZOffset = WORLD_MAX;
 		ProjectionMatrix = FReversedZOrthoMatrix(
@@ -446,7 +446,10 @@ public:
 
 		for (auto& ComponentInfo : ComponentInfos)
 		{
-			FLandscapeComponentGrassData* NewGrassData = new FLandscapeComponentGrassData(ComponentInfo.Component->MaterialInstance->GetMaterial()->StateId);
+			ULandscapeComponent* Component = ComponentInfo.Component;
+			ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
+
+			FLandscapeComponentGrassData* NewGrassData = new FLandscapeComponentGrassData(Component);
 
 			NewGrassData->HeightData.Empty(FMath::Square(ComponentSizeVerts));
 
@@ -489,7 +492,7 @@ public:
 					}
 				}
 				else
-				{								
+				{
 					for (int32 y = 0; y < ComponentSizeVerts; y++)
 					{
 						for (int32 x = 0; x < ComponentSizeVerts; x++)
@@ -528,7 +531,14 @@ public:
 			}
 
 			// Assign the new data (thread-safe)
-			ComponentInfo.Component->GrassData = MakeShareable(NewGrassData);
+			Component->GrassData = MakeShareable(NewGrassData);
+
+#if WITH_EDITOR
+			if (Proxy->bBakeMaterialPositionOffsetIntoCollision)
+			{
+				Component->UpdateCollisionHeightData(nullptr, 0, 0, MAX_int32, MAX_int32, true, nullptr, true);
+			}
+#endif
 		}
 	}
 
@@ -564,11 +574,22 @@ public:
 
 #if WITH_EDITOR
 
+FLandscapeComponentGrassData::FLandscapeComponentGrassData(ULandscapeComponent* Component)
+	: MaterialStateId(Component->MaterialInstance->GetMaterial()->StateId)
+	, RotationForWPO(Component->MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
+{
+}
+
 bool ULandscapeComponent::IsGrassMapOutdated() const
 {
 	if (GrassData->HasData())
 	{
 		if (GrassData->MaterialStateId != MaterialInstance->GetMaterial()->StateId)
+		{
+			return true;
+		}
+		FQuat RotationForWPO = MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0);
+		if (GrassData->RotationForWPO != RotationForWPO)
 		{
 			return true;
 		}
@@ -1018,6 +1039,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const ULandscapeGrassType* GrassType, const FGrassVariety& GrassVariety, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent, int32 SqrtSubsections, int32 SubX, int32 SubY, uint32 InHaltonBaseIndex)
 		: FGrassBuilderBase(Landscape, Component, GrassVariety, SqrtSubsections, SubX, SubY)
 		, GrassData(Component, GrassType)
+		, InstanceBuffer(/*NeedsCPUAccess*/ false, /*bSupportsVertexHalfFloat*/ GVertexElementTypeSupport.IsSupported(VET_Half2))
 	{
 		bHaveValidData = bHaveValidData && GrassData.IsValid();
 		XForm = LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->ComponentToWorld.ToMatrixWithScale().Inverse();
@@ -1113,8 +1135,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				for (int32 InstanceIndex = 0; InstanceIndex < InstanceTransforms.Num(); InstanceIndex++)
 				{
 					const FMatrix& OutXForm = InstanceTransforms[InstanceIndex];
-					FInstanceStream* RenderData = InstanceBuffer.GetInstanceWriteAddress(InstanceIndex);
-					RenderData->SetInstance(OutXForm, RandomStream.GetFraction());
+					InstanceBuffer.SetInstance(InstanceIndex, OutXForm, RandomStream.GetFraction());
 				}
 			}
 		}
@@ -1197,8 +1218,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
 								}
 								InstanceTransforms[OutInstanceIndex] = OutXForm;
-								FInstanceStream* RenderData = InstanceBuffer.GetInstanceWriteAddress(OutInstanceIndex++);
-								RenderData->SetInstance(OutXForm, RandomStream.GetFraction());
+								InstanceBuffer.SetInstance(OutInstanceIndex++, OutXForm, RandomStream.GetFraction());
 							}
 							InstanceIndex++;
 						}
@@ -1215,16 +1235,19 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 			UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, OutOcclusionLayerNum, DesiredInstancesPerLeaf);
 
 			// in-place sort the instances
-			FInstanceStream SwapBuffer;
+			const uint32 InstanceStreamSize = InstanceBuffer.GetStride();
+			FInstanceStream32 SwapBuffer;
+			check(sizeof(SwapBuffer) >= InstanceStreamSize);
+			
 			for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumInstances; FirstUnfixedIndex++)
 			{
 				int32 LoadFrom = SortedInstances[FirstUnfixedIndex];
 				if (LoadFrom != FirstUnfixedIndex)
 				{
 					check(LoadFrom > FirstUnfixedIndex);
-					FMemory::Memcpy(&SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), sizeof(FInstanceStream));
-					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), sizeof(FInstanceStream));
-					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), &SwapBuffer, sizeof(FInstanceStream));
+					FMemory::Memcpy(&SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceStreamSize);
+					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), InstanceStreamSize);
+					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), &SwapBuffer, InstanceStreamSize);
 
 					int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
 					check(SwapGoesTo > FirstUnfixedIndex);
@@ -1443,15 +1466,15 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 					if (Component->IsGrassMapOutdated())
 					{
 						FlushComponents.Add(Component);
-						if (GrassTypes.Num() > 0)
+					}
+
+					if (GrassTypes.Num() > 0 || bBakeMaterialPositionOffsetIntoCollision)
+					{
+						if (Component->IsGrassMapOutdated())
 						{
 							ComponentsNeedingGrassMapRender.Add(Component);
 						}
-					}
-					else
-					if (!Component->GrassData->HasData())
-					{
-						if (GrassTypes.Num() > 0)
+						else if (!Component->GrassData->HasData())
 						{
 							ComponentsNeedingGrassMapRender.Add(Component);
 						}
@@ -1638,6 +1661,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										FoliageCache.CachedGrassComps.Add(NewComp);
 
 										HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
+										HierarchicalInstancedStaticMeshComponent->bCastStaticShadow = false;
 
 										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
 										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;
@@ -1848,7 +1872,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent = Inner.Foliage.Get();
 				if (HierarchicalInstancedStaticMeshComponent && StillUsed.Contains(HierarchicalInstancedStaticMeshComponent))
 				{
-					if (Inner.Builder->InstanceBuffer.Num())
+					if (Inner.Builder->InstanceBuffer.NumInstances())
 					{
 						QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageGrassEndComp_AcceptPrebuiltTree);
 						FMemory::Memswap(&HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, &Inner.Builder->InstanceBuffer, sizeof(FStaticMeshInstanceData));

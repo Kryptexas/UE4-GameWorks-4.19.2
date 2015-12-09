@@ -53,7 +53,9 @@ class FAndroid_DXTTargetPlatform
 
 	virtual float GetVariantPriority() const override
 	{
-		return 0.6f;
+		float Priority;
+		return GConfig->GetFloat(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("TextureFormatPriority_DXT"), Priority, GEngineIni) ?
+			Priority : 0.6f;
 	}
 };
 

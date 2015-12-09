@@ -61,12 +61,20 @@ void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmd
 					if (bInsideDecal)
 					{
 						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always, true, CF_Equal, SO_Keep, SO_Keep, SO_Keep>::GetRHI(), 0);
+						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+							false,CF_Always,
+							true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
+							false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
+							GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1),0x00>::GetRHI(), 0);
 					}
 					else
 					{
 						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual, true, CF_Equal, SO_Keep, SO_Keep, SO_Keep>::GetRHI(), 0);
+						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+							false,CF_DepthNearOrEqual,
+							true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
+							false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
+							GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1),0x00>::GetRHI(), 0);
 					}
 				}
 

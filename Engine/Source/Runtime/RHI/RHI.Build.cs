@@ -21,12 +21,12 @@ public class RHI : ModuleRules
 				DynamicallyLoadedModuleNames.Add("D3D12RHI");
 
 //#todo-rco: Remove when public
-				string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+/*				string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 				if (!String.IsNullOrEmpty(VulkanSDKPath))
 				{
 					DynamicallyLoadedModuleNames.Add("VulkanRHI");
 				}
-			}
+*/			}
 
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 				(Target.Platform == UnrealTargetPlatform.Win64) ||

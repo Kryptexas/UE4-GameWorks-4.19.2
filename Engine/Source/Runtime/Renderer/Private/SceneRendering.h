@@ -523,6 +523,11 @@ public:
 	/** Whether the view has any materials that use the global distance field. */
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesLightingChannels : 1;
+	/** 
+	 * true if the scene has at least one decal. Used to disable stencil operations in the forward base pass when the scene has no decals.
+	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
+	 */
+	uint32 bSceneHasDecals : 1;
 	/** Bitmask of all shading models used by primitives in this view */
 	uint16 ShadingModelMaskInView;
 

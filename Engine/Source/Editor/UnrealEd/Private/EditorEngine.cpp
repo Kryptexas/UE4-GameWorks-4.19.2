@@ -120,6 +120,7 @@
 
 #include "PhysicsPublic.h"
 #include "Engine/CoreSettings.h"
+#include "ShaderCompiler.h"
 
 #include "AnimationRecorder.h"
 
@@ -3442,10 +3443,38 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 
 void UEditorEngine::UpdateReflectionCaptures()
 {
-	// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
 	UWorld* World = GWorld;
-	World->UpdateAllSkyCaptures();
-	World->UpdateAllReflectionCaptures();
+	const ERHIFeatureLevel::Type ActiveFeatureLevel = World->FeatureLevel;
+	if (ActiveFeatureLevel < ERHIFeatureLevel::SM4 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		FScopedSlowTask SlowTask(4, LOCTEXT("UpdatingReflectionCaptures", "Updating reflection captures"));
+		SlowTask.MakeDialog();
+		// change to GMaxRHIFeatureLevel feature level to generate capture images.
+		SlowTask.EnterProgressFrame();			
+		World->ChangeFeatureLevel(GMaxRHIFeatureLevel, false);
+
+		// Wait for shaders to compile so the capture result isn't capture black
+		if (GShaderCompilingManager != NULL)
+		{
+			GShaderCompilingManager->FinishAllCompilation();
+		}
+
+		// Update captures
+		SlowTask.EnterProgressFrame();
+		World->UpdateAllSkyCaptures();
+		SlowTask.EnterProgressFrame();
+		World->UpdateAllReflectionCaptures();
+
+		// restore to the preview feature level.
+		SlowTask.EnterProgressFrame();
+		World->ChangeFeatureLevel(ActiveFeatureLevel, false);
+	}
+	else
+	{
+		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
+		World->UpdateAllSkyCaptures();
+		World->UpdateAllReflectionCaptures();
+	}
 }
 
 void UEditorEngine::EditorAddModalWindow( TSharedRef<SWindow> InModalWindow ) const
