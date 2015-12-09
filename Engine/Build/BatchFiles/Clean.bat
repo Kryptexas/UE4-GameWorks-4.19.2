@@ -39,6 +39,20 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 :NoVisualStudio2013Environment
+rem ## Check for Visual Studio 2015
+
+pushd %~dp0
+call GetVSComnToolsPath 14
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2015Environment
+rem ## Check if the C++ toolchain is not installed
+if not exist "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" goto NoVisualStudio2015Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+:NoVisualStudio2015Environment
+
 rem ## Check for Visual Studio 2012
 
 pushd %~dp0

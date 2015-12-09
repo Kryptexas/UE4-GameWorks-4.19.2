@@ -16,6 +16,15 @@ if errorlevel 0 (
 
 	:NoVisualStudio2013Environment
 		pushd %~dp0
+		call GetVSComnToolsPath 14
+		popd
+	
+		if "!VsComnToolsPath!" == "" goto NoVisualStudio2015Environment
+		attrib -R "!UE4_MyDocs!\Visual Studio 2015\Visualizers\UE4.natvis" 1>nul 2>nul
+		copy /Y "%~dp0..\..\Extras\VisualStudioDebugging\UE4.natvis" "!UE4_MyDocs!\Visual Studio 2015\Visualizers\UE4.natvis" 1>nul 2>nul
+
+	:NoVisualStudio2015Environment
+		pushd %~dp0
 		call GetVSComnToolsPath 11
 		popd
 

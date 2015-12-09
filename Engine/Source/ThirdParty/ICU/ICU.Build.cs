@@ -257,23 +257,29 @@ public class ICU : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
-			string LibraryNamePrefix = "sicu";
-			string[] LibraryNameStems =
+			// Use reflection to allow type not to exist if console code is not present
+			System.Type XboxOnePlatformType = System.Type.GetType("UnrealBuildTool.XboxOnePlatform,UnrealBuildTool");
+			if (XboxOnePlatformType != null)
 			{
-				"dt",	// Data
-				"uc",   // Unicode Common
-				"in",	// Internationalization
-				"le",   // Layout Engine
-				"lx",   // Layout Extensions
-				"io"	// Input/Output
-			};
-            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
-				"d" : string.Empty;
-			string LibraryExtension = "lib";
-			foreach (string Stem in LibraryNameStems)
-			{
-				string LibraryName = ICURootPath + "XboxOne/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
-				PublicAdditionalLibraries.Add(LibraryName);
+				string LibraryNamePrefix = "sicu";
+				string[] LibraryNameStems =
+				{
+					"dt",	// Data
+					"uc",   // Unicode Common
+					"in",	// Internationalization
+					"le",   // Layout Engine
+					"lx",   // Layout Extensions
+					"io"	// Input/Output
+				};
+				string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+					"d" : string.Empty;
+				string LibraryExtension = "lib";
+				foreach (string Stem in LibraryNameStems)
+				{
+ 					System.Object VersionName = XboxOnePlatformType.GetMethod("GetVisualStudioCompilerVersionName").Invoke(null, null);
+					string LibraryName = ICURootPath + "XboxOne/VS" + VersionName.ToString() + "/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+					PublicAdditionalLibraries.Add(LibraryName);
+				}
 			}
 		}
 
