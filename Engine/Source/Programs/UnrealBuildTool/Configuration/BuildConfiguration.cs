@@ -699,7 +699,7 @@ namespace UnrealBuildTool
 			bUCACheckUObjectThreadSafety = false;
 
 			// Use Fast PDB linking by default in projects but not all builds
-			bAddFastPDBToProjects = true;
+			bAddFastPDBToProjects = false;
 			bUseFastPDBLinking = false;
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management

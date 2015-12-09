@@ -1512,8 +1512,8 @@ FString FHotReloadModule::MakeUBTArgumentsForModuleCompiling()
 		}
 	}
 
-	// Use new FastPDB option to cut down linking time
-	AdditionalArguments += TEXT(" -FastPDB");
+	// Use new FastPDB option to cut down linking time. Currently disabled due to problems with missing symbols in VS2015.
+	// AdditionalArguments += TEXT(" -FastPDB");
 
 	return AdditionalArguments;
 }
