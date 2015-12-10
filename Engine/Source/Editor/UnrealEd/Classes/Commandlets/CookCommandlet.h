@@ -38,6 +38,8 @@ class UCookCommandlet
 	bool bErrorOnEngineContentUse;
 	/** Use historical serialization system for generating package dependencies (use for historical reasons only this method has been depricated, only affects cooked manifests) */
 	bool bUseSerializationForGeneratingPackageDependencies;
+	/** Only cook packages specified on commandline options (for debugging)*/
+	bool bCookSinglePackage;
 	/** All commandline tokens */
 	TArray<FString> Tokens;
 	/** All commandline switches */

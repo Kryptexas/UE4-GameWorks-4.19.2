@@ -24,9 +24,10 @@ public:
 	void SetViewport(const MTLViewport& InViewport);
 	void SetVertexBuffer(uint32 const Index, id<MTLBuffer> Buffer, uint32 const Stride, uint32 const Offset);
 #if PLATFORM_MAC
-	void SetCurrentLayer(CAMetalLayer* NewLayer);
 	void SetPrimitiveTopology(MTLPrimitiveTopologyClass PrimitiveType);
 #endif
+	void BindUniformBuffer(EShaderFrequency const Freq, uint32 const BufferIndex, FUniformBufferRHIParamRef BufferRHI);
+	void SetDirtyUniformBuffers(EShaderFrequency const Freq, uint32 const Dirty);
 
 	FMetalShaderParameterCache& GetShaderParameters(uint32 const Stage) { return ShaderParameters[Stage]; }
 	
@@ -38,8 +39,6 @@ public:
 	
 	/** Switch from compute/render to blit command encoding if needed. */
 	void ConditionalSwitchToBlit(void);
-	
-	void ResetCurrentDrawable();
 	
 	FMetalRenderPipelineDesc const& GetRenderPipelineDesc() const { return PipelineDesc; }
 	FLinearColor const& GetBlendFactor() const { return BlendFactor; }
@@ -56,10 +55,9 @@ public:
 	const MTLViewport& GetViewport() const { return Viewport; }
 	id<MTLBuffer> GetVertexBuffer(uint32 const Index) { check(Index < MaxMetalStreams); return VertexBuffers[Index]; }
 	uint32 GetVertexStride(uint32 const Index) { check(Index < MaxMetalStreams); return VertexStrides[Index]; }
-	id<CAMetalDrawable> GetCurrentDrawable() const { return CurrentDrawable; }
-#if PLATFORM_MAC
-	CAMetalLayer* GetCurrentLayer() const { return CurrentLayer; }
-#endif
+	uint32 GetRenderTargetArraySize() const { return RenderTargetArraySize; }
+	TArray<TRefCountPtr<FRHIUniformBuffer>> GetBoundUniformBuffers(EShaderFrequency const Freq) const { return BoundUniformBuffers[Freq]; }
+	uint32 GetDirtyUniformBuffers(EShaderFrequency const Freq) const { return DirtyUniformBuffers[Freq]; }
 
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
@@ -71,6 +69,11 @@ private:
 
 	FMetalRenderPipelineDesc PipelineDesc;
 
+	TArray< TRefCountPtr<FRHIUniformBuffer> > BoundUniformBuffers[SF_NumFrequencies];
+	
+	/** Bitfield for which uniform buffers are dirty */
+	uint64 DirtyUniformBuffers[SF_NumFrequencies];
+	
 	id<MTLBuffer> VertexBuffers[MaxMetalStreams];
 	uint32 VertexStrides[MaxMetalStreams];
 
@@ -86,10 +89,7 @@ private:
 	FLinearColor BlendFactor;
 	CGSize FrameBufferSize;
 	
-	id<CAMetalDrawable> CurrentDrawable;
-#if PLATFORM_MAC
-	CAMetalLayer* CurrentLayer;
-#endif
+	uint32 RenderTargetArraySize;
 
 	MTLViewport Viewport;
 	

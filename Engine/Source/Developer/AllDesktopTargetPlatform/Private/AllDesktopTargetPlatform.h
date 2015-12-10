@@ -120,6 +120,8 @@ public:
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
 
+	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
+
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;

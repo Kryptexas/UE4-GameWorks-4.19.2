@@ -31,11 +31,15 @@ enum EMetalFeatures
 	EMetalFeaturesResourceOptions = 1 << 3
 };
 
+
 class FMetalContext
 {
+	friend class FMetalCommandContextContainer;
 public:
-	FMetalContext();
-	~FMetalContext();
+	FMetalContext(FMetalCommandQueue& Queue);
+	virtual ~FMetalContext();
+	
+	static FMetalContext* GetCurrentContext();
 	
 	id<MTLDevice> GetDevice();
 	FMetalCommandQueue& GetCommandQueue();
@@ -44,7 +48,6 @@ public:
 	id<MTLBlitCommandEncoder> GetBlitContext();
 	id<MTLCommandBuffer> GetCurrentCommandBuffer();
 	FMetalStateCache& GetCurrentState() { return StateCache; }
-	bool SupportsFeature(EMetalFeatures InFeature) { return ((Features & InFeature) != 0); }
 	
 	/** Return an auto-released command buffer, caller will need to retain it if it needs to live awhile */
 	id<MTLCommandBuffer> CreateCommandBuffer(bool bRetainReferences)
@@ -52,27 +55,11 @@ public:
 		return bRetainReferences ? CommandQueue.CreateRetainedCommandBuffer() : CommandQueue.CreateUnretainedCommandBuffer();
 	}
 	
-	FMetalBufferPool* GetBufferPool();
-	FMetalPooledBuffer CreatePooledBuffer(FMetalPooledBufferArgs const& Args);
-	void ReleasePooledBuffer(FMetalPooledBuffer Buf);
-	void ReleaseObject(id Object);
-	
 	/**
 	 * Handle rendering thread starting/stopping
 	 */
 	void CreateAutoreleasePool();
 	void DrainAutoreleasePool();
-	
-	void BeginFrame();
-	void EndFrame();
-	
-	/** RHIBeginScene helper */
-	void BeginScene();
-	/** RHIEndScene helper */
-	void EndScene();
-
-	void BeginDrawingViewport(FMetalViewport* Viewport);
-	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent);
 
 	/**
 	 * Do anything necessary to prepare for any kind of draw call 
@@ -94,23 +81,27 @@ public:
 		return RingBuffer.Buffer;
 	}
 
-	FMetalQueryBufferPool& GetQueryBufferPool()
+	TSharedRef<FMetalQueryBufferPool, ESPMode::ThreadSafe> GetQueryBufferPool()
 	{
-		return QueryBuffer;
+		return QueryBuffer.ToSharedRef();
 	}
 
-    void SubmitCommandsHint();
+    void SubmitCommandsHint(bool const bCreateNew = true);
 	void SubmitCommandBufferAndWait();
 	void SubmitComputeCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
+#if PLATFORM_MAC
+	void DispatchIndirect(FMetalVertexBuffer* ArgumentBuffer, uint32 ArgumentOffset);
+#endif
 
 	void StartTiming(class FMetalEventNode* EventNode);
 	void EndTiming(class FMetalEventNode* EventNode);
 
 protected:
-	void InitFrame();
+	void InitFrame(bool const bImmediateContext);
+	void FinishFrame();
 
 	/** Create & set the current command buffer, waiting on outstanding command buffers if required. */
 	void CreateCurrentCommandBuffer(bool bWait);
@@ -147,14 +138,11 @@ private:
 	void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage);
 	
 protected:
-	/** Dynamic buffer pool */
-	FMetalBufferPool BufferPool;
-	
 	/** The underlying Metal device */
 	id<MTLDevice> Device;
 	
 	/** The wrapper around the device command-queue for creating & committing command buffers to */
-	FMetalCommandQueue CommandQueue;
+	FMetalCommandQueue& CommandQueue;
 	
 	/** The wrapper for encoding commands into the current command buffer. */
 	FMetalCommandEncoder CommandEncoder;
@@ -168,6 +156,62 @@ protected:
 	/** A sempahore used to ensure that wait for previous frames to complete if more are in flight than we permit */
 	dispatch_semaphore_t CommandBufferSemaphore;
 	
+	/** A simple fixed-size ring buffer for dynamic data */
+	FRingBuffer RingBuffer;
+	
+	/** A pool of buffers for writing visibility query results. */
+	TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> QueryBuffer;
+	
+	/** the slot to store a per-thread autorelease pool */
+	static uint32 AutoReleasePoolTLSSlot;
+	
+	/** the slot to store a per-thread context ref */
+	static uint32 CurrentContextTLSSlot;
+	
+	/**
+	 * Internal counter used for resource table caching.
+	 * INDEX_NONE means caching is not allowed.
+	 */
+	uint32 ResourceTableFrameCounter;
+};
+
+
+class FMetalDeviceContext : public FMetalContext
+{
+public:
+	static FMetalDeviceContext* CreateDeviceContext();
+	virtual ~FMetalDeviceContext();
+	
+	bool SupportsFeature(EMetalFeatures InFeature) { return ((Features & InFeature) != 0); }
+	
+	FMetalPooledBuffer CreatePooledBuffer(FMetalPooledBufferArgs const& Args);
+	void ReleasePooledBuffer(FMetalPooledBuffer Buf);
+	void ReleaseObject(id Object);
+	
+	void BeginFrame();
+	void EndFrame();
+	
+	/** RHIBeginScene helper */
+	void BeginScene();
+	/** RHIEndScene helper */
+	void EndScene();
+	
+	void BeginDrawingViewport(FMetalViewport* Viewport);
+	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent);
+	
+private:
+	FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalCommandQueue* Queue);
+	
+private:
+	/** The chose Metal device */
+	id<MTLDevice> Device;
+	
+	/** Mutex for access to the unsafe buffer pool */
+	FCriticalSection PoolMutex;
+	
+	/** Dynamic buffer pool */
+	FMetalBufferPool BufferPool;
+	
 	/** Free lists for releasing objects only once it is safe to do so */
 	TSet<id> FreeList;
 	struct FMetalDelayedFreeList
@@ -177,14 +221,11 @@ protected:
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	
-	/** A simple fixed-size ring buffer for dynamic data */
-	FRingBuffer RingBuffer;
+	/** Critical section for FreeList */
+	FCriticalSection FreeListMutex;
 	
-	/** A pool of buffers for writing visibility query results. */
-	FMetalQueryBufferPool QueryBuffer;
-	
-	/** the slot to store a per-thread autorelease pool */
-	uint32 AutoReleasePoolTLSSlot;
+	/** Event for coordinating pausing of render thread to keep inline with the ios display link. */
+	FEvent* FrameReadyEvent;
 	
 	/** Internal frame counter, incremented on each call to RHIBeginScene. */
 	uint32 SceneFrameCounter;
@@ -192,16 +233,6 @@ protected:
 	/** Internal frame counter, used to ensure that we only drain the buffer pool one after each frame within RHIEndFrame. */
 	uint32 FrameCounter;
 	
-	/**
-	 * Internal counter used for resource table caching.
-	 * INDEX_NONE means caching is not allowed.
-	 */
-	uint32 ResourceTableFrameCounter;
-	
-	/** Event for coordinating pausing of render thread to keep inline with the ios display link. */
-	FEvent* FrameReadyEvent;
-	
 	/** Bitfield of supported Metal features with varying availability depending on OS/device */
 	uint32 Features;
 };
-

@@ -101,6 +101,11 @@ namespace UnrealBuildTool
 		public static readonly DirectoryReference EngineSourceDirectory = DirectoryReference.Combine(EngineDirectory, "Source");
 
 		/// <summary>
+		/// The Remote Ini directory.  This should always be valid when compiling using a remote server.
+		/// </summary>
+		static string RemoteIniPath = null;
+
+		/// <summary>
 		/// This is set to true during UBT startup, after it is safe to be accessing the IsGatheringBuild and IsAssemblingBuild properties.  Never access this directly.
 		/// </summary>
 		private static bool bIsSafeToCheckIfGatheringOrAssemblingBuild = false;
@@ -217,6 +222,15 @@ namespace UnrealBuildTool
 		{
 			string UnrealBuildToolPath = Assembly.GetExecutingAssembly().GetOriginalLocation();
 			return UnrealBuildToolPath;
+		}
+
+		/// <summary>
+		/// The Unreal remote tool ini directory.  This should be valid if compiling using a remote server
+		/// </summary>
+		/// <returns>The directory path</returns>
+		static public string GetRemoteIniPath()
+		{
+			return RemoteIniPath;
 		}
 
 		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
@@ -490,6 +504,10 @@ namespace UnrealBuildTool
 			else if (LowercaseArg.EndsWith(".uproject"))
 			{
 				ProjectArg = InArg;
+			}
+			else if (LowercaseArg.StartsWith("-remoteini="))
+			{
+				RemoteIniPath = InArg.Substring(11);
 			}
 			else
 			{
@@ -983,7 +1001,8 @@ namespace UnrealBuildTool
 					UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out CheckPlatform, out CheckConfiguration, false);
 
 					// @todo ubtmake: remove this when building with RPCUtility works
-					if (BuildHostPlatform.Current.Platform != CheckPlatform && (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS))
+					// @todo tvos merge: Check the change to this line, not clear why. Is TVOS needed here?
+					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS)
 					{
 						BuildConfiguration.bUseUBTMakefiles = false;
 					}

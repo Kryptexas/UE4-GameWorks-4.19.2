@@ -210,7 +210,17 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 	}
 
 	// Start the async population of the next buffer
-	ReadMorePCMData(2, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous));
+	EDataReadMode DataReadMode = EDataReadMode::Asynchronous;
+	if (Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming)
+	{
+		DataReadMode =  EDataReadMode::Synchronous;
+	}
+	else if (bSkipFirstBuffer)
+	{
+		DataReadMode =  EDataReadMode::AsynchronousSkipFirstFrame;
+	}
+	
+	ReadMorePCMData(2, DataReadMode);
 }
 
 /**
@@ -271,6 +281,7 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 					break;
 				
 				case SoundFormat_PCMRT:
+				case SoundFormat_Streaming:
 					SubmitPCMRTBuffers();
 					break;
 			}
@@ -509,7 +520,7 @@ void FCoreAudioSoundSource::HandleRealTimeSource(bool bBlockForData)
 	if (bGetMoreData)
 	{
 		// Get the next bit of streaming data
-		const bool bLooped = ReadMorePCMData(BufferIndex, EDataReadMode::Asynchronous);
+		const bool bLooped = ReadMorePCMData(BufferIndex, (Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming ? EDataReadMode::Synchronous : EDataReadMode::Asynchronous));
 
 		if (RealtimeAsyncTask == nullptr)
 		{

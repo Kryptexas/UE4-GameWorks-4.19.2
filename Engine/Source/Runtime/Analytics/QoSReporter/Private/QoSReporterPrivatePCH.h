@@ -8,3 +8,6 @@
 #include "Core.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogQoSReporter, Display, All);
+
+/** whether this build cares about hitches */
+#define QOS_IGNORE_HITCHES					UE_EDITOR

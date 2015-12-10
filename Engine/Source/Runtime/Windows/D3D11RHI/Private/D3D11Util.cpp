@@ -298,7 +298,7 @@ FD3D11DynamicBuffer::FD3D11DynamicBuffer(FD3D11DynamicRHI* InD3DRHI, D3D11_BIND_
 	, BindFlags(InBindFlags)
 	, LockedBufferIndex(-1)
 {
-	while (BufferSizes.Num() < MAX_BUFFERS && *InBufferSizes > 0)
+	while (BufferSizes.Num() < MAX_BUFFER_SIZES && *InBufferSizes > 0)
 	{
 		uint32 Size = *InBufferSizes++;
 		BufferSizes.Add(Size);

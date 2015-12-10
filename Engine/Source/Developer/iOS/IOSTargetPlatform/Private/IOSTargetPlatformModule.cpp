@@ -32,7 +32,7 @@ public:
 	{
 		if (Singleton == NULL)
 		{
-			Singleton = new FIOSTargetPlatform();
+			Singleton = new FIOSTargetPlatform(false);
 		}
 
 		return Singleton;

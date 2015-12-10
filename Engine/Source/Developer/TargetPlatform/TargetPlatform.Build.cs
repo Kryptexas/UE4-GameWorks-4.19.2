@@ -63,6 +63,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
                     DynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
                     DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+					DynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
                     DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 				}
 			}
@@ -93,6 +94,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+					DynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 				}
 			}

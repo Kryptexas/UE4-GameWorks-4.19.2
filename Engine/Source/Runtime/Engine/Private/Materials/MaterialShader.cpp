@@ -43,7 +43,7 @@ namespace MaterialStats
 			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
 			if (CookingStatsModule)
 			{
-				CookingStats = &CookingStatsModule->Get();
+				CookingStats = CookingStatsModule->Get();
 			}
 			bInitialized = true;
 		}
@@ -132,7 +132,7 @@ namespace MaterialStats
 			double Duration = FPlatformTime::Seconds() - *StartTime;
 			TimingInfo->TagStartTime.Remove(TagName);
 
-			CookingStats->AddTagValue(TimingInfo->TransactionGuid, TagName, FString::Printf(TEXT("%fms"), Duration*1000.0f));
+			CookingStats->AddTagValue(TimingInfo->TransactionGuid, TagName, (float)(Duration*1000.0f));
 		}
 	}
 

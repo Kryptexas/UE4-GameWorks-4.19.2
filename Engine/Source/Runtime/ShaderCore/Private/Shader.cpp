@@ -424,6 +424,12 @@ void FShaderResource::Serialize(FArchive& Ar)
 		check(Canary != FShader::ShaderMagic_CleaningUp);
 		Canary = FShader::ShaderMagic_Initialized;
 	}
+#if WITH_EDITORONLY_DATA
+	else if(Ar.IsCooking())
+	{
+		FShaderCache::CookShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, Code);
+	}
+#endif
 }
 
 
@@ -506,17 +512,23 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 			bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
 		}
 
-		bool bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
-								TargetPlatform == SP_PCD3D_SM4 ||
-								TargetPlatform == SP_PCD3D_ES3_1 ||
-								TargetPlatform == SP_PCD3D_ES2;
-
-		bool bIsCurrentPlatformD3D = CurrentPlatform == SP_PCD3D_SM5 ||
-								CurrentPlatform == SP_PCD3D_SM4 ||
-								TargetPlatform == SP_PCD3D_ES3_1 ||
-								CurrentPlatform == SP_PCD3D_ES2;
-
-		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D);
+		bool const bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
+		TargetPlatform == SP_PCD3D_SM4 ||
+		TargetPlatform == SP_PCD3D_ES3_1 ||
+		TargetPlatform == SP_PCD3D_ES2;
+		
+		bool const bIsCurrentPlatformD3D = CurrentPlatform == SP_PCD3D_SM5 ||
+		CurrentPlatform == SP_PCD3D_SM4 ||
+		TargetPlatform == SP_PCD3D_ES3_1 ||
+		CurrentPlatform == SP_PCD3D_ES2;
+		
+		bool const bIsCurrentMetal = IsMetalPlatform(CurrentPlatform);
+		bool const bIsTargetMetal = IsMetalPlatform(TargetPlatform);
+		
+		bool const bIsCurrentOpenGL = IsOpenGLPlatform(CurrentPlatform);
+		bool const bIsTargetOpenGL = IsOpenGLPlatform(TargetPlatform);
+		
+		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D && bIsCurrentMetal == bIsTargetMetal && bIsCurrentOpenGL == bIsTargetOpenGL);
 	}
 
 	return bFeatureLevelCompatible;
@@ -1321,6 +1333,11 @@ void FShaderPipeline::Validate()
 			break;
 		}
 	}
+}
+
+void FShaderPipeline::CookPipeline(FShaderPipeline* Pipeline)
+{
+	FShaderCache::CookPipeline(Pipeline);
 }
 
 void DumpShaderStats(EShaderPlatform Platform, EShaderFrequency Frequency)

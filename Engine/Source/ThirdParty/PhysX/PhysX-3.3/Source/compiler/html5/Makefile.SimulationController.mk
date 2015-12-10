@@ -120,7 +120,7 @@ SimulationController_debug_defines   += _DEBUG
 SimulationController_debug_defines   += PX_CHECKED
 SimulationController_debug_libraries := 
 SimulationController_debug_common_cflags	:= $(SimulationController_custom_cflags)
-SimulationController_debug_common_cflags    += -MMD
+SimulationController_debug_common_cflags    += 
 SimulationController_debug_common_cflags    += $(addprefix -D, $(SimulationController_debug_defines))
 SimulationController_debug_common_cflags    += $(addprefix -I, $(SimulationController_debug_hpaths))
 SimulationController_debug_common_cflags  += -Wno-invalid-offsetof
@@ -150,7 +150,7 @@ prebuild_SimulationController_debug:
 
 $(SimulationController_debug_bin): $(SimulationController_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SimulationControllerDEBUG_Oz.bc`
-	@$(AR) rcs $(SimulationController_debug_bin) $(SimulationController_debug_obj)
+	@$(AR) -o $(SimulationController_debug_bin) $(SimulationController_debug_obj)
 	$(ECHO) building $@ complete!
 
 SimulationController_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -233,7 +233,7 @@ SimulationController_checked_defines   += NDEBUG
 SimulationController_checked_defines   += PX_CHECKED
 SimulationController_checked_libraries := 
 SimulationController_checked_common_cflags	:= $(SimulationController_custom_cflags)
-SimulationController_checked_common_cflags    += -MMD
+SimulationController_checked_common_cflags    += 
 SimulationController_checked_common_cflags    += $(addprefix -D, $(SimulationController_checked_defines))
 SimulationController_checked_common_cflags    += $(addprefix -I, $(SimulationController_checked_hpaths))
 SimulationController_checked_common_cflags  += -Wno-invalid-offsetof
@@ -263,7 +263,7 @@ prebuild_SimulationController_checked:
 
 $(SimulationController_checked_bin): $(SimulationController_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SimulationControllerCHECKED_Oz.bc`
-	@$(AR) rcs $(SimulationController_checked_bin) $(SimulationController_checked_obj)
+	@$(AR) -o $(SimulationController_checked_bin) $(SimulationController_checked_obj)
 	$(ECHO) building $@ complete!
 
 SimulationController_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -346,7 +346,7 @@ SimulationController_profile_defines   += NDEBUG
 SimulationController_profile_defines   += PX_PROFILE
 SimulationController_profile_libraries := 
 SimulationController_profile_common_cflags	:= $(SimulationController_custom_cflags)
-SimulationController_profile_common_cflags    += -MMD
+SimulationController_profile_common_cflags    += 
 SimulationController_profile_common_cflags    += $(addprefix -D, $(SimulationController_profile_defines))
 SimulationController_profile_common_cflags    += $(addprefix -I, $(SimulationController_profile_hpaths))
 SimulationController_profile_common_cflags  += -Wno-invalid-offsetof
@@ -376,7 +376,7 @@ prebuild_SimulationController_profile:
 
 $(SimulationController_profile_bin): $(SimulationController_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SimulationControllerPROFILE_Oz.bc`
-	@$(AR) rcs $(SimulationController_profile_bin) $(SimulationController_profile_obj)
+	@$(AR) -o $(SimulationController_profile_bin) $(SimulationController_profile_obj)
 	$(ECHO) building $@ complete!
 
 SimulationController_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -458,7 +458,7 @@ SimulationController_release_defines   += PX_PHYSX_STATIC_LIB
 SimulationController_release_defines   += NDEBUG
 SimulationController_release_libraries := 
 SimulationController_release_common_cflags	:= $(SimulationController_custom_cflags)
-SimulationController_release_common_cflags    += -MMD
+SimulationController_release_common_cflags    += 
 SimulationController_release_common_cflags    += $(addprefix -D, $(SimulationController_release_defines))
 SimulationController_release_common_cflags    += $(addprefix -I, $(SimulationController_release_hpaths))
 SimulationController_release_common_cflags  += -Wno-invalid-offsetof
@@ -488,7 +488,7 @@ prebuild_SimulationController_release:
 
 $(SimulationController_release_bin): $(SimulationController_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SimulationController_Oz.bc`
-	@$(AR) rcs $(SimulationController_release_bin) $(SimulationController_release_obj)
+	@$(AR) -o $(SimulationController_release_bin) $(SimulationController_release_obj)
 	$(ECHO) building $@ complete!
 
 SimulationController_release_DEPDIR = $(dir $(@))/$(*F)

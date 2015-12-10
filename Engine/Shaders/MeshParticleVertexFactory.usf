@@ -56,6 +56,11 @@ struct FVertexFactoryInput
 	/** The velocity of the particle, XYZ: direction, W: speed. */
 	float4 ParticleVelocity : ATTRIBUTE15;
 #endif
+
+/** Optional instance ID for vertex layered rendering */
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint InstanceId	: SV_InstanceID;
+#endif
 };
 
 struct FVertexFactoryInterpolantsVSToPS

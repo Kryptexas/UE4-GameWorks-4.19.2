@@ -14,10 +14,10 @@ namespace DDCStats
 		if (bInitialized == false)
 		{
 			// FIXME: DanielL, this module needs to be loaded somewhere on the main thread first.
-			FCookingStatsModule* CookingStatsModule = nullptr; //FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
+			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
 			if (CookingStatsModule)
 			{
-				CookingStats = &CookingStatsModule->Get();
+				CookingStats = CookingStatsModule->Get();
 			}
 			bInitialized = true;
 		}
@@ -118,7 +118,7 @@ FDDCScopeStatHelper::~FDDCScopeStatHelper()
 	float DurationMS = (EndTime - StartTime) * 1000.0f;
 
 	static const FName NAME_Duration = FName(TEXT("Duration"));
-	AddTag(NAME_Duration, FString::Printf(TEXT("%fms"), DurationMS));
+	AddTag(NAME_Duration, DurationMS);
 
 	DDCStats::FDDCStatsTLSStore* TLSStore = (DDCStats::FDDCStatsTLSStore*)FPlatformTLS::GetTlsValue(DDCStats::CookStatsFDDCStatsTLSStore);
 	check(TLSStore);
@@ -130,6 +130,32 @@ FDDCScopeStatHelper::~FDDCScopeStatHelper()
 }
 
 void FDDCScopeStatHelper::AddTag(const FName& Tag, const FString& Value)
+{
+	if (DDCStats::GetCookingStats())
+	{
+		DDCStats::GetCookingStats()->AddTagValue(TransactionGuid, Tag, Value);
+	}
+}
+
+void FDDCScopeStatHelper::AddTag(const FName& Tag, const float Value)
+{
+	if (DDCStats::GetCookingStats())
+	{
+		DDCStats::GetCookingStats()->AddTagValue(TransactionGuid, Tag, Value);
+	}
+} 
+
+
+void FDDCScopeStatHelper::AddTag(const FName& Tag, const int32 Value)
+{
+	if (DDCStats::GetCookingStats())
+	{
+		DDCStats::GetCookingStats()->AddTagValue(TransactionGuid, Tag, Value);
+	}
+}
+
+
+void FDDCScopeStatHelper::AddTag(const FName& Tag, const bool Value)
 {
 	if (DDCStats::GetCookingStats())
 	{

@@ -575,8 +575,8 @@ FLinkerLoad* GetPackageLinker
 					Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
 					Arguments.Add(TEXT("PackageName"), FText::FromString(ThreadContext.SerializedPackageLinker ? *(ThreadContext.SerializedPackageLinker->Filename) : TEXT("NULL")));
 					LogGetPackageLinkerError(Result, ThreadContext.SerializedPackageLinker ? *ThreadContext.SerializedPackageLinker->Filename : nullptr,
-						FText::Format(LOCTEXT("PackageNotFound", "Can't find localized file for asset '{AssetName}' while loading {PackageName}."), Arguments),
-						LOCTEXT("PackageNotFoundShort", "Can't find localized file for asset."),
+						FText::Format(LOCTEXT("NoLocalizedFileForAsset", "Can't find localized file for asset '{AssetName}' while loading {PackageName}."), Arguments),
+						LOCTEXT("NoLocalizedFileForAssetShort", "Can't find localized file for asset."),
 						InOuter,
 						LoadFlags);
 				}

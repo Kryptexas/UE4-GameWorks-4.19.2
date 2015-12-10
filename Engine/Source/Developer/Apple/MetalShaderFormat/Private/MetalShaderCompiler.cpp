@@ -342,7 +342,7 @@ static void BuildMetalShaderOutput(
 		bool bCompileAtRuntime = true;
 		bool bSucceeded = false;
 
-#if PLATFORM_MAC
+#if METAL_OFFLINE_COMPILE
 		const bool bIsMobile = (ShaderInput.Target.Platform == SP_METAL || ShaderInput.Target.Platform == SP_METAL_MRT);
 		FString XcodePath = FPlatformMisc::GetXcodePath();
 		if (XcodePath.Len() > 0 && (bIsMobile || FPlatformMisc::MacOSXVersionCompare(10, 11, 0) >= 0))

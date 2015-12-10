@@ -65,7 +65,7 @@ PhysXCharacterKinematic_debug_libraries :=
 PhysXCharacterKinematic_debug_libraries += :PhysX3CommonDEBUG_Oz.bc
 PhysXCharacterKinematic_debug_libraries += :PhysX3ExtensionsDEBUG_Oz.bc
 PhysXCharacterKinematic_debug_common_cflags	:= $(PhysXCharacterKinematic_custom_cflags)
-PhysXCharacterKinematic_debug_common_cflags    += -MMD
+PhysXCharacterKinematic_debug_common_cflags    += 
 PhysXCharacterKinematic_debug_common_cflags    += $(addprefix -D, $(PhysXCharacterKinematic_debug_defines))
 PhysXCharacterKinematic_debug_common_cflags    += $(addprefix -I, $(PhysXCharacterKinematic_debug_hpaths))
 PhysXCharacterKinematic_debug_common_cflags  += -Wno-invalid-offsetof
@@ -95,7 +95,7 @@ prebuild_PhysXCharacterKinematic_debug:
 
 $(PhysXCharacterKinematic_debug_bin): $(PhysXCharacterKinematic_debug_obj) build_PhysXCommon_debug build_PhysXExtensions_debug 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CharacterKinematicDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXCharacterKinematic_debug_bin) $(PhysXCharacterKinematic_debug_obj)
+	@$(AR) -o $(PhysXCharacterKinematic_debug_bin) $(PhysXCharacterKinematic_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCharacterKinematic_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -162,7 +162,7 @@ PhysXCharacterKinematic_checked_libraries :=
 PhysXCharacterKinematic_checked_libraries += :PhysX3CommonCHECKED_Oz.bc
 PhysXCharacterKinematic_checked_libraries += :PhysX3ExtensionsCHECKED_Oz.bc
 PhysXCharacterKinematic_checked_common_cflags	:= $(PhysXCharacterKinematic_custom_cflags)
-PhysXCharacterKinematic_checked_common_cflags    += -MMD
+PhysXCharacterKinematic_checked_common_cflags    += 
 PhysXCharacterKinematic_checked_common_cflags    += $(addprefix -D, $(PhysXCharacterKinematic_checked_defines))
 PhysXCharacterKinematic_checked_common_cflags    += $(addprefix -I, $(PhysXCharacterKinematic_checked_hpaths))
 PhysXCharacterKinematic_checked_common_cflags  += -Wno-invalid-offsetof
@@ -192,7 +192,7 @@ prebuild_PhysXCharacterKinematic_checked:
 
 $(PhysXCharacterKinematic_checked_bin): $(PhysXCharacterKinematic_checked_obj) build_PhysXCommon_checked build_PhysXExtensions_checked 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CharacterKinematicCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXCharacterKinematic_checked_bin) $(PhysXCharacterKinematic_checked_obj)
+	@$(AR) -o $(PhysXCharacterKinematic_checked_bin) $(PhysXCharacterKinematic_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCharacterKinematic_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -259,7 +259,7 @@ PhysXCharacterKinematic_profile_libraries :=
 PhysXCharacterKinematic_profile_libraries += :PhysX3CommonPROFILE_Oz.bc
 PhysXCharacterKinematic_profile_libraries += :PhysX3ExtensionsPROFILE_Oz.bc
 PhysXCharacterKinematic_profile_common_cflags	:= $(PhysXCharacterKinematic_custom_cflags)
-PhysXCharacterKinematic_profile_common_cflags    += -MMD
+PhysXCharacterKinematic_profile_common_cflags    += 
 PhysXCharacterKinematic_profile_common_cflags    += $(addprefix -D, $(PhysXCharacterKinematic_profile_defines))
 PhysXCharacterKinematic_profile_common_cflags    += $(addprefix -I, $(PhysXCharacterKinematic_profile_hpaths))
 PhysXCharacterKinematic_profile_common_cflags  += -Wno-invalid-offsetof
@@ -289,7 +289,7 @@ prebuild_PhysXCharacterKinematic_profile:
 
 $(PhysXCharacterKinematic_profile_bin): $(PhysXCharacterKinematic_profile_obj) build_PhysXCommon_profile build_PhysXExtensions_profile 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CharacterKinematicPROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXCharacterKinematic_profile_bin) $(PhysXCharacterKinematic_profile_obj)
+	@$(AR) -o $(PhysXCharacterKinematic_profile_bin) $(PhysXCharacterKinematic_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCharacterKinematic_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -355,7 +355,7 @@ PhysXCharacterKinematic_release_libraries :=
 PhysXCharacterKinematic_release_libraries += :PhysX3Common_Oz.bc
 PhysXCharacterKinematic_release_libraries += :PhysX3Extensions_Oz.bc
 PhysXCharacterKinematic_release_common_cflags	:= $(PhysXCharacterKinematic_custom_cflags)
-PhysXCharacterKinematic_release_common_cflags    += -MMD
+PhysXCharacterKinematic_release_common_cflags    += 
 PhysXCharacterKinematic_release_common_cflags    += $(addprefix -D, $(PhysXCharacterKinematic_release_defines))
 PhysXCharacterKinematic_release_common_cflags    += $(addprefix -I, $(PhysXCharacterKinematic_release_hpaths))
 PhysXCharacterKinematic_release_common_cflags  += -Wno-invalid-offsetof
@@ -385,7 +385,7 @@ prebuild_PhysXCharacterKinematic_release:
 
 $(PhysXCharacterKinematic_release_bin): $(PhysXCharacterKinematic_release_obj) build_PhysXCommon_release build_PhysXExtensions_release 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CharacterKinematic_Oz.bc`
-	@$(AR) rcs $(PhysXCharacterKinematic_release_bin) $(PhysXCharacterKinematic_release_obj)
+	@$(AR) -o $(PhysXCharacterKinematic_release_bin) $(PhysXCharacterKinematic_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCharacterKinematic_release_DEPDIR = $(dir $(@))/$(*F)

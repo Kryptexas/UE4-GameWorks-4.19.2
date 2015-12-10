@@ -67,8 +67,11 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 	);
 
 	//Render the current scene to a new viewport.
-	FIntPoint SizeXY = GameViewport->GetSizeXY();
-	if (SizeXY.X > 0 && SizeXY.Y > 0 && CVarRenderLastFrameInStreamingPause.GetValueOnGameThread() != 0)
+ 	FIntPoint SizeXY = GameViewport->GetSizeXY();
+ 	bool bRenderLastFrame = CVarRenderLastFrameInStreamingPause.GetValueOnGameThread() != 0;
+ 	bRenderLastFrame = bRenderLastFrame && !( GEngine->StereoRenderingDevice.IsValid() && GameViewport->IsStereoRenderingAllowed() );
+ 
+ 	if( SizeXY.X > 0 && SizeXY.Y > 0 && bRenderLastFrame )
 	{
 		ViewportClient = GameViewport->GetClient();
 

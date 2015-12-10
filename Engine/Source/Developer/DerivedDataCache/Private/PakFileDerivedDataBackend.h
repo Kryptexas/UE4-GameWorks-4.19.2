@@ -98,15 +98,13 @@ public:
 	 * @param	OutData		Buffer to receive the results, if any were found
 	 * @return				true if any data was found, and in this case OutData is non-empty
 	 */
-	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData, FCacheStatRecord* Stats) override
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
 		if (bWriting || bClosed)
 		{
 			return false;
 		}
 		FScopeLock ScopeLock(&SynchronizationObject);
-		if (Stats)
-			Stats->bFromNetwork = false;
 		FCacheValue* Item = CacheItems.Find(FString(CacheKey));
 		if (Item)
 		{
@@ -150,7 +148,7 @@ public:
 	 * @param	InData		Buffer containing the data to cache, can be destroyed after the call returns, immediately
 	 * @param	bPutEvenIfExists	If true, then do not attempt skip the put even if CachedDataProbablyExists returns true
 	 */
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
 		if (!bWriting || bClosed)
 		{
@@ -158,8 +156,6 @@ public:
 		}
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
-			if (Stats)
-				Stats->bToNetwork = false;
 			FString Key(CacheKey);
 			FCacheValue* Item = CacheItems.Find(FString(CacheKey));
 			if (!Item)
@@ -380,9 +376,9 @@ public:
 		for(const FString& CopyKeyName : CopyKeyNames)
 		{
 			Buffer.Reset();
-			if(OtherPak->FPakFileDerivedDataBackend::GetCachedData(*CopyKeyName, Buffer, NULL))
+			if(OtherPak->FPakFileDerivedDataBackend::GetCachedData(*CopyKeyName, Buffer))
 			{
-				FPakFileDerivedDataBackend::PutCachedData(*CopyKeyName, Buffer, false, NULL);
+				FPakFileDerivedDataBackend::PutCachedData(*CopyKeyName, Buffer, false);
 			}
 		}
 	}
@@ -412,8 +408,8 @@ public:
 		for (int KeyIndex = 0; KeyIndex < KeyNames.Num(); KeyIndex++)
 		{
 			Buffer.Reset();
-			InputPak.GetCachedData(*KeyNames[KeyIndex], Buffer, NULL);
-			OutputPak.PutCachedData(*KeyNames[KeyIndex], Buffer, false, NULL);
+			InputPak.GetCachedData(*KeyNames[KeyIndex], Buffer);
+			OutputPak.PutCachedData(*KeyNames[KeyIndex], Buffer, false);
 			KeySizes.Add(Buffer.Num());
 		}
 
@@ -470,7 +466,7 @@ public:
 	{
 	}
 
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
 		int32 UncompressedSize = InData.Num();
 		int32 CompressedSize = FCompression::CompressMemoryBound(CompressionFlags, UncompressedSize);
@@ -482,13 +478,13 @@ public:
 		verify(FCompression::CompressMemory(CompressionFlags, CompressedData.GetData() + sizeof(UncompressedSize), CompressedSize, InData.GetData(), InData.Num()));
 		CompressedData.SetNum(CompressedSize + sizeof(UncompressedSize), false);
 
-		FPakFileDerivedDataBackend::PutCachedData(CacheKey, CompressedData, bPutEvenIfExists, Stats);
+		FPakFileDerivedDataBackend::PutCachedData(CacheKey, CompressedData, bPutEvenIfExists);
 	}
 
-	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData, FCacheStatRecord* Stats) override
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
 		TArray<uint8> CompressedData;
-		if(!FPakFileDerivedDataBackend::GetCachedData(CacheKey, CompressedData, Stats))
+		if(!FPakFileDerivedDataBackend::GetCachedData(CacheKey, CompressedData))
 		{
 			return false;
 		}

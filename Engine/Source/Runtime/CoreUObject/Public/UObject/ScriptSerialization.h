@@ -428,7 +428,12 @@
 		case EX_SwitchValue:
 		{
 			XFER(uint16); // number of cases, without default one
+#ifdef REQUIRES_ALIGNED_INT_ACCESS
+			uint16 NumCases;
+			FMemory::Memcpy( &NumCases, &Script[iCode - sizeof(uint16)], sizeof(uint16) );
+#else
 			const uint16 NumCases = *(uint16*)(&Script[iCode - sizeof(uint16)]);
+#endif
 			XFER(CodeSkipSizeType); // Code offset, go to it, when done.
 			SerializeExpr(iCode, Ar);	//index term
 

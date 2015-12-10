@@ -389,6 +389,11 @@ public:
 	{
 		return bReverseCulling;
 	}
+	
+	/**
+	  * Executes the draw commands for a mesh.
+	  */
+	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
 
 private:
 

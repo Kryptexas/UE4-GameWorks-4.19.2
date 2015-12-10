@@ -68,6 +68,10 @@ struct FVertexFactoryInput
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	float4 Position: ATTRIBUTE0;
+	/** Optional instance ID for vertex layered rendering */
+#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint InstanceId	: SV_InstanceID;
+#endif
 #else
 	float4 PackedPosition: ATTRIBUTE0; 
 	float4 LODHeights[2]: ATTRIBUTE1;  

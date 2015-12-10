@@ -3,9 +3,6 @@
 #include "FunctionalTestingPrivatePCH.h"
 #include "ModuleInterface.h"
 
-
-
-
 void FFunctionalTestingModule::StartupModule() 
 {
 	Manager = MakeShareable(new FFuncTestManager());
@@ -17,5 +14,3 @@ void FFunctionalTestingModule::ShutdownModule()
 }
 
 IMPLEMENT_MODULE( FFunctionalTestingModule, FunctionalTesting );
-
-#undef LOCTEXT_NAMESPACE

@@ -557,6 +557,10 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -nativizeAssets");
 	}
 
+	if (PackagingSettings->bGenerateChunks)
+	{
+		OptionalParams += TEXT(" -manifests");
+	}
 
 	bool bTargetPlatformCanUseCrashReporter = true;
 	if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") && PlatformInfo->PlatformFlavor == TEXT("Win32"))

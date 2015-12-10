@@ -304,40 +304,43 @@ bool FAvfMediaPlayer::Open( const FString& Url )
                     if( [[PlayerItem asset] statusOfValueForKey:@"tracks" error:&Error] == AVKeyValueStatusLoaded )
                     {
                         NSArray* AssetVideoTracks = [[PlayerItem asset] tracksWithMediaType:AVMediaTypeVideo];
-                        if( AssetVideoTracks.count > 0 )
+                        if( AssetVideoTracks != nullptr && AssetVideoTracks.count > 0 )
                         {
                             AVAssetTrack* VideoTrack = [AssetVideoTracks objectAtIndex: 0];
-							FAvfMediaVideoTrack* NewTrack = new FAvfMediaVideoTrack(VideoTrack);
-							if (NewTrack->IsReady())
+							if (VideoTrack != nullptr)
 							{
-								VideoTracks.Add( MakeShareable( NewTrack ) );
+								FAvfMediaVideoTrack* NewTrack = new FAvfMediaVideoTrack(VideoTrack);
+								if (NewTrack != nullptr && NewTrack->IsReady())
+								{
+									VideoTracks.Add( MakeShareable( NewTrack ) );
 #if PLATFORM_MAC
-								GameThreadCall(^{
+									GameThreadCall(^{
 #elif PLATFORM_IOS
 									// Report back to the game thread whether this succeeded.
 									[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
 #endif
-										// Displatch on the gamethread that we have opened the video.
+										 // Displatch on the gamethread that we have opened the video.
 										TracksChangedEvent.Broadcast();
 										OpenedEvent.Broadcast( CachedUrl );
 #if PLATFORM_IOS
 										return true;
 									}];
 #elif PLATFORM_MAC
-								});
+									});
 #endif
-							}
-							else
-							{
-								delete NewTrack;
+								}
+								else if(!NewTrack->IsReady())
+								{
+									delete NewTrack;
+								}
 							}
                         }
                     }
-                    else
+                    else if(Error != nullptr)
                     {
                         NSDictionary *userInfo = [Error userInfo];
                         NSString *errstr = [[userInfo objectForKey : NSUnderlyingErrorKey] localizedDescription];
-                        UE_LOG(LogAvfMedia, Display, TEXT("Failed to load video tracks. [%s]"), *FString(errstr));
+                        UE_LOG(LogAvfMedia, Warning, TEXT("Failed to load video tracks. [%s]"), *FString(errstr));
                     }
                 }];
             

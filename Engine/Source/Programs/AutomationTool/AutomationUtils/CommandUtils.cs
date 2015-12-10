@@ -2086,14 +2086,38 @@ namespace AutomationTool
 		/// <param name="BaseDirectory">Base directory to store relative paths in the zip file to</param>
 		public static void ZipFiles(string ZipFileName, string BaseDirectory, FileFilter Filter)
 		{
-			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
-			Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-			foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+			// Ionic.Zip.Zip64Option.Always option produces broken archives on Mono, so we use system zip tool instead
+			if (Utils.IsRunningOnMono)
 			{
-				Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
+ 				CommandUtils.PushDir(BaseDirectory);
+ 				string FilesList = "";
+				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				{
+					FilesList += " \"" + FilteredFile + "\"";
+					if (FilesList.Length > 32000)
+					{
+						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g " + ZipFileName + FilesList);
+						FilesList = "";
+					}
+				}
+				if (FilesList.Length > 0)
+				{
+					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g " + ZipFileName + FilesList);
+				}
+				CommandUtils.PopDir();
 			}
-			CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
-			Zip.Save(ZipFileName);
+			else
+			{
+				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
+				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				{
+					Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+				}
+				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
+				Zip.Save(ZipFileName);
+			}
 		}
 
 		/// <summary>

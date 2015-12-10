@@ -7,3 +7,4 @@
 #include "ModuleManager.h"
 #include "IDeviceProfileSelectorModule.h"
 #include "AndroidDeviceProfileMatchingRules.h"
+#include "AndroidJavaSurfaceViewDevices.h"

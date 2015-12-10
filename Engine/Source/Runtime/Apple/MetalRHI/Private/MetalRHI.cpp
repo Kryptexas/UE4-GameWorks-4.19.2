@@ -30,7 +30,7 @@ FDynamicRHI* FMetalDynamicRHIModule::CreateRHI()
 IMPLEMENT_MODULE(FMetalDynamicRHIModule, MetalRHI);
 
 FMetalDynamicRHI::FMetalDynamicRHI()
-: FMetalRHICommandContext(nullptr)
+: FMetalRHICommandContext(nullptr, FMetalDeviceContext::CreateDeviceContext())
 {
 	// This should be called once at the start 
 	check( IsInGameThread() );
@@ -48,8 +48,13 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	// get the device to ask about capabilities
 	id<MTLDevice> Device = [IOSAppDelegate GetDelegate].IOSView->MetalDevice;
 	// A8 can use 256 bits of MRTs
+#if PLATFORM_TVOS
+	bool bCanUseWideMRTs = true;
+	bool bCanUseASTC = true;
+#else
 	bool bCanUseWideMRTs = [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1];
 	bool bCanUseASTC = [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1] && !FParse::Param(FCommandLine::Get(),TEXT("noastc"));
+#endif
 
     bool bProjectSupportsMRTs = false;
     GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetalMRT"), bProjectSupportsMRTs, GEngineIni);
@@ -87,33 +92,48 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	
 	GRHIAdapterName = FString(Device.name);
 	
+	bool bSupportsPointLights = false;
 	if(GRHIAdapterName.Contains("Nvidia"))
 	{
 		// Nvidia support layer indexing.
 		GSupportsVolumeTextureRendering = true;
+		bSupportsPointLights = true;
 		GRHIVendorId = 0x10DE;
 	}
 	else if(GRHIAdapterName.Contains("ATi") || GRHIAdapterName.Contains("AMD"))
 	{
 		// AMD support layer indexing.
 		GSupportsVolumeTextureRendering = true;
+		bSupportsPointLights = true;
 		GRHIVendorId = 0x1002;
 	}
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
 		GSupportsVolumeTextureRendering = true;
+		bSupportsPointLights = false;
 		GRHIVendorId = 0x8086;
 	}
 	
 	// Change the support depth format if we can
 	bSupportsD24S8 = Device.depth24Stencil8PixelFormatSupported;
 	
-	// Disable point light cubemap shadows on Mac Metal as currently they aren't supported.
-	static auto CVarCubemapShadows = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowPointLightCubemapShadows"));
-	if(CVarCubemapShadows && CVarCubemapShadows->GetInt() != 0)
+	// Force disable vertex-shader-layer point light rendering on GPUs that don't support it properly yet.
+	if(!bSupportsPointLights && !FParse::Param(FCommandLine::Get(),TEXT("metalpointlights")))
 	{
-		CVarCubemapShadows->Set(0);
+		// Disable point light cubemap shadows on Mac Metal as currently they aren't supported.
+		static auto CVarCubemapShadows = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowPointLightCubemapShadows"));
+		if(CVarCubemapShadows && CVarCubemapShadows->GetInt() != 0)
+		{
+			CVarCubemapShadows->Set(0);
+		}
 	}
+	
+	// @todo Need to get this working properly for performance parity with OpenGL on many Macs.
+	GRHISupportsRHIThread = FParse::Param(FCommandLine::Get(),TEXT("rhithread"));
+	GSupportsParallelOcclusionQueries = GRHISupportsRHIThread;
+#if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
+	GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
+#endif
 	
 #endif
 
@@ -142,7 +162,11 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GMaxShadowDepthBufferSizeY = 4096;
 // 	GReadTexturePoolSizeFromIni = true;
 
-	GRHISupportsBaseVertexIndex = PLATFORM_MAC && !IsRHIDeviceAMD(); // Supported on OS X but not iOS - broken on AMD presently
+#if PLATFORM_MAC
+	GRHISupportsBaseVertexIndex = FPlatformMisc::MacOSXVersionCompare(10,11,2) >= 0 || !IsRHIDeviceAMD(); // Supported on OS X but not iOS - broken on AMD prior to 10.11.2
+#else
+	GRHISupportsBaseVertexIndex = false;
+#endif
     GRHISupportsFirstInstance = PLATFORM_MAC; // Supported on OS X but not iOS.
     
 	GRHIRequiresEarlyBackBufferRenderTarget = false;
@@ -352,32 +376,57 @@ void FMetalDynamicRHI::Init()
 	GIsRHIInitialized = true;
 }
 
-void FMetalRHICommandContext::RHIBeginFrame()
+void FMetalDynamicRHI::PostInit()
+{
+	SetupRecursiveResources();
+}
+
+void FMetalDynamicRHI::RHIBeginFrame()
 {
 	// @todo zebra: GPUProfilingData, GNumDrawCallsRHI, GNumPrimitivesDrawnRHI
 #if ENABLE_METAL_GPUPROFILE
 	Profiler->BeginFrame();
 #endif
-	Context->BeginFrame();
+	((FMetalDeviceContext*)Context)->BeginFrame();
 }
 
-void FMetalRHICommandContext::RHIEndFrame()
+void FMetalRHICommandContext::RHIBeginFrame()
+{
+	check(false);
+}
+
+void FMetalDynamicRHI::RHIEndFrame()
 {
 	// @todo zebra: GPUProfilingData.EndFrame();
 #if ENABLE_METAL_GPUPROFILE
 	Profiler->EndFrame();
 #endif
-	Context->EndFrame();
+	((FMetalDeviceContext*)Context)->EndFrame();
+}
+
+void FMetalRHICommandContext::RHIEndFrame()
+{
+	check(false);
+}
+
+void FMetalDynamicRHI::RHIBeginScene()
+{
+	((FMetalDeviceContext*)Context)->BeginScene();
 }
 
 void FMetalRHICommandContext::RHIBeginScene()
 {
-	Context->BeginScene();
+	check(false);
+}
+
+void FMetalDynamicRHI::RHIEndScene()
+{
+	((FMetalDeviceContext*)Context)->EndScene();
 }
 
 void FMetalRHICommandContext::RHIEndScene()
 {
-	Context->EndScene();
+	check(false);
 }
 
 void FMetalRHICommandContext::RHIPushEvent(const TCHAR* Name)

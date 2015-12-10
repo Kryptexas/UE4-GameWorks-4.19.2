@@ -11,8 +11,13 @@
 /* FIOSTargetPlatform structors
  *****************************************************************************/
 
-FIOSTargetPlatform::FIOSTargetPlatform()
+FIOSTargetPlatform::FIOSTargetPlatform(bool bInIsTVOS)
+	: bIsTVOS(bInIsTVOS)
 {
+    if (bIsTVOS)
+    {
+        this->PlatformInfo = PlatformInfo::FindPlatformInfo("TVOS");
+    }
 #if WITH_ENGINE
 	FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
 	TextureLODSettings = nullptr; // TextureLODSettings are registered by the device profile.
@@ -257,17 +262,24 @@ void FIOSTargetPlatform::HandleDeviceConnected(const FIOSLaunchDaemonPong& Messa
 	
 	if (!Device.IsValid())
 	{
-		Device = MakeShareable(new FIOSTargetDevice(*this));
-		
-		Device->SetFeature(ETargetDeviceFeatures::Reboot, Message.bCanReboot);
-		Device->SetFeature(ETargetDeviceFeatures::PowerOn, Message.bCanPowerOn);
-		Device->SetFeature(ETargetDeviceFeatures::PowerOff, Message.bCanPowerOff);
-		Device->SetDeviceId(DeviceId);
-		Device->SetDeviceName(Message.DeviceName);
-		Device->SetDeviceType(Message.DeviceType);
-		Device->SetIsSimulated(Message.DeviceID.Contains(TEXT("Simulator")));
-		
-		DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
+		if ((Message.DeviceType.Contains(TEXT("AppleTV")) && bIsTVOS) || (!Message.DeviceType.Contains(TEXT("AppleTV")) && !bIsTVOS))
+		{
+			Device = MakeShareable(new FIOSTargetDevice(*this));
+
+			Device->SetFeature(ETargetDeviceFeatures::Reboot, Message.bCanReboot);
+			Device->SetFeature(ETargetDeviceFeatures::PowerOn, Message.bCanPowerOn);
+			Device->SetFeature(ETargetDeviceFeatures::PowerOff, Message.bCanPowerOff);
+			Device->SetDeviceId(DeviceId);
+			Device->SetDeviceName(Message.DeviceName);
+			Device->SetDeviceType(Message.DeviceType);
+			Device->SetIsSimulated(Message.DeviceID.Contains(TEXT("Simulator")));
+
+			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
+		}
+		else
+		{
+			return;
+		}
 	}
 	
 	// Add a very long time period to prevent the devices from getting disconnected due to a lack of pong messages
@@ -423,8 +435,8 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 
 	// perform any remapping away from defaults
 	bool bFoundRemap = false;
-	bool bIncludePVRTC = CookPVRTC();
-	bool bIncludeASTC = CookASTC();
+	bool bIncludePVRTC = !bIsTVOS && CookPVRTC();
+	bool bIncludeASTC = bIsTVOS || CookASTC();
 	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
 	{
 		if (TextureFormatName == FormatRemap[RemapIndex])

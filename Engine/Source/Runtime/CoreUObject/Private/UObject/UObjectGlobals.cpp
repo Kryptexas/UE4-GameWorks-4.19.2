@@ -888,6 +888,74 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 	return Class;
 }
 
+#if WITH_EDITOR
+class FDiffFileArchive : public FArchiveProxy
+{
+private:
+	FArchive* DiffArchive;
+	FArchive* InnerArchivePtr;
+	bool bDisable;
+	TArray<FName> DebugDataStack;
+public:
+	FDiffFileArchive(FArchive* InDiffArchive, FArchive* InInnerArchive) : FArchiveProxy(*InInnerArchive), DiffArchive(InDiffArchive), InnerArchivePtr(InInnerArchive), bDisable(false)
+	{
+	}
+
+	~FDiffFileArchive()
+	{
+		if (InnerArchivePtr)
+			delete InnerArchivePtr;
+
+		if (DiffArchive)
+			delete DiffArchive;
+	}
+
+	virtual void PushDebugDataString(const FName& DebugData)
+	{
+		DebugDataStack.Add(DebugData);
+	}
+
+	virtual void PopDebugDataString()
+	{
+		DebugDataStack.Pop();
+	}
+
+	virtual void Serialize(void* V, int64 Length) override
+	{
+		int64 Pos = InnerArchive.Tell();
+		InnerArchive.Serialize(V, Length);
+
+		if (DiffArchive && !bDisable)
+		{
+			TArray<uint8> Data;
+			Data.AddUninitialized(Length);
+			DiffArchive->Seek(Pos);
+			DiffArchive->Serialize(Data.GetData(), Length);
+
+			if (FMemory::Memcmp((const void*)Data.GetData(), V, Length) != 0)
+			{
+				// get the calls debug callstack and 
+				FString DebugStackString;
+				for (const auto& DebugData : DebugDataStack)
+				{
+					DebugStackString += DebugData.ToString();
+					DebugStackString += TEXT("->");
+				}
+
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *InnerArchive.GetArchiveName(), *DebugStackString);
+
+				// only log one message per archive, from this point the entire package is probably messed up
+				bDisable = true;
+
+				static int i = 0;
+				i++;
+			}
+		}
+	}
+};
+#endif
+
+
 /**
 * Loads a package and all contained objects that match context flags.
 *
@@ -905,6 +973,15 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 	FString FileToLoad;
 
+#if WITH_EDITOR
+	FString DiffFileToLoad;
+	if (LoadFlags & LOAD_ForFileDiff)
+	{
+		FString TempFilenames = InLongPackageName;
+		ensure(TempFilenames.Split(TEXT(";"), &FileToLoad, &DiffFileToLoad, ESearchCase::CaseSensitive));
+	}
+	else
+#endif
 	if( InLongPackageName && FCString::Strlen(InLongPackageName) > 0 )
 	{
 		FileToLoad = InLongPackageName;
@@ -980,6 +1057,16 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 
 		Result = Linker->LinkerRoot;
+
+#if WITH_EDITOR
+		if (LoadFlags & LOAD_ForFileDiff)
+		{
+			FArchive* OtherFile = IFileManager::Get().CreateFileReader(*DiffFileToLoad);
+			FDiffFileArchive* DiffArchive = new FDiffFileArchive(Linker->Loader, OtherFile);
+			Linker->Loader = DiffArchive;
+		}
+#endif
+
 
 		auto EndLoadAndCopyLocalizationGatherFlag = [&]
 		{

@@ -59,7 +59,7 @@ public:
 		CompleteEvent = FPlatformProcess::GetSynchEventFromPool(true);
 	}
 
-	FChunkSetupTask::~FChunkSetupTask()
+	virtual ~FChunkSetupTask()
 	{
 		FPlatformProcess::ReturnSynchEventToPool(CompleteEvent);
 	}

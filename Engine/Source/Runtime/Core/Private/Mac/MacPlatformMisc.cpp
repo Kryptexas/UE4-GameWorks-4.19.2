@@ -310,6 +310,11 @@ void FMacPlatformMisc::PlatformPreInit()
 	
 	GMacAppInfo.Init();
 
+	FMacApplication::UpdateScreensArray();
+	
+	// No SIGPIPE crashes please - they are a pain to debug!
+	signal(SIGPIPE, SIG_IGN);
+
 	// Increase the maximum number of simultaneously open files
 	uint32 MaxFilesPerProc = OPEN_MAX;
 	size_t UInt32Size = sizeof(uint32);
@@ -1167,45 +1172,6 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 	return Args[0];
 }
 
-int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
-{
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for(NSScreen* Screen in AllScreens)
-	{
-		if(Screen)
-		{
-			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-		}
-	}
-	
-	const float WholeWorkspaceOrigin = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
-	const float WholeWorkspaceHeight = WholeWorkspace.origin.y + WholeWorkspace.size.height;
-	return -((YPosition - WholeWorkspaceOrigin) - WholeWorkspaceHeight + 1);
-}
-
-int32 FMacPlatformMisc::ConvertCocoaYPositionToSlate(int32 YPosition)
-{
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for(NSScreen* Screen in AllScreens)
-	{
-		if(Screen)
-		{
-			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-		}
-	}
-	
-	CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
-	CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
-	return OffsetToWorkspace + OffsetToPrimary;
-}
-
-
 FString FMacPlatformMisc::GetDefaultLocale()
 {
 	CFLocaleRef loc = CFLocaleCopyCurrent();
@@ -1573,7 +1539,7 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		
 		// Command line, must match the Windows version.
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter8>!"));
-		WriteUTF16String(ReportFile, FCommandLine::Get());
+		WriteUTF16String(ReportFile, FCommandLine::GetOriginal());
 		WriteLine(ReportFile, TEXT("!</Parameter8>"));
 		
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter9>"));
@@ -1834,7 +1800,7 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		
 		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder));
 		
-		FString Arguments = EnsureLogFolder + TEXT("/ -Unattended");
+		FString Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
 		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
 		FPlatformProcess::ExecProcess(*ReportClient, *Arguments, nullptr, nullptr, nullptr);
 	}

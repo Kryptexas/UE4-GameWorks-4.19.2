@@ -93,9 +93,10 @@ void FCreateBlueprintFromActorDialog::OnCreateBlueprint(const FString& InAssetPa
 			}
 		}
 
+		// Select the newly created blueprint in the content browser, but don't activate the browser
 		TArray<UObject*> Objects;
 		Objects.Add(Blueprint);
-		GEditor->SyncBrowserToObjects( Objects );
+		GEditor->SyncBrowserToObjects( Objects, false );
 	}
 	else
 	{

@@ -513,7 +513,6 @@ void FHTTPChunkInstall::ParseTitleFileManifest(const FString& ManifestFileHash)
 					// Prevent the paks from being mounted by removing the manifest file
 					FString ChunkFdrName;
 					FString ManifestName;
-					uint32 ChunkID;
 					bool bIsPatch;
 					if (BuildChunkFolderName(InstalledManifest.ToSharedRef(), ChunkFdrName, ManifestName, ChunkID, bIsPatch))
 					{

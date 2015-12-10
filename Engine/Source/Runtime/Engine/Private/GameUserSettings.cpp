@@ -192,9 +192,6 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 {
 	ValidateSettings();
 
-	bool bIsDirty = IsDirty();
-	EWindowMode::Type NewWindowMode = GetFullscreenMode();
-
 	// Update vsync cvar
 	{
 		FString ConfigSection = TEXT("SystemSettings");

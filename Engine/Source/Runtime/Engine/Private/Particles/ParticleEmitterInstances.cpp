@@ -3168,13 +3168,13 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		FVector MaxVal(-HALF_WORLD_MAX);
 		
 		FPlatformMisc::Prefetch(ParticleData, ParticleStride * ParticleIndices[0]);
-		FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[0] * ParticleStride) + CACHE_LINE_SIZE);
+		FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[0] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 
 		for (int32 i=0; i<ActiveParticles; i++)
 		{
 			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
 			FPlatformMisc::Prefetch(ParticleData, ParticleStride * ParticleIndices[i+1]);
-			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 
 			// Do linear integrator and update bounding box
 			Particle.OldLocation = Particle.Location;

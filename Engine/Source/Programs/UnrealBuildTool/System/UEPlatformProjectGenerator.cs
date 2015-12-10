@@ -157,6 +157,17 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Return project configuration settings that must be included before the default props file
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <returns>string    The custom configuration section for the project file; Empty string if it doesn't require one</returns>
+		public virtual string GetVisualStudioPreDefaultString(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFile InProjectFile)
+		{
+			return "";
+		}
+
+		/// <summary>
 		/// Return the platform toolset string to write into the project configuration
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>

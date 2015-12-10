@@ -22,7 +22,7 @@ private:
 
 typedef FIOSPlatformTextField FPlatformTextField;
 
-
+#if !PLATFORM_TVOS
 @interface SlateTextField : NSObject<UIAlertViewDelegate>
 {
 	TSharedPtr<IVirtualKeyboardEntry> TextWidget;
@@ -32,3 +32,4 @@ typedef FIOSPlatformTextField FPlatformTextField;
 -(void)show:(TSharedPtr<IVirtualKeyboardEntry>)InTextWidget;
 
 @end
+#endif

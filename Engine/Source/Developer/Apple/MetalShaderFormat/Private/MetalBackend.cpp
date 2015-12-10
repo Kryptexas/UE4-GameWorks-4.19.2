@@ -1032,7 +1032,7 @@ protected:
 		{
 			check(numOps == 1);
 
-			std::string Type = expr->type->name;
+			FCustomStdString Type = expr->type->name;
 			Type = FixVecPrefix(Type);
 
 			ralloc_asprintf_append(buffer, "(%s(1.0) / ", Type.c_str());
@@ -1049,7 +1049,7 @@ protected:
 		}
 		else if (numOps == 1 && op >= ir_unop_first_conversion && op <= ir_unop_last_conversion)
 		{
-			std::string Type = expr->type->name;
+			FCustomStdString Type = expr->type->name;
 			Type = FixVecPrefix(Type);
 
 			ralloc_asprintf_append(buffer, "%s(", Type.c_str());
@@ -1145,6 +1145,7 @@ protected:
 		case ir_tex:
 		case ir_txl:
 		case ir_txb:
+		case ir_txd:
 		{
 			ralloc_asprintf_append(buffer, tex->shadow_comparitor ? ".sample_compare(" : ".sample(");
 			auto* Texture = tex->sampler->variable_referenced();
@@ -1159,16 +1160,54 @@ protected:
 				// Need to split the coordinate
 				ralloc_asprintf_append(buffer, "(");
 				tex->coordinate->accept(this);
-				ralloc_asprintf_append(buffer, ").x%s, (uint)(", tex->sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_2D ? "y" : "");
+				
+				char const* CoordSwizzle = "";
+				char const* IndexSwizzle = "y";
+				switch(tex->sampler->type->sampler_dimensionality)
+				{
+					case GLSL_SAMPLER_DIM_1D:
+					{
+						break;
+					}
+					case GLSL_SAMPLER_DIM_2D:
+					case GLSL_SAMPLER_DIM_RECT:
+					{
+						CoordSwizzle = "y";
+						IndexSwizzle = "z";
+						break;
+					}
+					case GLSL_SAMPLER_DIM_3D:
+					case GLSL_SAMPLER_DIM_CUBE:
+					{
+						CoordSwizzle = "yz";
+						IndexSwizzle = "w";
+						break;
+					}
+					case GLSL_SAMPLER_DIM_BUF:
+					case GLSL_SAMPLER_DIM_EXTERNAL:
+					default:
+					{
+						check(0);
+						break;
+					}
+				}
+				
+				ralloc_asprintf_append(buffer, ").x%s, (uint)(", CoordSwizzle);
 				tex->coordinate->accept(this);
-				ralloc_asprintf_append(buffer, ").%s", tex->sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_2D ? "z" : "y");
+				ralloc_asprintf_append(buffer, ").%s", IndexSwizzle);
 			}
 			else
 			{
 				tex->coordinate->accept(this);
 			}
+			
+			if (tex->shadow_comparitor)
+			{
+				ralloc_asprintf_append(buffer, ", ");
+				tex->shadow_comparitor->accept(this);
+			}
 
-			if (tex->op == ir_txl && !tex->shadow_comparitor)
+			if (tex->op == ir_txl)
 			{
 				ralloc_asprintf_append(buffer, ", level(");
 				tex->lod_info.lod->accept(this);
@@ -1180,11 +1219,41 @@ protected:
 				tex->lod_info.lod->accept(this);
 				ralloc_asprintf_append(buffer, ")");
 			}
-
-			if (tex->shadow_comparitor)
+			else if (tex->op == ir_txd)
 			{
-				ralloc_asprintf_append(buffer, ", ");
-				tex->shadow_comparitor->accept(this);
+				char const* GradientType = "";
+				switch(tex->sampler->type->sampler_dimensionality)
+				{
+					case GLSL_SAMPLER_DIM_2D:
+					case GLSL_SAMPLER_DIM_RECT:
+					{
+						GradientType = "gradient2d";
+						break;
+					}
+					case GLSL_SAMPLER_DIM_3D:
+					{
+						GradientType = "gradient3d";
+						break;
+					}
+					case GLSL_SAMPLER_DIM_CUBE:
+					{
+						GradientType = "gradientcube";
+						break;
+					}
+					case GLSL_SAMPLER_DIM_1D:
+					case GLSL_SAMPLER_DIM_BUF:
+					case GLSL_SAMPLER_DIM_EXTERNAL:
+					default:
+					{
+						check(0);
+						break;
+					}
+				}
+				ralloc_asprintf_append(buffer, ", %s(", GradientType);
+				tex->lod_info.grad.dPdx->accept(this);
+				ralloc_asprintf_append(buffer, ",");
+				tex->lod_info.grad.dPdy->accept(this);
+				ralloc_asprintf_append(buffer, ")");
 			}
 
 			if (tex->offset)
@@ -2329,7 +2398,7 @@ protected:
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Samplers.begin(); Iter != Samplers.end(); ++Iter)
 		{
 			glsl_packed_uniform& Sampler = *Iter;
-			std::string SamplerStates("");
+			FCustomStdString SamplerStates("");
 			TStringToSetMap::iterator IterFound = TextureToSamplerMap.find(Sampler.Name);
 			if (IterFound != TextureToSamplerMap.end())
 			{

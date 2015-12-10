@@ -155,18 +155,21 @@ void FQoSReporter::Tick()
 		LastHeartbeatTimestamp = CurrentTime;
 	}
 
-	// detect too long pauses between ticks
-	const double kTooLongPauseBetweenTicksInSeconds = 0.25f;	// 4 fps	- correct perfcounter name below if changing this value and make sure analytics is on the same page
-	const double DeltaBetweenTicks = CurrentTime - PreviousTickTime;
-	static int TimesHappened = 0;
-	if (DeltaBetweenTicks > kTooLongPauseBetweenTicksInSeconds)
+	// detect too long pauses between ticks, unless configured to ignore them or running under debugger
+	if (!QOS_IGNORE_HITCHES && !FPlatformMisc::IsDebuggerPresent())
 	{
-		++TimesHappened;
+		const double kTooLongPauseBetweenTicksInSeconds = 0.25f;	// 4 fps	- correct perfcounter name below if changing this value and make sure analytics is on the same page
+		const double DeltaBetweenTicks = CurrentTime - PreviousTickTime;
+		static int TimesHappened = 0;
+		if (DeltaBetweenTicks > kTooLongPauseBetweenTicksInSeconds)
+		{
+			++TimesHappened;
 
-		PerfCountersIncrement(TEXT("HitchesAbove250msec"));
+			PerfCountersIncrement(TEXT("HitchesAbove250msec"));
 
-		UE_LOG(LogQoSReporter, Warning, TEXT("QoS reporter could not tick for %f sec (longer than threshold of %f sec) - happened %d time(s), average FPS is %f. Sending heartbeats might have been affected"),
-			DeltaBetweenTicks, kTooLongPauseBetweenTicksInSeconds, TimesHappened, GAverageFPS);
+			UE_LOG(LogQoSReporter, Warning, TEXT("QoS reporter could not tick for %f sec (longer than threshold of %f sec) - happened %d time(s), average FPS is %f. Sending heartbeats might have been affected"),
+				DeltaBetweenTicks, kTooLongPauseBetweenTicksInSeconds, TimesHappened, GAverageFPS);
+		}
 	}
 
 	PreviousTickTime = CurrentTime;

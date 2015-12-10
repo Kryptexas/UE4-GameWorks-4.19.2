@@ -43,6 +43,11 @@ struct FIOSPlatformProperties
 		return (BuildTarget == EBuildTargets::Game);
 	}
 
+	static FORCEINLINE bool SupportsLowQualityLightmaps()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
 		return true;

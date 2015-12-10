@@ -238,8 +238,10 @@ id<MTLDevice> GMetalDevice = nil;
  */
 - (void)layoutSubviews
 {
+#if !PLATFORM_TVOS
 	UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
 	FIOSApplication::OrientationChanged(orientation);
+#endif
 }
 
 -(void)UpdateRenderWidth:(uint32)Width andHeight:(uint32)Height
@@ -252,8 +254,8 @@ id<MTLDevice> GMetalDevice = nil;
 			// grab the MetalLayer and typecast it to match what's in layerClass
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
 			CGSize drawableSize = CGSizeMake(Width, Height);
-			check( drawableSize.width == (self.bounds.size.width * self.contentScaleFactor) && drawableSize.height == (self.bounds.size.height * self.contentScaleFactor));
-
+			check( FMath::TruncToInt(drawableSize.width) == FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor) && 
+				   FMath::TruncToInt(drawableSize.height) == FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor));
 			MetalLayer.drawableSize = drawableSize;
 		}
 		return;
@@ -515,7 +517,9 @@ id<MTLDevice> GMetalDevice = nil;
 #endif
 
 	self.view.clearsContextBeforeDrawing = NO;
+#if !PLATFORM_TVOS
 	self.view.multipleTouchEnabled = NO;
+#endif
 }
 
 /**

@@ -161,7 +161,8 @@ public class Launch : ModuleRules
 			}
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.IOS)
+		if (Target.Platform == UnrealTargetPlatform.IOS ||
+			Target.Platform == UnrealTargetPlatform.TVOS)
 		{
 			PrivateDependencyModuleNames.Add("OpenGLDrv");
 			DynamicallyLoadedModuleNames.Add("IOSAudio");

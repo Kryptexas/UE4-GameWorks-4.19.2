@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
 #include "../../Renderer/Private/ScenePrivate.h"
-#include "Lightmap.h"
-#include "Shadowmap.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 
 static TAutoConsoleVariable<float> CVarLODTemporalLag(

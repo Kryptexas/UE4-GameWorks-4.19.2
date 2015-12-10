@@ -515,6 +515,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bSkipEditorContent = Switches.Contains(TEXT("SKIPEDITORCONTENT")); // This won't save out any packages in Engine/COntent/Editor*
 	bErrorOnEngineContentUse = Switches.Contains(TEXT("ERRORONENGINECONTENTUSE"));
 	bUseSerializationForGeneratingPackageDependencies = Switches.Contains(TEXT("UseSerializationForGeneratingPackageDependencies"));
+	bCookSinglePackage = Switches.Contains(TEXT("cooksinglepackage"));
 	if (bLeakTest)
 	{
 		for (FObjectIterator It; It; ++It)
@@ -1139,7 +1140,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	// Add any map sections specified on command line
 	GEditor->ParseMapSectionIni(*Params, MapList);
 
-	if (MapList.Num() == 0)
+	if (MapList.Num() == 0 && !bCookSinglePackage)
 	{
 		// If we didn't find any maps look in the project settings for maps
 
@@ -1188,6 +1189,9 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookOptions |= Switches.Contains(TEXT("MAPSONLY")) ? ECookByTheBookOptions::MapsOnly : ECookByTheBookOptions::None;
 	CookOptions |= Switches.Contains(TEXT("NODEV")) ? ECookByTheBookOptions::NoDevContent : ECookByTheBookOptions::None;
 
+	const ECookByTheBookOptions SinglePackageFlags = ECookByTheBookOptions::NoAlwaysCookMaps | ECookByTheBookOptions::NoDefaultMaps | ECookByTheBookOptions::NoGameAlwaysCookPackages | ECookByTheBookOptions::NoInputPackages | ECookByTheBookOptions::NoSlatePackages | ECookByTheBookOptions::DisableUnsolicitedPackages | ECookByTheBookOptions::ForceDisableSaveGlobalShaders;
+	CookOptions |= bCookSinglePackage ? SinglePackageFlags : ECookByTheBookOptions::None;
+
 	UCookOnTheFlyServer::FCookByTheBookStartupOptions StartupOptions;
 
 	StartupOptions.TargetPlatforms = Platforms;
@@ -1205,7 +1209,6 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.ChildCookFileName = ChildCookFile;
 	StartupOptions.ChildManifestFilename = ChildManifestFilename;
 	StartupOptions.NumProcesses = NumProcesses;
-	FParse::Value(FCommandLine::Get(), TEXT("COOKSINGLEASSETNAME="), StartupOptions.CookSingleAssetName);
 
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 

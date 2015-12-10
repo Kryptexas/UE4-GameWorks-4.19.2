@@ -59,7 +59,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 
 #if MSAA_SAMPLE_COUNT > 1
 	float DeviceZ = PostprocessInput1MS.Load(PixelPos, SampleID).r;
-	int Stencil = EditorPrimitivesStencil.Load(PixelPos, SampleID).g;
+	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0), SampleID) STENCIL_COMPONENT_SWIZZLE;
 
 #if !COMPILER_GLSL && !PS4_PROFILE && !COMPILER_METAL
 	// not yet supported on OpenGL, slightly better quality
@@ -68,7 +68,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 
 #else
 	float DeviceZ = PostprocessInput1MS.Load(int3(PixelPos, 0)).r;
-	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0)).g;
+	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0), SampleID) STENCIL_COMPONENT_SWIZZLE;
 #endif
 
 	float SceneDeviceZ = ReconstructDeviceZ(DeviceZPlane, ReconstructionOffset);
@@ -84,7 +84,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 	// outline even between multiple selected objects (best usability)
 	Ret.ObjectId = Stencil;
 
-#if (COMPILER_GLSL == 1 && !GL4_PROFILE) || COMPILER_METAL
+#if (COMPILER_GLSL == 1 && !GL4_PROFILE) || (COMPILER_METAL && FEATURE_LEVEL < FEATURE_LEVEL_SM4)
 	// Stencil read in opengl is not supported on older versions
 	Ret.ObjectId = Ret.bObjectMask ? 2 : 0;
 #endif

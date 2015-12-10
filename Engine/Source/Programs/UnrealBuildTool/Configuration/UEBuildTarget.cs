@@ -28,6 +28,7 @@ namespace UnrealBuildTool
 		HTML5,
 		Linux,
 		AllDesktop,
+		TVOS,
 	}
 
 	public enum UnrealPlatformGroup
@@ -35,6 +36,7 @@ namespace UnrealBuildTool
 		Windows,	// this group is just to lump Win32 and Win64 into Windows directories, removing the special Windows logic in MakeListOfUnsupportedPlatforms
 		Microsoft,
 		Apple,
+		IOS, // making IOS a group allows TVOS to compile IOS code
 		Unix,
 		Android,
 		Sony,
@@ -230,18 +232,19 @@ namespace UnrealBuildTool
 		{
 			switch (InCPPPlatform)
 			{
-				case CPPTargetPlatform.Win32: return UnrealTargetPlatform.Win32;
-				case CPPTargetPlatform.Win64: return UnrealTargetPlatform.Win64;
-				case CPPTargetPlatform.UWP: return UnrealTargetPlatform.UWP;
-				case CPPTargetPlatform.Mac: return UnrealTargetPlatform.Mac;
-				case CPPTargetPlatform.XboxOne: return UnrealTargetPlatform.XboxOne;
-				case CPPTargetPlatform.PS4: return UnrealTargetPlatform.PS4;
-				case CPPTargetPlatform.Android: return UnrealTargetPlatform.Android;
-				case CPPTargetPlatform.WinRT: return UnrealTargetPlatform.WinRT;
-				case CPPTargetPlatform.WinRT_ARM: return UnrealTargetPlatform.WinRT_ARM;
-				case CPPTargetPlatform.IOS: return UnrealTargetPlatform.IOS;
-				case CPPTargetPlatform.HTML5: return UnrealTargetPlatform.HTML5;
-				case CPPTargetPlatform.Linux: return UnrealTargetPlatform.Linux;
+				case CPPTargetPlatform.Win32:			return UnrealTargetPlatform.Win32;
+				case CPPTargetPlatform.Win64:			return UnrealTargetPlatform.Win64;
+				case CPPTargetPlatform.UWP:				return UnrealTargetPlatform.UWP;
+				case CPPTargetPlatform.Mac:				return UnrealTargetPlatform.Mac;
+				case CPPTargetPlatform.XboxOne:			return UnrealTargetPlatform.XboxOne;
+				case CPPTargetPlatform.PS4:				return UnrealTargetPlatform.PS4;
+				case CPPTargetPlatform.Android:			return UnrealTargetPlatform.Android;
+				case CPPTargetPlatform.WinRT: 			return UnrealTargetPlatform.WinRT;
+				case CPPTargetPlatform.WinRT_ARM: 		return UnrealTargetPlatform.WinRT_ARM;
+				case CPPTargetPlatform.IOS:				return UnrealTargetPlatform.IOS;
+				case CPPTargetPlatform.HTML5:			return UnrealTargetPlatform.HTML5;
+                case CPPTargetPlatform.Linux:			return UnrealTargetPlatform.Linux;
+				case CPPTargetPlatform.TVOS:			return UnrealTargetPlatform.TVOS;
 			}
 			throw new BuildException("CPPTargetPlatformToUnrealTargetPlatform: Unknown CPPTargetPlatform {0}", InCPPPlatform.ToString());
 		}
@@ -964,6 +967,7 @@ namespace UnrealBuildTool
 		/// The receipt for this target, which contains a record of this build.
 		/// </summary>
 		private TargetReceipt Receipt;
+		public TargetReceipt BuildReceipt { get { return Receipt; } }
 
 		/// <summary>
 		/// Filename for the receipt for this target.

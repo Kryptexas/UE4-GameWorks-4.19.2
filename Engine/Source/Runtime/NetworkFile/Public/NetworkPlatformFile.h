@@ -46,6 +46,17 @@ public:
 		return InnerPlatformFile;
 	}
 
+	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
+	{
+		OutTimeStampA = GetTimeStamp(PathA);
+		OutTimeStampB = GetTimeStamp(PathB);
+
+		if (GetLowerLevel() && OutTimeStampA == FDateTime::MinValue() && OutTimeStampB == FDateTime::MinValue())
+		{
+			GetLowerLevel()->GetTimeStampPair(PathA, PathB, OutTimeStampA, OutTimeStampB);
+		}
+	}
+
 	virtual const TCHAR* GetName() const override
 	{
 		return FNetworkPlatformFile::GetTypeName();

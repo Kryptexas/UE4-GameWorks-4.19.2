@@ -49,16 +49,17 @@ namespace UnrealBuildTool
 				return Result;
 			}
 
-			// 			Result += " -funsigned-char";
-			// 			Result += " -fno-strict-aliasing";
+//			Result += " -funsigned-char";
+//			Result += " -fno-strict-aliasing";
 			Result += " -fno-exceptions";
-			// 			Result += " -fno-short-enums";
+//			Result += " -fno-short-enums";
 
 			Result += " -Wno-unused-value"; // appErrorf triggers this
 			Result += " -Wno-switch"; // many unhandled cases
 			Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
 			// this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
 			Result += " -Wno-tautological-compare";
+//			Result += " -Wno-inconsistent-missing-override"; // as of 1.35.0, overriding a member function but not marked as 'override' triggers warnings
 
 			// okay, in UE4, we'd fix the code for these, but in UE3, not worth it
 			Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
@@ -113,7 +114,7 @@ namespace UnrealBuildTool
 								 Result += " -g";
 							}*/
 
-				Result += " -Wno-warn-absolute-paths ";
+				Result += " -Wno-warn-absolute-paths "; // as of emscripten 1.35.0 complains that this is unknown
 				Result += " -Wno-reorder"; // we disable constructor order warnings.
 
 				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
@@ -176,6 +177,10 @@ namespace UnrealBuildTool
 
 			if (LinkEnvironment.Config.Target.Architecture != "-win32")
 			{
+				// suppress link time warnings
+				Result += " -Wno-ignored-attributes"; // function alias that always gets resolved
+				Result += " -Wno-parentheses"; // precedence order
+				Result += " -Wno-shift-count-overflow"; // 64bit is more than enough for shift 32
 
 				// enable verbose mode
 				Result += " -v";

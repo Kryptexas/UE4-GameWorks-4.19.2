@@ -1021,20 +1021,20 @@ void UMaterialInstanceDynamic::CopyScalarAndVectorParameters(const UMaterialInte
 					const FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<const FMaterialUniformExpressionScalarParameter*>(UniformExpression);
 
 					float Value;
-
-					ScalarExpression->GetGameThreadNumberValue(&SourceMaterialToCopyFrom, Value);
-
-					FName ParameterName = ScalarExpression->GetParameterName();
-
-					FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(ScalarParameterValues, ParameterName);
-
-					if (!ParameterValue)
+					if (ScalarExpression->GetGameThreadNumberValue(&SourceMaterialToCopyFrom, Value))
 					{
-						ParameterValue = new(ScalarParameterValues)FScalarParameterValue;
-						ParameterValue->ParameterName = ParameterName;
-					}
+						FName ParameterName = ScalarExpression->GetParameterName();
 
-					ParameterValue->ParameterValue = Value;
+						FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(ScalarParameterValues, ParameterName);
+
+						if (!ParameterValue)
+						{
+							ParameterValue = new(ScalarParameterValues)FScalarParameterValue;
+							ParameterValue->ParameterName = ParameterName;
+						}
+
+						ParameterValue->ParameterValue = Value;
+					}
 				}
 			}
 		}
@@ -1053,20 +1053,20 @@ void UMaterialInstanceDynamic::CopyScalarAndVectorParameters(const UMaterialInte
 					const FMaterialUniformExpressionVectorParameter* VectorExpression = static_cast<const FMaterialUniformExpressionVectorParameter*>(UniformExpression);
 
 					FLinearColor Value;
-
-					VectorExpression->GetGameThreadNumberValue(&SourceMaterialToCopyFrom, Value);
-
-					FName ParameterName = VectorExpression->GetParameterName();
-
-					FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(VectorParameterValues, ParameterName);
-
-					if (!ParameterValue)
+					if (VectorExpression->GetGameThreadNumberValue(&SourceMaterialToCopyFrom, Value))
 					{
-						ParameterValue = new(VectorParameterValues)FVectorParameterValue;
-						ParameterValue->ParameterName = ParameterName;
-					}
+						FName ParameterName = VectorExpression->GetParameterName();
 
-					ParameterValue->ParameterValue = Value;
+						FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(VectorParameterValues, ParameterName);
+
+						if (!ParameterValue)
+						{
+							ParameterValue = new(VectorParameterValues)FVectorParameterValue;
+							ParameterValue->ParameterName = ParameterName;
+						}
+
+						ParameterValue->ParameterValue = Value;
+					}
 				}
 			}
 		}

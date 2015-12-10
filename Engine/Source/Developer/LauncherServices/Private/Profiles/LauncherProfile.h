@@ -2194,6 +2194,17 @@ protected:
 			// @todo ensure that launched devices have cooked content
 		}
 		
+		if ((CookMode == ELauncherProfileCookModes::OnTheFly) || (CookMode == ELauncherProfileCookModes::OnTheFlyInEditor))
+		{
+			if (BuildConfiguration == EBuildConfigurations::Shipping)
+			{
+				// shipping doesn't support commandline options
+				ValidationErrors.Add(ELauncherProfileValidationErrors::ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly);
+			}
+
+		}
+
+
 		ValidatePlatformSDKs();
 	}
 	

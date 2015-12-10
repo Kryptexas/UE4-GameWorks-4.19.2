@@ -22,7 +22,8 @@
 			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :
 			[
-				"IOS"
+				"IOS",
+				"TVOS"
 			]
 		}
 	]

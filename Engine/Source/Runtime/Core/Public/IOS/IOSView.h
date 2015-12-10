@@ -69,7 +69,13 @@
 /**
  * A view controller subclass that handles loading our IOS view as well as autorotation
  */
+#if PLATFORM_TVOS
+#import <GameController/GameController.h>
+// if TVOS doesn't use the GCEventViewController, it will background the app when the user presses Menu/Pause
+@interface IOSViewController : GCEventViewController
+#else
 @interface IOSViewController : UIViewController
+#endif
 {
 
 }

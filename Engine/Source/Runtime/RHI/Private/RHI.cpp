@@ -83,6 +83,8 @@ const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPla
 
 TLockFreePointerListUnordered<FRHIResource> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
+TQueue<FRHIResource::ResourceToDelete> FRHIResource::DeferredDeletionQueue;
+uint32 FRHIResource::CurrentFrame = 0;
 
 #if !DISABLE_RHI_DEFFERED_DELETE
 bool FRHIResource::Bypass()
@@ -115,7 +117,15 @@ void FRHIResource::FlushPendingDeletes()
 			if (Ref->GetRefCount() == 0) // caches can bring dead objects back to life
 			{
 				CurrentlyDeleting = Ref;
-				delete Ref;
+				if (PlatformNeedsExtraDeletionLatency())
+				{
+					DeferredDeletionQueue.Enqueue(ResourceToDelete(Ref, CurrentFrame));
+				}
+				else
+				{
+					delete Ref;
+				}
+
 				CurrentlyDeleting = nullptr;
 			}
 			else
@@ -125,8 +135,36 @@ void FRHIResource::FlushPendingDeletes()
 			}
 		}
 	}
-}
 
+	const uint32 NumFramesToExpire = 3;
+
+	if (PlatformNeedsExtraDeletionLatency())
+	{
+		ResourceToDelete TempResource;
+
+		while (!DeferredDeletionQueue.IsEmpty())
+		{
+			DeferredDeletionQueue.Peek(TempResource);
+
+			if ((TempResource.FrameDeleted + NumFramesToExpire) < CurrentFrame)
+			{
+				// It's possible the resource has been resurrected elsewhere
+				if (TempResource.Resource->GetRefCount() == 0)
+				{
+					delete TempResource.Resource;
+				}
+
+				DeferredDeletionQueue.Dequeue(TempResource);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		++CurrentFrame;
+	}
+}
 
 static_assert(ERHIZBuffer::FarPlane != ERHIZBuffer::NearPlane, "Near and Far planes must be different!");
 static_assert((int32)ERHIZBuffer::NearPlane == 0 || (int32)ERHIZBuffer::NearPlane == 1, "Invalid Values for Near Plane, can only be 0 or 1!");

@@ -243,7 +243,12 @@ namespace UnrealBuildTool
 		{
 			base.ParseProjectSettings();
 
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirectoryReference.FromFile(ProjectFile));
+			string EngineIniPath = ProjectFile != null ? ProjectFile.Directory.FullName : null;
+			if (String.IsNullOrEmpty(EngineIniPath))
+			{
+				EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
+			}
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", EngineIniPath);
 			string ServerName = RemoteServerName;
 			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RemoteServerName", out ServerName) && !String.IsNullOrEmpty(ServerName))
 			{
@@ -256,7 +261,7 @@ namespace UnrealBuildTool
 				bUseRPCUtil = !bUseRSync;
 				string UserName = RSyncUsername;
 
-				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RSyncUsername", out UserName))
+				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RSyncUsername", out UserName) && !String.IsNullOrEmpty(UserName))
 				{
 					RSyncUsername = UserName;
 				}

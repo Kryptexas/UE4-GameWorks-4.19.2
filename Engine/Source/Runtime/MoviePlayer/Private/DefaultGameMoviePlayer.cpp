@@ -279,7 +279,6 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		
 		const bool bAutoCompleteWhenLoadingCompletes = LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes;
 		const bool bWaitForManualStop = LoadingScreenAttributes.bWaitForManualStop;
-		bUserCalledFinish = true;
 
 		FSlateApplication& SlateApp = FSlateApplication::Get();
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
@@ -379,10 +378,13 @@ void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 		if (!IsLoadingFinished() && SyncMechanism)
 		{
 			if (SyncMechanism->IsSlateDrawPassEnqueued())
-			{				
+			{
+				GFrameNumberRenderThread++;
+				GRHICommandList.GetImmediateCommandList().BeginFrame();
 				TickStreamer(DeltaTime);
 				RendererPtr.Pin()->DrawWindows();
 				SyncMechanism->ResetSlateDrawPassEnqueued();
+				GRHICommandList.GetImmediateCommandList().EndFrame();
 				GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
 			}
 		}

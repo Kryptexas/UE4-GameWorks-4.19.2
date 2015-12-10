@@ -702,8 +702,12 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 	// when writing, write a zero here for now.  will come back and fill it in later.
 	uint32 RecastNavMeshSizeBytes = 0;
 	int32 RecastNavMeshSizePos = Ar.Tell();
-	Ar << RecastNavMeshSizeBytes;
-
+	{
+#if WITH_EDITOR
+		FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
+#endif
+		Ar << RecastNavMeshSizeBytes;
+	}
 	if (Ar.IsLoading())
 	{
 		if (NavMeshVersion < NAVMESHVER_MIN_COMPATIBLE)

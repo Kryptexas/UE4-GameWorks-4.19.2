@@ -74,7 +74,7 @@ PhysXCooking_release_libraries :=
 PhysXCooking_release_libraries += :PhysX3Common_Oz.bc
 PhysXCooking_release_libraries += :PhysX3Extensions_Oz.bc
 PhysXCooking_release_common_cflags	:= $(PhysXCooking_custom_cflags)
-PhysXCooking_release_common_cflags    += -MMD
+PhysXCooking_release_common_cflags    += 
 PhysXCooking_release_common_cflags    += $(addprefix -D, $(PhysXCooking_release_defines))
 PhysXCooking_release_common_cflags    += $(addprefix -I, $(PhysXCooking_release_hpaths))
 PhysXCooking_release_common_cflags  += -Wno-invalid-offsetof
@@ -104,7 +104,7 @@ prebuild_PhysXCooking_release:
 
 $(PhysXCooking_release_bin): $(PhysXCooking_release_obj) build_PhysXCommon_release build_PhysXExtensions_release 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3Cooking_Oz.bc`
-	@$(AR) rcs $(PhysXCooking_release_bin) $(PhysXCooking_release_obj)
+	@$(AR) -o $(PhysXCooking_release_bin) $(PhysXCooking_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCooking_release_DEPDIR = $(dir $(@))/$(*F)
@@ -177,7 +177,7 @@ PhysXCooking_debug_libraries :=
 PhysXCooking_debug_libraries += :PhysX3CommonDEBUG_Oz.bc
 PhysXCooking_debug_libraries += :PhysX3ExtensionsDEBUG_Oz.bc
 PhysXCooking_debug_common_cflags	:= $(PhysXCooking_custom_cflags)
-PhysXCooking_debug_common_cflags    += -MMD
+PhysXCooking_debug_common_cflags    += 
 PhysXCooking_debug_common_cflags    += $(addprefix -D, $(PhysXCooking_debug_defines))
 PhysXCooking_debug_common_cflags    += $(addprefix -I, $(PhysXCooking_debug_hpaths))
 PhysXCooking_debug_common_cflags  += -Wno-invalid-offsetof
@@ -207,7 +207,7 @@ prebuild_PhysXCooking_debug:
 
 $(PhysXCooking_debug_bin): $(PhysXCooking_debug_obj) build_PhysXCommon_debug build_PhysXExtensions_debug 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CookingDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXCooking_debug_bin) $(PhysXCooking_debug_obj)
+	@$(AR) -o $(PhysXCooking_debug_bin) $(PhysXCooking_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCooking_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -280,7 +280,7 @@ PhysXCooking_checked_libraries :=
 PhysXCooking_checked_libraries += :PhysX3CommonCHECKED_Oz.bc
 PhysXCooking_checked_libraries += :PhysX3ExtensionsCHECKED_Oz.bc
 PhysXCooking_checked_common_cflags	:= $(PhysXCooking_custom_cflags)
-PhysXCooking_checked_common_cflags    += -MMD
+PhysXCooking_checked_common_cflags    += 
 PhysXCooking_checked_common_cflags    += $(addprefix -D, $(PhysXCooking_checked_defines))
 PhysXCooking_checked_common_cflags    += $(addprefix -I, $(PhysXCooking_checked_hpaths))
 PhysXCooking_checked_common_cflags  += -Wno-invalid-offsetof
@@ -310,7 +310,7 @@ prebuild_PhysXCooking_checked:
 
 $(PhysXCooking_checked_bin): $(PhysXCooking_checked_obj) build_PhysXCommon_checked build_PhysXExtensions_checked 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CookingCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXCooking_checked_bin) $(PhysXCooking_checked_obj)
+	@$(AR) -o $(PhysXCooking_checked_bin) $(PhysXCooking_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCooking_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -383,7 +383,7 @@ PhysXCooking_profile_libraries :=
 PhysXCooking_profile_libraries += :PhysX3CommonPROFILE_Oz.bc
 PhysXCooking_profile_libraries += :PhysX3ExtensionsPROFILE_Oz.bc
 PhysXCooking_profile_common_cflags	:= $(PhysXCooking_custom_cflags)
-PhysXCooking_profile_common_cflags    += -MMD
+PhysXCooking_profile_common_cflags    += 
 PhysXCooking_profile_common_cflags    += $(addprefix -D, $(PhysXCooking_profile_defines))
 PhysXCooking_profile_common_cflags    += $(addprefix -I, $(PhysXCooking_profile_hpaths))
 PhysXCooking_profile_common_cflags  += -Wno-invalid-offsetof
@@ -413,7 +413,7 @@ prebuild_PhysXCooking_profile:
 
 $(PhysXCooking_profile_bin): $(PhysXCooking_profile_obj) build_PhysXCommon_profile build_PhysXExtensions_profile 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CookingPROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXCooking_profile_bin) $(PhysXCooking_profile_obj)
+	@$(AR) -o $(PhysXCooking_profile_bin) $(PhysXCooking_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCooking_profile_DEPDIR = $(dir $(@))/$(*F)

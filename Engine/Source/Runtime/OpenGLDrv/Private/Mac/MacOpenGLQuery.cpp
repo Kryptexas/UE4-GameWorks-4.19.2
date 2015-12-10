@@ -8,7 +8,7 @@
  OpenGL static variables.
  ------------------------------------------------------------------------------*/
 
-bool GIsEmulatingTimestamp = true;
+bool GIsEmulatingTimestamp = false;
 static const uint32 GMacQueryNameCacheSize = 32 * OPENGL_NAME_CACHE_SIZE;
 
 static int32 GMacIsEmulatingTimestamp = 1;

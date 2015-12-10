@@ -473,6 +473,7 @@ void AndroidEGL::InitBackBuffer()
 	PImplData->SingleThreadedContext.ViewportFramebuffer = GetResolveFrameBuffer();
 }
 
+extern void AndroidThunkCpp_SetDesiredViewSize(int32 Width, int32 Height);
 
 void AndroidEGL::InitSurface(bool bUseSmallSurface)
 {
@@ -491,6 +492,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface)
 		FPlatformRect WindowSize = FAndroidWindow::GetScreenRect();
 		Width = WindowSize.Right;
 		Height = WindowSize.Bottom;
+		AndroidThunkCpp_SetDesiredViewSize(Width, Height);
 	}
 	ANativeWindow_setBuffersGeometry(PImplData->Window, Width, Height, PImplData->NativeVisualID);
 	CreateEGLSurface(PImplData->Window );

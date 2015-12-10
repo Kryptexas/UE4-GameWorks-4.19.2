@@ -501,10 +501,11 @@ namespace UnrealBuildTool
 					"	<PropertyGroup Label=\"Globals\">" + ProjectFileGenerator.NewLine +
 					"		<ProjectGuid>" + ProjectGUID.ToString("B").ToUpperInvariant() + "</ProjectGuid>" + ProjectFileGenerator.NewLine +
 					"		<Keyword>MakeFileProj</Keyword>" + ProjectFileGenerator.NewLine +
-					"		<RootNamespace>" + ProjectName + "</RootNamespace>" + ProjectFileGenerator.NewLine);
-
-				VCProjectFileContent.Append(
-					"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+					"		<RootNamespace>" + ProjectName + "</RootNamespace>" + ProjectFileGenerator.NewLine +
+                    "       <PlatformToolset>" + VCProjectFileGenerator.ProjectFilePlatformToolsetVersionString + "</PlatformToolset>" + ProjectFileGenerator.NewLine +
+                    "       <MinimumVisualStudioVersion>" + VCProjectFileGenerator.ProjectFileToolVersionString + "</MinimumVisualStudioVersion>" + ProjectFileGenerator.NewLine +
+                    "       <TargetRuntime>Native</TargetRuntime>" + ProjectFileGenerator.NewLine +
+                    "	</PropertyGroup>" + ProjectFileGenerator.NewLine);
 			}
 
 			// Write each project configuration PreDefaultProps section
@@ -523,7 +524,19 @@ namespace UnrealBuildTool
 			VCProjectFileContent.Append(
 				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" + ProjectFileGenerator.NewLine);
 
-
+			// Write each project configuration PreDefaultProps section
+			foreach (var ConfigurationTuple in ProjectConfigurationNameAndConfigurations)
+			{
+				var ProjectConfigurationName = ConfigurationTuple.Item1;
+				var TargetConfiguration = ConfigurationTuple.Item2;
+				foreach (var PlatformTuple in ProjectPlatformNameAndPlatforms)
+				{
+					var ProjectPlatformName = PlatformTuple.Item1;
+					var TargetPlatform = PlatformTuple.Item2;
+					WritePostDefaultPropsConfiguration(TargetPlatform, TargetConfiguration, ProjectPlatformName, ProjectConfigurationName, VCProjectFileContent);
+				}
+			}
+			
 			VCProjectFileContent.Append(
 				"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />" + ProjectFileGenerator.NewLine +
 				"	<ImportGroup Label=\"ExtensionSettings\" />" + ProjectFileGenerator.NewLine +
@@ -858,8 +871,32 @@ namespace UnrealBuildTool
 			}
 		}
 
-		// Anonymous function that writes pre-Default.props configuration data
-		private void WritePreDefaultPropsConfiguration(UnrealTargetPlatform TargetPlatform, UnrealTargetConfiguration TargetConfiguration, string ProjectPlatformName, string ProjectConfigurationName, StringBuilder VCProjectFileContent)
+        // Anonymous function that writes pre-Default.props configuration data
+        private void WritePreDefaultPropsConfiguration(UnrealTargetPlatform TargetPlatform, UnrealTargetConfiguration TargetConfiguration, string ProjectPlatformName, string ProjectConfigurationName, StringBuilder VCProjectFileContent)
+        {
+            UEPlatformProjectGenerator ProjGenerator = UEPlatformProjectGenerator.GetPlatformProjectGenerator(TargetPlatform, true);
+            if (((ProjGenerator == null) && (TargetPlatform != UnrealTargetPlatform.Unknown)))
+            {
+                return;
+            }
+
+            var ProjectConfigurationAndPlatformName = ProjectConfigurationName + "|" + ProjectPlatformName;
+            string ConditionString = "Condition=\"'$(Configuration)|$(Platform)'=='" + ProjectConfigurationAndPlatformName + "'\"";
+
+            string PlatformToolsetString = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioPreDefaultString(TargetPlatform, TargetConfiguration, this) : "";
+
+            if (!String.IsNullOrEmpty(PlatformToolsetString))
+            {
+                VCProjectFileContent.Append(
+                    "	<PropertyGroup " + ConditionString + " Label=\"Configuration\">" + ProjectFileGenerator.NewLine +
+                            PlatformToolsetString +
+                    "	</PropertyGroup>" + ProjectFileGenerator.NewLine
+                );
+            }
+        }
+
+        // Anonymous function that writes post-Default.props configuration data
+        private void WritePostDefaultPropsConfiguration(UnrealTargetPlatform TargetPlatform, UnrealTargetConfiguration TargetConfiguration, string ProjectPlatformName, string ProjectConfigurationName, StringBuilder VCProjectFileContent)
 		{
 			UEPlatformProjectGenerator ProjGenerator = UEPlatformProjectGenerator.GetPlatformProjectGenerator(TargetPlatform, true);
 			if (((ProjGenerator == null) && (TargetPlatform != UnrealTargetPlatform.Unknown)))

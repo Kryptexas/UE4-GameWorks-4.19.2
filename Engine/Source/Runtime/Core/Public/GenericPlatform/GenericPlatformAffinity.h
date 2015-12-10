@@ -49,6 +49,11 @@ public:
 		return 0xFFFFFFFFFFFFFFFF;
 	}
 
+	static const CORE_API uint64 GetAudioThreadMask()
+	{
+		return 0xFFFFFFFFFFFFFFFF;
+	}
+
 	static const CORE_API uint64 GetNoAffinityMask()
 	{
 		return 0xFFFFFFFFFFFFFFFF;

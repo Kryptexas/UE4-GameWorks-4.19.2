@@ -166,6 +166,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 
 	TSharedRef<SWindow> NewMenuWindow =
 		SNew(SWindow)
+		.Type(EWindowType::Menu)
 		.IsPopupWindow(true)
 		.SizingRule(bShouldAutoSize ? ESizingRule::Autosized : ESizingRule::UserSized)
 		.ScreenPosition(AdjustedSummonLocation)
@@ -424,6 +425,7 @@ TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, 
 
 	// Create a new window for the menu
 	TSharedRef<SWindow> NewMenuWindow = SNew(SWindow)
+		.Type(EWindowType::Menu)
 		.IsPopupWindow(true)
 		.SizingRule(ESizingRule::Autosized)
 		.ScreenPosition(InPrePushResults.AnimStartLocation)

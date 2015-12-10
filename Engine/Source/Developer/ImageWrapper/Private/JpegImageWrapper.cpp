@@ -8,6 +8,9 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshadow"
+#if PLATFORM_LINUX || PLATFORM_MAC
+#pragma clang diagnostic ignored "-Wshift-negative-value"	// clang 3.7.0
+#endif
 #endif
 
 #include "jpgd.h"

@@ -9,7 +9,16 @@
 #include <sys/ioctl.h> // ioctl
 #include <sys/file.h>
 #include <asm/ioctls.h> // FIONREAD
+#include <sys/file.h> // flock
 #include "LinuxApplication.h" // FLinuxApplication::IsForeground()
+
+namespace PlatformProcessLimits
+{
+	enum
+	{
+		MaxUserHomeDirLength = MAX_PATH + 1
+	};
+};
 
 void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -191,36 +200,68 @@ const TCHAR* FLinuxPlatformProcess::UserDir()
 	// On Linux (just like on Mac) this corresponds to $HOME/Documents.
 	// To accomodate localization requirement we use xdg-user-dir command,
 	// and fall back to $HOME/Documents if setting not found.
-	static TCHAR Result[MAX_PATH] = TEXT("");
+	static TCHAR Result[MAX_PATH] = {0};
 
 	if (!Result[0])
 	{
-		char DocPath[MAX_PATH];
-		
 		FILE* FilePtr = popen("xdg-user-dir DOCUMENTS", "r");
-		if(fgets(DocPath, MAX_PATH, FilePtr) == NULL)
+		if (FilePtr)
 		{
-			char* Home = secure_getenv("HOME");
-			if (!Home)
+			char DocPath[MAX_PATH];
+			if (fgets(DocPath, MAX_PATH, FilePtr) != nullptr)
 			{
-				UE_LOG(LogHAL, Warning, TEXT("Unable to read the $HOME environment variable"));
+				size_t DocLen = strlen(DocPath) - 1;
+				if (DocLen > 0)
+				{
+					DocPath[DocLen] = '\0';
+					FCString::Strncpy(Result, ANSI_TO_TCHAR(DocPath), ARRAY_COUNT(Result));
+					FCString::Strncat(Result, TEXT("/"), ARRAY_COUNT(Result));
+				}
 			}
-			else
-			{
-				FCString::Strcpy(Result, ANSI_TO_TCHAR(Home));
-				FCString::Strcat(Result, TEXT("/Documents/"));
-			}
+			pclose(FilePtr);
+		}
+
+		// if xdg-user-dir did not work, use $HOME
+		if (!Result[0])
+		{
+			FCString::Strncpy(Result, FPlatformProcess::UserHomeDir(), ARRAY_COUNT(Result));
+			FCString::Strncat(Result, TEXT("/Documents/"), ARRAY_COUNT(Result));
+		}
+	}
+	return Result;
+}
+
+const TCHAR* FLinuxPlatformProcess::UserHomeDir()
+{
+	static bool bHaveHome = false;
+	static TCHAR CachedResult[PlatformProcessLimits::MaxUserHomeDirLength] = { 0 };
+
+	if (!bHaveHome)
+	{
+		//  get user $HOME var first
+		const char * VarValue = secure_getenv("HOME");
+		if (VarValue)
+		{
+			FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(VarValue));
+			bHaveHome = true;
 		}
 		else
 		{
-				size_t DocLen = strlen(DocPath) - 1;
-				DocPath[DocLen] = '\0';
-				FCString::Strcpy(Result, ANSI_TO_TCHAR(DocPath));
-				FCString::Strcat(Result, TEXT("/"));
+			struct passwd * UserInfo = getpwuid(geteuid());
+			if (NULL != UserInfo && NULL != UserInfo->pw_dir)
+			{
+				FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(UserInfo->pw_dir));
+				bHaveHome = true;
+			}
+			else
+			{
+				// fail for realz
+				UE_LOG(LogInit, Fatal, TEXT("Could not get determine user home directory."));
+			}
 		}
-		pclose(FilePtr);
 	}
-	return Result;
+
+	return CachedResult;
 }
 
 const TCHAR* FLinuxPlatformProcess::UserSettingsDir()
@@ -237,16 +278,8 @@ const TCHAR* FLinuxPlatformProcess::ApplicationSettingsDir()
 	static TCHAR Result[MAX_PATH] = TEXT("");
 	if (!Result[0])
 	{
-		char* Home = secure_getenv("HOME");
-		if (!Home)
-		{
-			UE_LOG(LogHAL, Warning, TEXT("Unable to read the $HOME environment variable"));
-		}
-		else
-		{
-			FCString::Strcpy(Result, ANSI_TO_TCHAR(Home));
-			FCString::Strcat(Result, TEXT("/.config/Epic/"));
-		}
+		FCString::Strncpy(Result, FPlatformProcess::UserHomeDir(), ARRAY_COUNT(Result));
+		FCString::Strncat(Result, TEXT("/.config/Epic/"), ARRAY_COUNT(Result));
 	}
 	return Result;
 }
@@ -456,21 +489,23 @@ bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, F
 		return false;
 	}
 
-	// convert input to UTF8CHAR
+	// Convert input to UTF8CHAR
 	uint32 BytesAvailable = Message.Len();
-	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
-
-	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
+	UTF8CHAR * Buffer = new UTF8CHAR[BytesAvailable + 1];
+	for (uint32 i = 0; i < BytesAvailable; i++)
 	{
-		return false;
+		Buffer[i] = Message[i];
 	}
+	Buffer[BytesAvailable] = '\n';
 
 	// write to pipe
 	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
 
-	if (OutWritten != nullptr)
+	// Get written message
+	if (OutWritten)
 	{
-		OutWritten->FromBlob(Buffer, BytesWritten);
+		Buffer[BytesWritten] = '\0';
+		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
 	}
 
 	return (BytesWritten == BytesAvailable);
@@ -561,7 +596,7 @@ TArray<FChildWaiterThread *> FChildWaiterThread::ChildWaiterThreadsArray;
 /** See FChildWaiterThread */
 FCriticalSection FChildWaiterThread::ChildWaiterThreadsArrayGuard;
 
-FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite)
+FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild)
 {
 	// @TODO bLaunchHidden bLaunchReallyHidden are not handled
 	// We need an absolute path to executable
@@ -696,10 +731,16 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	posix_spawn_file_actions_t FileActions;
 
 	posix_spawn_file_actions_init(&FileActions);
-	if (PipeWrite)
+	if (PipeWriteChild)
 	{
-		const FPipeHandle* PipeWriteHandle = reinterpret_cast< const FPipeHandle* >(PipeWrite);
+		const FPipeHandle* PipeWriteHandle = reinterpret_cast< const FPipeHandle* >(PipeWriteChild);
 		posix_spawn_file_actions_adddup2(&FileActions, PipeWriteHandle->GetHandle(), STDOUT_FILENO);
+	}
+
+	if (PipeReadChild)
+	{
+		const FPipeHandle* PipeReadHandle = reinterpret_cast< const FPipeHandle* >(PipeReadChild);
+		posix_spawn_file_actions_adddup2(&FileActions, PipeReadHandle->GetHandle(), STDIN_FILENO);
 	}
 
 	int PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, nullptr, Argv, environ);

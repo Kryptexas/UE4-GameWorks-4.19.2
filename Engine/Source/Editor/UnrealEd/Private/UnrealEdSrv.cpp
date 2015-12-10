@@ -857,6 +857,15 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	{
 		return HandleDisasmScriptCommand( Str, Ar );
 	}
+#if WITH_EDITOR
+	else if (FParse::Command(&Str, TEXT("cook")))
+	{
+		if (CookServer)
+		{
+			return CookServer->Exec(InWorld, Str, Ar);
+		}
+	}
+#endif
 	else if ( FParse::Command(&Str, TEXT("GROUPS")) )
 	{
 		return Exec_Group( Str, Ar );

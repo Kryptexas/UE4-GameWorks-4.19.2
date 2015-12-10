@@ -79,6 +79,7 @@
 #include "Classes/Settings/DestructableMeshEditorSettings.h"
 #include "Classes/Commandlets/DiffAssetsCommandlet.h"
 #include "Classes/Commandlets/DiffPackagesCommandlet.h"
+#include "Classes/Commandlets/DiffFilesCommandlet.h"
 #include "Classes/Commandlets/DumpBlueprintsInfoCommandlet.h"
 #include "Classes/Commandlets/DumpHiddenCategoriesCommandlet.h"
 #include "Classes/MaterialGraph/MaterialGraph.h"

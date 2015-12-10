@@ -18,9 +18,19 @@
 
 #define DEFAULT_PREDICTION_IN_SECONDS 0.035
 
+#if PLATFORM_ANDROID
 // call out to JNI to see if the application was packaged for GearVR
-extern bool AndroidThunkCpp_IsGearVRApplication();
-
+bool AndroidThunkCpp_IsGearVRApplication()
+{
+	bool bIsGearVRApplication = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", false);
+		bIsGearVRApplication = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	}
+	return bIsGearVRApplication;
+}
+#endif
 
 //---------------------------------------------------
 // GearVR Plugin Implementation
@@ -709,7 +719,7 @@ void FGearVR::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = false;
-	InViewFamily.EngineShowFlags.ScreenPercentage =false;
+	InViewFamily.EngineShowFlags.ScreenPercentage = false;
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 }
 
@@ -1088,6 +1098,9 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 }
 
 //////////////////////////////////////////////////////////////////////////
+
+#endif //GEARVR_SUPPORTED_PLATFORMS
+
 void FGearVRPlugin::StartOVRGlobalMenu() const 
 {
 #if GEARVR_SUPPORTED_PLATFORMS
@@ -1261,6 +1274,8 @@ bool FGearVRPlugin::IsInLoadingIconMode() const
 	return false;
 #endif //GEARVR_SUPPORTED_PLATFORMS
 }
+
+#if GEARVR_SUPPORTED_PLATFORMS
 
 #include <HeadMountedDisplayCommon.cpp>
 

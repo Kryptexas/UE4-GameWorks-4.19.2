@@ -60,6 +60,8 @@ public:
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
+	
+	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings() const override;
 
@@ -100,7 +102,7 @@ private:
 	FConfigFile HTML5EngineSettings;
 
 	// Holds the local device.
-	TArray<ITargetDevicePtr> LocalDevice;
+	TMap<FString, FHTML5TargetDevicePtr> Devices;
 
 #if WITH_ENGINE
 	// Holds the cached target LOD settings.
@@ -110,12 +112,16 @@ private:
 	FStaticMeshLODSettings StaticMeshLODSettings;
 #endif
 
-private:
-
 	// Holds an event delegate that is executed when a new target device has been discovered.
 	FOnTargetDeviceDiscovered DeviceDiscoveredEvent;
 
 	// Holds an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	FOnTargetDeviceLost DeviceLostEvent;
+
+	// The name of the default device
+	FString DefaultDeviceName;
+
+	// Holds a critical section for locking access to the collection of devices.
+	static FCriticalSection DevicesCriticalSection;
 
 };

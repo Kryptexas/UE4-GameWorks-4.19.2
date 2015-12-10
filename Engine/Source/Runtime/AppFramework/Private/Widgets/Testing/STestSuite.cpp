@@ -3969,7 +3969,7 @@ class SInvalidationTest : public SCompoundWidget
 					.AutoHeight()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("StaticText", "Support Input"))
+						.Text(LOCTEXT("StaticTextSupportInput", "Support Input"))
 					]
 
 					+ SVerticalBox::Slot()
@@ -4192,7 +4192,7 @@ public:
 					.Padding(FMargin(15.0f, 0.0f, 0.0f, 0.0f))
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("TestingBigTextBigMargin", "Big notififcation text!"))
+						.Text(LOCTEXT("TestingBigNotificationText", "Big notififcation text!"))
 						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 30))
 					]
 					+ SHorizontalBox::Slot()

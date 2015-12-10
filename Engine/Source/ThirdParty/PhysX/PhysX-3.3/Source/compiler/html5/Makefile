@@ -6,13 +6,13 @@ DEPSDIR = .deps
 OBJS_DIR  = build
 RMDIR     = rm -fr
 ECHO      = echo
-CCLD      =  g++
-CXX       =  g++
-CC        =  gcc
-RANLIB    = ranlib
-AR		 = ar
+CCLD      =  em++
+CXX       =  em++
+CC        =  emcc
+RANLIB    = emranlib
+AR		 = emcc
 STRIP     = strip
-OBJDUMP   = objdump
+OBJDUMP   = llvm-objdump
 OBJCOPY   = objcopy
 -include Makedefs.html5.mk
 

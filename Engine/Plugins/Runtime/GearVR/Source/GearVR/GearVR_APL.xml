@@ -58,6 +58,9 @@
 				</isDistribution>
 			</true>
 		</if>
+		
+		<!-- entitlements check if package GearVR for distribution and removing OSIGs -->
+		<setBoolAnd result="bEntitlementCheck" arg1="$B(bRemoveOSIG)" arg2="$B(bGearDistribution)"/>
 	</init>
 
 	<!-- optional updates applied to AndroidManifest.xml -->
@@ -166,7 +169,7 @@
 				String VRMode = bundle.getString("com.samsung.android.vr.application.mode");
 				Log.debug("Found GearVR mode = " + VRMode);
 				</insert>
-				<if condition="bRemoveOSIG">
+				<if condition="bEntitlementCheck">
 					<true>
 						<!-- add entitlement check if osig files are removed -->
 						<insert>

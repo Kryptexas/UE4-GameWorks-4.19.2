@@ -21,7 +21,8 @@ namespace UnrealBuildTool.Rules
 					break;
 			
 			    case UnrealTargetPlatform.IOS:
-                    PlatformName = "IOS/";
+				case UnrealTargetPlatform.TVOS:
+					PlatformName = "IOS/";
                     break;
                 case UnrealTargetPlatform.Mac:
                     PlatformName = "Mac/";

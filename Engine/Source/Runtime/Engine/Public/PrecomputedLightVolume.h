@@ -64,7 +64,7 @@ struct FLightVolumeOctreeSemantics
 
 	FORCEINLINE static const float* GetBoundingBox(const FVolumeLightingSample& Sample)
 	{
-		FPlatformMisc::Prefetch( &Sample, CACHE_LINE_SIZE );
+		FPlatformMisc::Prefetch( &Sample, PLATFORM_CACHE_LINE_SIZE );
 		// here we require that the position and radius are contiguous in memory
 		static_assert(STRUCT_OFFSET(FVolumeLightingSample, Position) + 3 * sizeof(float) == STRUCT_OFFSET(FVolumeLightingSample, Radius), "FVolumeLightingSample radius must follow position.");
 		return &Sample.Position.X;

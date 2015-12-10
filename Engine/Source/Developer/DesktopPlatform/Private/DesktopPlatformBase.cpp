@@ -800,7 +800,7 @@ bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 {
 	// Get the platform-specific suffix for solution files
 #if PLATFORM_MAC
-	const TCHAR* Suffix = TEXT(".xcodeproj/project.pbxproj");
+	const TCHAR* Suffix = TEXT(".xcworkspace/contents.xcworkspacedata");
 #elif PLATFORM_LINUX
 	const TCHAR* Suffix = TEXT(".workspace");	// FIXME: Should depend on PreferredAccessor setting
 #else
@@ -1150,7 +1150,9 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 		FString VCVarsBat;
 
 #if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1800
+	#if _MSC_VER >= 1900
+		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
+	#elif _MSC_VER >= 1800
 		FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 	#else
 		FPlatformMisc::GetVSComnTools(11, VCVarsBat);

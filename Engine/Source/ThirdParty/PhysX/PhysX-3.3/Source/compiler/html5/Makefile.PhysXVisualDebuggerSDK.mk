@@ -43,7 +43,7 @@ PhysXVisualDebuggerSDK_debug_defines   += _DEBUG
 PhysXVisualDebuggerSDK_debug_defines   += PX_CHECKED
 PhysXVisualDebuggerSDK_debug_libraries := 
 PhysXVisualDebuggerSDK_debug_common_cflags	:= $(PhysXVisualDebuggerSDK_custom_cflags)
-PhysXVisualDebuggerSDK_debug_common_cflags    += -MMD
+PhysXVisualDebuggerSDK_debug_common_cflags    += 
 PhysXVisualDebuggerSDK_debug_common_cflags    += $(addprefix -D, $(PhysXVisualDebuggerSDK_debug_defines))
 PhysXVisualDebuggerSDK_debug_common_cflags    += $(addprefix -I, $(PhysXVisualDebuggerSDK_debug_hpaths))
 PhysXVisualDebuggerSDK_debug_common_cflags  += -Wno-invalid-offsetof
@@ -73,7 +73,7 @@ prebuild_PhysXVisualDebuggerSDK_debug:
 
 $(PhysXVisualDebuggerSDK_debug_bin): $(PhysXVisualDebuggerSDK_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXVisualDebuggerSDKDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXVisualDebuggerSDK_debug_bin) $(PhysXVisualDebuggerSDK_debug_obj)
+	@$(AR) -o $(PhysXVisualDebuggerSDK_debug_bin) $(PhysXVisualDebuggerSDK_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVisualDebuggerSDK_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -122,7 +122,7 @@ PhysXVisualDebuggerSDK_checked_defines   += NDEBUG
 PhysXVisualDebuggerSDK_checked_defines   += PX_CHECKED
 PhysXVisualDebuggerSDK_checked_libraries := 
 PhysXVisualDebuggerSDK_checked_common_cflags	:= $(PhysXVisualDebuggerSDK_custom_cflags)
-PhysXVisualDebuggerSDK_checked_common_cflags    += -MMD
+PhysXVisualDebuggerSDK_checked_common_cflags    += 
 PhysXVisualDebuggerSDK_checked_common_cflags    += $(addprefix -D, $(PhysXVisualDebuggerSDK_checked_defines))
 PhysXVisualDebuggerSDK_checked_common_cflags    += $(addprefix -I, $(PhysXVisualDebuggerSDK_checked_hpaths))
 PhysXVisualDebuggerSDK_checked_common_cflags  += -Wno-invalid-offsetof
@@ -152,7 +152,7 @@ prebuild_PhysXVisualDebuggerSDK_checked:
 
 $(PhysXVisualDebuggerSDK_checked_bin): $(PhysXVisualDebuggerSDK_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXVisualDebuggerSDKCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXVisualDebuggerSDK_checked_bin) $(PhysXVisualDebuggerSDK_checked_obj)
+	@$(AR) -o $(PhysXVisualDebuggerSDK_checked_bin) $(PhysXVisualDebuggerSDK_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVisualDebuggerSDK_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -201,7 +201,7 @@ PhysXVisualDebuggerSDK_profile_defines   += NDEBUG
 PhysXVisualDebuggerSDK_profile_defines   += PX_PROFILE
 PhysXVisualDebuggerSDK_profile_libraries := 
 PhysXVisualDebuggerSDK_profile_common_cflags	:= $(PhysXVisualDebuggerSDK_custom_cflags)
-PhysXVisualDebuggerSDK_profile_common_cflags    += -MMD
+PhysXVisualDebuggerSDK_profile_common_cflags    += 
 PhysXVisualDebuggerSDK_profile_common_cflags    += $(addprefix -D, $(PhysXVisualDebuggerSDK_profile_defines))
 PhysXVisualDebuggerSDK_profile_common_cflags    += $(addprefix -I, $(PhysXVisualDebuggerSDK_profile_hpaths))
 PhysXVisualDebuggerSDK_profile_common_cflags  += -Wno-invalid-offsetof
@@ -231,7 +231,7 @@ prebuild_PhysXVisualDebuggerSDK_profile:
 
 $(PhysXVisualDebuggerSDK_profile_bin): $(PhysXVisualDebuggerSDK_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXVisualDebuggerSDKPROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXVisualDebuggerSDK_profile_bin) $(PhysXVisualDebuggerSDK_profile_obj)
+	@$(AR) -o $(PhysXVisualDebuggerSDK_profile_bin) $(PhysXVisualDebuggerSDK_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVisualDebuggerSDK_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -279,7 +279,7 @@ PhysXVisualDebuggerSDK_release_defines   += PX_PHYSX_STATIC_LIB
 PhysXVisualDebuggerSDK_release_defines   += NDEBUG
 PhysXVisualDebuggerSDK_release_libraries := 
 PhysXVisualDebuggerSDK_release_common_cflags	:= $(PhysXVisualDebuggerSDK_custom_cflags)
-PhysXVisualDebuggerSDK_release_common_cflags    += -MMD
+PhysXVisualDebuggerSDK_release_common_cflags    += 
 PhysXVisualDebuggerSDK_release_common_cflags    += $(addprefix -D, $(PhysXVisualDebuggerSDK_release_defines))
 PhysXVisualDebuggerSDK_release_common_cflags    += $(addprefix -I, $(PhysXVisualDebuggerSDK_release_hpaths))
 PhysXVisualDebuggerSDK_release_common_cflags  += -Wno-invalid-offsetof
@@ -309,7 +309,7 @@ prebuild_PhysXVisualDebuggerSDK_release:
 
 $(PhysXVisualDebuggerSDK_release_bin): $(PhysXVisualDebuggerSDK_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXVisualDebuggerSDK_Oz.bc`
-	@$(AR) rcs $(PhysXVisualDebuggerSDK_release_bin) $(PhysXVisualDebuggerSDK_release_obj)
+	@$(AR) -o $(PhysXVisualDebuggerSDK_release_bin) $(PhysXVisualDebuggerSDK_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVisualDebuggerSDK_release_DEPDIR = $(dir $(@))/$(*F)

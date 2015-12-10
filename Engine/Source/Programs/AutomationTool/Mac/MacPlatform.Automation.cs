@@ -330,7 +330,7 @@ public class MacPlatform : Platform
 					File.Delete(DefaultIconPath);
 					File.Move(CustomIconSrcPath, CustomIconDestPath);
 				}
-				else
+				else if (File.Exists(DefaultIconPath))
 				{
 					File.Move(DefaultIconPath, CustomIconDestPath);
 				}
@@ -392,7 +392,7 @@ public class MacPlatform : Platform
 	}
 	public override bool CanHostPlatform(UnrealTargetPlatform Platform)
 	{
-		if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac)
+		if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac || Platform == UnrealTargetPlatform.TVOS)
 		{
 			return true;
 		}

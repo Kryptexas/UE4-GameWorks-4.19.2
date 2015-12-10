@@ -26,6 +26,17 @@ struct FThreadSet
 		FScopeLock ScopeLock(&SynchronizationObject);
 		return FilesInFlight.Contains(Key);
 	}
+	bool AddIfNotExists(const FString& Key)
+	{
+		FScopeLock ScopeLock(&SynchronizationObject);
+		check(Key.Len());
+		if (!FilesInFlight.Contains(Key))
+		{
+			FilesInFlight.Add(Key);
+			return true;
+		}
+		return false;
+	}
 };
 /** 
 	* Async task to handle the fire and forget async put
@@ -45,18 +56,16 @@ public:
 	FThreadSet*							FilesInFlight;
 	/**If true, then do not attempt skip the put even if CachedDataProbablyExists returns true **/
 	bool								bPutEvenIfExists;
-	FCacheStatRecord*					Record;
 
 	/** Constructor
 	*/
-	FCachePutAsyncWorker(const TCHAR* InCacheKey, const TArray<uint8>* InData, FDerivedDataBackendInterface* InInnerBackend, bool InbPutEvenIfExists, FDerivedDataBackendInterface* InInflightCache, FThreadSet* InInFilesInFlight, FCacheStatRecord* Stats)
+	FCachePutAsyncWorker(const TCHAR* InCacheKey, const TArray<uint8>* InData, FDerivedDataBackendInterface* InInnerBackend, bool InbPutEvenIfExists, FDerivedDataBackendInterface* InInflightCache, FThreadSet* InInFilesInFlight)
 		: CacheKey(InCacheKey)
 		, Data(*InData)
 		, InnerBackend(InInnerBackend)
 		, InflightCache(InInflightCache)
 		, FilesInFlight(InInFilesInFlight)
 		, bPutEvenIfExists(InbPutEvenIfExists)
-		, Record(Stats)
 	{
 		check(InnerBackend);
 	}
@@ -65,13 +74,13 @@ public:
 	void DoWork()
 	{
 		bool bOk = true;
-		InnerBackend->PutCachedData(*CacheKey, Data, bPutEvenIfExists, Record);
+		InnerBackend->PutCachedData(*CacheKey, Data, bPutEvenIfExists);
 		if (InflightCache)
 		{
 			if (!InnerBackend->CachedDataProbablyExists(*CacheKey))
 			{
 				// retry
-				InnerBackend->PutCachedData(*CacheKey, Data, false, Record);
+				InnerBackend->PutCachedData(*CacheKey, Data, false);
 				if (!InnerBackend->CachedDataProbablyExists(*CacheKey))
 				{
 					UE_LOG(LogDerivedDataCache, Warning, TEXT("FDerivedDataBackendAsyncPutWrapper: Put failed, keeping in memory copy %s."),*CacheKey);
@@ -154,13 +163,13 @@ public:
 	 * @param	OutData		Buffer to receive the results, if any were found
 	 * @return				true if any data was found, and in this case OutData is non-empty
 	 */
-	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData, FCacheStatRecord* Stats) override
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
-		if (InflightCache && InflightCache->GetCachedData(CacheKey, OutData, Stats))
+		if (InflightCache && InflightCache->GetCachedData(CacheKey, OutData))
 		{
 			return true;
 		}
-		bool bSuccess = InnerBackend->GetCachedData(CacheKey, OutData, Stats);
+		bool bSuccess = InnerBackend->GetCachedData(CacheKey, OutData);
 		return bSuccess;
 	}
 	/**
@@ -170,13 +179,14 @@ public:
 	 * @param	InData		Buffer containing the data to cache, can be destroyed after the call returns, immediately
 	 * @param	bPutEvenIfExists	If true, then do not attempt skip the put even if CachedDataProbablyExists returns true
 	 */
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
 		if (!InnerBackend->IsWritable())
 		{
 			return; // no point in continuing down the chain
 		}
-		if (FilesInFlight.Exists(CacheKey))
+		const bool bAdded = FilesInFlight.AddIfNotExists(CacheKey);
+		if (!bAdded)
 		{
 			return; // if it is already on its way, we don't need to send it again
 		}
@@ -188,9 +198,8 @@ public:
 			}
 			InflightCache->PutCachedData(CacheKey, InData, true); // temp copy stored in memory while the async task waits to complete
 		}
-		FilesInFlight.Add(CacheKey);
 		FDerivedDataBackend::Get().AddToAsyncCompletionCounter(1);
-		(new FAutoDeleteAsyncTask<FCachePutAsyncWorker>(CacheKey, &InData, InnerBackend, bPutEvenIfExists, InflightCache.GetOwnedPointer(), &FilesInFlight, Stats))->StartBackgroundTask();
+		(new FAutoDeleteAsyncTask<FCachePutAsyncWorker>(CacheKey, &InData, InnerBackend, bPutEvenIfExists, InflightCache.GetOwnedPointer(), &FilesInFlight))->StartBackgroundTask();
 	}
 
 	virtual void RemoveCachedData(const TCHAR* CacheKey, bool bTransient) override

@@ -725,6 +725,11 @@ bool FIOSPlatformFile::IterateDirectoryCommon(const TCHAR* Directory, const TFun
 FString FIOSPlatformFile::ConvertToIOSPath(const FString& Filename, bool bForWrite)
 {
 	FString Result = Filename;
+    if (Result.Contains(TEXT("/OnDemandResources/")))
+    {
+        return Result;
+    }
+    
 	Result.ReplaceInline(TEXT("../"), TEXT(""));
 	Result.ReplaceInline(TEXT(".."), TEXT(""));
 	Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));

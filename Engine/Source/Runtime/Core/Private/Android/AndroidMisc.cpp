@@ -12,6 +12,7 @@
 #include "AndroidPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
 #include "AndroidJavaMessageBox.h"
+#include "GenericPlatformChunkInstall.h"
 
 #include <android_native_app_glue.h>
 
@@ -514,7 +515,7 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 
 	// Restore system handlers so Android could catch this signal after we are done with crashreport
 	RestorePreviousSignalHandlers();
-	
+
 	FAndroidCrashContext CrashContext;
 	CrashContext.InitFromSignal(Signal, Info, Context);
 
@@ -558,6 +559,27 @@ TArray<uint8> FAndroidMisc::GetSystemFontBytes()
 	static FString FullFontPath = GFontPathBase + FString(TEXT("DroidSans.ttf"));
 	FFileHelper::LoadFileToArray(FontBytes, *FullFontPath);
 	return FontBytes;
+}
+
+class IPlatformChunkInstall* FAndroidMisc::GetPlatformChunkInstall()
+{
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+	if (!ChunkInstall)
+	{
+		if (PlatformChunkInstallModule != NULL)
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		}
+		else
+		{
+			// Placeholder instance
+			ChunkInstall = new FGenericPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
 }
 
 void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMake, FString InDeviceModel, FString InOSLanguage )

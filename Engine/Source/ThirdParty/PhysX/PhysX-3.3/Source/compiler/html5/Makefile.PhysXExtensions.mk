@@ -117,7 +117,7 @@ PhysXExtensions_debug_defines   += _DEBUG
 PhysXExtensions_debug_defines   += PX_CHECKED
 PhysXExtensions_debug_libraries := 
 PhysXExtensions_debug_common_cflags	:= $(PhysXExtensions_custom_cflags)
-PhysXExtensions_debug_common_cflags    += -MMD
+PhysXExtensions_debug_common_cflags    += 
 PhysXExtensions_debug_common_cflags    += $(addprefix -D, $(PhysXExtensions_debug_defines))
 PhysXExtensions_debug_common_cflags    += $(addprefix -I, $(PhysXExtensions_debug_hpaths))
 PhysXExtensions_debug_common_cflags  += -Wno-invalid-offsetof
@@ -147,7 +147,7 @@ prebuild_PhysXExtensions_debug:
 
 $(PhysXExtensions_debug_bin): $(PhysXExtensions_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3ExtensionsDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXExtensions_debug_bin) $(PhysXExtensions_debug_obj)
+	@$(AR) -o $(PhysXExtensions_debug_bin) $(PhysXExtensions_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXExtensions_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -223,7 +223,7 @@ PhysXExtensions_checked_defines   += NDEBUG
 PhysXExtensions_checked_defines   += PX_CHECKED
 PhysXExtensions_checked_libraries := 
 PhysXExtensions_checked_common_cflags	:= $(PhysXExtensions_custom_cflags)
-PhysXExtensions_checked_common_cflags    += -MMD
+PhysXExtensions_checked_common_cflags    += 
 PhysXExtensions_checked_common_cflags    += $(addprefix -D, $(PhysXExtensions_checked_defines))
 PhysXExtensions_checked_common_cflags    += $(addprefix -I, $(PhysXExtensions_checked_hpaths))
 PhysXExtensions_checked_common_cflags  += -Wno-invalid-offsetof
@@ -253,7 +253,7 @@ prebuild_PhysXExtensions_checked:
 
 $(PhysXExtensions_checked_bin): $(PhysXExtensions_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3ExtensionsCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXExtensions_checked_bin) $(PhysXExtensions_checked_obj)
+	@$(AR) -o $(PhysXExtensions_checked_bin) $(PhysXExtensions_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXExtensions_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -329,7 +329,7 @@ PhysXExtensions_profile_defines   += NDEBUG
 PhysXExtensions_profile_defines   += PX_PROFILE
 PhysXExtensions_profile_libraries := 
 PhysXExtensions_profile_common_cflags	:= $(PhysXExtensions_custom_cflags)
-PhysXExtensions_profile_common_cflags    += -MMD
+PhysXExtensions_profile_common_cflags    += 
 PhysXExtensions_profile_common_cflags    += $(addprefix -D, $(PhysXExtensions_profile_defines))
 PhysXExtensions_profile_common_cflags    += $(addprefix -I, $(PhysXExtensions_profile_hpaths))
 PhysXExtensions_profile_common_cflags  += -Wno-invalid-offsetof
@@ -359,7 +359,7 @@ prebuild_PhysXExtensions_profile:
 
 $(PhysXExtensions_profile_bin): $(PhysXExtensions_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3ExtensionsPROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXExtensions_profile_bin) $(PhysXExtensions_profile_obj)
+	@$(AR) -o $(PhysXExtensions_profile_bin) $(PhysXExtensions_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXExtensions_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -434,7 +434,7 @@ PhysXExtensions_release_defines   += PX_PHYSX_STATIC_LIB
 PhysXExtensions_release_defines   += NDEBUG
 PhysXExtensions_release_libraries := 
 PhysXExtensions_release_common_cflags	:= $(PhysXExtensions_custom_cflags)
-PhysXExtensions_release_common_cflags    += -MMD
+PhysXExtensions_release_common_cflags    += 
 PhysXExtensions_release_common_cflags    += $(addprefix -D, $(PhysXExtensions_release_defines))
 PhysXExtensions_release_common_cflags    += $(addprefix -I, $(PhysXExtensions_release_hpaths))
 PhysXExtensions_release_common_cflags  += -Wno-invalid-offsetof
@@ -464,7 +464,7 @@ prebuild_PhysXExtensions_release:
 
 $(PhysXExtensions_release_bin): $(PhysXExtensions_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3Extensions_Oz.bc`
-	@$(AR) rcs $(PhysXExtensions_release_bin) $(PhysXExtensions_release_obj)
+	@$(AR) -o $(PhysXExtensions_release_bin) $(PhysXExtensions_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXExtensions_release_DEPDIR = $(dir $(@))/$(*F)

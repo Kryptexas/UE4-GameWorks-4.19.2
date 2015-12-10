@@ -28,4 +28,11 @@ public:
 	virtual ~FAndroidDeviceProfileSelectorModule()
 	{
 	}
+
+private:
+
+	/**
+	 * Make sure we use the java workaround for view scaling on devices that require this
+	 */
+	void CheckForJavaSurfaceViewWorkaround(const FString& DeviceMake, const FString& DeviceModel) const;
 };

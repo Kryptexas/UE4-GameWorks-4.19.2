@@ -54,7 +54,7 @@ LowLevelCloth_debug_defines   += _DEBUG
 LowLevelCloth_debug_defines   += PX_CHECKED
 LowLevelCloth_debug_libraries := 
 LowLevelCloth_debug_common_cflags	:= $(LowLevelCloth_custom_cflags)
-LowLevelCloth_debug_common_cflags    += -MMD
+LowLevelCloth_debug_common_cflags    += 
 LowLevelCloth_debug_common_cflags    += $(addprefix -D, $(LowLevelCloth_debug_defines))
 LowLevelCloth_debug_common_cflags    += $(addprefix -I, $(LowLevelCloth_debug_hpaths))
 LowLevelCloth_debug_common_cflags  += -Wno-invalid-offsetof
@@ -84,7 +84,7 @@ prebuild_LowLevelCloth_debug:
 
 $(LowLevelCloth_debug_bin): $(LowLevelCloth_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelClothDEBUG_Oz.bc`
-	@$(AR) rcs $(LowLevelCloth_debug_bin) $(LowLevelCloth_debug_obj)
+	@$(AR) -o $(LowLevelCloth_debug_bin) $(LowLevelCloth_debug_obj)
 	$(ECHO) building $@ complete!
 
 LowLevelCloth_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -137,7 +137,7 @@ LowLevelCloth_checked_defines   += NDEBUG
 LowLevelCloth_checked_defines   += PX_CHECKED
 LowLevelCloth_checked_libraries := 
 LowLevelCloth_checked_common_cflags	:= $(LowLevelCloth_custom_cflags)
-LowLevelCloth_checked_common_cflags    += -MMD
+LowLevelCloth_checked_common_cflags    += 
 LowLevelCloth_checked_common_cflags    += $(addprefix -D, $(LowLevelCloth_checked_defines))
 LowLevelCloth_checked_common_cflags    += $(addprefix -I, $(LowLevelCloth_checked_hpaths))
 LowLevelCloth_checked_common_cflags  += -Wno-invalid-offsetof
@@ -167,7 +167,7 @@ prebuild_LowLevelCloth_checked:
 
 $(LowLevelCloth_checked_bin): $(LowLevelCloth_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelClothCHECKED_Oz.bc`
-	@$(AR) rcs $(LowLevelCloth_checked_bin) $(LowLevelCloth_checked_obj)
+	@$(AR) -o $(LowLevelCloth_checked_bin) $(LowLevelCloth_checked_obj)
 	$(ECHO) building $@ complete!
 
 LowLevelCloth_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -220,7 +220,7 @@ LowLevelCloth_profile_defines   += NDEBUG
 LowLevelCloth_profile_defines   += PX_PROFILE
 LowLevelCloth_profile_libraries := 
 LowLevelCloth_profile_common_cflags	:= $(LowLevelCloth_custom_cflags)
-LowLevelCloth_profile_common_cflags    += -MMD
+LowLevelCloth_profile_common_cflags    += 
 LowLevelCloth_profile_common_cflags    += $(addprefix -D, $(LowLevelCloth_profile_defines))
 LowLevelCloth_profile_common_cflags    += $(addprefix -I, $(LowLevelCloth_profile_hpaths))
 LowLevelCloth_profile_common_cflags  += -Wno-invalid-offsetof
@@ -250,7 +250,7 @@ prebuild_LowLevelCloth_profile:
 
 $(LowLevelCloth_profile_bin): $(LowLevelCloth_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelClothPROFILE_Oz.bc`
-	@$(AR) rcs $(LowLevelCloth_profile_bin) $(LowLevelCloth_profile_obj)
+	@$(AR) -o $(LowLevelCloth_profile_bin) $(LowLevelCloth_profile_obj)
 	$(ECHO) building $@ complete!
 
 LowLevelCloth_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -302,7 +302,7 @@ LowLevelCloth_release_defines   += PX_PHYSX_STATIC_LIB
 LowLevelCloth_release_defines   += NDEBUG
 LowLevelCloth_release_libraries := 
 LowLevelCloth_release_common_cflags	:= $(LowLevelCloth_custom_cflags)
-LowLevelCloth_release_common_cflags    += -MMD
+LowLevelCloth_release_common_cflags    += 
 LowLevelCloth_release_common_cflags    += $(addprefix -D, $(LowLevelCloth_release_defines))
 LowLevelCloth_release_common_cflags    += $(addprefix -I, $(LowLevelCloth_release_hpaths))
 LowLevelCloth_release_common_cflags  += -Wno-invalid-offsetof
@@ -332,7 +332,7 @@ prebuild_LowLevelCloth_release:
 
 $(LowLevelCloth_release_bin): $(LowLevelCloth_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelCloth_Oz.bc`
-	@$(AR) rcs $(LowLevelCloth_release_bin) $(LowLevelCloth_release_obj)
+	@$(AR) -o $(LowLevelCloth_release_bin) $(LowLevelCloth_release_obj)
 	$(ECHO) building $@ complete!
 
 LowLevelCloth_release_DEPDIR = $(dir $(@))/$(*F)

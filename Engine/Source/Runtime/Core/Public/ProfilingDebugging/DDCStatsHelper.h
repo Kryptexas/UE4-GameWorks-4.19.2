@@ -14,6 +14,12 @@ public:
 
 	CORE_API void AddTag(const FName& Tag, const FString& Value);
 
+	CORE_API void AddTag(const FName& Tag, const float Value);
+
+	CORE_API void AddTag(const FName& Tag, const int32 Value);
+
+	CORE_API void AddTag(const FName& Tag, const bool Value);
+
 	CORE_API bool HasParent() const { return bHasParent; }
 };
 

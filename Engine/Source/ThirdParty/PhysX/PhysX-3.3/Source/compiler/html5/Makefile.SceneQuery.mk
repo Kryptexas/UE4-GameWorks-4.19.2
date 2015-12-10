@@ -68,7 +68,7 @@ SceneQuery_debug_defines   += _DEBUG
 SceneQuery_debug_defines   += PX_CHECKED
 SceneQuery_debug_libraries := 
 SceneQuery_debug_common_cflags	:= $(SceneQuery_custom_cflags)
-SceneQuery_debug_common_cflags    += -MMD
+SceneQuery_debug_common_cflags    += 
 SceneQuery_debug_common_cflags    += $(addprefix -D, $(SceneQuery_debug_defines))
 SceneQuery_debug_common_cflags    += $(addprefix -I, $(SceneQuery_debug_hpaths))
 SceneQuery_debug_common_cflags  += -Wno-invalid-offsetof
@@ -98,7 +98,7 @@ prebuild_SceneQuery_debug:
 
 $(SceneQuery_debug_bin): $(SceneQuery_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SceneQueryDEBUG_Oz.bc`
-	@$(AR) rcs $(SceneQuery_debug_bin) $(SceneQuery_debug_obj)
+	@$(AR) -o $(SceneQuery_debug_bin) $(SceneQuery_debug_obj)
 	$(ECHO) building $@ complete!
 
 SceneQuery_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -171,7 +171,7 @@ SceneQuery_checked_defines   += NDEBUG
 SceneQuery_checked_defines   += PX_CHECKED
 SceneQuery_checked_libraries := 
 SceneQuery_checked_common_cflags	:= $(SceneQuery_custom_cflags)
-SceneQuery_checked_common_cflags    += -MMD
+SceneQuery_checked_common_cflags    += 
 SceneQuery_checked_common_cflags    += $(addprefix -D, $(SceneQuery_checked_defines))
 SceneQuery_checked_common_cflags    += $(addprefix -I, $(SceneQuery_checked_hpaths))
 SceneQuery_checked_common_cflags  += -Wno-invalid-offsetof
@@ -201,7 +201,7 @@ prebuild_SceneQuery_checked:
 
 $(SceneQuery_checked_bin): $(SceneQuery_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SceneQueryCHECKED_Oz.bc`
-	@$(AR) rcs $(SceneQuery_checked_bin) $(SceneQuery_checked_obj)
+	@$(AR) -o $(SceneQuery_checked_bin) $(SceneQuery_checked_obj)
 	$(ECHO) building $@ complete!
 
 SceneQuery_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -274,7 +274,7 @@ SceneQuery_profile_defines   += NDEBUG
 SceneQuery_profile_defines   += PX_PROFILE
 SceneQuery_profile_libraries := 
 SceneQuery_profile_common_cflags	:= $(SceneQuery_custom_cflags)
-SceneQuery_profile_common_cflags    += -MMD
+SceneQuery_profile_common_cflags    += 
 SceneQuery_profile_common_cflags    += $(addprefix -D, $(SceneQuery_profile_defines))
 SceneQuery_profile_common_cflags    += $(addprefix -I, $(SceneQuery_profile_hpaths))
 SceneQuery_profile_common_cflags  += -Wno-invalid-offsetof
@@ -304,7 +304,7 @@ prebuild_SceneQuery_profile:
 
 $(SceneQuery_profile_bin): $(SceneQuery_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SceneQueryPROFILE_Oz.bc`
-	@$(AR) rcs $(SceneQuery_profile_bin) $(SceneQuery_profile_obj)
+	@$(AR) -o $(SceneQuery_profile_bin) $(SceneQuery_profile_obj)
 	$(ECHO) building $@ complete!
 
 SceneQuery_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -376,7 +376,7 @@ SceneQuery_release_defines   += PX_PHYSX_STATIC_LIB
 SceneQuery_release_defines   += NDEBUG
 SceneQuery_release_libraries := 
 SceneQuery_release_common_cflags	:= $(SceneQuery_custom_cflags)
-SceneQuery_release_common_cflags    += -MMD
+SceneQuery_release_common_cflags    += 
 SceneQuery_release_common_cflags    += $(addprefix -D, $(SceneQuery_release_defines))
 SceneQuery_release_common_cflags    += $(addprefix -I, $(SceneQuery_release_hpaths))
 SceneQuery_release_common_cflags  += -Wno-invalid-offsetof
@@ -406,7 +406,7 @@ prebuild_SceneQuery_release:
 
 $(SceneQuery_release_bin): $(SceneQuery_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/SceneQuery_Oz.bc`
-	@$(AR) rcs $(SceneQuery_release_bin) $(SceneQuery_release_obj)
+	@$(AR) -o $(SceneQuery_release_bin) $(SceneQuery_release_obj)
 	$(ECHO) building $@ complete!
 
 SceneQuery_release_DEPDIR = $(dir $(@))/$(*F)

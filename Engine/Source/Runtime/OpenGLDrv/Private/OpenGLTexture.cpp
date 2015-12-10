@@ -345,6 +345,9 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 		{
 			glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
 		}
+		
+		TextureMipLimits.Add(TextureID, TPairInitializer<GLenum, GLenum>(0, NumMips - 1));
+		
 		if (FOpenGL::SupportsTextureSwizzle() && GLFormat.bBGRA && !(Flags & TexCreate_RenderTargetable))
 		{
 			glTexParameteri(Target, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
@@ -1488,6 +1491,8 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 	}
 	glTexParameteri(Target, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
+	
+	TextureMipLimits.Add(TextureID, TPairInitializer<GLenum, GLenum>(0, NumMips - 1));
 
 	const bool bSRGB = (Flags&TexCreate_SRGB) != 0;
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
@@ -1598,6 +1603,8 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 	}
 	glTexParameteri(Target, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
+	
+	TextureMipLimits.Add(TextureID, TPairInitializer<GLenum, GLenum>(0, NumMips - 1));
 
 	const bool bSRGB = (Flags&TexCreate_SRGB) != 0;
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
@@ -2111,6 +2118,8 @@ void FOpenGLDynamicRHI::InvalidateTextureResourceInCache(GLuint Resource)
 			RenderingContextState.Textures[SamplerIndex].Resource = 0;
 		}
 	}
+	
+	TextureMipLimits.Remove(Resource);
 }
 
 void FOpenGLDynamicRHI::InvalidateUAVResourceInCache(GLuint Resource)

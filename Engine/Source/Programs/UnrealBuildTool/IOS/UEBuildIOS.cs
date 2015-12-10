@@ -13,21 +13,24 @@ namespace UnrealBuildTool
 	{
 		private bool bInitializedProject = false;
 
+		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		public static string IOSArchitecture = "";
+
 		/// <summary>
 		/// Which version of the iOS to allow at run time
 		/// </summary>
-		public string RunTimeIOSVersion = "7.0";
+		private static string RunTimeIOSVersion = "7.0";
 
 		/// <summary>
 		/// which devices the game is allowed to run on
 		/// </summary>
-		public string RunTimeIOSDevices = "1,2";
+		private static  string RunTimeIOSDevices = "1,2";
 
 		/// <summary>
 		/// The architecture(s) to compile
 		/// </summary>
-		public string NonShippingArchitectures = "armv7";
-		public string ShippingArchitectures = "armv7,arm64";
+		private static string NonShippingArchitectures = "armv7";
+		private static string ShippingArchitectures = "armv7,arm64";
 
 		/// <summary>
 		/// additional linker flags for shipping
@@ -49,24 +52,72 @@ namespace UnrealBuildTool
 		/// </summary>
 		public string SigningCertificate = "";
 
-		public IOSPlatformContext(FileReference InProjectFile) : base(UnrealTargetPlatform.IOS, InProjectFile)
+		public IOSPlatformContext(FileReference InProjectFile) 
+			: this(UnrealTargetPlatform.IOS, InProjectFile)
+		{
+		}
+
+		protected IOSPlatformContext(UnrealTargetPlatform TargetPlatform, FileReference InProjectFile) 
+			: base(TargetPlatform, InProjectFile)
 		{
 		}
 
 		// The current architecture - affects everything about how UBT operates on IOS
 		public override string GetActiveArchitecture()
 		{
-			return IOSPlatform.IOSArchitecture;
+			return IOSArchitecture;
 		}
 
-		public string GetRunTimeVersion()
+		public virtual string GetRunTimeVersion()
 		{
 			return RunTimeIOSVersion;
 		}
 
-		public string GetRunTimeDevices()
+		public virtual string GetRunTimeDevices()
 		{
 			return RunTimeIOSDevices;
+		}
+
+		// The name that Xcode uses for the platform
+		private const string XcodeDevicePlatformName = "iPhoneOS";
+		private const string XcodeSimulatorPlatformName = "iPhoneSimulator";
+
+		public virtual string GetXcodePlatformName(bool bForDevice)
+		{
+			return bForDevice ? XcodeDevicePlatformName : XcodeSimulatorPlatformName;
+		}
+
+		public virtual string GetXcodeMinVersionParam()
+		{
+			return "iphoneos-version-min";
+		}
+
+		public virtual string GetCodesignPlatformName()
+		{
+			return "iphoneos";
+		}
+
+		public virtual string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
+		{
+			SetUpProjectEnvironment();
+
+			// get the list of architectures to compile
+			string Archs =
+				UBTArchitecture == "-simulator" ? "i386" :
+				(Configuration == CPPTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
+
+			Log.TraceLogOnce("Compiling with these architectures: " + Archs);
+
+			// parse the string
+			string[] Tokens = Archs.Split(",".ToCharArray());
+
+			string Result = "";
+			foreach (string Token in Tokens)
+			{
+				Result += " -arch " + Token;
+			}
+
+			return Result;
 		}
 
 		public string GetAdditionalLinkerFlags(CPPTargetConfiguration InConfiguration)
@@ -180,6 +231,7 @@ namespace UnrealBuildTool
 				// determine if we need to generate the dsym
 				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
 
+				// @todo tvos: We probably want to handle TVOS versions here
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalLinkerFlags", out AdditionalLinkerFlags);
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalShippingLinkerFlags", out AdditionalShippingLinkerFlags);
 
@@ -251,8 +303,8 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
 			}
 
-			// needs IOS8 for Metal
-			if (IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
+			// we assume now we are building with IOS8 or later
+			if (UEBuildConfiguration.bCompileAgainstEngine)
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
 				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
@@ -301,13 +353,15 @@ namespace UnrealBuildTool
 
 	public class IOSPlatform : UEBuildPlatform
 	{
-		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-		[XmlConfig]
-		public static string IOSArchitecture = "";
-
 		IOSPlatformSDK SDK;
 
-		public IOSPlatform(IOSPlatformSDK InSDK) : base(UnrealTargetPlatform.IOS, CPPTargetPlatform.IOS)
+		public IOSPlatform(IOSPlatformSDK InSDK)
+			: this(InSDK, UnrealTargetPlatform.IOS, CPPTargetPlatform.IOS)
+		{
+		}
+
+		protected IOSPlatform(IOSPlatformSDK InSDK, UnrealTargetPlatform TargetPlatform, CPPTargetPlatform CPPPlatform)
+			: base(TargetPlatform, CPPPlatform)
 		{
 			SDK = InSDK;
 		}
@@ -434,6 +488,7 @@ namespace UnrealBuildTool
 						if (UEBuildConfiguration.bBuildDeveloperTools)
 						{
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
 						}
 					}
 					else if (ModuleName == "TargetPlatform")
@@ -454,6 +509,7 @@ namespace UnrealBuildTool
 					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
 					{
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
 					}
 
 					if (bBuildShaderFormats)
@@ -516,8 +572,9 @@ namespace UnrealBuildTool
 			UEBuildPlatform.RegisterBuildPlatform(new IOSPlatform(SDK));
 			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.Unix);
 			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.Apple);
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.IOS);
 
-			if (IOSPlatform.IOSArchitecture == "-simulator")
+			if (IOSPlatformContext.IOSArchitecture == "-simulator")
 			{
 				UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.Simulator);
 			}

@@ -1714,6 +1714,11 @@ struct FInternalPlayLevelUtils
 	}
 };
 
+FString UEditorEngine::GetPlayOnTargetPlatformName() const
+{
+	return PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")));
+}
+
 void UEditorEngine::PlayUsingLauncher()
 {
 	if (!PlayUsingLauncherDeviceId.IsEmpty())

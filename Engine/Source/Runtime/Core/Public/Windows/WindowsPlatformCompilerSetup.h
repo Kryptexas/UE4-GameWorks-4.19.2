@@ -195,6 +195,11 @@ static_assert(_MSC_VER >= 1800, "Visual Studio 2013 or later is required to comp
 #pragma warning(disable : 4189) // local variable is initialized but not referenced 
 #pragma warning(disable : 4505) // unreferenced local function has been removed		
 
+#if WINVER == 0x0502
+// WinXP hits deprecated versions of stdio across the board
+#pragma warning(disable : 4995) // 'function': name was marked as #pragma deprecated
+#endif
+
 // If C++ exception handling is disabled, force guarding to be off.
 #if !defined(_CPPUNWIND) && !defined(__INTELLISENSE__) && !defined(HACK_HEADER_GENERATOR)
 #error "Bad VCC option: C++ exception handling must be enabled" //lint !e309 suppress as lint doesn't have this defined

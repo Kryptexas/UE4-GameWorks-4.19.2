@@ -187,7 +187,7 @@ PhysXCommon_debug_defines   += _DEBUG
 PhysXCommon_debug_defines   += PX_CHECKED
 PhysXCommon_debug_libraries := 
 PhysXCommon_debug_common_cflags	:= $(PhysXCommon_custom_cflags)
-PhysXCommon_debug_common_cflags    += -MMD
+PhysXCommon_debug_common_cflags    += 
 PhysXCommon_debug_common_cflags    += $(addprefix -D, $(PhysXCommon_debug_defines))
 PhysXCommon_debug_common_cflags    += $(addprefix -I, $(PhysXCommon_debug_hpaths))
 PhysXCommon_debug_common_cflags  += -Wno-invalid-offsetof
@@ -217,7 +217,7 @@ prebuild_PhysXCommon_debug:
 
 $(PhysXCommon_debug_bin): $(PhysXCommon_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CommonDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXCommon_debug_bin) $(PhysXCommon_debug_obj)
+	@$(AR) -o $(PhysXCommon_debug_bin) $(PhysXCommon_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCommon_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -283,7 +283,7 @@ PhysXCommon_checked_defines   += NDEBUG
 PhysXCommon_checked_defines   += PX_CHECKED
 PhysXCommon_checked_libraries := 
 PhysXCommon_checked_common_cflags	:= $(PhysXCommon_custom_cflags)
-PhysXCommon_checked_common_cflags    += -MMD
+PhysXCommon_checked_common_cflags    += 
 PhysXCommon_checked_common_cflags    += $(addprefix -D, $(PhysXCommon_checked_defines))
 PhysXCommon_checked_common_cflags    += $(addprefix -I, $(PhysXCommon_checked_hpaths))
 PhysXCommon_checked_common_cflags  += -Wno-invalid-offsetof
@@ -313,7 +313,7 @@ prebuild_PhysXCommon_checked:
 
 $(PhysXCommon_checked_bin): $(PhysXCommon_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CommonCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXCommon_checked_bin) $(PhysXCommon_checked_obj)
+	@$(AR) -o $(PhysXCommon_checked_bin) $(PhysXCommon_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCommon_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -379,7 +379,7 @@ PhysXCommon_profile_defines   += NDEBUG
 PhysXCommon_profile_defines   += PX_PROFILE
 PhysXCommon_profile_libraries := 
 PhysXCommon_profile_common_cflags	:= $(PhysXCommon_custom_cflags)
-PhysXCommon_profile_common_cflags    += -MMD
+PhysXCommon_profile_common_cflags    += 
 PhysXCommon_profile_common_cflags    += $(addprefix -D, $(PhysXCommon_profile_defines))
 PhysXCommon_profile_common_cflags    += $(addprefix -I, $(PhysXCommon_profile_hpaths))
 PhysXCommon_profile_common_cflags  += -Wno-invalid-offsetof
@@ -409,7 +409,7 @@ prebuild_PhysXCommon_profile:
 
 $(PhysXCommon_profile_bin): $(PhysXCommon_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CommonPROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXCommon_profile_bin) $(PhysXCommon_profile_obj)
+	@$(AR) -o $(PhysXCommon_profile_bin) $(PhysXCommon_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCommon_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -474,7 +474,7 @@ PhysXCommon_release_defines   += PX_PHYSX_STATIC_LIB
 PhysXCommon_release_defines   += NDEBUG
 PhysXCommon_release_libraries := 
 PhysXCommon_release_common_cflags	:= $(PhysXCommon_custom_cflags)
-PhysXCommon_release_common_cflags    += -MMD
+PhysXCommon_release_common_cflags    += 
 PhysXCommon_release_common_cflags    += $(addprefix -D, $(PhysXCommon_release_defines))
 PhysXCommon_release_common_cflags    += $(addprefix -I, $(PhysXCommon_release_hpaths))
 PhysXCommon_release_common_cflags  += -Wno-invalid-offsetof
@@ -504,7 +504,7 @@ prebuild_PhysXCommon_release:
 
 $(PhysXCommon_release_bin): $(PhysXCommon_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3Common_Oz.bc`
-	@$(AR) rcs $(PhysXCommon_release_bin) $(PhysXCommon_release_obj)
+	@$(AR) -o $(PhysXCommon_release_bin) $(PhysXCommon_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXCommon_release_DEPDIR = $(dir $(@))/$(*F)

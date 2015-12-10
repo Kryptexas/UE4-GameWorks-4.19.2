@@ -119,7 +119,7 @@ void FAssetTypeActions_DataTable::ExecuteExportAsJSON(TArray< TWeakObjectPtr<UOb
 		auto DataTable = Cast<UDataTable>((*ObjIt).Get());
 		if (DataTable)
 		{
-			const FText Title = FText::Format(LOCTEXT("DataTable_ExportCSVDialogTitle", "Export '{0}' as JSON..."), FText::FromString(*DataTable->GetName()));
+			const FText Title = FText::Format(LOCTEXT("DataTable_ExportJSONDialogTitle", "Export '{0}' as JSON..."), FText::FromString(*DataTable->GetName()));
 			const FString CurrentFilename = DataTable->AssetImportData->GetFirstFilename();
 			const FString FileTypes = TEXT("Data Table JSON (*.json)|*.json");
 

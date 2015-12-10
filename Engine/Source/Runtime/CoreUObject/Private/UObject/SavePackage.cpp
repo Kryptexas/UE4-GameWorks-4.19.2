@@ -40,7 +40,7 @@ static uint32 GSavePackageTransactionNumber = 0;
 			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
 			if (CookingStatsModule)
 			{
-				CookingStats = &CookingStatsModule->Get();
+				CookingStats = CookingStatsModule->Get();
 			}
 			bInitialized = true;
 		}
@@ -72,7 +72,7 @@ static uint32 GSavePackageTransactionNumber = 0;
 		ICookingStats* CookingStats = GetCookingStats();
 		if (CookingStats)
 		{
-			CookingStats->AddTagValue(Key, Tag, FString::Printf(TEXT("%fms"), TimeMilliseconds));
+			CookingStats->AddTagValue(Key, Tag, TimeMilliseconds);
 		}
 	}
 }; // namespace SavePackageStats
@@ -3159,9 +3159,6 @@ public:
 
 					// only log one message per archive, from this point the entire package is probably messed up
 					bDisable = true;
-
-					static int i = 0;
-					i++;
 				}
 			}
 		}

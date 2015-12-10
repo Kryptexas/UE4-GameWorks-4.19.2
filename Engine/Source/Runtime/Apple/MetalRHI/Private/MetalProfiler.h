@@ -177,11 +177,7 @@ struct FMetalGPUProfiler : public FGPUProfiler
 	
 	virtual ~FMetalGPUProfiler() {}
 	
-	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
-	{
-		FMetalEventNode* EventNode = new FMetalEventNode(Context, InName, InParent, false, false);
-		return EventNode;
-	}
+	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override;
 	
 	void Cleanup();
 	

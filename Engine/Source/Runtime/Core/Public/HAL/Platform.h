@@ -440,8 +440,8 @@
 #endif
 
 // Prefetch
-#ifndef CACHE_LINE_SIZE
-	#define CACHE_LINE_SIZE	128
+#ifndef PLATFORM_CACHE_LINE_SIZE
+	#define PLATFORM_CACHE_LINE_SIZE	128
 #endif
 
 // These have to be forced inline on some OSes so the dynamic loader will not 

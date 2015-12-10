@@ -39,7 +39,7 @@ PxTask_debug_defines   += _DEBUG
 PxTask_debug_defines   += PX_CHECKED
 PxTask_debug_libraries := 
 PxTask_debug_common_cflags	:= $(PxTask_custom_cflags)
-PxTask_debug_common_cflags    += -MMD
+PxTask_debug_common_cflags    += 
 PxTask_debug_common_cflags    += $(addprefix -D, $(PxTask_debug_defines))
 PxTask_debug_common_cflags    += $(addprefix -I, $(PxTask_debug_hpaths))
 PxTask_debug_common_cflags  += -Wno-invalid-offsetof
@@ -68,7 +68,7 @@ prebuild_PxTask_debug:
 
 $(PxTask_debug_bin): $(PxTask_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PxTaskDEBUG_Oz.bc`
-	@$(AR) rcs $(PxTask_debug_bin) $(PxTask_debug_obj)
+	@$(AR) -o $(PxTask_debug_bin) $(PxTask_debug_obj)
 	$(ECHO) building $@ complete!
 
 PxTask_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -117,7 +117,7 @@ PxTask_checked_defines   += NDEBUG
 PxTask_checked_defines   += PX_CHECKED
 PxTask_checked_libraries := 
 PxTask_checked_common_cflags	:= $(PxTask_custom_cflags)
-PxTask_checked_common_cflags    += -MMD
+PxTask_checked_common_cflags    += 
 PxTask_checked_common_cflags    += $(addprefix -D, $(PxTask_checked_defines))
 PxTask_checked_common_cflags    += $(addprefix -I, $(PxTask_checked_hpaths))
 PxTask_checked_common_cflags  += -Wno-invalid-offsetof
@@ -146,7 +146,7 @@ prebuild_PxTask_checked:
 
 $(PxTask_checked_bin): $(PxTask_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PxTaskCHECKED_Oz.bc`
-	@$(AR) rcs $(PxTask_checked_bin) $(PxTask_checked_obj)
+	@$(AR) -o $(PxTask_checked_bin) $(PxTask_checked_obj)
 	$(ECHO) building $@ complete!
 
 PxTask_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -195,7 +195,7 @@ PxTask_profile_defines   += NDEBUG
 PxTask_profile_defines   += PX_PROFILE
 PxTask_profile_libraries := 
 PxTask_profile_common_cflags	:= $(PxTask_custom_cflags)
-PxTask_profile_common_cflags    += -MMD
+PxTask_profile_common_cflags    += 
 PxTask_profile_common_cflags    += $(addprefix -D, $(PxTask_profile_defines))
 PxTask_profile_common_cflags    += $(addprefix -I, $(PxTask_profile_hpaths))
 PxTask_profile_common_cflags  += -Wno-invalid-offsetof
@@ -224,7 +224,7 @@ prebuild_PxTask_profile:
 
 $(PxTask_profile_bin): $(PxTask_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PxTaskPROFILE_Oz.bc`
-	@$(AR) rcs $(PxTask_profile_bin) $(PxTask_profile_obj)
+	@$(AR) -o $(PxTask_profile_bin) $(PxTask_profile_obj)
 	$(ECHO) building $@ complete!
 
 PxTask_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -272,7 +272,7 @@ PxTask_release_defines   += HTML5
 PxTask_release_defines   += NDEBUG
 PxTask_release_libraries := 
 PxTask_release_common_cflags	:= $(PxTask_custom_cflags)
-PxTask_release_common_cflags    += -MMD
+PxTask_release_common_cflags    += 
 PxTask_release_common_cflags    += $(addprefix -D, $(PxTask_release_defines))
 PxTask_release_common_cflags    += $(addprefix -I, $(PxTask_release_hpaths))
 PxTask_release_common_cflags  += -Wno-invalid-offsetof
@@ -301,7 +301,7 @@ prebuild_PxTask_release:
 
 $(PxTask_release_bin): $(PxTask_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PxTask_Oz.bc`
-	@$(AR) rcs $(PxTask_release_bin) $(PxTask_release_obj)
+	@$(AR) -o $(PxTask_release_bin) $(PxTask_release_obj)
 	$(ECHO) building $@ complete!
 
 PxTask_release_DEPDIR = $(dir $(@))/$(*F)

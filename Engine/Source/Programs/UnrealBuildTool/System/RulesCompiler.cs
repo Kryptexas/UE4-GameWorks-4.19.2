@@ -957,11 +957,13 @@ namespace UnrealBuildTool
 				if (HostPlatform == UnrealTargetPlatform.Win64)
 				{
 					Result.Add(UnrealTargetPlatform.IOS);
+					Result.Add(UnrealTargetPlatform.TVOS);
 					Result.Add(UnrealTargetPlatform.Android);
 				}
 				else if (HostPlatform == UnrealTargetPlatform.Mac)
 				{
 					Result.Add(UnrealTargetPlatform.IOS);
+					Result.Add(UnrealTargetPlatform.TVOS);
 				}
 			}
 			return Result;

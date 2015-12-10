@@ -615,7 +615,7 @@ SamplerState	DirectionalOcclusionSampler;
 		float4 GBufferC = GBuffers.GBufferCTextureNonMS.Load(int3(PixelPos, 0));
 		float4 GBufferD = GBuffers.GBufferDTextureNonMS.Load(int3(PixelPos, 0));
 		float CustomNativeDepth = CustomDepthTextureNonMS.Load(int3(PixelPos, 0)).r;
-		uint CustomStencil = CustomStencilTexture.Load(int3(PixelPos, 0)).g;
+		uint CustomStencil = CustomStencilTexture.Load(int3(PixelPos, 0)) STENCIL_COMPONENT_SWIZZLE;
 
 		#if ALLOW_STATIC_LIGHTING
 			float4 GBufferE = GBuffers.GBufferETextureNonMS.Load(int3(PixelPos, 0));
@@ -706,7 +706,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	CustomStencilTexture.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y);
 
 	int2 IntUV = (int2)trunc(UV * SurfaceDimensions);
-	uint CustomStencil = CustomStencilTexture.Load(int3(IntUV, 0)).g;
+	uint CustomStencil = CustomStencilTexture.Load(int3(IntUV, 0)) STENCIL_COMPONENT_SWIZZLE;
 #else
 	uint CustomStencil = 0;
 #endif
@@ -777,7 +777,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 		float4 GBufferC = GBuffers.GBufferCTextureMS.Load(PixelPos, SampleIndex);
 		float4 GBufferD = GBuffers.GBufferDTextureMS.Load(PixelPos, SampleIndex);
 		float CustomNativeDepth = CustomDepthTextureNonMS.Load(int3(PixelPos, 0)).r;
-		uint CustomStencil = CustomStencilTexture.Load(int3(PixelPos, 0)).g;
+		uint CustomStencil = CustomStencilTexture.Load(int3(PixelPos, 0)) STENCIL_COMPONENT_SWIZZLE;
 
 		#if ALLOW_STATIC_LIGHTING
 			float4 GBufferE = GBuffers.GBufferETextureMS.Load(PixelPos, SampleIndex);

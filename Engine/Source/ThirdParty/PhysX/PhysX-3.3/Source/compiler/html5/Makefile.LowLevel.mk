@@ -183,7 +183,7 @@ LowLevel_debug_defines   += _DEBUG
 LowLevel_debug_defines   += PX_CHECKED
 LowLevel_debug_libraries := 
 LowLevel_debug_common_cflags	:= $(LowLevel_custom_cflags)
-LowLevel_debug_common_cflags    += -MMD
+LowLevel_debug_common_cflags    += 
 LowLevel_debug_common_cflags    += $(addprefix -D, $(LowLevel_debug_defines))
 LowLevel_debug_common_cflags    += $(addprefix -I, $(LowLevel_debug_hpaths))
 LowLevel_debug_common_cflags  += -Wno-invalid-offsetof
@@ -213,7 +213,7 @@ prebuild_LowLevel_debug:
 
 $(LowLevel_debug_bin): $(LowLevel_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelDEBUG_Oz.bc`
-	@$(AR) rcs $(LowLevel_debug_bin) $(LowLevel_debug_obj)
+	@$(AR) -o $(LowLevel_debug_bin) $(LowLevel_debug_obj)
 	$(ECHO) building $@ complete!
 
 LowLevel_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -289,7 +289,7 @@ LowLevel_checked_defines   += NDEBUG
 LowLevel_checked_defines   += PX_CHECKED
 LowLevel_checked_libraries := 
 LowLevel_checked_common_cflags	:= $(LowLevel_custom_cflags)
-LowLevel_checked_common_cflags    += -MMD
+LowLevel_checked_common_cflags    += 
 LowLevel_checked_common_cflags    += $(addprefix -D, $(LowLevel_checked_defines))
 LowLevel_checked_common_cflags    += $(addprefix -I, $(LowLevel_checked_hpaths))
 LowLevel_checked_common_cflags  += -Wno-invalid-offsetof
@@ -319,7 +319,7 @@ prebuild_LowLevel_checked:
 
 $(LowLevel_checked_bin): $(LowLevel_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelCHECKED_Oz.bc`
-	@$(AR) rcs $(LowLevel_checked_bin) $(LowLevel_checked_obj)
+	@$(AR) -o $(LowLevel_checked_bin) $(LowLevel_checked_obj)
 	$(ECHO) building $@ complete!
 
 LowLevel_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -395,7 +395,7 @@ LowLevel_profile_defines   += NDEBUG
 LowLevel_profile_defines   += PX_PROFILE
 LowLevel_profile_libraries := 
 LowLevel_profile_common_cflags	:= $(LowLevel_custom_cflags)
-LowLevel_profile_common_cflags    += -MMD
+LowLevel_profile_common_cflags    += 
 LowLevel_profile_common_cflags    += $(addprefix -D, $(LowLevel_profile_defines))
 LowLevel_profile_common_cflags    += $(addprefix -I, $(LowLevel_profile_hpaths))
 LowLevel_profile_common_cflags  += -Wno-invalid-offsetof
@@ -425,7 +425,7 @@ prebuild_LowLevel_profile:
 
 $(LowLevel_profile_bin): $(LowLevel_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevelPROFILE_Oz.bc`
-	@$(AR) rcs $(LowLevel_profile_bin) $(LowLevel_profile_obj)
+	@$(AR) -o $(LowLevel_profile_bin) $(LowLevel_profile_obj)
 	$(ECHO) building $@ complete!
 
 LowLevel_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -500,7 +500,7 @@ LowLevel_release_defines   += PX_PHYSX_STATIC_LIB
 LowLevel_release_defines   += NDEBUG
 LowLevel_release_libraries := 
 LowLevel_release_common_cflags	:= $(LowLevel_custom_cflags)
-LowLevel_release_common_cflags    += -MMD
+LowLevel_release_common_cflags    += 
 LowLevel_release_common_cflags    += $(addprefix -D, $(LowLevel_release_defines))
 LowLevel_release_common_cflags    += $(addprefix -I, $(LowLevel_release_hpaths))
 LowLevel_release_common_cflags  += -Wno-invalid-offsetof
@@ -530,7 +530,7 @@ prebuild_LowLevel_release:
 
 $(LowLevel_release_bin): $(LowLevel_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/LowLevel_Oz.bc`
-	@$(AR) rcs $(LowLevel_release_bin) $(LowLevel_release_obj)
+	@$(AR) -o $(LowLevel_release_bin) $(LowLevel_release_obj)
 	$(ECHO) building $@ complete!
 
 LowLevel_release_DEPDIR = $(dir $(@))/$(*F)

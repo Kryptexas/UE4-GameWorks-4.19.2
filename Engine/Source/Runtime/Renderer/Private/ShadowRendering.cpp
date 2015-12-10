@@ -98,6 +98,9 @@ public:
 		FMeshMaterialShader(Initializer)
 	{
 		ShadowParameters.Bind(Initializer.ParameterMap);
+		ShadowViewProjectionMatrices.Bind(Initializer.ParameterMap, TEXT("ShadowViewProjectionMatrices"));
+		MeshVisibleToFace.Bind(Initializer.ParameterMap, TEXT("MeshVisibleToFace"));
+		InstanceCount.Bind(Initializer.ParameterMap, TEXT("InstanceCount"));
 	}
 
 	FShadowDepthVS() {}
@@ -106,6 +109,9 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		Ar << ShadowParameters;
+		Ar << ShadowViewProjectionMatrices;
+		Ar << MeshVisibleToFace;
+		Ar << InstanceCount;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -119,15 +125,66 @@ public:
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,Material,View,ESceneRenderTargetsMode::DontSet);
 		ShadowParameters.SetVertexShader(RHICmdList, this, View, ShadowInfo, MaterialRenderProxy);
+		
+		if(ShadowViewProjectionMatrices.IsBound())
+		{
+			const FMatrix Translation = FTranslationMatrix(-View.ViewMatrices.PreViewTranslation);
+			
+			FMatrix TranslatedShadowViewProjectionMatrices[6];
+			for (int32 FaceIndex = 0; FaceIndex < 6; FaceIndex++)
+			{
+				// Have to apply the pre-view translation to the view - projection matrices
+				TranslatedShadowViewProjectionMatrices[FaceIndex] = Translation * ShadowInfo->OnePassShadowViewProjectionMatrices[FaceIndex];
+			}
+			
+			// Set the view projection matrices that will transform positions from world to cube map face space
+			SetShaderValueArray<FVertexShaderRHIParamRef, FMatrix>(RHICmdList,
+																	 GetVertexShader(),
+																	 ShadowViewProjectionMatrices,
+																	 TranslatedShadowViewProjectionMatrices,
+																	 ARRAY_COUNT(TranslatedShadowViewProjectionMatrices)
+																	 );
+		}
 	}
-
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue)
+		
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue,FProjectedShadowInfo const* ShadowInfo)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);
+		
+		if (MeshVisibleToFace.IsBound())
+		{
+			const FBoxSphereBounds& PrimitiveBounds = Proxy->GetBounds();
+			
+			FVector4 MeshVisibleToFaceValue[6];
+			for (int32 FaceIndex = 0; FaceIndex < 6; FaceIndex++)
+			{
+				MeshVisibleToFaceValue[FaceIndex] = FVector4(ShadowInfo->OnePassShadowFrustums[FaceIndex].IntersectBox(PrimitiveBounds.Origin,PrimitiveBounds.BoxExtent), 0, 0, 0);
+			}
+			
+			// Set the view projection matrices that will transform positions from world to cube map face space
+			SetShaderValueArray<FVertexShaderRHIParamRef, FVector4>(
+																	RHICmdList,
+																	GetVertexShader(),
+																	MeshVisibleToFace,
+																	MeshVisibleToFaceValue,
+																	ARRAY_COUNT(MeshVisibleToFaceValue)
+																	);
+		}
+	}
+		
+	void SetDrawInstanceCount(FRHICommandList& RHICmdList, uint32 NumInstances)
+	{
+		if(InstanceCount.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, NumInstances);
+		}
 	}
 
 private:
 	FShadowDepthShaderParameters ShadowParameters;
+	FShaderParameter ShadowViewProjectionMatrices;
+	FShaderParameter MeshVisibleToFace;
+	FShaderParameter InstanceCount;
 };
 
 enum EShadowDepthVertexShaderMode
@@ -155,10 +212,10 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		if (bIsForGeometryShader && !RHISupportsGeometryShaders(Platform))
+		/*if (bIsForGeometryShader && !RHISupportsGeometryShaders(Platform))
 		{
 			return false;
-		}
+		}*/
 
 		//Note: This logic needs to stay in sync with OverrideWithDefaultMaterialForShadowDepth!
 		// Compile for special engine materials.
@@ -304,7 +361,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true>::ShouldCache(Platform, Material, VertexFactoryType);
+		return RHISupportsGeometryShaders(Platform) && TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true>::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -794,8 +851,11 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 		{
 			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true> >(VFType);
 		}
-		// Use the geometry shader which will clone output triangles to all faces of the cube map
-		GeometryShader = MaterialResource->GetShader<FOnePassPointShadowProjectionGS>(VFType);
+		if(RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[InFeatureLevel]))
+		{
+			// Use the geometry shader which will clone output triangles to all faces of the cube map
+			GeometryShader = MaterialResource->GetShader<FOnePassPointShadowProjectionGS>(VFType);
+		}
 		if(bInitializeTessellationShaders)
 		{
 			HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OnePassPointLight, false> >(VFType);	
@@ -968,7 +1028,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue, PolicyContext.ShadowInfo);
 
 	if( HullShader && DomainShader )
 	{
@@ -1163,6 +1223,132 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 	}
 	
 	return bDirty;
+}
+		
+template <bool bRenderingReflectiveShadowMaps>
+void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
+{
+	if(!bOnePassPointLightShadow || RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[FeatureLevel]))
+	{
+		FMeshDrawingPolicy::DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
+	}
+	else
+	{
+		INC_DWORD_STAT(STAT_MeshDrawCalls);
+		SCOPED_DRAW_EVENT(RHICmdList, OnePassPointLightMeshDraw);
+		
+		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
+		
+		if (Mesh.UseDynamicData)
+		{
+			check(Mesh.DynamicVertexData);
+			
+			// @todo This code path *assumes* that DrawPrimitiveUP & DrawIndexedPrimitiveUP implicitly
+			// turn the following into instanced draw calls to route a draw to each face.
+			// This avoids adding anything to the public RHI API but is a filthy hack.
+			
+			VertexShader->SetDrawInstanceCount(RHICmdList, 1);
+			if (BatchElement.DynamicIndexData)
+			{
+				DrawIndexedPrimitiveUP(
+									   RHICmdList,
+									   Mesh.Type,
+									   BatchElement.MinVertexIndex,
+									   BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+									   BatchElement.NumPrimitives,
+									   BatchElement.DynamicIndexData,
+									   BatchElement.DynamicIndexStride,
+									   Mesh.DynamicVertexData,
+									   Mesh.DynamicVertexStride
+									   );
+			}
+			else
+			{
+				DrawPrimitiveUP(
+								RHICmdList,
+								Mesh.Type,
+								BatchElement.NumPrimitives,
+								Mesh.DynamicVertexData,
+								Mesh.DynamicVertexStride
+								);
+			}
+		}
+		else
+		{
+			if(BatchElement.IndexBuffer)
+			{
+				check(BatchElement.IndexBuffer->IsInitialized());
+				if (BatchElement.InstanceRuns)
+				{
+					if (bUsePositionOnlyVS)
+					{
+						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
+						{
+							VertexFactory->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
+							uint32 Instances = 1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2];
+							VertexShader->SetDrawInstanceCount(RHICmdList, Instances);
+							RHICmdList.DrawIndexedPrimitive(
+															BatchElement.IndexBuffer->IndexBufferRHI,
+															Mesh.Type,
+															0,
+															0,
+															BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+															BatchElement.FirstIndex,
+															BatchElement.NumPrimitives,
+															Instances
+															);
+						}
+					}
+					else
+					{
+						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
+						{
+							VertexFactory->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
+							uint32 Instances = 1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2];
+							VertexShader->SetDrawInstanceCount(RHICmdList, Instances);
+							RHICmdList.DrawIndexedPrimitive(
+															BatchElement.IndexBuffer->IndexBufferRHI,
+															Mesh.Type,
+															0,
+															0,
+															BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+															BatchElement.FirstIndex,
+															BatchElement.NumPrimitives,
+															Instances * 6
+															);
+						}
+					}
+				}
+				else
+				{
+					// Point light shadow cube maps shouldn't be rendered in stereo
+					check(!bIsInstancedStereo);
+
+					VertexShader->SetDrawInstanceCount(RHICmdList, BatchElement.NumInstances);
+					RHICmdList.DrawIndexedPrimitive(
+													BatchElement.IndexBuffer->IndexBufferRHI,
+													Mesh.Type,
+													0,
+													0,
+													BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+													BatchElement.FirstIndex,
+													BatchElement.NumPrimitives,
+													BatchElement.NumInstances * 6
+													);
+				}
+			}
+			else
+			{
+				VertexShader->SetDrawInstanceCount(RHICmdList, BatchElement.NumInstances);
+				RHICmdList.DrawPrimitive(
+										 Mesh.Type,
+										 BatchElement.FirstIndex,
+										 BatchElement.NumPrimitives,
+										 BatchElement.NumInstances * 6
+										 );
+			}
+		}
+	}
 }
 
 /*-----------------------------------------------------------------------------

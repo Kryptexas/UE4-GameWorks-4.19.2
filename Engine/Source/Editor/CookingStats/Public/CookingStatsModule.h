@@ -29,7 +29,7 @@ public:
 	virtual void ShutdownModule() override;
 
 	/** Gets the asset registry singleton */
-	virtual ICookingStats& Get() const;
+	virtual ICookingStats* Get() const;
 
 
 private:

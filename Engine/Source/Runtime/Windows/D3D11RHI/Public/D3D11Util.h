@@ -230,11 +230,11 @@ public:
 
 private:
 	/** The maximum number of sub-buffers supported. */
-	enum { MAX_BUFFERS = 4 };
+	enum { MAX_BUFFER_SIZES = 4 };
 	/** The size of each sub-buffer. */
-	TArray<uint32,TFixedAllocator<MAX_BUFFERS> > BufferSizes;
+	TArray<uint32,TFixedAllocator<MAX_BUFFER_SIZES> > BufferSizes;
 	/** The sub-buffers. */
-	TArray<TRefCountPtr<ID3D11Buffer>,TFixedAllocator<MAX_BUFFERS> > Buffers;
+	TArray<TRefCountPtr<ID3D11Buffer>,TFixedAllocator<MAX_BUFFER_SIZES> > Buffers;
 	/** The D3D11 RHI to that owns this dynamic buffer. */
 	class FD3D11DynamicRHI* D3DRHI;
 	/** Bind flags to use when creating sub-buffers. */

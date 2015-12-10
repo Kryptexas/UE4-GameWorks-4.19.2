@@ -143,11 +143,6 @@ void USoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
 	}
 #endif
-	// GetCompressedDataSize could technically modify this->CompressedFormatData therefore it is not const, however this information
-	// is very useful in the asset registry so we will allow GetCompressedDataSize to be modified if the formats do not exist
-	USoundWave* MutableThis = const_cast<USoundWave*>(this);
-	const FString OggSize = FString::Printf(TEXT("%.2f"), MutableThis->GetCompressedDataSize("OGG") / 1024.0f );
-	OutTags.Add( FAssetRegistryTag("OggSize", OggSize, UObject::FAssetRegistryTag::TT_Numerical) );
 }
 
 void USoundWave::Serialize( FArchive& Ar )

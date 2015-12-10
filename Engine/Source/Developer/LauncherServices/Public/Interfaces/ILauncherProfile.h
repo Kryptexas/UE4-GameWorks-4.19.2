@@ -174,6 +174,9 @@ namespace ELauncherProfileValidationErrors
 
 		/** Generating http chunk install data requires valid install directorys and release name */
 		GeneratingHttpChunkDataRequiresValidDirectoryAndName,
+
+		/** Shipping doesn't support commandline options can't use cook on the fly */
+		ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly,
 	};
 }
 

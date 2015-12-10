@@ -8,6 +8,7 @@
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
 #include "AudioDevice.h"
+#include "GenericPlatformChunkInstall.h"
 
 
 FEngineLoop GEngineLoop;
@@ -34,6 +35,12 @@ void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 	// make a controller object
 	AppDelegate.IOSController = [[IOSViewController alloc] init];
 	
+#if PLATFORM_TVOS
+	// @todo tvos: This may need to be exposed to the game so that when you click Menu it will background the app
+	// this is basically the same way Android handles the Back button (maybe we should pass Menu button as back... maybe)
+	AppDelegate.IOSController.controllerUserInteractionEnabled = NO;
+#endif
+	
 	// property owns it now
 	[AppDelegate.IOSController release];
 
@@ -50,8 +57,10 @@ void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 		[AppDelegate.Window addSubview:AppDelegate.RootView];
 	}
 
+#if !PLATFORM_TVOS
 	// reset badge count on launch
 	Application.applicationIconBadgeNumber = 0;
+#endif
 }
 
 static void MainThreadInit()
@@ -91,7 +100,9 @@ static void MainThreadInit()
 
 	AppDelegate.IOSView = [[FIOSView alloc] initWithFrame:FullResolutionRect];
 	AppDelegate.IOSView.clearsContextBeforeDrawing = NO;
+#if !PLATFORM_TVOS
 	AppDelegate.IOSView.multipleTouchEnabled = YES;
+#endif
 
 	// add it to the window
 	[AppDelegate.RootView addSubview:AppDelegate.IOSView];

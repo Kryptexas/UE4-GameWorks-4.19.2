@@ -27,10 +27,10 @@ void FCookingStatsModule::ShutdownModule()
 	}
 }
 
-ICookingStats& FCookingStatsModule::Get() const
+ICookingStats* FCookingStatsModule::Get() const
 {
 	check(CookingStats);
-	return *CookingStats;
+	return CookingStats;
 }
 
 #undef LOCTEXT_NAMESPACE

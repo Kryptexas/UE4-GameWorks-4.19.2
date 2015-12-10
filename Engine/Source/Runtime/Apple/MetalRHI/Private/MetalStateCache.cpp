@@ -2,6 +2,7 @@
 
 #include "MetalRHIPrivate.h"
 #include "MetalStateCache.h"
+#include "MetalProfiler.h"
 
 static MTLTriangleFillMode TranslateFillMode(ERasterizerFillMode FillMode)
 {
@@ -33,10 +34,7 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 , StencilRef(0)
 , BlendFactor(FLinearColor::Transparent)
 , FrameBufferSize(CGSizeMake(0.0, 0.0))
-, CurrentDrawable(nil)
-#if PLATFORM_MAC
-, CurrentLayer(nil)
-#endif
+, RenderTargetArraySize(1)
 , bHasValidRenderTarget(false)
 {
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
@@ -45,6 +43,8 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));
 	
 	FMemory::Memzero(RenderTargetsInfo);
+	
+	FMemory::Memzero(DirtyUniformBuffers);
 	
 	//@todo-rco: What Size???
 	// make a buffer for each shader type
@@ -145,6 +145,12 @@ void FMetalStateCache::SetBoundShaderState(FMetalBoundShaderState* InBoundShader
 	//if(BoundShaderState != InBoundShaderState) // @todo zebra
 	{
 		BoundShaderState = InBoundShaderState;
+		
+		DirtyUniformBuffers[SF_Vertex] = 0xffffffff;
+		DirtyUniformBuffers[SF_Pixel] = 0xffffffff;
+		DirtyUniformBuffers[SF_Hull] = 0xffffffff;
+		DirtyUniformBuffers[SF_Domain] = 0xffffffff;
+		DirtyUniformBuffers[SF_Geometry] = 0xffffffff;
 	}
 }
 
@@ -154,6 +160,8 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 	{
 		ComputeShader = InComputeShader;
 		
+		DirtyUniformBuffers[SF_Compute] = 0xffffffff;
+		
 		// set this compute shader pipeline as the current (this resets all state, so we need to set all resources after calling this)
 		CommandEncoder.SetComputePipelineState(ComputeShader->Kernel);
 	}
@@ -161,6 +169,61 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 
 void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer)
 {
+#if METAL_API_1_1
+	if(RenderTargetsInfo.DepthStencilRenderTarget.Texture && RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetFormat() == PF_DepthStencil)
+	{
+		MTLStoreAction StoreAction = MTLStoreActionDontCare;
+#if PLATFORM_MAC
+		if(RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite())
+		{
+			StoreAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
+		}
+		else
+		{
+			StoreAction = MTLStoreActionDontCare;
+		}
+#else
+		StoreAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
+#endif
+		
+		if(StoreAction == MTLStoreActionStore)
+		{
+			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+			
+			if(Surface.StencilTexture != Surface.Texture && (Surface.Texture.pixelFormat == MTLPixelFormatDepth32Float_Stencil8
+#if PLATFORM_MAC
+				|| Surface.Texture.pixelFormat == MTLPixelFormatDepth24Unorm_Stencil8
+#endif
+				))
+			{
+				switch(Surface.Type)
+				{
+					case RRT_Texture2D:
+					{
+						id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
+						
+						uint32 Size = Surface.Texture.width * Surface.Texture.height;
+						FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size, BUFFER_STORAGE_MODE));
+						
+						[Blitter copyFromTexture:Surface.Texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Surface.Texture.width, Surface.Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Surface.Texture.width destinationBytesPerImage:Size options:MTLBlitOptionStencilFromDepthStencil];
+						
+						[Blitter copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Surface.Texture.width sourceBytesPerImage:Size sourceSize:MTLSizeMake(Surface.Texture.width, Surface.Texture.height, 1) toTexture:Surface.StencilTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
+						
+						SafeReleasePooledBuffer(Buf.Buffer);
+						break;
+					}
+					case RRT_Texture2DArray:
+					case RRT_Texture3D:
+					case RRT_TextureCube:
+					default:
+						NOT_SUPPORTED("Stencil sampling from non-2D texture!");
+						break;
+				}
+			}
+		}
+	}
+#endif
+	
 	ConditionalSwitchToRender();
 
 	// see if our new Info matches our previous Info
@@ -308,16 +371,20 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			PipelineDesc.SetHashValue(FMetalRenderPipelineDesc::RTBitOffsets[RenderTargetIndex], NumBits_RenderTargetFormat, FormatKey);
 		}
 		
+		RenderTargetArraySize = 1;
+		
 #if METAL_API_1_1 && PLATFORM_MAC
+		
 		if(ArrayTargets)
 		{
 			if (ArrayTargets == BoundTargets)
 			{
+				RenderTargetArraySize = ArrayRenderLayers;
 				RenderPass.renderTargetArrayLength = ArrayRenderLayers;
 			}
 			else
 			{
-				UE_LOG(LogMetal, Fatal, TEXT("All color render targets must be layered when performing mulit-layered rendering under Metal."));
+				UE_LOG(LogMetal, Fatal, TEXT("All color render targets must be layered when performing multi-layered rendering under Metal."));
 			}
 		}
 #endif
@@ -334,6 +401,25 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		{
 			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
 			
+#if METAL_API_1_1 && PLATFORM_MAC
+			switch(Surface.Type)
+			{
+				case RRT_Texture2DArray:
+				case RRT_Texture3D:
+				case RRT_TextureCube:
+					ArrayRenderLayers = Surface.GetNumFaces();
+					break;
+				default:
+					ArrayRenderLayers = 1;
+					break;
+			}
+			if(!ArrayTargets && ArrayRenderLayers > 1)
+			{
+				RenderTargetArraySize = ArrayRenderLayers;
+				RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+			}
+#endif
+			
 			if(!bFramebufferSizeSet)
 			{
 				bFramebufferSizeSet = true;
@@ -346,34 +432,57 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				FrameBufferSize.height = FMath::Min(FrameBufferSize.height, (CGFloat)Surface.SizeY);
 			}
 			
-			MTLPixelFormat DepthStencilFormat = Surface.Texture ? Surface.Texture.pixelFormat : MTLPixelFormatInvalid;
+			EPixelFormat DepthStencilPixelFormat = RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetFormat();
 			
-			bool bHasDepth = false;
-			bool bHasStencil = false;
-			switch(DepthStencilFormat)
+			id<MTLTexture> DepthTexture = nil;
+			id<MTLTexture> StencilTexture = nil;
+			
+			switch (DepthStencilPixelFormat)
 			{
-				case MTLPixelFormatDepth32Float:
-					bHasDepth = true;
-					break;
-				case MTLPixelFormatStencil8:
-					bHasStencil = true;
-					break;
+				case PF_X24_G8:
+				case PF_DepthStencil:
+				case PF_D24:
+				{
+					MTLPixelFormat DepthStencilFormat = Surface.Texture ? Surface.Texture.pixelFormat : MTLPixelFormatInvalid;
+					
+					switch(DepthStencilFormat)
+					{
+						case MTLPixelFormatDepth32Float:
+							DepthTexture = Surface.Texture;
+#if !PLATFORM_MAC
+							StencilTexture = (DepthStencilPixelFormat == PF_DepthStencil) ? Surface.StencilTexture : nil;
+#endif
+							break;
+						case MTLPixelFormatStencil8:
+							StencilTexture = Surface.Texture;
+							break;
 #if METAL_API_1_1
-				case MTLPixelFormatDepth32Float_Stencil8:
-					bHasDepth = true;
-					bHasStencil = true;
-					break;
+						case MTLPixelFormatDepth32Float_Stencil8:
+							DepthTexture = Surface.Texture;
+							StencilTexture = Surface.Texture;
+							break;
 #if PLATFORM_MAC
-				case MTLPixelFormatDepth24Unorm_Stencil8:
-					bHasDepth = true;
-					bHasStencil = true;
+						case MTLPixelFormatDepth24Unorm_Stencil8:
+							DepthTexture = Surface.Texture;
+							StencilTexture = Surface.Texture;
+							break;
+#endif
+#endif
+						default:
+							break;
+					}
+					
 					break;
-#endif
-#endif
+				}
+				case PF_ShadowDepth:
+				{
+					DepthTexture = Surface.Texture;
+					break;
+				}
 				default:
 					break;
 			}
-
+			
 			float DepthClearValue = 0.0f;
 			uint32 StencilClearValue = 0;
 			const FClearValueBinding& ClearValue = RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetClearBinding();
@@ -381,15 +490,19 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			{
 				ClearValue.GetDepthStencil(DepthClearValue, StencilClearValue);
 			}
+			else if(!ArrayTargets && ArrayRenderLayers > 1)
+			{
+				DepthClearValue = 1.0f;
+			}
 
-			if (bHasDepth)
+			if (DepthTexture)
 			{
 				MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
 				
 				DepthFormatKey = Surface.FormatKey;
 	
 				// set up the depth attachment
-				DepthAttachment.texture = Surface.Texture;
+				DepthAttachment.texture = DepthTexture;
 				DepthAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction);
 #if PLATFORM_MAC
 				if(RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsDepthWrite())
@@ -416,14 +529,14 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[DepthAttachment release];
 			}
 	
-			if (bHasStencil)
+			if (StencilTexture)
 			{
 				MTLRenderPassStencilAttachmentDescriptor* StencilAttachment = [[MTLRenderPassStencilAttachmentDescriptor alloc] init];
 				
 				StencilFormatKey = Surface.FormatKey;
 	
 				// set up the stencil attachment
-				StencilAttachment.texture = Surface.StencilTexture;
+				StencilAttachment.texture = StencilTexture;
 				StencilAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction);
 #if PLATFORM_MAC
 				if(RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite())
@@ -495,12 +608,6 @@ void FMetalStateCache::SetVertexBuffer(uint32 const Index, id<MTLBuffer> Buffer,
 }
 
 #if PLATFORM_MAC
-void FMetalStateCache::SetCurrentLayer(CAMetalLayer* NewLayer)
-{
-	check(NewLayer);
-	CurrentLayer = NewLayer;
-	check(CurrentLayer);
-}
 
 void FMetalStateCache::SetPrimitiveTopology(MTLPrimitiveTopologyClass PrimitiveType)
 {
@@ -508,6 +615,21 @@ void FMetalStateCache::SetPrimitiveTopology(MTLPrimitiveTopologyClass PrimitiveT
 	PipelineDesc.PipelineDescriptor.inputPrimitiveTopology = PrimitiveType;
 }
 #endif
+
+void FMetalStateCache::BindUniformBuffer(EShaderFrequency const Freq, uint32 const BufferIndex, FUniformBufferRHIParamRef BufferRHI)
+{
+	if (BoundUniformBuffers[Freq].Num() <= BufferIndex)
+	{
+		BoundUniformBuffers[Freq].SetNumZeroed(BufferIndex+1);
+	}
+	BoundUniformBuffers[Freq][BufferIndex] = BufferRHI;
+	DirtyUniformBuffers[Freq] |= 1 << BufferIndex;
+}
+
+void FMetalStateCache::SetDirtyUniformBuffers(EShaderFrequency const Freq, uint32 const Dirty)
+{
+	DirtyUniformBuffers[Freq] = Dirty;
+}
 
 void FMetalStateCache::ConditionalSwitchToRender(void)
 {
@@ -561,49 +683,16 @@ void FMetalStateCache::ConditionalSwitchToBlit(void)
 	}
 }
 
-void FMetalStateCache::ResetCurrentDrawable()
-{
-	if (CurrentDrawable)
-	{
-		[CurrentDrawable release];
-		CurrentDrawable = nil;
-	}
-}
-
 void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 {
 	// are we setting the back buffer? if so, make sure we have the drawable
-//	if (&Surface == &BackBuffer->Surface) // @todo zebra &Surface == &CurrentViewport->GetBackBuffer()->Surface, but perhaps Surface.Texture == nil is enough?
+	if ((Surface.Flags & TexCreate_Presentable))
 	{
 		// update the back buffer texture the first time used this frame
 		if (Surface.Texture == nil)
 		{
-			uint32 IdleStart = FPlatformTime::Cycles();
-
-			if (CurrentDrawable == nil)
-			{
-				// make a drawable object for this frame
-#if PLATFORM_IOS
-				CurrentDrawable = [[[IOSAppDelegate GetDelegate].IOSView MakeDrawable] retain];
-#else // @todo zebra
-				check(CurrentLayer);
-				CurrentDrawable = CurrentLayer ? [[CurrentLayer nextDrawable] retain] : nil;
-				//check(CurrentDrawable);
-#endif
-			}
-
-			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
-
 			// set the texture into the backbuffer
-            if (CurrentDrawable != nil)
-            {
-                Surface.Texture = CurrentDrawable.texture;
-            }
-            else
-            {
-                Surface.Texture = nil;
-            }
+			Surface.GetDrawableTexture();
 		}
 	}
 }

@@ -72,3 +72,5 @@ bool FAutomationControllerModule::SupportsDynamicReloading()
  *****************************************************************************/
 
 IAutomationControllerManagerPtr FAutomationControllerModule::AutomationControllerSingleton = NULL;
+
+#undef LOCTEXT_NAMESPACE

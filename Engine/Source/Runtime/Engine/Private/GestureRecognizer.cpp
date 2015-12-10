@@ -56,6 +56,12 @@ void FGestureRecognizer::DetectGestures(const FVector (&Touches)[EKeys::NUM_TOUC
 			}
 		}
 
+		// Handle a pinch release.
+		if (PreviousTouchCount >= 2 && TouchCount < 2)
+		{
+			HandleGesture(PlayerInput, EKeys::Gesture_Pinch, false, true);
+		}
+
 		if (PreviousTouchCount == 0 && TouchCount == 1)
 		{
 			// initialize the flick

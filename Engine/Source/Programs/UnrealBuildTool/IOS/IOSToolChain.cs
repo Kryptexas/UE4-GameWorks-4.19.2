@@ -17,10 +17,15 @@ namespace UnrealBuildTool
 {
 	class IOSToolChain : AppleToolChain
 	{
-		IOSPlatformContext PlatformContext;
+		protected IOSPlatformContext PlatformContext;
 
 		public IOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext)
-			: base(CPPTargetPlatform.IOS, UnrealTargetPlatform.Mac, InProjectFile)
+			: this(CPPTargetPlatform.IOS, InProjectFile, InPlatformContext)
+		{
+		}
+
+		protected IOSToolChain(CPPTargetPlatform TargetPlatform, FileReference InProjectFile, IOSPlatformContext InPlatformContext)
+			: base(TargetPlatform, UnrealTargetPlatform.Mac, InProjectFile)
 		{
 			PlatformContext = InPlatformContext;
 		}
@@ -44,8 +49,8 @@ namespace UnrealBuildTool
 		/// Which version of the iOS SDK to target at build time
 		/// </summary>
 		[XmlConfig]
-		public static string IOSSDKVersion = "latest";
-		public static float IOSSDKVersionFloat = 0.0f;
+		public string IOSSDKVersion = "latest";
+		public float IOSSDKVersionFloat = 0.0f;
 
 		/// <summary>
 		/// Which version of the iOS to allow at build time
@@ -66,8 +71,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Location of the SDKs
 		/// </summary>
-		private static string BaseSDKDir;
-		private static string BaseSDKDirSim;
+		protected string BaseSDKDir;
+		protected string BaseSDKDirSim;
 
 		/// <summary>
 		/// Which compiler frontend to use
@@ -91,18 +96,18 @@ namespace UnrealBuildTool
 		/// </summary>
 		public List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
-		private static void SetupXcodePaths(bool bVerbose)
+		private void SetupXcodePaths(bool bVerbose)
 		{
 			// choose the XCode to use
 			SelectXcode(ref XcodeDeveloperDir, bVerbose);
 
 			// update cached paths
-			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
-			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
+			BaseSDKDir = XcodeDeveloperDir + "Platforms/" + PlatformContext.GetXcodePlatformName(true) + ".platform/Developer/SDKs";
+			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/" + PlatformContext.GetXcodePlatformName(false) + ".platform/Developer/SDKs";
 			ToolchainDir = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/";
 
 			// make sure SDK is selected
-			SelectSDK(BaseSDKDir, "iPhoneOS", ref IOSSDKVersion, bVerbose);
+			SelectSDK(BaseSDKDir, PlatformContext.GetXcodePlatformName(true), ref IOSSDKVersion, bVerbose);
 
 			// convert to float for easy comparison
 			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
@@ -137,36 +142,9 @@ namespace UnrealBuildTool
 			return OutputType == BuildProductType.Executable;
 		}
 
-		static bool bHasPrinted = false;
-		string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
-		{
-			PlatformContext.SetUpProjectEnvironment();
-
-			// get the list of architectures to compile
-			string Archs =
-				UBTArchitecture == "-simulator" ? "i386" :
-				(Configuration == CPPTargetConfiguration.Shipping) ? PlatformContext.ShippingArchitectures : PlatformContext.NonShippingArchitectures;
-
-			if (!bHasPrinted)
-			{
-				bHasPrinted = true;
-				Console.WriteLine("Compiling with these architectures: " + Archs);
-			}
-
-			// parse the string
-			string[] Tokens = Archs.Split(",".ToCharArray());
-
-			string Result = "";
-			foreach (string Token in Tokens)
-			{
-				Result += " -arch " + Token;
-			}
-
-			return Result;
-		}
-
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
+			// @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
 			PlatformContext.SetUpProjectEnvironment();
 
 			string Result = "";
@@ -215,18 +193,18 @@ namespace UnrealBuildTool
 			Result += " -c";
 
 			// What architecture(s) to build for
-			Result += GetArchitectureArgument(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
+			Result += PlatformContext.GetArchitectureArgument(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
 
 			if (CompileEnvironment.Config.Target.Architecture == "-simulator")
 			{
-				Result += " -isysroot " + BaseSDKDirSim + "/iPhoneSimulator" + IOSSDKVersion + ".sdk";
+				Result += " -isysroot " + BaseSDKDirSim + "/" + PlatformContext.GetXcodePlatformName(false) + IOSSDKVersion + ".sdk";
 			}
 			else
 			{
-				Result += " -isysroot " + BaseSDKDir + "/iPhoneOS" + IOSSDKVersion + ".sdk";
+				Result += " -isysroot " + BaseSDKDir + "/" +  PlatformContext.GetXcodePlatformName(true) + IOSSDKVersion + ".sdk";
 			}
 
-			Result += " -miphoneos-version-min=" + PlatformContext.GetRunTimeVersion();
+			Result += " -m" +  PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
 
 			Result += " " + PlatformContext.GetAdditionalLinkerFlags(CompileEnvironment.Config.Target.Configuration);
 
@@ -384,18 +362,15 @@ namespace UnrealBuildTool
 			PlatformContext.SetUpProjectEnvironment();
 
 			string Result = "";
-			if (LinkEnvironment.Config.Target.Architecture == "-simulator")
-			{
-				Result += " -arch i386";
-				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator" + IOSSDKVersion + ".sdk";
-			}
-			else
-			{
-				Result += Result += GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
-				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
-			}
+
+			Result += PlatformContext.GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
+
+			bool bIsDevice = (LinkEnvironment.Config.Target.Architecture != "-simulator");
+			Result += String.Format(" -isysroot {0}Platforms/{1}.platform/Developer/SDKs/{1}{2}.sdk",
+				XcodeDeveloperDir, PlatformContext.GetXcodePlatformName(bIsDevice), IOSSDKVersion);
+			
 			Result += " -dead_strip";
-			Result += " -miphoneos-version-min=" + PlatformContext.GetRunTimeVersion();
+			Result += " -m" + PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
 			Result += " -Wl,-no_pie";
 			Result += " -stdlib=libc++";
 			//			Result += " -v";
@@ -1002,15 +977,19 @@ namespace UnrealBuildTool
 				{
 					string Project = Target.ProjectDirectory + "/" + AppName + ".uproject";
 
+					string SchemeName = AppName;
+
 					// generate the dummy project so signing works
 					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
 						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk" });
-						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcodeproj";
+						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcworkspace";
+						SchemeName = "UE4";
 					}
 					else
 					{
-						Project = Target.ProjectDirectory + "/" + AppName + ".xcodeproj";
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game"});
+						Project = Target.ProjectDirectory + "/" + AppName + "_IOS.xcworkspace";
 					}
 
 					if (Directory.Exists(Project))
@@ -1019,12 +998,19 @@ namespace UnrealBuildTool
 						var DeployHandler = new UEDeployIOS();
 						DeployHandler.PrepTargetForDeployment(Target);
 
+						var ConfigName = Target.Configuration.ToString();
+						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+						{
+							ConfigName += " " + Target.Rules.ConfigurationName;
+						}
+
 						// code sign the project
 						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
-										" -project \"" + Project + "\"" +
-										" -configuration " + Target.Configuration +
-										" -scheme '" + AppName + " - iOS'" +
-										" -sdk iphoneos" +
+						                " -workspace \"" + Project + "\"" +
+										" -configuration \"" + ConfigName + "\"" +
+										" -scheme '" + SchemeName + "'" +
+										" -sdk " + PlatformContext.GetCodesignPlatformName() +
+										" -destination generic/platform=iOS" +
 										" CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 
 						Console.WriteLine("Code signing with command line: " + CmdLine);
@@ -1157,6 +1143,7 @@ namespace UnrealBuildTool
 
 					string Arguments = "";
 					string PathToApp = Target.RulesAssembly.GetTargetFileName(AppName).FullName;
+					string SchemeName = AppName;
 
 					// right now, no programs have a Source subdirectory, so assume the PathToApp is directly in the root
 					if (Path.GetDirectoryName(PathToApp).Contains(@"\Engine\Source\Programs"))
@@ -1182,10 +1169,20 @@ namespace UnrealBuildTool
 								throw new BuildException("The target was not in a /Source subdirectory");
 							}
 						}
-						if (AppName != "UE4Game")
+						if (AppName != "UE4Game" && AppName != "UE4Client")
 						{
 							PathToApp += "\\" + AppName + ".uproject";
 						}
+						else
+						{
+							SchemeName = "UE4";
+						}
+					}
+
+					var SchemeConfiguration = Target.Configuration.ToString();
+					if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+					{
+						SchemeConfiguration += " " + Target.Rules.ConfigurationName;
 					}
 
 					if (bUseDangerouslyFastMode)
@@ -1202,7 +1199,7 @@ namespace UnrealBuildTool
 							Arguments += " -strip";
 						}
 					}
-					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
+					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName + " -schemename " + SchemeName + " -schemeconfig \"" + SchemeConfiguration + "\"";
 
 					string Architecture = PlatformContext.GetActiveArchitecture();
 					if (Architecture != "")

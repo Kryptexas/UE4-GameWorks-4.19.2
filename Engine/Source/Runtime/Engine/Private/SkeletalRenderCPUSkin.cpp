@@ -594,7 +594,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 	// Prefetch all bone indices
 	const FBoneIndexType* BoneMap = Chunk.BoneMap.GetData();
 	FPlatformMisc::Prefetch( BoneMap );
-	FPlatformMisc::Prefetch( BoneMap, CACHE_LINE_SIZE );
+	FPlatformMisc::Prefetch( BoneMap, PLATFORM_CACHE_LINE_SIZE );
 
 	VertexType* SrcRigidVertex = NULL;
 	const int32 NumRigidVertices = Chunk.GetNumRigidVertices();
@@ -609,7 +609,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 		{
 			int32 VertexBufferIndex = Chunk.GetRigidVertexBufferIndex() + VertexIndex;
 			SrcRigidVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr<(bExtraBoneInfluences)>(VertexBufferIndex);
-			FPlatformMisc::Prefetch( SrcRigidVertex, CACHE_LINE_SIZE );	// Prefetch next vertices
+			FPlatformMisc::Prefetch( SrcRigidVertex, PLATFORM_CACHE_LINE_SIZE );	// Prefetch next vertices
 			VertexType* MorphedVertex = SrcRigidVertex;
 			if( NumValidMorphs ) 
 			{
@@ -679,7 +679,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 		{
 			const int32 VertexBufferIndex = Chunk.GetSoftVertexBufferIndex() + VertexIndex;
 			SrcSoftVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr<(bExtraBoneInfluences)>(VertexBufferIndex);
-			FPlatformMisc::Prefetch( SrcSoftVertex, CACHE_LINE_SIZE );	// Prefetch next vertices
+			FPlatformMisc::Prefetch( SrcSoftVertex, PLATFORM_CACHE_LINE_SIZE );	// Prefetch next vertices
 			VertexType* MorphedVertex = SrcSoftVertex;
 			if( NumValidMorphs ) 
 			{

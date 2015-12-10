@@ -170,9 +170,9 @@ struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuf
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FRHICommandUpdateBoneBuffer_Execute);
 		FBoneSkinning* ChunkMatrices = (FBoneSkinning*)GDynamicRHI->RHILockVertexBuffer(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
 		//FSkinMatrix3x4 is sizeof() == 48
-		// CACHE_LINE_SIZE (128) / 48 = 2.6
+		// PLATFORM_CACHE_LINE_SIZE (128) / 48 = 2.6
 		//  sizeof(FMatrix) == 64
-		// CACHE_LINE_SIZE (128) / 64 = 2
+		// PLATFORM_CACHE_LINE_SIZE (128) / 64 = 2
 		const uint32 NumBones = BoneMap.Num();
 		check(NumBones > 0 && NumBones < 256); // otherwise maybe some bad threading on BoneMap, maybe we need to copy that
 		const int32 PreFetchStride = 2; // FPlatformMisc::Prefetch stride
@@ -181,7 +181,7 @@ struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuf
 			const FBoneIndexType RefToLocalIdx = BoneMap[BoneIdx];
 			check(ReferenceToLocalMatrices.IsValidIndex(RefToLocalIdx)); // otherwise maybe some bad threading on BoneMap, maybe we need to copy that
 			FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetData() + RefToLocalIdx + PreFetchStride );
-			FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetData() + RefToLocalIdx + PreFetchStride, CACHE_LINE_SIZE );
+			FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetData() + RefToLocalIdx + PreFetchStride, PLATFORM_CACHE_LINE_SIZE );
 
 			FBoneSkinning& BoneMat = ChunkMatrices[BoneIdx];
 			const FMatrix& RefToLocal = ReferenceToLocalMatrices[RefToLocalIdx];
@@ -251,15 +251,15 @@ bool FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData(FRHICommandListIm
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FGPUBaseSkinVertexFactory_ShaderDataType_UpdateBoneData_CopyBones);
 		//FSkinMatrix3x4 is sizeof() == 48
-		// CACHE_LINE_SIZE (128) / 48 = 2.6
+		// PLATFORM_CACHE_LINE_SIZE (128) / 48 = 2.6
 		//  sizeof(FMatrix) == 64
-		// CACHE_LINE_SIZE (128) / 64 = 2
+		// PLATFORM_CACHE_LINE_SIZE (128) / 64 = 2
 		const int32 PreFetchStride = 2; // FPlatformMisc::Prefetch stride
 		for (uint32 BoneIdx = 0; BoneIdx < NumBones; BoneIdx++)
 		{
 			const FBoneIndexType RefToLocalIdx = BoneMap[BoneIdx];
 			FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetData() + RefToLocalIdx + PreFetchStride );
-			FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetData() + RefToLocalIdx + PreFetchStride, CACHE_LINE_SIZE );
+			FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetData() + RefToLocalIdx + PreFetchStride, PLATFORM_CACHE_LINE_SIZE );
 
 			FBoneSkinning& BoneMat = ChunkMatrices[BoneIdx];
 			const FMatrix& RefToLocal = ReferenceToLocalMatrices[RefToLocalIdx];

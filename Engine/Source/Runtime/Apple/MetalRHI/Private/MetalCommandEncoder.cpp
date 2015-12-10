@@ -35,7 +35,7 @@ FMetalCommandEncoder::FMetalCommandEncoder(void)
 	Viewport = {0.0, 0.0, 0.0, 0.0, FLT_MIN, FLT_MAX};
 	DepthBias[0] = DepthBias[1] = 0.0f;
 	DepthBias[2] = FLT_MAX;
-	ScissorRect = {0,0, 0,0};
+	ScissorRect = {0,0, 1,1};
 	FMemory::Memzero(BlendColor);
 	StencilRef[0] = StencilRef[1] = 0xff;
 	
@@ -53,8 +53,11 @@ FMetalCommandEncoder::FMetalCommandEncoder(void)
 
 FMetalCommandEncoder::~FMetalCommandEncoder(void)
 {
-	EndEncoding();
-	CommitCommandBuffer(false);
+	if (CommandBuffer)
+	{
+		EndEncoding();
+		CommitCommandBuffer(false);
+	}
 	
 	if(ComputePipelineState)
 	{

@@ -11,9 +11,12 @@ namespace UnrealBuildTool
 {
 	public class HTML5SDKInfo
 	{
+        // A GUID as a string.  Allows updates to flush the emscripten install without bumping
+        // the SDK version number.  Useful if a programming-error causes a bogus install.
+        // NOTE: Change this also when NODE_JS_MAC & NODE_JS_WIN  have been updated as well.
+		static string SDKInfoGUID = "3EB561D1-3A85-49E0-9E1A-9990AC1D9DE3";
+
 		static string SDKBase { get { return Path.GetFullPath(Path.Combine(new string[] { BuildConfiguration.RelativeEnginePath, "Source", "ThirdParty", "HTML5", "emsdk" })); } }
-		// A GUID as a string. Allows updates to flush the emscripten install without bumping the SDK version number. Useful if a programming-error causes a bogus install.
-		static string SDKInfoGUID = "49CA9678-2667-48BC-A6A9-25D6FB341F08";
 		static string SDKVersion = "1.30.0";
 		static string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
 

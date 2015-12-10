@@ -20,7 +20,7 @@ public class OnlineSubsystemFacebook : ModuleRules
             }
             );
 
-        if (Target.Platform == UnrealTargetPlatform.IOS)
+        if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
         {
 			AddThirdPartyPrivateStaticDependencies(Target, "Facebook");
 

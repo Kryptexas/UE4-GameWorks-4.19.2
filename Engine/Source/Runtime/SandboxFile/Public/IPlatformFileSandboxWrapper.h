@@ -207,6 +207,9 @@ public:
 	 */
 	FString ConvertToSandboxPath( const TCHAR* Filename ) const;
 
+	FString ConvertFromSandboxPath(const TCHAR* Filename) const;
+
+
 	/** Returns sandbox directory */
 	const FString& GetSandboxDirectory() const
 	{

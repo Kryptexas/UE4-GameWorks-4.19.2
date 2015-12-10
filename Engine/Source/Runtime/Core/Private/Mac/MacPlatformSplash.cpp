@@ -240,6 +240,7 @@ void FMacPlatformSplash::Show()
 		NSBitmapImageRep* BitmapRep = [NSBitmapImageRep imageRepWithData: [GSplashScreenImage TIFFRepresentation]];
 		float ImageWidth = [BitmapRep pixelsWide];
 		float ImageHeight = [BitmapRep pixelsHigh];
+		[GSplashScreenImage setSize:NSMakeSize(ImageWidth, ImageHeight)];
 
 		NSRect ContentRect;
 		ContentRect.origin.x = 0;

@@ -26,6 +26,7 @@ namespace UnrealBuildTool
 		IOS,
 		HTML5,
 		Linux,
+		TVOS,
 	}
 
 	/// <summary>

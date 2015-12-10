@@ -332,11 +332,11 @@ public class PhysX : ModuleRules
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.IOS)
+		else if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
 		{
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 
-			PhysXLibDir = Path.Combine(PhysXLibDir, "IOS/");
+			PhysXLibDir = Path.Combine(PhysXLibDir, Target.Platform.ToString());
 			PublicLibraryPaths.Add(PhysXLibDir);
 
 			string[] PhysXLibs = new string[] 

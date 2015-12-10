@@ -364,7 +364,7 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	return false;
 }
 
-FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )
+FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild)
 {
 	// bLaunchDetached, bLaunchHidden, bLaunchReallyHidden are ignored
 
@@ -483,10 +483,15 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 			CFRelease((CFStringRef)WorkingDirectory);
 		}
 
-		if (PipeWrite)
+		if (PipeWriteChild)
 		{
-			[ProcessHandle setStandardOutput: (id)PipeWrite];
-			[ProcessHandle setStandardError: (id)PipeWrite];
+			[ProcessHandle setStandardOutput: (id)PipeWriteChild];
+			[ProcessHandle setStandardError: (id)PipeWriteChild];
+		}
+
+		if (PipeReadChild)
+		{
+			[ProcessHandle setStandardInput : (id)PipeReadChild];
 		}
 
 		@try
@@ -698,6 +703,16 @@ const TCHAR* FMacPlatformProcess::UserDir()
 	return Result;
 }
 
+const TCHAR* FMacPlatformProcess::UserTempDir()
+{
+	static FString MacUserTempDir;
+	if (!MacUserTempDir.Len())
+	{
+		MacUserTempDir = NSTemporaryDirectory();
+	}
+	return *MacUserTempDir;
+}
+
 const TCHAR* FMacPlatformProcess::UserSettingsDir()
 {
 	return ApplicationSettingsDir();
@@ -865,7 +880,7 @@ void FMacPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* F
 	UE_LOG(LogMac, Log,  TEXT("LaunchFileInExternalEditor %s %s"), FileName, Parms ? Parms : TEXT("") );
 	CFStringRef CFFileName = FPlatformString::TCHARToCFString( FileName );
 	NSString* FileToOpen = ( NSString* )CFFileName;
-	if( [[FileToOpen lastPathComponent] isEqualToString: @"project.pbxproj"] )
+	if( [[FileToOpen lastPathComponent] isEqualToString: @"project.pbxproj"] || [[FileToOpen lastPathComponent] isEqualToString: @"contents.xcworkspacedata"] )
 	{
 		// Xcode project is a special case where we don't open the project file itself, but the .xcodeproj folder containing it
 		FileToOpen = [FileToOpen stringByDeletingLastPathComponent];
@@ -988,21 +1003,23 @@ bool FMacPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FSt
 		return false;
 	}
 
-	// convert input to UTF8CHAR
+	// Convert input to UTF8CHAR
 	uint32 BytesAvailable = Message.Len();
-	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
-
-	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
+	UTF8CHAR * Buffer = new UTF8CHAR[BytesAvailable + 1];
+	for (uint32 i = 0; i < BytesAvailable; i++)
 	{
-		return false;
+		Buffer[i] = Message[i];
 	}
+	Buffer[BytesAvailable] = '\n';
 
 	// Write to pipe
 	uint32 BytesWritten = write([(NSFileHandle*)WritePipe fileDescriptor], Buffer, BytesAvailable);
 
-	if (OutWritten != nullptr)
+	// Get written message
+	if (OutWritten)
 	{
-		OutWritten->FromBlob(Buffer, BytesWritten);
+		Buffer[BytesWritten] = '\0';
+		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
 	}
 
 	return (BytesWritten == BytesAvailable);

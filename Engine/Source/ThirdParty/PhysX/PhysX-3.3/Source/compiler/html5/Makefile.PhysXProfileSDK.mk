@@ -37,7 +37,7 @@ PhysXProfileSDK_debug_defines   += _DEBUG
 PhysXProfileSDK_debug_defines   += PX_CHECKED
 PhysXProfileSDK_debug_libraries := 
 PhysXProfileSDK_debug_common_cflags	:= $(PhysXProfileSDK_custom_cflags)
-PhysXProfileSDK_debug_common_cflags    += -MMD
+PhysXProfileSDK_debug_common_cflags    += 
 PhysXProfileSDK_debug_common_cflags    += $(addprefix -D, $(PhysXProfileSDK_debug_defines))
 PhysXProfileSDK_debug_common_cflags    += $(addprefix -I, $(PhysXProfileSDK_debug_hpaths))
 PhysXProfileSDK_debug_common_cflags  += -Wno-invalid-offsetof
@@ -67,7 +67,7 @@ prebuild_PhysXProfileSDK_debug:
 
 $(PhysXProfileSDK_debug_bin): $(PhysXProfileSDK_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXProfileSDKDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXProfileSDK_debug_bin) $(PhysXProfileSDK_debug_obj)
+	@$(AR) -o $(PhysXProfileSDK_debug_bin) $(PhysXProfileSDK_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXProfileSDK_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -115,7 +115,7 @@ PhysXProfileSDK_checked_defines   += NDEBUG
 PhysXProfileSDK_checked_defines   += PX_CHECKED
 PhysXProfileSDK_checked_libraries := 
 PhysXProfileSDK_checked_common_cflags	:= $(PhysXProfileSDK_custom_cflags)
-PhysXProfileSDK_checked_common_cflags    += -MMD
+PhysXProfileSDK_checked_common_cflags    += 
 PhysXProfileSDK_checked_common_cflags    += $(addprefix -D, $(PhysXProfileSDK_checked_defines))
 PhysXProfileSDK_checked_common_cflags    += $(addprefix -I, $(PhysXProfileSDK_checked_hpaths))
 PhysXProfileSDK_checked_common_cflags  += -Wno-invalid-offsetof
@@ -145,7 +145,7 @@ prebuild_PhysXProfileSDK_checked:
 
 $(PhysXProfileSDK_checked_bin): $(PhysXProfileSDK_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXProfileSDKCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXProfileSDK_checked_bin) $(PhysXProfileSDK_checked_obj)
+	@$(AR) -o $(PhysXProfileSDK_checked_bin) $(PhysXProfileSDK_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXProfileSDK_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -193,7 +193,7 @@ PhysXProfileSDK_profile_defines   += NDEBUG
 PhysXProfileSDK_profile_defines   += PX_PROFILE
 PhysXProfileSDK_profile_libraries := 
 PhysXProfileSDK_profile_common_cflags	:= $(PhysXProfileSDK_custom_cflags)
-PhysXProfileSDK_profile_common_cflags    += -MMD
+PhysXProfileSDK_profile_common_cflags    += 
 PhysXProfileSDK_profile_common_cflags    += $(addprefix -D, $(PhysXProfileSDK_profile_defines))
 PhysXProfileSDK_profile_common_cflags    += $(addprefix -I, $(PhysXProfileSDK_profile_hpaths))
 PhysXProfileSDK_profile_common_cflags  += -Wno-invalid-offsetof
@@ -223,7 +223,7 @@ prebuild_PhysXProfileSDK_profile:
 
 $(PhysXProfileSDK_profile_bin): $(PhysXProfileSDK_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXProfileSDKPROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXProfileSDK_profile_bin) $(PhysXProfileSDK_profile_obj)
+	@$(AR) -o $(PhysXProfileSDK_profile_bin) $(PhysXProfileSDK_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXProfileSDK_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -270,7 +270,7 @@ PhysXProfileSDK_release_defines   += PX_PHYSX_STATIC_LIB
 PhysXProfileSDK_release_defines   += NDEBUG
 PhysXProfileSDK_release_libraries := 
 PhysXProfileSDK_release_common_cflags	:= $(PhysXProfileSDK_custom_cflags)
-PhysXProfileSDK_release_common_cflags    += -MMD
+PhysXProfileSDK_release_common_cflags    += 
 PhysXProfileSDK_release_common_cflags    += $(addprefix -D, $(PhysXProfileSDK_release_defines))
 PhysXProfileSDK_release_common_cflags    += $(addprefix -I, $(PhysXProfileSDK_release_hpaths))
 PhysXProfileSDK_release_common_cflags  += -Wno-invalid-offsetof
@@ -300,7 +300,7 @@ prebuild_PhysXProfileSDK_release:
 
 $(PhysXProfileSDK_release_bin): $(PhysXProfileSDK_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysXProfileSDK_Oz.bc`
-	@$(AR) rcs $(PhysXProfileSDK_release_bin) $(PhysXProfileSDK_release_obj)
+	@$(AR) -o $(PhysXProfileSDK_release_bin) $(PhysXProfileSDK_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXProfileSDK_release_DEPDIR = $(dir $(@))/$(*F)

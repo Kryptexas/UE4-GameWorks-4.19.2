@@ -1345,6 +1345,8 @@ public:
 		EOnlyShared,	// Only pipelines with shared shaders
 		EOnlyUnique,	// Only pipelines with unique shaders
 	};
+	
+	static void CookPipeline(FShaderPipeline* Pipeline);
 };
 
 inline bool operator<(const FShaderPipeline& Lhs, const FShaderPipeline& Rhs)
@@ -1595,6 +1597,12 @@ public:
 					Ar << Type;
 					SerializeShaderForSaving(Shader, Ar, bHandleShaderKeyChanges, bInlineShaderResource);
 				}
+#if WITH_EDITORONLY_DATA
+				if(Ar.IsCooking())
+				{
+					FShaderPipeline::CookPipeline(CurrentPipeline);
+				}
+#endif
 			}
 		}
 

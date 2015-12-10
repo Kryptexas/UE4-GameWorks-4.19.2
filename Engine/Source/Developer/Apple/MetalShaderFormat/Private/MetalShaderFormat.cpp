@@ -19,6 +19,7 @@ class FMetalShaderFormat : public IShaderFormat
 	{
 		HEADER_VERSION = 28,
 	};
+	
 	struct FVersion
 	{
 		uint16 HLSLCCMajor		: 3;

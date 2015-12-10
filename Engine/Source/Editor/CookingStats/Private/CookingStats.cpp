@@ -35,10 +35,48 @@ void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const FStrin
 		Value = &KeyTags.Add(Key);
 	}
 
-	Value->Add(Tag, TagValue);
-
+	Value->Add(Tag, FTag(TagValue));
 }
 
+void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const float TagValue)
+{
+	FScopeLock ScopeLock(&SyncObject);
+	auto Value = KeyTags.Find(Key);
+
+	if (Value == nullptr)
+	{
+		Value = &KeyTags.Add(Key);
+	}
+
+	Value->Add(Tag, FTag(TagValue));
+}
+
+
+void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const int32 TagValue)
+{
+	FScopeLock ScopeLock(&SyncObject);
+	auto Value = KeyTags.Find(Key);
+
+	if (Value == nullptr)
+	{
+		Value = &KeyTags.Add(Key);
+	}
+
+	Value->Add(Tag, FTag(TagValue));
+}
+
+void FCookingStats::AddTagValue(const FName& Key, const FName& Tag, const bool TagValue)
+{
+	FScopeLock ScopeLock(&SyncObject);
+	auto Value = KeyTags.Find(Key);
+
+	if (Value == nullptr)
+	{
+		Value = &KeyTags.Add(Key);
+	}
+
+	Value->Add(Tag, FTag(TagValue));
+}
 
 bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString& OutValue) const
 {
@@ -56,7 +94,7 @@ bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString&
 	{
 		return false;
 	}
-	OutValue = *Value;
+	OutValue = Value->ToString();
 	return true;
 }
 
@@ -76,9 +114,9 @@ bool FCookingStats::SaveStatsAsCSV(const FString& Filename) const
 			if (Tag.Value.IsEmpty() == false)
 			{
 				Output += TEXT("=");
-				Output += Tag.Value;
+				Output += Tag.Value.ToString();
 			}
-			
+
 		}
 
 		for (const auto& Tag : GlobalTags)

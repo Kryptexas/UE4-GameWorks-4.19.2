@@ -14,6 +14,7 @@
 	float Opacity;
 @public
 	bool bZoomed;
+	bool bIsOnActiveSpace;
 }
 
 @property (assign) NSRect PreFullScreenRect;

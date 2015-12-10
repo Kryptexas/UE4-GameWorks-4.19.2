@@ -119,7 +119,7 @@ PhysX_release_libraries += :PxTask_Oz.bc
 PhysX_release_libraries += :SceneQuery_Oz.bc
 PhysX_release_libraries += :SimulationController_Oz.bc
 PhysX_release_common_cflags	:= $(PhysX_custom_cflags)
-PhysX_release_common_cflags    += -MMD
+PhysX_release_common_cflags    += 
 PhysX_release_common_cflags    += $(addprefix -D, $(PhysX_release_defines))
 PhysX_release_common_cflags    += $(addprefix -I, $(PhysX_release_hpaths))
 PhysX_release_common_cflags  += -Wno-invalid-offsetof
@@ -149,7 +149,7 @@ prebuild_PhysX_release:
 
 $(PhysX_release_bin): $(PhysX_release_obj) build_LowLevel_release build_LowLevelCloth_release build_PhysXProfileSDK_release build_PhysXVisualDebuggerSDK_release build_PvdRuntime_release build_PxTask_release build_SceneQuery_release build_SimulationController_release 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3_Oz.bc`
-	@$(AR) rcs $(PhysX_release_bin) $(PhysX_release_obj)
+	@$(AR) -o $(PhysX_release_bin) $(PhysX_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysX_release_DEPDIR = $(dir $(@))/$(*F)
@@ -242,7 +242,7 @@ PhysX_debug_libraries += :PxTaskDEBUG_Oz.bc
 PhysX_debug_libraries += :SceneQueryDEBUG_Oz.bc
 PhysX_debug_libraries += :SimulationControllerDEBUG_Oz.bc
 PhysX_debug_common_cflags	:= $(PhysX_custom_cflags)
-PhysX_debug_common_cflags    += -MMD
+PhysX_debug_common_cflags    += 
 PhysX_debug_common_cflags    += $(addprefix -D, $(PhysX_debug_defines))
 PhysX_debug_common_cflags    += $(addprefix -I, $(PhysX_debug_hpaths))
 PhysX_debug_common_cflags  += -Wno-invalid-offsetof
@@ -272,7 +272,7 @@ prebuild_PhysX_debug:
 
 $(PhysX_debug_bin): $(PhysX_debug_obj) build_LowLevel_debug build_LowLevelCloth_debug build_PhysXProfileSDK_debug build_PhysXVisualDebuggerSDK_debug build_PvdRuntime_debug build_PxTask_debug build_SceneQuery_debug build_SimulationController_debug 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3DEBUG_Oz.bc`
-	@$(AR) rcs $(PhysX_debug_bin) $(PhysX_debug_obj)
+	@$(AR) -o $(PhysX_debug_bin) $(PhysX_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysX_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -365,7 +365,7 @@ PhysX_checked_libraries += :PxTaskCHECKED_Oz.bc
 PhysX_checked_libraries += :SceneQueryCHECKED_Oz.bc
 PhysX_checked_libraries += :SimulationControllerCHECKED_Oz.bc
 PhysX_checked_common_cflags	:= $(PhysX_custom_cflags)
-PhysX_checked_common_cflags    += -MMD
+PhysX_checked_common_cflags    += 
 PhysX_checked_common_cflags    += $(addprefix -D, $(PhysX_checked_defines))
 PhysX_checked_common_cflags    += $(addprefix -I, $(PhysX_checked_hpaths))
 PhysX_checked_common_cflags  += -Wno-invalid-offsetof
@@ -395,7 +395,7 @@ prebuild_PhysX_checked:
 
 $(PhysX_checked_bin): $(PhysX_checked_obj) build_LowLevel_checked build_LowLevelCloth_checked build_PhysXProfileSDK_checked build_PhysXVisualDebuggerSDK_checked build_PvdRuntime_checked build_PxTask_checked build_SceneQuery_checked build_SimulationController_checked 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3CHECKED_Oz.bc`
-	@$(AR) rcs $(PhysX_checked_bin) $(PhysX_checked_obj)
+	@$(AR) -o $(PhysX_checked_bin) $(PhysX_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysX_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -488,7 +488,7 @@ PhysX_profile_libraries += :PxTaskPROFILE_Oz.bc
 PhysX_profile_libraries += :SceneQueryPROFILE_Oz.bc
 PhysX_profile_libraries += :SimulationControllerPROFILE_Oz.bc
 PhysX_profile_common_cflags	:= $(PhysX_custom_cflags)
-PhysX_profile_common_cflags    += -MMD
+PhysX_profile_common_cflags    += 
 PhysX_profile_common_cflags    += $(addprefix -D, $(PhysX_profile_defines))
 PhysX_profile_common_cflags    += $(addprefix -I, $(PhysX_profile_hpaths))
 PhysX_profile_common_cflags  += -Wno-invalid-offsetof
@@ -518,7 +518,7 @@ prebuild_PhysX_profile:
 
 $(PhysX_profile_bin): $(PhysX_profile_obj) build_LowLevel_profile build_LowLevelCloth_profile build_PhysXProfileSDK_profile build_PhysXVisualDebuggerSDK_profile build_PvdRuntime_profile build_PxTask_profile build_SceneQuery_profile build_SimulationController_profile 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3PROFILE_Oz.bc`
-	@$(AR) rcs $(PhysX_profile_bin) $(PhysX_profile_obj)
+	@$(AR) -o $(PhysX_profile_bin) $(PhysX_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysX_profile_DEPDIR = $(dir $(@))/$(*F)

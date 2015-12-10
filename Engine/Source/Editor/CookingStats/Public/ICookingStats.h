@@ -41,6 +41,37 @@ public:
 	virtual void AddTagValue(const FName& Key, const FName& Tag, const FString& Value) = 0;
 
 	/**
+	* AddTag
+	* add a time tag to a key, these tags will be saved out with the key
+	* this is an optimization for time tags so we don't have to process them as strings
+	*
+	* @param Key key to add the tag to
+	* @param Tag tag to add to the key
+	*/
+	virtual void AddTagValue(const FName& Key, const FName& Tag, const float Value) = 0;
+
+	/**
+	* AddTag
+	* add a bool tag to a key, these tags will be saved out with the key
+	* this is an optimization for time tags so we don't have to process them as strings
+	*
+	* @param Key key to add the tag to
+	* @param Tag tag to add to the key
+	*/
+	virtual void AddTagValue(const FName& Key, const FName& Tag, const bool Value) = 0;
+
+
+	/**
+	* AddTag
+	* add a int32 tag to a key, these tags will be saved out with the key
+	* this is an optimization for time tags so we don't have to process them as strings
+	*
+	* @param Key key to add the tag to
+	* @param Tag tag to add to the key
+	*/
+	virtual void AddTagValue(const FName& Key, const FName& Tag, const int32 Value) = 0;
+
+	/**
 	 * GetTagValue
 	 * retrieve a previously added tag value
 	 *

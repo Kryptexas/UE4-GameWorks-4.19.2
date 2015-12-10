@@ -135,7 +135,7 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define MSVC_PRAGMA(Pragma) __pragma(Pragma)
 
 // Prefetch
-#define CACHE_LINE_SIZE	128
+#define PLATFORM_CACHE_LINE_SIZE	128
 
 // DLL export and import definitions
 #define DLLEXPORT __declspec(dllexport)

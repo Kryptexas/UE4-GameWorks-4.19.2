@@ -26,6 +26,9 @@ public class OnlineSubsystemIOS : ModuleRules
             );
 
 		PublicWeakFrameworks.Add("Cloudkit");
-		PublicWeakFrameworks.Add("MultipeerConnectivity");
+		if (Target.Platform == UnrealTargetPlatform.IOS)
+		{
+			PublicWeakFrameworks.Add("MultipeerConnectivity");
+		}
 	}
 }

@@ -215,7 +215,7 @@ void GetSpriteTangents(
 FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput Input )
 {
 	// Sample the position and velocity textures to get the current state of the particle.
-	uint InstanceId = Input.InstanceId * PARTICLES_PER_INSTANCE + Input.VertexId / 4;
+	uint InstanceId = GetLayerInstanceID(Input.InstanceId) * PARTICLES_PER_INSTANCE + Input.VertexId / 4;
 	float2 ParticleIndex = ParticleIndices[ParticleIndicesOffset + InstanceId];
 	float4 PositionSample = Texture2DSampleLevel(PositionTexture, PositionTextureSampler, ParticleIndex, 0);
 	float4 VelocitySample = Texture2DSampleLevel(VelocityTexture, VelocityTextureSampler, ParticleIndex, 0);

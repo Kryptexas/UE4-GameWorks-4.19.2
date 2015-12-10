@@ -32,6 +32,18 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 		PipelineDescriptor.depthAttachmentPixelFormat = (MTLPixelFormat)GPixelFormats[PF_DepthStencil].PlatformFormat;
 		PipelineDescriptor.stencilAttachmentPixelFormat = (MTLPixelFormat)GPixelFormats[PF_DepthStencil].PlatformFormat;
 	}
+    
+    // Disable blending and writing on unbound targets or Metal will assert/crash/abort depending on build.
+    // At least with this API all the state must match all of the time for it to work.
+    for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
+    {
+        MTLRenderPipelineColorAttachmentDescriptor* Desc = [PipelineDescriptor.colorAttachments objectAtIndexedSubscript:Index];
+        if(Desc.pixelFormat == MTLPixelFormatInvalid)
+        {
+            Desc.blendingEnabled = NO;
+            Desc.writeMask = 0;
+        }
+    }
 	
 	// set the bound shader state settings
 	PipelineDescriptor.vertexDescriptor = BSS->VertexDeclaration->Layout;

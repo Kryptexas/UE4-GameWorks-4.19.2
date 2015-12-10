@@ -39,6 +39,9 @@
 #include "IMovieSceneCapture.h"
 #include "EngineUtils.h"
 
+#include "TargetPlatform.h"
+
+#include "CookerSettings.h"
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
 
@@ -130,12 +133,16 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	if (!IsRunningCommandlet())
 	{
 		UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
+		UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
-		BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 
 		bool bEnableCookOnTheSide = false;
 		GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableCookOnTheSide"), bEnableCookOnTheSide, GEngineIni);
 
+		bool bEnableBuildDDCInBackground = false;
+		GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableBuildDDCInBackground"), bEnableBuildDDCInBackground, GEngineIni);
+		BaseCookingFlags |= bEnableBuildDDCInBackground ? ECookInitializationFlags::BuildDDCInBackground : ECookInitializationFlags::None;
 		if (bEnableCookOnTheSide)
 		{
 			CookServer = NewObject<UCookOnTheFlyServer>();
@@ -399,6 +406,29 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	// Update lightmass
 	UpdateBuildLighting();
 	
+	if (!GIsSlowTask && !bFirstTick)
+	{
+		if (CookServer && 
+			CookServer->IsCookByTheBookMode() && 
+			!CookServer->IsCookByTheBookRunning() )
+		{
+			TArray<const ITargetPlatform*> CacheTargetPlatforms;
+
+			const ULevelEditorPlaySettings* PlaySettings = GetDefault<ULevelEditorPlaySettings>();
+			ITargetPlatform* TargetPlatform = nullptr;
+			if (PlaySettings && (PlaySettings->LastExecutedLaunchModeType == LaunchMode_OnDevice))
+			{
+				FString DeviceName = PlaySettings->LastExecutedLaunchDevice.Left(PlaySettings->LastExecutedLaunchDevice.Find(TEXT("@")));
+				CacheTargetPlatforms.Add( GetTargetPlatformManager()->FindTargetPlatform(DeviceName) );
+			}
+
+			if (CacheTargetPlatforms.Num() > 0)
+			{
+				CookServer->EditorTick(0.001f, CacheTargetPlatforms);
+			}
+		}
+	}
+
 	ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>( FName("CrashTracker") );
 	bool bCrashTrackerEnabled = false;
 	if (CrashTracker)

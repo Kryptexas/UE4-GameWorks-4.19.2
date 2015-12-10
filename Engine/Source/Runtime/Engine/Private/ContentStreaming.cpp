@@ -5383,7 +5383,7 @@ void FStreamingManagerTexture::CalcDynamicWantedMips()
 	for ( int32 Index=0; Index < StreamingTextures.Num(); ++Index )
 	{
 		FStreamingTexture& StreamingTexture = StreamingTextures[ Index ];
-		FPlatformMisc::Prefetch( &StreamingTexture, CACHE_LINE_SIZE*4 );
+		FPlatformMisc::Prefetch( &StreamingTexture, PLATFORM_CACHE_LINE_SIZE*4 );
 		StreamingTexture.DynamicScreenSize = 0.0f;
 		StreamingTexture.DynamicMinDistanceSq = FLT_MAX;
 	}

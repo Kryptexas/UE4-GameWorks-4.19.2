@@ -66,7 +66,7 @@ UITextFieldDelegate>
 
 @property (retain) NSTimer* timer;
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	/** Properties for managing the console */
 	@property (nonatomic, retain) UIAlertView*		ConsoleAlert;
 #ifdef __IPHONE_8_0

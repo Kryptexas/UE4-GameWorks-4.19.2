@@ -59,18 +59,11 @@ namespace UnrealBuildTool
 		public static bool bUseFastMonoCalls;
 
 		/// <summary>
-		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the immediate context
+		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the immediate and deferred contexts
 		/// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
 		/// </summary>
 		[XmlConfig]
-		public static bool bUseFastSemanticsImmediateContext;
-
-		/// <summary>
-		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the deferred contexts
-		/// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
-		/// </summary>
-		[XmlConfig]
-		public static bool bUseFastSemanticsDeferredContexts;
+		public static bool bUseFastSemanticsRenderContexts;
 
 		/// Async Compute context support. Requires Mono and Fastcalls
 		/// </summary>
@@ -639,10 +632,9 @@ namespace UnrealBuildTool
 			bUseFastMonoCalls = true;
 			bUseAsyncComputeContext = bUseFastMonoCalls;
 
-			// Switches for fast semantics D3D contexts
-			// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
-			bUseFastSemanticsImmediateContext = false;
-			bUseFastSemanticsDeferredContexts = false;
+			// Switch for fast semantics D3D contexts
+			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
+			bUseFastSemanticsRenderContexts = false;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces

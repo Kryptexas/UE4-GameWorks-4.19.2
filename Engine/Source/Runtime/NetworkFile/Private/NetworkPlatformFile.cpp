@@ -291,6 +291,10 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 								bDeleteFile = false;
 							}
 						}
+						else
+						{
+							UE_LOG(LogNetworkPlatformFile, Display, TEXT("Keeping cached file: %s, TimeDiff worked out ok"), *ServerFile);
+						}
 					}
 				}
 				if (bDeleteFile == true)

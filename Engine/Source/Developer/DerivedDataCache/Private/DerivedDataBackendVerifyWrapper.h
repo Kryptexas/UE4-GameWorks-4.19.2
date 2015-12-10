@@ -35,7 +35,7 @@ public:
 		}
 		return false;
 	}
-	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData, FCacheStatRecord* Stats) override
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
 		bool bAlreadyTested = false;
 		{
@@ -47,11 +47,11 @@ public:
 		}
 		if (bAlreadyTested)
 		{
-			return InnerBackend->GetCachedData(CacheKey, OutData, Stats);
+			return InnerBackend->GetCachedData(CacheKey, OutData);
 		}
 		return false;
 	}
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
 		bool bAlreadyTested = false;
 		{
@@ -68,7 +68,7 @@ public:
 		if (!bAlreadyTested)
 		{
 			TArray<uint8> OutData;
-			bool bSuccess = InnerBackend->GetCachedData(CacheKey, OutData, Stats);
+			bool bSuccess = InnerBackend->GetCachedData(CacheKey, OutData);
 			if (bSuccess)
 			{
 				if (OutData != InData)
@@ -81,7 +81,7 @@ public:
 					if (bFixProblems)
 					{
 						UE_LOG(LogDerivedDataCache, Display, TEXT("Verify: Wrote newly generated data to the cache."), CacheKey);
-						InnerBackend->PutCachedData(CacheKey, InData, true, Stats);
+						InnerBackend->PutCachedData(CacheKey, InData, true);
 					}
 				}
 				else
@@ -92,7 +92,7 @@ public:
 			else
 			{
 				UE_LOG(LogDerivedDataCache, Warning, TEXT("Verify: Cached data didn't exist %s."), CacheKey);
-				InnerBackend->PutCachedData(CacheKey, InData, bPutEvenIfExists, Stats);
+				InnerBackend->PutCachedData(CacheKey, InData, bPutEvenIfExists);
 			}
 		}
 	}

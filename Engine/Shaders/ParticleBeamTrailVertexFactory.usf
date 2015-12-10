@@ -16,6 +16,11 @@ struct FVertexFactoryInput
 #if USE_DYNAMIC_PARAMETERS
 	float4 DynamicParameter0		: ATTRIBUTE5;
 #endif	//USE_DYNAMIC_PARAMETERS
+
+/** Optional instance ID for vertex layered rendering */
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint InstanceId	: SV_InstanceID;
+#endif
 };
 
 struct FVertexFactoryInterpolantsVSToPS

@@ -219,6 +219,12 @@ void FMetalEventNodeFrame::LogDisjointQuery()
 	
 }
 
+FGPUProfilerEventNode* FMetalGPUProfiler::CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent)
+{
+	FMetalEventNode* EventNode = new FMetalEventNode(FMetalContext::GetCurrentContext(), InName, InParent, false, false);
+	return EventNode;
+}
+
 void FMetalGPUProfiler::Cleanup()
 {
 	

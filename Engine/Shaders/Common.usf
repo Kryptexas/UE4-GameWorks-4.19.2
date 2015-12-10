@@ -130,25 +130,29 @@
 	// @todo metal: remove this and make sure all uses handle METAL_PROFILE
 	#undef ES3_1_PROFILE
 	#define ES3_1_PROFILE 1
-	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_MRT_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 	// @todo metal: remove this and make sure all uses handle METAL_MRT_PROFILE
 	#undef SM4_PROFILE
 	#define SM4_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_SM4_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 	// @todo metal: remove this and make sure all uses handle METAL_SM4_PROFILE
 	#undef SM4_PROFILE
 	#define SM4_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_SM5_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 	// @todo metal: remove this and make sure all uses handle FEATURE_LEVEL_SM5
 	#undef SM5_PROFILE
 	#define SM5_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif ES2_PROFILE || ES3_1_PROFILE
 	#if ES3_1_PROFILE
 		#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
@@ -187,6 +191,10 @@
 // If we didn't request color component swizzling, just make it empty
 #ifndef FCOLOR_COMPONENT_SWIZZLE
 #define FCOLOR_COMPONENT_SWIZZLE
+#endif
+
+#ifndef STENCIL_COMPONENT_SWIZZLE
+#define STENCIL_COMPONENT_SWIZZLE .g
 #endif
 
 // Whether the platform supports independent texture and samplers

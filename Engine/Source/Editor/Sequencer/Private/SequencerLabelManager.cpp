@@ -2,7 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "MovieScene.h"
-#include "SequenceRLabelManager.h"
+#include "SequencerLabelManager.h"
 
 
 void FSequencerLabelManager::SetMovieScene(UMovieScene* InMovieScene)

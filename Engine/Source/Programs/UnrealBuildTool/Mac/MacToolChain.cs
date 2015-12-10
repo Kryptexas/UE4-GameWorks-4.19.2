@@ -38,9 +38,14 @@ namespace UnrealBuildTool
 		public static string MacOSVersion = "10.9";
 
 		/// <summary>
-		/// Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
+		/// Minimum version of Mac OS X for games to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
 		/// </summary>
-		public static string MinMacOSVersion = "10.9.2";
+		public static string MinMacOSVersionGame = "10.9.5";
+
+		/// <summary>
+		/// Minimum version of Mac OS X for the editor to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
+		/// </summary>
+		public static string MinMacOSVersionEditor = "10.10.5";
 
 		/// <summary>
 		/// Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode
@@ -111,6 +116,12 @@ namespace UnrealBuildTool
 			Result += " -fexceptions";
 			Result += " -fasm-blocks";
 
+            string SanitizerMode = Environment.GetEnvironmentVariable("CLANG_ADDRESS_SANITIZER");
+            if(SanitizerMode != null && SanitizerMode == "YES")
+            {
+                Result += " -fsanitize=address";
+            }
+
 			Result += " -Wall -Werror";
 			//Result += " -Wsign-compare"; // fed up of not seeing the signed/unsigned warnings we get on Windows - lets enable them here too.
 
@@ -151,7 +162,8 @@ namespace UnrealBuildTool
 			Result += " -mmacosx-version-min=" + MacOSVersion;
 
 			// Optimize non- debug builds.
-			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+            // Don't optimise if using AddressSanitizer or you'll get false positive errors due to erroneous optimisation of necessary AddressSanitizer instrumentation.
+			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug && (SanitizerMode == null || SanitizerMode != "YES"))
 			{
 				if (UEBuildConfiguration.bCompileForSize)
 				{
@@ -171,6 +183,12 @@ namespace UnrealBuildTool
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
 				Result += " -gdwarf-2";
+			}
+
+			string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+			if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+			{
+				Result += " --analyze";
 			}
 
 			return Result;
@@ -250,6 +268,12 @@ namespace UnrealBuildTool
 			Result += " -isysroot " + BaseSDKDir + "/MacOSX" + MacOSSDKVersion + ".sdk";
 			Result += " -mmacosx-version-min=" + MacOSVersion;
 			Result += " -dead_strip";
+
+            string SanitizerMode = Environment.GetEnvironmentVariable("CLANG_ADDRESS_SANITIZER");
+            if(SanitizerMode != null && SanitizerMode == "YES")
+            {
+                Result += " -fsanitize=address";
+            }
 
 			if (LinkEnvironment.Config.bIsBuildingDLL)
 			{
@@ -459,7 +483,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
+		public static string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
 		{
 			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string EngineVersionMajor = "4";
@@ -1069,11 +1093,12 @@ namespace UnrealBuildTool
 						InfoPlistFile = ConvertPath(InfoPlistFile);
 					}
 					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "chmod 644 \"{0}.app/Contents/Info.plist\"", ExeName);
 
 					// Fix contents of Info.plist
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{1}.app/Contents/Info.plist\"", "{EXECUTABLE_NAME}", ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{APP_NAME}", GameName, ExeName);
-					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", MinMacOSVersion, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", bBuildingEditor ? MinMacOSVersionEditor : MinMacOSVersionGame, ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{ICON_NAME}", GameName, ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{BUNDLE_VERSION}", BundleVersion, ExeName);
 
@@ -1092,13 +1117,6 @@ namespace UnrealBuildTool
 					QueueFileForBatchUpload(FileItem.GetItemByFileReference(new FileReference("../../Engine/Source/Runtime/Launch/Resources/Mac/Info.plist")));
 					QueueFileForBatchUpload(FileItem.GetItemByFileReference(FileReference.Combine(LinkEnvironment.Config.IntermediateDirectory, "DylibCopy.sh")));
 				}
-			}
-
-			// For Mac, generate the dSYM file if the config file is set to do so
-			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL))
-			{
-				Log.TraceInformation("Generating dSYM file for {0} - this will add some time to your build...", Path.GetFileName(OutputFile.AbsolutePath));
-				RemoteOutputFile = GenerateDebugInfo(OutputFile);
 			}
 
 			return RemoteOutputFile;
@@ -1168,19 +1186,20 @@ namespace UnrealBuildTool
 		public FileItem GenerateDebugInfo(FileItem MachOBinary)
 		{
 			string BinaryPath = MachOBinary.AbsolutePath;
-			if(BinaryPath.Contains(".app"))
+			if (BinaryPath.Contains(".app"))
 			{
-				while(BinaryPath.Contains(".app"))
+				while (BinaryPath.Contains(".app"))
 				{
 					BinaryPath = Path.GetDirectoryName(BinaryPath);
 				}
 				BinaryPath = Path.Combine(BinaryPath, Path.GetFileName(Path.ChangeExtension(MachOBinary.AbsolutePath, ".dSYM")));
 			}
+			else
+			{
+				BinaryPath = Path.ChangeExtension(BinaryPath, ".dSYM");
+			}
 
-			// Make a file item for the source and destination files
-			string FullDestPath = Path.ChangeExtension(MachOBinary.AbsolutePath, ".dSYM");
-
-			FileItem OutputFile = FileItem.GetItemByPath(FullDestPath);
+			FileItem OutputFile = FileItem.GetItemByPath(BinaryPath);
 			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
 			FileItem InputFile = LocalToRemoteFileItem(MachOBinary, false);
 
@@ -1202,26 +1221,14 @@ namespace UnrealBuildTool
 
 			// Deletes ay existing file on the building machine,
 			// note that the source and dest are switched from a copy command
-			if(BinaryPath == MachOBinary.AbsolutePath)
-			{
-				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
-					ToolchainDir,
-					InputFile.AbsolutePath,
-					DestFile.AbsolutePath);
-			}
-			else
-			{
-				FileItem MovedFile = FileItem.GetItemByPath(BinaryPath);
-				FileItem FinalFile = LocalToRemoteFileItem(MovedFile, false);
-				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"; mv \"{2}\" \"{3}\"'",
-					ToolchainDir,
-					InputFile.AbsolutePath,
-					DestFile.AbsolutePath,
-					FinalFile.AbsolutePath);
-			}
+			GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
+				ToolchainDir,
+				InputFile.AbsolutePath,
+				DestFile.AbsolutePath);
 			GenDebugAction.PrerequisiteItems.Add(InputFile);
 			GenDebugAction.ProducedItems.Add(DestFile);
-			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;
+			GenDebugAction.CommandDescription = "";
+			GenDebugAction.StatusDescription = "Generating " + Path.GetFileName(BinaryPath);
 			GenDebugAction.bCanExecuteRemotely = false;
 
 			return DestFile;
@@ -1687,6 +1694,12 @@ namespace UnrealBuildTool
 			foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.Config.AdditionalBundleResources)
 			{
 				OutputFiles.Add(CopyBundleResource(Resource, Executable));
+			}
+
+			// For Mac, generate the dSYM file if the config file is set to do so
+			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
+			{
+				OutputFiles.Add(GenerateDebugInfo(Executable));
 			}
 
 			// If building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)

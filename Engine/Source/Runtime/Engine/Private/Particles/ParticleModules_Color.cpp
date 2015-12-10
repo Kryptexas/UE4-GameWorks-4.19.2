@@ -381,14 +381,14 @@ void UParticleModuleColorOverLife::Update(FParticleEmitterInstance* Owner, int32
 	const FRawDistribution* FastColorOverLife = ColorOverLife.GetFastRawDistribution();
 	const FRawDistribution* FastAlphaOverLife = AlphaOverLife.GetFastRawDistribution();
 	FPlatformMisc::Prefetch(Owner->ParticleData, (Owner->ParticleIndices[0] * Owner->ParticleStride));
-	FPlatformMisc::Prefetch(Owner->ParticleData, (Owner->ParticleIndices[0] * Owner->ParticleStride) + CACHE_LINE_SIZE);
+	FPlatformMisc::Prefetch(Owner->ParticleData, (Owner->ParticleIndices[0] * Owner->ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 	if( FastColorOverLife && FastAlphaOverLife )
 	{
 		// fast path
 		BEGIN_UPDATE_LOOP;
 		{
 			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
-			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 			FastColorOverLife->GetValue3None(Particle.RelativeTime, &Particle.Color.R);
 			FastAlphaOverLife->GetValue1None(Particle.RelativeTime, &Particle.Color.A);
 		}
@@ -403,7 +403,7 @@ void UParticleModuleColorOverLife::Update(FParticleEmitterInstance* Owner, int32
 			ColorVec = ColorOverLife.GetValue(Particle.RelativeTime, Owner->Component);
 			fAlpha = AlphaOverLife.GetValue(Particle.RelativeTime, Owner->Component);
 			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
-			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 			Particle.Color.R = ColorVec.X;
 			Particle.Color.G = ColorVec.Y;
 			Particle.Color.B = ColorVec.Z;

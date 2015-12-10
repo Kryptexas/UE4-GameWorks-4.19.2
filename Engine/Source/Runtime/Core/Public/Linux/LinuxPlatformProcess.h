@@ -268,7 +268,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static bool WritePipe(void* WritePipe, const FString& Message, FString* OutWritten = nullptr);
 	static class FRunnableThread* CreateRunnableThread();
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
-	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite);
+	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void CloseProc( FProcHandle & ProcessHandle );
@@ -288,6 +288,13 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	 * @brief Releases locks that we held for IsFirstInstance check
 	 */
 	static void CeaseBeingFirstInstance();
+
+	/**
+	 * @brief Returns user home directory (i.e. $HOME).
+	 *
+	 * Like other directory functions, cannot return nullptr!
+	 */
+	static const TCHAR* UserHomeDir();
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

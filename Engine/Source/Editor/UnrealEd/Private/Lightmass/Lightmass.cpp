@@ -2891,7 +2891,6 @@ bool FLightmassProcessor::Update()
 		bIsFinished = true;
 		bProcessingFailed = Status != 0;
 		bProcessingSuccessful = !bProcessingFailed;
-		bQuitReceived = true;
 	}
 #endif
 

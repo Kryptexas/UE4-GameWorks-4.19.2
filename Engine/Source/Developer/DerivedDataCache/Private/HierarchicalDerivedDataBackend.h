@@ -82,18 +82,12 @@ public:
 	 * @param	OutData		Buffer to receive the results, if any were found
 	 * @return				true if any data was found, and in this case OutData is non-empty
 	 */
-	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData, FCacheStatRecord* Stats) override
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
-
-
-		Stats->StartTime = FPlatformTime::Seconds();
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
-			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData, Stats))
+			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData))
 			{
-				Stats->GetDuration = FPlatformTime::Seconds() - Stats->StartTime;
-				Stats->DataSize = OutData.Num();
-				double StartTime = FPlatformTime::Seconds();
 				if (bIsWritable)
 				{
 					// fill in the higher level caches
@@ -105,13 +99,11 @@ public:
 								InnerBackends[PutCacheIndex]->CachedDataProbablyExists(CacheKey))
 							{
 								InnerBackends[PutCacheIndex]->RemoveCachedData(CacheKey, /*bTransient=*/ false); // it apparently failed, so lets delete what is there
-								AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, OutData, true, Stats); // we force a put here because it must have failed
-								Stats->CacheGet++;
+								AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, OutData, true); // we force a put here because it must have failed
 							}
 							else
 							{
-								AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, OutData, false, Stats); 
-								Stats->CacheGet++;
+								AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, OutData, false); 
 							}
 						}
 					}
@@ -126,21 +118,14 @@ public:
 							}
 							if (InnerBackends[PutCacheIndex]->IsWritable())
 							{
-								AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, OutData, false, Stats); // we do not need to force a put here
-								Stats->CacheGet++;
+								AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, OutData, false); // we do not need to force a put here
 							}
 						}
 					}
 				}
-			
-				Stats->EndTime = FPlatformTime::Seconds();
-				Stats->PutDuration = Stats->EndTime - StartTime;
 				return true;
 			}
 		}
-		Stats->EndTime = FPlatformTime::Seconds();
-		Stats->GetDuration = FPlatformTime::Seconds() - Stats->StartTime;
-		Stats->PutDuration = 0.;
 		return false;
 	}
 	/**
@@ -150,7 +135,7 @@ public:
 	 * @param	InData		Buffer containing the data to cache, can be destroyed after the call returns, immediately
 	 * @param	bPutEvenIfExists	If true, then do not attempt skip the put even if CachedDataProbablyExists returns true
 	 */
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists, FCacheStatRecord* Stats) override
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
 		const static FName NAME_PutCachedData = FName(TEXT("PutCachedData"));
 		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
@@ -158,7 +143,7 @@ public:
 
 		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
 		Stat.AddTag(NAME_HierarchicalDDC, FString());
-		Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), InData.Num()));
+		Stat.AddTag(NAME_DataSize, InData.Num());
 
 
 		if (!bIsWritable)
@@ -176,12 +161,12 @@ public:
 			{
 				if (!bSynchronousPutPeformed)
 				{
-					InnerBackends[PutCacheIndex]->PutCachedData(CacheKey, InData, bPutEvenIfExists, Stats);
+					InnerBackends[PutCacheIndex]->PutCachedData(CacheKey, InData, bPutEvenIfExists);
 					bSynchronousPutPeformed = true;
 				}
 				else
 				{
-					AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, InData, bPutEvenIfExists, Stats);
+					AsyncPutInnerBackends[PutCacheIndex]->PutCachedData(CacheKey, InData, bPutEvenIfExists);
 				}
 			}
 		}

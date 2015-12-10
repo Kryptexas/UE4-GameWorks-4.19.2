@@ -26,7 +26,7 @@ namespace UnrealBuildTool
 
 		static private Dictionary<string, string[]> AllArchNames = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { "armv7", "armeabi-v7a", } }, 
-			{ "-arm64", new string[] { "arm64", } }, 
+			{ "-arm64", new string[] { "arm64", "arm64-v8a", } }, 
 			{ "-x86",   new string[] { "x86", } }, 
 			{ "-x64",   new string[] { "x64", "x86_64", } }, 
 		};

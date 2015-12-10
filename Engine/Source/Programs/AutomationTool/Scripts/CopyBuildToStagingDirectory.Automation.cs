@@ -462,17 +462,17 @@ public partial class Project : CommandUtils
                     // Each string has the format '(Path="TheDirToStage")'
                     foreach (var PathStr in ExtraNonUFSDirs)
                     {
-                        var PathParts = PathStr.Split('"');
-                        if (PathParts.Length == 3)
-                        {
-                            var RelativePath = PathParts[1];
-                            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath));
-                        }
-                        else if (PathParts.Length == 1)
-                        {
-                            var RelativePath = PathParts[0];
-                            SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
-                        }
+						var PathParts = PathStr.Split('"');
+						if (PathParts.Length == 3)
+						{
+							var RelativePath = PathParts[1];
+							SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
+						}
+						else if (PathParts.Length == 1)
+						{
+							var RelativePath = PathParts[0];
+							SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
+						}
                     }
                 }
             }

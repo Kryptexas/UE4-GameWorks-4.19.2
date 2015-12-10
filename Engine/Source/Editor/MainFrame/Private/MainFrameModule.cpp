@@ -91,10 +91,8 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 
 		const bool bShowRootWindowImmediately = false;
 		FSlateApplication::Get().AddWindow( RootWindow, bShowRootWindowImmediately );
-		
-#if !PLATFORM_MAC // On OS X we don't want Top-Level windows to have a parent, as we don't really support the notion of child windows on that OS
+
 		FGlobalTabmanager::Get()->SetRootWindow(RootWindow);
-#endif
 		FSlateNotificationManager::Get().SetRootWindow(RootWindow);
 
 		TSharedPtr<SWidget> MainFrameContent;

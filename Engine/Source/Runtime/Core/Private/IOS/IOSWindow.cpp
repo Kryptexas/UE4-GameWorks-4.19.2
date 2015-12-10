@@ -27,6 +27,7 @@ void FIOSWindow::Initialize( class FIOSApplication* const Application, const TSh
 
 	Window = [[UIApplication sharedApplication] keyWindow];
 
+#if !PLATFORM_TVOS
 	if(InParent.Get() != NULL)
 	{
 		dispatch_async(dispatch_get_main_queue(),^ {
@@ -62,6 +63,7 @@ void FIOSWindow::Initialize( class FIOSApplication* const Application, const TSh
 			}
 		} );
 	}
+#endif
 }
 
 FPlatformRect FIOSWindow::GetScreenRect()

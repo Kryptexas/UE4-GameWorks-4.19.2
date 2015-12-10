@@ -119,7 +119,7 @@ void FAssetTypeActions_CurveTable::ExecuteExportAsJSON(TArray< TWeakObjectPtr<UO
 		auto CurTable = Cast<UCurveTable>((*ObjIt).Get());
 		if (CurTable)
 		{
-			const FText Title = FText::Format(LOCTEXT("CurveTable_ExportCSVDialogTitle", "Export '{0}' as JSON..."), FText::FromString(*CurTable->GetName()));
+			const FText Title = FText::Format(LOCTEXT("CurveTable_ExportJSONDialogTitle", "Export '{0}' as JSON..."), FText::FromString(*CurTable->GetName()));
 			const FString CurrentFilename = CurTable->AssetImportData->GetFirstFilename();
 			const FString FileTypes = TEXT("Curve Table JSON (*.json)|*.json");
 

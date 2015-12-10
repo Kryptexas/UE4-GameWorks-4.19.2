@@ -166,7 +166,7 @@ void MainPS(
 	, out float4 OutTarget0 : SV_Target0
 #endif
 
-#if DECAL_RENDERTARGET_COUNT > 1 && BIND_RENDERTARGET1 // Used to avoid outputting normals!
+#if DECAL_RENDERTARGET_COUNT > 1 && (BIND_RENDERTARGET1 || COMPILER_METAL) // Used to avoid outputting normals!
 	, out float4 OutTarget1 : SV_Target1
 #endif
 
@@ -187,7 +187,7 @@ void MainPS(
 
 	)
 {
-#if DECAL_RENDERTARGET_COUNT > 1 && !BIND_RENDERTARGET1
+#if DECAL_RENDERTARGET_COUNT > 1 && !BIND_RENDERTARGET1 && !COMPILER_METAL
 	float4 OutTarget1;
 #endif
 
@@ -418,6 +418,10 @@ void MainPS(
 	}
 	#endif // DECAL_RENDERSTAGE
 #endif //DECAL_RENDERTARGET_COUNT > 1
+
+#if DECAL_RENDERTARGET_COUNT > 1 && !BIND_RENDERTARGET1 && COMPILER_METAL
+	OutTarget1 = 0;
+#endif
 }
 
 #endif // DECAL_PROJECTION

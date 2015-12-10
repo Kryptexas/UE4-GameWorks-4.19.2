@@ -117,6 +117,15 @@ struct FDeferredMacEvent
 	NSPasteboard* DraggingPasteboard;
 };
 
+struct FMacScreen
+{
+	NSScreen* Screen;
+	NSRect Frame;
+	NSRect VisibleFrame;
+
+	FMacScreen(NSScreen* InScreen) : Screen(InScreen), Frame(InScreen.frame), VisibleFrame(InScreen.visibleFrame) {}
+};
+
 /**
  * Mac-specific application implementation.
  */
@@ -191,6 +200,20 @@ public:
 
 	void IgnoreMouseMoveDelta() { bIgnoreMouseMoveDelta = true; }
 
+public:
+
+	static void UpdateScreensArray();
+
+	static const TArray<TSharedRef<FMacScreen>>& GetAllScreens() { return AllScreens; }
+
+	static int32 ConvertSlateYPositionToCocoa(int32 YPosition);
+
+	static int32 ConvertCocoaYPositionToSlate(int32 YPosition);
+
+	static FVector2D CalculateScreenOrigin(NSScreen* Screen);
+
+	static int32 GetPrimaryScreenBackingScaleFactor();
+
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
@@ -213,18 +236,19 @@ private:
 	void ProcessKeyUpEvent(const FDeferredMacEvent& Event);
 
 	void OnWindowDidMove(TSharedRef<FMacWindow> Window);
-	void OnWindowDidResize(TSharedRef<FMacWindow> Window);
+	void OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking = false);
 	bool OnWindowDestroyed(TSharedRef<FMacWindow> Window);
 
 	void OnApplicationDidBecomeActive();
 	void OnApplicationWillResignActive();
-	void OnWindowsReordered(bool bIsAppInBackground);
+	void OnWindowsReordered();
+	void OnActiveSpaceDidChange();
 
 	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 	FCocoaWindow* FindEventWindow(NSEvent* CocoaEvent) const;
-	NSScreen* FindScreenByPoint(int32 X, int32 Y) const;
+	TSharedRef<FMacScreen> FindScreenByPoint(int32 X, int32 Y) const;
 	EWindowZone::Type GetCurrentWindowZone(const TSharedRef<FMacWindow>& Window) const;
 	bool IsEdgeZone(EWindowZone::Type Zone) const;
 	bool IsPrintableKey(uint32 Character) const;
@@ -235,7 +259,7 @@ private:
 
 	/** Invalidates all queued windows requiring text layout changes */
 	void InvalidateTextLayouts();
-
+	
 #if WITH_EDITOR
 	void RecordUsage(EGestureEvent::Type Gesture);
 #else
@@ -290,6 +314,8 @@ private:
 
 	TArray<FCocoaWindow*> WindowsRequiringTextInvalidation;
 
+	static TArray<TSharedRef<FMacScreen>> AllScreens;
+
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
 	bool bIsWorkspaceSessionActive;
@@ -299,6 +325,7 @@ private:
 	id AppDeactivationObserver;
 	id WorkspaceActivationObserver;
 	id WorkspaceDeactivationObserver;
+	id WorkspaceActiveSpaceChangeObserver;
 
 	id EventMonitor;
 	id MouseMovedEventMonitor;

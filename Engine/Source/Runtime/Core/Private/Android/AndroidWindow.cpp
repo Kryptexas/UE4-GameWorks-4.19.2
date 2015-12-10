@@ -10,6 +10,8 @@
 // Cached calculated screen resolution
 static int32 WindowWidth = -1;
 static int32 WindowHeight = -1;
+static int32 GSurfaceViewWidth = -1;
+static int32 GSurfaceViewHeight = -1;
 static bool WindowInit = false;
 static float ContentScaleFactor = -1.0f;
 static ANativeWindow* LastWindow = NULL;
@@ -65,6 +67,13 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetWindowInfo(JNIEnv* 
 	GAndroidIsPortrait = bIsPortrait == JNI_TRUE;
 	GAndroidDepthBufferPreference = DepthBufferPreference;
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("App is running in %s\n"), GAndroidIsPortrait ? TEXT("Portrait") : TEXT("Landscape"));
+}
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetSurfaceViewInfo(JNIEnv* jenv, jobject thiz, jint width, jint height)
+{
+	GSurfaceViewWidth = width;
+	GSurfaceViewHeight = height;
+	UE_LOG(LogAndroid, Log, TEXT("nativeSetSurfaceViewInfo width=%d and height=%d"), GSurfaceViewWidth, GSurfaceViewHeight);
 }
 
 int32 FAndroidWindow::GetDepthBufferPreference()
@@ -214,8 +223,8 @@ void FAndroidWindow::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth,
 	check(InWindow);
 	ANativeWindow* Window = (ANativeWindow*)InWindow;
 
-	SurfaceWidth =  ANativeWindow_getWidth(Window);
-	SurfaceHeight = ANativeWindow_getHeight(Window);
+	SurfaceWidth = (GSurfaceViewWidth > 0) ? GSurfaceViewWidth : ANativeWindow_getWidth(Window);
+	SurfaceHeight = (GSurfaceViewHeight > 0) ? GSurfaceViewHeight : ANativeWindow_getHeight(Window);
 
 	// some phones gave it the other way (so, if swap if the app is landscape, but width < height)
 	if ((GAndroidIsPortrait && SurfaceWidth > SurfaceHeight) || 
@@ -225,9 +234,10 @@ void FAndroidWindow::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth,
 	}
 
 	// ensure the size is divisible by a specified amount
+	// do not convert to a surface size that is larger than native resolution
 	const int DividableBy = 8;
-	SurfaceWidth  = ((SurfaceWidth  + DividableBy - 1) / DividableBy) * DividableBy;
-	SurfaceHeight = ((SurfaceHeight + DividableBy - 1) / DividableBy) * DividableBy;
+	SurfaceWidth = (SurfaceWidth / DividableBy) * DividableBy;
+	SurfaceHeight = (SurfaceHeight / DividableBy) * DividableBy;
 }
 
 bool FAndroidWindow::OnWindowOrientationChanged(bool bIsPortrait)

@@ -116,8 +116,10 @@ TSharedRef< FGenericWindow > FIOSApplication::MakeWindow()
 	return FIOSWindow::Make();
 }
 
+#if !PLATFORM_TVOS
 void FIOSApplication::OrientationChanged(UIDeviceOrientation orientation)
 {
 	FScopeLock Lock(&CriticalSection);
 	bOrientationChanged = true;
 }
+#endif

@@ -61,7 +61,6 @@ namespace UnrealBuildTool.Rules
 					"CoreLocation",
 					"SystemConfiguration",
 					"MessageUI",
-					"CoreMotion",
 					"Security",
 					"CoreTelephony",
 					"Twitter",

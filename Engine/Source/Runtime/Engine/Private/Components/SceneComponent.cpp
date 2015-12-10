@@ -2112,7 +2112,7 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
 			{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
 					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
 #endif
 				return true;

@@ -8,10 +8,14 @@
 #include "AndroidFile.h"
 #include "Paths.h"
 #include "RenderingThread.h"
+#include "RenderResource.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAndroidMediaPlayer, Log, All);
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaModule"
+
+// Enables directly copying into bound textures instead of using slower glReadPixels
+#define ENABLE_BINDTEXTURE	1
 
 class FAndroidMediaPlayer::MediaTrack
 	: public IMediaStream
@@ -181,15 +185,42 @@ public:
 		return *this;
 	}
 
+#if ENABLE_BINDTEXTURE
+	virtual void BindTexture(FTextureRHIParamRef BoundResource) override
+	{
+		BoundTextures.Add(BoundResource);
+	}
+
+	virtual void UnbindTexture(FTextureRHIParamRef BoundResource) override
+	{
+		BoundTextures.Remove(BoundResource);
+	}
+
+	virtual void Tick(float DeltaTime)
+	{
+		if (MediaPlayer.MediaState != EMediaState::Error)
+		{
+			int32 CurrentFramePosition
+				= MediaPlayer.JavaMediaPlayer->GetCurrentPosition();
+			if (LastFramePosition != CurrentFramePosition)
+			{
+				if (UpdateBoundTextures())
+				{
+					LastFramePosition = CurrentFramePosition;
+				}
+			}
+		}
+	}
+
+#else
+
 #if WITH_ENGINE
 	virtual void BindTexture(class FRHITexture* Texture) override
 	{
-		// @todo android: cbabcock: implement texture binding
 	}
 
 	virtual void UnbindTexture(class FRHITexture* Texture) override
 	{
-		// @todo android: cbabcock: implement texture binding
 	}
 #endif
 
@@ -216,9 +247,37 @@ public:
 		}
 	}
 
+#endif  // ENABLE_BINDTEXTURE
+
+private:
+
+#if ENABLE_BINDTEXTURE
+	bool UpdateBoundTextures()
+	{
+		bool FrameAvailable = false;
+		if (IsInRenderingThread())
+		{
+			for (auto Iter = BoundTextures.CreateIterator(); Iter; ++Iter)
+			{
+				FTextureRHIParamRef BoundTextureTarget = *Iter;
+				int32 DestTexture = *reinterpret_cast<int32*>(BoundTextureTarget->GetNativeResource());
+				if (MediaPlayer.JavaMediaPlayer->GetVideoLastFrame(DestTexture))
+				{
+					FrameAvailable = true;
+				}
+			}
+		}
+
+		return FrameAvailable;
+	}
+#endif  // ENABLE_BINDTEXTURE
+
 private:
 
 	int32 LastFramePosition;
+#if ENABLE_BINDTEXTURE
+	TSet<FTextureRHIParamRef> BoundTextures;
+#endif  // ENABLE_BINDTEXTURE
 };
 
 class FAndroidMediaPlayer::AudioTrack
@@ -277,7 +336,11 @@ FAndroidMediaPlayer::FAndroidMediaPlayer()
 	: JavaMediaPlayer(nullptr)
 	, MediaState(EMediaState::Error)
 {
+#if ENABLE_BINDTEXTURE
+	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(false));
+#else
 	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer());
+#endif
 	if (JavaMediaPlayer.IsValid())
 	{
 		MediaState = EMediaState::Idle;
@@ -463,6 +526,21 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 		FString MoviePath = Url;
 		FPaths::NormalizeFilename(MoviePath);
 
+		// Deal with hardcoded path from editor
+		if (MoviePath.Contains(":") || MoviePath.StartsWith("/"))
+		{
+			int32 Index = MoviePath.Find(TEXT("/Content/Movies"));
+			if (Index > 0)
+			{
+				Index--;
+				while (Index > 0 && MoviePath[Index] != '/')
+				{
+					Index--;
+				}
+				MoviePath = "../../.." + MoviePath.Mid(Index);
+			}
+		}
+
 		// Don't bother trying to play it if we can't find it.
 		if (!IAndroidPlatformFile::GetPlatformPhysical().FileExists(*MoviePath))
 		{
@@ -563,13 +641,22 @@ bool FAndroidMediaPlayer::SetRate(float Rate)
 	switch (MediaState)
 	{
 	case EMediaState::Prepared:
-		if (1.0f == Rate)
+		if (Rate > 0.0f)
 		{
 			JavaMediaPlayer->Start();
 			MediaState = EMediaState::Started;
 			return true;
 		}
-		else if (0.0f == Rate)
+		else
+		{
+			JavaMediaPlayer->Pause();
+			MediaState = EMediaState::Paused;
+			return true;
+		}
+		break;
+
+	case EMediaState::Started:
+		if (FMath::IsNearlyZero(Rate))
 		{
 			JavaMediaPlayer->Pause();
 			MediaState = EMediaState::Paused;
@@ -578,7 +665,7 @@ bool FAndroidMediaPlayer::SetRate(float Rate)
 		break;
 
 	case EMediaState::Paused:
-		if (1.0f == Rate)
+		if (Rate > 0.0f)
 		{
 			JavaMediaPlayer->Start();
 			MediaState = EMediaState::Started;
@@ -587,7 +674,7 @@ bool FAndroidMediaPlayer::SetRate(float Rate)
 		break;
 
 	case EMediaState::PlaybackCompleted:
-		if (1.0f == Rate)
+		if (Rate > 0.0f)
 		{
 			JavaMediaPlayer->Start();
 			MediaState = EMediaState::Started;

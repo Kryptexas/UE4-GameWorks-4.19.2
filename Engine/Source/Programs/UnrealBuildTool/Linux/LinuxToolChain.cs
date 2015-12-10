@@ -20,7 +20,7 @@ namespace UnrealBuildTool
 			if (!CrossCompiling())
 			{
 				// use native linux toolchain
-				string[] ClangNames = { "clang++", "clang++-3.5", "clang++-3.3" };
+				string[] ClangNames = { "clang++", "clang++-3.7", "clang++-3.6", "clang++-3.5", "clang++-3.3" };
 				foreach (var ClangName in ClangNames)
 				{
 					ClangPath = Which(ClangName);
@@ -74,6 +74,15 @@ namespace UnrealBuildTool
 			else if (CompilerVersionMajor == 3 && CompilerVersionMinor == 4)
 			{
 				throw new BuildException("clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.");
+			}
+			// prevent unknown clangs since the build is likely to fail on too old or too new compilers
+			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 37 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 33)
+			{
+				// do not mention 3.3 as it doesn't really get tested anymore, but allow it since it may still compile
+				throw new BuildException(
+					string.Format("This version of the Unreal Engine can only be compiled with clang 3.6 and 3.5. clang {0} may not build it - please use a different version.",
+						CompilerVersionString)
+					);
 			}
 		}
 
@@ -1031,9 +1040,13 @@ namespace UnrealBuildTool
 				Writer.WriteLine("UE4 {");
 				Writer.WriteLine("  global: *;");
 				Writer.WriteLine("  local: _Znwm;");
+				Writer.WriteLine("         _ZnwmRKSt9nothrow_t;");
 				Writer.WriteLine("         _Znam;");
+				Writer.WriteLine("         _ZnamRKSt9nothrow_t;");
 				Writer.WriteLine("         _ZdaPv;");
+				Writer.WriteLine("         _ZdaPvRKSt9nothrow_t;");
 				Writer.WriteLine("         _ZdlPv;");
+				Writer.WriteLine("         _ZdlPvRKSt9nothrow_t;");
 				Writer.WriteLine("};");
 			};
 

@@ -6,7 +6,7 @@
 
 @interface IOSAppDelegate (ConsoleHandling)
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 /**
  * Shows the console input dialog
  */

@@ -10,6 +10,8 @@
 #include "MetalShaderResources.h"
 #include "ShaderCache.h"
 
+#define METAL_SUPPORTS_PARALLEL_RHI_EXECUTE 0
+
 class FMetalContext;
 
 /** This represents a vertex declaration that hasn't been combined with a specific shader to create a bound shader. */
@@ -70,10 +72,6 @@ public:
 
 	/** External bindings for this shader. */
 	FMetalShaderBindings Bindings;
-	TArray< TRefCountPtr<FRHIUniformBuffer> > BoundUniformBuffers;
-
-	/** Bitfield for which uniform buffers are dirty */
-	uint64 DirtyUniformBuffers;
 
 	// List of memory copies from RHIUniformBuffer to packed uniforms
 	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
@@ -116,8 +114,12 @@ typedef uint64 FMetalRenderPipelineHash;
 class FMetalBoundShaderState : public FRHIBoundShaderState
 {
 public:
-
+	
+#if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
+	FCachedBoundShaderStateLink_Threadsafe CacheLink;
+#else
 	FCachedBoundShaderStateLink CacheLink;
+#endif
 
 	/** Cached vertex structure */
 	TRefCountPtr<FMetalVertexDeclaration> VertexDeclaration;
@@ -163,9 +165,9 @@ public:
 	 */
 	FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint32 NumSamples, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData);
 
-	FMetalSurface(FMetalSurface const& Source, NSRange MipRange);
+	FMetalSurface(FMetalSurface& Source, NSRange MipRange);
 	
-	FMetalSurface(FMetalSurface const& Source, NSRange MipRange, EPixelFormat Format);
+	FMetalSurface(FMetalSurface& Source, NSRange MipRange, EPixelFormat Format);
 	
 	/**
 	 * Destructor
@@ -196,6 +198,9 @@ public:
 
 	/** Returns the number of faces for the texture */
 	uint32 GetNumFaces();
+	
+	/** Gets the drawable texture if this is a back-buffer surface. */
+	id<MTLTexture> GetDrawableTexture();
 
 	ERHIResourceType Type;
 	EPixelFormat PixelFormat;
@@ -213,6 +218,9 @@ public:
 
 	// how much memory is allocated for this texture
 	uint64 TotalTextureSize;
+	
+	// For back-buffers, the owning viewport.
+	class FMetalViewport* Viewport;
 
 private:
 	// The movie playback IOSurface wrapper to avoid page-off
@@ -366,7 +374,7 @@ struct FMetalQueryBuffer : public FRHIResource
     bool Wait(uint64 Millis);
     void const* GetResult(uint32 Offset);
 	
-	FMetalContext* Context;
+	TWeakPtr<struct FMetalQueryBufferPool, ESPMode::ThreadSafe> Pool;
     id<MTLBuffer> Buffer;
 	uint32 WriteOffset;
 	bool bCompleted;

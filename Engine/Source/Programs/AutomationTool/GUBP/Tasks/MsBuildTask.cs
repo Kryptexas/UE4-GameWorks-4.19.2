@@ -30,9 +30,9 @@ namespace AutomationTool
 
 	public class MsBuildTask : BuildTask
 	{
-		string Project;
-		string Arguments;
-		string Output;
+		public string Project;
+		public string Arguments;
+		public string Output;
 
 		public MsBuildTask(string InProject, string InArguments, string InOutput)
 		{

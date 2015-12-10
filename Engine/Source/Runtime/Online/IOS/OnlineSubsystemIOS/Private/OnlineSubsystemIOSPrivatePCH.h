@@ -9,6 +9,8 @@
 #include "ModuleManager.h"
 #include "IOSAppDelegate.h"
 
+class FOnlineSubsystemIOS;
+
 #include "OnlineSessionInterfaceIOS.h"
 #include "OnlineFriendsInterfaceIOS.h"
 #include "OnlineIdentityInterfaceIOS.h"

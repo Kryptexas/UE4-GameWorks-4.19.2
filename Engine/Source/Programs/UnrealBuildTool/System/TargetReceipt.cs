@@ -497,7 +497,7 @@ namespace UnrealBuildTool
 					foreach (ReceiptProperty AdditionalProperty in AdditionalProperties)
 					{
 						Writer.WriteObjectStart();
-						Writer.WriteValue("Key", AdditionalProperty.Name);
+						Writer.WriteValue("Name", AdditionalProperty.Name);
 						Writer.WriteValue("Value", AdditionalProperty.Value);
 						Writer.WriteObjectEnd();
 					}

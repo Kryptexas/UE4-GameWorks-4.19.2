@@ -1651,6 +1651,8 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 
 	TSharedRef< FGenericWindowDefinition > Definition = MakeShareable( new FGenericWindowDefinition() );
 
+	Definition->Type = InSlateWindow->GetType();
+
 	const FVector2D Size = InSlateWindow->GetInitialDesiredSizeInScreen();
 	Definition->WidthDesiredOnScreen = Size.X;
 	Definition->HeightDesiredOnScreen = Size.Y;
@@ -2289,6 +2291,15 @@ void FSlateApplication::ResetToDefaultPointerInputSettings()
 	if ( PlatformApplication->Cursor.IsValid() )
 	{
 		PlatformApplication->Cursor->SetType(EMouseCursor::Default);
+	}
+
+	// Clear user focus entries, so SetUserFocus restores mouse capture etc. after the app regains focus
+	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
+	{
+		FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+		UserFocusEntry.WidgetPath = FWidgetPath();
+		UserFocusEntry.FocusCause = EFocusCause::Cleared;
+		UserFocusEntry.ShowFocus = false;
 	}
 }
 
@@ -4341,6 +4352,13 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+#if PLATFORM_MAC
+	NSWindow* ActiveWindow = [NSApp keyWindow];
+	const bool bNeedToActivateWindow = (ActiveWindow == nullptr);
+#else
+	const bool bNeedToActivateWindow = false;
+#endif
+
 	const TSharedPtr<SWidget> PreviouslyFocusedWidget = GetKeyboardFocusedWidget();
 
 	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderPointer), PointerEvent, [] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
@@ -4368,13 +4386,6 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 		});
 	}
 	LOG_EVENT(EEventLog::MouseButtonDown, Reply);
-
-#if PLATFORM_MAC
-		NSWindow* ActiveWindow = [NSApp keyWindow];
-		const bool bNeedToActivateWindow = (ActiveWindow == nullptr);
-#else
-		const bool bNeedToActivateWindow = false;
-#endif
 
 	// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
 	// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
@@ -4425,15 +4436,16 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 
 void FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+#if PLATFORM_MAC
+	NSWindow* ActiveNativeWindow = [NSApp keyWindow];
+	TSharedPtr<SWindow> TopLevelWindow;
+#endif
 	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
 	{
 		//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(PointerEvent.GetPointerIndex());
 		FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &PointerEvent );
 		if ( ensureMsgf(MouseCaptorPath.Widgets.Num() > 0, TEXT("A window had a widget with mouse capture. That entire window has been dismissed before the mouse up could be processed.")) )
 		{
-#if PLATFORM_MAC
-			NSWindow* ActiveNativeWindow = [NSApp keyWindow];
-#endif
 			// Switch worlds widgets in the current path
 			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
 
@@ -4454,13 +4466,7 @@ void FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FP
 				});
 
 #if PLATFORM_MAC
-			// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
-			TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
-			if ( PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && MouseCaptorPath.TopLevelWindow.IsValid() && ActiveWindow != MouseCaptorPath.TopLevelWindow
-				&& ActiveNativeWindow == [NSApp keyWindow] && ![(NSWindow*)MouseCaptorPath.TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized] )
-			{
-				MouseCaptorPath.TopLevelWindow->BringToFront(true);
-			}
+			TopLevelWindow = MouseCaptorPath.TopLevelWindow;
 #endif
 			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
 		}
@@ -4504,8 +4510,24 @@ void FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FP
 
 			WidgetsUnderCursorLastEvent.Remove( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ) );
 		}
-
+#if PLATFORM_MAC
+		else if (ActiveNativeWindow == nullptr) // activate only if the app is in the background
+		{
+			TopLevelWindow = LocalWidgetsUnderCursor.TopLevelWindow;
+		}
+#endif
 	}
+
+#if PLATFORM_MAC
+	// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
+	TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
+	if ( PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && TopLevelWindow.IsValid() && ActiveWindow != TopLevelWindow
+		&& ActiveNativeWindow == [NSApp keyWindow] && ![(NSWindow*)TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() isMiniaturized] )
+	{
+		FPlatformMisc::ActivateApplication();
+		TopLevelWindow->BringToFront(true);
+	}
+#endif
 }
 
 bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic)
@@ -4905,13 +4927,13 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 	{
 		FReply TempReply = FReply::Unhandled();
 		// Gesture event gets first shot, if slate doesn't respond to it, we'll try the wheel event.
-		if( InGestureEvent != nullptr )
+		if( InGestureEvent != nullptr && InGestureEvent->GetGestureDelta() != FVector2D::ZeroVector )
 		{
 			TempReply = CurWidget.Widget->OnTouchGesture( CurWidget.Geometry, *InGestureEvent );
 		}
 		
 		// Send the mouse wheel event if we haven't already handled the gesture version of this event.
-		if( !TempReply.IsEventHandled() )
+		if( !TempReply.IsEventHandled() && Event.GetWheelDelta() != 0 )
 		{
 			TempReply = CurWidget.Widget->OnMouseWheel( CurWidget.Geometry, Event );
 		}

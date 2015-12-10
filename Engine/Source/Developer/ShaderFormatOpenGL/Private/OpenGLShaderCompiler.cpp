@@ -1220,6 +1220,8 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
+			AdditionalDefines.SetDefine(TEXT("noperspective"), TEXT(""));
+			
 			break; 
 
 		case GLSL_ES2:

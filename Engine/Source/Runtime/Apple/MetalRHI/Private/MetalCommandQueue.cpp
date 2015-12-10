@@ -64,7 +64,8 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 {
-	return [CommandQueue commandBufferWithUnretainedReferences];
+    static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+    return bUnretainedRefs ? [CommandQueue commandBufferWithUnretainedReferences] : [CommandQueue commandBuffer];
 }
 
 #pragma mark - Public Command Queue Accessors -

@@ -123,11 +123,14 @@
     <Compile Include="System\TargetReceipt.cs" />
     <Compile Include="System\VersionManifest.cs" />
     <Compile Include="ToolChain\AppleToolChain.cs" />
-  </ItemGroup>
-  <ItemGroup>
+    <Compile Include="TVOS\TVOSProjectGenerator.cs" />
+    <Compile Include="TVOS\TVOSToolChain.cs" />
+    <Compile Include="TVOS\UEBuildTVOS.cs" />
+    <Compile Include="TVOS\UEDeployTVOS.cs" />
     <Compile Include="Android\UEBuildAndroid.cs" />
     <Compile Include="Android\UEDeployAndroid.cs" />
     <Compile Include="Android\AndroidToolChain.cs" />
+    <Compile Include="Android\AndroidPluginLanguage.cs" />
     <Compile Include="Android\AndroidProjectGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -305,4 +308,7 @@
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="TVOS\" />
+  </ItemGroup>
 </Project>

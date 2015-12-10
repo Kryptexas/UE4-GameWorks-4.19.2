@@ -2104,9 +2104,6 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 	}
 	else
 	{
-		check(VertexDeclarationRHI);
-		
-		FOpenGLVertexDeclaration* VertexDeclaration = ResourceCast(VertexDeclarationRHI);
 		FOpenGLVertexShader* VertexShader = ResourceCast(VertexShaderRHI);
 		FOpenGLPixelShader* PixelShader = ResourceCast(PixelShaderRHI);
 		FOpenGLHullShader* HullShader = ResourceCast(HullShaderRHI);
@@ -2272,19 +2269,29 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 			}
 		}
 
-		FOpenGLBoundShaderState* BoundShaderState = new FOpenGLBoundShaderState(
-			LinkedProgram,
-			VertexDeclarationRHI,
-			VertexShaderRHI,
-			PixelShaderRHI,
-			GeometryShaderRHI,
-			HullShaderRHI,
-			DomainShaderRHI
-			);
+		if(FShaderCache::IsPrebindCall() && !VertexDeclarationRHI)
+		{
+			return nullptr;
+		}
+		else
+		{
+			check(VertexDeclarationRHI);
+			
+			FOpenGLVertexDeclaration* VertexDeclaration = ResourceCast(VertexDeclarationRHI);
+			FOpenGLBoundShaderState* BoundShaderState = new FOpenGLBoundShaderState(
+				LinkedProgram,
+				VertexDeclarationRHI,
+				VertexShaderRHI,
+				PixelShaderRHI,
+				GeometryShaderRHI,
+				HullShaderRHI,
+				DomainShaderRHI
+				);
 
-		FShaderCache::LogBoundShaderState(FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
+			FShaderCache::LogBoundShaderState(FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
 
-		return BoundShaderState;
+			return BoundShaderState;
+		}
 	}
 }
 

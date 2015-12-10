@@ -93,12 +93,19 @@ TArray<FPooledUniformBuffer> UniformBufferPool[NUM_POOL_BUCKETS];
 // Uniform buffers that have been freed more recently than NumSafeFrames ago.
 TArray<FPooledUniformBuffer> SafeUniformBufferPools[NUM_SAFE_FRAMES][NUM_POOL_BUCKETS];
 
+static FCriticalSection GMutex;
+
 // Does per-frame global updating for the uniform buffer pool.
 void InitFrame_UniformBufferPoolCleanup()
 {
-	check(IsInRenderingThread());
+	check(IsInRenderingThread() || IsInRHIThread());
 
 	SCOPE_CYCLE_COUNTER(STAT_MetalUniformBufferCleanupTime);
+	
+	if(GUseRHIThread)
+	{
+		GMutex.Lock();
+	}
 
 	// Index of the bucket that is now old enough to be reused
 	const int32 SafeFrameIndex = GFrameNumberRenderThread % NUM_SAFE_FRAMES;
@@ -108,6 +115,11 @@ void InitFrame_UniformBufferPoolCleanup()
 	{
 		UniformBufferPool[BucketIndex].Append(SafeUniformBufferPools[SafeFrameIndex][BucketIndex]);
 		SafeUniformBufferPools[SafeFrameIndex][BucketIndex].Reset();
+	}
+	
+	if(GUseRHIThread)
+	{
+		GMutex.Unlock();
 	}
 }
 
@@ -123,6 +135,12 @@ TArray<TUBPoolBuffer> UBPool;
 void AddNewlyFreedBufferToUniformBufferPool(id<MTLBuffer> Buffer, uint32 Offset, uint32 Size)
 {
 	check(Buffer);
+
+	if(GUseRHIThread)
+	{
+		GMutex.Lock();
+	}
+	
 	FPooledUniformBuffer NewEntry;
 	NewEntry.Buffer = Buffer;
 	NewEntry.FrameFreed = GFrameNumberRenderThread;
@@ -136,6 +154,11 @@ void AddNewlyFreedBufferToUniformBufferPool(id<MTLBuffer> Buffer, uint32 Offset,
 	SafeUniformBufferPools[SafeFrameIndex][BucketIndex].Add(NewEntry);
 	INC_DWORD_STAT(STAT_MetalNumFreeUniformBuffers);
 	INC_MEMORY_STAT_BY(STAT_MetalFreeUniformBufferMemory, Buffer.length);
+	
+	if(GUseRHIThread)
+	{
+		GMutex.Unlock();
+	}
 }
 
 
@@ -185,7 +208,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 		if(Layout.ConstantBufferSize <= 65536)
 		{
 			// for single use buffers, allocate from the ring buffer to avoid thrashing memory
-			if (Usage == UniformBuffer_SingleDraw)
+			if (Usage == UniformBuffer_SingleDraw && !GUseRHIThread) // @todo Make this properly RHIThread safe.
 			{
 				// use a bit of the ring buffer
 				Offset = GetMetalDeviceContext().AllocateFromRingBuffer(Layout.ConstantBufferSize);
@@ -194,6 +217,11 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 			else
 			{
 				// Find the appropriate bucket based on size
+				if(GUseRHIThread)
+				{
+					GMutex.Lock();
+				}
+
 				const uint32 BucketIndex = GetPoolBucketIndex(Layout.ConstantBufferSize);
 				TArray<FPooledUniformBuffer>& PoolBucket = UniformBufferPool[BucketIndex];
 				if (PoolBucket.Num() > 0)
@@ -212,6 +240,11 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 					// Nothing usable was found in the free pool, create a new uniform buffer (full size, not NumBytes)
 					uint32 BufferSize = UniformBufferSizeBuckets[BucketIndex];
 					Buffer = SuballocateUB(BufferSize, Offset);
+				}
+				
+				if(GUseRHIThread)
+				{
+					GMutex.Unlock();
 				}
 			}
 		}
@@ -311,6 +344,6 @@ void FMetalUniformBuffer::CacheResourcesInternal()
 
 FUniformBufferRHIRef FMetalDynamicRHI::RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
 {
-	check(IsInRenderingThread());
+	check(IsInRenderingThread() || IsInRHIThread());
 	return new FMetalUniformBuffer(Contents, Layout, Usage);
 }

@@ -75,7 +75,7 @@ PvdRuntime_debug_defines   += _DEBUG
 PvdRuntime_debug_defines   += PX_CHECKED
 PvdRuntime_debug_libraries := 
 PvdRuntime_debug_common_cflags	:= $(PvdRuntime_custom_cflags)
-PvdRuntime_debug_common_cflags    += -MMD
+PvdRuntime_debug_common_cflags    += 
 PvdRuntime_debug_common_cflags    += $(addprefix -D, $(PvdRuntime_debug_defines))
 PvdRuntime_debug_common_cflags    += $(addprefix -I, $(PvdRuntime_debug_hpaths))
 PvdRuntime_debug_common_cflags  += -Wno-invalid-offsetof
@@ -105,7 +105,7 @@ prebuild_PvdRuntime_debug:
 
 $(PvdRuntime_debug_bin): $(PvdRuntime_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PvdRuntimeDEBUG_Oz.bc`
-	@$(AR) rcs $(PvdRuntime_debug_bin) $(PvdRuntime_debug_obj)
+	@$(AR) -o $(PvdRuntime_debug_bin) $(PvdRuntime_debug_obj)
 	$(ECHO) building $@ complete!
 
 PvdRuntime_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -189,7 +189,7 @@ PvdRuntime_checked_defines   += NDEBUG
 PvdRuntime_checked_defines   += PX_CHECKED
 PvdRuntime_checked_libraries := 
 PvdRuntime_checked_common_cflags	:= $(PvdRuntime_custom_cflags)
-PvdRuntime_checked_common_cflags    += -MMD
+PvdRuntime_checked_common_cflags    += 
 PvdRuntime_checked_common_cflags    += $(addprefix -D, $(PvdRuntime_checked_defines))
 PvdRuntime_checked_common_cflags    += $(addprefix -I, $(PvdRuntime_checked_hpaths))
 PvdRuntime_checked_common_cflags  += -Wno-invalid-offsetof
@@ -219,7 +219,7 @@ prebuild_PvdRuntime_checked:
 
 $(PvdRuntime_checked_bin): $(PvdRuntime_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PvdRuntimeCHECKED_Oz.bc`
-	@$(AR) rcs $(PvdRuntime_checked_bin) $(PvdRuntime_checked_obj)
+	@$(AR) -o $(PvdRuntime_checked_bin) $(PvdRuntime_checked_obj)
 	$(ECHO) building $@ complete!
 
 PvdRuntime_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -303,7 +303,7 @@ PvdRuntime_profile_defines   += NDEBUG
 PvdRuntime_profile_defines   += PX_PROFILE
 PvdRuntime_profile_libraries := 
 PvdRuntime_profile_common_cflags	:= $(PvdRuntime_custom_cflags)
-PvdRuntime_profile_common_cflags    += -MMD
+PvdRuntime_profile_common_cflags    += 
 PvdRuntime_profile_common_cflags    += $(addprefix -D, $(PvdRuntime_profile_defines))
 PvdRuntime_profile_common_cflags    += $(addprefix -I, $(PvdRuntime_profile_hpaths))
 PvdRuntime_profile_common_cflags  += -Wno-invalid-offsetof
@@ -333,7 +333,7 @@ prebuild_PvdRuntime_profile:
 
 $(PvdRuntime_profile_bin): $(PvdRuntime_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PvdRuntimePROFILE_Oz.bc`
-	@$(AR) rcs $(PvdRuntime_profile_bin) $(PvdRuntime_profile_obj)
+	@$(AR) -o $(PvdRuntime_profile_bin) $(PvdRuntime_profile_obj)
 	$(ECHO) building $@ complete!
 
 PvdRuntime_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -416,7 +416,7 @@ PvdRuntime_release_defines   += PX_PHYSX_STATIC_LIB
 PvdRuntime_release_defines   += NDEBUG
 PvdRuntime_release_libraries := 
 PvdRuntime_release_common_cflags	:= $(PvdRuntime_custom_cflags)
-PvdRuntime_release_common_cflags    += -MMD
+PvdRuntime_release_common_cflags    += 
 PvdRuntime_release_common_cflags    += $(addprefix -D, $(PvdRuntime_release_defines))
 PvdRuntime_release_common_cflags    += $(addprefix -I, $(PvdRuntime_release_hpaths))
 PvdRuntime_release_common_cflags  += -Wno-invalid-offsetof
@@ -446,7 +446,7 @@ prebuild_PvdRuntime_release:
 
 $(PvdRuntime_release_bin): $(PvdRuntime_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PvdRuntime_Oz.bc`
-	@$(AR) rcs $(PvdRuntime_release_bin) $(PvdRuntime_release_obj)
+	@$(AR) -o $(PvdRuntime_release_bin) $(PvdRuntime_release_obj)
 	$(ECHO) building $@ complete!
 
 PvdRuntime_release_DEPDIR = $(dir $(@))/$(*F)

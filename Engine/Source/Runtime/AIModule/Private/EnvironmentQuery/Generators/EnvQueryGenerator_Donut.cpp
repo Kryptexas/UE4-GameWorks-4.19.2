@@ -140,7 +140,7 @@ FText UEnvQueryGenerator_Donut::GetDescriptionTitle() const
 	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
 	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(Center));
 
-	return FText::Format(LOCTEXT("DescriptionGenerateCircleAroundContext", "{DescriptionTitle}: generate items around {DescribeContext}"), Args);
+	return FText::Format(LOCTEXT("DescriptionGenerateDonutAroundContext", "{DescriptionTitle}: generate items around {DescribeContext}"), Args);
 }
 
 FText UEnvQueryGenerator_Donut::GetDescriptionDetails() const

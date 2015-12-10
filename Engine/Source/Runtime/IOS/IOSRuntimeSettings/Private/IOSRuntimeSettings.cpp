@@ -28,6 +28,10 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	AdditionalPlistData = TEXT("");
 	AdditionalLinkerFlags = TEXT("");
 	AdditionalShippingLinkerFlags = TEXT("");
+	bTreatRemoteAsSeparateController = false;
+	bAllowRemoteRotation = true;
+	bUseRemoteAsVirtualJoystick = true;
+	bUseRemoteAbsoluteDpadValues = false;
 }
 
 #if WITH_EDITOR

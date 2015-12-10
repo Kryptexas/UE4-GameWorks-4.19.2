@@ -71,11 +71,12 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 		BufferInUse = !BufferInUse;
 		if (bHasLooped == false || WaveInstance->LoopingMode != LOOP_Never)
 		{
-			if (ReadMorePCMData(BufferInUse, EDataReadMode::Asynchronous))
+			if (ReadMorePCMData(BufferInUse, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous)))
 			{
 				// If this is a synchronous source we may get notified immediately that we have looped
 				bHasLooped = true;
 			}
+			bSkipFirstBuffer = false;
 		}
 	}
 }
@@ -214,10 +215,12 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	AudioBuffers[1].AudioDataSize = BufferSize;
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
+	bSkipFirstBuffer = false;
 	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
 	{
 		FMemory::Memcpy((uint8*)AudioBuffers[0].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
-		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
+		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
+		bSkipFirstBuffer = true;
 	}
 	else
 	{
@@ -286,6 +289,11 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 		if (CreatePlayer())
 		{
 			WaveInstance = InWaveInstance;
+
+			if (WaveInstance->StartTime > 0.f)
+			{
+				Buffer->Seek(WaveInstance->StartTime);
+			}
 
 			switch( Buffer->Format)
 			{
@@ -469,11 +477,14 @@ void FSLESSoundSource::Play( void )
 		// Reset the previous volume on play so it can be set at least once in the update function
 		VolumePreviousUpdate = -1.0f;
 
+		// Update volume now before starting play
+		Paused = false;
+		Update();
+
 		// set the player's state to playing
 		SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_PLAYING);
 		check(SL_RESULT_SUCCESS == result);
 
-		Paused = false;
 		Playing = true;
 	}
 }

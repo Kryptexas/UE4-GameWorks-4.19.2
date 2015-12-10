@@ -711,7 +711,7 @@ namespace ExpressionParser
 				{
 					FFormatOrderedArguments Args;
 					Args.Add(FText::FromString(Token.Context.GetString()));
-					return MakeError(FText::Format(LOCTEXT("SyntaxError_NoUnaryOperand", "Not enough operands for binary operator {0}"), Args));
+					return MakeError(FText::Format(LOCTEXT("SyntaxError_NotEnoughOperandsBinary", "Not enough operands for binary operator {0}"), Args));
 				}
 				break;
 			

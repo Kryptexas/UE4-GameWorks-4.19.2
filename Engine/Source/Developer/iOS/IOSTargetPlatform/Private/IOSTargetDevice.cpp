@@ -41,7 +41,7 @@ FString FIOSTargetDevice::GetName() const
 
 FString FIOSTargetDevice::GetOperatingSystemName()
 {
-	return TEXT("IOS");
+	return TargetPlatform.PlatformName();
 }
 
 const class ITargetPlatform& FIOSTargetDevice::GetTargetPlatform() const

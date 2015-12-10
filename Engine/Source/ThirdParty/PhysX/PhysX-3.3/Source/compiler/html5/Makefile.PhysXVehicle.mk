@@ -68,7 +68,7 @@ PhysXVehicle_debug_defines   += _DEBUG
 PhysXVehicle_debug_defines   += PX_CHECKED
 PhysXVehicle_debug_libraries := 
 PhysXVehicle_debug_common_cflags	:= $(PhysXVehicle_custom_cflags)
-PhysXVehicle_debug_common_cflags    += -MMD
+PhysXVehicle_debug_common_cflags    += 
 PhysXVehicle_debug_common_cflags    += $(addprefix -D, $(PhysXVehicle_debug_defines))
 PhysXVehicle_debug_common_cflags    += $(addprefix -I, $(PhysXVehicle_debug_hpaths))
 PhysXVehicle_debug_common_cflags  += -Wno-invalid-offsetof
@@ -98,7 +98,7 @@ prebuild_PhysXVehicle_debug:
 
 $(PhysXVehicle_debug_bin): $(PhysXVehicle_debug_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3VehicleDEBUG_Oz.bc`
-	@$(AR) rcs $(PhysXVehicle_debug_bin) $(PhysXVehicle_debug_obj)
+	@$(AR) -o $(PhysXVehicle_debug_bin) $(PhysXVehicle_debug_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVehicle_debug_DEPDIR = $(dir $(@))/$(*F)
@@ -160,7 +160,7 @@ PhysXVehicle_checked_defines   += NDEBUG
 PhysXVehicle_checked_defines   += PX_CHECKED
 PhysXVehicle_checked_libraries := 
 PhysXVehicle_checked_common_cflags	:= $(PhysXVehicle_custom_cflags)
-PhysXVehicle_checked_common_cflags    += -MMD
+PhysXVehicle_checked_common_cflags    += 
 PhysXVehicle_checked_common_cflags    += $(addprefix -D, $(PhysXVehicle_checked_defines))
 PhysXVehicle_checked_common_cflags    += $(addprefix -I, $(PhysXVehicle_checked_hpaths))
 PhysXVehicle_checked_common_cflags  += -Wno-invalid-offsetof
@@ -190,7 +190,7 @@ prebuild_PhysXVehicle_checked:
 
 $(PhysXVehicle_checked_bin): $(PhysXVehicle_checked_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3VehicleCHECKED_Oz.bc`
-	@$(AR) rcs $(PhysXVehicle_checked_bin) $(PhysXVehicle_checked_obj)
+	@$(AR) -o $(PhysXVehicle_checked_bin) $(PhysXVehicle_checked_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVehicle_checked_DEPDIR = $(dir $(@))/$(*F)
@@ -252,7 +252,7 @@ PhysXVehicle_profile_defines   += NDEBUG
 PhysXVehicle_profile_defines   += PX_PROFILE
 PhysXVehicle_profile_libraries := 
 PhysXVehicle_profile_common_cflags	:= $(PhysXVehicle_custom_cflags)
-PhysXVehicle_profile_common_cflags    += -MMD
+PhysXVehicle_profile_common_cflags    += 
 PhysXVehicle_profile_common_cflags    += $(addprefix -D, $(PhysXVehicle_profile_defines))
 PhysXVehicle_profile_common_cflags    += $(addprefix -I, $(PhysXVehicle_profile_hpaths))
 PhysXVehicle_profile_common_cflags  += -Wno-invalid-offsetof
@@ -282,7 +282,7 @@ prebuild_PhysXVehicle_profile:
 
 $(PhysXVehicle_profile_bin): $(PhysXVehicle_profile_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3VehiclePROFILE_Oz.bc`
-	@$(AR) rcs $(PhysXVehicle_profile_bin) $(PhysXVehicle_profile_obj)
+	@$(AR) -o $(PhysXVehicle_profile_bin) $(PhysXVehicle_profile_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVehicle_profile_DEPDIR = $(dir $(@))/$(*F)
@@ -343,7 +343,7 @@ PhysXVehicle_release_defines   += PX_PHYSX_STATIC_LIB
 PhysXVehicle_release_defines   += NDEBUG
 PhysXVehicle_release_libraries := 
 PhysXVehicle_release_common_cflags	:= $(PhysXVehicle_custom_cflags)
-PhysXVehicle_release_common_cflags    += -MMD
+PhysXVehicle_release_common_cflags    += 
 PhysXVehicle_release_common_cflags    += $(addprefix -D, $(PhysXVehicle_release_defines))
 PhysXVehicle_release_common_cflags    += $(addprefix -I, $(PhysXVehicle_release_hpaths))
 PhysXVehicle_release_common_cflags  += -Wno-invalid-offsetof
@@ -373,7 +373,7 @@ prebuild_PhysXVehicle_release:
 
 $(PhysXVehicle_release_bin): $(PhysXVehicle_release_obj) 
 	mkdir -p `dirname ./../../../lib/html5/PhysX3Vehicle_Oz.bc`
-	@$(AR) rcs $(PhysXVehicle_release_bin) $(PhysXVehicle_release_obj)
+	@$(AR) -o $(PhysXVehicle_release_bin) $(PhysXVehicle_release_obj)
 	$(ECHO) building $@ complete!
 
 PhysXVehicle_release_DEPDIR = $(dir $(@))/$(*F)
