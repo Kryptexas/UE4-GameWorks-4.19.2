@@ -16,6 +16,11 @@ namespace UnrealBuildTool.Rules
 					"Json",
 				}
 			);
+
+			if(!UnrealBuildTool.IsDesktopPlatform(Target.Platform))
+			{
+				PrecompileForTargets = PrecompileTargetsType.None;
+			}
 		}
 	}
 }
