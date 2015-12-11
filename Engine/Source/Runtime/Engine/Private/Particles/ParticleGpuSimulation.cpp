@@ -78,6 +78,11 @@ static_assert((TILES_PER_INSTANCE & (TILES_PER_INSTANCE - 1)) == 0, "Tiles per i
 /** Maximum number of vector fields that can be evaluated at once. */
 enum { MAX_VECTOR_FIELDS = 4 };
 
+// Using a fix step 1/30, allows game targetting 30 fps and 60 fps to have single iteration updates.
+static TAutoConsoleVariable<float> CVarGPUParticleFixDeltaSeconds(TEXT("r.GPUParticle.FixDeltaSeconds"), 1.f/30.f,TEXT("GPU particle fix delta seconds."));
+static TAutoConsoleVariable<float> CVarGPUParticleFixTolerance(TEXT("r.GPUParticle.FixTolerance"),.1f,TEXT("Delta second tolerance before switching to a fix delta seconds."));
+static TAutoConsoleVariable<int32> CVarGPUParticleMaxNumIterations(TEXT("r.GPUParticle.MaxNumIterations"),3,TEXT("Max number of iteration when using a fix delta seconds."));
+
 /*-----------------------------------------------------------------------------
 	Allocators used to manage GPU particle resources.
 -----------------------------------------------------------------------------*/
@@ -400,6 +405,18 @@ public:
 		return StateTextures[FrameIndex ^ 0x1];
 	}
 
+	FParticleStateTextures& GetVisualizeStateTextures()
+	{
+		const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
+		if (FixDeltaSeconds > 0)
+		{
+			return GetPreviousStateTextures();
+		}
+		else
+		{
+			return GetCurrentStateTextures();
+		}
+	}
 	/**
 	 * Allocate a particle tile.
 	 */
@@ -749,6 +766,17 @@ struct FParticlePerFrameSimulationParameters
 	FVector4 PositionOffsetAndAttractorStrength;
 	/** Amount by which to scale bounds for collision purposes. */
 	FVector2D LocalToWorldScale;
+
+	/** Amount of time by which to simulate particles in the fix dt pass. */
+	float DeltaSecondsInFix;
+	/** Nbr of iterations to use in the fix dt pass. */
+	int32  NumIterationsInFix;
+
+	/** Amount of time by which to simulate particles in the variable dt pass. */
+	float DeltaSecondsInVar;
+	/** Nbr of iterations to use in the variable dt pass. */
+	int32 NumIterationsInVar;
+
 	/** Amount of time by which to simulate particles. */
 	float DeltaSeconds;
 
@@ -756,9 +784,24 @@ struct FParticlePerFrameSimulationParameters
 		: PointAttractor(FVector::ZeroVector,0.0f)
 		, PositionOffsetAndAttractorStrength(FVector::ZeroVector,0.0f)
 		, LocalToWorldScale(1.0f, 1.0f)
+		, DeltaSecondsInFix(0.0f)
+		, NumIterationsInFix(0)
+		, DeltaSecondsInVar(0.0f)
+		, NumIterationsInVar(0)
 		, DeltaSeconds(0.0f)
+
 	{
 	}
+
+	void ResetDeltaSeconds() 
+	{
+		DeltaSecondsInFix = 0.0f;
+		NumIterationsInFix = 0;
+		DeltaSecondsInVar = 0.0f;
+		NumIterationsInVar = 0;
+		DeltaSeconds = 0.0f;
+	}
+
 };
 
 /**
@@ -770,6 +813,7 @@ struct FParticlePerFrameSimulationShaderParameters
 	FShaderParameter PositionOffsetAndAttractorStrength;
 	FShaderParameter LocalToWorldScale;
 	FShaderParameter DeltaSeconds;
+	FShaderParameter NumIterations;
 
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
@@ -777,15 +821,22 @@ struct FParticlePerFrameSimulationShaderParameters
 		PositionOffsetAndAttractorStrength.Bind(ParameterMap,TEXT("PositionOffsetAndAttractorStrength"));
 		LocalToWorldScale.Bind(ParameterMap,TEXT("LocalToWorldScale"));
 		DeltaSeconds.Bind(ParameterMap,TEXT("DeltaSeconds"));
+		NumIterations.Bind(ParameterMap,TEXT("NumIterations"));
 	}
 
 	template <typename ShaderRHIParamRef>
-	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FParticlePerFrameSimulationParameters& Parameters) const
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FParticlePerFrameSimulationParameters& Parameters, bool bUseFixDT) const
 	{
+		// The offset must only be applied once in the frame, and be stored in the persistent data (not the interpolated one).
+		const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
+		const bool bApplyOffset = FixDeltaSeconds <= 0 || bUseFixDT;
+		const FVector4 OnlyAttractorStrength = FVector4(0, 0, 0, Parameters.PositionOffsetAndAttractorStrength.W);
+
 		SetShaderValue(RHICmdList,ShaderRHI,PointAttractor,Parameters.PointAttractor);
-		SetShaderValue(RHICmdList,ShaderRHI,PositionOffsetAndAttractorStrength,Parameters.PositionOffsetAndAttractorStrength);
+		SetShaderValue(RHICmdList,ShaderRHI,PositionOffsetAndAttractorStrength, bApplyOffset ? Parameters.PositionOffsetAndAttractorStrength : OnlyAttractorStrength);
 		SetShaderValue(RHICmdList,ShaderRHI,LocalToWorldScale,Parameters.LocalToWorldScale);
-		SetShaderValue(RHICmdList,ShaderRHI,DeltaSeconds,Parameters.DeltaSeconds);
+		SetShaderValue(RHICmdList,ShaderRHI,DeltaSeconds, bUseFixDT ? Parameters.DeltaSecondsInFix : Parameters.DeltaSecondsInVar);
+		SetShaderValue(RHICmdList,ShaderRHI,NumIterations, bUseFixDT ? Parameters.NumIterationsInFix : Parameters.NumIterationsInVar);
 	}
 };
 
@@ -795,6 +846,7 @@ FArchive& operator<<(FArchive& Ar, FParticlePerFrameSimulationShaderParameters& 
 	Ar << PerFrameParameters.PositionOffsetAndAttractorStrength;
 	Ar << PerFrameParameters.LocalToWorldScale;
 	Ar << PerFrameParameters.DeltaSeconds;
+	Ar << PerFrameParameters.NumIterations;
 	return Ar;
 }
 
@@ -883,7 +935,10 @@ enum EParticleCollisionShaderMode
 {
 	PCM_None,
 	PCM_DepthBuffer,
-	PCM_DistanceField
+	PCM_DistanceField,
+	PCM_None_FixedDT,
+	PCM_DepthBuffer_FixedDT,
+	PCM_DistanceField_FixedDT
 };
 
 /** Helper function to determine whether the given particle collision shader mode is supported on the given shader platform */
@@ -1070,11 +1125,11 @@ public:
 	/**
 	 * Set per-instance parameters for this shader.
 	 */
-	void SetInstanceParameters(FRHICommandList& RHICmdList, FUniformBufferRHIParamRef UniformBuffer, const FParticlePerFrameSimulationParameters& InPerFrameParameters)
+	void SetInstanceParameters(FRHICommandList& RHICmdList, FUniformBufferRHIParamRef UniformBuffer, const FParticlePerFrameSimulationParameters& InPerFrameParameters, bool bUseFixDT)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
 		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FParticleSimulationParameters>(), UniformBuffer);
-		PerFrameParameters.Set(RHICmdList, PixelShaderRHI, InPerFrameParameters);
+		PerFrameParameters.Set(RHICmdList, PixelShaderRHI, InPerFrameParameters, bUseFixDT);
 	}
 
 	/**
@@ -1334,15 +1389,20 @@ void ExecuteSimulationCommands(
 	FRHICommandList& RHICmdList,
 	ERHIFeatureLevel::Type FeatureLevel,
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
-	const FParticleStateTextures& TextureResources,
-	const FParticleAttributesTexture& AttributeTexture,
-	const FParticleAttributesTexture& RenderAttributeTexture,
+	FParticleSimulationResources* ParticleSimulationResources,
 	const FSceneView* CollisionView,
 	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 	FTexture2DRHIParamRef SceneDepthTexture,
-	FTexture2DRHIParamRef GBufferATexture
-	)
+	FTexture2DRHIParamRef GBufferATexture,
+	bool bUseFixDT)
 {
+	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
+
+	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
+	const FParticleStateTextures& TextureResources = (FixDeltaSeconds <= 0 || bUseFixDT) ? ParticleSimulationResources->GetPreviousStateTextures() : ParticleSimulationResources->GetCurrentStateTextures();
+	const FParticleAttributesTexture& AttributeTexture = ParticleSimulationResources->SimulationAttributesTexture;
+	const FParticleAttributesTexture& RenderAttributeTexture = ParticleSimulationResources->RenderAttributesTexture;
+
 	// Grab shaders.
 	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 	TShaderMapRef<TParticleSimulationPS<CollisionMode> > PixelShader(GetGlobalShaderMap(FeatureLevel));
@@ -1368,7 +1428,7 @@ void ExecuteSimulationCommands(
 	{
 		const FSimulationCommandGPU& Command = SimulationCommands[CommandIndex];
 		VertexShader->SetParameters(RHICmdList, Command.TileOffsetsRef);
-		PixelShader->SetInstanceParameters(RHICmdList, Command.UniformBuffer, Command.PerFrameParameters);
+		PixelShader->SetInstanceParameters(RHICmdList, Command.UniformBuffer, Command.PerFrameParameters, bUseFixDT);
 		PixelShader->SetVectorFieldParameters(
 			RHICmdList, 
 			Command.VectorFieldsUniformBuffer,
@@ -1379,6 +1439,60 @@ void ExecuteSimulationCommands(
 
 	// Unbind input buffers.
 	PixelShader->UnbindBuffers(RHICmdList);
+}
+
+
+void ExecuteSimulationCommands(
+	FRHICommandList& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel,
+	const TArray<FSimulationCommandGPU>& SimulationCommands,
+	FParticleSimulationResources* ParticleSimulationResources,
+	const FSceneView* CollisionView,
+	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
+	FTexture2DRHIParamRef SceneDepthTexture,
+	FTexture2DRHIParamRef GBufferATexture,
+	EParticleSimulatePhase::Type Phase,
+	bool bUseFixDT)
+{
+	if (Phase == EParticleSimulatePhase::CollisionDepthBuffer && CollisionView)
+	{
+		ExecuteSimulationCommands<PCM_DepthBuffer>(
+			RHICmdList,
+			FeatureLevel,
+			SimulationCommands,
+			ParticleSimulationResources,
+			CollisionView,
+			GlobalDistanceFieldParameterData,
+			SceneDepthTexture,
+			GBufferATexture,
+			bUseFixDT);
+	}
+	else if (Phase == EParticleSimulatePhase::CollisionDistanceField && GlobalDistanceFieldParameterData)
+	{
+		ExecuteSimulationCommands<PCM_DistanceField>(
+			RHICmdList,
+			FeatureLevel,
+			SimulationCommands,
+			ParticleSimulationResources,
+			CollisionView,
+			GlobalDistanceFieldParameterData,
+			SceneDepthTexture,
+			GBufferATexture,
+			bUseFixDT);
+	}
+	else
+	{
+		ExecuteSimulationCommands<PCM_None>(
+			RHICmdList,
+			FeatureLevel,
+			SimulationCommands,
+			ParticleSimulationResources,
+			NULL,
+			GlobalDistanceFieldParameterData,
+			FTexture2DRHIParamRef(),
+			FTexture2DRHIParamRef(),
+			bUseFixDT);
+	}
 }
 
 /**
@@ -1629,6 +1743,11 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  */
 void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<FNewParticle>& NewParticles)
 {
+	if (GIsRenderingThreadSuspended)
+	{
+		return;
+	}
+
 	const int32 MaxParticlesPerDrawCall = GParticleScratchVertexBufferSize / sizeof(FNewParticle);
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 	int32 ParticleCount = NewParticles.Num();
@@ -2824,7 +2943,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 					SCOPE_CYCLE_COUNTER(STAT_GPUSpriteRenderingTime);
 
 					FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
-					FParticleStateTextures& StateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+					FParticleStateTextures& StateTextures = ParticleSimulationResources->GetVisualizeStateTextures();
 							
 					VertexFactory.EmitterUniformBuffer = Resources->UniformBuffer;
 					VertexFactory.EmitterDynamicUniformBuffer = LocalDynamicUniformBuffer;
@@ -2937,6 +3056,9 @@ class FGPUSpriteParticleEmitterInstance : public FParticleEmitterInstance
 	float PointAttractorStrength;
 	/** The amount of time by which the GPU needs to simulate particles during its next update. */
 	float PendingDeltaSeconds;
+	/** The offset for simulation time, used when we are not updating time FrameIndex. */
+	float OffsetSeconds;
+
 	/** Tile to allocate new particles from. */
 	int32 TileToAllocateFrom;
 	/** How many particles are free in the most recently allocated tile. */
@@ -2976,6 +3098,7 @@ public:
 		, LocalVectorFieldRotation(FRotator::ZeroRotator)
 		, PointAttractorStrength(0.0f)
 		, PendingDeltaSeconds(0.0f)
+		, OffsetSeconds(0.0f)
 		, TileToAllocateFrom(INDEX_NONE)
 		, FreeParticlesInTile(0)
 		, AllowedLoopCount(0)
@@ -3136,11 +3259,85 @@ public:
 
 		if (bSimulateGPUParticles)
 		{
+			float& DeltaSecondsInFix = DynamicData->PerFrameSimulationParameters.DeltaSecondsInFix;
+			int32& NumIterationsInFix = DynamicData->PerFrameSimulationParameters.NumIterationsInFix;
+
+			float& DeltaSecondsInVar = DynamicData->PerFrameSimulationParameters.DeltaSecondsInVar;
+			int32& NumIterationsInVar = DynamicData->PerFrameSimulationParameters.NumIterationsInVar;
+			
+			const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnAnyThread();
+			const float FixTolerance = CVarGPUParticleFixTolerance.GetValueOnAnyThread();
+			const int32 MaxNumIterations = CVarGPUParticleMaxNumIterations.GetValueOnAnyThread();
+
+			DeltaSecondsInFix = FixDeltaSeconds;
+			NumIterationsInFix = 0;
+
+			DeltaSecondsInVar = PendingDeltaSeconds + OffsetSeconds;
+			NumIterationsInVar = 1;
+			OffsetSeconds = 0;
+
+			// If using fixDT strategy
+			if (FixDeltaSeconds > 0)
+			{
+				// Move some time from varying DT to fix DT simulation.
+				NumIterationsInFix = FMath::FloorToInt(DeltaSecondsInVar / FixDeltaSeconds);
+				DeltaSecondsInVar -= NumIterationsInFix * FixDeltaSeconds;
+
+				float SecondsInFix = NumIterationsInFix * FixDeltaSeconds;
+
+				const float RelativeVar = DeltaSecondsInVar / FixDeltaSeconds;
+
+				// If we had some fixed steps, try to move a small value from var dt to fix dt as an optimization (skips on full simulation step)
+				if (NumIterationsInFix > 0 && RelativeVar < FixTolerance)
+				{
+					SecondsInFix += DeltaSecondsInVar;
+					DeltaSecondsInVar = 0;
+					NumIterationsInVar = 0;
+				}
+				// Also check if there is almost one full step.
+				else if (1.f - RelativeVar < FixTolerance) 
+				{
+					SecondsInFix += DeltaSecondsInVar;
+					NumIterationsInFix += 1;
+					DeltaSecondsInVar = 0;
+					NumIterationsInVar = 0;
+				}
+				// Otherwise, transfer a part from the varying time to the fix time. At this point, we know we will have both fix and var iterations.
+				// This prevents DT that are multiple of FixDT, from keeping an non zero OffsetSeconds.
+				else if (NumIterationsInFix > 0)
+				{
+					const float TransferedSeconds = FixTolerance * FixDeltaSeconds;
+					DeltaSecondsInVar -= TransferedSeconds;
+					SecondsInFix += TransferedSeconds;
+				}
+
+				if (NumIterationsInFix > 0)
+				{
+					// Here we limit the iteration count to prevent long frames from taking even longer.
+					NumIterationsInFix = FMath::Min<int32>(NumIterationsInFix, MaxNumIterations);
+					DeltaSecondsInFix = SecondsInFix / (float)NumIterationsInFix;
+				}
+
+				OffsetSeconds = DeltaSecondsInVar;
+
+			#if STATS
+				if (NumIterationsInFix + NumIterationsInVar == 1)
+				{
+					INC_DWORD_STAT_BY(STAT_GPUSingleIterationEmitters, 1);
+				}
+				else if (NumIterationsInFix + NumIterationsInVar > 1)
+				{
+					INC_DWORD_STAT_BY(STAT_GPUMultiIterationsEmitters, 1);
+				}
+			#endif
+
+			}
+
 			FVector PointAttractorPosition = ComponentToWorld.TransformPosition(EmitterInfo.PointAttractorPosition);
 			DynamicData->PerFrameSimulationParameters.PointAttractor = FVector4(PointAttractorPosition, EmitterInfo.PointAttractorRadiusSq);
 			DynamicData->PerFrameSimulationParameters.PositionOffsetAndAttractorStrength = FVector4(PositionOffsetThisTick, PointAttractorStrength);
 			DynamicData->PerFrameSimulationParameters.LocalToWorldScale = DynamicData->EmitterDynamicParameters.LocalToWorldScale;
-			DynamicData->PerFrameSimulationParameters.DeltaSeconds = PendingDeltaSeconds;
+			DynamicData->PerFrameSimulationParameters.DeltaSeconds = PendingDeltaSeconds; // This value is used when updating vector fields.
 			Exchange(DynamicData->TilesToClear, TilesToClear);
 			Exchange(DynamicData->NewParticles, NewParticles);
 		}
@@ -3478,7 +3675,7 @@ public:
 			EmitterInstance->ParticleBoundingBox = ComputeParticleBounds(
 				RHICmdList,
 				EmitterInstance->Simulation->VertexBuffer.VertexBufferSRV,
-				EmitterInstance->FXSystem->GetParticleSimulationResources()->GetCurrentStateTextures().PositionTextureRHI,
+				EmitterInstance->FXSystem->GetParticleSimulationResources()->GetVisualizeStateTextures().PositionTextureRHI,
 				EmitterInstance->Simulation->VertexBuffer.ParticleCount
 				);
 		});
@@ -4181,7 +4378,7 @@ void FFXSystem::SortGPUParticles(FRHICommandListImmediate& RHICmdList)
 		int32 BufferIndex = SortParticlesGPU(
 			RHICmdList,
 			GParticleSortBuffers,
-			ParticleSimulationResources->GetCurrentStateTextures().PositionTextureRHI,
+			ParticleSimulationResources->GetVisualizeStateTextures().PositionTextureRHI,
 			ParticleSimulationResources->SimulationsToSort,
 			GetFeatureLevel()
 			);
@@ -4244,7 +4441,6 @@ void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
 {
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
 
 	// Setup render states.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -4259,8 +4455,7 @@ void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
 void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
 {
 	// Grab resources.
-	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetVisualizeStateTextures();
 
 	// Setup render states.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -4286,37 +4481,38 @@ void FFXSystem::SimulateGPUParticles(
 
 	FMemMark Mark(FMemStack::Get());
 
-	// Grab resources.
-	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
+
+	{
+		// Grab resources.
+		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+		FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
 
 	
-	// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
-	if ( !CurrentStateTextures.bTexturesCleared )
-	{
-		SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-		SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
+		if ( !CurrentStateTextures.bTexturesCleared )
+		{
+			SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+			SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 
-		CurrentStateTextures.bTexturesCleared = true;
-	}
+			CurrentStateTextures.bTexturesCleared = true;
+		}
 
-	if ( !PrevStateTextures.bTexturesCleared )
-	{
-		SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-		SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-		RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
-		RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
+		if ( !PrevStateTextures.bTexturesCleared )
+		{
+			SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+			RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
+			RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
 		
-		PrevStateTextures.bTexturesCleared = true;
+			PrevStateTextures.bTexturesCleared = true;
+		}
+
+		// Setup render states.
+		FTextureRHIParamRef RenderTargets[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
+		SetRenderTargets(RHICmdList, 2, RenderTargets, FTextureRHIParamRef(), 0, NULL);
 	}
 
-	// Setup render states.
-	FTextureRHIParamRef RenderTargets[2] =
-	{
-		CurrentStateTextures.PositionTextureTargetRHI,
-		CurrentStateTextures.VelocityTextureTargetRHI,
-	};
-	SetRenderTargets(RHICmdList, 2, RenderTargets, FTextureRHIParamRef(), 0, NULL);
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -4421,63 +4617,25 @@ void FFXSystem::SimulateGPUParticles(
 			FreeNewParticleArray(Simulation->NewParticles);
 
 			// Reset pending simulation time. This prevents an emitter from simulating twice if we don't get an update from the game thread, e.g. the component didn't tick last frame.
-			Simulation->PerFrameSimulationParameters.DeltaSeconds = 0.0f;
+			Simulation->PerFrameSimulationParameters.ResetDeltaSeconds();
 		}
 	}
 
 	// Simulate particles in all active tiles.
 	if ( SimulationCommands.Num() )
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
-
-		if (Phase == EParticleSimulatePhase::CollisionDepthBuffer && CollisionView)
-		{
-			/// ?
-			ExecuteSimulationCommands<PCM_DepthBuffer>(
-				RHICmdList,
-				FeatureLevel,
-				SimulationCommands,
-				PrevStateTextures,
-				ParticleSimulationResources->SimulationAttributesTexture,
-				ParticleSimulationResources->RenderAttributesTexture,
-				CollisionView,
-				GlobalDistanceFieldParameterData,
-				SceneDepthTexture,
-				GBufferATexture
-				);
-		}
-		else if (Phase == EParticleSimulatePhase::CollisionDistanceField && GlobalDistanceFieldParameterData)
-		{
-			/// ?
-			ExecuteSimulationCommands<PCM_DistanceField>(
-				RHICmdList,
-				FeatureLevel,
-				SimulationCommands,
-				PrevStateTextures,
-				ParticleSimulationResources->SimulationAttributesTexture,
-				ParticleSimulationResources->RenderAttributesTexture,
-				CollisionView,
-				GlobalDistanceFieldParameterData,
-				SceneDepthTexture,
-				GBufferATexture
-				);
-		}
-		else
-		{
-			/// ?
-			ExecuteSimulationCommands<PCM_None>(
-				RHICmdList,
-				FeatureLevel,
-				SimulationCommands,
-				PrevStateTextures,
-				ParticleSimulationResources->SimulationAttributesTexture,
-				ParticleSimulationResources->RenderAttributesTexture,
-				NULL,
-				GlobalDistanceFieldParameterData,
-				FTexture2DRHIParamRef(),
-				FTexture2DRHIParamRef()
-				);
-		}
+		ExecuteSimulationCommands(
+					RHICmdList,
+					FeatureLevel,
+					SimulationCommands,
+					ParticleSimulationResources,
+					CollisionView,
+					GlobalDistanceFieldParameterData,
+					SceneDepthTexture,
+					GBufferATexture,
+					Phase,
+					FixDeltaSeconds > 0
+					);
 	}
 
 	// Clear any newly allocated tiles.
@@ -4490,6 +4648,9 @@ void FFXSystem::SimulateGPUParticles(
 	if (NewParticles.Num())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
+
+		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[4] =
 		{
@@ -4522,6 +4683,33 @@ void FFXSystem::SimulateGPUParticles(
 			);
 	}
 
+
+	if (SimulationCommands.Num() && FixDeltaSeconds > 0)
+	{
+		// Transition from
+		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+		FTextureRHIParamRef CurrentStateRHIs[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, CurrentStateRHIs, 2);
+
+		FParticleStateTextures& VisualizeStateTextures = ParticleSimulationResources->GetVisualizeStateTextures();
+		FTextureRHIParamRef VisualizeStateRHIs[2] = { VisualizeStateTextures.PositionTextureTargetRHI, VisualizeStateTextures.VelocityTextureTargetRHI };
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);	
+		SetRenderTargets(RHICmdList, 2, VisualizeStateRHIs, FTextureRHIParamRef(), 0, NULL);
+
+		ExecuteSimulationCommands(
+					RHICmdList,
+					FeatureLevel,
+					SimulationCommands,
+					ParticleSimulationResources,
+					CollisionView,
+					GlobalDistanceFieldParameterData,
+					SceneDepthTexture,
+					GBufferATexture,
+					Phase,
+					false
+					);
+	}
+
 	SimulationCommands.Reset();
 	TilesToClear.Reset();
 	NewParticles.Reset();
@@ -4546,7 +4734,7 @@ void FFXSystem::VisualizeGPUParticles(FCanvas* Canvas)
 		ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
 	{
 		FParticleSimulationResources* Resources = FXSystem->GetParticleSimulationResources();
-		FParticleStateTextures& CurrentStateTextures = Resources->GetCurrentStateTextures();
+		FParticleStateTextures& CurrentStateTextures = Resources->GetVisualizeStateTextures();
 		VisualizeGPUSimulation(RHICmdList, FeatureLevel, VisualizationMode, RenderTarget, CurrentStateTextures, GParticleCurveTexture.GetCurveTexture());
 	});
 }

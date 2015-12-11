@@ -21,6 +21,9 @@ private:
 	/** Handler for when CreateMaterial is selected */
 	void ExecuteCreateMaterial(TArray<TWeakObjectPtr<UTexture>> Objects);
 
+	/** Handler for when CreateSubUVAnimation is selected */
+	void ExecuteCreateSubUVAnimation(TArray<TWeakObjectPtr<UTexture>> Objects);
+
 	/** Handler for when FindMaterials is selected */
 	void ExecuteFindMaterials(TWeakObjectPtr<UTexture> Object);
 };

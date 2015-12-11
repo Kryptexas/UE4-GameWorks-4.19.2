@@ -654,25 +654,12 @@ SamplerState	DirectionalOcclusionSampler;
 		// todo: optimize
 		// this is what we want but because WhiteDummy (in case AO is disabled) doesn't support this lookup we do the code below
 //		Out.AmbientOcclusion = ScreenSpaceAOTextureNonMS.Load(int3(PixelPos, 0)).r;
-		{
-			uint width;
-			uint height;
-			uint levels;
 
-			ScreenSpaceAOTextureNonMS.GetDimensions(0, width, height, levels);
-			float4 ScreenSpaceAO = Texture2DSampleLevel(ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, (PixelPos + 0.5f) / float2(width, height), 0);
+		float4 ScreenSpaceAO = Texture2DSampleLevel(ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, (PixelPos + 0.5f) * Frame.BufferSizeAndInvSize.zw, 0);
+		Out.AmbientOcclusion = ScreenSpaceAO.r;
 
-			Out.AmbientOcclusion = ScreenSpaceAO.r;
-		}
+		Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, (PixelPos + 0.5f) * Frame.BufferSizeAndInvSize.zw, 0 ).rg;
 
-		{
-			uint width;
-			uint height;
-			uint levels;
-
-			DirectionalOcclusionTexture.GetDimensions(0, width, height, levels);
-			Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, (PixelPos + 0.5f) / float2(width, height), 0 ).rg;
-		}
 		return Out;
 	}
 #endif
@@ -702,10 +689,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	float CustomNativeDepth = Texture2DSampleLevel(CustomDepthTexture, CustomDepthTextureSampler, UV, 0).r;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	float2 SurfaceDimensions;
-	CustomStencilTexture.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y);
-
-	int2 IntUV = (int2)trunc(UV * SurfaceDimensions);
+	int2 IntUV = (int2)trunc(UV * Frame.BufferSizeAndInvSize.xy);
 	uint CustomStencil = CustomStencilTexture.Load(int3(IntUV, 0)) STENCIL_COMPONENT_SWIZZLE;
 #else
 	uint CustomStencil = 0;
@@ -799,12 +783,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 
 	FGBufferData GetGBufferDataMS(float2 UV, uint SampleIndex, bool bGetNormalizedNormal = true)
 	{
-		float2 SurfaceDimensions;
-		float NumSurfaceSamples;
-		// assuming all GBuffers share the same size
-		GBuffers.GBufferCTextureMS.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y, NumSurfaceSamples);
-
-		int2 IntUV = (int2)trunc(UV * SurfaceDimensions);
+		int2 IntUV = (int2)trunc(UV * Frame.BufferSizeAndInvSize.xy);
 
 		return GetGBufferDataMS(IntUV, SampleIndex, bGetNormalizedNormal);
 	}

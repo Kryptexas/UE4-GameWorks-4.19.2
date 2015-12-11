@@ -8,7 +8,6 @@
 #include "ScenePrivate.h"
 #include "PostProcessing.h"
 #include "PostProcessAA.h"
-#include "PostProcessTonemap.h"
 #include "PostProcessMaterial.h"
 #include "PostProcessInput.h"
 #include "PostProcessWeightedSampleSum.h"
@@ -22,6 +21,7 @@
 #include "PostProcessGBufferHints.h"
 #include "PostProcessVisualizeBuffer.h"
 #include "PostProcessEyeAdaptation.h"
+#include "PostProcessTonemap.h"
 #include "PostProcessLensFlares.h"
 #include "PostProcessLensBlur.h"
 #include "PostProcessBokehDOF.h"
@@ -199,6 +199,65 @@ FPostprocessContext::FPostprocessContext(FRHICommandListImmediate& InRHICmdList,
 	FinalOutput = FRenderingCompositeOutputRef(SceneColor);
 }
 
+// Array of downsampled color with optional log2 luminance stored in alpha
+template <int32 DownSampleStages>
+class TBloomDownSampleArray
+{
+public:
+	// Convenience typedefs
+	typedef FRenderingCompositeOutputRef         FRenderingRefArray[DownSampleStages];
+	typedef TSharedPtr<TBloomDownSampleArray>    Ptr;
+
+	// Constructor: Generates and registers the downsamples with the Context Graph.
+	TBloomDownSampleArray(FPostprocessContext& InContext, FRenderingCompositeOutputRef SourceDownsample, bool bGenerateLog2Alpha) :
+		bHasLog2Alpha(bGenerateLog2Alpha), Context(InContext)
+	{
+		// Optionally encode log2 data in the alpha channel. Used for EyeAdaptation.
+		if (bHasLog2Alpha) {
+			FRenderingCompositePass* BasicEyeSetupPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptationSetUp());
+			BasicEyeSetupPass->SetInput(ePId_Input0, SourceDownsample);
+			PostProcessDownsamples[0] = FRenderingCompositeOutputRef(BasicEyeSetupPass); 
+		}
+		else
+		{
+			// The source becomes the 0th down sample.
+			PostProcessDownsamples[0] = SourceDownsample;
+		}
+
+		// Queue the additional down samples.  T
+		for (int i = 1; i < DownSampleStages; i++)
+		{
+			static const TCHAR* PassLabels[] =
+			{ NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4"), TEXT("BloomDownsample5") };
+			static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
+			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 1, PassLabels[i]));
+			Pass->SetInput(ePId_Input0, PostProcessDownsamples[i - 1]);
+			PostProcessDownsamples[i] = FRenderingCompositeOutputRef(Pass);
+		}
+	}
+
+	// The number of elements in the array.
+	inline static int32 Num() { return DownSampleStages; }
+
+	// Member data kept public for simplicity
+	bool bHasLog2Alpha;
+	FPostprocessContext& Context;
+	FRenderingRefArray PostProcessDownsamples;
+
+private:
+	// no default constructor.
+	TBloomDownSampleArray() {};
+};
+
+// Standard DownsampleArray shared by Bloom, Tint, and Eye-Adaptation. 
+typedef TBloomDownSampleArray<6/*DownSampleStages*/>   FBloomDownSampleArray;  
+
+FBloomDownSampleArray::Ptr CreateDownSampleArray(FPostprocessContext& Context, FRenderingCompositeOutputRef SourceToDownSample, bool bAddLog2)
+{
+	return FBloomDownSampleArray::Ptr(new FBloomDownSampleArray(Context, SourceToDownSample, bAddLog2));
+}
+
+
 static FRenderingCompositeOutputRef RenderHalfResBloomThreshold(FPostprocessContext& Context, FRenderingCompositeOutputRef SceneColorHalfRes, FRenderingCompositeOutputRef EyeAdaptation)
 {
 	// with multiple view ports the Setup pass also isolates the view from the others which allows for simpler simpler/faster blur passes.
@@ -271,7 +330,8 @@ static FRenderingCompositeOutputRef RenderBloom(
 static bool AddTonemapper(
 	FPostprocessContext& Context,
 	const FRenderingCompositeOutputRef& BloomOutputCombined,
-	const FRenderingCompositeOutputRef& EyeAdaptation)
+	const FRenderingCompositeOutputRef& EyeAdaptation,
+	const EAutoExposureMethod& EyeAdapationMethodId)
 {
 	const FEngineShowFlags& EngineShowFlags = Context.View.Family->EngineShowFlags;
 
@@ -312,8 +372,8 @@ static bool AddTonemapper(
 	}
 
 	FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(Context.View.GetShaderPlatform()));
-	
-	FRCPassPostProcessTonemap* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, false, bDoScreenPercentageInTonemapper));
+	const bool bDoEyeAdaptation = IsAutoExposureMethodSupported(Context.View.GetFeatureLevel(), EyeAdapationMethodId);
+	FRCPassPostProcessTonemap* PostProcessTonemap =	Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, false, bDoScreenPercentageInTonemapper, bDoEyeAdaptation));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 	PostProcessTonemap->SetInput(ePId_Input1, BloomOutputCombined);
@@ -341,7 +401,7 @@ static void AddSelectionOutline(FPostprocessContext& Context)
 
 static void AddGammaOnlyTonemapper(FPostprocessContext& Context)
 {
-	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, true, false));
+	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, true, false, false/*eye*/));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 
@@ -362,7 +422,24 @@ static void AddPostProcessAA(FPostprocessContext& Context)
 	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 }
 
-static FRenderingCompositeOutputRef AddPostProcessEyeAdaptation(FPostprocessContext& Context, FRenderingCompositeOutputRef& Histogram)
+
+static FRenderingCompositeOutputRef AddPostProcessBasicEyeAdaptation(FViewInfo& View, FBloomDownSampleArray& BloomAndEyeDownSamples)
+{
+
+	// Extract the context
+	FPostprocessContext& Context = BloomAndEyeDownSamples.Context;
+
+	// Extract the last (i.e. smallest) down sample
+	static const int32 FinalDSIdx = FBloomDownSampleArray::Num() - 1;
+	FRenderingCompositeOutputRef PostProcessPriorReduction = BloomAndEyeDownSamples.PostProcessDownsamples[FinalDSIdx];
+	
+	// Compute the eye adaptation value based on average luminance from log2 luminance buffer, history, and specific shader parameters.
+	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptation());
+	Node->SetInput(ePId_Input0, PostProcessPriorReduction);
+	return FRenderingCompositeOutputRef(Node);
+}
+
+static FRenderingCompositeOutputRef AddPostProcessHistogramEyeAdaptation(FPostprocessContext& Context, FRenderingCompositeOutputRef& Histogram)
 {
 	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessEyeAdaptation());
 
@@ -606,8 +683,10 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }
 
-static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRenderingCompositeOutputRef PostProcessDownsample0, bool bVisualizeBloom)
+
+static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSampleArray, bool bVisualizeBloom)
 {
+	
 	// Quality level to bloom stages table. Note: 0 is omitted, ensure element count tallys with the range documented with 'r.BloomQuality' definition.
 	const static uint32 BloomQualityStages[] =
 	{
@@ -625,18 +704,11 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 		BloomQuality = FMath::Clamp(CVar->GetValueOnRenderThread(), 0, (int32)ARRAY_COUNT(BloomQualityStages));
 	}
 
-	// Perform down sample. Used by both bloom and lens flares.
-	static const int32 DownSampleStages = 6;
-	FRenderingCompositeOutputRef PostProcessDownsamples[DownSampleStages] = {PostProcessDownsample0};
-	for (int i = 1; i < DownSampleStages; i++)
-	{
-		static const TCHAR* PassLabels[] =
-			{NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4"), TEXT("BloomDownsample5")};
-		static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
-		FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 1, PassLabels[i]));
-		Pass->SetInput(ePId_Input0, PostProcessDownsamples[i - 1]);
-		PostProcessDownsamples[i] = FRenderingCompositeOutputRef(Pass);
-	}
+	// Extract the Context
+	FPostprocessContext& Context = BloomDownSampleArray.Context;
+
+	// Extract the downsample array.
+	FBloomDownSampleArray::FRenderingRefArray& PostProcessDownsamples = BloomDownSampleArray.PostProcessDownsamples;
 
 	FRenderingCompositeOutputRef BloomOutput;
 	if (BloomQuality == 0)
@@ -656,12 +728,12 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 
 		FBloomStage BloomStages[] =
 		{
-			{ Settings.Bloom6Size, &Settings.Bloom6Tint},
-			{ Settings.Bloom5Size, &Settings.Bloom5Tint},
-			{ Settings.Bloom4Size, &Settings.Bloom4Tint},
-			{ Settings.Bloom3Size, &Settings.Bloom3Tint},
-			{ Settings.Bloom2Size, &Settings.Bloom2Tint},
-			{ Settings.Bloom1Size, &Settings.Bloom1Tint},
+			{ Settings.Bloom6Size, &Settings.Bloom6Tint },
+			{ Settings.Bloom5Size, &Settings.Bloom5Tint },
+			{ Settings.Bloom4Size, &Settings.Bloom4Tint },
+			{ Settings.Bloom3Size, &Settings.Bloom3Tint },
+			{ Settings.Bloom2Size, &Settings.Bloom2Tint },
+			{ Settings.Bloom1Size, &Settings.Bloom1Tint },
 		};
 		static const uint32 NumBloomStages = ARRAY_COUNT(BloomStages);
 
@@ -674,7 +746,7 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 
 			FLinearColor Tint = (*Op.Tint) * TintScale;
 
-			if(bVisualizeBloom)
+			if (bVisualizeBloom)
 			{
 				float LumScale = Tint.ComputeLuminance();
 
@@ -1119,8 +1191,19 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		FRenderingCompositeOutputRef HistogramOverScreen;
 		// not always valid
 		FRenderingCompositeOutputRef Histogram;
-		// not always valid
-		FRenderingCompositeOutputRef EyeAdaptation;
+
+		class FAutoExposure
+		{
+		public:
+			FAutoExposure(const FViewInfo& InView) : 
+				MethodId(GetAutoExposureMethod(InView)) 
+			{}
+			// distinguish between Basic and Histogram-based
+			EAutoExposureMethod          MethodId;
+			// not always valid
+			FRenderingCompositeOutputRef EyeAdaptation;			
+		} AutoExposure(View);
+	
 		// not always valid
 		FRenderingCompositeOutputRef SeparateTranslucency;
 		// optional
@@ -1139,12 +1222,16 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			if (FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT)
 			{
 				FRenderingCompositePass* NodeSeparateTranslucency = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT));
-
 				SeparateTranslucency = FRenderingCompositeOutputRef(NodeSeparateTranslucency);
-				// the node keeps another reference so the RT will not be release too early
-				FSceneRenderTargets::Get(RHICmdList).FreeSeparateTranslucency();
 
-				check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
+				// make sure we only release if this is the last view we're rendering
+				int32 LastView = View.Family->Views.Num() - 1;
+				if (View.Family->Views[LastView] == &View)
+				{
+					// the node keeps another reference so the RT will not be release too early
+					FSceneRenderTargets::Get(RHICmdList).FreeSeparateTranslucency();
+					check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
+				}
 			}
 		}
 
@@ -1426,7 +1513,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			{
 				bool bHistogramNeeded = false;
 
-				if(View.Family->EngineShowFlags.EyeAdaptation
+				if (View.Family->EngineShowFlags.EyeAdaptation && (AutoExposure.MethodId == EAutoExposureMethod::AEM_Histogram)
 					&& View.FinalPostProcessSettings.AutoExposureMinBrightness < View.FinalPostProcessSettings.AutoExposureMaxBrightness
 					&& !View.bIsSceneCapture // Eye adaption is not available for scene captures.
 					&& !bVisualizeBloom)
@@ -1460,19 +1547,60 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				}
 			}
 
+			// Compute DownSamples passes used by bloom, tint and eye-adaptation if possible.
+			FBloomDownSampleArray::Ptr BloomAndEyeDownSamplesPtr;
+			if (View.FinalPostProcessSettings.BloomIntensity > 0.f) // do bloom
+			{
+				// No Threshold:  We can share with Eye-Adaptation.
+				if (Context.View.FinalPostProcessSettings.BloomThreshold <= -1 && Context.View.Family->Views.Num() == 1)
+				{
+					if (!GIsHighResScreenshot && View.State &&
+						(StereoPass != eSSP_RIGHT_EYE) &&
+						(AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic))
+					{
+						BloomAndEyeDownSamplesPtr = CreateDownSampleArray(Context, SceneColorHalfRes, true /*bGenerateLog2Alpha*/);
+					}
+				}
+			}
+
 			// some views don't have a state (thumbnail rendering)
 			if(!GIsHighResScreenshot && View.State && (StereoPass != eSSP_RIGHT_EYE))
 			{
-				// we always add eye adaptation, if the engine show flag is disabled we set the ExposureScale in the texture to a fixed value
-				EyeAdaptation = AddPostProcessEyeAdaptation(Context, Histogram);
+				
+				const bool bUseBasicEyeAdaptation = (AutoExposure.MethodId == EAutoExposureMethod::AEM_Basic);  
+
+				if (bUseBasicEyeAdaptation) // log average ps reduction ( non histogram ) 
+				{
+					
+					if (!BloomAndEyeDownSamplesPtr.IsValid()) 
+					{
+						// need downsamples for eye-adaptation.
+						FBloomDownSampleArray::Ptr EyeDownSamplesPtr = CreateDownSampleArray(Context, SceneColorHalfRes, true /*bGenerateLog2Alpha*/);
+						AutoExposure.EyeAdaptation = AddPostProcessBasicEyeAdaptation(View, *EyeDownSamplesPtr);
+					}
+					else
+					{
+						// Use the alpha channel in the last downsample (smallest) to compute eye adaptations values.			
+						AutoExposure.EyeAdaptation = AddPostProcessBasicEyeAdaptation(View, *BloomAndEyeDownSamplesPtr);
+					}
+				}
+				else  // Use histogram version version
+				{
+					// we always add eye adaptation, if the engine show flag is disabled we set the ExposureScale in the texture to a fixed value
+					AutoExposure.EyeAdaptation = AddPostProcessHistogramEyeAdaptation(Context, Histogram);
+				}
 			}
 
 			if(View.FinalPostProcessSettings.BloomIntensity > 0.0f)
 			{
 				if (CVarUseMobileBloom.GetValueOnRenderThread() == 0)
 				{
-					FRenderingCompositeOutputRef HalfResBloomThreshold = RenderHalfResBloomThreshold(Context, SceneColorHalfRes, EyeAdaptation);
-					BloomOutputCombined = AddBloom(Context, HalfResBloomThreshold, bVisualizeBloom);
+					if (!BloomAndEyeDownSamplesPtr.IsValid())
+					{
+						FRenderingCompositeOutputRef HalfResBloomThreshold = RenderHalfResBloomThreshold(Context, SceneColorHalfRes, AutoExposure.EyeAdaptation);
+						BloomAndEyeDownSamplesPtr = CreateDownSampleArray(Context, HalfResBloomThreshold, false /*bGenerateLog2Alpha*/);
+					}
+					BloomOutputCombined = AddBloom(*BloomAndEyeDownSamplesPtr, bVisualizeBloom);
 				}
 				else
 				{
@@ -1586,7 +1714,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				}
 				else
 				{
-					bScreenPercentageIsDone = AddTonemapper(Context, BloomOutputCombined, EyeAdaptation);
+					bScreenPercentageIsDone = AddTonemapper(Context, BloomOutputCombined, AutoExposure.EyeAdaptation, AutoExposure.MethodId);
 				}
 			}
 
@@ -1612,15 +1740,31 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		
 		if(View.Family->EngineShowFlags.StationaryLightOverlap)
 		{
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->StationaryLightOverlapColors, false));
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->StationaryLightOverlapColors, FVisualizeComplexityApplyPS::CS_RAMP, 1.f, false));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
-			const bool bUseQuadComplexityColors = View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity; // Quad Complexity also sets ShaderComplexity
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(bUseQuadComplexityColors ? GEngine->QuadComplexityColors : GEngine->ShaderComplexityColors, true));
+			FRenderingCompositePass* Node = nullptr;
+			if (View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity) // Quad Complexity also sets ShaderComplexity
+			{
+				float ComplexityScale = 1.f / (float)(GEngine->QuadComplexityColors.Num() - 1) / NormalizedQuadComplexityValue; // .1f comes from the values used in LightAccumulator_GetResult
+				Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->QuadComplexityColors, FVisualizeComplexityApplyPS::CS_STAIR, ComplexityScale, true));
+			}
+			else
+			{
+				Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors, FVisualizeComplexityApplyPS::CS_RAMP, 1.f, true));
+			}
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+		}
+
+		if(View.Family->EngineShowFlags.VisualizeLightCulling) 
+		{
+			float ComplexityScale = 1.f / (float)(GEngine->LightComplexityColors.Num() - 1) / .1f; // .1f comes from the values used in LightAccumulator_GetResult
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->LightComplexityColors, FVisualizeComplexityApplyPS::CS_LINEAR,  ComplexityScale, false));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
@@ -1717,7 +1861,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Node->SetInput(ePId_Input1, Histogram);
 			Node->SetInput(ePId_Input2, HDRColor);
 			Node->SetInput(ePId_Input3, HistogramOverScreen);
-			Node->AddDependency(EyeAdaptation);
+			Node->AddDependency(AutoExposure.EyeAdaptation);
 
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
@@ -2145,9 +2289,16 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
-			const bool bUseQuadComplexityColors = View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity; // Quad Complexity also sets ShaderComplexity
 			// Legend is costly so we don't do it for ES2, ideally we make a shader permutation
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(bUseQuadComplexityColors ? GEngine->QuadComplexityColors : GEngine->ShaderComplexityColors, false));
+			FRenderingCompositePass* Node = nullptr;
+			if (View.Family->GetQuadOverdrawMode() == QOM_QuadComplexity) // Quad Complexity also sets ShaderComplexity
+			{
+				Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->QuadComplexityColors, FVisualizeComplexityApplyPS::CS_STAIR,  1.f, false));
+			}
+			else
+			{
+				Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors, FVisualizeComplexityApplyPS::CS_RAMP,  1.f, false));
+			}
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}

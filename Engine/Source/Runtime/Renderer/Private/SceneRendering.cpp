@@ -355,6 +355,8 @@ void FViewInfo::Init()
 
 	ViewState = (FSceneViewState*)State;
 	bIsSnapshot = false;
+
+	bAllowStencilDither = false;
 }
 
 FViewInfo::~FViewInfo()
@@ -1159,17 +1161,38 @@ FSceneViewState* FViewInfo::GetEffectiveViewState() const
 
 IPooledRenderTarget* FViewInfo::GetEyeAdaptation(FRHICommandList& RHICmdList) const
 {
-	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	return GetEyeAdaptationRT(RHICmdList);
+}
 
+IPooledRenderTarget* FViewInfo::GetEyeAdaptationRT(FRHICommandList& RHICmdList) const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	IPooledRenderTarget* result = NULL;
 	if (EffectiveViewState)
 	{
-		TRefCountPtr<IPooledRenderTarget>& EyeAdaptRef = EffectiveViewState->GetEyeAdaptation(RHICmdList);
-		if( IsValidRef(EyeAdaptRef) )
-		{
-			return EyeAdaptRef.GetReference();
-		}
+		result = EffectiveViewState->GetCurrentEyeAdaptationRT(RHICmdList);
 	}
-	return NULL;
+	return result;
+}
+
+IPooledRenderTarget* FViewInfo::GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	IPooledRenderTarget* result = NULL;
+	if (EffectiveViewState)
+	{
+		result = EffectiveViewState->GetLastEyeAdaptationRT(RHICmdList);
+	}
+	return result;
+}
+
+void FViewInfo::SwapEyeAdaptationRTs()
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState)
+	{
+		EffectiveViewState->SwapEyeAdaptationRTs();
+	}
 }
 
 bool FViewInfo::HasValidEyeAdaptation() const

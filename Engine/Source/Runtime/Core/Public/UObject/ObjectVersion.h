@@ -590,6 +590,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_CAMERA_COMPONENT_ATTACH_TO_ROOT,
 	// Updating custom material expression nodes for instanced stereo implementation
 	VER_UE4_INSTANCED_STEREO_UNIFORM_UPDATE,
+	// Texture streaming min and max distance to handle HLOD
+	VER_UE4_STREAMABLE_TEXTURE_MIN_MAX_DISTANCE,	// -----<new versions can be added before this line>-------------------------------------------------
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

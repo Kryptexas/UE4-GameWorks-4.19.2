@@ -14,6 +14,7 @@ namespace CrossCompiler
 	{
 		// Control
 		Invalid,
+		Pragma,
 
 		// Math
 		Plus,
@@ -304,5 +305,7 @@ namespace CrossCompiler
 		TIndirectArray<FString> SourceFilenames;
 
 		void Clear(const FString& Filename);
+
+		friend struct FTokenizer;
 	};
 }

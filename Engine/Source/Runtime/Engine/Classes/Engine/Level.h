@@ -20,6 +20,12 @@ struct ENGINE_API FStreamableTextureInstance
 
 	/** Bounding sphere/ box of object */
 	FSphere BoundingSphere;
+
+	/** Min distance from view where this instance is usable */
+	float MinDistance;
+	/** Max distance from view where this instance is usable */
+	float MaxDistance;
+
 	/** Object (and bounding sphere) specific texel scale factor  */
 	float	TexelFactor;
 

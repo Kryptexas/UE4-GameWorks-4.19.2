@@ -65,16 +65,9 @@ FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class
 			break;
 	}
 
-	if (Category == NAME_None)
-	{
-		if (Verbosity != ELogVerbosity::Log)
-		{
-#if !HACK_HEADER_GENERATOR
-			Format += FString(VerbosityToString(Verbosity)) + TEXT(": ");
-#endif
-		}
-	}
-	else
+	bool bShowCategory = GPrintLogCategory && Category != NAME_None;
+
+	if (bShowCategory)
 	{
 		if (Verbosity != ELogVerbosity::Log)
 		{
@@ -85,6 +78,16 @@ FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class
 			Format += Category.ToString() + TEXT(": ");
 		}
 	}
+	else
+	{
+		if (Verbosity != ELogVerbosity::Log)
+		{
+#if !HACK_HEADER_GENERATOR
+			Format += FString(VerbosityToString(Verbosity)) + TEXT(": ");
+#endif
+		}
+	}
+
 	if (Message)
 	{
 		Format += Message;

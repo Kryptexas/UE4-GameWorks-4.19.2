@@ -709,7 +709,8 @@ class FQueuedThreadPool& ThreadPool,
 		{
 			const float MaxOriginalExtent = MeshBounds.GetExtent().GetMax();
 			// Expand so that the edges of the volume are guaranteed to be outside of the mesh
-			const FVector NewExtent(MeshBounds.GetExtent() + FVector(.2f * MaxOriginalExtent));
+			// Any samples outside the bounds will be clamped to the border, so they must be outside
+			const FVector NewExtent(MeshBounds.GetExtent() + FVector(.2f * MaxOriginalExtent).ComponentMax(4 * MeshBounds.GetExtent() / MinNumVoxelsOneDim));
 			FBox DistanceFieldVolumeBounds = FBox(MeshBounds.GetCenter() - NewExtent, MeshBounds.GetCenter() + NewExtent);
 			const float DistanceFieldVolumeMaxDistance = DistanceFieldVolumeBounds.GetExtent().Size();
 
@@ -2398,7 +2399,9 @@ static void ComputeTangents_MikkTSpace(
 		// normals are not included, so we should calculate them
 		RawMesh.WedgeTangentZ.Empty(NumWedges);
 		RawMesh.WedgeTangentZ.AddZeroed(NumWedges);
+
 		// we need to calculate normals for MikkTSpace
+		UE_LOG(LogMeshUtilities, Warning, TEXT("Invalid vertex normals found for mesh. Forcing recomputation of vertex normals for MikkTSpace. Fix mesh or disable \"Use MikkTSpace Tangent Space\" to avoid forced recomputation of normals."));
 
 		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
 		{
@@ -5383,9 +5386,14 @@ void FMeshUtilities::FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& I
 	TMap<UMaterialInterface*, FExportMaterialProxyCache> CachedShaders;
 	CachedShaders.Empty(InMaterials.Num());
 
+	bool bDitheredLODTransition = false;
+
 	for (int32 MaterialIndex = 0; MaterialIndex < InMaterials.Num(); MaterialIndex++)
 	{
 		UMaterialInterface* CurrentMaterial = InMaterials[MaterialIndex];
+
+		// Store if any material uses dithered transitions
+		bDitheredLODTransition |= CurrentMaterial->IsDitheredLODTransition();
 
 		// Check if we already have cached compiled shader for this material.
 		FExportMaterialProxyCache* CachedShader = CachedShaders.Find(CurrentMaterial);
@@ -5489,9 +5497,14 @@ void FMeshUtilities::FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& I
 		}
 	}
 
-	// Adjust emissive scales
 	if (OutFlattenedMaterials.Num() > 1)
 	{
+		// Dither transition fix-up
+		for (FFlattenMaterial& FlatMaterial : OutFlattenedMaterials)
+		{
+			FlatMaterial.bDitheredLODTransition = bDitheredLODTransition;
+		}
+
 		// Start with determining maximum emissive scale	
 		float MaxEmissiveScale = 0.0f;
 		for (FFlattenMaterial& FlatMaterial : OutFlattenedMaterials)

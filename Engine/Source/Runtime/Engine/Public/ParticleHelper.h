@@ -296,6 +296,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Cull Vector Fields"),STAT_GPUParticleVFCullTime,
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc1"),STAT_GPUParticleMisc1,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc2"),STAT_GPUParticleMisc2,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc3"),STAT_GPUParticleMisc3,STATGROUP_GPUParticles, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Single Iteration Emitters"), STAT_GPUSingleIterationEmitters, STATGROUP_GPUParticles, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Multi Iterations Emitters"), STAT_GPUMultiIterationsEmitters, STATGROUP_GPUParticles, );
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Mesh Particles"),STAT_MeshParticles,STATGROUP_Particles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Mesh Render Time"),STAT_MeshRenderingTime,STATGROUP_Particles, );
@@ -1460,6 +1462,7 @@ struct FDynamicSpriteEmitterReplayDataBase
 	: public FDynamicEmitterReplayDataBase
 {
 	UMaterialInterface*			MaterialInterface;
+	class USubUVAnimation*		SubUVAnimation;
 	FVector						NormalsSphereCenter;
 	FVector						NormalsCylinderDirection;
 	float						InvDeltaSeconds;
@@ -1478,30 +1481,9 @@ struct FDynamicSpriteEmitterReplayDataBase
 	uint8						EmitterRenderMode;
 	uint8						EmitterNormalsMode;
 	FVector2D					PivotOffset;
-
+	
 	/** Constructor */
-	FDynamicSpriteEmitterReplayDataBase()
-		: MaterialInterface(NULL)
-		, NormalsSphereCenter(FVector::ZeroVector)
-		, NormalsCylinderDirection(FVector::ZeroVector)
-		, InvDeltaSeconds(0.0f)
-		, MaxDrawCount(0)
-		, OrbitModuleOffset(0)
-		, DynamicParameterDataOffset(0)
-		, LightDataOffset(0)
-		, CameraPayloadOffset(0)
-		, SubUVDataOffset(0)
-		, SubImages_Horizontal(1)
-		, SubImages_Vertical(1)
-		, bUseLocalSpace(false)
-		, bLockAxis(false)
-		, ScreenAlignment(0)
-		, LockAxisFlag(0)
-		, EmitterRenderMode(0)
-		, EmitterNormalsMode(0)
-		, PivotOffset(-0.5f, -0.5f)
-	{
-	}
+	FDynamicSpriteEmitterReplayDataBase();
 
 	/** Serialization */
 	virtual void Serialize( FArchive& Ar );
@@ -1633,9 +1615,6 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 struct FDynamicSpriteEmitterReplayData
 	: public FDynamicSpriteEmitterReplayDataBase
 {
-	// Nothing needed, yet
-
-
 	/** Constructor */
 	FDynamicSpriteEmitterReplayData()
 	{
@@ -1728,7 +1707,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@return	bool			true if successful, false if failed
 	 */
-	bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld) const;
+	bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const;
 
 	/** Gathers simple lights for this emitter. */
 	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;

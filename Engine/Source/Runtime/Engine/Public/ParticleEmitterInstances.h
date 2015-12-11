@@ -1095,6 +1095,74 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	 */
 	uint32 bEnableInactiveTimeTracking:1;
 
+	/** The direct index of the particle that is the start of each ribbon */
+	int32 CurrentStartIndices[128];
+	/** The direct index of the particle that is the end of each ribbon */
+	int32 CurrentEndIndices[128];
+
+
+
+
+	void SetStartIndex(int32 TrailIndex, int32 ParticleIndex)
+	{
+		CurrentStartIndices[TrailIndex] = ParticleIndex;
+		if (CurrentEndIndices[TrailIndex] == ParticleIndex)
+		{
+			CurrentEndIndices[TrailIndex] = INDEX_NONE;
+		}
+		CheckIndices(TrailIndex);
+	}
+
+	void SetEndIndex(int32 TrailIndex, int32 ParticleIndex)
+	{
+		CurrentEndIndices[TrailIndex] = ParticleIndex;
+		if (CurrentStartIndices[TrailIndex] == ParticleIndex)
+		{
+			CurrentStartIndices[TrailIndex] = INDEX_NONE;
+		}
+		CheckIndices(TrailIndex);
+	}
+
+	void SetDeadIndex(int32 TrailIndex, int32 ParticleIndex)
+	{
+		if (CurrentStartIndices[TrailIndex] == ParticleIndex)
+		{
+			CurrentStartIndices[TrailIndex] = INDEX_NONE;
+		}
+
+		if (CurrentEndIndices[TrailIndex] == ParticleIndex)
+		{
+			CurrentEndIndices[TrailIndex] = INDEX_NONE;
+		}
+		CheckIndices(TrailIndex);
+	}
+
+	void ClearIndices(int32 TrailIndex, int32 ParticleIndex)
+	{
+		SetDeadIndex(TrailIndex, ParticleIndex);
+		CheckIndices(TrailIndex);
+	}
+
+	void CheckIndices(int32 TrailIdx)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
+		{
+			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
+			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
+		}
+
+		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
+		{
+			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
+			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+		}
+#endif
+	}
+
+
 	/** Constructor	*/
 	FParticleTrailsEmitterInstance_Base() :
 		  FParticleEmitterInstance()
@@ -1112,6 +1180,12 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 		LastSpawnTime.Empty();
 		SourceDistanceTraveled.Empty();
 		TiledUDistanceTraveled.Empty();
+
+		for (int32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
+		{
+			CurrentStartIndices[TrailIdx] = INDEX_NONE;
+			CurrentEndIndices[TrailIdx] = INDEX_NONE;
+		}
 	}
 
 	/** Destructor	*/
@@ -1122,6 +1196,11 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	virtual void Init() override;
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 	virtual void Tick(float DeltaTime, bool bSuppressSpawning) override;
+
+	bool AddParticleHelper(int32 InTrailIdx,
+		int32 StartParticleIndex, FTrailsBaseTypeDataPayload* StartTrailData,
+		int32 ParticleIndex, FTrailsBaseTypeDataPayload* TrailData,
+		UParticleSystemComponent* InPsysComp = nullptr);
 
 	/**
 	 *	Tick sub-function that handles recalculation of tangents

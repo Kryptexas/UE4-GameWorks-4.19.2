@@ -811,10 +811,12 @@ enum FStreamoutLogic
 struct FStreamableTextureInstance4
 {
 	FStreamableTextureInstance4()
-	:	BoundingSphereX( 3.402823466e+38F, 3.402823466e+38F, 3.402823466e+38F, 3.402823466e+38F )
+	:	BoundingSphereX( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
 	,	BoundingSphereY( 0, 0, 0, 0 )
 	,	BoundingSphereZ( 0, 0, 0, 0 )
 	,	BoundingSphereRadius( 0, 0, 0, 0 )
+	,	MinDistanceSq( 0, 0, 0, 0 )
+	,	MaxDistanceSq( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
 	,	TexelFactor( 0, 0, 0, 0 )
 	{
 	}
@@ -826,6 +828,11 @@ struct FStreamableTextureInstance4
 	FVector4 BoundingSphereZ;
 	/** Sphere radii for the bounding sphere of 4 texture instances */
 	FVector4 BoundingSphereRadius;
+	/** Minimal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */
+	FVector4 MinDistanceSq;
+	/** Maximal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */
+	FVector4 MaxDistanceSq;
+
 	/** Texel scale factors for 4 texture instances */
 	FVector4 TexelFactor;
 };
@@ -1280,6 +1287,9 @@ protected:
 	bool					bUseDynamicStreaming;
 
 	float					BoostPlayerTextures;
+
+	/** Extra distance added to the range test, to start streaming the texture before they are actually used. */
+	float					RangePrefetchDistance;
 
 	/** Array of texture streaming objects to use during update. */
 	TArray<FStreamingHandlerTextureBase*> TextureStreamingHandlers;

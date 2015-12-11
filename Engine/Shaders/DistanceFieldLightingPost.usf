@@ -284,7 +284,30 @@ void UpdateHistoryPS(
 	float2 OldScreenPosition = (OldUV.xy - Frame.ScreenPositionScaleBias.wz) / Frame.ScreenPositionScaleBias.xy;
 
 	float2 OldDistanceFieldUVs = OldUV.xy - Frame.ViewRectMin.xy * Frame.BufferSizeAndInvSize.zw;
+
+#define MANUAL_HISTORY_RESAMPLE 0
+#if MANUAL_HISTORY_RESAMPLE
+	float4 HistoryValue;
+	{
+		float2 HistoryTexelSize = Frame.BufferSizeAndInvSize.zw * DOWNSAMPLE_FACTOR;
+		float2 OldDistanceFieldUVsCorner00 = HistoryTexelSize * (floor(OldDistanceFieldUVs / HistoryTexelSize - .5f) + .5f);
+		float2 OldDistanceFieldUVsCorner01 = OldDistanceFieldUVsCorner00 + float2(0, HistoryTexelSize.y);
+		float2 OldDistanceFieldUVsCorner11 = OldDistanceFieldUVsCorner00 + HistoryTexelSize;
+		float2 OldDistanceFieldUVsCorner10 = OldDistanceFieldUVsCorner00 + float2(HistoryTexelSize.x, 0);
+
+		float4 Corner00Value = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner00, 0);
+		float4 Corner01Value = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner01, 0);
+		float4 Corner11Value = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner11, 0);
+		float4 Corner10Value = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner10, 0);
+
+		float2 LerpWeights = OldDistanceFieldUVs - OldDistanceFieldUVsCorner00;
+		float4 VerticalLerp0 = lerp(Corner00Value, Corner01Value, LerpWeights.y);
+		float4 VerticalLerp1 = lerp(Corner10Value, Corner11Value, LerpWeights.y);
+		HistoryValue = lerp(VerticalLerp0, VerticalLerp1, LerpWeights.x);
+	}
+#else
 	float4 HistoryValue = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVs, 0);
+#endif
 	
 	float2 MinUV = Frame.ViewRectMin.xy * Frame.BufferSizeAndInvSize.zw;
 	// Pull in the max UV to exclude the region which will read outside the viewport due to bilinear filtering

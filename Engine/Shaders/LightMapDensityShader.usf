@@ -170,8 +170,9 @@ void MainPixelShader(
 #endif
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, SvPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
-	GetMaterialCoverageAndClipping(MaterialParameters);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
+	GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 
 	float2 LightMapUV,LightMapUV1;
 #if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP

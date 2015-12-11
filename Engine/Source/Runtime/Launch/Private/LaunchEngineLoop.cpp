@@ -2764,37 +2764,82 @@ void FEngineLoop::ClearPendingCleanupObjects()
 
 #endif // WITH_ENGINE
 
+static TAutoConsoleVariable<int32> CVarLogTimestamp(
+	TEXT("log.Timestamp"),
+	1,
+	TEXT("Defines if time is included in each line in the log file and in what form. Layout: [time][frame mod 1000]\n")
+	TEXT("  0 = Do not display log timestamps\n")
+	TEXT("  1 = Log time stamps in UTC and Frametime (default) e.g. [2015.11.25-21.28.50:803][376]\n")
+	TEXT("  2 = Log timestamps in seconds elapsed since GStartTime e.g. [0130.29][420]"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarLogCategory(
+	TEXT("log.Category"),
+	1,
+	TEXT("Defines if the categoy is included in each line in the log file and in what form.\n")
+	TEXT("  0 = Do not log category\n")
+	TEXT("  2 = Log the category (default)"),
+	ECVF_Default);
+
+
+// Gets called any time cvars change (on the main thread) 
+static void CVarLogSinkFunction()
+{
+	{
+		// for debugging
+		ELogTimes::Type OldGPrintLogTimes = GPrintLogTimes;
+
+		int32 LogTimestampValue = CVarLogTimestamp.GetValueOnGameThread();
+
+		// Note GPrintLogTimes can be used on multiple threads but it should be no issue to change it on the fly
+		switch(LogTimestampValue)
+		{
+			default:
+			case 0: GPrintLogTimes = ELogTimes::None; break;
+			case 1: GPrintLogTimes = ELogTimes::UTC; break;
+			case 2: GPrintLogTimes = ELogTimes::SinceGStartTime; break;
+		}
+	}
+
+	{
+		int32 LogCategoryValue = CVarLogCategory.GetValueOnGameThread();
+
+		// Note GPrintLogCategory can be used on multiple threads but it should be no issue to change it on the fly
+		GPrintLogCategory = LogCategoryValue != 0;
+	}
+}
+
+
+FAutoConsoleVariableSink CVarLogSink(FConsoleCommandDelegate::CreateStatic(&CVarLogSinkFunction));
 
 static void CheckForPrintTimesOverride()
 {
-	GPrintLogTimes = ELogTimes::None;
-
 	// Determine whether to override the default setting for including timestamps in the log.
 	FString LogTimes;
 	if (GConfig->GetString( TEXT( "LogFiles" ), TEXT( "LogTimes" ), LogTimes, GEngineIni ))
 	{
 		if (LogTimes == TEXT( "SinceStart" ))
 		{
-			GPrintLogTimes = ELogTimes::SinceGStartTime;
+			CVarLogTimestamp->Set(2, ECVF_SetBySystemSettingsIni);
 		}
 		// Assume this is a bool for backward compatibility
 		else if (FCString::ToBool( *LogTimes ))
 		{
-			GPrintLogTimes = ELogTimes::UTC;
+			CVarLogTimestamp->Set(1, ECVF_SetBySystemSettingsIni);
 		}
 	}
 
 	if (FParse::Param( FCommandLine::Get(), TEXT( "LOGTIMES" ) ))
 	{
-		GPrintLogTimes = ELogTimes::UTC;
+		CVarLogTimestamp->Set(1, ECVF_SetByCommandline);
 	}
 	else if (FParse::Param( FCommandLine::Get(), TEXT( "NOLOGTIMES" ) ))
 	{
-		GPrintLogTimes = ELogTimes::None;
+		CVarLogTimestamp->Set(0, ECVF_SetByCommandline);
 	}
 	else if (FParse::Param( FCommandLine::Get(), TEXT( "LOGTIMESINCESTART" ) ))
 	{
-		GPrintLogTimes = ELogTimes::SinceGStartTime;
+		CVarLogTimestamp->Set(2, ECVF_SetByCommandline);
 	}
 }
 

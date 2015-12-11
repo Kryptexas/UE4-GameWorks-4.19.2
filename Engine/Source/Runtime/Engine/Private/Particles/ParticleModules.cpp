@@ -1896,6 +1896,32 @@ bool UParticleModuleSubUV::IsValidForLODLevel(UParticleLODLevel* LODLevel, FStri
 		}
 	}
 
+	if (Animation && Animation->SubUVTexture)
+	{
+		bool bFoundTexture = false;
+
+		if (LODLevel->RequiredModule->Material)
+		{
+			TArray<UTexture*> UsedTextures;
+			LODLevel->RequiredModule->Material->GetUsedTextures(UsedTextures, EMaterialQualityLevel::High, true, GMaxRHIFeatureLevel, false);
+
+			for (int32 TextureIndex = 0; TextureIndex < UsedTextures.Num(); TextureIndex++)
+			{
+				if (UsedTextures[TextureIndex] == Animation->SubUVTexture)
+				{
+					bFoundTexture = true;
+					break;
+				}
+			}
+		}		
+
+		if (!bFoundTexture)
+		{
+			OutErrorString = NSLOCTEXT("UnrealEd", "SubUVAnimationMismatch", "SubUV module has an Animation set whose texture doesn't match what the material is using.  Particles may not appear or have visible clipping.").ToString();
+			return false;
+		}
+	}
+
 	return true;
 }
 #endif // WITH_EDITOR
@@ -1979,8 +2005,12 @@ float UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 {
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 	check(LODLevel);
-	
-	int32 TotalSubImages	= LODLevel->RequiredModule->SubImages_Horizontal * LODLevel->RequiredModule->SubImages_Vertical;
+
+	USubUVAnimation* RESTRICT SubUVAnimation = Owner->SpriteTemplate->SubUVAnimation;
+
+	const int32 TotalSubImages = SubUVAnimation 
+		? SubUVAnimation->SubImages_Horizontal * SubUVAnimation->SubImages_Vertical
+		: LODLevel->RequiredModule->SubImages_Horizontal * LODLevel->RequiredModule->SubImages_Vertical;
 
 	float ImageIndex = SubUVPayload.ImageIndex;
 
@@ -2121,10 +2151,15 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 	bool bSpawn = (TypeDataBase == NULL) ? true : TypeDataBase->SupportsSubUV();
 	if (bSpawn == true)
 	{
-		int32 iTotalSubImages = LODLevel->RequiredModule->SubImages_Horizontal * LODLevel->RequiredModule->SubImages_Vertical;
-		if (iTotalSubImages == 0)
+		USubUVAnimation* RESTRICT SubUVAnimation = Owner->SpriteTemplate->SubUVAnimation;
+
+		int32 TotalSubImages = SubUVAnimation 
+			? SubUVAnimation->SubImages_Horizontal * SubUVAnimation->SubImages_Vertical
+			: LODLevel->RequiredModule->SubImages_Horizontal * LODLevel->RequiredModule->SubImages_Vertical;
+
+		if (TotalSubImages == 0)
 		{
-			iTotalSubImages = 1;
+			TotalSubImages = 1;
 		}
 
 		SPAWN_INIT;
@@ -2140,11 +2175,11 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 			if (StartingFrame > 1)
 			{
 				// Clamp to the max...
-				MoviePayload.Time = FMath::Clamp<float>(StartingFrame, 0, iTotalSubImages-1);
+				MoviePayload.Time = FMath::Clamp<float>(StartingFrame, 0, TotalSubImages-1);
 			}
 			else if (StartingFrame == 0)
 			{
-				MoviePayload.Time = FMath::TruncToFloat(FMath::SRand() * (iTotalSubImages-1));
+				MoviePayload.Time = FMath::TruncToFloat(FMath::SRand() * (TotalSubImages-1));
 			}
 
 			// Update the payload

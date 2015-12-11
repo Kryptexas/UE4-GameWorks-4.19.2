@@ -227,7 +227,7 @@ public:
 	const FProjectedShadowInfo* TranslucentSelfShadow;
 	FHitProxyId HitProxyId;
 	bool bBackFace;
-	float DitheredLODTransitionValue;
+	FMeshDrawingRenderState DrawRenderState;
 	bool bUseTranslucentSelfShadowing;
 	float SeparateTranslucencyScreenTextureScaleFactor;
 
@@ -235,7 +235,7 @@ public:
 	FDrawTranslucentMeshAction(
 		const FViewInfo& InView,
 		bool bInBackFace,
-		float InDitheredLODTransitionValue,
+		const FMeshDrawingRenderState& InDrawRenderState,
 		FHitProxyId InHitProxyId,
 		const FProjectedShadowInfo* InTranslucentSelfShadow,
 		bool bInUseTranslucentSelfShadowing,
@@ -245,7 +245,7 @@ public:
 		TranslucentSelfShadow(InTranslucentSelfShadow),
 		HitProxyId(InHitProxyId),
 		bBackFace(bInBackFace),
-		DitheredLODTransitionValue(InDitheredLODTransitionValue),
+		DrawRenderState(InDrawRenderState),
 		bUseTranslucentSelfShadowing(bInUseTranslucentSelfShadowing),
 		SeparateTranslucencyScreenTextureScaleFactor(ScreenTextureUVScaleFactor)
 	{}
@@ -321,7 +321,7 @@ public:
 					Parameters.Mesh,
 					BatchElementIndex,
 					bBackFace,
-					DitheredLODTransitionValue,
+					DrawRenderState,
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 					);
@@ -386,7 +386,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	const FMeshBatch& Mesh,
 	const uint64& BatchElementMask,
 	bool bBackFace,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId,
@@ -465,7 +465,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				FDrawTranslucentMeshAction(
 					View,
 					bBackFace,
-					DitheredLODTransitionValue,
+					DrawRenderState,
 					HitProxyId,
 					DrawingContext.TranslucentSelfShadow,
 					PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow(),
@@ -509,7 +509,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 		Mesh,
 		Mesh.Elements.Num() == 1 ? 1 : (1 << Mesh.Elements.Num()) - 1,	// 1 bit set for each mesh element
 		bBackFace,
-		Mesh.DitheredLODTransitionAlpha,
+		FMeshDrawingRenderState(Mesh.DitheredLODTransitionAlpha),
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId,
@@ -533,7 +533,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 	bool bSeparateTranslucencyEnabled
 	)
 {
-	float DitherValue = View.GetDitheredLODTransitionValue(StaticMesh);
+	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(StaticMesh));
 	return DrawMesh(
 		RHICmdList,
 		View,
@@ -541,7 +541,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 		StaticMesh,
 		BatchElementMask,
 		false,
-		DitherValue,
+		DrawRenderState,
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId,
@@ -640,7 +640,7 @@ void FTranslucentPrimSet::DrawPrimitivesParallel(
 
 		if (PrimitiveSceneInfo->Proxy && PrimitiveSceneInfo->Proxy->CastsVolumetricTranslucentShadow())
 		{
-			check(!IsInRenderingThread());
+			check(!IsInActualRenderingThread());
 			// can't do this in parallel, defer
 			FRHICommandList* CmdList = new FRHICommandList;
 			CmdList->CopyRenderThreadContexts(RHICmdList);
@@ -1152,7 +1152,8 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 						SceneContext.GetSeparateTranslucencyDepth(RHICmdList, SceneContext.GetBufferSizeXY());
 						DownsampleDepthSurface(RHICmdList, SceneContext.GetSeparateTranslucencyDepthSurface(), View, Scale, 1.0f);
 					}
-					bool bSetupTranslucency = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, true);
+					bool bFirstTimeThisFrame = (ViewIndex == 0);
+					bool bSetupTranslucency = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bFirstTimeThisFrame);
 
 					const TIndirectArray<FMeshBatch>& WorldList = View.ViewMeshElements;
 					const TIndirectArray<FMeshBatch>& ForegroundList = View.TopViewMeshElements;

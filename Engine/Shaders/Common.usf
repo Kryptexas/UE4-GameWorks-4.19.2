@@ -1037,11 +1037,7 @@ float4 CalcSceneColorAndDepth( float2 ScreenUV )
 #endif // FEATURE_LEVEL
 	float CalcSceneDepthMSAA(float2 ScreenUV,uint SampleIndex)
 	{
-		float2 SurfaceDimensions;
-		float NumSurfaceSamples;
-		SceneDepthSurface.GetDimensions(SurfaceDimensions.x,SurfaceDimensions.y,NumSurfaceSamples);
-
-		int2 IntUV = int2(trunc(ScreenUV * SurfaceDimensions));
+		int2 IntUV = int2(trunc(ScreenUV * Frame.BufferSizeAndInvSize.xy));
 		float DeviceZ = SceneDepthSurface.Load(IntUV,SampleIndex);
 
 		return ConvertFromDeviceZ(DeviceZ);

@@ -9,13 +9,16 @@
 enum EDepthDrawingMode
 {
 	// tested at a higher level
-	DDM_None,
+	DDM_None			= 0,
 	//
-	DDM_NonMaskedOnly,
+	DDM_NonMaskedOnly	= 1,
 	//
-	DDM_AllOccluders,
+	DDM_AllOccluders	= 2,
 	//
-	DDM_AllOpaque,
+	DDM_AllOpaque		= 3,
+
+	// Note: Values used in MaterialShared.cpp to set USE_STENCIL_LOD_DITHER_DEFAULT.
+	//		 Please keep in sync if changed to avoid compile environment mismatch.
 };
 
 template<bool>
@@ -66,7 +69,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -78,6 +81,7 @@ private:
 	class FDepthOnlyHS *HullShader;
 	class FDepthOnlyDS *DomainShader;
 
+	FShaderPipeline* ShaderPipeline;
 	TDepthOnlyVS<false>* VertexShader;
 	FDepthOnlyPS* PixelShader;
 };
@@ -120,7 +124,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -130,6 +134,7 @@ public:
 	friend int32 CompareDrawingPolicy(const FPositionOnlyDepthDrawingPolicy& A,const FPositionOnlyDepthDrawingPolicy& B);
 
 private:
+	FShaderPipeline* ShaderPipeline;
 	TDepthOnlyVS<true> * VertexShader;
 };
 
@@ -170,7 +175,7 @@ public:
 		const FStaticMesh& StaticMesh,
 		const uint64& BatchElementMask,
 		bool bPreFog,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
@@ -187,7 +192,7 @@ private:
 		const FMeshBatch& Mesh,
 		const uint64& BatchElementMask,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 

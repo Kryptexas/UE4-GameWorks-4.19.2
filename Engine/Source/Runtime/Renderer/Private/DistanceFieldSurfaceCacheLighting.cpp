@@ -3111,8 +3111,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					Parameters, 
 					VelocityTexture,
 					DistanceFieldNormal, 
-				BentNormalOutput, 
-				IrradianceOutput);
+					BentNormalOutput, 
+					IrradianceOutput);
 			}
 			else
 			{
@@ -3126,6 +3126,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					BentNormalOutput, 
 					IrradianceOutput);
 			}
+
+			RenderCapsuleShadowsForMovableSkylight(RHICmdList, BentNormalOutput);
 
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, BentNormalOutput);
 
@@ -3314,7 +3316,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
 			}
 
-			const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
+			const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View) && IsValidRef(DynamicIrradiance);
 			TShaderMapRef< FPostProcessVS > VertexShader(View.ShaderMap);
 
 			if (bApplyShadowing)

@@ -5,8 +5,7 @@
 		(that don't require linking).
 =============================================================================*/
 
-#ifndef __RHIDEFINITIONS_H__
-#define __RHIDEFINITIONS_H__
+#pragma once
 
 #include "Core.h"
 
@@ -789,4 +788,21 @@ inline bool IsUniformBufferResourceType(EUniformBufferBaseType BaseType)
 	return BaseType == UBMT_SRV || BaseType == UBMT_UAV || BaseType == UBMT_SAMPLER || BaseType == UBMT_TEXTURE;
 }
 
-#endif	// __RHIDEFINITIONS_H__
+inline const TCHAR* GetShaderFrequencyString(EShaderFrequency Frequency)
+{
+	switch (Frequency)
+	{
+	case SF_Vertex:			return TEXT("SF_Vertex");
+	case SF_Hull:			return TEXT("SF_Hull");
+	case SF_Domain:			return TEXT("SF_Domain");
+	case SF_Geometry:		return TEXT("SF_Geometry");
+	case SF_Pixel:			return TEXT("SF_Pixel");
+	case SF_Compute:		return TEXT("SF_Compute");
+#if USE_ASYNC_COMPUTE_CONTEXT 
+	case SF_AsyncCompute:	return TEXT("SF_AsyncCompute");
+#endif
+	default:				check(0); break;
+	}
+
+	return nullptr;
+};

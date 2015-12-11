@@ -15,7 +15,7 @@
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
 
-/** Whether some GBuffer targets are optionnal. */
+/** Whether some GBuffer targets are optional. */
 extern bool UseSelectiveBasePassOutputs();
 
 /** Parameters needed for looking up into translucency lighting volumes. */
@@ -180,7 +180,7 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState);
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex);
 
@@ -531,7 +531,7 @@ public:
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode, float DitheredLODTransitionValue);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
@@ -887,7 +887,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const
@@ -898,7 +898,7 @@ public:
 		// If QuadOverdraw is allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
 		if (bOverrideWithShaderComplexity && AllowRuntimeQuadOverdraw(View.GetFeatureLevel()))
 		{
-			SetMeshForQuadOverdraw(RHICmdList, MaterialResource, View, VertexFactory, HullShader && DomainShader, PrimitiveSceneProxy, BatchElement, DitheredLODTransitionValue);
+			SetMeshForQuadOverdraw(RHICmdList, MaterialResource, View, VertexFactory, HullShader && DomainShader, PrimitiveSceneProxy, BatchElement, DrawRenderState);
 		}
 		else
 #endif
@@ -916,12 +916,12 @@ public:
 				MaterialRenderProxy,
 				ElementData.LightMapElementData);
 
-			VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy, Mesh,BatchElement,DitheredLODTransitionValue);
+			VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy, Mesh,BatchElement,DrawRenderState);
 		
 			if(HullShader && DomainShader)
 			{
-				HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
-				DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+				HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
+				DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 			}
 		}
 
@@ -943,7 +943,7 @@ public:
 		else
 #endif
 		{
-			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode,DitheredLODTransitionValue);
+			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}
 
 		if (bEnableReceiveDecalOutput)
@@ -952,16 +952,29 @@ public:
 			// This is effectively extending the GBuffer using the stencil bits
 			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00)
 				| STENCIL_LIGHTING_CHANNELS_MASK(PrimitiveSceneProxy ? PrimitiveSceneProxy->GetLightingChannelStencilValue() : 0x00);
-
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-				true, CF_GreaterEqual,
-				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-			>::GetRHI(), StencilValue);
+			
+			const bool bStencilDithered = DrawRenderState.bAllowStencilDither && DrawRenderState.DitheredLODState != EDitheredLODState::None;
+			if (bStencilDithered)
+			{
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+					false, CF_Equal,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI(), StencilValue);
+			}
+			else
+			{
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+					true, CF_GreaterEqual,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI(), StencilValue);
+			}
 		}
 
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)

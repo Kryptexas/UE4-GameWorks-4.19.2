@@ -1316,6 +1316,13 @@ void FMaterial::SetupMaterialEnvironment(
 	{
 		OutEnvironment.SetDefine(TEXT("EDITOR_PRIMITIVE_MATERIAL"),TEXT("1"));
 	}
+
+	{	
+		// Note: Should be kept in sync with DDM_AllOccluders enum entry in DepthRendering.h.
+		const int32 EarlyZMode_DDM_AllOccluders = 2; 
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPass"));
+		OutEnvironment.SetDefine(TEXT("USE_STENCIL_LOD_DITHER_DEFAULT"), ((CVar ? CVar->GetInt() : 0) == EarlyZMode_DDM_AllOccluders) ? 1 : 0);
+	}
 }
 
 /**

@@ -168,7 +168,7 @@ template<ERasterizerFillMode FillMode=FM_Solid,ERasterizerCullMode CullMode=CM_N
 class TStaticRasterizerState : public TStaticStateRHI<TStaticRasterizerState<FillMode,CullMode,bEnableLineAA>,FRasterizerStateRHIRef,FRasterizerStateRHIParamRef>
 {
 public:
-	static FRasterizerStateRHIRef CreateRHI()
+	FORCEINLINE_DEBUGGABLE static FRasterizerStateRHIRef CreateRHI()
 	{
 		FRasterizerStateInitializerRHI Initializer = { FillMode, CullMode, 0, 0, bEnableMSAA, bEnableLineAA };
 		return RHICreateRasterizerState(Initializer);
@@ -177,7 +177,7 @@ public:
 
 /** Given a fill and cull mode, returns a static rasterizer state. */
 template<bool bEnableMSAA>
-FRasterizerStateRHIParamRef GetStaticRasterizerState(ERasterizerFillMode FillMode,ERasterizerCullMode CullMode)
+FORCEINLINE_DEBUGGABLE FRasterizerStateRHIParamRef GetStaticRasterizerState(ERasterizerFillMode FillMode,ERasterizerCullMode CullMode)
 {
 	switch(FillMode)
 	{

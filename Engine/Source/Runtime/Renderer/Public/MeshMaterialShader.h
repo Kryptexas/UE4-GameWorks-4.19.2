@@ -8,6 +8,7 @@
 
 #include "MaterialShader.h"
 #include "MeshMaterialShaderType.h"
+#include "DrawingPolicy.h"
 
 /** Base class of all shaders that need material and vertex factory parameters. */
 class RENDERER_API FMeshMaterialShader : public FMaterialShader
@@ -47,7 +48,7 @@ public:
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* Proxy,
 		const FMeshBatchElement& BatchElement,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		uint32 DataFlags = 0
 	);
 

@@ -1752,7 +1752,7 @@ public:
 	virtual bool CanBeOccluded() const override;
 	
 	virtual bool HasDistanceFieldRepresentation() const override;
-	virtual void GetShadowShapes(TArray<FSphere>& SphereShapes, TArray<FCapsuleShape>& CapsuleShapes) const override;
+	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const override;
 
 	/**
 	 * Returns the world transform to use for drawing.

@@ -42,12 +42,8 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	TEnumAsByte<enum EFBXNormalImportMethod> NormalImportMethod;
 
 	/** Use the MikkTSpace tangent space generator for generating normals and tangents on the mesh */
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = ImportSettings, meta = (ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = ImportSettings, meta=(ImportType="Mesh"))
 	TEnumAsByte<enum EFBXNormalGenerationMethod::Type> NormalGenerationMethod;
-
-	/** Enables experimental Mikk tangent generation for skeletal meshes */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(ImportType="SkeletalMesh"))
-	uint32 bUseExperimentalTangentGeneration:1;
 
 	bool CanEditChange( const UProperty* InProperty ) const override;
 };

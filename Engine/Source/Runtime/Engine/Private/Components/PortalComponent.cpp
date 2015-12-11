@@ -31,7 +31,7 @@ ALightmassPortal::ALightmassPortal(const FObjectInitializer& ObjectInitializer)
 		{
 			ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
 			FConstructorStatics()
-				: DecalTexture(TEXT("/Engine/EditorResources/S_PortalActorIcon"))
+				: DecalTexture(TEXT("/Engine/EditorResources/S_PortalActorIcon2"))
 			{
 			}
 		};

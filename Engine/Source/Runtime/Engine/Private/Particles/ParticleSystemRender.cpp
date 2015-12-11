@@ -20,6 +20,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshBatch.h"
+#include "Particles/SubUVAnimation.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter GetParticleOrderData"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData, STATGROUP_Particles);
@@ -668,7 +669,7 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexData(void* VertexData, void* Dy
 	return true;
 }
 
-bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld) const
+bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticlePackingTime);
 
@@ -694,8 +695,8 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 	int32	ParticlePackingIndex = 0;
 	int32	IndexPackingIndex = 0;
 
-	int32 VertexStride = sizeof(FParticleSpriteVertexNonInstanced) * 4;
-	int32 VertexDynamicParameterStride = sizeof(FParticleVertexDynamicParameter) * 4;
+	int32 VertexStride = sizeof(FParticleSpriteVertexNonInstanced) * NumVerticesPerParticle;
+	int32 VertexDynamicParameterStride = sizeof(FParticleVertexDynamicParameter) * NumVerticesPerParticle;
 
 	uint8* TempVert = (uint8*)VertexData;
 	uint8* TempDynamicParameterVert = (uint8*)DynamicParameterVertexData;
@@ -748,45 +749,71 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 		}
 
 		FillVertex = (FParticleSpriteVertexNonInstanced*)TempVert;
-		for(uint32 I = 0; I < 4; ++I)
+
+		const FVector2D* SubUVVertexData = NULL;
+
+		if (Source.SubUVAnimation)
 		{
-			if(I == 0)
+			const int32 SubImageIndexInt = FMath::TruncToInt(SubImageIndex);
+			int32 FrameIndex = SubImageIndexInt % Source.SubUVAnimation->GetNumFrames();
+
+			if (SubImageIndexInt < 0)
 			{
-				FillVertex[I].UV = FVector2D(0.0f, 0.0f);
-			}
-			if(I == 1)
-			{
-				FillVertex[I].UV = FVector2D(0.0f, 1.0f);
-			}
-			if(I == 2)
-			{
-				FillVertex[I].UV = FVector2D(1.0f, 1.0f);
-			}
-			if(I == 3)
-			{
-				FillVertex[I].UV = FVector2D(1.0f, 0.0f);
+				// Mod operator returns remainder toward zero, not toward negative which is what we want
+				FrameIndex = Source.SubUVAnimation->GetNumFrames() - SubImageIndexInt;
 			}
 
-			FillVertex[I].Position	= ParticlePosition;
-			FillVertex[I].RelativeTime = Particle.RelativeTime;
-			FillVertex[I].OldPosition	= ParticleOldPosition;
+			SubUVVertexData = Source.SubUVAnimation->GetFrameData(FrameIndex);
+		}
+
+		for (int32 VertexIndex = 0; VertexIndex < NumVerticesPerParticle; ++VertexIndex)
+		{
+			if (Source.SubUVAnimation)
+			{
+				// Warning: not supporting UV flipping with cutout geometry in the non-instanced path
+				FillVertex[VertexIndex].UV = SubUVVertexData[VertexIndex];
+			}
+			else
+		{
+				if(VertexIndex == 0)
+			{
+					FillVertex[VertexIndex].UV = FVector2D(0.0f, 0.0f);
+			}
+				if(VertexIndex == 1)
+			{
+					FillVertex[VertexIndex].UV = FVector2D(0.0f, 1.0f);
+			}
+				if(VertexIndex == 2)
+			{
+					FillVertex[VertexIndex].UV = FVector2D(1.0f, 1.0f);
+			}
+				if(VertexIndex == 3)
+			{
+					FillVertex[VertexIndex].UV = FVector2D(1.0f, 0.0f);
+				}
+			}
+
+			FillVertex[VertexIndex].Position	= ParticlePosition;
+			FillVertex[VertexIndex].RelativeTime = Particle.RelativeTime;
+			FillVertex[VertexIndex].OldPosition	= ParticleOldPosition;
 			// Create a floating point particle ID from the counter, map into approximately 0-1
-			FillVertex[I].ParticleId = (Particle.Flags & STATE_CounterMask) / 10000.0f;
-			FillVertex[I].Size = GetParticleSizeWithUVFlipInSign(Particle, Size);
-			FillVertex[I].Rotation	= Particle.Rotation;
-			FillVertex[I].SubImageIndex = SubImageIndex;
-			FillVertex[I].Color		= Particle.Color;
+			FillVertex[VertexIndex].ParticleId = (Particle.Flags & STATE_CounterMask) / 10000.0f;
+			FillVertex[VertexIndex].Size = GetParticleSizeWithUVFlipInSign(Particle, Size);
+			FillVertex[VertexIndex].Rotation	= Particle.Rotation;
+			FillVertex[VertexIndex].SubImageIndex = SubImageIndex;
+			FillVertex[VertexIndex].Color		= Particle.Color;
 		}
 
 		if (bUsesDynamicParameter)
 		{
 			DynFillVertex = (FParticleVertexDynamicParameter*)TempDynamicParameterVert;
-			for(uint32 I = 0; I < 4; ++I)
+
+			for (int32 VertexIndex = 0; VertexIndex < NumVerticesPerParticle; ++VertexIndex)
 			{
-				DynFillVertex[I].DynamicValue[0] = DynamicParameterValue.X;
-				DynFillVertex[I].DynamicValue[1] = DynamicParameterValue.Y;
-				DynFillVertex[I].DynamicValue[2] = DynamicParameterValue.Z;
-				DynFillVertex[I].DynamicValue[3] = DynamicParameterValue.W;
+				DynFillVertex[VertexIndex].DynamicValue[0] = DynamicParameterValue.X;
+				DynFillVertex[VertexIndex].DynamicValue[1] = DynamicParameterValue.Y;
+				DynFillVertex[VertexIndex].DynamicValue[2] = DynamicParameterValue.Z;
+				DynFillVertex[VertexIndex].DynamicValue[3] = DynamicParameterValue.W;
 			}
 			TempDynamicParameterVert += VertexDynamicParameterStride;
 		}
@@ -952,6 +979,8 @@ void FDynamicSpriteEmitterData::CreateVertexFactory(const FSceneView *View)
 		VertexFactory = new FParticleSpriteVertexFactory();
 		VertexFactory->SetParticleFactoryType(PVFT_Sprite);
 		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
+		const USubUVAnimation* SubUVAnimation = GetSourceData()->SubUVAnimation;
+		VertexFactory->SetNumVertsInInstanceBuffer(SubUVAnimation ? SubUVAnimation->GetNumBoundingVertices() : 4);
 		VertexFactory->InitResource();
 	}
 
@@ -977,7 +1006,19 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			int32 ParticleCount = SourceData->ActiveParticleCount;
 			const int32 VertexSize = GetDynamicVertexStride(FeatureLevel);
 			const int32 DynamicParameterVertexSize = sizeof(FParticleVertexDynamicParameter);
-			const int32 VertexPerParticle = bInstanced ? 1 : 4;
+			int32 NumVerticesPerParticle = 4;
+			int32 NumTrianglesPerParticle = 2;
+			const FVertexBuffer* TexCoordBuffer = &GParticleTexCoordVertexBuffer;
+
+			if (SourceData->SubUVAnimation)
+			{
+				NumVerticesPerParticle = SourceData->SubUVAnimation->GetNumBoundingVertices();
+				NumTrianglesPerParticle = SourceData->SubUVAnimation->GetNumBoundingTriangles();
+				check(NumVerticesPerParticle == 4 || NumVerticesPerParticle == 8);
+				TexCoordBuffer = (NumVerticesPerParticle == 4) ? (const FVertexBuffer*)&GParticleTexCoordVertexBuffer : (const FVertexBuffer*)&GParticleEightTexCoordVertexBuffer;
+			}
+
+			const int32 NumVerticesPerParticleInBuffer = bInstanced ? 1 : NumVerticesPerParticle;
 
 			FDynamicSpriteCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicSpriteCollectorResources>();
 			VertexFactory->SetFeatureLevel(FeatureLevel);
@@ -992,11 +1033,11 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			FGlobalDynamicVertexBuffer::FAllocation DynamicParameterAllocation;
 
 			// Allocate memory for render data.
-			Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * VertexSize * VertexPerParticle );
+			Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * VertexSize * NumVerticesPerParticleInBuffer );
 
 			if (bUsesDynamicParameter)
 			{
-				DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexSize * VertexPerParticle );
+				DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer );
 			}
 
 			if ( Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()) )
@@ -1022,7 +1063,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					if (Collector.ShouldUseTasks())
 					{
 						Collector.AddTask(
-							[this, SourceData, View, Proxy, Allocation, DynamicParameterAllocation, bInstanced, bSort, ParticleCount]()
+							[this, SourceData, View, Proxy, Allocation, DynamicParameterAllocation, bInstanced, bSort, ParticleCount, NumVerticesPerParticleInBuffer]()
 							{
 								SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_Task);
 								FMemMark Mark(FMemStack::Get());
@@ -1041,7 +1082,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 								}
 								else
 								{
-									GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+									GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
 								}
 							}
 						);
@@ -1049,6 +1090,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					else
 					{
 						FParticleOrder* ParticleOrder = NULL;
+
 						if (bSort)
 						{
 						ParticleOrder = GParticleOrderPool.GetParticleOrderData(ParticleCount);
@@ -1056,6 +1098,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 								SourceData->DataContainer.ParticleData, SourceData->ParticleStride, SourceData->DataContainer.ParticleIndices,
 							View, Proxy->GetLocalToWorld(), ParticleOrder);
 					}
+
 				// Fill vertex buffers.
 				if(bInstanced)
 				{
@@ -1063,7 +1106,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				}
 				else
 				{
-					GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+							GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
 				}
 					}
 				}
@@ -1094,19 +1137,30 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				SpriteVertexFactory->SetInstanceBuffer( Allocation.VertexBuffer, Allocation.VertexOffset, VertexSize, bInstanced );
 				SpriteVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset, GetDynamicParameterVertexStride(), bInstanced );
 
+				if (SourceData->SubUVAnimation)
+				{
+					SpriteVertexFactory->SetCutoutParameters( SourceData->SubUVAnimation->GetNumBoundingVertices(), SourceData->SubUVAnimation->GetBoundingGeometrySRV() );
+				}
+
+				if (bInstanced)
+				{
+					SpriteVertexFactory->SetTexCoordBuffer( TexCoordBuffer );
+				}
+
 				// Construct the mesh element to render.
 				FMeshBatch& Mesh = Collector.AllocateMesh();
 				FMeshBatchElement& BatchElement = Mesh.Elements[0];
-				BatchElement.IndexBuffer = &GParticleIndexBuffer;
+				check(NumTrianglesPerParticle == 2 || NumTrianglesPerParticle == 6);
+				BatchElement.IndexBuffer = NumTrianglesPerParticle == 2 ? (const FIndexBuffer*)&GParticleIndexBuffer : (const FIndexBuffer*)&GSixTriangleParticleIndexBuffer;
 				BatchElement.bIsInstancedMesh = bInstanced;
 				if(bInstanced)
 				{
-					BatchElement.NumPrimitives = 2;
+					BatchElement.NumPrimitives = NumTrianglesPerParticle;
 					BatchElement.NumInstances = ParticleCount;
 				}
 				else
 				{
-					BatchElement.NumPrimitives = 2 * ParticleCount;
+					BatchElement.NumPrimitives = NumTrianglesPerParticle * ParticleCount;
 					BatchElement.NumInstances = 1;
 				}
 				BatchElement.FirstIndex = 0;
@@ -1122,7 +1176,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
 				}
 				BatchElement.MinVertexIndex = 0;
-				BatchElement.MaxVertexIndex = (ParticleCount * 4) - 1;
+				BatchElement.MaxVertexIndex = (ParticleCount * NumVerticesPerParticle) - 1;
 				Mesh.CastShadow = Proxy->GetCastShadow();
 				Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
 

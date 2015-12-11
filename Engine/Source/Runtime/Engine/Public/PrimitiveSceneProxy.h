@@ -169,7 +169,7 @@ public:
 	virtual void GetMeshDescription(int32 LODIndex, TArray<FMeshBatch>& OutMeshElements) const {}
 
 	/** Gathers shadow shapes from this proxy. */
-	virtual void GetShadowShapes(TArray<FSphere>& SphereShapes, TArray<FCapsuleShape>& CapsuleShapes) const {}
+	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const {}
 
 	/** 
 	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.

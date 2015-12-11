@@ -48,25 +48,6 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bUsePositionOnlyVS = false;
 }
 
-void FMeshDrawingPolicy::SetMeshRenderState(
-	FRHICommandList& RHICmdList, 
-	const FSceneView& View,
-	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	const FMeshBatch& Mesh,
-	int32 BatchElementIndex,
-	bool bBackFace,
-	float DitheredLODTransitionValue,
-	const ElementDataType& ElementData,
-	const ContextDataType PolicyContext
-	) const
-{
-	// Use bitwise logic ops to avoid branches
-	RHICmdList.SetRasterizerState( GetStaticRasterizerState<true>(
-		( Mesh.bWireframe || IsWireframe() ) ? FM_Wireframe : FM_Solid, ( ( IsTwoSided() && !NeedsBackfacePass() ) || Mesh.bDisableBackfaceCulling ) ? CM_None :
-		( ( (View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling ) ? CM_CCW : CM_CW )
-		));
-}
-
 void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
 	INC_DWORD_STAT(STAT_MeshDrawCalls);

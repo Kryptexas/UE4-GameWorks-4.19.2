@@ -240,24 +240,24 @@ void Main(
 	VertexFactoryUnpackInterpolants(Interpolants, PackedInterpolants);
 #endif
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
-
+	FPixelMaterialInputs PixelMaterialInputs;
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToResolvedTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToResolvedTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
-		CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
+		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
 	#endif
 	  
 	//Clip if the blend mode requires it.
-	GetMaterialCoverageAndClipping(MaterialParameters);	
+	GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);	
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
-	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
-	half  Metallic = GetMaterialMetallic( MaterialParameters );
-	half  Specular = GetMaterialSpecular( MaterialParameters );
+	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
+	half  Metallic = GetMaterialMetallic(PixelMaterialInputs);
+	half  Specular = GetMaterialSpecular(PixelMaterialInputs);
 
 #if NONMETAL
 	half3 DiffuseColor = BaseColor;
@@ -268,7 +268,7 @@ void Main(
 	half3 SpecularColor = (DielectricSpecular - DielectricSpecular * Metallic) + BaseColor * Metallic;	// 2 mad
 #endif
 
-	half Roughness = GetMaterialRoughness(MaterialParameters);
+	half Roughness = GetMaterialRoughness(PixelMaterialInputs);
 
 #if FULLY_ROUGH
 	// Factors derived from EnvBRDFApprox( SpecularColor, 1, 1 ) == SpecularColor * 0.4524 - 0.0024
@@ -449,8 +449,8 @@ void Main(
 
 	#endif /* !MATERIAL_SHADINGMODEL_UNLIT */
 		 
-	half Opacity = GetMaterialOpacity(MaterialParameters);
-	half3 Emissive = GetMaterialEmissive(MaterialParameters);
+	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
+	half3 Emissive = GetMaterialEmissive(PixelMaterialInputs);
 
 	Color += Emissive;
 
@@ -515,7 +515,7 @@ void Main(
 	#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
 		#if MATERIALBLENDING_MASKED
 			// some material might have a opacity value
-			OutColor.a = GetMaterialMaskInputRaw(MaterialParameters);
+			OutColor.a = GetMaterialMaskInputRaw(PixelMaterialInputs);
 		#endif
 		// we output premultiplied alpha to we have to darken all 4 channels
 		OutColor *= ClipForEditorPrimitives(MaterialParameters);

@@ -80,17 +80,21 @@ void FillTexCoords( inout FMaterialPixelParameters Parameters, VertexToPixelInte
 float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
-	CalcMaterialParameters( Parameters, InVertex.Position, true );
+
+	// Inputs might require texcoords, so fill them in first
+	FillTexCoords( Parameters, InVertex, MeshUV );
+
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters( Parameters, PixelMaterialInputs, InVertex.Position, true );
 
 	Parameters.VertexColor = InVertex.Color;
 
-	FillTexCoords( Parameters, InVertex, MeshUV );
 
 	// Clip if masked
-	GetMaterialCoverageAndClipping( Parameters );
+	GetMaterialCoverageAndClipping( Parameters, PixelMaterialInputs );
 	
-	float Opacity = GetMaterialOpacity( Parameters );
-	float3 Color = GetMaterialEmissive( Parameters );
+	float Opacity = GetMaterialOpacity(PixelMaterialInputs);
+	float3 Color = GetMaterialEmissive(PixelMaterialInputs);
 
 	float4 OutColor;
 

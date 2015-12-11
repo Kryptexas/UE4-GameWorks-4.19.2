@@ -144,7 +144,6 @@ struct FBXImportOptions
 	bool bKeepOverlappingVertices;
 	bool bImportMeshesInBoneHierarchy;
 	bool bCreatePhysicsAsset;
-	bool bUseExperimentalTangentGeneration;
 	UPhysicsAsset *PhysicsAsset;
 	bool bImportSkeletalMeshLODs;
 	// Animation option

@@ -570,6 +570,9 @@ public:
 
 	bool bIsSnapshot;
 
+	// Optional stencil dithering optimization during prepasses
+	bool bAllowStencilDither;
+
 	/** Custom visibility query for view */
 	ICustomVisibilityQuery* CustomVisibilityQuery;
 
@@ -608,8 +611,18 @@ public:
 	/** Determines distance culling and fades if the state changes */
 	bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
-	/** Gets the eye adaptation render target for this view. */
+	/** Gets the eye adaptation render target for this view. Same as GetEyeAdaptationRT */
 	IPooledRenderTarget* GetEyeAdaptation(FRHICommandList& RHICmdList) const;
+
+	/** Gets one of two eye adaptation render target for this view.
+	* NB: will return null in the case that the internal view state pointer
+	* (for the left eye in the stereo case) is null.
+	*/
+	IPooledRenderTarget* GetEyeAdaptationRT(FRHICommandList& RHICmdList) const;
+	IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
+
+	/**Swap the order of the two eye adaptation targets in the double buffer system */
+	void SwapEyeAdaptationRTs();
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
 	bool HasValidEyeAdaptation() const;
@@ -621,7 +634,8 @@ public:
 	void CreateLightGrid();
 
 	/** Instanced stereo only needs to render the left eye. */
-	bool ShouldRenderView() const {
+	bool ShouldRenderView() const 
+	{
 		if (!bIsInstancedStereoEnabled)
 		{
 			return true;
@@ -636,21 +650,37 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE float GetDitheredLODTransitionValue(const FStaticMesh& Mesh) const
+	FORCEINLINE_DEBUGGABLE FMeshDrawingRenderState GetDitheredLODTransitionState(const FStaticMesh& Mesh, const bool bAllowStencil = false) const
 	{
-		float DitherValue = 0.0f;
+		FMeshDrawingRenderState DrawRenderState(EDitheredLODState::None, bAllowStencil);
+
 		if (Mesh.bDitheredLODTransition)
 		{
 			if (StaticMeshFadeOutDitheredLODMap[Mesh.Id])
 			{
-				DitherValue = GetTemporalLODTransition();
+				if (bAllowStencil)
+				{
+					DrawRenderState.DitheredLODState = EDitheredLODState::FadeOut;
+				}
+				else
+				{
+					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition();
+				}
 			}
 			else if (StaticMeshFadeInDitheredLODMap[Mesh.Id])
 			{
-				DitherValue = GetTemporalLODTransition() - 1.0f;
+				if (bAllowStencil)
+				{
+					DrawRenderState.DitheredLODState = EDitheredLODState::FadeIn;
+			}
+				else
+				{
+					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition() - 1.0f;
+		}
 			}
 		}
-		return DitherValue;
+
+		return DrawRenderState;
 	}
 
 	/** Create a snapshot of this view info on the scene allocator. */

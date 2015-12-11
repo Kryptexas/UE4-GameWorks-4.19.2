@@ -146,10 +146,10 @@ public:
 																	 );
 		}
 	}
-		
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue,FProjectedShadowInfo const* ShadowInfo)
+
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState,FProjectedShadowInfo const* ShadowInfo)
 	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 		
 		if (MeshVisibleToFace.IsBound())
 		{
@@ -535,9 +535,9 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,float DitheredLODTransitionValue)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
 	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -853,8 +853,8 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 		}
 		if(RHISupportsGeometryShaders(GShaderPlatformForFeatureLevel[InFeatureLevel]))
 		{
-			// Use the geometry shader which will clone output triangles to all faces of the cube map
-			GeometryShader = MaterialResource->GetShader<FOnePassPointShadowProjectionGS>(VFType);
+		// Use the geometry shader which will clone output triangles to all faces of the cube map
+		GeometryShader = MaterialResource->GetShader<FOnePassPointShadowProjectionGS>(VFType);
 		}
 		if(bInitializeTessellationShaders)
 		{
@@ -1021,19 +1021,20 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	const ElementDataType& ElementData,
 	const ContextDataType PolicyContext
 	) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue, PolicyContext.ShadowInfo);
+
+	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState, PolicyContext.ShadowInfo);
 
 	if( HullShader && DomainShader )
 	{
-		HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
-		DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+		HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
+		DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}
 	if (GeometryShader)
 	{
@@ -1041,7 +1042,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 	}
 	if (PixelShader)
 	{
-		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}
 	// Not calling FMeshDrawingPolicy::SetMeshRenderState as SetSharedState sets the rasterizer state
 }
@@ -1182,12 +1183,13 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
+				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
 				for (int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,Mesh.DitheredLODTransitionAlpha,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 			}
@@ -1207,12 +1209,13 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
+				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,Mesh.DitheredLODTransitionAlpha,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 			}
@@ -1224,7 +1227,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 	
 	return bDirty;
 }
-		
+
 template <bool bRenderingReflectiveShadowMaps>
 void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
@@ -1492,7 +1495,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 	checkSlow(CompareDrawingPolicy(DebugPolicy, SharedDrawingPolicy) == 0);
 #endif
 
-	float DitherValue = View.GetDitheredLODTransitionValue(*Mesh);
+	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Mesh));
 	// Render only those batch elements that match the current LOD
 	uint64 BatchElementMask = Mesh->Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[Mesh->Id];
 	int32 BatchElementIndex = 0;
@@ -1503,7 +1506,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 			TDrawEvent<FRHICommandList> MeshEvent;
 			BeginMeshDrawEvent(RHICmdList, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, MeshEvent);
 
-			SharedDrawingPolicy.SetMeshRenderState(RHICmdList, View, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, BatchElementIndex, false, DitherValue, FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+			SharedDrawingPolicy.SetMeshRenderState(RHICmdList, View, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, BatchElementIndex, false, DrawRenderState, FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 			SharedDrawingPolicy.DrawMesh(RHICmdList, *Mesh, BatchElementIndex);
 			INC_DWORD_STAT(STAT_ShadowDynamicPathDrawCalls);
 		}
@@ -2337,7 +2340,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 						if (View->StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							float DitherValue = View->GetDitheredLODTransitionValue(StaticMesh);
+							const FMeshDrawingRenderState DrawRenderState(View->GetDitheredLODTransitionState(StaticMesh));
 							FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								*View,
@@ -2345,7 +2348,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 								StaticMesh,
 								StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
 								true,
-								DitherValue,
+								DrawRenderState,
 								ReceiverPrimitiveSceneInfo->Proxy,
 								StaticMesh.BatchHitProxyId
 								);
@@ -2360,7 +2363,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			for (int32 ElementIndex = 0; ElementIndex < StaticSubjectMeshElements.Num(); ++ElementIndex)
 			{
 				const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
-				const float DitherValue = View->GetDitheredLODTransitionValue(StaticMesh);
+				const FMeshDrawingRenderState DrawRenderState(View->GetDitheredLODTransitionState(StaticMesh));
 				FDepthDrawingPolicyFactory::DrawStaticMesh(
 					RHICmdList, 
 					*View,
@@ -2368,7 +2371,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 					StaticMesh,
 					StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
 					true,
-					DitherValue,
+					DrawRenderState,
 					StaticMesh.PrimitiveSceneInfo->Proxy,
 					StaticMesh.BatchHitProxyId
 					);

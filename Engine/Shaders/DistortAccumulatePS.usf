@@ -31,10 +31,11 @@ void Main(
 
 	// material parameter inputs
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
 	
 	// material distortion offset
-	half3 Normal = GetMaterialNormal(MaterialParameters);
+	half3 Normal = GetMaterialNormal(MaterialParameters, PixelMaterialInputs);
 
 #if MATERIAL_TANGENTSPACENORMAL
 	half3 ViewNormal = normalize(TransformTangentVectorToView(MaterialParameters, Normal));
@@ -43,7 +44,7 @@ void Main(
 #endif
 
 	// X = IOR, Y = Refraction Bias
-	float2 Refraction = GetMaterialRefraction(MaterialParameters);
+	float2 Refraction = GetMaterialRefraction(PixelMaterialInputs);
 	 	
 	// we assume the camera is in air
 	float AirIOR = 1.0f;

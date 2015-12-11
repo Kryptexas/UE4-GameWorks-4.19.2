@@ -222,7 +222,7 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
-	float DitheredLODTransitionValue;
+	FMeshDrawingRenderState DrawRenderState;
 	FHitProxyId HitProxyId;
 
 	inline bool ShouldPackAmbientSH() const
@@ -240,12 +240,12 @@ public:
 	FDrawBasePassForwardShadingDynamicMeshAction(
 		const FViewInfo& InView,
 		const bool bInBackFace,
-		float InDitheredLODTransitionValue,
+		FMeshDrawingRenderState InDrawRenderState,
 		const FHitProxyId InHitProxyId
 		)
 		: View(InView)
 		, bBackFace(bInBackFace)
-		, DitheredLODTransitionValue(InDitheredLODTransitionValue)
+		, DrawRenderState(InDrawRenderState)
 		, HitProxyId(InHitProxyId)
 	{}
 
@@ -297,7 +297,7 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
-				DitheredLODTransitionValue,
+				DrawRenderState,
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ElementDataType(LightMapElementData),
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType, NumDynamicPointLights>::ContextDataType()
 				);
@@ -340,7 +340,7 @@ void FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMeshTempl(
 		FDrawBasePassForwardShadingDynamicMeshAction(
 			View, 
 			bBackFace, 
-			Mesh.DitheredLODTransitionAlpha, 
+			FMeshDrawingRenderState(Mesh.DitheredLODTransitionAlpha), 
 			HitProxyId														
 		)																
 	);

@@ -46,9 +46,9 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, float DitheredLODTransitionValue, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, const FMeshDrawingRenderState& DrawRenderState, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
 	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(), VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(), VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 
 		SetShaderValue(RHICmdList, GetVertexShader(), PreviousLocalToWorld, InPreviousLocalToWorld.ConcatTranslation(View.PrevViewMatrices.PreViewTranslation));
 	}
@@ -177,11 +177,11 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex, float DitheredLODTransitionValue,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, bool bBackFace)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex,const FMeshDrawingRenderState& DrawRenderState,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, bool bBackFace)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FMeshMaterialShader::SetMesh(RHICmdList, ShaderRHI, VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
+		FMeshMaterialShader::SetMesh(RHICmdList, ShaderRHI, VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -193,6 +193,7 @@ public:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FVelocityPS,TEXT("VelocityShader"),TEXT("MainPixelShader"),SF_Pixel);
 
+IMPLEMENT_SHADERPIPELINE_TYPE_VSPS(VelocityPipeline, FVelocityVS, FVelocityPS, true);
 
 //=============================================================================
 /** FVelocityDrawingPolicy - Policy to wrap FMeshDrawingPolicy with new shaders. */
@@ -208,8 +209,11 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 	const FMaterialShaderMap* MaterialShaderIndex = InMaterialResource.GetRenderingThreadShaderMap();
 	const FMeshMaterialShaderMap* MeshShaderIndex = MaterialShaderIndex->GetMeshShaderMap(InVertexFactory->GetType());
 
-	HullShader = NULL;
-	DomainShader = NULL;
+	ShaderPipeline = nullptr;
+	HullShader = nullptr;
+	DomainShader = nullptr;
+	VertexShader = nullptr;
+	PixelShader = nullptr;
 
 	const EMaterialTessellationMode MaterialTessellationMode = InMaterialResource.GetTessellationMode();
 	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
@@ -222,12 +226,28 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 		HullShader = HasHullShader ? MeshShaderIndex->GetShader<FVelocityHS>() : NULL;
 		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<FVelocityDS>() : NULL;
 	}
+	else
+	{
+		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ShaderPipelines"));
+		ShaderPipeline = (CVar && CVar->GetValueOnAnyThread()) ? MeshShaderIndex->GetShaderPipeline(&VelocityPipeline) : nullptr;
+		if (ShaderPipeline)
+		{
+			VertexShader = ShaderPipeline->GetShader<FVelocityVS>();
+			PixelShader = ShaderPipeline->GetShader<FVelocityPS>();
+			check(VertexShader && PixelShader);
+		}
+	}
 
-	bool HasVertexShader = MeshShaderIndex->HasShader(&FVelocityVS::StaticType);
-	VertexShader = HasVertexShader ? MeshShaderIndex->GetShader<FVelocityVS>() : NULL;
+	if (!VertexShader)
+	{
+		check(!PixelShader);
+		bool bHasVertexShader = MeshShaderIndex->HasShader(&FVelocityVS::StaticType);
+		bool bHasPixelShader = MeshShaderIndex->HasShader(&FVelocityPS::StaticType);
 
-	bool HasPixelShader = MeshShaderIndex->HasShader(&FVelocityPS::StaticType);
-	PixelShader = HasPixelShader ? MeshShaderIndex->GetShader<FVelocityPS>() : NULL;
+		check((bHasVertexShader && bHasPixelShader) || (!bHasVertexShader && !bHasPixelShader));
+		VertexShader = bHasVertexShader ? MeshShaderIndex->GetShader<FVelocityVS>() : nullptr;
+		PixelShader = bHasPixelShader ? MeshShaderIndex->GetShader<FVelocityPS>() : nullptr;
+	}
 }
 
 bool FVelocityDrawingPolicy::SupportsVelocity() const
@@ -267,7 +287,7 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	const ElementDataType& ElementData,
 	const ContextDataType PolicyContext
 	) const
@@ -283,22 +303,22 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	// previous transform can be stored in the scene for each primitive
 	if(Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneProxy->GetPrimitiveSceneInfo(), PreviousLocalToWorld))
 	{
-		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DitheredLODTransitionValue, View, PrimitiveSceneProxy, PreviousLocalToWorld);
+		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DrawRenderState, View, PrimitiveSceneProxy, PreviousLocalToWorld);
 	}	
 	else
 	{
 		const FMatrix& LocalToWorld = PrimitiveSceneProxy->GetLocalToWorld();		// different implementation from UE4
-		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DitheredLODTransitionValue, View, PrimitiveSceneProxy, LocalToWorld);
+		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DrawRenderState, View, PrimitiveSceneProxy, LocalToWorld);
 	}
 
 	if (HullShader && DomainShader)
 	{
-		DomainShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
-		HullShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
+		DomainShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
+		HullShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 	}
 
-	PixelShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex,DitheredLODTransitionValue, View, PrimitiveSceneProxy, bBackFace);
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DitheredLODTransitionValue, ElementData, PolicyContext);
+	PixelShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DrawRenderState, View, PrimitiveSceneProxy, bBackFace);
+	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DrawRenderState, ElementData, PolicyContext);
 }
 
 bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
@@ -468,12 +488,13 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 		{			
 			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType());
+			const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
 			for (int32 BatchElementIndex = 0, BatchElementCount = Mesh.Elements.Num(); BatchElementIndex < BatchElementCount; ++BatchElementIndex)
 			{
 				TDrawEvent<FRHICommandList> MeshEvent;
 				BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
-				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, Mesh.DitheredLODTransitionAlpha, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
+				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DrawRenderState, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
 				DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex);
 			}
 			return true;

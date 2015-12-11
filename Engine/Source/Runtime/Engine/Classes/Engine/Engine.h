@@ -947,6 +947,10 @@ public:
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> QuadComplexityColors;
 
+	/** The colors used to render light complexity. */
+	UPROPERTY(globalconfig)
+	TArray<FLinearColor> LightComplexityColors;
+
 	/** The colors used to render stationary light overlap. */
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> StationaryLightOverlapColors;

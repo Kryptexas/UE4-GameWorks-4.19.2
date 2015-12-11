@@ -202,6 +202,9 @@ class UParticleEmitter : public UObject
 	// Array of modules that want emitter instance data
 	TArray<UParticleModule*> ModulesNeedingInstanceData;
 
+	/** SubUV animation asset to use for cutout geometry. */
+	class USubUVAnimation* RESTRICT SubUVAnimation;
+
 	//////////////////////////////////////////////////////////////////////////
 
 	//~ Begin UObject Interface

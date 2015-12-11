@@ -7,9 +7,9 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
+#include "PostProcessEyeAdaptation.h"
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
-#include "PostProcessEyeAdaptation.h"
 #include "PostProcessCombineLUTs.h"
 #include "SceneUtils.h"
 
@@ -845,11 +845,6 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
 
-		if( !IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) )
-		{
-			//Need to hack in exposure scale for < SM5
-			OutEnvironment.SetDefine(TEXT("NO_EYEADAPTATION_EXPOSURE_FIX"), 1);
-		}
 	}
 
 	/** Default constructor. */
@@ -988,10 +983,9 @@ public:
 		if (BloomDirtMaskParam.IsBound())
 		{
 			FBloomDirtMaskParameters BloomDirtMaskParams;
-
-			float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
+			
 			FLinearColor Col = Settings.BloomDirtMaskTint * Settings.BloomDirtMaskIntensity;
-			BloomDirtMaskParams.Tint = FVector4(Col.R, Col.G, Col.B, ExposureScale);
+			BloomDirtMaskParams.Tint = FVector4(Col.R, Col.G, Col.B, 0.f /*unused*/);
 
 			BloomDirtMaskParams.Mask = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
 			if(Settings.BloomDirtMask && Settings.BloomDirtMask->Resource)
@@ -1003,7 +997,7 @@ public:
 			FUniformBufferRHIRef BloomDirtMaskUB = TUniformBufferRef<FBloomDirtMaskParameters>::CreateUniformBufferImmediate(BloomDirtMaskParams, UniformBuffer_SingleDraw);
 			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
-		
+
 		// volume texture LUT
 		{
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
@@ -1073,16 +1067,19 @@ public:
 #define VARIATION1(A) typedef FPostProcessTonemapPS<A> FPostProcessTonemapPS##A; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
-	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
+VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
 
 #undef VARIATION1
 
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS,TEXT("PostProcessTonemap"),TEXT("MainVS"),SF_Vertex);
+// Vertex Shader permutations based on bool AutoExposure.
+IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
 
 
-FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly, bool bDoScreenPercentageInTonemapper)
+FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly, bool bDoScreenPercentageInTonemapper, bool bInDoEyeAdaptation )
 	: bDoGammaOnly(bInDoGammaOnly)
+	, bDoEyeAdaptation(bInDoEyeAdaptation)
 	, RenderTargetExtend(0, 0)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&View, bDoGammaOnly);
@@ -1105,18 +1102,38 @@ FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool
 	check(bDoScreenPercentageInTonemapper == ShouldDoScreenPercentageInTonemapper());
 }
 
-template <uint32 ConfigIndex>
-static void SetShaderTempl(const FRenderingCompositePassContext& Context)
+namespace PostProcessTonemapUtil
 {
-	TShaderMapRef<FPostProcessTonemapVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessTonemapPS<ConfigIndex> > PixelShader(Context.GetShaderMap());
+	// Template implementation supports unique static BoundShaderState for each permutation of Vertex/Pixel Shaders 
+	template <uint32 ConfigIndex, bool bDoEyeAdaptation>
+	static inline void SetShaderTempl(const FRenderingCompositePassContext& Context)
+	{
+		typedef TPostProcessTonemapVS<bDoEyeAdaptation> VertexShaderType;
+		typedef FPostProcessTonemapPS<ConfigIndex>      PixelShaderType;
 
-	static FGlobalBoundShaderState BoundShaderState;
+		TShaderMapRef<PixelShaderType>  PixelShader(Context.GetShaderMap());
+		TShaderMapRef<VertexShaderType> VertexShader(Context.GetShaderMap());
 
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		static FGlobalBoundShaderState BoundShaderState;
 
-	VertexShader->SetVS(Context);
-	PixelShader->SetPS(Context);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+		VertexShader->SetVS(Context);
+		PixelShader->SetPS(Context);
+	}
+
+	template <uint32 ConfigIndex>
+	static inline void SetShaderTempl(const FRenderingCompositePassContext& Context, bool bDoEyeAdaptation)
+	{
+		if (bDoEyeAdaptation)
+		{
+			SetShaderTempl<ConfigIndex, true>(Context);
+		}
+		else
+		{
+			SetShaderTempl<ConfigIndex, false>(Context);
+		}
+	}
 }
 
 void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
@@ -1160,23 +1177,37 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	switch(ConfigIndexPC)
+	switch (ConfigIndexPC)
 	{
-		case 0:	SetShaderTempl<0>(Context); break;
-		case 1:	SetShaderTempl<1>(Context);	break;
-		case 2: SetShaderTempl<2>(Context); break;
-		case 3: SetShaderTempl<3>(Context); break;
-		case 4: SetShaderTempl<4>(Context); break;
-		case 5: SetShaderTempl<5>(Context); break;
-		case 6: SetShaderTempl<6>(Context); break;
-		case 7: SetShaderTempl<7>(Context); break;
-		case 8: SetShaderTempl<8>(Context); break;
-		default:
-			check(0);
+    using namespace PostProcessTonemapUtil;
+	case 0:	SetShaderTempl<0>(Context, bDoEyeAdaptation); break;
+	case 1:	SetShaderTempl<1>(Context, bDoEyeAdaptation); break;
+	case 2: SetShaderTempl<2>(Context, bDoEyeAdaptation); break;
+	case 3: SetShaderTempl<3>(Context, bDoEyeAdaptation); break;
+	case 4: SetShaderTempl<4>(Context, bDoEyeAdaptation); break;
+	case 5: SetShaderTempl<5>(Context, bDoEyeAdaptation); break;
+	case 6: SetShaderTempl<6>(Context, bDoEyeAdaptation); break;
+	case 7: SetShaderTempl<7>(Context, bDoEyeAdaptation); break;
+	case 8: SetShaderTempl<8>(Context, bDoEyeAdaptation); break;
+	default:
+		check(0);
 	}
+
+	
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-	TShaderMapRef<FPostProcessTonemapVS> VertexShader(Context.GetShaderMap());
+	FShader* VertexShader;
+	if (bDoEyeAdaptation)
+	{
+		// Use the vertex shader that passes on eye-adaptation values to the pixel shader
+		TShaderMapRef<TPostProcessTonemapVS<true>> VertexShaderMapRef(Context.GetShaderMap());
+		VertexShader = *VertexShaderMapRef;
+	}
+	else
+	{
+		TShaderMapRef<TPostProcessTonemapVS<false>> VertexShaderMapRef(Context.GetShaderMap());
+		VertexShader = *VertexShaderMapRef;
+	} 
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -1186,7 +1217,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		PassOutputs[0].RenderTargetDesc.Extent,
 		SceneContext.GetBufferSizeXY(),
-		*VertexShader,
+		VertexShader,
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
@@ -1477,22 +1508,25 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS_ES2,TEXT("PostProcessTonemap"),TEXT("MainVS_ES2"),SF_Vertex);
 
-
-template <uint32 ConfigIndex>
-static void SetShaderTemplES2(const FRenderingCompositePassContext& Context, bool bUsedFramebufferFetch)
+namespace PostProcessTonemap_ES2Util
 {
-	TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessTonemapPS_ES2<ConfigIndex> > PixelShader(Context.GetShaderMap());
+	// Template implementation supports unique static BoundShaderState for each permutation of Pixel Shaders 
+	template <uint32 ConfigIndex>
+	static inline void SetShaderTemplES2(const FRenderingCompositePassContext& Context, bool bUsedFramebufferFetch)
+	{
+		TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessTonemapPS_ES2<ConfigIndex> > PixelShader(Context.GetShaderMap());
 
-	VertexShader->bUsedFramebufferFetch = bUsedFramebufferFetch;
+		VertexShader->bUsedFramebufferFetch = bUsedFramebufferFetch;
 
-	static FGlobalBoundShaderState BoundShaderState;
-	
+		static FGlobalBoundShaderState BoundShaderState;
 
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetVS(Context);
-	PixelShader->SetPS(Context);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+		VertexShader->SetVS(Context);
+		PixelShader->SetPS(Context);
+	}
 }
 
 
@@ -1547,6 +1581,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 
 	switch(ConfigIndexMobile)
 	{
+		using namespace PostProcessTonemap_ES2Util;
 		case 0:	SetShaderTemplES2<0>(Context, bUsedFramebufferFetch); break;
 		case 1:	SetShaderTemplES2<1>(Context, bUsedFramebufferFetch); break;
 		case 2:	SetShaderTemplES2<2>(Context, bUsedFramebufferFetch); break;

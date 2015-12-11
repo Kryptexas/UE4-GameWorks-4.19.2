@@ -401,6 +401,10 @@ struct FVertexElement
 	TEnumAsByte<EVertexElementType> Type;
 	uint8 AttributeIndex;
 	uint16 Stride;
+	/**
+	 * Whether to use instance index or vertex index to consume the element.  
+	 * eg if bUseInstanceIndex is 0, the element will be repeated for every instance.
+	 */
 	uint16 bUseInstanceIndex;
 
 	FVertexElement() {}

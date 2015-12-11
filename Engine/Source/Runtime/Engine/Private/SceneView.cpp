@@ -1074,6 +1074,11 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 			Dest.DepthOfFieldMethod = Src.DepthOfFieldMethod;
 		}
 
+		if (Src.bOverride_AutoExposureMethod)
+		{
+			Dest.AutoExposureMethod = Src.AutoExposureMethod;
+		}
+
 		if (Src.bOverride_AmbientOcclusionRadiusInWS)
 		{
 			Dest.AmbientOcclusionRadiusInWS = Src.AmbientOcclusionRadiusInWS;

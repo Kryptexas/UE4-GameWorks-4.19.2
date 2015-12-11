@@ -904,6 +904,13 @@ void ProcessPrimitiveUpdate(
 					}
 
 					DistanceFieldSceneData.PrimitiveModifiedBounds.Add(ObjectBoundingSphere);
+
+					extern int32 GAOLogGlobalDistanceFieldModifiedPrimitives;
+
+					if (GAOLogGlobalDistanceFieldModifiedPrimitives)
+					{
+						UE_LOG(LogDistanceField,Warning,TEXT("Global Distance Field primitive %s %s %s bounding radius %.1f"), (bIsAddOperation ? TEXT("add") : TEXT("update")), *PrimitiveSceneInfo->Proxy->GetOwnerName().ToString(), *PrimitiveSceneInfo->Proxy->GetResourceName().ToString(), BoundingRadius);
+					}
 				}
 				else if (bIsAddOperation)
 				{

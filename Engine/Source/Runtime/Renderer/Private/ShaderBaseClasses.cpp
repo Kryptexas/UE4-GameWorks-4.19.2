@@ -458,7 +458,7 @@ void FMeshMaterialShader::SetMesh(
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
 	const FMeshBatchElement& BatchElement,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	uint32 DataFlags )
 {
 	// Set the mesh for the vertex factory
@@ -481,20 +481,20 @@ void FMeshMaterialShader::SetMesh(
 	}
 	if (NonInstancedDitherLODFactorParameter.IsBound())
 	{
-		SetShaderValue(RHICmdList, ShaderRHI, NonInstancedDitherLODFactorParameter, DitheredLODTransitionValue);
+		SetShaderValue(RHICmdList, ShaderRHI, NonInstancedDitherLODFactorParameter, DrawRenderState.DitheredLODTransitionAlpha);
 	}
 }
 
 #define IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( ShaderRHIParamRef ) \
 	template RENDERER_API void FMeshMaterialShader::SetMesh< ShaderRHIParamRef >( \
-		FRHICommandList& RHICmdList,			\
-		const ShaderRHIParamRef ShaderRHI,		\
-		const FVertexFactory* VertexFactory,	\
-		const FSceneView& View,					\
-		const FPrimitiveSceneProxy* Proxy,		\
-		const FMeshBatchElement& BatchElement,	\
-		float DitheredLODTransitionValue,		\
-		uint32 DataFlags						\
+		FRHICommandList& RHICmdList,					\
+		const ShaderRHIParamRef ShaderRHI,				\
+		const FVertexFactory* VertexFactory,			\
+		const FSceneView& View,							\
+		const FPrimitiveSceneProxy* Proxy,				\
+		const FMeshBatchElement& BatchElement,			\
+		const FMeshDrawingRenderState& DrawRenderState,	\
+		uint32 DataFlags								\
 	);
 
 IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( FVertexShaderRHIParamRef );

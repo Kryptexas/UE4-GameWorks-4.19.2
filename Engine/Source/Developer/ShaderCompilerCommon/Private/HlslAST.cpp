@@ -70,6 +70,17 @@ namespace CrossCompiler
 			}
 		}
 
+		FPragma::FPragma(FLinearAllocator* InAllocator, const TCHAR* InPragma, const FSourceInfo& InInfo) :
+			FNode(InAllocator, InInfo)
+		{
+			Pragma = InAllocator->Strdup(InPragma);
+		}
+
+		void FPragma::Write(FASTWriter& Writer) const
+		{
+			Writer << Pragma << TEXT("\n");
+		}
+
 		FExpression::FExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, FExpression* E2, const FSourceInfo& InInfo) :
 			FNode(InAllocator, InInfo),
 			Operator(InOperator),

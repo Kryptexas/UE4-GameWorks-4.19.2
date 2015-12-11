@@ -362,7 +362,14 @@ public:
 	FLastRenderTimeContainer() : LastRenderTime(-FLT_MAX) {}
 
 	double GetLastRenderTime() const { return LastRenderTime; }
-	void SetLastRenderTime(double InLastRenderTime) { LastRenderTime = InLastRenderTime; }
+	FORCEINLINE_DEBUGGABLE void SetLastRenderTime(double InLastRenderTime) 
+	{ 
+		// avoid dirty caches from redundant writes
+		if (LastRenderTime != InLastRenderTime)
+		{
+			LastRenderTime = InLastRenderTime;
+		}
+	}
 
 private:
 	/** The last time the resource was rendered. */
@@ -432,7 +439,7 @@ public:
 	FRHIResourceInfo ResourceInfo;
 
 	/** sets the last time this texture was cached in a resource table. */
-	void SetLastRenderTime(float InLastRenderTime)
+	FORCEINLINE_DEBUGGABLE void SetLastRenderTime(float InLastRenderTime)
 	{
 		LastRenderTime.SetLastRenderTime(InLastRenderTime);
 	}

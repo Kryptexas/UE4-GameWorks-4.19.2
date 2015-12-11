@@ -846,6 +846,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 	UMaterial* Material = NewObject<UMaterial>(MaterialOuter, FName(*MaterialAssetName), Flags);
 	Material->TwoSided = false;
+	Material->DitheredLODTransition = InFlattenMaterial.bDitheredLODTransition;
 	Material->SetShadingModel(MSM_DefaultLit);
 	OutGeneratedAssets.Add(Material);
 

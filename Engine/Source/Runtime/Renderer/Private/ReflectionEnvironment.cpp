@@ -897,40 +897,40 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 			//Grab the async compute commandlist.
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
-
 			{
-				SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d ClearCoat:%d"),
-					View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
-					NumBoxCaptures, NumSphereCaptures, bNeedsClearCoat);
+			SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d ClearCoat:%d"),
+				View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
+				NumBoxCaptures, NumSphereCaptures, bNeedsClearCoat);
 
-				ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bNeedsClearCoat, bHasBoxCaptures, bHasSphereCaptures);
+			ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bNeedsClearCoat, bHasBoxCaptures, bHasSphereCaptures);
 
 
+			
+			//Really we should write this fence where we transition the final depedency for the reflections.  We may add an RHI command just for writing fences if this
+			//can't be done in the general case.  In the meantime, hack this command a bit to write the fence.
+			RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
+					
+			//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
+			RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
 
-				//Really we should write this fence where we transition the final depedency for the reflections.  We may add an RHI command just for writing fences if this
-				//can't be done in the general case.  In the meantime, hack this command a bit to write the fence.
-				RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
+			//standard compute setup, but on the async commandlist.
+			RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
 
-				//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
-				RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
+			FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
+			ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, OutUAV, DynamicBentNormalAO);
+			
+			uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
+			uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
+			DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-				//standard compute setup, but on the async commandlist.
-				RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
-
-				FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
-				ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, OutUAV, DynamicBentNormalAO);
-
-				uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
-				uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
-				DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupSizeX, GroupSizeY, 1);
-
-				ComputeShader->UnsetParameters(RHICmdListComputeImmediate, OutUAV);
-
-				//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
-				RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1, ReflectionEndFence);
+			ComputeShader->UnsetParameters(RHICmdListComputeImmediate, OutUAV);
+			
+			//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
+			RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1, ReflectionEndFence);
 			}
 
 			//immediately dispatch our async compute commands to the RHI thread to be submitted to the GPU as soon as possible.
+			//dispatch after the scope so the drawevent pop is inside the dispatch
 			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);			
 			
 			//Gfx pipe must wait for the async compute reflection job to complete.

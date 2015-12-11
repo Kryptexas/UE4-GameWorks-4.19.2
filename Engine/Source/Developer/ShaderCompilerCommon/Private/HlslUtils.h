@@ -32,13 +32,13 @@ namespace CrossCompiler
 				delete[] Begin;
 			}
 
-			static FPage* AllocatePage();
+			static FPage* AllocatePage(SIZE_T PageSize);
 			static void FreePage(FPage* Page);
 		};
 
 		enum
 		{
-			PageSize = 64 * 1024
+			MinPageSize = 64 * 1024
 		};
 	}
 
@@ -46,7 +46,7 @@ namespace CrossCompiler
 	{
 		FLinearAllocator()
 		{
-			auto* Initial = Memory::FPage::AllocatePage();
+			auto* Initial = Memory::FPage::AllocatePage(Memory::MinPageSize);
 			Pages.Add(Initial);
 		}
 
@@ -60,11 +60,11 @@ namespace CrossCompiler
 
 		inline void* Alloc(SIZE_T NumBytes)
 		{
-			check(NumBytes <= Memory::PageSize);
 			auto* Page = Pages.Last();
 			if (Page->Current + NumBytes > Page->End)
 			{
-				Page = Memory::FPage::AllocatePage();
+				SIZE_T PageSize = FMath::Max<SIZE_T>(Memory::MinPageSize, NumBytes);
+				Page = Memory::FPage::AllocatePage(PageSize);
 				Pages.Add(Page);
 			}
 

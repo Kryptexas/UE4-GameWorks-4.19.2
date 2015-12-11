@@ -112,8 +112,6 @@ enum ECompilerFlags
 	/** Shader should use on chip memory instead of main memory ring buffer memory. */
 	CFLAG_OnChip,
 	CFLAG_KeepDebugInfo,
-	// Skip using the cached usf file system and directly open the file (for debugging)
-	CFLAG_OpenFileFromFullPath,
 };
 
 /**
@@ -421,17 +419,32 @@ struct FShaderCompilerInput
 	// e.g. BasePassPixelShader, ReflectionEnvironmentShaders, SlateElementPixelShader, PostProcessCombineLUTs
 	FString SourceFilename;
 	FString EntryPointName;
+
+	// Skips the preprocessor and instead loads the usf file directly
+	bool bSkipPreprocessedCache;
+
+	// Shader pipeline information
 	bool bCompilingForShaderPipeline;
 	bool bIncludeUsedOutputs;
 	TArray<FString> UsedOutputs;
+
 	// Dump debug path (up to platform) e.g. "D:/MMittring-Z3941-A/UE4-Orion/OrionGame/Saved/ShaderDebugInfo/PCD3D_SM5"
 	FString DumpDebugInfoRootPath;
 	// only used if enabled by r.DumpShaderDebugInfo (platform/groupname) e.g. ""
 	FString DumpDebugInfoPath;
 	// materialname or "Global" "for debugging and better error messages
 	FString DebugGroupName;
+
+	// Compilation Environment
 	FShaderCompilerEnvironment Environment;
 	TRefCountPtr<FShaderCompilerEnvironment> SharedEnvironment;
+
+	FShaderCompilerInput() :
+		bSkipPreprocessedCache(false),
+		bCompilingForShaderPipeline(false),
+		bIncludeUsedOutputs(false)
+	{
+	}
 
 	// generate human readable name for debugging
 	FString GenerateShaderName() const
@@ -463,6 +476,7 @@ struct FShaderCompilerInput
 		Ar << Input.SourceFilePrefix;
 		Ar << Input.SourceFilename;
 		Ar << Input.EntryPointName;
+		Ar << Input.bSkipPreprocessedCache;
 		Ar << Input.bCompilingForShaderPipeline;
 		Ar << Input.bIncludeUsedOutputs;
 		Ar << Input.UsedOutputs;

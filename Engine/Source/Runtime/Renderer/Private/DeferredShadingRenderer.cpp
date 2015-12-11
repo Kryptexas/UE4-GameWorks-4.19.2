@@ -34,7 +34,7 @@ TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("  1: only if not masked, and only if large on the screen\n")
 	TEXT("  2: all opaque (including masked)\n")
 	TEXT("  x: use built in heuristic (default is 3)"),
-	ECVF_Default);
+	ECVF_ReadOnly);
 
 int32 GEarlyZPassMovable = 0;
 
@@ -133,6 +133,9 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	{
 		EarlyZPassMode = DDM_AllOpaque;
 	}
+
+	// When possible use a stencil optimization for dithering in pre-pass
+	bDitheredLODTransitionsUseStencil = (EarlyZPassMode == DDM_AllOccluders);
 }
 
 extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
@@ -966,7 +969,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
-	bool bDepthWasCleared = RenderPrePassHMD(RHICmdList);;
+	bool bDepthWasCleared = RenderPrePassHMD(RHICmdList);
 	const bool bNeedsPrePass = NeedsPrePass(this);
 	if (bNeedsPrePass)
 	{
@@ -1171,9 +1174,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
 	}
 
-	// These modulate the scenecolor output from the basepass, which is assumed to be indirect lighting
-	RenderIndirectCapsuleShadows(RHICmdList);
-
 	// Render lighting.
 	if (ViewFamily.EngineShowFlags.Lighting
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
@@ -1184,6 +1184,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Lighting);
 
 		GRenderTargetPool.AddPhaseEvent(TEXT("Lighting"));
+
+		// These modulate the scenecolor output from the basepass, which is assumed to be indirect lighting
+		RenderIndirectCapsuleShadows(RHICmdList);
 
 		// Clear the translucent lighting volumes before we accumulate
 		ClearTranslucentVolumeLighting(RHICmdList);
@@ -1378,9 +1381,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 			GPostProcessing.Process(RHICmdList, Views[ ViewIndex ], VelocityRT);
 
-			// we rendered to it during the frame, seems we haven't made use of it, because it should be released
-			check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
 		}
+		// we rendered to it during the frame, seems we haven't made use of it, because it should be released
+		check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
 	}
 	else
 	{
@@ -1645,6 +1648,48 @@ void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 	ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 }
 
+/** A pixel shader used to fill the stencil buffer with the current dithered transition mask. */
+class FDitheredTransitionStencilPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FDitheredTransitionStencilPS, Global);
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{ 
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+	}
+
+	FDitheredTransitionStencilPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	: FGlobalShader(Initializer)
+	{
+		DitheredTransitionFactorParameter.Bind(Initializer.ParameterMap, TEXT("DitheredTransitionFactor"));
+	}
+
+	FDitheredTransitionStencilPS()
+	{
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	{
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+
+		const float DitherFactor = View.GetTemporalLODTransition();
+		SetShaderValue(RHICmdList, GetPixelShader(), DitheredTransitionFactorParameter, DitherFactor);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << DitheredTransitionFactorParameter;
+		return bShaderHasOutdatedParameters;
+	}
+
+	FShaderParameter DitheredTransitionFactorParameter;
+};
+
+IMPLEMENT_SHADER_TYPE(, FDitheredTransitionStencilPS, TEXT("DitheredTransitionStencil"), TEXT("Main"), SF_Pixel);
+FGlobalBoundShaderState DitheredTransitionStencilBoundShaderState;
+
 /** Renders the scene's prepass and occlusion queries */
 bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDepthWasCleared)
 {
@@ -1655,6 +1700,47 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	SceneContext.BeginRenderingPrePass(RHICmdList, !bDepthWasCleared);
+	
+	// Dithered transition stencil mask fill
+	if(bDitheredLODTransitionsUseStencil)
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, DitheredStencilPrePass);
+		FIntPoint BufferSizeXY = SceneContext.GetBufferSizeXY();
+		
+		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
+		{
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
+			FViewInfo& View = Views[ViewIndex];
+			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+
+			// Set shaders, states
+			TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+			TShaderMapRef<FDitheredTransitionStencilPS> PixelShader(View.ShaderMap);
+			extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DitheredTransitionStencilBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+
+			PixelShader->SetParameters(RHICmdList, View);
+
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always,
+				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI(), STENCIL_SANDBOX_MASK);
+			
+			DrawRectangle(
+				RHICmdList,
+				0, 0,
+				BufferSizeXY.X, BufferSizeXY.Y,
+				View.ViewRect.Min.X, View.ViewRect.Min.Y,
+				View.ViewRect.Width(), View.ViewRect.Height(),
+				BufferSizeXY,
+				BufferSizeXY,
+				*ScreenVertexShader,
+				EDRF_UseTriangleOptimization);
+		}
+	}
 
 	// Draw a depth pass to avoid overdraw in the other passes.
 	if(EarlyZPassMode != DDM_None)
@@ -1686,6 +1772,12 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 				}
 			}
 		}
+	}
+
+	// Dithered transition stencil mask clear
+	if(bDitheredLODTransitionsUseStencil)
+	{
+		RHICmdList.Clear(false, FLinearColor::Black, false, 0.f, true, 0, FIntRect());
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);
@@ -1785,7 +1877,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 				RenderEditorPrimitives(RHICmdList, View, bDirty);
 			}
-		}
+		}	
 	}
 
 	return bDirty;
@@ -1987,6 +2079,7 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("STENCIL_LIGHTING_CHANNELS_SHIFT"), STENCIL_LIGHTING_CHANNELS_BIT_ID);
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_R16_UINT);
 	}
 
 	FCopyStencilToLightingChannelsPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

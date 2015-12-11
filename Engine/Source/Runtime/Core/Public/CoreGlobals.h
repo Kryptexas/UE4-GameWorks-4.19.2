@@ -285,6 +285,9 @@ extern CORE_API FName GCurrentTraceName;
 /** How to print the time in log output. */
 extern CORE_API ELogTimes::Type GPrintLogTimes;
 
+/** How to print the category in log output. */
+extern CORE_API bool GPrintLogCategory;
+
 /** Global screen shot index to avoid overwriting ScreenShots. */
 extern CORE_API int32 GScreenshotBitmapIndex;
 

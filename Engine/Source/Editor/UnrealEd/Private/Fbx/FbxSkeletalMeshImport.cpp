@@ -1217,7 +1217,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	
 	if( ImportOptions->bPreserveSmoothingGroups )
 	{
-		bool bDuplicateUnSmoothWedges = !ImportOptions->bUseExperimentalTangentGeneration;
+		bool bDuplicateUnSmoothWedges = (ImportOptions->NormalGenerationMethod != EFBXNormalGenerationMethod::MikkTSpace);
 		DoUnSmoothVerts(*SkelMeshImportDataPtr, bDuplicateUnSmoothWedges);
 	}
 	else
@@ -1291,7 +1291,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		BuildOptions.bKeepOverlappingVertices = ImportOptions->bKeepOverlappingVertices;
 		BuildOptions.bComputeNormals = !ImportOptions->ShouldImportNormals() || !SkelMeshImportDataPtr->bHasNormals;
 		BuildOptions.bComputeTangents = !ImportOptions->ShouldImportTangents() || !SkelMeshImportDataPtr->bHasTangents;
-		BuildOptions.bUseMikkTSpace = ImportOptions->bUseExperimentalTangentGeneration;
+		BuildOptions.bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace);
 		BuildOptions.bRemoveDegenerateTriangles = false;
 
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");

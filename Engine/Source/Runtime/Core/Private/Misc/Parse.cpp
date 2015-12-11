@@ -685,6 +685,7 @@ bool FParse::Command( const TCHAR** Stream, const TCHAR*  Match, bool bParseMigh
 	{
 		*Stream += FCString::Strlen(Match);
 		if( !FChar::IsAlnum(**Stream))
+//		if( !FChar::IsAlnum(**Stream) && (**Stream != '_') && (**Stream != '.'))		// more correct e.g. a cvar called "log.abc" should work but breaks some code so commented out
 		{
 			while ((**Stream==' ')||(**Stream==9)) (*Stream)++;
 			return 1; // Success.

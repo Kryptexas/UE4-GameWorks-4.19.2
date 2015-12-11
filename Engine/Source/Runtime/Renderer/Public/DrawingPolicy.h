@@ -19,6 +19,37 @@
 	else if(A.MemberName > B.MemberName) { return +1; }
 
 /**
+ * Helper structure used to store mesh drawing state
+ */
+enum class EDitheredLODState
+{
+	None,
+	FadeIn,
+	FadeOut,
+};
+
+struct FMeshDrawingRenderState
+{
+	FMeshDrawingRenderState(float DitherAlpha = 0.0f)
+	: DitheredLODTransitionAlpha(DitherAlpha)
+	, DitheredLODState(EDitheredLODState::None)
+	, bAllowStencilDither(false)
+	{
+	}
+
+	FMeshDrawingRenderState(EDitheredLODState DitherState, bool InAllowStencilDither = false)
+	: DitheredLODTransitionAlpha(0.0f)
+	, DitheredLODState(DitherState)
+	, bAllowStencilDither(InAllowStencilDither)
+	{
+	}
+
+	float				DitheredLODTransitionAlpha;
+	EDitheredLODState	DitheredLODState;
+	bool				bAllowStencilDither;
+};
+
+/**
  * The base mesh drawing policy.  Subclasses are used to draw meshes with type-specific context variables.
  * May be used either simply as a helper to render a dynamic mesh, or as a static instance shared between
  * similar meshs.
@@ -83,17 +114,24 @@ public:
 	 * Sets the render states for drawing a mesh.
 	 * @param PrimitiveSceneProxy - The primitive drawing the dynamic mesh.  If this is a view element, this will be NULL.
 	 */
-	void SetMeshRenderState(
+	FORCEINLINE_DEBUGGABLE void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
-		) const;
+		) const
+	{
+		// Use bitwise logic ops to avoid branches
+		RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
+			(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid, ((IsTwoSided() && !NeedsBackfacePass()) || Mesh.bDisableBackfaceCulling) ? CM_None :
+			(((View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling) ? CM_CCW : CM_CW)
+			));
+	}
 
 	/**
 	 * Executes the draw commands for a mesh.

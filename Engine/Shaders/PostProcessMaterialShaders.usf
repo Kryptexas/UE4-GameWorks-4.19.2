@@ -21,6 +21,7 @@ void MainPS(
 	)
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
+	FPixelMaterialInputs PixelMaterialInputs;
 
 	// can be optimized
 	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
@@ -37,8 +38,8 @@ void MainPS(
 	SvPosition.z = LookupDeviceZ(ScreenUV);
 
 	// fill out other related material parameters
-	CalcMaterialParametersPost(Parameters, SvPosition, true);
+	CalcMaterialParametersPost(Parameters, PixelMaterialInputs, SvPosition, true);
 
 	// Grab emissive colour as output
-	OutColor = float4(GetMaterialEmissive(Parameters), 1);
+	OutColor = float4(GetMaterialEmissive(PixelMaterialInputs), 1);
 } 

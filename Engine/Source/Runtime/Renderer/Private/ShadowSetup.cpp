@@ -1614,7 +1614,7 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 
 				// Only add to OutPreShadows if the preshadow doesn't already have depths cached, 
 				// Since OutPreShadows is used to generate information only used when rendering the shadow depths.
-				if (!ProjectedPreShadowInfo->bDepthsCached)
+				if (!ProjectedPreShadowInfo->bDepthsCached && ProjectedPreShadowInfo->CasterFrustum.PermutedPlanes.Num())
 				{
 					OutPreShadows.Add(ProjectedPreShadowInfo);
 				}
@@ -2165,6 +2165,7 @@ void FSceneRenderer::GatherShadowPrimitives(
 							{
 								FProjectedShadowInfo* ProjectedShadowInfo = PreShadows[ShadowIndex];
 
+								check(ProjectedShadowInfo->CasterFrustum.PermutedPlanes.Num());
 								// Check if this primitive is in the shadow's frustum.
 								if(ProjectedShadowInfo->CasterFrustum.IntersectBox(
 									ChildContext.Bounds.Center + ProjectedShadowInfo->PreShadowTranslation,
@@ -2183,6 +2184,7 @@ void FSceneRenderer::GatherShadowPrimitives(
 							{
 								FProjectedShadowInfo* ProjectedShadowInfo = ViewDependentWholeSceneShadows[ShadowIndex];
 
+								//check(ProjectedShadowInfo->CasterFrustum.PermutedPlanes.Num());
 								// Check if this primitive is in the shadow's frustum.
 								if(ProjectedShadowInfo->CasterFrustum.IntersectBox(
 									ChildContext.Bounds.Center + ProjectedShadowInfo->PreShadowTranslation,

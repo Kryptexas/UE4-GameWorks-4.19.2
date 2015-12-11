@@ -178,7 +178,6 @@ public:
 
 	TArray<FSkelMeshObjectLODInfo> LODInfo;
 
-	TArray<FSphere> ShadowSphereShapes;
 	TArray<FCapsuleShape> ShadowCapsuleShapes;
 
 	/** 

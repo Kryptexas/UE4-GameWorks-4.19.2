@@ -17,7 +17,7 @@
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerInputVersion = 5;
+const int32 ShaderCompileWorkerInputVersion = 6;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerOutputVersion = 3;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -1292,17 +1292,17 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	else
 	{
 #if UE_BUILD_DEBUG && PLATFORM_LINUX
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
 #endif
-	uint32 WorkerId = 0;
-	FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ShaderCompileWorkerName, *WorkerParameters, true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
+		uint32 WorkerId = 0;
+		FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ShaderCompileWorkerName, *WorkerParameters, true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
 		if (!WorkerHandle.IsValid())
-	{
-		// If this doesn't error, the app will hang waiting for jobs that can never be completed
-			UE_LOG(LogShaderCompilers, Fatal, TEXT("Couldn't launch %s! Make sure the file is in your binaries folder."), *ShaderCompileWorkerName);
-	}
+		{
+			// If this doesn't error, the app will hang waiting for jobs that can never be completed
+				UE_LOG(LogShaderCompilers, Fatal, TEXT("Couldn't launch %s! Make sure the file is in your binaries folder."), *ShaderCompileWorkerName);
+		}
 
-	return WorkerHandle;
+		return WorkerHandle;
 	}
 }
 

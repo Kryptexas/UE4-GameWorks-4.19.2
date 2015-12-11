@@ -36,7 +36,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const ElementDataType& ElementData, 
 		const ContextDataType PolicyContext
 		) const;
@@ -56,6 +56,7 @@ private:
 	class FVelocityPS* PixelShader;
 	class FVelocityHS* HullShader;
 	class FVelocityDS* DomainShader;
+	class FShaderPipeline* ShaderPipeline;
 };
 
 /**

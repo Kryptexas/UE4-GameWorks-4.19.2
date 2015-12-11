@@ -317,7 +317,7 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
-	float DitheredLODTransitionValue;
+	float DitheredLODTransitionAlpha;
 	bool bPreFog;
 	FHitProxyId HitProxyId;
 
@@ -330,7 +330,7 @@ public:
 		)
 		: View(InView)
 		, bBackFace(bInBackFace)
-		, DitheredLODTransitionValue(InDitheredLODTransitionValue)
+		, DitheredLODTransitionAlpha(InDitheredLODTransitionValue)
 		, HitProxyId(InHitProxyId)
 	{}
 
@@ -393,6 +393,7 @@ public:
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
+		const FMeshDrawingRenderState DrawRenderState(DitheredLODTransitionAlpha);
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
@@ -407,17 +408,17 @@ public:
 					DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 				}
 
-				TDrawEvent<FRHICommandList> MeshEvent;
-				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+			TDrawEvent<FRHICommandList> MeshEvent;
+			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
 
-				DrawingPolicy.SetMeshRenderState(
-				RHICmdList,
+			DrawingPolicy.SetMeshRenderState(
+				RHICmdList, 
 				View,
 				Parameters.PrimitiveSceneProxy,
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
-				DitheredLODTransitionValue,
+				DrawRenderState,
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);

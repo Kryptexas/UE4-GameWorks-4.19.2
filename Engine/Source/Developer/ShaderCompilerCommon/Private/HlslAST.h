@@ -311,6 +311,15 @@ namespace CrossCompiler
 			return AST::EOperators::Plus;
 		}
 
+		struct FPragma : public FNode
+		{
+			FPragma(FLinearAllocator* InAllocator, const TCHAR* InPragma, const FSourceInfo& InInfo);
+
+			virtual void Write(FASTWriter& Writer) const override;
+
+			const TCHAR* Pragma;
+		};
+
 		struct FExpression : public FNode
 		{
 			FExpression(FLinearAllocator* InAllocator, EOperators InOperator, FExpression* E0, FExpression* E1, FExpression* E2, const FSourceInfo& InInfo);

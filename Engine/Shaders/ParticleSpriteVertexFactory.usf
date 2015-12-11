@@ -28,6 +28,7 @@ struct FVertexFactoryInput
 	float4 DynamicParameter			: ATTRIBUTE5;
 #endif	//USE_DYNAMIC_PARAMETERS
 	float2	TexCoord				: ATTRIBUTE4;
+	uint VertexId					: SV_VertexID;
 
 /** Optional instance ID for vertex layered rendering */
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
@@ -400,6 +401,56 @@ float3x3 CalcTangentBasis(FVertexFactoryIntermediates Intermediates)
 #endif
 }
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+
+/** Number of vertices in each SubUV frame of CutoutGeometry. */
+uint NumCutoutVerticesPerFrame;
+
+/** SubUV animation bounding geometry used to minimize overdraw.  Each frame has its own polygon. */
+Buffer<float2> CutoutGeometry;
+
+#endif
+
+void ComputeBillboardUVs(FVertexFactoryInput Input, out float2 UVForPosition, out float2 UVForTexturing, out float2 UVForTexturingUnflipped)
+{
+	// Encoding the UV flip in the sign of the size data.
+	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	BRANCH
+	if (NumCutoutVerticesPerFrame > 0)
+	{
+		// Avoid uint divide which is extremely slow on GCN
+		uint CutoutVertexIndex = (uint)fmod(Input.VertexId, NumCutoutVerticesPerFrame);
+		float NumFrames = SpriteVF.SubImageSize.x * SpriteVF.SubImageSize.y;
+		uint SubImageIndexInt = (uint)fmod(Input.SizeRotSubImage.w, NumFrames);
+
+		FLATTEN
+		if (UVFlip.x * UVFlip.y < 0)
+		{
+			// Reverse the winding order of the polygon when only flipping in one direction to counteract UV flipping
+			CutoutVertexIndex = NumCutoutVerticesPerFrame - 1 - CutoutVertexIndex;
+		}
+
+		// Fetch the billboard space positions from the appropriate frame of the preprocessed cutout geometry
+		UVForTexturing = UVForTexturingUnflipped = CutoutGeometry[SubImageIndexInt * NumCutoutVerticesPerFrame + CutoutVertexIndex];
+
+		// Invert positions on the billboard so that the cutout geometry still contains the visible portion
+		// This changes the winding order when only one direction is flipped
+		UVForPosition.x = UVFlip.x < 0.0 ? 1.0 - UVForTexturing.x : UVForTexturing.x;
+		UVForPosition.y = UVFlip.y < 0.0 ? 1.0 - UVForTexturing.y : UVForTexturing.y;
+	}
+	else
+#endif
+	{
+		UVForTexturing.x = UVFlip.x < 0.0 ? 1.0 - Input.TexCoord.x : Input.TexCoord.x;
+		UVForTexturing.y = UVFlip.y < 0.0 ? 1.0 - Input.TexCoord.y : Input.TexCoord.y;
+
+		// Note: not inverting positions, as that would change the winding order
+		UVForPosition = UVForTexturingUnflipped = Input.TexCoord.xy;
+	}
+}
+
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
 {
 	FVertexFactoryIntermediates Intermediates = (FVertexFactoryIntermediates)0;
@@ -415,19 +466,18 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.TangentUp = Up;
 	Intermediates.TangentRight = Right;
 
+	float2 UVForPosition;
+	float2 UVForTexturing;
+	float2 UVForTexturingUnflipped;
+	ComputeBillboardUVs(Input, UVForPosition, UVForTexturing, UVForTexturingUnflipped);
+
 	// Vertex position.
 	float4 VertexWorldPosition = float4(ParticleWorldPosition.xyz + ResolvedView.PreViewTranslation,1);
 	float2 Size = abs(Input.SizeRotSubImage.xy);
-	VertexWorldPosition += Size.x * (Input.TexCoord.x + SpriteVF.PivotOffset.x) * float4(Right,0);
-	VertexWorldPosition += Size.y * (Input.TexCoord.y + SpriteVF.PivotOffset.y) * float4(Up,0);
+	VertexWorldPosition += Size.x * (UVForPosition.x + SpriteVF.PivotOffset.x) * float4(Right,0);
+	VertexWorldPosition += Size.y * (UVForPosition.y + SpriteVF.PivotOffset.y) * float4(Up,0);
 	Intermediates.VertexWorldPosition = VertexWorldPosition.xyz;
 	
-	//We encode the UV flip in the sign of the size data.
-	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
-	float2 FlippedUV = Input.TexCoord.xy;
-	FlippedUV.x = UVFlip.x < 0.0 ? 1.0 - FlippedUV.x : FlippedUV.x;
-	FlippedUV.y = UVFlip.y < 0.0 ? 1.0 - FlippedUV.y : FlippedUV.y;
-
 	// SubUV.
 	float SubImageIndex = Input.SizeRotSubImage.w;
 	float SubImageLerp = frac(SubImageIndex);
@@ -437,11 +487,11 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float SubImageBH = fmod( SubImageB, SpriteVF.SubImageSize.x );
 	float SubImageAV = floor( SubImageA * SpriteVF.SubImageSize.z );
 	float SubImageBV = floor( SubImageB * SpriteVF.SubImageSize.z );
-	Intermediates.TexCoord.xy = (float2( SubImageAH, SubImageAV ) + FlippedUV) * SpriteVF.SubImageSize.zw ;
-	Intermediates.TexCoord.zw = (float2(SubImageBH, SubImageBV) + FlippedUV) * SpriteVF.SubImageSize.zw;
+	Intermediates.TexCoord.xy = (float2( SubImageAH, SubImageAV ) + UVForTexturing) * SpriteVF.SubImageSize.zw ;
+	Intermediates.TexCoord.zw = (float2(SubImageBH, SubImageBV) + UVForTexturing) * SpriteVF.SubImageSize.zw;
 #if NUM_MATERIAL_TEXCOORDS >= 3
-	Intermediates.TexCoord_Unflipped.xy = (float2(SubImageAH, SubImageAV) + Input.TexCoord.xy) * SpriteVF.SubImageSize.zw;
-	Intermediates.TexCoord_Unflipped.zw = (float2(SubImageBH, SubImageBV) + Input.TexCoord.xy) * SpriteVF.SubImageSize.zw;
+	Intermediates.TexCoord_Unflipped.xy = (float2(SubImageAH, SubImageAV) + UVForTexturingUnflipped) * SpriteVF.SubImageSize.zw;
+	Intermediates.TexCoord_Unflipped.zw = (float2(SubImageBH, SubImageBV) + UVForTexturingUnflipped) * SpriteVF.SubImageSize.zw;
 #endif
 	Intermediates.SubImageLerp = SubImageLerp;
 

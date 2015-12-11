@@ -210,8 +210,6 @@ void FLightSceneInfo::ReleaseRHI()
 		TileIntersectionResources->Release();
 	}
 
-	ShadowSphereShapesVertexBuffer.SafeRelease();
-	ShadowSphereShapesSRV.SafeRelease();
 	ShadowCapsuleShapesVertexBuffer.SafeRelease();
 	ShadowCapsuleShapesSRV.SafeRelease();
 }

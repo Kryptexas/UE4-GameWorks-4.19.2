@@ -832,7 +832,25 @@ public:
 	{
 		return Ref->GetValueOnAnyThread(bForceGameThread);
 	}
-
+	
+	/** Dereference back to a variable**/
+	FORCEINLINE IConsoleVariable& operator*()
+	{
+		return *AsVariable();
+	}
+	FORCEINLINE const IConsoleVariable& operator*() const
+	{
+		return *AsVariable();
+	}
+	/** Dereference back to a variable**/
+	FORCEINLINE IConsoleVariable* operator->()
+	{
+		return AsVariable();
+	}
+	FORCEINLINE const IConsoleVariable* operator->() const
+	{
+		return AsVariable();
+	}
 private:
 	TConsoleVariableData<T>* Ref;
 };

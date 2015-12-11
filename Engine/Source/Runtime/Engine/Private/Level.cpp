@@ -1488,6 +1488,20 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 							TextureInstance.BoundingSphere	= PrimitiveStreamingTexture.Bounds;
 							TextureInstance.TexelFactor		= PrimitiveStreamingTexture.TexelFactor;
 
+							// HLOD support.
+							TextureInstance.MinDistance = Primitive->MinDrawDistance;
+							const UPrimitiveComponent* LODParentPrimitive = Primitive->GetLODParentPrimitive();
+							if (LODParentPrimitive) // Max distance when HLOD becomes visible.
+							{
+								TextureInstance.MaxDistance = LODParentPrimitive->MinDrawDistance;
+								// Taken into account the streaming distance offsets.
+								TextureInstance.MaxDistance += (Primitive->Bounds.Origin - LODParentPrimitive->Bounds.Origin).Size();
+							}
+							else
+							{
+								TextureInstance.MaxDistance = FLT_MAX;
+							}
+
 							// See whether there already is an instance in the level.
 							TArray<FStreamableTextureInstance>* TextureInstances = TextureToInstancesMap.Find( Texture2D );
 							// We have existing instances.

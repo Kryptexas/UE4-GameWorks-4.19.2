@@ -239,6 +239,8 @@ bool					GShouldSuspendRenderingThread	= false;
 FName					GCurrentTraceName				= NAME_None;
 /** How to print the time in log output																		*/
 ELogTimes::Type			GPrintLogTimes					= ELogTimes::None;
+/** How to print the category in log output. */
+bool					GPrintLogCategory = true;
 /** Global screen shot index, which is a way to make it so we don't have overwriting ScreenShots			*/
 int32                     GScreenshotBitmapIndex           = -1;
 /** Whether stats should emit named events for e.g. PIX.													*/

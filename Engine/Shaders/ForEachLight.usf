@@ -43,7 +43,7 @@ float3 LightingForOneLight(FMaterialPixelParameters Parameters, uint LightIndex,
 }
 
 // @param WorldNormal is not assumed to be normalized
-float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, float3 DiffuseColor, float Roughness, float3 SpecularColor)
+float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, FPixelMaterialInputs PixelMaterialInputs, float3 DiffuseColor, float Roughness, float3 SpecularColor)
 {
 	float3 Ret = 0;
 
@@ -66,7 +66,7 @@ float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, float3 Diffu
 	ScreenSpaceData.GBuffer.PrecomputedShadowFactors = 1;
 //	ScreenSpaceData.GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	ScreenSpaceData.GBuffer.ShadingModelID = SHADINGMODELID_TWOSIDED_FOLIAGE;
-	ScreenSpaceData.GBuffer.CustomData = float4(DiffuseColor, GetMaterialOpacity(Parameters));
+	ScreenSpaceData.GBuffer.CustomData = float4(DiffuseColor, GetMaterialOpacity(PixelMaterialInputs));
 	ScreenSpaceData.AmbientOcclusion = 1;
 
 	// todo: support more than 32 lights

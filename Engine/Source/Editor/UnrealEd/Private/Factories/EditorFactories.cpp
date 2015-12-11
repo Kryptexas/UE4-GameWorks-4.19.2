@@ -105,7 +105,8 @@
 #include "Engine/DataTable.h"
 #include "DataTableEditorUtils.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
-
+#include "Factories/SubUVAnimationFactory.h"
+#include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
@@ -2442,6 +2443,33 @@ UObject* UParticleSystemFactoryNew::FactoryCreateNew(UClass* Class,UObject* InPa
 	return NewObject<UObject>(InParent, Class, Name, Flags);
 }
 
+USubUVAnimationFactory::USubUVAnimationFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bCreateNew = true;
+	bEditAfterNew = true;
+	SupportedClass = USubUVAnimation::StaticClass();
+}
+
+UObject* USubUVAnimationFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	USubUVAnimation* NewAsset = NewObject<USubUVAnimation>(InParent, Class, Name, Flags | RF_Transactional);
+
+	if ( InitialTexture != nullptr )
+	{
+		//@todo - auto-detect SubImages_Horizontal and SubImages_Vertical from texture contents
+		NewAsset->SubUVTexture = InitialTexture;
+		NewAsset->PostEditChange();
+	}
+
+	return NewAsset;
+}
+
+uint32 USubUVAnimationFactory::GetMenuCategories() const
+{
+	return EAssetTypeCategories::Misc;
+}
+
 /*------------------------------------------------------------------------------
 	UPhysicalMaterialFactoryNew.
 ------------------------------------------------------------------------------*/
@@ -3935,10 +3963,18 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	const FTGAFileHeader*    TGA   = (FTGAFileHeader *)Buffer;
 	if (Length >= sizeof(FTGAFileHeader) &&
 			 ((TGA->ColorMapType == 0 && TGA->ImageTypeCode == 2) ||
+			  // ImageTypeCode 3 is greyscale
+			  (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3) ||
 			  (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 10) ||
 			  (TGA->ColorMapType == 1 && TGA->ImageTypeCode == 1 && TGA->BitsPerPixel == 8)))
 	{
 		UTexture2D* Texture = 0;
+
+		if (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3)
+		{
+			Warn->Logf(ELogVerbosity::Error, *NSLOCTEXT("UnrealEd", "Warning_TGAGreyscale", "TGA Greyscale import not supported, use RGB").ToString() );
+			return nullptr;
+		}
 
 		// Check the resolution of the imported texture to ensure validity
 		if ( !IsImportResolutionValid(TGA->Width, TGA->Height, bAllowNonPowerOfTwo, Warn) )

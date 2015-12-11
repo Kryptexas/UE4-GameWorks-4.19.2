@@ -6,6 +6,7 @@
 
 // needs to before Common.usf
 #define SHADOW_DEPTH_SHADER 1
+#define USE_STENCIL_LOD_DITHER	0
 
 #include "Common.usf"
 #include "Material.usf"

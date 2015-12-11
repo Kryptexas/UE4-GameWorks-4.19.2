@@ -158,6 +158,14 @@ public:
 		InitGlobalResource();
 	}
 
+	/** Initialization constructor: 1 parameter. */
+	template<typename T1, typename T2>
+	explicit TGlobalResource(T1 Param1, T2 Param2)
+		: ResourceType(Param1, Param2)
+	{
+		InitGlobalResource();
+	}
+
 	/** Destructor. */
 	virtual ~TGlobalResource()
 	{
@@ -439,11 +447,20 @@ public:
 		FRHIResourceCreateInfo CreateInfo;
 		
 		void* LockedData = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(sizeof(uint32), BUF_Static | BUF_ZeroStride, CreateInfo, LockedData);
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(sizeof(uint32), BUF_Static | BUF_ZeroStride | BUF_ShaderResource, CreateInfo, LockedData);
 		uint32* Vertices = (uint32*)LockedData;
 		Vertices[0] = FColor(255, 255, 255, 255).DWColor();
 		RHIUnlockVertexBuffer(VertexBufferRHI);
+		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, sizeof(FColor), PF_R8G8B8A8);
 	}
+
+	virtual void ReleaseRHI() override
+	{
+		VertexBufferSRV.SafeRelease();
+		FVertexBuffer::ReleaseRHI();
+	}
+
+	FShaderResourceViewRHIRef VertexBufferSRV;
 };
 
 /** The global null color vertex buffer, which is set with a stride of 0 on meshes without a color component. */

@@ -50,7 +50,4 @@ void UFbxSceneImportOptionsStaticMesh::FillStaticMeshInmportData(UFbxStaticMeshI
 	StaticMeshImportData->ImportTranslation = SceneImportOptions->ImportTranslation;
 	StaticMeshImportData->ImportRotation = SceneImportOptions->ImportRotation;
 	StaticMeshImportData->ImportUniformScale = SceneImportOptions->ImportUniformScale;
-
-	//This option is for skeletalmesh only
-	StaticMeshImportData->bUseExperimentalTangentGeneration = false;
 }

@@ -87,8 +87,9 @@ float4 MainPS(FVertexDensityVSToPS Input) : SV_Target0
 	else
 	{
 		FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, Input.WorldPosition);
-		CalcMaterialParameters(MaterialParameters, Input.Position, false);
-		GetMaterialCoverageAndClipping(MaterialParameters);
+		FPixelMaterialInputs PixelMaterialInputs;
+		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, Input.Position, false);
+		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 		float3 Color = MaterialParameters.AOMaterialMask + MaterialParameters.VertexColor.xyz;
 		Color = normalize(Color) * 0.5 + float3(0, 0, 0.25);
 		return float4(Color, 0.25);

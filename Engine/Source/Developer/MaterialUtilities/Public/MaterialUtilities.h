@@ -24,6 +24,7 @@ struct FFlattenMaterial
 		, EmissiveSize(0, 0)
 		, SubSurfaceSize(0, 0)
 		, bTwoSided(false)
+		, bDitheredLODTransition(false)
 		, BlendMode(BLEND_Opaque)
 		, EmissiveScale(1.0f)		
 	{}
@@ -104,6 +105,8 @@ struct FFlattenMaterial
 
 	/** Flag whether or not the material will have to be two-sided */
 	bool			bTwoSided;
+	/** Flag whether or not the material will use dithered LOD transitions */
+	bool			bDitheredLODTransition;
 	/** Blend mode for the new material */
 	EBlendMode		BlendMode;
 	/** Scale (maximum baked down value) for the emissive property */

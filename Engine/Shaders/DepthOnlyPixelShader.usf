@@ -26,13 +26,14 @@ void Main(
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, SvPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
 
 	#if OUTPUT_PIXEL_DEPTH_OFFSET
-		ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, OutDepth);
+	ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, PixelMaterialInputs, OutDepth);
 	#endif
 
-	GetMaterialCoverageAndClipping(MaterialParameters);
+	GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 #endif
 
 	OutColor = 0;

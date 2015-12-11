@@ -36,7 +36,7 @@ Texture2D<uint2> SceneStencilTexture;
 #ifndef STENCIL_LIGHTING_CHANNELS_SHIFT 
 #define STENCIL_LIGHTING_CHANNELS_SHIFT 0
 #endif
-
+   
 void CopyStencilToLightingChannelsPS(
 	noperspective float2 InUV : TEXCOORD0,
 	out uint4 OutValue : SV_Target0

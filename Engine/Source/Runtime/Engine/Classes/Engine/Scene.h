@@ -28,6 +28,17 @@ enum EAntiAliasingMethod
 	AAM_MAX,
 };
 
+/** Used by FPostProcessSettings Auto Exposure */
+UENUM()
+enum EAutoExposureMethod
+{
+	/** Not supported on mobile, requires compute shader to construct 64 bin histogram */
+	AEM_Histogram  UMETA(DisplayName = "Auto Exposure Histogram"),
+	/** Not supported on mobile, faster method that computes single value by downsampling */
+	AEM_Basic      UMETA(DisplayName = "Auto Exposure Basic"),
+	AEM_MAX,
+};
+
 USTRUCT()
 struct FWeightedBlendable
 {
@@ -207,6 +218,9 @@ struct FPostProcessSettings
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_BloomDirtMask:1;
+
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+    uint32 bOverride_AutoExposureMethod:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_AutoExposureLowPercent:1;
@@ -653,6 +667,11 @@ struct FPostProcessSettings
 	/** The Ambient cubemap (Affects diffuse and specular shading), blends additively which if different from all other settings here */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AmbientCubemap, meta=(DisplayName = "Cubemap Texture"))
 	class UTextureCube* AmbientCubemap;
+
+
+	/** Luminance computation method */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AutoExposure, meta=(editcondition = "bOverride_AutoExposureMethod", DisplayName = "Method"))
+    TEnumAsByte<enum EAutoExposureMethod> AutoExposureMethod;
 
 	/**
 	 * The eye adaptation will adapt to a value extracted from the luminance histogram of the scene color.

@@ -93,6 +93,26 @@ bool APostProcessVolume::CanEditChange(const UProperty* InProperty) const
 			{
 				return Settings.DepthOfFieldMethod == EDepthOfFieldMethod::DOFM_CircleDOF;
 			}
+
+			// Parameters supported by both log-average and histogram Auto Exposure
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureMinBrightness) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureMaxBrightness) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureSpeedUp)       ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureSpeedDown)     ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureBias)          ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, HistogramLogMin)           || 
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, HistogramLogMax))
+			{
+				return  ( Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Histogram || 
+					      Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Basic );
+			}
+
+			// Parameters supported by only the histogram AutoExposure
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureLowPercent)  ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureHighPercent) )
+			{
+				return Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Histogram;
+			}
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(APostProcessVolume, bEnabled))

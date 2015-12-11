@@ -81,8 +81,11 @@ float DistanceFunction(float4 SvPosition, float3 Pos)
 	MaterialParameters.WorldPosition_NoOffsets_CamRelative = mul(DecalToWorld, float4(Pos, 1)).xyz;
 	MaterialParameters.CameraVector = normalize(View.WorldCameraOrigin - MaterialParameters.AbsoluteWorldPosition);
 
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcPixelMaterialInputs(MaterialParameters, PixelMaterialInputs);
+
 	// the material needs to output the distance from "Opacity" depending on LightVector (in 0..1 range)
-	return GetMaterialMaskInputRaw(MaterialParameters);
+	return GetMaterialMaskInputRaw(PixelMaterialInputs);
 
 #endif
 
@@ -282,7 +285,8 @@ void MainPS(
 		MaterialParameters.WorldPosition_CamRelative = 
 		MaterialParameters.WorldPosition_NoOffsets = 
 		MaterialParameters.WorldPosition_NoOffsets_CamRelative = WSPosition;
-	
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcPixelMaterialInputs(MaterialParameters, PixelMaterialInputs);
 	{
 		if(bVolumetric)
 		{
@@ -297,7 +301,7 @@ void MainPS(
 		else
 		{
 			// not normalized
-			float3 MaterialNormal = GetMaterialNormal(MaterialParameters);
+			float3 MaterialNormal = GetMaterialNormal(MaterialParameters, PixelMaterialInputs);
 
 			// tangent/decal space to world space
 #if MATERIAL_TANGENTSPACENORMAL
@@ -313,9 +317,9 @@ void MainPS(
 	MaterialParameters.ReflectionVector = -MaterialParameters.CameraVector + MaterialParameters.WorldNormal * dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector) * 2.0;
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
-	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
-	half  Metallic = GetMaterialMetallic( MaterialParameters );
-	half  Specular = GetMaterialSpecular( MaterialParameters );
+	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
+	half  Metallic = GetMaterialMetallic(PixelMaterialInputs);
+	half  Specular = GetMaterialSpecular(PixelMaterialInputs);
 
 	float3 Color = 1;
 
@@ -323,14 +327,14 @@ void MainPS(
 		// -1..1 range to 0..1
 		Color = MaterialParameters.WorldNormal * 0.5f + 0.5f;
 	#else
-		Color = GetMaterialEmissive(MaterialParameters);
+		Color = GetMaterialEmissive(PixelMaterialInputs);
 	
 		#if (ES2_PROFILE || ES3_1_PROFILE) // only for mobile
 			Color+= BaseColor;
 		#endif
 	#endif
 
-	float Opacity = GetMaterialOpacity(MaterialParameters);
+	float Opacity = GetMaterialOpacity(PixelMaterialInputs);
 
 #if 0
 	// Normal based fade
@@ -368,7 +372,7 @@ void MainPS(
 	Data.BaseColor = BaseColor;
 	Data.Metallic = Metallic;
 	Data.Specular = Specular;
-	Data.Roughness = GetMaterialRoughness(MaterialParameters);
+	Data.Roughness = GetMaterialRoughness(PixelMaterialInputs);
 	Data.CustomData = 0;
 	Data.IndirectIrradiance = 0;
 	Data.PrecomputedShadowFactors = 0;

@@ -92,12 +92,13 @@ void MainOpacityPS(
 #endif
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, 1);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, 1);
 	
 	// Evaluate the mask for translucent materials
-	GetMaterialClippingShadowDepth(MaterialParameters);
+	GetMaterialClippingShadowDepth(MaterialParameters, PixelMaterialInputs);
 
-	float Density = GetMaterialOpacity(MaterialParameters) * GetMaterialTranslucentShadowDensityScale();
+	float Density = GetMaterialOpacity(PixelMaterialInputs) * GetMaterialTranslucentShadowDensityScale();
 
 #if PERSPECTIVE_CORRECT_DEPTH
 	Inputs.ShadowDepth *= TranslInvMaxSubjectDepth;

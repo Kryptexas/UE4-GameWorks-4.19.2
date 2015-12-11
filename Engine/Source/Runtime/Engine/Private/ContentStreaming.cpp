@@ -2081,6 +2081,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	MaxTempMemoryUsed( 5*1024*1024 )
 ,	bUseDynamicStreaming( false )
 ,	BoostPlayerTextures( 3.0f )
+,	RangePrefetchDistance(400.f)
 ,	MemoryMargin(0)
 ,	MinEvictSize(0)
 ,	IndividualStreamingTexture(NULL)
@@ -2123,6 +2124,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 	GConfig->GetBool(TEXT("TextureStreaming"), TEXT("UseDynamicStreaming"), bUseDynamicStreaming, GEngineIni);
 	GConfig->GetFloat( TEXT("TextureStreaming"), TEXT("BoostPlayerTextures"), BoostPlayerTextures, GEngineIni );
 	GConfig->GetBool(TEXT("TextureStreaming"), TEXT("NeverStreamOutTextures"), GNeverStreamOutTextures, GEngineIni);
+	GConfig->GetFloat( TEXT("TextureStreaming"), TEXT("RangePrefetchDistance"), RangePrefetchDistance, GEngineIni );
 
 	// Read pool size from the CVar
 	static const auto CVarStreamingTexturePoolSize = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.PoolSize"));
@@ -2568,6 +2570,8 @@ void FStreamingManagerTexture::UpdateThreadData()
 					Instance4.BoundingSphereY[ InstanceIndex & 3 ] = Instance.BoundingSphere.Center.Y;
 					Instance4.BoundingSphereZ[ InstanceIndex & 3 ] = Instance.BoundingSphere.Center.Z;
 					Instance4.BoundingSphereRadius[ InstanceIndex & 3 ] = Instance.BoundingSphere.W;
+					Instance4.MinDistanceSq[ InstanceIndex & 3 ] = FMath::Square(FMath::Max(0.f, Instance.MinDistance - RangePrefetchDistance));
+					Instance4.MaxDistanceSq[ InstanceIndex & 3 ] = Instance.MaxDistance == MAX_FLT ? MAX_FLT : FMath::Square(Instance.MaxDistance + RangePrefetchDistance);
 					Instance4.TexelFactor[ InstanceIndex & 3 ] = Instance.TexelFactor;
 					ensureMsgf(!FMath::IsNearlyZero(Instance.TexelFactor), TEXT("Texture instance %d has a texel factor of zero: %s"), TextureInstances.Num(), *Texture2D->GetPathName());
 				}
@@ -4488,6 +4492,12 @@ bool FStreamingManagerTexture::HandleListTrackedTexturesCommand( const TCHAR* Cm
 	ListTrackedTextures( Ar, NumTextures );
 	return true;
 }
+
+FORCEINLINE float SqrtKeepMax(float V)
+{
+	return V == FLT_MAX ? FLT_MAX : FMath::Sqrt(V);
+}
+
 bool FStreamingManagerTexture::HandleDebugTrackedTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if ENABLE_TEXTURE_TRACKING
@@ -4567,11 +4577,13 @@ bool FStreamingManagerTexture::HandleDebugTrackedTexturesCommand( const TCHAR* C
 									for (int32 i = 0; i < 4; i++)
 									{
 										Ar.Logf(
-											TEXT("    Instance: %f,%f,%f Radius: %f TexelFactor: %f"),
+											TEXT("    Instance: %f,%f,%f Radius: %f Range: [%f, %f] TexelFactor: %f"),
 											TextureInstance.BoundingSphereX[i],
 											TextureInstance.BoundingSphereY[i],
 											TextureInstance.BoundingSphereZ[i],
 											TextureInstance.BoundingSphereRadius[i],
+											FMath::Sqrt(TextureInstance.MinDistanceSq[i]),
+											SqrtKeepMax(TextureInstance.MaxDistanceSq[i]),
 											TextureInstance.TexelFactor[i]
 										);
 									}
@@ -5091,39 +5103,79 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateT
 								FVector Center( CenterX[PartialIndex], CenterY[PartialIndex], CenterZ[PartialIndex] );
 								float Radius = Instance.BoundingSphereRadius[PartialIndex];
 								float TexelFactor = Instance.TexelFactor[PartialIndex];
+								float MinRelevantDistance = FMath::Sqrt(Instance.MinDistanceSq[PartialIndex]);
+								float MaxRelevantDistance = SqrtKeepMax(Instance.MaxDistanceSq[PartialIndex]);
+
 								float MinDistance = MAX_FLT;
+								float OutOfRangeDistance = MAX_FLT;
 								FFloatMipLevel WantedMipCount;
 								bool bInside = false;
+								bool bIsInRange = false;
+
 								for( int32 ViewIndex=0; ViewIndex < ThreadNumViews(); ViewIndex++ )
 								{
 									// Calculate distance of viewer to bounding sphere.
 									const FStreamingViewInfo& ViewInfo = ThreadGetView(ViewIndex);
 									float Distance = (ViewInfo.ViewOrigin - Center).Size();
-									MinDistance = FMath::Min(MinDistance, Distance);
-									float DistSqMinusRadiusSq = ClampMeshToCameraDistanceSquared(FMath::Square(Distance) - FMath::Square(Radius));
-									if( DistSqMinusRadiusSq > 1.f )
+									if (Distance >= MinRelevantDistance && Distance <= MaxRelevantDistance)
 									{
-										// Outside the texture instance bounding sphere, calculate miplevel based on screen space size of bounding sphere.
-										// Calculate the maximum screen space dimension in pixels.
-										const float ScreenSize = ViewInfo.ScreenSize * ViewInfo.BoostFactor * ScreenSizeFactor;
-										const float	ScreenSizeInTexels = TexelFactor * FMath::InvSqrtEst( DistSqMinusRadiusSq ) * ScreenSize;
-										// WantedMipCount is the number of mips so we need to adjust with "+ 1".
-										WantedMipCount = FMath::Max( WantedMipCount, FFloatMipLevel::FromScreenSizeInTexels(ScreenSizeInTexels) );
+										bIsInRange = true;
+										MinDistance = FMath::Min(MinDistance, Distance);
+										float DistSqMinusRadiusSq = ClampMeshToCameraDistanceSquared(FMath::Square(Distance) - FMath::Square(Radius));
+										if( DistSqMinusRadiusSq > 1.f )
+										{
+											// Outside the texture instance bounding sphere, calculate miplevel based on screen space size of bounding sphere.
+											// Calculate the maximum screen space dimension in pixels.
+											const float ScreenSize = ViewInfo.ScreenSize * ViewInfo.BoostFactor * ScreenSizeFactor;
+											const float	ScreenSizeInTexels = TexelFactor * FMath::InvSqrtEst( DistSqMinusRadiusSq ) * ScreenSize;
+											// WantedMipCount is the number of mips so we need to adjust with "+ 1".
+											WantedMipCount = FMath::Max( WantedMipCount, FFloatMipLevel::FromScreenSizeInTexels(ScreenSizeInTexels) );
+										}
+										else
+										{
+											// Request all miplevels to be loaded if we're inside the bounding sphere.
+											WantedMipCount = FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips);
+											bInside = true;
+											break;
+										}
 									}
 									else
 									{
-										// Request all miplevels to be loaded if we're inside the bounding sphere.
-										WantedMipCount = FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips);
-										bInside = true;
-										break;
+										// Here we store distance in another variable since the relevant distance (from another view) might actually be greater.
+										OutOfRangeDistance = FMath::Min(OutOfRangeDistance, Distance);
 									}
 								}
-								int32 IntWantedMipCount = WantedMipCount.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, false);
-								int32 WantedMip = FMath::Max(Texture2D->GetNumMips() - IntWantedMipCount, 0);
-								UE_LOG(LogContentStreaming, Log, TEXT("Static: Wanted=%dx%d, Distance=%.1f, TexelFactor=%.2f, Radius=%5.1f, Position=(%d,%d,%d)%s"),
-									Texture2D->PlatformData->Mips[WantedMip].SizeX, Texture2D->PlatformData->Mips[WantedMip].SizeY,
-									MinDistance, TexelFactor, Radius, int32(Center.X), int32(Center.Y), int32(Center.Z),
-									bInside ? TEXT(" [all mips]") : TEXT(""));
+
+								FString RangeString;
+								if (MinRelevantDistance != 0 || MaxRelevantDistance != FLT_MAX)
+								{
+									if (MaxRelevantDistance == FLT_MAX)
+									{
+										RangeString = FString::Printf(TEXT("Range: [%.0f, INF], "), MinRelevantDistance);
+									}
+									else
+									{
+										RangeString = FString::Printf(TEXT("Range: [%.0f, %.0f], "), MinRelevantDistance, MaxRelevantDistance);
+									}
+								}
+									
+
+								if (bIsInRange)
+								{
+									int32 IntWantedMipCount = WantedMipCount.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, false);
+									int32 WantedMip = FMath::Max(Texture2D->GetNumMips() - IntWantedMipCount, 0);
+
+									UE_LOG(LogContentStreaming, Log, TEXT("Static: Wanted=%dx%d, Distance=%.1f, %sTexelFactor=%.2f, Radius=%5.1f, Position=(%d,%d,%d)%s"),
+										Texture2D->PlatformData->Mips[WantedMip].SizeX, Texture2D->PlatformData->Mips[WantedMip].SizeY,
+										MinDistance, *RangeString, TexelFactor, Radius, int32(Center.X), int32(Center.Y), int32(Center.Z),
+										bInside ? TEXT(" [all mips]") : TEXT(""));
+								}
+								else // Here there is no use for distance it will be FLT_MAX
+								{
+									UE_LOG(LogContentStreaming, Log, TEXT("Static: Distance(OutOfRange)=%.1f, %sTexelFactor=%.2f, Radius=%5.1f, Position=(%d,%d,%d)%s"),
+										   OutOfRangeDistance, *RangeString, TexelFactor, Radius, int32(Center.X), int32(Center.Y), int32(Center.Z),
+										   bInside ? TEXT(" [all mips]") : TEXT(""));
+								}
 							}
 						}
 					}
@@ -5224,7 +5276,8 @@ void FStreamingManagerTexture::DumpTextureInstances( const UPrimitiveComponent* 
 FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerTexture& StreamingManager, FStreamingTexture& StreamingTexture, float& MinDistance )
 {
 	FFloatMipLevel WantedMipCount;
-	bool bShouldAbortLoop		= false;
+	bool bShouldAbortLoop = false;
+	bool bEntryFound = false; // True an entry for this texture exists­.
 
 	// Nothing do to if there are no views or instances.
 	if( StreamingManager.ThreadNumViews() /*&& StreamingTexture.Instances.Num() > 0*/ )
@@ -5244,7 +5297,8 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 
 		ScreenSizeFactor *= StreamingTexture.BoostFactor;
 
-		VectorRegister MinDistanceSq4 = VectorSet((float)FLT_MAX, (float)FLT_MAX, (float)FLT_MAX, (float)FLT_MAX);
+		const VectorRegister MaxFloat4 = VectorSet((float)FLT_MAX, (float)FLT_MAX, (float)FLT_MAX, (float)FLT_MAX);
+		VectorRegister MinDistanceSq4 = MaxFloat4;
 		VectorRegister MaxTexels = VectorSet(-(float)FLT_MAX, -(float)FLT_MAX, -(float)FLT_MAX, -(float)FLT_MAX);
 		for ( int32 LevelIndex=0; LevelIndex < StreamingManager.ThreadSettings.LevelData.Num(); ++LevelIndex )
 		{
@@ -5252,6 +5306,8 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 			TArray<FStreamableTextureInstance4>* TextureInstances = LevelData.ThreadTextureInstances.Find( StreamingTexture.Texture );
 			if ( TextureInstances )
 			{
+				bEntryFound = true;
+
 				for ( int32 InstanceIndex=0; InstanceIndex < TextureInstances->Num() && !bShouldAbortLoop; ++InstanceIndex )
 				{
 					const FStreamableTextureInstance4& TextureInstance = (*TextureInstances)[InstanceIndex];
@@ -5279,7 +5335,18 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 						Temp = VectorSubtract( ViewOriginZ, CenterZ );
 						DistSq = VectorMultiplyAdd( Temp, Temp, DistSq );
 
-//						const float DistSqMinusRadiusSq = DistSq - FMath::Square(TextureInstance.BoundingSphere.W);
+						// If distance is not in range, replace it with FLT_MAX
+						{
+							// ClampedDistSq = clamp(DistSq, TextureInstance.MinDistanceSq, TextureInstance.MaxDistanceSq);
+							VectorRegister ClampedDistSq = VectorMax( VectorLoadAligned( &TextureInstance.MinDistanceSq ), DistSq );
+							ClampedDistSq = VectorMin( VectorLoadAligned( &TextureInstance.MaxDistanceSq ), ClampedDistSq );
+
+							// DistSq = (DistSq == ClampedDistSq) ? DistSq : FLT_MAX
+							const VectorRegister InRangeMask = VectorCompareEQ(DistSq, ClampedDistSq);
+							DistSq = VectorSelect(InRangeMask, DistSq, MaxFloat4);
+						}
+						
+						// const float DistSqMinusRadiusSq = DistSq - FMath::Square(TextureInstance.BoundingSphere.W);
 						VectorRegister DistSqMinusRadiusSq = VectorLoadAligned( &TextureInstance.BoundingSphereRadius );
 						DistSqMinusRadiusSq = VectorMultiply( DistSqMinusRadiusSq, DistSqMinusRadiusSq );
 						DistSqMinusRadiusSq = VectorSubtract( DistSq, DistSqMinusRadiusSq );
@@ -5355,6 +5422,12 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 						MaxTexels = VectorMax( MaxTexels, VectorReplicate(MaxTexels, 1) );
 						float ScreenSizeInTexels;
 						VectorStoreFloat1( MaxTexels, &ScreenSizeInTexels );
+						// If every entry is out of range, we risk returning -1 from the handler, which would be the same as not handled.
+						// Not handled textures, will use fallback handlers, where here we rather want to prevent streaming the texture.
+						if (bEntryFound)
+						{
+							ScreenSizeInTexels = FMath::Max(1.f, ScreenSizeInTexels); // Ensure IsHandled()
+						}
 						// WantedMipCount is the number of mips so we need to adjust with "+ 1".
 						WantedMipCount = FMath::Max(WantedMipCount, FFloatMipLevel::FromScreenSizeInTexels(ScreenSizeInTexels));
 						MinDistance = FMath::Min( MinDistanceSq, FMath::Sqrt( MinDistanceSq ) );
@@ -5539,7 +5612,20 @@ FFloatMipLevel FStreamingHandlerTextureLevelForced::GetWantedMips( FStreamingMan
 FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance& TextureInstance )
 {
 	Ar << TextureInstance.BoundingSphere;
+
+	if (Ar.UE4Ver() >= VER_UE4_STREAMABLE_TEXTURE_MIN_MAX_DISTANCE)
+	{
+		Ar << TextureInstance.MinDistance;
+		Ar << TextureInstance.MaxDistance;
+	}
+	else if (Ar.IsLoading())
+	{
+		TextureInstance.MinDistance = 0;
+		TextureInstance.MaxDistance = MAX_FLT;
+	}
+
 	Ar << TextureInstance.TexelFactor;
+
 	return Ar;
 }
 
@@ -5552,8 +5638,9 @@ FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance& TextureInstance 
  */
 FArchive& operator<<( FArchive& Ar, FDynamicTextureInstance& TextureInstance )
 {
-	Ar << TextureInstance.BoundingSphere;
-	Ar << TextureInstance.TexelFactor;
+	FStreamableTextureInstance& Super = TextureInstance;
+	Ar << Super;
+
 	Ar << TextureInstance.Texture;
 	Ar << TextureInstance.bAttached;
 	Ar << TextureInstance.OriginalRadius;

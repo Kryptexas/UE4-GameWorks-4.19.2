@@ -1523,7 +1523,9 @@ void CreateConsoleVariables()
 // i.      Input e.g. mouse/keyboard
 // p.      Physics
 // t.      Timer
-// g.      Game
+// log.	   Logging system
+// con.	   Console (in game  or editor) 
+// g.      Game specific
 // Compat.
 // FX.     Particle effects
 // sg.     scalability group (used by scalability system, ini load/save or using SCALABILITY console command)

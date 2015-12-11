@@ -137,7 +137,7 @@ bool FAutomationTestFramework::RunSmokeTests()
 	//@todo - better determination of whether to run than requires cooked data
 	// Ensure there isn't another slow task in progress when trying to run unit tests
 	const bool bRequiresCookedData = FPlatformProperties::RequiresCookedData();
-	if ((!bRequiresCookedData && !GIsSlowTask && !GIsPlayInEditorWorld) || bForceSmokeTests)
+	if ((!bRequiresCookedData && !GIsSlowTask && !GIsPlayInEditorWorld && !FPlatformProperties::IsProgram()) || bForceSmokeTests)
 	{
 		TArray<FAutomationTestInfo> TestInfo;
 
@@ -184,7 +184,7 @@ bool FAutomationTestFramework::RunSmokeTests()
 	{
 		UE_LOG( LogAutomationTest, Log, TEXT( "Skipping unit tests for the cooked build." ) );
 	}
-	else
+	else if (!FPlatformProperties::IsProgram())
 	{
 		UE_LOG(LogAutomationTest, Error, TEXT("Skipping unit tests.") );
 		bAllSuccessful = false;

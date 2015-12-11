@@ -946,11 +946,12 @@ bool TestPakFile(const TCHAR* Filename)
 	}
 }
 
-bool ListFilesInPak(const TCHAR * InPakFilename)
+bool ListFilesInPak(const TCHAR * InPakFilename, int64 SizeFilter = 0)
 {
 	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
 	int32 FileCount = 0;
 	int64 FileSize = 0;
+	int64 FilteredSize = 0;
 
 	if (PakFile.IsValid())
 	{
@@ -974,11 +975,15 @@ bool ListFilesInPak(const TCHAR * InPakFilename)
 		for (auto It : Records)
 		{
 			const FPakEntry& Entry = It.Info();
-			UE_LOG(LogPakFile, Display, TEXT("\"%s\" offset: %lld, size: %d bytes."), *It.Filename(), Entry.Offset, Entry.Size);
+			if (Entry.Size >= SizeFilter)
+			{
+				UE_LOG(LogPakFile, Display, TEXT("\"%s\" offset: %lld, size: %d bytes."), *It.Filename(), Entry.Offset, Entry.Size);
+				FilteredSize += Entry.Size;
+			}
 			FileSize += Entry.Size;
 			FileCount++;
 		}
-		UE_LOG(LogPakFile, Display, TEXT("%d files (%lld bytes)."), FileCount, FileSize);
+		UE_LOG(LogPakFile, Display, TEXT("%d files (%lld bytes), (%lld filtered bytes)."), FileCount, FileSize, FilteredSize);
 
 		return true;
 	}
@@ -1372,8 +1377,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("List")))
 		{
+			int64 SizeFilter = 0;
+			FParse::Value(FCommandLine::Get(), TEXT("SizeFilter="), SizeFilter);
+
 			FString PakFilename = GetPakPath(ArgV[1], false);
-			Result = ListFilesInPak(*PakFilename);
+			Result = ListFilesInPak(*PakFilename, SizeFilter);
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("Diff")))
 		{

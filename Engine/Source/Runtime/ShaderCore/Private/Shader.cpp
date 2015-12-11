@@ -1637,4 +1637,12 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			}
 		}
 	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
+		if (CVar)
+		{
+			KeyString += FString::Printf(TEXT("_EARLYZ%d"), CVar->GetValueOnAnyThread());
+		}
+	}
 }

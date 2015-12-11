@@ -24,6 +24,8 @@
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Particles/SubUV/ParticleModuleSubUV.h"
+#include "Particles/SubUVAnimation.h"
 
 #include "Components/PointLightComponent.h"
 
@@ -81,6 +83,8 @@ DEFINE_STAT(STAT_GPUSpriteRenderingTime);
 DEFINE_STAT(STAT_GPUSpritePreRenderTime);
 DEFINE_STAT(STAT_GPUSpriteSpawnTime);
 DEFINE_STAT(STAT_GPUSpriteTickTime);
+DEFINE_STAT(STAT_GPUSingleIterationEmitters);
+DEFINE_STAT(STAT_GPUMultiIterationsEmitters);
 
 /** Particle memory stats */
 
@@ -425,34 +429,33 @@ void FParticleEmitterInstance::Init()
 		TypeDataOffset = SpriteTemplate->TypeDataOffset;
 		TypeDataInstanceOffset = SpriteTemplate->TypeDataInstanceOffset;
 
-
-		if ((InstanceData == NULL) || (SpriteTemplate->ReqInstanceBytes > InstancePayloadSize))
-		{
-			InstanceData = (uint8*)(FMemory::Realloc(InstanceData, SpriteTemplate->ReqInstanceBytes));
-			InstancePayloadSize = SpriteTemplate->ReqInstanceBytes;
-		}
-
-		FMemory::Memzero(InstanceData, InstancePayloadSize);
-
-		for (UParticleModule* ParticleModule : SpriteTemplate->ModulesNeedingInstanceData)
-		{
-			check(ParticleModule);
-			uint8* PrepInstData = GetModuleInstanceData(ParticleModule);
-			check(PrepInstData > 0); // Shouldn't be in the list if it doesn't have data
-			ParticleModule->PrepPerInstanceBlock(this, (void*)PrepInstData);
-		}
-
-		// Offset into emitter specific payload (e.g. TrailComponent requires extra bytes).
-		PayloadOffset = ParticleSize;
-	
-		// Update size with emitter specific size requirements.
-		ParticleSize += RequiredBytes();
-
-		// Make sure everything is at least 16 byte aligned so we can use SSE for FVector.
-		ParticleSize = Align(ParticleSize, 16);
-
-		// E.g. trail emitters store trailing particles directly after leading one.
-		ParticleStride			= CalculateParticleStride(ParticleSize);
+	    if ((InstanceData == NULL) || (SpriteTemplate->ReqInstanceBytes > InstancePayloadSize))
+	    {
+			    InstanceData = (uint8*)(FMemory::Realloc(InstanceData, SpriteTemplate->ReqInstanceBytes));
+			    InstancePayloadSize = SpriteTemplate->ReqInstanceBytes;
+	    }
+    
+	    FMemory::Memzero(InstanceData, InstancePayloadSize);
+    
+	    for (UParticleModule* ParticleModule : SpriteTemplate->ModulesNeedingInstanceData)
+	    {
+		    check(ParticleModule);
+		    uint8* PrepInstData = GetModuleInstanceData(ParticleModule);
+			    check(PrepInstData > 0); // Shouldn't be in the list if it doesn't have data
+			    ParticleModule->PrepPerInstanceBlock(this, (void*)PrepInstData);
+	    }
+    
+	    // Offset into emitter specific payload (e.g. TrailComponent requires extra bytes).
+	    PayloadOffset = ParticleSize;
+	    
+	    // Update size with emitter specific size requirements.
+	    ParticleSize += RequiredBytes();
+    
+	    // Make sure everything is at least 16 byte aligned so we can use SSE for FVector.
+	    ParticleSize = Align(ParticleSize, 16);
+    
+	    // E.g. trail emitters store trailing particles directly after leading one.
+	    ParticleStride			= CalculateParticleStride(ParticleSize);
 	}
 
 	// Setup the emitter instance material array...
@@ -518,29 +521,29 @@ void FParticleEmitterInstance::Init()
 	if(bNeedsInit)
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_AllocateBurstLists);
-		// Propagate killon flags
+	// Propagate killon flags
 		bKillOnDeactivate = HighLODLevel->RequiredModule->bKillOnDeactivate;
 		bKillOnCompleted = HighLODLevel->RequiredModule->bKillOnCompleted;
 
-		// Propagate sorting flag.
+	// Propagate sorting flag.
 		SortMode = HighLODLevel->RequiredModule->SortMode;
 
-		// Reset the burst lists
-		if (BurstFired.Num() < SpriteTemplate->LODLevels.Num())
-		{
-			BurstFired.AddZeroed(SpriteTemplate->LODLevels.Num() - BurstFired.Num());
-		}
+	// Reset the burst lists
+	if (BurstFired.Num() < SpriteTemplate->LODLevels.Num())
+	{
+		BurstFired.AddZeroed(SpriteTemplate->LODLevels.Num() - BurstFired.Num());
+	}
 
-		for (int32 LODIndex = 0; LODIndex < SpriteTemplate->LODLevels.Num(); LODIndex++)
-		{
+	for (int32 LODIndex = 0; LODIndex < SpriteTemplate->LODLevels.Num(); LODIndex++)
+	{
 			UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[LODIndex];
-			check(LODLevel);
-			FLODBurstFired& LocalBurstFired = BurstFired[LODIndex];
-			if (LocalBurstFired.Fired.Num() < LODLevel->SpawnModule->BurstList.Num())
-			{
-				LocalBurstFired.Fired.AddZeroed(LODLevel->SpawnModule->BurstList.Num() - LocalBurstFired.Fired.Num());
-			}
+		check(LODLevel);
+		FLODBurstFired& LocalBurstFired = BurstFired[LODIndex];
+		if (LocalBurstFired.Fired.Num() < LODLevel->SpawnModule->BurstList.Num())
+		{
+			LocalBurstFired.Fired.AddZeroed(LODLevel->SpawnModule->BurstList.Num() - LocalBurstFired.Fired.Num());
 		}
+	}
 	}
 
 	ResetBurstList();
@@ -637,16 +640,16 @@ bool FParticleEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSetMaxA
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ParticleMemTime);
 
-			ParticleData = (uint8*) FMemory::Realloc(ParticleData, ParticleStride * NewMaxActiveParticles);
-			check(ParticleData);
+		ParticleData = (uint8*) FMemory::Realloc(ParticleData, ParticleStride * NewMaxActiveParticles);
+		check(ParticleData);
 
-			// Allocate memory for indices.
-			if (ParticleIndices == NULL)
-			{
-				// Make sure that we clear all when it is the first alloc
-				MaxActiveParticles = 0;
-			}
-			ParticleIndices	= (uint16*) FMemory::Realloc(ParticleIndices, sizeof(uint16) * (NewMaxActiveParticles + 1));
+		// Allocate memory for indices.
+		if (ParticleIndices == NULL)
+		{
+			// Make sure that we clear all when it is the first alloc
+			MaxActiveParticles = 0;
+		}
+		ParticleIndices	= (uint16*) FMemory::Realloc(ParticleIndices, sizeof(uint16) * (NewMaxActiveParticles + 1));
 		}
 
 		// Fill in default 1:1 mapping.
@@ -1420,9 +1423,9 @@ uint8* FParticleEmitterInstance::GetModuleInstanceData(UParticleModule* Module)
 		if (Offset)
 		{
 			check(*Offset < (uint32)InstancePayloadSize);
-			return &(InstanceData[*Offset]);
+				return &(InstanceData[*Offset]);
+			}
 		}
-	}
 	return NULL;
 }
 
@@ -2889,6 +2892,14 @@ bool FParticleSpriteEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBa
 
 	// Get the material instance. If there is none, or the material isn't flagged for use with particle systems, use the DefaultMaterial.
 	NewReplayData->MaterialInterface = GetCurrentMaterial();
+	USubUVAnimation* RESTRICT SubUVAnimation = SpriteTemplate->SubUVAnimation;
+	NewReplayData->SubUVAnimation = SubUVAnimation;
+
+	if (SubUVAnimation)
+	{
+		NewReplayData->SubImages_Horizontal = SubUVAnimation->SubImages_Horizontal;
+		NewReplayData->SubImages_Vertical = SubUVAnimation->SubImages_Vertical;
+	}
 
 	return true;
 }
@@ -3667,6 +3678,30 @@ FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* 
 {
 }
 
+FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
+	: MaterialInterface(NULL)
+	, SubUVAnimation(NULL)
+	, NormalsSphereCenter(FVector::ZeroVector)
+	, NormalsCylinderDirection(FVector::ZeroVector)
+	, InvDeltaSeconds(0.0f)
+	, MaxDrawCount(0)
+	, OrbitModuleOffset(0)
+	, DynamicParameterDataOffset(0)
+	, LightDataOffset(0)
+	, CameraPayloadOffset(0)
+	, SubUVDataOffset(0)
+	, SubImages_Horizontal(1)
+	, SubImages_Vertical(1)
+	, bUseLocalSpace(false)
+	, bLockAxis(false)
+	, ScreenAlignment(0)
+	, LockAxisFlag(0)
+	, EmitterRenderMode(0)
+	, EmitterNormalsMode(0)
+	, PivotOffset(-0.5f, -0.5f)
+{
+}
+
 /** FDynamicSpriteEmitterReplayDataBase Serialization */
 void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 {
@@ -3693,6 +3728,7 @@ void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 	Ar << NormalsCylinderDirection;
 
 	Ar << MaterialInterface;
+	Ar << SubUVAnimation;
 
 	Ar << PivotOffset;
 }

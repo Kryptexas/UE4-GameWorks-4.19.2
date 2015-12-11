@@ -35,7 +35,7 @@ class IRHICommandContextContainer
 {
 public:
 	virtual ~IRHICommandContextContainer()
-{
+	{
 	}
 
 	virtual IRHICommandContext* GetContext()
@@ -1425,6 +1425,12 @@ public:
 	}
 
 	template <typename TShaderRHI>
+	FORCEINLINE_DEBUGGABLE void SetLocalShaderUniformBuffer(TRefCountPtr<TShaderRHI>& Shader, uint32 BaseIndex, const FLocalUniformBuffer& UniformBuffer)
+	{
+		SetLocalShaderUniformBuffer(Shader.GetReference(), BaseIndex, UniformBuffer);
+	}
+
+	template <typename TShaderRHI>
 	FORCEINLINE_DEBUGGABLE void SetShaderUniformBuffer(TShaderRHI* Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
 	{
 		if (Bypass())
@@ -1469,6 +1475,12 @@ public:
 		new (AllocCommand<FRHICommandSetShaderTexture<TShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetShaderTexture<TShaderRHIParamRef, ECmdList::EGfx>(Shader, TextureIndex, Texture);
 	}
 
+	template <typename TShaderRHI>
+	FORCEINLINE_DEBUGGABLE void SetShaderTexture(TRefCountPtr<TShaderRHI>& Shader, uint32 TextureIndex, FTextureRHIParamRef Texture)
+	{
+		SetShaderTexture(Shader.GetReference(), TextureIndex, Texture);
+	}
+
 	template <typename TShaderRHIParamRef>
 	FORCEINLINE_DEBUGGABLE void SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV)
 	{
@@ -1478,6 +1490,12 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef, ECmdList::EGfx>(Shader, SamplerIndex, SRV);
+	}
+
+	template <typename TShaderRHI>
+	FORCEINLINE_DEBUGGABLE void SetShaderResourceViewParameter(TRefCountPtr<TShaderRHI>& Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV)
+	{
+		SetShaderResourceViewParameter(Shader.GetReference(), SamplerIndex, SRV);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1491,6 +1509,12 @@ public:
 		new (AllocCommand<FRHICommandSetShaderSampler<TShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetShaderSampler<TShaderRHIParamRef, ECmdList::EGfx>(Shader, SamplerIndex, State);
 	}
 
+	template <typename TShaderRHI>
+	FORCEINLINE_DEBUGGABLE void SetShaderSampler(TRefCountPtr<TShaderRHI>& Shader, uint32 SamplerIndex, FSamplerStateRHIParamRef State)
+	{
+		SetShaderSampler(Shader.GetReference(), SamplerIndex, State);
+	}
+
 	FORCEINLINE_DEBUGGABLE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV)
 	{
 		if (Bypass())
@@ -1501,6 +1525,11 @@ public:
 		new (AllocCommand<FRHICommandSetUAVParameter<FComputeShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetUAVParameter<FComputeShaderRHIParamRef, ECmdList::EGfx>(Shader, UAVIndex, UAV);
 	}
 
+	FORCEINLINE_DEBUGGABLE void SetUAVParameter(TRefCountPtr<FRHIComputeShader>& Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV)
+	{
+		SetUAVParameter(Shader.GetReference(), UAVIndex, UAV);
+	}
+
 	FORCEINLINE_DEBUGGABLE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
 	{
 		if (Bypass())
@@ -1509,6 +1538,11 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef, ECmdList::EGfx>(Shader, UAVIndex, UAV, InitialCount);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetUAVParameter(TRefCountPtr<FRHIComputeShader>& Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
+	{
+		SetUAVParameter(Shader.GetReference(), UAVIndex, UAV, InitialCount);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)

@@ -79,6 +79,10 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 		&&	DestRect.X2 == ResolveTargetDesc.Width
 		&&	DestRect.Y2 == ResolveTargetDesc.Height;
 	
+	//we may change rendertargets and depth state behind the RHI's back here.
+	//save off this original state to restore it.
+	FExclusiveDepthStencil OriginalDSVAccessType = CurrentDSVAccessType;
+
 	if(ResolveTargetDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
 	{
 		// Clear the destination texture.
@@ -89,6 +93,8 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 			Direct3DDeviceContext->ClearDepthStencilView(DestTextureDSV,D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,0,0);
 		}
 
+		//hack this to  pass validation in SetDepthStencil state since we are directly changing targets with a call to OMSetRenderTargets later.
+		CurrentDSVAccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI(),0);
 		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
@@ -182,6 +188,9 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 
 	// Reset saved viewport
 	RHISetMultipleViewports(1,(FViewportBounds*)&SavedViewport);
+
+	//reset DSVAccess.
+	CurrentDSVAccessType = OriginalDSVAccessType;
 }
 
 /**

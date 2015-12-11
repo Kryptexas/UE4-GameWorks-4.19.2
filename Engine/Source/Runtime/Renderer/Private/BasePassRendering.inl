@@ -8,10 +8,10 @@
 #pragma once
 
 template<typename VertexParametersType>
-inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue)
+inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState)
 {
 	FVertexShaderRHIParamRef VertexShaderRHI = GetVertexShader();
-	FMeshMaterialShader::SetMesh(RHICmdList, VertexShaderRHI, VertexFactory, View, Proxy, BatchElement, DitheredLODTransitionValue);
+	FMeshMaterialShader::SetMesh(RHICmdList, VertexShaderRHI, VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 
 	const bool bHasPreviousLocalToWorldParameter = PreviousLocalToWorldParameter.IsBound();
 	const bool bHasSkipOutputVelocityParameter = SkipOutputVelocityParameter.IsBound();
@@ -55,7 +55,7 @@ void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEye
 }
 
 template<typename PixelParametersType>
-void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, EBlendMode BlendMode, float DitheredLODTransitionValue)
+void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode)
 {
 	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
 		&& IsTranslucentBlendMode(BlendMode))
@@ -63,5 +63,5 @@ void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHIComma
 		TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
 	}
 
-	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement,DitheredLODTransitionValue);
+	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 }

@@ -41,6 +41,15 @@ FAutoConsoleVariableRef CVarAOGlobalDistanceFieldPartialUpdates(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+int32 GAOLogGlobalDistanceFieldModifiedPrimitives = 0;
+FAutoConsoleVariableRef CVarAOLogGlobalDistanceFieldModifiedPrimitives(
+	TEXT("r.AOGlobalDistanceFieldLogModifiedPrimitives"),
+	GAOLogGlobalDistanceFieldModifiedPrimitives,
+	TEXT("Whether to log primitive modifications (add, remove, updatetransform) that caused an update of the global distance field.\n")
+	TEXT("This can be useful for tracking down why updating the global distance field is always costing a lot, since it should be mostly cached."),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
 int32 GAOVisualizeGlobalDistanceField = 0;
 FAutoConsoleVariableRef CVarAOVisualizeGlobalDistanceField(
 	TEXT("r.AOVisualizeGlobalDistanceField"),

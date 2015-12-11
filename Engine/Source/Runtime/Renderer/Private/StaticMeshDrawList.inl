@@ -88,6 +88,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	}
 	
 	uint32 BackFaceEnd = DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1;
+	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Element.Mesh, View.bAllowStencilDither));
 
 	int32 BatchElementIndex = 0;
 	do
@@ -106,26 +107,24 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					DrawingPolicyLink->DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 				}
 
-				for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
-				{
-					INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
+			for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
+			{
+				INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
 
-					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
-			
-					float DitherValue = View.GetDitheredLODTransitionValue(*Element.Mesh);
+				TDrawEvent<FRHICommandList> MeshEvent;
+				BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
 
-					DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
-						RHICmdList,
-						View,
-						Proxy,
-						*Element.Mesh,
-						BatchElementIndex,
-						!!BackFace,
-						DitherValue,
-						Element.PolicyData,
-						PolicyContext
-						);
+				DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
+					RHICmdList, 
+					View,
+					Proxy,
+					*Element.Mesh,
+					BatchElementIndex,
+					!!BackFace,
+					DrawRenderState,
+					Element.PolicyData,
+					PolicyContext
+					);
 					DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, PolicyContext.bIsInstancedStereo);
 				}
 			}

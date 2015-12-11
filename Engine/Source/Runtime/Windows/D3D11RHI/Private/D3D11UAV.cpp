@@ -189,7 +189,7 @@ FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FVertexB
 		}
 		if (FAILED(hr))
 		{
-			UE_LOG(LogD3D11RHI,Error,TEXT("Failed to create shader resource view for vertex buffer: ByteWidth=%d NumElements=%d"),BufferDesc.ByteWidth,BufferDesc.ByteWidth / Stride);
+			UE_LOG(LogD3D11RHI,Error,TEXT("Failed to create shader resource view for vertex buffer: ByteWidth=%d NumElements=%d Format=%s"),BufferDesc.ByteWidth,BufferDesc.ByteWidth / Stride, GPixelFormats[Format].Name);
 			VerifyD3D11Result(hr,"Direct3DDevice->CreateShaderResourceView",__FILE__,__LINE__,Direct3DDevice);
 		}
 	}

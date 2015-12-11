@@ -53,6 +53,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystemReplay.h"
 #include "Distributions/DistributionFloatConstantCurve.h"
+#include "Particles/SubUV/ParticleModuleSubUV.h"
+#include "Particles/SubUVAnimation.h"
 #include "Engine/InterpCurveEdSetup.h"
 #include "GameFramework/GameState.h"
 
@@ -1565,6 +1567,7 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 	PivotOffset = FVector2D(-0.5f, -0.5f);
 	TypeDataOffset = 0;
 	TypeDataInstanceOffset = -1;
+	SubUVAnimation = nullptr;
 
 	UParticleLODLevel* HighLODLevel = GetLODLevel(0);
 	check(HighLODLevel);
@@ -1660,6 +1663,13 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 			{
 				MeshMaterials = MeshMaterialModule->MeshMaterials;
 			}
+		}
+		else if (ParticleModule->IsA(UParticleModuleSubUV::StaticClass()))
+		{
+			USubUVAnimation* ModuleSubUVAnimation = Cast<UParticleModuleSubUV>(ParticleModule)->Animation;
+			SubUVAnimation = ModuleSubUVAnimation && ModuleSubUVAnimation->SubUVTexture && ModuleSubUVAnimation->IsBoundingGeometryValid()
+				? ModuleSubUVAnimation
+				: NULL;
 		}
 
 		// Set bMeshRotationActive if module says so

@@ -24,6 +24,7 @@ public:
 
 	/** Defines which objects we want to render in the EarlyZPass. */
 	EDepthDrawingMode EarlyZPassMode;
+	bool bDitheredLODTransitionsUseStencil;
 
 	/** 
 	 * Layout used to track translucent self shadow residency from the per-light shadow passes, 
@@ -288,8 +289,14 @@ private:
 		FRHICommandListImmediate& RHICmdList, 
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows) const;
 
+	/** Sets up ViewState buffers for rendering capsule shadows. */
+	void SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes) const;
+
 	/** Renders indirect shadows from capsules modulated onto scene color. */
 	void RenderIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList) const;
+
+	/** Renders capsule shadows for movable skylights, using the cone of visibility (bent normal) from DFAO. */
+	void RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const;
 
 	/**
 	  * Used by RenderLights to render projected shadows to the attenuation buffer.

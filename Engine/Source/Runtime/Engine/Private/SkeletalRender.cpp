@@ -192,7 +192,6 @@ void FSkeletalMeshObject::UpdateShadowShapes(USkinnedMeshComponent* InMeshCompon
 		&& (InMeshComponent->bCastCapsuleDirectShadow || InMeshComponent->bCastCapsuleIndirectShadow))
 	{
 		//@todo - double buffer or temporary allocator
-		TArray<FSphere>* NewShadowSphereShapes = new TArray<FSphere>();
 		TArray<FCapsuleShape>* NewShadowCapsuleShapes = new TArray<FCapsuleShape>();
 
 		for (int32 BodyIndex = 0; BodyIndex < ShadowPhysicsAsset->BodySetup.Num(); BodyIndex++)
@@ -208,7 +207,11 @@ void FSkeletalMeshObject::UpdateShadowShapes(USkinnedMeshComponent* InMeshCompon
 				for (int32 ShapeIndex = 0; ShapeIndex < BodySetup->AggGeom.SphereElems.Num(); ShapeIndex++)
 				{
 					const FKSphereElem& SphereShape = BodySetup->AggGeom.SphereElems[ShapeIndex];
-					NewShadowSphereShapes->Add(FSphere(WorldBoneTransform.TransformPosition(SphereShape.Center), SphereShape.Radius * MaxScale));
+					NewShadowCapsuleShapes->Add(FCapsuleShape(
+						WorldBoneTransform.TransformPosition(SphereShape.Center), 
+						SphereShape.Radius * MaxScale,
+						FVector(0, 0, 1),
+						0));
 				}
 
 				for (int32 ShapeIndex = 0; ShapeIndex < BodySetup->AggGeom.SphylElems.Num(); ShapeIndex++)
@@ -223,15 +226,12 @@ void FSkeletalMeshObject::UpdateShadowShapes(USkinnedMeshComponent* InMeshCompon
 			}
 		}
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			ShadowShapesUpdateCommand,
 			FSkeletalMeshObject*, MeshObject, this,
-			TArray<FSphere>*, NewShadowSphereShapes, NewShadowSphereShapes,
 			TArray<FCapsuleShape>*, NewShadowCapsuleShapes, NewShadowCapsuleShapes,
 			{
-				MeshObject->ShadowSphereShapes = *NewShadowSphereShapes;
 				MeshObject->ShadowCapsuleShapes = *NewShadowCapsuleShapes;
-				delete NewShadowSphereShapes;
 				delete NewShadowCapsuleShapes;
 			}
 		);

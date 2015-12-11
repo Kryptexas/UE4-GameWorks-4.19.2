@@ -1184,7 +1184,7 @@ void FRHICommandListBase::QueueRenderThreadCommandListSubmit(FGraphEventRef& Ren
 	check(!IsInRHIThread());
 	if (RenderThreadCompletionEvent.GetReference())
 	{
-		check(!IsInRenderingThread() && !IsImmediate());
+		check(!IsInActualRenderingThread() && !IsInGameThread() && !IsImmediate());
 		RTTasks.Add(RenderThreadCompletionEvent);
 	}
 	new (AllocCommand<FRHICommandWaitForAndSubmitRTSubList>()) FRHICommandWaitForAndSubmitRTSubList(RenderThreadCompletionEvent, CmdList);

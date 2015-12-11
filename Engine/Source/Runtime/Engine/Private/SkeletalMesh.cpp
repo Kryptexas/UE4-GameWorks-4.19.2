@@ -4720,12 +4720,13 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 bool FSkeletalMeshSceneProxy::HasDistanceFieldRepresentation() const
 {
-	return CastsDynamicShadow() && CastsCapsuleIndirectShadow();
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+	// Self shadowing detection reuses the distance field GBuffer bit, so disable when distance field features are in use
+	return CastsDynamicShadow() && CastsCapsuleIndirectShadow() && CVar->GetValueOnRenderThread() == 0;
 }
 
-void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FSphere>& SphereShapes, TArray<FCapsuleShape>& CapsuleShapes) const 
+void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const 
 {
-	SphereShapes.Append(MeshObject->ShadowSphereShapes);
 	CapsuleShapes.Append(MeshObject->ShadowCapsuleShapes);
 }
 

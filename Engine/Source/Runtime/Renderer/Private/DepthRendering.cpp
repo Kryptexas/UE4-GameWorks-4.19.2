@@ -61,9 +61,9 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
 	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
@@ -146,13 +146,24 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
 	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
 };
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDepthOnlyPS,TEXT("DepthOnlyPixelShader"),TEXT("Main"),SF_Pixel);
+
+IMPLEMENT_SHADERPIPELINE_TYPE_VS(DepthNoPixelPipeline, TDepthOnlyVS<false>, true);
+IMPLEMENT_SHADERPIPELINE_TYPE_VS(DepthPosOnlyNoPixelPipeline, TDepthOnlyVS<true>, true);
+IMPLEMENT_SHADERPIPELINE_TYPE_VSPS(DepthPipeline, TDepthOnlyVS<false>, FDepthOnlyPS, true);
+
+
+static FORCEINLINE bool UseShaderPipelines()
+{
+	static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ShaderPipelines"));
+	return CVar && CVar->GetValueOnAnyThread() != 0;
+}
 
 FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
@@ -163,38 +174,57 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	):
 	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,/*bInTwoSidedOverride=*/ bIsTwoSided)
 {
-	// The primitive needs to be rendered with the material's pixel and vertex shaders if it is masked or if it is offsetting
-	// the pixel depth
-	bNeedsPixelShader = false;
-	if (!InMaterialResource.WritesEveryPixel() || InMaterialResource.HasPixelDepthOffsetConnected())
+	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.HasPixelDepthOffsetConnected());
+	if (!bNeedsPixelShader)
 	{
-		bNeedsPixelShader = true;
-		PixelShader = InMaterialResource.GetShader<FDepthOnlyPS>(InVertexFactory->GetType());
-	}
-	else
-	{
-		PixelShader = NULL;
+		PixelShader = nullptr;
 	}
 
 	const EMaterialTessellationMode TessellationMode = InMaterialResource.GetTessellationMode();
-	VertexShader = NULL;
-
-	HullShader = NULL;	
-	DomainShader = NULL;
-
 	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& TessellationMode != MTM_NoTessellation)
 	{
+		ShaderPipeline = nullptr;
 		VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<false> >(VertexFactory->GetType());
 		HullShader = InMaterialResource.GetShader<FDepthOnlyHS>(VertexFactory->GetType());
 		DomainShader = InMaterialResource.GetShader<FDepthOnlyDS>(VertexFactory->GetType());
+		if (bNeedsPixelShader)
+		{
+			PixelShader = InMaterialResource.GetShader<FDepthOnlyPS>(InVertexFactory->GetType());
+		}
 	}
 	else
 	{
-		VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<false> >(InVertexFactory->GetType());
+		HullShader = nullptr;
+		DomainShader = nullptr;
+		bool bUseShaderPipelines = UseShaderPipelines();
+		if (bNeedsPixelShader)
+		{
+			ShaderPipeline = bUseShaderPipelines ? InMaterialResource.GetShaderPipeline(&DepthPipeline, InVertexFactory->GetType()) : nullptr;
+	}
+	else
+	{
+			ShaderPipeline = bUseShaderPipelines ? InMaterialResource.GetShaderPipeline(&DepthNoPixelPipeline, InVertexFactory->GetType()) : nullptr;
 	}
 
+		if (ShaderPipeline)
+		{
+			VertexShader = ShaderPipeline->GetShader<TDepthOnlyVS<false> >();
+			if (bNeedsPixelShader)
+			{
+				PixelShader = ShaderPipeline->GetShader<FDepthOnlyPS>();
+			}
+		}
+		else
+		{
+			VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<false> >(VertexFactory->GetType());
+			if (bNeedsPixelShader)
+			{
+				PixelShader = InMaterialResource.GetShader<FDepthOnlyPS>(InVertexFactory->GetType());
+			}
+		}
+	}
 }
 
 void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
@@ -220,6 +250,34 @@ void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSce
 	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext);
 }
 
+/**
+* Sets the correct depth-stencil state for dithered LOD transitions using the stencil optimization
+* @return Was a new state was set
+*/
+FORCEINLINE bool SetDitheredLODDepthStencilState(FRHICommandList& RHICmdList, const FMeshDrawingRenderState& DrawRenderState)
+{
+	if (DrawRenderState.bAllowStencilDither)
+	{
+		if (DrawRenderState.DitheredLODState == EDitheredLODState::None)
+		{
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+		}
+		else
+		{
+			const uint32 StencilRef = (DrawRenderState.DitheredLODState == EDitheredLODState::FadeOut) ? STENCIL_SANDBOX_MASK : 0;
+
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual,
+				true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI(), StencilRef);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 /** 
 * Create bound shader state using the vertex decl from the mesh draw policy
 * as well as the shaders needed to draw the mesh
@@ -243,24 +301,26 @@ void FDepthDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	const ElementDataType& ElementData,
 	const ContextDataType PolicyContext
 	) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	if(HullShader && DomainShader)
 	{
-		HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
-		DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+		HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
+		DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}
 
 	if (bNeedsPixelShader)
 	{
-		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,ElementData,PolicyContext);
+	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,ElementData,PolicyContext);
+	
+	SetDitheredLODDepthStencilState(RHICmdList, DrawRenderState);
 }
 
 int32 CompareDrawingPolicy(const FDepthDrawingPolicy& A,const FDepthDrawingPolicy& B)
@@ -285,7 +345,10 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	):
 	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,bIsTwoSided,bIsWireframe)
 {
-	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<true> >(InVertexFactory->GetType());
+	ShaderPipeline = UseShaderPipelines() ? InMaterialResource.GetShaderPipeline(&DepthPosOnlyNoPixelPipeline, VertexFactory->GetType()) : nullptr;
+	VertexShader = ShaderPipeline
+		? ShaderPipeline->GetShader<TDepthOnlyVS<true> >()
+		: InMaterialResource.GetShader<TDepthOnlyVS<true> >(InVertexFactory->GetType());
 	bUsePositionOnlyVS = true;
 }
 
@@ -319,13 +382,15 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	const ElementDataType& ElementData,
 	const ContextDataType PolicyContext
 	) const
 {
-	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,ElementData,PolicyContext);
+	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,Mesh.Elements[BatchElementIndex],DrawRenderState);
+	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,ElementData,PolicyContext);
+	
+	SetDitheredLODDepthStencilState(RHICmdList, DrawRenderState);
 }
 
 void FPositionOnlyDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
@@ -416,7 +481,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 	const FMeshBatch& Mesh,
 	const uint64& BatchElementMask,
 	bool bBackFace,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId, 
@@ -458,7 +523,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 					TDrawEvent<FRHICommandList> MeshEvent;
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DitheredLODTransitionValue,FPositionOnlyDepthDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FPositionOnlyDepthDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex, bIsInstancedStereo);
 				}
 				Mask >>= 1;
@@ -507,7 +572,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 						TDrawEvent<FRHICommandList> MeshEvent;
 						BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
-						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DitheredLODTransitionValue,FMeshDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
+						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
 						DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
 					}
 					Mask >>= 1;
@@ -541,7 +606,7 @@ bool FDepthDrawingPolicyFactory::DrawDynamicMesh(
 		Mesh,
 		Mesh.Elements.Num()==1 ? 1 : (1<<Mesh.Elements.Num())-1,	// 1 bit set for each mesh element
 		bBackFace,
-		0.0f,
+		FMeshDrawingRenderState(),
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId, 
@@ -556,7 +621,7 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 	const FStaticMesh& StaticMesh,
 	const uint64& BatchElementMask,
 	bool bPreFog,
-	float DitheredLODTransitionValue,
+	const FMeshDrawingRenderState& DrawRenderState,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId
 	)
@@ -572,7 +637,7 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 		StaticMesh,
 		BatchElementMask,
 		false,
-		DitheredLODTransitionValue,
+		DrawRenderState,
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId

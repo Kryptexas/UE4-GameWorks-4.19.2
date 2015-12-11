@@ -36,7 +36,7 @@ void VSMain(
 	float4 WorldPositionExcludingWPO = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float4 WorldPosition = WorldPositionExcludingWPO;
 
-	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+	half3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);	
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 
 	float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
@@ -75,8 +75,8 @@ void PSMain(
 #endif
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants.FactoryInterpolants, SvPosition);
-
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace); 
 
 	float Height = clamp(round(Interpolants.Height), 0, 65535);
 	float2 PackedHeight = float2(floor(Height / 256), fmod(Height, 256)) / 255;

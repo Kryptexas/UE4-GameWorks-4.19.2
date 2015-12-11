@@ -650,6 +650,7 @@ public:
 		{
 			OutMaterial.BlendMode = FlattenedMaterials[0].BlendMode;
 			OutMaterial.bTwoSided = FlattenedMaterials[0].bTwoSided;
+			OutMaterial.bDitheredLODTransition = FlattenedMaterials[0].bDitheredLODTransition;
 			OutMaterial.EmissiveScale = FlattenedMaterials[0].EmissiveScale;
 		}
 		

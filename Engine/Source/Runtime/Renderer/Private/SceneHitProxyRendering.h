@@ -46,7 +46,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		float DitheredLODTransitionValue,
+		const FMeshDrawingRenderState& DrawRenderState,
 		const FHitProxyId HitProxyId,
 		const ContextDataType PolicyContext
 		) const;

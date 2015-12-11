@@ -430,6 +430,8 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 		if( ViewModeIndex == VMI_LightComplexity )
 		{
 			EngineShowFlags.Translucency = 0;
+			EngineShowFlags.Fog = 0;
+			EngineShowFlags.AtmosphericFog = 0;
 		}
 
 		if( ViewModeIndex == VMI_LODColoration )

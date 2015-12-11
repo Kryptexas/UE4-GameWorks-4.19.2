@@ -70,6 +70,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	WidgetMode = FWidget::WM_None;
 
 	EngineShowFlags.DisableAdvancedFeatures();
+	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetSnap(0);
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
 	OverrideNearClipPlane(1.0f);
