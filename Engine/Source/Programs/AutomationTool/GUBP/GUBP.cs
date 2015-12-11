@@ -183,10 +183,10 @@ public partial class GUBP : BuildCommand
 		FindCompletionState(Graph.BuildNodes, JobInfo, LocalOnly);
 		ComputeDependentFrequencies(Graph.BuildNodes);
 
-		int TimeIndex = ParseParamInt("TimeIndex", -1);
+		int TimeIndex = ParseParamInt("UserTimeIndex", -1);
 		if (TimeIndex == -1)
 		{
-			TimeIndex = ParseParamInt("UserTimeIndex", -1);
+			TimeIndex = ParseParamInt("TimeIndex", -1);
 		}
 		if (ParseParam("CIS") && ExplicitTriggerName == "" && CommanderSetup) // explicit triggers will already have a time index assigned
 		{
