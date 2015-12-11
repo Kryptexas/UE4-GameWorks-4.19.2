@@ -45,7 +45,12 @@ public class MessagingDebugger : ModuleRules
 
         if (UEBuildConfiguration.bBuildEditor)
         {
-            PrivateDependencyModuleNames.Add("PropertyEditor");
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "PropertyEditor",
+                    "WorkspaceMenuStructure",
+                }
+            );
         }
 	}
 }

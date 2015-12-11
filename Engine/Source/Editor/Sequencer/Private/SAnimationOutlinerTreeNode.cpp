@@ -20,6 +20,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 {
 	DisplayNode = Node;
 
+	HoveredBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.SelectionBorderHover" );
 	SelectedBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.SelectionBorder" );
 	SelectedBrushInactive = FEditorStyle::GetBrush("Sequencer.AnimationOutliner.SelectionBorderInactive");
 	NotSelectedBrush = FEditorStyle::GetBrush( "NoBorder" );
@@ -49,6 +50,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		[
 			SNew(SBox)
 			.HeightOverride_Lambda(NodeHeight)
+			.Padding(FMargin(0.0f, 0.0f, 10.0f, 0.0f))
 			[
 				SNew( SHorizontalBox )
 
@@ -435,12 +437,16 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonUp( const FGeometry& MyGeometry,
 
 const FSlateBrush* SAnimationOutlinerTreeNode::GetNodeBorderImage() const
 {
-	// Display a highlight when the node is selected
 	FSequencer& Sequencer = DisplayNode->GetSequencer();
 	const bool bIsSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
 
 	if (!bIsSelected)
 	{
+		if (DisplayNode->IsHovered())
+		{
+			return HoveredBrush;
+		}
+
 		return NotSelectedBrush;
 	}
 

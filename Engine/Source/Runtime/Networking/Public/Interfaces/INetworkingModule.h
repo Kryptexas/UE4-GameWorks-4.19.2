@@ -11,5 +11,5 @@ class INetworkingModule
 {
 protected:
 
-	INetworkingModule( ) { }
+	INetworkingModule() { }
 };

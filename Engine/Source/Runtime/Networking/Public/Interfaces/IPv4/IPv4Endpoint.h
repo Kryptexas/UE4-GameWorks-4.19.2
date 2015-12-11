@@ -17,7 +17,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FIPv4Endpoint( ) { }
+	FIPv4Endpoint() { }
 
 	/**
 	 * Creates and initializes a new IPv4 endpoint with the specified NetID and port.
@@ -25,7 +25,7 @@ public:
 	 * @param InAddress - The endpoint's IP address.
 	 * @param InPort - The endpoint's port number.
 	 */
-	FIPv4Endpoint( const FIPv4Address& InAddress, uint16 InPort )
+	FIPv4Endpoint(const FIPv4Address& InAddress, uint16 InPort)
 		: Address(InAddress)
 		, Port(InPort)
 	{ }
@@ -37,7 +37,7 @@ public:
 	 *
 	 * @param InternetAddr - The Internet address.
 	 */
-	FIPv4Endpoint( const TSharedPtr<FInternetAddr>& InternetAddr )
+	FIPv4Endpoint(const TSharedPtr<FInternetAddr>& InternetAddr)
 	{
 		check(InternetAddr.IsValid());
 
@@ -60,7 +60,7 @@ public:
 	 *
 	 * @return true if the endpoints are equal, false otherwise.
 	 */
-	bool operator==( const FIPv4Endpoint& Other ) const
+	bool operator==(const FIPv4Endpoint& Other) const
 	{
 		return ((Address == Other.Address) && (Port == Other.Port));
 	}
@@ -72,7 +72,7 @@ public:
 	 *
 	 * @return true if the endpoints are not equal, false otherwise.
 	 */
-	bool operator!=( const FIPv4Endpoint& Other ) const
+	bool operator!=(const FIPv4Endpoint& Other) const
 	{
 		return ((Address != Other.Address) || (Port != Other.Port));
 	}
@@ -85,7 +85,7 @@ public:
 	 *
 	 * @return The archive.
 	 */
-	friend FArchive& operator<<( FArchive& Ar, FIPv4Endpoint& Endpoint )
+	friend FArchive& operator<<(FArchive& Ar, FIPv4Endpoint& Endpoint)
 	{
 		return Ar << Endpoint.Address << Endpoint.Port;
 	}
@@ -97,7 +97,7 @@ public:
 	 *
 	 * @return IPv4 address.
 	 */
-	FIPv4Address GetAddress( ) const
+	FIPv4Address GetAddress() const
 	{
 		return Address;
 	}
@@ -107,7 +107,7 @@ public:
 	 *
 	 * @return Port number.
 	 */
-	uint16 GetPort( ) const
+	uint16 GetPort() const
 	{
 		return Port;
 	}
@@ -119,7 +119,7 @@ public:
 	 *
 	 * @return Internet address object representing this endpoint.
 	 */
-	TSharedRef<FInternetAddr> ToInternetAddr( ) const
+	TSharedRef<FInternetAddr> ToInternetAddr() const
 	{
 		TSharedRef<FInternetAddr> InternetAddr = CachedSocketSubsystem->CreateInternetAddr();
 
@@ -136,14 +136,14 @@ public:
 	 *
 	 * @see Parse
 	 */
-	NETWORKING_API FString ToString( ) const;
+	NETWORKING_API FString ToString() const;
 
 	/**
 	 * Gets the display text representation for this endpoint.
 	 *
 	 * @return Text representation.
 	 */
-	FText ToText( ) const
+	FText ToText() const
 	{
 		return FText::FromString(ToString());
 	}
@@ -157,7 +157,7 @@ public:
 	 *
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash( const FIPv4Endpoint& Endpoint )
+	friend uint32 GetTypeHash(const FIPv4Endpoint& Endpoint)
 	{
 		return GetTypeHash(Endpoint.Address) + Endpoint.Port * 23;
 	}
@@ -167,7 +167,7 @@ public:
 	/**
 	 * Initializes the IP endpoint functionality.
 	 */
-	static void Initialize( );
+	static void Initialize();
 
 	/**
 	 * Converts a string to an IPv4 endpoint.
@@ -179,7 +179,7 @@ public:
 	 *
 	 * @see ToString
 	 */
-	static NETWORKING_API bool Parse( const FString& EndpointString, FIPv4Endpoint& OutEndpoint );
+	static NETWORKING_API bool Parse(const FString& EndpointString, FIPv4Endpoint& OutEndpoint);
 
 public:
 

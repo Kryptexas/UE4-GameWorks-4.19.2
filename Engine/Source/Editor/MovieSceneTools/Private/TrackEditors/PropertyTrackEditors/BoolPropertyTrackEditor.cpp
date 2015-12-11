@@ -18,7 +18,7 @@ TSharedRef<FPropertySection> FBoolPropertyTrackEditor::MakePropertySectionInterf
 }
 
 
-void FBoolPropertyTrackEditor::GenerateKeysFromPropertyChanged(const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& GeneratedKeys)
+void FBoolPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& NewGeneratedKeys, TArray<bool>& DefaultGeneratedKeys )
 {
-	GeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<bool>() );
+	NewGeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<bool>() );
 }

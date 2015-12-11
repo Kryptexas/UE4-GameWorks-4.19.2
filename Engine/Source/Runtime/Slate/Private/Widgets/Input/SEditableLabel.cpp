@@ -4,6 +4,9 @@
 #include "SEditableLabel.h"
 
 
+#define LOCTEXT_NAMESPACE "SEditableLabel"
+
+
 /* SEditableLabel interface
  *****************************************************************************/
 
@@ -12,7 +15,6 @@ void SEditableLabel::Construct(const FArguments& InArgs)
 	CanEditAttribute = InArgs._CanEdit;
 	OnTextChanged = InArgs._OnTextChanged;
 	TextAttribute = InArgs._Text;
-	WasFocused = false;
 
 	ChildSlot
 	[
@@ -29,6 +31,7 @@ void SEditableLabel::Construct(const FArguments& InArgs)
 					.HighlightShape(InArgs._HighlightShape)
 					.HighlightText(InArgs._HighlightText)
 					.MinDesiredWidth(InArgs._MinDesiredWidth)
+					.OnDoubleClicked(this, &SEditableLabel::HandleTextBlockDoubleClicked)
 					.ShadowColorAndOpacity(InArgs._ShadowColorAndOpacity)
 					.ShadowOffset(InArgs._ShadowOffset)
 					.TextStyle(InArgs._TextStyle)
@@ -61,7 +64,8 @@ void SEditableLabel::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(SImage)
-					.Image(FCoreStyle::Get().GetBrush(TEXT("EditableLabel.EditIcon")))
+					.Image(FCoreStyle::Get().GetBrush(TEXT("Icons.Rename")))
+					.ToolTipText(LOCTEXT("RenameToolTip", "Press F2 or double-click the text label to rename it"))
 					.Visibility(this, &SEditableLabel::HandleIconVisibility)
 			]
 	];
@@ -77,6 +81,7 @@ void SEditableLabel::EnterTextMode()
 
 	TextBlock->SetVisibility(EVisibility::Collapsed);
 	EditableText->SetVisibility(EVisibility::Visible);
+	FSlateApplication::Get().SetAllUserFocus(EditableText);
 }
 	
 
@@ -84,6 +89,7 @@ void SEditableLabel::ExitTextMode()
 {
 	TextBlock->SetVisibility(EVisibility::Visible);
 	EditableText->SetVisibility(EVisibility::Collapsed);
+	FSlateApplication::Get().SetAllUserFocus(AsShared());
 }
 
 
@@ -108,38 +114,10 @@ FReply SEditableLabel::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		return FReply::Handled().SetUserFocus(AsShared(), EFocusCause::Navigation);
 	}
 
-	if (WasFocused && (Key == EKeys::Enter))
+	if ((Key == EKeys::F2) && CanEditAttribute.Get())
 	{
 		EnterTextMode();
 		return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::Navigation);
-	}
-
-	return FReply::Unhandled();
-}
-
-
-FReply SEditableLabel::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		WasFocused = HasKeyboardFocus();
-	}
-
-	if (WasFocused)
-	{
-		return FReply::Handled();
-	}
-	
-	return FReply::Unhandled();
-}
-
-
-FReply SEditableLabel::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	if (WasFocused && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton))
-	{
-		EnterTextMode();
-		return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::Mouse);;
 	}
 
 	return FReply::Unhandled();
@@ -162,9 +140,19 @@ void SEditableLabel::HandleEditableTextTextCommitted(const FText& NewText, EText
 }
 
 
+FReply SEditableLabel::HandleTextBlockDoubleClicked()
+{
+	EnterTextMode();
+	return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::Navigation);
+}
+
+
 EVisibility SEditableLabel::HandleIconVisibility() const
 {
 	return (IsHovered() && !EditableText->HasKeyboardFocus() && CanEditAttribute.Get())
 		? EVisibility::Visible
 		: EVisibility::Collapsed;
 }
+
+
+#undef LOCTEXT_NAMESPACE

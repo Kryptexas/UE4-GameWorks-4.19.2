@@ -23,7 +23,7 @@ public:
 	 * @param InStreamIndex The stream's index number in the presentation.
 	 * @param InStreamDescriptor The stream's descriptor object.
 	 */
-	FWmfMediaVideoTrack( IMFMediaType* InMediaType, IMFPresentationDescriptor* InPresentationDescriptor, FWmfMediaSampler* InSampler, IMFStreamDescriptor* InStreamDescriptor, DWORD InStreamIndex )
+	FWmfMediaVideoTrack(IMFMediaType* InMediaType, IMFPresentationDescriptor* InPresentationDescriptor, FWmfMediaSampler* InSampler, IMFStreamDescriptor* InStreamDescriptor, DWORD InStreamIndex)
 		: FWmfMediaTrack(InPresentationDescriptor, InSampler, InStreamDescriptor, InStreamIndex)
 		, Height(0)
 		, Width(0)

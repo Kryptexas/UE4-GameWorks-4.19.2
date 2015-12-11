@@ -106,7 +106,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	bool IsPlaying() const;
 
-	/** Get the length of the sequence */
+	/** Get the playback length of the sequence */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	float GetLength() const;
 
@@ -148,9 +148,6 @@ public:
 
 	void Update(const float DeltaSeconds);
 
-	/** Instruct this player to start playing next frame update */
-	void AutoPlayNextFrame();
-
 private:
 
 	/** Update the movie scene instance from the specified previous position, to the specified time position */
@@ -172,6 +169,12 @@ private:
 	/** The current time cursor position within the sequence (in seconds) */
 	UPROPERTY()
 	float TimeCursorPosition;
+
+	/** Time time at which to start playing the sequence (defaults to the lower bound of the sequence's play range) */
+	float StartTime;
+
+	/** Time time at which to end playing the sequence (defaults to the upper bound of the sequence's play range) */
+	float EndTime;
 
 	/** Specific playback settings for the animation. */
 	UPROPERTY()

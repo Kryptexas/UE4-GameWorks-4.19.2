@@ -48,6 +48,12 @@ public:
 	void SetSectionAsKeyArea(TSharedRef<IKeyArea>& KeyArea);
 	
 	/**
+	 * Adds a key to the track
+	 *
+	 */
+	void AddKey(const FGuid& ObjectGuid);
+
+	/**
 	 * @return All sections in this node
 	 */
 	const TArray<TSharedRef<ISequencerSection>>& GetSections() const

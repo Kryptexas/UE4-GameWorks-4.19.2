@@ -35,11 +35,8 @@ protected:
 
 	// FPropertyTrackEditor interface
 	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
-	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FVectorKey>& GeneratedKeys ) override;
+	virtual void GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FVectorKey>& NewGeneratedKeys, TArray<FVectorKey>& DefaultGeneratedKeys ) override;
 	virtual void InitializeNewTrack( UMovieSceneVectorTrack* NewTrack, FPropertyChangedParams PropertyChangedParams ) override;
-
-	// FKeyframeTrackEditor interface
-	virtual bool ShouldAddKey(UMovieSceneVectorTrack* InTrack, FVectorKey InKey, FKeyParams InKeyParams) const override;
 
 private:
 	static FName XName;

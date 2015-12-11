@@ -6,7 +6,7 @@
 #include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureHandle.h"
 
-class UMovieSceneCapture;
+class FMovieSceneCaptureProtocolRegistry;
 
 class IMovieSceneCaptureModule : public IModuleInterface
 {
@@ -18,10 +18,13 @@ public:
 	}
 
 	virtual IMovieSceneCaptureInterface* InitializeFromCommandLine() = 0;
-	virtual IMovieSceneCaptureInterface* CreateMovieSceneCapture(TWeakPtr<FSceneViewport> Viewport) = 0;
+	virtual IMovieSceneCaptureInterface* CreateMovieSceneCapture(TSharedPtr<FSceneViewport> Viewport) = 0;
 	virtual IMovieSceneCaptureInterface* GetFirstActiveMovieSceneCapture() = 0;
 	
 	virtual IMovieSceneCaptureInterface* RetrieveMovieSceneInterface(FMovieSceneCaptureHandle Handle) = 0;
 	virtual void DestroyMovieSceneCapture(FMovieSceneCaptureHandle Handle) = 0;
+
+	virtual void DestroyAllActiveCaptures() = 0;
+	virtual FMovieSceneCaptureProtocolRegistry& GetProtocolRegistry() = 0;
 };
 

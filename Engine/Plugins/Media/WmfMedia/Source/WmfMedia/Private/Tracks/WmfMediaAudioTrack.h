@@ -20,7 +20,7 @@ public:
 	 * @param InStreamIndex The stream's index number in the presentation.
 	 * @param InStreamDescriptor The stream's descriptor object.
 	 */
-	FWmfMediaAudioTrack( IMFMediaType* InMediaType, IMFPresentationDescriptor* InPresentationDescriptor, FWmfMediaSampler* InSampler, IMFStreamDescriptor* InStreamDescriptor, DWORD InStreamIndex )
+	FWmfMediaAudioTrack(IMFMediaType* InMediaType, IMFPresentationDescriptor* InPresentationDescriptor, FWmfMediaSampler* InSampler, IMFStreamDescriptor* InStreamDescriptor, DWORD InStreamIndex)
 		: FWmfMediaTrack(InPresentationDescriptor, InSampler, InStreamDescriptor, InStreamIndex)
 	{
 		NumChannels = ::MFGetAttributeUINT32(InMediaType, MF_MT_AUDIO_NUM_CHANNELS, 0);

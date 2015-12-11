@@ -7,7 +7,7 @@
 /* FMediaTextureResource structors
  *****************************************************************************/
 
-FMediaTextureResource::FMediaTextureResource( const class UMediaTexture* InOwner, const FMediaSampleBufferRef& InVideoBuffer )
+FMediaTextureResource::FMediaTextureResource(const UMediaTexture* InOwner, const FMediaSampleBufferRef& InVideoBuffer)
 	: Cleared(false)
 	, LastFrameTime(FTimespan::MinValue())
 	, Owner(InOwner)

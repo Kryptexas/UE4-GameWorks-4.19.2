@@ -35,7 +35,13 @@ class FSequencer
 {
 public:
 
-	static bool IsSequencerEnabled();
+	/** Constructor */
+	FSequencer();
+
+	/** Virtual destructor */
+	virtual ~FSequencer();
+
+public:
 
 	/**
 	 * Initializes sequencer
@@ -46,68 +52,6 @@ public:
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
 	 */
 	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TSharedRef<IDetailKeyframeHandler>& InDetailKeyframeHandler, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
-
-	/** Constructor */
-	FSequencer();
-
-	/** Destructor */
-	virtual ~FSequencer();
-
-public:
-
-	//~ Begin FGCObject Interface
-
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-
-public:
-
-	//~ Begin FTickableEditorObject Interface
-
-	virtual void Tick(float DeltaTime) override;
-	virtual bool IsTickable() const override { return true; }
-	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSequencer, STATGROUP_Tickables); };
-
-public:
-
-	//~ Begin ISequencer Interface
-
-	virtual void Close() override;
-	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
-	virtual UMovieSceneSequence* GetRootMovieSceneSequence() const override;
-	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const override;
-	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const override;
-	virtual void FocusSequenceInstance( TSharedRef<FMovieSceneSequenceInstance> SequenceInstance ) override;
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const override;
-	virtual bool GetAutoKeyEnabled() const override;
-	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) override;
-	virtual bool GetKeyAllEnabled() const override;
-	virtual void SetKeyAllEnabled(bool bKeyAllEnabled) override;
-	virtual bool GetKeyInterpPropertiesOnly() const override;
-	virtual void SetKeyInterpPropertiesOnly(bool bKeyInterpPropertiesOnly) override;
-	virtual EMovieSceneKeyInterpolation GetKeyInterpolation() const override;
-	virtual void SetKeyInterpolation(EMovieSceneKeyInterpolation) override;
-	virtual bool IsRecordingLive() const override;
-	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
-	virtual float GetGlobalTime() override;
-	virtual void SetGlobalTime(float Time) override;
-	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
-	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
-	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) override;
-	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
-	virtual void NotifyMovieSceneDataChanged() override;
-	virtual void UpdateRuntimeInstances() override;
-	virtual void AddSubSequence(UMovieSceneSequence* Sequence) override;
-	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
-	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
-	virtual FSequencerSelection& GetSelection() override;
-	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
-	virtual void NotifyMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType) override;
-	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
-	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
-	virtual UObject* GetPlaybackContext() const override;
-	virtual void GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties) override;
 
 	/** Set the global time directly, without performing any auto-scroll */
 	void SetGlobalTimeDirectly(float Time);
@@ -126,44 +70,42 @@ public:
 public:
 
 	/** Access the user-supplied settings object */
-	USequencerSettings* GetSettings() const { return Settings; }
+	USequencerSettings* GetSettings() const
+	{
+		return Settings;
+	}
 
-	bool IsPerspectiveViewportPossessionEnabled() const override { return bPerspectiveViewportPossessionEnabled; }
-	bool IsPerspectiveViewportCameraCutEnabled() const override { return bPerspectiveViewportCameraCutEnabled; }
+	bool IsPerspectiveViewportPossessionEnabled() const override
+	{
+		return bPerspectiveViewportPossessionEnabled;
+	}
+
+	bool IsPerspectiveViewportCameraCutEnabled() const override
+	{
+		return bPerspectiveViewportCameraCutEnabled;
+	}
 
 	/**
 	 * Pops the current focused movie scene from the stack.  The parent of this movie scene will be come the focused one
 	 */
 	void PopToSequenceInstance( TSharedRef<FMovieSceneSequenceInstance> SequenceInstance );
 
-	/** 
-	 * Deletes the passed in sections
-	 */
+	/** Deletes the passed in sections. */
 	void DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection> > & Sections);
 
-	/**
-	 * Deletes the currently selected in keys
-	 */
+	/** Deletes the currently selected in keys. */
 	void DeleteSelectedKeys();
 
-	/**
-	 * Set interpolation modes
-	 */
+	/** Set interpolation modes. */
 	void SetInterpTangentMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode);
 
-	/**
-	 * Is interpolation mode selected
-	 */
+	/** Is interpolation mode selected. */
 	bool IsInterpTangentModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode) const;
 
-	/**
-	 * Snap the currently selected keys to frame
-	 */
+	/** Snap the currently selected keys to frame. */
 	void SnapToFrame();
 
-	/**
- 	 * Are there keys to snap? 
-	 */
+	/** Are there keys to snap? */
 	bool CanSnapToFrame() const;
 
 	/**
@@ -210,14 +152,10 @@ public:
 	 */
 	virtual void CopyActorProperties( AActor* PuppetActor, AActor* TargetActor ) const;
 
-	/**
-	 * Zooms to the edges of all currently selected sections
-	 */
+	/** Zooms to the edges of all currently selected sections. */
 	void ZoomToSelectedSections();
 
-	/**
-	 * Gets the overlay fading animation curve lerp
-	 */
+	/** Gets the overlay fading animation curve lerp. */
 	float GetOverlayFadeCurve() const;
 
 	/** Gets the command bindings for the sequencer */
@@ -247,16 +185,6 @@ public:
 	 * @param ObjectClass	The class of the selected object
 	 */
 	void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass);
-
-	/** IMovieScenePlayer interface */
-	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override;
-	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
-	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
-	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
-	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
-	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
-	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override { return *SpawnRegister; }
 
 	/** Called when an actor is dropped into Sequencer */
 	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );
@@ -318,6 +246,9 @@ public:
 		return LabelManager;
 	}
 
+	/** Select keys belonging to a section at the key time */
+	void SelectTrackKeys(TWeakObjectPtr<UMovieSceneSection> Section, float KeyTime, bool bAddToSelection, bool bToggleSelection);
+
 public:
 
 	/** Copy the selected keys to the clipboard */
@@ -336,6 +267,87 @@ public:
 
 	/** Access the currently enabled edit tool */
 	ISequencerEditTool& GetEditTool();
+
+public:
+
+	/** Put the sequencer in a horizontally auto-scrolling state with the given rate */
+	void StartAutoscroll(float UnitsPerS);
+
+	/** Stop the sequencer from auto-scrolling */
+	void StopAutoscroll();
+
+	/** Scroll the sequencer vertically by the specified number of slate units */
+	void VerticalScroll(float ScrollAmountUnits);
+
+public:
+
+	//~ FGCObject Interface
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
+public:
+
+	//~ FTickableEditorObject Interface
+
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override { return true; }
+	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSequencer, STATGROUP_Tickables); };
+
+public:
+
+	//~ ISequencer Interface
+
+	virtual void Close() override;
+	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
+	virtual UMovieSceneSequence* GetRootMovieSceneSequence() const override;
+	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const override;
+	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const override;
+	virtual void FocusSequenceInstance( TSharedRef<FMovieSceneSequenceInstance> SequenceInstance ) override;
+	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const override;
+	virtual EAutoKeyMode GetAutoKeyMode() const override;
+	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) override;
+	virtual bool GetKeyAllEnabled() const override;
+	virtual void SetKeyAllEnabled(bool bKeyAllEnabled) override;
+	virtual bool GetKeyInterpPropertiesOnly() const override;
+	virtual void SetKeyInterpPropertiesOnly(bool bKeyInterpPropertiesOnly) override;
+	virtual EMovieSceneKeyInterpolation GetKeyInterpolation() const override;
+	virtual void SetKeyInterpolation(EMovieSceneKeyInterpolation) override;
+	virtual bool IsRecordingLive() const override;
+	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
+	virtual float GetGlobalTime() override;
+	virtual void SetGlobalTime(float Time) override;
+	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
+	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
+	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) override;
+	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
+	virtual void NotifyMovieSceneDataChanged() override;
+	virtual void UpdateRuntimeInstances() override;
+	virtual void UpdatePlaybackRange() override;
+	virtual void AddSubSequence(UMovieSceneSequence* Sequence) override;
+	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
+	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
+	virtual FSequencerSelection& GetSelection() override;
+	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
+	virtual void NotifyMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType) override;
+	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
+	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
+	virtual UObject* GetPlaybackContext() const override;
+	virtual void GetAllKeyedProperties(UObject& Object, TSet<UProperty*>& OutProperties) override;
+
+public:
+
+	// IMovieScenePlayer interface
+
+	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const override;
+	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
+	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
+	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
+	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
+	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
+	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override { return *SpawnRegister; }
 
 protected:
 
@@ -398,20 +410,10 @@ protected:
 	/** Called when the user has finished dragging the play range */
 	void OnEndPlaybackRangeDrag();
 
-public:
-
-	/** Put the sequencer in a horizontally autoscrolling state with the given rate */
-	void StartAutoscroll(float UnitsPerS);
-
-	/** Stop the sequencer from autoscrolling */
-	void StopAutoscroll();
-
-	/** Scroll the sequencer vertically by the specified number of slate units */
-	void VerticalScroll(float ScrollAmountUnits);
-
 protected:
+
 	/**
-	 * Update autoscroll mechanics as a result of a new time position
+	 * Update auto-scroll mechanics as a result of a new time position
 	 */
 	void UpdateAutoScroll(float NewTime);
 
@@ -430,14 +432,10 @@ protected:
 	 */
 	bool IsAutoScrollEnabled() const;
 
-	/** 
-	 * Find the viewed sequence asset in the content browser
-	 */
+	/** Find the viewed sequence asset in the content browser. */
 	void FindInContentBrowser();
 
-	/**
-	 * Get the asset we're currently editing, if applicable
-	 */
+	/** Get the asset we're currently editing, if applicable. */
 	UObject* GetCurrentAsset() const;
 
 protected:

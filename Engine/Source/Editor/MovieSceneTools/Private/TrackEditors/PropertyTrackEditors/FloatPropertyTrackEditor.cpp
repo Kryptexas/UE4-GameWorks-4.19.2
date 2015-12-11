@@ -19,9 +19,9 @@ TSharedRef<FPropertySection> FFloatPropertyTrackEditor::MakePropertySectionInter
 }
 
 
-void FFloatPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<float>& GeneratedKeys )
+void FFloatPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<float>& NewGeneratedKeys, TArray<float>& DefaultGeneratedKeys )
 {
-	GeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<float>() );
+	NewGeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<float>() );
 }
 
 

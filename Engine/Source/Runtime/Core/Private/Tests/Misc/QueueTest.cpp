@@ -38,5 +38,16 @@ bool FQueueTest::RunTest( const FString& Parameters )
 
 	TestTrue(TEXT("After removing all items, the queue must be empty"), q2_1.IsEmpty());
 
+	// emptying
+	TQueue<int32> q3_1;
+	{
+		q3_1.Enqueue(1);
+		q3_1.Enqueue(2);
+		q3_1.Enqueue(3);
+		q3_1.Empty();
+	}
+
+	TestTrue(TEXT("An emptied queue must be empty"), q3_1.IsEmpty());
+
 	return true;
 }

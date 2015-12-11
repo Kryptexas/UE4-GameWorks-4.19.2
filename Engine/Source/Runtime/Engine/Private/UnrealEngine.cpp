@@ -1051,6 +1051,11 @@ void UEngine::ShutdownAudioDeviceManager()
 
 void UEngine::PreExit()
 {
+	if (IMovieSceneCaptureModule* Module = FModuleManager::GetModulePtr<IMovieSceneCaptureModule>("MovieSceneCapture"))
+	{
+		Module->DestroyAllActiveCaptures();
+	}
+
 	ShutdownRenderingCVarsCaching();
 	FEngineAnalytics::Shutdown();
 	if (ScreenSaverInhibitor)
@@ -2391,10 +2396,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleStatCommand(InWorld, GStatProcessingViewportClient, Cmd, Ar);
 	}
-	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && GIsEditor )
-	{
-		return HandleStartMovieCaptureCommand( Cmd, Ar );
-	}
 	else if( FParse::Command(&Cmd,TEXT("STOPMOVIECAPTURE")) && GIsEditor )
 	{
 		return HandleStopMovieCaptureCommand( Cmd, Ar );
@@ -2746,27 +2747,11 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-FMovieSceneCaptureHandle GMovieCaptureHandle;
-bool UEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	if (!GMovieCaptureHandle.IsValid())
-	{
-		// IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(GameViewport);
-		// if (CaptureInterface)
-		// {
-		// 	GMovieCaptureHandle = CaptureInterface->GetHandle();
-		// 	return true;
-		// }
-	}
-	return false;
-}
-
 bool UEngine::HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	if (GMovieCaptureHandle.IsValid())
+	if (IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture())
 	{
-		IMovieSceneCaptureModule::Get().DestroyMovieSceneCapture(GMovieCaptureHandle);
-		GMovieCaptureHandle = FMovieSceneCaptureHandle();
+		CaptureInterface->Close();
 		return true;
 	}
 	return false;

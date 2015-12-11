@@ -26,6 +26,11 @@ public:
 	static void GetAllSections(TSharedRef<FSequencerDisplayNode> DisplayNode, TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections);
 
 	/**
+	* Find object binding node from the given display node
+	*/
+	static bool FindObjectBindingNode(TSharedRef<FSequencerDisplayNode> DisplayNode, TSharedRef<FSequencerDisplayNode>& ObjectBindingNode);
+
+	/**
 	* Convert time to frame
 	*/
 	static int32 TimeToFrame(float Time, float FrameRate);

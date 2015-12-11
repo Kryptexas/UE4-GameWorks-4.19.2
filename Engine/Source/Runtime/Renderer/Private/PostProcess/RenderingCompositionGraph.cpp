@@ -274,7 +274,63 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(FRenderingComposi
 	}
 }
 
-void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
+template<typename TColor> struct TAsyncBufferWrite;
+
+struct FAsyncBufferWriteQueue
+{
+	template<typename T>
+	static TFuture<void> Dispatch(TAsyncBufferWrite<T>&& In)
+	{
+		NumInProgressWrites.Increment();
+
+		while (NumInProgressWrites.GetValue() >= MaxAsyncWrites)
+		{
+			// Yield until we can write another
+			FPlatformProcess::Sleep(0.f);
+		}
+
+		return Async<void>(EAsyncExecution::ThreadPool, MoveTemp(In));
+	}
+	
+	static FThreadSafeCounter NumInProgressWrites;
+	static const int32 MaxAsyncWrites = 6;
+};
+FThreadSafeCounter FAsyncBufferWriteQueue::NumInProgressWrites;
+
+/** Callable type used to save a color buffer on an async task without allocating/copying into a new one */
+template<typename TColor>
+struct TAsyncBufferWrite
+{
+	TAsyncBufferWrite(FString InFilename, FIntPoint InDestSize, TArray<TColor> InBitmap) : Filename(MoveTemp(InFilename)), DestSize(InDestSize), Bitmap(MoveTemp(InBitmap)) {}
+
+	TAsyncBufferWrite(TAsyncBufferWrite&& In) : Filename(MoveTemp(In.Filename)), DestSize(In.DestSize), Bitmap(MoveTemp(In.Bitmap)) {}
+	TAsyncBufferWrite& operator=(TAsyncBufferWrite&& In) { Filename = MoveTemp(In.Filename); DestSize = In.DestSize; Bitmap = MoveTemp(In.Bitmap); return *this; }
+
+	/** Call operator that saves the color buffer data */
+	void operator()()
+	{
+		FString ResultPath;
+		GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, &ResultPath);
+		UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *ResultPath);
+
+		FAsyncBufferWriteQueue::NumInProgressWrites.Decrement();
+	}
+
+	/** Copy semantics are only defined to appease TFunction, whose virtual CloneByCopy function is always instantiated, even if the TFunction itself is never copied */
+	TAsyncBufferWrite(const TAsyncBufferWrite& In) : Filename(In.Filename), DestSize(In.DestSize), Bitmap(In.Bitmap) { ensureMsgf(false, TEXT("Type should not be copied")); }
+	TAsyncBufferWrite& operator=(const TAsyncBufferWrite& In) { Filename = In.Filename; DestSize = In.DestSize; Bitmap = In.Bitmap; ensureMsgf(false, TEXT("Type should not be copied")); return *this; }
+
+private:
+
+	/** The filename to save to */
+	FString Filename;
+	/** The size of the bitmap */
+	FIntPoint DestSize;
+	/** The bitmap data itself */
+	TArray<TColor> Bitmap;
+};
+
+TFuture<void> FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
 {
 	FSceneRenderTargetItem& RenderTargetItem = Output->PooledRenderTarget->GetRenderTargetItem();
 	FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
@@ -297,16 +353,17 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	FIntPoint DestSize(SourceRect.Width(), SourceRect.Height());
 
 	EPixelFormat PixelFormat = Texture->GetFormat();
-	FString ResultPath;
+	
 	switch (PixelFormat)
 	{
 		case PF_FloatRGBA:
 		{
 			TArray<FFloat16Color> Bitmap;
 			Context.RHICmdList.ReadSurfaceFloatData(Texture, SourceRect, Bitmap, (ECubeFace)0, 0, 0);
-			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
+
+			return FAsyncBufferWriteQueue::Dispatch(TAsyncBufferWrite<FFloat16Color>(Filename, DestSize, MoveTemp(Bitmap)));
 		}
-		break;
+
 		case PF_R8G8B8A8:
 		case PF_B8G8R8A8:
 		{
@@ -319,12 +376,12 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 			{
 				Pixel->A = 255;
 			}
-			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
+
+			return FAsyncBufferWriteQueue::Dispatch(TAsyncBufferWrite<FColor>(Filename, DestSize, MoveTemp(Bitmap)));
 		}
-		break;
 	}
 
-	UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *ResultPath);
+	return TFuture<void>();
 }
 
 void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOutputRef& InOutputRef, FRenderingCompositePassContext& Context) const

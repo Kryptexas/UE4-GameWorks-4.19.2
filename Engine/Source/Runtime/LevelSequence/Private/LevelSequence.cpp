@@ -65,8 +65,6 @@ void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Posse
 	if (Context)
 	{
 		ObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
-
-		MovieSceneHelpers::SetRuntimeObjectMobility(&PossessedObject);
 	}
 }
 

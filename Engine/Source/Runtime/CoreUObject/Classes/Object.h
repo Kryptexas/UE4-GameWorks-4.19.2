@@ -270,6 +270,10 @@ enum class EUnit
 	
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
 
+	/** Arbitrary multiplier */
+	
+	Multiplier,
+
 
 	/** Symbolic entry, not specifiable on meta data. */
 	

@@ -258,6 +258,9 @@ private:
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
 
+	/** Makes the auto-key menu for the toolbar. */
+	TSharedRef<SWidget> MakeAutoKeyMenu();
+
 	/** Makes and configures a set of the standard UE transport controls. */
 	TSharedRef<SWidget> MakeTransportControls();
 

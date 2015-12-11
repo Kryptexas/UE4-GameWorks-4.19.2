@@ -1,9 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorExperimentalSettings.h: Declares the UEditorExperimentalSettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -44,10 +40,6 @@ public:
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
-
-	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
-	bool bMessagingDebugger;
 
 	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Actor Merging"))
@@ -134,7 +126,10 @@ public:
 	 * @return The delegate.
 	 */
 	DECLARE_EVENT_OneParam(UEditorExperimentalSettings, FSettingChangedEvent, FName /*PropertyName*/);
-	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
+	FSettingChangedEvent& OnSettingChanged( )
+	{
+		return SettingChangedEvent;
+	}
 
 protected:
 

@@ -140,5 +140,11 @@ bool UMovieSceneSubTrack::SupportsMultipleRows() const
 	return true;
 }
 
+#if WITH_EDITORONLY_DATA
+FText UMovieSceneSubTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Subscenes");
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

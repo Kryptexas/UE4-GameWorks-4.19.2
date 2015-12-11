@@ -61,7 +61,7 @@ public:
 			{ 0 }
 		};
 
-		return QISearch( this, QITab, RefID, Object );
+		return QISearch(this, QITab, RefID, Object);
 	}
 #if _MSC_VER == 1900
 #pragma warning(pop)

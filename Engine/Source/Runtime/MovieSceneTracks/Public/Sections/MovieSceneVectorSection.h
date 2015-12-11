@@ -14,23 +14,16 @@ enum class EKeyVectorChannel
 	W
 };
 
-enum class EKeyVectorValueType
-{
-	Key,
-	Default
-};
 
 struct MOVIESCENETRACKS_API FVectorKey
 {
-	FVectorKey( EKeyVectorChannel InChannel, float InValue, EKeyVectorValueType InValueType )
+	FVectorKey( EKeyVectorChannel InChannel, float InValue )
 	{
 		Channel = InChannel;
 		Value = InValue;
-		ValueType = InValueType;
 	}
 	EKeyVectorChannel Channel;
 	float Value;
-	EKeyVectorValueType ValueType;
 };
 
 

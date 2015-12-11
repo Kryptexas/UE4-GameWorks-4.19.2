@@ -284,7 +284,6 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 																			.FillWidth( FillCoefficient_0 )
 																			[
 																				SNew(SSequencerTreeViewBox, InSequencer, SharedThis(this))
-																					.Padding(FMargin(0, 0, 10.f, 0)) // Padding to allow space for the scroll bar
 																					[
 																						TreeView.ToSharedRef()
 																					]
@@ -583,7 +582,19 @@ void SSequencer::HandleKeySelectionChanged()
 
 void SSequencer::HandleLabelBrowserSelectionChanged(FString NewLabel, ESelectInfo::Type SelectInfo)
 {
-	SearchBox->SetText(FText::FromString(FString(TEXT("label:") + NewLabel)));
+	if (SelectInfo == ESelectInfo::Direct)
+	{
+		return;
+	}
+
+	if (NewLabel.IsEmpty())
+	{
+		SearchBox->SetText(FText::GetEmpty());
+	}
+	else
+	{
+		SearchBox->SetText(FText::FromString(FString(TEXT("label:")) + NewLabel));
+	}
 }
 
 
@@ -696,7 +707,38 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleKeyAllEnabled, NAME_None, TAttribute<FText>(), TAttribute<FText>(), KeyAllIcon );
 		}
 
-		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
+		TAttribute<FSlateIcon> AutoKeyModeIcon;
+		AutoKeyModeIcon.Bind(TAttribute<FSlateIcon>::FGetter::CreateLambda( [&] {
+			switch ( Sequencer.Pin()->GetAutoKeyMode() )
+			{
+			case EAutoKeyMode::KeyAll:
+				return FSequencerCommands::Get().SetAutoKeyModeAll->GetIcon();
+			case EAutoKeyMode::KeyAnimated:
+				return FSequencerCommands::Get().SetAutoKeyModeAnimated->GetIcon();
+			default: // EAutoKeyMode::KeyNone
+				return FSequencerCommands::Get().SetAutoKeyModeNone->GetIcon();
+			}
+		} ) );
+
+		TAttribute<FText> AutoKeyModeToolTip;
+		AutoKeyModeToolTip.Bind( TAttribute<FText>::FGetter::CreateLambda( [&] {
+			switch ( Sequencer.Pin()->GetAutoKeyMode() )
+			{
+			case EAutoKeyMode::KeyAll:
+				return FSequencerCommands::Get().SetAutoKeyModeAll->GetDescription();
+			case EAutoKeyMode::KeyAnimated:
+				return FSequencerCommands::Get().SetAutoKeyModeAnimated->GetDescription();
+			default: // EAutoKeyMode::KeyNone
+				return FSequencerCommands::Get().SetAutoKeyModeNone->GetDescription();
+			}
+		} ) );
+
+		ToolBarBuilder.AddComboButton(
+			FUIAction(),
+			FOnGetContent::CreateSP(this, &SSequencer::MakeAutoKeyMenu),
+			LOCTEXT("AutoKeyMode", "Auto-Key Mode"),
+			AutoKeyModeToolTip,
+			AutoKeyModeIcon);
 	}
 	ToolBarBuilder.EndSection();
 
@@ -825,7 +867,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 				.OnBeginSliderMovement(OnBeginPlaybackRangeDrag)
 				.OnEndSliderMovement_Lambda([=](float Value){ OnStartChanged(Value); OnEndPlaybackRangeDrag.ExecuteIfBound(); })
 				.MinValue_Lambda([=]() -> float {
-					return PinnedSequencer->GetViewRange().GetLowerBoundValue(); 
+					return PinnedSequencer->GetClampRange().GetLowerBoundValue(); 
 				})
 				.MaxValue_Lambda([=]() -> float {
 					return PinnedSequencer->GetPlaybackRange().GetUpperBoundValue(); 
@@ -861,7 +903,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 					return PinnedSequencer->GetPlaybackRange().GetLowerBoundValue(); 
 				})
 				.MaxValue_Lambda([=]() -> float {
-					return PinnedSequencer->GetViewRange().GetUpperBoundValue(); 
+					return PinnedSequencer->GetClampRange().GetUpperBoundValue(); 
 				})
 				.Value_Lambda([=]() -> float {
 					return PinnedSequencer->GetPlaybackRange().GetUpperBoundValue();
@@ -870,6 +912,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 			LOCTEXT("PlaybackStartEnd", "End"));
 
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleKeepCursorInPlaybackRange );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleKeepPlaybackRangeInSectionBounds );
 	}
 
 
@@ -916,6 +959,19 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
+}
+
+
+TSharedRef<SWidget> SSequencer::MakeAutoKeyMenu()
+{
+	FMenuBuilder MenuBuilder(false, Sequencer.Pin()->GetCommandBindings());
+
+	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetAutoKeyModeAll);
+	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetAutoKeyModeAnimated);
+	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetAutoKeyModeNone);
+
+	return MenuBuilder.MakeWidget();
+
 }
 
 
@@ -1044,8 +1100,19 @@ void SSequencer::ResetBreadcrumbs()
 
 void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 {
-	SequencerNodeTree->FilterNodes( Filter.ToString() );
+	const FString FilterString = Filter.ToString();
+
+	SequencerNodeTree->FilterNodes(FilterString);
 	TreeView->Refresh();
+
+	if (FilterString.StartsWith(TEXT("label:")))
+	{
+		LabelBrowser->SetSelectedLabel(FilterString.RightChop(6));
+	}
+	else
+	{
+		LabelBrowser->SetSelectedLabel(FString());
+	}
 }
 
 

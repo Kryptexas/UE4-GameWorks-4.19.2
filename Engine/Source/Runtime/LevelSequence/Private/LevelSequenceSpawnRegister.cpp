@@ -87,8 +87,6 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		return nullptr;
 	}
 
-	MovieSceneHelpers::SetRuntimeObjectMobility(SpawnedObject);
-
 	Register.Add(Key, FSpawnedObject(*SpawnedObject, Spawnable->GetSpawnOwnership()));
 
 	SequenceInstance.OnObjectSpawned(BindingId, *SpawnedObject, Player);

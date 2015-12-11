@@ -113,16 +113,6 @@ TSharedRef<ISequencerSection> F3DAttachTrackEditor::MakeSectionInterface( UMovie
 }
 
 
-void F3DAttachTrackEditor::AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset )
-{
-	AActor* ParentActor = Cast<AActor>(AdditionalAsset);
-	if (ParentActor != nullptr)
-	{
-		UMovieSceneSection* DummySection = nullptr;
-		ActorPicked(ParentActor, ObjectGuid, DummySection);
-	}
-}
-
 void F3DAttachTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(AActor::StaticClass()))

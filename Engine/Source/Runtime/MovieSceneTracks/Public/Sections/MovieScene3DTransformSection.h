@@ -16,12 +16,6 @@ namespace EKey3DTransformChannel
 		Scale = 0x00000004,
 		All = Translation | Rotation | Scale
 	};
-
-	enum ValueType
-	{
-		Key,
-		Default
-	};
 }
 
 /**
@@ -61,16 +55,14 @@ struct FTransformData
 
 struct FTransformKey
 {
-	FTransformKey( EKey3DTransformChannel::Type InChannel, EKey3DTransformChannel::ValueType InChannelValueType, EAxis::Type InAxis, float InValue, bool InbUnwindRotation )
+	FTransformKey( EKey3DTransformChannel::Type InChannel, EAxis::Type InAxis, float InValue, bool InbUnwindRotation )
 	{
 		Channel = InChannel;
-		ChannelValueType = InChannelValueType;
 		Axis = InAxis;
 		Value = InValue;
 		bUnwindRotation = InbUnwindRotation;
 	}
 	EKey3DTransformChannel::Type Channel;
-	EKey3DTransformChannel::ValueType ChannelValueType;
 	EAxis::Type Axis;
 	float Value;
 	bool bUnwindRotation;
@@ -100,7 +92,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutTranslation	The evaluated translation.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	void EvalTranslation( float Time, FVector& OutTranslation ) const;
+	MOVIESCENETRACKS_API void EvalTranslation( float Time, FVector& OutTranslation ) const;
 
 	/**
 	 * Evaluates the rotation component of the transform
@@ -108,7 +100,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutRotation		The evaluated rotation.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	void EvalRotation( float Time, FRotator& OutRotation ) const;
+	MOVIESCENETRACKS_API void EvalRotation( float Time, FRotator& OutRotation ) const;
 
 	/**
 	 * Evaluates the scale component of the transform
@@ -116,7 +108,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutScale			The evaluated scale.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	void EvalScale( float Time, FVector& OutScale ) const;
+	MOVIESCENETRACKS_API void EvalScale( float Time, FVector& OutScale ) const;
 
 	/** 
 	 * Returns the translation curve for a specific axis

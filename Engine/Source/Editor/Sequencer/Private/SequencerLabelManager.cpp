@@ -102,3 +102,28 @@ bool FSequencerLabelManager::LabelExists(const FString& Label) const
 
 	return false;
 }
+
+
+bool FSequencerLabelManager::RenameLabel(const FString& OldLabel, const FString& NewLabel)
+{
+	if (!MovieScene.IsValid() || (OldLabel == NewLabel))
+	{
+		return false;
+	}
+
+	bool FoundOldLabel = false;
+
+	for (auto& LabelsPair : MovieScene->GetObjectsToLabels())
+	{
+		TArray<FString>& Strings = LabelsPair.Value.Strings;
+		int32 OldLabelIndex = Strings.IndexOfByKey(OldLabel);
+
+		if (OldLabelIndex > INDEX_NONE)
+		{
+			Strings[OldLabelIndex] = NewLabel;
+			FoundOldLabel = true;
+		}
+	}
+
+	return FoundOldLabel;
+}

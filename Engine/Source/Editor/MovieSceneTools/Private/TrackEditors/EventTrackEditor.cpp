@@ -29,12 +29,6 @@ FEventTrackEditor::FEventTrackEditor(TSharedRef<ISequencer> InSequencer)
 /* ISequencerTrackEditor interface
  *****************************************************************************/
 
-void FEventTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
-{
-	// todo gmp: Sequencer: implement event track section
-}
-
-
 void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();

@@ -146,16 +146,36 @@ TSharedRef<ISequencerSection> FSkeletalAnimationTrackEditor::MakeSectionInterfac
 }
 
 
-void FSkeletalAnimationTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
+void FSkeletalAnimationTrackEditor::AddKey(const FGuid& ObjectGuid)
 {
-	UAnimSequence* AnimSequence = Cast<UAnimSequence>(AdditionalAsset);
+	USkeleton* Skeleton = AcquireSkeletonFromObjectGuid(ObjectGuid);
 
-	if (AnimSequence)
+	if (Skeleton)
 	{
-		TArray<UObject*> OutObjects;
+		// Load the asset registry module
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
-		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence) );
+		// Collect a full list of assets with the specified class
+		TArray<FAssetData> AssetDataList;
+		AssetRegistryModule.Get().GetAssetsByClass(UAnimSequence::StaticClass()->GetFName(), AssetDataList);
+
+		if (AssetDataList.Num())
+		{
+			FMenuBuilder MenuBuilder(true, NULL);
+			BuildAnimationSubMenu(MenuBuilder, ObjectGuid, Skeleton);
+			
+			TSharedPtr< SWindow > Parent = FSlateApplication::Get().GetActiveTopLevelWindow(); 
+			if (Parent.IsValid())
+			{
+				FSlateApplication::Get().PushMenu(
+					Parent.ToSharedRef(),
+					FWidgetPath(),
+					MenuBuilder.MakeWidget(),
+					FSlateApplication::Get().GetCursorPos(),
+					FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+					);
+			}
+		}
 	}
 }
 
@@ -240,12 +260,18 @@ void FSkeletalAnimationTrackEditor::BuildAnimationSubMenu(FMenuBuilder& MenuBuil
 
 void FSkeletalAnimationTrackEditor::OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding)
 {
+	FSlateApplication::Get().DismissAllMenus();
+
 	UObject* SelectedObject = AssetData.GetAsset();
 
 	if (SelectedObject && SelectedObject->IsA(UAnimSequence::StaticClass()))
 	{
 		UAnimSequence* AnimSequence = CastChecked<UAnimSequence>(AssetData.GetAsset());
-		AddKey(ObjectBinding, AnimSequence);
+
+		TArray<UObject*> OutObjects;
+
+		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, OutObjects);
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence) );
 	}
 }
 

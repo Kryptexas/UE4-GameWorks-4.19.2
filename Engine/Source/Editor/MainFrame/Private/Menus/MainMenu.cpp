@@ -192,7 +192,6 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 	{
 		// This is a temporary home for the spawners of experimental features that must be explicitly enabled.
 		// When the feature becomes permanent and need not check a flag, register a nomad spawner for it in the proper WorkspaceMenu category
-		bool bMessagingDebugger = GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger;
 		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
 		bool bLocalizationDashboard = GetDefault<UEditorExperimentalSettings>()->bEnableLocalizationDashboard;
 		bool bTranslationPicker = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationPicker;
@@ -200,21 +199,10 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		bool bDeviceOutputLog = GetDefault<UEditorExperimentalSettings>()->bDeviceOutputLog;
 
 		// Make sure at least one is enabled before creating the section
-		if (bMessagingDebugger || bBlutility || bLocalizationDashboard || bTranslationPicker || bMergeActors || bDeviceOutputLog)
+		if (bBlutility || bLocalizationDashboard || bTranslationPicker || bMergeActors || bDeviceOutputLog)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{
-				// Messaging Debugger
-				if (bMessagingDebugger)
-				{
-					MenuBuilder.AddMenuEntry(
-						LOCTEXT("MessagingDebuggerLabel", "Messaging Debugger"),
-						LOCTEXT("MessagingDebuggerToolTip", "The Messaging Debugger provides a visual utility for debugging the messaging system."),
-						FSlateIcon(), // Icon lives in the plugin dir for the debugger
-						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenMessagingDebugger))
-						);
-				}
-
 				// Blutility
 				if (bBlutility)
 				{

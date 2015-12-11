@@ -2898,33 +2898,42 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					CenterNewWindow = true;
 				}
 
-				TSharedRef<SWindow> PieWindow = SNew(SWindow)
+				TSharedPtr<SWindow> PieWindow = PlayInSettings->CustomPIEWindow.Pin();
+
+				const bool bHasCustomWindow = PieWindow.IsValid();
+				if (!bHasCustomWindow)
+				{
+					PieWindow = SNew(SWindow)
 					.Title(ViewportName)
 					.ScreenPosition(FVector2D( NewWindowPosition.X, NewWindowPosition.Y ))
 					.ClientSize(FVector2D( NewWindowWidth, NewWindowHeight ))
 					.AutoCenter(CenterNewWindow ? EAutoCenter::PreferredWorkArea : EAutoCenter::None)
 					.UseOSWindowBorder(bUseOSWndBorder)
 					.SizingRule(ESizingRule::UserSized);
+				}
 
 
 				// Setup a delegate for switching to the play world on slate input events, drawing and ticking
 				FOnSwitchWorldHack OnWorldSwitch = FOnSwitchWorldHack::CreateUObject( this, &UEditorEngine::OnSwitchWorldForSlatePieWindow );
 				PieWindow->SetOnWorldSwitchHack( OnWorldSwitch );
 
-				// Mac does not support parenting, do not keep on top
-#if PLATFORM_MAC
-				FSlateApplication::Get().AddWindow(PieWindow);
-#else
-				TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
-				if (PlayInSettings->PIEAlwaysOnTop)
+				if (!bHasCustomWindow)
 				{
-					FSlateApplication::Get().AddWindowAsNativeChild(PieWindow, MainWindow, true);
+					// Mac does not support parenting, do not keep on top
+	#if PLATFORM_MAC
+					FSlateApplication::Get().AddWindow(PieWindow.ToSharedRef());
+	#else
+					TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
+					if (PlayInSettings->PIEAlwaysOnTop)
+					{
+						FSlateApplication::Get().AddWindowAsNativeChild(PieWindow.ToSharedRef(), MainWindow, true);
+					}
+					else
+					{
+						FSlateApplication::Get().AddWindow(PieWindow.ToSharedRef());
+					}
+	#endif
 				}
-				else
-				{
-					FSlateApplication::Get().AddWindow(PieWindow);
-				}
-#endif
 
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew(SOverlay);
 
@@ -2947,8 +2956,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 				// Create a viewport widget for the game to render in.
 				PieWindow->SetContent( PieViewportWidget.ToSharedRef() );
 
-				// Ensure the PIE window appears does not appear behind other windows.
-				PieWindow->BringToFront();
+				if (!bHasCustomWindow)
+				{
+					// Ensure the PIE window appears does not appear behind other windows.
+					PieWindow->BringToFront();
+				}
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
 				ViewportClient->SetGameLayerManager(GameLayerManagerRef);

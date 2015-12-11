@@ -160,10 +160,10 @@ private:
 	FPlatformErrorReport ErrorReport;
 
 	/** Object that uploads report files to the server */
-	FCrashUpload Uploader;
+	FCrashUploadToReceiver ReceiverUploader;
 
-	/** Whether BeginUpload has been called. */
-	bool bBeginUploadCalled;
+	/** Object that uploads report files to the server */
+	FCrashUploadToDataRouter DataRouterUploader;
 
 	/** Whether the main window should be hidden. */
 	bool bShouldWindowBeHidden;

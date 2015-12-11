@@ -13,6 +13,7 @@
 
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
+
 #include "CrashReporterSettings.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 

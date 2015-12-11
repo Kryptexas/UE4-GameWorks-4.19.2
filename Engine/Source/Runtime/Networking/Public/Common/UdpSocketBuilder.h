@@ -15,7 +15,7 @@ public:
 	 *
 	 * @param InDescription Debug description for the socket.
 	 */
-	FUdpSocketBuilder( const FString& InDescription )
+	FUdpSocketBuilder(const FString& InDescription)
 		: AllowBroadcast(false)
 		, Blocking(false)
 		, Bound(false)
@@ -79,7 +79,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see BoundToEndpoint, BoundToPort
 	 */
-	FUdpSocketBuilder BoundToAddress( const FIPv4Address& Address )
+	FUdpSocketBuilder BoundToAddress(const FIPv4Address& Address)
 	{
 		BoundEndpoint = FIPv4Endpoint(Address, BoundEndpoint.GetPort());
 		Bound = true;
@@ -94,7 +94,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see BoundToAddress, BoundToPort
 	 */
-	FUdpSocketBuilder BoundToEndpoint( const FIPv4Endpoint& Endpoint )
+	FUdpSocketBuilder BoundToEndpoint(const FIPv4Endpoint& Endpoint)
 	{
 		BoundEndpoint = Endpoint;
 		Bound = true;
@@ -112,7 +112,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see BoundToAddress
 	 */
-	FUdpSocketBuilder BoundToPort( int32 Port )
+	FUdpSocketBuilder BoundToPort(int32 Port)
 	{
 		BoundEndpoint = FIPv4Endpoint(BoundEndpoint.GetAddress(), Port);
 		Bound = true;
@@ -127,7 +127,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see WithMulticastLoopback, WithMulticastTtl
 	 */
-	FUdpSocketBuilder JoinedToGroup( const FIPv4Address& GroupAddress )
+	FUdpSocketBuilder JoinedToGroup(const FIPv4Address& GroupAddress)
 	{
 		JoinedGroups.Add(GroupAddress);
 
@@ -168,7 +168,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see JoinedToGroup, WithMulticastLoopback
 	 */
-	FUdpSocketBuilder WithMulticastTtl( uint8 TimeToLive )
+	FUdpSocketBuilder WithMulticastTtl(uint8 TimeToLive)
 	{
 		MulticastTtl = TimeToLive;
 

@@ -48,9 +48,14 @@ struct FCrashReportClientConfig
 	/** Initialization constructor. */
 	FCrashReportClientConfig();
 
-	const FString& GetReceiverAddress() const
+	FString GetReceiverAddress() const
 	{
 		return CrashReportReceiverIP;
+	}
+
+	FString GetDataRouterURL() const
+	{
+		return DataRouterUrl;
 	}
 
 	const FString& GetDiagnosticsFilename() const
@@ -90,6 +95,9 @@ protected:
 
 	/** IP address of crash report receiver. */
 	FString CrashReportReceiverIP;
+
+	/** URL of Data Router service */
+	FString DataRouterUrl;
 
 	/** Filename to use when saving diagnostics report, if generated locally. */
 	FString DiagnosticsFilename;

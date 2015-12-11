@@ -17,12 +17,11 @@ public:
 
 	/**
 	 * Manually adds a key.
-
+	 *
 	 * @param ObjectGuid The Guid of the object that we are adding a key to.
-	 * @param AdditionalAsset An optional asset that can be added with the key.
 	 */
-	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = nullptr) = 0;
-	
+	virtual void AddKey(const FGuid& ObjectGuid) = 0;
+
 	/**
 	 * Add a new track to the sequence.
 	 */

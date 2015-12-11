@@ -320,12 +320,7 @@ void UGameInstance::StartGameInstance()
 	const FString& DefaultMap = GameMapsSettings->GetGameDefaultMap();
 
 	FString PackageName;
-
-#if WITH_EDITOR
-	PackageName = InitialMapOverride;
-#endif
-
-	if (PackageName.IsEmpty() && (!FParse::Token(Tmp, PackageName, 0) || **PackageName == '-'))
+	if (!FParse::Token(Tmp, PackageName, 0) || **PackageName == '-')
 	{
 		PackageName = DefaultMap + GameMapsSettings->LocalMapOptions;
 	}

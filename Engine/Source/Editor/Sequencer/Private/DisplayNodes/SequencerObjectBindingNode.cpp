@@ -277,6 +277,41 @@ const UClass* FSequencerObjectBindingNode::GetClassForObjectBinding()
 	return ObjectClass;
 }
 
+UObject* FSequencerObjectBindingNode::FindRepresentativeObject()
+{
+	FSequencer& Sequencer = GetSequencer();
+	
+	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequenceInstance()->FindObject(ObjectBinding, Sequencer);
+	if (BoundObject)
+	{
+		return BoundObject;
+	}
+
+	UMovieScene* FocusedMovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
+
+	FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectBinding);
+	// If we're a possessable with a parent spawnable and we don't have the object, we look the object up within the default object of the spawnable
+	if (Possessable && Possessable->GetParent().IsValid())
+	{
+		// If we're a spawnable and we don't have the object, use the default object to build up the track menu
+		FMovieSceneSpawnable* ParentSpawnable = FocusedMovieScene->FindSpawnable(Possessable->GetParent());
+		if (ParentSpawnable)
+		{
+			UObject* ParentObject = ParentSpawnable->GetClass()->GetDefaultObject();
+			if (ParentObject)
+			{
+				return Sequencer.GetFocusedMovieSceneSequence()->FindPossessableObject(ObjectBinding, ParentObject);
+			}
+		}
+	}
+	// If we're a spawnable and we don't have the object, use the default object to build up the track menu
+	else if (FMovieSceneSpawnable* Spawnable = FocusedMovieScene->FindSpawnable(ObjectBinding))
+	{
+		return Spawnable->GetClass()->GetDefaultObject();
+	}
+
+	return nullptr;
+}
 
 /* FSequencerObjectBindingNode callbacks
  *****************************************************************************/
@@ -288,7 +323,7 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 	//@todo need to resolve this between UMG and the level editor sequencer
 	const bool bUseSubMenus = Sequencer.IsLevelEditorSequencer();
 
-	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequenceInstance()->FindObject(ObjectBinding, Sequencer);
+	UObject* BoundObject = FindRepresentativeObject();
 
 	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
 	TSharedRef<FUICommandList> CommandList(new FUICommandList);
@@ -456,7 +491,7 @@ void FSequencerObjectBindingNode::HandleLabelsSubMenuCreate(FMenuBuilder& MenuBu
 void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
-	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequenceInstance()->FindObject(ObjectBinding, Sequencer);
+	UObject* BoundObject = FindRepresentativeObject();
 
 	TArray<UObject*> KeyableBoundObjects;
 	if (BoundObject != nullptr)

@@ -954,12 +954,12 @@ FString FMacPlatformProcess::ReadPipe( void* ReadPipe )
 	{
 		do
 		{
-			BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Buffer, READ_SIZE);
-			if (BytesRead > 0)
-			{
-				Buffer[BytesRead] = '\0';
-				Output += StringCast<TCHAR>(Buffer).Get();
-			}
+		BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Buffer, READ_SIZE);
+		if (BytesRead > 0)
+		{
+			Buffer[BytesRead] = '\0';
+			Output += StringCast<TCHAR>(Buffer).Get();
+		}
 		} while (BytesRead > 0);
 	}
 

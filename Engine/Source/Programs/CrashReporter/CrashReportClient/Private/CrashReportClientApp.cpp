@@ -132,69 +132,72 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
 	
-	if (bUnattended)
+	if (ErrorReport.HasFilesToUpload())
 	{
-		// In the unattended mode we don't send any PII.
-		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ) );
-		FCrashReportClientUnattended CrashReportClient( ErrorReport );
-
-		// loop until the app is ready to quit
-		while (!GIsRequestingExit)
+		if (bUnattended)
 		{
-			MainLoop.Tick();
-		}
-	}
-	else
-	{
-#if !CRASH_REPORT_UNATTENDED_ONLY
-		// crank up a normal Slate application using the platform's standalone renderer
-		FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());
+			// In the unattended mode we don't send any PII.
+			ErrorReport.SetUserComment(NSLOCTEXT("CrashReportClient", "UnattendedMode", "Sent in the unattended mode"));
+			FCrashReportClientUnattended CrashReportClient(ErrorReport);
 
-		// Prepare the custom Slate styles
-		FCrashReportClientStyle::Initialize();
-
-		// Create the main implementation object
-		TSharedRef<FCrashReportClient> CrashReportClient = MakeShareable(new FCrashReportClient(ErrorReport));
-
-		// open up the app window	
-		TSharedRef<SCrashReportClient> ClientControl = SNew(SCrashReportClient, CrashReportClient);
-
-		auto Window = FSlateApplication::Get().AddWindow(
-			SNew(SWindow)
-			.Title(NSLOCTEXT("CrashReportClient", "CrashReportClientAppName", "Unreal Engine 4 Crash Reporter"))
-			.ClientSize(InitialWindowDimensions)
-			[
-				ClientControl
-			]);
-
-		Window->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateSP(CrashReportClient, &FCrashReportClient::RequestCloseWindow));
-
-		// Setting focus seems to have to happen after the Window has been added
-		FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
-
-		// Debugging code
-		if (RunWidgetReflector)
-		{
-			FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").DisplayWidgetReflector();
-		}
-
-		// loop until the app is ready to quit
-		while (!GIsRequestingExit)
-		{
-			MainLoop.Tick();
-
-			if (CrashReportClient->ShouldWindowBeHidden())
+			// loop until the app is ready to quit
+			while (!GIsRequestingExit)
 			{
-				Window->HideWindow();
+				MainLoop.Tick();
 			}
 		}
+		else
+		{
+#if !CRASH_REPORT_UNATTENDED_ONLY
+			// crank up a normal Slate application using the platform's standalone renderer
+			FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());
 
-		// Clean up the custom styles
-		FCrashReportClientStyle::Shutdown();
+			// Prepare the custom Slate styles
+			FCrashReportClientStyle::Initialize();
 
-		// Close down the Slate application
-		FSlateApplication::Shutdown();
+			// Create the main implementation object
+			TSharedRef<FCrashReportClient> CrashReportClient = MakeShareable(new FCrashReportClient(ErrorReport));
+
+			// open up the app window	
+			TSharedRef<SCrashReportClient> ClientControl = SNew(SCrashReportClient, CrashReportClient);
+
+			auto Window = FSlateApplication::Get().AddWindow(
+				SNew(SWindow)
+				.Title(NSLOCTEXT("CrashReportClient", "CrashReportClientAppName", "Unreal Engine 4 Crash Reporter"))
+				.ClientSize(InitialWindowDimensions)
+				[
+					ClientControl
+				]);
+
+			Window->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateSP(CrashReportClient, &FCrashReportClient::RequestCloseWindow));
+
+			// Setting focus seems to have to happen after the Window has been added
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
+
+			// Debugging code
+			if (RunWidgetReflector)
+			{
+				FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").DisplayWidgetReflector();
+			}
+
+			// loop until the app is ready to quit
+			while (!GIsRequestingExit)
+			{
+				MainLoop.Tick();
+
+				if (CrashReportClient->ShouldWindowBeHidden())
+				{
+					Window->HideWindow();
+				}
+			}
+
+			// Clean up the custom styles
+			FCrashReportClientStyle::Shutdown();
+
+			// Close down the Slate application
+			FSlateApplication::Shutdown();
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
+		}
 	}
 
 	FPrimaryCrashProperties::Shutdown();

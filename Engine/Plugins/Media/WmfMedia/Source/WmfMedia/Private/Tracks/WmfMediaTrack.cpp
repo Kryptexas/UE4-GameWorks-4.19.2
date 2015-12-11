@@ -10,7 +10,7 @@
 /* FWmfMediaTrack structors
  *****************************************************************************/
 
-FWmfMediaTrack::FWmfMediaTrack( IMFPresentationDescriptor* InPresentationDescriptor, FWmfMediaSampler* InSampler, IMFStreamDescriptor* InStreamDescriptor, DWORD InStreamIndex )
+FWmfMediaTrack::FWmfMediaTrack(IMFPresentationDescriptor* InPresentationDescriptor, FWmfMediaSampler* InSampler, IMFStreamDescriptor* InStreamDescriptor, DWORD InStreamIndex)
 	: PresentationDescriptor(InPresentationDescriptor)
 	, Sampler(InSampler)
 	, StreamDescriptor(InStreamDescriptor)
@@ -39,7 +39,7 @@ FWmfMediaTrack::FWmfMediaTrack( IMFPresentationDescriptor* InPresentationDescrip
 /* IMediaStream interface
  *****************************************************************************/
 
-void FWmfMediaTrack::AddSink( const IMediaSinkRef& Sink )
+void FWmfMediaTrack::AddSink(const IMediaSinkRef& Sink)
 {
 	Sampler->RegisterSink(Sink);
 }
@@ -100,7 +100,7 @@ bool FWmfMediaTrack::IsEnabled() const
 }
 
 
-bool FWmfMediaTrack::IsMutuallyExclusive( const IMediaStreamRef& Other ) const
+bool FWmfMediaTrack::IsMutuallyExclusive(const IMediaStreamRef& Other) const
 {
 	return false;
 }
@@ -112,7 +112,7 @@ bool FWmfMediaTrack::IsProtected() const
 }
 
 
-void FWmfMediaTrack::RemoveSink( const IMediaSinkRef& Sink )
+void FWmfMediaTrack::RemoveSink(const IMediaSinkRef& Sink)
 {
 	Sampler->UnregisterSink(Sink);
 }

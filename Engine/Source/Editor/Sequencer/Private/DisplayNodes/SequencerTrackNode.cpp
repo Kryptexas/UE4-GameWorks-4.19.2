@@ -40,6 +40,11 @@ void FSequencerTrackNode::SetSectionAsKeyArea(TSharedRef<IKeyArea>& KeyArea)
 	TopLevelKeyNode->AddKeyArea( KeyArea );
 }
 
+void FSequencerTrackNode::AddKey(const FGuid& ObjectGuid)
+{
+	AssociatedEditor.AddKey(ObjectGuid);
+}
+
 
 int32 FSequencerTrackNode::GetMaxRowIndex() const
 {

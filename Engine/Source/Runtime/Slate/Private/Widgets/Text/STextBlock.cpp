@@ -196,9 +196,7 @@ FReply STextBlock::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 	{
 		if( OnDoubleClicked.IsBound() )
 		{
-			OnDoubleClicked.Execute();
-
-			return FReply::Handled();
+			return OnDoubleClicked.Execute();
 		}
 	}
 

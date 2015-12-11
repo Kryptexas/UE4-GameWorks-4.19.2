@@ -293,6 +293,12 @@ public:
 	 */
 	bool IsHidden() const;
 
+	/**
+	 * Check whether the node's tree view or track area widgets are hovered by the user's mouse.
+	 *
+	 * @return true if hovered, false otherwise. */
+	bool IsHovered() const;
+
 	/** Initialize this node with expansion states and virtual offsets */
 	void Initialize(float InVirtualTop, float InVirtualBottom);
 

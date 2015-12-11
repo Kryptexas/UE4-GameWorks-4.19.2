@@ -353,7 +353,6 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		
 		SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
 
-
 		// Move the registration of the game viewport to that messages are correctly received.
 		if (!FPlatformProperties::SupportsWindowedMode())
 		{
@@ -704,6 +703,25 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return HandleApplyUserSettingsCommand( Cmd, Ar );
 	}
 #endif // !UE_BUILD_SHIPPING
+#if WITH_EDITOR
+	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && GIsEditor )
+	{
+		IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture();
+		if (CaptureInterface)
+		{
+			CaptureInterface->StartCapturing();
+			return true;
+		}
+		else if (SceneViewport.IsValid())
+		{
+			if (IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(SceneViewport))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+#endif
 	else if( InWorld && InWorld->Exec( InWorld, Cmd, Ar ) )
 	{
 		return true;

@@ -4,6 +4,8 @@
 
 #include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 
+struct FContextMenuSuppressor;
+
 struct FPaintPlaybackRangeArgs
 {
 	FPaintPlaybackRangeArgs()
@@ -148,6 +150,8 @@ private:
 	void SetPlaybackRangeStart(float NewStart);
 	void SetPlaybackRangeEnd(float NewEnd);
 
+	TSharedRef<SWidget> OpenSetPlaybackRangeMenu(float MouseTime);
+
 private:
 	FTimeSliderArgs TimeSliderArgs;
 	/** The size of the scrub handle */
@@ -174,4 +178,26 @@ private:
 	FVector2D MouseDownRange;
 	/** Range stack */
 	TArray<FVector2D> RangeStack;
+	/** When > 0, we should not show context menus */
+	int32 ContextMenuSupression;
+	friend FContextMenuSuppressor;
+};
+
+struct FContextMenuSuppressor
+{
+	FContextMenuSuppressor(TSharedRef<FSequencerTimeSliderController> InTimeSliderController)
+		: TimeSliderController(InTimeSliderController)
+	{
+		++TimeSliderController->ContextMenuSupression;
+	}
+	~FContextMenuSuppressor()
+	{
+		--TimeSliderController->ContextMenuSupression;
+	}
+
+private:
+	FContextMenuSuppressor(const FContextMenuSuppressor&);
+	FContextMenuSuppressor& operator=(const FContextMenuSuppressor&);
+
+	TSharedRef<FSequencerTimeSliderController> TimeSliderController;
 };

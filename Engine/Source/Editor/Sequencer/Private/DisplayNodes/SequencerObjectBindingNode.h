@@ -58,6 +58,8 @@ protected:
 
 private:
 
+	UObject* FindRepresentativeObject();
+	
 	TSharedRef<SWidget> HandleAddTrackComboButtonGetMenuContent();
 	
 	void HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyablePropertyPath);

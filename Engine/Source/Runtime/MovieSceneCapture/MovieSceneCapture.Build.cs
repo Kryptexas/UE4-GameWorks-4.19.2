@@ -33,6 +33,9 @@ public class MovieSceneCapture : ModuleRules
 				"Json",
 				"JsonUtilities",
 				"MovieScene",
+				"RenderCore",
+				"RHI",
+				"ShaderCore",
 				"Slate",
 				"SlateCore",
 			}

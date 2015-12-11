@@ -420,7 +420,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ToggleNodeActive", "Active"),
-			LOCTEXT("ToggleNodeActiveTooltip", "Set this node or selected nodes active/inactive"),
+			LOCTEXT("ToggleNodeActiveTooltip", "Set this track or selected tracks active/inactive"),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeActive),
@@ -433,7 +433,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ToggleNodeLock", "Locked"),
-			LOCTEXT("ToggleNodeLockTooltip", "Lock or unlock this node or selected nodes"),
+			LOCTEXT("ToggleNodeLockTooltip", "Lock or unlock this node or selected tracks"),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::ToggleNodeLocked),
@@ -446,14 +446,14 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DeleteNode", "Delete"),
-			LOCTEXT("DeleteNodeTooltip", "Delete this or selected nodes"),
+			LOCTEXT("DeleteNodeTooltip", "Delete this or selected tracks"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode))
 		);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("RenameNode", "Rename"),
-			LOCTEXT("RenameNodeTooltip", "Rename this node"),
+			LOCTEXT("RenameNodeTooltip", "Rename this track"),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeExecute, ThisNode),
@@ -490,13 +490,19 @@ void FSequencerDisplayNode::SetExpansionState(bool bInExpanded)
 
 bool FSequencerDisplayNode::IsExpanded() const
 {
-	return ParentTree.HasActiveFilter() ? true : bExpanded;
+	return bExpanded;
 }
 
 
 bool FSequencerDisplayNode::IsHidden() const
 {
 	return ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared());
+}
+
+
+bool FSequencerDisplayNode::IsHovered() const
+{
+	return TreeNodeWidgetPtr.IsValid() && TreeNodeWidgetPtr.Pin()->IsHovered();
 }
 
 

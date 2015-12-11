@@ -28,7 +28,7 @@ public:
 	 * @param InSequence The message sequence number.
 	 * @param InSender The IPv4 endpoint of the sender.
 	 */
-	FReassembledUdpMessage( int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender )
+	FReassembledUdpMessage(int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender)
 		: PendingSegments(true, SegmentCount)
 		, PendingSegmentsCount(SegmentCount)
 		, ReceivedBytes(0)

@@ -64,6 +64,15 @@ public:
 	 */
 	bool LabelExists(const FString& Label) const;
 
+	/**
+	 * Rename the specified label to the given string.
+	 *
+	 * @param OldLabel The label to rename.
+	 * @param NewLabel The new label string.
+	 * @return true if at least one label was renamed, false otherwise.
+	 */
+	bool RenameLabel(const FString& OldLabel, const FString& NewLabel);
+
 public:
 
 	/** Get an event delegate that is executed when the movie scene's labels changed. */

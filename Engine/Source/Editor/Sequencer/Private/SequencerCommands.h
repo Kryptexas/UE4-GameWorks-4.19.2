@@ -51,6 +51,9 @@ public:
 	/** Toggle constraining the time cursor to the playback range */
 	TSharedPtr< FUICommandInfo > ToggleKeepCursorInPlaybackRange;
 
+	/** Toggle constraining the playback range to the section bounds */
+	TSharedPtr< FUICommandInfo > ToggleKeepPlaybackRangeInSectionBounds;
+
 	/** Expand all nodes and descendants */
 	TSharedPtr< FUICommandInfo > ExpandAllNodesAndDescendants;
 
@@ -90,8 +93,14 @@ public:
 	/** Split section */
 	TSharedPtr< FUICommandInfo > SplitSection;
 
-	/** Turns auto keying on and off. */
-	TSharedPtr< FUICommandInfo > ToggleAutoKeyEnabled;
+	/** Set the auto key mode to Key All. */
+	TSharedPtr< FUICommandInfo > SetAutoKeyModeAll;
+
+	/** Set the auto key mode to Key Animated. */
+	TSharedPtr< FUICommandInfo > SetAutoKeyModeAnimated;
+
+	/** Set the auto key mode to Key None. */
+	TSharedPtr< FUICommandInfo > SetAutoKeyModeNone;
 
 	/** Turns key all on and off. */
 	TSharedPtr< FUICommandInfo > ToggleKeyAllEnabled;

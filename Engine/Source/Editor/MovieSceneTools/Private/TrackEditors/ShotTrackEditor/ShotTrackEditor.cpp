@@ -44,21 +44,6 @@ TSharedRef<ISequencerTrackEditor> FShotTrackEditor::CreateTrackEditor(TSharedRef
 /* ISequencerTrackEditor interface
  *****************************************************************************/
 
-void FShotTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
-{/*
-	TArray<UObject*> OutObjects;
-
-	// @todo sequencer: the director track may be able to get cameras from sub-movie scenes
-	GetSequencer()->GetRuntimeObjects(GetSequencer()->GetRootMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-	bool bValidKey = OutObjects.Num() == 1 && OutObjects[0]->IsA<ACameraActor>();
-	
-	if (bValidKey)*/
-	{
-		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FShotTrackEditor::AddKeyInternal, ObjectGuid));
-	}
-}
-
-
 void FShotTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
 	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
@@ -371,7 +356,7 @@ void FShotTrackEditor::HandleAddShotComboButtonMenuEntryExecute(AActor* Camera)
 
 	if (ObjectGuid.IsValid())
 	{
-		AddKey(ObjectGuid);
+		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FShotTrackEditor::AddKeyInternal, ObjectGuid));
 	}
 }
 

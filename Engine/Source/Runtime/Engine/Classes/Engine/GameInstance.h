@@ -96,9 +96,6 @@ public:
 
 	virtual bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
 
-	/** Initial map to load when starting the game instance. Overrides anything set on the command line */
-	FString InitialMapOverride;
-
 #endif
 
 	class UEngine* GetEngine() const;

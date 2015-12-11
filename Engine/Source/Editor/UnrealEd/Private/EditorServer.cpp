@@ -30,6 +30,7 @@
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "InstancedFoliageActor.h"
+#include "MovieSceneCaptureModule.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -70,7 +71,6 @@
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "PhysicsPublic.h"
 #include "AnimationRecorder.h"
-#include "Settings/EditorSettings.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
 
@@ -1671,7 +1671,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	TArray<ABrush*> DynamicBrushes;
 	if (!bTreatMovableBrushesAsStatic)
 	{
-		for (auto It(Level->Actors.CreateConstIterator()); It; ++It)
+	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
 		{
 			ABrush* DynamicBrush = Cast<ABrush>(*It);
 			if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
@@ -3427,7 +3427,7 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 
 				// Update the pivot location.
 				check(SingleActor);
-				SetPivot(SingleActor->GetActorLocation(), false, true);
+				SetPivot( SingleActor->GetActorLocation(), false, true );
 
 				// If grouping is active, go through the unique group actors and update the group actor location
 				if (GEditor->bGroupingActive)
@@ -4826,6 +4826,15 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 		FVector NewLocation = Hit.Location - LocationOffset;
 		NewLocation.Z += KINDA_SMALL_NUMBER;	// Move the new desired location up by an error tolerance
 		
+		if (Object.Actor)
+		{
+			GEditor->BroadcastBeginObjectMovement(*Object.Actor);
+		}
+		else
+		{
+			GEditor->BroadcastBeginObjectMovement(*Object.Component);
+		}
+
 		Object.SetWorldLocation( NewLocation );
 		//InActor->TeleportTo( NewLocation, InActor->GetActorRotation(), false,true );
 		
@@ -4836,6 +4845,16 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 			NewRotation.Pitch -= 90.f;
 			Object.SetWorldRotation( NewRotation );
 		}
+
+		if (Object.Actor)
+		{
+			GEditor->BroadcastEndObjectMovement(*Object.Actor);
+		}
+		else
+		{
+			GEditor->BroadcastEndObjectMovement(*Object.Component);
+		}
+
 
 		// Switch to the pie world if we have one
 		FScopedConditionalWorldSwitcher WorldSwitcher( GCurrentLevelEditingViewportClient );
@@ -5690,6 +5709,10 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{
 		HandleRemoveArchtypeFlagCommand( Str, Ar );
 	}
+	else if( FParse::Command(&Str,TEXT("STARTMOVIECAPTURE")) )
+	{
+		bProcessed = HandleStartMovieCaptureCommand( Str, Ar );
+	}
 	else
 	{
 		bProcessed = FBlueprintEditorUtils::KismetDiagnosticExec(Stream, Ar);
@@ -6457,6 +6480,31 @@ bool UEditorEngine::HandleRemoveArchtypeFlagCommand( const TCHAR* Str, FOutputDe
 		}
 	}
 	return true;
+}
+
+bool UEditorEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture();
+	if (CaptureInterface)
+	{
+		CaptureInterface->StartCapturing();
+		return true;
+	}
+
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			FSlatePlayInEditorInfo* SlatePlayInEditorSession = GEditor->SlatePlayInEditorMap.Find(Context.ContextHandle);
+			if (SlatePlayInEditorSession && SlatePlayInEditorSession->SlatePlayInEditorWindowViewport.IsValid())
+			{
+				IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport.ToSharedRef());
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /**

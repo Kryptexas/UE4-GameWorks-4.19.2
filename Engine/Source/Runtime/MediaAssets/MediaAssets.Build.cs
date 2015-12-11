@@ -6,17 +6,12 @@ namespace UnrealBuildTool.Rules
 	{
 		public MediaAssets(TargetInfo Target)
 		{
-			DynamicallyLoadedModuleNames.AddRange(
-				new string[] {
-					"Media",
-				}
-			);
-
             PublicDependencyModuleNames.AddRange(
                 new string[] {
 					"Core",
 					"CoreUObject",
-					"Engine",                
+					"Engine",
+                    "Media",
                 }
             );
 
@@ -24,12 +19,6 @@ namespace UnrealBuildTool.Rules
 				new string[] {
                     "RenderCore",
                     "RHI",
-				}
-			);
-
-			PrivateIncludePathModuleNames.AddRange(
-				new string[] {
-					"Media",
 				}
 			);
 

@@ -27,12 +27,15 @@ public:
 	void EnterRenameMode();
 
 	/**
-	 * @return The display node used by this widget                                                              
+	 * @return The display node used by this widget.                                                           
 	 */
-	const TSharedPtr<FSequencerDisplayNode> GetDisplayNode() const { return DisplayNode; }
+	const TSharedPtr<FSequencerDisplayNode> GetDisplayNode() const
+	{
+		return DisplayNode;
+	}
 
 	/**
-	 * Gets a tint to apply buttons on hover
+	 * Gets a tint to apply buttons on hover.
 	 */
 	FLinearColor GetHoverTint() const;
 
@@ -46,12 +49,12 @@ private:
 	FSlateColor GetForegroundBasedOnSelection() const;
 
 	/**
-	 * @return The border image to show in the tree node
+	 * @return The border image to show in the tree node.
 	 */
 	const FSlateBrush* GetNodeBorderImage() const;
 	
 	/**
-	 * @return The expander visibility of this node
+	 * @return The expander visibility of this node.
 	 */
 	EVisibility GetExpanderVisibility() const;
 
@@ -75,32 +78,35 @@ private:
 	/** Handles the add key button being clicked. */
 	FReply OnAddKeyClicked();
 
-	/** Get all descendant nodes from the given root node */
+	/** Get all descendant nodes from the given root node. */
 	void GetAllDescendantNodes(TSharedPtr<FSequencerDisplayNode> RootNode, TArray<TSharedRef<FSequencerDisplayNode> >& AllNodes);
 
-	/** Return the root node given an object node */
+	/** Return the root node given an object node. */
 	TSharedPtr<FSequencerDisplayNode> GetRootNode(TSharedPtr<FSequencerDisplayNode> ObjectNode);
 
-	/** Called when nodes are selected */
+	/** Called when nodes are selected. */
 	void OnSelectionChanged(TArray<TSharedPtr<FSequencerDisplayNode>> AffectedNodes);
 
 private:
 
-	/** Layout node the widget is visualizing */
+	/** Layout node the widget is visualizing. */
 	TSharedPtr<FSequencerDisplayNode> DisplayNode;
 
-	/** Holds the editable text label widge.t */
+	/** Holds the editable text label widget. */
 	TSharedPtr<SEditableLabel> EditableLabel;
 
-	/** Brush to display a border around the widget when it is selected */
+	/** Brush to use if the node is hovered. */
+	const FSlateBrush* HoveredBrush;
+
+	/** Brush to display a border around the widget when it is selected. */
 	const FSlateBrush* SelectedBrush;
 
-	/** Brush to display a border around the widget when it is selected but inactive */
+	/** Brush to display a border around the widget when it is selected but inactive. */
 	const FSlateBrush* SelectedBrushInactive;
 
-	/** Brush to use if the node is not selected */
+	/** Brush to use if the node is not selected. */
 	const FSlateBrush* NotSelectedBrush;
 
-	/** The table row style used for nodes in the tree. This is required as we don't actually use the tree for selection */
+	/** The table row style used for nodes in the tree. This is required as we don't actually use the tree for selection. */
 	const FTableRowStyle* TableRowStyle;
 };

@@ -137,6 +137,7 @@ void FEditToolDragOperation::EndTransaction()
 {
 	Transaction.Reset();
 	Sequencer.UpdateRuntimeInstances();
+	Sequencer.UpdatePlaybackRange();
 }
 
 FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, bool bInDraggingByEnd )

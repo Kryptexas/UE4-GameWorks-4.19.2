@@ -347,27 +347,25 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 		FTransformData NewTransformData( SceneComponentThatChanged );
 
 		FKeyParams KeyParams;
+		KeyParams.bCreateKeyIfUnchanged = GetSequencer()->GetKeyAllEnabled();
+		KeyParams.bCreateKeyOnlyWhenAutoKeying = true;
+		if ( GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyAll )
+		{
+			KeyParams.bCreateHandleIfMissing = true;
+			KeyParams.bCreateTrackIfMissing = true;
+			KeyParams.bCreateKeyIfEmpty = true;
+		}
+		else
 		{
 			KeyParams.bCreateHandleIfMissing = false;
 			KeyParams.bCreateTrackIfMissing = false;
-			KeyParams.bCreateKeyIfUnchanged = GetSequencer()->GetKeyAllEnabled();
 			KeyParams.bCreateKeyIfEmpty = false;
-			KeyParams.bCreateKeyOnlyWhenAutoKeying = true;
 		}
 
 		const bool bUnwindRotation = GetSequencer()->IsRecordingLive();
 
 		AddTransformKeys(Actor, ExistingTransform, NewTransformData, EKey3DTransformChannel::All, bUnwindRotation, KeyParams);
 	}
-}
-
-
-void F3DTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
-{
-	// @todo - Sequencer - The key params should be updated to do what the artists expect.
-	FKeyParams KeyParams;
-	KeyParams.bCreateTrackIfMissing = true;
-	AddTransformKeysForHandle( ObjectGuid, EKey3DTransformChannel::All, KeyParams);
 }
 
 
@@ -643,23 +641,21 @@ void F3DTransformTrackEditor::GetActorAndSceneComponentFromObject( UObject* Obje
 	}
 }
 
-void GetKeysForVector( bool LastVectorIsValid, const FVector& LastVector, const FVector& CurrentVector, EKey3DTransformChannel::Type KeyChannel, EKey3DTransformChannel::ValueType KeyChannelValueType, bool bUnwindRotation, TArray<FTransformKey>& OutKeys )
+void GetKeysForVector( bool LastVectorIsValid, const FVector& LastVector, const FVector& CurrentVector, EKey3DTransformChannel::Type VectorChannel, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, TArray<FTransformKey>& OutNewKeys, TArray<FTransformKey>& OutDefaultKeys)
 {
-	if ( LastVectorIsValid == false || FMath::IsNearlyEqual( LastVector.X, CurrentVector.X ) == false )
-	{
-		OutKeys.Add( FTransformKey( KeyChannel, KeyChannelValueType, EAxis::X, CurrentVector.X, bUnwindRotation ) );
-	}
-	if ( LastVectorIsValid == false || FMath::IsNearlyEqual( LastVector.Y, CurrentVector.Y ) == false )
-	{
-		OutKeys.Add( FTransformKey( KeyChannel, KeyChannelValueType, EAxis::Y, CurrentVector.Y, bUnwindRotation ) );
-	}
-	if ( LastVectorIsValid == false || FMath::IsNearlyEqual( LastVector.Z, CurrentVector.Z ) == false )
-	{
-		OutKeys.Add( FTransformKey( KeyChannel, KeyChannelValueType, EAxis::Z, CurrentVector.Z, bUnwindRotation ) );
-	}
+	bool bKeyChannel = ChannelsToKey == EKey3DTransformChannel::All || ChannelsToKey == VectorChannel;
+
+	TArray<FTransformKey>& XKeys = bKeyChannel && ( LastVectorIsValid == false || FMath::IsNearlyEqual( LastVector.X, CurrentVector.X ) == false ) ? OutNewKeys : OutDefaultKeys;
+	XKeys.Add( FTransformKey( VectorChannel, EAxis::X, CurrentVector.X, bUnwindRotation ) );
+	
+	TArray<FTransformKey>& YKeys = bKeyChannel && ( LastVectorIsValid == false || FMath::IsNearlyEqual( LastVector.Y, CurrentVector.Y ) == false ) ? OutNewKeys : OutDefaultKeys;
+	YKeys.Add( FTransformKey( VectorChannel, EAxis::Y, CurrentVector.Y, bUnwindRotation ) );
+
+	TArray<FTransformKey>& ZKeys = bKeyChannel && ( LastVectorIsValid == false || FMath::IsNearlyEqual( LastVector.Z, CurrentVector.Z ) == false ) ? OutNewKeys : OutDefaultKeys;
+	ZKeys.Add( FTransformKey( VectorChannel, EAxis::Z, CurrentVector.Z, bUnwindRotation ) );
 }
 
-void F3DTransformTrackEditor::GetChangedTransformKeys( const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, TArray<FTransformKey>& OutKeys )
+void F3DTransformTrackEditor::GetTransformKeys( const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, TArray<FTransformKey>& OutNewKeys, TArray<FTransformKey>& OutDefaultKeys )
 {
 	bool bLastVectorIsValid = LastTransform.IsValid();
 
@@ -670,14 +666,9 @@ void F3DTransformTrackEditor::GetChangedTransformKeys( const FTransformData& Las
 		ChannelsToKey = EKey3DTransformChannel::All;
 	}
 
-	GetKeysForVector( bLastVectorIsValid, LastTransform.Translation, CurrentTransform.Translation, EKey3DTransformChannel::Translation, ChannelsToKey & EKey3DTransformChannel::Translation ? EKey3DTransformChannel::Key : EKey3DTransformChannel::Default, bUnwindRotation, OutKeys);
-	GetKeysForVector( bLastVectorIsValid, LastTransform.Rotation.Euler(), CurrentTransform.Rotation.Euler(), EKey3DTransformChannel::Rotation, ChannelsToKey & EKey3DTransformChannel::Rotation ? EKey3DTransformChannel::Key : EKey3DTransformChannel::Default, bUnwindRotation, OutKeys );
-	GetKeysForVector( bLastVectorIsValid, LastTransform.Scale, CurrentTransform.Scale, EKey3DTransformChannel::Scale, ChannelsToKey & EKey3DTransformChannel::Scale ? EKey3DTransformChannel::Key : EKey3DTransformChannel::Default, bUnwindRotation, OutKeys );
-}
-
-bool F3DTransformTrackEditor::ShouldAddKey(UMovieScene3DTransformTrack* InTrack, FTransformKey InKey, FKeyParams InKeyParams) const
-{
-	return FKeyframeTrackEditor::ShouldAddKey(InTrack, InKey, InKeyParams) && InKey.ChannelValueType == EKey3DTransformChannel::Key;
+	GetKeysForVector( bLastVectorIsValid, LastTransform.Translation, CurrentTransform.Translation, EKey3DTransformChannel::Translation, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
+	GetKeysForVector( bLastVectorIsValid, LastTransform.Rotation.Euler(), CurrentTransform.Rotation.Euler(), EKey3DTransformChannel::Rotation, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
+	GetKeysForVector( bLastVectorIsValid, LastTransform.Scale, CurrentTransform.Scale, EKey3DTransformChannel::Scale, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
 }
 
 void F3DTransformTrackEditor::AddTransformKeysForHandle( FGuid ObjectHandle, EKey3DTransformChannel::Type ChannelToKey, FKeyParams KeyParams )
@@ -707,14 +698,15 @@ void F3DTransformTrackEditor::AddTransformKeysForObject( UObject* Object, EKey3D
 
 void F3DTransformTrackEditor::AddTransformKeys( AActor* ActorToKey, const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, FKeyParams KeyParams )
 {
-	TArray<FTransformKey> Keys;
-	GetChangedTransformKeys(LastTransform, CurrentTransform, ChannelsToKey, bUnwindRotation, Keys);
+	TArray<FTransformKey> NewKeys;
+	TArray<FTransformKey> DefaultKeys;
+	GetTransformKeys(LastTransform, CurrentTransform, ChannelsToKey, bUnwindRotation, NewKeys, DefaultKeys);
 
-	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnAddTransformKeys, ActorToKey, &Keys, CurrentTransform, KeyParams ) );
+	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnAddTransformKeys, ActorToKey, &NewKeys, &DefaultKeys, CurrentTransform, KeyParams ) );
 }
 
 
-bool F3DTransformTrackEditor::OnAddTransformKeys( float Time, AActor* ActorToKey, TArray<FTransformKey>* Keys, FTransformData CurrentTransform, FKeyParams KeyParams )
+bool F3DTransformTrackEditor::OnAddTransformKeys( float Time, AActor* ActorToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, FKeyParams KeyParams )
 {
 	TArray<UObject*> ObjectsToKey;
 	ObjectsToKey.Add(ActorToKey);
@@ -722,7 +714,8 @@ bool F3DTransformTrackEditor::OnAddTransformKeys( float Time, AActor* ActorToKey
 	return AddKeysToObjects(
 		ObjectsToKey,
 		Time,
-		*Keys,
+		*NewKeys,
+		*DefaultKeys,
 		KeyParams,
 		UMovieScene3DTransformTrack::StaticClass(),
 		TransformPropertyName,

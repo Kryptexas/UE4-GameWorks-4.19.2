@@ -68,6 +68,8 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 	, LevelSequence(nullptr)
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
+	, StartTime(0.f)
+	, EndTime(0.f)
 	, CurrentNumLoops(0)
 	, bHasCleanedUpSequence(false)
 {
@@ -164,13 +166,7 @@ void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 
 float ULevelSequencePlayer::GetLength() const
 {
-	if (!LevelSequence)
-	{
-		return 0;
-	}
-
-	UMovieScene* MovieScene = LevelSequence->GetMovieScene();
-	return MovieScene ? MovieScene->GetPlaybackRange().Size<float>() : 0;
+	return EndTime - StartTime;
 }
 
 float ULevelSequencePlayer::GetPlayRate() const
@@ -185,14 +181,10 @@ void ULevelSequencePlayer::SetPlayRate(float PlayRate)
 
 void ULevelSequencePlayer::SetPlaybackRange( const float NewStartTime, const float NewEndTime )
 {
-	if( LevelSequence != nullptr )
-	{
-		UMovieScene* MovieScene = LevelSequence->GetMovieScene();
-		if( MovieScene != nullptr )
-		{
-			MovieScene->SetPlaybackRange( NewStartTime, NewEndTime );
-		}
-	}
+	StartTime = NewStartTime;
+	EndTime = FMath::Max(NewEndTime, StartTime);
+
+	TimeCursorPosition = FMath::Clamp(TimeCursorPosition, 0.f, GetLength());
 }
 
 void ULevelSequencePlayer::OnCursorPositionChanged()
@@ -229,6 +221,12 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 
 	World = InWorld;
 	PlaybackSettings = Settings;
+
+	if (UMovieScene* MovieScene = LevelSequence->GetMovieScene())
+	{
+		TRange<float> PlaybackRange = MovieScene->GetPlaybackRange();
+		SetPlaybackRange(PlaybackRange.GetLowerBoundValue(), PlaybackRange.GetUpperBoundValue());
+	}
 
 	// Ensure everything is set up, ready for playback
 	Stop();
@@ -341,8 +339,7 @@ void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float
 {
 	if(RootMovieSceneInstance.IsValid())
 	{
-		const float SequenceStartOffset = LevelSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue();
-		RootMovieSceneInstance->Update(CurrentPosition + SequenceStartOffset, PreviousPosition + SequenceStartOffset, *this);
+		RootMovieSceneInstance->Update(CurrentPosition + StartTime, PreviousPosition + StartTime, *this);
 #if WITH_EDITOR
 		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
 #endif

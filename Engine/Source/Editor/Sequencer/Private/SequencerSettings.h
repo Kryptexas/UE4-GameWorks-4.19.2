@@ -54,10 +54,10 @@ public:
 
 	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 
-	/** Gets whether or not auto key is enabled. */
-	bool GetAutoKeyEnabled() const;
-	/** Sets whether or not auto key is enabled. */
-	void SetAutoKeyEnabled(bool InbAutoKeyEnabled);
+	/** Gets the current auto-key mode. */
+	EAutoKeyMode GetAutoKeyMode() const;
+	/** Sets the current auto-key mode. */
+	void SetAutoKeyMode(EAutoKeyMode AutoKeyMode);
 
 	/** Gets whether or not key all is enabled. */
 	bool GetKeyAllEnabled() const;
@@ -176,6 +176,11 @@ public:
 	/** Set whether or not the cursor should be kept within the playback range during playback in sequencer */
 	void SetKeepCursorInPlayRange(bool bInKeepCursorInPlayRange);
 
+	/** @return true if the playback range should be synced to the section bounds, false otherwise */
+	bool ShouldKeepPlayRangeInSectionBounds() const;
+	/** Set whether or not the playback range should be synced to the section bounds */
+	void SetKeepPlayRangeInSectionBounds(bool bInKeepPlayRangeInSectionBounds);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -184,7 +189,7 @@ public:
 
 protected:
 	UPROPERTY( config )
-	bool bAutoKeyEnabled;
+	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
 
 	UPROPERTY( config )
 	bool bKeyAllEnabled;
@@ -254,6 +259,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bKeepCursorInPlayRange;
+
+	UPROPERTY( config )
+	bool bKeepPlayRangeInSectionBounds;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

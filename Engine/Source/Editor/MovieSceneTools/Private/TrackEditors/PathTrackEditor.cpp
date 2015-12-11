@@ -109,17 +109,6 @@ TSharedRef<ISequencerSection> F3DPathTrackEditor::MakeSectionInterface( UMovieSc
 }
 
 
-void F3DPathTrackEditor::AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset )
-{
-	AActor* ParentActor = Cast<AActor>(AdditionalAsset);
-	if (ParentActor != nullptr)
-	{
-		UMovieSceneSection* DummySection = nullptr;
-		ActorPicked(ParentActor, ObjectGuid, DummySection);
-	}
-}
-
-
 void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(AActor::StaticClass()))

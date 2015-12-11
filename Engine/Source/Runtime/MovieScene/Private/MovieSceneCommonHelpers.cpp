@@ -143,20 +143,6 @@ USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Obj
 	return SceneComponent;
 }
 
-void MovieSceneHelpers::SetRuntimeObjectMobility(UObject* Object, EComponentMobility::Type ComponentMobility)
-{
-	USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(Object);
-	if (SceneComponent)
-	{
-		if (SceneComponent->Mobility != ComponentMobility)
-		{
-			SceneComponent->Modify();
-
-			SceneComponent->SetMobility(ComponentMobility);
-		}
-	}
-}
-
 void MovieSceneHelpers::SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation)
 {
 	switch (InKeyInterpolation)

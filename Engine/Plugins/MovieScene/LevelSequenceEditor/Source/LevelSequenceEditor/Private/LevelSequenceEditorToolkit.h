@@ -5,6 +5,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "LevelSequence.h"
 
+
 enum class EMapChangeType : uint8;
 class FTabManager;
 class ILevelViewport;

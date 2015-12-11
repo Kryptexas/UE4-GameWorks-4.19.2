@@ -84,13 +84,12 @@ public:
 
 	virtual bool HasKeyboardFocus() const override;
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual bool SupportsKeyboardFocus() const override;
 
 private:
 
 	void HandleEditableTextTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo);
+	FReply HandleTextBlockDoubleClicked();
 	EVisibility HandleIconVisibility() const;
 
 private:
@@ -98,7 +97,6 @@ private:
 	TAttribute<bool> CanEditAttribute;
 	FOnTextChanged OnTextChanged;
 	TAttribute<FText> TextAttribute;
-	bool WasFocused;
 
 	TSharedPtr<STextBlock> TextBlock;
 	TSharedPtr<SEditableText> EditableText;

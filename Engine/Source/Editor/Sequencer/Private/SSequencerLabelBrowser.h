@@ -38,6 +38,13 @@ public:
 	 */
 	void Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSequencer);
 
+	/**
+	 * Sets the selected label.
+	 *
+	 * @param Label The label to select.
+	 */
+	void SetSelectedLabel(const FString& Label);
+
 protected:
 
 	/** Reloads the list of processes. */
@@ -47,6 +54,9 @@ private:
 
 	/** Callback for when the label manager's labels changed. */
 	void HandleLabelManagerLabelsChanged();
+
+	/** Callback for when a label has been renamed in the label tree view. */
+	void HandleLabelListRowLabelRenamed(TSharedPtr<FSequencerLabelTreeNode> Node, const FString& NewLabel);
 
 	/** Callback for generating the label tree view's context menu. */
 	TSharedPtr<SWidget> HandleLabelTreeViewContextMenuOpening();
@@ -71,12 +81,6 @@ private:
 
 	/** Callback for checking whether 'Rename' context menu entry can execute. */
 	bool HandleRenameLabelMenuEntryCanExecute() const;
-
-	/** Callback for executing the 'Set Color' context menu entry. */
-	void HandleSetColorMenuEntryExecute();
-
-	/** Callback for checking whether 'Set Color' context menu entry can execute. */
-	bool HandleSetColorMenuEntryCanExecute() const;
 
 private:
 

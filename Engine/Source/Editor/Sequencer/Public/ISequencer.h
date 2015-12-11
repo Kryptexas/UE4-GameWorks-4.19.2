@@ -18,6 +18,23 @@ enum class EMapChangeType : uint8;
 
 
 /**
+ * Defines auto-key modes.
+ */
+UENUM()
+enum class EAutoKeyMode
+{
+	/** Key all properties that change. */
+	KeyAll,
+
+	/** Only key changed properties if they have exiting animations. */
+	KeyAnimated,
+
+	/** Don't auto-key */
+	KeyNone
+};
+
+
+/**
  * Interface for sequencers.
  */
 class ISequencer
@@ -77,11 +94,11 @@ public:
 	 */
 	virtual void AddSubSequence(UMovieSceneSequence* Sequence) = 0;
 
-	/** @return Returns whether auto-key is enabled in this sequencer */
-	virtual bool GetAutoKeyEnabled() const = 0;
+	/** @return Returns the current auto-key mode. */
+	virtual EAutoKeyMode GetAutoKeyMode() const = 0;
 
 	/** Sets whether autokey is enabled in this sequencer. */
-	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) = 0;
+	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) = 0;
 
 	/** @return Returns whether key all is enabled in this sequencer */
 	virtual bool GetKeyAllEnabled() const = 0;
@@ -183,6 +200,8 @@ public:
 	virtual void NotifyMovieSceneDataChanged() = 0;
 
 	virtual void UpdateRuntimeInstances() = 0;
+
+	virtual void UpdatePlaybackRange() = 0;
 
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;

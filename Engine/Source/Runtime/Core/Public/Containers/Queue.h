@@ -78,13 +78,18 @@ public:
 		OutItem = Popped->Item;
 
 		TNode* OldTail = Tail;
-
 		Tail = Popped;
 		Tail->Item = ItemType();
-
 		delete OldTail;
 
 		return true;
+	}
+
+	/** Empty the queue, discarding all items. */
+	void Empty()
+	{
+		ItemType DummyItem;
+		while (Dequeue(DummyItem));
 	}
 
 	/**

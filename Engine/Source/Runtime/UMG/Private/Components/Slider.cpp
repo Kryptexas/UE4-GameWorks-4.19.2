@@ -43,6 +43,13 @@ void USlider::SynchronizeProperties()
 	MySlider->SetIndentHandle(IndentHandle);
 }
 
+void USlider::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MySlider.Reset();
+}
+
 void USlider::HandleOnValueChanged(float InValue)
 {
 	OnValueChanged.Broadcast(InValue);

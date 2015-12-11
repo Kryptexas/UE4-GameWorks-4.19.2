@@ -76,15 +76,6 @@ private:
 	}
 
 	/**
-	* Opens the experimental messaging debugger tab.
-	* Remove this when it is no longer experimental.
-	*/
-	static void OpenMessagingDebugger()
-	{
-		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("MessagingDebugger")));
-	}
-
-	/**
 	* Opens the experimental localization dashboard.
 	* Remove this when it is no longer experimental.
 	*/

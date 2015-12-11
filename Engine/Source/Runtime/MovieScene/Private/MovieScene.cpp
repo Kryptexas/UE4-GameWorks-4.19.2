@@ -75,6 +75,12 @@ bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 
 	return bAnythingRemoved;
 }
+
+FMovieSceneSpawnable* UMovieScene::FindSpawnable( const TFunctionRef<bool(FMovieSceneSpawnable&)>& InPredicate )
+{
+	return Spawnables.FindByPredicate(InPredicate);
+}
+
 #endif //WITH_EDITOR
 
 
@@ -195,31 +201,45 @@ FMovieScenePossessable& UMovieScene::GetPossessable( const int32 Index )
 FText UMovieScene::GetObjectDisplayName(const FGuid& ObjectId)
 {
 #if WITH_EDITORONLY_DATA
-	FText& Result = ObjectsToDisplayNames.FindOrAdd(ObjectId.ToString());
+	FText* Result = ObjectsToDisplayNames.Find(ObjectId.ToString());
 
-	if (!Result.IsEmpty())
+	if (Result != nullptr)
 	{
-		return Result;
+		return *Result;
 	}
 
 	FMovieSceneSpawnable* Spawnable = FindSpawnable(ObjectId);
 
 	if (Spawnable != nullptr)
-		{
-		Result = FText::FromString(Spawnable->GetName());
-		return Result;
-		}
+	{
+		return FText::FromString(Spawnable->GetName());
+	}
 
 	FMovieScenePossessable* Possessable = FindPossessable(ObjectId);
 
 	if (Possessable != nullptr)
-		{
-		Result = FText::FromString(Possessable->GetName());
-		return Result;
+	{
+		return FText::FromString(Possessable->GetName());
 	}
 #endif
 	return FText::GetEmpty();
 }
+
+
+
+#if WITH_EDITORONLY_DATA
+void UMovieScene::SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName)
+{
+	if (DisplayName.IsEmpty())
+	{
+		ObjectsToDisplayNames.Remove(ObjectId.ToString());
+	}
+	else
+	{
+		ObjectsToDisplayNames.Add(ObjectId.ToString(), DisplayName);
+	}
+}
+#endif
 
 
 TRange<float> UMovieScene::GetPlaybackRange() const

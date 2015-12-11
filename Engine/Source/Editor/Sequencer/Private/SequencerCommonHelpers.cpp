@@ -90,6 +90,22 @@ void SequencerHelpers::GetAllSections(TSharedRef<FSequencerDisplayNode> DisplayN
 	}
 }
 
+bool SequencerHelpers::FindObjectBindingNode(TSharedRef<FSequencerDisplayNode> DisplayNode, TSharedRef<FSequencerDisplayNode>& ObjectBindingNode)
+{
+	if (DisplayNode->GetType() == ESequencerNode::Object)
+	{
+		ObjectBindingNode = DisplayNode;
+		return true;
+	}
+
+	if (DisplayNode->GetParent().IsValid())
+	{
+		return FindObjectBindingNode(DisplayNode->GetParent().ToSharedRef(), ObjectBindingNode);
+	}
+
+	return false;
+}
+
 int32 SequencerHelpers::TimeToFrame(float Time, float FrameRate)
 {
 	float Frame = Time * FrameRate;

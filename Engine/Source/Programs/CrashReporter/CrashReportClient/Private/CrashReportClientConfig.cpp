@@ -18,6 +18,14 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		// Use the default value.
 		CrashReportReceiverIP = TEXT( "http://crashreporter.epicgames.com:57005" );
 	}
+	UE_LOG(CrashReportClientLog, Log, TEXT("CrashReportReceiverIP: %s"), *CrashReportReceiverIP);
+
+	if (!GConfig->GetString(*SectionName, TEXT("DataRouterUrl"), DataRouterUrl, GEngineIni))
+	{
+		// Use the default value.
+		DataRouterUrl = TEXT("");
+	}
+	UE_LOG(CrashReportClientLog, Log, TEXT("DataRouterUrl: %s"), *DataRouterUrl);
 
 	if (!GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni ))
 	{
@@ -44,8 +52,6 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 	}
 	
 	ReadFullCrashDumpConfigurations();
-
-	UE_LOG( CrashReportClientLog, Log, TEXT( "CrashReportReceiverIP: %s" ), *CrashReportReceiverIP );
 }
 
 void FCrashReportClientConfig::SetAllowToBeContacted( bool bNewValue )

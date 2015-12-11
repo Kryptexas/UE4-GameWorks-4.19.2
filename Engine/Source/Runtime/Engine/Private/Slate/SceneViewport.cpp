@@ -856,6 +856,14 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 		}
 	}
 
+	// Update key state mappings so that the the viewport modifier states are valid upon focus.
+	KeyStateMap.Add( EKeys::LeftAlt, FSlateApplication::Get().GetModifierKeys().IsLeftAltDown() );
+	KeyStateMap.Add( EKeys::RightAlt, FSlateApplication::Get().GetModifierKeys().IsRightAltDown() );
+	KeyStateMap.Add( EKeys::LeftControl, FSlateApplication::Get().GetModifierKeys().IsLeftControlDown());
+	KeyStateMap.Add( EKeys::RightControl, FSlateApplication::Get().GetModifierKeys().IsRightControlDown());
+	KeyStateMap.Add( EKeys::LeftShift, FSlateApplication::Get().GetModifierKeys().IsLeftShiftDown());
+	KeyStateMap.Add( EKeys::RightShift, FSlateApplication::Get().GetModifierKeys().IsRightShiftDown());
+
 	return CurrentReplyState;
 }
 

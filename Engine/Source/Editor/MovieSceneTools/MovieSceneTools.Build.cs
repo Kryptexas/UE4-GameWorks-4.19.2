@@ -59,7 +59,5 @@ public class MovieSceneTools : ModuleRules
 				"PropertyEditor"
 			}
 		);
-
-        bFasterWithoutUnity = true;
 	}
 }

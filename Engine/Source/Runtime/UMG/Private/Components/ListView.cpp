@@ -73,6 +73,13 @@ const FText UListView::GetPaletteCategory()
 
 #endif
 
+void UListView::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyListView.Reset();
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

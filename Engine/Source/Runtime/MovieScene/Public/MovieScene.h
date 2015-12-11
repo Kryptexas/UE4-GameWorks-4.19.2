@@ -105,6 +105,14 @@ public:
 	 */
 	bool RemoveSpawnable(const FGuid& Guid);
 
+	/**
+	 * Attempt to find a spawnable using some custom prodeicate
+	 *
+	 * @param InPredicate A predicate to test each spawnable against
+	 * @return Spawnable object that was found (or nullptr if not found).
+	 */
+	FMovieSceneSpawnable* FindSpawnable( const TFunctionRef<bool(FMovieSceneSpawnable&)>& InPredicate );
+
 #endif //WITH_EDITOR
 
 	/**
@@ -380,10 +388,7 @@ public:
 	 * @param ObjectId The object identifier.
 	 * @result The object's display name.
 	 */
-	void SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName)
-	{
-		ObjectsToDisplayNames.Add(ObjectId.ToString(), DisplayName);
-	}
+	void SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName);
 #endif
 
 	/**

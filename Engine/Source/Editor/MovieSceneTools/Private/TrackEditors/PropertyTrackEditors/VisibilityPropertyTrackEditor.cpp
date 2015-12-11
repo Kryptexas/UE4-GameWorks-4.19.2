@@ -18,7 +18,7 @@ TSharedRef<FPropertySection> FVisibilityPropertyTrackEditor::MakePropertySection
 }
 
 
-void FVisibilityPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& GeneratedKeys )
+void FVisibilityPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<bool>& NewGeneratedKeys, TArray<bool>& DefaultGeneratedKeys )
 {
-	GeneratedKeys.Add(!PropertyChangedParams.GetPropertyValue<bool>());
+	NewGeneratedKeys.Add(!PropertyChangedParams.GetPropertyValue<bool>());
 }

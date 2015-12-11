@@ -74,6 +74,15 @@ public:
 		}
 	}
 
+	void UpdatePlaybackRange()
+	{
+		TSharedPtr<ISequencer> SequencerPin = Sequencer.Pin();
+		if( SequencerPin.IsValid()  )
+		{
+			SequencerPin->UpdatePlaybackRange();
+		}
+	}
+
 	void AnimatablePropertyChanged( FOnKeyProperty OnKeyProperty )
 	{
 		check(OnKeyProperty.IsBound());
@@ -98,6 +107,8 @@ public:
 				// Movie scene data has changed
 				NotifyMovieSceneDataChanged();
 			}
+
+			UpdatePlaybackRange();
 		}
 	}
 
@@ -190,7 +201,7 @@ public:
 
 	// ISequencerTrackEditor interface
 
-	virtual void AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset = nullptr ) override { }
+	virtual void AddKey( const FGuid& ObjectGuid ) override {}
 
 	virtual UMovieSceneTrack* AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName) override
 	{
@@ -214,7 +225,7 @@ public:
 	{
 		// @todo sequencer livecapture: This turns on "auto key" for the purpose of capture keys for actor state
 		// during PIE sessions when record mode is active.
-		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyEnabled();
+		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyMode() != EAutoKeyMode::KeyNone;
 	}
 
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;

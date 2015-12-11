@@ -29,39 +29,39 @@ FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport
 	: DiagnosticText( LOCTEXT("ProcessingReport", "Processing crash report ...") )
 	, DiagnoseReportTask(nullptr)
 	, ErrorReport( InErrorReport )
-	, Uploader( FCrashReportClientConfig::Get().GetReceiverAddress() )
-	, bBeginUploadCalled(false)
+	, ReceiverUploader(FCrashReportClientConfig::Get().GetReceiverAddress())
+	, DataRouterUploader(FCrashReportClientConfig::Get().GetDataRouterURL())
 	, bShouldWindowBeHidden(false)
 	, bSendData(false)
 {
 	if (FPrimaryCrashProperties::Get()->IsValid())
 	{
-		bool bUsePrimaryData = false;
-		if (FPrimaryCrashProperties::Get()->HasProcessedData())
+	bool bUsePrimaryData = false;
+	if (FPrimaryCrashProperties::Get()->HasProcessedData())
+	{
+		bUsePrimaryData = true;
+	}
+	else
+	{
+		if (!ErrorReport.TryReadDiagnosticsFile() && !FParse::Param( FCommandLine::Get(), TEXT( "no-local-diagnosis" ) ))
 		{
-			bUsePrimaryData = true;
+			DiagnoseReportTask = new FAsyncTask<FDiagnoseReportWorker>( this );
+			DiagnoseReportTask->StartBackgroundTask();
 		}
 		else
 		{
-			if (!ErrorReport.TryReadDiagnosticsFile() && !FParse::Param( FCommandLine::Get(), TEXT( "no-local-diagnosis" ) ))
-			{
-				DiagnoseReportTask = new FAsyncTask<FDiagnoseReportWorker>( this );
-				DiagnoseReportTask->StartBackgroundTask();
-			}
-			else
-			{
-				bUsePrimaryData = true;
-			}
+			bUsePrimaryData = true;
 		}
+	}
 
-		if (bUsePrimaryData)
-		{
-			const FString CallstackString = FPrimaryCrashProperties::Get()->CallStack.AsString();
-			const FString ReportString = FString::Printf( TEXT( "%s\n\n%s" ), *FPrimaryCrashProperties::Get()->ErrorMessage.AsString(), *CallstackString );
-			DiagnosticText = FText::FromString( ReportString );
+	if (bUsePrimaryData)
+	{
+		const FString CallstackString = FPrimaryCrashProperties::Get()->CallStack.AsString();
+		const FString ReportString = FString::Printf( TEXT( "%s\n\n%s" ), *FPrimaryCrashProperties::Get()->ErrorMessage.AsString(), *CallstackString );
+		DiagnosticText = FText::FromString( ReportString );
 
-			FormattedDiagnosticText = FCrashReportUtil::FormatDiagnosticText( FText::FromString( ReportString ) );
-		}
+		FormattedDiagnosticText = FCrashReportUtil::FormatDiagnosticText( FText::FromString( ReportString ) );
+	}
 	}
 }
 
@@ -190,20 +190,43 @@ bool FCrashReportClient::Tick(float UnusedDeltaTime)
 	
 	if( bSendData )
 	{
-		if( !bBeginUploadCalled )
+		if (!FCrashUploadBase::IsInitialized())
 		{
-			// Can be called only when we have all files.
-			Uploader.BeginUpload( ErrorReport );
-			bBeginUploadCalled = true;
+			FCrashUploadBase::StaticInitialize( ErrorReport );
 		}
 
-		// IsWorkDone will always return true here (since uploader can't finish until the diagnosis has been sent), but it
+		if( !ReceiverUploader.IsUploadCalled())
+		{
+			// Can be called only when we have all files.
+			ReceiverUploader.BeginUpload( ErrorReport );
+		}
+
+		// IsWorkDone will always return true here (since ReceiverUploader can't finish until the diagnosis has been sent), but it
 		//  has the side effect of joining the worker thread.
-		if( !Uploader.IsFinished() )
+		if( !ReceiverUploader.IsFinished() )
 		{
 			// More ticks, please
 			return true;
 		}
+
+		if (!DataRouterUploader.IsUploadCalled())
+		{
+			// Can be called only when we have all files.
+			DataRouterUploader.BeginUpload(ErrorReport);
+		}
+
+		// IsWorkDone will always return true here (since DataRouterUploader can't finish until the diagnosis has been sent), but it
+		//  has the side effect of joining the worker thread.
+		if (!DataRouterUploader.IsFinished())
+		{
+			// More ticks, please
+			return true;
+		}
+	}
+
+	if (FCrashUploadBase::IsInitialized())
+	{
+		FCrashUploadBase::StaticShutdown();
 	}
 
 	FPlatformMisc::RequestExit(false);

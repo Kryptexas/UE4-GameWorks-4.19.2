@@ -4011,7 +4011,6 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	/** Actor will fail to spawn. */
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
-
 /** Intermediate material merging data */
 struct FMaterialMergeData
 {

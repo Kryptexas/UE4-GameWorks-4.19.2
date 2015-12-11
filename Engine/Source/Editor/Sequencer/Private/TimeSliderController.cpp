@@ -107,6 +107,7 @@ FSequencerTimeSliderController::FSequencerTimeSliderController( const FTimeSlide
 	ScrubHandleUp = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleUp" ) ); 
 	ScrubHandleDown = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleDown" ) );
 	ScrubHandleSize = 13.f;
+	ContextMenuSupression = 0;
 }
 
 struct FDrawTickArgs
@@ -418,7 +419,7 @@ int32 FSequencerTimeSliderController::DrawPlaybackRange(const FGeometry& Allotte
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId+1,
-		AllottedGeometry.ToPaintGeometry(FVector2D(0.f, 0.f), FVector2D(PlaybackRangeL - 1.f, AllottedGeometry.Size.Y)),
+		AllottedGeometry.ToPaintGeometry(FVector2D(0.f, 0.f), FVector2D(PlaybackRangeL, AllottedGeometry.Size.Y)),
 		FEditorStyle::GetBrush("WhiteBrush"),
 		MyClippingRect,
 		ESlateDrawEffect::None,
@@ -465,11 +466,35 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 {
 	bool bHandleLeftMouseButton = MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && WidgetOwner.HasMouseCapture();
 	bool bHandleRightMouseButton = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && WidgetOwner.HasMouseCapture() && TimeSliderArgs.AllowZoom ;
-	
+
 	if ( bHandleRightMouseButton )
 	{
 		if (!bPanning)
 		{
+			// Open a context menu if allowed
+			if (ContextMenuSupression == 0 && TimeSliderArgs.PlaybackRange.IsSet())
+			{
+				FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.Size );
+				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
+
+				float MouseValue = RangeToScreen.LocalXToInput( CursorPos.X );
+				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
+				{
+					MouseValue = TimeSliderArgs.Settings->SnapTimeToInterval(MouseValue);
+				}
+
+				TSharedRef<SWidget> MenuContent = OpenSetPlaybackRangeMenu(MouseValue);
+				FSlateApplication::Get().PushMenu(
+					WidgetOwner.AsShared(),
+					MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath(),
+					MenuContent,
+					MouseEvent.GetScreenSpacePosition(),
+					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+					);
+
+				return FReply::Handled().SetUserFocus(MenuContent, EFocusCause::SetDirectly).ReleaseMouseCapture();
+			}
+
 			// return unhandled in case our parent wants to use our right mouse button to open a context menu
 			return FReply::Unhandled().ReleaseMouseCapture();
 		}
@@ -688,7 +713,7 @@ FReply FSequencerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, const
 	TOptional<TRange<float>> NewTargetRange;
 
 	float MouseFractionX = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X / MyGeometry.GetLocalSize().X;
-	if ( TimeSliderArgs.AllowZoom && (MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown()) )
+	if ( TimeSliderArgs.AllowZoom && MouseEvent.IsControlDown() )
 	{
 		const float ZoomDelta = -0.2f * MouseEvent.GetWheelDelta();
 		if (ZoomByDelta(ZoomDelta, MouseFractionX))
@@ -696,7 +721,7 @@ FReply FSequencerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, const
 			return FReply::Handled();
 		}
 	}
-	else if (MouseEvent.IsLeftShiftDown() || MouseEvent.IsRightShiftDown())
+	else if (MouseEvent.IsShiftDown())
 	{
 		PanByDelta(-MouseEvent.GetWheelDelta());
 		return FReply::Handled();
@@ -787,6 +812,50 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 	return LayerId;
 }
 
+TSharedRef<SWidget> FSequencerTimeSliderController::OpenSetPlaybackRangeMenu(float MouseTime)
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, nullptr);
+
+	FText NumericText;
+	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
+	{
+		NumericText = FText::Format(LOCTEXT("FrameTextFormat", "Playback Range (at frame {0}):"), FText::AsNumber(TimeToFrame(MouseTime)));
+	}
+	else
+	{
+		NumericText = FText::Format(LOCTEXT("TimeTextFormat", "Playback Range (at {0}s):"), FText::AsNumber(MouseTime));
+	}
+
+	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
+
+	MenuBuilder.BeginSection("SequencerPlaybackRangeMenu", NumericText);
+	{
+		MenuBuilder.AddMenuEntry(
+			FText::Format(LOCTEXT("SetPlaybackStart", "Set Start Time"), NumericText),
+			FText(),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=]{ return SetPlaybackRangeStart(MouseTime); }),
+				FCanExecuteAction::CreateLambda([=]{ return MouseTime <= PlaybackRange.GetUpperBoundValue(); })
+			)
+		);
+
+		MenuBuilder.AddMenuEntry(
+			FText::Format(LOCTEXT("SetPlaybackEnd", "Set End Time"), NumericText),
+			FText(),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=]{ return SetPlaybackRangeEnd(MouseTime); }),
+				FCanExecuteAction::CreateLambda([=]{ return MouseTime >= PlaybackRange.GetLowerBoundValue(); })
+			)
+		);
+	}
+	MenuBuilder.EndSection(); // SequencerPlaybackRangeMenu
+
+	return MenuBuilder.MakeWidget();
+}
+
 int32 FSequencerTimeSliderController::TimeToFrame(float Time) const
 {
 	float FrameRate = 1.0f/TimeSliderArgs.Settings->GetTimeSnapInterval();
@@ -859,7 +928,7 @@ bool FSequencerTimeSliderController::ZoomByDelta( float InDelta, float MousePosi
 	float NewViewOutputMin = LocalViewRangeMin - (OutputChange * MousePositionFraction);
 	float NewViewOutputMax = LocalViewRangeMax + (OutputChange * (1.f - MousePositionFraction));
 
-	if( FMath::Abs( OutputChange ) > 0.01f && NewViewOutputMin < NewViewOutputMax )
+	if( NewViewOutputMin < NewViewOutputMax )
 	{
 		ClampViewRange(NewViewOutputMin, NewViewOutputMax);
 		SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);

@@ -35,16 +35,16 @@ public:
 
 	// IMediaStream interface
 
-	virtual void AddSink( const IMediaSinkRef& Sink ) override;
+	virtual void AddSink(const IMediaSinkRef& Sink) override;
 	virtual bool Disable() override;
 	virtual bool Enable() override;
 	virtual FText GetDisplayName() const override;
 	virtual FString GetLanguage() const override;
 	virtual FString GetName() const override;
 	virtual bool IsEnabled() const override;
-	virtual bool IsMutuallyExclusive( const IMediaStreamRef& Other ) const override;
+	virtual bool IsMutuallyExclusive(const IMediaStreamRef& Other) const override;
 	virtual bool IsProtected() const override;
-	virtual void RemoveSink( const IMediaSinkRef& Sink ) override;
+	virtual void RemoveSink(const IMediaSinkRef& Sink) override;
 
 private:
 

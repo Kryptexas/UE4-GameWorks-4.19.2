@@ -15,7 +15,7 @@ public:
 
 	// FSelfRegisteringExec interface
 
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
 		if (FParse::Command(&Cmd, TEXT("MEDIA")))
 		{
@@ -49,7 +49,6 @@ public:
 	// IModuleInterface interface
 
 	virtual void StartupModule() override { }
-
 	virtual void ShutdownModule() override { }
 
 	virtual bool SupportsDynamicReloading() override

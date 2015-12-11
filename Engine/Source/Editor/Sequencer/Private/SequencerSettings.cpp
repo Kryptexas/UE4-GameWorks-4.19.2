@@ -5,7 +5,7 @@
 USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
-	bAutoKeyEnabled = false;
+	AutoKeyMode = EAutoKeyMode::KeyNone;
 	bKeyAllEnabled = false;
 	bKeyInterpPropertiesOnly = false;
 	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
@@ -29,18 +29,19 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bShowCurveEditorCurveToolTips = true;
 	bLooping = false;
 	bKeepCursorInPlayRange = true;
+	bKeepPlayRangeInSectionBounds = true;
 }
 
-bool USequencerSettings::GetAutoKeyEnabled() const
+EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
 {
-	return bAutoKeyEnabled;
+	return AutoKeyMode;
 }
 
-void USequencerSettings::SetAutoKeyEnabled(bool InbAutoKeyEnabled)
+void USequencerSettings::SetAutoKeyMode(EAutoKeyMode InAutoKeyMode)
 {
-	if ( bAutoKeyEnabled != InbAutoKeyEnabled )
+	if ( AutoKeyMode != InAutoKeyMode )
 	{
-		bAutoKeyEnabled = InbAutoKeyEnabled;
+		AutoKeyMode = InAutoKeyMode;
 		SaveConfig();
 	}
 }
@@ -355,6 +356,20 @@ void USequencerSettings::SetKeepCursorInPlayRange(bool bInKeepCursorInPlayRange)
 	}
 }
 
+bool USequencerSettings::ShouldKeepPlayRangeInSectionBounds() const
+{
+	return bKeepPlayRangeInSectionBounds;
+}
+
+void USequencerSettings::SetKeepPlayRangeInSectionBounds(bool bInKeepPlayRangeInSectionBounds)
+{
+	if (bKeepPlayRangeInSectionBounds != bInKeepPlayRangeInSectionBounds)
+	{
+		bKeepPlayRangeInSectionBounds = bInKeepPlayRangeInSectionBounds;
+		SaveConfig();
+	}
+}
+
 bool USequencerSettings::GetShowCurveEditorCurveToolTips() const
 {
 	return bShowCurveEditorCurveToolTips;
@@ -388,4 +403,5 @@ ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectIniti
 	bKeyInterpPropertiesOnly = true;
 	TimeSnapInterval = 0.033334f;
 	bShowRangeSlider = true;
+	bKeepPlayRangeInSectionBounds = false;
 }
